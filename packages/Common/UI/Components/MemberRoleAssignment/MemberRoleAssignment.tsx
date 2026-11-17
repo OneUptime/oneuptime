@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useRef,
 } from "react";
+import TableSkeleton from "../Skeleton/TableSkeleton";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import Card, { CardHeaderLayout } from "../Card/Card";
@@ -14,7 +15,6 @@ import IconProp from "../../../Types/Icon/IconProp";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../Utils/API/API";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Image from "../Image/Image";
 import Icon from "../Icon/Icon";
@@ -390,7 +390,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
         className={props.className}
         headerLayout={props.headerLayout}
       >
-        <ComponentLoader />
+        <TableSkeleton rows={3} />
       </Card>
     );
   }

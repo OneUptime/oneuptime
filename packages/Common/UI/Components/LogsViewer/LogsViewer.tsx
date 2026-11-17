@@ -9,6 +9,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import PageSkeleton from "../Page/PageSkeleton";
 import Query from "../../../Types/BaseDatabase/Query";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import Log from "../../../Models/AnalyticsModels/Log";
@@ -20,7 +21,6 @@ import { JSONObject } from "../../../Types/JSON";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import API from "../../Utils/API/API";
 import { APP_API_URL } from "../../Config";
-import PageLoader from "../Loader/PageLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Service from "../../../Models/DatabaseModels/Service";
 import Host from "../../../Models/DatabaseModels/Host";
@@ -1398,7 +1398,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   }, [logAttributes]);
 
   if (isPageLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (pageError) {

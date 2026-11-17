@@ -276,7 +276,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
   }
 
   if (isPageLoading) {
-    return <PageSkeleton />;
+    return <PageSkeleton shape="table" />;
   }
 
   return (

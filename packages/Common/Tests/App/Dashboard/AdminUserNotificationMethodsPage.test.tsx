@@ -472,7 +472,7 @@ const isSettled: IsSettledFunction = (): boolean => {
   return (
     pendingRequestCount === 0 &&
     screen.queryByTestId("methods-loading") === null &&
-    screen.queryByTestId("bar-loader") === null
+    screen.queryByTestId("page-skeleton") === null
   );
 };
 
@@ -485,7 +485,7 @@ type AssertSettledFunction = () => void;
 const assertSettled: AssertSettledFunction = (): void => {
   expect(pendingRequestCount).toBe(0);
   expect(screen.queryByTestId("methods-loading")).not.toBeInTheDocument();
-  expect(screen.queryByTestId("bar-loader")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("page-skeleton")).not.toBeInTheDocument();
 };
 
 type WaitForSettledFunction = () => Promise<void>;

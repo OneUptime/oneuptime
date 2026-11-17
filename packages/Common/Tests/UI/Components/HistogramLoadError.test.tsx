@@ -134,7 +134,7 @@ describe("LogsHistogram (Log Volume)", () => {
   test("while it loads again, the loader stands in for the message", () => {
     render(<LogsHistogram buckets={[]} isLoading={true} error={TIMED_OUT} />);
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("chart-skeleton")).toBeInTheDocument();
     expect(
       screen.queryByTestId(TELEMETRY_LOAD_ERROR_TEST_ID),
     ).not.toBeInTheDocument();

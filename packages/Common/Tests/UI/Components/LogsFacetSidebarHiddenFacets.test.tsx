@@ -285,7 +285,7 @@ describe("LogsFacetSidebar hides empty resource facets", () => {
   test("loading with no data shows the loader and no footer", () => {
     render(sidebarElement({ facetData: {}, isLoading: true }));
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("table-skeleton")).toBeInTheDocument();
     expect(sectionTitles()).toEqual([]);
     expect(footer()).toBeNull();
   });

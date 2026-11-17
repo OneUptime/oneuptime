@@ -13,6 +13,7 @@ import {
   Translator,
 } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
+import TableSkeleton from "../../Skeleton/TableSkeleton";
 import { EMPTY_VALUE_MARK } from "../../../../Types/EmptyValueMark";
 import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
 import Log from "../../../../Models/AnalyticsModels/Log";
@@ -597,10 +598,7 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
   };
 
   return (
-    <div
-      className={isLoadingFirstRows ? "relative min-h-48" : "relative"}
-      data-testid={LOGS_TABLE_TEST_ID}
-    >
+    <div className="relative" data-testid={LOGS_TABLE_TEST_ID}>
       <div className="overflow-x-auto bg-white">
         {props.resizableColumns ? props.resizableColumns.styles : <></>}
         <table
@@ -903,7 +901,13 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
         </table>
       </div>
 
-      {props.isLoading && (
+      {/*
+       * The first rows draw as rows; a new search over rows already on
+       * screen is drawn over them, as the rows being replaced.
+       */}
+      {isLoadingFirstRows && <TableSkeleton rows={8} hasHeader={false} />}
+
+      {props.isLoading && !isLoadingFirstRows && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm">
           <ComponentLoader />
         </div>

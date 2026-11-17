@@ -1,4 +1,5 @@
 import { PUBLIC_DASHBOARD_API_URL } from "../../Utils/Config";
+import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import PublicDashboardUtil from "../../Utils/PublicDashboard";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -9,7 +10,6 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { JSONObject } from "Common/Types/JSON";
 import API from "../../Utils/API";
 import Navigation from "Common/UI/Utils/Navigation";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import React, { FunctionComponent, useEffect, useState } from "react";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -66,7 +66,7 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
   }, [dashboardIdKey]);
 
   if (!dashboardId || !PublicDashboardUtil.requiresMasterPassword()) {
-    return <PageLoader isVisible={true} />;
+    return <AuthPageSkeleton fields={1} />;
   }
 
   const handleFormSubmit: (

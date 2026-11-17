@@ -1,5 +1,5 @@
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import { CodeEditorActions } from "../CodeEditor/CodeEditor";
+import DetailListSkeleton from "../Skeleton/DetailListSkeleton";
 import DictionaryForm, { ValueType } from "../Dictionary/Dictionary";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicForm, { FormProps } from "../Forms/BasicForm";
@@ -1034,7 +1034,9 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           (RecordChoices), show a loader instead of the form. Otherwise the
           user briefly sees an empty dropdown, which is confusing.
         */}
-        {isWaitingForRecordChoices && <ComponentLoader />}
+        {isWaitingForRecordChoices && (
+          <DetailListSkeleton fields={3} columns={1} />
+        )}
         {component.metadata.arguments &&
           component.metadata.arguments.length > 0 &&
           !isWaitingForRecordChoices && (

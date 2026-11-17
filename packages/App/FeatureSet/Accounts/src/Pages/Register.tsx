@@ -1,4 +1,5 @@
 import { SIGNUP_API_URL } from "../Utils/ApiPaths";
+import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import { fetchIsAwaitingFirstAccount } from "../Utils/FirstAccount";
 import {
   isInvitedSignUp,
@@ -30,7 +31,6 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/Types/Translator";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Link from "Common/UI/Components/Link/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Captcha from "Common/UI/Components/Captcha/Captcha";
 import {
   BILLING_ENABLED,
@@ -478,7 +478,7 @@ const RegisterPage: () => JSX.Element = () => {
   }
 
   if (signInMethodsRead.isReading) {
-    return <PageLoader isVisible={true} />;
+    return <AuthPageSkeleton fields={3} />;
   }
 
   if (signInMethodsRead.signInMethods?.isSsoRequired) {
@@ -491,7 +491,7 @@ const RegisterPage: () => JSX.Element = () => {
 
   // The form's own header and links wait for the first-account answer too.
   if (isLoading || isReadingFirstAccount) {
-    return <PageLoader isVisible={true} />;
+    return <AuthPageSkeleton fields={3} />;
   }
 
   if (emailAwaitingVerification !== null) {

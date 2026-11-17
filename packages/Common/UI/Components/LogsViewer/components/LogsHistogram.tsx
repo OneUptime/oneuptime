@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import ChartSkeleton from "../../Skeleton/ChartSkeleton";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import {
@@ -17,7 +18,6 @@ import {
   SeverityColor,
 } from "./severityColors";
 import HistogramTooltip from "./HistogramTooltip";
-import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import OneUptimeDate from "../../../../Types/Date";
 import useHistogramRangeSelection, {
   HistogramRangeSelectionState,
@@ -170,7 +170,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
         className="flex h-32 select-none items-center justify-center rounded-lg border border-gray-200 bg-white"
         {...selection.placeholderProps}
       >
-        <ComponentLoader />
+        <ChartSkeleton heightInPx={128} hasLegend={false} />
       </div>
     );
   }
@@ -273,7 +273,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
           {...selection.placeholderProps}
         >
           {props.isLoading ? (
-            <ComponentLoader />
+            <ChartSkeleton heightInPx={128} hasLegend={false} />
           ) : (
             translator.translateText("No logs in the selected range")
           )}

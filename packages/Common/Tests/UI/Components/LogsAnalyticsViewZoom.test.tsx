@@ -785,7 +785,7 @@ describe("a superseded request never paints over the current window", () => {
   }
 
   function loader(): HTMLElement | null {
-    return screen.queryByTestId("component-loader");
+    return screen.queryByTestId("chart-skeleton");
   }
 
   /*

@@ -87,7 +87,7 @@ export const ChartSkeletonBars: FunctionComponent<BarsProps> = (
             <div
               key={index}
               className={`h-2 w-10 ${SKELETON_BAR_CLASS_NAME}${
-                index % 2 === 1 ? " hidden sm:block" : ""
+                index % 2 === 1 ? " max-sm:hidden" : ""
               }`}
             />
           );
