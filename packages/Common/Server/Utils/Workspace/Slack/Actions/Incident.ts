@@ -10,6 +10,7 @@ import SlackActionType from "./ActionTypes";
 import { SlackAction, SlackRequest } from "./Auth";
 import Response from "../../../Response";
 import {
+  WorkspaceCheckboxBlock,
   WorkspaceDropdownBlock,
   WorkspaceMessageBlock,
   WorkspaceModalBlock,
@@ -85,7 +86,11 @@ import WorkspaceIncidentFromAlert, {
   WorkspaceDeclaringAlert,
 } from "../../WorkspaceIncidentFromAlert";
 import SlackAffectedResources from "../SlackAffectedResources";
-import NewIncidentSubscriberNotificationDefaultReader from "../../../StatusPage/NewIncidentSubscriberNotificationDefaultReader";
+import WorkspaceIncidentSubscriberNotification, {
+  WORKSPACE_NOTIFY_SUBSCRIBERS_FIELD,
+  WORKSPACE_NOTIFY_SUBSCRIBERS_TEXT,
+  WorkspaceNotifySubscribersField,
+} from "../../WorkspaceIncidentSubscriberNotification";
 import { OnCallPageRecordType } from "../../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { getExecuteOnCallPolicyFormDescription } from "../../WorkspaceExecuteOnCallPolicyForm";
 
@@ -199,6 +204,31 @@ export default class SlackIncidentActions {
         });
 
       if (!props) {
+        return;
+      }
+
+      /*
+       * Notify Status Page Subscribers, as the box was left - or null for a
+       * form that did not ask (WorkspaceIncidentSubscriberNotification). An
+       * answer from a member who may not give one is refused, with why,
+       * before anything else is read: nothing is declared.
+       */
+      const subscriberChoice: boolean | null =
+        WorkspaceIncidentSubscriberNotification.readSubmitted(
+          data.slackRequest.viewValues[WORKSPACE_NOTIFY_SUBSCRIBERS_FIELD],
+        );
+
+      const subscriberChoiceRefusal: string | null =
+        WorkspaceIncidentSubscriberNotification.getRefusal({
+          props: props,
+          choice: subscriberChoice,
+        });
+
+      if (subscriberChoiceRefusal) {
+        await SlackActionAuthorization.sendRefusal({
+          requester: slackRequest,
+          message: subscriberChoiceRefusal,
+        });
         return;
       }
 
@@ -329,17 +359,16 @@ export default class SlackIncidentActions {
       }
 
       /*
-       * The form asks nothing about status page subscribers, so they are
-       * told as the project starts "Notify Status Page Subscribers" on
-       * Declare New Incident (Incidents > Settings > Subscriber
-       * Notifications): unticked there, declared here without notifying.
+       * Status page subscribers are told as the box was left. A form that
+       * did not ask follows the project's "Notify status page subscribers
+       * by default" (Incidents > Settings > Subscriber Notifications), as
+       * every Slack form did before it asked.
        */
-      await NewIncidentSubscriberNotificationDefaultReader.applyToIncidentDeclaredWithoutBox(
-        {
-          incident: incident,
-          projectId: slackRequest.projectId!,
-        },
-      );
+      await WorkspaceIncidentSubscriberNotification.applyToIncident({
+        incident: incident,
+        projectId: slackRequest.projectId!,
+        choice: subscriberChoice,
+      });
 
       /*
        * Created with the member's props, so it is credited to them and
@@ -406,6 +435,20 @@ export default class SlackIncidentActions {
       if (linkedLine) {
         lines.push(linkedLine);
       }
+
+      /*
+       * Whether status page subscribers will be told, and which status
+       * pages', or why not - from the incident as created, and from who it
+       * reaches, read as the member.
+       */
+      lines.push(
+        await WorkspaceIncidentSubscriberNotification.getConfirmationLine({
+          projectId: slackRequest.projectId!,
+          props: props,
+          created: createdIncident,
+          declared: incident,
+        }),
+      );
 
       const confirmation: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
@@ -568,6 +611,7 @@ export default class SlackIncidentActions {
      *   Affected Resources (searched as the person types; optional)
      *   Monitors (multi select; optional - picking one pauses its checks)
      *   Change Monitor Status to (single select; optional)
+     *   Notify Status Page Subscribers (a box, starting as the project says)
      *   Execute On-Call Policies (multi select; optional)
      *   Labels (multi select; optional)
      *
@@ -586,6 +630,7 @@ export default class SlackIncidentActions {
       declaringAlert,
       isAffectedResourcesOffered,
       isAiEnabled,
+      isNotifyTickedByDefault,
     ]: [
       Array<IncidentSeverity>,
       Array<Monitor>,
@@ -595,6 +640,7 @@ export default class SlackIncidentActions {
       WorkspaceDeclaringAlert | null,
       boolean,
       boolean,
+      boolean | null,
     ] = await Promise.all([
       WorkspaceActionAuthorization.findReadable({
         service: IncidentSeverityService,
@@ -676,6 +722,14 @@ export default class SlackIncidentActions {
       }),
       // Whether Affected Resources' hint may speak of OneUptime AI.
       AIService.isProjectAIEnabled(projectId),
+      /*
+       * How Notify Status Page Subscribers starts: as the project says, as
+       * on Declare New Incident - null for a member it does not ask.
+       */
+      WorkspaceIncidentSubscriberNotification.readTickedByDefault({
+        projectId: projectId,
+        props: props,
+      }),
     ]);
 
     // The alert it is declared from, said first.
@@ -794,6 +848,35 @@ export default class SlackIncidentActions {
       monitorDropdownOptions.length > 0
     ) {
       blocks.push(monitorStatusDropdown);
+    }
+
+    /*
+     * Notify Status Page Subscribers, right after the monitors, as on
+     * Declare New Incident's Resources Affected: status pages show an
+     * incident through its monitors. The Dashboard's name for the box and
+     * its question, starting ticked or unticked as the project says. Not
+     * asked of a member who may not choose, nor for a private alert's
+     * incident, which no status page shows.
+     */
+    const notifySubscribersField: WorkspaceNotifySubscribersField | null =
+      WorkspaceIncidentSubscriberNotification.getField({
+        isTickedByDefault: isNotifyTickedByDefault,
+        isPrivate: declaringAlert?.isPrivate === true,
+      });
+
+    if (notifySubscribersField) {
+      const notifySubscribersBox: WorkspaceCheckboxBlock = {
+        _type: "WorkspaceCheckboxBlock",
+        label: WORKSPACE_NOTIFY_SUBSCRIBERS_TEXT.label,
+        optionLabel: WORKSPACE_NOTIFY_SUBSCRIBERS_TEXT.box,
+        blockId: WORKSPACE_NOTIFY_SUBSCRIBERS_FIELD,
+        initialValue: notifySubscribersField.isTickedByDefault,
+        description: notifySubscribersField.description,
+        // Unticked is an answer too: Slack submits no required box unticked.
+        optional: true,
+      };
+
+      blocks.push(notifySubscribersBox);
     }
 
     // add on-call policy dropdown.

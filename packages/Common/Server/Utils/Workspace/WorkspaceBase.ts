@@ -516,6 +516,14 @@ export default class WorkspaceBase {
             }),
           );
           break;
+        // A box to tick: Declare Incident's Notify Status Page Subscribers.
+        case "WorkspaceCheckboxBlock":
+          blocks.push(
+            this.getCheckboxBlock({
+              payloadCheckboxBlock: block as WorkspaceCheckboxBlock,
+            }),
+          );
+          break;
         case "WorkspaceModalBlock":
           blocks.push(
             this.getModalBlock({

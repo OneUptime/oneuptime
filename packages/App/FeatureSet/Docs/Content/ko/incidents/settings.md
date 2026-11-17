@@ -191,7 +191,7 @@ API에서는 템플릿의 `customFieldSettings`입니다. 각 필드의 **템플
 
 꺼져 있는 동안에는 인시던트 목록, 템플릿, 경고, 모니터 어디에서 선언하든 **새 인시던트 선언**의 확인란이 처음부터 선택 해제되어 있고, 설명에도 이 프로젝트에서는 기본적으로 선택 해제되어 있다고 나옵니다. 구독자는 선언하는 사람이 선택한 경우에만 소식을 받습니다. 제출하기 전 요약에서는 **아니오** 옆에 **'예'로 변경**이 나오며, **영향받는 리소스** 단계로 돌아가지 않고 확인란을 선택할 수 있습니다. 어떤 상태 페이지에도 표시되지 않는 비공개 인시던트에는 나오지 않습니다. 이 스위치는 확인란의 처음 상태만 바꿉니다. 인시던트에는 확인란을 둔 상태가 기록되며, 알리지 않고 선언한 인시던트는 조용히 유지됩니다([인시던트 선언](/docs/incidents/declaring-incidents) 참고).
 
-Slack이나 Microsoft Teams에서 선언하거나 OneUptime AI에 요청해 선언한 인시던트도 이 스위치를 따릅니다. 그곳에서는 구독자에 대해 묻지 않으므로, 스위치가 꺼져 있는 동안에는 구독자에게 알리지 않고 선언되며, 나중에 공개 노트로 알릴 수 있습니다. 모니터, API, Terraform, 워크플로 등 다른 방법으로 만든 인시던트는 각자의 `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` 값을 유지하며, 이 값이 `false`가 아니면 구독자에게 알립니다. API에서 이 스위치는 프로젝트의 `notifyStatusPageSubscribersOfNewIncidentsByDefault`입니다.
+Slack과 Microsoft Teams의 인시던트 양식도 묻습니다. 그 항목은 스위치에 따라 선택되거나 해제된 채로 시작하고, 인시던트는 남겨 둔 그대로 선언되며, 이를 확인하는 메시지가 상태 페이지 구독자에게 알릴지를 상태 페이지 이름과 함께, 또는 알리지 않는 이유와 함께 알려 줍니다. OneUptime AI에 요청해 선언한 인시던트는 이 스위치를 따릅니다. 그곳에서는 구독자에 대해 묻지 않으므로, 스위치가 꺼져 있는 동안에는 구독자에게 알리지 않고 선언되며, 나중에 공개 노트로 알릴 수 있습니다. 모니터, API, Terraform, 워크플로 등 다른 방법으로 만든 인시던트는 각자의 `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` 값을 유지하며, 이 값이 `false`가 아니면 구독자에게 알립니다. API에서 이 스위치는 프로젝트의 `notifyStatusPageSubscribersOfNewIncidentsByDefault`입니다.
 
 ## 포스트모템 템플릿
 

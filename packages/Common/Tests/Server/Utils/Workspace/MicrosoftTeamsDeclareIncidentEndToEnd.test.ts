@@ -105,6 +105,10 @@ import {
   ExpressResponse,
 } from "../../../../Server/Utils/Express";
 import logger from "../../../../Server/Utils/Logger";
+import {
+  NO_MONITORS_SUBSCRIBERS_LINE,
+  stubSubscriberAudience,
+} from "./WorkspaceSubscriberAudienceTestHelpers";
 import { stubPrivateRecords } from "../../TestingUtils/PrivateRecords";
 import {
   CloudAdapter,
@@ -481,6 +485,8 @@ afterAll(async () => {
 beforeEach(() => {
   connector.requests.splice(0);
   projectId = ObjectID.generate();
+  // A declared incident is on no monitor.
+  stubSubscriberAudience();
   connectedProjectId = (): ObjectID => {
     return projectId;
   };
@@ -783,7 +789,7 @@ describe("Teams' Create New Incident card and its typeahead, as Teams sees them"
     );
 
     expect(confirmation?.activity?.["text"]).toBe(
-      `✅ **Incident INC-43** created successfully. [View incident](${DASHBOARD_URL}/${projectId.toString()}/incidents/${CREATED_ID.toString()})\n\nLinked to **api-1** (Host) and **prod** (Kubernetes Cluster).`,
+      `✅ **Incident INC-43** created successfully. [View incident](${DASHBOARD_URL}/${projectId.toString()}/incidents/${CREATED_ID.toString()})\n\nLinked to **api-1** (Host) and **prod** (Kubernetes Cluster).\n\n${NO_MONITORS_SUBSCRIBERS_LINE}`,
     );
   });
 
@@ -813,7 +819,7 @@ describe("Teams' Create New Incident card and its typeahead, as Teams sees them"
     const incidentUrl: string = `${DASHBOARD_URL}/${projectId.toString()}/incidents/${CREATED_ID.toString()}`;
 
     expect(posts[0]?.activity?.["text"]).toBe(
-      `✅ **Incident INC-43** created successfully. [View incident](${incidentUrl})\n\nLinked to **api-1** (Host).`,
+      `✅ **Incident INC-43** created successfully. [View incident](${incidentUrl})\n\nLinked to **api-1** (Host).\n\n${NO_MONITORS_SUBSCRIBERS_LINE}`,
     );
 
     const reply: JSONObject = cardOf(posts[1]);
