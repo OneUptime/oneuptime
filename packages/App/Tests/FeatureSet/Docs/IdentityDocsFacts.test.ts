@@ -850,7 +850,7 @@ describe("the SSO guide", () => {
     );
     expect(picker).not.toContain("/sso-list");
     expect(picker).toContain(
-      'description="Please select an SSO provider to log in to this project."',
+      'description="Choose an SSO provider to sign in to this project."',
     );
     expect(english(SSO)).toContain(
       "Open the link in the **Test Single Sign On (SSO)** card and pick the provider on the page it opens.",

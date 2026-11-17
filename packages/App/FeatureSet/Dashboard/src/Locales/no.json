@@ -911,7 +911,7 @@
   "No custom metrics have been captured yet. Use oneuptime.captureMetric() in your monitor script to capture custom metrics.": "Ingen egendefinerte målinger er fanget ennå. Bruk oneuptime.captureMetric() i monitor-skriptet ditt for å fange egendefinerte målinger.",
   "Packet forwarding, drops, and policy enforcement at the eBPF datapath layer. Covers throughput, endpoint management, and BPF program regeneration.": "Pakkevideresending, drops og policyhåndhevelse i eBPF-datapath-laget. Dekker gjennomstrømning, endepunktsadministrasjon og BPF-programregenerering.",
   "Please check this if you do not want to follow redirects.": "Merk av for dette hvis du ikke vil følge omdirigeringer.",
-  "Please select an SSO provider to log in to this project.": "Velg en SSO-leverandør for å logge inn på dette prosjektet.",
+  "Choose an SSO provider to sign in to this project.": "Velg en SSO-leverandør for å logge inn på dette prosjektet.",
   "Pods with the highest resource utilization in this cluster.": "Pods med høyest ressursutnyttelse i denne klyngen.",
   "Preview the live badge rendering using the current security token.": "Forhåndsvis live badge-rendering ved hjelp av gjeldende sikkerhetstoken.",
   "Raw stack trace from the exception.": "Rå stack trace fra unntaket.",
