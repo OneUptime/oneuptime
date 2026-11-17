@@ -173,7 +173,22 @@ beforeEach(() => {
   checkAnswers = {};
   logs = [];
 
-  for (const name of [ALLOWLIST_ENV, ALLOW_ENV, "HTTP_PROXY", "http_proxy"]) {
+  /*
+   * A self-hosted install, whatever config.env the run has: on SaaS policy
+   * (BILLING_ENABLED, which the test setup's config.env turns on, or
+   * DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES) a refusal that DNS decided says only
+   * that the URL could not be reached (SSRFProtection.refuseResolvedHost),
+   * and the private network settings these tests turn are a self-hosted
+   * install's.
+   */
+  for (const name of [
+    ALLOWLIST_ENV,
+    ALLOW_ENV,
+    "HTTP_PROXY",
+    "http_proxy",
+    "BILLING_ENABLED",
+    "DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES",
+  ]) {
     savedEnv[name] = process.env[name];
     delete process.env[name];
   }
