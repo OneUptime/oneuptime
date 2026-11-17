@@ -1,4 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import PageComponentProps from "../PageComponentProps";
 import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
@@ -12,10 +13,9 @@ import SignInMethodsUtil, {
   SsoSignInProvider,
 } from "Common/Types/SSO/SignInMethods";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import Page from "Common/UI/Components/Page/Page";
 import SsoProviderOptions, {
   SsoProviderOption,
@@ -128,7 +128,7 @@ const SSO: FunctionComponent<PageComponentProps> = (): ReactElement => {
   }, [projectId?.toString()]);
 
   if (isLeaving) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   const options: Array<SsoProviderOption> = (providers || []).map(
@@ -182,7 +182,7 @@ const SSO: FunctionComponent<PageComponentProps> = (): ReactElement => {
     }
 
     if (providers === null) {
-      return <ComponentLoader />;
+      return <CardListSkeleton count={2} lines={1} />;
     }
 
     if (options.length === 0) {

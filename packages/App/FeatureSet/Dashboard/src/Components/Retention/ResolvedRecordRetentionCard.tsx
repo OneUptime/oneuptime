@@ -16,6 +16,7 @@ import ResolvedRecordRetentionCopy, {
   getResolvedRecordRetentionServerMaximumText,
   getResolvedRecordRetentionText,
 } from "./ResolvedRecordRetentionCopy";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import ResolvedRecordRetentionAPI from "./ResolvedRecordRetentionAPI";
 import { POSTMORTEM_STATUS_SELECT } from "../Postmortem/usePostmortemStatuses";
 import {
@@ -47,7 +48,6 @@ import ResolvedRecordRetentionAnswers, {
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -910,7 +910,7 @@ const ResolvedRecordRetentionCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={3} columns={1} />;
     }
 
     if (error) {

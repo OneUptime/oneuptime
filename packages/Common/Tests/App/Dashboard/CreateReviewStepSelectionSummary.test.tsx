@@ -523,7 +523,7 @@ async function renderSummary(
 
   await waitFor(() => {
     expect(
-      within(result.container).queryAllByTestId("component-loader"),
+      within(result.container).queryAllByTestId("inline-value-skeleton"),
     ).toHaveLength(0);
   });
 

@@ -823,7 +823,7 @@ describe("reading the form again", () => {
     expect(pendingAnswers).toHaveLength(2);
     // The second read has not been answered yet.
     expect(shownLink()).toBe(expectedLink(SHARE_KEY));
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
     expect(cardButtons()).toHaveLength(1);
 
     await answer(1, { shareKey: SHARE_KEY, isEnabled: false });
@@ -880,7 +880,7 @@ describe("reading the form again", () => {
     await rerenderWith(result, OTHER_FORM_ID, false);
 
     expect(queryOneUptimeRow()).toBeNull();
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("detail-skeleton")).toBeInTheDocument();
     expect(cardButtons()).toHaveLength(0);
 
     const request: { id: ObjectID } = getItemMock.mock.calls[1]![0] as {
@@ -1216,7 +1216,7 @@ describe("before there is a link", () => {
 
     await renderCard();
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("detail-skeleton")).toBeInTheDocument();
     expect(queryOneUptimeRow()).toBeNull();
     expect(cardButtons()).toHaveLength(0);
     expect(screen.getByTestId("card-details-heading")).toHaveTextContent(

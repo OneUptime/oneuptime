@@ -1,4 +1,5 @@
 import RunnerInstallInstructions from "../../../Components/Runner/InstallInstructions";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import RunnerStatusElement from "../../../Components/Runner/RunnerStatus";
 import GlobalRunnersTable from "../../../Components/Runner/GlobalRunnersTable";
 import UseGlobalRunnersCard from "../../../Components/Runner/UseGlobalRunnersCard";
@@ -38,7 +39,6 @@ import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import URL from "Common/Types/API/URL";
@@ -304,7 +304,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     };
 
   if (globalRunners === null) {
-    return <ComponentLoader />;
+    return <PageSkeleton shape="table" />;
   }
 
   const hasGlobalRunners: boolean = globalRunners.length > 0;

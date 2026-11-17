@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import Span, {
   SpanEvent,
   SpanEventType,
@@ -23,7 +24,6 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import AttributesJSONView from "Common/UI/Components/AttributesJSON/AttributesJSONView";
 import AttributesViewToggle from "Common/UI/Components/AttributesJSON/AttributesViewToggle";
@@ -760,7 +760,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
           <div className="mt-4">
             {logsLoading ? (
               <div className="flex h-24 items-center justify-center">
-                <ComponentLoader />
+                <TableSkeleton rows={3} hasHeader={false} />
               </div>
             ) : relatedLogs.length === 0 && podLogsElement ? (
               podLogsElement
@@ -839,7 +839,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
           <div className="mt-4">
             {exceptionsLoading ? (
               <div className="flex h-24 items-center justify-center">
-                <ComponentLoader />
+                <TableSkeleton rows={3} hasHeader={false} />
               </div>
             ) : exceptionInstances.length === 0 && podExceptionsElement ? (
               podExceptionsElement

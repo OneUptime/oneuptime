@@ -1,4 +1,5 @@
 import RunnersElement from "../Runner/Runners";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import RunnerChoicesLoader, { GlobalRunnerRow } from "../Runner/RunnerChoices";
@@ -43,7 +44,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import Field, {
@@ -161,7 +161,7 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
   }, []);
 
   if (!globalRunnerAccess) {
-    return <ComponentLoader />;
+    return <TableSkeleton rows={3} />;
   }
 
   const hasGlobalRunners: boolean = globalRunnerAccess.hasGlobalRunners;

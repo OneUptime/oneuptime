@@ -6,10 +6,10 @@ import React, {
   useRef,
   useState,
 } from "react";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import useAsyncEffect from "use-async-effect";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -747,7 +747,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   }, [isLoading]);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <CardListSkeleton />;
   }
 
   if (error) {

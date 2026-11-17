@@ -10,6 +10,7 @@ import {
   hasAiResults,
   parseAiOutcomes,
 } from "./AiResultsData";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import AiResultsView from "./AiResultsView";
 import ProjectAiNotice from "../../AISettings/ProjectAiNotice";
 import { ProjectAiNoticeContext } from "../../AISettings/ProjectAiSettingsCopy";
@@ -21,7 +22,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -112,7 +112,7 @@ const AiResultsPage: FunctionComponent = (): ReactElement => {
   if (isLoading) {
     body = (
       <div data-testid="ai-results-loading">
-        <PageLoader isVisible={true} />
+        <TableSkeleton />
       </div>
     );
   } else if (!outcomes) {

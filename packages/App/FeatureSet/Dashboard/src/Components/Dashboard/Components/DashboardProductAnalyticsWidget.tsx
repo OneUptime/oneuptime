@@ -1,4 +1,5 @@
 import React, { ReactElement, ReactNode, useMemo } from "react";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import RumProductAnalyticsSavedView from "Common/Models/DatabaseModels/RumProductAnalyticsSavedView";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -9,7 +10,6 @@ import DashboardWidgetIds from "Common/Utils/Dashboard/DashboardWidgetIds";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -397,7 +397,7 @@ export function ProductAnalyticsWidgetFrame<
     case ProductAnalyticsWidgetState.Loading:
       body = (
         <div className="flex h-full items-center justify-center">
-          <ComponentLoader />
+          <ChartSkeleton hasLegend={false} fillsHeight={true} />
         </div>
       );
       break;

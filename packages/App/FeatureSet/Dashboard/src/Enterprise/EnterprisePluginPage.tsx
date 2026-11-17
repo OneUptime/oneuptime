@@ -3,13 +3,13 @@ import EnterpriseFeatureUpgrade, {
   EnterpriseUpgradeReason,
   getDefaultUpgradeReason,
 } from "../Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import {
   EnterpriseRequiredPlan,
   isEnterpriseFeatureEligible,
   isKnownToBeBelowPlan,
 } from "./EnterpriseEligibility";
 import { EnterprisePluginComponent } from "./EnterprisePlugins";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import React, { ReactElement, ReactNode, Suspense } from "react";
 
@@ -157,7 +157,7 @@ const EnterprisePluginPage: <TPluginProps>(
     props.pluginProps as TPluginProps & React.JSX.IntrinsicAttributes;
 
   return (
-    <Suspense fallback={props.loadingElement || <ComponentLoader />}>
+    <Suspense fallback={props.loadingElement || <PageSkeleton />}>
       <Plugin {...pluginProps} />
     </Suspense>
   );

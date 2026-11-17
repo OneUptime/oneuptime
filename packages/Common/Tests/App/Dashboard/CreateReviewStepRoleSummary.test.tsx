@@ -534,9 +534,9 @@ function summaryOf(field: CapturedField): React.ReactElement {
 
 async function waitForLookupsToSettle(container: HTMLElement): Promise<void> {
   await waitFor(() => {
-    expect(within(container).queryAllByTestId("component-loader")).toHaveLength(
-      0,
-    );
+    expect(
+      within(container).queryAllByTestId("inline-value-skeleton"),
+    ).toHaveLength(0);
   });
 }
 
@@ -1134,7 +1134,7 @@ describe("FetchIncidentRoleAssignments", () => {
       firstLookup.resolve(rolesAnswer([INCIDENT_COMMANDER]));
     });
 
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("inline-value-skeleton")).toBeNull();
 
     expect(screen.getByText(COMMUNICATIONS_LEAD.name)).toBeInTheDocument();
     expect(pillColorOf(view.container, COMMUNICATIONS_LEAD.name)).toBe(
@@ -1161,7 +1161,7 @@ describe("FetchIncidentRoleAssignments", () => {
     });
 
     // Still waiting on the roles that are actually assigned.
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("inline-value-skeleton")).toBeInTheDocument();
 
     await act(async () => {
       secondLookup.resolve(rolesAnswer([COMMUNICATIONS_LEAD]));
@@ -1193,7 +1193,7 @@ describe("FetchIncidentRoleAssignments", () => {
       firstLookup.reject(new Error(LOOKUP_FAILURE_MESSAGE));
     });
 
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("inline-value-skeleton")).toBeNull();
     expect(screen.getByText(COMMUNICATIONS_LEAD.name)).toBeInTheDocument();
     expect(screen.getByText(BOB.name)).toBeInTheDocument();
     expect(screen.queryByText(LOOKUP_FAILURE_MESSAGE)).toBeNull();
@@ -1227,7 +1227,7 @@ describe("FetchIncidentRoleAssignments", () => {
      * not found for a render, and Dev would be looked up for a list that is
      * about to be replaced.
      */
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("inline-value-skeleton")).toBeInTheDocument();
     expect(lookupsOf(TeamMember)).toEqual([]);
 
     await act(async () => {

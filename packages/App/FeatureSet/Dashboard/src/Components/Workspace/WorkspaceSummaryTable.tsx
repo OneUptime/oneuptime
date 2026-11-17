@@ -80,7 +80,7 @@ import Recurring from "Common/Types/Events/Recurring";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import OneUptimeDate from "Common/Types/Date";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -349,7 +349,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   }, []);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (error) {

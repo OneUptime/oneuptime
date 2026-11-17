@@ -1,4 +1,5 @@
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -636,7 +637,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
 
           {isLoadingOwned ? (
             <div className="py-8">
-              <ComponentLoader />
+              <TableSkeleton rows={3} />
             </div>
           ) : ownedNumbers.length === 0 ? (
             <div className="py-8 text-center">

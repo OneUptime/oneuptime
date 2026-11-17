@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -15,7 +16,6 @@ import {
 import Route from "Common/Types/API/Route";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
@@ -144,7 +144,7 @@ const WorkspaceConnectionsOverview: FunctionComponent<ComponentProps> = (
       />
     );
   } else {
-    body = <ComponentLoader />;
+    body = <TableSkeleton rows={3} />;
   }
 
   return (

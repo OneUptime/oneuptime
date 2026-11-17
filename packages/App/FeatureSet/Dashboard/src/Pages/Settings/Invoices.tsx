@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { Green, Yellow } from "Common/Types/BrandColors";
@@ -8,7 +9,6 @@ import Text from "Common/Types/Text";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -241,7 +241,7 @@ const Settings: FunctionComponent<ComponentProps> = (
 
   return (
     <Fragment>
-      {isLoading ? <ComponentLoader /> : <></>}
+      {isLoading ? <PageSkeleton shape="table" /> : <></>}
 
       {!isLoading ? (
         <ModelTable<BillingInvoice>

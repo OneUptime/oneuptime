@@ -14,7 +14,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -91,7 +91,7 @@ const CodeRepositoryTasks: FunctionComponent<
   }
 
   if (!repository) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   const fullName: string = getRepositoryFullName(repository.repository);

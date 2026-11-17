@@ -1,10 +1,10 @@
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -109,7 +109,7 @@ const SessionReplayRetentionSettingsCard: FunctionComponent<ComponentProps> = (
   let body: ReactElement;
 
   if (isLoading) {
-    body = <ComponentLoader />;
+    body = <DetailListSkeleton fields={1} columns={1} />;
   } else if (error || retentionInDays === null) {
     body = <ErrorMessage message={error} />;
   } else {
