@@ -21,7 +21,8 @@
  * Markdown viewer and editor, a
  * folded More fields line (FoldedSection), a side menu section, the
  * breadcrumbs, the product bar (NavBar: Home and Products, and a product
- * that is open), pagination, a keyboard shortcut, code, dates, and Korean
+ * that is open), pagination, arrows and an escalation step's Pills (one
+ * whose Forward arrow turns round), a keyboard shortcut, code, dates, and Korean
  * words in a box too narrow for them.
  *
  * And what a page says back and what it cuts short: a field's error and a
@@ -78,6 +79,8 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import ReactFlow, { Controls } from "reactflow";
 import "reactflow/dist/style.css";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import KeyboardShortcut, {
   KeyboardKey,
 } from "Common/UI/Components/KeyboardShortcut/KeyboardShortcut";
@@ -1147,6 +1150,26 @@ function Page() {
           <span dir="ltr" data-testid="arrow-in-ltr-box">
             <Icon icon={IconProp.ArrowRight} className="h-5 w-5" />
           </span>
+        </div>
+        {/*
+         * An escalation step's chips (#9243): on to the next level, its
+         * Forward arrow turned to point the way the words run, beside a
+         * wait whose clock has no way to point.
+         */}
+        <div className="mt-4 flex gap-4" data-testid="pill-arrows">
+          <Pill
+            dataTestId="pill-forward"
+            text="Skipped at once"
+            tone={PillTone.Neutral}
+            icon={IconProp.Forward}
+            isIconMirroredRightToLeft={true}
+          />
+          <Pill
+            dataTestId="pill-clock"
+            text="Escalates after 5 min"
+            tone={PillTone.Neutral}
+            icon={IconProp.Clock}
+          />
         </div>
       </Section>
 
