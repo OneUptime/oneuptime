@@ -677,7 +677,7 @@ test.describe("the cluster's Events page", () => {
       `${CLUSTER_PATH}/hpas/nginx?namespace=app-routing-system`,
     );
     const tab: Locator = page.getByTestId("tab-Events");
-    await expect(tab.locator("span")).toHaveText("2");
+    await expect(tab.getByTestId("tab-count")).toHaveText("2");
   });
 
   test("a busy cluster: every warning still shows, and the full list says it holds the newest", async ({
@@ -817,10 +817,10 @@ test.describe("where else a cluster's warnings show", () => {
     await page.goto(`${CLUSTER_PATH}/nodes/${AGENT_POOL_NODE}`);
 
     const tab: Locator = page.getByTestId("tab-Events");
-    const badge: Locator = tab.locator("span");
+    const badge: Locator = tab.getByTestId("tab-count");
     await expect(badge).toHaveText("2");
     // In the warning colour.
-    await expect(badge).toHaveClass(/bg-yellow-500/);
+    await expect(badge).toHaveAttribute("data-tone", "warning");
 
     const panel: Locator = await openEventsTab(
       page,
@@ -863,9 +863,9 @@ test.describe("where else a cluster's warnings show", () => {
       `${CLUSTER_PATH}/nodes/${USER_POOL_NODE}`,
     );
 
-    await expect(page.getByTestId("tab-Events").locator("span")).toHaveText(
-      "1",
-    );
+    await expect(
+      page.getByTestId("tab-Events").getByTestId("tab-count"),
+    ).toHaveText("1");
     await expect(panel.getByTestId("kubernetes-event")).toHaveCount(1);
 
     await typeButton(panel, "All").click();
@@ -882,9 +882,9 @@ test.describe("where else a cluster's warnings show", () => {
       `${CLUSTER_PATH}/hpas/istiod`,
     );
 
-    await expect(page.getByTestId("tab-Events").locator("span")).toHaveText(
-      "2",
-    );
+    await expect(
+      page.getByTestId("tab-Events").getByTestId("tab-count"),
+    ).toHaveText("2");
     expect(await reasons(panel)).toEqual([
       "FailedComputeMetricsReplicas",
       "FailedGetResourceMetric",
@@ -922,9 +922,9 @@ test.describe("where else a cluster's warnings show", () => {
       `${CLUSTER_PATH}/deployments/checkout`,
     );
 
-    await expect(page.getByTestId("tab-Events").locator("span")).toHaveText(
-      "2",
-    );
+    await expect(
+      page.getByTestId("tab-Events").getByTestId("tab-count"),
+    ).toHaveText("2");
     await expect(panel.getByTestId("kubernetes-event")).toHaveCount(2);
     await expect(rowsOf(panel, "BackOff", CHECKOUT_POD)).toHaveCount(1);
     await expect(
@@ -975,9 +975,9 @@ test.describe("where else a cluster's warnings show", () => {
       `${CLUSTER_PATH}/namespaces/aks-istio-system`,
     );
 
-    await expect(page.getByTestId("tab-Events").locator("span")).toHaveText(
-      "2",
-    );
+    await expect(
+      page.getByTestId("tab-Events").getByTestId("tab-count"),
+    ).toHaveText("2");
     await typeButton(panel, "All").click();
     await expect(panel.getByTestId("kubernetes-event")).toHaveCount(4);
 
@@ -1016,7 +1016,9 @@ test.describe("where else a cluster's warnings show", () => {
     await expect(
       panel.getByTestId("kubernetes-events-tab-empty"),
     ).toBeVisible();
-    await expect(page.getByTestId("tab-Events").locator("span")).toHaveCount(0);
+    await expect(
+      page.getByTestId("tab-Events").getByTestId("tab-count"),
+    ).toHaveCount(0);
   });
 
   test("the Overview lists the newest warnings near the top, and View all warnings opens them", async ({

@@ -17641,7 +17641,7 @@
   "Unhealthy monitors": "Monitorer med problemer",
   "Uninstall OneUptime from Microsoft Teams": "Uninstall OneUptime from Microsoft Teams",
   "Uninstall OneUptime from Slack": "Afinstaller OneUptime fra Slack",
-  "Unique Count": "Unique Count",
+  "Unique Count": "Unikt antal",
   "Unit": "Enhed",
   "Unit 1042 - Springfield": "Unit 1042 - Springfield",
   "Unit Level": "Unit Level",
@@ -56585,5 +56585,8 @@
   "Filter discovered devices": "Filtrer opdagede enheder",
   "Network controller": "Netværkscontroller",
   "No discovered device matches this search and these filters.": "Ingen opdaget enhed matcher denne søgning og disse filtre.",
-  "Switch or router": "Switch eller router"
+  "Switch or router": "Switch eller router",
+  "Network Endpoint Group": "Netværksslutpunktsgruppe",
+  "Backend Bucket": "Backend-bucket",
+  "Target Pool": "Målpulje"
 }

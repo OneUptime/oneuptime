@@ -17641,7 +17641,7 @@
   "Unhealthy monitors": "Moniteurs en mauvais état",
   "Uninstall OneUptime from Microsoft Teams": "Uninstall OneUptime from Microsoft Teams",
   "Uninstall OneUptime from Slack": "Désinstaller OneUptime de Slack",
-  "Unique Count": "Unique Count",
+  "Unique Count": "Comptage unique",
   "Unit": "Unité",
   "Unit 1042 - Springfield": "Unit 1042 - Springfield",
   "Unit Level": "Unit Level",
@@ -18886,7 +18886,7 @@
   "ns": "ns",
   "null": "nul",
   "object storage daemons": "daemons de stockage objet",
-  "of": "sur",
+  "of": "de",
   "of ESXi host memory": "de la mémoire des hôtes ESXi",
   "of limit or host memory": "de la limite ou de la mémoire de l'hôte",
   "of node memory": "de la mémoire des nœuds",
@@ -56585,5 +56585,8 @@
   "Filter discovered devices": "Filtrer les équipements découverts",
   "Network controller": "Contrôleur réseau",
   "No discovered device matches this search and these filters.": "Aucun équipement découvert ne correspond à cette recherche et à ces filtres.",
-  "Switch or router": "Commutateur ou routeur"
+  "Switch or router": "Commutateur ou routeur",
+  "Network Endpoint Group": "Groupe de points de terminaison du réseau",
+  "Backend Bucket": "Bucket backend",
+  "Target Pool": "Pool cible"
 }

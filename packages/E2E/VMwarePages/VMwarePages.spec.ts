@@ -306,8 +306,7 @@ async function backgroundOf(locator: Locator): Promise<string> {
   });
 }
 
-// Tailwind's gray-600, red-700 and amber-700, as computed colours.
-const GREY_600: string = "rgb(75, 85, 99)";
+// Tailwind's red-700 and amber-700, as computed colours.
 const RED_700: string = "rgb(185, 28, 28)";
 const AMBER_700: string = "rgb(180, 83, 9)";
 // Tailwind's red-500, amber-500 and emerald-500: a tile's bar.
@@ -1005,9 +1004,10 @@ test.describe("an ESXi host's page", () => {
     const runner: Locator = page
       .getByTestId("vmware-host-busy-vm")
       .filter({ hasText: "ci-runner-01" });
-    expect(
-      await colourOf(runner.getByTestId("vmware-host-busy-vm-cpu-ready")),
-    ).toBe(AMBER_700);
+    // The shared Pill, in the warning tone (#9255).
+    await expect(
+      runner.getByTestId("vmware-host-busy-vm-cpu-ready"),
+    ).toHaveAttribute("data-tone", "warning");
     expect(
       await backgroundOf(runner.getByTestId("vmware-host-busy-vm-cpu-bar")),
     ).toBe("rgb(34, 197, 94)");
@@ -1028,14 +1028,17 @@ test.describe("an ESXi host's page", () => {
       "Turn on 6 alerts",
     );
     // Not set up reads grey, never six amber warnings.
-    expect(
-      await colourOf(
-        page
-          .getByTestId("vmware-host-alerts-item")
-          .first()
-          .getByText("Not set up"),
-      ),
-    ).toBe(GREY_600);
+    /*
+     * Read by the shared Pill's tone (#9255), never the shade it paints:
+     * the Pill draws its words in a tone-derived colour of its own.
+     */
+    await expect(
+      page
+        .getByTestId("vmware-host-alerts-item")
+        .first()
+        .getByTestId("pill")
+        .filter({ hasText: "Not set up" }),
+    ).toHaveAttribute("data-tone", "neutral");
     await page.getByTestId("vmware-host-alerts-turn-on").click();
 
     const selected: Array<string> = await selectedRecommendations(page);

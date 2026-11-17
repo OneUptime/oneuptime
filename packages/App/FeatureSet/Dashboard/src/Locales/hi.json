@@ -17641,7 +17641,7 @@
   "Unhealthy monitors": "खराब स्थिति वाले मॉनिटर",
   "Uninstall OneUptime from Microsoft Teams": "Uninstall OneUptime from Microsoft Teams",
   "Uninstall OneUptime from Slack": "Slack से OneUptime अनइंस्टॉल करें",
-  "Unique Count": "Unique Count",
+  "Unique Count": "अद्वितीय गणना",
   "Unit": "इकाई",
   "Unit 1042 - Springfield": "Unit 1042 - Springfield",
   "Unit Level": "Unit Level",
@@ -18886,7 +18886,7 @@
   "ns": "ns",
   "null": "null",
   "object storage daemons": "ऑब्जेक्ट स्टोरेज डेमन",
-  "of": "/",
+  "of": "फ़ील्ड",
   "of ESXi host memory": "ESXi होस्ट मेमोरी का",
   "of limit or host memory": "सीमा या होस्ट मेमोरी का",
   "of node memory": "नोड मेमोरी में से",
@@ -56585,5 +56585,8 @@
   "Filter discovered devices": "खोजे गए डिवाइस फ़िल्टर करें",
   "Network controller": "नेटवर्क कंट्रोलर",
   "No discovered device matches this search and these filters.": "कोई भी खोजा गया डिवाइस इस खोज और इन फ़िल्टर से मेल नहीं खाता।",
-  "Switch or router": "स्विच या राउटर"
+  "Switch or router": "स्विच या राउटर",
+  "Network Endpoint Group": "नेटवर्क एंडपॉइंट समूह",
+  "Backend Bucket": "बैकएंड बकेट",
+  "Target Pool": "टारगेट पूल"
 }

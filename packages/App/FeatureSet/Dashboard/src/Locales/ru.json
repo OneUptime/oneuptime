@@ -17641,7 +17641,7 @@
   "Unhealthy monitors": "Неисправные мониторы",
   "Uninstall OneUptime from Microsoft Teams": "Uninstall OneUptime from Microsoft Teams",
   "Uninstall OneUptime from Slack": "Удалить OneUptime из Slack",
-  "Unique Count": "Unique Count",
+  "Unique Count": "Количество уникальных",
   "Unit": "Единица",
   "Unit 1042 - Springfield": "Unit 1042 - Springfield",
   "Unit Level": "Unit Level",
@@ -18886,7 +18886,7 @@
   "ns": "нс",
   "null": "null",
   "object storage daemons": "демоны хранения объектов",
-  "of": "из",
+  "of": "по полю",
   "of ESXi host memory": "памяти хостов ESXi",
   "of limit or host memory": "от лимита или памяти хоста",
   "of node memory": "от памяти узлов",
@@ -56585,5 +56585,8 @@
   "Filter discovered devices": "Фильтр обнаруженных устройств",
   "Network controller": "Сетевой контроллер",
   "No discovered device matches this search and these filters.": "Ни одно обнаруженное устройство не соответствует этому поиску и этим фильтрам.",
-  "Switch or router": "Коммутатор или маршрутизатор"
+  "Switch or router": "Коммутатор или маршрутизатор",
+  "Network Endpoint Group": "Группа сетевых конечных точек",
+  "Backend Bucket": "Серверный бакет",
+  "Target Pool": "Целевой пул"
 }

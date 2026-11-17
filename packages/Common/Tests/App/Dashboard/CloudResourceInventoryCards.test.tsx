@@ -384,7 +384,8 @@ describe("what each connection is", () => {
       typeNextTo(
         "//compute.googleapis.com/projects/p/regions/us-central1/subnetworks/default",
       ),
-    ).toBe("Subnet");
+      // Listed, so named by the catalog's label, as written.
+    ).toBe("VPC Subnet");
   });
 });
 
