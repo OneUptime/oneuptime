@@ -43,7 +43,7 @@ const Skeleton: FunctionComponent<ComponentProps> = (
     <div
       data-testid={props.dataTestId || "skeleton"}
       aria-hidden={true}
-      className={`animate-pulse rounded bg-gray-200${
+      className={`motion-safe:animate-pulse rounded bg-gray-200${
         props.className ? ` ${props.className}` : ""
       }${widthClass}`}
     ></div>
