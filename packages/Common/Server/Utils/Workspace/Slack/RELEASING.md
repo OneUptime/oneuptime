@@ -187,8 +187,8 @@ without saving, so finish a page in one go.
    to the privacy policy), privacy policy (`https://oneuptime.com/legal/privacy`),
    support URL (`https://oneuptime.com/support`), support email
    (`slacksupport@oneuptime.com`), pricing "Free and paid plans available".
-   Screenshots must be real Slack screenshots of the app. The images in
-   `.github/pr-assets/` are test renderings and will not pass.
+   Screenshots must be real Slack screenshots of the app. The images on the
+   `pr-assets` branch are test renderings and will not pass.
 2. **Review scopes**: a reason for every scope. Use the table below.
 3. **Security and compliance**: company **HackerBay, Inc.**, United States;
    terms `https://oneuptime.com/legal/terms`; retention, archival/removal,
