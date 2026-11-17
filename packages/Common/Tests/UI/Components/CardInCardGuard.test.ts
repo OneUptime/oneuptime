@@ -74,6 +74,13 @@ const NOT_A_CARD_WHERE_IT_IS: Array<CardLeftInside> = [
     reason:
       "Its schedule variant (PersonalCalendarFeedVariant.Schedule) draws a plain block with a line of text, not a card: it returns before the card the scan reads as the component's own.",
   },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Pages/Monitor/Create.tsx",
+    card: "MonitorDraftWhoIsTold",
+    container: "Card",
+    reason:
+      "It draws When this goes down as a section of the criteria step (WhoIsToldCardVariant.Section): a bordered box with a small title over it, with no card header or shadow, which MonitorWhoIsToldCard returns before the card the scan reads as the component's own.",
+  },
 ];
 
 function relative(file: string): string {
