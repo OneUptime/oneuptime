@@ -106,11 +106,11 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    const onCreate: OnCreate<Model> = await super.onBeforeCreate(createBy);
+    await super.onBeforeCreate(createBy);
 
-    Service.fitChannelColumns(onCreate.createBy.data);
+    Service.fitChannelColumns(createBy.data);
 
-    return onCreate;
+    return { createBy: createBy, carryForward: undefined };
   }
 
   /*
