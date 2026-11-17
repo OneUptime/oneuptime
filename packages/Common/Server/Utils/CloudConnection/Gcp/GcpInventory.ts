@@ -70,6 +70,10 @@ const MAX_PAGES: number = 20;
 
 // The type a VPC network, which has no metrics, is kept as.
 export const GCP_NETWORK_TYPE: string = "compute.googleapis.com/Network";
+// A network's subnets, one per region, and the firewall rules that guard it.
+export const GCP_SUBNETWORK_TYPE: string = "compute.googleapis.com/Subnetwork";
+export const GCP_FIREWALL_TYPE: string = "compute.googleapis.com/Firewall";
+const GCP_INSTANCE_TYPE: string = "compute.googleapis.com/Instance";
 
 export interface GcpAsset {
   name: string;
@@ -95,6 +99,11 @@ export interface GcpInventoryType {
       ) => Record<string, string> | null)
     | undefined;
   properties: ReadonlyArray<string>;
+  /*
+   * Properties worked out of the asset's data, read with `properties` as
+   * though the data had them: a firewall rule's ports as "tcp:22,443".
+   */
+  derivedProperties?: ((asset: GcpAsset) => JSONObject) | undefined;
   relationships?:
     | ((asset: GcpAsset) => Array<CloudResourceRelationship>)
     | undefined;
@@ -152,19 +161,24 @@ function networkRelationships(
       readText(networkInterface["subnetwork"]),
     );
 
+    /*
+     * Its subnet first: an account's topology puts a resource under the
+     * first thing it runs in that the account holds, and the subnet is in
+     * the network.
+     */
+    if (subnetwork) {
+      relationships.push({
+        kind: CloudRelationshipKind.RunsIn,
+        target: subnetwork,
+        targetType: GCP_SUBNETWORK_TYPE,
+      });
+    }
+
     if (network) {
       relationships.push({
         kind: CloudRelationshipKind.RunsIn,
         target: network,
         targetType: GCP_NETWORK_TYPE,
-      });
-    }
-
-    if (subnetwork) {
-      relationships.push({
-        kind: CloudRelationshipKind.RunsIn,
-        target: subnetwork,
-        targetType: "compute.googleapis.com/Subnetwork",
       });
     }
   }
@@ -200,6 +214,56 @@ function locationOf(asset: GcpAsset): string {
   }
 
   return asset.location;
+}
+
+/*
+ * The region a regional asset is in - a subnet's "europe-west1" - or
+ * "global" for one that is in none: a network, a firewall rule.
+ */
+export function gcpAssetRegion(asset: GcpAsset): string {
+  const region: string = tail(textAt(asset.data, "region"));
+
+  if (region) {
+    return region.toLowerCase();
+  }
+
+  const location: string = asset.location.trim().toLowerCase();
+
+  return location || "global";
+}
+
+// A firewall rule's ports as people read them: ["tcp:22,443", "icmp"].
+function firewallPorts(data: JSONObject, field: string): Array<string> {
+  return readArray(data[field])
+    .map((raw: unknown): string => {
+      const rule: JSONObject = readObject(raw);
+      const protocol: string = readText(rule["IPProtocol"]);
+      const ports: Array<string> = readArray(rule["ports"])
+        .map((port: unknown): string => {
+          return readText(port);
+        })
+        .filter(Boolean);
+
+      return protocol && ports.length > 0
+        ? `${protocol}:${ports.join(",")}`
+        : protocol;
+    })
+    .filter(Boolean);
+}
+
+// The network a subnet or a firewall rule is in.
+function inNetwork(asset: GcpAsset): Array<CloudResourceRelationship> {
+  const network: string = computeUrlToFullName(textAt(asset.data, "network"));
+
+  return network
+    ? [
+        {
+          kind: CloudRelationshipKind.RunsIn,
+          target: network,
+          targetType: GCP_NETWORK_TYPE,
+        },
+      ]
+    : [];
 }
 
 export const GCP_INVENTORY_TYPES: ReadonlyArray<GcpInventoryType> = [
@@ -406,6 +470,43 @@ export const GCP_INVENTORY_TYPES: ReadonlyArray<GcpInventoryType> = [
     assetType: GCP_NETWORK_TYPE,
     properties: ["autoCreateSubnetworks", "routingConfig.routingMode", "mtu"],
   },
+  {
+    assetType: GCP_SUBNETWORK_TYPE,
+    properties: [
+      "ipCidrRange",
+      "gatewayAddress",
+      "purpose",
+      "stackType",
+      "privateIpGoogleAccess",
+    ],
+    relationships: inNetwork,
+  },
+  {
+    /*
+     * A firewall rule guards the instances of its network it targets
+     * (addGcpFirewallEdges); it is kept in its network, like a subnet.
+     */
+    assetType: GCP_FIREWALL_TYPE,
+    properties: [
+      "direction",
+      "priority",
+      "disabled",
+      "allowed",
+      "denied",
+      "sourceRanges",
+      "destinationRanges",
+      "sourceTags",
+      "targetTags",
+      "targetServiceAccounts",
+    ],
+    derivedProperties: (asset: GcpAsset): JSONObject => {
+      return {
+        allowed: firewallPorts(asset.data, "allowed"),
+        denied: firewallPorts(asset.data, "denied"),
+      };
+    },
+    relationships: inNetwork,
+  },
 ];
 
 export function getGcpInventoryType(
@@ -453,6 +554,13 @@ export function getGcpInventoryIdentity(
     return null;
   }
 
+  /*
+   * A regional asset's region is part of its identity: every region of an
+   * auto mode network has a subnet called "default". A global one's
+   * identity is its project and name alone, as a network's always was.
+   */
+  const region: string = gcpAssetRegion(asset);
+
   return {
     provider: CloudProvider.GCP,
     source: CloudMonitoringSource.GoogleCloudMonitoring,
@@ -460,9 +568,15 @@ export function getGcpInventoryIdentity(
     name,
     providerResourceId: asset.name,
     accountId: context.projectId,
-    region: "global",
+    region,
     resourceGroup: "",
-    identityKey: [CloudProvider.GCP, type.assetType, context.projectId, name]
+    identityKey: [
+      CloudProvider.GCP,
+      type.assetType,
+      context.projectId,
+      ...(region === "global" ? [] : [region]),
+      name,
+    ]
       .join("|")
       .toLowerCase(),
     telemetryAttributes: {},
@@ -494,7 +608,12 @@ export function buildGcpInventoryItem(
     // "projects/p/locations/l/services/checkout" and "checkout" alike.
     displayName: tail(textAt(asset.data, "name")) || undefined,
     tags: normalizeCloudTags(asset.data["labels"]),
-    properties: pickCloudProperties(asset.data, type.properties),
+    properties: pickCloudProperties(
+      type.derivedProperties
+        ? { ...asset.data, ...type.derivedProperties(asset) }
+        : asset.data,
+      type.properties,
+    ),
     relationships: boundCloudRelationships(
       type.relationships ? type.relationships(asset) : [],
     ),
@@ -545,6 +664,145 @@ export function addGcpTopicEdges(data: {
       ]);
     }
   }
+}
+
+/*
+ * A firewall rule guards the instances of its network it targets: those
+ * with one of its target tags, those running as one of its target service
+ * accounts, or - with neither - every instance of the network. A disabled
+ * rule guards none. The edge is written on the instance, as an AWS
+ * instance names its security groups.
+ */
+export function addGcpFirewallEdges(data: {
+  items: Array<CloudInventoryItem>;
+  assets: Map<CloudInventoryItem, GcpAsset>;
+}): void {
+  interface Firewall {
+    item: CloudInventoryItem;
+    network: string;
+    tags: Array<string>;
+    serviceAccounts: Array<string>;
+  }
+
+  const firewalls: Array<Firewall> = [];
+
+  for (const item of data.items) {
+    const asset: GcpAsset | undefined = data.assets.get(item);
+
+    if (
+      !asset ||
+      asset.assetType !== GCP_FIREWALL_TYPE ||
+      asset.data["disabled"] === true
+    ) {
+      continue;
+    }
+
+    const network: string = computeUrlToFullName(
+      textAt(asset.data, "network"),
+    ).toLowerCase();
+
+    if (!network) {
+      continue;
+    }
+
+    firewalls.push({
+      item,
+      network,
+      tags: readArray(asset.data["targetTags"])
+        .map((value: unknown): string => {
+          return readText(value);
+        })
+        .filter(Boolean),
+      serviceAccounts: readArray(asset.data["targetServiceAccounts"])
+        .map((value: unknown): string => {
+          return readText(value).toLowerCase();
+        })
+        .filter(Boolean),
+    });
+  }
+
+  if (firewalls.length === 0) {
+    return;
+  }
+
+  for (const item of data.items) {
+    const asset: GcpAsset | undefined = data.assets.get(item);
+
+    if (!asset || asset.assetType !== GCP_INSTANCE_TYPE) {
+      continue;
+    }
+
+    const networks: Set<string> = new Set();
+
+    for (const raw of readArray(asset.data["networkInterfaces"])) {
+      const network: string = computeUrlToFullName(
+        readText(readObject(raw)["network"]),
+      ).toLowerCase();
+
+      if (network) {
+        networks.add(network);
+      }
+    }
+
+    const tags: Set<string> = new Set(
+      readArray(readObject(asset.data["tags"])["items"])
+        .map((value: unknown): string => {
+          return readText(value);
+        })
+        .filter(Boolean),
+    );
+    const serviceAccounts: Set<string> = new Set(
+      readArray(asset.data["serviceAccounts"])
+        .map((raw: unknown): string => {
+          return readText(readObject(raw)["email"]).toLowerCase();
+        })
+        .filter(Boolean),
+    );
+    const guards: Array<CloudResourceRelationship> = [];
+
+    for (const firewall of firewalls) {
+      if (!networks.has(firewall.network)) {
+        continue;
+      }
+
+      const targetsIt: boolean =
+        (firewall.tags.length === 0 && firewall.serviceAccounts.length === 0) ||
+        firewall.tags.some((tag: string): boolean => {
+          return tags.has(tag);
+        }) ||
+        firewall.serviceAccounts.some((account: string): boolean => {
+          return serviceAccounts.has(account);
+        });
+
+      if (targetsIt) {
+        guards.push({
+          kind: CloudRelationshipKind.ProtectedBy,
+          target: firewall.item.resource.providerResourceId,
+          targetType: GCP_FIREWALL_TYPE,
+        });
+      }
+    }
+
+    if (guards.length > 0) {
+      item.relationships = boundCloudRelationships([
+        ...item.relationships,
+        ...guards,
+      ]);
+    }
+  }
+}
+
+/*
+ * Every edge that takes more than one asset to draw, written once all of a
+ * project's assets are read: a topic's subscriptions, the firewall rules
+ * guarding each instance.
+ */
+export function addGcpInventoryEdges(data: {
+  items: Array<CloudInventoryItem>;
+  assets: Map<CloudInventoryItem, GcpAsset>;
+}): void {
+  addGcpTopicEdges(data);
+  addGcpFirewallEdges(data);
 }
 
 export interface GcpAssetListing {
