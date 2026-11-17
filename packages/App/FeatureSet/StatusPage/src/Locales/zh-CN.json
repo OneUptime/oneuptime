@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "忘记密码",
       "description": "如果您忘记了 {{statusPageName}} 的密码，请输入您的电子邮件，我们将向您发送密码重置链接。",
-      "success": "我们已通过电子邮件向您发送密码重置链接。请不要忘记检查垃圾邮件文件夹。",
+      "success": "如果此电子邮件地址可以登录 {{statusPageName}}，我们已向其发送密码重置链接。请不要忘记检查垃圾邮件文件夹。",
       "sendLink": "发送密码重置链接",
       "rememberPassword": "记得您的密码吗？"
     },

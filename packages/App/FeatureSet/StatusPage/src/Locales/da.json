@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "Glemt adgangskode",
       "description": "Hvis du har glemt din adgangskode til {{statusPageName}}, så indtast din e-mail, og vi sender dig et link til nulstilling af adgangskoden.",
-      "success": "Vi har sendt dig linket til nulstilling af adgangskoden på e-mail. Husk at tjekke din spam-mappe.",
+      "success": "Hvis denne e-mailadresse kan logge ind på {{statusPageName}}, har vi sendt den et link til nulstilling af adgangskoden. Husk at tjekke din spam-mappe.",
       "sendLink": "Send link til nulstilling af adgangskode",
       "rememberPassword": "Kan du huske din adgangskode?"
     },

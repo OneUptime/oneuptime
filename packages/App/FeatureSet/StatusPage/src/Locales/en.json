@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "Forgot Password",
       "description": "If you have forgotten your password for {{statusPageName}}, please enter your email and the password reset link will be sent to you.",
-      "success": "We have emailed you the password reset link. Please do not forget to check spam.",
+      "success": "If this email address can sign in to {{statusPageName}}, we have emailed it a password reset link. Please do not forget to check spam.",
       "sendLink": "Send Password Reset Link",
       "rememberPassword": "Remember your password?"
     },

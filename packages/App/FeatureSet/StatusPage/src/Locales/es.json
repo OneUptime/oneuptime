@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "Contraseña olvidada",
       "description": "Si ha olvidado su contraseña para {{statusPageName}}, introduzca su correo electrónico y le enviaremos el enlace para restablecer la contraseña.",
-      "success": "Le hemos enviado por correo electrónico el enlace para restablecer la contraseña. No olvide revisar su carpeta de spam.",
+      "success": "Si esta dirección de correo electrónico puede iniciar sesión en {{statusPageName}}, le hemos enviado un enlace para restablecer la contraseña. No olvide revisar su carpeta de spam.",
       "sendLink": "Enviar enlace de restablecimiento de contraseña",
       "rememberPassword": "¿Recuerda su contraseña?"
     },

@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "Passwort vergessen",
       "description": "Wenn Sie Ihr Passwort für {{statusPageName}} vergessen haben, geben Sie bitte Ihre E-Mail-Adresse ein und der Link zum Zurücksetzen des Passworts wird Ihnen zugesandt.",
-      "success": "Wir haben Ihnen den Link zum Zurücksetzen des Passworts per E-Mail geschickt. Bitte vergessen Sie nicht, den Spam-Ordner zu überprüfen.",
+      "success": "Wenn sich diese E-Mail-Adresse bei {{statusPageName}} anmelden kann, haben wir ihr einen Link zum Zurücksetzen des Passworts gesendet. Bitte vergessen Sie nicht, den Spam-Ordner zu überprüfen.",
       "sendLink": "Link zum Zurücksetzen des Passworts senden",
       "rememberPassword": "Erinnern Sie sich an Ihr Passwort?"
     },
