@@ -1072,7 +1072,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         }
 
         return {
-          notPostedReason: `The teams of this project's Microsoft Teams connection could not be read to find the team "${teamName}". ${Service.asSentences([WorkspaceBase.getSendErrorMessage(err)])}`,
+          notPostedReason: `The teams of this project's Microsoft Teams connection could not be read to find the team "${teamName}". ${Service.asSentences([MicrosoftTeamsUtil.describeError(err)])}`,
         };
       }
 
