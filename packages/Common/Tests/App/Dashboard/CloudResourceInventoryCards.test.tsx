@@ -247,8 +247,8 @@ describe("what each connection is", () => {
     await renderCards(instance());
     await screen.findByText("Connected Resources");
 
-    // Held: the account lists the subnet, by its own name.
-    expect(typeNextTo("private-a")).toBe("Subnet");
+    // Held: the account lists the subnet, by the catalog's label (#9375).
+    expect(typeNextTo("private-a")).toBe("VPC Subnet");
     // Not held: the cloud's id, with what it is.
     expect(typeNextTo("sg-0gone")).toBe("Security Group");
     // The catalog's own label for a type it lists.

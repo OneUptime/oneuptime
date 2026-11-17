@@ -89,6 +89,11 @@ export interface AwsInventoryType {
   name?: ((listed: AwsListedResource) => string) | undefined;
   // The dotted property paths it keeps (pickCloudProperties).
   properties: ReadonlyArray<string>;
+  /*
+   * Properties worked out from what was listed, kept beside it when
+   * `properties` names them: a security group's rules as one line each.
+   */
+  derivedProperties?: ((listed: AwsListedResource) => JSONObject) | undefined;
   relationships?:
     | ((
         listed: AwsListedResource,
@@ -211,6 +216,62 @@ function guardedBy(
     textsAt(props, path),
     SECURITY_GROUP,
   );
+}
+
+// What a subnet or a security group is in: its VPC.
+function inVpc(props: JSONObject): Array<CloudResourceRelationship> {
+  return relations(CloudRelationshipKind.RunsIn, textsAt(props, "VpcId"), VPC);
+}
+
+/*
+ * A security group's rules, one line each, as the console reads them:
+ * "tcp:443 from 0.0.0.0/0", "all from sg-0abc", "udp:53 to 10.0.0.0/8".
+ * Protocol "-1" is every protocol, and a port range is "from-to". `peer`
+ * is "from" for the inbound rules and "to" for the outbound ones.
+ */
+export function securityGroupRules(
+  rules: unknown,
+  peer: "from" | "to",
+): Array<string> {
+  const prefix: string = peer === "from" ? "Source" : "Destination";
+  const lines: Array<string> = [];
+
+  for (const rule of Array.isArray(rules) ? rules : []) {
+    if (!rule || typeof rule !== "object" || Array.isArray(rule)) {
+      continue;
+    }
+
+    const props: JSONObject = rule as JSONObject;
+    const rawProtocol: string = textAt(props, "IpProtocol").toLowerCase();
+    const protocol: string =
+      rawProtocol === "-1" || rawProtocol === "" ? "all" : rawProtocol;
+    const from: string = textAt(props, "FromPort");
+    const to: string = textAt(props, "ToPort");
+    let ports: string = "";
+
+    if (protocol !== "all" && from && from !== "-1") {
+      ports = to && to !== from ? `${from}-${to}` : from;
+    }
+
+    const peers: Array<string> = [];
+
+    for (const value of [
+      textAt(props, "CidrIp"),
+      textAt(props, "CidrIpv6"),
+      textAt(props, `${prefix}SecurityGroupId`),
+      textAt(props, `${prefix}PrefixListId`),
+    ]) {
+      if (value && !peers.includes(value)) {
+        peers.push(value);
+      }
+    }
+
+    const what: string = ports ? `${protocol}:${ports}` : protocol;
+
+    lines.push(peers.length > 0 ? `${what} ${peer} ${peers.join(", ")}` : what);
+  }
+
+  return lines;
 }
 
 /*
@@ -367,6 +428,69 @@ export const AWS_INVENTORY_TYPES: ReadonlyArray<AwsInventoryType> = [
       },
     },
     properties: ["CidrBlock", "InstanceTenancy", "EnableDnsSupport"],
+  },
+  /*
+   * A subnet and a security group publish no metrics: each is identified
+   * by its id, the way an instance, a load balancer, a function or a
+   * database names it, so what they name resolves to them (#9375). A role
+   * set up before they were listed may not read them (ec2:DescribeSubnets,
+   * ec2:DescribeSecurityGroups): it reads everything else as it did.
+   */
+  {
+    type: SUBNET,
+    inventoryId: {
+      dimension: "SubnetId",
+      arn: (id: string, context: AwsInventoryContext) => {
+        return arnOf(context, "ec2", `subnet/${id}`);
+      },
+    },
+    properties: [
+      "CidrBlock",
+      "Ipv6CidrBlocks",
+      "AvailabilityZone",
+      "AvailabilityZoneId",
+      "MapPublicIpOnLaunch",
+      "VpcId",
+    ],
+    relationships: (listed: AwsListedResource) => {
+      return inVpc(listed.properties);
+    },
+    quietWhenRefused: true,
+  },
+  {
+    type: SECURITY_GROUP,
+    inventoryId: {
+      dimension: "GroupId",
+      arn: (id: string, context: AwsInventoryContext) => {
+        return arnOf(context, "ec2", `security-group/${id}`);
+      },
+    },
+    name: (listed: AwsListedResource) => {
+      return textAt(listed.properties, "GroupName");
+    },
+    properties: [
+      "GroupName",
+      "GroupDescription",
+      "VpcId",
+      "inbound",
+      "outbound",
+    ],
+    derivedProperties: (listed: AwsListedResource): JSONObject => {
+      return {
+        inbound: securityGroupRules(
+          listed.properties["SecurityGroupIngress"],
+          "from",
+        ),
+        outbound: securityGroupRules(
+          listed.properties["SecurityGroupEgress"],
+          "to",
+        ),
+      };
+    },
+    relationships: (listed: AwsListedResource) => {
+      return inVpc(listed.properties);
+    },
+    quietWhenRefused: true,
   },
   {
     type: "AWS::EC2::NatGateway",
@@ -1152,7 +1276,12 @@ export function buildAwsInventoryItem(
     displayName: displayName || undefined,
     tags,
     properties: pickCloudProperties(
-      listed.properties,
+      inventoryType.derivedProperties
+        ? {
+            ...listed.properties,
+            ...inventoryType.derivedProperties(listed),
+          }
+        : listed.properties,
       inventoryType.properties,
     ),
     relationships: boundCloudRelationships(
