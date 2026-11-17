@@ -324,6 +324,9 @@ async function isStored(secretKey: string): Promise<boolean> {
  * (ProcessTelemetry), one job at a time, so the order is predictable.
  */
 function startWorker(): BullWorker {
+  // As a started server does: its workers take jobs (QueueWorker).
+  QueueWorker.startProcessingJobs();
+
   const worker: BullWorker = QueueWorker.getWorker(
     QueueName.Telemetry,
     async (job: QueueJob): Promise<void> => {

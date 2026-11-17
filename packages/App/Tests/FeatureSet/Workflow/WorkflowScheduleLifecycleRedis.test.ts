@@ -172,6 +172,9 @@ describe("Workflow schedule lifecycle (real Valkey)", () => {
     trigger.scheduleWorkflow = QueueWorkflow.addWorkflowToQueue;
     trigger.removeWorkflow = QueueWorkflow.removeWorkflow;
 
+    // As a started server does: its workers take jobs (QueueWorker).
+    QueueWorker.startProcessingJobs();
+
     worker = QueueWorker.getWorker(
       QueueName.Workflow,
       async (job: { name: string }) => {

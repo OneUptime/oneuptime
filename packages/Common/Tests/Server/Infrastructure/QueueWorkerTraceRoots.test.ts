@@ -32,15 +32,22 @@ import Telemetry from "../../../Server/Utils/Telemetry";
  * which groups a request's AI calls by trace - showed two investigations
  * running at once as one "request" of interleaved calls.
  *
- * These tests build a worker the way a process does, inside spans, and run
- * its jobs the way BullMQ does: from the context the worker was built in.
+ * These tests build a worker the way a process does, inside spans, start it
+ * the way a process does - QueueWorker.startProcessingJobs(), also from
+ * inside a span - and run its jobs the way BullMQ does: from the context its
+ * fetch loop was started in (Worker.run(), as the worker is built with
+ * autorun off).
  */
 
 interface MockWorker {
   processor: (job: QueueJob) => Promise<void>;
   // The OpenTelemetry context the worker was constructed in.
   builtIn: Context;
+  // The context its fetch loop was started in (run()), once it was.
+  ranIn: Context | null;
+  run: jest.Mock;
   on: jest.Mock;
+  emit: jest.Mock;
   close: jest.Mock;
 }
 
@@ -72,7 +79,14 @@ jest.mock("bullmq", () => {
           const worker: MockWorker = {
             processor: processor,
             builtIn: otel.context.active(),
+            ranIn: null,
+            // A fetch loop runs until the worker closes.
+            run: jest.fn().mockImplementation(() => {
+              worker.ranIn = otel.context.active();
+              return new Promise<void>(() => {});
+            }),
             on: jest.fn(),
+            emit: jest.fn(),
             close: jest.fn().mockResolvedValue(undefined),
           };
           mockWorkers.push(worker);
@@ -132,26 +146,29 @@ function traceIdOf(span: ReadableSpan): string {
 }
 
 /*
- * A worker built the way a process builds one: at startup, inside a span of
- * the process's own (and getWorker's own, from @CaptureSpan).
+ * A worker built and started the way a process does both: at startup, inside
+ * a span of the process's own (and getWorker's own, from @CaptureSpan).
  */
 function buildWorker(
   onJobInQueue: (job: QueueJob) => Promise<void>,
 ): MockWorker {
   trace.getTracer("test").startActiveSpan("startup", (span: Span) => {
     QueueWorker.getWorker(QueueName.Worker, onJobInQueue, { concurrency: 1 });
+    QueueWorker.startProcessingJobs();
     span.end();
   });
 
   return mockWorkers[mockWorkers.length - 1]!;
 }
 
-// A job run the way BullMQ runs it: from the loop the constructor started.
+// A job run the way BullMQ runs it: from the loop run() started.
 function runAsBullMqDoes(
   worker: MockWorker,
   queueJob: QueueJob,
 ): Promise<void> {
-  return context.with(worker.builtIn, () => {
+  expect(worker.ranIn).not.toBeNull();
+
+  return context.with(worker.ranIn!, () => {
     return worker.processor(queueJob);
   });
 }
@@ -182,10 +199,12 @@ afterEach(() => {
 });
 
 describe("QueueWorker jobs are traces of their own", () => {
-  test("the worker is built outside every span", () => {
+  test("the worker is built, and its fetch loop started, outside every span", () => {
     const worker: MockWorker = buildWorker(async () => {});
 
     expect(trace.getSpan(worker.builtIn)).toBeUndefined();
+    expect(worker.run).toHaveBeenCalledTimes(1);
+    expect(trace.getSpan(worker.ranIn!)).toBeUndefined();
     // getWorker itself is still traced, as a span of the startup.
     expect(traceIdOf(spanNamed("QueueWorker.getWorker"))).toBe(
       traceIdOf(spanNamed("startup")),

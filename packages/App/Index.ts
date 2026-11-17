@@ -45,6 +45,7 @@ import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import Profiling from "Common/Server/Utils/Profiling";
 import StartupGate from "Common/Server/Utils/StartupGate";
+import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import InstanceReceivingHeartbeat from "Common/Server/Utils/Telemetry/InstanceReceivingHeartbeat";
 import {
   ClusterKeyWarning,
@@ -343,6 +344,15 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     // Every route is mounted: serve requests, and say so to readiness.
     StartupGate.open();
+
+    /*
+     * Connected to every datastore, with the schema this code needs, and
+     * started: the queue workers take jobs from now on. Not before - a
+     * worker that took jobs while this process still waited for the
+     * migrate Job failed every one of them, and they were dropped
+     * (QueueWorker).
+     */
+    QueueWorker.startProcessingJobs();
 
     /*
      * Record, from now on, that OneUptime is receiving: the time between the
