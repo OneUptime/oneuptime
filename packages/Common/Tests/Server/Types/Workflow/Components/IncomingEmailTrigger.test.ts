@@ -177,22 +177,28 @@ beforeEach(() => {
 
   /*
    * What the database would answer: the one row whose key is the key asked
-   * for. The query is read back, so a lookup by anything else finds nothing.
+   * for - found by the key's lookup hash, as the key is kept encrypted
+   * (#9012: WorkflowService.findOneByPresentedKey). The lookup is read
+   * back, so a lookup by anything else finds nothing.
    */
   findOneBy = jest
-    .spyOn(WorkflowService, "findOneBy")
+    .spyOn(WorkflowService, "findOneByPresentedKey")
     .mockImplementation((async (args: {
-      query: Record<string, unknown>;
+      column: string;
+      presentedKey: unknown;
+      query?: Record<string, unknown>;
     }): Promise<Workflow | null> => {
-      const key: unknown = args.query["incomingEmailSecretKey"];
-
-      if (Object.keys(args.query).length !== 1 || !(key instanceof ObjectID)) {
+      if (
+        args.column !== "incomingEmailSecretKey" ||
+        args.query !== undefined ||
+        typeof args.presentedKey !== "string"
+      ) {
         return null;
       }
 
       const row: StoredWorkflow | undefined = stored.find(
         (candidate: StoredWorkflow) => {
-          return candidate.key === key.toString();
+          return candidate.key === args.presentedKey;
         },
       );
 
@@ -219,15 +225,16 @@ describe("an email for a workflow's address", () => {
     expect(findOneBy).toHaveBeenCalledTimes(1);
 
     const args: {
-      query: Record<string, unknown>;
+      column: string;
+      presentedKey: unknown;
+      query?: Record<string, unknown>;
       select: Record<string, unknown>;
       props: Record<string, unknown>;
     } = findOneBy.mock.calls[0]![0] as never;
 
-    expect(Object.keys(args.query)).toEqual(["incomingEmailSecretKey"]);
-    expect((args.query["incomingEmailSecretKey"] as ObjectID).toString()).toBe(
-      KEY_A,
-    );
+    expect(args.column).toBe("incomingEmailSecretKey");
+    expect(args.presentedKey).toBe(KEY_A);
+    expect(args.query).toBeUndefined();
     expect(args.props).toEqual({ isRoot: true });
     expect(args.select).toEqual(
       expect.objectContaining({

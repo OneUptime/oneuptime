@@ -70,6 +70,7 @@ import StatusPageSubscriberUnsubscribe, {
 } from "../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import StatusPageSubscriberConfirmationCode from "../Utils/StatusPage/StatusPageSubscriberConfirmationCode";
 import StatusPageSubscriberUnsubscribeToken from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeToken";
+import Encryption from "../Utils/Encryption";
 import StatusPageSubscriberUnsubscribeNotice, {
   StatusPageSubscriberUnsubscribeNoticeEmail,
   StatusPageSubscriberUnsubscribeSource,
@@ -4527,7 +4528,9 @@ export class Service extends ProjectReferencesService<Model> {
    * Mint a token, from Node's CSPRNG like every other, for each of these
    * subscribers that has none, in one statement. Returns how many were given
    * one. `"unsubscribeToken" IS NULL` is checked again under each row's lock,
-   * so a token another writer stored first is kept.
+   * so a token another writer stored first is kept. Each is stored
+   * encrypted, as every write of the column stores it (#9012): this
+   * statement goes around DatabaseService, so it encrypts them itself.
    */
   private async fillMissingUnsubscribeTokens(
     subscriberIds: Array<string>,
@@ -4536,9 +4539,15 @@ export class Service extends ProjectReferencesService<Model> {
       return 0;
     }
 
-    const tokens: Array<string> = subscriberIds.map((): string => {
-      return StatusPageSubscriberUnsubscribeToken.generate();
-    });
+    const tokens: Array<string> = [];
+
+    for (let index: number = 0; index < subscriberIds.length; index++) {
+      tokens.push(
+        await Encryption.encrypt(
+          StatusPageSubscriberUnsubscribeToken.generate(),
+        ),
+      );
+    }
 
     return affectedRowCount(
       await this.getRepository().manager.query(

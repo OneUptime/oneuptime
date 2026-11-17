@@ -110,11 +110,16 @@ const sha256: Sha256Function = (value: string): string => {
   return crypto.createHash("sha256").update(value).digest("hex");
 };
 
-type MakeProbeRowFunction = () => Probe;
+type MakeProbeRowFunction = (key?: string) => Probe;
 
-const makeProbeRow: MakeProbeRowFunction = (): Probe => {
+/*
+ * The probe as the database reads it: its key decrypted (#9012), which the
+ * key presented is compared with.
+ */
+const makeProbeRow: MakeProbeRowFunction = (key: string = PROBE_KEY): Probe => {
   const probe: Probe = new Probe();
   probe.id = PROBE_ID;
+  probe.key = key;
   return probe;
 };
 
@@ -187,7 +192,11 @@ describe("ProbeService probe-auth cache and heartbeat throttle", () => {
       expect(JSON.stringify(mockSetString.mock.calls)).not.toContain(PROBE_KEY);
     });
 
-    test("cache miss verifies against the DB with the presented id+key pair", async () => {
+    /*
+     * The key is kept encrypted (#9012), so the probe is read by its id - the
+     * key in no query - and the key it holds compared with the one presented.
+     */
+    test("cache miss verifies against the DB: the probe by its id, its key compared with the presented one", async () => {
       const findOneBySpy: jest.SpyInstance = jest
         .spyOn(ProbeService, "findOneBy")
         .mockResolvedValue(makeProbeRow());
@@ -201,10 +210,26 @@ describe("ProbeService probe-auth cache and heartbeat throttle", () => {
       expect(findOneBySpy).toHaveBeenCalledTimes(1);
       expect(findOneBySpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          query: { _id: PROBE_ID.toString(), key: PROBE_KEY },
+          query: { _id: PROBE_ID.toString() },
+          select: { _id: true, key: true },
           props: { isRoot: true },
         }),
       );
+      expect(JSON.stringify(findOneBySpy.mock.calls)).not.toContain(PROBE_KEY);
+    });
+
+    test("cache miss with a key that is not the probe's is refused, and writes nothing", async () => {
+      jest
+        .spyOn(ProbeService, "findOneBy")
+        .mockResolvedValue(makeProbeRow(ROTATED_PROBE_KEY));
+
+      const result: boolean = await ProbeService.verifyProbeKey({
+        probeId: PROBE_ID,
+        probeKey: PROBE_KEY,
+      });
+
+      expect(result).toBe(false);
+      expect(mockSetString).not.toHaveBeenCalled();
     });
 
     /*
@@ -240,7 +265,7 @@ describe("ProbeService probe-auth cache and heartbeat throttle", () => {
       mockGetString.mockResolvedValue(sha256(PROBE_KEY));
       const findOneBySpy: jest.SpyInstance = jest
         .spyOn(ProbeService, "findOneBy")
-        .mockResolvedValue(makeProbeRow());
+        .mockResolvedValue(makeProbeRow(ROTATED_PROBE_KEY));
 
       const result: boolean = await ProbeService.verifyProbeKey({
         probeId: PROBE_ID,
@@ -306,7 +331,9 @@ describe("ProbeService probe-auth cache and heartbeat throttle", () => {
     test("caching resumes once the conflicting entry has expired", async () => {
       // Both reads see an empty slot — the sentinel/old hash TTL'd out.
       mockGetString.mockResolvedValue(null);
-      jest.spyOn(ProbeService, "findOneBy").mockResolvedValue(makeProbeRow());
+      jest
+        .spyOn(ProbeService, "findOneBy")
+        .mockResolvedValue(makeProbeRow(ROTATED_PROBE_KEY));
 
       await ProbeService.verifyProbeKey({
         probeId: PROBE_ID,

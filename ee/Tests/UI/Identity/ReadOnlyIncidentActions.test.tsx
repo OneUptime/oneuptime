@@ -19,7 +19,8 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  * The server still accepts one update then, because it can only tighten
  * security (TIGHTEN_ONLY_UPDATES in Common's EditionPermission): exactly
  * { bearerToken: <32+ characters> } on a SCIM configuration. Both SCIM
- * screens offer it as "Reset Bearer Token" (and show the new token once).
+ * screens offer it as "Reset Bearer Token", and show the new token once: it
+ * is kept only as its hash (#9012), so nothing shows it again.
  *
  * For each screen this checks that the action is there in read-only mode,
  * that it sends exactly one update - to the right model and row, with exactly
@@ -239,6 +240,12 @@ import {
   SCIM_ACTIONS_TITLE,
 } from "../../../Dashboard/Identity/TightenOnly/ReadOnlyActionsNotice";
 import { MIN_SCIM_BEARER_TOKEN_LENGTH } from "../../../Dashboard/Identity/TightenOnly/TightenOnlyUpdates";
+import {
+  SCIM_BEARER_TOKEN_NOT_SHOWN_AGAIN_TEST_ID,
+  SCIM_BEARER_TOKEN_SHOWN_ONCE_TEST_ID,
+  SCIM_BEARER_TOKEN_SHOWN_ONCE_VALUE_TEST_ID,
+  ScimBearerTokenCopy,
+} from "../../../Dashboard/Identity/ScimBearerTokenCopy";
 import SettingsSSOPage from "@oneuptime/dashboard/Pages/Settings/SSO";
 import StatusPageSSOPage from "@oneuptime/dashboard/Pages/StatusPages/View/SSO";
 import StatusPageOIDCPage from "@oneuptime/dashboard/Pages/StatusPages/View/OIDC";
@@ -310,7 +317,7 @@ const SCIM_CASES: Array<ScimCase> = [
     path: `/dashboard/${PROJECT_ID}/settings/scim`,
     modelType: ProjectSCIM,
     table: "scim-table",
-    successTitle: "New Bearer Token",
+    successTitle: ScimBearerTokenCopy.shownOnceTitle,
     errorTitle: "Reset Error",
   },
   {
@@ -319,7 +326,7 @@ const SCIM_CASES: Array<ScimCase> = [
     path: `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/scim`,
     modelType: StatusPageSCIM,
     table: "status-page-scim-table",
-    successTitle: "Bearer Token Reset",
+    successTitle: ScimBearerTokenCopy.shownOnceTitle,
     errorTitle: "Error",
   },
 ];
@@ -726,16 +733,19 @@ describe.each(SCIM_CASES)("Reset Bearer Token: $name", (scimCase: ScimCase) => {
 
     expect(getRandomValues).toHaveBeenCalled();
 
-    // The new token is shown once, in the success dialog.
+    // The new token is shown once, as written, in the shown-once dialog.
     const modal: HTMLElement = await screen.findByTestId("modal");
 
     expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
       scimCase.successTitle,
     );
-
-    fireEvent.click(within(modal).getByRole("hidden-text"));
-
-    expect(within(modal).getByRole("revealed-text")).toHaveTextContent(token);
+    expect(modal).toHaveTextContent(ScimBearerTokenCopy.shownOnceDescription);
+    expect(
+      within(modal).getByTestId(SCIM_BEARER_TOKEN_SHOWN_ONCE_VALUE_TEST_ID),
+    ).toHaveTextContent(token);
+    expect(
+      within(modal).getByTestId("modal-footer-submit-button"),
+    ).toHaveTextContent(ScimBearerTokenCopy.done);
 
     // And the table reloads what the server now holds.
     expect(mockTableLoads[scimCase.table] || 0).toBeGreaterThan(loadsBefore);
@@ -750,6 +760,11 @@ describe.each(SCIM_CASES)("Reset Bearer Token: $name", (scimCase: ScimCase) => {
     await waitFor(() => {
       expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
     });
+
+    // Done, the token is forgotten: no dialog shows it again.
+    expect(
+      screen.queryByTestId(SCIM_BEARER_TOKEN_SHOWN_ONCE_TEST_ID),
+    ).not.toBeInTheDocument();
   });
 
   test("read-only: every reset makes a different token", async () => {
@@ -793,7 +808,12 @@ describe.each(SCIM_CASES)("Reset Bearer Token: $name", (scimCase: ScimCase) => {
       scimCase.errorTitle,
     );
     expect(modal).toHaveTextContent(LICENSE_REQUIRED_MESSAGE);
-    expect(within(modal).queryByRole("hidden-text")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(SCIM_BEARER_TOKEN_SHOWN_ONCE_TEST_ID),
+    ).not.toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(
+      expectTokenRotation(updateCalls[0]),
+    );
     expect(
       rowOf(scimCase.table, ENABLED_ROW_ID).getAttribute("data-bearer-token"),
     ).toBe(OLD_BEARER_TOKEN);
@@ -911,7 +931,7 @@ describe("Reset Bearer Token for a project admin", () => {
     },
   );
 
-  test("Settings > SCIM, for a project owner: the URLs dialog shows the token", async () => {
+  test("Settings > SCIM, for a project owner: the URLs dialog says the token was shown once, and shows none", async () => {
     window.localStorage.clear();
     signInWith(Permission.ProjectOwner);
 
@@ -935,6 +955,10 @@ describe("Reset Bearer Token for a project admin", () => {
     expect(
       within(modal).getByTestId("scim-bearer-token-section"),
     ).toBeInTheDocument();
+    expect(
+      within(modal).getByTestId(SCIM_BEARER_TOKEN_NOT_SHOWN_AGAIN_TEST_ID),
+    ).toHaveTextContent(ScimBearerTokenCopy.notShownAgain);
+    expect(modal).not.toHaveTextContent(OLD_BEARER_TOKEN);
   });
 
   test("Status page > SCIM, read-only: the reset stays on offer", async () => {

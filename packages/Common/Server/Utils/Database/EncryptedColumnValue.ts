@@ -5,6 +5,7 @@ import { isEncryptedValue } from "../../../Types/Database/EncryptedValue";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { JSONObject, JSONValue, ObjectType } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
 import Typeof from "../../../Types/Typeof";
 import { ValueTransformer } from "typeorm/decorator/options/ValueTransformer";
 
@@ -35,6 +36,10 @@ import { ValueTransformer } from "typeorm/decorator/options/ValueTransformer";
  *     whose secrets it cannot use. Text where an object belongs is
  *     encrypted whole, so no text in such a column is stored as written.
  *   - Other JSON: each top-level value of its object, or of its list.
+ *   - An id (TableColumnType.ObjectID): a key presented to OneUptime
+ *     kept in an id-typed column, such as a monitor's secret key (#9012),
+ *     encrypted as its text. The column's transformer reads the
+ *     ciphertext into an ObjectID, which a read decrypts into the key.
  *
  * A stored value that is not our ciphertext reads as it is
  * (isEncryptedValue): it was written before its column was kept encrypted,
@@ -81,6 +86,7 @@ export default class EncryptedColumnValue {
   public static isStorable(metadata: TableColumnMetadata): boolean {
     return (
       PROPERTY_TYPES.has(metadata.type) ||
+      metadata.type === TableColumnType.ObjectID ||
       metadata.type === TableColumnType.JSON ||
       TEXT_TYPES.includes(metadata.type)
     );
@@ -97,11 +103,48 @@ export default class EncryptedColumnValue {
     return PROPERTY_TYPES.get(metadata.type)?.getDatabaseTransformer() || null;
   }
 
+  /*
+   * The text `value` is encrypted as, which DatabaseService holds to its
+   * column's length before it encrypts it (assertFitsBeforeEncrypted):
+   * text as it is, an id as its text, a URL as the text its transformer
+   * writes. Null for a value encrypted otherwise - JSON, field by field or
+   * value by value - and for a URL column's ciphertext, handed back as it
+   * is stored and stored as it is.
+   */
+  public static getTextToEncrypt(
+    metadata: TableColumnMetadata,
+    value: unknown,
+  ): string | null {
+    if (value instanceof ObjectID) {
+      return value.toString();
+    }
+
+    const property: ValueTransformer | null =
+      EncryptedColumnValue.getPropertyTransformer(metadata);
+
+    if (property) {
+      if (isEncryptedValue(value)) {
+        return null;
+      }
+
+      const written: unknown = property.to(value);
+
+      return typeof written === "string" ? written : null;
+    }
+
+    return typeof value === "string" ? value : null;
+  }
+
   // What the column stores for `value`: see the top of this file.
   public static async encrypt(
     metadata: TableColumnMetadata,
     value: unknown,
   ): Promise<unknown> {
+    // A key kept in an id-typed column (#9012): its text, encrypted.
+    if (metadata.type === TableColumnType.ObjectID) {
+      return await Encryption.encrypt((value as ObjectID | string).toString());
+    }
+
     const property: ValueTransformer | null =
       EncryptedColumnValue.getPropertyTransformer(metadata);
 
@@ -160,6 +203,19 @@ export default class EncryptedColumnValue {
     metadata: TableColumnMetadata,
     stored: unknown,
   ): Promise<unknown> {
+    /*
+     * A key kept in an id-typed column (#9012): the column's transformer
+     * read the ciphertext into an ObjectID. A key stored before the column
+     * was encrypted reads as itself.
+     */
+    if (stored instanceof ObjectID) {
+      const storedText: string = stored.toString();
+
+      return isEncryptedValue(storedText)
+        ? new ObjectID(await Encryption.decrypt(storedText))
+        : stored;
+    }
+
     const property: ValueTransformer | null =
       EncryptedColumnValue.getPropertyTransformer(metadata);
 

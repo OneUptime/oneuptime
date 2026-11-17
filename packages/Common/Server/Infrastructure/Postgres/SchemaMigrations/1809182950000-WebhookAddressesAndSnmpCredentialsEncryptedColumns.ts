@@ -32,11 +32,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * sees nothing to generate. down() puts back the types as they were, which
  * holds only values that fit them, as before this ran.
  */
-export class WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182720000
+export class WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182950000
   implements MigrationInterface
 {
   public name: string =
-    "WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182720000";
+    "WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182950000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -8,7 +8,7 @@ import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDevi
 import OpenStackProjectNotice from "Common/Models/DatabaseModels/OpenStackProjectNotice";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import UserWebhook from "Common/Models/DatabaseModels/UserWebhook";
-import { WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182720000 } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809182720000-WebhookAddressesAndSnmpCredentialsEncryptedColumns";
+import { WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182950000 } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809182950000-WebhookAddressesAndSnmpCredentialsEncryptedColumns";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import CustomNotificationChannelService from "Common/Server/Services/CustomNotificationChannelService";
 import DatabaseService from "Common/Server/Services/DatabaseService";
@@ -35,7 +35,7 @@ import { DataSource, QueryRunner } from "Common/node_modules/typeorm";
  * method's address a varchar(500), a community string a varchar(100) - with
  * every address and credential stored as written, the upgrade runs as it
  * does: the schema migration
- * (1809182720000-WebhookAddressesAndSnmpCredentialsEncryptedColumns), then
+ * (1809182950000-WebhookAddressesAndSnmpCredentialsEncryptedColumns), then
  * the EncryptWebhookAddresses, EncryptSnmpCredentials and
  * MaskWebhookAddressesInLogs data migrations. Every reader reads through
  * the real services all along:
@@ -423,7 +423,7 @@ describePostgres(
       }
 
       await withRunner(async (queryRunner: QueryRunner) => {
-        await new WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182720000().up(
+        await new WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182950000().up(
           queryRunner,
         );
       });
@@ -596,7 +596,7 @@ describePostgres(
 
       // The tables as they were before the upgrade.
       await withRunner(async (queryRunner: QueryRunner) => {
-        await new WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182720000().down(
+        await new WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182950000().down(
           queryRunner,
         );
       });
@@ -650,7 +650,7 @@ describePostgres(
       const beforeSchema: Array<unknown> = await storedValues();
 
       await withRunner(async (queryRunner: QueryRunner) => {
-        await new WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182720000().up(
+        await new WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182950000().up(
           queryRunner,
         );
       });

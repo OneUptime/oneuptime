@@ -56519,5 +56519,13 @@
   "No email has gone out through this server's email settings since {{time}}.": "Nessuna email è stata inviata tramite le impostazioni email di questo server dal {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Nessuna email è stata inviata tramite le impostazioni email di questo server dal {{time}}. Il server di posta ha risposto: {{reason}}",
   "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "Di ogni indirizzo si conservano solo lo schema e l'host. Il resto è il segreto del webhook.",
-  "See email logs": "Vedi i log delle email"
+  "See email logs": "Vedi i log delle email",
+  "Copy Your Bearer Token": "Copia il tuo token Bearer",
+  "Incoming Email Secret Key Hash": "Hash della chiave segreta delle email in arrivo",
+  "Incoming Request Secret Key Hash": "Hash della chiave segreta delle richieste in arrivo",
+  "Ingestion Key Hash": "Hash della chiave di acquisizione",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Incollalo ora nel tuo provider di identità o conservalo in un posto sicuro. Viene mostrato solo questa volta: OneUptime ne conserva solo un hash.",
+  "Server Monitor Secret Key Hash": "Hash della chiave segreta del monitor del server",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Il token Bearer viene mostrato una sola volta, quando la connessione viene aggiunta o il suo token viene reimpostato. Se non lo hai più, usa «Reimposta il token Bearer» per crearne uno nuovo.",
+  "Webhook Secret Key Hash": "Hash della chiave segreta webhook"
 }

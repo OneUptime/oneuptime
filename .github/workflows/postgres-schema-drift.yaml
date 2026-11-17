@@ -4134,6 +4134,33 @@ jobs:
           Tests/Workers/DataMigrations/EncryptWebhookAddressesAndSnmpCredentialsPostgres.test.ts
           --forceExit
 
+      # The keys presented to OneUptime through the upgrade that protects them
+      # (#9012): on the tables as they were (the uuid keys uuids, the tokens
+      # varchar(100)s), with every key stored as written, the schema
+      # migrations keep each key, HashPresentedKeysForLookup writes the lookup
+      # hashes and changes no key, and the PresentedKeys:ProtectAtRest job
+      # keeps them up to date within the day after and encrypts (a SCIM
+      # token: hashes) every key a day after; a server of the release before
+      # (which compares a key as written) and one of this release find every
+      # key until then, this release with the key as written after, a wrong
+      # key never, and no key goes into a query once protected; two passes
+      # at once protect each key once, a key saved afterwards is stored
+      # protected, and a rollback restores the old types. Clones the 13
+      # migrated tables with a presented key, and DataMigrations, into an
+      # isolated schema.
+      - name: Test presented keys' upgrade to encrypted or hashed on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_PRESENTED_KEYS_TESTS: "true"
+          PRESENTED_KEYS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PRESENTED_KEYS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PRESENTED_KEYS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/PresentedKeysAtRestPostgres.test.ts
+          --forceExit
+
       # Exceptions: the exception group upsert's ON CONFLICT branch, which is
       # all of regression detection - an occurrence after the resolve
       # reopens it as Regressed, a late one from before does not, and one
@@ -4553,6 +4580,27 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest
           Tests/Server/TeamCompliance/TeamComplianceStatusPostgres.test.ts
+          --selectProjects server --runInBand --forceExit
+
+      # SCIM bearer tokens through the upgrade that hashes them (#9012), as
+      # the SCIM middleware itself looks one up: on copies of the migrated
+      # ProjectSCIM, StatusPageSCIM and DataMigrations tables, a token stored
+      # as written finds its connection within the day before the
+      # PresentedKeys:ProtectAtRest job runs, and by its hash alone after
+      # the job hashed it in place; a wrong token, another connection's, or
+      # the hash presented as a token never does, and no token goes into a
+      # query once hashed.
+      - name: Test SCIM bearer tokens' upgrade to a hash on migrated Postgres (Enterprise)
+        if: matrix.shard == 3
+        working-directory: ee
+        env:
+          RUN_POSTGRES_SCIM_TOKEN_AT_REST_TESTS: "true"
+          SCIM_TOKEN_AT_REST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SCIM_TOKEN_AT_REST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SCIM_TOKEN_AT_REST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest
+          Tests/Server/Identity/SCIMBearerTokensAtRestPostgres.test.ts
           --selectProjects server --runInBand --forceExit
 
       # The audit log exporter (Enterprise) on copies of the migrated Project,

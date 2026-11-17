@@ -56519,5 +56519,13 @@
   "No email has gone out through this server's email settings since {{time}}.": "Inget e-postmeddelande har skickats via den här serverns e-postinställningar sedan {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Inget e-postmeddelande har skickats via den här serverns e-postinställningar sedan {{time}}. E-postservern svarade: {{reason}}",
   "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "Bara schemat och värden i varje adress sparas. Resten är webhookens hemlighet.",
-  "See email logs": "Visa e-postloggar"
+  "See email logs": "Visa e-postloggar",
+  "Copy Your Bearer Token": "Kopiera din Bearer-token",
+  "Incoming Email Secret Key Hash": "Hash för den hemliga nyckeln för inkommande e-post",
+  "Incoming Request Secret Key Hash": "Hash för den hemliga nyckeln för inkommande begäranden",
+  "Ingestion Key Hash": "Hash för intagningsnyckeln",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Klistra in den hos din identitetsleverantör nu, eller förvara den på ett säkert ställe. Den visas bara den här gången: OneUptime sparar bara en hash av den.",
+  "Server Monitor Secret Key Hash": "Hash för servermonitorns hemliga nyckel",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer-token visas bara en gång, när anslutningen läggs till eller när dess token återställs. Om du inte längre har den kan du använda ”Återställ Bearer-token” för att skapa en ny.",
+  "Webhook Secret Key Hash": "Hash för den hemliga webhook-nyckeln"
 }

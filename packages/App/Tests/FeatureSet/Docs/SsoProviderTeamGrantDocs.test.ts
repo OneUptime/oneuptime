@@ -154,7 +154,7 @@ describe("in English", () => {
 
   it("the SCIM page says who may add or change a connection, and why, before the steps", () => {
     expect(scimLeadIn("en")).toBe(
-      "Only a Project Owner can add or change a project's SCIM connection, or see or reset its bearer token: through SCIM, your identity provider can add people to any team in the project.",
+      "Only a Project Owner can add or change a project's SCIM connection, or reset its bearer token: through SCIM, your identity provider can add people to any team in the project. Nobody can read a bearer token back, a Project Owner included: OneUptime keeps only its hash.",
     );
   });
 });

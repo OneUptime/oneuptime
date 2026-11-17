@@ -273,10 +273,12 @@ export default class CodeFixAgentAuth {
       return { identity: null, agentId: agentId, isKeyRight: false };
     }
 
-    const aiAgent: AIAgent | null = await AIAgentService.findOneBy({
+    // Its key is kept encrypted (#9012): read by id, compared in constant time.
+    const aiAgent: AIAgent | null = await AIAgentService.findOneByPresentedKey({
+      column: "key",
+      presentedKey: agentKey,
       query: {
         _id: agentId.toString(),
-        key: agentKey,
       },
       select: {
         _id: true,
@@ -311,10 +313,11 @@ export default class CodeFixAgentAuth {
       };
     }
 
-    const runner: Runner | null = await RunnerService.findOneBy({
+    const runner: Runner | null = await RunnerService.findOneByPresentedKey({
+      column: "key",
+      presentedKey: agentKey,
       query: {
         _id: agentId.toString(),
-        key: agentKey,
       },
       select: {
         _id: true,

@@ -414,7 +414,7 @@ describe("a hook-free write", () => {
     expect(configs).toEqual(CONFIGS);
   });
 
-  test("clamps a value to its column before it encrypts it, so a ciphertext is never cut", async () => {
+  test("holds a value to its column's length as written, before it encrypts it: one past it is refused, never cut", async () => {
     const service: DatabaseService<ProjectCallSMSConfig> =
       new DatabaseService<ProjectCallSMSConfig>(ProjectCallSMSConfig);
     const captured: Array<CapturedQuery> = [];
@@ -425,10 +425,18 @@ describe("a hook-free write", () => {
         fakeRepository(new ProjectCallSMSConfig(), captured) as never,
       );
 
-    // The token's column declares 500 characters.
+    // The token's column declares 500 characters (assertFitsBeforeEncrypted, #9012).
+    await expect(
+      service.updateColumnsByIdWithoutHooks({
+        id: new ObjectID(SCAN_ID),
+        data: { twilioAuthToken: "t".repeat(600) } as never,
+      }),
+    ).rejects.toThrow("at most 500 characters");
+    expect(captured).toEqual([]);
+
     await service.updateColumnsByIdWithoutHooks({
       id: new ObjectID(SCAN_ID),
-      data: { twilioAuthToken: "t".repeat(600) } as never,
+      data: { twilioAuthToken: "t".repeat(500) } as never,
     });
 
     const stored: string = captured[0]!.params.find((param: unknown) => {

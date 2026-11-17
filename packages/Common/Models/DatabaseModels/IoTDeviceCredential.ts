@@ -455,6 +455,8 @@ export default class IoTDeviceCredential extends BaseModel {
   @Index()
   @TableColumn({
     secret: true,
+    encrypted: true,
+    presentedKey: true,
     type: TableColumnType.ObjectID,
     isDefaultValueColumn: false,
     computed: true,
@@ -464,7 +466,7 @@ export default class IoTDeviceCredential extends BaseModel {
     example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @Column({
-    type: ColumnType.ObjectID,
+    type: ColumnType.VeryLongText,
     nullable: false,
     transformer: ObjectID.getDatabaseTransformer(),
   })

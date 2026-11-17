@@ -186,6 +186,7 @@ import ResolveWhatMonitorsTurnedOffWouldHaveResolved from "./ResolveWhatMonitors
 import BackfillMonitorFirstMeasuredAt from "./BackfillMonitorFirstMeasuredAt";
 import BackfillMonitorFirstMeasuredAtForUptimeHistory from "./BackfillMonitorFirstMeasuredAtForUptimeHistory";
 import EncryptProjectCredentials from "./EncryptProjectCredentials";
+import HashPresentedKeysForLookup from "./HashPresentedKeysForLookup";
 import SwitchOffRulesLimitedOnlyToDeletedRecords from "./SwitchOffRulesLimitedOnlyToDeletedRecords";
 import EncryptWebhookAddresses from "./EncryptWebhookAddresses";
 import EncryptSnmpCredentials from "./EncryptSnmpCredentials";
@@ -1319,6 +1320,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * last slot AddAuditLogMcpClientColumns asserts for itself.
    */
   new MaskWebhookAddressesInLogs(),
+  /*
+   * The keys presented to OneUptime are kept encrypted now, or hashed
+   * (#9012): this writes the lookup hash of each ingestion, monitor and
+   * workflow key stored as written, beside it, and changes no key, so a
+   * server of the release before keeps checking every key while the upgrade
+   * rolls out. A day after it ran, the PresentedKeys:ProtectAtRest job
+   * encrypts or hashes the keys stored as written, in place. Postgres only,
+   * paged and idempotent; before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new HashPresentedKeysForLookup(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

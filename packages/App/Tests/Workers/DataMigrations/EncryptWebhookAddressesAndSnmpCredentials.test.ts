@@ -488,11 +488,16 @@ describe("EncryptWebhookAddresses", () => {
         new OpenStackProjectNotice(),
         new CustomNotificationChannel(),
       ] as Array<DatabaseBaseModel>
-    ).flatMap((model: DatabaseBaseModel): Array<string> => {
-      return model.getEncryptedColumns().columns.map((column: string) => {
-        return `${model.tableName}.${column}`;
+    )
+      .flatMap((model: DatabaseBaseModel): Array<string> => {
+        return model.getEncryptedColumns().columns.map((column: string) => {
+          return `${model.tableName}.${column}`;
+        });
+      })
+      .filter((column: string): boolean => {
+        // A key presented to OneUptime, #9012's to protect (PresentedKeys).
+        return column !== "StatusPageSubscriber.unsubscribeToken";
       });
-    });
 
     // UserWebhook.secret was #8989's (EncryptProjectCredentials).
     expect([...declared, "UserWebhook.webhookUrl"].sort()).toEqual(

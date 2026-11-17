@@ -1,4 +1,6 @@
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
+import TableColumnType from "../../../Types/Database/TableColumnType";
+import ObjectID from "../../../Types/ObjectID";
 import CustomNotificationChannel from "../../../Models/DatabaseModels/CustomNotificationChannel";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
@@ -318,7 +320,7 @@ describe("the webhook log", () => {
 });
 
 describe("every encrypted column of every model", () => {
-  test("is of a type DatabaseService can keep encrypted: text, JSON or a URL", () => {
+  test("is of a type DatabaseService can keep encrypted: text, JSON, a URL or an id", () => {
     const unstorable: Array<string> = [];
 
     for (const modelType of AllModelTypes as Array<ModelType>) {
@@ -336,7 +338,7 @@ describe("every encrypted column of every model", () => {
     expect(unstorable).toEqual([]);
   });
 
-  test("whose value a transformer writes is a URL whose transformer hands a ciphertext on", () => {
+  test("whose value a transformer writes is a URL whose transformer hands a ciphertext on, or an id read into one that holds it", () => {
     const misread: Array<string> = [];
 
     for (const modelType of AllModelTypes as Array<ModelType>) {
@@ -354,6 +356,21 @@ describe("every encrypted column of every model", () => {
 
         const metadata: TableColumnMetadata =
           model.getTableColumnMetadata(column);
+
+        /*
+         * A key presented to OneUptime kept in an id-typed column (#9012):
+         * read into an ObjectID that holds the ciphertext as its text,
+         * which a read decrypts (EncryptedColumnValue.decrypt).
+         */
+        if (metadata.type === TableColumnType.ObjectID) {
+          const read: unknown = transformer.from(A_CIPHERTEXT);
+
+          if (!(read instanceof ObjectID) || read.toString() !== A_CIPHERTEXT) {
+            misread.push(`${model.tableName}.${column}`);
+          }
+
+          continue;
+        }
 
         if (
           !EncryptedColumnValue.getPropertyTransformer(metadata) ||

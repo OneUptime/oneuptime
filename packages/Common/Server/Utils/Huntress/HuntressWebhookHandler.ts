@@ -167,15 +167,16 @@ export default class HuntressWebhookHandler {
       return answer(404, { message: HUNTRESS_NO_WORKFLOW_MESSAGE });
     }
 
-    const workflow: Workflow | null = await WorkflowService.findOneBy({
-      query: {
-        webhookSecretKey: secretKey,
-      },
-      select: WORKFLOW_SELECT as never,
-      props: {
-        isRoot: true,
-      },
-    });
+    // Found by the key's lookup hash: the key is kept encrypted (#9012).
+    const workflow: Workflow | null =
+      await WorkflowService.findOneByPresentedKey({
+        column: "webhookSecretKey",
+        presentedKey: secretKey,
+        select: WORKFLOW_SELECT as never,
+        props: {
+          isRoot: true,
+        },
+      });
 
     if (
       !workflow ||

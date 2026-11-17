@@ -56519,5 +56519,13 @@
   "No email has gone out through this server's email settings since {{time}}.": "{{time}} 以降、このサーバーのメール設定からメールが 1 通も送信されていません。",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "{{time}} 以降、このサーバーのメール設定からメールが 1 通も送信されていません。メールサーバーの応答: {{reason}}",
   "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "各アドレスはスキームとホストだけを保存します。残りは Webhook のシークレットです。",
-  "See email logs": "メールログを見る"
+  "See email logs": "メールログを見る",
+  "Copy Your Bearer Token": "ベアラートークンをコピー",
+  "Incoming Email Secret Key Hash": "受信メールのシークレットキーのハッシュ",
+  "Incoming Request Secret Key Hash": "受信リクエストのシークレットキーのハッシュ",
+  "Ingestion Key Hash": "取り込みキーのハッシュ",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "今すぐ ID プロバイダーに貼り付けるか、安全な場所に保管してください。表示されるのは今回だけです。OneUptime はハッシュしか保存しません。",
+  "Server Monitor Secret Key Hash": "サーバーモニターのシークレットキーのハッシュ",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "ベアラートークンが表示されるのは、接続を追加したときか、トークンをリセットしたときの一度だけです。手元にない場合は、「ベアラートークンをリセット」で新しいトークンを作成してください。",
+  "Webhook Secret Key Hash": "Webhook シークレットキーのハッシュ"
 }

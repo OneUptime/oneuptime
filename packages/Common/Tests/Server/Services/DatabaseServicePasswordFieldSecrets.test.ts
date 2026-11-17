@@ -16,6 +16,7 @@ import HashedString from "../../../Types/HashedString";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import CryptoJS from "crypto-js";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -571,6 +572,17 @@ describe("the write path unwraps HashedString for every column that is not a has
       const model: BaseModel = new modelType();
 
       for (const column of model.getEncryptedColumns().columns) {
+        /*
+         * A key presented to OneUptime kept in an id-typed column (#9012)
+         * is written as an id, which no password field writes: an id
+         * column refuses a HashedString before anything reads it.
+         */
+        if (
+          model.getTableColumnMetadata(column).type === TableColumnType.ObjectID
+        ) {
+          continue;
+        }
+
         jest.restoreAllMocks();
 
         const service: DatabaseService<BaseModel> =
