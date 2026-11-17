@@ -22,7 +22,7 @@ En jourpolicy avgör vem som larmas om en incident eller ett larm, och vem som s
 
 Formuläret frågar också **Utlös den vid varje ny incident och varje nytt larm**, om du får lägga till jourregler. Det lägger till en regel under **Incidenter → Regler → Jourregler** och en under **Larm → Regler → Jourregler**, som var och en matchar allt och kör den här policyn. Det är påslaget från början för ett projekts första policy, så länge projektet varken har en jourpolicy eller en jourregel, och avslaget för senare policyer: att utlösa två policyer vid varje ny incident och varje nytt larm är ett val att göra. Avslaget larmar policyn ingen förrän en regel, en övervakning eller en person kör den.
 
-Vill du hellre guidas steg för steg, från din telefon till ett testlarm, klickar du på **Ställ in larmning steg för steg**: på den tomma listan **Jourpolicyer** eller under **Så fungerar det**. Se [Bli larmad via samtal, SMS eller push](/docs/guides/paging).
+Vill du hellre guidas steg för steg, från din telefon till ett testlarm, klickar du på **Guidad installation**: på den tomma listan **Jourpolicyer** eller under **Så fungerar det**. Se [Bli larmad via samtal, SMS eller push](/docs/guides/paging).
 
 Listan **Jourpolicyer** visar varje policys **Namn**, **Beskrivning**, **Etiketter** och **Ägare**. Markera policyer för att använda **Lägg till etiketter**, **Ta bort etiketter**, **Lägg till ägare**, **Ta bort ägare**, **Arkivera** eller **Exportera JSON**, eller för att ta bort dem. **Importera JSON** skapar policyer från en export: en export innehåller en policys egna inställningar, inte dess eskaleringsregler eller ägare.
 

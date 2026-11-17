@@ -56685,6 +56685,5 @@
   "{{methods}} after {{count}} minutes": "{{count}}분 후 {{methods}}",
   "{{methods}} after {{count}} minutes_one": "{{count}}분 후 {{methods}}",
   "{{methods}} at once": "즉시 {{methods}}",
-  "Set up paging step by step": "호출을 단계별로 설정",
   "{{page}} (through {{groups}})": "{{page}}({{groups}} 경유)"
 }

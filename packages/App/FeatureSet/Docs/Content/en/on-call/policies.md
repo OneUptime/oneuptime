@@ -22,7 +22,7 @@ An on-call policy decides who is paged about an incident or alert, and who is ne
 
 The form also asks **Page this policy for every new incident and alert**, of people who may add on-call rules. It adds a rule under **Incidents → Rules → On-Call Rules** and one under **Alerts → Rules → On-Call Rules**, each matching everything and running this policy. It starts on for a project's first policy, while the project has no on-call policy and no on-call rule, and off for any later one: paging two policies for every new incident and alert is a choice to make. Left off, a policy pages nobody until a rule, a monitor or a person runs it.
 
-To be walked through paging instead, from your phone to a test page, click **Set up paging step by step**: on the empty **On-Call Policies** list, or under **How it works**. See [Get Paged by Phone, SMS or Push](/docs/guides/paging).
+To be walked through paging instead, from your phone to a test page, click **Guided setup**: on the empty **On-Call Policies** list, or under **How it works**. See [Get Paged by Phone, SMS or Push](/docs/guides/paging).
 
 The **On-Call Policies** list shows each policy's **Name**, **Description**, **Labels** and **Owners**. Select policies to **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner**, **Archive**, **Export JSON** or delete them. **Import JSON** creates policies from an export: an export holds a policy's own settings, not its escalation rules or owners.
 

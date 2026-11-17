@@ -29,7 +29,7 @@ Ihr Server muss E-Mails, SMS und Anrufe senden können. Sein Master-Admin richte
 
 ![Die Startseite fragt „Was möchten Sie zuerst tun?“, „Die richtige Person alarmieren, wenn etwas ausfällt“ ist angehakt](screen:home-goal-paging)
 
-Klicken Sie auf der **Startseite** Ihres Projekts in der Checkliste **Willkommen bei OneUptime 👋** auf **Bereitschaftsrichtlinie einrichten**. Die Startseite eines neuen Projekts fragt vorher **Was möchten Sie zuerst tun?**: Haken Sie **Die richtige Person alarmieren, wenn etwas ausfällt** an und klicken Sie auf **Weiter**. Fehlt der Schritt oder ist er schon erledigt, drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `get paged` ein und wählen Sie **Die richtige Person alarmieren, wenn etwas ausfällt**. In **Bereitschaft** öffnet **Alarmierung Schritt für Schritt einrichten** sie ebenfalls.
+Klicken Sie auf der **Startseite** Ihres Projekts in der Checkliste **Willkommen bei OneUptime 👋** auf **Bereitschaftsrichtlinie einrichten**. Die Startseite eines neuen Projekts fragt vorher **Was möchten Sie zuerst tun?**: Haken Sie **Die richtige Person alarmieren, wenn etwas ausfällt** an und klicken Sie auf **Weiter**. Fehlt der Schritt oder ist er schon erledigt, drücken Sie `Ctrl+K` (`Cmd+K` auf einem Mac), geben Sie `get paged` ein und wählen Sie **Die richtige Person alarmieren, wenn etwas ausfällt**. In **Bereitschaft** öffnet **Geführte Einrichtung** sie ebenfalls.
 
 ### Die App auf Ihrem Telefon installieren
 

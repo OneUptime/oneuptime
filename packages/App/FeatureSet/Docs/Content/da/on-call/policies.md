@@ -22,7 +22,7 @@ En vagtpolitik afgør, hvem der tilkaldes om en hændelse eller advarsel, og hve
 
 Formularen spørger også **Udløs den ved hver ny hændelse og hver ny advarsel**, hvis du må tilføje vagtregler. Den tilføjer en regel under **Hændelser → Regler → Vagtregler** og en under **Advarsler → Regler → Vagtregler**, der hver matcher alt og kører denne politik. Den starter slået til for et projekts første politik, så længe projektet hverken har en vagtpolitik eller en vagtregel, og slået fra for senere politikker: at udløse to politikker ved hver ny hændelse og advarsel er et valg, du skal træffe. Slået fra tilkalder politikken ingen, før en regel, en monitor eller en person kører den.
 
-Vil du hellere guides trin for trin, fra din telefon til et testtilkald, så klik på **Sæt tilkald op trin for trin**: på den tomme liste **Vagtpolitikker** eller under **Sådan fungerer det**. Se [Bliv tilkaldt via opkald, SMS eller push](/docs/guides/paging).
+Vil du hellere guides trin for trin, fra din telefon til et testtilkald, så klik på **Guidet opsætning**: på den tomme liste **Vagtpolitikker** eller under **Sådan fungerer det**. Se [Bliv tilkaldt via opkald, SMS eller push](/docs/guides/paging).
 
 Listen **Vagtpolitikker** viser hver politiks **Navn**, **Beskrivelse**, **Etiketter** og **Ejere**. Vælg politikker for at bruge **Tilføj etiketter**, **Fjern etiketter**, **Tilføj ejer**, **Fjern ejer**, **Arkiver** eller **Eksportér JSON**, eller for at slette dem. **Importér JSON** opretter politikker fra en eksport: en eksport rummer en politiks egne indstillinger, ikke dens eskaleringsregler eller ejere.
 

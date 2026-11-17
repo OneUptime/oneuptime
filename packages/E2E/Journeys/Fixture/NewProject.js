@@ -201,9 +201,21 @@ export function seedNewProject(options) {
    * stays the one it was.
    */
   for (const [id, teamId, permission] of [
-    ["30000000-0000-4000-8000-000000000011", OWNERS_TEAM_ID, Permission.ProjectOwner],
-    ["30000000-0000-4000-8000-000000000012", ADMINS_TEAM_ID, Permission.ProjectAdmin],
-    ["30000000-0000-4000-8000-000000000013", MEMBERS_TEAM_ID, Permission.ProjectMember],
+    [
+      "30000000-0000-4000-8000-000000000011",
+      OWNERS_TEAM_ID,
+      Permission.ProjectOwner,
+    ],
+    [
+      "30000000-0000-4000-8000-000000000012",
+      ADMINS_TEAM_ID,
+      Permission.ProjectAdmin,
+    ],
+    [
+      "30000000-0000-4000-8000-000000000013",
+      MEMBERS_TEAM_ID,
+      Permission.ProjectMember,
+    ],
   ]) {
     store.insert(TeamPermission, {
       _id: id,

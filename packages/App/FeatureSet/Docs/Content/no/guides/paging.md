@@ -29,7 +29,7 @@ Serveren din må kunne sende e-post, SMS og anrop. Hovedadministratoren setter d
 
 ![Hjem spør «Hva vil du gjøre først?», med «Varsle rett person når noe går ned» avkrysset](screen:home-goal-paging)
 
-På siden **Hjem** i prosjektet ditt klikker du på **Sett opp en vaktpolicy** i sjekklisten **Velkommen til OneUptime 👋**. Startsiden til et nytt prosjekt spør først **Hva vil du gjøre først?**: kryss av for **Varsle rett person når noe går ned**, og klikk på **Fortsett**. Mangler steget, eller er det allerede gjort, trykker du `Ctrl+K` (`Cmd+K` på en Mac), skriver `get paged` og velger **Varsle rett person når noe går ned**. I **Vakt** åpner **Sett opp tilkalling steg for steg** det også.
+På siden **Hjem** i prosjektet ditt klikker du på **Sett opp en vaktpolicy** i sjekklisten **Velkommen til OneUptime 👋**. Startsiden til et nytt prosjekt spør først **Hva vil du gjøre først?**: kryss av for **Varsle rett person når noe går ned**, og klikk på **Fortsett**. Mangler steget, eller er det allerede gjort, trykker du `Ctrl+K` (`Cmd+K` på en Mac), skriver `get paged` og velger **Varsle rett person når noe går ned**. I **Vakt** åpner **Veiledet oppsett** det også.
 
 ### Last ned appen på telefonen din
 

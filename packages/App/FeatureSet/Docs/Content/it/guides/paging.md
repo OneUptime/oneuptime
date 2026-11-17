@@ -29,7 +29,7 @@ Il tuo server deve poter inviare email e SMS, e fare chiamate. Il suo amministra
 
 ![La pagina Home chiede «Cosa vuoi fare per prima cosa?», con «Avvisare la persona giusta quando qualcosa si guasta» selezionato](screen:home-goal-paging)
 
-Nella **Home** del tuo progetto, fai clic su **Configura una policy di reperibilità** nell'elenco **Benvenuto in OneUptime 👋**. In un nuovo progetto, la home page chiede prima **Cosa vuoi fare per prima cosa?**: spunta **Avvisare la persona giusta quando qualcosa si guasta** e fai clic su **Continua**. Se il passaggio manca o è già fatto, premi `Ctrl+K` (`Cmd+K` su un Mac), digita `get paged` e scegli **Avvisare la persona giusta quando qualcosa si guasta**. In **Reperibilità**, anche **Configura le chiamate passo dopo passo** la apre.
+Nella **Home** del tuo progetto, fai clic su **Configura una policy di reperibilità** nell'elenco **Benvenuto in OneUptime 👋**. In un nuovo progetto, la home page chiede prima **Cosa vuoi fare per prima cosa?**: spunta **Avvisare la persona giusta quando qualcosa si guasta** e fai clic su **Continua**. Se il passaggio manca o è già fatto, premi `Ctrl+K` (`Cmd+K` su un Mac), digita `get paged` e scegli **Avvisare la persona giusta quando qualcosa si guasta**. In **Reperibilità**, anche **Configurazione guidata** la apre.
 
 ### Installare l'app sul telefono
 

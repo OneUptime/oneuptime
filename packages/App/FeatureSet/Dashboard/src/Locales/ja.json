@@ -56685,6 +56685,5 @@
   "{{methods}} after {{count}} minutes": "{{count}} 分後に {{methods}}",
   "{{methods}} after {{count}} minutes_one": "{{count}} 分後に {{methods}}",
   "{{methods}} at once": "すぐに {{methods}}",
-  "Set up paging step by step": "呼び出しを順を追って設定",
   "{{page}} (through {{groups}})": "{{page}}（{{groups}} 経由）"
 }

@@ -768,7 +768,7 @@ describe("a product's guided setup (#7148)", () => {
   test("On-Call names its guided setup, for whoever may create a policy", () => {
     expect(PRODUCT_ONBOARDINGS[ProductKey.OnCall].guidedSetup).toEqual({
       page: PageMap.ON_CALL_DUTY_GUIDED_SETUP,
-      buttonTitle: "Set up paging step by step",
+      buttonTitle: "Guided setup",
       modelType: OnCallDutyPolicy,
     });
   });
@@ -789,7 +789,7 @@ describe("a product's guided setup (#7148)", () => {
       RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID,
     );
 
-    expect(setup).toHaveTextContent("Set up paging step by step");
+    expect(setup).toHaveTextContent("Guided setup");
     expect(create).toHaveTextContent("Create On-Call Policy");
     // One primary button: the setup's.
     expect(setup).toHaveClass("bg-indigo-600");
@@ -821,7 +821,7 @@ describe("a product's guided setup (#7148)", () => {
       RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID,
     );
 
-    expect(setup).toHaveTextContent("Set up paging step by step");
+    expect(setup).toHaveTextContent("Guided setup");
     // Still an explanation: no second way to create a policy.
     expect(
       within(dialog).queryByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID),
@@ -858,45 +858,31 @@ describe("a product's guided setup (#7148)", () => {
   });
 
   /*
-   * The button's words are a key of their own. It first reused "Set up
-   * paging", the AI activity's done action beside "Published a status page"
-   * (InvestigationEvidenceFormat): "Alarmierung eingerichtet", "Configuró
-   * los avisos", so every language but English drew the button as
-   * something that had already happened.
+   * The button names the page it opens, as that page's breadcrumb does:
+   * "Guided setup", in every language. It first said "Set up paging", the
+   * words of the AI activity's done action beside "Published a status page"
+   * (InvestigationEvidenceFormat), which every language words as something
+   * that already happened: "Alarmierung eingerichtet", "Configuró los
+   * avisos".
    */
-  test("its words are a key no other place looks up, worded in every language", () => {
+  test("its words name the page it opens, as the page's breadcrumb does, in every language", () => {
     const title: string =
       PRODUCT_ONBOARDINGS[ProductKey.OnCall].guidedSetup!.buttonTitle;
     const dashboard: string = path.join(
       __dirname,
       "../../../../App/FeatureSet/Dashboard/src",
     );
-    const typeScriptFile: RegExp = new RegExp("\\.tsx?$");
-    const sourceFiles: (directory: string) => Array<string> = (
-      directory: string,
-    ): Array<string> => {
-      return fs
-        .readdirSync(directory, { withFileTypes: true })
-        .flatMap((entry: fs.Dirent): Array<string> => {
-          const full: string = path.join(directory, entry.name);
+    const breadcrumbs: string = fs.readFileSync(
+      path.join(dashboard, "Utils/Breadcrumbs/OnCallDutyBreadcrumbs.ts"),
+      "utf8",
+    );
+    const setupCrumbs: string = breadcrumbs.slice(
+      breadcrumbs.indexOf("PageMap.ON_CALL_DUTY_GUIDED_SETUP"),
+    );
 
-          if (entry.isDirectory()) {
-            return entry.name === "Locales" ? [] : sourceFiles(full);
-          }
-
-          return typeScriptFile.test(entry.name) ? [full] : [];
-        });
-    };
-
-    expect(
-      sourceFiles(dashboard)
-        .filter((file: string): boolean => {
-          return fs.readFileSync(file, "utf8").includes(`"${title}"`);
-        })
-        .map((file: string): string => {
-          return path.basename(file);
-        }),
-    ).toEqual(["ProductOnboardings.ts"]);
+    expect(setupCrumbs.slice(0, setupCrumbs.indexOf("]"))).toContain(
+      `"${title}"`,
+    );
 
     const locales: string = path.join(dashboard, "Locales");
 

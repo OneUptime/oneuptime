@@ -29,7 +29,7 @@ Uw server moet e-mail, sms-berichten en oproepen kunnen versturen. De hoofdbehee
 
 ![Start vraagt "Wat wil je eerst doen?", met "De juiste persoon oproepen als er iets kapotgaat" aangevinkt](screen:home-goal-paging)
 
-Ga in uw project naar **Start** en klik in de checklist **Welkom bij OneUptime 👋** op **Stel een bereikbaarheidsbeleid in**. Bij een nieuw project stelt de startpagina vooraf de vraag **Wat wil je eerst doen?**: vink **De juiste persoon oproepen als er iets kapotgaat** aan en klik op **Doorgaan**. Ontbreekt de stap of is hij al klaar, druk dan op `Ctrl+K` (`Cmd+K` op een Mac), typ `get paged` en kies **De juiste persoon oproepen als er iets kapotgaat**. In **Bereikbaarheid** opent **Oproepen stap voor stap instellen** haar ook.
+Ga in uw project naar **Start** en klik in de checklist **Welkom bij OneUptime 👋** op **Stel een bereikbaarheidsbeleid in**. Bij een nieuw project stelt de startpagina vooraf de vraag **Wat wil je eerst doen?**: vink **De juiste persoon oproepen als er iets kapotgaat** aan en klik op **Doorgaan**. Ontbreekt de stap of is hij al klaar, druk dan op `Ctrl+K` (`Cmd+K` op een Mac), typ `get paged` en kies **De juiste persoon oproepen als er iets kapotgaat**. In **Bereikbaarheid** opent **Begeleide installatie** haar ook.
 
 ### De app op uw telefoon installeren
 

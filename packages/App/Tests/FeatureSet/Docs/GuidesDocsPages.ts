@@ -138,7 +138,7 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
       "Continue",
       // On-Call's own way to the setup (#7148).
       "On-Call",
-      "Set up paging step by step",
+      "Guided setup",
       // Push from the step itself (#7149).
       "Get the app",
       "Use this browser",

@@ -29,7 +29,7 @@ Votre serveur doit pouvoir envoyer des e-mails et des SMS, et passer des appels.
 
 ![Accueil demande « Que voulez-vous faire en premier ? », avec « Alerter la bonne personne quand quelque chose tombe en panne » coché](screen:home-goal-paging)
 
-Sur la page **Accueil** de votre projet, cliquez sur **Configurez une politique d'astreinte** dans la liste de vérification **Bienvenue sur OneUptime 👋**. Dans un nouveau projet, la page d'accueil demande d'abord **Que voulez-vous faire en premier ?** : cochez **Alerter la bonne personne quand quelque chose tombe en panne** et cliquez sur **Continuer**. Si l'étape n'apparaît pas ou est déjà faite, appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `get paged` et choisissez **Alerter la bonne personne quand quelque chose tombe en panne**. Dans **Astreinte**, **Configurer les alertes pas à pas** l'ouvre aussi.
+Sur la page **Accueil** de votre projet, cliquez sur **Configurez une politique d'astreinte** dans la liste de vérification **Bienvenue sur OneUptime 👋**. Dans un nouveau projet, la page d'accueil demande d'abord **Que voulez-vous faire en premier ?** : cochez **Alerter la bonne personne quand quelque chose tombe en panne** et cliquez sur **Continuer**. Si l'étape n'apparaît pas ou est déjà faite, appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `get paged` et choisissez **Alerter la bonne personne quand quelque chose tombe en panne**. Dans **Astreinte**, **Configuration guidée** l'ouvre aussi.
 
 ### Installer l'application sur votre téléphone
 

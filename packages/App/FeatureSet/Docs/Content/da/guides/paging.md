@@ -29,7 +29,7 @@ Din server skal kunne sende e-mail, sms og opkald. Dens masteradministrator sæt
 
 ![Hjem spørger »Hvad vil du gøre først?«, med »Tilkalde den rette person, når noget går ned« markeret](screen:home-goal-paging)
 
-På siden **Hjem** i dit projekt klikker du på **Opsæt en vagtpolitik** i tjeklisten **Velkommen til OneUptime 👋**. Et nyt projekts startside spørger først **Hvad vil du gøre først?**: sæt flueben ved **Tilkalde den rette person, når noget går ned**, og klik på **Fortsæt**. Mangler trinnet, eller er det allerede udført, så tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged`, og vælg **Tilkalde den rette person, når noget går ned**. I **Vagt** åbner **Sæt tilkald op trin for trin** den også.
+På siden **Hjem** i dit projekt klikker du på **Opsæt en vagtpolitik** i tjeklisten **Velkommen til OneUptime 👋**. Et nyt projekts startside spørger først **Hvad vil du gøre først?**: sæt flueben ved **Tilkalde den rette person, når noget går ned**, og klik på **Fortsæt**. Mangler trinnet, eller er det allerede udført, så tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged`, og vælg **Tilkalde den rette person, når noget går ned**. I **Vagt** åbner **Guidet opsætning** den også.
 
 ### Hent appen på din telefon
 

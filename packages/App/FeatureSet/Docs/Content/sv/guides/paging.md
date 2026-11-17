@@ -29,7 +29,7 @@ Din server måste kunna skicka e-post, sms och samtal. Serverns huvudadministrat
 
 ![Hem frågar ”Vad vill du göra först?”, med ”Larma rätt person när något går sönder” ikryssat](screen:home-goal-paging)
 
-På projektets sida **Hem** klickar du på **Konfigurera en jourpolicy** i checklistan **Välkommen till OneUptime 👋**. I ett nytt projekt börjar startsidan med frågan **Vad vill du göra först?**: kryssa i **Larma rätt person när något går sönder** och klicka på **Fortsätt**. Om steget saknas eller redan är klart trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `get paged` och väljer **Larma rätt person när något går sönder**. I **Jour** öppnar **Ställ in larmning steg för steg** den också.
+På projektets sida **Hem** klickar du på **Konfigurera en jourpolicy** i checklistan **Välkommen till OneUptime 👋**. I ett nytt projekt börjar startsidan med frågan **Vad vill du göra först?**: kryssa i **Larma rätt person när något går sönder** och klicka på **Fortsätt**. Om steget saknas eller redan är klart trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `get paged` och väljer **Larma rätt person när något går sönder**. I **Jour** öppnar **Guidad installation** den också.
 
 ### Installera appen på din telefon
 

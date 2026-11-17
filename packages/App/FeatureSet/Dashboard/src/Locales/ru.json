@@ -56685,6 +56685,5 @@
   "{{methods}} after {{count}} minutes": "{{methods}} через {{count}} мин",
   "{{methods}} after {{count}} minutes_one": "{{methods}} через {{count}} мин",
   "{{methods}} at once": "{{methods}} сразу",
-  "Set up paging step by step": "Настроить вызовы шаг за шагом",
   "{{page}} (through {{groups}})": "{{page}} (через {{groups}})"
 }

@@ -29,7 +29,7 @@ Your server must be able to send email, text messages and calls. Its master admi
 
 ![Home asks "What do you want to do first?", with "Page the right person when something breaks" ticked](screen:home-goal-paging)
 
-On your project's **Home**, click **Set up an on-call policy** in the **Welcome to OneUptime 👋** checklist. A new project's Home first asks **What do you want to do first?**: tick **Page the right person when something breaks** and click **Continue**. If the step is missing or already done, press `Ctrl+K` (`Cmd+K` on a Mac), type `get paged` and choose **Page the right person when something breaks**. In **On-Call**, **Set up paging step by step** opens it too.
+On your project's **Home**, click **Set up an on-call policy** in the **Welcome to OneUptime 👋** checklist. A new project's Home first asks **What do you want to do first?**: tick **Page the right person when something breaks** and click **Continue**. If the step is missing or already done, press `Ctrl+K` (`Cmd+K` on a Mac), type `get paged` and choose **Page the right person when something breaks**. In **On-Call**, **Guided setup** opens it too.
 
 ### Get the app on your phone
 

@@ -29,7 +29,7 @@ Seu servidor precisa conseguir enviar e-mails, SMS e chamadas. O administrador p
 
 ![Início pergunta "O que você quer fazer primeiro?", com "Acionar a pessoa certa quando algo quebrar" marcado](screen:home-goal-paging)
 
-Na página **Início** do seu projeto, clique em **Configure uma política de plantão**, na lista **Boas-vindas ao OneUptime 👋**. A página inicial de um projeto novo começa perguntando **O que você quer fazer primeiro?**: marque **Acionar a pessoa certa quando algo quebrar** e clique em **Continuar**. Se o passo não aparecer ou já estiver feito, pressione `Ctrl+K` (`Cmd+K` no Mac), digite `get paged` e escolha **Acionar a pessoa certa quando algo quebrar**. Em **Plantão**, **Configurar o acionamento passo a passo** também a abre.
+Na página **Início** do seu projeto, clique em **Configure uma política de plantão**, na lista **Boas-vindas ao OneUptime 👋**. A página inicial de um projeto novo começa perguntando **O que você quer fazer primeiro?**: marque **Acionar a pessoa certa quando algo quebrar** e clique em **Continuar**. Se o passo não aparecer ou já estiver feito, pressione `Ctrl+K` (`Cmd+K` no Mac), digite `get paged` e escolha **Acionar a pessoa certa quando algo quebrar**. Em **Plantão**, **Configuração guiada** também a abre.
 
 ### Instalar o app no celular
 

@@ -29,7 +29,7 @@ Tu servidor debe poder enviar correos, SMS y llamadas. Su administrador principa
 
 ![Inicio pregunta «¿Qué quieres hacer primero?», con «Avisar a la persona adecuada cuando algo falle» marcado](screen:home-goal-paging)
 
-En la página **Inicio** de tu proyecto, haz clic en **Configura una política de guardia**, en la lista **Te damos la bienvenida a OneUptime 👋**. La página de inicio de un proyecto nuevo empieza preguntando **¿Qué quieres hacer primero?**: marca **Avisar a la persona adecuada cuando algo falle** y haz clic en **Continuar**. Si el paso no aparece o ya está hecho, pulsa `Ctrl+K` (`Cmd+K` en un Mac), escribe `get paged` y elige **Avisar a la persona adecuada cuando algo falle**. En **Guardia**, **Configurar los avisos paso a paso** también la abre.
+En la página **Inicio** de tu proyecto, haz clic en **Configura una política de guardia**, en la lista **Te damos la bienvenida a OneUptime 👋**. La página de inicio de un proyecto nuevo empieza preguntando **¿Qué quieres hacer primero?**: marca **Avisar a la persona adecuada cuando algo falle** y haz clic en **Continuar**. Si el paso no aparece o ya está hecho, pulsa `Ctrl+K` (`Cmd+K` en un Mac), escribe `get paged` y elige **Avisar a la persona adecuada cuando algo falle**. En **Guardia**, **Configuración guiada** también la abre.
 
 ### Instalar la app en el teléfono
 

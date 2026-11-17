@@ -56685,6 +56685,5 @@
   "{{methods}} after {{count}} minutes": "{{count}} 分钟后通过{{methods}}",
   "{{methods}} after {{count}} minutes_one": "{{count}} 分钟后通过{{methods}}",
   "{{methods}} at once": "立即通过{{methods}}",
-  "Set up paging step by step": "分步设置呼叫",
   "{{page}} (through {{groups}})": "{{page}}（通过 {{groups}}）"
 }

@@ -105,7 +105,7 @@ export const PRODUCT_ONBOARDINGS: Record<
      */
     guidedSetup: {
       page: PageMap.ON_CALL_DUTY_GUIDED_SETUP,
-      buttonTitle: translationKey("Set up paging step by step"),
+      buttonTitle: translationKey("Guided setup"),
       modelType: OnCallDutyPolicy,
     },
   },

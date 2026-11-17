@@ -484,7 +484,7 @@ test.describe("when the answer is not known, or not theirs to give, nothing is a
 
 /*
  * ISSUE #7148: On-Call's own pages never led to its guided setup. A new
- * project's empty list explains On-Call with "Set up paging step by step" first, as its
+ * project's empty list explains On-Call with "Guided setup" first, as its
  * one primary button, and Create On-Call Policy beside it, plain; "How it
  * works" offers it once the project has a policy.
  */
@@ -498,7 +498,7 @@ test.describe("the guided setup, from On-Call itself (#7148)", () => {
 
     const setup: Locator = page.getByTestId(SETUP_BUTTON);
 
-    await expect(setup).toHaveText("Set up paging step by step");
+    await expect(setup).toHaveText("Guided setup");
     await expect(page.getByTestId(SHOWCASE_BUTTON)).toHaveText(
       "Create On-Call Policy",
     );
@@ -533,7 +533,7 @@ test.describe("the guided setup, from On-Call itself (#7148)", () => {
 
     await page.getByRole("button", { name: "How it works" }).click();
     await expect(dialog(page).getByTestId(SETUP_BUTTON)).toHaveText(
-      "Set up paging step by step",
+      "Guided setup",
     );
 
     await dialog(page).getByTestId(SETUP_BUTTON).click();
@@ -562,9 +562,7 @@ test.describe("the guided setup, from On-Call itself (#7148)", () => {
   }) => {
     await openPage(page, "?role=member");
 
-    await expect(page.getByTestId(SETUP_BUTTON)).toHaveText(
-      "Set up paging step by step",
-    );
+    await expect(page.getByTestId(SETUP_BUTTON)).toHaveText("Guided setup");
     await expect(page.getByTestId(SHOWCASE_BUTTON)).toBeVisible();
   });
 });
