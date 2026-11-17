@@ -116,18 +116,24 @@ export const AWS_READ_ONLY_ACTION_GROUPS: Array<AwsReadOnlyActionGroup> = [
       "ec2:DescribeInstances",
       "ec2:DescribeVolumes",
       "ec2:DescribeVpcs",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeSecurityGroups",
       "ec2:DescribeNatGateways",
       "autoscaling:DescribeAutoScalingGroups",
-      "elasticloadbalancing:DescribeLoadBalancers",
-      "elasticloadbalancing:DescribeLoadBalancerAttributes",
-      "elasticloadbalancing:DescribeTargetGroups",
-      "elasticloadbalancing:DescribeTargetGroupAttributes",
-      "elasticloadbalancing:DescribeTargetHealth",
-      "elasticloadbalancing:DescribeTags",
+      /*
+       * Every Describe of Elastic Load Balancing: its load balancers, their
+       * attributes, listeners and tags, its target groups and their health.
+       * Each reads how a load balancer is set up, and none reads a
+       * certificate's key. One entry rather than six keeps the policy under
+       * the 2,048 characters IAM allows an access key's user.
+       */
+      "elasticloadbalancing:Describe*",
       "ecs:ListClusters",
       "ecs:DescribeClusters",
       "ecs:ListServices",
       "ecs:DescribeServices",
+      "eks:ListClusters",
+      "eks:DescribeCluster",
       "lambda:ListFunctions",
       "rds:DescribeDBInstances",
       "rds:DescribeDBClusters",
@@ -221,6 +227,57 @@ export const AWS_READ_ONLY_ACTIONS: Array<string> =
       return group.actions;
     },
   );
+
+/*
+ * Whether an action is one of those granted, the way IAM reads a policy:
+ * case aside, and with a `*` in a granted action standing for any run of
+ * characters ("elasticloadbalancing:Describe*" grants
+ * "elasticloadbalancing:DescribeTargetHealth").
+ */
+export function isAwsActionGranted(
+  action: string,
+  granted: ReadonlyArray<string> = AWS_READ_ONLY_ACTIONS,
+): boolean {
+  const wanted: string = action.trim().toLowerCase();
+
+  return granted.some((entry: string): boolean => {
+    const pattern: string = entry.trim().toLowerCase();
+
+    if (!pattern.includes("*")) {
+      return pattern === wanted;
+    }
+
+    const parts: Array<string> = pattern.split("*");
+    let position: number = 0;
+
+    for (let index: number = 0; index < parts.length; index++) {
+      const part: string = parts[index]!;
+
+      if (index === 0) {
+        if (!wanted.startsWith(part)) {
+          return false;
+        }
+
+        position = part.length;
+        continue;
+      }
+
+      if (index === parts.length - 1) {
+        return wanted.length - part.length >= position && wanted.endsWith(part);
+      }
+
+      const found: number = wanted.indexOf(part, position);
+
+      if (found < 0) {
+        return false;
+      }
+
+      position = found + part.length;
+    }
+
+    return true;
+  });
+}
 
 /*
  * Actions allowed only on some resources. API Gateway's reads are one

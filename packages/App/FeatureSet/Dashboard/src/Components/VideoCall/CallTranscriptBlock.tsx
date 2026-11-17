@@ -217,6 +217,13 @@ const LINK_BUTTON_CLASS_NAME: string =
   "rounded-md font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 /*
+ * View transcript runs the row's width on a phone, as Join call does above
+ * it, and is as wide as its words from sm up. A Button has no width of its
+ * own (#9128), so the block gives it this one.
+ */
+export const CALL_TRANSCRIPT_VIEW_BUTTON_CLASS_NAME: string = "max-sm:w-full";
+
+/*
  * Where OneUptime AI's reading stands, as one sentence beside its mark: the
  * sentence's one action closes it, in the sentence's own line, so the
  * action sits with the words and never under the mark.
@@ -906,11 +913,7 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
             buttonStyle={ButtonStyleType.NORMAL}
             buttonSize={ButtonSize.Small}
             dataTestId="call-transcript-view"
-            /*
-             * A row of its own, as wide as the card on a phone; as wide as
-             * its words from sm up. A button has no width of its own (#9100).
-             */
-            className="w-full sm:w-auto"
+            className={CALL_TRANSCRIPT_VIEW_BUTTON_CLASS_NAME}
             onClick={() => {
               setIsViewing(true);
             }}

@@ -188,6 +188,7 @@ Zodra de functie een span, een log of een metric verstuurt, verschijnt ze onder 
 - **Aanroepen**, **foutpercentage** en **p95-duur**, berekend uit je traces over een tijdsbereik dat je kiest, met trendgrafieken.
 - **Instanties**: een live lijst van de `faas.instance`-waarden die de functie rapporteert.
 - Volledige pagina's **Logboeken**, **Traces** en **Metrieken**, afgebakend tot deze functie.
+- **Aanbevelingen**: kant-en-klare monitors voor mislukte aanroepen en foutpieken van de functie, gelezen uit haar eigen spans via haar `faas.name`. Kies de monitors die u wilt en maak ze in één stap aan.
 
 Een functie toont **Ontvangt gegevens** zolang haar telemetrie binnenkomt, en **Geen recente aanroepen** na 15 minuten zonder telemetrie, wat normaal is tussen de runs: een functie stuurt alleen telemetrie terwijl ze draait. Een functie die via de API is toegevoegd, toont **Wachten op gegevens** tot haar eerste telemetrie binnenkomt.
 

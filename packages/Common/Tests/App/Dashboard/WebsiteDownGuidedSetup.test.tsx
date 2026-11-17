@@ -88,6 +88,34 @@ jest.mock(
   },
 );
 
+/*
+ * Who the monitor tells, as its overview's When this goes down reads it
+ * (#7055): asked only for a project whose own policies and rules page.
+ */
+const getWhoIsToldMock: MockFunction = getJestMockFunction();
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi",
+    ) as Record<string, unknown>;
+
+    return {
+      __esModule: true,
+      ...actual,
+      default: {
+        getForMonitor: (...args: Array<unknown>) => {
+          return getWhoIsToldMock(...args);
+        },
+        getForDraft: (...args: Array<unknown>) => {
+          return getWhoIsToldMock(...args);
+        },
+      },
+    };
+  },
+);
+
 const getResultMock: MockFunction = getJestMockFunction();
 
 jest.mock(
@@ -268,6 +296,10 @@ import {
   OnCallTestPageStatus,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import {
+  WhoIsToldOwnersSource,
+  WhoIsToldResult,
+} from "../../../Types/Monitor/WhoIsTold";
 import { getLearnMoreUrl } from "../../../UI/Components/Link/LearnMoreLink";
 import AlertOnCallRule from "../../../Models/DatabaseModels/AlertOnCallRule";
 import IncidentOnCallRule from "../../../Models/DatabaseModels/IncidentOnCallRule";
@@ -340,6 +372,72 @@ const result: (status: OnCallTestPageStatus) => OnCallTestPageResult = (
       status === OnCallTestPageStatus.Acknowledged ? 14 : undefined,
     steps: [],
   } as OnCallTestPageResult;
+};
+
+/*
+ * What the monitor's When this goes down answers for a project that pages
+ * already: an incident that emails the Project Owners and pages Grace Hopper
+ * through the project's own policy.
+ */
+const WHO_IS_TOLD: WhoIsToldResult = {
+  monitorId: MONITOR_ID,
+  monitorName: "acme.example",
+  checkedAt: "2026-11-11T10:00:00.000Z",
+  criteria: [
+    {
+      id: "offline",
+      name: "Offline",
+      statusName: "Offline",
+      events: [
+        {
+          kind: OnCallTestPageRecordKind.Incident,
+          title: "acme.example is offline",
+          severityName: "Critical",
+          owners: {
+            source: WhoIsToldOwnersSource.ProjectOwners,
+            userNames: ["Ada Lovelace"],
+            teamNames: [],
+          },
+          ownerRules: [],
+          rules: [{ id: "r1", name: "Every incident" }],
+          policies: [
+            {
+              id: "70000000-0000-4000-8000-000000000001",
+              name: "Platform on-call",
+              isHidden: false,
+              isNamedByCriteria: false,
+              ruleIds: ["r1"],
+              levelCount: 1,
+              people: [
+                {
+                  userId: "40000000-0000-4000-8000-000000000009",
+                  name: "Grace Hopper",
+                  channels: [OnCallPageChannel.SMS],
+                  isFallback: false,
+                  isReachable: true,
+                },
+              ],
+              notPaged: [],
+            },
+          ],
+          statusPages: [],
+        },
+      ],
+    },
+  ],
+  channels: {
+    isBillingEnabled: false,
+    isSmsOn: true,
+    isCallOn: true,
+    isWhatsAppOn: true,
+    isTelegramOn: true,
+    hasOwnTwilioForSms: false,
+    hasOwnTwilioForCalls: false,
+    serverCanSendEmail: true,
+    serverCanSendSms: true,
+    serverCanCall: true,
+  },
+  breaks: [],
 };
 
 const storedRun: () => Record<string, unknown> = (): Record<
@@ -459,6 +557,7 @@ beforeEach(() => {
   // Not Cloud's Free plan without a card, as most projects are not.
   api["needsPaymentMethod"]!.mockResolvedValue(false);
   getResultMock.mockResolvedValue(result(OnCallTestPageStatus.Acknowledged));
+  getWhoIsToldMock.mockResolvedValue(WHO_IS_TOLD);
 });
 
 afterEach(() => {
@@ -468,6 +567,7 @@ afterEach(() => {
     mock.mockReset();
   }
   getResultMock.mockReset();
+  getWhoIsToldMock.mockReset();
   sendMock.mockReset();
   window.localStorage.clear();
 });
@@ -760,12 +860,25 @@ describe("2. Who should be told?", () => {
       WEBSITE_DOWN_COPY.whoExistingHelp,
     );
     expect(screen.queryByTestId("guided-setup-people")).toBeNull();
-    expect(
-      screen.getByText(WEBSITE_DOWN_COPY.whoOnCallRulesLink).closest("a"),
-    ).toHaveAttribute(
-      "href",
-      `/dashboard/${PROJECT_ID}/incidents/settings/on-call-rules`,
+
+    /*
+     * Who its rules page for this monitor, not "its rules decide" and a
+     * link (#7055): the monitor's own When this goes down.
+     */
+    expect(await screen.findByTestId("who-is-told-summary")).toHaveTextContent(
+      "OneUptime marks it Offline and opens an incident (Critical). It emails the Project Owners (Ada Lovelace). It pages Grace Hopper through Platform on-call.",
     );
+    expect(getWhoIsToldMock.mock.calls[0]![0]).toMatchObject({
+      refresh: false,
+    });
+    expect(
+      String(
+        (getWhoIsToldMock.mock.calls[0]![0] as { monitorId: ObjectID })
+          .monitorId,
+      ),
+    ).toBe(MONITOR_ID);
+    // In the step: no Checked line, and its fixes open in a new tab.
+    expect(screen.queryByTestId("who-is-told-recheck")).toBeNull();
 
     await press("guided-setup-who-continue");
 
@@ -3303,5 +3416,85 @@ describe("archived on-call policies (#8234)", () => {
     expect(screen.getByTestId("guided-setup-who-continue")).toHaveTextContent(
       WEBSITE_DOWN_COPY.whoSave,
     );
+  });
+});
+
+/*
+ * A PROJECT THAT PAGES PEOPLE ALREADY (#7055): its rules decide who is
+ * paged, and the summary says who they page for this monitor - When this
+ * goes down's own words, from the resolver the monitor's overview reads -
+ * rather than only that the project's rules decide.
+ */
+describe("a project that pages people already: the summary names who is told", () => {
+  const finishedRun: () => void = (): void => {
+    api["loadWhoIsToldFacts"]!.mockResolvedValue({
+      policyCount: 1,
+      incidentRuleCount: 1,
+      alertRuleCount: 1,
+      mayCreatePolicy: true,
+      mayAddEscalationRules: true,
+      mayAddRules: true,
+    });
+    keepRun({
+      monitorId: MONITOR_ID,
+      whoIsToldConfirmed: true,
+      testExecutionLogId: "log-1",
+    });
+  };
+
+  test("who its rules page, after what opens: the owners emailed and the people paged", async () => {
+    finishedRun();
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-summary-who_is_told"),
+      ).toHaveTextContent(
+        "It emails the Project Owners (Ada Lovelace). It pages Grace Hopper through Platform on-call.",
+      );
+    });
+    // What opens is the row above's, not said twice.
+    expect(
+      screen.getByTestId("guided-setup-summary-who_is_told"),
+    ).not.toHaveTextContent("opens an incident");
+    expect(
+      screen.getByTestId("guided-setup-summary-who_is_told"),
+    ).not.toHaveTextContent(
+      "This project's on-call policies and rules decide who is paged.",
+    );
+    const asked: { monitorId: ObjectID } = getWhoIsToldMock.mock
+      .calls[0]![0] as { monitorId: ObjectID };
+
+    expect(asked.monitorId.toString()).toBe(MONITOR_ID);
+  });
+
+  test("a read that fails says what it always said: the project's rules decide", async () => {
+    getWhoIsToldMock.mockRejectedValue(new Error("Gateway Timeout"));
+    finishedRun();
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-summary-who_is_told"),
+      ).toHaveTextContent(
+        "This project's on-call policies and rules decide who is paged.",
+      );
+    });
+  });
+
+  test("a run whose own policy pages is not asked: the policy it made says who", async () => {
+    keepRun({
+      monitorId: MONITOR_ID,
+      policyId: POLICY_ID,
+      testExecutionLogId: "log-1",
+    });
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-summary-who_is_told"),
+      ).toHaveTextContent('"Default on-call policy" pages Ada Lovelace');
+    });
+    expect(getWhoIsToldMock).not.toHaveBeenCalled();
   });
 });

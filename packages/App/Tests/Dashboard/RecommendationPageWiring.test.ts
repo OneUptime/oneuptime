@@ -139,6 +139,10 @@ const PAGE_FOLDER_BY_RESOURCE_TYPE: Record<RoutedResourceType, string> = {
   [MonitorRecommendationResourceType.DataPipeline]: "DataPipeline",
   // A cloud resource's own pages in Cloud (Pages/Cloud/View).
   [MonitorRecommendationResourceType.CloudResource]: "Cloud",
+  // A serverless function's own pages (Pages/Serverless/View).
+  [MonitorRecommendationResourceType.ServerlessFunction]: "Serverless",
+  // A queue's own pages (Pages/MessageQueue/View).
+  [MonitorRecommendationResourceType.MessageQueue]: "MessageQueue",
 };
 
 /*
@@ -179,7 +183,7 @@ describe("the resource-type table this file loops over", () => {
    * ever empty or short, every one of those tests would pass by never running.
    */
   test("covers every member of the enum", () => {
-    expect(ALL_RESOURCE_TYPES.length).toBe(18);
+    expect(ALL_RESOURCE_TYPES.length).toBe(20);
     expect(RESOURCE_CASES.length + TAB_HOSTED_RESOURCE_TYPES.length).toBe(
       ALL_RESOURCE_TYPES.length,
     );

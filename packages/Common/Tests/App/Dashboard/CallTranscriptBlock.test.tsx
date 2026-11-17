@@ -832,6 +832,22 @@ describe("a call with a transcript", () => {
     }
   });
 
+  /*
+   * jsdom draws no layout, so this holds the class the offline browser
+   * suite (packages/E2E/EventOverview) measures. A Button has no width of
+   * its own (#9128): on a 390px phone View transcript was as wide as its
+   * words, under a Join call that runs the row's width.
+   */
+  test("on a phone View transcript runs the row's width, as Join call does", () => {
+    renderCard({ calls: [suggestedCall()] });
+
+    expect(
+      within(screen.getByTestId("call-transcript-actions")).getByTestId(
+        "call-transcript-view",
+      ),
+    ).toHaveClass("max-sm:w-full");
+  });
+
   test("without a transcript, the same heading opens the block, then what it is for, then the buttons", () => {
     renderCard({ calls: [transcriptCall()] });
 

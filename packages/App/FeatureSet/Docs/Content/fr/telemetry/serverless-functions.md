@@ -188,6 +188,7 @@ Dès que la fonction envoie un span, un journal ou une métrique, elle apparaît
 - **Invocations**, **taux d'erreur** et **durée p95**, calculés à partir de vos traces sur une plage de temps de votre choix, avec des graphiques de tendance.
 - **Instances** : une liste en direct des valeurs `faas.instance` que la fonction rapporte.
 - Des pages **Journaux**, **Traces** et **Métriques** complètes, limitées à cette fonction.
+- **Recommandations** : des moniteurs prêts à l'emploi pour les invocations en échec et les rafales d'erreurs de la fonction, lus dans ses propres spans grâce à son `faas.name`. Choisissez ceux que vous voulez et créez-les en une seule étape.
 
 Une fonction affiche **Reçoit des données** tant que sa télémétrie arrive, et **Aucune invocation récente** après 15 minutes sans télémétrie, ce qui est normal entre deux exécutions : une fonction n'envoie de la télémétrie que pendant son exécution. Une fonction ajoutée via l'API affiche **En attente de données** jusqu'à l'arrivée de sa première télémétrie.
 

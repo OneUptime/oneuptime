@@ -5,6 +5,7 @@ import OwnerRulePlanBuilder, {
   OwnerRuleMatch,
   OwnerRulePlan,
   OwnerRulePlanEntry,
+  withPendingOwners,
 } from "../../../../Server/Utils/Rules/OwnerRulePlan";
 import { INHERITED_OWNER_COLUMNS } from "../../../../Utils/Rules/RuleAction";
 import ObjectID from "../../../../Types/ObjectID";
@@ -414,5 +415,65 @@ describe("an owner rule plan", () => {
 
       expect(sorted(result.allUserIds)).toEqual([USER_1]);
     });
+  });
+});
+
+/*
+ * A monitor not saved yet has no owner rows, and whoever creates it owns it
+ * as it is created: a preview of what it opens hands in that owner
+ * (withPendingOwners, #7055).
+ */
+describe("the owners a resource will have once it is created", () => {
+  const SOURCES: Set<OwnerRuleInheritSource> = new Set<OwnerRuleInheritSource>([
+    "monitors",
+  ]);
+
+  it("adds them to the owners read, for a source the rules inherit from", () => {
+    const read: Map<OwnerRuleInheritSource, OwnerIdSets> = new Map([
+      ["monitors", owners({ userIds: [USER_1], teamIds: [TEAM_1] })],
+    ]);
+
+    const merged: Map<OwnerRuleInheritSource, OwnerIdSets> = withPendingOwners({
+      read: read,
+      pending: new Map([["monitors", owners({ userIds: [MONITOR_OWNER] })]]),
+      sources: SOURCES,
+    });
+
+    expect(sorted(merged.get("monitors")!.userIds)).toEqual(
+      sorted([USER_1, MONITOR_OWNER]),
+    );
+    expect(sorted(merged.get("monitors")!.teamIds)).toEqual([TEAM_1]);
+    // What was read is left as it was.
+    expect(sorted(read.get("monitors")!.userIds)).toEqual([USER_1]);
+  });
+
+  it("adds them where nothing was read, and the plan inherits them", () => {
+    const merged: Map<OwnerRuleInheritSource, OwnerIdSets> = withPendingOwners({
+      read: new Map(),
+      pending: new Map([["monitors", owners({ userIds: [MONITOR_OWNER] })]]),
+      sources: SOURCES,
+    });
+
+    const result: OwnerRulePlan<Rule> = plan(
+      [match({ inheritsFrom: ["monitors"] })],
+      { inherited: merged },
+    );
+
+    expect(sorted(result.allUserIds)).toEqual([MONITOR_OWNER]);
+  });
+
+  it("adds nothing for a source no rule inherits from, or when none are pending", () => {
+    const read: Map<OwnerRuleInheritSource, OwnerIdSets> = new Map();
+
+    expect(
+      withPendingOwners({
+        read: read,
+        pending: new Map([["monitors", owners({ userIds: [MONITOR_OWNER] })]]),
+        sources: new Set<OwnerRuleInheritSource>(["services"]),
+      }).size,
+    ).toBe(0);
+    expect(
+      withPendingOwners({ read: read, pending: undefined, sources: SOURCES }),
+    ).toBe(read);
   });
 });

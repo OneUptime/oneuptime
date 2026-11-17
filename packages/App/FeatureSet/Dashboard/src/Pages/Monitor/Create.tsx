@@ -46,6 +46,7 @@ import {
 import MonitorSteps, {
   MonitorStepSeed,
 } from "../../Components/Form/Monitor/MonitorSteps";
+import MonitorDraftWhoIsTold from "../../Components/Monitor/Overview/MonitorDraftWhoIsTold";
 import URL from "Common/Types/API/URL";
 import DeviceWebUiUtil, {
   DEVICE_MONITOR_CHECK_QUERY_PARAM,
@@ -1956,16 +1957,19 @@ const MonitorCreate: FunctionComponent<
         /*
          * Who is told is the first thing someone new asks of a monitor.
          * Its default criteria open an incident when it goes down (an alert
-         * for a few types), and an incident or alert nobody owns is emailed
-         * to the project's owners - unless the server cannot send email yet,
-         * which is said instead, with who can set it up (Utils/ServerEmail).
+         * for a few types). Who that tells depends on the project - its
+         * owners, owner rules and on-call rules - so the Criteria step says
+         * it for this monitor (#7055), rather than this card guessing "the
+         * Project Owners" in a project whose rules page somebody. A server
+         * that cannot send email yet says so instead, with who can set it
+         * up (Utils/ServerEmail).
          */
         description={
           cannotSendEmail(serverEmail)
             ? serverEmail.isMasterAdmin
               ? SERVER_EMAIL_COPY.createMonitorDescriptionForAdmin
               : SERVER_EMAIL_COPY.createMonitorDescription
-            : "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the Project Owners."
+            : "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the Criteria step shows who is told."
         }
         className="mb-10"
       >
@@ -2065,27 +2069,43 @@ const MonitorCreate: FunctionComponent<
                     props: CustomElementProps,
                   ) => {
                     return (
-                      <MonitorSteps
-                        {...props}
-                        monitorType={value.monitorType || MonitorType.Manual}
-                        monitorName={value.name || ""}
-                        /*
-                         * A new monitor's criteria are defaults that suit
-                         * most monitors: each starts folded to its one-line
-                         * summary, so the step opens on what to check.
-                         */
-                        foldDefaultCriteria={true}
-                        seedQuery={seedQuery}
-                        seedStep={seedStep}
-                        /*
-                         * Not a template's monitor: criteria nobody has
-                         * worked on follow the monitor type picked, and a
-                         * telemetry monitor offers its recipes - also
-                         * after a walk back to Monitor Info, and for a
-                         * metric chart's Create monitor.
-                         */
-                        isCreating={!monitorTemplateId}
-                      />
+                      <>
+                        <MonitorSteps
+                          {...props}
+                          monitorType={value.monitorType || MonitorType.Manual}
+                          monitorName={value.name || ""}
+                          /*
+                           * A new monitor's criteria are defaults that suit
+                           * most monitors: each starts folded to its one-line
+                           * summary, so the step opens on what to check.
+                           */
+                          foldDefaultCriteria={true}
+                          seedQuery={seedQuery}
+                          seedStep={seedStep}
+                          /*
+                           * Not a template's monitor: criteria nobody has
+                           * worked on follow the monitor type picked, and a
+                           * telemetry monitor offers its recipes - also
+                           * after a walk back to Monitor Info, and for a
+                           * metric chart's Create monitor.
+                           */
+                          isCreating={!monitorTemplateId}
+                        />
+                        {/*
+                         * Who these criteria would tell, before the monitor
+                         * exists (#7055): the resolver a saved monitor's
+                         * overview reads, on the monitor this form holds.
+                         */}
+                        <MonitorDraftWhoIsTold
+                          monitorType={value.monitorType as MonitorType}
+                          name={value.name as string | undefined}
+                          description={value.description as string | undefined}
+                          monitorSteps={
+                            value.monitorSteps as MonitorStepsType | undefined
+                          }
+                          labels={value.labels as Array<unknown> | undefined}
+                        />
+                      </>
                     );
                   },
                 },

@@ -188,6 +188,7 @@ Once the function sends a span, a log or a metric, it appears under **Serverless
 - **Invocations**, **error rate** and **p95 duration**, worked out from your traces over a time range you pick, with trend charts.
 - **Instances**: a live list of the `faas.instance` values the function reports.
 - Full **Logs**, **Traces** and **Metrics** pages scoped to this function.
+- **Recommendations**: ready-made monitors for the function's failed invocations and error bursts, read from its own spans by its `faas.name`. Pick the ones you want and create them in one step.
 
 A function shows **Receiving data** while its telemetry arrives and **No recent invocations** after 15 minutes without any, which is normal between runs: a function sends telemetry only while it runs. One added through the API shows **Waiting for data** until its first telemetry arrives.
 

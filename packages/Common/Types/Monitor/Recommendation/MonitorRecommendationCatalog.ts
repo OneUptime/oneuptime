@@ -108,6 +108,16 @@ import {
   getAllCloudAppAlertTemplates,
   getCloudAppAlertTemplatesFor,
 } from "../CloudAppAlertTemplates";
+import {
+  ServerlessAlertTemplate,
+  getAllServerlessAlertTemplates,
+  getServerlessAlertTemplatesFor,
+} from "../ServerlessAlertTemplates";
+import {
+  MessageQueueAlertTemplate,
+  getAllMessageQueueAlertTemplates,
+  getMessageQueueAlertTemplatesFor,
+} from "../MessageQueueAlertTemplates";
 
 /*
  * A resource type's entry in the registry.
@@ -141,7 +151,9 @@ export interface MonitorRecommendationResourceTypeDefinition {
     | "dataStoreId"
     | "dataPipelineId"
     | "cloudResourceId"
-    | "cloudAppId";
+    | "cloudAppId"
+    | "serverlessFunctionId"
+    | "messageQueueId";
   icon: IconProp;
   /*
    * What to recommend for ONE resource of this type.
@@ -975,6 +987,112 @@ function getAllCloudAppRecommendations(): Array<MonitorRecommendation> {
   );
 }
 
+/*
+ * The serverless function adapter, like the app's: each monitor is scoped
+ * by the function's faas.name, captured from the context, and a function
+ * without one is offered nothing.
+ */
+function normalizeServerlessTemplate(
+  template: ServerlessAlertTemplate,
+  context?: MonitorRecommendationContext | undefined,
+): MonitorRecommendation {
+  return normalize({
+    resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+    monitorType: template.monitorType,
+    template: template,
+    getMonitorStep: (args: MonitorRecommendationArgs) => {
+      return template.getMonitorStep({
+        serverlessFunctionId: args.resourceIdentifier,
+        telemetryFilters: context?.serverlessFunctionTelemetryFilters || {},
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+      });
+    },
+  });
+}
+
+function getServerlessRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  return getServerlessAlertTemplatesFor({
+    telemetryFilters: context?.serverlessFunctionTelemetryFilters,
+  }).map((template: ServerlessAlertTemplate) => {
+    return normalizeServerlessTemplate(template, context);
+  });
+}
+
+function getAllServerlessRecommendations(): Array<MonitorRecommendation> {
+  return getAllServerlessAlertTemplates().map(
+    (template: ServerlessAlertTemplate) => {
+      return normalizeServerlessTemplate(template);
+    },
+  );
+}
+
+/*
+ * The message queue adapter. A queue's monitor filters on the series its
+ * broker reported for it (MessageQueueAlertTemplates), captured from the
+ * context, so a queue is offered only the templates whose metric arrived
+ * for it; the same template built without them has nothing to read and
+ * stands for an empty monitor, which is never offered.
+ */
+function normalizeMessageQueueTemplate(
+  template: MessageQueueAlertTemplate,
+  context?: MonitorRecommendationContext | undefined,
+): MonitorRecommendation {
+  return normalize({
+    resourceType: MonitorRecommendationResourceType.MessageQueue,
+    monitorType: template.monitorType,
+    template: template,
+    getMonitorStep: (args: MonitorRecommendationArgs) => {
+      const step: MonitorStep | null = template.getMonitorStep({
+        observedSeries:
+          context?.messageQueueObservedSeries?.[template.metricId] || [],
+        identity: context?.messageQueueIdentity,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+      });
+
+      return (
+        step ||
+        MonitorStep.getDefaultMonitorStep({
+          monitorName: args.monitorName,
+          monitorType: template.monitorType,
+          onlineMonitorStatusId: args.onlineMonitorStatusId,
+          offlineMonitorStatusId: args.offlineMonitorStatusId,
+          defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+          defaultAlertSeverityId: args.defaultAlertSeverityId,
+        })
+      );
+    },
+  });
+}
+
+function getMessageQueueRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  return getMessageQueueAlertTemplatesFor({
+    observedSeriesByMetric: context?.messageQueueObservedSeries,
+    identity: context?.messageQueueIdentity,
+  }).map((template: MessageQueueAlertTemplate) => {
+    return normalizeMessageQueueTemplate(template, context);
+  });
+}
+
+function getAllMessageQueueRecommendations(): Array<MonitorRecommendation> {
+  return getAllMessageQueueAlertTemplates().map(
+    (template: MessageQueueAlertTemplate) => {
+      return normalizeMessageQueueTemplate(template);
+    },
+  );
+}
+
 const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefinition> =
   [
     {
@@ -1139,6 +1257,24 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       icon: IconProp.Cube,
       getRecommendations: getCloudAppRecommendations,
       getAllPossibleRecommendations: getAllCloudAppRecommendations,
+    },
+    {
+      resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+      monitorTypes: [MonitorType.Traces],
+      resourceLabel: "Serverless Function",
+      identifierFieldName: "serverlessFunctionId",
+      icon: IconProp.Bolt,
+      getRecommendations: getServerlessRecommendations,
+      getAllPossibleRecommendations: getAllServerlessRecommendations,
+    },
+    {
+      resourceType: MonitorRecommendationResourceType.MessageQueue,
+      monitorTypes: [MonitorType.Metrics],
+      resourceLabel: "Queue",
+      identifierFieldName: "messageQueueId",
+      icon: IconProp.QueueList,
+      getRecommendations: getMessageQueueRecommendations,
+      getAllPossibleRecommendations: getAllMessageQueueRecommendations,
     },
   ];
 

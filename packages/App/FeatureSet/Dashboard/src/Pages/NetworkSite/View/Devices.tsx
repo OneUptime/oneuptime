@@ -72,6 +72,8 @@ const NetworkSiteDevices: FunctionComponent<
             "Network devices assigned to this site, directly or by an assignment rule.",
         }}
         noItemsMessage="No devices at this site yet. Assign them on a device's Overview page, or with assignment rules by subnet or hostname."
+        // A link made when the Vendor filter read `vendor` still filters (#9363).
+        renamedFilterKeys={{ vendor: "manufacturer" }}
         /*
          * The same filters as the Devices list's (issue #9304), so a site's
          * devices narrow the way every network list does.
@@ -92,8 +94,12 @@ const NetworkSiteDevices: FunctionComponent<
             type: FieldType.Text,
           },
           {
+            /*
+             * The maker the Vendor column shows (issue #9363), which the
+             * server keeps on each device - the one the Devices list shows.
+             */
             field: {
-              vendor: true,
+              manufacturer: true,
             },
             title: "Vendor",
             type: FieldType.Text,
@@ -307,9 +313,18 @@ const NetworkSiteDevices: FunctionComponent<
             hideOnMobile: true,
           },
           {
+            /*
+             * Who made the device, as the Devices list, its page and its
+             * Inventory item name it (issue #9363): the maker the server
+             * keeps on it, from its vendor, its SNMP identity, its controller
+             * and the Discovered Devices list. The `vendor` column alone was
+             * empty for every device only discovery named a maker for.
+             */
             field: {
-              vendor: true,
+              manufacturer: true,
             },
+            // Its identity as it was, for the viewer's Customize Columns choices.
+            id: "vendor",
             title: "Vendor",
             type: FieldType.Text,
             hideOnMobile: true,

@@ -17,6 +17,25 @@ jest.mock("Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
 });
 
 /*
+ * A queue's broker series are read from its telemetry
+ * (fetchMessageQueueObservedSeries), whose real module needs a browser
+ * `window`. What each answer does to the context is pinned below.
+ */
+const mockQueueObservedSeries: jest.Mock = jest.fn();
+
+jest.mock(
+  "../../FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueTelemetryQueries",
+  () => {
+    return {
+      __esModule: true,
+      fetchMessageQueueObservedSeries: (data: unknown): Promise<unknown> => {
+        return mockQueueObservedSeries(data);
+      },
+    };
+  },
+);
+
+/*
  * What a cloud runs is the server's to say (fetchOpenStackInventorySummary), whose real module needs
  * a browser `window` too. What each answer does to the context is pinned below.
  */
@@ -63,7 +82,9 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
 
 import RecommendationResourceRegistry, {
   RecommendationResourceDefinition,
+  getMessageQueueRecommendableMetrics,
   joinCloudRecommendationNotes,
+  loadMessageQueueRecommendationContext,
 } from "../../FeatureSet/Dashboard/src/Components/Recommendations/RecommendationResourceRegistry";
 import {
   RdsConnectionEngine,
@@ -71,6 +92,13 @@ import {
 } from "Common/Types/Cloud/RdsConnectionLimits";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import CloudApp from "Common/Models/DatabaseModels/CloudApp";
+import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
+import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
+import {
+  MESSAGE_QUEUE_METRICS,
+  getMessageQueueMetricId,
+} from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
+import { buildMessageQueueIdentifier } from "Common/Types/MessageQueue/MessageQueueIdentity";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Service from "Common/Models/DatabaseModels/Service";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
@@ -169,6 +197,10 @@ const EXPECTED_IDENTIFIER_FIELD: Record<
    * row id); `_id` names the app the tab is for, as a cloud resource's does.
    */
   [MonitorRecommendationResourceType.CloudApp]: "_id",
+  // A function's spans are read by its faas.name, a context column.
+  [MonitorRecommendationResourceType.ServerlessFunction]: "_id",
+  // A queue's broker series are read from telemetry, as context.
+  [MonitorRecommendationResourceType.MessageQueue]: "_id",
 };
 
 function getDefinitionOrFail(
@@ -2682,6 +2714,240 @@ describe("RecommendationResourceRegistry", () => {
       })!(unlinked);
 
       expect(unlinked.cloudResources).toBeUndefined();
+    });
+  });
+
+  describe("serverless function context", () => {
+    function functionRow(values: Record<string, unknown>): ServerlessFunction {
+      const model: ServerlessFunction = new ServerlessFunction();
+
+      model.id = new ObjectID("0c000000-0000-4000-8000-000000000001");
+
+      for (const [key, value] of Object.entries(values)) {
+        (model as unknown as Record<string, unknown>)[key] = value;
+      }
+
+      return model;
+    }
+
+    function contextOf(
+      values: Record<string, unknown>,
+    ): MonitorRecommendationContext {
+      return RecommendationResourceRegistry.readContext({
+        resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+        model: functionRow(values),
+      });
+    }
+
+    test("selects its name and its faas.name", () => {
+      expect(
+        RecommendationResourceRegistry.getSelect(
+          MonitorRecommendationResourceType.ServerlessFunction,
+        ),
+      ).toEqual({ _id: true, name: true, functionIdentifier: true });
+    });
+
+    test("a function with a faas.name is offered its two, and the page says nothing more", () => {
+      const context: MonitorRecommendationContext = contextOf({
+        name: "Orders",
+        functionIdentifier: "orders-handler",
+      });
+
+      expect(context.serverlessFunctionTelemetryFilters).toEqual({
+        "resource.faas.name": "orders-handler",
+      });
+      expect(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.ServerlessFunction,
+          context,
+        ).map((recommendation: MonitorRecommendation) => {
+          return recommendation.templateId;
+        }),
+      ).toEqual(["serverless-failed-invocations", "serverless-error-burst"]);
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+          context: context,
+        }),
+      ).toBeUndefined();
+    });
+
+    test("a function with no faas.name yet is offered nothing, and the page says why", () => {
+      const context: MonitorRecommendationContext = contextOf({
+        name: "Orders",
+        functionIdentifier: "",
+      });
+
+      expect(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.ServerlessFunction,
+          context,
+        ),
+      ).toEqual([]);
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+          context: context,
+        }),
+      ).toContain("faas.name");
+    });
+
+    test("its card says the monitors come from its invocations", () => {
+      expect(
+        RecommendationResourceRegistry.getCardDescription({
+          resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+          context: {},
+        }),
+      ).toContain("invocations");
+    });
+
+    test("its monitors are linked to nothing beyond their filter", () => {
+      expect(
+        RecommendationResourceRegistry.getMonitorLinker({
+          resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+          resourceId: ObjectID.generate(),
+        }),
+      ).toBeUndefined();
+    });
+  });
+
+  describe("message queue context", () => {
+    const PROJECT_ID: string = "0e000000-0000-4000-8000-000000000001";
+
+    // A system that has broker templates, and its queue's identifier.
+    const SYSTEM: string = MESSAGE_QUEUE_METRICS[0]!.system;
+
+    function queueRow(values: Record<string, unknown>): MessageQueue {
+      const model: MessageQueue = new MessageQueue();
+
+      model.id = new ObjectID("0e000000-0000-4000-8000-000000000002");
+
+      for (const [key, value] of Object.entries(values)) {
+        (model as unknown as Record<string, unknown>)[key] = value;
+      }
+
+      return model;
+    }
+
+    beforeEach(() => {
+      mockQueueObservedSeries.mockReset();
+    });
+
+    test("selects its name, its identifier, its system and its project", () => {
+      expect(
+        RecommendationResourceRegistry.getSelect(
+          MonitorRecommendationResourceType.MessageQueue,
+        ),
+      ).toEqual({
+        _id: true,
+        name: true,
+        queueIdentifier: true,
+        messagingSystem: true,
+        projectId: true,
+      });
+    });
+
+    test("read alone, a queue is offered nothing, and the page says why", () => {
+      const context: MonitorRecommendationContext =
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.MessageQueue,
+          model: queueRow({ name: "orders", messagingSystem: SYSTEM }),
+        });
+
+      expect(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.MessageQueue,
+          context,
+        ),
+      ).toEqual([]);
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.MessageQueue,
+          context: context,
+        }),
+      ).toContain("No broker metric");
+    });
+
+    test("only the metrics a template reads are asked about", () => {
+      const metrics: Array<string> = getMessageQueueRecommendableMetrics(
+        SYSTEM,
+      ).map((descriptor: (typeof MESSAGE_QUEUE_METRICS)[number]) => {
+        return getMessageQueueMetricId(descriptor);
+      });
+
+      expect(metrics.length).toBeGreaterThan(0);
+      expect(getMessageQueueRecommendableMetrics("not-a-system")).toEqual([]);
+      expect(getMessageQueueRecommendableMetrics(undefined)).toEqual([]);
+    });
+
+    test("a queue with no identifier asks its telemetry nothing", async () => {
+      const context: MonitorRecommendationContext =
+        await loadMessageQueueRecommendationContext({
+          model: queueRow({ projectId: PROJECT_ID, messagingSystem: SYSTEM }),
+          context: {},
+        });
+
+      expect(mockQueueObservedSeries).not.toHaveBeenCalled();
+      expect(context.messageQueueObservedSeries).toBeUndefined();
+    });
+
+    test("keeps the metrics that arrived, by catalog entry, and only those", async () => {
+      const descriptors: ReturnType<
+        typeof getMessageQueueRecommendableMetrics
+      > = getMessageQueueRecommendableMetrics(SYSTEM);
+      const reported: string = descriptors[0]!.metricName;
+
+      mockQueueObservedSeries.mockImplementation(
+        async (data: {
+          descriptor: { metricName: string };
+          keys: Array<string>;
+          start: Date;
+          end: Date;
+        }): Promise<Array<Record<string, string>>> => {
+          return data.descriptor.metricName === reported
+            ? [{ queue: "orders" }]
+            : [];
+        },
+      );
+
+      const identifier: string = buildMessageQueueIdentifier({
+        system: SYSTEM,
+        brokerScope: "",
+        destination: "orders",
+      })!;
+      const context: MonitorRecommendationContext =
+        await loadMessageQueueRecommendationContext({
+          model: queueRow({
+            projectId: PROJECT_ID,
+            queueIdentifier: identifier,
+            messagingSystem: SYSTEM,
+          }),
+          context: {},
+        });
+
+      expect(identifier).toBeTruthy();
+      expect(mockQueueObservedSeries).toHaveBeenCalledTimes(descriptors.length);
+      const call: {
+        keys: Array<string>;
+        start: Date;
+        end: Date;
+      } = mockQueueObservedSeries.mock.calls[0]![0];
+      expect(call.keys.length).toBe(1);
+      expect(call.end.getTime() - call.start.getTime()).toBe(
+        7 * 24 * 60 * 60 * 1000,
+      );
+      expect(Object.keys(context.messageQueueObservedSeries || {})).toEqual([
+        getMessageQueueMetricId(descriptors[0]!),
+      ]);
+    });
+
+    test("its card says the monitors come from its broker metrics", () => {
+      expect(
+        RecommendationResourceRegistry.getCardDescription({
+          resourceType: MonitorRecommendationResourceType.MessageQueue,
+          context: {},
+        }),
+      ).toContain("broker metrics");
     });
   });
 });

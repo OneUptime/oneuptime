@@ -967,6 +967,8 @@ service:
 
 队列通过基于其 broker 指标的 **指标** 监视器进行监控（见 [指标监控](/docs/monitor/metrics-monitor)）。
 
+每个队列的 **建议** 选项卡会针对其代理在过去 7 天内报告的指标，提供这些现成的监视器：积压、消费者延迟、最旧消息时长、死信、错误和限流，每个都带有初始阈值和时间窗口。选择需要的监视器，一步即可创建。代理未发送的指标不会被推荐，因为其监视器永远不会触发。
+
 **从队列页面。** **Broker 健康状况** 中的每个仪表和每个每周期计数都有 **创建监视器**：它会打开一个基于该指标的新指标监视器，按在该指标中指明此队列的确切属性值进行过滤，并在指标衡量的是明显有坏方向的东西时设置初始阈值：积压、死信、消费者滞后、最旧消息的时长、限流或错误。其中有四个开始时没有阈值，因为对它们设置固定阈值会产生误导：Kafka 的分区滞后（`kafka.consumer_group.lag`），它的消费者组滞后已经涵盖了它；ActiveMQ 的消息在队列中的平均时间（`activemq.message.enqueue.average_duration`、`activemq.message.wait_time.avg`），这是自 broker 启动以来的平均值，在停滞结束后仍会长时间保持很高；以及 Pulsar 的积压时长（`pulsar_storage_backlog_age_seconds`），在 broker 无法判断时显示 `-1`。计数器没有监视器：它们的图表显示的是速率，而监视器没有速率函数。
 
 **计数器。** RabbitMQ、Apache ActiveMQ 和 Apache RocketMQ 的计数器以累计和的形式到达 Collector，`cumulative_to_delta` 处理器（较旧的 Collector 中为 `cumulativetodelta`）会把它们转换为监视器可以据此发出警报的增量。请转换一个使用自己名称的副本，绝不要转换计数器本身：队列页面把这些计数器分别当作累计总数读取，并绘制其增长速度，因此被转换为增量的计数器在 **Broker 健康状况** 下和 **指标** 选项卡上会画出无意义的图表：稳定的流量会显示为每秒 0 条消息。Apache Kafka 的偏移量（`kafka.consumer_group.offset_sum`、`kafka.partition.current_offset`）以及 Apache Pulsar 的 `pulsar_in_messages_total` 和 `pulsar_out_messages_total` 以仪表形式到达，`cumulative_to_delta` 不会处理它们：对于这些系统，请改为基于滞后和积压仪表发出警报。
