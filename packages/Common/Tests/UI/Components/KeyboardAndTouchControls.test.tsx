@@ -16,7 +16,7 @@ import FieldType from "../../../UI/Components/Types/FieldType";
 import IconProp from "../../../Types/Icon/IconProp";
 import Color from "../../../Types/Color";
 import GenericObject from "../../../Types/GenericObject";
-import JSONObject from "../../../Types/JSON";
+import { JSONObject } from "../../../Types/JSON";
 import { findNestedControls } from "../../Helpers/NestedControls";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { Mock } from "jest-mock";
