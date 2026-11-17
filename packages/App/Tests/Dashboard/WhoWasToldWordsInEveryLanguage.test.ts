@@ -35,6 +35,7 @@ const WHO_WAS_TOLD_DIRECTORY: string =
 
 const WHO_WAS_TOLD_ROOTS: Array<SourceRoot> = [
   "WhoWasToldCard.tsx",
+  "WhoWasToldCopy.ts",
   "WhoWasToldWords.ts",
   "WhoWasToldApi.ts",
 ].map((file: string): SourceRoot => {
@@ -272,8 +273,8 @@ describe("Who Was Told's words in every language", () => {
       locale: danish,
     });
 
-    expect(unworded).toContain("Who Was Told (WhoWasToldWords.ts)");
-    expect(unworded).toContain("Paged by {{policy}} (WhoWasToldWords.ts)");
+    expect(unworded).toContain("Who Was Told (WhoWasToldCopy.ts)");
+    expect(unworded).toContain("Paged by {{policy}} (WhoWasToldCopy.ts)");
   });
 
   test("a translation that drops the names it carries fails it", () => {

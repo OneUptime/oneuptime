@@ -196,6 +196,16 @@ What each one holds:
 - **Private Notes** and **Public Notes** — what your team and your customers were told. See [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed).
 - **Custom Fields**, **Settings**, **Delete Incident** — the **Settings** page holds **Visible on Status Page** and **Private Incident**, the **Status Page Scope** card that limits the incident to some status pages, and the **Reminders** card, whose **Send reminders** switch saves as soon as you flip it and shows when the next reminder goes out.
 
+## Who was told
+
+The incident's **Overview** has a **Who Was Told** card. It says who OneUptime told about the incident, by what, and what failed, read from what happened: its on-call policies' runs, and every Slack, Microsoft Teams or Mattermost message, email, SMS, call, push notification, WhatsApp or Telegram message and webhook sent about it.
+
+- Its first words count the people and channels told, say who acknowledged the incident and how long after the first page, and how many notifications failed.
+- Each person gets one line: how the page reached them (the on-call policy, the level, the team or schedule), by what, and where they stand: **Acknowledged**, **Notified**, **Sending**, **Failed** or **Not paged**. **Show details** lists each page and notification in order of time, with why one failed or why someone was not paged.
+- A team or schedule that reached nobody, a policy that has not paged yet (one waiting for working hours, say), the channels posted to and the status page subscribers each get a line too. A busy incident lists its first people, with the rest one click away.
+- While the incident is open, the card reads again every few seconds.
+- It shows only what you can already read: a private incident's card is for those who can open the incident, and notifications or on-call policy runs you can't open are counted under the list, never named. **Notification Logs** has every message in full.
+
 ## How incidents fit with the rest of OneUptime
 
 - **Monitors spot the problem; incidents record it.** A monitor criteria rule can declare an incident automatically, pre-filling title, severity, on-call policies, owners, labels and remediation notes. See [Incident and Alert Templating](/docs/monitor/incident-alert-templating) for the variables available there.
