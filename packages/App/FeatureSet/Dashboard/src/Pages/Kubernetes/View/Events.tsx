@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import {
   KubernetesEventsPage,
   fetchKubernetesEvents,
@@ -27,7 +28,6 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import Dropdown, {
   DropdownOption,
@@ -431,7 +431,7 @@ const KubernetesClusterEvents: FunctionComponent<
         buttons={getTableHeaderButtons(cardButtons)}
         headerLayout="toolbar"
       >
-        {!loaded && isLoading ? <ComponentLoader /> : <></>}
+        {!loaded && isLoading ? <TableSkeleton /> : <></>}
 
         {!loaded && !isLoading && error ? (
           <TableEmptyState

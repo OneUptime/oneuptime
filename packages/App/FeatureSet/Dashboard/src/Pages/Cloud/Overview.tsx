@@ -31,7 +31,7 @@ import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import CardGrid from "Common/UI/Components/Card/CardGrid";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, {
   ModelAction,
@@ -112,7 +112,7 @@ const CloudOverview: FunctionComponent<
   }, []);
 
   if (read.isLoading && read.accounts.length === 0) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (read.error && read.accounts.length === 0) {

@@ -43,7 +43,8 @@ const NOT_BUILT: ReadonlyArray<[string, string]> = [
   ],
   ["a monitor's schedule", "Utils/Monitor/MonitorCheckScheduleUtil.ts"],
   ["the cron reader", "Utils/CronTab.ts"],
-  ["the monitor types' families", "Utils/Monitor/MonitorOverviewFamily.ts"],
+  ["the monitor types' families", "Utils/Monitor/MonitorTypeFamily.ts"],
+  ["the monitor overview's layout", "Utils/Monitor/MonitorOverviewFamily.ts"],
   ["every monitor type's metrics", "Utils/Monitor/MonitorMetricType.ts"],
   ["the database metric catalog", "Types/Monitor/DatabaseMetricCatalog.ts"],
 ];

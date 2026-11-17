@@ -2173,6 +2173,7 @@ describe("Jira", () => {
       }
     }
 
+    // A workflow's Runs, which had a Logs section of their own until #9216.
     expect(page).toContain(
       "The API token is saved as a secret: it is redacted from **Runs**, and only ever goes into the `Authorization` header of the Jira calls.",
     );

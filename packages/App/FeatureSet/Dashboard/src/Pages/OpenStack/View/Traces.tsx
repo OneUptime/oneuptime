@@ -3,7 +3,7 @@ import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import ObjectID from "Common/Types/ObjectID";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -74,7 +74,7 @@ const OpenStackCloudTraces: FunctionComponent<
   }, [modelId.toString()]);
 
   if (cloud.isLoading && !cloud.data) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (cloud.error) {
@@ -99,7 +99,7 @@ const OpenStackCloudTraces: FunctionComponent<
   }
 
   if (traced.isLoading || !traced.data) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   const hasTraces: boolean = traced.data.lastSpanAt !== null;

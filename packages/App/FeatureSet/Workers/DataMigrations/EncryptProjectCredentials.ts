@@ -4,7 +4,7 @@ import ProjectSmtpConfigService from "Common/Server/Services/ProjectSmtpConfigSe
 import UserWebhookService from "Common/Server/Services/UserWebhookService";
 import WorkspaceProjectAuthTokenService from "Common/Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "Common/Server/Services/WorkspaceUserAuthTokenService";
-import EncryptColumnInPlace, {
+import {
   ColumnToEncrypt,
   ModelRepository,
 } from "../Utils/EncryptColumnInPlace";
@@ -28,33 +28,40 @@ import EncryptColumnInPlace, {
  *
  * Each column is `encrypted: true` now, so every write through its service
  * is encrypted; a row written before still holds its value as written.
- * Each such value is encrypted in place, in raw SQL, only while the row
- * still holds the value read (EncryptColumnInPlace): a value saved
- * meanwhile is already encrypted and stays as its write stored it.
  *
- * Idempotent, and safe to run twice at once. Every reader reads the same
- * value before, during and after: DatabaseService.decrypt hands back a
- * value that is not our ciphertext as it is, and decrypts the rest, so mail
- * keeps going out through the project's server, Slack, Microsoft Teams and
- * Mattermost keep being posted to, and webhooks keep being signed. One
- * table, or one row, that cannot be read or written costs the others
- * nothing, and no log line carries a value.
+ * THE UPGRADE CHANGES NO VALUE (#9266). A server of the release before,
+ * still running while the upgrade rolls out, reads each column as it is
+ * stored: it would sign in to the mail server, post to Slack and sign a
+ * webhook with a ciphertext, and a page sent then would be lost. So this
+ * runs at the upgrade and changes nothing, and when it ran starts the wait:
+ * a day later, once no server of the release before can still be running,
+ * the CredentialsAtRest:EncryptInPlace job encrypts each value still stored
+ * as written - those it saved meanwhile too - in place, in raw SQL, only
+ * while the row still holds the value read (CredentialsAtRest,
+ * EncryptColumnInPlace). An install that ran this when it still encrypted
+ * at once (15.0.0, builds of main) has its values encrypted already: the
+ * job encrypts what is left, and never a ciphertext again.
+ *
+ * Every reader of this release reads the same value before, during and
+ * after: DatabaseService.decrypt hands back a value that is not our
+ * ciphertext as it is, and decrypts the rest, so mail keeps going out
+ * through the project's server, Slack, Microsoft Teams and Mattermost keep
+ * being posted to, and webhooks keep being signed.
  */
 export default class EncryptProjectCredentials extends DataMigrationBase {
   public constructor() {
     super("EncryptProjectCredentials");
   }
 
+  // Leaves every value as written: see the top of this file.
   public override async migrate(): Promise<void> {
-    for (const target of EncryptProjectCredentials.getTargets()) {
-      await EncryptColumnInPlace.encrypt({
-        migrationName: this.name,
-        target: target,
-      });
-    }
+    return;
   }
 
-  // Every column this encrypts, in the order it encrypts them.
+  /*
+   * Every column whose values are encrypted in place a day after this ran,
+   * in that order (CredentialsAtRest).
+   */
   public static getTargets(): Array<ColumnToEncrypt> {
     const smtpConfigs: ModelRepository =
       ProjectSmtpConfigService.getRepository() as unknown as ModelRepository;

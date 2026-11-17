@@ -1,4 +1,5 @@
 import DataObservabilityApi from "./DataObservabilityApi";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import {
   LineageDiagramBody,
   LineageRead,
@@ -12,7 +13,6 @@ import {
 } from "Common/Types/DataObservability/DataTableLineage";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -54,7 +54,7 @@ const PipelineLineageDiagram: FunctionComponent<ComponentProps> = (
   let body: ReactElement;
 
   if (read.isLoading) {
-    body = <ComponentLoader />;
+    body = <ChartSkeleton hasLegend={false} />;
   } else if (read.error || !read.answer) {
     body = (
       <ErrorMessage message={read.error || ""} onRefreshClick={read.retry} />

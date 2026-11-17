@@ -61,6 +61,7 @@ import {
   makeUser,
   matchesQuery,
   oid,
+  readFakeLayersOfSchedules,
 } from "../Utils/OnCall/OnCallResolverTestHarness";
 import {
   afterEach,
@@ -643,6 +644,97 @@ describe("an escalation rule that pages the next person in the rotation", () => 
       [ALEX, false],
       [SAM, true],
     ]);
+  });
+
+  /*
+   * #9316: the level reads the schedule's layers once for both. A save of
+   * the layers landing between its two lookups - here, right after the
+   * first read - must not page the on-call person from the layers as they
+   * were and the next person from the layers as saved.
+   */
+  describe("a save of the schedule's layers landing between the two", () => {
+    let reads: number;
+
+    // After the level's first read of the layers, `save` is written.
+    function saveAfterTheFirstRead(save: () => void): void {
+      reads = 0;
+      jest
+        .spyOn(OnCallDutyPolicyScheduleService, "readLayersOfSchedules")
+        .mockImplementation((async (scheduleIds: Array<ObjectID>) => {
+          const read: ReturnType<typeof readFakeLayersOfSchedules> =
+            readFakeLayersOfSchedules(db, scheduleIds);
+
+          reads++;
+
+          if (reads === 1) {
+            save();
+          }
+
+          return read;
+        }) as never);
+    }
+
+    // Who takes turns in the Weekdays layer from now on, in this order.
+    function turns(...userIds: Array<string>): void {
+      db.layerUsers = userIds.map((userId: string, index: number) => {
+        return makeLayerUser({
+          id: `0e400000-0000-4000-8000-00000000020${index}`,
+          scheduleId: SCHEDULE,
+          layerId: LAYER,
+          projectId: PROJECT,
+          userId,
+          order: index + 1,
+        });
+      });
+    }
+
+    beforeEach(() => {
+      attach({
+        id: "0e400000-0000-4000-8000-000000000306",
+        ruleId: LEVEL_1,
+        pageNextInRotation: false,
+      });
+      attach({
+        id: "0e400000-0000-4000-8000-000000000307",
+        ruleId: LEVEL_1,
+        pageNextInRotation: true,
+      });
+    });
+
+    test("Ria added at the top: Alex and Sam, from the layers as they were - not Alex twice", async () => {
+      saveAfterTheFirstRead(() => {
+        turns(RIA, ALEX, SAM, KIM);
+      });
+
+      await runLevel(LEVEL_1);
+
+      expect(reads).toBe(1);
+      expect(pagedUserIds()).toEqual([ALEX, SAM]);
+    });
+
+    test("Alex taken out: Alex and Sam, from the layers as they were - not Alex and Kim", async () => {
+      saveAfterTheFirstRead(() => {
+        turns(SAM, KIM);
+      });
+
+      await runLevel(LEVEL_1);
+
+      expect(reads).toBe(1);
+      expect(pagedUserIds()).toEqual([ALEX, SAM]);
+    });
+
+    test("the level paged again reads the layers as saved: the save is seen whole, Sam and Kim", async () => {
+      saveAfterTheFirstRead(() => {
+        turns(SAM, KIM);
+      });
+
+      await runLevel(LEVEL_1);
+      paged = [];
+      await runLevel(LEVEL_1);
+
+      expect(reads).toBe(2);
+      expect(pagedUserIds()).toEqual([SAM, KIM]);
+    });
   });
 
   test("Alex away: Sam is on call in Alex's place, and Kim is the next person", async () => {

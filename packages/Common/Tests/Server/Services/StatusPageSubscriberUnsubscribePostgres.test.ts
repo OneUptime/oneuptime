@@ -2,6 +2,7 @@ import Entities from "../../../Models/DatabaseModels/Index";
 import StatusPageSubscriber from "../../../Models/DatabaseModels/StatusPageSubscriber";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubscriberService";
+import Encryption from "../../../Server/Utils/Encryption";
 import { StatusPageSubscriberUnsubscribeSource } from "../../../Server/Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPageSubscriberUnsubscribe from "../../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
@@ -20,6 +21,10 @@ import { DataSource } from "typeorm";
  *     once, even when two confirmations race, and never a deleted one;
  *   - ensureUnsubscribeTokens fills only an empty token, for a whole list in
  *     one statement.
+ *
+ * A token OneUptime mints is stored encrypted (#9012), so the suite reads
+ * one decrypted, as the unsubscribe link carries it; a token seeded as
+ * written, as every token was before, is left as it is.
  *
  * Opt in with RUN_POSTGRES_SUBSCRIBER_UNSUBSCRIBE_TESTS=true against a
  * database the registered migrations have been applied to, e.g.
@@ -100,6 +105,18 @@ describePostgres(
       );
 
       return rows[0]!;
+    }
+
+    /*
+     * The token in a subscriber's unsubscribe link, from its row: one
+     * OneUptime minted is stored encrypted (#9012), and read decrypted.
+     */
+    async function mintedTokenOf(id: ObjectID): Promise<string> {
+      const stored: string | null = (await read(id)).unsubscribeToken;
+
+      expect(Encryption.looksEncrypted(stored || "")).toBe(true);
+
+      return await Encryption.decrypt(stored!);
     }
 
     beforeAll(async () => {
@@ -193,12 +210,12 @@ describePostgres(
       const tokens: Array<string> = [];
 
       for (const id of [...ids, deleted]) {
-        const token: string | null = (await read(id)).unsubscribeToken;
+        const token: string = await mintedTokenOf(id);
 
         expect(StatusPageSubscriberUnsubscribe.isWellFormedToken(token)).toBe(
           true,
         );
-        tokens.push(token!);
+        tokens.push(token);
       }
 
       expect(new Set(tokens).size).toBe(tokens.length);
@@ -269,7 +286,7 @@ describePostgres(
           await read(ids[i]!);
         expect(
           StatusPageSubscriberUnsubscribe.isWellFormedToken(
-            row.unsubscribeToken,
+            await mintedTokenOf(ids[i]!),
           ),
         ).toBe(true);
         // Whoever won, the token is the one it wrote, and it stayed.
@@ -365,15 +382,14 @@ describePostgres(
         secondEmptyRow,
       ]);
 
-      // One token each, both stored, and handed back to the rows.
-      const secondStored: string | null = (await read(secondEmpty))
-        .unsubscribeToken;
+      // One token each, both stored, and handed back to the rows as written.
+      const secondStored: string = await mintedTokenOf(secondEmpty);
       expect(
         StatusPageSubscriberUnsubscribe.isWellFormedToken(secondStored),
       ).toBe(true);
       expect(secondEmptyRow.unsubscribeToken).toBe(secondStored);
 
-      const stored: string | null = (await read(empty)).unsubscribeToken;
+      const stored: string = await mintedTokenOf(empty);
 
       expect(StatusPageSubscriberUnsubscribe.isWellFormedToken(stored)).toBe(
         true,

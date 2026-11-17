@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -18,7 +19,7 @@ import DatabaseServerWorkloadBadge from "../../../Components/DatabaseServer/Data
 import { getKubernetesDatabaseWorkloadCandidates } from "../../../Components/DatabaseServer/DatabaseWorkloadLookup";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
@@ -169,7 +170,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
   });
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -460,7 +461,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
           initContainerStatuses={podObject.status.initContainerStatuses}
         />
       ) : isLoadingObject ? (
-        <PageLoader isVisible={true} />
+        <TableSkeleton rows={3} />
       ) : (
         <div className="text-gray-500 text-sm p-4">
           {translator.translateText(
@@ -479,7 +480,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
           initContainerStatuses={podObject.status.initContainerStatuses}
         />
       ) : isLoadingObject ? (
-        <PageLoader isVisible={true} />
+        <TableSkeleton rows={3} />
       ) : (
         <div className="text-gray-500 text-sm p-4">
           {translator.translateText(
@@ -498,7 +499,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
           initContainerStatuses={podObject.status.initContainerStatuses}
         />
       ) : isLoadingObject ? (
-        <PageLoader isVisible={true} />
+        <TableSkeleton rows={3} />
       ) : (
         <div className="text-gray-500 text-sm p-4">
           {translator.translateText(

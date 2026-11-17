@@ -39,7 +39,7 @@ describe("the skeleton", () => {
     expect(skeleton).toHaveAttribute("aria-live", "polite");
     expect(within(skeleton).getByText("Loading...")).toHaveClass("sr-only");
     expect(skeleton.firstElementChild).toHaveAttribute("aria-hidden", "true");
-    expect(skeleton).toHaveClass("animate-pulse");
+    expect(skeleton).toHaveClass("motion-safe:animate-pulse");
   });
 
   test("lays its cells out by the fields' own rules: the same grid, the same rows", () => {

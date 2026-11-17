@@ -8,7 +8,7 @@ import {
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import DashboardModelResourceListBase from "../../Infrastructure/DashboardModelResourceListBase";
-import { formatMemoryValue } from "../../Infrastructure/ResourceTable";
+import { formatMemoryValue } from "../../Infrastructure/ResourceMemoryValue";
 import IconProp from "Common/Types/Icon/IconProp";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";

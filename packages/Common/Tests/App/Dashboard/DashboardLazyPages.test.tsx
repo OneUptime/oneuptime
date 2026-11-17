@@ -385,7 +385,7 @@ jest.mock("../../../Models/DatabaseModels/BillingPaymentMethod", () => {
   return { __esModule: true, default: class BillingPaymentMethod {} };
 });
 
-jest.mock("../../../UI/Components/Loader/PageLoader", () => {
+jest.mock("../../../UI/Components/Page/PageSkeleton", () => {
   return {
     __esModule: true,
     default: () => {

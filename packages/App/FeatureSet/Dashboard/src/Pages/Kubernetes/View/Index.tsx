@@ -1,4 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import ObjectID from "Common/Types/ObjectID";
@@ -29,8 +31,7 @@ import React, {
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import KubernetesResourceUtils, {
@@ -1382,7 +1383,7 @@ const KubernetesClusterOverview: FunctionComponent<
     });
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -2663,7 +2664,11 @@ const KubernetesClusterOverview: FunctionComponent<
         description="Explore workload resources in this cluster."
       >
         {isSummaryLoading ? (
-          <ComponentLoader />
+          <CardListSkeleton
+            count={4}
+            lines={1}
+            gridClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+          />
         ) : (
           renderResourceLinks(workloadLinks)
         )}
@@ -2675,7 +2680,11 @@ const KubernetesClusterOverview: FunctionComponent<
         description="Explore infrastructure resources in this cluster."
       >
         {isSummaryLoading ? (
-          <ComponentLoader />
+          <CardListSkeleton
+            count={4}
+            lines={1}
+            gridClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+          />
         ) : (
           renderResourceLinks(infraLinks)
         )}
@@ -2703,7 +2712,7 @@ const KubernetesClusterOverview: FunctionComponent<
         description="Pods with the highest resource utilization in this cluster."
       >
         {isTopPodsLoading ? (
-          <ComponentLoader />
+          <TableSkeleton rows={5} columns={3} hasHeader={false} />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:divide-x lg:divide-gray-100">
             {/* CPU Usage */}

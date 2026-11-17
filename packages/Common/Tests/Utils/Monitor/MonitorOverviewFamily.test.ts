@@ -7,7 +7,12 @@ import MonitorOverviewFamilyUtil, {
   MonitorOverviewLayout,
   MonitorOverviewSetupKind,
 } from "../../../Utils/Monitor/MonitorOverviewFamily";
+import MonitorTypeFamily, {
+  MonitorOverviewFamily as FamilyOfItsOwn,
+} from "../../../Utils/Monitor/MonitorTypeFamily";
 import { describe, expect, it } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * The monitor overview decides everything type-specific through the family
@@ -155,6 +160,55 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
     expect(() => {
       MonitorOverviewFamilyUtil.getFamily("Carrier Pigeon" as MonitorType);
     }).toThrow("has no overview family");
+  });
+});
+
+/*
+ * The rule for a first check that is overdue reads a monitor's family, and
+ * a public dashboard's Monitor List widget draws its rows by that rule
+ * before the page draws. Read from this module, the family brought the
+ * layout's every monitor type's metrics and the database metric catalog
+ * into that first load (packages/Common/Scripts/first-load-budgets.js,
+ * PublicDashboardFirstLoadBuild.test.ts), so it is a module of its own.
+ */
+describe("the family, a module of its own (MonitorTypeFamily)", () => {
+  it("is the family the overview lays out by, for every monitor type", () => {
+    expect(MonitorOverviewFamily).toBe(FamilyOfItsOwn);
+
+    for (const type of ALL_TYPES) {
+      expect({ type, family: MonitorTypeFamily.getFamily(type) }).toEqual({
+        type,
+        family: MonitorOverviewFamilyUtil.getFamily(type),
+      });
+    }
+  });
+
+  it("refuses a value that is not a monitor type", () => {
+    expect(() => {
+      MonitorTypeFamily.getFamily("Carrier Pigeon" as MonitorType);
+    }).toThrow("has no overview family");
+  });
+
+  it("imports the monitor types alone, not their metrics or the database metric catalog", () => {
+    const source: string = fs.readFileSync(
+      path.resolve(__dirname, "../../../Utils/Monitor/MonitorTypeFamily.ts"),
+      "utf8",
+    );
+
+    // `from "x"`, a bare `import "x"`, `import("x")` and `require("x")`.
+    expect(
+      Array.from(
+        source.matchAll(
+          /(?:\bfrom\s+|\bimport\s*\(?\s*|\brequire\(\s*)"([^"]+)"/g,
+        ),
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      ).sort(),
+    ).toEqual([
+      "../../Types/Exception/BadDataException",
+      "../../Types/Monitor/MonitorType",
+    ]);
   });
 });
 

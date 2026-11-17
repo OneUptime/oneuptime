@@ -1,4 +1,5 @@
 import DataPathGraph, { NEUTRAL_EDGE_COLOR } from "./DataPathGraph";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import {
   DataPathGraph as DataPathGraphModel,
   DataPathStore,
@@ -21,7 +22,6 @@ import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -285,7 +285,7 @@ const StoreDataPaths: FunctionComponent<ComponentProps> = (
       />
     );
   } else if (!graph) {
-    content = <ComponentLoader />;
+    content = <ChartSkeleton hasLegend={false} />;
   } else if (graph.isEmpty) {
     content = (
       <p className="text-sm text-gray-500">

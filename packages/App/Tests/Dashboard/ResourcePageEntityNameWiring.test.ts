@@ -930,7 +930,7 @@ describe("Network device Logs page", () => {
     // Loading is the only early return before the viewer renders.
     const earlyReturns: Array<string> =
       source.match(/if \([^)]*\) \{ return <[A-Za-z]+/g) || [];
-    expect(earlyReturns).toEqual(["if (isLoading) { return <PageLoader"]);
+    expect(earlyReturns).toEqual(["if (isLoading) { return <PageSkeleton"]);
   });
 
   test("hooks are all declared before the loading early return", () => {

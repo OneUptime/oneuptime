@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import SnmpTableSnapshotCard from "../../../Components/NetworkDevice/SnmpTableSnapshotCard";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -14,7 +15,6 @@ import SnmpTableListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUti
 import ObjectID from "Common/Types/ObjectID";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -94,7 +94,7 @@ const NetworkDeviceTables: FunctionComponent<
   }, []);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (error) {
