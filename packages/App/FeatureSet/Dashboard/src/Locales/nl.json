@@ -56644,5 +56644,6 @@
   "{{first}}, then {{next}}": "{{first}}, daarna {{next}}",
   "{{methods}} after {{count}} minutes": "{{methods}} na {{count}} minuten",
   "{{methods}} after {{count}} minutes_one": "{{methods}} na {{count}} minuut",
-  "{{methods}} at once": "{{methods}} meteen"
+  "{{methods}} at once": "{{methods}} meteen",
+  "Set up paging step by step": "Oproepen stap voor stap instellen"
 }

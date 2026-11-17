@@ -56644,5 +56644,6 @@
   "{{first}}, then {{next}}": "{{first}}, 이어서 {{next}}",
   "{{methods}} after {{count}} minutes": "{{count}}분 후 {{methods}}",
   "{{methods}} after {{count}} minutes_one": "{{count}}분 후 {{methods}}",
-  "{{methods}} at once": "즉시 {{methods}}"
+  "{{methods}} at once": "즉시 {{methods}}",
+  "Set up paging step by step": "호출을 단계별로 설정"
 }

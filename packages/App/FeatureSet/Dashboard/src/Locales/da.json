@@ -56644,5 +56644,6 @@
   "{{first}}, then {{next}}": "{{first}}, derefter {{next}}",
   "{{methods}} after {{count}} minutes": "{{methods}} efter {{count}} minutter",
   "{{methods}} after {{count}} minutes_one": "{{methods}} efter {{count}} minut",
-  "{{methods}} at once": "{{methods}} med det samme"
+  "{{methods}} at once": "{{methods}} med det samme",
+  "Set up paging step by step": "Sæt tilkald op trin for trin"
 }

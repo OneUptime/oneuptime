@@ -1,4 +1,6 @@
 import "@testing-library/jest-dom";
+import fs from "fs";
+import path from "path";
 import {
   afterEach,
   beforeEach,
@@ -766,7 +768,7 @@ describe("a product's guided setup (#7148)", () => {
   test("On-Call names its guided setup, for whoever may create a policy", () => {
     expect(PRODUCT_ONBOARDINGS[ProductKey.OnCall].guidedSetup).toEqual({
       page: PageMap.ON_CALL_DUTY_GUIDED_SETUP,
-      buttonTitle: "Set up paging",
+      buttonTitle: "Set up paging step by step",
       modelType: OnCallDutyPolicy,
     });
   });
@@ -787,7 +789,7 @@ describe("a product's guided setup (#7148)", () => {
       RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID,
     );
 
-    expect(setup).toHaveTextContent("Set up paging");
+    expect(setup).toHaveTextContent("Set up paging step by step");
     expect(create).toHaveTextContent("Create On-Call Policy");
     // One primary button: the setup's.
     expect(setup).toHaveClass("bg-indigo-600");
@@ -819,7 +821,7 @@ describe("a product's guided setup (#7148)", () => {
       RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID,
     );
 
-    expect(setup).toHaveTextContent("Set up paging");
+    expect(setup).toHaveTextContent("Set up paging step by step");
     // Still an explanation: no second way to create a policy.
     expect(
       within(dialog).queryByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID),
@@ -853,6 +855,65 @@ describe("a product's guided setup (#7148)", () => {
     expect(
       screen.queryByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID),
     ).toBeNull();
+  });
+
+  /*
+   * The button's words are a key of their own. It first reused "Set up
+   * paging", the AI activity's done action beside "Published a status page"
+   * (InvestigationEvidenceFormat): "Alarmierung eingerichtet", "Configuró
+   * los avisos", so every language but English drew the button as
+   * something that had already happened.
+   */
+  test("its words are a key no other place looks up, worded in every language", () => {
+    const title: string =
+      PRODUCT_ONBOARDINGS[ProductKey.OnCall].guidedSetup!.buttonTitle;
+    const dashboard: string = path.join(
+      __dirname,
+      "../../../../App/FeatureSet/Dashboard/src",
+    );
+    const sourceFiles: (directory: string) => Array<string> = (
+      directory: string,
+    ): Array<string> => {
+      return fs
+        .readdirSync(directory, { withFileTypes: true })
+        .flatMap((entry: fs.Dirent): Array<string> => {
+          const full: string = path.join(directory, entry.name);
+
+          if (entry.isDirectory()) {
+            return entry.name === "Locales" ? [] : sourceFiles(full);
+          }
+
+          return /\.tsx?$/.test(entry.name) ? [full] : [];
+        });
+    };
+
+    expect(
+      sourceFiles(dashboard)
+        .filter((file: string): boolean => {
+          return fs.readFileSync(file, "utf8").includes(`"${title}"`);
+        })
+        .map((file: string): string => {
+          return path.basename(file);
+        }),
+    ).toEqual(["ProductOnboardings.ts"]);
+
+    const locales: string = path.join(dashboard, "Locales");
+
+    for (const file of fs.readdirSync(locales)) {
+      if (!file.endsWith(".json") || file === "en.json") {
+        continue;
+      }
+
+      const table: Record<string, string> = JSON.parse(
+        fs.readFileSync(path.join(locales, file), "utf8"),
+      ) as Record<string, string>;
+
+      expect({
+        file,
+        translated: Boolean(table[title]) && table[title] !== title,
+        asTheDoneAction: table[title] === table["Set up paging"],
+      }).toEqual({ file, translated: true, asTheDoneAction: false });
+    }
   });
 
   test("a product with no guided setup keeps Create as its one primary button", async () => {

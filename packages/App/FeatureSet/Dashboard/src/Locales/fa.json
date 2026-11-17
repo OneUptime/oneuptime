@@ -56644,5 +56644,6 @@
   "{{first}}, then {{next}}": "{{first}}، سپس {{next}}",
   "{{methods}} after {{count}} minutes": "{{methods}} پس از {{count}} دقیقه",
   "{{methods}} after {{count}} minutes_one": "{{methods}} پس از {{count}} دقیقه",
-  "{{methods}} at once": "{{methods}} بی‌درنگ"
+  "{{methods}} at once": "{{methods}} بی‌درنگ",
+  "Set up paging step by step": "راه‌اندازی گام‌به‌گام فراخوان"
 }

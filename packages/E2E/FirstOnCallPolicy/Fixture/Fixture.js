@@ -388,7 +388,7 @@ function PolicyEscalationRules() {
 }
 
 /*
- * Where "Set up paging" leads (#7148): the on-call guided setup (the page
+ * Where "Set up paging step by step" leads (#7148): the on-call guided setup (the page
  * itself is not here; Journeys/OnCallSetup draws it).
  */
 function OnCallGuidedSetupOpened() {

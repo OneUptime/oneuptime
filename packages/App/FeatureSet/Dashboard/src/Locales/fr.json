@@ -56644,5 +56644,6 @@
   "{{first}}, then {{next}}": "{{first}}, puis {{next}}",
   "{{methods}} after {{count}} minutes": "{{methods}} après {{count}} minutes",
   "{{methods}} after {{count}} minutes_one": "{{methods}} après {{count}} minute",
-  "{{methods}} at once": "{{methods}} immédiatement"
+  "{{methods}} at once": "{{methods}} immédiatement",
+  "Set up paging step by step": "Configurer les alertes pas à pas"
 }

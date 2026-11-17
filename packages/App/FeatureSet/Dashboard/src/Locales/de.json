@@ -56644,5 +56644,6 @@
   "{{first}}, then {{next}}": "{{first}}, dann {{next}}",
   "{{methods}} after {{count}} minutes": "{{methods}} nach {{count}} Minuten",
   "{{methods}} after {{count}} minutes_one": "{{methods}} nach {{count}} Minute",
-  "{{methods}} at once": "{{methods}} sofort"
+  "{{methods}} at once": "{{methods}} sofort",
+  "Set up paging step by step": "Alarmierung Schritt für Schritt einrichten"
 }

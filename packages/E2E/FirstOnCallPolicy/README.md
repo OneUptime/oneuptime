@@ -31,7 +31,7 @@ and the server adds an incident and an alert on-call rule for it. The suite pins
   but not an on-call rule (`?role=member`, a Project Member); neither sends the switch
 - counts that answer late (`?counts=hold`): the switch joins the dialog already open, on
 - the on-call guided setup from On-Call itself (#7148): a new project's empty list explains
-  On-Call with **Set up paging** first, as its one primary button, beside **Create On-Call
+  On-Call with **Set up paging step by step** first, as its one primary button, beside **Create On-Call
   Policy** on one row (wrapping at 390px with nothing to scroll sideways), and a project with a
   policy finds it under **How it works**; either opens `/on-call-duty/setup` (a stub here)
 - the switch's row at a 390px phone (the switch first, its words wrapping beside it, nothing

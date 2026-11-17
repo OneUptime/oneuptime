@@ -56644,5 +56644,6 @@
   "{{first}}, then {{next}}": "{{first}}，然後{{next}}",
   "{{methods}} after {{count}} minutes": "{{count}} 分鐘後透過{{methods}}",
   "{{methods}} after {{count}} minutes_one": "{{count}} 分鐘後透過{{methods}}",
-  "{{methods}} at once": "立即透過{{methods}}"
+  "{{methods}} at once": "立即透過{{methods}}",
+  "Set up paging step by step": "逐步設定呼叫"
 }
