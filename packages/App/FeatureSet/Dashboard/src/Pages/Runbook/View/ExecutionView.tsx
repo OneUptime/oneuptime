@@ -1127,7 +1127,11 @@ const ExecutionView: FunctionComponent<
                              * Skip sits centred under it - so however long
                              * their words are in the reader's language, they
                              * stay inside the card. A later step's lone Skip
-                             * keeps to the card's right edge.
+                             * keeps to the card's right edge. This row
+                             * stretches them, as a dialog's footer does
+                             * (ModalFooter): a Button has no width of its
+                             * own (BOXED_BUTTON_CLASS_NAME, #9128), and its
+                             * words are the card's own size at every width.
                              */}
                             <div
                               className="ml-auto flex flex-wrap items-center justify-end gap-2 empty:hidden max-sm:w-full"
@@ -1139,14 +1143,8 @@ const ExecutionView: FunctionComponent<
                                   buttonStyle={ButtonStyleType.PRIMARY}
                                   buttonSize={ButtonSize.Small}
                                   icon={IconProp.Check}
-                                  /*
-                                   * Full width on a phone (Button's own),
-                                   * its own width beside the step - in the
-                                   * card's own text size, not a dialog
-                                   * footer's larger one, so a long label
-                                   * stays on one line.
-                                   */
-                                  className="max-sm:text-sm"
+                                  // Full width on a phone, its own beside the step.
+                                  className="max-sm:w-full"
                                   onClick={() => {
                                     void completeStep(stepExec.step.id);
                                   }}
@@ -1160,9 +1158,7 @@ const ExecutionView: FunctionComponent<
                                   buttonSize={ButtonSize.Small}
                                   icon={IconProp.ChevronRight}
                                   className={
-                                    canComplete
-                                      ? "max-sm:ml-0 max-sm:w-full max-sm:justify-center max-sm:text-sm"
-                                      : "max-sm:text-sm"
+                                    canComplete ? "max-sm:w-full" : undefined
                                   }
                                   onClick={() => {
                                     void skipStep(stepExec.step.id);
