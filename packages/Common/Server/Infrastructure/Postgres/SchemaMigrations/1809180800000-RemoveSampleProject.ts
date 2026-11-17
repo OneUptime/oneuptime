@@ -30,11 +30,18 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * analytics database are left to their retention, as every deleted
  * project's are.
  *
- * Then the columns go, as the generator writes it for the models: the
- * foreign key, the index and User.sampleProjectId, then
- * Project.isSampleProject. The index is dropped online ("User" is a table
- * every sign-in writes), so the migration runs outside a transaction, and
- * each step is safe to run again after a stop part way.
+ * The columns stay, for the release before (expand, then contract). Its
+ * pods keep serving while this release's migrations run and its own pods
+ * start, and they read both columns: every probe's claim of its monitors
+ * filters on Project.isSampleProject, and every insert into "User" and
+ * "Project" names both. This migration dropped them, and from that moment
+ * until the last of those pods was gone no probe check ran and nobody
+ * could sign up. The models keep them - hidden, read and written by nobody
+ * (KeepSampleProjectColumns1809183200000 puts them back where this
+ * migration already dropped them) - until a later release drops them.
+ *
+ * Outside a transaction: each delete is a statement of its own, and a run
+ * stopped part way keeps what it did.
  *
  * Nothing here needs PERMISSION_ROW_MIGRATIONS: the memberships deleted
  * are of the deleted samples, and a permission set cached for a project
@@ -43,7 +50,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class RemoveSampleProject1809180800000 implements MigrationInterface {
   public name: string = "RemoveSampleProject1809180800000";
 
-  // DROP INDEX CONCURRENTLY runs outside a transaction.
+  // One delete a statement, each committed as it ends (OnlineDdl).
   public transaction: boolean = false;
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -88,40 +95,14 @@ export class RemoveSampleProject1809180800000 implements MigrationInterface {
         [sampleId],
       );
     }
-
-    await queryRunner.query(
-      `ALTER TABLE "User" DROP CONSTRAINT IF EXISTS "FK_25e3ed56d0b14e81457332f2048"`,
-    );
-    await OnlineDdl.dropIndex(
-      queryRunner,
-      `DROP INDEX "public"."IDX_25e3ed56d0b14e81457332f204"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "User" DROP COLUMN IF EXISTS "sampleProjectId"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "Project" DROP COLUMN IF EXISTS "isSampleProject"`,
-    );
   }
 
   /*
-   * The columns come back, every project not a sample and nobody a sample
-   * person. The samples deleted above are not: they were made up. TypeORM
-   * reverts a migration inside a transaction whatever its `transaction`
-   * says, where an index cannot be built online, so the build is a plain
-   * one.
+   * Nothing to undo: the schema is as it was, and the samples deleted above
+   * are not put back - they were made up.
    */
-  public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `ALTER TABLE "Project" ADD "isSampleProject" boolean NOT NULL DEFAULT false`,
-    );
-    await queryRunner.query(`ALTER TABLE "User" ADD "sampleProjectId" uuid`);
-    await queryRunner.query(
-      `CREATE INDEX "IDX_25e3ed56d0b14e81457332f204" ON "User" ("sampleProjectId") `,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "User" ADD CONSTRAINT "FK_25e3ed56d0b14e81457332f2048" FOREIGN KEY ("sampleProjectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
-    );
+  public async down(_queryRunner: QueryRunner): Promise<void> {
+    return;
   }
 
   // The ids a SELECT of "_id" answered, as text.

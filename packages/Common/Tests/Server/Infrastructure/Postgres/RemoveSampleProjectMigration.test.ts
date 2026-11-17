@@ -3,9 +3,11 @@ import { AddSampleProject1809123500000 } from "../../../../Server/Infrastructure
 import { AddSampleProjectUserIndex1809123500001 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809123500001-AddSampleProjectUserIndex";
 import { MasterApiKeyHashedColumn1809180790100 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180790100-MasterApiKeyHashedColumn";
 import { RemoveSampleProject1809180800000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180800000-RemoveSampleProject";
+import { KeepSampleProjectColumns1809183200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809183200000-KeepSampleProjectColumns";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import Project from "../../../../Models/DatabaseModels/Project";
 import User from "../../../../Models/DatabaseModels/User";
+import { getColumnAccessControlForAllColumns } from "../../../../Types/Database/AccessControl/ColumnAccessControl";
 import { getTableColumn } from "../../../../Types/Database/TableColumn";
 import logger from "../../../../Server/Utils/Logger";
 import {
@@ -17,21 +19,30 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * The sample project is removed (it was added by AddSampleProject and
- * AddSampleProjectUserIndex, issue #6808), by one migration:
+ * AddSampleProjectUserIndex, issue #6808): its data now, its columns in a
+ * later release (expand, then contract).
  *
- *   - every made-up person (User.sampleProjectId) is deleted, then every
- *     sample project (Project.isSampleProject) and everything in it, while
- *     those columns still find them: with the code that kept a sample quiet
- *     gone, one left behind would notify, probe and bill, and its people
- *     would be counted users;
+ * RemoveSampleProject:
+ *   - deletes every made-up person (User.sampleProjectId), then every sample
+ *     project (Project.isSampleProject) and everything in it: with the code
+ *     that kept a sample quiet gone, one left behind would notify, probe and
+ *     bill, and its people would be counted users;
  *   - one row a statement, each within OnlineDdl's long limits: deleting a
  *     "User" row makes Postgres scan every column that references "User",
  *     about 12 s a person on OneUptime Cloud, and the one statement that
  *     deleted every sample (and, by cascade, every person) there ran out of
  *     the 30 s statement timeout at every attempt - the release's migrate
  *     Job failed and its pods never started;
- *   - then the foreign key, the index (online: "User" is written by every
- *     sign-in) and both columns go, as the models no longer have them.
+ *   - drops no column: the pods of the release before keep serving while a
+ *     release's migrations run, and they read both - every probe's claim of
+ *     its monitors filters on Project.isSampleProject, every insert into
+ *     "User" and "Project" names both. When 15.0.0 dropped them, no probe
+ *     check ran from that moment until the last of those pods was gone.
+ *
+ * KeepSampleProjectColumns puts the columns, the index and the foreign key
+ * back where 15.0.0 already dropped them, as the migrations that added them
+ * made them, and changes nothing where they never went. The models keep
+ * them, read and written by nobody, until a later release drops them.
  *
  * Statements are recorded against a fake QueryRunner, the online steps by
  * stubbing OnlineDdl; the schema drift check runs them on Postgres against
@@ -66,13 +77,6 @@ const SAMPLES: Array<string> = [
 function longDelete(statement: string, id: string): string {
   return `OnlineDdl.runLongStatement: ${statement} ${JSON.stringify([id])}`;
 }
-
-const DROPS: Array<string> = [
-  `ALTER TABLE "User" DROP CONSTRAINT IF EXISTS "${FOREIGN_KEY_NAME}"`,
-  `OnlineDdl.dropIndex: DROP INDEX "public"."${INDEX_NAME}"`,
-  `ALTER TABLE "User" DROP COLUMN IF EXISTS "sampleProjectId"`,
-  `ALTER TABLE "Project" DROP COLUMN IF EXISTS "isSampleProject"`,
-];
 
 // Every statement, in the order it ran; an online one names its step.
 type Recorded = Array<string>;
@@ -151,11 +155,11 @@ afterEach(() => {
 });
 
 describe("RemoveSampleProject1809180800000", () => {
-  test("runs outside a transaction, as DROP INDEX CONCURRENTLY must", () => {
+  test("runs outside a transaction: each delete commits as it ends", () => {
     expect(new RemoveSampleProject1809180800000().transaction).toBe(false);
   });
 
-  test("deletes each made-up person, then each sample, one statement each, then drops the key, the index and both columns", async () => {
+  test("deletes each made-up person, then each sample, one statement each, and nothing else", async () => {
     const recorded: Recorded = await record({
       migration: new RemoveSampleProject1809180800000(),
       direction: "up",
@@ -172,8 +176,20 @@ describe("RemoveSampleProject1809180800000", () => {
       ...SAMPLES.map((id: string) => {
         return longDelete(DELETE_SAMPLE, id);
       }),
-      ...DROPS,
     ]);
+  });
+
+  test("drops no column, key or index: the pods of the release before still read them", async () => {
+    const recorded: Recorded = await record({
+      migration: new RemoveSampleProject1809180800000(),
+      direction: "up",
+      people: PEOPLE,
+      samples: SAMPLES,
+    });
+
+    for (const statement of recorded) {
+      expect(statement).not.toMatch(/\bDROP\b|\bALTER\b/);
+    }
   });
 
   test("no delete runs under the pool's 30 s statement timeout: every one is a long statement of OnlineDdl's", async () => {
@@ -254,37 +270,13 @@ describe("RemoveSampleProject1809180800000", () => {
     expect(lastPerson).toBeLessThan(firstSample);
   });
 
-  test("deletes the samples while the foreign key and the columns that find them are still there", async () => {
-    const recorded: Recorded = await record({
-      migration: new RemoveSampleProject1809180800000(),
-      direction: "up",
-      people: PEOPLE,
-      samples: SAMPLES,
-    });
-
-    const lastDelete: number = recorded.lastIndexOf(
-      longDelete(DELETE_SAMPLE, SAMPLES[SAMPLES.length - 1]!),
-    );
-
-    for (const drop of DROPS) {
-      expect(recorded.indexOf(drop)).toBeGreaterThan(lastDelete);
-    }
-
-    expect(recorded.indexOf(SELECT_PEOPLE)).toBeLessThan(
-      recorded.indexOf(DROPS[2]!),
-    );
-    expect(recorded.indexOf(SELECT_SAMPLES)).toBeLessThan(
-      recorded.indexOf(DROPS[3]!),
-    );
-  });
-
-  test("with no sample and no made-up person left, it deletes nothing and only drops", async () => {
+  test("with no sample and no made-up person left, it deletes nothing", async () => {
     const recorded: Recorded = await record({
       migration: new RemoveSampleProject1809180800000(),
       direction: "up",
     });
 
-    expect(recorded).toEqual([SELECT_PEOPLE, SELECT_SAMPLES, ...DROPS]);
+    expect(recorded).toEqual([SELECT_PEOPLE, SELECT_SAMPLES]);
   });
 
   test("says how many it is removing, since a large install takes minutes", async () => {
@@ -307,9 +299,7 @@ describe("RemoveSampleProject1809180800000", () => {
     );
   });
 
-  test("a failed delete stops the run there, before any column goes, so the next run can still find what is left", async () => {
-    jest.spyOn(OnlineDdl, "dropIndex").mockResolvedValue(undefined as never);
-
+  test("a failed delete stops the run there, and the next run finds what is left", async () => {
     const recorded: Recorded = [];
 
     jest.spyOn(OnlineDdl, "runLongStatement").mockImplementation((async (
@@ -354,17 +344,12 @@ describe("RemoveSampleProject1809180800000", () => {
       new RemoveSampleProject1809180800000().up(runner),
     ).rejects.toThrow("canceling statement due to statement timeout");
 
-    expect(
-      recorded.filter((statement: string): boolean => {
-        return statement.includes("DROP");
-      }),
-    ).toEqual([]);
     expect(recorded).not.toContain(
       `${DELETE_SAMPLE} ${JSON.stringify([SAMPLES[0]])}`,
     );
   });
 
-  test("run again after a stop part way, it deletes only what the columns still there find, and fails on nothing gone", async () => {
+  test("run again after a stop part way, it deletes only what is left, and fails on nothing gone", async () => {
     // Stopped part way through the people: the rest are still found.
     const partWay: Recorded = await record({
       migration: new RemoveSampleProject1809180800000(),
@@ -384,19 +369,8 @@ describe("RemoveSampleProject1809180800000", () => {
       }),
     ]);
 
-    // Stopped after User.sampleProjectId went: nobody is looked for.
-    const afterUserColumn: Recorded = await record({
-      migration: new RemoveSampleProject1809180800000(),
-      direction: "up",
-      columns: ["Project.isSampleProject"],
-      people: PEOPLE,
-    });
-
-    expect(afterUserColumn).not.toContain(SELECT_PEOPLE);
-    expect(afterUserColumn[0]).toBe(SELECT_SAMPLES);
-
-    // Stopped after both columns went, before the run was recorded.
-    const afterBoth: Recorded = await record({
+    // An install whose columns 15.0.0's version of this already dropped.
+    const columnsGone: Recorded = await record({
       migration: new RemoveSampleProject1809180800000(),
       direction: "up",
       columns: [],
@@ -404,34 +378,39 @@ describe("RemoveSampleProject1809180800000", () => {
       samples: SAMPLES,
     });
 
-    expect(
-      afterBoth.filter((statement: string): boolean => {
-        return statement.startsWith("SELECT") || statement.includes("DELETE");
-      }),
-    ).toEqual([]);
-
-    for (const statement of afterBoth) {
-      if (statement.startsWith("ALTER TABLE")) {
-        expect(statement).toMatch(/\bIF EXISTS\b/);
-      }
-    }
+    expect(columnsGone).toEqual([]);
   });
 
-  test("down puts back the columns, the index and the key as AddSampleProject and AddSampleProjectUserIndex made them", async () => {
+  test("down changes nothing: the schema is as it was, and made-up samples are not put back", async () => {
+    expect(
+      await record({
+        migration: new RemoveSampleProject1809180800000(),
+        direction: "down",
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("KeepSampleProjectColumns1809183200000", () => {
+  test("runs outside a transaction, as an online index build and validation must", () => {
+    expect(new KeepSampleProjectColumns1809183200000().transaction).toBe(false);
+  });
+
+  test("puts back the columns, the index and the key - each only if missing", async () => {
     const recorded: Recorded = await record({
-      migration: new RemoveSampleProject1809180800000(),
-      direction: "down",
+      migration: new KeepSampleProjectColumns1809183200000(),
+      direction: "up",
     });
 
     expect(recorded).toEqual([
-      `ALTER TABLE "Project" ADD "isSampleProject" boolean NOT NULL DEFAULT false`,
-      `ALTER TABLE "User" ADD "sampleProjectId" uuid`,
-      `CREATE INDEX "${INDEX_NAME}" ON "User" ("sampleProjectId") `,
-      `ALTER TABLE "User" ADD CONSTRAINT "${FOREIGN_KEY_NAME}" FOREIGN KEY ("sampleProjectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+      `ALTER TABLE "Project" ADD COLUMN IF NOT EXISTS "isSampleProject" boolean NOT NULL DEFAULT false`,
+      `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "sampleProjectId" uuid`,
+      `OnlineDdl.createIndex: CREATE INDEX "${INDEX_NAME}" ON "User" ("sampleProjectId") `,
+      `OnlineDdl.addForeignKey: ALTER TABLE "User" ADD CONSTRAINT "${FOREIGN_KEY_NAME}" FOREIGN KEY ("sampleProjectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     ]);
   });
 
-  test("drops what the migrations that added the sample project built, by the same names", async () => {
+  test("builds what the migrations that added the sample project built, by the same names", async () => {
     const added: Recorded = [
       ...(await record({
         migration: new AddSampleProject1809123500000(),
@@ -443,23 +422,84 @@ describe("RemoveSampleProject1809180800000", () => {
       })),
     ];
 
+    const kept: Recorded = await record({
+      migration: new KeepSampleProjectColumns1809183200000(),
+      direction: "up",
+    });
+
     expect(added).toEqual([
       `ALTER TABLE "Project" ADD "isSampleProject" boolean NOT NULL DEFAULT false`,
       `ALTER TABLE "User" ADD "sampleProjectId" uuid`,
       `OnlineDdl.createIndex: CREATE INDEX "${INDEX_NAME}" ON "User" ("sampleProjectId") `,
       `OnlineDdl.addForeignKey: ALTER TABLE "User" ADD CONSTRAINT "${FOREIGN_KEY_NAME}" FOREIGN KEY ("sampleProjectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     ]);
+
+    /*
+     * The same, each column added only where it is missing (the online
+     * index build and key are skipped by OnlineDdl when they are there).
+     */
+    expect(kept).toEqual(
+      added.map((statement: string): string => {
+        return statement.startsWith("ALTER TABLE") &&
+          !statement.includes("ADD CONSTRAINT")
+          ? statement.replace(" ADD ", " ADD COLUMN IF NOT EXISTS ")
+          : statement;
+      }),
+    );
   });
 
-  test("the models no longer have the columns", () => {
-    expect(getTableColumn(new Project(), "isSampleProject")).toBeUndefined();
-    expect(getTableColumn(new User(), "sampleProject")).toBeUndefined();
-    expect(getTableColumn(new User(), "sampleProjectId")).toBeUndefined();
+  test("down changes nothing", async () => {
+    expect(
+      await record({
+        migration: new KeepSampleProjectColumns1809183200000(),
+        direction: "down",
+      }),
+    ).toEqual([]);
   });
 });
 
-describe("its place", () => {
-  test("registered once, after the migrations that added the sample project and the one before it", () => {
+describe("the models keep the columns for the release before, read and written by nobody", () => {
+  test("Project.isSampleProject: a boolean, false by default", () => {
+    const column: ReturnType<typeof getTableColumn> = getTableColumn(
+      new Project(),
+      "isSampleProject",
+    );
+
+    expect(column).toBeDefined();
+    expect(column!.defaultValue).toBe(false);
+    expect(column!.hideColumnInDocumentation).toBe(true);
+  });
+
+  test("User.sampleProjectId and its relation", () => {
+    expect(getTableColumn(new User(), "sampleProjectId")).toBeDefined();
+    expect(getTableColumn(new User(), "sampleProject")).toBeDefined();
+    expect(
+      getTableColumn(new User(), "sampleProjectId")!.hideColumnInDocumentation,
+    ).toBe(true);
+    expect(
+      getTableColumn(new User(), "sampleProject")!.hideColumnInDocumentation,
+    ).toBe(true);
+  });
+
+  test("nobody creates, reads or updates any of them through the API", () => {
+    const projectAccess: ReturnType<
+      typeof getColumnAccessControlForAllColumns
+    > = getColumnAccessControlForAllColumns(new Project());
+    const userAccess: ReturnType<typeof getColumnAccessControlForAllColumns> =
+      getColumnAccessControlForAllColumns(new User());
+
+    for (const access of [
+      projectAccess["isSampleProject"],
+      userAccess["sampleProjectId"],
+      userAccess["sampleProject"],
+    ]) {
+      expect(access).toEqual({ create: [], read: [], update: [] });
+    }
+  });
+});
+
+describe("their place", () => {
+  test("RemoveSampleProject: registered once, after the migrations that added the sample project and the one before it", () => {
     const migrations: Array<unknown> = SchemaMigrations as Array<unknown>;
     const removal: number = migrations.indexOf(
       RemoveSampleProject1809180800000,
@@ -474,6 +514,19 @@ describe("its place", () => {
     expect(
       migrations.filter((migration: unknown): boolean => {
         return migration === RemoveSampleProject1809180800000;
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("KeepSampleProjectColumns: registered once, after RemoveSampleProject", () => {
+    const migrations: Array<unknown> = SchemaMigrations as Array<unknown>;
+
+    expect(
+      migrations.indexOf(KeepSampleProjectColumns1809183200000),
+    ).toBeGreaterThan(migrations.indexOf(RemoveSampleProject1809180800000));
+    expect(
+      migrations.filter((migration: unknown): boolean => {
+        return migration === KeepSampleProjectColumns1809183200000;
       }),
     ).toHaveLength(1);
   });

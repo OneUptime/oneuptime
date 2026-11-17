@@ -1,4 +1,5 @@
 import { RemoveSampleProject1809180800000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809180800000-RemoveSampleProject";
+import { KeepSampleProjectColumns1809183200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809183200000-KeepSampleProjectColumns";
 import logger from "../../../../Server/Utils/Logger";
 import ObjectID from "../../../../Types/ObjectID";
 import {
@@ -35,8 +36,10 @@ import { DataSource, QueryRunner } from "typeorm";
  *   - only the samples and their made-up people go: a real project, a real
  *     person and what they made are untouched, a real incident a made-up
  *     person created keeps its row with no creator (ON DELETE SET NULL);
- *   - the columns, the key and the index are gone, and a second run does
- *     nothing and fails on nothing.
+ *   - the columns, the key and the index stay - the release before still
+ *     reads them - and a second run does nothing and fails on nothing;
+ *   - KeepSampleProjectColumns puts them back, empty, where 15.0.0 already
+ *     dropped them, and changes nothing where they never went.
  *
  * Opt in with RUN_POSTGRES_SAMPLE_REMOVAL_TESTS=true and a database, for
  * example a disposable one:
@@ -367,25 +370,27 @@ describePostgres("RemoveSampleProject against Postgres", () => {
     ).toBe(1);
   });
 
-  test("the columns, the key and the index are gone, and a second run does nothing and fails on nothing", async () => {
+  async function keyAndIndexExist(): Promise<{ key: number; index: number }> {
+    return {
+      key: await count(
+        `SELECT count(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = $1 AND c.conname = 'FK_25e3ed56d0b14e81457332f2048' AND c.convalidated`,
+        [schema],
+      ),
+      index: await count(
+        `SELECT count(*) FROM pg_indexes WHERE schemaname = $1 AND indexname = 'IDX_25e3ed56d0b14e81457332f204'`,
+        [schema],
+      ),
+    };
+  }
+
+  test("the columns, the key and the index stay - the release before still reads them - and a second run does nothing and fails on nothing", async () => {
     await withRunner((queryRunner: QueryRunner) => {
       return new RemoveSampleProject1809180800000().up(queryRunner);
     });
 
-    expect(await columnExists("User", "sampleProjectId")).toBe(false);
-    expect(await columnExists("Project", "isSampleProject")).toBe(false);
-    expect(
-      await count(
-        `SELECT count(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace WHERE n.nspname = $1 AND c.conname = 'FK_25e3ed56d0b14e81457332f2048'`,
-        [schema],
-      ),
-    ).toBe(0);
-    expect(
-      await count(
-        `SELECT count(*) FROM pg_indexes WHERE schemaname = $1 AND indexname = 'IDX_25e3ed56d0b14e81457332f204'`,
-        [schema],
-      ),
-    ).toBe(0);
+    expect(await columnExists("User", "sampleProjectId")).toBe(true);
+    expect(await columnExists("Project", "isSampleProject")).toBe(true);
+    expect(await keyAndIndexExist()).toEqual({ key: 1, index: 1 });
 
     const before: number = await count(
       `SELECT count(*) FROM "${schema}"."User"`,
@@ -396,6 +401,82 @@ describePostgres("RemoveSampleProject against Postgres", () => {
     });
 
     expect(await count(`SELECT count(*) FROM "${schema}"."User"`)).toBe(before);
+  });
+
+  test("KeepSampleProjectColumns changes nothing where the columns never went", async () => {
+    await withRunner((queryRunner: QueryRunner) => {
+      return new RemoveSampleProject1809180800000().up(queryRunner);
+    });
+
+    const people: number = await count(
+      `SELECT count(*) FROM "${schema}"."User"`,
+    );
+
+    await withRunner((queryRunner: QueryRunner) => {
+      return new KeepSampleProjectColumns1809183200000().up(queryRunner);
+    });
+
+    expect(await columnExists("User", "sampleProjectId")).toBe(true);
+    expect(await columnExists("Project", "isSampleProject")).toBe(true);
+    expect(await keyAndIndexExist()).toEqual({ key: 1, index: 1 });
+    expect(await count(`SELECT count(*) FROM "${schema}"."User"`)).toBe(people);
+  });
+
+  test("KeepSampleProjectColumns puts back, empty, what 15.0.0 already dropped, so this release's inserts work", async () => {
+    await withRunner((queryRunner: QueryRunner) => {
+      return new RemoveSampleProject1809180800000().up(queryRunner);
+    });
+
+    // As 15.0.0's RemoveSampleProject left an install it finished on.
+    await database.query(
+      `ALTER TABLE "${schema}"."User" DROP CONSTRAINT "FK_25e3ed56d0b14e81457332f2048"`,
+    );
+    await database.query(
+      `DROP INDEX "${schema}"."IDX_25e3ed56d0b14e81457332f204"`,
+    );
+    await database.query(
+      `ALTER TABLE "${schema}"."User" DROP COLUMN "sampleProjectId"`,
+    );
+    await database.query(
+      `ALTER TABLE "${schema}"."Project" DROP COLUMN "isSampleProject"`,
+    );
+
+    await withRunner((queryRunner: QueryRunner) => {
+      return new KeepSampleProjectColumns1809183200000().up(queryRunner);
+    });
+
+    expect(await columnExists("User", "sampleProjectId")).toBe(true);
+    expect(await columnExists("Project", "isSampleProject")).toBe(true);
+    expect(await keyAndIndexExist()).toEqual({ key: 1, index: 1 });
+
+    // Empty: every project not a sample, nobody a sample person.
+    expect(
+      await count(
+        `SELECT count(*) FROM "${schema}"."Project" WHERE "isSampleProject"`,
+      ),
+    ).toBe(0);
+    expect(
+      await count(
+        `SELECT count(*) FROM "${schema}"."User" WHERE "sampleProjectId" IS NOT NULL`,
+      ),
+    ).toBe(0);
+
+    // An insert naming both, as this release's models make one, works.
+    await database.query(
+      `INSERT INTO "${schema}"."Project" ("_id", "name", "isSampleProject") VALUES ($1, 'Fresh', false)`,
+      [ObjectID.generate().toString()],
+    );
+    await database.query(
+      `INSERT INTO "${schema}"."User" ("_id", "email", "sampleProjectId") VALUES ($1, 'new@acme.example', NULL)`,
+      [ObjectID.generate().toString()],
+    );
+
+    // And a second run changes nothing.
+    await withRunner((queryRunner: QueryRunner) => {
+      return new KeepSampleProjectColumns1809183200000().up(queryRunner);
+    });
+
+    expect(await keyAndIndexExist()).toEqual({ key: 1, index: 1 });
   });
 
   test("a run stopped part way keeps what it removed, and the next run removes the rest", async () => {
