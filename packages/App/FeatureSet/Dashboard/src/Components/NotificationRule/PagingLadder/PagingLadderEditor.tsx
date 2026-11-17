@@ -559,14 +559,17 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
           onSetUpMore={onSetUpMore}
           dataTestId="paging-ladder-add-first-menu"
           trigger={
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-              data-testid="paging-ladder-add-first"
-            >
-              <Icon icon={IconProp.Add} className="h-4 w-4 flex-shrink-0" />
-              <span>{addLabel}</span>
-            </button>
+            /*
+             * The shared Button, the empty ladder's one next step: MoreMenu
+             * hands it the menu's id, aria and click.
+             */
+            <Button
+              title={addLabel}
+              isTitleTranslated={true}
+              icon={IconProp.Add}
+              buttonStyle={ButtonStyleType.PRIMARY}
+              dataTestId="paging-ladder-add-first"
+            />
           }
         />
       ) : (

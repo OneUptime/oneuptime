@@ -155,13 +155,15 @@ describe("Video call one-click Connect", () => {
   let userId: ObjectID;
   // What the person who started holds when the provider sends them back.
   let callbackPermissions: Array<Permission> | null;
+  // The API class, imported once the mocks above are in place.
+  let VideoCallOAuthAPIClass: any;
 
   beforeAll(async () => {
-    const VideoCallOAuthAPI: any = (
+    VideoCallOAuthAPIClass = (
       await import("../../../Server/API/VideoCallOAuthAPI")
     ).default;
 
-    app = await startApp([new VideoCallOAuthAPI().getRouter()]);
+    app = await startApp([new VideoCallOAuthAPIClass().getRouter()]);
   }, 600000);
 
   afterAll(async () => {
@@ -573,6 +575,115 @@ describe("Video call one-click Connect", () => {
         ).problem,
       ).toBe(VideoCallOAuthGrantProblem.WorkAccountRequired);
       expect(MicrosoftTeamsMeetingsOAuthApp).toBeDefined();
+    });
+  });
+
+  /*
+   * OneUptime added from the Zoom App Marketplace - its authorization link,
+   * the one Zoom's reviewers test an app with - comes back to the Zoom
+   * callback with a code but no state of ours. Nothing says which project
+   * it is for, so nothing is connected and the code is left unused; Video
+   * Calls says OneUptime is added to the Zoom account and offers Connect.
+   */
+  describe("a sign-in Zoom started", () => {
+    async function callback(
+      slug: string,
+      query: Record<string, string>,
+    ): Promise<ProbeResponse> {
+      return await httpGet({
+        port: app.port,
+        path: `/api/video-call-oauth/${slug}/callback?${new URLSearchParams(query).toString()}`,
+        timeoutMs: ANSWER_WITHIN_MS,
+      });
+    }
+
+    function expectNothingConnected(): void {
+      expect(ZoomOAuthApp.prototype.exchangeCode).not.toHaveBeenCalled();
+      expect(connectWithSignIn).not.toHaveBeenCalled();
+    }
+
+    test("goes to Video Calls saying OneUptime is added, and connects nothing", async () => {
+      const response: ProbeResponse = await callback("zoom", {
+        code: "zoom-code",
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.location!.split("?")[0]).toBe(
+        `${DashboardClientUrl.toString()}/connect-return`,
+      );
+      expect(queryOf(response.location!).get("provider")).toBe("zoom");
+      expect(queryOf(response.location!).get("notice")).toBe("zoom-added");
+      expect(queryOf(response.location!).get("error")).toBeNull();
+      expectNothingConnected();
+    });
+
+    test("an empty state is a state of ours that went wrong, and is refused as one", async () => {
+      const response: ProbeResponse = await callback("zoom", {
+        code: "zoom-code",
+        state: "",
+      });
+
+      expect(queryOf(response.location!).get("error")).toBe("link-invalid");
+      expect(queryOf(response.location!).get("notice")).toBeNull();
+      expectNothingConnected();
+    });
+
+    test("a state OneUptime never issued is refused, not taken for a sign-in Zoom started", async () => {
+      const response: ProbeResponse = await callback("zoom", {
+        code: "zoom-code",
+        state: crypto.randomBytes(32).toString("base64url"),
+      });
+
+      expect(queryOf(response.location!).get("error")).toBe("link-invalid");
+      expect(queryOf(response.location!).get("notice")).toBeNull();
+      expectNothingConnected();
+    });
+
+    test("an error Zoom sent back with no state of ours offers nothing to finish", async () => {
+      const response: ProbeResponse = await callback("zoom", {
+        code: "zoom-code",
+        error: "access_denied",
+      });
+
+      expect(queryOf(response.location!).get("error")).toBe("link-invalid");
+      expect(queryOf(response.location!).get("notice")).toBeNull();
+      expectNothingConnected();
+    });
+
+    test("no code is no sign-in to finish", async () => {
+      const response: ProbeResponse = await callback("zoom", {});
+
+      expect(queryOf(response.location!).get("error")).toBe("link-invalid");
+      expect(queryOf(response.location!).get("notice")).toBeNull();
+      expectNothingConnected();
+    });
+
+    test("the notice is Zoom's: Google's callback refuses a code with no state", async () => {
+      const response: ProbeResponse = await callback("google-meet", {
+        code: "google-code",
+      });
+
+      expect(queryOf(response.location!).get("provider")).toBe("google-meet");
+      expect(queryOf(response.location!).get("error")).toBe("link-invalid");
+      expect(queryOf(response.location!).get("notice")).toBeNull();
+      expect(connectWithSignIn).not.toHaveBeenCalled();
+    });
+
+    test("is told apart by its parameters alone", () => {
+      const isZoomStarted: (query: Record<string, string>) => boolean = (
+        query: Record<string, string>,
+      ): boolean => {
+        return VideoCallOAuthAPIClass.isSignInZoomStarted({
+          query,
+        } as any);
+      };
+
+      expect(isZoomStarted({ code: "c" })).toBe(true);
+      expect(isZoomStarted({ code: "c", state: "" })).toBe(false);
+      expect(isZoomStarted({ code: "c", state: "s" })).toBe(false);
+      expect(isZoomStarted({ code: "c", error: "access_denied" })).toBe(false);
+      expect(isZoomStarted({ code: "" })).toBe(false);
+      expect(isZoomStarted({})).toBe(false);
     });
   });
 

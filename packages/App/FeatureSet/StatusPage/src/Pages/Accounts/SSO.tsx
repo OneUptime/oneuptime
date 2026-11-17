@@ -30,7 +30,7 @@ export interface ComponentProps {
   // The logo made for the dark theme, shown instead while the page is dark.
   darkThemeLogoFileId?: ObjectID | undefined;
   /*
-   * The page requires SSO (Require SSO for Login): its private users can't
+   * The page requires SSO (Require SSO to Sign In): its private users can't
    * sign in with an email and password, so the page offers no way back to
    * the password form - the sign-in page would only send them here again.
    */

@@ -66,7 +66,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * It never throws, and it reads nothing while the license covers SCIM.
  *
  * Single sign-on is not part of the report: it is part of the Community
- * Edition, and a configured "Require SSO for login" is enforced in every
+ * Edition, and a configured "Require SSO to sign in" is enforced in every
  * edition, so there is nothing relaxed to report. The report never reads the
  * SSO requirement columns.
  */

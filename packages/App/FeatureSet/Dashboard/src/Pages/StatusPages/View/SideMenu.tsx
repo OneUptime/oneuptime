@@ -97,9 +97,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
        *    writes: not three sections down under Advanced, where the person
        *    who filed #3418 never found it.
        *  - Subscribers sign themselves up and are managed now and then.
-       *  - Branding, security and AI are set up once or checked when
-       *    something needs checking, as the notification logs under
-       *    Subscribers are.
+       *  - Branding and security are set up once or checked when something
+       *    needs checking, as the notification logs under Subscribers are.
        *
        * Subscribers says so itself; the others fold by their titles (see
        * SideMenuSectionState.ts).
@@ -263,7 +262,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="AI">
+      {getDeveloperSideMenuSection({
+        modelType: StatusPage,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
+
+      <SideMenuSection title="Advanced">
+        {/*
+         * The page's MCP server, for AI agents to read it. It was a section of
+         * its own, "AI", for this one entry (#9216); it is set up once, as the
+         * others here are.
+         */}
         <SideMenuItem
           link={{
             title: "MCP",
@@ -274,15 +284,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Terminal}
         />
-      </SideMenuSection>
-
-      {getDeveloperSideMenuSection({
-        modelType: StatusPage,
-        scope: DeveloperDocsScope.View,
-        modelId: props.modelId,
-      })}
-
-      <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
             title: "Embedded Status",

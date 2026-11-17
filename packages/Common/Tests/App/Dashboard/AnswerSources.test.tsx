@@ -257,8 +257,8 @@ describe("AnswerSources", () => {
       "bg-gray-100",
       "font-semibold",
       "rounded-full",
-      "text-[10px]",
       "text-gray-600",
+      "text-xs",
     ]);
 
     for (const mark of marks) {

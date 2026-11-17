@@ -421,8 +421,8 @@ describe("search forgives the way people type", () => {
 describe("a setting is found by the name its card shows", () => {
   test.each([
     [
-      "require sso for login",
-      "Require SSO for Login — Project Settings › Security › SSO",
+      "require sso to sign in",
+      "Require SSO to Sign In — Project Settings › Security › SSO",
     ],
     [
       "monitor groups",
@@ -460,6 +460,18 @@ describe("a setting is found by the name its card shows", () => {
     expect(rows(query)[0]).toBe(row);
   });
 
+  /*
+   * Require SSO to Sign In was Require SSO for Login, and Force SSO for
+   * Login before that (#9278): people who learned those names still find
+   * the page that holds the switch.
+   */
+  test.each(["require sso for login", "force sso for login"])(
+    '"%s", an old name, still finds the SSO page',
+    (query: string) => {
+      expect(rows(query)[0]).toBe("SSO — Project Settings › Security");
+    },
+  );
+
   test("a setting is listed among the pages, by how well it matches", () => {
     /*
      * The SSO page, then its three cards that hold the word, then the pages
@@ -470,7 +482,7 @@ describe("a setting is found by the name its card shows", () => {
       "SSO — Project Settings › Security",
       "SSO Settings — Project Settings › Security › SSO",
       "Test Single Sign On (SSO) — Project Settings › Security › SSO",
-      "Require SSO for Login — Project Settings › Security › SSO",
+      "Require SSO to Sign In — Project Settings › Security › SSO",
       "Pipelines — Logs › Log Settings",
       "Pipelines — Traces › Trace Settings",
     ]);

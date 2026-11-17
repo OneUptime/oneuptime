@@ -151,7 +151,7 @@ curl -X POST "<url>" \
 
 會開啟一個標題為 `New Relic: High CPU on checkout-service` 的事件，並呼叫你選擇的待命策略。把 `isAcknowledged` 設為 `true` 後傳送同樣的請求，事件就會被確認。把 `state` 設為 `CLOSED` 後傳送，事件就會被解決。
 
-然後從 New Relic 測試：開啟工作流程的 Webhook 訊息，點選 **Send test notification**。要確認它已到達，請開啟 OneUptime 工作流程的 **日誌 → 執行記錄**。
+然後從 New Relic 測試：開啟工作流程的 Webhook 訊息，點選 **Send test notification**。要確認它已到達，請開啟 OneUptime 工作流程的 **執行記錄**。
 
 ## 疑難排解
 
@@ -162,7 +162,7 @@ curl -X POST "<url>" \
 :::
 
 :::details 工作流程執行了，但沒有建立任何東西
-在 **日誌 → 執行記錄** 中開啟該次執行。其 **步驟** 中的 `read-event-1` 項目會說明它為什麼走 **否**。
+在 **執行記錄** 中開啟該次執行。其 **步驟** 中的 `read-event-1` 項目會說明它為什麼走 **否**。
 
 - `New Relic named no issue ID`：保持酬載中的 `"id": {{ json issueId }},` 這一行。
 - `is in no state`：保持酬載中的 `"state": {{ json state }},` 這一行。
@@ -175,7 +175,7 @@ curl -X POST "<url>" \
 
 :::details 事件被建立但從未被解決
 - New Relic 中的工作流程必須在 **Notify when** 下保持 **Closed** 開啟。
-- 在 **日誌 → 執行記錄** 中開啟關閉的那次執行：它的最後一個步驟會說明原因。關閉的 `id` 必須是問題的 ID，所以請保持酬載中的 `"id": {{ json issueId }},` 不變。
+- 在 **執行記錄** 中開啟關閉的那次執行：它的最後一個步驟會說明原因。關閉的 `id` 必須是問題的 ID，所以請保持酬載中的 `"id": {{ json issueId }},` 不變。
 :::
 
 :::details 待命人員被呼叫得太多

@@ -3,7 +3,7 @@
 全局 SSO 让 OneUptime 的 **实例管理员**（主管理员）在实例级别 **一次性** 配置 SAML 2.0 或 OpenID Connect（OIDC）身份提供商，并将其连接到服务器上的任何项目。不必让每个项目所有者各自配置身份提供商，由主管理员设置一个为整个实例服务的提供商即可。
 
 > [!NOTE]
-> 全局 SSO（包括整个实例的“Require SSO for Login”开关）属于 OneUptime 的所有版本：每个自托管实例都有它，包括 Community Edition，无需许可证。它属于实例管理功能，因此不适用于 OneUptime Cloud。各版本包含哪些功能，请参阅 [企业版](/docs/self-hosted/enterprise)。
+> 全局 SSO（包括整个实例的“Require SSO to Sign In”开关）属于 OneUptime 的所有版本：每个自托管实例都有它，包括 Community Edition，无需许可证。它属于实例管理功能，因此不适用于 OneUptime Cloud。各版本包含哪些功能，请参阅 [企业版](/docs/self-hosted/enterprise)。
 
 :::cards
 - [设置提供商](#设置全局-sso): 创建它，把 OneUptime 的 URL 交给身份提供商，然后进行测试。

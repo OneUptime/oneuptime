@@ -133,7 +133,7 @@ export const SecurityCaseTaskAssignee: FunctionComponent<{
   if (!props.task.assignedToUser || !name) {
     return (
       <span
-        className={`${props.isCompact ? "text-xs" : "text-sm"} text-gray-400`}
+        className={`${props.isCompact ? "text-xs" : "text-sm"} text-gray-500`}
       >
         {translator.translateText(SECURITY_CASE_TASKS_COPY.unassigned)}
       </span>

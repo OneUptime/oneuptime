@@ -55,11 +55,11 @@ import { DataSource, DataSourceOptions, QueryRunner } from "typeorm";
  *   - global SAML providers turned off by a filter, and attachments removed
  *     by one: one created or attached afterwards is left as it is; hard
  *     deletes and the purge reach only rows deleted before;
- *   - Require SSO for Login turned on for projects named by a filter: the
+ *   - Require SSO to Sign In turned on for projects named by a filter: the
  *     projects read are written, and one created between the two reads, or
  *     one that comes to match the filter after the locked read, keeps its
  *     rule;
- *   - a Require SSO for Login save whose UPDATE does not finish in time:
+ *   - a Require SSO to Sign In save whose UPDATE does not finish in time:
  *     one the client stopped waiting for is cancelled on the database
  *     (CancelOnTimeoutClient), writes nothing and gives its lock back at
  *     once, as one the database cancelled at its statement timeout does;
@@ -777,7 +777,7 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
     });
   });
 
-  describe("Require SSO for Login turned on for projects named by a filter", () => {
+  describe("Require SSO to Sign In turned on for projects named by a filter", () => {
     const GROUP: string = "Acme Group";
 
     // Each project of the group keeps a way in of its own.
@@ -877,7 +877,7 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
    * pool is given them, DataSourceOptions), its UPDATE held behind the
    * project's row, which another connection holds meanwhile.
    */
-  describe("a Require SSO for Login save whose UPDATE does not finish in time", () => {
+  describe("a Require SSO to Sign In save whose UPDATE does not finish in time", () => {
     const NAME: string = "Acme Slow";
 
     const pools: Array<DataSource> = [];

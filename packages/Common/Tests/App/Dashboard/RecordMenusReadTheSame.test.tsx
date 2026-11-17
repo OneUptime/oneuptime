@@ -63,6 +63,11 @@ jest.mock("react-i18next", () => {
  * notification logs, the notes) sat in a different place on each, under a
  * different heading. They now have an incident's sections, where they have
  * pages for them, in an incident's order, folded as an incident's are.
+ *
+ * Since #9216 a menu has no section for a single entry whose heading only
+ * repeats it: an episode's members sit in its Overview, and where a record
+ * has only Owners for a Team, or only Private Notes for its Notes, that one
+ * page sits in the neighbouring section instead (each record's movedPages).
  */
 
 const MODEL_ID: ObjectID = new ObjectID("0193c0de-4444-4aaa-8bbb-000000000004");
@@ -72,9 +77,6 @@ const INCIDENT_SECTION_ORDER: ReadonlyArray<string> = [
   "Overview",
   "Investigation",
   "Team",
-  // An episode's own members: its incidents, or its alerts.
-  "Incidents",
-  "Alerts",
   "Notifications",
   "Notes",
   "Developer",
@@ -86,8 +88,6 @@ const OPEN_SECTIONS: ReadonlyArray<string> = [
   "Overview",
   "Investigation",
   "Team",
-  "Incidents",
-  "Alerts",
   "Notes",
 ];
 
@@ -96,6 +96,11 @@ interface RecordMenu {
   menu: ReactElement;
   overviewPage: PageMap;
   sections: Array<string>;
+  /*
+   * Pages this record keeps somewhere other than PAGE_SECTIONS says, because
+   * it has no section of that name: the section each one is in instead.
+   */
+  movedPages?: Readonly<Record<string, string>>;
 }
 
 const RECORD_MENUS: ReadonlyArray<RecordMenu> = [
@@ -117,25 +122,26 @@ const RECORD_MENUS: ReadonlyArray<RecordMenu> = [
     name: "alert",
     menu: <AlertSideMenu modelId={MODEL_ID} />,
     overviewPage: PageMap.ALERT_VIEW,
+    // Private Notes was a Notes section of its own (#9216).
     sections: [
       "Overview",
       "Investigation",
       "Team",
       "Notifications",
-      "Notes",
       "Developer",
       "Advanced",
     ],
+    movedPages: { "Private Notes": "Investigation" },
   },
   {
     name: "incident episode",
     menu: <IncidentEpisodeSideMenu modelId={MODEL_ID} />,
     overviewPage: PageMap.INCIDENT_EPISODE_VIEW,
+    // Member Incidents was an Incidents section of its own (#9216).
     sections: [
       "Overview",
       "Investigation",
       "Team",
-      "Incidents",
       "Notes",
       "Developer",
       "Advanced",
@@ -145,29 +151,28 @@ const RECORD_MENUS: ReadonlyArray<RecordMenu> = [
     name: "alert episode",
     menu: <AlertEpisodeSideMenu modelId={MODEL_ID} />,
     overviewPage: PageMap.ALERT_EPISODE_VIEW,
-    sections: [
-      "Overview",
-      "Investigation",
-      "Team",
-      "Alerts",
-      "Notes",
-      "Developer",
-      "Advanced",
-    ],
+    /*
+     * Member Alerts, Owners and Private Notes were each a section of their
+     * own - Alerts, Team and Notes (#9216).
+     */
+    sections: ["Overview", "Investigation", "Developer", "Advanced"],
+    movedPages: { Owners: "Overview", "Private Notes": "Investigation" },
   },
   {
     name: "scheduled maintenance event",
     menu: <ScheduledMaintenanceSideMenu modelId={MODEL_ID} />,
     overviewPage: PageMap.SCHEDULED_MAINTENANCE_VIEW,
-    // An event is planned, not investigated: no Investigation section.
-    sections: [
-      "Overview",
-      "Team",
-      "Notifications",
-      "Notes",
-      "Developer",
-      "Advanced",
-    ],
+    /*
+     * An event is planned, not investigated: no Investigation section, so its
+     * Description and Runbooks are under Overview. Its Owners were a Team
+     * section of their own until #9216.
+     */
+    sections: ["Overview", "Notifications", "Notes", "Developer", "Advanced"],
+    movedPages: {
+      Description: "Overview",
+      Runbooks: "Overview",
+      Owners: "Overview",
+    },
   },
   {
     /*
@@ -183,9 +188,8 @@ const RECORD_MENUS: ReadonlyArray<RecordMenu> = [
 ];
 
 /*
- * Where each page sits, on every record that has it. A maintenance event has
- * no Investigation section, so its Description and Runbooks are under
- * Overview; everywhere else a page has one place.
+ * Where each page sits, on every record that has it, unless the record lists
+ * it in its movedPages.
  */
 const PAGE_SECTIONS: Readonly<Record<string, string>> = {
   Overview: "Overview",
@@ -215,8 +219,9 @@ const PAGE_SECTIONS: Readonly<Record<string, string>> = {
   Roles: "Team",
   "On-Call Executions": "Team",
   Owners: "Team",
-  "Member Incidents": "Incidents",
-  "Member Alerts": "Alerts",
+  // An episode's own members, next to its overview (#9216).
+  "Member Incidents": "Overview",
+  "Member Alerts": "Overview",
   "Notification Logs": "Notifications",
   "AI Logs": "Notifications",
   "Private Notes": "Notes",
@@ -230,11 +235,6 @@ const PAGE_SECTIONS: Readonly<Record<string, string>> = {
   "Delete Maintenance Event": "Advanced",
   "Delete Case": "Advanced",
 };
-
-const MAINTENANCE_OVERVIEW_PAGES: ReadonlyArray<string> = [
-  "Description",
-  "Runbooks",
-];
 
 function pageRoute(page: PageMap): string {
   return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
@@ -298,10 +298,7 @@ describe("every record's side menu has an incident's sections", () => {
 
         for (const link of linksIn(section)) {
           const expected: string | undefined =
-            record.name === "scheduled maintenance event" &&
-            MAINTENANCE_OVERVIEW_PAGES.includes(link.title)
-              ? "Overview"
-              : PAGE_SECTIONS[link.title];
+            record.movedPages?.[link.title] ?? PAGE_SECTIONS[link.title];
 
           expect({ page: link.title, section }).toEqual({
             page: link.title,
@@ -405,6 +402,11 @@ describe("pages they share are named the same", () => {
         title: "State Timeline",
         href: pageRoute(PageMap.ALERT_EPISODE_VIEW_STATE_TIMELINE),
       },
+      {
+        title: "Member Alerts",
+        href: pageRoute(PageMap.ALERT_EPISODE_VIEW_ALERTS),
+      },
+      { title: "Owners", href: pageRoute(PageMap.ALERT_EPISODE_VIEW_OWNERS) },
     ]);
     expect(linksIn("Investigation")).toEqual([
       {
@@ -419,17 +421,6 @@ describe("pages they share are named the same", () => {
         title: "Remediation Notes",
         href: pageRoute(PageMap.ALERT_EPISODE_VIEW_REMEDIATION),
       },
-    ]);
-    expect(linksIn("Team")).toEqual([
-      { title: "Owners", href: pageRoute(PageMap.ALERT_EPISODE_VIEW_OWNERS) },
-    ]);
-    expect(linksIn("Alerts")).toEqual([
-      {
-        title: "Member Alerts",
-        href: pageRoute(PageMap.ALERT_EPISODE_VIEW_ALERTS),
-      },
-    ]);
-    expect(linksIn("Notes")).toEqual([
       {
         title: "Private Notes",
         href: pageRoute(PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE),
@@ -468,8 +459,6 @@ describe("pages they share are named the same", () => {
         title: "Runbooks",
         href: pageRoute(PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS),
       },
-    ]);
-    expect(linksIn("Team")).toEqual([
       {
         title: "Owners",
         href: pageRoute(PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS),
@@ -508,7 +497,7 @@ describe("a page opens the section it is in", () => {
       "an alert episode's Owners",
       PageMap.ALERT_EPISODE_VIEW_OWNERS,
       <AlertEpisodeSideMenu key="alert-episode" modelId={MODEL_ID} />,
-      "Team",
+      "Overview",
       "Owners",
     ],
     [

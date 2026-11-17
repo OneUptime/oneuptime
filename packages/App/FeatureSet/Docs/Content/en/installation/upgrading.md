@@ -93,7 +93,7 @@ Then check your version again, as in the first step. If you have not reached you
 
 OneUptime now ships the app as two images. The **Community Edition** is open
 source under the Apache License 2.0 and includes SAML and OIDC single sign-on,
-global SSO and "Require SSO for login". The **Enterprise Edition** adds the
+global SSO and "Require SSO to sign in". The **Enterprise Edition** adds the
 enterprise modules from the repository's `ee/` directory: SCIM, team
 compliance, audit logs and the enterprise Health dashboards in the Admin
 Dashboard. Before this change both editions ran the same code, and
@@ -221,6 +221,9 @@ change.
    refused. An API key is shown only by the request that creates or resets
    it, and a SCIM bearer token only by the request that creates its
    connection.
+   A notification rule's read of its webhook's `webhookUrl` through
+   `userWebhook` is refused too, as is a read of a network device's legacy
+   `snmpV3Auth` by a key with only Viewer or Settings Viewer.
 4. **If the server reaches the internet through a proxy, let the proxy reach
    your identity provider, calendars, MCP servers and backup storage.** OIDC
    single sign-on, external calendars, MCP servers and backups now use the
@@ -374,6 +377,23 @@ and episodes.
   carries a private record you can't open, instead of showing its progress
   and pull request. See
   [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
+- **Webhook addresses and SNMP credentials are stored encrypted, and logs
+  keep a webhook's address by its host.** A Slack, Microsoft Teams or Discord
+  webhook carries its secret in its address, and an SNMP community string or
+  v3 key opens the device it belongs to, so a database dump or a backup held
+  them ready to use. Now the addresses of status page subscribers' Slack,
+  Microsoft Teams and webhook subscriptions, of webhook notification methods,
+  of OpenStack project notices and of custom notification channels, a
+  channel's signing secret, and the SNMP credentials of network devices and
+  discovery scans are stored encrypted. The upgrade encrypts the ones you
+  have, and every notification, poll, sweep and import goes on using them as
+  written. A project's webhook logs keep only an address's scheme and host
+  (`https://hooks.slack.com/•••`), the logs from before the upgrade included,
+  and an on-call log names the webhook a page was sent to rather than its
+  address. A server of the earlier release still running during the upgrade
+  reads an encrypted address or credential as a broken one, so its sends and
+  polls fail until it is replaced, and what it saves meanwhile is stored as
+  written until it is next saved.
 - **A new on-call rule made through the API or with Terraform starts on Key
   updates only.** A Slack, Microsoft Teams or Mattermost notification rule for
   on-call policies started on who is on call now and when nobody is only when
@@ -392,7 +412,7 @@ and episodes.
 OneUptime 14 splits the app into two editions, and the image you pull decides
 which one you run. The **Community Edition** (Apache-2.0, the `release` and
 `<version>` tags) includes SAML SSO, OpenID Connect, global SSO and "Require
-SSO for login". It does not contain the repository's `ee/` directory, so SCIM
+SSO to sign in". It does not contain the repository's `ee/` directory, so SCIM
 provisioning, team compliance settings, audit logs, the Admin **Health**
 dashboards and the Admin **Query Console** are not in that image at all. The
 **Enterprise Edition** (the `enterprise-release` and `enterprise-<version>`
@@ -405,7 +425,7 @@ on each deployment path, and what the license does. This section is the upgrade
 itself. Upgrade from 13 — if you are still on 12, do 12 → 13 first.
 
 Nothing is deleted on either edition. Single sign-on works the same on both:
-your SSO and OIDC configuration and your "Require SSO for login" settings carry
+your SSO and OIDC configuration and your "Require SSO to sign in" settings carry
 over as they are. Your SCIM configuration and the audit logs recorded so far
 stay in the database. The Community Edition simply does not serve them, and
 switching editions needs no migration in either direction.
@@ -442,8 +462,8 @@ switching editions needs no migration in either direction.
 5. **If this install will run the Community Edition while your identity
    provider deprovisions users through SCIM, review who has access before you
    upgrade.** SCIM deprovisioning stops, so the people you remove at your
-   identity provider keep their OneUptime accounts, and unless "Require SSO for
-   login" applies to them, anyone who can still reach such an account's mailbox
+   identity provider keep their OneUptime accounts, and unless "Require SSO to
+   sign in" applies to them, anyone who can still reach such an account's mailbox
    can set a password with "Forgot password" and sign in. Remove those users
    first:
    [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community).
@@ -491,7 +511,7 @@ either direction.
   needs — and the Admin Health dashboards and Query Console are locked.
 - **Nothing is deleted, and core monitoring is never affected.** Monitors,
   alerts, incidents, on-call, status pages and telemetry are outside the
-  license, and so is sign-in: SSO and OIDC sign-in, "Require SSO for login" and
+  license, and so is sign-in: SSO and OIDC sign-in, "Require SSO to sign in" and
   password sign-in for every user, master admins included, work the same in
   every license state. Activating a license restores SCIM provisioning and
   audit logging with the configuration you already have, without a restart.
@@ -946,19 +966,19 @@ working mail server.
   as turned off at the upgrade. A new certificate or client secret keeps
   everyone signed in. While a project requires SSO, its last provider, and
   the provider it requires, cannot be turned off or deleted until Require
-  SSO for Login is turned off; when the whole server requires SSO, a
+  SSO to Sign In is turned off; when the whole server requires SSO, a
   project's last provider cannot be turned off or deleted until another one
   is on. See
   [SSO](/docs/identity/sso#turning-a-provider-off-or-deleting-it).
 - **Global and status page SSO providers end their sign-ins the same way,
-  and turning on Require SSO for Login needs a provider.** Turning a
+  and turning on Require SSO to Sign In needs a provider.** Turning a
   global SAML or OIDC provider off, or deleting it, ends the sign-ins it
   gave, as a project's provider does, and turning it on again does not
   bring them back; a global provider already off when you upgrade counts as
   turned off at the upgrade. A change to a global provider or to its
   attached projects that would leave a project that requires SSO - itself
   or because the whole server does - with no provider to sign in with is
-  refused, naming the projects. Turning on Require SSO for Login, for a
+  refused, naming the projects. Turning on Require SSO to Sign In, for a
   project or for the whole server, is refused while no provider would sign
   people in there; the message says what to set up first. Turning a status
   page's SSO or OIDC provider off, or deleting it, signs out the private
@@ -969,14 +989,14 @@ working mail server.
   and [Status Pages](/docs/status-pages/index#sso-and-oidc).
 - **Creating a project follows the SSO rules too, and changes that let
   people sign in reach every app server at once.** While the whole server
-  requires SSO for login, creating a project needs a global SSO provider
+  requires SSO to sign in, creating a project needs a global SSO provider
   that is on and signs people in to every project, since a new project has
   no provider of its own yet; without one, creating a project is refused,
   and the message asks a server admin to turn one on. Master admins can
-  still create projects. A project created with Require SSO for Login
+  still create projects. A project created with Require SSO to Sign In
   already on needs the same. Turning a provider or a global provider's
   attachment on, lifting a global provider's restriction to its attached
-  projects, and turning Require SSO for Login off, for a project or for the
+  projects, and turning Require SSO to Sign In off, for a project or for the
   whole server, now reach every app server at once, as changes that end
   sign-ins already did, rather than when another server's cached answer
   runs out a minute later. Only when two changes to the same setting are
@@ -984,8 +1004,8 @@ working mail server.
   minute to follow. See
   [SSO](/docs/identity/sso#requiring-sso-for-your-project) and
   [Global SSO](/docs/identity/global-sso#enforcing-sso).
-- **Saving Require SSO for Login on again is checked as turning it on is.**
-  A save that sends Require SSO for Login on - for a project or for the
+- **Saving Require SSO to Sign In on again is checked as turning it on is.**
+  A save that sends Require SSO to Sign In on - for a project or for the
   whole server - or names the provider a project requires is now checked
   even when the setting has that value already, as the API, Terraform and
   other tools that send every setting with each save do. While no provider
@@ -1869,7 +1889,7 @@ working mail server.
   **Global Runner**. See
   [Pick the repository's Runner](/docs/ai/ai-agent#pick-the-repositorys-runner).
 - **While the whole server requires SSO, the sign-in pages offer only SSO,
-  and its global providers have one page.** With Require SSO for Login on
+  and its global providers have one page.** With Require SSO to Sign In on
   for the whole server, the sign-in, single sign-on and sign-up pages show a
   button for each global SSO provider that is on, and no password, passkey,
   Microsoft sign-in or sign-up. The server refuses those too, a script
@@ -1878,7 +1898,7 @@ working mail server.
   Someone signed in with a password signs in with SSO to open a project, on
   a page that now also offers the global providers that sign people in to
   it. In the Admin Dashboard, the Global SSO and Global OIDC lists are one
-  Single Sign-On page under Settings, with Require SSO for Login under the
+  Single Sign-On page under Settings, with Require SSO to Sign In under the
   providers, and their old addresses open it. See
   [Global SSO](/docs/identity/global-sso#enforcing-sso).
 - **A permission scoped to Owned reaches what its own team owns.** A team's

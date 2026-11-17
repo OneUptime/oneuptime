@@ -59,7 +59,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 });
 
 /*
- * THE SERVER'S REQUIRE SSO FOR LOGIN, AS A SERVER KEEPS IT.
+ * THE SERVER'S REQUIRE SSO TO SIGN IN, AS A SERVER KEEPS IT.
  *
  * Every request in a project that does not require SSO itself asks
  * GlobalConfigService whether the whole server does (Admin Dashboard >
@@ -163,7 +163,7 @@ const projectRow: (projectId: string) => StoredRow = (
   };
 };
 
-// A server admin writes the server's Require SSO for Login, through the real update path.
+// A server admin writes the server's Require SSO to Sign In, through the real update path.
 const saveServerRule: (requireSsoForLogin: boolean) => Promise<void> = async (
   requireSsoForLogin: boolean,
 ): Promise<void> => {
@@ -296,7 +296,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("the server's Require SSO for Login, as a server keeps it", () => {
+describe("the server's Require SSO to Sign In, as a server keeps it", () => {
   test("one read of the settings row answers, and is kept for the minute", async () => {
     await expect(GlobalConfigService.getRequireSsoForLogin()).resolves.toBe(
       false,
@@ -486,7 +486,7 @@ describe("the server's Require SSO for Login, as a server keeps it", () => {
   });
 });
 
-describe("a session signed in with a password, while the server's Require SSO for Login is turned on", () => {
+describe("a session signed in with a password, while the server's Require SSO to Sign In is turned on", () => {
   test("a request whose read of the rule was under way at the change is answered by what it read; every request after it is asked to sign in with SSO", async () => {
     const read: { answer: () => void } = holdTheNextRead();
 

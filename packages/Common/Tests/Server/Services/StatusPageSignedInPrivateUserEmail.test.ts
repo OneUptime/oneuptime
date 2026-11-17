@@ -124,7 +124,7 @@ describe("the email of the reader signed in to a status page", () => {
     expect(query.andWhere).toHaveBeenCalledWith("session.isRevoked = false");
   });
 
-  test("is read under the page's sign-in rule: Require SSO for Login and Sign Readers Out After", async () => {
+  test("is read under the page's sign-in rule: Require SSO to Sign In and Sign Readers Out After", async () => {
     const addSignInRule: jest.SpyInstance = jest.spyOn(
       StatusPagePrivateUserSessionService,
       "addSignInRule",

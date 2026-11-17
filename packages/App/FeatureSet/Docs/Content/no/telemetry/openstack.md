@@ -499,7 +499,7 @@ Tre åpne oppstrømssaker former alt dette, og prosjektet har også [bedt om ved
 
 ## Bare metal
 
-Hvis skyen din kjører Ironic, får den en **Bare metal**-seksjon med hver node Ironic viser legitimasjonen: hvor den er i Ironics tilstandsmaskin, strømmen, om noen har satt den i vedlikehold og hvorfor, ressursklassen og når Ironic sist så den bevege seg. En sky uten Ironic har ingen slik seksjon, ingen varsler om det og ingen linje på noen side.
+Hvis skyen din kjører Ironic, får **Databehandling**-seksjonen dens en **Bare metal**-side med hver node Ironic viser legitimasjonen: hvor den er i Ironics tilstandsmaskin, strømmen, om noen har satt den i vedlikehold og hvorfor, ressursklassen og når Ironic sist så den bevege seg. En sky uten Ironic har ingen slik side, ingen varsler om det og ingen linje på noen side.
 
 En node er ikke en hypervisor, selv om både Nova og Placement lister den som en under UUID-en sin, så den telles ikke som et sted å kjøre en virtuell maskin. Hvor mange noder av hver ressursklasse som kunne ta en instans, står på Bare metal-siden, for nodene Ironic viser denne legitimasjonen, og på [Kapasitet](#kapasitet)-siden, for hver node Placement har.
 

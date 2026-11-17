@@ -548,13 +548,27 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.EditNetworkDeviceDiscoveryScan,
     ],
   })
+  /*
+   * KEPT ENCRYPTED AT REST (#9014), with the three flattened credential
+   * columns below and the devices' they are copied into: each entry's
+   * community string and v3 keys, encrypted inside the entry
+   * (`encryptedFields`), its id, name, version, port, username and protocols
+   * as written. The list keeps its shape, so every reader of it -
+   * SnmpScanConfigUtil, the probe, both import paths - reads the list it
+   * always did, decrypted by DatabaseService; a server of the release
+   * before, during an upgrade, reads a list too, whose secrets it cannot
+   * use, rather than a list that is not one. The EncryptSnmpCredentials data
+   * migration encrypts the lists stored before.
+   */
   @TableColumn({
     secret: true,
+    encrypted: true,
+    encryptedFields: ["snmpCommunityString", "snmpV3AuthKey", "snmpV3PrivKey"],
     required: false,
     type: TableColumnType.JSON,
     title: "SNMP Configs",
     description:
-      "Ordered list of SNMP credential sets tried against every host in the subnet, first match wins. Each entry carries an id, an optional name, a version, a community string or the v3 credentials, and a port. When empty, the scan uses the single flattened SNMP configuration on this row.",
+      "Ordered list of SNMP credential sets tried against every host in the subnet, first match wins. Each entry carries an id, an optional name, a version, a community string or the v3 credentials, and a port. When empty, the scan uses the single flattened SNMP configuration on this row. Each entry's community string and v3 keys are kept encrypted at rest.",
   })
   @Column({
     nullable: true,
@@ -768,19 +782,20 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.EditNetworkDeviceDiscoveryScan,
     ],
   })
+  // Kept encrypted at rest, as snmpConfigs above is. Text, which a ciphertext fits.
   @TableColumn({
     secret: true,
+    encrypted: true,
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.VeryLongText,
     title: "SNMP Community String",
     description:
-      "Community string tried against every host in the subnet (SNMP v1/v2c). Ignored on an ICMP scan.",
+      "Community string tried against every host in the subnet (SNMP v1/v2c). Ignored on an ICMP scan. Kept encrypted at rest.",
     example: "public",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
   })
   public snmpCommunityString?: string = undefined;
 
@@ -1001,17 +1016,19 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.EditNetworkDeviceDiscoveryScan,
     ],
   })
+  // Kept encrypted at rest, as snmpConfigs above is.
   @TableColumn({
     secret: true,
+    encrypted: true,
     required: false,
-    type: TableColumnType.LongText,
+    type: TableColumnType.VeryLongText,
     title: "SNMP v3 Authentication Key",
     description:
-      "SNMP v3 authentication passphrase tried against every host. Ignored on an ICMP scan.",
+      "SNMP v3 authentication passphrase tried against every host. Ignored on an ICMP scan. Kept encrypted at rest.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.LongText,
+    type: ColumnType.VeryLongText,
   })
   public snmpV3AuthKey?: string = undefined;
 
@@ -1084,17 +1101,19 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.EditNetworkDeviceDiscoveryScan,
     ],
   })
+  // Kept encrypted at rest, as snmpConfigs above is.
   @TableColumn({
     secret: true,
+    encrypted: true,
     required: false,
-    type: TableColumnType.LongText,
+    type: TableColumnType.VeryLongText,
     title: "SNMP v3 Privacy Key",
     description:
-      "SNMP v3 privacy (encryption) passphrase tried against every host. Ignored on an ICMP scan.",
+      "SNMP v3 privacy (encryption) passphrase tried against every host. Ignored on an ICMP scan. Kept encrypted at rest.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.LongText,
+    type: ColumnType.VeryLongText,
   })
   public snmpV3PrivKey?: string = undefined;
 

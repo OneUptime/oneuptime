@@ -409,7 +409,7 @@ Ein Fehler antwortet mit einem Statuscode und einem JSON-Inhalt, der den Grund n
 
 - **RSS.** Jede Statusseite stellt `/rss` bereit, einen Feed ihrer Vorfälle, Ankündigungen und Wartungsereignisse, jeweils so datiert, wie die Seite sie datiert. Siehe [Das einbettbare Badge und der RSS-Feed](/docs/status-pages/index#das-einbettbare-badge-und-der-rss-feed).
 - **llms.txt.** Neben `/rss` stellt jede Statusseite `/llms.txt` bereit, das KI-Agenten auf den RSS-Feed und das Übersichts-JSON verweist.
-- **MCP.** KI-Agenten können die Seite über den MCP-Server von OneUptime unter `https://oneuptime.com/mcp` lesen, ohne API-Schlüssel, indem sie die ID oder Domain der Seite als `statusPageIdOrDomain` übergeben. Er ist standardmäßig eingeschaltet; schalten Sie ihn mit **MCP-Server aktivieren** unter **KI → MCP** im Seitenmenü der Seite aus. Siehe [MCP-Server](/docs/ai/mcp-server).
+- **MCP.** KI-Agenten können die Seite über den MCP-Server von OneUptime unter `https://oneuptime.com/mcp` lesen, ohne API-Schlüssel, indem sie die ID oder Domain der Seite als `statusPageIdOrDomain` übergeben. Er ist standardmäßig eingeschaltet; schalten Sie ihn mit **MCP-Server aktivieren** unter **Erweitert → MCP** im Seitenmenü der Seite aus. Siehe [MCP-Server](/docs/ai/mcp-server).
 - **Die REST-API.** Um Statusseiten, Ressourcen, Abonnenten und Ankündigungen zu erstellen oder zu ändern, verwenden Sie die [OneUptime-API](/docs/api-reference/api-reference) mit einem API-Schlüssel.
 
 ## Nächste Schritte

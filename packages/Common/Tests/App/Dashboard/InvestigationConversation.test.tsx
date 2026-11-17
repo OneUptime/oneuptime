@@ -367,7 +367,7 @@ function composer(): HTMLTextAreaElement {
 }
 
 function sendButton(): HTMLElement {
-  return screen.getByTitle("Send (Enter)");
+  return screen.getByRole("button", { name: "Send (Enter)" });
 }
 
 beforeEach(() => {
@@ -1094,7 +1094,7 @@ describe("InvestigationConversation — while OneUptime AI works", () => {
     renderConversation();
     await flush();
 
-    fireEvent.click(screen.getByTitle("Stop generating"));
+    fireEvent.click(screen.getByRole("button", { name: "Stop generating" }));
     await flush();
 
     expect(requests("/ai-investigation/conversation/cancel-run")).toHaveLength(
@@ -2755,7 +2755,9 @@ describe("InvestigationConversation — the composer in the card", () => {
     ).toHaveTextContent(
       "Acts on clear requests right away, within your permissions.",
     );
-    expect(within(frame).getByTitle("Send (Enter)")).toBeDisabled();
+    expect(
+      within(frame).getByRole("button", { name: "Send (Enter)" }),
+    ).toBeDisabled();
     // It is the last thing in the section, and so in the card.
     expect(section().lastElementChild).toBe(frame);
   });
@@ -2834,8 +2836,10 @@ describe("InvestigationConversation — the composer in the card", () => {
     renderConversation();
     await flush();
 
-    expect(screen.queryByTitle("Send (Enter)")).toBeNull();
-    expect(screen.getByTitle("Stop generating")).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Send (Enter)" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Stop generating" }),
+    ).toBeEnabled();
 
     fireEvent.change(composer(), { target: { value: "And the node?" } });
     expect(composer().value).toBe("And the node?");

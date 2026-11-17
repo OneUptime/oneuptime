@@ -75,12 +75,12 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * holds waits for it, so two changes can be run against each other, in a
  * set order. They check that:
  *
- *   - a save that writes Require SSO for Login on, or names the provider a
+ *   - a save that writes Require SSO to Sign In on, or names the provider a
  *     project requires, is checked by what it asks for - when the project
  *     says the same already too - and keeps its locks until it is written:
  *     a provider it counts on cannot be turned off or deleted in between,
  *     even after another change turned the rule off for a moment; the same
- *     for the server's own Require SSO for Login;
+ *     for the server's own Require SSO to Sign In;
  *   - a lock found gone right before the write - the auto recharge charge
  *     took longer than the lock is kept, or Valkey lost it - is taken again,
  *     and the change checked again under it: written when nothing came
@@ -453,12 +453,12 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-describe("a save that writes Require SSO for Login on is checked and held until it is written, when the project requires SSO already too", () => {
+describe("a save that writes Require SSO to Sign In on is checked and held until it is written, when the project requires SSO already too", () => {
   test("its last provider cannot be deleted while it is saved: a change that turns the rule off meanwhile takes no lock, and the delete waits for the save, then is refused", async () => {
     let deletion: { outcome: Promise<string>; waited: boolean } | null = null;
 
     whileCharging = async (): Promise<void> => {
-      // Another admin turns Require SSO for Login off: it asks for less, and takes no lock.
+      // Another admin turns Require SSO to Sign In off: it asks for less, and takes no lock.
       await expect(saveProject({ requireSsoForLogin: false })).resolves.toBe(
         "done",
       );
@@ -532,7 +532,7 @@ describe("a save that writes Require SSO for Login on is checked and held until 
     expect(projects.get(ACME)!["name"]).toBe("Acme");
   });
 
-  test("a save that leaves Require SSO for Login alone takes no lock", async () => {
+  test("a save that leaves Require SSO to Sign In alone takes no lock", async () => {
     await expect(saveProject({ name: "Acme Renamed" })).resolves.toBe("done");
 
     expect(locks.events).toEqual([]);
@@ -611,7 +611,7 @@ describe("a save that names the provider a project requires is checked and held 
   });
 });
 
-describe("the server's Require SSO for Login saved on again", () => {
+describe("the server's Require SSO to Sign In saved on again", () => {
   beforeEach(() => {
     config.get(CONFIG_ID)!["requireSsoForLogin"] = true;
   });
@@ -878,7 +878,7 @@ describe("an auto recharge charged while a change to who can sign in is saved", 
     expect(charges).toEqual([{ customerId: "cus_acme", amountInUsd: 20 }]);
     expect(projects.get(ACME)!["smsOrCallCurrentBalanceInUSDCents"]).toBe(2000);
 
-    // The change itself was not written: Require SSO for Login and auto recharge stay off.
+    // The change itself was not written: Require SSO to Sign In and auto recharge stay off.
     expect(ruleOf().requireSsoForLogin).toBe(false);
     expect(projects.get(ACME)!["enableAutoRechargeSmsOrCallBalance"]).toBe(
       false,

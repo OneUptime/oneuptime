@@ -29,7 +29,7 @@ import { expect, test } from "@playwright/test";
  *     the SCIM error body) beside the `licensed` one the other suite asserts;
  *   - single sign-on is untouched: its routes answer exactly as on every
  *     stack (Tests/Helpers/SsoRoutes.ts), a provider can still be configured
- *     and used, and "Require SSO for login" is still enforced
+ *     and used, and "Require SSO to sign in" is still enforced
  *     (SsoUnaffectedByLapse.spec.ts);
  *   - enterprise configuration writes are refused with the LICENSE_REQUIRED
  *     message and NOT the COMMUNITY_EDITION one (Enterprise/Helpers/

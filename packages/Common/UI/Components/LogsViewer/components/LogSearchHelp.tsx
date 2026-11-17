@@ -119,7 +119,7 @@ const LogSearchHelp: FunctionComponent<LogSearchHelpProps> = (
                   </span>
                 </td>
                 <td className="whitespace-nowrap py-1.5 pl-2 pr-3 text-right">
-                  <code className="font-mono text-[11px] text-gray-500">
+                  <code className="font-mono text-xs text-gray-500">
                     {row.example}
                   </code>
                 </td>

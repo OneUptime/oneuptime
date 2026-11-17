@@ -22,8 +22,9 @@ import path from "path";
  * ALLOWED with its reason: a database's or another system's "login" (a
  * credential, not an action here), "logged in this window" (written to a
  * log), and signing in to another system (Keystone, the OpenShift CLI, an
- * SMTP server). One is a OneUptime name still to change, filed as #9278.
- * Nothing else may be added without a reason.
+ * SMTP server). Nothing else may be added without a reason. The last
+ * OneUptime name that said it, Require SSO for Login, is Require SSO to
+ * Sign In since #9278; its API name requireSsoForLogin stays.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
@@ -39,11 +40,6 @@ interface Allowed {
 }
 
 const ALLOWED: Array<Allowed> = [
-  {
-    phrase: /\b(?:Require|Force) SSO for login\b/gi,
-    reason:
-      "The setting's name, in about 300 files; renaming it is #9278. Its API name requireSsoForLogin stays.",
-  },
   {
     phrase:
       /\b(?:a|an|one|the|its|own|any|that|dedicated|monitoring|read-only|SQL Server|administrator|application's|agent's|collector's)\s+login(?:'s)?\b|\blogin's\b/gi,
@@ -209,6 +205,9 @@ describe("the guard itself", () => {
     "Please login to continue.",
     "Session expired. Please log in again.",
     "Looks like you are not logged in.",
+    // The setting's old names (#9278).
+    "Require SSO for Login",
+    "Force SSO for Login",
   ])("refuses %j", (text: string) => {
     expect(saysLogIn(text)).toBe(true);
   });
@@ -218,7 +217,7 @@ describe("the guard itself", () => {
     "Sign in to view {{statusPageName}}.",
     "Use a read-only login.",
     "Nothing was logged in the selected time range.",
-    "Require SSO for Login",
+    "Require SSO to Sign In",
     "OneLogin",
   ])("lets %j through", (text: string) => {
     expect(saysLogIn(text)).toBe(false);

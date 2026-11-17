@@ -136,7 +136,7 @@ Déjalo plegado y el dispositivo solo recibe ping: la sección plegada lo dice e
 | Clave de privacidad SNMP v3 | La frase de contraseña de privacidad (cifrado). | Con privacidad |
 :::
 
-Las credenciales escritas en el dispositivo prevalecen sobre un perfil de credenciales elegido a su lado, y el sitio del dispositivo también puede llevar un perfil predeterminado. Las credenciales de un perfil se cifran en reposo. Las credenciales escritas en un dispositivo están protegidas por los mismos permisos de lectura pero no se cifran en reposo: una razón más para guardar las credenciales compartidas en un perfil.
+Las credenciales escritas en el dispositivo prevalecen sobre un perfil de credenciales elegido a su lado, y el sitio del dispositivo también puede llevar un perfil predeterminado. Las credenciales de un perfil se cifran en reposo. Las credenciales escritas en un dispositivo también se cifran en reposo, y están protegidas por los mismos permisos de lectura.
 
 ## Cambiar muchos dispositivos a la vez
 

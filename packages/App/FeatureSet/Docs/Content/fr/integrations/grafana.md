@@ -166,7 +166,7 @@ Vous avez regroupé selon un label identique pour toutes les alertes d'une notif
 :::
 
 :::details L'incident affiche une référence au lieu d'une valeur
-Une référence à un champ que la notification n'a pas est laissée telle qu'elle est écrite, accolades comprises. Comparez le nom du champ avec ce que Grafana a envoyé : pour un flux de travail, ouvrez l'exécution dans **Journaux → Exécutions** et comparez avec ce que le déclencheur a reçu.
+Une référence à un champ que la notification n'a pas est laissée telle qu'elle est écrite, accolades comprises. Comparez le nom du champ avec ce que Grafana a envoyé : pour un flux de travail, ouvrez l'exécution dans **Exécutions** et comparez avec ce que le déclencheur a reçu.
 :::
 
 Le guide [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#dépannage) couvre d'autres cas, et ils s'appliquent aussi aux notifications de Grafana.

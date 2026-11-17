@@ -30,7 +30,7 @@ import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
  *     once;
  *   - "Monitor Groups" saves either way, and the dashboard's menus follow
  *     it without a reload (Utils/SelectedProjectSwitches, wired in App.tsx);
- *   - "Require SSO for Login" asks, with a red button, before it locks out
+ *   - "Require SSO to Sign In" asks, with a red button, before it locks out
  *     everyone not signed in with SSO; turning it off saves at once.
  *
  * This holds the pages to that, so a page written later cannot quietly
@@ -348,7 +348,7 @@ describe("what the switches say", () => {
     );
     expect(MonitorGroupsSwitchCopy.switchTitle).toBe("Monitor Groups");
     expect(RequireSsoForLoginSwitchCopy.switchTitle).toBe(
-      "Require SSO for Login",
+      "Require SSO to Sign In",
     );
 
     for (const title of [
@@ -408,7 +408,7 @@ describe("the old wording is gone from the dashboard", () => {
 
   /*
    * The status page's own "Force SSO for Login" card was the last to carry
-   * the old sentence; it is a "Require SSO for Login" switch now
+   * the old sentence; it is a "Require SSO to Sign In" switch now
    * (Components/StatusPage/StatusPageRequireSsoCard), so no page has it.
    */
   test("the doubled word in the old SSO help is gone from every page", () => {

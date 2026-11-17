@@ -54,17 +54,16 @@ Meddelelser beskrives i [Abonnenter og meddelelser](/docs/status-pages/subscribe
 
 | Sektion       | Hvad du gør der                                                                                                            |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Oversigt**  | **Alle vedligeholdelseshændelser** og **Igangværende vedligeholdelseshændelser**, hvis mærke tæller de begivenheder, der står på lige nu.                |
-| **Kalender** | **Vedligeholdelseskalender**: hver begivenhed på en måned, en uge eller en dag, ved siden af de kalendere uden for projektet, du tilføjer. |
+| **Oversigt**  | **Alle vedligeholdelseshændelser**, **Igangværende vedligeholdelseshændelser**, hvis mærke tæller de begivenheder, der står på lige nu, og **Vedligeholdelseskalender**: hver begivenhed på en måned, en uge eller en dag, ved siden af de kalendere uden for projektet, du tilføjer. |
 | **Arbejdsområde** | **Slack**, **Microsoft Teams** og **Mattermost**, alt efter hvad projektet har forbundet, eller **Forbind et arbejdsområde**, når det ikke har nogen af dem. |
 | **Regler**    | **Ejerregler**, **Runbook-regler**, **Etiketregler**, **Påmindelsesregler**.                                                   |
 | **Indstillinger** | **Vedligeholdelsesstatus**, **Vedligeholdelsesskabeloner**, **Noteskabeloner**, **Godkendelse af offentlige noter**, **Brugerdefinerede felter**, **Målinger**, **Kalenderindstillinger**, **Nummerering**. |
 
-**Oversigt** og **Kalender** er åbne; **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Udvikler** rummer **Terraform**, **API**, **CLI** og **AI-assistenter** til at styre vedligeholdelse fra kode. Alt om vedligeholdelse ligger her, ikke i **Projektindstillinger**.
+**Oversigt** er åben; **Arbejdsområde**, **Regler**, **Indstillinger** og **Udvikler** starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Udvikler** rummer **Terraform**, **API**, **CLI** og **AI-assistenter** til at styre vedligeholdelse fra kode. Alt om vedligeholdelse ligger her, ikke i **Projektindstillinger**.
 
 Listen viser **Nummer for planlagt vedligeholdelse**, **Titel**, **Aktuel tilstand**, **Berørte ressourcer**, **Vist på statusside**, **Begynder den**, **Varighed**, **Slutter den**, **Etiketter** og **Ejere**. Vælg begivenheder for at handle på flere ad gangen: **Markér som {{state}}**, **Skift tilstand**, **Tildel til mig**, **Tilføj ejer**, **Fjern ejer**, **Tilføj etiketter**, **Fjern etiketter** eller **Slet**. Menuen **⋯** for enden af hver begivenheds række gør det samme for netop den begivenhed: skridtene **Markér som {{state}}**, så længe begivenheden kan tage dem, **Skift tilstand**, **Tildel til mig**, indtil du ejer den, og **Tilføj ejer**.
 
-**Vedligeholdelseskalender** i sektionen **Kalender** viser de samme begivenheder på en måned, en uge eller en dag og kan vise kalendere uden for projektet ved siden af. Se [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar).
+**Vedligeholdelseskalender** i sektionen **Oversigt** viser de samme begivenheder på en måned, en uge eller en dag og kan vise kalendere uden for projektet ved siden af. Se [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar).
 
 ## Hvad en begivenhed påvirker
 
@@ -83,14 +82,13 @@ Mens en begivenhed står på, behandler OneUptime det nedbrud, den planlægger, 
 
 | Sektion i sidemenuen | Sider                                                                                      |
 | ----------------- | --------------------------------------------------------------------------------------------- |
-| **Oversigt** | **Oversigt**, **Tilstandstidslinje**, **Beskrivelse**, **Runbooks** |
-| **Team** | **Ejere** |
+| **Oversigt** | **Oversigt**, **Tilstandstidslinje**, **Beskrivelse**, **Runbooks**, **Ejere** |
 | **Notifikationer**   | **Notifikationslogs** og **AI-logs**: hver besked, der er sendt om begivenheden, og hvad AI har gjort for den |
 | **Noter**         | **Private noter** og **Offentlige noter**                                                      |
 | **Udvikler**      | **Terraform**, **API**, **CLI** og **AI-assistenter**: begivenheden styret fra kode            |
 | **Avanceret**     | **Brugerdefinerede felter**, **Indstillinger**, **Auditlogs**, **Slet vedligeholdelseshændelse**             |
 
-**Oversigt**, **Team** og **Noter** er åbne; de andre sektioner forbliver foldet sammen, indtil du klikker på dem.
+**Oversigt** og **Noter** er åbne; de andre sektioner forbliver foldet sammen, indtil du klikker på dem.
 
 - **Oversigt** — headeren viser begivenhedens nummer, titel og tilstand, hvor lang tid der er til start, eller hvor længe den har stået på, hvem der ejer den, hvilke statussider den vises på, og hvem der oprettede den, og knapperne, der flytter den videre. Under den viser **Starter**, **Slutter** og **Varighed** det planlagte vindue i din tidszone. **Feed for planlagt vedligeholdelse** registrerer alt, hvad der er sket med begivenheden, ved siden af kortene **Detaljer om vedligeholdelse** og **Berørte ressourcer** og kortene **Målinger** og **Brugerdefinerede felter**, når dit projekt har nogen.
 - **Tilstandstidslinje** — hver tilstand, begivenheden har været i, hvornår og hvor længe. Se [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states#tilstandstidslinjen).

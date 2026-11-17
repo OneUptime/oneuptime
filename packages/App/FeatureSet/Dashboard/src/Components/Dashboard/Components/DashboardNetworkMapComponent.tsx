@@ -509,7 +509,7 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
           className="text-xs font-medium text-gray-400 uppercase tracking-wider truncate"
         />
         <span
-          className="text-xs text-gray-400 tabular-nums flex-shrink-0"
+          className="text-xs text-gray-500 tabular-nums flex-shrink-0"
           data-testid="network-map-widget-summary"
         >
           {summary.down > 0
@@ -739,7 +739,7 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
               return (
                 <span
                   key={entry.key}
-                  className="inline-flex items-center gap-1 text-gray-400"
+                  className="inline-flex items-center gap-1 text-gray-500"
                   style={{ fontSize: "10px" }}
                 >
                   <span

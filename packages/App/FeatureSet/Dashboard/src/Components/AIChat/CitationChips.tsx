@@ -43,7 +43,7 @@ const CitationChips: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
+      <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-500">
         {translator.translateText("Sources")}
       </div>
       <div className="flex flex-wrap gap-1.5">
@@ -77,7 +77,7 @@ const CitationChips: FunctionComponent<ComponentProps> = (
               }}
               className={`group inline-flex max-w-full items-center gap-1.5 rounded-full border py-1 pl-1.5 pr-2.5 text-xs transition-colors ${
                 isEmpty
-                  ? "border-gray-200 bg-gray-50 text-gray-400"
+                  ? "border-gray-200 bg-gray-50 text-gray-500"
                   : "border-gray-200 bg-white text-gray-700"
               } ${
                 isNavigable && !isEmpty
@@ -88,7 +88,7 @@ const CitationChips: FunctionComponent<ComponentProps> = (
               }`}
             >
               <span
-                className={`flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ${
+                className={`flex h-4 w-4 items-center justify-center rounded-full text-xs font-bold ${
                   isEmpty
                     ? "bg-gray-200 text-gray-500"
                     : "bg-gray-900 text-white"
@@ -108,9 +108,9 @@ const CitationChips: FunctionComponent<ComponentProps> = (
                 )}
               </span>
               <span
-                className={`rounded-full px-1.5 text-[10px] font-medium ${
+                className={`rounded-full px-1.5 text-xs font-medium ${
                   isEmpty
-                    ? "bg-gray-100 text-gray-400"
+                    ? "bg-gray-100 text-gray-500"
                     : "bg-gray-100 text-gray-500"
                 }`}
               >

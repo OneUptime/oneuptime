@@ -409,7 +409,7 @@ Un error responde con un código de estado y un cuerpo JSON que explica el motiv
 
 - **RSS.** Cada página de estado sirve `/rss`, un feed de sus incidentes, anuncios y eventos de mantenimiento, cada uno con la fecha que le da la página. Consulta [La insignia incrustable y el feed RSS](/docs/status-pages/index#la-insignia-incrustable-y-el-feed-rss).
 - **llms.txt.** Junto a `/rss`, cada página de estado sirve `/llms.txt`, que dirige a los agentes de IA al feed RSS y al JSON de la vista general.
-- **MCP.** Los agentes de IA pueden leer la página a través del servidor MCP de OneUptime en `https://oneuptime.com/mcp`, sin clave de API, pasando el ID o el dominio de la página como `statusPageIdOrDomain`. Está activado de forma predeterminada; desactívalo con **Habilitar servidor MCP** en **IA → MCP**, en el menú lateral de la página. Consulta [Servidor MCP](/docs/ai/mcp-server).
+- **MCP.** Los agentes de IA pueden leer la página a través del servidor MCP de OneUptime en `https://oneuptime.com/mcp`, sin clave de API, pasando el ID o el dominio de la página como `statusPageIdOrDomain`. Está activado de forma predeterminada; desactívalo con **Habilitar servidor MCP** en **Avanzado → MCP**, en el menú lateral de la página. Consulta [Servidor MCP](/docs/ai/mcp-server).
 - **La API REST.** Para crear o cambiar páginas de estado, recursos, suscriptores y anuncios, usa la [API de OneUptime](/docs/api-reference/api-reference) con una clave de API.
 
 ## Próximos pasos

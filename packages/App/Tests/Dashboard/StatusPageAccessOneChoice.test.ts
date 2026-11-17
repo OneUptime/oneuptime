@@ -278,7 +278,8 @@ describe("the status page menu, breadcrumbs and links", () => {
 
     const security: string = menu.slice(
       menu.indexOf('<SideMenuSection title="Security">'),
-      menu.indexOf('<SideMenuSection title="AI">'),
+      // The AI section held MCP alone; MCP is in Advanced now (#9216).
+      menu.indexOf("getDeveloperSideMenuSection({"),
     );
 
     const titles: Array<string> = Array.from(
@@ -320,7 +321,7 @@ describe("the status page menu, breadcrumbs and links", () => {
     expect(mcp).not.toContain('"Authentication Settings"');
   });
 
-  test("the SSO page's Require SSO for Login is the switch, with no Edit dialog", () => {
+  test("the SSO page's Require SSO to Sign In is the switch, with no Edit dialog", () => {
     const sso: string = readSource(
       dashboardFile("Pages", "StatusPages", "View", "SSO.tsx"),
     );

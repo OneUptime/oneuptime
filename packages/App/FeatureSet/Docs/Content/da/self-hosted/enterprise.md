@@ -19,7 +19,7 @@ flowchart TB
 ```
 
 > [!NOTE]
-> **Single sign-on findes i alle udgaver.** Login med SAML og OIDC til projekter og statussider, globalt SSO og "Require SSO for login" er en del af Community Edition, og ingen licenstilstand slår dem fra.
+> **Single sign-on findes i alle udgaver.** Login med SAML og OIDC til projekter og statussider, globalt SSO og "Require SSO to sign in" er en del af Community Edition, og ingen licenstilstand slår dem fra.
 
 Denne side beskriver, hvad hver udgave indeholder, hvordan du kører Enterprise Edition, hvordan licenser fungerer, og hvad der sker, når du skifter udgave.
 
@@ -57,11 +57,11 @@ Denne side beskriver, hvad hver udgave indeholder, hvordan du kører Enterprise 
 | Migreringsstatus, supportpakke og globale sonder i Admin-dashboardet | Ja | Ja | Ikke relevant |
 | Administration af Enterprise-licens, pladser og instanser | Nej | Ja | Ikke relevant |
 
-Single sign-on omfatter "Require SSO for login" for projekter, private statussider og hele instansen, i begge udgaver.
+Single sign-on omfatter "Require SSO to sign in" for projekter, private statussider og hele instansen, i begge udgaver.
 
 Alle udgaver har projektets standardopbevaring af telemetri under **Projektindstillinger > Telemetri og APM > Dataopbevaring**. Tilsidesættelser af opbevaring er det, Enterprise Edition tilføjer oven i det.
 
-På OneUptime Cloud kan en betalt funktion altid slås fra, på ethvert abonnement. En tilsidesættelse af opbevaring, som en prøveperiode (eller et skift til et lavere abonnement) efterlod indstillet, gælder fortsat for ny telemetri, så under abonnementet Scale viser opbevaringssiderne den under opgraderingskortet med knappen **Fjern tilsidesættelse**. Fjernelse virker på alle abonnementer; at indstille en igen kræver abonnementet Scale. Telemetri, der allerede er gemt, beholder den opbevaring, den blev gemt med. På samme måde viser **Projektindstillinger > Sikkerhed > SSO** kontakten **Kræv SSO til login** under sit opgraderingskort, så længe projektet stadig kræver SSO, så den kan slås fra.
+På OneUptime Cloud kan en betalt funktion altid slås fra, på ethvert abonnement. En tilsidesættelse af opbevaring, som en prøveperiode (eller et skift til et lavere abonnement) efterlod indstillet, gælder fortsat for ny telemetri, så under abonnementet Scale viser opbevaringssiderne den under opgraderingskortet med knappen **Fjern tilsidesættelse**. Fjernelse virker på alle abonnementer; at indstille en igen kræver abonnementet Scale. Telemetri, der allerede er gemt, beholder den opbevaring, den blev gemt med. På samme måde viser **Projektindstillinger > Sikkerhed > SSO** kontakten **Kræv SSO for at logge ind** under sit opgraderingskort, så længe projektet stadig kræver SSO, så den kan slås fra.
 
 Brugerdefinerede roller, IP-tilladelseslister, adgangskontrol for statussider og en skjult "Powered by OneUptime"-linje fungerer på samme måde: det, en prøveperiode eller et lavere abonnement efterlod indstillet, gælder fortsat, og indstillingerne viser det under opgraderingskortet med en knap til at fjerne det.
 
@@ -166,7 +166,7 @@ Intet andet sendes. Ingen overvågningsdata, telemetri, logs eller konfiguration
 
 ### Når en licens udløber eller mangler
 
-Alle enterprise-funktioner virker i prøveperioden på 14 dage og i 30 dage efter, at en licens er udløbet (henstandsperioden). Udgavemærket advarer, før en af dem slutter. Derefter **stopper SCIM, auditlogning og tilsidesættelser af opbevaring**, indtil en licens aktiveres, ligesom på Community Edition, og enterprise-konfigurationen bliver skrivebeskyttet. Single sign-on er ikke en enterprise-funktion: login med SAML og OIDC, globalt SSO og "Require SSO for login" virker ens i alle licenstilstande.
+Alle enterprise-funktioner virker i prøveperioden på 14 dage og i 30 dage efter, at en licens er udløbet (henstandsperioden). Udgavemærket advarer, før en af dem slutter. Derefter **stopper SCIM, auditlogning og tilsidesættelser af opbevaring**, indtil en licens aktiveres, ligesom på Community Edition, og enterprise-konfigurationen bliver skrivebeskyttet. Single sign-on er ikke en enterprise-funktion: login med SAML og OIDC, globalt SSO og "Require SSO to sign in" virker ens i alle licenstilstande.
 
 ```mermaid title="Sådan skifter en licens mellem tilstande"
 stateDiagram-v2
@@ -200,7 +200,7 @@ Hvad der stopper, når en licens udløber:
 
 Hvad der **ikke** stopper:
 
-- **Single sign-on.** Login med SAML og OIDC til projekter, private statussider, hele instansen (globalt SSO) og mobilapps samt "Require SSO for login" er en del af alle udgaver. En udløbet licens ændrer intet af det, og konfigurationen af single sign-on kan stadig redigeres.
+- **Single sign-on.** Login med SAML og OIDC til projekter, private statussider, hele instansen (globalt SSO) og mobilapps samt "Require SSO to sign in" er en del af alle udgaver. En udløbet licens ændrer intet af det, og konfigurationen af single sign-on kan stadig redigeres.
 - **Den grundlæggende overvågning påvirkes aldrig**: monitorer, advarsler, hændelser, vagtordning, statussider og telemetri virker alle fortsat.
 - **Masteradministratorer kan altid logge ind med deres adgangskode.**
 - **Brugerdefinerede roller, IP-tilladelseslister og adgangskontrol for statussider gælder fortsat.** Du kan fjerne dem, men ikke oprette eller ændre dem.
@@ -210,11 +210,11 @@ Hvad der **ikke** stopper:
 **Alt genoptages, så snart en licens aktiveres**, uden genstart: SCIM-provisionering, auditlogning og tilsidesættelser af opbevaring vender tilbage med den konfiguration, du har. OneUptime slår dem kun fra, når det ved, at licensen er udløbet. Så længe det ikke kan læse licenstilstanden, for eksempel et øjeblik mens serveren starter, forbliver SCIM, auditlogning og tilsidesættelser af opbevaring slået til.
 
 > [!WARNING]
-> **Hvis din identitetsudbyder deprovisionerer brugere via SCIM, så aktivér en licens, før prøveperioden eller henstandsperioden slutter.** Derefter deprovisionerer SCIM ikke længere de personer, du fjerner hos din identitetsudbyder: deres OneUptime-konti forbliver, og medmindre "Require SSO for login" gælder for dem, kan enhver, der stadig kan nå sådan en kontos indbakke, angive en adgangskode og logge ind. Hvis du lader licensen udløbe, skal du selv fjerne disse brugere i OneUptime.
+> **Hvis din identitetsudbyder deprovisionerer brugere via SCIM, så aktivér en licens, før prøveperioden eller henstandsperioden slutter.** Derefter deprovisionerer SCIM ikke længere de personer, du fjerner hos din identitetsudbyder: deres OneUptime-konti forbliver, og medmindre "Require SSO to sign in" gælder for dem, kan enhver, der stadig kan nå sådan en kontos indbakke, angive en adgangskode og logge ind. Hvis du lader licensen udløbe, skal du selv fjerne disse brugere i OneUptime.
 
 ## Skifte fra Enterprise til Community
 
-Din konfiguration bliver i databasen. Et skift tilbage til Enterprise-imaget gendanner alt, som det var, så længe installationen har en gyldig licens eller stadig er i sin prøveperiode eller henstandsperiode. Single sign-on ændres ikke: login med SAML og OIDC, globalt SSO og "Require SSO for login" virker ens på begge images. På Community-imaget:
+Din konfiguration bliver i databasen. Et skift tilbage til Enterprise-imaget gendanner alt, som det var, så længe installationen har en gyldig licens eller stadig er i sin prøveperiode eller henstandsperiode. Single sign-on ændres ikke: login med SAML og OIDC, globalt SSO og "Require SSO to sign in" virker ens på begge images. På Community-imaget:
 
 - **SCIM stopper.** Dets provisioneringsendpoints findes ikke længere, så SCIM-kald fra IdP'en mislykkes. Det gælder også SCIM-deprovisionering.
 - **SCIM-teamlåse ophæves**, så teams, der blev styret af SCIM-push-grupper, kan redigeres manuelt. Ved opstart logger serveren, hvilke projekter fik deres SCIM-teamlåse ophævet.
@@ -227,7 +227,7 @@ Din konfiguration bliver i databasen. Et skift tilbage til Enterprise-imaget gen
 - **Enterprise-Health-dashboards, Query Console og health-advarslerne for PostgreSQL og Valkey stopper.** Kapacitetsovervågning og oprydning for ClickHouse, migreringsstatus og supportpakken virker fortsat.
 
 > [!CAUTION]
-> **Før du skifter en installation, hvis identitetsudbyder deprovisionerer brugere via SCIM, til Community-imaget, så gennemgå, hvem der har adgang.** Uden SCIM beholder de personer, du fjerner hos din identitetsudbyder, deres OneUptime-konti, og medmindre "Require SSO for login" gælder for dem, kan enhver, der stadig kan nå sådan en kontos indbakke, angive en adgangskode og logge ind. Fjern disse brugere først.
+> **Før du skifter en installation, hvis identitetsudbyder deprovisionerer brugere via SCIM, til Community-imaget, så gennemgå, hvem der har adgang.** Uden SCIM beholder de personer, du fjerner hos din identitetsudbyder, deres OneUptime-konti, og medmindre "Require SSO to sign in" gælder for dem, kan enhver, der stadig kan nå sådan en kontos indbakke, angive en adgangskode og logge ind. Fjern disse brugere først.
 
 ## Fejlfinding
 

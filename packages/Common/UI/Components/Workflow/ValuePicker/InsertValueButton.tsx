@@ -77,7 +77,12 @@ const InsertValueButton: FunctionComponent<InsertValueButtonProps> = (
       >
         {props.children || (
           <>
-            <span className="font-mono text-[11px] leading-none">{"{ }"}</span>
+            <span
+              aria-hidden="true"
+              className="font-mono text-[11px] leading-none"
+            >
+              {"{ }"}
+            </span>
             {translator.translateText("Insert value")}
           </>
         )}

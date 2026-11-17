@@ -269,7 +269,7 @@ The public status page tools take a status page's ID (a UUID) or its domain name
 }
 ```
 
-A status page's owners can turn MCP access off for that page: on the status page, open **MCP** in the **AI** section of its side menu and switch off **Enable MCP Server**. The switch saves as soon as it is flipped. MCP access is on by default. While it is off, the four `get_public_status_page_*` tools return an error for that status page; the status page website, its RSS feed and its public JSON API are unaffected, and the status page tools that need sign-in (`get_status_page`, `list_status_pages` and so on) keep working for the page's own project.
+A status page's owners can turn MCP access off for that page: on the status page, open **MCP** in the **Advanced** section of its side menu and switch off **Enable MCP Server**. The switch saves as soon as it is flipped. MCP access is on by default. While it is off, the four `get_public_status_page_*` tools return an error for that status page; the status page website, its RSS feed and its public JSON API are unaffected, and the status page tools that need sign-in (`get_status_page`, `list_status_pages` and so on) keep working for the page's own project.
 
 ### Signing In (OAuth 2.1)
 

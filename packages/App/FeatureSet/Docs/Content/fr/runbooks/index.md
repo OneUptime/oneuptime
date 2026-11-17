@@ -107,10 +107,9 @@ Le menu latéral d'un runbook regroupe ses pages ainsi. Seule **Basique** est ou
 | Section | Pages |
 | --- | --- |
 | **Basique** | **Vue d'ensemble**, **Étapes** |
-| **Journaux** | **Exécutions** |
 | **Paramètres** | **Déclencheurs**, **Variables**, **Paramètres** |
 | **Développeurs** | **Terraform**, **API**, **CLI**, **Assistants IA** |
-| **Avancé** | **Propriétaires**, **Journaux d'audit**, **Supprimer le runbook** |
+| **Avancé** | **Exécutions**, **Propriétaires**, **Journaux d'audit**, **Supprimer le runbook** |
 
 ## Un exemple complet
 

@@ -5,6 +5,7 @@ import UserWebhookService from "../../../Server/Services/UserWebhookService";
 import AuditLogService from "../../../Server/Services/AuditLogService";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import Encryption from "../../../Server/Utils/Encryption";
+import EncryptedColumnValue from "../../../Server/Utils/Database/EncryptedColumnValue";
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSource from "../../../Models/DatabaseModels/DataSource";
@@ -15,6 +16,7 @@ import HashedString from "../../../Types/HashedString";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import CryptoJS from "crypto-js";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -570,6 +572,17 @@ describe("the write path unwraps HashedString for every column that is not a has
       const model: BaseModel = new modelType();
 
       for (const column of model.getEncryptedColumns().columns) {
+        /*
+         * A key presented to OneUptime kept in an id-typed column (#9012)
+         * is written as an id, which no password field writes: an id
+         * column refuses a HashedString before anything reads it.
+         */
+        if (
+          model.getTableColumnMetadata(column).type === TableColumnType.ObjectID
+        ) {
+          continue;
+        }
+
         jest.restoreAllMocks();
 
         const service: DatabaseService<BaseModel> =
@@ -592,9 +605,21 @@ describe("the write path unwraps HashedString for every column that is not a has
           props: { isRoot: true },
         });
 
+        /*
+         * A URL column stores the text its transformer writes for the
+         * value, encrypted (#9013): what a URL column is handed is read
+         * as a URL first, as it is when the column is not encrypted.
+         */
+        const written: string = `secret_for_${column}`;
+        const urlTransformer: ReturnType<
+          typeof EncryptedColumnValue.getPropertyTransformer
+        > = EncryptedColumnValue.getPropertyTransformer(
+          model.getTableColumnMetadata(column),
+        );
+
         await expectCipherTextOf(
           storedSetValue(repository, column),
-          `secret_for_${column}`,
+          urlTransformer ? (urlTransformer.to(written) as string) : written,
         );
 
         encryptedColumnsChecked.push(`${modelType.name}.${column}`);

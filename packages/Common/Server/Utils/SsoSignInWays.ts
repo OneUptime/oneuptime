@@ -44,8 +44,8 @@ import QueryHelper from "../Types/Database/QueryHelper";
  *   - a global provider turned off, deleted or restricted to its attached
  *     projects, or one of its attachments added, turned off, moved or
  *     removed (GlobalSsoProviderChanges);
- *   - Require SSO for Login turned on, or another provider required, for a
- *     project, or Require SSO for Login turned on for the whole server
+ *   - Require SSO to Sign In turned on, or another provider required, for a
+ *     project, or Require SSO to Sign In turned on for the whole server
  *     (SsoRequirementChanges);
  *   - a project created while it would require SSO - itself, or because the
  *     whole server does - with no provider to sign anyone in to it yet
@@ -113,7 +113,7 @@ export interface SignInChange {
    * rule as the change leaves it.
    */
   projectRules?: Map<string, ProjectSignInRule> | undefined;
-  // The change turns on Require SSO for Login for the whole server.
+  // The change turns on Require SSO to Sign In for the whole server.
   turnsOnServerRule?: boolean | undefined;
 }
 
@@ -677,7 +677,7 @@ export default class SsoSignInWays {
    * Whether a change to projects alone - their own providers taken away,
    * or their rules asking for more - could leave one of them with no way in
    * depending on the server's sign-in rules: the global providers and the
-   * server's Require SSO for Login, which only the lock on those keeps
+   * server's Require SSO to Sign In, which only the lock on those keeps
    * still (ProjectSsoProviderChanges.lockSignInChange).
    *
    * It cannot when every project it touches keeps one of its own providers
@@ -937,7 +937,7 @@ export default class SsoSignInWays {
    * Every project the query names, a page at a time, the locks kept before
    * each. Each page starts after the last project the one before it read,
    * by id, not at a count of rows: a project that leaves the query's set
-   * while the pages are read - one that turns Require SSO for Login on or
+   * while the pages are read - one that turns Require SSO to Sign In on or
    * off under its own lock - moves no other project from one page to the
    * next, so none is passed over.
    */

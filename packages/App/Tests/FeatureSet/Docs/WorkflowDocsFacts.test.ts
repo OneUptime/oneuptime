@@ -377,7 +377,6 @@ describe("the overview", () => {
     for (const title of [
       "Workflows",
       "Global Variables",
-      "Logs",
       "Runs",
       "Settings",
       "Owner Rules",
@@ -388,12 +387,21 @@ describe("the overview", () => {
       expect(titles).toContain(title);
     }
 
+    // Runs joined the first section when its one-entry "Logs" section went (#9216).
+    expect(titles).not.toContain("Logs");
+    expect(titles.slice(0, 4)).toEqual([
+      "Workflows",
+      "Workflows",
+      "Global Variables",
+      "Runs",
+    ]);
+
     expect(WORKFLOWS_MENU).toContain("getDeveloperSideMenuSectionProps({");
 
     for (const entry of [
       "- **Workflows** — ",
       "- **Global Variables** — ",
-      "- **Logs → Runs** — ",
+      "- **Runs** — ",
       "- **Settings → Label Rules** and **Owner Rules** — ",
       "- **Advanced → Archived** — ",
       "- **Developer** — how to manage workflows with Terraform, the API or an AI assistant.",
@@ -409,12 +417,21 @@ describe("the overview", () => {
       "Overview",
       "Builder",
       "Workflow Variables",
-      "Logs",
       "Runs",
       "Owners",
     ]) {
       expect(titles).toContain(title);
     }
+
+    // Runs joined Basic when its one-entry "Logs" section went (#9216).
+    expect(titles).not.toContain("Logs");
+    expect(titles.slice(0, 5)).toEqual([
+      "Basic",
+      "Overview",
+      "Builder",
+      "Workflow Variables",
+      "Runs",
+    ]);
 
     const advanced: string = WORKFLOW_MENU.slice(
       WORKFLOW_MENU.indexOf('<SideMenuSection title="Advanced">'),
@@ -434,7 +451,7 @@ describe("the overview", () => {
       "- **Overview** — ",
       "- **Builder** — ",
       "- **Workflow Variables** — ",
-      "- **Logs → Runs** — every run of this workflow",
+      "- **Runs** — every run of this workflow",
       "- **Owners** — ",
       "- **Developer** — how to manage this workflow with Terraform, the API or an AI assistant.",
       "- **Settings** — duplicate, export and archive.",

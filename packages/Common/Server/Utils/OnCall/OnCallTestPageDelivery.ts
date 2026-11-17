@@ -93,6 +93,7 @@ import logger from "../Logger";
 import PushNotificationUtil from "../PushNotificationUtil";
 import ProductBrandingText from "../ProductBrandingText";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import { getSendingWebhookMessage } from "./OnCallNotificationStatus";
 import OnCallPageLinks from "./OnCallPageLinks";
 import {
   whenNotificationRequestAnswers,
@@ -499,7 +500,7 @@ export default class OnCallTestPageDelivery {
 
       const row: UserOnCallLogTimeline = await this.writeSendingRow({
         row: data.newTimelineRow(),
-        statusMessage: `Sending webhook to ${webhookUrl}.`,
+        statusMessage: getSendingWebhookMessage(rule.userWebhook.name),
         method: { userWebhookId: rule.userWebhook.id! },
       });
 

@@ -599,7 +599,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
               </h3>
             )}
             {props.component.arguments.chartDescription && (
-              <p className="mt-0.5 text-xs text-gray-400">
+              <p className="mt-0.5 text-xs text-gray-500">
                 {props.component.arguments.chartDescription}
               </p>
             )}
@@ -711,7 +711,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
             icon={IconProp.MagnifyingGlassPlus}
             className="h-3 w-3 flex-shrink-0 text-indigo-500"
           />
-          <span className="min-w-0 truncate text-[11px] text-indigo-700">
+          <span className="min-w-0 truncate text-xs text-indigo-700">
             {translator.translateTemplate("Zoomed: {{window}}", {
               window:
                 OneUptimeDate.getInBetweenDatesAsFormattedString(zoomWindow),
@@ -719,7 +719,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           </span>
           <button
             type="button"
-            className="text-[11px] font-medium text-indigo-600 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            className="text-xs font-medium text-indigo-600 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
               event.stopPropagation();
               setZoomWindow(null);
@@ -731,7 +731,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
             <>
               <button
                 type="button"
-                className="text-[11px] font-semibold text-indigo-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                className="text-xs font-semibold text-indigo-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                 title={translator.translateText(
                   "Investigate this window — logs, traces, exceptions",
                 )}
@@ -744,7 +744,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
               </button>
               <button
                 type="button"
-                className="text-[11px] font-medium text-indigo-600 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                className="text-xs font-medium text-indigo-600 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                 title={translator.translateText(
                   "Open this window in Metric Explorer",
                 )}

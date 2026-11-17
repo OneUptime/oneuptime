@@ -78,7 +78,7 @@ const MetricSparkline: FunctionComponent<MetricSparklineProps> = (
   if (!props.points || props.points.length < 2) {
     return (
       <div
-        className={`${width} ${height} flex items-center justify-center rounded-md border border-dashed border-gray-200 text-[10px] text-gray-300`}
+        className={`${width} ${height} flex items-center justify-center rounded-md border border-dashed border-gray-200 text-xs text-gray-500`}
       >
         {translator.translateText("no data")}
       </div>

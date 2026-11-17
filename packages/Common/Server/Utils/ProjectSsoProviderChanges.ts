@@ -67,7 +67,7 @@ import SsoSignInWays, {
  *     One that leaves a project none of its own providers on, or takes away
  *     the one it requires, also holds the lock on the server's sign-in rules
  *     (lockSignInChange): the project then relies on the global providers
- *     and the server's Require SSO for Login, which global changes write
+ *     and the server's Require SSO to Sign In, which global changes write
  *     under that lock. One that leaves the project a provider of its own
  *     keeps a way in whatever those are, and holds only the project's lock
  *     (SsoSignInWays.dependsOnServerRules);
@@ -165,10 +165,10 @@ interface WriteKeeper {
 }
 
 export const LAST_SSO_PROVIDER_MESSAGE: string =
-  "This project requires SSO, and this is the last SSO provider people can sign in to it with. Turn off Require SSO for Login first, so people can still sign in.";
+  "This project requires SSO, and this is the last SSO provider people can sign in to it with. Turn off Require SSO to Sign In first, so people can still sign in.";
 
 export const REQUIRED_SSO_PROVIDER_MESSAGE: string =
-  "This project requires sign-in with this SSO provider. Turn off Require SSO for Login first, so people can still sign in.";
+  "This project requires sign-in with this SSO provider. Turn off Require SSO to Sign In first, so people can still sign in.";
 
 export const SERVER_LAST_SSO_PROVIDER_MESSAGE: string =
   "This server requires SSO for everyone, and this is the last SSO provider people can sign in to this project with. Turn on another SSO provider first, so people can still sign in.";
@@ -280,7 +280,7 @@ const LOCK_NAMESPACE: string = "ProjectSsoProviderChanges.keepAWayIn";
 
 /*
  * The key of the lock on the server's sign-in rules - the global providers
- * and their attachments, and Require SSO for Login - held by every change
+ * and their attachments, and Require SSO to Sign In - held by every change
  * whose check reads them. Project keys are ids, so they never meet it.
  */
 export const SERVER_SIGN_IN_LOCK_KEY: string = "server";
@@ -538,7 +538,7 @@ export default class ProjectSsoProviderChanges {
    * the last provider that is on - the project's SAML and OIDC providers
    * and the instance's global providers that sign people in to it - cannot
    * either. A project requires SSO when it says so or when the whole server
-   * does (Require SSO for Login in the Admin Dashboard), as UserMiddleware
+   * does (Require SSO to Sign In in the Admin Dashboard), as UserMiddleware
    * enforces it. Read from the database, not a cache, by the one check every
    * such change asks (SsoSignInWays): the requirement may have changed on
    * another server a moment ago.
@@ -1155,7 +1155,7 @@ export default class ProjectSsoProviderChanges {
    * A write that takes a provider away is checked. When a project it
    * touches would be left none of its own providers on, or loses the one it
    * requires, the project relies on the server's sign-in rules - the global
-   * providers, the server's Require SSO for Login - so the write locks
+   * providers, the server's Require SSO to Sign In - so the write locks
    * those too, after the projects, and is checked under every lock, kept
    * while the check reads. Otherwise each project keeps a provider of its
    * own whatever the server's rules are, and the write needs no check and

@@ -255,7 +255,7 @@ describe("a step runs only while its run does", () => {
     expect(marks[0]!.getAttribute("class")).toContain("text-emerald-500");
     expect(marks[1]!.getAttribute("class")).toContain("text-gray-400");
     expect(marks[2]!.getAttribute("class")).toContain("text-gray-400");
-    expect(screen.getByText("Thinking").className).toContain("text-gray-400");
+    expect(screen.getByText("Thinking").className).toContain("text-gray-500");
   });
 
   test.each([

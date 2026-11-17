@@ -409,7 +409,7 @@ for incident in incidents:
 
 - **RSS。** 每個狀態頁都提供 `/rss`，這是其事件、公告與維護事件的訂閱來源，每個項目的日期都與頁面上的一致。請參閱[可嵌入的徽章與 RSS 訂閱來源](/docs/status-pages/index#可嵌入的徽章與-rss-訂閱來源)。
 - **llms.txt。** 每個狀態頁都在 `/rss` 旁邊提供 `/llms.txt`，它會為 AI 代理指出 RSS 訂閱來源與概覽 JSON 的位置。
-- **MCP。** AI 代理可以透過 OneUptime 的 MCP 伺服器 `https://oneuptime.com/mcp` 讀取頁面，不需要 API 金鑰，只要把頁面 ID 或網域當作 `statusPageIdOrDomain` 傳入。此功能預設開啟；可在頁面側邊選單的 **人工智慧 → MCP** 中以 **啟用 MCP 伺服器** 關閉。請參閱 [MCP 伺服器](/docs/ai/mcp-server)。
+- **MCP。** AI 代理可以透過 OneUptime 的 MCP 伺服器 `https://oneuptime.com/mcp` 讀取頁面，不需要 API 金鑰，只要把頁面 ID 或網域當作 `statusPageIdOrDomain` 傳入。此功能預設開啟；可在頁面側邊選單的 **進階 → MCP** 中以 **啟用 MCP 伺服器** 關閉。請參閱 [MCP 伺服器](/docs/ai/mcp-server)。
 - **REST API。** 若要建立或變更狀態頁、資源、訂閱者與公告，請使用 API 金鑰呼叫 [OneUptime API](/docs/api-reference/api-reference)。
 
 ## 後續步驟

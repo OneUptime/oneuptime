@@ -86,6 +86,8 @@ OneUptime 會加密保存登入的重新整理權杖，並至少每週更新一�
 
 刪除連線後，一旦沒有其他連線使用該登入，OneUptime 在 Zoom 和 Google 的存取權就會被撤銷。對於 Microsoft，請在該帳戶的 **My Apps** （myapps.microsoft.com）中移除 OneUptime。在 Zoom App Marketplace 中從您的 Zoom 帳戶移除 OneUptime，會從所有以該帳戶登入的連線中刪除其登入，這些連線在重新連接之前都會顯示 **異常**。
 
+OneUptime 已讀取的逐字稿會保留在其事件上：刪除連線會保留它開始的通話及其逐字稿，在 Zoom、Google 或 Microsoft 中從帳戶移除 OneUptime 也是如此。通話上的 **移除逐字稿** 會刪除其逐字稿以及 OneUptime AI 從中讀取的內容，但不會刪除 OneUptime AI 發佈到事件動態及其頻道的內容。刪除事件會刪除其通話及其逐字稿。
+
 ### 如果 Microsoft 要求管理員
 
 有些 Microsoft 365 組織只允許管理員核准應用程式。如果 Microsoft 提示您需要管理員核准，請請 Microsoft 365 管理員連接 Microsoft Teams，或在 [Microsoft Entra 系統管理中心](https://entra.microsoft.com/) 的 **Enterprise applications** > **Admin consent requests** 中核准 OneUptime。錄製 Teams 通話的專案在每個組織中都需要這項核准，且只需一次：只有管理員才能允許應用程式讀取會議逐字稿。

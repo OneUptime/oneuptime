@@ -909,7 +909,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
                           key={`${row.key || "unattributed"}-${index}`}
                           data-testid="llm-usage-row"
                         >
-                          <td className="px-4 py-2 text-gray-400">
+                          <td className="px-4 py-2 text-gray-500">
                             {index + 1}
                           </td>
                           <td className="px-4 py-2">

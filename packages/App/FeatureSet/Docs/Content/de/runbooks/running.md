@@ -121,7 +121,7 @@ Eine Ausführung ist ein einmaliger, unveränderlicher Datensatz. Um das Runbook
 
 | Wo | Was es auflistet |
 | --- | --- |
-| **Protokolle → Ausführungen** eines Runbooks | Jeden Lauf dieses Runbooks, mit Filtern für Status und Startdatum und einer Spalte **Ausgelöst von**. |
+| **Erweitert → Ausführungen** eines Runbooks | Jeden Lauf dieses Runbooks, mit Filtern für Status und Startdatum und einer Spalte **Ausgelöst von**. |
 | **Runbooks → Ausführungen** | Jeden Lauf jedes Runbooks im Projekt. |
 | **Runbooks** eines Vorfalls, einer Warnung oder eines Ereignisses | Die angehängten Läufe. Die Übersicht des Ereignisses zeigt sie ebenfalls, sobald es welche gibt. |
 

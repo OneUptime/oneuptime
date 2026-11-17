@@ -119,7 +119,7 @@ For an alerting tool, start with an [Incoming Request monitor](/docs/monitor/inc
 2. Click the dashed **Choose what starts this workflow** block and pick **Webhook**. Click the trigger, then **Copy URL**.
 3. In the other tool, send its webhook to that URL as a `POST` with `Content-Type: application/json`.
 4. Add the blocks that act on it. They read the request with references such as `{{local.components.webhook-1.returnValues.request-body.status}}`: an **If / Else** block to check a field, then **Create One Incident** to declare an incident.
-5. Switch **Enabled** on at the top of the **Builder**, send a test from the other tool, and open **Logs → Runs** to see what arrived.
+5. Switch **Enabled** on at the top of the **Builder**, send a test from the other tool, and open **Runs** to see what arrived.
 :::
 
 The URL is the only credential, so treat it like a password. See [Webhook](/docs/workflows/triggers#webhook).

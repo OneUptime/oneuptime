@@ -115,14 +115,14 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
         <label className="block text-xs font-medium text-gray-500 mb-1">
           {translator.translateText("Group colors")}
         </label>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-500">
           {translator.translateText(
             props.description ||
               "Pin a color to specific group values. Unpinned groups use the series color or theme palette.",
           )}
         </p>
         {props.groupByKeys.length > 1 && (
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             {translator.translateText(
               "A pin on one attribute value applies to every series containing it.",
             )}
@@ -157,7 +157,7 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
                 {key}
               </span>
               {isLoading && (
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-500">
                   {translator.translateText("loading values…")}
                 </span>
               )}
@@ -208,7 +208,7 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
                 })}
               </div>
             ) : (
-              <p className="text-xs italic text-gray-400 mb-2">
+              <p className="text-xs italic text-gray-500 mb-2">
                 {translator.translateText("No pinned values yet.")}
               </p>
             )}

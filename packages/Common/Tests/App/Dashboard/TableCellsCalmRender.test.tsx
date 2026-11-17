@@ -128,7 +128,7 @@ describe("a row's owners", () => {
 
     const more: HTMLElement = screen.getByText("+2");
 
-    expect(more).toHaveClass("h-6", "w-6", "text-[10px]");
+    expect(more).toHaveClass("h-6", "w-6", "text-xs");
   });
 });
 

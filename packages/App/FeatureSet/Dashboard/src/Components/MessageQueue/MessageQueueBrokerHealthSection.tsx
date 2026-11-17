@@ -502,7 +502,7 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
               <div className="mt-1 truncate text-xs text-gray-500">
                 {getMessageQueueBrokerMetricCaption(result.descriptor)}
               </div>
-              <div className="mt-1 truncate font-mono text-xs text-gray-400">
+              <div className="mt-1 truncate font-mono text-xs text-gray-500">
                 {result.descriptor.metricName}
               </div>
             </div>

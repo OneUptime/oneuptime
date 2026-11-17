@@ -174,7 +174,7 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
            */}
           {props.isCountStopped && (
             <p
-              className="px-1.5 pb-1 text-[11px] text-gray-500"
+              className="px-1.5 pb-1 text-xs text-gray-500"
               data-testid="facet-count-stopped"
             >
               {translator.translateText("Not counted")}
@@ -230,7 +230,7 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
           })}
 
           {displayedValues.length === 0 && !props.isCountStopped && (
-            <p className="px-1.5 py-2 text-[11px] text-gray-500">
+            <p className="px-1.5 py-2 text-xs text-gray-500">
               {getFacetEmptyStateText({
                 searchText: searchText,
                 emptyStateText: props.emptyStateText,

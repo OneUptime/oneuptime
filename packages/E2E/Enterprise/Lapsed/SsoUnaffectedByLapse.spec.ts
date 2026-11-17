@@ -29,7 +29,7 @@ import Faker from "Common/Utils/Faker";
 /*
  * A lapsed Enterprise licence does not touch single sign-on.
  *
- * SAML and OIDC sign-in and "Require SSO for login" are core: no edition and
+ * SAML and OIDC sign-in and "Require SSO to sign in" are core: no edition and
  * no licence decides whether they work. When the licence lapses, SCIM and
  * audit logging stop (the other specs beside this one) - and single sign-on
  * keeps doing exactly what it did in the licensed phase. This spec proves it
@@ -42,13 +42,13 @@ import Faker from "Common/Utils/Faker";
  *      402 or a rendered refusal page;
  *   2. a project owner can still configure a SAML provider, the sign-in
  *      listings offer it, its start route sends the browser to the identity
- *      provider, and "Require SSO for login" can be switched on and is
+ *      provider, and "Require SSO to sign in" can be switched on and is
  *      enforced (Tests/Helpers/SsoConfiguration.ts, the same steps the
  *      Community stack runs in Tests/App/SingleSignOn.spec.ts).
  *
  * It signs its own owner up rather than borrowing the licensed phase's
  * handoff project: the provider it enables and the project it locks behind
- * "Require SSO for login" must not change what the other lapsed specs do with
+ * "Require SSO to sign in" must not change what the other lapsed specs do with
  * that project - EnterpriseWritesAndAuditRecorder signs its owner in with a
  * password.
  */
@@ -162,7 +162,7 @@ test.describe("Single sign-on is configured and used end to end (lapsed stack)",
     });
   });
 
-  test("Require SSO for login can still be switched on, and is enforced", async (): Promise<void> => {
+  test("Require SSO to sign in can still be switched on, and is enforced", async (): Promise<void> => {
     /*
      * A second project, because switching the requirement on locks this
      * password-signed-in owner out of the project it is switched on for.

@@ -166,7 +166,7 @@ Sie haben nach einem Label gruppiert, das für jede Warnung einer Benachrichtigu
 :::
 
 :::details Der Vorfall zeigt einen Verweis statt eines Werts
-Ein Verweis auf ein Feld, das die Benachrichtigung nicht hat, bleibt so stehen, wie er geschrieben ist, mit allen Klammern. Vergleichen Sie den Feldnamen mit dem, was Grafana gesendet hat: Öffnen Sie bei einem Workflow die Ausführung unter **Protokolle → Ausführungen** und vergleichen Sie mit dem, was der Trigger empfangen hat.
+Ein Verweis auf ein Feld, das die Benachrichtigung nicht hat, bleibt so stehen, wie er geschrieben ist, mit allen Klammern. Vergleichen Sie den Feldnamen mit dem, was Grafana gesendet hat: Öffnen Sie bei einem Workflow die Ausführung unter **Ausführungen** und vergleichen Sie mit dem, was der Trigger empfangen hat.
 :::
 
 Die Anleitung zu [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#fehlerbehebung) behandelt weitere Fälle, und sie gelten auch für die Benachrichtigungen von Grafana.

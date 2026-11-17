@@ -133,7 +133,7 @@ Cada flujo de trabajo guarda su propia copia. Cuando sustituyas el secreto de cl
 4. Haz clic en **Crear flujo de trabajo**. Todo flujo de trabajo se crea desactivado: activa **Habilitado** en la parte superior de su **Constructor**.
 :::
 
-Empieza con **Create a Dynamics 365 case when an incident is declared**, o con **Create a Dynamics 365 case when an alert is created** para las alertas: cada otra plantilla de OneUptime → Dynamics 365 del mismo tipo encuentra el caso por el vínculo que escribe esta. Actívala, declara un incidente de prueba o crea una alerta de prueba, y abre **Registros → Ejecuciones** del flujo de trabajo. La ejecución debería terminar como **Ejecutado**, y el **Cuerpo de la respuesta** de su último paso, `create-case-1`, contiene el `ticketnumber` del nuevo caso, como `CAS-01001-X1Y2Z3`.
+Empieza con **Create a Dynamics 365 case when an incident is declared**, o con **Create a Dynamics 365 case when an alert is created** para las alertas: cada otra plantilla de OneUptime → Dynamics 365 del mismo tipo encuentra el caso por el vínculo que escribe esta. Actívala, declara un incidente de prueba o crea una alerta de prueba, y abre **Ejecuciones** del flujo de trabajo. La ejecución debería terminar como **Ejecutado**, y el **Cuerpo de la respuesta** de su último paso, `create-case-1`, contiene el `ticketnumber` del nuevo caso, como `CAS-01001-X1Y2Z3`.
 
 ### Conectar las plantillas de Dynamics 365 → OneUptime
 
@@ -181,7 +181,7 @@ Antes de confiar en cualquiera de los dos:
 
 ### Comprobar que funciona
 
-Los **Pasos** de cada ejecución dicen qué hizo la plantilla, así que abre la ejecución en **Registros → Ejecuciones** y mira cómo terminó:
+Los **Pasos** de cada ejecución dicen qué hizo la plantilla, así que abre la ejecución en **Ejecuciones** y mira cómo terminó:
 
 - **Ejecutado**: hizo su trabajo, y su último paso nombra el caso, el incidente o la alerta.
 - **Ejecutado**, con su paso **Comprobar con JavaScript** en **No**: omitió el evento a propósito, y el paso dice por qué: el caso no está vinculado a un registro de este tipo, la nota vino del otro lado, el registro es privado o el nuevo estado no cierra el caso.
@@ -297,7 +297,7 @@ El ámbito debe ser la URL de tu entorno seguida de `/.default`. Una URL de ento
    }
    ```
 
-5. Activa **Habilitado**, declara un incidente de prueba y abre **Registros → Ejecuciones**. El paso `create-case` muestra un `201` y un cuerpo con el nuevo `incidentid` y el `ticketnumber`.
+5. Activa **Habilitado**, declara un incidente de prueba y abre **Ejecuciones**. El paso `create-case` muestra un `201` y un cuerpo con el nuevo `incidentid` y el `ticketnumber`.
 :::
 
 Cada caso necesita un cliente, así que `customerid` es obligatorio. Puede apuntar a una cuenta o a un contacto, por eso escribes `customerid_account@odata.bind` o `customerid_contact@odata.bind`, exactamente así. `Prefer: return=representation` hace que la respuesta sea `201` con el propio caso, para que el siguiente bloque pueda leer `{{local.components.create-case.returnValues.response-body.incidentid}}`. Sin ella, Dynamics 365 responde `204` sin cuerpo.
@@ -399,7 +399,7 @@ Un flujo de trabajo tiene exactamente un disparador, así que los incidentes y l
 
 ## Solución de problemas
 
-Abre primero el paso que falla en **Registros → Ejecuciones**. Los dos endpoints de Microsoft responden con un cuerpo JSON que explica el problema, y el bloque de API lo guarda en `response-body`.
+Abre primero el paso que falla en **Ejecuciones**. Los dos endpoints de Microsoft responden con un cuerpo JSON que explica el problema, y el bloque de API lo guarda en `response-body`.
 
 :::details 400 con AADSTS70011, el ámbito no es válido
 El ámbito no es la URL de tu entorno seguida de `/.default`. Copia la URL del centro de administración de Power Platform y quita cualquier barra final y cualquier ruta `/api/data/...`.
@@ -434,7 +434,7 @@ Los límites de protección del servicio de Dataverse permiten unas 6.000 solici
 :::
 
 :::details No llega nada a OneUptime
-Envía tú mismo una solicitud a la URL del webhook con `curl` y búscala en **Registros → Ejecuciones**. Si la tuya llega y la de Dynamics 365 no, busca antes en la cadena: el historial de ejecuciones del propio flujo, o los System Jobs fallidos de un webhook de Dataverse.
+Envía tú mismo una solicitud a la URL del webhook con `curl` y búscala en **Ejecuciones**. Si la tuya llega y la de Dynamics 365 no, busca antes en la cadena: el historial de ejecuciones del propio flujo, o los System Jobs fallidos de un webhook de Dataverse.
 :::
 
 :::details El flujo de trabajo se ejecuta, pero el incidente no cambia

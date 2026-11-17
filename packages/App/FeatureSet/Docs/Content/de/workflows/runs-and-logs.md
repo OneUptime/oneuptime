@@ -12,8 +12,8 @@ Jedes Mal, wenn ein Workflow läuft, speichert OneUptime, was passiert ist – w
 
 | Seite                                                  | Was Sie sehen                                                                                                   |
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| **Arbeitsabläufe → Protokolle → Ausführungen**         | Jede Ausführung jedes Workflows im Projekt. Filtern Sie nach Name des Workflows, Status und Zeit.               |
-| **Arbeitsablauf → Protokolle → Ausführungen**          | Nur die Ausführungen dieses einen Workflows. Diese Seite hat einen Filter **Ausführungs-ID** statt eines Workflow-Filters. |
+| **Arbeitsabläufe → Ausführungen**         | Jede Ausführung jedes Workflows im Projekt. Filtern Sie nach Name des Workflows, Status und Zeit.               |
+| **Arbeitsablauf → Ausführungen**          | Nur die Ausführungen dieses einen Workflows. Diese Seite hat einen Filter **Ausführungs-ID** statt eines Workflow-Filters. |
 | **Eine einzelne Ausführung**                           | Geöffnet mit der Schaltfläche **Protokolle anzeigen** in einer Zeile – die Zeilen selbst sind nicht anklickbar.  |
 
 Eine Ausführung, die Sie aus dem **Editor** starten, öffnet dieselbe Ansicht **Arbeitsablauf-Ausführung**, die der Ausführung bereits folgt, sodass Sie ihr zusehen können, statt sie hinterher zu suchen.

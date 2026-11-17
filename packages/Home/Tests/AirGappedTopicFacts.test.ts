@@ -1560,7 +1560,7 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
     fact(
       "can require it for everyone",
       STATUS_PAGES,
-      "the **Require SSO for Login** switch",
+      "the **Require SSO to Sign In** switch",
     ),
   ],
   "status-pages/capability/domain": [

@@ -288,7 +288,7 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
                       </span>
                       <span className="font-mono">{trimmedAttributeKey}</span>
                     </p>
-                    <p className="text-[11px] text-gray-500">
+                    <p className="text-xs text-gray-500">
                       {translator.translateText(
                         "Add as a column to show this attribute's value.",
                       )}

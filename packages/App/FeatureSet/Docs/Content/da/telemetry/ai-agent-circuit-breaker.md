@@ -169,7 +169,7 @@ For at reagere på flere snubletråde lader du alle deres titler begynde på sam
 ## Test circuit breakeren
 
 :::steps
-1. Udløs den manuelt. Åbn **Advarsler**, klik på **Opret advarsel**, og opret en med titlen `LLM budget exceeded: test`. Kørslen vises under **Arbejdsgange → Protokoller → Kørsler**, og dit endpoint modtager kaldet.
+1. Udløs den manuelt. Åbn **Advarsler**, klik på **Opret advarsel**, og opret en med titlen `LLM budget exceeded: test`. Kørslen vises under **Arbejdsgange → Kørsler**, og dit endpoint modtager kaldet.
 2. Udløs den for alvor. Opret et budget med en meget lille grænse, f.eks. `0.01` USD, på en testagents tjeneste, peg en budgetmonitor på det, og lad agenten køre: procenten passerer 100, advarslen åbner, arbejdsgangen kører, og circuit breakeren udløses. Til løkkeadvarslen giver du en testagent et værktøj, der altid fejler.
 3. Udløs den to gange. Opret den samme advarsel igen: dit endpoint skal tage den anden udløsning uden at ændre noget.
 :::
@@ -201,7 +201,7 @@ Monitorens **Tidsinterval** er kortere end budgettets 15 minutter mellem to punk
 :::
 
 :::details Anmodningen når aldrig frem til dit endpoint
-Åbn kørslen under **Arbejdsgange → Protokoller → Kørsler** og trinnet **API-kald POST (JSON)**: det fortæller, hvorfor anmodningen mislykkedes. På OneUptime Cloud skal endpointet kunne nås fra internettet; en selvhostet installation afviser private netværksadresser, medmindre en administrator tillader dem.
+Åbn kørslen under **Arbejdsgange → Kørsler** og trinnet **API-kald POST (JSON)**: det fortæller, hvorfor anmodningen mislykkedes. På OneUptime Cloud skal endpointet kunne nås fra internettet; en selvhostet installation afviser private netværksadresser, medmindre en administrator tillader dem.
 :::
 
 ## Næste trin

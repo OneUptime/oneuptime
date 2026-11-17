@@ -151,7 +151,7 @@ curl -X POST "<url>" \
 
 Ein Vorfall wird eröffnet, mit dem Titel `New Relic: High CPU on checkout-service`, und die gewählten Bereitschaftsrichtlinien werden alarmiert. Senden Sie dieselbe Anfrage mit `isAcknowledged` auf `true`, und der Vorfall wird bestätigt. Senden Sie sie mit `state` auf `CLOSED`, und der Vorfall wird behoben.
 
-Testen Sie dann aus New Relic: Öffnen Sie die Webhook-Nachricht des Workflows und klicken Sie auf **Send test notification**. Um zu sehen, ob sie angekommen ist, öffnen Sie **Protokolle → Ausführungen** des OneUptime-Workflows.
+Testen Sie dann aus New Relic: Öffnen Sie die Webhook-Nachricht des Workflows und klicken Sie auf **Send test notification**. Um zu sehen, ob sie angekommen ist, öffnen Sie **Ausführungen** des OneUptime-Workflows.
 
 ## Fehlerbehebung
 
@@ -162,7 +162,7 @@ Testen Sie dann aus New Relic: Öffnen Sie die Webhook-Nachricht des Workflows u
 :::
 
 :::details Der Workflow läuft, eröffnet aber nichts
-Öffnen Sie die Ausführung unter **Protokolle → Ausführungen**. Der Eintrag `read-event-1` unter **Schritte** sagt, warum er **Nein** genommen hat.
+Öffnen Sie die Ausführung unter **Ausführungen**. Der Eintrag `read-event-1` unter **Schritte** sagt, warum er **Nein** genommen hat.
 
 - `New Relic named no issue ID`: Behalten Sie die Zeile `"id": {{ json issueId }},` in der Nutzlast.
 - `is in no state`: Behalten Sie die Zeile `"state": {{ json state }},` in der Nutzlast.
@@ -175,7 +175,7 @@ Testen Sie dann aus New Relic: Öffnen Sie die Webhook-Nachricht des Workflows u
 
 :::details Vorfälle werden eröffnet, aber nie behoben
 - Im Workflow in New Relic muss **Closed** unter **Notify when** eingeschaltet sein.
-- Öffnen Sie die Ausführung des Schließens unter **Protokolle → Ausführungen**: Ihr letzter Schritt sagt, warum. Die `id` des Schließens muss die des Issues sein, lassen Sie also `"id": {{ json issueId }},` in der Nutzlast so, wie es ist.
+- Öffnen Sie die Ausführung des Schließens unter **Ausführungen**: Ihr letzter Schritt sagt, warum. Die `id` des Schließens muss die des Issues sein, lassen Sie also `"id": {{ json issueId }},` in der Nutzlast so, wie es ist.
 :::
 
 :::details Die Bereitschaft wird für zu viele Issues alarmiert

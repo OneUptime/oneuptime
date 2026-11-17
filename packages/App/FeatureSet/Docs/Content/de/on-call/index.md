@@ -86,16 +86,15 @@ Die erste Richtlinie eines Projekts kann das schon beim Anlegen: Lassen Sie **Be
 
 | Abschnitt | Seiten |
 | --- | --- |
-| **Richtlinien** | **Bereitschaftsrichtlinien** und **Einsatzbereitschaft**: wen Ihre Richtlinien wirklich erreichen |
+| **Richtlinien** | **Bereitschaftsrichtlinien**, **Einsatzbereitschaft**: wen Ihre Richtlinien wirklich erreichen, und **Richtlinien für eingehende Anrufe**: eine Telefonnummer, unter der klingelt, wer Bereitschaft hat |
 | **Zeitpläne** | **Bereitschaftspläne**, **Zeitachse der Bereitschaftspläne** und **Kalender-Feeds** |
-| **Eingehende Anrufe** | **Richtlinien für eingehende Anrufe**: eine Telefonnummer, unter der klingelt, wer Bereitschaft hat |
 | **Erweitert** | **Benutzerüberschreibungen**, **Ausführungsprotokolle** und **Archivierte Richtlinien** |
 | **Berichte** | **Bereitschaftszeit des Benutzers**: wie lange jede Person Bereitschaft hatte |
 | **Arbeitsbereich** | **Slack**, **Microsoft Teams** und **Mattermost**: Regeln, die Bereitschaftsereignisse in einem Kanal posten |
 | **Einstellungen** | **Benutzerdefinierte Felder**, **Beschriftungsregeln** und **Eigentümerregeln** |
 | **Entwickler** | **Terraform**, **API**, **CLI** und **KI-Assistenten**: Bereitschaft als Code einrichten |
 
-**Richtlinien**, **Zeitpläne** und **Eingehende Anrufe** sind geöffnet; die anderen Abschnitte starten eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Arbeitsbereich** listet die Chat-Werkzeuge, die das Projekt verbunden hat, oder **Arbeitsbereich verbinden**, wenn es keines hat.
+**Richtlinien** und **Zeitpläne** sind geöffnet; die anderen Abschnitte starten eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Arbeitsbereich** listet die Chat-Werkzeuge, die das Projekt verbunden hat, oder **Arbeitsbereich verbinden**, wenn es keines hat.
 
 Haben Sie Bereitschaft für eine Richtlinie, zeigt die Glocke oben rechts das an. Klicken Sie darauf, um **Meine Bereitschaftsrichtlinien** zu öffnen: jede Richtlinie, für die Sie Bereitschaft haben, in all Ihren Projekten, und ob Sie direkt darin genannt sind, über ein Team oder über einen Plan.
 

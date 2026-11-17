@@ -80,7 +80,7 @@ export const LOOKED_UP_EMAIL_TEST_ID: string = "sso-looked-up-email";
  * the form.
  *
  * While the server requires SSO (Admin Dashboard > Settings > Single Sign-On
- * > Require SSO for Login), the page offers only SSO: no way back to a
+ * > Require SSO to Sign In), the page offers only SSO: no way back to a
  * password, no sign-up, and the email form only when some project has a
  * provider of its own to find - with only instance-wide providers, typing an
  * address could only end in "No SSO configuration found" (issue #5193). A

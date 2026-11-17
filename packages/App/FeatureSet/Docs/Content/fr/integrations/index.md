@@ -119,7 +119,7 @@ Pour un outil d'alerte, commencez par un [moniteur de requêtes entrantes](/docs
 2. Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **Webhook**. Cliquez sur le déclencheur, puis sur **Copier l'URL**.
 3. Dans l'autre outil, envoyez son webhook à cette URL en `POST` avec `Content-Type: application/json`.
 4. Ajoutez les blocs qui le traitent. Ils lisent la requête avec des références comme `{{local.components.webhook-1.returnValues.request-body.status}}` : un bloc **Si / Sinon** pour vérifier un champ, puis **Créer : Incident (un seul)** pour déclarer un incident.
-5. Activez **Activé** en haut du **Constructeur**, envoyez un test depuis l'autre outil et ouvrez **Journaux → Exécutions** pour voir ce qui est arrivé.
+5. Activez **Activé** en haut du **Constructeur**, envoyez un test depuis l'autre outil et ouvrez **Exécutions** pour voir ce qui est arrivé.
 :::
 
 L'URL est le seul identifiant, traitez-la donc comme un mot de passe. Voir [Webhook](/docs/workflows/triggers#webhook).

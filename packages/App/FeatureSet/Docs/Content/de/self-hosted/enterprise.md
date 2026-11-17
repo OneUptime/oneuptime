@@ -19,7 +19,7 @@ flowchart TB
 ```
 
 > [!NOTE]
-> **Single Sign-On ist in jeder Edition enthalten.** Die Anmeldung per SAML und OIDC für Projekte und Statusseiten, globales SSO und „Require SSO for login“ gehören zur Community Edition, und kein Lizenzzustand schaltet sie ab.
+> **Single Sign-On ist in jeder Edition enthalten.** Die Anmeldung per SAML und OIDC für Projekte und Statusseiten, globales SSO und „Require SSO to sign in“ gehören zur Community Edition, und kein Lizenzzustand schaltet sie ab.
 
 Diese Seite beschreibt, was jede Edition enthält, wie Sie die Enterprise Edition betreiben, wie die Lizenzierung funktioniert und was geschieht, wenn Sie die Edition wechseln.
 
@@ -57,7 +57,7 @@ Diese Seite beschreibt, was jede Edition enthält, wie Sie die Enterprise Editio
 | Migrationsstatus, Support-Bundle und globale Sonden im Admin-Dashboard | Ja | Ja | Nicht zutreffend |
 | Verwaltung von Enterprise-Lizenz, Plätzen und Instanzen | Nein | Ja | Nicht zutreffend |
 
-Single Sign-On umfasst „Require SSO for login“ für Projekte, private Statusseiten und die gesamte Instanz, in beiden Editionen.
+Single Sign-On umfasst „Require SSO to sign in“ für Projekte, private Statusseiten und die gesamte Instanz, in beiden Editionen.
 
 Jede Edition hat die Standard-Aufbewahrung des Projekts für Telemetrie unter **Projekteinstellungen > Telemetrie & APM > Datenaufbewahrung**. Aufbewahrungs-Überschreibungen sind das, was die Enterprise Edition darüber hinaus hinzufügt.
 
@@ -166,7 +166,7 @@ Sonst wird nichts gesendet. Keine Monitoring-Daten, keine Telemetrie, keine Logs
 
 ### Wenn eine Lizenz abläuft oder fehlt
 
-Jede Enterprise-Funktion funktioniert während der 14-tägigen Testphase und 30 Tage lang nach dem Ablauf einer Lizenz (der Kulanzfrist). Das Editions-Label warnt, bevor eine der beiden endet. Danach **enden SCIM, Audit-Protokollierung und Aufbewahrungs-Überschreibungen**, bis eine Lizenz aktiviert wird, genau wie in der Community Edition, und die Enterprise-Konfiguration wird schreibgeschützt. Single Sign-On ist keine Enterprise-Funktion: Die Anmeldung per SAML und OIDC, globales SSO und „Require SSO for login“ funktionieren in jedem Lizenzzustand gleich.
+Jede Enterprise-Funktion funktioniert während der 14-tägigen Testphase und 30 Tage lang nach dem Ablauf einer Lizenz (der Kulanzfrist). Das Editions-Label warnt, bevor eine der beiden endet. Danach **enden SCIM, Audit-Protokollierung und Aufbewahrungs-Überschreibungen**, bis eine Lizenz aktiviert wird, genau wie in der Community Edition, und die Enterprise-Konfiguration wird schreibgeschützt. Single Sign-On ist keine Enterprise-Funktion: Die Anmeldung per SAML und OIDC, globales SSO und „Require SSO to sign in“ funktionieren in jedem Lizenzzustand gleich.
 
 ```mermaid title="Wie eine Lizenz zwischen Zuständen wechselt"
 stateDiagram-v2
@@ -200,7 +200,7 @@ Was endet, wenn eine Lizenz ausläuft:
 
 Was **nicht** endet:
 
-- **Single Sign-On.** Die Anmeldung per SAML und OIDC für Projekte, private Statusseiten, die gesamte Instanz (globales SSO) und die mobilen Apps sowie „Require SSO for login“ gehören zu jeder Edition. Eine abgelaufene Lizenz ändert nichts daran, und die Single-Sign-On-Konfiguration bleibt bearbeitbar.
+- **Single Sign-On.** Die Anmeldung per SAML und OIDC für Projekte, private Statusseiten, die gesamte Instanz (globales SSO) und die mobilen Apps sowie „Require SSO to sign in“ gehören zu jeder Edition. Eine abgelaufene Lizenz ändert nichts daran, und die Single-Sign-On-Konfiguration bleibt bearbeitbar.
 - **Das Kern-Monitoring ist nie betroffen**: Monitore, Warnungen, Incidents, Bereitschaftsdienst, Statusseiten und Telemetrie funktionieren alle weiter.
 - **Master-Admins können sich immer mit ihrem Passwort anmelden.**
 - **Benutzerdefinierte Rollen, IP-Zulassungslisten und die Zugriffssteuerung für Statusseiten gelten weiter.** Sie können sie entfernen, aber nicht anlegen oder ändern.
@@ -210,11 +210,11 @@ Was **nicht** endet:
 **Alles läuft wieder, sobald eine Lizenz aktiviert ist**, ohne Neustart: SCIM-Provisionierung, Audit-Protokollierung und Aufbewahrungs-Überschreibungen kehren mit Ihrer bestehenden Konfiguration zurück. OneUptime schaltet sie nur ab, wenn es weiß, dass die Lizenz abgelaufen ist. Solange es den Lizenzzustand nicht lesen kann, etwa einen Moment lang beim Start des Servers, bleiben SCIM, Audit-Protokollierung und Aufbewahrungs-Überschreibungen eingeschaltet.
 
 > [!WARNING]
-> **Wenn Ihr Identity Provider Benutzer per SCIM deprovisioniert, aktivieren Sie eine Lizenz, bevor die Testphase oder die Kulanzfrist endet.** Danach deprovisioniert SCIM die Personen, die Sie bei Ihrem Identity Provider entfernen, nicht mehr: Ihre OneUptime-Konten bleiben bestehen, und sofern „Require SSO for login“ nicht für sie gilt, kann jeder, der das E-Mail-Postfach eines solchen Kontos noch erreicht, ein Passwort setzen und sich anmelden. Wenn Sie die Lizenz auslaufen lassen, entfernen Sie diese Benutzer selbst in OneUptime.
+> **Wenn Ihr Identity Provider Benutzer per SCIM deprovisioniert, aktivieren Sie eine Lizenz, bevor die Testphase oder die Kulanzfrist endet.** Danach deprovisioniert SCIM die Personen, die Sie bei Ihrem Identity Provider entfernen, nicht mehr: Ihre OneUptime-Konten bleiben bestehen, und sofern „Require SSO to sign in“ nicht für sie gilt, kann jeder, der das E-Mail-Postfach eines solchen Kontos noch erreicht, ein Passwort setzen und sich anmelden. Wenn Sie die Lizenz auslaufen lassen, entfernen Sie diese Benutzer selbst in OneUptime.
 
 ## Von Enterprise zu Community wechseln
 
-Ihre Konfiguration bleibt in der Datenbank. Ein Wechsel zurück auf das Enterprise-Image stellt alles so wieder her, wie es war, sofern die Installation eine gültige Lizenz hat oder sich noch in ihrer Testphase oder Kulanzfrist befindet. Single Sign-On ändert sich nicht: Die Anmeldung per SAML und OIDC, globales SSO und „Require SSO for login“ funktionieren auf beiden Images gleich. Auf dem Community-Image:
+Ihre Konfiguration bleibt in der Datenbank. Ein Wechsel zurück auf das Enterprise-Image stellt alles so wieder her, wie es war, sofern die Installation eine gültige Lizenz hat oder sich noch in ihrer Testphase oder Kulanzfrist befindet. Single Sign-On ändert sich nicht: Die Anmeldung per SAML und OIDC, globales SSO und „Require SSO to sign in“ funktionieren auf beiden Images gleich. Auf dem Community-Image:
 
 - **SCIM endet.** Seine Provisionierungs-Endpunkte existieren nicht mehr, daher schlagen vom IdP ausgelöste SCIM-Aufrufe fehl. Das schließt die SCIM-Deprovisionierung ein.
 - **SCIM-Teamsperren werden aufgehoben**, sodass Teams, die von SCIM-Push-Gruppen verwaltet wurden, von Hand bearbeitet werden können. Beim Start protokolliert der Server, bei welchen Projekten die SCIM-Teamsperren aufgehoben wurden.
@@ -227,7 +227,7 @@ Ihre Konfiguration bleibt in der Datenbank. Ein Wechsel zurück auf das Enterpri
 - **Die Enterprise-Dashboards unter Health, die Query Console sowie die Health-Warnungen für PostgreSQL und Valkey enden.** Kapazitätsüberwachung und Bereinigung für ClickHouse, Migrationsstatus und das Support-Bundle funktionieren weiter.
 
 > [!CAUTION]
-> **Bevor Sie eine Installation, deren Identity Provider Benutzer per SCIM deprovisioniert, auf das Community-Image umstellen, prüfen Sie, wer Zugriff hat.** Ohne SCIM behalten die Personen, die Sie bei Ihrem Identity Provider entfernen, ihre OneUptime-Konten, und sofern „Require SSO for login“ nicht für sie gilt, kann jeder, der das E-Mail-Postfach eines solchen Kontos noch erreicht, ein Passwort setzen und sich anmelden. Entfernen Sie diese Benutzer zuerst.
+> **Bevor Sie eine Installation, deren Identity Provider Benutzer per SCIM deprovisioniert, auf das Community-Image umstellen, prüfen Sie, wer Zugriff hat.** Ohne SCIM behalten die Personen, die Sie bei Ihrem Identity Provider entfernen, ihre OneUptime-Konten, und sofern „Require SSO to sign in“ nicht für sie gilt, kann jeder, der das E-Mail-Postfach eines solchen Kontos noch erreicht, ein Passwort setzen und sich anmelden. Entfernen Sie diese Benutzer zuerst.
 
 ## Fehlerbehebung
 

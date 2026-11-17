@@ -1,9 +1,11 @@
-import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import PermissionModePicker from "../../AIChat/PermissionModePicker";
 import { describePermissionMode } from "./InvestigationConversationData";
 import AIChatPermissionMode from "Common/Types/AI/AIChatPermissionMode";
 import IconProp from "Common/Types/Icon/IconProp";
-import Icon from "Common/UI/Components/Icon/Icon";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -46,12 +48,6 @@ export interface ComponentProps {
 }
 
 const MAX_TEXTAREA_HEIGHT_PX: number = 160;
-
-const BUTTON_CLASS_NAME: string =
-  "flex h-8 w-8 items-center justify-center rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
-
-const SPINNER_CLASS_NAME: string =
-  "h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent motion-safe:animate-spin";
 
 /*
  * Where a responder types to OneUptime AI, at the foot of the AI
@@ -158,52 +154,36 @@ const ConversationComposer: FunctionComponent<ComponentProps> = (
             )}
           </p>
           <div className="ml-auto flex-shrink-0">
+            {/*
+              Send, and Stop in its place while the AI works: the shared
+              Button, a square round its icon, named by what it does and
+              the key that does it. Send keeps its indigo, faded while
+              there is nothing to send (as every locked button looks), and
+              as it is while the AI works - busy, with its spinner.
+            */}
             {props.isWorking && props.onStop ? (
-              <button
-                type="button"
-                title={translator.translateText("Stop generating")}
-                disabled={props.isStopping}
+              <Button
+                icon={IconProp.Stop}
+                buttonStyle={ButtonStyleType.NORMAL}
+                buttonSize={ButtonSize.Small}
+                tooltip="Stop generating"
+                isLoading={props.isStopping}
+                dataTestId="conversation-composer-stop"
                 onClick={() => {
                   props.onStop?.();
                 }}
-                className={`${BUTTON_CLASS_NAME} bg-gray-900 text-white ${getHandDrawnButtonStateClassName(
-                  {
-                    isBusy: props.isStopping,
-                    hoverClassName: "hover:bg-gray-800",
-                  },
-                )}`}
-              >
-                {props.isStopping ? (
-                  <span className={SPINNER_CLASS_NAME} />
-                ) : (
-                  <span className="h-2.5 w-2.5 rounded-[2px] bg-current" />
-                )}
-              </button>
+              />
             ) : (
-              <button
-                type="button"
-                title={translator.translateText("Send (Enter)")}
+              <Button
+                icon={IconProp.PaperAirplane}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                buttonSize={ButtonSize.Small}
+                tooltip="Send (Enter)"
                 disabled={!isSendable}
+                isLoading={props.isWorking}
+                dataTestId="conversation-composer-send"
                 onClick={trySend}
-                /*
-                 * Send keeps its indigo, faded while there is nothing to send
-                 * (as every locked button looks), and as it is while the AI
-                 * works - busy, with its spinner.
-                 */
-                className={`${BUTTON_CLASS_NAME} bg-indigo-600 text-white shadow-sm ${getHandDrawnButtonStateClassName(
-                  {
-                    isLocked: !isSendable,
-                    isBusy: props.isWorking,
-                    hoverClassName: "hover:bg-indigo-500",
-                  },
-                )}`}
-              >
-                {props.isWorking ? (
-                  <span className={SPINNER_CLASS_NAME} />
-                ) : (
-                  <Icon icon={IconProp.PaperAirplane} className="h-4 w-4" />
-                )}
-              </button>
+              />
             )}
           </div>
         </div>

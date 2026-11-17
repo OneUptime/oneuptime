@@ -86,6 +86,8 @@ Koppelingen die met hetzelfde account zijn aangemeld, delen één aanmelding, in
 
 Een koppeling verwijderen trekt de toegang van OneUptime bij Zoom en Google in zodra geen andere koppeling de aanmelding gebruikt. Verwijder OneUptime bij Microsoft onder **My Apps** (myapps.microsoft.com) van het account. OneUptime uit je Zoom-account verwijderen in de Zoom App Marketplace verwijdert de aanmelding uit elke koppeling die met dat account is aangemeld, en die tonen **Werkt niet** tot ze opnieuw zijn gekoppeld.
 
+Transcripties die OneUptime al heeft gelezen, blijven bij hun incidenten: een koppeling verwijderen behoudt de gesprekken die de koppeling heeft gestart, met hun transcripties, en OneUptime uit het account bij Zoom, Google of Microsoft verwijderen ook. **Transcriptie verwijderen** bij een gesprek verwijdert de transcriptie en wat OneUptime AI erin heeft gelezen, maar niet wat OneUptime AI in de feed van het incident en de kanalen ervan heeft geplaatst. Een incident verwijderen verwijdert ook de gesprekken en hun transcripties.
+
 ### Als Microsoft om een beheerder vraagt
 
 Sommige Microsoft 365-organisaties laten alleen beheerders apps goedkeuren. Als Microsoft zegt dat je goedkeuring van een beheerder nodig hebt, vraag dan een Microsoft 365-beheerder om Microsoft Teams te koppelen, of om OneUptime goed te keuren in het [Microsoft Entra-beheercentrum](https://entra.microsoft.com/) onder **Enterprise applications** > **Admin consent requests**. Een project dat zijn Teams-gesprekken opneemt, heeft deze goedkeuring in elke organisatie één keer nodig: alleen een beheerder kan een app transcripties van vergaderingen laten lezen.

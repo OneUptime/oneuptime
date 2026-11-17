@@ -14,12 +14,13 @@ import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 /*
- * Where a Slack, Microsoft Teams or GitHub connection comes back to when the
- * server cannot tell which project it was for: its one-use link was unknown,
- * had expired, had been used, or was brought back by another browser - or
- * GitHub sent the browser back on its own, after an installation was changed
- * on GitHub or the app was installed there (`?notice=`, passed on for the
- * page to show). Nothing in such a redirect may choose a project, so the project
+ * Where a Slack, Microsoft Teams, GitHub or video call connection comes back
+ * to when the server cannot tell which project it was for: its one-use link
+ * was unknown, had expired, had been used, or was brought back by another
+ * browser - or the provider sent the browser back on its own: GitHub after an
+ * installation was changed on GitHub or the app was installed there, Zoom
+ * after OneUptime was added from the Zoom App Marketplace (`?notice=`, passed
+ * on for the page to show). Nothing in such a redirect may choose a project, so the project
  * the person has open is the one it is shown in: this passes the browser on
  * to the provider's page there, with the code the callback answered with,
  * where the page says what happened and its Connect button is right there to

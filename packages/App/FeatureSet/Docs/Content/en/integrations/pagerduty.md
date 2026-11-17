@@ -146,7 +146,7 @@ Both events must carry exactly the same `dedup_key`. Check that both bodies buil
 :::
 
 :::details The workflow never runs
-Check that it is on: **Enabled**, at the top of its **Builder**. Then open **Logs → Runs**: a run that took the **No** side of the **If / Else** block is an update that was not a resolve.
+Check that it is on: **Enabled**, at the top of its **Builder**. Then open **Runs**: a run that took the **No** side of the **If / Else** block is an update that was not a resolve.
 :::
 
 :::details PagerDuty shows a reference instead of a value

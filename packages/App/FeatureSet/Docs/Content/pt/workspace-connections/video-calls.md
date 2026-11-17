@@ -86,6 +86,8 @@ Conexões feitas com a mesma conta compartilham um único login, em todos os pro
 
 Excluir uma conexão retira o acesso do OneUptime no Zoom e no Google assim que nenhuma outra conexão usa aquele login. Na Microsoft, remova o OneUptime em **My Apps** (myapps.microsoft.com) da conta. Remover o OneUptime da sua conta do Zoom no Zoom App Marketplace exclui o login dele de todas as conexões feitas com essa conta, e elas mostram **Não funciona** até serem reconectadas.
 
+As transcrições que o OneUptime já leu ficam nos seus incidentes: excluir uma conexão mantém as chamadas que ela iniciou, com suas transcrições, e remover o OneUptime da conta no Zoom, no Google ou na Microsoft também. **Remover transcrição** em uma chamada exclui a transcrição e o que a OneUptime AI leu nela, mas não o que a OneUptime AI publicou no feed do incidente e nos seus canais. Excluir um incidente exclui as chamadas e as transcrições dele.
+
 ### Se a Microsoft pedir um administrador
 
 Algumas organizações do Microsoft 365 só permitem que administradores aprovem apps. Se a Microsoft disser que você precisa da aprovação de um administrador, peça a um administrador do Microsoft 365 que conecte o Microsoft Teams, ou que aprove o OneUptime no [centro de administração do Microsoft Entra](https://entra.microsoft.com/) em **Enterprise applications** > **Admin consent requests**. Um projeto que grava as suas chamadas do Teams precisa dessa aprovação em cada organização, uma única vez: só um administrador pode permitir que um app leia transcrições de reuniões.

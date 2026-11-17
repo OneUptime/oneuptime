@@ -409,7 +409,7 @@ for incident in incidents:
 
 - **RSS。** すべてのステータスページは `/rss` を提供します。インシデント、お知らせ、メンテナンスイベントのフィードで、どの項目もページと同じ日付が付きます。[埋め込みバッジと RSS フィード](/docs/status-pages/index#埋め込みバッジと-rss-フィード) を参照してください。
 - **llms.txt。** `/rss` と並んで、すべてのステータスページが `/llms.txt` を提供します。AI エージェントに RSS フィードと概要の JSON の場所を示すものです。
-- **MCP。** AI エージェントは、OneUptime の MCP サーバー (`https://oneuptime.com/mcp`) を通じて、API キーなしでページを読めます。ページの ID またはドメインを `statusPageIdOrDomain` として渡します。既定でオンになっており、ページのサイドメニューの **AI → MCP** にある **MCP サーバーを有効化** でオフにできます。[MCP サーバー](/docs/ai/mcp-server) を参照してください。
+- **MCP。** AI エージェントは、OneUptime の MCP サーバー (`https://oneuptime.com/mcp`) を通じて、API キーなしでページを読めます。ページの ID またはドメインを `statusPageIdOrDomain` として渡します。既定でオンになっており、ページのサイドメニューの **詳細 → MCP** にある **MCP サーバーを有効化** でオフにできます。[MCP サーバー](/docs/ai/mcp-server) を参照してください。
 - **REST API。** ステータスページ、リソース、購読者、お知らせを作成または変更するには、API キーを使って [OneUptime API](/docs/api-reference/api-reference) を使用します。
 
 ## 次のステップ

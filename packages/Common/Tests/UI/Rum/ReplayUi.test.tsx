@@ -881,7 +881,7 @@ describe("ReplayClock", () => {
 
     expect(parts[0]?.textContent).toBe("1:02.3");
     expect(parts[0]?.className).toContain("font-semibold");
-    expect(parts[1]?.className).toContain("text-gray-400");
+    expect(parts[1]?.className).toContain("text-gray-500");
     /* Both halves tabular, so a tick never nudges the buttons beside it. */
     expect(clock.className).toContain("tabular-nums");
   });

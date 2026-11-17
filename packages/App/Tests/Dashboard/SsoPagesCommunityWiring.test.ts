@@ -51,9 +51,9 @@ interface SsoPage {
   printedUrls: Array<string>;
   /*
    * How the page asks whether everyone must sign in with SSO: the project's
-   * "Require SSO for Login" switch, which saves on flip and asks first
+   * "Require SSO to Sign In" switch, which saves on flip and asks first
    * (Components/Project/RequireSsoForLoginCard), the status page's own
-   * "Require SSO for Login" switch, which does the same for its private
+   * "Require SSO to Sign In" switch, which does the same for its private
    * users (Components/StatusPage/StatusPageRequireSsoCard), or not at all
    * (OIDC pages).
    */
@@ -296,7 +296,7 @@ describe.each(SSO_PAGES)("$name page", (page: SsoPage) => {
  * The project's OpenID Connect providers are on Settings > SSO, under its
  * SAML providers (they had a page of their own, Settings > OIDC): drawn
  * by the page, inside its one plan gate, with its one test link and its
- * one Require SSO for Login switch.
+ * one Require SSO to Sign In switch.
  */
 describe("Settings > SSO's OpenID Connect providers", () => {
   const code: string = readCode(

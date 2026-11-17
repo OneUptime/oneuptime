@@ -1,4 +1,7 @@
-import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import CodeContextModal, { CodeContextDraft } from "./CodeContextModal";
 import {
   CODE_TASK_CONTEXT_KINDS,
@@ -116,9 +119,6 @@ export const getChipTooltip: (draft: CodeContextDraft) => string = (
 
   return draft.label;
 };
-
-const SPINNER_CLASS_NAME: string =
-  "h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent motion-safe:animate-spin";
 
 /*
  * Where a person asks OneUptime AI to do something, or replies in a task:
@@ -470,36 +470,22 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
              * Beside the pickers on a phone, Send is its arrow alone - its
              * word is still read out - so the row stays one line.
              */}
-            <button
-              type="button"
-              data-testid="code-composer-send"
+            <Button
+              title={props.sendLabel}
+              isTitleTranslated={true}
+              icon={IconProp.ArrowUp}
+              buttonStyle={ButtonStyleType.PRIMARY}
+              buttonSize={ButtonSize.Small}
+              className="flex-shrink-0 whitespace-nowrap"
+              isTitleHiddenOnPhone={Boolean(props.tools)}
+              // Faded with nothing to send; as it is while it sends.
               disabled={!canSend}
+              isLoading={isSending}
+              dataTestId="code-composer-send"
               onClick={() => {
                 void send();
               }}
-              className={`inline-flex h-8 flex-shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
-                props.tools ? "max-sm:w-8 max-sm:px-0" : ""
-              } bg-indigo-600 text-white shadow-sm ${getHandDrawnButtonStateClassName(
-                {
-                  // Faded with nothing to send; as it is while it sends.
-                  isLocked: !canSend,
-                  isBusy: isSending,
-                  hoverClassName: "hover:bg-indigo-500",
-                },
-              )}`}
-            >
-              {isSending ? (
-                <span className={SPINNER_CLASS_NAME} />
-              ) : (
-                <Icon icon={IconProp.ArrowUp} className="h-4 w-4" />
-              )}
-              <span
-                data-testid="code-composer-send-label"
-                className={props.tools ? "max-sm:sr-only" : ""}
-              >
-                {props.sendLabel}
-              </span>
-            </button>
+            />
           </div>
         </div>
       </div>
