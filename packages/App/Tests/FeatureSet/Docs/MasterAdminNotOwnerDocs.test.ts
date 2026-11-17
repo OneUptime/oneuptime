@@ -80,8 +80,32 @@ describe("the code", () => {
     const body: string = source.slice(start, start + 1200);
 
     expect(start).toBeGreaterThan(-1);
+    /*
+     * Who a create makes an owner is one rule since #7055, which When this
+     * goes down reads too, for the monitor Create Monitor is about to make.
+     */
     expect(body).toContain(
-      "if (props.isRoot || props.isMasterAdmin || !props.userId) {",
+      "if (!OwnedScopePermission.isCreatorMadeOwner(props)) {",
+    );
+
+    const permission: string = fs.readFileSync(
+      path.join(
+        COMMON_DIR,
+        "Server",
+        "Types",
+        "Database",
+        "Permissions",
+        "OwnedScopePermission.ts",
+      ),
+      "utf8",
+    );
+    const rule: number = permission.indexOf(
+      "public static isCreatorMadeOwner(",
+    );
+
+    expect(rule).toBeGreaterThan(-1);
+    expect(permission.slice(rule, rule + 300)).toContain(
+      "return !props.isRoot && !props.isMasterAdmin && Boolean(props.userId);",
     );
   });
 });
