@@ -292,7 +292,10 @@ function retryDelayOf(response, attempt) {
   if (!Number.isFinite(retryAfter) || retryAfter <= 0) {
     return scheduled;
   }
-  return Math.min(Math.max(scheduled, retryAfter * 1000), MAX_RETRY_AFTER_IN_MS);
+  return Math.min(
+    Math.max(scheduled, retryAfter * 1000),
+    MAX_RETRY_AFTER_IN_MS,
+  );
 }
 
 function createGitHub({ token, fetcher, sleep }) {

@@ -721,9 +721,9 @@ describe("publish", () => {
       files: screenshotFiles("publish-race"),
     });
 
-    expect(store.callsTo("PATCH", `/git/refs/heads/${DEFAULT_BRANCH}`)).toHaveLength(
-      2,
-    );
+    expect(
+      store.callsTo("PATCH", `/git/refs/heads/${DEFAULT_BRANCH}`),
+    ).toHaveLength(2);
     expect(store.callsTo("POST", "/git/blobs")).toHaveLength(2);
     const anotherPublish = store.commit(commit).parents[0];
     expect(store.commit(anotherPublish).message).toBe("another publish");
@@ -755,9 +755,9 @@ describe("publish", () => {
     ).rejects.toThrow(
       `${DEFAULT_BRANCH} kept moving while this published (${MAX_PUBLISH_ATTEMPTS} attempts, last refused: Update is not a fast forward)`,
     );
-    expect(store.callsTo("PATCH", `/git/refs/heads/${DEFAULT_BRANCH}`)).toHaveLength(
-      MAX_PUBLISH_ATTEMPTS,
-    );
+    expect(
+      store.callsTo("PATCH", `/git/refs/heads/${DEFAULT_BRANCH}`),
+    ).toHaveLength(MAX_PUBLISH_ATTEMPTS);
   });
 
   test("never builds on a branch that holds the repository's code", async () => {
