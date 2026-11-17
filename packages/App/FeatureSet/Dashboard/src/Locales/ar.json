@@ -6502,6 +6502,7 @@
   "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.": "تناوبات تحدد من هو مناوب في أي لحظة. أضف جدولًا إلى قواعد التصعيد في سياسة مناوبة لاستدعاء من هو مناوب.",
   "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.": "التطبيقات والخدمات المصغّرة التي تشغّلها. تجمع كل خدمة سجلاتها وتتبعاتها ومقاييسها واستثناءاتها وحوادثها ومالكيها في مكان واحد.",
   "Create On-Call Schedule": "إنشاء جدول مناوبة",
+  "Create On-Call Policy": "إنشاء سياسة مناوبة",
   "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.": "المسابير هي الأجهزة التي تُجري فحوص هذه المراقبة. تبدأ المسابير الافتراضية لمشروعك محددة. ولا تُفحص أبدًا مراقبة بلا مسابير.",
   "Send a request to this URL to start the workflow.": "أرسل طلبًا إلى عنوان URL هذا لبدء سير العمل.",
   "Copy URL": "نسخ عنوان URL",

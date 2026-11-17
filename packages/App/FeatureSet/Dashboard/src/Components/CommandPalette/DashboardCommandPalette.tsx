@@ -36,6 +36,8 @@ import {
   PaletteActionId,
   PaletteEntitySearchSpec,
   PaletteGlossaryEntry,
+  PaletteListCreateAction,
+  PALETTE_LIST_CREATE_ACTIONS,
   PaletteGlossaryTermDescriptor,
   PaletteNavigationCatalogEntry,
   PaletteNavigationCommandDescriptor,
@@ -104,6 +106,7 @@ import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import { DocsSearchHit, searchDocs } from "Common/UI/Utils/DocsSearch";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import LeaveGuard from "Common/UI/Utils/LeaveGuard";
+import { CREATE_FORM_QUERY_STRING } from "Common/Types/CreateFormAddress";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ThemeUtil, {
@@ -149,6 +152,9 @@ import { isDashboardRecordingConfigured } from "../../Utils/DashboardRecording/D
  * event, and feeds the generic Common CommandPalette with:
  *  - every product from the shared NavBar catalog (useDashboardNavigationItems),
  *  - quick actions (create flows, theme, Ask AI, global pages, logout),
+ *    and, while searching, the lists' create forms (#7035: Create Status
+ *    Page, Create On-Call Policy, Create On-Call Schedule, Create
+ *    Dashboard, Create Workflow, Invite User),
  *  - every page the menus link to and the actions done on them (API Keys,
  *    On-Call Schedules, Delete Project...), from PageSearchIndex.ts. These
  *    are offered while searching only, each with the breadcrumb of where it
@@ -567,6 +573,29 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
   );
 
   /*
+   * Open a list's create form (#7035): the list's page with ?create=1
+   * (CreateFormAddress), which opens the form as its Create button does.
+   * Chosen on that list already, the address is replaced rather than added
+   * to, so Back still leaves the list once the form is closed.
+   */
+  const navigateToListCreateForm: (pageMap: PageMap) => void = useCallback(
+    (pageMap: PageMap): void => {
+      const populated: Route = RouteUtil.populateRouteParams(
+        RouteMap[pageMap] as Route,
+      );
+      if (!isRoutePathNavigable(populated.toString())) {
+        return;
+      }
+      closePalette();
+      Navigation.navigate(
+        new Route(`${populated.toString()}${CREATE_FORM_QUERY_STRING}`),
+        { replace: Navigation.isOnThisPage(populated) },
+      );
+    },
+    [closePalette],
+  );
+
+  /*
    * Everything below is only needed while the palette is open; keeping the
    * closed-state render this cheap matters because the host is mounted on
    * every page.
@@ -688,7 +717,36 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
       "Account",
     );
 
+    /*
+     * The lists' create forms (#7035), titled as each list's own Create
+     * button is, and found by that title in English too. Offered while
+     * searching only: the list Search opens on stays as it was.
+     */
+    const listCreateCommands: Partial<Record<PaletteActionId, PaletteCommand>> =
+      {};
+
+    for (const action of PALETTE_LIST_CREATE_ACTIONS) {
+      const listAction: PaletteListCreateAction = action;
+      const title: string =
+        translator.translateText(listAction.title) || listAction.title;
+
+      listCreateCommands[listAction.id] = {
+        id: listAction.id,
+        title: title,
+        titleAliases: title === listAction.title ? [] : [listAction.title],
+        icon: listAction.icon,
+        iconColor: listAction.iconColor,
+        category: actionsCategory,
+        keywords: listAction.keywords,
+        isSearchOnly: true,
+        onSelect: () => {
+          navigateToListCreateForm(listAction.page);
+        },
+      };
+    }
+
     const actionCommandsById: Record<PaletteActionId, PaletteCommand> = {
+      ...(listCreateCommands as Record<PaletteActionId, PaletteCommand>),
       "action-declare-incident": {
         id: "action-declare-incident",
         title: t("commandPalette.actions.declareIncident", "Declare Incident"),

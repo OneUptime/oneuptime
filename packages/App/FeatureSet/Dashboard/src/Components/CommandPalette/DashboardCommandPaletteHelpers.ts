@@ -18,11 +18,17 @@ import HeldPermissionsUtil, {
   HeldPermissions,
 } from "Common/Types/HeldPermissions";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Project from "Common/Models/DatabaseModels/Project";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
 import {
   RecordNumberColumns,
   getNumberedRecordName,
@@ -683,6 +689,12 @@ export type PaletteActionId =
   | "action-create-alert"
   | "action-create-scheduled-maintenance"
   | "action-create-announcement"
+  | "action-create-status-page"
+  | "action-create-on-call-policy"
+  | "action-create-on-call-schedule"
+  | "action-create-dashboard"
+  | "action-create-workflow"
+  | "action-invite-user"
   | "action-toggle-theme"
   | "action-system-theme"
   | "action-ask-ai"
@@ -702,6 +714,17 @@ export interface PaletteCreateActionGates {
   canCreateAlert: boolean;
   canCreateScheduledMaintenance: boolean;
   canCreateAnnouncement: boolean;
+  /*
+   * The actions that open a list's create form (#7035,
+   * PALETTE_LIST_CREATE_ACTIONS). Left out, they are not offered.
+   */
+  canCreateStatusPage?: boolean | undefined;
+  canCreateOnCallPolicy?: boolean | undefined;
+  canCreateOnCallSchedule?: boolean | undefined;
+  canCreateDashboard?: boolean | undefined;
+  canCreateWorkflow?: boolean | undefined;
+  // Invite User: a membership of the project's teams, created.
+  canInviteUser?: boolean | undefined;
 }
 
 // A model whose own permission list for an operation is asked about.
@@ -767,6 +790,12 @@ export function computeCreateActionGates(data: {
     canCreateAlert: canCreate(new Alert()),
     canCreateScheduledMaintenance: canCreate(new ScheduledMaintenance()),
     canCreateAnnouncement: canCreate(new StatusPageAnnouncement()),
+    canCreateStatusPage: canCreate(new StatusPage()),
+    canCreateOnCallPolicy: canCreate(new OnCallDutyPolicy()),
+    canCreateOnCallSchedule: canCreate(new OnCallDutyPolicySchedule()),
+    canCreateDashboard: canCreate(new Dashboard()),
+    canCreateWorkflow: canCreate(new Workflow()),
+    canInviteUser: canCreate(new TeamMember()),
   };
 }
 
@@ -825,6 +854,109 @@ export function canDeleteProject(data: {
   });
 }
 
+/*
+ * Search's actions that open a list's create form (#7035): Create Status
+ * Page, Create On-Call Policy, Create On-Call Schedule, Create Dashboard,
+ * Create Workflow and Invite User. Unlike Declare Incident or Create
+ * Monitor, none has a page of its own: each form opens on its list, so the
+ * action opens the list with ?create=1 (Common/UI/Utils/CreateFormAddress),
+ * which opens the form as the list's Create button does - for whoever that
+ * button is open to, the gate below being the same rule. Offered while
+ * searching ("create", "new", "invite", "status page"), so the list Search
+ * opens on stays as short as it was. Ask AI's page catalog sends people to
+ * the same addresses (AIDashboardPagesCatalog).
+ */
+export interface PaletteListCreateAction {
+  id: PaletteActionId;
+  /*
+   * In English, as the list's own Create button says it: a key every
+   * Dashboard locale words.
+   */
+  title: string;
+  // The list whose create form it opens.
+  page: PageMap;
+  // Where the list is, in English, as the menus name it.
+  where: Array<string>;
+  // Other words for it, in English, never shown.
+  keywords: Array<string>;
+  icon: IconProp;
+  iconColor: string;
+  // Whether the person may create there (computeCreateActionGates).
+  gate: keyof PaletteCreateActionGates;
+}
+
+export const PALETTE_LIST_CREATE_ACTIONS: ReadonlyArray<PaletteListCreateAction> =
+  [
+    {
+      id: "action-create-status-page",
+      title: "Create Status Page",
+      page: PageMap.STATUS_PAGES,
+      where: ["Status Pages"],
+      keywords: ["new", "add", "new status page", "public status page"],
+      icon: IconProp.CheckCircle,
+      iconColor: "emerald",
+      gate: "canCreateStatusPage",
+    },
+    {
+      id: "action-create-on-call-policy",
+      title: "Create On-Call Policy",
+      page: PageMap.ON_CALL_DUTY_POLICIES,
+      where: ["On-Call"],
+      keywords: ["new", "add", "new on-call policy", "escalation policy"],
+      icon: IconProp.Call,
+      iconColor: "stone",
+      gate: "canCreateOnCallPolicy",
+    },
+    {
+      id: "action-create-on-call-schedule",
+      title: "Create On-Call Schedule",
+      page: PageMap.ON_CALL_DUTY_SCHEDULES,
+      where: ["On-Call"],
+      keywords: ["new", "add", "new on-call schedule", "new rotation"],
+      icon: IconProp.Calendar,
+      iconColor: "stone",
+      gate: "canCreateOnCallSchedule",
+    },
+    {
+      id: "action-create-dashboard",
+      title: "Create Dashboard",
+      page: PageMap.DASHBOARDS,
+      where: ["Dashboards"],
+      keywords: ["new", "add", "new dashboard"],
+      icon: IconProp.ChartBar,
+      iconColor: "violet",
+      gate: "canCreateDashboard",
+    },
+    {
+      id: "action-create-workflow",
+      title: "Create Workflow",
+      page: PageMap.WORKFLOWS,
+      where: ["Workflows"],
+      keywords: ["new", "add", "new workflow", "automation"],
+      icon: IconProp.Workflow,
+      iconColor: "pink",
+      gate: "canCreateWorkflow",
+    },
+    {
+      id: "action-invite-user",
+      title: "Invite User",
+      page: PageMap.USERS,
+      where: ["Users"],
+      keywords: [
+        "new",
+        "add",
+        "add user",
+        "invite member",
+        "add member",
+        "invite teammate",
+        "add teammate",
+      ],
+      icon: IconProp.UserPlus,
+      iconColor: "blue",
+      gate: "canInviteUser",
+    },
+  ];
+
 export interface PaletteActionAvailability extends PaletteCreateActionGates {
   hasProjectSelected: boolean;
   isMasterAdmin: boolean;
@@ -868,6 +1000,13 @@ export function getVisibleActionIds(
     }
     if (availability.canCreateAnnouncement) {
       actionIds.push("action-create-announcement");
+    }
+
+    // The lists' create forms (#7035), each for whoever may create there.
+    for (const action of PALETTE_LIST_CREATE_ACTIONS) {
+      if (availability[action.gate]) {
+        actionIds.push(action.id);
+      }
     }
   }
 
@@ -921,6 +1060,12 @@ export const PALETTE_ACTION_PRODUCTS: Readonly<
   "action-create-alert": ProductKey.Alerts,
   "action-create-scheduled-maintenance": ProductKey.ScheduledMaintenance,
   "action-create-announcement": ProductKey.StatusPages,
+  "action-create-status-page": ProductKey.StatusPages,
+  "action-create-on-call-policy": ProductKey.OnCall,
+  "action-create-on-call-schedule": ProductKey.OnCall,
+  "action-create-dashboard": ProductKey.Dashboards,
+  "action-create-workflow": ProductKey.Workflows,
+  "action-invite-user": ProductKey.Users,
   "action-ask-ai": ProductKey.AIChat,
   "action-active-incidents": ProductKey.Incidents,
   "action-my-on-call-policies": ProductKey.OnCall,

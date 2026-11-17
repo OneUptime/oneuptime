@@ -161,6 +161,11 @@ const OnCallDutyPage: FunctionComponent<
         modelType={OnCallDutyPolicy}
         refreshToggle={firstRun.refreshToken}
         showCreateForm={firstRun.showCreateForm}
+        /*
+         * Search's Create On-Call Policy opens this list with ?create=1, and the table
+         * opens its create form from it (#7035).
+         */
+        opensCreateFormFromAddress={true}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
         enableJsonImportExport={true}

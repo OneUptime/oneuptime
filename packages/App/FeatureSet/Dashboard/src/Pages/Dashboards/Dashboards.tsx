@@ -25,6 +25,7 @@ import { getDashboardViewRoute } from "../../Components/Dashboard/DashboardCreat
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import ObjectID from "Common/Types/ObjectID";
+import CreateFormAddress from "Common/UI/Utils/CreateFormAddress";
 import useProductFirstRun, {
   ProductFirstRun,
 } from "../../Components/ProductOnboarding/UseProductFirstRun";
@@ -89,9 +90,12 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <CreateDashboardModal
           onClose={() => {
             setShowCreateModal(false);
+            // Opened by ?create=1: Back to the list never opens it again.
+            CreateFormAddress.clear();
           }}
           onCreated={(dashboard: Dashboard) => {
             setShowCreateModal(false);
+            CreateFormAddress.clear();
 
             /*
              * The new dashboard opens: what the template built, or a blank
@@ -129,6 +133,11 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
+        /*
+         * Search's Create Dashboard opens this list with ?create=1, and the table
+         * opens its create form from it (#7035).
+         */
+        opensCreateFormFromAddress={true}
         /*
          * The built-in create form is replaced by Create a dashboard, which
          * starts with the template picker, as Workflows does. Going through
