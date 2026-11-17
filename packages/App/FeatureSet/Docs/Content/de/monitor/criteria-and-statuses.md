@@ -97,7 +97,7 @@ Um zu sehen, wie eine Prüfung bewertet wurde, öffnen Sie die **Übersicht** de
 
 **Wenn das ausfällt** sagt in wenigen Sätzen, was passiert, wenn der Monitor ausfällt, und wer benachrichtigt wird: den Status, den er setzt, den Vorfall oder die Warnung, die er eröffnet, wer darüber eine E-Mail erhält und wen er alarmiert, mit Namen. Alles, was verhindern würde, dass jemand benachrichtigt wird, steht in einer eigenen Zeile, mit einem Link zu der Seite, auf der es sich beheben lässt. Sie finden es in der **Übersicht** eines Monitors, unter seinen Kriterien auf seiner Seite **Kriterien**, im Kriterienschritt von **Monitor erstellen** für den Monitor, den Sie gerade einrichten, und in der geführten Einrichtung für Websites.
 
-Es ermittelt die Kette so, wie ein echter Vorfall oder eine echte Warnung sie durchläuft: mit den Eigentümerregeln, Datenschutzregeln, Beschriftungsregeln und Bereitschaftsregeln Ihres Projekts, der Vorfallsregel für Warnungen, die aus einer Warnung einen Vorfall macht, und damit, wen die erste Eskalationsregel jeder Bereitschaftsrichtlinie gerade erreicht. Ein Platzhalter im Titel, den erst eine Prüfung füllt, wird so angezeigt, wie er geschrieben ist. **Kette anzeigen** öffnet sie Zeile für Zeile:
+Es ermittelt die Kette so, wie ein echter Vorfall oder eine echte Warnung sie durchläuft: mit den Eigentümerregeln, Datenschutzregeln, Beschriftungsregeln und Bereitschaftsregeln Ihres Projekts, der Vorfallsregel für Warnungen, die aus einer Warnung einen Vorfall macht, und damit, wen die erste Eskalationsregel jeder Bereitschaftsrichtlinie gerade erreicht. Eine Bereitschaftsregel, die nach den Eigentümern einer Warnung fragt (**Eigentümer der Warnung**), wird mit den Eigentümern abgeglichen, die die Warnung haben wird: den Personen und Teams, die ihre Kriterien nennen, den Eigentümern des Netzwerkgeräts, das der Monitor überwacht, und denen, die Eigentümerregeln hinzufügen. Ein Platzhalter im Titel, den erst eine Prüfung füllt, wird so angezeigt, wie er geschrieben ist. **Kette anzeigen** öffnet sie Zeile für Zeile:
 
 | Zeile | Was sie sagt |
 | --- | --- |
@@ -107,7 +107,7 @@ Es ermittelt die Kette so, wie ein echter Vorfall oder eine echte Warnung sie du
 | **Eigentümerregeln** | Die Eigentümerregeln, die Eigentümer hinzufügen. |
 | **Privat** | Warum es privat ist: eine Datenschutzregel oder die Kriterien. Ein privater Vorfall erscheint auf keiner Statusseite und benachrichtigt keine Abonnenten, und nur seine Eigentümer, die Projektinhaber und die Projektadministratoren können ihn sehen. |
 | **Beschriftungsregeln** | Die Beschriftungsregeln, deren Beschriftungen ändern, welche Bereitschaftsregeln alarmieren. |
-| **Bereitschaftsregeln** | Die Bereitschaftsregeln, die darauf passen. |
+| **Bereitschaftsregeln** | Die Bereitschaftsregeln, die darauf passen. Bei einer Regel, die auf die Eigentümer einer Warnung prüft, steht, welcher Eigentümer sie passen lässt. |
 | **Bereitschaftsrichtlinie** | Jede Richtlinie, die diese Regeln ausführen: wen ihre erste Eskalationsregel gerade erreicht und auf welchem Weg, und wen sie nicht erreicht, und warum. |
 | **Statusseiten** | Die Statusseiten, die es zeigen, jede mit der Monitor-Gruppe, über die sie den Monitor zeigt. |
 | **Vorfallsregel** | Bei einer Warnung: die Vorfallsregel für Warnungen, die daraus einen Vorfall eröffnet, sofort oder wenn die Warnung offen bleibt, und dieser Vorfall, beschrieben wie jeder Vorfall. |
@@ -128,7 +128,7 @@ Es ermittelt die Kette so, wie ein echter Vorfall oder eine echte Warnung sie du
 
 Eine Warnung, die eine Vorfallsregel für Warnungen in einen Vorfall verwandelt, der jemanden alarmiert, ist keine Unterbrechung: Stattdessen werden die Richtlinien des Vorfalls geprüft.
 
-Eigentümer, die keine E-Mail erhalten, stehen nach den Unterbrechungen, jeweils mit dem Grund und der Stelle, an der sie genannt sind: jemand, der kein Mitglied des Projekts ist, ein Team, in dem niemand Mitglied ist (**Team öffnen**), oder ein Team eines anderen Projekts, genannt in den Kriterien (**Kriterien öffnen**), beim Netzwerkgerät, das der Monitor überwacht (**Netzwerkgerät öffnen**), oder durch eine Eigentümerregel (**Eigentümerregeln öffnen**). Die E-Mail geht trotzdem hinaus, an die Eigentümer, die sie erreicht, oder an die Projektinhaber, daher sind sie keine Unterbrechungen.
+Eigentümer, die keine E-Mail erhalten, stehen nach den Unterbrechungen, jeweils mit dem Grund und der Stelle, an der sie genannt sind: jemand, der kein Mitglied des Projekts ist, ein Team, in dem niemand Mitglied ist (**Team öffnen**), oder ein Team eines anderen Projekts, genannt in den Kriterien (**Kriterien öffnen**), beim Netzwerkgerät, das der Monitor überwacht (**Netzwerkgerät öffnen**), oder durch eine Eigentümerregel (**Eigentümerregeln öffnen**). Die E-Mail geht trotzdem hinaus, an die Eigentümer, die sie erreicht, oder an die Projektinhaber, daher sind sie keine Unterbrechungen. Der Einrichtungsstatus listet sie ebenfalls auf, als Punkte, die behoben werden sollten.
 
 ### Erneut prüfen, und was Sie sehen
 
