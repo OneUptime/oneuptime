@@ -47,5 +47,5 @@ Viewports: small phone 320 × 740, iPhone-size 390 × 844, Android-size 412 × 9
 tablet 768 × 1024. Viewport names describe dimensions, not native emulation.
 
 Run `npm run test-ui` from `packages/MobileApp` to reproduce the browser journeys and
-capture screenshots in the Playwright report. The [audit report](../../../packages/MobileApp/docs/UI_AUDIT_2026_09.md)
+capture screenshots in the Playwright report. The [audit report](https://github.com/OneUptime/oneuptime/blob/main/packages/MobileApp/docs/UI_AUDIT_2026_09.md)
 records the fixes, focused unit/integration checks and environment limitations.

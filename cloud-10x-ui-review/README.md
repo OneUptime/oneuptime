@@ -6,7 +6,7 @@ group, its layout, side menus and pages with the Dashboard's esbuild
 config, Tailwind, theme and Inter, over five made-up accounts on three
 clouds. Each shot is drawn at its width with the window as tall as the
 page (so the sticky side menu sits at the top, as a reader sees it), in
-Chromium. The "before" shots are `.github/pr-assets/cloud-10x`, as the
+Chromium. The "before" shots are `cloud-10x`, as the
 builder left them.
 
 - `cloud-costs-1280`, `cloud-costs-1280-dark`: Daily spend draws the newest

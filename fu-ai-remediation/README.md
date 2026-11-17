@@ -7,7 +7,7 @@ taken in Chromium by the offline Event Overview suite
 fixture replaces only the data boundary. Every record is made up for the
 fixture's "Acme Commerce" workspace.
 
-Before: `.github/pr-assets/ai-remediation-two-steps/review-after-fixes-many-1280.png`
+Before: `ai-remediation-two-steps/review-after-fixes-many-1280.png`
 and `review-after-fixes-many-390.png` (#5413's UI review), the same three
 fixes (`?fixes=many`): a kubectl fix waiting for approval, a fix OneUptime
 AI made through MCP servers on its own (one change failed) and an approved
