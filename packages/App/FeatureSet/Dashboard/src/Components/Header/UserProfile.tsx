@@ -115,7 +115,7 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
           <ThemeChoiceRow />
 
           <IconDropdownItem
-            title={t("userProfile.logOut")}
+            title={t("userProfile.signOut")}
             onClick={() => {
               setIsDropdownVisible(false);
             }}

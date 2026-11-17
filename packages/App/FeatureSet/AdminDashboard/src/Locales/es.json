@@ -64,7 +64,7 @@
     "apiKey": "Clave API",
     "more": "Más",
     "sendEmail": "Enviar correo",
-    "logout": "Cerrar sesión",
+    "signOut": "Cerrar sesión",
     "telemetryUsage": "Uso de telemetría",
     "ingestionBudgets": "Presupuestos de ingesta",
     "products": "Productos"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "Salir del admin",
-    "logOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -485,7 +485,7 @@
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "Cerrar sesión"
     },
     "sendEmail": {
@@ -727,7 +727,6 @@
   "Projects": "Proyectos",
   "Project": "Proyecto",
   "User": "Usuario",
-  "Logout": "Cerrar sesión",
   "Save": "Guardar",
   "Cancel": "Cancelar",
   "Submit": "Enviar",

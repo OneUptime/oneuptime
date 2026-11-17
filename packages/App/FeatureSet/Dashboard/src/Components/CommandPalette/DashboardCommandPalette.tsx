@@ -877,11 +877,12 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
       },
       "action-log-out": {
         id: "action-log-out",
-        title: t("commandPalette.actions.logOut", "Log out"),
+        title: t("commandPalette.actions.signOut", "Sign Out"),
         icon: IconProp.Logout,
         iconColor: "slate",
         category: accountCategory,
-        keywords: ["sign out", "exit"],
+        // Found by the name it had until #9212, too.
+        keywords: ["sign out", "exit", "log out", "logout"],
         onSelect: () => {
           navigateToPageMap(PageMap.LOGOUT);
         },

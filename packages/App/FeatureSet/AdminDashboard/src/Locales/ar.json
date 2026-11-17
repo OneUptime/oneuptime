@@ -64,7 +64,7 @@
     "apiKey": "مفتاح API",
     "more": "المزيد",
     "sendEmail": "إرسال بريد إلكتروني",
-    "logout": "تسجيل الخروج",
+    "signOut": "تسجيل الخروج",
     "telemetryUsage": "استخدام القياس عن بُعد",
     "ingestionBudgets": "ميزانيات الاستيعاب",
     "products": "المنتجات"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "الخروج من وضع المسؤول",
-    "logOut": "تسجيل الخروج"
+    "signOut": "تسجيل الخروج"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -485,7 +485,7 @@
       "membersCardDescription": "أدر أعضاء هذا الفريق. ادعُ مستخدمين جددًا عبر البريد الإلكتروني.",
       "membersNoItems": "ليس هناك أعضاء في هذا الفريق بعد."
     },
-    "logout": {
+    "signOut": {
       "title": "تسجيل الخروج"
     },
     "sendEmail": {
@@ -727,7 +727,6 @@
   "Projects": "المشاريع",
   "Project": "المشروع",
   "User": "المستخدم",
-  "Logout": "تسجيل الخروج",
   "Save": "حفظ",
   "Cancel": "إلغاء",
   "Submit": "إرسال",

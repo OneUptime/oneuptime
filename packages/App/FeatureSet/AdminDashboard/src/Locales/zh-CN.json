@@ -64,7 +64,7 @@
     "apiKey": "API 密钥",
     "more": "更多",
     "sendEmail": "发送电子邮件",
-    "logout": "注销",
+    "signOut": "退出登录",
     "telemetryUsage": "遥测用量",
     "ingestionBudgets": "摄取预算",
     "products": "产品"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "退出管理员",
-    "logOut": "注销"
+    "signOut": "退出登录"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -485,8 +485,8 @@
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
-      "title": "注销"
+    "signOut": {
+      "title": "退出登录"
     },
     "sendEmail": {
       "title": "发送公告电子邮件",
@@ -727,7 +727,6 @@
   "Projects": "项目",
   "Project": "项目",
   "User": "用户",
-  "Logout": "注销",
   "Save": "保存",
   "Cancel": "取消",
   "Submit": "提交",

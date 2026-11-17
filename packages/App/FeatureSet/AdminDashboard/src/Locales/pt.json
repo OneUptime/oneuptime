@@ -64,7 +64,7 @@
     "apiKey": "Chave API",
     "more": "Mais",
     "sendEmail": "Enviar e-mail",
-    "logout": "Sair",
+    "signOut": "Sair",
     "telemetryUsage": "Uso de telemetria",
     "ingestionBudgets": "Orçamentos de ingestão",
     "products": "Produtos"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "Sair do admin",
-    "logOut": "Sair"
+    "signOut": "Sair"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -485,7 +485,7 @@
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "Sair"
     },
     "sendEmail": {
@@ -727,7 +727,6 @@
   "Projects": "Projetos",
   "Project": "Projeto",
   "User": "Usuário",
-  "Logout": "Sair",
   "Save": "Salvar",
   "Cancel": "Cancelar",
   "Submit": "Enviar",

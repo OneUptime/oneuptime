@@ -64,7 +64,7 @@
     "apiKey": "API 金鑰",
     "more": "更多",
     "sendEmail": "傳送電子郵件",
-    "logout": "登出",
+    "signOut": "登出",
     "telemetryUsage": "遙測使用量",
     "ingestionBudgets": "擷取預算",
     "products": "產品"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "退出管理員",
-    "logOut": "登出"
+    "signOut": "登出"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -485,7 +485,7 @@
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "登出"
     },
     "sendEmail": {
@@ -727,7 +727,6 @@
   "Projects": "專案",
   "Project": "專案",
   "User": "使用者",
-  "Logout": "登出",
   "Save": "儲存",
   "Cancel": "取消",
   "Submit": "提交",

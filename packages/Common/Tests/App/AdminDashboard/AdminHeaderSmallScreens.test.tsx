@@ -179,7 +179,7 @@ describe("admin dashboard header on small screens", () => {
 
     expect(
       describeVisibility(
-        screen.getByRole("link", { name: "Log out" }),
+        screen.getByRole("link", { name: "Sign Out" }),
         PHONE_WIDTH_IN_PX,
       ),
     ).toBe("visible at 375px");
@@ -235,7 +235,7 @@ describe("admin dashboard header on small screens", () => {
 
     expect(
       describeVisibility(
-        screen.getByRole("link", { name: "Log out" }),
+        screen.getByRole("link", { name: "Sign Out" }),
         PHONE_WIDTH_IN_PX,
       ),
     ).toBe("visible at 375px");

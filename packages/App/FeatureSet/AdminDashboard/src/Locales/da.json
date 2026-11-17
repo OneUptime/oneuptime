@@ -64,7 +64,7 @@
     "apiKey": "API-nøgle",
     "more": "Mere",
     "sendEmail": "Send e-mail",
-    "logout": "Log ud",
+    "signOut": "Log ud",
     "telemetryUsage": "Telemetriforbrug",
     "ingestionBudgets": "Indtagelsesbudgetter",
     "products": "Produkter"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "Forlad admin",
-    "logOut": "Log ud"
+    "signOut": "Log ud"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -485,7 +485,7 @@
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "Log ud"
     },
     "sendEmail": {
@@ -727,7 +727,6 @@
   "Projects": "Projekter",
   "Project": "Projekt",
   "User": "Bruger",
-  "Logout": "Log ud",
   "Save": "Gem",
   "Cancel": "Annuller",
   "Submit": "Indsend",
