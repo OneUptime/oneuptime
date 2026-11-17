@@ -56553,5 +56553,6 @@
   "This override ends within the minute, so there is nothing left to end.": "Den här åsidosättningen slutar inom minuten, så det finns inget kvar att avsluta.",
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Den här åsidosättningen har inte börjat än, så det finns inget att avsluta. Ta bort den för att ställa in den.",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "{{away}} hoppas inte längre över från nu i stället för {{until}}. Därefter är passen i rotationen deras igen.",
-  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} täcker inte längre upp för {{away}} från nu i stället för {{until}}. Därefter går larmen till {{away}} igen."
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} täcker inte längre upp för {{away}} från nu i stället för {{until}}. Därefter går larmen till {{away}} igen.",
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Inget har kontrollerat monitorerna för denna SLO ännu. Den mäts från deras första kontroll."
 }

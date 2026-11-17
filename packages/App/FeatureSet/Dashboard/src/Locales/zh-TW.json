@@ -56553,5 +56553,6 @@
   "This override ends within the minute, so there is nothing left to end.": "此覆寫將在一分鐘內結束，因此已沒有可結束的內容。",
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "此覆寫尚未開始，因此沒有可結束的內容。若要取消，請將其刪除。",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "略過現在就結束，而不是在 {{until}}。之後，{{away}} 會重新在輪換中值自己的班。",
-  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} 現在就停止為 {{away}} 代班，而不是在 {{until}}。之後，警示會再次發給 {{away}}。"
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} 現在就停止為 {{away}} 代班，而不是在 {{until}}。之後，警示會再次發給 {{away}}。",
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "此 SLO 的監測器尚未被檢查過。它從這些監測器的首次檢查開始計量。"
 }

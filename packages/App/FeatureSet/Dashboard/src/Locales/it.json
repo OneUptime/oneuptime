@@ -56553,5 +56553,6 @@
   "This override ends within the minute, so there is nothing left to end.": "Questa sostituzione termina entro il minuto, quindi non resta nulla da terminare.",
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Questa sostituzione non è ancora iniziata, quindi non c'è nulla da terminare. Per annullarla, eliminala.",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "Il salto dei turni termina ora invece che il {{until}}. Da quel momento {{away}} riprende i propri turni nella rotazione.",
-  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} smette di sostituire {{away}} ora invece che il {{until}}. Da quel momento gli avvisi tornano a {{away}}."
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} smette di sostituire {{away}} ora invece che il {{until}}. Da quel momento gli avvisi tornano a {{away}}.",
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Nessuno ha ancora controllato i monitor di questo SLO. Viene misurato a partire dal loro primo controllo."
 }

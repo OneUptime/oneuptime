@@ -56553,5 +56553,6 @@
   "This override ends within the minute, so there is nothing left to end.": "이 재정의는 1분 안에 끝나므로 더 종료할 것이 없습니다.",
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "이 재정의는 아직 시작되지 않았으므로 종료할 것이 없습니다. 취소하려면 삭제하세요.",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "건너뛰기가 {{until}} 대신 지금 끝납니다. 그 이후에는 {{away}} 님이 로테이션에서 다시 자기 차례를 맡습니다.",
-  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} 님이 {{until}} 대신 지금 {{away}} 님 대리를 멈춥니다. 그 이후에는 경고가 다시 {{away}} 님에게 갑니다."
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} 님이 {{until}} 대신 지금 {{away}} 님 대리를 멈춥니다. 그 이후에는 경고가 다시 {{away}} 님에게 갑니다.",
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "이 SLO의 모니터를 아직 아무것도 확인하지 않았습니다. 첫 확인부터 측정됩니다."
 }
