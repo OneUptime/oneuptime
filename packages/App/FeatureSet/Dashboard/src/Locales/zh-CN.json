@@ -56559,5 +56559,7 @@
   "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "此测试还会在规则的 Microsoft Teams 团队中创建一个真实频道（例如 {{channel}}），团队中的所有人都能看到它。完成后，请在 Microsoft Teams 中将其删除。",
   "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "此测试还会创建一个真实的 {{workspace}} 频道（例如 {{channel}}），并邀请您加入。完成后，请在 {{workspace}} 中将其归档。",
   "{{team}} (typed name)": "{{team}}（手动输入的名称）",
-  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "此 SLO 的监视器尚未被检查过。它从这些监视器的首次检查开始计量。"
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "此 SLO 的监视器尚未被检查过。它从这些监视器的首次检查开始计量。",
+  "Discovered device {{name}}": "已发现的设备 {{name}}",
+  "The Discovered Devices list": "已发现的设备列表"
 }

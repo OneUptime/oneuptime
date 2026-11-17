@@ -610,6 +610,11 @@ export interface DiscoveredDeviceImportFacts {
    * what a naming rule's Vendor condition and {vendor} read (issue #6619).
    */
   vendor?: string | undefined;
+  /*
+   * What its network controller calls it (the row's hostname), kept on the
+   * device as what discovery knows it by (issue #9305).
+   */
+  hostname?: string | undefined;
 }
 
 export function readDiscoveredDeviceImportFacts(
@@ -631,6 +636,7 @@ export function readDiscoveredDeviceImportFacts(
   const siteId: string | undefined = optionalText(facts["siteId"]);
   const probeId: string | undefined = optionalText(facts["probeId"]);
   const vendor: string | undefined = optionalText(facts["vendor"]);
+  const hostname: string | undefined = optionalText(facts["hostname"]);
 
   if (siteId && ObjectID.isValidUUID(siteId)) {
     read.siteId = siteId;
@@ -642,6 +648,10 @@ export function readDiscoveredDeviceImportFacts(
 
   if (vendor) {
     read.vendor = vendor;
+  }
+
+  if (hostname) {
+    read.hostname = hostname;
   }
 
   return read;

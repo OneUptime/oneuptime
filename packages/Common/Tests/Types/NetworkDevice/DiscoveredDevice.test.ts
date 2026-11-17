@@ -409,6 +409,27 @@ describe("what an import from the list keeps of each device", () => {
     expect(readDiscoveredDeviceImportFacts(undefined)).toBeNull();
   });
 
+  test("its maker and what its controller calls it, which the device keeps (#9305)", () => {
+    expect(
+      readDiscoveredDeviceImportFacts({
+        endpointId: ID_A,
+        name: "PROFUSION-733451",
+        macAddress: "20:4b:22:91:d7:21",
+        vendor: "Sunnovo International",
+        hostname: "PROFUSION-733451",
+      }),
+    ).toEqual({
+      endpointId: ID_A,
+      name: "PROFUSION-733451",
+      macAddress: "20:4b:22:91:d7:21",
+      vendor: "Sunnovo International",
+      hostname: "PROFUSION-733451",
+    });
+    expect(
+      readDiscoveredDeviceImportFacts({ endpointId: ID_A, hostname: 42 }),
+    ).toEqual({ endpointId: ID_A, name: "", macAddress: "" });
+  });
+
   test("a result says which device it is, and is told apart by it", () => {
     expect(
       readDiscoveryImportHostResult({
