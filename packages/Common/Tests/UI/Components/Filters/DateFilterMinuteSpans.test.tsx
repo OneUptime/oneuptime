@@ -494,7 +494,7 @@ describe("the chip over the list reads each value as the field does", () => {
       .getByText((text: string): boolean => {
         return titles.includes(text.trim());
       })
-      .closest(".rounded-full");
+      .closest('[data-testid="applied-filter-chip"]');
 
     return ((chip as HTMLElement).textContent || "")
       .replace(/\s+/g, " ")

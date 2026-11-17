@@ -81,7 +81,7 @@ function renderFilters(code: string, filterData: FilterData<Row>): void {
 function chipOf(title: string): HTMLElement {
   const chip: HTMLElement | null = screen
     .getByText(title)
-    .closest(".rounded-full");
+    .closest('[data-testid="applied-filter-chip"]');
 
   if (!chip) {
     throw new Error(`No chip for ${title}`);

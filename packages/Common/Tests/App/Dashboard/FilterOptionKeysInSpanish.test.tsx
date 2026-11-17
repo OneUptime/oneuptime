@@ -320,7 +320,9 @@ async function renderFiltered(data: {
 // The chip over the list that starts with a filter's name.
 function chipOf(field: string): string {
   const chip: HTMLElement | undefined = Array.from(
-    document.querySelectorAll<HTMLElement>(".rounded-full"),
+    document.querySelectorAll<HTMLElement>(
+      '[data-testid="applied-filter-chip"]',
+    ),
   ).find((element: HTMLElement): boolean => {
     return (element.textContent || "").startsWith(`${field} `);
   });
@@ -468,11 +470,13 @@ describe("Spanish schema changes, filtered to the columns added: a list written 
       "Cambio es Columna añadida",
     );
     expect(
-      Array.from(document.querySelectorAll<HTMLElement>(".rounded-full")).some(
-        (element: HTMLElement): boolean => {
-          return (element.textContent || "").startsWith(spanish("Change"));
-        },
-      ),
+      Array.from(
+        document.querySelectorAll<HTMLElement>(
+          '[data-testid="applied-filter-chip"]',
+        ),
+      ).some((element: HTMLElement): boolean => {
+        return (element.textContent || "").startsWith(spanish("Change"));
+      }),
     ).toBe(false);
 
     const menu: { picked: Array<string>; options: Array<string> } =
