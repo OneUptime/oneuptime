@@ -10,6 +10,14 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import useTranslateValue from "Common/UI/Utils/Translation";
@@ -257,39 +265,60 @@ const SubscriberNotificationPreviewModal: FunctionComponent<ComponentProps> = (
                         SubscriberNotificationPreviewCopy.statusPageSelectLabel,
                       )}
                     </label>
-                    <select
-                      id={pageSelectId}
+                    <div
+                      className="mt-1"
                       data-testid={`${dataTestId}-page-select`}
-                      value={selectedStatusPage.statusPageId}
-                      /*
-                       * Kept on the page being sent until the test has
-                       * answered, so its answer is shown under that page.
-                       */
-                      disabled={sendTest.isSending}
-                      onChange={(
-                        event: React.ChangeEvent<HTMLSelectElement>,
-                      ) => {
-                        sendTestGeneration.current += 1;
-                        setSelectedStatusPageId(event.target.value);
-                        setSendTest(EMPTY_SEND_TEST_STATE);
-                      }}
-                      className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500"
                     >
-                      {result.statusPages.map(
-                        (
-                          statusPage: SubscriberNotificationPreviewStatusPage,
-                        ): ReactElement => {
-                          return (
-                            <option
-                              key={statusPage.statusPageId}
-                              value={statusPage.statusPageId}
-                            >
-                              {describePreviewStatusPage(statusPage, translate)}
-                            </option>
-                          );
-                        },
-                      )}
-                    </select>
+                      <Dropdown
+                        inputId={pageSelectId}
+                        className="relative w-full overflow-visible"
+                        /*
+                         * A page's name and how many it reaches, put
+                         * together in the reader's language.
+                         */
+                        options={result.statusPages.map(
+                          (
+                            statusPage: SubscriberNotificationPreviewStatusPage,
+                          ): DropdownOption => {
+                            return getTranslatedDropdownOption(
+                              statusPage.statusPageId,
+                              describePreviewStatusPage(statusPage, translate),
+                            );
+                          },
+                        )}
+                        value={getTranslatedDropdownOption(
+                          selectedStatusPage.statusPageId,
+                          describePreviewStatusPage(
+                            selectedStatusPage,
+                            translate,
+                          ),
+                        )}
+                        /*
+                         * Kept on the page being sent until the test has
+                         * answered, so its answer is shown under that page.
+                         */
+                        disabled={sendTest.isSending}
+                        // The preview always shows one page.
+                        isClearable={false}
+                        onChange={(
+                          next: DropdownValue | Array<DropdownValue> | null,
+                        ): void => {
+                          const picked: string | null =
+                            readPickedDropdownValue(next);
+
+                          if (
+                            picked === null ||
+                            picked === selectedStatusPage.statusPageId
+                          ) {
+                            return;
+                          }
+
+                          sendTestGeneration.current += 1;
+                          setSelectedStatusPageId(picked);
+                          setSendTest(EMPTY_SEND_TEST_STATE);
+                        }}
+                      />
+                    </div>
                   </>
                 ) : (
                   <p

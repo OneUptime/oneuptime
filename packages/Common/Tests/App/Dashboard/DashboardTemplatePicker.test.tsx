@@ -34,7 +34,14 @@ import {
   getDashboardPickerTemplate,
   getDashboardPickerTemplates,
   getDashboardTemplatePreview,
+  DASHBOARD_TEMPLATE_PICKER_RULES,
+  DashboardTemplatePickerView,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Dashboard/DashboardTemplatePickerUtil";
+import {
+  closeDropdown,
+  getShownDropdownValue,
+  openDropdown,
+} from "../../DropdownPicks";
 import { TemplateCollection } from "../../../../App/FeatureSet/Dashboard/src/Utils/TemplatePicker/TemplatePickerUtil";
 import {
   DashboardTemplateCategory,
@@ -173,7 +180,69 @@ const getSearch: ElementFunction = (): HTMLElement => {
 };
 
 const getSelect: ElementFunction = (): HTMLElement => {
-  return screen.getByTestId("dashboard-template-view-select");
+  return getCategoryCombobox();
+};
+
+/*
+ * The category picker is the shared Dropdown (#9310): its combobox is the
+ * input inside the box with the picker's test id, and its menu is drawn over
+ * the page - apart from the template list's own options.
+ */
+const getCategoryCombobox: () => HTMLElement = (): HTMLElement => {
+  return within(screen.getByTestId("dashboard-template-view-select")).getByRole(
+    "combobox",
+  );
+};
+
+const getCategoryMenuOptions: () => Array<HTMLElement> =
+  (): Array<HTMLElement> => {
+    openDropdown(getCategoryCombobox());
+    const menu: HTMLElement | null = document.querySelector(".ou-select__menu");
+
+    if (!menu) {
+      throw new Error("The category picker's menu did not open");
+    }
+
+    return within(menu).getAllByRole("option");
+  };
+
+// The categories the picker offers, by name, in order.
+const listCategoryNames: () => Array<string> = (): Array<string> => {
+  const names: Array<string> = getCategoryMenuOptions().map(
+    (option: HTMLElement): string => {
+      return option.textContent || "";
+    },
+  );
+  closeDropdown(getCategoryCombobox());
+
+  return names;
+};
+
+// Picks a view by its place in the list, in any language.
+const pickCategory: (view: string) => void = (view: string): void => {
+  const index: number = DASHBOARD_TEMPLATE_PICKER_RULES.getViews().findIndex(
+    (info: { view: string }): boolean => {
+      return info.view === view;
+    },
+  );
+  const option: HTMLElement | undefined = getCategoryMenuOptions()[index];
+
+  if (!option) {
+    throw new Error(`The category picker offers no ${view}`);
+  }
+
+  fireEvent.click(option);
+};
+
+// The name of the view the picker shows.
+const shownCategory: () => string | null = (): string | null => {
+  return getShownDropdownValue(getCategoryCombobox());
+};
+
+const categoryLabel: (view: string) => string = (view: string): string => {
+  return DASHBOARD_TEMPLATE_PICKER_RULES.getViewInfo(
+    view as DashboardTemplatePickerView,
+  ).label;
 };
 
 const getListbox: ElementFunction = (): HTMLElement => {
@@ -221,7 +290,7 @@ const picked: PickedFunction = (): string | null => {
 type ShowViewFunction = (view: string) => void;
 
 const showView: ShowViewFunction = (view: string): void => {
-  fireEvent.change(getSelect(), { target: { value: view } });
+  pickCategory(view);
 };
 
 type TypeFunction = (text: string) => void;
@@ -407,10 +476,8 @@ describe("what the step opens on", () => {
     expect(within(getListbox()).queryAllByRole("group")).toEqual([]);
     expect(screen.queryByText("Get Started")).not.toBeInTheDocument();
 
-    for (const option of Array.from(
-      (getSelect() as HTMLSelectElement).options,
-    )) {
-      expect(option.textContent || "").not.toMatch(DIGIT);
+    for (const name of listCategoryNames()) {
+      expect(name).not.toMatch(DIGIT);
     }
   });
 
@@ -451,17 +518,24 @@ describe("the category select", () => {
     renderPicker();
 
     expect(
-      Array.from((getSelect() as HTMLSelectElement).options).map(
-        (option: HTMLOptionElement): Array<string> => {
-          return [option.value, option.textContent || ""];
+      DASHBOARD_TEMPLATE_PICKER_RULES.getViews().map(
+        (info: { view: string }): string => {
+          return info.view;
         },
       ),
     ).toEqual([
-      [TemplateCollection.Recommended, "Recommended"],
-      [DashboardTemplateCategory.Monitoring, "Monitoring & APM"],
-      [DashboardTemplateCategory.IncidentResponse, "Incident Response"],
-      [DashboardTemplateCategory.Infrastructure, "Infrastructure"],
-      [TemplateCollection.All, "All templates"],
+      TemplateCollection.Recommended,
+      DashboardTemplateCategory.Monitoring,
+      DashboardTemplateCategory.IncidentResponse,
+      DashboardTemplateCategory.Infrastructure,
+      TemplateCollection.All,
+    ]);
+    expect(listCategoryNames()).toEqual([
+      "Recommended",
+      "Monitoring & APM",
+      "Incident Response",
+      "Infrastructure",
+      "All templates",
     ]);
     expect(getSelect()).toHaveAccessibleName("Template categories");
   });
@@ -684,7 +758,7 @@ describe("the search", () => {
     typeSearch("ceph");
 
     expect(listed()).toEqual([DashboardTemplateType.Ceph]);
-    expect(getSelect()).toHaveValue(TemplateCollection.All);
+    expect(shownCategory()).toBe(categoryLabel(TemplateCollection.All));
   });
 
   test("picks its best match and opens its details, so Enter takes it", () => {
@@ -934,7 +1008,9 @@ describe("the state it reports", () => {
       },
     });
 
-    expect(getSelect()).toHaveValue(DashboardTemplateCategory.Infrastructure);
+    expect(shownCategory()).toBe(
+      categoryLabel(DashboardTemplateCategory.Infrastructure),
+    );
     expect(picked()).toBe(DashboardTemplateType.Ceph);
   });
 });

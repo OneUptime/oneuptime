@@ -5,7 +5,6 @@ import {
   configure,
   render,
   screen,
-  within,
 } from "@testing-library/react";
 import {
   afterEach,
@@ -20,6 +19,10 @@ import fs from "fs";
 import i18next from "i18next";
 import path from "path";
 import React from "react";
+import {
+  getShownDropdownPlaceholder,
+  readDropdownOptions,
+} from "../../DropdownPicks";
 import { initReactI18next } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
 
@@ -360,13 +363,18 @@ describe("Metrics → AI → Insights in German", () => {
     }
 
     expect(
-      within(
+      readDropdownOptions(
         screen.getByRole("combobox", { name: "Einblicke sortieren" }),
-      ).getByRole("option", { name: "Zuletzt gesehen: neueste zuerst" }),
-    ).toBeInTheDocument();
+      ),
+    ).toContain("Zuletzt gesehen: neueste zuerst");
+    // Any time is the when-seen filter's placeholder: it narrows nothing.
     expect(
-      screen.getByRole("option", { name: "Jederzeit gesehen" }),
-    ).toBeInTheDocument();
+      getShownDropdownPlaceholder(
+        screen.getByRole("combobox", {
+          name: "Nach „Zuletzt gesehen“ filtern",
+        }),
+      ),
+    ).toBe("Jederzeit gesehen");
     // The counts are drawn apart from the sentence: read it whole.
     expect(document.body.textContent).toContain("3 von 3 Einblicken");
 

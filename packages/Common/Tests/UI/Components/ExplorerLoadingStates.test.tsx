@@ -97,6 +97,22 @@ import Log from "../../../Models/AnalyticsModels/Log";
 import LogSeverity from "../../../Types/Log/LogSeverity";
 import TimeRange from "../../../Types/Time/TimeRange";
 
+/*
+ * The rows-per-page picker is the shared Dropdown (#9310): its combobox,
+ * inside the box "pagination-items-on-page-select" names (hidden: a locked
+ * react-select is left out of jsdom's accessibility tree, though its
+ * combobox is still there, disabled).
+ */
+const rowsPerPage: (container?: HTMLElement) => HTMLElement = (
+  container?: HTMLElement,
+): HTMLElement => {
+  return within(
+    within(container || document.body).getByTestId(
+      "pagination-items-on-page-select",
+    ),
+  ).getByRole("combobox", { hidden: true });
+};
+
 const NO_VALUES: string = "No values in this time range";
 
 function summaryOf(footer: HTMLElement): string {
@@ -140,9 +156,7 @@ describe("the list footer while nothing is on screen", () => {
     expect(footer).not.toHaveTextContent("No logs");
     // Nothing to page through yet.
     expect(within(footer).getByTestId("pagination-next-button")).toBeDisabled();
-    expect(
-      within(footer).getByTestId("pagination-items-on-page-select"),
-    ).toBeDisabled();
+    expect(rowsPerPage(footer)).toBeDisabled();
   });
 
   test("an answer with no logs still says so", () => {

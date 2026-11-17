@@ -906,6 +906,11 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
             buttonStyle={ButtonStyleType.NORMAL}
             buttonSize={ButtonSize.Small}
             dataTestId="call-transcript-view"
+            /*
+             * A row of its own, as wide as the card on a phone; as wide as
+             * its words from sm up. A button has no width of its own (#9100).
+             */
+            className="w-full sm:w-auto"
             onClick={() => {
               setIsViewing(true);
             }}

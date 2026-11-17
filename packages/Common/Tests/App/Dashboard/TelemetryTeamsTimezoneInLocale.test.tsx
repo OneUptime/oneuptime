@@ -28,6 +28,7 @@ import { initReactI18next } from "react-i18next";
 import fs from "fs";
 import path from "path";
 import * as React from "react";
+import { readDropdownOptions } from "../../DropdownPicks";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -189,14 +190,10 @@ describe("the telemetry overviews' refresh control in German and Arabic", () => 
       worded(DE, "Next refresh in {{count}} seconds", { count: "30" }),
     );
 
-    const select: HTMLElement = screen.getByLabelText(
-      worded(DE, "Auto-refresh"),
-    );
-    const options: Array<string> = Array.from(
-      select.querySelectorAll("option"),
-    ).map((option: HTMLOptionElement): string => {
-      return option.textContent || "";
+    const select: HTMLElement = screen.getByRole("combobox", {
+      name: worded(DE, "Auto-refresh"),
     });
+    const options: Array<string> = readDropdownOptions(select);
 
     expect(options[0]).toBe(worded(DE, "Off"));
     // The interval is German too, not English's short "30s" (issue #7303).

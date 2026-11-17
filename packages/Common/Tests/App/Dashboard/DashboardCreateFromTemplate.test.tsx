@@ -152,6 +152,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { dashboardTemplateOptionDomId } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/DashboardTemplatePicker";
+import { openDropdown } from "../../DropdownPicks";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import Route from "../../../Types/API/Route";
 import {
@@ -286,10 +287,15 @@ async function openDialog(user: UserEvent): Promise<void> {
 
 async function useTemplate(user: UserEvent, type: string): Promise<void> {
   if (!within(dialog()).queryByTestId(dashboardTemplateOptionDomId(type))) {
-    fireEvent.change(
+    // All templates, the category picker's last choice (the shared Dropdown).
+    const categories: HTMLElement = within(
       within(dialog()).getByTestId("dashboard-template-view-select"),
-      { target: { value: "all" } },
-    );
+    ).getByRole("combobox");
+    openDropdown(categories);
+    const menuOptions: Array<HTMLElement> = within(
+      document.querySelector(".ou-select__menu") as HTMLElement,
+    ).getAllByRole("option");
+    fireEvent.click(menuOptions[menuOptions.length - 1]!);
   }
 
   await user.click(row(type));

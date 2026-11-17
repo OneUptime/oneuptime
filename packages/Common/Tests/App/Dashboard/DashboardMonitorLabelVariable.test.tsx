@@ -1,12 +1,7 @@
 import "@testing-library/jest-dom";
 import React, { act } from "react";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { chooseDropdownOption, clearDropdown } from "../../DropdownPicks";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import DashboardMonitorListComponentElement, {
   ComponentProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardMonitorListComponent";
@@ -224,9 +219,7 @@ describe("MonitorList project label variables", () => {
     expect(screen.getByText("All NETWORK")).toBeInTheDocument();
 
     listMock.mockResolvedValue(response("0660 router"));
-    fireEvent.change(screen.getByRole("combobox"), {
-      target: { value: UNIT_660 },
-    });
+    chooseDropdownOption(screen.getByRole("combobox"), "0660");
     expect(await screen.findByText("0660 router")).toBeInTheDocument();
     expect(screen.queryByText("All unit monitors")).not.toBeInTheDocument();
     expect(screen.getByText("0660 NETWORK")).toBeInTheDocument();
@@ -235,9 +228,7 @@ describe("MonitorList project label variables", () => {
     );
 
     listMock.mockResolvedValue(response("0661 switch"));
-    fireEvent.change(screen.getByRole("combobox"), {
-      target: { value: UNIT_661 },
-    });
+    chooseDropdownOption(screen.getByRole("combobox"), "0661");
     expect(await screen.findByText("0661 switch")).toBeInTheDocument();
     expect(screen.queryByText("0660 router")).not.toBeInTheDocument();
     expect(listMock.mock.calls[2][0].query.labels).toEqual(
@@ -245,7 +236,8 @@ describe("MonitorList project label variables", () => {
     );
 
     listMock.mockResolvedValue(response("All unit monitors"));
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "" } });
+    // "All" is the placeholder: clearing the picker picks it.
+    clearDropdown(screen.getByRole("combobox"));
     expect(await screen.findByText("All unit monitors")).toBeInTheDocument();
     expect(listMock.mock.calls[3][0].query.labels).toBeUndefined();
   });

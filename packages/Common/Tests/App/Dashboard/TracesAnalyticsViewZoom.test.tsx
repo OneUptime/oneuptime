@@ -17,6 +17,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import * as React from "react";
+import { chooseDropdownOption } from "../../DropdownPicks";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -334,9 +335,10 @@ describe("TracesAnalyticsView's zoom", () => {
     );
     await waitForChart();
 
-    fireEvent.change(screen.getAllByRole("combobox")[0]!, {
-      target: { value: "table" },
-    });
+    chooseDropdownOption(
+      screen.getByRole("combobox", { name: "Chart" }),
+      "Table",
+    );
 
     await waitFor(() => {
       expect(screen.getByText("GET /")).toBeInTheDocument();

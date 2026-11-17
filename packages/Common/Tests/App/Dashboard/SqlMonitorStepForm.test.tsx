@@ -167,20 +167,14 @@ describe("SqlMonitorStepForm - Host and Port", () => {
       .closest(".grid") as HTMLElement;
 
     /*
-     * Each cell: its label, then its box - no line of help between. The
-     * label's own (Optional) mark is gray-500 too since 8f9091f5d3f, and
-     * stays in the label as an empty span on a required field: only gray
-     * text with words in it is a line of help.
+     * Each cell: its label, then its box - no line of help between, so the
+     * only words in the cell are its label's.
      */
     for (const cell of Array.from(row.children)) {
-      expect(cell.querySelectorAll("label")).toHaveLength(1);
-      expect(
-        Array.from(cell.querySelectorAll(".text-gray-500")).filter(
-          (gray: Element): boolean => {
-            return Boolean(gray.textContent?.trim());
-          },
-        ),
-      ).toHaveLength(0);
+      const labels: NodeListOf<HTMLLabelElement> =
+        cell.querySelectorAll("label");
+      expect(labels).toHaveLength(1);
+      expect(cell.textContent).toBe(labels[0]!.textContent);
     }
     expect(view.container.textContent).not.toContain(
       "A host the probe can reach",

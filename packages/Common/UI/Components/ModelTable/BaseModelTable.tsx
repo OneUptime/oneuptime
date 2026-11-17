@@ -5542,8 +5542,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         {/* Expanded input + dropdown — sized to the full title slot */}
         <div className="relative flex w-full flex-col gap-1">
           {/*
-           * As tall as the header's buttons: 42px on a phone, 38px from md
-           * up (TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME). The pill folded
+           * As tall as the header's buttons: 38px at every width
+           * (TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME). The pill folded
            * over it takes its height.
            */}
           <div

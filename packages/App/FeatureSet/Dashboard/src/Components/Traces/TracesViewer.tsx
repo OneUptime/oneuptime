@@ -8,6 +8,15 @@ import React, {
   useState,
 } from "react";
 import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import TelemetryLoadErrorUtil, {
   TelemetryLoadError,
@@ -986,6 +995,15 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    * status, projection-backed) or a latency aggregate over the same filters.
    */
   const [chartMetric, setChartMetric] = useState<string>("count");
+  // What the histogram plots, in the reader's language.
+  const chartMetricOptions: Array<DropdownOption> = CHART_METRIC_OPTIONS.map(
+    (option: { value: string; label: string }): DropdownOption => {
+      return getTranslatedDropdownOption(
+        option.value,
+        translator.translateText(option.label) || option.label,
+      );
+    },
+  );
 
   // Bumped by the toolbar Refresh button so the analytics view refetches.
   const [analyticsRefreshTick, setAnalyticsRefreshTick] = useState<number>(0);
@@ -4025,22 +4043,30 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             }
       }
       histogramHeaderActions={
-        <select
-          className="rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] font-medium text-gray-600 focus:border-indigo-400 focus:outline-none"
-          value={chartMetric}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-            setChartMetric(e.target.value);
-          }}
+        <div
           title={translator.translateText("Chart metric")}
+          data-testid="traces-chart-metric"
         >
-          {CHART_METRIC_OPTIONS.map((opt: { value: string; label: string }) => {
-            return (
-              <option key={opt.value} value={opt.value}>
-                {translator.translateText(opt.label)}
-              </option>
-            );
-          })}
-        </select>
+          <Dropdown
+            className="relative w-44 max-w-full overflow-visible"
+            isCompact={true}
+            ariaLabel={translator.translateText("Chart metric")}
+            isAriaLabelTranslated={true}
+            options={chartMetricOptions}
+            value={findDropdownOption(chartMetricOptions, chartMetric)}
+            // The chart always plots something: the count, or a latency.
+            isClearable={false}
+            onChange={(
+              next: DropdownValue | Array<DropdownValue> | null,
+            ): void => {
+              const picked: string | null = readPickedDropdownValue(next);
+
+              if (picked !== null && picked !== chartMetric) {
+                setChartMetric(picked);
+              }
+            }}
+          />
+        </div>
       }
       mainContentOverride={
         viewMode === "analytics" ? (

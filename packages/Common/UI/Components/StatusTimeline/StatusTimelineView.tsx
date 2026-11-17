@@ -156,12 +156,13 @@ export interface ComponentProps {
 
 /*
  * Each choice's padding. With the track's 2px around it, the switch is as
- * tall as the buttons beside it in a card's header - 42px on a phone, 38px
- * from md up (TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME): it stood 32px beside
- * the 38px Create and ⋯.
+ * tall as the buttons beside it in a card's header - 38px at every width
+ * (TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME): it stood 32px beside the 38px
+ * Create and ⋯. On a phone it was 42px, as they were in larger words,
+ * until every button became one frame in text-sm (#9128).
  */
 export const STATUS_TIMELINE_VIEW_OPTION_PADDING_CLASS_NAME: string =
-  "px-2.5 py-[9px] md:py-[7px]";
+  "px-2.5 py-[7px]";
 
 // Timeline | Table, in the card's header beside its other actions.
 const StatusTimelineViewSwitch: FunctionComponent<ComponentProps> = (

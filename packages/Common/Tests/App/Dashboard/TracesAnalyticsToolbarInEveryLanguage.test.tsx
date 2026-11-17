@@ -8,18 +8,19 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import fs from "fs";
 import { createInstance, i18n } from "i18next";
 import path from "path";
 import * as React from "react";
+import {
+  chooseDropdownOption,
+  clearDropdown,
+  getDropdownContainer,
+  getShownDropdownPlaceholder,
+  hasDropdownClearControl,
+  listDropdownOptions,
+} from "../../DropdownPicks";
 import { I18nextProvider } from "react-i18next";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -379,51 +380,52 @@ const renderInLanguage: (language: string) => Promise<void> = async (
   await settle();
 };
 
-// The toolbar's selects, in the order it draws them.
-const toolbarSelects: () => Array<HTMLSelectElement> =
-  (): Array<HTMLSelectElement> => {
-    return screen.getAllByRole("combobox") as Array<HTMLSelectElement>;
-  };
+// The toolbar's pickers (the shared Dropdown), in the order it draws them.
+const toolbarSelects: () => Array<HTMLElement> = (): Array<HTMLElement> => {
+  return screen.getAllByRole("combobox");
+};
 
 /*
- * The caption a control draws before its select: the control's first child.
- * The select sits in a box of its own with its chevron, so the control is
- * that box's parent.
+ * The caption a control draws before its picker: the control's first child.
+ * The picker sits in a box of its own, so the control is the row around it.
  */
-const captionOf: (select: HTMLSelectElement) => string = (
-  select: HTMLSelectElement,
+const captionOf: (select: HTMLElement) => string = (
+  select: HTMLElement,
 ): string => {
   return (
-    select.parentElement?.parentElement?.firstElementChild?.textContent || ""
+    getDropdownContainer(select).closest("div.flex.items-center")
+      ?.firstElementChild?.textContent || ""
   );
 };
 
-const choicesOf: (select: HTMLSelectElement) => Array<string> = (
-  select: HTMLSelectElement,
-): Array<string> => {
-  return Array.from(select.options).map((option: HTMLOptionElement): string => {
-    return option.textContent || "";
-  });
+// The choices the picker's menu lists, in order.
+const choicesOf: (select: HTMLElement) => Promise<Array<string>> = (
+  select: HTMLElement,
+): Promise<Array<string>> => {
+  return listDropdownOptions(select);
 };
 
-const valuesOf: (select: HTMLSelectElement) => Array<string> = (
-  select: HTMLSelectElement,
-): Array<string> => {
-  return Array.from(select.options).map((option: HTMLOptionElement): string => {
-    return option.value;
-  });
-};
-
-const selectCaptioned: (
+const selectCaptioned: (language: string, caption: string) => HTMLElement = (
   language: string,
   caption: string,
-) => HTMLSelectElement = (
-  language: string,
-  caption: string,
-): HTMLSelectElement => {
+): HTMLElement => {
   return screen.getByRole("combobox", {
     name: drawn(language, caption),
-  }) as HTMLSelectElement;
+  });
+};
+
+// Where `value` is in a list of choices: the picker is picked from by place.
+const placeOf: (choices: Array<{ value: string }>, value: string) => number = (
+  choices: Array<{ value: string }>,
+  value: string,
+): number => {
+  const index: number = choices.findIndex(
+    (choice: { value: string }): boolean => {
+      return choice.value === value;
+    },
+  );
+  expect(index).toBeGreaterThanOrEqual(0);
+  return index;
 };
 
 const seriesNames: () => Array<string> = (): Array<string> => {
@@ -530,14 +532,14 @@ describe.each(LANGUAGES)("the analytics toolbar in %s", (language: string) => {
   test("captions each control, and names its select, in the language's words", async () => {
     await renderInLanguage(language);
 
-    const selects: Array<HTMLSelectElement> = toolbarSelects();
+    const selects: Array<HTMLElement> = toolbarSelects();
     const captions: Array<string> = CAPTIONS.map((caption: string): string => {
       return drawn(language, caption);
     });
 
     expect(selects.map(captionOf)).toEqual(captions);
     expect(
-      selects.map((select: HTMLSelectElement): string | null => {
+      selects.map((select: HTMLElement): string | null => {
         return select.getAttribute("aria-label");
       }),
     ).toEqual(captions);
@@ -566,49 +568,38 @@ describe.each(LANGUAGES)("the analytics toolbar in %s", (language: string) => {
       });
     };
 
-    const chart: HTMLSelectElement = selectCaptioned(language, "Chart");
-    expect(choicesOf(chart)).toEqual(words(CHART_CHOICES));
-    expect(valuesOf(chart)).toEqual(
-      CHART_CHOICES.map((choice: { value: string }): string => {
-        return choice.value;
-      }),
-    );
+    const chart: HTMLElement = selectCaptioned(language, "Chart");
+    expect(await choicesOf(chart)).toEqual(words(CHART_CHOICES));
 
-    const measure: HTMLSelectElement = selectCaptioned(language, "Measure");
-    expect(choicesOf(measure)).toEqual(words(MEASURE_CHOICES));
-    expect(valuesOf(measure)).toEqual(
-      MEASURE_CHOICES.map((choice: { value: string }): string => {
-        return choice.value;
-      }),
-    );
+    const measure: HTMLElement = selectCaptioned(language, "Measure");
+    expect(await choicesOf(measure)).toEqual(words(MEASURE_CHOICES));
 
-    const splitBy: HTMLSelectElement = selectCaptioned(language, "Split by");
-    expect(choicesOf(splitBy)).toEqual([
-      drawn(language, NONE),
+    /*
+     * A split's empty choice ("None") is its placeholder, not an option:
+     * clearing the picker picks it, so a split that is set can be cleared.
+     */
+    const splitBy: HTMLElement = selectCaptioned(language, "Split by");
+    expect(await choicesOf(splitBy)).toEqual([
       ...words(SPAN_FIELDS),
       ...ATTRIBUTE_KEYS,
     ]);
-    expect(valuesOf(splitBy)).toEqual([
-      "",
-      ...SPAN_FIELDS.map((field: { value: string }): string => {
-        return field.value;
-      }),
-      ...ATTRIBUTE_KEYS,
-    ]);
+    expect(hasDropdownClearControl(splitBy)).toBe(true);
 
     // Split by Span Name first, so then by offers every field but that one.
-    const thenBy: HTMLSelectElement = selectCaptioned(language, "then by");
-    expect(choicesOf(thenBy)).toEqual([
-      drawn(language, NONE),
+    const thenBy: HTMLElement = selectCaptioned(language, "then by");
+    expect(getShownDropdownPlaceholder(thenBy)).toBe(drawn(language, NONE));
+    expect(await choicesOf(thenBy)).toEqual([
       ...words(SPAN_FIELDS.slice(1)),
       ...ATTRIBUTE_KEYS,
     ]);
 
     // As written: the Span Type's choices and Top's numbers.
-    expect(choicesOf(selectCaptioned(language, "Span Type"))).toEqual(
+    expect(await choicesOf(selectCaptioned(language, "Span Type"))).toEqual(
       SPAN_TYPE_CHOICES,
     );
-    expect(choicesOf(selectCaptioned(language, "Top"))).toEqual(TOP_CHOICES);
+    expect(await choicesOf(selectCaptioned(language, "Top"))).toEqual(
+      TOP_CHOICES,
+    );
   });
 
   test("names Create metric… and what it does in the language's words", async () => {
@@ -622,9 +613,10 @@ describe.each(LANGUAGES)("the analytics toolbar in %s", (language: string) => {
   test("heads the table's columns with the split's names, as the toolbar words them, and the measures'", async () => {
     await renderInLanguage(language);
 
-    fireEvent.change(selectCaptioned(language, "Chart"), {
-      target: { value: "table" },
-    });
+    chooseDropdownOption(
+      selectCaptioned(language, "Chart"),
+      placeOf(CHART_CHOICES, "table"),
+    );
 
     await waitFor(() => {
       expect(screen.getAllByRole("columnheader").length).toBeGreaterThan(1);
@@ -647,16 +639,16 @@ describe.each(LANGUAGES)("the analytics toolbar in %s", (language: string) => {
   test("names a chart's one series for its measure, as the toolbar words it", async () => {
     await renderInLanguage(language);
 
-    fireEvent.change(selectCaptioned(language, "Split by"), {
-      target: { value: "" },
-    });
+    // The split's empty choice: clearing the picker picks it.
+    clearDropdown(selectCaptioned(language, "Split by"));
     await waitFor(() => {
       expect(seriesNames()).toEqual([drawn(language, "Request Count")]);
     });
 
-    fireEvent.change(selectCaptioned(language, "Measure"), {
-      target: { value: "p95Duration" },
-    });
+    chooseDropdownOption(
+      selectCaptioned(language, "Measure"),
+      placeOf(MEASURE_CHOICES, "p95Duration"),
+    );
     await waitFor(() => {
       expect(seriesNames()).toEqual([drawn(language, "P95 Response Time")]);
     });
@@ -742,7 +734,7 @@ describe("REGRESSION: the toolbar drew English in every language", () => {
     await renderInLanguage("en");
 
     expect(toolbarSelects().map(captionOf)).toEqual(CAPTIONS);
-    expect(choicesOf(selectCaptioned("en", "Measure"))).toEqual(
+    expect(await choicesOf(selectCaptioned("en", "Measure"))).toEqual(
       labelsOf(MEASURE_CHOICES),
     );
     expect(screen.getByRole("button", { name: CREATE_METRIC })).toBeVisible();
@@ -751,10 +743,18 @@ describe("REGRESSION: the toolbar drew English in every language", () => {
   test("every word the English toolbar draws is one these tests check, or one drawn as written", async () => {
     await renderInLanguage("en");
 
+    const pickerWords: Array<string> = [];
+    for (const select of toolbarSelects()) {
+      const placeholder: string | null = getShownDropdownPlaceholder(select);
+      pickerWords.push(
+        captionOf(select),
+        ...(placeholder ? [placeholder] : []),
+        ...(await choicesOf(select)),
+      );
+    }
+
     const drawnWords: Array<string> = [
-      ...toolbarSelects().flatMap((select: HTMLSelectElement) => {
-        return [captionOf(select), ...choicesOf(select)];
-      }),
+      ...pickerWords,
       CREATE_METRIC,
       screen
         .getByRole("button", { name: CREATE_METRIC })
