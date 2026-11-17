@@ -1041,6 +1041,11 @@ import { KeepOwnersWhenTheirPictureFileIsDeleted1809182520000 } from "./18091825
 import { KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000 } from "./1809182530000-KeepNotificationLogsWhenOnCallSettingsAreDeleted";
 import { CascadeRunsAndFixesWithTheirRecord1809182600000 } from "./1809182600000-CascadeRunsAndFixesWithTheirRecord";
 import { DeleteRunsAndFixesOfDeletedRecords1809182610000 } from "./1809182610000-DeleteRunsAndFixesOfDeletedRecords";
+import { PresentedKeysEncryptedColumns1809182700000 } from "./1809182700000-PresentedKeysEncryptedColumns";
+import { StatusPageEmbedTokenEncryptedColumn1809182710000 } from "./1809182710000-StatusPageEmbedTokenEncryptedColumn";
+import { StatusPageSubscriberTokenEncryptedColumn1809182720000 } from "./1809182720000-StatusPageSubscriberTokenEncryptedColumn";
+import { MonitorKeysEncryptedColumns1809182730000 } from "./1809182730000-MonitorKeysEncryptedColumns";
+import { PresentedKeyLookupHashIndexes1809182740000 } from "./1809182740000-PresentedKeyLookupHashIndexes";
 
 export default [
   InitialMigration,
@@ -2086,4 +2091,9 @@ export default [
   KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000,
   CascadeRunsAndFixesWithTheirRecord1809182600000,
   DeleteRunsAndFixesOfDeletedRecords1809182610000,
+  PresentedKeysEncryptedColumns1809182700000,
+  StatusPageEmbedTokenEncryptedColumn1809182710000,
+  StatusPageSubscriberTokenEncryptedColumn1809182720000,
+  MonitorKeysEncryptedColumns1809182730000,
+  PresentedKeyLookupHashIndexes1809182740000,
 ];

@@ -180,7 +180,7 @@ export default class Probe extends BaseModel {
       "The secret the probe connects with, its PROBE_KEY. Leave it out and OneUptime generates one.",
   })
   @Column({
-    type: ColumnType.VeryLongText,
+    type: ColumnType.ShortText,
     nullable: false,
     unique: true,
   })

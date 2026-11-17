@@ -136,7 +136,7 @@ export default class AIAgent extends BaseModel {
       "The secret the AI agent connects with, its AI_AGENT_KEY. Leave it out and OneUptime generates one.",
   })
   @Column({
-    type: ColumnType.VeryLongText,
+    type: ColumnType.ShortText,
     nullable: false,
     unique: true,
   })
