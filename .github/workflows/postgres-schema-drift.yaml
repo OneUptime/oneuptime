@@ -661,7 +661,11 @@ jobs:
       # schedule's row locked, the layers read again under the lock, every
       # change written in one transaction - and a save that waited for
       # another one's lock refused, since the layers changed under it.
-      - name: Test saving a schedule's layers at once on migrated Postgres
+      # And who is on call is worked out from one snapshot of the layers
+      # and their people (#9316): a save committed in the middle of a page,
+      # a level, the roster refresh or the calendar resolver is seen whole
+      # or not at all, and the read takes no lock.
+      - name: Test saving a schedule's layers at once, and reading them in one snapshot, on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/Common
         env:
@@ -671,7 +675,9 @@ jobs:
           SCHEDULE_LAYERS_SAVE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Server/Utils/OnCall/ScheduleLayersSavePostgres.test.ts --forceExit
+          Tests/Server/Utils/OnCall/ScheduleLayersSavePostgres.test.ts
+          Tests/Server/Utils/OnCall/ScheduleLayersSnapshotPostgres.test.ts
+          --forceExit
 
       # #7813: a change to a schedule's layers made through the API holds
       # the schedule (rosterRefreshDueAt) until its writes are quiet, and the

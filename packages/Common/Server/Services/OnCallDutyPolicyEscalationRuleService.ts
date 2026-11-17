@@ -26,6 +26,8 @@ import OnCallDutyPolicyExecutionLogTimelineService from "./OnCallDutyPolicyExecu
 import OnCallDutyPolicyScheduleService, {
   CurrentOnCallInSchedule,
   NextInRotationInSchedule,
+  ScheduleLayerProps,
+  ScheduleLayerReads,
 } from "./OnCallDutyPolicyScheduleService";
 import TeamMemberService from "./TeamMemberService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
@@ -1747,11 +1749,23 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       });
     }
 
+    /*
+     * Each schedule's layers and their people, read once for the level: a
+     * rule that pages a schedule's on-call person and the next in its
+     * rotation works both out from the same read, so a save of the layers
+     * landing between them cannot page one from the layers as they were
+     * and the other from the layers as saved (#9316).
+     */
+    const layerReads: ScheduleLayerReads = new Map<
+      string,
+      Promise<ScheduleLayerProps>
+    >();
+
     for (const scheduleId of data.scheduleIds) {
       const onCall: CurrentOnCallInSchedule | null =
         await OnCallDutyPolicyScheduleService.getCurrentOnCallInSchedule(
           scheduleId,
-          { onCallDutyPolicyId: options.onCallPolicyId },
+          { onCallDutyPolicyId: options.onCallPolicyId, layerReads },
         );
 
       if (!onCall) {
@@ -1799,7 +1813,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       const next: NextInRotationInSchedule | null =
         await OnCallDutyPolicyScheduleService.getNextInRotationInSchedule(
           scheduleId,
-          { onCallDutyPolicyId: options.onCallPolicyId },
+          { onCallDutyPolicyId: options.onCallPolicyId, layerReads },
         );
 
       if (!next) {
