@@ -368,6 +368,11 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
         isLoading={props.isCreating}
         tooltip={FIX_PERFORMANCE_BUTTON_TOOLTIP}
         dataTestId="trace-fix-performance"
+        /*
+         * As wide as the strip on a phone, under the words; as wide as its
+         * label from sm up. A button has no width of its own (#9100).
+         */
+        className="w-full sm:w-auto"
         onClick={() => {
           props.onFix();
         }}
