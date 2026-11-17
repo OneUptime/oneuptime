@@ -451,7 +451,7 @@ describe("the guard catches the faults the audit fixed", () => {
             submitButtonType={ButtonStyleType.PRIMARY}`,
       `props.onClose();
             }}
-            submitButtonType={ButtonStyleType.SUCCESS}`,
+            submitButtonType={ButtonStyleType.SUCCESS_OUTLINE}`,
     );
 
     expect(

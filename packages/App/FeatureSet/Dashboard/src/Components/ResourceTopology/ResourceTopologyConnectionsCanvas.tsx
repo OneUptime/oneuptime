@@ -293,7 +293,7 @@ const ConnectionsNodeCard: FunctionComponent<NodeProps<ConnectionsNodeData>> = (
           },
           <>
             <span
-              className="flex min-w-0 items-center gap-1.5 text-[10px] font-semibold uppercase leading-4 tracking-wide"
+              className="flex min-w-0 items-center gap-1.5 text-xs font-semibold uppercase leading-4 tracking-wide"
               style={{ opacity: 0.85 }}
             >
               <Icon icon={data.icon} className="h-3 w-3 flex-shrink-0" />
@@ -352,7 +352,7 @@ const ConnectionsNodeCard: FunctionComponent<NodeProps<ConnectionsNodeData>> = (
               </bdi>
               {data.issueCount > 0 ? (
                 <span
-                  className="flex-shrink-0 rounded-full px-1.5 text-[10px] font-semibold tabular-nums leading-4 text-white"
+                  className="flex-shrink-0 rounded-full px-1.5 text-xs font-semibold tabular-nums leading-4 text-white"
                   style={{
                     background: data.isCritical
                       ? RESOURCE_TOPOLOGY_HEALTH_COLORS.critical
@@ -364,7 +364,7 @@ const ConnectionsNodeCard: FunctionComponent<NodeProps<ConnectionsNodeData>> = (
               ) : null}
             </span>
             <span
-              className="flex min-w-0 items-center gap-1.5 text-[11px] leading-4"
+              className="flex min-w-0 items-center gap-1.5 text-xs leading-4"
               style={{ color: "var(--ou-text-secondary, #4b5563)" }}
             >
               <span

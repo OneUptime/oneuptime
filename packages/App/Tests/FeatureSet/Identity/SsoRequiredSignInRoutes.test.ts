@@ -26,7 +26,7 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
  * WHILE THE WHOLE SERVER REQUIRES SSO, ONLY SINGLE SIGN-ON SIGNS ANYONE IN -
  * EXCEPT MASTER ADMINS.
  *
- * Require SSO for Login for the whole server makes every project require
+ * Require SSO to Sign In for the whole server makes every project require
  * SSO of everyone but master admins, so a sign-in that is not SSO would open
  * none of them (issue #5193: the sign-in page still offered a password).
  * Every route here mints a session that is not SSO, and each one is driven
@@ -85,7 +85,7 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
   };
 });
 
-// The server's Require SSO for Login: what each test says, or a failed read.
+// The server's Require SSO to Sign In: what each test says, or a failed read.
 const getRequireSsoForLogin: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Services/GlobalConfigService", () => {
@@ -575,7 +575,7 @@ describe("POST /login while the server requires SSO", () => {
     );
 
     expect(answeredError(result)?.message).toBe(
-      "Invalid login: Email or password does not match.",
+      "Email or password does not match.",
     );
     expect(getRequireSsoForLogin).not.toHaveBeenCalled();
     expectNoSession();

@@ -75,7 +75,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  *
  * Runs the real hook and the real DatabaseService create path; only the
  * user lookup, the project-creation switch, the duplicate-name count, the
- * server's sign-in rules (no Require SSO for Login: SsoRequirementChanges.
+ * server's sign-in rules (no Require SSO to Sign In: SsoRequirementChanges.
  * beforeProjectCreate asks) and the repository are stubbed. Nothing is
  * saved: the repository's save
  * answers REACHED_SAVE, which is how a create that passed every check

@@ -209,7 +209,7 @@ const PostmortemOwners: FunctionComponent<ComponentProps> = (
   if (!props.hasLoaded) {
     return (
       <span
-        className="text-sm text-gray-400"
+        className="text-sm text-gray-500"
         data-testid="postmortem-owners-loading"
       >
         {translator.translateText("Loading...")}

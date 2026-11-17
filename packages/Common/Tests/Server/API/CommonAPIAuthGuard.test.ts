@@ -1468,7 +1468,7 @@ describe("CommonAPI.isAnonymous", () => {
 describe("CommonAPI.assertCredentialsPresent", () => {
   test("the shared message is the exact log-in prompt", () => {
     expect(CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE).toBe(
-      "Authentication required. Please log in to access this resource.",
+      "Authentication required. Please sign in to access this resource.",
     );
   });
 

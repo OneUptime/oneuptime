@@ -25,8 +25,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * still has under it, to turn off or delete. A status page a Scale trial
  * left requiring SSO lets its private users in with SSO or OIDC only, so
  * turning the providers off without letting people back in with passwords
- * would shut every viewer out. While it requires SSO, its "Require SSO for
- * Login" switch is drawn there too; once it is off, the card says how
+ * would shut every viewer out. While it requires SSO, its "Require SSO to
+ * Sign In" switch is drawn there too; once it is off, the card says how
  * people sign in now instead of offering the switch again.
  *
  * The real component is rendered; the network and the switch card (whose

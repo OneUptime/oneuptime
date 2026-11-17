@@ -166,7 +166,7 @@ describe("ANON ACCESS PROBE /microsoft-teams/chats", () => {
        */
       expect(result.status).toBe(401);
       expect((result.body as { message?: string }).message).toBe(
-        "Authentication required. Please log in to access this resource.",
+        "Authentication required. Please sign in to access this resource.",
       );
 
       const serializedBody: string = JSON.stringify(result.body);

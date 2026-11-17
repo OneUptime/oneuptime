@@ -37,7 +37,7 @@
     "announcements": "Annonces",
     "scheduledEvents": "Maintenance planifiée",
     "subscribe": "S'abonner",
-    "logout": "Se déconnecter"
+    "signOut": "Se déconnecter"
   },
   "overview": {
     "uptimeSuffix": "% de disponibilité",
@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "Mot de passe oublié",
       "description": "Si vous avez oublié votre mot de passe pour {{statusPageName}}, veuillez saisir votre e-mail et le lien de réinitialisation du mot de passe vous sera envoyé.",
-      "success": "Nous vous avons envoyé par e-mail le lien de réinitialisation du mot de passe. N'oubliez pas de vérifier votre dossier spam.",
+      "success": "Si cette adresse e-mail peut se connecter à {{statusPageName}}, nous lui avons envoyé un lien de réinitialisation du mot de passe. N'oubliez pas de vérifier votre dossier spam.",
       "sendLink": "Envoyer le lien de réinitialisation du mot de passe",
       "rememberPassword": "Vous vous souvenez de votre mot de passe ?"
     },
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "Achevées au cours des {{count}} derniers jours",
   "Completed in the Last {{count}} Days_one": "Achevées au cours du dernier jour",
   "None is planned, and none took place in the last {{count}} days.": "Aucune n'est prévue, et aucune n'a eu lieu au cours des {{count}} derniers jours.",
-  "None is planned, and none took place in the last {{count}} days._one": "Aucune n'est prévue, et aucune n'a eu lieu au cours du dernier jour."
+  "None is planned, and none took place in the last {{count}} days._one": "Aucune n'est prévue, et aucune n'a eu lieu au cours du dernier jour.",
+  "serverMessages": {
+    "signInToView": "Vous n’avez pas accès à cette page de statut. Connectez-vous pour la consulter.",
+    "sessionExpired": "La session a expiré. Veuillez vous reconnecter.",
+    "signedOut": "Vous êtes déconnecté. Veuillez vous reconnecter.",
+    "magicLinkTurnedOff": "Les liens de connexion sont désactivés pour cette page de statut. Connectez-vous avec votre adresse e-mail et votre mot de passe."
+  }
 }

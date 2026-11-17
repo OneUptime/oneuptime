@@ -200,7 +200,7 @@ curl -X POST "<url>" \
 
 With the template, an incident opens, titled `Datadog: High CPU`, and the on-call policies you picked are paged. With the monitor, an incident opens, titled `[Triggered] High CPU`. Send the same request with `transition` set to `Recovered`, and the incident is resolved.
 
-Then test from Datadog: open a monitor that mentions the webhook, click **Test Notifications**, and send its **Alert** notification. To see that it arrived, open the workflow's **Logs → Runs**, or the OneUptime monitor's timeline.
+Then test from Datadog: open a monitor that mentions the webhook, click **Test Notifications**, and send its **Alert** notification. To see that it arrived, open the workflow's **Runs**, or the OneUptime monitor's timeline.
 
 ## Troubleshooting
 
@@ -211,7 +211,7 @@ Then test from Datadog: open a monitor that mentions the webhook, click **Test N
 :::
 
 :::details The workflow runs, but opens nothing
-Open the run in **Logs → Runs**. The `read-event-1` entry in its **Steps** says why it took **No**.
+Open the run in **Runs**. The `read-event-1` entry in its **Steps** says why it took **No**.
 
 - `Datadog named no alert cycle key`: add `"alert_cycle_key": "$ALERT_CYCLE_KEY"` to the webhook's payload in Datadog.
 - `Datadog named no transition`: add `"transition": "$ALERT_TRANSITION"` to the webhook's payload in Datadog.
@@ -225,14 +225,14 @@ Open the run in **Logs → Runs**. The `read-event-1` entry in its **Steps** say
 
 :::details Incidents open but are never resolved
 - The Datadog monitor must notify the webhook of its recoveries too. A message that mentions the webhook only for alerts, inside a condition, sends no recovery.
-- With the template, open the recovery's run in **Logs → Runs**: its last step says why. The recovery's `alert_cycle_key` must be the alert's, so keep `$ALERT_CYCLE_KEY` as it is in the payload.
+- With the template, open the recovery's run in **Runs**: its last step says why. The recovery's `alert_cycle_key` must be the alert's, so keep `$ALERT_CYCLE_KEY` as it is in the payload.
 - With the monitor, the criteria's incident needs **Auto Resolve Incident**, under **More fields**.
 - **Value that means recovered** must be exactly `Recovered`. The comparison is case-sensitive.
 - The `alert_key` of the recovery must be the alert's: keep `$ALERT_ID $ALERT_SCOPE` as it is in the payload.
 :::
 
 :::details A field shows a variable's name, or nothing
-Datadog fills in only the variables that apply to the event. Send a test notification, then look at what arrived: in the monitor's timeline, or for a workflow in **Logs → Runs**.
+Datadog fills in only the variables that apply to the event. Send a test notification, then look at what arrived: in the monitor's timeline, or for a workflow in **Runs**.
 :::
 
 :::details Every alert of a monitor folds into one incident

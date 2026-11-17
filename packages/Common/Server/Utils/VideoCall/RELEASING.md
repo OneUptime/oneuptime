@@ -287,13 +287,11 @@ change means every existing user has to authorize the app again.
      and steps in the test plan. Zoom denies a scope that lacks either, and
      asks for it to be removed.
    - The Documentation URL covers adding the app step by step, using each
-     feature, and removing it, with what happens to the data afterwards. For
-     transcripts, the docs do not say yet (#9264).
+     feature, and removing it, with what happens to the data afterwards.
    - The privacy policy discloses how the app accesses, uses, keeps and
      shares people's data, for how long, and how people can ask to see or
      delete it
      ([Zoom: app review guidelines](https://developers.zoom.us/docs/distribute/app-review-guidelines/)).
-     It does not cover transcripts yet (#9264).
    - The support page gives support hours, a first-response time and ways
      to reach support.
    - The Direct landing URL lets a signed-in person authorize the app, a
@@ -463,12 +461,6 @@ Found while writing this guide on 17 November 2026:
   reconnects them. The user docs say they start calls as before, and nothing
   in OneUptime asks them to reconnect (#9269). Settle this before the update
   goes live: **App activation** can hold it until a maintainer activates it.
-- The privacy policy's **Connected Services** section names only
-  `user:read:user` and `meeting:write:meeting` for Zoom, and says the data is
-  used only to create meetings. It does not mention the `cloud_recording`
-  scopes, reading transcripts, or OneUptime AI reading them. The user docs do
-  not say what happens to transcripts once the app is removed. Zoom's review
-  checks both (#9264).
 - The comments on the Zoom app in `config.example.env` and `values.yaml`
   list only `meeting:write:meeting` and `user:read:user`, as does the header
   comment of `ZoomOAuthApp.ts`. The user docs list all four scopes (#9265).

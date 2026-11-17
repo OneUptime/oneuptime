@@ -36,7 +36,7 @@ Ja. Jedes Telefon und jedes Tablet ist ein eigenes Push-Gerät, mit eigenen Bere
 - **Monitors**: alle Monitore, nach Zustand gefiltert, mit ihren Details.
 - **Inbox**: Vorfälle und Warnungen, und die Episoden, die sie gruppieren. Öffnen Sie einen Eintrag, um **Acknowledge**, **Resolve** oder **Add Note** zu wählen. Gibt Ihre Rolle Ihnen Zugriff auf die Sicherheitsfälle des Projekts, listet **Security** die offenen: Öffnen Sie einen, um einen Playbook-Schritt, der auf Genehmigung wartet, mit **Approve** oder **Reject** zu entscheiden, den Fall mit **Assign to me** zu übernehmen oder **Close case** zu wählen.
 - **On-Call**: ob Sie Bereitschaft haben und bis wann, wer sonst, die Alarme, die an Sie gingen, und **Cover for me**, das Ihre Alarme für eine Weile an eine Kollegin oder einen Kollegen übergibt.
-- **Settings**: Ihre Projekte und Single Sign-On, das Aussehen, kritische Warnungen und der Alarmton, **Biometrics Login**, Ihr Bereitschafts-Kalenderfeed und **Log Out**.
+- **Settings**: Ihre Projekte und Single Sign-On, das Aussehen, kritische Warnungen und der Alarmton, **Biometric Unlock**, Ihr Bereitschafts-Kalenderfeed und **Sign Out**.
 
 Alles andere finden Sie im Dashboard.
 :::
@@ -46,7 +46,7 @@ Nein. Tippen Sie auf die Benachrichtigung: Die App öffnet den Vorfall, die Warn
 :::
 
 :::details Ist meine Anmeldung auf dem Telefon sicher?
-Die App spricht mit Ihrem OneUptime nur über HTTPS. Ihre Anmeldung liegt im eigenen Speicher der App auf dem Telefon, und **Log Out** löscht sie und meldet die Sitzung auch auf dem Server ab. Schalten Sie **Biometrics Login** ein, damit die App bei jedem Start nach Gesicht, Fingerabdruck oder Code fragt.
+Die App spricht mit Ihrem OneUptime nur über HTTPS. Ihre Anmeldung liegt im eigenen Speicher der App auf dem Telefon, und **Sign Out** löscht sie und meldet die Sitzung auch auf dem Server ab. Schalten Sie **Biometric Unlock** ein, damit die App bei jedem Start nach Gesicht, Fingerabdruck oder Code fragt.
 :::
 
 :::details Funktioniert die App offline?

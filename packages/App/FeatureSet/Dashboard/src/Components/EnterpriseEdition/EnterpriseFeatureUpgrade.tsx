@@ -223,7 +223,7 @@ const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
                   <div className="text-xs font-semibold text-gray-900">
                     {benefit.title}
                   </div>
-                  <div className="text-[11px] leading-snug text-gray-500 mt-0.5">
+                  <div className="text-xs leading-snug text-gray-500 mt-0.5">
                     {benefit.subtitle}
                   </div>
                 </div>

@@ -9,7 +9,7 @@ import ts from "typescript";
  * A SIGN-IN RULE THAT CANNOT BE READ IS NEVER TAKEN FOR AN ANSWER.
  *
  * Whether a person must have signed in with SSO to open a project is read
- * from three rules: the project's Require SSO for Login
+ * from three rules: the project's Require SSO to Sign In
  * (ProjectService.getRequireSsoForLogin), the provider the project pins
  * (ProjectService.getRequireSsoWithSsoProviderId), and the server's Require
  * SSO for Login (GlobalConfigService.getRequireSsoForLogin). A read of one

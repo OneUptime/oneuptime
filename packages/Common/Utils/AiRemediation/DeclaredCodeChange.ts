@@ -569,10 +569,17 @@ export enum DeclaredCodeChangeState {
   Ended = "ended",
   // It failed or was stopped.
   Failed = "failed",
+  /*
+   * It is there, in a task the reader may not read: a reply carried a
+   * private incident or alert into it that they do not see. Nothing of how
+   * it stands: no task, repository or pull request is sent with it.
+   */
+  Hidden = "hidden",
 }
 
 export interface DeclaredCodeChangeJSON {
   sequence: number;
+  // The step's task in Code; empty for one hidden from the reader.
   taskId: string;
   repositoryName: string;
   state: DeclaredCodeChangeState;

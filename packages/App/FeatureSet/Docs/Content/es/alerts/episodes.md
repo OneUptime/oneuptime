@@ -179,11 +179,8 @@ Un episodio que creas tú no tiene regla de agrupación, así que la lista muest
 
 | Sección del menú lateral | Páginas                                                                     |
 | ------------------------ | --------------------------------------------------------------------------- |
-| **Vista general** | **Vista general**, **Cronología de estados** |
-| **Investigación** | **Descripción**, **Causa raíz**, **Notas de remediación** |
-| **Equipo** | **Propietarios** |
-| **Alertas** | **Alertas miembro** |
-| **Notas** | **Notas privadas** |
+| **Vista general** | **Vista general**, **Cronología de estados**, **Alertas miembro**, **Propietarios** |
+| **Investigación** | **Descripción**, **Causa raíz**, **Notas de remediación**, **Notas privadas** |
 | **Desarrolladores** | **Terraform**, **API**, **CLI**, **Asistentes de IA** |
 | **Avanzado** | **Registros de auditoría**, **Eliminar episodio** |
 

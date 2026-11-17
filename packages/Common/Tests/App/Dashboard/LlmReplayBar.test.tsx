@@ -119,7 +119,28 @@ describe("the play button", () => {
 
     expect(play).toHaveTextContent("Replay");
     expect(play).toHaveAttribute("data-state", "paused");
-    expect(play).toHaveAttribute("title", "Play or pause (K)");
+    // Its key, said under the pointer (the shared Button's tooltip).
+    fireEvent.mouseEnter(play);
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Play or pause (K)");
+  });
+
+  /*
+   * The shared primary Button (#9195): it was a pill drawn by hand in the
+   * primary colours, with its own height, corners and focus ring.
+   */
+  test("is the shared primary Button", () => {
+    renderBar();
+
+    const play: HTMLElement = screen.getByTestId("llm-replay-play");
+
+    expect(play.tagName).toBe("BUTTON");
+    expect(play).toHaveClass(
+      "rounded-md",
+      "bg-indigo-600",
+      "text-white",
+      "focus-visible:ring-2",
+    );
+    expect(play).not.toHaveClass("rounded-full");
   });
 
   test("part-way it plays; while playing it pauses", () => {

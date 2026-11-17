@@ -499,7 +499,7 @@ Tre öppna uppströmsärenden formar allt detta, och projektet har också [bett 
 
 ## Bare metal
 
-Om ditt moln kör Ironic får det en sektion **Bare metal** med varje nod som Ironic visar för autentiseringsuppgiften: var den befinner sig i Ironics tillståndsmaskin, dess ström, om någon har satt den i underhåll och varför, dess resursklass och när Ironic senast såg den röra sig. Ett moln utan Ironic har ingen sådan sektion, inget larm om det och ingen rad på någon sida.
+Om ditt moln kör Ironic får dess sektion **Beräkning** en sida **Bare metal** med varje nod som Ironic visar för autentiseringsuppgiften: var den befinner sig i Ironics tillståndsmaskin, dess ström, om någon har satt den i underhåll och varför, dess resursklass och när Ironic senast såg den röra sig. Ett moln utan Ironic har ingen sådan sida, inget larm om det och ingen rad på någon sida.
 
 En nod är inte en hypervisor, även om Nova och Placement båda listar den som en under dess UUID, så den räknas inte som en plats att köra en virtuell maskin. Hur många noder av varje resursklass som skulle kunna ta emot en instans finns på sidan Bare metal, för de noder som Ironic visar för den här autentiseringsuppgiften, och på sidan [Kapacitet](#kapacitet), för varje nod som Placement håller.
 

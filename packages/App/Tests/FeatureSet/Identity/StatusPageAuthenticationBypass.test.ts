@@ -787,7 +787,7 @@ describe("Status page login-code exchange", () => {
   });
 
   /*
-   * The page's Require SSO for Login is read in the same database read as
+   * The page's Require SSO to Sign In is read in the same database read as
    * the session (doesSignInStillCount joins the session's page), so the
    * route reads no page of its own for it; a page that is gone counts no
    * session there (StatusPageSsoSessionsPostgres.test).

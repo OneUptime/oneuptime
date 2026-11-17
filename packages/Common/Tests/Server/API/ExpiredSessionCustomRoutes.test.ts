@@ -477,7 +477,7 @@ describe("the request an expired session actually sends", () => {
       UserMiddleware.AUTHENTICATION_REQUIRED_MESSAGE,
     );
     expect(CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE).toBe(
-      "Authentication required. Please log in to access this resource.",
+      "Authentication required. Please sign in to access this resource.",
     );
   });
 

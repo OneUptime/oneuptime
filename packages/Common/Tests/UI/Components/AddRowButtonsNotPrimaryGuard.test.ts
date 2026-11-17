@@ -38,13 +38,7 @@ const ADD_ROW_TITLE_CONSTANTS: ReadonlyArray<string> = [
   "RuleCriteriaCopy.addCondition",
 ];
 
-const FILLED_STYLES: ReadonlyArray<string> = [
-  "PRIMARY",
-  "SECONDARY",
-  "SUCCESS",
-  "WARNING",
-  "DANGER",
-];
+const FILLED_STYLES: ReadonlyArray<string> = ["PRIMARY", "DANGER"];
 
 // file -> why its add-row button may be filled. None today.
 const ALLOWED: Record<string, string> = {};
@@ -163,12 +157,12 @@ describe("the guard reads a <Button>", () => {
       "<Button",
       '  title="Add condition"',
       "  onClick={() => { if (a > b) { add(); } }}",
-      "  buttonStyle={ButtonStyleType.SECONDARY}",
+      "  buttonStyle={ButtonStyleType.PRIMARY}",
       "/>",
     ].join("\n");
 
     expect(findAddRowButtons("x.tsx", source)).toEqual([
-      { file: "x.tsx", line: 1, title: "Add condition", style: "SECONDARY" },
+      { file: "x.tsx", line: 1, title: "Add condition", style: "PRIMARY" },
     ]);
   });
 

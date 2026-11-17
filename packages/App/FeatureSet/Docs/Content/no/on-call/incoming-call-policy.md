@@ -183,7 +183,7 @@ Twilio leser meldingene opp med en tekst-til-tale-stemme, så skriv dem slik du 
 
 ## Anropslogger
 
-Hvert anrop står på policyens side **Anropslogger**, under **Logger** i sidemenyen: **Oppringer**, **Oppringt nummer**, **Status**, hvem som svarte (**Besvart av**), **Varighet**, og når det startet (**Startet den**). Klikk på **Vis tidslinje** ved et anrop for å se **Anropstidslinje**: hver person som ble ringt, på hvilket nummer, og hvordan hvert forsøk endte.
+Hvert anrop står på policyens side **Anropslogger**, under **Grunnleggende** i sidemenyen: **Oppringer**, **Oppringt nummer**, **Status**, hvem som svarte (**Besvart av**), **Varighet**, og når det startet (**Startet den**). Klikk på **Vis tidslinje** ved et anrop for å se **Anropstidslinje**: hver person som ble ringt, på hvilket nummer, og hvordan hvert forsøk endte.
 
 | Status | Hva som skjedde |
 | --- | --- |

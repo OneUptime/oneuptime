@@ -731,7 +731,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
             </div>
           )}
           {relatedCreatedAt && (
-            <div className="text-xs text-gray-400">
+            <div className="text-xs text-gray-500">
               {translator.translateTemplate(
                 isExistingAlert
                   ? "Alert created at {{time}}"
@@ -745,7 +745,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
             </div>
           )}
           {event.at && (
-            <div className="text-xs text-gray-400">
+            <div className="text-xs text-gray-500">
               {translator.translateTemplate(eventTimeLabel, {
                 time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   event.at,

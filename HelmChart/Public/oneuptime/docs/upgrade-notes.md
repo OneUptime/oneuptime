@@ -14,7 +14,7 @@ See [Installation & Upgrades](installation.md#upgrading) for the upgrade command
 - **14.0.0 (2026-09-21)** — The app ships as two editions, and the image
   now decides which one runs. The **Community Edition** images
   (`image.type: community-edition`, the default) are Apache-2.0, include SAML
-  and OIDC single sign-on, global SSO and "Require SSO for login", and do not
+  and OIDC single sign-on, global SSO and "Require SSO to sign in", and do not
   contain the repository's `ee/` directory. The **Enterprise Edition** images
   (`image.type: enterprise-edition`, the `enterprise-` tags) add the enterprise
   modules from `ee/`: SCIM, team compliance, audit logs and the Admin Dashboard

@@ -50,7 +50,7 @@ jest.mock("../../../../../Server/EnvironmentConfig", () => {
 });
 
 /*
- * A status page's "Require SSO for Login" (StatusPage.requireSsoForLogin) is
+ * A status page's "Require SSO to Sign In" (StatusPage.requireSsoForLogin) is
  * single sign-on, which OneUptime Cloud sells on the Scale plan - like the
  * status page's SAML and OIDC providers and the project's own Require SSO.
  * On the Cloud (billing on), the server's column check (ColumnPermission,

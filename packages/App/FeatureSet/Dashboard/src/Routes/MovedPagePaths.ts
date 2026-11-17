@@ -62,7 +62,7 @@ export const MOVED_USERS_SETTINGS_PATHS: {
 /*
  * Project Settings > Security > OIDC folded into SSO: one page for single
  * sign-on, the OpenID Connect providers under the SAML ones, with one test
- * link and the Require SSO for Login switch both kinds meet. Relative to
+ * link and the Require SSO to Sign In switch both kinds meet. Relative to
  * …/settings/.
  */
 export const MOVED_OIDC_SETTINGS_PATH: string = "oidc";

@@ -45,6 +45,7 @@ import logger from "../../Logger";
 import CodeFixStartGate, { CodeFixStart } from "../CodeFix/CodeFixStartGate";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../CodeTask/CodeTaskRuns";
+import CodeTaskThread from "../CodeTask/CodeTaskThread";
 
 /*
  * AI SRE — the FixPerformance trigger: from a slow trace, one click opens
@@ -397,12 +398,18 @@ export default class FixPerformanceTaskTrigger {
    *
    * `loadTrace` loads the spans under the caller's permissions; it runs only
    * when AI is on, so a project with AI off pays for no span read.
+   *
+   * The fix on its way or done is read as its task's own page reads it, for
+   * `reader`: one a reply carried a private incident or alert into, which
+   * they do not see, is there - Done, Hidden: no second one is offered -
+   * and nothing of how it stands, nor where it is.
    */
   @CaptureSpan()
   public static async getSuggestionForTrace(data: {
     projectId: ObjectID;
     traceId: string;
     loadTrace: () => Promise<PerformanceTraceSpans>;
+    reader: DatabaseCommonInteractionProps;
   }): Promise<TracePerformanceFixSuggestion> {
     if (!data.traceId) {
       return NO_TRACE_PERFORMANCE_FIX_SUGGESTION;
@@ -441,6 +448,34 @@ export default class FixPerformanceTaskTrigger {
           projectId: data.projectId,
           traceId: data.traceId,
         });
+
+    // The fix, read as its task's own page reads it for this reader.
+    const fixTaskId: string | null =
+      activeRun?.id?.toString() || finishedFix?.aiRunId || null;
+
+    if (
+      fixTaskId &&
+      (
+        await CodeTaskThread.findTasksHiddenFrom({
+          projectId: data.projectId,
+          taskIds: [fixTaskId],
+          reader: data.reader,
+        })
+      ).size > 0
+    ) {
+      return {
+        ...getTracePerformanceFixOffer({
+          findings,
+          isAiEnabled: true,
+          hasActiveFix: false,
+          finishedFix: FinishedFixOutcome.Hidden,
+          hasConnectedRepository: true,
+          blocker: null,
+        }),
+        aiRunId: null,
+        repositories: [],
+      };
+    }
 
     // A reply to the finished fix is under way: work in progress.
     const isWorkingAgain: boolean = Boolean(

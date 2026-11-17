@@ -114,12 +114,12 @@ Uten kritiske varsler kan et Fokus eller et sammendrag holde varsler tilbake:
 
 ## Lås appen
 
-Slå på **Biometrics Login** under **Settings** i appen, så spør appen om Face ID, Touch ID eller koden din hver gang den starter. Bryteren vises når Face ID eller Touch ID er satt opp på enheten. **Appearance** på samme skjerm velger lyst eller mørkt utseende, eller følger enheten.
+Slå på **Biometric Unlock** under **Settings** i appen, så spør appen om Face ID, Touch ID eller koden din hver gang den starter. Bryteren vises når Face ID eller Touch ID er satt opp på enheten. **Appearance** på samme skjerm velger lyst eller mørkt utseende, eller følger enheten.
 
 ## Oppdater, logg ut eller slett appen
 
 - **Oppdater.** App Store oppdaterer appen; du kan også oppdatere den fra kontoen din i App Store. Appens versjon står nederst på skjermen **Settings**.
-- **Logg ut.** **Settings → Log Out** logger deg ut og fjerner enheten fra push-enhetene dine i alle prosjekter, sammen med vaktreglene. Logger du inn igjen, kommer den tilbake med standardreglene.
+- **Logg ut.** **Settings → Sign Out** logger deg ut og fjerner enheten fra push-enhetene dine i alle prosjekter, sammen med vaktreglene. Logger du inn igjen, kommer den tilbake med standardreglene.
 - **Slett.** Hold inne appens symbol, og trykk på **Fjern app** og deretter **Slett app**. Var du fortsatt logget inn, blir enheten stående i listen din til et push til den mislykkes: OneUptime merker den da som **Mottar ikke varslinger**. Installerer du appen igjen og logger inn, kommer den oppføringen som regel tilbake med reglene sine; bruker du ikke enheten lenger, sletter du oppføringen med **Slett**.
 
 ## Feilsøking
@@ -144,7 +144,7 @@ Slå først på **Critical On-Call Alerts** i appen: iOS legger bare til brytere
 Åpne **Settings** i appen: linjen under **Critical On-Call Alerts** sier hva som mangler. Sjekk at **Kritiske varsler** er på under **Innstillinger → Varslinger → OneUptime On-Call**, og at volumet på appens skjerm **Alarm sound** ikke står lavt.
 :::
 
-:::details Ingen bryter for Biometrics Login
+:::details Ingen bryter for Biometric Unlock
 Bryteren vises når Face ID eller Touch ID er satt opp under **Innstillinger → Face ID og kode** eller **Innstillinger → Touch ID og kode**.
 :::
 

@@ -600,7 +600,7 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                                   translator.translateText("Unnamed project")}
                               </div>
                               <div
-                                className="truncate font-mono text-xs text-gray-400"
+                                className="truncate font-mono text-xs text-gray-500"
                                 title={project.projectId}
                               >
                                 {project.projectId}

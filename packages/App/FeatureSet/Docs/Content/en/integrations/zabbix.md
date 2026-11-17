@@ -293,7 +293,7 @@ To send some problems to the incident template and others to the alert template,
 ## Test it
 
 1. In Zabbix, open **Alerts → Media types** and click **Test** beside `OneUptime`. Fill in the URL you copied, and sample values such as `event_id` `12345`, `event_name` `Test problem`, `host` `web-1`, `event_nseverity` `4` and `event_value` `1`. Click **Test**: Zabbix shows the script's answer, `OK`, or the error it threw.
-2. In OneUptime, open the workflow's **Logs → Runs** and check the run, or open the monitor and check that an incident opened.
+2. In OneUptime, open the workflow's **Runs** and check the run, or open the monitor and check that an incident opened.
 3. Test again with `event_value` `0` and the same `event_id`. The incident is resolved.
 
 Then let a real trigger fire, for example by lowering a threshold for a moment, and watch the problem arrive. To try an update, acknowledge the problem in Zabbix with a message: the incident gets a private note, and is acknowledged.
@@ -320,12 +320,12 @@ Open the media type and use **Test**: Zabbix shows the script's result or the er
 
 :::details Incidents open but are never resolved
 - The action needs **Recovery operations**, or Zabbix never sends the recovery.
-- With the template, open the workflow's **Logs → Runs** and the recovery's run: its last step says why. A recovery for a problem that opened no incident changes nothing.
+- With the template, open the workflow's **Runs** and the recovery's run: its last step says why. A recovery for a problem that opened no incident changes nothing.
 - With the monitor, the criteria's incident needs **Auto Resolve Incident**, under **More fields**. **Field that signals recovery** must be `requestBody.status`, and **Value that means recovered** exactly `0`.
 :::
 
 :::details Zabbix is not acknowledged or closed
-Open the run of the state template in **Logs → Runs**: its last step says what Zabbix answered.
+Open the run of the state template in **Runs**: its last step says what Zabbix answered.
 
 - `Not authorized`: the API token is wrong, expired or disabled, or Zabbix is older than 6.4 (see [On Zabbix 6.0](#on-zabbix-60)).
 - `Cannot close problem: trigger does not allow manual closing`: turn on **Allow manual close** on the trigger. The template already acknowledges such problems instead of closing them.
@@ -334,7 +334,7 @@ Open the run of the state template in **Logs → Runs**: its last step says what
 :::
 
 :::details The incident shows a reference instead of a value
-A reference to a field the request does not have is left as written, braces and all, rather than being emptied. Check that Zabbix sends `Content-Type: application/json`, and that the field names you use (`name`, `host`, `severity`, `status`, `event_id`) match the script's payload. For a workflow, open the run in **Logs → Runs** and compare with what the trigger received. See [Gotchas](/docs/workflows/variables#gotchas).
+A reference to a field the request does not have is left as written, braces and all, rather than being emptied. Check that Zabbix sends `Content-Type: application/json`, and that the field names you use (`name`, `host`, `severity`, `status`, `event_id`) match the script's payload. For a workflow, open the run in **Runs** and compare with what the trigger received. See [Gotchas](/docs/workflows/variables#gotchas).
 :::
 
 :::details Every problem arrives twice

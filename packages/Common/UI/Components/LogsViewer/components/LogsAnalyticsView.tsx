@@ -311,7 +311,7 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
 
   return (
     <div className="rounded-lg border border-gray-200/80 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur-sm">
-      <p className="mb-2 border-b border-gray-100 pb-2 font-mono text-[11px] font-medium text-gray-500">
+      <p className="mb-2 border-b border-gray-100 pb-2 font-mono text-xs font-medium text-gray-500">
         {formatTooltipLabel(props.label)}
       </p>
       <div className="space-y-1">
@@ -339,7 +339,7 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
       </div>
       {entries.length > 1 && (
         <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-2">
-          <span className="text-[11px] font-medium text-gray-500">
+          <span className="text-xs font-medium text-gray-500">
             {translator.translateText("Total")}
           </span>
           <span className="font-mono text-xs font-bold tabular-nums text-gray-900">
@@ -889,7 +889,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   backgroundColor: CHART_COLORS[index % CHART_COLORS.length],
                 }}
               />
-              <span className="text-[11px] text-gray-500">
+              <span className="text-xs text-gray-500">
                 {seriesLabels[key] || key}
               </span>
             </div>
@@ -1181,7 +1181,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                 key={index}
                 className="group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-gray-50/80"
               >
-                <span className="w-5 text-right font-mono text-[11px] font-medium text-gray-500">
+                <span className="w-5 text-right font-mono text-xs font-medium text-gray-500">
                   {index + 1}
                 </span>
                 <div
@@ -1211,7 +1211,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   <span className="font-mono text-sm font-semibold tabular-nums text-gray-800">
                     {item.count.toLocaleString(getReaderNumberLocale())}
                   </span>
-                  <span className="w-10 text-right font-mono text-[11px] tabular-nums text-gray-500">
+                  <span className="w-10 text-right font-mono text-xs tabular-nums text-gray-500">
                     {sharePercent}%
                   </span>
                 </div>
@@ -1308,7 +1308,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                     key={index}
                     className="border-b border-gray-100/80 transition-colors last:border-b-0 hover:bg-gray-50/50"
                   >
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-gray-500">
+                    <td className="px-4 py-2.5 font-mono text-xs text-gray-500">
                       {index + 1}
                     </td>
                     {groupKeys.map((key: string) => {

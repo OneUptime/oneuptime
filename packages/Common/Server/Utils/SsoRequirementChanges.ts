@@ -31,7 +31,7 @@ import SsoSignInWays, {
 /*
  * REQUIRING SSO NEEDS A PROVIDER THAT SIGNS PEOPLE IN.
  *
- * Turning Require SSO for Login on - for a project, or for the whole server
+ * Turning Require SSO to Sign In on - for a project, or for the whole server
  * - locks out everyone who cannot sign in with an SSO provider that signs
  * people in there. So it is refused when none would:
  *
@@ -44,7 +44,7 @@ import SsoSignInWays, {
  *     not require SSO itself: the refusal names the projects that have no
  *     way in. Master admins stay exempt from the server's rule, as they
  *     always were (UserMiddleware), so they can always turn it off again;
- *   - a project created with Require SSO for Login on, or requiring a
+ *   - a project created with Require SSO to Sign In on, or requiring a
  *     provider, is held to the same rule as one updated to it - and a new
  *     project has no provider of its own yet, so only a global provider
  *     that signs people in to every project can be its way in. One created
@@ -53,7 +53,7 @@ import SsoSignInWays, {
  *     the server's rule does not hold (beforeProjectCreate).
  *
  * A write is checked by what it asks for, not only by what it changes: one
- * that writes Require SSO for Login on, or names the provider a project
+ * that writes Require SSO to Sign In on, or names the provider a project
  * requires, is checked as one turning it on is - the projects that already
  * say the same, or the server that requires SSO already, included - and
  * holds its locks until it is written. A save that writes back the rule a
@@ -104,7 +104,7 @@ export const SERVER_REQUIRES_SSO_FOR_NEW_PROJECT_MESSAGE: string =
 
 /*
  * Why a project cannot be created at this moment: a change to who can sign
- * in with SSO on the server - its Require SSO for Login, or a global
+ * in with SSO on the server - its Require SSO to Sign In, or a global
  * provider - is being saved, and holds the lock a create's check waits for
  * longer than it waits. Said in a creator's terms; the change itself is
  * refused in SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE's.
@@ -113,7 +113,7 @@ export const PROJECT_CREATE_WAITS_FOR_SIGN_IN_CHANGE_MESSAGE: string =
   "The server's SSO settings are being changed. Create the project again in a moment.";
 
 /*
- * Why the server's Require SSO for Login is refused, naming the projects it
+ * Why the server's Require SSO to Sign In is refused, naming the projects it
  * would lock out and saying what to do about each: those with no provider
  * to sign in with, and those that require a provider by id that cannot
  * sign anyone in to them.
@@ -176,7 +176,7 @@ export interface SsoRequirementWrite {
 
 // What an update asks of a project's sign-in rule, as it writes it.
 interface ProjectRuleAsked {
-  // Require SSO for Login as written: true, false, or not written.
+  // Require SSO to Sign In as written: true, false, or not written.
   requireSsoForLogin: boolean | undefined;
   // The update names the provider a project requires: an id, or null to clear it.
   writesRequiredProvider: boolean;
@@ -208,7 +208,7 @@ export default class SsoRequirementChanges {
   /*
    * Before an update to projects is written (ProjectService.
    * onUpdatePermitted, once every permission check has passed, with the
-   * rows the caller may write): one that writes Require SSO for Login on,
+   * rows the caller may write): one that writes Require SSO to Sign In on,
    * or names the provider a project requires, is read under the projects'
    * lock and checked by what it asks for - every project it writes, the ones
    * that already say the same included: a write that saves back the rule a
@@ -237,7 +237,7 @@ export default class SsoRequirementChanges {
     /*
      * Asks for less, or nothing of SSO: nothing to check. A provider
      * required by a project that does not require SSO itself is checked all
-     * the same: the server's Require SSO for Login holds the project to it
+     * the same: the server's Require SSO to Sign In holds the project to it
      * too, and a server turning that on at this moment reads the project's
      * rule under the lock on the server's sign-in rules, which this write
      * then holds (SsoSignInWays.dependsOnServerRules).
@@ -277,7 +277,7 @@ export default class SsoRequirementChanges {
   /*
    * Before an update to the server's settings is written
    * (GlobalConfigService.onUpdatePermitted): one that writes the server's
-   * Require SSO for Login on is checked under the lock on the server's
+   * Require SSO to Sign In on is checked under the lock on the server's
    * sign-in rules - kept while the check reads every project, page by page
    * - against every project that does not require SSO itself, whether the
    * server requires SSO already or not: saved on again, it asks for it all
@@ -315,9 +315,9 @@ export default class SsoRequirementChanges {
    * yet, so only a global provider that signs people in to every project
    * counts (SsoSignInWays.findNewProjectStrandReason).
    *
-   *   - Require SSO for Login on, or a provider required, is held to the
+   *   - Require SSO to Sign In on, or a provider required, is held to the
    *     rule an update to them is held to (beforeProjectUpdate), the
-   *     server's Require SSO for Login included, and refused in the same
+   *     server's Require SSO to Sign In included, and refused in the same
    *     words, whoever creates it.
    *   - Created while the whole server requires SSO, it needs such a
    *     provider as well, or its creator could not open it; the refusal says
@@ -327,7 +327,7 @@ export default class SsoRequirementChanges {
    *
    * Read under the lock on the server's sign-in rules, held until the
    * project is written (afterProjectCreate, first in onCreateSuccess, or
-   * once the create fails): a server turning its Require SSO for Login on,
+   * once the create fails): a server turning its Require SSO to Sign In on,
    * or a global provider being turned off, at the same moment either reads
    * the new project or is read by its check. A lock found gone once the
    * check is done is taken again, and the check run again under it.
@@ -335,7 +335,7 @@ export default class SsoRequirementChanges {
   public static async beforeProjectCreate(data: {
     // The create's one OnCreate (onCreatePermitted's): what the lock is kept by.
     create: OnCreate<Project>;
-    // The creator is a master admin: the server's Require SSO for Login does not hold them.
+    // The creator is a master admin: the server's Require SSO to Sign In does not hold them.
     isCreatorExemptFromServerRule: boolean;
   }): Promise<SsoRequirementWrite | null> {
     const written: Record<string, unknown> = data.create.createBy
@@ -496,7 +496,7 @@ export default class SsoRequirementChanges {
    * back as it was, as an edit form or an API client that sends a whole
    * record does with every save.
    *
-   * An update that asks for more - Require SSO for Login on, or a provider
+   * An update that asks for more - Require SSO to Sign In on, or a provider
    * required - is told whatever the rules were, and reads nothing for it
    * (asksForMore): an update that asks for less takes no lock, so one may
    * be written between what the other read and what it writes, and a
@@ -512,7 +512,7 @@ export default class SsoRequirementChanges {
 
   /*
    * Whether an update to a project's sign-in rules asks for more of it:
-   * Require SSO for Login turned on, or a provider required - saved again
+   * Require SSO to Sign In turned on, or a provider required - saved again
    * as it was included.
    */
   private static asksForMore(asked: ProjectRuleAsked): boolean {
@@ -584,7 +584,7 @@ export default class SsoRequirementChanges {
       );
     } catch (err) {
       logger.warn(
-        "Require SSO for Login: could not read the projects' rules before the write; every project it writes is told.",
+        "Require SSO to Sign In: could not read the projects' rules before the write; every project it writes is told.",
       );
       logger.warn(err);
     }
@@ -644,7 +644,7 @@ export default class SsoRequirementChanges {
   }
 
   /*
-   * Before an update that turns the server's Require SSO for Login off is
+   * Before an update that turns the server's Require SSO to Sign In off is
    * written (GlobalConfigService.onUpdatePermitted): the rule as it is -
    * read, and the write held to what it read, by
    * DatabaseService.findRowsAndHoldUpdateToThem. One that turns it on reads
@@ -681,7 +681,7 @@ export default class SsoRequirementChanges {
       }
     } catch (err) {
       logger.warn(
-        "Require SSO for Login: could not read the server's rule before the write; the write is told.",
+        "Require SSO to Sign In: could not read the server's rule before the write; the write is told.",
       );
       logger.warn(err);
     }
@@ -689,7 +689,7 @@ export default class SsoRequirementChanges {
 
   /*
    * Once the update is written (GlobalConfigService.onUpdateSuccess):
-   * whether it changed the server's Require SSO for Login, as the switch is
+   * whether it changed the server's Require SSO to Sign In, as the switch is
    * stored. One whose rule was not read before counts as a change: turning
    * it on always does, since nothing is read before it
    * (rememberServerRuleBefore) - saved on again while on included.
@@ -716,7 +716,7 @@ export default class SsoRequirementChanges {
 
   /*
    * What an update asks of the sign-in rule of the projects it writes: the
-   * Require SSO for Login switch it writes, and the provider it names for
+   * Require SSO to Sign In switch it writes, and the provider it names for
    * them to require, as it writes them.
    */
   private static getProjectRuleAsked(
@@ -865,7 +865,7 @@ export default class SsoRequirementChanges {
   }
 
   /*
-   * The check of the server's Require SSO for Login written on
+   * The check of the server's Require SSO to Sign In written on
    * (beforeServerUpdate), from the start - as it runs again, too: the lock
    * on the server's sign-in rules is taken, and every project that does not
    * require SSO itself is read under it, page by page, the lock kept before

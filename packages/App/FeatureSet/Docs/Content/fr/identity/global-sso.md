@@ -3,7 +3,7 @@
 Le SSO global permet à un **administrateur de l'instance** OneUptime (master admin) de configurer **une seule fois**, au niveau de l'instance, un fournisseur d'identité SAML 2.0 ou OpenID Connect (OIDC), puis de le relier à n'importe quel projet du serveur. Au lieu que chaque Propriétaire du projet configure son propre fournisseur d'identité, un administrateur principal en configure un qui sert toute l'instance.
 
 > [!NOTE]
-> Le SSO global, y compris l'interrupteur "Require SSO for Login" valable pour toute l'instance, fait partie de toutes les éditions d'OneUptime : chaque instance auto-hébergée l'a, la Community Edition comprise, et il ne nécessite aucune licence. Il relève de l'administration de l'instance et ne s'applique donc pas à OneUptime Cloud. Consultez [Édition Enterprise](/docs/self-hosted/enterprise) pour voir ce que comprend chaque édition.
+> Le SSO global, y compris l'interrupteur "Require SSO to Sign In" valable pour toute l'instance, fait partie de toutes les éditions d'OneUptime : chaque instance auto-hébergée l'a, la Community Edition comprise, et il ne nécessite aucune licence. Il relève de l'administration de l'instance et ne s'applique donc pas à OneUptime Cloud. Consultez [Édition Enterprise](/docs/self-hosted/enterprise) pour voir ce que comprend chaque édition.
 
 :::cards
 - [Configurer un fournisseur](#configurer-le-sso-global): Le créer, donner les URL d'OneUptime à votre fournisseur d'identité et le tester.

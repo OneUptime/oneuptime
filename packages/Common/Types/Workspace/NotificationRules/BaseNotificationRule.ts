@@ -23,11 +23,18 @@ export default interface BaseNotificationRule {
 
   /*
    * The updates the rule posts in its channels and chats, for the kinds of
-   * rule that choose them (NotificationRuleUpdates): left out, every update.
-   * The record's first message and a video call's Join button are posted
-   * whatever it lists.
+   * rule that choose them (NotificationRuleUpdates): left out, or null,
+   * every update. The record's first message and a video call's Join button
+   * are posted whatever it lists.
+   *
+   * null says every update out loud. A new rule of a kind that starts on
+   * chosen updates - an on-call policy's - gets them when its JSON leaves
+   * the list out, and an edit that leaves it out keeps the rule's (#7971):
+   * null is how the API, Terraform and the Dashboard's Every update ask for
+   * every update there (NotificationRuleUpdates.withNewRuleUpdates,
+   * withKeptUpdates).
    */
-  updatesToPost?: Array<NotificationRuleUpdateKind> | undefined;
+  updatesToPost?: Array<NotificationRuleUpdateKind> | null | undefined;
 
   /*
    * On-call policy rules only: whether a hand-off's line mentions - so

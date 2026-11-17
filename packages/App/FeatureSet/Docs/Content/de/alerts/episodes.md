@@ -179,11 +179,8 @@ Eine Episode, die Sie erstellen, hat keine Gruppierungsregel, deshalb zeigt die 
 
 | Bereich im Seitenmenü | Seiten                                                                         |
 | --------------------- | ------------------------------------------------------------------------------ |
-| **Übersicht** | **Übersicht**, **Zustands-Zeitachse** |
-| **Untersuchung** | **Beschreibung**, **Grundursache**, **Behebungs-Notizen** |
-| **Team** | **Eigentümer** |
-| **Warnungen** | **Mitglieder-Warnungen** |
-| **Notizen** | **Private Notizen** |
+| **Übersicht** | **Übersicht**, **Zustands-Zeitachse**, **Mitglieder-Warnungen**, **Eigentümer** |
+| **Untersuchung** | **Beschreibung**, **Grundursache**, **Behebungs-Notizen**, **Private Notizen** |
 | **Entwickler** | **Terraform**, **API**, **CLI**, **KI-Assistenten** |
 | **Erweitert** | **Audit-Protokolle**, **Episode löschen** |
 

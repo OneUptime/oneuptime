@@ -38,6 +38,10 @@ export class Service extends DatabaseService<Model> {
    * the workflow's logs - a ciphertext nobody typed. So it is taken off
    * first: the method's owner reads the secret itself back with a read, and
    * WebhookService signs with it, read decrypted, when it sends.
+   *
+   * The webhook's URL is stored encrypted too (#9013). It is handed back as
+   * it was written, as its owner's read of it gives it - the owner is the
+   * only one who creates a webhook - never as the ciphertext stored.
    */
   @CaptureSpan()
   public override async create(createBy: CreateBy<Model>): Promise<Model> {
@@ -49,7 +53,7 @@ export class Service extends DatabaseService<Model> {
      */
     (created as unknown as Record<string, unknown>)["secret"] = undefined;
 
-    return created;
+    return this.handBackAsGiven(created, ["webhookUrl"]);
   }
 
   @CaptureSpan()

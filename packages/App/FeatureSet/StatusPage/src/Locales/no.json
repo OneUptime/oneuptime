@@ -37,7 +37,7 @@
     "announcements": "Kunngjøringer",
     "scheduledEvents": "Planlagt vedlikehold",
     "subscribe": "Abonner",
-    "logout": "Logg ut"
+    "signOut": "Logg ut"
   },
   "overview": {
     "uptimeSuffix": "% oppetid",
@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "Glemt passord",
       "description": "Hvis du har glemt passordet ditt for {{statusPageName}}, skriv inn e-posten din, så sender vi deg en lenke for å tilbakestille passordet.",
-      "success": "Vi har sendt deg lenken for tilbakestilling av passord på e-post. Husk å sjekke søppelpostmappen.",
+      "success": "Hvis denne e-postadressen kan logge på {{statusPageName}}, har vi sendt den en lenke for tilbakestilling av passord. Husk å sjekke søppelpostmappen.",
       "sendLink": "Send lenke for tilbakestilling av passord",
       "rememberPassword": "Husker du passordet ditt?"
     },
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "Fullført i løpet av de siste {{count}} dagene",
   "Completed in the Last {{count}} Days_one": "Fullført i løpet av det siste døgnet",
   "None is planned, and none took place in the last {{count}} days.": "Ingenting er planlagt, og ingenting har funnet sted de siste {{count}} dagene.",
-  "None is planned, and none took place in the last {{count}} days._one": "Ingenting er planlagt, og ingenting har funnet sted det siste døgnet."
+  "None is planned, and none took place in the last {{count}} days._one": "Ingenting er planlagt, og ingenting har funnet sted det siste døgnet.",
+  "serverMessages": {
+    "signInToView": "Du har ikke tilgang til denne statussiden. Logg på for å se den.",
+    "sessionExpired": "Økten er utløpt. Logg på igjen.",
+    "signedOut": "Du er logget ut. Logg på igjen.",
+    "magicLinkTurnedOff": "Påloggingslenker er slått av for denne statussiden. Logg på med e-postadressen og passordet ditt."
+  }
 }

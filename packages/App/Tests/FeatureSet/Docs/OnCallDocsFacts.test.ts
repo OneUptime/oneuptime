@@ -260,9 +260,20 @@ describe("the Incoming Call Policy page", () => {
       "Pages/OnCallDuty/IncomingCallPolicy/SideMenu.tsx",
     );
 
+    /*
+     * Call Logs sits in Basic, right after Escalation Rules: its one-entry
+     * Logs section went in #9216.
+     */
+    expect(menu).not.toContain('<SideMenuSection title="Logs">');
     expect(menu).toMatch(
-      /<SideMenuSection title="Logs">\s*<SideMenuItem\s+link=\{\{\s*title: "Call Logs"/,
+      /<SideMenuSection title="Basic">[\s\S]*?title: "Overview"[\s\S]*?title: "Escalation Rules"[\s\S]*?title: "Call Logs"[\s\S]*?title: "Owners"[\s\S]*?<\/SideMenuSection>/,
     );
+    expect(
+      menu.slice(
+        menu.indexOf('<SideMenuSection title="Basic">'),
+        menu.indexOf("</SideMenuSection>"),
+      ),
+    ).toContain('title: "Call Logs"');
     expect(menu).toMatch(
       /<SideMenuSection title="Advanced">\s*<SideMenuItem\s+link=\{\{\s*title: "Settings"/,
     );
@@ -273,7 +284,7 @@ describe("the Incoming Call Policy page", () => {
       "choose **Escalation Rules** in its side menu and click **Add Escalation Rule**",
     );
     expect(page).toContain(
-      "Every call is listed on the policy's **Call Logs** page, under **Logs** in its side menu",
+      "Every call is listed on the policy's **Call Logs** page, under **Basic** in its side menu",
     );
     expect(page).toContain(
       "Open the policy and choose **Settings** under **Advanced** in its side menu.",
@@ -767,7 +778,9 @@ describe("the Incoming Call Policy page", () => {
       userSettingsMenu.indexOf('title: "Profile & Calendar",'),
     );
 
-    expect(pagingSection).toMatch(/^title: "Paging & Calls",\s*defaultCollapsed: true,/);
+    expect(pagingSection).toMatch(
+      /^title: "Paging & Calls",\s*defaultCollapsed: true,/,
+    );
     expect(pagingSection).toContain('title: "Incoming Phone Numbers",');
     expect(numbers).toContain(
       'title: "Phone Numbers for Incoming Call Routing"',

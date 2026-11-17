@@ -251,7 +251,7 @@ describe("ChartCard's empty box takes the reset double-click without selecting a
       "rounded-md",
       "bg-gray-50",
       "text-sm",
-      "text-gray-400",
+      "text-gray-500",
     );
   });
 });

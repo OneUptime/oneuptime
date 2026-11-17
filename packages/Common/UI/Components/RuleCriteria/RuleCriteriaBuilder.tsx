@@ -366,6 +366,13 @@ const RuleCriteriaBuilder: <TEntity>(
           value={filter.value}
           placeholder={placeholder}
           error={error}
+          /*
+           * A condition keeps the ids it names when a record is deleted
+           * (the rule matches nothing for it): such a value says so, as a
+           * workspace rule's Conditions step and card do (#7807), not as
+           * its raw id.
+           */
+          notFoundLabel={RuleCriteriaCopy.valueNotFound}
           onChange={(
             value: DropdownValue | Array<DropdownValue> | null,
           ): void => {

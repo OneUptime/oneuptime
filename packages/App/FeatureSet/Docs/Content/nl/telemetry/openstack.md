@@ -499,7 +499,7 @@ Drie openstaande upstream-issues bepalen dit alles, en het project heeft ook [om
 
 ## Bare metal
 
-Als uw cloud Ironic draait, krijgt hij een sectie **Bare metal** met elke node die Ironic aan de referentie toont: waar hij zit in de toestandsmachine van Ironic, zijn stroom, of iemand hem in onderhoud heeft gezet en waarom, zijn resourceklasse, en wanneer Ironic hem voor het laatst zag bewegen. Een cloud zonder Ironic heeft zo'n sectie niet, geen waarschuwing erover en geen regel op een pagina.
+Als uw cloud Ironic draait, krijgt zijn sectie **Rekenkracht** een pagina **Bare metal** met elke node die Ironic aan de referentie toont: waar hij zit in de toestandsmachine van Ironic, zijn stroom, of iemand hem in onderhoud heeft gezet en waarom, zijn resourceklasse, en wanneer Ironic hem voor het laatst zag bewegen. Een cloud zonder Ironic heeft zo'n pagina niet, geen waarschuwing erover en geen regel op een pagina.
 
 Een node is geen hypervisor, ook al vermelden Nova en Placement hem allebei als zodanig onder zijn UUID, dus hij telt niet mee als plek om een virtuele machine te draaien. Hoeveel nodes van elke resourceklasse een instantie kunnen nemen staat op de pagina Bare metal, voor de nodes die Ironic aan deze referentie toont, en op de pagina [Capaciteit](#capaciteit), voor elke node die Placement bijhoudt.
 

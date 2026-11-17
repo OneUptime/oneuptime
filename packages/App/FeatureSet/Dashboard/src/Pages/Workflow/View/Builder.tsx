@@ -17,10 +17,8 @@ import {
   sendRunAgain,
 } from "Common/UI/Components/Workflow/RunAgain/RunAgainSource";
 import { NodeDataProp } from "Common/Types/Workflow/Component";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { CARD_FRAME_CLASS_NAME } from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Dictionary from "Common/Types/Dictionary";
@@ -116,6 +114,35 @@ import { Edge, Node } from "reactflow";
 import { useAsyncEffect } from "use-async-effect";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+
+/*
+ * The toolbar over the canvas, drawn as a card is (CARD_FRAME_CLASS_NAME):
+ * its border, corners, shadow and ground, so the dark theme draws it as it
+ * draws every card. It used to be drawn with inline styles of its own - 10px
+ * corners where a card has 12px, a shadow no card has - and was the one box
+ * on the page whose look did not come from the shared classes (#9194).
+ *
+ * Its two halves - what was done to the workflow, and what can be run -
+ * share a row while they fit and wrap whole on a phone. Every button in it
+ * is the shared Button at its normal size, so Undo, Redo, Version history,
+ * Add and Run Workflow are one height (38px, a card header's control).
+ */
+export const WORKFLOW_TOOLBAR_CLASS_NAME: string = `${CARD_FRAME_CLASS_NAME} mb-3 flex flex-wrap items-center justify-between gap-3 px-4 py-3`;
+
+// A row of the toolbar's controls; a whole control wraps at a time.
+export const WORKFLOW_TOOLBAR_GROUP_CLASS_NAME: string =
+  "flex flex-wrap items-center gap-x-3 gap-y-2";
+
+// The switch and the buttons: a little more room beside the switch.
+export const WORKFLOW_TOOLBAR_RUN_GROUP_CLASS_NAME: string =
+  "flex flex-wrap items-center gap-x-4 gap-y-3";
+
+/*
+ * Where the canvas will be while the graph loads: a card the canvas's own
+ * height (Workflow's calc(100vh - 220px), at least 400px), so nothing moves
+ * when the canvas takes its place.
+ */
+export const WORKFLOW_CANVAS_LOADING_CLASS_NAME: string = `${CARD_FRAME_CLASS_NAME} flex h-[calc(100vh-220px)] min-h-[400px] items-center justify-center`;
 
 /*
  * The revision of the graph a workflow was read at (Workflow.graphRevision),
@@ -720,19 +747,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <>
         {/* Toolbar */}
         <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "0.75rem",
-            padding: "0.75rem 1rem",
-            backgroundColor: "var(--ou-surface-primary, #ffffff)",
-            borderRadius: "10px",
-            border: "1px solid var(--ou-border-default, #e2e8f0)",
-            marginBottom: "0.75rem",
-            boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.03)",
-          }}
+          className={WORKFLOW_TOOLBAR_CLASS_NAME}
+          data-testid="workflow-toolbar"
         >
           {/*
            * Undo and Redo, the Version history, and then the save state, the
@@ -744,12 +760,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
            * button.
            */}
           <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
-              gap: "0.5rem 0.75rem",
-            }}
+            className={WORKFLOW_TOOLBAR_GROUP_CLASS_NAME}
             data-testid="workflow-toolbar-history"
           >
             {!isLoading && !isViewOnly ? (
@@ -767,7 +778,6 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 title={WorkflowVersionCopy.openButton}
                 icon={IconProp.Clock}
                 buttonStyle={ButtonStyleType.OUTLINE}
-                buttonSize={ButtonSize.Small}
                 className="whitespace-nowrap"
                 dataTestId="workflow-version-history-button"
                 ariaHaspopup="dialog"
@@ -803,13 +813,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           </div>
 
           <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
-              // A little more room beside the switch than between the buttons.
-              gap: "0.75rem 1rem",
-            }}
+            className={WORKFLOW_TOOLBAR_RUN_GROUP_CLASS_NAME}
+            data-testid="workflow-toolbar-run"
           >
             {/*
              * Only once the workflow has said whether it is on: a switch
@@ -839,12 +844,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
              */}
             <div
               data-testid="workflow-toolbar-buttons"
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                gap: "0.5rem 0.75rem",
-              }}
+              className={WORKFLOW_TOOLBAR_GROUP_CLASS_NAME}
             >
               {/*
                * Only once the graph has loaded, like the Enabled switch:
@@ -915,7 +915,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         {!doesCurrentPlanRunWorkflows() ? (
           <WorkflowPlanNotice className="mb-3" />
         ) : workflowEnabled.isEnabled === false && !isArchived && hasTrigger ? (
-          <div style={{ marginBottom: "0.75rem" }}>
+          <div className="mb-3">
             <WorkflowTurnedOffNotice
               onTurnOn={
                 canTurnWorkflowOnOrOff
@@ -936,16 +936,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         {/* Canvas */}
         {isLoading ? (
           <div
-            style={{
-              height: "calc(100vh - 280px)",
-              minHeight: "500px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "var(--ou-surface-primary, #ffffff)",
-              borderRadius: "10px",
-              border: "1px solid var(--ou-border-default, #e2e8f0)",
-            }}
+            className={WORKFLOW_CANVAS_LOADING_CLASS_NAME}
+            data-testid="workflow-canvas-loading"
           >
             <ComponentLoader />
           </div>

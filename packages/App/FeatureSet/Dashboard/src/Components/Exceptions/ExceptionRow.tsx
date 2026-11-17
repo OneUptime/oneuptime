@@ -182,7 +182,7 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
             </div>
 
             {/* Line 2: (on a phone, the status first) service + environment */}
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
               {showStatus && (
                 <span
                   className="flex sm:hidden"

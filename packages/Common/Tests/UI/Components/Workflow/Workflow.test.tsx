@@ -92,7 +92,11 @@ jest.mock("reactflow", () => {
       }, []);
 
       return (
-        <div data-testid="workflow-canvas" onKeyDown={props.onKeyDown}>
+        <div
+          data-testid="workflow-canvas"
+          onKeyDown={props.onKeyDown}
+          onKeyUp={props.onKeyUp}
+        >
           {(props.nodes || []).map((node: Node): ReactElement => {
             const data: NodeDataProp = node.data as NodeDataProp;
 
@@ -744,8 +748,64 @@ describe("Workflow builder: the keyboard reaches a new step", () => {
     expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
   });
 
+  test("Space on the focused step opens its settings, on its way up", () => {
+    const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+    renderBuilder({ initialNodes: [action] });
+    const element: HTMLElement = screen.getByTestId(
+      `workflow-node-${action.id}`,
+    );
+
+    // Held down, Space is the canvas's pan key: nothing opens yet.
+    pressKey(element, { key: " " });
+    expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
+
+    const notCancelled: boolean = fireEvent.keyUp(element, { key: " " });
+
+    expect(screen.getByTestId("settings-step-id")).toHaveTextContent(
+      "write-log-1",
+    );
+    expect(notCancelled).toBe(false);
+  });
+
+  test("Space on the trigger placeholder opens the trigger picker", () => {
+    const placeholder: Node = getPlaceholderTriggerNode();
+    renderBuilder({ initialNodes: [placeholder] });
+
+    fireEvent.keyUp(screen.getByTestId(`workflow-node-${placeholder.id}`), {
+      key: " ",
+    });
+
+    expect(screen.getByTestId("picker-Trigger")).toBeInTheDocument();
+  });
+
   test.each([
-    ["Space", { key: " " }],
+    ["Space on the canvas", "workflow-canvas", { key: " " }],
+    ["Shift+Space on a step", "step", { key: " ", shiftKey: true }],
+    ["a letter's key-up on a step", "step", { key: "a" }],
+    ["Enter's key-up on a step", "step", { key: "Enter" }],
+  ])(
+    "%s opens nothing",
+    (
+      _label: string,
+      where: string,
+      init: { key: string } & Partial<KeyboardEventInit>,
+    ) => {
+      const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+      renderBuilder({ initialNodes: [action] });
+
+      fireEvent.keyUp(
+        screen.getByTestId(
+          where === "step" ? `workflow-node-${action.id}` : where,
+        ),
+        init,
+      );
+
+      expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
+    },
+  );
+
+  test.each([
+    ["Space, held down", { key: " " }],
     ["a letter", { key: "a" }],
     ["Escape", { key: "Escape" }],
     ["Ctrl+Enter", { key: "Enter", ctrlKey: true }],

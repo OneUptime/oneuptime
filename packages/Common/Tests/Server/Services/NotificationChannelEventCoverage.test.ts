@@ -620,7 +620,12 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
      * shape to build and no "not verified" row to expect.
      */
     unverifiedMethod: null,
-    sendingMessage: "Sending webhook to",
+    /*
+     * By its name, never its address: the address is the webhook's
+     * credential, kept encrypted and read by its owner alone (#9013), and
+     * the on-call log is read by the project's administrators too.
+     */
+    sendingMessage: "Sending webhook to Pager bridge.",
     unverifiedMessage: "",
     unverifiedReason: "",
     sender: (): jest.SpyInstance => {
@@ -1443,6 +1448,8 @@ describe("UserNotificationRuleService channel x event coverage", () => {
         expect(timelineRows[0]?.statusMessage).toContain(
           channel.sendingMessage,
         );
+        // No channel's row names a webhook's address (#9013).
+        expect(timelineRows[0]?.statusMessage).not.toContain(WEBHOOK_URL);
         /* The guard row would be an Error. Delivery happened, so it stays quiet. */
         expect(timelineRows[0]?.status).not.toBe(UserNotificationStatus.Error);
       },

@@ -573,7 +573,7 @@ const MetricPipelineRules: FunctionComponent<
             if (item.service?.name) {
               return (
                 <span className="inline-flex items-center text-sm font-medium text-gray-900">
-                  <span className="text-gray-400 mr-1">
+                  <span className="text-gray-500 mr-1">
                     {translator.translateText("Service:")}
                   </span>
                   {item.service.name}

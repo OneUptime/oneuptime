@@ -121,12 +121,12 @@ OneUptime invia gli avvisi di reperibilità ad alta priorità, che Android conse
 
 ## Bloccare l'app
 
-Attiva **Biometrics Login** in **Settings** nell'app, e a ogni avvio ti chiederà l'impronta, il volto o il blocco schermo del telefono. L'interruttore compare quando sul telefono è configurato lo sblocco con impronta o con volto. **Appearance**, nella stessa schermata, sceglie l'aspetto chiaro o scuro, o segue il telefono.
+Attiva **Biometric Unlock** in **Settings** nell'app, e a ogni avvio ti chiederà l'impronta, il volto o il blocco schermo del telefono. L'interruttore compare quando sul telefono è configurato lo sblocco con impronta o con volto. **Appearance**, nella stessa schermata, sceglie l'aspetto chiaro o scuro, o segue il telefono.
 
 ## Aggiornare, uscire o disinstallare
 
 - **Aggiornare.** Google Play aggiorna l'app. Per l'APK, installa sopra il più recente. La versione dell'app è in fondo alla sua schermata **Settings**.
-- **Uscire.** **Settings → Log Out** ti disconnette e rimuove il telefono dai tuoi dispositivi push in ogni progetto, insieme alle sue regole di reperibilità. Se accedi di nuovo, torna con le regole predefinite.
+- **Uscire.** **Settings → Sign Out** ti disconnette e rimuove il telefono dai tuoi dispositivi push in ogni progetto, insieme alle sue regole di reperibilità. Se accedi di nuovo, torna con le regole predefinite.
 - **Disinstallare.** Rimuovi l'app come qualsiasi altra. Se eri ancora connesso, il telefono resta nel tuo elenco finché un push verso di esso non fallisce: OneUptime lo segna allora come **Non riceve notifiche**. Elimina quella voce con **Elimina**: se reinstalli l'app e accedi, il telefono viene aggiunto come nuova voce, con le regole predefinite.
 
 ## Risoluzione dei problemi
@@ -151,7 +151,7 @@ Apri **Settings** nell'app: la riga sotto **Critical On-Call Alerts** dice cosa 
 OneUptime On-Call è già sul telefono da un'altra fonte, come Google Play, e Android non installa l'una sopra l'altra. Disinstallala, installa l'APK e accedi di nuovo.
 :::
 
-:::details Manca l'interruttore Biometrics Login
+:::details Manca l'interruttore Biometric Unlock
 L'interruttore compare quando lo sblocco con impronta o con volto è configurato nelle impostazioni di Android.
 :::
 

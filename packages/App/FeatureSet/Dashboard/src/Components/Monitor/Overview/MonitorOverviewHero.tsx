@@ -367,7 +367,7 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
        * the time is unknown instead.
        */
       lastLine = (
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-500">
           {translator.translateTemplate("{{label}}: unavailable", {
             label: translatableTerm(pulse.label),
           })}
@@ -441,7 +441,7 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
     // Unknown is not "nobody": a failed or forbidden read says so.
     if (!owners) {
       return (
-        <span className="text-base font-semibold text-gray-400">
+        <span className="text-base font-semibold text-gray-500">
           {translator.translateText("Unavailable")}
         </span>
       );
@@ -562,7 +562,7 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
     }
 
     const colorClassName: string = fact.isMuted
-      ? "text-gray-400"
+      ? "text-gray-500"
       : TONE_TEXT_CLASS[fact.tone || "neutral"];
 
     return (

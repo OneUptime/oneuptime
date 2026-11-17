@@ -121,12 +121,12 @@ OneUptime sender vaktvarsler med høy prioritet, som Android leverer selv til en
 
 ## Lås appen
 
-Slå på **Biometrics Login** under **Settings** i appen, så spør appen om fingeravtrykket ditt, ansiktet ditt eller telefonens skjermlås hver gang den starter. Bryteren vises når telefonen har opplåsing med fingeravtrykk eller ansikt satt opp. **Appearance** på samme skjerm velger lyst eller mørkt utseende, eller følger telefonen.
+Slå på **Biometric Unlock** under **Settings** i appen, så spør appen om fingeravtrykket ditt, ansiktet ditt eller telefonens skjermlås hver gang den starter. Bryteren vises når telefonen har opplåsing med fingeravtrykk eller ansikt satt opp. **Appearance** på samme skjerm velger lyst eller mørkt utseende, eller følger telefonen.
 
 ## Oppdater, logg ut eller avinstaller
 
 - **Oppdater.** Google Play oppdaterer appen. For APK-en installerer du den nyeste over den. Appens versjon står nederst på skjermen **Settings**.
-- **Logg ut.** **Settings → Log Out** logger deg ut og fjerner telefonen fra push-enhetene dine i alle prosjekter, sammen med vaktreglene. Logger du inn igjen, kommer den tilbake med standardreglene.
+- **Logg ut.** **Settings → Sign Out** logger deg ut og fjerner telefonen fra push-enhetene dine i alle prosjekter, sammen med vaktreglene. Logger du inn igjen, kommer den tilbake med standardreglene.
 - **Avinstaller.** Fjern appen som enhver annen. Var du fortsatt logget inn, blir telefonen stående i listen din til et push til den mislykkes: OneUptime merker den da som **Mottar ikke varslinger**. Slett den oppføringen med **Slett**: installerer du appen igjen og logger inn, legges telefonen til som en ny oppføring med standardreglene.
 
 ## Feilsøking
@@ -151,7 +151,7 @@ Appen nådde ikke `https://<your-oneuptime>/api/status`. Sjekk adressen, inklude
 OneUptime On-Call er allerede på telefonen fra en annen kilde, som Google Play, og Android installerer ikke den ene over den andre. Avinstaller den, installer APK-en, og logg inn igjen.
 :::
 
-:::details Ingen bryter for Biometrics Login
+:::details Ingen bryter for Biometric Unlock
 Bryteren vises når opplåsing med fingeravtrykk eller ansikt er satt opp i Android-innstillingene.
 :::
 

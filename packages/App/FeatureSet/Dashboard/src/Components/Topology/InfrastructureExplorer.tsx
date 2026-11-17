@@ -1081,7 +1081,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
           />
           <span
             data-testid="infrastructure-last-seen-status"
-            className={isActive ? "text-gray-700" : "text-gray-400"}
+            className={isActive ? "text-gray-700" : "text-gray-500"}
           >
             {t(isActive ? "Active" : "Inactive")}
           </span>
@@ -1089,7 +1089,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
         {isLastSeenKnown(lastSeenAt) && (
           <div
             data-testid="infrastructure-last-seen-age"
-            className={`whitespace-nowrap ps-3.5 ${isActive ? "text-gray-500" : "text-gray-400"}`}
+            className={`whitespace-nowrap ps-3.5 ${isActive ? "text-gray-500" : "text-gray-500"}`}
           >
             {formatLastSeenInLanguage(lastSeenAt)}
           </div>
@@ -1174,7 +1174,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
       <tr
         key={id}
         data-testid="infrastructure-row"
-        className={`cursor-pointer hover:bg-gray-50 ${node.isActive ? "" : "text-gray-400"}`}
+        className={`cursor-pointer hover:bg-gray-50 ${node.isActive ? "" : "text-gray-500"}`}
         onClick={() => {
           openNode(id);
         }}
@@ -1196,7 +1196,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
             <span className="min-w-0">
               <button
                 type="button"
-                className="block min-w-[10rem] max-w-md break-words text-left text-sm font-medium text-gray-900 hover:text-indigo-600"
+                className="block min-w-[10rem] max-w-md break-words rounded text-left text-sm font-medium text-gray-900 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 aria-label={
                   container
                     ? translator.translateTemplate("Open {{name}}", {
@@ -1694,7 +1694,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                       <tr
                         key={item.entityKey}
                         data-testid="infrastructure-collection-row"
-                        className={`cursor-pointer hover:bg-gray-50 ${active ? "" : "text-gray-400"}`}
+                        className={`cursor-pointer hover:bg-gray-50 ${active ? "" : "text-gray-500"}`}
                         onClick={open}
                       >
                         <td
@@ -1702,7 +1702,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                         >
                           <button
                             type="button"
-                            className="block min-w-[10rem] max-w-md break-words text-left text-sm font-medium text-gray-900 hover:text-indigo-600"
+                            className="block min-w-[10rem] max-w-md break-words rounded text-left text-sm font-medium text-gray-900 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                             aria-label={translator.translateTemplate(
                               "View details for {{name}}",
                               { name: name },
@@ -1838,7 +1838,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                   {t(category.name)}
                 </h3>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-500">
                   {summarizeCounts(
                     category.countsByType,
                     undefined,

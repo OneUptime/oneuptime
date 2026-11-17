@@ -75,7 +75,7 @@ const MitreAttackChips: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <span className="text-sm text-gray-400">
+      <span className="text-sm text-gray-500">
         {translator.translateText(props.emptyText || "Not mapped")}
       </span>
     );

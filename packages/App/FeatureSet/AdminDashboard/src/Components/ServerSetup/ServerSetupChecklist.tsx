@@ -834,7 +834,7 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
                 return (
                   <p
                     key={index}
-                    className="mt-1 break-words text-xs text-gray-400"
+                    className="mt-1 break-words text-xs text-gray-500"
                     data-testid={`server-setup-${row.id}-checked`}
                   >
                     {words(sentence)}
@@ -888,7 +888,7 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
           {translator.translateText(title)}
         </span>
         <span
-          className="text-xs text-gray-400"
+          className="text-xs text-gray-500"
           data-testid={`server-setup-${tier}-progress`}
         >
           {translator.translateTemplate(SERVER_SETUP_COPY.progress, {

@@ -61,7 +61,7 @@ import path from "path";
  *     also fills "Create {{itemName}}" and "Edit {{itemName}}"). Menu paths
  *     ("A → B → C") are drawn segment by segment.
  *   - The user menu (Profile, and the theme row's Theme, Light, Dark and
- *     System, are flat keys; Admin Settings and Log out are the Dashboard's
+ *     System, are flat keys; Admin Settings and Sign Out are the Dashboard's
  *     userProfile.* keys) and the sign-in page (the Accounts app's own
  *     locale) are read from where those screens read them
  *     (USER_MENU_LABELS, SIGN_IN_LABELS).
@@ -150,7 +150,7 @@ const PROSE: Record<string, Array<string>> = {
  */
 const USER_MENU_LABELS: Record<string, string> = {
   "Admin Settings": "adminSettings",
-  "Log out": "logOut",
+  "Sign Out": "signOut",
 };
 
 /*
@@ -339,7 +339,7 @@ const SEARCH_ACTIONS: ReadonlyArray<string> = [
  * what a reader types (SearchDocs checks each finds its page first).
  */
 const SEARCH_SETTINGS: ReadonlyArray<[string, string]> = [
-  ["Require SSO for Login", "SSO"],
+  ["Require SSO to Sign In", "SSO"],
   ["Custom SMTP Configs", "Notification Channels"],
 ];
 
@@ -556,10 +556,36 @@ describe("the lists this test keeps", () => {
         label: label,
         bold: true,
       });
+    }
+
+    for (const label of Object.keys(SIGN_IN_LABELS)) {
       expect({ label: label, flat: isActionLabel(label) }).toEqual({
         label: label,
         flat: false,
       });
+    }
+
+    /*
+     * A user menu item may also be a flat label - "Sign Out" is the audit
+     * log's action too (#9212) - when both say the same in every language:
+     * it is one name, so the page cannot quote the wrong one.
+     */
+    for (const [label, key] of Object.entries(USER_MENU_LABELS)) {
+      if (!isActionLabel(label)) {
+        continue;
+      }
+
+      for (const language of LANGUAGES) {
+        expect({
+          label: label,
+          language: language,
+          flat: dashboardLocale(language)[label],
+        }).toEqual({
+          label: label,
+          language: language,
+          flat: userMenuLabel(language, key),
+        });
+      }
     }
 
     for (const [label, key] of Object.entries(USER_MENU_LABELS)) {

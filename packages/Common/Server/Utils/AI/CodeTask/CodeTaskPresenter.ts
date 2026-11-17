@@ -15,6 +15,7 @@ import CodeTaskThread, {
   CodeTaskTurnsRead,
 } from "./CodeTaskThread";
 import FixProductionReportUtil from "../CodeFix/FixProductionReportUtil";
+import ProductionReviewReadFilter from "../../CodeRepository/ProductionReview/ProductionReviewReadFilter";
 import FixProductionReport from "../../../../Types/AI/FixProductionReport";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
@@ -74,7 +75,10 @@ import ObjectID from "../../../../Types/ObjectID";
  * pull requests, and why a turn failed.
  *
  * Everything is read as root; the Code API decides beforehand who may read
- * the task and who may see its diff (CodeTaskAccess).
+ * the task and who may see its diff (CodeTaskAccess). What a production
+ * review kept of incidents is the one part held to the reader here: each
+ * stored review, in a row or a turn, lists only the incidents they may read
+ * now (keepReviewsForReader, #9241).
  */
 
 // Steps read for one turn. The Log page has the whole trail.
@@ -175,9 +179,13 @@ export default class CodeTaskPresenter {
             return task.userId!;
           }),
       ),
-      // A production review's row says what its latest review found.
-      CodeTaskPresenter.loadOutcomes(
-        data.tasks
+      /*
+       * A production review's row says what its latest review found, as
+       * the reader may read it (#9241).
+       */
+      CodeTaskPresenter.loadReviews({
+        projectId: data.projectId,
+        runIds: data.tasks
           .filter((task: AIRun): boolean => {
             return CodeFixTaskTypeHelper.isProductionReview(
               task.codeFixTaskType,
@@ -186,13 +194,17 @@ export default class CodeTaskPresenter {
           .map((task: AIRun): ObjectID => {
             return task.id!;
           }),
-      ),
+        props: data.props,
+      }),
     ]);
 
     return data.tasks.map((task: AIRun): CodeTaskSummaryJSON => {
       const key: string = CodeTaskListRows.key(task.id!);
       const taskReplies: CodeTaskRepliesRead | undefined = replies.get(key);
       const taskOutcomes: CodeTaskOutcomesRead | undefined = outcomes.get(key);
+      const review: CodeTaskOutcome | undefined = reviews.get(
+        task.id!.toString(),
+      );
 
       return CodeTaskPresenter.toSummary({
         task,
@@ -205,8 +217,13 @@ export default class CodeTaskPresenter {
         ]),
         pullRequest: pullRequests.get(key),
         changes: taskOutcomes?.changes || null,
-        lastReply: taskOutcomes?.lastReply,
-        reviewOutcome: reviews.get(task.id!.toString()),
+        /*
+         * A review is reviewed again in place, on its one turn: what AI
+         * last said is the review's sentence, counted from what the reader
+         * may read.
+         */
+        lastReply: review?.summary || taskOutcomes?.lastReply,
+        reviewOutcome: review,
         origin: CodeTaskOrigin.describe({
           run: task,
           subjects,
@@ -280,6 +297,18 @@ export default class CodeTaskPresenter {
           select,
         }),
       ]);
+
+    /*
+     * A production review's turns hold the review as it was worked out:
+     * every one read here is held to what the reader may read now, before
+     * anything is made of it (#9241).
+     */
+    await CodeTaskPresenter.keepReviewsForReader({
+      projectId: data.projectId,
+      runs: [...turns, ...turnsNotShown, ...(linked ? [linked.turn] : [])],
+      taskContext: turns[0]?.taskContext,
+      props: data.props,
+    });
 
     // The turns sent whole: the ones shown, and the one a link names.
     const sentTurns: Array<AIRun> = linked ? [...turns, linked.turn] : turns;
@@ -943,27 +972,36 @@ export default class CodeTaskPresenter {
   }
 
   /*
-   * What each run ended with, by run id: a list's runs are read without
-   * it, and a production review's row says what its latest review found.
+   * What each production review's run ended with, by run id - a list's runs
+   * are read without it, and a review's row says what its latest review
+   * found - held to what the reader may read (keepReviewsForReader).
    */
-  private static async loadOutcomes(
-    runIds: Array<ObjectID>,
-  ): Promise<Map<string, CodeTaskOutcome>> {
+  private static async loadReviews(data: {
+    projectId: ObjectID;
+    runIds: Array<ObjectID>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, CodeTaskOutcome>> {
     const outcomes: Map<string, CodeTaskOutcome> = new Map<
       string,
       CodeTaskOutcome
     >();
 
-    if (runIds.length === 0) {
+    if (data.runIds.length === 0) {
       return outcomes;
     }
 
     const runs: Array<AIRun> = await AIRunService.findBy({
-      query: { _id: QueryHelper.any(runIds) },
-      select: { _id: true, taskOutcome: true },
-      limit: runIds.length,
+      query: { _id: QueryHelper.any(data.runIds) },
+      select: { _id: true, taskOutcome: true, taskContext: true },
+      limit: data.runIds.length,
       skip: 0,
       props: { isRoot: true },
+    });
+
+    await CodeTaskPresenter.keepReviewsForReader({
+      projectId: data.projectId,
+      runs,
+      props: data.props,
     });
 
     for (const run of runs) {
@@ -973,6 +1011,55 @@ export default class CodeTaskPresenter {
     }
 
     return outcomes;
+  }
+
+  /*
+   * The production reviews `runs` hold (AIRun.taskOutcome.productionReview),
+   * each held to the incidents the reader may read now, in place: every
+   * incident they list asked of the incidents as the reader, in one read
+   * (ProductionReviewReadFilter, #9241). A review's sentence is written in
+   * its host's words, read from `taskContext` - the task's, for its turns -
+   * or each run's own. Runs that hold no review are not read for.
+   */
+  public static async keepReviewsForReader(data: {
+    projectId: ObjectID;
+    runs: Array<AIRun>;
+    props: DatabaseCommonInteractionProps;
+    taskContext?: AIRun["taskContext"] | undefined;
+  }): Promise<void> {
+    const reviewing: Array<AIRun> = data.runs.filter((run: AIRun): boolean => {
+      return Boolean(run.taskOutcome?.productionReview);
+    });
+
+    if (reviewing.length === 0) {
+      return;
+    }
+
+    const readable: Set<string> =
+      await ProductionReviewReadFilter.readReadableIncidentIds({
+        projectId: data.projectId,
+        reports: reviewing.map(
+          (run: AIRun): ProductionReviewReport | undefined => {
+            return run.taskOutcome?.productionReview;
+          },
+        ),
+        props: data.props,
+      });
+
+    for (const run of reviewing) {
+      const kept: CodeTaskOutcome | undefined =
+        ProductionReviewReadFilter.keepOutcome(
+          run.taskOutcome,
+          readable,
+          ProductionReviewReadFilter.getTerm(
+            data.taskContext || run.taskContext,
+          ),
+        );
+
+      if (kept) {
+        run.taskOutcome = kept;
+      }
+    }
   }
 
   private static async loadEvents(

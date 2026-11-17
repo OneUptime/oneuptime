@@ -121,12 +121,12 @@ O OneUptime envia os acionamentos de plantão com prioridade alta, que o Android
 
 ## Bloquear o aplicativo
 
-Ative **Biometrics Login** em **Settings** no aplicativo, e ele pedirá a sua digital, o seu rosto ou o bloqueio de tela do celular sempre que abrir. A chave aparece quando o celular tem desbloqueio por digital ou por rosto configurado. **Appearance**, na mesma tela, escolhe a aparência clara ou escura, ou segue o celular.
+Ative **Biometric Unlock** em **Settings** no aplicativo, e ele pedirá a sua digital, o seu rosto ou o bloqueio de tela do celular sempre que abrir. A chave aparece quando o celular tem desbloqueio por digital ou por rosto configurado. **Appearance**, na mesma tela, escolhe a aparência clara ou escura, ou segue o celular.
 
 ## Atualizar, sair ou desinstalar
 
 - **Atualizar.** O Google Play atualiza o aplicativo. Com o APK, instale o mais recente por cima. A versão do aplicativo aparece no fim da tela **Settings** dele.
-- **Sair.** **Settings → Log Out** faz você sair e remove o celular dos seus dispositivos push em todos os projetos, junto com as regras de plantão dele. Se você entrar de novo, ele volta com as regras padrão.
+- **Sair.** **Settings → Sign Out** faz você sair e remove o celular dos seus dispositivos push em todos os projetos, junto com as regras de plantão dele. Se você entrar de novo, ele volta com as regras padrão.
 - **Desinstalar.** Remova o aplicativo como qualquer outro. Se você ainda estava conectado, o celular continua na sua lista até um push para ele falhar: o OneUptime então o marca como **Não está recebendo notificações**. Exclua essa entrada com **Excluir**: se você reinstalar o aplicativo e entrar, o celular é adicionado como uma entrada nova, com as regras padrão.
 
 ## Solução de problemas
@@ -151,7 +151,7 @@ Abra **Settings** no aplicativo: a linha abaixo de **Critical On-Call Alerts** d
 O OneUptime On-Call já está no celular vindo de outra fonte, como o Google Play, e o Android não instala um por cima do outro. Desinstale-o, instale o APK e faça login de novo.
 :::
 
-:::details Não há chave Biometrics Login
+:::details Não há chave Biometric Unlock
 A chave aparece quando o desbloqueio por digital ou por rosto está configurado nas configurações do Android.
 :::
 

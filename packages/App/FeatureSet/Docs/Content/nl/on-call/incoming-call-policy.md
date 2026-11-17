@@ -183,7 +183,7 @@ Twilio leest de berichten voor met een tekst-naar-spraakstem, dus schrijf ze zoa
 
 ## Belogboeken
 
-Elk gesprek staat op de pagina **Belogboeken** van het beleid, onder **Logboeken** in het zijmenu ervan: de **Beller**, het **Gebeld nummer**, de **Status** ervan, wie het aannam (**Beantwoord door**), de **Duur**, en wanneer het begon (**Gestart op**). Klik op **Tijdlijn bekijken** bij een gesprek om de **Oproeptijdlijn** ervan te zien: elke persoon die is gebeld, op welk nummer, en hoe elke poging eindigde.
+Elk gesprek staat op de pagina **Belogboeken** van het beleid, onder **Basis** in het zijmenu ervan: de **Beller**, het **Gebeld nummer**, de **Status** ervan, wie het aannam (**Beantwoord door**), de **Duur**, en wanneer het begon (**Gestart op**). Klik op **Tijdlijn bekijken** bij een gesprek om de **Oproeptijdlijn** ervan te zien: elke persoon die is gebeld, op welk nummer, en hoe elke poging eindigde.
 
 | Status | Wat er gebeurde |
 | --- | --- |

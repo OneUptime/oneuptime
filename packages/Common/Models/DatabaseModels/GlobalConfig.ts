@@ -112,7 +112,7 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.Boolean,
-    title: "Require SSO for Login",
+    title: "Require SSO to Sign In",
     description:
       "When enabled, all users must sign in with SSO to access any project on this server. Master admins are exempt so they can always recover from a misconfigured SSO. A project's own SSO settings still apply on top of this.",
     defaultValue: false,

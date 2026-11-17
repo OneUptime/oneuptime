@@ -86,16 +86,15 @@ Den første policyen i et prosjekt kan gjøre dette allerede når den opprettes:
 
 | Seksjon | Sider |
 | --- | --- |
-| **Policyer** | **Vaktpolicyer** og **Beredskap**: hvem policyene dine faktisk kan nå |
+| **Policyer** | **Vaktpolicyer**, **Beredskap**: hvem policyene dine faktisk kan nå, og **Policyer for innkommende anrop**: et telefonnummer som ringer til den som har vakt |
 | **Tidsplaner** | **Vaktplaner**, **Tidslinje for vaktplaner** og **Kalenderfeeder** |
-| **Innkommende anrop** | **Policyer for innkommende anrop**: et telefonnummer som ringer til den som har vakt |
 | **Avansert** | **Brukeroverstyringer**, **Utførelseslogger** og **Arkiverte policyer** |
 | **Rapporter** | **Brukerens vakttid**: hvor lenge hver person hadde vakt |
 | **Arbeidsområde** | **Slack**, **Microsoft Teams** og **Mattermost**: regler som legger ut vakthendelser i en kanal |
 | **Innstillinger** | **Egendefinerte felt**, **Etikettregler** og **Eierregler** |
 | **Utvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter**: vakt satt opp fra kode |
 
-**Policyer**, **Tidsplaner** og **Innkommende anrop** er åpne; de andre seksjonene starter sammenslått, og en seksjon åpner seg selv når du er på en av sidene i den. **Arbeidsområde** viser chatverktøyene prosjektet har koblet til, eller **Koble til et arbeidsområde** når det ikke har noen.
+**Policyer** og **Tidsplaner** er åpne; de andre seksjonene starter sammenslått, og en seksjon åpner seg selv når du er på en av sidene i den. **Arbeidsområde** viser chatverktøyene prosjektet har koblet til, eller **Koble til et arbeidsområde** når det ikke har noen.
 
 Når du har vakt for en policy, viser klokken øverst til høyre det. Klikk på den for å åpne **Mine vaktpolicyer**: alle policyer du har vakt for, i alle prosjektene dine, og om du er nevnt direkte, i et team eller i en vaktplan.
 

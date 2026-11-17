@@ -858,6 +858,28 @@ const textOf: (element: Element | null) => string = (
 };
 
 /*
+ * What a hover tip (Tooltip) says, word for word: it is drawn only while the
+ * pointer is over its trigger, so this points at the trigger, reads the tip
+ * and moves away again.
+ */
+const hoverTipOf: (trigger: HTMLElement) => Promise<string> = async (
+  trigger: HTMLElement,
+): Promise<string> => {
+  await act(async () => {
+    fireEvent.mouseEnter(trigger);
+  });
+
+  const tip: HTMLElement = await screen.findByRole("tooltip");
+  const text: string = tip.textContent || "";
+
+  await act(async () => {
+    fireEvent.mouseLeave(trigger);
+  });
+
+  return text;
+};
+
+/*
  * ---------------------------------------------------------------------------
  * A checkout trace, as the trace page reads it
  * ---------------------------------------------------------------------------
@@ -1794,11 +1816,13 @@ describe.each(LANGUAGES)("the trace view in %s", (language: string) => {
       expect(textOf(started).startsWith("Started ")).toBe(false);
     }
 
-    // The span whose parent never arrived is counted, and the badge says why.
+    /*
+     * The span whose parent never arrived is counted, and the badge's hover
+     * tip says why.
+     */
     const orphans: HTMLElement = screen.getByTestId("trace-orphans");
     expect(textOf(orphans)).toBe(counted(language, ORPHAN_SPANS, 1));
-    expect(orphans).toHaveAttribute(
-      "title",
+    expect(await hoverTipOf(orphans)).toBe(
       word(
         language,
         "This span names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",

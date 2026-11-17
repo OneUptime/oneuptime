@@ -166,7 +166,7 @@ You grouped by a label that is the same for every alert of a notification, such 
 :::
 
 :::details The incident shows a reference instead of a value
-A reference to a field the notification does not have is left as written, braces and all. Check the field's name against what Grafana sent: for a workflow, open the run in **Logs → Runs** and compare with what the trigger received.
+A reference to a field the notification does not have is left as written, braces and all. Check the field's name against what Grafana sent: for a workflow, open the run in **Runs** and compare with what the trigger received.
 :::
 
 The [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#troubleshooting) guide covers more cases, and they apply to Grafana's notifications too.

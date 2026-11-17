@@ -1072,7 +1072,7 @@ describe("a refresh token whose session is no longer there", () => {
     expect(outcome.refused).toBeInstanceOf(NotAuthenticatedException);
     expect(outcome.refused).not.toBeInstanceOf(SessionEndedException);
     expect(outcome.refused!.message).toBe(
-      "Session expired. Please login again.",
+      "Session expired. Please sign in again.",
     );
   });
 });
@@ -1095,7 +1095,7 @@ describe("a session ended while its refresh was on its way", () => {
 
     expect(outcome.refused).toBeInstanceOf(NotAuthenticatedException);
     expect(outcome.refused!.message).toBe(
-      "Session expired. Please login again.",
+      "Session expired. Please sign in again.",
     );
     expect(outcome.nextError).toBeNull();
     expect(outcome.bodyAccessToken).toBeNull();

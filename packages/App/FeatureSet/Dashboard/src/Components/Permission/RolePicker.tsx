@@ -859,7 +859,16 @@ const RolePicker: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div data-testid={props.dataTestId || "role-picker"}>
+    /*
+     * On a phone the dialog is a sheet as tall as what it holds, and a
+     * search's matches scroll with the sheet's body: the picker asks for the
+     * whole sheet (Modal, PHONE_SHEET_FILLED_ATTRIBUTE), so a search that
+     * lists more than the picks did never grows it under the caret.
+     */
+    <div
+      data-testid={props.dataTestId || "role-picker"}
+      data-fills-phone-sheet="true"
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/*
          * While a search lists roles from both answers, neither is pressed:

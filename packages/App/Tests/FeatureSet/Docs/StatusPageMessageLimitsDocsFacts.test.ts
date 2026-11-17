@@ -184,12 +184,12 @@ describe("the English page gives the limits in force", () => {
     }
   });
 
-  it("gives a private user's password reset its limits", () => {
+  it("gives a private user's password reset its limits, counted whoever the address belongs to (#9274)", () => {
     const reset: { perClientLimit: number; perContactLimit: number } =
       config.kinds[PublicMessageKind.StatusPagePasswordReset];
 
     expect(englishSection()).toContain(
-      `limited the same way: ${reset.perContactLimit} reset emails to one address in an hour, on all status pages together, and ${reset.perClientLimit} from one network in ${minutes} minutes.`,
+      `Asking for a password reset link on the status page's sign-in page is limited the same way, and counted whether or not the address is a private user of the page: ${reset.perContactLimit} reset emails to one address in an hour, on all status pages together, and ${reset.perClientLimit} from one network in ${minutes} minutes.`,
     );
   });
 

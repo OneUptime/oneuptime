@@ -25,10 +25,10 @@ import path from "path";
  * encrypted, and SCIM bearer tokens stored hashed and shown once (#9012) -
  * held to the code that makes it true.
  *
- * The note (installation/upgrading, "Other changes in 15": OneUptime 15
- * brought it) sits right after the note on a project's API keys, hashed in
- * the same release, and every translation carries it in the English note's
- * place, with the English note's code and Reset Bearer Token as the
+ * The note (installation/upgrading, "Other changes in 16": OneUptime 16
+ * brought it) is the first of them, before the note on OneUptime AI's code
+ * work about a private record, and every translation carries it in the
+ * English note's place, with the English note's code and Reset Bearer Token as the
  * reader's Dashboard draws it. What it claims is what the code does:
  *
  *   - it names every key the upgrade protects: one phrase for each column
@@ -39,7 +39,7 @@ import path from "path";
  *   - the upgrade changes no key and writes the lookup hashes
  *     (HashPresentedKeysForLookup, after the schema migrations that keep
  *     every key), and the Workers job protects the keys a day later;
- *   - the steps for 15 name the status page SCIM resource an earlier
+ *   - the steps for 16 name the status page SCIM resource an earlier
  *     Terraform provider fails on, and `bearerToken` among the reads
  *     refused, in every language.
  */
@@ -49,15 +49,12 @@ const REPO_ROOT: string = path.resolve(PACKAGES_DIR, "..");
 
 const NOTE_LEAD: string =
   "**The keys presented to OneUptime are encrypted, and SCIM bearer tokens are stored hashed and shown only when they are made.**";
-// The note before it: a project's API keys, hashed in the same release (#8902).
-const PREVIOUS_LEAD: string =
-  "**A project's API keys are stored hashed, and each is shown only when it is made.**";
-// The note after it.
+// The note after it: OneUptime AI's code work about a private record (#9188).
 const NEXT_LEAD: string =
-  "**What is done about a private record follows its owners too";
+  "**OneUptime AI's code work about a private incident or alert follows its owners too.**";
 
 // The major version whose "Other changes in" list carries the note.
-const MAJOR: number = 15;
+const MAJOR: number = 16;
 
 const RESET_BEARER_TOKEN: string = "Reset Bearer Token";
 
@@ -91,9 +88,9 @@ function source(relativePath: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
 }
 
-// The numbered steps of "What you need to do for 15", each on one line.
-function stepsFor15(language: string): Array<string> {
-  return sectionAtEnglishPlace(language, "What you need to do for 15")
+// The numbered steps of "What you need to do for 16", each on one line.
+function stepsFor16(language: string): Array<string> {
+  return sectionAtEnglishPlace(language, "What you need to do for 16")
     .split(/\n(?=\d+\. )/)
     .slice(1)
     .map((step: string): string => {
@@ -108,18 +105,13 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on the keys presented to OneUptime", () => {
-  it("is a note of the 14 → 15 changes, once, right after the note on a project's API keys", () => {
-    expect(NOTE_INDEX).toBeGreaterThan(0);
+  it("is a note of the 15 → 16 changes, once, the first of them", () => {
+    expect(NOTE_INDEX).toBe(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
         return flattened(item).includes(NOTE_LEAD);
       }),
     ).toHaveLength(1);
-    expect(
-      flattened(ENGLISH_ITEMS[NOTE_INDEX - 1]!).startsWith(
-        `- ${PREVIOUS_LEAD}`,
-      ),
-    ).toBe(true);
     expect(
       flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
     ).toBe(true);
@@ -224,14 +216,14 @@ describe("the English upgrade note on the keys presented to OneUptime", () => {
     );
   });
 
-  it("says the steps for 15: the earlier provider fails on status page SCIM, and a read of `bearerToken` is refused", () => {
-    const steps: Array<string> = stepsFor15("en");
+  it("says the steps for 16: the earlier provider fails on status page SCIM, and a read of `bearerToken` is refused", () => {
+    const steps: Array<string> = stepsFor16("en");
 
-    expect(steps[1]).toContain(
-      "`terraform plan` fails on every `oneuptime_smtp_config` or `oneuptime_status_page_scim`",
+    expect(steps[0]).toContain(
+      "`terraform plan` fails on every `oneuptime_status_page_scim`",
     );
-    expect(steps[2]).toContain(
-      "a custom domain's `customCertificateKey`, or a SCIM connection's `bearerToken`, is refused.",
+    expect(steps[1]).toContain(
+      "A read whose `select` names a SCIM connection's `bearerToken` is refused",
     );
 
     // The provider's name for it: the spec's tag, as the generator names resources.
@@ -261,12 +253,12 @@ describe.each(TRANSLATIONS)(
       expect(note).toContain(`**${drawn}**`);
     });
 
-    it("names the status page SCIM resource and `bearerToken` in the steps for 15", () => {
-      const steps: Array<string> = stepsFor15(language);
+    it("names the status page SCIM resource and `bearerToken` in the steps for 16", () => {
+      const steps: Array<string> = stepsFor16(language);
 
-      expect(steps).toHaveLength(stepsFor15("en").length);
-      expect(inlineCode(steps[1]!)).toEqual(inlineCode(stepsFor15("en")[1]!));
-      expect(inlineCode(steps[2]!)).toEqual(inlineCode(stepsFor15("en")[2]!));
+      expect(steps).toHaveLength(stepsFor16("en").length);
+      expect(inlineCode(steps[0]!)).toEqual(inlineCode(stepsFor16("en")[0]!));
+      expect(inlineCode(steps[1]!)).toEqual(inlineCode(stepsFor16("en")[1]!));
     });
   },
 );

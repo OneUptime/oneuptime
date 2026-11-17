@@ -493,7 +493,7 @@ describe("one-switch cards in the frontends", () => {
       /*
        * Who can see a status page: one choice on Access
        * (Components/StatusPage/StatusPageAccessCard), and the SSO page's
-       * Require SSO for Login switch (StatusPageRequireSsoCard).
+       * Require SSO to Sign In switch (StatusPageRequireSsoCard).
        */
       {
         file: `${DASHBOARD}/Pages/StatusPages/View/AuthenticationSettings.tsx`,

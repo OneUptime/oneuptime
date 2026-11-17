@@ -174,7 +174,7 @@ Sidan **SLOs** visar varje SLO som inte är arkiverat, med status, SLI, återst�
 | **Granskningsloggar** | Vem som ändrade SLO:et, dess regler och dess ägare, och när. |
 | **Ta bort SLO** | Raderar SLO:et permanent och löser de larm och incidenter för förbrukningstakt som det hade öppna. |
 
-**Monitorer** ligger i ett avsnitt **Konfiguration**, **Monitorregler**, **Förbrukningstaktsregler** och **Felbudgetpolicy** i ett avsnitt **Regler**, och **Ägare**, **Inställningar**, **Granskningsloggar** och **Ta bort SLO** i ett avsnitt **Hantering**. Alla tre börjar hopfällda, precis som ett avsnitt **Utvecklare** för att hantera SLO:et från kod: klicka på ett avsnitts rubrik för att öppna det.
+**Monitorer** ligger i avsnittet **Översikt**, under **Översikt**; **Monitorregler**, **Förbrukningstaktsregler** och **Felbudgetpolicy** i ett avsnitt **Regler**; och **Ägare**, **Inställningar**, **Granskningsloggar** och **Ta bort SLO** i ett avsnitt **Hantering**. **Regler** och **Hantering** börjar hopfällda, precis som ett avsnitt **Utvecklare** för att hantera SLO:et från kod: klicka på ett avsnitts rubrik för att öppna det.
 
 När något hindrar ett SLO från att mäta talar en banner högst upp på var och en av dess sidor om vad som är fel och länkar till sidan som åtgärdar det: se [Felsökning](#felsökning).
 

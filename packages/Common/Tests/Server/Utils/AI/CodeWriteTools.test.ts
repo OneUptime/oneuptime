@@ -29,8 +29,14 @@ import {
 import CodeRepositoryService from "../../../../Server/Services/CodeRepositoryService";
 import AIAgentTaskPullRequestService from "../../../../Server/Services/AIAgentTaskPullRequestService";
 import AIConversationService from "../../../../Server/Services/AIConversationService";
+import AIConversationMessageService from "../../../../Server/Services/AIConversationMessageService";
 import AIConversation from "../../../../Models/DatabaseModels/AIConversation";
+import AIConversationMessage from "../../../../Models/DatabaseModels/AIConversationMessage";
 import AIChatPageContextType from "../../../../Types/AI/AIChatPageContext";
+import {
+  AIChatCitationTargetType,
+  AIChatWidgetType,
+} from "../../../../Types/AI/AIChatTypes";
 import GitHubUtil from "../../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import CodeRepositoryModel from "../../../../Models/DatabaseModels/CodeRepository";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
@@ -334,12 +340,86 @@ describe("open_code_pull_request", () => {
   describe("what the recorded pull request carries", () => {
     const INCIDENT: string = "9d4f5162-7384-4a95-8ea6-bf708192a3b4";
     const ALERT: string = "9d4f5162-7384-4a95-8ea6-bf708192a3b5";
+    const OPENED_INCIDENT: string = "9d4f5162-7384-4a95-8ea6-bf708192a3b6";
+    const LISTED_ALERT: string = "9d4f5162-7384-4a95-8ea6-bf708192a3b7";
     const CONVERSATION_ID: ObjectID = ObjectID.generate();
+
+    // The chat's messages, as OneUptime reads them: none, unless a test says.
+    let readMessages: jest.SpyInstance;
+
+    beforeEach(() => {
+      readMessages = jest
+        .spyOn(AIConversationMessageService, "findBy")
+        .mockResolvedValue([] as never);
+    });
 
     function recorded(): AIAgentTaskPullRequest {
       return (AIAgentTaskPullRequestService.create as unknown as jest.Mock).mock
         .calls[0][0].data as AIAgentTaskPullRequest;
     }
+
+    /*
+     * #9242: a chat about nothing that opened an incident one by one, and
+     * was shown a list of alerts one of which the pull request quotes.
+     */
+    test("what the chat opened one by one, and what the pull request quotes of a list", async () => {
+      mockHappyPath();
+      jest
+        .spyOn(AIConversationService, "findOneById")
+        .mockResolvedValue(new AIConversation() as never);
+
+      const message: AIConversationMessage = new AIConversationMessage();
+      message.citations = [
+        {
+          id: "C1",
+          toolName: "get_incident",
+          label: "Incident #12",
+          queryArguments: { incidentId: OPENED_INCIDENT },
+          rowCount: 1,
+          target: {
+            type: AIChatCitationTargetType.IncidentView,
+            params: { incidentId: OPENED_INCIDENT },
+          },
+        },
+      ];
+      message.widgets = [
+        {
+          id: "W1",
+          type: AIChatWidgetType.AlertList,
+          title: "Alerts",
+          data: {
+            items: [
+              {
+                id: LISTED_ALERT,
+                alertNumber: 4,
+                title: "Checkout queue backs up",
+              },
+              { id: ALERT, alertNumber: 5, title: "Disk is nearly full" },
+            ],
+          },
+        },
+      ];
+      readMessages.mockResolvedValue([message] as never);
+
+      await OpenCodePullRequestTool.execute(
+        {
+          title: "Fix charge",
+          description:
+            "Stops what made the checkout queue backs up alert fire.",
+          changes: CHANGES,
+        },
+        { ...ctx, conversationId: CONVERSATION_ID },
+      );
+
+      expect(recorded().carriedIncidentIds).toEqual([OPENED_INCIDENT]);
+      expect(recorded().carriedAlertIds).toEqual([LISTED_ALERT]);
+      expect(readMessages).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: { conversationId: CONVERSATION_ID },
+          props: { isRoot: true },
+        }),
+      );
+    });
 
     test("the incident whose AI conversation opened it", async () => {
       mockHappyPath();

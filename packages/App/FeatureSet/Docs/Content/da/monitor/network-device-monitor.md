@@ -136,7 +136,7 @@ Lad den være foldet sammen, og enheden bliver kun pinget: den sammenfoldede sek
 | SNMP v3 Privacy Key | Adgangsfrasen til privatliv (kryptering). | Med privatliv |
 :::
 
-Loginoplysninger, der er skrevet på enheden, vinder over en loginprofil, der er valgt ved siden af dem, og enhedens lokation kan også have en standardprofil. Loginoplysninger i en profil er krypteret i hvile. Loginoplysninger, der er skrevet på en enhed, er beskyttet af de samme læserettigheder, men er ikke krypteret i hvile: endnu en grund til at holde delte loginoplysninger i en profil.
+Loginoplysninger, der er skrevet på enheden, vinder over en loginprofil, der er valgt ved siden af dem, og enhedens lokation kan også have en standardprofil. Loginoplysninger i en profil er krypteret i hvile. Loginoplysninger, der er skrevet på en enhed, er også krypteret i hvile og beskyttet af de samme læserettigheder.
 
 ## Ændr mange enheder på én gang
 

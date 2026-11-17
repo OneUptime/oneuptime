@@ -43,7 +43,7 @@ import { MORE_WAYS_TO_SIGN_IN_OPEN_KEY } from "../../../../App/FeatureSet/Accoun
 /*
  * WHILE THE SERVER REQUIRES SSO, THE SIGN-IN PAGES OFFER ONLY SSO (#5193).
  *
- * "When 'Require SSO for Login' is enabled, only the configured SSO login
+ * "When 'Require SSO to Sign In' is enabled, only the configured SSO login
  * option should be displayed": the sign-in page still showed the email
  * field, its "Login with SSO" lookup, "Or continue with email" and "Sign in
  * with password" - and the lookup only finds a project's own providers, so
@@ -599,7 +599,7 @@ describe("the sign-in page while the server does not require SSO", () => {
     jest
       .spyOn(ModelAPI, "createOrUpdate")
       .mockImplementation(async (): Promise<never> => {
-        throw new Error("Invalid login: Email or password does not match.");
+        throw new Error("Email or password does not match.");
       });
 
     await renderPage(<LoginPage />);
@@ -615,9 +615,7 @@ describe("the sign-in page while the server does not require SSO", () => {
     });
 
     expect(
-      await screen.findByText(
-        "Invalid login: Email or password does not match.",
-      ),
+      await screen.findByText("Email or password does not match."),
     ).toBeInTheDocument();
     expect(requestedUrls).toEqual([`${IDENTITY_ORIGIN}/sign-in-methods`]);
   });

@@ -86,7 +86,7 @@ Next, in rough order of usefulness:
 
 ## Where everything lives
 
-Once a status page is open, its own left side menu is grouped into nine sections. Use this as a map for the rest of this documentation group.
+Once a status page is open, its own left side menu is grouped into eight sections. Use this as a map for the rest of this documentation group.
 
 | Section | What's in it |
 | --- | --- |
@@ -96,9 +96,8 @@ Once a status page is open, its own left side menu is grouped into nine sections
 | **Subscribers** | **Subscribers** (one page, with a tab for each channel: Email, SMS, Slack, Microsoft Teams and Webhook), **Subscriber Settings**, **Notification Logs** — what was sent to subscribers. |
 | **Branding** | **Branding** (logo, title, favicon, links, footer, colors and languages, on one page), **Custom Domains**, **HTML, CSS & JavaScript**. |
 | **Security** | **Access** (who can see the page), **Private Users**, **Single Sign-On** (a tab each for SAML and OIDC), **SCIM**. |
-| **AI** | **MCP**. |
 | **Developer** | **Terraform**, **API**, **CLI**, **AI Assistants** — the page as code. |
-| **Advanced** | **Embedded Status**, **Reports**, **Custom Fields**, **Settings**, **Audit Logs**, **Delete Status Page**. |
+| **Advanced** | **MCP**, **Embedded Status**, **Reports**, **Custom Fields**, **Settings**, **Audit Logs**, **Delete Status Page**. |
 
 Only **Overview** and **Resources**, what the page shows, start open. Every other section starts collapsed, like the rarely used sections of every menu in OneUptime: click a section's title to show its pages. A section opens by itself whenever you are on one of its pages, such as **Settings** or **Subscribers**.
 
@@ -124,7 +123,7 @@ The public page is its own app, with a small set of routes:
 - `/rss` — the feed.
 - `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` and `/master-password` — only relevant on a private page.
 
-The top nav bar always shows **Overview**; the rest appear only when enabled. **Incidents**, **Announcements** and **Scheduled Maintenance** each need their toggle on; **Subscribe** needs both **Show Subscriber Page** and at least one subscriber channel enabled. A private page also gets a **Log Out** item.
+The top nav bar always shows **Overview**; the rest appear only when enabled. **Incidents**, **Announcements** and **Scheduled Maintenance** each need their toggle on; **Subscribe** needs both **Show Subscriber Page** and at least one subscriber channel enabled. A private page also gets a **Sign Out** item.
 
 A single incident, episode, announcement or scheduled event opens only when the page would list it, whatever its history window: a private incident or episode, one hidden from status pages, a scheduled event hidden from status pages, or an announcement scheduled for later is not found by its link either.
 
@@ -201,15 +200,15 @@ Add the people who may sign in on **Status Pages → your page → Security → 
 
 **Private users and the password don't stack.** While **Anyone with the password** is the choice, private users can't sign in — they enter the password too — and the **Private Users** screen says so, with a link back to **Access**.
 
-**Sign-in links.** On a page visitors sign in to, the sign-in page also offers **Email me a sign-in link**: a private user enters their email address and is sent a link that signs them in without their password. The link works once, for 15 minutes, and asking for another replaces it. It opens a page where they press **Sign In**, so mail filters that open every link to scan it can't use it up first. The page answers the same whether or not the address is one of its private users, so asking tells nobody who can sign in. Links are on for every page; to keep private users on their passwords, turn off **Sign-In Links** under **More settings** on **Private Users** (people already signed in with a link stay signed in). They are never offered while **Require SSO for Login** is on or **Anyone with the password** is the choice.
+**Sign-in links.** On a page visitors sign in to, the sign-in page also offers **Email me a sign-in link**: a private user enters their email address and is sent a link that signs them in without their password. The link works once, for 15 minutes, and asking for another replaces it. It opens a page where they press **Sign In**, so mail filters that open every link to scan it can't use it up first. The page answers the same whether or not the address is one of its private users, so asking tells nobody who can sign in. Links are on for every page; to keep private users on their passwords, turn off **Sign-In Links** under **More settings** on **Private Users** (people already signed in with a link stay signed in). They are never offered while **Require SSO to Sign In** is on or **Anyone with the password** is the choice.
 
 ### SSO and OIDC
 
 For a private page tied to your identity provider, open **Status Pages → your page → Security → Single Sign-On** (`{id}/sso`). It has a tab for each protocol. The **SAML** tab configures SAML: **Add SSO Provider** asks for the sign-on URL, issuer and x509 certificate, and the signature and digest methods are filled in under **More fields**. The **OIDC** tab (`{id}/sso?protocol=oidc`) configures OpenID Connect: **Add OIDC Provider** asks for the issuer, client ID and secret, and the discovery URL, scopes and claim names are filled in under **More fields**. Once a page has a provider, the **Test Sign-In** card under the list links to the page's sign-in, to try it. **SCIM** provisions private users from the IdP automatically. On OneUptime Cloud all three need the Scale plan or above. On a self-hosted installation, SSO and OIDC are part of every edition, and SCIM needs the [Enterprise Edition](/docs/self-hosted/enterprise).
 
-Turning a status page's SSO or OIDC provider off, or deleting it, signs out the private users it signed in: their sessions end at their next request, and turning the provider on again does not bring them back - they sign in with it again. A new certificate or client secret, other URLs or a new name keep everyone signed in. On a page that requires SSO, turning off its last provider leaves nobody able to sign in until you turn one on again or turn **Require SSO for Login** off; to move to another provider, set up and test the new one before you turn the old one off.
+Turning a status page's SSO or OIDC provider off, or deleting it, signs out the private users it signed in: their sessions end at their next request, and turning the provider on again does not bring them back - they sign in with it again. A new certificate or client secret, other URLs or a new name keep everyone signed in. On a page that requires SSO, turning off its last provider leaves nobody able to sign in until you turn one on again or turn **Require SSO to Sign In** off; to move to another provider, set up and test the new one before you turn the old one off.
 
-Under the providers, the **SSO Settings** card holds the **Require SSO for Login** switch (`requireSsoForLogin`, off by default), which saves the moment you flip it. Turning it on asks first, because from then on private users can't sign in with an email and password: only people your SSO or OIDC provider lets in can see the page. Try the link on the **Test Sign-In** card above it before you turn it on. It matters only while **Only people who sign in** is the choice, and the **Access** screen lists it as **SSO required** under that choice. While it is on, a private user signed in with an email and password is signed out at their next request too: only sessions an SSO or OIDC provider signed in count. On OneUptime Cloud, turning it on needs the **Scale** plan, and turning it off works on every plan. A page that still requires SSO after a Scale trial ends, or after a move to a lower plan, keeps requiring it until someone turns it off: its **Single Sign-On** page shows the switch under the plan's upsell for that, on both tabs.
+Under the providers, the **SSO Settings** card holds the **Require SSO to Sign In** switch (`requireSsoForLogin`, off by default), which saves the moment you flip it. Turning it on asks first, because from then on private users can't sign in with an email and password: only people your SSO or OIDC provider lets in can see the page. Try the link on the **Test Sign-In** card above it before you turn it on. It matters only while **Only people who sign in** is the choice, and the **Access** screen lists it as **SSO required** under that choice. While it is on, a private user signed in with an email and password is signed out at their next request too: only sessions an SSO or OIDC provider signed in count. On OneUptime Cloud, turning it on needs the **Scale** plan, and turning it off works on every plan. A page that still requires SSO after a Scale trial ends, or after a move to a lower plan, keeps requiring it until someone turns it off: its **Single Sign-On** page shows the switch under the plan's upsell for that, on both tabs.
 
 **SSO** and **OIDC** used to be two entries in the menu. The old OIDC address, `{id}/oidc`, opens the **OIDC** tab.
 

@@ -42,20 +42,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.SquareStack}
         />
-
-        <SideMenuItem
-          link={{
-            title: "Owners",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_OWNERS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Team}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="Logs">
+        {/*
+         * Who this schedule paged, beside the layers that chose them. It was a
+         * section of its own, "Logs" (#9216).
+         */}
         <SideMenuItem
           link={{
             title: "Notification Logs",
@@ -67,6 +57,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Bell}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Owners",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_OWNERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Team}
         />
       </SideMenuSection>
 

@@ -14,7 +14,6 @@ import * as React from "react";
 import { FunctionComponent, ReactElement } from "react";
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import AIInsight from "../../../Models/DatabaseModels/AIInsight";
 import User from "../../../Models/DatabaseModels/User";
 import Route from "../../../Types/API/Route";
 import { AUDIT_LOG_ROOT_RESOURCE_TABLES } from "../../../Types/AuditLog/AuditLogCoverage";
@@ -177,11 +176,6 @@ type NoAuditLogsReason =
 const VIEW_MENUS_WITHOUT_AUDIT_LOGS: Readonly<
   Record<string, NoAuditLogsReason>
 > = {
-  "Pages/AIInsights/View/SideMenu.tsx": {
-    kind: "NotAudited",
-    model: AIInsight,
-    why: "An AI insight is what OneUptime AI finds, rewritten as it finds more - nobody changes one - so it is not audited (What agents and telemetry report, AuditLogCoverage).",
-  },
   "Pages/Users/View/SideMenu.tsx": {
     kind: "NotAudited",
     model: User,

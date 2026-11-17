@@ -298,9 +298,7 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
                   className="inline-block h-2.5 w-2.5 rounded-sm"
                   style={{ backgroundColor: option.color }}
                 />
-                <span className="text-[11px] text-gray-500">
-                  {option.label}
-                </span>
+                <span className="text-xs text-gray-500">{option.label}</span>
               </div>
             );
           })}

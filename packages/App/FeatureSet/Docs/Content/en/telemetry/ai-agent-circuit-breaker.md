@@ -169,7 +169,7 @@ To react to several trip wires, start all their titles the same way, or chain mo
 ## Test the breaker
 
 :::steps
-1. Trip it by hand. Open **Alerts**, click **Create Alert**, and create one titled `LLM budget exceeded: test`. The run appears under **Workflows → Logs → Runs**, and your endpoint gets the post.
+1. Trip it by hand. Open **Alerts**, click **Create Alert**, and create one titled `LLM budget exceeded: test`. The run appears under **Workflows → Runs**, and your endpoint gets the post.
 2. Trip it for real. Create a budget with a tiny limit, such as `0.01` USD, on a test agent's service, point a budget monitor at it, and let the agent run: the percentage passes 100, the alert opens, the workflow runs and the breaker trips. For the loop alert, give a test agent a tool that always fails.
 3. Trip it twice. Create the same alert again: your endpoint must take the second trip without changing anything.
 :::
@@ -201,7 +201,7 @@ The monitor's **Time Range** is shorter than the budget's 15 minutes between poi
 :::
 
 :::details The request never reaches your endpoint
-Open the run under **Workflows → Logs → Runs** and the **API Post (JSON)** step: it says why the request failed. On OneUptime Cloud, the endpoint must be reachable from the internet; a self-hosted installation refuses private network addresses unless an administrator allows them.
+Open the run under **Workflows → Runs** and the **API Post (JSON)** step: it says why the request failed. On OneUptime Cloud, the endpoint must be reachable from the internet; a self-hosted installation refuses private network addresses unless an administrator allows them.
 :::
 
 ## Next steps

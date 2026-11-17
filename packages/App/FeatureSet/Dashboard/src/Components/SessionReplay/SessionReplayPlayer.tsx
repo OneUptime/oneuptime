@@ -3091,7 +3091,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                 onClick={goBack}
               />
               <span
-                className="font-mono text-xs text-gray-400"
+                className="font-mono text-xs text-gray-500"
                 title={translator.translateText("Session id")}
               >
                 {sessionId}
@@ -3703,7 +3703,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                 onClick={toggleRailCollapsed}
               >
                 <Icon icon={IconProp.ChevronLeft} className="h-4 w-4" />
-                <span className="text-[10px] [writing-mode:vertical-rl]">
+                <span className="text-xs [writing-mode:vertical-rl]">
                   {allSignals.length > 0
                     ? translator.translateTemplate("Events ({{count}})", {
                         count: allSignals.length,

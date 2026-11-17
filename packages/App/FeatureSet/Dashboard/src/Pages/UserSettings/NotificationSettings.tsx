@@ -11,8 +11,13 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useId,
   useState,
 } from "react";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import IconProp from "Common/Types/Icon/IconProp";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import Card from "Common/UI/Components/Card/Card";
@@ -609,7 +614,7 @@ const buildSection: SectionFactory = (
   };
 };
 
-interface PriorityChoiceProps {
+export interface PriorityChoiceProps {
   // The project's case priorities; null until they are read.
   priorities: Array<SecurityCasePriority> | null;
   // The id the person chose; empty for the default.
@@ -618,15 +623,49 @@ interface PriorityChoiceProps {
 }
 
 /*
- * The lowest priority that notifies, under the New Security Case row. A
- * plain select, saved as soon as it changes, like the switches beside it.
- * Its choices are the project's priorities; it waits for them.
+ * The priority picker's own classes, exported so its test reads the same
+ * strings. The words and the shared Dropdown share a row while they fit,
+ * and the Dropdown goes under the words in a column too narrow for both.
  */
-const PriorityChoice: FunctionComponent<PriorityChoiceProps> = (
+export const PRIORITY_CHOICE_ROW_CLASS_NAME: string =
+  "mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600";
+export const PRIORITY_CHOICE_DROPDOWN_CLASS_NAME: string =
+  "relative min-w-[12rem] max-w-xs flex-1 overflow-visible";
+
+/*
+ * The project's priorities as the picker's options, in the reader's
+ * language already ("High and above"): drawn as given, never looked up a
+ * second time, and read the page's way.
+ */
+export function getPriorityChoiceOptions(
+  choices: Array<SecurityCaseNotificationPriorityChoice>,
+  translator: Translator,
+): Array<DropdownOption> {
+  return choices.map(
+    (choice: SecurityCaseNotificationPriorityChoice): DropdownOption => {
+      return {
+        value: choice.priorityId,
+        label: describePriorityChoice(choice, translator),
+        isUserContent: true,
+        isInPageDirection: true,
+      };
+    },
+  );
+}
+
+/*
+ * The lowest priority that notifies, under the New Security Case row. The
+ * shared Dropdown, saved as soon as it changes, like the switches beside
+ * it: its size, border, focus ring and dark theme are every other picker's.
+ * It was a raw select element with classes of its own (#9194). Its choices
+ * are the project's priorities; it waits for them.
+ */
+export const PriorityChoice: FunctionComponent<PriorityChoiceProps> = (
   props: PriorityChoiceProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [isBusy, setIsBusy] = useState<boolean>(false);
+  const labelId: string = `security-case-notification-priority-label-${useId()}`;
 
   if (!props.priorities) {
     return <></>;
@@ -644,34 +683,48 @@ const PriorityChoice: FunctionComponent<PriorityChoiceProps> = (
     return <></>;
   }
 
+  const options: Array<DropdownOption> = getPriorityChoiceOptions(
+    choices,
+    translator,
+  );
+  const chosenId: string = chosen.id.toString();
+  const chosenOption: DropdownOption | undefined = options.find(
+    (option: DropdownOption): boolean => {
+      return option.value === chosenId;
+    },
+  );
+
   return (
-    <label className="mt-2 flex items-center gap-2 text-xs text-gray-600">
-      <span>{translator.translateText("Notify me about")}</span>
-      <select
-        className="rounded-md border border-gray-300 bg-white py-1 pl-2 pr-7 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-60"
-        value={chosen.id.toString()}
+    <div className={PRIORITY_CHOICE_ROW_CLASS_NAME}>
+      <span id={labelId}>{translator.translateText("Notify me about")}</span>
+      <Dropdown
+        className={PRIORITY_CHOICE_DROPDOWN_CLASS_NAME}
+        options={options}
+        value={chosenOption}
         disabled={isBusy}
-        data-testid="security-case-notification-priority"
-        onChange={async (event: React.ChangeEvent<HTMLSelectElement>) => {
+        isLoading={isBusy}
+        // A priority always notifies: there is nothing to clear it to.
+        isClearable={false}
+        ariaLabelledby={labelId}
+        dataTestId="security-case-notification-priority"
+        onChange={async (
+          next: DropdownValue | Array<DropdownValue> | null,
+        ): Promise<void> => {
+          if (typeof next !== "string" || next === chosenId) {
+            return;
+          }
+
           setIsBusy(true);
           try {
-            await props.onChange(event.target.value);
+            await props.onChange(next);
           } catch {
             // The card says why, over the matrix.
           } finally {
             setIsBusy(false);
           }
         }}
-      >
-        {choices.map((choice: SecurityCaseNotificationPriorityChoice) => {
-          return (
-            <option key={choice.priorityId} value={choice.priorityId}>
-              {describePriorityChoice(choice, translator)}
-            </option>
-          );
-        })}
-      </select>
-    </label>
+      />
+    </div>
   );
 };
 

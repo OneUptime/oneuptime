@@ -10,7 +10,7 @@ import RequireSsoForLoginSwitchCopy, {
 } from "./RequireSsoForLoginSwitchCopy";
 
 /*
- * "SSO Settings", on Settings -> SSO: one switch, "Require SSO for Login",
+ * "SSO Settings", on Settings -> SSO: one switch, "Require SSO to Sign In",
  * that saves the moment it is flipped. Requiring SSO asks first, with a red
  * button, because it locks everyone who is not signed in with SSO out of
  * the project, whoever flipped it included; turning it off saves at once

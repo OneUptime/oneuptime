@@ -218,7 +218,7 @@ describe("private status page access requires a live session", () => {
     },
   );
 
-  test("reads the session under its sign-in rule, with the page's Require SSO for Login", async () => {
+  test("reads the session under its sign-in rule, with the page's Require SSO to Sign In", async () => {
     /*
      * The rule (StatusPagePrivateUserSessionService.addSignInRule) counts a
      * session only while the provider that signed it in vouches for it,

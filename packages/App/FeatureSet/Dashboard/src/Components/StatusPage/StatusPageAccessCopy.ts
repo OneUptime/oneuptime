@@ -234,7 +234,7 @@ export const StatusPageAccessCopy: {
  * providers and the link that tests them: one switch that saves when it is
  * flipped (it was a card whose Edit dialog held one switch, "Force SSO for
  * Login", with "Please test SSO before you you enable this feature" under
- * it). Named "Require SSO for Login" as the project's own switch is.
+ * it). Named "Require SSO to Sign In" as the project's own switch is.
  * Turning it on asks first, with a red button: private users who sign in
  * with an email and password are locked out from then on.
  *
@@ -254,7 +254,7 @@ export const StatusPageRequireSsoCopy: {
   confirmButton: string;
 } = {
   cardTitle: translationKey("SSO Settings"),
-  switchTitle: translationKey("Require SSO for Login"),
+  switchTitle: translationKey("Require SSO to Sign In"),
   switchOnDescription: translationKey(
     "Private users sign in with SSO or OIDC only. Signing in with an email and password is turned off.",
   ),

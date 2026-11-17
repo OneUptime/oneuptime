@@ -119,7 +119,7 @@ Begin voor een alertingtool met een [monitor voor inkomende verzoeken](/docs/mon
 2. Klik op het gestippelde blok **Kies wat deze workflow start** en kies **Webhook**. Klik op de trigger en daarna op **URL kopiëren**.
 3. Stuur in de andere tool de webhook naar die URL als een `POST` met `Content-Type: application/json`.
 4. Voeg de blokken toe die erop reageren. Ze lezen het verzoek met verwijzingen zoals `{{local.components.webhook-1.returnValues.request-body.status}}`: een **Als / Anders**-blok om een veld te controleren, en daarna **Incident aanmaken (één record)** om een incident te melden.
-5. Zet **Ingeschakeld** aan bovenaan de **Bouwer**, stuur een test vanuit de andere tool en open **Logboeken → Uitvoeringen** om te zien wat er binnenkwam.
+5. Zet **Ingeschakeld** aan bovenaan de **Bouwer**, stuur een test vanuit de andere tool en open **Uitvoeringen** om te zien wat er binnenkwam.
 :::
 
 De URL is het enige inloggegeven, dus behandel hem als een wachtwoord. Zie [Webhook](/docs/workflows/triggers#webhook).

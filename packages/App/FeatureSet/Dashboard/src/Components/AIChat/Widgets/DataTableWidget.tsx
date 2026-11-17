@@ -67,7 +67,7 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
 
   if (columns.length === 0 || rows.length === 0) {
     return (
-      <div className="py-3 text-center text-xs text-gray-400">
+      <div className="py-3 text-center text-xs text-gray-500">
         {translator.translateText("No rows.")}
       </div>
     );
@@ -81,7 +81,7 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
         {...resizableColumns.tableAttributes}
       >
         <thead>
-          <tr className="border-b border-gray-200 text-[11px] uppercase tracking-wide text-gray-400">
+          <tr className="border-b border-gray-200 text-[11px] uppercase tracking-wide text-gray-500">
             {columns.map((column: AIChatWidgetColumn) => {
               /*
                * A tool names its columns in English, marked as keys
@@ -228,7 +228,7 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
         </tbody>
       </table>
       {allRows.length > rows.length && (
-        <div className="px-2.5 py-1.5 text-[11px] text-gray-400">
+        <div className="px-2.5 py-1.5 text-xs text-gray-500">
           {translator.translatePlural(
             {
               one: "Showing {{shown}} of {{count}} row.",

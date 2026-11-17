@@ -169,7 +169,7 @@ Om op meerdere struikeldraden te reageren, laat je al hun titels hetzelfde begin
 ## Test de circuit breaker
 
 :::steps
-1. Laat hem met de hand afgaan. Open **Waarschuwingen**, klik op **Waarschuwing maken** en maak er een met de titel `LLM budget exceeded: test`. De run verschijnt onder **Workflows → Logboeken → Uitvoeringen**, en je endpoint krijgt de aanroep.
+1. Laat hem met de hand afgaan. Open **Waarschuwingen**, klik op **Waarschuwing maken** en maak er een met de titel `LLM budget exceeded: test`. De run verschijnt onder **Workflows → Uitvoeringen**, en je endpoint krijgt de aanroep.
 2. Laat hem echt afgaan. Maak een budget met een piepkleine limiet, zoals `0.01` USD, op de service van een testagent, richt een budgetmonitor erop en laat de agent draaien: het percentage gaat over 100, de waarschuwing gaat open, de workflow draait en de circuit breaker gaat af. Geef voor de luswaarschuwing een testagent een tool die altijd faalt.
 3. Laat hem twee keer afgaan. Maak dezelfde waarschuwing opnieuw: je endpoint moet de tweede keer accepteren zonder iets te veranderen.
 :::
@@ -201,7 +201,7 @@ Het **Tijdsbereik** van de monitor is korter dan de 15 minuten tussen twee punte
 :::
 
 :::details Het verzoek bereikt je endpoint nooit
-Open de run onder **Workflows → Logboeken → Uitvoeringen** en de stap **API-aanroep POST (JSON)**: daar staat waarom het verzoek mislukte. Op OneUptime Cloud moet het endpoint vanaf internet bereikbaar zijn; een zelf gehoste installatie weigert privénetwerkadressen, tenzij een beheerder ze toestaat.
+Open de run onder **Workflows → Uitvoeringen** en de stap **API-aanroep POST (JSON)**: daar staat waarom het verzoek mislukte. Op OneUptime Cloud moet het endpoint vanaf internet bereikbaar zijn; een zelf gehoste installatie weigert privénetwerkadressen, tenzij een beheerder ze toestaat.
 :::
 
 ## Volgende stappen

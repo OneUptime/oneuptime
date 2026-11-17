@@ -149,7 +149,7 @@ Opsgenie antwortet mit `202`, bevor es die Anfrage verarbeitet, eine Anfrage, di
 :::
 
 :::details Der Workflow läuft nie
-Prüfen Sie, dass er eingeschaltet ist: **Aktiviert**, oben in seinem **Editor**. Öffnen Sie dann **Protokolle → Ausführungen**: Eine Ausführung, die die Seite **Nein** des **Wenn / Sonst**-Bausteins genommen hat, ist eine Aktualisierung, die keine Behebung war.
+Prüfen Sie, dass er eingeschaltet ist: **Aktiviert**, oben in seinem **Editor**. Öffnen Sie dann **Ausführungen**: Eine Ausführung, die die Seite **Nein** des **Wenn / Sonst**-Bausteins genommen hat, ist eine Aktualisierung, die keine Behebung war.
 :::
 
 ## Nächste Schritte

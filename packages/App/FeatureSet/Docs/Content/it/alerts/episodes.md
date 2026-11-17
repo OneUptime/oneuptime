@@ -179,11 +179,8 @@ Un episodio creato da voi non ha una regola di raggruppamento, quindi l'elenco m
 
 | Sezione del menu laterale | Pagine                                                                      |
 | ------------------------- | --------------------------------------------------------------------------- |
-| **Panoramica** | **Panoramica**, **Cronologia stato** |
-| **Indagine** | **Descrizione**, **Causa principale**, **Note di rimedio** |
-| **Team** | **Proprietari** |
-| **Avvisi** | **Avvisi dei membri** |
-| **Note** | **Note private** |
+| **Panoramica** | **Panoramica**, **Cronologia stato**, **Avvisi dei membri**, **Proprietari** |
+| **Indagine** | **Descrizione**, **Causa principale**, **Note di rimedio**, **Note private** |
 | **Sviluppatori** | **Terraform**, **API**, **CLI**, **Assistenti IA** |
 | **Avanzato** | **Log di audit**, **Elimina episodio** |
 

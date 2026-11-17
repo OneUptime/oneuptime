@@ -31,6 +31,7 @@ import OpenStackCloudBareMetalNodes from "../../../../App/FeatureSet/Dashboard/s
 import OpenStackCloudServices from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Services";
 import OpenStackCloudSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/SideMenu";
 import { OpenStackRecording } from "../../Helpers/OpenStackRecordings";
+import { MenuLink, linksIn, sectionTitlesInOrder } from "./SideMenuHarness";
 import {
   CLOUD_ID,
   Row,
@@ -898,7 +899,7 @@ describe("a cloud without Ironic shows no trace of it", () => {
   }
 
   test.each([[[]], [undefined], [[OpenStackServiceType.Orchestration]]])(
-    "the menu has no section, with services %s",
+    "the menu has no Bare Metal entry, with services %s",
     async (optionalServices: Array<OpenStackServiceType> | undefined) => {
       menu(optionalServices);
       await settle();
@@ -907,11 +908,29 @@ describe("a cloud without Ironic shows no trace of it", () => {
     },
   );
 
-  test("a cloud running it does, with its count", async () => {
+  /*
+   * Its nodes are the last entry in Compute, with the other machines the
+   * cloud runs on: they had a Bare Metal section of their own, for that one
+   * entry, until #9216.
+   */
+  test("a cloud running it does, last in Compute, with its count", async () => {
     menu([OpenStackServiceType.BareMetal]);
     await settle();
 
     expect(await screen.findByText("Bare Metal")).toBeInTheDocument();
-    expect(screen.getByText("Nodes")).toBeInTheDocument();
+    expect(sectionTitlesInOrder()).not.toContain("Bare Metal");
+
+    const compute: Array<MenuLink> = linksIn("Compute");
+    const last: MenuLink | undefined = compute[compute.length - 1];
+
+    expect(last?.title).toBe("Bare Metal");
+    expect(last?.href).toMatch(new RegExp(`/${CLOUD_ID}/bare-metal$`));
+
+    const anchor: HTMLElement = screen.getByRole("link", {
+      name: /Bare Metal/,
+    });
+
+    expect(anchor).toHaveAttribute("href", last?.href);
+    expect(within(anchor).getByText("5")).toBeInTheDocument();
   });
 });

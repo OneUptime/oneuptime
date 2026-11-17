@@ -3,7 +3,7 @@
 全域 SSO 讓 OneUptime 的 **執行個體管理員**（主管理員）在執行個體層級 **一次性** 設定 SAML 2.0 或 OpenID Connect（OIDC）身分提供者，並將其連接到伺服器上的任何專案。不必讓每位專案擁有者各自設定身分提供者，由主管理員設定一個為整個執行個體服務的提供者即可。
 
 > [!NOTE]
-> 全域 SSO（包括整個執行個體的「Require SSO for Login」開關）屬於 OneUptime 的所有版本：每個自行託管的執行個體都有它，包括 Community Edition，不需要授權。它屬於執行個體管理功能，因此不適用於 OneUptime Cloud。各版本包含哪些功能，請參閱 [企業版](/docs/self-hosted/enterprise)。
+> 全域 SSO（包括整個執行個體的「Require SSO to Sign In」開關）屬於 OneUptime 的所有版本：每個自行託管的執行個體都有它，包括 Community Edition，不需要授權。它屬於執行個體管理功能，因此不適用於 OneUptime Cloud。各版本包含哪些功能，請參閱 [企業版](/docs/self-hosted/enterprise)。
 
 :::cards
 - [設定提供者](#設定全域-sso): 建立它，把 OneUptime 的 URL 交給身分提供者，然後進行測試。

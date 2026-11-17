@@ -12,6 +12,7 @@ import CodeTaskAccess from "../../../../../Server/Utils/AI/CodeTask/CodeTaskAcce
 import CodeTaskContextBuilder from "../../../../../Server/Utils/AI/CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../../../../../Server/Utils/AI/CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../../../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
+import CodeTaskThread from "../../../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import SourceLocator, {
   LocatableRepository,
   SourceLink,
@@ -48,6 +49,7 @@ import {
   PROFILE_NOT_WORTH_FIXING_MESSAGE,
   ProfileFixReason,
   ProfileFixSuggestion,
+  profileFixSuggestionToJSON,
 } from "../../../../../Utils/Suggestions/ProfileFixSuggestion";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -177,6 +179,7 @@ interface World {
   blocker: jest.SpiedFunction<typeof CodeTaskGate.getBlocker>;
   start: jest.SpiedFunction<typeof CodeTaskRuns.start>;
   buildItem: jest.SpiedFunction<typeof CodeTaskContextBuilder.buildItem>;
+  hiddenFrom: jest.SpiedFunction<typeof CodeTaskThread.findTasksHiddenFrom>;
 }
 
 /*
@@ -192,6 +195,8 @@ function world(change?: {
   connected?: boolean;
   canAsk?: boolean;
   blocker?: { type: CodeTaskBlockerType; message: string } | null;
+  // The tasks the person may not read (CodeTaskThread.findTasksHiddenFrom).
+  hidden?: Array<string>;
 }): World {
   const located: LocatableRepository | null =
     change && "located" in change ? change.located! : CHECKOUT_REPOSITORY;
@@ -238,6 +243,9 @@ function world(change?: {
         label: "Profile: parseOrder in checkout",
         functionName: "parseOrder",
       } as CodeTaskContextItem),
+    hiddenFrom: jest
+      .spyOn(CodeTaskThread, "findTasksHiddenFrom")
+      .mockResolvedValue(new Set<string>(change?.hidden || [])),
   };
 
   jest
@@ -337,7 +345,39 @@ describe("what the function panel is offered", () => {
 
     expect(suggestion.offer).toBe(SuggestionOffer.InProgress);
     expect(suggestion.taskId).toBe("70000000-0000-4000-8000-0000000000f3");
+    expect(suggestion.isHidden).toBeUndefined();
     // No repository is read for a fix that is already under way.
+    expect(spies.locatable).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A task a reply carried a private incident or alert into, which the
+   * person may not open, is read as its own page reads it: a fix is there,
+   * so none is offered, and nothing of it - not even the link.
+   */
+  test("a fix on its way, in a task hidden from the person: there, and nothing of it", async () => {
+    const spies: World = world({
+      activeRuns: [activeFixRun()],
+      hidden: ["70000000-0000-4000-8000-0000000000f3"],
+    });
+
+    const suggestion: ProfileFixSuggestion =
+      await ProfileFixTaskTrigger.getSuggestion(REQUEST);
+
+    expect(suggestion.offer).toBe(SuggestionOffer.InProgress);
+    expect(suggestion.isHidden).toBe(true);
+    expect(suggestion.taskId).toBeNull();
+    // What the profile shows is the person's to read, as before.
+    expect(suggestion.evidence!.ownShare).toBe(42);
+    expect(
+      JSON.stringify(profileFixSuggestionToJSON(suggestion)),
+    ).not.toContain("70000000-0000-4000-8000-0000000000f3");
+    // Asked of that task, for the person, in the project.
+    expect(spies.hiddenFrom).toHaveBeenCalledWith({
+      projectId,
+      taskIds: ["70000000-0000-4000-8000-0000000000f3"],
+      reader: props,
+    });
     expect(spies.locatable).not.toHaveBeenCalled();
   });
 

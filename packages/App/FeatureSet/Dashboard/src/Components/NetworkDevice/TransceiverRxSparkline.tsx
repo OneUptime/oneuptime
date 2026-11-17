@@ -34,7 +34,7 @@ const TransceiverRxSparkline: FunctionComponent<ComponentProps> = (
   if (props.points.length < 2) {
     return (
       <span
-        className="text-xs text-gray-400"
+        className="text-xs text-gray-500"
         data-testid="transceiver-rx-sparkline-empty"
       >
         {translator.translateText("Trend after a second day")}

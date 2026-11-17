@@ -1429,13 +1429,13 @@ function renderSeriesControls(input: {
             }}
           />
           {hiddenFromTopN > 0 ? (
-            <span className="text-gray-400">
+            <span className="text-gray-500">
               <InlineSeparator />
               {translator.translateText(rankedByLabel)}
             </span>
           ) : null}
           {controls.hiddenSeries.size > 0 ? (
-            <span className="text-gray-400">
+            <span className="text-gray-500">
               <InlineSeparator />
               {translator.translateTemplate("{{count}} hidden", {
                 count: translator.formatNumber(controls.hiddenSeries.size),
@@ -1447,7 +1447,7 @@ function renderSeriesControls(input: {
 
       <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
         {visibleForChips.length === 0 ? (
-          <div className="py-1 text-xs italic text-gray-400">
+          <div className="py-1 text-xs italic text-gray-500">
             {translator.translateTemplate("No series match “{{search}}”", {
               search: controls.searchQuery,
             })}
@@ -3783,7 +3783,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                 </p>
                 {seriesMenuNarrowSummary ? (
                   <p
-                    className="mt-0.5 truncate text-[11px] text-gray-500"
+                    className="mt-0.5 truncate text-xs text-gray-500"
                     title={seriesMenuNarrowSummary}
                   >
                     {translator.translateTemplate("Scoped to {{scope}}", {
@@ -3797,7 +3797,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                    * being explicit beats implying a narrowing that never
                    * happened.
                    */
-                  <p className="mt-0.5 truncate text-[11px] text-gray-500">
+                  <p className="mt-0.5 truncate text-xs text-gray-500">
                     {translator.translateText(
                       "Couldn't scope to this series — actions cover the whole chart",
                     )}
@@ -3971,7 +3971,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                 >
                   {bucketInspector.title}
                 </p>
-                <p className="mt-0.5 select-text text-[11px] tabular-nums text-gray-500">
+                <p className="mt-0.5 select-text text-xs tabular-nums text-gray-500">
                   {OneUptimeDate.getInBetweenDatesAsFormattedString(
                     new InBetween<Date>(
                       bucketInspector.bucketStart,
@@ -3982,7 +3982,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               </div>
               <div className="max-h-52 space-y-0.5 overflow-y-auto px-3 py-2">
                 {bucketInspector.entries.length === 0 ? (
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-500">
                     {translator.translateText("No data points in this bucket.")}
                   </p>
                 ) : (
@@ -3994,7 +3994,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                           className="flex items-baseline justify-between gap-3"
                         >
                           <span className="min-w-0 flex-1 select-text truncate text-xs text-gray-700">
-                            <span className="mr-1.5 select-none tabular-nums text-gray-400">
+                            <span className="mr-1.5 select-none tabular-nums text-gray-500">
                               {index + 1}.
                             </span>
                             {entry.name}
@@ -4008,7 +4008,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                   )
                 )}
                 {bucketInspector.hiddenCount > 0 ? (
-                  <p className="pt-1 text-[11px] text-gray-400">
+                  <p className="pt-1 text-xs text-gray-500">
                     {translator.translatePlural(
                       MORE_SERIES_TEMPLATE,
                       bucketInspector.hiddenCount,

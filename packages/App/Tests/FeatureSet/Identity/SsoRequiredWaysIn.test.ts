@@ -7,7 +7,7 @@ import path from "path";
  * EVERY WAY A PERSON SIGNS IN TO ONEUPTIME, AND WHAT EACH DOES WHILE THE
  * WHOLE SERVER REQUIRES SINGLE SIGN-ON (#6116).
  *
- * Require SSO for Login (Admin Dashboard > Settings > Single Sign-On) makes
+ * Require SSO to Sign In (Admin Dashboard > Settings > Single Sign-On) makes
  * single sign-on the way in for everyone but master admins. Every way a
  * person signs in, or gets a session, is below with what it does then, and
  * the suites that drive it:

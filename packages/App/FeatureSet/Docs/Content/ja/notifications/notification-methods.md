@@ -169,6 +169,8 @@ function isFromOneUptime(rawBody, signatureHeader, secret) {
 
 Webhook は確認が不要なため、追加するとすぐにルールが追加されます。プライベートアドレスや内部アドレスは、セルフホストのサーバーの管理者が許可しない限り拒否されます。 [プライベートネットワークへのアクセス](/docs/self-hosted/private-network-access#webhook-とワークフロー) を参照してください。
 
+Webhook のアドレスは暗号化して保存され、読み返せるのはあなただけです。Slack、Microsoft Teams、Discord のアドレスにはシークレットが含まれ、それを持つ人なら誰でもあなたのエンドポイントに投稿できるためです。通知ルールは Webhook を **名前** で示し、プロジェクトの Webhook ログはアドレスのスキームとホストだけを残します。
+
 ## プロジェクトでチャネルをオンにする
 
 **SMS**、 **音声通話**、 **WhatsApp**、 **Telegram** は、メッセージごとに費用がかかるため、新しいプロジェクトではすべてオフで始まります。OneUptime Cloud ではプロジェクトの残高から支払われ、プロジェクトのデフォルトの Twilio アカウントがそれらを送る場合、SMS と通話は代わりにそのアカウントを経由します。メール、プッシュ、Slack、Microsoft Teams、Mattermost、Webhook は常にオンです。

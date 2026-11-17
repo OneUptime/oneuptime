@@ -112,7 +112,7 @@ const SUBSCRIBER_MESSAGE_TEXT: string =
  * other route it serves, outside the dashboard's preview, is on the page.
  */
 const UNLISTED_VISITOR_ROUTES: Record<string, string> = {
-  "/logout": "The Log Out item of a private page's nav bar, named there.",
+  "/logout": "The Sign Out item of a private page's nav bar, named there.",
   "/forgot-password":
     "Part of the private users' own forgot-password flow, named under Private users.",
   "/reset-password/:token":
@@ -676,7 +676,7 @@ describe("the Status Pages Overview: what visitors see", () => {
     }
   });
 
-  it("shows Overview always, a list's item while its switch is on, Subscribe with a channel, and Log Out on a private page", () => {
+  it("shows Overview always, a list's item while its switch is on, Subscribe with a channel, and Sign Out on a private page", () => {
     const nav: string = readSource(VISITOR_NAV);
     const items: string = nav.slice(nav.indexOf("const navItems"));
     const always: string = items.slice(
@@ -720,7 +720,7 @@ describe("the Status Pages Overview: what visitors see", () => {
     }
 
     expect(visitors).toContain(
-      "The top nav bar always shows **Overview**; the rest appear only when enabled. **Incidents**, **Announcements** and **Scheduled Maintenance** each need their toggle on; **Subscribe** needs both **Show Subscriber Page** and at least one subscriber channel enabled. A private page also gets a **Log Out** item.",
+      "The top nav bar always shows **Overview**; the rest appear only when enabled. **Incidents**, **Announcements** and **Scheduled Maintenance** each need their toggle on; **Subscribe** needs both **Show Subscriber Page** and at least one subscriber channel enabled. A private page also gets a **Sign Out** item.",
     );
   });
 
@@ -1055,7 +1055,13 @@ describe("the Status Pages Overview: the password, the badge, the feed and archi
       'const token: string = req.query["token"] as string;',
     );
     expect(api).toContain("enableEmbeddedOverallStatus: true,");
-    expect(api).toContain("embeddedOverallStatusToken: token,");
+    /*
+     * The page by its id, and the token presented compared with its own:
+     * the token is kept encrypted (#9012), so no query names it.
+     */
+    expect(api).toMatch(
+      /StatusPageService\.findOneByPresentedKey\(\{\s*column: "embeddedOverallStatusToken",\s*presentedKey: token,/,
+    );
 
     for (const name of [
       'title="Enable Embedded Status Badge"',

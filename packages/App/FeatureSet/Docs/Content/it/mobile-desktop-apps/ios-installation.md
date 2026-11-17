@@ -114,12 +114,12 @@ Senza avvisi critici, una modalità Full immersion o un riepilogo possono tratte
 
 ## Bloccare l'app
 
-Attiva **Biometrics Login** in **Settings** nell'app, e a ogni avvio ti chiederà Face ID, Touch ID o il codice. L'interruttore compare quando Face ID o Touch ID è configurato sul dispositivo. **Appearance**, nella stessa schermata, sceglie l'aspetto chiaro o scuro, o segue il dispositivo.
+Attiva **Biometric Unlock** in **Settings** nell'app, e a ogni avvio ti chiederà Face ID, Touch ID o il codice. L'interruttore compare quando Face ID o Touch ID è configurato sul dispositivo. **Appearance**, nella stessa schermata, sceglie l'aspetto chiaro o scuro, o segue il dispositivo.
 
 ## Aggiornare, uscire o eliminare l'app
 
 - **Aggiornare.** L'App Store aggiorna l'app; puoi anche aggiornarla dal tuo account nell'App Store. La versione dell'app è in fondo alla sua schermata **Settings**.
-- **Uscire.** **Settings → Log Out** ti disconnette e rimuove il dispositivo dai tuoi dispositivi push in ogni progetto, insieme alle sue regole di reperibilità. Se accedi di nuovo, torna con le regole predefinite.
+- **Uscire.** **Settings → Sign Out** ti disconnette e rimuove il dispositivo dai tuoi dispositivi push in ogni progetto, insieme alle sue regole di reperibilità. Se accedi di nuovo, torna con le regole predefinite.
 - **Eliminare.** Tocca e tieni premuta l'icona dell'app, poi tocca **Rimuovi app** e **Elimina app**. Se eri ancora connesso, il dispositivo resta nel tuo elenco finché un push verso di esso non fallisce: OneUptime lo segna allora come **Non riceve notifiche**. Se reinstalli l'app e accedi, quella voce di solito torna, con le sue regole; se non usi più il dispositivo, elimina la voce con **Elimina**.
 
 ## Risoluzione dei problemi
@@ -144,7 +144,7 @@ Attiva prima **Critical On-Call Alerts** nell'app: iOS aggiunge il suo interrutt
 Apri **Settings** nell'app: la riga sotto **Critical On-Call Alerts** dice cosa manca. Controlla che **Avvisi critici** sia attivo in **Impostazioni → Notifiche → OneUptime On-Call**, e che il volume nella schermata **Alarm sound** dell'app non sia basso.
 :::
 
-:::details Manca l'interruttore Biometrics Login
+:::details Manca l'interruttore Biometric Unlock
 L'interruttore compare quando Face ID o Touch ID è configurato in **Impostazioni → Face ID e codice** o **Impostazioni → Touch ID e codice**.
 :::
 

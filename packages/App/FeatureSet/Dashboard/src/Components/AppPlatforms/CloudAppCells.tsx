@@ -319,7 +319,7 @@ export const CloudAppSignalsSummaryCell: FunctionComponent<
   if (signals.requests <= 0 && props.hasTraces === false) {
     return (
       <span
-        className="text-sm text-gray-400"
+        className="text-sm text-gray-500"
         title={translator.translateText(APP_NO_TRACES_HINT)}
         data-testid="cloud-app-no-traces"
       >
@@ -331,7 +331,7 @@ export const CloudAppSignalsSummaryCell: FunctionComponent<
   if (signals.requests <= 0) {
     return (
       <span
-        className="text-sm text-gray-400"
+        className="text-sm text-gray-500"
         data-testid="cloud-app-no-requests"
       >
         {translator.translateText(APP_NO_REQUESTS)}

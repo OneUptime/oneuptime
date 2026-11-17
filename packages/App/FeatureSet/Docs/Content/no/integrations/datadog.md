@@ -200,7 +200,7 @@ curl -X POST "<url>" \
 
 Med malen åpnes en hendelse med tittelen `Datadog: High CPU`, og vaktpolicyene du valgte, varsles. Med monitoren åpnes en hendelse med tittelen `[Triggered] High CPU`. Send den samme forespørselen med `transition` satt til `Recovered`, og hendelsen løses.
 
-Test deretter fra Datadog: åpne en monitor som nevner webhooken, klikk på **Test Notifications**, og send varslingen **Alert**. For å se at den kom frem åpner du arbeidsflytens **Logger → Kjøringer**, eller tidslinjen til OneUptime-monitoren.
+Test deretter fra Datadog: åpne en monitor som nevner webhooken, klikk på **Test Notifications**, og send varslingen **Alert**. For å se at den kom frem åpner du arbeidsflytens **Kjøringer**, eller tidslinjen til OneUptime-monitoren.
 
 ## Feilsøking
 
@@ -211,7 +211,7 @@ Test deretter fra Datadog: åpne en monitor som nevner webhooken, klikk på **Te
 :::
 
 :::details Arbeidsflyten kjører, men åpner ingenting
-Åpne kjøringen i **Logger → Kjøringer**. Oppføringen `read-event-1` under **Trinn** sier hvorfor den tok **Nei**.
+Åpne kjøringen i **Kjøringer**. Oppføringen `read-event-1` under **Trinn** sier hvorfor den tok **Nei**.
 
 - `Datadog named no alert cycle key`: legg til `"alert_cycle_key": "$ALERT_CYCLE_KEY"` i webhookens nyttelast i Datadog.
 - `Datadog named no transition`: legg til `"transition": "$ALERT_TRANSITION"` i webhookens nyttelast i Datadog.
@@ -225,14 +225,14 @@ Test deretter fra Datadog: åpne en monitor som nevner webhooken, klikk på **Te
 
 :::details Hendelser opprettes, men løses aldri
 - Datadog-monitoren må også varsle webhooken om gjenopprettingene sine. En melding som nevner webhooken bare for varsler, inne i en betingelse, sender ingen gjenoppretting.
-- Med malen åpner du kjøringen til gjenopprettingen i **Logger → Kjøringer**: det siste steget sier hvorfor. Gjenopprettingens `alert_cycle_key` må være varselets, så behold `$ALERT_CYCLE_KEY` slik det står i nyttelasten.
+- Med malen åpner du kjøringen til gjenopprettingen i **Kjøringer**: det siste steget sier hvorfor. Gjenopprettingens `alert_cycle_key` må være varselets, så behold `$ALERT_CYCLE_KEY` slik det står i nyttelasten.
 - Med monitoren trenger hendelsen i kriteriet **Løs hendelse automatisk**, under **Flere felt**.
 - **Value that means recovered** må være nøyaktig `Recovered`. Sammenligningen skiller mellom store og små bokstaver.
 - `alert_key` i gjenopprettingen må være varselets: behold `$ALERT_ID $ALERT_SCOPE` slik det står i nyttelasten.
 :::
 
 :::details Et felt viser navnet på en variabel, eller ingenting
-Datadog fyller bare ut variablene som gjelder for hendelsen. Send en testvarsling, og se deretter hva som kom frem: i monitorens tidslinje, eller for en arbeidsflyt i **Logger → Kjøringer**.
+Datadog fyller bare ut variablene som gjelder for hendelsen. Send en testvarsling, og se deretter hva som kom frem: i monitorens tidslinje, eller for en arbeidsflyt i **Kjøringer**.
 :::
 
 :::details Alle varslene fra en monitor slås sammen til én hendelse

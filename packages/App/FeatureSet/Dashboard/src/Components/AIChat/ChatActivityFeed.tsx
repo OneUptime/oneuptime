@@ -1762,7 +1762,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
           step.status === "running"
             ? "font-medium text-gray-700"
             : step.status === "stopped"
-              ? "text-gray-400"
+              ? "text-gray-500"
               : "text-gray-500"
         }
       >
@@ -1787,7 +1787,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
         dateTime={step.at.toISOString()}
         title={time.full}
         data-testid="activity-step-time"
-        className="ms-auto flex-shrink-0 ps-3 tabular-nums text-gray-400"
+        className="ms-auto flex-shrink-0 ps-3 tabular-nums text-gray-500"
       >
         {time.short}
       </time>
@@ -1833,7 +1833,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
           {detail && (
             <>
               {" "}
-              <span className="inline-block max-w-full text-gray-400">
+              <span className="inline-block max-w-full text-gray-500">
                 <InlineSeparator markOnly /> {detail}
               </span>
             </>
@@ -1842,7 +1842,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
           {aiContext ? (
             <>
               {" "}
-              <span className="inline-block text-gray-400">
+              <span className="inline-block text-gray-500">
                 <InlineSeparator markOnly />{" "}
                 <AiContextViewButton
                   describedById={lineId}
@@ -2045,7 +2045,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
               row between them, never inside "17 steps" - and a part wider
               than the row still wraps inside itself.
             */}
-            <span className="text-gray-400">
+            <span className="text-gray-500">
               <span className="inline-block max-w-full">
                 <InlineSeparator markOnly /> {describeAttemptOutcome(attempt)}
               </span>{" "}
@@ -2062,7 +2062,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
             <time
               dateTime={startedAt.toISOString()}
               title={describeStepTime(startedAt).full}
-              className="ms-auto flex-shrink-0 ps-3 tabular-nums text-gray-400"
+              className="ms-auto flex-shrink-0 ps-3 tabular-nums text-gray-500"
             >
               {describeStepTime(startedAt).short}
             </time>

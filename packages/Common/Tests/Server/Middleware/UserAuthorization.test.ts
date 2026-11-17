@@ -817,7 +817,7 @@ describe("UserMiddleware", () => {
 
     /*
      * By default no project requires a specific SSO provider (discriminator),
-     * and the instance-wide "Require SSO for Login" flag is off. No
+     * and the instance-wide "Require SSO to Sign In" flag is off. No
      * enterprise module is loaded: a configured requirement is enforced on
      * the Community Edition too.
      */
@@ -1008,8 +1008,8 @@ describe("UserMiddleware", () => {
     });
 
     /*
-     * By default neither a project's own nor the instance-wide "Require SSO for
-     * Login" flag is on, and no project requires a specific SSO provider. No
+     * By default neither a project's own nor the instance-wide "Require SSO to
+     * Sign In" flag is on, and no project requires a specific SSO provider. No
      * enterprise module is loaded: a configured requirement is enforced on
      * the Community Edition too.
      */

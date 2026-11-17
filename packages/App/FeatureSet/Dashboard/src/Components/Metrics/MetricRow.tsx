@@ -140,7 +140,7 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
             <BreakableName text={metric.name || "(unnamed)"} />
           </span>
           {readableUnit && (
-            <span className="flex-shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-600">
+            <span className="flex-shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-indigo-600">
               {readableUnit}
             </span>
           )}
@@ -183,7 +183,7 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
               );
             })}
             {services.length > 4 && (
-              <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium text-gray-500">
+              <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium text-gray-500">
                 {translator.translateTemplate("+{{count}} more", {
                   count: translator.formatNumber(services.length - 4),
                 })}
@@ -228,14 +228,14 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
              * the caption is what tells a total from an average.
              */}
             {displayedTime && (
-              <div className="mt-0.5 font-mono text-[10px] text-gray-500 tabular-nums">
+              <div className="mt-0.5 font-mono text-xs text-gray-500 tabular-nums">
                 {displayedTime}
               </div>
             )}
             {!displayedTime && props.valueCaption && (
               <div
                 data-testid="metric-row-value-caption"
-                className="mt-0.5 text-[10px] text-gray-500"
+                className="mt-0.5 text-xs text-gray-500"
               >
                 {translator.translateText(props.valueCaption) ||
                   props.valueCaption}

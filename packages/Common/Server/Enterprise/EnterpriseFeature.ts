@@ -76,8 +76,8 @@ export const ALL_ENTERPRISE_FEATURES: ReadonlyArray<EnterpriseFeature> =
  * Giving one of them to a new feature would silently grant that feature to
  * every such license.
  *
- *   "sso"  single sign-on (SAML, OIDC, global SSO and "Require SSO for
- *          login"), which is part of the Community Edition and needs no
+ *   "sso"  single sign-on (SAML, OIDC, global SSO and "Require SSO to
+ *          sign in"), which is part of the Community Edition and needs no
  *          license. Releases up to 14.0.10 still gate single sign-on on this
  *          claim or on "*".
  */

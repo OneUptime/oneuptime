@@ -107,10 +107,9 @@ Ett runbooks egen sidomeny grupperar dess sidor så här. Bara **Grundläggande*
 | Avsnitt | Sidor |
 | --- | --- |
 | **Grundläggande** | **Översikt**, **Steg** |
-| **Loggar** | **Körningar** |
 | **Inställningar** | **Utlösare**, **Variabler**, **Inställningar** |
 | **Utvecklare** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
-| **Avancerad** | **Ägare**, **Granskningsloggar**, **Radera runbook** |
+| **Avancerad** | **Körningar**, **Ägare**, **Granskningsloggar**, **Radera runbook** |
 
 ## Ett genomgånget exempel
 

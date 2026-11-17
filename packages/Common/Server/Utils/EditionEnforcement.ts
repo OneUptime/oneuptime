@@ -22,7 +22,7 @@ import logger from "./Logger";
  * renewing the license, restores the locks without a restart.
  *
  * Single sign-on is not decided here: it is part of the Community Edition,
- * and a configured "Require SSO for login" is enforced in every edition.
+ * and a configured "Require SSO to sign in" is enforced in every edition.
  *
  * Failure direction: an error while deciding answers "enforce", and an
  * unknown license state counts as active (see isFeatureActive), so a read

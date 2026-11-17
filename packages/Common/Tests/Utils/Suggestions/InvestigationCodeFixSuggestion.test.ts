@@ -7,6 +7,7 @@ import {
   AUTOMATIC_CODE_FIX_BLOCKER_BY_RULE_BLOCKER,
   AutomaticCodeFixBlocker,
   getInvestigationCodeFixSuggestion,
+  HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION,
   InvestigationCodeFixSuggestion,
   InvestigationCodeFixSuggestionInput,
   investigationCodeFixSuggestionToJSON,
@@ -278,6 +279,53 @@ describe("the code fix suggestion on the wire", () => {
         NO_INVESTIGATION_CODE_FIX_SUGGESTION,
       );
     }
+  });
+
+  /*
+   * A fix in a task the reader may not read: Done, Hidden - drawn with no
+   * task, whatever the wire says, and nothing else of it.
+   */
+  test("a fix hidden from the reader round-trips, and never links a task", () => {
+    expect(
+      parseInvestigationCodeFixSuggestion(
+        JSON.parse(
+          JSON.stringify(
+            investigationCodeFixSuggestionToJSON(
+              HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION,
+            ),
+          ),
+        ),
+      ),
+    ).toEqual(HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION);
+
+    expect(
+      parseInvestigationCodeFixSuggestion({
+        offer: SuggestionOffer.Done,
+        fixOutcome: FinishedFixOutcome.Hidden,
+        aiRunId: RUN_ID,
+        isAutomatic: true,
+        automaticBlocker: AutomaticCodeFixBlocker.DailyLimit,
+      }),
+    ).toEqual(HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION);
+
+    expect(HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION).toEqual({
+      offer: SuggestionOffer.Done,
+      fixOutcome: FinishedFixOutcome.Hidden,
+      blocker: null,
+      aiRunId: null,
+      isAutomatic: false,
+      automaticBlocker: null,
+    });
+  });
+
+  test("only Done can be hidden: an offer in progress with no task is still never drawn", () => {
+    expect(
+      parseInvestigationCodeFixSuggestion({
+        offer: SuggestionOffer.InProgress,
+        fixOutcome: FinishedFixOutcome.Hidden,
+        aiRunId: null,
+      }),
+    ).toEqual(NO_INVESTIGATION_CODE_FIX_SUGGESTION);
   });
 
   test("a fix in progress or done with no task to link is never drawn", () => {

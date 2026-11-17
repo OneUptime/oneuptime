@@ -18,6 +18,7 @@ import InvestigationNotice, {
   noticeFailedIcon,
 } from "../AI/InvestigationNotice";
 import CodeBlockerNotice from "../Code/CodeBlockerNotice";
+import { CODE_TASK_HIDDEN_SENTENCE } from "../Code/CodeTaskHiddenCopy";
 import { AUTOMATIC_REMEDIATION_SETTINGS_PAGES } from "../AiAccess/AutomaticRemediationNote";
 import { AUTOMATIC_REMEDIATION_SETTINGS_LINKS } from "../AiAccess/AutomaticRemediationLine";
 import PageMap from "../../Utils/PageMap";
@@ -184,7 +185,16 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
       : REMEDIATION_CODE_FIX_COPY.inProgress;
     action = taskLink(REMEDIATION_CODE_FIX_COPY.viewProgress);
   } else if (suggestion.offer === SuggestionOffer.Done) {
-    if (suggestion.fixOutcome === FinishedFixOutcome.WaitingForYou) {
+    if (suggestion.fixOutcome === FinishedFixOutcome.Hidden) {
+      /*
+       * In a task a reply carried a private incident or alert into, which
+       * the reader may not open: it is there, and why nothing of it shows -
+       * no state, no link its own page would answer as not found.
+       */
+      tone = "info";
+      sentence = CODE_TASK_HIDDEN_SENTENCE;
+      action = null;
+    } else if (suggestion.fixOutcome === FinishedFixOutcome.WaitingForYou) {
       tone = "attention";
       sentence = REMEDIATION_CODE_FIX_COPY.waitingForYou;
       action = taskLink(REMEDIATION_CODE_FIX_COPY.answerInCode);
@@ -316,19 +326,26 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
 
   const mark: RemediationDecisionToneMark =
     REMEDIATION_DECISION_TONE_MARK[tone];
+  const isHidden: boolean =
+    suggestion.offer === SuggestionOffer.Done &&
+    suggestion.fixOutcome === FinishedFixOutcome.Hidden;
 
   return (
     <div
       data-testid="remediation-code-fix"
       data-offer={suggestion.offer}
       data-tone={tone}
+      data-hidden={isHidden ? "true" : undefined}
       className="flex gap-3"
     >
       <div
         aria-hidden="true"
         className={`flex h-8 w-8 flex-none items-center justify-center rounded-lg ${mark.className}`}
       >
-        <Icon icon={IconProp.Code} className="h-4 w-4" />
+        <Icon
+          icon={isHidden ? IconProp.Lock : IconProp.Code}
+          className="h-4 w-4"
+        />
       </div>
       <div className="min-w-0 flex-1 pt-1">
         <p

@@ -3,7 +3,7 @@
 Med global SSO opsætter en OneUptime-**instansadministrator** (master-admin) **én gang**, på instansniveau, en SAML 2.0- eller OpenID Connect-identitetsudbyder (OIDC) og forbinder den med ethvert projekt på serveren. I stedet for at hver Projektejer opsætter sin egen identitetsudbyder, opsætter en master-admin én, der betjener hele instansen.
 
 > [!NOTE]
-> Global SSO, herunder den instansdækkende kontakt "Require SSO for Login", er en del af alle OneUptime-udgaver: alle selvhostede instanser har det, også Community Edition, og det kræver ingen licens. Det hører til instansadministrationen og gælder derfor ikke for OneUptime Cloud. Se [Enterprise Edition](/docs/self-hosted/enterprise) for, hvad hver udgave indeholder.
+> Global SSO, herunder den instansdækkende kontakt "Require SSO to Sign In", er en del af alle OneUptime-udgaver: alle selvhostede instanser har det, også Community Edition, og det kræver ingen licens. Det hører til instansadministrationen og gælder derfor ikke for OneUptime Cloud. Se [Enterprise Edition](/docs/self-hosted/enterprise) for, hvad hver udgave indeholder.
 
 :::cards
 - [Opsæt en udbyder](#opsætning-af-global-sso): Opret den, giv din identitetsudbyder OneUptimes URL'er, og test den.
@@ -96,7 +96,7 @@ Med **Alle projekter** opfylder login med udbyderen SSO-kravet i alle projekter,
 At opsætte en global udbyder tvinger ingen til at bruge den; login med adgangskode virker stadig. For at kræve SSO skal du slå kravet til for et projekt eller for hele instansen:
 
 - **Pr. projekt:** et projekt kan kræve SSO og eventuelt en *bestemt* udbyder (projekt eller global). Se [Kræv SSO for dit projekt](/docs/identity/sso#kræv-sso-for-dit-projekt).
-- **Hele instansen:** kortet **Kræv SSO** nederst på **Admin** > **Indstillinger** > **Single sign-on** har en kontakt **Kræv SSO til login**, der gennemtvinger SSO for alle brugere på instansen. Den beder om bekræftelse, før den slås til, og gemmer, så snart du bekræfter. Master-admins forbliver undtaget, så de ikke kan blive udelukket.
+- **Hele instansen:** kortet **Kræv SSO** nederst på **Admin** > **Indstillinger** > **Single sign-on** har en kontakt **Kræv SSO for at logge ind**, der gennemtvinger SSO for alle brugere på instansen. Den beder om bekræftelse, før den slås til, og gemmer, så snart du bekræfter. Master-admins forbliver undtaget, så de ikke kan blive udelukket.
 
 Så længe hele instansen kræver SSO:
 
@@ -105,12 +105,12 @@ Så længe hele instansen kræver SSO:
 - Den, der allerede er logget ind med en adgangskode, logger ind med SSO for at åbne et projekt. Vedkommende lander på projektets single sign-on-side, som tilbyder projektets egne udbydere og de globale udbydere, der logger folk ind i det. Kortet **Kræv SSO** viser, hvor mange der stadig er logget ind uden SSO, og **Log dem ud** afslutter deres sessioner på alle enheder på én gang. Hovedadministratorer forbliver logget ind.
 - Master-admins logger ind med deres adgangskode på `/accounts/admin-login`, en adresse loginsiden ikke linker til. Kortet **Kræv SSO** viser hele adressen under kontakten som **Login for hovedadministratorer**: gem den, så du kan slå kravet fra, hvis din identitetsudbyder holder op med at virke.
 
-At slå **Kræv SSO til login** til kræver en SSO-udbyder, der logger personer ind, så ingen bliver udelukket af det:
+At slå **Kræv SSO for at logge ind** til kræver en SSO-udbyder, der logger personer ind, så ingen bliver udelukket af det:
 
 - For hele instansen skal hvert projekt, der ikke selv kræver SSO, have én: en af projektets egne SAML- eller OIDC-udbydere, der er slået til, eller en global udbyder, der er slået til og logger personer ind i det. Så længe et projekt ikke har nogen, afvises det at slå kontakten til, og meddelelsen nævner projekterne (eller, når der er mange, de første og hvor mange). Slå først en global udbyder til, eller en udbyder i disse projekter. Et projekt, der kræver en bestemt udbyder, skal have netop den: så længe den er slået fra, slettet eller ikke logger personer ind i projektet, nævner meddelelsen projektet for sig — slå først den udbyder til, eller kræv en anden der.
 - For et projekt stilles det samme krav til projektet og til den udbyder, det kræver, hvis det kræver en.
-- En gemning, der sender **Kræv SSO til login** som slået til, mens det allerede er slået til — sammen med andre indstillinger eller fra API'et — kontrolleres på samme måde, for instansen eller for et projekt, og det samme gælder en gemning, der nævner den udbyder, et projekt allerede kræver.
-- For et nyt projekt, der endnu ikke har sin egen udbyder: så længe instansen kræver SSO, kræver oprettelse af et projekt en global udbyder, der er slået til og logger personer ind i alle projekter, ellers kunne ingen, heller ikke den, der opretter det, åbne det. Uden en sådan afvises oprettelsen af et projekt, og meddelelsen beder en serveradministrator slå en til. Master-admins kan stadig oprette projekter. Et projekt, der oprettes med **Kræv SSO til login** allerede slået til, kræver det samme, uanset hvem der opretter det.
+- En gemning, der sender **Kræv SSO for at logge ind** som slået til, mens det allerede er slået til — sammen med andre indstillinger eller fra API'et — kontrolleres på samme måde, for instansen eller for et projekt, og det samme gælder en gemning, der nævner den udbyder, et projekt allerede kræver.
+- For et nyt projekt, der endnu ikke har sin egen udbyder: så længe instansen kræver SSO, kræver oprettelse af et projekt en global udbyder, der er slået til og logger personer ind i alle projekter, ellers kunne ingen, heller ikke den, der opretter det, åbne det. Uden en sådan afvises oprettelsen af et projekt, og meddelelsen beder en serveradministrator slå en til. Master-admins kan stadig oprette projekter. Et projekt, der oprettes med **Kræv SSO for at logge ind** allerede slået til, kræver det samme, uanset hvem der opretter det.
 
 At slå det fra afvises aldrig.
 
@@ -129,11 +129,11 @@ Et projekt, der kræver SSO, selv eller fordi hele instansen gør det, beholder 
 - at slå en global udbyder fra, slette den eller begrænse den til dens tilknyttede projekter;
 - for en udbyder, der er begrænset til dens tilknyttede projekter: at tilknytte dens første projekt (indtil da logger den personer ind i alle projekter), at slå en tilknytning fra, at flytte den til et andet projekt eller en anden udbyder eller at fjerne den.
 
-Meddelelsen nævner projekterne, eller de første og hvor mange der er. Slå først en anden udbyder til for dem, en af deres egne eller en global, eller slå **Kræv SSO til login** fra der. Et projekt, der kræver netop denne udbyder, nævnes for sig: kræv først en anden udbyder der, eller slå **Kræv SSO til login** fra.
+Meddelelsen nævner projekterne, eller de første og hvor mange der er. Slå først en anden udbyder til for dem, en af deres egne eller en global, eller slå **Kræv SSO for at logge ind** fra der. Et projekt, der kræver netop denne udbyder, nævnes for sig: kræv først en anden udbyder der, eller slå **Kræv SSO for at logge ind** fra.
 
-Ændringer, der lader en udbyder logge flere personer ind — at slå den eller en tilknytning til, at ophæve begrænsningen — afvises aldrig. De når alle appservere med det samme, ligesom at slå **Kræv SSO til login** fra: personer kan logge ind med udbyderen med det samme. Kun når en anden ændring af samme udbyder gemmes i præcis det øjeblik, kan en appserver være op til et minut om at følge med.
+Ændringer, der lader en udbyder logge flere personer ind — at slå den eller en tilknytning til, at ophæve begrænsningen — afvises aldrig. De når alle appservere med det samme, ligesom at slå **Kræv SSO for at logge ind** fra: personer kan logge ind med udbyderen med det samme. Kun når en anden ændring af samme udbyder gemmes i præcis det øjeblik, kan en appserver være op til et minut om at følge med.
 
-To ændringer af, hvem der kan logge ind, kontrolleres efter hinanden. Gemmes der en anden i samme øjeblik, og tager den længere tid end normalt — at slå **Kræv SSO til login** til for hele instansen læser alle projekter —, afvises en ændring med "Another change to who can sign in with SSO is being saved. Try again in a moment.": gem den igen. Et projekt, der oprettes i det øjeblik, venter også på ændringen, og venter det for længe, afvises det med "The server's SSO settings are being changed. Create the project again in a moment."
+To ændringer af, hvem der kan logge ind, kontrolleres efter hinanden. Gemmes der en anden i samme øjeblik, og tager den længere tid end normalt — at slå **Kræv SSO for at logge ind** til for hele instansen læser alle projekter —, afvises en ændring med "Another change to who can sign in with SSO is being saved. Try again in a moment.": gem den igen. Et projekt, der oprettes i det øjeblik, venter også på ændringen, og venter det for længe, afvises det med "The server's SSO settings are being changed. Create the project again in a moment."
 
 ## Fejlfinding
 
@@ -162,7 +162,7 @@ Hvert svar fra din identitetsudbyder logger kun ind én gang og kun inden for f�
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-Hele instansen kræver SSO, og dette var et login med adgangskode, adgangsnøgle, et link sendt på e-mail, Google eller Microsoft eller en tilmelding. Log i stedet ind med en af SSO-knapperne på loginsiden. En master-admin logger ind med sin adgangskode på `/accounts/admin-login`; for at lade alle logge ind med adgangskode igen slår vedkommende **Kræv SSO til login** fra på **Single sign-on**.
+Hele instansen kræver SSO, og dette var et login med adgangskode, adgangsnøgle, et link sendt på e-mail, Google eller Microsoft eller en tilmelding. Log i stedet ind med en af SSO-knapperne på loginsiden. En master-admin logger ind med sin adgangskode på `/accounts/admin-login`; for at lade alle logge ind med adgangskode igen slår vedkommende **Kræv SSO for at logge ind** fra på **Single sign-on**.
 :::
 
 ## Næste trin

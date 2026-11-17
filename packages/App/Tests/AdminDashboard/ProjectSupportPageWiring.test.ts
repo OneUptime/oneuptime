@@ -417,11 +417,21 @@ describe("SaaS gating", () => {
      * opener, and comfortably less than the distance back to the previous
      * gate.
      */
-    const beforeSupportSection: string =
-      sideMenuSource.split('title={t("sideMenu.support")}')[0] || "";
+    const beforeSupportEntry: string =
+      sideMenuSource.split('title: t("sideMenu.customerSupportAccess")')[0] ||
+      "";
 
-    expect(beforeSupportSection).not.toBe("");
-    expect(beforeSupportSection.slice(-100)).toContain("BILLING_ENABLED ?");
+    expect(beforeSupportEntry).not.toBe("");
+    expect(beforeSupportEntry.slice(-160)).toContain("BILLING_ENABLED ?");
+  });
+
+  test("the entry sits in Advanced, not in a Support section of its own (#9216)", () => {
+    expect(sideMenuSource).not.toContain('t("sideMenu.support")');
+
+    const advanced: string =
+      sideMenuSource.split('title={t("sideMenu.advanced")}')[1] || "";
+
+    expect(advanced).toContain('t("sideMenu.customerSupportAccess")');
   });
 
   test("the customer's own Project Settings switch is gated the same way", () => {
@@ -477,9 +487,6 @@ describe("translations", () => {
     (fileName: string) => {
       const locale: Record<string, any> = readLocale(fileName);
 
-      expect(typeof locale["sideMenu"]?.["support"]).toBe("string");
-      expect(locale["sideMenu"]["support"].trim()).not.toBe("");
-
       expect(typeof locale["sideMenu"]?.["customerSupportAccess"]).toBe(
         "string",
       );
@@ -495,7 +502,6 @@ describe("translations", () => {
      * The pair above proves the locales carry the keys; this proves the two
      * components ask for those keys and not for some near-miss spelling.
      */
-    expect(sideMenuSource).toContain('t("sideMenu.support")');
     expect(sideMenuSource).toContain('t("sideMenu.customerSupportAccess")');
   });
 

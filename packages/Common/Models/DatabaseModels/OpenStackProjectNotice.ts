@@ -233,18 +233,28 @@ export default class OpenStackProjectNotice extends BaseModel {
     read: readPermissions,
     update: updatePermissions,
   })
+  /*
+   * A webhook's address is a credential: whoever holds it posts to the
+   * endpoint as OneUptime. Kept encrypted at rest (`encrypted: true`), the
+   * address the column's transformer writes, decrypted before it reads it
+   * (EncryptedColumnValue); still read by who reads it today. The
+   * EncryptWebhookAddresses data migration encrypts the addresses stored
+   * before. Text, which a ciphertext fits.
+   */
   @TableColumn({
+    secret: true,
+    encrypted: true,
     required: false,
-    type: TableColumnType.ShortURL,
+    type: TableColumnType.LongURL,
     title: "Webhook",
     description:
-      "The address told by a POST of JSON. A notice has an email or a webhook, and changing either turns it off until an operator has seen the preview again.",
+      "The address told by a POST of JSON. A notice has an email or a webhook, and changing either turns it off until an operator has seen the preview again. Kept encrypted at rest.",
     example: "https://example.com/openstack-notices",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortURL,
-    transformer: URL.getDatabaseTransformer(),
+    type: ColumnType.LongURL,
+    transformer: URL.getEncryptedDatabaseTransformer(),
   })
   public webhookUrl?: URL = undefined;
 
@@ -374,17 +384,24 @@ export default class OpenStackProjectNotice extends BaseModel {
     read: [],
     update: [],
   })
+  /*
+   * "webhook:<address>" for a notice that posts to a webhook: a copy of the
+   * address, so kept encrypted at rest beside it (`encrypted: true`). Text,
+   * which a ciphertext fits - and which a long address or email fits too: a
+   * notice whose address with its "webhook:" ran past 100 characters could
+   * not be turned on.
+   */
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    encrypted: true,
+    type: TableColumnType.VeryLongText,
     title: "Previewed Recipient",
     description:
-      "The recipient the preview was of. A notice sends only while this is still who it tells. Used by OneUptime only.",
+      "The recipient the preview was of. A notice sends only while this is still who it tells. Used by OneUptime only. Kept encrypted at rest.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
   })
   public previewedRecipient?: string = undefined;
 

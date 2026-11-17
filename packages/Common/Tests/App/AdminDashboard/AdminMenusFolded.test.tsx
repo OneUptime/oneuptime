@@ -12,8 +12,8 @@ import * as React from "react";
 
 /*
  * Whether this install has billing on, pinned by the suite rather than read
- * from the environment: a project's admin menu grows Billing and Support
- * sections with it, and CI and a bare `npx jest` disagree about the default.
+ * from the environment: a project's admin menu grows a Billing section and
+ * a Customer Support Access entry (in Advanced since #9216) with it, and CI and a bare `npx jest` disagree about the default.
  */
 let billingEnabledForTest: boolean = false;
 
@@ -235,7 +235,7 @@ describe("Admin Settings: only Basic starts open", () => {
 
   /*
    * Single sign-on is one entry under Basic, beside Authentication: the SAML
-   * and OIDC providers and Require SSO for Login on one page. It was "Global
+   * and OIDC providers and Require SSO to Sign In on one page. It was "Global
    * SSO" and "Global OIDC" in a folded section that was also called
    * Authentication, and the switch was on the Authentication page. Products
    * (#6815) follows them: what the server offers every project is as basic
@@ -329,7 +329,11 @@ describe("a project in the Admin Dashboard: its members first", () => {
     ]);
   });
 
-  test("with billing: Billing and Support fold, in any language", async () => {
+  /*
+   * Customer Support Access had a Support section of its own, for that one
+   * entry; it is the first entry of Advanced now (#9216).
+   */
+  test("with billing: Billing and Advanced fold, in any language", async () => {
     billingEnabledForTest = true;
 
     for (const language of ["English", "another language"] as const) {
@@ -342,7 +346,7 @@ describe("a project in the Admin Dashboard: its members first", () => {
         expanded: sectionStates().map((state: SectionState): boolean => {
           return state.expanded;
         }),
-      }).toEqual({ language, expanded: [true, true, false, false, false] });
+      }).toEqual({ language, expanded: [true, true, false, false] });
 
       cleanup();
     }
@@ -354,7 +358,7 @@ describe("a project in the Admin Dashboard: its members first", () => {
     await renderMenu(<AdminProjectSideMenu modelId={PROJECT_MODEL_ID} />);
 
     expect(isExpanded("Billing")).toBe(true);
-    expect(isExpanded("Support")).toBe(false);
+    expect(isExpanded("Advanced")).toBe(false);
     expect(activeLinkTitles()).toEqual(["Subscription"]);
   });
 
@@ -364,7 +368,33 @@ describe("a project in the Admin Dashboard: its members first", () => {
     await renderMenu(<AdminProjectSideMenu modelId={PROJECT_MODEL_ID} />);
 
     expect(isExpanded("Billing")).toBe(true);
-    expect(isExpanded("Support")).toBe(false);
+    expect(isExpanded("Advanced")).toBe(false);
     expect(activeLinkTitles()).toEqual(["Invoices"]);
+  });
+
+  test("with billing, the Customer Support Access page opens Advanced, which leads with it (#9216)", async () => {
+    billingEnabledForTest = true;
+    goTo(adminRoute(PageMap.PROJECT_SUPPORT, PROJECT_MODEL_ID));
+    await renderMenu(<AdminProjectSideMenu modelId={PROJECT_MODEL_ID} />);
+
+    expect(sectionTitlesInOrder()).toEqual([
+      "Basic",
+      "Members",
+      "Billing",
+      "Advanced",
+    ]);
+    expect(isExpanded("Advanced")).toBe(true);
+    expect(isExpanded("Billing")).toBe(false);
+    expect(activeLinkTitles()).toEqual(["Customer Support Access"]);
+    expect(linksIn("Advanced")).toEqual([
+      {
+        title: "Customer Support Access",
+        href: adminRoute(PageMap.PROJECT_SUPPORT, PROJECT_MODEL_ID),
+      },
+      {
+        title: "Delete Project",
+        href: adminRoute(PageMap.PROJECT_DELETE, PROJECT_MODEL_ID),
+      },
+    ]);
   });
 });

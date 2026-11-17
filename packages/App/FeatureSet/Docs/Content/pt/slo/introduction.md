@@ -174,7 +174,7 @@ Abra um SLO para ver suas páginas no menu lateral:
 | **Registros de auditoria** | Quem mudou o SLO, suas regras e seus proprietários, e quando. |
 | **Excluir SLO** | Exclui o SLO para sempre e resolve os alertas e incidentes de taxa de consumo que ele tinha abertos. |
 
-**Monitores** fica em uma seção **Configuração**, **Regras de monitor**, **Regras de taxa de consumo** e **Política de orçamento de erros** em uma seção **Regras**, e **Proprietários**, **Configurações**, **Registros de auditoria** e **Excluir SLO** em uma seção **Gerenciamento**. As três começam recolhidas, assim como uma seção **Desenvolvedores** para gerenciar o SLO a partir de código: clique no título de uma seção para abri-la.
+**Monitores** fica na seção **Visão geral**, abaixo de **Visão geral**; **Regras de monitor**, **Regras de taxa de consumo** e **Política de orçamento de erros** em uma seção **Regras**; e **Proprietários**, **Configurações**, **Registros de auditoria** e **Excluir SLO** em uma seção **Gerenciamento**. **Regras** e **Gerenciamento** começam recolhidas, assim como uma seção **Desenvolvedores** para gerenciar o SLO a partir de código: clique no título de uma seção para abri-la.
 
 Quando algo impede um SLO de medir, um banner no topo de cada uma das suas páginas diz o que está errado e leva à página que resolve: veja [Solução de problemas](#solução-de-problemas).
 

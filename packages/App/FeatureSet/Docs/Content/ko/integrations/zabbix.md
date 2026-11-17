@@ -293,7 +293,7 @@ Zabbix에는 세 가지가 필요합니다. OneUptime으로 보내는 미디어 
 ## 테스트하기
 
 1. Zabbix에서 **Alerts → Media types**를 열고 `OneUptime` 옆의 **Test**를 클릭합니다. 복사한 URL과 `event_id` `12345`, `event_name` `Test problem`, `host` `web-1`, `event_nseverity` `4`, `event_value` `1` 같은 샘플 값을 입력합니다. **Test**를 클릭하면 Zabbix가 스크립트의 응답 `OK` 또는 스크립트가 던진 오류를 보여 줍니다.
-2. OneUptime에서 워크플로의 **로그 → 실행 기록**을 열어 실행을 확인하거나, 모니터를 열어 인시던트가 열렸는지 확인합니다.
+2. OneUptime에서 워크플로의 **실행 기록**을 열어 실행을 확인하거나, 모니터를 열어 인시던트가 열렸는지 확인합니다.
 3. `event_value` `0`과 같은 `event_id`로 다시 테스트합니다. 인시던트가 해결됩니다.
 
 그런 다음 임계값을 잠시 낮추는 식으로 실제 트리거를 발생시켜 문제가 도착하는지 지켜봅니다. 업데이트를 시험하려면 Zabbix에서 메시지와 함께 문제를 인지하세요. 인시던트에 비공개 메모가 생기고 인시던트가 인지됩니다.
@@ -320,12 +320,12 @@ Zabbix는 심각도를 텍스트로 보냅니다: `Not classified`, `Information
 
 :::details 인시던트가 열리지만 해결되지 않음
 - 액션에 **Recovery operations**가 필요합니다. 없으면 Zabbix가 복구를 보내지 않습니다.
-- 템플릿을 사용하는 경우 워크플로의 **로그 → 실행 기록**에서 복구의 실행을 엽니다. 마지막 단계에 이유가 나옵니다. 인시던트를 열지 않은 문제의 복구는 아무것도 바꾸지 않습니다.
+- 템플릿을 사용하는 경우 워크플로의 **실행 기록**에서 복구의 실행을 엽니다. 마지막 단계에 이유가 나옵니다. 인시던트를 열지 않은 문제의 복구는 아무것도 바꾸지 않습니다.
 - 모니터를 사용하는 경우 기준의 인시던트에 **추가 필드** 아래의 **인시던트 자동 해결**이 필요합니다. **Field that signals recovery**는 `requestBody.status`여야 하고, **Value that means recovered**는 정확히 `0`이어야 합니다.
 :::
 
 :::details Zabbix 문제가 인지되거나 닫히지 않음
-**로그 → 실행 기록**에서 상태 템플릿의 실행을 엽니다. 마지막 단계에 Zabbix가 답한 내용이 나옵니다.
+**실행 기록**에서 상태 템플릿의 실행을 엽니다. 마지막 단계에 Zabbix가 답한 내용이 나옵니다.
 
 - `Not authorized`: API 토큰이 틀렸거나, 만료되었거나, 비활성화되었거나, Zabbix가 6.4보다 오래된 버전입니다([Zabbix 6.0에서](#zabbix-60에서) 참고).
 - `Cannot close problem: trigger does not allow manual closing`: 트리거에서 **Allow manual close**를 켜세요. 템플릿은 이미 이런 문제를 닫는 대신 인지합니다.
@@ -334,7 +334,7 @@ Zabbix는 심각도를 텍스트로 보냅니다: `Not classified`, `Information
 :::
 
 :::details 인시던트에 값 대신 참조가 표시됨
-요청에 없는 필드를 가리키는 참조는 비워지지 않고, 중괄호까지 포함해 쓰인 그대로 남습니다. Zabbix가 `Content-Type: application/json`을 보내는지, 사용하는 필드 이름(`name`, `host`, `severity`, `status`, `event_id`)이 스크립트의 페이로드와 일치하는지 확인하세요. 워크플로라면 **로그 → 실행 기록**에서 실행을 열어 트리거가 받은 내용과 비교하세요. [주의할 점](/docs/workflows/variables#주의-사항)을 참고하세요.
+요청에 없는 필드를 가리키는 참조는 비워지지 않고, 중괄호까지 포함해 쓰인 그대로 남습니다. Zabbix가 `Content-Type: application/json`을 보내는지, 사용하는 필드 이름(`name`, `host`, `severity`, `status`, `event_id`)이 스크립트의 페이로드와 일치하는지 확인하세요. 워크플로라면 **실행 기록**에서 실행을 열어 트리거가 받은 내용과 비교하세요. [주의할 점](/docs/workflows/variables#주의-사항)을 참고하세요.
 :::
 
 :::details 모든 문제가 두 번씩 도착함

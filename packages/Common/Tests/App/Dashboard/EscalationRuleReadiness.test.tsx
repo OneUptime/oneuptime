@@ -1707,7 +1707,7 @@ describe("Sending the reminder after the session lapsed", () => {
     .toString();
 
   const NO_CREDENTIALS_BODY: JSONObject = {
-    message: "Authentication required. Please log in to access this resource.",
+    message: "Authentication required. Please sign in to access this resource.",
   };
 
   const realBaseAPI: typeof RealBaseAPI = (

@@ -27,6 +27,16 @@ export class Service extends ProjectReferencesService<Model> {
     super(Model);
   }
 
+  /*
+   * A notice's webhook is stored encrypted (#9013): the create's answer
+   * carries the address as it was written, as a read of the notice gives
+   * it, never the ciphertext stored (handBackAsGiven).
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    return this.handBackAsGiven(await super.create(createBy), ["webhookUrl"]);
+  }
+
   private async assertWebhookCanBeReached(url: string): Promise<void> {
     // An operator wrote this one, so their own network is theirs to name (issue #3424).
     await SSRFProtection.validateWebhookTargetIsSafe(url, {

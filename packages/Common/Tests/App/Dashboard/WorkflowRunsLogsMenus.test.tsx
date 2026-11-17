@@ -19,21 +19,21 @@ import * as React from "react";
 import { MemoryRouter, Route as PageRoute, Routes } from "react-router-dom";
 
 /*
- * Workflow runs live in a Logs section of their own, holding one entry, Runs,
- * in both workflow menus:
+ * Workflow runs are the last entry, Runs, of each workflow menu's first
+ * section, which is open:
  *
- *   Workflows menu:        Workflows (Workflows, Global Variables)
- *                          Logs (Runs)
+ *   Workflows menu:        Workflows (Workflows, Global Variables, Runs)
  *                          Settings (collapsed: Owner Rules, Label Rules)
  *                          Advanced (collapsed: Archived)
  *
- *   A workflow's menu:     Basic (Overview, Builder, Workflow Variables)
- *                          Logs (Runs)
+ *   A workflow's menu:     Basic (Overview, Builder, Workflow Variables,
+ *                          Runs)
  *                          Advanced (Settings, Owners, Audit Logs,
  *                          Delete Workflow)
  *
- * Owners was a section of its own, under a heading of its own name, until
- * #9134.
+ * Until #9216 Runs sat alone in a Logs section of its own, a heading that
+ * nearly repeated its one entry. Owners was a section of its own, under a
+ * heading of its own name, until #9134.
  *
  * They used to be "Runs & Logs": a third row under Workflows, and in a
  * workflow's own menu an entry under Advanced, beside Settings and Delete.
@@ -257,7 +257,7 @@ const WORKFLOWS_MENU: ReadonlyArray<MenuPage> = [
     section: "Workflows",
     path: `${WORKFLOWS_PATH}/variables`,
   },
-  { title: "Runs", section: "Logs", path: ALL_RUNS_PATH },
+  { title: "Runs", section: "Workflows", path: ALL_RUNS_PATH },
   {
     title: "Owner Rules",
     section: "Settings",
@@ -307,7 +307,7 @@ const WORKFLOW_MENU: ReadonlyArray<MenuPage> = [
     section: "Basic",
     path: `${WORKFLOW_PATH}/variables`,
   },
-  { title: "Runs", section: "Logs", path: WORKFLOW_RUNS_PATH },
+  { title: "Runs", section: "Basic", path: WORKFLOW_RUNS_PATH },
   {
     title: "Terraform",
     section: "Developer",
@@ -386,22 +386,26 @@ describe("the Workflows menu", () => {
     goTo(WORKFLOWS_PATH);
   });
 
-  test("has a Logs section between Workflows and Settings", async () => {
+  test("has no Logs section any more: Workflows, then Settings (#9216)", async () => {
     await renderWorkflowsMenu();
 
     expect(sectionTitlesInOrder()).toEqual([
       "Workflows",
-      "Logs",
       "Settings",
       "Advanced",
       "Developer",
     ]);
   });
 
-  test("Logs holds Runs alone, at the run list's existing URL", async () => {
+  test("Runs is the last entry of Workflows, at the run list's existing URL", async () => {
     await renderWorkflowsMenu();
 
-    expect(linksIn("Logs")).toEqual([{ title: "Runs", href: ALL_RUNS_PATH }]);
+    const workflows: Array<MenuLink> = linksIn("Workflows");
+
+    expect(workflows[workflows.length - 1]).toEqual({
+      title: "Runs",
+      href: ALL_RUNS_PATH,
+    });
     expect(ALL_RUNS_PATH).toBe(
       RouteUtil.populateRouteParams(
         RouteMap[PageMap.WORKFLOWS_LOGS] as Route,
@@ -409,7 +413,7 @@ describe("the Workflows menu", () => {
     );
   });
 
-  test("the Workflows section keeps only Workflows and Global Variables", async () => {
+  test("the Workflows section holds Workflows, Global Variables and Runs", async () => {
     await renderWorkflowsMenu();
 
     expect(linksIn("Workflows")).toEqual(linksOf(WORKFLOWS_MENU, "Workflows"));
@@ -462,11 +466,11 @@ describe("the Workflows menu", () => {
     );
   });
 
-  test("Logs is open on the landing page, while Settings starts collapsed", async () => {
+  test("Workflows, with Runs, is open on the landing page, while Settings starts collapsed", async () => {
     await renderWorkflowsMenu();
 
-    expect(isExpanded("Logs")).toBe(true);
-    expect(sectionBody("Logs")).not.toHaveClass("max-h-0");
+    expect(isExpanded("Workflows")).toBe(true);
+    expect(sectionBody("Workflows")).not.toHaveClass("max-h-0");
     expect(screen.getByRole("link", { name: "Runs" })).toBeVisible();
     expect(isExpanded("Settings")).toBe(false);
   });
@@ -480,15 +484,16 @@ describe("the Workflows menu", () => {
     expect(runs).toHaveAttribute("href", ALL_RUNS_PATH);
     expect(runs).toHaveClass(...ACTIVE_LINK_CLASSES);
     expect(activeLinks()).toEqual([runs]);
-    expect(isExpanded("Logs")).toBe(true);
+    expect(isExpanded("Workflows")).toBe(true);
   });
 
-  test("on a phone, the menu button names Logs / Runs on the Runs page", async () => {
+  test("on a phone, the menu button names Workflows / Runs on the Runs page", async () => {
     setViewportWidth(MOBILE_WIDTH);
     goTo(ALL_RUNS_PATH);
     await renderWorkflowsMenu();
 
-    expect(mobileSummaryText()).toContain("Logs / Runs");
+    expect(mobileSummaryText()).toContain("Workflows / Runs");
+    expect(mobileSummaryText()).not.toContain("Logs");
   });
 
   test("every entry keeps an icon", async () => {
@@ -512,23 +517,21 @@ describe("a workflow's own menu", () => {
     goTo(WORKFLOW_PATH);
   });
 
-  test("has Basic, Logs, Developer and Advanced, in that order", async () => {
+  test("has Basic, Developer and Advanced, in that order, and no Logs section (#9216)", async () => {
     await renderWorkflowMenu();
 
-    expect(sectionTitlesInOrder()).toEqual([
-      "Basic",
-      "Logs",
-      "Developer",
-      "Advanced",
-    ]);
+    expect(sectionTitlesInOrder()).toEqual(["Basic", "Developer", "Advanced"]);
   });
 
-  test("Logs holds Runs alone, at the workflow's existing runs URL", async () => {
+  test("Runs is the last entry of Basic, at the workflow's existing runs URL", async () => {
     await renderWorkflowMenu();
 
-    expect(linksIn("Logs")).toEqual([
-      { title: "Runs", href: WORKFLOW_RUNS_PATH },
-    ]);
+    const basic: Array<MenuLink> = linksIn("Basic");
+
+    expect(basic[basic.length - 1]).toEqual({
+      title: "Runs",
+      href: WORKFLOW_RUNS_PATH,
+    });
     expect(WORKFLOW_RUNS_PATH).toBe(
       RouteUtil.populateRouteParams(RouteMap[PageMap.WORKFLOW_LOGS] as Route, {
         modelId: new ObjectID(WORKFLOW_ID),
@@ -545,7 +548,7 @@ describe("a workflow's own menu", () => {
     ).toBeNull();
   });
 
-  test("Basic is unchanged, and Owners has no section of its own", async () => {
+  test("Basic holds Overview, Builder, Workflow Variables and Runs, and Owners has no section of its own", async () => {
     await renderWorkflowMenu();
 
     expect(linksIn("Basic")).toEqual(linksOf(WORKFLOW_MENU, "Basic"));
@@ -568,19 +571,19 @@ describe("a workflow's own menu", () => {
 
   /*
    * Advanced is the section other menus fold away by default. Runs must not
-   * depend on it staying open: on every other page of a workflow - none of
-   * them inside Logs, so nothing forces Logs open - Runs is on screen.
+   * depend on it staying open: on every other page of a workflow - most of
+   * them outside Basic, so nothing forces Basic open - Runs is on screen.
    */
   test.each(
     WORKFLOW_MENU.filter((page: MenuPage): boolean => {
-      return page.section !== "Logs";
+      return page.title !== "Runs";
     }),
   )("Runs is on screen on the $title page", async (page: MenuPage) => {
     goTo(page.path);
     await renderWorkflowMenu();
 
-    expect(isExpanded("Logs")).toBe(true);
-    expect(sectionBody("Logs")).not.toHaveClass("max-h-0");
+    expect(isExpanded("Basic")).toBe(true);
+    expect(sectionBody("Basic")).not.toHaveClass("max-h-0");
     expect(screen.getByRole("link", { name: "Runs" })).toBeVisible();
   });
 
@@ -592,15 +595,16 @@ describe("a workflow's own menu", () => {
 
     expect(runs).toHaveClass(...ACTIVE_LINK_CLASSES);
     expect(activeLinks()).toEqual([runs]);
-    expect(isExpanded("Logs")).toBe(true);
+    expect(isExpanded("Basic")).toBe(true);
   });
 
-  test("on a phone, the menu button names Logs / Runs on the Runs page", async () => {
+  test("on a phone, the menu button names Basic / Runs on the Runs page", async () => {
     setViewportWidth(MOBILE_WIDTH);
     goTo(WORKFLOW_RUNS_PATH);
     await renderWorkflowMenu();
 
-    expect(mobileSummaryText()).toContain("Logs / Runs");
+    expect(mobileSummaryText()).toContain("Basic / Runs");
+    expect(mobileSummaryText()).not.toContain("Logs");
   });
 
   test("Delete Workflow stays last, with its danger hover", async () => {
@@ -743,7 +747,6 @@ describe("the run pages keep their URLs", () => {
     expect(runs).toHaveClass(...ACTIVE_LINK_CLASSES);
     expect(sectionTitlesInOrder()).toEqual([
       "Workflows",
-      "Logs",
       "Settings",
       "Advanced",
       "Developer",
@@ -779,12 +782,7 @@ describe("the run pages keep their URLs", () => {
     const runs: HTMLElement = screen.getByRole("link", { name: "Runs" });
     expect(runs).toHaveAttribute("href", WORKFLOW_RUNS_PATH);
     expect(runs).toHaveClass(...ACTIVE_LINK_CLASSES);
-    expect(sectionTitlesInOrder()).toEqual([
-      "Basic",
-      "Logs",
-      "Developer",
-      "Advanced",
-    ]);
+    expect(sectionTitlesInOrder()).toEqual(["Basic", "Developer", "Advanced"]);
   });
 
   test("the run URLs resolve to the run pages and nothing else", () => {

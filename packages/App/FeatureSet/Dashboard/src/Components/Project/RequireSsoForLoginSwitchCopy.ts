@@ -8,7 +8,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * whose Edit Settings dialog held one switch, "Force SSO for Login", with a
  * warning to test SSO first ("Please test SSO before you you enable this
  * feature."). The card is the switch now (RequireSsoForLoginCard, on the
- * shared ModelSwitchCard), named "Require SSO for Login" as the docs and the
+ * shared ModelSwitchCard), named "Require SSO to Sign In" as the docs and the
  * admin dashboard's instance-wide switch name it, and it saves the moment it
  * is flipped.
  *
@@ -39,7 +39,7 @@ export const RequireSsoForLoginSwitchCopy: {
   cardDescription: translationKey(
     "Test SSO with the link above before you require it.",
   ),
-  switchTitle: translationKey("Require SSO for Login"),
+  switchTitle: translationKey("Require SSO to Sign In"),
   switchOnDescription: translationKey(
     "Everyone has to sign in with SSO to open this project. Signing in with a password is not enough.",
   ),

@@ -64,13 +64,19 @@ let origin: string;
 const started: Array<ExecuteWorkflowType> = [];
 
 beforeAll(async () => {
-  jest.spyOn(WorkflowService, "findOneBy").mockImplementation((async () => {
-    const workflow: Workflow = new Workflow();
-    workflow._id = WORKFLOW_ID;
-    workflow.triggerId = ComponentID.Webhook;
+  /*
+   * The workflow found by the key in the URL - by the key's lookup hash, as
+   * the key is kept encrypted (#9012: WorkflowService.findOneByPresentedKey).
+   */
+  jest
+    .spyOn(WorkflowService, "findOneByPresentedKey")
+    .mockImplementation((async () => {
+      const workflow: Workflow = new Workflow();
+      workflow._id = WORKFLOW_ID;
+      workflow.triggerId = ComponentID.Webhook;
 
-    return workflow;
-  }) as never);
+      return workflow;
+    }) as never);
 
   const router: ExpressRouter = Express.getRouter();
 

@@ -36,51 +36,17 @@ const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 
 const PRIMARY_FILL_CLASS: string = "bg-indigo-600";
 
+/*
+ * None today. The seven this used to list - the chat and note composers'
+ * Send and Post, the LLM replay bar's Play, the label pickers' Apply and the
+ * paging ladder's menu trigger - are the shared Button now: it takes an
+ * onMouseDown, a key hint, words a phone hides and a data-state, and
+ * MoreMenu takes it as a trigger (#9195).
+ */
 export const HAND_MADE_PRIMARY_BUTTON_EXCEPTIONS: Record<
   string,
   { count: number; reason: string }
-> = {
-  "packages/Common/UI/Components/EntityDropdown/EntityDropdown.tsx": {
-    count: 1,
-    reason:
-      "The label picker's Apply sits in an open list and keeps the search field focused with its own onMouseDown, which Button does not take.",
-  },
-  "packages/App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesPicker.tsx":
-    {
-      count: 1,
-      reason:
-        "The label picker's Apply sits in an open list and keeps the search field focused with its own onMouseDown, which Button does not take.",
-    },
-  "packages/App/FeatureSet/Dashboard/src/Components/AI/InvestigationConversation/ConversationComposer.tsx":
-    {
-      count: 1,
-      reason:
-        "A chat composer's Send is an icon in the text box, the shape of the Stop that takes its place while the AI works.",
-    },
-  "packages/App/FeatureSet/Dashboard/src/Components/Code/CodeComposer.tsx": {
-    count: 1,
-    reason:
-      "A chat composer's Send sits in the text box beside its pickers and is its arrow alone on a phone.",
-  },
-  "packages/App/FeatureSet/Dashboard/src/Components/EventNotes/NoteComposer.tsx":
-    {
-      count: 1,
-      reason:
-        "A note composer's Post carries its keyboard shortcut in a chip inside the button.",
-    },
-  "packages/App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmReplayBar.tsx":
-    {
-      count: 1,
-      reason:
-        "A player's Play / Pause pill, drawn as the session replay's player draws its own.",
-    },
-  "packages/App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/PagingLadderEditor.tsx":
-    {
-      count: 1,
-      reason:
-        "A menu's trigger: MoreMenu takes a native <button> as its trigger and gives it the menu's aria and click.",
-    },
-};
+> = {};
 
 interface HandMadePrimaryButton {
   file: string;

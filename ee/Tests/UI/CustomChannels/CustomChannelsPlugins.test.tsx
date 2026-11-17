@@ -282,8 +282,10 @@ describe("Settings > Custom Channels in the Enterprise Admin Dashboard", () => {
     render(<SettingsSideMenu />);
 
     const entries: Array<HTMLElement> = screen.getAllByText("Custom Channels");
-    const pushNotifications: HTMLElement =
-      screen.getByText("Push Notifications");
+    // Looked up in the reader's language, as its neighbours are (#9134).
+    const pushNotifications: HTMLElement = screen.getByText(
+      "sideMenu.settingsPushNotifications",
+    );
     const notifications: HTMLElement = screen
       .getByText("sideMenu.settingsNotifications")
       .closest("div.mb-2") as HTMLElement;

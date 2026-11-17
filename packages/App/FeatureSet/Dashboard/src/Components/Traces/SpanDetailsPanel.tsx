@@ -618,7 +618,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
 
   const surfaceCardClass: string = "border-gray-200 bg-gray-50";
   const sectionHeaderClass: string =
-    "text-[11px] uppercase tracking-wide text-gray-400";
+    "text-[11px] uppercase tracking-wide text-gray-500";
 
   const overviewRows: Array<{ label: string; value: ReactElement | string }> = [
     { label: entityDisplay.typeLabel, value: serviceName },
@@ -662,7 +662,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                   {span.name || translator.translateText("(unnamed span)")}
                 </h3>
                 <span
-                  className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${status.pillClassName}`}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold ${status.pillClassName}`}
                   title={translator.translateText(status.description)}
                   data-testid="span-details-status"
                 >
@@ -696,7 +696,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
             )}
             {sessionIdStr && replayRoute === null && (
               <span
-                className="text-[11px] text-gray-500"
+                className="text-xs text-gray-500"
                 data-testid="span-replay-missing"
                 title={translator.translateTemplate(
                   "Session {{sessionId}} carried this span, but no recording of it was uploaded (sampled out, consent withheld, or not yet received).",
@@ -773,7 +773,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
             ) : (
               <div className="space-y-2">
                 {logsScope === "trace" && spanIdStr && (
-                  <div className="text-[11px] text-gray-500">
+                  <div className="text-xs text-gray-500">
                     {translator.translateText(
                       "No logs are tagged with this span — showing logs from the whole trace.",
                     )}
@@ -893,7 +893,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                                   {message}
                                 </span>
                               )}
-                              <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-red-400">
+                              <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-red-400">
                                 {exception.exceptionType && (
                                   <span className="font-mono">
                                     {exception.exceptionType}
@@ -912,7 +912,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                               <Link
                                 to={groupRoute}
                                 openInNewTab={true}
-                                className="flex-none text-[11px] font-semibold text-red-600 hover:text-red-700 hover:underline"
+                                className="flex-none text-xs font-semibold text-red-600 hover:text-red-700 hover:underline"
                               >
                                 {translator.translateText(
                                   "View exception group",

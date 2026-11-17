@@ -1,4 +1,5 @@
 import { AIInvestigationStage } from "../AI/AIInvestigationStatus";
+import { CODE_TASK_HIDDEN_LABEL } from "../Code/CodeTaskHiddenCopy";
 import {
   RemediationDecision,
   RemediationDecisionLine,
@@ -97,6 +98,8 @@ export const REMEDIATION_STEP_STATUS_TEXT: {
   didNotFinish: string;
   noActionTaken: string;
   notTried: string;
+  // The fix in the code is in a task the reader may not open.
+  hidden: string;
 } = {
   checking: translationKey("Checking…"),
   waiting: translationKey("Waiting"),
@@ -122,6 +125,7 @@ export const REMEDIATION_STEP_STATUS_TEXT: {
   didNotFinish: translationKey("Did not finish"),
   noActionTaken: translationKey("No action taken"),
   notTried: translationKey("Not tried"),
+  hidden: CODE_TASK_HIDDEN_LABEL,
 };
 
 /*
@@ -418,6 +422,14 @@ export function getRemediationStepStatus(
   }
 
   if (input.codeFix?.offer === SuggestionOffer.Done) {
+    /*
+     * The fix in the code is in a task the reader may not open: nothing of
+     * how it stands, here either.
+     */
+    if (input.codeFix.fixOutcome === FinishedFixOutcome.Hidden) {
+      return status("idle", TEXT.hidden);
+    }
+
     if (input.codeFix.fixOutcome === FinishedFixOutcome.WaitingForYou) {
       return status("attention", TEXT.needsYourAnswer);
     }

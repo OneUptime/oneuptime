@@ -183,7 +183,7 @@ Twilio lit les messages avec une voix de synthèse : écrivez-les comme vous vou
 
 ## Journaux d'appels
 
-Chaque appel figure sur la page **Journaux d'appels** de la politique, sous **Journaux** dans son menu latéral : l'**Appelant**, le **Numéro appelé**, son **Statut**, qui a répondu (**Répondu par**), la **Durée**, et quand il a commencé (**Démarré le**). Cliquez sur **Voir la chronologie** sur un appel pour voir sa **Chronologie de l'appel** : chaque personne qui a sonné, sur quel numéro, et comment chaque tentative s'est terminée.
+Chaque appel figure sur la page **Journaux d'appels** de la politique, sous **Basique** dans son menu latéral : l'**Appelant**, le **Numéro appelé**, son **Statut**, qui a répondu (**Répondu par**), la **Durée**, et quand il a commencé (**Démarré le**). Cliquez sur **Voir la chronologie** sur un appel pour voir sa **Chronologie de l'appel** : chaque personne qui a sonné, sur quel numéro, et comment chaque tentative s'est terminée.
 
 | Statut | Ce qui s'est passé |
 | --- | --- |
