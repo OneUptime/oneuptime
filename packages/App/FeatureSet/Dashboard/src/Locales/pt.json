@@ -56561,5 +56561,10 @@
   "{{team}} (typed name)": "{{team}} (nome digitado)",
   "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Os monitores deste SLO ainda não foram verificados. Ele é medido a partir da primeira verificação deles.",
   "Discovered device {{name}}": "Dispositivo descoberto {{name}}",
-  "The Discovered Devices list": "A lista de dispositivos descobertos"
+  "The Discovered Devices list": "A lista de dispositivos descobertos",
+  "Every filter must match. Clear one, or clear them all.": "Todos os filtros têm de corresponder. Remova um, ou remova todos.",
+  "Filter discovered devices": "Filtrar dispositivos descobertos",
+  "Network controller": "Controlador de rede",
+  "No discovered device matches this search and these filters.": "Nenhum dispositivo descoberto corresponde a esta pesquisa e a estes filtros.",
+  "Switch or router": "Switch ou roteador"
 }

@@ -56561,5 +56561,10 @@
   "{{team}} (typed name)": "{{team}} (نام تایپ‌شده)",
   "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "هنوز هیچ چیزی مانیتورهای این SLO را بررسی نکرده است. اندازه‌گیری آن از نخستین بررسی آن‌ها آغاز می‌شود.",
   "Discovered device {{name}}": "دستگاه کشف‌شده {{name}}",
-  "The Discovered Devices list": "فهرست دستگاه‌های کشف‌شده"
+  "The Discovered Devices list": "فهرست دستگاه‌های کشف‌شده",
+  "Every filter must match. Clear one, or clear them all.": "همهٔ فیلترها باید مطابقت داشته باشند. یکی یا همه را پاک کنید.",
+  "Filter discovered devices": "فیلتر دستگاه‌های کشف‌شده",
+  "Network controller": "کنترلر شبکه",
+  "No discovered device matches this search and these filters.": "هیچ دستگاه کشف‌شده‌ای با این جستجو و این فیلترها مطابقت ندارد.",
+  "Switch or router": "سوئیچ یا روتر"
 }

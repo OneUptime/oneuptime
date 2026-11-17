@@ -56561,5 +56561,10 @@
   "{{team}} (typed name)": "{{team}}（入力された名前）",
   "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "この SLO のモニターはまだ一度もチェックされていません。最初のチェックから測定されます。",
   "Discovered device {{name}}": "検出されたデバイス {{name}}",
-  "The Discovered Devices list": "検出されたデバイスの一覧"
+  "The Discovered Devices list": "検出されたデバイスの一覧",
+  "Every filter must match. Clear one, or clear them all.": "すべてのフィルターに一致する必要があります。1 つ、またはすべてをクリアしてください。",
+  "Filter discovered devices": "検出されたデバイスを絞り込む",
+  "Network controller": "ネットワークコントローラー",
+  "No discovered device matches this search and these filters.": "この検索とフィルターに一致する検出されたデバイスはありません。",
+  "Switch or router": "スイッチまたはルーター"
 }

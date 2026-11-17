@@ -56561,5 +56561,10 @@
   "{{team}} (typed name)": "{{team}}（手动输入的名称）",
   "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "此 SLO 的监视器尚未被检查过。它从这些监视器的首次检查开始计量。",
   "Discovered device {{name}}": "已发现的设备 {{name}}",
-  "The Discovered Devices list": "已发现的设备列表"
+  "The Discovered Devices list": "已发现的设备列表",
+  "Every filter must match. Clear one, or clear them all.": "必须满足所有筛选条件。请清除其中一个，或全部清除。",
+  "Filter discovered devices": "筛选已发现的设备",
+  "Network controller": "网络控制器",
+  "No discovered device matches this search and these filters.": "没有已发现的设备符合此搜索和这些筛选条件。",
+  "Switch or router": "交换机或路由器"
 }

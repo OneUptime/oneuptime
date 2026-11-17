@@ -56561,5 +56561,10 @@
   "{{team}} (typed name)": "{{team}} (입력한 이름)",
   "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "이 SLO의 모니터를 아직 아무것도 확인하지 않았습니다. 첫 확인부터 측정됩니다.",
   "Discovered device {{name}}": "발견된 장치 {{name}}",
-  "The Discovered Devices list": "발견된 장치 목록"
+  "The Discovered Devices list": "발견된 장치 목록",
+  "Every filter must match. Clear one, or clear them all.": "모든 필터가 일치해야 합니다. 하나를 지우거나 모두 지우세요.",
+  "Filter discovered devices": "발견된 장치 필터",
+  "Network controller": "네트워크 컨트롤러",
+  "No discovered device matches this search and these filters.": "이 검색과 필터에 맞는 발견된 장치가 없습니다.",
+  "Switch or router": "스위치 또는 라우터"
 }

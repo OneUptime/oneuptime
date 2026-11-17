@@ -56561,5 +56561,10 @@
   "{{team}} (typed name)": "{{team}} (inskrivet namn)",
   "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Inget har kontrollerat monitorerna för denna SLO ännu. Den mäts från deras första kontroll.",
   "Discovered device {{name}}": "Upptäckt enhet {{name}}",
-  "The Discovered Devices list": "Listan över upptäckta enheter"
+  "The Discovered Devices list": "Listan över upptäckta enheter",
+  "Every filter must match. Clear one, or clear them all.": "Alla filter måste stämma. Rensa ett, eller rensa alla.",
+  "Filter discovered devices": "Filtrera upptäckta enheter",
+  "Network controller": "Nätverkskontroller",
+  "No discovered device matches this search and these filters.": "Ingen upptäckt enhet matchar den här sökningen och de här filtren.",
+  "Switch or router": "Switch eller router"
 }
