@@ -110,8 +110,9 @@ test.describe("Sign-in must not disclose whether an account exists", () => {
 
     /*
      * The message must not name the address or say the account is missing.
-     * "No user is registered with ..." is what /forgot-password says, and it
-     * would be a disclosure here.
+     * "No user is registered with ..." is what /forgot-password used to say
+     * (until #9260, which answers every address alike), and it would be a
+     * disclosure here.
      */
     expect(attempt.message.toLowerCase()).not.toContain("not registered");
     expect(attempt.message.toLowerCase()).not.toContain("no user");

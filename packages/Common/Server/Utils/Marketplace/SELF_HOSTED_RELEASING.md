@@ -355,13 +355,14 @@ Docker Hub already, so nothing new is exposed.
 
 ### Google Cloud Marketplace: Kubernetes app
 
-Google approved OneUptime as a partner for this product: its onboarding email
-of 9 November 2026 names "OneUptime Enterprise (self-hosted)". **Waiting on
-Google:** the project info form went in on 11 November 2026, and Google turns
-Producer Portal on within 2 business days of it, then sends a welcome email
-with the next steps. Google's Marketplace Operations team supports the
-onboarding for 60 days from its onboarding email (until about 8 January
-2027); help after that is not guaranteed. Everything lives in the
+Google approved this product on 6 November 2026 (its solution validation,
+case 77153319) and sent its onboarding email the same day. **Waiting on
+Google** (since 17 November 2026): Producer Portal. Google opens a Partner
+Support Desk case for it and turns it on only once we answer there that the
+project info form and the roles are done (step 1); we answered on 17
+November. Google's Marketplace Operations team supports the onboarding for 60
+days from its reminder of 9 November (until about 8 January 2027); help after
+that is not guaranteed. Everything lives in the
 `oneuptime-marketplace` project, never in `oneuptime-k8s`. This is OneUptime's
 only Google Cloud Marketplace product: OneUptime Cloud is not listed there
 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
@@ -379,11 +380,28 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
      | `serviceAccount:cloud-commerce-procurement@system.gserviceaccount.com`         | Service Controller. The email names Service Consumer too, which IAM grants on a service, not a project ("not supported for this resource"): grant it on the product's service (`gcloud endpoints services add-iam-policy-binding`) if Producer Portal asks, once it exists |
      | `serviceAccount:managed-services@cloud-marketplace.iam.gserviceaccount.com`    | Service Management Administrator                                                                                                                                                                                                                                           |
 
+     Google's setup page
+     ([set up your environment](https://docs.cloud.google.com/marketplace/docs/partners/kubernetes/set-up-environment),
+     checked on 17 November 2026) asks for two more things, both in place: a
+     security contact (Essential Contacts: `support@oneuptime.com`, Security)
+     and the Container Analysis API. It calls the Service Management
+     Administrator role `roles/servicemanagement.serviceAdmin`, which does not
+     exist: the role is `roles/servicemanagement.admin`.
+
    - **Project info form** (done on 11 November 2026; once per partner, from
      the onboarding email): listing type Kubernetes App; seller name
      **HackerBay, Inc.**, which Google shows on the listings and on buyers'
      bills; primary contact the maintainer's address Google already writes
      to; technical staff in the Americas; preferred launch 15 December 2026.
+     The form sends no copy of the answers.
+   - **Tell Google both are done** (done on 17 November 2026). The onboarding
+     email says Google reaches out within 2 business days of the form, which
+     reads as if nothing were left to do. It reaches out with a Partner
+     Support Desk case (77498377, opened on 11 November) that asks for the
+     form and the roles, ends "Let us know once it's done", and turns
+     Producer Portal on only after that answer. Unanswered, the case sent
+     reminders and was to close by itself on 17 November; a closed case can
+     be reopened within 72 hours.
    - **Payments profile** (maintainer only: bank and tax details) on
      Producer Portal's payments page, once it is on and before creating the
      product, as Google recommends, with more than one billing admin.
@@ -1182,10 +1200,14 @@ rejection, go-live and price change.
 | 2026-10-19 | AWS         | AWS refused 14.0.72: MISSING_VALUES_IMAGE_REFERENCE; the chart takes registry, repository and tag   | Agent      |
 | 2026-10-21 | Microsoft   | Offer `oneuptime-enterprise` seen live (publisher `oneupitme`); the website links it                | Agent      |
 | 2026-10-27 | All three   | The editions turn off the daily check-in with oneuptime.com: the marketplace knows its buyers       | Agent      |
+| 2026-11-06 | Google      | Solution validation approved OneUptime Enterprise (self-hosted) (case 77153319); onboarding email   | Google     |
 | 2026-11-06 | Google      | Project workspace: the onboarding email's roles granted on `oneuptime-marketplace`                  | Maintainer |
-| 2026-11-09 | Google      | Partner approved: Google's onboarding email names OneUptime Enterprise (self-hosted)                | Google     |
+| 2026-11-09 | Google      | Reminder of the project info form; Google's 60 days of onboarding help run from it                  | Google     |
 | 2026-11-11 | Google      | Project info form submitted (Kubernetes App, seller HackerBay, Inc.); Producer Portal pending       | Agent      |
 | 2026-11-11 | Google      | Decided: Google Cloud Marketplace sells only this Kubernetes app, not OneUptime Cloud (SaaS)        | Maintainer |
+| 2026-11-11 | Google      | Case 77498377: Producer Portal turns on once we answer that the form and the roles are done         | Google     |
+| 2026-11-17 | Google      | Rechecked: roles, security contact and Container Analysis API in place; no product or images yet    | Agent      |
+| 2026-11-17 | Google      | Answered case 77498377 (form and roles done) the day it was to close; Producer Portal pending       | Agent      |
 
 ## Notes for agents driving the browser
 
@@ -1199,3 +1221,10 @@ rejection, go-live and price change.
   moving on.
 - Uploads (logos, screenshots) may need a person: save the files where they
   can reach them and ask.
+- Google's onboarding runs through Partner Support Desk cases, by email (the
+  case number in brackets opens the subject). A case that asks for something
+  waits for an answer and closes by itself after a few reminders: answer each
+  in its own thread, so the quoted case reference (`[ref:…:ref]`) files the
+  answer on the case, and add it to [History](#history). In Gmail, make sure
+  the cursor is in the reply's body, not the Help me write box under it,
+  before typing.

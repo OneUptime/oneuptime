@@ -29,6 +29,8 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import Page from "Common/UI/Components/Page/Page";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -484,13 +486,17 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
                 return (
                   <span className="inline-flex flex-wrap items-center gap-1">
                     {item.isEvaluationLicense ? (
-                      <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-200">
-                        {translator.translateText("Evaluation")}
-                      </span>
+                      <Pill
+                        text="Evaluation"
+                        tone={PillTone.Info}
+                        isDotHidden={true}
+                      />
                     ) : (
-                      <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-200">
-                        {translator.translateText("Production")}
-                      </span>
+                      <Pill
+                        text="Production"
+                        tone={PillTone.Neutral}
+                        isDotHidden={true}
+                      />
                     )}
                     {item.canBeWhiteLabelled ? <WhiteLabelBadge /> : <></>}
                   </span>

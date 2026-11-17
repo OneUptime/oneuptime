@@ -174,6 +174,7 @@ import {
 } from "../../../UI/Components/SmtpConfig/SmtpConfigFormFields";
 import UserUtil from "../../../UI/Utils/User";
 import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
+import { formStepButton } from "../../Helpers/FormStepButton";
 
 const WAIT_FOR_TIMEOUT: number = 20000;
 
@@ -402,7 +403,7 @@ async function openLastStep(dialog: HTMLElement): Promise<void> {
     ).toBeNull();
 
     await act(async () => {
-      fireEvent.click(last);
+      fireEvent.click(formStepButton(last));
     });
     await settle();
   }
@@ -1460,7 +1461,7 @@ describe("Admin > Settings > Email > Host Settings", () => {
       ).getAllByRole("listitem");
 
       await act(async () => {
-        fireEvent.click(steps[steps.length - 1] as HTMLElement);
+        fireEvent.click(formStepButton(steps[steps.length - 1]!));
       });
       await settle();
 

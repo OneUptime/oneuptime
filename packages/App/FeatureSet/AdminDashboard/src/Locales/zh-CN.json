@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "所选的 {{userCount}} 位用户将从所有活动会话中登出，并且下次登录时必须设置身份验证器应用。如果您也在其中，此操作同样适用于您。",
       "bulkDoNotRequireTwoFactorAuth": "取消双因素身份验证要求",
       "bulkDoNotRequireTwoFactorAuthTitle": "取消对 {{userCount}} 位用户的双因素身份验证要求",
-      "bulkDoNotRequireTwoFactorAuthDescription": "所选的 {{userCount}} 位用户将可以仅使用密码登录。他们已设置的内容会保留，但不会再要求进行验证。"
+      "bulkDoNotRequireTwoFactorAuthDescription": "所选的 {{userCount}} 位用户将可以仅使用密码登录。他们已设置的内容会保留，但不会再要求进行验证。",
+      "createdAndEmailed": "已创建 {{name}}。设置密码的链接已发送至 {{email}}。",
+      "createdWithPassword": "已创建 {{name}}。请通过安全的方式把您设置的密码告诉对方。",
+      "setPasswordLinkTitle": "发送设置密码的链接",
+      "setPasswordLinkDescription": "复制此链接，并通过只有对方能看到的方式亲自发送给 {{email}}。链接只能使用一次，有效期 {{days}} 天。",
+      "setPasswordLinkOrSetIt": "或者在对方的认证页面上直接为其设置密码。"
     },
     "enterpriseLicenses": {
       "title": "企业版许可证",
@@ -2144,8 +2149,6 @@
   "Check email settings": "检查电子邮件设置",
   "Email is failing": "电子邮件发送失败",
   "Email is not set up": "未设置电子邮件",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "自 {{time}} 起电子邮件一直发送失败，因此邀请和事件邮件无法送达。",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "自 {{time}} 起电子邮件一直发送失败，因此邀请和事件邮件无法送达。邮件服务器返回：{{reason}}",
   "Invitations, password resets and incident emails are not sent.": "邀请、密码重置和事件邮件都不会发送。",
   "Monitors that run on global probes are not being checked.": "在全局探测器上运行的监视器没有被检查。",
   "No global probe is reporting": "没有全局探测器在报告",
@@ -4165,5 +4168,19 @@
   "OneUptime switched this rule off when they were deleted.": "这些记录被删除时，OneUptime 已停用此规则。",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "若按原样启用，此规则将完全不受这些列表限制。请编辑它以选择其适用范围，然后再启用。",
   "{{names}} and {{count}} more": "{{names}} 等另外 {{count}} 个",
-  "{{names}} and {{count}} more_one": "{{names}} 等另外 {{count}} 个"
+  "{{names}} and {{count}} more_one": "{{names}} 等另外 {{count}} 个",
+  "No email has gone out through this server's email settings since {{time}}.": "自 {{time}} 起，没有任何邮件通过此服务器的邮件设置发出。",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "自 {{time}} 起，没有任何邮件通过此服务器的邮件设置发出。邮件服务器返回：{{reason}}",
+  "See email logs": "查看邮件日志",
+  "Addresses the mail server refused": "邮件服务器拒收的地址",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "其他邮件已发出，因此只有这些地址受影响。请更正地址，或让您的邮件服务商接受它：Amazon SES 沙盒只会发送到已验证的地址。",
+  "Last refused {{time}}": "最近一次拒收：{{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "已创建 {{name}}，但包含设置密码链接的邮件未能发送。{{error}}",
+  "The link to send them yourself was not made either. {{error}}": "供您亲自发送的链接也未能生成。{{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime 会通过邮件向对方发送一个链接，由对方自行设置密码。",
+  "They sign in with the password you set. Share it with them securely.": "对方将使用您设置的密码登录。请通过安全的方式告诉对方。",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "此服务器还无法发送邮件。请在此设置密码，或留空以获取一个由您亲自发送的链接。",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "此服务器还无法发送邮件。请在“设置 > 邮件”中设置邮件。",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "此服务器还无法发送邮件，因此未发送重置密码链接。请在“设置 > 邮件”中设置邮件，或亲自为对方设置密码。",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "该用户已有密码，因此没有可复制的设置密码链接。请改为在其认证页面发送重置密码链接。"
 }

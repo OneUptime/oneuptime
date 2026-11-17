@@ -59,6 +59,34 @@ type CapturedTableProps = {
 
 let capturedTableProps: CapturedTableProps | null = null;
 
+/*
+ * A hover tip (the rule type's Pill explains its kind there) is drawn as its
+ * title here, so it can be read without hovering.
+ */
+jest.mock("../../../UI/Components/Tooltip/Tooltip", () => {
+  const ReactInFactory: typeof React = jest.requireActual(
+    "react",
+  ) as typeof React;
+  const { default: useTranslatorInFactory } = jest.requireActual(
+    "../../../UI/Utils/UseTranslator",
+  ) as { default: () => { translateText: (text?: string) => string } };
+
+  return {
+    __esModule: true,
+    default: (props: {
+      text?: string;
+      children: React.ReactElement;
+    }): React.ReactElement => {
+      const translator: { translateText: (text?: string) => string } =
+        useTranslatorInFactory();
+
+      return ReactInFactory.cloneElement(props.children, {
+        title: translator.translateText(props.text),
+      } as Record<string, unknown>);
+    },
+  };
+});
+
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
     __esModule: true,

@@ -34,6 +34,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -521,9 +523,11 @@ const CodeConnectDialog: FunctionComponent<ComponentProps> = (
                         </span>
                       </span>
                       {connection.isTokenRefused ? (
-                        <span className="inline-flex flex-none items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20">
-                          {translator.translateText("Token refused")}
-                        </span>
+                        <Pill
+                          text="Token refused"
+                          tone={PillTone.Warning}
+                          className="flex-none"
+                        />
                       ) : (
                         <></>
                       )}
@@ -725,23 +729,17 @@ const CodeConnectDialog: FunctionComponent<ComponentProps> = (
                             {repository.fullName}
                           </span>
                           {repository.isConnected ? (
-                            <span
-                              data-testid="code-connect-repository-connected"
-                              className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20"
-                            >
-                              {translator.translateText(
-                                CODE_CONNECT_COPY.connectedBadge,
-                              )}
-                            </span>
+                            <Pill
+                              dataTestId="code-connect-repository-connected"
+                              text={CODE_CONNECT_COPY.connectedBadge}
+                              tone={PillTone.Success}
+                            />
                           ) : !repository.canPush ? (
-                            <span
-                              data-testid="code-connect-repository-cannot-push"
-                              className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20"
-                            >
-                              {translator.translateText(
-                                CODE_CONNECT_COPY.cannotPushBadge,
-                              )}
-                            </span>
+                            <Pill
+                              dataTestId="code-connect-repository-cannot-push"
+                              text={CODE_CONNECT_COPY.cannotPushBadge}
+                              tone={PillTone.Warning}
+                            />
                           ) : (
                             <></>
                           )}

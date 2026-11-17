@@ -402,7 +402,7 @@ describe("the overview", () => {
     }
   });
 
-  it("lists a workflow's own menu as its side menu builds it, Settings under Advanced", () => {
+  it("lists a workflow's own menu as its side menu builds it, Settings and Owners under Advanced", () => {
     const titles: Array<string> = menuTitles(WORKFLOW_MENU);
 
     for (const title of [
@@ -423,6 +423,8 @@ describe("the overview", () => {
     expect(menuTitles(advanced)).toEqual([
       "Advanced",
       "Settings",
+      // Owners joined Advanced when its one-entry section went (#9218).
+      "Owners",
       "Audit Logs",
       "Delete Workflow",
     ]);
@@ -436,7 +438,7 @@ describe("the overview", () => {
       "- **Owners** — ",
       "- **Developer** — how to manage this workflow with Terraform, the API or an AI assistant.",
       "- **Settings** — duplicate, export and archive.",
-      "**Settings** sits in the menu's **Advanced** section with **Audit Logs** and **Delete Workflow**.",
+      "**Settings** and **Owners** sit in the menu's **Advanced** section with **Audit Logs** and **Delete Workflow**.",
     ]) {
       expect(menus).toContain(entry);
     }

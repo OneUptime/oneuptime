@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "Les {{userCount}} utilisateur(s) sélectionné(s) seront déconnectés de toutes leurs sessions actives et devront configurer une application d'authentification à leur prochaine connexion. Vous y compris, si vous en faites partie.",
       "bulkDoNotRequireTwoFactorAuth": "Ne pas exiger l'authentification à deux facteurs",
       "bulkDoNotRequireTwoFactorAuthTitle": "Cesser d'exiger l'authentification à deux facteurs pour {{userCount}} utilisateur(s)",
-      "bulkDoNotRequireTwoFactorAuthDescription": "Les {{userCount}} utilisateur(s) sélectionné(s) pourront se connecter avec leur seul mot de passe. Ce qu'ils ont déjà configuré est conservé mais ne leur sera plus demandé."
+      "bulkDoNotRequireTwoFactorAuthDescription": "Les {{userCount}} utilisateur(s) sélectionné(s) pourront se connecter avec leur seul mot de passe. Ce qu'ils ont déjà configuré est conservé mais ne leur sera plus demandé.",
+      "createdAndEmailed": "{{name}} a été créé. Un lien pour définir son mot de passe a été envoyé à {{email}}.",
+      "createdWithPassword": "{{name}} a été créé. Transmettez-lui le mot de passe choisi de manière sécurisée.",
+      "setPasswordLinkTitle": "Envoyer un lien pour définir le mot de passe",
+      "setPasswordLinkDescription": "Copiez ce lien et envoyez-le vous-même à {{email}}, par un moyen que seule cette personne peut lire. Il fonctionne une fois, pendant {{days}} jours.",
+      "setPasswordLinkOrSetIt": "Ou définissez vous-même un mot de passe sur sa page Authentification."
     },
     "enterpriseLicenses": {
       "title": "Licences Enterprise",
@@ -2144,8 +2149,6 @@
   "Check email settings": "Vérifier les paramètres e-mail",
   "Email is failing": "L'envoi d'e-mails échoue",
   "Email is not set up": "L'e-mail n'est pas configuré",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "L'envoi d'e-mails échoue depuis le {{time}} : les invitations et les e-mails d'incident n'arrivent pas.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "L'envoi d'e-mails échoue depuis le {{time}} : les invitations et les e-mails d'incident n'arrivent pas. Le serveur de messagerie a répondu : {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "Les invitations, les réinitialisations de mot de passe et les e-mails d'incident ne sont pas envoyés.",
   "Monitors that run on global probes are not being checked.": "Les moniteurs qui s'exécutent sur des sondes globales ne sont pas vérifiés.",
   "No global probe is reporting": "Aucune sonde globale ne répond",
@@ -4165,5 +4168,19 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime a désactivé cette règle lors de leur suppression.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Réactivée en l'état, la règle ne serait plus du tout limitée par ces listes. Modifiez-la pour choisir ce à quoi elle s'applique, puis réactivez-la.",
   "{{names}} and {{count}} more": "{{names}} et {{count}} autres",
-  "{{names}} and {{count}} more_one": "{{names}} et {{count}} autre"
+  "{{names}} and {{count}} more_one": "{{names}} et {{count}} autre",
+  "No email has gone out through this server's email settings since {{time}}.": "Aucun e-mail n'est parti via les paramètres e-mail de ce serveur depuis le {{time}}.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Aucun e-mail n'est parti via les paramètres e-mail de ce serveur depuis le {{time}}. Le serveur de messagerie a répondu : {{reason}}",
+  "See email logs": "Voir les journaux des e-mails",
+  "Addresses the mail server refused": "Adresses refusées par le serveur de messagerie",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Les autres e-mails sont partis : seules ces adresses sont concernées. Corrigez l'adresse ou faites-la accepter par votre fournisseur de messagerie : un bac à sable Amazon SES n'envoie qu'aux adresses qu'il a vérifiées.",
+  "Last refused {{time}}": "Dernier refus le {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} a été créé, mais l'e-mail contenant le lien pour définir son mot de passe n'a pas été envoyé. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "Le lien à envoyer vous-même n'a pas pu être créé non plus. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime lui envoie par e-mail un lien pour définir son propre mot de passe.",
+  "They sign in with the password you set. Share it with them securely.": "Cette personne se connecte avec le mot de passe que vous définissez. Transmettez-le-lui de manière sécurisée.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Ce serveur ne peut pas encore envoyer d'e-mails. Définissez son mot de passe ici, ou laissez vide pour obtenir un lien à lui envoyer vous-même.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "Ce serveur ne peut pas encore envoyer d'e-mails. Configurez l'e-mail dans Paramètres > E-mails.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Ce serveur ne peut pas encore envoyer d'e-mails, aucun lien de réinitialisation du mot de passe n'a donc été envoyé. Configurez l'e-mail dans Paramètres > E-mails, ou définissez vous-même son mot de passe.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Cet utilisateur a déjà un mot de passe : il n'y a donc pas de lien de définition du mot de passe à copier. Envoyez-lui plutôt un lien de réinitialisation depuis sa page Authentification."
 }

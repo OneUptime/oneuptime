@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "{{userCount}} utenti selezionati verranno disconnessi da tutte le sessioni attive e dovranno configurare un'app di autenticazione al prossimo accesso. Questo vale anche per te, se sei tra loro.",
       "bulkDoNotRequireTwoFactorAuth": "Non richiedere l'autenticazione a due fattori",
       "bulkDoNotRequireTwoFactorAuthTitle": "Smetti di richiedere l'autenticazione a due fattori per {{userCount}} utenti",
-      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} utenti selezionati potranno accedere con la sola password. Quanto hanno già configurato viene mantenuto, ma non verrà più richiesto."
+      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} utenti selezionati potranno accedere con la sola password. Quanto hanno già configurato viene mantenuto, ma non verrà più richiesto.",
+      "createdAndEmailed": "{{name}} creato. Un link per impostare la password è stato inviato a {{email}}.",
+      "createdWithPassword": "{{name}} creato. Comunica la password che hai impostato in modo sicuro.",
+      "setPasswordLinkTitle": "Invia un link per impostare la password",
+      "setPasswordLinkDescription": "Copia questo link e invialo tu stesso a {{email}}, tramite un canale che solo quella persona può leggere. Funziona una volta, per {{days}} giorni.",
+      "setPasswordLinkOrSetIt": "Oppure imposta tu stesso una password nella sua pagina Autenticazione."
     },
     "enterpriseLicenses": {
       "title": "Licenze Enterprise",
@@ -2144,8 +2149,6 @@
   "Check email settings": "Controlla le impostazioni email",
   "Email is failing": "L'invio delle email non riesce",
   "Email is not set up": "L'email non è configurata",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "L'invio delle email non riesce dal {{time}}, quindi gli inviti e le email sugli incidenti non arrivano.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "L'invio delle email non riesce dal {{time}}, quindi gli inviti e le email sugli incidenti non arrivano. Il server di posta ha risposto: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "Inviti, reimpostazioni della password ed email sugli incidenti non vengono inviati.",
   "Monitors that run on global probes are not being checked.": "I monitor eseguiti sulle sonde globali non vengono controllati.",
   "No global probe is reporting": "Nessuna sonda globale sta inviando dati",
@@ -4165,5 +4168,19 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime ha disattivato questa regola quando sono stati eliminati.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Riattivata così com'è, la regola non sarebbe più limitata da questi elenchi. Modificala per scegliere a cosa si applica, poi riattivala.",
   "{{names}} and {{count}} more": "{{names}} e altri {{count}}",
-  "{{names}} and {{count}} more_one": "{{names}} e {{count}} altro"
+  "{{names}} and {{count}} more_one": "{{names}} e {{count}} altro",
+  "No email has gone out through this server's email settings since {{time}}.": "Nessuna email è stata inviata tramite le impostazioni email di questo server dal {{time}}.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Nessuna email è stata inviata tramite le impostazioni email di questo server dal {{time}}. Il server di posta ha risposto: {{reason}}",
+  "See email logs": "Vedi i log delle email",
+  "Addresses the mail server refused": "Indirizzi rifiutati dal server di posta",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Le altre email sono partite, quindi sono interessati solo questi indirizzi. Correggi l'indirizzo o fallo accettare dal tuo provider di posta: una sandbox di Amazon SES invia solo agli indirizzi che ha verificato.",
+  "Last refused {{time}}": "Ultimo rifiuto: {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} è stato creato, ma l'email con il link per impostare la password non è stata inviata. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "Non è stato possibile creare nemmeno il link da inviare tu stesso. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime gli invia via email un link per impostare la propria password.",
+  "They sign in with the password you set. Share it with them securely.": "Accederà con la password che imposti. Comunicagliela in modo sicuro.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Questo server non può ancora inviare email. Imposta qui la password, oppure lascia vuoto per ottenere un link da inviare tu stesso.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "Questo server non può ancora inviare email. Configura l'email in Impostazioni > Email.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Questo server non può ancora inviare email, quindi non è stato inviato alcun link per reimpostare la password. Configura l'email in Impostazioni > Email, oppure imposta tu la password.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Questo utente ha già una password, quindi non c'è un link per impostarla da copiare. Invia invece un link per reimpostarla dalla sua pagina Autenticazione."
 }

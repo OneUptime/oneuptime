@@ -1,4 +1,6 @@
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -384,20 +386,11 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
             type: FieldType.Boolean,
             getElement: (item: UserWebAuthn): ReactElement => {
               return (
-                <span
-                  className={
-                    item.isVerified
-                      ? "inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700"
-                      : "inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700"
-                  }
-                >
-                  {item.isVerified ? (
-                    <Icon icon={IconProp.CheckCircle} className="h-3.5 w-3.5" />
-                  ) : null}
-                  {item.isVerified
-                    ? translator.translateText("Ready")
-                    : translator.translateText("Setup incomplete")}
-                </span>
+                <Pill
+                  text={item.isVerified ? "Ready" : "Setup incomplete"}
+                  tone={item.isVerified ? PillTone.Success : PillTone.Warning}
+                  icon={item.isVerified ? IconProp.CheckCircle : undefined}
+                />
               );
             },
           },

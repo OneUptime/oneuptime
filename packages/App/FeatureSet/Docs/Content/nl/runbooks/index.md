@@ -108,10 +108,9 @@ Het zijmenu van een runbook groepeert de pagina's zo. Alleen **Basis** staat ope
 | --- | --- |
 | **Basis** | **Overzicht**, **Stappen** |
 | **Logboeken** | **Uitvoeringen** |
-| **Eigenaren** | **Eigenaren** |
 | **Instellingen** | **Triggers**, **Variabelen**, **Instellingen** |
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI**, **AI-assistenten** |
-| **Geavanceerd** | **Auditlogboeken**, **Runbook verwijderen** |
+| **Geavanceerd** | **Eigenaren**, **Auditlogboeken**, **Runbook verwijderen** |
 
 ## Een uitgewerkt voorbeeld
 

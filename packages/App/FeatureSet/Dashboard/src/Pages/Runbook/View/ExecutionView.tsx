@@ -15,6 +15,8 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
@@ -976,14 +978,11 @@ const ExecutionView: FunctionComponent<
                                     { number: idx + 1 },
                                   )}
                                 </span>
-                                <span className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-700">
-                                  <Icon
-                                    icon={STEP_TYPE_ICON[stepExec.step.type]}
-                                    size={SizeProp.Smaller}
-                                    className="text-gray-500"
-                                  />
-                                  {STEP_TYPE_LABEL[stepExec.step.type]}
-                                </span>
+                                <Pill
+                                  text={STEP_TYPE_LABEL[stepExec.step.type]}
+                                  tone={PillTone.Neutral}
+                                  icon={STEP_TYPE_ICON[stepExec.step.type]}
+                                />
                                 <StatusBadge visual={stepVisual} />
                               </div>
                               <h3 className="text-sm font-semibold text-gray-900">

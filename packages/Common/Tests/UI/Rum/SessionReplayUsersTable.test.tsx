@@ -1170,12 +1170,12 @@ describe("SessionReplayUsersTable paging, reload, empty and error", () => {
       "session-users-error-retry",
     );
 
-    expect(retry.parentElement.className).not.toMatch(
+    expect(retry.parentElement!.className).not.toMatch(
       /(^|\s)(\S+:)?!?-?m[ls]-/u,
     );
     // Nor does the button inside it: a Button has no margin of its own (#9128).
     for (const button of Array.from(
-      retry.parentElement.querySelectorAll("button"),
+      retry.parentElement!.querySelectorAll("button"),
     )) {
       expect(button.className).not.toMatch(/(^|\s)(\S+:)?!?-?m[ls]-/u);
     }

@@ -1,6 +1,11 @@
 enum EmailTemplateType {
   BlankTemplate = "BlankTemplate.hbs",
   ForgotPassword = "ForgotPassword.hbs",
+  /*
+   * The first password of an account a master admin created: a link to set
+   * it (Types/Accounts/SetPasswordLink).
+   */
+  SetPassword = "SetPassword.hbs",
   // An account's sign-in link (Types/Accounts/MagicLink).
   MagicLink = "MagicLink.hbs",
   ProbeOffline = "ProbeOffline.hbs",

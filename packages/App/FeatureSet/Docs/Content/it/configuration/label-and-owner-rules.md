@@ -57,7 +57,7 @@ Il **Nome** viene compilato in base alle tue scelte (_Aggiungi Production_, _Agg
 Nell'ultimo passaggio, fai di nuovo clic sul pulsante con il nome della regola, per esempio **Crea: Monitor Label Rule**. La regola parte abilitata e l'elenco la mostra con un'etichetta verde **Abilitato**.
 :::
 
-Una nuova regola deve aggiungere qualcosa: almeno un'etichetta (o un proprietario) oppure, in una regola di incidenti, avvisi o manutenzione programmata, qualcosa che eredita (vedi sotto). Per mettere in pausa una regola senza eliminarla, disattiva **Abilitato** nel suo modulo di modifica; l'elenco mostra allora un'etichetta rossa **Disabilitato**. In una regola per proprietari di incidenti o avvisi basta anche un team in **Team del creatore**.
+Una nuova regola deve aggiungere qualcosa: almeno un'etichetta (o un proprietario) oppure, in una regola di incidenti, avvisi o manutenzione programmata, qualcosa che eredita (vedi sotto). Per mettere in pausa una regola senza eliminarla, disattiva **Abilitato** nel suo modulo di modifica; l'elenco mostra allora un'etichetta grigia **Disabilitato**. In una regola per proprietari di incidenti o avvisi basta anche un team in **Team del creatore**.
 
 ### Comunque venga creata la regola
 

@@ -970,15 +970,27 @@ describe("adding context", () => {
     });
   });
 
+  test("an alert's dialog says a private one keeps the task to those who can see it", async () => {
+    renderComposer();
+    await openContextDialog(CodeTaskContextType.Alert);
+
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "AI reads the alert as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.",
+    );
+  });
+
   test("a OneUptime record is picked by name and sent by its id", async () => {
     renderComposer();
     const dialog: HTMLElement = await openContextDialog(
       CodeTaskContextType.Incident,
     );
 
-    // The dialog says what AI reads of the record.
+    /*
+     * The dialog says what AI reads of the record, and that a private one
+     * keeps the task to those who can see it (#9186).
+     */
     expect(screen.getByRole("dialog")).toHaveTextContent(
-      "AI reads the incident as it is now: its state, description and root cause.",
+      "AI reads the incident as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.",
     );
     expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
 

@@ -50160,8 +50160,6 @@
   "Either {{name}} has an A record, or your DNS provider proxies or flattens it (Cloudflare's orange cloud does), which hides the CNAME record. Replace the A record with a CNAME record whose value is {{expectedValue}}, or set the name to DNS only.": "یا {{name}} یک رکورد A دارد، یا ارائه‌دهنده DNS شما آن را پراکسی یا flatten می‌کند (ابر نارنجی Cloudflare همین کار را می‌کند)، که رکورد CNAME را پنهان می‌کند. رکورد A را با یک رکورد CNAME با مقدار {{expectedValue}} جایگزین کنید، یا نام را روی حالت «فقط DNS» بگذارید.",
   "Email is failing": "ارسال ایمیل ناموفق است",
   "Email is not set up": "ایمیل راه‌اندازی نشده است",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "از {{time}} ارسال ایمیل ناموفق بوده است، پس دعوت‌نامه‌ها و ایمیل‌های حادثه نمی‌رسند.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "از {{time}} ارسال ایمیل ناموفق بوده است، پس دعوت‌نامه‌ها و ایمیل‌های حادثه نمی‌رسند. پاسخ سرور ایمیل: {{reason}}",
   "Enter the address people will open, such as status.example.com: letters, digits, dots and hyphens only.": "نشانی‌ای را که مردم باز خواهند کرد وارد کنید، مثل status.example.com: فقط حروف، ارقام، نقطه و خط تیره.",
   "Found": "پیدا شد",
   "Invitations, password resets and incident emails are not sent.": "دعوت‌نامه‌ها، بازنشانی گذرواژه و ایمیل‌های حادثه ارسال نمی‌شوند.",
@@ -56512,7 +56510,14 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "همهٔ کسانی که به مخزن دسترسی دارند می‌توانند این pull request را همراه با تغییر و توضیحات آن ببینند. این هشدار خصوصی در آن ذکر نمی‌شود.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "همهٔ کسانی که به مخزن دسترسی دارند می‌توانند این pull request را همراه با تغییر و توضیحات آن ببینند. این حادثهٔ خصوصی در آن ذکر نمی‌شود.",
   "Only someone who may approve fixes can open this pull request.": "فقط کسی که اجازهٔ تأیید اصلاح‌ها را دارد می‌تواند این pull request را باز کند.",
+  "AI reads the alert as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "هوش مصنوعی هشدار را همان‌طور که اکنون هست می‌خواند: وضعیت، توضیح و علت اصلی. اگر خصوصی باشد، این وظیفه فقط به کسانی نشان داده می‌شود که می‌توانند آن را ببینند.",
+  "AI reads the incident as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "هوش مصنوعی حادثه را همان‌طور که اکنون هست می‌خواند: وضعیت، توضیح و علت اصلی. اگر خصوصی باشد، این وظیفه فقط به کسانی نشان داده می‌شود که می‌توانند آن را ببینند.",
+  "Carried Alert IDs": "شناسه‌های هشدارهای گنجانده‌شده",
+  "Carried Incident IDs": "شناسه‌های حادثه‌های گنجانده‌شده",
   "VPA": "VPA",
   "This check was too large to keep in full, so it was trimmed.": "این بررسی برای نگه‌داشتن کامل بیش از حد بزرگ بود، بنابراین کوتاه شد.",
-  "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "از هر نشانی فقط طرح و میزبان نگه داشته می‌شود. بقیهٔ آن کلید محرمانهٔ وب‌هوک است."
+  "No email has gone out through this server's email settings since {{time}}.": "از {{time}} هیچ ایمیلی از طریق تنظیمات ایمیل این سرور ارسال نشده است.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "از {{time}} هیچ ایمیلی از طریق تنظیمات ایمیل این سرور ارسال نشده است. پاسخ سرور ایمیل: {{reason}}",
+  "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "از هر نشانی فقط طرح و میزبان نگه داشته می‌شود. بقیهٔ آن کلید محرمانهٔ وب‌هوک است.",
+  "See email logs": "مشاهده گزارش‌های ایمیل"
 }

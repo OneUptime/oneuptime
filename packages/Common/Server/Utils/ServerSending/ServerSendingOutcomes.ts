@@ -1,4 +1,7 @@
-import { ServerSendingChannel } from "../../../Types/ServerSending/ServerSendingStatus";
+import {
+  ServerSendingChannel,
+  ServerSendingFailureScope,
+} from "../../../Types/ServerSending/ServerSendingStatus";
 
 /*
  * HOW THE SERVER'S OWN SENDS WENT, AS THE SENDERS TELL IT.
@@ -22,6 +25,17 @@ export interface ServerSendingOutcome {
   succeeded: boolean;
   // Why it failed, in the sender's words. Ignored for a send that went out.
   reason?: string | undefined;
+  /*
+   * Whose problem a failure is (#9217): left out, the server's, as every
+   * failure of SMS and calls is. One recipient's is kept with that
+   * recipient, and never says the server's sends fail.
+   */
+  scope?: ServerSendingFailureScope | undefined;
+  /*
+   * Who it was sent to: the recipient a refusal is kept with, and the one a
+   * send that went out takes off the refusals.
+   */
+  recipient?: string | undefined;
 }
 
 export type ServerSendingOutcomeRecorder = (
@@ -61,18 +75,39 @@ export default class ServerSendingOutcomes {
 
   public static async recordSucceeded(
     channel: ServerSendingChannel,
+    recipient?: string | undefined,
   ): Promise<void> {
-    await ServerSendingOutcomes.record({ channel: channel, succeeded: true });
+    const outcome: ServerSendingOutcome = { channel: channel, succeeded: true };
+
+    if (recipient) {
+      outcome.recipient = recipient;
+    }
+
+    await ServerSendingOutcomes.record(outcome);
   }
 
   public static async recordFailed(
     channel: ServerSendingChannel,
     reason: string | undefined,
+    whose?: {
+      scope: ServerSendingFailureScope;
+      recipient?: string | undefined;
+    },
   ): Promise<void> {
-    await ServerSendingOutcomes.record({
+    const outcome: ServerSendingOutcome = {
       channel: channel,
       succeeded: false,
       reason: reason,
-    });
+    };
+
+    if (whose) {
+      outcome.scope = whose.scope;
+
+      if (whose.recipient) {
+        outcome.recipient = whose.recipient;
+      }
+    }
+
+    await ServerSendingOutcomes.record(outcome);
   }
 }

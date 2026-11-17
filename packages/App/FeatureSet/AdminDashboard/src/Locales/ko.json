@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "선택한 사용자 {{userCount}}명은 모든 활성 세션에서 로그아웃되며, 다음에 로그인할 때 인증 앱을 설정해야 합니다. 본인이 포함되어 있다면 본인도 해당됩니다.",
       "bulkDoNotRequireTwoFactorAuth": "2단계 인증 요구 안 함",
       "bulkDoNotRequireTwoFactorAuthTitle": "사용자 {{userCount}}명의 2단계 인증 요구 해제",
-      "bulkDoNotRequireTwoFactorAuthDescription": "선택한 사용자 {{userCount}}명은 비밀번호만으로 로그인할 수 있게 됩니다. 이미 설정한 내용은 그대로 유지되지만 더 이상 요구되지 않습니다."
+      "bulkDoNotRequireTwoFactorAuthDescription": "선택한 사용자 {{userCount}}명은 비밀번호만으로 로그인할 수 있게 됩니다. 이미 설정한 내용은 그대로 유지되지만 더 이상 요구되지 않습니다.",
+      "createdAndEmailed": "{{name}}을(를) 만들었습니다. 비밀번호 설정 링크를 {{email}}(으)로 보냈습니다.",
+      "createdWithPassword": "{{name}}을(를) 만들었습니다. 설정한 비밀번호를 안전한 방법으로 전달하세요.",
+      "setPasswordLinkTitle": "비밀번호 설정 링크 보내기",
+      "setPasswordLinkDescription": "이 링크를 복사해 본인만 읽을 수 있는 곳으로 {{email}}에게 직접 보내세요. 한 번만, {{days}}일 동안 사용할 수 있습니다.",
+      "setPasswordLinkOrSetIt": "또는 해당 사용자의 인증 페이지에서 비밀번호를 직접 설정하세요."
     },
     "enterpriseLicenses": {
       "title": "엔터프라이즈 라이선스",
@@ -2144,8 +2149,6 @@
   "Check email settings": "이메일 설정 확인",
   "Email is failing": "이메일 전송 실패 중",
   "Email is not set up": "이메일이 설정되지 않음",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "{{time}}부터 이메일 전송이 실패하고 있어 초대와 인시던트 이메일이 도착하지 않습니다.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "{{time}}부터 이메일 전송이 실패하고 있어 초대와 인시던트 이메일이 도착하지 않습니다. 메일 서버 응답: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "초대, 비밀번호 재설정, 인시던트 이메일이 전송되지 않습니다.",
   "Monitors that run on global probes are not being checked.": "글로벌 프로브에서 실행되는 모니터가 확인되지 않고 있습니다.",
   "No global probe is reporting": "보고 중인 글로벌 프로브가 없음",
@@ -4165,5 +4168,19 @@
   "OneUptime switched this rule off when they were deleted.": "해당 항목이 삭제될 때 OneUptime이 이 규칙을 비활성화했습니다.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "이대로 활성화하면 이 규칙은 이 목록들로 전혀 제한되지 않습니다. 규칙을 편집해 적용 대상을 선택한 다음 활성화하세요.",
   "{{names}} and {{count}} more": "{{names}} 외 {{count}}개",
-  "{{names}} and {{count}} more_one": "{{names}} 외 {{count}}개"
+  "{{names}} and {{count}} more_one": "{{names}} 외 {{count}}개",
+  "No email has gone out through this server's email settings since {{time}}.": "{{time}} 이후 이 서버의 이메일 설정으로 발송된 이메일이 없습니다.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "{{time}} 이후 이 서버의 이메일 설정으로 발송된 이메일이 없습니다. 메일 서버 응답: {{reason}}",
+  "See email logs": "이메일 로그 보기",
+  "Addresses the mail server refused": "메일 서버가 거부한 주소",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "다른 이메일은 발송되었으므로 이 주소들만 영향을 받습니다. 주소를 수정하거나 메일 제공업체가 이 주소를 허용하도록 하세요. Amazon SES 샌드박스는 확인된 주소로만 발송합니다.",
+  "Last refused {{time}}": "마지막 거부: {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}}을(를) 만들었지만 비밀번호 설정 링크가 담긴 이메일은 보내지 못했습니다. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "직접 보낼 링크도 만들지 못했습니다. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime이 본인이 직접 비밀번호를 설정할 수 있는 링크를 이메일로 보냅니다.",
+  "They sign in with the password you set. Share it with them securely.": "설정한 비밀번호로 로그인합니다. 안전한 방법으로 전달하세요.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "이 서버는 아직 이메일을 보낼 수 없습니다. 여기에서 비밀번호를 설정하거나, 비워 두고 직접 보낼 링크를 받으세요.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "이 서버는 아직 이메일을 보낼 수 없습니다. 설정 > 이메일에서 이메일을 설정하세요.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "이 서버는 아직 이메일을 보낼 수 없어 비밀번호 재설정 링크를 보내지 못했습니다. 설정 > 이메일에서 이메일을 설정하거나 비밀번호를 직접 설정하세요.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "이 사용자에게는 이미 비밀번호가 있어 복사할 비밀번호 설정 링크가 없습니다. 대신 인증 페이지에서 비밀번호 재설정 링크를 보내세요."
 }

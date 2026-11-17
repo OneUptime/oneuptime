@@ -3371,10 +3371,15 @@ describe("the rules a new event passes through", () => {
     expect(ruleRun).toContain(
       'ScheduledMaintenanceOwnerRule = "ScheduledMaintenanceOwnerRule",',
     );
-    expect(OWNER_RULES_PAGE).toContain('<Pill color={Green} text="Enabled" />');
-    expect(OWNER_RULES_PAGE).toContain('<Pill color={Red} text="Disabled" />');
+    expect(OWNER_RULES_PAGE).toContain(
+      "<EnabledPill isEnabled={item.isEnabled} />",
+    );
+    // A rule switched off is grey (the Paused tone), not red: #9184.
+    expect(readCommonSource("UI/Components/Pill/EnabledPill.tsx")).toMatch(
+      /text="Disabled"\s+tone=\{PillTone\.Paused\}/,
+    );
     expect(passes).toContain(
-      "A new rule starts enabled; switch **Enabled** off on its edit form to pause it, and the list shows a green **Enabled** or red **Disabled** for each rule.",
+      "A new rule starts enabled; switch **Enabled** off on its edit form to pause it, and the list shows a green **Enabled** or grey **Disabled** for each rule.",
     );
   });
 });

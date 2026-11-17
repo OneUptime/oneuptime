@@ -2,6 +2,8 @@ import { ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME } from "../OnCallLabelClasses
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import React, {
   Fragment,
   FunctionComponent,
@@ -270,10 +272,11 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     if (level.responders.length === 0) {
       return (
-        <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
-          <Icon icon={IconProp.Alert} className="h-3 w-3 text-amber-500" />
-          {translator.translateText("No responders")}
-        </span>
+        <Pill
+          text="No responders"
+          tone={PillTone.Warning}
+          icon={IconProp.Alert}
+        />
       );
     }
 

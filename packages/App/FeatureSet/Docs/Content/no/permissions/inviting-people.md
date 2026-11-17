@@ -118,7 +118,7 @@ Under **Brukere** åpner du radmenyen til personen, **⋯**, og klikker på **Fj
 
 - **Single sign-on.** Den som logger inn med prosjektets identitetsleverandør for første gang, blir med i teamene leverandøren nevner. Se [Roller og team for SSO-brukere](/docs/identity/sso#roller-og-team-for-sso-brukere).
 - **SCIM.** Identitetsleverandøren din oppretter personer og legger dem til i tilkoblingens standardteam. Se [SCIM](/docs/identity/scim#slik-klargjøres-en-prosjektbruker).
-- **Admin Dashboard.** På en selvhostet installasjon kan en hovedadministrator legge noen til i et prosjekt og godta invitasjonen for personen. Se [Brukere, team og tillatelser](/docs/permissions/index#brukere).
+- **Admin Dashboard.** På en selvhostet installasjon kan en hovedadministrator legge noen til i et prosjekt og godta invitasjonen for personen. Se [Brukere, team og tillatelser](/docs/permissions/index#brukere). En hovedadministrator kan også opprette en konto for noen under **Brukere** med **Opprett Bruker**: vedkommende skriver inn et navn og en e-postadresse, og OneUptime sender adressen en lenke for å velge et passord, som virker én gang, i 7 dager. For å angi passordet selv åpner vedkommende **Flere felt**. Blir e-posten ikke sendt, vises lenken, så vedkommende kan sende den selv.
 
 ## Feilsøking
 

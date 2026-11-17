@@ -89,8 +89,8 @@ import {
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Project from "../../../Models/DatabaseModels/Project";
 import SecurityPlaybook from "../../../Models/DatabaseModels/SecurityPlaybook";
+import EnabledPill from "../../../UI/Components/Pill/EnabledPill";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
-import { Green, Red } from "../../../Types/BrandColors";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
@@ -710,7 +710,7 @@ describe("the Playbooks page", () => {
     ).toBe(true);
   });
 
-  test("a disabled playbook reads Disabled in red, as every list in the Dashboard draws a switch", async () => {
+  test("a disabled playbook reads a grey Disabled, as every list in the Dashboard draws a switch (#9184)", async () => {
     await renderPage();
 
     const status: {
@@ -727,8 +727,11 @@ describe("the Playbooks page", () => {
     const onPill: React.ReactElement = status.getElement!(on);
     const offPill: React.ReactElement = status.getElement!(off);
 
-    expect(onPill.props).toMatchObject({ text: "Enabled", color: Green });
-    expect(offPill.props).toMatchObject({ text: "Disabled", color: Red });
+    // EnabledPill: a green Enabled, a grey Disabled (EnabledPill.test.tsx).
+    expect(onPill.type).toBe(EnabledPill);
+    expect(onPill.props).toMatchObject({ isEnabled: true });
+    expect(offPill.type).toBe(EnabledPill);
+    expect(offPill.props).toMatchObject({ isEnabled: false });
   });
 });
 

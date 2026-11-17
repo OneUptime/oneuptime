@@ -20,6 +20,8 @@ import {
   resolveTypedRowLink,
 } from "../../../Components/Inventory/ResolveTypedRowLink";
 import Card from "Common/UI/Components/Card/Card";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -195,12 +197,13 @@ const InventoryItemOverview: FunctionComponent<
               <div className="mt-2 flex flex-wrap gap-1">
                 {entity.labels.map((label: string): ReactElement => {
                   return (
-                    <span
+                    <Pill
                       key={label}
-                      className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-500/20"
-                    >
-                      {label}
-                    </span>
+                      text={label}
+                      isUserContent={true}
+                      tone={PillTone.Neutral}
+                      isDotHidden={true}
+                    />
                   );
                 })}
               </div>

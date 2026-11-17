@@ -149,7 +149,7 @@ Den syklusen — legg til, koble, konfigurer, kjør, les loggen — er slik du b
 
 Nye arbeidsflyter starter deaktivert, og det samme gjør enhver arbeidsflyt du dupliserer eller importerer. Avslått er triggeren til arbeidsflyten satt på pause, så ingenting starter den av seg selv, men du kan fortsatt teste den. Mens en arbeidsflyt er slått av, sier Bygger det over lerretet, med en knapp **Slå på arbeidsflyt**.
 
-Bryteren **Aktivert** sitter øverst i **Bygger**, ved siden av **Legg til komponent** og **Kjør arbeidsflyt**. Den finnes også på arbeidsflytens side **Oversikt**, der kortet **Arbeidsflytdetaljer** viser gjeldende tilstand som en grønn pille **Aktivert** eller en rød pille **Deaktivert**: klikk på **Rediger arbeidsflyt**, og åpne **Flere felt**. Bare personer som har lov til å redigere arbeidsflyten, kan slå den på eller av; alle andre ser bryteren nedtonet.
+Bryteren **Aktivert** sitter øverst i **Bygger**, ved siden av **Legg til komponent** og **Kjør arbeidsflyt**. Den finnes også på arbeidsflytens side **Oversikt**, der kortet **Arbeidsflytdetaljer** viser gjeldende tilstand som en grønn pille **Aktivert** eller en grå pille **Deaktivert**: klikk på **Rediger arbeidsflyt**, og åpne **Flere felt**. Bare personer som har lov til å redigere arbeidsflyten, kan slå den på eller av; alle andre ser bryteren nedtonet.
 
 Mens en arbeidsflyt er slått av, avgjør det som starter den, om den kjører:
 

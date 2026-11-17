@@ -57,7 +57,7 @@ O **Nome** é preenchido a partir do que você escolhe (_Adicionar Production_, 
 Na última etapa, clique de novo no botão com o nome da regra, por exemplo **Criar: Monitor Label Rule**. A regra começa habilitada, e a lista a mostra com uma etiqueta verde **Habilitado**.
 :::
 
-Uma regra nova precisa adicionar algo: pelo menos um rótulo (ou proprietário) ou, numa regra de incidente, alerta ou manutenção programada, algo que ela herde (veja abaixo). Para pausar uma regra sem excluí-la, desligue **Habilitado** no formulário de edição; a lista passa a mostrar uma etiqueta vermelha **Desabilitado**. Numa regra de proprietários de incidente ou alerta, uma equipe em **Equipe do criador** também basta.
+Uma regra nova precisa adicionar algo: pelo menos um rótulo (ou proprietário) ou, numa regra de incidente, alerta ou manutenção programada, algo que ela herde (veja abaixo). Para pausar uma regra sem excluí-la, desligue **Habilitado** no formulário de edição; a lista passa a mostrar uma etiqueta cinza **Desabilitado**. Numa regra de proprietários de incidente ou alerta, uma equipe em **Equipe do criador** também basta.
 
 ### Seja qual for a forma de criar a regra
 

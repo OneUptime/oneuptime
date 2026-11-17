@@ -347,19 +347,23 @@ rules do.
    `https://console.cloud.google.com/producer-portal?project=oneuptime-marketplace`;
    it may not load until the partner account is approved.
 
-   **Where this stands** (11 November 2026): Google approved the partner
-   account for the self-hosted Kubernetes app (its onboarding email names
-   "OneUptime Enterprise (self-hosted)"), the `oneuptime-marketplace` project
-   has the roles that email asks for, and the project info form (once per
-   partner) went in on 11 November with that product's listing type. Producer
-   Portal is pending: Google turns it on within 2 business days of the form.
+   **Where this stands** (17 November 2026): Google approved the self-hosted
+   Kubernetes app on 6 November, the `oneuptime-marketplace` project has the
+   roles Google asks for, and the project info form (once per partner) went
+   in on 11 November with that product's listing type. Producer Portal is
+   pending: Google turns it on once we answer on its Partner Support Desk
+   case that the form and the roles are done, which we did on 17 November.
    See [SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md#google-cloud-marketplace-kubernetes-app)
    for the details. A SaaS product would go into the same project, created
    in Producer Portal next to the Kubernetes app with no new partner
    sign-up, but Google validates every listing on its own (its Onboarding
-   Validation Form), the hosting rule included. The service accounts of
-   steps 5 and 6 (`marketplace@` and `marketplace-pubsub-push@`) exist, with
-   no key, and nothing uses them.
+   Validation Form), the hosting rule included. Google's validation of
+   OneUptime Cloud (case 77068529, opened before the decision above) is
+   still open: on 16 November it asked to confirm its estimates of the
+   listing's yearly sales and infrastructure costs, and the maintainer
+   confirmed them on 17 November. The service
+   accounts of steps 5 and 6 (`marketplace@` and `marketplace-pubsub-push@`)
+   exist, with no key, and nothing uses them.
 
 2. **Create the product**: a SaaS product, "integrated with Google Cloud"
    (Google Cloud bills it).
@@ -648,6 +652,8 @@ Add a row for every submission, approval, rejection and go-live.
 | 2026-10-21 | Microsoft    | SaaS offer `oneuptime-cloud` seen live (publisher `oneupitme`); the website links it                                  | Agent      |
 | 2026-11-11 | Google Cloud | Partner approved (for the self-hosted app); project info form submitted; Producer Portal pending; no SaaS product yet | Agent      |
 | 2026-11-11 | Google Cloud | Decided: OneUptime Cloud is not listed on Google Cloud Marketplace (it is moving off Google Cloud)                    | Maintainer |
+| 2026-11-17 | Google Cloud | Producer Portal requested on the self-hosted app's case (form and roles done); still pending                          | Agent      |
+| 2026-11-17 | Google Cloud | SaaS validation (case 77068529): the maintainer confirmed Google's sales and cost estimates                           | Maintainer |
 
 ## Notes for agents driving the browser
 

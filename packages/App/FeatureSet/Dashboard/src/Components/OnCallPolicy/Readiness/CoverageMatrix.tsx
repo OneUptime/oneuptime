@@ -2,6 +2,8 @@ import {
   ON_CALL_COLUMN_HEADING_CLASS_NAME,
   ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME,
 } from "../OnCallLabelClasses";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { ReadinessCoverageCellWire, getRuleTypeLabel } from "./ReadinessTypes";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -513,16 +515,16 @@ const CoverageSectionView: FunctionComponent<CoverageSectionViewProps> = (
                 </span>
                 <span className="flex items-center gap-2">
                   {severityGapCount > 0 ? (
-                    <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
-                      {translator.translatePlural(
+                    <Pill
+                      text={translator.translatePlural(
                         { one: "{{count}} gap", other: "{{count}} gaps" },
                         severityGapCount,
                       )}
-                    </span>
+                      isUserContent={true}
+                      tone={PillTone.Warning}
+                    />
                   ) : (
-                    <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
-                      {translator.translateText("Covered")}
-                    </span>
+                    <Pill text="Covered" tone={PillTone.Success} />
                   )}
                   <Icon
                     icon={isOpen ? IconProp.ChevronUp : IconProp.ChevronDown}

@@ -1,10 +1,10 @@
+import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import AIPostmortemRule from "Common/Models/DatabaseModels/AIPostmortemRule";
@@ -12,7 +12,6 @@ import IncidentPostmortemTemplate from "Common/Models/DatabaseModels/IncidentPos
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import { Green, Red } from "Common/Types/BrandColors";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import React, {
   FunctionComponent,
@@ -227,11 +226,7 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
           title: "Status",
           type: FieldType.Boolean,
           getElement: (item: AIPostmortemRule): ReactElement => {
-            return item.isEnabled ? (
-              <Pill color={Green} text="Enabled" />
-            ) : (
-              <Pill color={Red} text="Disabled" />
-            );
+            return <EnabledPill isEnabled={item.isEnabled} />;
           },
         },
       ]}

@@ -74,7 +74,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.Pause,
-          badgeType: BadgeType.NEUTRAL,
+          badgeType: BadgeType.PAUSED,
           modelType: Monitor,
           countQuery: {
             projectId: props.project?._id,

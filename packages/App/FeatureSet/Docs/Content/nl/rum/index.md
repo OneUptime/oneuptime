@@ -36,7 +36,7 @@ Open **Producten → Bronnen → Real User Monitoring**. **Alle applicaties** to
 - **Instellingen**: **Eigenaarsregels**, **Labelregels** en de projectbrede schakelaar **Sessieherhaling**.
 - **Geavanceerd**: **Gearchiveerd**, de applicaties die je hebt gearchiveerd.
 
-Het zijmenu van een applicatie groepeert de pagina's zo; **Instellingen**, **Ontwikkelaars** en **Geavanceerd** staan eerst ingeklapt:
+Het zijmenu van een applicatie groepeert de pagina's zo; **Ontwikkelaars** en **Geavanceerd** staan eerst ingeklapt:
 
 | Sectie | Pagina's |
 | --- | --- |
@@ -44,9 +44,8 @@ Het zijmenu van een applicatie groepeert de pagina's zo; **Instellingen**, **Ont
 | **Observability** | **Metrieken**, **Logboeken**, **Traces**, **Clients** |
 | **Productanalyse** | **Gebruikers**, **Sessies**, **Gebeurtenissen**, **Trechters**, **Gebruikersretentie**, **Gebruikersstromen**, **Analyse-instellingen** |
 | **Sessieherhaling** | **Sessieherhaling**, **Gebruikers in herhalingen**, **Gezondheid**, **Herhalingsbeleid**, **Frustratiesignalen**, **Toegangslog van replays**, **Documentatie** |
-| **Instellingen** | **Instellingen** |
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI**, **AI-assistenten** |
-| **Geavanceerd** | **Auditlogboeken**, **Applicatie verwijderen** |
+| **Geavanceerd** | **Instellingen**, **Auditlogboeken**, **Applicatie verwijderen** |
 
 ## Hoe OneUptime RUM herkent
 

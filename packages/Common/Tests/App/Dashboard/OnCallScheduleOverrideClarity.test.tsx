@@ -77,6 +77,28 @@ jest.mock("../../../UI/Utils/Project", () => {
  * that rendered titles alone could not tell a block that carries them from one
  * that does not, which is exactly the regression this file exists to catch.
  */
+/*
+ * A Pill's hover tip (the override's scope) is drawn as its title here, so
+ * the scope's detail can be read without hovering.
+ */
+jest.mock("../../../UI/Components/Tooltip/Tooltip", () => {
+  const ReactInFactory: typeof React = jest.requireActual(
+    "react",
+  ) as typeof React;
+
+  return {
+    __esModule: true,
+    default: (props: {
+      text?: string;
+      children: React.ReactElement;
+    }): React.ReactElement => {
+      return ReactInFactory.cloneElement(props.children, {
+        title: props.text,
+      } as Record<string, unknown>);
+    },
+  };
+});
+
 jest.mock("../../../UI/Components/Calendar/Calendar", () => {
   return {
     __esModule: true,

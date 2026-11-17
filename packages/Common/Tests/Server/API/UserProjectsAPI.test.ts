@@ -106,6 +106,8 @@ const REMOVE_ROUTE: string = "/user/:userId/remove-from-project";
 const AUTH_STATUS_ROUTE: string = "/user/:userId/authentication-status";
 const SET_PASSWORD_ROUTE: string = "/user/:userId/set-password";
 const RESET_LINK_ROUTE: string = "/user/:userId/send-password-reset-link";
+// Create User's way out when its email was not sent (#9139).
+const SET_PASSWORD_LINK_ROUTE: string = "/user/:userId/set-password-link";
 const SET_TWO_FACTOR_REQUIRED_ROUTE: string =
   "/user/:userId/set-two-factor-auth-required";
 const RESET_TWO_FACTOR_ROUTE: string = "/user/:userId/reset-two-factor-auth";
@@ -1371,6 +1373,7 @@ describe("UserAPI master-admin route surface", () => {
         `POST ${RESET_LINK_ROUTE}`,
         `POST ${RESET_TWO_FACTOR_ROUTE}`,
         `POST ${SET_PASSWORD_ROUTE}`,
+        `POST ${SET_PASSWORD_LINK_ROUTE}`,
         `POST ${SET_TWO_FACTOR_REQUIRED_ROUTE}`,
       ].sort(),
     );
@@ -1388,6 +1391,7 @@ describe("UserAPI master-admin route surface", () => {
     ["POST", REMOVE_ROUTE],
     ["POST", SET_PASSWORD_ROUTE],
     ["POST", RESET_LINK_ROUTE],
+    ["POST", SET_PASSWORD_LINK_ROUTE],
     ["POST", SET_TWO_FACTOR_REQUIRED_ROUTE],
     ["POST", RESET_TWO_FACTOR_ROUTE],
     ["GET", AUTH_STATUS_ROUTE],

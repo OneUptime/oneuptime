@@ -75,6 +75,8 @@ Den som kan lese et repositorium, leser oppgavene i det. Å be AI om noe, svare 
 
 En oppgave om en privat hendelse eller et privat varsel, startet fra undersøkelsen av den eller fra en av rettelsene til den, leses med svarene og pull requesten sin bare av dem som får lese posten, og når posten er slettet, bare av Prosjekteiere og Prosjektadministratorer. For alle andre utelater repositoriets lister, filtre, søk og tellinger den. Se [Private hendelser, varsler og episoder](/docs/permissions/index#private-hendelser-varsler-og-episoder).
 
+Det samme gjelder en oppgave som inneholder en privat hendelse eller et privat varsel: en det ble bedt om med den som kontekst, en et svar la den til i, og oppgaven til et handlingspunkt fra en etteranalyse. En oppgave som inneholder flere, leses bare av dem som får lese alle. Dialogen som legger til en hendelse eller et varsel i en forespørsel, sier det.
+
 ## Slik går en rettingskjøring
 
 ```mermaid title="Fra et klikk til en pull request"

@@ -1,4 +1,6 @@
 import ActionItemCodeTaskModal from "./ActionItemCodeTaskModal";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import PostmortemActionItemsApi from "./PostmortemActionItemsApi";
 import {
   MORE_UNTRACKED_ACTION_ITEMS,
@@ -938,9 +940,10 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
           )}
           <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
             {isWontDo ? (
-              <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                {translator.translateText(POSTMORTEM_ACTION_ITEMS_COPY.wontDo)}
-              </span>
+              <Pill
+                text={POSTMORTEM_ACTION_ITEMS_COPY.wontDo}
+                tone={PillTone.Paused}
+              />
             ) : (
               <></>
             )}

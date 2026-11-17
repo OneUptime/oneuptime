@@ -8,6 +8,7 @@ import UserTotpAuthService from "../../../Server/Services/UserTotpAuthService";
 import UserWebAuthnService from "../../../Server/Services/UserWebAuthnService";
 import UserTwoFactorBackupCodeService from "../../../Server/Services/UserTwoFactorBackupCodeService";
 import logger from "../../../Server/Utils/Logger";
+import ServerSendingStatus from "../../../Server/Utils/ServerSending/ServerSendingStatus";
 import User from "../../../Models/DatabaseModels/User";
 import Hostname from "../../../Types/API/Hostname";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -21,6 +22,12 @@ import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import UserAuthenticationStatus from "../../../Types/UserAuthenticationStatus";
+import {
+  PASSWORD_RESET_LINK_CANNOT_BE_EMAILED_MESSAGE,
+  SET_PASSWORD_LINK_CANNOT_BE_EMAILED_MESSAGE,
+  SET_PASSWORD_LINK_EXPIRY_DAYS,
+  SET_PASSWORD_LINK_HAS_PASSWORD_MESSAGE,
+} from "../../../Types/Accounts/SetPasswordLink";
 import TwoFactorAuthStatus from "../../../Types/TwoFactorAuthStatus";
 import { getJestSpyOn } from "../../Spy";
 import {
@@ -136,6 +143,7 @@ describe("UserService -- master-admin authentication management", () => {
   let revokeSessionsSpy: any;
   let totpCountSpy: any;
   let webAuthnCountSpy: any;
+  let emailKnownNotSetUpSpy: any;
 
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -223,6 +231,14 @@ describe("UserService -- master-admin authentication management", () => {
         return Protocol.HTTP;
       },
     );
+
+    // A server whose email is set up, unless a test says otherwise.
+    emailKnownNotSetUpSpy = getJestSpyOn(
+      ServerSendingStatus,
+      "isEmailKnownNotSetUp",
+    ).mockImplementation(async (): Promise<boolean> => {
+      return false;
+    });
 
     getJestSpyOn(logger, "info").mockImplementation((): void => {
       return undefined;
@@ -859,6 +875,18 @@ describe("UserService -- master-admin authentication management", () => {
     });
   });
 
+  /*
+   * An account in use: it has a password, so a link sent to it resets that
+   * password. One with none is sent a link to set its first (#9139), below.
+   */
+  const buildAccountWithPassword: () => User = (): User => {
+    return buildUser({
+      id: userId,
+      email: "user@example.com",
+      password: new HashedString("a-stored-scrypt-digest", true),
+    });
+  };
+
   describe("sendPasswordResetLink", () => {
     type SentLinkFunction = () => string;
 
@@ -904,7 +932,7 @@ describe("UserService -- master-admin authentication management", () => {
        * The hash is unsalted on purpose -- /reset-password looks the row up BY
        * this digest, which a per-row salt would make impossible.
        */
-      resolveUser(buildUser({ id: userId, email: "user@example.com" }));
+      resolveUser(buildAccountWithPassword());
 
       await UserService.sendPasswordResetLink({ userId: userId });
 
@@ -926,7 +954,7 @@ describe("UserService -- master-admin authentication management", () => {
        * email -- would make yesterday's expired link valid again the moment a
        * new one is issued.
        */
-      resolveUser(buildUser({ id: userId, email: "user@example.com" }));
+      resolveUser(buildAccountWithPassword());
 
       await UserService.sendPasswordResetLink({ userId: userId });
       await UserService.sendPasswordResetLink({ userId: userId });
@@ -954,7 +982,7 @@ describe("UserService -- master-admin authentication management", () => {
         "generate",
       );
 
-      resolveUser(buildUser({ id: userId, email: "user@example.com" }));
+      resolveUser(buildAccountWithPassword());
 
       try {
         await UserService.sendPasswordResetLink({ userId: userId });
@@ -981,7 +1009,7 @@ describe("UserService -- master-admin authentication management", () => {
        * code path capable of setting passwords, which is the thing this feature
        * was careful not to create.
        */
-      resolveUser(buildUser({ id: userId, email: "user@example.com" }));
+      resolveUser(buildAccountWithPassword());
 
       await UserService.sendPasswordResetLink({ userId: userId });
 
@@ -997,7 +1025,7 @@ describe("UserService -- master-admin authentication management", () => {
        * it was sent. Bounded above, or a mis-set expiry turns one admin action
        * into a password-reset link that stays redeemable for months.
        */
-      resolveUser(buildUser({ id: userId, email: "user@example.com" }));
+      resolveUser(buildAccountWithPassword());
 
       const before: Date = OneUptimeDate.getCurrentDate();
 
@@ -1019,7 +1047,7 @@ describe("UserService -- master-admin authentication management", () => {
     });
 
     test("writes the token as root against the requested user", async () => {
-      resolveUser(buildUser({ id: userId, email: "user@example.com" }));
+      resolveUser(buildAccountWithPassword());
 
       await UserService.sendPasswordResetLink({ userId: userId });
 
@@ -1036,7 +1064,7 @@ describe("UserService -- master-admin authentication management", () => {
        * cheerful message with no link in it, and this method would still
        * report success.
        */
-      resolveUser(buildUser({ id: userId, email: "user@example.com" }));
+      resolveUser(buildAccountWithPassword());
 
       await UserService.sendPasswordResetLink({ userId: userId });
 
@@ -1056,7 +1084,7 @@ describe("UserService -- master-admin authentication management", () => {
        * went, so a link sent to a stale address is noticed immediately rather
        * than becoming "the user says they never got it".
        */
-      resolveUser(buildUser({ id: userId, email: "user@example.com" }));
+      resolveUser(buildAccountWithPassword());
 
       const email: Email = await UserService.sendPasswordResetLink({
         userId: userId,
@@ -1074,7 +1102,7 @@ describe("UserService -- master-admin authentication management", () => {
        * Swallowing the error here leaves them waiting for a link that was never
        * sent.
        */
-      resolveUser(buildUser({ id: userId, email: "user@example.com" }));
+      resolveUser(buildAccountWithPassword());
 
       sendMailSpy.mockImplementation(async (): Promise<never> => {
         throw new Error("SMTP server is unreachable");
@@ -1092,7 +1120,7 @@ describe("UserService -- master-admin authentication management", () => {
        * one a bare try/catch would have caught -- see the sibling test below
        * for the one that matters more.
        */
-      resolveUser(buildUser({ id: userId, email: "user@example.com" }));
+      resolveUser(buildAccountWithPassword());
 
       sendMailSpy.mockImplementation(async (): Promise<never> => {
         throw new Error("connect ECONNREFUSED");
@@ -1120,7 +1148,7 @@ describe("UserService -- master-admin authentication management", () => {
        * about. That is the exact state this method exists to avoid, reached by
        * the most ordinary failure there is.
        */
-      resolveUser(buildUser({ id: userId, email: "user@example.com" }));
+      resolveUser(buildAccountWithPassword());
 
       sendMailSpy.mockImplementation(async (): Promise<any> => {
         return new HTTPErrorResponse(
@@ -1155,7 +1183,7 @@ describe("UserService -- master-admin authentication management", () => {
        * So the send is unwound: the second update clears both columns, and the
        * page and the operator end up telling the same story.
        */
-      resolveUser(buildUser({ id: userId, email: "user@example.com" }));
+      resolveUser(buildAccountWithPassword());
 
       sendMailSpy.mockImplementation(async (): Promise<never> => {
         throw new Error("SMTP server is unreachable");
@@ -1189,7 +1217,7 @@ describe("UserService -- master-admin authentication management", () => {
        * surface to the operator as a database error about a write they never
        * asked for -- and the orphaned token expires by itself regardless.
        */
-      resolveUser(buildUser({ id: userId, email: "user@example.com" }));
+      resolveUser(buildAccountWithPassword());
 
       sendMailSpy.mockImplementation(async (): Promise<never> => {
         throw new Error("SMTP server is unreachable");
@@ -1216,7 +1244,7 @@ describe("UserService -- master-admin authentication management", () => {
        * the one that armed the link. A second update here would clear the token
        * the user is about to click.
        */
-      resolveUser(buildUser({ id: userId, email: "user@example.com" }));
+      resolveUser(buildAccountWithPassword());
 
       await UserService.sendPasswordResetLink({ userId: userId });
 
@@ -1232,7 +1260,7 @@ describe("UserService -- master-admin authentication management", () => {
        * the awaiting directly, so a refactor to fire-and-forget is caught even
        * if it happens to keep rejections visible some other way.
        */
-      resolveUser(buildUser({ id: userId, email: "user@example.com" }));
+      resolveUser(buildAccountWithPassword());
 
       let mailCompleted: boolean = false;
 
@@ -1247,6 +1275,266 @@ describe("UserService -- master-admin authentication management", () => {
       await UserService.sendPasswordResetLink({ userId: userId });
 
       expect(mailCompleted).toBe(true);
+    });
+  });
+
+  /*
+   * Users > Create User (#9139): the master admin enters a name and an email,
+   * and OneUptime emails the new user a link to choose their own password.
+   * That link is the reset link's token with another page, other words and a
+   * longer life - decided from the account (it has no password yet), never
+   * from the caller.
+   */
+  describe("sendPasswordResetLink, for an account with no password yet", () => {
+    const buildNewAccount: () => User = (): User => {
+      return buildUser({ id: userId, email: "new.person@example.com" });
+    };
+
+    const sentMail: () => any = (): any => {
+      return sendMailSpy.mock.calls[0][0];
+    };
+
+    test("emails the SetPassword template, with the set-password page's link", async () => {
+      resolveUser(buildNewAccount());
+
+      const email: Email = await UserService.sendPasswordResetLink({
+        userId: userId,
+      });
+
+      expect(email.toString()).toBe("new.person@example.com");
+
+      const mail: any = sentMail();
+      const link: string = mail.vars.tokenVerifyUrl as string;
+      const token: string = link.split("/set-password/")[1]!;
+
+      expect(mail.templateType).toBe(EmailTemplateType.SetPassword);
+      expect(mail.toEmail.toString()).toBe("new.person@example.com");
+      expect(mail.subject).toBe("Set Your Password for OneUptime");
+      expect(link).toBe(`${EXPECTED_ORIGIN}/accounts/set-password/${token}`);
+      expect(mail.vars.email).toBe("new.person@example.com");
+      expect(mail.vars.expiresInDays).toBe(
+        String(SET_PASSWORD_LINK_EXPIRY_DAYS),
+      );
+    });
+
+    test("stores only the token's hash, from the CSPRNG, as a reset does", async () => {
+      resolveUser(buildNewAccount());
+
+      await UserService.sendPasswordResetLink({ userId: userId });
+
+      const stored: string = updateOneByIdSpy.mock.calls[0][0].data
+        .resetPasswordToken as string;
+      const tokenInEmail: string = (
+        sentMail().vars.tokenVerifyUrl as string
+      ).split("/set-password/")[1]!;
+
+      expect(tokenInEmail).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      );
+      expect(stored).not.toBe(tokenInEmail);
+      expect(await HashedString.hashValue(tokenInEmail, EncryptionSecret)).toBe(
+        stored,
+      );
+    });
+
+    test("works for the set-password link's days, not a reset's one", async () => {
+      resolveUser(buildNewAccount());
+
+      const before: Date = OneUptimeDate.getCurrentDate();
+
+      await UserService.sendPasswordResetLink({ userId: userId });
+
+      const expires: Date = updateOneByIdSpy.mock.calls[0][0].data
+        .resetPasswordExpires as Date;
+      const hoursOut: number = OneUptimeDate.getHoursBetweenTwoDates(
+        before,
+        expires,
+      );
+
+      expect(hoursOut).toBeGreaterThanOrEqual(
+        SET_PASSWORD_LINK_EXPIRY_DAYS * 24 - 1,
+      );
+      expect(hoursOut).toBeLessThanOrEqual(
+        SET_PASSWORD_LINK_EXPIRY_DAYS * 24 + 1,
+      );
+    });
+
+    test("an account with a password is still sent the reset link", async () => {
+      resolveUser(buildAccountWithPassword());
+
+      await UserService.sendPasswordResetLink({ userId: userId });
+
+      expect(sentMail().templateType).toBe(EmailTemplateType.ForgotPassword);
+      expect(sentMail().vars.tokenVerifyUrl).toContain(
+        "/accounts/reset-password/",
+      );
+    });
+
+    test("asked for by its owner from Forgot password (#9260), the email carries where the request came from", async () => {
+      resolveUser(buildNewAccount());
+
+      await UserService.sendPasswordResetLink({
+        userId: userId,
+        requestOrigin: {
+          requestedAt: "Nov 17, 2026, 09:30 UTC",
+          requestIpAddress: "203.0.113.7",
+          requestLocation: "",
+          requestDevice: "Firefox on Linux",
+        },
+      });
+
+      const mail: any = sentMail();
+
+      expect(mail.templateType).toBe(EmailTemplateType.SetPassword);
+      expect(mail.vars.tokenVerifyUrl).toContain("/accounts/set-password/");
+      expect(mail.vars.requestedAt).toBe("Nov 17, 2026, 09:30 UTC");
+      expect(mail.vars.requestIpAddress).toBe("203.0.113.7");
+      expect(mail.vars.requestDevice).toBe("Firefox on Linux");
+      expect(mail.vars.expiresInDays).toBe(
+        String(SET_PASSWORD_LINK_EXPIRY_DAYS),
+      );
+    });
+
+    test("sent by a master admin, the email names no request: the template says an administrator made the account", async () => {
+      resolveUser(buildNewAccount());
+
+      await UserService.sendPasswordResetLink({ userId: userId });
+
+      expect(sentMail().vars.requestedAt).toBeUndefined();
+    });
+
+    test("reads whether the account has a password, as root", async () => {
+      resolveUser(buildNewAccount());
+
+      await UserService.sendPasswordResetLink({ userId: userId });
+
+      const query: any = findOneBySpy.mock.calls[0][0];
+
+      expect(query.select.password).toBe(true);
+      expect(query.props.isRoot).toBe(true);
+    });
+
+    test("a server with no email set up makes no link, and says what to do", async () => {
+      resolveUser(buildNewAccount());
+      emailKnownNotSetUpSpy.mockImplementation(async (): Promise<boolean> => {
+        return true;
+      });
+
+      await expect(
+        UserService.sendPasswordResetLink({ userId: userId }),
+      ).rejects.toThrow(SET_PASSWORD_LINK_CANNOT_BE_EMAILED_MESSAGE);
+
+      expect(updateOneByIdSpy).not.toHaveBeenCalled();
+      expect(sendMailSpy).not.toHaveBeenCalled();
+    });
+
+    test("a reset on a server with no email set up says to set the password instead", async () => {
+      resolveUser(buildAccountWithPassword());
+      emailKnownNotSetUpSpy.mockImplementation(async (): Promise<boolean> => {
+        return true;
+      });
+
+      await expect(
+        UserService.sendPasswordResetLink({ userId: userId }),
+      ).rejects.toThrow(PASSWORD_RESET_LINK_CANNOT_BE_EMAILED_MESSAGE);
+
+      expect(updateOneByIdSpy).not.toHaveBeenCalled();
+    });
+
+    test("a refused send says the set-password email was not sent, why, and takes the link back", async () => {
+      /*
+       * The mail service has already recorded the refusal where #9246 put
+       * it (a refused recipient in Settings > Emails, a server-wide failure
+       * in the banner). Here it is only turned into the sentence the master
+       * admin reads, with the mail server's words after OneUptime's.
+       */
+      resolveUser(buildNewAccount());
+
+      sendMailSpy.mockImplementation(async (): Promise<any> => {
+        return new HTTPErrorResponse(
+          400,
+          {
+            message:
+              "Amazon SES has not verified the recipient new.person@example.com.",
+          },
+          {},
+        );
+      });
+
+      await expect(
+        UserService.sendPasswordResetLink({ userId: userId }),
+      ).rejects.toThrow(
+        "The email with a link to set their password was not sent. Amazon SES has not verified the recipient new.person@example.com.",
+      );
+
+      expect(updateOneByIdSpy).toHaveBeenCalledTimes(2);
+      expect(
+        updateOneByIdSpy.mock.calls[1]![0].data.resetPasswordToken,
+      ).toBeFalsy();
+    });
+  });
+
+  describe("getSetPasswordLink", () => {
+    test("returns the set-password link for an account with no password, and mails nothing", async () => {
+      resolveUser(buildUser({ id: userId, email: "new.person@example.com" }));
+
+      const result: { link: string; email: Email } =
+        await UserService.getSetPasswordLink({ userId: userId });
+
+      const token: string = result.link.split("/set-password/")[1]!;
+
+      expect(result.link).toBe(
+        `${EXPECTED_ORIGIN}/accounts/set-password/${token}`,
+      );
+      expect(result.email.toString()).toBe("new.person@example.com");
+      expect(sendMailSpy).not.toHaveBeenCalled();
+
+      const write: any = updateOneByIdSpy.mock.calls[0][0];
+
+      expect(write.id.toString()).toBe(userId.toString());
+      expect(write.props.isRoot).toBe(true);
+      expect(await HashedString.hashValue(token, EncryptionSecret)).toBe(
+        write.data.resetPasswordToken,
+      );
+      expect(OneUptimeDate.hasExpired(write.data.resetPasswordExpires)).toBe(
+        false,
+      );
+    });
+
+    test("refuses an account with a password, and writes no token", async () => {
+      /*
+       * A link to set the password of an account in use would be a quiet way
+       * into it: its owner would hear only once the link was spent.
+       */
+      resolveUser(buildAccountWithPassword());
+
+      await expect(
+        UserService.getSetPasswordLink({ userId: userId }),
+      ).rejects.toThrow(SET_PASSWORD_LINK_HAS_PASSWORD_MESSAGE);
+
+      expect(updateOneByIdSpy).not.toHaveBeenCalled();
+    });
+
+    test("refuses a user that does not exist", async () => {
+      resolveUser(null);
+
+      await expect(
+        UserService.getSetPasswordLink({ userId: userId }),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(updateOneByIdSpy).not.toHaveBeenCalled();
+    });
+
+    test("works even when the server cannot send email: that is what it is for", async () => {
+      resolveUser(buildUser({ id: userId, email: "new.person@example.com" }));
+      emailKnownNotSetUpSpy.mockImplementation(async (): Promise<boolean> => {
+        return true;
+      });
+
+      const result: { link: string; email: Email } =
+        await UserService.getSetPasswordLink({ userId: userId });
+
+      expect(result.link).toContain("/accounts/set-password/");
     });
   });
 });

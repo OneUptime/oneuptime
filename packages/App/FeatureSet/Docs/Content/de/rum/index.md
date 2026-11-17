@@ -36,7 +36,7 @@ flowchart TB
 - **Einstellungen**: **Eigentümerregeln**, **Beschriftungsregeln** und der projektweite Schalter **Sitzungswiedergabe**.
 - **Erweitert**: **Archiviert**, die Anwendungen, die Sie archiviert haben.
 
-Das Seitenmenü einer Anwendung gliedert ihre Seiten so; **Einstellungen**, **Entwickler** und **Erweitert** sind anfangs eingeklappt:
+Das Seitenmenü einer Anwendung gliedert ihre Seiten so; **Entwickler** und **Erweitert** sind anfangs eingeklappt:
 
 | Abschnitt | Seiten |
 | --- | --- |
@@ -44,9 +44,8 @@ Das Seitenmenü einer Anwendung gliedert ihre Seiten so; **Einstellungen**, **En
 | **Observability** | **Metriken**, **Protokolle**, **Traces**, **Clients** |
 | **Produktanalyse** | **Benutzer**, **Sitzungen**, **Ereignisse**, **Trichter**, **Benutzerbindung**, **Benutzerflüsse**, **Analyseeinstellungen** |
 | **Sitzungswiedergabe** | **Sitzungswiedergabe**, **Benutzer der Wiedergabe**, **Integrität**, **Wiedergaberichtlinie**, **Frustrationssignale**, **Zugriffsprotokoll der Wiedergaben**, **Dokumentation** |
-| **Einstellungen** | **Einstellungen** |
 | **Entwickler** | **Terraform**, **API**, **CLI**, **KI-Assistenten** |
-| **Erweitert** | **Audit-Protokolle**, **Anwendung löschen** |
+| **Erweitert** | **Einstellungen**, **Audit-Protokolle**, **Anwendung löschen** |
 
 ## Wie OneUptime RUM erkennt
 

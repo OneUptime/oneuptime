@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "{{userCount}} ausgewählte Benutzer werden aus allen aktiven Sitzungen abgemeldet und müssen bei der nächsten Anmeldung eine Authenticator-App einrichten. Das gilt auch für Sie, falls Sie dazugehören.",
       "bulkDoNotRequireTwoFactorAuth": "Zwei-Faktor-Authentifizierung nicht verlangen",
       "bulkDoNotRequireTwoFactorAuthTitle": "Zwei-Faktor-Authentifizierung für {{userCount}} Benutzer nicht mehr verlangen",
-      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} ausgewählte Benutzer können sich dann allein mit ihrem Passwort anmelden. Alles, was sie bereits eingerichtet haben, bleibt erhalten, wird aber nicht mehr abgefragt."
+      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} ausgewählte Benutzer können sich dann allein mit ihrem Passwort anmelden. Alles, was sie bereits eingerichtet haben, bleibt erhalten, wird aber nicht mehr abgefragt.",
+      "createdAndEmailed": "{{name}} wurde erstellt. Ein Link zum Festlegen des Passworts wurde an {{email}} gesendet.",
+      "createdWithPassword": "{{name}} wurde erstellt. Geben Sie das festgelegte Passwort auf sicherem Weg weiter.",
+      "setPasswordLinkTitle": "Link zum Festlegen des Passworts senden",
+      "setPasswordLinkDescription": "Kopieren Sie diesen Link und senden Sie ihn selbst an {{email}}, auf einem Weg, den nur diese Person lesen kann. Er funktioniert einmal, {{days}} Tage lang.",
+      "setPasswordLinkOrSetIt": "Oder legen Sie auf der Authentifizierungsseite selbst ein Passwort für diese Person fest."
     },
     "enterpriseLicenses": {
       "title": "Enterprise-Lizenzen",
@@ -2144,8 +2149,6 @@
   "Check email settings": "E-Mail-Einstellungen prüfen",
   "Email is failing": "E-Mail-Versand schlägt fehl",
   "Email is not set up": "E-Mail ist nicht eingerichtet",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "Seit {{time}} schlägt der E-Mail-Versand fehl, daher kommen Einladungen und Vorfall-E-Mails nicht an.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "Seit {{time}} schlägt der E-Mail-Versand fehl, daher kommen Einladungen und Vorfall-E-Mails nicht an. Der Mailserver meldete: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "Einladungen, Links zum Zurücksetzen des Passworts und Vorfall-E-Mails werden nicht gesendet.",
   "Monitors that run on global probes are not being checked.": "Monitore, die auf globalen Sonden laufen, werden nicht geprüft.",
   "No global probe is reporting": "Keine globale Sonde meldet sich",
@@ -4165,5 +4168,19 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime hat diese Regel deaktiviert, als sie gelöscht wurden.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Unverändert aktiviert, wäre die Regel durch diese Listen gar nicht mehr eingeschränkt. Bearbeiten Sie sie, um festzulegen, wofür sie gilt, und aktivieren Sie sie dann.",
   "{{names}} and {{count}} more": "{{names}} und {{count}} weitere",
-  "{{names}} and {{count}} more_one": "{{names}} und {{count}} weitere"
+  "{{names}} and {{count}} more_one": "{{names}} und {{count}} weitere",
+  "No email has gone out through this server's email settings since {{time}}.": "Seit {{time}} wurde keine E-Mail über die E-Mail-Einstellungen dieses Servers versendet.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Seit {{time}} wurde keine E-Mail über die E-Mail-Einstellungen dieses Servers versendet. Der Mailserver meldete: {{reason}}",
+  "See email logs": "E-Mail-Protokolle ansehen",
+  "Addresses the mail server refused": "Vom Mailserver abgelehnte Adressen",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Andere E-Mails wurden versendet, betroffen sind also nur diese Adressen. Korrigieren Sie die Adresse oder lassen Sie sie von Ihrem Mail-Anbieter zulassen: Eine Amazon-SES-Sandbox sendet nur an Adressen, die sie verifiziert hat.",
+  "Last refused {{time}}": "Zuletzt abgelehnt am {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} wurde erstellt, aber die E-Mail mit dem Link zum Festlegen des Passworts wurde nicht gesendet. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "Auch der Link zum selbst Senden konnte nicht erstellt werden. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime sendet der Person per E-Mail einen Link, mit dem sie ihr eigenes Passwort festlegt.",
+  "They sign in with the password you set. Share it with them securely.": "Die Person meldet sich mit dem von Ihnen festgelegten Passwort an. Geben Sie es auf sicherem Weg weiter.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Dieser Server kann noch keine E-Mails senden. Legen Sie das Passwort hier fest, oder lassen Sie das Feld leer, um einen Link zum selbst Senden zu erhalten.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "Dieser Server kann noch keine E-Mails senden. Richten Sie E-Mail unter Einstellungen > E-Mails ein.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Dieser Server kann noch keine E-Mails senden, daher wurde kein Link zum Zurücksetzen des Passworts gesendet. Richten Sie E-Mail unter Einstellungen > E-Mails ein, oder legen Sie das Passwort selbst fest.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Dieser Benutzer hat bereits ein Passwort, daher gibt es keinen Link zum Festlegen des Passworts. Senden Sie stattdessen auf seiner Authentifizierungsseite einen Link zum Zurücksetzen des Passworts."
 }

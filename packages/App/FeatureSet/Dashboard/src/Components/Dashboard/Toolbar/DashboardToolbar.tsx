@@ -28,6 +28,8 @@ import Loader from "Common/UI/Components/Loader/Loader";
 import DashboardVariableSelector from "./DashboardVariableSelector";
 import DashboardVariablesModal from "./DashboardVariablesModal";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import AddWidgetModal from "./AddWidgetModal";
 import DashboardDefaultsBar from "./DashboardDefaultsBar";
@@ -612,10 +614,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   />
                 </h2>
                 {isEditMode && (
-                  <span className="inline-flex items-center px-1.5 py-px rounded-full text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-100 animate-pulse">
-                    <span className="w-1 h-1 bg-blue-500 rounded-full mr-1"></span>
-                    {translator.translateText("Editing")}
-                  </span>
+                  <Pill text="Editing" tone={PillTone.Info} isPulsing={true} />
                 )}
               </div>
               {props.dashboardDescription && !isEditMode && (

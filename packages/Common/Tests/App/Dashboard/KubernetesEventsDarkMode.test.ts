@@ -35,14 +35,14 @@ describe("the Kubernetes Events views in the dark theme", () => {
     // The scan found their colours at all, so this is not vacuous.
     expect(scan.colorTokens).toEqual(
       expect.arrayContaining([
-        // A warning's icon, its Warning pill and the Overview's count.
+        /*
+         * A warning's icon and its marks (the Warning pill and the
+         * Overview's count are the shared Pill, coloured by its tone).
+         */
         "text-amber-500",
-        "bg-amber-50",
-        "text-amber-800",
-        "ring-amber-200",
         "bg-amber-100",
         "text-amber-700",
-        // A Normal event's pill and icon.
+        // A Normal event's icon.
         "bg-gray-100",
         "text-gray-600",
         "text-gray-400",

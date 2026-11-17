@@ -1,4 +1,6 @@
 import PageMap from "../../Utils/PageMap";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ConnectedWorkspaces, {
   WORKSPACE_TYPES,
@@ -67,20 +69,15 @@ export const WorkspaceConnectionTile: FunctionComponent<WorkspaceTileProps> = (
           <span className="text-sm font-medium text-gray-900">
             {translateString(copy.name)}
           </span>
-          <span
-            data-testid={`workspace-connection-status-${props.workspaceType}`}
-            className={
-              props.isConnected
-                ? "inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"
-                : "inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200"
-            }
-          >
-            {translateString(
+          <Pill
+            text={
               props.isConnected
                 ? WORKSPACE_CONNECTIONS_PAGE_COPY.connected
-                : WORKSPACE_CONNECTIONS_PAGE_COPY.notConnected,
-            )}
-          </span>
+                : WORKSPACE_CONNECTIONS_PAGE_COPY.notConnected
+            }
+            tone={props.isConnected ? PillTone.Success : PillTone.Neutral}
+            dataTestId={`workspace-connection-status-${props.workspaceType}`}
+          />
         </div>
         <div className="mt-1 text-sm text-gray-500">
           {translateString(copy.description)}

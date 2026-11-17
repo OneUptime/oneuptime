@@ -39,7 +39,7 @@ Les règles diffèrent dans la façon dont plusieurs correspondances se résolve
 - **Règles de propriétaire**, **Règles d'étiquettes** et **Règles de runbook** agissent toutes quand elles correspondent. Les propriétaires et étiquettes ajoutés par plusieurs règles sont ajoutés une seule fois.
 - **Règles de rappel** sont vérifiées du haut de leur liste vers le bas, et la première correspondance l'emporte. Faites glisser une règle pour changer sa place ; une nouvelle règle va à la fin.
 
-Une nouvelle règle démarre activée ; désactivez **Activé** dans son formulaire de modification pour la mettre en pause, et la liste affiche pour chaque règle un **Activé** vert ou un **Désactivé** rouge. Les règles de propriétaire, d'étiquettes et de runbook agissent sur les événements créés après leur enregistrement. Pour appliquer une règle de propriétaire ou d'étiquettes aux événements que vous avez déjà, utilisez **Exécuter maintenant** : voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now).
+Une nouvelle règle démarre activée ; désactivez **Activé** dans son formulaire de modification pour la mettre en pause, et la liste affiche pour chaque règle un **Activé** vert ou un **Désactivé** gris. Les règles de propriétaire, d'étiquettes et de runbook agissent sur les événements créés après leur enregistrement. Pour appliquer une règle de propriétaire ou d'étiquettes aux événements que vous avez déjà, utilisez **Exécuter maintenant** : voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now).
 
 ## Règles de propriétaire et d'étiquettes
 

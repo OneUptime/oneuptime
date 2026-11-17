@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import Route from "Common/Types/API/Route";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
@@ -150,15 +152,15 @@ const VMwareHostBusiestVirtualMachines: FunctionComponent<ComponentProps> = (
                           </Link>
                           {getVMwareCpuReadyPercentTone(vm.cpuReadyPercent) ===
                           "warning" ? (
-                            <span
-                              data-testid="vmware-host-busy-vm-cpu-ready"
-                              className="inline-flex whitespace-nowrap rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200"
-                            >
-                              {translator.translateTemplate(
+                            <Pill
+                              text={translator.translateTemplate(
                                 "CPU Ready {{percent}}",
                                 { percent: formatPercent(vm.cpuReadyPercent) },
                               )}
-                            </span>
+                              isUserContent={true}
+                              tone={PillTone.Warning}
+                              dataTestId="vmware-host-busy-vm-cpu-ready"
+                            />
                           ) : (
                             <></>
                           )}

@@ -23,6 +23,8 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import API from "Common/UI/Utils/API/API";
 import PermissionGate, {
   ModelAction,
@@ -425,29 +427,26 @@ const CallSummaryOfCall: FunctionComponent<{
                 {translator.translateText("Suggested root cause")}
               </h4>
               {props.view.suggestion === RootCauseSuggestionStatus.Accepted ? (
-                <span
-                  data-testid="call-summary-status"
-                  className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"
-                >
-                  <Icon icon={IconProp.Check} className="h-3 w-3" />
-                  {translator.translateText("Used as root cause")}
-                </span>
+                <Pill
+                  dataTestId="call-summary-status"
+                  text="Used as root cause"
+                  tone={PillTone.Success}
+                  icon={IconProp.Check}
+                />
               ) : props.view.suggestion ===
                 RootCauseSuggestionStatus.Dismissed ? (
-                <span
-                  data-testid="call-summary-status"
-                  className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200"
-                >
-                  {translator.translateText("Dismissed")}
-                </span>
+                <Pill
+                  dataTestId="call-summary-status"
+                  text="Dismissed"
+                  tone={PillTone.Paused}
+                />
               ) : (
-                <span
-                  data-testid="call-summary-status"
-                  className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200"
-                >
-                  <Icon icon={IconProp.Sparkles} className="h-3 w-3" />
-                  {translator.translateText("Not confirmed")}
-                </span>
+                <Pill
+                  dataTestId="call-summary-status"
+                  text="Not confirmed"
+                  tone={PillTone.Info}
+                  icon={IconProp.Sparkles}
+                />
               )}
             </div>
 

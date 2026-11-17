@@ -4,6 +4,8 @@ import MetricFormula from "./MetricFormula";
 import SeriesColorSelector from "./SeriesColorSelector";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Card from "Common/UI/Components/Card/Card";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
 import MetricFormulaData from "Common/Types/Metrics/MetricFormulaData";
@@ -72,9 +74,7 @@ const MetricFormulaConfigComponent: FunctionComponent<ComponentProps> = (
               <span className="text-sm font-semibold text-gray-900 truncate">
                 {formulaTitle}
               </span>
-              <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                {translator.translateText("Formula")}
-              </span>
+              <Pill text="Formula" tone={PillTone.Neutral} isDotHidden={true} />
             </div>
           </div>
         </div>

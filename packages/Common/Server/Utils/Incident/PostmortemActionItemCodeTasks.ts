@@ -6,6 +6,7 @@ import IncidentPostmortemActionItem, {
 } from "../../../Models/DatabaseModels/IncidentPostmortemActionItem";
 import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFeed";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
+import CarriedRecords from "../../../Types/AI/CarriedRecords";
 import {
   CodeTaskContextItem,
   CodeTaskContextType,
@@ -214,6 +215,7 @@ export default class PostmortemActionItemCodeTasks {
         incidentNumber: true,
         incidentNumberWithPrefix: true,
         postmortemNote: true,
+        isPrivate: true,
       },
       props: data.props,
     });
@@ -244,6 +246,8 @@ export default class PostmortemActionItemCodeTasks {
           ? `#${incident.incidentNumber.toString()}`
           : undefined),
       incidentTitle: incident.title,
+      // The pull request leaves a private incident out (#9186).
+      incidentIsPrivate: incident.isPrivate === true,
       instructions,
     });
 
@@ -272,12 +276,19 @@ export default class PostmortemActionItemCodeTasks {
       );
     }
 
+    /*
+     * The task carries the incident (#9186): its request is about it, and
+     * its context holds it and its postmortem. So a private incident's
+     * task, its replies and its pull request are read only by those who may
+     * read the incident, not by every reader of the repository.
+     */
     const run: AIRun = await CodeTaskRuns.start({
       projectId,
       userId: data.props.userId,
       repository,
       message,
       context,
+      carries: CarriedRecords.of({ incidentIds: [actionItem.incidentId] }),
     });
 
     await IncidentPostmortemActionItemService.updateColumnsByIdWithoutHooks({

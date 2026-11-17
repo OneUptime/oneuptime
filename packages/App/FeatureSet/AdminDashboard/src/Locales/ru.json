@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "Все активные сеансы выбранных пользователей ({{userCount}}) будут завершены, и при следующем входе им потребуется настроить приложение-аутентификатор. Это касается и вас, если вы в их числе.",
       "bulkDoNotRequireTwoFactorAuth": "Не требовать двухфакторную аутентификацию",
       "bulkDoNotRequireTwoFactorAuthTitle": "Отменить требование двухфакторной аутентификации для выбранных пользователей ({{userCount}})",
-      "bulkDoNotRequireTwoFactorAuthDescription": "Выбранные пользователи ({{userCount}}) смогут входить, используя только пароль. Всё, что они уже настроили, сохранится, но запрашиваться больше не будет."
+      "bulkDoNotRequireTwoFactorAuthDescription": "Выбранные пользователи ({{userCount}}) смогут входить, используя только пароль. Всё, что они уже настроили, сохранится, но запрашиваться больше не будет.",
+      "createdAndEmailed": "Пользователь {{name}} создан. Ссылка для задания пароля отправлена на {{email}}.",
+      "createdWithPassword": "Пользователь {{name}} создан. Передайте ему заданный пароль безопасным способом.",
+      "setPasswordLinkTitle": "Отправьте ссылку для задания пароля",
+      "setPasswordLinkDescription": "Скопируйте эту ссылку и отправьте её на {{email}} сами — туда, где её прочтёт только этот человек. Она срабатывает один раз и действует {{days}} дней.",
+      "setPasswordLinkOrSetIt": "Или задайте пароль сами на его странице «Аутентификация»."
     },
     "enterpriseLicenses": {
       "title": "Корпоративные лицензии",
@@ -2144,8 +2149,6 @@
   "Check email settings": "Проверить настройки почты",
   "Email is failing": "Отправка почты не работает",
   "Email is not set up": "Почта не настроена",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "С {{time}} письма не отправляются, поэтому приглашения и письма об инцидентах не доходят.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "С {{time}} письма не отправляются, поэтому приглашения и письма об инцидентах не доходят. Почтовый сервер ответил: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "Приглашения, письма для сброса пароля и письма об инцидентах не отправляются.",
   "Monitors that run on global probes are not being checked.": "Мониторы, работающие на глобальных зондах, не проверяются.",
   "No global probe is reporting": "Ни один глобальный зонд не отвечает",
@@ -4165,5 +4168,19 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime отключил это правило, когда они были удалены.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Если включить правило как есть, эти списки перестанут его ограничивать. Измените его, чтобы выбрать, к чему оно применяется, а затем включите.",
   "{{names}} and {{count}} more": "{{names}} и ещё {{count}}",
-  "{{names}} and {{count}} more_one": "{{names}} и ещё {{count}}"
+  "{{names}} and {{count}} more_one": "{{names}} и ещё {{count}}",
+  "No email has gone out through this server's email settings since {{time}}.": "С {{time}} через настройки почты этого сервера не отправлено ни одного письма.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "С {{time}} через настройки почты этого сервера не отправлено ни одного письма. Почтовый сервер ответил: {{reason}}",
+  "See email logs": "Журнал писем",
+  "Addresses the mail server refused": "Адреса, отклонённые почтовым сервером",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Остальные письма ушли, поэтому затронуты только эти адреса. Исправьте адрес или попросите почтового провайдера принимать его: песочница Amazon SES отправляет письма только на подтверждённые адреса.",
+  "Last refused {{time}}": "Последний отказ: {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "Пользователь {{name}} создан, но письмо со ссылкой для задания пароля не отправлено. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "Ссылку, которую можно отправить самостоятельно, тоже не удалось создать. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime отправит пользователю письмо со ссылкой, чтобы он сам задал пароль.",
+  "They sign in with the password you set. Share it with them securely.": "Пользователь будет входить с паролем, который вы зададите. Передайте его безопасным способом.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Этот сервер пока не может отправлять письма. Задайте пароль здесь или оставьте поле пустым, чтобы получить ссылку и отправить её самостоятельно.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "Этот сервер пока не может отправлять письма. Настройте почту в разделе «Настройки > Электронные письма».",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Этот сервер пока не может отправлять письма, поэтому ссылка для сброса пароля не отправлена. Настройте почту в разделе «Настройки > Электронные письма» или задайте пароль сами.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "У этого пользователя уже есть пароль, поэтому ссылки для задания пароля нет. Вместо этого отправьте ссылку для сброса пароля со страницы «Аутентификация»."
 }

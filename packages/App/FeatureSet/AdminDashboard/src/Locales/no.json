@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "{{userCount}} valgte bruker(e) blir logget ut av alle aktive økter og må sette opp en autentiseringsapp neste gang de logger inn. Dette gjelder også deg, hvis du er en av dem.",
       "bulkDoNotRequireTwoFactorAuth": "Ikke krev tofaktorautentisering",
       "bulkDoNotRequireTwoFactorAuthTitle": "Slutt å kreve tofaktorautentisering for {{userCount}} bruker(e)",
-      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} valgte bruker(e) kan logge inn med passordet alene. Alt de allerede har satt opp, beholdes, men det blir ikke lenger spurt om det."
+      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} valgte bruker(e) kan logge inn med passordet alene. Alt de allerede har satt opp, beholdes, men det blir ikke lenger spurt om det.",
+      "createdAndEmailed": "{{name}} er opprettet. En lenke for å angi passordet ble sendt til {{email}}.",
+      "createdWithPassword": "{{name}} er opprettet. Del passordet du anga, på en sikker måte.",
+      "setPasswordLinkTitle": "Send en lenke for å angi passordet",
+      "setPasswordLinkDescription": "Kopier denne lenken og send den selv til {{email}}, et sted bare vedkommende kan lese den. Den virker én gang, i {{days}} dager.",
+      "setPasswordLinkOrSetIt": "Eller angi et passord for vedkommende selv på siden Autentisering."
     },
     "enterpriseLicenses": {
       "title": "Enterprise-lisenser",
@@ -2144,8 +2149,6 @@
   "Check email settings": "Sjekk e-postinnstillingene",
   "Email is failing": "E-post feiler",
   "Email is not set up": "E-post er ikke satt opp",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "Sending av e-post har feilet siden {{time}}, så invitasjoner og e-post om hendelser kommer ikke fram.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "Sending av e-post har feilet siden {{time}}, så invitasjoner og e-post om hendelser kommer ikke fram. E-postserveren svarte: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "Invitasjoner, tilbakestilling av passord og e-post om hendelser blir ikke sendt.",
   "Monitors that run on global probes are not being checked.": "Monitorer som kjører på globale sonder, blir ikke sjekket.",
   "No global probe is reporting": "Ingen globale sonder rapporterer",
@@ -4165,5 +4168,19 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime slo av denne regelen da de ble slettet.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Slått på som den er, ville regelen ikke lenger være begrenset av disse listene i det hele tatt. Rediger den for å velge hva den gjelder for, og slå den deretter på.",
   "{{names}} and {{count}} more": "{{names}} og {{count}} til",
-  "{{names}} and {{count}} more_one": "{{names}} og {{count}} til"
+  "{{names}} and {{count}} more_one": "{{names}} og {{count}} til",
+  "No email has gone out through this server's email settings since {{time}}.": "Ingen e-post har gått ut via e-postinnstillingene til denne serveren siden {{time}}.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Ingen e-post har gått ut via e-postinnstillingene til denne serveren siden {{time}}. E-postserveren svarte: {{reason}}",
+  "See email logs": "Se e-postlogger",
+  "Addresses the mail server refused": "Adresser e-postserveren avviste",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Andre e-poster gikk ut, så bare disse adressene er berørt. Rett adressen, eller få e-postleverandøren din til å godta den: en Amazon SES-sandkasse sender bare til adresser den har bekreftet.",
+  "Last refused {{time}}": "Sist avvist {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} er opprettet, men e-posten med en lenke for å angi passordet ble ikke sendt. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "Lenken du kan sende selv, kunne heller ikke lages. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime sender vedkommende en e-post med en lenke for å angi sitt eget passord.",
+  "They sign in with the password you set. Share it with them securely.": "Vedkommende logger på med passordet du angir. Del det på en sikker måte.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Denne serveren kan ikke sende e-post ennå. Angi passordet her, eller la feltet stå tomt for å få en lenke du kan sende selv.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "Denne serveren kan ikke sende e-post ennå. Sett opp e-post under Innstillinger > E-poster.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Denne serveren kan ikke sende e-post ennå, så ingen lenke for tilbakestilling av passord ble sendt. Sett opp e-post under Innstillinger > E-poster, eller angi passordet selv.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Denne brukeren har allerede et passord, så det finnes ingen lenke for å angi passord å kopiere. Send heller en lenke for tilbakestilling fra brukerens side Autentisering."
 }

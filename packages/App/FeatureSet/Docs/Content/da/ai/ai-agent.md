@@ -75,6 +75,8 @@ Den, der kan læse et repositorie, læser dets opgaver. At bede AI om noget, sva
 
 En opgave om en privat hændelse eller advarsel, startet fra dens undersøgelse eller fra en af dens rettelser, læses sammen med sine svar og sin pull request kun af dem, der må læse posten, og, når posten er slettet, kun af Projektejere og Projektadministratorer. For alle andre udelader repositoriets lister, filtre, søgninger og optællinger den. Se [Private hændelser, advarsler og episoder](/docs/permissions/index#private-hændelser-advarsler-og-episoder).
 
+Det samme gælder en opgave, der indeholder en privat hændelse eller advarsel: en, der blev bedt om med den som kontekst, en, som et svar har tilføjet den til, og opgaven for et handlingspunkt fra en postmortem. En opgave, der indeholder flere, læses kun af dem, der må læse dem alle. Dialogen, der føjer en hændelse eller en advarsel til en anmodning, siger det.
+
 ## Sådan forløber en rettelseskørsel
 
 ```mermaid title="Fra et klik til en pull request"

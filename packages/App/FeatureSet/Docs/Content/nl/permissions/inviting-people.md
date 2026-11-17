@@ -118,7 +118,7 @@ Verwijderen haalt iemand uit elk team van het project. Die persoon verliest mete
 
 - **Single sign-on.** Wie voor het eerst inlogt via de identiteitsprovider van het project, komt in de teams die de provider noemt. Zie [Rollen en teams voor SSO-gebruikers](/docs/identity/sso#rollen-en-teams-voor-sso-gebruikers).
 - **SCIM.** Uw identiteitsprovider maakt mensen aan en voegt ze toe aan de standaardteams van de koppeling. Zie [SCIM](/docs/identity/scim#zo-wordt-een-projectgebruiker-ingericht).
-- **Het Admin Dashboard.** Op een zelf gehoste installatie kan een hoofdbeheerder iemand aan een project toevoegen en de uitnodiging voor die persoon accepteren. Zie [Gebruikers, teams en machtigingen](/docs/permissions/index#gebruikers).
+- **Het Admin Dashboard.** Op een zelf gehoste installatie kan een hoofdbeheerder iemand aan een project toevoegen en de uitnodiging voor die persoon accepteren. Zie [Gebruikers, teams en machtigingen](/docs/permissions/index#gebruikers). Een hoofdbeheerder kan onder **Gebruikers** met **Gebruiker aanmaken** ook een account voor iemand maken: hij vult een naam en een e-mailadres in, en OneUptime mailt dat adres een link om een wachtwoord te kiezen, die één keer werkt, 7 dagen lang. Om het wachtwoord zelf in te stellen, opent hij **Meer velden**. Wordt de e-mail niet verzonden, dan krijgt hij de link te zien om zelf te versturen.
 
 ## Problemen oplossen
 

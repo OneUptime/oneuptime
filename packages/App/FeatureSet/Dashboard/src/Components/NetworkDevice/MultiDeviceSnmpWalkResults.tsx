@@ -30,6 +30,8 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Input from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
@@ -336,21 +338,23 @@ const ComparisonResultRow: FunctionComponent<RowProps> = (
             <></>
           )}
           {collectedCount > 0 ? (
-            <span
-              className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700"
-              data-testid="multi-snmp-walk-row-collected"
-            >
-              <Icon icon={IconProp.Check} className="h-3 w-3" />
-              {isCollectedEverywhere
-                ? translator.translateText("Collected")
-                : translator.translateTemplate(
-                    "Collected on {{collected}} of {{total}}",
-                    {
-                      collected: translator.formatNumber(collectedCount),
-                      total: translator.formatNumber(answeredCount),
-                    },
-                  )}
-            </span>
+            <Pill
+              dataTestId="multi-snmp-walk-row-collected"
+              text={
+                isCollectedEverywhere
+                  ? translator.translateText("Collected") ?? "Collected"
+                  : translator.translateTemplate(
+                      "Collected on {{collected}} of {{total}}",
+                      {
+                        collected: translator.formatNumber(collectedCount),
+                        total: translator.formatNumber(answeredCount),
+                      },
+                    )
+              }
+              isUserContent={true}
+              tone={PillTone.Success}
+              icon={IconProp.Check}
+            />
           ) : (
             <></>
           )}
@@ -577,10 +581,11 @@ const ComparisonResultRow: FunctionComponent<RowProps> = (
                     </span>
                   )}
                   {isCollectedHere ? (
-                    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
-                      <Icon icon={IconProp.Check} className="h-3 w-3" />
-                      {translator.translateText("Collected")}
-                    </span>
+                    <Pill
+                      text="Collected"
+                      tone={PillTone.Success}
+                      icon={IconProp.Check}
+                    />
                   ) : (
                     <></>
                   )}

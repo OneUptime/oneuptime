@@ -19,9 +19,14 @@ export interface ComponentProps<T> {
  * back to a finished step was for a mouse alone (#9136). The button is the
  * whole row, takes the focus ring every control has, and under a finger is
  * at least 44px tall.
+ *
+ * It reaches 4px past the row on each side (-mx-1, so its ring and its
+ * padding sit around the words, not on them), and so is the row's width
+ * plus those 8px: at w-full, -mx-1 only slid it 4px over, and the last 4px
+ * of the row's far end opened nothing (#9245).
  */
 export const STEP_BUTTON_CLASS_NAME: string =
-  "group -mx-1 -my-1 flex w-full cursor-pointer items-start rounded-md px-1 py-1 text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center";
+  "group -mx-1 -my-1 flex w-[calc(100%+0.5rem)] cursor-pointer items-start rounded-md px-1 py-1 text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center";
 
 const Step: <T extends GenericObject>(
   props: ComponentProps<T>,

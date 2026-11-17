@@ -205,6 +205,8 @@ La acción muestra después en qué se convirtió: la fase de su tarea, como **T
 
 Las dos acciones de IA necesitan que la IA esté activada para el proyecto y un repositorio en el que OneUptime AI pueda trabajar. Si no hay ninguno conectado, el menú ofrece **Conectar un repositorio** en su lugar. Pedirlas requiere lo mismo que pedir algo en Código, además del permiso para editar la acción.
 
+En un incidente privado, la tarea y su pull request solo las leen quienes pueden leer el incidente. La petición nombra el incidente solo por su número y pide a OneUptime AI que lo deje fuera del pull request, que lee cualquiera con acceso al repositorio.
+
 ### Ver todas las acciones de seguimiento
 
 **Incidentes → Acciones de seguimiento** reúne las acciones de seguimiento de todos los post mortem del proyecto, primero la que vence antes, con el incidente, el propietario, la fecha de vencimiento y el estado de cada una. Filtre la lista por **Estado**, **Propietario** y **Fecha de vencimiento**, y **Ver** en una fila abre la página **Post mortem** del incidente.

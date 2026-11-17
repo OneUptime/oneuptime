@@ -1,3 +1,4 @@
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -7,7 +8,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import { getReminderRuleFormSteps } from "../../../Utils/Form/EventRuleForm";
@@ -154,7 +155,7 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
               if (item.isEnabled) {
                 return <Pill color={Green} text="Enabled" />;
               }
-              return <Pill color={Red} text="Disabled" />;
+              return <Pill tone={PillTone.Paused} text="Disabled" />;
             },
           },
         ]}

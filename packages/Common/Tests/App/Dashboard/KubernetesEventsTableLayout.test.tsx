@@ -303,14 +303,14 @@ describe("Warning and Normal on each row", () => {
     );
     expect(warning).toHaveTextContent("Warning");
     expect(warning).not.toHaveClass("sr-only");
-    expect(warning).toHaveClass("bg-amber-50");
+    expect(warning).toHaveAttribute("data-tone", "warning");
 
     const normal: HTMLElement = within(eventOf("Pulled")).getByTestId(
       "kubernetes-event-type",
     );
     expect(normal).toHaveTextContent("Normal");
     expect(normal).not.toHaveClass("sr-only");
-    expect(normal).toHaveClass("bg-gray-100");
+    expect(normal).toHaveAttribute("data-tone", "neutral");
   });
 
   test("a view of one type does not repeat it on every row, and keeps the word for screen readers", async () => {

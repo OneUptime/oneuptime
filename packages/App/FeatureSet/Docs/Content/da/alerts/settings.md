@@ -58,7 +58,7 @@ Reglerne adskiller sig i, hvordan flere match afgøres:
 - **Grupperingsregler**, **Hændelsesregler** og **Påmindelsesregler** kontrolleres oppefra og ned i deres liste, og det første match vinder. Træk en regel for at ændre dens plads; en ny regel kommer sidst.
 - **Vagtregler**, **Ejerregler**, **Etiketregler**, **Privatlivsregler** og **Runbook-regler** handler alle, når de matcher. Vagtpolitikker, ejere og etiketter, som flere regler tilføjer, tilføjes én gang.
 
-**Vagtregler**, **Ejerregler**, **Etiketregler** og **Privatlivsregler** har to faner: **Advarselsregler** for advarsler og **Episoderegler**, som handler på samme måde på hver ny advarselsepisode. En ny regel starter aktiveret; slå **Aktiveret** fra på dens redigeringsformular for at sætte den på pause, og listen viser et grønt **Aktiveret** eller et rødt **Deaktiveret** for hver regel.
+**Vagtregler**, **Ejerregler**, **Etiketregler** og **Privatlivsregler** har to faner: **Advarselsregler** for advarsler og **Episoderegler**, som handler på samme måde på hver ny advarselsepisode. En ny regel starter aktiveret; slå **Aktiveret** fra på dens redigeringsformular for at sætte den på pause, og listen viser et grønt **Aktiveret** eller et gråt **Deaktiveret** for hver regel.
 
 De fleste regler handler på advarsler og episoder, der oprettes, efter at du har gemt dem. For at anvende en ejer-, etiket- eller privatlivsregel på dem, du allerede har, bruger du **Kør nu**: se [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now). Påmindelsesregler er undtagelsen: Når du gemmer en, matches hver åben advarsel igen.
 

@@ -199,6 +199,7 @@ import {
   listedNames,
   setChips,
 } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import { formStepButton } from "../../Helpers/FormStepButton";
 
 type Page = FunctionComponent<PageComponentProps>;
 
@@ -1096,7 +1097,7 @@ describe.each(PAGES)("$label - Edit", (entry: PageCase) => {
       within(form()).getByRole("navigation", { name: "Progress" }),
     ).getAllByRole("listitem");
 
-    await user.click(steps[steps.length - 1] as HTMLElement);
+    await user.click(formStepButton(steps[steps.length - 1]!));
 
     await user.click(
       await within(form()).findByRole("button", { name: "Save Changes" }),

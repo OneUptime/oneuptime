@@ -103,6 +103,25 @@ jest.mock("../../../UI/Utils/UpdateStatus", () => {
 });
 
 /*
+ * Create User asks whether this server can send email
+ * (GET /global-config/vars) to say what happens to a new user's password
+ * (#9139). Not what this file is about (AdminCreateUserSetPassword.test.tsx
+ * is), so the page is told it can.
+ */
+jest.mock("../../../UI/Utils/ServerSending", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Utils/ServerSending",
+  ) as Record<string, unknown>;
+
+  return {
+    ...actual,
+    useServerCanSendEmail: (): boolean => {
+      return true;
+    },
+  };
+});
+
+/*
  * The real ModelTable would drag in the pager, the URL state and a live fetch.
  * What this file is about is the props the page hands it - here the bulk action
  * declarations - so a stand-in that records them is both enough and more

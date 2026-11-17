@@ -1,5 +1,7 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
 import Route from "Common/Types/API/Route";
@@ -230,20 +232,20 @@ const MediaList: FunctionComponent<{
               : IconProp.File;
 
         return (
-          <div
+          <Pill
             key={index}
-            className="inline-flex max-w-full items-center gap-1 rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
-            data-testid="llm-step-media"
-          >
-            <Icon icon={icon} className="h-3 w-3 flex-shrink-0" />
-            <div className="truncate">
-              {part.uri
+            dataTestId="llm-step-media"
+            text={
+              part.uri
                 ? truncateLlmText(part.uri, 60)
                 : translator.translateTemplate("Attached {{modality}}", {
                     modality: part.modality || "file",
-                  })}
-            </div>
-          </div>
+                  })
+            }
+            isUserContent={true}
+            tone={PillTone.Neutral}
+            icon={icon}
+          />
         );
       })}
     </div>

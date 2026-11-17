@@ -47,6 +47,14 @@ export interface ToolContext {
    */
   pageContext?: AIChatPageContext | undefined;
   /*
+   * The chat the tools run in: Ask AI's conversation, or an incident's or
+   * alert's AI conversation (ChatAgentRunner). A pull request a chat opens
+   * carries the chat's subject (#9186), read from it as OneUptime: the
+   * incident or alert whose conversation it is. Never a permission. Left
+   * out where no chat runs the tools.
+   */
+  conversationId?: ObjectID | undefined;
+  /*
    * What the model had been shown of records it may change when it asked
    * for the call being prepared, oldest first (Types/AI/AIChatRecordSeen):
    * the citations of this turn's earlier results and of the history it

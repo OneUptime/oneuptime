@@ -1041,7 +1041,9 @@ import { KeepOwnersWhenTheirPictureFileIsDeleted1809182520000 } from "./18091825
 import { KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000 } from "./1809182530000-KeepNotificationLogsWhenOnCallSettingsAreDeleted";
 import { CascadeRunsAndFixesWithTheirRecord1809182600000 } from "./1809182600000-CascadeRunsAndFixesWithTheirRecord";
 import { DeleteRunsAndFixesOfDeletedRecords1809182610000 } from "./1809182610000-DeleteRunsAndFixesOfDeletedRecords";
-import { WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182700000 } from "./1809182700000-WebhookAddressesAndSnmpCredentialsEncryptedColumns";
+import { AddCarriedRecordsToCodeWork1809182700000 } from "./1809182700000-AddCarriedRecordsToCodeWork";
+import { LinkCodeWorkToTheRecordsItCarries1809182710000 } from "./1809182710000-LinkCodeWorkToTheRecordsItCarries";
+import { WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182720000 } from "./1809182720000-WebhookAddressesAndSnmpCredentialsEncryptedColumns";
 
 export default [
   InitialMigration,
@@ -2087,5 +2089,7 @@ export default [
   KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000,
   CascadeRunsAndFixesWithTheirRecord1809182600000,
   DeleteRunsAndFixesOfDeletedRecords1809182610000,
-  WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182700000,
+  AddCarriedRecordsToCodeWork1809182700000,
+  LinkCodeWorkToTheRecordsItCarries1809182710000,
+  WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182720000,
 ];

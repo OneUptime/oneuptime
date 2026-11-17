@@ -36,7 +36,7 @@ Abra **Produtos → Recursos → Monitoramento de Usuários Reais**. **Todos os 
 - **Configurações**: **Regras de proprietário**, **Regras de Rótulos** e a chave **Reprodução de sessões** de todo o projeto.
 - **Avançado**: **Arquivado**, as aplicações que você arquivou.
 
-O menu lateral de uma aplicação agrupa as páginas dela assim; **Configurações**, **Desenvolvedores** e **Avançado** começam recolhidas:
+O menu lateral de uma aplicação agrupa as páginas dela assim; **Desenvolvedores** e **Avançado** começam recolhidas:
 
 | Seção | Páginas |
 | --- | --- |
@@ -44,9 +44,8 @@ O menu lateral de uma aplicação agrupa as páginas dela assim; **Configuraçõ
 | **Observabilidade** | **Métricas**, **Registros**, **Traços**, **Clientes** |
 | **Análise de produto** | **Usuários**, **Sessões**, **Eventos**, **Funis**, **Retenção de usuários**, **Fluxos de usuários**, **Configurações de análise** |
 | **Reprodução de sessões** | **Reprodução de sessões**, **Usuários das reproduções**, **Integridade**, **Política de reprodução**, **Sinais de frustração**, **Registro de acesso aos replays**, **Documentação** |
-| **Configurações** | **Configurações** |
 | **Desenvolvedores** | **Terraform**, **API**, **CLI**, **Assistentes de IA** |
-| **Avançado** | **Registros de auditoria**, **Excluir aplicação** |
+| **Avançado** | **Configurações**, **Registros de auditoria**, **Excluir aplicação** |
 
 ## Como o OneUptime reconhece o RUM
 

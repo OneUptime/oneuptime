@@ -22,6 +22,7 @@ import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteStatusTimeline";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
@@ -370,14 +371,12 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
              * have already discounted it.
              */}
             {data.isUnderMaintenance && (
-              <span
-                className="ml-2 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
-                title={translator.translateText(
-                  "A scheduled maintenance window covers this site right now. Its downtime is excluded from the uptime percentages.",
-                )}
-              >
-                {translator.translateText("In maintenance")}
-              </span>
+              <Pill
+                text="In maintenance"
+                tone={PillTone.Warning}
+                tooltip="A scheduled maintenance window covers this site right now. Its downtime is excluded from the uptime percentages."
+                className="ml-2"
+              />
             )}
           </div>
           {lastRollupAt && (

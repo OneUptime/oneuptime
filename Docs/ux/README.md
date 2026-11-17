@@ -110,7 +110,9 @@ and phone summary: change the suite in the same pull request as the menu.
   under Attention Required. Monitors filed Disabled there with the error icon and a red count beside
   Not Operational, and a red count that never went away taught people to ignore red (#9126). The
   same state is grey wherever it shows: a monitor's row, its badge and an SLO's list of monitors.
-  Enforced by
+  A chip that says Disabled, Archived or Paused is the `Paused` tone, grey with a hollow dot, and a
+  rule's on or off is `EnabledPill`: about ninety rule lists, from owner rules to drop filters and
+  workflows, drew a rule someone switched off as a red "Disabled" (#9184). Enforced by
   [DeliberateStatesNotDangerGuard](../../packages/App/Tests/Dashboard/DeliberateStatesNotDangerGuard.test.ts).
 - **A section with one entry does not repeat that entry's name.** A heading that says what its only
   entry says doubles the menu's height and, folded, hides the page behind a click that tells nothing
@@ -1332,8 +1334,10 @@ person writes in Give Feedback also reaches whoever can answer it.
 
 - **Look at it as a newcomer would.** At 1280 and 390 pixels wide (and at 1024 and 768 beside the side
   menu), in light and dark, in German (a long language) and Persian (right to left), as a brand-new
-  project and as a busy one. Put before and after screenshots in the pull request. Not enforced: use
-  judgement.
+  project and as a busy one. Put before and after screenshots in the pull request's description with
+  [Scripts/PR/PublishScreenshots.js](../../Scripts/PR/PublishScreenshots.js), which puts them on the
+  `pr-assets` branch and prints the Markdown to paste; committed to your branch, they would be in
+  every CI job's checkout. Not enforced: use judgement.
 - **Run the guards that read what you changed.** Find them by your files' names in the test folders.
   When you change a menu, run its product's `*SideMenu*` suite; when you change a shared component, run
   every suite that renders it. Not enforced: use judgement.

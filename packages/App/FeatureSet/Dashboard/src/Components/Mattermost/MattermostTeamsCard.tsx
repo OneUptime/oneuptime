@@ -5,6 +5,8 @@ import React, {
   useState,
 } from "react";
 import Card from "Common/UI/Components/Card/Card";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -374,14 +376,12 @@ const MattermostTeamsCard: FunctionComponent<ComponentProps> = (
                       )}
                     </div>
                     {team.isDefault ? (
-                      <span
-                        className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20"
-                        data-testid="mattermost-team-default"
-                      >
-                        {translator.translateText(
-                          MATTERMOST_TEAM_DEFAULT_BADGE,
-                        ) || MATTERMOST_TEAM_DEFAULT_BADGE}
-                      </span>
+                      <Pill
+                        dataTestId="mattermost-team-default"
+                        text={MATTERMOST_TEAM_DEFAULT_BADGE}
+                        tone={PillTone.Info}
+                        isDotHidden={true}
+                      />
                     ) : (
                       <Button
                         title={MATTERMOST_TEAM_MAKE_DEFAULT}

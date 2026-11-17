@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "Wachtwoord vergeten",
     "subtitle": "Voer uw e-mailadres in en de wachtwoordresetlink wordt naar u verzonden.",
-    "successMessage": "We hebben u de wachtwoordresetlink gemaild. Vergeet niet de spammap te controleren.",
+    "successMessage": "Als een account dit e-mailadres gebruikt, hebben we het een link gemaild om een wachtwoord te kiezen. Vergeet niet de spammap te controleren.",
     "submitButton": "Wachtwoordresetlink verzenden",
     "rememberPasswordPrompt": "Herinnert u uw wachtwoord?",
     "loginLink": "Inloggen.",
@@ -187,6 +187,17 @@
     "linkInvalidTitle": "Deze herstellink werkt niet meer",
     "linkInvalidDescription": "Hij is misschien al gebruikt, of maar voor een deel gekopieerd. Vraag een nieuwe link aan, dan mailen we die naar je.",
     "requestNewLinkButton": "Nieuwe link aanvragen"
+  },
+  "setPassword": {
+    "title": "Stel je wachtwoord in",
+    "subtitle": "Kies een wachtwoord om je account verder in te stellen.",
+    "submitButton": "Wachtwoord instellen",
+    "successTitle": "Je wachtwoord is ingesteld",
+    "successDescription": "Meld je aan met je nieuwe wachtwoord.",
+    "linkExpiredTitle": "Deze link is verlopen",
+    "linkExpiredDescription": "Links om een wachtwoord in te stellen werken {{days}} dagen. Vraag een nieuwe link aan, dan mailen we die naar je.",
+    "linkInvalidTitle": "Deze link werkt niet meer",
+    "linkInvalidDescription": "Misschien is hij al gebruikt, of is maar een deel ervan gekopieerd. Heb je je wachtwoord al ingesteld, meld je dan aan. Zo niet, vraag een nieuwe link aan, dan mailen we die naar je."
   },
   "sso": {
     "title": "Inloggen met SSO",

@@ -58,7 +58,7 @@ The rules differ in how several matches resolve:
 - **Grouping Rules**, **Incident Rules** and **Reminder Rules** are checked from the top of their list down, and the first match wins. Drag a rule to change its place; a new rule goes to the end.
 - **On-Call Rules**, **Owner Rules**, **Label Rules**, **Privacy Rules** and **Runbook Rules** all act when they match. On-call policies, owners and labels that several rules add are added once.
 
-**On-Call Rules**, **Owner Rules**, **Label Rules** and **Privacy Rules** have two tabs: **Alert Rules**, for alerts, and **Episode Rules**, which act the same way on each new alert episode. A new rule starts enabled; switch **Enabled** off on its edit form to pause it, and the list shows a green **Enabled** or red **Disabled** for each rule.
+**On-Call Rules**, **Owner Rules**, **Label Rules** and **Privacy Rules** have two tabs: **Alert Rules**, for alerts, and **Episode Rules**, which act the same way on each new alert episode. A new rule starts enabled; switch **Enabled** off on its edit form to pause it, and the list shows a green **Enabled** or grey **Disabled** for each rule.
 
 Most rules act on alerts and episodes created after you save them. To apply an owner, label or privacy rule to the ones you already have, use **Run Now**: see [Run Rules on Existing Resources](/docs/configuration/run-rules-now). Reminder rules are the exception: saving one matches every open alert again.
 

@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "{{userCount}} کاربر انتخاب‌شده از همه نشست‌های فعال خارج می‌شوند و باید در ورود بعدی یک اپلیکیشن احراز هویت راه‌اندازی کنند. اگر خودتان هم جزو آن‌ها باشید، شامل شما هم می‌شود.",
       "bulkDoNotRequireTwoFactorAuth": "الزامی نبودن احراز هویت دو مرحله‌ای",
       "bulkDoNotRequireTwoFactorAuthTitle": "برداشتن الزام احراز هویت دو مرحله‌ای برای {{userCount}} کاربر",
-      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} کاربر انتخاب‌شده می‌توانند تنها با رمز عبور وارد شوند. هر چیزی که پیش‌تر راه‌اندازی کرده‌اند حفظ می‌شود اما دیگر از آن‌ها خواسته نمی‌شود."
+      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} کاربر انتخاب‌شده می‌توانند تنها با رمز عبور وارد شوند. هر چیزی که پیش‌تر راه‌اندازی کرده‌اند حفظ می‌شود اما دیگر از آن‌ها خواسته نمی‌شود.",
+      "createdAndEmailed": "{{name}} ساخته شد. پیوندی برای تعیین گذرواژه به {{email}} ایمیل شد.",
+      "createdWithPassword": "{{name}} ساخته شد. گذرواژه‌ای را که تعیین کردید به روشی امن به او بدهید.",
+      "setPasswordLinkTitle": "پیوند تعیین گذرواژه را بفرستید",
+      "setPasswordLinkDescription": "این پیوند را کپی کنید و خودتان به {{email}} بفرستید، جایی که فقط خود او بتواند آن را بخواند. یک بار و به مدت {{days}} روز کار می‌کند.",
+      "setPasswordLinkOrSetIt": "یا خودتان در صفحهٔ احراز هویت او برایش گذرواژه تعیین کنید."
     },
     "enterpriseLicenses": {
       "title": "پروانه‌های سازمانی",
@@ -2144,8 +2149,6 @@
   "Check email settings": "بررسی تنظیمات ایمیل",
   "Email is failing": "ارسال ایمیل ناموفق است",
   "Email is not set up": "ایمیل راه‌اندازی نشده است",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "از {{time}} ارسال ایمیل ناموفق بوده است، پس دعوت‌نامه‌ها و ایمیل‌های حادثه نمی‌رسند.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "از {{time}} ارسال ایمیل ناموفق بوده است، پس دعوت‌نامه‌ها و ایمیل‌های حادثه نمی‌رسند. پاسخ سرور ایمیل: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "دعوت‌نامه‌ها، بازنشانی گذرواژه و ایمیل‌های حادثه ارسال نمی‌شوند.",
   "Monitors that run on global probes are not being checked.": "مانیتورهایی که روی پراب‌های سراسری اجرا می‌شوند بررسی نمی‌شوند.",
   "No global probe is reporting": "هیچ پراب سراسری گزارش نمی‌دهد",
@@ -4165,5 +4168,19 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime هنگام حذف آن‌ها این قاعده را غیرفعال کرد.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "اگر همین‌طور فعال شود، این فهرست‌ها دیگر هیچ محدودیتی بر این قاعده نمی‌گذارند. آن را ویرایش کنید تا انتخاب کنید بر چه چیزی اعمال شود، سپس فعالش کنید.",
   "{{names}} and {{count}} more": "{{names}} و {{count}} مورد دیگر",
-  "{{names}} and {{count}} more_one": "{{names}} و {{count}} مورد دیگر"
+  "{{names}} and {{count}} more_one": "{{names}} و {{count}} مورد دیگر",
+  "No email has gone out through this server's email settings since {{time}}.": "از {{time}} هیچ ایمیلی از طریق تنظیمات ایمیل این سرور ارسال نشده است.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "از {{time}} هیچ ایمیلی از طریق تنظیمات ایمیل این سرور ارسال نشده است. پاسخ سرور ایمیل: {{reason}}",
+  "See email logs": "مشاهده گزارش‌های ایمیل",
+  "Addresses the mail server refused": "نشانی‌هایی که سرور ایمیل نپذیرفت",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "ایمیل‌های دیگر ارسال شدند، پس فقط همین نشانی‌ها تحت تأثیرند. نشانی را اصلاح کنید یا از ارائه‌دهندهٔ ایمیل خود بخواهید آن را بپذیرد: سندباکس Amazon SES فقط به نشانی‌هایی ارسال می‌کند که تأیید کرده است.",
+  "Last refused {{time}}": "آخرین رد: {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} ساخته شد، اما ایمیلی که پیوند تعیین گذرواژه را داشت فرستاده نشد. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "پیوندی که خودتان بفرستید هم ساخته نشد. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime پیوندی برایش ایمیل می‌کند تا خودش گذرواژه‌اش را تعیین کند.",
+  "They sign in with the password you set. Share it with them securely.": "او با گذرواژه‌ای که شما تعیین می‌کنید وارد می‌شود. آن را به روشی امن به او بدهید.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "این سرور هنوز نمی‌تواند ایمیل بفرستد. گذرواژه را همین‌جا تعیین کنید، یا خالی بگذارید تا پیوندی بگیرید و خودتان برایش بفرستید.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "این سرور هنوز نمی‌تواند ایمیل بفرستد. ایمیل را در تنظیمات > ایمیل‌ها راه‌اندازی کنید.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "این سرور هنوز نمی‌تواند ایمیل بفرستد، پس پیوند بازنشانی گذرواژه ایمیل نشد. ایمیل را در تنظیمات > ایمیل‌ها راه‌اندازی کنید، یا خودتان گذرواژه‌اش را تعیین کنید.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "این کاربر از قبل گذرواژه دارد، پس پیوند تعیین گذرواژه‌ای برای کپی نیست. به جای آن از صفحهٔ احراز هویتش پیوند بازنشانی گذرواژه بفرستید."
 }

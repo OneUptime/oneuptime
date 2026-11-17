@@ -1,3 +1,4 @@
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -41,7 +42,7 @@ A drop filter throws away logs you do not need, or keeps only a sample of them, 
 A filter picks logs with conditions, and each condition is a **Field**, an **Operator** and a **Value**: **Severity** · equals · **Debug**.
 
 - **Fields:** **Severity**, **Log Body** and **Service ID**, or any attribute with **Custom Attribute...**.
-- **Operators:** **equals** and **does not equal** match the exact value, with its upper and lower case: \`Debug\` matches, \`DEBUG\` does not. **contains** finds the text anywhere, in any case. **is one of** takes a list of values separated by commas.
+- **Operators:** **equals** and **does not equal** match the exact value, with its upper and lower case: \`Debug\` matches, \`DEBUG\` does not. **contains** finds the text anywhere, in any case, in a field you type into. **is one of** matches any of several values: on a field you pick from a list, such as **Severity**, you pick them from the same list, and on any other you type them with commas between them.
 - With more than one condition, pick **All conditions** or **Any condition**.
 
 **Severity** offers the severities a log is stored with: **Fatal**, **Error**, **Warning**, **Information**, **Debug**, **Trace** and **Unspecified**.
@@ -233,7 +234,7 @@ const LogDropFilters: FunctionComponent<
             if (item.isEnabled) {
               return <Pill color={Green} text="Enabled" />;
             }
-            return <Pill color={Red} text="Disabled" />;
+            return <Pill tone={PillTone.Paused} text="Disabled" />;
           },
         },
         /*

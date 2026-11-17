@@ -193,6 +193,15 @@ Utan Group By är samma monitor en enda skalär: frågan slår ihop alla värdar
 
 Varje larm per grupp följer sin egen grupp. När värd A sjunker under tröskelvärdet igen löses dess larm av sig själv, och larmet för värd B förblir öppen tills värd B återhämtar sig. Att en grupp återhämtar sig stänger aldrig en annan grupps larm.
 
+### Vad varje larm sparar
+
+Varje larm eller incident som öppnas för en grupp sparar kontrollen som öppnade det bara för den gruppen: dess serie, dess punkter och sammanfattningen av utvärderingen. Ingen sparad kontroll är större än 256 KB, och loggarna för en kontroll som behövde kortas för att få plats säger det.
+
+Larm och incidenter som öppnades före detta sparade alla grupper i utvärderingen, upp till tiotals megabyte vardera, på posten och igen på var och en av dess tillståndsändringar. Efter uppgraderingen kortar ett jobb som körs varje timme ned dem lite i taget och behåller varje posts egen grupp, tills inga finns kvar.
+
+> [!NOTE]
+> På en egen installation återanvänder PostgreSQL utrymmet som de nedkortade kontrollerna lämnar, men lämnar inte tillbaka det till disken. För att krympa databasen när de är nedkortade kör du `VACUUM FULL` på de största tabellerna i ett underhållsfönster, eftersom det låser varje tabell medan det skriver om den, eller använder `pg_repack`, som inte gör det.
+
 ### Utvärderingen av kriterier skiljer sig
 
 - **Grupperade monitorer utvärderar alla kriterier.** Allvarlighetsnivåer kan därför utlösas för olika grupper samtidigt: med "Critical: större än 95" ovanför "Warning: större än 80" öppnar en värd på 96 % en kritisk varning medan en värd på 85 % öppnar en vanlig varning i samma kontroll. En värd som överskrider båda nivåerna får ändå exakt en varning, från det första kriteriet som matchar, så **sortera kriterierna med det allvarligaste först**.

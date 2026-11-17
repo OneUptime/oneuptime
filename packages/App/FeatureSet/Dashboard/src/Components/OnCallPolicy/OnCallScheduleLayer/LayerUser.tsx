@@ -1,4 +1,6 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import AddLayerUserModal from "./AddLayerUserModal";
 import {
   createAddedLayerUser,
@@ -420,28 +422,28 @@ const LayerUser: FunctionComponent<ComponentProps> = (
                * Someone added on the page: in the previews already, in the
                * rotation once the page is saved.
                */
-              <Tooltip text="Not saved yet. They join the rotation when you save.">
-                <span
-                  data-testid="layer-user-new"
-                  className="inline-flex flex-shrink-0 items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium leading-4 text-emerald-700 ring-1 ring-inset ring-emerald-200"
-                >
-                  {translator.translateText("New")}
-                </span>
-              </Tooltip>
+              <Pill
+                text="New"
+                tone={PillTone.Success}
+                isDotHidden={true}
+                tooltip="Not saved yet. They join the rotation when you save."
+                className="flex-shrink-0"
+                dataTestId="layer-user-new"
+              />
             )}
             {isMoved && (
               /*
                * Someone the page has put in another place in the turn
                * order: their turns change once the page is saved.
                */
-              <Tooltip text="Not saved yet. They take this place in the rotation when you save.">
-                <span
-                  data-testid="layer-user-moved"
-                  className="inline-flex flex-shrink-0 items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium leading-4 text-indigo-700 ring-1 ring-inset ring-indigo-200"
-                >
-                  {translator.translateText("Moved")}
-                </span>
-              </Tooltip>
+              <Pill
+                text="Moved"
+                tone={PillTone.Info}
+                isDotHidden={true}
+                tooltip="Not saved yet. They take this place in the rotation when you save."
+                className="flex-shrink-0"
+                dataTestId="layer-user-moved"
+              />
             )}
             {away && (
               <LayerUserAwayBadge

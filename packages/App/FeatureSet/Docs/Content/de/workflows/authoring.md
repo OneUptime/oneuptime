@@ -149,7 +149,7 @@ Dieser Kreislauf – hinzufügen, verbinden, einrichten, ausführen, das Protoko
 
 Neue Workflows beginnen deaktiviert, ebenso jeder Workflow, den Sie duplizieren oder importieren. Aus pausiert den Trigger des Workflows, sodass nichts ihn von selbst startet, aber Sie können ihn trotzdem testen. Solange ein Workflow aus ist, sagt der Editor das über der Arbeitsfläche, mit einer Schaltfläche **Arbeitsablauf einschalten**.
 
-Der Schalter **Aktiviert** steht oben im **Editor**, neben **Komponente hinzufügen** und **Arbeitsablauf ausführen**. Er steht auch auf der Seite **Übersicht** des Workflows, deren Karte **Details zum Arbeitsablauf** den aktuellen Zustand als grüne Pille **Aktiviert** oder rote Pille **Deaktiviert** zeigt: Klicken Sie auf **Arbeitsablauf bearbeiten** und öffnen Sie **Weitere Felder**. Nur Personen, die den Workflow bearbeiten dürfen, können ihn ein- oder ausschalten; alle anderen sehen den Schalter ausgegraut.
+Der Schalter **Aktiviert** steht oben im **Editor**, neben **Komponente hinzufügen** und **Arbeitsablauf ausführen**. Er steht auch auf der Seite **Übersicht** des Workflows, deren Karte **Details zum Arbeitsablauf** den aktuellen Zustand als grüne Pille **Aktiviert** oder graue Pille **Deaktiviert** zeigt: Klicken Sie auf **Arbeitsablauf bearbeiten** und öffnen Sie **Weitere Felder**. Nur Personen, die den Workflow bearbeiten dürfen, können ihn ein- oder ausschalten; alle anderen sehen den Schalter ausgegraut.
 
 Solange ein Workflow aus ist, entscheidet das, was ihn startet, ob er läuft:
 

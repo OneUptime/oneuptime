@@ -34,6 +34,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Link from "Common/UI/Components/Link/Link";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { APP_API_URL } from "Common/UI/Config";
@@ -785,9 +787,11 @@ const UserViewNotificationMethods: FunctionComponent<
               <MaskedIdentifier method={method} className="text-gray-500" />
 
               {method.isVerified ? (
-                <span className="ml-auto inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
-                  {translator.translateText("Verified")}
-                </span>
+                <Pill
+                  text="Verified"
+                  tone={PillTone.Success}
+                  className="ml-auto"
+                />
               ) : method.methodType === READINESS_METHOD_TYPE_PUSH ? (
                 /*
                  * A push device is verified when it is registered, so one
@@ -796,23 +800,29 @@ const UserViewNotificationMethods: FunctionComponent<
                  * There is no code to wait for - its owner registers it
                  * again from the app or browser it belongs to.
                  */
-                <span className="ml-auto inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
-                  {translator.translateTemplate(
+                <Pill
+                  text={translator.translateTemplate(
                     "Waiting for {{name}} to register it again",
                     {
                       name: firstName,
                     },
                   )}
-                </span>
+                  isUserContent={true}
+                  tone={PillTone.Warning}
+                  className="ml-auto"
+                />
               ) : (
-                <span className="ml-auto inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
-                  {translator.translateTemplate(
+                <Pill
+                  text={translator.translateTemplate(
                     "Waiting for {{name}} to verify",
                     {
                       name: firstName,
                     },
                   )}
-                </span>
+                  isUserContent={true}
+                  tone={PillTone.Warning}
+                  className="ml-auto"
+                />
               )}
 
               <RowActions<AdminMethodWire>

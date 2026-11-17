@@ -9,6 +9,8 @@ import TelemetryException from "Common/Models/DatabaseModels/TelemetryException"
 import Service from "Common/Models/DatabaseModels/Service";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import API from "Common/UI/Utils/API/API";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -554,10 +556,11 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                   className="text-sm font-medium text-gray-900"
                                 />
                                 {isNewToday && (
-                                  <span className="shrink-0 inline-flex items-center gap-1 text-xs uppercase tracking-wide bg-sky-50 text-sky-700 px-1.5 py-0.5 rounded-md font-semibold">
-                                    <span className="h-1 w-1 rounded-full bg-sky-500" />
-                                    {translator.translateText("New")}
-                                  </span>
+                                  <Pill
+                                    text="New"
+                                    tone={PillTone.Info}
+                                    className="shrink-0"
+                                  />
                                 )}
                               </div>
                               <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-xs">

@@ -39,7 +39,7 @@ De regels verschillen in hoe ze meerdere treffers afhandelen:
 - **Eigenaarsregels**, **Labelregels** en **Runbook-regels** werken allemaal wanneer ze passen. Eigenaren en labels die meerdere regels toevoegen, worden één keer toegevoegd.
 - **Herinneringsregels** worden van boven naar beneden in hun lijst gecontroleerd, en de eerste die past wint. Sleep een regel om zijn plaats te wijzigen; een nieuwe regel komt onderaan.
 
-Een nieuwe regel begint ingeschakeld; zet **Ingeschakeld** uit in het bewerkformulier om haar te pauzeren, en de lijst toont voor elke regel een groen **Ingeschakeld** of een rood **Uitgeschakeld**. Eigenaars-, label- en runbook-regels werken op gebeurtenissen die worden gemaakt nadat je ze opslaat. Om een eigenaars- of labelregel toe te passen op gebeurtenissen die je al hebt, gebruik je **Nu uitvoeren**: zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now).
+Een nieuwe regel begint ingeschakeld; zet **Ingeschakeld** uit in het bewerkformulier om haar te pauzeren, en de lijst toont voor elke regel een groen **Ingeschakeld** of een grijs **Uitgeschakeld**. Eigenaars-, label- en runbook-regels werken op gebeurtenissen die worden gemaakt nadat je ze opslaat. Om een eigenaars- of labelregel toe te passen op gebeurtenissen die je al hebt, gebruik je **Nu uitvoeren**: zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now).
 
 ## Eigenaars- en labelregels
 

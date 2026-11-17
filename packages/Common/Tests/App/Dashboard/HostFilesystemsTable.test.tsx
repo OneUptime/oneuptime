@@ -122,7 +122,9 @@ describe("a host's Filesystems, on a wide screen", () => {
     const cells: Array<HTMLTableCellElement> = Array.from(rows()[0]!.cells);
 
     expect(within(cells[0]!).getByText("/")).toHaveClass("font-mono");
-    expect(within(cells[1]!).getByText("ext4")).toHaveClass("ring-1");
+    expect(
+      within(cells[1]!).getByText("ext4").closest("[data-tone]"),
+    ).toHaveAttribute("data-tone", "neutral");
     expect(within(cells[2]!).getByText("/dev/nvme0n1p2")).toHaveClass(
       "font-mono",
     );

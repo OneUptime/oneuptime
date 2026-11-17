@@ -815,9 +815,7 @@ describe.each(READERS)(
       });
       const hero: HTMLElement = heading.closest(".rounded-xl") || document.body;
       return Array.from(
-        hero.querySelectorAll<HTMLElement>(
-          "span.rounded-md > span.font-medium",
-        ),
+        hero.querySelectorAll<HTMLElement>('[data-testid="pill-text"]'),
       ).map((chip: HTMLElement): string => {
         return withoutIsolateMarks(chip.textContent || "");
       });

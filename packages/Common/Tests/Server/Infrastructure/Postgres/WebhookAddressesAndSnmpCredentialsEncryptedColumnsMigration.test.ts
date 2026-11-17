@@ -11,7 +11,7 @@ import OpenStackProjectNotice from "../../../../Models/DatabaseModels/OpenStackP
 import StatusPageSubscriber from "../../../../Models/DatabaseModels/StatusPageSubscriber";
 import UserWebhook from "../../../../Models/DatabaseModels/UserWebhook";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182700000-WebhookAddressesAndSnmpCredentialsEncryptedColumns";
+import { WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182720000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182720000-WebhookAddressesAndSnmpCredentialsEncryptedColumns";
 
 /*
  * WEBHOOK ADDRESSES AND SNMP CREDENTIALS GET ROOM FOR THEIR CIPHERTEXT
@@ -27,7 +27,7 @@ import { WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182700000 } from 
  *    migration registered before it, or it silently never runs.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809182700000";
+const MIGRATION_TIMESTAMP: string = "1809182720000";
 const MIGRATION_BASE_NAME: string =
   "WebhookAddressesAndSnmpCredentialsEncryptedColumns";
 const MIGRATION_FILE_NAME: string = `${MIGRATION_TIMESTAMP}-${MIGRATION_BASE_NAME}.ts`;
@@ -151,7 +151,7 @@ async function statementsOf(step: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182700000()[
+  await new WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182720000()[
     step
   ](runner);
 
@@ -283,7 +283,7 @@ describe("registering it", () => {
       fs.existsSync(path.join(MIGRATION_DIRECTORY, MIGRATION_FILE_NAME)),
     ).toBe(true);
     expect(
-      new WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182700000()
+      new WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182720000()
         .name,
     ).toBe(MIGRATION_CLASS_NAME);
   });

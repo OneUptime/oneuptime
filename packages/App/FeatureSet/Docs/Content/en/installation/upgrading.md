@@ -329,6 +329,17 @@ and episodes.
   reads it, and a Runner from before this release is refused such a fix:
   update your Runners. See
   [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
+- **Code work that carries a private incident or alert follows its owners
+  too.** A Code task asked with a private incident or alert as context, one a
+  reply added one to, a postmortem action item's task, and a pull request
+  OneUptime AI opened from a private record's AI conversation or from Ask AI
+  asked about one were read by everyone who could read the repository's
+  tasks and pull requests. They are now read only by those who may read
+  every record they carry. The upgrade links the tasks and pull requests that
+  exist, from what they kept, except a pull request opened from Ask AI, which
+  is read as before. The request for a private incident's action item now
+  names the incident only by its number. See
+  [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
 - **Webhook addresses and SNMP credentials are stored encrypted, and logs
   keep a webhook's address by its host.** A Slack, Microsoft Teams or Discord
   webhook carries its secret in its address, and an SNMP community string or

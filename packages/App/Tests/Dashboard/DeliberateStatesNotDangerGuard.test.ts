@@ -66,6 +66,22 @@ function sideMenuFiles(dir: string): Array<string> {
   return found;
 }
 
+function allSourceFiles(dir: string): Array<string> {
+  const found: Array<string> = [];
+
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full: string = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      found.push(...allSourceFiles(full));
+    } else if (entry.name.endsWith(".tsx")) {
+      found.push(full);
+    }
+  }
+
+  return found;
+}
+
 /*
  * A menu entry's source: from its title to the next entry's title (or the
  * end of the file), which holds its icon and badge.
@@ -135,7 +151,7 @@ describe("a state someone chose is never drawn as danger", () => {
     );
 
     expect(disabled).toHaveLength(1);
-    expect(disabled[0]!.body).toContain("badgeType: BadgeType.NEUTRAL,");
+    expect(disabled[0]!.body).toContain("badgeType: BadgeType.PAUSED,");
     expect(disabled[0]!.body).toContain("icon: IconProp.Pause,");
     // Not filed under Attention Required, which lists what needs fixing.
     expect(disabled[0]!.at).toBeLessThan(
@@ -153,6 +169,49 @@ describe("a state someone chose is never drawn as danger", () => {
     expect(
       MONITOR_ROW_STATUS_COLORS[MonitorRowStatusKind.PausedBeforeFirstCheck],
     ).toBe(Gray500);
+  });
+
+  /*
+   * About fifty rule lists drew a rule someone switched off as
+   * `<Pill color={Red} text="Disabled" />` (#9184). A chip that says
+   * Disabled, Archived or Paused is the grey Paused tone (EnabledPill for
+   * on and off), never red, nor the Danger or Warning tone.
+   */
+  test("no chip that says Disabled, Archived or Paused is red or amber", () => {
+    const ALARM_CHIP: RegExp =
+      /color=\{(Red|Red500|Moroon|Moroon500|Red900|Rose500|Orange|Orange500|Yellow|Amber500)\}|tone=\{PillTone\.(Danger|Warning)\}|type=\{StatusBadgeType\.(Danger|Warning)\}/;
+    const offenders: Array<string> = [];
+
+    for (const file of allSourceFiles(DASHBOARD_SRC)) {
+      const source: string = fs.readFileSync(file, "utf8");
+      const chip: RegExp = /<(Pill|StatusBadge)\b[^>]*?\/>/gs;
+      let match: RegExpExecArray | null = chip.exec(source);
+
+      while (match) {
+        const element: string = match[0];
+        const says: RegExpMatchArray | null = element.match(
+          /text=\{?"(Disabled|Archived|Paused)"\}?/,
+        );
+
+        if (says && ALARM_CHIP.test(element)) {
+          offenders.push(
+            `${path.relative(DASHBOARD_SRC, file)}:${
+              source.slice(0, match.index).split("\n").length
+            } draws "${says[1]}" as an alarm: use <EnabledPill /> or tone={PillTone.Paused}`,
+          );
+        }
+
+        match = chip.exec(source);
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
+  test("the guard finds a red Disabled chip when there is one", () => {
+    const redChip: RegExp = /color=\{(Red|Red500)\}/;
+    expect(redChip.test('<Pill color={Red} text="Disabled" />')).toBe(true);
+    expect(allSourceFiles(DASHBOARD_SRC).length).toBeGreaterThan(1000);
   });
 
   test("an SLO's Monitors page draws Disabled and Archived in grey", () => {

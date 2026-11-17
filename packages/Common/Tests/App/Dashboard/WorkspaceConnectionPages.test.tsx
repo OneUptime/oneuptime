@@ -488,11 +488,10 @@ describe("the Workspace page: which is connected, and the next step for each", (
 
     expect(
       screen.getByTestId("workspace-connection-status-MicrosoftTeams"),
-    ).toHaveClass("bg-emerald-50", "text-emerald-700");
-    expect(screen.getByTestId("workspace-connection-status-Slack")).toHaveClass(
-      "bg-gray-100",
-      "text-gray-600",
-    );
+    ).toHaveAttribute("data-tone", "success");
+    expect(
+      screen.getByTestId("workspace-connection-status-Slack"),
+    ).toHaveAttribute("data-tone", "neutral");
   });
 
   test("waits for this page load's answer, not the remembered one", async () => {
