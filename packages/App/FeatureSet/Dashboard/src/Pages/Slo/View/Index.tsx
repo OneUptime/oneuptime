@@ -316,7 +316,7 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
                     if (labels.length === 0) {
                       return (
-                        <span className="text-gray-400">
+                        <span className="text-gray-500">
                           {translator.translateText("No labels")}
                         </span>
                       );

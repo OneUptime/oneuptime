@@ -198,10 +198,14 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [securityCaseStatuses, setSecurityCaseStatuses] = React.useState<
     Array<SecurityCaseStatus>
   >([]);
-  // An SLO rule's: the project's SLOs, to pick the ones it is for.
+  /*
+   * An SLO rule's: the project's SLOs, to pick the ones it is for. Left
+   * undefined while they could not be read, so no SLO a rule holds is said
+   * to be gone from a list nobody read (#7807).
+   */
   const [serviceLevelObjectives, setServiceLevelObjectives] = React.useState<
-    Array<ServiceLevelObjective>
-  >([]);
+    Array<ServiceLevelObjective> | undefined
+  >(undefined);
   const [teams, setTeams] = React.useState<Array<Team>>([]);
   const [microsoftTeamsTeams, setMicrosoftTeams] = React.useState<
     Array<MicrosoftTeamsTeam>
@@ -249,9 +253,14 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [numberPrefixes, setNumberPrefixes] = React.useState<
     WorkspaceChannelNumberPrefixes | undefined
   >(undefined);
+  /*
+   * An on-call rule's policies. Undefined while they could not be read: no
+   * policy a rule holds is then said to be gone (#7807), and a name
+   * condition says nothing of what its words match (#7806).
+   */
   const [onCallDutyPolicies, setOnCallDutyPolicies] = React.useState<
-    Array<OnCallDutyPolicy>
-  >([]);
+    Array<OnCallDutyPolicy> | undefined
+  >(undefined);
   const [onCallPolicyName, setOnCallPolicyName] = React.useState<
     string | undefined
   >(undefined);
@@ -542,7 +551,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
 
           setServiceLevelObjectives(slos.data);
         } catch {
-          setServiceLevelObjectives([]);
+          setServiceLevelObjectives(undefined);
         }
       }
 
@@ -719,7 +728,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             )?.name || undefined,
           );
         } catch {
-          setOnCallDutyPolicies([]);
+          setOnCallDutyPolicies(undefined);
           setOnCallPolicyName(undefined);
         }
       }

@@ -171,7 +171,7 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
         <span className="truncate">
           <span className="font-semibold text-gray-800">{triggerLabel}</span>
           {triggerDescription ? (
-            <span className="ml-1 font-normal text-gray-400">
+            <span className="ml-1 font-normal text-gray-500">
               {triggerDescription}
             </span>
           ) : null}
@@ -194,7 +194,7 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
           }`}
         >
           <div className="border-b border-gray-100 px-3 py-2">
-            <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
               {translator.translateText("LLM provider")}
             </div>
           </div>
@@ -242,18 +242,18 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
                         {provider.name || provider.modelName}
                       </span>
                       {provider.isDefault && (
-                        <span className="flex-shrink-0 rounded bg-emerald-50 px-1 py-px text-[9px] font-semibold uppercase text-emerald-600">
+                        <span className="flex-shrink-0 rounded bg-emerald-50 px-1 py-px text-xs font-semibold uppercase text-emerald-600">
                           {translator.translateText("Default")}
                         </span>
                       )}
                       {provider.isGlobal && (
-                        <span className="flex-shrink-0 rounded bg-sky-50 px-1 py-px text-[9px] font-semibold uppercase text-sky-600">
+                        <span className="flex-shrink-0 rounded bg-sky-50 px-1 py-px text-xs font-semibold uppercase text-sky-600">
                           {translator.translateText("Global")}
                         </span>
                       )}
                     </div>
                     {description ? (
-                      <div className="mt-0.5 truncate text-[11px] text-gray-400">
+                      <div className="mt-0.5 truncate text-xs text-gray-500">
                         {description}
                       </div>
                     ) : null}

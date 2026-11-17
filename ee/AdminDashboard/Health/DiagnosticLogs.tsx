@@ -72,7 +72,7 @@ const EmptyNote: FunctionComponent<{ text: string }> = (props: {
 }): ReactElement => {
   const translator: Translator = useTranslator();
   return (
-    <div className="mt-3 text-sm italic text-gray-400">
+    <div className="mt-3 text-sm italic text-gray-500">
       {translator.translateText(props.text) || props.text}
     </div>
   );
@@ -204,7 +204,7 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
                     <span className="font-semibold text-red-400">
                       {String(rowObject["name"] || "")}
                     </span>{" "}
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       (×{String(rowObject["count"] || "0")})
                     </span>{" "}
                     <span>{String(rowObject["lastErrorMessage"] || "")}</span>
@@ -435,7 +435,7 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
                 (key: string, index: number): ReactElement => {
                   return (
                     <div key={index} className="text-xs">
-                      <span className="text-gray-400">{key}: </span>
+                      <span className="text-gray-500">{key}: </span>
                       <span className="font-medium text-gray-700">
                         {String(stats[key] ?? "") || (
                           <TableEmptyValue isSmall={true} />

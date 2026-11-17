@@ -280,7 +280,7 @@ const ReplayHeaderStartedAt: FunctionComponent<ReplayHeaderStartedAtProps> = (
  * as the label the date is read by.
  */
 function renderRecordedText(text: string): ReactNode {
-  return <span className="shrink-0 text-gray-400">{text}</span>;
+  return <span className="shrink-0 text-gray-500">{text}</span>;
 }
 
 /* The words of "Session {{id}}" around the id, each a box of its own. */
@@ -498,7 +498,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
       userSessionsElement = (
         <span
           data-testid="replay-user-sessions-unavailable"
-          className="text-xs text-gray-400"
+          className="text-xs text-gray-500"
           title={translator.translateText(
             "This session carries neither a user reference nor a visitor id, so its siblings cannot be found. Call OneUptimeReplay.identify() or update the recorder.",
           )}
@@ -512,7 +512,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
     ) {
       userSessionsElement = (
         <span
-          className="text-xs text-gray-400"
+          className="text-xs text-gray-500"
           data-testid="replay-user-sessions-loading"
         >
           {translator.translateText("Finding other sessions…")}

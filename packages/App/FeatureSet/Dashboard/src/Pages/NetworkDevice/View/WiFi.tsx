@@ -73,7 +73,7 @@ const StatusDot: FunctionComponent<StatusDotProps> = (
 ): ReactElement => {
   if (props.isGood === undefined) {
     return (
-      <span className="text-gray-400">{props.text || <TableEmptyValue />}</span>
+      <span className="text-gray-500">{props.text || <TableEmptyValue />}</span>
     );
   }
 

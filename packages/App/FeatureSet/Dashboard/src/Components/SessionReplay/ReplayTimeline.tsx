@@ -127,7 +127,7 @@ const LEGEND_INDENT_CLASS: string = "pl-[4.5rem]";
  * clicks" wrapping to two lines made its own lane taller than the three
  * beside it.
  */
-const LANE_LABEL_CLASS: string = `${LANE_GUTTER_CLASS} whitespace-nowrap text-right text-[10px] font-medium uppercase tracking-wider text-gray-500`;
+const LANE_LABEL_CLASS: string = `${LANE_GUTTER_CLASS} whitespace-nowrap text-right text-xs font-medium uppercase tracking-wider text-gray-500`;
 
 const HATCH_AMBER: string =
   "repeating-linear-gradient(135deg, rgba(251,191,36,0.55) 0 3px, transparent 3px 7px)";
@@ -586,7 +586,7 @@ const MarkerLaneComponent: FunctionComponent<MarkerLaneProps> = (
                       ),
                     },
                   )}
-                  className={`absolute top-1/2 flex h-4 min-w-[1.25rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                  className={`absolute top-1/2 flex h-4 min-w-[1.25rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full px-1 text-xs font-semibold tabular-nums shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                     PILL_TONE_CLASS[first.tone]
                   }`}
                   style={{ left: `${left}%` }}
@@ -1220,7 +1220,7 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
            */}
           <div
             data-testid="timeline-legend"
-            className={`mt-1.5 flex min-h-4 flex-wrap items-center gap-x-3 gap-y-1 ${LEGEND_INDENT_CLASS} text-[10px] text-gray-400`}
+            className={`mt-1.5 flex min-h-4 flex-wrap items-center gap-x-3 gap-y-1 ${LEGEND_INDENT_CLASS} text-xs text-gray-500`}
           >
             {TIMELINE_LEGEND_ITEMS.map(
               (item: TimelineLegendItem): ReactElement => {

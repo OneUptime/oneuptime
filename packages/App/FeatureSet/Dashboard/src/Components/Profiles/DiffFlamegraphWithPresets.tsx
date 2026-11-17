@@ -470,7 +470,7 @@ const DiffFlamegraphWithPresets: FunctionComponent<
                               translator.translateText("(anonymous)")}
                           </div>
                           {row.fileName && (
-                            <div className="text-[11px] text-gray-400 font-mono truncate">
+                            <div className="text-xs text-gray-500 font-mono truncate">
                               {ProfileUtil.formatFileName(row.fileName, 80)}
                             </div>
                           )}
@@ -491,7 +491,7 @@ const DiffFlamegraphWithPresets: FunctionComponent<
                             <bdi>{row.comparisonSharePercent.toFixed(1)}%</bdi>
                           </div>
                           <div
-                            className={`text-[11px] font-medium ${
+                            className={`text-xs font-medium ${
                               deltaDirection === "regressed"
                                 ? "text-red-600"
                                 : "text-green-600"
@@ -521,7 +521,7 @@ const DiffFlamegraphWithPresets: FunctionComponent<
             )}
           </div>
 
-          <div className="mt-2 text-[11px] text-gray-500">
+          <div className="mt-2 text-xs text-gray-500">
             {translator.translateText(
               "Share of total self time — immune to traffic volume changes between the windows.",
             )}

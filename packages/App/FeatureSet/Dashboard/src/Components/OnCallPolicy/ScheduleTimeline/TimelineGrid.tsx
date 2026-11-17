@@ -185,7 +185,7 @@ const TimelineGrid: FunctionComponent<ComponentProps> = (
         title={day.key}
       >
         <span
-          className={`text-[11px] font-semibold ${
+          className={`text-xs font-semibold ${
             isToday ? "text-indigo-600" : "text-gray-500"
           }`}
         >

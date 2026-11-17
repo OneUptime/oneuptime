@@ -113,7 +113,7 @@ describe("the affirmative action is PRIMARY or DANGER", () => {
         title="Run Workflow Manually"
         description="x"
         submitButtonText="Run"
-        submitButtonType={ButtonStyleType.SUCCESS}
+        submitButtonType={ButtonStyleType.SUCCESS_OUTLINE}
         onSubmit={() => {}}
         onClose={() => {}}
       />`),
@@ -262,7 +262,7 @@ describe("a way out is plain, and there is one of it", () => {
         title="Device Registered"
         description="x"
         submitButtonText="Close"
-        submitButtonType={ButtonStyleType.SUCCESS}
+        submitButtonType={ButtonStyleType.DANGER}
         onSubmit={() => {}}
       />`),
     ).toEqual(["dismissal-coloured"]);
@@ -679,7 +679,7 @@ describe("filled buttons repeated on every row, outside dialogs", () => {
 const X = () => (
   <ul>
     {numbers.map((number) => {
-      return <Button title="Reserve" buttonStyle={ButtonStyleType.SUCCESS} />;
+      return <Button title="Reserve" buttonStyle={ButtonStyleType.DANGER} />;
     })}
     <Button title="Add" buttonStyle={ButtonStyleType.PRIMARY} />
   </ul>
@@ -692,7 +692,7 @@ const X = () => (
           return `${button.label} ${button.style}`;
         },
       ),
-    ).toEqual(["Reserve SUCCESS"]);
+    ).toEqual(["Reserve DANGER"]);
   });
 
   test("plain per-row buttons and buttons inside dialogs are not reported here", () => {

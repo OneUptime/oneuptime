@@ -941,7 +941,7 @@ const ExecutionView: FunctionComponent<
                                 className="text-white"
                               />
                             ) : (
-                              <span className="text-[10px] font-semibold">
+                              <span className="text-xs font-semibold">
                                 {idx + 1}
                               </span>
                             )}
@@ -972,7 +972,7 @@ const ExecutionView: FunctionComponent<
                               data-testid={`runbook-execution-step-${idx}-words`}
                             >
                               <div className="flex flex-wrap items-center gap-2 mb-1">
-                                <span className="text-xs text-gray-400 font-medium">
+                                <span className="text-xs text-gray-500 font-medium">
                                   {translator.translateTemplate(
                                     "Step {{number}}",
                                     { number: idx + 1 },
@@ -1048,7 +1048,7 @@ const ExecutionView: FunctionComponent<
                                           }
                                         />
                                       ) : (
-                                        <span className="font-mono text-gray-400">
+                                        <span className="font-mono text-gray-500">
                                           {stepExec.approvedByUserId.slice(
                                             0,
                                             8,
@@ -1108,7 +1108,7 @@ const ExecutionView: FunctionComponent<
                                             }
                                           />
                                         ) : (
-                                          <span className="font-mono text-gray-400">
+                                          <span className="font-mono text-gray-500">
                                             {stepExec.completedByUserId.slice(
                                               0,
                                               8,

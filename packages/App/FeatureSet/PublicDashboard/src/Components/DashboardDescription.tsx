@@ -12,7 +12,8 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useTranslation } from "react-i18next";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   text: string;
@@ -32,7 +33,7 @@ export interface ComponentProps {
 const DashboardDescription: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { t } = useTranslation();
+  const translator: Translator = useTranslator();
   const textId: string = useId();
   const textRef: React.RefObject<HTMLParagraphElement> =
     useRef<HTMLParagraphElement>(null);
@@ -93,7 +94,9 @@ const DashboardDescription: FunctionComponent<ComponentProps> = (
             setIsOpen(!isOpen);
           }}
         >
-          {isOpen ? t(DESCRIPTION_COPY.showLess) : t(DESCRIPTION_COPY.showMore)}
+          {isOpen
+            ? translator.translateText(DESCRIPTION_COPY.showLess)
+            : translator.translateText(DESCRIPTION_COPY.showMore)}
         </button>
       ) : (
         <></>

@@ -243,7 +243,7 @@ describe("the Markdown editor's toolbar in the dark theme", () => {
         "text-indigo-700",
         // The menu's dividers and keys.
         "border-gray-100",
-        "text-gray-400",
+        "text-gray-500",
       ]),
     );
     expect(colorTokens(MENU_ITEM_MARK_RANGES)).toEqual(

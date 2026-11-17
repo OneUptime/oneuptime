@@ -596,7 +596,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
                   hideEmail={true}
                 />
               ) : (
-                <span className="text-gray-400">
+                <span className="text-gray-500">
                   {translator.translateText("Unassigned")}
                 </span>
               )}

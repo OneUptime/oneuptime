@@ -807,7 +807,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
             title={url.length > 0 ? url : undefined}
           />
           {opened !== null && (
-            <span className="shrink-0 text-[11px] text-gray-500">{opened}</span>
+            <span className="shrink-0 text-xs text-gray-500">{opened}</span>
           )}
           {/*
            * Words, not a clock ("1m 30s", "۳۰ ثانیه"): in the row's own
@@ -816,7 +816,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
            */}
           <span
             data-testid="replay-tab-option-duration"
-            className="shrink-0 text-[11px] tabular-nums text-gray-600"
+            className="shrink-0 text-xs tabular-nums text-gray-600"
           >
             {describeReplayTabDuration(tab, translator)}
           </span>

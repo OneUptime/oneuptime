@@ -173,7 +173,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                 (item["labelIds"] as Array<ObjectID>) || [];
               if (labelIds.length === 0) {
                 return (
-                  <span className="text-gray-400">
+                  <span className="text-gray-500">
                     {translator.translateText("No labels assigned")}
                   </span>
                 );
@@ -203,7 +203,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                 ] as Array<IncidentMemberRoleAssignment>) || [];
               if (incidentMemberRoles.length === 0) {
                 return (
-                  <span className="text-gray-400">
+                  <span className="text-gray-500">
                     {translator.translateText("No incident roles assigned")}
                   </span>
                 );

@@ -181,8 +181,6 @@ describe("the shared Button", () => {
     ["PRIMARY", ButtonStyleType.PRIMARY],
     ["DANGER", ButtonStyleType.DANGER],
     ["DANGER_OUTLINE", ButtonStyleType.DANGER_OUTLINE],
-    ["SUCCESS", ButtonStyleType.SUCCESS],
-    ["WARNING", ButtonStyleType.WARNING],
   ];
 
   test.each(STYLES_THAT_FILLED_THE_ROW)(

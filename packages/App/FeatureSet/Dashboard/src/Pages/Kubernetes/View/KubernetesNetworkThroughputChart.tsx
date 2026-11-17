@@ -205,7 +205,7 @@ const KubernetesNetworkThroughputChart: FunctionComponent<ComponentProps> = (
        */
       return (
         <div
-          className="flex select-none items-center justify-center text-sm text-gray-400"
+          className="flex select-none items-center justify-center text-sm text-gray-500"
           style={{ height: `${heightInPx}px` }}
           onDoubleClick={zoom?.onTimeRangeReset}
         >

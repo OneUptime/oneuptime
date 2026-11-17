@@ -747,7 +747,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                       searchText.trim() ? "No matches" : "Nothing to show",
                     )}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-500">
                     {translator.translateText(
                       searchText.trim()
                         ? "Try a different search term"
@@ -780,7 +780,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                      */}
                     {hasAnyGroup && section.group && (
                       <div
-                        className="sticky top-0 bg-white px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400"
+                        className="sticky top-0 bg-white px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-gray-500"
                         data-testid="filter-chip-group-heading"
                       >
                         {translator.translateText(section.group) ||
@@ -822,7 +822,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                               </span>
                               {option.sublabel && (
                                 <span
-                                  className="block truncate text-xs text-gray-400"
+                                  className="block truncate text-xs text-gray-500"
                                   onMouseEnter={showFullValueWhenCutShort}
                                 >
                                   {option.sublabel}

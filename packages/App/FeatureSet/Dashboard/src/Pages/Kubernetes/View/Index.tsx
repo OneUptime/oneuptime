@@ -177,6 +177,7 @@ import {
   BytesReading,
   getBytesReading,
 } from "../../../Components/TelemetryResource/telemetryFormat";
+import Link from "Common/UI/Components/Link/Link";
 
 interface ResourceLink {
   title: string;
@@ -1988,17 +1989,13 @@ const KubernetesClusterOverview: FunctionComponent<
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {links.map((link: ResourceLink) => {
           return (
-            <div
+            <Link
               key={link.title}
-              onClick={() => {
-                Navigation.navigate(
-                  RouteUtil.populateRouteParams(
-                    RouteMap[link.pageMap] as Route,
-                    { modelId: modelId },
-                  ),
-                );
-              }}
-              className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all duration-200 group cursor-pointer"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[link.pageMap] as Route,
+                { modelId: modelId },
+              )}
+              className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all duration-200 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               <div
                 className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${link.iconBgClass}`}
@@ -2023,7 +2020,7 @@ const KubernetesClusterOverview: FunctionComponent<
                   {link.description}
                 </div>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
@@ -2273,7 +2270,7 @@ const KubernetesClusterOverview: FunctionComponent<
                       {clusterIdentifier}
                     </div>
                   )}
-                  <div className="mt-1 text-xs text-gray-400">
+                  <div className="mt-1 text-xs text-gray-500">
                     {lastSeenText}
                   </div>
                 </div>
@@ -2731,7 +2728,7 @@ const KubernetesClusterOverview: FunctionComponent<
                 </div>
               </div>
               {topCpuPods.length === 0 ? (
-                <p className="text-gray-400 text-sm py-8 text-center">
+                <p className="text-gray-500 text-sm py-8 text-center">
                   {translator.translateText("No CPU usage data available.")}
                 </p>
               ) : (
@@ -2739,26 +2736,22 @@ const KubernetesClusterOverview: FunctionComponent<
                   {topCpuPods.map((pod: KubernetesResource, index: number) => {
                     const pct: number = Math.min(pod.cpuUtilization ?? 0, 100);
                     return (
-                      <div
+                      <Link
                         key={index}
-                        onClick={() => {
-                          Navigation.navigate(
-                            RouteUtil.populateRouteParams(
-                              RouteMap[
-                                PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL
-                              ] as Route,
-                              {
-                                modelId: modelId,
-                                subModelId: new ObjectID(pod.name),
-                              },
-                            ),
-                          );
-                        }}
-                        className="group cursor-pointer rounded-lg p-3 hover:bg-gray-50 transition-colors"
+                        to={RouteUtil.populateRouteParams(
+                          RouteMap[
+                            PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL
+                          ] as Route,
+                          {
+                            modelId: modelId,
+                            subModelId: new ObjectID(pod.name),
+                          },
+                        )}
+                        className="group cursor-pointer rounded-lg p-3 hover:bg-gray-50 transition-colors block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                       >
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
+                            <span className="flex-shrink-0 text-xs font-medium text-gray-500 w-4">
                               {translator.formatNumber(index + 1)}.
                             </span>
                             <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">
@@ -2792,7 +2785,7 @@ const KubernetesClusterOverview: FunctionComponent<
                             />
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     );
                   })}
                 </div>
@@ -2821,7 +2814,7 @@ const KubernetesClusterOverview: FunctionComponent<
                 </div>
               </div>
               {topMemoryPods.length === 0 ? (
-                <p className="text-gray-400 text-sm py-8 text-center">
+                <p className="text-gray-500 text-sm py-8 text-center">
                   {translator.translateText("No memory usage data available.")}
                 </p>
               ) : (
@@ -2844,26 +2837,22 @@ const KubernetesClusterOverview: FunctionComponent<
                             ? ((pod.memoryUsageBytes ?? 0) / maxMemory) * 100
                             : 0;
                       return (
-                        <div
+                        <Link
                           key={index}
-                          onClick={() => {
-                            Navigation.navigate(
-                              RouteUtil.populateRouteParams(
-                                RouteMap[
-                                  PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL
-                                ] as Route,
-                                {
-                                  modelId: modelId,
-                                  subModelId: new ObjectID(pod.name),
-                                },
-                              ),
-                            );
-                          }}
-                          className="group cursor-pointer rounded-lg p-3 hover:bg-gray-50 transition-colors"
+                          to={RouteUtil.populateRouteParams(
+                            RouteMap[
+                              PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL
+                            ] as Route,
+                            {
+                              modelId: modelId,
+                              subModelId: new ObjectID(pod.name),
+                            },
+                          )}
+                          className="group cursor-pointer rounded-lg p-3 hover:bg-gray-50 transition-colors block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                         >
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center gap-2 min-w-0 flex-1">
-                              <span className="flex-shrink-0 text-xs font-medium text-gray-400 w-4">
+                              <span className="flex-shrink-0 text-xs font-medium text-gray-500 w-4">
                                 {translator.formatNumber(index + 1)}.
                               </span>
                               <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-700">
@@ -2899,7 +2888,7 @@ const KubernetesClusterOverview: FunctionComponent<
                               </div>
                               {pod.memoryUtilization !== null &&
                               pod.memoryUtilization !== undefined ? (
-                                <div className="text-xs text-gray-400 tabular-nums">
+                                <div className="text-xs text-gray-500 tabular-nums">
                                   <bdi>
                                     {KubernetesResourceUtils.formatMemoryValue(
                                       pod.memoryUsageBytes,
@@ -2925,7 +2914,7 @@ const KubernetesClusterOverview: FunctionComponent<
                               />
                             </div>
                           </div>
-                        </div>
+                        </Link>
                       );
                     },
                   )}

@@ -161,40 +161,41 @@ const VideoCallConnectNotice: FunctionComponent<ComponentProps> = (
   }
 
   if (result.notice === ConnectProviderNotice.ZoomAdded) {
+    // What to do next, when there is something to say: Connect Zoom, or why not.
+    const zoomAddedTitle: ReactElement | undefined = props.canConnect ? (
+      <TranslatedSentence
+        template="{{connectZoom}} to start this project's calls in Zoom."
+        slots={{
+          connectZoom: (
+            <button
+              type="button"
+              data-testid="video-call-zoom-added-connect"
+              onClick={(): void => {
+                dismiss();
+                props.onConnect(VideoCallProvider.Zoom);
+              }}
+              className="font-semibold underline hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              {translator.translateTemplate("Connect {{provider}}", {
+                provider: getVideoCallProviderDisplayName(
+                  VideoCallProvider.Zoom,
+                ),
+              })}
+            </button>
+          ),
+        }}
+      />
+    ) : props.connectDisabledReason ? (
+      // Already in the reader's language: drawn as it is.
+      <span>{props.connectDisabledReason}</span>
+    ) : undefined;
+
     return (
       <div className="mb-5">
         <Alert
           type={AlertType.INFO}
           strongTitle="OneUptime is added to your Zoom account"
-          title={
-            props.canConnect ? (
-              <TranslatedSentence
-                template="{{connectZoom}} to start this project's calls in Zoom."
-                slots={{
-                  connectZoom: (
-                    <button
-                      type="button"
-                      data-testid="video-call-zoom-added-connect"
-                      onClick={(): void => {
-                        dismiss();
-                        props.onConnect(VideoCallProvider.Zoom);
-                      }}
-                      className="font-semibold underline hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    >
-                      {translator.translateTemplate("Connect {{provider}}", {
-                        provider: getVideoCallProviderDisplayName(
-                          VideoCallProvider.Zoom,
-                        ),
-                      })}
-                    </button>
-                  ),
-                }}
-              />
-            ) : props.connectDisabledReason ? (
-              // Already in the reader's language: drawn as it is.
-              <span>{props.connectDisabledReason}</span>
-            ) : undefined
-          }
+          {...(zoomAddedTitle ? { title: zoomAddedTitle } : {})}
           onClose={dismiss}
           dataTestId="video-call-zoom-added"
         />

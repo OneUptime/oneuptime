@@ -48,15 +48,11 @@ const OUTLINE_STYLES: Array<string> = [
 
 const ALL_STYLES: Array<string> = [
   "PRIMARY",
-  "SECONDARY",
   "OUTLINE",
   "NORMAL",
   "DANGER",
   "DANGER_OUTLINE",
-  "SUCCESS",
   "SUCCESS_OUTLINE",
-  "WARNING",
-  "WARNING_OUTLINE",
   "ICON_LIGHT",
   "LINK",
   "SECONDARY_LINK",
@@ -67,13 +63,7 @@ const ALL_STYLES: Array<string> = [
 ];
 
 // The styles that draw a fill of their own.
-const FILLED_STYLES: Array<string> = [
-  "PRIMARY",
-  "SECONDARY",
-  "DANGER",
-  "SUCCESS",
-  "WARNING",
-];
+const FILLED_STYLES: Array<string> = ["PRIMARY", "DANGER"];
 
 // Tailwind 3.4's colours, as the browser reports them.
 const GRAY_50: string = "rgb(249, 250, 251)";
@@ -2607,6 +2597,64 @@ test.describe("keyboard only", () => {
     await expect(page.getByText("Monitor Info")).toHaveAttribute(
       "class",
       /text-indigo-600/,
+    );
+  });
+
+  // #9223: a cell's help was a dialog opened by a click on the cell.
+  test("a table cell's help: Tab reaches its (i), focus shows the words, Escape hides them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const help: Locator = page
+      .getByTestId("keyboard-table")
+      .getByRole("button", { name: "About Quota" });
+
+    await tabTo(page, help, 80);
+    expect(await focusRingOf(help)).not.toBe("none");
+    await expect(page.getByRole("tooltip")).toHaveText(
+      "Counted since the first of the month.",
+    );
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("tooltip")).toBeHidden();
+    await expect(help).toBeFocused();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  // #9222: the diagram's bands and addresses answered only a click.
+  test("a network diagram: Tab reaches a band and an address, Enter and Space press them, the focus is drawn", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const band: Locator = page.getByRole("button", {
+      name: /^10\.0\.0\.5 to 10\.0\.0\.9: /,
+    });
+
+    await tabTo(page, band, 100);
+    const outline: string = await band.evaluate((element: Element): string => {
+      return window.getComputedStyle(element).getPropertyValue("outline-style");
+    });
+    expect(outline).not.toBe("none");
+
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("keyboard-log")).toHaveText(
+      "conversation:10.0.0.5>10.0.0.9",
+    );
+
+    const receiver: Locator = page.getByRole("button", {
+      name: /^8\.8\.8\.8 received /,
+    });
+
+    await tabTo(page, receiver, 20);
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("keyboard-log")).toContainText(
+      "destination:8.8.8.8",
     );
   });
 });

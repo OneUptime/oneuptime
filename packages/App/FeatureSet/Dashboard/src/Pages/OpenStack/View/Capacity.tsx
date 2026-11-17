@@ -174,7 +174,7 @@ function AllocatedCell(props: {
         className="whitespace-nowrap"
         dataTestId="openstack-capacity-allocated-used"
       />{" "}
-      <span className="whitespace-nowrap text-gray-400">
+      <span className="whitespace-nowrap text-gray-500">
         /{" "}
         <IsolatedText
           text={formatOpenStackCapacityAmount(

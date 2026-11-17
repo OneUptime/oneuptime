@@ -1094,7 +1094,7 @@ const CodeTaskListToolbar: FunctionComponent<{
                   <span
                     data-testid="code-task-filter-count"
                     className={`tabular-nums ${
-                      isActive ? "text-indigo-600" : "text-gray-400"
+                      isActive ? "text-indigo-600" : "text-gray-500"
                     }`}
                   >
                     {translator.formatNumber(count)}
@@ -1112,12 +1112,8 @@ const CodeTaskListToolbar: FunctionComponent<{
         It takes the rest of the filters' line, and a line of its own (the
         list's width) once that rest is narrower than 12rem.
       */}
-      <div
+      <label
         data-testid="code-task-list-search-box"
-        role="presentation"
-        onClick={() => {
-          inputRef.current?.focus();
-        }}
         className="flex h-8 min-w-[12rem] flex-1 cursor-text items-center gap-2 rounded-md bg-white px-2.5 shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-indigo-600"
       >
         <Icon
@@ -1162,7 +1158,7 @@ const CodeTaskListToolbar: FunctionComponent<{
         ) : (
           <></>
         )}
-      </div>
+      </label>
     </div>
   );
 };

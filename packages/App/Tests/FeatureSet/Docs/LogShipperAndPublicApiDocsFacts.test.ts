@@ -912,8 +912,12 @@ describe("what the shipper pages say an ingest request is answered", () => {
     key.id = ObjectID.generate();
     key.projectId = ObjectID.generate();
 
+    /*
+     * The key the secret opens: found by the secret's lookup hash, as the
+     * secret is kept encrypted (findOneByPresentedKey, #9012).
+     */
     jest
-      .spyOn(TelemetryIngestionKeyService, "findOneBy")
+      .spyOn(TelemetryIngestionKeyService, "findOneByPresentedKey")
       .mockResolvedValue(key as never);
     jest
       .spyOn(PayAsYouGoBillingService, "canUsePayAsYouGo")

@@ -114,6 +114,14 @@ export interface DropdownOption {
    */
   isArchived?: boolean | undefined;
   /*
+   * A value a record still holds that names nothing now - a severity, a
+   * label or an on-call policy since deleted (#7807): its label says so
+   * ("No longer in this project"), and it is drawn in muted italics, as the
+   * record's own card draws it. It can be taken out like any pick, and is
+   * never offered for one (isDisabled).
+   */
+  isNotFound?: boolean | undefined;
+  /*
    * Shown in the menu but never picked: a choice that is not open here,
    * with its description saying why ("Runs JavaScript steps only."). The
    * menu draws it muted and passes over it, mouse and keyboard alike, and
@@ -346,6 +354,13 @@ export const SINGLE_SELECT_WRAPPED_VALUE_LABEL_CLASS_NAME: string =
 
 export const MULTI_SELECT_CHIP_LABEL_CLASS_NAME: string =
   "min-w-0 whitespace-normal [overflow-wrap:anywhere] text-sm font-medium text-gray-900";
+
+/*
+ * A picked value that names nothing now (isNotFound), in the muted italics
+ * a rule's card says "No longer in this project" in.
+ */
+export const NOT_FOUND_VALUE_LABEL_CLASS_NAME: string =
+  "min-w-0 whitespace-normal [overflow-wrap:anywhere] text-sm font-normal italic text-gray-500";
 
 /*
  * A description someone wrote, under its option in the open menu
@@ -883,14 +898,17 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             {renderOptionColorIndicator(option.color)}
             <span
               className={
-                props.isMultiSelect
-                  ? MULTI_SELECT_CHIP_LABEL_CLASS_NAME
-                  : props.wrapsPickedValue
-                    ? SINGLE_SELECT_WRAPPED_VALUE_LABEL_CLASS_NAME
-                    : SINGLE_SELECT_VALUE_LABEL_CLASS_NAME
+                option.isNotFound
+                  ? NOT_FOUND_VALUE_LABEL_CLASS_NAME
+                  : props.isMultiSelect
+                    ? MULTI_SELECT_CHIP_LABEL_CLASS_NAME
+                    : props.wrapsPickedValue
+                      ? SINGLE_SELECT_WRAPPED_VALUE_LABEL_CLASS_NAME
+                      : SINGLE_SELECT_VALUE_LABEL_CLASS_NAME
               }
               dir={getOptionLabelDirection(option)}
               data-testid="dropdown-value-label"
+              data-not-found={option.isNotFound ? "true" : undefined}
             >
               {getOptionLabelText(option)}
             </span>

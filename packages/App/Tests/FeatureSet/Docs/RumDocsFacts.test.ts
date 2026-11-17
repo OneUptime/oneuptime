@@ -503,9 +503,7 @@ describe("RUM Overview: where RUM lives in the Dashboard", () => {
       ]);
     }
 
-    expect(where).toContain(
-      "**Developer** and **Advanced** start folded",
-    );
+    expect(where).toContain("**Developer** and **Advanced** start folded");
   });
 });
 

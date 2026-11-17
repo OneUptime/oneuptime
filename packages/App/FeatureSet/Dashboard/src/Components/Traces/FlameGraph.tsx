@@ -304,10 +304,21 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
 
     const colorStr: string = String(node.serviceColor);
 
+    // The span and its service, then each time under its own label.
+    const spanTitle: string = [
+      `${node.span.name} (${node.serviceName})`,
+      `${translator.translateText("Duration:")} ${durationStr}`,
+      `${translator.translateText("Self Time:")} ${selfTimeStr}`,
+    ].join("\n");
+
     return (
       <React.Fragment key={node.span.spanId}>
-        <div
-          className={`absolute cursor-pointer border border-white/30 transition-opacity overflow-hidden ${
+        <button
+          type="button"
+          data-testid="trace-flame-graph-span"
+          aria-label={spanTitle}
+          aria-pressed={isSelected}
+          className={`absolute block cursor-pointer border border-white/30 p-0 text-left transition-opacity overflow-hidden focus:outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-indigo-500 ${
             isSelected
               ? "ring-2 ring-indigo-500 ring-offset-1 z-10"
               : isHovered
@@ -341,21 +352,16 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
               return prev === node.span.spanId! ? null : node.span.spanId!;
             });
           }}
-          // The span and its service, then each time under its own label.
-          title={[
-            `${node.span.name} (${node.serviceName})`,
-            `${translator.translateText("Duration:")} ${durationStr}`,
-            `${translator.translateText("Self Time:")} ${selfTimeStr}`,
-          ].join("\n")}
+          title={spanTitle}
         >
           {widthPercent > 3 ? (
-            <div className="px-1 text-xs font-medium text-white truncate leading-snug pt-0.5">
+            <span className="block px-1 text-xs font-medium text-white truncate leading-snug pt-0.5">
               {node.span.name}
-            </div>
+            </span>
           ) : (
             <></>
           )}
-        </div>
+        </button>
         {node.children.map((child: FlameGraphNode) => {
           return renderNode(child);
         })}
@@ -369,7 +375,7 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
       {/* Controls */}
       <div className="flex items-center justify-between mb-2 px-1">
         <div
-          className="text-[11px] text-gray-500"
+          className="text-xs text-gray-500"
           data-testid="flame-graph-instructions"
         >
           {translator.translateText(FLAME_GRAPH_INSTRUCTIONS)}
@@ -380,7 +386,7 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
             onClick={() => {
               setFocusedSpanId(null);
             }}
-            className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+            className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
           >
             {translator.translateText("Reset Zoom")}
           </button>

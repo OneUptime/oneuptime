@@ -33,9 +33,9 @@ import ComponentMetadata, {
   NodeType,
 } from "../../../../Types/Workflow/Component";
 import IconProp from "../../../../Types/Icon/IconProp";
-import getJestMockFunction, { MockFunction } from "../../../MockType";
+import getJestMockFunction from "../../../MockType";
 import "@testing-library/jest-dom";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import fs from "fs";
 import path from "path";
 import React, { ReactElement } from "react";
@@ -121,32 +121,22 @@ const LOG_METADATA: ComponentMetadata = {
 };
 
 // The dashed card, as Workflow's getPlaceholderTriggerNode makes it.
-const placeholderData: (
-  onClick?: MockFunction | undefined,
-) => WorkflowNodeRenderData = (
-  onClick?: MockFunction | undefined,
-): WorkflowNodeRenderData => {
-  return {
-    metadata: {
-      iconProp: IconProp.Bolt,
-      componentType: ComponentType.Trigger,
-      title: "Trigger",
-      description: "Choose what starts this workflow",
-    },
-    metadataId: "",
-    internalId: "",
-    nodeType: NodeType.PlaceholderNode,
-    id: "",
-    error: "",
-    ...(onClick
-      ? {
-          onClick: onClick as unknown as NonNullable<
-            WorkflowNodeRenderData["onClick"]
-          >,
-        }
-      : {}),
-  } as WorkflowNodeRenderData;
-};
+const placeholderData: () => WorkflowNodeRenderData =
+  (): WorkflowNodeRenderData => {
+    return {
+      metadata: {
+        iconProp: IconProp.Bolt,
+        componentType: ComponentType.Trigger,
+        title: "Trigger",
+        description: "Choose what starts this workflow",
+      },
+      metadataId: "",
+      internalId: "",
+      nodeType: NodeType.PlaceholderNode,
+      id: "",
+      error: "",
+    } as WorkflowNodeRenderData;
+  };
 
 // A Log step whose Value is still empty.
 const unsetStepData: () => WorkflowNodeRenderData =
@@ -242,9 +232,7 @@ describe("the dashed card of a workflow without a trigger", () => {
   });
 
   test("on a view, does not look or react like something to press", () => {
-    const onClick: MockFunction = getJestMockFunction();
-
-    renderCard(placeholderData(onClick), true);
+    renderCard(placeholderData(), true);
 
     const card: HTMLElement = screen.getByTestId(
       "workflow-trigger-placeholder",
@@ -253,18 +241,13 @@ describe("the dashed card of a workflow without a trigger", () => {
     expect(card).toHaveClass("cursor-default");
     expect(card).not.toHaveClass("cursor-pointer");
 
-    fireEvent.click(card);
-    expect(onClick).not.toHaveBeenCalled();
-
     // Its border stays put under the pointer.
     const borders: { away: string; under: string } = placeholderBorders(true);
     expect(borders.under).toBe(borders.away);
   });
 
   test("outside a view, asks to choose a trigger and reacts to the pointer, as it always did", () => {
-    const onClick: MockFunction = getJestMockFunction();
-
-    renderCard(placeholderData(onClick), false);
+    renderCard(placeholderData(), false);
 
     const card: HTMLElement = screen.getByTestId(
       "workflow-trigger-placeholder",
@@ -274,9 +257,11 @@ describe("the dashed card of a workflow without a trigger", () => {
     expect(card).not.toHaveTextContent(WORKFLOW_NO_TRIGGER_TEXT);
     expect(card).toHaveClass("cursor-pointer");
 
-    fireEvent.click(card);
-    expect(onClick).toHaveBeenCalledTimes(1);
-
+    /*
+     * A click or a key reaches the canvas's step button around the card,
+     * which opens the trigger picker (Workflow.test), or opens nothing on a
+     * view; the card hears none of its own.
+     */
     const borders: { away: string; under: string } = placeholderBorders(false);
     expect(borders.under).not.toBe(borders.away);
   });

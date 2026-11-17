@@ -236,7 +236,7 @@ const CampaignRow: FunctionComponent<{
             return (
               <span
                 key={kind}
-                className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-600"
+                className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs text-gray-600"
               >
                 {translator.translateText(getCampaignAttackKindLabel(kind))}
               </span>
@@ -255,7 +255,7 @@ const CampaignRow: FunctionComponent<{
 
         {campaign.sampleTargets.length > 0 && (
           <div
-            className="truncate font-mono text-[11px] text-gray-500"
+            className="truncate font-mono text-xs text-gray-500"
             title={campaign.sampleTargets.join("\n")}
           >
             {campaign.sampleTargets.join("  ·  ")}

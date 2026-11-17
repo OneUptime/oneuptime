@@ -333,16 +333,30 @@ work out, starts from a default for everything else, and folds what most people 
   | `Danger` | It broke: Failed, Offline, Error. |
   | `Paused` | Someone chose to switch it off: Disabled, Paused, Archived. Grey with a hollow dot, never red ([Red is for what broke](#side-menus)). |
   | `Neutral` | A plain fact or a tag: Default, Beta, 3 rules. |
-- **Each button style has one job.** Not enforced: use judgement.
+- **Each button style has one job,** and every style `ButtonStyleType` has is in the table below.
+  There were four more: a pale indigo `SECONDARY`, a green `SUCCESS` and a yellow `WARNING` and
+  `WARNING_OUTLINE`. One page used `SUCCESS`, a playbook run's Approve, which is now `PRIMARY`, and
+  nothing used the rest. They were more looks for jobs the styles below already do (#9195). A new
+  style needs a job no style here does, and a row here. Enforced by
+  [ButtonStyleTableGuard](../../packages/Common/Tests/UI/Components/ButtonStyleTableGuard.test.ts).
 
   | Style | Use it for |
   | --- | --- |
   | `PRIMARY` | The one thing the screen or dialog exists to do. At most one in view. |
   | `NORMAL` | A plain action the person came for. A table row or header keeps it in view when its other actions fold into More. |
   | `OUTLINE` | The same plain button, for a lesser action: one a table folds into More first, or one that adds a row to a builder. |
+  | `HOVER_PRIMARY_OUTLINE`, `HOVER_SUCCESS_OUTLINE`, `HOVER_DANGER_OUTLINE` | The same plain button in a row of them, tinted under the pointer with what it does: indigo for View or Edit, green for a good outcome, red for Remove. |
+  | `SUCCESS_OUTLINE` | Proving or accepting something: Verify a number or a domain, Accept an invitation, Run Workflow. |
   | `DANGER`, `DANGER_OUTLINE` | Deleting or anything that cannot be undone: filled in its confirmation, outlined beside other actions. |
-  | `LINK`, `SECONDARY_LINK` | An action inside a sentence, or a quiet one such as Show more. |
-  | `ICON` | An icon with no box, named by its aria label. |
+  | `LINK`, `SECONDARY_LINK` | An action inside a sentence, or a quiet one such as Show more or a picker's Clear. |
+  | `ICON`, `ICON_LIGHT` | An icon with no box, named by its aria label. `ICON_LIGHT` is the same icon in a lighter grey, on a white ground. |
+
+  A button that needs more than its style still uses `Button`. It does not need to be drawn by
+  hand. `onMouseDown` keeps the focus in a search field above an open list (a label picker's
+  Apply). `shortcutHint` puts its keys in a chip after its words (a note's Post). `isTitleHiddenOnPhone`
+  hides its words on a phone and keeps them for a screen reader (a composer's Send beside its
+  pickers). `dataState` names its state (a player's Play). A `MoreMenu` takes a `Button` as its
+  trigger (the paging ladder's first step).
 
 ### Folds
 
@@ -687,9 +701,8 @@ what was further down.
   configured" and an on-call schedule's "No upcoming shifts" were all drawn in it (#9127). The dark
   theme paints gray-400 and gray-500 the same, so the change holds there. gray-400 stays for what
   nobody reads as words: an icon beside a label, a separator, a placeholder, a disabled control, and
-  the quiet empty-value dash. The guard reads every app and a class held in a const of the same file;
-  the shared UI holds none, and each app file may hold no more than its count in
-  `ReadableTextStillToFix.ts`, which only falls (#9192). Enforced by
+  the quiet empty-value dash. The guard reads every app, and a class held in a const of the same
+  file (#9192). Enforced by
   [ReadableTextContrastGuard](../../packages/Common/Tests/UI/ReadableTextContrastGuard.test.ts).
 - **Banners are for exceptions the person must act on,** never for the default state. Enforced by
   [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).

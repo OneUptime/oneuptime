@@ -2147,6 +2147,97 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       "If OneUptime is removed from the default workspace, the remaining workspace that comes first alphabetically becomes the default. It stays the default when OneUptime is added to the old workspace again.",
     );
   });
+
+  /*
+   * A new on-call rule starts on the key updates however it is made
+   * (#7971): the server gives one made through the API or with Terraform
+   * the list the Dashboard's form starts with, null asks for every update,
+   * and an edit that leaves the list out keeps the rule's. Each language's
+   * On-call messages line, and the upgrade guide's note, say it with the
+   * very JSON the server takes.
+   */
+  it("says a rule made through the API or with Terraform starts on the key updates, in every language, with the server's JSON", () => {
+    const keyUpdates: string = `\`${JSON.stringify(
+      NotificationRuleUpdates.getNewRuleUpdatesToPost(
+        NotificationRuleEventType.OnCallDutyPolicy,
+      ),
+    ).replace(/","/g, '", "')}\``;
+
+    expect(keyUpdates).toBe('`["OnCallNow", "NobodyOnCall"]`');
+
+    // What the server does with the JSON it is sent.
+    expect(
+      NotificationRuleUpdates.withNewRuleUpdates({
+        rule: {},
+        eventType: NotificationRuleEventType.OnCallDutyPolicy,
+      }),
+    ).toEqual({
+      updatesToPost: NotificationRuleUpdates.getNewRuleUpdatesToPost(
+        NotificationRuleEventType.OnCallDutyPolicy,
+      ),
+    });
+    expect(
+      NotificationRuleUpdates.withNewRuleUpdates({
+        rule: { updatesToPost: null },
+        eventType: NotificationRuleEventType.OnCallDutyPolicy,
+      }),
+    ).toEqual({ updatesToPost: null });
+
+    for (const language of DOCS_LANGUAGES) {
+      const slack: string = readPage(language, SLACK);
+      const onCallLine: string | undefined = slack
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.includes('`"updatesToPost": null`');
+        });
+
+      expect({ language, found: Boolean(onCallLine) }).toEqual({
+        language,
+        found: true,
+      });
+      expect({ language, code: inlineCode(onCallLine || "") }).toEqual({
+        language,
+        code: ['"updatesToPost": null', "updatesToPost", "updatesToPost"],
+      });
+
+      const upgrading: string = readPage(language, "installation/upgrading");
+
+      expect({ language, says: upgrading.includes(keyUpdates) }).toEqual({
+        language,
+        says: true,
+      });
+    }
+  });
+
+  /*
+   * A value a rule's condition holds that names nothing now says "No longer
+   * in this project" on the card and the Conditions step (#7807), and an
+   * On-Call Policy Name condition switches to the policies it names (#7806):
+   * each language names the words and the button as its Dashboard draws
+   * them.
+   */
+  it("names the words for a deleted value and the switch to On-Call Policy as each Dashboard draws them", () => {
+    for (const language of DOCS_LANGUAGES) {
+      for (const page of [SLACK, TEAMS]) {
+        const markdown: string = readPage(language, page);
+
+        for (const label of [
+          "No longer in this project",
+          "Use On-Call Policy instead",
+          "On-Call Policy Name",
+        ]) {
+          const drawn: string = drawnDashboardLabel(language, label);
+
+          expect({
+            language,
+            page,
+            label,
+            named: markdown.includes(`**${drawn}**`),
+          }).toEqual({ language, page, label, named: true });
+        }
+      }
+    }
+  });
 });
 
 describe("Video Calls, against the Dashboard and the worker", () => {
