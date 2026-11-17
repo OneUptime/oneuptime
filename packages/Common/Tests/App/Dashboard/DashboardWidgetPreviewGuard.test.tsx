@@ -86,9 +86,6 @@ const SOURCE_FILE_REGEX: RegExp = /\.tsx?$/;
 
 const REACT_ROUTER_REGEX: RegExp = /^react-router(-dom)?$/;
 
-// The line a described place names: "<file>:<line> (<kind>)".
-const DESCRIBED_LINE_REGEX: RegExp = /:(\d+) /;
-
 /*
  * The investigation drawer opens only from Investigate - shown with Open
  * in Explorer - and from a series' menu: never in the preview (both are
@@ -116,8 +113,6 @@ const REVIEWED: Record<string, string> = {
     "Opens the explorer when called: by the chart widget's Open in Metric Explorer, never shown in the preview, and by MetricCharts' series menu (enableSeriesActions).",
   "Components/Metrics/Utils/UseEventTimeReferenceLines.ts":
     "An incident's or an alert's marker opens it unless opensEvents is false, which every widget sets from the preview.",
-  "Components/Infrastructure/ResourceTable.tsx":
-    "A widget's parts read only its helpers - formatMemoryValue, a status's words and colours - never the table, whose rows open a resource's page.",
 };
 
 type NavigationKind =
@@ -671,98 +666,35 @@ describe("every file a widget is drawn from keeps the preview on the page", () =
     }
   });
 
-  test("a widget's parts read ResourceTable's helpers, never the table that opens a resource", () => {
+  /*
+   * ResourceTable's rows open a resource's page. No part of a widget reads
+   * its file, not even for a helper: the Ceph Pool List writes an amount of
+   * memory with ResourceMemoryValue, a module of its own that goes nowhere.
+   * Read from the table's file, the helper brought the table with it - and
+   * the shared Table, its filters and its bulk update form - into every
+   * public dashboard's first load (PublicDashboardFirstLoadBuild.test.ts).
+   */
+  test("a widget's parts never reach ResourceTable, whose rows open a resource's page", () => {
     const resourceTable: string = path.join(
       APP_SRC_DIR,
       "Components",
       "Infrastructure",
       "ResourceTable.tsx",
     );
-    const source: ts.SourceFile = readSource(resourceTable);
-    const table: ts.Node | undefined = nodesOf(source).find(
-      (node: ts.Node): boolean => {
-        return (
-          ts.isVariableDeclaration(node) &&
-          node.name.getText() === "ResourceTable"
-        );
-      },
+    const memoryValue: string = path.join(
+      APP_SRC_DIR,
+      "Components",
+      "Infrastructure",
+      "ResourceMemoryValue.ts",
     );
+    const reached: Set<string> = new Set<string>(files.map(relativeToApp));
 
-    expect(table).toBeDefined();
+    // Its rows still leave the page: reached, it would need a review here.
+    expect(navigationIn(resourceTable).length).toBeGreaterThan(1);
+    expect(reached.has(relativeToApp(resourceTable))).toBe(false);
 
-    /*
-     * Whatever in the file can leave the page is the table's own: each
-     * navigate() call, and each shared Link it draws (its import is the
-     * file's).
-     */
-    const tableStartLine: number = lineOf(table!);
-    const tableEndLine: number =
-      source.getLineAndCharacterOfPosition(table!.getEnd()).line + 1;
-    const leavingLines: Array<string> = navigationIn(resourceTable)
-      .filter((hit: NavigationHit): boolean => {
-        return hit.kind !== "the shared Link";
-      })
-      .map(describeHit)
-      .concat(
-        nodesOf(source)
-          .filter((node: ts.Node): boolean => {
-            return isJsxElementNamed(node, ["Link"]);
-          })
-          .map((node: ts.Node): string => {
-            return `Components/Infrastructure/ResourceTable.tsx:${lineOf(node)} (the shared Link)`;
-          }),
-      );
-
-    expect(leavingLines.length).toBeGreaterThan(1);
-
-    for (const leaving of leavingLines) {
-      const line: number = Number(DESCRIBED_LINE_REGEX.exec(leaving)?.[1]);
-
-      expect({
-        leaving,
-        isTheTables: line >= tableStartLine && line <= tableEndLine,
-      }).toEqual({ leaving, isTheTables: true });
-    }
-
-    const imported: Array<string> = [];
-
-    for (const file of files) {
-      for (const node of nodesOf(readSource(file))) {
-        if (
-          !ts.isImportDeclaration(node) ||
-          !ts.isStringLiteral(node.moduleSpecifier) ||
-          resolveImport(file, node.moduleSpecifier.text) !== resourceTable
-        ) {
-          continue;
-        }
-
-        const clause: ts.ImportClause | undefined = node.importClause;
-
-        if (clause?.name) {
-          imported.push(`${relativeToApp(file)}: default`);
-        }
-
-        if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings)) {
-          for (const element of clause.namedBindings.elements) {
-            imported.push(`${relativeToApp(file)}: ${element.name.text}`);
-          }
-        } else if (clause?.namedBindings) {
-          imported.push(`${relativeToApp(file)}: *`);
-        }
-      }
-    }
-
-    expect(imported).toEqual(
-      expect.arrayContaining([
-        "Components/Dashboard/Components/DashboardCephPoolListComponent.tsx: formatMemoryValue",
-      ]),
-    );
-    // Neither the table (its default export) nor all of the file.
-    expect(
-      imported.filter((entry: string): boolean => {
-        return entry.endsWith(": default") || entry.endsWith(": *");
-      }),
-    ).toEqual([]);
+    expect(reached.has(relativeToApp(memoryValue))).toBe(true);
+    expect(navigationIn(memoryValue)).toEqual([]);
   });
 
   test("the widgets reading the preview are the ones whose parts open a page", () => {

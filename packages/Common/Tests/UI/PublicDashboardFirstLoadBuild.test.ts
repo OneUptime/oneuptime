@@ -146,4 +146,30 @@ describe("a public dashboard's first load", () => {
       expect(inputsUnder(built!.firstLoad, file)).toEqual([]);
     },
   );
+
+  /*
+   * The Ceph Pool List widget draws its own rows and writes their memory
+   * with ResourceMemoryValue. It read that from ResourceTable, which
+   * brought the table the helper was written for with it - the shared
+   * Table, its filters, its bulk update form and its pagination, some 140
+   * KB before gzip - though no widget draws a table of resources.
+   */
+  test("has the Ceph Pool List widget's memory figures, which its rows write", () => {
+    expect(
+      inputsUnder(
+        built!.firstLoad,
+        `${DASHBOARD}/Infrastructure/ResourceMemoryValue.ts`,
+      ).length,
+    ).toBe(1);
+  });
+
+  test.each([
+    ["the resource table", `${DASHBOARD}/Infrastructure/ResourceTable.tsx`],
+    ["the shared table", "UI/Components/Table/Table.tsx"],
+    ["a table's filters", "UI/Components/Filters/FilterViewer.tsx"],
+    ["the bulk update form", "UI/Components/BulkUpdate/BulkUpdateForm.tsx"],
+    ["a table's pagination", "UI/Components/Pagination/Pagination.tsx"],
+  ])("leaves out %s, which no widget draws", (_name: string, file: string) => {
+    expect(inputsUnder(built!.firstLoad, file)).toEqual([]);
+  });
 });
