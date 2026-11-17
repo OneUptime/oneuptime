@@ -99,7 +99,9 @@
  * write on `window.__fixture.updates`, every record created (a row's state
  * move, a new owner) on `window.__fixture.creates`, every delete on
  * `window.__fixture.deletes`, every navigation on
- * `window.__fixture.navigations`, and every read of a table this fixture
+ * `window.__fixture.navigations`, every read of what still uses a record (a
+ * row's Delete and Archive, answered as nothing) on
+ * `window.__fixture.usedByReads`, and every read of a table this fixture
  * does not model on `window.__fixture.unmodelled` (the suite fails on any).
  */
 import "Common/UI/Styles/Theme.css";
@@ -176,6 +178,10 @@ import {
 } from "Common/Types/DataObservability/DataReconciliation";
 import { DataCheckHealth } from "Common/Types/DataObservability/DataObservabilityAttention";
 import { DATA_OBSERVABILITY_API_ROUTES } from "Common/Types/DataObservability/DataObservabilityApiTypes";
+import {
+  getUsedByRelations,
+  isUsedByRecordKind,
+} from "Common/Types/UsedBy/UsedBy";
 import Color from "Common/Types/Color";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
@@ -233,6 +239,7 @@ window.__fixture = {
   creates: [],
   deletes: [],
   navigations: [],
+  usedByReads: [],
   unmodelled: [],
 };
 
@@ -1728,10 +1735,53 @@ ModelAPI.create = async (options) => {
   return { data: model };
 };
 
-API.get = async (options) => {
-  window.__fixture.unmodelled.push(
-    `API.get ${options && options.url ? options.url.toString() : ""}`,
+/*
+ * GET /used-by/<kind>/<id>: what still uses a record, which a list's row
+ * Delete and Archive read before they ask (UsedBy/UsedByListActions,
+ * #7435). Nothing in these lists refers to another of their records, so
+ * every relation of the kind counts none, as UsedByService.getSummary
+ * answers then - a family's with no parts. Null for any other address.
+ */
+function usedBySummaryOf(address) {
+  const match = /\/used-by\/([^/]+)\/([^/]+)$/.exec(
+    new URL(address, window.location.origin).pathname,
   );
+
+  if (!match || !isUsedByRecordKind(match[1])) {
+    return null;
+  }
+
+  const [, recordKind, recordId] = match;
+  window.__fixture.usedByReads.push({ recordKind, recordId });
+
+  return {
+    recordKind,
+    recordId,
+    groups: getUsedByRelations(recordKind).map((description) => {
+      const group = {
+        relation: description.relation,
+        rowKind: description.rowKind,
+        count: 0,
+        hiddenCount: 0,
+        rows: [],
+      };
+      if (description.family) {
+        group.parts = [];
+      }
+      return group;
+    }),
+  };
+}
+
+API.get = async (options) => {
+  const address = options && options.url ? options.url.toString() : "";
+
+  const usedBy = usedBySummaryOf(address);
+  if (usedBy) {
+    return { data: usedBy };
+  }
+
+  window.__fixture.unmodelled.push(`API.get ${address}`);
   return { data: { data: [], count: 0 } };
 };
 

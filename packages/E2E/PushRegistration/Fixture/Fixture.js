@@ -23,6 +23,7 @@ import { initReactI18next } from "react-i18next";
 import Push from "../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/Push";
 import { sendPushConfigurationToRegisteredServiceWorker } from "../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/BrowserPushRegistration";
 import { VAPID_PUBLIC_KEY } from "Common/UI/Config";
+import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
 import Permission from "Common/Types/Permission";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -121,10 +122,15 @@ function Fixture() {
 
 /*
  * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
- * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
+ * at once, not in a React transition (Tests/Ops/E2EFixtureRouters). Beside
+ * it, as there, the corner where the Dashboard says a change worked
+ * (ToastRegion): a test sent to a browser is said in it (#9120).
  */
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter useTransitions={false}>
-    <Fixture />
-  </BrowserRouter>,
+  <>
+    <BrowserRouter useTransitions={false}>
+      <Fixture />
+    </BrowserRouter>
+    <ToastRegion />
+  </>,
 );

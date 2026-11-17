@@ -37,6 +37,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { flushSync } from "react-dom";
 
 /*
  * What a page shows when a part of its code will not download - in place of
@@ -255,7 +256,20 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
       hasUnsavedChanges: UnsavedChanges.hasUnsavedChanges(),
     });
 
-    showStep(decision.step);
+    if (decision.reload || decision.step === ChunkLoadRecoveryStep.Updating) {
+      /*
+       * Drawn before the page leaves, not in a later render: the reload
+       * starts at once - this part's, or another part's already - and when
+       * it was quick the page left still saying it was checking, so nobody
+       * read that it was loading the latest version. (Only ever after the
+       * server was asked, so never inside React's own render.)
+       */
+      flushSync(() => {
+        showStep(decision.step);
+      });
+    } else {
+      showStep(decision.step);
+    }
 
     if (decision.reload && !handleChunkLoadError(props.error)) {
       // The page started to leave, or another part reloaded, meanwhile.

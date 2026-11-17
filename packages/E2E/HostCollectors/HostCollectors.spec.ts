@@ -1603,7 +1603,8 @@ test("in German, Add Host is German throughout", async ({
   );
   // Each step, as a screen reader says it too.
   for (const [number, title] of [
-    [1, "Aufnahmeschlüssel auswählen"],
+    // German's one word for an ingestion key, as its page title says (#8806).
+    [1, "Ingestion-Schlüssel auswählen"],
     [2, "Diesen Befehl auf dem Host ausführen"],
     [3, "Auf den Host warten"],
   ] as Array<[number, string]>) {
