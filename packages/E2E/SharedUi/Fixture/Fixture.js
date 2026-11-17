@@ -12,8 +12,8 @@
  * DeviceDiagnostics.
  *
  * One page, /dashboard/<project>/shared-ui, steered by the query string:
- *   - section=buttons|dialogs|sections|pills|avatars|choices|rules|charts  which part to draw
- *     (all of them when left out)
+ *   - section=buttons|dialogs|sections|pills|avatars|choices|rules|charts|keyboard
+ *     which part to draw (all but charts and keyboard when left out)
  *   - read=<ms>      how long the edit dialog's record read takes (600)
  *   - lang=de|ja|fa|zh-CN|ru|fr   the Dashboard's words in that language
  *   - zoomed=1       (charts) the page is zoomed, so the hints name the way back
@@ -99,6 +99,11 @@ import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import NotificationBell from "Common/UI/Components/HeaderAlert/NotificationBell/NotificationBell";
+import { HeaderAlertType } from "Common/UI/Components/HeaderAlert/HeaderAlert";
+import Steps from "Common/UI/Components/Forms/Steps/Steps";
+import FilterViewer from "Common/UI/Components/Filters/FilterViewer";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 
@@ -1216,6 +1221,116 @@ function Charts() {
   );
 }
 
+/*
+ * The controls #9136 made work from the keyboard and under a finger: two
+ * rows of tabs on one page whose names hold spaces, the header's
+ * notification bell, a form's steps with one finished, and attribute
+ * filter chips that must wrap on a phone. What each is pressed with lands
+ * on [data-testid=keyboard-log].
+ */
+const BELL_ITEMS = [
+  {
+    id: "active-incidents",
+    icon: IconProp.Alert,
+    title: "2 Active Incidents",
+    count: 2,
+    alertType: HeaderAlertType.ERROR,
+  },
+  {
+    id: "on-call",
+    icon: IconProp.Call,
+    title: "You are on call",
+    count: 1,
+    alertType: HeaderAlertType.SUCCESS,
+  },
+];
+
+const FORM_STEPS = [
+  { id: "monitor-info", title: "Monitor Info" },
+  { id: "criteria", title: "Criteria" },
+  { id: "notifications", title: "Notifications" },
+];
+
+const ATTRIBUTE_FILTERS = [
+  { key: "attributes", title: "Attributes", type: FieldType.JSON },
+];
+
+function Keyboard() {
+  const [log, setLog] = useState([]);
+  const [stepId, setStepId] = useState("criteria");
+  const say = (line) => {
+    setLog((lines) => {
+      return [...lines, line];
+    });
+  };
+
+  return (
+    <div className="space-y-5" data-testid="section-keyboard">
+      <div className="flex justify-end" data-testid="bell-holder">
+        <NotificationBell
+          items={BELL_ITEMS}
+          onItemClick={(item) => {
+            say(`bell:${item.id}`);
+          }}
+        />
+      </div>
+      <Card title="Incident rules" description="Two rows of tabs on a page.">
+        <Tabs
+          label="Incident On-Call Rules"
+          tabs={[
+            {
+              name: "Incident Rules",
+              children: <p>Rules for incidents.</p>,
+            },
+            { name: "Episode Rules", children: <p>Rules for episodes.</p> },
+          ]}
+          onTabChange={() => {}}
+        />
+        <Tabs
+          label="Notification Methods"
+          tabs={[
+            { name: "Email", children: <p>Email addresses.</p> },
+            { name: "SMS", children: <p>Phone numbers.</p> },
+          ]}
+          onTabChange={() => {}}
+        />
+      </Card>
+      <Card title="Create monitor" description="A form's steps.">
+        <Steps
+          steps={FORM_STEPS}
+          currentFormStepId={stepId}
+          formValues={{}}
+          onClick={(step) => {
+            setStepId(step.id);
+            say(`step:${step.id}`);
+          }}
+        />
+      </Card>
+      <Card title="Logs" description="Attribute filter chips.">
+        <FilterViewer
+          id="logs"
+          filters={ATTRIBUTE_FILTERS}
+          filterData={{
+            attributes: {
+              "service.name": "checkout",
+              "k8s.pod.name": "checkout-7d9f8b6c5d-abcde-with-a-long-suffix",
+              "host.name": "prod-eu-west-1-node-17",
+              "deployment.environment": "production",
+            },
+          }}
+          showFilterModal={false}
+          pluralLabel="Logs"
+        />
+      </Card>
+      <ol data-testid="keyboard-log">
+        {log.map((line, index) => {
+          return <li key={index}>{line}</li>;
+        })}
+      </ol>
+    </div>
+  );
+}
+
 const SECTIONS = {
   buttons: Buttons,
   dialogs: Dialogs,
@@ -1224,15 +1339,18 @@ const SECTIONS = {
   avatars: Avatars,
   choices: Choices,
   rules: Rules,
-  // Only when asked for: the gallery of every part leaves it out.
+  // Only when asked for: the gallery of every part leaves them out.
   charts: Charts,
+  keyboard: Keyboard,
 };
+
+const ONLY_WHEN_ASKED_FOR = ["charts", "keyboard"];
 
 function Gallery() {
   const shown =
     section === "all"
       ? Object.keys(SECTIONS).filter((name) => {
-          return name !== "charts";
+          return !ONLY_WHEN_ASKED_FOR.includes(name);
         })
       : [section].filter(Boolean);
 

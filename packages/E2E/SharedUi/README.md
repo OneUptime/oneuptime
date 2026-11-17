@@ -80,6 +80,14 @@ The suite checks what jsdom cannot:
   hint under a title it has no room beside (#8048); and no value axis tick
   wraps or starts off the chart at 1280 or 390, a request rate written
   "1.5K req/s" (#8049).
+- with the keyboard alone (`?section=keyboard`): two rows of tabs on one page
+  name each panel by its tab, share no id and move with the arrow keys; Tab
+  reaches an item in the header's notification bell, Enter opens it and
+  Escape closes the panel back onto the bell; a finished form step is reached
+  with Tab and opened with Space, and the step being filled in is not a
+  button. On a 390 pixel touch phone, light and dark, the tabs and steps are
+  44 pixels tall and attribute filter chips wrap with every word on the
+  screen (#9136).
 
 `Fixture/Fixture.js` records every read on `window.__fixture.reads`, every
 write on `window.__fixture.updates`, and every read it does not model on
@@ -104,6 +112,6 @@ node SharedUi/Fixture/server.js
 
 Then open
 `http://127.0.0.1:4329/dashboard/10000000-0000-4000-8000-000000000001/shared-ui`,
-with `?section=buttons|dialogs|sections|pills|avatars` for one part,
+with `?section=buttons|dialogs|sections|pills|avatars|keyboard` for one part,
 `&theme=dark`, `&lang=de|ja|fa|zh-CN`, `&layout=side-menu` or `&read=<ms>`.
 `SHARED_UI_FIXTURE_PORT` moves it to another port.

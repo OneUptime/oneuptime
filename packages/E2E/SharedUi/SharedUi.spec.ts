@@ -2442,3 +2442,230 @@ describePageLanguages({
     return `${ROUTE}?section=buttons${language === "en" ? "" : `&lang=${language}`}`;
   },
 });
+
+/*
+ * #9136: with the keyboard alone, a person can choose a tab, open an item
+ * in the header's notification bell and go back to a finished step of a
+ * form - each was a div or li with only a click - and a screen reader
+ * names each tab panel by its tab. Under a finger, the tabs and steps are
+ * 44px targets and attribute chips wrap on a 390px phone.
+ */
+async function openKeyboard(page: Page, query: string = ""): Promise<void> {
+  await open(page, `section=keyboard${query}`);
+  await expect(page.getByTestId("section-keyboard")).toBeVisible();
+}
+
+// Presses Tab until `target` has the focus, at most `limit` times.
+async function tabTo(
+  page: Page,
+  target: Locator,
+  limit: number = 40,
+): Promise<void> {
+  for (let presses: number = 0; presses < limit; presses++) {
+    if (
+      await target.evaluate((element: Element): boolean => {
+        return element === document.activeElement;
+      })
+    ) {
+      return;
+    }
+
+    await page.keyboard.press("Tab");
+  }
+
+  await expect(target).toBeFocused();
+}
+
+async function focusRingOf(control: Locator): Promise<string> {
+  return await control.evaluate((element: Element): string => {
+    return window.getComputedStyle(element).getPropertyValue("box-shadow");
+  });
+}
+
+test.describe("keyboard only", () => {
+  test("tabs: each panel is named by its tab, the arrow keys choose, and two rows share no id", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const rules: Locator = page.getByRole("tablist", {
+      name: "Incident On-Call Rules",
+    });
+    const methods: Locator = page.getByRole("tablist", {
+      name: "Notification Methods",
+    });
+
+    await expect(rules).toBeVisible();
+    await expect(methods).toBeVisible();
+
+    // A name with a space still names its panel.
+    await expect(
+      page.getByRole("tabpanel", { name: "Incident Rules" }),
+    ).toHaveText("Rules for incidents.");
+
+    const first: Locator = rules.getByRole("tab", { name: "Incident Rules" });
+
+    await tabTo(page, first);
+    expect(await focusRingOf(first)).not.toBe("none");
+
+    await page.keyboard.press("ArrowRight");
+    await expect(
+      rules.getByRole("tab", { name: "Episode Rules" }),
+    ).toBeFocused();
+    await expect(
+      page.getByRole("tabpanel", { name: "Episode Rules" }),
+    ).toHaveText("Rules for episodes.");
+
+    // Tab leaves the row for its panel, not for the next tab.
+    await page.keyboard.press("Tab");
+    await expect(
+      page.getByRole("tabpanel", { name: "Episode Rules" }),
+    ).toBeFocused();
+
+    const ids: Array<string> = await page
+      .getByTestId("section-keyboard")
+      .evaluate((section: Element): Array<string> => {
+        return Array.from(section.querySelectorAll("[id]")).map(
+          (element: Element): string => {
+            return element.id;
+          },
+        );
+      });
+
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const id of ids) {
+      expect(id).not.toMatch(/\s/);
+    }
+  });
+
+  test("the notification bell: Tab reaches an item, Enter opens it, Escape closes the panel", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const bell: Locator = page.getByRole("button", {
+      name: "View notifications",
+    });
+
+    await tabTo(page, bell);
+    await page.keyboard.press("Enter");
+
+    const item: Locator = page.getByRole("button", {
+      name: "2 Active Incidents",
+    });
+
+    await page.keyboard.press("Tab");
+    await expect(item).toBeFocused();
+    expect(await focusRingOf(item)).not.toBe("none");
+
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("keyboard-log")).toHaveText(
+      "bell:active-incidents",
+    );
+    await expect(item).toBeHidden();
+
+    // Open again, and leave with Escape: the focus is back on the bell.
+    await bell.focus();
+    await page.keyboard.press("Space");
+    await page.keyboard.press("Tab");
+    await expect(item).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(item).toBeHidden();
+    await expect(bell).toBeFocused();
+  });
+
+  test("a form's steps: a finished step is reached with Tab and opened with Enter or Space", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const finished: Locator = page.getByRole("button", {
+      name: "Monitor Info",
+    });
+
+    // The step being filled in and the one ahead are not buttons.
+    await expect(
+      page.getByRole("button", { name: "Criteria", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Notifications", exact: true }),
+    ).toHaveCount(0);
+
+    await tabTo(page, finished);
+    expect(await focusRingOf(finished)).not.toBe("none");
+
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("keyboard-log")).toHaveText(
+      "step:monitor-info",
+    );
+    await expect(page.getByText("Monitor Info")).toHaveAttribute(
+      "class",
+      /text-indigo-600/,
+    );
+  });
+});
+
+test.describe("on a 390px touch phone", () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+
+  for (const theme of ["light", "dark"]) {
+    test(`tabs and steps are 44px targets and the chips wrap, ${theme}`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openKeyboard(page, theme === "dark" ? "&theme=dark" : "");
+
+      for (const target of [
+        page.getByRole("tab", { name: "Incident Rules" }),
+        page.getByRole("tab", { name: "SMS" }),
+        page.getByRole("button", { name: "Monitor Info" }),
+      ]) {
+        const box: { height: number } | null = await target.boundingBox();
+
+        expect(box).not.toBeNull();
+        expect(box!.height).toBeGreaterThanOrEqual(44);
+      }
+
+      const chips: Locator = page.getByTestId("filter-attribute-chips");
+      const row: { x: number; width: number } | null =
+        await chips.boundingBox();
+      const viewportWidth: number = 390;
+
+      expect(row).not.toBeNull();
+
+      // Every chip is on the screen, the row on more than one line.
+      const tops: Array<number> = [];
+
+      for (const chip of await chips
+        .getByTestId("filter-attribute-chip")
+        .all()) {
+        const box: { x: number; y: number; width: number } | null =
+          await chip.boundingBox();
+
+        expect(box).not.toBeNull();
+        expect(box!.x).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(viewportWidth);
+        tops.push(Math.round(box!.y));
+      }
+
+      expect(new Set(tops).size).toBeGreaterThan(1);
+      await expect(chips).toContainText(
+        "checkout-7d9f8b6c5d-abcde-with-a-long-suffix",
+      );
+
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, `keyboard-and-touch-390-${theme}`);
+    });
+  }
+});
