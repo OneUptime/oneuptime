@@ -262,9 +262,10 @@ describe("the Network's SNMP Walk page in the dark theme", () => {
         // The chosen starting point.
         "bg-indigo-50",
         "border-indigo-200",
-        // A collected OID's badge, and what Collect came to in its row.
-        "bg-green-50",
-        "text-green-700",
+        /*
+         * What Collect came to in its row (a collected OID's badge is the
+         * shared Pill, coloured by its tone).
+         */
         "text-red-700",
       ]),
     );

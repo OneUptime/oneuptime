@@ -1,5 +1,7 @@
 import { HOST_METRIC_DESCRIPTIONS } from "../MetricDescriptions/HostMetricDescriptions";
 import Card from "Common/UI/Components/Card/Card";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Table from "Common/UI/Components/Table/Table";
 import Column from "Common/UI/Components/Table/Types/Column";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
@@ -99,9 +101,12 @@ const HostFilesystemsTable: FunctionComponent<ComponentProps> = (
         }
 
         return (
-          <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-inset ring-slate-200">
-            {mount.type}
-          </span>
+          <Pill
+            text={mount.type}
+            isUserContent={true}
+            tone={PillTone.Neutral}
+            isDotHidden={true}
+          />
         );
       },
     },

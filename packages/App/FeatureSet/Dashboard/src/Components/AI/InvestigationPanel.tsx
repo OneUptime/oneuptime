@@ -84,6 +84,8 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import AiHoldNotice from "./AiHoldNotice";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -1582,26 +1584,15 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         <div className="w-full max-w-full sm:w-auto">
           {humanVerdict && !isChangingVerdict ? (
             <div className="flex flex-wrap items-center gap-2">
-              {/* A div, not a span: Icon renders a div. */}
-              <div
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ${
+              <Pill
+                text={
                   isConfirmed
-                    ? "bg-green-50 text-green-700 ring-green-200"
-                    : "bg-rose-50 text-rose-700 ring-rose-200"
-                }`}
-              >
-                <Icon
-                  icon={isConfirmed ? IconProp.Check : IconProp.Close}
-                  className="h-3.5 w-3.5"
-                />
-                <span>
-                  {translator.translateText(
-                    isConfirmed
-                      ? "You confirmed this analysis"
-                      : "You rejected this analysis",
-                  )}
-                </span>
-              </div>
+                    ? "You confirmed this analysis"
+                    : "You rejected this analysis"
+                }
+                tone={isConfirmed ? PillTone.Success : PillTone.Danger}
+                icon={isConfirmed ? IconProp.Check : IconProp.Close}
+              />
               <button
                 type="button"
                 className="rounded-md px-2 py-1 text-xs font-medium text-gray-500 underline-offset-2 hover:bg-gray-100 hover:text-gray-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"

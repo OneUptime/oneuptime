@@ -1,4 +1,6 @@
 import RunnersElement from "../Runner/Runners";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import RunnerChoicesLoader, { GlobalRunnerRow } from "../Runner/RunnerChoices";
 import {
   ACCESS_STEP_TITLE,
@@ -50,7 +52,6 @@ import Field, {
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -508,14 +509,11 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
             getElement: (item: RunbookVariable): ReactElement => {
               if (item.isSecret) {
                 return (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
-                    <Icon
-                      icon={IconProp.Lock}
-                      size={SizeProp.Smaller}
-                      className="h-3 w-3"
-                    />
-                    {translator.translateText(SECRET_VALUE_HIDDEN_TEXT)}
-                  </span>
+                  <Pill
+                    text={SECRET_VALUE_HIDDEN_TEXT}
+                    tone={PillTone.Neutral}
+                    icon={IconProp.Lock}
+                  />
                 );
               }
 

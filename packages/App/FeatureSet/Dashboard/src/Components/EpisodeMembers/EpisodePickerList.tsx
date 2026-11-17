@@ -6,6 +6,8 @@ import { Black } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
@@ -257,12 +259,14 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
               className={`flex min-w-0 items-start gap-2${fadedClassName}`}
             >
               {item.number && (
-                <span
-                  data-testid={`${props.testId}-option-number`}
-                  className="mt-px inline-flex flex-shrink-0 items-center rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-gray-600"
-                >
-                  {item.number}
-                </span>
+                <Pill
+                  dataTestId={`${props.testId}-option-number`}
+                  text={item.number}
+                  isUserContent={true}
+                  tone={PillTone.Neutral}
+                  isDotHidden={true}
+                  className="mt-px flex-shrink-0 tabular-nums"
+                />
               )}
               <span
                 data-testid={`${props.testId}-option-title`}

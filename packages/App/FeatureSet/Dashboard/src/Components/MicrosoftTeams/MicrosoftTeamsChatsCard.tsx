@@ -5,6 +5,8 @@ import React, {
   useState,
 } from "react";
 import Card from "Common/UI/Components/Card/Card";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -443,19 +445,18 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                         </div>
                       )}
                     </div>
-                    <span
-                      className={`inline-flex flex-none items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${
+                    <Pill
+                      text={
+                        chat.chatType === "personal" ? "1:1 chat" : "Group chat"
+                      }
+                      tone={
                         chat.chatType === "personal"
-                          ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
-                          : "bg-indigo-50 text-indigo-700 ring-indigo-700/10"
-                      }`}
-                    >
-                      {translator.translateText(
-                        chat.chatType === "personal"
-                          ? "1:1 chat"
-                          : "Group chat",
-                      )}
-                    </span>
+                          ? PillTone.Success
+                          : PillTone.Info
+                      }
+                      isDotHidden={true}
+                      className="flex-none"
+                    />
                     <SendTestNotificationButton
                       route="/microsoft-teams/chats/test"
                       requestBody={{ chatId: chat.id }}

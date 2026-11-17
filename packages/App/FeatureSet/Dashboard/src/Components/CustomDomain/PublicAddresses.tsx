@@ -25,6 +25,8 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
@@ -488,12 +490,12 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
                 >
                   {addressText}
                 </span>
-                <span
-                  className="inline-flex flex-none items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200"
-                  data-testid={PUBLIC_ADDRESS_TEST_IDS.notLive}
-                >
-                  {translator.translateText(PublicAddressCopy.notLiveYet)}
-                </span>
+                <Pill
+                  dataTestId={PUBLIC_ADDRESS_TEST_IDS.notLive}
+                  text={PublicAddressCopy.notLiveYet}
+                  tone={PillTone.Warning}
+                  className="flex-none"
+                />
               </div>
             )}
             {address.isLive ? (

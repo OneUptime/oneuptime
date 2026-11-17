@@ -44,6 +44,8 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import Input from "Common/UI/Components/Input/Input";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import { BILLING_ENABLED, STATUS_PAGE_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -803,12 +805,14 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
                 {translator.translateText(extra.description)}
               </span>
               {plan ? (
-                <span
-                  className="ms-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
-                  data-testid={`guided-setup-extra-${extra.key}-plan`}
-                >
-                  {plan}
-                </span>
+                <Pill
+                  dataTestId={`guided-setup-extra-${extra.key}-plan`}
+                  text={plan}
+                  isUserContent={true}
+                  tone={PillTone.Neutral}
+                  isDotHidden={true}
+                  className="ms-2"
+                />
               ) : (
                 <></>
               )}

@@ -2,6 +2,8 @@ import {
   DETECTION_RULE_TYPE_DESCRIPTIONS,
   DetectionRuleShape,
 } from "./DetectionRuleShape";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { formatNameList } from "../AiAccess/AiAccessModes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { DetectionRuleType } from "Common/Types/SecurityEvent/SigmaCorrelation";
@@ -300,22 +302,14 @@ export const DetectionRuleTypeLabel: FunctionComponent<{
   shape: DetectionRuleShape;
   dataTestId?: string | undefined;
 }): ReactElement => {
-  const translator: Translator = useTranslator();
-
   return (
-    <span
-      className="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-700"
-      title={translator.translateText(
-        DETECTION_RULE_TYPE_DESCRIPTIONS[props.shape.type],
-      )}
-      data-testid={props.dataTestId}
-    >
-      <Icon
-        icon={getDetectionRuleTypeIcon(props.shape.type)}
-        className="h-3 w-3 flex-shrink-0 text-gray-500"
-      />
-      {translator.translateText(props.shape.typeTitle)}
-    </span>
+    <Pill
+      text={props.shape.typeTitle}
+      tone={PillTone.Neutral}
+      icon={getDetectionRuleTypeIcon(props.shape.type)}
+      tooltip={DETECTION_RULE_TYPE_DESCRIPTIONS[props.shape.type]}
+      dataTestId={props.dataTestId}
+    />
   );
 };
 

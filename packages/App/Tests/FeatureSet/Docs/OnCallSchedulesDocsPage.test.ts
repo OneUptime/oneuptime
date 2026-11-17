@@ -134,8 +134,8 @@ const HELD_CHANGES_LABELS: Array<{ label: string; drawnBy: Array<string> }> = [
     label: "Move layer down (lower priority)",
     drawnBy: [LAYER_CARD_FILE, 'label: "Move layer down (lower priority)"'],
   },
-  { label: "New", drawnBy: [LAYER_USER_FILE, 'translateText("New")'] },
-  { label: "Moved", drawnBy: [LAYER_USER_FILE, 'translateText("Moved")'] },
+  { label: "New", drawnBy: [LAYER_USER_FILE, 'text="New"'] },
+  { label: "Moved", drawnBy: [LAYER_USER_FILE, 'text="Moved"'] },
   {
     label: "Removed when you save",
     drawnBy: [LAYER_USER_FILE, 'translateText("Removed when you save")'],
@@ -143,7 +143,7 @@ const HELD_CHANGES_LABELS: Array<{ label: string; drawnBy: Array<string> }> = [
   { label: "Undo", drawnBy: [LAYER_USER_FILE, 'translateText("Undo")'] },
   {
     label: "Includes unsaved changes",
-    drawnBy: [LAYERS_FILE, 'translateText("Includes unsaved changes")'],
+    drawnBy: [LAYERS_FILE, 'text="Includes unsaved changes"'],
   },
   { label: "Save changes", drawnBy: [SAVE_BAR_FILE, '"Save changes"'] },
   { label: "Discard", drawnBy: [SAVE_BAR_FILE, 'title="Discard"'] },

@@ -192,13 +192,14 @@ describe("the custom domain components in the dark theme", () => {
         "text-gray-900",
         "text-gray-500",
         "text-gray-600",
-        // The address list: its tiles, its links, "Not live yet", DNS Setup.
+        /*
+         * The address list: its tiles, its links, DNS Setup ("Not live yet"
+         * is the shared Pill, coloured by its tone).
+         */
         "bg-gray-100",
         "hover:text-indigo-600",
         "group-hover:text-indigo-600",
-        "bg-amber-50",
         "text-amber-700",
-        "ring-amber-200",
         "bg-white",
         "border-gray-300",
         "hover:bg-gray-50",

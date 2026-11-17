@@ -581,11 +581,11 @@ describe("the shared picker", () => {
     )!;
 
     expect(
-      screen.getByTestId(`alert-template-severity-${critical.id}`).className,
-    ).toContain("bg-red-100");
+      screen.getByTestId(`alert-template-severity-${critical.id}`),
+    ).toHaveAttribute("data-tone", "danger");
     expect(
-      screen.getByTestId(`alert-template-severity-${warning.id}`).className,
-    ).toContain("bg-yellow-100");
+      screen.getByTestId(`alert-template-severity-${warning.id}`),
+    ).toHaveAttribute("data-tone", "warning");
   });
 
   test("no blue that is not the product's, folded or open", () => {
@@ -705,8 +705,8 @@ describe("once a template is picked, the list folds into it", () => {
       within(picked()).getByTestId("alert-template-picked-severity"),
     ).toHaveTextContent("Critical");
     expect(
-      within(picked()).getByTestId("alert-template-picked-severity").className,
-    ).toContain("bg-red-100");
+      within(picked()).getByTestId("alert-template-picked-severity"),
+    ).toHaveAttribute("data-tone", "danger");
     expect(
       within(picked()).getByTestId("alert-template-picked-summary"),
     ).toHaveTextContent(etcd.summary);

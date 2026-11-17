@@ -1454,12 +1454,15 @@ describe("every page heading, side menu title, tooltip and metric card title wri
       },
     );
 
-    // The packages' own 99, and the Enterprise pages' three where ee/ is checked out.
+    /*
+     * The packages' own 97 (two more are now a Pill's tooltip, #9137), and
+     * the Enterprise pages' three where ee/ is checked out.
+     */
     expect(
       tooltips.filter((site: PlaceholderSite): boolean => {
         return !site.where.startsWith(ENTERPRISE);
       }).length,
-    ).toBeGreaterThanOrEqual(99);
+    ).toBeGreaterThanOrEqual(97);
 
     if (ENTERPRISE_PRESENT) {
       expect(tooltips.length).toBeGreaterThanOrEqual(100);

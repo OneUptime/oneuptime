@@ -93,6 +93,30 @@ const flameGraphProps: Mock<(props: Props) => void> =
 const scopedFlamegraphProps: Mock<(props: Props) => void> =
   jest.fn<(props: Props) => void>();
 
+/*
+ * A hover tip (the orphan spans' Pill says why there) is drawn as its title
+ * here, so it can be read without hovering.
+ */
+jest.mock("../../../UI/Components/Tooltip/Tooltip", () => {
+  const ReactInFactory: typeof React = jest.requireActual(
+    "react",
+  ) as typeof React;
+
+  return {
+    __esModule: true,
+    default: (props: {
+      text?: string;
+      children: React.ReactElement;
+    }): React.ReactElement => {
+      return props.text
+        ? ReactInFactory.cloneElement(props.children, {
+            title: props.text,
+          } as Record<string, unknown>)
+        : props.children;
+    },
+  };
+});
+
 jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
   return {
     __esModule: true,
