@@ -70,7 +70,7 @@ Chaque réunion est créée au nom du compte avec lequel vous vous connectez, qu
 
 Une connexion faite en se connectant garde les paramètres qui décident qui attend : **Who can join** pour Google Meet et **Who skips the lobby** pour Microsoft Teams. Modifiez-les avec **Modifier** sur la ligne de la connexion.
 
-Une connexion Zoom faite avant que OneUptime lise les transcriptions des appels lance les appels comme avant, mais ne peut lire leurs transcriptions qu'après une nouvelle connexion : **Reconnect** sur sa ligne demande à Zoom les autorisations de transcription.
+Une connexion Zoom faite avant que OneUptime lise les transcriptions des appels ne peut pas les lire. Une fois l'app Zoom de OneUptime mise à jour pour les lire, Zoom cesse d'accepter une telle connexion 90 jours plus tard, et elle ne lance plus d'appels. Dès lors, OneUptime vous demande de la reconnecter : **Reconnect** sur sa ligne demande à Zoom les autorisations de transcription.
 
 Une connexion Microsoft Teams faite pendant que l'option **Enregistrer et transcrire les appels d'incident** était désactivée lance les appels comme avant, sans les enregistrer. Une fois l'option activée, **Reconnect** sur sa ligne demande aussi à Microsoft les autorisations de calendrier et de transcription.
 

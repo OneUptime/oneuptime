@@ -70,7 +70,7 @@ flowchart TB
 
 通过登录建立的连接仍然有决定谁需要等待的设置：Google Meet 的 **Who can join** 和 Microsoft Teams 的 **Who skips the lobby**。在连接所在行使用 **编辑** 更改它们。
 
-在 OneUptime 读取通话转录之前登录的 Zoom 连接会像以前一样开始通话，但在重新登录之前无法读取通话的转录：其所在行的 **Reconnect** 会向 Zoom 请求转录权限。
+在 OneUptime 读取通话转录之前登录的 Zoom 连接无法读取这些转录。OneUptime 的 Zoom 应用更新为可读取转录后，Zoom 会在 90 天后不再接受此类连接的登录，该连接也将无法开始通话。从那时起，OneUptime 会请您重新登录：其所在行的 **Reconnect** 会向 Zoom 请求转录权限。
 
 在 **录制并转录事件通话** 关闭期间登录的 Microsoft Teams 连接会像以前一样开始通话，但不会录制。开启该开关后，其所在行的 **Reconnect** 还会向 Microsoft 请求日历和转录权限。
 

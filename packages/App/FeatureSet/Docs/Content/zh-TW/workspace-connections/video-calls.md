@@ -70,7 +70,7 @@ flowchart TB
 
 透過登入建立的連線仍然有決定誰需要等待的設定：Google Meet 的 **Who can join** 和 Microsoft Teams 的 **Who skips the lobby**。在連線所在列使用 **編輯** 變更它們。
 
-在 OneUptime 讀取通話逐字稿之前登入的 Zoom 連線會像以前一樣開始通話，但在重新登入之前無法讀取通話的逐字稿：其所在列的 **Reconnect** 會向 Zoom 要求逐字稿權限。
+在 OneUptime 讀取通話逐字稿之前登入的 Zoom 連線無法讀取這些逐字稿。OneUptime 的 Zoom 應用程式更新為可讀取逐字稿後，Zoom 會在 90 天後不再接受這類連線的登入，該連線也將無法開始通話。從那時起，OneUptime 會請您重新登入：其所在列的 **Reconnect** 會向 Zoom 要求逐字稿權限。
 
 在 **錄製並轉錄事件通話** 關閉期間登入的 Microsoft Teams 連線會像以前一樣開始通話，但不會錄製。開啟該開關後，其所在列的 **Reconnect** 也會向 Microsoft 要求行事曆和逐字稿權限。
 

@@ -70,7 +70,7 @@ Varje möte skapas som det konto du loggar in med, som är värd för det. Logga
 
 En anslutning som har gjorts genom inloggning har fortfarande de inställningar som avgör vem som väntar: **Who can join** för Google Meet och **Who skips the lobby** för Microsoft Teams. Ändra dem med **Redigera** på anslutningens rad.
 
-En Zoom-anslutning som loggades in innan OneUptime läste transkriptioner av samtal startar samtal som förut, men kan inte läsa deras transkriptioner förrän den loggas in igen: **Reconnect** på dess rad ber Zoom om behörigheterna för transkriptioner.
+En Zoom-anslutning som loggades in innan OneUptime läste transkriptioner av samtal kan inte läsa dem. När OneUptimes Zoom-app har uppdaterats för att läsa dem slutar Zoom att godta en sådan anslutnings inloggning 90 dagar senare, och den slutar starta samtal. Från och med då ber OneUptime dig att logga in den igen: **Reconnect** på dess rad ber Zoom om behörigheterna för transkriptioner.
 
 En Microsoft Teams-anslutning som loggades in medan inställningen **Spela in och transkribera incidentsamtal** var avstängd startar samtal som förut, utan inspelning. När inställningen är påslagen ber **Reconnect** på dess rad Microsoft om behörigheterna för kalender och transkriptioner också.
 

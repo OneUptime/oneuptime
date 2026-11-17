@@ -70,7 +70,7 @@ Hvert møte opprettes som kontoen du logger på med, som er vert for det. Logg p
 
 En tilkobling som er laget ved å logge på, har fortsatt innstillingene som bestemmer hvem som venter: **Who can join** for Google Meet og **Who skips the lobby** for Microsoft Teams. Endre dem med **Rediger** i tilkoblingens rad.
 
-En Zoom-tilkobling som ble logget inn før OneUptime leste transkripsjoner av samtaler, starter samtaler som før, men kan ikke lese transkripsjonene deres før den logges inn på nytt: **Reconnect** på raden ber Zoom om tillatelsene til transkripsjoner.
+En Zoom-tilkobling som ble logget inn før OneUptime leste transkripsjoner av samtaler, kan ikke lese dem. Når OneUptimes Zoom-app er oppdatert til å lese dem, slutter Zoom å godta innloggingen til en slik tilkobling 90 dager senere, og den slutter å starte samtaler. Fra da av ber OneUptime deg logge den inn på nytt: **Reconnect** på raden ber Zoom om tillatelsene til transkripsjoner.
 
 En Microsoft Teams-tilkobling som ble logget inn mens **Ta opp og transkriber hendelsessamtaler** var slått av, starter samtaler som før, uten opptak. Når innstillingen er slått på, ber **Reconnect** på raden Microsoft også om tillatelsene til kalender og transkripsjoner.
 

@@ -70,7 +70,7 @@ Ogni riunione viene creata a nome dell'account con cui accedi, che ne è l'host.
 
 Una connessione fatta effettuando l'accesso ha comunque le impostazioni che decidono chi aspetta: **Who can join** per Google Meet e **Who skips the lobby** per Microsoft Teams. Cambiale con **Modifica** nella riga della connessione.
 
-Una connessione Zoom creata con l'accesso prima che OneUptime leggesse le trascrizioni delle chiamate avvia le chiamate come prima, ma non può leggerne le trascrizioni finché non accede di nuovo: **Reconnect** sulla sua riga chiede a Zoom le autorizzazioni per le trascrizioni.
+Una connessione Zoom creata con l'accesso prima che OneUptime leggesse le trascrizioni delle chiamate non può leggerle. Una volta aggiornata l'app Zoom di OneUptime per leggerle, Zoom smette di accettare l'accesso di una tale connessione 90 giorni dopo, e la connessione smette di avviare chiamate. Da allora OneUptime ti chiede di farla accedere di nuovo: **Reconnect** sulla sua riga chiede a Zoom le autorizzazioni per le trascrizioni.
 
 Una connessione Microsoft Teams creata con l'accesso mentre l'opzione **Registra e trascrivi le chiamate degli incidenti** era disattivata avvia le chiamate come prima, senza registrarle. Una volta attivata l'opzione, **Reconnect** sulla sua riga chiede a Microsoft anche le autorizzazioni per il calendario e le trascrizioni.
 

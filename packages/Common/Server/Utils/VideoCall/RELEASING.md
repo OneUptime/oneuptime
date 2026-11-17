@@ -458,11 +458,6 @@ Add a row for every submission.
 
 Found while writing this guide on 17 November 2026:
 
-- Once Zoom approves the transcript scopes, connections made before them stop
-  starting calls 90 days after the update goes live, unless someone
-  reconnects them. The user docs say they start calls as before, and nothing
-  in OneUptime asks them to reconnect (#9269). Settle this before the update
-  goes live: **App activation** can hold it until a maintainer activates it.
 - The privacy policy's **Connected Services** section names only
   `user:read:user` and `meeting:write:meeting` for Zoom, and says the data is
   used only to create meetings. It does not mention the `cloud_recording`
