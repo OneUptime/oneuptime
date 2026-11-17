@@ -1,4 +1,5 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import FieldError from "../Forms/Fields/FieldError";
 import Label from "../../../Models/DatabaseModels/Label";
 import Includes from "../../../Types/BaseDatabase/Includes";
@@ -37,7 +38,6 @@ import { canPickByLabel, withLabels, withSearch } from "./EntityDropdownQuery";
 import { getEntityDropdownEmptyListText } from "./EntityDropdownEmptyList";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
-import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 
 /*
  * EntityDropdown is the generalized successor to react-select-based Dropdown.
@@ -2367,8 +2367,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
 
           {activeTab === "labels" && selectedLabelIds.length > 0 && (
             <div className="flex flex-shrink-0 items-center justify-between gap-2 border-t border-gray-100 bg-gray-50 px-2 py-1.5">
-              <button
-                type="button"
+              <Button
+                title="Clear"
+                buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                buttonSize={ButtonSize.Small}
+                disabled={isApplyingLabels}
                 onMouseDown={(
                   event: React.MouseEvent<HTMLButtonElement>,
                 ): void => {
@@ -2377,18 +2380,28 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 onClick={(): void => {
                   setSelectedLabelIds([]);
                 }}
-                disabled={isApplyingLabels}
-                className={`rounded px-2 py-1 text-xs font-medium text-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${getHandDrawnButtonStateClassName(
-                  {
-                    isLocked: isApplyingLabels,
-                    hoverClassName: "hover:bg-white hover:text-gray-800",
-                  },
-                )}`}
-              >
-                {translator.translateText("Clear")}
-              </button>
-              <button
-                type="button"
+              />
+              {/*
+                The shared Button, kept from taking the focus as it is
+                pressed (onMouseDown): the search field above keeps it,
+                and the list stays open while the entries are added.
+              */}
+              <Button
+                title={
+                  isApplyingLabels
+                    ? translator.translateText("Adding...")
+                    : translator.translatePlural(
+                        {
+                          one: "Add entries from {{count}} label",
+                          other: "Add entries from {{count}} labels",
+                        },
+                        selectedLabelIds.length,
+                      )
+                }
+                isTitleTranslated={true}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                buttonSize={ButtonSize.Small}
+                isLoading={isApplyingLabels}
                 onMouseDown={(
                   event: React.MouseEvent<HTMLButtonElement>,
                 ): void => {
@@ -2397,47 +2410,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 onClick={(): void => {
                   void applyLabelSelection();
                 }}
-                disabled={isApplyingLabels}
-                className={`inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1 text-xs font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 ${getHandDrawnButtonStateClassName(
-                  {
-                    isBusy: isApplyingLabels,
-                    hoverClassName: "hover:bg-indigo-700",
-                  },
-                )}`}
-              >
-                {isApplyingLabels && (
-                  <svg
-                    className="h-3.5 w-3.5 animate-spin"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                    />
-                  </svg>
-                )}
-                {isApplyingLabels
-                  ? translator.translateText("Adding...")
-                  : translator.translatePlural(
-                      {
-                        one: "Add entries from {{count}} label",
-                        other: "Add entries from {{count}} labels",
-                      },
-                      selectedLabelIds.length,
-                    )}
-              </button>
+              />
             </div>
           )}
         </div>
