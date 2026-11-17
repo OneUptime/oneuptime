@@ -2899,8 +2899,9 @@ export default class MattermostUtil extends WorkspaceBase {
     return MattermostUtil.elementPiece({
       ...MattermostUtil.getElementBase(block),
       type: "bool",
+      // Written beside the box: its own words, or the field's name.
       placeholder: MattermostUtil.cutPlainText(
-        block.label,
+        block.optionLabel || block.label,
         MattermostUtil.DIALOG_TEXT_MAX_LENGTH,
       ),
       default: block.initialValue ? "true" : "false",
