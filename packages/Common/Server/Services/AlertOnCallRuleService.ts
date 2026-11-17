@@ -57,7 +57,7 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    const onCreate: OnCreate<Model> = await super.onBeforeCreate(createBy);
+    await super.onBeforeCreate(createBy);
 
     const projectId: ObjectID | undefined =
       createBy.data.projectId || createBy.props.tenantId;
@@ -70,7 +70,7 @@ export class Service extends ProjectReferencesService<Model> {
       });
     }
 
-    return onCreate;
+    return { createBy: createBy, carryForward: undefined };
   }
 
   /*
@@ -81,7 +81,7 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    const onUpdate: OnUpdate<Model> = await super.onBeforeUpdate(updateBy);
+    await super.onBeforeUpdate(updateBy);
 
     const criteria: unknown = (
       updateBy.data as unknown as Record<string, unknown>
@@ -119,7 +119,7 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    return onUpdate;
+    return { updateBy: updateBy, carryForward: null };
   }
 
   /*
