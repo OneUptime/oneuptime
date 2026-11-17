@@ -56650,5 +56650,11 @@
   "Message Age": "消息时长",
   "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "OneUptime 根据此队列报告的代理指标为其推荐的监视器。选择需要的监视器，一步即可创建。",
   "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "过去 7 天内，此队列没有收到任何推荐监视器读取的代理指标。代理的指标到达后，建议就会出现。",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} 是所选 {{count}} 个人员或团队中的任一个",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} 是所选 {{count}} 个人员或团队中的任一个",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} 不是所选 {{count}} 个人员或团队中的任何一个",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} 不是所选 {{count}} 个人员或团队中的任何一个",
+  "Is any of": "是以下任一项",
+  "Is none of": "不是以下任一项",
   "{{page}} (through {{groups}})": "{{page}}（通过 {{groups}}）"
 }

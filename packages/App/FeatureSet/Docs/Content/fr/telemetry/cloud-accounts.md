@@ -140,6 +140,8 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 OneUptime lit chaque abonnement que l'application peut lire, jusqu'à 50, sauf si vous en listez certains dans **Abonnements**. Le secret de l'application cesse de fonctionner à sa date d'expiration : à partir de 30 jours avant, chaque lecture vous en avertit. Exécutez à nouveau la commande et collez ce qu'elle affiche pour lui en donner un nouveau.
 
+Dans chaque abonnement, OneUptime liste les ressources de chaque type dont il lit les métriques, avec leurs balises, régions et groupes de ressources, ainsi que les sous-réseaux de chaque réseau virtuel et chaque groupe de sécurité réseau, avec ses règles. Il enregistre aussi comment ils sont reliés : le sous-réseau et le réseau virtuel dans lesquels s'exécute chaque machine virtuelle, interface réseau et groupe identique, et les groupes de sécurité réseau qui la protègent, sur ses interfaces et sur son sous-réseau, ce vers quoi chaque équilibreur de charge et chaque passerelle d'application envoie le trafic, et le réseau et les groupes identiques de nœuds de chaque cluster AKS. **Monitoring Reader** lit tout cela : il n'y a rien de plus à accorder.
+
 ## Google Cloud
 
 :::steps

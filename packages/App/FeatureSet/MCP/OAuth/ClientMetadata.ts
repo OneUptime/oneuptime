@@ -85,8 +85,8 @@ export default class ClientMetadata {
    * The document must name the URL it was fetched from as its own client id:
    * that is what stops one site from serving another's document and
    * borrowing its name. And the client is public by construction - there is
-   * nowhere for a shared secret to have been exchanged - so any method other
-   * than `none`, or a secret in the document, is refused.
+   * nowhere for a shared secret to have been exchanged - so a document that
+   * does not let it authenticate with `none`, or holds a secret, is refused.
    */
   public static parseMetadataDocument(data: {
     clientId: string;
@@ -114,23 +114,55 @@ export default class ClientMetadata {
     }
 
     const tokenEndpointAuthMethod: McpOAuthClientAuthMethod =
-      ClientMetadata.parseAuthMethod(
-        metadata["token_endpoint_auth_method"],
-        McpOAuthClientAuthMethod.None,
-      );
-
-    if (tokenEndpointAuthMethod !== McpOAuthClientAuthMethod.None) {
-      throw new McpOAuthError(
-        McpOAuthErrorCode.InvalidClientMetadata,
-        'A client identified by a metadata document must use token_endpoint_auth_method "none".',
-      );
-    }
+      ClientMetadata.parseMetadataDocumentAuthMethod(metadata);
 
     return {
       ...ClientMetadata.parseDescriptiveFields(metadata),
       redirectUris: ClientMetadata.parseRedirectUris(metadata),
       tokenEndpointAuthMethod,
     };
+  }
+
+  /*
+   * How a client identified by a metadata document authenticates at the
+   * token endpoint. Only "none" will do, so the question is whether the
+   * document allows it.
+   *
+   * `token_endpoint_auth_method` is the RFC 7591 field, and leaving it out
+   * means "none" for such a client. A document can also list every method
+   * the client can use in `token_endpoint_auth_methods_supported`, the client
+   * then using one this server offers - and the server's metadata offers
+   * "none". So a list with "none" in it is enough whatever the single field
+   * says: there it is only a preference, used when the server offers it too.
+   * ChatGPT's document is that case. It prefers "private_key_jwt", which this
+   * server does not offer, and lists ["none", "private_key_jwt"].
+   */
+  private static parseMetadataDocumentAuthMethod(
+    metadata: Record<string, unknown>,
+  ): McpOAuthClientAuthMethod {
+    const supported: unknown =
+      metadata["token_endpoint_auth_methods_supported"];
+
+    if (
+      Array.isArray(supported) &&
+      supported.includes(McpOAuthClientAuthMethod.None)
+    ) {
+      return McpOAuthClientAuthMethod.None;
+    }
+
+    const method: McpOAuthClientAuthMethod = ClientMetadata.parseAuthMethod(
+      metadata["token_endpoint_auth_method"],
+      McpOAuthClientAuthMethod.None,
+    );
+
+    if (method !== McpOAuthClientAuthMethod.None) {
+      throw new McpOAuthError(
+        McpOAuthErrorCode.InvalidClientMetadata,
+        'A client identified by a metadata document must use token_endpoint_auth_method "none".',
+      );
+    }
+
+    return method;
   }
 
   private static asObject(value: unknown): Record<string, unknown> {

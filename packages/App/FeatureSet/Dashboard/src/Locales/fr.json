@@ -56650,5 +56650,11 @@
   "Message Age": "Âge des messages",
   "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "Moniteurs que OneUptime recommande pour cette file d'attente, d'après les métriques de broker qu'elle signale. Choisissez ceux que vous voulez et créez-les en une seule étape.",
   "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "Aucune métrique de broker lue par un moniteur recommandé n'est arrivée pour cette file d'attente au cours des 7 derniers jours. Les recommandations apparaîtront dès que les métriques de son broker arriveront.",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} est l'une des {{count}} personnes ou équipes sélectionnées",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} est la personne ou l'équipe sélectionnée ({{count}})",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} n'est aucune des {{count}} personnes ou équipes sélectionnées",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} n'est pas la personne ou l'équipe sélectionnée ({{count}})",
+  "Is any of": "Est l'un de",
+  "Is none of": "N'est aucun de",
   "{{page}} (through {{groups}})": "{{page}} (via {{groups}})"
 }

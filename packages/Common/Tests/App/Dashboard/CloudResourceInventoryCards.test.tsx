@@ -361,7 +361,8 @@ describe("what each connection is", () => {
       typeNextTo(
         "/subscriptions/0000/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/default",
       ),
-    ).toBe("Subnet");
+      // Listed (#9375), so named by the catalog's label, as written.
+    ).toBe("Virtual Network Subnet");
     cleanup();
 
     await renderCards(

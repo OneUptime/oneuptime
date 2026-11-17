@@ -230,7 +230,7 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
       Why.Automation,
   },
   "packages/Common/Server/Services/AlertOnCallRuleEngineService.ts": {
-    "AlertOnCallRuleEngineServiceClass.applyRulesToAlert Alert": Why.Automation,
+    "AlertOnCallRuleEngineServiceClass.attachPolicies Alert": Why.Automation,
   },
   "packages/Common/Server/Services/AlertService.ts": {
     "Service.releaseCreatedNotificationHeldForOwners Alert": Why.Bookkeeping,

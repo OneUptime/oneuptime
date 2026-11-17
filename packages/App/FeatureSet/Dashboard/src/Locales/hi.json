@@ -56650,5 +56650,11 @@
   "Message Age": "मैसेज की उम्र",
   "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "इस क्यू द्वारा रिपोर्ट किए गए ब्रोकर मेट्रिक्स के आधार पर इस क्यू के लिए OneUptime के सुझाए गए मॉनिटर। जो चाहिए उन्हें चुनें और एक ही चरण में बनाएँ।",
   "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "पिछले 7 दिनों में इस क्यू के लिए ऐसा कोई ब्रोकर मेट्रिक नहीं आया जिसे कोई सुझाया गया मॉनिटर पढ़ता हो। इसके ब्रोकर के मेट्रिक्स आते ही सुझाव दिखेंगे।",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} चुने गए {{count}} लोगों या टीमों में से कोई एक है",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} चुना गया {{count}} व्यक्ति या टीम है",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} चुने गए {{count}} लोगों या टीमों में से कोई नहीं है",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} चुना गया {{count}} व्यक्ति या टीम नहीं है",
+  "Is any of": "इनमें से कोई एक है",
+  "Is none of": "इनमें से कोई नहीं है",
   "{{page}} (through {{groups}})": "{{page}} ({{groups}} के ज़रिए)"
 }

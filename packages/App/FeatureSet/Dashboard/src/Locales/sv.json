@@ -56650,5 +56650,11 @@
   "Message Age": "Meddelandeålder",
   "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "Monitorer som OneUptime rekommenderar för den här kön, utifrån de brokermätvärden den rapporterar. Välj dem du vill ha och skapa dem i ett steg.",
   "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "Inget brokermätvärde som en rekommenderad monitor läser har kommit för den här kön de senaste 7 dagarna. Rekommendationer visas när brokerns mätvärden kommer.",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} är en av {{count}} valda personer eller team",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} är {{count}} vald person eller valt team",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} är ingen av {{count}} valda personer eller team",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} är inte {{count}} vald person eller valt team",
+  "Is any of": "Är en av",
+  "Is none of": "Är ingen av",
   "{{page}} (through {{groups}})": "{{page}} (via {{groups}})"
 }

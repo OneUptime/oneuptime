@@ -56650,5 +56650,11 @@
   "Message Age": "Meldingsalder",
   "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "Monitorer OneUptime anbefaler for denne køen, ut fra broker-målingene den rapporterer. Velg dem du vil ha, og opprett dem i ett trinn.",
   "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "Ingen broker-måling som en anbefalt monitor leser, har kommet for denne køen de siste 7 dagene. Anbefalinger vises når målingene fra brokeren kommer.",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} er en av {{count}} valgte personer eller team",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} er {{count}} valgt person eller team",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} er ingen av {{count}} valgte personer eller team",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} er ikke {{count}} valgt person eller team",
+  "Is any of": "Er en av",
+  "Is none of": "Er ingen av",
   "{{page}} (through {{groups}})": "{{page}} (via {{groups}})"
 }

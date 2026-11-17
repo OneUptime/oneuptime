@@ -56650,5 +56650,11 @@
   "Message Age": "سن پیام",
   "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "مانیتورهایی که OneUptime برای این صف توصیه می‌کند، بر اساس متریک‌های بروکری که گزارش می‌دهد. موارد دلخواه را انتخاب کنید و در یک گام بسازید.",
   "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "در ۷ روز گذشته هیچ متریک بروکری که یک مانیتور توصیه‌شده می‌خواند برای این صف نرسیده است. توصیه‌ها پس از رسیدن متریک‌های بروکر آن نمایش داده می‌شوند.",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} یکی از {{count}} فرد یا تیم انتخاب‌شده است",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} همان {{count}} فرد یا تیم انتخاب‌شده است",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} هیچ‌یک از {{count}} فرد یا تیم انتخاب‌شده نیست",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} آن {{count}} فرد یا تیم انتخاب‌شده نیست",
+  "Is any of": "یکی از این‌ها است",
+  "Is none of": "هیچ‌یک از این‌ها نیست",
   "{{page}} (through {{groups}})": "{{page}} (از طریق {{groups}})"
 }

@@ -1051,6 +1051,7 @@ import { PresentedKeyLookupHashIndexes1809182940000 } from "./1809182940000-Pres
 import { WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182950000 } from "./1809182950000-WebhookAddressesAndSnmpCredentialsEncryptedColumns";
 import { TwilioAuthTokenTextColumn1809182960000 } from "./1809182960000-TwilioAuthTokenTextColumn";
 import { WidenWorkspaceMessageIdColumns1809182970000 } from "./1809182970000-WidenWorkspaceMessageIdColumns";
+import { AddNetworkDeviceManufacturer1809182980000 } from "./1809182980000-AddNetworkDeviceManufacturer";
 
 export default [
   InitialMigration,
@@ -2106,4 +2107,5 @@ export default [
   WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182950000,
   TwilioAuthTokenTextColumn1809182960000,
   WidenWorkspaceMessageIdColumns1809182970000,
+  AddNetworkDeviceManufacturer1809182980000,
 ];

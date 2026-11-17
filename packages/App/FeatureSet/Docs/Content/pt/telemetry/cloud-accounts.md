@@ -140,6 +140,8 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 O OneUptime lê cada assinatura que o aplicativo pode ler, até 50, a menos que você liste algumas em **Assinaturas**. O segredo do aplicativo para de funcionar na data em que expira: a partir de 30 dias antes, cada leitura avisa sobre isso. Execute o comando de novo e cole o que ele exibe para dar a ele um novo.
 
+Em cada assinatura, o OneUptime lista os recursos de cada tipo cujas métricas lê, com suas tags, regiões e grupos de recursos, e também as sub-redes de cada rede virtual e cada grupo de segurança de rede, com suas regras. Também registra como eles se conectam: a sub-rede e a rede virtual em que cada máquina virtual, interface de rede e conjunto de dimensionamento é executado e os grupos de segurança de rede que o protegem, em suas interfaces e em sua sub-rede, para onde cada balanceador de carga e cada gateway de aplicativo envia o tráfego, e a rede e os conjuntos de dimensionamento de nós de cada cluster do AKS. **Monitoring Reader** lê tudo isso, então não há mais nada a conceder.
+
 ## Google Cloud
 
 :::steps

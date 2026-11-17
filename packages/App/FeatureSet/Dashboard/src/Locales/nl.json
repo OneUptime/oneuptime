@@ -56650,5 +56650,11 @@
   "Message Age": "Berichtleeftijd",
   "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "Monitors die OneUptime aanbeveelt voor deze wachtrij, op basis van de brokermetrieken die ze rapporteert. Kies de monitors die u wilt en maak ze in één stap aan.",
   "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "In de afgelopen 7 dagen is voor deze wachtrij geen brokermetriek binnengekomen die een aanbevolen monitor leest. Aanbevelingen verschijnen zodra de metrieken van de broker binnenkomen.",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} is een van {{count}} geselecteerde personen of teams",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} is {{count}} geselecteerde persoon of team",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} is geen van {{count}} geselecteerde personen of teams",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} is niet {{count}} geselecteerde persoon of team",
+  "Is any of": "Is een van",
+  "Is none of": "Is geen van",
   "{{page}} (through {{groups}})": "{{page}} (via {{groups}})"
 }

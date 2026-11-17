@@ -56650,5 +56650,11 @@
   "Message Age": "Возраст сообщений",
   "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "Мониторы, которые OneUptime рекомендует для этой очереди на основе метрик брокера, о которых она сообщает. Выберите нужные и создайте их за один шаг.",
   "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "За последние 7 дней для этой очереди не поступило ни одной метрики брокера, которую читает рекомендуемый монитор. Рекомендации появятся, как только начнут поступать метрики её брокера.",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}}: один из выбранных людей или команд ({{count}})",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}}: один из выбранных людей или команд ({{count}})",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}}: ни один из выбранных людей или команд ({{count}})",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}}: ни один из выбранных людей или команд ({{count}})",
+  "Is any of": "Равно одному из",
+  "Is none of": "Не равно ни одному из",
   "{{page}} (through {{groups}})": "{{page}} (через {{groups}})"
 }

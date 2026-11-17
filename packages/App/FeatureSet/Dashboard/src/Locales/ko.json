@@ -56650,5 +56650,11 @@
   "Message Age": "메시지 경과 시간",
   "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "이 큐가 보고하는 브로커 메트릭을 바탕으로 OneUptime이 이 큐에 권장하는 모니터입니다. 원하는 모니터를 골라 한 번에 생성하세요.",
   "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "지난 7일 동안 권장 모니터가 읽는 브로커 메트릭이 이 큐에 도착하지 않았습니다. 브로커의 메트릭이 도착하면 권장 사항이 표시됩니다.",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 하나임",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 하나임",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 어느 것도 아님",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 어느 것도 아님",
+  "Is any of": "다음 중 하나임",
+  "Is none of": "다음 중 어느 것도 아님",
   "{{page}} (through {{groups}})": "{{page}}({{groups}} 경유)"
 }

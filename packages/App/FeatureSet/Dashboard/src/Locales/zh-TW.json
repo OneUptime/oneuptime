@@ -56650,5 +56650,11 @@
   "Message Age": "訊息存留時間",
   "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "OneUptime 根據此佇列回報的代理程式指標為其建議的監測器。選擇需要的監測器，一個步驟即可建立。",
   "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "過去 7 天內，此佇列沒有收到任何建議監測器讀取的代理程式指標。代理程式的指標到達後，建議就會出現。",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} 是所選 {{count}} 個人員或團隊中的任一個",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} 是所選 {{count}} 個人員或團隊中的任一個",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} 不是所選 {{count}} 個人員或團隊中的任何一個",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} 不是所選 {{count}} 個人員或團隊中的任何一個",
+  "Is any of": "是下列任一項",
+  "Is none of": "不是下列任一項",
   "{{page}} (through {{groups}})": "{{page}}（透過 {{groups}}）"
 }
