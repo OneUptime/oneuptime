@@ -104,6 +104,20 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Link}
         />
+        {/*
+         * Notes only the team sees, beside the rest of the investigation. It was
+         * a section of its own, "Notes" (#9216).
+         */}
+        <SideMenuItem
+          link={{
+            title: "Private Notes",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERT_VIEW_INTERNAL_NOTE] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Lock}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Team">
@@ -153,19 +167,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Bolt}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="Notes">
-        <SideMenuItem
-          link={{
-            title: "Private Notes",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERT_VIEW_INTERNAL_NOTE] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Lock}
         />
       </SideMenuSection>
 

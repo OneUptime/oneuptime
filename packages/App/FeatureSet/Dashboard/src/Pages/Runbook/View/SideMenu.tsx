@@ -26,18 +26,20 @@ export interface ComponentProps {
  *   menu, which should also be collapsed by default ... show as little stuff
  *   as possible to the user, so it reduces decision paralysis."
  *
- * Logs and Settings fold by their titles (SECTION_TITLES_COLLAPSED_BY_DEFAULT
- * in SideMenuSectionState.ts), like every Logs and Settings section in the
- * product, and each opens by itself on a page inside it, so the page someone
- * is on is never folded away. The Overview still leads to the runs in one
- * click: Last Run opens that run, and Total Runs the Executions list.
+ * The executions had a Logs section of their own, which held nothing else,
+ * so they are folded in Advanced now (#9216). Settings and Advanced fold by
+ * their titles (SECTION_TITLES_COLLAPSED_BY_DEFAULT in SideMenuSectionState.ts),
+ * like every Settings and Advanced section in the product, and each opens by
+ * itself on a page inside it, so the page someone is on is never folded
+ * away. The Overview still leads to the runs in one click: Last Run opens
+ * that run, and Total Runs the Executions list.
  */
 const RunbookViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   /*
    * One run's page is one of the runs Executions lists, so Executions stays
-   * the marked entry there (and the phone menu's button says Logs /
+   * the marked entry there (and the phone menu's button says Advanced /
    * Executions rather than nothing). Matching on the run's route only while
    * that page is open keeps Executions marked on its own page too.
    */
@@ -69,24 +71,6 @@ const RunbookViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.List}
-        />
-      </SideMenuSection>
-
-      {/*
-       * The runs: looked at when something needs checking, so folded away
-       * like the Logs of an on-call policy, schedule or incoming call policy.
-       */}
-      <SideMenuSection title="Logs">
-        <SideMenuItem
-          link={{
-            title: "Executions",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.RUNBOOK_VIEW_EXECUTIONS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          activeRoute={isOnExecutionPage ? executionRoute : undefined}
-          icon={IconProp.Play}
         />
       </SideMenuSection>
 
@@ -138,6 +122,21 @@ const RunbookViewSideMenu: FunctionComponent<ComponentProps> = (
       })}
 
       <SideMenuSection title="Advanced">
+        {/*
+         * The runs: looked at when something needs checking, so folded away.
+         * They had a Logs section of their own, for this one entry (#9216).
+         */}
+        <SideMenuItem
+          link={{
+            title: "Executions",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUNBOOK_VIEW_EXECUTIONS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          activeRoute={isOnExecutionPage ? executionRoute : undefined}
+          icon={IconProp.Play}
+        />
         {/*
          * Who owns the runbook, with the other pages that change it. It was a
          * section of its own, under a heading of its own name (#9134).

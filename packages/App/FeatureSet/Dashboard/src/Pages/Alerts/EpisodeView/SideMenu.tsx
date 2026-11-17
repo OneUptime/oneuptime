@@ -21,9 +21,11 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
   return (
     <SideMenu>
       {/*
-       * The same sections as an incident episode's own menu (Overview,
-       * Investigation, Team, the episode's members, Notes, Developer,
-       * Advanced), so a page is in the same place on both kinds.
+       * Like an incident episode's menu, the episode's members are in
+       * Overview, so a page is in the same place on both kinds. An alert
+       * episode has no roles or public notes, so its Owners join Overview and
+       * its Private Notes join Investigation rather than each taking a
+       * section of one entry (#9216).
        */}
       <SideMenuSection title="Overview">
         <SideMenuItem
@@ -46,6 +48,33 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Timeline}
+        />
+        {/*
+         * The alerts grouped into this episode. It was a section of its own,
+         * "Alerts" (#9216); an incident episode has its incidents in the same place.
+         */}
+        <SideMenuItem
+          link={{
+            title: "Member Alerts",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERT_EPISODE_VIEW_ALERTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Alert}
+        />
+        {/*
+         * Who owns this episode. It was a section of its own, "Team" (#9216).
+         */}
+        <SideMenuItem
+          link={{
+            title: "Owners",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERT_EPISODE_VIEW_OWNERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Team}
         />
       </SideMenuSection>
 
@@ -82,35 +111,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Wrench}
         />
-      </SideMenuSection>
-
-      <SideMenuSection title="Team">
-        <SideMenuItem
-          link={{
-            title: "Owners",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERT_EPISODE_VIEW_OWNERS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Team}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="Alerts">
-        <SideMenuItem
-          link={{
-            title: "Member Alerts",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERT_EPISODE_VIEW_ALERTS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Alert}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="Notes">
+        {/*
+         * Notes only the team sees, beside the rest of the investigation. It was
+         * a section of its own, "Notes" (#9216).
+         */}
         <SideMenuItem
           link={{
             title: "Private Notes",

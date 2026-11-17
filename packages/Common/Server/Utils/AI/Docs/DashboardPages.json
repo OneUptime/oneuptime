@@ -2599,6 +2599,21 @@
     "kind": "page"
   },
   {
+    "title": "Incoming Call Policies",
+    "where": [
+      "On-Call",
+      "Policies"
+    ],
+    "keywords": [
+      "hotline",
+      "phone number",
+      "call routing",
+      "incoming calls"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/incoming-call-policies",
+    "kind": "page"
+  },
+  {
     "title": "On-Call Schedules",
     "where": [
       "On-Call",
@@ -2644,20 +2659,6 @@
       "outlook"
     ],
     "path": "/dashboard/:projectId/on-call-duty/calendar-feeds",
-    "kind": "page"
-  },
-  {
-    "title": "Incoming Call Policies",
-    "where": [
-      "On-Call",
-      "Incoming Calls"
-    ],
-    "keywords": [
-      "hotline",
-      "phone number",
-      "call routing"
-    ],
-    "path": "/dashboard/:projectId/on-call-duty/incoming-call-policies",
     "kind": "page"
   },
   {
@@ -3036,7 +3037,7 @@
     "title": "Maintenance Calendar",
     "where": [
       "Scheduled Maintenance",
-      "Calendar"
+      "Overview"
     ],
     "keywords": [
       "calendar view",
@@ -8134,8 +8135,7 @@
   {
     "title": "Runs",
     "where": [
-      "Workflows",
-      "Logs"
+      "Workflows"
     ],
     "keywords": [
       "workflow runs",

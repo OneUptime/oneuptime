@@ -22,8 +22,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     <SideMenu>
       {/*
        * The sections an incident's own menu has, where an event has
-       * pages for them (Overview, Team, Notifications, Notes, Developer,
-       * Advanced), so a page is in the same place on every record.
+       * pages for them (Overview, Notifications, Notes, Developer,
+       * Advanced), so a page is in the same place on every record. An event
+       * has no roles or on-call executions, so its Owners are in Overview
+       * rather than in a Team section of one entry (#9216).
        */}
       <SideMenuSection title="Overview">
         <SideMenuItem
@@ -71,9 +73,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.BookOpen}
         />
-      </SideMenuSection>
-
-      <SideMenuSection title="Team">
+        {/*
+         * Who owns this event. It was a section of its own, "Team" (#9216).
+         */}
         <SideMenuItem
           link={{
             title: "Owners",
