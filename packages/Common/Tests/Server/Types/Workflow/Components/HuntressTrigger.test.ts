@@ -259,12 +259,17 @@ describe("POST /workflow/huntress/:secretkey", () => {
     runs = [];
     stubValkey();
 
+    // Found by the key's lookup hash, as the key is kept encrypted (#9012).
     jest
-      .spyOn(WorkflowService, "findOneBy")
+      .spyOn(WorkflowService, "findOneByPresentedKey")
       .mockImplementation((async (findBy: {
-        query: JSONObject;
+        column: string;
+        presentedKey: string;
       }): Promise<Workflow | null> => {
-        if (findBy.query["webhookSecretKey"] !== SECRET_KEY) {
+        if (
+          findBy.column !== "webhookSecretKey" ||
+          findBy.presentedKey !== SECRET_KEY
+        ) {
           return null;
         }
 

@@ -126,10 +126,15 @@ describe("verifyProbeKey refuses a shipped probe key", () => {
       "22222222-2222-4222-8222-222222222222",
     ).toString();
 
+    // The probe, with its key as a read decrypts it (#9012).
     const findOneBySpy: jest.SpyInstance = jest
       .spyOn(ProbeService, "findOneBy")
       .mockResolvedValue(
-        Object.assign(new Probe(), { id: PROBE_ID, _id: PROBE_ID }) as never,
+        Object.assign(new Probe(), {
+          id: PROBE_ID,
+          _id: PROBE_ID,
+          key: realKey,
+        }) as never,
       );
 
     const result: boolean = await ProbeService.verifyProbeKey({

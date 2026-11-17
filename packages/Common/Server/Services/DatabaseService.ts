@@ -2286,8 +2286,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       });
     }
 
+    /*
+     * The key only when it was asked for - on a copy: the record read is
+     * never changed, whoever else holds it.
+     */
     if (match && !isKeySelected) {
-      delete (match as unknown as Record<string, unknown>)[data.column];
+      const withoutKey: TBaseModel = Object.assign(
+        Object.create(Object.getPrototypeOf(match)) as TBaseModel,
+        match,
+      );
+
+      delete (withoutKey as unknown as Record<string, unknown>)[data.column];
+
+      return withoutKey;
     }
 
     return match;

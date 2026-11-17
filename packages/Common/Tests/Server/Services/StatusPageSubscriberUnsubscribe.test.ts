@@ -1,4 +1,5 @@
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import Encryption from "../../../Server/Utils/Encryption";
 import StatusPageSubscriber from "../../../Models/DatabaseModels/StatusPageSubscriber";
 import User from "../../../Models/DatabaseModels/User";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
@@ -830,9 +831,13 @@ describe("StatusPageSubscriberService.getSubscribersByStatusPage", () => {
     expect(writes[0]!.params[0]).toEqual([SUBSCRIBER_ID.toString()]);
     const minted: Array<unknown> = writes[0]!.params[1] as Array<unknown>;
     expect(minted).toHaveLength(1);
-    expect(StatusPageSubscriberUnsubscribe.isWellFormedToken(minted[0])).toBe(
-      true,
-    );
+    // Minted encrypted, as every write of the column stores it (#9012).
+    expect(Encryption.looksEncrypted(minted[0] as string)).toBe(true);
+    expect(
+      StatusPageSubscriberUnsubscribe.isWellFormedToken(
+        await Encryption.decrypt(minted[0] as string),
+      ),
+    ).toBe(true);
 
     // What the database holds - the winner's token - is what the link uses.
     expect(
