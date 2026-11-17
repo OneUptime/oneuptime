@@ -49,9 +49,25 @@ export interface ActionItemCodeTaskRequestInput {
   // The incident, as people name it: "#42" or "INC-42", and its title.
   incidentNumber?: string | null | undefined;
   incidentTitle?: string | null | undefined;
+  /*
+   * A private incident (#9186): everyone with access to the repository
+   * reads the pull request, which quotes the request, so the request names
+   * the incident by its number alone and asks the AI to leave the incident
+   * out of what it writes there, as a fix pull request about a private
+   * record does (#9165). The AI still reads the incident and its
+   * postmortem, which go with the request as context.
+   */
+  incidentIsPrivate?: boolean | undefined;
   // What the person asking added, if anything.
   instructions?: string | null | undefined;
 }
+
+/*
+ * What the request asks of the pull request for a private incident: the
+ * repository's readers are not the incident's.
+ */
+export const PRIVATE_INCIDENT_PULL_REQUEST_INSTRUCTION: string =
+  "The incident is private, and everyone with access to this repository reads the pull request: leave the incident and its postmortem out of the pull request, its commit messages and the code's comments, and name the incident only by its number.";
 
 // Reads a kind off the wire: anything else is null.
 export function parseActionItemCodeTaskKind(
@@ -75,10 +91,15 @@ function cut(text: string, maxLength: number): string {
     : trimmed;
 }
 
-// "incident #42: Checkout returns 503s", or as much of it as is known.
+/*
+ * "incident #42: Checkout returns 503s", or as much of it as is known - a
+ * private incident by its number alone.
+ */
 function describeIncident(input: ActionItemCodeTaskRequestInput): string {
   const number: string = (input.incidentNumber || "").trim();
-  const title: string = (input.incidentTitle || "").trim();
+  const title: string = input.incidentIsPrivate
+    ? ""
+    : (input.incidentTitle || "").trim();
 
   if (number && title) {
     return `incident ${number}: ${title}`;
@@ -120,13 +141,21 @@ export function buildActionItemCodeTaskRequest(
     lines.push(
       "Write an automated test that would have caught this incident before it reached production: it should fail on the code as it was when the incident happened, and pass once the problem is fixed. If the code is already fixed, the test should pass now and guard against the problem coming back.",
       "Use the repository's own test framework and conventions, put the test where the repository keeps its tests, and change no code besides the test unless the test cannot run without it.",
-      "Open a pull request with the test, and say in it which incident it guards against.",
+      input.incidentIsPrivate
+        ? "Open a pull request with the test."
+        : "Open a pull request with the test, and say in it which incident it guards against.",
     );
   } else {
     lines.push(
       "Make the change this action item asks for in this repository, and open a pull request with it for review.",
-      "Keep the change to what the action item needs, add or update tests that cover it, and say in the pull request which incident it is for.",
+      input.incidentIsPrivate
+        ? "Keep the change to what the action item needs, and add or update tests that cover it."
+        : "Keep the change to what the action item needs, add or update tests that cover it, and say in the pull request which incident it is for.",
     );
+  }
+
+  if (input.incidentIsPrivate) {
+    lines.push(PRIVATE_INCIDENT_PULL_REQUEST_INSTRUCTION);
   }
 
   const instructions: string = cut(
