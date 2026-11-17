@@ -3,6 +3,7 @@ import CredentialsAtRest, {
   CredentialsAtRestGroup,
   CredentialsAtRestOutcome,
   CredentialsAtRestRun,
+  CredentialsGroupPass,
   getProtectedMarkerName,
 } from "../../../FeatureSet/Workers/Utils/CredentialsAtRest";
 import DataMigrations from "../../../FeatureSet/Workers/DataMigrations/Index";
@@ -422,11 +423,7 @@ describe("a run, for one data migration's credentials", () => {
   test("a run whose deadline has passed starts no group's pass, whatever the pass would make of it", async () => {
     recorded.set(MIGRATION, UPGRADED_AT);
     const deadline: JobDeadline = new JobDeadline();
-    const pass: jest.Mock<CredentialsAtRestGroup["pass"]> = jest.fn<
-      CredentialsAtRestGroup["pass"]
-    >(async () => {
-      return { isDone: true, written: 0 };
-    });
+    let passes: number = 0;
 
     deadline.end(new Error("the run's time limit"));
 
@@ -438,11 +435,15 @@ describe("a run, for one data migration's credentials", () => {
         group: {
           migrationName: MIGRATION,
           description: "some credentials",
-          pass: pass,
+          // A pass that would call the group done, had it started.
+          pass: async (): Promise<CredentialsGroupPass> => {
+            passes++;
+            return { isDone: true, written: 0 };
+          },
         },
       }),
     ).toBe(CredentialsAtRestOutcome.NotDoneYet);
-    expect(pass).not.toHaveBeenCalled();
+    expect(passes).toBe(0);
     expect(recorded.has(getProtectedMarkerName(MIGRATION))).toBe(false);
   });
 
