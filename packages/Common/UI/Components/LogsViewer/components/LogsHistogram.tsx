@@ -260,7 +260,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
                   className="inline-block h-2.5 w-2.5 rounded-sm"
                   style={{ backgroundColor: color.fill }}
                 />
-                <span className="text-[11px] text-gray-500">{color.label}</span>
+                <span className="text-xs text-gray-500">{color.label}</span>
               </div>
             );
           })}

@@ -24,9 +24,12 @@ import ts from "typescript";
  *   2. Tiny text: a JSX element whose className names text-[10px] or
  *      smaller, which holds text.
  *
- * Classes written as string constants elsewhere and handed in by name are
- * out of the scan's sight; the components that do that hold their own
- * classes to 4.5:1 in a test of their own (EventItemQuietTextContrast).
+ * A className that names a const of this file is read through it:
+ * className={FACET_COUNT_COLUMN_CLASS}, `${BASE} truncate`, STYLES.label for
+ * a const object of strings, and a const that chooses between strings
+ * (`const tone = on ? "text-gray-900" : "text-gray-400"`). The nearest
+ * declaration in scope wins. A class imported from another module, or
+ * handed in as a prop, is still out of sight.
  */
 
 export const REPOSITORY_ROOT: string = path.resolve(
@@ -40,6 +43,7 @@ export const REPOSITORY_ROOT: string = path.resolve(
 export enum FaintTextKind {
   FaintGray = "faint-gray",
   TinySize = "tiny-size",
+  SmallSize = "small-size",
 }
 
 export interface FaintText {
@@ -51,13 +55,29 @@ export interface FaintText {
   token: string;
   // The string literal the token was written in, trimmed.
   literal: string;
+  // Where that string literal sits in the module, quotes included.
+  start: number;
+  end: number;
 }
 
 // A resting light gray text colour, with or without Tailwind's ! mark.
 const FAINT_GRAY_TOKEN: RegExp = /^!?text-(gray|slate)-(300|400)$/;
 
-// A size under 11px: text-[10px], text-[9px].
-const TINY_SIZE_TOKEN: RegExp = /^!?text-\[(?:[0-9]|10)px\]$/;
+// A size under 11px: text-[10px], text-[10.5px], text-[9px].
+const TINY_SIZE_TOKEN: RegExp = /^!?text-\[(?:[0-9]|10)(?:\.\d+)?px\]$/;
+
+/*
+ * 11px, a pixel under text-xs. Readable for a short label in capitals (an
+ * eyebrow: "LAST 24 HOURS", "RECENT") or in a chip, a badge or a key that
+ * frames it; a hint, a value or a sentence is text-xs.
+ */
+const SMALL_SIZE_TOKEN: RegExp = /^!?text-\[(?:11px|0\.6875rem)\]$/;
+
+// A resting background of its own: a chip, a badge.
+const OWN_GROUND_TOKEN: RegExp =
+  /^!?(?:bg-(?!transparent$|none$|inherit$)\S+|ring-1|border)$/;
+
+const ROUNDED_TOKEN: RegExp = /^!?rounded(?:-\S+)?$/;
 
 // A ground dark enough that a light gray is what reads on it.
 const DARK_GROUND_TOKEN: RegExp =
@@ -95,14 +115,17 @@ const ICON_COMPONENT: RegExp = /Icon|Logo|Svg|Spinner|Loader|Avatar/;
 const WHITESPACE: RegExp = /\s+/g;
 
 // The HTML entities of separators and dashes: &mdash;, &middot;.
-const MARK_ENTITIES: RegExp = /&(?:mdash|ndash|middot|bull|minus|vert);/g;
+const MARK_ENTITIES: RegExp =
+  /&(?:mdash|ndash|middot|bull|minus|vert|hellip);/g;
 
 // Separators and dashes, and nothing else.
 const MARKS_ONLY: RegExp =
-  /^[\u2013\u2014\u2212\u00b7\u2022/|:,>\u203a\u00bb-]*$/;
+  /^[\u2013\u2014\u2212\u00b7\u2022\u2026/|:,.>\u203a\u00bb-]*$/;
 
 interface ClassLiteral {
   text: string;
+  start: number;
+  end: number;
 }
 
 function tagNameOf(
@@ -128,6 +151,140 @@ function attributeNamed(
   return undefined;
 }
 
+function unwrapped(expression: ts.Expression): ts.Expression {
+  let node: ts.Expression = expression;
+
+  while (
+    ts.isParenthesizedExpression(node) ||
+    ts.isAsExpression(node) ||
+    ts.isSatisfiesExpression(node)
+  ) {
+    node = node.expression;
+  }
+
+  return node;
+}
+
+// The name after a dot (props.className), not a value of its own.
+function isAPropertyName(identifier: ts.Identifier): boolean {
+  const parent: ts.Node = identifier.parent;
+
+  return (
+    (ts.isPropertyAccessExpression(parent) && parent.name === identifier) ||
+    (ts.isPropertyAssignment(parent) && parent.name === identifier)
+  );
+}
+
+/*
+ * What a const of this name, declared in this file in a scope around the
+ * identifier, is set to: the nearest declaration wins, as in the language.
+ * Constants imported from another module are not followed.
+ */
+function constInitializerOf(
+  identifier: ts.Identifier,
+): ts.Expression | undefined {
+  let node: ts.Node | undefined = identifier.parent;
+
+  while (node) {
+    const statements: ts.NodeArray<ts.Statement> | undefined =
+      ts.isSourceFile(node) ||
+      ts.isBlock(node) ||
+      ts.isModuleBlock(node) ||
+      ts.isCaseClause(node) ||
+      ts.isDefaultClause(node)
+        ? node.statements
+        : undefined;
+
+    for (const statement of statements || []) {
+      if (
+        !ts.isVariableStatement(statement) ||
+        !(statement.declarationList.flags & ts.NodeFlags.Const)
+      ) {
+        continue;
+      }
+
+      for (const declaration of statement.declarationList.declarations) {
+        if (
+          ts.isIdentifier(declaration.name) &&
+          declaration.name.text === identifier.text &&
+          declaration.initializer
+        ) {
+          return unwrapped(declaration.initializer);
+        }
+      }
+    }
+
+    node = node.parent;
+  }
+
+  return undefined;
+}
+
+/*
+ * A const that holds a class string: a literal, a template, a choice
+ * between strings (`on ? "text-gray-900" : "text-gray-400"`), a sum of
+ * strings. A const set to anything else (a call, a number) is not a class.
+ */
+function stringConstantInitializerOf(
+  identifier: ts.Identifier,
+): ts.Expression | undefined {
+  const initializer: ts.Expression | undefined = constInitializerOf(identifier);
+
+  if (
+    initializer &&
+    (ts.isStringLiteral(initializer) ||
+      ts.isNoSubstitutionTemplateLiteral(initializer) ||
+      ts.isTemplateExpression(initializer) ||
+      ts.isConditionalExpression(initializer) ||
+      (ts.isBinaryExpression(initializer) &&
+        initializer.operatorToken.kind === ts.SyntaxKind.PlusToken))
+  ) {
+    return initializer;
+  }
+
+  return undefined;
+}
+
+/*
+ * A class string held in a const object of strings, read by name:
+ * className={STYLES.label} with const STYLES = { label: "..." }.
+ */
+function objectConstantPropertyOf(
+  access: ts.PropertyAccessExpression,
+): ts.Expression | undefined {
+  if (!ts.isIdentifier(access.expression)) {
+    return undefined;
+  }
+
+  const initializer: ts.Expression | undefined = constInitializerOf(
+    access.expression,
+  );
+
+  if (!initializer || !ts.isObjectLiteralExpression(initializer)) {
+    return undefined;
+  }
+
+  for (const property of initializer.properties) {
+    if (
+      ts.isPropertyAssignment(property) &&
+      (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) &&
+      property.name.text === access.name.text
+    ) {
+      const value: ts.Expression = unwrapped(property.initializer);
+
+      if (
+        ts.isStringLiteral(value) ||
+        ts.isNoSubstitutionTemplateLiteral(value) ||
+        ts.isTemplateExpression(value)
+      ) {
+        return value;
+      }
+    }
+  }
+
+  return undefined;
+}
+
 // Every string written in a className: literals, templates' pieces.
 function classLiteralsOf(
   element: ts.JsxOpeningElement | ts.JsxSelfClosingElement,
@@ -142,19 +299,54 @@ function classLiteralsOf(
   }
 
   const literals: Array<ClassLiteral> = [];
+  const followed: Set<ts.Node> = new Set<ts.Node>();
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
-      literals.push({ text: node.text });
+      literals.push({ text: node.text, start: node.getStart(), end: node.end });
       return;
     }
 
+    // A class string held in a const: className={FACET_COUNT_COLUMN_CLASS}.
+    if (ts.isIdentifier(node) && !isAPropertyName(node)) {
+      const initializer: ts.Expression | undefined =
+        stringConstantInitializerOf(node);
+
+      if (initializer && !followed.has(initializer)) {
+        followed.add(initializer);
+        visit(initializer);
+      }
+
+      return;
+    }
+
+    if (ts.isPropertyAccessExpression(node)) {
+      const value: ts.Expression | undefined = objectConstantPropertyOf(node);
+
+      if (value) {
+        if (!followed.has(value)) {
+          followed.add(value);
+          visit(value);
+        }
+
+        return;
+      }
+    }
+
     if (ts.isTemplateExpression(node)) {
-      literals.push({ text: node.head.text });
+      literals.push({
+        text: node.head.text,
+        start: node.head.getStart(),
+        end: node.head.end,
+      });
 
       for (const span of node.templateSpans) {
         visit(span.expression);
-        literals.push({ text: span.literal.text });
+        literals.push({
+          text: span.literal.text,
+          start: span.literal.getStart(),
+          end: span.literal.end,
+        });
       }
 
       return;
@@ -230,6 +422,35 @@ function hasClassToken(
   return classLiteralsOf(element).some((literal: ClassLiteral): boolean => {
     return tokensOf(literal).some(matches);
   });
+}
+
+/*
+ * A short label 11px suits: in capitals (uppercase), or framed in a chip, a
+ * badge or a key (rounded, on a ground or in a border of its own; a kbd).
+ */
+function isAnEyebrowOrAChip(
+  element: ts.JsxOpeningElement | ts.JsxSelfClosingElement,
+): boolean {
+  if (tagNameOf(element) === "kbd") {
+    return true;
+  }
+
+  if (
+    hasClassToken(element, (token: string): boolean => {
+      return token === "uppercase";
+    })
+  ) {
+    return true;
+  }
+
+  return (
+    hasClassToken(element, (token: string): boolean => {
+      return ROUNDED_TOKEN.test(token);
+    }) &&
+    hasClassToken(element, (token: string): boolean => {
+      return OWN_GROUND_TOKEN.test(token);
+    })
+  );
 }
 
 // Whether the element, or one around it in the file, sits on a dark ground.
@@ -454,6 +675,11 @@ export function findFaintText(
               kind = FaintTextKind.FaintGray;
             } else if (TINY_SIZE_TOKEN.test(token)) {
               kind = FaintTextKind.TinySize;
+            } else if (
+              SMALL_SIZE_TOKEN.test(token) &&
+              !isAnEyebrowOrAChip(opening)
+            ) {
+              kind = FaintTextKind.SmallSize;
             }
 
             if (kind) {
@@ -465,6 +691,8 @@ export function findFaintText(
                     .line + 1,
                 token: token,
                 literal: literal.text.trim(),
+                start: literal.start,
+                end: literal.end,
               });
             }
           }

@@ -492,7 +492,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                           title={view.name}
                           className={`max-w-full self-start truncate text-sm ${nameClassName}`}
                         />
-                        <span className="truncate text-[11px] leading-4 text-gray-500">
+                        <span className="truncate text-xs leading-4 text-gray-500">
                           {view.detail}
                         </span>
                       </span>
@@ -613,7 +613,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
               </button>
               {/* Said, not hidden in a tooltip: a locked action says why. */}
               {props.createDisabledReason ? (
-                <p className="px-2 pb-0.5 text-[11px] leading-4 text-gray-500">
+                <p className="px-2 pb-0.5 text-xs leading-4 text-gray-500">
                   {props.createDisabledReason}
                 </p>
               ) : null}

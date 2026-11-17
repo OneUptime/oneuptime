@@ -677,13 +677,19 @@ what was further down.
   and
   [MonitorSummaryViewsLayoutGuard](../../packages/App/Tests/Dashboard/MonitorSummaryViewsLayoutGuard.test.ts).
 - **Text people read is readable: at least 4.5:1.** A label, a description, a value, a hint or a
-  timestamp is `text-gray-500` or darker (`text-gray-600` for body text), and at least 11px, with
-  `text-xs` for small print. `text-gray-400` is 2.5:1 on white and `text-gray-300` 1.5:1: the logs'
+  timestamp is `text-gray-500` or darker (`text-gray-600` for body text), and `text-xs` (12px) or
+  larger for small print. 11px (`text-[11px]`) is kept only for a short label whose shape carries
+  it: an eyebrow in capitals (`uppercase`), or a chip, a badge or a key that frames its word (rounded,
+  on a ground or in a border of its own; a `kbd`), still at 4.5:1. A hint, a value, a count or a
+  sentence at 11px is `text-xs`, and nothing is smaller than 11px. `text-gray-400` is 2.5:1 on white
+  and `text-gray-300` 1.5:1: the logs'
   saved views said "No saved views yet." in it, a More menu's section headings, a drop filter's "Not
   configured" and an on-call schedule's "No upcoming shifts" were all drawn in it (#9127). The dark
   theme paints gray-400 and gray-500 the same, so the change holds there. gray-400 stays for what
   nobody reads as words: an icon beside a label, a separator, a placeholder, a disabled control, and
-  the quiet empty-value dash. Enforced by
+  the quiet empty-value dash. The guard reads every app and a class held in a const of the same file;
+  the shared UI holds none, and each app file may hold no more than its count in
+  `ReadableTextStillToFix.ts`, which only falls (#9192). Enforced by
   [ReadableTextContrastGuard](../../packages/Common/Tests/UI/ReadableTextContrastGuard.test.ts).
 - **Banners are for exceptions the person must act on,** never for the default state. Enforced by
   [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).

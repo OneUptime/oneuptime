@@ -297,7 +297,7 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
         />
 
         {props.row.valueMode === ColumnValueMode.Raw && (
-          <p className="mt-1 text-[11px] text-amber-600">
+          <p className="mt-1 text-xs text-amber-600">
             {translator.translateText("Kept exactly as it was saved.")}
           </p>
         )}
