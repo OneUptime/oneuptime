@@ -56566,5 +56566,8 @@
   "Filter discovered devices": "खोजे गए डिवाइस फ़िल्टर करें",
   "Network controller": "नेटवर्क कंट्रोलर",
   "No discovered device matches this search and these filters.": "कोई भी खोजा गया डिवाइस इस खोज और इन फ़िल्टर से मेल नहीं खाता।",
-  "Switch or router": "स्विच या राउटर"
+  "Switch or router": "स्विच या राउटर",
+  "Network Endpoint Group": "नेटवर्क एंडपॉइंट समूह",
+  "Backend Bucket": "बैकएंड बकेट",
+  "Target Pool": "टारगेट पूल"
 }

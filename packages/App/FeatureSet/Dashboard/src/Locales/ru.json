@@ -56566,5 +56566,8 @@
   "Filter discovered devices": "Фильтр обнаруженных устройств",
   "Network controller": "Сетевой контроллер",
   "No discovered device matches this search and these filters.": "Ни одно обнаруженное устройство не соответствует этому поиску и этим фильтрам.",
-  "Switch or router": "Коммутатор или маршрутизатор"
+  "Switch or router": "Коммутатор или маршрутизатор",
+  "Network Endpoint Group": "Группа сетевых конечных точек",
+  "Backend Bucket": "Серверный бакет",
+  "Target Pool": "Целевой пул"
 }

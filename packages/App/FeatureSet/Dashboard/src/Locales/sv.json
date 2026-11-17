@@ -56566,5 +56566,8 @@
   "Filter discovered devices": "Filtrera upptäckta enheter",
   "Network controller": "Nätverkskontroller",
   "No discovered device matches this search and these filters.": "Ingen upptäckt enhet matchar den här sökningen och de här filtren.",
-  "Switch or router": "Switch eller router"
+  "Switch or router": "Switch eller router",
+  "Network Endpoint Group": "Nätverksslutpunktsgrupp",
+  "Backend Bucket": "Backend-bucket",
+  "Target Pool": "Målpool"
 }

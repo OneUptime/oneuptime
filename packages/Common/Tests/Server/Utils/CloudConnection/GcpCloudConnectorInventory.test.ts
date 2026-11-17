@@ -152,6 +152,38 @@ function prodPages(project: string): Array<JSONObject> {
           "US",
           { name: "shop-assets", storageClass: "STANDARD" },
         ),
+        // A load balancer: its address, the proxy between, its URL map and backend.
+        entry(
+          "compute.googleapis.com/GlobalForwardingRule",
+          full(project, "global/forwardingRules/shop-https"),
+          "global",
+          {
+            name: "shop-https",
+            IPAddress: "34.120.1.2",
+            target: compute(project, "global/targetHttpsProxies/shop"),
+          },
+        ),
+        entry(
+          "compute.googleapis.com/TargetHttpsProxy",
+          full(project, "global/targetHttpsProxies/shop"),
+          "global",
+          { name: "shop", urlMap: compute(project, "global/urlMaps/shop") },
+        ),
+        entry(
+          "compute.googleapis.com/UrlMap",
+          full(project, "global/urlMaps/shop"),
+          "global",
+          {
+            name: "shop",
+            defaultService: compute(project, "global/backendServices/web"),
+          },
+        ),
+        entry(
+          "compute.googleapis.com/BackendService",
+          full(project, "global/backendServices/web"),
+          "global",
+          { name: "web", loadBalancingScheme: "EXTERNAL_MANAGED" },
+        ),
       ],
     },
   ];
@@ -305,6 +337,10 @@ describe("a Google Cloud connection's inventory", () => {
         "compute.googleapis.com/Subnetwork us-central1 default",
         "gce_instance us-central1 web-1",
         "gcs_bucket us shop-assets",
+        "compute.googleapis.com/ForwardingRule global shop-https",
+        // As its metrics file it: a global load balancer is in no region.
+        "https_lb_rule  shop",
+        "compute.googleapis.com/BackendService global web",
       ].sort(),
     );
 
@@ -331,6 +367,17 @@ describe("a Google Cloud connection's inventory", () => {
         targetTags: ["http-server"],
       }),
     );
+    // The rule sends to its URL map through the proxy, which is never kept.
+    expect(
+      itemOf(result, "compute.googleapis.com/ForwardingRule").relationships,
+    ).toEqual([
+      {
+        kind: CloudRelationshipKind.RoutesTo,
+        target: full(PROD, "global/urlMaps/shop"),
+        targetType: "https_lb_rule",
+      },
+    ]);
+    expect(itemOf(result, "https_lb_rule").endpoints).toEqual(["34.120.1.2"]);
     expect(result.accounts).toEqual([
       { accountId: PROD, name: `Shop (${PROD})` },
     ]);
@@ -429,7 +476,7 @@ describe("a Google Cloud connection's inventory", () => {
     expect(result.warnings).toEqual([]);
     expect(result.complete).toBe(true);
     expect(fake.assetCalls).toHaveLength(3);
-    expect(result.items).toHaveLength(5);
+    expect(result.items).toHaveLength(8);
   });
 
   test("a read that runs out of budget part way is not complete, and the project is not listed in full", async () => {
