@@ -4533,7 +4533,6 @@
   "Select Status Page": "Velg statusside",
   "Select Status Pages": "Velg statussider",
   "Select status pages to show this announcement on": "Velg statussider å vise denne kunngjøringen på",
-  "Select status pages to show this event on": "Velg statussider å vise denne hendelsen på",
   "Select Team": "Velg team",
   "Select Teams": "Velg team",
   "Select telemetry services to scope this monitor.": "Velg telemetritjenester for å avgrense denne monitoren.",
@@ -4676,7 +4675,6 @@
   "Show Episode Labels": "Vis episodeetiketter",
   "Show Episodes": "Vis episoder",
   "Show Episodes on Status Page": "Vis episoder på statussiden",
-  "Show event on these status pages ": "Vis hendelse på disse statussidene ",
   "Show ID and Key": "Vis ID og nøkkel",
   "Show Incident History (in days)": "Vis hendelseshistorikk (i dager)",
   "Show Incident Labels": "Vis hendelsesetiketter",
@@ -13360,7 +13358,6 @@
   "No status": "Ingen status",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
   "No status pages selected for this announcement.": "No status pages selected for this announcement.",
-  "No status pages selected for this maintenance event.": "Ingen statussider valgt for denne vedlikeholdshendelsen.",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "Ingen lagringer rapportert ennå. Sørg for at Proxmox-agenten sender målinger.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -56473,5 +56470,11 @@
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "Bruk faktureres fortsatt etter forbruk på gratisabonnementet: dataene tjenestene dine sender, og hver overvåking som ikke er en manuell overvåking.",
   "You do not have permission to change the plan.": "Du har ikke tillatelse til å endre abonnementet.",
   "Your plan does not include {{product}}": "Abonnementet ditt inkluderer ikke {{product}}",
-  "Pick what the new step does. You can change its settings once it is added.": "Velg hva det nye trinnet gjør. Du kan endre innstillingene når det er lagt til."
+  "Pick what the new step does. You can change its settings once it is added.": "Velg hva det nye trinnet gjør. Du kan endre innstillingene når det er lagt til.",
+  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "Vedlikeholdshendelser fra denne malen vises bare på disse statussidene og varsler bare abonnentene deres. Uten valg vises de ikke på noen statusside.",
+  "Events from this template will not appear on any status page.": "Vedlikeholdshendelser fra denne malen vises ikke på noen statusside.",
+  "Not shown on any status page": "Vises ikke på noen statusside",
+  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Bare disse statussidene viser denne vedlikeholdshendelsen og varsler abonnentene sine. I motsetning til en hendelse vises en vedlikeholdshendelse uten valg ikke på noen statusside.",
+  "Show event on these status pages": "Vis hendelse på disse statussidene",
+  "This event will not appear on any status page.": "Denne vedlikeholdshendelsen vises ikke på noen statusside."
 }

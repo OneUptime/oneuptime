@@ -190,13 +190,6 @@ interface FlatLookupLabel {
 
 // Labels drawn by one lookup of a key that is not the label itself.
 const FLAT_LOOKUP: Record<string, Array<FlatLookupLabel>> = {
-  [SUBSCRIBERS]: [
-    {
-      // The maintenance form's status page picker (Create.tsx).
-      english: "Show event on these status pages",
-      key: "Show event on these status pages ",
-    },
-  ],
   [AUDIENCE]: [
     {
       // The audience summary's headline, without its colon.

@@ -4533,7 +4533,6 @@
   "Select Status Page": "Sélectionner la page de statut",
   "Select Status Pages": "Sélectionner les pages de statut",
   "Select status pages to show this announcement on": "Sélectionnez les pages de statut sur lesquelles afficher cette annonce",
-  "Select status pages to show this event on": "Sélectionnez les pages de statut sur lesquelles afficher cet événement",
   "Select Team": "Sélectionner l'équipe",
   "Select Teams": "Sélectionner les équipes",
   "Select telemetry services to scope this monitor.": "Sélectionnez les services de télémétrie pour délimiter ce moniteur.",
@@ -4676,7 +4675,6 @@
   "Show Episode Labels": "Afficher les étiquettes d'épisode",
   "Show Episodes": "Afficher les épisodes",
   "Show Episodes on Status Page": "Afficher les épisodes sur la page de statut",
-  "Show event on these status pages ": "Afficher l'événement sur ces pages de statut ",
   "Show ID and Key": "Afficher l'ID et la clé",
   "Show Incident History (in days)": "Afficher l'historique des incidents (en jours)",
   "Show Incident Labels": "Afficher les étiquettes d'incident",
@@ -13360,7 +13358,6 @@
   "No status": "Aucun statut",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "Pas encore d'historique de statut. La chronologie se remplit à mesure que l'agrégation de santé du site enregistre des changements.",
   "No status pages selected for this announcement.": "Aucune page de statut sélectionnée pour cette annonce.",
-  "No status pages selected for this maintenance event.": "Aucune page de statut sélectionnée pour cet événement de maintenance.",
   "No status recorded yet.": "Aucun statut enregistré pour le moment.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "Aucun volume de stockage signalé pour le moment. Vérifiez que l'agent Proxmox envoie des métriques.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "Aucun fuseau horaire d'abonné sélectionné pour le moment. Par défaut, les abonnés recevront des notifications avec des heures affichées dans les fuseaux GMT, EST, PST, IST et ACT.",
@@ -56473,5 +56470,11 @@
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "L'utilisation reste facturée à l'usage sur le forfait gratuit : les données envoyées par vos services, et chaque moniteur qui n'est pas un moniteur manuel.",
   "You do not have permission to change the plan.": "Vous n'avez pas l'autorisation de changer de forfait.",
   "Your plan does not include {{product}}": "Votre forfait n'inclut pas {{product}}",
-  "Pick what the new step does. You can change its settings once it is added.": "Choisissez ce que fait la nouvelle étape. Vous pourrez modifier ses paramètres une fois qu'elle est ajoutée."
+  "Pick what the new step does. You can change its settings once it is added.": "Choisissez ce que fait la nouvelle étape. Vous pourrez modifier ses paramètres une fois qu'elle est ajoutée.",
+  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "Les événements créés à partir de ce modèle s'affichent uniquement sur ces pages de statut et ne notifient que leurs abonnés. Sans sélection, ils ne s'affichent sur aucune page de statut.",
+  "Events from this template will not appear on any status page.": "Les événements créés à partir de ce modèle n'apparaîtront sur aucune page de statut.",
+  "Not shown on any status page": "Affiché sur aucune page de statut",
+  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Seules ces pages de statut affichent cet événement et notifient leurs abonnés. Contrairement à un incident, un événement sans page choisie ne s'affiche sur aucune.",
+  "Show event on these status pages": "Afficher l'événement sur ces pages de statut",
+  "This event will not appear on any status page.": "Cet événement n'apparaîtra sur aucune page de statut."
 }

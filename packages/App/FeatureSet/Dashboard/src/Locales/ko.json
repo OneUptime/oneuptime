@@ -4533,7 +4533,6 @@
   "Select Status Page": "상태 페이지 선택",
   "Select Status Pages": "상태 페이지 선택",
   "Select status pages to show this announcement on": "이 공지사항을 표시할 상태 페이지를 선택하세요",
-  "Select status pages to show this event on": "이 이벤트를 표시할 상태 페이지를 선택하세요",
   "Select Team": "팀 선택",
   "Select Teams": "팀 선택",
   "Select telemetry services to scope this monitor.": "이 모니터의 범위를 지정할 텔레메트리 서비스를 선택하세요.",
@@ -4676,7 +4675,6 @@
   "Show Episode Labels": "에피소드 레이블 표시",
   "Show Episodes": "에피소드 표시",
   "Show Episodes on Status Page": "상태 페이지에 에피소드 표시",
-  "Show event on these status pages ": "이 상태 페이지에 이벤트 표시 ",
   "Show ID and Key": "ID 및 키 표시",
   "Show Incident History (in days)": "인시던트 기록 표시(일 단위)",
   "Show Incident Labels": "인시던트 레이블 표시",
@@ -13360,7 +13358,6 @@
   "No status": "상태 없음",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
   "No status pages selected for this announcement.": "No status pages selected for this announcement.",
-  "No status pages selected for this maintenance event.": "이 유지 관리 이벤트에 선택한 상태 페이지가 없습니다.",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "아직 보고된 스토리지가 없습니다. Proxmox 에이전트가 메트릭을 전송하고 있는지 확인하세요.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -56473,5 +56470,11 @@
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "무료 요금제에서도 사용량은 종량제로 청구됩니다. 서비스가 보내는 데이터와 수동 모니터가 아닌 모든 모니터입니다.",
   "You do not have permission to change the plan.": "요금제를 변경할 권한이 없습니다.",
   "Your plan does not include {{product}}": "현재 요금제에는 {{product}}이(가) 포함되어 있지 않습니다",
-  "Pick what the new step does. You can change its settings once it is added.": "새 단계가 할 일을 선택하세요. 추가한 후에 설정을 바꿀 수 있습니다."
+  "Pick what the new step does. You can change its settings once it is added.": "새 단계가 할 일을 선택하세요. 추가한 후에 설정을 바꿀 수 있습니다.",
+  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "이 템플릿으로 만든 이벤트는 이 상태 페이지에만 표시되고 해당 구독자에게만 알림을 보냅니다. 아무것도 선택하지 않으면 어떤 상태 페이지에도 표시되지 않습니다.",
+  "Events from this template will not appear on any status page.": "이 템플릿으로 만든 이벤트는 어떤 상태 페이지에도 표시되지 않습니다.",
+  "Not shown on any status page": "어떤 상태 페이지에도 표시되지 않음",
+  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "이 상태 페이지만 이 이벤트를 표시하고 구독자에게 알립니다. 인시던트와 달리, 아무것도 선택하지 않은 이벤트는 어떤 상태 페이지에도 표시되지 않습니다.",
+  "Show event on these status pages": "이 상태 페이지에 이벤트 표시",
+  "This event will not appear on any status page.": "이 이벤트는 어떤 상태 페이지에도 표시되지 않습니다."
 }

@@ -182,16 +182,6 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
 };
 
 /*
- * Labels whose Dashboard key ends in a space: the event form's status page
- * field is titled "Show event on these status pages " in the code, so the
- * locales key it with the space, and draw it with one. A page names it
- * without the space, drawn as the locale words the key, trimmed.
- */
-export const LABELS_KEYED_WITH_A_SPACE: ReadonlyArray<string> = [
-  "Show event on these status pages",
-];
-
-/*
  * The server's own words a page quotes: the refusals of a move up the list
  * and of a move into the state an event is in. The API answers them in
  * English whatever the reader's language, so every translation quotes them

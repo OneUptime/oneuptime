@@ -4533,7 +4533,6 @@
   "Select Status Page": "Select Status Page",
   "Select Status Pages": "Select Status Pages",
   "Select status pages to show this announcement on": "Select status pages to show this announcement on",
-  "Select status pages to show this event on": "Select status pages to show this event on",
   "Select Team": "Select Team",
   "Select Teams": "Select Teams",
   "Select telemetry services to scope this monitor.": "Select telemetry services to scope this monitor.",
@@ -4676,7 +4675,6 @@
   "Show Episode Labels": "Show Episode Labels",
   "Show Episodes": "Show Episodes",
   "Show Episodes on Status Page": "Show Episodes on Status Page",
-  "Show event on these status pages ": "Show event on these status pages ",
   "Show ID and Key": "Show ID and Key",
   "Show Incident History (in days)": "Show Incident History (in days)",
   "Show Incident Labels": "Show Incident Labels",
@@ -13360,7 +13358,6 @@
   "No status": "No status",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
   "No status pages selected for this announcement.": "No status pages selected for this announcement.",
-  "No status pages selected for this maintenance event.": "No status pages selected for this maintenance event.",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -56473,5 +56470,11 @@
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.",
   "You do not have permission to change the plan.": "You do not have permission to change the plan.",
   "Your plan does not include {{product}}": "Your plan does not include {{product}}",
-  "Pick what the new step does. You can change its settings once it is added.": "Pick what the new step does. You can change its settings once it is added."
+  "Pick what the new step does. You can change its settings once it is added.": "Pick what the new step does. You can change its settings once it is added.",
+  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.",
+  "Events from this template will not appear on any status page.": "Events from this template will not appear on any status page.",
+  "Not shown on any status page": "Not shown on any status page",
+  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.",
+  "Show event on these status pages": "Show event on these status pages",
+  "This event will not appear on any status page.": "This event will not appear on any status page."
 }

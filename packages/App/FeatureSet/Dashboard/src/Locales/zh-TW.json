@@ -4533,7 +4533,6 @@
   "Select Status Page": "選擇狀態頁面",
   "Select Status Pages": "選擇狀態頁面",
   "Select status pages to show this announcement on": "選擇要顯示此公告的狀態頁面",
-  "Select status pages to show this event on": "選擇要顯示此事件的狀態頁面",
   "Select Team": "選擇團隊",
   "Select Teams": "選擇團隊",
   "Select telemetry services to scope this monitor.": "選擇遙測服務以限定此監測器的範圍。",
@@ -4676,7 +4675,6 @@
   "Show Episode Labels": "顯示片段標籤",
   "Show Episodes": "顯示片段",
   "Show Episodes on Status Page": "在狀態頁面上顯示片段",
-  "Show event on these status pages ": "在這些狀態頁面上顯示事件 ",
   "Show ID and Key": "顯示 ID 和金鑰",
   "Show Incident History (in days)": "顯示事件歷史記錄（天數）",
   "Show Incident Labels": "顯示事件標籤",
@@ -13360,7 +13358,6 @@
   "No status": "無狀態",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
   "No status pages selected for this announcement.": "No status pages selected for this announcement.",
-  "No status pages selected for this maintenance event.": "此維護事件未選擇狀態頁面。",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "尚未回報任何儲存空間。請確認 Proxmox 代理程式正在傳送指標。",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -56473,5 +56470,11 @@
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "在免費方案下，用量仍依使用量計費：你的服務傳送的資料，以及每個非手動監控。",
   "You do not have permission to change the plan.": "你沒有變更方案的權限。",
   "Your plan does not include {{product}}": "你的方案不包含{{product}}",
-  "Pick what the new step does. You can change its settings once it is added.": "選擇新步驟要做什麼。新增後可以變更它的設定。"
+  "Pick what the new step does. You can change its settings once it is added.": "選擇新步驟要做什麼。新增後可以變更它的設定。",
+  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "以此範本建立的維護事件只會顯示在這些狀態頁面上，且只通知其訂閱者。未選擇任何頁面時，不會顯示在任何狀態頁面上。",
+  "Events from this template will not appear on any status page.": "以此範本建立的維護事件不會顯示在任何狀態頁面上。",
+  "Not shown on any status page": "不在任何狀態頁面上顯示",
+  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "只有這些狀態頁面會顯示此維護事件並通知其訂閱者。與事件不同，未選擇任何頁面的維護事件不會顯示在任何狀態頁面上。",
+  "Show event on these status pages": "在這些狀態頁面上顯示事件",
+  "This event will not appear on any status page.": "此維護事件不會顯示在任何狀態頁面上。"
 }

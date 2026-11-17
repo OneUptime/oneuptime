@@ -2,8 +2,8 @@ import { OpenStackMaintenancePart } from "Common/Types/OpenStack/OpenStackMainte
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ChangeScheduledMaintenanceState from "../../../Components/ScheduledMaintenance/ChangeState";
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
-import { getStatusPageSuggestionsFooter } from "../../../Components/StatusPage/StatusPageSuggestions";
-import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
+import { getMaintenanceStatusPagesFormField } from "../../../Components/ScheduledMaintenance/MaintenanceStatusPagesFormField";
+import MaintenanceStatusPagesCopy from "../../../Components/ScheduledMaintenance/MaintenanceStatusPagesCopy";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
@@ -188,7 +188,7 @@ const getStatusPagesFact: GetStatusPagesFactFunction = (
         data-testid="event-status-page-links"
         className="font-normal text-gray-500"
       >
-        {translator.translateText("None")}
+        {translator.translateText(MaintenanceStatusPagesCopy.notShownFact)}
       </span>
     );
   }
@@ -819,30 +819,13 @@ const ScheduledMaintenanceView: FunctionComponent<
                * click to add. The monitors are edited in the Affected
                * Resources card, so they are read from the event.
                */
-              {
-                field: {
-                  statusPages: true,
-                },
-                title: "Show event on these status pages ",
+              getMaintenanceStatusPagesFormField<ScheduledMaintenance>({
                 stepId: "status-pages",
-                description: "Select status pages to show this event on",
-                fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                dropdownModal: {
-                  type: StatusPage,
-                  labelField: "name",
-                  valueField: "_id",
+                monitorsOf: {
+                  modelType: ScheduledMaintenance,
+                  modelId: modelId,
                 },
-                required: false,
-                placeholder: "Select Status Pages",
-                getFooterElement:
-                  getStatusPageSuggestionsFooter<ScheduledMaintenance>({
-                    eventType: StatusPageEventType.ScheduledEvent,
-                    monitorsOf: {
-                      modelType: ScheduledMaintenance,
-                      modelId: modelId,
-                    },
-                  }),
-              },
+              }),
               /*
                * When it shows on them - Right away, or At a date and time -
                * drawn open beside them: this is where an event's publishing
@@ -938,6 +921,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                     return (
                       <StatusPagesElement
                         statusPages={item.statusPages || []}
+                        noItemsMessage={MaintenanceStatusPagesCopy.notShownFact}
                       />
                     );
                   },

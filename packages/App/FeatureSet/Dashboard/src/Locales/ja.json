@@ -4533,7 +4533,6 @@
   "Select Status Page": "ステータスページを選択",
   "Select Status Pages": "ステータスページを選択",
   "Select status pages to show this announcement on": "このお知らせを表示するステータスページを選択",
-  "Select status pages to show this event on": "このイベントを表示するステータスページを選択",
   "Select Team": "チームを選択",
   "Select Teams": "チームを選択",
   "Select telemetry services to scope this monitor.": "このモニターのスコープとするテレメトリサービスを選択します。",
@@ -4676,7 +4675,6 @@
   "Show Episode Labels": "エピソードラベルを表示",
   "Show Episodes": "エピソードを表示",
   "Show Episodes on Status Page": "ステータスページにエピソードを表示",
-  "Show event on these status pages ": "これらのステータスページにイベントを表示 ",
   "Show ID and Key": "ID とキーを表示",
   "Show Incident History (in days)": "インシデント履歴の表示期間（日数）",
   "Show Incident Labels": "インシデントラベルを表示",
@@ -13360,7 +13358,6 @@
   "No status": "ステータスなし",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "ステータスの履歴はまだありません。サイトのヘルスの集約が変化を記録するにつれて、タイムラインが埋まっていきます。",
   "No status pages selected for this announcement.": "このお知らせにはステータスページが選択されていません。",
-  "No status pages selected for this maintenance event.": "このメンテナンスイベントにはステータスページが選択されていません。",
   "No status recorded yet.": "まだステータスは記録されていません。",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "まだストレージボリュームが報告されていません。Proxmox エージェントがメトリクスを送信していることを確認してください。",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "購読者のタイムゾーンはまだ選択されていません。購読者には、デフォルトで GMT、EST、PST、IST、ACT の各タイムゾーンの時刻で通知が送信されます。",
@@ -56473,5 +56470,11 @@
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "無料プランでも、利用量は従量課金されます。サービスが送信するデータと、手動モニター以外のすべてのモニターです。",
   "You do not have permission to change the plan.": "プランを変更する権限がありません。",
   "Your plan does not include {{product}}": "ご利用のプランには{{product}}が含まれていません",
-  "Pick what the new step does. You can change its settings once it is added.": "新しいステップの種類を選んでください。設定は追加した後で変更できます。"
+  "Pick what the new step does. You can change its settings once it is added.": "新しいステップの種類を選んでください。設定は追加した後で変更できます。",
+  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "このテンプレートから作成したイベントは、これらのステータスページにのみ表示され、その購読者にのみ通知されます。何も選択しない場合、どのステータスページにも表示されません。",
+  "Events from this template will not appear on any status page.": "このテンプレートから作成したイベントは、どのステータスページにも表示されません。",
+  "Not shown on any status page": "どのステータスページにも表示されません",
+  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "このイベントを表示し購読者に通知するのは、ここで選んだステータスページだけです。インシデントと異なり、何も選択しないイベントはどのステータスページにも表示されません。",
+  "Show event on these status pages": "これらのステータスページにイベントを表示",
+  "This event will not appear on any status page.": "このイベントはどのステータスページにも表示されません。"
 }

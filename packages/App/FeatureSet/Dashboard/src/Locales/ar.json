@@ -4533,7 +4533,6 @@
   "Select Status Page": "اختر صفحة الحالة",
   "Select Status Pages": "اختيار صفحات الحالة",
   "Select status pages to show this announcement on": "اختر صفحات الحالة التي سيُعرض عليها هذا الإعلان",
-  "Select status pages to show this event on": "اختر صفحات الحالة التي سيُعرض عليها هذا الحدث",
   "Select Team": "اختر الفريق",
   "Select Teams": "اختيار الفرق",
   "Select telemetry services to scope this monitor.": "اختر خدمات القياس عن بُعد لتحديد نطاق هذه المراقبة.",
@@ -4676,7 +4675,6 @@
   "Show Episode Labels": "عرض تسميات الحلقات",
   "Show Episodes": "عرض الحلقات",
   "Show Episodes on Status Page": "إظهار الحلقات على صفحة الحالة",
-  "Show event on these status pages ": "عرض الحدث على صفحات الحالة هذه ",
   "Show ID and Key": "عرض المعرّف والمفتاح",
   "Show Incident History (in days)": "عرض سجل الحوادث (بالأيام)",
   "Show Incident Labels": "عرض تسميات الحوادث",
@@ -13360,7 +13358,6 @@
   "No status": "لا توجد حالة",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "لا يوجد سجل حالة بعد. ويمتلئ المخطط الزمني كلما سجّل تجميع سلامة الموقع تغييرات.",
   "No status pages selected for this announcement.": "لم تُحدَّد صفحات حالة لهذا الإعلان.",
-  "No status pages selected for this maintenance event.": "لم تُختر أي صفحات حالة لحدث الصيانة هذا.",
   "No status recorded yet.": "لم تُسجَّل أي حالة بعد.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "لم يُبلَّغ عن أي وحدات تخزين بعد. تأكد من أن وكيل Proxmox يرسل المقاييس.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "لم تُحدَّد أي مناطق زمنية للمشتركين حتى الآن. سيتلقى المشتركون الإشعارات بأوقات معروضة بالمناطق الزمنية GMT وEST وPST وIST وACT افتراضيًا.",
@@ -56473,5 +56470,11 @@
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "يستمر احتساب الاستخدام حسب الاستهلاك على الخطة المجانية: البيانات التي ترسلها خدماتك، وكل جهاز مراقبة ليس جهاز مراقبة يدويًا.",
   "You do not have permission to change the plan.": "لا تملك إذن تغيير الخطة.",
   "Your plan does not include {{product}}": "خطتك لا تتضمن {{product}}",
-  "Pick what the new step does. You can change its settings once it is added.": "اختر ما تفعله الخطوة الجديدة. يمكنك تغيير إعداداتها بعد إضافتها."
+  "Pick what the new step does. You can change its settings once it is added.": "اختر ما تفعله الخطوة الجديدة. يمكنك تغيير إعداداتها بعد إضافتها.",
+  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "تظهر الأحداث المنشأة من هذا القالب على صفحات الحالة هذه فقط، ولا تُخطر إلا مشتركيها. إن لم تُختر أي صفحة، فلن تظهر على أي صفحة حالة.",
+  "Events from this template will not appear on any status page.": "لن تظهر الأحداث المنشأة من هذا القالب على أي صفحة حالة.",
+  "Not shown on any status page": "لا يظهر على أي صفحة حالة",
+  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "صفحات الحالة هذه وحدها تعرض هذا الحدث وتُخطر مشتركيها. على خلاف الحادثة، لا يظهر الحدث الذي لم تُختر له أي صفحة على أي صفحة حالة.",
+  "Show event on these status pages": "عرض الحدث على صفحات الحالة هذه",
+  "This event will not appear on any status page.": "لن يظهر هذا الحدث على أي صفحة حالة."
 }

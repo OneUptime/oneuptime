@@ -68,9 +68,7 @@ import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/Advance
 import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
 import Recurring from "Common/Types/Events/Recurring";
 import FetchMonitorStatuses from "../../Components/MonitorStatus/FetchMonitorStatuses";
-import FetchStatusPages from "../../Components/StatusPage/FetchStatusPages";
-import { getStatusPageSuggestionsFooter } from "../../Components/StatusPage/StatusPageSuggestions";
-import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
+import { getMaintenanceStatusPagesFormField } from "../../Components/ScheduledMaintenance/MaintenanceStatusPagesFormField";
 import FetchLabels from "../../Components/Label/FetchLabels";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
 import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
@@ -1048,70 +1046,14 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                 },
                 /*
-                 * Starts empty: picking a page publishes the event there and
-                 * tells its subscribers. Under it, the pages that show the
-                 * affected monitors, one click to add.
+                 * Starts empty, and says so: an event shows only on the
+                 * pages picked here, and tells their subscribers. Under it,
+                 * the pages that show the affected monitors, one click to
+                 * add; the review step warns when none is picked.
                  */
-                {
-                  field: {
-                    statusPages: true,
-                  },
-                  title: "Show event on these status pages ",
+                getMaintenanceStatusPagesFormField<ScheduledMaintenance>({
                   stepId: "resources-affected",
-                  description: "Select status pages to show this event on",
-                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  dropdownModal: {
-                    type: StatusPage,
-                    labelField: "name",
-                    valueField: "_id",
-                  },
-                  required: false,
-                  placeholder: "Select Status Pages",
-                  getFooterElement:
-                    getStatusPageSuggestionsFooter<ScheduledMaintenance>({
-                      eventType: StatusPageEventType.ScheduledEvent,
-                    }),
-                  getSummaryElement: (
-                    item: FormValues<ScheduledMaintenance>,
-                  ) => {
-                    if (!item.statusPages || !Array.isArray(item.statusPages)) {
-                      return (
-                        <p>
-                          {translator.translateText(
-                            "No status pages selected for this maintenance event.",
-                          )}
-                        </p>
-                      );
-                    }
-
-                    const statusPageIds: Array<ObjectID> = [];
-
-                    for (const statusPage of item.statusPages) {
-                      if (typeof statusPage === "string") {
-                        statusPageIds.push(new ObjectID(statusPage));
-                        continue;
-                      }
-
-                      if (statusPage instanceof ObjectID) {
-                        statusPageIds.push(statusPage);
-                        continue;
-                      }
-
-                      if (statusPage instanceof StatusPage) {
-                        statusPageIds.push(
-                          new ObjectID(statusPage._id?.toString() || ""),
-                        );
-                        continue;
-                      }
-                    }
-
-                    return (
-                      <div>
-                        <FetchStatusPages statusPageIds={statusPageIds} />
-                      </div>
-                    );
-                  },
-                },
+                }),
                 /*
                  * Folded to one line that says what happens. The event is
                  * published right away - for one planned long before

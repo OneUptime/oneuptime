@@ -4533,7 +4533,6 @@
   "Select Status Page": "Välj statussida",
   "Select Status Pages": "Välj statussidor",
   "Select status pages to show this announcement on": "Välj statussidor att visa detta meddelande på",
-  "Select status pages to show this event on": "Välj statussidor att visa denna händelse på",
   "Select Team": "Välj team",
   "Select Teams": "Välj team",
   "Select telemetry services to scope this monitor.": "Välj telemetritjänster för att avgränsa denna övervakning.",
@@ -4676,7 +4675,6 @@
   "Show Episode Labels": "Visa episodetiketter",
   "Show Episodes": "Visa episoder",
   "Show Episodes on Status Page": "Visa episoder på statussida",
-  "Show event on these status pages ": "Visa händelse på dessa statussidor ",
   "Show ID and Key": "Visa ID och nyckel",
   "Show Incident History (in days)": "Visa incidenthistorik (i dagar)",
   "Show Incident Labels": "Visa incidentetiketter",
@@ -13360,7 +13358,6 @@
   "No status": "Ingen status",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "No status history yet. The timeline fills in as the site's health rollup records changes.",
   "No status pages selected for this announcement.": "No status pages selected for this announcement.",
-  "No status pages selected for this maintenance event.": "Inga statussidor valda för den här underhållshändelsen.",
   "No status recorded yet.": "No status recorded yet.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "Inga lagringar har rapporterats än. Kontrollera att Proxmox-agenten skickar mätvärden.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
@@ -56473,5 +56470,11 @@
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "Användning faktureras fortfarande efter förbrukning på gratisplanen: data som dina tjänster skickar och varje övervakning som inte är en manuell övervakning.",
   "You do not have permission to change the plan.": "Du har inte behörighet att byta plan.",
   "Your plan does not include {{product}}": "Din plan omfattar inte {{product}}",
-  "Pick what the new step does. You can change its settings once it is added.": "Välj vad det nya steget gör. Du kan ändra dess inställningar när det har lagts till."
+  "Pick what the new step does. You can change its settings once it is added.": "Välj vad det nya steget gör. Du kan ändra dess inställningar när det har lagts till.",
+  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "Händelser från den här mallen visas bara på dessa statussidor och meddelar bara deras prenumeranter. Utan val visas de inte på någon statussida.",
+  "Events from this template will not appear on any status page.": "Händelser från den här mallen visas inte på någon statussida.",
+  "Not shown on any status page": "Visas inte på någon statussida",
+  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Bara dessa statussidor visar den här händelsen och meddelar sina prenumeranter. Till skillnad från en incident visas en händelse utan val inte på någon statussida.",
+  "Show event on these status pages": "Visa händelse på dessa statussidor",
+  "This event will not appear on any status page.": "Den här händelsen visas inte på någon statussida."
 }

@@ -4533,7 +4533,6 @@
   "Select Status Page": "Statusseite auswählen",
   "Select Status Pages": "Status-Seiten auswählen",
   "Select status pages to show this announcement on": "Wählen Sie die Status-Seiten aus, auf denen diese Ankündigung angezeigt werden soll",
-  "Select status pages to show this event on": "Wählen Sie die Status-Seiten aus, auf denen dieses Ereignis angezeigt werden soll",
   "Select Team": "Team auswählen",
   "Select Teams": "Teams auswählen",
   "Select telemetry services to scope this monitor.": "Wählen Sie Telemetriedienste aus, um diese Überwachung einzugrenzen.",
@@ -4676,7 +4675,6 @@
   "Show Episode Labels": "Episodenbeschriftungen anzeigen",
   "Show Episodes": "Episoden anzeigen",
   "Show Episodes on Status Page": "Episoden auf der Statusseite anzeigen",
-  "Show event on these status pages ": "Ereignis auf diesen Status-Seiten anzeigen ",
   "Show ID and Key": "ID und Schlüssel anzeigen",
   "Show Incident History (in days)": "Vorfallverlauf anzeigen (in Tagen)",
   "Show Incident Labels": "Vorfallbeschriftungen anzeigen",
@@ -13360,7 +13358,6 @@
   "No status": "Kein Status",
   "No status history yet. The timeline fills in as the site's health rollup records changes.": "Noch kein Statusverlauf. Die Zeitachse füllt sich, sobald die Integritätszusammenfassung des Standorts Änderungen erfasst.",
   "No status pages selected for this announcement.": "Für diese Ankündigung sind keine Statusseiten ausgewählt.",
-  "No status pages selected for this maintenance event.": "Für dieses Wartungsereignis sind keine Statusseiten ausgewählt.",
   "No status recorded yet.": "Noch kein Status erfasst.",
   "No storage volumes reported yet. Make sure the Proxmox agent is sending metrics.": "Noch keine Speicher-Volumes gemeldet. Stellen Sie sicher, dass der Proxmox-Agent Metriken sendet.",
   "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.": "Bisher wurden keine Abonnenten-Zeitzonen ausgewählt. Abonnenten erhalten Benachrichtigungen standardmäßig mit Zeiten in den Zeitzonen GMT, EST, PST, IST und ACT.",
@@ -56473,5 +56470,11 @@
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "Die Nutzung wird auch im kostenlosen Tarif nach Verbrauch abgerechnet: die Daten, die Ihre Dienste senden, und jeder Monitor, der kein manueller Monitor ist.",
   "You do not have permission to change the plan.": "Sie haben keine Berechtigung, den Tarif zu ändern.",
   "Your plan does not include {{product}}": "Ihr Tarif umfasst {{product}} nicht",
-  "Pick what the new step does. You can change its settings once it is added.": "Wählen Sie, was der neue Schritt tut. Seine Einstellungen können Sie ändern, sobald er hinzugefügt ist."
+  "Pick what the new step does. You can change its settings once it is added.": "Wählen Sie, was der neue Schritt tut. Seine Einstellungen können Sie ändern, sobald er hinzugefügt ist.",
+  "Events from this template show only on these status pages, and notify only their subscribers. With none picked, they show on no status page.": "Ereignisse aus dieser Vorlage erscheinen nur auf diesen Statusseiten und benachrichtigen nur deren Abonnenten. Ohne Auswahl erscheinen sie auf keiner Statusseite.",
+  "Events from this template will not appear on any status page.": "Ereignisse aus dieser Vorlage erscheinen auf keiner Statusseite.",
+  "Not shown on any status page": "Auf keiner Statusseite angezeigt",
+  "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Nur diese Statusseiten zeigen dieses Ereignis und benachrichtigen ihre Abonnenten. Anders als ein Vorfall erscheint ein Ereignis ohne Auswahl auf keiner Statusseite.",
+  "Show event on these status pages": "Ereignis auf diesen Status-Seiten anzeigen",
+  "This event will not appear on any status page.": "Dieses Ereignis erscheint auf keiner Statusseite."
 }

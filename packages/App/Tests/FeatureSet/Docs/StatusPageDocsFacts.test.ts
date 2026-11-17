@@ -815,10 +815,20 @@ describe("the Status Pages Overview: how incidents, maintenance and announcement
       }
     }
 
-    // Where an event names them: the create form's own field.
+    /*
+     * Where an event names them: the create form's field, defined once for
+     * the event's forms and its templates' (#9131).
+     */
     expect(
       readSource(`${DASHBOARD}/Pages/ScheduledMaintenanceEvents/Create.tsx`),
-    ).toContain('title: "Show event on these status pages ",');
+    ).toContain("getMaintenanceStatusPagesFormField<ScheduledMaintenance>({");
+    expect(
+      readSource(
+        `${DASHBOARD}/Components/ScheduledMaintenance/MaintenanceStatusPagesCopy.ts`,
+      ),
+    ).toContain(
+      'pickerTitle: translationKey("Show event on these status pages")',
+    );
   });
 
   it("says incidents come through the monitors, and events and announcements through the pages they name", () => {

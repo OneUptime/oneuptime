@@ -43,13 +43,64 @@ const DOES_NOT_SUGGEST: Record<string, string> = {
     "an incident's status pages narrow where its monitors reach",
 };
 
-// The pickers that suggest, by file: how many each holds.
+/*
+ * The pickers that suggest, by file: how many each holds. A maintenance
+ * event's picker is one field, defined once (#9131), that its forms and its
+ * templates' draw: MAINTENANCE_PICKER_FORMS.
+ */
+const MAINTENANCE_PICKER: string =
+  "Components/ScheduledMaintenance/MaintenanceStatusPagesFormField.tsx";
+
 const SUGGESTING_PICKERS: Record<string, number> = {
-  "Pages/ScheduledMaintenanceEvents/Create.tsx": 1,
-  "Pages/ScheduledMaintenanceEvents/View/Index.tsx": 1,
-  "Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates.tsx": 1,
+  [MAINTENANCE_PICKER]: 1,
   "Components/Announcement/AnnouncementFormFields.tsx": 2,
 };
+
+// The forms that draw the maintenance event's picker, by the record it is on.
+const MAINTENANCE_PICKER_FORMS: Record<string, string> = {
+  "Pages/ScheduledMaintenanceEvents/Create.tsx": "ScheduledMaintenance",
+  "Pages/ScheduledMaintenanceEvents/View/Index.tsx": "ScheduledMaintenance",
+  "Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates.tsx":
+    "ScheduledMaintenanceTemplate",
+};
+
+function readDashboardSource(file: string): string {
+  return fs.readFileSync(path.join(DASHBOARD_SRC, file), "utf8");
+}
+
+/*
+ * The options a form hands the maintenance event's picker:
+ * getMaintenanceStatusPagesFormField<Model>({ ... }).
+ */
+function maintenancePickerCall(file: string): string {
+  const source: string = readDashboardSource(file);
+  const start: number = source.search(
+    /getMaintenanceStatusPagesFormField\s*<\s*\w+\s*>\s*\(\{/,
+  );
+
+  expect({ file, drawsThePicker: start >= 0 }).toEqual({
+    file,
+    drawsThePicker: true,
+  });
+
+  let depth: number = 0;
+
+  for (let index: number = source.indexOf("(", start); ; index++) {
+    const character: string = source[index] as string;
+
+    if (character === "(") {
+      depth++;
+    }
+
+    if (character === ")") {
+      depth--;
+
+      if (depth === 0) {
+        return source.slice(start, index + 1);
+      }
+    }
+  }
+}
 
 const SOURCE_FILE: RegExp = /\.tsx?$/;
 
@@ -248,26 +299,41 @@ describe("status page pickers suggest the pages that show the affected monitors"
     }
   });
 
-  test("the Edit dialogs that leave the resources to their own card read the monitors from the record", () => {
-    const view: Picker | undefined = PICKERS.find((picker: Picker) => {
-      return picker.file === "Pages/ScheduledMaintenanceEvents/View/Index.tsx";
-    });
-
-    expect(view?.footer).toContain("monitorsOf:");
-    expect(view?.footer).toContain("modelType: ScheduledMaintenance");
-
-    const template: Picker | undefined = PICKERS.find((picker: Picker) => {
-      return (
-        picker.file ===
-        "Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates.tsx"
+  test("every maintenance event and template form draws the one maintenance picker, for its own record", () => {
+    for (const [file, model] of Object.entries(MAINTENANCE_PICKER_FORMS)) {
+      expect(maintenancePickerCall(file)).toContain(
+        `getMaintenanceStatusPagesFormField<${model}>({`,
       );
+    }
+
+    // The picker hands its options' monitors on to its suggestions.
+    const picker: Picker | undefined = PICKERS.find((candidate: Picker) => {
+      return candidate.file === MAINTENANCE_PICKER;
     });
 
-    expect(template?.footer).toContain("monitorsOf:");
-    expect(template?.footer).toContain("data.excludeAffectedResources");
-    expect(template?.footer).toContain(
-      "modelType: ScheduledMaintenanceTemplate",
+    expect(picker?.footer).toContain("monitorsOf: options.monitorsOf");
+  });
+
+  test("the Edit dialogs that leave the resources to their own card read the monitors from the record", () => {
+    // Create holds the monitors on the form itself.
+    expect(
+      maintenancePickerCall("Pages/ScheduledMaintenanceEvents/Create.tsx"),
+    ).not.toContain("monitorsOf:");
+
+    const view: string = maintenancePickerCall(
+      "Pages/ScheduledMaintenanceEvents/View/Index.tsx",
     );
+
+    expect(view).toContain("monitorsOf:");
+    expect(view).toContain("modelType: ScheduledMaintenance");
+
+    const template: string = maintenancePickerCall(
+      "Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates.tsx",
+    );
+
+    expect(template).toContain("monitorsOf:");
+    expect(template).toContain("data.excludeAffectedResources");
+    expect(template).toContain("modelType: ScheduledMaintenanceTemplate");
 
     // The template page hands its Edit the template it is showing.
     expect(
