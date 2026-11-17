@@ -56523,5 +56523,6 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Fügen Sie es jetzt bei Ihrem Identitätsanbieter ein oder bewahren Sie es an einem sicheren Ort auf. Es wird nur dieses eine Mal angezeigt: OneUptime speichert nur einen Hash davon.",
   "Server Monitor Secret Key Hash": "Hash des geheimen Schlüssels des Server-Monitors",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Das Bearer-Token wird nur einmal angezeigt: wenn die Verbindung hinzugefügt oder ihr Token zurückgesetzt wird. Wenn Sie es nicht mehr haben, erstellen Sie mit „Bearer-Token zurücksetzen“ ein neues.",
-  "Webhook Secret Key Hash": "Hash des geheimen Webhook-Schlüssels"
+  "Webhook Secret Key Hash": "Hash des geheimen Webhook-Schlüssels",
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Dieser Aufgabe wurde ein privater Vorfall oder eine private Warnung hinzugefügt, die Sie nicht öffnen können. Daher sind ihr Fortschritt und ihr Pull Request ausgeblendet."
 }

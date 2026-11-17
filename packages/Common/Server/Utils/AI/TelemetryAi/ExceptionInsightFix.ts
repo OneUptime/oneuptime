@@ -741,11 +741,12 @@ export default class ExceptionInsightFix {
       });
 
     if (activeTaskId) {
-      return {
-        ...NO_TELEMETRY_AI_FIX_SUGGESTION,
-        offer: SuggestionOffer.InProgress,
+      // Read as its task's own page reads it, for the person.
+      return await TelemetryAiFix.getInProgressSuggestion({
+        projectId: data.projectId,
         taskId: activeTaskId,
-      };
+        reader: data.props,
+      });
     }
 
     return kind === ExceptionInsightKind.MissingStackTrace
@@ -785,11 +786,12 @@ export default class ExceptionInsightFix {
       });
 
     if (activeTaskId) {
-      return {
-        ...NO_TELEMETRY_AI_FIX_SUGGESTION,
-        offer: SuggestionOffer.InProgress,
+      // Read as its task's own page reads it, for the person.
+      return await TelemetryAiFix.getInProgressSuggestion({
+        projectId: data.projectId,
         taskId: activeTaskId,
-      };
+        reader: data.props,
+      });
     }
 
     const recipe: CodeFixTaskType =

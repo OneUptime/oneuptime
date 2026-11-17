@@ -18,6 +18,7 @@ import CodeTaskAccess from "../../../../../Server/Utils/AI/CodeTask/CodeTaskAcce
 import CodeTaskContextBuilder from "../../../../../Server/Utils/AI/CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../../../../../Server/Utils/AI/CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../../../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
+import CodeTaskThread from "../../../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import SubjectCodeFixRun from "../../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import ExceptionInsightFix, {
   EXCEPTION_FIX_ALREADY_RUNNING_MESSAGE,
@@ -63,8 +64,10 @@ import ObjectID from "../../../../../Types/ObjectID";
 import ErrorClass from "../../../../../Types/Telemetry/ErrorClass";
 import SuggestionOffer from "../../../../../Utils/Suggestions/SuggestionOffer";
 import {
+  HIDDEN_TELEMETRY_AI_FIX_SUGGESTION,
   NO_TELEMETRY_AI_FIX_SUGGESTION,
   TelemetryAiFixSuggestion,
+  telemetryAiFixSuggestionToJSON,
 } from "../../../../../Utils/Suggestions/TelemetryAiFixSuggestion";
 
 /*
@@ -206,6 +209,9 @@ const ANYWHERE: TelemetryAiWork = decideTelemetryAiWork({
 
 let startedToday: number;
 let activeTaskId: string | null;
+// The tasks the person may not read (CodeTaskThread.findTasksHiddenFrom).
+let hiddenTaskIds: Set<string>;
+let hiddenFrom: SpyInstance<typeof CodeTaskThread.findTasksHiddenFrom>;
 let hasRepository: boolean;
 let resolved: string | null;
 let locatable: Array<LocatableRepositoryWithTree>;
@@ -238,6 +244,7 @@ function firstArgument(spy: SpyInstance<never>, call: number = 0): JSONObject {
 beforeEach(() => {
   startedToday = 0;
   activeTaskId = null;
+  hiddenTaskIds = new Set<string>();
   hasRepository = true;
   resolved = REPO_A;
   locatable = [repository(REPO_A), repository(REPO_B)];
@@ -256,6 +263,11 @@ beforeEach(() => {
     .spyOn(TelemetryAiFix, "findActiveTaskIdForInsight")
     .mockImplementation(async () => {
       return activeTaskId;
+    });
+  hiddenFrom = jest
+    .spyOn(CodeTaskThread, "findTasksHiddenFrom")
+    .mockImplementation(async () => {
+      return hiddenTaskIds;
     });
   jest
     .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
@@ -1102,6 +1114,48 @@ describe("ExceptionInsightFix - a person's Fix with AI on a new or rising except
     expect(JSON.stringify(query["codeFixTaskType"])).toContain(
       CodeFixTaskType.ImproveExceptionHandling,
     );
+  });
+
+  /*
+   * Either one hidden from the person - a reply carried a private incident
+   * or alert into it that they may not open - is read as its own page reads
+   * it: a fix is there, so none is offered, and nothing of it.
+   */
+  test("a task on its way that is hidden from the person - either one: there, and nothing of it", async () => {
+    activeTaskId = ACTIVE_TASK;
+    hiddenTaskIds = new Set<string>([ACTIVE_TASK]);
+
+    let answer: TelemetryAiFixSuggestion = await suggestion();
+
+    expect(answer).toEqual(HIDDEN_TELEMETRY_AI_FIX_SUGGESTION);
+    expect(
+      JSON.stringify(telemetryAiFixSuggestionToJSON(answer)),
+    ).not.toContain(ACTIVE_TASK);
+    expect(hiddenFrom).toHaveBeenLastCalledWith({
+      projectId: PROJECT_ID,
+      taskIds: [ACTIVE_TASK],
+      reader: props,
+    });
+
+    // One started on the exception's own page.
+    activeTaskId = null;
+    const codeTaskId: ObjectID = ObjectID.generate();
+    activeExceptionRun = new AIRun();
+    activeExceptionRun.id = ObjectID.generate();
+    activeExceptionRun.codeTaskId = codeTaskId;
+    hiddenTaskIds = new Set<string>([codeTaskId.toString()]);
+
+    answer = await suggestion();
+
+    expect(answer).toEqual(HIDDEN_TELEMETRY_AI_FIX_SUGGESTION);
+    expect(
+      JSON.stringify(telemetryAiFixSuggestionToJSON(answer)),
+    ).not.toContain(codeTaskId.toString());
+    expect(hiddenFrom).toHaveBeenLastCalledWith({
+      projectId: PROJECT_ID,
+      taskIds: [codeTaskId.toString()],
+      reader: props,
+    });
   });
 
   test("no repository connected: the one step, connect one", async () => {

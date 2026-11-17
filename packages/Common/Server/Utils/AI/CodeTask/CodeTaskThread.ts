@@ -1,5 +1,6 @@
 import { FIX_PRODUCTION_REPORT_SELECT } from "../CodeFix/FixProductionReportUtil";
 import AIRunOutputReadFilter from "../AIRunOutputReadFilter";
+import { shouldBypassRecordPrivacy } from "../../PrivacyFilterUtil";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import AIAgentTaskPullRequestService from "../../../Services/AIAgentTaskPullRequestService";
 import AIRunService from "../../../Services/AIRunService";
@@ -154,6 +155,67 @@ export default class CodeTaskThread {
       select: data.select || CODE_TASK_TURN_SELECT,
       props: { isRoot: true },
     });
+  }
+
+  /*
+   * Of `taskIds` - tasks (their first runs) a page shows beside something
+   * else the reader may read: an exception's fix, the fix pull request of
+   * an investigation, the pull request to the code under a fix's step, a
+   * trace's performance fix, the fix on its way of a finding or of a
+   * profile's function - the ones the reader may not read, by findTask's
+   * rule (AIRunOutputReadFilter): a task a reply carried a private incident
+   * or alert into that they do not see, or one carrying a record that is
+   * gone. Such a page shows that
+   * the task is there, and nothing of how it stands: neither its state nor
+   * its pull request, nor a link the task's own page would answer as not
+   * found. Ids in lower case, in one read for them all; none for those who
+   * see every private record.
+   */
+  @CaptureSpan()
+  public static async findTasksHiddenFrom(data: {
+    projectId: ObjectID;
+    taskIds: Array<ObjectID | string>;
+    reader: DatabaseCommonInteractionProps;
+  }): Promise<Set<string>> {
+    const ids: Array<string> = [];
+
+    for (const taskId of data.taskIds) {
+      const id: string = taskId.toString().toLowerCase();
+
+      if (ObjectID.isValidUUID(id) && !ids.includes(id)) {
+        ids.push(id);
+      }
+    }
+
+    if (ids.length === 0 || shouldBypassRecordPrivacy(data.reader)) {
+      return new Set<string>();
+    }
+
+    const readable: Array<AIRun> = await AIRunService.findBy({
+      query: AIRunOutputReadFilter.applyToRunRow(
+        {
+          _id: QueryHelper.any(ids),
+          projectId: data.projectId,
+        },
+        data.reader,
+      ),
+      select: { _id: true },
+      limit: ids.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const readableIds: Set<string> = new Set<string>(
+      readable.map((run: AIRun): string => {
+        return (run.id?.toString() || "").toLowerCase();
+      }),
+    );
+
+    return new Set<string>(
+      ids.filter((id: string): boolean => {
+        return !readableIds.has(id);
+      }),
+    );
   }
 
   /*

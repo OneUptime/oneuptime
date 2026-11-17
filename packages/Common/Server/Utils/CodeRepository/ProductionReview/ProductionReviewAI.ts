@@ -76,6 +76,12 @@ export interface ProductionReviewFacts {
   // The facts, each with the id a point names it by.
   json: JSONObject;
   ids: Set<string>;
+  /*
+   * The incident each incident fact (I1, I2) is, by the fact's id: a point
+   * resting on one is kept with its id, and read only by those who may read
+   * the incident (ProductionReviewUtil.keepReadableIncidents, #9241).
+   */
+  incidentIdsByFactId: Map<string, string>;
 }
 
 export interface ProductionReviewAiResult {
@@ -136,6 +142,7 @@ export default class ProductionReviewAI {
     report: ProductionReviewReport,
   ): ProductionReviewFacts {
     const ids: Set<string> = new Set<string>();
+    const incidentIdsByFactId: Map<string, string> = new Map<string, string>();
 
     const withId: <T>(
       prefix: string,
@@ -153,8 +160,19 @@ export default class ProductionReviewAI {
       });
     };
 
+    // The incident facts, in the order withId numbers them below.
+    ProductionReviewUtil.getNotableIncidents(report.incidents).forEach(
+      (incident: ProductionReviewIncidentJSON, index: number): void => {
+        incidentIdsByFactId.set(
+          `I${index + 1}`,
+          (incident.incidentId || "").toString().toLowerCase(),
+        );
+      },
+    );
+
     return {
       ids,
+      incidentIdsByFactId,
       json: {
         windows: {
           exceptions: `last ${PRODUCTION_REVIEW_WINDOWS.exceptionsDays} days`,
@@ -351,11 +369,14 @@ export default class ProductionReviewAI {
   /*
    * The points of an answer, or null for an answer that cannot be read.
    * A point must say something and name at least one fact it was given;
-   * anything else in it is dropped.
+   * anything else in it is dropped. Each keeps the incidents it rests on
+   * (`incidentIdsByFactId`: the incident facts it names), so it is read
+   * only by those who may read them (#9241).
    */
   public static parseAnswer(
     content: string,
     factIds: Set<string>,
+    incidentIdsByFactId: Map<string, string> = new Map<string, string>(),
   ): Array<ProductionReviewPointJSON> | null {
     const text: string = (content || "").substring(0, MAX_ANSWER_CHARACTERS);
     const start: number = text.indexOf("{");
@@ -414,6 +435,20 @@ export default class ProductionReviewAI {
 
       const codePoints: Array<string> = Array.from(pointText);
 
+      // The incidents it rests on, each once: none for most points.
+      const incidentIds: Array<string> = [];
+
+      for (const id of point.facts) {
+        const incidentId: string | undefined =
+          typeof id === "string"
+            ? incidentIdsByFactId.get(id.trim().toUpperCase())
+            : undefined;
+
+        if (incidentId && !incidentIds.includes(incidentId)) {
+          incidentIds.push(incidentId);
+        }
+      }
+
       points.push({
         text:
           codePoints.length > PRODUCTION_REVIEW_LIMITS.maxPointLength
@@ -421,6 +456,7 @@ export default class ProductionReviewAI {
                 .slice(0, PRODUCTION_REVIEW_LIMITS.maxPointLength - 1)
                 .join("")}…`
             : pointText,
+        incidentIds,
       });
     }
 
@@ -536,7 +572,11 @@ export default class ProductionReviewAI {
       const response: AILogResponse = await Promise.race([call, deadline]);
 
       const points: Array<ProductionReviewPointJSON> | null =
-        ProductionReviewAI.parseAnswer(response.content, facts.ids);
+        ProductionReviewAI.parseAnswer(
+          response.content,
+          facts.ids,
+          facts.incidentIdsByFactId,
+        );
 
       if (points === null) {
         return {

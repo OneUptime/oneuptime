@@ -56523,5 +56523,6 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "همین حالا آن را در ارائه‌دهنده هویت خود جای‌گذاری کنید، یا در جای امنی نگه دارید. فقط همین یک بار نمایش داده می‌شود: OneUptime فقط هش آن را نگه می‌دارد.",
   "Server Monitor Secret Key Hash": "هش کلید محرمانه مانیتور سرور",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "توکن Bearer فقط یک بار نمایش داده می‌شود: هنگام افزودن اتصال یا بازنشانی توکن آن. اگر دیگر آن را ندارید، با «بازنشانی توکن Bearer» یک توکن تازه بسازید.",
-  "Webhook Secret Key Hash": "هش کلید محرمانه وب‌هوک"
+  "Webhook Secret Key Hash": "هش کلید محرمانه وب‌هوک",
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "یک حادثه یا هشدار خصوصی که نمی‌توانید باز کنید به این وظیفه اضافه شده است، بنابراین پیشرفت و Pull Request آن پنهان است."
 }

@@ -34,6 +34,7 @@ import {
   CodeTaskTurnJSON,
 } from "../../../../../Types/AI/CodeTask";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import PullRequestState from "../../../../../Types/CodeRepository/PullRequestState";
 import CodeRepositoryType from "../../../../../Types/CodeRepository/CodeRepositoryType";
 import Name from "../../../../../Types/Name";
@@ -558,6 +559,27 @@ describe("CodeTaskPresenter.summarize", () => {
     return task;
   }
 
+  /*
+   * IncidentService.findBy as the reader: the review's incidents it is
+   * asked about, but `hidden` - the ones the reader may not read now.
+   */
+  function readableIncidents(
+    report: ProductionReviewReport,
+    hidden: Array<string> = [],
+  ): (data: { query: Record<string, unknown> }) => Promise<Array<Incident>> {
+    return async (): Promise<Array<Incident>> => {
+      return report.incidents.items
+        .filter((item: { incidentId: string }): boolean => {
+          return !hidden.includes(item.incidentId);
+        })
+        .map((item: { incidentId: string }): Incident => {
+          const incident: Incident = new Incident();
+          incident._id = item.incidentId;
+          return incident;
+        });
+    };
+  }
+
   function outcomesRead(
     outcome: AIRun["taskOutcome"],
   ): (data: { select?: Record<string, unknown> }) => Promise<Array<AIRun>> {
@@ -589,6 +611,10 @@ describe("CodeTaskPresenter.summarize", () => {
           productionReview: report,
         }) as never,
       );
+    // The reader may read both of the review's incidents.
+    jest
+      .spyOn(IncidentService, "findBy")
+      .mockImplementation(readableIncidents(report) as never);
 
     const [summary]: Array<CodeTaskSummaryJSON> =
       await CodeTaskPresenter.summarize({
@@ -627,7 +653,11 @@ describe("CodeTaskPresenter.summarize", () => {
         ],
       );
     })![0] as never;
-    expect(read.select).toEqual({ _id: true, taskOutcome: true });
+    expect(read.select).toEqual({
+      _id: true,
+      taskOutcome: true,
+      taskContext: true,
+    });
     expect(read.props).toEqual({ isRoot: true });
   });
 
@@ -664,6 +694,145 @@ describe("CodeTaskPresenter.summarize", () => {
       });
 
     expect(summary).not.toHaveProperty("productionReview");
+  });
+
+  /*
+   * An incident made private after the review was worked out, which the
+   * reader does not see (#9241): the row neither counts nor names it, and
+   * what AI last said - the review's own sentence - is written again from
+   * what is left.
+   */
+  test("a review's row leaves out an incident the reader may no longer read", async () => {
+    const report: ProductionReviewReport = fullReport();
+    const openIncidentId: string = report.incidents.items[0]!.incidentId;
+
+    jest.spyOn(AIRunService, "findBy").mockImplementation(
+      outcomesRead({
+        summary:
+          "Production review: 1 exception, 1 operation, 1 hot function, 2 incidents and 1 suspect deploy in or around the changed code.",
+        filesChanged: [],
+        productionReview: report,
+      }) as never,
+    );
+    const readIncidents: jest.SpiedFunction<typeof IncidentService.findBy> =
+      jest
+        .spyOn(IncidentService, "findBy")
+        .mockImplementation(
+          readableIncidents(report, [openIncidentId]) as never,
+        );
+
+    const [summary]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [reviewTask()],
+        props: READER,
+      });
+
+    expect(summary!.productionReview!.incidentCount).toBe(1);
+    expect(summary!.latestReply).toBe(
+      "Production review: 1 exception, 1 operation, 1 hot function, 1 incident and 1 suspect deploy in or around the changed code.",
+    );
+
+    // Asked of the incidents themselves, as the reader, in one read.
+    expect(readIncidents).toHaveBeenCalledTimes(1);
+    const asked: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+      props: DatabaseCommonInteractionProps;
+    } = readIncidents.mock.calls[0]![0] as never;
+    expect(asked.props).toBe(READER);
+    expect(asked.select).toEqual({ _id: true });
+    expect(asked.query["projectId"]).toBe(PROJECT_ID);
+    expect(JSON.stringify(asked.query["_id"])).toContain(openIncidentId);
+  });
+
+  test("a review whose only signal is an incident the reader may not read says nothing was found", async () => {
+    const report: ProductionReviewReport = fullReport({
+      exceptions: [],
+      operations: [],
+      hotFunctions: [],
+      suspectDeploys: [],
+    });
+
+    jest.spyOn(AIRunService, "findBy").mockImplementation(
+      outcomesRead({
+        summary:
+          "Production review: 2 incidents in or around the changed code.",
+        filesChanged: [],
+        productionReview: report,
+      }) as never,
+    );
+    jest.spyOn(IncidentService, "findBy").mockImplementation(
+      readableIncidents(
+        report,
+        report.incidents.items.map((item: { incidentId: string }) => {
+          return item.incidentId;
+        }),
+      ) as never,
+    );
+
+    const [summary]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [reviewTask()],
+        props: READER,
+      });
+
+    expect(summary!.productionReview!.hasSignal).toBe(false);
+    expect(summary!.productionReview!.incidentCount).toBe(0);
+    expect(summary!.latestReply).toBe(
+      "Nothing in production runs through this pull request's changes.",
+    );
+  });
+
+  test("a reader who may read no incident reads a review without any", async () => {
+    const report: ProductionReviewReport = fullReport();
+
+    jest.spyOn(AIRunService, "findBy").mockImplementation(
+      outcomesRead({
+        summary: "",
+        filesChanged: [],
+        productionReview: report,
+      }) as never,
+    );
+    jest
+      .spyOn(IncidentService, "findBy")
+      .mockRejectedValue(
+        new NotAuthorizedException("You do not have permissions to read."),
+      );
+
+    const [summary]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [reviewTask()],
+        props: READER,
+      });
+
+    expect(summary!.productionReview!.incidentCount).toBe(0);
+  });
+
+  test("root reads every incident of a review, with no read of them", async () => {
+    const report: ProductionReviewReport = fullReport();
+
+    jest.spyOn(AIRunService, "findBy").mockImplementation(
+      outcomesRead({
+        summary: "",
+        filesChanged: [],
+        productionReview: report,
+      }) as never,
+    );
+    const readIncidents: jest.SpiedFunction<typeof IncidentService.findBy> =
+      jest.spyOn(IncidentService, "findBy");
+
+    const [summary]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [reviewTask()],
+        props: { isRoot: true },
+      });
+
+    expect(summary!.productionReview!.incidentCount).toBe(2);
+    expect(readIncidents).not.toHaveBeenCalled();
   });
 
   test("a task of another kind never shows a production review - its outcome is not even read", async () => {
@@ -1148,6 +1317,108 @@ describe("CodeTaskPresenter.getConversation", () => {
       expect(repository).not.toHaveBeenCalled();
     },
   );
+
+  /*
+   * A pull request's production review, on its own page: the review its
+   * turn kept is held to the incidents the reader may read now (#9241) -
+   * the turn the page draws the review from, and the task at the top.
+   */
+  test("a review's page leaves out an incident made private after it was reviewed", async () => {
+    const report: ProductionReviewReport = fullReport({
+      points: [
+        {
+          text: "INC-45 is open, and this edits the line it names.",
+          incidentIds: [],
+        },
+        // Kept before the incidents a point rests on were recorded.
+        { text: "INC-45's code path is the one this changes." },
+        {
+          text: "`chargeCard` throws at the line this edits.",
+          incidentIds: [],
+        },
+      ],
+    });
+    const hiddenIncidentId: string = report.incidents.items[0]!.incidentId;
+
+    // The first point rests on the incident it names.
+    report.points[0]!.incidentIds = [hiddenIncidentId];
+
+    const task: AIRun = new AIRun();
+    task._id = TASK_ID.toString();
+    task.projectId = PROJECT_ID;
+    task.runType = AIRunType.CodeFix;
+    task.codeFixTaskType = CodeFixTaskType.GitHubPullRequestProductionReview;
+    task.codeRepositoryId = REPOSITORY_ID;
+    task.status = AIRunStatus.Completed;
+    task.createdAt = new Date("2026-10-22T09:00:00.000Z");
+    task.taskContext = {};
+    task.taskOutcome = {
+      summary: "Production review: 2 incidents in or around the changed code.",
+      filesChanged: [],
+      productionReview: report,
+    };
+
+    jest.spyOn(AIRunService, "findOneById").mockResolvedValue(task);
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
+    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
+    const readIncidents: jest.SpiedFunction<typeof IncidentService.findBy> =
+      jest.spyOn(IncidentService, "findBy").mockImplementation((async () => {
+        const named: Incident = new Incident();
+        named._id = report.incidents.items[1]!.incidentId;
+        return [named];
+      }) as never);
+
+    const conversation: CodeTaskConversationJSON =
+      await CodeTaskPresenter.getConversation({
+        projectId: PROJECT_ID,
+        task,
+        canSeeChanges: false,
+        props: READER,
+      });
+
+    const shown: ProductionReviewReport =
+      conversation.turns[0]!.outcome!.productionReview!;
+
+    expect(
+      shown.incidents.items.map((item: { incidentId: string }) => {
+        return item.incidentId;
+      }),
+    ).toEqual([report.incidents.items[1]!.incidentId]);
+    expect(shown.incidents.total).toBe(report.incidents.total - 1);
+    expect(shown.incidents.open).toBe(0);
+    expect(
+      shown.points.map((point: { text: string }) => {
+        return point.text;
+      }),
+    ).toEqual(["`chargeCard` throws at the line this edits."]);
+    expect(JSON.stringify(conversation)).not.toContain(hiddenIncidentId);
+    expect(JSON.stringify(conversation)).not.toContain("INC-45");
+    expect(conversation.task.productionReview!.incidentCount).toBe(1);
+    expect(conversation.turns[0]!.outcome!.summary).toBe(
+      "Production review: 1 exception, 1 operation, 1 hot function, 1 incident and 1 suspect deploy in or around the changed code.",
+    );
+
+    // One read of the incidents, as the reader, for the whole conversation.
+    expect(readIncidents).toHaveBeenCalledTimes(1);
+    expect((readIncidents.mock.calls[0]![0] as { props: unknown }).props).toBe(
+      READER,
+    );
+  });
+
+  test("a task that holds no review reads no incident", async () => {
+    const { task } = setUp();
+    const readIncidents: jest.SpiedFunction<typeof IncidentService.findBy> =
+      jest.spyOn(IncidentService, "findBy");
+
+    await CodeTaskPresenter.getConversation({
+      projectId: PROJECT_ID,
+      task,
+      canSeeChanges: true,
+      props: READER,
+    });
+
+    expect(readIncidents).not.toHaveBeenCalled();
+  });
 });
 
 describe("CodeTaskOrigin", () => {
