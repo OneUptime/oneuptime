@@ -2,6 +2,7 @@ import {
   fetchNetworkTraffic,
   findNetworkTrafficAddress,
 } from "./NetworkTrafficApi";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import {
   TrafficAddressLabel,
   getFilteredAddress,
@@ -109,7 +110,6 @@ import {
   useChartTimeRangeZoom,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -1334,7 +1334,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
             rightElement={headerElement}
           >
             {(!loaded && isLoading) || !isUsageSettled ? (
-              <ComponentLoader />
+              <TableSkeleton />
             ) : (
               <></>
             )}

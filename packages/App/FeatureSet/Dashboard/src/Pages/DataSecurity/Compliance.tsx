@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import AppLink from "../../Components/AppLink/AppLink";
 import {
   downloadFrameworkReportCsv,
@@ -30,7 +31,6 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Pill from "Common/UI/Components/Pill/Pill";
 import LocalTable from "Common/UI/Components/Table/LocalTable";
@@ -285,7 +285,10 @@ const DataSecurityCompliancePage: FunctionComponent<
   if (!frameworks) {
     return (
       <Card title={title} description={description}>
-        <ComponentLoader />
+        <CardListSkeleton
+          count={3}
+          gridClassName="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+        />
       </Card>
     );
   }

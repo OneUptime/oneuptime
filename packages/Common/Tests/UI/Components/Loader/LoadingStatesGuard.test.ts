@@ -42,7 +42,8 @@ import {
  * grey bar. Each moves to the skeleton of what it will show: PageSkeleton
  * for a page's content area, TableSkeleton for rows, DetailListSkeleton for
  * names and values, ChartSkeleton for a chart, StatTilesSkeleton for a row
- * of figures, CardListSkeleton for a list of cards.
+ * of figures, CardListSkeleton for a list of cards, InlineValueSkeleton
+ * for a value inside a field.
  *
  * The files that still draw one are counted in HandDrawnLoadersBaseline.json.
  * A file may draw fewer than its count, never more, and a file not in it
@@ -99,9 +100,16 @@ export const ACTION_PROGRESS_BARS: Record<string, string> = {
 
 /*
  * Files that draw PageLoader or ComponentLoader for an action in progress,
- * not for content loading, with the reason. They are not counted.
+ * not for content loading: how many such loaders each draws, and why. They
+ * are not counted in the baseline, but may draw no more than this.
  */
-export const ACTION_PROGRESS_LOADERS: Record<string, string> = {};
+export interface ActionProgressLoaders {
+  loaders: number;
+  reason: string;
+}
+
+export const ACTION_PROGRESS_LOADERS: Record<string, ActionProgressLoaders> =
+  {};
 
 const HAND_DRAWN_LOADERS_BASELINE_FILE: string = path.join(
   __dirname,
@@ -253,11 +261,9 @@ describe("LoadingStatesGuard: every screen", () => {
     const counts: Record<string, number> = {};
 
     for (const entry of sources) {
-      if (ACTION_PROGRESS_LOADERS[entry.file]) {
-        continue;
-      }
-
-      const count: number = countHandDrawnLoaders(entry.source);
+      const count: number =
+        countHandDrawnLoaders(entry.source) -
+        (ACTION_PROGRESS_LOADERS[entry.file]?.loaders || 0);
 
       if (count > 0) {
         counts[entry.file] = count;
@@ -292,7 +298,7 @@ describe("LoadingStatesGuard: every screen", () => {
 
       if (now > before) {
         grew.push(
-          `${file}: draws ${now} PageLoader or ComponentLoader, ${before} before. Draw the skeleton of what loads (PageSkeleton, TableSkeleton, DetailListSkeleton, ChartSkeleton, StatTilesSkeleton, CardListSkeleton), or, for an action in progress, list the file in ACTION_PROGRESS_LOADERS with the reason.`,
+          `${file}: draws ${now} PageLoader or ComponentLoader, ${before} before. Draw the skeleton of what loads (PageSkeleton, TableSkeleton, DetailListSkeleton, ChartSkeleton, StatTilesSkeleton, CardListSkeleton, InlineValueSkeleton), or, for an action in progress, list the file in ACTION_PROGRESS_LOADERS with the reason.`,
         );
       } else if (now < before) {
         shrank.push(`${file}: ${now}, down from ${before}`);
@@ -310,9 +316,12 @@ describe("LoadingStatesGuard: every screen", () => {
     }
   });
 
-  test("every file listed as an action's progress still draws a loader", () => {
-    for (const file of Object.keys(ACTION_PROGRESS_LOADERS)) {
-      expect(countHandDrawnLoaders(read(file))).toBeGreaterThan(0);
+  test("every file listed as an action's progress still draws its loaders, with a reason", () => {
+    for (const [file, listed] of Object.entries(ACTION_PROGRESS_LOADERS)) {
+      expect(listed.reason.length).toBeGreaterThan(20);
+      expect(countHandDrawnLoaders(read(file))).toBeGreaterThanOrEqual(
+        listed.loaders,
+      );
     }
   });
 

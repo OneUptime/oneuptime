@@ -1,5 +1,6 @@
 import { CARD_FRAME_CLASS_NAME, CARD_PADDING_CLASS_NAME } from "../Card/Card";
 import { DETAIL_SKELETON_BAR_CLASS_NAME } from "../Detail/DetailSkeleton";
+import { ChartSkeletonBars } from "../Skeleton/ChartSkeleton";
 import { TableSkeletonBars } from "../Skeleton/TableSkeleton";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -23,10 +24,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * It says "Loading" to a screen reader, as the bar did.
  */
 
-export type PageSkeletonShape = "fields" | "table";
+export type PageSkeletonShape = "fields" | "table" | "chart";
 
 export interface ComponentProps {
-  // What the page's first card holds: fields (the default) or a table's rows.
+  // What the page's first card holds: fields (the default), a table's rows or a chart.
   shape?: PageSkeletonShape | undefined;
 }
 
@@ -92,7 +93,11 @@ const PageSkeleton: FunctionComponent<ComponentProps> = (
         <div className="mt-1 flex h-5 items-center">
           <div className={`h-3 w-72 ${DETAIL_SKELETON_BAR_CLASS_NAME}`} />
         </div>
-        {props.shape === "table" ? (
+        {props.shape === "chart" ? (
+          <div className="mt-6" data-testid={`${PAGE_SKELETON_TEST_ID}-chart`}>
+            <ChartSkeletonBars />
+          </div>
+        ) : props.shape === "table" ? (
           <div className="mt-6" data-testid={`${PAGE_SKELETON_TEST_ID}-table`}>
             <TableSkeletonBars />
           </div>

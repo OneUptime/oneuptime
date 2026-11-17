@@ -7,7 +7,7 @@ import React, {
   ReactElement,
   useMemo,
 } from "react";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import {
@@ -62,7 +62,7 @@ const DatabaseServerLogs: FunctionComponent<
   }, [keys]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (error) {

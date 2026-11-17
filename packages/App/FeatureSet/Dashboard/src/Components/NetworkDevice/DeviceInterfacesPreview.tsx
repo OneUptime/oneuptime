@@ -2,6 +2,7 @@ import {
   isProblemInterface,
   rankInterfacesForAttention,
 } from "./InterfaceAttentionUtil";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import PageMap from "../../Utils/PageMap";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -14,7 +15,6 @@ import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
@@ -136,7 +136,7 @@ const DeviceInterfacesPreview: FunctionComponent<ComponentProps> = (
 
   const getContent: GetContentFunction = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <TableSkeleton rows={5} />;
     }
 
     if (error) {

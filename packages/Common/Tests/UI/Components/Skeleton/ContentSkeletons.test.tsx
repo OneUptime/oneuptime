@@ -22,6 +22,9 @@ import CardListSkeleton, {
 import PageSkeleton, {
   PAGE_SKELETON_TEST_ID,
 } from "../../../../UI/Components/Page/PageSkeleton";
+import InlineValueSkeleton, {
+  INLINE_VALUE_SKELETON_TEST_ID,
+} from "../../../../UI/Components/Skeleton/InlineValueSkeleton";
 import { DETAIL_SKELETON_TEST_ID } from "../../../../UI/Components/Detail/DetailSkeleton";
 import { SKELETON_MOTION_CLASS_NAME } from "../../../../UI/Components/Skeleton/SkeletonStatus";
 
@@ -38,13 +41,21 @@ afterEach(() => {
 });
 
 const SKELETONS: Array<{ name: string; element: ReactElement; id: string }> = [
-  { name: "TableSkeleton", element: <TableSkeleton />, id: TABLE_SKELETON_TEST_ID },
+  {
+    name: "TableSkeleton",
+    element: <TableSkeleton />,
+    id: TABLE_SKELETON_TEST_ID,
+  },
   {
     name: "DetailListSkeleton",
     element: <DetailListSkeleton />,
     id: DETAIL_SKELETON_TEST_ID,
   },
-  { name: "ChartSkeleton", element: <ChartSkeleton />, id: CHART_SKELETON_TEST_ID },
+  {
+    name: "ChartSkeleton",
+    element: <ChartSkeleton />,
+    id: CHART_SKELETON_TEST_ID,
+  },
   {
     name: "StatTilesSkeleton",
     element: <StatTilesSkeleton />,
@@ -55,7 +66,16 @@ const SKELETONS: Array<{ name: string; element: ReactElement; id: string }> = [
     element: <CardListSkeleton />,
     id: CARD_LIST_SKELETON_TEST_ID,
   },
-  { name: "PageSkeleton", element: <PageSkeleton />, id: PAGE_SKELETON_TEST_ID },
+  {
+    name: "InlineValueSkeleton",
+    element: <InlineValueSkeleton />,
+    id: INLINE_VALUE_SKELETON_TEST_ID,
+  },
+  {
+    name: "PageSkeleton",
+    element: <PageSkeleton />,
+    id: PAGE_SKELETON_TEST_ID,
+  },
   {
     name: "PageSkeleton (table)",
     element: <PageSkeleton shape="table" />,
@@ -177,8 +197,10 @@ describe("ChartSkeleton", () => {
 
     const status: HTMLElement = screen.getByTestId(CHART_SKELETON_TEST_ID);
     expect(
-      (status.querySelector('[aria-hidden="true"]')?.firstElementChild as HTMLElement)
-        .style.height,
+      (
+        status.querySelector('[aria-hidden="true"]')
+          ?.firstElementChild as HTMLElement
+      ).style.height,
     ).toBe(`${DEFAULT_CHART_SKELETON_HEIGHT_IN_PX}px`);
     expect(
       screen.getByTestId(`${CHART_SKELETON_TEST_ID}-plot`),
@@ -190,8 +212,10 @@ describe("ChartSkeleton", () => {
 
     const status: HTMLElement = screen.getByTestId(CHART_SKELETON_TEST_ID);
     expect(
-      (status.querySelector('[aria-hidden="true"]')?.firstElementChild as HTMLElement)
-        .style.height,
+      (
+        status.querySelector('[aria-hidden="true"]')
+          ?.firstElementChild as HTMLElement
+      ).style.height,
     ).toBe("180px");
   });
 });

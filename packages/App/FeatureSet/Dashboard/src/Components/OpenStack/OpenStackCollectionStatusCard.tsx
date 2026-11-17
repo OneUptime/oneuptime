@@ -1,11 +1,11 @@
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import Route from "Common/Types/API/Route";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import StatusBadge, {
@@ -175,7 +175,7 @@ const OpenStackCollectionStatusCard: FunctionComponent<ComponentProps> = (
   }, [view?.isPending]);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <DetailListSkeleton />;
   }
 
   if (error) {

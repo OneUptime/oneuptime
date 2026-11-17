@@ -20,6 +20,8 @@ export interface ComponentProps {
   children: ReactNode;
   dataTestId: string;
   className?: string | undefined;
+  // Take the whole height of the box it is drawn in.
+  fillsHeight?: boolean | undefined;
 }
 
 const SkeletonStatus: FunctionComponent<ComponentProps> = (
@@ -34,9 +36,14 @@ const SkeletonStatus: FunctionComponent<ComponentProps> = (
       aria-busy={true}
       aria-label={translator.translateText("Loading")}
       data-testid={props.dataTestId}
-      className={`w-full min-w-0${props.className ? ` ${props.className}` : ""}`}
+      className={`w-full min-w-0${props.fillsHeight ? " h-full" : ""}${
+        props.className ? ` ${props.className}` : ""
+      }`}
     >
-      <div aria-hidden="true" className={SKELETON_MOTION_CLASS_NAME}>
+      <div
+        aria-hidden="true"
+        className={`${SKELETON_MOTION_CLASS_NAME}${props.fillsHeight ? " h-full" : ""}`}
+      >
         {props.children}
       </div>
       <span className="sr-only">{translator.translateText("Loading...")}</span>

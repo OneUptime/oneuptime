@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
@@ -12,7 +13,6 @@ import {
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Card from "Common/UI/Components/Card/Card";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -288,7 +288,7 @@ const OpenStackCloudProjectDetail: FunctionComponent<
   }, [load]);
 
   if (isLoading && !overview) {
-    return <ComponentLoader />;
+    return <PageSkeleton />;
   }
 
   if (error) {

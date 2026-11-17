@@ -22,17 +22,20 @@ const LINE_WIDTH_CLASS_NAMES: ReadonlyArray<string> = [
   "w-3/4",
 ];
 
-export interface ComponentProps {
+export interface BarsProps {
   count?: number | undefined;
   // The lines under each card's title.
   lines?: number | undefined;
   // The list's classes, as the loaded cards' list has them (a grid, a stack).
   gridClassName?: string | undefined;
+}
+
+export interface ComponentProps extends BarsProps {
   className?: string | undefined;
 }
 
-export const CardListSkeletonBars: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
+export const CardListSkeletonBars: FunctionComponent<BarsProps> = (
+  props: BarsProps,
 ): ReactElement => {
   const count: number = Math.max(
     1,

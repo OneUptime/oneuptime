@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import Card from "Common/UI/Components/Card/Card";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import DictionaryOfStringsViewer from "Common/UI/Components/Dictionary/DictionaryOfStingsViewer";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ConditionsTable, {
   type Condition,
 } from "Common/UI/Components/ConditionsTable/ConditionsTable";
@@ -81,7 +81,7 @@ const ResourceOverviewTab: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   if (props.isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (

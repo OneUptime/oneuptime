@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import useInventoryItem, {
   UseInventoryItemResult,
 } from "../../../Components/Inventory/useInventoryItem";
@@ -22,7 +23,6 @@ import {
 import Card from "Common/UI/Components/Card/Card";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import AppLink from "../../../Components/AppLink/AppLink";
@@ -90,7 +90,7 @@ const InventoryItemOverview: FunctionComponent<
   }, [item]);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <PageSkeleton />;
   }
 
   if (error) {

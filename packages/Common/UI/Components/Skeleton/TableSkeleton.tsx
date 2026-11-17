@@ -28,11 +28,14 @@ const CELL_WIDTH_CLASS_NAMES: ReadonlyArray<string> = [
   "w-1/3",
 ];
 
-export interface ComponentProps {
+export interface BarsProps {
   rows?: number | undefined;
   columns?: number | undefined;
   // Leave out the header line, for a table the card already titles.
   hasHeader?: boolean | undefined;
+}
+
+export interface ComponentProps extends BarsProps {
   className?: string | undefined;
 }
 
@@ -42,12 +45,15 @@ const getCellClassName: (columnIndex: number) => string = (
   return `min-w-0 flex-1 items-center${columnIndex >= 2 ? " hidden sm:flex" : " flex"}`;
 };
 
-export const TableSkeletonBars: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
+export const TableSkeletonBars: FunctionComponent<BarsProps> = (
+  props: BarsProps,
 ): ReactElement => {
   const rowCount: number = Math.max(
     1,
-    Math.min(props.rows ?? DEFAULT_TABLE_SKELETON_ROWS, MAX_TABLE_SKELETON_ROWS),
+    Math.min(
+      props.rows ?? DEFAULT_TABLE_SKELETON_ROWS,
+      MAX_TABLE_SKELETON_ROWS,
+    ),
   );
   const columnCount: number = Math.max(
     1,

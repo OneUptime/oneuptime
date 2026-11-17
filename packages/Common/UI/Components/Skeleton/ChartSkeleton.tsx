@@ -18,24 +18,32 @@ export const DEFAULT_CHART_SKELETON_HEIGHT_IN_PX: number = 320;
 const GRIDLINE_COUNT: number = 4;
 const AXIS_LABEL_COUNT: number = 6;
 
-export interface ComponentProps {
+export interface BarsProps {
   // The plot's height, as the chart it stands in for draws it.
   heightInPx?: number | undefined;
+  /*
+   * Fill the box it is drawn in instead (a dashboard widget, a canvas of a
+   * fixed height), as the chart there takes the whole box.
+   */
+  fillsHeight?: boolean | undefined;
   // Leave out the legend line, for a chart that draws none.
   hasLegend?: boolean | undefined;
+}
+
+export interface ComponentProps extends BarsProps {
   className?: string | undefined;
 }
 
-export const ChartSkeletonBars: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
+export const ChartSkeletonBars: FunctionComponent<BarsProps> = (
+  props: BarsProps,
 ): ReactElement => {
   const heightInPx: number =
     props.heightInPx ?? DEFAULT_CHART_SKELETON_HEIGHT_IN_PX;
 
   return (
     <div
-      className="flex w-full min-w-0 flex-col"
-      style={{ height: `${heightInPx}px` }}
+      className={`flex w-full min-w-0 flex-col${props.fillsHeight ? " h-full" : ""}`}
+      style={props.fillsHeight ? undefined : { height: `${heightInPx}px` }}
     >
       {props.hasLegend !== false && (
         <div className="flex h-6 shrink-0 items-center gap-4">
@@ -48,7 +56,10 @@ export const ChartSkeletonBars: FunctionComponent<ComponentProps> = (
         <div className="flex w-8 shrink-0 flex-col justify-between py-1">
           {Array.from(Array(GRIDLINE_COUNT).keys()).map((index: number) => {
             return (
-              <div key={index} className={`h-2 w-8 ${SKELETON_BAR_CLASS_NAME}`} />
+              <div
+                key={index}
+                className={`h-2 w-8 ${SKELETON_BAR_CLASS_NAME}`}
+              />
             );
           })}
         </div>
@@ -58,7 +69,10 @@ export const ChartSkeletonBars: FunctionComponent<ComponentProps> = (
         >
           {Array.from(Array(GRIDLINE_COUNT).keys()).map((index: number) => {
             return (
-              <div key={index} className="border-t border-dashed border-gray-100" />
+              <div
+                key={index}
+                className="border-t border-dashed border-gray-100"
+              />
             );
           })}
           <div
@@ -90,6 +104,7 @@ const ChartSkeleton: FunctionComponent<ComponentProps> = (
     <SkeletonStatus
       dataTestId={CHART_SKELETON_TEST_ID}
       className={props.className}
+      fillsHeight={props.fillsHeight}
     >
       <ChartSkeletonBars {...props} />
     </SkeletonStatus>
