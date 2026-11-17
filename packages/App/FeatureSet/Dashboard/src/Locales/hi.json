@@ -56525,5 +56525,7 @@
   "Server Monitor Secret Key Hash": "सर्वर मॉनिटर सीक्रेट कुंजी हैश",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer टोकन केवल एक बार दिखाया जाता है, जब कनेक्शन जोड़ा जाता है या उसका टोकन रीसेट किया जाता है। अगर अब यह आपके पास नहीं है, तो नया बनाने के लिए \"Bearer टोकन रीसेट करें\" का उपयोग करें।",
   "Webhook Secret Key Hash": "Webhook गुप्त कुंजी हैश",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "इस कार्य में ऐसी निजी घटना या अलर्ट जोड़ा गया है जिसे आप नहीं खोल सकते, इसलिए इसकी प्रगति और पुल रिक्वेस्ट छिपी हुई हैं।"
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "इस कार्य में ऐसी निजी घटना या अलर्ट जोड़ा गया है जिसे आप नहीं खोल सकते, इसलिए इसकी प्रगति और पुल रिक्वेस्ट छिपी हुई हैं।",
+  "OneUptime is added to your Zoom account": "OneUptime आपके Zoom खाते में जोड़ दिया गया है",
+  "{{connectZoom}} to start this project's calls in Zoom.": "इस प्रोजेक्ट की कॉल Zoom में शुरू करने के लिए {{connectZoom}}।"
 }

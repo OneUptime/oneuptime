@@ -56525,5 +56525,7 @@
   "Server Monitor Secret Key Hash": "تجزئة المفتاح السري لمراقبة الخادم",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "لا يُعرض رمز Bearer إلا مرة واحدة، عند إضافة الاتصال أو إعادة تعيين رمزه. إذا لم يعد لديك، فاستخدم «إعادة تعيين رمز Bearer» لإنشاء رمز جديد.",
   "Webhook Secret Key Hash": "تجزئة المفتاح السري لـ Webhook",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "أُضيفت إلى هذه المهمة حادثة أو تنبيه خاص لا يمكنك فتحه، لذا فإن تقدمها وطلب السحب الخاص بها مخفيان."
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "أُضيفت إلى هذه المهمة حادثة أو تنبيه خاص لا يمكنك فتحه، لذا فإن تقدمها وطلب السحب الخاص بها مخفيان.",
+  "OneUptime is added to your Zoom account": "تمت إضافة OneUptime إلى حسابك على Zoom",
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} لبدء مكالمات هذا المشروع في Zoom."
 }

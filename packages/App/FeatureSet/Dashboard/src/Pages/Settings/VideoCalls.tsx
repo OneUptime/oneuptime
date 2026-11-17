@@ -57,7 +57,8 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
  * three), Connect signs in to the provider (VideoCallOAuthConnectModal) and
  * comes back here with the connection made (VideoCallConnectNotice).
  * Otherwise, and for anyone who asks to use their own app, it opens the
- * connection form.
+ * connection form. OneUptime added from the Zoom App Marketplace comes back
+ * here with no connection made, and the notice offers the same Connect.
  */
 
 interface FormState {
@@ -182,6 +183,9 @@ const VideoCallsPage: FunctionComponent<PageComponentProps> = (
         onStartTest={(connection: VideoCallConnection): void => {
           setTestConnection(connection);
         }}
+        onConnect={openConnect}
+        canConnect={createGate.isAllowed}
+        connectDisabledReason={createGate.disabledReason}
       />
 
       <Card

@@ -56525,5 +56525,7 @@
   "Server Monitor Secret Key Hash": "服务器监控密钥哈希",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer 令牌只会在添加连接或重置其令牌时显示一次。如果你已不再持有它，请使用“重置 Bearer 令牌”创建一个新令牌。",
   "Webhook Secret Key Hash": "Webhook 密钥哈希",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "此任务中添加了你无法打开的私密事件或警报，因此其进度和拉取请求已隐藏。"
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "此任务中添加了你无法打开的私密事件或警报，因此其进度和拉取请求已隐藏。",
+  "OneUptime is added to your Zoom account": "OneUptime 已添加到您的 Zoom 账户",
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}}，在 Zoom 中发起此项目的通话。"
 }

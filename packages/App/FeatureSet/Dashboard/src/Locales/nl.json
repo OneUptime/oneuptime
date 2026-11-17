@@ -56525,5 +56525,7 @@
   "Server Monitor Secret Key Hash": "Hash van de geheime sleutel van de servermonitor",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Het Bearer-token wordt maar één keer getoond: wanneer de verbinding wordt toegevoegd of het token opnieuw wordt ingesteld. Hebt u het niet meer, gebruik dan \"Bearer-token opnieuw instellen\" om een nieuw token te maken.",
   "Webhook Secret Key Hash": "Hash van de geheime webhook-sleutel",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Aan deze taak is een privé-incident of privéwaarschuwing toegevoegd die u niet kunt openen, dus de voortgang en de pull request ervan zijn verborgen."
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Aan deze taak is een privé-incident of privéwaarschuwing toegevoegd die u niet kunt openen, dus de voortgang en de pull request ervan zijn verborgen.",
+  "OneUptime is added to your Zoom account": "OneUptime is toegevoegd aan je Zoom-account",
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} om de gesprekken van dit project in Zoom te starten."
 }
