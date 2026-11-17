@@ -19,10 +19,14 @@ import MonitorRecordEvidence from "./MonitorRecordEvidence";
  * readers' copy again when the switch is changed, or when the request was
  * kept once only, before the two were split (getReadersCopyRewrite).
  *
- * A server from before the split writes the readers' copy alone, and as it
- * came. One may still be serving while an upgrade runs, so the request to
- * judge is the newer of the two (getAsReceived), and a readers' copy with no
- * request beside it is a request as it came.
+ * A server older than 14.0.106 wrote the readers' copy alone, and as it
+ * came. None runs beside a server of 16 or later: a major is upgraded to
+ * from the one before it, and every server since 14.0.106 writes both. So
+ * the heartbeat reads the request as it came alone, and splits nothing
+ * (#8906). A request kept once that is not split yet is split by the
+ * Workers data migration RedactLatestIncomingRequests, or when its switch
+ * is changed: both take the readers' copy for the request as it came while
+ * nothing is kept beside it (getAsReceived).
  * https://github.com/OneUptime/oneuptime/issues/6402
  */
 
@@ -47,20 +51,6 @@ export interface ReadersCopyRewrite {
   };
 }
 
-type ToTimeFunction = (value: unknown) => number | null;
-
-// A stored time - a date, or the text a jsonb copy keeps it as - in ms.
-const toTime: ToTimeFunction = (value: unknown): number | null => {
-  const time: number =
-    value instanceof Date
-      ? value.getTime()
-      : typeof value === "string"
-        ? Date.parse(value)
-        : NaN;
-
-  return Number.isFinite(time) ? time : null;
-};
-
 export default class LatestIncomingRequest {
   /*
    * The columns a request that just came in is written to: storable copies,
@@ -82,52 +72,24 @@ export default class LatestIncomingRequest {
   }
 
   /*
-   * The latest request as it came: the one the heartbeat judges. That is the
-   * readers' copy when no request is kept beside it, or when it is the newer
-   * of the two - a server from before the split wrote both of those.
+   * The latest request as it came, which a rewrite of the two copies starts
+   * from: the request kept beside the readers' copy, or - while nothing is
+   * kept beside it - the readers' copy itself. Only a server older than
+   * 14.0.106 left a request so, kept once and as it came:
+   * RedactLatestIncomingRequests splits each such monitor through this
+   * fallback, which stays for as long as that migration is registered (the
+   * two go together). Every server since cuts the readers' copy as it writes
+   * the request beside it, so that copy is never taken over the request,
+   * whatever time it says it came at; the heartbeat reads the request as it
+   * came alone (CheckHeartbeat, #8906).
    */
   public static getAsReceived(
     monitor: LatestIncomingRequestCopies,
   ): IncomingMonitorRequest | undefined {
-    const asReceived: IncomingMonitorRequest | undefined =
-      monitor.incomingMonitorRequestAsReceived || undefined;
-    const readersCopy: IncomingMonitorRequest | undefined =
-      monitor.incomingMonitorRequest || undefined;
-
-    if (!readersCopy) {
-      return asReceived;
-    }
-
-    if (!asReceived) {
-      return readersCopy;
-    }
-
-    const readersCopyCheckedAt: number | null = toTime(readersCopy.checkedAt);
-    const asReceivedCheckedAt: number | null = toTime(asReceived.checkedAt);
-
-    if (
-      readersCopyCheckedAt !== null &&
-      asReceivedCheckedAt !== null &&
-      readersCopyCheckedAt > asReceivedCheckedAt
-    ) {
-      return readersCopy;
-    }
-
-    return asReceived;
-  }
-
-  /*
-   * Is the readers' copy the request as it came? It is while the request is
-   * kept once only: written by a server from before the split, or not split
-   * yet. The heartbeat job splits such a monitor (CheckHeartbeat).
-   */
-  public static isReadersCopyAsItCame(
-    monitor: LatestIncomingRequestCopies,
-  ): boolean {
     return (
-      Boolean(monitor.incomingMonitorRequest) &&
-      LatestIncomingRequest.getAsReceived(monitor) ===
-        monitor.incomingMonitorRequest
+      monitor.incomingMonitorRequestAsReceived ||
+      monitor.incomingMonitorRequest ||
+      undefined
     );
   }
 
