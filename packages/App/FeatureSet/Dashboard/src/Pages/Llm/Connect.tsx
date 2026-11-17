@@ -40,7 +40,7 @@ import {
 import LlmConnectionProvider from "Common/Types/LlmObservability/LlmConnectionProvider";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import ResellerPlanNotice from "../../Components/Billing/ResellerPlanNotice";
 import Icon from "Common/UI/Components/Icon/Icon";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import AnalyticsListResult from "Common/Types/BaseDatabase/ListResult";
@@ -313,7 +313,7 @@ const LlmConnectPage: FunctionComponent<PageComponentProps> = (
 
   if (disableTelemetryForThisProject) {
     return (
-      <ErrorMessage message="Looks like you have bought this plan from a reseller. It did not include telemetry features in your plan. Telemetry features are disabled for this project." />
+      <ResellerPlanNotice project={props.currentProject} product="AI / LLM" />
     );
   }
 

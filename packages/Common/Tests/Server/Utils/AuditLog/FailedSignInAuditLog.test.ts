@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * FAILED SIGN-INS INTO THE AUDIT LOG (issue #6788), as core hands them to
@@ -15,12 +16,12 @@ import {
  * real Valkey, is FailedSignInAuditLogValkey.test.ts's.
  */
 
-const evalMock: jest.Mock = jest.fn();
-const isConnectedMock: jest.Mock = jest.fn();
-const getClientMock: jest.Mock = jest.fn();
-const hasRecorderMock: jest.Mock = jest.fn();
-const recordSignInFailuresMock: jest.Mock = jest.fn();
-const warnMock: jest.Mock = jest.fn();
+const evalMock: Mock = jest.fn();
+const isConnectedMock: Mock = jest.fn();
+const getClientMock: Mock = jest.fn();
+const hasRecorderMock: Mock = jest.fn();
+const recordSignInFailuresMock: Mock = jest.fn();
+const warnMock: Mock = jest.fn();
 
 jest.mock("../../../../Server/Infrastructure/Redis", () => {
   return {

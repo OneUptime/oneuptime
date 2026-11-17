@@ -388,7 +388,7 @@ describe("the lineage map route", () => {
 
   test("someone who may not read data assets is refused before anything is read", async () => {
     const asked: Awaited<ReturnType<typeof askMap>> = await askMap(
-      withPermission(Permission.CreateIncident),
+      withPermission(Permission.CreateProjectIncident),
     );
 
     expect(asked.read).not.toHaveBeenCalled();

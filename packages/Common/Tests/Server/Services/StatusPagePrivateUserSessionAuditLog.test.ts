@@ -655,7 +655,7 @@ describe("the revocations carry where they were asked from", () => {
 describe("the audit log's event for a reader's session", () => {
   test("names no status page, no event", () => {
     const session: StatusPagePrivateUserSession = sessionRow();
-    session.statusPageId = undefined;
+    delete session.statusPageId;
 
     expect(
       Service.toAuditEvent({ session, action: AuditLogAction.SignIn }),

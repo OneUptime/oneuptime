@@ -29,7 +29,7 @@ Click **Create Runbook**, enter a **Name** and, optionally, a **Description** of
 
 ### Add steps
 
-Under **Start your runbook**, pick the type of the first step; below the last step, **Add another step** offers the same seven types. Each step opens with its **Title** and what its type needs; the rest, such as its **Description** and timeouts, is folded under **More fields**. Once the runbook has a step, **Add Step**, at the top of the card, adds a Manual step.
+Under **Start your runbook**, pick the type of the first step. Once the runbook has a step, **Add Step**, below the last step, opens the same seven types, each with what it does: pick one to add it at the end. Each step opens with its **Title** and what its type needs; the rest, such as its **Description** and timeouts, is folded under **More fields**.
 
 ### Put the steps in order
 

@@ -2,6 +2,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { PairedLine, pairedLines } from "../FeatureSet/Docs/DocsLinePairing";
 import {
   isWordedInDashboardLocale,
   readDashboardLocale,
@@ -391,9 +392,6 @@ const DOCS_RULES: ReadonlyArray<SentenceRule> = RULES.filter(
 const NOT_DOCS_WORDS: RegExp =
   /`[^`]*`|\[[^\]]*\]\([^)]*\)|\*\*[^*]+\*\*|«[^»]*»|“[^”]*”|„[^“”]*[“”]|「[^」]*」|『[^』]*』|"[^"]*"|https?:\/\/\S+|\{\{[^}]*\}\}/g;
 
-// A fenced block's first or last line.
-const FENCE: RegExp = /^\s*(```|~~~)/;
-
 /*
  * A link, whose text is the title of the page or heading it opens. It is
  * read by its own English, the same link of the English line: "see
@@ -481,15 +479,20 @@ function docsLinesStillDropped(rule: SentenceRule): Array<string> {
     const lines: Array<string> = fs
       .readFileSync(path.join(DOCS_CONTENT, rule.language, page), "utf8")
       .split("\n");
-    let inFence: boolean = false;
 
-    lines.forEach((line: string, index: number): void => {
-      if (FENCE.test(line)) {
-        inFence = !inFence;
+    /*
+     * Each line with the English it says: the English line in its place, or
+     * on the upgrade guide, whose English wraps, the English paragraph in
+     * its place (DocsLinePairing).
+     */
+    pairedLines(english, lines).forEach((paired: PairedLine): void => {
+      if (paired.code) {
         return;
       }
 
-      const englishLine: string = english[index] || "";
+      const line: string = paired.text;
+      const index: number = paired.line;
+      const englishLine: string = paired.english;
       const names: (text: string) => boolean = (text: string): boolean => {
         return (
           (rule.docsEnglish || rule.english).test(text) &&
@@ -501,7 +504,7 @@ function docsLinesStillDropped(rule: SentenceRule): Array<string> {
        * A line still the English line word for word (a table row of names)
        * is not translated yet: the translations' ratchet holds it.
        */
-      if (inFence || line === englishLine) {
+      if (line === englishLine) {
         return;
       }
 

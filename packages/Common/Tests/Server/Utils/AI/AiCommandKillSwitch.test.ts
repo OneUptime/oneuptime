@@ -627,14 +627,12 @@ describe("AiCommandKillSwitch", () => {
     it("stops the AI command when Enable AI cannot be read, and says so", async () => {
       projectLookup.mockRejectedValue(new Error("database is down"));
 
-      for (const job of [
-        heldJob(),
-        heldJob({
-          origin: RunnerJobOrigin.AiInvestigation,
-          autoRemediationSuggestionId: undefined,
-          aiRunId: RUN_ID,
-        }),
-      ]) {
+      // An investigation's command: its run's, with no suggestion behind it.
+      const investigationCommand: RunnerJob = new RunnerJob();
+      investigationCommand.origin = RunnerJobOrigin.AiInvestigation;
+      investigationCommand.aiRunId = RUN_ID;
+
+      for (const job of [heldJob(), investigationCommand]) {
         jobLookup.mockResolvedValue(job);
 
         expect(

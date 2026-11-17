@@ -425,9 +425,9 @@ test.describe("a runbook's steps, at a laptop's width", () => {
     await expect(page.locator("#runbook-step-2-http-body")).toHaveCount(1);
 
     // A new request starts as a GET: no body to send, so no Body.
+    await page.getByTestId("runbook-add-step").click();
     await page
-      .getByText("Add another step")
-      .locator("xpath=..")
+      .getByRole("dialog")
       .getByRole("button", { name: /^HTTP/ })
       .click();
     await expect(header(page, "HTTP request")).toBeVisible();
