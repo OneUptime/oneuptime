@@ -33,6 +33,7 @@ import {
   SeededRandom,
   shuffled,
 } from "../../../../Helpers/SeededRandom";
+import WorkspaceRefusal from "../../../../../Utils/Workspace/WorkspaceRefusal";
 
 /*
  * ONEUPTIME INSTALLED FOR A WHOLE SLACK ENTERPRISE ORGANIZATION
@@ -671,7 +672,9 @@ describe("listWorkspaces: auth.teams.list, every page", () => {
     await expect(
       SlackOrganization.listWorkspaces("xoxb-organization"),
     ).rejects.toThrow(
-      new BadRequestException("Error from Slack missing_scope"),
+      new BadRequestException(
+        WorkspaceRefusal.describeSlackRefusal("missing_scope"),
+      ),
     );
   });
 
@@ -684,7 +687,7 @@ describe("listWorkspaces: auth.teams.list, every page", () => {
 
     await expect(
       SlackOrganization.listWorkspaces("xoxb-organization"),
-    ).rejects.toThrow("Error from Slack ratelimited");
+    ).rejects.toThrow(WorkspaceRefusal.describeSlackRefusal("ratelimited"));
   });
 
   test("an HTTP error is thrown as it is", async () => {

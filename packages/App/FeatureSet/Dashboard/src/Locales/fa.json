@@ -56554,5 +56554,10 @@
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "این جایگزینی هنوز شروع نشده است، پس چیزی برای پایان دادن نیست. برای لغو آن، حذفش کنید.",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "رد کردن به‌جای {{until}} همین حالا تمام می‌شود. از آن پس {{away}} دوباره نوبت‌های خود را در چرخش می‌گیرد.",
   "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} به‌جای {{until}} همین حالا دیگر جایگزین {{away}} نیست. از آن پس هشدارها دوباره به {{away}} می‌رسد.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "پیام‌های Slack، Microsoft Teams و Mattermost ارسال‌شده برای این پروژه.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "پیام‌های Slack، Microsoft Teams و Mattermost ارسال‌شده برای این {{itemName}}.",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "این آزمایش یک کانال واقعی هم در تیم Microsoft Teams قاعده می‌سازد، مانند {{channel}}، که همهٔ اعضای تیم آن را می‌بینند. وقتی کارتان تمام شد، آن را در Microsoft Teams حذف کنید.",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "این آزمایش یک کانال واقعی {{workspace}} هم می‌سازد، مانند {{channel}}، و شما را به آن دعوت می‌کند. وقتی کارتان تمام شد، آن را در {{workspace}} بایگانی کنید.",
+  "{{team}} (typed name)": "{{team}} (نام تایپ‌شده)",
   "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "هنوز هیچ چیزی مانیتورهای این SLO را بررسی نکرده است. اندازه‌گیری آن از نخستین بررسی آن‌ها آغاز می‌شود."
 }

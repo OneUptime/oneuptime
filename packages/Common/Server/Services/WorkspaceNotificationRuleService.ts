@@ -870,7 +870,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
          */
         throw new BadDataException(
           "Cannot create a new channel. " +
-            WorkspaceBase.getSendErrorMessage(err),
+            WorkspaceUtil.getWorkspaceTypeUtil(
+              rule.workspaceType!,
+            ).describeError(err),
         );
       }
 
@@ -890,7 +892,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
          */
         throw new BadDataException(
           "Cannot invite users to the channel. " +
-            WorkspaceBase.getSendErrorMessage(err),
+            WorkspaceUtil.getWorkspaceTypeUtil(
+              rule.workspaceType!,
+            ).describeError(err),
         );
       }
     }
@@ -5200,9 +5204,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           channelName: data.channelName,
           /*
            * Readable whatever was thrown: Slack and Microsoft Graph throw an
-           * HTTP error response itself.
+           * HTTP error response itself, and a workspace's refusal is said in
+           * OneUptime's words (describeError).
            */
-          error: WorkspaceBase.getSendErrorMessage(data.error),
+          error: WorkspaceUtil.getWorkspaceTypeUtil(
+            data.workspaceType,
+          ).describeError(data.error),
         },
         { isRoot: true },
       );

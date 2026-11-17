@@ -56554,5 +56554,10 @@
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "此覆寫尚未開始，因此沒有可結束的內容。若要取消，請將其刪除。",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "略過現在就結束，而不是在 {{until}}。之後，{{away}} 會重新在輪換中值自己的班。",
   "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} 現在就停止為 {{away}} 代班，而不是在 {{until}}。之後，警示會再次發給 {{away}}。",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "為此專案傳送的 Slack、Microsoft Teams 和 Mattermost 訊息。",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "為此 {{itemName}} 傳送的 Slack、Microsoft Teams 和 Mattermost 訊息。",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "此測試也會在規則的 Microsoft Teams 團隊中建立一個真實頻道（例如 {{channel}}），團隊中的每個人都看得到。完成後，請在 Microsoft Teams 中將其刪除。",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "此測試也會建立一個真實的 {{workspace}} 頻道（例如 {{channel}}），並邀請您加入。完成後，請在 {{workspace}} 中將其封存。",
+  "{{team}} (typed name)": "{{team}}（手動輸入的名稱）",
   "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "此 SLO 的監測器尚未被檢查過。它從這些監測器的首次檢查開始計量。"
 }

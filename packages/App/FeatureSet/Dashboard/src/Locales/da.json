@@ -56554,5 +56554,10 @@
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Denne tilsidesættelse er ikke begyndt endnu, så der er intet at afslutte. Slet den for at aflyse den.",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "{{away}} springes ikke længere over fra nu i stedet for {{until}}. Derefter er vagterne i rotationen deres igen.",
   "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} dækker ikke længere for {{away}} fra nu i stedet for {{until}}. Derefter kalder advarsler {{away}} igen.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "Slack-, Microsoft Teams- og Mattermost-beskeder sendt for dette projekt.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "Slack-, Microsoft Teams- og Mattermost-beskeder sendt for dette element ({{itemName}}).",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "Denne test opretter også en rigtig kanal i reglens Microsoft Teams-team, f.eks. {{channel}}, som alle i teamet kan se. Slet den i Microsoft Teams, når du er færdig.",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "Denne test opretter også en rigtig {{workspace}}-kanal, f.eks. {{channel}}, og inviterer dig til den. Arkiver den i {{workspace}}, når du er færdig.",
+  "{{team}} (typed name)": "{{team}} (indtastet navn)",
   "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Intet har tjekket monitorerne for denne SLO endnu. Den måles fra deres første tjek."
 }

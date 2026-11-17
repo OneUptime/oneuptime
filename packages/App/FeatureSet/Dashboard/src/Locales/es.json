@@ -56554,5 +56554,10 @@
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Esta sustitución aún no ha empezado, así que no hay nada que terminar. Para cancelarla, elimínala.",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "La omisión termina ahora, en lugar del {{until}}. A partir de entonces, {{away}} vuelve a cubrir sus turnos en la rotación.",
   "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} deja de cubrir a {{away}} ahora, en lugar del {{until}}. A partir de entonces, las alertas vuelven a avisar a {{away}}.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "Mensajes de Slack, Microsoft Teams y Mattermost enviados para este proyecto.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "Mensajes de Slack, Microsoft Teams y Mattermost enviados para este elemento ({{itemName}}).",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "Esta prueba también crea un canal real en el equipo de Microsoft Teams de la regla, como {{channel}}, que todos en el equipo pueden ver. Elimínalo en Microsoft Teams cuando termines.",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "Esta prueba también crea un canal real de {{workspace}}, como {{channel}}, y te invita a él. Archívalo en {{workspace}} cuando termines.",
+  "{{team}} (typed name)": "{{team}} (nombre escrito)",
   "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Todavía no se ha comprobado ninguno de los monitores de este SLO. Se mide a partir de su primera comprobación."
 }

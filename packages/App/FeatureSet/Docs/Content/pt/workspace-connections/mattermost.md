@@ -114,7 +114,7 @@ As pessoas entram no canal de uma regra pela conta do Mattermost que conectaram,
 
 Um incidente, alerta, episódio ou evento de manutenção com um canal próprio tem **Abrir no Mattermost** no cabeçalho da sua página no OneUptime, ao lado dos botões de estado. Ele abre esse canal em uma nova aba, no seu servidor do Mattermost. Um registro com dois canais próprios lista os dois sob o botão. Um registro que também tem canais no Slack ou no Microsoft Teams tem, em vez disso, um único botão **Abrir canal**, que lista todos eles. Os canais existentes em que as suas regras publicam não são oferecidos.
 
-**Testar regra** na linha de uma regra publica uma mensagem de teste dessa regra nos canais que ela indica, como faz para o Slack.
+**Testar regra** na linha de uma regra publica uma mensagem de teste dessa regra nos canais que ela indica, como faz para o Slack. **Enviar teste agora** em um resumo responde como no Slack: **Resumo enviado**, ou **Teste com falha** com cada canal que não o recebeu e por quê. Cada publicação, e por que uma falhou em **Motivo**, está listada em **Configurações do projeto** > **Notificações** > **Logs de notificação**, na aba **Espaço de trabalho**.
 
 As mensagens do OneUptime não notificam ninguém com o que citam: um nome ou uma descrição que contenha `@channel`, `@here` ou `@someone` é mostrado como foi escrito, e não notifica ninguém.
 

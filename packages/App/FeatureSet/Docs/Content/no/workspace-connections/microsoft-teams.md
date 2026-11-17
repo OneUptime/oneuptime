@@ -133,7 +133,7 @@ Payments lenker til policyen i OneUptime. En person nevnes med Microsoft Teams-n
 
 ## Teste en regel
 
-**Test regel** i en regels rad publiserer en testmelding for den regelen i kanalene den nevner, så du ser at den kommer frem. Hvis regelen oppretter en kanal for hver hendelse, oppretter testen også en og inviterer regelens folk inn i den.
+**Test regel** i en regels rad publiserer en testmelding for den regelen i kanalene den nevner, så du ser at den kommer frem. **Testvarsling sendt** sier hvor du skal se når testen gikk ut, og **Testen mislyktes** sier hvorfor når den ikke gjorde det. Hvis regelen oppretter en kanal for hver hendelse, oppretter testen også en ekte, i regelens team, navngitt med regelens prefiks og fem tilfeldige bokstaver, for eksempel `prod-abcde`, som alle i teamet kan se: dialogen sier det før testen kjører. Kanalen blir værende etter testen; slett den i Microsoft Teams når du er ferdig.
 
 I likhet med **Send test** ved siden av en kanal i **Prosjektinnstillinger** > **Arbeidsområde** > **Microsoft Teams** krever den tillatelse til å opprette varslingsregler: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Innstillingsadministrator**, **Innstillingsmedlem**, eller **Create Workspace Notification Rule** og **Read Workspace Notification Rule** i en egendefinert rolle. For en som bare kan se reglene, som en **Leser**, er **Test regel** låst, og verktøytipset sier hva som kreves; API-et avviser testen med "You do not have permission to send test notifications in this project." På OneUptime Cloud krever det **Growth**-planen å teste en regel, på samme måte som å legge til en.
 
@@ -145,7 +145,11 @@ Fanen **Sammendrag** i **Hendelser** > **Arbeidsområde** > **Microsoft Teams** 
 
 Et sammendrag sendes etter klokken i sin **Tidssone**, som starter med din. Det holder klokkeslettet sitt der hele året: et som er satt til 09:00 i Berlin, sendes fortsatt kl. 09:00 i Berlin etter overgangen til sommertid, og datoene i meldingen er også Berlins. Via API-et sender du `timezone` som et IANA-tidssonenavn, som `Europe/Berlin`. Et sammendrag som opprettes uten tidssone, tar tidssonen fra profilen til den som opprettet det, eller UTC når en API-nøkkel oppretter det.
 
-Skjemaet for et sammendrag har fire trinn: **Grunnleggende informasjon** (navnet, kanalene og deres **Teamnavn**), **Tidsplan**, **Innhold** (**Hva som skal inkluderes**) og **Filtre** (hvilke hendelser eller varsler det teller).
+Skjemaet for et sammendrag har fire trinn: **Grunnleggende informasjon** (navnet, kanalene og deres **Team**), **Tidsplan**, **Innhold** (**Hva som skal inkluderes**) og **Filtre** (hvilke hendelser eller varsler det teller).
+
+**Team** viser teamene i Microsoft Teams-tilkoblingen din, og vises når det er mer enn ett; med ett team publiserer sammendraget i det. Et sammendrag lagret med et skrevet teamnavn beholder det, vist slik det ble skrevet, til du velger et team. Når teamene ikke kan vises, ber skjemaet om **Teamnavn** som tekst, sammenlignet med teamets navn uansett store og små bokstaver; et navn to team deler, avvises.
+
+**Send test nå** på raden til et sammendrag publiserer det med en gang. **Sammendrag sendt** sier at alle kanalene fikk det; **Testen mislyktes** sier hvor mange kanaler som ikke gjorde det, og viser hver under årsaken, for eksempel en kanal som ikke ble funnet. Kanalene som fikk testen, beholder den. Hver kanals resultat, av en test eller en planlagt sending, er en rad på fanen **Arbeidsområde** under **Prosjektinnstillinger** > **Varslinger** > **Varslingslogger**: **Suksess**, eller **Feil** med hvorfor under **Årsak**. **Sist sendt** flytter seg bare når minst én kanal fikk sammendraget.
 
 ## Varslingsregler under Growth-planen
 

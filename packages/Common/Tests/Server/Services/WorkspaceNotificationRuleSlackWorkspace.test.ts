@@ -37,6 +37,7 @@ import NotificationRuleEventType from "../../../Types/Workspace/NotificationRule
 import NotificationRuleWorkspaceChannel from "../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceMessagePayload from "../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import WorkspaceRefusal from "../../../Utils/Workspace/WorkspaceRefusal";
 
 /*
  * A SLACK RULE THAT NAMES A WORKSPACE OF AN ENTERPRISE ORGANIZATION.
@@ -156,6 +157,10 @@ function install(rule: WorkspaceNotificationRule): void {
 
   jest.spyOn(WorkspaceUtil, "getWorkspaceTypeUtil").mockReturnValue({
     doesChannelExist: doesChannelExist,
+    // A refusal in OneUptime's words, as Slack's are said (#7119).
+    describeError: (error: unknown): string => {
+      return SlackUtil.describeError(error);
+    },
   } as never);
 
   postSpy = jest
@@ -335,7 +340,7 @@ describe("Test Rule for a Slack rule naming a workspace", () => {
     }
 
     expect((refusal as Error).message).toBe(
-      "Cannot create a new channel. Error from Slack restricted_action",
+      `Cannot create a new channel. ${WorkspaceRefusal.describeSlackRefusal("restricted_action")}`,
     );
   });
 

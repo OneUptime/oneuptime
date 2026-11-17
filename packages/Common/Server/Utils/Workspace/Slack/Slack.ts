@@ -39,6 +39,7 @@ import WorkspaceBase, {
   WorkspaceThread,
 } from "../WorkspaceBase";
 import WorkspaceChannelNotFound from "../WorkspaceChannelNotFound";
+import SlackRefusal from "./SlackRefusal";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import SlackifyMarkdown from "slackify-markdown";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
@@ -457,10 +458,7 @@ export default class SlackUtil extends WorkspaceBase {
     if ((result.jsonData as JSONObject)?.["ok"] !== true) {
       logger.error("Invalid response from Slack API:", modalLogAttributes);
       logger.error(result.jsonData, modalLogAttributes);
-      const messageFromSlack: string = (result.jsonData as JSONObject)?.[
-        "error"
-      ] as string;
-      throw new BadRequestException("Error from Slack " + messageFromSlack);
+      throw SlackRefusal.fromAnswer(result.jsonData);
     }
 
     logger.debug("Modal shown to user successfully.", modalLogAttributes);
@@ -556,10 +554,7 @@ export default class SlackUtil extends WorkspaceBase {
     }
 
     if ((result.jsonData as JSONObject)?.["ok"] !== true) {
-      throw new BadRequestException(
-        "Error from Slack " +
-          String((result.jsonData as JSONObject)?.["error"] || ""),
-      );
+      throw SlackRefusal.fromAnswer(result.jsonData);
     }
   }
 
@@ -595,10 +590,7 @@ export default class SlackUtil extends WorkspaceBase {
     }
 
     if ((result.jsonData as JSONObject)?.["ok"] !== true) {
-      throw new BadRequestException(
-        "Error from Slack " +
-          String((result.jsonData as JSONObject)?.["error"] || ""),
-      );
+      throw SlackRefusal.fromAnswer(result.jsonData);
     }
   }
 
@@ -665,10 +657,7 @@ export default class SlackUtil extends WorkspaceBase {
       logger.error(response.jsonData, {
         channelId: data.channelId,
       } as LogAttributes);
-      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-        "error"
-      ] as string;
-      throw new BadRequestException("Error from Slack " + messageFromSlack);
+      throw SlackRefusal.fromAnswer(response.jsonData);
     }
 
     logger.debug("Ephemeral message sent successfully.", {
@@ -744,9 +733,7 @@ export default class SlackUtil extends WorkspaceBase {
       typeof body === "object" &&
       (body as JSONObject)["ok"] === false
     ) {
-      throw new BadRequestException(
-        "Error from Slack " + String((body as JSONObject)["error"] || ""),
-      );
+      throw SlackRefusal.fromAnswer(body);
     }
   }
 
@@ -802,9 +789,7 @@ export default class SlackUtil extends WorkspaceBase {
       typeof body === "object" &&
       (body as JSONObject)["ok"] === false
     ) {
-      throw new BadRequestException(
-        "Error from Slack " + String((body as JSONObject)["error"] || ""),
-      );
+      throw SlackRefusal.fromAnswer(body);
     }
   }
 
@@ -914,10 +899,7 @@ export default class SlackUtil extends WorkspaceBase {
       if ((response.jsonData as JSONObject)?.["ok"] !== true) {
         logger.error("Invalid response from Slack API:", archiveLogAttributes);
         logger.error(response.jsonData, archiveLogAttributes);
-        const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-          "error"
-        ] as string;
-        throw new BadRequestException("Error from Slack " + messageFromSlack);
+        throw SlackRefusal.fromAnswer(response.jsonData);
       }
     }
 
@@ -966,10 +948,7 @@ export default class SlackUtil extends WorkspaceBase {
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
       logger.error("Invalid response from Slack API:", joinLogAttributes);
       logger.error(response.jsonData, joinLogAttributes);
-      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-        "error"
-      ] as string;
-      throw new BadRequestException("Error from Slack " + messageFromSlack);
+      throw SlackRefusal.fromAnswer(response.jsonData);
     }
 
     logger.debug("Channel joined successfully with data:", joinLogAttributes);
@@ -1038,10 +1017,7 @@ export default class SlackUtil extends WorkspaceBase {
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
       logger.error("Invalid response from Slack API:", inviteByIdLogAttributes);
       logger.error(response.jsonData, inviteByIdLogAttributes);
-      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-        "error"
-      ] as string;
-      throw new BadRequestException("Error from Slack " + messageFromSlack);
+      throw SlackRefusal.fromAnswer(response.jsonData);
     }
 
     logger.debug(
@@ -1232,10 +1208,7 @@ export default class SlackUtil extends WorkspaceBase {
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
       logger.error("Invalid response from Slack API:", getChIdLogAttributes);
       logger.error(response.jsonData, getChIdLogAttributes);
-      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-        "error"
-      ] as string;
-      throw new BadRequestException("Error from Slack " + messageFromSlack);
+      throw SlackRefusal.fromAnswer(response.jsonData);
     }
 
     if (
@@ -1408,10 +1381,7 @@ export default class SlackUtil extends WorkspaceBase {
       if ((response.jsonData as JSONObject)?.["ok"] !== true) {
         logger.error("Invalid response from Slack API:", data.logAttributes);
         logger.error(response.jsonData, data.logAttributes);
-        const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-          "error"
-        ] as string;
-        throw new BadRequestException("Error from Slack " + messageFromSlack);
+        throw SlackRefusal.fromAnswer(response.jsonData);
       }
 
       for (const channel of (response.jsonData as JSONObject)[
@@ -2238,7 +2208,7 @@ export default class SlackUtil extends WorkspaceBase {
           if (
             blocks === blocksWithoutImages ||
             blocks.length > SlackUtil.MAX_BLOCKS_PER_MESSAGE ||
-            !WorkspaceBase.getSendErrorMessage(error).includes("invalid_blocks")
+            !SlackRefusal.isRefusedWith(error, ["invalid_blocks"])
           ) {
             throw error;
           }
@@ -2303,7 +2273,7 @@ export default class SlackUtil extends WorkspaceBase {
     // The workspace the channel is in, or the rule picks, when one is known.
     teamId?: string | undefined;
   }): Promise<string> {
-    const text: string = WorkspaceBase.getSendErrorMessage(data.error);
+    const text: string = SlackRefusal.describe(data.error);
 
     if (!data.teamId || !this.isWorkspaceNotAddedError(data.error)) {
       return text;
@@ -2423,10 +2393,7 @@ export default class SlackUtil extends WorkspaceBase {
         payloadBlocksLogAttributes,
       );
       logger.error(response.jsonData, payloadBlocksLogAttributes);
-      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-        "error"
-      ] as string;
-      throw new BadRequestException("Error from Slack " + messageFromSlack);
+      throw SlackRefusal.fromAnswer(response.jsonData);
     }
 
     logger.debug(
@@ -2521,7 +2488,7 @@ export default class SlackUtil extends WorkspaceBase {
         updateLogAttributes,
       );
 
-      throw new BadRequestException("Error from Slack " + messageFromSlack);
+      throw SlackRefusal.fromAnswer(response.jsonData);
     }
   }
 
@@ -2540,9 +2507,7 @@ export default class SlackUtil extends WorkspaceBase {
    * new one is the only way to show what it said.
    */
   public static override isMessageGoneError(error: unknown): boolean {
-    return WorkspaceBase.getSendErrorMessage(error).includes(
-      "message_not_found",
-    );
+    return SlackRefusal.isRefusedWith(error, ["message_not_found"]);
   }
 
   @CaptureSpan()
@@ -2598,10 +2563,7 @@ export default class SlackUtil extends WorkspaceBase {
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
       logger.error("Invalid response from Slack API:", threadLogAttributes);
       logger.error(response.jsonData, threadLogAttributes);
-      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-        "error"
-      ] as string;
-      throw new BadRequestException("Error from Slack " + messageFromSlack);
+      throw SlackRefusal.fromAnswer(response.jsonData);
     }
 
     logger.debug("Thread message sent successfully.", threadLogAttributes);
@@ -2853,10 +2815,7 @@ export default class SlackUtil extends WorkspaceBase {
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
       logger.error("Invalid response from Slack API:", getMsgLogAttributes);
       logger.error(response.jsonData, getMsgLogAttributes);
-      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-        "error"
-      ] as string;
-      throw new BadRequestException("Error from Slack " + messageFromSlack);
+      throw SlackRefusal.fromAnswer(response.jsonData);
     }
 
     const messages: Array<JSONObject> = (response.jsonData as JSONObject)?.[
@@ -2942,10 +2901,7 @@ export default class SlackUtil extends WorkspaceBase {
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
       logger.error("Invalid response from Slack API:", getRepliesLogAttributes);
       logger.error(response.jsonData, getRepliesLogAttributes);
-      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-        "error"
-      ] as string;
-      throw new BadRequestException("Error from Slack " + messageFromSlack);
+      throw SlackRefusal.fromAnswer(response.jsonData);
     }
 
     const messages: Array<JSONObject> =
@@ -3002,10 +2958,7 @@ export default class SlackUtil extends WorkspaceBase {
    * channel's name. The channel can then be created under another name.
    */
   public static override isChannelNameTakenError(error: unknown): boolean {
-    return (
-      WorkspaceBase.getSendErrorMessage(error) ===
-      `Error from Slack ${SLACK_CHANNEL_NAME_TAKEN_ERROR}`
-    );
+    return SlackRefusal.isRefusedWith(error, [SLACK_CHANNEL_NAME_TAKEN_ERROR]);
   }
 
   /*
@@ -3014,10 +2967,19 @@ export default class SlackUtil extends WorkspaceBase {
    * (SlackOrganization.NOT_ADDED_ERROR).
    */
   public static isWorkspaceNotAddedError(error: unknown): boolean {
-    return (
-      WorkspaceBase.getSendErrorMessage(error) ===
-      `Error from Slack ${SlackOrganization.NOT_ADDED_ERROR}`
-    );
+    return SlackRefusal.isRefusedWith(error, [
+      SlackOrganization.NOT_ADDED_ERROR,
+    ]);
+  }
+
+  /*
+   * What a person reads of a Slack call that failed: Slack's refusal in
+   * OneUptime's words, with Slack's code after them (SlackRefusal) - also
+   * for an HTTP error, and for a message that still says "Error from Slack
+   * <code>".
+   */
+  public static override describeError(error: unknown): string {
+    return SlackRefusal.describe(error);
   }
 
   /*
@@ -3210,7 +3172,7 @@ export default class SlackUtil extends WorkspaceBase {
         });
       }
 
-      throw new BadRequestException("Error from Slack " + messageFromSlack);
+      throw SlackRefusal.fromAnswer(response.jsonData);
     }
 
     if (
@@ -4531,10 +4493,7 @@ export default class SlackUtil extends WorkspaceBase {
           isInChannelLogAttributes,
         );
         logger.error(response.jsonData, isInChannelLogAttributes);
-        const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-          "error"
-        ] as string;
-        throw new BadRequestException("Error from Slack " + messageFromSlack);
+        throw SlackRefusal.fromAnswer(response.jsonData);
       }
 
       // check if the user is in the channel

@@ -114,7 +114,7 @@ Les personnes rejoignent le canal d'une règle par le compte Mattermost qu'elles
 
 Un incident, une alerte, un épisode ou un événement de maintenance qui a son propre canal affiche **Ouvrir dans Mattermost** dans l'en-tête de sa page dans OneUptime, à côté de ses boutons d'état. Ce bouton ouvre ce canal dans un nouvel onglet, sur votre serveur Mattermost. Un enregistrement qui a deux canaux à lui les liste tous les deux sous le bouton. Un enregistrement qui a aussi des canaux dans Slack ou Microsoft Teams a à la place un seul bouton **Ouvrir le canal**, qui les liste tous. Les canaux existants où vos règles publient ne sont pas proposés.
 
-**Tester la règle** sur la ligne d'une règle publie un message de test pour cette règle dans les canaux qu'elle nomme, comme pour Slack.
+**Tester la règle** sur la ligne d'une règle publie un message de test pour cette règle dans les canaux qu'elle nomme, comme pour Slack. **Envoyer un test maintenant** sur un résumé répond comme pour Slack : **Résumé envoyé**, ou **Échec du test** avec chaque canal qui ne l'a pas reçu, et pourquoi. Chaque publication, et pourquoi l'une a échoué sous **Motif**, figure dans **Paramètres du projet** > **Notifications** > **Journaux de notification**, dans l'onglet **Espace de travail**.
 
 Les messages de OneUptime ne notifient personne par ce qu'ils citent : un nom ou une description qui contient `@channel`, `@here` ou `@someone` s'affiche tel qu'il est écrit, et ne notifie personne.
 

@@ -133,7 +133,7 @@ Payments linker til politikken i OneUptime. En person nævnes ved sit Microsoft 
 
 ## Test en regel
 
-**Test regel** i en regels række slår en testbesked for den regel op i de kanaler, den nævner, så du kan se den ankomme. Hvis reglen opretter en kanal for hver begivenhed, opretter testen også en og inviterer reglens folk ind i den.
+**Test regel** i en regels række slår en testbesked for den regel op i de kanaler, den nævner, så du kan se den ankomme. **Testnotifikation sendt** siger, hvor du skal kigge, når testen gik ud, og **Testen mislykkedes** siger hvorfor, når den ikke gjorde. Hvis reglen opretter en kanal for hver begivenhed, opretter testen også en rigtig, i reglens team, navngivet med reglens præfiks og fem tilfældige bogstaver, f.eks. `prod-abcde`, som alle i teamet kan se: dialogen siger det, før testen kører. Kanalen bliver efter testen; slet den i Microsoft Teams, når du er færdig.
 
 Ligesom **Send test** ved siden af en kanal i **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams** kræver den rettighed til at oprette notifikationsregler: **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Indstillingsadministrator**, **Indstillingsmedlem** eller **Create Workspace Notification Rule** og **Read Workspace Notification Rule** i en brugerdefineret rolle. For en, der kun må se reglerne, som en **Seer**, er **Test regel** låst, og dens værktøjstip siger, hvad der kræves; API'en afviser vedkommendes test med "You do not have permission to send test notifications in this project." På OneUptime Cloud kræver det **Growth**-planen at teste en regel, ligesom at tilføje en.
 
@@ -145,7 +145,11 @@ Fanen **Oversigt** i **Hændelser** > **Arbejdsområde** > **Microsoft Teams** (
 
 En opsummering sendes efter uret i sin **Tidszone**, som starter med din. Den holder sit klokkeslæt der hele året: en, der er sat til 09:00 i Berlin, sendes stadig kl. 09:00 i Berlin, efter at urene er stillet til sommertid, og datoerne i dens besked er også Berlins. Via API'en sender du `timezone` som et IANA-tidszonenavn, som `Europe/Berlin`. En opsummering, der oprettes uden tidszone, tager tidszonen fra opretterens profil, eller UTC når en API-nøgle opretter den.
 
-Formularen til en opsummering har fire trin: **Grundlæggende oplysninger** (navnet, kanalerne og deres **Teamnavn**), **Tidsplan**, **Indhold** (**Hvad der skal inkluderes**) og **Filtre** (hvilke hændelser eller advarsler den tæller).
+Formularen til en opsummering har fire trin: **Grundlæggende oplysninger** (navnet, kanalerne og deres **Team**), **Tidsplan**, **Indhold** (**Hvad der skal inkluderes**) og **Filtre** (hvilke hændelser eller advarsler den tæller).
+
+**Team** viser teamene i din Microsoft Teams-forbindelse og vises, når der er mere end ét; med ét team poster oversigten i det. En oversigt, der er gemt med et indtastet teamnavn, beholder det, vist som indtastet, indtil du vælger et team. Når teamene ikke kan vises, beder formularen om **Teamnavn** som tekst, sammenlignet med teamets navn uanset store og små bogstaver; et navn, som to teams deler, afvises.
+
+**Send test nu** på en oversigts række poster den med det samme. **Oversigt sendt** siger, at alle kanaler fik den; **Testen mislykkedes** siger, hvor mange kanaler der ikke gjorde, og viser hver under sin årsag, f.eks. en kanal, der ikke blev fundet. De kanaler, der fik testen, beholder den. Hver kanals resultat, af en test eller en planlagt udsendelse, er en række på fanen **Arbejdsområde** under **Projektindstillinger** > **Notifikationer** > **Notifikationslogs**: **Succes**, eller **Fejl** med hvorfor under **Årsag**. **Senest sendt** rykker kun, når mindst én kanal fik oversigten.
 
 ## Notifikationsregler under Growth-planen
 
