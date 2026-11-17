@@ -385,7 +385,7 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
         clusterRoute={routes.clusterRoute}
         getPartRoute={routes.getPartRoute}
       />
-      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+      <Tabs label="Storage" tabs={tabs} wrap={true} onTabChange={() => {}} />
     </div>
   );
 };

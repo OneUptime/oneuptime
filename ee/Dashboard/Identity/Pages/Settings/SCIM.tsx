@@ -142,6 +142,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
         <ScimSaveAccessNotice />
       )}
       <Tabs
+        label="SCIM"
         tabs={[
           {
             name: "Configuration",

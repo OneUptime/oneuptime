@@ -410,6 +410,7 @@ const OnCallDutyLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   return (
     <Fragment>
       <Tabs
+        label="Label Rules"
         tabs={[
           {
             name: "On-Call Policies",

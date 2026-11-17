@@ -288,7 +288,7 @@ const KubernetesClusterOpenShiftRouteDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return <Tabs label="Route" tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterOpenShiftRouteDetail;

@@ -30,6 +30,7 @@ const NotificationLogsTabs: FunctionComponent<NotificationLogsTabsProps> = (
   return (
     <div>
       <Tabs
+        label="Notification Logs"
         tabs={[
           {
             name: "Email",

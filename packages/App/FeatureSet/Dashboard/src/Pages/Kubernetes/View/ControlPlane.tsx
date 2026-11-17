@@ -913,7 +913,7 @@ const KubernetesClusterControlPlane: FunctionComponent<
       timeRange={timeRange}
       onTimeRangeChange={handleTimeRangeChange}
     >
-      <Tabs tabs={tabs} onTabChange={() => {}} />
+      <Tabs label="Control Plane" tabs={tabs} onTabChange={() => {}} />
     </TimeRangeZoomScope>
   );
 };

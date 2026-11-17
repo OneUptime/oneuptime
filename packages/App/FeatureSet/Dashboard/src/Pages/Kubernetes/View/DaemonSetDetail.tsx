@@ -418,7 +418,7 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
         routes={routes}
         namespace={namespaceParam}
       />
-      <Tabs tabs={tabs} onTabChange={() => {}} />
+      <Tabs label="DaemonSet" tabs={tabs} onTabChange={() => {}} />
     </Fragment>
   );
 };

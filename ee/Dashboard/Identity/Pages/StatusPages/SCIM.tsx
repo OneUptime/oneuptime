@@ -117,6 +117,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
       />
       <ReadOnlyActionsNotice mode={licenseMode} />
       <Tabs
+        label="SCIM"
         tabs={[
           {
             name: "Configuration",

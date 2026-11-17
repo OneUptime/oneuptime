@@ -89,7 +89,7 @@ const getChipTexts: () => Array<string> = (): Array<string> => {
   return Array.from(
     screen
       .getByTestId("feed-filter-summary")
-      .querySelectorAll<HTMLElement>(".rounded-full"),
+      .querySelectorAll<HTMLElement>('[data-testid="applied-filter-chip"]'),
   ).map((chip: HTMLElement): string => {
     return (chip.textContent || "").trim();
   });
@@ -246,11 +246,9 @@ describe("FeedFilterSummary", () => {
       "border",
       "border-gray-200",
     );
-    expect(box.querySelector(".rounded-full")).toHaveClass(
-      "bg-white",
-      "border-gray-200",
-      "shadow-sm",
-    );
+    expect(
+      box.querySelector('[data-testid="applied-filter-chip"]'),
+    ).toHaveClass("bg-white", "border-gray-200", "shadow-sm");
   });
 
   describe("in German", () => {

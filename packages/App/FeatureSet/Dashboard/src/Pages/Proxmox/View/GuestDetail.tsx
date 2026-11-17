@@ -429,7 +429,7 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
         clusterRoute={routes.clusterRoute}
         getPartRoute={routes.getPartRoute}
       />
-      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+      <Tabs label="Guest" tabs={tabs} wrap={true} onTabChange={() => {}} />
     </div>
   );
 };

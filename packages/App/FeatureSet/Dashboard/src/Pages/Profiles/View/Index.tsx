@@ -245,7 +245,7 @@ const ProfileViewPage: FunctionComponent<
         />
       </div>
 
-      <Tabs tabs={tabs} onTabChange={handleTabChange} />
+      <Tabs label="Profile" tabs={tabs} onTabChange={handleTabChange} />
 
       {focusedFunction && (
         /*

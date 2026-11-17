@@ -236,6 +236,7 @@ const SessionReplayInstallSnippet: FunctionComponent<ComponentProps> = (
   return (
     <div data-testid="install-snippet">
       <Tabs
+        label="Install"
         onTabChange={(): void => {
           /* The tab is presentational; nothing else depends on it. */
         }}

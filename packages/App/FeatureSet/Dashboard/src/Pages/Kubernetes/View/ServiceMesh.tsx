@@ -1100,7 +1100,7 @@ const KubernetesClusterServiceMesh: FunctionComponent<
       onTimeRangeChange={handleTimeRangeChange}
     >
       {/* Tabbed content: Cilium | Istio | Linkerd */}
-      <Tabs tabs={tabs} onTabChange={() => {}} />
+      <Tabs label="Service Mesh" tabs={tabs} onTabChange={() => {}} />
     </TimeRangeZoomScope>
   );
 };

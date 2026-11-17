@@ -441,7 +441,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
               }
         }
       />
-      <Tabs tabs={tabs} onTabChange={() => {}} />
+      <Tabs label="Deployment" tabs={tabs} onTabChange={() => {}} />
     </Fragment>
   );
 };

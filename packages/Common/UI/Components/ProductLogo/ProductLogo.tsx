@@ -181,7 +181,6 @@ export interface ComponentProps {
    * bundle that draws this logo.
    */
   markOnSmallScreens?: ((theme: Theme) => string | null) | undefined;
-  onClick?: (() => void) | undefined;
   dataTestId?: string | undefined;
 }
 
@@ -197,7 +196,6 @@ const ProductLogo: FunctionComponent<ComponentProps> = (
       <div
         className={props.nameClassName || PAGE_PRODUCT_NAME_CLASS_NAME}
         data-testid={props.dataTestId}
-        onClick={props.onClick}
       >
         {productName}
       </div>
@@ -220,7 +218,6 @@ const ProductLogo: FunctionComponent<ComponentProps> = (
       src={source}
       alt={productName}
       data-testid={props.dataTestId}
-      onClick={props.onClick}
       {...plateProps}
     />
   );

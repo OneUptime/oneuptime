@@ -418,6 +418,7 @@ const IncidentOnCallRulesPage: FunctionComponent<
   return (
     <Fragment>
       <Tabs
+        label="Incident On-Call Rules"
         tabs={[
           {
             name: "Incident Rules",

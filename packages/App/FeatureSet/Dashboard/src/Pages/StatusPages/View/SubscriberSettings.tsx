@@ -670,6 +670,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
   return (
     <Fragment>
       <Tabs
+        label="Subscriber Settings"
         tabs={[
           {
             name: "Settings",

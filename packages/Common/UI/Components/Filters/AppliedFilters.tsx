@@ -60,8 +60,13 @@ const AppliedFilters: FunctionComponent<ComponentProps> = (
                * value, in German, on a phone - wraps inside itself instead
                * of running out past the box's edge. A chip that fits stays
                * on one line: the list moves it to a line of its own first.
+               * Its corners are a pill's on one line and a card's on more
+               * (rounded-2xl): an attribute filter's chips wrap inside it
+               * on a phone, and a rounded-full box of several lines drew
+               * an ellipse around them (#9136).
                */
-              className="inline-flex min-w-0 max-w-full items-center rounded-full bg-white border border-gray-200 px-3 py-1 text-sm text-gray-700 shadow-sm break-words"
+              data-testid="applied-filter-chip"
+              className="inline-flex min-w-0 max-w-full items-center rounded-2xl bg-white border border-gray-200 px-3 py-1 text-sm text-gray-700 shadow-sm break-words"
             >
               {chip}
             </div>

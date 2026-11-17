@@ -348,23 +348,19 @@ describe("ProductLogo", () => {
       expect(container.querySelectorAll("*")).toHaveLength(1);
     });
 
-    test("is clickable like the logo it stands in for", () => {
+    /*
+     * Like the logo it stands in for, a picture and never a control: a page
+     * that leads somewhere draws it inside its own link, which a keyboard
+     * reaches (#9136).
+     */
+    test("is not a control of its own, like the logo it stands in for", () => {
       setBranding(JSON.stringify({ productName: "Acme" }));
 
-      let clicks: number = 0;
+      render(<ProductLogo dataTestId="product-logo" />);
 
-      render(
-        <ProductLogo
-          dataTestId="product-logo"
-          onClick={() => {
-            clicks += 1;
-          }}
-        />,
-      );
-
-      screen.getByTestId("product-logo").click();
-
-      expect(clicks).toBe(1);
+      expect(screen.getByTestId("product-logo")).toHaveTextContent("Acme");
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
+      expect(screen.queryByRole("link")).not.toBeInTheDocument();
     });
   });
 });

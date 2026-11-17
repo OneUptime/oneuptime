@@ -17,6 +17,8 @@ const Logo: FunctionComponent<ComponentProps> = (
       className="flex items-center rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
       role="button"
       tabIndex={0}
+      // The click is the control's, not the picture's, as its keys are.
+      onClick={props.onClick}
       onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
         // The logo navigates home; make it operable with the keyboard (WCAG 2.1.1).
         if (event.key === "Enter" || event.key === " ") {
@@ -27,7 +29,6 @@ const Logo: FunctionComponent<ComponentProps> = (
     >
       <Image
         file={props.file}
-        onClick={props.onClick}
         height={50}
         alt={props.alt}
         style={props.style}

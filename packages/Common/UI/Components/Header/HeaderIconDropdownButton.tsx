@@ -162,9 +162,6 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
           {props.iconImageUrl && (
             <Image
               className="h-7 w-7 rounded-md object-cover"
-              onClick={() => {
-                props.onClick?.();
-              }}
               imageUrl={props.iconImageUrl}
               alt={props.name}
             />

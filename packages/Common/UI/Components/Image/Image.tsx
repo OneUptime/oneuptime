@@ -17,8 +17,12 @@ import React, { FunctionComponent, ReactElement } from "react";
  */
 export type ImageSource = string | URLFromProject | ReactElement;
 
+/*
+ * A picture, never a control: an image that does something sits inside the
+ * button or link that does it, which a keyboard reaches. Its own click,
+ * reached by a mouse alone, is gone (#9136).
+ */
 export interface ComponentProps {
-  onClick?: () => void | undefined;
   imageUrl?: ImageSource | undefined;
   height?: number | undefined;
   file?: File | undefined;
@@ -49,9 +53,6 @@ const Image: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     return (
       <img
-        onClick={() => {
-          props.onClick?.();
-        }}
         data-testid={props["data-testid"]}
         /*
          * Always render an alt attribute so the <img> is never missing it

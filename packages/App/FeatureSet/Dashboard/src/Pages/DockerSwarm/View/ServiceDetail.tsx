@@ -106,7 +106,7 @@ const DockerSwarmClusterServiceDetail: FunctionComponent<
         }
         now={part.readAt}
       />
-      <ResourcePartTabs tabs={tabs} />
+      <ResourcePartTabs label="Service" tabs={tabs} />
     </div>
   );
 };

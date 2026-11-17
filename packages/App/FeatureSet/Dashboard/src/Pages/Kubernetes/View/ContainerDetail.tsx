@@ -212,7 +212,7 @@ const KubernetesClusterContainerDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return <Tabs label="Container" tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterContainerDetail;

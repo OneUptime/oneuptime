@@ -75,35 +75,54 @@ const HeaderAlert: (props: ComponentProps) => ReactElement = (
   }
 
   const getElement: GetReactElementFunction = (): ReactElement => {
+    const boxClassName: string = `${bgColor} border ${borderColor} mx-1 py-1.5 px-3 rounded-lg transition-all duration-150 ${props.className || ""}`;
+
+    const content: ReactElement = (
+      <span className="flex items-center gap-1.5">
+        <span className={`flex-shrink-0 ${textColor}`} aria-hidden="true">
+          <Icon
+            icon={props.icon}
+            thick={ThickProp.Thick}
+            className={`h-4 w-4 stroke-[2.5px] ${textColor}`}
+          />
+        </span>
+        <span className="flex items-center gap-1">
+          <span className={`text-sm font-semibold ${textColor}`}>
+            {props.title}
+          </span>
+          {props.suffix && (
+            /*
+             * Hidden from a narrow screen's eye only: a screen reader
+             * still hears "3 incidents", not a bare "3".
+             */
+            <span
+              className={`${textColor} text-sm font-medium opacity-80 max-md:sr-only md:block`}
+            >
+              {props.suffix}
+            </span>
+          )}
+        </span>
+      </span>
+    );
+
+    if (!props.onClick) {
+      return <div className={boxClassName}>{content}</div>;
+    }
+
+    /*
+     * A real button when it does something: it was a div with only a click,
+     * which a keyboard could not reach (#9136).
+     */
     return (
-      <div
-        className={`cursor-pointer ${bgColor} ${hoverBgColor} border ${borderColor} mx-1 py-1.5 px-3 rounded-lg transition-all duration-150 ${props.className}`}
+      <button
+        type="button"
+        className={`${boxClassName} cursor-pointer ${hoverBgColor} focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1`}
         onClick={() => {
           props.onClick?.();
         }}
       >
-        <div className="flex items-center gap-1.5">
-          <div className={`flex-shrink-0 ${textColor}`}>
-            <Icon
-              icon={props.icon}
-              thick={ThickProp.Thick}
-              className={`h-4 w-4 stroke-[2.5px] ${textColor}`}
-            />
-          </div>
-          <div className="flex items-center gap-1">
-            <span className={`text-sm font-semibold ${textColor}`}>
-              {props.title}
-            </span>
-            {props.suffix && (
-              <span
-                className={`${textColor} text-sm font-medium opacity-80 max-md:hidden md:block`}
-              >
-                {props.suffix}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
+        {content}
+      </button>
     );
   };
 

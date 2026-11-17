@@ -594,6 +594,7 @@ const VMwareVCenterClusterDetail: FunctionComponent<
         now={now}
       />
       <Tabs
+        label="Cluster"
         key={tabsKey}
         tabs={tabs}
         initialTabName={initialTabName}
