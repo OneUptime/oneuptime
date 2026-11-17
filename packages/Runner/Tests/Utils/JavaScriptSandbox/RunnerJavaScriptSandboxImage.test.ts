@@ -7,7 +7,6 @@ import {
   SANDBOX_LAUNCHER_PATH,
 } from "../../../Utils/JavaScriptSandbox/SandboxIdentity";
 import { SANDBOX_NO_NETWORK_PATH } from "../../../Utils/JavaScriptSandbox/SandboxNetwork";
-import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import {
   PASSED_THROUGH_ENVIRONMENT,
   SANDBOX_WORKER_BUNDLE_PATH,

@@ -22,6 +22,7 @@ import { JSONObject } from "Common/Types/JSON";
 import MetricQueryConfigData, {
   MetricChartType,
 } from "Common/Types/Metrics/MetricQueryConfigData";
+import { withPlainSpaces } from "Common/Types/NoBreakSpaces";
 import ObjectID from "Common/Types/ObjectID";
 import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
 import TimeRange from "Common/Types/Time/TimeRange";
@@ -210,7 +211,13 @@ describe("buildSloMetricQueryConfigs", () => {
       const metricType: SloMetricType = queryConfig.metricQueryData.filterData
         .metricName as SloMetricType;
 
-      expect(queryConfig.metricAliasData).toEqual({
+      // A chart draws a duration held to its figure (#8811); the catalog stores it as written.
+      expect({
+        ...queryConfig.metricAliasData,
+        description: withPlainSpaces(
+          queryConfig.metricAliasData.description || "",
+        ),
+      }).toEqual({
         metricVariable: metricType,
         title: SloMetricTypeUtil.getTitle(metricType),
         description: SloMetricTypeUtil.getDescription(metricType),

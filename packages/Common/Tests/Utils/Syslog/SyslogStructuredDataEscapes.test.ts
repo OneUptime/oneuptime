@@ -9,8 +9,6 @@ import {
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
-import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
-import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * RFC 5424 STRUCTURED DATA, ESCAPES AND ALL (#9039).

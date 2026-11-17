@@ -417,7 +417,6 @@ const DataObservabilityLineageMapPage: FunctionComponent<
               )}
               ariaLabel={translator.translateText("Search the lineage map")}
               dataTestId="lineage-map-search"
-              isSearchOrFilter={true}
               disableSpellCheck={true}
             />
           </div>

@@ -172,7 +172,13 @@ In OneUptime Cloud hebben deze beheerinstellingen een abonnement nodig. Een pagi
 
 ## Het abonnement opzeggen
 
-Om niet meer voor een project te betalen, verwijdert u het: de facturering stopt wanneer het is verwijderd. Zie [Het project verwijderen](/docs/configuration/project-settings#het-project-verwijderen). Een project dat via een wederverkoper is gekocht, zegt u op bij de wederverkoper, en een project dat via een cloudmarketplace is gekocht, op de marketplace.
+Om niet meer voor plaatsen te betalen, zet u het project over op het gratis abonnement. Klik op de kaart **Abonnement opzeggen** op **Overstappen op gratis abonnement**: OneUptime vertelt wat er op het gratis abonnement stopt, en zet het project over wanneer u nogmaals op **Overstappen op gratis abonnement** klikt. Zoals bij elke abonnementswijziging is daarvoor een Projecteigenaar of **Manage Billing** nodig, en een betaalmethode.
+
+- **Er wordt niets verwijderd.** Uw monitors, incidenten, statuspagina's en hun geschiedenis blijven. Functies die het gratis abonnement niet bevat, werken niet meer, en werken weer wanneer u teruggaat naar een abonnement dat ze bevat.
+- **Gebruik wordt nog steeds gefactureerd.** Betalen naar gebruik gaat door op het gratis abonnement: de telemetrie die uw services sturen, en elke monitor die geen handmatige monitor is. Stop met het sturen van telemetrie en verwijder de monitors die u niet meer nodig hebt om ook die kosten te stoppen.
+- **Vragen over uw factuur?** Klik op dezelfde kaart op **Contact opnemen met support** om te schrijven naar support@oneuptime.com.
+
+Het project verwijderen stopt alle facturering, en verwijdert alles erin voorgoed: zie [Het project verwijderen](/docs/configuration/project-settings#het-project-verwijderen). Een project dat via een wederverkoper is gekocht, zegt u op bij de wederverkoper, en een project dat via een cloudmarketplace is gekocht, op de marketplace.
 
 ## Problemen oplossen
 

@@ -173,16 +173,6 @@ const SITES: Readonly<Record<string, NounSite>> = {
       },
     ],
   },
-  [`${DASHBOARD}/Components/DataObservability/LineageMapWords.ts`]: {
-    asLabel:
-      'Where a lineage map arrow was seen, each place opening its part of the line: "BI tool · Moved by orders_etl".',
-    drawnBy: [
-      {
-        file: `${DASHBOARD}/Components/DataObservability/LineageMapWords.ts`,
-        call: /toLabelTerm\(\s*translator\.translateText\(words\) \|\| words,\s*translator\.language,?\s*\)/,
-      },
-    ],
-  },
   [`${DASHBOARD}/Components/OpenStack/Part/OpenStackInstanceLinksCard.tsx`]: {
     asLabel:
       "What an OpenStack instance also is elsewhere in OneUptime, a row each.",

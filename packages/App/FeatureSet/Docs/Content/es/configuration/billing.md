@@ -172,7 +172,13 @@ En OneUptime Cloud, estos ajustes de administración necesitan un plan. Una pág
 
 ## Cancelar el plan
 
-Para dejar de pagar por un proyecto, elimínelo: la facturación se detiene cuando se elimina. Consulte [Eliminar el proyecto](/docs/configuration/project-settings#eliminar-el-proyecto). Un proyecto comprado a través de un revendedor se cancela con el revendedor, y uno comprado a través de un marketplace en la nube, en el marketplace.
+Para dejar de pagar por asientos, cambie el proyecto al plan gratuito. En la tarjeta **Cancelar plan**, haga clic en **Cambiar al plan gratuito**: OneUptime indica lo que deja de funcionar en el plan gratuito y cambia el proyecto cuando vuelve a hacer clic en **Cambiar al plan gratuito**. Como cualquier cambio de plan, requiere un Propietario del proyecto o **Manage Billing**, y un método de pago.
+
+- **No se elimina nada.** Sus monitores, incidentes, páginas de estado y su historial se conservan. Las funciones que el plan gratuito no incluye dejan de funcionar, y vuelven a funcionar cuando cambia de nuevo a un plan que las incluye.
+- **El uso se sigue facturando.** El pago por uso continúa en el plan gratuito: la telemetría que envían sus servicios y cada monitor que no es un monitor manual. Deje de enviar telemetría y elimine los monitores que ya no necesite para detener también esos cargos.
+- **¿Preguntas sobre su factura?** Haga clic en **Contactar con soporte** en la misma tarjeta para escribir a support@oneuptime.com.
+
+Eliminar el proyecto detiene toda la facturación y borra todo lo que contiene para siempre: consulte [Eliminar el proyecto](/docs/configuration/project-settings#eliminar-el-proyecto). Un proyecto comprado a través de un revendedor se cancela con el revendedor, y uno comprado a través de un marketplace en la nube, en el marketplace.
 
 ## Solución de problemas
 

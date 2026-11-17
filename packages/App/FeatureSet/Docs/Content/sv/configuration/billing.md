@@ -172,7 +172,13 @@ I OneUptime Cloud kräver de här administrationsinställningarna en plan. En si
 
 ## Säg upp planen
 
-För att sluta betala för ett projekt tar du bort det: faktureringen upphör när det har tagits bort. Se [Ta bort projektet](/docs/configuration/project-settings#ta-bort-projektet). Ett projekt som köpts via en återförsäljare sägs upp hos återförsäljaren, och ett som köpts via en molnmarknadsplats på marknadsplatsen.
+För att sluta betala för platser flyttar du projektet till gratisplanen. Klicka på **Byt till gratisplanen** på kortet **Säg upp planen**: OneUptime berättar vad gratisplanen stoppar, och flyttar projektet när du klickar på **Byt till gratisplanen** igen. Som vid varje planändring krävs en Projektägare eller **Manage Billing**, och en betalningsmetod.
+
+- **Inget tas bort.** Dina övervakningar, incidenter, statussidor och deras historik finns kvar. Funktioner som gratisplanen inte omfattar slutar fungera, och fungerar igen när du byter tillbaka till en plan som omfattar dem.
+- **Användning faktureras fortfarande.** Betalning efter användning fortsätter på gratisplanen: telemetrin som dina tjänster skickar, och varje övervakning som inte är en manuell övervakning. Sluta skicka telemetri och ta bort de övervakningar du inte längre behöver för att stoppa även de avgifterna.
+- **Frågor om din faktura?** Klicka på **Kontakta support** på samma kort för att skriva till support@oneuptime.com.
+
+Att ta bort projektet stoppar all fakturering och tar bort allt i det för gott: se [Ta bort projektet](/docs/configuration/project-settings#ta-bort-projektet). Ett projekt som köpts via en återförsäljare sägs upp hos återförsäljaren, och ett som köpts via en molnmarknadsplats på marknadsplatsen.
 
 ## Felsökning
 

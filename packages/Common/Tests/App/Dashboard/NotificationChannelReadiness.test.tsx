@@ -41,7 +41,6 @@ import { ProjectNotificationChannel } from "../../../Utils/Project/NotificationC
 import GlobalConfigUtil from "../../../UI/Utils/GlobalConfig";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
-import { Mock, SpyInstance } from "jest-mock";
 
 /*
  * CAN THIS CHANNEL REACH YOU YET? (Notification Settings, #8887)

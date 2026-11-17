@@ -70,7 +70,6 @@ import {
   sloMonthlyReportToJSON,
 } from "../../../Utils/Slo/SloMonthlyReport";
 import { PROJECT_ID } from "./SideMenuHarness";
-import { Mock, SpyInstance } from "jest-mock";
 
 /*
  * AN SLO'S MONTHLY REPORT PAGE (#5476): the months of the period picked,

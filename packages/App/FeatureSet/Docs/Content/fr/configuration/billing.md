@@ -172,7 +172,13 @@ Sur OneUptime Cloud, ces paramètres d'administration demandent un forfait. Une 
 
 ## Résilier le forfait
 
-Pour ne plus payer un projet, supprimez-le : la facturation s'arrête quand il est supprimé. Voir [Supprimer le projet](/docs/configuration/project-settings#supprimer-le-projet). Un projet acheté via un revendeur se résilie auprès du revendeur, et un projet acheté via une marketplace cloud sur la marketplace.
+Pour ne plus payer de sièges, passez le projet au forfait gratuit. Sur la carte **Résilier le forfait**, cliquez sur **Passer au forfait gratuit** : OneUptime indique ce que le forfait gratuit arrête, et change le projet de forfait quand vous cliquez à nouveau sur **Passer au forfait gratuit**. Comme tout changement de forfait, il faut un Propriétaire du projet ou **Manage Billing**, et un moyen de paiement.
+
+- **Rien n'est supprimé.** Vos moniteurs, incidents, pages de statut et leur historique restent. Les fonctionnalités que le forfait gratuit n'inclut pas cessent de fonctionner, et fonctionnent à nouveau quand vous repassez à un forfait qui les inclut.
+- **L'utilisation reste facturée.** Le paiement à l'usage continue sur le forfait gratuit : la télémétrie qu'envoient vos services, et chaque moniteur qui n'est pas un moniteur manuel. Arrêtez d'envoyer de la télémétrie et supprimez les moniteurs dont vous n'avez plus besoin pour arrêter aussi ces frais.
+- **Des questions sur votre facture ?** Cliquez sur **Contacter le support** sur la même carte pour écrire à support@oneuptime.com.
+
+Supprimer le projet arrête toute facturation, et efface définitivement tout ce qu'il contient : voir [Supprimer le projet](/docs/configuration/project-settings#supprimer-le-projet). Un projet acheté via un revendeur se résilie auprès du revendeur, et un projet acheté via une marketplace cloud sur la marketplace.
 
 ## Dépannage
 

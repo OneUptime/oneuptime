@@ -210,23 +210,40 @@ describe("an API key's expiry", () => {
 describe("Admin Dashboard", () => {
   test("Settings > API Key says what the master key reaches, and what turning it off does", () => {
     /*
-     * The page is MasterApiKeyCard since the key is stored hashed (#7901),
-     * and its words are in MasterApiKeyCopy, whitespace-squashed here so
-     * prettier re-wrapping a call cannot fail this.
+     * The page is the master key's card, and its words are MasterApiKeyCopy's
+     * (#7901): the card says what the key reaches, and the switch what
+     * turning it off does.
      */
+    const page: string = read(
+      ADMIN,
+      "Pages",
+      "Settings",
+      "APIKey",
+      "Index.tsx",
+    );
+    const card: string = read(
+      ADMIN,
+      "Pages",
+      "Settings",
+      "APIKey",
+      "MasterApiKeyCard.tsx",
+    );
     const copy: string = read(
       ADMIN,
       "Pages",
       "Settings",
       "APIKey",
       "MasterApiKeyCopy.ts",
-    ).replace(/\s+/g, " ");
-
-    expect(copy).toContain(
-      'cardDescription: translationKey( "Has root access to every project on this server.", )',
     );
-    expect(copy).toContain(
-      'switchOff: translationKey( "While it is off, every request with the key fails.", )',
+
+    expect(page).toContain("<MasterApiKeyCard");
+    expect(card).toContain("description={MasterApiKeyCopy.cardDescription}");
+    expect(card).toContain("getDescription={getMasterApiKeySwitchDescription}");
+    expect(copy).toMatch(
+      /cardDescription: translationKey\(\s*"Has root access to every project on this server\.",?\s*\)/,
+    );
+    expect(copy).toMatch(
+      /switchOff: translationKey\(\s*"While it is off, every request with the key fails\.",?\s*\)/,
     );
   });
 
@@ -419,8 +436,8 @@ describe("a team's and an API key's Add dialogs say what their button said", () 
 });
 
 describe("the Admin Dashboard's settings dialogs are titled like their buttons", () => {
+  // Settings > API Key edits no row: its dialog is Reset Key's, below.
   const PAGES: Array<Array<string>> = [
-    // Not API Key: since #7901 it has no Edit dialog, only Create and Reset.
     ["Email", "Index.tsx"],
     ["CallSMS", "Index.tsx"],
     ["DataRetention", "Index.tsx"],
@@ -450,6 +467,26 @@ describe("the Admin Dashboard's settings dialogs are titled like their buttons",
         titled: true,
       });
     }
+  });
+
+  /*
+   * Settings > API Key makes a key rather than editing a row (#7901): Reset
+   * Key asks first, in a dialog named for the key it resets, whose button
+   * says Reset Key again.
+   */
+  test("Settings > APIKey asks before Reset Key, in the button's own words", () => {
+    const copy: string = read(
+      ADMIN,
+      "Pages",
+      "Settings",
+      "APIKey",
+      "MasterApiKeyCopy.ts",
+    );
+
+    expect(copy).toContain('resetButton: translationKey("Reset Key")');
+    expect(copy).toMatch(
+      /resetConfirmation: \{\s*title: translationKey\("Reset Master API Key\?"\),[^}]*submitButtonText: translationKey\("Reset Key"\),/,
+    );
   });
 });
 

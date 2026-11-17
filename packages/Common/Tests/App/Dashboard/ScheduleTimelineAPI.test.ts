@@ -46,7 +46,6 @@ import ScheduleTimelineAPI, {
   TIMELINE_MAX_ATTEMPTS,
   getRetryDelayMilliseconds,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/ScheduleTimelineAPI";
-import { SpyInstance } from "jest-mock";
 
 const FROM: Date = new Date("2026-09-14T04:00:00.000Z");
 const TO: Date = new Date("2026-09-21T04:00:00.000Z");

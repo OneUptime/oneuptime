@@ -43,7 +43,6 @@ import DataSourceHttpFetch, {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
 } from "../../../../Server/Utils/DataSource/HttpFetch";
-import { SpyInstance } from "jest-mock";
 
 jest.mock("mssql", () => {
   return { __esModule: true, ConnectionPool: jest.fn() };
