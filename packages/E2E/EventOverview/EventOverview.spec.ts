@@ -22079,6 +22079,13 @@ const APPROVAL_NOTE: string =
  */
 const CLUSTER_FIX_TITLE: string = 'Fix on cluster "prod-eu-west-1"';
 const MCP_FIX_TITLE: string = "Fix through MCP servers";
+/*
+ * The cluster fix's plan, in the sixteen hex digits an approval names it by
+ * (Common/Types/AutoRemediation/RemediationPlanFingerprint): the card sends
+ * the fingerprint of the fix it shows with its Approve, so a fix that
+ * changed since it was read is not approved from it.
+ */
+const CLUSTER_FIX_PLAN_FINGERPRINT: string = "b8a105d86cbc8afc";
 
 function fixOnStep(page: Page, words: string): Locator {
   return remediationStep(page)
@@ -22355,6 +22362,8 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
     expect(approvals).toHaveLength(1);
     expect(approvals[0]?.body).toEqual({
       suggestionId: uuid("93000000", 2),
+      // The fix the card shows, by its fingerprint.
+      expectedPlanFingerprint: CLUSTER_FIX_PLAN_FINGERPRINT,
     });
   });
 
@@ -22815,6 +22824,12 @@ test.describe("two people approve a riskier fix (?approvals=)", () => {
     expect(approvals).toHaveLength(1);
     expect(approvals[0]?.body).toEqual({
       suggestionId: uuid("93000000", 2),
+      expectedPlanFingerprint: CLUSTER_FIX_PLAN_FINGERPRINT,
+      /*
+       * It records the first of two approvals, and says so: had someone
+       * approved first meanwhile, the server would run nothing on it.
+       */
+      expectedApprovalStep: "first",
     });
     await expect(
       remediationStep(page).getByTestId("remediation-action-error"),
