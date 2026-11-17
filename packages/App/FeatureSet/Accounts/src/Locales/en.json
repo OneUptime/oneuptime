@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "Forgot your password",
     "subtitle": "Please enter your email and the password reset link will be sent to you.",
-    "successMessage": "We have emailed you the password reset link. Please do not forget to check spam.",
+    "successMessage": "If an account uses this email address, we have emailed it a link to choose a password. Please do not forget to check spam.",
     "submitButton": "Send Password Reset Link",
     "rememberPasswordPrompt": "Remember your password?",
     "loginLink": "Sign in.",
@@ -195,9 +195,9 @@
     "successTitle": "Your password is set",
     "successDescription": "Sign in with your new password.",
     "linkExpiredTitle": "This link has expired",
-    "linkExpiredDescription": "Links to set a password work for {{days}} days. Ask the administrator who created your account to send you a new one.",
+    "linkExpiredDescription": "Links to set a password work for {{days}} days. Ask for a new link and we will email it to you.",
     "linkInvalidTitle": "This link no longer works",
-    "linkInvalidDescription": "It may have been used already, or only part of it was copied. If you have set your password, sign in. If not, ask your administrator for a new link."
+    "linkInvalidDescription": "It may have been used already, or only part of it was copied. If you have set your password, sign in. If not, ask for a new link and we will email it to you."
   },
   "sso": {
     "title": "Sign in with SSO",

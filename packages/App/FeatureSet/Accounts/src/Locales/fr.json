@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "Mot de passe oublié",
     "subtitle": "Veuillez saisir votre adresse e-mail et le lien de réinitialisation du mot de passe vous sera envoyé.",
-    "successMessage": "Nous vous avons envoyé le lien de réinitialisation du mot de passe par e-mail. N'oubliez pas de vérifier le dossier spam.",
+    "successMessage": "Si un compte utilise cette adresse e-mail, nous lui avons envoyé un lien pour choisir un mot de passe. N'oubliez pas de vérifier le dossier spam.",
     "submitButton": "Envoyer le lien de réinitialisation",
     "rememberPasswordPrompt": "Vous vous souvenez de votre mot de passe ?",
     "loginLink": "Connexion.",
@@ -195,9 +195,9 @@
     "successTitle": "Votre mot de passe est défini",
     "successDescription": "Connectez-vous avec votre nouveau mot de passe.",
     "linkExpiredTitle": "Ce lien a expiré",
-    "linkExpiredDescription": "Les liens pour définir un mot de passe sont valables {{days}} jours. Demandez à l'administrateur qui a créé votre compte de vous en envoyer un nouveau.",
+    "linkExpiredDescription": "Les liens pour définir un mot de passe sont valables {{days}} jours. Demandez un nouveau lien et nous vous l’enverrons par e-mail.",
     "linkInvalidTitle": "Ce lien ne fonctionne plus",
-    "linkInvalidDescription": "Il a peut-être déjà été utilisé, ou seule une partie a été copiée. Si vous avez défini votre mot de passe, connectez-vous. Sinon, demandez un nouveau lien à votre administrateur."
+    "linkInvalidDescription": "Il a peut-être déjà été utilisé, ou seule une partie a été copiée. Si vous avez défini votre mot de passe, connectez-vous. Sinon, demandez un nouveau lien et nous vous l’enverrons par e-mail."
   },
   "sso": {
     "title": "Connexion avec SSO",

@@ -58,9 +58,9 @@ export interface ComponentProps {
    * Dashboard > Users > Create User, #9139): the link in the "Set your
    * password" email, /accounts/set-password/<token>
    * (Common/Types/Accounts/SetPasswordLink). The same form, the same rule and
-   * the same endpoint as a reset - only the words differ, and a dead link
-   * cannot be replaced from Forgot password, which asks for an account with
-   * a password: whoever created the account sends a new one.
+   * the same endpoint as a reset - only the words differ. A dead link is
+   * replaced from Forgot password, as a reset link is: for an account with
+   * no password yet it emails a new set-password link (#9260).
    */
   isSettingFirstPassword?: boolean | undefined;
 }
@@ -194,36 +194,21 @@ const ResetPasswordPage: (props: ComponentProps) => JSX.Element = (
             : words.linkInvalidDescription}
         </p>
         {/*
-         * A first password's dead link is replaced by whoever created the
-         * account, as the words above say: Forgot password would refuse an
-         * account with no password. A link already used most likely set it,
-         * so that card leads to signing in.
+         * Either kind of dead link is replaced from Forgot password, which
+         * emails an account the link it needs: a reset link, or, with no
+         * password yet, a new set-password link (#9260). Somebody whose
+         * link was already used to set a password signs in from the line
+         * under the card.
          */}
-        {props.isSettingFirstPassword ? (
-          isExpired ? (
-            <></>
-          ) : (
-            <div className="mt-6">
-              <Link
-                to={new Route("/accounts/login")}
-                className={BUTTON_CLASS_NAME}
-                dataTestId="set-password-sign-in"
-              >
-                {t("resetPassword.signInButton")}
-              </Link>
-            </div>
-          )
-        ) : (
-          <div className="mt-6">
-            <Link
-              to={new Route("/accounts/forgot-password")}
-              className={BUTTON_CLASS_NAME}
-              dataTestId="reset-password-request-new-link"
-            >
-              {t("resetPassword.requestNewLinkButton")}
-            </Link>
-          </div>
-        )}
+        <div className="mt-6">
+          <Link
+            to={new Route("/accounts/forgot-password")}
+            className={BUTTON_CLASS_NAME}
+            dataTestId="reset-password-request-new-link"
+          >
+            {t("resetPassword.requestNewLinkButton")}
+          </Link>
+        </div>
       </AuthPage>
     );
   }

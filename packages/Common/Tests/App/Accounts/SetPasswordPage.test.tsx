@@ -37,9 +37,10 @@ import ResetPasswordPage from "../../../../App/FeatureSet/Accounts/src/Pages/Res
  * /accounts/set-password/<token>, for an account a master admin created in
  * the Admin Dashboard (Common/Types/Accounts/SetPasswordLink). It is the
  * reset page - the same rule and checklist, the same request with the same
- * token - in words for a first password. A dead link is replaced by whoever
- * created the account, never from Forgot password, which refuses an account
- * that has no password.
+ * token - in words for a first password. A dead link is replaced from
+ * Forgot password, which emails an account with no password yet a new
+ * set-password link (#9260), as it emails a reset link to one with a
+ * password.
  */
 
 const TOKEN: string = "5c1d2e3f-4a5b-4c6d-8e7f-901a2b3c4d5e";
@@ -169,7 +170,7 @@ describe("Set Password", () => {
     );
   });
 
-  test("an expired link says who sends a new one, and offers no Forgot password", async () => {
+  test("an expired link says how long links work, and leads to Forgot password for a new one", async () => {
     answer = refuseWith(RESET_LINK_MESSAGES.expired);
 
     await renderPage();
@@ -181,16 +182,18 @@ describe("Set Password", () => {
     );
     expect(
       screen.getByText(
-        `Links to set a password work for ${SET_PASSWORD_LINK_EXPIRY_DAYS} days. Ask the administrator who created your account to send you a new one.`,
+        `Links to set a password work for ${SET_PASSWORD_LINK_EXPIRY_DAYS} days. Ask for a new link and we will email it to you.`,
       ),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("link", { name: "Request a New Link" }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("link", { name: "Request a New Link" }),
+    ).toHaveAttribute("href", "/accounts/forgot-password");
+    // Nobody is sent to an administrator any more: they can get a link themselves.
+    expect(screen.queryByText(/administrator/i)).not.toBeInTheDocument();
     expect(SensitiveUrlToken.clear).not.toHaveBeenCalled();
   });
 
-  test("a used link leads to signing in, since it most likely set the password", async () => {
+  test("a used link offers a new one, and signing in for somebody it already set a password for", async () => {
     answer = refuseWith(RESET_LINK_MESSAGES.invalid);
 
     await renderPage();
@@ -200,13 +203,19 @@ describe("Set Password", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "This link no longer works",
     );
-    expect(screen.getByTestId("set-password-sign-in")).toHaveAttribute(
+    expect(
+      screen.getByText(
+        "It may have been used already, or only part of it was copied. If you have set your password, sign in. If not, ask for a new link and we will email it to you.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Request a New Link" }),
+    ).toHaveAttribute("href", "/accounts/forgot-password");
+    expect(screen.getByRole("link", { name: "Sign in." })).toHaveAttribute(
       "href",
       "/accounts/login",
     );
-    expect(
-      screen.queryByRole("link", { name: "Request a New Link" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/administrator/i)).not.toBeInTheDocument();
   });
 
   test("speaks the reader's language", async () => {
