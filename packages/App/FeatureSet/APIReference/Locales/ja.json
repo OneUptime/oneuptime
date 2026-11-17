@@ -300,6 +300,26 @@
       "masterAdminOnlyTitle": "マスター管理者API専用",
       "masterAdminOnlyBody": "このAPIはマスターAPI Token経由でのみアクセスできます。Admin Dashboardで作成できます。リクエストを行うには、トークンを<code>ApiKey</code>ヘッダーに追加してください。"
     },
+    "modelEndpoints": {
+      "scheduleLayersReadHeading": "レイヤーの読み取り",
+      "scheduleLayersReadIntro": "このエンドポイントは、スケジュールのレイヤーとその中の人を保存されたとおりに返します。スケジュールが残すすべてのレイヤーが優先度の高い順に並び、各レイヤーには番の順に人が並び、現在のバージョンが basedOnVersion に入ります。これは何も変えない保存です。変更してからレイヤーの保存に送ります。",
+      "scheduleLayersReadRequestTitle": "レイヤーの読み取りリクエスト",
+      "scheduleIdDescription": "オンコールスケジュールのID",
+      "scheduleLayersSaveHeading": "レイヤーの保存",
+      "scheduleLayersSaveIntro": "このエンドポイントは、スケジュールのレイヤーで誰が番を担当するかと、レイヤーの優先度を、一度に一つのトランザクションで保存します。すべて保存されるか、何も保存されないかのどちらかです。その後、誰がオンコールかは一度だけ計算され、変更のある人には一度だけ通知されます。レイヤーとレイヤーの人のエンドポイントと同じ権限とチェックが適用されます。名前やローテーションなど、レイヤー自体の設定は含まれません。",
+      "scheduleLayersSaveRequestTitle": "レイヤーの保存リクエスト",
+      "basedOnVersionDescription": "変更の元になったレイヤーのバージョンで、レイヤーの読み取りが返すものです。",
+      "layersDescription": "スケジュールが残すすべてのレイヤーを優先度の高い順に、それぞれ { layerId, users } として並べます。users はそのレイヤーで番を担当する人で、番の順に並べます。すでにレイヤーにいる人は { layerUserId, userId }、追加する人は { userId } です。レイヤーから外された人は、そのレイヤーから除かれます。",
+      "deletedLayerIdsDescription": "削除するレイヤーで、その中の人も一緒に削除されます。スケジュールには少なくとも一つのレイヤーが残ります。",
+      "refusalsHeading": "拒否",
+      "scheduleLayersConflict": "409 Conflict: 送ったバージョンを読み取った後にレイヤーが変更されたため、何も保存されません。レイヤーを読み直し、今ある内容に対して変更してください。",
+      "scheduleLayersBadRequest": "400 Bad Request: 保存が、スケジュールのすべてのレイヤーを layers か deletedLayerIds でちょうど一度ずつ指定していない、スケジュールのものではないレイヤーや人の行を指定している、またはすべてのレイヤーを削除しています。",
+      "userOverrideEndNowHeading": "今すぐ終了",
+      "userOverrideEndNowIntro": "このエンドポイントは、進行中のオーバーライドをサーバーの時計で終了します。終了時刻が現在になり、それ以降の呼び出しは不在だった人に再び届きます。更新と同じ権限が必要で、オーバーライドの新しい endsAt を返します。",
+      "userOverrideEndNowRequestTitle": "今すぐ終了リクエスト",
+      "userOverrideIdDescription": "ユーザーオーバーライドのID",
+      "userOverrideEndNowRefused": "400 Bad Request: オーバーライドがまだ始まっていない（代わりに削除してください）、すでに終了している、またはいずれにせよ1分以内に終了します。"
+    },
     "dataType": {
       "enumBadge": "列挙型",
       "dataTypeBadge": "データ型",

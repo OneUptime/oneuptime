@@ -300,6 +300,26 @@
       "masterAdminOnlyTitle": "Endast Master Admin API",
       "masterAdminOnlyBody": "Detta API kan endast nås via en Master API-token. Du kan skapa en på Admin Dashboard. Lägg till token i <code>ApiKey</code>-headern för att göra förfrågan."
     },
+    "modelEndpoints": {
+      "scheduleLayersReadHeading": "Läs lager",
+      "scheduleLayersReadIntro": "Den här slutpunkten returnerar schemats lager och personerna i dem, som de är sparade: varje lager som schemat behåller, det med högst prioritet först, vart och ett med sina personer i passordning, och den version de är på, som basedOnVersion. Det är en sparning som inte ändrar något: ändra den och skicka den till Spara lager.",
+      "scheduleLayersReadRequestTitle": "Begäran om att läsa lager",
+      "scheduleIdDescription": "ID för jourschemat",
+      "scheduleLayersSaveHeading": "Spara lager",
+      "scheduleLayersSaveIntro": "Den här slutpunkten sparar på en gång vem som tar pass i schemats lager, och lagrens prioritet, i en enda transaktion: allt sparas eller inget. Vem som har jour räknas sedan ut en gång, och varje person som ändringen gäller får veta det en gång. Den omfattas av samma behörigheter och kontroller som slutpunkterna för lager och deras personer. Ett lagers egna inställningar, som namn och rotation, ingår inte.",
+      "scheduleLayersSaveRequestTitle": "Begäran om att spara lager",
+      "basedOnVersionDescription": "Den version av lagren som dina ändringar gjordes på, som Läs lager returnerar den.",
+      "layersDescription": "Varje lager som schemat behåller, det med högst prioritet först, vart och ett som { layerId, users }. users är de personer som tar pass i det, i passordning: den som redan är i lagret som { layerUserId, userId }, den som läggs till som { userId }. Den som utelämnas ur sitt lager tas bort ur det.",
+      "deletedLayerIdsDescription": "De lager som ska tas bort, med personerna i dem. Ett schema behåller minst ett lager.",
+      "refusalsHeading": "Avvisningar",
+      "scheduleLayersConflict": "409 Conflict: lagren ändrades efter att versionen du skickade lästes, så inget sparas. Läs lagren igen och gör din ändring på det som finns nu.",
+      "scheduleLayersBadRequest": "400 Bad Request: sparningen anger inte varje lager i schemat en gång, i layers eller deletedLayerIds, anger ett lager eller en persons rad som inte hör till schemat, eller tar bort alla lager.",
+      "userOverrideEndNowHeading": "Avsluta nu",
+      "userOverrideEndNowIntro": "Den här slutpunkten avslutar en pågående åsidosättning enligt serverns klocka: dess slut blir nu, och från och med då är utlarmningarna den frånvarande personens egna igen. Den kräver samma behörighet som en uppdatering och returnerar åsidosättningens nya endsAt.",
+      "userOverrideEndNowRequestTitle": "Begäran om att avsluta nu",
+      "userOverrideIdDescription": "ID för användaråsidosättningen",
+      "userOverrideEndNowRefused": "400 Bad Request: åsidosättningen har inte börjat än (ta bort den i stället), har redan slutat eller slutar ändå inom minuten."
+    },
     "dataType": {
       "enumBadge": "Enum",
       "dataTypeBadge": "Datatyp",

@@ -31,6 +31,7 @@ import LocalFile from "Common/Server/Utils/LocalFile";
 import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
 import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
 import { getColumnsRequiredOnCreate } from "Common/Utils/DeveloperDocs/TerraformSchema";
+import { getModelEndpoints } from "../Utils/ModelEndpoints";
 
 interface ExampleObjects {
   simpleSelectExample: JSONObject;
@@ -884,6 +885,13 @@ export default class ServiceHandler {
 
     pageData["codeExamples"] = codeExamples;
     pageData["showAggregate"] = isAnalytics;
+
+    // The routes the resource answers beside its own operations (#9038).
+    pageData["moreEndpoints"] = getModelEndpoints({
+      crudApiPath: currentResource.model.crudApiPath?.toString() || "",
+      apiPath: apiPath,
+      exampleObjectID: exampleObjectID,
+    });
 
     // Check if the current resource is a master admin API
     pageData["isMasterAdminApiDocs"] =
