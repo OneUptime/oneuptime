@@ -193,6 +193,15 @@ Without Group By, the same monitor is a single scalar: the query collapses every
 
 Each per-group alert tracks its own group. When host A drops back under the threshold its alert resolves on its own, and host B's alert stays open until host B recovers. One group recovering never closes another group's alert.
 
+### What each alert keeps
+
+Each alert or incident opened for one group keeps the check that opened it for that group only: its series, its points and the evaluation summary. No kept check is larger than 256 KB, and the logs of one that had to be trimmed to fit say so.
+
+Alerts and incidents opened before this kept every group of the evaluation, up to tens of megabytes each, on the record and again on each of its state changes. After the upgrade, a job that runs every hour trims them a little at a time, keeping each record's own group, until none are left.
+
+> [!NOTE]
+> On a self-hosted install, PostgreSQL reuses the space the trimmed checks leave, but does not give it back to the disk. To shrink the database once they are trimmed, run `VACUUM FULL` on the biggest tables in a maintenance window, as it locks each table while it rewrites it, or use `pg_repack`, which does not.
+
 ### Criteria evaluation differs
 
 - **Grouped monitors evaluate every criteria.** Severity bands can therefore fire on different groups at the same time: with "Critical — greater than 95" above "Warning — greater than 80", a host at 96% opens a critical alert while a host at 85% opens a warning alert on the same check. A host that breaches both bands still gets exactly one alert — from the first matching criteria, so **order the criteria most severe first**.

@@ -193,6 +193,15 @@ Ohne Group By ist derselbe Monitor ein einzelner Skalar: Die Abfrage fasst alle 
 
 Jede Warnung pro Gruppe verfolgt ihre eigene Gruppe. Fällt Host A wieder unter den Schwellenwert, wird seine Warnung für sich behoben, und die Warnung von Host B bleibt offen, bis sich Host B erholt. Die Erholung einer Gruppe schließt nie die Warnung einer anderen.
 
+### Was jede Warnung speichert
+
+Jede Warnung und jeder Vorfall, die für eine Gruppe geöffnet werden, speichern die Prüfung, die sie geöffnet hat, nur für diese Gruppe: ihre Serie, ihre Datenpunkte und die Auswertungsübersicht. Keine gespeicherte Prüfung ist größer als 256 KB, und die Protokolle einer Prüfung, die gekürzt werden musste, sagen das.
+
+Warnungen und Vorfälle, die vorher geöffnet wurden, speicherten jede Gruppe der Auswertung, bis zu mehrere zehn Megabyte pro Datensatz, am Datensatz und noch einmal an jeder seiner Statusänderungen. Nach dem Upgrade kürzt ein Job, der stündlich läuft, sie nach und nach und behält die eigene Gruppe jedes Datensatzes, bis keine mehr übrig sind.
+
+> [!NOTE]
+> Bei einer selbst gehosteten Installation verwendet PostgreSQL den Platz der gekürzten Prüfungen wieder, gibt ihn aber nicht an die Festplatte zurück. Um die Datenbank zu verkleinern, sobald sie gekürzt sind, führen Sie in einem Wartungsfenster `VACUUM FULL` für die größten Tabellen aus, das jede Tabelle sperrt, während es sie neu schreibt, oder verwenden Sie `pg_repack`, das das nicht tut.
+
 ### Die Auswertung der Kriterien unterscheidet sich
 
 - **Gruppierte Monitore werten jedes Kriterium aus.** Schweregradstufen können daher zugleich bei verschiedenen Gruppen auslösen: Mit „Critical – größer als 95“ über „Warning – größer als 80“ eröffnet ein Host bei 96 % bei derselben Prüfung eine kritische Warnung und ein Host bei 85 % eine Warnungsstufe. Ein Host, der beide Stufen überschreitet, erhält trotzdem genau eine Warnung – vom ersten passenden Kriterium; **ordnen Sie die Kriterien also mit dem schwerwiegendsten zuerst**.
