@@ -4,6 +4,7 @@ import URL from "Common/Types/API/URL";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
   OnCallFireDrillPreview,
+  OnCallFireDrillRecord,
   OnCallFireDrillRun,
 } from "Common/Types/OnCallDutyPolicy/OnCallFireDrill";
 import {
@@ -163,16 +164,22 @@ export default class OnCallTestPageApi {
 
   /*
    * Starts the drill of a failure: the server pages the policies it pages
-   * now. Returns each policy's test, to read its result by.
+   * now - each one's first level, or every level in turn when the drill
+   * walks them (#9385). Returns each policy's test, to read its result by.
    */
   public static async startFireDrill(data: {
     monitorId: string;
     eventKey: string;
+    walksEscalation?: boolean | undefined;
   }): Promise<Array<OnCallFireDrillRun>> {
     const body: JSONObject = toBody(
       await API.post<JSONObject>({
         url: getUrl("/fire-drill/start"),
-        data: { monitorId: data.monitorId, eventKey: data.eventKey },
+        data: {
+          monitorId: data.monitorId,
+          eventKey: data.eventKey,
+          walksEscalation: Boolean(data.walksEscalation),
+        },
         headers: { ...ModelAPI.getCommonHeaders() },
       }),
     );
@@ -192,6 +199,31 @@ export default class OnCallTestPageApi {
     }
 
     return runs;
+  }
+
+  /*
+   * A MONITOR'S LAST FIRE DRILL (#9386): when it ran, who ran it, the
+   * failure it rehearsed and what became of each policy's test - or null,
+   * with none the reader may read.
+   */
+  public static async lastFireDrill(
+    monitorId: string,
+  ): Promise<OnCallFireDrillRecord | null> {
+    const body: JSONObject = toBody(
+      await API.get<JSONObject>({
+        url: getUrl(`/fire-drill/last/${monitorId}`),
+        headers: { ...ModelAPI.getCommonHeaders() },
+      }),
+    );
+
+    const fireDrill: JSONValue | undefined = body["fireDrill"];
+
+    return fireDrill &&
+      typeof fireDrill === "object" &&
+      !Array.isArray(fireDrill) &&
+      Array.isArray((fireDrill as JSONObject)["runs"])
+      ? (fireDrill as unknown as OnCallFireDrillRecord)
+      : null;
   }
 
   public static async getResult(
