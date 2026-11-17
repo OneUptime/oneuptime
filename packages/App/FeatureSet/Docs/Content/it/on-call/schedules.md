@@ -86,7 +86,7 @@ Ogni persona mantiene un unico colore ovunque, così puoi seguirla a colpo d'occ
 
 ## Quando qualcuno è assente
 
-Quando qualcuno va in vacanza, saltalo finché non torna. Nella pagina **Livelli** della pianificazione, espandi un livello e fai clic su **Salta fino a…** accanto al suo nome. Si apre il modulo per le assenze con quella persona in **Chi è assente?**, **Persona successiva nella rotazione** in **Chi sostituisce?** e **Inizia** da adesso: imposta **Termina** su quando torna e salva.
+Quando qualcuno va in vacanza, saltalo finché non torna. Nella pagina **Livelli** della pianificazione, espandi un livello e fai clic su **Salta fino a…** accanto al suo nome. Si apre il modulo per le assenze con quella persona in **Chi è assente?**, **Persona successiva nella rotazione** in **Chi sostituisce?** e **Inizia** da adesso: imposta **Termina** su quando torna e salva. Se ha già un'assenza in quegli orari, il modulo lo dice accanto agli orari mentre li scegli, con **Modifica quella sostituzione** per modificare invece quella.
 
 Mentre è assente:
 
@@ -97,7 +97,7 @@ Mentre è assente:
 
 Se invece scegli qualcuno in **Chi sostituisce?**, quella persona riceve tutti i suoi avvisi, da ogni pianificazione e da ogni policy, invece che la rotazione prenda i suoi turni.
 
-Un'assenza aggiunta così vale per tutte le policy di reperibilità, quindi richiede il permesso per le sostituzioni sull'intero progetto. Se il ruolo del tuo team è limitato alle sue policy o ad alcune etichette, viene aggiunta invece sulle policy di questa pianificazione su cui puoi aggiungere sostituzioni, con una sostituzione per policy, elencata nella pagina **Sostituzioni utente** di ciascuna policy; se sono più d'una, le selezioni in **Policy di reperibilità**. **Salta fino a…** è bloccato e dice perché solo dove non puoi su nessuna. È elencata in **Reperibilità** > **Avanzato** > **Sostituzioni utente**, dove puoi eliminarla per farla rientrare prima. Per saltare qualcuno in una sola policy, aggiungi la sostituzione nella pagina **Sostituzioni utente** di quella policy e lascia **Chi sostituisce?** com'è. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
+Un'assenza aggiunta così vale per tutte le policy di reperibilità, quindi richiede il permesso per le sostituzioni sull'intero progetto. Se il ruolo del tuo team è limitato alle sue policy o ad alcune etichette, viene aggiunta invece sulle policy di questa pianificazione su cui puoi aggiungere sostituzioni, con una sostituzione per policy, elencata nella pagina **Sostituzioni utente** di ciascuna policy; se sono più d'una, le selezioni in **Policy di reperibilità**. **Salta fino a…** è bloccato e dice perché solo dove non puoi su nessuna. È elencata in **Reperibilità** > **Avanzato** > **Sostituzioni utente**, e tra le sostituzioni utente della pianificazione nella sua pagina **Livelli**, dove **Termina ora** la fa rientrare prima. Per saltare qualcuno in una sola policy, aggiungi la sostituzione nella pagina **Sostituzioni utente** di quella policy e lascia **Chi sostituisce?** com'è. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
 
 Con l'API, una sostituzione utente (`/api/on-call-duty-policy-user-override`) creata senza `routeAlertsToUserId` salta la persona in `overrideUserId` da `startsAt` a `endsAt`.
 
@@ -111,6 +111,8 @@ Le pianificazioni di reperibilità sono la risorsa `/api/on-call-duty-policy-sch
 - Una pianificazione creata senza di essi non ha livelli, come prima; la risorsa Terraform delle pianificazioni non li invia.
 - Un livello creato senza `rotation` passa il turno ogni giorno, come sempre.
 - Una modifica ai livelli di una pianificazione e alle persone che vi appartengono, fatta con l'API o Terraform, viene comunicata come un'unica modifica: chi è reperibile viene calcolato quando i livelli sono rimasti per mezzo minuto senza modifiche, e chi entra o esce dal turno, o è il prossimo, lo viene a sapere una volta, non una volta per ogni livello o persona scritti. Gli avvisi arrivano a chi i livelli rendono reperibile non appena ogni modifica è salvata.
+- Per cambiare in un colpo solo chi fa i turni nei livelli di una pianificazione, come fa **Salva modifiche** nella pagina **Livelli**, leggi i livelli con `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` e rimandali, modificati, a `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`. Elencano ogni livello che la pianificazione mantiene, quello con la priorità più alta per primo, ciascuno con le sue persone nell'ordine dei turni: chi è già in un livello con il suo `layerUserId`, chi viene aggiunto con il solo `userId`. `deletedLayerIds` elenca i livelli da eliminare.
+- Un salvataggio viene scritto per intero o per niente, e chi è reperibile viene calcolato una volta sola, subito. Uno fatto dopo che qualcun altro ha cambiato i livelli viene rifiutato con 409, perché il suo `basedOnVersion` non è più quello dei livelli: rileggi i livelli e applica la modifica a ciò che c'è adesso. La risorsa Terraform `oneuptime_on_call_schedule_layers` salva così i livelli di una pianificazione.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
@@ -126,6 +128,29 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
     }
+  }'
+```
+
+```bash
+curl https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/layers \
+  -H "apikey: $ONEUPTIME_API_KEY"
+
+curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/save-layers \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "basedOnVersion": "<the version the read answered>",
+    "layers": [
+      {
+        "layerId": "<layer-id>",
+        "users": [
+          {"layerUserId": "<row-of-user-2>", "userId": "<user-id-2>"},
+          {"layerUserId": "<row-of-user-1>", "userId": "<user-id-1>"},
+          {"userId": "<user-id-4>"}
+        ]
+      }
+    ],
+    "deletedLayerIds": []
   }'
 ```
 

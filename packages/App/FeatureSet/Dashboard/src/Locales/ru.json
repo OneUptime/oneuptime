@@ -56544,5 +56544,13 @@
   "Reconnect these Zoom connections to keep starting calls": "Выполните вход в эти подключения Zoom заново, чтобы звонки продолжали начинаться",
   "Reconnect {{name}} to keep starting calls": "Подключите {{name}} заново, чтобы звонки продолжали начинаться",
   "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "Эти подключения Zoom выполнили вход до того, как OneUptime смог читать расшифровки звонков, поэтому они не могут их читать.",
-  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "Это подключение Zoom выполнило вход до того, как OneUptime смог читать расшифровки звонков, поэтому оно не может их читать."
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "Это подключение Zoom выполнило вход до того, как OneUptime смог читать расшифровки звонков, поэтому оно не может их читать.",
+  "End Now": "Завершить сейчас",
+  "End the override for {{name}} now": "Завершить замену для {{name}} сейчас",
+  "End the override for {{name}} now?": "Завершить замену для {{name}} сейчас?",
+  "The override for {{name}} has ended.": "Замена для {{name}} завершена.",
+  "This override ends within the minute, so there is nothing left to end.": "Эта замена заканчивается в течение минуты, так что завершать уже нечего.",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Эта замена ещё не началась, так что завершать нечего. Чтобы отменить её, удалите её.",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "Пропуск заканчивается сейчас, а не {{until}}. После этого {{away}} снова дежурит в свою очередь в ротации.",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} перестаёт заменять {{away}} сейчас, а не {{until}}. После этого оповещения снова получает {{away}}."
 }

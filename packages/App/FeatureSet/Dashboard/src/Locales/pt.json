@@ -56544,5 +56544,13 @@
   "Reconnect these Zoom connections to keep starting calls": "Reconecte estas conexões do Zoom para continuar iniciando chamadas",
   "Reconnect {{name}} to keep starting calls": "Reconecte {{name}} para continuar iniciando chamadas",
   "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "Estas conexões do Zoom foram feitas antes de o OneUptime conseguir ler transcrições de chamadas, então elas não conseguem lê-las.",
-  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "Esta conexão do Zoom foi feita antes de o OneUptime conseguir ler transcrições de chamadas, então ela não consegue lê-las."
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "Esta conexão do Zoom foi feita antes de o OneUptime conseguir ler transcrições de chamadas, então ela não consegue lê-las.",
+  "End Now": "Encerrar agora",
+  "End the override for {{name}} now": "Encerrar agora a substituição de {{name}}",
+  "End the override for {{name}} now?": "Encerrar agora a substituição de {{name}}?",
+  "The override for {{name}} has ended.": "A substituição de {{name}} foi encerrada.",
+  "This override ends within the minute, so there is nothing left to end.": "Esta substituição termina ainda neste minuto, então não há mais nada a encerrar.",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Esta substituição ainda não começou, então não há nada a encerrar. Para cancelá-la, exclua-a.",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "{{away}} deixa de ser pulado agora, em vez de em {{until}}. A partir daí, volta a assumir seus turnos na rotação.",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} deixa de cobrir {{away}} agora em vez de em {{until}}. A partir daí, os alertas voltam a acionar {{away}}."
 }

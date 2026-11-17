@@ -86,7 +86,7 @@ Elke persoon houdt overal één kleur, zodat u hem of haar in één oogopslag ku
 
 ## Als iemand afwezig is
 
-Gaat iemand op vakantie, sla die persoon dan over tot die terug is. Klap op de pagina **Lagen** van het schema een laag open en klik naast de naam op **Overslaan tot…**. Dat opent het formulier voor afwezigheid met die persoon onder **Wie is afwezig?**, **Volgende persoon in de rotatie** onder **Wie vervangt?** en **Begint** op nu: zet **Eindigt** op het moment dat die terug is en sla het op.
+Gaat iemand op vakantie, sla die persoon dan over tot die terug is. Klap op de pagina **Lagen** van het schema een laag open en klik naast de naam op **Overslaan tot…**. Dat opent het formulier voor afwezigheid met die persoon onder **Wie is afwezig?**, **Volgende persoon in de rotatie** onder **Wie vervangt?** en **Begint** op nu: zet **Eindigt** op het moment dat die terug is en sla het op. Heeft die persoon dan al afwezigheid, dan zegt het formulier dat naast de tijden terwijl je ze kiest, met **Die vervanging bewerken** om in plaats daarvan die andere te wijzigen.
 
 Zolang die persoon afwezig is:
 
@@ -97,7 +97,7 @@ Zolang die persoon afwezig is:
 
 Kies je in plaats daarvan iemand onder **Wie vervangt?**, dan krijgt die alle oproepen van de persoon, uit elk schema en elk beleid, in plaats van dat de rotatie de beurten overneemt.
 
-Afwezigheid die zo is toegevoegd, geldt voor elk bereikbaarheidsbeleid, dus vraagt ze het recht voor overrides over het hele project. Is de rol van je team beperkt tot zijn eigen beleid of tot enkele labels, dan komt ze in plaats daarvan op het beleid van dit schema waarvoor je overrides mag toevoegen, met één override per beleid, vermeld op de eigen pagina **Gebruikersoverschrijvingen** van elk beleid; zijn het er meer, dan vink je ze aan onder **Bereikbaarheidsbeleid**. **Overslaan tot…** is alleen vergrendeld en zegt waarom waar je dat voor geen enkel beleid mag. Ze staat onder **Bereikbaarheid** > **Geavanceerd** > **Gebruikersoverschrijvingen**, waar je ze kunt verwijderen om de persoon eerder terug te halen. Om iemand in maar één beleid over te slaan, voeg je de override toe op de pagina **Gebruikersoverschrijvingen** van dat beleid en laat je **Wie vervangt?** zoals het is. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
+Afwezigheid die zo is toegevoegd, geldt voor elk bereikbaarheidsbeleid, dus vraagt ze het recht voor overrides over het hele project. Is de rol van je team beperkt tot zijn eigen beleid of tot enkele labels, dan komt ze in plaats daarvan op het beleid van dit schema waarvoor je overrides mag toevoegen, met één override per beleid, vermeld op de eigen pagina **Gebruikersoverschrijvingen** van elk beleid; zijn het er meer, dan vink je ze aan onder **Bereikbaarheidsbeleid**. **Overslaan tot…** is alleen vergrendeld en zegt waarom waar je dat voor geen enkel beleid mag. Ze staat onder **Bereikbaarheid** > **Geavanceerd** > **Gebruikersoverschrijvingen**, en bij de gebruikersoverschrijvingen van het schema op zijn pagina **Lagen**, waar **Nu beëindigen** de persoon eerder terughaalt. Om iemand in maar één beleid over te slaan, voeg je de override toe op de pagina **Gebruikersoverschrijvingen** van dat beleid en laat je **Wie vervangt?** zoals het is. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
 
 Via de API slaat een gebruikersoverride (`/api/on-call-duty-policy-user-override`) die zonder `routeAlertsToUserId` wordt gemaakt, de persoon in `overrideUserId` over van `startsAt` tot `endsAt`.
 
@@ -111,6 +111,8 @@ Bereikbaarheidsschema's zijn de resource `/api/on-call-duty-policy-schedule`; hu
 - Een schema dat zonder deze waarden wordt gemaakt, heeft zoals voorheen geen lagen; de Terraform-resource voor schema's stuurt ze niet mee.
 - Een laag die zonder `rotation` wordt gemaakt, draagt dagelijks over, zoals altijd.
 - Een wijziging van de lagen van een schema en de mensen daarin, gemaakt met de API of Terraform, wordt als één wijziging gemeld: wie er bereikbaar is, wordt bepaald zodra de lagen een halve minuut niet zijn gewijzigd, en wie bereikbaar wordt, dat niet meer is of de volgende is, hoort het één keer, niet één keer per geschreven laag of persoon. Oproepen gaan naar wie de lagen bereikbaar maken zodra elke wijziging is opgeslagen.
+- Om in één keer te wijzigen wie er beurten heeft in de lagen van een schema, zoals **Wijzigingen opslaan** op de pagina **Lagen** doet, lees je de lagen met `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` en stuur je ze gewijzigd terug naar `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`. Ze noemen elke laag die het schema houdt, de hoogste prioriteit eerst, elk met haar mensen in de volgorde van hun beurten: wie al in een laag zit met zijn `layerUserId`, wie erbij komt alleen met `userId`. `deletedLayerIds` noemt de lagen die worden verwijderd.
+- Een opslag wordt helemaal of helemaal niet geschreven, en wie er bereikbaar is, wordt één keer bepaald, meteen. Een opslag die wordt gedaan nadat iemand anders de lagen heeft gewijzigd, wordt geweigerd met 409, omdat de `basedOnVersion` ervan niet meer die van de lagen is: lees de lagen opnieuw en maak de wijziging op wat er nu staat. De Terraform-resource `oneuptime_on_call_schedule_layers` slaat de lagen van een schema zo op.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
@@ -126,6 +128,29 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
     }
+  }'
+```
+
+```bash
+curl https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/layers \
+  -H "apikey: $ONEUPTIME_API_KEY"
+
+curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/save-layers \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "basedOnVersion": "<the version the read answered>",
+    "layers": [
+      {
+        "layerId": "<layer-id>",
+        "users": [
+          {"layerUserId": "<row-of-user-2>", "userId": "<user-id-2>"},
+          {"layerUserId": "<row-of-user-1>", "userId": "<user-id-1>"},
+          {"userId": "<user-id-4>"}
+        ]
+      }
+    ],
+    "deletedLayerIds": []
   }'
 ```
 

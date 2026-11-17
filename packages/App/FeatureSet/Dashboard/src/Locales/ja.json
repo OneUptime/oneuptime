@@ -56544,5 +56544,13 @@
   "Reconnect these Zoom connections to keep starting calls": "通話を開始し続けるには、これらの Zoom の接続を再接続してください",
   "Reconnect {{name}} to keep starting calls": "通話を開始し続けるには {{name}} を再接続してください",
   "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "これらの Zoom の接続は、OneUptime が通話の文字起こしを読み取れるようになる前にサインインしたため、文字起こしを読み取れません。",
-  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "この Zoom の接続は、OneUptime が通話の文字起こしを読み取れるようになる前にサインインしたため、文字起こしを読み取れません。"
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "この Zoom の接続は、OneUptime が通話の文字起こしを読み取れるようになる前にサインインしたため、文字起こしを読み取れません。",
+  "End Now": "今すぐ終了",
+  "End the override for {{name}} now": "{{name}}のオーバーライドを今すぐ終了",
+  "End the override for {{name}} now?": "{{name}}のオーバーライドを今すぐ終了しますか？",
+  "The override for {{name}} has ended.": "{{name}}のオーバーライドを終了しました。",
+  "This override ends within the minute, so there is nothing left to end.": "このオーバーライドは1分以内に終わるため、終了するものは残っていません。",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "このオーバーライドはまだ始まっていないため、終了するものはありません。取りやめるには削除してください。",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "スキップを{{until}}ではなく今終了します。その後、{{away}}は再びローテーションで自分の番を担当します。",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}}による{{away}}の代理を{{until}}ではなく今終了します。その後、アラートは再び{{away}}に届きます。"
 }

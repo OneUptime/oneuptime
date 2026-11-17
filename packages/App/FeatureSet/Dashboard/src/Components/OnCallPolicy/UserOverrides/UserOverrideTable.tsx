@@ -13,7 +13,17 @@ import UserOverrideOverlapsMark, {
   getUserOverrideOverlapsText,
 } from "./UserOverrideOverlapsMark";
 import { getGlobalUserOverrideLock } from "./GlobalUserOverrideLock";
+import {
+  USER_OVERRIDE_END_NOW_ACTION,
+  UserOverrideEndNowTarget,
+  canEndUserOverrideNow,
+  endUserOverrideNow,
+  getUserOverrideEndNowQuestion,
+  sayUserOverrideEnded,
+  toUserOverrideEndNowTarget,
+} from "./UserOverrideEndNow";
 import { formatHandOffInstant } from "../OnCallScheduleLayer/LayerSummary";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
@@ -36,7 +46,9 @@ import UserOverrideEdit, {
 import UserOverrideOverlap, {
   UserOverrideOverlapNote,
 } from "Common/Types/OnCallDutyPolicy/UserOverrideOverlap";
-import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import ActionButtonSchema, {
+  RowActionConfirmation,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import Columns from "Common/UI/Components/ModelTable/Columns";
@@ -75,6 +87,8 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
  * Each row's Edit opens the same four rows on the override as saved (issue
  * #7631, UserOverrideFormModal): who covers, and its times as far as they
  * may still change. One that has ended keeps its Edit, locked, saying why.
+ * One under way has End Now first (issue #7899, UserOverrideEndNow): one
+ * short question, then it ends at once.
  * Add and Edit both say under Ends what the times picked overlap, with a way
  * to edit that override instead (issue #7630). Overlaps saved before that
  * rule are marked "Overlaps" on both rows, saying which one is used there
@@ -376,6 +390,13 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
     setCoverRequest(null);
   };
 
+  // Counted up: the table reads its rows again.
+  const readRowsAgain: () => void = (): void => {
+    setSaveCount((count: number): number => {
+      return count + 1;
+    });
+  };
+
   /*
    * Edit, on each row, gated the way the table gates its own actions: shown
    * locked, naming the permission, to a reader who may not edit overrides.
@@ -432,6 +453,78 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         }
 
         onCompleteAction();
+      },
+    });
+  }
+
+  /*
+   * End Now (issue #7899), on an override under way only, in the row's
+   * menu beside Edit, which stays the row's button as on every other row:
+   * coming back early is the change people make most, and the Edit dialog
+   * has it too, under Ends. It edits the override's end, so it is gated as
+   * Edit is, and asks first, saying what happens to the time left and who
+   * is paged from then on.
+   */
+  if (editGate.isAllowed || editGate.disabledReason) {
+    actionButtons.push({
+      title: USER_OVERRIDE_END_NOW_ACTION,
+      icon: IconProp.StopCircle,
+      buttonStyleType: ButtonStyleType.OUTLINE,
+      disabled: !editGate.isAllowed,
+      tooltip: editGate.isAllowed ? undefined : editGate.disabledReason,
+      isVisible: (item: OnCallDutyPolicyUserOverride): boolean => {
+        const target: UserOverrideEndNowTarget | null =
+          toUserOverrideEndNowTarget(item);
+
+        return Boolean(target && canEndUserOverrideNow(target));
+      },
+      getDisabledReason: (): string | undefined => {
+        return editLock || undefined;
+      },
+      getConfirmation: (
+        item: OnCallDutyPolicyUserOverride,
+      ): RowActionConfirmation | undefined => {
+        const target: UserOverrideEndNowTarget | null =
+          toUserOverrideEndNowTarget(item);
+
+        if (!target) {
+          return undefined;
+        }
+
+        const question: { title: string; description: string } =
+          getUserOverrideEndNowQuestion({
+            translator: translator,
+            target: target,
+          });
+
+        return {
+          title: question.title,
+          description: question.description,
+          submitButtonText: USER_OVERRIDE_END_NOW_ACTION,
+          submitButtonType: ButtonStyleType.DANGER,
+        };
+      },
+      onClick: async (
+        item: OnCallDutyPolicyUserOverride,
+        onCompleteAction: VoidFunction,
+        onError: ErrorFunction,
+      ): Promise<void> => {
+        const target: UserOverrideEndNowTarget | null =
+          toUserOverrideEndNowTarget(item);
+
+        if (!target) {
+          onCompleteAction();
+          return;
+        }
+
+        try {
+          await endUserOverrideNow(target.id);
+          sayUserOverrideEnded({ translator: translator, target: target });
+          onCompleteAction();
+          readRowsAgain();
+        } catch (err) {
+          onError(err as Error);
+        }
       },
     });
   }
@@ -503,9 +596,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
           onClose={closeDialog}
           onSaved={() => {
             closeDialog();
-            setSaveCount((count: number): number => {
-              return count + 1;
-            });
+            readRowsAgain();
           }}
           onEditOverride={(target: UserOverrideEditTarget) => {
             setDialog({ kind: "edit", target: target });

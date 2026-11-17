@@ -1,5 +1,6 @@
 import type { NavigatorScreenParams } from "@react-navigation/native";
 import type { PushPageActionRequest } from "../oncall/pushPageAction";
+import type { OnCallOverrideItem } from "../api/types";
 
 /*
  * A page's push opens its record with the action tapped under it -
@@ -102,6 +103,14 @@ export interface CreateOnCallOverrideParams {
 }
 
 /*
+ * The override the edit sheet opens on (#7897), as it was read: who is
+ * away, who covers, its policy and its times.
+ */
+export interface EditOnCallOverrideParams {
+  override: OnCallOverrideItem;
+}
+
+/*
  * The on-call stack starts on an OVERVIEW, not on the policy list. The list
  * answers "which escalation rules name me", which is a configuration question;
  * the overview answers "am I on call and until when", which is why anybody
@@ -118,6 +127,12 @@ export type OnCallStackParamList = {
    * prefilled when opened from a shift's "Get cover" (that shift's window).
    */
   CreateOnCallOverride: CreateOnCallOverrideParams | undefined;
+
+  /*
+   * Editing one override (#7897): the override as the list, or the refusal
+   * that offered it, read it - plain strings, so it travels as params.
+   */
+  EditOnCallOverride: EditOnCallOverrideParams;
   MyOnCallPages: undefined;
   OnCallCalendarFeed: undefined;
 };

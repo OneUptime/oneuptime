@@ -86,7 +86,7 @@ Varje person behåller en färg överallt, så att du kan följa personen med en
 
 ## När någon är borta
 
-När någon åker på semester hoppar du över personen tills hen är tillbaka. Fäll ut ett lager på schemats sida **Lager** och klicka på **Hoppa över till…** bredvid personens namn. Det öppnar formuläret för frånvaro med personen under **Vem är borta?**, **Nästa person i rotationen** under **Vem täcker upp?** och **Börjar** från nu: ställ in **Slutar** på när hen är tillbaka och spara.
+När någon åker på semester hoppar du över personen tills hen är tillbaka. Fäll ut ett lager på schemats sida **Lager** och klicka på **Hoppa över till…** bredvid personens namn. Det öppnar formuläret för frånvaro med personen under **Vem är borta?**, **Nästa person i rotationen** under **Vem täcker upp?** och **Börjar** från nu: ställ in **Slutar** på när hen är tillbaka och spara. Har personen redan frånvaro då säger formuläret det bredvid tiderna medan du väljer dem, med **Redigera den åsidosättningen** för att ändra den andra i stället.
 
 Medan personen är borta:
 
@@ -97,7 +97,7 @@ Medan personen är borta:
 
 Väljer du i stället någon under **Vem täcker upp?** får den personen alla hens larm, från varje schema och varje policy, i stället för att rotationen tar hens pass.
 
-Frånvaro som läggs till på det här sättet gäller för alla jourpolicyer, så den kräver behörigheten för åsidosättningar över hela projektet. Är ditt teams roll begränsad till dess egna policyer eller till några etiketter läggs den i stället på de policyer i det här schemat som du får lägga till åsidosättningar på, med en åsidosättning per policy, som listas på varje policys egen sida **Användaråsidosättningar**; är de flera markerar du dem under **Jourpolicyer**. **Hoppa över till…** är bara låst och säger varför där du inte får på någon av dem. Den listas under **Jour** > **Avancerad** > **Användaråsidosättningar**, där du kan ta bort den för att få tillbaka personen tidigare. För att hoppa över någon i bara en policy lägger du till åsidosättningen på den policyns sida **Användaråsidosättningar** och låter **Vem täcker upp?** vara som det är. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
+Frånvaro som läggs till på det här sättet gäller för alla jourpolicyer, så den kräver behörigheten för åsidosättningar över hela projektet. Är ditt teams roll begränsad till dess egna policyer eller till några etiketter läggs den i stället på de policyer i det här schemat som du får lägga till åsidosättningar på, med en åsidosättning per policy, som listas på varje policys egen sida **Användaråsidosättningar**; är de flera markerar du dem under **Jourpolicyer**. **Hoppa över till…** är bara låst och säger varför där du inte får på någon av dem. Den listas under **Jour** > **Avancerad** > **Användaråsidosättningar**, och bland schemats användaråsidosättningar på dess sida **Lager**, där **Avsluta nu** tar tillbaka personen tidigare. För att hoppa över någon i bara en policy lägger du till åsidosättningen på den policyns sida **Användaråsidosättningar** och låter **Vem täcker upp?** vara som det är. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
 
 Via API:et hoppar en användaråsidosättning (`/api/on-call-duty-policy-user-override`) som skapas utan `routeAlertsToUserId` över personen i `overrideUserId` från `startsAt` till `endsAt`.
 
@@ -111,6 +111,8 @@ Jourscheman är resursen `/api/on-call-duty-policy-schedule`; deras lager och pe
 - Ett schema som skapas utan dem har inga lager, som tidigare; Terraforms resurs för scheman skickar dem inte.
 - Ett lager som skapas utan `rotation` lämnar över dagligen, som det alltid har gjort.
 - En ändring av ett schemas lager och personerna i dem, gjord med API:et eller Terraform, meddelas som en ändring: vem som har jour räknas ut när lagren har varit oförändrade i en halv minut, och den som går på eller av jour, eller är näst på tur, får veta det en gång, inte en gång per lager eller person som skrivs. Larm går till den som lagren sätter i jour så snart varje ändring är sparad.
+- För att ändra på en gång vem som tar pass i ett schemas lager, som **Spara ändringar** på sidan **Lager** gör, läser du lagren med `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` och skickar tillbaka dem, ändrade, till `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`. De anger varje lager som schemat behåller, det med högst prioritet först, vart och ett med sina personer i passordning: den som redan är i ett lager med sitt `layerUserId`, den som läggs till med bara `userId`. `deletedLayerIds` anger de lager som ska tas bort.
+- En sparning skrivs helt eller inte alls, och vem som har jour räknas ut en gång, direkt. En som görs efter att någon annan har ändrat lagren avvisas med 409, eftersom dess `basedOnVersion` inte längre är lagrens: läs lagren igen och gör ändringen på det som finns nu. Terraform-resursen `oneuptime_on_call_schedule_layers` sparar ett schemas lager på det här sättet.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
@@ -126,6 +128,29 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
     }
+  }'
+```
+
+```bash
+curl https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/layers \
+  -H "apikey: $ONEUPTIME_API_KEY"
+
+curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/save-layers \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "basedOnVersion": "<the version the read answered>",
+    "layers": [
+      {
+        "layerId": "<layer-id>",
+        "users": [
+          {"layerUserId": "<row-of-user-2>", "userId": "<user-id-2>"},
+          {"layerUserId": "<row-of-user-1>", "userId": "<user-id-1>"},
+          {"userId": "<user-id-4>"}
+        ]
+      }
+    ],
+    "deletedLayerIds": []
   }'
 ```
 

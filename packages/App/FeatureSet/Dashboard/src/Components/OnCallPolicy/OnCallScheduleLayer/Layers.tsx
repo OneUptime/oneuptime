@@ -26,6 +26,9 @@ import {
   saveScheduleLayers,
 } from "./SaveScheduleLayers";
 import SkipLayerUserModal from "./SkipLayerUserModal";
+import UserOverrideFormModal, {
+  UserOverrideEditTarget,
+} from "../UserOverrides/UserOverrideFormModal";
 import {
   GlobalUserOverrideShortcut,
   GlobalUserOverrideShortcutKind,
@@ -252,6 +255,14 @@ const Layers: FunctionComponent<ComponentProps> = (
   } | null>(null);
 
   const [overrideRefreshKey, setOverrideRefreshKey] = React.useState<number>(0);
+
+  /*
+   * The override whose Edit is open in the Skip until... dialog's place:
+   * "Edit that override" on a conflict said under its Ends (issue #7898),
+   * as the user overrides card on this page opens one.
+   */
+  const [overrideToEdit, setOverrideToEdit] =
+    React.useState<UserOverrideEditTarget | null>(null);
 
   /*
    * What "Skip until..." adds for the reader (GlobalUserOverrideLock). The
@@ -1671,6 +1682,30 @@ const Layers: FunctionComponent<ComponentProps> = (
             setOverrideRefreshKey((key: number) => {
               return key + 1;
             });
+          }}
+          onEditOverride={(target: UserOverrideEditTarget) => {
+            setPersonToSkip(null);
+            setOverrideToEdit(target);
+          }}
+        />
+      )}
+
+      {overrideToEdit && (
+        <UserOverrideFormModal
+          key={overrideToEdit.id}
+          overrideToEdit={overrideToEdit}
+          timezone={scheduleTimezone}
+          onClose={() => {
+            setOverrideToEdit(null);
+          }}
+          onSaved={() => {
+            setOverrideToEdit(null);
+            setOverrideRefreshKey((key: number) => {
+              return key + 1;
+            });
+          }}
+          onEditOverride={(target: UserOverrideEditTarget) => {
+            setOverrideToEdit(target);
           }}
         />
       )}

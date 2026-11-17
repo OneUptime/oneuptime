@@ -56544,5 +56544,13 @@
   "Reconnect these Zoom connections to keep starting calls": "Koble til disse Zoom-tilkoblingene på nytt for å fortsette å starte samtaler",
   "Reconnect {{name}} to keep starting calls": "Koble til {{name}} på nytt for å fortsette å starte samtaler",
   "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "Disse Zoom-tilkoblingene ble logget inn før OneUptime kunne lese samtaletranskripsjoner, så de kan ikke lese dem.",
-  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "Denne Zoom-tilkoblingen ble logget inn før OneUptime kunne lese samtaletranskripsjoner, så den kan ikke lese dem."
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "Denne Zoom-tilkoblingen ble logget inn før OneUptime kunne lese samtaletranskripsjoner, så den kan ikke lese dem.",
+  "End Now": "Avslutt nå",
+  "End the override for {{name}} now": "Avslutt overstyringen for {{name}} nå",
+  "End the override for {{name}} now?": "Avslutte overstyringen for {{name}} nå?",
+  "The override for {{name}} has ended.": "Overstyringen for {{name}} er avsluttet.",
+  "This override ends within the minute, so there is nothing left to end.": "Denne overstyringen slutter innen minuttet, så det er ingenting igjen å avslutte.",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Denne overstyringen har ikke startet ennå, så det er ingenting å avslutte. Slett den for å avlyse den.",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "{{away}} hoppes ikke lenger over fra nå i stedet for {{until}}. Deretter er vaktene i rotasjonen deres igjen.",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} dekker ikke lenger for {{away}} fra nå i stedet for {{until}}. Deretter går varsler til {{away}} igjen."
 }

@@ -549,6 +549,98 @@ describe("Skip until... on the Layers page", () => {
     expect(createOrUpdateMock).not.toHaveBeenCalled();
     expect(screen.queryByTestId("layer-user-away-now")).toBeNull();
   });
+
+  /*
+   * Issue #7898: a skip that overlaps another override of the person is
+   * said under Ends as the times are picked, and "Edit that override"
+   * opens that one's Edit in the Skip dialog's place, as the schedule's
+   * user overrides card on the same page opens one.
+   */
+  test("an overlap is said under Ends, and Edit that override opens that one's Edit in the dialog's place", async () => {
+    const other: OnCallDutyPolicyUserOverride =
+      new OnCallDutyPolicyUserOverride();
+    other._id = "0d600000-0000-4000-8000-0000000000f9";
+    other.projectId = new ObjectID(PROJECT_ID);
+    other.overrideUserId = new ObjectID(BOB);
+    other.overrideUser = user(BOB);
+    other.routeAlertsToUserId = new ObjectID(CAROL);
+    other.routeAlertsToUser = user(CAROL);
+    other.startsAt = OneUptimeDate.addRemoveDays(
+      OneUptimeDate.getCurrentDate(),
+      1,
+    );
+    other.endsAt = OneUptimeDate.addRemoveDays(
+      OneUptimeDate.getCurrentDate(),
+      2,
+    );
+    // To the minute, as its Edit holds it.
+    (other.startsAt as Date).setUTCSeconds(0, 0);
+    (other.endsAt as Date).setUTCSeconds(0, 0);
+    other.createdAt = OneUptimeDate.addRemoveDays(
+      OneUptimeDate.getCurrentDate(),
+      -1,
+    );
+    overrides = [other];
+
+    getItemMock.mockImplementation(async (params: any): Promise<any> => {
+      if (params.modelType === OnCallDutyPolicyUserOverride) {
+        return other;
+      }
+
+      if (params.modelType === OnCallDutyPolicySchedule) {
+        const schedule: OnCallDutyPolicySchedule =
+          new OnCallDutyPolicySchedule();
+        schedule._id = SCHEDULE_ID;
+        schedule.timezone = Timezone.UTC;
+        return schedule;
+      }
+
+      if (params.modelType === OnCallDutyPolicyScheduleLayer) {
+        return makeLayer();
+      }
+
+      return null;
+    });
+
+    await renderLayers();
+
+    const modal: HTMLElement = await openSkip(BOB);
+
+    fireEvent.change(timeInput(modal, "Ends"), {
+      target: {
+        value: OneUptimeDate.toDateTimeLocalString(
+          OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), 3),
+        ),
+      },
+    });
+
+    const conflict: HTMLElement = await within(modal).findByTestId(
+      "user-override-overlap-conflict",
+      {},
+      { timeout: 3000 },
+    );
+
+    fireEvent.click(
+      within(conflict).getByRole("button", { name: "Edit that override" }),
+    );
+
+    const editing: HTMLElement = await screen.findByRole("heading", {
+      name: "Edit User Override",
+    });
+
+    expect(screen.getAllByTestId("modal")).toHaveLength(1);
+
+    const editModal: HTMLElement = editing.closest(
+      '[data-testid="modal"]',
+    ) as HTMLElement;
+
+    await waitFor(() => {
+      expect(timeInput(editModal, "Ends").value).toBe(
+        OneUptimeDate.toDateTimeLocalString(other.endsAt as Date).slice(0, 16),
+      );
+    });
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
 });
 
 /*

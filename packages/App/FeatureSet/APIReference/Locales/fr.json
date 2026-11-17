@@ -300,6 +300,26 @@
       "masterAdminOnlyTitle": "API réservée à l'administrateur principal",
       "masterAdminOnlyBody": "Cette API n'est accessible qu'à l'aide d'un jeton API principal. Vous pouvez en créer un dans le tableau de bord d'administration. Veuillez ajouter le jeton à l'en-tête <code>ApiKey</code> pour effectuer la requête."
     },
+    "modelEndpoints": {
+      "scheduleLayersReadHeading": "Lire les couches",
+      "scheduleLayersReadIntro": "Ce point de terminaison renvoie les couches du planning et les personnes qui les composent, telles qu'elles sont enregistrées : chaque couche que le planning garde, la plus prioritaire en premier, chacune avec ses personnes dans l'ordre de leurs tours, et la version où elles en sont, sous basedOnVersion. C'est un enregistrement qui ne change rien : modifiez-le et envoyez-le à Enregistrer les couches.",
+      "scheduleLayersReadRequestTitle": "Requête de lecture des couches",
+      "scheduleIdDescription": "ID du planning d'astreinte",
+      "scheduleLayersSaveHeading": "Enregistrer les couches",
+      "scheduleLayersSaveIntro": "Ce point de terminaison enregistre d'un coup qui prend son tour dans les couches du planning, et la priorité des couches, en une seule transaction : tout est enregistré, ou rien. Qui est d'astreinte est ensuite calculé une seule fois, et chaque personne concernée par le changement en est informée une seule fois. Il est soumis aux mêmes permissions et vérifications que les points de terminaison des couches et de leurs personnes. Les réglages propres à une couche, comme son nom et sa rotation, n'en font pas partie.",
+      "scheduleLayersSaveRequestTitle": "Requête d'enregistrement des couches",
+      "basedOnVersionDescription": "La version des couches sur laquelle vos modifications ont été faites, telle que Lire les couches la renvoie.",
+      "layersDescription": "Chaque couche que le planning garde, la plus prioritaire en premier, chacune sous la forme { layerId, users }. users sont les personnes qui y prennent leur tour, dans l'ordre de leurs tours : une personne déjà dans la couche sous la forme { layerUserId, userId }, une personne ajoutée sous la forme { userId }. Une personne absente de sa couche en est retirée.",
+      "deletedLayerIdsDescription": "Les couches à supprimer, avec les personnes qui les composent. Un planning garde au moins une couche.",
+      "refusalsHeading": "Refus",
+      "scheduleLayersConflict": "409 Conflict : les couches ont changé après la lecture de la version envoyée, donc rien n'est enregistré. Lisez à nouveau les couches et appliquez votre modification à ce qui s'y trouve maintenant.",
+      "scheduleLayersBadRequest": "400 Bad Request : l'enregistrement ne nomme pas chaque couche du planning une fois, dans layers ou deletedLayerIds, nomme une couche ou la ligne d'une personne qui n'appartient pas au planning, ou supprime toutes les couches.",
+      "userOverrideEndNowHeading": "Terminer maintenant",
+      "userOverrideEndNowIntro": "Ce point de terminaison termine un remplacement en cours, selon l'horloge du serveur : sa fin devient maintenant, et les alertes reviennent dès lors à la personne absente. Il demande la même permission qu'une mise à jour, et renvoie le nouveau endsAt du remplacement.",
+      "userOverrideEndNowRequestTitle": "Requête Terminer maintenant",
+      "userOverrideIdDescription": "ID du remplacement d'utilisateur",
+      "userOverrideEndNowRefused": "400 Bad Request : le remplacement n'a pas encore commencé (supprimez-le plutôt), est déjà terminé, ou se termine de toute façon dans la minute."
+    },
     "dataType": {
       "enumBadge": "Énumération",
       "dataTypeBadge": "Type de données",

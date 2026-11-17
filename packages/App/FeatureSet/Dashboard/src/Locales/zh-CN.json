@@ -56544,5 +56544,13 @@
   "Reconnect these Zoom connections to keep starting calls": "重新连接这些 Zoom 连接以继续开始通话",
   "Reconnect {{name}} to keep starting calls": "重新连接 {{name}} 以继续开始通话",
   "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "这些 Zoom 连接是在 OneUptime 能够读取通话转录之前登录的，因此无法读取转录。",
-  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "此 Zoom 连接是在 OneUptime 能够读取通话转录之前登录的，因此无法读取转录。"
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "此 Zoom 连接是在 OneUptime 能够读取通话转录之前登录的，因此无法读取转录。",
+  "End Now": "立即结束",
+  "End the override for {{name}} now": "立即结束 {{name}} 的覆盖",
+  "End the override for {{name}} now?": "立即结束 {{name}} 的覆盖？",
+  "The override for {{name}} has ended.": "{{name}} 的覆盖已结束。",
+  "This override ends within the minute, so there is nothing left to end.": "此覆盖将在一分钟内结束，因此已没有可结束的内容。",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "此覆盖尚未开始，因此没有可结束的内容。要取消它，请将其删除。",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "跳过现在就结束，而不是在 {{until}}。之后，{{away}} 会重新在轮换中值自己的班。",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} 现在就停止为 {{away}} 代班，而不是在 {{until}}。之后，警报会重新发给 {{away}}。"
 }

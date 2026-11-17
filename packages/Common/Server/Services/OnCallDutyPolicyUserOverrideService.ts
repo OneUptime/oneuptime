@@ -52,6 +52,7 @@ import UserOverrideOverlap, {
   UserOverrideTimes,
 } from "../../Types/OnCallDutyPolicy/UserOverrideOverlap";
 import UserOverrideEdit, {
+  USER_OVERRIDE_ENDED_REFUSAL,
   UserOverrideTimesChange,
 } from "../../Types/OnCallDutyPolicy/UserOverrideEdit";
 import { fillTemplate } from "../../Types/Translator";
@@ -334,6 +335,68 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
     }
 
     throw new NotAuthorizedException(GLOBAL_USER_OVERRIDE_DELETE_REFUSAL);
+  }
+
+  /*
+   * END NOW (issue #7899): an override under way, ended at the server's own
+   * now - the start of this minute, or now itself for one that started in
+   * it (UserOverrideEdit.getEndNow) - so a caller whose clock is a minute
+   * out still ends it. Read as the caller reads it, so one they may not read
+   * is not found, then written as an edit of its end by them: the same
+   * permission, the same rules, the same refusals, and the policy's feed and
+   * the schedules told as for any edit of an override. One that has ended,
+   * has not started or ends within this minute is refused, saying why
+   * (UserOverrideEdit.getEndNowRefusal). Returns when it ends now.
+   */
+  @CaptureSpan()
+  public async endNow(data: {
+    id: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Date> {
+    const override: OnCallDutyPolicyUserOverride | null =
+      await this.findOneById({
+        id: data.id,
+        select: {
+          _id: true,
+          startsAt: true,
+          endsAt: true,
+        },
+        props: data.props,
+      });
+
+    if (!override || !override.startsAt || !override.endsAt) {
+      throw new NotFoundException(
+        "This user override was not found. It may have been deleted: read the overrides again.",
+      );
+    }
+
+    const saved: { startsAt: Date; endsAt: Date } = {
+      startsAt: OneUptimeDate.fromString(override.startsAt),
+      endsAt: OneUptimeDate.fromString(override.endsAt),
+    };
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    const refusal: string | null = UserOverrideEdit.getEndNowRefusal(
+      saved,
+      now,
+    );
+
+    const endsAt: Date | null = UserOverrideEdit.getEndNow(saved, now);
+
+    if (refusal || !endsAt) {
+      throw new BadDataException(refusal || USER_OVERRIDE_ENDED_REFUSAL);
+    }
+
+    await this.updateOneById({
+      id: data.id,
+      data: {
+        endsAt: endsAt,
+      } as never,
+      props: data.props,
+    });
+
+    return endsAt;
   }
 
   /*
@@ -737,7 +800,10 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
    * read again under the lock, with its start and end as the edit leaves
    * them, and written only when they come in order and overlap nothing.
    * An edit that leaves the times as they are cannot make an overlap, and
-   * takes no lock.
+   * takes no lock. Nor can one that only shortens an override - ends it
+   * now, or starts it later - so an overlap saved before the rule never
+   * keeps it from being ended early (UserOverrideOverlap.addsTime); one
+   * that adds time is held to all of its new times, as an add is.
    */
   protected override async getUpdateLimit(
     updateBy: UpdateBy<OnCallDutyPolicyUserOverride>,
@@ -781,6 +847,19 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
           throw new BadDataException(
             "An override has to end after it starts. Pick an end time later than its start time.",
           );
+        }
+
+        // Only shortened: it cannot make an overlap.
+        if (
+          !UserOverrideOverlap.addsTime(
+            {
+              startsAt: OneUptimeDate.fromString(row.startsAt!),
+              endsAt: OneUptimeDate.fromString(row.endsAt!),
+            },
+            candidate,
+          )
+        ) {
+          return;
         }
 
         await this.refuseOverlap({
