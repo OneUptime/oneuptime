@@ -75,15 +75,50 @@ jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/Probe", () => {
 jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
   return {
     __esModule: true,
-    default: (props: { cardProps?: { title?: string } }): ReactElement => {
+    default: (props: {
+      cardProps?: { title?: string };
+      onSaveSuccess?: (item: unknown) => Promise<void>;
+    }): ReactElement => {
       return (
         <div data-testid="criteria-card">
           <h2>{props.cardProps?.title}</h2>
+          {/* What saving the criteria in its edit form ends with. */}
+          <button
+            type="button"
+            data-testid="criteria-saved"
+            onClick={() => {
+              void props.onSaveSuccess?.({});
+            }}
+          >
+            Saved
+          </button>
         </div>
       );
     },
   };
 });
+
+// Who the criteria tell (#7055): read for the monitor, under its criteria.
+const getWhoIsToldMock: MockFunction = getJestMockFunction();
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi",
+    ) as Record<string, unknown>;
+
+    return {
+      __esModule: true,
+      ...actual,
+      default: {
+        getForMonitor: (...args: Array<unknown>): unknown => {
+          return getWhoIsToldMock(...args);
+        },
+      },
+    };
+  },
+);
 
 import MonitorCriteriaPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Criteria";
 import MonitorSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/SideMenu";
@@ -93,7 +128,12 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Route from "../../../Types/API/Route";
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import {
+  WhoIsToldOwnersSource,
+  WhoIsToldResult,
+} from "../../../Types/Monitor/WhoIsTold";
 import ObjectID from "../../../Types/ObjectID";
+import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import Navigation from "../../../UI/Utils/Navigation";
 import { goTo, PROJECT_ID, renderMenu, titlesInMenu } from "./SideMenuHarness";
 
@@ -109,8 +149,53 @@ const PAGE_PROPS: PageComponentProps = {
 
 let monitorType: MonitorType = MonitorType.Manual;
 
+// An incident that emails the Project Owners and pages nobody.
+const WHO_IS_TOLD: WhoIsToldResult = {
+  monitorId: MONITOR_ID,
+  monitorName: "Checkout API",
+  checkedAt: new Date().toISOString(),
+  criteria: [
+    {
+      id: "offline",
+      name: "Offline",
+      statusName: "Offline",
+      events: [
+        {
+          kind: OnCallTestPageRecordKind.Incident,
+          title: "Checkout API is offline",
+          severityName: "Critical",
+          owners: {
+            source: WhoIsToldOwnersSource.ProjectOwners,
+            userNames: ["Owner One"],
+            teamNames: [],
+          },
+          ownerRules: [],
+          rules: [],
+          policies: [],
+          statusPages: [],
+        },
+      ],
+    },
+  ],
+  channels: {
+    isBillingEnabled: false,
+    isSmsOn: true,
+    isCallOn: true,
+    isWhatsAppOn: true,
+    isTelegramOn: true,
+    hasOwnTwilioForSms: false,
+    hasOwnTwilioForCalls: false,
+    serverCanSendEmail: true,
+    serverCanSendSms: true,
+    serverCanCall: true,
+  },
+  breaks: [],
+};
+
 beforeEach(() => {
   monitorType = MonitorType.Manual;
+  getWhoIsToldMock.mockReset();
+  getWhoIsToldMock.mockResolvedValue(WHO_IS_TOLD);
   getItemMock.mockReset();
   getItemMock.mockImplementation(async (): Promise<unknown> => {
     const monitor: Monitor = new Monitor();
@@ -184,6 +269,58 @@ describe("a manual monitor's Criteria address", () => {
 
     expect(screen.getByTestId("criteria-card")).toHaveTextContent("Criteria");
     expect(screen.queryByRole("button", { name: "Go to Overview" })).toBeNull();
+  });
+});
+
+/*
+ * WHO THE CRITERIA TELL, UNDER THEM (#7055): the overview's When this goes
+ * down, for this monitor, read again once its criteria are saved. A manual
+ * monitor opens nothing, and has no card.
+ */
+describe("When this goes down on the Criteria page", () => {
+  test("is drawn under the criteria card, for this monitor", async () => {
+    monitorType = MonitorType.Website;
+
+    await renderPage();
+
+    const card: HTMLElement = await screen.findByTestId(
+      "monitor-who-is-told-card",
+    );
+
+    expect(await screen.findByTestId("who-is-told-summary")).toHaveTextContent(
+      "OneUptime marks it Offline and opens an incident (Critical). It emails the Project Owners (Owner One). Nobody is paged.",
+    );
+    expect(
+      screen.getByTestId("criteria-card").compareDocumentPosition(card) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    const asked: { monitorId: ObjectID; refresh: boolean } = getWhoIsToldMock
+      .mock.calls[0]![0] as { monitorId: ObjectID; refresh: boolean };
+
+    expect(asked.monitorId.toString()).toBe(MONITOR_ID);
+    expect(asked.refresh).toBe(false);
+  });
+
+  test("is read again once the criteria are saved", async () => {
+    monitorType = MonitorType.Website;
+
+    await renderPage();
+    await screen.findByTestId("who-is-told-summary");
+    expect(getWhoIsToldMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("criteria-saved"));
+    });
+
+    expect(getWhoIsToldMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("a manual monitor has none: it opens nothing", async () => {
+    await renderPage();
+
+    expect(screen.queryByTestId("monitor-who-is-told-card")).toBeNull();
+    expect(getWhoIsToldMock).not.toHaveBeenCalled();
   });
 });
 
