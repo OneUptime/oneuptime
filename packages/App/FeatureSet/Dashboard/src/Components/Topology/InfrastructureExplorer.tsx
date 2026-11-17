@@ -1196,7 +1196,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
             <span className="min-w-0">
               <button
                 type="button"
-                className="block min-w-[10rem] max-w-md break-words text-left text-sm font-medium text-gray-900 hover:text-indigo-600"
+                className="block min-w-[10rem] max-w-md break-words rounded text-left text-sm font-medium text-gray-900 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 aria-label={
                   container
                     ? translator.translateTemplate("Open {{name}}", {
@@ -1702,7 +1702,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                         >
                           <button
                             type="button"
-                            className="block min-w-[10rem] max-w-md break-words text-left text-sm font-medium text-gray-900 hover:text-indigo-600"
+                            className="block min-w-[10rem] max-w-md break-words rounded text-left text-sm font-medium text-gray-900 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                             aria-label={translator.translateTemplate(
                               "View details for {{name}}",
                               { name: name },

@@ -360,12 +360,8 @@ const HuntLibraryPage: FunctionComponent<PageComponentProps> = (
           openClassName={HUNT_LIBRARY_OPEN_SEARCH_CLASS_NAME}
           dataTestId={`${HUNTS_TEST_IDS.librarySearch}-slot`}
         >
-          <div
+          <label
             className={`flex w-full items-center gap-2 rounded-md border border-gray-300 bg-white px-3 shadow-sm ${TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME}`}
-            onClick={() => {
-              searchInputRef.current?.focus();
-            }}
-            role="presentation"
           >
             <Icon
               icon={IconProp.Search}
@@ -415,7 +411,7 @@ const HuntLibraryPage: FunctionComponent<PageComponentProps> = (
             ) : (
               <></>
             )}
-          </div>
+          </label>
         </TableHeaderSearchSlot>
       }
     />
