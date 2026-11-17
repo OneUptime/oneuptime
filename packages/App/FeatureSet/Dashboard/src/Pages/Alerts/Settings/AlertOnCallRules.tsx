@@ -24,6 +24,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import {
+  getAlertOwnerConditionField,
   getOnCallRuleActionFields,
   getOnCallRuleFormSteps,
 } from "../../../Utils/Form/EventRuleForm";
@@ -213,6 +214,8 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
           required: false,
           placeholder: "Select Monitor Labels",
         },
+        // Who owns the alert (#9353): people and teams.
+        getAlertOwnerConditionField<AlertOnCallRule>(),
         {
           field: { alertTitlePattern: true },
           title: "Alert Title",

@@ -56621,5 +56621,11 @@
   "Dead Letters": "الرسائل الميتة",
   "Message Age": "عمر الرسائل",
   "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "المراقبات التي يوصي بها OneUptime لقائمة الانتظار هذه، بناءً على مقاييس الوسيط التي تبلّغ عنها. اختر ما تريده منها وأنشئها في خطوة واحدة.",
-  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "لم يصل لقائمة الانتظار هذه خلال آخر 7 أيام أي مقياس وسيط تقرأه مراقبة موصى بها. تظهر التوصيات بمجرد وصول مقاييس وسيطها."
+  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "لم يصل لقائمة الانتظار هذه خلال آخر 7 أيام أي مقياس وسيط تقرأه مراقبة موصى بها. تظهر التوصيات بمجرد وصول مقاييس وسيطها.",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}}: أي من الأشخاص أو الفرق المحددة (العدد: {{count}})",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}}: الشخص أو الفريق المحدد (العدد: {{count}})",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}}: لا أحد من الأشخاص أو الفرق المحددة (العدد: {{count}})",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}}: ليس الشخص أو الفريق المحدد (العدد: {{count}})",
+  "Is any of": "أي من",
+  "Is none of": "لا شيء من"
 }

@@ -56621,5 +56621,11 @@
   "Dead Letters": "Mensajes fallidos",
   "Message Age": "Antigüedad de mensajes",
   "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "Monitores que OneUptime recomienda para esta cola, a partir de las métricas de broker que informa. Elige los que quieras y créalos en un solo paso.",
-  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "En los últimos 7 días no ha llegado para esta cola ninguna métrica de broker que lea un monitor recomendado. Las recomendaciones aparecerán cuando lleguen las métricas de su broker."
+  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "En los últimos 7 días no ha llegado para esta cola ninguna métrica de broker que lea un monitor recomendado. Las recomendaciones aparecerán cuando lleguen las métricas de su broker.",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} es cualquiera de las {{count}} personas o equipos seleccionados",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} es {{count}} persona o equipo seleccionado",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} no es ninguno de las {{count}} personas o equipos seleccionados",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} no es {{count}} persona o equipo seleccionado",
+  "Is any of": "Es cualquiera de",
+  "Is none of": "No es ninguno de"
 }

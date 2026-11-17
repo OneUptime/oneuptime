@@ -20,6 +20,7 @@ import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/E
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import AlertOnCallRulesOnOwnerChange from "../Utils/Alert/AlertOnCallRulesOnOwnerChange";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -137,7 +138,42 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    const changedAlerts: Map<string, Model> = new Map();
+
+    for (const item of itemsToDelete) {
+      if (item.alertId && item.projectId) {
+        changedAlerts.set(item.alertId.toString(), item);
+      }
+    }
+
+    for (const item of changedAlerts.values()) {
+      this.runOnCallRulesAgain({
+        alertId: item.alertId,
+        projectId: item.projectId,
+      });
+    }
+
     return onDelete;
+  }
+
+  /*
+   * An owner added or taken off may make the alert match an on-call rule
+   * with an Alert Owner condition: such rules run again, in the background
+   * - the change is not held up by them, and never fails for them
+   * (AlertOnCallRulesOnOwnerChange).
+   */
+  private runOnCallRulesAgain(data: {
+    alertId: ObjectID | undefined;
+    projectId: ObjectID | undefined;
+  }): void {
+    AlertOnCallRulesOnOwnerChange.onOwnersChanged({
+      alertId: data.alertId,
+      projectId: data.projectId,
+    }).catch((error: Error) => {
+      logger.error(
+        `Running alert on-call rules again after an owner change failed: ${error}`,
+      );
+    });
   }
 
   @CaptureSpan()
@@ -217,6 +253,11 @@ export class Service extends ProjectReferencesService<Model> {
       },
     ).catch((error: Error) => {
       logger.error(error);
+    });
+
+    this.runOnCallRulesAgain({
+      alertId: alertId,
+      projectId: projectId,
     });
 
     return createdItem;

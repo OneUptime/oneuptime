@@ -14,6 +14,13 @@ import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
+import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
+import WorkspaceRecordOwners from "../Utils/Workspace/WorkspaceRecordOwners";
+import { matchesRuleCriteriaOwnerFilter } from "../../Utils/Rules/RuleCriteriaOwnerMatch";
+import RuleCriteria, {
+  RuleCriteriaFilter,
+} from "../../Types/Rules/RuleCriteria";
+import { getRuleCriteriaOwnerFieldsForModel } from "../../Types/Rules/RuleCriteriaFieldRegistry";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -43,6 +50,43 @@ import AiFirstResponderEligibility, {
   AiHoldDecision,
 } from "../Utils/AI/FirstResponder/AiFirstResponderEligibility";
 
+// Why the rules of an alert that changed run again (applyRulesToAlert).
+export interface AlertOnCallRuleChange {
+  // What changed, as the feed says it after "The alert now matches it:".
+  reason: string;
+  // Only the rules with an Alert Owner condition: its owners changed.
+  onlyOwnerRules?: boolean | undefined;
+}
+
+/*
+ * The ids of the people and teams that own an alert, as an Alert Owner
+ * condition matches them (WorkspaceRecordOwners, as a workspace rule's owner
+ * condition reads them): read the first time a rule asks, and kept for the
+ * other rules matched against the alert at the same time. An alert not yet
+ * saved - "When this goes down" asks about one a monitor would open - has
+ * no owners.
+ */
+export class AlertOwnerIdsReader {
+  private ownerIds: Promise<Array<string>> | null = null;
+
+  public constructor(private readonly alert: Alert) {}
+
+  public read(): Promise<Array<string>> {
+    if (!this.ownerIds) {
+      const alertId: ObjectID | undefined = this.alert.id || undefined;
+
+      this.ownerIds = alertId
+        ? WorkspaceRecordOwners.getOwnerIds({
+            recordKey: "alertId",
+            recordId: alertId,
+          })
+        : Promise.resolve([]);
+    }
+
+    return this.ownerIds;
+  }
+}
+
 class AlertOnCallRuleEngineServiceClass {
   /**
    * Evaluates AlertOnCallRule rows for the given alert and merges any
@@ -54,10 +98,20 @@ class AlertOnCallRuleEngineServiceClass {
    * rule that pages only during working hours, matched outside them, holds
    * its policies until they begin (OnCallRulePagingHold). The fan-out passes
    * each to executePolicy. A policy with no hold pages right away.
+   *
+   * `change` is for an alert that changed rather than was created: its
+   * owners did (AlertOnCallRulesOnOwnerChange). Only the rules with an
+   * Alert Owner condition are matched then (onlyOwnerRules) - nothing else
+   * the others match on changed - and the feed entry says the rule now
+   * matches the alert, and why. OneUptime AI responds first to new alerts
+   * only, so a rule set to After OneUptime AI pages right away.
    */
   @CaptureSpan()
   @RuleEvaluation()
-  public async applyRulesToAlert(alert: Alert): Promise<OnCallRulesPaging> {
+  public async applyRulesToAlert(
+    alert: Alert,
+    change?: AlertOnCallRuleChange | undefined,
+  ): Promise<OnCallRulesPaging> {
     const noHolds: OnCallRulesPaging = getNoOnCallRulesPaging();
 
     if (!alert.id || !alert.projectId) {
@@ -70,7 +124,11 @@ class AlertOnCallRuleEngineServiceClass {
        * this goes down" (WhoIsToldService) reads too, so what it shows a
        * monitor's alerts would page is what they page.
        */
-      const rules: Array<AlertOnCallRule> = await this.getMatchingRules(alert);
+      const rules: Array<AlertOnCallRule> = await this.getMatchingRules(
+        alert,
+        undefined,
+        { onlyOwnerRules: Boolean(change?.onlyOwnerRules) },
+      );
 
       if (rules.length === 0) {
         return noHolds;
@@ -94,7 +152,9 @@ class AlertOnCallRuleEngineServiceClass {
             rule.whenToPage === OnCallRuleWhenToPage.AfterOneUptimeAI &&
             !aiHold
           ) {
-            aiHold = await AiFirstResponderEligibility.decideForAlert(alert);
+            aiHold = change
+              ? { canHold: false }
+              : await AiFirstResponderEligibility.decideForAlert(alert);
           }
 
           pagingHolds.addRule(
@@ -159,12 +219,23 @@ class AlertOnCallRuleEngineServiceClass {
        * The responder policies are added to the alert; the observer
        * policies are paged beside it (OnCallRulePageAs).
        */
-      const { toAddPolicyIds: toAddIds, observerPolicyIds } =
-        splitOnCallRulePolicies({
-          matchedPolicyIds: Array.from(matchedPolicies.keys()),
-          existingPolicyIds: existingIds,
-          roles: pageRoles,
-        });
+      const { toAddPolicyIds, observerPolicyIds } = splitOnCallRulePolicies({
+        matchedPolicyIds: Array.from(matchedPolicies.keys()),
+        existingPolicyIds: existingIds,
+        roles: pageRoles,
+      });
+
+      /*
+       * Persist the new join rows so the alert detail UI shows the
+       * rule-attached policies alongside any manually-attached ones. A
+       * policy attached already by now - by the rules of an owner change
+       * that ran at the same moment (AlertOnCallRulesOnOwnerChange), or by
+       * the alert's creation - is left out: they page it.
+       */
+      const toAddIds: Array<string> = await this.attachPolicies({
+        alert: alert,
+        policyIds: toAddPolicyIds,
+      });
 
       for (const policyId of toAddIds) {
         merged.push(matchedPolicies.get(policyId)!);
@@ -175,26 +246,6 @@ class AlertOnCallRuleEngineServiceClass {
        * set in the next .then() step of onCreateSuccess.
        */
       alert.onCallDutyPolicies = merged;
-
-      /*
-       * Persist the new join rows so the alert detail UI shows the
-       * rule-attached policies alongside any manually-attached ones.
-       */
-      if (toAddIds.length > 0) {
-        try {
-          await AlertService.getRepository()
-            .createQueryBuilder()
-            .relation(Alert, "onCallDutyPolicies")
-            .of(alert.id.toString())
-            .add(toAddIds);
-        } catch (err) {
-          logger.warn(
-            `AlertOnCallRuleEngine: failed to persist join rows for alert ${alert.id}: ${
-              err instanceof Error ? err.message : String(err)
-            }`,
-          );
-        }
-      }
 
       logger.debug(
         `AlertOnCallRuleEngine merged ${matchedPolicies.size} matched policies into alert ${alert.id}`,
@@ -207,6 +258,7 @@ class AlertOnCallRuleEngineServiceClass {
           matchedRules,
           addedPolicyIds: toAddIds,
           observerPolicyIds: observerPolicyIds,
+          ruleChange: change?.reason,
         });
       }
 
@@ -263,6 +315,9 @@ class AlertOnCallRuleEngineServiceClass {
       return pagingNow;
     }
 
+    // Read once, by the first rule that asks who owns the alert.
+    const owners: AlertOwnerIdsReader = new AlertOwnerIdsReader(alert);
+
     for (const rule of await this.findEnabledRules(alert.projectId)) {
       if (
         !rule.onCallDutyPolicies ||
@@ -272,7 +327,7 @@ class AlertOnCallRuleEngineServiceClass {
         continue;
       }
 
-      if (!(await this.doesAlertMatchRule(alert, rule))) {
+      if (!(await this.doesAlertMatchRule(alert, rule, undefined, owners))) {
         continue;
       }
 
@@ -317,6 +372,10 @@ class AlertOnCallRuleEngineServiceClass {
           monitorCache: MonitorRuleCriteriaCache;
         }
       | undefined,
+    options?: {
+      // Only the rules with an Alert Owner condition (applyRulesToAlert's change).
+      onlyOwnerRules?: boolean | undefined;
+    },
   ): Promise<Array<AlertOnCallRule>> {
     if (!alert.projectId) {
       return [];
@@ -328,17 +387,72 @@ class AlertOnCallRuleEngineServiceClass {
       ? preloaded.rules
       : await this.findEnabledRules(alert.projectId);
 
+    // Read once, by the first rule that asks who owns the alert.
+    const owners: AlertOwnerIdsReader = new AlertOwnerIdsReader(alert);
+
     for (const rule of rules) {
       if (!rule.onCallDutyPolicies || rule.onCallDutyPolicies.length === 0) {
         continue;
       }
 
-      if (await this.doesAlertMatchRule(alert, rule, preloaded?.monitorCache)) {
+      if (options?.onlyOwnerRules && !this.hasOwnerCondition(rule)) {
+        continue;
+      }
+
+      if (
+        await this.doesAlertMatchRule(
+          alert,
+          rule,
+          preloaded?.monitorCache,
+          owners,
+        )
+      ) {
         matching.push(rule);
       }
     }
 
     return matching;
+  }
+
+  /*
+   * Whether any of the project's enabled rules that page a policy asks who
+   * owns the alert: when none does, an owner change has nothing to run
+   * (AlertOnCallRulesOnOwnerChange). The rules are cached (RuleSetCache).
+   */
+  public async hasRulesWithOwnerCondition(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    return (await this.findEnabledRules(projectId)).some(
+      (rule: AlertOnCallRule): boolean => {
+        return (
+          Boolean(rule.onCallDutyPolicies?.length) &&
+          this.hasOwnerCondition(rule)
+        );
+      },
+    );
+  }
+
+  /*
+   * Whether a rule asks who owns the alert: an Alert Owner condition
+   * (RULE_CRITERIA_OWNER_FIELDS_BY_MODEL). The only rules an owner change
+   * can make match, or stop matching.
+   */
+  public hasOwnerCondition(rule: AlertOnCallRule): boolean {
+    const criteria: RuleCriteria | null | undefined = rule.criteria as
+      | RuleCriteria
+      | null
+      | undefined;
+
+    if (!criteria || !Array.isArray(criteria.filters)) {
+      return false;
+    }
+
+    const ownerFields: ReadonlyArray<string> =
+      getRuleCriteriaOwnerFieldsForModel("AlertOnCallRule");
+
+    return criteria.filters.some((filter: RuleCriteriaFilter): boolean => {
+      return ownerFields.includes(filter?.field);
+    });
   }
 
   /*
@@ -400,6 +514,8 @@ class AlertOnCallRuleEngineServiceClass {
     addedPolicyIds: Array<string>;
     // The policies paged as observers (OnCallRulePageAs), not attached.
     observerPolicyIds: Array<string>;
+    // Why the rules ran again on a change, when they did.
+    ruleChange?: string | undefined;
   }): Promise<void> {
     const { alert, matchedRules, addedPolicyIds, observerPolicyIds } = data;
     if (
@@ -466,7 +582,13 @@ class AlertOnCallRuleEngineServiceClass {
           ruleKind: "Alert On-Call Rule",
           ruleNames: ruleNames,
         },
-      )}\n\n${RuleFeedMarkdown.onCallRulePolicies({
+      )}${
+        data.ruleChange
+          ? mdText`\n\nThe alert now matches ${
+              ruleNames.length > 1 ? "them" : "it"
+            }: ${data.ruleChange}.`
+          : ""
+      }\n\n${RuleFeedMarkdown.onCallRulePolicies({
         recordNoun: "alert",
         attachedPolicyNames: namesOf(addedPolicyIds),
         observerPolicyNames: namesOf(observerPolicyIds),
@@ -498,9 +620,26 @@ class AlertOnCallRuleEngineServiceClass {
     rule: AlertOnCallRule,
     // A cache shared by many matchings (getMatchingRules' `preloaded`).
     sharedMonitorCache?: MonitorRuleCriteriaCache | undefined,
+    // Who owns the alert, read once for every rule matched against it.
+    owners?: AlertOwnerIdsReader | undefined,
   ): Promise<boolean> {
+    const ownerIds: AlertOwnerIdsReader =
+      owners || new AlertOwnerIdsReader(alert);
+
     return await RuleCriteriaMatcher.matchesWithLegacy({
       rule,
+      /*
+       * Alert Owner (#9353): one of the people and teams picked is among the
+       * alert's owners, or none is - read when a rule asks, not before.
+       */
+      recordFields: {
+        alertOwners: async (filter: RuleCriteriaFilter): Promise<boolean> => {
+          return matchesRuleCriteriaOwnerFilter({
+            filter: filter,
+            ownerIds: await ownerIds.read(),
+          });
+        },
+      },
       legacyFields: [
         "monitors",
         "alertSeverities",
@@ -668,6 +807,47 @@ class AlertOnCallRuleEngineServiceClass {
     }
 
     return true;
+  }
+
+  /*
+   * Attaches each policy to the alert, one at a time, and hands back the
+   * ones the alert is to page: a policy attached to it already - attached
+   * by the rules of an owner change that ran at the same moment, or by the
+   * alert's creation (AlertOnCallRulesOnOwnerChange) - is the other's to
+   * page, so it is left out. Any other failure to attach a policy still
+   * pages it, as it always has: a page matters more than the alert's list.
+   */
+  private async attachPolicies(data: {
+    alert: Alert;
+    policyIds: Array<string>;
+  }): Promise<Array<string>> {
+    const toPage: Array<string> = [];
+
+    for (const policyId of data.policyIds) {
+      try {
+        await AlertService.getRepository()
+          .createQueryBuilder()
+          .relation(Alert, "onCallDutyPolicies")
+          .of(data.alert.id!.toString())
+          .add(policyId);
+
+        toPage.push(policyId);
+      } catch (err) {
+        if (PostgresErrorTranslator.isUniqueViolation(err)) {
+          continue;
+        }
+
+        logger.warn(
+          `AlertOnCallRuleEngine: failed to persist join row of policy ${policyId} for alert ${data.alert.id}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+
+        toPage.push(policyId);
+      }
+    }
+
+    return toPage;
   }
 
   private testRegex(
