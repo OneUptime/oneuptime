@@ -187,7 +187,7 @@ const RankedBars: FunctionComponent<ComponentProps> = (
                 {item.hint ? (
                   <span
                     dir="auto"
-                    className="block truncate text-[11px] text-gray-500"
+                    className="block truncate text-xs text-gray-500"
                   >
                     {item.hint}
                   </span>

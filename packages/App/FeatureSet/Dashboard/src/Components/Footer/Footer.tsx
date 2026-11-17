@@ -115,7 +115,7 @@ const DashboardFooter: () => JSX.Element = () => {
   const oneUptimeLinks: Array<FooterLink> = [
     {
       title: (
-        <span className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-500">
+        <span className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-500">
           <Icon icon={IconProp.Help} className="h-3.5 w-3.5" />
           {t("footer.helpSupport")}
         </span>
@@ -125,7 +125,7 @@ const DashboardFooter: () => JSX.Element = () => {
     },
     {
       title: (
-        <span className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-500">
+        <span className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-500">
           <Icon icon={IconProp.ShieldCheck} className="h-3.5 w-3.5" />
           {t("footer.legal")}
         </span>
@@ -146,7 +146,7 @@ const DashboardFooter: () => JSX.Element = () => {
           ...(isRenamed ? [] : oneUptimeLinks),
           {
             title: (
-              <span className="inline-flex items-center gap-1.5 text-gray-400 hover:text-gray-500">
+              <span className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-500">
                 <Icon icon={IconProp.Info} className="h-3.5 w-3.5" />
                 {t("footer.version")}
               </span>

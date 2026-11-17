@@ -262,7 +262,7 @@ const DashboardResourceListBase: FunctionComponent<
       <div className="flex h-full flex-col overflow-hidden">
         {props.title && (
           <div className="mb-2 px-1">
-            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
               {props.title}
             </span>
           </div>
@@ -284,7 +284,7 @@ const DashboardResourceListBase: FunctionComponent<
     >
       {props.title && (
         <div className="flex items-center justify-between gap-2 mb-2 px-1">
-          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
             {props.title}
           </span>
           {/*
@@ -292,7 +292,7 @@ const DashboardResourceListBase: FunctionComponent<
            * by a long title in a narrow widget, "3 sites" broke in two.
            */}
           <span
-            className="shrink-0 whitespace-nowrap text-xs text-gray-400 tabular-nums"
+            className="shrink-0 whitespace-nowrap text-xs text-gray-500 tabular-nums"
             data-testid={RESOURCE_LIST_COUNT_TEST_ID}
           >
             {translator.translatePlural(props.countLabel, props.count)}

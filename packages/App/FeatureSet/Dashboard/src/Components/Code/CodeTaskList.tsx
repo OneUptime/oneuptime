@@ -1094,7 +1094,7 @@ const CodeTaskListToolbar: FunctionComponent<{
                   <span
                     data-testid="code-task-filter-count"
                     className={`tabular-nums ${
-                      isActive ? "text-indigo-600" : "text-gray-400"
+                      isActive ? "text-indigo-600" : "text-gray-500"
                     }`}
                   >
                     {translator.formatNumber(count)}

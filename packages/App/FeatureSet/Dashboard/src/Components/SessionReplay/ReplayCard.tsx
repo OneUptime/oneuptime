@@ -709,7 +709,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
              * click, not after.
              */}
             <div
-              className="mt-1 text-[11px] text-gray-500"
+              className="mt-1 text-xs text-gray-500"
               data-testid="replay-card-masking"
             >
               {translator.translateTemplate("Masking when recorded: {{mode}}", {
@@ -718,7 +718,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
             </div>
             {momentNote && (
               <div
-                className="mt-1 text-[11px] text-gray-500"
+                className="mt-1 text-xs text-gray-500"
                 data-testid="replay-card-moment-note"
               >
                 {momentNote}
@@ -839,7 +839,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
             )}
             {isScopeTruncated && (
               <div
-                className="mt-1 text-[11px] text-amber-700"
+                className="mt-1 text-xs text-amber-700"
                 data-testid="replay-card-truncated"
               >
                 {translator.translateText(

@@ -617,7 +617,7 @@ function CounterList(props: {
                   <span className="min-w-0 break-words text-gray-800">
                     {row.label ? capitalize(row.label) : row.reason}
                     {row.label && (
-                      <code className="ml-1.5 text-xs text-gray-400">
+                      <code className="ml-1.5 text-xs text-gray-500">
                         {row.reason}
                       </code>
                     )}

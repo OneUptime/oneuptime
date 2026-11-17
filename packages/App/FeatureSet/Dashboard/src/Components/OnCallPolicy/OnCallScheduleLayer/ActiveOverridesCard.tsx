@@ -87,8 +87,7 @@ export const MAX_SHOWN_OVERRIDE_ROWS: number = 4;
  * own case like every label of the Final schedule around this card
  * (SECTION_LABEL_CLASS_NAME): they were letter-spaced capitals.
  */
-export const OVERRIDE_PARTY_CAPTION_CLASS_NAME: string =
-  "text-[11px] font-medium";
+export const OVERRIDE_PARTY_CAPTION_CLASS_NAME: string = "text-xs font-medium";
 
 const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

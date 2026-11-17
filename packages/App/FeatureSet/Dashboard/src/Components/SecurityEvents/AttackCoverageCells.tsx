@@ -69,7 +69,7 @@ export const TechniqueCell: FunctionComponent<TechniqueCellProps> = (
         </span>
         <span
           className={`block font-mono opacity-70 ${
-            props.isCompact ? "text-[10px]" : "text-xs"
+            props.isCompact ? "text-xs" : "text-xs"
           }`}
         >
           {technique.id}
@@ -83,7 +83,7 @@ export const TechniqueCell: FunctionComponent<TechniqueCellProps> = (
          */
         <span
           className={`flex-shrink-0 rounded bg-white/80 px-1 font-semibold tabular-nums ${
-            props.isCompact ? "text-[10px]" : "text-xs"
+            props.isCompact ? "text-xs" : "text-xs"
           }`}
           title={ruleCountText}
           data-testid="attack-technique-rule-count"

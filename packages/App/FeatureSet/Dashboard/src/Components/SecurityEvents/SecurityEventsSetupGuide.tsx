@@ -615,7 +615,7 @@ curl -X POST "${ingestUrl}?format=udm" \\
           </p>
         </div>
         {hasVerifyError && (
-          <p className="text-xs text-gray-400 mt-2">
+          <p className="text-xs text-gray-500 mt-2">
             {translator.translateText(
               "Couldn't reach the server on the last check — retrying automatically.",
             )}

@@ -823,7 +823,7 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
       >
         <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
           {t("Without traced messages in this range")}{" "}
-          <span className="font-normal normal-case text-gray-400">
+          <span className="font-normal normal-case text-gray-500">
             ({unconnected.length})
           </span>
         </h4>
@@ -898,7 +898,7 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
       >
         <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
           {t("Your queues")}{" "}
-          <span className="font-normal normal-case text-gray-400">
+          <span className="font-normal normal-case text-gray-500">
             ({queues.length})
           </span>
         </h4>

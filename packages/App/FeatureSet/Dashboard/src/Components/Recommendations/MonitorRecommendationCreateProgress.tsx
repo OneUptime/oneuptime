@@ -125,7 +125,7 @@ const MonitorRecommendationCreateProgress: FunctionComponent<ComponentProps> = (
                   className={`truncate text-xs ${
                     item.status ===
                     MonitorRecommendationCreateItemStatus.Pending
-                      ? "text-gray-400"
+                      ? "text-gray-500"
                       : "text-gray-700"
                   }`}
                 >

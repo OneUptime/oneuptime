@@ -310,7 +310,7 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
   const summaryElement: ReactElement | undefined =
     slos.length > 0 ? (
       <div
-        className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500"
+        className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500"
         data-testid="slo-list-summary"
       >
         {summary.map((entry: SloStatusSummaryEntry): ReactElement => {
@@ -332,7 +332,7 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
           );
         })}
         {isCapped ? (
-          <span className="text-gray-400">
+          <span className="text-gray-500">
             {isMostUrgentFirst
               ? translator.translatePlural(
                   {
@@ -439,7 +439,7 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
               {getValueOrQuietDash(display.sli, { isSmall: true })}
             </div>
             {display.target ? (
-              <div className="text-[10px] text-gray-400 tabular-nums whitespace-nowrap">
+              <div className="text-xs text-gray-500 tabular-nums whitespace-nowrap">
                 {display.target}
               </div>
             ) : (
@@ -480,7 +480,7 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
               </span>
             </div>
             {display.budgetTime ? (
-              <div className="text-[10px] text-gray-400 tabular-nums mt-0.5 whitespace-nowrap">
+              <div className="text-xs text-gray-500 tabular-nums mt-0.5 whitespace-nowrap">
                 {display.budgetTime}
               </div>
             ) : (

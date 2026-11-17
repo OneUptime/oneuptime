@@ -265,7 +265,7 @@ const CountdownCircle: FunctionComponent<CountdownCircleProps> = (
           />
         </svg>
         <div
-          className="absolute inset-0 flex items-center justify-center text-[8px] font-semibold text-indigo-600"
+          className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-indigo-600"
           data-testid="dashboard-auto-refresh-countdown"
         >
           {/*
@@ -275,9 +275,7 @@ const CountdownCircle: FunctionComponent<CountdownCircleProps> = (
           {translator.formatNumber(remainingSec)}
         </div>
       </div>
-      <span className="text-[11px] text-gray-500 font-medium">
-        {props.label}
-      </span>
+      <span className="text-xs text-gray-500 font-medium">{props.label}</span>
     </div>
   );
 };
@@ -368,7 +366,8 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
         {props.isAutoRefreshActive && props.autoRefreshMs ? (
           <CountdownCircle
             durationMs={props.autoRefreshMs}
-            size={20}
+            // Room for the seconds left at 12px inside the ring.
+            size={24}
             strokeWidth={2}
             label={
               formatAutoRefreshInterval(
@@ -739,7 +738,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                           />
                           <span>{translator.translateText("Variables")}</span>
                           {props.variables && props.variables.length > 0 && (
-                            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-semibold">
+                            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold">
                               {props.variables.length}
                             </span>
                           )}

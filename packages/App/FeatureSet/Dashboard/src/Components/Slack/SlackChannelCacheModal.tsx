@@ -141,7 +141,7 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
           addButtonSuffix="Channel"
         />
 
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-gray-500">
           {translator.translateText(
             "Note: Saving will overwrite the current channel list with the entries above.",
           )}

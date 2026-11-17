@@ -527,7 +527,7 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
                     ),
                   )}
                 </div>
-                <div className="mt-1 truncate font-mono text-xs text-gray-400">
+                <div className="mt-1 truncate font-mono text-xs text-gray-500">
                   {result.definition.metricName}
                 </div>
               </div>

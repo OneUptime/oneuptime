@@ -229,7 +229,7 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
               <div className={isBetween ? "flex gap-2" : ""}>
                 <div className="min-w-0 flex-1">
                   {isBetween && (
-                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-gray-500">
                       {translator.translateText(RANGE_START)}
                     </label>
                   )}
@@ -258,7 +258,7 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
                 </div>
                 {isBetween && (
                   <div className="min-w-0 flex-1">
-                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-gray-500">
                       {translator.translateText(RANGE_END)}
                     </label>
                     <Input
@@ -277,7 +277,7 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
                 )}
               </div>
               {isBetween && !isChipActive && hasAnyDate && (
-                <p className="mt-2 px-0.5 text-xs text-gray-400">
+                <p className="mt-2 px-0.5 text-xs text-gray-500">
                   {translator.translateText(
                     "Pick both dates to apply this filter.",
                   )}

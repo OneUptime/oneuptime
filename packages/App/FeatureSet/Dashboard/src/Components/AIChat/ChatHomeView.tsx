@@ -242,7 +242,7 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
                           {title}
                         </span>
                         {conversation.lastMessageAt ? (
-                          <span className="flex-shrink-0 text-xs text-gray-400">
+                          <span className="flex-shrink-0 text-xs text-gray-500">
                             {OneUptimeDate.fromNow(conversation.lastMessageAt)}
                           </span>
                         ) : (

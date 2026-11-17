@@ -575,7 +575,7 @@ describe("trace rows (TraceRow)", () => {
 describe("the span panel (SpanDetailsPanel)", () => {
   test("the header pill takes its classes, tooltip, dot color and text from the status", () => {
     expect(SPAN_PANEL.source).toContain(
-      '<span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${status.pillClassName}`} title={translator.translateText(status.description)} data-testid="span-details-status" > <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: status.color }} aria-hidden="true" /> {statusLabel} </span>',
+      '<span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold ${status.pillClassName}`} title={translator.translateText(status.description)} data-testid="span-details-status" > <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: status.color }} aria-hidden="true" /> {statusLabel} </span>',
     );
   });
 
@@ -823,7 +823,7 @@ describe("the dashboard trace chart and table widgets", () => {
       "<Bar key={key} dataKey={key} name={labelForSeries(key)}",
     );
     expect(TRACE_CHART_WIDGET.source).toContain(
-      '<span className="max-w-[180px] truncate text-[10px] text-gray-500"> {labelForSeries(key)} </span>',
+      '<span className="max-w-[180px] truncate text-xs text-gray-500"> {labelForSeries(key)} </span>',
     );
     // The old legend printed the raw key: "0", "1", "2".
     expect(TRACE_CHART_WIDGET.source).not.toContain("> {key} </span>");

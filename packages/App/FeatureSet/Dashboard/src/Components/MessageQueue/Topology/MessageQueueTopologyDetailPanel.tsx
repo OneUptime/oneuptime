@@ -177,7 +177,7 @@ const LinkedList: FunctionComponent<{
     <section data-testid={props.testId}>
       <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {props.title}{" "}
-        <span className="font-normal normal-case text-gray-400">
+        <span className="font-normal normal-case text-gray-500">
           ({props.rows.length})
         </span>
       </h4>
