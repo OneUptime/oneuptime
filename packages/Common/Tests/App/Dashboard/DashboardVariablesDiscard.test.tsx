@@ -15,6 +15,7 @@ import {
   test,
 } from "@jest/globals";
 import React, { act } from "react";
+import { pickDropdownOption } from "../../DropdownPicks";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import DashboardVariable, {
@@ -701,16 +702,13 @@ describe("DashboardView — discarding edits reconciles dashboard variables", ()
       await renderDashboard();
 
       /*
-       * The selector fetches its options, and a <select> silently ignores a
-       * change to a value it has no <option> for — so picking before they
-       * arrive would assert nothing.
+       * The selector fetches its options, and the picker is locked until
+       * they arrive - so picking before then would assert nothing.
        */
-      await screen.findByRole("option", { name: ATTRIBUTE_VALUE });
-      await act(async () => {
-        fireEvent.change(screen.getByRole("combobox"), {
-          target: { value: ATTRIBUTE_VALUE },
-        });
+      await waitFor(() => {
+        expect(screen.getByRole("combobox")).not.toBeDisabled();
       });
+      await pickDropdownOption(screen.getByRole("combobox"), ATTRIBUTE_VALUE);
       expect(canvasVariableSelections()).toEqual(["cluster=prod"]);
 
       await enterEditMode();
@@ -725,12 +723,10 @@ describe("DashboardView — discarding edits reconciles dashboard variables", ()
     test("a selection made in view mode survives an edit that changed nothing, ended with Cancel", async () => {
       await renderDashboard();
 
-      await screen.findByRole("option", { name: ATTRIBUTE_VALUE });
-      await act(async () => {
-        fireEvent.change(screen.getByRole("combobox"), {
-          target: { value: ATTRIBUTE_VALUE },
-        });
+      await waitFor(() => {
+        expect(screen.getByRole("combobox")).not.toBeDisabled();
       });
+      await pickDropdownOption(screen.getByRole("combobox"), ATTRIBUTE_VALUE);
 
       await enterEditMode();
       await cancelUnchangedEdit();
