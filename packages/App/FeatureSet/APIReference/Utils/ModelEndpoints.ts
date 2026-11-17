@@ -219,7 +219,8 @@ export function getModelEndpoints(data: {
         codeExamples: CodeExampleGenerator.generate({
           method: endpoint.method,
           endpoint: `${data.apiPath}${endpoint.route.replace(":id", data.exampleObjectID)}`,
-          body: endpoint.requestBody,
+          // A read sends no body.
+          ...(endpoint.requestBody ? { body: endpoint.requestBody } : {}),
         }),
       };
     },
