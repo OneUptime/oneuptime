@@ -10,10 +10,12 @@ import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { PROJECT_ID, goTo, routeFor } from "./SideMenuHarness";
 
 /*
- * Metrics' tabs: the AI tab sits after Insights - both lenses on the same
- * metrics - and before the Setup Guide and Settings, and opens the AI
- * section on its Insights. Every page of the AI section lights it, the
- * finding's own page too; no other tab's page does.
+ * Metrics' tabs: the everyday views first - the Viewer, Insights and the AI
+ * tab after it, both lenses on the same metrics - then PromQL, a query
+ * language for those who know it (#9133), then the Setup Guide and
+ * Settings. The AI tab opens the AI section on its Insights. Every page of
+ * the AI section lights it, the finding's own page too; no other tab's page
+ * does.
  */
 
 function tabLinks(): Array<{ label: string; href: string }> {
@@ -36,7 +38,7 @@ describe("Metrics' tabs", () => {
     cleanup();
   });
 
-  test("Viewer, Insights, AI, Setup Guide, Settings - AI opening its Insights", () => {
+  test("Viewer, Insights, AI, PromQL, Setup Guide, Settings - AI opening its Insights", () => {
     render(
       <MemoryRouter>
         <MetricsNavTabs active="viewer" />
@@ -51,14 +53,14 @@ describe("Metrics' tabs", () => {
       }),
     ).toEqual([
       "Viewer",
-      "PromQL",
       "Insights",
       "AI",
+      "PromQL",
       "Setup Guide",
       "Settings",
     ]);
-    expect(links[1]!.href).toBe(routeFor(PageMap.METRICS_PROMQL));
-    expect(links[3]!.href).toBe(routeFor(PageMap.METRICS_AI_INSIGHTS));
+    expect(links[2]!.href).toBe(routeFor(PageMap.METRICS_AI_INSIGHTS));
+    expect(links[3]!.href).toBe(routeFor(PageMap.METRICS_PROMQL));
   });
 
   test("the AI tab is the one lit on its pages", () => {
