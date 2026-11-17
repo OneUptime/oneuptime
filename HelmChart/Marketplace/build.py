@@ -31,11 +31,13 @@ Every edition is the public chart (HelmChart/Public/oneuptime) with:
                     createUIDefinition.json, mainTemplate.json and the chart;
       google-cloud  the deployer image's build context: Dockerfile,
                     schema.yaml, the chart with its Application resource, and
-                    the tester.
+                    the tester; and the build context of each image Google
+                    gets built rather than copied (GOOGLE_CLOUD_BUILT_IMAGES).
 
 It also writes images.json: each image's source and where it goes, for
-mirror-images.sh. Standard library only, so the chart tests can run it
-anywhere Python 3 is.
+mirror-images.sh, and the build context of an image built rather than
+copied. Standard library only, so the chart tests can run it anywhere
+Python 3 is.
 
 One more edition is not of the OneUptime chart: aws-eks-addon is the free
 Kubernetes agent (HelmChart/Public/kubernetes-agent) as an Amazon EKS add-on,
@@ -93,6 +95,17 @@ DOUBLE_QUOTED: re.Pattern = re.compile(r'^"((?:[^"\\]|\\.)*)"')
 
 # Azure fills these in when it installs the extension; the chart ships placeholders.
 AZURE_PLACEHOLDER: str = "DONOTMODIFY"
+
+# The images of the Google Cloud edition built rather than copied, by key: each FROM its
+# source, with google-cloud/<key>.Dockerfile, which build.py puts in the edition's <key>/
+# directory (mirror-images.sh builds it). Google's vulnerability scan refuses the official
+# PostgreSQL image: it steps down from root with gosu, and every gosu release is built with a
+# Go toolchain whose standard library the scan flags (gosu 1.19 and 1.20: Go 1.24.6).
+GOOGLE_CLOUD_BUILT_IMAGES: Tuple[str, ...] = ("postgres",)
+
+# Google's deployer hands Helm every property of schema.yaml as a value, the app's name and
+# namespace among them; the chart reads neither, but its schema, closed at its root, must take them.
+GOOGLE_CLOUD_DEPLOYER_VALUES: Tuple[str, ...] = ("name", "namespace")
 
 # The add-on's own defaults, by values path. A buyer changes the first two with
 # configuration values (aws-eks-addon/configuration-schema.json, whose defaults
@@ -437,7 +450,8 @@ def plan_images(
     Where each image goes in the marketplace's registry. OneUptime's images
     are tagged with the release; third-party images keep their own version,
     except on Google Cloud, which needs every image of a release tagged with
-    it (and with its track, major.minor).
+    it (and with its track, major.minor), and gets some built rather than
+    copied (GOOGLE_CLOUD_BUILT_IMAGES: the entry names its build context).
     """
     images: Dict[str, Any] = load_json(HERE / "images.json")["images"]
     track: str = ".".join(version.split(".")[:2])
@@ -466,14 +480,17 @@ def plan_images(
             target = f"{base}:{version}"
             extra_tags = [track]
 
-        plan.append(
-            {
-                "key": key,
-                "source": source,
-                "target": target,
-                "extraTags": extra_tags,
-            }
-        )
+        entry: Dict[str, Any] = {
+            "key": key,
+            "source": source,
+            "target": target,
+            "extraTags": extra_tags,
+        }
+
+        if marketplace == "google-cloud" and key in GOOGLE_CLOUD_BUILT_IMAGES:
+            entry["build"] = key
+
+        plan.append(entry)
 
     return plan
 
@@ -639,24 +656,40 @@ def build_google_cloud(
     editor.set(["clickhouse", "serviceAccount", "create"], False)
     values_path.write_text(editor.text(), encoding="utf-8")
 
+    schema_path: Path = chart / "values.schema.json"
+    schema: Dict[str, Any] = load_json(schema_path)
+
+    for key in GOOGLE_CLOUD_DEPLOYER_VALUES:
+        schema["properties"][key] = {
+            "type": "string",
+            "description": (
+                f"The app's {key}, which Google Cloud Marketplace's deployer passes "
+                "as a value with every other property of its schema. The chart does not read it."
+            ),
+        }
+
+    schema_path.write_text(json.dumps(schema, indent=2) + "\n", encoding="utf-8")
+
     google: Path = HERE / "google-cloud"
     shutil.copyfile(google / "application.yaml", chart / "templates" / "application.yaml")
     # Kept as deployer.Dockerfile: the repository ignores files named Dockerfile.
     shutil.copyfile(google / "deployer.Dockerfile", out / "Dockerfile")
     shutil.copyfile(google / "schema.yaml", out / "schema.yaml")
 
+    for entry in plan:
+        if "build" in entry:
+            context: Path = out / entry["build"]
+            context.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(google / f"{entry['build']}.Dockerfile", context / "Dockerfile")
+
+    # Only the tester's template: in a verification run (mpdev verify, Google's review) the
+    # deployer lays the tester's files over the chart's, so a Chart.yaml would replace the chart's.
     apptest: Path = out / "apptest"
 
     if apptest.exists():
         shutil.rmtree(apptest)
 
     shutil.copytree(google / "apptest", apptest)
-
-    tester_chart: Path = apptest / "deployer" / "oneuptime" / "Chart.yaml"
-    tester_chart.write_text(
-        tester_chart.read_text(encoding="utf-8").replace("{version}", version),
-        encoding="utf-8",
-    )
 
     return plan
 
