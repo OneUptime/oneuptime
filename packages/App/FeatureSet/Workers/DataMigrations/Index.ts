@@ -193,6 +193,7 @@ import EncryptSnmpCredentials from "./EncryptSnmpCredentials";
 import MoveLegacySnmpV3AuthToColumns from "./MoveLegacySnmpV3AuthToColumns";
 import MaskWebhookAddressesInLogs from "./MaskWebhookAddressesInLogs";
 import RestoreCutMicrosoftTeamsChatIds from "./RestoreCutMicrosoftTeamsChatIds";
+import BackfillNetworkDeviceManufacturer from "./BackfillNetworkDeviceManufacturer";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1374,6 +1375,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * itself.
    */
   new RestoreCutMicrosoftTeamsChatIds(),
+  /*
+   * The maker each network device is listed under (#9363): the one its
+   * Vendor / Model column, its page and its Inventory item show, worked out
+   * for every device and kept in NetworkDevice.manufacturer, which the
+   * Devices, Archived and site lists filter and sort by. Runs after the
+   * schema migration that adds the column (AddNetworkDeviceManufacturer1809182980000),
+   * as every data migration runs after the schema ones; devices written
+   * meanwhile already have theirs. Postgres only, paged and idempotent;
+   * before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BackfillNetworkDeviceManufacturer(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
