@@ -193,6 +193,15 @@ Senza Group By, lo stesso monitor è un singolo scalare: la query riduce tutti g
 
 Ogni avviso per gruppo segue il proprio gruppo. Quando l'host A torna sotto la soglia, il suo avviso si risolve per conto proprio, e quello dell'host B resta aperto finché l'host B non si riprende. Il ripristino di un gruppo non chiude mai l'avviso di un altro.
 
+### Cosa conserva ogni avviso
+
+Ogni avviso o incidente aperto per un gruppo conserva il controllo che lo ha aperto solo per quel gruppo: la sua serie, i suoi punti e il riepilogo della valutazione. Nessun controllo conservato supera 256 KB, e i log di uno che è stato ridotto per rientrarvi lo dicono.
+
+Gli avvisi e gli incidenti aperti prima conservavano tutti i gruppi della valutazione, fino a decine di megabyte ciascuno, sul record e di nuovo su ognuno dei suoi cambi di stato. Dopo l'aggiornamento, un job eseguito ogni ora li riduce poco alla volta, conservando il gruppo di ciascun record, finché non ne resta nessuno.
+
+> [!NOTE]
+> In un'installazione self-hosted, PostgreSQL riutilizza lo spazio lasciato dai controlli ridotti, ma non lo restituisce al disco. Per ridurre il database una volta ridotti, eseguite `VACUUM FULL` sulle tabelle più grandi in una finestra di manutenzione, perché blocca ogni tabella mentre la riscrive, oppure usate `pg_repack`, che non la blocca.
+
 ### La valutazione dei criteri cambia
 
 - **I monitor raggruppati valutano ogni criterio.** Così livelli di gravità diversi possono scattare su gruppi diversi nello stesso momento: con «Critical: maggiore di 95» sopra «Warning: maggiore di 80», un host al 96% apre un avviso critico mentre un host all'85% apre un avviso di warning, nello stesso controllo. Un host che supera entrambi i livelli riceve comunque esattamente un avviso, quello del primo criterio che corrisponde, quindi **ordinate i criteri dal più grave al meno grave**.

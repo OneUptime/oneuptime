@@ -193,6 +193,15 @@ Uden Group By er den samme monitor én skalar: forespørgslen samler alle værte
 
 Hver advarsel pr. gruppe følger sin egen gruppe. Når vært A falder under tærsklen igen, løses dens advarsel af sig selv, og advarslen for vært B forbliver åben, indtil vært B kommer sig. Når én gruppe kommer sig, lukker det aldrig en anden gruppes advarsel.
 
+### Hvad hver advarsel gemmer
+
+Hver advarsel eller hændelse, der åbnes for én gruppe, gemmer kun den kontrol, der åbnede den, for netop den gruppe: dens serie, dens punkter og evalueringsoversigten. Ingen gemt kontrol er større end 256 KB, og logfilerne for en kontrol, der måtte beskæres for at passe, siger det.
+
+Advarsler og hændelser, der blev åbnet før dette, gemte alle evalueringens grupper, op til flere titals megabyte hver, på posten og igen på hver af dens tilstandsændringer. Efter opgraderingen beskærer et job, der kører hver time, dem lidt ad gangen og beholder hver posts egen gruppe, indtil der ikke er flere tilbage.
+
+> [!NOTE]
+> På en selvhostet installation genbruger PostgreSQL den plads, de beskårne kontroller efterlader, men giver den ikke tilbage til disken. For at gøre databasen mindre, når de er beskåret, skal du køre `VACUUM FULL` på de største tabeller i et vedligeholdelsesvindue, da den låser hver tabel, mens den skriver den om, eller bruge `pg_repack`, som ikke gør det.
+
 ### Evalueringen af kriterier er anderledes
 
 - **Grupperede monitorer evaluerer alle kriterier.** Alvorlighedsniveauer kan derfor udløses for forskellige grupper på samme tid: med "Critical: større end 95" over "Warning: større end 80" åbner en vært på 96 % en kritisk advarsel, mens en vært på 85 % åbner en almindelig advarsel i samme tjek. En vært, der overskrider begge niveauer, får stadig præcis én advarsel, fra det første kriterium, der matcher, så **sorter kriterierne med det alvorligste først**.
