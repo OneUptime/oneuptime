@@ -363,8 +363,9 @@ Support Desk case that asked for the project info form and the roles (step
 pricing (step 6) and listing (step 7) are under Google's review, submitted
 that afternoon with the maintainer's go-ahead; the payments profile is done;
 and `editions.json` marks the edition ready, so the Marketplace Release
-workflow pushes its images and deployer. **Left**: the first version on the
-Container images page once it is pushed, and its review (step 8), then
+workflow pushed 15.0.0's images and deployer that evening: release `15.0` is
+saved on the Container images page (step 8), where Google is validating it.
+**Left**: that page's review, once the validation passes (step 8), then
 **Publish** once all three reviews are approved (each the maintainer's
 go-ahead). Google's Marketplace Operations team supports the
 onboarding for 60 days from its reminder of 9 November (until about 8 January
@@ -513,11 +514,19 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
    reload, but **Full preview** shows the logo; a black background would
    break the rule. **Submit** is at the bottom of the **Product metadata**
    tab, and changing a field while the review runs cancels it.
-8. **Container images**: the deployer's path,
+8. **Container images** (the first release saved on 17 November 2026): the
+   deployer's path,
    `us-docker.pkg.dev/oneuptime-marketplace/oneuptime/oneuptime-enterprise/deployer`.
    Producer Portal reads the releases from it, so it answers "Image not
-   found" until the first push; then pick the release and its track. Its
-   review takes two weeks or more: submit it as early as you can, with the
+   found" until the first push (a malformed path gets a format error
+   instead). **Specify Releases** then lists each track the deployer is
+   tagged with, and its digest: pick the track as the **Display Tag**, fill
+   in the release as [Listing content](#listing-content-paste-ready) has it,
+   choose the **Default Release**, and **Save and Validate**. Google's
+   validation extracts the app's schema, then runs a test deployment and
+   scans the images for vulnerabilities, in up to 2 hours. Its review takes
+   two weeks or more: submit it as early as you can once the validation
+   passes (**Submit**, on the same page; the maintainer's go-ahead), with the
    [user guide](../../../../../HelmChart/Marketplace/google-cloud/README.md)
    in the public repository.
 
@@ -788,8 +797,9 @@ the first start migrates the database), runs the tester (it opens
 `mpdev` gives the deployment a reporting secret that is not real, so such an
 installation logs that it cannot report and stays unlicensed: expected.
 
-In Producer Portal, add the version (the deployer image and its track),
-then **Submit for review** (maintainer).
+In Producer Portal, add the version on the **Container images** page (the
+deployer image and its track; step 8 of the setup lists the fields), then
+**Submit** it for review (maintainer).
 
 ## Checking an installation
 
@@ -955,6 +965,18 @@ the docs.
 
 - Installing from AWS Marketplace: https://oneuptime.com/docs/en/installation/cloud-marketplaces
 - Enterprise Edition: https://oneuptime.com/docs/en/self-hosted/enterprise
+
+**Release (Google's Container images page):** the **Version title** is the
+track, as Producer Portal fills it in (`15.0`): the track's images take each
+patch version, so it stays right. The description (at most 128 characters,
+with the track's number) and the command-line deployment links:
+
+```text
+The 15.0 releases of OneUptime Enterprise. What each one changes: https://github.com/OneUptime/oneuptime/releases
+```
+
+- Public git repo URL: https://github.com/OneUptime/oneuptime.git
+- Deploy documentation URL: https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Marketplace/google-cloud/README.md
 
 **Refund policy (draft; the maintainer decides):**
 
@@ -1308,6 +1330,8 @@ rejection, go-live and price change.
 | 2026-11-17 | Google      | Tax Category: all five questions answered No, so the plan is complete                               | Maintainer |
 | 2026-11-17 | Google      | Decided: the product is OneUptime Enterprise, never "self-hosted"; the listing renamed              | Maintainer |
 | 2026-11-17 | Google      | Product details and pricing reviews submitted, with the maintainer's go-ahead                       | Agent      |
+| 2026-11-17 | Google      | 15.0.0's images and deployer pushed by the release workflow, run by hand                            | Agent      |
+| 2026-11-17 | Google      | Release `15.0` saved on the Container images page; Google's validation running                      | Agent      |
 | 2026-11-17 | Microsoft   | The live listing keeps "OneUptime Enterprise (self-hosted)": the maintainer's choice                | Maintainer |
 | 2026-11-17 | AWS         | Bank account verification in review: the bank statement is uploaded                                 | Maintainer |
 | 2026-11-17 | AWS         | Case 00966062 escalated: remove the placeholder version, or name the broken URL                     | Agent      |
