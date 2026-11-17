@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "همین حالا آن را در ارائه‌دهنده هویت خود جای‌گذاری کنید، یا در جای امنی نگه دارید. فقط همین یک بار نمایش داده می‌شود: OneUptime فقط هش آن را نگه می‌دارد.",
   "Server Monitor Secret Key Hash": "هش کلید محرمانه مانیتور سرور",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "توکن Bearer فقط یک بار نمایش داده می‌شود: هنگام افزودن اتصال یا بازنشانی توکن آن. اگر دیگر آن را ندارید، با «بازنشانی توکن Bearer» یک توکن تازه بسازید.",
-  "Webhook Secret Key Hash": "هش کلید محرمانه وب‌هوک"
+  "Webhook Secret Key Hash": "هش کلید محرمانه وب‌هوک",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "۹۰ روز پس از آنکه OneUptime اپلیکیشن Zoom خود را به‌روز کرد، Zoom دیگر ورود آن‌ها را نمی‌پذیرد و این اتصال‌ها دیگر تماسی آغاز نمی‌کنند.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "۹۰ روز پس از آنکه OneUptime اپلیکیشن Zoom خود را به‌روز کرد، Zoom دیگر ورود این اتصال را نمی‌پذیرد و این اتصال دیگر تماسی آغاز نمی‌کند.",
+  "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "برای هر اتصال روی «اتصال دوباره» کلیک کنید، سپس وقتی Zoom پرسید، به OneUptime اجازه دهید ضبط‌ها و رونوشت‌ها را بخواند.",
+  "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.": "روی «اتصال دوباره» کلیک کنید، سپس وقتی Zoom پرسید، به OneUptime اجازه دهید ضبط‌ها و رونوشت‌ها را بخواند.",
+  "Reconnect these Zoom connections to keep starting calls": "برای ادامهٔ آغاز تماس‌ها، این اتصال‌های Zoom را دوباره وصل کنید",
+  "Reconnect {{name}} to keep starting calls": "برای ادامهٔ آغاز تماس‌ها، {{name}} را دوباره وصل کنید",
+  "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "این اتصال‌های Zoom پیش از آنکه OneUptime بتواند رونوشت تماس‌ها را بخواند وارد شده‌اند، پس نمی‌توانند آن‌ها را بخوانند.",
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "این اتصال Zoom پیش از آنکه OneUptime بتواند رونوشت تماس‌ها را بخواند وارد شده است، پس نمی‌تواند آن‌ها را بخواند."
 }

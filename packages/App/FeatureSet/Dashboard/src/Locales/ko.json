@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "지금 ID 공급자에 붙여넣거나 안전한 곳에 보관하세요. 이번 한 번만 표시됩니다. OneUptime은 해시만 저장합니다.",
   "Server Monitor Secret Key Hash": "서버 모니터 시크릿 키 해시",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer 토큰은 연결을 추가하거나 토큰을 재설정할 때 한 번만 표시됩니다. 더 이상 가지고 있지 않다면 \"Bearer 토큰 재설정\"으로 새 토큰을 만드세요.",
-  "Webhook Secret Key Hash": "Webhook 비밀 키 해시"
+  "Webhook Secret Key Hash": "Webhook 비밀 키 해시",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "OneUptime의 Zoom 앱이 업데이트되고 90일이 지나면 Zoom이 이 연결들의 로그인을 더 이상 받아들이지 않으며, 이 연결들은 통화를 시작하지 못합니다.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "OneUptime의 Zoom 앱이 업데이트되고 90일이 지나면 Zoom이 이 연결의 로그인을 더 이상 받아들이지 않으며, 이 연결은 통화를 시작하지 못합니다.",
+  "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "연결마다 \"Reconnect\"를 클릭한 다음, Zoom이 요청하면 OneUptime이 녹화와 녹취록을 읽도록 허용하세요.",
+  "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.": "\"Reconnect\"를 클릭한 다음, Zoom이 요청하면 OneUptime이 녹화와 녹취록을 읽도록 허용하세요.",
+  "Reconnect these Zoom connections to keep starting calls": "통화를 계속 시작하려면 이 Zoom 연결들을 다시 연결하세요",
+  "Reconnect {{name}} to keep starting calls": "통화를 계속 시작하려면 {{name}}을(를) 다시 연결하세요",
+  "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "이 Zoom 연결들은 OneUptime이 통화 녹취록을 읽을 수 있기 전에 로그인했기 때문에 녹취록을 읽을 수 없습니다.",
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "이 Zoom 연결은 OneUptime이 통화 녹취록을 읽을 수 있기 전에 로그인했기 때문에 녹취록을 읽을 수 없습니다."
 }

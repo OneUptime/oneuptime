@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.",
   "Server Monitor Secret Key Hash": "Server Monitor Secret Key Hash",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.",
-  "Webhook Secret Key Hash": "Webhook Secret Key Hash"
+  "Webhook Secret Key Hash": "Webhook Secret Key Hash",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.",
+  "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.",
+  "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.": "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.",
+  "Reconnect these Zoom connections to keep starting calls": "Reconnect these Zoom connections to keep starting calls",
+  "Reconnect {{name}} to keep starting calls": "Reconnect {{name}} to keep starting calls",
+  "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.",
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them."
 }

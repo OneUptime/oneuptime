@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "今すぐ ID プロバイダーに貼り付けるか、安全な場所に保管してください。表示されるのは今回だけです。OneUptime はハッシュしか保存しません。",
   "Server Monitor Secret Key Hash": "サーバーモニターのシークレットキーのハッシュ",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "ベアラートークンが表示されるのは、接続を追加したときか、トークンをリセットしたときの一度だけです。手元にない場合は、「ベアラートークンをリセット」で新しいトークンを作成してください。",
-  "Webhook Secret Key Hash": "Webhook シークレットキーのハッシュ"
+  "Webhook Secret Key Hash": "Webhook シークレットキーのハッシュ",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "OneUptime の Zoom アプリが更新されてから 90 日後に、Zoom はこれらの接続のサインインを受け付けなくなり、これらの接続は通話を開始しなくなります。",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "OneUptime の Zoom アプリが更新されてから 90 日後に、Zoom はこの接続のサインインを受け付けなくなり、この接続は通話を開始しなくなります。",
+  "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "接続ごとに「Reconnect」をクリックし、Zoom に求められたら、OneUptime に録画と文字起こしの読み取りを許可してください。",
+  "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.": "「Reconnect」をクリックし、Zoom に求められたら、OneUptime に録画と文字起こしの読み取りを許可してください。",
+  "Reconnect these Zoom connections to keep starting calls": "通話を開始し続けるには、これらの Zoom の接続を再接続してください",
+  "Reconnect {{name}} to keep starting calls": "通話を開始し続けるには {{name}} を再接続してください",
+  "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "これらの Zoom の接続は、OneUptime が通話の文字起こしを読み取れるようになる前にサインインしたため、文字起こしを読み取れません。",
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "この Zoom の接続は、OneUptime が通話の文字起こしを読み取れるようになる前にサインインしたため、文字起こしを読み取れません。"
 }

@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Klistra in den hos din identitetsleverantör nu, eller förvara den på ett säkert ställe. Den visas bara den här gången: OneUptime sparar bara en hash av den.",
   "Server Monitor Secret Key Hash": "Hash för servermonitorns hemliga nyckel",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer-token visas bara en gång, när anslutningen läggs till eller när dess token återställs. Om du inte längre har den kan du använda ”Återställ Bearer-token” för att skapa en ny.",
-  "Webhook Secret Key Hash": "Hash för den hemliga webhook-nyckeln"
+  "Webhook Secret Key Hash": "Hash för den hemliga webhook-nyckeln",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "90 dagar efter uppdateringen av OneUptimes Zoom-app slutar Zoom att godta deras inloggningar, och anslutningarna slutar starta samtal.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "90 dagar efter uppdateringen av OneUptimes Zoom-app slutar Zoom att godta den här anslutningens inloggning, och anslutningen slutar starta samtal.",
+  "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "Klicka på \"Reconnect\" för varje anslutning och låt sedan OneUptime läsa inspelningar och transkriptioner när Zoom frågar.",
+  "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.": "Klicka på \"Reconnect\" och låt sedan OneUptime läsa inspelningar och transkriptioner när Zoom frågar.",
+  "Reconnect these Zoom connections to keep starting calls": "Anslut de här Zoom-anslutningarna igen för att fortsätta starta samtal",
+  "Reconnect {{name}} to keep starting calls": "Anslut {{name}} igen för att fortsätta starta samtal",
+  "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "De här Zoom-anslutningarna loggades in innan OneUptime kunde läsa samtalstranskriptioner, så de kan inte läsa dem.",
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "Den här Zoom-anslutningen loggades in innan OneUptime kunde läsa samtalstranskriptioner, så den kan inte läsa dem."
 }

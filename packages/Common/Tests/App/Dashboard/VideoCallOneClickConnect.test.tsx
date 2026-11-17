@@ -101,6 +101,7 @@ jest.mock("react-i18next", () => {
 });
 
 import VideoCallsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/VideoCalls";
+import { ZOOM_TRANSCRIPT_RECONNECT_ROUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/VideoCallApi";
 import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import VideoCallConnection from "../../../Models/DatabaseModels/VideoCallConnection";
@@ -229,6 +230,11 @@ beforeEach(() => {
   }) as never);
 
   jest.spyOn(API, "get").mockImplementation((async (args: { url: URL }) => {
+    // The Zoom connections to reconnect for transcripts: none here.
+    if (args.url.toString().includes(ZOOM_TRANSCRIPT_RECONNECT_ROUTE)) {
+      return new HTTPResponse<JSONObject>(200, { connections: [] }, {});
+    }
+
     started.push(args.url.toString());
     return new HTTPResponse<JSONObject>(
       200,

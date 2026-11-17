@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Collez-le dès maintenant dans votre fournisseur d'identité, ou conservez-le en lieu sûr. Il n'est affiché que cette fois : OneUptime n'en conserve qu'un hachage.",
   "Server Monitor Secret Key Hash": "Hash de la clé secrète du moniteur de serveur",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Le jeton Bearer n'est affiché qu'une seule fois, lorsque la connexion est ajoutée ou que son jeton est réinitialisé. Si vous ne l'avez plus, utilisez « Réinitialiser le jeton Bearer » pour en créer un nouveau.",
-  "Webhook Secret Key Hash": "Hash de la clé secrète du webhook"
+  "Webhook Secret Key Hash": "Hash de la clé secrète du webhook",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "90 jours après la mise à jour de l'application Zoom de OneUptime, Zoom cesse d'accepter leurs autorisations, et les connexions ne lancent plus d'appels.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "90 jours après la mise à jour de l'application Zoom de OneUptime, Zoom cesse d'accepter l'autorisation de cette connexion, et la connexion ne lance plus d'appels.",
+  "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "Cliquez sur « Reconnect » pour chaque connexion, puis autorisez OneUptime à lire les enregistrements et les transcriptions quand Zoom le demande.",
+  "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.": "Cliquez sur « Reconnect », puis autorisez OneUptime à lire les enregistrements et les transcriptions quand Zoom le demande.",
+  "Reconnect these Zoom connections to keep starting calls": "Reconnectez ces connexions Zoom pour continuer à lancer des appels",
+  "Reconnect {{name}} to keep starting calls": "Reconnectez {{name}} pour continuer à lancer des appels",
+  "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "Ces connexions Zoom ont été faites avant que OneUptime puisse lire les transcriptions des appels, elles ne peuvent donc pas les lire.",
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "Cette connexion Zoom a été faite avant que OneUptime puisse lire les transcriptions des appels, elle ne peut donc pas les lire."
 }

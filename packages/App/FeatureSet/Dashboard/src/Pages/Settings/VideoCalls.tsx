@@ -40,6 +40,7 @@ import VideoCallOAuthConnectModal from "../../Components/VideoCall/VideoCallOAut
 import VideoCallProviderGallery from "../../Components/VideoCall/VideoCallProviderGallery";
 import VideoCallProviderLogo from "../../Components/VideoCall/VideoCallProviderLogo";
 import VideoCallTestPanel from "../../Components/VideoCall/VideoCallTestPanel";
+import ZoomTranscriptReconnectNotice from "../../Components/VideoCall/ZoomTranscriptReconnectNotice";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 
@@ -57,7 +58,9 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
  * three), Connect signs in to the provider (VideoCallOAuthConnectModal) and
  * comes back here with the connection made (VideoCallConnectNotice).
  * Otherwise, and for anyone who asks to use their own app, it opens the
- * connection form.
+ * connection form. A Zoom connection signed in before the server's Zoom app
+ * could read call transcripts is asked to reconnect, once it can
+ * (ZoomTranscriptReconnectNotice).
  */
 
 interface FormState {
@@ -181,6 +184,16 @@ const VideoCallsPage: FunctionComponent<PageComponentProps> = (
       <VideoCallConnectNotice
         onStartTest={(connection: VideoCallConnection): void => {
           setTestConnection(connection);
+        }}
+      />
+
+      <ZoomTranscriptReconnectNotice
+        refreshToggle={String(refreshCounter)}
+        updateGate={updateGate}
+        onReconnect={(connection: VideoCallConnection): void => {
+          if (connection.provider) {
+            setSignInState({ provider: connection.provider, connection });
+          }
         }}
       />
 

@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "请立即将其粘贴到你的身份提供商中，或保存在安全的地方。它只显示这一次：OneUptime 只保存它的哈希值。",
   "Server Monitor Secret Key Hash": "服务器监控密钥哈希",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer 令牌只会在添加连接或重置其令牌时显示一次。如果你已不再持有它，请使用“重置 Bearer 令牌”创建一个新令牌。",
-  "Webhook Secret Key Hash": "Webhook 密钥哈希"
+  "Webhook Secret Key Hash": "Webhook 密钥哈希",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "OneUptime 的 Zoom 应用更新 90 天后，Zoom 将不再接受这些连接的登录，这些连接也将无法再开始通话。",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "OneUptime 的 Zoom 应用更新 90 天后，Zoom 将不再接受此连接的登录，该连接也将无法再开始通话。",
+  "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "为每个连接点击“Reconnect”，然后在 Zoom 询问时允许 OneUptime 读取录制和转录。",
+  "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.": "点击“Reconnect”，然后在 Zoom 询问时允许 OneUptime 读取录制和转录。",
+  "Reconnect these Zoom connections to keep starting calls": "重新连接这些 Zoom 连接以继续开始通话",
+  "Reconnect {{name}} to keep starting calls": "重新连接 {{name}} 以继续开始通话",
+  "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "这些 Zoom 连接是在 OneUptime 能够读取通话转录之前登录的，因此无法读取转录。",
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "此 Zoom 连接是在 OneUptime 能够读取通话转录之前登录的，因此无法读取转录。"
 }
