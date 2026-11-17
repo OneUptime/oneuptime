@@ -505,7 +505,7 @@ describe("POST /status-page/send-magic-link", () => {
     ];
 
     expect(message.toEmail.toString()).toBe(READER_EMAIL);
-    expect(message.subject).toBe("Log in to Acme Status");
+    expect(message.subject).toBe("Sign in to Acme Status");
     expect(message.isSubjectLiteral).toBe(true);
     expect(message.templateType).toBe(EmailTemplateType.StatusPageMagicLink);
     expect(message.vars["statusPageName"]).toBe("Acme Status");

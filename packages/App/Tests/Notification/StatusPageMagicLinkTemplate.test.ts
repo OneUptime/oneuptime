@@ -16,7 +16,7 @@ import { STATUS_PAGE_MAGIC_LINK_EXPIRY_MINUTES } from "Common/Types/StatusPage/S
  * mailed by Identity's POST /status-page/send-magic-link.
  *
  *  - It says what the link does, with the page's name, and has one action:
- *    Log In, the link again under it to copy.
+ *    Sign In, the link again under it to copy.
  *  - It says how long the link works and that it works once - the numbers
  *    the server holds it to - and that a newer link replaces it.
  *  - It may reach somebody who never asked (anyone can type an address), so
@@ -106,13 +106,13 @@ describe("StatusPageMagicLink.hbs", () => {
   test("says what it is for, on which page", () => {
     const text: string = htmlAsText(render());
 
-    expect(text).toContain("Log in to Acme Status");
+    expect(text).toContain("Sign in to Acme Status");
     expect(text).toContain(
-      "Use the button below to log in to Acme Status. You don't need your password.",
+      "Use the button below to sign in to Acme Status. You don't need your password.",
     );
   });
 
-  test("has one action, Log In, to the link - and the link again to copy", () => {
+  test("has one action, Sign In, to the link - and the link again to copy", () => {
     const html: string = render();
     const anchors: Array<RegExpMatchArray> = Array.from(
       html.matchAll(/<a\b[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi),
@@ -124,7 +124,7 @@ describe("StatusPageMagicLink.hbs", () => {
     );
 
     expect(toLink).toHaveLength(2);
-    expect(htmlAsText(toLink[0]![2]!).trim()).toBe("Log In");
+    expect(htmlAsText(toLink[0]![2]!).trim()).toBe("Sign In");
     expect(htmlAsText(toLink[1]![2]!).trim()).toBe(LINK);
   });
 
@@ -139,7 +139,7 @@ describe("StatusPageMagicLink.hbs", () => {
 
   test("tells somebody who never asked that ignoring it is safe", () => {
     expect(htmlAsText(render())).toContain(
-      "If you didn't ask to log in, you can ignore this email. Nobody can log in without the link.",
+      "If you didn't ask to sign in, you can ignore this email. Nobody can sign in without the link.",
     );
   });
 
@@ -155,7 +155,7 @@ describe("StatusPageMagicLink.hbs", () => {
 
     // And it reads as its team wrote it, in every line that names it.
     expect(htmlAsText(html)).toContain(
-      'Log in to <img src=x onerror="alert(1)">Acme & Co',
+      'Sign in to <img src=x onerror="alert(1)">Acme & Co',
     );
   });
 
