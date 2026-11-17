@@ -97,6 +97,20 @@ Noen tilkallinger fortsetter etter at den er bekreftet, til noen de har tilkalt,
 
 En policy som er startet manuelt, er en som er startet med **Kjør vaktpolicy**, eller av en tilkalling fra Slack eller Microsoft Teams som nevner den. Den tilkaller nivå for nivå som enhver kjøring, med samtaler og gjentatte push-varsler, og at noen andre bekrefter hendelsen, stopper den ikke: slik tilkaller du et annet team til en hendelse som noen allerede jobber med. Den den har tilkalt, svarer fra meldingen i tilkallingen sin, en samtale eller en SMS, eller ved selv å bekrefte hendelsen; når hendelsen er bekreftet, tilbyr siden til hendelsen vedkommende **Bekreft igjen**. **Eskaler** sender den videre til neste nivå. På en hendelse, et varsel eller en episode som er løst, startes ingenting, og du får vite hvorfor: dashbordet slår av **Kjør vaktpolicy** og viser årsaken. Varslene fra den sier hvem som startet hvilken policy, og har med meldingen som ble sendt med en tilkalling fra Slack eller Microsoft Teams.
 
+## Test en policy
+
+**Test denne policyen**, i eskaleringsreglene til en policy, kaller opp det første nivået som en test, uten en hendelse bak: det står TEST i hver melding, og ingen statusside, abonnent eller kanal får beskjed. Slå på **Gå gjennom hvert eskaleringsnivå** for å kalle opp hvert nivå etter tur, høyst 2 minutter fra hverandre, til noen bekrefter. Før noe sendes, viser dialogen hvem testen kaller opp og hvordan, og hva den koster på OneUptime Cloud.
+
+**Send testoppkall** forblir slått av så lenge testen ikke ville nådd noen: alle den kaller opp, har valgt bort alvorlighetsgraden, har ingen regel for den og ingenting å falle tilbake på, eller har bare metoder som ikke er verifisert eller er slått av i prosjektet. En linje under listen sier hvorfor. Kan bare et senere nivå nås, tilbyr linjen **Gå gjennom hvert eskaleringsnivå** med ett klikk.
+
+Den som kalles opp, bekrefter testen fra hvilken som helst av meldingene sine: lenken i en e-post, en SMS eller en chatmelding, 1 i et anrop eller pushvarselet i OneUptime On-Call-appen, i versjoner nyere enn 1.6.0. En policy kan testes én gang hvert 5. minutt, og et prosjekt sender høyst 20 tester i timen.
+
+### Hold en beredskapsøvelse for en monitor
+
+**Hold en beredskapsøvelse**, på kortet **Når den går ned** for en monitor, øver på en av feilene dens: en hendelse eller et varsel som et av kriteriene åpner. Den tester hver vaktpolicy som den feilen ville kalt opp, hver slik **Test denne policyen** tester den, og ingenting offentlig skjer: ingen hendelse eller varsel opprettes, og ingen statusside, abonnent eller kanal får beskjed. Før noe sendes, nevner dialogen feilen, hver policy og hvem den policyen kaller opp nå.
+
+**Start beredskapsøvelse** forblir slått av så lenge en av de policyene er en du ikke kan teste, fordi du ikke kan redigere den, eller så lenge ingen de kaller opp, kan nås. Hver policy i en øvelse teller som en egen test: en policy som er testet de siste 5 minuttene, stopper hele øvelsen, og en øvelse med tre policyer bruker tre av prosjektets 20 tester i timen.
+
 ## Utførelseslogger
 
 Hver gang en policy kjører, skriver den en utførelseslogg, og loggen går gjennom statusene sine etter hvert som kjøringen skrider frem:

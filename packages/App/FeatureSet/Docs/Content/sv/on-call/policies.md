@@ -97,6 +97,20 @@ Vissa larm fortsätter efter bekräftelsen, tills någon de har larmat svarar el
 
 En policy som har startats manuellt är en som startats med **Kör jourpolicy**, eller av ett larm från Slack eller Microsoft Teams som nämner den. Den larmar nivå för nivå som varje körning, med samtal och upprepade push-aviseringar, och att någon annan bekräftar incidenten stoppar den inte: så larmar du ytterligare ett team till en incident som någon redan arbetar med. Den som den har larmat svarar från meddelandet i sitt larm, ett samtal eller ett sms, eller genom att själv bekräfta incidenten; när incidenten är bekräftad erbjuder incidentens sida personen **Bekräfta igen**. **Eskalera** skickar den vidare till nästa nivå. På en incident, ett larm eller en episod som är löst startas ingenting, och du får veta varför: instrumentpanelen stänger av **Kör jourpolicy** och visar skälet. Dess aviseringar säger vem som startade vilken policy, och har med meddelandet som skickades med ett larm från Slack eller Microsoft Teams.
 
+## Testa en policy
+
+**Testa den här policyn**, i en policys eskaleringsregler, larmar dess första nivå som ett test, utan någon incident bakom: varje meddelande är märkt TEST, och ingen statussida, prenumerant eller kanal får veta något. Slå på **Gå igenom varje eskaleringsnivå** för att larma varje nivå i tur och ordning, högst 2 minuter isär, tills någon bekräftar. Innan något skickas visar dialogen vem testet larmar och hur, och vad det kostar på OneUptime Cloud.
+
+**Skicka testlarm** förblir avstängd så länge testet inte skulle nå någon: alla som det larmar har valt bort allvarlighetsgraden, har ingen regel för den och inget att falla tillbaka på, eller har bara metoder som inte är verifierade eller är avstängda i projektet. En rad under listan säger varför. Kan bara en senare nivå nås, erbjuder raden **Gå igenom varje eskaleringsnivå** med ett klick.
+
+Den som larmas bekräftar testet från vilket som helst av dess meddelanden: länken i ett e-postmeddelande, ett sms eller ett chattmeddelande, 1 i ett samtal eller pushnotisen i OneUptime On-Call-appen, i versioner nyare än 1.6.0. En policy kan testas en gång var 5:e minut, och ett projekt skickar högst 20 test i timmen.
+
+### Håll en beredskapsövning för en monitor
+
+**Håll en beredskapsövning**, på kortet **När den går ner** för en monitor, övar ett av dess fel: en incident eller ett larm som ett av dess kriterier öppnar. Den testar varje jourpolicy som felet skulle larma, var och en som **Testa den här policyn** testar den, och inget offentligt händer: ingen incident eller inget larm skapas, och ingen statussida, prenumerant eller kanal får veta något. Innan något skickas namnger dialogen felet, varje policy och vem den policyn larmar just nu.
+
+**Starta beredskapsövning** förblir avstängd så länge en av de policyerna är en som du inte kan testa, eftersom du inte kan redigera den, eller så länge ingen som de larmar kan nås. Varje policy i en övning räknas som ett eget test: en policy som testats under de senaste 5 minuterna stoppar hela övningen, och en övning med tre policyer tar tre av projektets 20 test i timmen.
+
 ## Exekveringsloggar
 
 Varje gång en policy körs skriver den en exekveringslogg, och loggen går igenom sina statusar medan körningen pågår:

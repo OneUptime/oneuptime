@@ -97,6 +97,20 @@ Certaines alertes continuent après la prise en compte, jusqu'à ce qu'une perso
 
 Une politique lancée à la main est une politique lancée avec **Exécuter la politique d'astreinte**, ou par une alerte depuis Slack ou Microsoft Teams qui la nomme. Elle alerte niveau par niveau comme toute exécution, appels et notifications push répétées compris, et la prise en compte de l'incident par quelqu'un d'autre ne l'arrête pas : c'est ainsi que vous alertez une autre équipe sur un incident dont quelqu'un s'occupe déjà. La personne qu'elle a alertée répond depuis le message de son alerte, par un appel ou un SMS, ou en prenant elle-même l'incident en compte ; une fois l'incident pris en compte, sa page lui propose **Prendre en compte de nouveau**. **Escalader** la passe au niveau suivant. Sur un incident, une alerte ou un épisode résolu, rien n'est lancé, et on vous dit pourquoi : le tableau de bord désactive **Exécuter la politique d'astreinte** et en donne la raison. Ses notifications disent qui a lancé quelle politique, et reprennent le message envoyé avec une alerte depuis Slack ou Microsoft Teams.
 
+## Tester une politique
+
+**Tester cette politique**, dans les règles d'escalade d'une politique, appelle son premier niveau à titre de test, sans incident derrière : chaque message indique TEST, et aucune page de statut, aucun abonné ni aucun canal n'est informé. Activez **Parcourir chaque niveau d'escalade** pour appeler chaque niveau tour à tour, à 2 minutes d'intervalle au plus, jusqu'à ce que quelqu'un le prenne en compte. Avant tout envoi, la boîte de dialogue indique qui le test appelle et comment, et ce qu'il coûte sur OneUptime Cloud.
+
+**Envoyer l'appel de test** reste désactivé tant que le test n'atteindrait personne : chaque personne qu'il appelle s'est désabonnée de cette gravité, n'a aucune règle pour elle et rien vers quoi se replier, ou n'a que des méthodes non vérifiées ou désactivées dans le projet. Une ligne sous la liste indique pourquoi. Quand seul un niveau suivant peut être atteint, la ligne propose **Parcourir chaque niveau d'escalade** en un clic.
+
+La personne appelée prend le test en compte depuis n'importe lequel de ses messages : le lien d'un e-mail, d'un SMS ou d'un message de chat, le 1 d'un appel, ou sa notification push dans l'application OneUptime On-Call, dans les versions plus récentes que 1.6.0. Une politique peut être testée une fois toutes les 5 minutes, et un projet envoie au plus 20 tests par heure.
+
+### Lancer un exercice d'alerte sur un moniteur
+
+**Lancer un exercice d'alerte**, sur la carte **Quand il tombe en panne** d'un moniteur, répète l'une de ses pannes : un incident ou une alerte qu'ouvre l'un de ses critères. Il teste chaque politique d'astreinte que cette panne appellerait, chacune comme **Tester cette politique** la teste, et rien de public ne se produit : aucun incident ni aucune alerte n'est créé, et aucune page de statut, aucun abonné ni aucun canal n'est informé. Avant tout envoi, la boîte de dialogue nomme la panne, chaque politique et qui cette politique appelle en ce moment.
+
+**Démarrer l'exercice d'alerte** reste désactivé tant que l'une de ces politiques est une politique que vous ne pouvez pas tester, parce que vous ne pouvez pas la modifier, ou tant que personne parmi ceux qu'elles appellent ne peut être atteint. Chaque politique d'un exercice compte comme un test à part : une politique testée dans les 5 dernières minutes bloque tout l'exercice, et un exercice de trois politiques prend trois des 20 tests par heure du projet.
+
 ## Journaux d'exécution
 
 Chaque fois qu'une politique s'exécute, elle écrit un journal d'exécution, et ce journal passe par ses statuts au fil de l'exécution :

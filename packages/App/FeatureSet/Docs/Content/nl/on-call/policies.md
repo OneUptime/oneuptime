@@ -97,6 +97,20 @@ Sommige oproepen gaan na de bevestiging door, tot iemand die ze opriepen antwoor
 
 Een beleid dat met de hand is gestart, is gestart met **Bereikbaarheidsdienstbeleid uitvoeren**, of door een oproep vanuit Slack of Microsoft Teams die het noemt. Het roept niveau voor niveau op zoals elke uitvoering, met gesprekken en herhaalde pushmeldingen, en dat iemand anders het incident bevestigt, stopt het niet: zo roep je een ander team op voor een incident waar al iemand mee bezig is. Wie het opriep, antwoordt vanuit het bericht van zijn oproep, met een gesprek of een sms, of door zelf het incident te bevestigen; zodra het incident bevestigd is, biedt de pagina van het incident **Opnieuw bevestigen** aan. **Escaleren** geeft het door aan het volgende niveau. Bij een incident, waarschuwing of episode dat is opgelost, wordt niets gestart, en je krijgt te horen waarom: het dashboard zet **Bereikbaarheidsdienstbeleid uitvoeren** uit en noemt de reden. De meldingen ervan zeggen wie welk beleid heeft gestart, en bevatten het bericht dat met een oproep vanuit Slack of Microsoft Teams is meegestuurd.
 
+## Een beleid testen
+
+**Dit beleid testen**, bij de escalatieregels van een beleid, roept het eerste niveau op als test, zonder incident erachter: in elk bericht staat TEST, en geen statuspagina, abonnee of kanaal krijgt bericht. Zet **Elk escalatieniveau doorlopen** aan om elk niveau om de beurt op te roepen, hoogstens 2 minuten na elkaar, tot iemand bevestigt. Voordat er iets wordt verstuurd, toont het dialoogvenster wie de test oproept en hoe, en wat hij kost op OneUptime Cloud.
+
+**Testoproep sturen** blijft uit zolang de test niemand zou bereiken: iedereen die hij oproept heeft zich afgemeld voor die ernst, heeft er geen regel voor en niets om op terug te vallen, of heeft alleen methoden die niet geverifieerd zijn of in het project zijn uitgeschakeld. Een regel onder de lijst zegt waarom. Kan alleen een later niveau worden bereikt, dan biedt de regel **Elk escalatieniveau doorlopen** aan met één klik.
+
+Wie wordt opgeroepen, bevestigt de test via elk van zijn berichten: de link in een e-mail, een sms of een chatbericht, de 1 bij een oproep, of de pushmelding in de OneUptime On-Call-app, in versies nieuwer dan 1.6.0. Een beleid kan eens per 5 minuten worden getest, en een project verstuurt hoogstens 20 tests per uur.
+
+### Een alarmoefening houden voor een monitor
+
+**Alarmoefening houden**, op de kaart **Als dit uitvalt** van een monitor, oefent een van zijn storingen: een incident of waarschuwing die een van zijn criteria opent. Ze test elk bereikbaarheidsbeleid dat die storing zou oproepen, elk zoals **Dit beleid testen** het test, en er gebeurt niets openbaars: er wordt geen incident of waarschuwing gemaakt, en geen statuspagina, abonnee of kanaal krijgt bericht. Voordat er iets wordt verstuurd, noemt het dialoogvenster de storing, elk beleid en wie dat beleid nu oproept.
+
+**Alarmoefening starten** blijft uit zolang een van die beleidsregels er een is die u niet kunt testen, omdat u het niet kunt bewerken, of zolang niemand die ze oproepen kan worden bereikt. Elk beleid van een oefening telt als een eigen test: een beleid dat in de laatste 5 minuten is getest, houdt de hele oefening tegen, en een oefening van drie beleidsregels neemt drie van de 20 tests per uur van het project.
+
 ## Uitvoeringslogboeken
 
 Elke keer dat een beleid loopt, schrijft het een uitvoeringslogboek, en dat logboek doorloopt zijn statussen naarmate de uitvoering vordert:
