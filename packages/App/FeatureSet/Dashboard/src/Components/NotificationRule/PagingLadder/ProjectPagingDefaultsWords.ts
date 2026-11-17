@@ -102,6 +102,7 @@ export const getDefaultLadderChannelChoices: () => Array<PagingMethodChoice> =
           identifier: "",
           isVerified: true,
           hasPushLevel: channel === OnCallPageChannel.Push,
+          isChannelOnly: true,
         };
       },
     );

@@ -10,6 +10,7 @@ import {
   PagingMethodChoice,
   findMethodChoice,
   getAddableMethodChoices,
+  getMethodChoiceLabel,
   getNewStep,
 } from "./PagingLadderMethods";
 import {
@@ -41,7 +42,6 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import { useUnsavedChanges } from "Common/UI/Utils/NewVersion/UnsavedChanges";
-import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -392,11 +392,7 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
                 PAGING_LADDER_COPY.removeMethod,
                 {
                   name: choice
-                    ? NotificationMethodUtil.getMethodLabel(
-                        translator,
-                        choice.channel,
-                        choice.identifier,
-                      )
+                    ? getMethodChoiceLabel(translator, choice)
                     : translator.translateText(UNKNOWN_METHOD_LABEL) ||
                       UNKNOWN_METHOD_LABEL,
                 },

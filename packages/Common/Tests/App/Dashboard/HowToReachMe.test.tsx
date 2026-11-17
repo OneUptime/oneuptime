@@ -134,17 +134,100 @@ jest.mock(
   },
 );
 
+let isPushTurnedOff: boolean = false;
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Utils/PushNotificationsTurnedOff",
   () => {
     return {
       __esModule: true,
       usePushNotificationsTurnedOff: () => {
-        return false;
+        return isPushTurnedOff;
       },
     };
   },
 );
+
+/*
+ * Adding a way to reach you from the ladder (#7451): the on-call guided
+ * setup's own phone and push steps, and this browser's registration.
+ */
+const addSmsMock: MockFunction = getJestMockFunction();
+const addCallMock: MockFunction = getJestMockFunction();
+const phoneFactsMock: MockFunction = getJestMockFunction();
+const registerBrowserMock: MockFunction = getJestMockFunction();
+const browserProblemMock: MockFunction = getJestMockFunction();
+const toastSuccessMock: MockFunction = getJestMockFunction();
+let thisBrowserDeviceId: string | null = null;
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallSetupApi",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        addSmsNumber: (...args: Array<unknown>) => {
+          return addSmsMock(...args);
+        },
+        addCallNumber: (...args: Array<unknown>) => {
+          return addCallMock(...args);
+        },
+        loadProjectPhoneFacts: (...args: Array<unknown>) => {
+          return phoneFactsMock(...args);
+        },
+        registerThisBrowser: (...args: Array<unknown>) => {
+          return registerBrowserMock(...args);
+        },
+        getBrowserPushProblem: (...args: Array<unknown>) => {
+          return browserProblemMock(...args);
+        },
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/BrowserPushRegistration",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/BrowserPushRegistration",
+    );
+
+    return {
+      ...actual,
+      __esModule: true,
+      getThisBrowserDeviceId: () => {
+        return thisBrowserDeviceId;
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/MobileAppCodes",
+  () => {
+    return {
+      __esModule: true,
+      default: (): ReactElement => {
+        return <div data-testid="app-codes-stub" />;
+      },
+    };
+  },
+);
+
+jest.mock("../../../UI/Utils/Toast", () => {
+  return {
+    __esModule: true,
+    default: {
+      success: (...args: Array<unknown>) => {
+        return toastSuccessMock(...args);
+      },
+      error: () => {
+        // A failure is drawn on the page.
+      },
+    },
+  };
+});
 
 jest.mock("../../../UI/Utils/ProductEvents", () => {
   return {
@@ -185,6 +268,17 @@ import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageCha
 import LeaveGuard from "../../../UI/Utils/LeaveGuard";
 import Navigation from "../../../UI/Utils/Navigation";
 import UserUtil from "../../../UI/Utils/User";
+import { ADD_WAYS_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/AddWaysToReach";
+import { ON_CALL_SETUP_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallSetup";
+import {
+  BROWSER_PUSH_PROBLEM_MESSAGES,
+  BrowserPushError,
+  BrowserPushProblem,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/BrowserPushRegistration";
+import {
+  ChannelGatedMethodList,
+  getChannelGatedMethodList,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/ProjectNotificationChannelsCopy";
 
 const ME: string = "a0000000-0000-4000-8000-000000000001";
 const ANA: string = "a0000000-0000-4000-8000-0000000000a1";
@@ -198,6 +292,10 @@ const SMS: string = "c0000000-0000-4000-8000-000000000002";
 const CALL: string = "c0000000-0000-4000-8000-000000000003";
 const PUSH: string = "c0000000-0000-4000-8000-000000000004";
 const UNVERIFIED_SMS: string = "c0000000-0000-4000-8000-000000000005";
+// A phone added from the ladder (#7451): its SMS and its call.
+const NEW_SMS: string = "c0000000-0000-4000-8000-000000000012";
+const NEW_CALL: string = "c0000000-0000-4000-8000-000000000013";
+const BROWSER_PUSH: string = "c0000000-0000-4000-8000-000000000014";
 
 const CELLS: Array<PagingLadderCell> = getPagingLadderCells({
   incidentSeverities: [
@@ -406,6 +504,23 @@ beforeEach(() => {
     unchangedCount: 0,
   });
   jest.spyOn(UserUtil, "getUserId").mockReturnValue(new ObjectID(ME));
+
+  isPushTurnedOff = false;
+  thisBrowserDeviceId = null;
+  addSmsMock.mockReset();
+  addCallMock.mockReset();
+  phoneFactsMock.mockReset();
+  registerBrowserMock.mockReset();
+  browserProblemMock.mockReset();
+  toastSuccessMock.mockReset();
+  // This browser could register; SMS and calls are on.
+  browserProblemMock.mockReturnValue(null as never);
+  phoneFactsMock.mockResolvedValue({
+    isSmsOn: true,
+    isCallOn: true,
+    balanceInUSDCents: null,
+  } as never);
+  addCallMock.mockResolvedValue({ id: NEW_CALL, isVerified: true } as never);
 });
 
 afterEach(() => {
@@ -1322,5 +1437,404 @@ describe("a member's page", () => {
       "aria-label",
       "Remove A notification method this page cannot name",
     );
+  });
+});
+
+/*
+ * ADDING A WAY TO REACH YOU WITHOUT LEAVING THE PAGE (#7451): your phone,
+ * with one number and one code for SMS and calls - the on-call guided
+ * setup's own step - this browser, or the app; each offered only while it
+ * would add something, and the ladder read again after each. And the
+ * project's ask for a phone method (#7449).
+ */
+describe("adding a way to reach you from the ladder", () => {
+  const ONLY_EMAIL: Array<PagingMethodChoice> = [
+    choice("userEmailId", EMAIL, "Email", "me@example.com"),
+  ];
+
+  const givenOnlyEmail: () => void = (): void => {
+    loadMethodsMock.mockResolvedValue(ONLY_EMAIL);
+    givenRules(rulesFor(CELLS, [step("userEmailId", EMAIL, 0)]));
+  };
+
+  const addWays: () => Promise<HTMLElement> =
+    async (): Promise<HTMLElement> => {
+      return await screen.findByTestId("paging-ladder-add-ways");
+    };
+
+  const typeNumberAndSend: (value: string) => Promise<void> = async (
+    value: string,
+  ): Promise<void> => {
+    const form: HTMLElement = await screen.findByTestId(
+      "paging-ladder-phone-form",
+    );
+    fireEvent.change(within(form).getByTestId("paging-ladder-phone"), {
+      target: { value: value },
+    });
+    fireEvent.click(within(form).getByTestId("paging-ladder-send-code"));
+  };
+
+  test("somebody with only their email is offered their phone, this browser and the app", async () => {
+    givenOnlyEmail();
+    renderPage();
+
+    const ways: HTMLElement = await addWays();
+
+    expect(
+      within(ways).getByTestId("paging-ladder-add-phone"),
+    ).toHaveTextContent(ADD_WAYS_COPY.addYourPhone);
+    expect(
+      within(ways).getByTestId("paging-ladder-use-this-browser"),
+    ).toHaveTextContent(ON_CALL_SETUP_COPY.useThisBrowser);
+    expect(
+      within(ways).getByTestId("paging-ladder-get-the-app"),
+    ).toHaveTextContent(ON_CALL_SETUP_COPY.getTheApp);
+    // The project does not ask for a phone: nothing says it does.
+    expect(within(ways).queryByTestId("paging-ladder-phone-asked")).toBeNull();
+  });
+
+  test("adds their phone with one number and one code, for SMS and calls, then puts SMS at once and a call after 5 minutes in their ladder", async () => {
+    givenOnlyEmail();
+    renderPage();
+
+    fireEvent.click(
+      within(await addWays()).getByTestId("paging-ladder-add-phone"),
+    );
+
+    // A number that is not one is said in place, and nothing is sent.
+    await typeNumberAndSend("call me");
+    expect(
+      await screen.findByText(ON_CALL_SETUP_COPY.phoneError),
+    ).toBeInTheDocument();
+    expect(addSmsMock).not.toHaveBeenCalled();
+    expect(phoneFactsMock).toHaveBeenCalledTimes(1);
+
+    addSmsMock.mockResolvedValue({ id: NEW_SMS, isVerified: false } as never);
+
+    await typeNumberAndSend("+1 (555) 123-4567");
+
+    // One number, one code: the text's code, in the verify dialog.
+    expect(await screen.findByText("Verify +15551234567")).toBeInTheDocument();
+    expect(addSmsMock).toHaveBeenCalledWith("+15551234567");
+    expect(addCallMock).not.toHaveBeenCalled();
+
+    // Verified: the server gives each new method its rules in every card.
+    loadMethodsMock.mockResolvedValue([
+      ...ONLY_EMAIL,
+      choice("userSmsId", NEW_SMS, "SMS", "+15551234567"),
+      choice("userCallId", NEW_CALL, "Call", "+15551234567"),
+    ]);
+    givenRules(
+      rulesFor(CELLS, [
+        step("userEmailId", EMAIL, 0),
+        step("userSmsId", NEW_SMS, 0),
+        step("userCallId", NEW_CALL, 0),
+      ]),
+    );
+
+    fireEvent.click(screen.getByText("Enter the right code"));
+
+    // The same number for calls, with no second code.
+    await waitFor(() => {
+      expect(addCallMock).toHaveBeenCalledWith("+15551234567");
+    });
+    await waitFor(() => {
+      expect(drawnSteps()).toEqual([
+        {
+          wait: "At once",
+          methods: [
+            "Email: me@example.com",
+            "SMS: +15551234567",
+            "Phone call: +15551234567",
+          ],
+        },
+      ]);
+    });
+    expect(toastSuccessMock).toHaveBeenCalledWith(ADD_WAYS_COPY.phoneAdded);
+    expect(screen.queryByTestId("verify-modal-stub")).toBeNull();
+    // Their phone is here now: it is not offered again.
+    expect(screen.queryByTestId("paging-ladder-add-phone")).toBeNull();
+
+    // SMS at once, a call after 5 minutes: never leaving the page.
+    const removeOf: (label: string) => HTMLElement = (
+      label: string,
+    ): HTMLElement => {
+      return screen.getByRole("button", { name: `Remove ${label}` });
+    };
+
+    fireEvent.click(removeOf("Email: me@example.com"));
+    fireEvent.click(removeOf("Phone call: +15551234567"));
+    fireEvent.click(screen.getByTestId("paging-ladder-add-step-button"));
+    fireEvent.click(
+      screen.getByTestId(`paging-ladder-add-option-userCallId:${NEW_CALL}`),
+    );
+
+    expect(drawnSteps()).toEqual([
+      { wait: "At once", methods: ["SMS: +15551234567"] },
+      {
+        wait: "After 5 minutes",
+        methods: ["Phone call: +15551234567"],
+      },
+    ]);
+
+    fireEvent.click(screen.getByTestId("paging-ladder-save"));
+
+    await waitFor(() => {
+      expect(saveMock).toHaveBeenCalledWith({
+        userId: undefined,
+        steps: [
+          step("userSmsId", NEW_SMS, 0),
+          step("userCallId", NEW_CALL, 5),
+        ],
+      });
+    });
+    expect(navigateSpy).not.toHaveBeenCalled();
+    await settle();
+  });
+
+  test("a number verified at once needs no code", async () => {
+    givenOnlyEmail();
+    addSmsMock.mockResolvedValue({ id: NEW_SMS, isVerified: true } as never);
+    renderPage();
+
+    fireEvent.click(
+      within(await addWays()).getByTestId("paging-ladder-add-phone"),
+    );
+    await typeNumberAndSend("+15551234567");
+
+    await waitFor(() => {
+      expect(addCallMock).toHaveBeenCalledWith("+15551234567");
+    });
+    expect(screen.queryByTestId("verify-modal-stub")).toBeNull();
+    await waitFor(() => {
+      expect(loadDataMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  test("with calls off in the project, only SMS is added", async () => {
+    givenOnlyEmail();
+    phoneFactsMock.mockResolvedValue({
+      isSmsOn: true,
+      isCallOn: false,
+      balanceInUSDCents: null,
+    } as never);
+    addSmsMock.mockResolvedValue({ id: NEW_SMS, isVerified: true } as never);
+    renderPage();
+
+    fireEvent.click(
+      within(await addWays()).getByTestId("paging-ladder-add-phone"),
+    );
+    await waitFor(() => {
+      expect(phoneFactsMock).toHaveBeenCalled();
+    });
+    await settle();
+    await typeNumberAndSend("+15551234567");
+
+    await waitFor(() => {
+      expect(loadDataMock).toHaveBeenCalledTimes(2);
+    });
+    expect(addCallMock).not.toHaveBeenCalled();
+  });
+
+  test("with SMS off in the project, no number is asked for, and it says who can turn it on", async () => {
+    givenOnlyEmail();
+    phoneFactsMock.mockResolvedValue({
+      isSmsOn: false,
+      isCallOn: true,
+      balanceInUSDCents: null,
+    } as never);
+    renderPage();
+
+    fireEvent.click(
+      within(await addWays()).getByTestId("paging-ladder-add-phone"),
+    );
+
+    expect(
+      await screen.findByTestId("paging-ladder-sms-off"),
+    ).toHaveTextContent(
+      getChannelGatedMethodList(ChannelGatedMethodList.SMS).offSentence,
+    );
+    expect(screen.queryByTestId("paging-ladder-phone-form")).toBeNull();
+  });
+
+  test("a number the server refuses is said in its words, and the ladder stays", async () => {
+    givenOnlyEmail();
+    addSmsMock.mockRejectedValue(
+      new Error("This number is already added. Verify it, or add another."),
+    );
+    renderPage();
+
+    fireEvent.click(
+      within(await addWays()).getByTestId("paging-ladder-add-phone"),
+    );
+    await typeNumberAndSend("+15551234567");
+
+    expect(
+      await screen.findByTestId("paging-ladder-phone-error"),
+    ).toHaveTextContent("This number is already added");
+    expect(loadDataMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("Use this browser registers it from the click, and reads the ladder again", async () => {
+    givenOnlyEmail();
+    registerBrowserMock.mockResolvedValue({
+      deviceId: BROWSER_PUSH,
+      alreadyRegistered: false,
+    } as never);
+    renderPage();
+
+    fireEvent.click(
+      within(await addWays()).getByTestId("paging-ladder-use-this-browser"),
+    );
+
+    await waitFor(() => {
+      expect(registerBrowserMock).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(loadDataMock).toHaveBeenCalledTimes(2);
+    });
+    expect(toastSuccessMock).toHaveBeenCalledWith(
+      ON_CALL_SETUP_COPY.browserRegistered,
+    );
+  });
+
+  test("a browser that blocks notifications is said in its own words", async () => {
+    givenOnlyEmail();
+    registerBrowserMock.mockRejectedValue(
+      new BrowserPushError(BrowserPushProblem.PermissionBlocked),
+    );
+    renderPage();
+
+    fireEvent.click(
+      within(await addWays()).getByTestId("paging-ladder-use-this-browser"),
+    );
+
+    expect(
+      await screen.findByTestId("paging-ladder-browser-error"),
+    ).toHaveTextContent(
+      BROWSER_PUSH_PROBLEM_MESSAGES[BrowserPushProblem.PermissionBlocked],
+    );
+    expect(loadDataMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("Get the app shows its codes, and Recheck reads the ladder again", async () => {
+    givenOnlyEmail();
+    renderPage();
+
+    const getTheApp: HTMLElement = within(await addWays()).getByTestId(
+      "paging-ladder-get-the-app",
+    );
+    expect(getTheApp).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(getTheApp);
+
+    expect(screen.getByTestId("app-codes-stub")).toBeInTheDocument();
+    expect(getTheApp).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(screen.getByTestId("paging-ladder-app-recheck"));
+
+    await waitFor(() => {
+      expect(loadDataMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  test("only what would add something is offered", async () => {
+    // A number, the app on a phone, and this browser, all there already.
+    loadMethodsMock.mockResolvedValue([
+      ...ONLY_EMAIL,
+      choice("userSmsId", SMS, "SMS", "+15550100"),
+      choice("userPushId", PUSH, "Push", "Pixel 8"),
+      {
+        ...choice("userPushId", BROWSER_PUSH, "Push", "Chrome on macOS"),
+        hasPushLevel: false,
+      },
+    ]);
+    thisBrowserDeviceId = BROWSER_PUSH;
+    givenRules(ONE_LADDER);
+    renderPage();
+
+    await screen.findByTestId("paging-ladder");
+    await settle();
+
+    expect(screen.queryByTestId("paging-ladder-add-ways")).toBeNull();
+  });
+
+  test("this browser is not offered where it cannot be registered, nor push at all while the server has it off", async () => {
+    givenOnlyEmail();
+    browserProblemMock.mockReturnValue(
+      BrowserPushProblem.InsecureConnection as never,
+    );
+    renderPage();
+
+    const ways: HTMLElement = await addWays();
+
+    expect(
+      within(ways).queryByTestId("paging-ladder-use-this-browser"),
+    ).toBeNull();
+    expect(
+      within(ways).getByTestId("paging-ladder-get-the-app"),
+    ).toBeInTheDocument();
+
+    cleanup();
+    isPushTurnedOff = true;
+    browserProblemMock.mockReturnValue(null as never);
+    renderPage();
+
+    const withoutPush: HTMLElement = await addWays();
+
+    expect(
+      within(withoutPush).queryByTestId("paging-ladder-use-this-browser"),
+    ).toBeNull();
+    expect(
+      within(withoutPush).queryByTestId("paging-ladder-get-the-app"),
+    ).toBeNull();
+    expect(
+      within(withoutPush).getByTestId("paging-ladder-add-phone"),
+    ).toBeInTheDocument();
+  });
+
+  test("a project that asks everyone on call for a phone says so, until there is one", async () => {
+    givenOnlyEmail();
+    loadDataMock.mockResolvedValue({
+      cells: CELLS,
+      rules: rulesFor(CELLS, [step("userEmailId", EMAIL, 0)]),
+      severityColors: {},
+      isPhoneMethodRequired: true,
+    });
+    renderPage();
+
+    expect(
+      within(await addWays()).getByTestId("paging-ladder-phone-asked"),
+    ).toHaveTextContent(ADD_WAYS_COPY.phoneAsked);
+
+    cleanup();
+    loadMethodsMock.mockResolvedValue(MY_METHODS);
+    loadDataMock.mockResolvedValue({
+      cells: CELLS,
+      rules: ONE_LADDER,
+      severityColors: {},
+      isPhoneMethodRequired: true,
+    });
+    renderPage();
+
+    await screen.findByTestId("paging-ladder");
+    await settle();
+    expect(screen.queryByTestId("paging-ladder-phone-asked")).toBeNull();
+  });
+
+  test("a member's page offers nothing to add: their methods are their own", async () => {
+    givenRules(ONE_LADDER);
+    renderPage({
+      userId: new ObjectID(ANA),
+      person: { displayName: "Ana Lopez", firstName: "Ana" },
+      notificationMethods: [],
+      isEditable: true,
+    });
+
+    await screen.findByTestId("paging-ladder");
+    await settle();
+
+    expect(screen.queryByTestId("paging-ladder-add-ways")).toBeNull();
+    expect(addSmsMock).not.toHaveBeenCalled();
   });
 });

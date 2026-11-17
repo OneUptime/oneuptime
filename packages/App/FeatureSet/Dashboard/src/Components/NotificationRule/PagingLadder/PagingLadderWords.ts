@@ -90,8 +90,9 @@ export const PAGING_LADDER_COPY: {
   add: translationKey("Add"),
   // One step more at the end, after the last one's time.
   addStep: translationKey("Add Step"),
+  // Your phone, this browser or the app are added under it (#7451).
   ownNoMethods: translationKey(
-    "You have no verified notification method yet. Add your phone or the app in Notification Methods, then come back to put it in your ladder.",
+    "You have no verified notification method yet. Add one below to put it in your ladder.",
   ),
   memberNoMethods: translationKey(
     "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.",

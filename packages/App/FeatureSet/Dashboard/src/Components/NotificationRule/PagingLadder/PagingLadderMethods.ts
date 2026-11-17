@@ -7,6 +7,8 @@ import {
   getPagingMethodColumnForChannel,
 } from "Common/Types/NotificationRule/PagingLadder";
 import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
+import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * THE METHODS A LADDER CAN NAME (#6820), one shape for both places the
@@ -40,7 +42,32 @@ export interface PagingMethodChoice {
    * are offered the level, as the grid offers it.
    */
   hasPushLevel: boolean;
+  /*
+   * A channel, not anybody's method: a step of the project's default
+   * ladder (#7449), named by its channel alone ("Push notification"), never
+   * as a device or a number nobody has given.
+   */
+  isChannelOnly?: boolean | undefined;
 }
+
+/*
+ * A method's line, as the cards name it: "SMS: +15550100" - or, for a
+ * channel of the project's default, its name alone.
+ */
+export const getMethodChoiceLabel: (
+  translator: Translator,
+  choice: PagingMethodChoice,
+) => string = (translator: Translator, choice: PagingMethodChoice): string => {
+  if (choice.isChannelOnly) {
+    return NotificationMethodUtil.getMethodName(translator, choice.channel);
+  }
+
+  return NotificationMethodUtil.getMethodLabel(
+    translator,
+    choice.channel,
+    choice.identifier,
+  );
+};
 
 /*
  * A method as NotificationMethodUtil.getLabel names it ("SMS: +15550100"),
