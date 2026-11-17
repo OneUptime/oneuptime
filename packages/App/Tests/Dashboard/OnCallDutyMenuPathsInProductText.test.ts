@@ -137,7 +137,7 @@ const READINESS_NOTE: string =
   "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call > Readiness for the full list.";
 
 describe("the menu the paths are held to, read from its source", () => {
-  test("On-Call: the policies, schedules and incoming calls are open; the rest starts folded", () => {
+  test("On-Call: the policies, the incoming call policies among them, and the schedules are open; the rest starts folded", () => {
     expect(
       MENU.sections.map((menuSection: SettingsMenuSection): string => {
         return `${menuSection.title}${menuSection.folded ? " (folded)" : ""}`;
@@ -145,16 +145,17 @@ describe("the menu the paths are held to, read from its source", () => {
     ).toEqual([
       "Policies",
       "Schedules",
-      "Incoming Calls",
       "Advanced (folded)",
       "Reports (folded)",
       "Workspace (folded)",
       "Settings (folded)",
       "Developer (folded)",
     ]);
+    // Incoming Call Policies is in Policies: its own section went in #9216.
     expect(section("Policies").items).toEqual([
       "On-Call Policies",
       "Readiness",
+      "Incoming Call Policies",
     ]);
     expect(section("Schedules").items).toEqual([
       "On-Call Schedules",
