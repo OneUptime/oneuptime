@@ -1,3 +1,4 @@
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import Encryption from "../../../Server/Utils/Encryption";
 import logger from "../../../Server/Utils/Logger";
@@ -67,7 +68,7 @@ function keyHashOf(key: string): string {
 }
 
 // A service with no hooks of its own: what DatabaseService itself does.
-function plainService<T extends Probe | TelemetryIngestionKey>(modelType: {
+function plainService<T extends BaseModel>(modelType: {
   new (): T;
 }): DatabaseService<T> {
   return new DatabaseService<T>(modelType);
@@ -173,7 +174,9 @@ describe("a presented key, created", () => {
 
     await expect(
       service.create({ data: tooLong, props: { isRoot: true } }),
-    ).rejects.toThrow("key length cannot be more than 100 characters");
+    ).rejects.toThrow(
+      "The value of key can be at most 100 characters long. Shorten it and try again.",
+    );
   });
 });
 

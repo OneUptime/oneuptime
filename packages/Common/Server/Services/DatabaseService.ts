@@ -2063,7 +2063,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     if (maxLength && value.length > maxLength) {
       throw new BadDataException(
-        `${column} length cannot be more than ${maxLength} characters`,
+        `The value of ${column} can be at most ${maxLength} characters long. Shorten it and try again.`,
       );
     }
   }
