@@ -17,10 +17,12 @@ import * as React from "react";
  * thing worth pinning — an AI section added here by symmetry would be a
  * heading with nothing behind it.
  *
- * It gets a Calendar section of its own, open, right after Overview: the
- * Maintenance Calendar is a page of its own (it was a List | Calendar switch
- * on All Maintenance Events), and its Calendar Settings - the calendars from outside the
- * project drawn on it - sit in the folded Settings, right before Numbering.
+ * The Maintenance Calendar is the last entry of Overview, which is open: it
+ * is a page of its own (it was a List | Calendar switch on All Maintenance
+ * Events, then, until #9216, a Calendar section holding nothing else - a
+ * heading that nearly repeated its one entry). Its Calendar Settings - the
+ * calendars from outside the project drawn on it - sit in the folded
+ * Settings, right before Numbering.
  *
  * Rendered against the real RouteMap rather than asserted on the source, so a
  * menu entry pointing at a route that does not exist fails here. The
@@ -99,12 +101,11 @@ describe("Scheduled maintenance side menu", () => {
   });
 
   describe("sections", () => {
-    test("renders Overview, Calendar, Workspace, Rules, Settings and Developer in order", async () => {
+    test("renders Overview, Workspace, Rules, Settings and Developer in order, with no Calendar section (#9216)", async () => {
       await renderScheduledMaintenanceMenu();
 
       expect(sectionTitlesInOrder()).toEqual([
         "Overview",
-        "Calendar",
         "Workspace",
         "Rules",
         "Settings",
@@ -128,7 +129,6 @@ describe("Scheduled maintenance side menu", () => {
       await renderScheduledMaintenanceMenu();
 
       expect(isExpanded("Overview")).toBe(true);
-      expect(isExpanded("Calendar")).toBe(true);
       expect(isExpanded("Workspace")).toBe(false);
       expect(isExpanded("Rules")).toBe(false);
       expect(isExpanded("Settings")).toBe(false);
@@ -177,7 +177,7 @@ describe("Scheduled maintenance side menu", () => {
       ]);
     });
 
-    test("the overview and workspace sections are unchanged by the move", async () => {
+    test("Overview gains the Maintenance Calendar last, and the workspace section is unchanged by the move", async () => {
       await renderScheduledMaintenanceMenu();
 
       expect(linksIn("Overview")).toEqual([
@@ -188,6 +188,10 @@ describe("Scheduled maintenance side menu", () => {
         {
           title: "Ongoing Maintenance Events",
           href: routeFor(PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS),
+        },
+        {
+          title: "Maintenance Calendar",
+          href: routeFor(PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR),
         },
       ]);
 
@@ -208,27 +212,27 @@ describe("Scheduled maintenance side menu", () => {
     });
   });
 
-  describe("Calendar section", () => {
-    test("holds the Maintenance Calendar, at /calendar", async () => {
+  describe("Maintenance Calendar, in Overview", () => {
+    test("is the last entry of Overview, at /calendar, with its icon", async () => {
       await renderScheduledMaintenanceMenu();
 
-      expect(linksIn("Calendar")).toEqual([
-        {
-          title: "Maintenance Calendar",
-          href: routeFor(PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR),
-        },
-      ]);
+      const overview: Array<MenuLink> = linksIn("Overview");
+
+      expect(overview[overview.length - 1]).toEqual({
+        title: "Maintenance Calendar",
+        href: routeFor(PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR),
+      });
       expect(routeFor(PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR)).toBe(
         `${ROOT}/calendar`,
       );
-      expect(iconCountIn("Calendar")).toBe(1);
+      expect(iconCountIn("Overview")).toBe(overview.length);
     });
 
     test("marks the Maintenance Calendar on its page, and All Maintenance Events no longer", async () => {
       goTo(`${ROOT}/calendar`);
       await renderScheduledMaintenanceMenu();
 
-      expect(isExpanded("Calendar")).toBe(true);
+      expect(isExpanded("Overview")).toBe(true);
       expect(activeLinkTitles()).toEqual(["Maintenance Calendar"]);
     });
 
@@ -471,7 +475,7 @@ describe("Scheduled maintenance side menu", () => {
       await renderScheduledMaintenanceMenu();
 
       linksIn("Rules")
-        .concat(linksIn("Settings"), linksIn("Overview"), linksIn("Calendar"))
+        .concat(linksIn("Settings"), linksIn("Overview"))
         .forEach((link: MenuLink) => {
           expect(link.href).toContain(ROOT);
           expect(link.href).not.toContain(":");
@@ -492,11 +496,11 @@ describe("Scheduled maintenance side menu", () => {
       expect(mobileSummaryText()).toContain("Rules / Runbook Rules");
     });
 
-    test("names the Calendar section on the calendar", async () => {
+    test("names the Overview section on the calendar", async () => {
       goTo(`${ROOT}/calendar`);
       await renderScheduledMaintenanceMenu();
 
-      expect(mobileSummaryText()).toContain("Calendar / Maintenance Calendar");
+      expect(mobileSummaryText()).toContain("Overview / Maintenance Calendar");
     });
 
     test("still names the Settings section on a settings page", async () => {

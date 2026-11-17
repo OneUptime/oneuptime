@@ -89,7 +89,7 @@ const TimeUnit: FunctionComponent<{
       <span className="text-2xl font-semibold leading-none tabular-nums text-gray-900">
         {props.pad ? String(props.value).padStart(2, "0") : props.value}
       </span>
-      <span className="mt-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">
+      <span className="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500">
         {translator.translateText(props.label)}
       </span>
     </div>

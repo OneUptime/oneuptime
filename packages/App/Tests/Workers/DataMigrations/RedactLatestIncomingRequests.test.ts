@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import MonitorService from "Common/Server/Services/MonitorService";
 import logger from "Common/Server/Utils/Logger";
+import LatestIncomingRequest, {
+  ReadersCopyRewrite,
+} from "Common/Server/Utils/Monitor/LatestIncomingRequest";
+import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import ObjectID from "Common/Types/ObjectID";
 import RedactLatestIncomingRequests, {
   PAGE_SIZE,
@@ -20,8 +25,9 @@ import path from "path";
  * Postgres, RedactLatestIncomingRequestsPostgres): the request as it came
  * moves beside the copy people read, and the copy is cut as the logs are.
  * Pinned here: which rows are read, that each is handed to the split, that
- * it walks the whole table a page at a time, and that a failing row holds
- * no other back.
+ * it walks the whole table a page at a time, that a failing row holds no
+ * other back, and that the split still reads a request kept once for as long
+ * as the migration is registered (#8906).
  */
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
@@ -192,6 +198,46 @@ describe("RedactLatestIncomingRequests", () => {
 
       expect(table.statements).toHaveLength(0);
       expect(split).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The split reads a request kept once - in the copy people read, as a
+     * server older than 14.0.106 left it - as the request as it came
+     * (LatestIncomingRequest.getAsReceived). That fallback stays for as
+     * long as this migration is registered, and the two go together
+     * (#8906): the heartbeat splits nothing any more, so dropping the
+     * fallback alone would leave such a request unsplit, raw, in the copy
+     * people read.
+     */
+    test("while it is registered, the split still reads a request kept once in the copy people read", () => {
+      const keptOnce: IncomingMonitorRequest = {
+        projectId: { _type: "ObjectID", value: "project-1" },
+        monitorId: { _type: "ObjectID", value: idOf(1) },
+        requestMethod: "POST",
+        requestHeaders: { authorization: "Bearer example-live-token-7f3a" },
+        requestBody: { status: "deployed" },
+        incomingRequestReceivedAt: "2026-11-09T08:00:00.000Z",
+        checkedAt: "2026-11-09T08:00:00.000Z",
+      } as unknown as IncomingMonitorRequest;
+      const monitor: Monitor = new Monitor(new ObjectID(idOf(1)));
+      monitor.keepResponseContent = false;
+      monitor.incomingMonitorRequest = keptOnce;
+
+      expect(registeredMigrations()).toContain(MIGRATION_NAME);
+
+      const rewrite: ReadersCopyRewrite | null =
+        LatestIncomingRequest.getReadersCopyRewrite(monitor);
+
+      expect(rewrite).not.toBeNull();
+      expect(rewrite!.data.incomingMonitorRequestAsReceived).toEqual(keptOnce);
+      expect(
+        rewrite!.data.incomingMonitorRequest.isResponseContentOmitted,
+      ).toBe(true);
+      expect(
+        rewrite!.data.incomingMonitorRequest.requestHeaders,
+      ).toBeUndefined();
+      // Written only while nothing is kept beside the copy yet.
+      expect(rewrite!.expectedData.incomingMonitorRequestAsReceived).toBeNull();
     });
   });
 

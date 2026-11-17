@@ -32,7 +32,7 @@ import { SESSIONS_WITHOUT_SSO_ROUTE } from "../../../Types/SSO/SessionsWithoutSs
  * Admin Dashboard > Settings > Single Sign-On's Require SSO card, in every
  * language.
  *
- * The instance-wide "Require SSO for Login" switch is on the page in every
+ * The instance-wide "Require SSO to Sign In" switch is on the page in every
  * edition, under the SAML and OIDC providers it depends on (it was on
  * Settings > Authentication), and it asks before it requires SSO. Its
  * strings reach the screen through components that look each one up by its
@@ -131,7 +131,7 @@ const OTHER_LOCALES: Array<string> = [...ADMIN_DASHBOARD_LANGUAGES];
 const CARD_TITLE: string = "Require SSO";
 const CARD_DESCRIPTION: string =
   "Before you require SSO, sign in with a provider using Test Sign-in in its row.";
-const SWITCH_TITLE: string = "Require SSO for Login";
+const SWITCH_TITLE: string = "Require SSO to Sign In";
 // The switch's sentence while SSO is not required.
 const SWITCH_NOTE: string =
   "People can sign in with a password, a passkey or SSO.";

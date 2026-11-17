@@ -86,16 +86,15 @@ Open **Bereikbaarheid** via het menu **Producten** in de bovenste balk. Het open
 
 | Sectie | Pagina's |
 | --- | --- |
-| **Beleidsregels** | **Bereikbaarheidsbeleid** en **Gereedheid**: wie je beleid echt bereikt |
+| **Beleidsregels** | **Bereikbaarheidsbeleid**, **Gereedheid**: wie je beleid echt bereikt, en **Beleid inkomende gesprekken**: een telefoonnummer dat overgaat bij wie dienst heeft |
 | **Schema's** | **Bereikbaarheidsschema's**, **Tijdlijn van bereikbaarheidsschema's** en **Agendafeeds** |
-| **Inkomende gesprekken** | **Beleid inkomende gesprekken**: een telefoonnummer dat overgaat bij wie dienst heeft |
 | **Geavanceerd** | **Gebruikersoverschrijvingen**, **Uitvoeringslogboeken** en **Gearchiveerde beleidsregels** |
 | **Rapporten** | **Bereikbaarheidstijd gebruiker**: hoe lang elke persoon dienst had |
 | **Werkruimte** | **Slack**, **Microsoft Teams** en **Mattermost**: regels die bereikbaarheidsgebeurtenissen in een kanaal plaatsen |
 | **Instellingen** | **Aangepaste velden**, **Labelregels** en **Eigenaarsregels** |
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI** en **AI-assistenten**: bereikbaarheid ingericht vanuit code |
 
-**Beleidsregels**, **Schema's** en **Inkomende gesprekken** staan open; de andere secties beginnen ingeklapt, en een sectie gaat vanzelf open als je op een van de pagina's ervan bent. **Werkruimte** toont de chattools die het project heeft gekoppeld, of **Werkruimte koppelen** als het er geen heeft.
+**Beleidsregels** en **Schema's** staan open; de andere secties beginnen ingeklapt, en een sectie gaat vanzelf open als je op een van de pagina's ervan bent. **Werkruimte** toont de chattools die het project heeft gekoppeld, of **Werkruimte koppelen** als het er geen heeft.
 
 Als je dienst hebt voor een beleid, laat de bel rechtsboven dat zien. Klik erop om **Mijn bereikbaarheidsbeleid** te openen: elk beleid waarvoor je dienst hebt, in al je projecten, en of je er direct in staat, via een team of via een schema.
 

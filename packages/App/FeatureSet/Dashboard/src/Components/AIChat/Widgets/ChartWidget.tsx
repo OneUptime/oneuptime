@@ -300,7 +300,7 @@ const ChartWidget: FunctionComponent<ComponentProps> = (
 
   if (!hasData) {
     return (
-      <div className="flex h-24 items-center justify-center text-xs text-gray-400">
+      <div className="flex h-24 items-center justify-center text-xs text-gray-500">
         {translator.translateText("No data points in this range.")}
       </div>
     );

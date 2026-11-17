@@ -279,7 +279,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
       </div>
 
       {/* Sub-row: trace id + status message (error only) */}
-      <div className="flex items-center gap-3 px-5 pb-2.5 pl-[3.25rem] text-[11px] text-gray-500">
+      <div className="flex items-center gap-3 px-5 pb-2.5 pl-[3.25rem] text-xs text-gray-500">
         {shortTraceId && (
           <span
             className="font-mono tracking-tight text-gray-500 transition-colors group-hover:text-gray-700"

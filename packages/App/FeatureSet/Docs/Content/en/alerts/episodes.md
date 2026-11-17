@@ -179,11 +179,8 @@ An episode you create has no grouping rule, so the list shows its **Grouping Rul
 
 | Side menu section | Pages                                                              |
 | ----------------- | ------------------------------------------------------------------ |
-| **Overview** | **Overview**, **State Timeline** |
-| **Investigation** | **Description**, **Root Cause**, **Remediation Notes** |
-| **Team** | **Owners** |
-| **Alerts** | **Member Alerts** |
-| **Notes** | **Private Notes** |
+| **Overview** | **Overview**, **State Timeline**, **Member Alerts**, **Owners** |
+| **Investigation** | **Description**, **Root Cause**, **Remediation Notes**, **Private Notes** |
 | **Developer** | **Terraform**, **API**, **CLI**, **AI Assistants** |
 | **Advanced** | **Audit Logs**, **Delete Episode** |
 

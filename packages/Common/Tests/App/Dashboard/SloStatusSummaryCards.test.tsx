@@ -280,7 +280,7 @@ describe("SloStatusSummaryCards", () => {
     ).toHaveClass("text-red-600");
     expect(
       screen.getByTestId(`slo-status-count-${SloStatusSummaryTileKey.Paused}`),
-    ).toHaveClass("text-gray-400");
+    ).toHaveClass("text-gray-500");
   });
 
   test("keeps the tiles inert until the counts land", async () => {

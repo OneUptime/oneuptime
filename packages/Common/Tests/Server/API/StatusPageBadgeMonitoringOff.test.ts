@@ -133,6 +133,12 @@ function mockPage(data: {
   const statusPage: StatusPage = new StatusPage();
   statusPage._id = ObjectID.generate().toString();
   statusPage.projectId = ObjectID.generate();
+  /*
+   * The page is read by its id, with its badge token - kept encrypted
+   * (#9012), so read decrypted - which the route holds the token in the URL
+   * to (StatusPageService.findOneByPresentedKey).
+   */
+  statusPage.embeddedOverallStatusToken = TOKEN;
 
   jest
     .spyOn(StatusPageService, "findOneBy")

@@ -30,7 +30,7 @@ const mockRouter: MockIdentityRouter = createMockIdentityRouter();
 
 /*
  * ---------------------------------------------------------------------------------------------
- * A private status page's "Require SSO for login", in every edition.
+ * A private status page's "Require SSO to sign in", in every edition.
  *
  * The three password surfaces of a status page - /login, /forgot-password and
  * /reset-password - and its two sign-in link surfaces - /send-magic-link and

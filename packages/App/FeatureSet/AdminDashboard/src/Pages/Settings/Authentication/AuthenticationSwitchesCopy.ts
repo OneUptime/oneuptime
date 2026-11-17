@@ -3,7 +3,7 @@
  * so App/Tests can read them (see Index.tsx for the switches themselves).
  *
  * The Sign Up, Sign-In Links and Project Creation cards read the page's own
- * locale keys, pages.settings.authentication.*. Require SSO for Login lives
+ * locale keys, pages.settings.authentication.*. Require SSO to Sign In lives
  * on Settings > Single Sign-On now, beside the providers it depends on
  * (../SSO/SsoSettingsCopy).
  */

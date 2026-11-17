@@ -139,10 +139,10 @@ describe("the SSO guide", () => {
 
   it("warns to let people back in first, on the project's SSO page and a status page's SSO and OIDC pages alike", () => {
     expect(section).toContain(
-      "While the project still requires SSO, its **SSO** page also shows **Require SSO for Login**: turn it off before you turn the last provider off. Until then the last provider people can sign in with cannot be turned off or deleted, so nobody is locked out of the project.",
+      "While the project still requires SSO, its **SSO** page also shows **Require SSO to Sign In**: turn it off before you turn the last provider off. Until then the last provider people can sign in with cannot be turned off or deleted, so nobody is locked out of the project.",
     );
     expect(section).toContain(
-      "While the status page still requires SSO, both tabs also show **Require SSO for Login**: turn it off before you turn its providers off, or its private users cannot sign in at all.",
+      "While the status page still requires SSO, both tabs also show **Require SSO to Sign In**: turn it off before you turn its providers off, or its private users cannot sign in at all.",
     );
   });
 });

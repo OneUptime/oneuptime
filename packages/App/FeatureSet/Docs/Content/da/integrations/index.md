@@ -119,7 +119,7 @@ Til et alarmeringsværktøj starter du med en [monitor for indgående anmodninge
 2. Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og vælg **Webhook**. Klik på triggeren og derefter på **Kopiér URL**.
 3. Send det andet værktøjs webhook til den URL som en `POST` med `Content-Type: application/json`.
 4. Tilføj de blokke, der handler på den. De læser anmodningen med referencer som `{{local.components.webhook-1.returnValues.request-body.status}}`: en **Hvis / Ellers**-blok til at kontrollere et felt og derefter **Opret Hændelse (én post)** til at erklære en hændelse.
-5. Slå **Aktiveret** til øverst i **Bygger**, send en test fra det andet værktøj, og åbn **Protokoller → Kørsler** for at se, hvad der kom ind.
+5. Slå **Aktiveret** til øverst i **Bygger**, send en test fra det andet værktøj, og åbn **Kørsler** for at se, hvad der kom ind.
 :::
 
 URL'en er den eneste loginoplysning, så behandl den som en adgangskode. Se [Webhook](/docs/workflows/triggers#webhook).

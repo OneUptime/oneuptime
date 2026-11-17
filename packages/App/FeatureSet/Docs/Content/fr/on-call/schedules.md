@@ -86,7 +86,7 @@ Chaque personne garde une seule couleur partout, pour que vous puissiez la suivr
 
 ## Quand quelqu'un est absent
 
-Quand quelqu'un part en vacances, faites-lui passer son tour jusqu'à son retour. Sur la page **Couches** du planning, dépliez une couche et cliquez sur **Passer son tour jusqu'au…** à côté de son nom. Cela ouvre le formulaire d'absence avec cette personne sous **Qui est absent ?**, **Personne suivante de la rotation** sous **Qui remplace ?** et **Commence** à maintenant : réglez **Se termine** sur la date de son retour, puis enregistrez.
+Quand quelqu'un part en vacances, faites-lui passer son tour jusqu'à son retour. Sur la page **Couches** du planning, dépliez une couche et cliquez sur **Passer son tour jusqu'au…** à côté de son nom. Cela ouvre le formulaire d'absence avec cette personne sous **Qui est absent ?**, **Personne suivante de la rotation** sous **Qui remplace ?** et **Commence** à maintenant : réglez **Se termine** sur la date de son retour, puis enregistrez. Si la personne a déjà une absence à ces heures, le formulaire le signale à côté des heures pendant que vous les choisissez, avec **Modifier ce remplacement** pour modifier plutôt celui-là.
 
 Pendant son absence :
 
@@ -97,7 +97,7 @@ Pendant son absence :
 
 Choisissez plutôt quelqu'un sous **Qui remplace ?**, et cette personne reçoit toutes ses alertes, de chaque planning et de chaque politique, au lieu que la rotation reprenne ses tours.
 
-Une absence ajoutée ainsi s'applique à toutes les politiques d'astreinte, si bien qu'elle demande la permission des remplacements sur tout le projet. Si le rôle de votre équipe est limité à ses propres politiques ou à certaines étiquettes, elle s'ajoute à la place sur les politiques de ce planning sur lesquelles vous pouvez ajouter des remplacements, avec un remplacement par politique, listé sur la page **Remplacements d'utilisateur** de chaque politique ; s'il y en a plusieurs, vous les cochez sous **Politiques d'astreinte**. **Passer son tour jusqu'au…** n'est verrouillé et ne dit pourquoi que là où vous n'en avez aucune. Elle figure dans **Astreinte** > **Avancé** > **Remplacements d'utilisateur**, où vous pouvez la supprimer pour faire revenir la personne plus tôt. Pour faire passer son tour à quelqu'un dans une seule politique, ajoutez le remplacement sur la page **Remplacements d'utilisateur** de cette politique et laissez **Qui remplace ?** tel quel. Voir [Remplacements d'utilisateur](/docs/on-call/user-overrides).
+Une absence ajoutée ainsi s'applique à toutes les politiques d'astreinte, si bien qu'elle demande la permission des remplacements sur tout le projet. Si le rôle de votre équipe est limité à ses propres politiques ou à certaines étiquettes, elle s'ajoute à la place sur les politiques de ce planning sur lesquelles vous pouvez ajouter des remplacements, avec un remplacement par politique, listé sur la page **Remplacements d'utilisateur** de chaque politique ; s'il y en a plusieurs, vous les cochez sous **Politiques d'astreinte**. **Passer son tour jusqu'au…** n'est verrouillé et ne dit pourquoi que là où vous n'en avez aucune. Elle figure dans **Astreinte** > **Avancé** > **Remplacements d'utilisateur**, ainsi que parmi les remplacements d'utilisateur du planning sur sa page **Couches**, où **Terminer maintenant** fait revenir la personne plus tôt. Pour faire passer son tour à quelqu'un dans une seule politique, ajoutez le remplacement sur la page **Remplacements d'utilisateur** de cette politique et laissez **Qui remplace ?** tel quel. Voir [Remplacements d'utilisateur](/docs/on-call/user-overrides).
 
 Avec l'API, un remplacement d'utilisateur (`/api/on-call-duty-policy-user-override`) créé sans `routeAlertsToUserId` fait passer son tour à la personne de `overrideUserId` de `startsAt` à `endsAt`.
 
@@ -111,6 +111,8 @@ Les plannings d'astreinte sont la ressource `/api/on-call-duty-policy-schedule` 
 - Un planning créé sans eux n'a pas de couches, comme auparavant ; la ressource Terraform des plannings ne les envoie pas.
 - Une couche créée sans `rotation` passe le relais chaque jour, comme toujours.
 - Un changement apporté aux couches d'un planning et aux personnes qui les composent, fait avec l'API ou Terraform, est annoncé comme un seul changement : qui est d'astreinte est calculé une fois que les couches sont restées une demi-minute sans changement, et une personne qui prend ou quitte l'astreinte, ou qui est la suivante, en est informée une fois, et non une fois par couche ou par personne écrite. Les alertes vont à la personne que les couches mettent d'astreinte dès que chaque changement est enregistré.
+- Pour changer d'un coup qui prend son tour dans les couches d'un planning, comme le fait **Enregistrer les modifications** sur la page **Couches**, lisez les couches avec `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` et renvoyez-les, modifiées, à `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`. Elles listent chaque couche que le planning garde, la plus prioritaire en premier, chacune avec ses personnes dans l'ordre de leurs tours : une personne déjà dans une couche par son `layerUserId`, une personne ajoutée par son seul `userId`. `deletedLayerIds` liste les couches à supprimer.
+- Un enregistrement est écrit en entier ou pas du tout, et qui est d'astreinte est calculé une seule fois, aussitôt. Un enregistrement fait après qu'une autre personne a changé les couches est refusé avec 409, car son `basedOnVersion` n'est plus celui des couches : lisez à nouveau les couches et appliquez la modification à ce qui s'y trouve maintenant. La ressource Terraform `oneuptime_on_call_schedule_layers` enregistre ainsi les couches d'un planning.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
@@ -126,6 +128,29 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
     }
+  }'
+```
+
+```bash
+curl https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/layers \
+  -H "apikey: $ONEUPTIME_API_KEY"
+
+curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/save-layers \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "basedOnVersion": "<the version the read answered>",
+    "layers": [
+      {
+        "layerId": "<layer-id>",
+        "users": [
+          {"layerUserId": "<row-of-user-2>", "userId": "<user-id-2>"},
+          {"layerUserId": "<row-of-user-1>", "userId": "<user-id-1>"},
+          {"userId": "<user-id-4>"}
+        ]
+      }
+    ],
+    "deletedLayerIds": []
   }'
 ```
 

@@ -27,7 +27,7 @@ const FacetShowMoreButton: FunctionComponent<FacetShowMoreButtonProps> = (
   return (
     <button
       type="button"
-      className="mt-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-indigo-500 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
+      className="mt-1 rounded px-1.5 py-0.5 text-xs font-medium text-indigo-500 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
       aria-expanded={props.isShowingAll}
       onClick={props.onToggle}
     >

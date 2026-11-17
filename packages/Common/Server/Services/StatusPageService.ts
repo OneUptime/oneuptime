@@ -1361,7 +1361,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
    * request, or null: the page's sign-in cookie, its claims for this page,
    * and the session behind it read live - not revoked, not expired, its
    * private user not deleted, its sign-in still counting under the page's
-   * Require SSO for Login and Sign Readers Out After
+   * Require SSO to Sign In and Sign Readers Out After
    * (StatusPagePrivateUserSessionService.addSignInRule). One primary-key
    * lookup joined to the private user. Do not cache authorization:
    * revocation and soft deletion must take effect on the next request, even

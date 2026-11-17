@@ -149,7 +149,7 @@ Opsgenie responde `202` antes de procesar la solicitud, así que una solicitud q
 :::
 
 :::details El flujo de trabajo nunca se ejecuta
-Comprueba que está activado: **Habilitado**, en la parte superior de su **Constructor**. Después abre **Registros → Ejecuciones**: una ejecución que tomó el lado **No** del bloque **Si / Si no** es una actualización que no era una resolución.
+Comprueba que está activado: **Habilitado**, en la parte superior de su **Constructor**. Después abre **Ejecuciones**: una ejecución que tomó el lado **No** del bloque **Si / Si no** es una actualización que no era una resolución.
 :::
 
 ## Próximos pasos

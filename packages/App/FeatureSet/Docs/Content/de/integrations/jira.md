@@ -125,11 +125,11 @@ Ein Atlassian-**Dienstkonto** funktioniert auch. Ein Organisationsadministrator 
 :::steps
 1. Öffnen Sie **Arbeitsabläufe → Arbeitsablauf erstellen**. Wählen Sie unter **Oder mit einer Vorlage beginnen** in der Kategorienliste **Jira**, oder tippen Sie `Jira` in **Vorlagen durchsuchen…**, und klicken Sie auf die gewünschte Vorlage. Sie öffnet sich und zeigt, was sie tut und welche Einstellungen sie abfragt. Klicken Sie auf **Diese Vorlage verwenden**.
 2. **Name** wird aus der Vorlage ausgefüllt. Ändern Sie ihn, wenn Sie möchten.
-3. **Konfigurieren** fragt die Werte oben ab. Sie werden als eigene Variablen des Workflows gespeichert, unter **Arbeitsablaufvariablen** in seinem Menü. Das API-Token wird als Geheimnis gespeichert: Es wird in **Protokolle → Ausführungen** geschwärzt und gelangt nur in den `Authorization`-Header der Jira-Aufrufe.
+3. **Konfigurieren** fragt die Werte oben ab. Sie werden als eigene Variablen des Workflows gespeichert, unter **Arbeitsablaufvariablen** in seinem Menü. Das API-Token wird als Geheimnis gespeichert: Es wird in **Ausführungen** geschwärzt und gelangt nur in den `Authorization`-Header der Jira-Aufrufe.
 4. Klicken Sie auf **Arbeitsablauf erstellen**. Jeder Workflow wird ausgeschaltet angelegt: Schalten Sie oben in seinem **Editor** **Aktiviert** ein.
 :::
 
-Beginnen Sie mit **Create a Jira issue when an incident is declared**, oder für Warnungen mit **Create a Jira issue when an alert is created**: Jede andere Vorlage von OneUptime zu Jira derselben Art findet das Issue über das Label, das diese hinzufügt. Schalten Sie sie ein, melden Sie einen Testvorfall oder legen Sie eine Testwarnung an, und öffnen Sie **Protokolle → Ausführungen** des Workflows. Die Ausführung sollte mit **Ausgeführt** enden, und der **Antworttext** ihres letzten Schritts, `create-issue-1`, nennt das neue Issue.
+Beginnen Sie mit **Create a Jira issue when an incident is declared**, oder für Warnungen mit **Create a Jira issue when an alert is created**: Jede andere Vorlage von OneUptime zu Jira derselben Art findet das Issue über das Label, das diese hinzufügt. Schalten Sie sie ein, melden Sie einen Testvorfall oder legen Sie eine Testwarnung an, und öffnen Sie **Ausführungen** des Workflows. Die Ausführung sollte mit **Ausgeführt** enden, und der **Antworttext** ihres letzten Schritts, `create-issue-1`, nennt das neue Issue.
 
 Jeder Workflow behält seine eigene Kopie dieser Werte. Wenn Sie das Token ersetzen, aktualisieren Sie `jiraBasicAuthToken` unter **Arbeitsablaufvariablen** in jedem Jira-Workflow, der danach gefragt hat. Zieht Jira an eine andere Adresse um, aktualisieren Sie `jiraSiteUrl` und `jiraBaseUrl` auf dieselbe Weise.
 
@@ -180,7 +180,7 @@ Bevor Sie sich darauf verlassen:
 
 ### Prüfen, ob es funktioniert
 
-Die **Schritte** jeder Ausführung sagen, was die Vorlage getan hat, öffnen Sie also die Ausführung in **Protokolle → Ausführungen** und sehen Sie nach, wie sie geendet hat:
+Die **Schritte** jeder Ausführung sagen, was die Vorlage getan hat, öffnen Sie also die Ausführung in **Ausführungen** und sehen Sie nach, wie sie geendet hat:
 
 - **Ausgeführt**: Sie hat ihre Aufgabe erledigt, und ihr letzter Schritt nennt das Issue, den Vorfall oder die Warnung.
 - **Ausgeführt**, mit dem Schritt **Mit JavaScript prüfen** auf **Nein**: Sie hat das Ereignis absichtlich übersprungen, und der Schritt sagt, warum: Das Issue ist mit keinem Datensatz dieser Art verknüpft, die Notiz kam aus Jira, der Datensatz ist privat, oder dem neuen Status ist kein Jira-Status zugeordnet.
@@ -272,7 +272,7 @@ Private Notizen und Bearbeitungskommentare werden durch den Eintrag `properties`
 
 - **Nur Jira Cloud.** Die Vorlagen rufen die REST-API v3 von Jira Cloud mit Basic-Auth auf. Data Center hat keine v3 und nimmt ein persönliches Zugriffstoken als `Bearer` an, also braucht jeder API-Baustein die Änderungen aus [Jira Data Center](#jira-data-center): Pfade mit `/rest/api/2/...`, einfache Zeichenketten statt Bodies im Atlassian Document Format, und den Header. Die Bausteine `find-issue-1` ändern sich am meisten: Data Center hat kein `/search/jql`, sie müssen also stattdessen per `POST` an `/rest/api/2/search` senden.
 - **Aus Jira gemeldete Vorfälle sind still.** Sie werden vor Ihren Statusseiten verborgen angelegt, ohne Abonnenten der Statusseite zu benachrichtigen, weil der Text eines Issues nicht für Kunden geschrieben wurde. Um einen zu zeigen, schalten Sie **Auf Statusseite sichtbar** auf der Seite **Einstellungen** des Vorfalls ein (siehe [Einen Vorfall von der Statusseite fernhalten](/docs/incidents/states-and-severities#einen-vorfall-von-der-statusseite-fernhalten)), oder schalten Sie **Auf Statusseiten anzeigen** unter **Weitere Felder** im Baustein `incident-from-another-tool-1` der Vorlage ein.
-- **Private Vorfälle und Warnungen bleiben in OneUptime.** Die Vorlagen von OneUptime zu Jira überspringen sie, und jedes Überspringen steht in **Protokolle → Ausführungen**. Um sie trotzdem zu senden, setzen Sie `SYNC_PRIVATE_INCIDENTS` oder `SYNC_PRIVATE_ALERTS` auf `true`. Wird ein Datensatz später privat, stoppt der Abgleich von da an, nimmt aber nicht zurück, was Jira schon hat. Die Vorlagen von Jira zu OneUptime prüfen das nicht, Kommentare, Bearbeitungen und Statusänderungen an einem verknüpften Issue erreichen also auch einen privaten Datensatz.
+- **Private Vorfälle und Warnungen bleiben in OneUptime.** Die Vorlagen von OneUptime zu Jira überspringen sie, und jedes Überspringen steht in **Ausführungen**. Um sie trotzdem zu senden, setzen Sie `SYNC_PRIVATE_INCIDENTS` oder `SYNC_PRIVATE_ALERTS` auf `true`. Wird ein Datensatz später privat, stoppt der Abgleich von da an, nimmt aber nicht zurück, was Jira schon hat. Die Vorlagen von Jira zu OneUptime prüfen das nicht, Kommentare, Bearbeitungen und Statusänderungen an einem verknüpften Issue erreichen also auch einen privaten Datensatz.
 - **Nichts bewegt sich rückwärts.** Das Wiedereröffnen eines Jira-Issues ändert nichts in OneUptime, und ein Status der Kategorie To Do wird keinem Status zugeordnet. Siehe [Die Reihenfolge ist eine echte Einschränkung](/docs/incidents/states-and-severities#die-reihenfolge-ist-eine-echte-einschränkung-keine-anzeigevorliebe). Die Übergangsvorlagen bewegen ein Issue ebenfalls nie in eine frühere Statuskategorie.
 - **Jede Warnung bekommt ein Issue.** Außer für private Warnungen legt die Anlegevorlage für Warnungen für jede Warnung ein Issue an, auch für jede, die ein Monitor auslöst. [Was bei Warnungen anders ist](#was-bei-warnungen-anders-ist) zeigt, wie Sie eine Bedingung hinzufügen.
 - **Die ersten Sekunden können das Issue verfehlen.** Die Suche von Jira holt eine Änderung an einem Issue erst einen Moment später ein, eine Notiz, Statusänderung oder Bearbeitung in den ersten Sekunden nach dem Anlegen eines Datensatzes kann das neue Issue also verfehlen und mit dem Überspringen `No Jira issue is labelled …` enden. Diese Ausführung wird nicht wiederholt. Dasselbe gilt kurz nach dem Anlegen eines Datensatzes aus Jira, bis seine Labels hinzugefügt sind.
@@ -336,7 +336,7 @@ Tokens laufen standardmäßig nach einem Jahr ab und erneuern sich nicht. Damit 
    }
    ```
 
-4. Schalten Sie **Aktiviert** ein, melden Sie einen Testvorfall und öffnen Sie **Protokolle → Ausführungen**. Der Schritt `create-issue` zeigt ein `201` und einen Body mit `id`, `key` und `self` des neuen Issues.
+4. Schalten Sie **Aktiviert** ein, melden Sie einen Testvorfall und öffnen Sie **Ausführungen**. Der Schritt `create-issue` zeigt ein `201` und einen Body mit `id`, `key` und `self` des neuen Issues.
 :::
 
 Die Beschreibung wirkt schwer, weil die v3-API von Jira Cloud Rich Text als **Atlassian Document Format** annimmt, einen Dokumentbaum statt einer Zeichenkette. Der Body oben enthält das kleinste gültige Dokument: einen Absatz mit einem Textknoten. Dasselbe gilt für `environment` und mehrzeilige benutzerdefinierte Textfelder. Ein späterer Baustein liest den neuen Schlüssel als `{{local.components.create-issue.returnValues.response-body.key}}`.
@@ -445,7 +445,7 @@ Schalten Sie ihn ein und lassen Sie Jira ihn dann aufrufen, aus einer Automatisi
 
    Mit einem Label statt eines benutzerdefinierten Feldes senden Sie `"labels": "{{issue.labels}}"` und holen die ID mit einem **Eigenes JavaScript ausführen**-Baustein heraus.
 
-4. Schalten Sie die Regel ein und verschieben Sie ein Test-Issue auf Done. Prüfen Sie das Audit-Protokoll der Regel in Jira und **Protokolle → Ausführungen** in OneUptime.
+4. Schalten Sie die Regel ein und verschieben Sie ein Test-Issue auf Done. Prüfen Sie das Audit-Protokoll der Regel in Jira und **Ausführungen** in OneUptime.
 
 Um sicherzugehen, dass eine Anfrage von Ihrer Regel kommt, fügen Sie einen zweiten Header hinzu, `X-OneUptime-Secret`, mit einem Wert, den Sie sich ausdenken, und nutzen Sie dafür die Option **Hide** der Aktion. Setzen Sie im Workflow vor die Aktualisierung einen **Wenn / Sonst**-Baustein: **Zu prüfender Wert** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Vergleich** **ist gleich** und **Vergleichen mit** denselben Wert, in einer geheimen globalen Variable aufbewahrt.
 
@@ -513,7 +513,7 @@ Weitere Unterschiede, die Sie einplanen sollten:
 
 ## Fehlerbehebung
 
-Öffnen Sie zuerst den fehlgeschlagenen Schritt in **Protokolle → Ausführungen**. Jira antwortet mit einem JSON-Body, der nennt, was es abgelehnt hat, und der API-Baustein behält ihn in `response-body`.
+Öffnen Sie zuerst den fehlgeschlagenen Schritt in **Ausführungen**. Jira antwortet mit einem JSON-Body, der nennt, was es abgelehnt hat, und der API-Baustein behält ihn in `response-body`.
 
 :::details 401 Unauthorized
 Kodieren Sie `email:api_token` erneut mit `printf`, nicht `echo`, und aktualisieren Sie das Token: Ein abschließender Zeilenumbruch ist die übliche Ursache. Prüfen Sie dann, dass das Konto des Tokens Issues im Projekt anlegen darf. Prüfen Sie auf Data Center, dass Sie `Bearer` senden, nicht `Basic`. Auf einer Cloud-Site-URL sehen falsche Zugangsdaten häufiger aus wie der nächste Eintrag.
@@ -540,7 +540,7 @@ Die Übergangs-ID steht vom aktuellen Status des Issues aus nicht offen. Rufen S
 :::
 
 :::details Jira zeigt, dass die Regel oder der Webhook lief, aber nichts erreicht OneUptime
-Prüfen Sie zuerst den Port: Jira ruft nur seine erlaubten Ports auf. Senden Sie dann selbst mit `curl` eine Anfrage an die URL des Workflows und suchen Sie sie in **Protokolle → Ausführungen**. Kommt Ihre an und die von Jira nicht, liegt das Problem bei Jira. Ist die Ausführung da, aber abgelehnt, prüfen Sie, dass der Workflow eingeschaltet ist.
+Prüfen Sie zuerst den Port: Jira ruft nur seine erlaubten Ports auf. Senden Sie dann selbst mit `curl` eine Anfrage an die URL des Workflows und suchen Sie sie in **Ausführungen**. Kommt Ihre an und die von Jira nicht, liegt das Problem bei Jira. Ist die Ausführung da, aber abgelehnt, prüfen Sie, dass der Workflow eingeschaltet ist.
 :::
 
 :::details Der Workflow läuft, aber der Vorfall ändert sich nicht

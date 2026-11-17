@@ -1301,7 +1301,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {translator.translateText(
             isManual ? MANUAL_INSTRUCTIONS_TITLE : "Description",
           )}
-          <span className="ml-2 text-[10px] font-normal text-gray-400">
+          <span className="ml-2 text-xs font-normal text-gray-500">
             {translator.translateText("Markdown supported")}
           </span>
         </label>

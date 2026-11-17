@@ -19,7 +19,7 @@ flowchart TB
 ```
 
 > [!NOTE]
-> **Single sign-on zit in elke editie.** Aanmelden met SAML en OIDC voor projecten en statuspagina's, globale SSO en "Require SSO for login" horen bij de Community Edition, en geen enkele licentiestatus schakelt ze uit.
+> **Single sign-on zit in elke editie.** Aanmelden met SAML en OIDC voor projecten en statuspagina's, globale SSO en "Require SSO to sign in" horen bij de Community Edition, en geen enkele licentiestatus schakelt ze uit.
 
 Deze pagina beschrijft wat elke editie bevat, hoe u de Enterprise Edition draait, hoe licenties werken en wat er gebeurt als u van editie wisselt.
 
@@ -57,11 +57,11 @@ Deze pagina beschrijft wat elke editie bevat, hoe u de Enterprise Edition draait
 | Migratiestatus, supportbundel en globale sondes in het Admin-dashboard | Ja | Ja | Niet van toepassing |
 | Beheer van de Enterprise-licentie, de plaatsen en de instanties | Nee | Ja | Niet van toepassing |
 
-Single sign-on omvat "Require SSO for login" voor projecten, privé-statuspagina's en de hele instantie, in beide edities.
+Single sign-on omvat "Require SSO to sign in" voor projecten, privé-statuspagina's en de hele instantie, in beide edities.
 
 Elke editie heeft de standaardbewaartermijn van het project voor telemetrie, op **Projectinstellingen > Telemetrie & APM > Gegevensbewaring**. Bewaar-overschrijvingen zijn wat de Enterprise Edition daarbovenop toevoegt.
 
-Op OneUptime Cloud kan een betaalde functie altijd worden uitgeschakeld, in elk abonnement. Een bewaar-overschrijving die een proefperiode (of een overstap naar een lager abonnement) heeft laten staan, blijft gelden voor nieuwe telemetrie, dus onder het abonnement Scale tonen de bewaarpagina's haar onder de upgradekaart met een knop **Overschrijving verwijderen**. Verwijderen werkt in elk abonnement; er opnieuw een instellen vereist het abonnement Scale. Telemetrie die al is opgeslagen, houdt de bewaartermijn waarmee ze is opgeslagen. Op dezelfde manier toont **Projectinstellingen > Beveiliging > SSO** de schakelaar **SSO vereisen voor inloggen** onder zijn upgradekaart zolang het project nog SSO vereist, zodat hij kan worden uitgezet.
+Op OneUptime Cloud kan een betaalde functie altijd worden uitgeschakeld, in elk abonnement. Een bewaar-overschrijving die een proefperiode (of een overstap naar een lager abonnement) heeft laten staan, blijft gelden voor nieuwe telemetrie, dus onder het abonnement Scale tonen de bewaarpagina's haar onder de upgradekaart met een knop **Overschrijving verwijderen**. Verwijderen werkt in elk abonnement; er opnieuw een instellen vereist het abonnement Scale. Telemetrie die al is opgeslagen, houdt de bewaartermijn waarmee ze is opgeslagen. Op dezelfde manier toont **Projectinstellingen > Beveiliging > SSO** de schakelaar **SSO vereisen om aan te melden** onder zijn upgradekaart zolang het project nog SSO vereist, zodat hij kan worden uitgezet.
 
 Aangepaste rollen, IP-toelatingslijsten, toegangsbeheer voor statuspagina's en een verborgen regel "Powered by OneUptime" werken op dezelfde manier: wat een proefperiode of een lager abonnement heeft laten staan, blijft gelden, en de instellingen tonen het onder de upgradekaart met een knop om het te verwijderen.
 
@@ -166,7 +166,7 @@ Verder wordt er niets verstuurd. Geen monitoringgegevens, telemetrie, logs of co
 
 ### Als een licentie verloopt of ontbreekt
 
-Elke enterprisefunctie werkt tijdens de proefperiode van 14 dagen en gedurende 30 dagen nadat een licentie is verlopen (de respijtperiode). Het editielabel waarschuwt voordat een van beide eindigt. Daarna **stoppen SCIM, auditlogging en bewaar-overschrijvingen** totdat een licentie wordt geactiveerd, net als op de Community Edition, en wordt de enterpriseconfiguratie alleen-lezen. Single sign-on is geen enterprisefunctie: aanmelden met SAML en OIDC, globale SSO en "Require SSO for login" werken in elke licentiestatus hetzelfde.
+Elke enterprisefunctie werkt tijdens de proefperiode van 14 dagen en gedurende 30 dagen nadat een licentie is verlopen (de respijtperiode). Het editielabel waarschuwt voordat een van beide eindigt. Daarna **stoppen SCIM, auditlogging en bewaar-overschrijvingen** totdat een licentie wordt geactiveerd, net als op de Community Edition, en wordt de enterpriseconfiguratie alleen-lezen. Single sign-on is geen enterprisefunctie: aanmelden met SAML en OIDC, globale SSO en "Require SSO to sign in" werken in elke licentiestatus hetzelfde.
 
 ```mermaid title="Hoe een licentie tussen statussen wisselt"
 stateDiagram-v2
@@ -200,7 +200,7 @@ Wat stopt als een licentie afloopt:
 
 Wat **niet** stopt:
 
-- **Single sign-on.** Aanmelden met SAML en OIDC voor projecten, privé-statuspagina's, de hele instantie (globale SSO) en de mobiele apps, en "Require SSO for login", horen bij elke editie. Een verlopen licentie verandert daar niets aan, en de configuratie van single sign-on blijft bewerkbaar.
+- **Single sign-on.** Aanmelden met SAML en OIDC voor projecten, privé-statuspagina's, de hele instantie (globale SSO) en de mobiele apps, en "Require SSO to sign in", horen bij elke editie. Een verlopen licentie verandert daar niets aan, en de configuratie van single sign-on blijft bewerkbaar.
 - **De kernmonitoring wordt nooit geraakt**: monitors, alerts, incidenten, piketdienst, statuspagina's en telemetrie blijven allemaal werken.
 - **Hoofdbeheerders kunnen zich altijd aanmelden met hun wachtwoord.**
 - **Aangepaste rollen, IP-toelatingslijsten en toegangsbeheer voor statuspagina's blijven gelden.** U kunt ze verwijderen, maar niet aanmaken of wijzigen.
@@ -210,11 +210,11 @@ Wat **niet** stopt:
 **Alles werkt weer zodra een licentie is geactiveerd**, zonder herstart: SCIM-provisioning, auditlogging en bewaar-overschrijvingen komen terug met de configuratie die u hebt. OneUptime schakelt ze alleen uit als het weet dat de licentie is verlopen. Zolang het de licentiestatus niet kan lezen, bijvoorbeeld een moment terwijl de server start, blijven SCIM, auditlogging en bewaar-overschrijvingen aan.
 
 > [!WARNING]
-> **Als uw identiteitsprovider gebruikers via SCIM deprovisioneert, activeer dan een licentie voordat de proefperiode of de respijtperiode eindigt.** Daarna deprovisioneert SCIM de mensen die u bij uw identiteitsprovider verwijdert niet meer: hun OneUptime-accounts blijven bestaan, en tenzij "Require SSO for login" voor hen geldt, kan iedereen die de e-mailinbox van zo'n account nog kan bereiken een wachtwoord instellen en zich aanmelden. Laat u de licentie verlopen, verwijder die gebruikers dan zelf in OneUptime.
+> **Als uw identiteitsprovider gebruikers via SCIM deprovisioneert, activeer dan een licentie voordat de proefperiode of de respijtperiode eindigt.** Daarna deprovisioneert SCIM de mensen die u bij uw identiteitsprovider verwijdert niet meer: hun OneUptime-accounts blijven bestaan, en tenzij "Require SSO to sign in" voor hen geldt, kan iedereen die de e-mailinbox van zo'n account nog kan bereiken een wachtwoord instellen en zich aanmelden. Laat u de licentie verlopen, verwijder die gebruikers dan zelf in OneUptime.
 
 ## Overstappen van Enterprise naar Community
 
-Uw configuratie blijft in de database. Terugwisselen naar de Enterprise-image herstelt alles zoals het was, zolang de installatie een geldige licentie heeft of nog in haar proefperiode of respijtperiode zit. Single sign-on verandert niet: aanmelden met SAML en OIDC, globale SSO en "Require SSO for login" werken op beide images hetzelfde. Op de Community-image:
+Uw configuratie blijft in de database. Terugwisselen naar de Enterprise-image herstelt alles zoals het was, zolang de installatie een geldige licentie heeft of nog in haar proefperiode of respijtperiode zit. Single sign-on verandert niet: aanmelden met SAML en OIDC, globale SSO en "Require SSO to sign in" werken op beide images hetzelfde. Op de Community-image:
 
 - **SCIM stopt.** De provisioning-endpoints bestaan niet meer, dus SCIM-aanroepen die de IdP doet, mislukken. Dat geldt ook voor SCIM-deprovisioning.
 - **SCIM-teamvergrendelingen worden opgeheven**, zodat teams die door SCIM-pushgroepen werden beheerd met de hand kunnen worden bewerkt. Bij het opstarten logt de server bij welke projecten de SCIM-teamvergrendelingen zijn opgeheven.
@@ -227,7 +227,7 @@ Uw configuratie blijft in de database. Terugwisselen naar de Enterprise-image he
 - **De enterprise Health-dashboards, de Query Console en de Health-alerts voor PostgreSQL en Valkey stoppen.** Capaciteitsbewaking en opschoning van ClickHouse, de migratiestatus en de supportbundel blijven werken.
 
 > [!CAUTION]
-> **Controleer wie toegang heeft voordat u een installatie waarvan de identiteitsprovider gebruikers via SCIM deprovisioneert overzet naar de Community-image.** Zonder SCIM houden de mensen die u bij uw identiteitsprovider verwijdert hun OneUptime-accounts, en tenzij "Require SSO for login" voor hen geldt, kan iedereen die de e-mailinbox van zo'n account nog kan bereiken een wachtwoord instellen en zich aanmelden. Verwijder die gebruikers eerst.
+> **Controleer wie toegang heeft voordat u een installatie waarvan de identiteitsprovider gebruikers via SCIM deprovisioneert overzet naar de Community-image.** Zonder SCIM houden de mensen die u bij uw identiteitsprovider verwijdert hun OneUptime-accounts, en tenzij "Require SSO to sign in" voor hen geldt, kan iedereen die de e-mailinbox van zo'n account nog kan bereiken een wachtwoord instellen en zich aanmelden. Verwijder die gebruikers eerst.
 
 ## Problemen oplossen
 

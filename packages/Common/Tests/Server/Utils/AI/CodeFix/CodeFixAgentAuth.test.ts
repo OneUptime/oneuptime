@@ -23,19 +23,33 @@ import { describe, expect, test, afterEach } from "@jest/globals";
  * enforcement plus the project-scoping rules of deniesAccessToProject.
  */
 
-type AIAgentFindSpy = jest.SpiedFunction<typeof AIAgentService.findOneBy>;
-type RunnerFindSpy = jest.SpiedFunction<typeof RunnerService.findOneBy>;
+/*
+ * Each registry's lookup. An AI agent's and a Runner's keys are kept
+ * encrypted (#9012), so each registry reads the record the pair's id names
+ * and holds it to the key presented (findOneByPresentedKey): that lookup is
+ * stood in for.
+ */
+type AIAgentFindSpy = jest.SpiedFunction<
+  typeof AIAgentService.findOneByPresentedKey
+>;
+type RunnerFindSpy = jest.SpiedFunction<
+  typeof RunnerService.findOneByPresentedKey
+>;
 
 const agentId: ObjectID = ObjectID.generate();
 const agentKey: string = "secret-agent-key";
 const projectId: ObjectID = ObjectID.generate();
 
 function mockAIAgentLookup(result: AIAgent | null): AIAgentFindSpy {
-  return jest.spyOn(AIAgentService, "findOneBy").mockResolvedValue(result);
+  return jest
+    .spyOn(AIAgentService, "findOneByPresentedKey")
+    .mockResolvedValue(result);
 }
 
 function mockRunnerLookup(result: Runner | null): RunnerFindSpy {
-  return jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(result);
+  return jest
+    .spyOn(RunnerService, "findOneByPresentedKey")
+    .mockResolvedValue(result);
 }
 
 // Whether a code repository of the Runner's project picks it.
@@ -127,11 +141,13 @@ describe("CodeFixAgentAuth.resolveAgentIdentity", () => {
     expect(identity!.projectId!.toString()).toBe(projectId.toString());
 
     expect(aiAgentSpy).toHaveBeenCalledTimes(1);
+    // The agent the id names, held to the key presented.
     expect(aiAgentSpy).toHaveBeenCalledWith(
       expect.objectContaining({
+        column: "key",
+        presentedKey: agentKey,
         query: {
           _id: agentId.toString(),
-          key: agentKey,
         },
         props: { isRoot: true },
       }),
@@ -156,11 +172,13 @@ describe("CodeFixAgentAuth.resolveAgentIdentity", () => {
     expect(identity!.projectId!.toString()).toBe(projectId.toString());
 
     expect(runnerSpy).toHaveBeenCalledTimes(1);
+    // The Runner the id names, held to the key presented.
     expect(runnerSpy).toHaveBeenCalledWith(
       expect.objectContaining({
+        column: "key",
+        presentedKey: agentKey,
         query: {
           _id: agentId.toString(),
-          key: agentKey,
         },
         props: { isRoot: true },
       }),

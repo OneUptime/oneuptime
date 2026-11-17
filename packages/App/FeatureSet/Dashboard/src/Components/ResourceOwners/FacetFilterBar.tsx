@@ -86,7 +86,7 @@ const FacetFilterBar: FunctionComponent<ComponentProps> = (
       {filterText}
       {props.activeCount > 0 && (
         <span
-          className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-700"
+          className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-100 px-1 text-xs font-semibold text-indigo-700"
           data-testid="facet-filter-bar-count"
         >
           {props.activeCount}

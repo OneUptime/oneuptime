@@ -29,23 +29,27 @@ import {
  */
 export const FOCUS_KEEPING_PRESS_MS: number = 2000;
 
+/*
+ * Each style has one job (Docs/ux/README.md#one-control-for-one-job). The
+ * filled indigo-100 SECONDARY, the filled green SUCCESS and the filled and
+ * outlined yellow WARNING and WARNING_OUTLINE are gone: a page used SUCCESS
+ * once (a playbook run's Approve, now PRIMARY) and nothing used the rest,
+ * so they were four more looks for jobs the main styles already do (#9195).
+ * ICON_LIGHT (ICON in a lighter grey) and HOVER_SUCCESS_OUTLINE (the plain
+ * button tinted green under the pointer) went the same way: no page used
+ * them (#9296). ICON and HOVER_PRIMARY_OUTLINE do their jobs.
+ */
 export enum ButtonStyleType {
   PRIMARY,
-  SECONDARY,
   OUTLINE,
   NORMAL,
   DANGER,
   DANGER_OUTLINE,
-  SUCCESS,
   SUCCESS_OUTLINE,
-  WARNING,
-  WARNING_OUTLINE,
-  ICON_LIGHT,
   LINK,
   SECONDARY_LINK,
   ICON,
   HOVER_DANGER_OUTLINE,
-  HOVER_SUCCESS_OUTLINE,
   HOVER_PRIMARY_OUTLINE,
 }
 
@@ -102,17 +106,12 @@ export const BOXED_BUTTON_CLASS_NAME: string =
 
 export type BoxedButtonStyleType =
   | ButtonStyleType.PRIMARY
-  | ButtonStyleType.SECONDARY
   | ButtonStyleType.OUTLINE
   | ButtonStyleType.NORMAL
   | ButtonStyleType.DANGER
   | ButtonStyleType.DANGER_OUTLINE
-  | ButtonStyleType.SUCCESS
   | ButtonStyleType.SUCCESS_OUTLINE
-  | ButtonStyleType.WARNING
-  | ButtonStyleType.WARNING_OUTLINE
   | ButtonStyleType.HOVER_DANGER_OUTLINE
-  | ButtonStyleType.HOVER_SUCCESS_OUTLINE
   | ButtonStyleType.HOVER_PRIMARY_OUTLINE;
 
 // The plain button's colours: NORMAL, OUTLINE and the HOVER_* outlines.
@@ -126,24 +125,15 @@ export const BOXED_BUTTON_LOOK_CLASS_NAMES: Record<
 > = {
   [ButtonStyleType.PRIMARY]:
     "border-transparent bg-indigo-600 text-white focus-visible:ring-indigo-500",
-  [ButtonStyleType.SECONDARY]:
-    "border-transparent bg-indigo-100 text-indigo-700 focus-visible:ring-indigo-500",
   [ButtonStyleType.OUTLINE]: PLAIN_BUTTON_LOOK_CLASS_NAME,
   [ButtonStyleType.NORMAL]: PLAIN_BUTTON_LOOK_CLASS_NAME,
   [ButtonStyleType.DANGER]:
     "border-transparent bg-red-600 text-white focus-visible:ring-red-500",
   [ButtonStyleType.DANGER_OUTLINE]:
     "border-red-700 bg-white text-red-700 focus-visible:ring-red-500",
-  [ButtonStyleType.SUCCESS]:
-    "border-transparent bg-green-600 text-white focus-visible:ring-green-500",
   [ButtonStyleType.SUCCESS_OUTLINE]:
     "border-green-700 bg-white text-green-700 focus-visible:ring-green-500",
-  [ButtonStyleType.WARNING]:
-    "border-transparent bg-yellow-600 text-white focus-visible:ring-yellow-500",
-  [ButtonStyleType.WARNING_OUTLINE]:
-    "border-yellow-700 bg-white text-yellow-700 focus-visible:ring-yellow-500",
   [ButtonStyleType.HOVER_DANGER_OUTLINE]: PLAIN_BUTTON_LOOK_CLASS_NAME,
-  [ButtonStyleType.HOVER_SUCCESS_OUTLINE]: PLAIN_BUTTON_LOOK_CLASS_NAME,
   [ButtonStyleType.HOVER_PRIMARY_OUTLINE]: PLAIN_BUTTON_LOOK_CLASS_NAME,
 };
 
@@ -161,7 +151,6 @@ export type OutlineButtonStyleType =
   | ButtonStyleType.OUTLINE
   | ButtonStyleType.NORMAL
   | ButtonStyleType.HOVER_DANGER_OUTLINE
-  | ButtonStyleType.HOVER_SUCCESS_OUTLINE
   | ButtonStyleType.HOVER_PRIMARY_OUTLINE;
 
 export const isOutlineButtonStyle: (
@@ -173,7 +162,6 @@ export const isOutlineButtonStyle: (
     style === ButtonStyleType.OUTLINE ||
     style === ButtonStyleType.NORMAL ||
     style === ButtonStyleType.HOVER_DANGER_OUTLINE ||
-    style === ButtonStyleType.HOVER_SUCCESS_OUTLINE ||
     style === ButtonStyleType.HOVER_PRIMARY_OUTLINE
   );
 };
@@ -196,8 +184,6 @@ export const OUTLINE_BUTTON_HOVER_CLASS_NAMES: Record<
   [ButtonStyleType.OUTLINE]: "hover:bg-gray-50",
   [ButtonStyleType.NORMAL]: "hover:bg-gray-50",
   [ButtonStyleType.HOVER_DANGER_OUTLINE]: "hover:bg-red-50 hover:text-red-700",
-  [ButtonStyleType.HOVER_SUCCESS_OUTLINE]:
-    "hover:bg-green-50 hover:text-green-700",
   [ButtonStyleType.HOVER_PRIMARY_OUTLINE]:
     "hover:bg-indigo-50 hover:text-indigo-700",
 };
@@ -209,13 +195,47 @@ export const BOXED_BUTTON_HOVER_CLASS_NAMES: Record<
 > = {
   ...OUTLINE_BUTTON_HOVER_CLASS_NAMES,
   [ButtonStyleType.PRIMARY]: "hover:bg-indigo-700",
-  [ButtonStyleType.SECONDARY]: "hover:bg-indigo-200",
   [ButtonStyleType.DANGER]: "hover:bg-red-700",
   [ButtonStyleType.DANGER_OUTLINE]: "hover:bg-red-50",
-  [ButtonStyleType.SUCCESS]: "hover:bg-green-700",
   [ButtonStyleType.SUCCESS_OUTLINE]: "hover:bg-green-50",
-  [ButtonStyleType.WARNING]: "hover:bg-yellow-700",
-  [ButtonStyleType.WARNING_OUTLINE]: "hover:bg-yellow-50",
+};
+
+/*
+ * The styles that fill their box with a colour, white words on it: a key
+ * hint inside one is a pale chip on the fill, inside any other a grey one.
+ */
+export const FILLED_BUTTON_STYLES: ReadonlyArray<ButtonStyleType> = [
+  ButtonStyleType.PRIMARY,
+  ButtonStyleType.DANGER,
+];
+
+/*
+ * The key a button answers to, in a chip after its words (shortcutHint):
+ * on a filled button a pale chip on its fill, on a plain one a grey one.
+ * Never on a phone, which has no keyboard to tell about.
+ */
+export const BUTTON_KEY_HINT_CLASS_NAMES: {
+  filled: string;
+  plain: string;
+} = {
+  filled:
+    "ms-2 rounded bg-white/15 px-1.5 py-0.5 font-sans text-[11px] font-medium leading-4 text-indigo-50 max-sm:hidden",
+  plain:
+    "ms-2 rounded border border-gray-200 px-1.5 font-sans text-[11px] font-medium leading-4 text-gray-500 max-sm:hidden",
+};
+
+/*
+ * A button whose words go on a phone (isTitleHiddenOnPhone): below sm they
+ * are read out but not drawn, and the button is a square round its icon,
+ * as a button with no words is at every width.
+ */
+export const BUTTON_TITLE_HIDDEN_ON_PHONE_CLASS_NAME: string = "max-sm:sr-only";
+export const BUTTON_ICON_GAP_HIDDEN_ON_PHONE_CLASS_NAME: string = "max-sm:me-0";
+export const BUTTON_SQUARE_ON_PHONE_CLASS_NAMES: Record<ButtonSize, string> = {
+  [ButtonSize.Normal]: "max-sm:p-2",
+  [ButtonSize.Small]: "max-sm:p-1",
+  [ButtonSize.Large]: "max-sm:p-2",
+  [ButtonSize.ExtraSmall]: "max-sm:p-0",
 };
 
 /*
@@ -246,6 +266,14 @@ export interface ComponentProps {
    */
   isTitleTranslated?: boolean | undefined;
   onClick?: undefined | (() => void);
+  /*
+   * Called as the pointer goes down, before the press: a button inside an
+   * open list (a label picker's Apply) calls preventDefault here so the
+   * search field it sits under keeps the focus, and the list stays open.
+   */
+  onMouseDown?:
+    | undefined
+    | ((event: React.MouseEvent<HTMLButtonElement>) => void);
   disabled?: undefined | boolean;
   id?: undefined | string;
   shortcutKey?: undefined | ShortcutKey;
@@ -277,12 +305,31 @@ export interface ComponentProps {
     | "false"
     | undefined;
   ariaControls?: string | undefined;
+  /*
+   * The keys that press it, said in a chip after its words ("⌘ Enter"):
+   * only said, never listened for - the page owns the shortcut, as a note
+   * composer's form does. shortcutKey both says and listens for one key.
+   * Hidden on a phone.
+   */
+  shortcutHint?: string | undefined;
+  /*
+   * On a phone the words are read out but not drawn, and the button is a
+   * square round its icon: a composer's Send beside its pickers keeps them
+   * on one line. Needs an icon.
+   */
+  isTitleHiddenOnPhone?: boolean | undefined;
+  /*
+   * What state the button is in, for a test or a stylesheet to read
+   * (data-state): a player's Play is "playing" or "paused".
+   */
+  dataState?: string | undefined;
 }
 
 const Button: FunctionComponent<ComponentProps> = ({
   title,
   isTitleTranslated,
   onClick,
+  onMouseDown,
   disabled,
   id,
   shortcutKey,
@@ -301,6 +348,9 @@ const Button: FunctionComponent<ComponentProps> = ({
   ariaExpanded,
   ariaHaspopup,
   ariaControls,
+  shortcutHint,
+  isTitleHiddenOnPhone,
+  dataState,
 }: ComponentProps): ReactElement => {
   const { translateString } = useTranslateValue();
   // Looked up once: English here, a title in the reader's words as given.
@@ -442,12 +492,13 @@ const Button: FunctionComponent<ComponentProps> = ({
     : `w-5 h-5 animate-spin`;
   let iconClassName: string = `w-5 h-5`;
 
-  if (
-    buttonStyle !== ButtonStyleType.ICON &&
-    buttonStyle !== ButtonStyleType.ICON_LIGHT
-  ) {
+  if (buttonStyle !== ButtonStyleType.ICON) {
     if (hasWords) {
       iconClassName += ` me-1`;
+
+      if (isTitleHiddenOnPhone) {
+        iconClassName += ` ${BUTTON_ICON_GAP_HIDDEN_ON_PHONE_CLASS_NAME}`;
+      }
     }
   } else {
     iconClassName += ` m-1`;
@@ -467,10 +518,6 @@ const Button: FunctionComponent<ComponentProps> = ({
 
   if (buttonStyle === ButtonStyleType.PRIMARY) {
     loadingIconClassName += ` text-indigo-100`;
-  }
-
-  if (buttonStyle === ButtonStyleType.SECONDARY) {
-    loadingIconClassName += ` text-indigo-500`;
   }
 
   /*
@@ -502,12 +549,6 @@ const Button: FunctionComponent<ComponentProps> = ({
     if (icon || isLoading) {
       buttonStyleCssClass += ` flex`;
     }
-  }
-
-  if (buttonStyle === ButtonStyleType.ICON_LIGHT) {
-    buttonStyleCssClass = `rounded-md bg-white text-gray-400 ${
-      isInert ? "" : "hover:text-gray-500"
-    }  focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
   }
 
   if (buttonStyle === ButtonStyleType.ICON) {
@@ -546,6 +587,15 @@ const Button: FunctionComponent<ComponentProps> = ({
       ? ICON_ONLY_OUTLINE_BUTTON_SIZE_CLASS_NAMES[buttonSize]
       : buttonSize);
 
+  // Its words go on a phone: a square round its icon there.
+  const isTitleShownOnlyFromSm: boolean = Boolean(
+    isTitleHiddenOnPhone && hasWords && (icon || isLoading),
+  );
+
+  if (isTitleShownOnlyFromSm && isBoxedButtonStyle(buttonStyle)) {
+    buttonStyleCssClass += ` ${BUTTON_SQUARE_ON_PHONE_CLASS_NAMES[buttonSize]}`;
+  }
+
   /*
    * A disabled <button> swallows the pointer without dispatching anything, so
    * the hover never reaches the wrapper that carries the tooltip. Taking the
@@ -577,9 +627,7 @@ const Button: FunctionComponent<ComponentProps> = ({
    */
   const computedAriaLabel: string | undefined =
     (isAriaLabelTranslated ? ariaLabel : translateString(ariaLabel)) ||
-    (buttonStyle === ButtonStyleType.ICON ||
-    buttonStyle === ButtonStyleType.ICON_LIGHT ||
-    !hasWords
+    (buttonStyle === ButtonStyleType.ICON || !hasWords
       ? translatedTitle || translatedTooltip
       : undefined);
 
@@ -589,6 +637,7 @@ const Button: FunctionComponent<ComponentProps> = ({
         ref={buttonRef}
         style={style}
         id={id}
+        onMouseDown={onMouseDown}
         onClick={() => {
           // A press from where the focus is: it is kept if the press makes it busy.
           focusedPressAtRef.current =
@@ -599,6 +648,7 @@ const Button: FunctionComponent<ComponentProps> = ({
           }
         }}
         data-testid={dataTestId}
+        data-state={dataState}
         type={type}
         disabled={isInert}
         /*
@@ -624,9 +674,29 @@ const Button: FunctionComponent<ComponentProps> = ({
           />
         )}
 
-        {translatedTitle && buttonStyle !== ButtonStyleType.ICON
-          ? translatedTitle
-          : ``}
+        {translatedTitle && buttonStyle !== ButtonStyleType.ICON ? (
+          isTitleShownOnlyFromSm ? (
+            <span className={BUTTON_TITLE_HIDDEN_ON_PHONE_CLASS_NAME}>
+              {translatedTitle}
+            </span>
+          ) : (
+            translatedTitle
+          )
+        ) : (
+          ``
+        )}
+
+        {shortcutHint && (
+          <kbd
+            className={
+              FILLED_BUTTON_STYLES.includes(buttonStyle)
+                ? BUTTON_KEY_HINT_CLASS_NAMES.filled
+                : BUTTON_KEY_HINT_CLASS_NAMES.plain
+            }
+          >
+            {shortcutHint}
+          </kbd>
+        )}
 
         {shortcutKey && (
           <div className="ms-2">

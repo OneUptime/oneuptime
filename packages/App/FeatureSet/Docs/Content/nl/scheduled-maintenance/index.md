@@ -54,17 +54,16 @@ Open **Gepland onderhoud** via het menu **Producten** in de bovenste balk. De li
 
 | Sectie        | Wat je daar doet                                                                                                           |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Overzicht** | **Alle onderhoudsgebeurtenissen** en **Lopende onderhoudsgebeurtenissen**, waarvan de badge de gebeurtenissen telt die nu lopen.                |
-| **Agenda** | **Onderhoudsagenda**: elke gebeurtenis op een maand, een week of een dag, naast de agenda's van buiten het project die je toevoegt. |
+| **Overzicht** | **Alle onderhoudsgebeurtenissen**, **Lopende onderhoudsgebeurtenissen**, waarvan de badge de gebeurtenissen telt die nu lopen, en **Onderhoudsagenda**: elke gebeurtenis op een maand, een week of een dag, naast de agenda's van buiten het project die je toevoegt. |
 | **Werkruimte** | **Slack**, **Microsoft Teams** en **Mattermost**, afhankelijk van wat het project heeft gekoppeld, of **Werkruimte koppelen** als het er geen heeft. |
 | **Regels**    | **Eigenaarsregels**, **Runbook-regels**, **Labelregels**, **Herinneringsregels**.                                               |
 | **Instellingen** | **Onderhoudsstatus**, **Onderhoudssjablonen**, **Notitie-sjablonen**, **Goedkeuring van openbare notities**, **Aangepaste velden**, **Metingen**, **Agenda-instellingen**, **Nummering**. |
 
-**Overzicht** en **Agenda** zijn open; **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** zijn eerst ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Ontwikkelaars** bevat **Terraform**, **API**, **CLI** en **AI-assistenten**, om onderhoud vanuit code te beheren. Alles over onderhoud staat hier, niet in de **Projectinstellingen**.
+**Overzicht** is open; **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** zijn eerst ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Ontwikkelaars** bevat **Terraform**, **API**, **CLI** en **AI-assistenten**, om onderhoud vanuit code te beheren. Alles over onderhoud staat hier, niet in de **Projectinstellingen**.
 
 De lijst toont **Nummer van gepland onderhoud**, **Titel**, **Huidige staat**, **Getroffen resources**, **Weergegeven op statuspagina**, **Begint op**, **Duur**, **Eindigt op**, **Labels** en **Eigenaren**. Selecteer gebeurtenissen om er meerdere tegelijk te bewerken: **Markeren als {{state}}**, **Status wijzigen**, **Aan mij toewijzen**, **Eigenaar toevoegen**, **Eigenaar verwijderen**, **Labels toevoegen**, **Labels verwijderen** of **Verwijderen**. Het menu **⋯** aan het eind van de rij van elke gebeurtenis doet hetzelfde voor alleen die gebeurtenis: de stappen **Markeren als {{state}}** zolang de gebeurtenis ze kan zetten, **Status wijzigen**, **Aan mij toewijzen** totdat je de eigenaar bent, en **Eigenaar toevoegen**.
 
-**Onderhoudsagenda**, in het onderdeel **Agenda**, toont dezelfde gebeurtenissen op een maand, een week of een dag, en kan er agenda's van buiten het project naast tonen. Zie [Onderhoudsagenda](/docs/scheduled-maintenance/calendar).
+**Onderhoudsagenda**, in het onderdeel **Overzicht**, toont dezelfde gebeurtenissen op een maand, een week of een dag, en kan er agenda's van buiten het project naast tonen. Zie [Onderhoudsagenda](/docs/scheduled-maintenance/calendar).
 
 ## Wat een gebeurtenis beïnvloedt
 
@@ -83,14 +82,13 @@ Open een gebeurtenis uit de lijst om haar pagina's te zien. Haar zijmenu bevat:
 
 | Sectie van het zijmenu | Pagina's                                                                                 |
 | ----------------- | --------------------------------------------------------------------------------------------- |
-| **Overzicht** | **Overzicht**, **Statustijdlijn**, **Beschrijving**, **Runbooks** |
-| **Team** | **Eigenaren** |
+| **Overzicht** | **Overzicht**, **Statustijdlijn**, **Beschrijving**, **Runbooks**, **Eigenaren** |
 | **Meldingen**     | **Meldingslogboeken** en **AI-logboeken**: elk bericht dat over de gebeurtenis is verstuurd, en wat AI ervoor deed |
 | **Notities**      | **Privénotities** en **Openbare notities**                                                     |
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI** en **AI-assistenten**: de gebeurtenis beheerd vanuit code     |
 | **Geavanceerd**   | **Aangepaste velden**, **Instellingen**, **Auditlogboeken**, **Onderhoudsgebeurtenis verwijderen**       |
 
-**Overzicht**, **Team** en **Notities** zijn open; de andere secties blijven ingeklapt tot je erop klikt.
+**Overzicht** en **Notities** zijn open; de andere secties blijven ingeklapt tot je erop klikt.
 
 - **Overzicht** — de kop toont het nummer, de titel en de status van de gebeurtenis, hoe lang het nog duurt tot ze begint of hoe lang ze al loopt, wie haar eigenaren zijn, op welke statuspagina's ze verschijnt en wie haar heeft aangemaakt, en de knoppen die haar verder zetten. Daaronder tonen **Begint**, **Eindigt** en **Duur** het geplande venster in je tijdzone. De **Feed van gepland onderhoud** legt alles vast wat er met de gebeurtenis is gebeurd, naast de kaarten **Onderhoudsgegevens** en **Getroffen resources**, en de kaarten **Metingen** en **Aangepaste velden** als je project die heeft.
 - **Statustijdlijn** — elke status waarin de gebeurtenis heeft gestaan, wanneer en hoe lang. Zie [Onderhoudsstatussen](/docs/scheduled-maintenance/states#de-statustijdlijn).

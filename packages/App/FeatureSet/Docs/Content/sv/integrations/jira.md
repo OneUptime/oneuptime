@@ -125,11 +125,11 @@ Ett Atlassian-**tjänstkonto** fungerar också. En organisationsadministratör s
 :::steps
 1. Öppna **Arbetsflöden → Skapa arbetsflöde**. Välj **Jira** i kategorilistan under **Eller börja från en mall**, eller skriv `Jira` i **Sök mallar…**, och klicka på mallen du vill ha. Den öppnas och visar vad den gör och vilka inställningar den kommer att fråga efter. Klicka på **Använd den här mallen**.
 2. **Namn** fylls i från mallen. Ändra det om du vill.
-3. **Konfigurera** frågar efter värdena ovan. De sparas som arbetsflödets egna variabler under **Arbetsflödesvariabler** i dess meny. API-token sparas som en hemlighet: den döljs i **Loggar → Körningar** och används bara i `Authorization`-rubriken i Jira-anropen.
+3. **Konfigurera** frågar efter värdena ovan. De sparas som arbetsflödets egna variabler under **Arbetsflödesvariabler** i dess meny. API-token sparas som en hemlighet: den döljs i **Körningar** och används bara i `Authorization`-rubriken i Jira-anropen.
 4. Klicka på **Skapa arbetsflöde**. Varje arbetsflöde skapas avstängt: slå på **Aktiverad** högst upp i dess **Byggare**.
 :::
 
-Börja med **Create a Jira issue when an incident is declared**, eller **Create a Jira issue when an alert is created** för larm: alla andra mallar OneUptime → Jira av samma slag hittar ärendet via etiketten som den här lägger till. Slå på den, deklarera en testincident eller skapa ett testlarm, och öppna arbetsflödets **Loggar → Körningar**. Körningen ska sluta som **Utförd**, och **Svarstext** i dess sista steg, `create-issue-1`, nämner det nya ärendet.
+Börja med **Create a Jira issue when an incident is declared**, eller **Create a Jira issue when an alert is created** för larm: alla andra mallar OneUptime → Jira av samma slag hittar ärendet via etiketten som den här lägger till. Slå på den, deklarera en testincident eller skapa ett testlarm, och öppna arbetsflödets **Körningar**. Körningen ska sluta som **Utförd**, och **Svarstext** i dess sista steg, `create-issue-1`, nämner det nya ärendet.
 
 Varje arbetsflöde har sin egen kopia av de här värdena. När du byter ut token uppdaterar du `jiraBasicAuthToken` under **Arbetsflödesvariabler** i varje Jira-arbetsflöde som frågade efter den. Om Jira flyttar till en annan adress uppdaterar du `jiraSiteUrl` och `jiraBaseUrl` på samma sätt.
 
@@ -180,7 +180,7 @@ Innan du förlitar dig på det:
 
 ### Kontrollera att det fungerar
 
-Varje körnings **Steg** säger vad mallen gjorde, så öppna körningen i **Loggar → Körningar** och se hur den slutade:
+Varje körnings **Steg** säger vad mallen gjorde, så öppna körningen i **Körningar** och se hur den slutade:
 
 - **Utförd**: den gjorde sitt jobb, och dess sista steg nämner ärendet, incidenten eller larmet.
 - **Utförd**, med steget **Kontrollera med JavaScript** på **Nej**: den hoppade över händelsen med flit, och steget säger varför: ärendet är inte kopplat till en post av det här slaget, anteckningen kom från Jira, posten är privat, eller den nya statusen har ingen Jira-status kopplad till sig.
@@ -272,7 +272,7 @@ Privata anteckningar och redigeringskommentarer markeras som interna av `propert
 
 - **Bara Jira Cloud.** Mallarna anropar Jira Clouds REST API v3 med Basic-autentisering. Data Center har ingen v3 och tar en personlig åtkomsttoken som `Bearer`, så varje API-block behöver ändringarna i [Jira Data Center](#jira-data-center): sökvägar som `/rest/api/2/...`, vanliga strängar i stället för innehåll i Atlassian Document Format, och rubriken. Blocken `find-issue-1` ändras mest: Data Center har ingen `/search/jql`, så de måste göra en `POST` till `/rest/api/2/search` i stället.
 - **Incidenter som deklareras från Jira är tysta.** De skapas dolda från dina statussidor, utan att statussidornas prenumeranter aviseras, eftersom texten i ett ärende inte skrevs för kunder. För att visa en slår du på **Synlig på statussidan** på incidentens sida **Inställningar** (se [Hålla en incident borta från statussidan](/docs/incidents/states-and-severities#håll-en-incident-borta-från-statussidan)), eller slår på **Visa på statussidor** under **Fler fält** i mallens `incident-from-another-tool-1`-block.
-- **Privata incidenter och larm stannar i OneUptime.** Mallarna OneUptime → Jira hoppar över dem, och varje överhopp står i **Loggar → Körningar**. För att skicka dem ändå ställer du in `SYNC_PRIVATE_INCIDENTS` eller `SYNC_PRIVATE_ALERTS` på `true`. Att göra en post privat senare stoppar synkroniseringen från och med då, men tar inte tillbaka det som Jira redan har. Mallarna Jira → OneUptime kontrollerar inte detta, så kommentarer, redigeringar och statusändringar på ett kopplat ärende når fortfarande en privat post.
+- **Privata incidenter och larm stannar i OneUptime.** Mallarna OneUptime → Jira hoppar över dem, och varje överhopp står i **Körningar**. För att skicka dem ändå ställer du in `SYNC_PRIVATE_INCIDENTS` eller `SYNC_PRIVATE_ALERTS` på `true`. Att göra en post privat senare stoppar synkroniseringen från och med då, men tar inte tillbaka det som Jira redan har. Mallarna Jira → OneUptime kontrollerar inte detta, så kommentarer, redigeringar och statusändringar på ett kopplat ärende når fortfarande en privat post.
 - **Inget går bakåt.** Att öppna ett Jira-ärende igen ändrar ingenting i OneUptime, och en status i kategorin To Do motsvarar ingen status. Se [Ordningen är en verklig begränsning](/docs/incidents/states-and-severities#ordningen-är-en-verklig-begränsning-inte-en-visningspreferens). Övergångsmallarna flyttar heller aldrig ett ärende till en tidigare statuskategori.
 - **Varje larm får ett ärende.** Utom privata larm skapar mallen för larm som skapar ärenden ett ärende för varje larm, även vart och ett som en monitor utlöser. [Vad som skiljer sig för larm](#vad-som-skiljer-sig-för-larm) visar hur du lägger till ett villkor.
 - **De första sekunderna kan missa ärendet.** Jiras sökning hänger efter en stund när ett ärende ändras, så en anteckning, en statusändring eller en redigering under de första sekunderna efter att en post skapats kan missa det nya ärendet och sluta med överhoppet `No Jira issue is labelled …`. Den körningen görs inte om. Detsamma gäller direkt efter att en post skapats från Jira, tills dess etiketter har lagts till.
@@ -336,7 +336,7 @@ Tokens löper som standard ut efter ett år och förnyas inte. För att slippa b
    }
    ```
 
-4. Slå på **Aktiverad**, deklarera en testincident och öppna **Loggar → Körningar**. Steget `create-issue` visar en `201` och ett innehåll med det nya ärendets `id`, `key` och `self`.
+4. Slå på **Aktiverad**, deklarera en testincident och öppna **Körningar**. Steget `create-issue` visar en `201` och ett innehåll med det nya ärendets `id`, `key` och `self`.
 :::
 
 Beskrivningen ser tung ut eftersom Jira Clouds v3-API tar formaterad text som **Atlassian Document Format**, ett dokumentträd i stället för en sträng. Innehållet ovan innehåller det minsta giltiga dokumentet: ett stycke med en textnod. Detsamma gäller `environment` och anpassade textfält med flera rader. Ett senare block läser den nya nyckeln som `{{local.components.create-issue.returnValues.response-body.key}}`.
@@ -445,7 +445,7 @@ Slå på det och låt sedan Jira anropa det, från en automatiseringsregel eller
 
    Med en etikett i stället för ett anpassat fält skickar du `"labels": "{{issue.labels}}"` och plockar ut ID:t med ett **Kör egen JavaScript**-block.
 
-4. Slå på regeln och flytta ett testärende till Done. Kontrollera regelns granskningslogg i Jira och **Loggar → Körningar** i OneUptime.
+4. Slå på regeln och flytta ett testärende till Done. Kontrollera regelns granskningslogg i Jira och **Körningar** i OneUptime.
 
 För att vara säker på att en begäran kommer från din regel lägger du till en andra rubrik, `X-OneUptime-Secret`, med ett värde du hittar på, och använder åtgärdens alternativ **Hide** på den. Placera ett **Om / Annars**-block före uppdateringen i arbetsflödet: **Värde att kontrollera** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Jämförelse** **är lika med** och **Jämför med** samma värde, sparat i en hemlig global variabel.
 
@@ -513,7 +513,7 @@ Andra skillnader att planera för:
 
 ## Felsökning
 
-Öppna det misslyckade steget i **Loggar → Körningar** först. Jira svarar med ett JSON-innehåll som nämner vad den nekade, och API-blocket sparar det i `response-body`.
+Öppna det misslyckade steget i **Körningar** först. Jira svarar med ett JSON-innehåll som nämner vad den nekade, och API-blocket sparar det i `response-body`.
 
 :::details 401 Unauthorized
 Koda `email:api_token` igen med `printf`, inte `echo`, och uppdatera token: en radbrytning på slutet är den vanliga orsaken. Kontrollera sedan att tokenens konto kan skapa ärenden i projektet. På Data Center kontrollerar du att du skickar `Bearer`, inte `Basic`. På en Cloud-webbplats URL liknar felaktiga autentiseringsuppgifter oftare nästa punkt.
@@ -540,7 +540,7 @@ Jira begränsar hur snabbt du anropar den. Svaret innehåller `Retry-After`, i s
 :::
 
 :::details Jira visar att regeln eller webhooken kördes, men inget når OneUptime
-Kontrollera porten först: Jira anropar bara sina tillåtna portar. Skicka sedan en begäran själv till arbetsflödets URL med `curl` och leta upp den i **Loggar → Körningar**. Om din kommer fram och Jiras inte gör det ligger problemet på Jiras sida. Om körningen finns där men nekades kontrollerar du att arbetsflödet är påslaget.
+Kontrollera porten först: Jira anropar bara sina tillåtna portar. Skicka sedan en begäran själv till arbetsflödets URL med `curl` och leta upp den i **Körningar**. Om din kommer fram och Jiras inte gör det ligger problemet på Jiras sida. Om körningen finns där men nekades kontrollerar du att arbetsflödet är påslaget.
 :::
 
 :::details Arbetsflödet körs, men incidenten ändras inte

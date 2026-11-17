@@ -79,7 +79,7 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
                   </div>
                 )
               )}
-              <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                 {translator.translateText(
                   props.isFormula ? "Formula" : "Display Settings",
                 )}

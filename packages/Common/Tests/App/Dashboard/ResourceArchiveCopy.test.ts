@@ -201,18 +201,21 @@ describe("what each resource's copy promises, resource by resource", () => {
     );
   });
 
-  test("a status page is archived from its Advanced Settings; the others from Settings", () => {
-    expect(STATUS_PAGE_ARCHIVE_COPY.noArchivedItemsMessage).toContain(
-      "open its Advanced Settings",
-    );
-
+  /*
+   * A status page's menu ended on "Advanced Settings" until it was named
+   * Settings, as every other record's menu says (#9130): its archive card is
+   * on that page, and its copy names the page as its menu does.
+   */
+  test("each is archived from its Settings, a status page too", () => {
     for (const copy of [
       WORKFLOW_ARCHIVE_COPY,
       MONITOR_ARCHIVE_COPY,
+      STATUS_PAGE_ARCHIVE_COPY,
       DASHBOARD_ARCHIVE_COPY,
       ON_CALL_POLICY_ARCHIVE_COPY,
     ]) {
       expect(copy.noArchivedItemsMessage).toContain("open its Settings");
+      expect(copy.noArchivedItemsMessage).not.toContain("Advanced Settings");
     }
   });
 });

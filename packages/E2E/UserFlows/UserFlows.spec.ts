@@ -3,6 +3,12 @@ import { mkdir } from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import {
+  clearDropdown,
+  dropdownIn,
+  pickDropdownOption,
+  shownDropdownValue,
+} from "../SuiteHelpers/Dropdowns";
 
 /*
  * User Flows in a real browser: the production page, flow-map engine,
@@ -244,9 +250,9 @@ test.describe("User Flows", () => {
       "aria-pressed",
       "true",
     );
-    await expect(page.getByTestId("user-flow-anchor-select")).toHaveValue(
-      "/checkout/payment",
-    );
+    await expect(
+      shownDropdownValue(page.getByTestId("user-flow-anchor-select")),
+    ).toContainText("/checkout/payment");
 
     /* Forward from payment: 50 confirm the order, 30 leave. */
     await expect(
@@ -366,21 +372,37 @@ test.describe("User Flows", () => {
     await page.getByTestId("user-flow-group-ids").check();
 
     /* Mobile only: every third session (index % 3 === 1) is mobile. */
-    await page.getByTestId("user-flow-device-filter").selectOption("mobile");
+    await pickDropdownOption(
+      page,
+      dropdownIn(page.getByTestId("user-flow-device-filter")),
+      "mobile",
+    );
     await expect(page.getByTestId("user-flow-tile-sessions-value")).toHaveText(
       "67",
     );
 
     /* Only sessions with errors: C's 30. */
-    await page.getByTestId("user-flow-device-filter").selectOption("");
-    await page.getByTestId("user-flow-session-filter").selectOption("errors");
+    await clearDropdown(page.getByTestId("user-flow-device-filter"));
+    await pickDropdownOption(
+      page,
+      dropdownIn(page.getByTestId("user-flow-session-filter")),
+      "With errors",
+    );
     await expect(page.getByTestId("user-flow-tile-sessions-value")).toHaveText(
       "30",
     );
-    await page.getByTestId("user-flow-session-filter").selectOption("all");
+    await pickDropdownOption(
+      page,
+      dropdownIn(page.getByTestId("user-flow-session-filter")),
+      "All sessions",
+    );
 
     /* Seven steps reach the confirmation page at the end of B. */
-    await page.getByTestId("user-flow-steps-select").selectOption("7");
+    await pickDropdownOption(
+      page,
+      dropdownIn(page.getByTestId("user-flow-steps-select")),
+      "7",
+    );
     await expect(node(page, "/order/confirmed", 6)).toHaveAttribute(
       "data-sessions",
       "50",
@@ -397,7 +419,9 @@ test.describe("User Flows", () => {
     await expect(page.getByTestId("user-flow-hidden-pages")).toContainText(
       "/login",
     );
-    await expect(page.getByTestId("user-flow-steps-select")).toHaveValue("7");
+    await expect(
+      shownDropdownValue(page.getByTestId("user-flow-steps-select")),
+    ).toHaveText("7");
     await expect(link(page, "/", "/account")).toHaveAttribute(
       "data-sessions",
       "16",
@@ -521,9 +545,9 @@ test.describe("User Flows", () => {
       "200",
     );
     await expect(page.getByTestId("user-flow-hidden-pages")).toHaveCount(0);
-    await expect(page.getByTestId("user-flow-session-filter")).toHaveValue(
-      "all",
-    );
+    await expect(
+      shownDropdownValue(page.getByTestId("user-flow-session-filter")),
+    ).toHaveText("All sessions");
     expect(new URL(page.url()).search).toBe("");
     expect(await flowRequests(page)).toHaveLength(1);
   });
@@ -944,12 +968,20 @@ test.describe("One person or one session", () => {
 
     expect(Math.round(windowMs / 60000)).toBe(60);
 
-    await page.getByTestId("user-flow-device-filter").selectOption("mobile");
+    await pickDropdownOption(
+      page,
+      dropdownIn(page.getByTestId("user-flow-device-filter")),
+      "mobile",
+    );
     await expect(page.getByTestId("user-flow-journey")).toHaveCount(1);
     await expect(journey(page, janeUnrecordedSession)).toBeVisible();
 
-    await page.getByTestId("user-flow-device-filter").selectOption("");
-    await page.getByTestId("user-flow-session-filter").selectOption("errors");
+    await clearDropdown(page.getByTestId("user-flow-device-filter"));
+    await pickDropdownOption(
+      page,
+      dropdownIn(page.getByTestId("user-flow-session-filter")),
+      "With errors",
+    );
     await expect(page.getByTestId("user-flow-journey")).toHaveCount(1);
     await expect(journey(page, janeSession)).toBeVisible();
 
@@ -957,7 +989,11 @@ test.describe("One person or one session", () => {
      * Filters that leave nothing say so once, where the map would be, and
      * keep who the page is about and the filters themselves.
      */
-    await page.getByTestId("user-flow-device-filter").selectOption("mobile");
+    await pickDropdownOption(
+      page,
+      dropdownIn(page.getByTestId("user-flow-device-filter")),
+      "mobile",
+    );
     await expect(page.getByTestId("user-flow-journey")).toHaveCount(0);
     await expect(
       page.getByText("No session matches these filters"),
@@ -967,17 +1003,19 @@ test.describe("One person or one session", () => {
     await expect(page.getByTestId("user-flow-scope-name")).toHaveText(
       "jane@example.com",
     );
-    await expect(page.getByTestId("user-flow-device-filter")).toHaveValue(
-      "mobile",
-    );
+    await expect(
+      shownDropdownValue(page.getByTestId("user-flow-device-filter")),
+    ).toHaveText("mobile");
 
     /* Clear filters brings every one of her sessions back. */
     await page.getByTestId("user-flow-filtered-empty-clear").click();
     await expect(page.getByTestId("user-flow-journey")).toHaveCount(3);
-    await expect(page.getByTestId("user-flow-device-filter")).toHaveValue("");
-    await expect(page.getByTestId("user-flow-session-filter")).toHaveValue(
-      "all",
-    );
+    await expect(
+      shownDropdownValue(page.getByTestId("user-flow-device-filter")),
+    ).toHaveCount(0);
+    await expect(
+      shownDropdownValue(page.getByTestId("user-flow-session-filter")),
+    ).toHaveText("All sessions");
     await expect(page).not.toHaveURL(/device=|sessions=/);
 
     /* All of that re-folded what it had. */
@@ -993,9 +1031,9 @@ test.describe("One person or one session", () => {
     await expect(
       page.getByText("No session matches these filters"),
     ).toBeVisible();
-    await expect(page.getByTestId("user-flow-device-filter")).toHaveValue(
-      "tablet",
-    );
+    await expect(
+      shownDropdownValue(page.getByTestId("user-flow-device-filter")),
+    ).toHaveText("tablet");
   });
 
   test("Group IDs in URLs folds one person's records together again", async ({

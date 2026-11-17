@@ -97,6 +97,13 @@ export interface DropdownOption {
    */
   isInPageDirection?: boolean | undefined;
   /*
+   * The way the label reads, when the caller knows better than its letters:
+   * a page path in RUM User Flows ("/الرئيسية (12)") reads from the left on
+   * every page, as a path does in the address bar, whatever language its
+   * words are in (UserFlowFormat). Left out, the rules above decide.
+   */
+  labelDirection?: "ltr" | "rtl" | undefined;
+  /*
    * The description is drawn as it is, never looked up as a translation
    * key: something a person wrote - what was asked in a turn of a Code
    * task - or words the picker already put in the reader's language. It
@@ -113,6 +120,14 @@ export interface DropdownOption {
    * Archived, so it can be kept or changed.
    */
   isArchived?: boolean | undefined;
+  /*
+   * A value a record still holds that names nothing now - a severity, a
+   * label or an on-call policy since deleted (#7807): its label says so
+   * ("No longer in this project"), and it is drawn in muted italics, as the
+   * record's own card draws it. It can be taken out like any pick, and is
+   * never offered for one (isDisabled).
+   */
+  isNotFound?: boolean | undefined;
   /*
    * Shown in the menu but never picked: a choice that is not open here,
    * with its description saying why ("Runs JavaScript steps only."). The
@@ -242,6 +257,13 @@ export interface ComponentProps {
    */
   isAriaLabelTranslated?: boolean | undefined;
   ariaLabelledby?: string | undefined;
+  /*
+   * The id of the box a person types into: a <label htmlFor> names the
+   * picker by it, and pressing the label puts the focus in the picker, as
+   * it did for the raw <select> the picker replaced. `id` names the box
+   * around the picker instead.
+   */
+  inputId?: string | undefined;
   // What describes the list besides its error, read first: its field's help.
   ariaDescribedby?: string | undefined;
   disabled?: boolean | undefined;
@@ -348,6 +370,13 @@ export const MULTI_SELECT_CHIP_LABEL_CLASS_NAME: string =
   "min-w-0 whitespace-normal [overflow-wrap:anywhere] text-sm font-medium text-gray-900";
 
 /*
+ * A picked value that names nothing now (isNotFound), in the muted italics
+ * a rule's card says "No longer in this project" in.
+ */
+export const NOT_FOUND_VALUE_LABEL_CLASS_NAME: string =
+  "min-w-0 whitespace-normal [overflow-wrap:anywhere] text-sm font-normal italic text-gray-500";
+
+/*
  * A description someone wrote, under its option in the open menu
  * (isDescriptionUserContent): the description's look, on lines that wrap
  * and break a word too long for the menu - which also tells IsolatedLine
@@ -439,6 +468,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
   ) => "ltr" | "rtl" | undefined = (
     option: DropdownOption,
   ): "ltr" | "rtl" | undefined => {
+    if (option.labelDirection) {
+      return option.labelDirection;
+    }
+
     return getDropdownLabelDirection({
       label: option.label,
       shownText: getOptionLabelText(option),
@@ -883,14 +916,17 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             {renderOptionColorIndicator(option.color)}
             <span
               className={
-                props.isMultiSelect
-                  ? MULTI_SELECT_CHIP_LABEL_CLASS_NAME
-                  : props.wrapsPickedValue
-                    ? SINGLE_SELECT_WRAPPED_VALUE_LABEL_CLASS_NAME
-                    : SINGLE_SELECT_VALUE_LABEL_CLASS_NAME
+                option.isNotFound
+                  ? NOT_FOUND_VALUE_LABEL_CLASS_NAME
+                  : props.isMultiSelect
+                    ? MULTI_SELECT_CHIP_LABEL_CLASS_NAME
+                    : props.wrapsPickedValue
+                      ? SINGLE_SELECT_WRAPPED_VALUE_LABEL_CLASS_NAME
+                      : SINGLE_SELECT_VALUE_LABEL_CLASS_NAME
               }
               dir={getOptionLabelDirection(option)}
               data-testid="dropdown-value-label"
+              data-not-found={option.isNotFound ? "true" : undefined}
             >
               {getOptionLabelText(option)}
             </span>
@@ -1198,6 +1234,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           props.isAriaLabelTranslated ? props.ariaLabel : tx(props.ariaLabel)
         }
         aria-labelledby={props.ariaLabelledby}
+        {...(props.inputId ? { inputId: props.inputId } : {})}
         aria-invalid={props.error ? true : undefined}
         classNames={{
           control: (

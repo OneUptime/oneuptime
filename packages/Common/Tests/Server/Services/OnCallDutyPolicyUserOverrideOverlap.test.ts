@@ -687,6 +687,39 @@ describe("through the service", () => {
       expect(refusal.message).toBe(ISSUE_REFUSAL);
     });
 
+    /*
+     * Issue #7899: only shortened, an override adds no time, so it makes
+     * no overlap - an overlap saved before the rule never keeps one from
+     * being ended early, though its shorter times still overlap the other.
+     */
+    test("an end moved sooner goes through, though it still overlaps: it adds no time", async () => {
+      await edit(OVERLAPPING, { endsAt: at("16:00") });
+
+      expect(
+        OneUptimeDate.fromString(
+          table.get(OVERLAPPING)!["endsAt"] as Date,
+        ).toISOString(),
+      ).toBe(at("16:00").toISOString());
+    });
+
+    test("a start moved later goes through, though it still overlaps", async () => {
+      await edit(OVERLAPPING, { startsAt: at("16:00") });
+
+      expect(
+        OneUptimeDate.fromString(
+          table.get(OVERLAPPING)!["startsAt"] as Date,
+        ).toISOString(),
+      ).toBe(at("16:00").toISOString());
+    });
+
+    test("moved earlier and sooner at once, it adds time, and is held to all of it", async () => {
+      const refusal: Error = await refusalOf(
+        edit(OVERLAPPING, { startsAt: at("14:00"), endsAt: at("16:00") }),
+      );
+
+      expect(refusal.message).toBe(ISSUE_REFUSAL);
+    });
+
     test("times that end the overlap go through", async () => {
       await edit(OVERLAPPING, { startsAt: at("17:00") });
 

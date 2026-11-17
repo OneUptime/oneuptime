@@ -20,7 +20,7 @@ import { ADMIN_DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLangua
  *
  *   - Settings > Single Sign-On lists the server's SAML and OIDC providers,
  *     each with Test Sign-in in its row, and under them the instance-wide
- *     "Require SSO for Login" switch, in every edition. The switch asks
+ *     "Require SSO to Sign In" switch, in every edition. The switch asks
  *     before it turns on, and names the address master admins sign in at
  *     while SSO is required. Every string of the page, of the switch's card
  *     and of its dialog (SsoSettingsCopy) has an entry in all 17 locales,
@@ -95,7 +95,7 @@ const ALL_LOCALES: Array<string> = ["en", ...OTHER_LOCALES];
 const SSO_CARD_STRINGS: Array<string> = [
   "Require SSO",
   "Before you require SSO, sign in with a provider using Test Sign-in in its row.",
-  "Require SSO for Login",
+  "Require SSO to Sign In",
   "The sign-in page offers only SSO. Everyone except master admins must sign in with SSO to open any project.",
   "People can sign in with a password, a passkey or SSO.",
   "Master admins can always sign in with their password here, even while SSO is required. Keep this address.",

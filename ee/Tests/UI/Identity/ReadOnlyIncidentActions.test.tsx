@@ -32,7 +32,7 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  * core and never read-only, so the four single sign-on pages offer no
  * "Disable" row action and no notice, stay fully editable and never ask for
  * the license - checked here with an expired license, in the Enterprise
- * bundle. Settings > SSO's "Require SSO for Login" is the real switch, which
+ * bundle. Settings > SSO's "Require SSO to Sign In" is the real switch, which
  * reads the project and saves the moment it is flipped: it stays unlocked
  * and saves without the license being asked for.
  *
@@ -332,7 +332,7 @@ const SCIM_CASES: Array<ScimCase> = [
 ];
 
 /*
- * A page's "Require SSO for Login" switch, which saves on flip: the
+ * A page's "Require SSO to Sign In" switch, which saves on flip: the
  * project's on Settings > SSO, the status page's on its SSO page.
  */
 interface RequireSsoSwitchCase {
@@ -459,7 +459,7 @@ const fakeUpdateById: (request: {
 
 /*
  * The canned answer to every request that is not the license request: the
- * project, for the "Require SSO for Login" switch's read of
+ * project, for the "Require SSO to Sign In" switch's read of
  * requireSsoForLogin, and an empty list for a list read (Settings > SSO
  * looks up the members team its new providers start on).
  */
@@ -1024,7 +1024,7 @@ describe.each(SSO_CASES)(
       ).not.toBeInTheDocument();
 
       /*
-       * The real "Require SSO for Login" switch: once it has read its
+       * The real "Require SSO to Sign In" switch: once it has read its
        * project or status page, it is unlocked - an expired license has no
        * say in it.
        */

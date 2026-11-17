@@ -183,7 +183,7 @@ O Twilio lê as mensagens com uma voz sintetizada, então escreva-as do jeito qu
 
 ## Registros de chamadas
 
-Toda chamada aparece na página **Registros de chamadas** da política, em **Registros** no menu lateral dela: o **Chamador**, o **Número chamado**, o **Status** dela, quem atendeu (**Atendida por**), a **Duração** e quando ela começou (**Iniciado em**). Clique em **Ver linha do tempo** em uma chamada para ver a **Linha do tempo da chamada**: cada pessoa que tocou, em qual número e como cada tentativa terminou.
+Toda chamada aparece na página **Registros de chamadas** da política, em **Básico** no menu lateral dela: o **Chamador**, o **Número chamado**, o **Status** dela, quem atendeu (**Atendida por**), a **Duração** e quando ela começou (**Iniciado em**). Clique em **Ver linha do tempo** em uma chamada para ver a **Linha do tempo da chamada**: cada pessoa que tocou, em qual número e como cada tentativa terminou.
 
 | Status | O que aconteceu |
 | --- | --- |

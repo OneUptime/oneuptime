@@ -86,7 +86,7 @@ const MetricFormulaInput: FunctionComponent<ComponentProps> = (
               <HintChip variant="red">{validationError}</HintChip>
             </div>
           ) : (
-            <p className="mt-1 text-xs text-gray-400">
+            <p className="mt-1 text-xs text-gray-500">
               {translator.translateText(
                 'Tip: reference variables with or without a leading "$" (e.g. "a + b" or "$A + $B").',
               )}

@@ -697,7 +697,7 @@ const NetworkSites: FunctionComponent<
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.networkSiteType?.name) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("Not set")}
                   </span>
                 );
@@ -721,7 +721,7 @@ const NetworkSites: FunctionComponent<
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.parentSite?.name) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("Top level")}
                   </span>
                 );
@@ -746,7 +746,7 @@ const NetworkSites: FunctionComponent<
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.currentMonitorStatus) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("No Data")}
                   </span>
                 );
@@ -774,7 +774,7 @@ const NetworkSites: FunctionComponent<
                 item.longitude === null
               ) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("Not pinned")}
                   </span>
                 );

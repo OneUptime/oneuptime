@@ -261,7 +261,7 @@ describe("MonitorOverviewStatBar", () => {
     renderBar({});
 
     const cell: HTMLElement = tile("monitor-uptime-30d");
-    expect(within(cell).getByText("No data")).toHaveClass("text-gray-400");
+    expect(within(cell).getByText("No data")).toHaveClass("text-gray-500");
     expect(cell).toHaveTextContent("Nothing recorded in this window");
     expect(cell).not.toHaveTextContent("100%");
   });

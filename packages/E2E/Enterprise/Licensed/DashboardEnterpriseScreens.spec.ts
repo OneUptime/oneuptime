@@ -339,7 +339,7 @@ test.describe("Dashboard enterprise screens (licensed stack)", () => {
     });
 
     /*
-     * "Require SSO for login" is core too, so its switch is always there and
+     * "Require SSO to sign in" is core too, so its switch is always there and
      * can always be flipped - it is never locked behind a licence. (It saves
      * when flipped and asks first; this only looks, so nothing is required.)
      */
@@ -348,7 +348,7 @@ test.describe("Dashboard enterprise screens (licensed stack)", () => {
     ).toBeVisible({ timeout: 60000 });
 
     const requireSso: Locator = page.getByRole("switch", {
-      name: "Require SSO for Login",
+      name: "Require SSO to Sign In",
       exact: true,
     });
 

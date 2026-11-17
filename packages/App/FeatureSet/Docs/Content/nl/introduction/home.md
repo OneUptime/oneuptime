@@ -157,9 +157,10 @@ Boven de titel van elke pagina toont een pad zoals *Project › Docker › Inste
 Druk op **Cmd+K** (Mac) of **Ctrl+K** (Windows en Linux), of klik op het zoekpictogram in de bovenste balk, en begin te typen. Zoeken vindt:
 
 - **Elke pagina in de menu's**, onder de naam die het menu haar geeft: API-sleutels, Project verwijderen, Bereikbaarheidsschema's, Ernst van incident, uw eigen Meldingsmethoden. Elk resultaat zegt waar het staat, zoals *Projectinstellingen › Geavanceerd*, zodat pagina's met dezelfde naam (Aangepaste velden bij Incidenten, Waarschuwingen en Monitoren) makkelijk uit elkaar te houden zijn.
-- **De instellingen op een pagina**, onder de naam die hun kaart of schakelaar toont: *SSO vereisen voor inloggen* vindt SSO, en *Aangepaste SMTP-configuraties* vindt Meldingskanalen. Typ de naam in het Engels of in uw eigen taal.
+- **De instellingen op een pagina**, onder de naam die hun kaart of schakelaar toont: *SSO vereisen om aan te melden* vindt SSO, en *Aangepaste SMTP-configuraties* vindt Meldingskanalen. Typ de naam in het Engels of in uw eigen taal.
 - **Acties**, naar wat u wilt doen: Incident melden, Monitor maken of Delete Project, dat de Gevarenzone opent. Een actie die iets verandert, wordt alleen aangeboden aan wie die mag uitvoeren.
 - **Uw monitoren, incidenten, waarschuwingen, statuspagina's en bereikbaarheidsbeleid**, op naam, en incidenten en waarschuwingen ook op nummer, zoals `INC-42`. Elk resultaat van een incident of waarschuwing begint met zijn nummer, zodat twee met dezelfde titel uit elkaar te houden zijn.
+- **De eigen pagina's van een record**: op een statuspagina opent *sso* de pagina Single Sign-On ervan. Elders voegt u de naam van het record of de soort toe: *status page sso*, of *acme subscribers* voor de abonnees van een statuspagina met de naam Acme. Alleen records die u mag zien worden aangeboden, en een hernoemde pagina wordt nog gevonden onder de oude naam, zoals *advanced settings*.
 - **De documentatie**, in een groep *Documentatie* onder al het andere: de pagina's en secties waarvan de woorden overeenkomen met wat u typt, in uw taal, ook met een typfout. Elke opent in een nieuw tabblad, zodat u uw plek houdt.
 
 Zoeken leest wat u typt zoals u het bedoelt:

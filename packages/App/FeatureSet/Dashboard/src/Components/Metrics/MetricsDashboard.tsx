@@ -1251,7 +1251,7 @@ const StatCard: FunctionComponent<StatCardProps> = (
       <p className={`mt-2 text-3xl font-bold ${tone.valueText}`}>
         {props.value}
       </p>
-      <p className="mt-1 text-xs text-gray-400">{props.subtext}</p>
+      <p className="mt-1 text-xs text-gray-500">{props.subtext}</p>
     </div>
   );
 };

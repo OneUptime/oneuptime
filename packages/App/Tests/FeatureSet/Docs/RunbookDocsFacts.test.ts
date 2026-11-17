@@ -2683,8 +2683,9 @@ describe("runbook triggers", () => {
 /*
  * A runbook's own side menu (Pages/Runbook/View/SideMenu.tsx), as the
  * overview tables it and the other pages give paths into it. The maintainer
- * asked for it to show as little as possible: Executions under a folded Logs
- * section, Triggers under a folded Settings section. So Basic is the only
+ * asked for it to show as little as possible: Executions first in a folded
+ * Advanced section (it had a one-entry Logs section until #9216), Triggers
+ * under a folded Settings section. So Basic is the only
  * section open, and a page in another section is named by its path, with the
  * section that has to be opened first.
  */
@@ -2752,16 +2753,18 @@ describe("a runbook's own side menu", () => {
   it("is read with each section and page the menu draws, in order", () => {
     expect(viewMenu).toEqual([
       { title: "Basic", items: ["Overview", "Steps"] },
-      { title: "Logs", items: ["Executions"] },
       { title: "Settings", items: ["Triggers", "Variables", "Settings"] },
       {
         title: "Developer",
         items: ["Terraform", "API", "CLI", "AI Assistants"],
       },
-      // Owners joined Advanced when its one-entry section went (#9218).
+      /*
+       * Owners joined Advanced when its one-entry section went (#9218), and
+       * Executions, first, when the one-entry Logs section went (#9216).
+       */
       {
         title: "Advanced",
-        items: ["Owners", "Audit Logs", "Delete Runbook"],
+        items: ["Executions", "Owners", "Audit Logs", "Delete Runbook"],
       },
     ]);
   });
@@ -2785,14 +2788,14 @@ describe("a runbook's own side menu", () => {
 
   it("names the runs and the triggers by the folded sections that hold them", () => {
     expect(RUNNING).toContain(
-      "| A runbook's **Logs → Executions** | Every run of that runbook,",
+      "| A runbook's **Advanced → Executions** | Every run of that runbook,",
     );
     expect(TRIGGERS).toContain(
       "Open the runbook from **Runbooks**, and click **Settings → Triggers** in its side menu. **Settings** starts folded: click it to show **Triggers**.",
     );
 
     for (const [sectionTitle, page] of [
-      ["Logs", "Executions"],
+      ["Advanced", "Executions"],
       ["Settings", "Triggers"],
     ] as Array<[string, string]>) {
       expect({
@@ -2811,7 +2814,7 @@ describe("a runbook's own side menu", () => {
     const paths: Array<string> = pathsIntoTheMenu();
 
     expect(paths).toEqual([
-      "Logs → Executions",
+      "Advanced → Executions",
       "Settings → Triggers",
       "Settings → Variables",
     ]);

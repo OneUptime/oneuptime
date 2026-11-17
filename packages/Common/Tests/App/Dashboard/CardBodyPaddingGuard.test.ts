@@ -236,8 +236,8 @@ const ENTERPRISE_DELIBERATE_PADDINGS: ReadonlyArray<DeliberatePadding> = [
   {
     file: "ee/AdminDashboard/Health/QueryConsole.tsx",
     rule: "an empty state centred by its text",
-    from: `"text-sm text-gray-400 py-8 text-center"`,
-    to: `"text-sm text-gray-400 py-8"`,
+    from: `"text-sm text-gray-500 py-8 text-center"`,
+    to: `"text-sm text-gray-500 py-8"`,
   },
 ];
 

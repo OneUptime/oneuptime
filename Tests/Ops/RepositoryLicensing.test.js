@@ -967,7 +967,7 @@ describe("ee/README.md", () => {
     const text = normaliseWhitespace(readme);
 
     expect(text).toContain(
-      'Single sign-on is not affected: its routes have no license gate, and "Require SSO for login" stays enforced whatever the license state.',
+      'Single sign-on is not affected: its routes have no license gate, and "Require SSO to sign in" stays enforced whatever the license state.',
     );
     expect(text).toContain(
       "the relaxed SCIM team locks are listed by `packages/Common/Server/Utils/RelaxedScimTeamLocksReport.ts`",

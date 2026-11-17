@@ -17,6 +17,7 @@ import type { UseOnCallOverridesResult } from "../hooks/useOnCallOverrides";
 
 const mockNavigate: jest.Mock = jest.fn();
 const mockCancel: jest.Mock = jest.fn();
+const mockEndNow: jest.Mock = jest.fn();
 const mockRefetch: jest.Mock = jest.fn();
 const mockOverrides: { current: UseOnCallOverridesResult } = {
   current: {} as UseOnCallOverridesResult,
@@ -80,6 +81,7 @@ describe("Coverage management", () => {
   beforeEach(() => {
     mockNavigate.mockReset();
     mockCancel.mockReset();
+    mockEndNow.mockReset();
     mockRefetch.mockReset();
     mockOverrides.current = {
       active: [],
@@ -92,6 +94,10 @@ describe("Coverage management", () => {
       isCancelling: false,
       createOverride: jest.fn(),
       isCreating: false,
+      updateOverride: jest.fn(),
+      isUpdating: false,
+      endOverrideNow: mockEndNow,
+      isEnding: false,
     };
     alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {
       return undefined;
@@ -112,23 +118,101 @@ describe("Coverage management", () => {
     ).toBeGreaterThanOrEqual(124);
   });
 
-  test("separates active, upcoming and ended cover and only allows cancelling live arrangements", async (): Promise<void> => {
+  /*
+   * #7897: every arrangement that has not ended can be edited; one in force
+   * is ended with End now, one to come is called off with Cancel; one that
+   * has ended has neither.
+   */
+  test("separates active, upcoming and ended cover: Edit on live arrangements, End now on the one in force, Cancel on the one to come", async (): Promise<void> => {
     mockOverrides.current.active = [override("active")];
     mockOverrides.current.upcoming = [override("upcoming")];
     mockOverrides.current.past = [override("past")];
     await render(<OnCallOverridesScreen />);
     expect(screen.getByTestId("coverage-counts")).toBeTruthy();
-    expect(screen.getByTestId("override-cancel-active")).toBeTruthy();
+    expect(screen.getByTestId("override-edit-active")).toBeTruthy();
+    expect(screen.getByTestId("override-edit-upcoming")).toBeTruthy();
+    expect(screen.queryByTestId("override-edit-past")).toBeNull();
+    expect(screen.getByTestId("override-end-now-active")).toBeTruthy();
+    expect(screen.queryByTestId("override-end-now-upcoming")).toBeNull();
+    expect(screen.queryByTestId("override-cancel-active")).toBeNull();
     expect(screen.getByTestId("override-cancel-upcoming")).toBeTruthy();
     expect(screen.queryByTestId("override-cancel-past")).toBeNull();
     expect(screen.getAllByText("Your pages go to Priya")).toHaveLength(3);
   });
 
-  test("requires explicit destructive confirmation before cancelling the exact arrangement", async (): Promise<void> => {
+  test("Edit opens the edit sheet on the exact arrangement", async (): Promise<void> => {
+    const upcoming: OnCallOverrideItem = override("upcoming");
+    mockOverrides.current.upcoming = [upcoming];
+    await render(<OnCallOverridesScreen />);
+    await fireEvent.press(screen.getByTestId("override-edit-upcoming"));
+    expect(mockNavigate).toHaveBeenCalledWith("EditOnCallOverride", {
+      override: upcoming,
+    });
+  });
+
+  test("End now asks first, saying who stops covering, what is left and who is paged again, then ends the exact arrangement", async (): Promise<void> => {
     const active: OnCallOverrideItem = override("active");
     mockOverrides.current.active = [active];
     await render(<OnCallOverridesScreen />);
-    await fireEvent.press(screen.getByTestId("override-cancel-active"));
+    await fireEvent.press(screen.getByTestId("override-end-now-active"));
+    expect(mockEndNow).not.toHaveBeenCalled();
+    expect(alertSpy).toHaveBeenCalledWith(
+      "End this override now?",
+      expect.stringMatching(
+        /^Priya stops covering for you now instead of .+\. From then on, your pages come to you again\.$/,
+      ),
+      expect.any(Array),
+    );
+    const buttons: Array<{
+      text: string;
+      style?: string;
+      onPress?: () => void;
+    }> = alertSpy.mock.calls[0]![2];
+    expect(
+      buttons.find((button: { text: string; style?: string }) => {
+        return button.text === "Keep it";
+      })?.style,
+    ).toBe("cancel");
+    buttons
+      .find((button: { text: string; style?: string }) => {
+        return button.style === "destructive";
+      })
+      ?.onPress?.();
+    await waitFor(() => {
+      expect(mockEndNow).toHaveBeenCalledWith(active);
+    });
+  });
+
+  test("an End now refusal is said whole, and the arrangement stays", async (): Promise<void> => {
+    mockOverrides.current.active = [override("active")];
+    mockEndNow.mockImplementation(async () => {
+      throw new Error(
+        "This override has already ended, so it can't be changed. Add a new override instead.",
+      );
+    });
+    await render(<OnCallOverridesScreen />);
+    await fireEvent.press(screen.getByTestId("override-end-now-active"));
+    const buttons: Array<{ style?: string; onPress?: () => void }> =
+      alertSpy.mock.calls[0]![2];
+    buttons
+      .find((button: { style?: string }) => {
+        return button.style === "destructive";
+      })
+      ?.onPress?.();
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith(
+        "Could not end override",
+        "This override has already ended, so it can't be changed. Add a new override instead.",
+      );
+    });
+    expect(screen.getByTestId("override-card-active")).toBeTruthy();
+  });
+
+  test("requires explicit destructive confirmation before cancelling the exact arrangement", async (): Promise<void> => {
+    const upcoming: OnCallOverrideItem = override("upcoming");
+    mockOverrides.current.upcoming = [upcoming];
+    await render(<OnCallOverridesScreen />);
+    await fireEvent.press(screen.getByTestId("override-cancel-upcoming"));
     expect(mockCancel).not.toHaveBeenCalled();
     expect(alertSpy).toHaveBeenCalledWith(
       "Cancel this override?",
@@ -156,17 +240,17 @@ describe("Coverage management", () => {
     );
     confirm?.onPress?.();
     await waitFor(() => {
-      expect(mockCancel).toHaveBeenCalledWith(active);
+      expect(mockCancel).toHaveBeenCalledWith(upcoming);
     });
   });
 
   test("shows a cancellation refusal and keeps the coverage visible", async (): Promise<void> => {
-    mockOverrides.current.active = [override("active")];
+    mockOverrides.current.upcoming = [override("upcoming")];
     mockCancel.mockImplementation(async () => {
       throw new Error("Coverage cannot be changed");
     });
     await render(<OnCallOverridesScreen />);
-    await fireEvent.press(screen.getByTestId("override-cancel-active"));
+    await fireEvent.press(screen.getByTestId("override-cancel-upcoming"));
     const buttons: Array<{ style?: string; onPress?: () => void }> =
       alertSpy.mock.calls[0]![2];
     buttons
@@ -180,7 +264,7 @@ describe("Coverage management", () => {
         "Coverage cannot be changed",
       );
     });
-    expect(screen.getByTestId("override-card-active")).toBeTruthy();
+    expect(screen.getByTestId("override-card-upcoming")).toBeTruthy();
   });
 
   test("offers retry when coverage cannot be loaded", async (): Promise<void> => {
@@ -220,6 +304,10 @@ describe("Refresh recovery", () => {
         isCancelling: false,
         createOverride: jest.fn(),
         isCreating: false,
+        updateOverride: jest.fn(),
+        isUpdating: false,
+        endOverrideNow: jest.fn(),
+        isEnding: false,
       };
       await render(<OnCallOverridesScreen />);
       expect(screen.getByText("Coverage")).toBeTruthy();
@@ -263,6 +351,10 @@ describe("Coverage layout", () => {
       isCancelling: false,
       createOverride: jest.fn(),
       isCreating: false,
+      updateOverride: jest.fn(),
+      isUpdating: false,
+      endOverrideNow: mockEndNow,
+      isEnding: false,
     };
     alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {
       return undefined;
@@ -347,12 +439,11 @@ describe("Coverage layout", () => {
         finishCancel = resolve;
       });
     });
-    mockOverrides.current.active = [override("active")];
-    mockOverrides.current.upcoming = [override("upcoming")];
+    mockOverrides.current.upcoming = [override("first"), override("second")];
 
     await render(<OnCallOverridesScreen />);
 
-    await fireEvent.press(screen.getByTestId("override-cancel-active"));
+    await fireEvent.press(screen.getByTestId("override-cancel-first"));
     const buttons: Array<{
       text: string;
       style?: string;
@@ -374,10 +465,10 @@ describe("Coverage layout", () => {
     });
 
     expect(
-      screen.getByTestId("override-cancel-active").props.accessibilityState,
+      screen.getByTestId("override-cancel-first").props.accessibilityState,
     ).toEqual({ disabled: true, busy: true });
     expect(
-      screen.getByTestId("override-cancel-upcoming").props.accessibilityState,
+      screen.getByTestId("override-cancel-second").props.accessibilityState,
     ).toEqual({ disabled: false, busy: false });
 
     await act(async () => {
@@ -386,7 +477,7 @@ describe("Coverage layout", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByTestId("override-cancel-active").props.accessibilityState,
+        screen.getByTestId("override-cancel-first").props.accessibilityState,
       ).toEqual({ disabled: false, busy: false });
     });
   });

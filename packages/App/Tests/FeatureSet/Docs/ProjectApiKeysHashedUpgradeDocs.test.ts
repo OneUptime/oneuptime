@@ -41,9 +41,9 @@ const NOTE_LEAD: string =
 // The note before it: the master API key, hashed first (#8901).
 const PREVIOUS_LEAD: string =
   "**The master API key is stored hashed, and shown only when it is made.**";
-// The note after it: the keys presented to OneUptime, protected next (#9012).
+// The note after it.
 const NEXT_LEAD: string =
-  "**The keys presented to OneUptime are encrypted, and SCIM bearer tokens are stored hashed";
+  "**What is done about a private record follows its owners too";
 
 // The major version whose "Other changes in" list carries the note.
 const MAJOR: number = 15;

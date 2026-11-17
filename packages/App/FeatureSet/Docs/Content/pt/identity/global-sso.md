@@ -3,7 +3,7 @@
 O SSO global permite que um **administrador da instância** do OneUptime (administrador mestre) configure **uma única vez**, no nível da instância, um provedor de identidade SAML 2.0 ou OpenID Connect (OIDC) e o conecte a qualquer projeto do servidor. Em vez de cada Proprietário do projeto configurar o próprio provedor de identidade, um administrador mestre configura um que atende a instância inteira.
 
 > [!NOTE]
-> O SSO global, incluindo o interruptor "Require SSO for Login" para a instância inteira, faz parte de todas as edições do OneUptime: toda instância auto-hospedada o tem, inclusive a Community Edition, e ele não precisa de licença. É administração da instância, portanto não se aplica ao OneUptime Cloud. Consulte [Edição Enterprise](/docs/self-hosted/enterprise) para ver o que cada edição inclui.
+> O SSO global, incluindo o interruptor "Require SSO to Sign In" para a instância inteira, faz parte de todas as edições do OneUptime: toda instância auto-hospedada o tem, inclusive a Community Edition, e ele não precisa de licença. É administração da instância, portanto não se aplica ao OneUptime Cloud. Consulte [Edição Enterprise](/docs/self-hosted/enterprise) para ver o que cada edição inclui.
 
 :::cards
 - [Configurar um provedor](#configurar-o-sso-global): Criá-lo, dar ao seu provedor de identidade as URLs do OneUptime e testá-lo.
@@ -96,7 +96,7 @@ Com **Todos os projetos**, fazer login com o provedor atende à exigência de SS
 Configurar um provedor global não obriga ninguém a usá-lo; o login com senha continua funcionando. Para exigir SSO, ligue a exigência em um projeto ou na instância inteira:
 
 - **Por projeto:** um projeto pode exigir SSO e, opcionalmente, um provedor *específico* (de projeto ou global). Veja [Exigir SSO no seu projeto](/docs/identity/sso#exigir-sso-no-seu-projeto).
-- **Na instância inteira:** o cartão **Exigir SSO** no fim de **Admin** > **Configurações** > **Login único** tem um interruptor **Exigir SSO para login** que impõe o SSO a todos os usuários da instância. Ele pede confirmação antes de ligar e salva assim que você confirma. Os administradores mestres continuam isentos para nunca ficarem sem acesso.
+- **Na instância inteira:** o cartão **Exigir SSO** no fim de **Admin** > **Configurações** > **Login único** tem um interruptor **Exigir SSO para entrar** que impõe o SSO a todos os usuários da instância. Ele pede confirmação antes de ligar e salva assim que você confirma. Os administradores mestres continuam isentos para nunca ficarem sem acesso.
 
 Enquanto a instância inteira exige SSO:
 
@@ -105,12 +105,12 @@ Enquanto a instância inteira exige SSO:
 - Quem já fez login com uma senha faz login com SSO para abrir um projeto. Essa pessoa chega à página de login único do projeto, que oferece os provedores próprios do projeto e os provedores globais que fazem login nele. O cartão **Exigir SSO** diz quantas pessoas ainda estão conectadas sem SSO, e **Desconectá-las** encerra as sessões delas em todos os dispositivos de uma vez. Os administradores principais continuam conectados.
 - Os administradores mestres fazem login com a senha em `/accounts/admin-login`, um endereço para o qual a página de login não aponta. O cartão **Exigir SSO** mostra o endereço completo abaixo do interruptor, como **Login de administrador principal**: guarde-o, para desligar a exigência se o seu provedor de identidade parar de funcionar.
 
-Ligar **Exigir SSO para login** exige um provedor de SSO que faça o login das pessoas, para que ninguém fique sem acesso por causa disso:
+Ligar **Exigir SSO para entrar** exige um provedor de SSO que faça o login das pessoas, para que ninguém fique sem acesso por causa disso:
 
 - Para a instância inteira, cada projeto que não exige SSO por conta própria precisa de um: um dos provedores SAML ou OIDC dele que esteja ligado, ou um provedor global ligado que faça login nele. Enquanto um projeto não tiver nenhum, ligar o interruptor é recusado, e a mensagem indica os projetos (ou, quando são muitos, os primeiros e quantos são). Ligue primeiro um provedor global, ou um provedor nesses projetos. Um projeto que exige um provedor específico precisa desse: enquanto ele estiver desligado, excluído ou não fizer login no projeto, a mensagem indica esse projeto à parte — ligue primeiro esse provedor ou exija outro lá.
 - Para um projeto, o mesmo é pedido a esse projeto, e ao provedor que ele exige quando exige um.
-- Um salvamento que envia **Exigir SSO para login** ligado quando ele já está ligado — junto com outras configurações ou pela API — é verificado da mesma forma, para a instância ou para um projeto, assim como um que indica o provedor que um projeto já exige.
-- Para um projeto novo, que ainda não tem provedor próprio: enquanto a instância exigir SSO, criar um projeto exige um provedor global ligado que faça login em todos os projetos; caso contrário, ninguém, nem quem o criou, conseguiria abri-lo. Sem ele, a criação de um projeto é recusada, e a mensagem pede que um administrador do servidor ligue um. Administradores mestres continuam podendo criar projetos. Um projeto criado com **Exigir SSO para login** já ligado precisa do mesmo, não importa quem o cria.
+- Um salvamento que envia **Exigir SSO para entrar** ligado quando ele já está ligado — junto com outras configurações ou pela API — é verificado da mesma forma, para a instância ou para um projeto, assim como um que indica o provedor que um projeto já exige.
+- Para um projeto novo, que ainda não tem provedor próprio: enquanto a instância exigir SSO, criar um projeto exige um provedor global ligado que faça login em todos os projetos; caso contrário, ninguém, nem quem o criou, conseguiria abri-lo. Sem ele, a criação de um projeto é recusada, e a mensagem pede que um administrador do servidor ligue um. Administradores mestres continuam podendo criar projetos. Um projeto criado com **Exigir SSO para entrar** já ligado precisa do mesmo, não importa quem o cria.
 
 Desligar nunca é recusado.
 
@@ -129,11 +129,11 @@ Um projeto que exige SSO, por conta própria ou porque a instância inteira exig
 - desligar um provedor global, excluí-lo ou restringi-lo aos projetos anexados;
 - em um provedor restrito aos projetos anexados: anexar o primeiro projeto (até lá ele faz login em todos os projetos), desligar um anexo, movê-lo para outro projeto ou provedor, ou removê-lo.
 
-A mensagem indica os projetos, ou os primeiros e quantos são. Ligue primeiro outro provedor para eles, um próprio ou um global, ou desligue lá **Exigir SSO para login**. Um projeto que exige exatamente este provedor é indicado à parte: exija primeiro outro provedor lá ou desligue **Exigir SSO para login**.
+A mensagem indica os projetos, ou os primeiros e quantos são. Ligue primeiro outro provedor para eles, um próprio ou um global, ou desligue lá **Exigir SSO para entrar**. Um projeto que exige exatamente este provedor é indicado à parte: exija primeiro outro provedor lá ou desligue **Exigir SSO para entrar**.
 
-As alterações que permitem a um provedor fazer o login de mais pessoas — ligá-lo ou ligar um anexo, retirar a restrição — nunca são recusadas. Elas chegam a todos os servidores de aplicação na hora, como desligar **Exigir SSO para login**: as pessoas podem fazer login com o provedor imediatamente. Só quando outra alteração do mesmo provedor é salva nesse mesmo instante um servidor de aplicação pode levar até um minuto para acompanhar.
+As alterações que permitem a um provedor fazer o login de mais pessoas — ligá-lo ou ligar um anexo, retirar a restrição — nunca são recusadas. Elas chegam a todos os servidores de aplicação na hora, como desligar **Exigir SSO para entrar**: as pessoas podem fazer login com o provedor imediatamente. Só quando outra alteração do mesmo provedor é salva nesse mesmo instante um servidor de aplicação pode levar até um minuto para acompanhar.
 
-Duas alterações sobre quem pode fazer login são verificadas uma depois da outra. Se outra estiver sendo salva no mesmo momento e demorar mais que o normal — ligar **Exigir SSO para login** na instância inteira lê todos os projetos —, uma alteração é recusada com "Another change to who can sign in with SSO is being saved. Try again in a moment.": salve-a de novo. Um projeto criado nesse momento também espera pela alteração e, se esperar demais, é recusado com "The server's SSO settings are being changed. Create the project again in a moment."
+Duas alterações sobre quem pode fazer login são verificadas uma depois da outra. Se outra estiver sendo salva no mesmo momento e demorar mais que o normal — ligar **Exigir SSO para entrar** na instância inteira lê todos os projetos —, uma alteração é recusada com "Another change to who can sign in with SSO is being saved. Try again in a moment.": salve-a de novo. Um projeto criado nesse momento também espera pela alteração e, se esperar demais, é recusado com "The server's SSO settings are being changed. Create the project again in a moment."
 
 ## Solução de problemas
 
@@ -162,7 +162,7 @@ Cada resposta do seu provedor de identidade faz o login uma única vez, e só no
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-A instância inteira exige SSO, e este foi um login com senha, chave de acesso, um link enviado por e-mail, Google ou Microsoft, ou um cadastro. Faça login com um dos botões de SSO da página de login. Um administrador mestre faz login com a senha em `/accounts/admin-login`; para que todos voltem a fazer login com senha, ele desliga **Exigir SSO para login** em **Login único**.
+A instância inteira exige SSO, e este foi um login com senha, chave de acesso, um link enviado por e-mail, Google ou Microsoft, ou um cadastro. Faça login com um dos botões de SSO da página de login. Um administrador mestre faz login com a senha em `/accounts/admin-login`; para que todos voltem a fazer login com senha, ele desliga **Exigir SSO para entrar** em **Login único**.
 :::
 
 ## Próximos passos

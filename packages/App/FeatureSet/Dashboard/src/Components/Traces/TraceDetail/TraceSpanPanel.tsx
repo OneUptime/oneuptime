@@ -590,7 +590,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     {exception.exceptionType && (
-                      <div className="font-mono text-[11px] font-semibold text-red-700">
+                      <div className="font-mono text-xs font-semibold text-red-700">
                         {exception.exceptionType}
                       </div>
                     )}
@@ -603,7 +603,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                     <Link
                       to={groupRoute}
                       openInNewTab={true}
-                      className="flex-none text-[11px] font-medium text-red-700 hover:underline"
+                      className="flex-none text-xs font-medium text-red-700 hover:underline"
                     >
                       {translator.translateText("View exception")}
                     </Link>
@@ -611,7 +611,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                 </div>
                 {exception.stackTrace && (
                   <details className="mt-2">
-                    <summary className="cursor-pointer text-[11px] font-medium text-red-700">
+                    <summary className="cursor-pointer text-xs font-medium text-red-700">
                       {translator.translateText("Stack trace")}
                     </summary>
                     <pre className="mt-1 max-h-60 overflow-auto whitespace-pre rounded bg-white p-2 font-mono text-[11px] text-gray-800">
@@ -722,7 +722,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                   />
                 </div>
               ) : (
-                <span className="flex-1 text-[11px] text-gray-500">
+                <span className="flex-1 text-xs text-gray-500">
                   {translator.translatePlural(
                     ATTRIBUTE_COUNT,
                     attributes.length,
@@ -829,7 +829,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                             : event.title}
                         </span>
                         {event.attributes.length > 0 && (
-                          <span className="text-[11px] text-gray-500">
+                          <span className="text-xs text-gray-500">
                             {translator.translatePlural(
                               ATTRIBUTE_COUNT,
                               event.attributes.length,
@@ -988,7 +988,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                   className="rounded-md border border-gray-200 px-3 py-2 text-xs"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0 space-y-0.5 font-mono text-[11px] text-gray-700">
+                    <div className="min-w-0 space-y-0.5 font-mono text-xs text-gray-700">
                       <div className="truncate">
                         {translator.translateTemplate("trace {{traceId}}", {
                           traceId: link.traceId,
@@ -1268,7 +1268,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
               </dt>
               <dd className="flex min-w-0 items-center gap-1">
                 <code
-                  className="truncate font-mono text-[11px] text-gray-800"
+                  className="truncate font-mono text-xs text-gray-800"
                   data-testid="span-panel-id"
                 >
                   {spanId}

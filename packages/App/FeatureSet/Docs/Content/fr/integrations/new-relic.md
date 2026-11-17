@@ -151,7 +151,7 @@ curl -X POST "<url>" \
 
 Un incident s'ouvre, intitulé `New Relic: High CPU on checkout-service`, et les politiques d'astreinte que vous avez choisies sont prévenues. Envoyez la même requête avec `isAcknowledged` sur `true`, et l'incident est pris en compte. Envoyez-la avec `state` sur `CLOSED`, et l'incident est résolu.
 
-Testez ensuite depuis New Relic : ouvrez le message du webhook du workflow New Relic, et cliquez sur **Send test notification**. Pour voir qu'il est arrivé, ouvrez les **Journaux → Exécutions** du flux de travail OneUptime.
+Testez ensuite depuis New Relic : ouvrez le message du webhook du workflow New Relic, et cliquez sur **Send test notification**. Pour voir qu'il est arrivé, ouvrez les **Exécutions** du flux de travail OneUptime.
 
 ## Dépannage
 
@@ -162,7 +162,7 @@ Testez ensuite depuis New Relic : ouvrez le message du webhook du workflow New R
 :::
 
 :::details Le flux de travail s'exécute, mais n'ouvre rien
-Ouvrez l'exécution dans **Journaux → Exécutions**. L'entrée `read-event-1` de ses **Étapes** dit pourquoi il a pris **Non**.
+Ouvrez l'exécution dans **Exécutions**. L'entrée `read-event-1` de ses **Étapes** dit pourquoi il a pris **Non**.
 
 - `New Relic named no issue ID` : gardez la ligne `"id": {{ json issueId }},` dans la charge utile.
 - `is in no state` : gardez la ligne `"state": {{ json state }},` dans la charge utile.
@@ -175,7 +175,7 @@ Ouvrez l'exécution dans **Journaux → Exécutions**. L'entrée `read-event-1` 
 
 :::details Les incidents s'ouvrent mais ne sont jamais résolus
 - Le workflow dans New Relic doit garder **Closed** activé sous **Notify when**.
-- Ouvrez l'exécution de la fermeture dans **Journaux → Exécutions** : sa dernière étape dit pourquoi. L'`id` de la fermeture doit être celui du problème, laissez donc `"id": {{ json issueId }},` tel quel dans la charge utile.
+- Ouvrez l'exécution de la fermeture dans **Exécutions** : sa dernière étape dit pourquoi. L'`id` de la fermeture doit être celui du problème, laissez donc `"id": {{ json issueId }},` tel quel dans la charge utile.
 :::
 
 :::details L'astreinte est prévenue pour trop de problèmes

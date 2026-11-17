@@ -13,6 +13,9 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
+import { getTableColumn } from "Common/Types/Database/TableColumn";
+import TableColumnType from "Common/Types/Database/TableColumnType";
+import { JSONObject } from "Common/Types/JSON";
 
 /*
  * Regression tests for the IncomingRequestMonitor:CheckHeartbeat cron's write
@@ -72,6 +75,8 @@ jest.mock("Common/Server/Utils/Logger", () => {
  * updateOneById is mocked ALONGSIDE the fast path precisely so the suite can
  * prove it is never called: if the job regressed back to the hooked pipeline,
  * the assertion would flag it instead of the mock throwing "not a function".
+ * rewriteLatestIncomingRequestForReaders likewise: the job no longer splits a
+ * monitor's latest request (#8906), and the suite proves it never asks to.
  */
 jest.mock("Common/Server/Infrastructure/Semaphore", () => {
   return {
@@ -424,7 +429,7 @@ describe("IncomingRequestMonitor:CheckHeartbeat worker", () => {
     const monitor: Monitor = makeMonitor({
       id: MONITOR_A_ID,
       monitorSteps: stepsWithCheckOn(CheckOn.IncomingRequest),
-      incomingMonitorRequest: {
+      incomingMonitorRequestAsReceived: {
         incomingRequestReceivedAt: receivedAt,
       } as IncomingMonitorRequest,
     });
@@ -661,14 +666,15 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges arrivals, not processing"
   // What the endpoint last received: 20 seconds before this tick.
   const LAST_ARRIVAL: Date = new Date("2026-07-27T09:59:40.000Z");
 
+  // The latest request as the ingest kept it as it came, which the job judges.
   function heartbeatMonitor(
-    incomingMonitorRequest?: IncomingMonitorRequest,
+    incomingMonitorRequestAsReceived?: IncomingMonitorRequest,
   ): Monitor {
     return makeMonitor({
       id: MONITOR_A_ID,
       monitorSteps: stepsWithCheckOn(CheckOn.IncomingRequest),
       incomingRequestSecretKey: SECRET_KEY,
-      incomingMonitorRequest: incomingMonitorRequest,
+      incomingMonitorRequestAsReceived: incomingMonitorRequestAsReceived,
     });
   }
 
@@ -958,8 +964,10 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges arrivals, not processing"
  * monitor's logs are, by its Keep request content switch
  * (LatestIncomingRequest). The heartbeat judges the request again, against
  * criteria that may read its body or its headers: it reads the request as
- * it came, never the cut copy. A request a server from before the split
- * kept once, as it came, is judged as before and split here.
+ * it came, and that one alone (#8906). Every server since 14.0.106 writes
+ * the two in one statement, and 16 is upgraded to from 15 only, so the job
+ * has no use for the copy people read: it neither reads it nor splits a
+ * request kept once in it, which RedactLatestIncomingRequests does.
  */
 describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, never the copy people read", () => {
   const SECRET_KEY: ObjectID = new ObjectID(
@@ -1004,6 +1012,11 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
     } as unknown as IncomingMonitorRequest;
   }
 
+  /*
+   * A monitor handed to the job with whichever copies a test gives it, as
+   * if its read had returned them: the job must use the right one whatever
+   * it is handed.
+   */
   function heartbeatMonitor(copies: {
     incomingMonitorRequest?: IncomingMonitorRequest | undefined;
     incomingMonitorRequestAsReceived?: IncomingMonitorRequest | undefined;
@@ -1021,6 +1034,13 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
   function evaluatedPayload(): IncomingMonitorRequest {
     expect(monitorResourceMock).toHaveBeenCalledTimes(1);
     return monitorResourceMock.mock.calls[0]![0] as IncomingMonitorRequest;
+  }
+
+  function trackedFloor(): number {
+    expect(trackMock).toHaveBeenCalledTimes(1);
+    const trackInput: { receivedAt: Date | string } = trackMock.mock
+      .calls[0]![0] as { receivedAt: Date | string };
+    return new Date(trackInput.receivedAt).getTime();
   }
 
   const BODY_SAYS_DEPLOYED: CriteriaFilter = {
@@ -1066,16 +1086,54 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
     });
   });
 
-  test("the sweep reads the request as it came, and the copy people read", async () => {
+  test("the sweep reads one copy of the latest request: the request as it came, never the copy people read", async () => {
     await runWorkerTick();
 
     expect(monitorService.findBy).toHaveBeenCalledTimes(1);
 
-    for (const call of monitorService.findBy.mock.calls) {
-      const args: FindByArgs = call[0] as FindByArgs;
-      expect(args.select["incomingMonitorRequestAsReceived"]).toBe(true);
-      expect(args.select["incomingMonitorRequest"]).toBe(true);
-    }
+    const args: FindByArgs = monitorService.findBy.mock
+      .calls[0]![0] as FindByArgs;
+
+    expect(args.select["incomingMonitorRequestAsReceived"]).toBe(true);
+    expect("incomingMonitorRequest" in args.select).toBe(false);
+  });
+
+  /*
+   * The sweep reads every incoming request monitor every 30 seconds, and a
+   * request's copy can hold a body of megabytes. Both copies are JSON
+   * columns, so the select holds one JSON column: a second copy of the
+   * request, or any other JSON column, read here fails until it is
+   * written down below, with why.
+   */
+  test("the sweep's select is pinned to its columns, and to one JSON column: the request as it came", async () => {
+    await runWorkerTick();
+
+    const args: FindByArgs = monitorService.findBy.mock
+      .calls[0]![0] as FindByArgs;
+    const monitor: Monitor = new Monitor();
+
+    expect(Object.keys(args.select).sort()).toEqual(
+      [
+        "_id",
+        "monitorSteps",
+        "incomingMonitorRequestAsReceived",
+        "incomingRequestSecretKey",
+        "createdAt",
+        "projectId",
+        "currentMonitorStatusId",
+      ].sort(),
+    );
+
+    expect(
+      Object.keys(args.select).filter((column: string): boolean => {
+        return getTableColumn(monitor, column)?.type === TableColumnType.JSON;
+      }),
+    ).toEqual(["incomingMonitorRequestAsReceived"]);
+
+    // The copy people read is a JSON column too: selected, it would show above.
+    expect(getTableColumn(monitor, "incomingMonitorRequest").type).toBe(
+      TableColumnType.JSON,
+    );
   });
 
   test("a split request is judged as it came: its headers and its body whole, never the cut copy", async () => {
@@ -1154,15 +1212,10 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
 
     await runWorkerTick();
 
-    const trackInput: { receivedAt: Date } = trackMock.mock.calls[0]![0] as {
-      receivedAt: Date;
-    };
-    expect(new Date(trackInput.receivedAt).getTime()).toBe(
-      RECEIVED_AT.getTime(),
-    );
+    expect(trackedFloor()).toBe(RECEIVED_AT.getTime());
   });
 
-  test("a split monitor is not written again", async () => {
+  test("a split monitor writes nothing but its stamp", async () => {
     monitorService.findBy.mockResolvedValueOnce([
       heartbeatMonitor({
         incomingMonitorRequest: cutCopy(),
@@ -1175,43 +1228,20 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
     expect(
       monitorService.rewriteLatestIncomingRequestForReaders,
     ).not.toHaveBeenCalled();
+    expect(
+      stampCalls().map((call: UpdateCallArgs): Array<string> => {
+        return Object.keys(call.data);
+      }),
+    ).toEqual([["incomingRequestMonitorHeartbeatCheckedAt"]]);
   });
 
-  test("a request kept once, as it came: judged as before, and split", async () => {
-    monitorService.findBy.mockResolvedValueOnce([
-      heartbeatMonitor({ incomingMonitorRequest: asItCame() }),
-    ]);
-
-    await runWorkerTick();
-
-    expect(
-      monitorService.rewriteLatestIncomingRequestForReaders,
-    ).toHaveBeenCalledTimes(1);
-    expect(
-      (
-        monitorService.rewriteLatestIncomingRequestForReaders.mock
-          .calls[0]![0] as ObjectID
-      ).toString(),
-    ).toBe(MONITOR_A_ID.toString());
-
-    const payload: IncomingMonitorRequest = evaluatedPayload();
-    expect(payload.requestBody).toEqual(asItCame().requestBody);
-    expect(payload.requestHeaders).toEqual(asItCame().requestHeaders);
-
-    // Split after the bookkeeping stamp, before the evaluation.
-    expect(
-      monitorService.updateColumnsByIdWithoutHooks.mock.invocationCallOrder[0],
-    ).toBeLessThan(
-      monitorService.rewriteLatestIncomingRequestForReaders.mock
-        .invocationCallOrder[0]!,
-    );
-    expect(
-      monitorService.rewriteLatestIncomingRequestForReaders.mock
-        .invocationCallOrder[0],
-    ).toBeLessThan(monitorResourceMock.mock.invocationCallOrder[0]!);
-  });
-
-  test("a copy a server from before the split wrote after the request beside it: that request is judged, and the monitor split", async () => {
+  /*
+   * No server writes a copy people read later than the request beside it
+   * any more: every one since 14.0.106 writes the two together. A copy
+   * that says so is still not the request to judge - it is cut - and the
+   * job no longer compares the two.
+   */
+  test("a copy people read is never judged, even one that says it came later than the request beside it", async () => {
     const later: IncomingMonitorRequest = asItCame({
       requestBody: { status: "failed" },
       incomingRequestReceivedAt: new Date("2026-07-27T09:59:30.000Z"),
@@ -1227,36 +1257,41 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
 
     await runWorkerTick();
 
-    const payload: IncomingMonitorRequest = evaluatedPayload();
-    expect(payload.requestBody).toEqual({ status: "failed" });
-
-    const trackInput: { receivedAt: Date } = trackMock.mock.calls[0]![0] as {
-      receivedAt: Date;
-    };
-    expect(new Date(trackInput.receivedAt).getTime()).toBe(
-      new Date("2026-07-27T09:59:30.000Z").getTime(),
-    );
+    expect(evaluatedPayload().requestBody).toEqual(asItCame().requestBody);
+    expect(trackedFloor()).toBe(RECEIVED_AT.getTime());
     expect(
       monitorService.rewriteLatestIncomingRequestForReaders,
-    ).toHaveBeenCalledTimes(1);
+    ).not.toHaveBeenCalled();
   });
 
-  test("a split that fails is logged, and the check still runs", async () => {
-    monitorService.rewriteLatestIncomingRequestForReaders.mockRejectedValue(
-      new Error("db connection reset"),
-    );
-
+  /*
+   * A request a server older than 14.0.106 kept once, in the copy people
+   * read, that nothing has split since: RedactLatestIncomingRequests splits
+   * it, as do the monitor's next request and a change of its switch. Here
+   * it is a monitor no request has reached, as far as the job can tell.
+   */
+  test("a request kept once in the copy people read is neither judged nor split here", async () => {
     monitorService.findBy.mockResolvedValueOnce([
       heartbeatMonitor({ incomingMonitorRequest: asItCame() }),
     ]);
 
     await runWorkerTick();
 
-    expect(mockedLogger.error).toHaveBeenCalled();
-    expect(evaluatedPayload().requestBody).toEqual(asItCame().requestBody);
+    expect(
+      monitorService.rewriteLatestIncomingRequestForReaders,
+    ).not.toHaveBeenCalled();
+
+    const payload: IncomingMonitorRequest = evaluatedPayload();
+
+    expect(payload.requestBody).toBeUndefined();
+    expect(payload.requestHeaders).toBeUndefined();
+    expect(trackedFloor()).toBe(CREATED_AT.getTime());
+    expect(payload.incomingRequestReceivedAt.getTime()).toBe(
+      CREATED_AT.getTime(),
+    );
   });
 
-  test("a monitor with no heartbeat criteria is split too: the copy people read is cut whatever it checks", async () => {
+  test("a monitor with no heartbeat criteria writes nothing but its stamp, whichever copies it holds", async () => {
     monitorService.findBy.mockResolvedValueOnce([
       heartbeatMonitor({
         incomingMonitorRequest: asItCame(),
@@ -1268,11 +1303,12 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
 
     expect(
       monitorService.rewriteLatestIncomingRequestForReaders,
-    ).toHaveBeenCalledTimes(1);
+    ).not.toHaveBeenCalled();
     expect(monitorResourceMock).not.toHaveBeenCalled();
+    expect(stampCalls()).toHaveLength(1);
   });
 
-  test("a monitor no request reached has nothing to split, and falls back to its creation time", async () => {
+  test("a monitor no request reached falls back to its creation time", async () => {
     monitorService.findBy.mockResolvedValueOnce([heartbeatMonitor({})]);
 
     await runWorkerTick();
@@ -1283,6 +1319,392 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
     expect(evaluatedPayload().incomingRequestReceivedAt.getTime()).toBe(
       CREATED_AT.getTime(),
     );
+  });
+});
+
+/*
+ * Right after an upgrade from 14.3.0, the last release of 14 - and so from
+ * 15, which writes the same rows. 14.3.0 kept every request twice, in one
+ * statement (LatestIncomingRequest.toColumns, unchanged since 14.0.106): as
+ * it came, and cut for the people who read it by the monitor's Keep request
+ * content switch. Its servers write the same two copies while they still
+ * run beside this one, during the rollout. The rows below are what such a
+ * server left, as Postgres hands jsonb back - ids as their JSON, times as
+ * text - and the sweep's read returns only the columns its select names, as
+ * Postgres does. Each monitor is judged on the request as its sender sent
+ * it, as 14.3.0 judged it, and nothing but the stamp is written.
+ */
+describe("IncomingRequestMonitor:CheckHeartbeat right after an upgrade from 14.3.0", () => {
+  const RECEIVED_AT: string = "2026-07-27T09:58:00.000Z";
+
+  // How jsonb keeps an id.
+  function storedId(id: ObjectID): JSONObject {
+    return { _type: "ObjectID", value: id.toString() };
+  }
+
+  // The request as 14.3.0 kept it as it came.
+  function asReceivedBy14(monitorId: ObjectID, status: string): JSONObject {
+    return {
+      projectId: storedId(PROJECT_ID),
+      monitorId: storedId(monitorId),
+      requestMethod: "POST",
+      requestHeaders: {
+        "content-type": "application/json",
+        authorization: "Bearer example-live-token-7f3a9c2b",
+      },
+      requestBody: { status: status, apiKey: "ak_live_88c1" },
+      incomingRequestReceivedAt: RECEIVED_AT,
+      checkedAt: RECEIVED_AT,
+      onlyCheckForIncomingRequestReceivedAt: false,
+    };
+  }
+
+  // The copy 14.3.0 wrote beside it for people to read, content kept: masked.
+  function readersCopyBy14(monitorId: ObjectID, status: string): JSONObject {
+    return {
+      projectId: storedId(PROJECT_ID),
+      monitorId: storedId(monitorId),
+      requestMethod: "POST",
+      requestHeaders: {
+        "content-type": "application/json",
+        authorization: "[REDACTED]",
+      },
+      requestBody: { status: status, apiKey: "[REDACTED]" },
+      incomingRequestReceivedAt: RECEIVED_AT,
+      checkedAt: RECEIVED_AT,
+      onlyCheckForIncomingRequestReceivedAt: false,
+    };
+  }
+
+  // The same, for a monitor that keeps no request content.
+  function readersCopyWithoutContentBy14(monitorId: ObjectID): JSONObject {
+    return {
+      projectId: storedId(PROJECT_ID),
+      monitorId: storedId(monitorId),
+      requestMethod: "POST",
+      incomingRequestReceivedAt: RECEIVED_AT,
+      checkedAt: RECEIVED_AT,
+      onlyCheckForIncomingRequestReceivedAt: false,
+      isResponseContentOmitted: true,
+    };
+  }
+
+  const RECEIVED_IN_5_MINUTES: CriteriaFilter = {
+    checkOn: CheckOn.IncomingRequest,
+    filterType: FilterType.RecievedInMinutes,
+    value: 5,
+  };
+
+  const BODY_SAYS_DEPLOYED: CriteriaFilter = {
+    checkOn: CheckOn.RequestBody,
+    filterType: FilterType.Contains,
+    value: '"status":"deployed"',
+  };
+
+  const SIGNED_WITH_THE_LIVE_KEY: CriteriaFilter = {
+    checkOn: CheckOn.RequestHeaderValue,
+    filterType: FilterType.Contains,
+    value: "Bearer example-live-token-7f3a9c2b",
+  };
+
+  // Received in 5 minutes, and a body and a header the sender sends.
+  function heartbeatSteps(): MonitorSteps {
+    return {
+      data: {
+        monitorStepsInstanceArray: [
+          {
+            data: {
+              monitorCriteria: {
+                data: {
+                  monitorCriteriaInstanceArray: [
+                    {
+                      data: {
+                        filters: [
+                          RECEIVED_IN_5_MINUTES,
+                          BODY_SAYS_DEPLOYED,
+                          SIGNED_WITH_THE_LIVE_KEY,
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+      },
+    } as unknown as MonitorSteps;
+  }
+
+  // A Monitor row as 14.3.0 left it, every column it wrote.
+  type StoredRow = Record<string, unknown>;
+
+  function rowBy14(data: {
+    id: ObjectID;
+    keepResponseContent: boolean;
+    status?: string;
+  }): StoredRow {
+    const status: string = data.status || "deployed";
+
+    return {
+      _id: data.id.toString(),
+      projectId: PROJECT_ID,
+      createdAt: CREATED_AT,
+      monitorSteps: heartbeatSteps(),
+      keepResponseContent: data.keepResponseContent,
+      incomingRequestSecretKey: new ObjectID(`secret-${data.id.toString()}`),
+      currentMonitorStatusId: new ObjectID("status-online"),
+      incomingRequestMonitorHeartbeatCheckedAt: new Date(RECEIVED_AT),
+      incomingMonitorRequestAsReceived: asReceivedBy14(data.id, status),
+      incomingMonitorRequest: data.keepResponseContent
+        ? readersCopyBy14(data.id, status)
+        : readersCopyWithoutContentBy14(data.id),
+    };
+  }
+
+  // What the sweep's read returns of a row: the columns its select names.
+  function readAsSelected(
+    row: StoredRow,
+    select: Record<string, unknown>,
+  ): Monitor {
+    const monitor: Monitor = new Monitor(new ObjectID(row["_id"] as string));
+
+    for (const column of Object.keys(select)) {
+      if (select[column] && column !== "_id" && column in row) {
+        (monitor as unknown as Record<string, unknown>)[column] = row[column];
+      }
+    }
+
+    return monitor;
+  }
+
+  function stored(rows: Array<StoredRow>): void {
+    monitorService.findBy.mockImplementationOnce((args: FindByArgs) => {
+      return Promise.resolve(
+        rows.map((row: StoredRow): Monitor => {
+          return readAsSelected(row, args.select);
+        }),
+      );
+    });
+  }
+
+  function judged(): Array<IncomingMonitorRequest> {
+    return monitorResourceMock.mock.calls.map(
+      (call: Array<unknown>): IncomingMonitorRequest => {
+        return call[0] as IncomingMonitorRequest;
+      },
+    );
+  }
+
+  function judgedFor(monitorId: ObjectID): IncomingMonitorRequest {
+    const payload: IncomingMonitorRequest | undefined = judged().find(
+      (request: IncomingMonitorRequest): boolean => {
+        return request.monitorId.toString() === monitorId.toString();
+      },
+    );
+
+    expect(payload).toBeDefined();
+    return payload!;
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Results queued for a page a test's sweep never asked for go with it.
+    monitorService.findBy.mockReset();
+
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
+      return new Date(NOW);
+    });
+
+    monitorService.findBy.mockResolvedValue([]);
+    monitorService.getEnabledMonitorQuery.mockReturnValue(
+      ENABLED_MONITOR_QUERY,
+    );
+    monitorService.updateColumnsByIdWithoutHooks.mockResolvedValue(undefined);
+    monitorService.rewriteLatestIncomingRequestForReaders.mockResolvedValue(
+      true,
+    );
+    projectService.getActiveProjectStatusQuery.mockReturnValue(
+      ACTIVE_PROJECT_QUERY,
+    );
+    monitorResourceMock.mockResolvedValue(undefined);
+
+    // No arrival newer than the one the row holds.
+    trackMock.mockImplementation((input: { receivedAt: Date | string }) => {
+      return Promise.resolve(OneUptimeDate.fromString(input.receivedAt));
+    });
+  });
+
+  test("a monitor that keeps its request content is judged on the request as its sender sent it", async () => {
+    stored([rowBy14({ id: MONITOR_A_ID, keepResponseContent: true })]);
+
+    await runWorkerTick();
+
+    const payload: IncomingMonitorRequest = judgedFor(MONITOR_A_ID);
+
+    expect(payload.requestBody).toEqual({
+      status: "deployed",
+      apiKey: "ak_live_88c1",
+    });
+    expect(payload.requestHeaders).toEqual({
+      "content-type": "application/json",
+      authorization: "Bearer example-live-token-7f3a9c2b",
+    });
+    expect(JSON.stringify(payload)).not.toContain("[REDACTED]");
+  });
+
+  test("a monitor that keeps no request content is judged on the headers and the body its sender sent too", async () => {
+    stored([rowBy14({ id: MONITOR_B_ID, keepResponseContent: false })]);
+
+    await runWorkerTick();
+
+    const payload: IncomingMonitorRequest = judgedFor(MONITOR_B_ID);
+
+    expect(payload.isResponseContentOmitted).toBeUndefined();
+    expect(payload.requestBody).toEqual({
+      status: "deployed",
+      apiKey: "ak_live_88c1",
+    });
+    expect(payload.requestHeaders?.["authorization"]).toBe(
+      "Bearer example-live-token-7f3a9c2b",
+    );
+  });
+
+  test("the real criteria judge both as 14.3.0 did: received in time, the body and the header met", async () => {
+    stored([
+      rowBy14({ id: MONITOR_A_ID, keepResponseContent: true }),
+      rowBy14({ id: MONITOR_B_ID, keepResponseContent: false }),
+    ]);
+
+    await runWorkerTick();
+
+    expect(judged()).toHaveLength(2);
+
+    for (const payload of judged()) {
+      // Received two minutes before the sweep, by the row's own time.
+      expect(payload.incomingRequestReceivedAt.getTime()).toBe(
+        new Date(RECEIVED_AT).getTime(),
+      );
+      expect(payload.checkedAt.getTime()).toBe(NOW.getTime());
+
+      for (const filter of [
+        RECEIVED_IN_5_MINUTES,
+        BODY_SAYS_DEPLOYED,
+        SIGNED_WITH_THE_LIVE_KEY,
+      ]) {
+        await expect(
+          IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet({
+            dataToProcess: payload,
+            criteriaFilter: filter,
+          }),
+        ).resolves.toBeTruthy();
+      }
+    }
+  });
+
+  test("the copy people read never reaches the job: the read leaves it in the row", async () => {
+    const seen: Array<Monitor> = [];
+
+    monitorService.findBy.mockImplementationOnce((args: FindByArgs) => {
+      const monitors: Array<Monitor> = [
+        rowBy14({ id: MONITOR_A_ID, keepResponseContent: true }),
+      ].map((row: StoredRow): Monitor => {
+        return readAsSelected(row, args.select);
+      });
+      seen.push(...monitors);
+      return Promise.resolve(monitors);
+    });
+
+    await runWorkerTick();
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]!.incomingMonitorRequest).toBeUndefined();
+    expect(seen[0]!.incomingMonitorRequestAsReceived).toBeDefined();
+    expect(judgedFor(MONITOR_A_ID).requestBody).toEqual({
+      status: "deployed",
+      apiKey: "ak_live_88c1",
+    });
+  });
+
+  test("the arrival floor is the time 14.3.0 kept, and an arrival the store has since is judged", async () => {
+    const arrivedSince: Date = new Date(NOW.getTime() - 20 * 1000);
+
+    stored([rowBy14({ id: MONITOR_A_ID, keepResponseContent: true })]);
+    trackMock.mockResolvedValue(new Date(arrivedSince));
+
+    await runWorkerTick();
+
+    const trackInput: { secretKey: ObjectID; receivedAt: Date | string } =
+      trackMock.mock.calls[0]![0] as {
+        secretKey: ObjectID;
+        receivedAt: Date | string;
+      };
+
+    expect(new Date(trackInput.receivedAt).getTime()).toBe(
+      new Date(RECEIVED_AT).getTime(),
+    );
+    expect(trackInput.secretKey.toString()).toBe(
+      `secret-${MONITOR_A_ID.toString()}`,
+    );
+    expect(judgedFor(MONITOR_A_ID).incomingRequestReceivedAt.getTime()).toBe(
+      arrivedSince.getTime(),
+    );
+  });
+
+  test("nothing is written but each monitor's stamp: no monitor is split again", async () => {
+    stored([
+      rowBy14({ id: MONITOR_A_ID, keepResponseContent: true }),
+      rowBy14({ id: MONITOR_B_ID, keepResponseContent: false }),
+    ]);
+
+    await runWorkerTick();
+
+    expect(
+      monitorService.rewriteLatestIncomingRequestForReaders,
+    ).not.toHaveBeenCalled();
+    expect(monitorService.updateOneById).not.toHaveBeenCalled();
+    expect(
+      stampCalls().map((call: UpdateCallArgs): Array<string> => {
+        return Object.keys(call.data);
+      }),
+    ).toEqual([
+      ["incomingRequestMonitorHeartbeatCheckedAt"],
+      ["incomingRequestMonitorHeartbeatCheckedAt"],
+    ]);
+  });
+
+  /*
+   * During the rollout a 14.3.0 server still takes requests, and writes
+   * both copies of each one at once: the next sweep judges the new one.
+   */
+  test("a request a 14.3.0 server takes during the rollout is judged at the next sweep", async () => {
+    stored([rowBy14({ id: MONITOR_A_ID, keepResponseContent: false })]);
+    await runWorkerTick();
+
+    stored([
+      rowBy14({
+        id: MONITOR_A_ID,
+        keepResponseContent: false,
+        status: "failed",
+      }),
+    ]);
+    await runWorkerTick();
+
+    expect(judged()).toHaveLength(2);
+    expect(judged()[1]!.requestBody).toEqual({
+      status: "failed",
+      apiKey: "ak_live_88c1",
+    });
+    await expect(
+      IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: judged()[1]!,
+        criteriaFilter: BODY_SAYS_DEPLOYED,
+      }),
+    ).resolves.toBeNull();
   });
 });
 

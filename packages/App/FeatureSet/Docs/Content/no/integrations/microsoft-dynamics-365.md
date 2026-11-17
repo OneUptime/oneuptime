@@ -133,7 +133,7 @@ Hver arbeidsflyt har sin egen kopi. Når du bytter ut klienthemmeligheten, åpne
 4. Klikk på **Opprett arbeidsflyt**. Hver arbeidsflyt opprettes avslått: slå på **Aktivert** øverst i dens **Bygger**.
 :::
 
-Start med **Create a Dynamics 365 case when an incident is declared**, eller **Create a Dynamics 365 case when an alert is created** for varsler: alle andre maler OneUptime → Dynamics 365 av samme slag finner saken via koblingen denne skriver. Slå den på, erklær en testhendelse eller opprett et testvarsel, og åpne arbeidsflytens **Logger → Kjøringer**. Kjøringen skal slutte som **Utført**, og **Svartekst** i det siste trinnet, `create-case-1`, inneholder den nye sakens `ticketnumber`, for eksempel `CAS-01001-X1Y2Z3`.
+Start med **Create a Dynamics 365 case when an incident is declared**, eller **Create a Dynamics 365 case when an alert is created** for varsler: alle andre maler OneUptime → Dynamics 365 av samme slag finner saken via koblingen denne skriver. Slå den på, erklær en testhendelse eller opprett et testvarsel, og åpne arbeidsflytens **Kjøringer**. Kjøringen skal slutte som **Utført**, og **Svartekst** i det siste trinnet, `create-case-1`, inneholder den nye sakens `ticketnumber`, for eksempel `CAS-01001-X1Y2Z3`.
 
 ### Koble til malene Dynamics 365 → OneUptime
 
@@ -181,7 +181,7 @@ Før du stoler på noen av dem:
 
 ### Sjekk at det fungerer
 
-Hver kjørings **Trinn** sier hva malen gjorde, så åpne kjøringen i **Logger → Kjøringer** og se hvordan den endte:
+Hver kjørings **Trinn** sier hva malen gjorde, så åpne kjøringen i **Kjøringer** og se hvordan den endte:
 
 - **Utført**: den gjorde jobben sin, og det siste trinnet nevner saken, hendelsen eller varselet.
 - **Utført**, med trinnet **Sjekk med JavaScript** på **Nei**: den hoppet over hendelsen med vilje, og trinnet sier hvorfor: saken er ikke koblet til en post av dette slaget, notatet kom fra den andre siden, posten er privat, eller den nye tilstanden lukker ikke saken.
@@ -297,7 +297,7 @@ Scopet må være miljø-URL-en din etterfulgt av `/.default`. En feil miljø-URL
    }
    ```
 
-5. Slå på **Aktivert**, erklær en testhendelse, og åpne **Logger → Kjøringer**. Trinnet `create-case` viser en `201` og et innhold med den nye `incidentid` og `ticketnumber`.
+5. Slå på **Aktivert**, erklær en testhendelse, og åpne **Kjøringer**. Trinnet `create-case` viser en `201` og et innhold med den nye `incidentid` og `ticketnumber`.
 :::
 
 Hver sak trenger en kunde, så `customerid` er obligatorisk. Den kan peke på en konto eller en kontaktperson, og derfor skriver du `customerid_account@odata.bind` eller `customerid_contact@odata.bind`, stavet nøyaktig. `Prefer: return=representation` gjør svaret til `201` med selve saken, slik at neste blokk kan lese `{{local.components.create-case.returnValues.response-body.incidentid}}`. Uten den svarer Dynamics 365 `204` uten innhold.
@@ -399,7 +399,7 @@ En arbeidsflyt har nøyaktig én trigger, så hendelser og varsler trenger én a
 
 ## Feilsøking
 
-Åpne det mislykkede trinnet i **Logger → Kjøringer** først. Begge Microsoft-endepunktene svarer med et JSON-innhold som forklarer problemet, og API-blokken lagrer det i `response-body`.
+Åpne det mislykkede trinnet i **Kjøringer** først. Begge Microsoft-endepunktene svarer med et JSON-innhold som forklarer problemet, og API-blokken lagrer det i `response-body`.
 
 :::details 400 med AADSTS70011, scopet er ikke gyldig
 Scopet er ikke miljø-URL-en din etterfulgt av `/.default`. Kopier URL-en fra administrasjonssenteret for Power Platform, og fjern en eventuell skråstrek på slutten og enhver `/api/data/...`-sti.
@@ -434,7 +434,7 @@ Dataverses grenser for tjenestebeskyttelse tillater omtrent 6000 forespørsler, 
 :::
 
 :::details Ingenting når OneUptime
-Send en forespørsel selv til webhook-URL-en med `curl`, og finn den i **Logger → Kjøringer**. Hvis din kommer frem og den fra Dynamics 365 ikke gjør det, ser du lenger opp i kjeden: flytens egen kjøringshistorikk, eller de mislykkede System Jobs for en Dataverse-webhook.
+Send en forespørsel selv til webhook-URL-en med `curl`, og finn den i **Kjøringer**. Hvis din kommer frem og den fra Dynamics 365 ikke gjør det, ser du lenger opp i kjeden: flytens egen kjøringshistorikk, eller de mislykkede System Jobs for en Dataverse-webhook.
 :::
 
 :::details Arbeidsflyten kjører, men hendelsen endres ikke

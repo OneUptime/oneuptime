@@ -96,7 +96,7 @@ jest.mock("../../../Server/Utils/Response", () => {
  *     restricted provider, turning an attachment off, moving it or removing
  *     it are refused when they would leave one with no provider, and the
  *     refusal names the projects, or counts them;
- *   - turning the server's Require SSO for Login on needs a provider for
+ *   - turning the server's Require SSO to Sign In on needs a provider for
  *     every project that does not require SSO itself;
  *   - the check and the write hold the lock on the server's sign-in rules,
  *     taken once every other check has passed, kept while the check runs,
@@ -903,7 +903,7 @@ afterEach(() => {
 });
 
 const NO_PROVIDER_FOR_ACME: string =
-  'This change would leave the project "Acme" with no SSO provider people can sign in with, and it requires SSO. Turn on another SSO provider for it first, or turn off Require SSO for Login there.';
+  'This change would leave the project "Acme" with no SSO provider people can sign in with, and it requires SSO. Turn on another SSO provider for it first, or turn off Require SSO to Sign In there.';
 
 describe.each([
   ["SAML", SAML],
@@ -1217,7 +1217,7 @@ describe.each([
       ownSaml = [{ id: ACME_SAML, projectId: ACME, isEnabled: true }];
 
       await expect(updateProvider(kind, { isEnabled: false })).resolves.toBe(
-        'The project "Acme" requires sign-in with this SSO provider. Require another provider there, or turn off Require SSO for Login, first, so people can still sign in.',
+        'The project "Acme" requires sign-in with this SSO provider. Require another provider there, or turn off Require SSO to Sign In, first, so people can still sign in.',
       );
     });
 
@@ -1228,7 +1228,7 @@ describe.each([
       ];
 
       await expect(updateProvider(kind, { isEnabled: false })).resolves.toBe(
-        'The project "Acme" requires sign-in with this SSO provider. Require another provider there, or turn off Require SSO for Login, first, so people can still sign in. This change would leave the project "Beta" with no SSO provider people can sign in with, and it requires SSO. Turn on another SSO provider for it first, or turn off Require SSO for Login there.',
+        'The project "Acme" requires sign-in with this SSO provider. Require another provider there, or turn off Require SSO to Sign In, first, so people can still sign in. This change would leave the project "Beta" with no SSO provider people can sign in with, and it requires SSO. Turn on another SSO provider for it first, or turn off Require SSO to Sign In there.',
       );
     });
 
@@ -1257,7 +1257,7 @@ describe.each([
       }
 
       await expect(updateProvider(kind, { isEnabled: false })).resolves.toBe(
-        'This change would leave 12 projects ("Project 1", "Project 2", "Project 3" and 9 more) with no SSO provider people can sign in with, and they require SSO. Turn on another SSO provider for them first, or turn off Require SSO for Login there.',
+        'This change would leave 12 projects ("Project 1", "Project 2", "Project 3" and 9 more) with no SSO provider people can sign in with, and they require SSO. Turn on another SSO provider for them first, or turn off Require SSO to Sign In there.',
       );
     });
 
@@ -2421,7 +2421,7 @@ describe.each([
   });
 });
 
-describe("the server's Require SSO for Login", () => {
+describe("the server's Require SSO to Sign In", () => {
   beforeEach(() => {
     projects = [
       project(ACME, "Acme", { requireSsoForLogin: false }),

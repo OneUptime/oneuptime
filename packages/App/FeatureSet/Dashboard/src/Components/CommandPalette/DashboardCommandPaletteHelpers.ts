@@ -51,15 +51,19 @@ export const PALETTE_ENTITY_SEARCH_LIMIT: number = 5;
  * then the palette's own actions and quick links. "pager" opens On-Call
  * Duty, then On-Call Policies, then My On-Call Policies; "monitor groups"
  * opens the Monitor Groups page, then the Feature Flags switch that turns
- * them on.
+ * them on. On a record's page, that record's own pages come before the
+ * pages of the same name that open without a record (#9204): "settings" on
+ * a status page opens its Settings before Project Settings' pages.
  */
 export const PALETTE_SEARCH_PRIORITY: {
   product: number;
+  recordPage: number;
   page: number;
   setting: number;
   action: number;
 } = {
   product: 2,
+  recordPage: 1.5,
   page: 1,
   setting: 0.5,
   action: 0,
@@ -203,7 +207,7 @@ export interface PageSearchCommandDescriptor {
   // A thing done on a page ("Delete Project") rather than the page itself.
   isAction: boolean;
   /*
-   * A setting on a page ("Require SSO for Login" on SSO), named as its card
+   * A setting on a page ("Require SSO to Sign In" on SSO), named as its card
    * or switch names it, rather than the page itself.
    */
   isSetting: boolean;
@@ -477,7 +481,7 @@ export function buildPageSearchCommandDescriptors(
 
         /*
          * An action, or a setting, names the page it is on: Delete Project
-         * is under "Project Settings > Danger Zone", Require SSO for Login
+         * is under "Project Settings > Danger Zone", Require SSO to Sign In
          * under "Project Settings > Security > SSO".
          */
         const onPageBreadcrumb: Array<string> = isSameName(
@@ -912,8 +916,11 @@ export function withoutActionsOfProductsOff(
 export interface PaletteEntitySearchSpec {
   /** Stable provider id, also used in the palette's section test ids. */
   id: string;
-  /** Which model column carries the human name of a row. */
-  titleField: "name" | "title";
+  /**
+   * Which model column carries the human name of a row: name or title, and
+   * an inventory item's displayName (RecordPageSearchModels).
+   */
+  titleField: string;
   /**
    * Columns the free-text search runs over. MUST be real entity property
    * names for the model — verified against each model class and the
@@ -933,6 +940,12 @@ export interface PaletteEntitySearchSpec {
   icon: IconProp;
   /** Tailwind color name — matches the NavBar item for the same entity. */
   iconColor: string;
+  /**
+   * The rows of the model this kind is, where two products show one model:
+   * App Platforms' environments and Cloud's resources are both
+   * CloudResource rows (RecordPageSearchModels).
+   */
+  filter?: JSONObject | undefined;
 }
 
 // A numbered entity is found by its number too: "INC-18".
@@ -1100,6 +1113,7 @@ export function buildEntitySearchQuery(
   searchText: string,
 ): JSONObject {
   return {
+    ...(spec.filter || {}),
     _multiFieldSearch: new MultiSearch({
       fields: spec.searchFields,
       value: searchText.trim(),

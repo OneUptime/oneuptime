@@ -46,7 +46,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 });
 
 /*
- * AN UPDATE THAT TURNS REQUIRE SSO FOR LOGIN ON FOR PROJECTS NAMED BY A
+ * AN UPDATE THAT TURNS REQUIRE SSO TO SIGN IN ON FOR PROJECTS NAMED BY A
  * FILTER WRITES EXACTLY THE PROJECTS IT CHECKED (Server/Utils/
  * SsoRequirementChanges.beforeProjectUpdate).
  *
@@ -289,7 +289,7 @@ const LOCK_ORDER: Array<string> = [ACME_EU, ACME_US].sort();
 const FIRST_LOCKED: string = LOCK_ORDER[0]!;
 const SECOND_LOCKED: string = LOCK_ORDER[1]!;
 
-describe("Require SSO for Login written to projects named by a filter", () => {
+describe("Require SSO to Sign In written to projects named by a filter", () => {
   test("reads them, locks them, reads them again under the locks, and writes exactly those", async () => {
     await expect(requireSsoForGroup()).resolves.toBe(2);
 
@@ -420,7 +420,7 @@ describe("Require SSO for Login written to projects named by a filter", () => {
   });
 });
 
-describe("the locks of a Require SSO for Login write are kept for it, until it is written", () => {
+describe("the locks of a Require SSO to Sign In write are kept for it, until it is written", () => {
   test("kept once the check is done, and once more right before the write - after the auto recharge charge", async () => {
     await expect(requireSsoForGroup()).resolves.toBe(2);
 

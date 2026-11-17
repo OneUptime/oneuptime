@@ -54,17 +54,16 @@ Ankündigungen werden unter [Abonnenten & Ankündigungen](/docs/status-pages/sub
 
 | Abschnitt     | Was Sie dort tun                                                                                                           |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Übersicht** | **Alle Wartungsereignisse** und **Laufende Wartungsereignisse**, dessen Abzeichen die gerade laufenden Ereignisse zählt.                     |
-| **Kalender** | **Wartungskalender**: jedes Ereignis in einem Monat, einer Woche oder einem Tag, neben den Kalendern von außerhalb des Projekts, die Sie hinzufügen. |
+| **Übersicht** | **Alle Wartungsereignisse**, **Laufende Wartungsereignisse**, dessen Abzeichen die gerade laufenden Ereignisse zählt, und **Wartungskalender**: jedes Ereignis in einem Monat, einer Woche oder einem Tag, neben den Kalendern von außerhalb des Projekts, die Sie hinzufügen. |
 | **Arbeitsbereich** | **Slack**, **Microsoft Teams** und **Mattermost**, je nachdem, was das Projekt verbunden hat, oder **Arbeitsbereich verbinden**, wenn es keines hat. |
 | **Regeln**    | **Eigentümerregeln**, **Runbook-Regeln**, **Beschriftungsregeln**, **Erinnerungsregeln**.                                   |
 | **Einstellungen** | **Wartungsstatus**, **Wartungsvorlagen**, **Notiz-Vorlagen**, **Genehmigung öffentlicher Notizen**, **Benutzerdefinierte Felder**, **Messungen**, **Kalendereinstellungen**, **Nummerierung**. |
 
-**Übersicht** und **Kalender** sind geöffnet; **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind zunächst eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Entwickler** enthält **Terraform**, **API**, **CLI** und **KI-Assistenten**, um die Wartung per Code zu verwalten. Alles zur Wartung liegt hier, nicht in den **Projekteinstellungen**.
+**Übersicht** ist geöffnet; **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind zunächst eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Entwickler** enthält **Terraform**, **API**, **CLI** und **KI-Assistenten**, um die Wartung per Code zu verwalten. Alles zur Wartung liegt hier, nicht in den **Projekteinstellungen**.
 
 Die Liste zeigt **Nummer der geplanten Wartung**, **Titel**, **Aktueller Status**, **Betroffene Ressourcen**, **Auf Statusseite angezeigt**, **Beginnt am**, **Dauer**, **Endet am**, **Beschriftungen** und **Eigentümer**. Wählen Sie Ereignisse aus, um mehrere auf einmal zu bearbeiten: **Als {{state}} markieren**, **Status ändern**, **Mir zuweisen**, **Eigentümer hinzufügen**, **Eigentümer entfernen**, **Beschriftungen hinzufügen**, **Beschriftungen entfernen** oder **Löschen**. Das Menü **⋯** am Ende der Zeile jedes Ereignisses tut dasselbe für dieses eine Ereignis: die Schritte **Als {{state}} markieren**, solange das Ereignis sie machen kann, **Status ändern**, **Mir zuweisen**, bis Sie sein Eigentümer sind, und **Eigentümer hinzufügen**.
 
-**Wartungskalender** im Abschnitt **Kalender** zeigt dieselben Ereignisse auf einem Monat, einer Woche oder einem Tag und kann daneben Kalender von außerhalb des Projekts zeigen. Siehe [Wartungskalender](/docs/scheduled-maintenance/calendar).
+**Wartungskalender** im Abschnitt **Übersicht** zeigt dieselben Ereignisse auf einem Monat, einer Woche oder einem Tag und kann daneben Kalender von außerhalb des Projekts zeigen. Siehe [Wartungskalender](/docs/scheduled-maintenance/calendar).
 
 ## Was ein Ereignis beeinflusst
 
@@ -83,14 +82,13 @@ Solange ein Ereignis läuft, behandelt OneUptime den geplanten Ausfall als erwar
 
 | Abschnitt im Seitenmenü | Seiten                                                                                     |
 | ----------------- | --------------------------------------------------------------------------------------------- |
-| **Übersicht** | **Übersicht**, **Zustands-Zeitachse**, **Beschreibung**, **Runbooks** |
-| **Team** | **Eigentümer** |
+| **Übersicht** | **Übersicht**, **Zustands-Zeitachse**, **Beschreibung**, **Runbooks**, **Eigentümer** |
 | **Benachrichtigungen**    | **Benachrichtigungsprotokolle** und **KI-Protokolle**: jede Nachricht über das Ereignis und alles, was die KI dafür getan hat |
 | **Notizen**       | **Private Notizen** und **Öffentliche Notizen**                                                |
 | **Entwickler**    | **Terraform**, **API**, **CLI** und **KI-Assistenten**: das Ereignis per Code verwaltet         |
 | **Erweitert**     | **Benutzerdefinierte Felder**, **Einstellungen**, **Audit-Protokolle**, **Wartungsereignis löschen**    |
 
-**Übersicht**, **Team** und **Notizen** sind geöffnet; die anderen Abschnitte bleiben eingeklappt, bis Sie sie anklicken.
+**Übersicht** und **Notizen** sind geöffnet; die anderen Abschnitte bleiben eingeklappt, bis Sie sie anklicken.
 
 - **Übersicht** — die Kopfzeile zeigt Nummer, Titel und Status des Ereignisses, wie lange es bis zum Beginn dauert oder wie lange es schon läuft, wem es gehört, auf welchen Statusseiten es erscheint und wer es erstellt hat, und die Schaltflächen, die es weiterschieben. Darunter zeigen **Beginnt**, **Endet** und **Dauer** das geplante Zeitfenster in Ihrer Zeitzone. Der **Feed der geplanten Wartung** zeichnet alles auf, was dem Ereignis passiert ist, neben den Karten **Wartungsdetails** und **Betroffene Ressourcen** sowie den Karten **Messungen** und **Benutzerdefinierte Felder**, wenn Ihr Projekt welche hat.
 - **Zustands-Zeitachse** — jeder Status, in dem das Ereignis war, wann und wie lange. Siehe [Wartungsstatus](/docs/scheduled-maintenance/states#die-zustands-zeitachse).

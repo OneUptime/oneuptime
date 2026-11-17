@@ -117,7 +117,7 @@ const MultiSelectPopover: FunctionComponent<{
       </button>
       {open && (
         <div className="absolute z-30 mt-1 right-0 w-56 max-h-72 overflow-auto rounded-md border border-gray-200 bg-white shadow-lg py-1">
-          <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-100 text-[11px] text-gray-500">
+          <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-100 text-xs text-gray-500">
             <span>
               {translator.translatePlural(
                 { one: "{{count}} selected", other: "{{count}} selected" },

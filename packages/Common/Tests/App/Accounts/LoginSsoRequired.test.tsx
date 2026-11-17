@@ -43,7 +43,7 @@ import { MORE_WAYS_TO_SIGN_IN_OPEN_KEY } from "../../../../App/FeatureSet/Accoun
 /*
  * WHILE THE SERVER REQUIRES SSO, THE SIGN-IN PAGES OFFER ONLY SSO (#5193).
  *
- * "When 'Require SSO for Login' is enabled, only the configured SSO login
+ * "When 'Require SSO to Sign In' is enabled, only the configured SSO login
  * option should be displayed": the sign-in page still showed the email
  * field, its "Login with SSO" lookup, "Or continue with email" and "Sign in
  * with password" - and the lookup only finds a project's own providers, so

@@ -133,7 +133,7 @@ Each workflow keeps its own copy. When you replace the client secret, open `dyna
 4. Click **Create Workflow**. Every workflow is created switched off: switch **Enabled** on at the top of its **Builder**.
 :::
 
-Start with **Create a Dynamics 365 case when an incident is declared**, or **Create a Dynamics 365 case when an alert is created** for alerts: every other OneUptime → Dynamics 365 template of the same kind finds the case by the link it writes. Turn it on, declare a test incident or create a test alert, and open the workflow's **Logs → Runs**. The run should end **Executed**, and the **Response Body** of its last step, `create-case-1`, holds the new case's `ticketnumber`, such as `CAS-01001-X1Y2Z3`.
+Start with **Create a Dynamics 365 case when an incident is declared**, or **Create a Dynamics 365 case when an alert is created** for alerts: every other OneUptime → Dynamics 365 template of the same kind finds the case by the link it writes. Turn it on, declare a test incident or create a test alert, and open the workflow's **Runs**. The run should end **Executed**, and the **Response Body** of its last step, `create-case-1`, holds the new case's `ticketnumber`, such as `CAS-01001-X1Y2Z3`.
 
 ### Connect the Dynamics 365 → OneUptime templates
 
@@ -181,7 +181,7 @@ Before you rely on either:
 
 ### Check that it works
 
-Each run's **Steps** say what the template did, so open the run in **Logs → Runs** and see how it ended:
+Each run's **Steps** say what the template did, so open the run in **Runs** and see how it ended:
 
 - **Executed**: it did its job, and its last step names the case, incident or alert.
 - **Executed**, its **Check With JavaScript** step on **No**: it skipped the event on purpose, and the step says why: the case is not linked to a record of this kind, the note came from the other side, the record is private, or the new state does not close the case.
@@ -297,7 +297,7 @@ The scope must be your environment URL followed by `/.default`. A wrong environm
    }
    ```
 
-5. Switch **Enabled** on, declare a test incident, and open **Logs → Runs**. The `create-case` step shows a `201` and a body with the new `incidentid` and `ticketnumber`.
+5. Switch **Enabled** on, declare a test incident, and open **Runs**. The `create-case` step shows a `201` and a body with the new `incidentid` and `ticketnumber`.
 :::
 
 Every case needs a customer, so `customerid` is required. It can point at an account or a contact, so you write `customerid_account@odata.bind` or `customerid_contact@odata.bind`, spelled exactly. `Prefer: return=representation` makes the answer `201` with the case itself, so the next block can read `{{local.components.create-case.returnValues.response-body.incidentid}}`. Without it, Dynamics 365 answers `204` with no body.
@@ -399,7 +399,7 @@ A workflow has exactly one trigger, so incidents and alerts need one workflow ea
 
 ## Troubleshooting
 
-Open the failing step in **Logs → Runs** first. Both Microsoft endpoints answer with a JSON body that explains the problem, and the API block keeps it in `response-body`.
+Open the failing step in **Runs** first. Both Microsoft endpoints answer with a JSON body that explains the problem, and the API block keeps it in `response-body`.
 
 :::details 400 with AADSTS70011, the scope is not valid
 The scope is not your environment URL followed by `/.default`. Copy the URL from the Power Platform admin center, and drop any trailing slash and any `/api/data/...` path.
@@ -434,7 +434,7 @@ Dataverse's service protection limits allow about 6,000 requests, and 20 minutes
 :::
 
 :::details Nothing arrives in OneUptime
-Send a request to the webhook URL yourself with `curl`, and look for it in **Logs → Runs**. If yours arrives and Dynamics 365's does not, look upstream: the flow's own run history, or the failed System Jobs of a Dataverse webhook.
+Send a request to the webhook URL yourself with `curl`, and look for it in **Runs**. If yours arrives and Dynamics 365's does not, look upstream: the flow's own run history, or the failed System Jobs of a Dataverse webhook.
 :::
 
 :::details The workflow runs, but the incident does not change

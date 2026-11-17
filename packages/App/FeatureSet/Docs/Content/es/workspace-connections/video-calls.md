@@ -70,7 +70,7 @@ Cada reunión se crea como la cuenta con la que inicias sesión, que es su anfit
 
 Una conexión hecha iniciando sesión sigue teniendo los ajustes que deciden quién espera: **Who can join** para Google Meet y **Who skips the lobby** para Microsoft Teams. Cámbialos con **Editar** en la fila de la conexión.
 
-Una conexión de Zoom iniciada antes de que OneUptime leyera transcripciones de llamadas inicia llamadas como antes, pero no puede leer sus transcripciones hasta que vuelva a iniciar sesión: **Reconnect** en su fila pide a Zoom los permisos de transcripción.
+Una conexión de Zoom iniciada antes de que OneUptime leyera transcripciones de llamadas no puede leerlas. Cuando la app de Zoom de OneUptime se actualice para leerlas, Zoom dejará de aceptar el inicio de sesión de esa conexión 90 días después, y la conexión dejará de iniciar llamadas. A partir de entonces, OneUptime te pide que vuelvas a iniciar sesión con ella: **Reconnect** en su fila pide a Zoom los permisos de transcripción.
 
 Una conexión de Microsoft Teams iniciada mientras **Grabar y transcribir las llamadas de incidentes** estaba desactivado inicia llamadas como antes, sin grabarlas. Una vez activado ese ajuste, **Reconnect** en su fila también pide a Microsoft los permisos de calendario y de transcripción.
 

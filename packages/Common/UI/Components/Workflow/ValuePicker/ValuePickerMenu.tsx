@@ -1093,7 +1093,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                         </span>
                         {group.subtitle ? (
                           <span
-                            className="truncate text-[11px] text-gray-500"
+                            className="truncate text-xs text-gray-500"
                             data-part="step-id"
                           >
                             {group.subtitle}
@@ -1364,7 +1364,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                       tabIndex={-1}
                       id={headerId}
                       data-testid="value-picker-empty-here-toggle"
-                      className={`flex w-full items-center gap-2 px-2 pb-1 text-left text-[11px] text-gray-500 hover:text-gray-700 focus:outline-none ${
+                      className={`flex w-full items-center gap-2 px-2 pb-1 text-left text-xs text-gray-500 hover:text-gray-700 focus:outline-none ${
                         hasValuesAbove
                           ? "border-t border-gray-100 pt-2"
                           : "pt-1"
@@ -1430,7 +1430,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                        */}
                       {section.subtitle && (
                         <span
-                          className="truncate text-[11px] text-gray-500"
+                          className="truncate text-xs text-gray-500"
                           data-part="group-subtitle"
                         >
                           {translator.translateText(section.subtitle)}

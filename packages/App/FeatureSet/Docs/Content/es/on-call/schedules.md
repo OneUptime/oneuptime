@@ -86,7 +86,7 @@ Cada persona conserva un mismo color en todas partes, para que puedas seguirla d
 
 ## Cuando alguien está ausente
 
-Cuando alguien se va de vacaciones, omítelo hasta que vuelva. En la página **Capas** de la programación, despliega una capa y haz clic en **Omitir hasta…** junto a su nombre. Se abre el formulario de ausencias con esa persona en **¿Quién está ausente?**, **Siguiente persona de la rotación** en **¿Quién cubre?** y **Empieza** desde ahora: pon en **Finaliza** cuándo vuelve y guárdalo.
+Cuando alguien se va de vacaciones, omítelo hasta que vuelva. En la página **Capas** de la programación, despliega una capa y haz clic en **Omitir hasta…** junto a su nombre. Se abre el formulario de ausencias con esa persona en **¿Quién está ausente?**, **Siguiente persona de la rotación** en **¿Quién cubre?** y **Empieza** desde ahora: pon en **Finaliza** cuándo vuelve y guárdalo. Si ya tiene una ausencia a esas horas, el formulario lo dice junto a las horas mientras las eliges, con **Editar esa sustitución** para cambiar esa en su lugar.
 
 Mientras está ausente:
 
@@ -97,7 +97,7 @@ Mientras está ausente:
 
 Si eliges a alguien en **¿Quién cubre?**, esa persona recibe todos sus avisos, de cada programación y cada política, en lugar de que la rotación se quede con sus turnos.
 
-Una ausencia añadida así se aplica a todas las políticas de guardia, por lo que requiere el permiso de sustituciones sobre todo el proyecto. Si el rol de tu equipo está limitado a sus propias políticas o a algunas etiquetas, se añade en su lugar en las políticas de esta programación en las que puedes añadir sustituciones, con una sustitución por política, que aparece en la página **Sustituciones de usuarios** de cada política; si son varias, las marcas en **Políticas de guardia**. **Omitir hasta…** solo está bloqueado y dice por qué donde no puedes en ninguna. Aparece en **Guardia** > **Avanzado** > **Sustituciones de usuarios**, donde puedes eliminarla para que vuelva antes. Para omitir a alguien en una sola política, añade la sustitución en la página **Sustituciones de usuarios** de esa política y deja **¿Quién cubre?** como está. Consulta [Sustituciones de usuarios](/docs/on-call/user-overrides).
+Una ausencia añadida así se aplica a todas las políticas de guardia, por lo que requiere el permiso de sustituciones sobre todo el proyecto. Si el rol de tu equipo está limitado a sus propias políticas o a algunas etiquetas, se añade en su lugar en las políticas de esta programación en las que puedes añadir sustituciones, con una sustitución por política, que aparece en la página **Sustituciones de usuarios** de cada política; si son varias, las marcas en **Políticas de guardia**. **Omitir hasta…** solo está bloqueado y dice por qué donde no puedes en ninguna. Aparece en **Guardia** > **Avanzado** > **Sustituciones de usuarios**, y entre las sustituciones de usuarios de la programación en su página **Capas**, donde **Terminar ahora** hace que vuelva antes. Para omitir a alguien en una sola política, añade la sustitución en la página **Sustituciones de usuarios** de esa política y deja **¿Quién cubre?** como está. Consulta [Sustituciones de usuarios](/docs/on-call/user-overrides).
 
 Con la API, una sustitución de usuario (`/api/on-call-duty-policy-user-override`) creada sin `routeAlertsToUserId` omite a la persona de `overrideUserId` desde `startsAt` hasta `endsAt`.
 
@@ -111,6 +111,8 @@ Las programaciones de guardia son el recurso `/api/on-call-duty-policy-schedule`
 - Una programación creada sin ellos no tiene capas, como antes; el recurso de programaciones de Terraform no los envía.
 - Una capa creada sin `rotation` hace el relevo a diario, como siempre.
 - Un cambio en las capas de una programación y en las personas que contienen, hecho con la API o Terraform, se avisa como un solo cambio: quién está de guardia se calcula cuando las capas llevan medio minuto sin cambios, y quien entra o sale de guardia, o es el siguiente, recibe el aviso una vez, no una por cada capa o persona escrita. Las alertas van a quien las capas ponen de guardia en cuanto se guarda cada cambio.
+- Para cambiar de una vez quién hace turnos en las capas de una programación, como hace **Guardar cambios** en la página **Capas**, lee las capas con `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` y devuélvelas, cambiadas, a `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`. Enumeran cada capa que la programación conserva, la de mayor prioridad primero, cada una con sus personas en el orden de sus turnos: quien ya está en una capa, por su `layerUserId`; quien se añade, solo por su `userId`. `deletedLayerIds` enumera las capas que se eliminan.
+- Un guardado se escribe entero o no se escribe, y quién está de guardia se calcula una sola vez, en el acto. Uno hecho después de que otra persona cambiara las capas se rechaza con 409, porque su `basedOnVersion` ya no es el de las capas: vuelve a leer las capas y haz el cambio sobre lo que hay ahora. El recurso de Terraform `oneuptime_on_call_schedule_layers` guarda así las capas de una programación.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
@@ -126,6 +128,29 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
     }
+  }'
+```
+
+```bash
+curl https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/layers \
+  -H "apikey: $ONEUPTIME_API_KEY"
+
+curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/save-layers \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "basedOnVersion": "<the version the read answered>",
+    "layers": [
+      {
+        "layerId": "<layer-id>",
+        "users": [
+          {"layerUserId": "<row-of-user-2>", "userId": "<user-id-2>"},
+          {"layerUserId": "<row-of-user-1>", "userId": "<user-id-1>"},
+          {"userId": "<user-id-4>"}
+        ]
+      }
+    ],
+    "deletedLayerIds": []
   }'
 ```
 

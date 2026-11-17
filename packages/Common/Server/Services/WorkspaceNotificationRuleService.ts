@@ -473,6 +473,21 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     });
 
     /*
+     * A new on-call policy rule starts on the key updates - who is on call
+     * now, and when nobody is - however it is made (#7971): the Dashboard's
+     * form starts there, and a rule the API, Terraform or a workflow sends
+     * without updatesToPost gets the same. A list the caller sent is kept,
+     * and so is null, which asks for every update.
+     */
+    if (createBy.data.notificationRule) {
+      createBy.data.notificationRule =
+        NotificationRuleUpdates.withNewRuleUpdates({
+          rule: createBy.data.notificationRule,
+          eventType: createBy.data.eventType,
+        });
+    }
+
+    /*
      * The people, teams and policies its conditions name are the project's
      * own (NotificationRuleConditionIds).
      */
@@ -597,7 +612,101 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       }
     }
 
+    await this.keepUpdatesAnEditLeavesOut(updateBy);
+
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * An edit that writes the rule's JSON without updatesToPost keeps the
+   * updates an on-call policy rule posts (#7971). Terraform writes a rule's
+   * JSON as its configuration has it, so a rule that started on the key
+   * updates - which a new on-call rule does, however it is made - would
+   * turn to every update at its first change. Every update is asked for
+   * with null, which the Dashboard's Every update sends.
+   *
+   * The rules are read only when the JSON leaves updatesToPost out and the
+   * kind of rule could keep them: an edit that sends a kind which starts on
+   * every update - an incident's - is written as it is sent, as before. An
+   * edit of several rules at once writes one JSON to all of them, so it may
+   * leave updatesToPost out only where they post the same updates.
+   */
+  private async keepUpdatesAnEditLeavesOut(
+    updateBy: UpdateBy<WorkspaceNotificationRule>,
+  ): Promise<void> {
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+    const writtenRule: unknown = data["notificationRule"];
+
+    if (
+      !writtenRule ||
+      typeof writtenRule !== "object" ||
+      Array.isArray(writtenRule) ||
+      NotificationRuleUpdates.saysUpdatesToPost(writtenRule)
+    ) {
+      return;
+    }
+
+    const sentEventType: NotificationRuleEventType | undefined = data[
+      "eventType"
+    ]
+      ? (data["eventType"] as NotificationRuleEventType)
+      : undefined;
+
+    if (
+      sentEventType &&
+      !NotificationRuleUpdates.hasNewRuleUpdates(sentEventType)
+    ) {
+      return;
+    }
+
+    const rules: Array<WorkspaceNotificationRule> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
+        eventType: true,
+        notificationRule: true,
+      });
+
+    const written: Array<BaseNotificationRule> = rules.map(
+      (rule: WorkspaceNotificationRule): BaseNotificationRule => {
+        return NotificationRuleUpdates.withKeptUpdates({
+          written: writtenRule as BaseNotificationRule,
+          eventType: sentEventType || rule.eventType,
+          stored: rule.notificationRule,
+          storedEventType: rule.eventType,
+        });
+      },
+    );
+
+    const first: BaseNotificationRule | undefined = written[0];
+
+    if (!first) {
+      return;
+    }
+
+    // The updates a JSON posts, the same however its list is ordered.
+    const getUpdatesSignature: (rule: BaseNotificationRule) => string = (
+      rule: BaseNotificationRule,
+    ): string => {
+      return Array.isArray(rule.updatesToPost)
+        ? JSON.stringify([...rule.updatesToPost].sort())
+        : "every update";
+    };
+
+    const firstUpdates: string = getUpdatesSignature(first);
+
+    if (
+      !written.every((rule: BaseNotificationRule): boolean => {
+        return getUpdatesSignature(rule) === firstUpdates;
+      })
+    ) {
+      throw new BadDataException(
+        "This edit writes one notificationRule to on-call policy rules that post different updates, and leaves updatesToPost out. Send updatesToPost with it (null for every update), or edit the rules one at a time.",
+      );
+    }
+
+    data["notificationRule"] = first;
   }
 
   @CaptureSpan()

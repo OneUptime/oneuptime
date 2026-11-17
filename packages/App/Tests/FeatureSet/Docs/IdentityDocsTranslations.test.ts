@@ -52,7 +52,7 @@ import {
  *     permissions): a bold label is drawnActionLabel (DocsDashboardLabels),
  *     Persian included.
  *   - The Admin Dashboard, where a master admin sets up global providers and
- *     the instance-wide Require SSO for Login: it looks a label up whole in
+ *     the instance-wide Require SSO to Sign In: it looks a label up whole in
  *     its own locale (AdminDashboard/src/Locales, nested keys off) and shows
  *     the English where that locale has no wording: a provider page's own
  *     cards, while the provider forms' fields, which Common's SSO forms
@@ -407,7 +407,7 @@ const LOOKED_UP_TEXT: ReadonlyArray<SourceText> = [
  * from its top bar's and side menu's own keys (ADMIN_KEYS).
  */
 const ADMIN_LABELS: Record<string, Array<string>> = {
-  [SSO]: ["Settings", "Single Sign-On", "Require SSO for Login"],
+  [SSO]: ["Settings", "Single Sign-On", "Require SSO to Sign In"],
   [GLOBAL_SSO]: [
     "Settings",
     "Single Sign-On",
@@ -449,7 +449,7 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
     "Where this sign-in counts as SSO",
     "Every project",
     "Attached projects only",
-    "Require SSO for Login",
+    "Require SSO to Sign In",
   ],
 };
 
@@ -460,11 +460,11 @@ const ADMIN_KEYS: Record<string, string> = {
 
 /*
  * Admin Dashboard labels a page also names as the Dashboard draws them: the
- * SSO page's project switch is the Dashboard's Require SSO for Login, its
+ * SSO page's project switch is the Dashboard's Require SSO to Sign In, its
  * server-wide one the Admin Dashboard's.
  */
 const ALSO_DASHBOARD_LABELS: Record<string, Array<string>> = {
-  [SSO]: ["Require SSO for Login"],
+  [SSO]: ["Require SSO to Sign In"],
 };
 
 // The user menu's way into the Admin Dashboard, a key of the Dashboard's.
@@ -1095,7 +1095,7 @@ describe("the lists this test keeps", () => {
       "Name",
       "Enabled",
       "More fields",
-      "Require SSO for Login",
+      "Require SSO to Sign In",
       "Require SSO",
       "Master admin sign-in",
       "Sign them out",
@@ -1520,11 +1520,11 @@ describe.each(LANGUAGES)("%s", (language: string) => {
  */
 describe("the helpers, on these pages' shapes", () => {
   it("read the Admin Dashboard's labels from its own locale, or in English", () => {
-    expect(adminLabel("de", "Require SSO for Login")).toBe(
+    expect(adminLabel("de", "Require SSO to Sign In")).toBe(
       "SSO für die Anmeldung erfordern",
     );
     // The Dashboard words the project's switch differently.
-    expect(drawnActionLabel("de", "Require SSO for Login")).toBe(
+    expect(drawnActionLabel("de", "Require SSO to Sign In")).toBe(
       "SSO für die Anmeldung erzwingen",
     );
     expect(adminLabel("de", "Settings")).toBe("Einstellungen");

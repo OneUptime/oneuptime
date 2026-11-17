@@ -43,14 +43,16 @@ import ToolImportSource, {
  * and PageSearchIndexCoversRoutes fails when a page in RouteMap is neither
  * here nor listed there as one that must not be offered (with the reason).
  * The Developer pages are not written out: they are added to every area
- * from DeveloperDocsPages.ts, the list their menus are drawn from.
+ * from DeveloperDocsPages.ts, the list their menus are drawn from. The
+ * pages of one record (a status page's Single Sign-On, a monitor's
+ * Criteria) are in RecordPageSearchIndex.ts (#9204).
  *
  * Titles and section names are English, as the menus write them; Search
  * translates them when it shows them. Keywords are other words people type
  * for a page ("pager", "rota", "2fa"): lowercase English, never shown.
  *
  * A settings page also lists its settings: the names its cards and switches
- * show ("Require SSO for Login", "Monitor Groups", "Cancel Plan"). Each is a
+ * show ("Require SSO to Sign In", "Monitor Groups", "Cancel Plan"). Each is a
  * result of its own, found by that name in English or in the reader's
  * language, which says the page it is on ("Project Settings > Security >
  * SSO") and opens it - at the setting's card where it waits folded under
@@ -944,13 +946,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "oidc",
               "openid connect",
               "oauth",
+              /*
+               * Require SSO to Sign In's old names (#9278), still typed by
+               * people who learned them.
+               */
+              "require sso for login",
+              "force sso for login",
             ],
             settings: [
               "SAML",
               "OpenID Connect (OIDC)",
               "Test Single Sign On (SSO)",
               "SSO Settings",
-              "Require SSO for Login",
+              "Require SSO to Sign In",
             ],
           },
           {
@@ -1641,6 +1649,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.ShieldCheck,
             keywords: ["can be paged", "coverage", "unreachable responders"],
           },
+          {
+            page: PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES,
+            title: "Incoming Call Policies",
+            icon: IconProp.IncomingCall,
+            // Its section until #9216.
+            keywords: [
+              "hotline",
+              "phone number",
+              "call routing",
+              "incoming calls",
+            ],
+          },
         ],
       },
       {
@@ -1673,17 +1693,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Calendar Feeds",
             icon: IconProp.Link,
             keywords: ["ical", "ics", "google calendar", "outlook"],
-          },
-        ],
-      },
-      {
-        title: "Incoming Calls",
-        pages: [
-          {
-            page: PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES,
-            title: "Incoming Call Policies",
-            icon: IconProp.IncomingCall,
-            keywords: ["hotline", "phone number", "call routing"],
           },
         ],
       },
@@ -1837,11 +1846,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             // "ongoing events" was its name (#6817).
             keywords: ["maintenance in progress", "ongoing events"],
           },
-        ],
-      },
-      {
-        title: "Calendar",
-        pages: [
           {
             page: PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR,
             title: "Maintenance Calendar",
@@ -4130,11 +4134,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Variable,
             keywords: ["workflow variables", "secrets"],
           },
-        ],
-      },
-      {
-        title: "Logs",
-        pages: [
           {
             page: PageMap.WORKFLOWS_LOGS,
             title: "Runs",
@@ -4533,7 +4532,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
 ];
 
 // Other words for the Developer pages, which share their titles everywhere.
-const DEVELOPER_PAGE_KEYWORDS: Readonly<
+export const DEVELOPER_PAGE_KEYWORDS: Readonly<
   Record<DeveloperDocsPageType, Array<string>>
 > = {
   [DeveloperDocsPageType.Terraform]: [

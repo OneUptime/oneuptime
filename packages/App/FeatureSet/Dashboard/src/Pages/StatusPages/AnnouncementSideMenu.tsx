@@ -31,18 +31,9 @@ const AnnouncementSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
-      </SideMenuSection>
-
-      {getDeveloperSideMenuSection({
-        modelType: StatusPageAnnouncement,
-        scope: DeveloperDocsScope.View,
-        modelId: props.modelId,
-      })}
-
-      <SideMenuSection title="Advanced">
         {/*
-         * Who was told about the announcement, with its other records. It was
-         * a section of its own, under a heading of its own name (#9134).
+         * Who was told about the announcement, beside it. Basic held only
+         * Overview while this was folded in Advanced (#9216).
          */}
         <SideMenuItem
           link={{
@@ -54,6 +45,15 @@ const AnnouncementSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Bell}
         />
+      </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: StatusPageAnnouncement,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
+
+      <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
             title: "Audit Logs",

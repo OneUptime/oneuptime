@@ -554,7 +554,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
             "People and teams responsible for this {{resourceName}}. They are notified about changes.",
             { resourceName: resourceName },
           )}
-      {countLabel && <span className="ml-1 text-gray-400">· {countLabel}</span>}
+      {countLabel && <span className="ml-1 text-gray-500">· {countLabel}</span>}
     </span>
   );
 

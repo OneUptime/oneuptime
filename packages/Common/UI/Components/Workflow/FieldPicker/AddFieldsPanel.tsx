@@ -478,7 +478,7 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
                 {/* Says how the group works: written to be read, not gray-400. */}
                 {row.group.hint ? (
                   <span
-                    className="truncate text-[11px] text-gray-500"
+                    className="truncate text-xs text-gray-500"
                     data-part="hint"
                   >
                     {translator.translateText(row.group.hint)}

@@ -133,7 +133,7 @@ OneUptime → Dynamics 365 のテンプレートは、**プライベートイン
 4. **ワークフローを作成** をクリックします。ワークフローはすべてオフの状態で作成されます。**ビルダー** の上部で **有効** をオンにしてください。
 :::
 
-まず **Create a Dynamics 365 case when an incident is declared** (アラートの場合は **Create a Dynamics 365 case when an alert is created**) から始めてください。同じ種類のほかの OneUptime → Dynamics 365 テンプレートは、このテンプレートが書き込むリンクでサポート案件を見つけます。オンにして、テスト用のインシデントを宣言するかテスト用のアラートを作成し、ワークフローの **ログ → 実行履歴** を開きます。実行は **実行済み** で終わり、最後のステップ `create-case-1` の **レスポンスボディ** に、 `CAS-01001-X1Y2Z3` のような新しいサポート案件の `ticketnumber` が含まれるはずです。
+まず **Create a Dynamics 365 case when an incident is declared** (アラートの場合は **Create a Dynamics 365 case when an alert is created**) から始めてください。同じ種類のほかの OneUptime → Dynamics 365 テンプレートは、このテンプレートが書き込むリンクでサポート案件を見つけます。オンにして、テスト用のインシデントを宣言するかテスト用のアラートを作成し、ワークフローの **実行履歴** を開きます。実行は **実行済み** で終わり、最後のステップ `create-case-1` の **レスポンスボディ** に、 `CAS-01001-X1Y2Z3` のような新しいサポート案件の `ticketnumber` が含まれるはずです。
 
 ### Dynamics 365 → OneUptime のテンプレートを接続する
 
@@ -181,7 +181,7 @@ Dynamics 365 → OneUptime のテンプレート (インシデント用 3 つ、
 
 ### 動作を確認する
 
-各実行の **ステップ** にはテンプレートが何をしたかが示されるので、 **ログ → 実行履歴** で実行を開き、どう終わったかを見てください:
+各実行の **ステップ** にはテンプレートが何をしたかが示されるので、 **実行履歴** で実行を開き、どう終わったかを見てください:
 
 - **実行済み**: 処理を完了しました。最後のステップにサポート案件、インシデント、またはアラートが示されます。
 - **実行済み** で、 **JavaScript でチェック** ステップが **いいえ** に進んだ: 意図的にイベントをスキップしました。そのステップに理由が示されます。サポート案件がこの種類のレコードにリンクされていない、メモが相手側から来た、レコードがプライベートである、新しい状態ではサポート案件がクローズされない、のいずれかです。
@@ -297,7 +297,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
    }
    ```
 
-5. **有効** をオンにし、テスト用のインシデントを宣言して、**ログ → 実行履歴** を開きます。`create-case` ステップに `201` と、新しい `incidentid` と `ticketnumber` を含む本文が表示されます。
+5. **有効** をオンにし、テスト用のインシデントを宣言して、**実行履歴** を開きます。`create-case` ステップに `201` と、新しい `incidentid` と `ticketnumber` を含む本文が表示されます。
 :::
 
 すべてのサポート案件には顧客が必要なので、`customerid` は必須です。取引先企業と取引先担当者のどちらも指せるため、`customerid_account@odata.bind` または `customerid_contact@odata.bind` と正確に書きます。`Prefer: return=representation` を付けると、応答がサポート案件そのものを含む `201` になり、次のブロックが `{{local.components.create-case.returnValues.response-body.incidentid}}` を読み取れます。付けない場合、Dynamics 365 は本文なしの `204` を返します。
@@ -399,7 +399,7 @@ Dataverse が呼び出すのはポート 80 と 443 だけで、応答を 60 秒
 
 ## トラブルシューティング
 
-まず **ログ → 実行履歴** で失敗したステップを開きます。Microsoft のどちらのエンドポイントも問題を説明する JSON 本文で応答し、API ブロックはそれを `response-body` に保持します。
+まず **実行履歴** で失敗したステップを開きます。Microsoft のどちらのエンドポイントも問題を説明する JSON 本文で応答し、API ブロックはそれを `response-body` に保持します。
 
 :::details AADSTS70011 を伴う 400、スコープが無効
 スコープが、環境の URL の後に `/.default` を付けたものになっていません。Power Platform 管理センターから URL をコピーし、末尾のスラッシュと `/api/data/...` のパスを取り除いてください。
@@ -434,7 +434,7 @@ Dataverse のサービス保護の制限では、任意の 5 分間にユーザ�
 :::
 
 :::details OneUptime に何も届かない
-`curl` で自分から Webhook の URL にリクエストを送り、**ログ → 実行履歴** で探します。自分のリクエストは届き Dynamics 365 のものは届かない場合は、上流を確認します。フロー自体の実行履歴や、Dataverse の Webhook の失敗した System Jobs です。
+`curl` で自分から Webhook の URL にリクエストを送り、**実行履歴** で探します。自分のリクエストは届き Dynamics 365 のものは届かない場合は、上流を確認します。フロー自体の実行履歴や、Dataverse の Webhook の失敗した System Jobs です。
 :::
 
 :::details ワークフローは実行されるのに、インシデントが変わらない

@@ -169,7 +169,7 @@ Para reagir a vários gatilhos, comece todos os títulos deles do mesmo jeito, o
 ## Teste o disjuntor
 
 :::steps
-1. Dispare-o à mão. Abra **Alertas**, clique em **Criar alerta** e crie um com o título `LLM budget exceeded: test`. A execução aparece em **Fluxos de trabalho → Registros → Execuções**, e o seu endpoint recebe a chamada.
+1. Dispare-o à mão. Abra **Alertas**, clique em **Criar alerta** e crie um com o título `LLM budget exceeded: test`. A execução aparece em **Fluxos de trabalho → Execuções**, e o seu endpoint recebe a chamada.
 2. Dispare-o de verdade. Crie um orçamento com um limite minúsculo, como `0.01` USD, no serviço de um agente de teste, aponte um monitor de orçamento para ele e deixe o agente rodar: a porcentagem passa de 100, o alerta abre, o fluxo de trabalho roda e o disjuntor desarma. Para o alerta de loop, dê a um agente de teste uma ferramenta que sempre falha.
 3. Dispare-o duas vezes. Crie o mesmo alerta de novo: o seu endpoint precisa aceitar o segundo disparo sem mudar nada.
 :::
@@ -201,7 +201,7 @@ O **Intervalo de tempo** do monitor é menor que os 15 minutos entre dois pontos
 :::
 
 :::details A requisição nunca chega ao seu endpoint
-Abra a execução em **Fluxos de trabalho → Registros → Execuções** e a etapa **Chamada de API POST (JSON)**: ela diz por que a requisição falhou. No OneUptime Cloud, o endpoint precisa ser acessível pela internet; uma instalação auto-hospedada recusa endereços de rede privados, a menos que um administrador os permita.
+Abra a execução em **Fluxos de trabalho → Execuções** e a etapa **Chamada de API POST (JSON)**: ela diz por que a requisição falhou. No OneUptime Cloud, o endpoint precisa ser acessível pela internet; uma instalação auto-hospedada recusa endereços de rede privados, a menos que um administrador os permita.
 :::
 
 ## Próximos passos

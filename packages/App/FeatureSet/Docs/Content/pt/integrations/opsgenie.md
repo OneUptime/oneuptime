@@ -149,7 +149,7 @@ O Opsgenie responde `202` antes de processar a requisição, então uma requisi�
 :::
 
 :::details O workflow nunca roda
-Verifique se ele está ativado: **Habilitado**, no topo do **Construtor** dele. Depois abra **Registros → Execuções**: uma execução que seguiu o lado **Não** do bloco **Se / Senão** é uma atualização que não era uma resolução.
+Verifique se ele está ativado: **Habilitado**, no topo do **Construtor** dele. Depois abra **Execuções**: uma execução que seguiu o lado **Não** do bloco **Se / Senão** é uma atualização que não era uma resolução.
 :::
 
 ## Próximos passos

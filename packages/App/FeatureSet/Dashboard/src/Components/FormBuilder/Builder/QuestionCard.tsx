@@ -571,7 +571,7 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
             <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span
                 className={`text-sm font-medium [overflow-wrap:anywhere] ${
-                  field.label.trim() ? "text-gray-900" : "italic text-gray-400"
+                  field.label.trim() ? "text-gray-900" : "italic text-gray-500"
                 }`}
               >
                 {label}

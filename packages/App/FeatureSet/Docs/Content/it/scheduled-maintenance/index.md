@@ -54,17 +54,16 @@ Aprite **Manutenzione programmata** dal menu **Prodotti** nella barra superiore.
 
 | Sezione       | Cosa ci fate                                                                                                               |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Panoramica** | **Tutti gli eventi di manutenzione** ed **Eventi di manutenzione in corso**, il cui badge conta gli eventi in corso in questo momento.                    |
-| **Calendario** | **Calendario della manutenzione**: ogni evento su un mese, una settimana o un giorno, accanto ai calendari esterni al progetto che aggiungete. |
+| **Panoramica** | **Tutti gli eventi di manutenzione**, **Eventi di manutenzione in corso**, il cui badge conta gli eventi in corso in questo momento, e **Calendario della manutenzione**: ogni evento su un mese, una settimana o un giorno, accanto ai calendari esterni al progetto che aggiungete. |
 | **Area di lavoro** | **Slack**, **Microsoft Teams** e **Mattermost**, a seconda di quale il progetto ha collegato, oppure **Collega un'area di lavoro** se non ne ha nessuno. |
 | **Regole**    | **Regole del proprietario**, **Regole di runbook**, **Regole etichette**, **Regole dei promemoria**.                               |
 | **Impostazioni** | **Stato della manutenzione**, **Modelli di manutenzione**, **Modelli di note**, **Approvazione delle note pubbliche**, **Campi personalizzati**, **Misurazioni**, **Impostazioni del calendario**, **Numerazione**. |
 
-**Panoramica** e **Calendario** sono aperte; **Area di lavoro**, **Regole**, **Impostazioni** e **Sviluppatori** partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Sviluppatori** contiene **Terraform**, **API**, **CLI** e **Assistenti IA**, per gestire la manutenzione dal codice. Tutto ciò che riguarda la manutenzione si trova qui, non nelle **Impostazioni del progetto**.
+**Panoramica** è aperta; **Area di lavoro**, **Regole**, **Impostazioni** e **Sviluppatori** partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Sviluppatori** contiene **Terraform**, **API**, **CLI** e **Assistenti IA**, per gestire la manutenzione dal codice. Tutto ciò che riguarda la manutenzione si trova qui, non nelle **Impostazioni del progetto**.
 
 L'elenco mostra **Numero della manutenzione programmata**, **Titolo**, **Stato attuale**, **Risorse interessate**, **Mostrato sulla pagina di stato**, **Inizia il**, **Durata**, **Termina il**, **Etichette** e **Proprietari**. Selezionate degli eventi per agire su più eventi alla volta: **Segna come {{state}}**, **Cambia stato**, **Assegna a me**, **Aggiungi proprietario**, **Rimuovi proprietario**, **Aggiungi etichette**, **Rimuovi etichette** o **Elimina**. Il menu **⋯** in fondo alla riga di ogni evento fa lo stesso per quel solo evento: i passi **Segna come {{state}}** finché l'evento può farli, **Cambia stato**, **Assegna a me** finché non ne siete proprietari e **Aggiungi proprietario**.
 
-**Calendario della manutenzione**, nella sezione **Calendario**, mostra gli stessi eventi su un mese, una settimana o un giorno, e può mostrare accanto calendari esterni al progetto. Vedete [Calendario della manutenzione](/docs/scheduled-maintenance/calendar).
+**Calendario della manutenzione**, nella sezione **Panoramica**, mostra gli stessi eventi su un mese, una settimana o un giorno, e può mostrare accanto calendari esterni al progetto. Vedete [Calendario della manutenzione](/docs/scheduled-maintenance/calendar).
 
 ## Cosa influenza un evento
 
@@ -83,14 +82,13 @@ Aprite un evento dall'elenco per vedere le sue pagine. Il suo menu laterale cont
 
 | Sezione del menu laterale | Pagine                                                                               |
 | ----------------- | --------------------------------------------------------------------------------------------- |
-| **Panoramica** | **Panoramica**, **Cronologia stato**, **Descrizione**, **Runbook** |
-| **Team** | **Proprietari** |
+| **Panoramica** | **Panoramica**, **Cronologia stato**, **Descrizione**, **Runbook**, **Proprietari** |
 | **Notifiche**      | **Log di notifica** e **Log IA**: ogni messaggio inviato sull'evento, e ciò che l'IA ha fatto per lui |
 | **Note**          | **Note private** e **Note pubbliche**                                                          |
 | **Sviluppatori**  | **Terraform**, **API**, **CLI** e **Assistenti IA**: l'evento gestito dal codice               |
 | **Avanzato**      | **Campi personalizzati**, **Impostazioni**, **Log di audit**, **Elimina evento di manutenzione**          |
 
-**Panoramica**, **Team** e **Note** sono aperte; le altre sezioni restano chiuse finché non ci fate clic.
+**Panoramica** e **Note** sono aperte; le altre sezioni restano chiuse finché non ci fate clic.
 
 - **Panoramica** — l'intestazione mostra il numero, il titolo e lo stato dell'evento, quanto manca all'inizio o da quanto è in corso, i suoi proprietari, le pagine di stato in cui compare e chi lo ha creato, e i pulsanti che lo fanno avanzare. Sotto, **Inizia**, **Termina** e **Durata** mostrano la finestra pianificata nel vostro fuso orario. Il **Feed della manutenzione programmata** registra tutto ciò che è successo all'evento, accanto alle schede **Dettagli della manutenzione** e **Risorse interessate**, e alle schede **Misurazioni** e **Campi personalizzati** quando il vostro progetto ne ha.
 - **Cronologia stato** — ogni stato in cui l'evento è stato, quando e per quanto tempo. Vedere [Stati della manutenzione](/docs/scheduled-maintenance/states#la-cronologia-di-stato).

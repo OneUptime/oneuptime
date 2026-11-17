@@ -139,28 +139,49 @@ async function colorsOf(
 }
 
 /*
- * The colour actually painted behind an element: its own background, or the
- * nearest one behind it that is not see-through.
+ * The colour actually painted behind an element's words: its own background
+ * and the ones behind it, each laid over the next, down to the nearest one
+ * that is opaque (white, if none is). A Pill's wash is its colour at a low
+ * opacity (Common's PillColors), so its words are read against that wash
+ * over the row it sits on, not against the colour itself.
  */
 async function backgroundBehind(locator: Locator): Promise<string> {
   return locator.evaluate((element: Element): string => {
+    const layers: Array<Array<number>> = [];
     let current: Element | null = element;
 
     while (current) {
-      const background: string = getComputedStyle(current).backgroundColor;
-      const parts: Array<string> = background.match(/[\d.]+/g) || [];
-      const isSeeThrough: boolean =
-        background === "transparent" ||
-        (parts.length === 4 && Number(parts[3]) === 0);
+      const parts: Array<number> = (
+        getComputedStyle(current).backgroundColor.match(/[\d.]+/g) || []
+      ).map(Number);
+      const alpha: number = parts.length > 3 ? parts[3]! : 1;
 
-      if (!isSeeThrough) {
-        return background;
+      if (parts.length >= 3 && alpha > 0) {
+        layers.push([parts[0]!, parts[1]!, parts[2]!, alpha]);
+      }
+
+      if (parts.length >= 3 && alpha >= 1) {
+        break;
       }
 
       current = current.parentElement;
     }
 
-    return "rgb(255, 255, 255)";
+    let painted: Array<number> = [255, 255, 255];
+
+    for (const layer of layers.reverse()) {
+      const alpha: number = layer[3]!;
+
+      painted = painted.map((under: number, index: number): number => {
+        return layer[index]! * alpha + under * (1 - alpha);
+      });
+    }
+
+    return `rgb(${painted
+      .map((channel: number): number => {
+        return Math.round(channel);
+      })
+      .join(", ")})`;
   });
 }
 
@@ -610,20 +631,29 @@ test.describe("On-call logs: direct pages among a policy's runs", () => {
     for (const theme of ["light", "dark"]) {
       await openLogs(page, theme);
 
+      /*
+       * The label draws the shared Pill (4529de8b738), in its neutral tone:
+       * its colours are the Pill's, its wash laid over the row.
+       */
       const label: Locator = page
         .getByTestId("on-call-direct-page-label")
-        .first();
+        .first()
+        .getByTestId("pill");
+
+      await expect(label).toHaveAttribute("data-tone", "neutral");
+
       const colors: { text: string; background: string } =
         await colorsOf(label);
+      const behind: string = await backgroundBehind(label);
 
       // Readable: at least the contrast body text needs.
       expect({
         theme,
-        readable: contrastOf(colors.text, colors.background) >= 4.5,
+        readable: contrastOf(colors.text, behind) >= 4.5,
       }).toEqual({ theme, readable: true });
 
       // A tint, not a white pill on a dark page - nor a dark one on a light page.
-      const isDarkPill: boolean = luminanceOf(colors.background) < 0.2;
+      const isDarkPill: boolean = luminanceOf(behind) < 0.2;
 
       expect({ theme, isDarkPill }).toEqual({
         theme,
@@ -631,8 +661,9 @@ test.describe("On-call logs: direct pages among a policy's runs", () => {
       });
 
       /*
-       * Grey, or near it. The run's status is what is drawn in colour - and
-       * the "Error" pill of the last row is far from grey.
+       * Grey, or near it: the wash is a tint of grey. The run's status is
+       * what is drawn in colour - and the "Error" pill of the last row is
+       * far from grey.
        */
       expect({
         theme,
@@ -747,12 +778,20 @@ test.describe("On-call logs: the timeline of a direct page", () => {
     for (const theme of ["light", "dark"]) {
       await openTimeline(page, theme);
 
+      /*
+       * Both are the shared Pill (88536f777a1), in its warning tone: the
+       * pill itself, not the words inside it, is what is drawn.
+       */
       const team: Locator = page.getByTestId(
         "on-call-timeline-team-has-no-members",
       );
       const nobodyOnCall: Locator = page
-        .getByText("No one was on call")
+        .getByTestId("pill")
+        .filter({ hasText: "No one was on call" })
         .first();
+
+      await expect(team).toHaveAttribute("data-tone", "warning");
+      await expect(nobodyOnCall).toHaveAttribute("data-tone", "warning");
 
       const teamColors: { text: string; background: string } =
         await colorsOf(team);
@@ -765,7 +804,8 @@ test.describe("On-call logs: the timeline of a direct page", () => {
       });
       expect({
         theme,
-        readable: contrastOf(teamColors.text, teamColors.background) >= 4.5,
+        readable:
+          contrastOf(teamColors.text, await backgroundBehind(team)) >= 4.5,
       }).toEqual({ theme, readable: true });
     }
   });
@@ -868,12 +908,14 @@ test.describe("On-call logs: a run that paged the next person in a rotation", ()
       // Not that nobody was on call: somebody was.
       await expect(page.getByText("No one was on call")).toHaveCount(0);
 
+      // Its words against its wash, over the row (backgroundBehind).
       const colors: { text: string; background: string } =
         await colorsOf(nobody);
 
       expect({
         theme,
-        readable: contrastOf(colors.text, colors.background) >= 4.5,
+        readable:
+          contrastOf(colors.text, await backgroundBehind(nobody)) >= 4.5,
       }).toEqual({ theme, readable: true });
 
       const label: Locator = page
@@ -989,17 +1031,18 @@ test.describe("On-call logs: a run that passed levels with nobody to page", () =
     for (const theme of ["light", "dark"]) {
       await openEmptyLevelsTimeline(page, theme);
 
+      // The level's chip, the shared Pill: its words against its wash.
       const chip: Locator = page
         .getByTestId("on-call-timeline-level-paged-nobody")
         .first()
-        .locator("span")
-        .first();
+        .getByTestId("pill");
       const chipColors: { text: string; background: string } =
         await colorsOf(chip);
 
       expect({
         theme,
-        readable: contrastOf(chipColors.text, chipColors.background) >= 4.5,
+        readable:
+          contrastOf(chipColors.text, await backgroundBehind(chip)) >= 4.5,
       }).toEqual({ theme, readable: true });
 
       const movedOn: Locator = page

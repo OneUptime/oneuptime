@@ -166,7 +166,7 @@ Je hebt gegroepeerd op een label dat voor elke waarschuwing van een melding hetz
 :::
 
 :::details Het incident toont een verwijzing in plaats van een waarde
-Een verwijzing naar een veld dat de melding niet heeft, blijft staan zoals ze geschreven is, accolades en al. Vergelijk de naam van het veld met wat Grafana heeft gestuurd: open voor een workflow de run in **Logboeken → Uitvoeringen** en vergelijk met wat de trigger ontving.
+Een verwijzing naar een veld dat de melding niet heeft, blijft staan zoals ze geschreven is, accolades en al. Vergelijk de naam van het veld met wat Grafana heeft gestuurd: open voor een workflow de run in **Uitvoeringen** en vergelijk met wat de trigger ontving.
 :::
 
 De gids voor [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#problemen-oplossen) behandelt meer gevallen, en die gelden ook voor de meldingen van Grafana.

@@ -3,7 +3,7 @@
 Single sign-on (SSO) lets the people in your project sign in to OneUptime with your organization's identity provider (IdP), over SAML 2.0 or OpenID Connect. You manage access, passwords and multi-factor authentication in one place, and you can require SSO for everyone in the project.
 
 > [!NOTE]
-> **Edition:** SSO, including "Require SSO for login", is part of every OneUptime edition: self-hosted installations get it in the Community Edition, with no license needed. On OneUptime Cloud it is available on the **Scale** plan and above. See [Enterprise Edition](/docs/self-hosted/enterprise) for what each edition includes.
+> **Edition:** SSO, including "Require SSO to sign in", is part of every OneUptime edition: self-hosted installations get it in the Community Edition, with no license needed. On OneUptime Cloud it is available on the **Scale** plan and above. See [Enterprise Edition](/docs/self-hosted/enterprise) for what each edition includes.
 
 :::cards
 - [Set up a SAML provider](#setting-up-sso): Create it in OneUptime and give your IdP two URLs.
@@ -267,26 +267,26 @@ A provider's teams decide what people who sign in with it can do, so a provider 
 
 ## Requiring SSO for Your Project
 
-Setting up a provider does not stop anyone signing in with a password. To make SSO the only way into the project, use the **Require SSO for Login** switch on **Project Settings** > **Security** > **SSO**, under your providers:
+Setting up a provider does not stop anyone signing in with a password. To make SSO the only way into the project, use the **Require SSO to Sign In** switch on **Project Settings** > **Security** > **SSO**, under your providers:
 
 :::steps
 1. Test your provider first, with the link in the **Test Single Sign On (SSO)** card.
-2. Turn on **Require SSO for Login**. OneUptime asks before it saves anything: from then on everyone in the project, you included, has to sign in with SSO to open it, and anyone signed in with a password is locked out of the project until they sign in with SSO.
+2. Turn on **Require SSO to Sign In**. OneUptime asks before it saves anything: from then on everyone in the project, you included, has to sign in with SSO to open it, and anyone signed in with a password is locked out of the project until they sign in with SSO.
 3. Click **Require SSO** to confirm. The switch saves straight away; there is no separate Save button.
 :::
 
-Turning **Require SSO for Login** on needs a provider that signs people in to the project: one of its own SAML or OIDC providers that is on, or a global provider that is on and signs people in to it. Without one, OneUptime refuses, and says to turn on a provider for the project and test it first. If you pick a provider the project requires, it has to be one of those, and the same is asked when you require another provider later.
+Turning **Require SSO to Sign In** on needs a provider that signs people in to the project: one of its own SAML or OIDC providers that is on, or a global provider that is on and signs people in to it. Without one, OneUptime refuses, and says to turn on a provider for the project and test it first. If you pick a provider the project requires, it has to be one of those, and the same is asked when you require another provider later.
 
-A save that sends **Require SSO for Login** on while it is on already, or names the provider the project requires already, is checked the same way - the API, Terraform and other tools often send every setting with each save. So while the project has no provider that signs people in, or the provider it requires was turned off since, such a save is refused in the same words, whatever else it changes: turn a provider on, require another one, or turn **Require SSO for Login** off, first.
+A save that sends **Require SSO to Sign In** on while it is on already, or names the provider the project requires already, is checked the same way - the API, Terraform and other tools often send every setting with each save. So while the project has no provider that signs people in, or the provider it requires was turned off since, such a save is refused in the same words, whatever else it changes: turn a provider on, require another one, or turn **Require SSO to Sign In** off, first.
 
-A new project is held to the same rule. It has no provider of its own yet, so creating one with **Require SSO for Login** already on - only a master admin can - needs a global provider that is on and signs people in to every project, and is refused in the same words without one. Create the project, set up and test its provider, then turn the switch on.
+A new project is held to the same rule. It has no provider of its own yet, so creating one with **Require SSO to Sign In** already on - only a master admin can - needs a global provider that is on and signs people in to every project, and is refused in the same words without one. Create the project, set up and test its provider, then turn the switch on.
 
-While the whole server requires SSO (**Admin** > **Settings** > **Single Sign-On** > **Require SSO for Login**), creating any project needs such a global provider too, or nobody, its creator included, could open the project. Without one, creating a project is refused, and the message asks a server admin to turn one on. Master admins can still create projects.
+While the whole server requires SSO (**Admin** > **Settings** > **Single Sign-On** > **Require SSO to Sign In**), creating any project needs such a global provider too, or nobody, its creator included, could open the project. Without one, creating a project is refused, and the message asks a server admin to turn one on. Master admins can still create projects.
 
-Turning **Require SSO for Login** off saves as soon as you flip it and lets members back in with their password straight away - unless someone turns it on again at that very moment, when an app server can take up to a minute to follow. Project Owners, Project Admins and members with the **Edit Project** permission can change it; anyone else sees the switch locked, with the permission they would need.
+Turning **Require SSO to Sign In** off saves as soon as you flip it and lets members back in with their password straight away - unless someone turns it on again at that very moment, when an app server can take up to a minute to follow. Project Owners, Project Admins and members with the **Edit Project** permission can change it; anyone else sees the switch locked, with the permission they would need.
 
 > [!NOTE]
-> On OneUptime Cloud, requiring SSO needs the **Scale** plan, and turning it off works on every plan. Below Scale, **Project Settings** > **Security** > **SSO** shows the plan's upsell; a project a Scale trial left requiring SSO also finds **Require SSO for Login** there, under the upsell, so it can be turned off. Turning it on again needs **Scale**.
+> On OneUptime Cloud, requiring SSO needs the **Scale** plan, and turning it off works on every plan. Below Scale, **Project Settings** > **Security** > **SSO** shows the plan's upsell; a project a Scale trial left requiring SSO also finds **Require SSO to Sign In** there, under the upsell, so it can be turned off. Turning it on again needs **Scale**.
 
 ## Turning a provider off or deleting it
 
@@ -304,11 +304,11 @@ Turning a SAML or OIDC provider off, or deleting it, ends the sign-ins it gave. 
 
 Changing anything else about a provider keeps everyone signed in: a new certificate or client secret, other URLs, a new name or other teams. Their sign-ins were checked when they were made, and the next sign-in uses the new settings.
 
-While the project requires SSO, OneUptime keeps a way in: you cannot turn off or delete the last provider people can sign in to the project with, counting global providers that sign people in to it, or the provider the project requires. Turn off **Require SSO for Login** first.
+While the project requires SSO, OneUptime keeps a way in: you cannot turn off or delete the last provider people can sign in to the project with, counting global providers that sign people in to it, or the provider the project requires. Turn off **Require SSO to Sign In** first.
 
 Turning a provider on lets people sign in with it straight away.
 
-When the whole server requires SSO (**Admin** > **Settings** > **Single Sign-On** > **Require SSO for Login**), every project keeps a way in the same way, even one that does not require SSO itself: turn on another provider for it first.
+When the whole server requires SSO (**Admin** > **Settings** > **Single Sign-On** > **Require SSO to Sign In**), every project keeps a way in the same way, even one that does not require SSO itself: turn on another provider for it first.
 
 Global providers are held to the same rule: a change to one, or to its attached projects, that would leave a project that requires SSO with no provider is refused, naming the project. See [Global SSO](/docs/identity/global-sso#turning-a-provider-off-or-deleting-it).
 
@@ -323,9 +323,9 @@ A SAML or OIDC provider a project still has keeps signing people in after a Scal
 
 Adding a provider, changing one or turning it on again needs **Scale**. The people who can do each are the same as on Scale: turning a provider off needs permission to edit it, deleting it permission to delete it.
 
-While the project still requires SSO, its **SSO** page also shows **Require SSO for Login**: turn it off before you turn the last provider off. Until then the last provider people can sign in with cannot be turned off or deleted, so nobody is locked out of the project.
+While the project still requires SSO, its **SSO** page also shows **Require SSO to Sign In**: turn it off before you turn the last provider off. Until then the last provider people can sign in with cannot be turned off or deleted, so nobody is locked out of the project.
 
-A status page's **Single Sign-On** page lists its own providers the same way, on its **SAML** and **OIDC** tabs. While the status page still requires SSO, both tabs also show **Require SSO for Login**: turn it off before you turn its providers off, or its private users cannot sign in at all.
+A status page's **Single Sign-On** page lists its own providers the same way, on its **SAML** and **OIDC** tabs. While the status page still requires SSO, both tabs also show **Require SSO to Sign In**: turn it off before you turn its providers off, or its private users cannot sign in at all.
 
 ## Troubleshooting
 

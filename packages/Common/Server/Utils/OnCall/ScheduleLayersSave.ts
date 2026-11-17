@@ -256,6 +256,80 @@ export default class ScheduleLayersSave {
     });
   }
 
+  /*
+   * The layers and the people in them as a save that changes nothing
+   * (GET .../:id/layers, issue #9038): what an API caller or Terraform
+   * changes and sends back to save. The schedule as the caller reads it -
+   * one they may not read, or one of another project, is answered as
+   * missing - and its layers and their people read as the caller reads
+   * them, so the version is of what they may see: a save made to it of
+   * rows they may not see is refused as a conflict, never written.
+   */
+  public static async read(data: {
+    scheduleId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<ScheduleLayersSaveRequest> {
+    const projectId: ObjectID | undefined = data.props.tenantId;
+
+    if (!projectId) {
+      throw new BadDataException("Project ID is required.");
+    }
+
+    const schedule: OnCallDutyPolicySchedule | null =
+      await OnCallDutyPolicyScheduleService.findOneBy({
+        query: {
+          _id: data.scheduleId,
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+        },
+        props: data.props,
+      });
+
+    if (!schedule) {
+      throw new NotFoundException(
+        `${new OnCallDutyPolicySchedule().singularName || "Record"} not found.`,
+      );
+    }
+
+    const layers: Array<OnCallDutyPolicyScheduleLayer> =
+      await OnCallDutyPolicyScheduleLayerService.findBy({
+        query: {
+          onCallDutyPolicyScheduleId: data.scheduleId,
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          order: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: data.props,
+      });
+
+    const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
+      await OnCallDutyPolicyScheduleLayerUserService.findBy({
+        query: {
+          onCallDutyPolicyScheduleId: data.scheduleId,
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          onCallDutyPolicyScheduleLayerId: true,
+          userId: true,
+          order: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: data.props,
+      });
+
+    return ScheduleLayersSaveUtil.getUnchangedRequest(
+      ScheduleLayersSave.getState({ layers: layers, layerUsers: layerUsers }),
+    );
+  }
+
   public static getState(rows: ScheduleLayersRows): ScheduleLayersState {
     return {
       layers: rows.layers.map(

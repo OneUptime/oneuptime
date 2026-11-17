@@ -210,13 +210,14 @@ describe("the category row's colours", () => {
      * Its every category is a row (NavBarCategoryToggle, scanned above), so
      * the menu itself draws only the rule above them and the guide line
      * under an open one - and a product's marks (#6814): the plan it needs,
-     * and Not set up.
+     * and Not set up. Not set up and the Pinned and Recent headings are in
+     * the gray that can be read, gray-500 (gray-400 was 2.5:1 on white).
      */
     expect(tokens).toEqual([
       "bg-yellow-50",
       "text-yellow-800",
       "ring-yellow-200",
-      "text-gray-400",
+      "text-gray-500",
       "border-gray-100",
     ]);
     for (const token of tokens) {

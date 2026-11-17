@@ -1420,8 +1420,12 @@ describe("every page heading, side menu title, tooltip and metric card title wri
     ).toBeGreaterThanOrEqual(27);
     expect(
       handedIn(ADMIN, ["<SideMenuSection title>"]).length,
-      // Settings' six one-page sections are two since #9134.
-    ).toBeGreaterThanOrEqual(12);
+      /*
+       * Settings' six one-page sections are two since #9134. Since #9216
+       * Send Email has no menu, so no Communication section, and a
+       * project's Support entry is in its Advanced section.
+       */
+    ).toBeGreaterThanOrEqual(10);
     expect(states(keyed)).toEqual(allLookedUpAndSaid(keyed));
 
     // Settings' menu: its 14 entries (Push Notifications too, #9134). The Subscribe menu: its five.

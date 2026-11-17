@@ -166,7 +166,7 @@ Du har grupperat efter en etikett som är densamma för varje larm i en aviserin
 :::
 
 :::details Incidenten visar en referens i stället för ett värde
-En referens till ett fält som aviseringen inte har lämnas som den är skriven, med klammerparenteser och allt. Jämför fältets namn med det som Grafana skickade: för ett arbetsflöde öppnar du körningen i **Loggar → Körningar** och jämför med det som utlösaren tog emot.
+En referens till ett fält som aviseringen inte har lämnas som den är skriven, med klammerparenteser och allt. Jämför fältets namn med det som Grafana skickade: för ett arbetsflöde öppnar du körningen i **Körningar** och jämför med det som utlösaren tog emot.
 :::
 
 Guiden för [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#felsökning) täcker fler fall, och de gäller även Grafanas aviseringar.

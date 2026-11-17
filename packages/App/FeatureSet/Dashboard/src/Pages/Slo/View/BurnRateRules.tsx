@@ -541,7 +541,7 @@ const SloBurnRateRules: FunctionComponent<
 
               if (firedAtCandidates.length === 0) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("Never fired")}
                   </span>
                 );

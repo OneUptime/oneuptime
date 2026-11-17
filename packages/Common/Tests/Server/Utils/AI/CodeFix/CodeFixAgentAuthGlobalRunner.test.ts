@@ -51,9 +51,18 @@ interface Row {
 
 let registry: Map<string, Row>;
 
+/*
+ * A registry's lookup of the pair: its key is kept encrypted (#9012), so it
+ * reads the row the id names and holds it to the key presented
+ * (findOneByPresentedKey), which this stands in for.
+ */
 function standInFor(table: "AIAgent" | "Runner") {
-  return async (findBy: unknown): Promise<unknown> => {
-    const query: JSONObject = (findBy as { query: JSONObject }).query;
+  return async (lookup: unknown): Promise<unknown> => {
+    const { column, presentedKey, query } = lookup as {
+      column: string;
+      presentedKey: unknown;
+      query: JSONObject;
+    };
     const row: Row | undefined = registry.get(
       String(query["_id"]).toLowerCase(),
     );
@@ -62,7 +71,7 @@ function standInFor(table: "AIAgent" | "Runner") {
       return null;
     }
 
-    if ("key" in query && query["key"] !== row.key) {
+    if (column !== "key" || presentedKey !== row.key) {
       return null;
     }
 
@@ -88,10 +97,10 @@ beforeEach(() => {
   registry = new Map<string, Row>();
 
   jest
-    .spyOn(AIAgentService, "findOneBy")
+    .spyOn(AIAgentService, "findOneByPresentedKey")
     .mockImplementation(standInFor("AIAgent") as never);
   jest
-    .spyOn(RunnerService, "findOneBy")
+    .spyOn(RunnerService, "findOneByPresentedKey")
     .mockImplementation(standInFor("Runner") as never);
   jest
     .spyOn(CodeRepositoryRunnerChoice, "doesRunnerWorkInARepository")
@@ -242,12 +251,19 @@ describe("a global Runner a master admin turned code fixes off for", () => {
 
     await CodeFixAgentAuth.checkCredential(pair);
 
-    const lookup: { query: JSONObject; select: JSONObject } = (
-      RunnerService.findOneBy as unknown as jest.Mock
-    ).mock.calls[0]![0] as never;
+    const lookup: {
+      column: string;
+      presentedKey: unknown;
+      query: JSONObject;
+      select: JSONObject;
+    } = (RunnerService.findOneByPresentedKey as unknown as jest.Mock).mock
+      .calls[0]![0] as never;
 
     expect(lookup.select["canRunCodeFixes"]).toBe(true);
-    expect(lookup.query["key"]).toBe(pair["aiAgentKey"]);
+    // The Runner the pair's id names, held to the key it presents.
+    expect(lookup.query["_id"]).toBe(pair["aiAgentId"]);
+    expect(lookup.column).toBe("key");
+    expect(lookup.presentedKey).toBe(pair["aiAgentKey"]);
   });
 
   test("a project's Runner a repository works on is not read by it: the repository's pick is its switch", async () => {
@@ -327,7 +343,7 @@ describe("AI agents", () => {
       identity: null,
       isKeyRight: true,
     });
-    expect(RunnerService.findOneBy).not.toHaveBeenCalled();
+    expect(RunnerService.findOneByPresentedKey).not.toHaveBeenCalled();
   });
 
   test("an agent a project created before Runners is that project's own, and only that project's", async () => {

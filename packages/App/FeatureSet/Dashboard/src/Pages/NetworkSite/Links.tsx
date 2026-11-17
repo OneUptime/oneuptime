@@ -190,7 +190,7 @@ const NetworkSiteLinks: FunctionComponent<
             getElement: (item: NetworkSiteLink): ReactElement => {
               if (!item.monitor?.name) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("None")}
                   </span>
                 );

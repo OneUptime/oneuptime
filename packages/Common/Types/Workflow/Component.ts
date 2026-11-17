@@ -131,7 +131,6 @@ export interface NodeDataProp {
   error: string;
   id: string;
   nodeType: NodeType;
-  onClick?: (node: NodeDataProp) => void | undefined;
   isPreview?: boolean | undefined; // is this used to show in the components modal?
   metadata: ComponentMetadata;
   metadataId: string;

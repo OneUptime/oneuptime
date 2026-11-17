@@ -499,7 +499,7 @@ Drei offene Upstream-Issues prägen all das, und das Projekt hat außerdem [um M
 
 ## Bare Metal
 
-Betreibt Ihre Cloud Ironic, erhält sie einen Abschnitt **Bare Metal** mit jedem Knoten, den Ironic der Credential zeigt: wo er sich in Ironics Zustandsautomat befindet, seine Stromversorgung, ob jemand ihn in Wartung versetzt hat und warum, seine Ressourcenklasse und wann Ironic ihn zuletzt bewegt gesehen hat. Eine Cloud ohne Ironic hat keinen solchen Abschnitt, keine Warnung dazu und keine Zeile auf irgendeiner Seite.
+Betreibt Ihre Cloud Ironic, erhält ihr Abschnitt **Rechenleistung** eine Seite **Bare Metal** mit jedem Knoten, den Ironic der Credential zeigt: wo er sich in Ironics Zustandsautomat befindet, seine Stromversorgung, ob jemand ihn in Wartung versetzt hat und warum, seine Ressourcenklasse und wann Ironic ihn zuletzt bewegt gesehen hat. Eine Cloud ohne Ironic hat keine solche Seite, keine Warnung dazu und keine Zeile auf irgendeiner Seite.
 
 Ein Knoten ist kein Hypervisor, auch wenn Nova und Placement ihn beide unter seiner UUID als einen auflisten, er wird also nicht als Ort gezählt, an dem eine virtuelle Maschine laufen kann. Wie viele Knoten jeder Ressourcenklasse eine Instanz aufnehmen könnten, steht auf der Seite Bare Metal, für die Knoten, die Ironic dieser Credential zeigt, und auf der Seite [Kapazität](#kapazität), für jeden Knoten, den Placement hält.
 

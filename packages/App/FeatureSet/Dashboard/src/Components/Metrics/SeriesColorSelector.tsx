@@ -106,7 +106,7 @@ const SeriesColorSelector: FunctionComponent<ComponentProps> = (
       >
         {translator.translateText(props.label || "Series Color")}
       </label>
-      <p className="text-xs text-gray-400 mb-2">
+      <p className="text-xs text-gray-500 mb-2">
         {translator.translateText(
           props.description ||
             "Pick a color for this series, or leave on Auto to use the theme palette.",

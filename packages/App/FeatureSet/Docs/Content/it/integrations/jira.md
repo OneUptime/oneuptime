@@ -125,11 +125,11 @@ Funziona anche un **account di servizio** Atlassian. Un amministratore dell'orga
 :::steps
 1. Apri **Flussi di lavoro → Crea flusso di lavoro**. In **Oppure parti da un modello**, scegli **Jira** dall'elenco delle categorie, o scrivi `Jira` in **Cerca modelli…**, e fai clic sul modello che vuoi. Si apre e mostra cosa fa e le impostazioni che chiederà. Fai clic su **Usa questo modello**.
 2. **Nome** viene compilato dal modello. Cambialo se vuoi.
-3. **Configura** chiede i valori qui sopra. Vengono salvati come variabili proprie del flusso di lavoro, in **Variabili del flusso** nel suo menu. Il token API viene salvato come segreto: viene oscurato in **Log → Esecuzioni** e finisce solo nell'intestazione `Authorization` delle chiamate a Jira.
+3. **Configura** chiede i valori qui sopra. Vengono salvati come variabili proprie del flusso di lavoro, in **Variabili del flusso** nel suo menu. Il token API viene salvato come segreto: viene oscurato in **Esecuzioni** e finisce solo nell'intestazione `Authorization` delle chiamate a Jira.
 4. Fai clic su **Crea flusso di lavoro**. Ogni flusso di lavoro viene creato disattivato: attiva **Abilitato** in cima al suo **Costruttore**.
 :::
 
-Inizia con **Create a Jira issue when an incident is declared**, o con **Create a Jira issue when an alert is created** per gli avvisi: ogni altro modello OneUptime → Jira dello stesso tipo trova il ticket tramite l'etichetta che questo aggiunge. Attivalo, dichiara un incidente di prova o crea un avviso di prova, e apri **Log → Esecuzioni** del flusso di lavoro. L'esecuzione dovrebbe terminare come **Eseguito**, e il **Corpo della Risposta** del suo ultimo passaggio, `create-issue-1`, nomina il nuovo ticket.
+Inizia con **Create a Jira issue when an incident is declared**, o con **Create a Jira issue when an alert is created** per gli avvisi: ogni altro modello OneUptime → Jira dello stesso tipo trova il ticket tramite l'etichetta che questo aggiunge. Attivalo, dichiara un incidente di prova o crea un avviso di prova, e apri **Esecuzioni** del flusso di lavoro. L'esecuzione dovrebbe terminare come **Eseguito**, e il **Corpo della Risposta** del suo ultimo passaggio, `create-issue-1`, nomina il nuovo ticket.
 
 Ogni flusso di lavoro conserva la propria copia di questi valori. Quando sostituisci il token, aggiorna `jiraBasicAuthToken` in **Variabili del flusso** in ogni flusso di lavoro Jira che lo ha chiesto. Se Jira cambia indirizzo, aggiorna `jiraSiteUrl` e `jiraBaseUrl` allo stesso modo.
 
@@ -180,7 +180,7 @@ Prima di farci affidamento:
 
 ### Verificare che funzioni
 
-I **Passaggi** di ogni esecuzione dicono cosa ha fatto il modello, quindi apri l'esecuzione in **Log → Esecuzioni** e guarda come è terminata:
+I **Passaggi** di ogni esecuzione dicono cosa ha fatto il modello, quindi apri l'esecuzione in **Esecuzioni** e guarda come è terminata:
 
 - **Eseguito**: ha fatto il suo lavoro, e il suo ultimo passaggio nomina il ticket, l'incidente o l'avviso.
 - **Eseguito**, con il suo passaggio **Verifica con JavaScript** su **No**: ha saltato l'evento di proposito, e il passaggio dice perché: il ticket non è collegato a un record di questo tipo, la nota viene da Jira, il record è privato, o al nuovo stato non corrisponde alcuno stato Jira.
@@ -272,7 +272,7 @@ Le note private e i commenti di modifica sono segnati come interni dalla voce `p
 
 - **Solo Jira Cloud.** I modelli chiamano la REST API v3 di Jira Cloud con l'autenticazione Basic. Data Center non ha la v3 e accetta un token di accesso personale come `Bearer`, quindi ogni blocco API ha bisogno delle modifiche di [Jira Data Center](#jira-data-center): percorsi `/rest/api/2/...`, stringhe semplici invece di corpi in Atlassian Document Format, e l'intestazione. I blocchi `find-issue-1` cambiano più di tutti: Data Center non ha `/search/jql`, quindi devono fare un `POST` a `/rest/api/2/search`.
 - **Gli incidenti dichiarati da Jira sono discreti.** Vengono creati nascosti dalle tue pagine di stato, senza avvisare gli iscritti alle pagine di stato, perché il testo di un ticket non è stato scritto per i clienti. Per mostrarne uno, attiva **Visibile sulla pagina di stato** nella pagina **Impostazioni** dell'incidente (vedi [Tenere un incidente fuori dalla pagina di stato](/docs/incidents/states-and-severities#tenere-un-incidente-fuori-dalla-pagina-di-stato)), oppure attiva **Mostra sulle pagine di stato**, in **Altri campi**, nel blocco `incident-from-another-tool-1` del modello.
-- **Gli incidenti e gli avvisi privati restano in OneUptime.** I modelli OneUptime → Jira li saltano, e ogni salto lo dice in **Log → Esecuzioni**. Per inviarli comunque, imposta `SYNC_PRIVATE_INCIDENTS` o `SYNC_PRIVATE_ALERTS` su `true`. Rendere privato un record in seguito ferma la sincronizzazione da quel momento, ma non ritira ciò che Jira ha già. I modelli Jira → OneUptime non lo controllano, quindi commenti, modifiche e cambi di stato su un ticket collegato raggiungono comunque un record privato.
+- **Gli incidenti e gli avvisi privati restano in OneUptime.** I modelli OneUptime → Jira li saltano, e ogni salto lo dice in **Esecuzioni**. Per inviarli comunque, imposta `SYNC_PRIVATE_INCIDENTS` o `SYNC_PRIVATE_ALERTS` su `true`. Rendere privato un record in seguito ferma la sincronizzazione da quel momento, ma non ritira ciò che Jira ha già. I modelli Jira → OneUptime non lo controllano, quindi commenti, modifiche e cambi di stato su un ticket collegato raggiungono comunque un record privato.
 - **Nulla torna indietro.** Riaprire un ticket Jira non cambia nulla in OneUptime, e uno stato della categoria To Do non corrisponde ad alcuno stato. Vedi [L'ordine è un vincolo reale](/docs/incidents/states-and-severities#lordine-è-un-vincolo-reale-non-una-preferenza-di-visualizzazione). Nemmeno i modelli di transizione spostano mai un ticket a una categoria di stato precedente.
 - **Ogni avviso riceve un ticket.** A parte gli avvisi privati, il modello per gli avvisi che crea ticket ne apre uno per ogni avviso, compreso ognuno di quelli generati da un monitor. [Cosa cambia per gli avvisi](#cosa-cambia-per-gli-avvisi) mostra come aggiungere una condizione.
 - **I primi secondi possono mancare il ticket.** La ricerca di Jira si aggiorna un attimo dopo che un ticket cambia, quindi una nota, un cambio di stato o una modifica nei primi secondi dopo la creazione di un record può mancare il nuovo ticket e terminare con il salto `No Jira issue is labelled …`. Quell'esecuzione non viene ritentata. Lo stesso vale subito dopo la creazione di un record da Jira, finché non vengono aggiunte le sue etichette.
@@ -336,7 +336,7 @@ I token scadono dopo un anno per impostazione predefinita e non si rinnovano. Pe
    }
    ```
 
-4. Attiva **Abilitato**, dichiara un incidente di prova e apri **Log → Esecuzioni**. Il passaggio `create-issue` mostra un `201` e un corpo con `id`, `key` e `self` del nuovo ticket.
+4. Attiva **Abilitato**, dichiara un incidente di prova e apri **Esecuzioni**. Il passaggio `create-issue` mostra un `201` e un corpo con `id`, `key` e `self` del nuovo ticket.
 :::
 
 La descrizione sembra pesante perché l'API v3 di Jira Cloud accetta il testo formattato in **Atlassian Document Format**, un albero di documento invece di una stringa. Il corpo qui sopra contiene il più piccolo documento valido: un paragrafo con un nodo di testo. Lo stesso vale per `environment` e per i campi personalizzati di testo su più righe. Un blocco successivo legge la nuova chiave come `{{local.components.create-issue.returnValues.response-body.key}}`.
@@ -445,7 +445,7 @@ Attivalo, poi fai in modo che Jira lo chiami, da una regola di automazione o da 
 
    Con un'etichetta invece di un campo personalizzato, invia `"labels": "{{issue.labels}}"` ed estrai l'ID con un blocco **Esegui JavaScript personalizzato**.
 
-4. Attiva la regola e sposta un ticket di prova a Done. Controlla il log di audit della regola in Jira, e **Log → Esecuzioni** in OneUptime.
+4. Attiva la regola e sposta un ticket di prova a Done. Controlla il log di audit della regola in Jira, e **Esecuzioni** in OneUptime.
 
 Per essere sicuro che una richiesta venga dalla tua regola, aggiungi una seconda intestazione, `X-OneUptime-Secret`, con un valore che inventi tu, e usa su di essa l'opzione **Hide** dell'azione. Nel flusso di lavoro, metti un blocco **Se / Altrimenti** prima dell'aggiornamento: **Valore da verificare** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Confronto** **è uguale a** e **Confronta con** lo stesso valore, conservato in una variabile globale segreta.
 
@@ -513,7 +513,7 @@ Altre differenze da prevedere:
 
 ## Risoluzione dei problemi
 
-Apri prima il passaggio che non riesce in **Log → Esecuzioni**. Jira risponde con un corpo JSON che nomina ciò che ha rifiutato, e il blocco API lo conserva in `response-body`.
+Apri prima il passaggio che non riesce in **Esecuzioni**. Jira risponde con un corpo JSON che nomina ciò che ha rifiutato, e il blocco API lo conserva in `response-body`.
 
 :::details 401 Unauthorized
 Codifica di nuovo `email:api_token` con `printf`, non `echo`, e aggiorna il token: un a capo finale è la causa abituale. Poi verifica che l'account del token possa creare ticket nel progetto. Su Data Center, verifica di inviare `Bearer`, non `Basic`. Sull'URL di un sito Cloud, le credenziali sbagliate somigliano più spesso al caso successivo.
@@ -540,7 +540,7 @@ L'ID di transizione non è aperto dallo stato attuale del ticket. Recupera `/tra
 :::
 
 :::details Jira mostra che la regola o il webhook sono partiti, ma a OneUptime non arriva nulla
-Controlla prima la porta: Jira chiama solo le sue porte consentite. Poi invia tu stesso una richiesta all'URL del flusso di lavoro con `curl`, e cercala in **Log → Esecuzioni**. Se la tua arriva e quella di Jira no, il problema è dalla parte di Jira. Se l'esecuzione c'è ma è stata rifiutata, verifica che il flusso di lavoro sia attivo.
+Controlla prima la porta: Jira chiama solo le sue porte consentite. Poi invia tu stesso una richiesta all'URL del flusso di lavoro con `curl`, e cercala in **Esecuzioni**. Se la tua arriva e quella di Jira no, il problema è dalla parte di Jira. Se l'esecuzione c'è ma è stata rifiutata, verifica che il flusso di lavoro sia attivo.
 :::
 
 :::details Il flusso di lavoro viene eseguito, ma l'incidente non cambia

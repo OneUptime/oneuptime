@@ -1456,7 +1456,7 @@ function getSessionReplayCells(
             </span>
             {trail.hiddenCount > 0 && (
               <span
-                className="ml-1 flex-none text-gray-400"
+                className="ml-1 flex-none text-gray-500"
                 data-testid="session-row-routes-more"
               >
                 +{trail.hiddenCount}
@@ -1496,7 +1496,7 @@ function getSessionReplayCells(
               </span>
             )}
             <span
-              className="font-mono text-[11px] text-gray-500"
+              className="font-mono text-xs text-gray-500"
               title={row.sessionId}
             >
               {getValueOrQuietDash(sessionIdText, { isSmall: true })}
@@ -1575,8 +1575,16 @@ function getSessionReplayCells(
       )}
     </div>,
     <div key="3">
+      {/*
+       * The badges sit side by side while the column has room, and under
+       * one another where it has none - three to the column at a laptop's
+       * 1280px. Under one another they are 4px apart, as a table row's
+       * labels are (Labels' TABLE_LABELS_CLASS_NAME): three Pills 6px apart
+       * made the row 105px, past the three short lines and a badge a row
+       * of this list is held to.
+       */}
       {badges.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">{badges}</div>
+        <div className="flex flex-wrap gap-x-1.5 gap-y-1">{badges}</div>
       ) : row.isFinalized ? (
         <span className="text-sm text-gray-500">
           {translateLine("Clean", translator)}
@@ -1587,7 +1595,7 @@ function getSessionReplayCells(
          * counted every chunk. Before that the header carries chunk 0's
          * signals only.
          */
-        <span className="text-sm text-gray-400">
+        <span className="text-sm text-gray-500">
           {translateLine("Not counted yet", translator)}
         </span>
       )}

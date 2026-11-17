@@ -65,10 +65,7 @@ describe.each([IconProp.Edit, IconProp.Pencil])(
         expect(path).toHaveAttribute("stroke-linejoin", "round");
         expect(screen.queryByRole("img")).not.toBeInTheDocument();
 
-        if (
-          buttonStyle === ButtonStyleType.ICON ||
-          buttonStyle === ButtonStyleType.ICON_LIGHT
-        ) {
+        if (buttonStyle === ButtonStyleType.ICON) {
           expect(svg).toHaveClass("m-1");
           expect(button).toHaveAttribute("aria-label", "Edit Project");
         } else {

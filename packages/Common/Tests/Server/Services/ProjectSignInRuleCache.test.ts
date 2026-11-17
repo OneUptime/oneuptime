@@ -475,7 +475,7 @@ describe("a project's sign-in rule, as a server keeps it", () => {
     await expect(pinnedProviderOf(ACME)).resolves.toBe(ACME_SAML);
     expect(rowReads.get(ACME)).toBe(1);
 
-    // Acme's owner turns Require SSO for Login off; the announcement names Acme as the database does.
+    // Acme's owner turns Require SSO to Sign In off; the announcement names Acme as the database does.
     projects.get(ACME)!["requireSsoForLogin"] = false;
     ProjectService.forgetSignInRules(new ObjectID(ACME));
 
@@ -503,7 +503,7 @@ describe("a project's sign-in rule, as a server keeps it", () => {
       return rowReads.get(BETA) === 1;
     });
 
-    // Meanwhile Beta's owner turns Require SSO for Login on, and every server forgets Beta's rule.
+    // Meanwhile Beta's owner turns Require SSO to Sign In on, and every server forgets Beta's rule.
     projects.get(BETA)!["requireSsoForLogin"] = true;
     ProjectService.forgetSignInRules(new ObjectID(BETA));
 
@@ -564,7 +564,7 @@ describe("an update of another project leaves this project's pinned provider in 
       data: { requireSsoWithSsoProviderId: null },
     },
     {
-      name: "Beta's owner turns Require SSO for Login on",
+      name: "Beta's owner turns Require SSO to Sign In on",
       projectId: BETA,
       data: { requireSsoForLogin: true },
     },

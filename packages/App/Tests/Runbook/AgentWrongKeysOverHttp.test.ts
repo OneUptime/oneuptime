@@ -146,7 +146,21 @@ function unknownId(index: number): string {
   return `00000000-0000-4000-a000-${index.toString(16).padStart(12, "0")}`;
 }
 
-// A table as Postgres answers the services' lookups: by id, and key when named.
+// Whether a lookup reads the row's key: the one that checks a key presented.
+function readsTheKey(findBy: unknown): boolean {
+  const select: JSONObject | undefined = (findBy as { select?: JSONObject })
+    .select;
+
+  return Boolean(select && select["key"]);
+}
+
+/*
+ * A table as Postgres answers the services' lookups: by id, with the row's
+ * key when the lookup selects it. A Runner's and an AI agent's key is kept
+ * encrypted (#9012), so no lookup names it: the services read the row by
+ * its id, its key decrypted, and compare that with the key presented
+ * (DatabaseService.findOneByPresentedKey).
+ */
 function tableLookup(
   table: Record<string, Row>,
   ObjectIDClass: AnyModule,
@@ -176,13 +190,10 @@ function tableLookup(
 
     const row: Row = table[id]!;
 
-    if ("key" in query && query["key"] !== row.key) {
-      return null;
-    }
-
     return {
       _id: id,
       id: new ObjectIDClass(id),
+      ...(readsTheKey(findBy) ? { key: row.key } : {}),
       projectId: row.projectId ? new ObjectIDClass(row.projectId) : undefined,
       isGlobalRunner: row.isGlobalRunner === true,
       canRunRunbooks: true,
@@ -196,8 +207,9 @@ let origin: string;
 let redis: FakeCounterRedis;
 
 /*
- * Runner ids whose every lookup fails, and ids whose lookup by id alone (the
- * one that asks whether a Runner exists) fails, as a busy database fails it.
+ * Runner ids whose every lookup fails, and ids whose lookup that reads no key
+ * (the one that asks whether a Runner exists) fails, as a busy database
+ * fails it.
  */
 const FAILING_RUNNER_LOOKUPS: Set<string> = new Set<string>();
 const FAILING_RUNNER_EXISTENCE_LOOKUPS: Set<string> = new Set<string>();
@@ -236,7 +248,7 @@ beforeAll(async () => {
 
       if (
         FAILING_RUNNER_LOOKUPS.has(id) ||
-        (!("key" in query) && FAILING_RUNNER_EXISTENCE_LOOKUPS.has(id))
+        (!readsTheKey(findBy) && FAILING_RUNNER_EXISTENCE_LOOKUPS.has(id))
       ) {
         throw new Error("The database did not answer in time");
       }

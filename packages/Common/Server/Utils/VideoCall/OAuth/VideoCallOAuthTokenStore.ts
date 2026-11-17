@@ -507,7 +507,8 @@ export default class VideoCallOAuthTokenStore {
     return Number.isFinite(time) ? time : 0;
   }
 
-  private static parseSecrets(
+  // A connection's stored sign-in, or null when it holds none or cannot be read.
+  public static parseSecrets(
     value: string | undefined,
   ): VideoCallOAuthSecrets | null {
     let stored: JSONObject = {};

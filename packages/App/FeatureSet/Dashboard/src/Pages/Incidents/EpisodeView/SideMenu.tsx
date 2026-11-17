@@ -42,6 +42,20 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Timeline}
         />
+        {/*
+         * The incidents grouped into this episode. It was a section of its own,
+         * "Incidents" (#9216); an alert episode has its alerts in the same place.
+         */}
+        <SideMenuItem
+          link={{
+            title: "Member Incidents",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Alert}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Investigation">
@@ -111,19 +125,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Team}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="Incidents">
-        <SideMenuItem
-          link={{
-            title: "Member Incidents",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Alert}
         />
       </SideMenuSection>
 

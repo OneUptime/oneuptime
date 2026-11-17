@@ -573,7 +573,7 @@ const ProfileFunctionPanel: FunctionComponent<ComponentProps> = (
                      * the way the page reads.
                      */}
                     {chain.frames.length > 1 ? (
-                      <p className="truncate font-mono text-xs text-gray-400">
+                      <p className="truncate font-mono text-xs text-gray-500">
                         {chain.frames
                           .slice(1)
                           .map(

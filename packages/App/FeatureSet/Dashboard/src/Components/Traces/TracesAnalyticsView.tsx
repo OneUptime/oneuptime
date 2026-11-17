@@ -276,7 +276,7 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
 
   return (
     <div className="rounded-lg border border-gray-200/80 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur-sm">
-      <p className="mb-2 border-b border-gray-100 pb-2 font-mono text-[11px] font-medium text-gray-500">
+      <p className="mb-2 border-b border-gray-100 pb-2 font-mono text-xs font-medium text-gray-500">
         {formatTooltipLabel(props.label)}
       </p>
       <div className="space-y-1">
@@ -964,7 +964,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                   backgroundColor: colorForSeries(key, index),
                 }}
               />
-              <span className="max-w-[280px] truncate text-[11px] text-gray-500">
+              <span className="max-w-[280px] truncate text-xs text-gray-500">
                 {key}
               </span>
             </div>
@@ -1241,7 +1241,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                 key={index}
                 className="group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-gray-50/80"
               >
-                <span className="w-5 text-right font-mono text-[11px] font-medium text-gray-500">
+                <span className="w-5 text-right font-mono text-xs font-medium text-gray-500">
                   {index + 1}
                 </span>
                 <div
@@ -1275,7 +1275,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                     )}
                   </span>
                   {isDuration && (
-                    <span className="w-20 text-right font-mono text-[11px] tabular-nums text-gray-500">
+                    <span className="w-20 text-right font-mono text-xs tabular-nums text-gray-500">
                       {translator.translateTemplate("{{count}} req", {
                         count: translator.formatNumber(item.count),
                       })}
@@ -1308,7 +1308,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
     };
 
     const headerCell: string =
-      "px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400";
+      "px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500";
 
     return (
       <div className="p-5">
@@ -1365,7 +1365,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                     key={index}
                     className="border-b border-gray-100/80 transition-colors last:border-b-0 hover:bg-gray-50/50"
                   >
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-gray-500">
+                    <td className="px-4 py-2.5 font-mono text-xs text-gray-500">
                       {index + 1}
                     </td>
                     {groupKeys.map((key: string) => {

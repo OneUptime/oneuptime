@@ -81,7 +81,7 @@ const StatusChipGroup: FunctionComponent<ComponentProps> = (
               isActive
                 ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
                 : isEmpty
-                  ? "text-gray-400 hover:text-gray-600"
+                  ? "text-gray-500 hover:text-gray-600"
                   : "text-gray-500 hover:text-gray-800"
             }`}
             onClick={() => {
@@ -104,7 +104,7 @@ const StatusChipGroup: FunctionComponent<ComponentProps> = (
             <span>{translateString(option.label) || option.label}</span>
             <span
               className={`tabular-nums ${
-                isActive ? "text-gray-500" : "text-gray-400"
+                isActive ? "text-gray-500" : "text-gray-500"
               }`}
             >
               {option.count}

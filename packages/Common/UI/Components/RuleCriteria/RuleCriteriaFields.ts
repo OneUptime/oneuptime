@@ -129,6 +129,7 @@ export const RuleCriteriaCopy: {
   readonly removeCondition: string;
   readonly fieldUnavailable: string;
   readonly selectOneOrMore: string;
+  readonly valueNotFound: string;
   readonly selectAValue: string;
   readonly enterText: string;
   readonly enterANumber: string;
@@ -172,6 +173,13 @@ export const RuleCriteriaCopy: {
   fieldUnavailable:
     "This field is no longer available. Choose another one or remove this condition.",
   selectOneOrMore: "Select one or more",
+  /*
+   * A value a condition still holds that names nothing now - a severity, a
+   * label, a monitor or a policy since deleted, a person who left (#7807):
+   * how every rule's form and card say so, in one key, so a workspace
+   * rule's Conditions step, its card and a rule's criteria builder agree.
+   */
+  valueNotFound: "No longer in this project",
   selectAValue: "Select a value",
   enterText: "Enter text",
   enterANumber: "Enter a number",

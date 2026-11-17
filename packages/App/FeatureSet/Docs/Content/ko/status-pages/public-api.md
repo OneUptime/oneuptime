@@ -409,7 +409,7 @@ for incident in incidents:
 
 - **RSS.** 모든 상태 페이지는 인시던트, 공지, 유지 관리 이벤트의 피드인 `/rss`를 제공하며, 각 항목에는 페이지와 같은 날짜가 붙습니다. [임베드 배지와 RSS 피드](/docs/status-pages/index#임베드-배지와-rss-피드)를 참고하세요.
 - **llms.txt.** 모든 상태 페이지는 `/rss`와 함께 `/llms.txt`도 제공하며, 이 파일은 AI 에이전트에게 RSS 피드와 개요 JSON의 위치를 알려 줍니다.
-- **MCP.** AI 에이전트는 OneUptime의 MCP 서버(`https://oneuptime.com/mcp`)를 통해 API 키 없이 페이지를 읽을 수 있으며, 페이지 ID나 도메인을 `statusPageIdOrDomain`으로 넘깁니다. 기본으로 켜져 있으며, 페이지 사이드 메뉴의 **AI → MCP**에 있는 **MCP 서버 활성화**로 끌 수 있습니다. [MCP 서버](/docs/ai/mcp-server)를 참고하세요.
+- **MCP.** AI 에이전트는 OneUptime의 MCP 서버(`https://oneuptime.com/mcp`)를 통해 API 키 없이 페이지를 읽을 수 있으며, 페이지 ID나 도메인을 `statusPageIdOrDomain`으로 넘깁니다. 기본으로 켜져 있으며, 페이지 사이드 메뉴의 **고급 → MCP**에 있는 **MCP 서버 활성화**로 끌 수 있습니다. [MCP 서버](/docs/ai/mcp-server)를 참고하세요.
 - **REST API.** 상태 페이지, 리소스, 구독자, 공지를 만들거나 바꾸려면 API 키와 함께 [OneUptime API](/docs/api-reference/api-reference)를 사용하세요.
 
 ## 다음 단계

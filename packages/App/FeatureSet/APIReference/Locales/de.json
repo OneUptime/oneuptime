@@ -300,6 +300,26 @@
       "masterAdminOnlyTitle": "Nur Master-Admin-API",
       "masterAdminOnlyBody": "Auf diese API kann nur über ein Master-API-Token zugegriffen werden. Du kannst eines im Admin-Dashboard erstellen. Bitte füge das Token zum <code>ApiKey</code>-Header hinzu, um die Anfrage zu stellen."
     },
+    "modelEndpoints": {
+      "scheduleLayersReadHeading": "Ebenen lesen",
+      "scheduleLayersReadIntro": "Dieser Endpunkt gibt die Ebenen des Plans und die Personen darin zurück, wie sie gespeichert sind: jede Ebene, die der Plan behält, die mit der höchsten Priorität zuerst, jede mit ihren Personen in der Reihenfolge ihrer Schichten, und die Version, auf der sie sind, als basedOnVersion. Es ist eine Speicherung, die nichts ändert: Ändere sie und sende sie an Ebenen speichern.",
+      "scheduleLayersReadRequestTitle": "Anfrage zum Lesen der Ebenen",
+      "scheduleIdDescription": "ID des Bereitschaftsplans",
+      "scheduleLayersSaveHeading": "Ebenen speichern",
+      "scheduleLayersSaveIntro": "Dieser Endpunkt speichert auf einmal, wer in den Ebenen des Plans an der Reihe ist, und die Priorität der Ebenen, in einer Transaktion: Alles wird gespeichert oder nichts. Wer Bereitschaft hat, wird dann einmal ermittelt, und jede Person, für die sich etwas ändert, erfährt es einmal. Es gelten dieselben Berechtigungen und Prüfungen wie für die Endpunkte der Ebenen und ihrer Personen. Die eigenen Einstellungen einer Ebene, etwa ihr Name und ihre Rotation, gehören nicht dazu.",
+      "scheduleLayersSaveRequestTitle": "Anfrage zum Speichern der Ebenen",
+      "basedOnVersionDescription": "Die Version der Ebenen, an der deine Änderungen vorgenommen wurden, wie Ebenen lesen sie zurückgibt.",
+      "layersDescription": "Jede Ebene, die der Plan behält, die mit der höchsten Priorität zuerst, jede als { layerId, users }. users sind die Personen, die in ihr an der Reihe sind, in der Reihenfolge ihrer Schichten: wer schon in der Ebene ist, als { layerUserId, userId }, wer hinzukommt, als { userId }. Wer in seiner Ebene fehlt, wird aus ihr genommen.",
+      "deletedLayerIdsDescription": "Die Ebenen, die gelöscht werden, mit den Personen darin. Ein Plan behält mindestens eine Ebene.",
+      "refusalsHeading": "Ablehnungen",
+      "scheduleLayersConflict": "409 Conflict: Die Ebenen wurden geändert, nachdem die gesendete Version gelesen wurde, daher wird nichts gespeichert. Lies die Ebenen erneut und nimm deine Änderung an dem vor, was jetzt da ist.",
+      "scheduleLayersBadRequest": "400 Bad Request: Die Speicherung nennt nicht jede Ebene des Plans genau einmal, in layers oder deletedLayerIds, nennt eine Ebene oder die Zeile einer Person, die nicht zum Plan gehört, oder löscht jede Ebene.",
+      "userOverrideEndNowHeading": "Jetzt beenden",
+      "userOverrideEndNowIntro": "Dieser Endpunkt beendet eine laufende Überschreibung nach der Uhr des Servers: Ihr Ende wird jetzt, und die Alarme gehören ab dann wieder der abwesenden Person. Er braucht dieselbe Berechtigung wie eine Aktualisierung und gibt das neue endsAt der Überschreibung zurück.",
+      "userOverrideEndNowRequestTitle": "Anfrage zum Jetzt-Beenden",
+      "userOverrideIdDescription": "ID der Benutzerüberschreibung",
+      "userOverrideEndNowRefused": "400 Bad Request: Die Überschreibung hat noch nicht begonnen (lösche sie stattdessen), hat schon geendet oder endet ohnehin innerhalb der Minute."
+    },
     "dataType": {
       "enumBadge": "Enum",
       "dataTypeBadge": "Datentyp",

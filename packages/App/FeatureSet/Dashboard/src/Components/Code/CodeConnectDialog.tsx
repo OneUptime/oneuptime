@@ -658,7 +658,7 @@ const CodeConnectDialog: FunctionComponent<ComponentProps> = (
             className="min-w-0 flex-1 border-0 bg-transparent py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
           />
           {isListing ? (
-            <span role="status" className="text-xs text-gray-400">
+            <span role="status" className="text-xs text-gray-500">
               {translator.translateText("Loading…")}
             </span>
           ) : (

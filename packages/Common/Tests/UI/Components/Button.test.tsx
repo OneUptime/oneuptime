@@ -63,11 +63,6 @@ describe("Button", () => {
       "border-transparent bg-indigo-600 text-white hover:bg-indigo-700 focus-visible:ring-indigo-500",
     ],
     [
-      "SECONDARY",
-      ButtonStyleType.SECONDARY,
-      "border-transparent bg-indigo-100 text-indigo-700 hover:bg-indigo-200 focus-visible:ring-indigo-500",
-    ],
-    [
       "DANGER",
       ButtonStyleType.DANGER,
       "border-transparent bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500",
@@ -78,24 +73,9 @@ describe("Button", () => {
       "border-red-700 bg-white text-red-700 hover:bg-red-50 focus-visible:ring-red-500",
     ],
     [
-      "SUCCESS",
-      ButtonStyleType.SUCCESS,
-      "border-transparent bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-500",
-    ],
-    [
       "SUCCESS_OUTLINE",
       ButtonStyleType.SUCCESS_OUTLINE,
       "border-green-700 bg-white text-green-700 hover:bg-green-50 focus-visible:ring-green-500",
-    ],
-    [
-      "WARNING",
-      ButtonStyleType.WARNING,
-      "border-transparent bg-yellow-600 text-white hover:bg-yellow-700 focus-visible:ring-yellow-500",
-    ],
-    [
-      "WARNING_OUTLINE",
-      ButtonStyleType.WARNING_OUTLINE,
-      "border-yellow-700 bg-white text-yellow-700 hover:bg-yellow-50 focus-visible:ring-yellow-500",
     ],
   ];
 
@@ -231,17 +211,6 @@ describe("Button disabled styling", () => {
     expect(button).not.toHaveClass("hover:bg-indigo-700");
   });
 
-  test("disabled SECONDARY keeps its own light fill and fades, never darker than enabled", () => {
-    const button: HTMLElement = renderButton({
-      buttonStyle: ButtonStyleType.SECONDARY,
-      disabled: true,
-    });
-
-    expect(button).toHaveClass("bg-indigo-100", "opacity-50");
-    expect(button).not.toHaveClass("bg-indigo-300");
-    expect(button).not.toHaveClass("hover:bg-indigo-200");
-  });
-
   test("enabled PRIMARY keeps its fill and its hover, and does not fade", () => {
     const button: HTMLElement = renderButton({
       buttonStyle: ButtonStyleType.PRIMARY,
@@ -252,31 +221,12 @@ describe("Button disabled styling", () => {
     expect(button).not.toHaveClass("opacity-50");
   });
 
-  test("enabled SECONDARY keeps its fill and its hover, and does not fade", () => {
-    const button: HTMLElement = renderButton({
-      buttonStyle: ButtonStyleType.SECONDARY,
-      disabled: false,
-    });
-
-    expect(button).toHaveClass("bg-indigo-100", "hover:bg-indigo-200");
-    expect(button).not.toHaveClass("opacity-50");
-  });
-
   test("an omitted disabled prop styles PRIMARY as enabled", () => {
     const button: HTMLElement = renderButton({
       buttonStyle: ButtonStyleType.PRIMARY,
     });
 
     expect(button).toHaveClass("bg-indigo-600");
-    expect(button).not.toHaveClass("opacity-50");
-  });
-
-  test("an omitted disabled prop styles SECONDARY as enabled", () => {
-    const button: HTMLElement = renderButton({
-      buttonStyle: ButtonStyleType.SECONDARY,
-    });
-
-    expect(button).toHaveClass("bg-indigo-100");
     expect(button).not.toHaveClass("opacity-50");
   });
 
@@ -315,7 +265,6 @@ describe("Button disabled styling", () => {
 
   const FILLED_STYLES: Array<[string, ButtonStyleType]> = [
     ["PRIMARY", ButtonStyleType.PRIMARY],
-    ["SECONDARY", ButtonStyleType.SECONDARY],
     // A Delete still waiting to know what it would change.
     ["DANGER", ButtonStyleType.DANGER],
   ];
@@ -355,15 +304,10 @@ describe("Button hover styling", () => {
    */
   const HOVER_GATED_STYLES: Array<[string, ButtonStyleType, string]> = [
     ["PRIMARY", ButtonStyleType.PRIMARY, "hover:bg-indigo-700"],
-    ["SECONDARY", ButtonStyleType.SECONDARY, "hover:bg-indigo-200"],
     ["DANGER", ButtonStyleType.DANGER, "hover:bg-red-700"],
     ["DANGER_OUTLINE", ButtonStyleType.DANGER_OUTLINE, "hover:bg-red-50"],
-    ["SUCCESS", ButtonStyleType.SUCCESS, "hover:bg-green-700"],
     ["SUCCESS_OUTLINE", ButtonStyleType.SUCCESS_OUTLINE, "hover:bg-green-50"],
-    ["WARNING", ButtonStyleType.WARNING, "hover:bg-yellow-700"],
-    ["WARNING_OUTLINE", ButtonStyleType.WARNING_OUTLINE, "hover:bg-yellow-50"],
     ["ICON", ButtonStyleType.ICON, "hover:text-gray-900"],
-    ["ICON_LIGHT", ButtonStyleType.ICON_LIGHT, "hover:text-gray-500"],
   ];
 
   test.each(HOVER_GATED_STYLES)(
@@ -488,15 +432,10 @@ describe("Button focus rings", () => {
   const RINGED_STYLES: Array<[string, ButtonStyleType]> = [
     ["NORMAL", ButtonStyleType.NORMAL],
     ["PRIMARY", ButtonStyleType.PRIMARY],
-    ["SECONDARY", ButtonStyleType.SECONDARY],
     ["DANGER", ButtonStyleType.DANGER],
     ["DANGER_OUTLINE", ButtonStyleType.DANGER_OUTLINE],
-    ["SUCCESS", ButtonStyleType.SUCCESS],
     ["SUCCESS_OUTLINE", ButtonStyleType.SUCCESS_OUTLINE],
-    ["WARNING", ButtonStyleType.WARNING],
-    ["WARNING_OUTLINE", ButtonStyleType.WARNING_OUTLINE],
     ["ICON", ButtonStyleType.ICON],
-    ["ICON_LIGHT", ButtonStyleType.ICON_LIGHT],
     ["LINK", ButtonStyleType.LINK],
     ["SECONDARY_LINK", ButtonStyleType.SECONDARY_LINK],
   ];

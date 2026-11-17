@@ -300,6 +300,26 @@
       "masterAdminOnlyTitle": "Solo API de administrador maestro",
       "masterAdminOnlyBody": "A esta API solo se puede acceder mediante un token de API maestro. Puedes crear uno en el panel de administración. Añade el token a la cabecera <code>ApiKey</code> para realizar la solicitud."
     },
+    "modelEndpoints": {
+      "scheduleLayersReadHeading": "Leer capas",
+      "scheduleLayersReadIntro": "Este endpoint devuelve las capas de la programación y las personas que contienen, tal como están guardadas: cada capa que la programación conserva, la de mayor prioridad primero, cada una con sus personas en el orden de sus turnos, y la versión en la que están, como basedOnVersion. Es un guardado que no cambia nada: cámbialo y envíalo a Guardar capas.",
+      "scheduleLayersReadRequestTitle": "Solicitud para leer capas",
+      "scheduleIdDescription": "ID de la programación de guardia",
+      "scheduleLayersSaveHeading": "Guardar capas",
+      "scheduleLayersSaveIntro": "Este endpoint guarda de una vez quién hace turnos en las capas de la programación, y la prioridad de las capas, en una sola transacción: se guarda todo o nada. Después, quién está de guardia se calcula una sola vez, y cada persona a la que le cambia algo recibe el aviso una sola vez. Está sujeto a los mismos permisos y comprobaciones que los endpoints de capas y de sus personas. Los ajustes propios de una capa, como su nombre y su rotación, no forman parte de él.",
+      "scheduleLayersSaveRequestTitle": "Solicitud para guardar capas",
+      "basedOnVersionDescription": "La versión de las capas sobre la que hiciste tus cambios, tal como la devuelve Leer capas.",
+      "layersDescription": "Cada capa que la programación conserva, la de mayor prioridad primero, cada una como { layerId, users }. users son las personas que hacen turnos en ella, en el orden de sus turnos: quien ya está en la capa, como { layerUserId, userId }; quien se añade, como { userId }. Quien falta en su capa se saca de ella.",
+      "deletedLayerIdsDescription": "Las capas que se eliminan, con las personas que contienen. Una programación conserva al menos una capa.",
+      "refusalsHeading": "Rechazos",
+      "scheduleLayersConflict": "409 Conflict: las capas cambiaron después de leerse la versión que enviaste, así que no se guarda nada. Vuelve a leer las capas y haz tu cambio sobre lo que hay ahora.",
+      "scheduleLayersBadRequest": "400 Bad Request: el guardado no nombra cada capa de la programación una vez, en layers o deletedLayerIds, nombra una capa o la fila de una persona que no es de la programación, o elimina todas las capas.",
+      "userOverrideEndNowHeading": "Terminar ahora",
+      "userOverrideEndNowIntro": "Este endpoint termina una sustitución en curso, según el reloj del servidor: su fin pasa a ser ahora, y desde entonces los avisos vuelven a ser de la persona ausente. Requiere el mismo permiso que una actualización y devuelve el nuevo endsAt de la sustitución.",
+      "userOverrideEndNowRequestTitle": "Solicitud para terminar ahora",
+      "userOverrideIdDescription": "ID de la sustitución de usuario",
+      "userOverrideEndNowRefused": "400 Bad Request: la sustitución aún no ha empezado (elimínala en su lugar), ya terminó o termina de todos modos dentro del minuto."
+    },
     "dataType": {
       "enumBadge": "Enumeración",
       "dataTypeBadge": "Tipo de datos",

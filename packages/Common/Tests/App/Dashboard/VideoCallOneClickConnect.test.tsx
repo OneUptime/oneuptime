@@ -101,6 +101,7 @@ jest.mock("react-i18next", () => {
 });
 
 import VideoCallsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/VideoCalls";
+import { ZOOM_TRANSCRIPT_RECONNECT_ROUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/VideoCallApi";
 import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import VideoCallConnection from "../../../Models/DatabaseModels/VideoCallConnection";
@@ -229,6 +230,11 @@ beforeEach(() => {
   }) as never);
 
   jest.spyOn(API, "get").mockImplementation((async (args: { url: URL }) => {
+    // The Zoom connections to reconnect for transcripts: none here.
+    if (args.url.toString().includes(ZOOM_TRANSCRIPT_RECONNECT_ROUTE)) {
+      return new HTTPResponse<JSONObject>(200, { connections: [] }, {});
+    }
+
     started.push(args.url.toString());
     return new HTTPResponse<JSONObject>(
       200,
@@ -486,5 +492,97 @@ describe("coming back from the sign-in", () => {
       "OneUptime could not finish connecting. Please try again.",
     );
     expect(notice).not.toHaveTextContent("hi");
+  });
+});
+
+/*
+ * OneUptime added from the Zoom App Marketplace - its authorization link,
+ * the one Zoom's reviewers test an app with - comes back with no state of
+ * OneUptime's, so nothing was connected (VideoCallOAuthAPI's Zoom
+ * callback). The page says so and offers the Zoom tile's own Connect.
+ */
+describe("OneUptime added from the Zoom App Marketplace", () => {
+  test("says OneUptime is added to the Zoom account, and Connect finishes it at Zoom", async () => {
+    goTo(`${PAGE_PATH}?provider=zoom&notice=zoom-added`);
+
+    await renderPage();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "video-call-zoom-added",
+    );
+    expect(
+      within(notice).getByText("OneUptime is added to your Zoom account"),
+    ).toBeVisible();
+    expect(notice).toHaveTextContent(
+      "Connect Zoom to start this project's calls in Zoom.",
+    );
+    // Taken off the address, so a reload does not say it again.
+    expect(window.location.search).toBe("");
+
+    fireEvent.click(
+      within(notice).getByRole("button", { name: "Connect Zoom" }),
+    );
+
+    // The sign-in the Zoom tile's Connect starts, and the notice is done.
+    const modal: HTMLElement = dialog();
+    expect(within(modal).getByText("Connect Zoom")).toBeVisible();
+    expect(screen.queryByTestId("video-call-zoom-added")).toBeNull();
+
+    fireEvent.click(
+      within(modal).getByRole("button", { name: "Continue to Zoom" }),
+    );
+
+    await waitFor(() => {
+      expect(navigatedTo).toEqual([ZOOM_SIGN_IN_URL]);
+    });
+    expect(started).toHaveLength(1);
+    expect(started[0]).toContain("/video-call-oauth/zoom/authorize-url");
+  });
+
+  test("someone who may not connect providers is told why, and offered no Connect", async () => {
+    permissionsForTest = [Permission.SettingsViewer];
+    goTo(`${PAGE_PATH}?provider=zoom&notice=zoom-added`);
+
+    await renderPage();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "video-call-zoom-added",
+    );
+    expect(
+      within(notice).getByText("OneUptime is added to your Zoom account"),
+    ).toBeVisible();
+    expect(within(notice).queryByRole("button", { name: /Connect/ })).toBe(
+      null,
+    );
+    expect(notice).toHaveTextContent("You do not have permission");
+  });
+
+  test("closing the notice puts it away", async () => {
+    goTo(`${PAGE_PATH}?provider=zoom&notice=zoom-added`);
+
+    await renderPage();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "video-call-zoom-added",
+    );
+    fireEvent.click(within(notice).getByRole("button", { name: "Close" }));
+
+    expect(screen.queryByTestId("video-call-zoom-added")).toBeNull();
+    expect(started).toHaveLength(0);
+  });
+
+  test.each([
+    ["Google Meet", `provider=google-meet&notice=zoom-added`],
+    ["GitHub's notice", `provider=zoom&notice=github-installed`],
+    ["text the address chose", `provider=zoom&notice=%3Cb%3Ehi%3C%2Fb%3E`],
+    ["no provider", `notice=zoom-added`],
+  ])("says nothing for %s", async (_label: string, query: string) => {
+    goTo(`${PAGE_PATH}?${query}`);
+
+    await renderPage();
+    await settle();
+
+    expect(screen.queryByTestId("video-call-zoom-added")).toBeNull();
+    expect(screen.queryByTestId("video-call-connect-error")).toBeNull();
   });
 });

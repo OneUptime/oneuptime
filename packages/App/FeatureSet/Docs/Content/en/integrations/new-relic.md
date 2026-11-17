@@ -151,7 +151,7 @@ curl -X POST "<url>" \
 
 An incident opens, titled `New Relic: High CPU on checkout-service`, and the on-call policies you picked are paged. Send the same request with `isAcknowledged` set to `true`, and the incident is acknowledged. Send it with `state` set to `CLOSED`, and the incident is resolved.
 
-Then test from New Relic: open the workflow's webhook message, and click **Send test notification**. To see that it arrived, open the OneUptime workflow's **Logs → Runs**.
+Then test from New Relic: open the workflow's webhook message, and click **Send test notification**. To see that it arrived, open the OneUptime workflow's **Runs**.
 
 ## Troubleshooting
 
@@ -162,7 +162,7 @@ Then test from New Relic: open the workflow's webhook message, and click **Send 
 :::
 
 :::details The workflow runs, but opens nothing
-Open the run in **Logs → Runs**. The `read-event-1` entry in its **Steps** says why it took **No**.
+Open the run in **Runs**. The `read-event-1` entry in its **Steps** says why it took **No**.
 
 - `New Relic named no issue ID`: keep the line `"id": {{ json issueId }},` in the payload.
 - `is in no state`: keep the line `"state": {{ json state }},` in the payload.
@@ -175,7 +175,7 @@ Open the run in **Logs → Runs**. The `read-event-1` entry in its **Steps** say
 
 :::details Incidents open but are never resolved
 - The workflow in New Relic needs **Closed** on, under **Notify when**.
-- Open the close's run in **Logs → Runs**: its last step says why. The close's `id` must be the issue's, so keep `"id": {{ json issueId }},` as it is in the payload.
+- Open the close's run in **Runs**: its last step says why. The close's `id` must be the issue's, so keep `"id": {{ json issueId }},` as it is in the payload.
 :::
 
 :::details On-call is paged for too many issues

@@ -8,9 +8,22 @@ import {
   getUserOverrideOverlapCandidate,
   getUserOverrideOverlapKey,
 } from "./UserOverrideOverlapCheck";
-import UserOverrideOverlapNotice from "./UserOverrideOverlapNotice";
+import UserOverrideOverlapNotice, {
+  USER_OVERRIDE_SOMEONE_ELSE,
+} from "./UserOverrideOverlapNotice";
+import UserOverrideEndNowModal, {
+  USER_OVERRIDE_END_NOW_ACTION,
+  UserOverrideEndNowTarget,
+  canEndUserOverrideNow,
+  toUserOverrideEndNowTarget,
+} from "./UserOverrideEndNow";
 import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import OneUptimeDate from "Common/Types/Date";
+import IconProp from "Common/Types/Icon/IconProp";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import UserOverrideEdit, {
@@ -67,6 +80,12 @@ export interface UserOverrideEditTarget {
   onCallDutyPolicyId: string | null;
   startsAt: Date;
   endsAt: Date;
+  /*
+   * Who is away, and who covers - none for a skip - by name, as the list
+   * shows them: End Now under Ends asks about them (UserOverrideEndNow).
+   */
+  awayName?: string | undefined;
+  coverName?: string | null | undefined;
 }
 
 export const USER_OVERRIDE_ITEM_NAME: string = translationKey("User Override");
@@ -83,11 +102,16 @@ export const toUserOverrideEditTarget: (
     return null;
   }
 
+  const endNow: UserOverrideEndNowTarget | null =
+    toUserOverrideEndNowTarget(override);
+
   return {
     id: id,
     onCallDutyPolicyId: override.onCallDutyPolicyId?.toString() || null,
     startsAt: OneUptimeDate.fromString(override.startsAt),
     endsAt: OneUptimeDate.fromString(override.endsAt),
+    awayName: endNow?.awayName,
+    coverName: endNow?.coverName,
   };
 };
 
@@ -106,6 +130,11 @@ export interface ComponentProps {
    * dialog's place. Left out, it is not offered.
    */
   onEditOverride?: ((target: UserOverrideEditTarget) => void) | undefined;
+  /*
+   * The zone End Now's question writes the override's end in: the
+   * schedule's, on its card. The reader's when left out, as the lists.
+   */
+  timezone?: string | undefined;
 }
 
 const UserOverrideFormModal: FunctionComponent<ComponentProps> = (
@@ -155,6 +184,28 @@ const UserOverrideFormModal: FunctionComponent<ComponentProps> = (
     useRef<ComponentProps["onEditOverride"]>(props.onEditOverride);
   onEditOverrideRef.current = props.onEditOverride;
 
+  /*
+   * End Now under Ends (issue #7899): an override under way, ended at once
+   * after one question, asked in this dialog's place. Cancelled, the
+   * dialog opens on the override again; ended, the list reads its
+   * overrides again.
+   */
+  const [isAskingEndNow, setIsAskingEndNow] = useState<boolean>(false);
+
+  const endNowTarget: UserOverrideEndNowTarget | null =
+    editTarget && saved && canEndUserOverrideNow(saved, openedAt)
+      ? {
+          id: editTarget.id,
+          startsAt: saved.startsAt,
+          endsAt: saved.endsAt,
+          awayName:
+            editTarget.awayName ||
+            translator.translateText(USER_OVERRIDE_SOMEONE_ELSE) ||
+            USER_OVERRIDE_SOMEONE_ELSE,
+          coverName: editTarget.coverName || null,
+        }
+      : null;
+
   const formFields: Array<ModelField<OnCallDutyPolicyUserOverride>> =
     useMemo((): Array<ModelField<OnCallDutyPolicyUserOverride>> => {
       const candidateOf: (values: unknown) => UserOverrideTimes | null = (
@@ -179,25 +230,44 @@ const UserOverrideFormModal: FunctionComponent<ComponentProps> = (
         },
         getEndsFooter: (values: unknown, error?: string): ReactElement => {
           return (
-            <UserOverrideOverlapNotice
-              candidate={candidateOf(values)}
-              fieldError={error}
-              onChecked={(key: string, isConflict: boolean) => {
-                knownConflicts.current.set(key, isConflict);
-              }}
-              onEditOverride={
-                onEditOverrideRef.current
-                  ? (other: OnCallDutyPolicyUserOverride) => {
-                      const otherTarget: UserOverrideEditTarget | null =
-                        toUserOverrideEditTarget(other);
+            <>
+              {endNowTarget ? (
+                <div className="mt-2">
+                  <Button
+                    dataTestId="user-override-end-now"
+                    title={USER_OVERRIDE_END_NOW_ACTION}
+                    icon={IconProp.StopCircle}
+                    buttonStyle={ButtonStyleType.LINK}
+                    buttonSize={ButtonSize.ExtraSmall}
+                    onClick={() => {
+                      setIsAskingEndNow(true);
+                    }}
+                  />
+                </div>
+              ) : (
+                <></>
+              )}
+              <UserOverrideOverlapNotice
+                candidate={candidateOf(values)}
+                saved={saved}
+                fieldError={error}
+                onChecked={(key: string, isConflict: boolean) => {
+                  knownConflicts.current.set(key, isConflict);
+                }}
+                onEditOverride={
+                  onEditOverrideRef.current
+                    ? (other: OnCallDutyPolicyUserOverride) => {
+                        const otherTarget: UserOverrideEditTarget | null =
+                          toUserOverrideEditTarget(other);
 
-                      if (otherTarget) {
-                        onEditOverrideRef.current?.(otherTarget);
+                        if (otherTarget) {
+                          onEditOverrideRef.current?.(otherTarget);
+                        }
                       }
-                    }
-                  : undefined
-              }
-            />
+                    : undefined
+                }
+              />
+            </>
           );
         },
       });
@@ -207,6 +277,21 @@ const UserOverrideFormModal: FunctionComponent<ComponentProps> = (
     template: editTarget ? "Edit {{itemName}}" : "Add New {{itemName}}",
     itemName: USER_OVERRIDE_ITEM_NAME,
   });
+
+  if (isAskingEndNow && endNowTarget) {
+    return (
+      <UserOverrideEndNowModal
+        target={endNowTarget}
+        timezone={props.timezone}
+        onClose={() => {
+          setIsAskingEndNow(false);
+        }}
+        onEnded={() => {
+          props.onSaved();
+        }}
+      />
+    );
+  }
 
   return (
     <ModelFormModal<OnCallDutyPolicyUserOverride>

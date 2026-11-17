@@ -380,7 +380,7 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
                   className="inline-block h-2 w-2 rounded-[2px]"
                   style={{ backgroundColor: color.fill }}
                 />
-                <span className="text-[10px] text-gray-500">
+                <span className="text-xs text-gray-500">
                   {color.label || severity}
                 </span>
               </div>

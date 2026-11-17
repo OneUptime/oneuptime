@@ -14,7 +14,7 @@ import { getJestSpyOn } from "../../Spy";
 
 /*
  * Admin Dashboard > Settings > Single Sign-On holds the instance-wide
- * "Require SSO for Login" switch (GlobalConfig.requireSsoForLogin), under
+ * "Require SSO to Sign In" switch (GlobalConfig.requireSsoForLogin), under
  * the providers it depends on (it was on Settings > Authentication). Single
  * sign-on, and requiring it, are part of every edition, so the switch is
  * offered - and can be flipped - on the Community Edition, the Enterprise
@@ -213,7 +213,7 @@ async function renderPage(): Promise<void> {
   });
 }
 
-describe("Admin Dashboard single sign-on settings: Require SSO for Login", () => {
+describe("Admin Dashboard single sign-on settings: Require SSO to Sign In", () => {
   beforeEach(() => {
     billingEnabledForTest = false;
     enterpriseEditionForTest = false;

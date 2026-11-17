@@ -146,7 +146,7 @@ Os dois eventos precisam levar exatamente a mesma `dedup_key`. Verifique se os d
 :::
 
 :::details O workflow nunca roda
-Verifique se ele está ativado: **Habilitado**, no topo do **Construtor** dele. Depois abra **Registros → Execuções**: uma execução que seguiu o lado **Não** do bloco **Se / Senão** é uma atualização que não era uma resolução.
+Verifique se ele está ativado: **Habilitado**, no topo do **Construtor** dele. Depois abra **Execuções**: uma execução que seguiu o lado **Não** do bloco **Se / Senão** é uma atualização que não era uma resolução.
 :::
 
 :::details O PagerDuty mostra uma referência em vez de um valor

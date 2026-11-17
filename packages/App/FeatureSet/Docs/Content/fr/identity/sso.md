@@ -3,7 +3,7 @@
 L'authentification unique (SSO) permet aux personnes de votre projet de se connecter à OneUptime avec le fournisseur d'identité (IdP) de votre organisation, via SAML 2.0 ou OpenID Connect. Vous gérez les accès, les mots de passe et l'authentification multifacteur en un seul endroit, et vous pouvez exiger le SSO pour tout le monde dans le projet.
 
 > [!NOTE]
-> **Édition :** le SSO, y compris "Require SSO for login", fait partie de toutes les éditions d'OneUptime : les installations auto-hébergées l'obtiennent dans la Community Edition, sans licence. Sur OneUptime Cloud, il est disponible à partir du plan **Scale**. Consultez [Édition Enterprise](/docs/self-hosted/enterprise) pour voir ce que comprend chaque édition.
+> **Édition :** le SSO, y compris "Require SSO to sign in", fait partie de toutes les éditions d'OneUptime : les installations auto-hébergées l'obtiennent dans la Community Edition, sans licence. Sur OneUptime Cloud, il est disponible à partir du plan **Scale**. Consultez [Édition Enterprise](/docs/self-hosted/enterprise) pour voir ce que comprend chaque édition.
 
 :::cards
 - [Configurer un fournisseur SAML](#configurer-le-sso): Le créer dans OneUptime et donner deux URL à votre IdP.

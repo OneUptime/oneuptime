@@ -86,7 +86,7 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
       >
         <SideMenuItem
           link={{
-            title: t("sideMenu.delete"),
+            title: t("sideMenu.deleteUser"),
             isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_DELETE] as Route,

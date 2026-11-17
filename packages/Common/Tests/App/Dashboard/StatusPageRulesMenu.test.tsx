@@ -149,6 +149,7 @@ afterEach(() => {
 });
 
 describe("a status page's Rules section: where it is and what it holds", () => {
+  // There is no "AI" section since #9216: MCP leads Advanced.
   test("sits right after Resources, before the audience and setup sections", async () => {
     await renderMenuAt(viewRoute(PageMap.STATUS_PAGE_VIEW));
 
@@ -159,7 +160,6 @@ describe("a status page's Rules section: where it is and what it holds", () => {
       "Subscribers",
       "Branding",
       "Security",
-      "AI",
       "Developer",
       "Advanced",
     ]);

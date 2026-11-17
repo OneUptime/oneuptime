@@ -31,7 +31,7 @@ import { DataSource } from "typeorm";
  * The real tables are cloned into an isolated schema; nothing else is
  * touched. The rule is asked the two ways the product asks it - a page read
  * (StatusPageService.hasReadAccess) and a refresh or login code
- * (doesSignInStillCount, which reads the page's own Require SSO for Login
+ * (doesSignInStillCount, which reads the page's own Require SSO to Sign In
  * in the same read) - and must agree:
  *
  *   - a session signed in with one of the page's SAML or OIDC providers

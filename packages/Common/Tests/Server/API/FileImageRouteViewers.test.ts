@@ -373,7 +373,7 @@ describe("the image routes serve a file only to the people who may see it", () =
   let port: number;
   let blocked: Set<string> = new Set<string>();
   let failMembershipLookups: boolean = false;
-  // The server's Require SSO for Login: off, on, or a read of it that fails.
+  // The server's Require SSO to Sign In: off, on, or a read of it that fails.
   let serverRequiresSso: "off" | "on" | "unreadable" = "off";
   // When the announcement ANNOUNCEMENT_IMAGE is in is shown from.
   let announcementShownFrom: Date = new Date(Date.now() + 60 * 60 * 1000);
@@ -930,7 +930,7 @@ describe("the image routes serve a file only to the people who may see it", () =
       );
     });
 
-    it("is answered like a missing file when the server's Require SSO for Login cannot be read: never as though it were off", async () => {
+    it("is answered like a missing file when the server's Require SSO to Sign In cannot be read: never as though it were off", async () => {
       serverRequiresSso = "unreadable";
 
       await expectRefusedLikeMissing(

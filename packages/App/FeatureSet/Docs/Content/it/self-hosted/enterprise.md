@@ -19,7 +19,7 @@ flowchart TB
 ```
 
 > [!NOTE]
-> **Il single sign-on è presente in ogni edizione.** L'accesso SAML e OIDC per progetti e pagine di stato, l'SSO globale e «Require SSO for login» fanno parte della Community Edition, e nessuno stato della licenza li disattiva.
+> **Il single sign-on è presente in ogni edizione.** L'accesso SAML e OIDC per progetti e pagine di stato, l'SSO globale e «Require SSO to sign in» fanno parte della Community Edition, e nessuno stato della licenza li disattiva.
 
 Questa pagina spiega cosa include ogni edizione, come eseguire la Enterprise Edition, come funzionano le licenze e cosa succede quando cambiate edizione.
 
@@ -57,7 +57,7 @@ Questa pagina spiega cosa include ogni edizione, come eseguire la Enterprise Edi
 | Stato delle migrazioni, pacchetto di supporto e sonde globali nel pannello amministratore | Sì | Sì | Non applicabile |
 | Gestione della licenza Enterprise, dei posti e delle istanze | No | Sì | Non applicabile |
 
-Il single sign-on comprende «Require SSO for login» per i progetti, le pagine di stato private e l'intera istanza, in entrambe le edizioni.
+Il single sign-on comprende «Require SSO to sign in» per i progetti, le pagine di stato private e l'intera istanza, in entrambe le edizioni.
 
 Ogni edizione ha la conservazione predefinita della telemetria del progetto, in **Impostazioni del progetto > Telemetria e APM > Conservazione dei dati**. Le sostituzioni della conservazione sono ciò che la Enterprise Edition aggiunge in più.
 
@@ -166,7 +166,7 @@ Non viene inviato nient'altro. Nessun dato di monitoraggio, telemetria, log o co
 
 ### Quando una licenza scade o manca
 
-Ogni funzionalità enterprise funziona durante la prova di 14 giorni e per 30 giorni dopo la scadenza di una licenza (il periodo di tolleranza). L'etichetta dell'edizione avvisa prima che finisca l'uno o l'altro. Dopo, **SCIM, la registrazione di audit e le sostituzioni della conservazione si fermano** finché non viene attivata una licenza, come sulla Community Edition, e la configurazione enterprise diventa di sola lettura. Il single sign-on non è una funzionalità enterprise: l'accesso SAML e OIDC, l'SSO globale e «Require SSO for login» funzionano allo stesso modo in ogni stato della licenza.
+Ogni funzionalità enterprise funziona durante la prova di 14 giorni e per 30 giorni dopo la scadenza di una licenza (il periodo di tolleranza). L'etichetta dell'edizione avvisa prima che finisca l'uno o l'altro. Dopo, **SCIM, la registrazione di audit e le sostituzioni della conservazione si fermano** finché non viene attivata una licenza, come sulla Community Edition, e la configurazione enterprise diventa di sola lettura. Il single sign-on non è una funzionalità enterprise: l'accesso SAML e OIDC, l'SSO globale e «Require SSO to sign in» funzionano allo stesso modo in ogni stato della licenza.
 
 ```mermaid title="Come una licenza passa da uno stato all'altro"
 stateDiagram-v2
@@ -200,7 +200,7 @@ Cosa si ferma quando una licenza scade:
 
 Cosa **non** si ferma:
 
-- **Il single sign-on.** L'accesso SAML e OIDC per progetti, pagine di stato private, l'intera istanza (SSO globale) e le app mobili, e «Require SSO for login», fanno parte di ogni edizione. Una licenza scaduta non cambia nulla di tutto ciò, e la configurazione del single sign-on resta modificabile.
+- **Il single sign-on.** L'accesso SAML e OIDC per progetti, pagine di stato private, l'intera istanza (SSO globale) e le app mobili, e «Require SSO to sign in», fanno parte di ogni edizione. Una licenza scaduta non cambia nulla di tutto ciò, e la configurazione del single sign-on resta modificabile.
 - **Il monitoraggio di base non è mai interessato**: monitor, avvisi, incidenti, reperibilità, pagine di stato e telemetria continuano tutti a funzionare.
 - **I master admin possono sempre accedere con la propria password.**
 - **I ruoli personalizzati, le liste di IP consentiti e i controlli di accesso delle pagine di stato continuano ad applicarsi.** Potete rimuoverli, ma non crearli né modificarli.
@@ -210,11 +210,11 @@ Cosa **non** si ferma:
 **Tutto riprende non appena viene attivata una licenza**, senza riavvio: il provisioning SCIM, la registrazione di audit e le sostituzioni della conservazione tornano con la configurazione che avete. OneUptime li spegne solo quando sa che la licenza è scaduta. Finché non riesce a leggere lo stato della licenza, per esempio per un momento mentre il server si avvia, SCIM, la registrazione di audit e le sostituzioni della conservazione restano attivi.
 
 > [!WARNING]
-> **Se il vostro provider di identità esegue il deprovisioning degli utenti tramite SCIM, attivate una licenza prima che finisca la prova o il periodo di tolleranza.** Dopo, SCIM non esegue più il deprovisioning delle persone che rimuovete dal vostro provider di identità: i loro account OneUptime restano e, a meno che «Require SSO for login» si applichi a loro, chiunque possa ancora raggiungere la casella email di uno di quegli account può impostare una password e accedere. Se lasciate scadere la licenza, rimuovete voi stessi quegli utenti in OneUptime.
+> **Se il vostro provider di identità esegue il deprovisioning degli utenti tramite SCIM, attivate una licenza prima che finisca la prova o il periodo di tolleranza.** Dopo, SCIM non esegue più il deprovisioning delle persone che rimuovete dal vostro provider di identità: i loro account OneUptime restano e, a meno che «Require SSO to sign in» si applichi a loro, chiunque possa ancora raggiungere la casella email di uno di quegli account può impostare una password e accedere. Se lasciate scadere la licenza, rimuovete voi stessi quegli utenti in OneUptime.
 
 ## Passare da Enterprise a Community
 
-La vostra configurazione resta nel database. Tornare all'immagine Enterprise ripristina tutto com'era, purché l'installazione abbia una licenza valida o sia ancora nella prova o nel periodo di tolleranza. Il single sign-on non cambia: l'accesso SAML e OIDC, l'SSO globale e «Require SSO for login» funzionano allo stesso modo su entrambe le immagini. Sull'immagine Community:
+La vostra configurazione resta nel database. Tornare all'immagine Enterprise ripristina tutto com'era, purché l'installazione abbia una licenza valida o sia ancora nella prova o nel periodo di tolleranza. Il single sign-on non cambia: l'accesso SAML e OIDC, l'SSO globale e «Require SSO to sign in» funzionano allo stesso modo su entrambe le immagini. Sull'immagine Community:
 
 - **SCIM si ferma.** I suoi endpoint di provisioning non esistono più, quindi le chiamate SCIM avviate dall'IdP falliscono. Questo include il deprovisioning SCIM.
 - **I blocchi dei team SCIM vengono rimossi**, così i team che erano gestiti dai gruppi push di SCIM possono essere modificati a mano. All'avvio il server registra in quali progetti sono stati rimossi i blocchi dei team SCIM.
@@ -227,7 +227,7 @@ La vostra configurazione resta nel database. Tornare all'immagine Enterprise rip
 - **Le dashboard Health enterprise, la Query Console e gli avvisi sullo stato di salute di PostgreSQL e Valkey si fermano.** Il monitoraggio della capacità e la pulizia di ClickHouse, lo stato delle migrazioni e il pacchetto di supporto continuano a funzionare.
 
 > [!CAUTION]
-> **Prima di passare all'immagine Community un'installazione il cui provider di identità esegue il deprovisioning degli utenti tramite SCIM, verificate chi ha accesso.** Senza SCIM, le persone che rimuovete dal vostro provider di identità mantengono i loro account OneUptime e, a meno che «Require SSO for login» si applichi a loro, chiunque possa ancora raggiungere la casella email di uno di quegli account può impostare una password e accedere. Rimuovete prima quegli utenti.
+> **Prima di passare all'immagine Community un'installazione il cui provider di identità esegue il deprovisioning degli utenti tramite SCIM, verificate chi ha accesso.** Senza SCIM, le persone che rimuovete dal vostro provider di identità mantengono i loro account OneUptime e, a meno che «Require SSO to sign in» si applichi a loro, chiunque possa ancora raggiungere la casella email di uno di quegli account può impostare una password e accedere. Rimuovete prima quegli utenti.
 
 ## Risoluzione dei problemi
 

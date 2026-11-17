@@ -13,7 +13,7 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 /*
  * Settings > Single Sign-On - the instance-wide SAML and OIDC providers and
- * Require SSO for Login, on one page since they were "Global SSO" and
+ * Require SSO to Sign In, on one page since they were "Global SSO" and
  * "Global OIDC" (two lists) and a switch on Settings > Authentication - and
  * one provider's page are Community Edition screens: every edition, every
  * license state and OneUptime Cloud get the same configuration screens, with
@@ -1080,7 +1080,7 @@ describe("the provider lists", () => {
 
 /*
  * Settings > Single Sign-On, as it is set up: the SAML providers, the OIDC
- * providers, then Require SSO for Login - the switch that depends on them -
+ * providers, then Require SSO to Sign In - the switch that depends on them -
  * with the master admins' way in under it, and a test step before it.
  */
 describe("Settings > Single Sign-On", () => {
@@ -1244,7 +1244,7 @@ describe("Settings > Single Sign-On", () => {
     },
   );
 
-  test("Require SSO for Login: the server's one setting, saved through the admin API", async () => {
+  test("Require SSO to Sign In: the server's one setting, saved through the admin API", async () => {
     await renderPage(PAGES[0]!);
 
     const card: MockProps = requireSsoCard();
@@ -1257,7 +1257,7 @@ describe("Settings > Single Sign-On", () => {
     expect(card["modelAPI"]).toBe(AdminModelAPI);
     expect(card["cardTitle"]).toBe(REQUIRE_SSO_COPY.cardTitle);
     expect(card["cardDescription"]).toBe(REQUIRE_SSO_COPY.cardDescription);
-    expect(card["title"]).toBe("Require SSO for Login");
+    expect(card["title"]).toBe("Require SSO to Sign In");
 
     const describe: (isOn: boolean) => string = card["getDescription"] as (
       isOn: boolean,

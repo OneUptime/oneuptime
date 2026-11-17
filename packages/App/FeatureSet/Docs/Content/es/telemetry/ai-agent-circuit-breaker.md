@@ -169,7 +169,7 @@ Para reaccionar a varios detonantes, empieza todos sus títulos igual, o encaden
 ## Prueba el disyuntor
 
 :::steps
-1. Dispáralo a mano. Abre **Alertas**, haz clic en **Crear alerta** y crea una con el título `LLM budget exceeded: test`. La ejecución aparece en **Flujos de trabajo → Registros → Ejecuciones**, y tu endpoint recibe la llamada.
+1. Dispáralo a mano. Abre **Alertas**, haz clic en **Crear alerta** y crea una con el título `LLM budget exceeded: test`. La ejecución aparece en **Flujos de trabajo → Ejecuciones**, y tu endpoint recibe la llamada.
 2. Dispáralo de verdad. Crea un presupuesto con un límite mínimo, como `0.01` USD, sobre el servicio de un agente de prueba, apunta un monitor de presupuesto a él y deja que el agente se ejecute: el porcentaje supera 100, la alerta se abre, el flujo de trabajo se ejecuta y el disyuntor salta. Para la alerta de bucle, da a un agente de prueba una herramienta que siempre falle.
 3. Dispáralo dos veces. Crea la misma alerta otra vez: tu endpoint debe aceptar el segundo disparo sin cambiar nada.
 :::
@@ -201,7 +201,7 @@ El **Intervalo de tiempo** del monitor es más corto que los 15 minutos entre pu
 :::
 
 :::details La petición nunca llega a tu endpoint
-Abre la ejecución en **Flujos de trabajo → Registros → Ejecuciones** y el paso **Llamada a API POST (JSON)**: indica por qué falló la petición. En OneUptime Cloud, el endpoint debe ser accesible desde internet; una instalación autoalojada rechaza las direcciones de red privadas salvo que un administrador las permita.
+Abre la ejecución en **Flujos de trabajo → Ejecuciones** y el paso **Llamada a API POST (JSON)**: indica por qué falló la petición. En OneUptime Cloud, el endpoint debe ser accesible desde internet; una instalación autoalojada rechaza las direcciones de red privadas salvo que un administrador las permita.
 :::
 
 ## Próximos pasos

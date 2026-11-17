@@ -464,7 +464,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "クラウドマーケットプレイスのサブスクリプションでライセンスされています。すべてのユーザーが時間単位で課金されます。",
   "License, version, seat usage, and the instances covered by this key.": "ライセンス、バージョン、シートの使用状況、このキーの対象となるインスタンス。",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "インシデント対応、ステータスページ、ワークフローの自動化を備えた、OneUptime プラットフォームのすべて。",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "プロジェクト、ステータスページ、インスタンス全体に対する SAML と OIDC のシングルサインオン（SSO）。「ログインに SSO を必須にする」を含みます。",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "プロジェクト、ステータスページ、インスタンス全体に対する SAML と OIDC のシングルサインオン（SSO）。「サインインに SSO を必須にする」を含みます。",
   "Community support, documentation, and tutorials to help teams get started quickly.": "チームがすぐに始められるよう、コミュニティのサポート、ドキュメント、チュートリアルを提供します。",
   "Regular updates, bug fixes, and open-source extensibility.": "定期的なアップデート、バグ修正、オープンソースによる拡張性。",
   "Integrations with popular DevOps tools through community-maintained connectors.": "コミュニティが管理するコネクターによる、一般的な DevOps ツールとの連携。",

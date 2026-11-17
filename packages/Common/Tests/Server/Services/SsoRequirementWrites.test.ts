@@ -52,7 +52,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 });
 
 /*
- * "Require SSO for login" is ordinary configuration in every edition: an
+ * "Require SSO to sign in" is ordinary configuration in every edition: an
  * administrator can switch it on and off (and pick a required provider) on
  * the Community Edition, on the Enterprise Edition in every license state -
  * valid, trial, grace, lapsed, a license that leaves SCIM and audit logs out,

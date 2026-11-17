@@ -233,7 +233,7 @@ const PostmortemActionItemsTable: FunctionComponent = (): ReactElement => {
           getElement: (item: IncidentPostmortemActionItem): ReactElement => {
             if (!item.ownerUser) {
               return (
-                <span className="text-sm text-gray-400">
+                <span className="text-sm text-gray-500">
                   {translator.translateText(
                     POSTMORTEM_ACTION_ITEMS_COPY.noOwner,
                   )}

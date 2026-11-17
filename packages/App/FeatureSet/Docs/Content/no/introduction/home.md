@@ -157,9 +157,10 @@ Over tittelen på hver side viser et spor som *Prosjekt › Docker › Innstilli
 Trykk **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klikk på søkeikonet i topplinjen, og begynn å skrive. Søket finner:
 
 - **Hver side i menyene**, under navnet menyen gir den: API-nøkler, Slett prosjekt, Vaktplaner, Hendelsesalvor, dine egne Varslingsmetoder. Hvert resultat sier hvor det ligger, for eksempel *Prosjektinnstillinger › Avansert*, slik at sider med samme navn (Egendefinerte felt under Hendelser, Varsler og Monitorer) er lette å skille fra hverandre.
-- **Innstillingene på en side**, under navnet kortet eller bryteren deres viser: *Krev SSO for innlogging* finner SSO, og *Egendefinerte SMTP-konfigurasjoner* finner Varslingskanaler. Skriv navnet på engelsk eller på ditt eget språk.
+- **Innstillingene på en side**, under navnet kortet eller bryteren deres viser: *Krev SSO for å logge på* finner SSO, og *Egendefinerte SMTP-konfigurasjoner* finner Varslingskanaler. Skriv navnet på engelsk eller på ditt eget språk.
 - **Handlinger**, etter hva du vil gjøre: Erklær hendelse, Opprett monitor eller Delete Project, som åpner Faresone. En handling som endrer noe, tilbys bare dem som har lov til å utføre den.
 - **Monitorene, hendelsene, varslene, statussidene og vaktpolicyene dine**, etter navn, og hendelser og varsler også etter nummer, for eksempel `INC-42`. Hvert resultat for en hendelse eller et varsel begynner med nummeret, så to med samme tittel kan skilles fra hverandre.
+- **En posts egne sider**: på en statusside åpner *sso* siden Enkel pålogging for den. Alle andre steder legger du til postens navn eller typen: *status page sso*, eller *acme subscribers* for abonnentene på en statusside som heter Acme. Bare poster du kan se, blir tilbudt, og en side som har fått nytt navn, finnes fortsatt under det gamle, for eksempel *advanced settings*.
 - **Dokumentasjonen**, i en gruppe *Dokumentasjon* under alt annet: sidene og avsnittene der ordene passer til det du skriver, på ditt språk, også med en skrivefeil. Hver åpnes i en ny fane, så du beholder plassen din.
 
 Søket leser det du skriver slik du mener det:

@@ -146,7 +146,7 @@ Begge begivenheder skal have præcis den samme `dedup_key`. Kontrollér, at begg
 :::
 
 :::details Arbejdsgangen kører aldrig
-Kontrollér, at den er slået til: **Aktiveret**, øverst i dens **Bygger**. Åbn derefter **Protokoller → Kørsler**: en kørsel, der tog **Nej**-siden af **Hvis / Ellers**-blokken, er en opdatering, der ikke var en løsning.
+Kontrollér, at den er slået til: **Aktiveret**, øverst i dens **Bygger**. Åbn derefter **Kørsler**: en kørsel, der tog **Nej**-siden af **Hvis / Ellers**-blokken, er en opdatering, der ikke var en løsning.
 :::
 
 :::details PagerDuty viser en reference i stedet for en værdi

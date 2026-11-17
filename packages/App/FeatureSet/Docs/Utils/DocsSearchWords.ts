@@ -69,6 +69,11 @@ const ENGLISH: DocsSearchSynonyms = {
    * "on-call duty" would find only the glossary's list of old names.
    */
   duty: ["on-call"],
+  /*
+   * The docs say "sign in" (#9212), and Require SSO for Login is Require
+   * SSO to Sign In now (#9278): "login" still finds what they say.
+   */
+  login: ["sign in"],
 };
 
 // By docs language code (SUPPORTED_DOCS_LANGUAGE_CODES): every language has a list.

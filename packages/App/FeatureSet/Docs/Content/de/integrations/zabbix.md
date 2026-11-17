@@ -293,7 +293,7 @@ Um manche Probleme an die Vorfallvorlage und andere an die Warnungsvorlage zu se
 ## Testen
 
 1. Öffnen Sie in Zabbix **Alerts → Media types** und klicken Sie neben `OneUptime` auf **Test**. Tragen Sie die kopierte URL und Beispielwerte ein, etwa `event_id` `12345`, `event_name` `Test problem`, `host` `web-1`, `event_nseverity` `4` und `event_value` `1`. Klicken Sie auf **Test**: Zabbix zeigt die Antwort des Skripts, `OK`, oder den Fehler, den es ausgelöst hat.
-2. Öffnen Sie in OneUptime **Protokolle → Ausführungen** des Workflows und prüfen Sie die Ausführung, oder öffnen Sie den Monitor und prüfen Sie, dass ein Vorfall eröffnet wurde.
+2. Öffnen Sie in OneUptime **Ausführungen** des Workflows und prüfen Sie die Ausführung, oder öffnen Sie den Monitor und prüfen Sie, dass ein Vorfall eröffnet wurde.
 3. Testen Sie noch einmal mit `event_value` `0` und derselben `event_id`. Der Vorfall wird behoben.
 
 Lassen Sie dann einen echten Trigger auslösen, etwa indem Sie einen Schwellwert kurz senken, und sehen Sie zu, wie das Problem ankommt. Um eine Aktualisierung zu testen, bestätigen Sie das Problem in Zabbix mit einer Nachricht: Der Vorfall bekommt eine private Notiz und wird bestätigt.
@@ -320,12 +320,12 @@ Zabbix sendet seinen Schweregrad als Text: `Not classified`, `Information`, `War
 
 :::details Vorfälle werden eröffnet, aber nie behoben
 - Die Aktion braucht **Recovery operations**, sonst sendet Zabbix die Erholung nie.
-- Öffnen Sie mit der Vorlage **Protokolle → Ausführungen** des Workflows und die Ausführung der Erholung: Ihr letzter Schritt sagt, warum. Die Erholung eines Problems, das keinen Vorfall eröffnet hat, ändert nichts.
+- Öffnen Sie mit der Vorlage **Ausführungen** des Workflows und die Ausführung der Erholung: Ihr letzter Schritt sagt, warum. Die Erholung eines Problems, das keinen Vorfall eröffnet hat, ändert nichts.
 - Mit dem Monitor braucht der Vorfall des Kriteriums **Vorfall automatisch beheben** unter **Weitere Felder**. **Feld, das die Erholung signalisiert** muss `requestBody.status` sein und **Wert, der „wiederhergestellt“ bedeutet** genau `0`.
 :::
 
 :::details Zabbix wird nicht bestätigt oder geschlossen
-Öffnen Sie die Ausführung der Statusvorlage unter **Protokolle → Ausführungen**: Ihr letzter Schritt sagt, was Zabbix geantwortet hat.
+Öffnen Sie die Ausführung der Statusvorlage unter **Ausführungen**: Ihr letzter Schritt sagt, was Zabbix geantwortet hat.
 
 - `Not authorized`: Das API-Token ist falsch, abgelaufen oder deaktiviert, oder Zabbix ist älter als 6.4 (siehe [Unter Zabbix 6.0](#unter-zabbix-60)).
 - `Cannot close problem: trigger does not allow manual closing`: Schalten Sie am Trigger **Allow manual close** ein. Die Vorlage bestätigt solche Probleme bereits, statt sie zu schließen.
@@ -334,7 +334,7 @@ Zabbix sendet seinen Schweregrad als Text: `Not classified`, `Information`, `War
 :::
 
 :::details Der Vorfall zeigt einen Verweis statt eines Werts
-Ein Verweis auf ein Feld, das die Anfrage nicht hat, bleibt so stehen, wie er geschrieben ist, mit allen Klammern, statt geleert zu werden. Prüfen Sie, dass Zabbix `Content-Type: application/json` sendet und dass die Feldnamen, die Sie verwenden (`name`, `host`, `severity`, `status`, `event_id`), zur Nutzlast des Skripts passen. Öffnen Sie bei einem Workflow die Ausführung unter **Protokolle → Ausführungen** und vergleichen Sie mit dem, was der Trigger empfangen hat. Siehe [Stolperfallen](/docs/workflows/variables#stolperfallen).
+Ein Verweis auf ein Feld, das die Anfrage nicht hat, bleibt so stehen, wie er geschrieben ist, mit allen Klammern, statt geleert zu werden. Prüfen Sie, dass Zabbix `Content-Type: application/json` sendet und dass die Feldnamen, die Sie verwenden (`name`, `host`, `severity`, `status`, `event_id`), zur Nutzlast des Skripts passen. Öffnen Sie bei einem Workflow die Ausführung unter **Ausführungen** und vergleichen Sie mit dem, was der Trigger empfangen hat. Siehe [Stolperfallen](/docs/workflows/variables#stolperfallen).
 :::
 
 :::details Jedes Problem kommt doppelt an

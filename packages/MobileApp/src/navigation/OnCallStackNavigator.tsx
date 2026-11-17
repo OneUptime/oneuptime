@@ -7,6 +7,7 @@ import MyOnCallPoliciesScreen from "../screens/MyOnCallPoliciesScreen";
 import WhoIsOnCallScreen from "../screens/WhoIsOnCallScreen";
 import OnCallOverridesScreen from "../screens/OnCallOverridesScreen";
 import CreateOnCallOverrideScreen from "../screens/CreateOnCallOverrideScreen";
+import EditOnCallOverrideScreen from "../screens/EditOnCallOverrideScreen";
 import MyOnCallPagesScreen from "../screens/MyOnCallPagesScreen";
 import OnCallCalendarFeedScreen from "../screens/OnCallCalendarFeedScreen";
 import type { OnCallStackParamList } from "./types";
@@ -31,6 +32,7 @@ const Stack: ReturnType<
  */
 const OVERLAY_ROUTES: ReadonlyArray<keyof OnCallStackParamList> = [
   "CreateOnCallOverride",
+  "EditOnCallOverride",
 ];
 
 export default function OnCallStackNavigator(): React.JSX.Element {
@@ -82,6 +84,17 @@ export default function OnCallStackNavigator(): React.JSX.Element {
            * headerLargeTitle is an iOS option, and handing Android a value it
            * ignores today is how it ends up being interpreted tomorrow.
            */
+          ...(Platform.OS === "ios" ? { headerLargeTitle: false } : {}),
+        }}
+      />
+      <Stack.Screen
+        name="EditOnCallOverride"
+        component={EditOnCallOverrideScreen}
+        options={{
+          title: "Edit Override",
+
+          // A sheet, as the cover form it mirrors (#7897).
+          presentation: "modal",
           ...(Platform.OS === "ios" ? { headerLargeTitle: false } : {}),
         }}
       />
