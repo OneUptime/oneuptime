@@ -403,7 +403,7 @@ export const DOCS_SCREENS: ReadonlyArray<DocsScreen> = [
   },
   {
     name: "paging-who-else",
-    shows: "The on-call guided setup: who else is on call",
+    shows: "The on-call guided setup: who is paged first",
     fixture: "Journeys",
     page: "ON_CALL_DUTY_GUIDED_SETUP",
     path: "/dashboard/:projectId/on-call-duty/setup",

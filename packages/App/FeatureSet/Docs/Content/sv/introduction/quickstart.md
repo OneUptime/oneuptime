@@ -80,11 +80,11 @@ Tryck på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged` och välj **Larma rä
 
 ![Steget ”Hur ska vi nå dig?”, med ”Slå på sms och samtal” markerad](screen:paging-reach-you)
 
-Under **Hur ska vi nå dig?** finns e-postadressen du loggar in med redan med. För pushaviseringar installerar du appen OneUptime On-Call från App Store eller Google Play, loggar in och klickar på **Kontrollera igen**. För att också få sms och samtal klickar du på **Slå på sms och samtal**, skriver ditt nummer i **Ditt telefonnummer** och klickar på **Skicka en kod till mig via sms**: på OneUptime Cloud betalas sms och samtal från projektets saldo, så steget ber dig fylla på saldot först. Klicka på **Fortsätt**.
+Under **Hur ska vi nå dig?** finns e-postadressen du loggar in med redan med. För pushaviseringar installerar du appen OneUptime On-Call från App Store eller Google Play, loggar in och klickar på **Kontrollera igen**. **Skaffa appen** visar en kod att skanna för varje butik, och **Använd den här webbläsaren** larmar även den här webbläsaren. För att också få sms och samtal klickar du på **Slå på sms och samtal**, skriver ditt nummer i **Ditt telefonnummer** och klickar på **Skicka en kod till mig via sms**: på OneUptime Cloud betalas sms och samtal från projektets saldo, så steget ber dig fylla på saldot först. Klicka på **Fortsätt**.
 
-### Välj vem mer som larmas
+### Välj vem som larmas först
 
-Under **Vem mer har jour?** behåller du **Standardjourpolicy** under **Jourpolicy**. För att larma teammedlemmar med dig lägger du till dem under **Lägg till i den första eskaleringsregeln**. Klicka på **Spara och fortsätt**.
+Under **Vem larmas först?** behåller du **Standardjourpolicy** under **Jourpolicy**. För att larma teammedlemmar samtidigt som dig lägger du till dem under **Lägg till i den första eskaleringsregeln**, eller bjuder in dem med **Bjud in via e-post**. Klicka på **Spara och fortsätt**.
 
 ### Bestäm vad som händer om ingen svarar
 

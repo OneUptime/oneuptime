@@ -188,7 +188,7 @@ Ese canal está desactivado en este proyecto. La tarjeta dice quién puede activ
 :::
 
 :::details El código nunca llegó
-Los correos pueden tardar unos minutos, y a veces acaban en spam; los SMS pueden tardar un minuto. Espera un minuto y luego haz clic en **Enviar un código nuevo** en el diálogo. **Ajustes del proyecto → Notificaciones → Registros de notificación** muestra qué pasó con el mensaje.
+Los correos pueden tardar unos minutos, y a veces acaban en spam; los SMS pueden tardar un minuto. Espera un minuto y luego haz clic en **Enviar un código nuevo** en el diálogo. **Ajustes del proyecto → Notificaciones → Registros de notificación** muestra qué pasó con el mensaje. Quien puede leer esos registros ve **Abrir Registros de notificación** bajo el código, que abre la pestaña del mensaje; a los demás se les pide que pregunten a un Propietario del proyecto o Administrador del proyecto.
 :::
 
 :::details Falla al añadir mi cuenta de Slack

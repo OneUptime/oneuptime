@@ -188,7 +188,7 @@ Ce canal est désactivé dans ce projet. La carte indique qui peut l'activer ; v
 :::
 
 :::details Le code n'est jamais arrivé
-Les e-mails peuvent prendre quelques minutes, et arrivent parfois dans les spams ; les SMS peuvent prendre une minute. Attendez une minute, puis cliquez sur **Envoyer un nouveau code** dans la boîte de dialogue. **Paramètres du projet → Notifications → Journaux de notification** montre ce qu'il est advenu du message.
+Les e-mails peuvent prendre quelques minutes, et arrivent parfois dans les spams ; les SMS peuvent prendre une minute. Attendez une minute, puis cliquez sur **Envoyer un nouveau code** dans la boîte de dialogue. **Paramètres du projet → Notifications → Journaux de notification** montre ce qu'il est advenu du message. Qui peut lire ces journaux voit **Ouvrir les Journaux de notification** sous le code, qui ouvre l'onglet du message ; les autres sont invités à demander à un Propriétaire du projet ou à un Administrateur du projet.
 :::
 
 :::details L'ajout de mon compte Slack échoue

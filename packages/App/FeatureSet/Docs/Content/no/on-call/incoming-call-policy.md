@@ -276,7 +276,7 @@ Kontoen kan bare endres mens policyen ikke har telefonnumre: siden sier "Remove 
 :::
 
 :::details Koden til en ingeniørs nummer kommer ikke frem
-SMS må være slått på for prosjektet. På OneUptime Cloud betaler et prosjekt uten sin egen standard-Twilio-konfigurasjon for SMS-ene fra saldoen sin, som må være over 1 USD. Koder kan bruke et minutt på å komme frem; klikk på **Send en ny kode** for å sende en ny, og **Prosjektinnstillinger** > **Varslinger** > **Varslingslogger** viser hva som skjedde med den.
+SMS må være slått på for prosjektet. På OneUptime Cloud betaler et prosjekt uten sin egen standard-Twilio-konfigurasjon for SMS-ene fra saldoen sin, som må være over 1 USD. Koder kan bruke et minutt på å komme frem; klikk på **Send en ny kode** for å sende en ny, og **Prosjektinnstillinger** > **Varslinger** > **Varslingslogger** viser hva som skjedde med den. Den som kan lese loggene, får **Åpne Varslingslogger** i dialogen, som åpner SMS-fanen deres.
 :::
 
 ## Neste steg

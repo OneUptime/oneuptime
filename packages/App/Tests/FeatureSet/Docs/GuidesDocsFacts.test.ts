@@ -273,18 +273,22 @@ describe("Get Paged by Phone, SMS or Push, against the product", () => {
     );
   });
 
-  it("acknowledges a test page from a text, a call or an email, never from the app", () => {
+  /*
+   * The On-Call app acknowledges a test page from its push notification
+   * (#7014): the guide said it could not, after the app learnt to.
+   */
+  it("acknowledges a test page from a text, a call, an email or the app", () => {
     for (const channel of [
       OnCallPageChannel.SMS,
       OnCallPageChannel.Call,
       OnCallPageChannel.Email,
+      OnCallPageChannel.Push,
     ]) {
       expect({ channel, ok: canAcknowledgeOnCallTestPageBy(channel) }).toEqual({
         channel,
         ok: true,
       });
     }
-    expect(canAcknowledgeOnCallTestPageBy(OnCallPageChannel.Push)).toBe(false);
 
     const words: string = repoFile(
       "packages/Common/Types/OnCallDutyPolicy/OnCallTestPageWords.ts",
@@ -292,8 +296,14 @@ describe("Get Paged by Phone, SMS or Push, against the product", () => {
 
     expect(words).toContain('"To acknowledge this test page, press 1."');
     expect(words).toContain("Acknowledge: {{link}}");
+    expect(
+      repoFile("packages/MobileApp/src/notifications/categories.ts"),
+    ).toContain("ACKNOWLEDGE_TEST_PAGE_ACTION");
     expect(PAGING).toContain("or press 1 during the phone call");
-    expect(PAGING).toContain("but cannot acknowledge a test");
+    expect(PAGING).toContain(
+      "Or tap its push notification and acknowledge it in the app.",
+    );
+    expect(PAGING).not.toContain("cannot acknowledge a test");
   });
 
   it("walks the escalation in a test 2 minutes apart, from the policy's own Test this policy", () => {

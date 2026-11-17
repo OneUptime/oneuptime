@@ -80,11 +80,11 @@ Tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `get paged`, og vælg **Tilkalde d
 
 ![Trinnet »Hvordan skal vi nå dig?«, med »Slå sms og opkald til« fremhævet](screen:paging-reach-you)
 
-Under **Hvordan skal vi nå dig?** står din login-e-mail allerede. For push-notifikationer installerer du appen OneUptime On-Call fra App Store eller Google Play, logger ind og klikker på **Kontrollér igen**. Vil du også have sms og opkald, så klik på **Slå sms og opkald til**, indtast dit nummer i **Dit telefonnummer**, og klik på **Send mig en kode på sms**: På OneUptime Cloud betales sms og opkald af projektets saldo, så trinnet beder dig først om at fylde saldoen op. Klik på **Fortsæt**.
+Under **Hvordan skal vi nå dig?** står din login-e-mail allerede. For push-notifikationer installerer du appen OneUptime On-Call fra App Store eller Google Play, logger ind og klikker på **Kontrollér igen**. **Hent appen** viser en kode at scanne for hver butik, og **Brug denne browser** tilkalder også denne browser. Vil du også have sms og opkald, så klik på **Slå sms og opkald til**, indtast dit nummer i **Dit telefonnummer**, og klik på **Send mig en kode på sms**: På OneUptime Cloud betales sms og opkald af projektets saldo, så trinnet beder dig først om at fylde saldoen op. Klik på **Fortsæt**.
 
-### Vælg, hvem der ellers tilkaldes
+### Vælg, hvem der tilkaldes først
 
-Under **Hvem har ellers vagt?** beholder du **Standardvagtpolitik** under **Vagtpolitik**. Vil du tilkalde teammedlemmer sammen med dig, så tilføj dem under **Føj til den første eskaleringsregel**. Klik på **Gem og fortsæt**.
+Under **Hvem tilkaldes først?** beholder du **Standardvagtpolitik** under **Vagtpolitik**. Vil du tilkalde teammedlemmer samtidig med dig, så tilføj dem under **Føj til den første eskaleringsregel**, eller inviter dem med **Inviter via e-mail**. Klik på **Gem og fortsæt**.
 
 ### Beslut, hvad der sker, hvis ingen svarer
 

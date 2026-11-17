@@ -136,6 +136,12 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
       "Welcome to OneUptime 👋",
       "What do you want to do first?",
       "Continue",
+      // On-Call's own way to the setup (#7148).
+      "On-Call",
+      "Set up paging step by step",
+      // Push from the step itself (#7149).
+      "Get the app",
+      "Use this browser",
       "Recheck",
       "Mobile app or browser",
       "How should we reach you?",
@@ -146,9 +152,13 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
       "Your phone number",
       "Text me a code",
       "Verify",
-      "Who else is on call?",
+      // Step 2, named for whom it pages: everyone in it at once (#7372).
+      "Who is paged first?",
       "Paged first",
       "Add teammates",
+      // Someone not in the project yet (#7150).
+      "Invite by email",
+      "Send invitation",
       "Save and continue",
       // The policy the step makes, named as the reader's setup names it (#8329).
       "Default on-call policy",
