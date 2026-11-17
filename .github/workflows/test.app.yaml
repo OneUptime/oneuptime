@@ -387,7 +387,6 @@ jobs:
               test-proxmox-pages-ui
               test-bulk-actions-ui
               test-postmortems-ui
-              test-alerts-ui
               test-acknowledgement-timeout-ui
           - group: 5
             openstack_pages_shard: 2/3
@@ -469,6 +468,7 @@ jobs:
               test-status-page-search-ui
               test-packet-capture-ui
               test-multi-device-snmp-walk-ui
+              test-alerts-ui
               test-external-mcp-servers-ui
               test-permissions-per-tab-ui
           - group: 11

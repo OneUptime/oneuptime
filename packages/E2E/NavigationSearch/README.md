@@ -121,6 +121,27 @@ menu are each named by their own button (no id twice on the page), open with
 Enter, and Escape puts them away with the focus back on the button.
 Screenshots are saved as `header-*.png`.
 
+`PaletteOnPhonesAndDesktops.spec.ts` (#7038) drives the phone menu and
+Search (Cmd/Ctrl+K) in a real browser at 390px and 1280px, light and dark,
+in German and Persian (right to left), on the desktop project. Its
+`?header=true&palette=true` page mounts the Dashboard's Search beside the
+production header and nav bar, as App.tsx does (`HeaderFixture.js`): the
+Glossary (`/docs/glossary/<lang>.json`), the docs search and the project's
+people (`POST /team-member/search-members`) are answered in the page,
+nothing is sent, and a new tab's and Ask AI's openings are counted on
+`window.__headerFixture`. `?as=admin` (a Project Admin, the default) or
+`?as=reader` (who reads services alone) is who is searching. On a phone the
+menu has Search at the top and Help folded at the bottom, which opens How
+OneUptime works; on a laptop the header's Help does, and the keys open
+Search. Search finds a Glossary term by its name in the reader's language
+and opens it on the Glossary page in a new tab, offers Ask AI a question
+nothing answers, offers a Project Admin Create Status Page (its list with
+`?create=1`, #7035) and finds a teammate under Users with their email
+(#7036), and offers someone who reads services alone neither, never asking
+for the people. Every panel stays inside the window with nothing scrolling
+sideways, and dark draws Search dark. Screenshots are saved as
+`palette-*.png`.
+
 `ProjectPickerSearch.spec.ts` searches the header's project list. Its
 `?header=true&projects=many` page lists six more projects after Acme Commerce
 Production (`MORE_PROJECTS` in `HeaderFixture.js`), two of them called "Test

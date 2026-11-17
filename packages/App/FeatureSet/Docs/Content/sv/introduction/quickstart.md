@@ -100,7 +100,7 @@ Under **Skicka ett testlarm** klickar du på **Testa den här policyn**, väljer
 
 Två jourregler utlöser policyn: en vid varje ny incident och en vid varje nytt larm. För att se den första öppnar du **Incidenter** från menyn **Produkter**, fäller ut **Regler** i sidomenyn och väljer **Jourregler**: den matchar **Alla incidenter**. För att utlösa policyn bara vid vissa incidenter, till exempel kritiska, redigerar du regeln där, eller klickar på **Skapa Jourregel för incidenter** för att lägga till en egen.
 
-För att i stället bygga en policy fält för fält öppnar du **Jour** från menyn **Produkter** och klickar på **Skapa Jourpolicy**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) och [Jourscheman](/docs/on-call/schedules) för fler nivåer, rotationer och hur länge varje nivå väntar.
+För att i stället bygga en policy fält för fält öppnar du **Jour** från menyn **Produkter** och klickar på **Skapa jourpolicy**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) och [Jourscheman](/docs/on-call/schedules) för fler nivåer, rotationer och hur länge varje nivå väntar.
 
 För varje skärm i installationen, och vad du gör när ett larm inte kommer fram, följer du [Bli larmad via samtal, SMS eller push](/docs/guides/paging).
 

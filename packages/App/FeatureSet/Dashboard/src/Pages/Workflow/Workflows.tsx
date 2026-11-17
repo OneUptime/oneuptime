@@ -33,6 +33,7 @@ import React, {
   useState,
 } from "react";
 import ObjectID from "Common/Types/ObjectID";
+import CreateFormAddress from "Common/UI/Utils/CreateFormAddress";
 import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -190,6 +191,11 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isEditable={false}
           isCreateable={true}
           /*
+           * Search's Create Workflow opens this list with ?create=1, and the
+           * table opens the wizard from it (#7035).
+           */
+          opensCreateFormFromAddress={true}
+          /*
            * The built-in create form is replaced by the wizard, which starts
            * with a template picker. Going through onCreateClick rather than a
            * cardProps button keeps the permission gating on the create button
@@ -337,9 +343,12 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <CreateWorkflowModal
             onClose={() => {
               setShowCreateModal(false);
+              // Opened by ?create=1: Back to the list never opens it again.
+              CreateFormAddress.clear();
             }}
             onCreated={(workflow: Workflow) => {
               setShowCreateModal(false);
+              CreateFormAddress.clear();
               /*
                * Straight to the builder rather than the overview: the point of
                * starting from a template is to read the graph it made.

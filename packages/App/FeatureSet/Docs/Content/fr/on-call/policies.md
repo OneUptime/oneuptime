@@ -12,10 +12,10 @@ Une politique d'astreinte décide qui est alerté pour un incident ou une alerte
 ## Créer une politique
 
 :::steps
-1. Allez dans **Astreinte → Politiques d'astreinte** et cliquez sur **Créer : Politique d'astreinte**.
+1. Allez dans **Astreinte → Politiques d'astreinte** et cliquez sur **Créer une politique d'astreinte**.
 2. Saisissez un **Nom**, par exemple « Paiements principal ».
 3. Sous **Qui est alerté en premier ?**, cliquez sur **Ajouter un intervenant** et choisissez les plannings d'astreinte, les équipes et les personnes à alerter en premier.
-4. Cliquez sur **Créer : Politique d'astreinte**. La politique s'ouvre sur sa page **Règles d'escalade**, avec **Level 1** déjà en place.
+4. Cliquez sur **Créer une politique d'astreinte**. La politique s'ouvre sur sa page **Règles d'escalade**, avec **Level 1** déjà en place.
 :::
 
 **Qui est alerté en premier ?** est facultatif, et n'est demandé qu'aux personnes autorisées à ajouter des règles d'escalade : laissé vide, la politique n'alerte personne tant qu'elle n'a pas de règle. **Description** et **Étiquettes** attendent sous **Plus de champs**. Pour ajouter les niveaux suivants, voir [Règles d'escalade](/docs/on-call/escalation-rules).

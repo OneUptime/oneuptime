@@ -12,10 +12,10 @@ Una policy di reperibilità decide chi viene avvisato per un incidente o un avvi
 ## Creare una policy
 
 :::steps
-1. Andate in **Reperibilità → Policy di reperibilità** e fate clic su **Crea: Policy di reperibilità**.
+1. Andate in **Reperibilità → Policy di reperibilità** e fate clic su **Crea policy di reperibilità**.
 2. Inserite un **Nome**, per esempio «Pagamenti primaria».
 3. In **Chi viene avvisato per primo?**, fate clic su **Aggiungi destinatario** e scegliete le pianificazioni di reperibilità, i team e le persone da avvisare per primi.
-4. Fate clic su **Crea: Policy di reperibilità**. La policy si apre sulla sua pagina **Regole di escalation**, con **Level 1** già al suo posto.
+4. Fate clic su **Crea policy di reperibilità**. La policy si apre sulla sua pagina **Regole di escalation**, con **Level 1** già al suo posto.
 :::
 
 **Chi viene avvisato per primo?** è facoltativo, e viene chiesto solo a chi può aggiungere regole di escalation: se resta vuoto, la policy non avvisa nessuno finché non ha una regola. **Descrizione** ed **Etichette** si trovano in **Altri campi**. Per aggiungere i livelli successivi, vedi [Regole di escalation](/docs/on-call/escalation-rules).

@@ -100,7 +100,7 @@ Em **Enviar uma chamada de teste**, clique em **Testar esta política**, escolha
 
 Duas regras de plantão disparam a política: uma a cada novo incidente e outra a cada novo alerta. Para ver a primeira, abra **Incidentes** no menu **Produtos**, expanda **Regras** no menu lateral e escolha **Regras de plantão**: ela corresponde a **Todos os incidentes**. Para disparar a política só em alguns incidentes, como os críticos, edite a regra ali, ou clique em **Criar: Regra de plantão de incidentes** para adicionar uma sua.
 
-Para montar uma política campo a campo, abra **Plantão** no menu **Produtos** e clique em **Criar: Política de plantão**. Para mais níveis, rodízios e quanto tempo cada nível espera, veja [Regras de escalonamento](/docs/on-call/escalation-rules) e [Agendamentos de plantão](/docs/on-call/schedules).
+Para montar uma política campo a campo, abra **Plantão** no menu **Produtos** e clique em **Criar política de plantão**. Para mais níveis, rodízios e quanto tempo cada nível espera, veja [Regras de escalonamento](/docs/on-call/escalation-rules) e [Agendamentos de plantão](/docs/on-call/schedules).
 
 Para cada tela da configuração, e o que fazer quando um acionamento não chega, siga [Ser acionado por telefone, SMS ou push](/docs/guides/paging).
 

@@ -24,7 +24,7 @@ import {
   PageSearchArea,
   PageSearchPage,
   PageSearchSection,
-  TOOL_IMPORT_SEARCH_LEAVES_OUT,
+  TOOL_IMPORT_FOUND_ONLY_BY_WHOLE_NAME,
 } from "../../FeatureSet/Dashboard/src/Components/CommandPalette/PageSearchIndex";
 import { TOOL_IMPORT_ROUTES } from "../../FeatureSet/Dashboard/src/Components/ToolImport/ToolImportApi";
 import {
@@ -69,11 +69,12 @@ const MENU_TITLE: RegExp = /title: "([^"]+)"/g;
 const RUN_ID: string = "run-id";
 
 /*
- * Tools whose names are not among the page's search keywords (the test
- * below holds each one to its reason). A tool added later is searched for
- * by its name unless it is listed here.
+ * Tools Search finds only by their whole name (the tests below hold each one
+ * to its reason): "incident.io" offers the import from it, "incident" never
+ * does (#7034). A tool added later is found by any start of its name unless
+ * it is listed here.
  */
-const NAMES_SEARCH_LEAVES_OUT: Set<ToolImportSource> =
+const FOUND_ONLY_BY_WHOLE_NAME: Set<ToolImportSource> =
   new Set<ToolImportSource>([ToolImportSource.IncidentIo]);
 
 const SEARCH_AREAS: Array<PageSearchArea> = getPageSearchAreas();
@@ -408,12 +409,8 @@ describe("the page is reachable", () => {
    * leaving offers "Import from PagerDuty" first, on the importer's page,
    * and the page itself right after it.
    */
-  test("Cmd+K offers 'Import from <tool>' first for each tool's name", () => {
-    for (const source of AllToolImportSources.filter(
-      (candidate: ToolImportSource): boolean => {
-        return !NAMES_SEARCH_LEAVES_OUT.has(candidate);
-      },
-    )) {
+  test("Cmd+K offers 'Import from <tool>' first for each tool's name, incident.io's too", () => {
+    for (const source of AllToolImportSources) {
       const title: string = getToolImportSourceDefinition(source).title;
 
       for (const query of [
@@ -513,11 +510,8 @@ describe("the page is reachable", () => {
         );
       });
 
-    const expected: Array<ToolImportSource> = AllToolImportSources.filter(
-      (source: ToolImportSource): boolean => {
-        return !NAMES_SEARCH_LEAVES_OUT.has(source);
-      },
-    );
+    // Every tool, incident.io too (#7034).
+    const expected: Array<ToolImportSource> = AllToolImportSources;
 
     expect(
       descriptors.map((descriptor: PageSearchCommandDescriptor) => {
@@ -542,23 +536,89 @@ describe("the page is reachable", () => {
     ).toBe(expected.length);
   });
 
-  test("Search leaves out of its actions exactly the tools it leaves out of the page's keywords", () => {
-    expect(new Set(TOOL_IMPORT_SEARCH_LEAVES_OUT)).toEqual(
-      NAMES_SEARCH_LEAVES_OUT,
+  /*
+   * incident.io's name starts with Incidents' word, so its import is found
+   * only by its whole name (#7034): "incident.io", written any way, offers
+   * it first; "incident" and "incidents" still open Incidents' own pages,
+   * and never list it at all.
+   */
+  test("Search holds exactly these tools to their whole name", () => {
+    expect(new Set(TOOL_IMPORT_FOUND_ONLY_BY_WHOLE_NAME)).toEqual(
+      FOUND_ONLY_BY_WHOLE_NAME,
     );
+  });
+
+  test("'incident.io', 'incidentio' and other near-exact forms offer 'Import from incident.io' first", () => {
+    for (const query of [
+      "incident.io",
+      "incidentio",
+      "incident io",
+      "Incident.IO",
+      " incident.io ",
+      "incident-io",
+      "import from incident.io",
+      "import incident.io",
+      "incident.io import",
+    ]) {
+      expect({ query, first: firstFound(query) }).toEqual({
+        query,
+        first: `Import from incident.io — Project Settings › Advanced › ${PAGE_TITLE}`,
+      });
+    }
+
+    // In German too, by the tool's own name.
+    expect(firstFound("incident.io", GERMAN_SEARCH_PAGES)).toBe(
+      "Import aus incident.io — Projekteinstellungen › Erweitert › Import aus anderem Tool",
+    );
+  });
+
+  test("'incident', 'incidents' and the rest of Incidents' words never list the import, so Incidents' pages come first", () => {
+    for (const query of [
+      "incident",
+      "incidents",
+      "Incident",
+      "inc",
+      "incident settings",
+      "incident custom fields",
+      "incidnet",
+      "incident i",
+      "incident.i",
+      "incidentio2",
+    ]) {
+      const titles: Array<string> = filterPaletteCommands(
+        SEARCH_PAGES,
+        query,
+      ).map((match: PaletteCommandMatch): string => {
+        return match.command.title;
+      });
+
+      expect({
+        query,
+        listsTheImport: titles.includes("Import from incident.io"),
+      }).toEqual({ query, listsTheImport: false });
+    }
+
     expect(firstFound("incident settings")).not.toContain("Import from");
-    expect(firstFound("incident.io")).not.toContain("Import from incident.io");
+    expect(firstFound("incident")).not.toContain("Import from");
+    expect(firstFound("incidents")).not.toContain("Import from");
+  });
+
+  test("the importer's own words still open the importer, not the import from incident.io", () => {
+    expect(firstFound("import")).toBe(
+      `${PAGE_TITLE} — Project Settings › Advanced`,
+    );
   });
 
   /*
-   * A tool whose name starts with a word another product's pages start
-   * with is not one of the page's keywords: "incident.io" would put the
-   * import page ahead of the Incidents pages for "incident settings", and
-   * for the "incidnet" typo Getting Started promises opens Incidents. Each
-   * name left out has to be one of those.
+   * A tool is held to its whole name only when another product's pages
+   * start with its first word: "incident.io" would otherwise come before
+   * Incidents' pages for "incident settings", and for the "incidnet" typo
+   * Getting Started promises opens Incidents. Each name listed has to be
+   * one of those, so no tool gives up being found by the start of its name
+   * for nothing.
    */
-  test("a tool's name is left out of its keywords only when another product's pages start with its first word", () => {
-    for (const source of NAMES_SEARCH_LEAVES_OUT) {
+  test("a tool is found only by its whole name only when another product's pages start with its first word", () => {
+    for (const source of FOUND_ONLY_BY_WHOLE_NAME) {
       const firstWord: string = getToolImportSourceDefinition(source)
         .title.toLowerCase()
         .split(NOT_A_LETTER)[0]!;
