@@ -10,6 +10,8 @@ import CreateOnCallOverrideScreen from "../screens/CreateOnCallOverrideScreen";
 import EditOnCallOverrideScreen from "../screens/EditOnCallOverrideScreen";
 import MyOnCallPagesScreen from "../screens/MyOnCallPagesScreen";
 import OnCallCalendarFeedScreen from "../screens/OnCallCalendarFeedScreen";
+import TestPageScreen from "../screens/TestPageScreen";
+import { TEST_PAGE_TEXT } from "../oncall/testPage";
 import type { OnCallStackParamList } from "./types";
 
 /*
@@ -33,6 +35,8 @@ const Stack: ReturnType<
 const OVERLAY_ROUTES: ReadonlyArray<keyof OnCallStackParamList> = [
   "CreateOnCallOverride",
   "EditOnCallOverride",
+  // A test page opened from its push, over the roster beside it.
+  "TestPage",
 ];
 
 export default function OnCallStackNavigator(): React.JSX.Element {
@@ -107,6 +111,20 @@ export default function OnCallStackNavigator(): React.JSX.Element {
         name="OnCallCalendarFeed"
         component={OnCallCalendarFeedScreen}
         options={{ title: "Calendar Feed" }}
+      />
+      {/*
+       * A test page's own screen (oncall/testPage.ts), opened from its
+       * push: never from a list, so it is a sheet over whatever is open,
+       * and Done - or a swipe - takes it away.
+       */}
+      <Stack.Screen
+        name="TestPage"
+        component={TestPageScreen}
+        options={{
+          title: TEST_PAGE_TEXT.screenTitle,
+          presentation: "modal",
+          ...(Platform.OS === "ios" ? { headerLargeTitle: false } : {}),
+        }}
       />
     </Stack.Navigator>
   );

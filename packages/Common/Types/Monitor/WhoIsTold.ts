@@ -209,6 +209,13 @@ export interface WhoIsToldStatusPage {
 export interface WhoIsToldEvent {
   kind: OnCallTestPageRecordKind;
   /*
+   * The criteria's incident or alert template it is opened from, and the
+   * severity it opens at: what a fire drill of it tests (#7012). Absent from
+   * an older server's answer.
+   */
+  id?: string | undefined;
+  severityId?: string | undefined;
+  /*
    * Its title: the criteria's template with what is known of the monitor
    * before a check put in ({{monitorName}} and the like). A value only a
    * check reports is left as written. The rules are matched on it.

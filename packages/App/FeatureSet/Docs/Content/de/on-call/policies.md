@@ -97,6 +97,20 @@ Manche Alarmierungen gehen nach der Bestätigung weiter, bis jemand antwortet, d
 
 Eine von Hand gestartete Richtlinie ist eine, die mit **Bereitschaftsdienst-Richtlinie ausführen** gestartet wurde oder durch eine Alarmierung aus Slack oder Microsoft Teams, die sie nennt. Sie alarmiert Stufe für Stufe wie jeder Lauf, mit Anrufen und wiederholten Push-Benachrichtigungen, und dass jemand anderes den Vorfall bestätigt, beendet sie nicht: So alarmieren Sie ein weiteres Team zu einem Vorfall, an dem schon jemand arbeitet. Wen sie alarmiert hat, antwortet aus der Nachricht seiner Alarmierung, per Anruf oder SMS oder indem er den Vorfall selbst bestätigt; sobald der Vorfall bestätigt ist, bietet die Seite des Vorfalls **Erneut bestätigen** an. **Eskalieren** gibt sie an die nächste Stufe weiter. Bei einem Vorfall, einer Warnung oder einer Episode, die behoben ist, wird nichts gestartet, und Sie erfahren, warum: Das Dashboard schaltet **Bereitschaftsdienst-Richtlinie ausführen** aus und nennt den Grund. Ihre Benachrichtigungen sagen, wer welche Richtlinie gestartet hat, und enthalten die Nachricht, die mit einer Alarmierung aus Slack oder Microsoft Teams geschickt wurde.
 
+## Eine Richtlinie testen
+
+**Diese Richtlinie testen**, in den Eskalationsregeln einer Richtlinie, alarmiert ihre erste Stufe als Test, ohne einen Vorfall dahinter: In jeder Nachricht steht TEST, und keine Statusseite, kein Abonnent und kein Kanal wird informiert. Schalten Sie **Jede Eskalationsstufe durchlaufen** ein, um jede Stufe nacheinander zu alarmieren, höchstens 2 Minuten auseinander, bis jemand bestätigt. Bevor etwas gesendet wird, listet der Dialog auf, wen der Test alarmiert und wie, und was er auf OneUptime Cloud kostet.
+
+**Test-Alarmierung senden** bleibt aus, solange der Test niemanden erreichen würde: Jede Person, die er alarmiert, hat den Schweregrad abbestellt, hat keine Regel dafür und nichts, worauf zurückgegriffen werden kann, oder hat nur Methoden, die nicht verifiziert oder im Projekt ausgeschaltet sind. Eine Zeile unter der Liste nennt den Grund. Kann nur eine spätere Stufe erreicht werden, bietet die Zeile **Jede Eskalationsstufe durchlaufen** mit einem Klick an.
+
+Wer alarmiert wird, bestätigt den Test über jede seiner Nachrichten: den Link einer E-Mail, einer SMS oder einer Chatnachricht, die 1 bei einem Anruf oder seine Push-Benachrichtigung in der OneUptime-On-Call-App, in Versionen neuer als 1.6.0. Eine Richtlinie kann alle 5 Minuten einmal getestet werden, und ein Projekt sendet höchstens 20 Tests pro Stunde.
+
+### Eine Notfallübung für einen Monitor durchführen
+
+**Notfallübung durchführen**, auf der Karte **Wenn das ausfällt** eines Monitors, probt einen seiner Ausfälle: einen Vorfall oder eine Warnung, die eines seiner Kriterien öffnet. Sie testet jede Bereitschaftsrichtlinie, die dieser Ausfall alarmieren würde, jede so, wie **Diese Richtlinie testen** sie testet, und nichts Öffentliches geschieht: Es wird kein Vorfall und keine Warnung erstellt, und keine Statusseite, kein Abonnent und kein Kanal wird informiert. Bevor etwas gesendet wird, nennt der Dialog den Ausfall, jede Richtlinie und wen diese Richtlinie gerade alarmiert.
+
+**Notfallübung starten** bleibt aus, solange eine dieser Richtlinien eine ist, die Sie nicht testen können, weil Sie sie nicht bearbeiten können, oder solange niemand, den sie alarmieren, erreicht werden kann. Jede Richtlinie einer Übung zählt als eigener Test: Eine Richtlinie, die in den letzten 5 Minuten getestet wurde, hält die ganze Übung auf, und eine Übung mit drei Richtlinien belegt drei der 20 Tests pro Stunde des Projekts.
+
 ## Ausführungsprotokolle
 
 Jedes Mal, wenn eine Richtlinie läuft, schreibt sie ein Ausführungsprotokoll, und das Protokoll durchläuft seine Status, während der Lauf weitergeht:

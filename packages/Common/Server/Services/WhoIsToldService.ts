@@ -1409,6 +1409,8 @@ export class WhoIsToldService {
 
     return {
       kind: data.kind,
+      id: data.template.id || "",
+      severityId: data.severityId.toString(),
       title: data.title,
       severityName: data.severityName,
       owners: owners.owners,
