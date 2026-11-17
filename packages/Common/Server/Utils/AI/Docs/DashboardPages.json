@@ -4952,6 +4952,20 @@
     "kind": "page"
   },
   {
+    "title": "Lineage Map",
+    "where": [
+      "Data Observability",
+      "Usage"
+    ],
+    "keywords": [
+      "data lineage",
+      "data flow",
+      "who reads this table"
+    ],
+    "path": "/dashboard/:projectId/data-observability/lineage",
+    "kind": "page"
+  },
+  {
     "title": "Data Products",
     "where": [
       "Data Observability",
