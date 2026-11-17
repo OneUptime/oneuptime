@@ -567,7 +567,7 @@ describe("trace rows (TraceRow)", () => {
       "const isError: boolean = status.status === SpanStatus.Error;",
     );
     expect(TRACE_ROW.source).toContain(
-      "{isError && ( <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${status.pillClassName}`} > {plainStatusName} </span> )}",
+      "{isError && ( <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wider ${status.pillClassName}`} > {plainStatusName} </span> )}",
     );
   });
 });
