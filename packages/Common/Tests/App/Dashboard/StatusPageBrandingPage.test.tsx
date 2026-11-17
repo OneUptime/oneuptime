@@ -111,6 +111,7 @@ import Route from "../../../Types/API/Route";
 import { Green } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
+import File from "../../../Models/DatabaseModels/File";
 import { SUPPORTED_STATUS_PAGE_LANGUAGES } from "../../../Types/StatusPage/StatusPageLanguage";
 import { MORE_SETTINGS_SECTION_TITLE } from "../../../UI/Components/FoldedSection/FoldedSectionTitles";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
@@ -144,15 +145,20 @@ const PAGE_PROPS: PageComponentProps = {
 // Every card on the page, by its analytics name, top to bottom.
 const MAIN_CARDS: Array<string> = [
   "Status Page > Branding > Header Style",
-  "Status Page > Branding > Title and Description",
-  "Status Page > Branding > Favicon",
   "Status Page > Header Links",
   "Status Page > Branding > Overview Page",
   "Status Page > Branding > Copyright",
   "Status Page > Footer Links",
 ];
 
+/*
+ * The browser tab's title with the search engine description, and the
+ * favicon, fold first: set once, if ever, and not what visitors read on the
+ * page (#9130).
+ */
 const ADVANCED_CARDS: Array<string> = [
+  "Status Page > Branding > Title and Description",
+  "Status Page > Branding > Favicon",
   "Status Page > Branding > Default Bar Color",
   "Status Page > Branding > History Chart Bar Color Rules",
   "Status Page > Languages",
@@ -333,7 +339,7 @@ describe("the Branding page", () => {
     expect(cardNames()).toEqual([...MAIN_CARDS, ...ADVANCED_CARDS]);
   });
 
-  test("folds the history chart's colors, the languages and search engine indexing under Advanced, and nothing else", async () => {
+  test("folds the browser tab and search engine cards, the history chart's colors, the languages and search engine indexing under More settings, and nothing else", async () => {
     await renderPage();
 
     expect(cardNames(advancedSection())).toEqual(ADVANCED_CARDS);
@@ -353,13 +359,19 @@ describe("the Branding page", () => {
     await renderPage();
 
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
-    // Folded, its header names the four cards it holds, none of them set.
+    /*
+     * Folded, its header names the first four of the six cards it holds,
+     * the browser tab's first, and counts the other two; none is set.
+     */
     expect(listedNames(advancedHeader())).toEqual([
+      "Title and Search Engine Description",
+      "Favicon",
       "Default Bar Color",
       "Bar Color Rules",
-      "Languages",
-      "Search Engine Indexing",
     ]);
+    expect(
+      within(advancedHeader()).getByTestId("folded-section-more"),
+    ).toHaveTextContent("2 more");
     expect(setChips(advancedHeader())).toEqual([]);
 
     fireEvent.click(advancedHeader());
@@ -538,12 +550,12 @@ describe("the cards people set", () => {
     );
   });
 
-  test("Title and Description, then Favicon, each with its own fields", async () => {
+  test("Title and Search Engine Description, then Favicon, each with its own fields", async () => {
     await renderPage();
 
     expect(
       cardPropsOf("Status Page > Branding > Title and Description")["title"],
-    ).toBe("Title and Description");
+    ).toBe("Title and Search Engine Description");
     expect(
       columnsOf(formFieldsOf("Status Page > Branding > Title and Description")),
     ).toEqual(["pageTitle", "pageDescription"]);
@@ -605,7 +617,7 @@ describe("the cards people set", () => {
   test.each([
     ["Status Page > Branding > Header Style", "Edit Images"],
     ["Status Page > Branding > Favicon", "Edit Favicon"],
-    ["Status Page > Branding > Overview Page", "Edit Description"],
+    ["Status Page > Branding > Overview Page", "Edit Intro Text"],
     ["Status Page > Branding > Copyright", "Edit Copyright"],
     ["Status Page > Branding > Default Bar Color", "Edit Default Bar Color"],
     ["Status Page > Languages", "Edit Languages"],
@@ -619,15 +631,17 @@ describe("the cards people set", () => {
     },
   );
 
-  test("Title and Description's dialog says what the two are for, so its fields need no help, and no SEO", async () => {
+  test("Title and Search Engine Description's dialog says what the two are for, so its fields need no help, and no SEO", async () => {
     await renderPage();
 
     const name: string = "Status Page > Branding > Title and Description";
     const props: Record<string, unknown> = propsOf(name);
 
-    expect(props["editModalTitle"]).toBe("Edit Title and Description");
+    expect(props["editModalTitle"]).toBe(
+      "Edit Title and Search Engine Description",
+    );
     expect(StatusPageBrandingCopy.titleEditTitle).toBe(
-      "Edit Title and Description",
+      "Edit Title and Search Engine Description",
     );
     expect(props["editModalDescription"]).toBe(
       StatusPageBrandingCopy.titleDescription,
@@ -794,24 +808,32 @@ describe("the cards people set", () => {
     }
   });
 
-  test("the overview page description is named for what it is, and edited as markdown", async () => {
+  /*
+   * A status page had three "descriptions" (#9130): the Overview's own,
+   * this card's search engine one, and the text visitors read at the top of
+   * the page. Each is named by who reads it now: visitors read this one,
+   * the Intro Text.
+   */
+  test("the intro text is named for who reads it, and edited as markdown", async () => {
     await renderPage();
 
     const name: string = "Status Page > Branding > Overview Page";
 
-    expect(cardPropsOf(name)["title"]).toBe("Overview Page Description");
+    expect(cardPropsOf(name)["title"]).toBe("Intro Text");
     expect(cardPropsOf(name)["description"]).toBe(
       StatusPageBrandingCopy.overviewDescriptionDescription,
     );
-    expect(propsOf(name)["editButtonText"]).toBe("Edit Description");
+    expect(propsOf(name)["editButtonText"]).toBe("Edit Intro Text");
 
     const [field] = formFieldsOf(name);
 
     expect(Object.keys(field!.field || {})).toEqual([
       "overviewPageDescription",
     ]);
-    // It used to end in a full stop.
-    expect(field!.title).toBe("Overview Page Description");
+    expect(field!.title).toBe("Intro Text");
+    expect(field!.description).toBe(
+      StatusPageBrandingCopy.introTextFieldDescription,
+    );
     expect(field!.fieldType).toBe(FormFieldSchemaType.Markdown);
     expect(detailFieldsOf(name)[0]!.fieldType).toBe(FieldType.Markdown);
   });
@@ -1139,6 +1161,33 @@ describe("Configured, on the folded Advanced section", () => {
       "search engines kept away",
       async (): Promise<void> => {
         await indexingIs(false);
+      },
+    ],
+    [
+      "a browser tab title",
+      async (): Promise<void> => {
+        await loadInto(
+          "Status Page > Branding > Title and Description",
+          pageWith({ pageTitle: "Acme Status" }),
+        );
+      },
+    ],
+    [
+      "a search engine description",
+      async (): Promise<void> => {
+        await loadInto(
+          "Status Page > Branding > Title and Description",
+          pageWith({ pageDescription: "Live status of Acme." }),
+        );
+      },
+    ],
+    [
+      "a favicon",
+      async (): Promise<void> => {
+        await loadInto(
+          "Status Page > Branding > Favicon",
+          pageWith({ faviconFile: new File() }),
+        );
       },
     ],
   ])("is said for %s", async (_what: string, setUp: () => Promise<void>) => {

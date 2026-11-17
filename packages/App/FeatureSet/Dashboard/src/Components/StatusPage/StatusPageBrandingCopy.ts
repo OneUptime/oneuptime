@@ -22,12 +22,19 @@ import {
  * Header, the favicon on Essential Branding, the history chart's colors on
  * Overview Page. The cards are the same cards. The page puts first what
  * nearly everyone sets, in the order a visitor meets it (the logo and cover
- * image, the title and description, the favicon, the header's links, the
- * text at the top of the overview, the footer), and folds what few people
- * ever change under More settings: the history chart's colors, the
- * languages and search engine indexing. The overall uptime % and what counts as downtime,
- * which were on Overview Page, are about what the page shows, so they are on
- * Advanced Settings now.
+ * image, the theme, the header's links, the intro text at the top of the
+ * overview, the footer), and folds what few people ever change under More
+ * settings: the browser tab's title with the search engine description, the
+ * favicon, the history chart's colors, the languages and search engine
+ * indexing. The overall uptime % and what counts as downtime, which were on
+ * Overview Page, are about what the page shows, so they are on Settings now.
+ *
+ * A status page had three "descriptions" until #9130: its Overview's
+ * Description, the Branding page's Page Description and its Overview Page
+ * Description. Each is named now by who reads it, and none repeats another:
+ * the Internal Description is your team's (StatusPageOverviewCopy), the
+ * Search Engine Description is what search engines and link previews show,
+ * and the Intro Text is what visitors read at the top of the page.
  *
  * Kept free of React so the page, its Search Engine Indexing card and
  * App/Tests read these exact strings. A new sentence is wrapped in
@@ -56,6 +63,8 @@ export const StatusPageBrandingCopy: {
   logoDescription: string;
   darkThemeLogoDescription: string;
   noDarkThemeLogo: string;
+  // The browser tab's title and the search engine description (folded).
+  titleCardTitle: string;
   titleDescription: string;
   pageTitlePlaceholder: string;
   pageDescriptionPlaceholder: string;
@@ -69,8 +78,10 @@ export const StatusPageBrandingCopy: {
   footerLink: string;
   footerLinks: string;
   footerLinkTitlePlaceholder: string;
-  // The Title and Description card's dialog, named like the others.
+  // The Title and Search Engine Description card's dialog, named like the others.
   titleEditTitle: string;
+  // The favicon's card, as the folded More settings names it.
+  faviconTitle: string;
   // Under the More settings section's title, once it is open.
   advancedDescription: string;
   // The cards under More settings, as its folded header names them.
@@ -97,6 +108,9 @@ export const StatusPageBrandingCopy: {
   overviewDescriptionTitle: string;
   overviewDescriptionDescription: string;
   overviewDescriptionEditButton: string;
+  // The intro text's field, and the card's line while it has none.
+  introTextFieldDescription: string;
+  introTextEmpty: string;
   languagesTitle: string;
   languagesDescription: string;
   languagesEditButton: string;
@@ -116,6 +130,7 @@ export const StatusPageBrandingCopy: {
   noDarkThemeLogo: translationKey(
     "None. The logo is shown on a light backdrop.",
   ),
+  titleCardTitle: translationKey("Title and Search Engine Description"),
   titleDescription: translationKey(
     "Its name in the browser tab and in subscriber emails, and the description search engines show.",
   ),
@@ -139,9 +154,10 @@ export const StatusPageBrandingCopy: {
   footerLink: translationKey("Footer Link"),
   footerLinks: translationKey("Footer Links"),
   footerLinkTitlePlaceholder: translationKey("e.g., Privacy Policy"),
-  titleEditTitle: translationKey("Edit Title and Description"),
+  titleEditTitle: translationKey("Edit Title and Search Engine Description"),
+  faviconTitle: translationKey("Favicon"),
   advancedDescription: translationKey(
-    "History chart colors, languages, and whether search engines may list this page.",
+    "The browser tab's title and icon, what search engines show, history chart colors, languages, and whether search engines may list this page.",
   ),
   defaultBarColorTitle: translationKey("Default Bar Color"),
   barColorRulesTitle: translationKey("Bar Color Rules"),
@@ -178,11 +194,15 @@ export const StatusPageBrandingCopy: {
   noRuleMatches: translationKey(
     "A day under {{percent}}% uptime matches no rule, so it takes the default bar color.",
   ),
-  overviewDescriptionTitle: translationKey("Overview Page Description"),
+  overviewDescriptionTitle: translationKey("Intro Text"),
   overviewDescriptionDescription: translationKey(
-    "Shown at the top of your status page's overview, above everything else. Markdown is supported.",
+    "What visitors read first, at the top of your status page, above everything else. Markdown is supported.",
   ),
-  overviewDescriptionEditButton: translationKey("Edit Description"),
+  overviewDescriptionEditButton: translationKey("Edit Intro Text"),
+  introTextFieldDescription: translationKey(
+    "Visitors read this at the top of your status page, such as what it covers and where to get support.",
+  ),
+  introTextEmpty: translationKey("No intro text."),
   languagesTitle: translationKey("Languages"),
   languagesDescription: translationKey(
     "The language first-time visitors see, and the languages they can switch to in the footer.",
@@ -225,7 +245,21 @@ export interface BrandingAdvancedValues {
   defaultLanguage?: string | null | undefined;
   enabledLanguages?: Array<string> | null | undefined;
   enableSearchEngineIndexing?: boolean | null | undefined;
+  // The browser tab's title and the search engine description.
+  browserTabTitle?: string | null | undefined;
+  searchEngineDescription?: string | null | undefined;
+  hasFavicon?: boolean | undefined;
 }
+
+// Whether the title or the search engine description has been written.
+export const isBrandingTitleSet: (values: BrandingAdvancedValues) => boolean = (
+  values: BrandingAdvancedValues,
+): boolean => {
+  return Boolean(
+    (values.browserTabTitle || "").trim() ||
+      (values.searchEngineDescription || "").trim(),
+  );
+};
 
 /*
  * Whether the bar color rules are some somebody chose. A page made in the
@@ -285,7 +319,7 @@ export const areBrandingLanguagesChosen: (
 };
 
 /*
- * What the folded More settings header lists: its four cards, each a chip
+ * What the folded More settings header lists: its six cards, each a chip
  * once it differs from what a new status page starts with, so folding
  * never hides a setting in force.
  */
@@ -297,6 +331,12 @@ export const getBrandingAdvancedItems: (
   const ruleCount: number = values.barColorRuleCount || 0;
 
   return [
+    foldedSectionItem(StatusPageBrandingCopy.titleCardTitle, {
+      isSet: isBrandingTitleSet(values),
+    }),
+    foldedSectionItem(StatusPageBrandingCopy.faviconTitle, {
+      isSet: Boolean(values.hasFavicon),
+    }),
     foldedSectionItem(StatusPageBrandingCopy.defaultBarColorTitle, {
       isSet: isDefaultBarColorChosen(values.defaultBarColor),
     }),
@@ -318,13 +358,18 @@ export const getBrandingAdvancedItems: (
 
 /*
  * Whether anything in the More settings section is set to something other
- * than what a new status page starts with: a chosen default bar color, bar
+ * than what a new status page starts with: a title or a search engine
+ * description, a favicon, a chosen default bar color, bar
  * color rules other than the recommended ones, a default language other
  * than English, a shorter list of languages, or search engines kept away.
  */
 export const isBrandingAdvancedConfigured: (
   values: BrandingAdvancedValues,
 ) => boolean = (values: BrandingAdvancedValues): boolean => {
+  if (isBrandingTitleSet(values) || values.hasFavicon) {
+    return true;
+  }
+
   if (isDefaultBarColorChosen(values.defaultBarColor)) {
     return true;
   }

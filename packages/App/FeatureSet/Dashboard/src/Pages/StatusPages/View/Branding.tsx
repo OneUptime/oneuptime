@@ -62,17 +62,19 @@ import React, {
  * one card now, "Status Page > Languages"). First what nearly everyone
  * sets, in the order a visitor meets it: the logo and cover image, the
  * page's theme (light, dark, or as each visitor's device is set), the
- * page's title and description, its favicon, the header's links, the text
- * at the top of the overview, and the footer. Then, folded under Advanced,
- * what few people ever change: the history chart's colors, the languages,
- * and search engine indexing. The section says "Configured" while it holds
- * anything a new status page does not start with.
+ * header's links, the intro text at the top of the overview, and the
+ * footer. Then, folded under More settings, what few people ever change:
+ * the browser tab's title with the search engine description, the favicon,
+ * the history chart's colors, the languages, and search engine indexing
+ * (#9130 folded the first two, and named the descriptions by who reads
+ * them: StatusPageBrandingCopy). The folded header lists every card, the
+ * ones set as chips.
  *
  * The old screens' URLs forward here (Routes/StatusPagesRoutes.tsx). Custom
  * domains and custom HTML, CSS and JavaScript keep their own pages beside
  * this one in the menu. The overall uptime % and the statuses that count as
  * downtime were on Overview Page too; they are about what the page shows,
- * so they are on Advanced Settings.
+ * so they are on Settings.
  */
 
 // The languages as every picker of them names them (StatusPageLanguageOptions).
@@ -299,110 +301,6 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
        */}
       <StatusPageThemeCard statusPageId={modelId} />
 
-      <CardModelDetail<StatusPage>
-        name="Status Page > Branding > Title and Description"
-        cardProps={{
-          title: "Title and Description",
-          description: StatusPageBrandingCopy.titleDescription,
-        }}
-        editButtonText={"Edit"}
-        /*
-         * The dialog says what the two are for, as the card does, so its
-         * fields need no help of their own: "Title of your Status Page.
-         * This is used for SEO." said less, in a word few people know.
-         */
-        editModalTitle={StatusPageBrandingCopy.titleEditTitle}
-        editModalDescription={StatusPageBrandingCopy.titleDescription}
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              pageTitle: true,
-            },
-            title: "Page Title",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: StatusPageBrandingCopy.pageTitlePlaceholder,
-            hideColumnDescription: true,
-          },
-          {
-            field: {
-              pageDescription: true,
-            },
-            title: "Page Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: StatusPageBrandingCopy.pageDescriptionPlaceholder,
-            hideColumnDescription: true,
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-status-page-title-and-description",
-          fields: [
-            {
-              field: {
-                pageTitle: true,
-              },
-              fieldType: FieldType.Text,
-              title: "Page Title",
-            },
-            {
-              field: {
-                pageDescription: true,
-              },
-              fieldType: FieldType.Text,
-              title: "Page Description",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
-      <CardModelDetail<StatusPage>
-        name="Status Page > Branding > Favicon"
-        cardProps={{
-          title: "Favicon",
-          description: StatusPageBrandingCopy.faviconDescription,
-        }}
-        isEditable={true}
-        editButtonText={"Edit Favicon"}
-        editModalTitle={"Edit Favicon"}
-        formFields={[
-          {
-            field: {
-              faviconFile: true,
-            },
-            title: "Favicon",
-            // Its column's help ("Status Page Favicon") only names it again.
-            hideColumnDescription: true,
-            fieldType: FormFieldSchemaType.ImageFile,
-            required: false,
-            placeholder: "Upload Favicon.",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-status-page-favicon",
-          fields: [
-            {
-              field: {
-                faviconFile: {
-                  file: true,
-                  fileType: true,
-                },
-              },
-              fieldType: FieldType.ImageFile,
-              title: "Favicon",
-              placeholder: "No favicon uploaded.",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
       <ModelTable<StatusPageHeaderLink>
         modelType={StatusPageHeaderLink}
         id="status-page-header-link"
@@ -506,8 +404,10 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
       />
 
       {/*
-       * The first thing on the status page's overview, above the
-       * announcements, the overall status and the resources.
+       * The intro text: the first thing visitors read on the status page's
+       * overview, above the announcements, the overall status and the
+       * resources. It was "Overview Page Description", one of three
+       * descriptions a status page had (#9130).
        */}
       <CardModelDetail<StatusPage>
         name="Status Page > Branding > Overview Page"
@@ -524,10 +424,11 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             field: {
               overviewPageDescription: true,
             },
-            title: "Overview Page Description",
+            title: "Intro Text",
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
-            description: "Describe your status page overview here.",
+            description: StatusPageBrandingCopy.introTextFieldDescription,
+            hideColumnDescription: true,
           },
         ]}
         modelDetailProps={{
@@ -540,8 +441,8 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
                 overviewPageDescription: true,
               },
               fieldType: FieldType.Markdown,
-              title: "Overview Page Description",
-              placeholder: "No description set.",
+              title: "Intro Text",
+              placeholder: StatusPageBrandingCopy.introTextEmpty,
             },
           ],
           modelId: modelId,
@@ -691,7 +592,8 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
       />
 
       {/*
-       * What few people change, folded: the history chart's colors, the
+       * What few people change, folded: the browser tab's title and icon,
+       * the search engine description, the history chart's colors, the
        * languages, and whether search engines may list the page. Each card
        * reports what it holds as it loads or saves, so the folded section
        * draws a card as a chip when it differs from a new page's.
@@ -701,6 +603,124 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
         items={getBrandingAdvancedItems(advancedValues)}
         dataTestId={BRANDING_ADVANCED_SECTION_TEST_ID}
       >
+        {/*
+         * What the browser tab and search engines show - not what visitors
+         * read on the page, which is the Intro Text above - and the tab's
+         * icon: set once, if ever, so folded (#9130).
+         */}
+        <CardModelDetail<StatusPage>
+          name="Status Page > Branding > Title and Description"
+          cardProps={{
+            title: StatusPageBrandingCopy.titleCardTitle,
+            description: StatusPageBrandingCopy.titleDescription,
+          }}
+          editButtonText={"Edit"}
+          /*
+           * The dialog says what the two are for, as the card does, so its
+           * fields need no help of their own: "Title of your Status Page.
+           * This is used for SEO." said less, in a word few people know.
+           */
+          editModalTitle={StatusPageBrandingCopy.titleEditTitle}
+          editModalDescription={StatusPageBrandingCopy.titleDescription}
+          isEditable={true}
+          formFields={[
+            {
+              field: {
+                pageTitle: true,
+              },
+              title: "Page Title",
+              fieldType: FormFieldSchemaType.Text,
+              required: false,
+              placeholder: StatusPageBrandingCopy.pageTitlePlaceholder,
+              hideColumnDescription: true,
+            },
+            {
+              field: {
+                pageDescription: true,
+              },
+              title: "Search Engine Description",
+              fieldType: FormFieldSchemaType.LongText,
+              required: false,
+              placeholder: StatusPageBrandingCopy.pageDescriptionPlaceholder,
+              hideColumnDescription: true,
+            },
+          ]}
+          modelDetailProps={{
+            showDetailsInNumberOfColumns: 1,
+            modelType: StatusPage,
+            id: "model-detail-status-page-title-and-description",
+            onItemLoaded: (item: StatusPage): void => {
+              rememberAdvanced({
+                browserTabTitle: item.pageTitle,
+                searchEngineDescription: item.pageDescription,
+              });
+            },
+            fields: [
+              {
+                field: {
+                  pageTitle: true,
+                },
+                fieldType: FieldType.Text,
+                title: "Page Title",
+              },
+              {
+                field: {
+                  pageDescription: true,
+                },
+                fieldType: FieldType.Text,
+                title: "Search Engine Description",
+              },
+            ],
+            modelId: modelId,
+          }}
+        />
+
+        <CardModelDetail<StatusPage>
+          name="Status Page > Branding > Favicon"
+          cardProps={{
+            title: StatusPageBrandingCopy.faviconTitle,
+            description: StatusPageBrandingCopy.faviconDescription,
+          }}
+          isEditable={true}
+          editButtonText={"Edit Favicon"}
+          editModalTitle={"Edit Favicon"}
+          formFields={[
+            {
+              field: {
+                faviconFile: true,
+              },
+              title: "Favicon",
+              // Its column's help ("Status Page Favicon") only names it again.
+              hideColumnDescription: true,
+              fieldType: FormFieldSchemaType.ImageFile,
+              required: false,
+              placeholder: "Upload Favicon.",
+            },
+          ]}
+          modelDetailProps={{
+            showDetailsInNumberOfColumns: 1,
+            modelType: StatusPage,
+            id: "model-detail-status-page-favicon",
+            onItemLoaded: (item: StatusPage): void => {
+              rememberAdvanced({ hasFavicon: Boolean(item.faviconFile) });
+            },
+            fields: [
+              {
+                field: {
+                  faviconFile: {
+                    file: true,
+                    fileType: true,
+                  },
+                },
+                fieldType: FieldType.ImageFile,
+                title: "Favicon",
+                placeholder: "No favicon uploaded.",
+              },
+            ],
+            modelId: modelId,
+          }}
+        />
+
         <CardModelDetail<StatusPage>
           name="Status Page > Branding > Default Bar Color"
           cardProps={{
