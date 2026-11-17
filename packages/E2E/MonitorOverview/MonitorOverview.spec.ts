@@ -1521,11 +1521,18 @@ test.describe("other monitor families", () => {
 
     expect(await factLabels(page)).toEqual([
       "Missing-request window",
-      "Last missing-request check",
+      "Missing-request check",
       "Owners",
     ]);
     expect(await factValue(page, "Missing-request window")).toBe(
       `${withUnit(30, "minutes")}From this monitor's criteria`,
+    );
+    /*
+     * Checked 40 seconds ago, on the sweep's schedule: the fact says the
+     * schedule, not a stamp written only every few minutes (#8123).
+     */
+    expect(await factValue(page, "Missing-request check")).toBe(
+      `Every ${withUnit(30, "seconds")}`,
     );
     await expect(page.getByTestId("monitor-overview-pulse")).toContainText(
       "Last request 7 minutes ago",
@@ -1608,9 +1615,13 @@ test.describe("other monitor families", () => {
     );
     expect(await factLabels(page)).toEqual([
       "Missing-email window",
-      "Last missing-email check",
+      "Missing-email check",
       "Owners",
     ]);
+    // Checked on the sweep's schedule, as an incoming request is (#8123).
+    expect(await factValue(page, "Missing-email check")).toBe(
+      `Every ${withUnit(30, "seconds")}`,
+    );
   });
 
   test("server awaiting", async ({ page }: { page: Page }) => {
