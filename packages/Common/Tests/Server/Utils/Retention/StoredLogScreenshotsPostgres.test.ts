@@ -52,6 +52,9 @@ import { DataSource } from "typeorm";
  *     with finds every log StateChangeLogScreenshots would clear;
  *   - a read Postgres cannot finish within its statement timeout is asked
  *     again a row at a time, and the row it still cannot is left as it is;
+ *   - a log with screenshots stored too big to read has its top-level runs'
+ *     screenshots cleared by Postgres, to what StateChangeLogScreenshots
+ *     would leave; one that keeps them deeper is left as it is;
  *   - a log rewritten between its read and its write is not overwritten;
  *     a row whose lock is held is not waited on past the lock timeout, and
  *     the walk resumes there next run.
@@ -1336,6 +1339,58 @@ describePostgres(
         StoredLogTable.MonitorStatusTimeline,
       ]);
       expect(after.get(locked)!.log).not.toContain("iVBORw0KGgo");
+    });
+
+    test("a log with screenshots stored too big to read has its runs' screenshots cleared by Postgres, to what StateChangeLogScreenshots would leave; one keeping them deeper is left as it is", async () => {
+      await deleteMarkers();
+      const top: string = rowId(12, 1);
+      const deep: string = rowId(12, 2);
+      await insertRow(StoredLogTable.Incident, top, syntheticLog(), false);
+      await insertRow(
+        StoredLogTable.Incident,
+        deep,
+        { steps: [syntheticLog()] },
+        false,
+      );
+      const rows: Array<SeededRow> = [top, deep].map(
+        (each: string): SeededRow => {
+          return {
+            table: StoredLogTable.Incident,
+            id: each,
+            shape: Shape.Synthetic,
+          };
+        },
+      );
+      const before: Map<string, RowState> = await stateOf(rows);
+      startWalksAt(12);
+
+      // Both are stored at about 96 KB: above 64 KB, too big to read here.
+      const summary: StoredLogScreenshotsSummary =
+        await StoredLogScreenshots.run({
+          limits: { ...DEFAULT_LIMITS, readMaxStoredBytes: 64 * 1024 },
+        });
+      const after: Map<string, RowState> = await stateOf(rows);
+
+      // Neither log's text came to this process.
+      expect(
+        returned.map((row: Record<string, unknown>): unknown => {
+          return row["log"];
+        }),
+      ).toEqual([null, null]);
+      expect(parsed(after.get(top))).toEqual(
+        StateChangeLogScreenshots.leaveOut(parsed(before.get(top))),
+      );
+      expect(after.get(top)!.storedBytes!).toBeLessThan(
+        CANDIDATE_MIN_STORED_BYTES,
+      );
+      expect(after.get(top)!.updatedAt).toBe(before.get(top)!.updatedAt);
+      expect(after.get(top)!.version).toBe(before.get(top)!.version);
+      expect(after.get(deep)!.xmin).toBe(before.get(deep)!.xmin);
+      expect(summary.rowsRead).toBe(0);
+      expect(summary.rowsCleared).toBe(1);
+      expect(summary.rowsTooBigToRead).toBe(1);
+      expect(summary.failedRows).toBe(0);
+      expect(summary.finishedTables).toEqual(STORED_LOG_TABLES);
     });
 
     test("the path Postgres looks with finds every log StateChangeLogScreenshots would clear, and leaves out a script's own screenshots", async () => {

@@ -78,8 +78,11 @@ import { QueryRunner } from "typeorm";
  * - any depth, a single run as well as a list of them - so it never misses
  * a log the rule would clear; a log it lets through that the rule leaves as
  * it is, is read and not written. A log that holds screenshots but is stored
- * at more than READ_MAX_STORED_BYTES is not read either: it is logged and
- * left as it is.
+ * at more than READ_MAX_STORED_BYTES is not read either: Postgres clears the
+ * screenshots of its top-level runs itself, where a check keeps them
+ * (ProbeMonitorResponse.syntheticMonitorResponse), by the same rule
+ * (buildClearLogInDatabaseStatement); one that keeps them anywhere else is
+ * logged and left as it is.
  *
  * Each statement runs in a transaction of its own, with a statement timeout
  * and a lock timeout (STATEMENT_TIMEOUT_MS, LOCK_TIMEOUT_MS). A read that
@@ -178,9 +181,9 @@ export const READ_BATCH_MAX_STORED_BYTES: number = 32 * 1024 * 1024;
 
 /*
  * The most a log with screenshots may be stored at to be read into this
- * process; a bigger one is logged and left as it is. A Synthetic run's
- * screenshots are some hundreds of kilobytes each, so a log is stored far
- * below this.
+ * process; Postgres clears a bigger one's screenshots itself
+ * (buildClearLogInDatabaseStatement). A Synthetic run's screenshots are
+ * some hundreds of kilobytes each, so most logs are stored far below this.
  */
 export const READ_MAX_STORED_BYTES: number = READ_BATCH_MAX_STORED_BYTES;
 
@@ -276,9 +279,9 @@ export interface StoredLogCandidateOutcome {
   // Its log was read into this process: it holds screenshots, by Postgres.
   isRead: boolean;
   /*
-   * It holds screenshots, or may, but is too big to read - stored above
-   * readMaxStoredBytes, or past what Postgres allows one statement: logged
-   * and left as it is.
+   * It holds screenshots, or may, but is too big to read - past what
+   * Postgres allows one statement, or stored above readMaxStoredBytes and
+   * not clearable in the database: logged and left as it is.
    */
   isTooBigToRead: boolean;
   // Its screenshots were cleared.
@@ -463,6 +466,47 @@ WHERE t."_id" = $1::uuid
   AND pg_column_size(t."${column}") = $3
 RETURNING t."_id"::text AS "id"`,
     params: [data.id, JSON.stringify(data.log), data.readStoredBytes],
+  };
+}
+
+/*
+ * One row's log, stored too big to read here, without the screenshots of
+ * its top-level runs - where a check keeps them - cleared by Postgres, by
+ * StateChangeLogScreenshots' rule: a run whose "screenshots" is an object
+ * with a key loses it and says so (areScreenshotsOmitted); every other run,
+ * and the rest of the log, is kept as it was. Written only when such a run
+ * is there, and only while the log is stored at the size it was read at.
+ * The row comes back, with the size it is stored at now, when it was
+ * written.
+ */
+export function buildClearLogInDatabaseStatement(data: {
+  table: StoredLogTable;
+  id: string;
+  readStoredBytes: number;
+}): StoredLogScreenshotsStatement {
+  const column: string = STORED_LOG_COLUMNS[data.table];
+  const runs: string = `t."${column}"->'syntheticMonitorResponse'`;
+  const hasScreenshots: string = `jsonb_typeof(r."run"->'screenshots') = 'object' AND r."run"->'screenshots' <> '{}'::jsonb`;
+
+  return {
+    sql: `UPDATE "${data.table}" t
+SET "${column}" = jsonb_set(t."${column}", '{syntheticMonitorResponse}', (
+  SELECT jsonb_agg(
+    CASE WHEN ${hasScreenshots}
+      THEN (r."run" - 'screenshots') || '{"areScreenshotsOmitted": true}'::jsonb
+      ELSE r."run"
+    END ORDER BY r."n")
+  FROM jsonb_array_elements(${runs}) WITH ORDINALITY AS r("run", "n")
+))
+WHERE t."_id" = $1::uuid
+  AND pg_column_size(t."${column}") = $2
+  AND jsonb_typeof(${runs}) = 'array'
+  AND EXISTS (
+    SELECT 1 FROM jsonb_array_elements(${runs}) AS r("run")
+    WHERE ${hasScreenshots}
+  )
+RETURNING t."_id"::text AS "id", pg_column_size(t."${column}") AS "storedBytes"`,
+    params: [data.id, data.readStoredBytes],
   };
 }
 
@@ -1095,18 +1139,18 @@ export default class StoredLogScreenshots {
       const text: unknown = row["log"];
       const storedBytes: number = Number(row["storedBytes"]);
 
-      // Screenshots, but stored too big to read here: left as it is.
+      // Screenshots, but stored too big to read here: Postgres clears them.
       if (typeof text !== "string" || !Number.isFinite(storedBytes)) {
-        logger.warn(
-          `Stored log screenshots: ${data.table}.${column} of row ${candidate.id} holds screenshots but is stored at ${formatStoredBytes(Number.isFinite(storedBytes) ? storedBytes : candidate.storedBytes)}, too big to read, so it is left as it is.`,
+        outcomes.push(
+          await this.clearInDatabase({
+            table: data.table,
+            candidate: candidate,
+            readStoredBytes: Number.isFinite(storedBytes)
+              ? storedBytes
+              : candidate.storedBytes,
+            limits: limits,
+          }),
         );
-        outcomes.push({
-          candidate: candidate,
-          isRead: false,
-          isTooBigToRead: true,
-          isCleared: false,
-          isFailed: false,
-        });
         continue;
       }
 
@@ -1173,5 +1217,70 @@ export default class StoredLogScreenshots {
     }
 
     return outcomes;
+  }
+
+  /*
+   * One row whose log holds screenshots but is stored too big to read here:
+   * the screenshots of its top-level runs cleared by Postgres. A log that
+   * keeps them elsewhere, or that Postgres cannot rewrite within its
+   * limits, is logged and left as it is; any other failure is tried again
+   * next run.
+   */
+  public static async clearInDatabase(data: {
+    table: StoredLogTable;
+    candidate: StoredLogCandidate;
+    readStoredBytes: number;
+    limits?: StoredLogScreenshotsLimits | undefined;
+  }): Promise<StoredLogCandidateOutcome> {
+    const limits: StoredLogScreenshotsLimits = data.limits || DEFAULT_LIMITS;
+    const column: string = STORED_LOG_COLUMNS[data.table];
+    const leftAsItIs: StoredLogCandidateOutcome = {
+      candidate: data.candidate,
+      isRead: false,
+      isTooBigToRead: true,
+      isCleared: false,
+      isFailed: false,
+    };
+
+    try {
+      const statement: StoredLogScreenshotsStatement =
+        buildClearLogInDatabaseStatement({
+          table: data.table,
+          id: data.candidate.id,
+          readStoredBytes: data.readStoredBytes,
+        });
+
+      const written: Array<Record<string, unknown>> = await this.runStatement({
+        sql: statement.sql,
+        params: statement.params,
+        statementTimeoutMs: limits.statementTimeoutMs,
+        lockTimeoutMs: limits.lockTimeoutMs,
+      });
+
+      if (written.length > 0) {
+        return { ...leftAsItIs, isTooBigToRead: false, isCleared: true };
+      }
+
+      logger.warn(
+        `Stored log screenshots: ${data.table}.${column} of row ${data.candidate.id} holds screenshots but is stored at ${formatStoredBytes(data.readStoredBytes)}, too big to read, and keeps them where they cannot be cleared in the database (or changed since), so it is left as it is.`,
+      );
+
+      return leftAsItIs;
+    } catch (error) {
+      if (isOverDatabaseLimits(error)) {
+        logger.warn(
+          `Stored log screenshots: ${data.table}.${column} of row ${data.candidate.id} holds screenshots but is stored at ${formatStoredBytes(data.readStoredBytes)}, too big to clear within the database's limits, so it is left as it is.`,
+        );
+
+        return leftAsItIs;
+      }
+
+      logger.error(
+        `Stored log screenshots: clearing ${data.table}.${column} of row ${data.candidate.id} in the database failed. It is tried again next run.`,
+      );
+      logger.error(error);
+
+      return { ...leftAsItIs, isTooBigToRead: false, isFailed: true };
+    }
   }
 }
