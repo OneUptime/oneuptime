@@ -383,6 +383,24 @@ jobs:
           Tests/Server/Utils/Retention/StoredLogScreenshotsPostgres.test.ts
           --forceExit
 
+      # Trimming the oversized checks grouped monitors kept before #9189
+      # (issue #9232): each record keeps its own series, trimmed in SQL one
+      # row a statement, within its statement and lock timeouts; a check too
+      # big to trim keeps the markers alone; other rows are not written; a
+      # second walk writes nothing, and a table done is never read again.
+      - name: Test trimming oversized stored checks on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OVERSIZED_STORED_CHECKS_TESTS: "true"
+          OVERSIZED_STORED_CHECKS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OVERSIZED_STORED_CHECKS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OVERSIZED_STORED_CHECKS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Retention/OversizedStoredChecksPostgres.test.ts
+          --forceExit
+
       # Deleting for good the rows soft deleted more than 30 days ago (issue
       # #6528): the discovered devices the age-out removed go on every
       # installation, 1000 a statement, another table's only where billing
