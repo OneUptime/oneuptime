@@ -109,7 +109,34 @@ const NetworkDeviceArchivedPage: FunctionComponent<
           );
         }}
         searchableFields={["name", "description"]}
-        filters={[]}
+        /*
+         * The same filters as the Devices list's (issue #9304), beside the
+         * Owner and Labels chips above, so archived devices are found the
+         * way live ones are.
+         */
+        filters={[
+          {
+            field: {
+              name: true,
+            },
+            title: "Name",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              hostname: true,
+            },
+            title: "Hostname",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              vendor: true,
+            },
+            title: "Vendor",
+            type: FieldType.Text,
+          },
+        ]}
         columns={[
           {
             field: {
