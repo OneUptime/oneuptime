@@ -75,6 +75,8 @@ Den som kan läsa ett repositorium läser dess uppgifter. Att be AI om något, s
 
 En uppgift om en privat incident eller ett privat larm, startad från dess utredning eller från en av dess rättningar, läses med sina svar och sin pull request bara av dem som får läsa posten, och när posten har tagits bort, bara av Projektägare och Projektadministratörer. För alla andra utelämnar repositoriets listor, filter, sökningar och antal den. Se [Privata incidenter, larm och episoder](/docs/permissions/index#privata-incidenter-larm-och-episoder).
 
+Detsamma gäller en uppgift som innehåller en privat incident eller ett privat larm: en som begärdes med den som kontext, en som ett svar lade till den i, och uppgiften för en åtgärdspunkt från en efteranalys. En uppgift som innehåller flera läses bara av dem som får läsa alla. Dialogrutan som lägger till en incident eller ett larm i en begäran säger det.
+
 ## Så går en åtgärdskörning till
 
 ```mermaid title="Från ett klick till en pull request"

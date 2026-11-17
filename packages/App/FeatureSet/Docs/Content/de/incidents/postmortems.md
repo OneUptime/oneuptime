@@ -205,6 +205,8 @@ Die Maßnahme zeigt dann, was aus ihr geworden ist: den Stand ihrer Aufgabe, etw
 
 Die beiden KI-Aktionen erfordern, dass KI für das Projekt eingeschaltet ist, und ein Repository, in dem OneUptime AI arbeiten kann. Ist keines verbunden, bietet das Menü stattdessen **Repository verbinden** an. Eine Anfrage erfordert dasselbe wie eine Anfrage in Code, dazu die Berechtigung, die Maßnahme zu bearbeiten.
 
+Bei einem privaten Vorfall lesen die Aufgabe und ihren Pull Request nur die, die den Vorfall lesen dürfen. Die Anfrage nennt den Vorfall nur mit seiner Nummer und bittet OneUptime AI, ihn aus dem Pull Request herauszuhalten, den jeder mit Zugriff auf das Repository liest.
+
 ### Alle Maßnahmen sehen
 
 **Vorfälle → Maßnahmen** listet die Maßnahmen aller Postmortems im ganzen Projekt auf, die am frühesten fälligen zuerst, jeweils mit Vorfall, Eigentümer, Fälligkeitsdatum und Status. Filtern Sie die Liste nach **Status**, **Eigentümer** und **Fälligkeitsdatum**; **Anzeigen** in einer Zeile öffnet die Seite **Postmortem** des Vorfalls.

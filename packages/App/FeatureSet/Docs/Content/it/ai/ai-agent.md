@@ -75,6 +75,8 @@ Chi può leggere un repository ne legge le attività. Chiedere all'IA, risponder
 
 Un'attività su un incidente o un avviso privato, avviata dalla sua indagine o da una delle sue correzioni, la legge, con le sue risposte e la sua pull request, solo chi può leggere il record e, una volta eliminato il record, solo i Proprietari del progetto e gli Amministratori del progetto. Per tutti gli altri, gli elenchi, i filtri, le ricerche e i conteggi del repository la lasciano fuori. Vedi [Incidenti, avvisi ed episodi privati](/docs/permissions/index#incidenti-avvisi-ed-episodi-privati).
 
+Lo stesso vale per un'attività che contiene un incidente o un avviso privato: una chiesta con esso come contesto, una a cui una risposta lo ha aggiunto e l'attività di un'azione da intraprendere di un post-mortem. Un'attività che ne contiene diversi la legge solo chi può leggerli tutti. La finestra di dialogo che aggiunge un incidente o un avviso a una richiesta lo dice.
+
 ## Come funziona un'esecuzione di correzione
 
 ```mermaid title="Da un clic a una pull request"

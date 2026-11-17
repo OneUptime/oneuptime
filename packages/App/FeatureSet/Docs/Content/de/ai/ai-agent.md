@@ -75,6 +75,8 @@ Wer ein Repository lesen darf, liest seine Aufgaben. Die KI bitten, antworten un
 
 Eine Aufgabe zu einem privaten Vorfall oder einer privaten Warnung, die aus seiner Untersuchung oder aus einer seiner Korrekturen gestartet wurde, lesen samt ihren Antworten und ihrem Pull Request nur die, die den Datensatz lesen dürfen, und, sobald der Datensatz gelöscht ist, nur Projektinhaber und Projektadministratoren. Für alle anderen lassen die Listen, Filter, Suchen und Zählungen des Repositorys sie weg. Siehe [Private Vorfälle, Warnungen und Episoden](/docs/permissions/index#private-vorfälle-warnungen-und-episoden).
 
+Ebenso eine Aufgabe, die einen privaten Vorfall oder eine private Warnung enthält: eine, die damit als Kontext angefragt wurde, eine, der eine Antwort ihn hinzugefügt hat, und die Aufgabe einer Maßnahme aus einem Postmortem. Eine Aufgabe, die mehrere enthält, lesen nur die, die jeden davon lesen dürfen. Der Dialog, der einer Anfrage einen Vorfall oder eine Warnung hinzufügt, sagt das.
+
 ## Wie ein Korrekturlauf abläuft
 
 ```mermaid title="Vom Klick zum Pull Request"

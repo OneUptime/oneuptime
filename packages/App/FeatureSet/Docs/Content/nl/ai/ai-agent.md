@@ -75,6 +75,8 @@ Wie een repository kan lezen, leest zijn taken. AI iets vragen, antwoorden en ee
 
 Een taak over een privé-incident of -waarschuwing, gestart vanuit het onderzoek ervan of vanuit een van de correcties ervan, wordt met de antwoorden en de pull request alleen gelezen door wie het record mag lezen, en zodra het record is verwijderd, alleen door Projecteigenaren en Projectbeheerders. Voor alle anderen laten de lijsten, filters, zoekopdrachten en tellingen van de repository haar weg. Zie [Privé-incidenten, -waarschuwingen en -episodes](/docs/permissions/index#privé-incidenten-waarschuwingen-en-episodes).
 
+Dat geldt ook voor een taak die een privé-incident of -waarschuwing bevat: een die ermee als context werd gevraagd, een waaraan een antwoord het toevoegde en de taak van een actiepunt uit een postmortem. Een taak die er meerdere bevat, wordt alleen gelezen door wie ze allemaal mag lezen. Het dialoogvenster dat een incident of een waarschuwing aan een verzoek toevoegt, zegt dat.
+
 ## Hoe een herstelrun verloopt
 
 ```mermaid title="Van een klik tot een pull request"

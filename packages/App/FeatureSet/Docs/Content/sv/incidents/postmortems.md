@@ -205,6 +205,8 @@ Varje öppen åtgärdspunkt kan bli det som den efterfrågar, via dess meny **�
 
 De två AI-åtgärderna kräver att AI är påslaget för projektet och ett repository som OneUptime AI kan arbeta i. Är inget anslutet erbjuder menyn **Anslut ett kodförråd** i stället. Att be om dem kräver samma sak som att be om något i Kod, och behörighet att redigera åtgärdspunkten.
 
+För en privat incident läses uppgiften och dess pull request bara av dem som får läsa incidenten. Begäran nämner incidenten bara med dess nummer och ber OneUptime AI att hålla den utanför pull requesten, som alla med åtkomst till kodförrådet läser.
+
 ### Se alla åtgärdspunkter
 
 **Incidenter → Åtgärdspunkter** visar åtgärdspunkterna från alla efteranalyser i projektet, den som förfaller först överst, med varje punkts incident, ägare, förfallodatum och status. Filtrera listan på **Status**, **Ägare** och **Förfallodatum**, och **Visa** på en rad öppnar incidentens sida **Efteranalys**.
