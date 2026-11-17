@@ -122,6 +122,26 @@ jest.mock("../../../FeatureSet/Workflow/Services/QueueWorkflow", () => {
   };
 });
 
+/*
+ * The rule a record's lookup adds on an incident's own ID, which leaves
+ * private incidents out (PrivateRecordReadFilter.keepToNotPrivate): a run of
+ * a workflow never acts on one (#8914). Read off the incident's isPrivate.
+ */
+function isNotPrivateRule(condition: unknown): boolean {
+  const operator: { type?: unknown; getSql?: unknown } = (condition || {}) as {
+    type?: unknown;
+    getSql?: unknown;
+  };
+
+  return (
+    operator.type === "raw" &&
+    typeof operator.getSql === "function" &&
+    String((operator.getSql as (alias: string) => string)("c")).includes(
+      `"isPrivate" = TRUE`,
+    )
+  );
+}
+
 describe("Run Workflow with a record's number", () => {
   let projectId: ObjectID;
   let otherProjectId: ObjectID;
@@ -206,6 +226,10 @@ describe("Run Workflow with a record's number", () => {
           return incidents.filter((incident: Incident): boolean => {
             return Object.entries(args.query).every(
               ([column, expected]: [string, unknown]): boolean => {
+                if (isNotPrivateRule(expected)) {
+                  return incident.isPrivate !== true;
+                }
+
                 return (
                   String(
                     (incident as unknown as Dictionary<unknown>)[column],
@@ -277,6 +301,22 @@ describe("Run Workflow with a record's number", () => {
       select: { title: true },
     });
     expect(String(queued()["startedByUserId"])).toBe(userId.toString());
+  });
+
+  test("a private incident's number runs nothing: a workflow does not act on one (#8914)", async () => {
+    const nine: Incident = incident(9);
+    nine.isPrivate = true;
+
+    const thrown: unknown = await run({
+      _id: "INC-9",
+      select: { title: true },
+    });
+
+    expect(thrown).toBeInstanceOf(BadDataException);
+    expect((thrown as Error).message).toBe(
+      "No incident in this project has the number INC-9.",
+    );
+    expect(queueSpy).not.toHaveBeenCalled();
   });
 
   test("8 and #8 run with it too", async () => {
