@@ -404,10 +404,14 @@ export default class WorkspaceIncidentSubscriberNotification {
     }
 
     try {
-      // Read as the member, as the Dashboard's review reads it for them.
+      /*
+       * Read as the member, as the Dashboard's review reads it for them: a
+       * status page they may not read is counted, never named. They just
+       * declared the incident, so they hold one of the permissions that
+       * may see who it reaches (IncidentSubscriberAudienceBuilder
+       * .PERMISSIONS lists every one that may declare an incident).
+       */
       const props: DatabaseCommonInteractionProps = { ...data.props };
-
-      IncidentSubscriberAudienceBuilder.assertCallerMaySeeAudience(props);
 
       const audience: IncidentSubscriberAudienceResult =
         await IncidentSubscriberAudienceBuilder.build({

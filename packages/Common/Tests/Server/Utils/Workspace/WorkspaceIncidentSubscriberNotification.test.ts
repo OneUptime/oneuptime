@@ -992,9 +992,31 @@ describe("getConfirmationLine: from the incident as created, and who it reaches"
     expect(warnSpy).toHaveBeenCalled();
   });
 
-  test("a member who may not see who it reaches: it says it could not work it out, never who", async () => {
-    expect(await lineFor({ props: propsWith([]) })).toBe(TEXT.couldNotWorkOut);
-    expect(buildSpy).not.toHaveBeenCalled();
+  /*
+   * Who reads the line just declared the incident: whoever may declare one
+   * may see who it reaches, as on the Dashboard's review - so the line asks
+   * no more of them than the create did.
+   */
+  test("everyone who may declare an incident may see who it reaches", () => {
+    for (const permission of new Incident().getCreatePermissions()) {
+      expect([
+        permission,
+        IncidentSubscriberAudienceBuilder.PERMISSIONS.includes(permission),
+      ]).toEqual([permission, true]);
+    }
+  });
+
+  test("the member's own reading decides which pages are named: never read as OneUptime", async () => {
+    await lineFor({ props: propsWith([Permission.IncidentMember]) });
+
+    const request: { props: DatabaseCommonInteractionProps } = buildSpy.mock
+      .calls[0]![0] as never;
+    expect(request.props.isRoot).toBeUndefined();
+    expect(request.props.userId).toBe(USER_ID);
+    expect(
+      request.props.userTenantAccessPermission?.[PROJECT_ID.toString()]
+        ?.permissions[0]?.permission,
+    ).toBe(Permission.IncidentMember);
   });
 
   test("an incident the create gave back without its id: it says it could not work it out", async () => {
