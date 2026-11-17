@@ -311,8 +311,13 @@ describe("BackendAPI.getRepositoryToken, and who opens the pull request", () => 
       OPEN.taskId,
     );
 
+    /*
+     * It has OneUptime open its pull requests (#8916), and keeps a private
+     * incident or alert out of them (#9165).
+     */
     expect(postCall().data["codeFixCapabilities"]).toEqual([
       "serverOpensPullRequests",
+      "keepsPrivateRecordsOutOfPullRequests",
     ]);
   });
 });
