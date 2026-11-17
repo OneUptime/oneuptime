@@ -31,7 +31,7 @@ const output = path.join(
   repository,
   "output/playwright/server-setup-ui/fixture",
 );
-const port = Number(process.env.SERVER_SETUP_FIXTURE_PORT || 4724);
+const port = Number(process.env.SERVER_SETUP_FIXTURE_PORT || 4726);
 
 /*
  * The Community Edition always: Server setup is the self-hosted server's,

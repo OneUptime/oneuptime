@@ -13,7 +13,7 @@ import path from "path";
  * phone's width, light and dark, in German and Persian, and never a page
  * that scrolls sideways.
  */
-const port: string = process.env["SERVER_SETUP_FIXTURE_PORT"] || "4724";
+const port: string = process.env["SERVER_SETUP_FIXTURE_PORT"] || "4726";
 
 export default defineConfig({
   testDir: "./ServerSetup",
