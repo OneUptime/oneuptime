@@ -56537,7 +56537,7 @@
   "Use On-Call Policy instead": "به‌جای آن از «سیاست آنکال» استفاده کنید",
   "Drop one CSV file at a time.": "هر بار فقط یک فایل CSV رها کنید.",
   "Drop the CSV file to upload it": "فایل CSV را رها کنید تا بارگذاری شود",
-  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} فایل CSV نیست. فایلی را که با ‎.csv تمام می‌شود انتخاب یا رها کنید.",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} فایل CSV نیست. فایلی را که با .csv تمام می‌شود انتخاب یا رها کنید.",
   "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "۹۰ روز پس از آنکه OneUptime اپلیکیشن Zoom خود را به‌روز کرد، Zoom دیگر ورود آن‌ها را نمی‌پذیرد و این اتصال‌ها دیگر تماسی آغاز نمی‌کنند.",
   "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "۹۰ روز پس از آنکه OneUptime اپلیکیشن Zoom خود را به‌روز کرد، Zoom دیگر ورود این اتصال را نمی‌پذیرد و این اتصال دیگر تماسی آغاز نمی‌کند.",
   "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "برای هر اتصال روی «اتصال دوباره» کلیک کنید، سپس وقتی Zoom پرسید، به OneUptime اجازه دهید ضبط‌ها و رونوشت‌ها را بخواند.",
