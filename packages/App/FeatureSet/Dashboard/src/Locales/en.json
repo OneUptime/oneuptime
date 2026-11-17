@@ -19378,7 +19378,6 @@
   "Pick the status the monitor shows when no criteria match.": "Pick the status the monitor shows when no criteria match.",
   "Unknown schedule": "Unknown schedule",
   "When no criteria match: {{status}}": "When no criteria match: {{status}}",
-  "Who gets paged at this level, and how long to wait for an acknowledgement before escalating.": "Who gets paged at this level, and how long to wait for an acknowledgement before escalating.",
   "$0 subscription. Paid features are billed separately when pay as you go is enabled.": "$0 subscription. Paid features are billed separately when pay as you go is enabled.",
   "${{amount}} / month per user. Billed monthly.": "${{amount}} / month per user. Billed monthly.",
   "${{amount}} / month per user. Billed yearly.": "${{amount}} / month per user. Billed yearly.",

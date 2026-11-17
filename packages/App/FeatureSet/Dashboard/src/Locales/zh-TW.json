@@ -19378,7 +19378,6 @@
   "Pick the status the monitor shows when no criteria match.": "選擇沒有任何條件符合時監測器顯示的狀態。",
   "Unknown schedule": "未知排程",
   "When no criteria match: {{status}}": "沒有條件符合時：{{status}}",
-  "Who gets paged at this level, and how long to wait for an acknowledgement before escalating.": "此層級要通知誰，以及在上報之前要等待確認多久。",
   "$0 subscription. Paid features are billed separately when pay as you go is enabled.": "$0 subscription. Paid features are billed separately when pay as you go is enabled.",
   "${{amount}} / month per user. Billed monthly.": "${{amount}} / month per user. Billed monthly.",
   "${{amount}} / month per user. Billed yearly.": "${{amount}} / month per user. Billed yearly.",

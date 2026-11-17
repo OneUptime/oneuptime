@@ -19378,7 +19378,6 @@
   "Pick the status the monitor shows when no criteria match.": "اختر الحالة التي تعرضها المراقبة عندما لا يتطابق أي معيار.",
   "Unknown schedule": "جدول غير معروف",
   "When no criteria match: {{status}}": "عندما لا يتطابق أي معيار: {{status}}",
-  "Who gets paged at this level, and how long to wait for an acknowledgement before escalating.": "من يُستدعى في هذا المستوى، وكم يُنتظر للإقرار قبل التصعيد.",
   "$0 subscription. Paid features are billed separately when pay as you go is enabled.": "اشتراك بقيمة $0. تُفوتر الميزات المدفوعة بشكل منفصل عند تفعيل الدفع حسب الاستخدام.",
   "${{amount}} / month per user. Billed monthly.": "${{amount}} / شهريًا لكل مستخدم. تُفوتر شهريًا.",
   "${{amount}} / month per user. Billed yearly.": "${{amount}} / شهريًا لكل مستخدم. تُفوتر سنويًا.",

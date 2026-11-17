@@ -19378,7 +19378,6 @@
   "Pick the status the monitor shows when no criteria match.": "どの条件にも一致しないときにモニターが表示するステータスを選択してください。",
   "Unknown schedule": "不明なスケジュール",
   "When no criteria match: {{status}}": "どの条件にも一致しない場合: {{status}}",
-  "Who gets paged at this level, and how long to wait for an acknowledgement before escalating.": "このレベルで誰に通知し、エスカレーションする前に確認をどれだけ待つか。",
   "$0 subscription. Paid features are billed separately when pay as you go is enabled.": "$0 のサブスクリプション。有料機能は、従量課金が有効な場合に別途請求されます。",
   "${{amount}} / month per user. Billed monthly.": "ユーザーあたり月額 ${{amount}}。毎月請求されます。",
   "${{amount}} / month per user. Billed yearly.": "ユーザーあたり月額 ${{amount}}。毎年請求されます。",

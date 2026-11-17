@@ -19378,7 +19378,6 @@
   "Pick the status the monitor shows when no criteria match.": "选择在没有任何条件匹配时监视器显示的状态。",
   "Unknown schedule": "未知计划",
   "When no criteria match: {{status}}": "没有条件匹配时：{{status}}",
-  "Who gets paged at this level, and how long to wait for an acknowledgement before escalating.": "此级别通知谁，以及在升级之前等待确认多长时间。",
   "$0 subscription. Paid features are billed separately when pay as you go is enabled.": "$0 subscription. Paid features are billed separately when pay as you go is enabled.",
   "${{amount}} / month per user. Billed monthly.": "${{amount}} / month per user. Billed monthly.",
   "${{amount}} / month per user. Billed yearly.": "${{amount}} / month per user. Billed yearly.",

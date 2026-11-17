@@ -19378,7 +19378,6 @@
   "Pick the status the monitor shows when no criteria match.": "وضعیتی را انتخاب کنید که مانیتور وقتی هیچ معیاری برقرار نیست نشان می‌دهد.",
   "Unknown schedule": "زمان‌بندی ناشناس",
   "When no criteria match: {{status}}": "وقتی هیچ معیاری برقرار نیست: {{status}}",
-  "Who gets paged at this level, and how long to wait for an acknowledgement before escalating.": "در این سطح به چه کسی خبر داده شود و پیش از تشدید چه مدت برای تأیید صبر شود.",
   "$0 subscription. Paid features are billed separately when pay as you go is enabled.": "اشتراک $0. وقتی پرداخت بر اساس مصرف فعال باشد، ویژگی‌های پولی جداگانه صورت‌حساب می‌شوند.",
   "${{amount}} / month per user. Billed monthly.": "${{amount}} در ماه برای هر کاربر. صورت‌حساب ماهانه.",
   "${{amount}} / month per user. Billed yearly.": "${{amount}} در ماه برای هر کاربر. صورت‌حساب سالانه.",

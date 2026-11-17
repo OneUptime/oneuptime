@@ -19378,7 +19378,6 @@
   "Pick the status the monitor shows when no criteria match.": "वह स्थिति चुनें जो कोई भी मानदंड मेल न खाने पर मॉनिटर दिखाता है।",
   "Unknown schedule": "अज्ञात अनुसूची",
   "When no criteria match: {{status}}": "जब कोई मानदंड मेल न खाए: {{status}}",
-  "Who gets paged at this level, and how long to wait for an acknowledgement before escalating.": "इस स्तर पर किसे सूचित किया जाता है, और एस्केलेट करने से पहले स्वीकृति के लिए कितनी देर प्रतीक्षा करनी है।",
   "$0 subscription. Paid features are billed separately when pay as you go is enabled.": "$0 subscription. Paid features are billed separately when pay as you go is enabled.",
   "${{amount}} / month per user. Billed monthly.": "${{amount}} / month per user. Billed monthly.",
   "${{amount}} / month per user. Billed yearly.": "${{amount}} / month per user. Billed yearly.",
