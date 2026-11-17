@@ -1883,6 +1883,17 @@ export const INVENTORY_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescr
       IAAS,
       C.Networking,
     ),
+    /*
+     * An EKS cluster: its Kubernetes metrics are the Kubernetes product's,
+     * as a GKE cluster's are, so the cluster is listed only (#9375).
+     */
+    descriptorOf(
+      CloudProvider.AWS,
+      "AWS::EKS::Cluster",
+      "EKS Cluster",
+      PAAS,
+      C.Containers,
+    ),
     descriptorOf(
       CloudProvider.GCP,
       "compute.googleapis.com/Network",

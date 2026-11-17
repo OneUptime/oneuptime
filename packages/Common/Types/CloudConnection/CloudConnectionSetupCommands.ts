@@ -132,6 +132,8 @@ export const AWS_READ_ONLY_ACTION_GROUPS: Array<AwsReadOnlyActionGroup> = [
       "ecs:DescribeClusters",
       "ecs:ListServices",
       "ecs:DescribeServices",
+      "eks:ListClusters",
+      "eks:DescribeCluster",
       "lambda:ListFunctions",
       "rds:DescribeDBInstances",
       "rds:DescribeDBClusters",
