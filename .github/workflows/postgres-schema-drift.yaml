@@ -4552,6 +4552,27 @@ jobs:
           Tests/Server/TeamCompliance/TeamComplianceStatusPostgres.test.ts
           --selectProjects server --runInBand --forceExit
 
+      # SCIM bearer tokens through the upgrade that hashes them (#9012), as
+      # the SCIM middleware itself looks one up: on copies of the migrated
+      # ProjectSCIM, StatusPageSCIM and DataMigrations tables, a token stored
+      # as written finds its connection within the day before the
+      # PresentedKeys:ProtectAtRest job runs, and by its hash alone after
+      # the job hashed it in place; a wrong token, another connection's, or
+      # the hash presented as a token never does, and no token goes into a
+      # query once hashed.
+      - name: Test SCIM bearer tokens' upgrade to a hash on migrated Postgres (Enterprise)
+        if: matrix.shard == 3
+        working-directory: ee
+        env:
+          RUN_POSTGRES_SCIM_TOKEN_AT_REST_TESTS: "true"
+          SCIM_TOKEN_AT_REST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SCIM_TOKEN_AT_REST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SCIM_TOKEN_AT_REST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest
+          Tests/Server/Identity/SCIMBearerTokensAtRestPostgres.test.ts
+          --selectProjects server --runInBand --forceExit
+
       # The audit log exporter (Enterprise) on copies of the migrated Project,
       # User and AuditLogExport tables: exports saved through the real service,
       # sent by the real exporter, the cursor and failure state written by its
