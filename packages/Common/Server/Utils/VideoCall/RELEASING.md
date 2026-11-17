@@ -463,12 +463,6 @@ Found while writing this guide on 17 November 2026:
   reconnects them. The user docs say they start calls as before, and nothing
   in OneUptime asks them to reconnect (#9269). Settle this before the update
   goes live: **App activation** can hold it until a maintainer activates it.
-- The privacy policy's **Connected Services** section names only
-  `user:read:user` and `meeting:write:meeting` for Zoom, and says the data is
-  used only to create meetings. It does not mention the `cloud_recording`
-  scopes, reading transcripts, or OneUptime AI reading them. The user docs do
-  not say what happens to transcripts once the app is removed. Zoom's review
-  checks both (#9264).
 - The comments on the Zoom app in `config.example.env` and `values.yaml`
   list only `meeting:write:meeting` and `user:read:user`, as does the header
   comment of `ZoomOAuthApp.ts`. The user docs list all four scopes (#9265).
