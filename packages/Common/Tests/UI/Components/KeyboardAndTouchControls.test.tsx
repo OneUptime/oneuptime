@@ -16,9 +16,10 @@ import FieldType from "../../../UI/Components/Types/FieldType";
 import IconProp from "../../../Types/Icon/IconProp";
 import Color from "../../../Types/Color";
 import GenericObject from "../../../Types/GenericObject";
-import JSONObject from "../../../Types/JSON";
+import { JSONObject } from "../../../Types/JSON";
 import { findNestedControls } from "../../Helpers/NestedControls";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { Mock } from "jest-mock";
 import "@testing-library/jest-dom";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -57,7 +58,7 @@ describe("the notification bell, from the keyboard", () => {
 
   test("Tab reaches each item once the bell is open, and Enter or Space opens it", async () => {
     const user: User = userEvent.setup();
-    const onItemClick: jest.Mock<(item: NotificationItem) => void> = jest.fn();
+    const onItemClick: Mock<(item: NotificationItem) => void> = jest.fn();
 
     render(<NotificationBell items={items} onItemClick={onItemClick} />);
 
@@ -135,7 +136,7 @@ describe("the notification bell, from the keyboard", () => {
 describe("a header alert", () => {
   test("that does something is a button a keyboard presses", async () => {
     const user: User = userEvent.setup();
-    const onClick: jest.Mock<() => void> = jest.fn();
+    const onClick: Mock<() => void> = jest.fn();
 
     render(
       <HeaderAlert
@@ -182,8 +183,7 @@ describe("a form's steps", () => {
 
   test("a finished step is a button: Tab reaches it, Enter and Space go back to it", async () => {
     const user: User = userEvent.setup();
-    const onClick: jest.Mock<(step: FormStep<GenericObject>) => void> =
-      jest.fn();
+    const onClick: Mock<(step: FormStep<GenericObject>) => void> = jest.fn();
 
     render(
       <Steps
@@ -264,7 +264,7 @@ describe("a form's steps", () => {
 describe("an icon beside words", () => {
   test("that does something is a button a keyboard presses", async () => {
     const user: User = userEvent.setup();
-    const onClick: jest.Mock<() => void> = jest.fn();
+    const onClick: Mock<() => void> = jest.fn();
 
     render(<IconText icon={IconProp.Link} text="Open" onClick={onClick} />);
 
@@ -285,7 +285,7 @@ describe("an icon beside words", () => {
 describe("a progress step", () => {
   test("still to do is a button a keyboard presses", async () => {
     const user: User = userEvent.setup();
-    const onClick: jest.Mock<() => void> = jest.fn();
+    const onClick: Mock<() => void> = jest.fn();
 
     render(
       <ol>
@@ -337,7 +337,7 @@ describe("a progress step", () => {
 describe("an uptime day's incidents", () => {
   test("open from the keyboard as they do on a click", async () => {
     const user: User = userEvent.setup();
-    const onIncidentClick: jest.Mock<(id: string) => void> = jest.fn();
+    const onIncidentClick: Mock<(id: string) => void> = jest.fn();
 
     render(
       <UptimeBarTooltip

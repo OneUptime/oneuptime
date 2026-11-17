@@ -1,7 +1,9 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseService from "Common/Server/Services/DatabaseService";
+import EncryptedColumnValue from "Common/Server/Utils/Database/EncryptedColumnValue";
 import Encryption from "Common/Server/Utils/Encryption";
 import logger from "Common/Server/Utils/Logger";
+import TableColumnType from "Common/Types/Database/TableColumnType";
 
 // Taken from Common's service so App does not resolve its own typeorm copy.
 export type ModelRepository = ReturnType<
@@ -15,6 +17,13 @@ export interface ColumnToEncrypt {
   repository: ModelRepository;
   // The column, as the table names it: "customCertificateKey".
   column: string;
+  /*
+   * For a JSON column: the fields kept encrypted in its object, or in each
+   * object of its list - the column's `encryptedFields`
+   * (EncryptedColumnValue). Unset for a text column, whose whole value is
+   * encrypted.
+   */
+  jsonFields?: ReadonlyArray<string> | undefined;
 }
 
 type StoredRow = Record<string, unknown>;
@@ -49,6 +58,15 @@ type StoredRow = Record<string, unknown>;
  * its class, its code and its message, with the value taken out of the
  * message, and never logs the error itself, whose driver fields (a failed
  * query's parameters) hold the value it was writing.
+ *
+ * A JSON column (`jsonFields`) keeps its shape: in its object, or in each
+ * object of its list, the fields named are encrypted as DatabaseService
+ * encrypts them (EncryptedColumnValue), each a field that is set and not our
+ * ciphertext, and the rest stay as written - a discovery scan's SNMP
+ * credential sets keep their names and versions readable. Every row that
+ * holds a value is read, as no query can say which hold a plaintext field,
+ * and only a row with one is written: held to the JSON read, which jsonb
+ * compares by its content.
  */
 export default class EncryptColumnInPlace {
   // Rows read per query: a private key is a few kilobytes.
@@ -60,6 +78,14 @@ export default class EncryptColumnInPlace {
     target: ColumnToEncrypt;
     pageSize?: number | undefined;
   }): Promise<void> {
+    if (data.target.jsonFields) {
+      await EncryptColumnInPlace.encryptJsonFields({
+        ...data,
+        jsonFields: data.target.jsonFields,
+      });
+      return;
+    }
+
     const pageSize: number = data.pageSize || EncryptColumnInPlace.PAGE_SIZE;
     const { kind, repository, column } = data.target;
     const tableName: string = repository.metadata.tableName;
@@ -148,13 +174,156 @@ export default class EncryptColumnInPlace {
     }
   }
 
+  // The fields of a JSON column, encrypted in place: see the top of the class.
+  private static async encryptJsonFields(data: {
+    migrationName: string;
+    target: ColumnToEncrypt;
+    jsonFields: ReadonlyArray<string>;
+    pageSize?: number | undefined;
+  }): Promise<void> {
+    const pageSize: number = data.pageSize || EncryptColumnInPlace.PAGE_SIZE;
+    const { kind, repository, column } = data.target;
+    const tableName: string = repository.metadata.tableName;
+
+    let afterId: string | null = null;
+
+    for (;;) {
+      let rows: Array<StoredRow> = [];
+
+      try {
+        rows = (await repository.manager.query(
+          `SELECT "_id", "${column}" FROM "${tableName}" WHERE "${column}" IS NOT NULL${
+            afterId === null ? "" : ` AND "_id" > $1`
+          } ORDER BY "_id" ASC LIMIT ${pageSize}`,
+          afterId === null ? [] : [afterId],
+        )) as Array<StoredRow>;
+      } catch (err) {
+        logger.error(
+          `${data.migrationName}: failed to read the ${kind} rows' ${column} to encrypt: ${EncryptColumnInPlace.describeError(err)}`,
+        );
+        return;
+      }
+
+      for (const row of rows) {
+        await EncryptColumnInPlace.encryptJsonRow({
+          migrationName: data.migrationName,
+          target: data.target,
+          jsonFields: data.jsonFields,
+          tableName: tableName,
+          row: row,
+        });
+      }
+
+      if (rows.length < pageSize) {
+        return;
+      }
+
+      const lastId: string = String(rows[rows.length - 1]!["_id"]);
+
+      // A page that does not move on would be read again for ever.
+      if (lastId === afterId) {
+        return;
+      }
+
+      afterId = lastId;
+    }
+  }
+
+  private static async encryptJsonRow(data: {
+    migrationName: string;
+    target: ColumnToEncrypt;
+    jsonFields: ReadonlyArray<string>;
+    tableName: string;
+    row: StoredRow;
+  }): Promise<void> {
+    const { kind, column } = data.target;
+    const id: string = String(data.row["_id"]);
+    const stored: unknown = data.row[column];
+
+    const plaintexts: Array<string> = EncryptColumnInPlace.getPlaintextFields(
+      stored,
+      data.jsonFields,
+    );
+
+    // Nothing as written: encrypted by an earlier run, or never set.
+    if (plaintexts.length === 0) {
+      return;
+    }
+
+    try {
+      const encrypted: unknown = await EncryptedColumnValue.encrypt(
+        {
+          type: TableColumnType.JSON,
+          encrypted: true,
+          encryptedFields: [...data.jsonFields],
+        },
+        stored,
+      );
+
+      await data.target.repository.manager.query(
+        `UPDATE "${data.tableName}" SET "${column}" = $1::jsonb WHERE "_id" = $2 AND "${column}" = $3::jsonb`,
+        [JSON.stringify(encrypted), id, JSON.stringify(stored)],
+      );
+    } catch (err) {
+      // As a text column's: this row reads as itself, and the others go on.
+      logger.error(
+        `${data.migrationName}: failed to encrypt the ${column} of ${kind} ${id}: ${EncryptColumnInPlace.describeError(err, plaintexts)}`,
+      );
+    }
+  }
+
+  /*
+   * The values of `fields`, in a JSON value's object or in each object of
+   * its list, that are set and not our ciphertext: what is still to be
+   * encrypted. Text where an object belongs is encrypted whole, as
+   * EncryptedColumnValue stores it, so it is one of them too.
+   */
+  public static getPlaintextFields(
+    value: unknown,
+    fields: ReadonlyArray<string>,
+  ): Array<string> {
+    const entries: Array<unknown> = Array.isArray(value) ? value : [value];
+    const plaintexts: Array<string> = [];
+
+    for (const entry of entries) {
+      if (typeof entry === "string") {
+        if (entry && !Encryption.looksEncrypted(entry)) {
+          plaintexts.push(entry);
+        }
+
+        continue;
+      }
+
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        continue;
+      }
+
+      for (const field of fields) {
+        const fieldValue: unknown = (entry as Record<string, unknown>)[field];
+
+        if (
+          typeof fieldValue === "string" &&
+          fieldValue &&
+          !Encryption.looksEncrypted(fieldValue)
+        ) {
+          plaintexts.push(fieldValue);
+        }
+      }
+    }
+
+    return plaintexts;
+  }
+
   /*
    * What went wrong, for a log line: the error's class, its code (a
-   * database's SQLSTATE) and its message, with the value it failed on taken
+   * database's SQLSTATE) and its message, with each value it failed on taken
    * out wherever the message quotes it. Never the error itself: a driver's
    * error carries the query's parameters, the value among them.
    */
-  public static describeError(err: unknown, value?: string): string {
+  public static describeError(
+    err: unknown,
+    value?: string | ReadonlyArray<string>,
+  ): string {
     const name: string = err instanceof Error && err.name ? err.name : "Error";
 
     const code: unknown = (err as { code?: unknown } | null)?.code;
@@ -166,8 +335,13 @@ export default class EncryptColumnInPlace {
           ? err
           : "unknown error";
 
-    if (value) {
-      message = message.split(value).join("[REDACTED]");
+    const values: ReadonlyArray<string> =
+      typeof value === "string" ? [value] : value || [];
+
+    for (const secret of values) {
+      if (secret) {
+        message = message.split(secret).join("[REDACTED]");
+      }
     }
 
     const codeText: string =

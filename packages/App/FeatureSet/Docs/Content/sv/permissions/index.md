@@ -364,6 +364,12 @@ Det arbete OneUptime AI gör i din kod följer också en privat incident eller e
 
 Arbete som bara innehåller en privat incident eller ett privat larm följer den också: en Code-uppgift som någon bad om med posten som kontext eller lade till den i ett svar, uppgiften för en åtgärdspunkt från en efteranalys, och en pull request som OneUptime AI öppnade från postens AI-konversation eller från Fråga AI om den. Var och en läses bara av dem som får läsa alla poster den innehåller, och när en av dem har tagits bort, bara av Projektägare och Projektadministratörer. Begäran för en åtgärdspunkt i en privat incident nämner incidenten bara med dess nummer och ber OneUptime AI att hålla den utanför pull requesten.
 
+Det som OneUptime AI har sparat, eller som ett svar senare lade till en privat post i, följer posten som den är nu:
+
+- En pull requests produktionsgranskning visar, räknar och nämner bara de incidenter du får läsa nu. OneUptime AI:s punkter om de andra utelämnas. Kommentaren som redan finns på pull requesten står kvar som den var.
+- En pull request som OneUptime AI öppnar från en chatt innehåller också de incidenter och larm som chatten öppnade en i taget, och de från en lista vars titel pull requesten citerar.
+- Ett undantags korrigering, en undersöknings korrigerings-pull request, en traces prestandakorrigering, en korrigerings pull request till koden och den korrigering som pågår för en AI-insikt eller en funktion i Profiler säger att en uppgift är dold när den innehåller en privat incident eller ett privat larm som du inte kan öppna. De visar varken dess förlopp eller dess pull request.
+
 En post som nämner en privat post utan att vara en del av den, till exempel ett Data Security-problem, ett säkerhetsärende, en formulärinsändning, en sessionsinspelning eller ett offentligt larm eller en offentlig incident i en privat episod, läses som tidigare. Bara de som får läsa den privata posten ser dess titel och övriga fält där: för alla andra hittar ett filter på dem den inte, och en lista som nämner den kan inte sorteras efter dem.
 
 Arbetsflöden agerar inte på privata poster. Stegen i ett arbetsflöde agerar som Projektadministratör, men får aldrig låna dess insyn i privata incidenter, larm och episoder: de hittar inga, ändrar inga och lägger inte till något till en, och ett arbetsflöde startar inte på en sådan post eller på något som hör till den. Se [Vad arbetsflödessteg får göra](/docs/workflows/configuration#vad-arbetsflödessteg-får-göra).

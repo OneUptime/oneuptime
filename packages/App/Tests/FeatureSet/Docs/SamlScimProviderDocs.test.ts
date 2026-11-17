@@ -376,17 +376,19 @@ describe("Status pages: the SSO page", () => {
 });
 
 describe("SCIM: setting up a connection", () => {
-  it("in English: the name and the members team, the options on under More fields, then the dialog", () => {
+  it("in English: the name and the members team, the options on under More fields, then the token once and the dialog", () => {
     const [project, statusPage] = scimSettingsSteps("en");
 
     expect(project).toEqual([
       "   - Enter a **Name**. **Default Teams** starts on your project's members team: new users are added to these teams",
       "   - Under **More fields**, **Auto Provision Users** (add users when they're assigned in your IdP) and **Auto Deprovision Users** (remove users when they're unassigned in your IdP) are on, and **Enable Push Groups** is off. Change them there if you need to",
-      "   - Save. The dialog with the **SCIM Base URL** and **Bearer Token** for your IdP configuration opens straight away",
+      // The token first, shown once (#9012), then the dialog with the URL.
+      "   - Save. OneUptime shows the connection's **Bearer Token** once: copy it before you click **Done**, since OneUptime keeps only its hash and no page shows it again. The dialog with the **SCIM Base URL** for your IdP configuration opens next",
     ]);
     expect(statusPage).toEqual([
       "   - Enter a **Name**. Under **More fields**, **Auto Provision Users** (add private users when they're assigned in your IdP) and **Auto Deprovision Users** (delete private users when they're unassigned in your IdP) are on. Change them there if you need to",
-      "   - Save. The dialog with the **SCIM Base URL** and **Bearer Token** for your IdP configuration opens straight away",
+      // The token first, shown once (#9012), then the dialog with the URL.
+      "   - Save. OneUptime shows the connection's **Bearer Token** once: copy it before you click **Done**, since OneUptime keeps only its hash and no page shows it again. The dialog with the **SCIM Base URL** for your IdP configuration opens next",
     ]);
 
     const page: string = readPage("en", "identity/scim");

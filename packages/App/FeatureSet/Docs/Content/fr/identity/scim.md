@@ -41,7 +41,7 @@ Le SCIM de projet permet aux fournisseurs d'identité de gérer les membres des 
 
 ### Configurer le SCIM de projet
 
-Seul un Propriétaire du projet peut ajouter ou modifier la connexion SCIM d'un projet, ou voir ou réinitialiser son jeton bearer : via SCIM, votre fournisseur d'identité peut ajouter des personnes à n'importe quelle équipe du projet.
+Seul un Propriétaire du projet peut ajouter ou modifier la connexion SCIM d'un projet, ou réinitialiser son jeton bearer : via SCIM, votre fournisseur d'identité peut ajouter des personnes à n'importe quelle équipe du projet. Personne ne peut relire un jeton bearer, pas même un Propriétaire du projet : OneUptime n'en conserve qu'un hachage.
 :::steps
 1. **Ouvrir les paramètres du projet**
 
@@ -52,16 +52,16 @@ Seul un Propriétaire du projet peut ajouter ou modifier la connexion SCIM d'un 
 
    - Saisissez un **Nom**. **Équipes par défaut** commence par l'équipe des membres de votre projet : les nouveaux utilisateurs sont ajoutés à ces équipes
    - Sous **Plus de champs**, **Provisionner automatiquement les utilisateurs** (ajouter les utilisateurs quand ils sont attribués dans votre IdP) et **Déprovisionner automatiquement les utilisateurs** (retirer les utilisateurs quand leur attribution est retirée dans votre IdP) sont activés, et **Activer les groupes Push** est désactivé. Modifiez-les là si besoin
-   - Enregistrez. La boîte de dialogue avec l'**URL de base SCIM** et le **Jeton Bearer** pour la configuration de votre IdP s'ouvre immédiatement
+   - Enregistrez. OneUptime affiche le **Jeton Bearer** de la connexion une seule fois : copiez-le avant de cliquer sur **Terminé**, car OneUptime n'en conserve qu'un hachage et aucune page ne l'affiche à nouveau. La boîte de dialogue avec l'**URL de base SCIM** pour la configuration de votre IdP s'ouvre ensuite
 
 3. **Configurer votre fournisseur d'identité**
 
    - Utilisez l'**URL de base SCIM** de la boîte de dialogue. Sur OneUptime Cloud, c'est `https://oneuptime.com/identity/scim/v2/<scim-id>` ; une installation auto-hébergée affiche son propre hôte
-   - Configurez l'authentification par jeton bearer avec le **Jeton Bearer** de la boîte de dialogue. Si votre fournisseur d'identité demande plutôt des identifiants client OAuth 2.0, utilisez les [identifiants client OAuth 2.0](#identifiants-client-oauth-20) de la même boîte de dialogue
+   - Configurez l'authentification par jeton bearer avec le **Jeton Bearer** que vous avez copié. Si votre fournisseur d'identité demande plutôt des identifiants client OAuth 2.0, utilisez les [identifiants client OAuth 2.0](#identifiants-client-oauth-20) de la boîte de dialogue avec l'**URL de base SCIM**
    - Mappez les attributs utilisateur (l'e-mail est obligatoire). [Configurer votre fournisseur d'identité](#configurer-votre-fournisseur-didentité) donne les détails pour Microsoft Entra ID et Okta
 :::
 
-Pour revoir les URL, sélectionnez **Voir les URL SCIM** sur la ligne de la connexion. **Réinitialiser le jeton Bearer** remplace le jeton ; mettez à jour votre fournisseur d'identité avec le nouveau.
+Pour revoir les URL, sélectionnez **Voir les URL SCIM** sur la ligne de la connexion. Le jeton bearer ne s'affiche plus : si vous ne l'avez plus, ou s'il a fuité, **Réinitialiser le jeton Bearer** en crée un nouveau, affiché une seule fois de la même manière, et l'ancien cesse aussitôt de fonctionner. Mettez à jour votre fournisseur d'identité avec le nouveau.
 
 ### Provisionnement d'un utilisateur de projet
 
@@ -105,16 +105,16 @@ Le SCIM de page de statut permet aux fournisseurs d'identité de provisionner et
 2. **Configurer les paramètres SCIM**
 
    - Saisissez un **Nom**. Sous **Plus de champs**, **Provisionner automatiquement les utilisateurs** (ajouter des utilisateurs privés quand ils sont attribués dans votre IdP) et **Déprovisionner automatiquement les utilisateurs** (supprimer les utilisateurs privés quand leur attribution est retirée dans votre IdP) sont activés. Modifiez-les là si besoin
-   - Enregistrez. La boîte de dialogue avec l'**URL de base SCIM** et le **Jeton Bearer** pour la configuration de votre IdP s'ouvre immédiatement
+   - Enregistrez. OneUptime affiche le **Jeton Bearer** de la connexion une seule fois : copiez-le avant de cliquer sur **Terminé**, car OneUptime n'en conserve qu'un hachage et aucune page ne l'affiche à nouveau. La boîte de dialogue avec l'**URL de base SCIM** pour la configuration de votre IdP s'ouvre ensuite
 
 3. **Configurer votre fournisseur d'identité**
 
    - Utilisez l'**URL de base SCIM** de la boîte de dialogue. Sur OneUptime Cloud, c'est `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>`
-   - Configurez l'authentification par jeton bearer avec le jeton fourni, ou utilisez les [identifiants client OAuth 2.0](#identifiants-client-oauth-20) de la même boîte de dialogue
+   - Configurez l'authentification par jeton bearer avec le **Jeton Bearer** que vous avez copié, ou utilisez les [identifiants client OAuth 2.0](#identifiants-client-oauth-20) de la boîte de dialogue avec l'**URL de base SCIM**
    - Mappez les attributs utilisateur (l'e-mail est obligatoire)
 :::
 
-Pour revoir les URL, sélectionnez **Afficher les URL des points de terminaison SCIM** sur la ligne de la connexion.
+Pour revoir les URL, sélectionnez **Afficher les URL des points de terminaison SCIM** sur la ligne de la connexion. Si vous n'avez plus le jeton bearer, **Réinitialiser le jeton Bearer** en crée un nouveau, affiché une seule fois.
 
 Le SCIM de page de statut ne prend en charge que les utilisateurs. Il ne prend en charge ni les groupes ni leur provisionnement.
 
@@ -159,7 +159,7 @@ L'application OneUptime de la galerie d'applications Microsoft Entra est destin�
    - **Provisionner automatiquement les utilisateurs** et **Déprovisionner automatiquement les utilisateurs** : activés, sous **Plus de champs**
    - **Activer les groupes Push** : sous **Plus de champs** ; activez-le si vous voulez gérer l'appartenance aux équipes via les groupes Entra ID
 6. Enregistrez la configuration
-7. Copiez l'**URL de base SCIM** et le **Jeton Bearer** depuis la boîte de dialogue qui s'ouvre — vous en aurez besoin pour Entra ID
+7. Copiez le **Jeton Bearer** que OneUptime affiche une seule fois, puis l'**URL de base SCIM** depuis la boîte de dialogue qui s'ouvre ensuite — vous en aurez besoin pour Entra ID
 
 #### Créer une application d'entreprise dans Entra ID
 
@@ -237,7 +237,7 @@ Sur OneUptime Cloud, si l'Okta Integration Network propose OneUptime, ajoutez l'
    - **Provisionner automatiquement les utilisateurs** et **Déprovisionner automatiquement les utilisateurs** : activés, sous **Plus de champs**
    - **Activer les groupes Push** : sous **Plus de champs** ; activez-le si vous voulez gérer l'appartenance aux équipes via les groupes Okta
 6. Enregistrez la configuration
-7. Copiez l'**URL de base SCIM** et le **Jeton Bearer** depuis la boîte de dialogue qui s'ouvre — vous en aurez besoin pour Okta
+7. Copiez le **Jeton Bearer** que OneUptime affiche une seule fois, puis l'**URL de base SCIM** depuis la boîte de dialogue qui s'ouvre ensuite — vous en aurez besoin pour Okta
 
 #### Créer ou ouvrir l'application Okta
 
@@ -394,7 +394,7 @@ Sur OneUptime Cloud, le provisionnement SCIM ne fonctionne pleinement que tant q
 
 Rien n'est supprimé. Passez au plan **Scale** et les connexions fonctionnent de nouveau pleinement, telles quelles, avec le même jeton bearer et rien à reconfigurer dans votre fournisseur d'identité ; un changement de plan prend effet en moins d'une minute. Les fournisseurs d'identité continuent d'appeler selon leur propre calendrier : Okta liste les refus parmi ses erreurs de provisionnement, et Entra ID les affiche dans ses journaux de provisionnement et peut mettre en quarantaine une tâche qui échoue sans cesse, ce qui ralentit ses synchronisations — retraits compris — à environ une par jour. Relancez-y le provisionnement après la mise à niveau, pour que les personnes ajoutées entre-temps soient provisionnées.
 
-En dessous de **Scale**, **Paramètres du projet** > **Sécurité** > **SCIM**, ainsi que la page **SCIM** d'une page de statut, listent les connexions sous l'offre de mise à niveau du plan (**Connexions SCIM encore configurées**) et indiquent qu'elles ne font que retirer des personnes. Supprimez une connexion pour la retirer. Ajouter une connexion, en modifier une ou remplacer son jeton bearer nécessite **Scale**. La liste n'affiche pas les jetons bearer, et seuls les Propriétaires du projet peuvent lire un jeton, quel que soit le plan.
+En dessous de **Scale**, **Paramètres du projet** > **Sécurité** > **SCIM**, ainsi que la page **SCIM** d'une page de statut, listent les connexions sous l'offre de mise à niveau du plan (**Connexions SCIM encore configurées**) et indiquent qu'elles ne font que retirer des personnes. Supprimez une connexion pour la retirer. Ajouter une connexion, en modifier une ou remplacer son jeton bearer nécessite **Scale**. La liste n'affiche pas les jetons bearer : OneUptime n'en conserve qu'un hachage, quel que soit le plan.
 
 ## Dépannage
 
@@ -435,6 +435,10 @@ Le déprovisionnement peut être demandé par une requête DELETE ou en réglant
 
 :::details Puis-je utiliser SCIM sans SSO ?
 Oui, SCIM et SSO sont des fonctionnalités indépendantes. Vous pouvez utiliser SCIM pour le provisionnement des utilisateurs tout en leur permettant de se connecter avec leurs mots de passe OneUptime ou toute autre méthode d'authentification.
+:::
+
+:::details Où puis-je revoir le jeton bearer d'une connexion ?
+Nulle part : OneUptime n'en conserve qu'un hachage, donc ni le tableau de bord ni l'API ne peuvent l'afficher à nouveau, à un Propriétaire du projet comme à quiconque. Il est affiché une seule fois, quand la connexion est ajoutée ou que son jeton est réinitialisé. Si vous ne l'avez plus, sélectionnez **Réinitialiser le jeton Bearer** : le nouveau jeton est affiché une seule fois, et l'ancien cesse aussitôt de fonctionner, donnez donc le nouveau à votre fournisseur d'identité. Via l'API, la réponse à la création contient le jeton une seule fois, une écriture de `bearerToken` le remplace, et aucune lecture ne le renvoie.
 :::
 
 :::details Comment gérer les utilisateurs qui existent déjà dans OneUptime ?

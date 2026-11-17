@@ -561,6 +561,8 @@ export default class DataProduct extends BaseModel {
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     secret: true,
+    encrypted: true,
+    presentedKey: true,
     type: TableColumnType.ShortText,
     required: false,
     computed: true,
@@ -569,8 +571,7 @@ export default class DataProduct extends BaseModel {
       "The secret in the badge's URL, so a badge can be embedded where people cannot sign in to OneUptime.",
   })
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
     nullable: true,
   })
   public badgeToken?: string = undefined;

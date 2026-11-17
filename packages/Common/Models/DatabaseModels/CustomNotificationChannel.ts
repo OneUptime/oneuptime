@@ -90,6 +90,13 @@ class CustomNotificationChannel extends BaseModel {
    * Where every page is POSTed. The admin's own service, which may well be on
    * the installation's private network, so CustomNotificationChannelService
    * checks it allowing private targets, as it does a person's own webhook.
+   *
+   * An address can carry its service's credential, so it is kept encrypted
+   * at rest (`encrypted: true`), as the signing secret below is:
+   * DatabaseService encrypts both on every write and decrypts them on every
+   * read, the sender's and the Admin Dashboard's included. The
+   * EncryptWebhookAddresses data migration encrypts the values stored
+   * before. Text, as a ciphertext is longer than its value.
    */
   @ColumnAccessControl({
     create: [],
@@ -100,14 +107,14 @@ class CustomNotificationChannel extends BaseModel {
     title: "Webhook URL",
     required: true,
     unique: false,
-    type: TableColumnType.LongText,
+    encrypted: true,
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: false,
     description:
-      "Where OneUptime sends each page, as a JSON POST request signed with the signing secret.",
+      "Where OneUptime sends each page, as a JSON POST request signed with the signing secret. Kept encrypted at rest.",
   })
   @Column({
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
+    type: ColumnType.VeryLongText,
     unique: false,
     nullable: false,
   })
@@ -116,7 +123,8 @@ class CustomNotificationChannel extends BaseModel {
   /*
    * The HMAC key every request is signed with (X-OneUptime-Signature). The
    * service checks it to know a page came from OneUptime; whoever reads it can
-   * forge one. Generated when the admin leaves it empty.
+   * forge one. Generated when the admin leaves it empty. Kept encrypted at
+   * rest, as the URL above is.
    */
   @ColumnAccessControl({
     create: [],
@@ -125,17 +133,17 @@ class CustomNotificationChannel extends BaseModel {
   })
   @TableColumn({
     secret: true,
+    encrypted: true,
     title: "Signing Secret",
     required: true,
     unique: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: false,
     description:
-      "Every request carries an HMAC-SHA256 signature of its body made with this secret, in the X-OneUptime-Signature header (sha256=<hex>).",
+      "Every request carries an HMAC-SHA256 signature of its body made with this secret, in the X-OneUptime-Signature header (sha256=<hex>). Kept encrypted at rest.",
   })
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
     unique: false,
     nullable: false,
   })

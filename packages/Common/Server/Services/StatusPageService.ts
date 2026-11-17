@@ -108,6 +108,7 @@ import {
   MASTER_PASSWORD_REQUIRED_MESSAGE,
 } from "../../Types/StatusPage/MasterPassword";
 import { isStatusPageMasterPasswordRequired } from "../../Types/StatusPage/StatusPageAccess";
+import { STATUS_PAGE_SIGN_IN_TO_VIEW_MESSAGE } from "../../Types/StatusPage/StatusPageSignInMessages";
 import {
   getPrivateUserSessionLengthProblem,
   PRIVATE_USER_SESSION_LENGTH_COLUMN,
@@ -1319,9 +1320,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
 
     return {
       hasReadAccess: false,
-      error: new NotAuthenticatedException(
-        "You do not have access to this status page. Please login to view the status page.",
-      ),
+      error: new NotAuthenticatedException(STATUS_PAGE_SIGN_IN_TO_VIEW_MESSAGE),
     };
   }
 

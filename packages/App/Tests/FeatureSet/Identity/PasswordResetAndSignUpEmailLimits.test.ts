@@ -41,7 +41,9 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *  - five reset emails to one address in an hour, from every caller
  *    together, and thirty from one caller in a quarter of an hour;
  *  - that a refused reset leaves the reset link of the latest email working;
- *  - an address with no account is answered as before, and not counted;
+ *  - that every address is answered alike, and counted alike, whether it has
+ *    an account with a password, one with none yet - which is sent the link
+ *    to set its first one - or none at all (#9260);
  *  - sixty sign-ups that send an email from one caller in a quarter of an
  *    hour, and five registration emails to one invited address in an hour;
  *  - that a refused sign-up creates no account, and that claiming an
@@ -163,6 +165,7 @@ const ACCOUNT_PASSWORD: string = "violet river lantern";
 const userUpdateOneBy: jest.Mock = jest.fn();
 const userCreateUserOnSignup: jest.Mock = jest.fn();
 const userUpdateOneByIdAndFetch: jest.Mock = jest.fn();
+const sendPasswordResetLink: jest.Mock = jest.fn();
 
 function asUser(row: UserRow): Record<string, unknown> {
   return {
@@ -210,6 +213,9 @@ jest.mock("Common/Server/Services/UserService", () => {
         return Promise.resolve(data.plainValue === ACCOUNT_PASSWORD);
       },
       countBy: jest.fn(),
+      sendPasswordResetLink: (...args: Array<unknown>): unknown => {
+        return sendPasswordResetLink(...args);
+      },
     },
   };
 });
@@ -532,6 +538,10 @@ beforeEach(() => {
 
   register(VICTIM_EMAIL, "$scrypt$stored-hash").id = VICTIM_ID;
 
+  sendPasswordResetLink.mockImplementation(async (): Promise<unknown> => {
+    return undefined;
+  });
+
   consumeRegistrationToken.mockImplementation(
     async (data: { token: ObjectID }): Promise<boolean> => {
       return data.token.toString() === INVITATION_TOKEN;
@@ -621,14 +631,76 @@ describe("POST /forgot-password", () => {
     expectRefused(refusals[0], RESET_FROM_NETWORK);
   });
 
-  it("an address with no account is answered as before, and counts against nobody", async () => {
+  it("an address with no account is answered as one with an account is, and sent nothing", async () => {
     const answer: Answer = await forgotPassword("nobody@example.com", CALLER);
 
-    expect(answer.error?.code).toBe(ExceptionCode.BadDataException);
-    expect(answer.error?.message).toBe(
-      "No user is registered with nobody@example.com. Please sign up for a new account.",
-    );
-    expect(redisClient.keys()).toEqual([]);
+    // It used to say "No user is registered with nobody@example.com".
+    expect(answer.error).toBeNull();
+    expect(sendErrorResponse).not.toHaveBeenCalled();
+    expect(sendMail).not.toHaveBeenCalled();
+    expect(sendPasswordResetLink).not.toHaveBeenCalled();
+    expect(userUpdateOneBy).not.toHaveBeenCalled();
+  });
+
+  it("an address with no account is counted as one with an account is, so its sixth request in the hour is refused alike", async () => {
+    const forNobody: { accepted: number; refusals: Array<Answer> } =
+      await acceptedOf(6, () => {
+        return forgotPassword("nobody@example.com", CALLER);
+      });
+    const forVictim: { accepted: number; refusals: Array<Answer> } =
+      await acceptedOf(6, () => {
+        return forgotPassword(VICTIM_EMAIL, "198.51.100.9");
+      });
+
+    expect(forNobody.accepted).toBe(5);
+    expect(forVictim.accepted).toBe(5);
+    expectRefused(forNobody.refusals[0], RESET_FOR_ADDRESS);
+    expectRefused(forVictim.refusals[0], RESET_FOR_ADDRESS);
+  });
+
+  it("an account with no password yet is sent the link to set its first one, saying where the request came from", async () => {
+    const created: UserRow = register("created@example.com", null);
+
+    const answer: Answer = await forgotPassword("created@example.com", CALLER);
+
+    expect(answer.error).toBeNull();
+    expect(sendPasswordResetLink).toHaveBeenCalledTimes(1);
+
+    const sent: Record<string, any> = sendPasswordResetLink.mock
+      .calls[0]![0] as Record<string, any>;
+
+    expect(sent["userId"]).toBe(created.id);
+    // Asked for by the account's owner, not by a master admin.
+    expect(sent["requestOrigin"]["requestedAt"]).toBeTruthy();
+    expect(sent["requestOrigin"]["requestIpAddress"]).toBe(CALLER);
+
+    // Not a reset link: the account has no password to reset.
+    expect(sendMail).not.toHaveBeenCalled();
+    expect(userUpdateOneBy).not.toHaveBeenCalled();
+  });
+
+  it("an account with no password yet is counted like any other: five links in the hour, then refused", async () => {
+    register("created@example.com", null);
+
+    const { accepted, refusals } = await acceptedOf(6, () => {
+      return forgotPassword("created@example.com", CALLER);
+    });
+
+    expect(accepted).toBe(5);
+    expect(sendPasswordResetLink).toHaveBeenCalledTimes(5);
+    expectRefused(refusals[0], RESET_FOR_ADDRESS);
+  });
+
+  it("a set-password link that cannot be sent still gets the answer every address gets", async () => {
+    register("created@example.com", null);
+    sendPasswordResetLink.mockImplementation(async (): Promise<unknown> => {
+      throw new BadDataException("The mail server refused the message.");
+    });
+
+    const answer: Answer = await forgotPassword("created@example.com", CALLER);
+
+    expect(answer.error).toBeNull();
+    expect(sendPasswordResetLink).toHaveBeenCalledTimes(1);
   });
 
   it("the hosts of one IPv6 /64 ask for ten addresses' worth of resets", async () => {
@@ -910,9 +982,7 @@ describe("POST /login to an address not verified yet", () => {
         "a wrong guess",
       );
 
-      expect(answer.error?.message).toBe(
-        "Invalid login: Email or password does not match.",
-      );
+      expect(answer.error?.message).toBe("Email or password does not match.");
     }
 
     expect(sendVerificationEmail).not.toHaveBeenCalled();

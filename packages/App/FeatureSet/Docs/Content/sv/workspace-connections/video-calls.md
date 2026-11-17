@@ -86,6 +86,8 @@ Anslutningar som är inloggade som samma konto delar en inloggning, i alla proje
 
 Att ta bort en anslutning drar tillbaka OneUptimes åtkomst hos Zoom och Google så snart ingen annan anslutning använder inloggningen. För Microsoft tar du bort OneUptime under kontots **My Apps** (myapps.microsoft.com). Att ta bort OneUptime från ditt Zoom-konto i Zoom App Marketplace tar bort dess inloggning från alla anslutningar som är inloggade som det kontot, och de visar **Fungerar inte** tills de ansluts igen.
 
+Transkriptioner som OneUptime redan har läst stannar på sina incidenter: Att ta bort en anslutning behåller samtalen den startade, med deras transkriptioner, och det gör även att ta bort OneUptime från kontot hos Zoom, Google eller Microsoft. **Ta bort transkription** på ett samtal tar bort dess transkription och det OneUptime AI läste i den, men inte det OneUptime AI publicerade i incidentens flöde och kanaler. Att ta bort en incident tar bort dess samtal och deras transkriptioner.
+
 ### Om Microsoft ber om en administratör
 
 Vissa Microsoft 365-organisationer låter bara administratörer godkänna appar. Om Microsoft säger att du behöver godkännande från en administratör ber du en Microsoft 365-administratör att ansluta Microsoft Teams, eller att godkänna OneUptime i [Microsoft Entra-administrationscentret](https://entra.microsoft.com/) under **Enterprise applications** > **Admin consent requests**. Ett projekt som spelar in sina Teams-samtal behöver det här godkännandet i varje organisation, en gång: bara en administratör kan låta en app läsa mötestranskriptioner.

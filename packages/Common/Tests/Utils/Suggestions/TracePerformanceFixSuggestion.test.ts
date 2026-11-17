@@ -656,6 +656,34 @@ describe("the wire format the trace page reads", () => {
     },
   );
 
+  /*
+   * A fix in a task the reader may not read (FinishedFixOutcome.Hidden):
+   * done, with no run to link to - and none read off the wire.
+   */
+  test("a fix hidden from the reader carries no run, through JSON, whatever the wire says", () => {
+    const hidden: TracePerformanceFixSuggestion = {
+      ...suggestion,
+      offer: SuggestionOffer.Done,
+      fixOutcome: FinishedFixOutcome.Hidden,
+      aiRunId: null,
+    };
+
+    expect(
+      parseTracePerformanceFixSuggestion(
+        JSON.parse(
+          JSON.stringify(tracePerformanceFixSuggestionToJSON(hidden)),
+        ) as JSONObject,
+      ),
+    ).toEqual(hidden);
+
+    expect(
+      parseTracePerformanceFixSuggestion({
+        ...(tracePerformanceFixSuggestionToJSON(hidden) as JSONObject),
+        aiRunId: "70000000-0000-4000-8000-000000000010",
+      }),
+    ).toEqual(hidden);
+  });
+
   test.each([
     ["the AI credits are used up", NO_CREDITS],
     ["a named Runner of one repository is not online", RUNNER_OFFLINE],

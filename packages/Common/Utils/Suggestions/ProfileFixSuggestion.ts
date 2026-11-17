@@ -235,6 +235,14 @@ export interface ProfileFixSuggestion extends ProfileFixOffer {
   repositories: Array<ProfileFixRepository>;
   // The Code task already working on this function (InProgress).
   taskId: string | null;
+  /*
+   * InProgress, in a task the person may not read: a reply carried a
+   * private incident or alert into it that they do not see, and its own
+   * page answers it as not found (CodeTaskThread.findTasksHiddenFrom). The
+   * strip says a fix is there and why nothing of it shows: no task to link
+   * to, and no second fix offered.
+   */
+  isHidden?: boolean | undefined;
 }
 
 export const NO_PROFILE_FIX_SUGGESTION: ProfileFixSuggestion = {
@@ -326,9 +334,10 @@ function parseBlocker(value: unknown): ProfileFixBlocker | null {
 /*
  * Reads the suggestion route's answer. Whatever does not hold together - a
  * fix offered for a function the rule would not offer, nowhere to ask it, a
- * set-up step that does not say what it is, work in progress with no task -
- * reads as no suggestion, so the panel never draws an action the answer
- * does not fully back.
+ * set-up step that does not say what it is, work in progress with no task
+ * (but one hidden from the person, which has none) - reads as no
+ * suggestion, so the panel never draws an action the answer does not fully
+ * back.
  */
 export function parseProfileFixSuggestion(
   value: unknown,
@@ -381,6 +390,17 @@ export function parseProfileFixSuggestion(
       : null;
 
   if (offer === SuggestionOffer.InProgress) {
+    // A task hidden from the person links to nothing, whatever the wire says.
+    if (record["isHidden"] === true) {
+      return {
+        ...NO_PROFILE_FIX_SUGGESTION,
+        offer,
+        reason,
+        evidence,
+        isHidden: true,
+      };
+    }
+
     if (!taskId) {
       return NO_PROFILE_FIX_SUGGESTION;
     }
@@ -451,6 +471,7 @@ export function profileFixSuggestionToJSON(
         return { id: repository.id, name: repository.name };
       },
     ),
-    taskId: suggestion.taskId,
+    taskId: suggestion.isHidden ? null : suggestion.taskId,
+    ...(suggestion.isHidden ? { isHidden: true } : {}),
   };
 }

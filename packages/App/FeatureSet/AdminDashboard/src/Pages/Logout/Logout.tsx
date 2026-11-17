@@ -30,7 +30,7 @@ const Logout: FunctionComponent = (): ReactElement => {
 
   return (
     <Page
-      title={t("pages.logout.title")}
+      title={t("pages.signOut.title")}
       isTitleTranslated={true}
       breadcrumbLinks={[
         {
@@ -39,7 +39,7 @@ const Logout: FunctionComponent = (): ReactElement => {
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.INIT] as Route),
         },
         {
-          title: t("breadcrumbs.logout"),
+          title: t("breadcrumbs.signOut"),
           isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.LOGOUT] as Route),
         },

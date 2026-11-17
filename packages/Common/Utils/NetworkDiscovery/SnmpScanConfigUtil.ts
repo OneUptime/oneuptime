@@ -188,6 +188,12 @@ export const MAX_SNMP_CONFIG_NAME_LENGTH: number = ColumnLength.ShortText;
  *
  * Bounding here makes it one rule, checked on every card, in the words of the
  * field the operator is actually looking at.
+ *
+ * The flattened credential columns are text now, since they are kept
+ * encrypted at rest (#9014) and a ciphertext is longer than its value, so
+ * nothing in Postgres holds a credential to these widths any more. They are
+ * kept as the rule a credential set is held to: a community string of 100
+ * characters, a passphrase of 500, as before.
  */
 export const MAX_SNMP_CONFIG_SHORT_TEXT_LENGTH: number = ColumnLength.ShortText;
 export const MAX_SNMP_CONFIG_KEY_LENGTH: number = ColumnLength.LongText;
@@ -760,10 +766,11 @@ export class SnmpScanConfigUtil {
    * have been given under the old single-config UI, and because the list is
    * ordered by the operator's own preference.
    *
-   * Every key is always present, with null for "unset": these values are also
-   * what the probe-claim endpoint compares its optimistic-concurrency
-   * `expectedData` against, and a key omitted for being empty would read as
-   * "unchanged" instead of "cleared".
+   * Every key is always present, with null for "unset": the values that are
+   * not credentials are also what the probe-claim endpoint compares its
+   * optimistic-concurrency `expectedData` against (the credentials, kept
+   * encrypted, are held by the row's version), and a key omitted for being
+   * empty would read as "unchanged" instead of "cleared".
    */
   public static getMirroredLegacyColumns(
     configs: Array<DiscoveryScanSnmpConfig>,

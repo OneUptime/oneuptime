@@ -1066,8 +1066,9 @@ describe("the hints the charts show", () => {
             bucketIntervalMs: bucketIntervalMs,
           }),
         );
+        // The header's hints: small grey text beside its medium-weight title.
         container
-          .querySelectorAll("span.text-\\[10px\\]")
+          .querySelectorAll("span.text-xs.text-gray-500:not(.font-medium)")
           .forEach((span: Element) => {
             collect(span.textContent);
           });

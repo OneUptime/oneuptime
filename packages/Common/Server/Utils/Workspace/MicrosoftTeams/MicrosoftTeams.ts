@@ -1155,8 +1155,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     url: URL;
     text: string;
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
-    logger.debug("Sending message to Teams channel via incoming webhook:");
-    logger.debug(data);
+    /*
+     * Never the webhook's address: it is the channel's credential, kept
+     * encrypted at rest (#9013).
+     */
+    logger.debug(
+      `Sending a message of ${data.text.length} characters to a Teams channel via its incoming webhook.`,
+    );
 
     /*
      * Enforced at the sink, not only at the callers: this URL reaches here from

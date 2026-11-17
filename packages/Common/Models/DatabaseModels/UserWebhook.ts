@@ -50,15 +50,13 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * actually reaching for. Point the next admin surface there. Widening this
  * list is not a cheaper version of that; it is the version that leaks.
  *
- * One path does not pass through this list at all, and it is the reason
- * `canReadOnRelationQuery: true` on webhookUrl below is worth reading twice: a
- * nested relation select made FROM a model whose own read is admin-wide -
- * today UserNotificationRule - is checked by
- * QueryPermission.checkRelationQueryPermission, which skips the column check
- * outright when that flag is true and never consults this table list. The
- * signing secret already carries `false` and is therefore closed on that path
- * too; flipping the URL to match is a change to the rule tables that select it
- * through the relation, not a change that can be made here alone.
+ * One path does not pass through this list at all: a nested relation select
+ * made FROM a model whose own read is admin-wide - today UserNotificationRule -
+ * is checked by QueryPermission.checkRelationQueryPermission, which skips the
+ * column check outright for a column marked `canReadOnRelationQuery: true` and
+ * never consults this table list. Neither credential is: the webhook URL and
+ * its signing secret both carry `false`, and are kept encrypted at rest, so a
+ * rule table names the webhook a rule points at by its `name` alone.
  */
 @TenantColumn("projectId")
 @AllowAccessIfSubscriptionIsUnpaid()
@@ -157,23 +155,33 @@ class UserWebhook extends BaseModel {
   /*
    * A webhook URL is a bearer credential in its own right. Slack, Discord and
    * Teams hooks all carry their secret in the path, so anyone who can read this
-   * string can post into the channel it belongs to. It stays readable through a
-   * relation query - that is how a rule table renders which webhook a rule
-   * points at - but only for a query pinned to the webhook's owner.
+   * string can post into the channel it belongs to. Its owner reads it - the
+   * Webhooks table shows it, and the Edit dialog edits it - and it is kept
+   * encrypted at rest (`encrypted: true`): DatabaseService encrypts it on
+   * every write and decrypts it on every read, a notification rule's read of
+   * its webhook through the userWebhook relation included, so every page is
+   * posted to the address as it was typed. The EncryptWebhookAddresses data
+   * migration encrypts the addresses stored before. Text, as a ciphertext is
+   * longer than the address.
+   *
+   * Never read through a relation by a request (EncryptedColumnsStayOffRelations):
+   * a rule table says which webhook a rule points at by the webhook's name
+   * (NotificationMethodUtil), and the readiness view by its masked name
+   * (OnCallReadinessService).
    */
   @OwnerOnlyColumn()
   @TableColumn({
     title: "Webhook URL",
     required: true,
     unique: false,
-    type: TableColumnType.LongText,
-    canReadOnRelationQuery: true,
+    encrypted: true,
+    type: TableColumnType.VeryLongText,
+    canReadOnRelationQuery: false,
     description:
-      "HTTPS endpoint that will receive POST requests with notification payloads.",
+      "HTTPS endpoint that will receive POST requests with notification payloads. Kept encrypted at rest.",
   })
   @Column({
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
+    type: ColumnType.VeryLongText,
     unique: false,
     nullable: false,
   })

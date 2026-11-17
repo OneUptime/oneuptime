@@ -476,6 +476,22 @@ const METHOD_MODELS: Array<MethodModelUnderTest> = [
 ];
 
 /*
+ * The models whose marked column a nested select may ask for at all
+ * (canReadOnRelationQuery): their owner reads it through a rule of theirs.
+ * A webhook's URL is not one since it is kept encrypted at rest (#9013,
+ * EncryptedColumnsStayOffRelations): no request reads it through a rule,
+ * its owner's neither, and the rule tables name the webhook by its name.
+ */
+const METHOD_MODELS_READ_THROUGH_RELATIONS: Array<MethodModelUnderTest> =
+  METHOD_MODELS.filter((model: MethodModelUnderTest): boolean => {
+    return Boolean(
+      new model.modelType().getTableColumnMetadata(
+        model.ownerOnlyColumnReachableThroughRelation,
+      )?.canReadOnRelationQuery,
+    );
+  });
+
+/*
  * The marked columns that no permission list lets an ordinary caller select at
  * all. Pinned separately so that the guarded list above stays honest about what
  * this guard is responsible for.
@@ -781,7 +797,47 @@ describe("route 1 - a marked column named directly in the select", () => {
 });
 
 describe("route 2 - a marked column reached through a relation", () => {
-  it.each(METHOD_MODELS)(
+  it("reads every method's identifier through a rule but the webhook's URL, which is kept encrypted", () => {
+    expect(
+      METHOD_MODELS_READ_THROUGH_RELATIONS.map(
+        (model: MethodModelUnderTest): string => {
+          return model.name;
+        },
+      ),
+    ).toEqual(
+      METHOD_MODELS.map((model: MethodModelUnderTest): string => {
+        return model.name;
+      }).filter((name: string): boolean => {
+        return name !== "UserWebhook";
+      }),
+    );
+  });
+
+  it("refuses a webhook's URL through a rule to everyone, its owner included: the rule tables name it by its name", async () => {
+    for (const props of [makeOwnerProps(), makeAdminProps()]) {
+      await expect(
+        checkRead(
+          AdminReadableRuleModel,
+          { userId: props.userId },
+          { userWebhook: { webhookUrl: true } },
+          props,
+        ),
+      ).rejects.toThrow(
+        "Column webhookUrl on Webhook does not support read on relation query.",
+      );
+    }
+
+    await expect(
+      checkRead(
+        AdminReadableRuleModel,
+        { userId: ownerUserId },
+        { userWebhook: { name: true } },
+        makeOwnerProps(),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it.each(METHOD_MODELS_READ_THROUGH_RELATIONS)(
     "lets the owner read $name's identifier through the rule relation",
     async (model: MethodModelUnderTest): Promise<void> => {
       /*
@@ -851,7 +907,7 @@ describe("route 2 - a marked column reached through a relation", () => {
     },
   );
 
-  it.each(METHOD_MODELS)(
+  it.each(METHOD_MODELS_READ_THROUGH_RELATIONS)(
     "lets an admin read $name's identifier through their OWN rule",
     async (model: MethodModelUnderTest): Promise<void> => {
       await expect(

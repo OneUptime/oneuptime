@@ -38,7 +38,7 @@ import englishLocale from "../../../../App/FeatureSet/StatusPage/src/Locales/en.
  * browsers we know even less about, and both rows here were hidden the same
  * way — `hidden md:flex` — so the rule matched the bare class, outranked
  * `md:flex`, and took the header links and every nav entry (Incidents,
- * Subscribe, Log Out on a private page) off a desktop screen. A visitor
+ * Subscribe, Sign Out on a private page) off a desktop screen. A visitor
  * checking on an outage was left with the overview and no way to the incident
  * history.
  *
@@ -86,7 +86,7 @@ const NAV_ENTRIES: Array<string> = [
   "Announcements",
   "Scheduled Maintenance",
   "Subscribe",
-  "Log Out",
+  "Sign Out",
 ];
 
 type VisibleWithRuleFunction = (width: number) => string;

@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "Olvidó su contraseña",
     "subtitle": "Ingrese su correo electrónico y se le enviará el enlace de restablecimiento de contraseña.",
-    "successMessage": "Le hemos enviado el enlace de restablecimiento de contraseña por correo electrónico. No olvide revisar la carpeta de spam.",
+    "successMessage": "Si una cuenta usa esta dirección de correo electrónico, le hemos enviado un enlace para elegir una contraseña. No olvide revisar la carpeta de spam.",
     "submitButton": "Enviar enlace de restablecimiento",
     "rememberPasswordPrompt": "¿Recuerda su contraseña?",
     "loginLink": "Iniciar sesión.",
@@ -187,6 +187,17 @@
     "linkInvalidTitle": "Este enlace de restablecimiento ya no funciona",
     "linkInvalidDescription": "Puede que ya se haya usado o que solo se haya copiado una parte. Pide un enlace nuevo y te lo enviaremos por correo electrónico.",
     "requestNewLinkButton": "Pedir un enlace nuevo"
+  },
+  "setPassword": {
+    "title": "Establece tu contraseña",
+    "subtitle": "Elige una contraseña para terminar de configurar tu cuenta.",
+    "submitButton": "Establecer contraseña",
+    "successTitle": "Tu contraseña está establecida",
+    "successDescription": "Inicia sesión con tu nueva contraseña.",
+    "linkExpiredTitle": "Este enlace ha caducado",
+    "linkExpiredDescription": "Los enlaces para establecer una contraseña funcionan durante {{days}} días. Pide un enlace nuevo y te lo enviaremos por correo electrónico.",
+    "linkInvalidTitle": "Este enlace ya no funciona",
+    "linkInvalidDescription": "Puede que ya se haya usado o que solo se copiara una parte. Si ya estableciste tu contraseña, inicia sesión. Si no, pide un enlace nuevo y te lo enviaremos por correo electrónico."
   },
   "sso": {
     "title": "Iniciar sesión con SSO",

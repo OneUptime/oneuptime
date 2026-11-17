@@ -1,4 +1,5 @@
 import { mockRouter } from "./Helpers";
+import Encryption from "../../../Server/Utils/Encryption";
 import {
   afterEach,
   beforeAll,
@@ -223,6 +224,18 @@ function isStored(row: StoredRow): boolean {
   return world.subscribers.get(String(row["_id"])) !== undefined;
 }
 
+/*
+ * The unsubscribe token a row holds, as a read gives it: kept encrypted
+ * (#9012), and decrypted on every read - a row stored before reads as itself.
+ */
+async function tokenOf(row: StoredRow): Promise<string> {
+  const stored: string = String(row["unsubscribeToken"]);
+
+  return Encryption.looksEncrypted(stored)
+    ? await Encryption.decrypt(stored)
+    : stored;
+}
+
 describe("what a sign-up sends about its own day, code and state is not taken", () => {
   test.each([
     ["a year ahead", 365 * DAY],
@@ -366,7 +379,7 @@ describe("nothing done to a waiting subscription moves its day on", () => {
           params: {
             statusPageId: WORLD_PAGE_ID,
             subscriberId: String(row["_id"]),
-            token: String(row["unsubscribeToken"]),
+            token: await tokenOf(row),
           },
           body: { data: { isUnsubscribed: false } },
         })

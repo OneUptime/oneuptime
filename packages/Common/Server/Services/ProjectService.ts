@@ -1024,7 +1024,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       );
     } else {
       throw new NotAuthorizedException(
-        "User should be logged in to create the project.",
+        "You must be signed in to create a project.",
       );
     }
 

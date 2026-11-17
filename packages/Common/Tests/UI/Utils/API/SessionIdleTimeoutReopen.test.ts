@@ -101,7 +101,7 @@ const HOUR: number = 60 * MINUTE;
 const DAY: number = 24 * HOUR;
 
 const NOT_AUTHENTICATED_BODY: JSONObject = {
-  message: "Authentication required. Please log in to access this resource.",
+  message: "Authentication required. Please sign in to access this resource.",
 };
 
 const lengthsOf: (rule: {

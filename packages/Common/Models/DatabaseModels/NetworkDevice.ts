@@ -1782,18 +1782,31 @@ export default class NetworkDevice extends BaseModel {
       Permission.EditNetworkDevice,
     ],
   })
+  /*
+   * THE DEVICE'S SNMP CREDENTIALS ARE KEPT ENCRYPTED AT REST (#9014), as a
+   * credential profile's are: this community string, the two v3 keys below
+   * and the legacy snmpV3Auth object's keys. DatabaseService encrypts each on
+   * every write and decrypts it on every read, so the probe's poll
+   * (NetworkDeviceHydrationUtil), the Settings form and both import paths
+   * read them as written; they stay readable to whom reads them today. All
+   * of them together, and the discovery scans' they are copied from too, so
+   * no copy of a credential is left as written beside its encrypted one. The
+   * EncryptSnmpCredentials data migration encrypts the values stored before.
+   * Text, as a ciphertext is longer than its value.
+   */
   @TableColumn({
     secret: true,
+    encrypted: true,
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.VeryLongText,
     title: "SNMP Community String",
-    description: "Community string used for SNMP v1/v2c polling",
+    description:
+      "Community string used for SNMP v1/v2c polling. Kept encrypted at rest.",
     example: "public",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
   })
   public snmpCommunityString?: string = undefined;
 
@@ -1848,14 +1861,17 @@ export default class NetworkDevice extends BaseModel {
       Permission.SettingsMember,
       Permission.CreateNetworkDevice,
     ],
+    /*
+     * The narrow list snmpV3AuthKey and snmpV3PrivKey have: this object
+     * carries the same two keys. Viewer and Settings Viewer, who read the
+     * device but not its credentials, read them here until #9014.
+     */
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
       Permission.SettingsAdmin,
       Permission.SettingsMember,
-      Permission.SettingsViewer,
       Permission.ReadNetworkDevice,
     ],
     update: [
@@ -1867,13 +1883,16 @@ export default class NetworkDevice extends BaseModel {
       Permission.EditNetworkDevice,
     ],
   })
+  // Its two keys kept encrypted at rest, its other fields as written.
   @TableColumn({
     secret: true,
+    encrypted: true,
+    encryptedFields: ["authKey", "privKey"],
     type: TableColumnType.JSON,
     required: false,
     title: "SNMP v3 Authentication",
     description:
-      "Deprecated: SNMP v3 auth is now stored in the snmpV3* columns below. Retained for reading legacy devices.",
+      "Deprecated: SNMP v3 auth is now stored in the snmpV3* columns below. Retained for reading legacy devices. Its authKey and privKey are kept encrypted at rest.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -2034,16 +2053,18 @@ export default class NetworkDevice extends BaseModel {
       Permission.EditNetworkDevice,
     ],
   })
+  // Kept encrypted at rest, as snmpCommunityString is.
   @TableColumn({
     secret: true,
+    encrypted: true,
     required: false,
-    type: TableColumnType.LongText,
+    type: TableColumnType.VeryLongText,
     title: "SNMP v3 Authentication Key",
-    description: "SNMP v3 authentication passphrase",
+    description: "SNMP v3 authentication passphrase. Kept encrypted at rest.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.LongText,
+    type: ColumnType.VeryLongText,
   })
   public snmpV3AuthKey?: string = undefined;
 
@@ -2115,16 +2136,19 @@ export default class NetworkDevice extends BaseModel {
       Permission.EditNetworkDevice,
     ],
   })
+  // Kept encrypted at rest, as snmpCommunityString is.
   @TableColumn({
     secret: true,
+    encrypted: true,
     required: false,
-    type: TableColumnType.LongText,
+    type: TableColumnType.VeryLongText,
     title: "SNMP v3 Privacy Key",
-    description: "SNMP v3 privacy (encryption) passphrase",
+    description:
+      "SNMP v3 privacy (encryption) passphrase. Kept encrypted at rest.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.LongText,
+    type: ColumnType.VeryLongText,
   })
   public snmpV3PrivKey?: string = undefined;
 

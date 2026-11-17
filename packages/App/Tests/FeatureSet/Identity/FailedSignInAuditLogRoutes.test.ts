@@ -526,9 +526,7 @@ describe("a wrong password", () => {
       signInAs(USER_EMAIL, "wrong password"),
     );
 
-    expect(outcome.answered?.message).toBe(
-      "Invalid login: Email or password does not match.",
-    );
+    expect(outcome.answered?.message).toBe("Email or password does not match.");
 
     const attempt: ReturnType<typeof recorded> = recorded();
 

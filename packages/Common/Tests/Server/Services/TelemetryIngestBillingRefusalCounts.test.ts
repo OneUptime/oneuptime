@@ -114,7 +114,7 @@ describe("the key service notes the key on a billing refusal", () => {
   test("no way to pay: the PaymentRequiredException carries the key and its project", async () => {
     const service: Service = new Service();
     const existing: TelemetryIngestionKey = key();
-    jest.spyOn(service, "findOneBy").mockResolvedValue(existing);
+    jest.spyOn(service, "findOneByPresentedKey").mockResolvedValue(existing);
 
     const err: unknown = await refusalOf(
       service,
@@ -132,7 +132,7 @@ describe("the key service notes the key on a billing refusal", () => {
   test("a blocked project: the ProjectBlockedException carries the key", async () => {
     const service: Service = new Service();
     const existing: TelemetryIngestionKey = key();
-    jest.spyOn(service, "findOneBy").mockResolvedValue(existing);
+    jest.spyOn(service, "findOneByPresentedKey").mockResolvedValue(existing);
     jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(true);
 
     const err: unknown = await refusalOf(
@@ -149,7 +149,7 @@ describe("the key service notes the key on a billing refusal", () => {
   test("a key read from the service's cache is noted too", async () => {
     const service: Service = new Service();
     const existing: TelemetryIngestionKey = key();
-    jest.spyOn(service, "findOneBy").mockResolvedValue(existing);
+    jest.spyOn(service, "findOneByPresentedKey").mockResolvedValue(existing);
 
     await refusalOf(service, existing.secretKey!.toString());
     const second: unknown = await refusalOf(
@@ -157,7 +157,7 @@ describe("the key service notes the key on a billing refusal", () => {
       existing.secretKey!.toString(),
     );
 
-    expect(service.findOneBy).toHaveBeenCalledTimes(1);
+    expect(service.findOneByPresentedKey).toHaveBeenCalledTimes(1);
     expect(
       getTelemetryIngestRefusalKey(second)?.ingestionKeyId.toString(),
     ).toBe(existing.id!.toString());
@@ -166,7 +166,7 @@ describe("the key service notes the key on a billing refusal", () => {
   test("a key switched off is not asked about billing: its refusal is the guard's own", async () => {
     const service: Service = new Service();
     const existing: TelemetryIngestionKey = key({ isEnabled: false });
-    jest.spyOn(service, "findOneBy").mockResolvedValue(existing);
+    jest.spyOn(service, "findOneByPresentedKey").mockResolvedValue(existing);
 
     await expect(
       service.getPolicyFromSecretKey(existing.secretKey!.toString()),

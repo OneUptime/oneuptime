@@ -364,6 +364,12 @@ OneUptime AI's work in your code follows a private incident or alert too. The Co
 
 The work that only carries a private incident or alert follows it too: a Code task someone asked with the record as context or added it to in a reply, a postmortem action item's task, and a pull request OneUptime AI opened from the record's AI conversation or from Ask AI asked about it. Each is read only by those who may read every record it carries, and, once one of those is deleted, only by Project Owners and Project Admins. The request for a private incident's action item names the incident only by its number, and asks OneUptime AI to leave it out of the pull request.
 
+Work OneUptime AI stored, or that a reply added a private record to later, follows the record as it is now:
+
+- A pull request's production review lists, counts and names only the incidents you may read now. OneUptime AI's points about the others are left out. The comment already posted on the pull request stays as it was.
+- A pull request OneUptime AI opens from a chat also carries the incidents and alerts the chat opened one by one, and those from a list whose title the pull request quotes.
+- An exception's fix, an investigation's fix pull request, a trace's performance fix, a fix's pull request to the code, and the fix under way for an AI insight or for a function in Profiles say a task is hidden when it carries a private incident or alert you can't open. They show neither its progress nor its pull request.
+
 A record that names a private one without being part of it, such as a Data Security issue, a security case, a form submission, a session replay, or a public alert or incident in a private episode, is read as before. Only those who may read the private record see its title and other fields there: for anyone else, a filter by them doesn't find it, and a list naming it can't be sorted by them.
 
 Workflows don't act on private records. A workflow's steps act as a Project Admin but are never lent its sight of private incidents, alerts and episodes: they find none, change none and add nothing to one, and a workflow doesn't start on one or on anything that belongs to one. See [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).

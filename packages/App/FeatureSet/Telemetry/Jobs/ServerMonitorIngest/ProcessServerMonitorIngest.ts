@@ -43,9 +43,11 @@ export async function processServerMonitorFromQueue(
   let monitorId: ObjectID | null = keptMonitor?.monitorId || null;
 
   if (!monitorId) {
-    const monitor: Monitor | null = await MonitorService.findOneBy({
+    // Found by the key's lookup hash: the key is kept encrypted (#9012).
+    const monitor: Monitor | null = await MonitorService.findOneByPresentedKey({
+      column: "serverMonitorSecretKey",
+      presentedKey: monitorSecretKeyAsString,
       query: {
-        serverMonitorSecretKey: new ObjectID(monitorSecretKeyAsString),
         monitorType: MonitorType.Server,
         ...MonitorService.getEnabledMonitorQuery(),
         project: {

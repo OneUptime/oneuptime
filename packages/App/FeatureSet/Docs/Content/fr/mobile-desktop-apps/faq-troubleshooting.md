@@ -36,7 +36,7 @@ Oui. Chaque téléphone ou tablette est un appareil push à part entière, avec 
 - **Monitors** : tous les moniteurs, filtrés par état, avec leurs détails.
 - **Inbox** : incidents et alertes, et les épisodes qui les regroupent. Ouvrez-en un pour choisir **Acknowledge**, **Resolve** ou **Add Note**. Si votre rôle vous permet de voir les dossiers de sécurité du projet, **Security** liste ceux qui sont ouverts : ouvrez-en un pour choisir **Approve** ou **Reject** sur une étape de playbook en attente d'approbation, prendre le dossier en charge avec **Assign to me** ou choisir **Close case**.
 - **On-Call** : si vous êtes d'astreinte et jusqu'à quand, qui l'est aussi, les alertes qui vous ont été envoyées, et **Cover for me**, qui confie vos alertes à un collègue pour un temps.
-- **Settings** : vos projets et l'authentification unique, l'apparence, les alertes critiques et le son d'alarme, **Biometrics Login**, votre flux de calendrier d'astreinte, et **Log Out**.
+- **Settings** : vos projets et l'authentification unique, l'apparence, les alertes critiques et le son d'alarme, **Biometric Unlock**, votre flux de calendrier d'astreinte, et **Sign Out**.
 
 Tout le reste se trouve dans le tableau de bord.
 :::
@@ -46,7 +46,7 @@ Non. Touchez la notification : l'application ouvre l'incident, l'alerte, l'épis
 :::
 
 :::details Ma connexion est-elle sûre sur le téléphone ?
-L'application ne parle à votre OneUptime qu'en HTTPS. Votre connexion est gardée dans le stockage propre de l'application sur le téléphone, et **Log Out** la supprime et ferme aussi la session sur le serveur. Activez **Biometrics Login** pour que l'application demande votre visage, votre empreinte ou votre code à chaque démarrage.
+L'application ne parle à votre OneUptime qu'en HTTPS. Votre connexion est gardée dans le stockage propre de l'application sur le téléphone, et **Sign Out** la supprime et ferme aussi la session sur le serveur. Activez **Biometric Unlock** pour que l'application demande votre visage, votre empreinte ou votre code à chaque démarrage.
 :::
 
 :::details L'application fonctionne-t-elle hors ligne ?

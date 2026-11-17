@@ -64,7 +64,7 @@
     "apiKey": "Clave API",
     "more": "Más",
     "sendEmail": "Enviar correo",
-    "logout": "Cerrar sesión",
+    "signOut": "Cerrar sesión",
     "telemetryUsage": "Uso de telemetría",
     "ingestionBudgets": "Presupuestos de ingesta",
     "products": "Productos"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "Salir del admin",
-    "logOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -142,8 +142,8 @@
     "users": {
       "title": "Usuarios",
       "cardTitle": "Usuarios",
-      "cardDescription": "Aquí hay una lista de usuarios en OneUptime.",
-      "noItems": "No se encontraron usuarios.",
+      "listDescription": "Todas las personas con una cuenta en este servidor. Abre un usuario para gestionar sus proyectos, su inicio de sesión y su acceso de administrador.",
+      "emptyMessage": "Aún no hay usuarios.",
       "bulkAddToProject": "Añadir al proyecto",
       "bulkAddToProjectTitle": "Añadir usuarios al proyecto",
       "bulkAddToProjectDescription": "Elija un proyecto y uno de sus equipos. Los {{userCount}} usuarios seleccionados se invitan a ese equipo.",
@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "Se cerrarán todas las sesiones activas de los {{userCount}} usuario(s) seleccionado(s) y deberán configurar una aplicación de autenticación la próxima vez que inicien sesión. Usted incluido, si es uno de ellos.",
       "bulkDoNotRequireTwoFactorAuth": "No exigir autenticación de dos factores",
       "bulkDoNotRequireTwoFactorAuthTitle": "Dejar de exigir la autenticación de dos factores para {{userCount}} usuario(s)",
-      "bulkDoNotRequireTwoFactorAuthDescription": "Los {{userCount}} usuario(s) seleccionado(s) podrán iniciar sesión solo con su contraseña. Lo que ya hayan configurado se conserva, pero ya no se les pedirá."
+      "bulkDoNotRequireTwoFactorAuthDescription": "Los {{userCount}} usuario(s) seleccionado(s) podrán iniciar sesión solo con su contraseña. Lo que ya hayan configurado se conserva, pero ya no se les pedirá.",
+      "createdAndEmailed": "{{name}} creado. Se envió a {{email}} un enlace para establecer su contraseña.",
+      "createdWithPassword": "{{name}} creado. Comparte con esa persona la contraseña que estableciste de forma segura.",
+      "setPasswordLinkTitle": "Envía un enlace para establecer la contraseña",
+      "setPasswordLinkDescription": "Copia este enlace y envíalo tú mismo a {{email}}, por un medio que solo esa persona pueda leer. Funciona una vez, durante {{days}} días.",
+      "setPasswordLinkOrSetIt": "O establece tú mismo una contraseña en su página de Autenticación."
     },
     "enterpriseLicenses": {
       "title": "Licencias Enterprise",
@@ -199,7 +204,6 @@
     "userView": {
       "title": "Usuario",
       "cardTitle": "Usuario",
-      "cardDescription": "Detalles del usuario",
       "editButton": "Editar usuario",
       "masterAdminCardTitle": "Acceso de administrador maestro",
       "masterAdminCardDescription": "Otorgar o revocar el acceso de administrador maestro para este usuario. Los administradores maestros pueden gestionar todos los proyectos y espacios de trabajo.",
@@ -300,13 +304,12 @@
     "projects": {
       "title": "Proyectos",
       "cardTitle": "Proyectos",
-      "cardDescription": "Aquí hay una lista de proyectos en OneUptime.",
-      "noItems": "No se encontraron proyectos."
+      "listDescription": "Todos los proyectos de este servidor. Abre uno para gestionar sus usuarios, equipos y configuración.",
+      "emptyMessage": "Aún no hay proyectos."
     },
     "projectView": {
       "title": "Proyecto",
       "cardTitle": "Proyecto",
-      "cardDescription": "Detalles del proyecto",
       "editButton": "Editar proyecto",
       "dataResidencyCardTitle": "Residencia de datos",
       "dataResidencyCardDescription": "Dónde se alojan los datos de este proyecto. Una vez establecida, se muestra a los usuarios del proyecto en la Configuración del proyecto.",
@@ -448,8 +451,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "Usuarios",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "Las personas que pertenecen a este proyecto. Su equipo decide lo que cada una puede hacer.",
+      "emptyMessage": "Aún no hay usuarios en este proyecto.",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "Invitar usuario",
       "inviteUserTitle": "Invitar a un nuevo usuario",
@@ -468,19 +471,18 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Equipos",
-      "cardDescription": "Aquí tienes una lista de todos los equipos de este proyecto.",
-      "noItems": "No teams found in this project."
+      "listDescription": "Los equipos deciden lo que sus miembros pueden hacer en este proyecto. Crea uno para dar el mismo acceso a un grupo de personas.",
+      "emptyMessage": "Aún no hay equipos en este proyecto."
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "Detalles del equipo",
-      "cardDescription": "Details about this team.",
       "editButton": "Editar equipo",
       "membersCardTitle": "Equipo Miembros",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "Cerrar sesión"
     },
     "sendEmail": {
@@ -621,13 +623,13 @@
       },
       "probes": {
         "bannerTitle": "¿Necesita ayuda para configurar las sondas globales?",
-        "bannerDescription": "Aquí hay una guía que le ayudará a configurarlas",
+        "bannerGuide": "Sigue la guía para ejecutar una sonda en tu propio servidor y conectarla aquí.",
         "cardTitle": "Sondas globales",
         "cardDescription": "Las sondas globales le ayudan a monitorear recursos externos desde diferentes ubicaciones del mundo.",
-        "noItems": "No se encontraron sondas.",
+        "emptyMessage": "Aún no hay sondas globales.",
         "showIdKey": "Mostrar ID y clave",
         "keyModalTitle": "Clave de la sonda",
-        "keyModalDescription": "Aquí está su clave de sonda. Por favor, manténgala en secreto.",
+        "keyModalSecret": "Tu sonda se conecta a OneUptime con este ID y esta clave. Mantén la clave en secreto.",
         "probeIdLabel": "ID de la sonda:",
         "probeKeyLabel": "Clave de la sonda:"
       },
@@ -722,7 +724,6 @@
   "Projects": "Proyectos",
   "Project": "Proyecto",
   "User": "Usuario",
-  "Logout": "Cerrar sesión",
   "Save": "Guardar",
   "Cancel": "Cancelar",
   "Submit": "Enviar",
@@ -4169,5 +4170,13 @@
   "See email logs": "Ver registros de correo",
   "Addresses the mail server refused": "Direcciones rechazadas por el servidor de correo",
   "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Los demás correos salieron, así que solo estas direcciones están afectadas. Corrige la dirección o haz que tu proveedor de correo la acepte: un sandbox de Amazon SES solo envía a direcciones que ha verificado.",
-  "Last refused {{time}}": "Último rechazo: {{time}}"
+  "Last refused {{time}}": "Último rechazo: {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "Se creó {{name}}, pero no se envió el correo con el enlace para establecer su contraseña. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "Tampoco se pudo crear el enlace para que lo envíes tú. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime le envía por correo un enlace para establecer su propia contraseña.",
+  "They sign in with the password you set. Share it with them securely.": "Esa persona inicia sesión con la contraseña que establezcas. Compártela de forma segura.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Este servidor aún no puede enviar correos. Establece su contraseña aquí, o déjala vacía para obtener un enlace y enviárselo tú.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "Este servidor aún no puede enviar correos. Configura el correo en Ajustes > Correos.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Este servidor aún no puede enviar correos, así que no se envió ningún enlace para restablecer la contraseña. Configura el correo en Ajustes > Correos, o establece tú la contraseña.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Este usuario ya tiene contraseña, así que no hay enlace para establecerla que copiar. Envíale un enlace para restablecerla desde su página de Autenticación."
 }

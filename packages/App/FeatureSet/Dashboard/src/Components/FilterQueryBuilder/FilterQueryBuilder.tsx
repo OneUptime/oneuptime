@@ -20,7 +20,11 @@ import {
   FilterFieldDefinition,
   LogicalConnector,
 } from "./Types";
-import { buildFilterQuery, parseFilterQuery } from "./FilterQueryParser";
+import {
+  buildFilterQuery,
+  parseFilterQuery,
+  splitListValue,
+} from "./FilterQueryParser";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   translatableTerm,
@@ -210,14 +214,50 @@ const FilterQueryBuilder: FunctionComponent<ComponentProps> = (
         return f.key === condition.field;
       },
     );
+
+    /*
+     * "Is one of" on a dropdown field reads as its labels, one pill each
+     * (Unset, Error), never as the stored "0, 2" (#9214).
+     */
+    if (condition.operator === "IN" && fieldDef?.valueOptions) {
+      const values: Array<string> = splitListValue(condition.value);
+
+      return (
+        <span
+          data-testid="filter-value-list"
+          className="inline-flex flex-wrap items-center gap-1"
+        >
+          {values.map((value: string, index: number): ReactElement => {
+            return (
+              <React.Fragment key={`${value}-${index}`}>
+                {renderOneValuePill(fieldDef, condition.field, value)}
+              </React.Fragment>
+            );
+          })}
+        </span>
+      );
+    }
+
+    return renderOneValuePill(fieldDef, condition.field, condition.value);
+  };
+
+  const renderOneValuePill: (
+    fieldDef: FilterFieldDefinition | undefined,
+    fieldKey: string,
+    value: string,
+  ) => ReactElement = (
+    fieldDef: FilterFieldDefinition | undefined,
+    fieldKey: string,
+    value: string,
+  ): ReactElement => {
     const displayValue: string = getValueLabel(
-      condition.field,
-      condition.value,
+      fieldKey,
+      value,
       config,
       translator,
     );
     if (fieldDef?.getValuePillClass) {
-      const pillClass: string = fieldDef.getValuePillClass(condition.value);
+      const pillClass: string = fieldDef.getValuePillClass(value);
       return (
         <span
           className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${pillClass}`}

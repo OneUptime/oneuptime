@@ -86,6 +86,8 @@ OneUptime はサインインのリフレッシュトークンを暗号化して�
 
 接続を削除すると、そのサインインを使うほかの接続がなくなった時点で、Zoom と Google での OneUptime のアクセスが取り消されます。Microsoft では、アカウントの **My Apps** (myapps.microsoft.com) で OneUptime を削除します。Zoom App Marketplace で Zoom アカウントから OneUptime を削除すると、そのアカウントとしてサインインしたすべての接続からサインインが削除され、それらの接続には再接続するまで **異常** と表示されます。
 
+OneUptime がすでに読み取った文字起こしは、そのインシデントに残ります。接続を削除しても、その接続が開始した通話は文字起こしとともに残り、Zoom、Google、Microsoft のアカウントから OneUptime を削除した場合も同じです。通話の **文字起こしを削除** は、その文字起こしと、OneUptime AI がそこから読み取った内容を削除しますが、OneUptime AI がインシデントのフィードとチャネルに投稿した内容は削除しません。インシデントを削除すると、その通話と文字起こしも削除されます。
+
 ### Microsoft が管理者を求める場合
 
 Microsoft 365 の組織によっては、アプリを承認できるのは管理者だけです。Microsoft に管理者の承認が必要だと言われたら、Microsoft 365 の管理者に Microsoft Teams を接続してもらうか、[Microsoft Entra 管理センター](https://entra.microsoft.com/) の **Enterprise applications** > **Admin consent requests** で OneUptime を承認してもらいます。Teams の通話を録画するプロジェクトでは、組織ごとに 1 回、この承認が必要です。アプリに会議の文字起こしの読み取りを許可できるのは管理者だけだからです。

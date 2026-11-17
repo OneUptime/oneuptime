@@ -27,7 +27,9 @@ import SuggestionOffer, { parseSuggestionOffer } from "./SuggestionOffer";
  *               found to hold the code for certain;
  *   SetUp       the one step in the way: connect a repository in Code, or
  *               what Code's gate says (credits, a Runner, the plan);
- *   InProgress  the Code task already working on it.
+ *   InProgress  the Code task already working on it - or, when the person
+ *               may not read that task (isHidden), only that a fix is
+ *               there.
  *
  * Pure: the server and the Dashboard import it alike.
  */
@@ -54,6 +56,14 @@ export interface TelemetryAiFixSuggestion {
   // InProgress: the Code task already working on it.
   taskId: string | null;
   /*
+   * InProgress, in a task the person may not read: a reply carried a
+   * private incident or alert into it that they do not see, and its own
+   * page answers it as not found (CodeTaskThread.findTasksHiddenFrom). The
+   * strip says a fix is there and why nothing of it shows: no task to link
+   * to, and no second fix offered.
+   */
+  isHidden?: boolean | undefined;
+  /*
    * Act: the Code recipe the pull request would be (CodeFixTaskType), when
    * the lane says - an exception's is a fix, or better handling of an
    * expected error - so the strip can say which. Absent: a request in Code.
@@ -67,6 +77,13 @@ export const NO_TELEMETRY_AI_FIX_SUGGESTION: TelemetryAiFixSuggestion = {
   repository: null,
   repositories: [],
   taskId: null,
+};
+
+// A fix on its way in a task hidden from the person: there, and nothing of it.
+export const HIDDEN_TELEMETRY_AI_FIX_SUGGESTION: TelemetryAiFixSuggestion = {
+  ...NO_TELEMETRY_AI_FIX_SUGGESTION,
+  offer: SuggestionOffer.InProgress,
+  isHidden: true,
 };
 
 export const TELEMETRY_AI_FIX_CONNECT_REPOSITORY_MESSAGE: string =
@@ -147,9 +164,10 @@ function parseRepository(value: unknown): TelemetryAiFixRepository | null {
 
 /*
  * Reads the suggestion route's answer. Whatever does not hold together - an
- * in-progress offer with no task, a set-up step with no blocker, an action
- * with nowhere to ask it - reads as no suggestion, so the page never draws
- * an action the answer does not fully back.
+ * in-progress offer with no task (but one hidden from the person, which has
+ * none), a set-up step with no blocker, an action with nowhere to ask it -
+ * reads as no suggestion, so the page never draws an action the answer does
+ * not fully back.
  */
 export function parseTelemetryAiFixSuggestion(
   value: unknown,
@@ -168,6 +186,11 @@ export function parseTelemetryAiFixSuggestion(
   const taskId: string | null = readText(record["taskId"]);
 
   if (offer === SuggestionOffer.InProgress) {
+    // A task hidden from the person links to nothing, whatever the wire says.
+    if (record["isHidden"] === true) {
+      return HIDDEN_TELEMETRY_AI_FIX_SUGGESTION;
+    }
+
     return taskId
       ? { ...NO_TELEMETRY_AI_FIX_SUGGESTION, offer, taskId }
       : NO_TELEMETRY_AI_FIX_SUGGESTION;
@@ -243,7 +266,8 @@ export function telemetryAiFixSuggestionToJSON(
         return { id: repository.id, name: repository.name };
       },
     ),
-    taskId: suggestion.taskId,
+    taskId: suggestion.isHidden ? null : suggestion.taskId,
+    ...(suggestion.isHidden ? { isHidden: true } : {}),
     ...(suggestion.recipe ? { recipe: suggestion.recipe } : {}),
   };
 }

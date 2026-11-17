@@ -118,7 +118,7 @@ Att ta bort någon tar bort personen från alla projektets team. Personen förlo
 
 - **Single sign-on.** Den som loggar in med projektets identitetsleverantör för första gången går med i de team som leverantören anger. Se [Roller och team för SSO-användare](/docs/identity/sso#roller-och-team-för-sso-användare).
 - **SCIM.** Din identitetsleverantör skapar personer och lägger till dem i anslutningens standardteam. Se [SCIM](/docs/identity/scim#så-etableras-en-projektanvändare).
-- **Admin Dashboard.** På en självhostad installation kan en huvudadministratör lägga till någon i ett projekt och acceptera inbjudan åt personen. Se [Användare, team och behörigheter](/docs/permissions/index#användare).
+- **Admin Dashboard.** På en självhostad installation kan en huvudadministratör lägga till någon i ett projekt och acceptera inbjudan åt personen. Se [Användare, team och behörigheter](/docs/permissions/index#användare). En huvudadministratör kan också skapa ett konto åt någon under **Användare** med **Skapa Användare**: hen anger ett namn och en e-postadress, och OneUptime mejlar adressen en länk för att välja ett lösenord, som fungerar en gång, i 7 dagar. För att själv ange lösenordet öppnar hen **Fler fält**. Skickas inte e-postmeddelandet visas länken, så att hen kan skicka den själv.
 
 ## Felsökning
 

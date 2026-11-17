@@ -240,9 +240,7 @@ describe("ProjectAPI", () => {
 
     it("should handle authentication error", async () => {
       const authError: NotAuthenticatedException =
-        new NotAuthenticatedException(
-          "User should be logged in to access this API",
-        );
+        new NotAuthenticatedException("You must be signed in to use this API.");
       await mockRouter
         .match("post", "/project/list-user-projects")
         .handlerFunction(mockRequest, mockResponse, nextFunction);

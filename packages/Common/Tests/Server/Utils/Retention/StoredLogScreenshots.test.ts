@@ -3,11 +3,16 @@ import StoredLogScreenshots, {
   CLEAR_TIME_BUDGET_MS,
   CURSOR_CACHE_NAMESPACE,
   CURSOR_EXPIRES_IN_DAYS,
+  DATABASE_LIMIT_ERROR_CODES,
   DEFAULT_LIMITS,
   DONE_MARKER_PREFIX,
+  LOCK_TIMEOUT_MS,
   READ_BATCH_MAX_STORED_BYTES,
   READ_BATCH_SIZE,
+  READ_MAX_STORED_BYTES,
   SCAN_PAGE_SIZE,
+  SCREENSHOTS_JSON_PATH,
+  STATEMENT_TIMEOUT_MS,
   STORED_LOG_COLUMNS,
   STORED_LOG_TABLES,
   StoredLogCandidate,
@@ -15,6 +20,7 @@ import StoredLogScreenshots, {
   StoredLogScreenshotsSummary,
   StoredLogTable,
   StoredLogTableResult,
+  buildClearLogInDatabaseStatement,
   buildClearLogStatement,
   buildDoneMarkersStatement,
   buildPageCandidatesStatement,
@@ -22,10 +28,14 @@ import StoredLogScreenshots, {
   buildReadLogsStatement,
   formatStoredBytes,
   getDoneMarkerName,
+  isOverDatabaseLimits,
+  readReturnedRows,
+  runInOwnTransaction,
   toReadBatches,
 } from "../../../../Server/Utils/Retention/StoredLogScreenshots";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import DataMigrationService from "../../../../Server/Services/DataMigrationService";
+import EventLoop from "../../../../Server/Utils/EventLoop";
 import JobDeadline from "../../../../Server/Utils/JobDeadline";
 import logger from "../../../../Server/Utils/Logger";
 import Alert from "../../../../Models/DatabaseModels/Alert";
@@ -181,12 +191,12 @@ function kindOf(sql: string): StatementKind {
     return "pageEnd";
   }
 
-  if (sql.includes("pg_column_size")) {
-    return "candidates";
+  if (sql.includes(`AS "log"`)) {
+    return "read";
   }
 
-  if (sql.includes(`::text AS "log"`)) {
-    return "read";
+  if (sql.includes("pg_column_size")) {
+    return "candidates";
   }
 
   throw new Error(`The stand-in database does not know this statement: ${sql}`);
@@ -201,6 +211,52 @@ function tableOf(sql: string): string | undefined {
 
 function storedSizeOf(log: JSONValue | null): number {
   return log === null ? 0 : JSON.stringify(log).length;
+}
+
+/*
+ * What SCREENSHOTS_JSON_PATH finds, as Postgres's lax mode reads it: under a
+ * "syntheticMonitorResponse" at any depth - a list of runs or one run - a
+ * run's "screenshots" that is an object with a key (a list of such
+ * unwrapped). The Postgres test checks the path itself against these.
+ */
+function unwrapped(value: JSONValue | undefined): Array<JSONValue> {
+  if (value === undefined) {
+    return [];
+  }
+
+  return Array.isArray(value) ? value : [value];
+}
+
+function isObject(value: unknown): value is JSONObject {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function postgresFindsScreenshots(value: JSONValue | null): boolean {
+  if (Array.isArray(value)) {
+    return value.some((item: JSONValue): boolean => {
+      return postgresFindsScreenshots(item);
+    });
+  }
+
+  if (!isObject(value)) {
+    return false;
+  }
+
+  for (const run of unwrapped(value["syntheticMonitorResponse"])) {
+    if (!isObject(run)) {
+      continue;
+    }
+
+    for (const screenshots of unwrapped(run["screenshots"])) {
+      if (isObject(screenshots) && Object.keys(screenshots).length > 0) {
+        return true;
+      }
+    }
+  }
+
+  return Object.values(value).some((child: JSONValue | undefined): boolean => {
+    return child !== undefined && postgresFindsScreenshots(child);
+  });
 }
 
 let clock: number;
@@ -370,37 +426,98 @@ class FakeStoredLogDatabase {
 
     if (statement.kind === "read") {
       const ids: Array<string> = params[0] as Array<string>;
+      const maxStoredBytes: number = Number(params[2]);
 
       return rows
         .filter((row: FakeRow): boolean => {
-          return ids.includes(row.id);
+          return (
+            ids.includes(row.id) &&
+            row.log !== null &&
+            postgresFindsScreenshots(row.log)
+          );
         })
         .map((row: FakeRow): Record<string, unknown> => {
           return {
             id: row.id,
-            log: row.log === null ? null : JSON.stringify(row.log),
+            storedBytes: row.storedBytes,
+            log:
+              row.storedBytes <= maxStoredBytes
+                ? JSON.stringify(row.log)
+                : null,
           };
         });
     }
 
-    // An UPDATE of one row's log.
-    const updated: FakeRow | undefined = rows.find((row: FakeRow): boolean => {
-      return row.id === params[0];
-    });
-
-    if (updated) {
-      updated.log = JSON.parse(String(params[1])) as JSONValue;
-      updated.storedBytes = storedSizeOf(updated.log);
-      updated.writes += 1;
+    // Postgres clearing a log's top-level runs, if still stored at the size it was read at.
+    if (sql.includes("jsonb_set")) {
+      return this.clearTopLevelRuns(rows, params);
     }
 
-    return [];
+    // An UPDATE of one row's log, if it is still stored at the size it was read at.
+    const updated: FakeRow | undefined = rows.find((row: FakeRow): boolean => {
+      return row.id === params[0] && row.storedBytes === params[2];
+    });
+
+    if (!updated) {
+      return [];
+    }
+
+    updated.log = JSON.parse(String(params[1])) as JSONValue;
+    updated.storedBytes = storedSizeOf(updated.log);
+    updated.writes += 1;
+
+    return [{ id: updated.id }];
+  }
+
+  // What buildClearLogInDatabaseStatement does, by StateChangeLogScreenshots' rule.
+  private clearTopLevelRuns(
+    rows: Array<FakeRow>,
+    params: Array<unknown>,
+  ): Array<Record<string, unknown>> {
+    const row: FakeRow | undefined = rows.find((each: FakeRow): boolean => {
+      return each.id === params[0] && each.storedBytes === params[1];
+    });
+    const runs: JSONValue | undefined = isObject(row?.log)
+      ? (row!.log as JSONObject)["syntheticMonitorResponse"]
+      : undefined;
+    const hasScreenshots: (run: JSONValue) => boolean = (
+      run: JSONValue,
+    ): boolean => {
+      return (
+        isObject(run) &&
+        isObject(run["screenshots"]) &&
+        Object.keys(run["screenshots"] as JSONObject).length > 0
+      );
+    };
+
+    if (!row || !Array.isArray(runs) || !runs.some(hasScreenshots)) {
+      return [];
+    }
+
+    row.log = {
+      ...(row.log as JSONObject),
+      syntheticMonitorResponse: runs.map((run: JSONValue): JSONValue => {
+        if (!hasScreenshots(run)) {
+          return run;
+        }
+
+        const copy: JSONObject = { ...(run as JSONObject) };
+        delete copy["screenshots"];
+        copy[SCREENSHOTS_OMITTED_FIELD] = true;
+        return copy;
+      }),
+    };
+    row.storedBytes = storedSizeOf(row.log);
+    row.writes += 1;
+
+    return [{ id: row.id, storedBytes: row.storedBytes }];
   }
 }
 
 type Seams = Pick<
   typeof StoredLogScreenshots,
   | "runQuery"
+  | "runStatement"
   | "now"
   | "readCursor"
   | "saveCursor"
@@ -410,6 +527,7 @@ type Seams = Pick<
 
 const ORIGINAL_SEAMS: Seams = {
   runQuery: StoredLogScreenshots.runQuery,
+  runStatement: StoredLogScreenshots.runStatement,
   now: StoredLogScreenshots.now,
   readCursor: StoredLogScreenshots.readCursor,
   saveCursor: StoredLogScreenshots.saveCursor,
@@ -424,6 +542,15 @@ let forgottenCursors: Array<StoredLogTable>;
 let markedDone: Array<StoredLogTable>;
 let failMarking: Set<StoredLogTable>;
 let errorLog: SpyInstance<typeof logger.error>;
+let warnLog: SpyInstance<typeof logger.warn>;
+let yields: number;
+
+// The timeouts each statement run in a transaction of its own was given.
+let timeouts: Array<{
+  kind: StatementKind;
+  statementTimeoutMs: number;
+  lockTimeoutMs: number;
+}>;
 
 function installFakes(): void {
   StoredLogScreenshots.runQuery = async (
@@ -431,6 +558,19 @@ function installFakes(): void {
     params: Array<unknown>,
   ): Promise<Array<Record<string, unknown>>> => {
     return database.answer(sql, params);
+  };
+  StoredLogScreenshots.runStatement = async (data: {
+    sql: string;
+    params: Array<unknown>;
+    statementTimeoutMs: number;
+    lockTimeoutMs: number;
+  }): Promise<Array<Record<string, unknown>>> => {
+    timeouts.push({
+      kind: kindOf(data.sql),
+      statementTimeoutMs: data.statementTimeoutMs,
+      lockTimeoutMs: data.lockTimeoutMs,
+    });
+    return database.answer(data.sql, data.params);
   };
   StoredLogScreenshots.now = (): Date => {
     return new Date(clock);
@@ -478,7 +618,15 @@ beforeEach(() => {
   forgottenCursors = [];
   markedDone = [];
   failMarking = new Set<StoredLogTable>();
+  timeouts = [];
+  yields = 0;
+  jest.spyOn(EventLoop, "yieldToEventLoop").mockImplementation(async () => {
+    yields += 1;
+  });
   errorLog = jest.spyOn(logger, "error").mockImplementation((() => {
+    return undefined;
+  }) as never);
+  warnLog = jest.spyOn(logger, "warn").mockImplementation((() => {
     return undefined;
   }) as never);
   installFakes();
@@ -548,11 +696,17 @@ describe("the tables, their columns and the numbers", () => {
     expect(CANDIDATE_MIN_STORED_BYTES).toBe(4096);
     expect(READ_BATCH_SIZE).toBe(10);
     expect(READ_BATCH_MAX_STORED_BYTES).toBe(32 * 1024 * 1024);
+    expect(READ_MAX_STORED_BYTES).toBe(32 * 1024 * 1024);
+    expect(STATEMENT_TIMEOUT_MS).toBe(30 * 1000);
+    expect(LOCK_TIMEOUT_MS).toBe(3 * 1000);
     expect(CLEAR_TIME_BUDGET_MS).toBe(10 * 60 * 1000);
     expect(DEFAULT_LIMITS).toEqual({
       scanPageSize: SCAN_PAGE_SIZE,
       readBatchSize: READ_BATCH_SIZE,
       readBatchMaxStoredBytes: READ_BATCH_MAX_STORED_BYTES,
+      readMaxStoredBytes: READ_MAX_STORED_BYTES,
+      statementTimeoutMs: STATEMENT_TIMEOUT_MS,
+      lockTimeoutMs: LOCK_TIMEOUT_MS,
     });
   });
 
@@ -727,8 +881,8 @@ ORDER BY t."_id" ASC`),
   );
 });
 
-describe("buildReadLogsStatement: the logs of a read batch", () => {
-  test("by their ids, as text, the ids one parameter", () => {
+describe("buildReadLogsStatement: the logs of a read batch that hold screenshots", () => {
+  test("by their ids, only those Postgres finds screenshots in, as text when stored small enough; the ids, the path and the size parameters", () => {
     const ids: Array<string> = [
       rowId(StoredLogTable.MonitorStatusTimeline, 1),
       rowId(StoredLogTable.MonitorStatusTimeline, 2),
@@ -739,11 +893,53 @@ describe("buildReadLogsStatement: the logs of a read batch", () => {
     });
 
     expect(words(statement.sql)).toBe(
-      words(`SELECT t."_id"::text AS "id", t."statusChangeLog"::text AS "log"
+      words(`SELECT t."_id"::text AS "id", pg_column_size(t."statusChangeLog") AS "storedBytes",
+  CASE WHEN pg_column_size(t."statusChangeLog") <= $3 THEN t."statusChangeLog"::text END AS "log"
 FROM "MonitorStatusTimeline" t
-WHERE t."_id" = ANY($1::uuid[])`),
+WHERE t."_id" = ANY($1::uuid[])
+  AND t."statusChangeLog" IS NOT NULL
+  AND jsonb_path_exists(t."statusChangeLog", $2::jsonpath, '{}'::jsonb, true)`),
     );
-    expect(statement.params).toEqual([ids]);
+    expect(statement.params).toEqual([
+      ids,
+      SCREENSHOTS_JSON_PATH,
+      READ_MAX_STORED_BYTES,
+    ]);
+  });
+
+  test("the most a log may be stored at to come back as text is the caller's, at least one byte", () => {
+    expect(
+      buildReadLogsStatement({
+        table: StoredLogTable.Alert,
+        ids: [],
+        maxStoredBytes: 2048,
+      }).params[2],
+    ).toBe(2048);
+    expect(
+      buildReadLogsStatement({
+        table: StoredLogTable.Alert,
+        ids: [],
+        maxStoredBytes: 0,
+      }).params[2],
+    ).toBe(1);
+  });
+
+  test("the log is selected only inside the size check: a log stored bigger never comes back as text", () => {
+    const statement: StoredLogScreenshotsStatement = buildReadLogsStatement({
+      table: StoredLogTable.Incident,
+      ids: [rowId(StoredLogTable.Incident, 1)],
+    });
+
+    expect(statement.sql.match(/"createdStateLog"::text/g)).toHaveLength(1);
+    expect(statement.sql).toContain(
+      `CASE WHEN pg_column_size(t."createdStateLog") <= $3 THEN t."createdStateLog"::text END`,
+    );
+  });
+
+  test("the path: a non-empty object of screenshots, in a run of a syntheticMonitorResponse at any depth, in lax mode", () => {
+    expect(SCREENSHOTS_JSON_PATH).toBe(
+      'lax $.**.syntheticMonitorResponse[*] ? (@.type() == "object").screenshots ? (@.type() == "object" && exists (@.*))',
+    );
   });
 
   test("an id that is not one is never asked for", () => {
@@ -752,7 +948,7 @@ WHERE t."_id" = ANY($1::uuid[])`),
       ids: [rowId(StoredLogTable.Alert, 1), 'x\'); DROP TABLE "Alert"; --'],
     });
 
-    expect(statement.params).toEqual([[rowId(StoredLogTable.Alert, 1)]]);
+    expect(statement.params[0]).toEqual([rowId(StoredLogTable.Alert, 1)]);
     expect(statement.sql).not.toContain("DROP");
   });
 });
@@ -761,19 +957,22 @@ describe("buildClearLogStatement: one row's log, written back without its screen
   const id: string = rowId(StoredLogTable.IncidentStateTimeline, 7);
   const log: JSONObject = StateChangeLogScreenshots.leaveOut(syntheticLog("w"));
 
-  test("that column alone, by the row's id, the log a parameter", () => {
+  test("that column alone, by the row's id, only while it is stored at the size it was read at; the log a parameter", () => {
     const statement: StoredLogScreenshotsStatement = buildClearLogStatement({
       table: StoredLogTable.IncidentStateTimeline,
       id: id,
       log: log,
+      readStoredBytes: 98765,
     });
 
     expect(words(statement.sql)).toBe(
-      words(`UPDATE "IncidentStateTimeline"
+      words(`UPDATE "IncidentStateTimeline" t
 SET "stateChangeLog" = $2::jsonb
-WHERE "_id" = $1::uuid`),
+WHERE t."_id" = $1::uuid
+  AND pg_column_size(t."stateChangeLog") = $3
+RETURNING t."_id"::text AS "id"`),
     );
-    expect(statement.params).toEqual([id, JSON.stringify(log)]);
+    expect(statement.params).toEqual([id, JSON.stringify(log), 98765]);
     expect(JSON.parse(statement.params[1] as string)).toEqual(log);
   });
 
@@ -784,6 +983,7 @@ WHERE "_id" = $1::uuid`),
         table: table,
         id: id,
         log: log,
+        readStoredBytes: 1,
       });
 
       expect(statement.sql).toContain(`UPDATE "${table}"`);
@@ -794,6 +994,57 @@ WHERE "_id" = $1::uuid`),
       expect(statement.sql).not.toContain("version");
       expect(statement.sql).not.toContain(",");
       expect(statement.sql).not.toContain("Checkout");
+    },
+  );
+});
+
+describe("buildClearLogInDatabaseStatement: a log too big to read, its top-level runs' screenshots cleared by Postgres", () => {
+  test("that column alone, by the row's id and the size it was read at, only when a run there has screenshots; the new size comes back", () => {
+    const id: string = rowId(StoredLogTable.Alert, 3);
+    const statement: StoredLogScreenshotsStatement =
+      buildClearLogInDatabaseStatement({
+        table: StoredLogTable.Alert,
+        id: id,
+        readStoredBytes: 70000000,
+      });
+
+    expect(words(statement.sql)).toBe(
+      words(`UPDATE "Alert" t
+SET "createdStateLog" = jsonb_set(t."createdStateLog", '{syntheticMonitorResponse}', (
+  SELECT jsonb_agg(
+    CASE WHEN jsonb_typeof(r."run"->'screenshots') = 'object' AND r."run"->'screenshots' <> '{}'::jsonb
+      THEN (r."run" - 'screenshots') || '{"areScreenshotsOmitted": true}'::jsonb
+      ELSE r."run"
+    END ORDER BY r."n")
+  FROM jsonb_array_elements(t."createdStateLog"->'syntheticMonitorResponse') WITH ORDINALITY AS r("run", "n")
+))
+WHERE t."_id" = $1::uuid
+  AND pg_column_size(t."createdStateLog") = $2
+  AND jsonb_typeof(t."createdStateLog"->'syntheticMonitorResponse') = 'array'
+  AND EXISTS (
+    SELECT 1 FROM jsonb_array_elements(t."createdStateLog"->'syntheticMonitorResponse') AS r("run")
+    WHERE jsonb_typeof(r."run"->'screenshots') = 'object' AND r."run"->'screenshots' <> '{}'::jsonb
+  )
+RETURNING t."_id"::text AS "id", pg_column_size(t."createdStateLog") AS "storedBytes"`),
+    );
+    expect(statement.params).toEqual([id, 70000000]);
+    expect(statement.sql).toContain(`"${SCREENSHOTS_OMITTED_FIELD}": true`);
+  });
+
+  test.each(ALL_TABLES)(
+    '%s: never "updatedAt" or "version"',
+    (table: StoredLogTable) => {
+      const statement: StoredLogScreenshotsStatement =
+        buildClearLogInDatabaseStatement({
+          table: table,
+          id: rowId(table, 1),
+          readStoredBytes: 1,
+        });
+
+      expect(statement.sql).toContain(`UPDATE "${table}" t`);
+      expect(statement.sql).toContain(`SET "${STORED_LOG_COLUMNS[table]}" =`);
+      expect(statement.sql).not.toContain("updatedAt");
+      expect(statement.sql).not.toContain("version");
     },
   );
 });
@@ -951,7 +1202,7 @@ describe("a run: what it clears, and what it leaves untouched", () => {
     expect(summary.isEveryTableDone).toBe(false);
   });
 
-  test("a row with nothing to clear is never written: a big log without screenshots is read and left, a small one or none is not even read", async () => {
+  test("a row with nothing to clear is never written: a big log without screenshots is asked about and stays in Postgres, a small one or none is not even asked about", async () => {
     seedEveryTable();
 
     const summary: StoredLogScreenshotsSummary =
@@ -974,8 +1225,9 @@ describe("a run: what it clears, and what it leaves untouched", () => {
     }
 
     expect(database.updatedIds()).toHaveLength(10);
-    // Read: the logs stored big; cleared: the ones with screenshots.
-    expect(summary.rowsRead).toBe(15);
+    // Read into this process: only the logs with screenshots.
+    expect(summary.rowsRead).toBe(10);
+    expect(summary.rowsTooBigToRead).toBe(0);
   });
 
   test("a log under the threshold is left as it is, whatever it holds: it is never read", async () => {
@@ -1003,7 +1255,7 @@ describe("a run: what it clears, and what it leaves untouched", () => {
     expect(database.updatedIds()).toEqual([rowId(StoredLogTable.Alert, 2)]);
   });
 
-  test("what a Custom Code script returned is the script's: a big log with a key called screenshots is left untouched", async () => {
+  test("what a Custom Code script returned is the script's: a big log with a key called screenshots is left untouched, and not read", async () => {
     const customCode: JSONObject = {
       customCodeMonitorResponse: {
         result: { screenshots: { home: screenshot("custom", 9000) } },
@@ -1017,7 +1269,7 @@ describe("a run: what it clears, and what it leaves untouched", () => {
 
     expect(database.row(StoredLogTable.Incident, 1).log).toEqual(customCode);
     expect(database.updatedIds()).toEqual([]);
-    expect(summary.rowsRead).toBe(1);
+    expect(summary.rowsRead).toBe(0);
     expect(summary.rowsCleared).toBe(0);
   });
 
@@ -1174,7 +1426,7 @@ describe("a run: pages, read batches and where a walk got to", () => {
     ).toEqual([10, 10, 5]);
 
     for (const update of database.of("update")) {
-      expect(update.params).toHaveLength(2);
+      expect(update.params).toHaveLength(3);
       expect(typeof update.params[0]).toBe("string");
     }
 
@@ -1313,6 +1565,7 @@ describe("a run: when a table is done", () => {
     expect(database.statements[0]!.kind).toBe("markers");
     expect(summary).toEqual({
       rowsRead: 0,
+      rowsTooBigToRead: 0,
       rowsCleared: 0,
       storedBytesCleared: 0,
       failedRows: 0,
@@ -1747,7 +2000,9 @@ describe("clearTable and clearBatch on their own", () => {
 
     expect(result).toEqual({
       table: StoredLogTable.MonitorStatusTimeline,
-      rowsRead: 2,
+      // Only the log with screenshots comes into this process.
+      rowsRead: 1,
+      rowsTooBigToRead: 0,
       rowsCleared: 1,
       storedBytesCleared: storedSizeOf(syntheticLog("m1")),
       failedRows: 0,
@@ -1756,7 +2011,7 @@ describe("clearTable and clearBatch on their own", () => {
     });
   });
 
-  test("clearBatch: each row read once, written only when it had screenshots", async () => {
+  test("clearBatch: each row asked about once, read and written only when it had screenshots", async () => {
     database.add(StoredLogTable.Alert, [
       { n: 1, log: syntheticLog("a1") },
       { n: 2, log: bigApiLog() },
@@ -1788,7 +2043,8 @@ describe("clearTable and clearBatch on their own", () => {
 
     expect(outcomes).toEqual([
       { id: rowId(StoredLogTable.Alert, 1), isCleared: true, isRead: true },
-      { id: rowId(StoredLogTable.Alert, 2), isCleared: false, isRead: true },
+      // No screenshots: it stays in Postgres.
+      { id: rowId(StoredLogTable.Alert, 2), isCleared: false, isRead: false },
       // Not there any more: nothing to clear.
       { id: rowId(StoredLogTable.Alert, 9), isCleared: false, isRead: false },
     ]);
@@ -1796,7 +2052,485 @@ describe("clearTable and clearBatch on their own", () => {
   });
 });
 
+// A grouped Metrics monitor's check as kept before #9189: every series, no screenshots.
+function fleetLog(series: number): JSONObject {
+  const breakdown: Array<JSONObject> = [];
+
+  for (let i: number = 0; i < series; i++) {
+    breakdown.push({
+      seriesFingerprint: `fp-${i}`,
+      labels: { host: `host-${i}`, container: `c-${i}` },
+      points: [1, 2, 3, 4, 5],
+    });
+  }
+
+  return {
+    isOnline: false,
+    metricMonitorResponse: { seriesBreakdown: breakdown },
+  };
+}
+
+function postgresError(code: string): Error {
+  const error: Error & { code?: string } = new Error(`Postgres said ${code}`);
+  error.code = code;
+  return error;
+}
+
+describe("a run never reads a log without screenshots into this process (#9253)", () => {
+  test("a grouped Metrics monitor's huge check is asked about and stays in Postgres: never returned, never parsed, never written", async () => {
+    const fleet: JSONObject = fleetLog(200);
+    database.add(StoredLogTable.Alert, [
+      // As #9189 measured one: 95 MB of JSON, 12 MB stored.
+      { n: 1, log: fleet, storedBytes: 12 * 1024 * 1024 },
+      { n: 2, log: syntheticLog("next to it") },
+    ]);
+    // What a read returned, as this process got it.
+    const returned: Array<Record<string, unknown>> = [];
+    const answer: FakeStoredLogDatabase["answer"] =
+      database.answer.bind(database);
+    database.answer = async (
+      sql: string,
+      params: Array<unknown>,
+    ): Promise<Array<Record<string, unknown>>> => {
+      const rows: Array<Record<string, unknown>> = await answer(sql, params);
+
+      if (kindOf(sql) === "read") {
+        returned.push(...rows);
+      }
+
+      return rows;
+    };
+
+    const parse: SpyInstance<typeof JSON.parse> = jest.spyOn(JSON, "parse");
+    const summary: StoredLogScreenshotsSummary =
+      await StoredLogScreenshots.run();
+
+    // Asked about, by id: alone, as it is stored bigger than a batch's share.
+    expect(database.readIds(StoredLogTable.Alert)).toEqual([
+      rowId(StoredLogTable.Alert, 1),
+      rowId(StoredLogTable.Alert, 2),
+    ]);
+    expect(
+      returned.map((row: Record<string, unknown>): unknown => {
+        return row["id"];
+      }),
+    ).toEqual([rowId(StoredLogTable.Alert, 2)]);
+    expect(database.row(StoredLogTable.Alert, 1).writes).toBe(0);
+    expect(database.row(StoredLogTable.Alert, 1).log).toEqual(fleet);
+    // The fleet's check was never parsed here: only the Synthetic log was.
+    expect(parse.mock.calls.length).toBeGreaterThan(0);
+    for (const call of parse.mock.calls) {
+      expect(String(call[0])).not.toContain("seriesBreakdown");
+    }
+    expect(summary.rowsRead).toBe(1);
+    expect(summary.rowsCleared).toBe(1);
+    expect(summary.rowsTooBigToRead).toBe(0);
+    expect(summary.finishedTables).toContain(StoredLogTable.Alert);
+  });
+
+  test("a log with screenshots stored above readMaxStoredBytes is not read into this process: Postgres clears its runs' screenshots, by the same rule", async () => {
+    const table: StoredLogTable = StoredLogTable.IncidentStateTimeline;
+    database.add(table, [
+      { n: 1, log: syntheticLog("huge"), storedBytes: 64 * 1024 * 1024 },
+      { n: 2, log: syntheticLog("normal") },
+    ]);
+    const parse: SpyInstance<typeof JSON.parse> = jest.spyOn(JSON, "parse");
+
+    const summary: StoredLogScreenshotsSummary =
+      await StoredLogScreenshots.run();
+
+    expect(database.row(table, 1).log).toEqual(
+      StateChangeLogScreenshots.leaveOut(syntheticLog("huge")),
+    );
+    expect(database.row(table, 1).writes).toBe(1);
+    expect(database.row(table, 2).writes).toBe(1);
+    // Its text never came here: the in-database clear was given its id and size alone.
+    const inDatabase: Array<RecordedStatement> = database
+      .of("update", table)
+      .filter((statement: RecordedStatement): boolean => {
+        return statement.sql.includes("jsonb_set");
+      });
+    expect(
+      inDatabase.map((statement: RecordedStatement): Array<unknown> => {
+        return statement.params;
+      }),
+    ).toEqual([[rowId(table, 1), 64 * 1024 * 1024]]);
+    for (const call of parse.mock.calls) {
+      expect(String(call[0])).not.toContain("(huge)");
+    }
+    expect(summary.rowsCleared).toBe(2);
+    expect(summary.storedBytesCleared).toBe(
+      64 * 1024 * 1024 + storedSizeOf(syntheticLog("normal")),
+    );
+    expect(summary.rowsRead).toBe(1);
+    expect(summary.rowsTooBigToRead).toBe(0);
+    expect(summary.failedRows).toBe(0);
+    expect(summary.finishedTables).toContain(table);
+    // The read said how big a log may come back as text.
+    expect(database.of("read", table)[0]!.params[2]).toBe(
+      READ_MAX_STORED_BYTES,
+    );
+  });
+
+  test("one stored too big that keeps its screenshots anywhere but its top-level runs is logged and left as it is, and the walk goes on and finishes", async () => {
+    const table: StoredLogTable = StoredLogTable.Alert;
+    const deep: JSONObject = { steps: [syntheticLog("deep")] };
+    database.add(table, [
+      { n: 1, log: deep, storedBytes: 64 * 1024 * 1024 },
+      { n: 2, log: syntheticLog("normal") },
+    ]);
+
+    const summary: StoredLogScreenshotsSummary =
+      await StoredLogScreenshots.run();
+
+    expect(database.row(table, 1).log).toEqual(deep);
+    expect(database.row(table, 1).writes).toBe(0);
+    expect(database.row(table, 2).writes).toBe(1);
+    expect(summary.rowsTooBigToRead).toBe(1);
+    expect(summary.rowsCleared).toBe(1);
+    expect(summary.failedRows).toBe(0);
+    expect(summary.finishedTables).toContain(table);
+    expect(String(warnLog.mock.calls[0]?.[0])).toContain(
+      `${table}.createdStateLog of row ${rowId(table, 1)} holds screenshots but is stored at 64.0${NO_BREAK_SPACE}MB, too big to read`,
+    );
+  });
+
+  test.each(DATABASE_LIMIT_ERROR_CODES)(
+    "one Postgres cannot clear within its limits (%s) is logged and left as it is; any other failure is tried again next run",
+    async (code: string) => {
+      const table: StoredLogTable = StoredLogTable.Incident;
+      database.add(table, [
+        { n: 1, log: syntheticLog("huge"), storedBytes: 64 * 1024 * 1024 },
+      ]);
+      database.failWith = (statement: RecordedStatement): Error | undefined => {
+        return statement.sql.includes("jsonb_set")
+          ? postgresError(code)
+          : undefined;
+      };
+
+      const summary: StoredLogScreenshotsSummary =
+        await StoredLogScreenshots.run();
+
+      expect(database.row(table, 1).writes).toBe(0);
+      expect(summary.rowsTooBigToRead).toBe(1);
+      expect(summary.failedRows).toBe(0);
+      expect(summary.finishedTables).toContain(table);
+      expect(errorLog).not.toHaveBeenCalled();
+
+      // A lock waited for too long: a failure, and the walk stops there.
+      database.markers.clear();
+      database.failWith = (statement: RecordedStatement): Error | undefined => {
+        return statement.sql.includes("jsonb_set")
+          ? postgresError("55P03")
+          : undefined;
+      };
+
+      const again: StoredLogScreenshotsSummary =
+        await StoredLogScreenshots.run();
+
+      expect(again.failedRows).toBe(1);
+      expect(again.rowsTooBigToRead).toBe(0);
+      expect(again.finishedTables).not.toContain(table);
+      expect(errorLog).toHaveBeenCalled();
+    },
+  );
+
+  test("readMaxStoredBytes is the run's limit to give", async () => {
+    const table: StoredLogTable = StoredLogTable.Alert;
+    database.add(table, [{ n: 1, log: syntheticLog("a") }]);
+
+    const summary: StoredLogScreenshotsSummary = await StoredLogScreenshots.run(
+      {
+        limits: smallLimits({ readMaxStoredBytes: 1000 }),
+      },
+    );
+
+    expect(database.of("read", table)[0]!.params[2]).toBe(1000);
+    // Above it: cleared in the database, not read here.
+    expect(summary.rowsRead).toBe(0);
+    expect(summary.rowsCleared).toBe(1);
+    expect(
+      database.of("update", table).every((update: RecordedStatement) => {
+        return update.sql.includes("jsonb_set");
+      }),
+    ).toBe(true);
+  });
+
+  test("every read and every write runs in a transaction of its own, with the statement and lock timeouts", async () => {
+    database.add(StoredLogTable.Incident, [
+      { n: 1, log: syntheticLog("i1") },
+      { n: 2, log: bigApiLog() },
+    ]);
+
+    await StoredLogScreenshots.run({
+      limits: smallLimits({ statementTimeoutMs: 1234, lockTimeoutMs: 56 }),
+    });
+
+    const reads: number = database.of("read").length;
+    const updates: number = database.of("update").length;
+
+    expect(timeouts).toHaveLength(reads + updates);
+    expect(updates).toBe(1);
+    for (const each of timeouts) {
+      expect(["read", "update"]).toContain(each.kind);
+      expect(each.statementTimeoutMs).toBe(1234);
+      expect(each.lockTimeoutMs).toBe(56);
+    }
+
+    // And the defaults, when a run is given none.
+    timeouts = [];
+    database.markers.clear();
+    database.add(StoredLogTable.Alert, [{ n: 1, log: syntheticLog("a1") }]);
+    await StoredLogScreenshots.run();
+
+    expect(timeouts.length).toBeGreaterThan(0);
+    for (const each of timeouts) {
+      expect(each.statementTimeoutMs).toBe(STATEMENT_TIMEOUT_MS);
+      expect(each.lockTimeoutMs).toBe(LOCK_TIMEOUT_MS);
+    }
+  });
+
+  test("the process yields after each log it read", async () => {
+    database.add(StoredLogTable.Alert, [
+      { n: 1, log: syntheticLog("a1") },
+      { n: 2, log: syntheticLog("a2") },
+      { n: 3, log: bigApiLog() },
+    ]);
+
+    await StoredLogScreenshots.run();
+
+    expect(yields).toBe(2);
+  });
+
+  test.each(DATABASE_LIMIT_ERROR_CODES)(
+    "a read past the database's limits (%s) is asked again a row at a time; the row that is still past them is left as it is, and the walk goes on and finishes",
+    async (code: string) => {
+      const table: StoredLogTable = StoredLogTable.AlertStateTimeline;
+      database.add(table, [
+        { n: 1, log: syntheticLog("before") },
+        { n: 2, log: fleetLog(50), storedBytes: 12 * 1024 * 1024 },
+        { n: 3, log: syntheticLog("after") },
+      ]);
+      const tooBig: string = rowId(table, 2);
+      database.failWith = (statement: RecordedStatement): Error | undefined => {
+        return statement.kind === "read" &&
+          (statement.params[0] as Array<string>).includes(tooBig)
+          ? postgresError(code)
+          : undefined;
+      };
+
+      const summary: StoredLogScreenshotsSummary =
+        await StoredLogScreenshots.run({
+          limits: smallLimits({ readBatchMaxStoredBytes: 64 * 1024 * 1024 }),
+        });
+
+      // One read of the three, then each alone.
+      expect(
+        database.of("read", table).map((read: RecordedStatement): unknown => {
+          return read.params[0];
+        }),
+      ).toEqual([
+        [rowId(table, 1), tooBig, rowId(table, 3)],
+        [rowId(table, 1)],
+        [tooBig],
+        [rowId(table, 3)],
+      ]);
+      expect(database.updatedIds()).toEqual([rowId(table, 1), rowId(table, 3)]);
+      expect(summary.rowsTooBigToRead).toBe(1);
+      expect(summary.failedRows).toBe(0);
+      expect(summary.finishedTables).toContain(table);
+      expect(errorLog).not.toHaveBeenCalled();
+      expect(
+        warnLog.mock.calls.some((call: Array<unknown>): boolean => {
+          return String(call[0]).includes(
+            `${table}.stateChangeLog of row ${tooBig} could not be looked through within the database's limits`,
+          );
+        }),
+      ).toBe(true);
+    },
+  );
+
+  test("a read that fails otherwise - a lock waited for, a lost connection - fails its rows, and the walk stops there for the next run", async () => {
+    const table: StoredLogTable = StoredLogTable.Incident;
+    database.add(table, [
+      { n: 1, log: syntheticLog("i1") },
+      { n: 2, log: syntheticLog("i2") },
+    ]);
+    database.failWith = (statement: RecordedStatement): Error | undefined => {
+      return statement.kind === "read" ? postgresError("55P03") : undefined;
+    };
+
+    const summary: StoredLogScreenshotsSummary =
+      await StoredLogScreenshots.run();
+
+    expect(summary.failedRows).toBe(2);
+    expect(summary.rowsTooBigToRead).toBe(0);
+    expect(summary.finishedTables).not.toContain(table);
+    expect(database.of("read", table)).toHaveLength(1);
+  });
+
+  test("a log rewritten between its read and its write - trimmed by Monitor:TrimOversizedStoredChecks, say - is not overwritten, and is no failure", async () => {
+    const table: StoredLogTable = StoredLogTable.Alert;
+    database.add(table, [{ n: 1, log: syntheticLog("raced") }]);
+    const trimmed: JSONObject = { isEvidenceTruncated: true };
+    const answer: FakeStoredLogDatabase["answer"] =
+      database.answer.bind(database);
+    database.answer = async (
+      sql: string,
+      params: Array<unknown>,
+    ): Promise<Array<Record<string, unknown>>> => {
+      const rows: Array<Record<string, unknown>> = await answer(sql, params);
+
+      if (kindOf(sql) === "read") {
+        const row: FakeRow = database.row(table, 1);
+        row.log = trimmed;
+        row.storedBytes = storedSizeOf(trimmed);
+      }
+
+      return rows;
+    };
+
+    const summary: StoredLogScreenshotsSummary =
+      await StoredLogScreenshots.run();
+
+    expect(database.of("update", table)).toHaveLength(1);
+    expect(database.row(table, 1).log).toEqual(trimmed);
+    expect(database.row(table, 1).writes).toBe(0);
+    expect(summary.rowsCleared).toBe(0);
+    expect(summary.failedRows).toBe(0);
+    expect(summary.finishedTables).toContain(table);
+  });
+
+  test("the stand-in finds screenshots where the path does, and nowhere else", () => {
+    expect(postgresFindsScreenshots(syntheticLog("x"))).toBe(true);
+    expect(postgresFindsScreenshots({ nested: [syntheticLog("x")] })).toBe(
+      true,
+    );
+    expect(postgresFindsScreenshots(fleetLog(3))).toBe(false);
+    expect(postgresFindsScreenshots(bigApiLog())).toBe(false);
+    expect(
+      postgresFindsScreenshots({
+        syntheticMonitorResponse: [{ screenshots: {} }],
+      }),
+    ).toBe(false);
+    expect(
+      postgresFindsScreenshots({
+        customCodeMonitorResponse: { result: { screenshots: { a: "x" } } },
+      }),
+    ).toBe(false);
+  });
+});
+
 describe("the seams' own implementations", () => {
+  test("runStatement runs each statement in a transaction of its own, with its timeouts set on that transaction alone, and commits", async () => {
+    restoreSeams();
+    expect(StoredLogScreenshots.runStatement).toBe(runInOwnTransaction);
+
+    const calls: Array<string> = [];
+    const runner: Record<string, unknown> = {
+      isTransactionActive: false,
+      connect: async (): Promise<void> => {
+        calls.push("connect");
+      },
+      startTransaction: async (): Promise<void> => {
+        calls.push("begin");
+        runner["isTransactionActive"] = true;
+      },
+      query: async (sql: string, params?: Array<unknown>): Promise<unknown> => {
+        calls.push(params ? `${sql} ${JSON.stringify(params)}` : sql);
+        return sql.startsWith("UPDATE") ? [[{ id: "a" }], 1] : [];
+      },
+      commitTransaction: async (): Promise<void> => {
+        calls.push("commit");
+        runner["isTransactionActive"] = false;
+      },
+      rollbackTransaction: async (): Promise<void> => {
+        calls.push("rollback");
+      },
+      release: async (): Promise<void> => {
+        calls.push("release");
+      },
+    };
+    jest.spyOn(DataMigrationService, "getRepository").mockReturnValue({
+      manager: {
+        connection: {
+          createQueryRunner: () => {
+            return runner;
+          },
+        },
+      },
+    } as never);
+
+    await expect(
+      runInOwnTransaction({
+        sql: "UPDATE x",
+        params: [1],
+        statementTimeoutMs: 30000,
+        lockTimeoutMs: 3000.7,
+      }),
+    ).resolves.toEqual([{ id: "a" }]);
+    expect(calls).toEqual([
+      "connect",
+      "begin",
+      "SET LOCAL statement_timeout = 30000",
+      "SET LOCAL lock_timeout = 3000",
+      "UPDATE x [1]",
+      "commit",
+      "release",
+    ]);
+
+    // A statement that fails is rolled back, the connection released, the error thrown.
+    calls.length = 0;
+    runner["query"] = async (sql: string): Promise<unknown> => {
+      calls.push(sql);
+      if (sql === "SELECT broken") {
+        throw postgresError("57014");
+      }
+      return [];
+    };
+
+    await expect(
+      runInOwnTransaction({
+        sql: "SELECT broken",
+        params: [],
+        statementTimeoutMs: 1,
+        lockTimeoutMs: 1,
+      }),
+    ).rejects.toThrow("Postgres said 57014");
+    expect(calls).toEqual([
+      "connect",
+      "begin",
+      "SET LOCAL statement_timeout = 1",
+      "SET LOCAL lock_timeout = 1",
+      "SELECT broken",
+      "rollback",
+      "release",
+    ]);
+  });
+
+  test("isOverDatabaseLimits: a statement timeout, out of memory, a program limit - on the error or its driver error - and nothing else", () => {
+    expect(DATABASE_LIMIT_ERROR_CODES).toEqual(["57014", "53200", "54000"]);
+
+    for (const code of DATABASE_LIMIT_ERROR_CODES) {
+      expect(isOverDatabaseLimits({ code })).toBe(true);
+      expect(isOverDatabaseLimits({ driverError: { code } })).toBe(true);
+    }
+
+    expect(isOverDatabaseLimits({ code: "55P03" })).toBe(false);
+    expect(isOverDatabaseLimits(new Error("Connection terminated"))).toBe(
+      false,
+    );
+    expect(isOverDatabaseLimits(null)).toBe(false);
+    expect(isOverDatabaseLimits(undefined)).toBe(false);
+  });
+
+  test("readReturnedRows: the rows of a SELECT, or of an UPDATE ... RETURNING", () => {
+    expect(readReturnedRows([{ id: "a" }])).toEqual([{ id: "a" }]);
+    expect(readReturnedRows([[{ id: "a" }], 1])).toEqual([{ id: "a" }]);
+    expect(readReturnedRows([[], 0])).toEqual([]);
+    expect(readReturnedRows(undefined)).toEqual([]);
+  });
+
   test("runQuery runs on the DataMigration repository's manager", async () => {
     restoreSeams();
     const query: Mock<(...args: Array<unknown>) => Promise<unknown>> = jest.fn(

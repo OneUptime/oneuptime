@@ -128,6 +128,11 @@ describe("email subjects", () => {
       "Common/Server/Services/UserService.ts",
       "subject: `Password Reset Request for ${ProductBrandingText.getProductName()}`",
     ],
+    // A first password, for a user a master admin created (#9139).
+    [
+      "Common/Server/Services/UserService.ts",
+      "subject: `Set Your Password for ${ProductBrandingText.getProductName()}`",
+    ],
     [
       "App/FeatureSet/Identity/Utils/AuthenticationEmail.ts",
       "subject: `Finish setting up your ${ProductBrandingText.getProductName()} account`",

@@ -599,7 +599,7 @@ describe("the sign-in page while the server does not require SSO", () => {
     jest
       .spyOn(ModelAPI, "createOrUpdate")
       .mockImplementation(async (): Promise<never> => {
-        throw new Error("Invalid login: Email or password does not match.");
+        throw new Error("Email or password does not match.");
       });
 
     await renderPage(<LoginPage />);
@@ -615,9 +615,7 @@ describe("the sign-in page while the server does not require SSO", () => {
     });
 
     expect(
-      await screen.findByText(
-        "Invalid login: Email or password does not match.",
-      ),
+      await screen.findByText("Email or password does not match."),
     ).toBeInTheDocument();
     expect(requestedUrls).toEqual([`${IDENTITY_ORIGIN}/sign-in-methods`]);
   });

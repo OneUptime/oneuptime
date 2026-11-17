@@ -180,11 +180,13 @@ const readableBy: (
 };
 
 /*
- * The plain-text secrets a caller may list the records of but not read:
- * stored as they are (not hashed, not encrypted), so their order said what
- * they hold. A project's SMTP client secret was one, until it was kept
- * encrypted and write-only (#8989): nobody sorts by it now
- * (ProjectCredentialsAtRest).
+ * The secrets a caller may list the records of but not read. They were
+ * stored as they are, so their order said what they hold; the keys among
+ * them are kept encrypted now, and a SCIM bearer token as its hash (#9012:
+ * ProjectSecretColumnsAtRest), and a sort by one is still refused to whoever
+ * may not read it - its order is no business of theirs. A project's SMTP
+ * client secret was one, until it was kept encrypted and write-only
+ * (#8989): nobody sorts by it now (ProjectCredentialsAtRest).
  */
 const SECRETS: Array<[string, ModelType, string]> = [
   ["a probe's key", Probe, "key"],
@@ -214,8 +216,11 @@ describe("a plain-text secret orders no list for a caller who may not read it", 
       const metadata: TableColumnMetadata =
         model.getTableColumnMetadata(column);
 
-      // Stored as it is: its order is the value's own.
-      expect(metadata.hashed || metadata.encrypted).toBeFalsy();
+      // A secret: the API calls it one.
+      expect(
+        Boolean(metadata.secret) ||
+          metadata.type === TableColumnType.HashedString,
+      ).toBe(true);
 
       const tableReaders: Array<Permission> = model.getReadPermissions() || [];
       let refused: number = 0;

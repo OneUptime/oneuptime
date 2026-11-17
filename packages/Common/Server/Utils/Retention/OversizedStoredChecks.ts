@@ -14,13 +14,16 @@ import EventLoop from "../EventLoop";
 import JobDeadline from "../JobDeadline";
 import logger from "../Logger";
 import {
+  DATABASE_LIMIT_ERROR_CODES,
   STORED_LOG_COLUMNS,
   StoredLogScreenshotsStatement,
   StoredLogTable,
   buildPageCandidatesStatement,
   buildPageEndStatement,
+  isOverDatabaseLimits,
+  readReturnedRows,
+  runInOwnTransaction,
 } from "./StoredLogScreenshots";
-import { QueryRunner } from "typeorm";
 
 /*
  * TRIMMING THE OVERSIZED CHECKS STORED BEFORE THEY WERE BOUNDED (OneUptime
@@ -258,11 +261,8 @@ export function getDoneMarkerName(table: StoredLogTable): string {
  * other error - a lock waited for too long (lock_not_available), a lost
  * connection - is tried again next run.
  */
-export const TOO_BIG_TO_TRIM_ERROR_CODES: ReadonlyArray<string> = [
-  "57014",
-  "53200",
-  "54000",
-];
+export const TOO_BIG_TO_TRIM_ERROR_CODES: ReadonlyArray<string> =
+  DATABASE_LIMIT_ERROR_CODES;
 
 // How much a run may read and write: the defaults, or smaller ones in tests.
 export interface OversizedStoredChecksLimits {
@@ -556,11 +556,7 @@ WHERE m."name" = ANY($1::text[])
 
 // Was this error Postgres saying the check is too big to trim in SQL?
 export function isTooBigToTrim(error: unknown): boolean {
-  const code: unknown =
-    (error as { code?: unknown } | null)?.code ??
-    (error as { driverError?: { code?: unknown } } | null)?.driverError?.code;
-
-  return typeof code === "string" && TOO_BIG_TO_TRIM_ERROR_CODES.includes(code);
+  return isOverDatabaseLimits(error);
 }
 
 function readCandidates(
@@ -599,47 +595,7 @@ export default class OversizedStoredChecks {
   };
 
   public static runStatement: OversizedStoredChecksStatementRunner =
-    async (data: {
-      sql: string;
-      params: Array<unknown>;
-      statementTimeoutMs: number;
-      lockTimeoutMs: number;
-    }): Promise<Array<Record<string, unknown>>> => {
-      const queryRunner: QueryRunner =
-        DataMigrationService.getRepository().manager.connection.createQueryRunner();
-
-      await queryRunner.connect();
-
-      try {
-        await queryRunner.startTransaction();
-
-        try {
-          await queryRunner.query(
-            `SET LOCAL statement_timeout = ${toPositiveCount(data.statementTimeoutMs)}`,
-          );
-          await queryRunner.query(
-            `SET LOCAL lock_timeout = ${toPositiveCount(data.lockTimeoutMs)}`,
-          );
-
-          const rows: Array<Record<string, unknown>> = (await queryRunner.query(
-            data.sql,
-            data.params,
-          )) as Array<Record<string, unknown>>;
-
-          await queryRunner.commitTransaction();
-
-          return OversizedStoredChecks.readReturnedRows(rows);
-        } catch (error) {
-          if (queryRunner.isTransactionActive) {
-            await queryRunner.rollbackTransaction();
-          }
-
-          throw error;
-        }
-      } finally {
-        await queryRunner.release();
-      }
-    };
+    runInOwnTransaction;
 
   public static now: () => Date = (): Date => {
     return new Date();
@@ -730,18 +686,7 @@ export default class OversizedStoredChecks {
   public static readReturnedRows(
     result: unknown,
   ): Array<Record<string, unknown>> {
-    if (
-      Array.isArray(result) &&
-      result.length === 2 &&
-      Array.isArray(result[0]) &&
-      typeof result[1] === "number"
-    ) {
-      return result[0] as Array<Record<string, unknown>>;
-    }
-
-    return Array.isArray(result)
-      ? (result as Array<Record<string, unknown>>)
-      : [];
+    return readReturnedRows(result);
   }
 
   // The tables whose walk is done.

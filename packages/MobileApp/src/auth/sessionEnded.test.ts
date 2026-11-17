@@ -71,8 +71,8 @@ describe("the app's copy of the server's reasons", () => {
   );
 
   test.each<[string, unknown]>([
-    ["a refresh token that ran out", "Session expired. Please login again."],
-    ["a missing refresh token", "Refresh token missing. Please login again."],
+    ["a refresh token that ran out", "Session expired. Please sign in again."],
+    ["a missing refresh token", "You are signed out. Please sign in again."],
     ["a blocked user", "Your account has been blocked."],
     [
       "the message cut short",
@@ -116,7 +116,7 @@ describe("the reason of a refused renewal", () => {
   test("a 401 that says anything else: none", () => {
     expect(
       getSessionEndReasonOfRefusal(
-        refusal(401, { message: "Session expired. Please login again." }),
+        refusal(401, { message: "Session expired. Please sign in again." }),
       ),
     ).toBeNull();
     expect(getSessionEndReasonOfRefusal(refusal(401, ""))).toBeNull();

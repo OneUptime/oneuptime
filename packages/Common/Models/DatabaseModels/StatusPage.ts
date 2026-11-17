@@ -4161,6 +4161,8 @@ export default class StatusPage extends BaseModel {
   @Index()
   @TableColumn({
     secret: true,
+    encrypted: true,
+    presentedKey: true,
     type: TableColumnType.ShortText,
     required: false,
     title: "Embedded Overall Status Token",
@@ -4168,8 +4170,7 @@ export default class StatusPage extends BaseModel {
       "Security token required to access the embedded overall status badge. This token must be provided in the URL.",
   })
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
     nullable: true,
   })
   @ColumnBillingAccessControl({

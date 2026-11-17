@@ -364,6 +364,12 @@ OneUptime AI's arbejde i din kode følger også en privat hændelse eller advars
 
 Det arbejde, der kun indeholder en privat hændelse eller advarsel, følger den også: en Code-opgave, som nogen har bedt om med posten som kontekst eller tilføjet den til i et svar, opgaven for et handlingspunkt fra en postmortem, og en pull request, som OneUptime AI har åbnet fra postens AI-samtale eller fra Spørg AI, da der blev spurgt om den. Hver læses kun af dem, der må læse alle de poster, den indeholder, og, når en af dem er slettet, kun af Projektejere og Projektadministratorer. Anmodningen for et handlingspunkt i en privat hændelse nævner kun hændelsen ved dens nummer og beder OneUptime AI om at holde den ude af pull requesten.
 
+Arbejde, som OneUptime AI har gemt, eller som et svar senere har tilføjet en privat post til, følger posten, som den er nu:
+
+- En pull requests produktionsgennemgang viser, tæller og nævner kun de hændelser, du må læse nu. OneUptime AI's punkter om de andre udelades. Kommentaren, der allerede står på pull requesten, forbliver, som den var.
+- En pull request, som OneUptime AI åbner fra en chat, indeholder også de hændelser og advarsler, som chatten åbnede én for én, og dem fra en liste, hvis titel pull requesten citerer.
+- En undtagelses rettelse, en undersøgelses rettelses-pull request, et traces ydeevnerettelse, en rettelses pull request til koden og den rettelse, der er i gang for en AI-indsigt eller for en funktion i Profiler, siger, at en opgave er skjult, når den indeholder en privat hændelse eller advarsel, du ikke kan åbne. De viser hverken dens fremskridt eller dens pull request.
+
 En post, der nævner en privat post uden at være en del af den, såsom et Data Security-problem, en sikkerhedssag, en formularindsendelse, en sessionsoptagelse eller en offentlig advarsel eller hændelse i en privat episode, læses som før. Kun de, der må læse den private post, ser dens titel og øvrige felter der: for alle andre finder et filter på dem den ikke, og en liste, der nævner den, kan ikke sorteres efter dem.
 
 Arbejdsgange handler ikke på private poster. Trinene i en arbejdsgang handler som Projektadministrator, men låner aldrig dens adgang til at se private hændelser, advarsler og episoder: de finder ingen, ændrer ingen og føjer intet til en, og en arbejdsgang starter ikke på en eller på noget, der hører til en. Se [Hvad arbejdsgangstrin må gøre](/docs/workflows/configuration#hvad-arbejdsgangstrin-må-gøre).

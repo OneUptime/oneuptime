@@ -37,7 +37,7 @@
     "announcements": "اطلاعیه‌ها",
     "scheduledEvents": "تعمیر و نگهداری زمان‌بندی‌شده",
     "subscribe": "عضویت",
-    "logout": "خروج"
+    "signOut": "خروج از حساب"
   },
   "overview": {
     "uptimeSuffix": "٪ زمان کارکرد",
@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "فراموشی رمز عبور",
       "description": "اگر رمز عبور خود را برای {{statusPageName}} فراموش کرده‌اید، لطفاً ایمیل خود را وارد کنید تا لینک بازنشانی رمز عبور برای شما ارسال شود.",
-      "success": "لینک بازنشانی رمز عبور برای شما ایمیل شد. لطفاً پوشه اسپم را نیز بررسی کنید.",
+      "success": "اگر این نشانی ایمیل بتواند به {{statusPageName}} وارد شود، پیوند بازنشانی رمز عبور را به آن ایمیل کرده‌ایم. لطفاً پوشه اسپم را نیز بررسی کنید.",
       "sendLink": "ارسال لینک بازنشانی رمز عبور",
       "rememberPassword": "رمز عبور خود را به یاد دارید؟"
     },
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "تکمیل‌شده در {{count}} روز گذشته",
   "Completed in the Last {{count}} Days_one": "تکمیل‌شده در یک روز گذشته",
   "None is planned, and none took place in the last {{count}} days.": "هیچ موردی برنامه‌ریزی نشده و در {{count}} روز گذشته هم موردی انجام نشده است.",
-  "None is planned, and none took place in the last {{count}} days._one": "هیچ موردی برنامه‌ریزی نشده و در یک روز گذشته هم موردی انجام نشده است."
+  "None is planned, and none took place in the last {{count}} days._one": "هیچ موردی برنامه‌ریزی نشده و در یک روز گذشته هم موردی انجام نشده است.",
+  "serverMessages": {
+    "signInToView": "به این صفحهٔ وضعیت دسترسی ندارید. برای دیدن آن وارد شوید.",
+    "sessionExpired": "نشست منقضی شده است. لطفاً دوباره وارد شوید.",
+    "signedOut": "از حساب خارج شده‌اید. لطفاً دوباره وارد شوید.",
+    "magicLinkTurnedOff": "پیوندهای ورود برای این صفحهٔ وضعیت خاموش است. لطفاً با ایمیل و گذرواژهٔ خود وارد شوید."
+  }
 }

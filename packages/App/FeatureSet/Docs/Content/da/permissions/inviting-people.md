@@ -118,7 +118,7 @@ At fjerne nogen tager personen ud af alle projektets teams. Personen mister adga
 
 - **Single sign-on.** Den, der logger ind med projektets identitetsudbyder første gang, kommer med i de teams, udbyderen nævner. Se [Roller og teams for SSO-brugere](/docs/identity/sso#roller-og-teams-for-sso-brugere).
 - **SCIM.** Din identitetsudbyder opretter personer og tilføjer dem til forbindelsens standardteams. Se [SCIM](/docs/identity/scim#sådan-klargøres-en-projektbruger).
-- **Admin Dashboard.** På en selvhostet installation kan en masteradministrator tilføje nogen til et projekt og acceptere invitationen for personen. Se [Brugere, teams og tilladelser](/docs/permissions/index#brugere).
+- **Admin Dashboard.** På en selvhostet installation kan en masteradministrator tilføje nogen til et projekt og acceptere invitationen for personen. Se [Brugere, teams og tilladelser](/docs/permissions/index#brugere). En masteradministrator kan også oprette en konto til nogen under **Brugere** med **Opret Bruger**: vedkommende angiver et navn og en e-mail, og OneUptime sender adressen et link til at vælge en adgangskode, som virker én gang i 7 dage. For selv at angive adgangskoden åbner vedkommende **Flere felter**. Bliver e-mailen ikke sendt, vises linket, så vedkommende selv kan sende det.
 
 ## Fejlfinding
 

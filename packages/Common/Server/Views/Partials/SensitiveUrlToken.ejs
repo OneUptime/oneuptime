@@ -4,6 +4,7 @@
 
     Password reset, email verification and sign-in links carry their token in
     the URL *path* — /accounts/reset-password/<token>,
+    /accounts/set-password/<token> (a new account's first password),
     /accounts/verify-email/<token>, /accounts/magic-link-login/<token>,
     /reset-password/<token> on a status page — and so do the unsubscribe
     link in every status page notification, /unsubscribe/<subscriberId>-<token>,
@@ -82,6 +83,7 @@
          */
         var TOKEN_ROUTES = [
             "reset-password",
+            "set-password",
             "verify-email",
             "unsubscribe",
             "update-subscription",

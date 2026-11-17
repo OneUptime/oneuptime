@@ -22,6 +22,8 @@ import {
 import { fakeProjectSCIMUserService } from "./FakeProjectSCIMUserService";
 import { scimWorld } from "./InMemorySCIMWorld";
 import ProjectSCIMService from "Common/Server/Services/ProjectSCIMService";
+import PresentedKey from "Common/Server/Utils/PresentedKey/PresentedKey";
+import HashedString from "Common/Types/HashedString";
 import ProjectService from "Common/Server/Services/ProjectService";
 import StatusPagePrivateUserService from "Common/Server/Services/StatusPagePrivateUserService";
 import StatusPageSCIMService from "Common/Server/Services/StatusPageSCIMService";
@@ -224,16 +226,20 @@ function matches(
     return false;
   }
 
+  // A bearer token is looked up by its hash, as it is kept (#9012).
   return (
     query["bearerToken"] === undefined ||
-    query["bearerToken"] === connection.bearerToken
+    String(query["bearerToken"]) === connection.bearerToken?.toString()
   );
 }
 
 function projectConnection(id: string): ProjectSCIM {
   const connection: ProjectSCIM = new ProjectSCIM(new ObjectID(id));
   connection.projectId = new ObjectID(PROJECT_ID);
-  connection.bearerToken = BEARER_TOKEN;
+  connection.bearerToken = new HashedString(
+    PresentedKey.toStoredHash(BEARER_TOKEN),
+    true,
+  );
   connection.autoProvisionUsers = true;
   connection.autoDeprovisionUsers = true;
   connection.enablePushGroups = false;
@@ -306,7 +312,10 @@ beforeEach(() => {
   statusPageConnection = new StatusPageSCIM(new ObjectID(STATUS_PAGE_SCIM_ID));
   statusPageConnection.projectId = new ObjectID(PROJECT_ID);
   statusPageConnection.statusPageId = new ObjectID(STATUS_PAGE_ID);
-  statusPageConnection.bearerToken = BEARER_TOKEN;
+  statusPageConnection.bearerToken = new HashedString(
+    PresentedKey.toStoredHash(BEARER_TOKEN),
+    true,
+  );
   statusPageConnection.autoProvisionUsers = true;
   statusPageConnection.autoDeprovisionUsers = true;
   statusPageConnection.oauthClientSecretHash = hashScimClientSecret(secret);
@@ -341,6 +350,14 @@ beforeEach(() => {
         matches(statusPageConnection, query) ? statusPageConnection : null
       ) as never;
     });
+
+  // Every bearer token is kept as its hash (#9012).
+  jest
+    .spyOn(ProjectSCIMService, "mayHoldPresentedKeysAsWritten")
+    .mockResolvedValue(false);
+  jest
+    .spyOn(StatusPageSCIMService, "mayHoldPresentedKeysAsWritten")
+    .mockResolvedValue(false);
 
   jest
     .spyOn(StatusPagePrivateUserService, "findBy")

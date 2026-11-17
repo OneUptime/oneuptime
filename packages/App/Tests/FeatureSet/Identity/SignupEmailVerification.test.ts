@@ -1146,9 +1146,7 @@ describe("POST /login with an unverified address", () => {
     await invoke("/login", loginBody());
 
     expect(sendVerificationEmail).not.toHaveBeenCalled();
-    expect(refusalMessage()).toBe(
-      "Invalid login: Email or password does not match.",
-    );
+    expect(refusalMessage()).toBe("Email or password does not match.");
     expectNobodySignedIn();
   });
 

@@ -173,7 +173,7 @@ describe("the overview of an archived monitor", () => {
       monitor(MonitorType.API, { isArchived: true }),
     );
 
-    expect(presentation.badge).toEqual({ text: "Archived", tone: "neutral" });
+    expect(presentation.badge).toEqual({ text: "Archived", tone: "paused" });
     expect(presentation.tone).toBe("neutral");
     expect(presentation.headline).toEqual({
       text: "Monitoring is off because it is archived",

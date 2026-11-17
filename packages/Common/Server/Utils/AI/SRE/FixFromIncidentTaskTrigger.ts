@@ -35,6 +35,8 @@ import ProjectService from "../../../Services/ProjectService";
 import FixRunBudget, { FixRunBudgetDecision } from "../CodeFix/FixRunBudget";
 import CodeFixStartGate, { CodeFixStart } from "../CodeFix/CodeFixStartGate";
 import CodeTaskRuns from "../CodeTask/CodeTaskRuns";
+import CodeTaskThread from "../CodeTask/CodeTaskThread";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SubjectCodeFixRun from "./SubjectCodeFixRun";
 import PostedRootCause from "./PostedRootCause";
 import RemediationRulePullRequests from "./RemediationRulePullRequests";
@@ -53,6 +55,7 @@ import {
   AUTOMATIC_CODE_FIX_BLOCKER_BY_RULE_BLOCKER,
   AutomaticCodeFixBlocker,
   getInvestigationCodeFixSuggestion,
+  HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION,
   InvestigationCodeFixSuggestion,
   InvestigationCodeFixSuggestionInput,
   NO_INVESTIGATION_CODE_FIX_SUGGESTION,
@@ -327,13 +330,17 @@ export default class FixFromIncidentTaskTrigger {
    * Read as OneUptime: the caller has checked the reader may read the
    * record. Asks only what the answer needs: nothing past the investigation
    * when it recommends no change in the code, and the automatic gates only
-   * while no fix exists.
+   * while no fix exists. The fix itself is read as its task's own page reads
+   * it, for `reader`: one a reply carried a private incident or alert into
+   * that they do not see says it is there, and nothing more
+   * (HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION).
    */
   @CaptureSpan()
   public static async getSuggestionForSubject(data: {
     projectId: ObjectID;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
+    reader: DatabaseCommonInteractionProps;
   }): Promise<InvestigationCodeFixSuggestion> {
     const signal: IncidentOrAlertTriggerEntity | null = getAutomaticFixSignal({
       incidentId: data.incidentId,
@@ -421,6 +428,27 @@ export default class FixFromIncidentTaskTrigger {
           sort: { createdAt: SortOrder.Descending },
           props: { isRoot: true },
         });
+
+    /*
+     * The fix the step would show, read as its task's own page reads it: a
+     * task a reply carried a private incident or alert into, which the
+     * reader does not see, says it is there - so no second one is offered -
+     * and nothing of how it stands, nor where it is.
+     */
+    const fixRun: AIRun | null = activeRun || finishedRun;
+
+    if (
+      fixRun?.id &&
+      (
+        await CodeTaskThread.findTasksHiddenFrom({
+          projectId: data.projectId,
+          taskIds: [fixRun.id],
+          reader: data.reader,
+        })
+      ).size > 0
+    ) {
+      return HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION;
+    }
 
     let finishedFix: InvestigationCodeFixSuggestionInput["finishedFix"] = null;
 

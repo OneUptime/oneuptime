@@ -37,7 +37,7 @@
     "announcements": "Meddelelser",
     "scheduledEvents": "Planlagt vedligeholdelse",
     "subscribe": "Abonner",
-    "logout": "Log ud"
+    "signOut": "Log ud"
   },
   "overview": {
     "uptimeSuffix": "% oppetid",
@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "Glemt adgangskode",
       "description": "Hvis du har glemt din adgangskode til {{statusPageName}}, så indtast din e-mail, og vi sender dig et link til nulstilling af adgangskoden.",
-      "success": "Vi har sendt dig linket til nulstilling af adgangskoden på e-mail. Husk at tjekke din spam-mappe.",
+      "success": "Hvis denne e-mailadresse kan logge ind på {{statusPageName}}, har vi sendt den et link til nulstilling af adgangskoden. Husk at tjekke din spam-mappe.",
       "sendLink": "Send link til nulstilling af adgangskode",
       "rememberPassword": "Kan du huske din adgangskode?"
     },
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "Gennemført inden for de seneste {{count}} dage",
   "Completed in the Last {{count}} Days_one": "Gennemført inden for det seneste døgn",
   "None is planned, and none took place in the last {{count}} days.": "Der er ingen planlagt, og der har ikke været nogen inden for de seneste {{count}} dage.",
-  "None is planned, and none took place in the last {{count}} days._one": "Der er ingen planlagt, og der har ikke været nogen inden for det seneste døgn."
+  "None is planned, and none took place in the last {{count}} days._one": "Der er ingen planlagt, og der har ikke været nogen inden for det seneste døgn.",
+  "serverMessages": {
+    "signInToView": "Du har ikke adgang til denne statusside. Log ind for at se den.",
+    "sessionExpired": "Sessionen er udløbet. Log ind igen.",
+    "signedOut": "Du er logget ud. Log ind igen.",
+    "magicLinkTurnedOff": "Links til at logge ind er slået fra for denne statusside. Log ind med din e-mail og adgangskode."
+  }
 }

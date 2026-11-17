@@ -77,6 +77,7 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import { RouteUtil } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Project from "../../../Models/DatabaseModels/Project";
 import Link from "../../../Types/Link";
+import { PillTone } from "../../../UI/Components/Pill/PillTone";
 import {
   MONITOR_ROW_STATUS_WORDS,
   MonitorRowStatusKind,
@@ -113,7 +114,8 @@ function badgeOf(title: string): HTMLElement {
   const row: HTMLElement = screen.getByRole("link", {
     name: new RegExp(title),
   });
-  const badge: HTMLElement | null = row.querySelector("span.rounded-full");
+  // A count is painted in a Pill's tone, which its data-tone names.
+  const badge: HTMLElement | null = row.querySelector("span[data-tone]");
 
   expect({ title: title, hasBadge: Boolean(badge) }).toEqual({
     title: title,
@@ -181,15 +183,15 @@ describe("Monitors side menu", () => {
     test("is counted in grey, while what needs attention is counted in red", async () => {
       await renderMonitorsMenu();
 
-      expect(badgeOf("Disabled").className).toContain("text-gray-600");
-      expect(badgeOf("Disabled").className).not.toMatch(/red|amber/);
+      // A choice: the tone a switched-off state is drawn in (#9255).
+      expect(badgeOf("Disabled")).toHaveAttribute("data-tone", PillTone.Paused);
 
       for (const title of [
         "Not Operational",
         "Probes Disconnected",
         "No Probe Enabled",
       ]) {
-        expect(badgeOf(title).className).toContain("text-red-700");
+        expect(badgeOf(title)).toHaveAttribute("data-tone", PillTone.Danger);
       }
     });
   });

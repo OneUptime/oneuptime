@@ -119,7 +119,14 @@ const buildService: () => Harness = (): Harness => {
   const service: TelemetryIngestionKeyServiceType =
     new TelemetryIngestionKeyServiceType();
 
-  const findOneBy: Spy = jest.spyOn(service, "findOneBy") as unknown as Spy;
+  /*
+   * The lookup of a key by its secret (findOneByPresentedKey: by the
+   * secret's lookup hash, as the secret is kept encrypted, #9012).
+   */
+  const findOneBy: Spy = jest.spyOn(
+    service,
+    "findOneByPresentedKey",
+  ) as unknown as Spy;
   findOneBy.mockResolvedValue(null as never);
 
   // The rows an update writes, read and held by the hook that checks them.

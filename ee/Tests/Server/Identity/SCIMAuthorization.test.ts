@@ -18,6 +18,8 @@ import {
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
 import ObjectID from "Common/Types/ObjectID";
+import HashedString from "Common/Types/HashedString";
+import PresentedKey from "Common/Server/Utils/PresentedKey/PresentedKey";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 
 /*
@@ -33,6 +35,12 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
  * incorrect token can meet. Tests that check "wrong token is rejected" against
  * a stubbed lookup would prove nothing about that, so the assertions below are
  * on the QUERY the middleware issues.
+ *
+ * A token is kept only as its hash (#9012: PresentedKey.toStoredHash), so the
+ * query holds the hash of the token presented. A token stored as written
+ * before it was kept hashed is found as written, by a second query, only
+ * while one may still be stored so - and never a value shaped like a stored
+ * hash, which a backup holds and no identity provider does.
  *
  * The other half is Express 4 mechanics. This is an async middleware, and
  * Express 4 does not catch a rejected promise from one - a throw here would
@@ -258,7 +266,40 @@ beforeEach(() => {
     plan: PlanType.Scale,
     isSubscriptionUnpaid: false,
   });
+  stubTokensAsWritten(false);
 });
+
+/*
+ * Whether a token may still be stored as written, before it was kept hashed
+ * (DatabaseService.mayHoldPresentedKeysAsWritten): no, unless a test says so.
+ */
+function stubTokensAsWritten(mayHold: boolean): void {
+  jest
+    .spyOn(ProjectSCIMService, "mayHoldPresentedKeysAsWritten")
+    .mockResolvedValue(mayHold);
+  jest
+    .spyOn(StatusPageSCIMService, "mayHoldPresentedKeysAsWritten")
+    .mockResolvedValue(mayHold);
+}
+
+// The query a lookup was made with.
+function queryOf(spy: FindSpy, call: number = 0): Record<string, unknown> {
+  return (spy.mock.calls[call]![0] as Record<string, Record<string, unknown>>)[
+    "query"
+  ]!;
+}
+
+// The token a query holds is the hash of `token`, as it is kept.
+function expectQueryByHashOf(
+  query: Record<string, unknown>,
+  token: string,
+): void {
+  const value: unknown = query["bearerToken"];
+
+  expect(value).toBeInstanceOf(HashedString);
+  expect((value as HashedString).isValueHashed()).toBe(true);
+  expect(value!.toString()).toBe(PresentedKey.toStoredHash(token));
+}
 
 describe("a request with no usable credential never reaches a lookup", () => {
   afterEach(() => {
@@ -359,29 +400,97 @@ describe("the lookup itself is the security boundary", () => {
    * rejected" test while introducing a timing oracle and a place to get the
    * comparison wrong.
    */
-  test("queries on the id AND the token together", async () => {
+  test("queries on the id AND the token together - the token by its hash, as it is kept", async () => {
     const spy: FindSpy = stubProjectLookup(buildProjectConfig());
 
     await run(buildRequest({ authorization: `Bearer ${TOKEN}` }));
 
-    const query: Record<string, unknown> = (
-      spy.mock.calls[0]![0] as Record<string, Record<string, unknown>>
-    )["query"]!;
+    const query: Record<string, unknown> = queryOf(spy);
 
     expect(String(query["_id"])).toBe(SCIM_ID);
-    expect(query["bearerToken"]).toBe(TOKEN);
+    expectQueryByHashOf(query, TOKEN);
+    expect(spy.mock.calls.length).toBe(1);
   });
 
-  test("passes the token through verbatim, without trimming or decoding it", async () => {
+  test("hashes the token verbatim, without trimming or decoding it", async () => {
     const spy: FindSpy = stubProjectLookup(buildProjectConfig());
 
     await run(buildRequest({ authorization: "Bearer  spaced+token/=" }));
 
-    const query: Record<string, unknown> = (
-      spy.mock.calls[0]![0] as Record<string, Record<string, unknown>>
-    )["query"]!;
+    expectQueryByHashOf(queryOf(spy), " spaced+token/=");
+  });
 
-    expect(query["bearerToken"]).toBe(" spaced+token/=");
+  test("no query ever holds the token itself, once every token is hashed", async () => {
+    const projectSpy: FindSpy = stubProjectLookup(null);
+    const statusPageSpy: FindSpy = stubStatusPageLookup(null);
+
+    expectRefused(
+      await run(buildRequest({ authorization: `Bearer ${TOKEN}` })),
+      401,
+    );
+
+    expect(projectSpy.mock.calls.length).toBe(1);
+    expect(statusPageSpy.mock.calls.length).toBe(1);
+    expect(JSON.stringify(projectSpy.mock.calls)).not.toContain(TOKEN);
+    expect(JSON.stringify(statusPageSpy.mock.calls)).not.toContain(TOKEN);
+  });
+
+  /*
+   * A token stored as written before it was kept hashed (#9012), until the
+   * PresentedKeys:ProtectAtRest job hashes it: the identity provider that
+   * holds it keeps provisioning, with no change.
+   */
+  test("finds a token stored as written, by the token, once its hash finds nothing", async () => {
+    stubTokensAsWritten(true);
+
+    const spy: FindSpy = jest
+      .spyOn(ProjectSCIMService, "findOneBy")
+      .mockResolvedValueOnce(null as never)
+      .mockResolvedValueOnce(
+        buildProjectConfig() as never,
+      ) as unknown as FindSpy;
+
+    expectLetThrough(
+      await run(buildRequest({ authorization: `Bearer ${TOKEN}` })),
+    );
+
+    expect(spy.mock.calls.length).toBe(2);
+    expectQueryByHashOf(queryOf(spy, 0), TOKEN);
+    expect(String(queryOf(spy, 1)["_id"])).toBe(SCIM_ID);
+    expect(queryOf(spy, 1)["bearerToken"]).toBe(TOKEN);
+  });
+
+  test("a wrong token finds nothing by its hash, nor as written", async () => {
+    stubTokensAsWritten(true);
+    const projectSpy: FindSpy = stubProjectLookup(null);
+    stubStatusPageLookup(null);
+
+    expectRefused(
+      await run(buildRequest({ authorization: "Bearer not-the-token" })),
+      401,
+    );
+
+    expect(projectSpy.mock.calls.length).toBe(2);
+  });
+
+  /*
+   * A stored hash is what a backup or a database dump holds of a token. It
+   * is never looked up as written, so presenting it signs in to nothing.
+   */
+  test("never looks a stored hash up as written: a hash from a backup is no token", async () => {
+    stubTokensAsWritten(true);
+    const projectSpy: FindSpy = stubProjectLookup(null);
+    const statusPageSpy: FindSpy = stubStatusPageLookup(null);
+    const storedHash: string = PresentedKey.toStoredHash(TOKEN);
+
+    expectRefused(
+      await run(buildRequest({ authorization: `Bearer ${storedHash}` })),
+      401,
+    );
+
+    expect(projectSpy.mock.calls.length).toBe(1);
+    expect(statusPageSpy.mock.calls.length).toBe(1);
+    expectQueryByHashOf(queryOf(projectSpy), storedHash);
   });
 
   /*
@@ -530,12 +639,10 @@ describe("a status page SCIM caller that authenticates", () => {
       }),
     );
 
-    const query: Record<string, unknown> = (
-      spy.mock.calls[0]![0] as Record<string, Record<string, unknown>>
-    )["query"]!;
+    const query: Record<string, unknown> = queryOf(spy);
 
     expect(String(query["_id"])).toBe(SCIM_ID);
-    expect(query["bearerToken"]).toBe(TOKEN);
+    expectQueryByHashOf(query, TOKEN);
   });
 
   test("also reads as root", async () => {

@@ -4614,11 +4614,15 @@ export default class SlackUtil extends WorkspaceBase {
     url: URL;
     text: string;
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
+    /*
+     * Never the webhook's address: it is the channel's credential (a Slack
+     * incoming webhook carries its secret in its path), kept encrypted at
+     * rest (#9013).
+     */
     logger.debug(
-      "Sending message to channel via incoming webhook with data:",
+      `Sending a message of ${data.text.length} characters to a Slack channel via its incoming webhook.`,
       {} as LogAttributes,
     );
-    logger.debug(data, {} as LogAttributes);
 
     /*
      * Enforced at the sink, not only at the callers: this URL reaches here from

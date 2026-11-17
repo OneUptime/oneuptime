@@ -20,6 +20,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
+import HashedString from "../../Types/HashedString";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -277,17 +278,23 @@ export default class StatusPageSCIM extends BaseModel {
   })
   public description?: string = undefined;
 
+  /*
+   * Kept only as its hash (#9012: PresentedKey.toStoredHash, written by
+   * DatabaseService whatever writes it), so a backup or a database dump
+   * holds no token, and nobody reads it back. It is pasted once into the
+   * identity provider: the create that makes the connection answers it
+   * once, and Reset Bearer Token makes a new one. A token stored as written
+   * before is hashed in place by the PresentedKeys:ProtectAtRest job, and
+   * keeps working throughout: a request's token is matched by its hash, in
+   * the query, and as written until then (SCIMAuthorization.findConnection).
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateStatusPageSSO,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ReadStatusPageSSO,
-    ],
+    read: [],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -296,17 +303,20 @@ export default class StatusPageSCIM extends BaseModel {
   })
   @TableColumn({
     secret: true,
+    presentedKey: true,
     required: true,
-    type: TableColumnType.LongText,
+    type: TableColumnType.HashedString,
     title: "Bearer Token",
-    description: "Bearer token for SCIM authentication. Keep this secure.",
+    description:
+      "The bearer token the identity provider signs in to SCIM with. Write-only: OneUptime keeps only its hash, and answers it once, to the create that makes the connection. Leave it out and OneUptime makes one; a new value replaces it, and the one before stops working.",
   })
   @Column({
     nullable: false,
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
+    transformer: HashedString.getDatabaseTransformer(),
   })
-  public bearerToken?: string = undefined;
+  public bearerToken?: HashedString = undefined;
 
   /*
    * OAuth 2.0 client credentials (RFC 6749, section 4.4), for identity

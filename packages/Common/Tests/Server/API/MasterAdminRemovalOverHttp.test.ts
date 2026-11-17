@@ -378,6 +378,17 @@ beforeAll(async () => {
       return new Email("someone@example.com");
     }) as never);
   jest
+    .spyOn(UserService, "getSetPasswordLink")
+    .mockImplementation((async (data: {
+      userId: ObjectID;
+    }): Promise<{ link: string; email: Email }> => {
+      record(`set-password-link ${data.userId.toString()}`, undefined);
+      return {
+        link: "https://oneuptime.example.com/accounts/set-password/token",
+        email: new Email("someone@example.com"),
+      };
+    }) as never);
+  jest
     .spyOn(UserService, "setTwoFactorAuthRequired")
     .mockImplementation((async (data: { userId: ObjectID }): Promise<void> => {
       record(
@@ -676,6 +687,16 @@ const MASTER_ADMIN_ROUTES: Array<MasterAdminRoute> = [
     },
     reaches: (target: ObjectID): string => {
       return `send-password-reset-link ${target.toString()}`;
+    },
+  },
+  {
+    name: "copy a link to set someone's first password",
+    method: "POST",
+    path: (target: ObjectID): string => {
+      return `/api/user/${target.toString()}/set-password-link`;
+    },
+    reaches: (target: ObjectID): string => {
+      return `set-password-link ${target.toString()}`;
     },
   },
   {

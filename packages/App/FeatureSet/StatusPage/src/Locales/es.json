@@ -37,7 +37,7 @@
     "announcements": "Anuncios",
     "scheduledEvents": "Mantenimiento programado",
     "subscribe": "Suscribirse",
-    "logout": "Cerrar sesión"
+    "signOut": "Cerrar sesión"
   },
   "overview": {
     "uptimeSuffix": "% de disponibilidad",
@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "Contraseña olvidada",
       "description": "Si ha olvidado su contraseña para {{statusPageName}}, introduzca su correo electrónico y le enviaremos el enlace para restablecer la contraseña.",
-      "success": "Le hemos enviado por correo electrónico el enlace para restablecer la contraseña. No olvide revisar su carpeta de spam.",
+      "success": "Si esta dirección de correo electrónico puede iniciar sesión en {{statusPageName}}, le hemos enviado un enlace para restablecer la contraseña. No olvide revisar su carpeta de spam.",
       "sendLink": "Enviar enlace de restablecimiento de contraseña",
       "rememberPassword": "¿Recuerda su contraseña?"
     },
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "Completado en los últimos {{count}} días",
   "Completed in the Last {{count}} Days_one": "Completado en el último día",
   "None is planned, and none took place in the last {{count}} days.": "No hay ninguno previsto ni hubo ninguno en los últimos {{count}} días.",
-  "None is planned, and none took place in the last {{count}} days._one": "No hay ninguno previsto ni hubo ninguno en el último día."
+  "None is planned, and none took place in the last {{count}} days._one": "No hay ninguno previsto ni hubo ninguno en el último día.",
+  "serverMessages": {
+    "signInToView": "No tienes acceso a esta página de estado. Inicia sesión para verla.",
+    "sessionExpired": "La sesión ha caducado. Vuelve a iniciar sesión.",
+    "signedOut": "Has cerrado sesión. Vuelve a iniciar sesión.",
+    "magicLinkTurnedOff": "Los enlaces de inicio de sesión están desactivados para esta página de estado. Inicia sesión con tu correo electrónico y tu contraseña."
+  }
 }
