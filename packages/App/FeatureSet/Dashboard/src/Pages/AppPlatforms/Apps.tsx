@@ -9,7 +9,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import React, {
@@ -105,7 +105,7 @@ const AppPlatformsApps: FunctionComponent<
   }
 
   if (!environments) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (environments.size === 0) {

@@ -5,7 +5,10 @@ import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceP
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import IncidentService from "../../../Server/Services/IncidentService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
-import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceNotificationLogService";
+import WorkspaceNotificationLogService, {
+  Service as WorkspaceNotificationLogServiceClass,
+} from "../../../Server/Services/WorkspaceNotificationLogService";
+import ColumnLength from "../../../Types/Database/ColumnLength";
 import WorkspaceNotificationRuleService, {
   WorkspaceChannelsCreated,
 } from "../../../Server/Services/WorkspaceNotificationRuleService";
@@ -42,6 +45,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import WorkspaceRefusal from "../../../Utils/Workspace/WorkspaceRefusal";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -149,10 +153,27 @@ const OVER_LONG_CHANNEL_NAME: string = `${OVER_LONG_TEMPLATE}inc-9`;
  */
 const REFUSED_TEMPLATE: string = "exec-";
 const REFUSED_CHANNEL_NAME: string = "exec-inc-9";
-const SLACK_REFUSAL: string = "Error from Slack restricted_action";
+/*
+ * What is logged and said of it: OneUptime's words for Slack's code, then
+ * the code (#7119) - it was "Error from Slack restricted_action".
+ */
+const SLACK_REFUSAL: string =
+  WorkspaceRefusal.describeSlackRefusal("restricted_action");
+
+// What an HTTP 503 from Slack, with no answer of Slack's in it, is said as.
+const SLACK_HTTP_ERROR_REASON: string =
+  WorkspaceRefusal.describeSlackRefusal("http_503");
 
 // What the fake Microsoft Graph answers for a channel name it refuses.
 const TEAMS_REFUSED_NAME_MESSAGE: string = "Channel name is not valid.";
+
+// What is logged and said of it: Graph's words, after OneUptime's.
+const TEAMS_REFUSED_NAME_REASON: string =
+  WorkspaceRefusal.describeMicrosoftTeamsRefusal({
+    statusCode: 400,
+    code: "BadRequest",
+    message: TEAMS_REFUSED_NAME_MESSAGE,
+  });
 
 // The suffix "Test Rule" puts on the channel it creates.
 const TEST_SUFFIX: string = "abcde";
@@ -827,7 +848,7 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
       failure: "Slack answers an HTTP error",
       template: "war-room-",
       slackFailure: "http_error" as SlackFailure,
-      statusMessage: "Request failed with HTTP status 503",
+      statusMessage: SLACK_HTTP_ERROR_REASON,
     },
     {
       failure: "Slack cannot be reached",
@@ -951,7 +972,7 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
 
     expect(result).toEqual({ channelsCreated: [], membersNotAdded: [] });
     expect(createChannelRows()).toEqual([
-      notCreatedRow(FIRST_CHANNEL_NAME, "Request failed with HTTP status 503"),
+      notCreatedRow(FIRST_CHANNEL_NAME, SLACK_HTTP_ERROR_REASON),
       notCreatedRow(REFUSED_CHANNEL_NAME, SLACK_REFUSAL),
     ]);
   });
@@ -959,9 +980,12 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
   /*
    * A rule's channel is named within the workspace's limit
    * (WorkspaceChannelName), so a name this long reaches the row only from
-   * another caller: the row keeps what its column holds.
+   * another caller: the row keeps what its column holds. The column holds
+   * 500 characters (#9284), so this one is kept whole; a longer one is cut
+   * by the log's create hook (fitChannelColumns), which a stubbed create
+   * skips.
    */
-  test("the row of a name too long for its column keeps the column's 100 characters, and its message names the channel whole", async () => {
+  test("the row of a name longer than the workspace takes keeps it whole, as its column holds it, and its message names the channel whole", async () => {
     await WorkspaceNotificationLogService.logCreateChannelError(
       {
         projectId: PROJECT_ID,
@@ -980,7 +1004,12 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
     );
 
     expect(OVER_LONG_CHANNEL_NAME.length).toBeGreaterThan(100);
-    expect(row?.channelName).toBe(OVER_LONG_CHANNEL_NAME.substring(0, 100));
+    expect(OVER_LONG_CHANNEL_NAME.length).toBeLessThan(ColumnLength.LongText);
+    expect(row?.channelName).toBe(OVER_LONG_CHANNEL_NAME);
+    // As the log's create keeps it.
+    expect(
+      WorkspaceNotificationLogServiceClass.fitChannelColumns(row!).channelName,
+    ).toBe(OVER_LONG_CHANNEL_NAME);
     expect(row?.message).toBe(
       `Channel "${OVER_LONG_CHANNEL_NAME}" was not created`,
     );
@@ -1170,7 +1199,7 @@ describe("Microsoft Teams: a channel Microsoft Graph does not create, among an i
 
       expect(createChannelRows()).toEqual([
         createdRow("19:new1@thread.tacv2", FIRST_CHANNEL_NAME),
-        notCreatedRow(refusedName, TEAMS_REFUSED_NAME_MESSAGE),
+        notCreatedRow(refusedName, TEAMS_REFUSED_NAME_REASON),
         createdRow("19:new2@thread.tacv2", THIRD_CHANNEL_NAME),
       ]);
     },
@@ -1226,7 +1255,7 @@ describe('"Test Rule" still says why its channel was not created', () => {
         failure: "Slack answers an HTTP error",
         template: "war-room-",
         slackFailure: "http_error" as SlackFailure,
-        reason: "Request failed with HTTP status 503",
+        reason: SLACK_HTTP_ERROR_REASON,
       },
       {
         failure: "Slack cannot be reached",
@@ -1293,7 +1322,7 @@ describe('"Test Rule" still says why its channel was not created', () => {
 
       expect(error).toBeInstanceOf(BadDataException);
       expect((error as Error).message).toBe(
-        `Cannot create a new channel. ${TEAMS_REFUSED_NAME_MESSAGE}`,
+        `Cannot create a new channel. ${TEAMS_REFUSED_NAME_REASON}`,
       );
       expect(teams.requests).toEqual([
         { teamId: TEAM_X, displayName: `${REFUSED_TEMPLATE}${TEST_SUFFIX}` },

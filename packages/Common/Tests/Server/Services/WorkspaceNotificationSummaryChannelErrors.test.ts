@@ -43,6 +43,7 @@ import WorkspaceNotificationActionType from "../../../Types/Workspace/WorkspaceN
 import WorkspaceNotificationStatus from "../../../Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { WorkspaceSummaryNotSendableException } from "../../../Utils/Workspace/WorkspaceSummarySetup";
+import WorkspaceRefusal from "../../../Utils/Workspace/WorkspaceRefusal";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -944,15 +945,19 @@ describe("a Slack summary", () => {
 
     const refusal: Error = await testRefusal();
 
+    // Slack's code in OneUptime's words, then the code (#7119).
+    const archived: string =
+      WorkspaceRefusal.describeSlackRefusal("is_archived");
+
     expect(refusal.message).toBe(
-      "The test summary was not posted in 1 of its 2 channels. #old-incidents: Error from Slack is_archived.",
+      `The test summary was not posted in 1 of its 2 channels. #old-incidents: ${archived}`,
     );
     expect(testChannelsOf(refusal)).toStrictEqual([
       { channelName: "#ops", isPosted: true },
       {
         channelName: "#old-incidents",
         isPosted: false,
-        reason: "Error from Slack is_archived",
+        reason: archived,
       },
     ]);
     expect(logs[1]).toEqual(
@@ -960,7 +965,7 @@ describe("a Slack summary", () => {
         workspaceType: WorkspaceType.Slack,
         channelName: "#old-incidents",
         channelId: "C0ARCHIVE",
-        reason: "Error from Slack is_archived",
+        reason: archived,
         isTest: true,
       }),
     );
@@ -975,13 +980,16 @@ describe("a Slack summary", () => {
 
     const refusal: Error = await testRefusal();
 
+    const rateLimited: string =
+      WorkspaceRefusal.describeSlackRefusal("ratelimited");
+
     expect(refusal.message).toBe(
-      "The test summary was not posted in #ops. ratelimited.",
+      `The test summary was not posted in #ops. ${rateLimited}`,
     );
-    expect(logs[0]!.statusMessage).toBe("ratelimited");
+    expect(logs[0]!.statusMessage).toBe(rateLimited);
     expect(refusal.message).not.toContain("[object Object]");
     expect(testChannelsOf(refusal)).toStrictEqual([
-      { channelName: "#ops", isPosted: false, reason: "ratelimited" },
+      { channelName: "#ops", isPosted: false, reason: rateLimited },
     ]);
   });
 
@@ -1121,7 +1129,14 @@ describe("a Slack summary", () => {
     expect(logs).toEqual([]);
   });
 
-  test("a channel name and a reason too long for the log's columns are cut to fit, so the log is still written", async () => {
+  /*
+   * The channel's name, id and thread go to the log as the workspace gave
+   * them: the log's create keeps the ids whole or leaves them out, and cuts
+   * a name only past its column's 500 characters
+   * (WorkspaceNotificationLogService.fitChannelColumns, #9284). This name
+   * fits whole.
+   */
+  test("a reason too long for the log's column is cut to fit, and a long channel name goes whole into its wider column, so the log is still written", async () => {
     const longName: string = `#${"a".repeat(449)}`;
 
     useSummary({
@@ -1135,7 +1150,9 @@ describe("a Slack summary", () => {
     expect(SLACK_NOT_FOUND(longName).length).toBeGreaterThan(500);
 
     expect(logs).toHaveLength(1);
-    expect(logs[0]!.channelName).toBe(longName.substring(0, 100));
+    expect(longName.length).toBeGreaterThan(100);
+    expect(longName.length).toBeLessThanOrEqual(500);
+    expect(logs[0]!.channelName).toBe(longName);
     expect(logs[0]!.statusMessage).toBe(
       SLACK_NOT_FOUND(longName).substring(0, 500),
     );
@@ -1298,8 +1315,15 @@ describe("a Mattermost summary", () => {
     const notFound: string =
       "The Mattermost channel War Room was not found. If it is a private channel, add OneUptime's bot to it in Mattermost.";
 
+    // Mattermost's words, after OneUptime's (#7119).
+    const notSaved: string = WorkspaceRefusal.describeMattermostRefusal({
+      statusCode: 500,
+      errorId: "api.post.create_post.app_error",
+      message: "We could not save the post.",
+    });
+
     expect(refusal.message).toBe(
-      `The test summary was not posted in 2 of its 3 channels. War Room: ${notFound} Status: Error from Mattermost: We could not save the post.`,
+      `The test summary was not posted in 2 of its 3 channels. War Room: ${notFound} Status: ${notSaved}`,
     );
     expect(testChannelsOf(refusal)).toStrictEqual([
       { channelName: "town-square", isPosted: true },
@@ -1307,7 +1331,7 @@ describe("a Mattermost summary", () => {
       {
         channelName: "Status",
         isPosted: false,
-        reason: "Error from Mattermost: We could not save the post.",
+        reason: notSaved,
       },
     ]);
     expect(logs).toEqual([
@@ -1329,7 +1353,7 @@ describe("a Mattermost summary", () => {
         workspaceType: WorkspaceType.Mattermost,
         channelName: "Status",
         channelId: STATUS_ID,
-        reason: "Error from Mattermost: We could not save the post.",
+        reason: notSaved,
         isTest: true,
       }),
     ]);
@@ -1395,12 +1419,12 @@ describe("a Mattermost summary", () => {
 
 describe("a Microsoft Teams summary", () => {
   const NO_TEAM: string =
-    "This summary does not name the Microsoft Teams team its channels are in. Please enter the team's name in the summary's Team Name.";
+    "This summary does not say which Microsoft Teams team its channels are in. Edit the summary and pick its team.";
 
   const teamNotFound: (teamName: string) => string = (
     teamName: string,
   ): string => {
-    return `The Microsoft Teams team "${teamName}" was not found. Please enter the team's name, as Microsoft Teams shows it, in the summary's Team Name.`;
+    return `The Microsoft Teams team "${teamName}" was not found. Edit the summary and pick its team from the list.`;
   };
 
   const channelNotFound: (channelName: string) => string = (
@@ -1632,7 +1656,7 @@ describe("a Microsoft Teams summary", () => {
     const refusal: Error = await testRefusal();
 
     expect(refusal.message).toBe(
-      `The test summary was not posted in General. 2 Microsoft Teams teams are named "OPS". Please enter the id of the one to post in as the summary's Team Name: the groupId in the link to the team.`,
+      `The test summary was not posted in General. 2 Microsoft Teams teams are named "OPS". Edit the summary and pick the one to post in from its list of teams.`,
     );
     expect(graphCalls()).toEqual([]);
   });
@@ -1709,18 +1733,23 @@ describe("a Microsoft Teams summary", () => {
 
     const refusal: Error = await testRefusal();
 
-    // Graph's own answer, the same for each channel: said once.
+    // Graph's own answer, after OneUptime's, the same for each channel: said once.
+    const teamNotFound: string = WorkspaceRefusal.describeMicrosoftTeamsRefusal(
+      {
+        statusCode: 404,
+        code: "NotFound",
+        message: `No team found with Group Id ${unknownTeamId}`,
+      },
+    );
+
     expect(refusal.message).toBe(
-      `The test summary was not posted in any of its 2 channels. No team found with Group Id ${unknownTeamId}.`,
+      `The test summary was not posted in any of its 2 channels. ${teamNotFound}`,
     );
     expect(
       logs.map((log: WorkspaceLogData): string => {
         return `${log.channelName}: ${log.statusMessage}`;
       }),
-    ).toEqual([
-      `General: No team found with Group Id ${unknownTeamId}`,
-      `Incidents: No team found with Group Id ${unknownTeamId}`,
-    ]);
+    ).toEqual([`General: ${teamNotFound}`, `Incidents: ${teamNotFound}`]);
     expect(refusal.message).not.toContain("[object Object]");
     expect(teamListings()).toBe(1);
   });
@@ -1869,7 +1898,12 @@ describe("a Microsoft Teams summary", () => {
         workspaceType: WorkspaceType.MicrosoftTeams,
         channelName: "Incidents",
         channelId: "19:incidents@thread.tacv2",
-        reason: "The bot is not part of the conversation roster.",
+        // The roster's words read as the app not in the team (#7119).
+        reason: WorkspaceRefusal.describeMicrosoftTeamsRefusal({
+          statusCode: 403,
+          code: "Forbidden",
+          message: "The bot is not part of the conversation roster.",
+        }),
         isTest: false,
       }),
     );

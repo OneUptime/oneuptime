@@ -5,7 +5,7 @@ import ObjectID from "Common/Types/ObjectID";
 import CustomFieldsDetail from "Common/UI/Components/CustomFields/CustomFieldsDetail";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -140,7 +140,7 @@ const UserCustomFields: FunctionComponent<ComponentProps> = (
     }
   } else {
     if (isLoading) {
-      return <PageLoader isVisible={true} />;
+      return <PageSkeleton />;
     }
 
     if (error) {

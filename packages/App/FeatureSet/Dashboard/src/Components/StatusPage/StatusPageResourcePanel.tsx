@@ -1,4 +1,5 @@
 import StatusPageResourceName from "./StatusPageResourceName";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import BulkAddStatusPageMonitorsModal from "./BulkAddStatusPageMonitorsModal";
 import {
   StatusPageResourceTargetType,
@@ -28,7 +29,6 @@ import BulkUpdateForm, {
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import { runBulkAction } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -1620,7 +1620,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
 
   const getBody: GetBodyFunction = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <TableSkeleton />;
     }
 
     if (error) {

@@ -67,7 +67,7 @@ import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Input from "Common/UI/Components/Input/Input";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import LazyPeoplePicker from "Common/UI/Components/PeoplePicker/LazyPeoplePicker";
 import {
   PeoplePickerKind,
@@ -483,7 +483,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
   }, [openStepKey, monitor?.id]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (loadError) {

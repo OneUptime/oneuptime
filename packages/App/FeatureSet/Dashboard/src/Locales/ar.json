@@ -56553,5 +56553,11 @@
   "This override ends within the minute, so there is nothing left to end.": "ينتهي هذا التجاوز خلال الدقيقة، لذا لم يبقَ شيء لإنهائه.",
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "لم يبدأ هذا التجاوز بعد، لذا لا يوجد شيء لإنهائه. لإلغائه، احذفه.",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "يتوقف التخطي الآن بدلًا من {{until}}. من ذلك الحين، يعود {{away}} إلى أداء نوباته في التناوب.",
-  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "يتوقف {{cover}} عن النيابة عن {{away}} الآن بدلًا من {{until}}. من ذلك الحين، تستدعي التنبيهات {{away}} مرة أخرى."
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "يتوقف {{cover}} عن النيابة عن {{away}} الآن بدلًا من {{until}}. من ذلك الحين، تستدعي التنبيهات {{away}} مرة أخرى.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "رسائل Slack وMicrosoft Teams وMattermost المرسلة لهذا المشروع.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "رسائل Slack وMicrosoft Teams وMattermost المرسلة لهذا العنصر ({{itemName}}).",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "ينشئ هذا الاختبار أيضًا قناة حقيقية في فريق Microsoft Teams الخاص بالقاعدة، مثل {{channel}}، يراها كل من في الفريق. احذفها في Microsoft Teams عندما تنتهي.",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "ينشئ هذا الاختبار أيضًا قناة {{workspace}} حقيقية، مثل {{channel}}، ويدعوك إليها. أرشفها في {{workspace}} عندما تنتهي.",
+  "{{team}} (typed name)": "{{team}} (اسم مكتوب)",
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "لم يفحص أي شيء المراقبات المرفقة بهدف SLO هذا بعد. ويُقاس بدءًا من فحصها الأول."
 }

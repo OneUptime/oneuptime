@@ -1,4 +1,5 @@
 import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import SnmpWalkResults from "./SnmpWalkResults";
 import {
   SNMP_WALK_HISTORY_LIMIT,
@@ -72,7 +73,6 @@ import {
   SnmpWalkExportFormat,
   buildSnmpWalkExport,
 } from "./SnmpWalkExport";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Input from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
@@ -1329,7 +1329,7 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <TableSkeleton />;
     }
 
     if (loadError) {

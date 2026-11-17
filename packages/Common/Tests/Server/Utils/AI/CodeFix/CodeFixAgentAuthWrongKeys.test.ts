@@ -155,6 +155,32 @@ function standInFor(table: "AIAgent" | "Runner") {
   };
 }
 
+/*
+ * A registry's check of a pair. Its key is kept encrypted (#9012), so the
+ * pair is checked by findOneByPresentedKey: the row its id names, held to
+ * the key presented - read, and recorded, as the lookup by id and key it
+ * is. findOneBy above reads a row by its id alone, as the check whether one
+ * exists does.
+ */
+function keyLookupStandInFor(table: "AIAgent" | "Runner") {
+  const read: (findBy: unknown) => Promise<unknown> = standInFor(table);
+
+  return async (lookup: unknown): Promise<unknown> => {
+    const { column, presentedKey, query } = lookup as {
+      column: string;
+      presentedKey: unknown;
+      query: JSONObject;
+    };
+
+    // Only the key column holds the key a pair presents.
+    if (column !== "key") {
+      return null;
+    }
+
+    return await read({ query: { ...query, key: presentedKey } });
+  };
+}
+
 interface Answered {
   identity: CodeFixAgentIdentity | null;
   status: number | null;
@@ -245,6 +271,12 @@ beforeEach(() => {
     ],
   ]);
 
+  jest
+    .spyOn(AIAgentService, "findOneByPresentedKey")
+    .mockImplementation(keyLookupStandInFor("AIAgent") as never);
+  jest
+    .spyOn(RunnerService, "findOneByPresentedKey")
+    .mockImplementation(keyLookupStandInFor("Runner") as never);
   jest
     .spyOn(AIAgentService, "findOneBy")
     .mockImplementation(standInFor("AIAgent") as never);

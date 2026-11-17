@@ -399,8 +399,6 @@ describe("Enterprise settings page routes", () => {
     expect(appSource).toContain(
       "path={getEnterpriseSettingsPageRoute(page.path).toString()}",
     );
-    expect(appSource).toContain(
-      "<Suspense fallback={<PageLoader isVisible={true} />}>",
-    );
+    expect(appSource).toContain("<Suspense fallback={<PageSkeleton />}>");
   });
 });

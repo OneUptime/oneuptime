@@ -66,7 +66,12 @@ import WorkspaceIncidentFromAlert, {
   WorkspaceDeclaringAlert,
 } from "../../WorkspaceIncidentFromAlert";
 import MicrosoftTeamsAffectedResources from "../MicrosoftTeamsAffectedResources";
-import NewIncidentSubscriberNotificationDefaultReader from "../../../StatusPage/NewIncidentSubscriberNotificationDefaultReader";
+import WorkspaceIncidentSubscriberNotification, {
+  WORKSPACE_NOTIFY_SUBSCRIBERS_FIELD,
+  WORKSPACE_NOTIFY_SUBSCRIBERS_TEXT,
+  WorkspaceNotifySubscribersField,
+} from "../../WorkspaceIncidentSubscriberNotification";
+import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import { OnCallPageRecordType } from "../../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { getExecuteOnCallPolicyFormDescription } from "../../WorkspaceExecuteOnCallPolicyForm";
 
@@ -81,6 +86,15 @@ const MICROSOFT_TEAMS_INCIDENT_TITLE_MAX_LENGTH: number = ColumnLength.LongText;
 export interface MicrosoftTeamsNewIncidentAffectedResources {
   projectId: ObjectID;
   isAiEnabled: boolean;
+}
+
+/*
+ * An incident a card declared: as IncidentService.create gave it back, and
+ * as it was sent to be created - what the confirmation reads it from.
+ */
+export interface MicrosoftTeamsDeclaredIncident {
+  created: Incident;
+  declared: Incident;
 }
 
 // The lists the "Create New Incident" card offers.
@@ -724,6 +738,28 @@ export default class MicrosoftTeamsIncidentActions {
       });
 
       /*
+       * Notify Status Page Subscribers, as the toggle was left - or null for
+       * a card that did not ask (WorkspaceIncidentSubscriberNotification).
+       * In a channel or a group chat whoever submits the card answers it:
+       * an answer from somebody who may not give one is refused, with why
+       * (answered as the refusal above is), and nothing is declared.
+       */
+      const subscriberChoice: boolean | null =
+        WorkspaceIncidentSubscriberNotification.readSubmitted(
+          value[WORKSPACE_NOTIFY_SUBSCRIBERS_FIELD],
+        );
+
+      const subscriberChoiceRefusal: string | null =
+        WorkspaceIncidentSubscriberNotification.getRefusal({
+          props: databaseProps,
+          choice: subscriberChoice,
+        });
+
+      if (subscriberChoiceRefusal) {
+        throw new NotAuthorizedException(subscriberChoiceRefusal);
+      }
+
+      /*
        * The affected resources picked, read again as the member who submits
        * the card - only what they may view now, of this project, and not
        * archived (WorkspaceAffectedResources) - and, for a card declared in
@@ -757,10 +793,10 @@ export default class MicrosoftTeamsIncidentActions {
           ? alertLink
           : null;
 
-      let createdIncident: Incident;
+      let declaredIncident: MicrosoftTeamsDeclaredIncident;
 
       try {
-        createdIncident = await this.createIncidentInProject({
+        declaredIncident = await this.createIncidentInProject({
           projectId,
           props: databaseProps,
           title,
@@ -774,6 +810,7 @@ export default class MicrosoftTeamsIncidentActions {
           alert: linkedAlert,
           // Private like its alert, linked or not (WorkspaceIncidentFromAlert).
           isPrivate: alertLink?.isPrivate === true,
+          subscriberChoice: subscriberChoice,
         });
       } catch (error) {
         MicrosoftTeamsReplies.logFailure(
@@ -793,11 +830,15 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       }
 
+      const createdIncident: Incident = declaredIncident.created;
+
       /*
        * The incident exists from here on, so nothing below may report the
        * create as failed: a user told it failed submits again, which creates
        * a second incident and pages its on-call policies a second time. The
        * confirmation goes first; removing the submitted form is a courtesy.
+       * It says whether status page subscribers will be told, from the
+       * incident as created and from who it reaches - which never throws.
        */
       await MicrosoftTeamsReplies.sendBestEffort(
         turnContext,
@@ -809,6 +850,13 @@ export default class MicrosoftTeamsIncidentActions {
             linked: toLink.linked,
             alert: linkedAlert?.name,
           }),
+          subscribersLine:
+            await WorkspaceIncidentSubscriberNotification.getConfirmationLine({
+              projectId: projectId,
+              props: databaseProps,
+              created: createdIncident,
+              declared: declaredIncident.declared,
+            }),
         }),
       );
       await MicrosoftTeamsReplies.deleteBestEffort(
@@ -870,9 +918,11 @@ export default class MicrosoftTeamsIncidentActions {
   /*
    * The confirmation: the incident by its number, as Slack's names it -
    * "✅ Incident INC-43 created successfully. View incident" - with a link
-   * to it when one can be built, and what it is linked to
-   * (WorkspaceAffectedResources.getLinkedLine). The link is words, not the
-   * address itself, which ran past a phone's screen.
+   * to it when one can be built, what it is linked to
+   * (WorkspaceAffectedResources.getLinkedLine), and whether status page
+   * subscribers will be told (WorkspaceIncidentSubscriberNotification
+   * .getConfirmationLine), each in a paragraph of its own. The link is
+   * words, not the address itself, which ran past a phone's screen.
    */
   public static async getIncidentCreatedMessage(data: {
     projectId: ObjectID;
@@ -880,10 +930,20 @@ export default class MicrosoftTeamsIncidentActions {
     // "INC-43", or "#43" in a project without a prefix; null for none.
     incidentNumber?: string | null | undefined;
     linkedLine?: MarkdownText | null | undefined;
+    subscribersLine?: MarkdownText | null | undefined;
   }): Promise<string> {
-    const linked: MarkdownText = data.linkedLine
-      ? mdText`\n\n${data.linkedLine}`
-      : FeedMarkdown.empty();
+    const linked: MarkdownText = FeedMarkdown.join(
+      [data.linkedLine, data.subscribersLine]
+        .filter(
+          (line: MarkdownText | null | undefined): line is MarkdownText => {
+            return Boolean(line);
+          },
+        )
+        .map((line: MarkdownText): MarkdownText => {
+          return mdText`\n\n${line}`;
+        }),
+      "",
+    );
 
     const created: MarkdownText = data.incidentNumber
       ? mdText`✅ **Incident ${data.incidentNumber}** created successfully.`
@@ -978,7 +1038,9 @@ export default class MicrosoftTeamsIncidentActions {
     alert?: WorkspaceAlertToLink | null | undefined;
     // Declared from a private alert, linked or not.
     isPrivate?: boolean | undefined;
-  }): Promise<Incident> {
+    // Notify Status Page Subscribers as the toggle was left; null for none.
+    subscriberChoice?: boolean | null | undefined;
+  }): Promise<MicrosoftTeamsDeclaredIncident> {
     const { projectId } = data;
 
     const monitorIdArray: Array<ObjectID> =
@@ -1054,17 +1116,17 @@ export default class MicrosoftTeamsIncidentActions {
     }
 
     /*
-     * The card asks nothing about status page subscribers, so they are told
-     * as the project starts "Notify Status Page Subscribers" on Declare New
-     * Incident (Incidents > Settings > Subscriber Notifications): unticked
-     * there, declared here without notifying.
+     * Status page subscribers are told as the toggle was left. A card that
+     * did not ask follows the project's "Notify status page subscribers by
+     * default" (Incidents > Settings > Subscriber Notifications), as every
+     * Teams card did before it asked.
      */
-    await NewIncidentSubscriberNotificationDefaultReader.applyToIncidentDeclaredWithoutBox(
-      {
-        incident: incident,
-        projectId: projectId,
-      },
-    );
+    await WorkspaceIncidentSubscriberNotification.applyToIncident({
+      incident: incident,
+      projectId: projectId,
+      choice:
+        data.subscriberChoice === undefined ? null : data.subscriberChoice,
+    });
 
     // Save the incident - linked to its alert, as one declared from it.
     const createdIncident: Incident = await IncidentService.create({
@@ -1081,7 +1143,7 @@ export default class MicrosoftTeamsIncidentActions {
       },
     );
 
-    return createdIncident;
+    return { created: createdIncident, declared: incident };
   }
 
   /*
@@ -1358,6 +1420,11 @@ export default class MicrosoftTeamsIncidentActions {
     affectedResources?: MicrosoftTeamsNewIncidentAffectedResources | undefined;
     // The open alert of the channel the card is declared in.
     declaringAlert?: WorkspaceDeclaringAlert | null | undefined;
+    /*
+     * Notify Status Page Subscribers, as it starts; left out when not given
+     * (WorkspaceIncidentSubscriberNotification.getField).
+     */
+    notifySubscribers?: WorkspaceNotifySubscribersField | null | undefined;
   }): JSONObject {
     return MicrosoftTeamsCardChoices.fitCardToBudget<
       keyof MicrosoftTeamsNewIncidentFormChoices
@@ -1377,6 +1444,7 @@ export default class MicrosoftTeamsIncidentActions {
           createInOneUptimeUrl: data.createInOneUptimeUrl,
           affectedResources: data.affectedResources,
           declaringAlert: data.declaringAlert,
+          notifySubscribers: data.notifySubscribers,
         });
       },
     }).card;
@@ -1388,6 +1456,7 @@ export default class MicrosoftTeamsIncidentActions {
     createInOneUptimeUrl?: string | null | undefined;
     affectedResources?: MicrosoftTeamsNewIncidentAffectedResources | undefined;
     declaringAlert?: WorkspaceDeclaringAlert | null | undefined;
+    notifySubscribers?: WorkspaceNotifySubscribersField | null | undefined;
   }): JSONObject {
     const { shown } = data;
     const initialTitle: string = (
@@ -1531,6 +1600,31 @@ export default class MicrosoftTeamsIncidentActions {
         style: "compact",
         choices: shown.monitorStatuses.choices,
       });
+    }
+
+    /*
+     * Notify Status Page Subscribers, right after the monitors, as on
+     * Declare New Incident's Resources Affected: status pages show an
+     * incident through its monitors. The Dashboard's name for the box
+     * beside the toggle, its question right under it, and the toggle on or
+     * off as the project starts it. It always sends "true" or "false".
+     */
+    if (data.notifySubscribers) {
+      bodyElements.push(
+        {
+          type: "Input.Toggle",
+          id: WORKSPACE_NOTIFY_SUBSCRIBERS_FIELD,
+          label: WORKSPACE_NOTIFY_SUBSCRIBERS_TEXT.label,
+          title: WORKSPACE_NOTIFY_SUBSCRIBERS_TEXT.box,
+          value: data.notifySubscribers.isTickedByDefault ? "true" : "false",
+          valueOn: "true",
+          valueOff: "false",
+          wrap: true,
+        },
+        MicrosoftTeamsCardChoices.buildNoteElement(
+          data.notifySubscribers.description,
+        ),
+      );
     }
 
     // Add on-call policy multi-select if we have policies

@@ -1,4 +1,5 @@
 import AskAiPanel from "./Components/AIChat/AskAiPanel";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ServerProductGate from "./Components/ServerProducts/ServerProductGate";
 import {
   useIsProductOffOnServer,
@@ -58,7 +59,6 @@ import {
 } from "react-router-dom";
 import useAsyncEffect from "use-async-effect";
 import PageComponentProps from "./Pages/PageComponentProps";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
 import { CrossProjectPageProps } from "./Types/CrossProjectPageProps";
 import { RoutesProps } from "./Types/RoutesProps";
@@ -685,7 +685,7 @@ const App: () => JSX.Element = () => {
        * one broken page never traps the session.
        */}
       <ErrorBoundary resetKey={location.pathname}>
-        <Suspense fallback={<PageLoader isVisible={true} />}>
+        <Suspense fallback={<PageSkeleton />}>
           {/*
            * A page of a product switched off on the server says so, and who
            * can switch it on, instead of drawing (#6815).

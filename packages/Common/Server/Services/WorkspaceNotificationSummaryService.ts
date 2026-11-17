@@ -1047,7 +1047,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
       return {
         notPostedReason:
-          "This summary does not name the Microsoft Teams team its channels are in. Please enter the team's name in the summary's Team Name.",
+          "This summary does not say which Microsoft Teams team its channels are in. Edit the summary and pick its team.",
       };
     }
 
@@ -1072,7 +1072,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         }
 
         return {
-          notPostedReason: `The teams of this project's Microsoft Teams connection could not be read to find the team "${teamName}". ${Service.asSentences([WorkspaceBase.getSendErrorMessage(err)])}`,
+          notPostedReason: `The teams of this project's Microsoft Teams connection could not be read to find the team "${teamName}". ${Service.asSentences([MicrosoftTeamsUtil.describeError(err)])}`,
         };
       }
 
@@ -1088,7 +1088,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
     if (named.length > 1) {
       return {
-        notPostedReason: `${named.length} Microsoft Teams teams are named "${teamName}". Please enter the id of the one to post in as the summary's Team Name: the groupId in the link to the team.`,
+        notPostedReason: `${named.length} Microsoft Teams teams are named "${teamName}". Edit the summary and pick the one to post in from its list of teams.`,
       };
     }
 
@@ -1101,7 +1101,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     }
 
     return {
-      notPostedReason: `The Microsoft Teams team "${teamName}" was not found. Please enter the team's name, as Microsoft Teams shows it, in the summary's Team Name.`,
+      notPostedReason: `The Microsoft Teams team "${teamName}" was not found. Edit the summary and pick its team from the list.`,
     };
   }
 
@@ -1163,13 +1163,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         {
           projectId: data.summary.projectId!,
           workspaceType: data.summary.workspaceType!,
-          // Column limits: an over-long value fails the whole insert.
-          channelName: channelName.substring(0, ColumnLength.ShortText),
-          channelId: data.result.channelId?.substring(
-            0,
-            ColumnLength.ShortText,
-          ),
-          threadId: data.result.threadId?.substring(0, ColumnLength.ShortText),
+          /*
+           * As the workspace gave them: the log keeps the ids whole or
+           * leaves them out, and cuts the name to its column
+           * (WorkspaceNotificationLogService.fitChannelColumns).
+           */
+          channelName: channelName,
+          channelId: data.result.channelId,
+          threadId: data.result.threadId,
           actionType: WorkspaceNotificationActionType.SendMessage,
           status: data.result.isPosted
             ? WorkspaceNotificationStatus.Success

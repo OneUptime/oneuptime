@@ -285,6 +285,7 @@ A banner at the top of the SLO's pages says what stops it from measuring:
 | --- | --- | --- |
 | **No monitors attached** | The SLO has no monitors, so there is nothing to measure. | Attach monitors, or create a monitor rule. |
 | **Waiting for SLO evaluation** | Monitors are attached, but the last evaluation had no status data from them. | Check that the monitors are being checked. Numbers appear after the next evaluation that has data. |
+| **Waiting for the first check** | Monitors are attached, but nothing has checked them yet: a monitor created a minute ago, or a self-hosted probe that is not connected. | Nothing: it is measured from their first check. If it does not come, open the monitors to see why. |
 | **Measurement is paused** | Every monitor it measures is archived or has active monitoring turned off. | Turn monitoring back on for at least one monitor, or wait for the maintenance to end. |
 | **The target is out of range** | The target is not greater than 0 and below 100. | Set a target such as 99.9 in **Settings** → **Objective**. |
 | **This SLO is disabled** | Evaluation is off. | Click **Turn evaluation on**. |

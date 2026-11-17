@@ -6,6 +6,7 @@ import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import ProbeService from "../../../Server/Services/ProbeService";
+import Encryption from "../../../Server/Utils/Encryption";
 import logger from "../../../Server/Utils/Logger";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
@@ -266,7 +267,10 @@ describePostgres(
 
         await takeOver(found!, newKey);
 
-        expect(await probeKeyOf(probe1)).toBe(newKey);
+        // The row holds the new key, kept encrypted (#9012).
+        const stored: string | null = await probeKeyOf(probe1);
+        expect(Encryption.looksEncrypted(stored || "")).toBe(true);
+        expect(await Encryption.decrypt(stored!)).toBe(newKey);
         await expect(
           ProbeService.verifyProbeKey({ probeId: probe1, probeKey: newKey }),
         ).resolves.toBe(true);

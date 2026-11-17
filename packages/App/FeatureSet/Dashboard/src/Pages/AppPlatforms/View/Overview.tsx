@@ -26,7 +26,7 @@ import API from "Common/UI/Utils/API/API";
 import Card from "Common/UI/Components/Card/Card";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import useTranslateValue from "Common/UI/Utils/Translation";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import OneUptimeDate from "Common/Types/Date";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
@@ -374,7 +374,7 @@ const CloudEnvironmentOverview: FunctionComponent<
     });
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {

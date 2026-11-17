@@ -27,7 +27,7 @@ import { getCloudResourceTypeOptions } from "../../Components/Cloud/CloudResourc
 import OneUptimeDate from "Common/Types/Date";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../../Components/Infrastructure/UseFirstRecordWatch";
@@ -136,7 +136,7 @@ const CloudMonitoredResources: FunctionComponent<
   }
 
   if (firstRecordWatch.isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   return (

@@ -29,6 +29,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import Dictionary from "../../../../Types/Dictionary";
 import { WorkspaceChannel } from "../../../../Server/Utils/Workspace/WorkspaceBase";
 import URL from "../../../../Types/API/URL";
+import WorkspaceRefusal from "../../../../Utils/Workspace/WorkspaceRefusal";
 
 const AUTH_TOKEN: string = "xoxb-test-token";
 const CONVERSATIONS_LIST_URL: string =
@@ -335,7 +336,7 @@ describe("SlackUtil.getAllWorkspaceChannels", () => {
 
       expect(caught).toBeInstanceOf(BadRequestException);
       expect((caught as BadRequestException).message).toBe(
-        "Error from Slack invalid_auth",
+        WorkspaceRefusal.describeSlackRefusal("invalid_auth"),
       );
       expect(getProjectAuthSpy).not.toHaveBeenCalled();
       expect(refreshAuthTokenSpy).not.toHaveBeenCalled();
@@ -353,7 +354,8 @@ describe("SlackUtil.getAllWorkspaceChannels", () => {
 
       expect(caught).toBeInstanceOf(BadRequestException);
       expect((caught as BadRequestException).message).toBe(
-        "Error from Slack undefined",
+        // No code: the refusal OneUptime has no words for (#7119).
+        WorkspaceRefusal.describeSlackRefusal(""),
       );
     });
 
@@ -389,7 +391,7 @@ describe("SlackUtil.getAllWorkspaceChannels", () => {
 
       expect(caught).toBeInstanceOf(BadRequestException);
       expect((caught as BadRequestException).message).toBe(
-        "Error from Slack ratelimited",
+        WorkspaceRefusal.describeSlackRefusal("ratelimited"),
       );
       expect(postSpy).toHaveBeenCalledTimes(2);
       expect(refreshAuthTokenSpy).not.toHaveBeenCalled();

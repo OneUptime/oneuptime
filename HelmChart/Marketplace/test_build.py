@@ -539,6 +539,58 @@ class BuildTest(unittest.TestCase):
         self.assertIn('publishedVersion: "$TAG"', schema)
 
 
+class GoogleCloudUserGuideTest(unittest.TestCase):
+    """
+    The user guide Google Cloud Marketplace's review requires of a Kubernetes app
+    (google-cloud/README.md): every section Google names, and a command-line installation
+    that passes what the console's deployer passes - so a value or an image added to the
+    schema or to images.json cannot be left out of it.
+    """
+
+    # "Requirements for your user guide", in Google's order:
+    # https://docs.cloud.google.com/marketplace/docs/partners/kubernetes/create-app-package
+    SECTIONS: Tuple[str, ...] = (
+        "Overview",
+        "One-time setup",
+        "Installation",
+        "Basic usage",
+        "Backup and restore",
+        "Image updates",
+        "Scaling",
+        "Deletion",
+    )
+
+    def setUp(self) -> None:
+        self.guide: str = (build.HERE / "google-cloud" / "README.md").read_text(encoding="utf-8")
+
+    def test_has_every_section_google_requires(self) -> None:
+        self.assertEqual(list(self.SECTIONS), re.findall(r"(?m)^## (.+)$", self.guide))
+
+    def test_installs_with_every_value_the_deployer_collects(self) -> None:
+        schema: str = (build.HERE / "google-cloud" / "schema.yaml").read_text(encoding="utf-8")
+        properties: str = schema.split("\nproperties:\n", 1)[1].split("\nrequired:", 1)[0]
+        keys: List[str] = re.findall(r"(?m)^  ([\w.]+):$", properties)
+        self.assertIn("enterpriseMarketplace.googleCloud.reportingSecret", keys)
+
+        for key in keys:
+            if key in ("name", "namespace"):
+                continue  # The release's own name and namespace, below.
+
+            self.assertIn(f"--set {key}=", self.guide, key)
+
+        self.assertIn('helm template "$APP_INSTANCE_NAME"', self.guide)
+        self.assertIn('--namespace "$NAMESPACE"', self.guide)
+
+    def test_pins_every_image_the_listing_ships_to_its_digest(self) -> None:
+        self.assertIn("image_summary.fully_qualified_digest", self.guide)
+
+        for key, image in build.load_json(build.HERE / "images.json")["images"].items():
+            # The primary image at the root of the app's path, every other one beneath it.
+            path: str = "$REGISTRY" if key == "app" else f"$REGISTRY/{image['name']}"
+            self.assertIn(f'digest "{path}"', self.guide, key)
+            self.assertIn(f"--set image.overrides.{key}=", self.guide, key)
+
+
 # --- The Kubernetes agent's Amazon EKS add-on -------------------------------------------
 
 # The JSON Schema versions Amazon EKS takes for an add-on's configuration schema (AWS

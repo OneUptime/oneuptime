@@ -41,6 +41,10 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../../Types/JSON";
+import {
+  NO_MONITORS_SUBSCRIBERS_LINE,
+  stubSubscriberAudience,
+} from "../WorkspaceSubscriberAudienceTestHelpers";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, {
   UserPermission,
@@ -158,8 +162,15 @@ const PROJECT_LOG_ATTRIBUTES: LogAttributes = {
 const UNAVAILABLE_REFERENCE_REASON: string =
   "One of the values you picked (a monitor, label, on-call policy, severity or status) is not available in this project any more. Please pick it again.";
 
+/*
+ * The confirmation, which ends with whether status page subscribers will be
+ * told: the form's incident is on no monitor. A created incident without an
+ * id can be read for nothing, and the line says so.
+ */
 const INCIDENT_CREATED: string = "✅ Incident created successfully.";
-const INCIDENT_CREATED_WITH_LINK: string = `${INCIDENT_CREATED} [View incident](${INCIDENT_LINK.toString()})`;
+const INCIDENT_CREATED_WITHOUT_LINK: string = `${INCIDENT_CREATED}\n\n${NO_MONITORS_SUBSCRIBERS_LINE}`;
+const INCIDENT_CREATED_WITH_LINK: string = `${INCIDENT_CREATED} [View incident](${INCIDENT_LINK.toString()})\n\n${NO_MONITORS_SUBSCRIBERS_LINE}`;
+const INCIDENT_CREATED_WITHOUT_ID: string = `${INCIDENT_CREATED}\n\nCould not work out which status page subscribers will be notified.`;
 const INCIDENT_MISSING_FIELDS: string =
   "Unable to create incident: missing required fields (title, description, or severity).";
 const INCIDENT_REFERENCE_UNAVAILABLE: string = `❌ Could not create the incident: ${UNAVAILABLE_REFERENCE_REASON}`;
@@ -334,6 +345,9 @@ let dashboardUrlSpy: SpyInstance<typeof DatabaseConfig.getDashboardUrl>;
 let errorLogSpy: SpyInstance<typeof logger.error>;
 
 beforeEach((): void => {
+  // A declared incident is on no monitor.
+  stubSubscriberAudience();
+
   // Only Date is faked: "now" is pinned, every real timer keeps running.
   jest.useFakeTimers({
     now: NOW.getTime(),
@@ -857,7 +871,7 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
     await submitIncident(turn, incidentForm());
 
     expect(turn.events).toEqual([
-      { kind: "reply", text: INCIDENT_CREATED },
+      { kind: "reply", text: INCIDENT_CREATED_WITHOUT_LINK },
       { kind: "delete", activityId: FORM_ACTIVITY_ID },
     ]);
   });
@@ -869,7 +883,7 @@ describe("Microsoft Teams: submitting the Create New Incident form", (): void =>
     await submitIncident(turn, incidentForm());
 
     expect(turn.events).toEqual([
-      { kind: "reply", text: INCIDENT_CREATED },
+      { kind: "reply", text: INCIDENT_CREATED_WITHOUT_ID },
       { kind: "delete", activityId: FORM_ACTIVITY_ID },
     ]);
     expect(linkSpy).not.toHaveBeenCalled();

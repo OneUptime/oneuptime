@@ -1,4 +1,5 @@
 import AlertLabelRule from "Common/Models/DatabaseModels/AlertLabelRule";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import AlertOwnerRule from "Common/Models/DatabaseModels/AlertOwnerRule";
 import IncidentLabelRule from "Common/Models/DatabaseModels/IncidentLabelRule";
 import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
@@ -20,7 +21,6 @@ import {
 import escapeRegExp from "Common/Utils/RegExpEscape";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -559,7 +559,7 @@ const OpenStackScopedRulesCard: FunctionComponent<ComponentProps> = (
       }
     >
       <div data-testid={`openstack-scoped-rules-${props.mode}`}>
-        {isLoading ? <ComponentLoader /> : null}
+        {isLoading ? <TableSkeleton rows={3} /> : null}
         {error ? (
           <p className="px-4 py-3 text-sm text-red-700">
             <ErrorInSentence message={error} showWhereToLook={true} />

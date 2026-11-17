@@ -1,9 +1,9 @@
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import OpenStackCollectionMethod from "Common/Types/OpenStack/OpenStackCollectionMethod";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import {
   BasicFormHandle,
   FormProps,
@@ -103,7 +103,7 @@ export const OpenStackConnectCloudModal: FunctionComponent<
         modalWidth={ModalWidth.Medium}
         onClose={props.onClose}
       >
-        <ComponentLoader />
+        <DetailListSkeleton fields={3} columns={1} />
       </Modal>
     );
   }
@@ -180,7 +180,7 @@ const OpenStackConnectionFormModal: FunctionComponent<
         modalWidth={ModalWidth.Medium}
         onClose={props.onClose}
       >
-        <ComponentLoader />
+        <DetailListSkeleton fields={3} columns={1} />
       </Modal>
     );
   }

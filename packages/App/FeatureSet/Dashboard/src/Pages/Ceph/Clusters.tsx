@@ -25,7 +25,7 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../../Components/Infrastructure/UseFirstRecordWatch";
@@ -213,7 +213,7 @@ const CephClusters: FunctionComponent<
   });
 
   if (firstRecordWatch.isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (firstRecordWatch.error) {

@@ -1,10 +1,10 @@
 import BackgroundQueues from "./BackgroundQueues";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
 import HealthLicenseRequired, {
@@ -60,7 +60,7 @@ const HealthQueuesContent: FunctionComponent = (): ReactElement => {
   }, []);
 
   if (isInitialLoading && !data) {
-    return <ComponentLoader />;
+    return <TableSkeleton />;
   }
 
   const queues: JSONArray = (data?.["queues"] || []) as JSONArray;

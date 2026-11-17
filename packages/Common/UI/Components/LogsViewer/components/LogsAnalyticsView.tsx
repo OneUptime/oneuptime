@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ChartSkeleton from "../../Skeleton/ChartSkeleton";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
@@ -40,7 +41,6 @@ import {
 } from "../../../../Types/Telemetry/ResourceEntityFacet";
 import { APP_API_URL } from "../../../Config";
 import ModelAPI from "../../../Utils/ModelAPI/ModelAPI";
-import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import useResizableColumns, {
   ResizableColumns,
 } from "../../Table/ColumnResize/useResizableColumns";
@@ -1387,7 +1387,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
           className="flex h-72 select-none items-center justify-center"
           {...(chartType === "timeseries" ? selection.placeholderProps : {})}
         >
-          <ComponentLoader />
+          <ChartSkeleton heightInPx={288} hasLegend={false} />
         </div>
       );
     }

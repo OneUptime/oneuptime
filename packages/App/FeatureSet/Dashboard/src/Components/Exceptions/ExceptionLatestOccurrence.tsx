@@ -1,9 +1,9 @@
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -90,7 +90,7 @@ const ExceptionLatestOccurrence: FunctionComponent<ComponentProps> = (
           className={EXCEPTION_LATEST_OCCURRENCE_LOADING_CLASS_NAME}
           data-testid="exception-latest-occurrence-loading"
         >
-          <ComponentLoader />
+          <DetailListSkeleton fields={4} />
         </div>
       );
     }

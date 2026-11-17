@@ -15,7 +15,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import React, {
   Fragment,
@@ -110,7 +110,7 @@ const NetworkDeviceLogs: FunctionComponent<
     }, [deviceName]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   return (

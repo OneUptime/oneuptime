@@ -54,7 +54,7 @@ import Field, {
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import { getNotificationRuleCardColumns } from "./NotificationRuleViewElement/NotificationRuleViewElement";
 import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
@@ -113,6 +113,11 @@ import {
 } from "../Slack/SlackOrganizationCard";
 import { fetchMattermostRuleTeams } from "../Mattermost/MattermostTeamsCard";
 import { canRuleCreateChannel } from "./NotificationRuleForm/NotificationRuleOwnChannel";
+import {
+  getTestRuleChannelWarning,
+  TEST_RULE_CHANNEL_WARNING_TEST_ID,
+} from "./WorkspaceRuleTestChannel";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import {
   SecurityCaseValueLists,
   getSecurityCaseValues,
@@ -876,7 +881,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   }, []);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (error) {
@@ -974,6 +979,18 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
 
     return notificationRule;
   };
+
+  // What testing the rule about to be tested creates, when it creates a channel.
+  const testRuleChannelWarning: string | undefined = testNotificationRule
+    ? getTestRuleChannelWarning({
+        rule: testNotificationRule.notificationRule as
+          | IncidentNotificationRule
+          | undefined,
+        eventType: props.eventType,
+        workspaceType: props.workspaceType,
+        translator: translator,
+      })
+    : undefined;
 
   return (
     <Fragment>
@@ -1493,7 +1510,22 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             }
             await testRule(testNotificationRule.id!);
           }}
-        />
+        >
+          {/*
+           * A rule that creates a channel for each event creates a real
+           * one when tested, and invites the person testing to it: said
+           * before the test runs, naming the channel (#7265). A rule that
+           * only posts says nothing more. Worded already: drawn as given.
+           */}
+          {testRuleChannelWarning ? (
+            <Alert
+              type={AlertType.WARNING}
+              title={<span>{testRuleChannelWarning}</span>}
+              dataTestId={TEST_RULE_CHANNEL_WARNING_TEST_ID}
+              className="mt-4"
+            />
+          ) : undefined}
+        </ConfirmModal>
       ) : (
         <></>
       )}

@@ -722,13 +722,26 @@ describe("a webhook call to a workflow that is off", () => {
   beforeEach(async () => {
     routes = {};
 
-    // The trigger looks the workflow up by the secret key in the URL.
+    /*
+     * The trigger looks the workflow up by the secret key in the URL: by the
+     * key's lookup hash, as the key is kept encrypted (#9012:
+     * WorkflowService.findOneByPresentedKey).
+     */
     const keyedWorkflow: Workflow = new Workflow();
     keyedWorkflow._id = WORKFLOW_ID.toString();
 
     jest
-      .spyOn(WorkflowService as never, "findOneBy")
-      .mockResolvedValue(keyedWorkflow as never);
+      .spyOn(WorkflowService as never, "findOneByPresentedKey")
+      .mockImplementation((async (findBy: {
+        column: string;
+        presentedKey: string;
+      }): Promise<Workflow | null> => {
+        // The key callWebhook puts in the URL.
+        return findBy.column === "webhookSecretKey" &&
+          findBy.presentedKey === "a-secret-key"
+          ? keyedWorkflow
+          : null;
+      }) as never);
 
     const api: ComponentCodeAPI = new ComponentCodeAPI();
     const props: InitProps = {

@@ -1,4 +1,5 @@
 import API from "../../Utils/API/API";
+import CardListSkeleton from "../Skeleton/CardListSkeleton";
 import Query from "../../../Types/BaseDatabase/Query";
 import PermissionGate, {
   ModelAction,
@@ -10,7 +11,6 @@ import ModelAPI, {
   ListResult,
   RequestOptions,
 } from "../../Utils/ModelAPI/ModelAPI";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import TableEmptyState, { TableEmptyStateKind } from "../Table/TableEmptyState";
 import {
   EmptyMessageParts,
@@ -358,7 +358,7 @@ const ModelList: <TBaseModel extends BaseModel>(
         ) : (
           <></>
         )}
-        {isLoading ? <ComponentLoader /> : <></>}
+        {isLoading ? <CardListSkeleton count={3} lines={1} /> : <></>}
 
         {!isLoading &&
         !error &&

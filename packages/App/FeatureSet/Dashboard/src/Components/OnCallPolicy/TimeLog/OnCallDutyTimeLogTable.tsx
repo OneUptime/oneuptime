@@ -8,7 +8,7 @@ import ObjectID from "Common/Types/ObjectID";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
 import OnCallDutyPolicyTimeLog from "Common/Models/DatabaseModels/OnCallDutyPolicyTimeLog";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import LocalTable from "Common/UI/Components/Table/LocalTable";
 import User from "Common/Models/DatabaseModels/User";
@@ -246,7 +246,7 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
   }
 
   if (loading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   return (

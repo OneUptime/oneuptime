@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SloMonthlyReportMonitorsTable from "./SloMonthlyReportMonitorsTable";
 import SloMonthlyReportTable, {
@@ -27,7 +28,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import FilterButtons, {
@@ -235,7 +235,7 @@ const SloMonthlyReportElement: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <TableSkeleton />;
     }
 
     if (error) {

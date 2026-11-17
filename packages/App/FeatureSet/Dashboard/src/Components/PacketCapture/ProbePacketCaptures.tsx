@@ -1,9 +1,9 @@
 import PacketCapturesTable from "./PacketCapturesTable";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -87,7 +87,7 @@ const ProbePacketCaptures: FunctionComponent<ComponentProps> = (
   if (isLoading) {
     return (
       <Card title="Packet Captures">
-        <ComponentLoader />
+        <TableSkeleton />
       </Card>
     );
   }

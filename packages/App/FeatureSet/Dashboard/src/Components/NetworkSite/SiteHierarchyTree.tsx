@@ -1,4 +1,5 @@
 import { SiteTreeNode, SiteTreeRow, buildSiteTree } from "./SiteTreeUtil";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
@@ -10,7 +11,6 @@ import ObjectID from "Common/Types/ObjectID";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import { fetchSiteDeviceCounts } from "../Network/NetworkSummaryApi";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -270,7 +270,7 @@ const SiteHierarchyTree: FunctionComponent<ComponentProps> = (
         title="Hierarchy"
         description="Your sites as the tree they roll up through."
       >
-        <ComponentLoader />
+        <CardListSkeleton count={3} lines={0} />
       </Card>
     );
   }

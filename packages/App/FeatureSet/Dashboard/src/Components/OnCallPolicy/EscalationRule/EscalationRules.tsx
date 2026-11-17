@@ -1,4 +1,5 @@
 import SendTestPageButton from "../../OnCallTestPage/SendTestPageButton";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import EscalationRuleNotifyNote, {
   PreviousEscalationLevel,
 } from "./EscalationRuleNotifyNote";
@@ -63,7 +64,6 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -1799,7 +1799,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     if (isLoading) {
       return (
         <div className="flex w-full justify-center py-16">
-          <ComponentLoader />
+          <CardListSkeleton count={2} lines={2} />
         </div>
       );
     }

@@ -367,7 +367,7 @@ describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
 
       render(element());
 
-      expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+      expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
       expect(screen.queryByTestId("event-notes-feed")).toBeNull();
       expect(feedRenders).toHaveLength(0);
 
@@ -376,7 +376,7 @@ describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
       });
 
       expect(screen.getByTestId("event-notes-feed")).toBeInTheDocument();
-      expect(screen.queryByTestId("bar-loader")).toBeNull();
+      expect(screen.queryByTestId("page-skeleton")).toBeNull();
       // The composer reads its start once: the first feed already knows.
       for (const props of feedRenders) {
         expect(props.subscriberNotifications?.isNotifyingByDefault).toBe(false);
@@ -394,7 +394,7 @@ describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
         await screen.findByText("The event could not be loaded."),
       ).toBeInTheDocument();
       expect(screen.queryByTestId("event-notes-feed")).toBeNull();
-      expect(screen.queryByTestId("bar-loader")).toBeNull();
+      expect(screen.queryByTestId("page-skeleton")).toBeNull();
     });
   });
 
@@ -680,7 +680,7 @@ describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
       view.rerender(element());
 
       await waitFor(() => {
-        expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+        expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
       });
       expect(screen.queryByTestId("event-notes-feed")).toBeNull();
       /*
@@ -730,7 +730,7 @@ describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
       expect(parentRequests()).toHaveLength(1);
       expect(feedMounts).toEqual([EVENT_ID]);
       expect(feedUnmounts).toEqual([]);
-      expect(screen.queryByTestId("bar-loader")).toBeNull();
+      expect(screen.queryByTestId("page-skeleton")).toBeNull();
     });
   });
 });

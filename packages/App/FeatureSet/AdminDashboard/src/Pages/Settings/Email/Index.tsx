@@ -1,4 +1,5 @@
 import PageMap from "../../../Utils/PageMap";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import Route from "Common/Types/API/Route";
@@ -9,7 +10,6 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -188,7 +188,7 @@ const Settings: FunctionComponent = (): ReactElement => {
   }, []);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {

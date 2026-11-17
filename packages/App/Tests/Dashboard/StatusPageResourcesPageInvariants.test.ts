@@ -752,7 +752,7 @@ describe("what the operator sees while nothing is on screen", () => {
   test("only a first load shows a loader, not every refetch", () => {
     expect(code).toContain(
       squash(
-        "if (isLoading && groups.length === 0) { return <ComponentLoader />; }",
+        "if (isLoading && groups.length === 0) { return <CardListSkeleton count={4} lines={1} />; }",
       ),
     );
   });

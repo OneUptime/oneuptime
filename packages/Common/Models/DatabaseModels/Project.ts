@@ -2873,7 +2873,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Notify Status Page Subscribers of New Incidents by Default",
     description:
-      "Whether the Notify Status Page Subscribers box starts ticked when someone declares an incident in the dashboard. When enabled, status page subscribers are notified of a new incident unless the person declaring it unticks the box. When disabled, the box starts unticked and subscribers are notified only if it is ticked. Incidents declared from Slack or Microsoft Teams, or by OneUptime AI, follow it too: while it is disabled they are declared without notifying. Incidents created by monitors, the API and workflows are not affected: each keeps its own Notify Status Page Subscribers value. On by default.",
+      "Whether the Notify Status Page Subscribers box starts ticked when someone declares an incident in the dashboard, Slack or Microsoft Teams. When enabled, status page subscribers are notified of a new incident unless the person declaring it unticks the box. When disabled, the box starts unticked and subscribers are notified only if it is ticked. Incidents declared by OneUptime AI, where nothing asks, follow it too: while it is disabled they are declared without notifying. Incidents created by monitors, the API and workflows are not affected: each keeps its own Notify Status Page Subscribers value. On by default.",
     defaultValue: true,
     example: false,
   })

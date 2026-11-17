@@ -125,11 +125,11 @@ jest.mock("../../../UI/Components/Card/Card", () => {
   };
 });
 
-jest.mock("../../../UI/Components/Loader/PageLoader", () => {
+jest.mock("../../../UI/Components/Page/PageSkeleton", () => {
   return {
     __esModule: true,
     default: () => {
-      return <div data-testid="page-loader" />;
+      return <div data-testid="page-skeleton" />;
     },
   };
 });
@@ -736,13 +736,13 @@ describe("Network device Logs page", () => {
 
     renderPage(NetworkDeviceLogs);
 
-    expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
     expect(logsViewerMock).not.toHaveBeenCalled();
 
     resolveItem({ name: "core-sw-01" });
 
     expect(await screen.findByTestId("logs-viewer")).toBeInTheDocument();
-    expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("page-skeleton")).not.toBeInTheDocument();
   });
 
   test("chip reads 'Network Device: <name>' while the filter keeps the id", async () => {

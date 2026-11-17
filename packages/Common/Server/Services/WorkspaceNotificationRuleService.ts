@@ -126,7 +126,7 @@ import WorkspaceRecordChannels, {
 import WorkspaceScheduleOnCall, {
   ScheduleOnCallPerson,
 } from "../Utils/Workspace/WorkspaceScheduleOnCall";
-import ColumnLength from "../../Types/Database/ColumnLength";
+import WorkspaceStoredValue from "../Utils/Workspace/WorkspaceStoredValue";
 import SlackAccountByEmail, {
   SlackEmailAccount,
 } from "../Utils/Workspace/Slack/SlackAccountByEmail";
@@ -870,7 +870,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
          */
         throw new BadDataException(
           "Cannot create a new channel. " +
-            WorkspaceBase.getSendErrorMessage(err),
+            WorkspaceUtil.getWorkspaceTypeUtil(
+              rule.workspaceType!,
+            ).describeError(err),
         );
       }
 
@@ -890,7 +892,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
          */
         throw new BadDataException(
           "Cannot invite users to the channel. " +
-            WorkspaceBase.getSendErrorMessage(err),
+            WorkspaceUtil.getWorkspaceTypeUtil(
+              rule.workspaceType!,
+            ).describeError(err),
         );
       }
     }
@@ -1378,9 +1382,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
       log.projectId = data.projectId;
       log.workspaceType = data.workspaceType;
-      // Column limits, as on the real-send path: an over-long value fails the whole insert.
-      log.channelId = (thread.channel.id || "").substring(0, 100);
-      log.channelName = (thread.channel.name || "").substring(0, 100);
+      /*
+       * As the workspace gave them: the log keeps the ids whole or leaves
+       * them out, and cuts the name to its column
+       * (WorkspaceNotificationLogService.fitChannelColumns).
+       */
+      log.channelId = thread.channel.id || "";
+      log.channelName = thread.channel.name || "";
       log.threadId = thread.threadId;
       log.message = messageText;
       log.status = WorkspaceNotificationStatus.Success;
@@ -1787,14 +1795,17 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         log.projectId = data.projectId;
         log.workspaceType = data.workspaceType;
         /*
-         * Truncated to the column limits, as the real-send path does. The
-         * insert rejects any over-long field, and the catch below would then
-         * drop the row silently - Microsoft's "app is not installed in this
-         * team" explanation alone runs past the 500-character statusMessage.
-         * The user-facing error keeps the full text.
+         * The status message is cut to its column, as the real-send path
+         * does. The insert rejects any over-long field, and the catch below
+         * would then drop the row silently - Microsoft's "app is not
+         * installed in this team" explanation alone runs past the
+         * 500-character statusMessage. The user-facing error keeps the full
+         * text. The channel's ids go as the workspace gave them: the log
+         * keeps them whole or leaves them out, and cuts the name
+         * (WorkspaceNotificationLogService.fitChannelColumns).
          */
-        log.channelId = (error.channel.id || "").substring(0, 100);
-        log.channelName = (error.channel.name || "").substring(0, 100);
+        log.channelId = error.channel.id || "";
+        log.channelName = error.channel.name || "";
         log.message = data.message;
         log.status = WorkspaceNotificationStatus.Error;
         log.statusMessage = (error.error || "Failed to send message").substring(
@@ -2473,8 +2484,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
         log.projectId = data.projectId;
         log.workspaceType = res.workspaceType;
-        log.channelId = (thread.channel.id || "").substring(0, 100);
-        log.channelName = (thread.channel.name || "").substring(0, 100);
+        // Kept whole or left out, never cut (fitChannelColumns).
+        log.channelId = thread.channel.id || "";
+        log.channelName = thread.channel.name || "";
         log.threadId = thread.threadId;
         log.message = messageSummary;
         log.status = WorkspaceNotificationStatus.Success;
@@ -2523,8 +2535,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
         log.projectId = data.projectId;
         log.workspaceType = res.workspaceType;
-        log.channelId = (sendError.channel.id || "").substring(0, 100);
-        log.channelName = (sendError.channel.name || "").substring(0, 100);
+        // Kept whole or left out, never cut (fitChannelColumns).
+        log.channelId = sendError.channel.id || "";
+        log.channelName = sendError.channel.name || "";
         log.message = messageSummary;
         log.status = WorkspaceNotificationStatus.Error;
         log.actionType = WorkspaceNotificationActionType.SendMessage;
@@ -3539,7 +3552,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             workspaceType: data.workspaceType,
             actionType: WorkspaceNotificationActionType.CreateChannel,
             status: WorkspaceNotificationStatus.Error,
-            channelName: channelName.substring(0, ColumnLength.ShortText),
+            // As the refusal's log keeps it (fitChannelColumns).
+            channelName: WorkspaceStoredValue.channelName(channelName),
           },
           select: {
             _id: true,
@@ -5190,9 +5204,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           channelName: data.channelName,
           /*
            * Readable whatever was thrown: Slack and Microsoft Graph throw an
-           * HTTP error response itself.
+           * HTTP error response itself, and a workspace's refusal is said in
+           * OneUptime's words (describeError).
            */
-          error: WorkspaceBase.getSendErrorMessage(data.error),
+          error: WorkspaceUtil.getWorkspaceTypeUtil(
+            data.workspaceType,
+          ).describeError(data.error),
         },
         { isRoot: true },
       );

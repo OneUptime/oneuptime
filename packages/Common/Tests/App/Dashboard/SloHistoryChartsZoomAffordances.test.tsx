@@ -179,11 +179,11 @@ jest.mock("../../../UI/Components/Date/RangeStartAndEndDateView", () => {
   };
 });
 
-jest.mock("../../../UI/Components/ComponentLoader/ComponentLoader", () => {
+jest.mock("../../../UI/Components/Skeleton/ChartSkeleton", () => {
   return {
     __esModule: true,
     default: (): React.ReactElement => {
-      return <div data-testid="component-loader" />;
+      return <div data-testid="chart-skeleton" />;
     },
   };
 });
@@ -373,7 +373,7 @@ describe("Error Budget History names a gesture only where a card's body takes on
 
     await renderCharts();
 
-    expect(screen.getAllByTestId("component-loader")).toHaveLength(3);
+    expect(screen.getAllByTestId("chart-skeleton")).toHaveLength(3);
     expect(hints()).toHaveLength(0);
     expectRowsInPlace();
   });
@@ -428,7 +428,7 @@ describe("Error Budget History names a gesture only where a card's body takes on
     });
     await settle();
 
-    expect(screen.getAllByTestId("component-loader")).toHaveLength(3);
+    expect(screen.getAllByTestId("chart-skeleton")).toHaveLength(3);
     expect(hints()).toHaveLength(0);
     expectRowsInPlace();
   });
@@ -462,7 +462,7 @@ describe("Error Budget History names a gesture only where a card's body takes on
       jest.advanceTimersByTime(60 * 1000);
     });
     await settle();
-    expect(screen.getAllByTestId("component-loader")).toHaveLength(3);
+    expect(screen.getAllByTestId("chart-skeleton")).toHaveLength(3);
 
     for (const [index, row] of hintRows().entries()) {
       expect(row).toBe(rowsWithCharts[index]);

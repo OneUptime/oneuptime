@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import StatTilesSkeleton from "Common/UI/Components/Skeleton/StatTilesSkeleton";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -8,7 +9,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
@@ -896,7 +896,7 @@ const HostProcessView: FunctionComponent<
     if (isInitialLoading) {
       return (
         <div className="mb-6">
-          <PageLoader isVisible={true} />
+          <StatTilesSkeleton kind="golden" />
         </div>
       );
     }

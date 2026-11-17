@@ -1,4 +1,5 @@
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -14,7 +15,6 @@ import TwilioConfigUses, {
 import { JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Detail from "Common/UI/Components/Detail/Detail";
 import { CARD_MODEL_DETAIL_BODY_CLASS_NAME } from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -185,7 +185,7 @@ export const ServerTwilioEnvironmentLoadingCard: FunctionComponent =
           title={t("pages.settings.callSms.cardTitle")}
           description={t("pages.settings.callSms.cardDescription")}
         >
-          <ComponentLoader />
+          <DetailListSkeleton fields={3} />
         </Card>
       </div>
     );

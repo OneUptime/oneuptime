@@ -1,4 +1,5 @@
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
@@ -18,7 +19,6 @@ import WorkspaceType, {
 } from "Common/Types/Workspace/WorkspaceType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { APP_API_URL } from "Common/UI/Config";
@@ -370,7 +370,7 @@ const AskToConnectCard: FunctionComponent<ComponentProps> = (
         }
       >
         <div className="mt-2 space-y-3">
-          {isLoading && <ComponentLoader />}
+          {isLoading && <DetailListSkeleton fields={2} columns={1} />}
 
           {!isLoading && error && <ErrorMessage message={error} />}
 

@@ -5,9 +5,9 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -253,7 +253,7 @@ const EventRootCauseMetricChart: FunctionComponent<ComponentProps> = (
   if (!loaded || loaded.eventId !== eventId) {
     return (
       <Card title="Metrics" description={description}>
-        <ComponentLoader />
+        <ChartSkeleton />
       </Card>
     );
   }

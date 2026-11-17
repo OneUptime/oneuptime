@@ -1,4 +1,5 @@
 import CalendarFeedLinks from "../OnCallPolicy/CalendarFeedLinks";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import CalendarFeedAPI from "../OnCallPolicy/CalendarFeed/CalendarFeedAPI";
 import MaintenanceCalendarFeedAPI, {
   MaintenanceCalendarFeedRead,
@@ -22,7 +23,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -255,7 +255,7 @@ const MaintenanceCalendarSubscribeModal: FunctionComponent<ComponentProps> = (
   let body: ReactElement;
 
   if (isLoading) {
-    body = <ComponentLoader />;
+    body = <DetailListSkeleton fields={2} columns={1} />;
   } else if (restrictedMessage) {
     body = (
       <Alert

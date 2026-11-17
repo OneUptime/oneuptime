@@ -146,6 +146,7 @@ import MicrosoftTeamsProjectChoice, {
 import { WorkspaceProjectChoiceTaken } from "../WorkspaceProjectChoiceStore";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import WorkspaceChannelNotFound from "../WorkspaceChannelNotFound";
+import MicrosoftTeamsRefusal from "./MicrosoftTeamsRefusal";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
 import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
 import { cutToLength } from "../../../../Utils/Markdown/OverLongText";
@@ -398,8 +399,10 @@ const MICROSOFT_TEAMS_CHAT_TOPIC_LOOKUP_CONCURRENCY: number = 5;
 const MICROSOFT_TEAMS_CHAT_TOPIC_LOOKUP_TIMEOUT_IN_MS: number = 15000;
 
 /*
- * Chat names are kept well under the 100-character ShortText columns that
- * store them in notification logs — Teams chat names can be much longer.
+ * Chat names are kept short enough to read at a glance where OneUptime
+ * shows them (a rule's chat picker, Notification Logs) — Teams chat names
+ * can be much longer. A chat's id is never shortened: it is how the chat is
+ * reached again (WorkspaceStoredValue).
  */
 const MICROSOFT_TEAMS_CHAT_NAME_MAX_LENGTH: number = 80;
 
@@ -2041,7 +2044,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             workspaceType: WorkspaceType.MicrosoftTeams,
             teamId: data.workspaceMessagePayload.teamId,
           },
-          error: WorkspaceBase.getSendErrorMessage(err),
+          error: this.describeError(err),
         });
       }
     }
@@ -2123,7 +2126,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         logger.error(e);
         workspaceMessageResponse.errors!.push({
           channel: channel,
-          error: WorkspaceBase.getSendErrorMessage(e),
+          error: this.describeError(e),
         });
       }
     }
@@ -2184,7 +2187,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           logger.error(e);
           workspaceMessageResponse.errors!.push({
             channel: chatAsChannel,
-            error: WorkspaceBase.getSendErrorMessage(e),
+            error: this.describeError(e),
           });
         }
       }
@@ -2897,6 +2900,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         await context.updateActivity(update);
       },
     );
+  }
+
+  /*
+   * What a person reads of a Microsoft Teams call that failed: OneUptime's
+   * own sentence when OneUptime refused it (the app not installed in the
+   * team, a shared channel), else Microsoft's refusal in OneUptime's words,
+   * with Microsoft's status, code and words after them
+   * (MicrosoftTeamsRefusal).
+   */
+  public static override describeError(error: unknown): string {
+    return MicrosoftTeamsRefusal.describe(error);
   }
 
   /*

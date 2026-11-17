@@ -1228,3 +1228,42 @@ describePageLanguages({
     return language === "en" ? HOSTS_PATH : `${HOSTS_PATH}?lang=${language}`;
   },
 });
+
+/*
+ * While the pages load (#9220): every read is held (hold=1), and each page
+ * draws the shapes of its content - the list's table rows, the overview's
+ * page skeleton - never the grey bar, at a desktop's width and a phone's, in
+ * both themes.
+ */
+test.describe("while the host pages load", () => {
+  for (const theme of ["light", "dark"]) {
+    for (const width of [1280, 390]) {
+      test(`they draw skeletons at ${width} pixels, ${theme}`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width: width, height: 900 });
+        const query: string = `hold=1${theme === "dark" ? "&theme=dark" : ""}`;
+
+        for (const [name, address] of [
+          ["list", `${HOSTS_PATH}?${query}`],
+          ["overview", `${hostPath(HOST_IDS["db01"]!)}?${query}`],
+        ] as Array<[string, string]>) {
+          await page.goto(address);
+
+          const loading: Locator = page.getByRole("status", {
+            name: "Loading",
+          });
+          await expect(loading.first()).toBeVisible();
+          for (const status of await loading.all()) {
+            await expect(status).toHaveAttribute("aria-busy", "true");
+          }
+          await expect(page.getByTestId("bar-loader")).toHaveCount(0);
+          await expectNoSidewaysScroll(page);
+          await screenshot(page, `hosts-loading-${name}-${width}-${theme}`);
+        }
+      });
+    }
+  }
+});

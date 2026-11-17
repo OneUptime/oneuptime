@@ -15,7 +15,7 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import API from "Common/UI/Utils/API/API";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -276,7 +276,7 @@ const MonitorGroupMonitors: FunctionComponent<
   }
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   /*

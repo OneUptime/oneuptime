@@ -1,4 +1,5 @@
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import Route from "Common/Types/API/Route";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import {
@@ -25,7 +26,6 @@ import ChoiceRows, {
   ChoiceRowOption,
   getChoicePlanLeftoverText,
 } from "Common/UI/Components/ChoiceRows/ChoiceRows";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -397,7 +397,7 @@ const DashboardSharingCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={2} columns={1} />;
     }
 
     if (error || !state) {

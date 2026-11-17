@@ -341,7 +341,7 @@ const settled: (
 
     expect(settings).not.toBeNull();
     expect(
-      settings!.querySelector('[data-testid="component-loader"]'),
+      settings!.querySelector('[data-testid="detail-skeleton"]'),
     ).toBeNull();
     expect(
       settings!.querySelector('[role="status"][data-testid$="-loading"]'),

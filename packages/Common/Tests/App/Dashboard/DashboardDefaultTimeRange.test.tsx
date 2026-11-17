@@ -231,16 +231,21 @@ async function enterEditMode(): Promise<void> {
   });
 }
 
+// The editing toolbar's Save Changes and Cancel: buttons, named by their words.
+function toolbarButton(name: "Save Changes" | "Cancel"): HTMLElement {
+  return screen.getByRole("button", { name });
+}
+
 async function saveChanges(): Promise<void> {
   await act(async () => {
-    fireEvent.click(screen.getByTitle("Save Changes"));
+    fireEvent.click(toolbarButton("Save Changes"));
   });
   await settle();
 }
 
 async function discardChanges(): Promise<void> {
   await act(async () => {
-    fireEvent.click(screen.getByTitle("Cancel"));
+    fireEvent.click(toolbarButton("Cancel"));
   });
   await act(async () => {
     fireEvent.click(screen.getByText("Discard Changes"));
@@ -594,7 +599,7 @@ describe("the defaults, set on purpose while editing", () => {
 
     // Nothing to throw away: back to view mode at once (issue #7173).
     await act(async () => {
-      fireEvent.click(screen.getByTitle("Cancel"));
+      fireEvent.click(toolbarButton("Cancel"));
     });
     expect(screen.queryByText("Discard Changes")).toBeNull();
     await settle();

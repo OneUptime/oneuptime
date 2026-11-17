@@ -1,6 +1,7 @@
 import StatusPageSingleSignOnProtocol, {
   getStatusPageSingleSignOnProtocolQuery,
 } from "Common/Types/StatusPage/StatusPageSingleSignOnProtocol";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -36,7 +37,6 @@ import ChoiceRows, {
   ChoiceRowOption,
   getChoicePlanLeftoverText,
 } from "Common/UI/Components/ChoiceRows/ChoiceRows";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -579,7 +579,7 @@ const StatusPageAccessCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={3} columns={1} />;
     }
 
     if (error || !page) {

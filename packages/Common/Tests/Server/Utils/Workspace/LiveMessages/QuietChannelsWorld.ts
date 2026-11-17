@@ -359,6 +359,12 @@ export default class QuietChannelsWorld {
    */
   public ruleUpdatesToPost: Array<NotificationRuleUpdateKind> | undefined =
     undefined;
+  /*
+   * The Microsoft Teams chats the OneUptime app was added to, by id, as the
+   * project's connection lists them (miscData.availableChats): a suite that
+   * pages from a chat lists it here. None by default.
+   */
+  public teamsChats: Record<string, JSONObject> = {};
 
   // The people in the project, and the rule's people for a new channel.
   public members: Set<string> = new Set<string>([
@@ -615,7 +621,7 @@ export default class QuietChannelsWorld {
           serviceUrl: "https://smba.trafficmanager.net/teams/",
         },
       },
-      availableChats: {},
+      availableChats: this.teamsChats,
     };
   }
 

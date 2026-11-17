@@ -981,7 +981,7 @@ describe("PersonalCalendarFeedCard (full variant)", () => {
       });
 
       // Asked, not answered: the card is still the link it was.
-      expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
       expect(
         screen.getByTestId("personal-calendar-feed-links"),
       ).toBeInTheDocument();
@@ -996,7 +996,7 @@ describe("PersonalCalendarFeedCard (full variant)", () => {
           screen.getByTestId("personal-calendar-feed-status-pill"),
         ).toHaveTextContent("Disabled");
       });
-      expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
     });
 
     test("saving the settings re-reads the status without the loader", async () => {
@@ -1020,7 +1020,7 @@ describe("PersonalCalendarFeedCard (full variant)", () => {
       await waitFor(() => {
         expect(getMock).toHaveBeenCalledTimes(2);
       });
-      expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
       expect(
         screen.getByTestId("personal-calendar-feed-links"),
       ).toBeInTheDocument();
@@ -1058,13 +1058,13 @@ describe("PersonalCalendarFeedCard (full variant)", () => {
       fireEvent.click(within(error).getAllByRole("button")[0]!);
 
       await waitFor(() => {
-        expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+        expect(screen.getByTestId("detail-skeleton")).toBeInTheDocument();
       });
 
       answerReRead(ok(activeStatusJson()));
 
       await waitForActive();
-      expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
     });
 
     test("a failed Disable says why above the card's body, and the link stays as it was", async () => {

@@ -12,7 +12,7 @@ import React, {
   useCallback,
   useState,
 } from "react";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
 import {
@@ -154,7 +154,7 @@ const DatabaseServerMetrics: FunctionComponent<
     );
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="chart" />;
   }
 
   if (error) {

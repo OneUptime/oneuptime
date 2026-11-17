@@ -1,4 +1,5 @@
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -16,7 +17,6 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { SpanSelfTime } from "Common/Utils/Traces/CriticalPath";
 import { APP_API_URL } from "Common/UI/Config";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import AttributesJSONView from "Common/UI/Components/AttributesJSON/AttributesJSONView";
 import AttributesViewToggle from "Common/UI/Components/AttributesJSON/AttributesViewToggle";
@@ -563,7 +563,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
   const renderLoader: () => ReactElement = (): ReactElement => {
     return (
       <div className="flex h-24 items-center justify-center">
-        <ComponentLoader />
+        <DetailListSkeleton fields={4} />
       </div>
     );
   };

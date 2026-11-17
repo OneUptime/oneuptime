@@ -18,6 +18,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "Common/Server/Utils/Express";
+import Encryption from "Common/Server/Utils/Encryption";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import URL from "Common/Types/API/URL";
@@ -408,10 +409,16 @@ describePostgres(
       expect(listed.status).toBe(200);
       expect(idsIn(listed)).toEqual([monitorId.toString()]);
 
-      // Still one bundled probe, now under its new key.
-      expect(await probeRows()).toEqual([
-        { _id: probe1.toString(), key: newKey, name: "Probe-1" },
-      ]);
+      // Still one bundled probe, now under its new key, kept encrypted (#9012).
+      const rows: Array<{ _id: string; key: string; name: string }> =
+        await probeRows();
+
+      expect(rows).toHaveLength(1);
+      expect(Encryption.looksEncrypted(rows[0]!.key)).toBe(true);
+      expect({
+        ...rows[0]!,
+        key: await Encryption.decrypt(rows[0]!.key),
+      }).toEqual({ _id: probe1.toString(), key: newKey, name: "Probe-1" });
     });
 
     test("the shipped key the probe ran on is refused from then on, before and after the upgrade", async () => {

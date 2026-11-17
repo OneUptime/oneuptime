@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import InventoryRelationships from "../../../Components/Inventory/InventoryRelationships";
 import { buildInventoryTopologyRoute } from "../../../Components/Inventory/InventoryTopologyRoute";
 import useInventoryItem, {
@@ -6,7 +7,6 @@ import useInventoryItem, {
 } from "../../../Components/Inventory/useInventoryItem";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -22,7 +22,7 @@ const InventoryItemRelationships: FunctionComponent<
     useInventoryItem(modelId);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (error) {

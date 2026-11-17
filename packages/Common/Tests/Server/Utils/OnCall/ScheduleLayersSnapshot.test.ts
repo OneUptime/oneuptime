@@ -37,6 +37,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { Mock, SpyInstance } from "jest-mock";
 
 /*
  * A SCHEDULE'S LAYERS AND THE PEOPLE IN THEM, READ AS ONE SNAPSHOT (#9316).
@@ -656,10 +657,7 @@ describe("many schedules", () => {
 
   test("a statement whose cap falls at the end of a schedule keeps it, and reads the next one whole", async () => {
     const database: ReturnType<typeof fakeDatabase> = fakeDatabase(ROWS);
-    const error: jest.SpiedFunction<typeof logger.error> = jest.spyOn(
-      logger,
-      "error",
-    );
+    const error: SpyInstance<typeof logger.error> = jest.spyOn(logger, "error");
 
     // The first holds exactly the first schedule: four rows.
     const read: Map<string, ScheduleLayersSnapshotEntry> =
@@ -681,10 +679,7 @@ describe("many schedules", () => {
 
   test("a schedule exactly as big as the cap, read on its own: whole, and nothing said", async () => {
     const database: ReturnType<typeof fakeDatabase> = fakeDatabase(ROWS);
-    const error: jest.SpiedFunction<typeof logger.error> = jest.spyOn(
-      logger,
-      "error",
-    );
+    const error: SpyInstance<typeof logger.error> = jest.spyOn(logger, "error");
 
     const read: Map<string, ScheduleLayersSnapshotEntry> =
       await ScheduleLayersSnapshot.read({
@@ -699,7 +694,7 @@ describe("many schedules", () => {
   });
 
   test("rows that name no schedule end the read rather than ask again", async () => {
-    const query: jest.Mock<
+    const query: Mock<
       (sql: string, parameters: Array<unknown>) => Promise<unknown>
     > = jest.fn(async () => {
       return [{}, {}, {}] as unknown;
@@ -718,10 +713,7 @@ describe("many schedules", () => {
 
   test("one schedule bigger than the cap on its own: worked out from what one statement holds, and said so", async () => {
     const database: ReturnType<typeof fakeDatabase> = fakeDatabase(ROWS);
-    const error: jest.SpiedFunction<typeof logger.error> = jest.spyOn(
-      logger,
-      "error",
-    );
+    const error: SpyInstance<typeof logger.error> = jest.spyOn(logger, "error");
 
     const read: Map<string, ScheduleLayersSnapshotEntry> =
       await ScheduleLayersSnapshot.read({
@@ -738,7 +730,7 @@ describe("many schedules", () => {
   });
 
   test("nothing asked, nothing read; an answer that is not rows reads as none", async () => {
-    const query: jest.Mock<
+    const query: Mock<
       (sql: string, parameters: Array<unknown>) => Promise<unknown>
     > = jest.fn(async () => {
       return { rows: "not an array" } as unknown;
@@ -950,7 +942,7 @@ describe("the schedule service reads a schedule's layers in one statement", () =
   });
 
   test("the calendar feeds, my shifts and reminders: every schedule in one statement, beside the policies they are attached to", async () => {
-    const attachments: jest.SpiedFunction<
+    const attachments: SpyInstance<
       typeof OnCallDutyPolicyEscalationRuleScheduleService.findBy
     > = jest
       .spyOn(OnCallDutyPolicyEscalationRuleScheduleService, "findBy")

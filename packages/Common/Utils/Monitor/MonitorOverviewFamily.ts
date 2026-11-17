@@ -1,37 +1,20 @@
-import BadDataException from "../../Types/Exception/BadDataException";
 import MonitorMetricType from "../../Types/Monitor/MonitorMetricType";
 import MonitorType, {
   MonitorTypeHelper,
 } from "../../Types/Monitor/MonitorType";
 import MonitorMetricTypeUtil from "./MonitorMetricType";
+import MonitorTypeFamily, { MonitorOverviewFamily } from "./MonitorTypeFamily";
 import { translationKey } from "../../Types/Translator";
 
 /*
- * The monitor overview groups the 35 monitor types into eight families that
- * behave alike on the page: where the "last checked" time comes from, which
- * facts the hero shows, which cards appear. Everything type-specific on the
- * overview goes through this one switch, so a new MonitorType fails to
- * compile here until somebody decides how its overview should look.
+ * How the monitor overview lays out each of the eight families it groups
+ * the monitor types into. The family itself - the enum, and the one switch
+ * every type-specific part of the overview goes through - is a module of
+ * its own (MonitorTypeFamily), which loads without the metric catalogs the
+ * layout reads; it is exported here as it always was.
  */
 
-export enum MonitorOverviewFamily {
-  // Run by probes on a schedule.
-  ProbeCheck = "ProbeCheck",
-  // Pushed to us: heartbeat requests and inbound email.
-  Heartbeat = "Heartbeat",
-  // Pushed by the server agent.
-  Agent = "Agent",
-  // Criteria evaluated by a worker over telemetry.
-  TelemetrySignal = "TelemetrySignal",
-  // Criteria evaluated by a worker over infrastructure metrics.
-  Infrastructure = "Infrastructure",
-  // Evaluated on every device poll and matching trap.
-  NetworkDevice = "NetworkDevice",
-  // Evaluated every minute from the connection status of the probes it watches.
-  ProbeStatus = "ProbeStatus",
-  // No checks at all; people set the status.
-  Manual = "Manual",
-}
+export { MonitorOverviewFamily };
 
 export enum MonitorOverviewSetupKind {
   HeartbeatUrl = "HeartbeatUrl",
@@ -80,74 +63,9 @@ export interface MonitorOverviewLayout {
 }
 
 export default class MonitorOverviewFamilyUtil {
+  // The family a type belongs to, by MonitorTypeFamily's switch.
   public static getFamily(monitorType: MonitorType): MonitorOverviewFamily {
-    switch (monitorType) {
-      case MonitorType.API:
-      case MonitorType.Website:
-      case MonitorType.IP:
-      case MonitorType.Ping:
-      case MonitorType.Port:
-      case MonitorType.SSLCertificate:
-      case MonitorType.SyntheticMonitor:
-      case MonitorType.CustomJavaScriptCode:
-      case MonitorType.DNS:
-      case MonitorType.DNSSEC:
-      case MonitorType.NTP:
-      case MonitorType.Domain:
-      case MonitorType.SQLQuery:
-      case MonitorType.Database:
-      case MonitorType.ExternalStatusPage:
-        return MonitorOverviewFamily.ProbeCheck;
-
-      case MonitorType.IncomingRequest:
-      case MonitorType.IncomingEmail:
-        return MonitorOverviewFamily.Heartbeat;
-
-      case MonitorType.Server:
-        return MonitorOverviewFamily.Agent;
-
-      case MonitorType.Logs:
-      case MonitorType.Metrics:
-      case MonitorType.Traces:
-      case MonitorType.Exceptions:
-      case MonitorType.Profiles:
-      case MonitorType.SecurityEvents:
-      case MonitorType.Llm:
-        return MonitorOverviewFamily.TelemetrySignal;
-
-      case MonitorType.Kubernetes:
-      case MonitorType.Docker:
-      case MonitorType.Host:
-      case MonitorType.Podman:
-      case MonitorType.DockerSwarm:
-      case MonitorType.Proxmox:
-      case MonitorType.OpenStack:
-      case MonitorType.VMware:
-      case MonitorType.Ceph:
-      case MonitorType.StorageArray:
-      case MonitorType.IoTDevice:
-        return MonitorOverviewFamily.Infrastructure;
-
-      case MonitorType.NetworkDevice:
-        return MonitorOverviewFamily.NetworkDevice;
-
-      case MonitorType.ProbeStatus:
-        return MonitorOverviewFamily.ProbeStatus;
-
-      case MonitorType.Manual:
-        return MonitorOverviewFamily.Manual;
-
-      default: {
-        /*
-         * Compile-time guard: a MonitorType added without a case above makes
-         * this assignment a type error.
-         */
-        const unhandled: never = monitorType;
-        throw new BadDataException(
-          `Monitor type ${String(unhandled)} has no overview family.`,
-        );
-      }
-    }
+    return MonitorTypeFamily.getFamily(monitorType);
   }
 
   public static getLayout(monitorType: MonitorType): MonitorOverviewLayout {

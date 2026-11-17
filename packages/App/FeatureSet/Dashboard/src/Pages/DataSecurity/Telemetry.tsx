@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import AppLink from "../../Components/AppLink/AppLink";
 import DataSecurityApi from "../../Components/DataSecurity/DataSecurityApi";
 import {
@@ -39,7 +40,6 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -303,7 +303,7 @@ const DataSecurityTelemetryPage: FunctionComponent<
   if (!stores) {
     return (
       <Card title={PAGE_TITLE} description={PAGE_DESCRIPTION}>
-        <ComponentLoader />
+        <TableSkeleton />
       </Card>
     );
   }

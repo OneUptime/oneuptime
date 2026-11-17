@@ -1603,6 +1603,78 @@ describe("WorkspacePage.page: the page itself", () => {
     ).toHaveLength(1);
   });
 
+  /*
+   * A Microsoft Teams personal chat's id ("a:1...") is 130 characters and
+   * more. The place was kept cut to 100 - an id of no chat - so every post
+   * of the run there failed with "This chat is not connected to OneUptime"
+   * (#9284), and a second page from the chat kept it again: the place it
+   * looked for was whole, the one it had kept was not.
+   */
+  describe("asked for in a Microsoft Teams personal chat", () => {
+    // A personal chat's id as the Bot Framework gives it: 131 characters.
+    const PERSONAL_CHAT_ID: string =
+      "a:1BfcDQQeKz2oG1CPSFyD5ZD1flTYm2IoCY23DqeeVgq6wyCCFf9P43FAqqDYNLI-pephf2ltim4CcrRj_ti04mQkhsHSJDCY_Wsu7XBF4qh8qmhl2nGt9cSEa704tfJxn";
+
+    function pageFromChat(channelId: string): Promise<WorkspacePageOutcome> {
+      return page({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        place: {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          destinationType: WorkspaceLiveMessageDestinationType.Chat,
+          channelId: channelId,
+          channelName: "Amit Rajput",
+        },
+      });
+    }
+
+    function places(): Array<WorkspaceLiveMessage> {
+      return liveRows.filter((row: WorkspaceLiveMessage): boolean => {
+        return Boolean(row.messageKey?.startsWith("OnCallPageRequest:"));
+      });
+    }
+
+    test("REGRESSION #9284: the place is kept by the chat's whole id, as a chat", async () => {
+      expect(PERSONAL_CHAT_ID).toHaveLength(131);
+
+      await pageFromChat(PERSONAL_CHAT_ID);
+
+      expect(places()).toHaveLength(1);
+      expect(places()[0]!.channelId).toBe(PERSONAL_CHAT_ID);
+      expect(places()[0]!.channelId).not.toBe(
+        PERSONAL_CHAT_ID.substring(0, 100),
+      );
+      expect(places()[0]!.destinationType).toBe(
+        WorkspaceLiveMessageDestinationType.Chat,
+      );
+      expect(places()[0]!.workspaceType).toBe(WorkspaceType.MicrosoftTeams);
+      expect(places()[0]!.channelName).toBe("Amit Rajput");
+    });
+
+    test("REGRESSION #9284: paged twice from the chat, its place is kept once", async () => {
+      await pageFromChat(PERSONAL_CHAT_ID);
+      await pageFromChat(PERSONAL_CHAT_ID);
+
+      expect(places()).toHaveLength(1);
+      expect(places()[0]!.channelId).toBe(PERSONAL_CHAT_ID);
+    });
+
+    test("a chat whose id is longer than any column keeps is not kept as a part of it - and the page still pages", async () => {
+      const errors: SpyInstance<typeof logger.error> = jest
+        .spyOn(logger, "error")
+        .mockImplementation((): void => {});
+      const tooLong: string = `a:1${"x".repeat(500)}`;
+
+      await pageFromChat(tooLong);
+
+      expect(pageRequests).toHaveLength(1);
+      expect(places()).toEqual([]);
+      expect(errors).toHaveBeenCalledWith(
+        expect.stringContaining("longer than OneUptime can keep whole"),
+        { projectId: PROJECT_ID.toString() },
+      );
+    });
+  });
+
   test("a run that could not be shown at the place: the person is told what came of it, and why it is not shown", async () => {
     isPostedAtPlace = false;
 
