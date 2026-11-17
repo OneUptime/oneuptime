@@ -7,8 +7,9 @@ import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserElement from "../../Components/User/User";
-import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import {
   ON_CALL_SCHEDULES_IMPORT_OFFER,
   withToolImportOffer,
@@ -299,10 +300,12 @@ const OnCallDutyPage: FunctionComponent<
 
               return (
                 <div className="flex flex-col gap-0.5">
-                  <span className="inline-flex w-fit items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
-                    <Icon icon={IconProp.Alert} className="h-3.5 w-3.5" />
-                    {translator.translateText("No one on call")}
-                  </span>
+                  <Pill
+                    text="No one on call"
+                    tone={PillTone.Warning}
+                    icon={IconProp.Alert}
+                    className="w-fit"
+                  />
                   {item.rosterNextStartAt && item.nextUserOnRoster ? (
                     <span className="text-xs text-gray-500">
                       {translator.translateTemplate("Resumes {{date}}", {

@@ -21,7 +21,8 @@
 
 import DirectionArrow from "../DirectionArrow/DirectionArrow";
 import Icon from "../Icon/Icon";
-import Tooltip from "../Tooltip/Tooltip";
+import Pill from "../Pill/Pill";
+import { PillTone } from "../Pill/PillTone";
 import BreakableCode from "./BreakableCode";
 import {
   StepOutcome,
@@ -137,37 +138,16 @@ interface PortChipProps {
 const PortChip: FunctionComponent<PortChipProps> = (
   props: PortChipProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
-  const chip: ReactElement = (
-    <span
-      className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${
-        props.tone === StepPortTone.Error
-          ? "border-red-200 bg-red-50 text-red-700"
-          : "border-indigo-200 bg-indigo-50 text-indigo-700"
-      }`}
-      data-testid="workflow-run-step-port"
-    >
-      {props.isTitleFromSettings
-        ? props.title
-        : translator.translateText(props.title)}
-    </span>
-  );
-
-  if (!props.description) {
-    return chip;
-  }
-
   return (
-    <Tooltip
-      text={
-        props.isTitleFromSettings
-          ? props.description
-          : translator.translateText(props.description) || ""
-      }
-      isTextTranslated={true}
-    >
-      {chip}
-    </Tooltip>
+    <Pill
+      text={props.title}
+      isUserContent={props.isTitleFromSettings}
+      tone={props.tone === StepPortTone.Error ? PillTone.Danger : PillTone.Info}
+      isDotHidden={true}
+      tooltip={props.description || undefined}
+      isTooltipUserContent={props.isTitleFromSettings}
+      dataTestId="workflow-run-step-port"
+    />
   );
 };
 
@@ -387,19 +367,12 @@ interface StatusBadgeProps {
 const StatusBadge: FunctionComponent<StatusBadgeProps> = (
   props: StatusBadgeProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
-
   return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
-        props.isFailed
-          ? "border-red-200 bg-red-50 text-red-700"
-          : "border-emerald-200 bg-emerald-50 text-emerald-700"
-      }`}
-      data-testid="workflow-run-step-status"
-    >
-      {translator.translateText(props.isFailed ? "Failed" : "Succeeded")}
-    </span>
+    <Pill
+      text={props.isFailed ? "Failed" : "Succeeded"}
+      tone={props.isFailed ? PillTone.Danger : PillTone.Success}
+      dataTestId="workflow-run-step-status"
+    />
   );
 };
 
@@ -531,12 +504,11 @@ const ValueSection: FunctionComponent<ValueSectionProps> = (
                     </code>
                   )}
                   {row.unresolvedReferences.length > 0 && (
-                    <span
-                      className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800"
-                      data-testid="workflow-run-step-unresolved"
-                    >
-                      {translator.translateText("Did not resolve")}
-                    </span>
+                    <Pill
+                      text="Did not resolve"
+                      tone={PillTone.Warning}
+                      dataTestId="workflow-run-step-unresolved"
+                    />
                   )}
                 </dt>
                 <dd className="mt-1 min-w-0 sm:mt-0 sm:flex-1">

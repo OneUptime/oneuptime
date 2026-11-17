@@ -42,6 +42,8 @@ import EmptyState, {
 import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import {
   composedValue,
@@ -353,24 +355,22 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     if (member.isCompliant) {
       return (
-        <span
-          data-testid="compliance-member-status"
-          className="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"
-        >
-          <Icon icon={IconProp.CheckCircle} className="h-3 w-3" />
-          {translator.translateText("Compliant")}
-        </span>
+        <Pill
+          text="Compliant"
+          tone={PillTone.Success}
+          icon={IconProp.CheckCircle}
+          dataTestId="compliance-member-status"
+        />
       );
     }
 
     return (
-      <span
-        data-testid="compliance-member-status"
-        className="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-200"
-      >
-        <Icon icon={IconProp.Alert} className="h-3 w-3 text-red-500" />
-        {translator.translateText("Needs attention")}
-      </span>
+      <Pill
+        text="Needs attention"
+        tone={PillTone.Danger}
+        icon={IconProp.Alert}
+        dataTestId="compliance-member-status"
+      />
     );
   };
 

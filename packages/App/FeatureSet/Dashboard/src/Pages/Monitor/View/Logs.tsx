@@ -3,6 +3,8 @@ import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
@@ -189,12 +191,12 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
      */
     if (observation.kind === TelemetryObservationKind.NoMetricData) {
       return (
-        <span
-          data-testid="monitor-log-no-data"
-          className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"
-        >
-          {text}
-        </span>
+        <Pill
+          text={text}
+          isUserContent={true}
+          tone={PillTone.Neutral}
+          dataTestId="monitor-log-no-data"
+        />
       );
     }
 
@@ -494,15 +496,18 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     }
 
                     return (
-                      <span className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-200">
-                        {translator.translatePlural(
+                      <Pill
+                        text={translator.translatePlural(
                           {
                             one: "{{count}} attempt",
                             other: "{{count}} attempts",
                           },
                           maxAttempts,
                         )}
-                      </span>
+                        isUserContent={true}
+                        tone={PillTone.Warning}
+                        isDotHidden={true}
+                      />
                     );
                   },
                 },
