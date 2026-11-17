@@ -9,8 +9,9 @@
 # <registry> is the app's path in Artifact Registry and <service name> its
 # Service Control service (editions.json, google-cloud); <track> is major.minor.
 #
-# Laid out as Google's own click-to-deploy apps are: the chart and the tester
-# chart as tarballs, the schemas with REGISTRY and TAG filled in.
+# Laid out as Google's own click-to-deploy apps are: the chart and the tester's
+# template (which a verification run lays over the chart) as tarballs, the
+# schemas with REGISTRY and TAG filled in.
 #
 # Google serves its deployer image (gcr.io/cloud-marketplace-tools) only to a
 # signed-in Google account: `docker login gcr.io` first. The build stage ships

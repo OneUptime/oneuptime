@@ -275,20 +275,22 @@
       "Slå på SMS og anrop",
       "Mobilapp eller nettleser",
       "Ikke satt opp.",
-      "Hent OneUptime-appen, eller slå på varslinger i denne nettleseren, fra varslingsmetodene dine.",
-      "Sett opp appen eller denne nettleseren",
+      "Få tilkall på telefonen med OneUptime On-Call-appen, eller i denne nettleseren.",
+      "Bruk denne nettleseren",
+      "Hent appen",
       "Fortsett",
       "Kontroller på nytt"
     ],
     "outline": [
       "button: Legg til saldo",
       "button: Slå på SMS og anrop",
-      "link: Sett opp appen eller denne nettleseren",
+      "button: Bruk denne nettleseren",
+      "button: Hent appen",
       "button: Fortsett",
       "button: Kontroller på nytt"
     ],
     "width": 768,
-    "height": 632
+    "height": 658
   },
   "paging-phone": {
     "text": [
@@ -304,8 +306,9 @@
       "Send meg en kode på SMS",
       "Mobilapp eller nettleser",
       "Ikke satt opp.",
-      "Hent OneUptime-appen, eller slå på varslinger i denne nettleseren, fra varslingsmetodene dine.",
-      "Sett opp appen eller denne nettleseren",
+      "Få tilkall på telefonen med OneUptime On-Call-appen, eller i denne nettleseren.",
+      "Bruk denne nettleseren",
+      "Hent appen",
       "Fortsett",
       "Kontroller på nytt",
       "placeholder: +15551234567"
@@ -313,31 +316,35 @@
     "outline": [
       "field text: +15551234567",
       "button: Send meg en kode på SMS",
-      "link: Sett opp appen eller denne nettleseren",
+      "button: Bruk denne nettleseren",
+      "button: Hent appen",
       "button: Fortsett",
       "button: Kontroller på nytt"
     ],
     "width": 768,
-    "height": 564
+    "height": 590
   },
   "paging-who-else": {
     "text": [
       "2",
-      "Hvem andre har vakt?",
+      "Hvem tilkalles først?",
       "Dette oppretter vaktpolicyen «Standard vaktpolicy». Den tilkaller først disse personene, for hver nye hendelse og hvert nye varsel i dette prosjektet.",
       "Tilkalles først",
       "Legg til teammedlemmer",
       "AL",
       "Ada Lovelace",
+      "Alle her tilkalles samtidig. Hvem som bare skal tilkalles hvis ingen svarer, velger du i neste trinn.",
+      "Inviter via e-post",
       "Lagre og fortsett"
     ],
     "outline": [
       "button: Legg til teammedlemmer",
       "button: Fjern Ada Lovelace",
+      "button: Inviter via e-post",
       "button: Lagre og fortsett"
     ],
     "width": 768,
-    "height": 246
+    "height": 322
   },
   "paging-no-answer": {
     "text": [
@@ -389,7 +396,7 @@
     "text": [
       "Tilkalling er satt opp",
       "Hvem som tilkalles",
-      "Hver nye hendelse og hvert nye varsel kjører «Standard vaktpolicy», som tilkaller Ada Lovelace (E-post, SMS, Telefonanrop).",
+      "Hver nye hendelse og hvert nye varsel kjører «Standard vaktpolicy», som tilkaller Ada Lovelace (e-post, SMS og telefonanrop med en gang).",
       "Hvis ingen svarer",
       "Hvis ingen kvitterer innen 30 minutter, tilkalles Grace Hopper.",
       "Testet",

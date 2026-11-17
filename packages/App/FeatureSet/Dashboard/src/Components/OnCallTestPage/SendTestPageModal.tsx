@@ -310,10 +310,11 @@ export function getTestPageCostItems(
  * What a test costs, in a sentence, or empty when it costs nothing: the
  * first level's, or - for a test that walks every level - the most the
  * walk costs, nobody acknowledging it (#7016), or a fire drill's, every
- * policy's first level together (#7012). It lists only what the project's
- * balance pays for (#7263), as it says. The list and the amount are written
- * in the sentence's language: the reader's, or English's while the
- * reader's has no wording of the sentence.
+ * policy's first level together (#7012), or every level each policy's walk
+ * reaches at most (#9385). It lists only what the project's balance pays
+ * for (#7263), as it says. The list and the amount are written in the
+ * sentence's language: the reader's, or English's while the reader's has
+ * no wording of the sentence.
  */
 export function describeTestPageCost(
   translator: Translator,
@@ -329,12 +330,16 @@ export function describeTestPageCost(
     return "";
   }
 
-  const sentences: { withAmount: string; withoutAmount: string } =
-    options?.isFireDrill
-      ? COST_SENTENCES.fireDrill
-      : options?.isWalk
-        ? COST_SENTENCES.walk
-        : COST_SENTENCES.firstLevel;
+  let sentences: { withAmount: string; withoutAmount: string } =
+    COST_SENTENCES.firstLevel;
+
+  if (options?.isFireDrill) {
+    sentences = options.isWalk
+      ? COST_SENTENCES.fireDrillWalk
+      : COST_SENTENCES.fireDrill;
+  } else if (options?.isWalk) {
+    sentences = COST_SENTENCES.walk;
+  }
 
   const items: ComposedValue = composedValue((sentence: Translator): string => {
     return getTestPageCostItems(sentence, cost);
@@ -777,9 +782,10 @@ export const PreviewLevel: FunctionComponent<{
  * A test that walks every level (#7016), drawn as the policy's escalation
  * is (EscalationSummary): a line down a numbered marker for each level it
  * reaches before it ends, under when it is paged - and, where the test
- * ends with levels left, how many it never reaches.
+ * ends with levels left, how many it never reaches. A fire drill that walks
+ * every level draws each of its policies' walks with it (#9385).
  */
-const WalkPreview: FunctionComponent<{
+export const WalkPreview: FunctionComponent<{
   preview: OnCallTestPagePreview;
 }> = (props: { preview: OnCallTestPagePreview }): ReactElement => {
   const translator: Translator = useTranslator();

@@ -111,6 +111,7 @@ import {
   isOnCallTestPage,
 } from "../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { JSONObject } from "../../Types/JSON";
+import { OnCallFireDrillFailureRecord } from "../../Types/OnCallDutyPolicy/OnCallFireDrill";
 
 /*
  * Who started a direct page, for its run to record: the person, or the
@@ -126,6 +127,17 @@ export interface OnCallDirectPageStartedBy {
 export interface OnCallDirectPageRun {
   executionLogId: ObjectID;
   outcome: OnCallPagingOutcome;
+}
+
+/*
+ * The fire drill a policy's test is part of (#9386): the drill, the same on
+ * every policy's test it starts; the monitor whose failure it rehearses; and
+ * that failure, as the drill's dialog named it.
+ */
+export interface OnCallFireDrillOfRun {
+  fireDrillId: ObjectID;
+  monitorId: ObjectID;
+  failure: OnCallFireDrillFailureRecord;
 }
 
 /*
@@ -951,6 +963,12 @@ export class Service extends ProjectReferencesService<Model> {
    * may edit the policy, and how often it is tested. An archived policy, or
    * one without escalation rules, writes the run with the reason, as for any
    * run. Returns the run's id.
+   *
+   * A monitor's fire drill (OnCallFireDrillService) starts one for each
+   * policy its failure pages, and keeps on each the drill, the monitor and
+   * the failure it rehearsed (#9386): the policy's execution logs say the
+   * run was part of a fire drill of that monitor, and the monitor's card
+   * says how the drill went.
    */
   @CaptureSpan()
   public async startPolicyTest(data: {
@@ -960,6 +978,7 @@ export class Service extends ProjectReferencesService<Model> {
     severityId: ObjectID;
     walksEscalation: boolean;
     startedByUserId: ObjectID;
+    fireDrill?: OnCallFireDrillOfRun | undefined;
   }): Promise<ObjectID> {
     const log: Model = new Model();
 
@@ -971,6 +990,12 @@ export class Service extends ProjectReferencesService<Model> {
     log.testPageRecordKind = data.recordKind;
     log.testPageSeverityId = data.severityId;
     log.testPageWalksEscalation = data.walksEscalation;
+
+    if (data.fireDrill) {
+      log.testPageFireDrillId = data.fireDrill.fireDrillId;
+      log.testPageFireDrillMonitorId = data.fireDrill.monitorId;
+      log.testPageFireDrillFailure = data.fireDrill.failure;
+    }
 
     const createdLog: Model = await this.create({
       data: log,

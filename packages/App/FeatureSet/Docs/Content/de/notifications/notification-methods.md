@@ -188,7 +188,7 @@ Dieser Kanal ist in diesem Projekt ausgeschaltet. Die Karte sagt, wer ihn einsch
 :::
 
 :::details Der Code ist nie angekommen
-E-Mails können einige Minuten dauern und landen manchmal im Spam; SMS können eine Minute dauern. Warten Sie eine Minute und klicken Sie dann im Dialog auf **Neuen Code senden**. **Projekteinstellungen → Benachrichtigungen → Benachrichtigungsprotokolle** zeigt, was mit der Nachricht passiert ist.
+E-Mails können einige Minuten dauern und landen manchmal im Spam; SMS können eine Minute dauern. Warten Sie eine Minute und klicken Sie dann im Dialog auf **Neuen Code senden**. **Projekteinstellungen → Benachrichtigungen → Benachrichtigungsprotokolle** zeigt, was mit der Nachricht passiert ist. Wer diese Protokolle lesen darf, bekommt unter dem Code **Benachrichtigungsprotokolle öffnen**, das den Reiter der Nachricht öffnet; alle anderen werden gebeten, einen Projektinhaber oder Projektadministrator zu fragen.
 :::
 
 :::details Mein Slack-Konto lässt sich nicht hinzufügen

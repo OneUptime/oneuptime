@@ -13,7 +13,7 @@ flowchart TB
 
 - A project you own: turning SMS and calls on takes its owner, and an on-call policy its owner or an admin.
 - Your mobile phone.
-- The teammates you want paged, as members of the project: [Inviting People](/docs/permissions/inviting-people) shows how.
+- The teammates you want paged: the setup can invite them by email, or see [Inviting People](/docs/permissions/inviting-people).
 
 :::tabs
 @tab OneUptime Cloud
@@ -29,11 +29,11 @@ Your server must be able to send email, text messages and calls. Its master admi
 
 ![Home asks "What do you want to do first?", with "Page the right person when something breaks" ticked](screen:home-goal-paging)
 
-On your project's **Home**, click **Set up an on-call policy** in the **Welcome to OneUptime 👋** checklist. A new project's Home first asks **What do you want to do first?**: tick **Page the right person when something breaks** and click **Continue**. If the step is missing or already done, press `Ctrl+K` (`Cmd+K` on a Mac), type `get paged` and choose **Page the right person when something breaks**.
+On your project's **Home**, click **Set up an on-call policy** in the **Welcome to OneUptime 👋** checklist. A new project's Home first asks **What do you want to do first?**: tick **Page the right person when something breaks** and click **Continue**. If the step is missing or already done, press `Ctrl+K` (`Cmd+K` on a Mac), type `get paged` and choose **Page the right person when something breaks**. In **On-Call**, **Guided setup** opens it too.
 
 ### Get the app on your phone
 
-Install OneUptime On-Call from the App Store or Google Play and sign in: it registers your phone for push notifications. Back in the setup, click **Recheck**: **Mobile app or browser** under **How should we reach you?** now lists your phone.
+Under **How should we reach you?**, click **Get the app**, scan the code with your phone, install the app and sign in. Back in the setup, click **Recheck**: **Mobile app or browser** now lists your phone. **Use this browser** pages this browser too.
 
 ### Turn on text messages and calls
 
@@ -47,11 +47,11 @@ New projects start with SMS and phone calls off. If you own the project, click *
 
 Type your mobile number with its country code in **Your phone number**, such as `+15551234567`, and click **Text me a code**. Enter the code from the text message and click **Verify**: the same number is called for pages too. Click **Continue**. To be paged by the app and email only, leave the number out and click **Continue** straight away.
 
-### Choose who else is paged
+### Choose who is paged first
 
-![The step "Who else is on call?", with "Save and continue" ringed](screen:paging-who-else)
+![The step "Who is paged first?", with "Save and continue" ringed](screen:paging-who-else)
 
-Under **Who else is on call?**, you are already in **Paged first**. Click **Add teammates** to page others with you, then click **Save and continue**. In a project with no on-call policy yet, this creates **Default on-call policy**, which pages them for every new incident and alert. In a project that has one, pick it under **On-call policy**, and add people under **Add to the first escalation rule** instead. If someone cannot be reached yet, the step stays open on **Can a page reach them?**: click **Send setup reminder** for them, then **Continue**.
+Under **Who is paged first?**, you are already in **Paged first**. Click **Add teammates** to page others at the same time as you. For someone not in the project yet, click **Invite by email**, enter their address and click **Send invitation**. Then click **Save and continue**. In a project with no on-call policy yet, this creates **Default on-call policy**, which pages them for every new incident and alert. In a project that has one, pick it under **On-call policy**, and add people under **Add to the first escalation rule** instead. If someone cannot be reached yet, the step stays open on **Can a page reach them?**: click **Send setup reminder** for them, then **Continue**.
 
 ### Decide what happens if nobody answers
 
@@ -67,7 +67,7 @@ Under **Send a test page**, click **Test this policy**. Pick a **Severity** and 
 
 ### Acknowledge the test page
 
-Open the link in the text message or the email and acknowledge the page there, or press 1 during the phone call. The app shows that the page arrived, but cannot acknowledge a test. Then click **Done** in the dialog, and **Continue**.
+Open the link in the text message or the email and acknowledge the page there, or press 1 during the phone call. In the OneUptime On-Call app, in versions newer than 1.6.0, you can also acknowledge it from its push notification. Then click **Done** in the dialog, and **Continue**.
 :::
 
 ## Check that it worked
@@ -75,7 +75,7 @@ Open the link in the text message or the email and acknowledge the page there, o
 ![The summary "Paging is set up": "Who is paged", "If nobody answers" and "Tested"](screen:paging-summary)
 
 - The test step says who acknowledged the page, how and how fast.
-- The setup ends on **Paging is set up**, read from the records: **Who is paged**, **If nobody answers** and **Tested**. A problem with the policy itself, such as someone it cannot reach, is listed under **Needs attention**.
+- The setup ends on **Paging is set up**, read from the records: **Who is paged**, **If nobody answers** and **Tested**. **Who is paged** lists how each person is reached, in order. A problem with the policy itself, such as someone it cannot reach, is listed under **Needs attention**.
 - On **Home**, the checklist marks **Set up an on-call policy** as done. When it was the last step, the checklist is gone.
 
 If the policy pages someone else, you can watch the escalation too: click **Open the on-call policy** in the summary, then **Test this policy**. Turn on **Walk every escalation level**, send it, and do not acknowledge the first page: the next person is paged up to 2 minutes later.

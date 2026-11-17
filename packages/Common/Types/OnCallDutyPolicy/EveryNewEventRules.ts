@@ -22,7 +22,8 @@ import {
  *
  * Create On-Call Policy now offers, while the project has no on-call policy
  * and no on-call rule yet, "Page this policy for every new incident and
- * alert" - on to start with. The choice travels with the create as misc
+ * alert" - on to start with; a later policy is offered it off
+ * (getEveryNewEventRulesOfferKind, #7371). The choice travels with the create as misc
  * data under PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY, and the server, once
  * the policy exists, adds two on-call rules naming it: one for incidents,
  * one for alerts, each matching everything (OnCallDutyPolicyService.create).
@@ -293,4 +294,65 @@ export const shouldOfferEveryNewEventRules: (
     facts.incidentRuleCount === 0 &&
     facts.alertRuleCount === 0
   );
+};
+
+/*
+ * HOW CREATE ON-CALL POLICY OFFERS THE CHOICE (#7371).
+ *
+ * A project's first policy is offered it on (shouldOfferEveryNewEventRules).
+ * A later one was offered nothing: the switch was hidden and nothing took
+ * its place, so a newcomer who made the website setup's policy first and
+ * then followed the manual path saved a second policy that paged nobody,
+ * and the dialog never said so. A later policy is offered it too, off to
+ * start with - two policies paged for every new incident and alert is a
+ * choice to make, not a default - with the sentence that says a policy
+ * pages nobody until a rule or a monitor triggers it.
+ *
+ *   - FirstPolicy: no on-call policy and no on-call rule yet; offered on.
+ *   - LaterPolicy: the project has a policy (archived ones count) or an
+ *     on-call rule of either kind; offered off.
+ *   - None: the person may not add on-call rules, or the counts are not
+ *     known (still loading, or a read that failed): nothing is offered.
+ */
+export enum EveryNewEventRulesOfferKind {
+  FirstPolicy = "FirstPolicy",
+  LaterPolicy = "LaterPolicy",
+  None = "None",
+}
+
+export const getEveryNewEventRulesOfferKind: (
+  facts: EveryNewEventRulesOfferFacts,
+) => EveryNewEventRulesOfferKind = (
+  facts: EveryNewEventRulesOfferFacts,
+): EveryNewEventRulesOfferKind => {
+  if (!facts.mayAddRules) {
+    return EveryNewEventRulesOfferKind.None;
+  }
+
+  if (shouldOfferEveryNewEventRules(facts)) {
+    return EveryNewEventRulesOfferKind.FirstPolicy;
+  }
+
+  // One count is enough to know the project pages through something already.
+  if (
+    (facts.policyCount || 0) > 0 ||
+    (facts.incidentRuleCount || 0) > 0 ||
+    (facts.alertRuleCount || 0) > 0
+  ) {
+    return EveryNewEventRulesOfferKind.LaterPolicy;
+  }
+
+  return EveryNewEventRulesOfferKind.None;
+};
+
+/*
+ * Whether the switch starts on: for a first policy, and while the counts
+ * are still on their way - a new project's counts can answer after the
+ * dialog opened, and its switch then joins it on. Only a policy known to
+ * be a later one starts off.
+ */
+export const doesEveryNewEventRulesOfferStartOn: (
+  kind: EveryNewEventRulesOfferKind,
+) => boolean = (kind: EveryNewEventRulesOfferKind): boolean => {
+  return kind !== EveryNewEventRulesOfferKind.LaterPolicy;
 };

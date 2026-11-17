@@ -1,3 +1,4 @@
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "Common/Types/API/Route";
 import ProductKey, {
   OnboardedProductKey,
@@ -72,6 +73,23 @@ export interface ProductOnboarding {
    * job starts.
    */
   guideRoute?: Route | undefined;
+  /*
+   * The guided setup that does the product's job on one page, where the
+   * product has one (Components/GuidedSetup): offered as the explanation's
+   * primary button, on the empty list and in "How it works" alike (#7148),
+   * to whoever may create what it makes. The list's own Create stays beside
+   * it, plain.
+   */
+  guidedSetup?: ProductGuidedSetup | undefined;
+}
+
+export interface ProductGuidedSetup {
+  // The setup's page.
+  page: PageMap;
+  // English translation key: the button's words.
+  buttonTitle: string;
+  // Offered to whoever may create one of these: the record the setup makes.
+  modelType: { new (): BaseModel };
 }
 
 /*

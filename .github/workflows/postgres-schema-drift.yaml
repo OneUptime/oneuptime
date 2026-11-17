@@ -718,7 +718,12 @@ jobs:
       # and severity, its first level, no incident or alert behind it - and
       # never an incident or an alert; a policy or severity that is not the
       # project's stops it before any run. The drill runs as the API runs it
-      # on copies of the migrated tables in an isolated schema.
+      # on copies of the migrated tables in an isolated schema. #9385,
+      # #9397, #9386: a walked drill, the incident an alert incident rule
+      # declares, and what a drill keeps on each run (the drill, the
+      # monitor, the failure), read back as the monitor's last drill under
+      # the real permission rules; AddOnCallFireDrillResults' columns, index
+      # and ON DELETE SET NULL key on the migrated table and on the copies.
       - name: Test a monitor's fire drill on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common

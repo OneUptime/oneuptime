@@ -20,7 +20,9 @@ En vaktpolicy avgjør hvem som tilkalles om en hendelse eller et varsel, og hvem
 
 **Hvem varsles først?** er valgfritt og vises bare for folk som kan legge til eskaleringsregler: står det tomt, tilkaller policyen ingen før den har en regel. **Beskrivelse** og **Etiketter** venter under **Flere felt**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) for å legge til de neste nivåene.
 
-For den første policyen i et prosjekt spør skjemaet også **Utløs den ved hver nye hendelse og hvert nye varsel**, som starter slått på. Den legger til en regel under **Hendelser → Regler → Vaktregler** og en under **Varsler → Regler → Vaktregler**, som hver treffer alt og kjører denne policyen. Bare folk som kan legge til vaktregler, får spørsmålet, så lenge prosjektet verken har en vaktpolicy eller en vaktregel.
+Skjemaet spør også **Utløs den ved hver nye hendelse og hvert nye varsel**, hvis du kan legge til vaktregler. Den legger til en regel under **Hendelser → Regler → Vaktregler** og en under **Varsler → Regler → Vaktregler**, som hver treffer alt og kjører denne policyen. Den starter slått på for den første policyen i et prosjekt, så lenge prosjektet verken har en vaktpolicy eller en vaktregel, og slått av for senere policyer: å utløse to policyer ved hver nye hendelse og hvert nye varsel er et valg du må ta. Slått av tilkaller policyen ingen før en regel, en monitor eller en person kjører den.
+
+Vil du heller bli veiledet steg for steg, fra telefonen din til et testtilkall, klikker du på **Veiledet oppsett**: på den tomme listen **Vaktpolicyer** eller under **Slik fungerer det**. Se [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
 
 Listen **Vaktpolicyer** viser **Navn**, **Beskrivelse**, **Etiketter** og **Eiere** for hver policy. Velg policyer for å bruke **Legg til etiketter**, **Fjern etiketter**, **Legg til eier**, **Fjern eier**, **Arkiver** eller **Eksporter JSON**, eller for å slette dem. **Importer JSON** oppretter policyer fra en eksport: en eksport inneholder policyens egne innstillinger, ikke eskaleringsreglene eller eierne.
 
@@ -107,9 +109,13 @@ Den som kalles opp, bekrefter testen fra hvilken som helst av meldingene sine: l
 
 ### Hold en beredskapsøvelse for en monitor
 
-**Hold en beredskapsøvelse**, på kortet **Når den går ned** for en monitor, øver på en av feilene dens: en hendelse eller et varsel som et av kriteriene åpner. Den tester hver vaktpolicy som den feilen ville kalt opp, hver slik **Test denne policyen** tester den, og ingenting offentlig skjer: ingen hendelse eller varsel opprettes, og ingen statusside, abonnent eller kanal får beskjed. Før noe sendes, nevner dialogen feilen, hver policy og hvem den policyen kaller opp nå.
+**Hold en beredskapsøvelse**, på kortet **Når den går ned** for en monitor, øver på en av feilene dens: en hendelse eller et varsel som et av kriteriene åpner, eller hendelsen som en hendelsesregel for varsler oppretter fra et slikt varsel. Den tester hver vaktpolicy som den feilen ville kalt opp, hver slik **Test denne policyen** tester den, og ingenting offentlig skjer: ingen hendelse eller varsel opprettes, og ingen statusside, abonnent eller kanal får beskjed. Før noe sendes, nevner dialogen feilen, hver policy og hvem den policyen kaller opp nå. For en opprettet hendelse nevner den også regelen og hvor lenge varselet først står åpent: øvelsen tester hendelsens policyer med en gang, uten den ventetiden.
+
+En øvelse kaller opp hver policys første nivå. Under **Flere felt** kan du slå på **Gå gjennom hvert eskaleringsnivå** for å kalle opp hver policys nivåer etter tur, høyst 2 minutter fra hverandre, til noen bekrefter: dialogen viser da hvert nivå hver policy når, og hva gjennomgangen høyst koster. Når ingen på de første nivåene kan nås, men et senere nivå kan, tilbyr linjen under listen **Gå gjennom hvert eskaleringsnivå** med ett klikk.
 
 **Start beredskapsøvelse** forblir slått av så lenge en av de policyene er en du ikke kan teste, fordi du ikke kan redigere den, eller så lenge ingen de kaller opp, kan nås. Hver policy i en øvelse teller som en egen test: en policy som er testet de siste 5 minuttene, stopper hele øvelsen, og en øvelse med tre policyer bruker tre av prosjektets 20 tester i timen.
+
+Når dialogen er lukket, sier **Siste beredskapsøvelse** på kortet hvilken feil monitorens siste øvelse øvde på, når og av hvem den ble startet, og hvor mange av testene som ble bekreftet. **Vis detaljer** viser hver policys test: om den ble bekreftet, av hvem, hvordan og hvor raskt. Hver test blir værende i policyens utførelseslogger, merket som en beredskapsøvelse for monitoren. Resultatene av en øvelse vises for den som kan lese monitoren og hver av disse utførelsesloggene.
 
 ## Utførelseslogger
 

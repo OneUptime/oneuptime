@@ -40,9 +40,9 @@ import {
  * Every form that creates an on-call policy asks who gets paged first, with
  * the escalation rule's Notify picker, and keeps to three rows: Name, that
  * question, and a folded Advanced section holding the description and the
- * labels - and, for a project's first policy only, a fourth: "Page this
- * policy for every new incident and alert" (EveryNewEventRules), still on
- * one page.
+ * labels - and a fourth, "Page this policy for every new incident and
+ * alert" (EveryNewEventRules), on for a project's first policy and off for
+ * a later one (#7371), still on one page.
  * The picker hands the server the lists it reads
  * (OnCallDutyPolicyService.create): a form that asks the question and sends
  * keys the server does not read would make a policy that silently pages
@@ -166,6 +166,42 @@ describe("the create form's fields", () => {
     expect(field.showEvenIfPermissionDoesNotExist).toBe(true);
     // Never folded away: it is what makes the policy page anyone.
     expect(field.collapsibleSection).toBeUndefined();
+  });
+
+  /*
+   * ISSUE #7371: a later policy's dialog hid the switch, and the policy was
+   * saved paging nobody without a word. It is offered there too, off: two
+   * policies paged for every new incident and alert is a choice to make.
+   */
+  test("start the switch off for a later policy, saying the same about a policy that nothing triggers (#7371)", () => {
+    const field: PolicyField = everyNewEventRulesField(
+      getOnCallPolicyCreateFormFields({
+        canAddEscalationRules: (): boolean => {
+          return true;
+        },
+        offerEveryNewEventRules: (): boolean => {
+          return true;
+        },
+        everyNewEventRulesStartsOn: false,
+      }),
+    );
+
+    expect(field.defaultValue).toBe(false);
+    expect(field.showIf!({} as FormValues<OnCallDutyPolicy>)).toBe(true);
+    expect(field.description).toBe(
+      "Adds an on-call rule for incidents and one for alerts. A policy pages nobody until a rule or a monitor triggers it.",
+    );
+    // Built for a first policy, or saying nothing of it: on.
+    expect(
+      everyNewEventRulesField(
+        getOnCallPolicyCreateFormFields({
+          canAddEscalationRules: (): boolean => {
+            return true;
+          },
+          everyNewEventRulesStartsOn: true,
+        }),
+      ).defaultValue,
+    ).toBe(true);
   });
 
   test("ask it only when the page offers it, read when the form is drawn", () => {
@@ -379,7 +415,7 @@ describe("the project's forms", () => {
     ).toEqual([POLICIES_PAGE]);
   });
 
-  test("every form that creates a policy asks who gets paged first, in three rows - four for a project's first policy - and no steps", () => {
+  test("every form that creates a policy asks who gets paged first, in three rows - four with the switch - and no steps", () => {
     expect(policyCreateForms.length).toBeGreaterThan(0);
 
     for (const form of policyCreateForms) {
@@ -392,8 +428,8 @@ describe("the project's forms", () => {
 
       /*
        * Name, the question, "Page this policy for every new incident and
-       * alert" (a new project's first policy only) and the folded Advanced
-       * section.
+       * alert" (offered to someone who may add on-call rules) and the
+       * folded Advanced section.
        */
       expect(countFieldRows(form.fields)).toBe(4);
       expect(form.visibleFieldCount).toBe(4);

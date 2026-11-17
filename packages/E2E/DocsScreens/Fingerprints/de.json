@@ -275,20 +275,22 @@
       "SMS und Anrufe einschalten",
       "Mobile App oder Browser",
       "Nicht eingerichtet.",
-      "Hol dir die OneUptime-App oder aktiviere Benachrichtigungen in diesem Browser, über deine Benachrichtigungsmethoden.",
-      "App oder diesen Browser einrichten",
+      "Erhalte Alarmierungen auf deinem Telefon mit der OneUptime On-Call App oder in diesem Browser.",
+      "Diesen Browser verwenden",
+      "App herunterladen",
       "Weiter",
       "Erneut prüfen"
     ],
     "outline": [
       "button: Guthaben aufladen",
       "button: SMS und Anrufe einschalten",
-      "link: App oder diesen Browser einrichten",
+      "button: Diesen Browser verwenden",
+      "button: App herunterladen",
       "button: Weiter",
       "button: Erneut prüfen"
     ],
     "width": 768,
-    "height": 652
+    "height": 678
   },
   "paging-phone": {
     "text": [
@@ -304,8 +306,9 @@
       "Code per SMS senden",
       "Mobile App oder Browser",
       "Nicht eingerichtet.",
-      "Hol dir die OneUptime-App oder aktiviere Benachrichtigungen in diesem Browser, über deine Benachrichtigungsmethoden.",
-      "App oder diesen Browser einrichten",
+      "Erhalte Alarmierungen auf deinem Telefon mit der OneUptime On-Call App oder in diesem Browser.",
+      "Diesen Browser verwenden",
+      "App herunterladen",
       "Weiter",
       "Erneut prüfen",
       "placeholder: +15551234567"
@@ -313,31 +316,35 @@
     "outline": [
       "field text: +15551234567",
       "button: Code per SMS senden",
-      "link: App oder diesen Browser einrichten",
+      "button: Diesen Browser verwenden",
+      "button: App herunterladen",
       "button: Weiter",
       "button: Erneut prüfen"
     ],
     "width": 768,
-    "height": 584
+    "height": 610
   },
   "paging-who-else": {
     "text": [
       "2",
-      "Wer hat sonst Bereitschaft?",
+      "Wer wird zuerst alarmiert?",
       "Dadurch wird die Bereitschaftsrichtlinie „Standard-Bereitschaftsrichtlinie“ erstellt. Sie alarmiert zuerst diese Personen, bei jedem neuen Vorfall und jeder neuen Warnung in diesem Projekt.",
       "Zuerst alarmiert",
       "Teammitglieder hinzufügen",
       "AL",
       "Ada Lovelace",
+      "Alle hier werden gleichzeitig alarmiert. Wen du nur alarmieren willst, wenn niemand antwortet, legst du im nächsten Schritt fest.",
+      "Per E-Mail einladen",
       "Speichern und weiter"
     ],
     "outline": [
       "button: Teammitglieder hinzufügen",
       "button: Ada Lovelace entfernen",
+      "button: Per E-Mail einladen",
       "button: Speichern und weiter"
     ],
     "width": 768,
-    "height": 246
+    "height": 342
   },
   "paging-no-answer": {
     "text": [
@@ -389,7 +396,7 @@
     "text": [
       "Die Alarmierung ist eingerichtet",
       "Wer alarmiert wird",
-      "Jeder neue Vorfall und jede neue Warnung führt „Standard-Bereitschaftsrichtlinie“ aus, das Ada Lovelace (E-Mail, SMS, Telefonanruf) alarmiert.",
+      "Jeder neue Vorfall und jede neue Warnung führt „Standard-Bereitschaftsrichtlinie“ aus, das Ada Lovelace (E-Mail, SMS und Telefonanruf sofort) alarmiert.",
       "Wenn niemand antwortet",
       "Bestätigt niemand innerhalb von 30 Minuten, wird Grace Hopper alarmiert.",
       "Getestet",

@@ -1,7 +1,14 @@
 /** @timezone UTC */
 
 import "@testing-library/jest-dom";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import {
   cleanup,
   fireEvent,
@@ -80,6 +87,7 @@ jest.mock("../../../UI/Config", () => {
   return mockedConfig;
 });
 
+import OnCallTestPageApi from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallTestPage/OnCallTestPageApi";
 import MonitorWhoIsToldCard from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorWhoIsToldCard";
 import WhoIsToldApi from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi";
 import {
@@ -923,6 +931,8 @@ function readIn(language: string, words: Record<string, unknown>): void {
 // The card drawn with `answer`, its chain open when it has one.
 async function drawCard(answer: WhoIsToldResult): Promise<RenderResult> {
   jest.spyOn(WhoIsToldApi, "getForMonitor").mockResolvedValue(answer);
+  // And its last fire drill (#9386): none, read on every draw.
+  jest.spyOn(OnCallTestPageApi, "lastFireDrill").mockResolvedValue(null);
 
   const drawn: RenderResult = render(
     <MemoryRouter>
@@ -998,6 +1008,14 @@ afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
   readIn("en", {});
+});
+
+/*
+ * The card reads its monitor's last fire drill too (#9386, LastFireDrill):
+ * none here, stood in for as every other read of the server is.
+ */
+beforeEach(() => {
+  jest.spyOn(OnCallTestPageApi, "lastFireDrill").mockResolvedValue(null);
 });
 
 // The words left on what `read` holds once marked words and `names` are out.

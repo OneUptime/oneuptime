@@ -93,6 +93,7 @@ import {
   OnCallTestPageReachedThroughCode,
   OnCallTestPageRecordKind,
   OnCallTestPageResult,
+  OnCallTestPageResultSummary,
   OnCallTestPageStatus,
   OnCallTestPageStep,
   OnCallTestPageStepStatus,
@@ -745,8 +746,9 @@ export class OnCallTestPageService extends BaseService {
    * with no rule for it, the ones the project's fallback picks (#7262) -
    * and where to, for the person themselves; for a policy, the people its
    * first level pages right now, each with theirs - and the levels after it
-   * that a test walking every level pages before it ends (#7016). With what
-   * it costs on OneUptime Cloud: the first level's, and a walk's at most.
+   * that a test walking every level pages before it ends (#7016), which a
+   * fire drill that walks them reads too (#9385). With what it costs on
+   * OneUptime Cloud: the first level's, and a walk's at most.
    */
   @CaptureSpan()
   public async getPreview(data: {
@@ -756,12 +758,6 @@ export class OnCallTestPageService extends BaseService {
     severityId: ObjectID;
     targetUserId?: ObjectID | undefined;
     policyId?: ObjectID | undefined;
-    /*
-     * Whether a policy's preview reads the levels a test walking every
-     * level reaches. A fire drill pages its policies' first levels only
-     * (#7012), so it reads none: its walk is empty.
-     */
-    readsWalk?: boolean | undefined;
   }): Promise<OnCallTestPagePreview> {
     await this.readSeverity({
       projectId: data.projectId,
@@ -888,7 +884,7 @@ export class OnCallTestPageService extends BaseService {
       pagesAnybody: people.length > 0,
     };
 
-    if (previous.rule && data.readsWalk !== false) {
+    if (previous.rule) {
       for (const rule of levels.slice(1)) {
         const order: number = rule.order!;
 
@@ -1719,12 +1715,6 @@ export class OnCallTestPageService extends BaseService {
       },
     );
 
-    const acknowledgedFrom: UserOnCallLogTimeline | undefined =
-      this.getFirstAcknowledgedDelivery({
-        deliveries: deliveries,
-        acknowledgedByUserId: run.acknowledgedByUserId,
-      });
-
     const startedAt: Date = run.createdAt
       ? OneUptimeDate.fromString(run.createdAt)
       : OneUptimeDate.getCurrentDate();
@@ -1759,33 +1749,99 @@ export class OnCallTestPageService extends BaseService {
       result.statusMessageCode = runLine;
     }
 
-    if (run.acknowledgedAt) {
-      result.acknowledgedByName =
-        run.acknowledgedByUser?.name?.toString() ||
-        run.acknowledgedByUser?.email?.toString() ||
-        "";
+    return {
+      ...result,
+      ...getAcknowledgement({ run: run, deliveries: deliveries }),
+    };
+  }
 
-      const channel: OnCallPageChannel | undefined = acknowledgedFrom
-        ? getOnCallPageChannelsOf(acknowledgedFrom)[0]
-        : undefined;
+  /*
+   * WHAT BECAME OF SEVERAL TESTS, IN SHORT (#9386): each one's status, and
+   * who acknowledged it, by what and how fast - worked out as getResult
+   * works it out (getAcknowledgement), from the runs and only the messages
+   * they were acknowledged from: two reads, however many tests. A fire
+   * drill's results on its monitor's card, in the order the runs are
+   * handed in. Read as OneUptime: whoever asks has been checked already.
+   */
+  @CaptureSpan()
+  public async getResultSummaries(data: {
+    projectId: ObjectID;
+    runs: ReadonlyArray<OnCallDutyPolicyExecutionLog>;
+  }): Promise<Array<OnCallTestPageResultSummary>> {
+    const runIds: Array<ObjectID> = data.runs
+      .filter((run: OnCallDutyPolicyExecutionLog): boolean => {
+        return Boolean(run.id);
+      })
+      .map((run: OnCallDutyPolicyExecutionLog): ObjectID => {
+        return run.id!;
+      });
 
-      if (channel) {
-        result.acknowledgedChannel = channel;
-      }
+    const acknowledged: Array<UserOnCallLogTimeline> =
+      runIds.length === 0
+        ? []
+        : await UserOnCallLogTimelineService.findBy({
+            query: {
+              projectId: data.projectId,
+              onCallDutyPolicyExecutionLogId: QueryHelper.any(runIds),
+              isAcknowledged: true,
+            },
+            select: {
+              _id: true,
+              userId: true,
+              onCallDutyPolicyExecutionLogId: true,
+              createdAt: true,
+              acknowledgedAt: true,
+              isAcknowledged: true,
+              userCallId: true,
+              userSmsId: true,
+              userWhatsAppId: true,
+              userTelegramId: true,
+              userPushId: true,
+              userEmailId: true,
+              userSlackId: true,
+              userMicrosoftTeamsId: true,
+              userMattermostId: true,
+              userWebhookId: true,
+              customNotificationChannelId: true,
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: {
+              isRoot: true,
+            },
+          });
 
-      if (acknowledgedFrom?.createdAt) {
-        result.acknowledgedAfterSeconds = Math.max(
-          0,
-          Math.round(
-            (OneUptimeDate.fromString(run.acknowledgedAt).getTime() -
-              OneUptimeDate.fromString(acknowledgedFrom.createdAt).getTime()) /
-              1000,
-          ),
-        );
-      }
-    }
+    return data.runs.map(
+      (run: OnCallDutyPolicyExecutionLog): OnCallTestPageResultSummary => {
+        const startedAt: Date = run.createdAt
+          ? OneUptimeDate.fromString(run.createdAt)
+          : OneUptimeDate.getCurrentDate();
 
-    return result;
+        return {
+          executionLogId: run.id?.toString() || "",
+          ...(run.onCallDutyPolicyId
+            ? {
+                policyId: run.onCallDutyPolicyId.toString(),
+                policyName: run.onCallDutyPolicy?.name?.toString() || "",
+              }
+            : {}),
+          status: getResultStatus(run),
+          startedAt: startedAt.toISOString(),
+          endsAt: getOnCallTestPageEndsAt(startedAt).toISOString(),
+          ...getAcknowledgement({
+            run: run,
+            deliveries: acknowledged.filter(
+              (delivery: UserOnCallLogTimeline): boolean => {
+                return (
+                  delivery.onCallDutyPolicyExecutionLogId?.toString() ===
+                  run.id?.toString()
+                );
+              },
+            ),
+          }),
+        };
+      },
+    );
   }
 
   /*
@@ -1852,8 +1908,15 @@ export class OnCallTestPageService extends BaseService {
       : OnCallTestPageKind.Self;
   }
 
-  private async readSeverityNameOf(
-    run: OnCallDutyPolicyExecutionLog,
+  /*
+   * The name of the severity a test ran at, read as OneUptime; empty when it
+   * is gone - a severity deleted afterwards leaves a test's history as it was.
+   */
+  public async readSeverityNameOf(
+    run: Pick<
+      OnCallDutyPolicyExecutionLog,
+      "testPageSeverityId" | "testPageRecordKind"
+    >,
   ): Promise<string> {
     if (!run.testPageSeverityId) {
       return "";
@@ -1925,30 +1988,6 @@ export class OnCallTestPageService extends BaseService {
     }
   }
 
-  // The message the test was first acknowledged from, by who acknowledged it.
-  private getFirstAcknowledgedDelivery(data: {
-    deliveries: Array<UserOnCallLogTimeline>;
-    acknowledgedByUserId: ObjectID | undefined;
-  }): UserOnCallLogTimeline | undefined {
-    const acknowledged: Array<UserOnCallLogTimeline> = data.deliveries
-      .filter((delivery: UserOnCallLogTimeline): boolean => {
-        return (
-          Boolean(delivery.isAcknowledged) &&
-          (!data.acknowledgedByUserId ||
-            delivery.userId?.toString() ===
-              data.acknowledgedByUserId.toString())
-        );
-      })
-      .sort((a: UserOnCallLogTimeline, b: UserOnCallLogTimeline): number => {
-        return (
-          new Date(a.acknowledgedAt || 0).getTime() -
-          new Date(b.acknowledgedAt || 0).getTime()
-        );
-      });
-
-    return acknowledged[0];
-  }
-
   // One line of the chain, with its messages.
   private toStep(data: {
     line: OnCallDutyPolicyExecutionLogTimeline;
@@ -2016,6 +2055,94 @@ export class OnCallTestPageService extends BaseService {
 
     return step;
   }
+}
+
+// The message a test was first acknowledged from, by who acknowledged it.
+export function getFirstAcknowledgedDelivery(data: {
+  deliveries: ReadonlyArray<UserOnCallLogTimeline>;
+  acknowledgedByUserId: ObjectID | undefined;
+}): UserOnCallLogTimeline | undefined {
+  const acknowledged: Array<UserOnCallLogTimeline> = data.deliveries
+    .filter((delivery: UserOnCallLogTimeline): boolean => {
+      return (
+        Boolean(delivery.isAcknowledged) &&
+        (!data.acknowledgedByUserId ||
+          delivery.userId?.toString() === data.acknowledgedByUserId.toString())
+      );
+    })
+    .sort((a: UserOnCallLogTimeline, b: UserOnCallLogTimeline): number => {
+      return (
+        new Date(a.acknowledgedAt || 0).getTime() -
+        new Date(b.acknowledgedAt || 0).getTime()
+      );
+    });
+
+  return acknowledged[0];
+}
+
+/*
+ * WHO ACKNOWLEDGED A TEST, BY WHAT AND HOW FAST, from its run and its
+ * messages: the person the run says, the channel of the message they first
+ * acknowledged it from, and how long after that message went out. Nothing
+ * while nobody has; the channel and the time are left out when no message
+ * of the test records the answer. What a test's result says (getResult),
+ * and a fire drill's results in short (getResultSummaries, #9386).
+ */
+export function getAcknowledgement(data: {
+  run: Pick<
+    OnCallDutyPolicyExecutionLog,
+    "acknowledgedAt" | "acknowledgedByUserId" | "acknowledgedByUser"
+  >;
+  deliveries: ReadonlyArray<UserOnCallLogTimeline>;
+}): Pick<
+  OnCallTestPageResult,
+  "acknowledgedByName" | "acknowledgedChannel" | "acknowledgedAfterSeconds"
+> {
+  const run: Pick<
+    OnCallDutyPolicyExecutionLog,
+    "acknowledgedAt" | "acknowledgedByUserId" | "acknowledgedByUser"
+  > = data.run;
+
+  if (!run.acknowledgedAt) {
+    return {};
+  }
+
+  const answer: Pick<
+    OnCallTestPageResult,
+    "acknowledgedByName" | "acknowledgedChannel" | "acknowledgedAfterSeconds"
+  > = {
+    acknowledgedByName:
+      run.acknowledgedByUser?.name?.toString() ||
+      run.acknowledgedByUser?.email?.toString() ||
+      "",
+  };
+
+  const acknowledgedFrom: UserOnCallLogTimeline | undefined =
+    getFirstAcknowledgedDelivery({
+      deliveries: data.deliveries,
+      acknowledgedByUserId: run.acknowledgedByUserId,
+    });
+
+  const channel: OnCallPageChannel | undefined = acknowledgedFrom
+    ? getOnCallPageChannelsOf(acknowledgedFrom)[0]
+    : undefined;
+
+  if (channel) {
+    answer.acknowledgedChannel = channel;
+  }
+
+  if (acknowledgedFrom?.createdAt) {
+    answer.acknowledgedAfterSeconds = Math.max(
+      0,
+      Math.round(
+        (OneUptimeDate.fromString(run.acknowledgedAt).getTime() -
+          OneUptimeDate.fromString(acknowledgedFrom.createdAt).getTime()) /
+          1000,
+      ),
+    );
+  }
+
+  return answer;
 }
 
 /*

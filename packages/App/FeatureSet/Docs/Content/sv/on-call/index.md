@@ -70,7 +70,7 @@ Klicka på **Lägg till eskaleringsregel** på policyns sida **Eskaleringsregler
 
 ### Kör policyn automatiskt
 
-Ett projekts första policy kan göra det redan när den skapas: låt **Utlös den vid varje ny incident och varje nytt larm** vara påslaget. För alla andra policyer går du till **Incidenter → Regler → Jourregler** eller **Larm → Regler → Jourregler** och lägger till en regel som kör den för de incidenter eller larm som den matchar, till exempel varje kritisk incident. Se [Vad som kör en policy](/docs/on-call/policies#vad-som-kör-en-policy).
+Ett projekts första policy kan göra det redan när den skapas: låt **Utlös den vid varje ny incident och varje nytt larm** vara påslaget. En senare policy får samma fråga, avslagen från början. För att köra en policy för bara vissa incidenter eller larm, till exempel varje kritisk incident, går du till **Incidenter → Regler → Jourregler** eller **Larm → Regler → Jourregler** och lägger till en regel som matchar dem. Se [Vad som kör en policy](/docs/on-call/policies#vad-som-kör-en-policy).
 
 ### Kontrollera att alla kan nås
 

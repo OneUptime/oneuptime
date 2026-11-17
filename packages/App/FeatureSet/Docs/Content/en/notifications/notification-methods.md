@@ -188,7 +188,7 @@ That channel is off in this project. The card says who can turn it on; see [Turn
 :::
 
 :::details The code never arrived
-Emails can take a few minutes, and sometimes land in spam; texts can take a minute. Wait a minute, then click **Send a new code** in the dialog. **Project Settings → Notifications → Notification Logs** shows what happened to the message.
+Emails can take a few minutes, and sometimes land in spam; texts can take a minute. Wait a minute, then click **Send a new code** in the dialog. **Project Settings → Notifications → Notification Logs** shows what happened to the message. Whoever may read those logs gets **Open Notification Logs** under the code, which opens the message's tab; anyone else is told to ask a Project Owner or Project Admin.
 :::
 
 :::details Adding my Slack account fails

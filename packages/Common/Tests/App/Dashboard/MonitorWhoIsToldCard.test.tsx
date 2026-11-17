@@ -48,6 +48,7 @@ jest.mock("../../../UI/Config", () => {
 import MonitorWhoIsToldCard, {
   WhoIsToldPlace,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorWhoIsToldCard";
+import OnCallTestPageApi from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallTestPage/OnCallTestPageApi";
 import MonitorDraftWhoIsTold, {
   getDraftLabelIds,
   getMonitorDraft,
@@ -135,6 +136,14 @@ const ANA: string = "68102222-0000-4000-8000-0000000000d1";
 const BEN: string = "68102222-0000-4000-8000-0000000000d2";
 
 const translator: Translator = getGlobalTranslator();
+
+/*
+ * The card reads its monitor's last fire drill too (#9386, LastFireDrill):
+ * none here, stood in for as every other read of the server is.
+ */
+beforeEach(() => {
+  jest.spyOn(OnCallTestPageApi, "lastFireDrill").mockResolvedValue(null);
+});
 
 // A Tailwind variant that follows the window's width, not the card's.
 const WINDOW_WIDTH_VARIANT: RegExp = /(^|\s)(sm|md|lg|xl|2xl):/u;

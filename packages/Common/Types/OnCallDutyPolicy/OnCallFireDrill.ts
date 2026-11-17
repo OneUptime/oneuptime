@@ -1,5 +1,6 @@
 import {
   WhoIsToldCriteria,
+  WhoIsToldDeclaration,
   WhoIsToldEvent,
   WhoIsToldResult,
 } from "../Monitor/WhoIsTold";
@@ -7,6 +8,7 @@ import {
   OnCallTestPageCost,
   OnCallTestPagePreview,
   OnCallTestPageRecordKind,
+  OnCallTestPageResultSummary,
   describeOnCallTestPageWait,
 } from "./OnCallTestPage";
 
@@ -38,12 +40,34 @@ import {
  *     minutes) and the project's hour, one test for each policy - claimed
  *     all or nothing, so a drill never pages some policies and is refused
  *     the rest.
+ *   - HOW FAR (#9385). Each policy's first level, or - when the drill walks
+ *     every escalation level - each level in turn, as a walked test of the
+ *     policy pages them, until somebody acknowledges it.
+ *   - WHAT IT KEEPS (#9386). Each policy's test is kept in that policy's
+ *     execution logs with the drill, the monitor and the failure it
+ *     rehearsed, so the monitor's card says how its last drill went.
  *
  * The dialog says all of it before anything is sent: that it is a test,
  * which policies it pages, and who each one pages now, and how.
  */
 
-// One failure of the monitor a drill can rehearse: an incident or an alert one of its criteria opens.
+/*
+ * The incident an alert incident rule declares from an alert of the
+ * criteria (#9397), as a drill offers it: the rule - its name empty while
+ * the reader may not read it - and how long the alert stays open first; 0
+ * when it is declared right away. A drill tests the incident's policies at
+ * once, without the wait.
+ */
+export interface OnCallFireDrillDeclaration {
+  ruleName: string;
+  waitInMinutes: number;
+}
+
+/*
+ * One failure of the monitor a drill can rehearse: an incident or an alert
+ * one of its criteria opens, or the incident an alert incident rule
+ * declares from such an alert (declaredBy).
+ */
 export interface OnCallFireDrillEvent {
   // What the drill is asked for by: the criteria and the template, as read now.
   key: string;
@@ -54,6 +78,8 @@ export interface OnCallFireDrillEvent {
   title: string;
   // How many on-call policies it pages.
   policyCount: number;
+  // The incident an alert incident rule declares (#9397). Absent otherwise.
+  declaredBy?: OnCallFireDrillDeclaration | undefined;
 }
 
 // One policy a drill pages.
@@ -68,8 +94,9 @@ export interface OnCallFireDrillPolicy {
   mayTest: boolean;
   /*
    * Who its first level pages right now, and how - read as the policy's own
-   * test reads it (OnCallTestPageService.getPreview). Absent while the
-   * caller may not test it.
+   * test reads it (OnCallTestPageService.getPreview) - with the levels after
+   * it that a walk of every level reaches (walkLevels, #9385). Absent while
+   * the caller may not test it.
    */
   preview?: OnCallTestPagePreview | undefined;
 }
@@ -85,6 +112,12 @@ export interface OnCallFireDrillPreview {
   policies: Array<OnCallFireDrillPolicy>;
   // What the whole drill costs on OneUptime Cloud: every policy's first level.
   cost: OnCallTestPageCost;
+  /*
+   * What it costs at most when it walks every escalation level (#9385):
+   * every policy's first level and each level its walk reaches. Absent from
+   * an older server's preview.
+   */
+  walkCost?: OnCallTestPageCost | undefined;
 }
 
 // One policy's test, once the drill is started.
@@ -96,26 +129,82 @@ export interface OnCallFireDrillRun {
 }
 
 export interface OnCallFireDrillStarted {
+  /*
+   * The drill, as its tests are kept with it (#9386). Absent from an older
+   * server's answer.
+   */
+  fireDrillId?: string | undefined;
   runs: Array<OnCallFireDrillRun>;
 }
+
+/*
+ * WHAT A DRILL KEEPS OF THE FAILURE IT REHEARSED (#9386), on each of its
+ * tests (OnCallDutyPolicyExecutionLog.testPageFireDrillFailure): the
+ * criteria's name as it was then - the kind and severity are the test's
+ * own - and, for the incident an alert incident rule declares (#9397), how
+ * long the alert stays open first.
+ */
+export interface OnCallFireDrillFailureRecord {
+  criteriaName: string;
+  // Absent for an incident or alert the criteria opens itself.
+  declaredAfterMinutes?: number | undefined;
+}
+
+/*
+ * A MONITOR'S LAST FIRE DRILL (#9386): when it ran, who ran it, the failure
+ * it rehearsed, and what became of each policy's test - read by somebody who
+ * may read the monitor and every one of those tests in its policy's
+ * execution logs (OnCallFireDrillHistoryService).
+ */
+export interface OnCallFireDrillRecord {
+  fireDrillId: string;
+  monitorId: string;
+  // When it was started, as an ISO date.
+  startedAt: string;
+  // Who started it; empty when they are gone.
+  startedByName: string;
+  failure: {
+    criteriaName: string;
+    recordKind: OnCallTestPageRecordKind;
+    severityName: string;
+    declaredAfterMinutes?: number | undefined;
+  };
+  // It walked every escalation level of each policy (#9385).
+  walksEscalation: boolean;
+  // Each policy's test, in the order the drill started them.
+  runs: Array<OnCallTestPageResultSummary>;
+}
+
+// The answer of GET .../fire-drill/last: none when there is none to read.
+export interface OnCallFireDrillLast {
+  fireDrill: OnCallFireDrillRecord | null;
+}
+
+// The last part of a declared incident's key (getOnCallFireDrillEventKey).
+export const ON_CALL_FIRE_DRILL_DECLARED_KEY_PART: string = "declared";
 
 /*
  * What a failure is asked for by: its criteria, the kind and template of
  * what it opens, and where it sits among the criteria's - so a monitor
  * edited between the preview and the start (its criteria reordered, a
  * template removed) is told apart, and nothing is paged by an old copy.
+ * The incident an alert incident rule declares from an alert (#9397) has
+ * no template of its own: it is asked for by its alert's, with the
+ * Incident kind and "declared" after, never as its alert.
  */
 export function getOnCallFireDrillEventKey(data: {
   criteriaId: string;
   recordKind: OnCallTestPageRecordKind;
   templateId: string | undefined;
   index: number;
+  isDeclared?: boolean | undefined;
 }): string {
   return [
     data.criteriaId,
     data.recordKind,
     data.templateId || "",
     String(data.index),
+    ...(data.isDeclared ? [ON_CALL_FIRE_DRILL_DECLARED_KEY_PART] : []),
   ].join(":");
 }
 
@@ -124,12 +213,33 @@ export interface OnCallFireDrillFailure {
   key: string;
   criteria: WhoIsToldCriteria;
   event: WhoIsToldEvent;
+  /*
+   * The alert incident rule's declaration it is (#9397): `event` is the
+   * incident it declares from an alert of the criteria.
+   */
+  declaration?: WhoIsToldDeclaration | undefined;
+}
+
+/*
+ * Whether a drill can rehearse an incident or alert: one the reader may see
+ * (a private record that is not theirs is never offered, #7213), that pages
+ * a policy and says the severity to test it at.
+ */
+function isDrillable(event: WhoIsToldEvent): boolean {
+  return (
+    event.isHidden !== true &&
+    event.policies.length > 0 &&
+    Boolean(event.severityId)
+  );
 }
 
 /*
  * The failures of a "When this goes down" answer a drill can rehearse: each
- * incident or alert a criteria opens that pages a policy, keyed as the
- * drill asks for it (getOnCallFireDrillEventKey).
+ * incident or alert a criteria opens that pages a policy, and after an
+ * alert the incident an alert incident rule declares from it (#9397), a
+ * failure of its own - each keyed as the drill asks for it
+ * (getOnCallFireDrillEventKey). An alert the reader may not see says
+ * nothing of what it declares.
  */
 export function getOnCallFireDrillFailures(
   result: WhoIsToldResult,
@@ -138,19 +248,40 @@ export function getOnCallFireDrillFailures(
 
   for (const criteria of result.criteria) {
     criteria.events.forEach((event: WhoIsToldEvent, index: number): void => {
-      if (event.policies.length === 0 || !event.severityId) {
+      if (isDrillable(event)) {
+        failures.push({
+          key: getOnCallFireDrillEventKey({
+            criteriaId: criteria.id,
+            recordKind: event.kind,
+            templateId: event.id,
+            index: index,
+          }),
+          criteria: criteria,
+          event: event,
+        });
+      }
+
+      const declaration: WhoIsToldDeclaration | undefined = event.declares;
+
+      if (
+        !declaration ||
+        event.isHidden === true ||
+        !isDrillable(declaration.incident)
+      ) {
         return;
       }
 
       failures.push({
         key: getOnCallFireDrillEventKey({
           criteriaId: criteria.id,
-          recordKind: event.kind,
+          recordKind: declaration.incident.kind,
           templateId: event.id,
           index: index,
+          isDeclared: true,
         }),
         criteria: criteria,
-        event: event,
+        event: declaration.incident,
+        declaration: declaration,
       });
     });
   }

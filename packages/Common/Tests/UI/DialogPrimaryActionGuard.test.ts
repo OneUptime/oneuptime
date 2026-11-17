@@ -137,6 +137,12 @@ const ALLOWED_BUTTON_GROUPS: Array<AllowedButtonGroup> = [
     reason:
       "One main button in two states: Try again takes Turn on recommended's place once a click left something undone (showTurnOn is `!showTryAgain && ...`), so the card never draws both.",
   },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcaseCard.tsx",
+    labels: "props.setupButton.title | props.addButton.title",
+    reason:
+      "A product's explanation offers its guided setup as the one primary button, and Create beside it NORMAL while there is one (`props.setupButton ? NORMAL : PRIMARY`, #7148); Create is filled only when no setup is drawn.",
+  },
 ];
 
 /*

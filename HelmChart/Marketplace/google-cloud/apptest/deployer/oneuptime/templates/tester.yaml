@@ -2,7 +2,8 @@
 # (mpdev verify, and Google's own review): OneUptime's readiness endpoint must
 # answer 200 five times in a row - a backend still finishing its first
 # migration flaps - and the status and dashboard pages must load, all through
-# the nginx service a buyer reaches.
+# the nginx service a buyer reaches. It runs in the app's own image, which has
+# Node, as the deployer passes it: Google's copy, which its test cluster pulls.
 apiVersion: v1
 kind: Pod
 metadata:
@@ -15,7 +16,7 @@ spec:
   restartPolicy: Never
   containers:
     - name: tester
-      image: "{{ .Values.testerImage }}"
+      image: "{{ .Values.image.overrides.app }}"
       imagePullPolicy: IfNotPresent
       env:
         - name: ONEUPTIME_URL
