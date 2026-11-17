@@ -48,6 +48,8 @@ export default class WebhookAddressMask {
     const origin: string = `${parsed.protocol}//${parsed.host}`;
 
     const hasMore: boolean =
+      parsed.username !== "" ||
+      parsed.password !== "" ||
       (parsed.pathname !== "" && parsed.pathname !== "/") ||
       parsed.search !== "" ||
       parsed.hash !== "";
