@@ -19,6 +19,7 @@ import {
   AutoRemediationDecisionStage,
 } from "../../../Types/AutoRemediation/AutoRemediationDecision";
 import { RemediationTryAgainResult } from "../../../Types/AutoRemediation/RemediationTryAgain";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
 import {
   AutomaticCodeFixBlocker,
@@ -619,6 +620,13 @@ describePostgres("why AI remediation did not run, on migrated Postgres", () => {
   });
 
   describe("the fix in the code a recommended investigation leads to", () => {
+    /*
+     * Who reads the step: one who sees every private record, so the fix is
+     * never hidden from them (CodeTaskThread.findTasksHiddenFrom) and the
+     * step says what it is about here - the gates and the fix's progress.
+     */
+    const READER: DatabaseCommonInteractionProps = { isRoot: true };
+
     async function seedRecommendedInvestigation(
       project: SeededProject,
       incidentId: ObjectID,
@@ -649,6 +657,7 @@ describePostgres("why AI remediation did not run, on migrated Postgres", () => {
         await FixFromIncidentTaskTrigger.getSuggestionForSubject({
           projectId: project.projectId,
           incidentId,
+          reader: READER,
         });
 
       expect(suggestion.offer).toBe(SuggestionOffer.SetUp);
@@ -668,6 +677,7 @@ describePostgres("why AI remediation did not run, on migrated Postgres", () => {
           await FixFromIncidentTaskTrigger.getSuggestionForSubject({
             projectId: project.projectId,
             incidentId,
+            reader: READER,
           })
         ).automaticBlocker,
       ).toBe(AutomaticCodeFixBlocker.FixOff);
@@ -696,6 +706,7 @@ describePostgres("why AI remediation did not run, on migrated Postgres", () => {
         await FixFromIncidentTaskTrigger.getSuggestionForSubject({
           projectId: project.projectId,
           incidentId,
+          reader: READER,
         }),
       ).toEqual({
         offer: SuggestionOffer.InProgress,
@@ -729,6 +740,7 @@ describePostgres("why AI remediation did not run, on migrated Postgres", () => {
           await FixFromIncidentTaskTrigger.getSuggestionForSubject({
             projectId: project.projectId,
             incidentId,
+            reader: READER,
           })
         ).offer,
       ).toBe(SuggestionOffer.None);

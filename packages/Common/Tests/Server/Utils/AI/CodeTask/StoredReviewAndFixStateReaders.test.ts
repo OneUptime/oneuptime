@@ -26,6 +26,7 @@ import {
 } from "../../../../../Utils/Suggestions/TelemetryAiFixSuggestion";
 import { fullReport } from "../../CodeRepository/ProductionReview/ProductionReviewFixtures";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { FindOperator } from "typeorm";
 
 /*
@@ -214,7 +215,7 @@ describe("a stored review's incidents, read as each reader (#9241)", () => {
   test.each(READERS)(
     "$name: asked of the incidents as themselves, and the incidents' own rule narrows it as it should",
     async (reader: Reader) => {
-      const read: jest.SpiedFunction<typeof IncidentService.findBy> = jest
+      const read: SpyInstance<typeof IncidentService.findBy> = jest
         .spyOn(IncidentService, "findBy")
         .mockImplementation((async () => {
           // The service answers what its rule lets the reader read.
@@ -281,7 +282,7 @@ describe("a stored review's incidents, read as each reader (#9241)", () => {
   );
 
   test("root reads every incident, with no read of them", async () => {
-    const read: jest.SpiedFunction<typeof IncidentService.findBy> = jest.spyOn(
+    const read: SpyInstance<typeof IncidentService.findBy> = jest.spyOn(
       IncidentService,
       "findBy",
     );
@@ -302,7 +303,7 @@ describe("a stored review's incidents, read as each reader (#9241)", () => {
     jest
       .spyOn(IncidentService, "findBy")
       .mockRejectedValue(new NotAuthorizedException("No permission."));
-    const logged: jest.SpiedFunction<typeof logger.error> = jest
+    const logged: SpyInstance<typeof logger.error> = jest
       .spyOn(logger, "error")
       .mockImplementation(() => {
         return undefined;
@@ -324,7 +325,7 @@ describe("a stored review's incidents, read as each reader (#9241)", () => {
     jest
       .spyOn(IncidentService, "findBy")
       .mockRejectedValue(new Error("Postgres is down"));
-    const logged: jest.SpiedFunction<typeof logger.error> = jest
+    const logged: SpyInstance<typeof logger.error> = jest
       .spyOn(logger, "error")
       .mockImplementation(() => {
         return undefined;
@@ -345,7 +346,7 @@ describe("a stored review's incidents, read as each reader (#9241)", () => {
   });
 
   test("a review with no incident, or no review, asks nothing", async () => {
-    const read: jest.SpiedFunction<typeof IncidentService.findBy> = jest.spyOn(
+    const read: SpyInstance<typeof IncidentService.findBy> = jest.spyOn(
       IncidentService,
       "findBy",
     );
@@ -404,7 +405,7 @@ describe("the tasks a fix panel shows, read as each reader", () => {
   test.each(READERS)(
     "$name: the rule the task's own page reads it by",
     async (reader: Reader) => {
-      const read: jest.SpiedFunction<typeof AIRunService.findBy> = jest
+      const read: SpyInstance<typeof AIRunService.findBy> = jest
         .spyOn(AIRunService, "findBy")
         .mockImplementation((async () => {
           // The rule lets the reader read the other task only.
@@ -472,7 +473,7 @@ describe("the tasks a fix panel shows, read as each reader", () => {
   );
 
   test("no tasks, or none that is a task's id: nothing is read", async () => {
-    const read: jest.SpiedFunction<typeof AIRunService.findBy> = jest.spyOn(
+    const read: SpyInstance<typeof AIRunService.findBy> = jest.spyOn(
       AIRunService,
       "findBy",
     );
@@ -500,7 +501,7 @@ describe("a finding's fix on its way, read as each reader", () => {
   test.each(READERS)(
     "$name: the task, or only that it is there",
     async (reader: Reader) => {
-      const read: jest.SpiedFunction<typeof AIRunService.findBy> = jest
+      const read: SpyInstance<typeof AIRunService.findBy> = jest
         .spyOn(AIRunService, "findBy")
         .mockResolvedValue([]);
 
