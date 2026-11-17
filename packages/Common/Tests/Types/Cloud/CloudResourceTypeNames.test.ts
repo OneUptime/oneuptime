@@ -79,7 +79,8 @@ describe("the types only ever named", () => {
 
   test("the subnets and security groups the inventories point at are among them", () => {
     for (const [provider, type, label] of [
-      [CloudProvider.AWS, "AWS::EC2::Subnet", "Subnet"],
+      // AWS's are listed (#9375), so they go by the catalog's labels.
+      [CloudProvider.AWS, "AWS::EC2::Subnet", "VPC Subnet"],
       [CloudProvider.AWS, "AWS::EC2::SecurityGroup", "Security Group"],
       [
         CloudProvider.Azure,
@@ -218,8 +219,8 @@ describe("what a page calls a type", () => {
       ),
     ).toBe("AWS::EC2::TransitGatewayAttachment");
     expect(
-      getCloudResourceTypeLabel(CloudProvider.AWS, "AWS::EC2::Subnet"),
-    ).toBe("AWS::EC2::Subnet");
+      getCloudResourceTypeLabel(CloudProvider.AWS, "AWS::EC2::RouteTable"),
+    ).toBe("AWS::EC2::RouteTable");
   });
 });
 

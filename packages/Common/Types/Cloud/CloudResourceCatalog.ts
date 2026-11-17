@@ -1863,12 +1863,26 @@ export const GCP_MONITORED_RESOURCE_RULES: ReadonlyArray<GcpMonitoredResourceRul
  * Types a cloud connection's inventory lists (CloudInventory) that publish
  * no metrics of their own - the networks and subnets other resources run
  * in, which an account's topology draws them inside, and the firewall rules
- * that guard them. No metric rule finds them, so they are kept apart from
+ * and security groups that guard them. No metric rule finds them, so they are kept apart from
  * the lists above, which every rule is held to.
  */
 export const INVENTORY_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescriptor> =
   [
     descriptorOf(CloudProvider.AWS, "AWS::EC2::VPC", "VPC", IAAS, C.Networking),
+    descriptorOf(
+      CloudProvider.AWS,
+      "AWS::EC2::Subnet",
+      "VPC Subnet",
+      IAAS,
+      C.Networking,
+    ),
+    descriptorOf(
+      CloudProvider.AWS,
+      "AWS::EC2::SecurityGroup",
+      "Security Group",
+      IAAS,
+      C.Networking,
+    ),
     descriptorOf(
       CloudProvider.GCP,
       "compute.googleapis.com/Network",
@@ -2032,13 +2046,11 @@ function namedOnly(
 
 export const NAMED_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudNamedOnlyResourceType> =
   [
-    // AWS: what an instance, a load balancer or a function runs in and behind.
-    namedOnly(CloudProvider.AWS, "AWS::EC2::Subnet", translationKey("Subnet")),
-    namedOnly(
-      CloudProvider.AWS,
-      "AWS::EC2::SecurityGroup",
-      translationKey("Security Group"),
-    ),
+    /*
+     * AWS: what an instance, a load balancer or a function is attached to
+     * and runs as. Its subnets and security groups are listed
+     * (INVENTORY_ONLY_RESOURCE_TYPES).
+     */
     namedOnly(
       CloudProvider.AWS,
       "AWS::EC2::NetworkInterface",
