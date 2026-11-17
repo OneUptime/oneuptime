@@ -469,7 +469,7 @@ export interface ProjectResellerFromPromoCode {
 
 // What onBeforeCreate hands the hooks after it: who is creating the project.
 export interface ProjectCreateCarryForward {
-  // The creator is a master admin, whom the server's Require SSO for Login does not hold.
+  // The creator is a master admin, whom the server's Require SSO to Sign In does not hold.
   isCreatorMasterAdmin: boolean;
   // Where it was bought, when it is created from a reseller's promo code.
   resellerFromPromoCode?: ProjectResellerFromPromoCode | undefined;
@@ -1024,7 +1024,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       );
     } else {
       throw new NotAuthorizedException(
-        "User should be logged in to create the project.",
+        "You must be signed in to create a project.",
       );
     }
 
@@ -1293,7 +1293,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
    *     columns alone;
    *   - a project that would require SSO - itself, or because the whole
    *     server does - needs a provider that signs people in to it, as an
-   *     update to Require SSO for Login does
+   *     update to Require SSO to Sign In does
    *     (Utils/SsoRequirementChanges.beforeProjectCreate). Checked under the
    *     lock on the server's sign-in rules, held until the project is
    *     written (onCreateSuccess) or its create fails (onCreateError) - kept
@@ -1927,7 +1927,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * The last steps before an update is written, once the caller has passed
    * every permission check:
    *
-   *   - writing Require SSO for Login on, or naming the provider the
+   *   - writing Require SSO to Sign In on, or naming the provider the
    *     project requires - turning it on, or saving back the rule it has -
    *     needs an SSO provider that signs people in to the project
    *     (Utils/SsoRequirementChanges). Checked under the project's lock -
@@ -4760,7 +4760,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /**
-   * Returns whether the given project requires SSO for login. Cached for
+   * Returns whether the given project requires SSO to sign in. Cached for
    * 60s in-process — middleware calls this on every authenticated request.
    * Throws when the project does not exist, and when it cannot be read.
    */

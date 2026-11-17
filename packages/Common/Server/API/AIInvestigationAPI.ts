@@ -1626,12 +1626,18 @@ router.post(
         viewerProps,
       });
 
+      /*
+       * The fix itself as its task's page reads it, for this reader: one a
+       * reply carried a private record into that they do not see is there,
+       * and nothing more (CodeTaskThread.findTasksHiddenFrom).
+       */
       const suggestion: InvestigationCodeFixSuggestion =
         await FixFromIncidentTaskTrigger.getSuggestionForSubject({
           projectId: tenantId,
           ...(subjectType === "incident"
             ? { incidentId: subjectId }
             : { alertId: subjectId }),
+          reader: viewerProps,
         });
 
       Response.sendJsonObjectResponse(
@@ -1695,6 +1701,8 @@ router.post(
               props,
             });
           },
+          // The fix as its task's page reads it, for this reader.
+          reader: props,
         });
 
       Response.sendJsonObjectResponse(

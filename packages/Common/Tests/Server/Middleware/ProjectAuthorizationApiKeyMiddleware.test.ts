@@ -240,7 +240,7 @@ describe("ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware", () => {
      * While the whole server requires SSO (#6116), an API key still works:
      * it is no person signing in, but a credential a project's admin made,
      * scoped to that project and to the permissions given to it, which the
-     * admin revokes on its own. So the server's Require SSO for Login is not
+     * admin revokes on its own. So the server's Require SSO to Sign In is not
      * even read for it.
      */
     test("should let the key in while the whole server requires SSO, without reading the rule", async () => {

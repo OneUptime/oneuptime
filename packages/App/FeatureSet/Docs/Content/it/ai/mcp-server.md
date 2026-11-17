@@ -269,7 +269,7 @@ Gli strumenti delle pagine di stato pubbliche accettano l'ID di una pagina di st
 }
 ```
 
-I proprietari di una pagina di stato possono disattivare l'accesso MCP per quella pagina: sulla pagina di stato, apri **MCP** nella sezione **IA** del suo menu laterale e disattiva **Abilita server MCP**. L'interruttore si salva appena viene spostato. L'accesso MCP è attivo per impostazione predefinita. Finché è disattivato, i quattro strumenti `get_public_status_page_*` restituiscono un errore per quella pagina di stato; il sito della pagina di stato, il suo feed RSS e la sua API JSON pubblica non ne risentono, e gli strumenti delle pagine di stato che richiedono l'accesso (`get_status_page`, `list_status_pages` e così via) continuano a funzionare per il progetto della pagina.
+I proprietari di una pagina di stato possono disattivare l'accesso MCP per quella pagina: sulla pagina di stato, apri **MCP** nella sezione **Avanzato** del suo menu laterale e disattiva **Abilita server MCP**. L'interruttore si salva appena viene spostato. L'accesso MCP è attivo per impostazione predefinita. Finché è disattivato, i quattro strumenti `get_public_status_page_*` restituiscono un errore per quella pagina di stato; il sito della pagina di stato, il suo feed RSS e la sua API JSON pubblica non ne risentono, e gli strumenti delle pagine di stato che richiedono l'accesso (`get_status_page`, `list_status_pages` e così via) continuano a funzionare per il progetto della pagina.
 
 ### Accedere (OAuth 2.1)
 

@@ -55,9 +55,9 @@ describe("SessionEndedException", () => {
 
   test("any other 401's message is no reason", () => {
     for (const message of [
-      "Session expired. Please login again.",
+      "Session expired. Please sign in again.",
       "AccessToken is invalid or expired. Please refresh your token.",
-      "Refresh token missing. Please login again.",
+      "You are signed out. Please sign in again.",
       "",
       undefined,
       null,

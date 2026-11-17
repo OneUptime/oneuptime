@@ -52,7 +52,7 @@ import path from "path";
  * reappear.
  *
  * Single sign-on is not part of that. SAML and OIDC sign-in, global SSO and
- * "Require SSO for login" are in the Community Edition. The feature matrix,
+ * "Require SSO to sign in" are in the Community Edition. The feature matrix,
  * the identity pages in every language, the upgrade notes (the edition
  * section, the 13 -> 14 notes and the 10 -> 11 notes) and the Helm chart say
  * so, and none of them may still say single sign-on is Enterprise-only, tie it
@@ -1014,7 +1014,7 @@ describe("Enterprise Edition docs page", () => {
 
     expect(enterpriseOnlySignOnRows).toEqual([]);
     expect(normalized(readPage())).toContain(
-      'Single sign-on includes "Require SSO for login" for projects, private status pages and the whole instance, in both editions.',
+      'Single sign-on includes "Require SSO to sign in" for projects, private status pages and the whole instance, in both editions.',
     );
   });
 
@@ -1030,7 +1030,7 @@ describe("Enterprise Edition docs page", () => {
       "Those modules add SCIM provisioning, governance and instance-administration features.",
     );
     expect(introduction).toContain(
-      '**Single sign-on is in every edition.** SAML and OIDC sign-in for projects and status pages, global SSO and "Require SSO for login" are part of the Community Edition, and no license state switches them off.',
+      '**Single sign-on is in every edition.** SAML and OIDC sign-in for projects and status pages, global SSO and "Require SSO to sign in" are part of the Community Edition, and no license state switches them off.',
     );
     expect(introduction).not.toContain("identity, governance");
   });
@@ -1156,7 +1156,7 @@ describe("Enterprise Edition docs page", () => {
       "One change always works, so you can respond to an incident: replacing a SCIM bearer token.",
       "send `bearerToken` on its own (at least 32 characters)",
       // What never stops: single sign-on is not an enterprise feature.
-      'Single sign-on is not an enterprise feature: SAML and OIDC sign-in, global SSO and "Require SSO for login" work the same in every license state.',
+      'Single sign-on is not an enterprise feature: SAML and OIDC sign-in, global SSO and "Require SSO to sign in" work the same in every license state.',
       "**Single sign-on.**",
       "the mobile apps",
       "single sign-on configuration stays editable",
@@ -1186,7 +1186,7 @@ describe("Enterprise Edition docs page", () => {
     // What single sign-on used to do when the license lapsed (14.0.10 and earlier).
     for (const retired of [
       "**SSO and OIDC sign-in stop**",
-      '**"Require SSO for login" is not enforced**',
+      '**"Require SSO to sign in" is not enforced**',
       "Losing a license never locks anyone out",
       "SSO enforcement, SCIM and audit logging stay on",
       "disabling an SSO or OIDC provider",
@@ -1214,7 +1214,7 @@ describe("Enterprise Edition docs page", () => {
       "SCIM no longer deprovisions the people you remove at your identity provider",
     );
     expect(page).toContain(
-      'unless "Require SSO for login" applies to them, anyone who can still reach such an account\'s email inbox can set a password and sign in',
+      'unless "Require SSO to sign in" applies to them, anyone who can still reach such an account\'s email inbox can set a password and sign in',
     );
     expect(page).toContain("remove those users in OneUptime yourself");
     expect(page).not.toContain("On an install that enforces SSO");
@@ -1259,7 +1259,7 @@ describe("Enterprise Edition docs page", () => {
       "as long as the install has a valid license or is still in its trial or grace period",
     );
     expect(section).toContain(
-      'Single sign-on does not change: SAML and OIDC sign-in, global SSO and "Require SSO for login" work the same on both images.',
+      'Single sign-on does not change: SAML and OIDC sign-in, global SSO and "Require SSO to sign in" work the same on both images.',
     );
     expect(section).toContain("**SCIM stops.**");
     expect(section).toContain("That includes SCIM deprovisioning.");
@@ -1279,7 +1279,7 @@ describe("Enterprise Edition docs page", () => {
 
     // The downgrade used to switch single sign-on off (14.0.10 and earlier).
     expect(section).not.toContain(
-      '**"Require SSO for login" is not enforced**',
+      '**"Require SSO to sign in" is not enforced**',
     );
     expect(section).not.toContain("**SSO, OIDC and SCIM stop.**");
     expect(section).not.toContain("disable an SSO or OIDC provider");
@@ -1524,7 +1524,7 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
 
       if (lang === "en") {
         for (const expected of [
-          'The **Community Edition** is open source under the Apache License 2.0 and includes SAML and OIDC single sign-on, global SSO and "Require SSO for login".',
+          'The **Community Edition** is open source under the Apache License 2.0 and includes SAML and OIDC single sign-on, global SSO and "Require SSO to sign in".',
           "The **Enterprise Edition** adds the enterprise modules from the repository's `ee/` directory: SCIM, team compliance, audit logs and the enterprise Health dashboards in the Admin Dashboard.",
           "instead of silently stopping SCIM provisioning and audit logging.",
           "Single sign-on is not affected: the Community image serves it too.",
@@ -1539,7 +1539,7 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
 
       /*
        * Every language opens the section with what each image holds: the
-       * Community Edition with "Require SSO for login", the setting's name
+       * Community Edition with "Require SSO to sign in", the setting's name
        * every translation keeps, and the Enterprise Edition with the `ee/`
        * directory the Community image does not contain.
        */
@@ -1547,7 +1547,7 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
 
       expect({
         lang: lang,
-        namesRequireSso: opening.includes("Require SSO for login"),
+        namesRequireSso: opening.includes("Require SSO to sign in"),
         namesBothEditions:
           opening.includes("**Community Edition**") &&
           opening.includes("**Enterprise Edition**"),
@@ -1621,7 +1621,7 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
         dated: sectionLines.join("\n").includes("14.0.10"),
       }).toEqual({ lang: lang, dated: false });
 
-      // The opening paragraph names "Require SSO for login" among what the Community image includes.
+      // The opening paragraph names "Require SSO to sign in" among what the Community image includes.
       const opening: Array<string> = [];
 
       for (const line of sectionLines.slice(1)) {
@@ -1634,7 +1634,7 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
 
       expect({
         lang: lang,
-        namesRequireSso: opening.join(" ").includes("Require SSO for login"),
+        namesRequireSso: opening.join(" ").includes("Require SSO to sign in"),
       }).toEqual({ lang: lang, namesRequireSso: true });
 
       /*
@@ -1681,17 +1681,17 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
     );
 
     for (const expected of [
-      'The **Community Edition** (Apache-2.0, the `release` and `<version>` tags) includes SAML SSO, OpenID Connect, global SSO and "Require SSO for login".',
+      'The **Community Edition** (Apache-2.0, the `release` and `<version>` tags) includes SAML SSO, OpenID Connect, global SSO and "Require SSO to sign in".',
       "so SCIM provisioning, team compliance settings, audit logs, the Admin **Health** dashboards and the Admin **Query Console** are not in that image at all.",
       "Single sign-on does not depend on that license.",
-      'Single sign-on works the same on both: your SSO and OIDC configuration and your "Require SSO for login" settings carry over as they are.',
+      'Single sign-on works the same on both: your SSO and OIDC configuration and your "Require SSO to sign in" settings carry over as they are.',
       "the Community Edition is what you already have, and it includes SAML SSO and OpenID Connect.",
       "rather than coming up as the Community Edition with SCIM provisioning and audit logging silently stopped.",
       "**If this install will run the Community Edition while your identity provider deprovisions users through SCIM, review who has access before you upgrade.**",
       "| SSO and OIDC endpoints | the same paths in both editions | the same paths in both editions, whatever the license state |",
       "| SCIM endpoints | the same paths in both editions | the same paths on Enterprise; `404` on Community |",
       "until a license is activated: your identity provider's SCIM requests are refused and audit logging stops recording.",
-      'SSO and OIDC sign-in, "Require SSO for login" and password sign-in for every user, master admins included, work the same in every license state.',
+      'SSO and OIDC sign-in, "Require SSO to sign in" and password sign-in for every user, master admins included, work the same in every license state.',
       "Activating a license restores SCIM provisioning and audit logging with the configuration you already have, without a restart.",
       "Read point 5 above first if your identity provider deprovisions users through SCIM.",
       "If that install has SCIM configured on `community-edition`, set `image.type: enterprise-edition` in the same upgrade.",
@@ -1871,7 +1871,7 @@ describe("Identity docs carry an edition note in every language", () => {
   );
 
   /*
-   * Single sign-on does not stop: SSO (with "Require SSO for login") and
+   * Single sign-on does not stop: SSO (with "Require SSO to sign in") and
    * global SSO are in every edition and need no license. So each language's
    * note names the Community Edition, keeps the setting's English name, and
    * states no trial or grace length (Persian digits included), because there
@@ -1909,7 +1909,7 @@ describe("Identity docs carry an edition note in every language", () => {
     for (const [page, sentence] of [
       [
         "identity/sso",
-        '> **Edition:** SSO, including "Require SSO for login", is part of every OneUptime edition: self-hosted installations get it in the Community Edition, with no license needed. On OneUptime Cloud it is available on the **Scale** plan and above.',
+        '> **Edition:** SSO, including "Require SSO to sign in", is part of every OneUptime edition: self-hosted installations get it in the Community Edition, with no license needed. On OneUptime Cloud it is available on the **Scale** plan and above.',
       ],
       [
         "identity/scim",
@@ -1917,7 +1917,7 @@ describe("Identity docs carry an edition note in every language", () => {
       ],
       [
         "identity/global-sso",
-        'Global SSO, including the instance-wide "Require SSO for Login" toggle, is part of every OneUptime edition: every self-hosted instance has it, the Community Edition included, and it needs no license. It is instance administration, so it does not apply to OneUptime Cloud.',
+        'Global SSO, including the instance-wide "Require SSO to Sign In" toggle, is part of every OneUptime edition: every self-hosted instance has it, the Community Edition included, and it needs no license. It is instance administration, so it does not apply to OneUptime Cloud.',
       ],
     ] as Array<[string, string]>) {
       expect({
@@ -2217,7 +2217,7 @@ describe("Helm chart upgrade notes for the Community / Enterprise split", () => 
 
     for (const expected of [
       // What each image contains: single sign-on is in the Community images.
-      'are Apache-2.0, include SAML and OIDC single sign-on, global SSO and "Require SSO for login", and do not contain the repository\'s `ee/` directory.',
+      'are Apache-2.0, include SAML and OIDC single sign-on, global SSO and "Require SSO to sign in", and do not contain the repository\'s `ee/` directory.',
       "add the enterprise modules from `ee/`: SCIM, team compliance, audit logs and the Admin Dashboard Health dashboards",
       // Community Edition installs with no SCIM: nothing to do.
       "**Community Edition with no SCIM configured:** nothing to do.",

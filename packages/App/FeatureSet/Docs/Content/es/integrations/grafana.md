@@ -166,7 +166,7 @@ Agrupaste por una etiqueta que es igual para todas las alertas de una notificaci
 :::
 
 :::details El incidente muestra una referencia en lugar de un valor
-Una referencia a un campo que la notificación no tiene se deja tal como está escrita, llaves incluidas. Compara el nombre del campo con lo que envió Grafana: para un flujo de trabajo, abre la ejecución en **Registros → Ejecuciones** y compárala con lo que recibió el disparador.
+Una referencia a un campo que la notificación no tiene se deja tal como está escrita, llaves incluidas. Compara el nombre del campo con lo que envió Grafana: para un flujo de trabajo, abre la ejecución en **Ejecuciones** y compárala con lo que recibió el disparador.
 :::
 
 La guía de [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#solución-de-problemas) cubre más casos, y también se aplican a las notificaciones de Grafana.

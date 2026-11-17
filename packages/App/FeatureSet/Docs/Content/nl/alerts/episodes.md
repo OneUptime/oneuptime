@@ -179,11 +179,8 @@ Een episode die je zelf aanmaakt, heeft geen groeperingsregel, dus toont de lijs
 
 | Sectie in het zijmenu | Pagina's                                                                    |
 | --------------------- | --------------------------------------------------------------------------- |
-| **Overzicht** | **Overzicht**, **Statustijdlijn** |
-| **Onderzoek** | **Beschrijving**, **Hoofdoorzaak**, **Herstelnotities** |
-| **Team** | **Eigenaren** |
-| **Waarschuwingen** | **Lidwaarschuwingen** |
-| **Notities** | **Privénotities** |
+| **Overzicht** | **Overzicht**, **Statustijdlijn**, **Lidwaarschuwingen**, **Eigenaren** |
+| **Onderzoek** | **Beschrijving**, **Hoofdoorzaak**, **Herstelnotities**, **Privénotities** |
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI**, **AI-assistenten** |
 | **Geavanceerd** | **Auditlogboeken**, **Episode verwijderen** |
 

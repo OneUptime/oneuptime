@@ -18,7 +18,7 @@ registerEmailLanguageHelpers(Handlebars);
  * of them. In every release, SCIM provisioning and audit logging stop when the
  * grace period ends, and enterprise configuration becomes read-only. Single
  * sign-on is part of the Community Edition in the releases after 14.0.10, so
- * it stops only on 14.0.10 and earlier - where "Require SSO for login" is no
+ * it stops only on 14.0.10 and earlier - where "Require SSO to sign in" is no
  * longer enforced either, and users sign in with a password. The template
  * names single sign-on in that one sentence and nowhere else.
  *

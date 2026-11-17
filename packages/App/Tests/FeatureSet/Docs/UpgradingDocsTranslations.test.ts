@@ -397,9 +397,9 @@ const PROSE_LEADS: Array<string> = [
   "OneUptime AI fixes with any runbook, or only the ones a rule allows, and a rule picks its Runner.",
   "Live updates end with the sign-in that opened them, and ask what every request asks.",
   "Turning a project's SSO provider off, or deleting it, ends the sign-ins it gave.",
-  "Global and status page SSO providers end their sign-ins the same way, and turning on Require SSO for Login needs a provider.",
+  "Global and status page SSO providers end their sign-ins the same way, and turning on Require SSO to Sign In needs a provider.",
   "Creating a project follows the SSO rules too, and changes that let people sign in reach every app server at once.",
-  "Saving Require SSO for Login on again is checked as turning it on is.",
+  "Saving Require SSO to Sign In on again is checked as turning it on is.",
   "The sign-in page offers an emailed sign-in link, even with no working mail server.",
   "The master API key is stored hashed, and shown only when it is made.",
   "A project's API keys are stored hashed, and each is shown only when it is made.",
@@ -461,6 +461,8 @@ const PROSE_LEADS: Array<string> = [
   "Runbook runs and fixes go with their incident or alert, and other records show a private one only to those who may read it.",
   "OneUptime AI's code work about a private incident or alert follows its owners too.",
   "Code work that carries a private incident or alert follows its owners too.",
+  "Production reviews, pull requests from chats and the fix panels follow private records too.",
+  "Webhook addresses and SNMP credentials are stored encrypted, and logs keep a webhook's address by its host.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",
@@ -568,8 +570,8 @@ const SERVER_MESSAGES: Array<string> = [
  * of every docs language name them (EnterpriseEditionDocs).
  */
 const QUOTED_SETTING_NAMES: Array<string> = [
-  "Require SSO for login",
-  "Require SSO for Login",
+  "Require SSO to sign in",
+  "Require SSO to Sign In",
 ];
 
 const PATH_SEPARATOR: RegExp = / (?:→|>) /;

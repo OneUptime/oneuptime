@@ -364,6 +364,12 @@ Arbeidet OneUptime AI gjør i koden din, følger også en privat hendelse eller 
 
 Arbeid som bare inneholder en privat hendelse eller et privat varsel, følger den også: en Code-oppgave noen ba om med posten som kontekst eller la den til i et svar, oppgaven til et handlingspunkt fra en etteranalyse, og en pull request OneUptime AI åpnet fra postens AI-samtale eller fra Spør AI om den. Hver av dem leses bare av dem som får lese alle postene den inneholder, og når en av dem er slettet, bare av Prosjekteiere og Prosjektadministratorer. Forespørselen for et handlingspunkt i en privat hendelse nevner hendelsen bare med nummeret og ber OneUptime AI holde den utenfor pull requesten.
 
+Det OneUptime AI har lagret, eller som et svar senere la til en privat post i, følger posten slik den er nå:
+
+- Produksjonsgjennomgangen av en pull request viser, teller og nevner bare hendelsene du får lese nå. OneUptime AIs punkter om de andre utelates. Kommentaren som allerede er lagt inn på pull requesten, blir stående som den var.
+- En pull request OneUptime AI åpner fra en chat, inneholder også hendelsene og varslene chatten åpnet én etter én, og de fra en liste der pull requesten siterer tittelen.
+- Rettingen av et unntak, rettings-pull requesten til en undersøkelse, ytelsesrettingen av en trace, pull requesten til koden for en retting og rettingen som pågår for en AI-innsikt eller en funksjon i Profiler, sier at en oppgave er skjult når den inneholder en privat hendelse eller et privat varsel du ikke kan åpne. De viser verken fremdriften eller pull requesten dens.
+
 En post som nevner en privat post uten å være en del av den, for eksempel et Data Security-problem, en sikkerhetssak, en skjemainnsending, et øktopptak eller et offentlig varsel eller en offentlig hendelse i en privat episode, leses som før. Bare de som får lese den private posten, ser tittelen og de andre feltene der: for alle andre finner et filter på dem den ikke, og en liste som nevner den, kan ikke sorteres etter dem.
 
 Arbeidsflyter handler ikke på private poster. Trinnene i en arbeidsflyt handler som Prosjektadministrator, men får aldri låne dens innsyn i private hendelser, varsler og episoder: de finner ingen, endrer ingen og legger ikke til noe i en, og en arbeidsflyt starter ikke på en slik post eller på noe som hører til den. Se [Hva arbeidsflyttrinn kan gjøre](/docs/workflows/configuration#hva-arbeidsflyttrinn-kan-gjøre).

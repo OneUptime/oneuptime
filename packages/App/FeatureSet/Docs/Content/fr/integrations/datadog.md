@@ -200,7 +200,7 @@ curl -X POST "<url>" \
 
 Avec le modèle, un incident s'ouvre, intitulé `Datadog: High CPU`, et les politiques d'astreinte que vous avez choisies sont prévenues. Avec le moniteur, un incident s'ouvre, intitulé `[Triggered] High CPU`. Envoyez la même requête avec `transition` sur `Recovered`, et l'incident est résolu.
 
-Testez ensuite depuis Datadog : ouvrez un moniteur qui cite le webhook, cliquez sur **Test Notifications** et envoyez sa notification **Alert**. Pour voir qu'elle est arrivée, ouvrez les **Journaux → Exécutions** du flux de travail, ou la chronologie du moniteur OneUptime.
+Testez ensuite depuis Datadog : ouvrez un moniteur qui cite le webhook, cliquez sur **Test Notifications** et envoyez sa notification **Alert**. Pour voir qu'elle est arrivée, ouvrez les **Exécutions** du flux de travail, ou la chronologie du moniteur OneUptime.
 
 ## Dépannage
 
@@ -211,7 +211,7 @@ Testez ensuite depuis Datadog : ouvrez un moniteur qui cite le webhook, cliquez 
 :::
 
 :::details Le flux de travail s'exécute, mais n'ouvre rien
-Ouvrez l'exécution dans **Journaux → Exécutions**. L'entrée `read-event-1` de ses **Étapes** dit pourquoi il a pris **Non**.
+Ouvrez l'exécution dans **Exécutions**. L'entrée `read-event-1` de ses **Étapes** dit pourquoi il a pris **Non**.
 
 - `Datadog named no alert cycle key` : ajoutez `"alert_cycle_key": "$ALERT_CYCLE_KEY"` à la charge utile du webhook dans Datadog.
 - `Datadog named no transition` : ajoutez `"transition": "$ALERT_TRANSITION"` à la charge utile du webhook dans Datadog.
@@ -225,14 +225,14 @@ Ouvrez l'exécution dans **Journaux → Exécutions**. L'entrée `read-event-1` 
 
 :::details Les incidents s'ouvrent mais ne sont jamais résolus
 - Le moniteur Datadog doit aussi prévenir le webhook de ses rétablissements. Un message qui ne cite le webhook que pour les alertes, dans une condition, n'envoie aucun rétablissement.
-- Avec le modèle, ouvrez l'exécution du rétablissement dans **Journaux → Exécutions** : sa dernière étape dit pourquoi. L'`alert_cycle_key` du rétablissement doit être celui de l'alerte, laissez donc `$ALERT_CYCLE_KEY` tel quel dans la charge utile.
+- Avec le modèle, ouvrez l'exécution du rétablissement dans **Exécutions** : sa dernière étape dit pourquoi. L'`alert_cycle_key` du rétablissement doit être celui de l'alerte, laissez donc `$ALERT_CYCLE_KEY` tel quel dans la charge utile.
 - Avec le moniteur, l'incident du critère a besoin de **Résoudre automatiquement l'incident**, sous **Plus de champs**.
 - **Value that means recovered** doit valoir exactement `Recovered`. La comparaison respecte la casse.
 - L'`alert_key` du rétablissement doit être celui de l'alerte : laissez `$ALERT_ID $ALERT_SCOPE` tel quel dans la charge utile.
 :::
 
 :::details Un champ affiche le nom d'une variable, ou rien
-Datadog ne remplit que les variables qui s'appliquent à l'événement. Envoyez une notification de test, puis regardez ce qui est arrivé : dans la chronologie du moniteur, ou pour un flux de travail dans **Journaux → Exécutions**.
+Datadog ne remplit que les variables qui s'appliquent à l'événement. Envoyez une notification de test, puis regardez ce qui est arrivé : dans la chronologie du moniteur, ou pour un flux de travail dans **Exécutions**.
 :::
 
 :::details Toutes les alertes d'un moniteur finissent dans un seul incident

@@ -63,7 +63,7 @@ describe("DatabaseCommonInteractionPropsUtil.AUTHENTICATION_REQUIRED_MESSAGE", (
   test("is the shared login-required sentence", () => {
     expect(
       DatabaseCommonInteractionPropsUtil.AUTHENTICATION_REQUIRED_MESSAGE,
-    ).toBe("Authentication required. Please log in to access this resource.");
+    ).toBe("Authentication required. Please sign in to access this resource.");
   });
 });
 

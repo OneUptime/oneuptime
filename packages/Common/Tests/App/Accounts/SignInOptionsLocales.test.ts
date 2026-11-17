@@ -448,11 +448,11 @@ describe("English Accounts says 'sign in', one way", () => {
   /*
    * Another screen's switch, quoted by its name: the edition badge's
    * Community comparison, on the sign-in page since #6470, names the
-   * Dashboard's "Require SSO for Login" switch, which is not a word of
+   * Dashboard's "Require SSO to Sign In" switch, which is not a word of
    * Accounts' for signing in.
    */
   const QUOTED_SWITCHES_OF_OTHER_SCREENS: Array<string> = [
-    '"Require SSO for login"',
+    '"Require SSO to sign in"',
   ];
 
   const withoutQuotedSwitches: (value: string) => string = (

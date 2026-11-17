@@ -58,7 +58,7 @@ export const TIME_RANGE_ZOOM_HINT_NOT_ON_PHONES_CLASSES: string =
   "max-sm:hidden [@media(hover:none)]:hidden";
 
 // Every hint's own look: small, quiet, on one line.
-export const TIME_RANGE_ZOOM_HINT_CLASSES: string = `${TIME_RANGE_ZOOM_HINT_NOT_ON_PHONES_CLASSES} whitespace-nowrap text-[10px] text-gray-400`;
+export const TIME_RANGE_ZOOM_HINT_CLASSES: string = `${TIME_RANGE_ZOOM_HINT_NOT_ON_PHONES_CLASSES} whitespace-nowrap text-xs text-gray-500`;
 
 export interface ComponentProps {
   /*

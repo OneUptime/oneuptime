@@ -95,11 +95,20 @@ export function getCodeFixOffer(
  * task says it in, in Code: its pull request is open for review, the AI
  * read the code and found nothing to change, or it stopped with a question
  * for the person.
+ *
+ * Or Hidden: a fix was asked for, in a task the reader may not read - a
+ * reply carried a private incident or alert into it that they do not see -
+ * which its own page answers as not found (CodeTaskThread
+ * .findTasksHiddenFrom). Said as a Done offer whether it works still or is
+ * done, with no task to link to, so nothing of how it stands reaches them:
+ * the page says the fix is there and why it shows nothing of it, and
+ * offers no second one.
  */
 export enum FinishedFixOutcome {
   Fixed = "Fixed",
   NothingToChange = "NothingToChange",
   WaitingForYou = "WaitingForYou",
+  Hidden = "Hidden",
 }
 
 const ALL_FINISHED_FIX_OUTCOMES: ReadonlyArray<string> =

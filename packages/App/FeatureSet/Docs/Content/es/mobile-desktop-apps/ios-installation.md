@@ -114,12 +114,12 @@ Sin alertas críticas, un modo de concentración o un resumen pueden retener los
 
 ## Bloquear la aplicación
 
-Active **Biometrics Login** en **Settings** dentro de la aplicación, y le pedirá Face ID, Touch ID o su código cada vez que se inicie. El interruptor aparece cuando Face ID o Touch ID están configurados en el dispositivo. **Appearance**, en la misma pantalla, elige el aspecto claro u oscuro, o sigue al dispositivo.
+Active **Biometric Unlock** en **Settings** dentro de la aplicación, y le pedirá Face ID, Touch ID o su código cada vez que se inicie. El interruptor aparece cuando Face ID o Touch ID están configurados en el dispositivo. **Appearance**, en la misma pantalla, elige el aspecto claro u oscuro, o sigue al dispositivo.
 
 ## Actualizar, cerrar sesión o eliminar la aplicación
 
 - **Actualizar.** El App Store actualiza la aplicación; también puede actualizarla desde su cuenta en el App Store. La versión de la aplicación aparece al final de su pantalla **Settings**.
-- **Cerrar sesión.** **Settings → Log Out** cierra su sesión y quita el dispositivo de sus dispositivos push en cada proyecto, junto con sus reglas de guardia. Si vuelve a iniciar sesión, vuelve con las reglas predeterminadas.
+- **Cerrar sesión.** **Settings → Sign Out** cierra su sesión y quita el dispositivo de sus dispositivos push en cada proyecto, junto con sus reglas de guardia. Si vuelve a iniciar sesión, vuelve con las reglas predeterminadas.
 - **Eliminar.** Mantenga pulsado el icono de la aplicación y toque **Eliminar app** y luego **Eliminar app** otra vez para confirmar. Si seguía con la sesión iniciada, el dispositivo sigue en su lista hasta que falla un push hacia él: OneUptime lo marca entonces como **No recibe notificaciones**. Si reinstala la aplicación e inicia sesión, esa entrada suele volver, con sus reglas; si ya no usa el dispositivo, elimine la entrada con **Eliminar**.
 
 ## Solución de problemas
@@ -144,7 +144,7 @@ Active primero **Critical On-Call Alerts** en la aplicación: iOS solo añade su
 Abra **Settings** en la aplicación: la línea bajo **Critical On-Call Alerts** dice qué falta. Compruebe que **Alertas críticas** está activado en **Ajustes → Notificaciones → OneUptime On-Call**, y que el volumen de la pantalla **Alarm sound** de la aplicación no está bajo.
 :::
 
-:::details No hay interruptor Biometrics Login
+:::details No hay interruptor Biometric Unlock
 El interruptor aparece cuando Face ID o Touch ID están configurados en **Ajustes → Face ID y código** o **Ajustes → Touch ID y código**.
 :::
 

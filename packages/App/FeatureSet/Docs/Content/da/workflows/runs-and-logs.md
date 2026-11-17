@@ -12,8 +12,8 @@ Hver gang en arbejdsgang kører, gemmer OneUptime en registrering af, hvad der s
 
 | Side                                                 | Hvad du ser                                                                                        |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Arbejdsgange → Protokoller → Kørsler**             | Hver kørsel af hver arbejdsgang i projektet. Filtrer på arbejdsgangsnavn, status og tid.                 |
-| **Arbejdsgang → Protokoller → Kørsler**              | Kun denne ene arbejdsgangs kørsler. Her er der et filter **Kørsels-ID** i stedet for et arbejdsgangsfilter. |
+| **Arbejdsgange → Kørsler**             | Hver kørsel af hver arbejdsgang i projektet. Filtrer på arbejdsgangsnavn, status og tid.                 |
+| **Arbejdsgang → Kørsler**              | Kun denne ene arbejdsgangs kørsler. Her er der et filter **Kørsels-ID** i stedet for et arbejdsgangsfilter. |
 | **En enkelt kørsel**                                 | Åbnes med knappen **Vis logge** på en kørsels række — selve rækkerne kan ikke klikkes.             |
 
 Starter du en kørsel fra **Bygger**, åbner den samme visning **Arbejdsgangskørsel**, som allerede følger kørslen, så du kan se den ske i stedet for at skulle lede efter den bagefter.

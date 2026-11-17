@@ -3,7 +3,7 @@
 Med global SSO setter en **instansadministrator** i OneUptime (master-admin) opp en SAML 2.0- eller OpenID Connect-identitetsleverandør (OIDC) **én gang**, på instansnivå, og kobler den til hvilket som helst prosjekt på serveren. I stedet for at hver Prosjekteier setter opp sin egen identitetsleverandør, setter en master-admin opp én som betjener hele instansen.
 
 > [!NOTE]
-> Global SSO, inkludert den instansomfattende bryteren "Require SSO for Login", er en del av alle OneUptime-utgaver: alle selvhostede instanser har det, også Community Edition, og det krever ingen lisens. Det hører til instansadministrasjonen og gjelder derfor ikke for OneUptime Cloud. Se [Enterprise Edition](/docs/self-hosted/enterprise) for hva hver utgave inneholder.
+> Global SSO, inkludert den instansomfattende bryteren "Require SSO to Sign In", er en del av alle OneUptime-utgaver: alle selvhostede instanser har det, også Community Edition, og det krever ingen lisens. Det hører til instansadministrasjonen og gjelder derfor ikke for OneUptime Cloud. Se [Enterprise Edition](/docs/self-hosted/enterprise) for hva hver utgave inneholder.
 
 :::cards
 - [Sett opp en leverandør](#sette-opp-global-sso): Opprett den, gi identitetsleverandøren din URL-ene til OneUptime, og test den.
@@ -96,7 +96,7 @@ Med **Alle prosjekter** oppfyller pålogging med leverandøren SSO-kravet i alle
 Å sette opp en global leverandør tvinger ingen til å bruke den; pålogging med passord fungerer fortsatt. For å kreve SSO slår du på kravet for et prosjekt eller for hele instansen:
 
 - **Per prosjekt:** et prosjekt kan kreve SSO, og eventuelt kreve en *bestemt* leverandør (prosjekt eller global). Se [Krev SSO for prosjektet ditt](/docs/identity/sso#krev-sso-for-prosjektet-ditt).
-- **Hele instansen:** kortet **Krev SSO** nederst på **Admin** > **Innstillinger** > **Enkel pålogging** har en bryter **Krev SSO for innlogging** som håndhever SSO for alle brukere på instansen. Den ber om bekreftelse før den slås på, og lagres så snart du bekrefter. Master-admins forblir unntatt, slik at de ikke kan bli utestengt.
+- **Hele instansen:** kortet **Krev SSO** nederst på **Admin** > **Innstillinger** > **Enkel pålogging** har en bryter **Krev SSO for å logge på** som håndhever SSO for alle brukere på instansen. Den ber om bekreftelse før den slås på, og lagres så snart du bekrefter. Master-admins forblir unntatt, slik at de ikke kan bli utestengt.
 
 Så lenge hele instansen krever SSO:
 
@@ -105,12 +105,12 @@ Så lenge hele instansen krever SSO:
 - Den som allerede er logget inn med passord, logger inn med SSO for å åpne et prosjekt. Vedkommende havner på prosjektets side for enkel pålogging, som tilbyr prosjektets egne leverandører og de globale leverandørene som logger folk inn i det. Kortet **Krev SSO** viser hvor mange som fortsatt er logget inn uten SSO, og **Logg dem ut** avslutter øktene deres på alle enheter på én gang. Hovedadministratorer forblir pålogget.
 - Master-admins logger inn med passordet sitt på `/accounts/admin-login`, en adresse påloggingssiden ikke lenker til. Kortet **Krev SSO** viser hele adressen under bryteren som **Innlogging for hovedadministratorer**: ta vare på den, så du kan slå av kravet hvis identitetsleverandøren din slutter å virke.
 
-Å slå på **Krev SSO for innlogging** krever en SSO-leverandør som logger personer inn, slik at ingen blir utestengt av det:
+Å slå på **Krev SSO for å logge på** krever en SSO-leverandør som logger personer inn, slik at ingen blir utestengt av det:
 
 - For hele instansen trenger hvert prosjekt som ikke selv krever SSO, én: en av prosjektets egne SAML- eller OIDC-leverandører som er slått på, eller en global leverandør som er slått på og logger personer inn i det. Så lenge et prosjekt ikke har noen, avvises det å slå på bryteren, og meldingen nevner prosjektene (eller, når det er mange, de første og hvor mange). Slå først på en global leverandør, eller en leverandør i disse prosjektene. Et prosjekt som krever en bestemt leverandør, trenger akkurat den: så lenge den er slått av, slettet eller ikke logger personer inn i prosjektet, nevner meldingen prosjektet for seg — slå først på den leverandøren, eller krev en annen der.
 - For et prosjekt stilles det samme kravet til prosjektet, og til leverandøren det krever, hvis det krever en.
-- En lagring som sender **Krev SSO for innlogging** som slått på mens det allerede er slått på — sammen med andre innstillinger eller fra API-et — kontrolleres på samme måte, for instansen eller for et prosjekt, og det samme gjelder en lagring som nevner leverandøren et prosjekt allerede krever.
-- For et nytt prosjekt, som ennå ikke har sin egen leverandør: så lenge instansen krever SSO, krever det å opprette et prosjekt en global leverandør som er slått på og logger personer inn i alle prosjekter, ellers kunne ingen, heller ikke den som oppretter det, åpne det. Uten en slik avvises opprettelsen av et prosjekt, og meldingen ber en serveradministrator slå på en. Master-admins kan fortsatt opprette prosjekter. Et prosjekt som opprettes med **Krev SSO for innlogging** allerede slått på, trenger det samme, uansett hvem som oppretter det.
+- En lagring som sender **Krev SSO for å logge på** som slått på mens det allerede er slått på — sammen med andre innstillinger eller fra API-et — kontrolleres på samme måte, for instansen eller for et prosjekt, og det samme gjelder en lagring som nevner leverandøren et prosjekt allerede krever.
+- For et nytt prosjekt, som ennå ikke har sin egen leverandør: så lenge instansen krever SSO, krever det å opprette et prosjekt en global leverandør som er slått på og logger personer inn i alle prosjekter, ellers kunne ingen, heller ikke den som oppretter det, åpne det. Uten en slik avvises opprettelsen av et prosjekt, og meldingen ber en serveradministrator slå på en. Master-admins kan fortsatt opprette prosjekter. Et prosjekt som opprettes med **Krev SSO for å logge på** allerede slått på, trenger det samme, uansett hvem som oppretter det.
 
 Å slå det av avvises aldri.
 
@@ -129,11 +129,11 @@ Et prosjekt som krever SSO, selv eller fordi hele instansen gjør det, beholder 
 - å slå av en global leverandør, slette den eller begrense den til prosjektene som er knyttet til den;
 - for en leverandør som er begrenset til prosjektene som er knyttet til den: å knytte til det første prosjektet (inntil da logger den personer inn i alle prosjekter), slå av en tilknytning, flytte den til et annet prosjekt eller en annen leverandør, eller fjerne den.
 
-Meldingen nevner prosjektene, eller de første og hvor mange det er. Slå først på en annen leverandør for dem, en av deres egne eller en global, eller slå av **Krev SSO for innlogging** der. Et prosjekt som krever akkurat denne leverandøren, nevnes for seg: krev først en annen leverandør der, eller slå av **Krev SSO for innlogging**.
+Meldingen nevner prosjektene, eller de første og hvor mange det er. Slå først på en annen leverandør for dem, en av deres egne eller en global, eller slå av **Krev SSO for å logge på** der. Et prosjekt som krever akkurat denne leverandøren, nevnes for seg: krev først en annen leverandør der, eller slå av **Krev SSO for å logge på**.
 
-Endringer som lar en leverandør logge inn flere personer — å slå den eller en tilknytning på, å oppheve begrensningen — avvises aldri. De når alle appservere med en gang, akkurat som det å slå av **Krev SSO for innlogging**: personer kan logge inn med leverandøren umiddelbart. Bare når en annen endring av samme leverandør lagres i akkurat det øyeblikket, kan en appserver bruke opptil ett minutt på å følge etter.
+Endringer som lar en leverandør logge inn flere personer — å slå den eller en tilknytning på, å oppheve begrensningen — avvises aldri. De når alle appservere med en gang, akkurat som det å slå av **Krev SSO for å logge på**: personer kan logge inn med leverandøren umiddelbart. Bare når en annen endring av samme leverandør lagres i akkurat det øyeblikket, kan en appserver bruke opptil ett minutt på å følge etter.
 
-To endringer i hvem som kan logge inn, kontrolleres etter hverandre. Lagres en annen i samme øyeblikk og tar lengre tid enn vanlig — å slå på **Krev SSO for innlogging** for hele instansen leser alle prosjekter —, avvises en endring med "Another change to who can sign in with SSO is being saved. Try again in a moment.": lagre den på nytt. Et prosjekt som opprettes i det øyeblikket, venter også på endringen, og venter det for lenge, avvises det med "The server's SSO settings are being changed. Create the project again in a moment."
+To endringer i hvem som kan logge inn, kontrolleres etter hverandre. Lagres en annen i samme øyeblikk og tar lengre tid enn vanlig — å slå på **Krev SSO for å logge på** for hele instansen leser alle prosjekter —, avvises en endring med "Another change to who can sign in with SSO is being saved. Try again in a moment.": lagre den på nytt. Et prosjekt som opprettes i det øyeblikket, venter også på endringen, og venter det for lenge, avvises det med "The server's SSO settings are being changed. Create the project again in a moment."
 
 ## Feilsøking
 
@@ -162,7 +162,7 @@ Hvert svar fra identitetsleverandøren din logger inn bare én gang, og bare inn
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-Hele instansen krever SSO, og dette var en pålogging med passord, passnøkkel, en lenke på e-post, Google eller Microsoft, eller en registrering. Logg heller inn med en av SSO-knappene på påloggingssiden. En master-admin logger inn med passordet sitt på `/accounts/admin-login`; for å la alle logge inn med passord igjen slår vedkommende av **Krev SSO for innlogging** på **Enkel pålogging**.
+Hele instansen krever SSO, og dette var en pålogging med passord, passnøkkel, en lenke på e-post, Google eller Microsoft, eller en registrering. Logg heller inn med en av SSO-knappene på påloggingssiden. En master-admin logger inn med passordet sitt på `/accounts/admin-login`; for å la alle logge inn med passord igjen slår vedkommende av **Krev SSO for å logge på** på **Enkel pålogging**.
 :::
 
 ## Neste steg

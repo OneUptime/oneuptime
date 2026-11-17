@@ -125,11 +125,11 @@ Een Atlassian-**serviceaccount** werkt ook. Een organisatiebeheerder maakt het, 
 :::steps
 1. Open **Workflows → Workflow maken**. Kies onder **Of begin met een sjabloon** **Jira** in de lijst met categorieën, of typ `Jira` in **Sjablonen zoeken…**, en klik op het sjabloon dat je wilt. Het opent en laat zien wat het doet en om welke instellingen het vraagt. Klik op **Dit sjabloon gebruiken**.
 2. **Naam** wordt ingevuld vanuit het sjabloon. Wijzig hem als je wilt.
-3. **Configureren** vraagt om de waarden hierboven. Ze worden opgeslagen als eigen variabelen van de workflow, onder **Workflow-variabelen** in het menu ervan. Het API-token wordt als geheim opgeslagen: het wordt afgeschermd in **Logboeken → Uitvoeringen** en gaat alleen in de `Authorization`-header van de Jira-aanroepen.
+3. **Configureren** vraagt om de waarden hierboven. Ze worden opgeslagen als eigen variabelen van de workflow, onder **Workflow-variabelen** in het menu ervan. Het API-token wordt als geheim opgeslagen: het wordt afgeschermd in **Uitvoeringen** en gaat alleen in de `Authorization`-header van de Jira-aanroepen.
 4. Klik op **Workflow maken**. Elke workflow wordt uitgeschakeld aangemaakt: zet **Ingeschakeld** aan bovenaan de **Bouwer** ervan.
 :::
 
-Begin met **Create a Jira issue when an incident is declared**, of met **Create a Jira issue when an alert is created** voor waarschuwingen: elk ander sjabloon van OneUptime → Jira van dezelfde soort vindt het issue via het label dat dit sjabloon toevoegt. Zet het aan, meld een testincident of maak een testwaarschuwing aan, en open **Logboeken → Uitvoeringen** van de workflow. De uitvoering hoort te eindigen als **Uitgevoerd**, en de **Antwoordlichaam** van haar laatste stap, `create-issue-1`, noemt het nieuwe issue.
+Begin met **Create a Jira issue when an incident is declared**, of met **Create a Jira issue when an alert is created** voor waarschuwingen: elk ander sjabloon van OneUptime → Jira van dezelfde soort vindt het issue via het label dat dit sjabloon toevoegt. Zet het aan, meld een testincident of maak een testwaarschuwing aan, en open **Uitvoeringen** van de workflow. De uitvoering hoort te eindigen als **Uitgevoerd**, en de **Antwoordlichaam** van haar laatste stap, `create-issue-1`, noemt het nieuwe issue.
 
 Elke workflow houdt een eigen kopie van deze waarden bij. Wanneer je het token vervangt, werk je `jiraBasicAuthToken` bij onder **Workflow-variabelen** in elke Jira-workflow die erom vroeg. Verhuist Jira naar een ander adres, werk dan `jiraSiteUrl` en `jiraBaseUrl` op dezelfde manier bij.
 
@@ -180,7 +180,7 @@ Voordat je erop vertrouwt:
 
 ### Controleren of het werkt
 
-De **Stappen** van elke uitvoering zeggen wat het sjabloon deed, dus open de uitvoering in **Logboeken → Uitvoeringen** en kijk hoe ze eindigde:
+De **Stappen** van elke uitvoering zeggen wat het sjabloon deed, dus open de uitvoering in **Uitvoeringen** en kijk hoe ze eindigde:
 
 - **Uitgevoerd**: het deed zijn werk, en de laatste stap noemt het issue, het incident of de waarschuwing.
 - **Uitgevoerd**, met de stap **Controleren met JavaScript** op **Nee**: het heeft de gebeurtenis bewust overgeslagen, en de stap zegt waarom: het issue is niet gekoppeld aan een record van deze soort, de notitie kwam uit Jira, het record is privé, of de nieuwe status heeft geen bijbehorende Jira-status.
@@ -272,7 +272,7 @@ Privénotities en bewerkingsopmerkingen worden als intern gemarkeerd door de `pr
 
 - **Alleen Jira Cloud.** De sjablonen roepen de REST API v3 van Jira Cloud aan met Basic-authenticatie. Data Center heeft geen v3 en accepteert een persoonlijk toegangstoken als `Bearer`, dus elk API-blok heeft de wijzigingen uit [Jira Data Center](#jira-data-center) nodig: paden `/rest/api/2/...`, gewone strings in plaats van bodies in Atlassian Document Format, en de header. De blokken `find-issue-1` veranderen het meest: Data Center heeft geen `/search/jql`, dus ze moeten in plaats daarvan een `POST` doen naar `/rest/api/2/search`.
 - **Incidenten die vanuit Jira worden gemeld, zijn stil.** Ze worden aangemaakt verborgen voor je statuspagina's, zonder abonnees van statuspagina's te waarschuwen, omdat de tekst van een issue niet voor klanten is geschreven. Om er een te tonen, zet je **Zichtbaar op statuspagina** aan op de pagina **Instellingen** van het incident (zie [Een incident van de statuspagina houden](/docs/incidents/states-and-severities#een-incident-van-de-statuspagina-houden)), of zet je **Op statuspagina's tonen** aan, onder **Meer velden**, in het blok `incident-from-another-tool-1` van het sjabloon.
-- **Privé-incidenten en -waarschuwingen blijven in OneUptime.** De sjablonen van OneUptime → Jira slaan ze over, en elk overslaan staat vermeld in **Logboeken → Uitvoeringen**. Om ze toch te sturen, zet je `SYNC_PRIVATE_INCIDENTS` of `SYNC_PRIVATE_ALERTS` op `true`. Een record later privé maken stopt de synchronisatie vanaf dat moment, maar haalt niet terug wat Jira al heeft. De sjablonen van Jira → OneUptime controleren dit niet, dus opmerkingen, bewerkingen en statuswijzigingen op een gekoppeld issue bereiken een privérecord nog steeds.
+- **Privé-incidenten en -waarschuwingen blijven in OneUptime.** De sjablonen van OneUptime → Jira slaan ze over, en elk overslaan staat vermeld in **Uitvoeringen**. Om ze toch te sturen, zet je `SYNC_PRIVATE_INCIDENTS` of `SYNC_PRIVATE_ALERTS` op `true`. Een record later privé maken stopt de synchronisatie vanaf dat moment, maar haalt niet terug wat Jira al heeft. De sjablonen van Jira → OneUptime controleren dit niet, dus opmerkingen, bewerkingen en statuswijzigingen op een gekoppeld issue bereiken een privérecord nog steeds.
 - **Niets gaat achteruit.** Een Jira-issue heropenen verandert niets in OneUptime, en een status in de categorie To Do hoort bij geen enkele status. Zie [Volgorde is een echte beperking](/docs/incidents/states-and-severities#de-volgorde-is-een-echte-beperking-geen-weergavevoorkeur). Ook de transitiesjablonen zetten een issue nooit naar een eerdere statuscategorie.
 - **Elke waarschuwing krijgt een issue.** Behalve privéwaarschuwingen opent het sjabloon voor waarschuwingen dat issues aanmaakt een issue voor elke waarschuwing, ook elke waarschuwing die een monitor afgeeft. [Wat er anders is voor waarschuwingen](#wat-er-anders-is-voor-waarschuwingen) laat zien hoe je een voorwaarde toevoegt.
 - **De eerste paar seconden kunnen het issue missen.** De zoekfunctie van Jira loopt even achter nadat een issue verandert, dus een notitie, statuswijziging of bewerking in de eerste seconden nadat een record is aangemaakt, kan het nieuwe issue missen en eindigen met het overslaan `No Jira issue is labelled …`. Die uitvoering wordt niet opnieuw geprobeerd. Hetzelfde geldt vlak nadat een record vanuit Jira is aangemaakt, totdat de labels ervan zijn toegevoegd.
@@ -336,7 +336,7 @@ Tokens verlopen standaard na een jaar en worden niet vernieuwd. Om er niet een m
    }
    ```
 
-4. Zet **Ingeschakeld** aan, meld een testincident en open **Logboeken → Uitvoeringen**. De stap `create-issue` toont een `201` en een body met de `id`, de `key` en de `self` van het nieuwe issue.
+4. Zet **Ingeschakeld** aan, meld een testincident en open **Uitvoeringen**. De stap `create-issue` toont een `201` en een body met de `id`, de `key` en de `self` van het nieuwe issue.
 :::
 
 De beschrijving ziet er zwaar uit omdat de v3-API van Jira Cloud rijke tekst accepteert als **Atlassian Document Format**, een documentboom in plaats van een string. De body hierboven bevat het kleinste geldige document: één alinea met één tekstknooppunt. Hetzelfde geldt voor `environment` en voor aangepaste tekstvelden met meerdere regels. Een later blok leest de nieuwe sleutel als `{{local.components.create-issue.returnValues.response-body.key}}`.
@@ -445,7 +445,7 @@ Zet hem aan en laat Jira hem daarna aanroepen, vanuit een automatiseringsregel o
 
    Met een label in plaats van een aangepast veld stuur je `"labels": "{{issue.labels}}"`, en haal je de ID eruit met een **Eigen JavaScript uitvoeren**-blok.
 
-4. Zet de regel aan en zet een testissue naar Done. Bekijk het auditlogboek van de regel in Jira, en **Logboeken → Uitvoeringen** in OneUptime.
+4. Zet de regel aan en zet een testissue naar Done. Bekijk het auditlogboek van de regel in Jira, en **Uitvoeringen** in OneUptime.
 
 Om zeker te weten dat een verzoek van je regel komt, voeg je een tweede header toe, `X-OneUptime-Secret`, met een waarde die je zelf bedenkt, en gebruik je daarop de optie **Hide** van de actie. Zet in de workflow een **Als / Anders**-blok vóór de update: **Te controleren waarde** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Vergelijking** **is gelijk aan** en **Vergelijken met** dezelfde waarde, bewaard in een geheime globale variabele.
 
@@ -513,7 +513,7 @@ Andere verschillen om rekening mee te houden:
 
 ## Problemen oplossen
 
-Open eerst de mislukte stap in **Logboeken → Uitvoeringen**. Jira antwoordt met een JSON-body die noemt wat het weigerde, en het API-blok bewaart die in `response-body`.
+Open eerst de mislukte stap in **Uitvoeringen**. Jira antwoordt met een JSON-body die noemt wat het weigerde, en het API-blok bewaart die in `response-body`.
 
 :::details 401 Unauthorized
 Codeer `email:api_token` opnieuw met `printf`, niet `echo`, en werk het token bij: een regeleinde aan het eind is de gebruikelijke oorzaak. Controleer daarna of het account van het token issues kan aanmaken in het project. Controleer bij Data Center of je `Bearer` stuurt, niet `Basic`. Op de URL van een Cloud-site lijken verkeerde inloggegevens vaker op het volgende geval.
@@ -540,7 +540,7 @@ De transitie-ID staat niet open vanuit de huidige status van het issue. Haal `/t
 :::
 
 :::details Jira toont dat de regel of webhook draaide, maar er komt niets aan in OneUptime
-Controleer eerst de poort: Jira roept alleen zijn toegestane poorten aan. Stuur daarna zelf een verzoek naar de URL van de workflow met `curl`, en zoek het op in **Logboeken → Uitvoeringen**. Komt het jouwe aan en dat van Jira niet, dan ligt het probleem aan de kant van Jira. Staat de uitvoering er wel maar is hij geweigerd, controleer dan of de workflow aan staat.
+Controleer eerst de poort: Jira roept alleen zijn toegestane poorten aan. Stuur daarna zelf een verzoek naar de URL van de workflow met `curl`, en zoek het op in **Uitvoeringen**. Komt het jouwe aan en dat van Jira niet, dan ligt het probleem aan de kant van Jira. Staat de uitvoering er wel maar is hij geweigerd, controleer dan of de workflow aan staat.
 :::
 
 :::details De workflow draait, maar het incident verandert niet

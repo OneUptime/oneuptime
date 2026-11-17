@@ -179,11 +179,8 @@ Un épisode que vous créez n'a pas de règle de regroupement : la liste affiche
 
 | Section du menu latéral | Pages                                                                       |
 | ----------------------- | --------------------------------------------------------------------------- |
-| **Vue d'ensemble** | **Vue d'ensemble**, **Chronologie d'état** |
-| **Investigation** | **Description**, **Cause racine**, **Notes de remédiation** |
-| **Équipe** | **Propriétaires** |
-| **Alertes** | **Alertes des membres** |
-| **Notes** | **Notes privées** |
+| **Vue d'ensemble** | **Vue d'ensemble**, **Chronologie d'état**, **Alertes des membres**, **Propriétaires** |
+| **Investigation** | **Description**, **Cause racine**, **Notes de remédiation**, **Notes privées** |
 | **Développeurs** | **Terraform**, **API**, **CLI**, **Assistants IA** |
 | **Avancé** | **Journaux d'audit**, **Supprimer l'épisode** |
 

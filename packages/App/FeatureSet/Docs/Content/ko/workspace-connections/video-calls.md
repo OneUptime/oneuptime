@@ -86,6 +86,8 @@ OneUptime 은 로그인의 새로 고침 토큰을 암호화해 보관하고 최
 
 연결을 삭제하면, 그 로그인을 사용하는 다른 연결이 없어지는 즉시 Zoom 과 Google 에서 OneUptime 의 접근 권한이 철회됩니다. Microsoft 의 경우 계정의 **My Apps** (myapps.microsoft.com) 에서 OneUptime 을 제거합니다. Zoom App Marketplace 에서 Zoom 계정의 OneUptime 을 제거하면 그 계정으로 로그인한 모든 연결에서 로그인이 삭제되며, 다시 연결할 때까지 그 연결에는 **작동 안 함** 이 표시됩니다.
 
+OneUptime 이 이미 읽은 녹취록은 그 인시던트에 남습니다. 연결을 삭제해도 그 연결이 시작한 통화는 녹취록과 함께 남고, Zoom, Google 또는 Microsoft 에서 계정의 OneUptime 을 제거해도 마찬가지입니다. 통화의 **녹취록 제거** 는 그 녹취록과 OneUptime AI 가 그 안에서 읽은 내용을 삭제하지만, OneUptime AI 가 인시던트의 피드와 채널에 게시한 내용은 삭제하지 않습니다. 인시던트를 삭제하면 그 통화와 녹취록도 삭제됩니다.
+
 ### Microsoft 가 관리자를 요구하는 경우
 
 일부 Microsoft 365 조직은 관리자만 앱을 승인할 수 있습니다. Microsoft 가 관리자 승인이 필요하다고 하면, Microsoft 365 관리자에게 Microsoft Teams 를 연결하거나 [Microsoft Entra 관리 센터](https://entra.microsoft.com/) 의 **Enterprise applications** > **Admin consent requests** 에서 OneUptime 을 승인해 달라고 요청하세요. Teams 통화를 녹화하는 프로젝트에는 모든 조직에서 이 승인이 한 번 필요합니다. 앱이 회의 녹취록을 읽도록 허용할 수 있는 사람은 관리자뿐이기 때문입니다.

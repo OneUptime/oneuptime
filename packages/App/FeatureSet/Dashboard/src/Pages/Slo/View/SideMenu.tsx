@@ -124,6 +124,25 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
+        {/*
+         * The monitors the SLO measures, next to its overview. They had a
+         * Configuration section of their own, for this one entry (#9216). An
+         * SLO that measures requests has no monitors.
+         */}
+        {measuresRequests ? (
+          <></>
+        ) : (
+          <SideMenuItem
+            link={{
+              title: "Monitors",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SLO_VIEW_MONITORS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.AltGlobe}
+          />
+        )}
         <SideMenuItem
           link={{
             title: "Metrics",
@@ -198,33 +217,15 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       {/*
-       * What the SLO measures, apart from the rules that run on it: its
-       * monitors under Configuration, and what runs on it under Rules
-       * (Monitor Rules attach every monitor that matches; Burn Rate Rules
-       * raise alerts and declare incidents when the budget burns too fast;
-       * the Error Budget Policy says what the team does as the budget runs
-       * down), as a status page keeps its Monitor Rules under Rules. Both
-       * are set up rather than visited, so like Management they fold down to
-       * their titles until opened, and each opens by itself on its own
-       * pages (SideMenuSectionState.ts).
+       * What runs on the SLO, under Rules (Monitor Rules attach every
+       * monitor that matches; Burn Rate Rules raise alerts and declare
+       * incidents when the budget burns too fast; the Error Budget Policy
+       * says what the team does as the budget runs down), as a status page
+       * keeps its Monitor Rules beside its resources. They are set up rather
+       * than visited, so like Management they fold down to their title until
+       * opened, and open by themselves on their own pages
+       * (SideMenuSectionState.ts).
        */}
-      {measuresRequests ? (
-        <></>
-      ) : (
-        <SideMenuSection title="Configuration">
-          <SideMenuItem
-            link={{
-              title: "Monitors",
-              to: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.SLO_VIEW_MONITORS] as Route,
-                { modelId: props.modelId },
-              ),
-            }}
-            icon={IconProp.AltGlobe}
-          />
-        </SideMenuSection>
-      )}
-
       <SideMenuSection title="Rules">
         {measuresRequests ? (
           <></>

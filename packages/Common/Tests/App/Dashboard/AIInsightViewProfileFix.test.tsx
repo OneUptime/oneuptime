@@ -320,6 +320,77 @@ describe("a slow-code finding's page", () => {
     );
   });
 
+  /*
+   * A task a reply carried a private incident or alert into, which the
+   * person may not open: the strip says a fix is there and why nothing of
+   * it shows, in the reader's language - no link, no progress, and no
+   * second fix offered - even if a task id came with the answer.
+   */
+  test("a fix on its way in a task hidden from the person: why nothing of it shows, and no link", async () => {
+    const answer: (...args: Array<any>) => unknown =
+      postMock.getMockImplementation()!;
+
+    postMock.mockImplementation(
+      async (args: { url: { toString: () => string } }): Promise<unknown> => {
+        if (
+          args.url
+            .toString()
+            .includes("/ai-investigation/profile-fix-suggestion")
+        ) {
+          return new HTTPResponse<JSONObject>(
+            200,
+            {
+              offer: SuggestionOffer.InProgress,
+              reason: "Hot",
+              blocker: null,
+              evidence: {
+                category: "cpu",
+                isOwnCode: true,
+                ownShare: 18,
+                functionSampleCount: 900,
+                windowSampleCount: 5000,
+              },
+              repository: null,
+              repositories: [],
+              taskId: TASK_ID,
+              isHidden: true,
+            } as unknown as JSONObject,
+            {},
+          );
+        }
+
+        return answer(args);
+      },
+    );
+    translations[
+      "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden."
+    ] =
+      "Ein privater Vorfall oder eine private Warnung, die Sie nicht öffnen können, wurde dieser Aufgabe hinzugefügt.";
+
+    await renderPage();
+
+    const hidden: HTMLElement = await screen.findByTestId(
+      "profiles-fix-hidden",
+    );
+
+    expect(hidden).toHaveTextContent(
+      "Ein privater Vorfall oder eine private Warnung, die Sie nicht öffnen können, wurde dieser Aufgabe hinzugefügt.",
+    );
+    expect(hidden).toHaveAttribute("role", "status");
+    expect(screen.getByTestId("profiles-fix")).toHaveAttribute(
+      "data-offer",
+      SuggestionOffer.InProgress,
+    );
+    for (const testId of [
+      "profiles-fix-task-link",
+      "profiles-fix-progress",
+      "profiles-fix-with-ai",
+    ]) {
+      expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
+    }
+    expect(document.body.innerHTML).not.toContain(TASK_ID);
+  });
+
   test("Create Monitor opens a Profiles monitor on the function, set above the share it takes now", async () => {
     jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
     const navigate: ReturnType<typeof jest.spyOn> = jest

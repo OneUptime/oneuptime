@@ -122,7 +122,7 @@ jest.mock("../../../Server/Utils/Response", () => {
 });
 
 const AUTHENTICATION_REQUIRED_MESSAGE: string =
-  "Authentication required. Please log in to access this resource.";
+  "Authentication required. Please sign in to access this resource.";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const USER_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");

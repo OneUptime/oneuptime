@@ -1,12 +1,20 @@
 import AIRunService from "../../../Services/AIRunService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import CodeTaskThread from "../CodeTask/CodeTaskThread";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import { AIRunStatusHelper } from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import { getTelemetryAiFixTaskTypes } from "../../../../Types/AI/TelemetryAi";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
+import SuggestionOffer from "../../../../Utils/Suggestions/SuggestionOffer";
+import {
+  HIDDEN_TELEMETRY_AI_FIX_SUGGESTION,
+  NO_TELEMETRY_AI_FIX_SUGGESTION,
+  TelemetryAiFixSuggestion,
+} from "../../../../Utils/Suggestions/TelemetryAiFixSuggestion";
 
 /*
  * WHAT EVERY TELEMETRY LANE'S PULL REQUEST SHARES (Types/AI/TelemetryAi):
@@ -92,5 +100,36 @@ export default class TelemetryAiFix {
     }
 
     return (run.codeTaskId || run.id)?.toString() || null;
+  }
+
+  /*
+   * What a finding's Fix with AI says of the Code task already on its way
+   * (findActiveTaskIdForInsight), read as the task's own page reads it for
+   * `reader`: a task a reply carried a private incident or alert into,
+   * which they do not see, is there - so no second fix is offered - and
+   * nothing of it, not even the link to it
+   * (HIDDEN_TELEMETRY_AI_FIX_SUGGESTION).
+   */
+  @CaptureSpan()
+  public static async getInProgressSuggestion(data: {
+    projectId: ObjectID;
+    taskId: string;
+    reader: DatabaseCommonInteractionProps;
+  }): Promise<TelemetryAiFixSuggestion> {
+    const hidden: Set<string> = await CodeTaskThread.findTasksHiddenFrom({
+      projectId: data.projectId,
+      taskIds: [data.taskId],
+      reader: data.reader,
+    });
+
+    if (hidden.size > 0) {
+      return HIDDEN_TELEMETRY_AI_FIX_SUGGESTION;
+    }
+
+    return {
+      ...NO_TELEMETRY_AI_FIX_SUGGESTION,
+      offer: SuggestionOffer.InProgress,
+      taskId: data.taskId,
+    };
   }
 }

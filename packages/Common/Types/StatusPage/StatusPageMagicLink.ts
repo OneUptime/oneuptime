@@ -64,7 +64,7 @@ export const STATUS_PAGE_MAGIC_LINK_SSO_REQUIRED_MESSAGE: string =
   "Status Page supports authentication by SSO. You cannot use a sign-in link for authentication.";
 
 export const STATUS_PAGE_MAGIC_LINK_TURNED_OFF_MESSAGE: string =
-  "Sign-in links are turned off for this status page. Please log in with your email and password.";
+  "Sign-in links are turned off for this status page. Please sign in with your email and password.";
 
 export const STATUS_PAGE_MAGIC_LINK_NOT_AVAILABLE_MESSAGE: string =
   "Sign-in links are not available for this status page.";

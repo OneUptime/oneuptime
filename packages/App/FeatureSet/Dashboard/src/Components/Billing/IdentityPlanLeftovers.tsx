@@ -73,7 +73,7 @@ export const ProjectSamlProvidersLeftover: FunctionComponent =
 
 /*
  * Settings > SSO: the project's OIDC providers, under its SAML ones. The
- * page draws "Require SSO for Login" once above both, while the project
+ * page draws "Require SSO to Sign In" once above both, while the project
  * still requires it - turning the last provider off while it does would
  * leave nobody a way in.
  */
@@ -111,7 +111,7 @@ export const ProjectScimConnectionsLeftover: FunctionComponent =
   };
 
 /*
- * Status page > SSO: "Require SSO for Login" while the status page still
+ * Status page > SSO: "Require SSO to Sign In" while the status page still
  * requires it (StatusPageRequireSsoLeftover), then its SAML providers.
  */
 export const StatusPageSamlProvidersLeftover: FunctionComponent =
@@ -137,7 +137,7 @@ export const StatusPageSamlProvidersLeftover: FunctionComponent =
   };
 
 /*
- * Status page > OIDC: "Require SSO for Login" while the status page still
+ * Status page > OIDC: "Require SSO to Sign In" while the status page still
  * requires it, as on its SSO page, then its OIDC providers.
  */
 export const StatusPageOidcProvidersLeftover: FunctionComponent =

@@ -86,6 +86,8 @@ Connections signed in as the same account share one sign-in, in every project: Z
 
 Deleting a connection withdraws OneUptime's access at Zoom and Google once no other connection uses the sign-in. For Microsoft, remove OneUptime under **My Apps** (myapps.microsoft.com) of the account. Removing OneUptime from your Zoom account in the Zoom App Marketplace deletes its sign-in from every connection signed in as that account, and they show **Not working** until reconnected.
 
+Transcripts OneUptime has already read stay on their incidents: deleting a connection keeps the calls it started, with their transcripts, and so does removing OneUptime from the account at Zoom, Google or Microsoft. **Remove transcript** on a call deletes its transcript and what OneUptime AI read in it, but not what OneUptime AI posted to the incident's feed and channels. Deleting an incident deletes its calls and their transcripts.
+
 ### If Microsoft asks for an administrator
 
 Some Microsoft 365 organizations only let administrators approve apps. If Microsoft says you need admin approval, ask a Microsoft 365 administrator to connect Microsoft Teams, or to approve OneUptime in the [Microsoft Entra admin center](https://entra.microsoft.com/) under **Enterprise applications** > **Admin consent requests**. A project that records its Teams calls needs this approval in every organization, once: only an administrator can let an app read meeting transcripts.

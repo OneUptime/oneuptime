@@ -121,12 +121,12 @@ OneUptime sender vagtalarmer med høj prioritet, som Android leverer selv til en
 
 ## Lås appen
 
-Slå **Biometrics Login** til under **Settings** i appen, så spørger appen om dit fingeraftryk, dit ansigt eller telefonens skærmlås, hver gang den starter. Kontakten vises, når telefonen har oplåsning med fingeraftryk eller ansigt sat op. **Appearance** på samme skærm vælger det lyse eller mørke udseende, eller følger telefonen.
+Slå **Biometric Unlock** til under **Settings** i appen, så spørger appen om dit fingeraftryk, dit ansigt eller telefonens skærmlås, hver gang den starter. Kontakten vises, når telefonen har oplåsning med fingeraftryk eller ansigt sat op. **Appearance** på samme skærm vælger det lyse eller mørke udseende, eller følger telefonen.
 
 ## Opdater, log ud eller afinstaller
 
 - **Opdater.** Google Play opdaterer appen. Til APK'en installerer du den nyeste oven på. Appens version står nederst på dens skærm **Settings**.
-- **Log ud.** **Settings → Log Out** logger dig ud og fjerner telefonen fra dine push-enheder i alle projekter, sammen med dens vagtregler. Logger du ind igen, kommer den tilbage med standardreglerne.
+- **Log ud.** **Settings → Sign Out** logger dig ud og fjerner telefonen fra dine push-enheder i alle projekter, sammen med dens vagtregler. Logger du ind igen, kommer den tilbage med standardreglerne.
 - **Afinstaller.** Fjern appen som enhver anden. Var du stadig logget ind, bliver telefonen på din liste, indtil et push til den mislykkes: OneUptime markerer den så som **Modtager ikke notifikationer**. Slet den post med **Slet**: installerer du appen igen og logger ind, tilføjes telefonen som en ny post med standardreglerne.
 
 ## Fejlfinding
@@ -151,7 +151,7 @@ Appen kunne ikke nå `https://<your-oneuptime>/api/status`. Tjek adressen, inklu
 OneUptime On-Call er allerede på telefonen fra en anden kilde, som Google Play, og Android installerer ikke den ene oven på den anden. Afinstaller den, installer APK'en, og log ind igen.
 :::
 
-:::details Ingen kontakt til Biometrics Login
+:::details Ingen kontakt til Biometric Unlock
 Kontakten vises, når oplåsning med fingeraftryk eller ansigt er sat op i Androids indstillinger.
 :::
 

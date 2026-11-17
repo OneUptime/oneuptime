@@ -1156,18 +1156,31 @@ cost a review round.
   values.yaml spells it out with a repository and its registry and tag beside
   it, not as a full reference in `image.overrides`; the chart takes that form
   since 2026-10-19, and `build.py` refuses an AWS edition of an older release.
-  Not yet: AWS's version change set and Microsoft's publish to preview, until
-  their first success.
+  AWS's version change set first succeeded with 14.0.76 (2026-10-20). Not
+  yet: Microsoft's publish to preview, until its first success.
+- **AWS's hidden placeholder versions.** Both AWS container products carry a
+  version AWS made with them, `draft-product-placeholder-version_hidden`,
+  that refuses changes (FIELD_NOT_ALLOWED_TO_CHANGE). On the Enterprise
+  product's Limited listing it is the version shown first, with placeholder
+  text, and AWS's support assistant named its deployment resource,
+  `709825985650.dkr.ecr.us-east-1.amazonaws.com/placeholder:1.0`, as the
+  "broken link" AWS's review refused the listing for, twice. Only AWS can
+  remove it: case 00966062 asks it to (see [History](#history)). The portal
+  offers **Restrict version** on it, but the case says restricting needs a
+  public product. The EKS add-on has one too, so its request to go public may
+  meet the same refusal.
 - `mpdev verify` does not run in the workflow (it needs a GKE cluster, which
   costs money): Google's review runs the same checks on every version.
 - Microsoft and Google editions install on `linux/amd64` nodes only.
-- **The EKS add-on has not met AWS yet** (2026-10-18): the add-on delivery
-  option's fields are AWS's published shapes, and the chart passes AWS's own
-  `helm lint` and `helm template` with Helm 3.19.0, but nothing has been
-  submitted. Unverified until the first version: the seller alias, whether the
-  environment override fills `clusterName` in, the release name EKS renders
-  with (the chart does not depend on it), and AWS's scan of the agent's
-  images. Scanned with trivy 0.75.0 on 2026-10-18, both architectures: no
+- **The EKS add-on is Limited and untested on EKS.** AWS took 14.0.74 on
+  2026-10-20 and its scan passed, in the add-on catalog of the seller
+  account's ap-northeast-2 clusters only. Before it can go public it must be
+  tested there on every Kubernetes version it names; History records no such
+  test yet, and the credits asked for it (case 179248030800074) are still
+  unassigned. Unverified until then: the seller alias, whether the
+  environment override fills `clusterName` in, and the release name EKS
+  renders with (the chart does not depend on it). Scanned with trivy 0.75.0
+  on 2026-10-18, both architectures: no
   fixable critical finding in any of them; fixable high ones in
   kube-state-metrics v2.20.0 (9), Prometheus v3.15.0 (8), OpenCost 1.121.3
   (7), the collector 0.161.0 (4: Go 1.26.8 and x/net, fixed in 0.163.1),
@@ -1198,16 +1211,30 @@ rejection, go-live and price change.
 | 2026-10-19 | AWS         | Product prod-5ijwaqpun3coo and offer offer-nazez256wqin4 released to Limited                        | Maintainer |
 | 2026-10-19 | Microsoft   | The registry's purge keeps each repository's newest release, and any from the last 7 days           | Agent      |
 | 2026-10-19 | AWS         | AWS refused 14.0.72: MISSING_VALUES_IMAGE_REFERENCE; the chart takes registry, repository and tag   | Agent      |
+| 2026-10-19 | AWS         | EKS add-on product prod-stb4grzn53gbw created and released to Limited                               | Maintainer |
+| 2026-10-19 | AWS         | EKS add-on 14.0.74 added by the Marketplace Release workflow; AWS took it, Limited, on 10-20        | Maintainer |
+| 2026-10-20 | AWS         | 14.0.76 added by the Marketplace Release workflow: the Enterprise product's first version           | Maintainer |
+| 2026-10-20 | AWS         | Request to go public refused at once: no metering record yet for dimension `users`                  | AWS        |
+| 2026-10-20 | AWS         | Second request reached AWS's review, refused for "Broken links" with no URL named                   | AWS        |
+| 2026-10-20 | AWS         | Support case 179248030800074: credits to test the EKS add-on; still Unassigned on 11-17             | Maintainer |
 | 2026-10-21 | Microsoft   | Offer `oneuptime-enterprise` seen live (publisher `oneupitme`); the website links it                | Agent      |
 | 2026-10-27 | All three   | The editions turn off the daily check-in with oneuptime.com: the marketplace knows its buyers       | Agent      |
+| 2026-10-30 | AWS         | The listing's links, and 14.0.76's, go straight to their pages (Catalog API)                        | Agent      |
+| 2026-10-30 | AWS         | Request to go public, `users` at USD 0.10, refused again for "Broken links" with no URL named       | AWS        |
+| 2026-10-30 | AWS         | The hidden placeholder version refuses changes: FIELD_NOT_ALLOWED_TO_CHANGE (see Known gaps)        | Agent      |
+| 2026-10-30 | AWS         | Case 00966062: asked AWS to remove the placeholder version, the likely broken link                  | Maintainer |
 | 2026-11-06 | Google      | Solution validation approved OneUptime Enterprise (self-hosted) (case 77153319); onboarding email   | Google     |
 | 2026-11-06 | Google      | Project workspace: the onboarding email's roles granted on `oneuptime-marketplace`                  | Maintainer |
+| 2026-11-06 | AWS         | Case 00966062 followed up; no answer                                                                | Maintainer |
 | 2026-11-09 | Google      | Reminder of the project info form; Google's 60 days of onboarding help run from it                  | Google     |
 | 2026-11-11 | Google      | Project info form submitted (Kubernetes App, seller HackerBay, Inc.); Producer Portal pending       | Agent      |
 | 2026-11-11 | Google      | Decided: Google Cloud Marketplace sells only this Kubernetes app, not OneUptime Cloud (SaaS)        | Maintainer |
 | 2026-11-11 | Google      | Case 77498377: Producer Portal turns on once we answer that the form and the roles are done         | Google     |
+| 2026-11-13 | AWS         | Seller account's KYC business verification passed, after a clearer certificate of status            | AWS        |
 | 2026-11-17 | Google      | Rechecked: roles, security contact and Container Analysis API in place; no product or images yet    | Agent      |
 | 2026-11-17 | Google      | Answered case 77498377 (form and roles done) the day it was to close; Producer Portal pending       | Agent      |
+| 2026-11-17 | AWS         | Bank account verification in review: the bank statement is uploaded                                 | Maintainer |
+| 2026-11-17 | AWS         | Case 00966062 escalated: remove the placeholder version, or name the broken URL                     | Agent      |
 
 ## Notes for agents driving the browser
 

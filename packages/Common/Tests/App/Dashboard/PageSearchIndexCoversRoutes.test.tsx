@@ -63,7 +63,7 @@ const OPENED_BY_PALETTE_ACTIONS: Readonly<Partial<Record<PageMap, string>>> = {
   [PageMap.ACTIVE_INCIDENTS]: "Active Incidents (quick link)",
   [PageMap.MY_ON_CALL_POLICIES]: "My On-Call Policies (quick link)",
   [PageMap.PROJECT_INVITATIONS]: "Project Invitations (quick link)",
-  [PageMap.LOGOUT]: "Log out",
+  [PageMap.LOGOUT]: "Sign Out",
 };
 
 /*

@@ -1177,7 +1177,7 @@ describe("Getting back out", () => {
   test("the email step goes back to the password login", async () => {
     await renderScreen();
 
-    await fireEvent.press(screen.getByText("Back to Login"));
+    await fireEvent.press(screen.getByText("Back to Sign In"));
 
     await waitFor(() => {
       expect(mockNavigation.navigate).toHaveBeenCalledWith("Login");

@@ -793,7 +793,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
               ) : item.isNotSetUp ? (
                 <span
                   data-testid="navbar-menu-not-set-up"
-                  className="flex-shrink-0 text-[11px] font-normal text-gray-500"
+                  className="flex-shrink-0 text-xs font-normal text-gray-500"
                 >
                   {tx("Not set up")}
                 </span>

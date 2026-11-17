@@ -19,7 +19,7 @@ flowchart TB
 ```
 
 > [!NOTE]
-> **Enkel inloggning finns i alla utgåvor.** Inloggning med SAML och OIDC för projekt och statussidor, global SSO och "Require SSO for login" ingår i Community Edition, och inget licenstillstånd stänger av dem.
+> **Enkel inloggning finns i alla utgåvor.** Inloggning med SAML och OIDC för projekt och statussidor, global SSO och "Require SSO to sign in" ingår i Community Edition, och inget licenstillstånd stänger av dem.
 
 Den här sidan beskriver vad varje utgåva innehåller, hur du kör Enterprise Edition, hur licensieringen fungerar och vad som händer när du byter utgåva.
 
@@ -57,7 +57,7 @@ Den här sidan beskriver vad varje utgåva innehåller, hur du kör Enterprise E
 | Migreringsstatus, supportpaket och globala sonder i administratörspanelen | Ja | Ja | Inte tillämpligt |
 | Hantering av Enterprise-licens, platser och instanser | Nej | Ja | Inte tillämpligt |
 
-Enkel inloggning omfattar "Require SSO for login" för projekt, privata statussidor och hela instansen, i båda utgåvorna.
+Enkel inloggning omfattar "Require SSO to sign in" för projekt, privata statussidor och hela instansen, i båda utgåvorna.
 
 Alla utgåvor har projektets standardlagringstid för telemetri under **Projektinställningar > Telemetri och APM > Datalagring**. Åsidosättningar av lagringstid är det som Enterprise Edition lägger till ovanpå den.
 
@@ -166,7 +166,7 @@ Inget annat skickas. Inga övervakningsdata, ingen telemetri, inga loggar och in
 
 ### När en licens löper ut eller saknas
 
-Alla enterprise-funktioner fungerar under provperioden på 14 dagar och i 30 dagar efter att en licens har löpt ut (fristen). Utgåvemärket varnar innan någon av dem tar slut. Därefter **stoppas SCIM, granskningsloggning och åsidosättningar av lagringstid** tills en licens aktiveras, precis som på Community Edition, och enterprise-konfigurationen blir skrivskyddad. Enkel inloggning är inte en enterprise-funktion: inloggning med SAML och OIDC, global SSO och "Require SSO for login" fungerar likadant i alla licenstillstånd.
+Alla enterprise-funktioner fungerar under provperioden på 14 dagar och i 30 dagar efter att en licens har löpt ut (fristen). Utgåvemärket varnar innan någon av dem tar slut. Därefter **stoppas SCIM, granskningsloggning och åsidosättningar av lagringstid** tills en licens aktiveras, precis som på Community Edition, och enterprise-konfigurationen blir skrivskyddad. Enkel inloggning är inte en enterprise-funktion: inloggning med SAML och OIDC, global SSO och "Require SSO to sign in" fungerar likadant i alla licenstillstånd.
 
 ```mermaid title="Hur en licens går mellan tillstånd"
 stateDiagram-v2
@@ -200,7 +200,7 @@ Vad som stoppas när en licens löper ut:
 
 Vad som **inte** stoppas:
 
-- **Enkel inloggning.** Inloggning med SAML och OIDC för projekt, privata statussidor, hela instansen (global SSO) och mobilapparna, liksom "Require SSO for login", ingår i alla utgåvor. En utgången licens ändrar inget av detta, och konfigurationen för enkel inloggning går fortfarande att redigera.
+- **Enkel inloggning.** Inloggning med SAML och OIDC för projekt, privata statussidor, hela instansen (global SSO) och mobilapparna, liksom "Require SSO to sign in", ingår i alla utgåvor. En utgången licens ändrar inget av detta, och konfigurationen för enkel inloggning går fortfarande att redigera.
 - **Grundövervakningen påverkas aldrig**: monitorer, larm, incidenter, jour, statussidor och telemetri fortsätter alla att fungera.
 - **Huvudadministratörer kan alltid logga in med sitt lösenord.**
 - **Anpassade roller, IP-tillåtelselistor och åtkomstkontroller för statussidor fortsätter att gälla.** Du kan ta bort dem, men inte skapa eller ändra dem.
@@ -210,11 +210,11 @@ Vad som **inte** stoppas:
 **Allt fortsätter igen så snart en licens aktiveras**, utan omstart: SCIM-etablering, granskningsloggning och åsidosättningar av lagringstid kommer tillbaka med den konfiguration du har. OneUptime stänger bara av dem när det vet att licensen har löpt ut. Så länge det inte kan läsa licenstillståndet, till exempel en kort stund medan servern startar, förblir SCIM, granskningsloggning och åsidosättningar av lagringstid påslagna.
 
 > [!WARNING]
-> **Om din identitetsleverantör avetablerar användare via SCIM ska du aktivera en licens innan provperioden eller fristen tar slut.** Därefter avetablerar SCIM inte längre de personer du tar bort hos din identitetsleverantör: deras OneUptime-konton finns kvar, och om inte "Require SSO for login" gäller för dem kan vem som helst som fortfarande når en sådan kontos inkorg ange ett lösenord och logga in. Om du låter licensen löpa ut tar du själv bort de användarna i OneUptime.
+> **Om din identitetsleverantör avetablerar användare via SCIM ska du aktivera en licens innan provperioden eller fristen tar slut.** Därefter avetablerar SCIM inte längre de personer du tar bort hos din identitetsleverantör: deras OneUptime-konton finns kvar, och om inte "Require SSO to sign in" gäller för dem kan vem som helst som fortfarande når en sådan kontos inkorg ange ett lösenord och logga in. Om du låter licensen löpa ut tar du själv bort de användarna i OneUptime.
 
 ## Byta från Enterprise till Community
 
-Din konfiguration ligger kvar i databasen. Ett byte tillbaka till Enterprise-avbildningen återställer allt som det var, så länge installationen har en giltig licens eller fortfarande är i sin provperiod eller frist. Enkel inloggning ändras inte: inloggning med SAML och OIDC, global SSO och "Require SSO for login" fungerar likadant på båda avbildningarna. På Community-avbildningen:
+Din konfiguration ligger kvar i databasen. Ett byte tillbaka till Enterprise-avbildningen återställer allt som det var, så länge installationen har en giltig licens eller fortfarande är i sin provperiod eller frist. Enkel inloggning ändras inte: inloggning med SAML och OIDC, global SSO och "Require SSO to sign in" fungerar likadant på båda avbildningarna. På Community-avbildningen:
 
 - **SCIM stoppas.** Dess etableringsslutpunkter finns inte längre, så SCIM-anrop från IdP:n misslyckas. Det omfattar även SCIM-avetablering.
 - **SCIM-teamlås hävs**, så att team som hanterades av SCIM-pushgrupper kan redigeras för hand. Vid start loggar servern vilka projekt som fick sina SCIM-teamlås hävda.
@@ -227,7 +227,7 @@ Din konfiguration ligger kvar i databasen. Ett byte tillbaka till Enterprise-avb
 - **Enterprise-instrumentpanelerna under Health, Query Console och hälsolarmen för PostgreSQL och Valkey stoppas.** Kapacitetsövervakning och rensning för ClickHouse, migreringsstatus och supportpaketet fortsätter att fungera.
 
 > [!CAUTION]
-> **Innan du byter en installation vars identitetsleverantör avetablerar användare via SCIM till Community-avbildningen ska du gå igenom vem som har åtkomst.** Utan SCIM behåller de personer du tar bort hos din identitetsleverantör sina OneUptime-konton, och om inte "Require SSO for login" gäller för dem kan vem som helst som fortfarande når en sådan kontos inkorg ange ett lösenord och logga in. Ta bort de användarna först.
+> **Innan du byter en installation vars identitetsleverantör avetablerar användare via SCIM till Community-avbildningen ska du gå igenom vem som har åtkomst.** Utan SCIM behåller de personer du tar bort hos din identitetsleverantör sina OneUptime-konton, och om inte "Require SSO to sign in" gäller för dem kan vem som helst som fortfarande når en sådan kontos inkorg ange ett lösenord och logga in. Ta bort de användarna först.
 
 ## Felsökning
 

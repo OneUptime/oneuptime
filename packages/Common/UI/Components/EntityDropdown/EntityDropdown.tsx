@@ -1981,7 +1981,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   </span>
                 )}
               </button>
-              <span className="ml-auto pr-1 text-[11px] text-gray-500">
+              <span className="ml-auto pr-1 text-xs text-gray-500">
                 {translator.translateText(
                   activeTab === "options"
                     ? "Pick individually"

@@ -128,14 +128,14 @@ const SETTINGS_ENTRIES: Array<string> = [
   "settingsApiKey",
 ];
 
-// A user's menu.
+// A user's menu. Advanced's entry says what it deletes (#9216).
 const USER_SECTIONS: Array<string> = ["basic", "advanced"];
 const USER_ENTRIES: Array<string> = [
   "overview",
   "projects",
   "authentication",
   "settings",
-  "delete",
+  "deleteUser",
 ];
 
 // A word each language has as a key of its own.

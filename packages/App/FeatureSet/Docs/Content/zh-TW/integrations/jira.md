@@ -125,11 +125,11 @@ flowchart TB
 :::steps
 1. 開啟 **工作流程 → 建立工作流程**。在 **或從範本開始** 下，從類別清單中選擇 **Jira**，或者在 **搜尋範本…** 中輸入 `Jira`，然後點選你想要的範本。範本開啟後會顯示它的作用以及將要詢問的設定。點選 **使用此範本**。
 2. **名稱** 會根據範本自動填寫。如果願意，可以修改它。
-3. **設定** 會詢問上面的這些值。它們儲存為工作流程自己的變數，位於工作流程選單的 **工作流程變數** 下。API 權杖儲存為金鑰：它在 **日誌 → 執行記錄** 中會被隱藏，並且只會放進 Jira 呼叫的 `Authorization` 標頭。
+3. **設定** 會詢問上面的這些值。它們儲存為工作流程自己的變數，位於工作流程選單的 **工作流程變數** 下。API 權杖儲存為金鑰：它在 **執行記錄** 中會被隱藏，並且只會放進 Jira 呼叫的 `Authorization` 標頭。
 4. 點選 **建立工作流程**。每個工作流程建立時都處於關閉狀態：在它的 **建構器** 頂部開啟 **已啟用**。
 :::
 
-先從 **Create a Jira issue when an incident is declared** 開始，警示則從 **Create a Jira issue when an alert is created** 開始：同類的其他 OneUptime → Jira 範本都透過這個範本新增的標籤找到問題。啟用它，宣告一個測試事件或建立一個測試警示，然後開啟工作流程的 **日誌 → 執行記錄**。這次執行應以 **已執行** 結束，其最後一步 `create-issue-1` 的 **回應內文** 會給出新問題。
+先從 **Create a Jira issue when an incident is declared** 開始，警示則從 **Create a Jira issue when an alert is created** 開始：同類的其他 OneUptime → Jira 範本都透過這個範本新增的標籤找到問題。啟用它，宣告一個測試事件或建立一個測試警示，然後開啟工作流程的 **執行記錄**。這次執行應以 **已執行** 結束，其最後一步 `create-issue-1` 的 **回應內文** 會給出新問題。
 
 每個工作流程都儲存這些值的獨立副本。更換權杖時，請在每個詢問過它的 Jira 工作流程的 **工作流程變數** 下更新 `jiraBasicAuthToken`。如果 Jira 換了位址，請用同樣的方式更新 `jiraSiteUrl` 和 `jiraBaseUrl`。
 
@@ -180,7 +180,7 @@ project = OPS AND issuetype = Alert AND (labels is EMPTY OR labels != oneuptime)
 
 ### 檢查是否正常工作
 
-每次執行的 **步驟** 都會說明範本做了什麼，因此請在 **日誌 → 執行記錄** 中開啟這次執行，看看它是如何結束的：
+每次執行的 **步驟** 都會說明範本做了什麼，因此請在 **執行記錄** 中開啟這次執行，看看它是如何結束的：
 
 - **已執行**：完成了工作，最後一步會給出問題、事件或警示。
 - **已執行**，且 **用 JavaScript 檢查** 步驟走了 **否**：有意跳過了該事件，該步驟會說明原因：問題沒有關聯到這類記錄、備註來自 Jira、記錄是私人的，或者新狀態沒有對應到任何 Jira 狀態。
@@ -272,7 +272,7 @@ const STATE_TO_JIRA_STATUS = {
 
 - **僅限 Jira Cloud。** 範本使用 Basic 驗證呼叫 Jira Cloud REST API v3。Data Center 沒有 v3，並且以 `Bearer` 方式接受個人存取權杖，因此每個 API 區塊都需要 [Jira Data Center](#jira-data-center) 中的修改：`/rest/api/2/...` 路徑、用純字串代替 Atlassian Document Format 內文，以及標頭。`find-issue-1` 區塊改動最大：Data Center 沒有 `/search/jql`，因此它們必須改為向 `/rest/api/2/search` 傳送 `POST`。
 - **從 Jira 宣告的事件是安靜的。** 它們建立時對狀態頁隱藏，也不通知狀態頁訂閱者，因為問題的文字不是為客戶寫的。要顯示某個事件，請在事件的 **設定** 頁面開啟 **於狀態頁面可見**（請參閱 [不在狀態頁上顯示事件](/docs/incidents/states-and-severities#讓事件不出現在狀態頁面上)），或者在範本的 `incident-from-another-tool-1` 區塊中開啟 **更多欄位** 底下的 **在狀態頁面上顯示**。
-- **私人事件和警示留在 OneUptime 中。** OneUptime → Jira 範本會跳過它們，每次跳過都會在 **日誌 → 執行記錄** 中註明。要照樣傳送，請把 `SYNC_PRIVATE_INCIDENTS` 或 `SYNC_PRIVATE_ALERTS` 設為 `true`。之後再把記錄設為私人，會從那時起停止同步，但不會收回 Jira 已有的內容。Jira → OneUptime 範本不做檢查，因此已關聯問題上的留言、編輯和狀態變更仍會到達私人記錄。
+- **私人事件和警示留在 OneUptime 中。** OneUptime → Jira 範本會跳過它們，每次跳過都會在 **執行記錄** 中註明。要照樣傳送，請把 `SYNC_PRIVATE_INCIDENTS` 或 `SYNC_PRIVATE_ALERTS` 設為 `true`。之後再把記錄設為私人，會從那時起停止同步，但不會收回 Jira 已有的內容。Jira → OneUptime 範本不做檢查，因此已關聯問題上的留言、編輯和狀態變更仍會到達私人記錄。
 - **一切都不會往回走。** 重新開啟 Jira 問題不會改變 OneUptime 中的任何內容，To Do 類別中的狀態不對應到任何狀態。請參閱 [順序是真正的約束](/docs/incidents/states-and-severities#順序是真正的限制而不是顯示偏好)。轉換範本也從不把問題移到更早的狀態類別。
 - **每個警示都會得到一個問題。** 除私人警示外，警示的建立問題範本會為每個警示建立問題，包括監測器產生的每一個。[警示有何不同](#警示有何不同) 介紹瞭如何新增條件。
 - **最初幾秒可能找不到問題。** Jira 的搜尋會在問題變化後稍過片刻才跟上，因此在記錄建立後最初幾秒內發生的備註、狀態變更或編輯，可能找不到新問題，並以 `No Jira issue is labelled …` 跳過結束。這樣的執行不會重試。記錄剛從 Jira 建立、標籤尚未新增時也是如此。
@@ -336,7 +336,7 @@ Jira Cloud 接受由帳戶的電子郵件和 API 權杖編碼在一起構成的 
    }
    ```
 
-4. 開啟 **已啟用**，宣告一個測試事件，然後開啟 **日誌 → 執行記錄**。`create-issue` 步驟會顯示 `201`，以及包含新問題的 `id`、`key` 和 `self` 的回應內文。
+4. 開啟 **已啟用**，宣告一個測試事件，然後開啟 **執行記錄**。`create-issue` 步驟會顯示 `201`，以及包含新問題的 `id`、`key` 和 `self` 的回應內文。
 :::
 
 描述看起來很繁瑣，是因為 Jira Cloud 的 v3 API 以 **Atlassian Document Format** 接受富文字，這是一棵文件樹，而不是字串。上面的內文包含最小的有效文件：一個只含一個文字節點的段落。`environment` 和多行文字自訂欄位也是如此。後面的區塊用 `{{local.components.create-issue.returnValues.response-body.key}}` 讀取新的問題鍵。
@@ -445,7 +445,7 @@ Jira 管理員也可以改為新增一個短文字自訂欄位，例如命名為
 
    如果用標籤而不是自訂欄位，請傳送 `"labels": "{{issue.labels}}"`，並用一個 **執行自訂 JavaScript** 區塊把 ID 取出來。
 
-4. 啟用規則，並把一個測試問題移到 Done。在 Jira 中檢視規則的稽核日誌，在 OneUptime 中檢視 **日誌 → 執行記錄**。
+4. 啟用規則，並把一個測試問題移到 Done。在 Jira 中檢視規則的稽核日誌，在 OneUptime 中檢視 **執行記錄**。
 
 為確保請求來自你的規則，請新增第二個標頭 `X-OneUptime-Secret`，值由你自己設定，並對它使用該操作的 **Hide** 選項。在工作流程中，在更新之前放一個 **如果 / 否則** 區塊：**要檢查的值** 為 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`，**比較** 為 **等於**，**比較對象** 為同一個值，儲存在一個密鑰全域變數中。
 
@@ -513,7 +513,7 @@ Webhook 可以帶一個金鑰，這時 Jira 會在 `X-Hub-Signature` 標頭中�
 
 ## 疑難排解
 
-先在 **日誌 → 執行記錄** 中開啟失敗的步驟。Jira 會以 JSON 內文回應，說明它拒絕了什麼，API 區塊把它儲存在 `response-body` 中。
+先在 **執行記錄** 中開啟失敗的步驟。Jira 會以 JSON 內文回應，說明它拒絕了什麼，API 區塊把它儲存在 `response-body` 中。
 
 :::details 401 Unauthorized
 用 `printf`（不要用 `echo`）重新編碼 `email:api_token` 並更新權杖：末尾的換行符是常見原因。然後檢查權杖所屬的帳戶能否在該專案中建立問題。在 Data Center 上，請檢查你傳送的是 `Bearer` 而不是 `Basic`。在 Cloud 網站 URL 上，錯誤的憑證更常表現為下一條中的情況。
@@ -540,7 +540,7 @@ Jira 正在限制你的呼叫速度。回應中帶有以秒為單位的 `Retry-A
 :::
 
 :::details Jira 顯示規則或 Webhook 已執行，但 OneUptime 什麼也沒收到
-先檢查連接埠：Jira 只呼叫允許的連接埠。然後用 `curl` 自己向工作流程的 URL 傳送一個請求，並在 **日誌 → 執行記錄** 中查詢它。如果你的請求到達了而 Jira 的沒有，問題出在 Jira 一側。如果執行存在但被拒絕，請檢查工作流程是否已啟用。
+先檢查連接埠：Jira 只呼叫允許的連接埠。然後用 `curl` 自己向工作流程的 URL 傳送一個請求，並在 **執行記錄** 中查詢它。如果你的請求到達了而 Jira 的沒有，問題出在 Jira 一側。如果執行存在但被拒絕，請檢查工作流程是否已啟用。
 :::
 
 :::details 工作流程執行了，但事件沒有變化

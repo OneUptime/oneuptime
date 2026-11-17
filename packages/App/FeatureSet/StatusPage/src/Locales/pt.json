@@ -37,7 +37,7 @@
     "announcements": "Anúncios",
     "scheduledEvents": "Manutenção programada",
     "subscribe": "Inscrever-se",
-    "logout": "Sair"
+    "signOut": "Sair"
   },
   "overview": {
     "uptimeSuffix": "% de disponibilidade",
@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "Esqueceu a senha",
       "description": "Se você esqueceu sua senha para {{statusPageName}}, digite seu e-mail e o link de redefinição de senha será enviado a você.",
-      "success": "Enviamos o link de redefinição de senha para seu e-mail. Não se esqueça de verificar a pasta de spam.",
+      "success": "Se este endereço de e-mail puder entrar em {{statusPageName}}, enviamos a ele um link de redefinição de senha. Não se esqueça de verificar a pasta de spam.",
       "sendLink": "Enviar link de redefinição de senha",
       "rememberPassword": "Lembrou da sua senha?"
     },
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "Concluída nos últimos {{count}} dias",
   "Completed in the Last {{count}} Days_one": "Concluída no último dia",
   "None is planned, and none took place in the last {{count}} days.": "Nenhuma está prevista e nenhuma ocorreu nos últimos {{count}} dias.",
-  "None is planned, and none took place in the last {{count}} days._one": "Nenhuma está prevista e nenhuma ocorreu no último dia."
+  "None is planned, and none took place in the last {{count}} days._one": "Nenhuma está prevista e nenhuma ocorreu no último dia.",
+  "serverMessages": {
+    "signInToView": "Você não tem acesso a esta página de status. Entre para vê-la.",
+    "sessionExpired": "A sessão expirou. Entre novamente.",
+    "signedOut": "Você saiu. Entre novamente.",
+    "magicLinkTurnedOff": "Os links de acesso estão desativados para esta página de status. Entre com seu e-mail e sua senha."
+  }
 }

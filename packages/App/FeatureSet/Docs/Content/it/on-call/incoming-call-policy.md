@@ -183,7 +183,7 @@ Twilio legge i messaggi con una voce sintetica, quindi scrivili come vuoi che su
 
 ## Log chiamate
 
-Ogni chiamata compare nella pagina **Log chiamate** della policy, in **Log** nel suo menu laterale: il **Chiamante**, il **Numero chiamato**, il suo **Stato**, chi ha risposto (**Risposto da**), la **Durata** e quando è iniziata (**Iniziato il**). Fai clic su **Visualizza cronologia** su una chiamata per vedere la sua **Cronologia chiamata**: ogni persona che ha squillato, su quale numero e come è finito ogni tentativo.
+Ogni chiamata compare nella pagina **Log chiamate** della policy, in **Base** nel suo menu laterale: il **Chiamante**, il **Numero chiamato**, il suo **Stato**, chi ha risposto (**Risposto da**), la **Durata** e quando è iniziata (**Iniziato il**). Fai clic su **Visualizza cronologia** su una chiamata per vedere la sua **Cronologia chiamata**: ogni persona che ha squillato, su quale numero e come è finito ogni tentativo.
 
 | Stato | Che cosa è successo |
 | --- | --- |

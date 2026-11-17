@@ -39,7 +39,7 @@ import { SESSIONS_WITHOUT_SSO_ROUTE } from "../../../Types/SSO/SessionsWithoutSs
  *     (on while disableMagicLinkLogin is false, saying under it that the
  *     sign-in page offers SSO alone while SSO is required) and "Let users
  *     create projects" (on while disableUserProjectCreation is false);
- *   - Settings > Single Sign-On: "Require SSO for Login" (asks, red, before
+ *   - Settings > Single Sign-On: "Require SSO to Sign In" (asks, red, before
  *     it turns on), under the providers it depends on - it was the card
  *     between the two above;
  *   - a user's Settings: "Master Admin", asking both ways - with a red
@@ -407,7 +407,7 @@ describe("Settings > Authentication", () => {
         return control.getAttribute("data-testid") || "";
       });
 
-    // Require SSO for Login is on Settings > Single Sign-On now.
+    // Require SSO to Sign In is on Settings > Single Sign-On now.
     expect(switches).toEqual([
       SIGN_UP_SWITCH_TEST_ID,
       MAGIC_LINK_SWITCH_TEST_ID,
@@ -693,7 +693,7 @@ describe("Settings > Authentication", () => {
   });
 });
 
-describe("Settings > Single Sign-On: Require SSO for Login", () => {
+describe("Settings > Single Sign-On: Require SSO to Sign In", () => {
   test("is the page's one switch, under its providers, with its own words", async () => {
     await renderPage(<SsoSettings />);
 
@@ -822,7 +822,7 @@ describe("Settings > Single Sign-On: Require SSO for Login", () => {
   test("a refused requirement - a project with no way in - moves the switch back and says why", async () => {
     mockUpdateById.mockImplementation(async (): Promise<unknown> => {
       throw new Error(
-        "Require SSO for Login would leave Acme with no SSO provider to sign in with.",
+        "Require SSO to Sign In would leave Acme with no SSO provider to sign in with.",
       );
     });
 
@@ -836,7 +836,7 @@ describe("Settings > Single Sign-On: Require SSO for Login", () => {
     expect(control).toHaveAttribute("aria-checked", "false");
     expect(
       screen.getByText(
-        "Require SSO for Login would leave Acme with no SSO provider to sign in with.",
+        "Require SSO to Sign In would leave Acme with no SSO provider to sign in with.",
       ),
     ).toBeInTheDocument();
   });

@@ -1102,7 +1102,7 @@ describe("the projects a change would leave with no way in", () => {
     ).resolves.toEqual(noStrandedProjects());
   });
 
-  describe("Require SSO for Login turned on for a project", () => {
+  describe("Require SSO to Sign In turned on for a project", () => {
     const turnOn: (
       projectId: string,
       requiredProviderId?: string,
@@ -1194,7 +1194,7 @@ describe("the projects a change would leave with no way in", () => {
     });
   });
 
-  describe("Require SSO for Login turned on for the whole server", () => {
+  describe("Require SSO to Sign In turned on for the whole server", () => {
     beforeEach(() => {
       projects = [
         project(ACME, "Acme", { requireSsoForLogin: false }),
@@ -1352,7 +1352,7 @@ describe("the projects a change would leave with no way in", () => {
         data: unknown,
       ) => Promise<Array<Project>>;
 
-    // The first project turns Require SSO for Login on, under its own lock, once the first page is read.
+    // The first project turns Require SSO to Sign In on, under its own lock, once the first page is read.
     projectPageReads.mockImplementation((async (
       data: unknown,
     ): Promise<Array<Project>> => {
@@ -1457,7 +1457,7 @@ describe("whether a change to projects alone depends on the server's sign-in rul
     ).resolves.toBe(false);
   });
 
-  test("Require SSO for Login turned on: not with one of its own providers on, and the provider it requires one of them", async () => {
+  test("Require SSO to Sign In turned on: not with one of its own providers on, and the provider it requires one of them", async () => {
     const turnOn: (requiredProviderId: string | null) => Promise<boolean> = (
       requiredProviderId: string | null,
     ): Promise<boolean> => {

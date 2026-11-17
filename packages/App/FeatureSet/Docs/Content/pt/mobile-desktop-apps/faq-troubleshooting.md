@@ -36,7 +36,7 @@ Sim. Cada celular ou tablet é um dispositivo push próprio, com as suas própri
 - **Monitors**: todos os monitores, filtrados por estado, com os detalhes deles.
 - **Inbox**: incidentes e alertas, e os episódios que os agrupam. Abra um para usar **Acknowledge**, **Resolve** ou **Add Note**. Se o seu papel permitir ver os casos de segurança do projeto, **Security** lista os abertos: abra um para usar **Approve** ou **Reject** em uma etapa de playbook aguardando aprovação, assumir o caso com **Assign to me** ou usar **Close case**.
 - **On-Call**: se você está de plantão e até quando, quem mais está, os acionamentos enviados a você, e **Cover for me**, que passa os seus acionamentos a um colega por um tempo.
-- **Settings**: os seus projetos e o login único, a aparência, os alertas críticos e o som de alarme, **Biometrics Login**, o seu feed de calendário de plantão e **Log Out**.
+- **Settings**: os seus projetos e o login único, a aparência, os alertas críticos e o som de alarme, **Biometric Unlock**, o seu feed de calendário de plantão e **Sign Out**.
 
 Todo o resto está no painel.
 :::
@@ -46,7 +46,7 @@ Não. Toque na notificação: o aplicativo abre o incidente, o alerta, o episód
 :::
 
 :::details O meu login está seguro no celular?
-O aplicativo fala com o seu OneUptime só por HTTPS. O seu login fica guardado no armazenamento próprio do aplicativo no celular, e **Log Out** o apaga e também encerra a sessão no servidor. Ative **Biometrics Login** para que o aplicativo peça o seu rosto, a sua digital ou o seu código sempre que abrir.
+O aplicativo fala com o seu OneUptime só por HTTPS. O seu login fica guardado no armazenamento próprio do aplicativo no celular, e **Sign Out** o apaga e também encerra a sessão no servidor. Ative **Biometric Unlock** para que o aplicativo peça o seu rosto, a sua digital ou o seu código sempre que abrir.
 :::
 
 :::details O aplicativo funciona offline?

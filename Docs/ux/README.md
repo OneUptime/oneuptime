@@ -120,7 +120,13 @@ and phone summary: change the suite in the same pull request as the menu.
   Retention", Project Settings "Danger Zone › Danger Zone" and seven resource pages "Settings ›
   Settings" (#9134). Put the entry in a section of related pages (a resource's Settings sits in
   Advanced, beside Owners and Audit Logs), or name the entry for what the page does (Danger Zone ›
-  Delete Project). Enforced by
+  Delete Project). Nor does it nearly repeat it: a heading whose every word is in its only entry
+  ("Logs › Call Logs", "Calendar › Maintenance Calendar", "Notes › Private Notes", "Rules › Monitor
+  Rules") says nothing the entry does not (#9216). Call Logs went to its policy's Basic, the
+  maintenance calendar to Overview, a runbook's Executions to Advanced. A page that is the only
+  entry of the only section has no side menu (an AI insight, Send Email). A product's own list
+  ("Users › All Users") and a status page's folded Rules section, which the maintainer asked for,
+  are allowed, with their reasons in the guard. Enforced by
   [OneEntryMenuSectionsGuard](../../packages/App/Tests/OneEntryMenuSectionsGuard.test.ts).
 - **A setting only the public link reads says what it is for.** A dashboard's Branding and Custom
   Domains change only its public link, and showed on every dashboard as if they did more. They sit
@@ -139,7 +145,7 @@ and phone summary: change the suite in the same pull request as the menu.
 - **Search (Cmd/Ctrl+K) finds every page a menu links to,** by the menu's name for it, and says where
   it lives the way the menu does. Add a new page to `PageSearchIndex.ts`. Enforced by
   [PageSearchIndexCoversMenus](../../packages/Common/Tests/App/Dashboard/PageSearchIndexCoversMenus.test.tsx).
-- **A setting is found by the name on its card.** Searching "require sso for login" finds that switch
+- **A setting is found by the name on its card.** Searching "require sso to sign in" finds that switch
   on the SSO page. Add a new settings card or switch to its page's settings list in
   `PageSearchIndex.ts`, or to `NOT_A_SETTING`. Enforced by
   [SettingsFoundByName](../../packages/App/Tests/Dashboard/SettingsFoundByName.test.ts).
@@ -671,13 +677,19 @@ what was further down.
   and
   [MonitorSummaryViewsLayoutGuard](../../packages/App/Tests/Dashboard/MonitorSummaryViewsLayoutGuard.test.ts).
 - **Text people read is readable: at least 4.5:1.** A label, a description, a value, a hint or a
-  timestamp is `text-gray-500` or darker (`text-gray-600` for body text), and at least 11px, with
-  `text-xs` for small print. `text-gray-400` is 2.5:1 on white and `text-gray-300` 1.5:1: the logs'
+  timestamp is `text-gray-500` or darker (`text-gray-600` for body text), and `text-xs` (12px) or
+  larger for small print. 11px (`text-[11px]`) is kept only for a short label whose shape carries
+  it: an eyebrow in capitals (`uppercase`), or a chip, a badge or a key that frames its word (rounded,
+  on a ground or in a border of its own; a `kbd`), still at 4.5:1. A hint, a value, a count or a
+  sentence at 11px is `text-xs`, and nothing is smaller than 11px. `text-gray-400` is 2.5:1 on white
+  and `text-gray-300` 1.5:1: the logs'
   saved views said "No saved views yet." in it, a More menu's section headings, a drop filter's "Not
   configured" and an on-call schedule's "No upcoming shifts" were all drawn in it (#9127). The dark
   theme paints gray-400 and gray-500 the same, so the change holds there. gray-400 stays for what
   nobody reads as words: an icon beside a label, a separator, a placeholder, a disabled control, and
-  the quiet empty-value dash. Enforced by
+  the quiet empty-value dash. The guard reads every app and a class held in a const of the same file;
+  the shared UI holds none, and each app file may hold no more than its count in
+  `ReadableTextStillToFix.ts`, which only falls (#9192). Enforced by
   [ReadableTextContrastGuard](../../packages/Common/Tests/UI/ReadableTextContrastGuard.test.ts).
 - **Banners are for exceptions the person must act on,** never for the default state. Enforced by
   [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
@@ -708,6 +720,15 @@ what was further down.
   ([`introduction/glossary.md`](../../packages/App/FeatureSet/Docs/Content/en/introduction/glossary.md))
   and the name the menu uses. A renamed thing is still found by its old name in Search. Not enforced:
   use judgement.
+- **Signing in is "Sign in" and signing out is "Sign out", never "log in", "login" or "log out".**
+  One flow once said "Log Out" in the status page's nav, "Log out" and "Sign Out" in the Dashboard,
+  and "Please login again" from the server (#9212). Now it is **Sign Out** in every menu, and
+  "Session expired. Please sign in again." A database's or another system's "login" (a credential),
+  "logged in this window" (written to a log) and another product's own label stay, each listed with its
+  reason. Enforced by
+  [SignInWordsGuard](../../packages/Common/Tests/App/SignInWordsGuard.test.ts), which reads every
+  front end's English locale, the server's sign-in messages, the mobile app's labels and the bold
+  labels in the English docs.
 - **A retired name does not come back.** When one thing had several names, #6817 kept one and retired
   the rest ([`RetiredNames`](../../packages/Common/Types/Docs/RetiredNames.ts)): "On-Call Duty" is
   On-Call, a person's "on-call rules" are How to Reach Me, the project's "Notification Settings" are

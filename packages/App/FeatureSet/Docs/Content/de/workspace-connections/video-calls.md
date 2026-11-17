@@ -86,6 +86,8 @@ Verbindungen, die mit demselben Konto angemeldet sind, teilen sich eine Anmeldun
 
 Das Löschen einer Verbindung entzieht OneUptime den Zugriff bei Zoom und Google, sobald keine andere Verbindung die Anmeldung nutzt. Bei Microsoft entfernen Sie OneUptime unter **My Apps** (myapps.microsoft.com) des Kontos. Das Entfernen von OneUptime aus Ihrem Zoom-Konto im Zoom App Marketplace löscht seine Anmeldung aus jeder Verbindung, die mit diesem Konto angemeldet ist, und sie zeigen **Funktioniert nicht**, bis sie neu verbunden werden.
 
+Transkripte, die OneUptime bereits gelesen hat, bleiben bei ihren Vorfällen: Das Löschen einer Verbindung behält die Anrufe, die sie gestartet hat, mit ihren Transkripten, und ebenso das Entfernen von OneUptime aus dem Konto bei Zoom, Google oder Microsoft. **Transkript entfernen** bei einem Anruf löscht sein Transkript und was OneUptime AI darin gelesen hat, aber nicht, was OneUptime AI im Feed des Vorfalls und in seinen Kanälen gepostet hat. Das Löschen eines Vorfalls löscht seine Anrufe und ihre Transkripte.
+
 ### Wenn Microsoft nach einem Administrator fragt
 
 Manche Microsoft-365-Organisationen lassen nur Administratoren Apps genehmigen. Sagt Microsoft, dass Sie eine Administratorgenehmigung brauchen, bitten Sie eine Administratorin oder einen Administrator von Microsoft 365, Microsoft Teams zu verbinden oder OneUptime im [Microsoft Entra Admin Center](https://entra.microsoft.com/) unter **Enterprise applications** > **Admin consent requests** zu genehmigen. Ein Projekt, das seine Teams-Anrufe aufzeichnet, braucht diese Genehmigung in jeder Organisation, einmalig: Nur eine Administratorin oder ein Administrator kann einer App erlauben, Meeting-Transkripte zu lesen.

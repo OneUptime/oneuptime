@@ -3,7 +3,7 @@
 单点登录（SSO）让项目中的人员通过组织的身份提供商（IdP），使用 SAML 2.0 或 OpenID Connect 登录 OneUptime。您可以在一个地方管理访问权限、密码和多因素认证，还可以要求项目中的所有人都使用 SSO。
 
 > [!NOTE]
-> **版本：** SSO（包括“Require SSO for login”）属于 OneUptime 的所有版本：自托管部署在 Community Edition 中即可使用，无需许可证。在 OneUptime Cloud 上，**Scale** 及以上套餐可用。各版本包含哪些功能，请参阅 [企业版](/docs/self-hosted/enterprise)。
+> **版本：** SSO（包括“Require SSO to sign in”）属于 OneUptime 的所有版本：自托管部署在 Community Edition 中即可使用，无需许可证。在 OneUptime Cloud 上，**Scale** 及以上套餐可用。各版本包含哪些功能，请参阅 [企业版](/docs/self-hosted/enterprise)。
 
 :::cards
 - [设置 SAML 提供商](#设置-sso): 在 OneUptime 中创建它，并把两个 URL 交给您的 IdP。

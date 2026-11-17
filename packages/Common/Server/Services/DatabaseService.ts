@@ -69,7 +69,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import UpdateByID from "../Types/Database/UpdateByID";
 import UpdateByIDAndFetch from "../Types/Database/UpdateByIDAndFetch";
 import UpdateOneBy from "../Types/Database/UpdateOneBy";
-import Encryption from "../Utils/Encryption";
+import EncryptedColumnValue from "../Utils/Database/EncryptedColumnValue";
 import PresentedKey from "../Utils/PresentedKey/PresentedKey";
 import PresentedKeysAtRest from "../Utils/PresentedKey/PresentedKeysAtRest";
 import PasswordHash from "../Utils/PasswordHash";
@@ -118,7 +118,7 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import ServerException from "../../Types/Exception/ServerException";
 import HashedString from "../../Types/HashedString";
-import { JSONObject, JSONValue, ObjectType } from "../../Types/JSON";
+import { JSONObject, JSONValue } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
 import TelemetryContext from "../Utils/Telemetry/TelemetryContext";
@@ -326,6 +326,15 @@ interface SwitchStamp {
   stampedColumns: Array<string>;
 }
 
+/*
+ * One encrypted column of a payload encrypt() encrypted: the value it was
+ * given, and the value it stores (see getValueAsGiven).
+ */
+interface EncryptedColumnWrite {
+  given: unknown;
+  stored: unknown;
+}
+
 // A hook-free write to one row by id, ready to run (see buildColumnsByIdUpdateStatement).
 interface ColumnsByIdUpdateStatement {
   tableName: string;
@@ -503,13 +512,27 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * The relations of this model whose records carry encrypted columns, and
-   * those columns - what decrypt() decrypts in a record read through a
-   * relation. Worked out once, on the first read. See decryptRelatedRecords.
+   * the model of those records - whose encrypted columns decrypt()
+   * decrypts in a record read through a relation. Worked out once, on the
+   * first read. See decryptRelatedRecords.
    */
   private relationsWithEncryptedColumns: Array<{
     column: string;
-    encryptedColumns: Array<string>;
+    model: BaseModel;
   }> | null = null;
+
+  /*
+   * What encrypt() wrote to each encrypted column of a payload - a create's
+   * record, an update's data - and what it was given: getValueAsGiven reads
+   * them. Kept by the payload, and gone with it.
+   */
+  private static readonly encryptedColumnWrites: WeakMap<
+    Record<string, unknown>,
+    Record<string, EncryptedColumnWrite>
+  > = new WeakMap<
+    Record<string, unknown>,
+    Record<string, EncryptedColumnWrite>
+  >();
 
   // The plain services that read a create's parents. See getParentReader.
   private static parentReaders: Map<
@@ -1974,77 +1997,119 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * Rows written before the fix above hold their ciphertext inside that
-   * HashedString envelope. Decrypting the envelope itself is not just wrong
-   * but random — it carries no OpenSSL salt, so crypto-js derives the key
-   * from a fresh random one on every call and returns "" or throws
-   * "Malformed UTF-8 data". A ciphertext is base64 and never starts with
-   * "{", so the envelope is unambiguous: unwrap it and those rows decrypt
-   * without anyone re-entering the secret.
+   * Encrypts, in place, each encrypted column `data` sets: a create's record
+   * or an update's data, before it is written. Each by its shape - text, a
+   * URL, the secret fields of a JSON list - as EncryptedColumnValue says.
+   *
+   * Rows written before #3807 was fixed hold their ciphertext inside a
+   * HashedString envelope, which a read unwraps
+   * (EncryptedColumnValue.unwrapHashedStringEnvelope).
+   *
+   * What each column was given is kept beside the payload, for the hooks
+   * that run after this and need the value as it was written - a status
+   * page subscriber's Slack webhook, posted to once the subscriber is
+   * created (getValueAsGiven).
    */
-  private static unwrapHashedStringEnvelope(storedValue: string): string {
-    if (typeof storedValue !== "string" || !storedValue.startsWith("{")) {
-      return storedValue;
-    }
-
-    try {
-      const parsed: JSONValue = JSON.parse(storedValue);
-
-      if (
-        parsed &&
-        typeof parsed === Typeof.Object &&
-        (parsed as JSONObject)["_type"] === ObjectType.HashedString &&
-        typeof (parsed as JSONObject)["value"] === Typeof.String
-      ) {
-        return (parsed as JSONObject)["value"] as string;
-      }
-    } catch {
-      // Not JSON, so not the envelope.
-    }
-
-    return storedValue;
-  }
-
   protected async encrypt(
     data: TBaseModel | PartialEntity<TBaseModel>,
   ): Promise<TBaseModel | PartialEntity<TBaseModel>> {
-    for (const key of this.model.getEncryptedColumns().columns) {
-      if (!(data as any)[key]) {
+    const record: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    const writes: Record<string, EncryptedColumnWrite> = {
+      ...(DatabaseService.encryptedColumnWrites.get(record) || {}),
+    };
+
+    let isAnyEncrypted: boolean = false;
+
+    for (const column of this.model.getEncryptedColumns().columns) {
+      const given: unknown = record[column];
+
+      if (!given) {
         continue;
       }
+
+      const metadata: TableColumnMetadata =
+        this.model.getTableColumnMetadata(column);
 
       /*
-       * A key presented to OneUptime kept in an id-typed column - a
-       * monitor's secret key, an ingestion key (#9012) - is encrypted as its
-       * text. The ObjectID handed in is replaced, never changed: whoever
-       * handed it in may still use it.
+       * Held to its type's length as written, here, before it is encrypted
+       * (assertFitsBeforeEncrypted, #9012): the text it encrypts - a key
+       * presented to OneUptime kept in an id-typed column as its text, a
+       * URL as the text its transformer writes. None for a JSON value, or
+       * for a URL column's ciphertext handed back as it is stored.
        */
-      if ((data as any)[key] instanceof ObjectID) {
-        const text: string = ((data as any)[key] as ObjectID).toString();
-        this.assertFitsBeforeEncrypted(key, text);
-        (data as any)[key] = await Encryption.encrypt(text);
-        continue;
+      const text: string | null = EncryptedColumnValue.getTextToEncrypt(
+        metadata,
+        given,
+      );
+
+      if (text !== null) {
+        this.assertFitsBeforeEncrypted(column, text);
       }
 
-      // If data is an object.
-      if (typeof (data as any)[key] === Typeof.Object) {
-        const dataObj: JSONObject = (data as any)[key] as JSONObject;
+      const stored: unknown = await EncryptedColumnValue.encrypt(
+        metadata,
+        given,
+      );
 
-        for (const key in dataObj) {
-          dataObj[key] = await Encryption.encrypt(dataObj[key] as string);
-        }
+      record[column] = stored;
+      writes[column] = { given: given, stored: stored };
+      isAnyEncrypted = true;
+    }
 
-        (data as any)[key] = dataObj;
-      } else {
-        //If its string or other type.
-        this.assertFitsBeforeEncrypted(key, String((data as any)[key]));
-        (data as any)[key] = await Encryption.encrypt(
-          (data as any)[key] as string,
-        );
-      }
+    if (isAnyEncrypted) {
+      DatabaseService.encryptedColumnWrites.set(record, writes);
     }
 
     return data;
+  }
+
+  /*
+   * A column of a record or an update this service encrypted (encrypt), as
+   * it was given rather than as it is stored: for a hook that runs after
+   * the encryption and reads a credential to use it - a new status page
+   * subscriber's Slack webhook, posted to once it is created - or to compare
+   * it - which subscription already has that webhook. Any other column, or
+   * one a hook has written since, is read as `data` holds it.
+   */
+  protected getValueAsGiven(data: unknown, column: string): unknown {
+    if (!data || typeof data !== Typeof.Object) {
+      return undefined;
+    }
+
+    const value: unknown = (data as Record<string, unknown>)[column];
+
+    const write: EncryptedColumnWrite | undefined =
+      DatabaseService.encryptedColumnWrites.get(
+        data as Record<string, unknown>,
+      )?.[column];
+
+    return write && write.stored === value ? write.given : value;
+  }
+
+  /*
+   * Puts back, on the record a create hands its caller, the value each of
+   * these encrypted columns was given, in place of the ciphertext it stores
+   * (getValueAsGiven). BaseAPI serializes the record whole into the
+   * create's answer, and a workflow's create step keeps it in the
+   * workflow's logs: the answer carries what a read of the record gives,
+   * never a ciphertext nobody typed - one as good as the value to whoever
+   * holds the server's encryption secret. For the columns its readers read;
+   * one nobody reads is cleared off the record instead.
+   */
+  protected handBackAsGiven(
+    created: TBaseModel,
+    columns: ReadonlyArray<string>,
+  ): TBaseModel {
+    for (const column of columns) {
+      (created as unknown as Record<string, unknown>)[column] =
+        this.getValueAsGiven(created, column);
+    }
+
+    return created;
   }
 
   /*
@@ -2516,10 +2581,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return true;
   }
 
+  /*
+   * Decrypts, in place, the encrypted columns of a record this service read,
+   * and of every record read with it through a relation. A row read some
+   * other way than through this service's reads - in a transaction of its
+   * own, through the repository - is decrypted by handing it here.
+   */
   protected async decrypt(data: TBaseModel): Promise<TBaseModel> {
     await DatabaseService.decryptColumns(
       data as unknown as Record<string, unknown>,
-      data.getEncryptedColumns().columns,
+      this.model,
     );
 
     await this.decryptRelatedRecords(data);
@@ -2528,59 +2599,27 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * Decrypts `columns` of one record in place: a record this service read,
-   * or one read with it through a relation.
+   * Decrypts, in place, the encrypted columns of `model` that one record
+   * holds: a record this service read, or one read with it through a
+   * relation. A value that is not our ciphertext is left as it is: a column
+   * freshly made encrypted holds legacy plaintext until its backfill runs,
+   * and decrypting that would throw or yield "" (EncryptedColumnValue).
    */
   private static async decryptColumns(
     record: Record<string, unknown>,
-    columns: Array<string>,
+    model: BaseModel,
   ): Promise<void> {
-    for (const key of columns) {
-      if (!record[key]) {
+    for (const column of model.getEncryptedColumns().columns) {
+      const stored: unknown = record[column];
+
+      if (!stored) {
         continue;
       }
 
-      /*
-       * A key presented to OneUptime kept in an id-typed column (#9012): the
-       * column's transformer read the ciphertext into an ObjectID. A key
-       * stored before the column was encrypted reads as itself.
-       */
-      if (record[key] instanceof ObjectID) {
-        const value: string = (record[key] as ObjectID).toString();
-
-        if (Encryption.looksEncrypted(value)) {
-          record[key] = new ObjectID(await Encryption.decrypt(value));
-        }
-
-        continue;
-      }
-
-      // If data is an object.
-      if (typeof record[key] === Typeof.Object) {
-        const dataObj: JSONObject = record[key] as JSONObject;
-
-        for (const key in dataObj) {
-          const value: string = dataObj[key] as string;
-          /*
-           * Leave a value that is not our ciphertext as it is: a column
-           * freshly made encrypted holds legacy plaintext until its backfill
-           * runs, and decrypting that would throw or yield "" (looksEncrypted).
-           */
-          dataObj[key] = Encryption.looksEncrypted(value)
-            ? await Encryption.decrypt(value)
-            : value;
-        }
-
-        record[key] = dataObj;
-      } else {
-        //If its string or other type.
-        const value: string = DatabaseService.unwrapHashedStringEnvelope(
-          record[key] as string,
-        );
-        record[key] = Encryption.looksEncrypted(value)
-          ? await Encryption.decrypt(value)
-          : value;
-      }
+      record[column] = await EncryptedColumnValue.decrypt(
+        model.getTableColumnMetadata(column),
+        stored,
+      );
     }
   }
 
@@ -2631,7 +2670,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         await DatabaseService.decryptColumns(
           relatedRecord as Record<string, unknown>,
-          relation.encryptedColumns,
+          relation.model,
         );
       }
     }
@@ -2639,11 +2678,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   private findRelationsWithEncryptedColumns(): Array<{
     column: string;
-    encryptedColumns: Array<string>;
+    model: BaseModel;
   }> {
     const relations: Array<{
       column: string;
-      encryptedColumns: Array<string>;
+      model: BaseModel;
     }> = [];
 
     for (const column of this.model.getTableColumns().columns) {
@@ -2659,11 +2698,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         continue;
       }
 
-      const encryptedColumns: Array<string> =
-        new metadata.modelType().getEncryptedColumns().columns;
+      const model: BaseModel = new metadata.modelType();
 
-      if (encryptedColumns.length > 0) {
-        relations.push({ column, encryptedColumns });
+      if (model.getEncryptedColumns().columns.length > 0) {
+        relations.push({ column, model });
       }
     }
 
@@ -12017,8 +12055,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * The encrypted columns an update writes, as it gives them - the ones
-   * encrypt() encrypts (a value that is set), each a copy: encrypt() writes
-   * the ciphertext of an object's values into the object itself.
+   * encrypt() encrypts (a value that is set). The values themselves:
+   * encrypt() puts a new value in the update's data and never changes the
+   * one it was given - an object, a list, a URL - so each still holds what
+   * was written. A copy would not be the value: a URL spread into an object
+   * is no longer a URL, a list no longer a list.
    */
   private getEncryptedColumnsAsGiven(
     data: TBaseModel | PartialEntity<TBaseModel>,
@@ -12036,17 +12077,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         continue;
       }
 
-      /*
-       * An ObjectID (a presented key, #9012) as it is: encrypt() replaces
-       * one with its ciphertext and never changes it, and a copy of its
-       * fields would be no ObjectID.
-       */
-      asGiven[column] =
-        value instanceof ObjectID
-          ? value
-          : typeof value === Typeof.Object
-            ? { ...(value as Record<string, unknown>) }
-            : value;
+      asGiven[column] = value;
     }
 
     return asGiven;
@@ -12698,13 +12729,26 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      * heartbeat.
      */
     skipUpdateDateColumn?: boolean;
+    /*
+     * Move the row's optimistic-lock `version` on, as a write through the
+     * service does, in the same statement (`"version" = "version" + 1`). For
+     * a hook-free write that changes what another writer holds its own write
+     * to by the version: a discovery scan's credential list, rebuilt after
+     * an edit, which the probe's claim holds to the version it read because
+     * the list is kept encrypted and cannot be compared as it was read.
+     */
+    moveVersionOn?: boolean;
   }): Promise<void> {
+    // Its presented keys as they are kept (#9012), on a copy of the write.
+    const protectedInput: typeof input = await this.withPresentedKeysProtected(
+      input,
+      "updateColumnsByIdWithoutHooks",
+    );
+
     const statement: ColumnsByIdUpdateStatement | null =
       this.buildColumnsByIdUpdateStatement(
-        await this.withPresentedKeysProtected(
-          input,
-          "updateColumnsByIdWithoutHooks",
-        ),
+        protectedInput,
+        await this.getHookFreeWriteValues(protectedInput.data),
         "updateColumnsByIdWithoutHooks",
       );
 
@@ -12717,6 +12761,32 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await this.getRepository().manager.query(sql, statement.params);
 
     await this.afterWriteWithoutHooks(input.data);
+  }
+
+  /*
+   * What a hook-free write stores, on a copy of what it was given: each
+   * string clamped to its column's width (truncateStringColumnsToMaxLength),
+   * then each encrypted column encrypted, as a write through the service
+   * stores it (encrypt). Without the second, a credential written without
+   * hooks - a discovery scan's credential list rebuilt after an edit - was
+   * stored as written beside the encrypted ones. In that order, so the clamp
+   * measures what the column was given and never cuts a ciphertext.
+   */
+  private async getHookFreeWriteValues(
+    data: PartialEntity<TBaseModel> | undefined,
+  ): Promise<ObjectLiteral> {
+    /*
+     * A shallow COPY: callers must not have their own object mutated behind
+     * their back (a liveness-only retry, for instance, rebuilds its payload
+     * from the same source values).
+     */
+    const values: ObjectLiteral = this.truncateStringColumnsToMaxLength({
+      ...((data || {}) as ObjectLiteral),
+    });
+
+    return (await this.encrypt(
+      values as PartialEntity<TBaseModel>,
+    )) as ObjectLiteral;
   }
 
   /*
@@ -12753,12 +12823,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     expectedData: PartialEntity<TBaseModel>;
     skipUpdateDateColumn?: boolean;
   }): Promise<boolean> {
+    // Its presented keys as they are kept (#9012), on a copy of the write.
+    const protectedInput: typeof input = await this.withPresentedKeysProtected(
+      input,
+      "compareAndSetColumnsByIdWithoutHooks",
+    );
+
     const statement: ColumnsByIdUpdateStatement | null =
       this.buildColumnsByIdUpdateStatement(
-        await this.withPresentedKeysProtected(
-          input,
-          "compareAndSetColumnsByIdWithoutHooks",
-        ),
+        protectedInput,
+        await this.getHookFreeWriteValues(protectedInput.data),
         "compareAndSetColumnsByIdWithoutHooks",
       );
 
@@ -12831,9 +12905,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       const text: string = (value as string | ObjectID).toString();
 
+      /*
+       * Encrypted with the write's other encrypted columns
+       * (getHookFreeWriteValues, which every hook-free write runs after
+       * this), and so once: held to its length as written there too.
+       */
       if (metadata?.encrypted) {
-        this.assertFitsBeforeEncrypted(column, text);
-        data[column] = await Encryption.encrypt(text);
+        data[column] = text;
         continue;
       }
 
@@ -12851,15 +12929,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   /*
    * The SET and WHERE clauses of a hook-free write to one row by id, with
    * every value bound as a parameter. Null when there is nothing to set.
-   * `methodName` is the public method the errors are reported under.
+   * `values` are what the write stores (getHookFreeWriteValues), `input`
+   * the rest of what it was asked. `methodName` is the public method the
+   * errors are reported under.
    */
   private buildColumnsByIdUpdateStatement(
     input: {
       id: ObjectID;
-      data: PartialEntity<TBaseModel>;
       expectedData?: PartialEntity<TBaseModel> | undefined;
       skipUpdateDateColumn?: boolean | undefined;
+      moveVersionOn?: boolean | undefined;
     },
+    values: ObjectLiteral,
     methodName: string,
   ): ColumnsByIdUpdateStatement | null {
     if (!input.id) {
@@ -12873,16 +12954,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const setClauses: Array<string> = [];
     const params: Array<unknown> = [];
 
-    /*
-     * Clamp on a shallow COPY: callers must not have their own object
-     * mutated behind their back (a liveness-only retry, for instance,
-     * rebuilds its payload from the same source values).
-     */
-    const data: ObjectLiteral = this.truncateStringColumnsToMaxLength({
-      ...(input.data as ObjectLiteral),
-    });
-
-    for (const [propertyName, value] of Object.entries(data)) {
+    for (const [propertyName, value] of Object.entries(values)) {
       const column: ColumnMetadata | undefined =
         metadata.findColumnWithPropertyName(propertyName);
       if (!column) {
@@ -12923,6 +12995,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
     }
 
+    // Nor version, which a write that asks for it moves on as save() does.
+    if (input.moveVersionOn && metadata.versionColumn) {
+      const versionColumn: string = metadata.versionColumn.databaseName;
+
+      setClauses.push(`"${versionColumn}" = "${versionColumn}" + 1`);
+    }
+
     const primaryColumnName: string =
       metadata.primaryColumns[0]?.databaseName || "_id";
     params.push(input.id.toString());
@@ -12946,6 +13025,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       if (typeof value === "function") {
         throw new BadDataException(
           `${methodName}: SQL-expression expected values are not supported (column "${propertyName}"); pass a literal value.`,
+        );
+      }
+
+      /*
+       * An encrypted column is stored salted afresh on every write, so the
+       * value a read handed back - decrypted - never equals what the row
+       * holds: a guard on it would refuse every write, quietly. Hold such a
+       * write to the row's version instead, which every write through the
+       * service moves on. Expecting it unset is a guard like any other.
+       */
+      if (
+        value !== null &&
+        value !== undefined &&
+        this.model.getEncryptedColumns().columns.includes(propertyName)
+      ) {
+        throw new BadDataException(
+          `${methodName}: "${propertyName}" is kept encrypted at rest and cannot be expected; hold the write to "version" instead.`,
         );
       }
 
@@ -13050,12 +13146,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     expectedData?: PartialEntity<TBaseModel>;
     skipUpdateDateColumn?: boolean;
   }): Promise<boolean> {
+    // Its presented keys as they are kept (#9012), on a copy of the write.
+    const protectedInput: typeof input = await this.withPresentedKeysProtected(
+      input,
+      "updateColumnsByIdIfUnlockedWithoutHooks",
+    );
+
     const statement: ColumnsByIdUpdateStatement | null =
       this.buildColumnsByIdUpdateStatement(
-        await this.withPresentedKeysProtected(
-          input,
-          "updateColumnsByIdIfUnlockedWithoutHooks",
-        ),
+        protectedInput,
+        await this.getHookFreeWriteValues(protectedInput.data),
         "updateColumnsByIdIfUnlockedWithoutHooks",
       );
 
@@ -13164,6 +13264,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }): Promise<void> {
     const statement: AtomicAddStatement | null = this.buildAtomicAddStatement(
       input,
+      await this.getHookFreeWriteValues(input.set),
       "atomicAddToColumnsByIdWithoutHooks",
     );
 
@@ -13202,6 +13303,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     const statement: AtomicAddStatement | null = this.buildAtomicAddStatement(
       input,
+      await this.getHookFreeWriteValues(input.set),
       methodName,
     );
 
@@ -13263,8 +13365,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     input: {
       id: ObjectID;
       add: Partial<Record<keyof TBaseModel, number>>;
-      set?: PartialEntity<TBaseModel> | undefined;
     },
+    // What `set` stores (getHookFreeWriteValues).
+    set: ObjectLiteral,
     methodName: string,
   ): AtomicAddStatement | null {
     if (!input.id) {
@@ -13312,10 +13415,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       });
     }
 
-    // Shallow copy — never mutate the caller's object. See the clamp note above.
-    const set: ObjectLiteral = this.truncateStringColumnsToMaxLength({
-      ...((input.set || {}) as ObjectLiteral),
-    });
+    // Clamped and encrypted on a copy (getHookFreeWriteValues), by the caller.
 
     // A key presented to OneUptime is written as it is kept, never raw here.
     for (const column of this.getPresentedKeyColumns()) {

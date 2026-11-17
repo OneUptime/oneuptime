@@ -419,7 +419,7 @@ describe("requiring SSO for a status page's private users", () => {
   });
 
   test("named as the project's switch is, with the typo gone", () => {
-    expect(StatusPageRequireSsoCopy.switchTitle).toBe("Require SSO for Login");
+    expect(StatusPageRequireSsoCopy.switchTitle).toBe("Require SSO to Sign In");
     expect(StatusPageRequireSsoCopy.cardTitle).toBe("SSO Settings");
 
     for (const sentence of Object.values(StatusPageRequireSsoCopy)) {

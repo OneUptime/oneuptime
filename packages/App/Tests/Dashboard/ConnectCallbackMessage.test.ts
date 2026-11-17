@@ -357,8 +357,23 @@ describe("the connect-return page", () => {
     ).toBe(`/dashboard/${PROJECT_ID}/code?notice=github-installed`);
   });
 
+  test("OneUptime added from the Zoom App Marketplace tells Video Calls so", () => {
+    expect(
+      getConnectReturnPath({
+        projectId: PROJECT_ID,
+        provider: "zoom",
+        error: null,
+        notice: "zoom-added",
+      }),
+    ).toBe(
+      `/dashboard/${PROJECT_ID}/settings/video-calls?provider=zoom&notice=zoom-added`,
+    );
+  });
+
   test.each([
     ["another provider's notice", "slack", "github-installed"],
+    ["Zoom's notice for Google Meet", "google-meet", "zoom-added"],
+    ["Zoom's notice for GitHub", "github", "zoom-added"],
     ["an unknown notice", "github", "<b>anything</b>"],
     ["an empty notice", "github", ""],
   ])(
@@ -390,6 +405,18 @@ describe("the connect-return page", () => {
     ).toBeNull();
     expect(
       ConnectCallbackUtil.readNotice(ConnectProvider.GitHub, null),
+    ).toBeNull();
+    expect(
+      ConnectCallbackUtil.readNotice(ConnectProvider.Zoom, "zoom-added"),
+    ).toBe(ConnectProviderNotice.ZoomAdded);
+    expect(
+      ConnectCallbackUtil.readNotice(
+        ConnectProvider.MicrosoftTeamsMeetings,
+        "zoom-added",
+      ),
+    ).toBeNull();
+    expect(
+      ConnectCallbackUtil.readNotice(ConnectProvider.Zoom, "github-installed"),
     ).toBeNull();
   });
 

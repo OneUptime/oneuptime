@@ -8,7 +8,7 @@ import {
 /*
  * WHILE THE WHOLE SERVER REQUIRES SSO, SINGLE SIGN-ON IS THE WAY IN.
  *
- * Require SSO for Login for the whole server (GlobalConfig.requireSsoForLogin,
+ * Require SSO to Sign In for the whole server (GlobalConfig.requireSsoForLogin,
  * Admin Dashboard > Settings > Single Sign-On) makes every project require
  * SSO of everyone but master admins
  * (UserMiddleware.getUserTenantAccessPermissionWithTenantId). A sign-in that

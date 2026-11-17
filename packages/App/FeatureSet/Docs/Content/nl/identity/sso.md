@@ -3,7 +3,7 @@
 Met single sign-on (SSO) melden de mensen in uw project zich bij OneUptime aan via de identiteitsprovider (IdP) van uw organisatie, met SAML 2.0 of OpenID Connect. U beheert toegang, wachtwoorden en meervoudige verificatie op één plek, en u kunt SSO voor iedereen in het project verplichten.
 
 > [!NOTE]
-> **Editie:** SSO, inclusief "Require SSO for login", maakt deel uit van elke editie van OneUptime: zelf gehoste installaties krijgen het in de Community Edition, zonder licentie. Op OneUptime Cloud is het beschikbaar vanaf het **Scale**-abonnement. Zie [Enterprise Edition](/docs/self-hosted/enterprise) voor wat elke editie bevat.
+> **Editie:** SSO, inclusief "Require SSO to sign in", maakt deel uit van elke editie van OneUptime: zelf gehoste installaties krijgen het in de Community Edition, zonder licentie. Op OneUptime Cloud is het beschikbaar vanaf het **Scale**-abonnement. Zie [Enterprise Edition](/docs/self-hosted/enterprise) voor wat elke editie bevat.
 
 :::cards
 - [Een SAML-provider instellen](#sso-instellen): Maak hem aan in OneUptime en geef uw IdP twee URL's.
@@ -267,26 +267,26 @@ De teams van een provider bepalen wat mensen die zich ermee aanmelden mogen, daa
 
 ## SSO verplichten voor uw project
 
-Een ingestelde provider houdt niemand tegen om zich met een wachtwoord aan te melden. Om SSO de enige weg het project in te maken, gebruikt u de schakelaar **SSO vereisen voor inloggen** onder **Projectinstellingen** > **Beveiliging** > **SSO**, onder uw providers:
+Een ingestelde provider houdt niemand tegen om zich met een wachtwoord aan te melden. Om SSO de enige weg het project in te maken, gebruikt u de schakelaar **SSO vereisen om aan te melden** onder **Projectinstellingen** > **Beveiliging** > **SSO**, onder uw providers:
 
 :::steps
 1. Test eerst uw provider met de link in de kaart **Test Single Sign On (SSO)**.
-2. Zet **SSO vereisen voor inloggen** aan. OneUptime vraagt eerst om bevestiging: vanaf dan moet iedereen in het project, uzelf inbegrepen, zich met SSO aanmelden om het te openen, en wie met een wachtwoord is aangemeld, is buitengesloten van het project tot hij zich met SSO aanmeldt.
+2. Zet **SSO vereisen om aan te melden** aan. OneUptime vraagt eerst om bevestiging: vanaf dan moet iedereen in het project, uzelf inbegrepen, zich met SSO aanmelden om het te openen, en wie met een wachtwoord is aangemeld, is buitengesloten van het project tot hij zich met SSO aanmeldt.
 3. Klik op **SSO vereisen** om te bevestigen. De schakelaar slaat direct op; er is geen aparte knop om op te slaan.
 :::
 
-Om **SSO vereisen voor inloggen** aan te zetten, is een provider nodig die mensen in het project aanmeldt: een eigen SAML- of OIDC-provider die aanstaat, of een globale provider die aanstaat en mensen in het project aanmeldt. Zonder zo'n provider weigert OneUptime en vraagt het u eerst een provider voor het project in te schakelen en te testen. Kiest u een provider die het project verplicht, dan moet het een van die zijn, en hetzelfde wordt gevraagd als u later een andere provider verplicht.
+Om **SSO vereisen om aan te melden** aan te zetten, is een provider nodig die mensen in het project aanmeldt: een eigen SAML- of OIDC-provider die aanstaat, of een globale provider die aanstaat en mensen in het project aanmeldt. Zonder zo'n provider weigert OneUptime en vraagt het u eerst een provider voor het project in te schakelen en te testen. Kiest u een provider die het project verplicht, dan moet het een van die zijn, en hetzelfde wordt gevraagd als u later een andere provider verplicht.
 
-Een opslag die **SSO vereisen voor inloggen** als ingeschakeld verstuurt terwijl het al aanstaat, of de provider noemt die het project al verplicht, wordt op dezelfde manier gecontroleerd — de API, Terraform en andere tools sturen vaak bij elke opslag alle instellingen mee. Zolang het project dus geen provider heeft die mensen aanmeldt, of de verplichte provider sindsdien is uitgezet, wordt zo'n opslag met dezelfde woorden geweigerd, wat er verder ook verandert: zet eerst een provider aan, verplicht een andere of zet **SSO vereisen voor inloggen** uit.
+Een opslag die **SSO vereisen om aan te melden** als ingeschakeld verstuurt terwijl het al aanstaat, of de provider noemt die het project al verplicht, wordt op dezelfde manier gecontroleerd — de API, Terraform en andere tools sturen vaak bij elke opslag alle instellingen mee. Zolang het project dus geen provider heeft die mensen aanmeldt, of de verplichte provider sindsdien is uitgezet, wordt zo'n opslag met dezelfde woorden geweigerd, wat er verder ook verandert: zet eerst een provider aan, verplicht een andere of zet **SSO vereisen om aan te melden** uit.
 
-Voor een nieuw project geldt dezelfde regel. Het heeft nog geen eigen provider, dus het aanmaken met **SSO vereisen voor inloggen** al aan — dat kan alleen een master-admin — vereist een globale provider die aanstaat en mensen in elk project aanmeldt, en zonder zo'n provider wordt het met dezelfde woorden geweigerd. Maak het project aan, stel de provider in en test hem, en zet daarna de schakelaar aan.
+Voor een nieuw project geldt dezelfde regel. Het heeft nog geen eigen provider, dus het aanmaken met **SSO vereisen om aan te melden** al aan — dat kan alleen een master-admin — vereist een globale provider die aanstaat en mensen in elk project aanmeldt, en zonder zo'n provider wordt het met dezelfde woorden geweigerd. Maak het project aan, stel de provider in en test hem, en zet daarna de schakelaar aan.
 
-Zolang de hele server SSO verplicht (**Admin** > **Instellingen** > **Single sign-on** > **SSO vereisen voor inloggen**), vereist het aanmaken van elk project ook zo'n globale provider, anders zou niemand, ook niet degene die het aanmaakt, het project kunnen openen. Zonder zo'n provider wordt het aanmaken van een project geweigerd, en vraagt de melding een serverbeheerder er een aan te zetten. Master-admins kunnen nog steeds projecten aanmaken.
+Zolang de hele server SSO verplicht (**Admin** > **Instellingen** > **Single sign-on** > **SSO vereisen om aan te melden**), vereist het aanmaken van elk project ook zo'n globale provider, anders zou niemand, ook niet degene die het aanmaakt, het project kunnen openen. Zonder zo'n provider wordt het aanmaken van een project geweigerd, en vraagt de melding een serverbeheerder er een aan te zetten. Master-admins kunnen nog steeds projecten aanmaken.
 
-Het uitzetten van **SSO vereisen voor inloggen** slaat op zodra u de schakelaar omzet en laat leden direct weer met hun wachtwoord binnen — tenzij iemand hem op precies dat moment weer aanzet; dan kan een appserver tot een minuut nodig hebben om bij te werken. Projecteigenaren, Projectbeheerders en leden met de machtiging **Edit Project** kunnen hem wijzigen; anderen zien de schakelaar vergrendeld, met de machtiging die ze nodig zouden hebben.
+Het uitzetten van **SSO vereisen om aan te melden** slaat op zodra u de schakelaar omzet en laat leden direct weer met hun wachtwoord binnen — tenzij iemand hem op precies dat moment weer aanzet; dan kan een appserver tot een minuut nodig hebben om bij te werken. Projecteigenaren, Projectbeheerders en leden met de machtiging **Edit Project** kunnen hem wijzigen; anderen zien de schakelaar vergrendeld, met de machtiging die ze nodig zouden hebben.
 
 > [!NOTE]
-> Op OneUptime Cloud vereist het verplichten van SSO het **Scale**-abonnement, en uitzetten werkt op elk abonnement. Onder Scale toont **Projectinstellingen** > **Beveiliging** > **SSO** het upgrade-aanbod van het abonnement; een project dat na een Scale-proefperiode nog SSO verplicht, vindt daar onder het aanbod ook **SSO vereisen voor inloggen**, zodat het kan worden uitgezet. Opnieuw aanzetten vereist **Scale**.
+> Op OneUptime Cloud vereist het verplichten van SSO het **Scale**-abonnement, en uitzetten werkt op elk abonnement. Onder Scale toont **Projectinstellingen** > **Beveiliging** > **SSO** het upgrade-aanbod van het abonnement; een project dat na een Scale-proefperiode nog SSO verplicht, vindt daar onder het aanbod ook **SSO vereisen om aan te melden**, zodat het kan worden uitgezet. Opnieuw aanzetten vereist **Scale**.
 
 ## Een provider uitzetten of verwijderen
 
@@ -304,11 +304,11 @@ Een SAML- of OIDC-provider uitzetten of verwijderen beëindigt de aanmeldingen d
 
 Al het andere aan een provider wijzigen laat iedereen aangemeld: een nieuw certificaat of client-secret, andere URL's, een nieuwe naam of andere teams. Hun aanmeldingen zijn gecontroleerd toen ze plaatsvonden, en de volgende aanmelding gebruikt de nieuwe instellingen.
 
-Zolang het project SSO verplicht, houdt OneUptime een weg naar binnen open: u kunt de laatste provider waarmee mensen zich in het project kunnen aanmelden — globale providers die mensen in het project aanmelden meegeteld — of de provider die het project verplicht, niet uitzetten of verwijderen. Zet eerst **SSO vereisen voor inloggen** uit.
+Zolang het project SSO verplicht, houdt OneUptime een weg naar binnen open: u kunt de laatste provider waarmee mensen zich in het project kunnen aanmelden — globale providers die mensen in het project aanmelden meegeteld — of de provider die het project verplicht, niet uitzetten of verwijderen. Zet eerst **SSO vereisen om aan te melden** uit.
 
 Een provider aanzetten laat mensen zich er direct mee aanmelden.
 
-Als de hele server SSO verplicht (**Admin** > **Instellingen** > **Single sign-on** > **SSO vereisen voor inloggen**), houdt elk project op dezelfde manier een weg naar binnen, ook een project dat zelf geen SSO verplicht: zet er eerst een andere provider voor aan.
+Als de hele server SSO verplicht (**Admin** > **Instellingen** > **Single sign-on** > **SSO vereisen om aan te melden**), houdt elk project op dezelfde manier een weg naar binnen, ook een project dat zelf geen SSO verplicht: zet er eerst een andere provider voor aan.
 
 Voor globale providers geldt dezelfde regel: een wijziging aan een globale provider of aan zijn gekoppelde projecten die een project dat SSO verplicht zonder provider zou laten, wordt geweigerd en noemt het project. Zie [Globale SSO](/docs/identity/global-sso#een-provider-uitzetten-of-verwijderen).
 
@@ -323,9 +323,9 @@ Een SAML- of OIDC-provider die een project nog heeft, blijft mensen aanmelden na
 
 Een provider toevoegen, wijzigen of weer aanzetten vereist **Scale**. Wie wat mag, is hetzelfde als met Scale: een provider uitzetten vereist toestemming om hem te bewerken, verwijderen toestemming om hem te verwijderen.
 
-Zolang het project nog SSO verplicht, toont de pagina **SSO** ook **SSO vereisen voor inloggen**: zet het uit voordat u de laatste provider uitzet. Tot dan kan de laatste provider waarmee mensen zich kunnen aanmelden niet worden uitgezet of verwijderd, zodat niemand uit het project wordt buitengesloten.
+Zolang het project nog SSO verplicht, toont de pagina **SSO** ook **SSO vereisen om aan te melden**: zet het uit voordat u de laatste provider uitzet. Tot dan kan de laatste provider waarmee mensen zich kunnen aanmelden niet worden uitgezet of verwijderd, zodat niemand uit het project wordt buitengesloten.
 
-De pagina **Single Sign-On** van een statuspagina toont de eigen providers op dezelfde manier, op de tabbladen **SAML** en **OIDC**. Zolang de statuspagina nog SSO verplicht, tonen beide tabbladen ook **SSO vereisen voor inloggen**: zet het uit voordat u de providers uitzet, anders kunnen de privégebruikers zich helemaal niet meer aanmelden.
+De pagina **Single Sign-On** van een statuspagina toont de eigen providers op dezelfde manier, op de tabbladen **SAML** en **OIDC**. Zolang de statuspagina nog SSO verplicht, tonen beide tabbladen ook **SSO vereisen om aan te melden**: zet het uit voordat u de providers uitzet, anders kunnen de privégebruikers zich helemaal niet meer aanmelden.
 
 ## Problemen oplossen
 

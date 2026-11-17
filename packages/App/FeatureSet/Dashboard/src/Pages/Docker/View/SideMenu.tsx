@@ -126,6 +126,20 @@ const DockerHostSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.FlowDiagram}
         />
+        {/*
+         * The host's containers, what it is opened for, beside its topology. They
+         * had a Workloads section of their own, for this one entry (#9216).
+         */}
+        <SideMenuItem
+          link={{
+            title: "Containers",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DOCKER_HOST_VIEW_CONTAINERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Cube}
+        />
         <RecommendationsSideMenuItem
           link={{
             title: "Recommendations",
@@ -184,19 +198,6 @@ const DockerHostSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Automation}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="Workloads">
-        <SideMenuItem
-          link={{
-            title: "Containers",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.DOCKER_HOST_VIEW_CONTAINERS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Cube}
         />
       </SideMenuSection>
 

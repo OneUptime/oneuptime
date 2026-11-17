@@ -241,6 +241,56 @@ async function openDialog(): Promise<HTMLElement> {
 }
 
 describe("the line under a step", () => {
+  /*
+   * The step's pull request is in a task a reply carried a private incident
+   * or alert into, which the reader may not open: the line says it is
+   * there, behind a lock, and why nothing of it shows - no state, no
+   * repository, no link, no Try again, and no second one offered.
+   */
+  test("a task hidden from the reader: there, and nothing of it", async () => {
+    changesAnswer = {
+      changes: [
+        {
+          sequence: 1,
+          // Whatever a server sends with it, nothing of it is drawn.
+          taskId: TASK_ID,
+          repositoryName: "acme/platform",
+          state: DeclaredCodeChangeState.Hidden,
+          pullRequestUrl: "https://github.com/acme/platform/pull/7",
+          pullRequestNumber: 7,
+        },
+      ],
+    };
+
+    await renderLine();
+
+    const line: HTMLElement = await screen.findByTestId("declared-code-change");
+
+    expect(line).toHaveAttribute("data-state", DeclaredCodeChangeState.Hidden);
+    expect(line).toHaveTextContent(
+      "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.",
+    );
+    expect(line).not.toHaveTextContent("acme/platform");
+    expect(within(line).queryAllByRole("link")).toHaveLength(0);
+    expect(
+      within(line).queryByTestId("declared-code-change-pull-request"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(line).queryByTestId("declared-code-change-task"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(line).queryByTestId("declared-code-change-try-again"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(line).queryByTestId("declared-code-change-ask"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(line).getByTestId("declared-code-change-mark"),
+    ).toHaveAttribute("data-tone", "idle");
+    // Nothing moves that the reader would see: it is not read again.
+    expect(postsTo(CHANGES_ROUTE)).toHaveLength(1);
+  });
+
   test("offers the pull request, naming the code", async () => {
     await renderLine();
 
@@ -799,6 +849,30 @@ describe("the words behind it", () => {
     expect(findDeclaredCodeChange([], 1)).toBeNull();
   });
 
+  test("a row hidden from the reader is read with no task, repository or pull request, whatever it holds", () => {
+    expect(
+      readDeclaredCodeChanges({
+        changes: [
+          {
+            sequence: 3,
+            taskId: TASK_ID,
+            repositoryName: "acme/platform",
+            state: "hidden",
+            pullRequestUrl: "https://github.com/acme/platform/pull/7",
+            pullRequestNumber: 7,
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        sequence: 3,
+        taskId: "",
+        repositoryName: "",
+        state: DeclaredCodeChangeState.Hidden,
+      },
+    ]);
+  });
+
   test("the owner's answer, read", () => {
     expect(readDeclaredCodeOwner(OWNER)).toEqual(OWNER);
     expect(readDeclaredCodeOwner({ candidates: "none" })).toBeNull();
@@ -876,6 +950,8 @@ describe("the words behind it", () => {
       [DeclaredCodeChangeState.WaitingForYou]: "attention",
       [DeclaredCodeChangeState.Ended]: "idle",
       [DeclaredCodeChangeState.Failed]: "failed",
+      // In a task hidden from the reader: grey, as nothing it did is said.
+      [DeclaredCodeChangeState.Hidden]: "idle",
     });
   });
 

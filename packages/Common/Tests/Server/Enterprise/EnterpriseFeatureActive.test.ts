@@ -679,7 +679,7 @@ describe("describeStoppedFeatures / describeResumedFeatures", () => {
 
   /*
    * Single sign-on is part of the Community Edition: no lapse stops it and no
-   * lapse relaxes "Require SSO for login", so no lapse line may say either.
+   * lapse relaxes "Require SSO to sign in", so no lapse line may say either.
    */
   test.each(["expired", "missing", "invalid"] as const)(
     "a %s lapse line never mentions single sign-on, whatever stopped",

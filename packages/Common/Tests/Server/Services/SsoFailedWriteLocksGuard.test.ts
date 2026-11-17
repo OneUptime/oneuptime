@@ -28,7 +28,7 @@ import path from "path";
  * hook of a service whose writes are checked hands its `error` and its
  * `failedStatement` to one of them:
  *
- *   - ProjectService and GlobalConfigService (Require SSO for Login):
+ *   - ProjectService and GlobalConfigService (Require SSO to Sign In):
  *     SsoRequirementChanges.afterFailedUpdate / afterFailedProjectCreate;
  *   - a project's SAML and OIDC providers: ProjectSsoProviderChanges.
  *     afterFailedWrite;

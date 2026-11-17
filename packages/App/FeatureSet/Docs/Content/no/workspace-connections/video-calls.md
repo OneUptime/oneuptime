@@ -86,6 +86,8 @@ Tilkoblinger som er pålogget som samme konto, deler én pålogging, i alle pros
 
 Å slette en tilkobling trekker tilbake OneUptimes tilgang hos Zoom og Google så snart ingen annen tilkobling bruker påloggingen. For Microsoft fjerner du OneUptime under kontoens **My Apps** (myapps.microsoft.com). Å fjerne OneUptime fra Zoom-kontoen din i Zoom App Marketplace sletter påloggingen fra alle tilkoblinger som er pålogget som den kontoen, og de viser **Fungerer ikke** til de kobles til på nytt.
 
+Transkripsjoner OneUptime allerede har lest, blir værende på hendelsene sine: Å slette en tilkobling beholder samtalene den startet, med transkripsjonene deres, og det samme gjør det å fjerne OneUptime fra kontoen hos Zoom, Google eller Microsoft. **Fjern transkripsjon** på en samtale sletter transkripsjonen og det OneUptime AI leste i den, men ikke det OneUptime AI publiserte i hendelsens feed og kanaler. Å slette en hendelse sletter samtalene og transkripsjonene deres.
+
 ### Hvis Microsoft ber om en administrator
 
 Noen Microsoft 365-organisasjoner lar bare administratorer godkjenne apper. Hvis Microsoft sier at du trenger godkjenning fra en administrator, ber du en Microsoft 365-administrator om å koble til Microsoft Teams, eller om å godkjenne OneUptime i [Microsoft Entra-administrasjonssenteret](https://entra.microsoft.com/) under **Enterprise applications** > **Admin consent requests**. Et prosjekt som tar opp Teams-samtalene sine, trenger denne godkjenningen i hver organisasjon, én gang: bare en administrator kan la en app lese møtetranskripsjoner.

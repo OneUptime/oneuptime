@@ -187,6 +187,34 @@ describe("the fix in the code, in one line", () => {
     },
   );
 
+  /*
+   * The fix pull request is in a task a reply carried a private incident or
+   * alert into, which the reader may not open: the line says it is there,
+   * behind a lock, and why nothing of it shows - no state, no link its own
+   * page would answer as not found, nothing to start.
+   */
+  test("in a task hidden from the reader: there, behind a lock, with no link", () => {
+    renderRow({
+      suggestion: suggestion({
+        offer: SuggestionOffer.Done,
+        fixOutcome: FinishedFixOutcome.Hidden,
+        aiRunId: null,
+        isAutomatic: false,
+      }),
+    });
+
+    expect(row()).toHaveAttribute("data-tone", "info");
+    expect(row()).toHaveAttribute("data-hidden", "true");
+    expect(screen.getByTestId("remediation-code-fix-text")).toHaveTextContent(
+      "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.",
+    );
+    expect(within(row()).queryAllByRole("link")).toHaveLength(0);
+    expect(within(row()).queryAllByRole("button")).toHaveLength(0);
+    expect(
+      within(row()).queryByTestId("remediation-code-fix-action"),
+    ).not.toBeInTheDocument();
+  });
+
   test("no repository connected: says so, and links to connect one", () => {
     renderRow({
       suggestion: suggestion({

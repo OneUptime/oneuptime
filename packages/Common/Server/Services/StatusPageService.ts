@@ -108,6 +108,7 @@ import {
   MASTER_PASSWORD_REQUIRED_MESSAGE,
 } from "../../Types/StatusPage/MasterPassword";
 import { isStatusPageMasterPasswordRequired } from "../../Types/StatusPage/StatusPageAccess";
+import { STATUS_PAGE_SIGN_IN_TO_VIEW_MESSAGE } from "../../Types/StatusPage/StatusPageSignInMessages";
 import {
   getPrivateUserSessionLengthProblem,
   PRIVATE_USER_SESSION_LENGTH_COLUMN,
@@ -1319,9 +1320,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
 
     return {
       hasReadAccess: false,
-      error: new NotAuthenticatedException(
-        "You do not have access to this status page. Please login to view the status page.",
-      ),
+      error: new NotAuthenticatedException(STATUS_PAGE_SIGN_IN_TO_VIEW_MESSAGE),
     };
   }
 
@@ -1362,7 +1361,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
    * request, or null: the page's sign-in cookie, its claims for this page,
    * and the session behind it read live - not revoked, not expired, its
    * private user not deleted, its sign-in still counting under the page's
-   * Require SSO for Login and Sign Readers Out After
+   * Require SSO to Sign In and Sign Readers Out After
    * (StatusPagePrivateUserSessionService.addSignInRule). One primary-key
    * lookup joined to the private user. Do not cache authorization:
    * revocation and soft deletion must take effect on the next request, even

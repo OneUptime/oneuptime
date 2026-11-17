@@ -68,6 +68,19 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.ShieldCheck,
         },
+        /*
+         * The policies that answer a phone number, beside the policies that
+         * page. It was a section of its own, "Incoming Calls" (#9216).
+         */
+        {
+          link: {
+            title: "Incoming Call Policies",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES] as Route,
+            ),
+          },
+          icon: IconProp.IncomingCall,
+        },
       ],
     },
     {
@@ -108,20 +121,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             ),
           },
           icon: IconProp.Link,
-        },
-      ],
-    },
-    {
-      title: "Incoming Calls",
-      items: [
-        {
-          link: {
-            title: "Incoming Call Policies",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICIES] as Route,
-            ),
-          },
-          icon: IconProp.IncomingCall,
         },
       ],
     },

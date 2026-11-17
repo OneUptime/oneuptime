@@ -149,16 +149,23 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
       )}
 
       {/*
-       * There is no OneUptime customer support team to grant access to on a
-       * self-hosted install, so this section is hosted-only for the same
-       * reason the subscription section above it is.
+       * Advanced starts collapsed, as it does in every menu. The shared
+       * SideMenuSection does that by itself only for the English title, and
+       * this one is already translated, so it is said here.
        */}
-      {BILLING_ENABLED ? (
-        <SideMenuSection
-          title={t("sideMenu.support")}
-          isTitleTranslated={true}
-          defaultCollapsed={true}
-        >
+      <SideMenuSection
+        title={t("sideMenu.advanced")}
+        isTitleTranslated={true}
+        defaultCollapsed={true}
+      >
+        {/*
+         * Whether OneUptime's support team may sign in to this project. It
+         * had a Support section of its own, for this one entry (#9216).
+         * There is no OneUptime customer support team to grant access to on
+         * a self-hosted install, so it is hosted-only for the same reason
+         * the subscription section above is.
+         */}
+        {BILLING_ENABLED ? (
           <SideMenuItem
             link={{
               title: t("sideMenu.customerSupportAccess"),
@@ -172,24 +179,12 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
             }}
             icon={IconProp.Help}
           />
-        </SideMenuSection>
-      ) : (
-        <></>
-      )}
-
-      {/*
-       * Advanced starts collapsed, as it does in every menu. The shared
-       * SideMenuSection does that by itself only for the English title, and
-       * this one is already translated, so it is said here.
-       */}
-      <SideMenuSection
-        title={t("sideMenu.advanced")}
-        isTitleTranslated={true}
-        defaultCollapsed={true}
-      >
+        ) : (
+          <></>
+        )}
         <SideMenuItem
           link={{
-            title: t("sideMenu.delete"),
+            title: t("sideMenu.deleteProject"),
             isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.PROJECT_DELETE] as Route,

@@ -166,7 +166,7 @@ Grafana 傳送 `Content-Type: application/json`，監測器需要它才能讀取
 :::
 
 :::details 事件顯示的是引用而不是值
-引用了通知中不存在的欄位時，該引用會連同大括號按原樣保留。請把欄位名稱與 Grafana 傳送的內容進行比較：對於工作流程，請在 **日誌 → 執行記錄** 中開啟這次執行，並與觸發器收到的內容進行比較。
+引用了通知中不存在的欄位時，該引用會連同大括號按原樣保留。請把欄位名稱與 Grafana 傳送的內容進行比較：對於工作流程，請在 **執行記錄** 中開啟這次執行，並與觸發器收到的內容進行比較。
 :::
 
 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#疑難排解) 指南涵蓋了更多情況，它們同樣適用於 Grafana 的通知。

@@ -23,6 +23,8 @@ import {
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import {
+  NAMED_INCIDENT_ID,
+  OPEN_INCIDENT_ID,
   PROJECT_ID,
   emptyReport,
   fullReport,
@@ -244,7 +246,12 @@ describe("ProductionReviewAI.parseAnswer", () => {
         '{"points": [{"text": "`chargeCard` throws often at the line this edits.", "facts": ["E1"]}]}',
         ids,
       ),
-    ).toEqual([{ text: "`chargeCard` throws often at the line this edits." }]);
+    ).toEqual([
+      {
+        text: "`chargeCard` throws often at the line this edits.",
+        incidentIds: [],
+      },
+    ]);
   });
 
   test("reads the JSON out of prose or a fence around it", () => {
@@ -253,7 +260,67 @@ describe("ProductionReviewAI.parseAnswer", () => {
         'Here you go:\n```json\n{"points": [{"text": "A busy route gets one more query.", "facts": ["o1"]}]}\n```',
         ids,
       ),
-    ).toEqual([{ text: "A busy route gets one more query." }]);
+    ).toEqual([{ text: "A busy route gets one more query.", incidentIds: [] }]);
+  });
+
+  /*
+   * A point names the incident facts it rests on by their ids (I1, I2):
+   * it keeps the incidents themselves, so a reader who may not read one of
+   * them later is not shown the point (#9241).
+   */
+  test("keeps the incidents a point rests on, each once, by their ids", () => {
+    const facts: ProductionReviewFacts =
+      ProductionReviewAI.buildFacts(fullReport());
+
+    expect(
+      ProductionReviewAI.parseAnswer(
+        JSON.stringify({
+          points: [
+            {
+              text: "INC-45 is open and this edits the code it names.",
+              facts: ["i1", "E1", "I1"],
+            },
+            {
+              text: "INC-31's root cause names `charge.ts`.",
+              facts: ["I2", "I1"],
+            },
+            { text: "No incident under this one at all.", facts: ["E1"] },
+            // An incident fact it was never given names no incident.
+            { text: "An incident fact never given here.", facts: ["I9", "E1"] },
+          ],
+        }),
+        facts.ids,
+        facts.incidentIdsByFactId,
+      ),
+    ).toEqual([
+      {
+        text: "INC-45 is open and this edits the code it names.",
+        incidentIds: [OPEN_INCIDENT_ID],
+      },
+      {
+        text: "INC-31's root cause names `charge.ts`.",
+        incidentIds: [NAMED_INCIDENT_ID, OPEN_INCIDENT_ID],
+      },
+      { text: "No incident under this one at all.", incidentIds: [] },
+      { text: "An incident fact never given here.", incidentIds: [] },
+    ]);
+  });
+
+  test("the incident facts are the review's notable incidents, in its order", () => {
+    const facts: ProductionReviewFacts =
+      ProductionReviewAI.buildFacts(fullReport());
+
+    expect(Array.from(facts.incidentIdsByFactId.entries())).toEqual([
+      ["I1", OPEN_INCIDENT_ID],
+      ["I2", NAMED_INCIDENT_ID],
+    ]);
+    expect(facts.json["incidents"] as Array<JSONObject>).toEqual([
+      expect.objectContaining({ id: "I1", label: "INC-45" }),
+      expect.objectContaining({ id: "I2", label: "INC-31" }),
+    ]);
+    expect(
+      ProductionReviewAI.buildFacts(emptyReport()).incidentIdsByFactId.size,
+    ).toBe(0);
   });
 
   test("drops a point that names no fact it was given, says nothing, or is not a point", () => {
@@ -272,7 +339,7 @@ describe("ProductionReviewAI.parseAnswer", () => {
         }),
         ids,
       ),
-    ).toEqual([{ text: "Kept, resting on an operation." }]);
+    ).toEqual([{ text: "Kept, resting on an operation.", incidentIds: [] }]);
   });
 
   test("keeps at most four points, each one line and held to its length", () => {
@@ -385,7 +452,12 @@ describe("ProductionReviewAI.read", () => {
     });
 
     expect(result).toEqual({
-      points: [{ text: "`chargeCard` throws at the line this edits." }],
+      points: [
+        {
+          text: "`chargeCard` throws at the line this edits.",
+          incidentIds: [],
+        },
+      ],
     });
 
     const request: AILogRequest = execute.mock.calls[0]![0] as AILogRequest;

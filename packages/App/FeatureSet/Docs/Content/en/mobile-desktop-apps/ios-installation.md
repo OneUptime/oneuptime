@@ -114,12 +114,12 @@ Without critical alerts, a Focus or a summary can hold pages back:
 
 ## Lock the app
 
-Turn on **Biometrics Login** under **Settings** in the app, and the app asks for Face ID, Touch ID or your passcode each time it starts. The switch is there once Face ID or Touch ID is set up on the device. **Appearance**, on the same screen, picks the light or dark look, or follows the device.
+Turn on **Biometric Unlock** under **Settings** in the app, and the app asks for Face ID, Touch ID or your passcode each time it starts. The switch is there once Face ID or Touch ID is set up on the device. **Appearance**, on the same screen, picks the light or dark look, or follows the device.
 
 ## Update, sign out or delete the app
 
 - **Update.** The App Store updates the app; you can also update it from your account in the App Store. The app's version is at the bottom of its **Settings** screen.
-- **Sign out.** **Settings → Log Out** signs you out and removes the device from your push devices in every project, together with its steps in How to Reach Me. Signing in again adds it back with the default steps.
+- **Sign out.** **Settings → Sign Out** signs you out and removes the device from your push devices in every project, together with its steps in How to Reach Me. Signing in again adds it back with the default steps.
 - **Delete.** Touch and hold the app's icon, then tap **Remove App** and **Delete App**. If you were still signed in, the device stays on your list until a push to it fails: OneUptime then marks it **Not receiving notifications**. Installing the app again and signing in usually brings that entry back, with its steps; if you are done with the device, delete the entry with **Delete**.
 
 ## Troubleshooting
@@ -144,7 +144,7 @@ Turn on **Critical On-Call Alerts** in the app first: iOS adds its switch only a
 Open the app's **Settings**: the line under **Critical On-Call Alerts** says what is missing. Check that **Critical Alerts** is on under **Settings → Notifications → OneUptime On-Call**, and that the volume on the app's **Alarm sound** screen is not set low.
 :::
 
-:::details No Biometrics Login switch
+:::details No Biometric Unlock switch
 The switch appears once Face ID or Touch ID is set up under **Settings → Face ID & Passcode** or **Settings → Touch ID & Passcode**.
 :::
 

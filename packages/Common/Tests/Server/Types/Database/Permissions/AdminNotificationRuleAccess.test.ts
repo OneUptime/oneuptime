@@ -1541,18 +1541,35 @@ describe("the rule relation - an administrator reads the FK, never the method be
      * A fix that inspects the caller's raw query rather than the scoped one
      * sees no userId here, concludes the read is not owner-scoped, and breaks
      * notification setup for every user in every project.
+     *
+     * A webhook is the one method a rule table names by its name rather than
+     * its address: its URL is kept encrypted at rest (#9013) and read
+     * through a relation by no request, its owner's included
+     * (EncryptedColumnsStayOffRelations).
      */
     for (const [relation, column] of RELATION_SELECT_SHAPES) {
+      const shownColumn: string = relation === "userWebhook" ? "name" : column;
+
       await expect(
         BasePermission.checkPermissions(
           UserNotificationRule,
           {} as Query<BaseModel>,
-          { [relation]: { [column]: true } } as Select<BaseModel>,
+          { [relation]: { [shownColumn]: true } } as Select<BaseModel>,
           memberProps(),
           DatabaseRequestType.Read,
         ),
       ).resolves.toBeDefined();
     }
+
+    await expect(
+      BasePermission.checkPermissions(
+        UserNotificationRule,
+        {} as Query<BaseModel>,
+        { userWebhook: { webhookUrl: true } } as Select<BaseModel>,
+        memberProps(),
+        DatabaseRequestType.Read,
+      ),
+    ).rejects.toThrow();
   });
 
   test("the FK id columns are admin-readable and the relation columns beside them are not", () => {

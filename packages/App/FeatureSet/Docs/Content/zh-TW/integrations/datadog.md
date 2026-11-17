@@ -200,7 +200,7 @@ curl -X POST "<url>" \
 
 使用範本時，會開啟一個標題為 `Datadog: High CPU` 的事件，並呼叫你選擇的待命策略。使用監測器時，會開啟一個標題為 `[Triggered] High CPU` 的事件。把 `transition` 設為 `Recovered` 後傳送同樣的請求，事件就會被解決。
 
-然後從 Datadog 測試：開啟一個提到該 Webhook 的監測器，點選 **Test Notifications**，並發送它的 **Alert** 通知。要確認它已到達，請開啟工作流程的 **日誌 → 執行記錄**，或 OneUptime 監測器的時間軸。
+然後從 Datadog 測試：開啟一個提到該 Webhook 的監測器，點選 **Test Notifications**，並發送它的 **Alert** 通知。要確認它已到達，請開啟工作流程的 **執行記錄**，或 OneUptime 監測器的時間軸。
 
 ## 疑難排解
 
@@ -211,7 +211,7 @@ curl -X POST "<url>" \
 :::
 
 :::details 工作流程執行了，但沒有建立任何東西
-在 **日誌 → 執行記錄** 中開啟該次執行。其 **步驟** 中的 `read-event-1` 項目會說明它為什麼走 **否**。
+在 **執行記錄** 中開啟該次執行。其 **步驟** 中的 `read-event-1` 項目會說明它為什麼走 **否**。
 
 - `Datadog named no alert cycle key`：在 Datadog 中把 `"alert_cycle_key": "$ALERT_CYCLE_KEY"` 新增到 Webhook 的酬載中。
 - `Datadog named no transition`：在 Datadog 中把 `"transition": "$ALERT_TRANSITION"` 新增到 Webhook 的酬載中。
@@ -225,14 +225,14 @@ curl -X POST "<url>" \
 
 :::details 事件被建立但從未被解決
 - Datadog 監測器也必須把恢復通知給該 Webhook。如果訊息只在條件區塊中針對警示提到該 Webhook，就不會發送恢復。
-- 使用範本時，在 **日誌 → 執行記錄** 中開啟恢復的那次執行：它的最後一個步驟會說明原因。恢復的 `alert_cycle_key` 必須與警示的相同，所以請保持酬載中的 `$ALERT_CYCLE_KEY` 不變。
+- 使用範本時，在 **執行記錄** 中開啟恢復的那次執行：它的最後一個步驟會說明原因。恢復的 `alert_cycle_key` 必須與警示的相同，所以請保持酬載中的 `$ALERT_CYCLE_KEY` 不變。
 - 使用監測器時，條件中的事件需要開啟 **更多欄位** 下的 **自動解決事件**。
 - **Value that means recovered** 必須恰好是 `Recovered`。比較區分大小寫。
 - 恢復的 `alert_key` 必須與警示的相同：保持酬載中的 `$ALERT_ID $ALERT_SCOPE` 不變。
 :::
 
 :::details 欄位顯示的是變數名，或者什麼都沒有
-Datadog 只會填入適用於該事件的變數。傳送一個測試通知，然後檢視到達的內容：在監測器的時間軸中，或者對於工作流程，在 **日誌 → 執行記錄** 中檢視。
+Datadog 只會填入適用於該事件的變數。傳送一個測試通知，然後檢視到達的內容：在監測器的時間軸中，或者對於工作流程，在 **執行記錄** 中檢視。
 :::
 
 :::details 監測器的所有警示合併成了一個事件

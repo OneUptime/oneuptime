@@ -1068,7 +1068,7 @@ describe("MCP OAuth, end to end", () => {
      * off: the call is not made, whatever the client's grant was approved
      * under, and the same token works once the rule reads again.
      */
-    it("answers 500, not a challenge, and makes no call, when the instance's Require SSO for Login cannot be read", async () => {
+    it("answers 500, not a challenge, and makes no call, when the instance's Require SSO to Sign In cannot be read", async () => {
       const connected: ConnectedClient = await connect();
 
       (

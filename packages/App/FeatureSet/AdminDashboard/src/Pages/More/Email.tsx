@@ -1,6 +1,5 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import MoreSideMenu from "./SideMenu";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -105,6 +104,10 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
   };
 
   return (
+    /*
+     * One page, so no side menu: it held a Communication section with Send
+     * Email alone (#9216), as the Feedback page has none.
+     */
     <Page
       title={t("pages.moreEmail.title")}
       isTitleTranslated={true}
@@ -115,13 +118,6 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: t("breadcrumbs.more"),
-          isTitleTranslated: true,
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.MORE_EMAIL] as Route,
-          ),
-        },
-        {
           title: t("breadcrumbs.sendEmail"),
           isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
@@ -129,7 +125,6 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
           ),
         },
       ]}
-      sideMenu={<MoreSideMenu />}
     >
       <Card
         title={t("pages.moreEmail.cardTitle")}

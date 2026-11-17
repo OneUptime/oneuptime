@@ -28,7 +28,7 @@ import { getJestSpyOn } from "../../Spy";
  *     (where OneUptime bills), asking - and saying what it grants - before
  *     it lets support in;
  *   - Settings > Feature Flags: "Monitor Groups", no dialog either way;
- *   - Settings > SSO: "Require SSO for Login", asking with a red button
+ *   - Settings > SSO: "Require SSO to Sign In", asking with a red button
  *     before it locks out everyone not signed in with SSO.
  *
  * The real cards, switches and dialogs are rendered; only the network, the
@@ -479,7 +479,7 @@ describe("Settings > Feature Flags: Monitor Groups", () => {
   });
 });
 
-describe("Settings > SSO: Require SSO for Login", () => {
+describe("Settings > SSO: Require SSO to Sign In", () => {
   async function renderCard(): Promise<HTMLElement> {
     render(<RequireSsoForLoginCard projectId={new ObjectID(PROJECT_ID)} />);
     await flush();

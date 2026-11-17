@@ -23,6 +23,16 @@ import ts from "typescript";
  *     items that count themselves, `CountModelSideMenuItem`) as children;
  *   - a `{ title: "...", items: [...] }` section in a `sections` array.
  *
+ * NOR ALMOST REPEATS IT. "Logs > Call Logs", "Calendar > Maintenance
+ * Calendar", "Notes > Private Notes", "Rules > Monitor Rules" (#9216): a
+ * heading whose every word is in its only entry (or the other way round)
+ * tells the reader nothing the entry does not, so the entry joins a
+ * neighbouring section (Call Logs went to the policy's Basic, Monitor Rules
+ * into Basic) or Advanced (a runbook's Executions). Words
+ * are compared without case or a plural "s", so "Incoming Calls > Incoming
+ * Call Policies" is one too. A section that must keep such a heading is in
+ * ALLOWED_NEAR_REPEATS, with the reason.
+ *
  * A section whose entries cannot be counted from the source (a spread, an
  * item drawn by another component) is left alone. A title may be English
  * text, which the menu looks up where it draws it, or a key of the Admin
@@ -286,6 +296,95 @@ export function repeatsItsOnlyEntry(section: MenuSectionFound): boolean {
   );
 }
 
+// "On-Call Schedules" as ["on-call", "schedule"]: no case, no plural "s".
+function words(name: string): Array<string> {
+  return normalized(name)
+    .split(/[^\p{L}\p{N}-]+/u)
+    .filter((word: string): boolean => {
+      return word.length > 0;
+    })
+    .map((word: string): string => {
+      return word.length > 3 && word.endsWith("s") ? word.slice(0, -1) : word;
+    });
+}
+
+function containsEvery(
+  container: Array<string>,
+  contained: Array<string>,
+): boolean {
+  return (
+    contained.length > 0 &&
+    contained.every((word: string): boolean => {
+      return container.includes(word);
+    })
+  );
+}
+
+/*
+ * A one-entry section whose heading's words are all in its entry ("Logs >
+ * Call Logs"), or its entry's words all in its heading. An exact repeat is
+ * one too.
+ */
+export function nearlyRepeatsItsOnlyEntry(section: MenuSectionFound): boolean {
+  if (section.entries === null || section.entries.length !== 1) {
+    return false;
+  }
+
+  const heading: Array<string> = words(section.title);
+  const entry: Array<string> = words(section.entries[0]!);
+
+  return containsEvery(entry, heading) || containsEvery(heading, entry);
+}
+
+interface AllowedNearRepeat {
+  // Relative to the repository root, with forward slashes.
+  file: string;
+  title: string;
+  entry: string;
+  reason: string;
+}
+
+const PRODUCT_LIST_REASON: string =
+  "A product menu's first section is named after the product and opens with its list of everything (Monitors > All Monitors, Real User Monitoring > All Applications). Here the list is the product's only page outside Settings and Advanced, so the section holds one entry, but folding it into Settings would file the product's own list as a setting.";
+
+const ALLOWED_NEAR_REPEATS: Array<AllowedNearRepeat> = [
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Pages/Service/SideMenu.tsx",
+    title: "Services",
+    entry: "All Services",
+    reason: PRODUCT_LIST_REASON,
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Pages/Teams/SideMenu.tsx",
+    title: "Teams",
+    entry: "All Teams",
+    reason: PRODUCT_LIST_REASON,
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Pages/Users/SideMenu.tsx",
+    title: "Users",
+    entry: "All Users",
+    reason: PRODUCT_LIST_REASON,
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SideMenu.tsx",
+    title: "Rules",
+    entry: "Monitor Rules",
+    reason:
+      'The maintainer asked for it: "Create a new section for rules and have monitor rules there. The section should be collapsed by default." Monitor Rules used to sit inside Resources, a row on every visit for something written once, and before that under Advanced, where the person who filed #3418 never found it. A folded Rules section right below Resources is neither. An SLO\'s Rules section holds its monitor rules the same way.',
+  },
+];
+
+function isAllowedNearRepeat(section: MenuSectionFound): boolean {
+  return ALLOWED_NEAR_REPEATS.some((allowed: AllowedNearRepeat): boolean => {
+    return (
+      allowed.file === section.file.split(path.sep).join("/") &&
+      allowed.title === section.title &&
+      allowed.entry === section.entries?.[0]
+    );
+  });
+}
+
 function sourceFiles(directory: string): Array<string> {
   if (!fs.existsSync(directory)) {
     return [];
@@ -361,6 +460,89 @@ describe("a section with one entry does not repeat that entry's name", () => {
       });
 
     expect(repeated).toEqual([]);
+  });
+
+  test("no menu has one whose heading nearly repeats its only entry", () => {
+    const nearlyRepeated: Array<string> = sections
+      .filter((section: MenuSectionFound): boolean => {
+        return (
+          nearlyRepeatsItsOnlyEntry(section) && !isAllowedNearRepeat(section)
+        );
+      })
+      .map((section: MenuSectionFound): string => {
+        return `${section.file}:${section.line} "${section.title}" holds only "${section.entries![0]}"`;
+      });
+
+    expect(nearlyRepeated).toEqual([]);
+  });
+
+  test("every allowed near repeat is still there, and says why", () => {
+    for (const allowed of ALLOWED_NEAR_REPEATS) {
+      expect(allowed.reason.length).toBeGreaterThan(40);
+      expect(
+        sections.filter((section: MenuSectionFound): boolean => {
+          return (
+            section.file.split(path.sep).join("/") === allowed.file &&
+            section.title === allowed.title &&
+            section.entries?.length === 1 &&
+            section.entries[0] === allowed.entry
+          );
+        }),
+      ).toHaveLength(1);
+    }
+  });
+});
+
+describe("a near repeat", () => {
+  function section(title: string, entries: Array<string>): MenuSectionFound {
+    return { file: "Menu.tsx", line: 1, title, entries };
+  }
+
+  test.each([
+    ["Logs", "Call Logs"],
+    ["Logs", "Notification Logs"],
+    ["Calendar", "Maintenance Calendar"],
+    ["Notes", "Private Notes"],
+    ["Alerts", "Member Alerts"],
+    ["Incidents", "Member Incidents"],
+    ["Rules", "Monitor Rules"],
+    ["On-Call", "On-Call Schedules"],
+    ["Incoming Calls", "Incoming Call Policies"],
+    ["Support", "Customer Support Access"],
+    ["Team Settings", "Settings"],
+    ["Danger Zone", "Danger zone"],
+  ])("%j holding only %j is one", (title: string, entry: string) => {
+    expect(nearlyRepeatsItsOnlyEntry(section(title, [entry]))).toBe(true);
+  });
+
+  test.each([
+    ["Danger Zone", "Delete Project"],
+    ["Basic", "Overview"],
+    ["Advanced", "Archived"],
+    ["Reports", "User On-Call Time"],
+    ["Real User Monitoring", "All Applications"],
+    ["On-Call", "Calendar Feeds"],
+    // A word inside a longer one is not that word.
+    ["Log", "Catalog Logic"],
+  ])("%j holding only %j is not one", (title: string, entry: string) => {
+    expect(nearlyRepeatsItsOnlyEntry(section(title, [entry]))).toBe(false);
+  });
+
+  test("a section of two entries is never one", () => {
+    expect(
+      nearlyRepeatsItsOnlyEntry(section("Logs", ["Call Logs", "Audit Logs"])),
+    ).toBe(false);
+  });
+
+  test("a section whose entries cannot be counted is never one", () => {
+    expect(
+      nearlyRepeatsItsOnlyEntry({
+        file: "Menu.tsx",
+        line: 1,
+        title: "Logs",
+        entries: null,
+      }),
+    ).toBe(false);
   });
 });
 

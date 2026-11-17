@@ -86,6 +86,8 @@ OneUptime 会加密保存登录的刷新令牌，并至少每周刷新一次，�
 
 删除连接后，一旦没有其他连接使用该登录，OneUptime 在 Zoom 和 Google 的访问权限就会被撤销。对于 Microsoft，请在该账户的 **My Apps** （myapps.microsoft.com）中移除 OneUptime。在 Zoom App Marketplace 中从您的 Zoom 账户移除 OneUptime，会从所有以该账户登录的连接中删除其登录，这些连接在重新连接之前都会显示 **异常**。
 
+OneUptime 已读取的转录会保留在其事件上：删除连接会保留它开始的通话及其转录，在 Zoom、Google 或 Microsoft 中从账户移除 OneUptime 也是如此。通话上的 **删除转录** 会删除其转录以及 OneUptime AI 从中读取的内容，但不会删除 OneUptime AI 发布到事件动态及其频道的内容。删除事件会删除其通话及其转录。
+
 ### 如果 Microsoft 要求管理员
 
 有些 Microsoft 365 组织只允许管理员批准应用。如果 Microsoft 提示您需要管理员批准，请让 Microsoft 365 管理员连接 Microsoft Teams，或在 [Microsoft Entra 管理中心](https://entra.microsoft.com/) 的 **Enterprise applications** > **Admin consent requests** 中批准 OneUptime。录制 Teams 通话的项目在每个组织中都需要这一批准，且只需一次：只有管理员才能允许应用读取会议转录。

@@ -151,7 +151,7 @@ curl -X POST "<url>" \
 
 En hændelse åbnes med titlen `New Relic: High CPU on checkout-service`, og de vagtpolitikker, du valgte, kaldes op. Send den samme anmodning med `isAcknowledged` sat til `true`, og hændelsen bekræftes. Send den med `state` sat til `CLOSED`, og hændelsen løses.
 
-Test derefter fra New Relic: åbn New Relic-workflowets webhook-besked, og klik på **Send test notification**. For at se, at den kom frem, åbn OneUptime-arbejdsgangens **Protokoller → Kørsler**.
+Test derefter fra New Relic: åbn New Relic-workflowets webhook-besked, og klik på **Send test notification**. For at se, at den kom frem, åbn OneUptime-arbejdsgangens **Kørsler**.
 
 ## Fejlfinding
 
@@ -162,7 +162,7 @@ Test derefter fra New Relic: åbn New Relic-workflowets webhook-besked, og klik 
 :::
 
 :::details Arbejdsgangen kører, men åbner intet
-Åbn kørslen i **Protokoller → Kørsler**. Posten `read-event-1` under **Trin** siger, hvorfor den tog **Nej**.
+Åbn kørslen i **Kørsler**. Posten `read-event-1` under **Trin** siger, hvorfor den tog **Nej**.
 
 - `New Relic named no issue ID`: behold linjen `"id": {{ json issueId }},` i payloaden.
 - `is in no state`: behold linjen `"state": {{ json state }},` i payloaden.
@@ -175,7 +175,7 @@ Test derefter fra New Relic: åbn New Relic-workflowets webhook-besked, og klik 
 
 :::details Hændelser oprettes, men løses aldrig
 - Workflowet i New Relic skal have **Closed** slået til under **Notify when**.
-- Åbn lukningens kørsel i **Protokoller → Kørsler**: dens sidste trin siger hvorfor. Lukningens `id` skal være sagens, så behold `"id": {{ json issueId }},` som det står i payloaden.
+- Åbn lukningens kørsel i **Kørsler**: dens sidste trin siger hvorfor. Lukningens `id` skal være sagens, så behold `"id": {{ json issueId }},` som det står i payloaden.
 :::
 
 :::details Vagten kaldes op for for mange sager

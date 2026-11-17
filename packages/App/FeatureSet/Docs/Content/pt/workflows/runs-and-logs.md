@@ -12,8 +12,8 @@ Toda vez que um workflow roda, o OneUptime guarda um registro do que aconteceu �
 
 | Página                                               | O que você vê                                                                                      |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Fluxos de trabalho → Registros → Execuções**       | Todas as execuções de todos os workflows do projeto. Filtre por nome do workflow, status e data.   |
-| **Fluxo de trabalho → Registros → Execuções**        | Só as execuções deste workflow. Esta tem um filtro **ID da execução** em vez de um filtro de workflow. |
+| **Fluxos de trabalho → Execuções**       | Todas as execuções de todos os workflows do projeto. Filtre por nome do workflow, status e data.   |
+| **Fluxo de trabalho → Execuções**        | Só as execuções deste workflow. Esta tem um filtro **ID da execução** em vez de um filtro de workflow. |
 | **Uma execução específica**                          | Aberta com o botão **Ver registros** em uma linha de execução — as linhas em si não são clicáveis. |
 
 Iniciar uma execução pelo **Construtor** abre a mesma tela **Execução do Fluxo de Trabalho**, que já acompanha a execução, então você a vê acontecer em vez de procurá-la depois.

@@ -122,7 +122,7 @@ export default class OnCallDutyPolicyAPI extends BaseAPI<
    * The projects a request across projects answers for: each one the
    * person may open, checked on its own. getUserMiddleware hands such a
    * request a permission set for every project the person is a member of
-   * that is not blocked; a project whose Require SSO for Login they have
+   * that is not blocked; a project whose Require SSO to Sign In they have
    * not met gets only what every signed-in user holds - not ProjectUser,
    * which every member who may open the project holds - and is left out,
    * as a request in that project is refused. Each project once.

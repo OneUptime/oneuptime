@@ -12,8 +12,8 @@ Ogni volta che un flusso di lavoro viene eseguito, OneUptime salva un resoconto 
 
 | Pagina                                               | Cosa vedi                                                                                          |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Flussi di lavoro → Log → Esecuzioni**         | Ogni esecuzione di ogni flusso di lavoro del progetto. Filtra per nome del flusso di lavoro, stato e data.         |
-| **Flusso di lavoro → Log → Esecuzioni**         | Solo le esecuzioni di questo flusso di lavoro. Qui c'è un filtro **ID esecuzione** invece di un filtro per flussi di lavoro. |
+| **Flussi di lavoro → Esecuzioni**         | Ogni esecuzione di ogni flusso di lavoro del progetto. Filtra per nome del flusso di lavoro, stato e data.         |
+| **Flusso di lavoro → Esecuzioni**         | Solo le esecuzioni di questo flusso di lavoro. Qui c'è un filtro **ID esecuzione** invece di un filtro per flussi di lavoro. |
 | **Una singola esecuzione**                           | Si apre con il pulsante **Visualizza log** su una riga: le righe in sé non sono cliccabili.         |
 
 Avviare un'esecuzione dal **Costruttore** apre la stessa vista **Esecuzione del flusso di lavoro**, che già segue l'esecuzione, così la vedi accadere invece di doverla cercare dopo.

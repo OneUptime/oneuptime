@@ -166,7 +166,7 @@ Du har grupperet efter en etiket, der er den samme for hver advarsel i en notifi
 :::
 
 :::details Hændelsen viser en henvisning i stedet for en værdi
-En henvisning til et felt, som notifikationen ikke har, bliver stående, som den er skrevet, med klammer og det hele. Sammenlign feltets navn med det, Grafana sendte: for en arbejdsgang åbner du kørslen i **Protokoller → Kørsler** og sammenligner med det, triggeren modtog.
+En henvisning til et felt, som notifikationen ikke har, bliver stående, som den er skrevet, med klammer og det hele. Sammenlign feltets navn med det, Grafana sendte: for en arbejdsgang åbner du kørslen i **Kørsler** og sammenligner med det, triggeren modtog.
 :::
 
 Vejledningen til [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#fejlfinding) dækker flere tilfælde, og de gælder også for Grafanas notifikationer.

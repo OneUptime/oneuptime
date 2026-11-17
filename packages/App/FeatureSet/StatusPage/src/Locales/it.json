@@ -37,7 +37,7 @@
     "announcements": "Annunci",
     "scheduledEvents": "Manutenzione programmata",
     "subscribe": "Iscriviti",
-    "logout": "Esci"
+    "signOut": "Esci"
   },
   "overview": {
     "uptimeSuffix": "% di disponibilità",
@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "Password dimenticata",
       "description": "Se hai dimenticato la password per {{statusPageName}}, inserisci la tua e-mail e ti invieremo il link per reimpostare la password.",
-      "success": "Ti abbiamo inviato per e-mail il link per reimpostare la password. Non dimenticare di controllare la cartella spam.",
+      "success": "Se questo indirizzo e-mail può accedere a {{statusPageName}}, gli abbiamo inviato un link per reimpostare la password. Non dimenticare di controllare la cartella spam.",
       "sendLink": "Invia link di reimpostazione password",
       "rememberPassword": "Ricordi la password?"
     },
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "Completata negli ultimi {{count}} giorni",
   "Completed in the Last {{count}} Days_one": "Completata nell'ultimo giorno",
   "None is planned, and none took place in the last {{count}} days.": "Nessuna è prevista e nessuna si è svolta negli ultimi {{count}} giorni.",
-  "None is planned, and none took place in the last {{count}} days._one": "Nessuna è prevista e nessuna si è svolta nell'ultimo giorno."
+  "None is planned, and none took place in the last {{count}} days._one": "Nessuna è prevista e nessuna si è svolta nell'ultimo giorno.",
+  "serverMessages": {
+    "signInToView": "Non hai accesso a questa pagina di stato. Accedi per visualizzarla.",
+    "sessionExpired": "Sessione scaduta. Accedi di nuovo.",
+    "signedOut": "Sei uscito. Accedi di nuovo.",
+    "magicLinkTurnedOff": "I link di accesso sono disattivati per questa pagina di stato. Accedi con la tua email e la tua password."
+  }
 }

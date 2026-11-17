@@ -133,7 +133,7 @@ Elke workflow houdt een eigen kopie bij. Wanneer je het clientgeheim vervangt, o
 4. Klik op **Workflow maken**. Elke workflow wordt uitgeschakeld aangemaakt: zet **Ingeschakeld** aan bovenaan de **Bouwer** ervan.
 :::
 
-Begin met **Create a Dynamics 365 case when an incident is declared**, of met **Create a Dynamics 365 case when an alert is created** voor waarschuwingen: elk ander sjabloon van OneUptime → Dynamics 365 van dezelfde soort vindt de case via de koppeling die dit sjabloon schrijft. Zet het aan, meld een testincident of maak een testwaarschuwing aan, en open **Logboeken → Uitvoeringen** van de workflow. De uitvoering hoort te eindigen als **Uitgevoerd**, en de **Antwoordlichaam** van haar laatste stap, `create-case-1`, bevat het `ticketnumber` van de nieuwe case, zoals `CAS-01001-X1Y2Z3`.
+Begin met **Create a Dynamics 365 case when an incident is declared**, of met **Create a Dynamics 365 case when an alert is created** voor waarschuwingen: elk ander sjabloon van OneUptime → Dynamics 365 van dezelfde soort vindt de case via de koppeling die dit sjabloon schrijft. Zet het aan, meld een testincident of maak een testwaarschuwing aan, en open **Uitvoeringen** van de workflow. De uitvoering hoort te eindigen als **Uitgevoerd**, en de **Antwoordlichaam** van haar laatste stap, `create-case-1`, bevat het `ticketnumber` van de nieuwe case, zoals `CAS-01001-X1Y2Z3`.
 
 ### De sjablonen van Dynamics 365 → OneUptime koppelen
 
@@ -181,7 +181,7 @@ Voordat je op een van beide vertrouwt:
 
 ### Controleren of het werkt
 
-De **Stappen** van elke uitvoering zeggen wat het sjabloon deed, dus open de uitvoering in **Logboeken → Uitvoeringen** en kijk hoe ze eindigde:
+De **Stappen** van elke uitvoering zeggen wat het sjabloon deed, dus open de uitvoering in **Uitvoeringen** en kijk hoe ze eindigde:
 
 - **Uitgevoerd**: het deed zijn werk, en de laatste stap noemt de case, het incident of de waarschuwing.
 - **Uitgevoerd**, met de stap **Controleren met JavaScript** op **Nee**: het heeft de gebeurtenis bewust overgeslagen, en de stap zegt waarom: de case is niet gekoppeld aan een record van deze soort, de notitie kwam van de andere kant, het record is privé, of de nieuwe status sluit de case niet.
@@ -297,7 +297,7 @@ De scope moet je omgevings-URL zijn gevolgd door `/.default`. Een verkeerde omge
    }
    ```
 
-5. Zet **Ingeschakeld** aan, meld een testincident en open **Logboeken → Uitvoeringen**. De stap `create-case` toont een `201` en een body met de nieuwe `incidentid` en `ticketnumber`.
+5. Zet **Ingeschakeld** aan, meld een testincident en open **Uitvoeringen**. De stap `create-case` toont een `201` en een body met de nieuwe `incidentid` en `ticketnumber`.
 :::
 
 Elke case heeft een klant nodig, dus `customerid` is verplicht. Die kan naar een account of een contactpersoon wijzen, en daarom schrijf je `customerid_account@odata.bind` of `customerid_contact@odata.bind`, precies zo gespeld. `Prefer: return=representation` maakt het antwoord `201` met de case zelf, zodat het volgende blok `{{local.components.create-case.returnValues.response-body.incidentid}}` kan lezen. Zonder deze header antwoordt Dynamics 365 met `204` zonder body.
@@ -399,7 +399,7 @@ Een workflow heeft precies één trigger, dus incidenten en waarschuwingen hebbe
 
 ## Problemen oplossen
 
-Open eerst de mislukte stap in **Logboeken → Uitvoeringen**. Beide Microsoft-endpoints antwoorden met een JSON-body die het probleem uitlegt, en het API-blok bewaart die in `response-body`.
+Open eerst de mislukte stap in **Uitvoeringen**. Beide Microsoft-endpoints antwoorden met een JSON-body die het probleem uitlegt, en het API-blok bewaart die in `response-body`.
 
 :::details 400 met AADSTS70011, de scope is niet geldig
 De scope is niet je omgevings-URL gevolgd door `/.default`. Kopieer de URL uit het Power Platform-beheercentrum en laat een slash aan het eind en elk `/api/data/...`-pad weg.
@@ -434,7 +434,7 @@ De servicebeschermingslimieten van Dataverse staan ongeveer 6.000 verzoeken toe,
 :::
 
 :::details Er komt niets aan in OneUptime
-Stuur zelf een verzoek naar de webhook-URL met `curl`, en zoek het op in **Logboeken → Uitvoeringen**. Komt het jouwe aan en dat van Dynamics 365 niet, kijk dan eerder in de keten: de uitvoeringsgeschiedenis van de flow zelf, of de mislukte System Jobs van een Dataverse-webhook.
+Stuur zelf een verzoek naar de webhook-URL met `curl`, en zoek het op in **Uitvoeringen**. Komt het jouwe aan en dat van Dynamics 365 niet, kijk dan eerder in de keten: de uitvoeringsgeschiedenis van de flow zelf, of de mislukte System Jobs van een Dataverse-webhook.
 :::
 
 :::details De workflow draait, maar het incident verandert niet

@@ -570,8 +570,8 @@ describe("the Scheduled Maintenance menu, as the overview draws it", () => {
         return menuSection.title;
       }),
     ).toEqual([
+      // Maintenance Calendar joined Overview from a one-entry Calendar (#9216).
       "Overview",
-      "Calendar",
       "Workspace",
       "Rules",
       "Settings",
@@ -579,7 +579,7 @@ describe("the Scheduled Maintenance menu, as the overview draws it", () => {
     ]);
   });
 
-  it("says Overview and Calendar are open and the rest start folded, and what Developer holds", () => {
+  it("says Overview is open and the rest start folded, and what Developer holds", () => {
     const menu: Array<MenuSection> = maintenanceMenu();
     const open: Array<string> = openSections(menu, MAINTENANCE_MENU_SOURCE);
     const folded: Array<string> = menu
@@ -590,9 +590,10 @@ describe("the Scheduled Maintenance menu, as the overview draws it", () => {
         return !open.includes(title);
       });
 
-    expect(open).toEqual(["Overview", "Calendar"]);
+    // The Calendar section went in #9216; its page is in Overview.
+    expect(open).toEqual(["Overview"]);
     expect(where).toContain(
-      `${listed(open)} are open; ${listed(folded)} start folded, and a section opens by itself when you are on one of its pages.`,
+      `${listed(open)} is open; ${listed(folded)} start folded, and a section opens by itself when you are on one of its pages.`,
     );
     expect(where).toContain(
       `**Developer** holds ${listed(developerSection().items)}, for managing maintenance from code.`,
@@ -610,7 +611,7 @@ describe("the Scheduled Maintenance menu, as the overview draws it", () => {
       readDashboardSource("Pages/ScheduledMaintenanceEvents/Ongoing.tsx"),
     ).toContain("useInProgressScheduledMaintenanceStateIds()");
     expect(where).toContain(
-      "**All Maintenance Events** and **Ongoing Maintenance Events**, whose badge counts the events in progress right now.",
+      "**All Maintenance Events**, **Ongoing Maintenance Events**, whose badge counts the events in progress right now, and **Maintenance Calendar**",
     );
   });
 
@@ -733,15 +734,17 @@ describe("an event's own menu, as the overview draws it", () => {
     expect(menuTable(pages)).toEqual(eventMenu());
   });
 
-  it("says Overview, Team and Notes are open and the rest start folded", () => {
-    // The incident page's sections, as an incident's and an alert's menus have them.
+  it("says Overview and Notes are open and the rest start folded", () => {
+    /*
+     * The incident page's sections, as an incident's and an alert's menus
+     * have them. Owners joined Overview from a one-entry Team section (#9216).
+     */
     expect(openSections(eventMenu(), EVENT_MENU_SOURCE)).toEqual([
       "Overview",
-      "Team",
       "Notes",
     ]);
     expect(pages).toContain(
-      "**Overview**, **Team** and **Notes** are open; the other sections start folded until you click them.",
+      "**Overview** and **Notes** are open; the other sections start folded until you click them.",
     );
   });
 

@@ -11,7 +11,7 @@ import URL from "Common/Types/API/URL";
  * Account enumeration on the sign-in route.
  *
  * POST /identity/login answers a wrong password and an address that belongs to
- * nobody with the SAME message -- "Invalid login: Email or password does not
+ * nobody with the SAME message -- "Email or password does not
  * match." (App/FeatureSet/Identity/API/Authentication.ts). That is deliberate:
  * an answer that differed between the two turns the login form into a
  * membership oracle for the instance, which is a disclosure in its own right

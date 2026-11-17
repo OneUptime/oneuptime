@@ -136,7 +136,7 @@ Laissez-le replié et l'équipement est seulement pingué : la section repliée 
 | SNMP v3 Privacy Key | La phrase secrète de chiffrement. | Avec chiffrement |
 :::
 
-Les identifiants saisis sur l'équipement l'emportent sur un profil d'identifiants choisi à côté, et le site de l'équipement peut aussi porter un profil par défaut. Les identifiants d'un profil sont chiffrés au repos. Les identifiants saisis sur un équipement sont protégés par les mêmes permissions de lecture mais ne sont pas chiffrés au repos : une raison de plus de garder les identifiants partagés dans un profil.
+Les identifiants saisis sur l'équipement l'emportent sur un profil d'identifiants choisi à côté, et le site de l'équipement peut aussi porter un profil par défaut. Les identifiants d'un profil sont chiffrés au repos. Les identifiants saisis sur un équipement sont eux aussi chiffrés au repos, et protégés par les mêmes permissions de lecture.
 
 ## Modifier de nombreux équipements à la fois
 

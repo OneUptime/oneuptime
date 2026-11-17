@@ -60,6 +60,20 @@ export class Service extends DatabaseService<Model> {
     return crypto.randomBytes(GENERATED_SECRET_BYTES).toString("hex");
   }
 
+  /*
+   * A channel's URL and signing secret are stored encrypted (#9013): the
+   * create's answer carries them as they were written, as the master
+   * admin's read of the channel gives them, never the ciphertext stored
+   * (handBackAsGiven).
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    return this.handBackAsGiven(await super.create(createBy), [
+      "webhookUrl",
+      "secret",
+    ]);
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,

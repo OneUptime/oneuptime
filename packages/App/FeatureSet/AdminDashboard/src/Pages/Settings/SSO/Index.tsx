@@ -42,8 +42,8 @@ import { useTranslation } from "react-i18next";
 /*
  * Settings > Single Sign-On: everything about signing in to this server with
  * an identity provider, on one page, in the order it is set up - the
- * instance-wide SAML providers, the OpenID Connect ones, and Require SSO for
- * Login under them.
+ * instance-wide SAML providers, the OpenID Connect ones, and Require SSO to
+ * Sign In under them.
  *
  * They were three pages: "Global SSO" (the SAML providers) and "Global OIDC"
  * in a folded menu section that was also called Authentication, and the
@@ -388,7 +388,7 @@ const SsoSettings: FunctionComponent = (): ReactElement => {
       />
 
       {/*
-       * Require SSO for Login, for the whole server: one switch that saves
+       * Require SSO to Sign In, for the whole server: one switch that saves
        * when flipped, and asks - with a red button - before everyone but
        * master admins has to sign in with SSO. Under it, whichever way it is
        * set, the master admins' way in: the address to keep.

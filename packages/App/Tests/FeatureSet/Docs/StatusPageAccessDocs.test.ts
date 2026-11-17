@@ -107,9 +107,9 @@ describe("the English status pages guide", () => {
     );
   });
 
-  it("describes Require SSO for Login as a switch that asks first", () => {
+  it("describes Require SSO to Sign In as a switch that asks first", () => {
     expect(section).toContain(
-      "the **SSO Settings** card holds the **Require SSO for Login** switch (`requireSsoForLogin`, off by default), which saves the moment you flip it.",
+      "the **SSO Settings** card holds the **Require SSO to Sign In** switch (`requireSsoForLogin`, off by default), which saves the moment you flip it.",
     );
     expect(section).toContain(
       "from then on private users can't sign in with an email and password",

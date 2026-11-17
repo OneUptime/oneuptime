@@ -37,7 +37,7 @@
     "announcements": "घोषणाएँ",
     "scheduledEvents": "अनुसूचित रखरखाव",
     "subscribe": "सदस्यता लें",
-    "logout": "लॉग आउट करें"
+    "signOut": "साइन आउट करें"
   },
   "overview": {
     "uptimeSuffix": "% अपटाइम",
@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "पासवर्ड भूल गए",
       "description": "यदि आप {{statusPageName}} के लिए अपना पासवर्ड भूल गए हैं, तो कृपया अपना ईमेल दर्ज करें और पासवर्ड रीसेट लिंक आपको भेज दिया जाएगा।",
-      "success": "हमने आपको पासवर्ड रीसेट लिंक ईमेल कर दिया है। कृपया स्पैम देखना न भूलें।",
+      "success": "अगर यह ईमेल पता {{statusPageName}} में लॉग इन कर सकता है, तो हमने उसे पासवर्ड रीसेट लिंक ईमेल कर दिया है। कृपया स्पैम देखना न भूलें।",
       "sendLink": "पासवर्ड रीसेट लिंक भेजें",
       "rememberPassword": "अपना पासवर्ड याद है?"
     },
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "पिछले {{count}} दिनों में पूरा हुआ",
   "Completed in the Last {{count}} Days_one": "पिछले एक दिन में पूरा हुआ",
   "None is planned, and none took place in the last {{count}} days.": "कोई रखरखाव नियोजित नहीं है, और पिछले {{count}} दिनों में भी कोई नहीं हुआ।",
-  "None is planned, and none took place in the last {{count}} days._one": "कोई रखरखाव नियोजित नहीं है, और पिछले एक दिन में भी कोई नहीं हुआ।"
+  "None is planned, and none took place in the last {{count}} days._one": "कोई रखरखाव नियोजित नहीं है, और पिछले एक दिन में भी कोई नहीं हुआ।",
+  "serverMessages": {
+    "signInToView": "आपके पास इस स्थिति पृष्ठ की पहुँच नहीं है। इसे देखने के लिए कृपया साइन इन करें।",
+    "sessionExpired": "सत्र समाप्त हो गया। कृपया फिर से साइन इन करें।",
+    "signedOut": "आप साइन आउट हो चुके हैं। कृपया फिर से साइन इन करें।",
+    "magicLinkTurnedOff": "इस स्थिति पृष्ठ के लिए साइन-इन लिंक बंद हैं। कृपया अपने ईमेल और पासवर्ड से साइन इन करें।"
+  }
 }

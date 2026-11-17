@@ -62,9 +62,8 @@
     "dataRetention": "Хранение данных",
     "globalLlmProviders": "Глобальные LLM-провайдеры",
     "apiKey": "API-ключ",
-    "more": "Ещё",
     "sendEmail": "Отправить email",
-    "logout": "Выйти",
+    "signOut": "Выйти",
     "telemetryUsage": "Использование телеметрии",
     "ingestionBudgets": "Бюджеты приема",
     "products": "Продукты"
@@ -81,7 +80,7 @@
   },
   "userProfile": {
     "exitAdmin": "Выйти из админа",
-    "logOut": "Выйти"
+    "signOut": "Выйти"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -108,14 +107,14 @@
     "billing": "Биллинг",
     "subscription": "Подписка",
     "invoices": "Счета",
-    "support": "Поддержка",
     "customerSupportAccess": "Доступ службы поддержки",
     "advanced": "Расширенные",
     "overview": "Обзор",
     "projects": "Проекты",
     "settings": "Настройки",
     "authentication": "Аутентификация",
-    "delete": "Удалить",
+    "deleteProject": "Удалить проект",
+    "deleteUser": "Удалить пользователя",
     "settingsAuthentication": "Аутентификация",
     "settingsSso": "Единый вход",
     "settingsNotifications": "Уведомления",
@@ -131,8 +130,6 @@
     "settingsDataRetention": "Хранение данных",
     "settingsGlobalLlmProviders": "Глобальные LLM-провайдеры",
     "settingsApiKey": "API-ключ",
-    "moreCommunication": "Коммуникации",
-    "moreSendEmail": "Отправить email",
     "telemetryUsage": "Использование телеметрии",
     "ingestionBudgets": "Бюджеты приема",
     "settingsIngestionBudgets": "Бюджеты приема",
@@ -482,7 +479,7 @@
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "Выйти"
     },
     "sendEmail": {
@@ -724,7 +721,6 @@
   "Projects": "Проекты",
   "Project": "Проект",
   "User": "Пользователь",
-  "Logout": "Выход",
   "Save": "Сохранить",
   "Cancel": "Отмена",
   "Submit": "Отправить",
@@ -981,7 +977,7 @@
   "No OIDC providers yet.": "Поставщиков OIDC пока нет.",
   "Require SSO": "Требовать SSO",
   "Before you require SSO, sign in with a provider using Test Sign-in in its row.": "Прежде чем требовать SSO, войдите через поставщика с помощью «Проверить вход» в его строке.",
-  "Require SSO for Login": "Требовать SSO для входа",
+  "Require SSO to Sign In": "Требовать SSO для входа",
   "The sign-in page offers only SSO. Everyone except master admins must sign in with SSO to open any project.": "Страница входа предлагает только SSO. Все, кроме главных администраторов, должны входить через SSO, чтобы открыть любой проект.",
   "People can sign in with a password, a passkey or SSO.": "Можно входить с паролем, ключом доступа или через SSO.",
   "Master admins can always sign in with their password here, even while SSO is required. Keep this address.": "Главные администраторы всегда могут войти здесь с паролем, даже пока требуется SSO. Сохраните этот адрес.",
@@ -2204,7 +2200,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Лицензия по вашей подписке в облачном маркетплейсе: каждый пользователь оплачивается почасово.",
   "License, version, seat usage, and the instances covered by this key.": "Лицензия, версия, использование мест и экземпляры, на которые распространяется этот ключ.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "Полная платформа OneUptime с реагированием на инциденты, страницами статуса и автоматизацией рабочих процессов.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "Единый вход (SSO) по SAML и OIDC для проектов, страниц статуса и всего экземпляра, включая «Требовать SSO для входа».",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "Единый вход (SSO) по SAML и OIDC для проектов, страниц статуса и всего экземпляра, включая «Требовать SSO для входа».",
   "Community support, documentation, and tutorials to help teams get started quickly.": "Поддержка сообщества, документация и руководства, которые помогают командам быстро начать работу.",
   "Regular updates, bug fixes, and open-source extensibility.": "Регулярные обновления, исправления ошибок и расширяемость открытого исходного кода.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Интеграции с популярными инструментами DevOps через коннекторы, которые поддерживает сообщество.",
