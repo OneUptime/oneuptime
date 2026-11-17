@@ -118,7 +118,7 @@ Removing someone takes them off every team of the project. They lose access at o
 
 - **Single sign-on.** Someone who signs in with the project's identity provider for the first time joins the teams the provider names. See [Roles and teams for SSO users](/docs/identity/sso#roles-and-teams-for-sso-users).
 - **SCIM.** Your identity provider creates people and adds them to the connection's default teams. See [SCIM](/docs/identity/scim#how-a-project-user-is-provisioned).
-- **The Admin Dashboard.** On a self-hosted installation, a master admin can add someone to a project and accept the invitation for them. See [Users, Teams & Permissions](/docs/permissions/index#users).
+- **The Admin Dashboard.** On a self-hosted installation, a master admin can add someone to a project and accept the invitation for them. See [Users, Teams & Permissions](/docs/permissions/index#users). A master admin can also create someone's account under **Users** with **Create User**: they enter a name and an email, and OneUptime emails that address a link to choose a password, which works once, for 7 days. To set the password for them instead, they open **More fields**. If the email is not sent, they are shown the link to send themselves.
 
 ## Troubleshooting
 
