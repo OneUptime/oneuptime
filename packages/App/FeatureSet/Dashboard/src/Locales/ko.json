@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "지금 ID 공급자에 붙여넣거나 안전한 곳에 보관하세요. 이번 한 번만 표시됩니다. OneUptime은 해시만 저장합니다.",
   "Server Monitor Secret Key Hash": "서버 모니터 시크릿 키 해시",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer 토큰은 연결을 추가하거나 토큰을 재설정할 때 한 번만 표시됩니다. 더 이상 가지고 있지 않다면 \"Bearer 토큰 재설정\"으로 새 토큰을 만드세요.",
-  "Webhook Secret Key Hash": "Webhook 비밀 키 해시"
+  "Webhook Secret Key Hash": "Webhook 비밀 키 해시",
+  "End Now": "지금 종료",
+  "End the override for {{name}} now": "{{name}} 님의 재정의를 지금 종료",
+  "End the override for {{name}} now?": "{{name}} 님의 재정의를 지금 종료할까요?",
+  "The override for {{name}} has ended.": "{{name}} 님의 재정의가 종료되었습니다.",
+  "This override ends within the minute, so there is nothing left to end.": "이 재정의는 1분 안에 끝나므로 더 종료할 것이 없습니다.",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "이 재정의는 아직 시작되지 않았으므로 종료할 것이 없습니다. 취소하려면 삭제하세요.",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "건너뛰기가 {{until}} 대신 지금 끝납니다. 그 이후에는 {{away}} 님이 로테이션에서 다시 자기 차례를 맡습니다.",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} 님이 {{until}} 대신 지금 {{away}} 님 대리를 멈춥니다. 그 이후에는 경고가 다시 {{away}} 님에게 갑니다."
 }

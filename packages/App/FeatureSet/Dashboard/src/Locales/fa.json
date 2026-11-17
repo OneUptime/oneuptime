@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "همین حالا آن را در ارائه‌دهنده هویت خود جای‌گذاری کنید، یا در جای امنی نگه دارید. فقط همین یک بار نمایش داده می‌شود: OneUptime فقط هش آن را نگه می‌دارد.",
   "Server Monitor Secret Key Hash": "هش کلید محرمانه مانیتور سرور",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "توکن Bearer فقط یک بار نمایش داده می‌شود: هنگام افزودن اتصال یا بازنشانی توکن آن. اگر دیگر آن را ندارید، با «بازنشانی توکن Bearer» یک توکن تازه بسازید.",
-  "Webhook Secret Key Hash": "هش کلید محرمانه وب‌هوک"
+  "Webhook Secret Key Hash": "هش کلید محرمانه وب‌هوک",
+  "End Now": "پایان همین حالا",
+  "End the override for {{name}} now": "پایان جایگزینی {{name}} همین حالا",
+  "End the override for {{name}} now?": "جایگزینی {{name}} همین حالا پایان یابد؟",
+  "The override for {{name}} has ended.": "جایگزینی {{name}} پایان یافت.",
+  "This override ends within the minute, so there is nothing left to end.": "این جایگزینی تا یک دقیقهٔ دیگر تمام می‌شود، پس چیزی برای پایان دادن نمانده است.",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "این جایگزینی هنوز شروع نشده است، پس چیزی برای پایان دادن نیست. برای لغو آن، حذفش کنید.",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "رد کردن به‌جای {{until}} همین حالا تمام می‌شود. از آن پس {{away}} دوباره نوبت‌های خود را در چرخش می‌گیرد.",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} به‌جای {{until}} همین حالا دیگر جایگزین {{away}} نیست. از آن پس هشدارها دوباره به {{away}} می‌رسد."
 }

@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "इसे अभी अपने पहचान प्रदाता में पेस्ट करें, या किसी सुरक्षित जगह रखें। यह केवल इसी बार दिखाया जाता है: OneUptime इसका केवल हैश रखता है।",
   "Server Monitor Secret Key Hash": "सर्वर मॉनिटर सीक्रेट कुंजी हैश",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer टोकन केवल एक बार दिखाया जाता है, जब कनेक्शन जोड़ा जाता है या उसका टोकन रीसेट किया जाता है। अगर अब यह आपके पास नहीं है, तो नया बनाने के लिए \"Bearer टोकन रीसेट करें\" का उपयोग करें।",
-  "Webhook Secret Key Hash": "Webhook गुप्त कुंजी हैश"
+  "Webhook Secret Key Hash": "Webhook गुप्त कुंजी हैश",
+  "End Now": "अभी समाप्त करें",
+  "End the override for {{name}} now": "{{name}} का ओवरराइड अभी समाप्त करें",
+  "End the override for {{name}} now?": "{{name}} का ओवरराइड अभी समाप्त करें?",
+  "The override for {{name}} has ended.": "{{name}} का ओवरराइड समाप्त हो गया है।",
+  "This override ends within the minute, so there is nothing left to end.": "यह ओवरराइड इसी मिनट में समाप्त हो रहा है, इसलिए समाप्त करने को कुछ नहीं बचा है।",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "यह ओवरराइड अभी शुरू नहीं हुआ है, इसलिए समाप्त करने को कुछ नहीं है। इसे रद्द करने के लिए इसे हटाएँ।",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "छोड़ना {{until}} के बजाय अभी समाप्त होता है। उसके बाद {{away}} रोटेशन में फिर से अपनी बारी लेते हैं।",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} {{until}} के बजाय अभी {{away}} को कवर करना बंद करते हैं। उसके बाद अलर्ट फिर से {{away}} को जाते हैं।"
 }

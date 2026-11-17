@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Cole-o agora no seu provedor de identidade ou guarde-o em um lugar seguro. Ele só é mostrado desta vez: o OneUptime guarda apenas um hash dele.",
   "Server Monitor Secret Key Hash": "Hash da chave secreta do monitor de servidor",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "O token Bearer é mostrado apenas uma vez, quando a conexão é adicionada ou o token dela é redefinido. Se você não o tiver mais, use \"Redefinir token Bearer\" para criar um novo.",
-  "Webhook Secret Key Hash": "Hash da chave secreta do webhook"
+  "Webhook Secret Key Hash": "Hash da chave secreta do webhook",
+  "End Now": "Encerrar agora",
+  "End the override for {{name}} now": "Encerrar agora a substituição de {{name}}",
+  "End the override for {{name}} now?": "Encerrar agora a substituição de {{name}}?",
+  "The override for {{name}} has ended.": "A substituição de {{name}} foi encerrada.",
+  "This override ends within the minute, so there is nothing left to end.": "Esta substituição termina ainda neste minuto, então não há mais nada a encerrar.",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Esta substituição ainda não começou, então não há nada a encerrar. Para cancelá-la, exclua-a.",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "{{away}} deixa de ser pulado agora, em vez de em {{until}}. A partir daí, volta a assumir seus turnos na rotação.",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} deixa de cobrir {{away}} agora em vez de em {{until}}. A partir daí, os alertas voltam a acionar {{away}}."
 }

@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Lim det inn hos identitetsleverandøren din nå, eller oppbevar det et trygt sted. Det vises bare denne ene gangen: OneUptime lagrer bare en hash av det.",
   "Server Monitor Secret Key Hash": "Hash av servermonitorens hemmelige nøkkel",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bærertokenet vises bare én gang, når tilkoblingen legges til eller når tokenet tilbakestilles. Hvis du ikke har det lenger, bruker du «Tilbakestill bærertoken» for å lage et nytt.",
-  "Webhook Secret Key Hash": "Hash av den hemmelige webhook-nøkkelen"
+  "Webhook Secret Key Hash": "Hash av den hemmelige webhook-nøkkelen",
+  "End Now": "Avslutt nå",
+  "End the override for {{name}} now": "Avslutt overstyringen for {{name}} nå",
+  "End the override for {{name}} now?": "Avslutte overstyringen for {{name}} nå?",
+  "The override for {{name}} has ended.": "Overstyringen for {{name}} er avsluttet.",
+  "This override ends within the minute, so there is nothing left to end.": "Denne overstyringen slutter innen minuttet, så det er ingenting igjen å avslutte.",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Denne overstyringen har ikke startet ennå, så det er ingenting å avslutte. Slett den for å avlyse den.",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "{{away}} hoppes ikke lenger over fra nå i stedet for {{until}}. Deretter er vaktene i rotasjonen deres igjen.",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} dekker ikke lenger for {{away}} fra nå i stedet for {{until}}. Deretter går varsler til {{away}} igjen."
 }

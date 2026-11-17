@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Fügen Sie es jetzt bei Ihrem Identitätsanbieter ein oder bewahren Sie es an einem sicheren Ort auf. Es wird nur dieses eine Mal angezeigt: OneUptime speichert nur einen Hash davon.",
   "Server Monitor Secret Key Hash": "Hash des geheimen Schlüssels des Server-Monitors",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Das Bearer-Token wird nur einmal angezeigt: wenn die Verbindung hinzugefügt oder ihr Token zurückgesetzt wird. Wenn Sie es nicht mehr haben, erstellen Sie mit „Bearer-Token zurücksetzen“ ein neues.",
-  "Webhook Secret Key Hash": "Hash des geheimen Webhook-Schlüssels"
+  "Webhook Secret Key Hash": "Hash des geheimen Webhook-Schlüssels",
+  "End Now": "Jetzt beenden",
+  "End the override for {{name}} now": "Vertretung für {{name}} jetzt beenden",
+  "End the override for {{name}} now?": "Vertretung für {{name}} jetzt beenden?",
+  "The override for {{name}} has ended.": "Die Vertretung für {{name}} ist beendet.",
+  "This override ends within the minute, so there is nothing left to end.": "Diese Vertretung endet innerhalb der Minute, es gibt also nichts mehr zu beenden.",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Diese Vertretung hat noch nicht begonnen, es gibt also nichts zu beenden. Um sie abzusagen, löschen Sie sie.",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "Das Überspringen endet jetzt statt am {{until}}. Danach übernimmt {{away}} die eigenen Schichten in der Rotation wieder.",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "Die Vertretung von {{away}} durch {{cover}} endet jetzt statt am {{until}}. Danach gehen Warnungen wieder an {{away}}."
 }

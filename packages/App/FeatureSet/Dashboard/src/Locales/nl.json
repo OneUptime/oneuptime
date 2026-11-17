@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Plak het nu in uw identiteitsprovider of bewaar het op een veilige plek. Het wordt alleen deze keer getoond: OneUptime bewaart er alleen een hash van.",
   "Server Monitor Secret Key Hash": "Hash van de geheime sleutel van de servermonitor",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Het Bearer-token wordt maar één keer getoond: wanneer de verbinding wordt toegevoegd of het token opnieuw wordt ingesteld. Hebt u het niet meer, gebruik dan \"Bearer-token opnieuw instellen\" om een nieuw token te maken.",
-  "Webhook Secret Key Hash": "Hash van de geheime webhook-sleutel"
+  "Webhook Secret Key Hash": "Hash van de geheime webhook-sleutel",
+  "End Now": "Nu beëindigen",
+  "End the override for {{name}} now": "Vervanging voor {{name}} nu beëindigen",
+  "End the override for {{name}} now?": "Vervanging voor {{name}} nu beëindigen?",
+  "The override for {{name}} has ended.": "De vervanging voor {{name}} is beëindigd.",
+  "This override ends within the minute, so there is nothing left to end.": "Deze vervanging eindigt binnen de minuut, er valt dus niets meer te beëindigen.",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Deze vervanging is nog niet begonnen, er valt dus niets te beëindigen. Verwijder hem om hem te schrappen.",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "{{away}} wordt nu niet meer overgeslagen, in plaats van pas op {{until}}. Daarna zijn de beurten in de rotatie weer van hen.",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} vervangt {{away}} nu niet meer, in plaats van pas op {{until}}. Daarna gaan meldingen weer naar {{away}}."
 }

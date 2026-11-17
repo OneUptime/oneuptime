@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "请立即将其粘贴到你的身份提供商中，或保存在安全的地方。它只显示这一次：OneUptime 只保存它的哈希值。",
   "Server Monitor Secret Key Hash": "服务器监控密钥哈希",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer 令牌只会在添加连接或重置其令牌时显示一次。如果你已不再持有它，请使用“重置 Bearer 令牌”创建一个新令牌。",
-  "Webhook Secret Key Hash": "Webhook 密钥哈希"
+  "Webhook Secret Key Hash": "Webhook 密钥哈希",
+  "End Now": "立即结束",
+  "End the override for {{name}} now": "立即结束 {{name}} 的覆盖",
+  "End the override for {{name}} now?": "立即结束 {{name}} 的覆盖？",
+  "The override for {{name}} has ended.": "{{name}} 的覆盖已结束。",
+  "This override ends within the minute, so there is nothing left to end.": "此覆盖将在一分钟内结束，因此已没有可结束的内容。",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "此覆盖尚未开始，因此没有可结束的内容。要取消它，请将其删除。",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "跳过现在就结束，而不是在 {{until}}。之后，{{away}} 会重新在轮换中值自己的班。",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} 现在就停止为 {{away}} 代班，而不是在 {{until}}。之后，警报会重新发给 {{away}}。"
 }

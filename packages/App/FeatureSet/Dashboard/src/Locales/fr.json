@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Collez-le dès maintenant dans votre fournisseur d'identité, ou conservez-le en lieu sûr. Il n'est affiché que cette fois : OneUptime n'en conserve qu'un hachage.",
   "Server Monitor Secret Key Hash": "Hash de la clé secrète du moniteur de serveur",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Le jeton Bearer n'est affiché qu'une seule fois, lorsque la connexion est ajoutée ou que son jeton est réinitialisé. Si vous ne l'avez plus, utilisez « Réinitialiser le jeton Bearer » pour en créer un nouveau.",
-  "Webhook Secret Key Hash": "Hash de la clé secrète du webhook"
+  "Webhook Secret Key Hash": "Hash de la clé secrète du webhook",
+  "End Now": "Terminer maintenant",
+  "End the override for {{name}} now": "Terminer maintenant le remplacement de {{name}}",
+  "End the override for {{name}} now?": "Terminer maintenant le remplacement de {{name}} ?",
+  "The override for {{name}} has ended.": "Le remplacement de {{name}} est terminé.",
+  "This override ends within the minute, so there is nothing left to end.": "Ce remplacement se termine dans la minute, il n'y a donc plus rien à terminer.",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Ce remplacement n'a pas encore commencé, il n'y a donc rien à terminer. Pour l'annuler, supprimez-le.",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "Le saut des tours prend fin maintenant au lieu du {{until}}. Ensuite, {{away}} reprend ses tours dans la rotation.",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} cesse de remplacer {{away}} maintenant au lieu du {{until}}. Ensuite, les alertes sont de nouveau envoyées à {{away}}."
 }

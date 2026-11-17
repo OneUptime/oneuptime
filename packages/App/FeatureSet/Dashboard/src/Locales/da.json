@@ -56526,5 +56526,13 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Indsæt det i din identitetsudbyder nu, eller opbevar det et sikkert sted. Det vises kun denne ene gang: OneUptime gemmer kun en hash af det.",
   "Server Monitor Secret Key Hash": "Hash af servermonitorens hemmelige nøgle",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer-tokenet vises kun én gang, når forbindelsen tilføjes, eller når dens token nulstilles. Hvis du ikke længere har det, kan du bruge \"Nulstil bearer-token\" til at lave et nyt.",
-  "Webhook Secret Key Hash": "Hash af webhookens hemmelige nøgle"
+  "Webhook Secret Key Hash": "Hash af webhookens hemmelige nøgle",
+  "End Now": "Afslut nu",
+  "End the override for {{name}} now": "Afslut tilsidesættelsen for {{name}} nu",
+  "End the override for {{name}} now?": "Afslut tilsidesættelsen for {{name}} nu?",
+  "The override for {{name}} has ended.": "Tilsidesættelsen for {{name}} er afsluttet.",
+  "This override ends within the minute, so there is nothing left to end.": "Denne tilsidesættelse slutter inden for minuttet, så der er intet tilbage at afslutte.",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Denne tilsidesættelse er ikke begyndt endnu, så der er intet at afslutte. Slet den for at aflyse den.",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "{{away}} springes ikke længere over fra nu i stedet for {{until}}. Derefter er vagterne i rotationen deres igen.",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} dækker ikke længere for {{away}} fra nu i stedet for {{until}}. Derefter kalder advarsler {{away}} igen."
 }
