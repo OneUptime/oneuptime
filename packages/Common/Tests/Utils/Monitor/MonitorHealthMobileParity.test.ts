@@ -14,6 +14,7 @@ import {
   getMonitorListRowStatus,
 } from "../../../Utils/Dashboard/MonitorListWidgetFormat";
 import MonitorFirstCheck from "../../../Utils/Monitor/MonitorFirstCheck";
+import MonitorFirstCheckOverdue from "../../../Utils/Monitor/MonitorFirstCheckOverdue";
 import MonitorOverviewFamilyUtil from "../../../Utils/Monitor/MonitorOverviewFamily";
 import MonitorRowStatusUtil, {
   MONITOR_ROW_STATUS_COLORS,
@@ -48,9 +49,10 @@ import MonitoringIntervalValidator from "../../../Server/Utils/Monitor/Monitorin
  *
  * This suite compiles the app's files as they are, runs them in a fresh
  * context, and holds them to the web's rules - NotOperationalMonitorQuery,
- * MonitoringOff, MonitorRowStatus, MonitorFirstCheck, MonitorOverviewFamily,
- * MonitoringIntervalUtil and CronTab - query for query, monitor for monitor
- * and schedule for schedule, so they cannot drift apart again.
+ * MonitoringOff, MonitorRowStatus, MonitorFirstCheck,
+ * MonitorFirstCheckOverdue, MonitorOverviewFamily, MonitoringIntervalUtil
+ * and CronTab - query for query, monitor for monitor and schedule for
+ * schedule, so they cannot drift apart again.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../../..");
@@ -925,10 +927,11 @@ describe("the app's first-check rule is the web's", () => {
               createdAt: new Date(now.getTime() - ago).toISOString(),
               monitoringInterval,
             };
-            const expected: boolean = MonitorFirstCheck.isFirstCheckOverdue({
-              monitor: monitor,
-              now: now,
-            });
+            const expected: boolean =
+              MonitorFirstCheckOverdue.isFirstCheckOverdue({
+                monitor: monitor,
+                now: now,
+              });
 
             expect({
               monitor,
@@ -979,7 +982,7 @@ describe("the app's first-check rule is the web's", () => {
             }),
           }).toEqual({
             monitor,
-            overdue: MonitorFirstCheck.isFirstCheckOverdue({
+            overdue: MonitorFirstCheckOverdue.isFirstCheckOverdue({
               monitor: monitor as never,
               now: NOW,
             }),
@@ -1020,7 +1023,7 @@ describe("the app's first-check rule is the web's", () => {
         overdue: MOBILE_FIRST_CHECK.isFirstCheckOverdue({ monitor, now: NOW }),
       }).toEqual({
         createdAt: String(createdAt),
-        overdue: MonitorFirstCheck.isFirstCheckOverdue({
+        overdue: MonitorFirstCheckOverdue.isFirstCheckOverdue({
           monitor: monitor as never,
           now: NOW,
         }),
