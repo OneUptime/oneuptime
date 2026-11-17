@@ -37,6 +37,7 @@ import MonitorResourceContextUtil, {
 } from "./MonitorResourceContext";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import MonitorStoredCheck from "./MonitorStoredCheck";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorEvaluationDetailsCapture, {
   GetEvaluationDetails,
@@ -886,9 +887,11 @@ export default class MonitorAlert {
           /*
            * Redacted as the monitor's own log is, and without its body and
            * headers when the monitor keeps no response content
-           * (MonitorRecordEvidence).
+           * (MonitorRecordEvidence). An alert about one series keeps that
+           * series, never the whole evaluation, and no check is kept past
+           * its size limit (MonitorStoredCheck, #9189).
            */
-          alert.createdStateLog = MonitorRecordEvidence.toStoredCheck({
+          alert.createdStateLog = MonitorStoredCheck.toStoredCheck({
             dataToProcess: input.dataToProcess,
             keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
               input.monitor,
@@ -897,6 +900,7 @@ export default class MonitorAlert {
               monitor: input.monitor,
               check: input.dataToProcess,
             }),
+            seriesFingerprint: seriesFingerprint,
           });
 
           /*
@@ -1391,11 +1395,15 @@ export default class MonitorAlert {
     }
 
     if (input.dataToProcess) {
-      // Redacted and storable, as createdStateLog above.
-      alertStateTimeline.stateChangeLog = MonitorRecordEvidence.toStoredCheck({
+      /*
+       * Redacted, storable and bounded, as createdStateLog above: the
+       * resolving series only, when the alert is about one.
+       */
+      alertStateTimeline.stateChangeLog = MonitorStoredCheck.toStoredCheck({
         dataToProcess: input.dataToProcess as DataToProcess,
         keepResponseContent: input.keepResponseContent !== false,
         monitorStep: input.monitorStep,
+        seriesFingerprint: input.openAlert.seriesFingerprint,
       });
     }
 
