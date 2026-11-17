@@ -1491,8 +1491,13 @@ describe("the Incoming Request Ingress page", () => {
     expect(ingress).toContain(
       'export const INGRESS_BODY_LIMIT: string = "50mb";',
     );
+    /*
+     * Every reader is held to that limit, the one that keeps a signed
+     * request's body as the bytes that came (so its signature holds through
+     * the probe) among them.
+     */
     expect(ingress).toMatch(
-      /app\.use\(ExpressJson\(\{ limit: INGRESS_BODY_LIMIT \}\)\);\s*app\.use\(ExpressUrlEncoded\(\{ extended: true, limit: INGRESS_BODY_LIMIT \}\)\);\s*app\.use\(WebhookRequestBody\.getRawReader\(INGRESS_BODY_LIMIT\)\);\s*app\.use\(router\);/,
+      /app\.use\(\s*ExpressJson\(\{ limit: INGRESS_BODY_LIMIT, verify: keepSignedBodyBytes \}\),?\s*\);\s*app\.use\(\s*ExpressUrlEncoded\(\{\s*extended: true,\s*limit: INGRESS_BODY_LIMIT,\s*verify: keepSignedBodyBytes,?\s*\}\),?\s*\);\s*app\.use\(WebhookRequestBody\.getRawReader\(INGRESS_BODY_LIMIT\)\);\s*app\.use\(\s*WebhookRequestBody\.getSignedBodyReader\(INGRESS_BODY_LIMIT, isSignedRequest\),?\s*\);\s*app\.use\(router\);/,
     );
     // The text it reads as it came is forwarded as it came.
     expect(ingress).toContain(
