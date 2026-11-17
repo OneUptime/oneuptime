@@ -67,7 +67,7 @@ Under **Skicka ett testlarm** klickar du på **Testa den här policyn**. Välj e
 
 ### Bekräfta testlarmet
 
-Öppna länken i sms:et eller e-postmeddelandet och bekräfta larmet där, eller tryck på 1 under telefonsamtalet. Appen visar att larmet kom fram, men kan inte bekräfta ett test. Klicka sedan på **Klar** i dialogrutan och därefter på **Fortsätt**.
+Öppna länken i sms:et eller e-postmeddelandet och bekräfta larmet där, eller tryck på 1 under telefonsamtalet. I OneUptime On-Call-appen, i versioner nyare än 1.6.0, kan du också bekräfta larmet från pushnotisen. Klicka sedan på **Klar** i dialogrutan och därefter på **Fortsätt**.
 :::
 
 ## Kontrollera att det fungerade

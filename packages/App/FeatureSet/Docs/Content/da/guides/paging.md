@@ -67,7 +67,7 @@ Under **Send et testkald** klikker du på **Test denne politik**. Vælg en **Alv
 
 ### Kvittér for testkaldet
 
-Åbn linket i sms'en eller e-mailen, og kvittér for tilkaldet dér, eller tryk 1 under opkaldet. Appen viser, at tilkaldet er kommet frem, men kan ikke kvittere for en test. Klik derefter på **Færdig** i dialogen og på **Fortsæt**.
+Åbn linket i sms'en eller e-mailen, og kvittér for tilkaldet dér, eller tryk 1 under opkaldet. I OneUptime On-Call-appen i versioner nyere end 1.6.0 kan du også kvittere for tilkaldet fra dets pushnotifikation. Klik derefter på **Færdig** i dialogen og på **Fortsæt**.
 :::
 
 ## Tjek, at det virker

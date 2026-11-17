@@ -67,7 +67,7 @@ Under **Send et testoppkall** klikker du på **Test denne policyen**. Velg en **
 
 ### Bekreft testoppkallet
 
-Åpne lenken i SMS-en eller e-posten, og bekreft tilkallingen der, eller trykk 1 under anropet. Appen viser at tilkallingen kom frem, men kan ikke bekrefte en test. Klikk deretter på **Ferdig** i dialogen, og på **Fortsett**.
+Åpne lenken i SMS-en eller e-posten, og bekreft tilkallingen der, eller trykk 1 under anropet. I OneUptime On-Call-appen, i versjoner nyere enn 1.6.0, kan du også bekrefte tilkallingen fra push-varslingen. Klikk deretter på **Ferdig** i dialogen, og på **Fortsett**.
 :::
 
 ## Sjekk at det virker

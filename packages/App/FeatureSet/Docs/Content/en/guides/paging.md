@@ -67,7 +67,7 @@ Under **Send a test page**, click **Test this policy**. Pick a **Severity** and 
 
 ### Acknowledge the test page
 
-Open the link in the text message or the email and acknowledge the page there, or press 1 during the phone call. The app shows that the page arrived, but cannot acknowledge a test. Then click **Done** in the dialog, and **Continue**.
+Open the link in the text message or the email and acknowledge the page there, or press 1 during the phone call. In the OneUptime On-Call app, in versions newer than 1.6.0, you can also acknowledge it from its push notification. Then click **Done** in the dialog, and **Continue**.
 :::
 
 ## Check that it worked

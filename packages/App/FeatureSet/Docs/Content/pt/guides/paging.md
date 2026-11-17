@@ -67,7 +67,7 @@ Em **Enviar uma chamada de teste**, clique em **Testar esta política**. Escolha
 
 ### Confirmar o acionamento de teste
 
-Abra o link do SMS ou do e-mail e confirme o acionamento ali, ou pressione 1 durante a ligação. O app mostra que o acionamento chegou, mas não consegue confirmar um teste. Depois clique em **Concluído** na caixa de diálogo e em **Continuar**.
+Abra o link do SMS ou do e-mail e confirme o acionamento ali, ou pressione 1 durante a ligação. No app OneUptime On-Call, nas versões mais novas que a 1.6.0, você também pode confirmá-lo pela notificação push. Depois clique em **Concluído** na caixa de diálogo e em **Continuar**.
 :::
 
 ## Verificar se funcionou

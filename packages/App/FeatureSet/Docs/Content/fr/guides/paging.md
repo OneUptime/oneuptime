@@ -67,7 +67,7 @@ Sous **Envoyer un appel de test**, cliquez sur **Tester cette politique**. Chois
 
 ### Prendre en compte l'appel de test
 
-Prenez l'appel de test en compte depuis le lien du SMS ou de l'e-mail, ou appuyez sur 1 pendant l'appel téléphonique. L'application montre que l'appel de test est arrivé, mais ne peut pas prendre en compte un test. Cliquez ensuite sur **Terminé** dans la boîte de dialogue, puis sur **Continuer**.
+Prenez l'appel de test en compte depuis le lien du SMS ou de l'e-mail, ou appuyez sur 1 pendant l'appel téléphonique. Dans l'application OneUptime On-Call, dans les versions plus récentes que 1.6.0, vous pouvez aussi le prendre en compte depuis sa notification push. Cliquez ensuite sur **Terminé** dans la boîte de dialogue, puis sur **Continuer**.
 :::
 
 ## Vérifier que tout fonctionne
