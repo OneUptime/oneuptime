@@ -16,20 +16,21 @@ which the project creates for itself.
 
 The state below was verified on **17 November 2026**, four days after Zoom
 returned the update that added the call transcript scopes. Both servers ran
-14.3.0. Recheck the live state before acting: the dates and versions here are
-history, not instructions to repeat.
+14.3.0. Zoom's rules come from its developer docs as read that day, each
+linked to its page. Recheck the live state and Zoom's pages before acting:
+the dates and versions here are history, not instructions to repeat.
 
 ## How a change reaches customers
 
 The app's settings live in the Zoom App Marketplace, not in this repository.
 Merging code changes none of them, and changing them changes no code.
 
-| What                                                                           | Where it lives                                                                                             | When it takes effect                                                                                                                                             |
-| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The scopes a person grants when they connect                                   | The app's **Scopes** page. The code asks for none: the authorize URL in `ZoomOAuthApp` sends no `scope`    | Development: at once. Production: only once Zoom has approved the update. A person who connected earlier keeps the scopes they granted until they **Reconnect**. |
-| Redirect URLs, the OAuth allow list, the deauthorization endpoint, the listing | The app's pages in the Zoom App Marketplace                                                                | Development: at once. Production: through Zoom's review of the update, like the scopes.                                                                          |
-| What OneUptime does with the scopes and events                                 | The server code (below)                                                                                    | When the release containing it is deployed.                                                                                                                      |
-| Which app a server uses, and its secrets                                       | The server's `ZOOM_APP_*` environment variables ([The servers' configuration](#the-servers-configuration)) | When the server restarts with them.                                                                                                                              |
+| What                                                                           | Where it lives                                                                                             | When it takes effect                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The scopes a person grants when they connect                                   | The app's **Scopes** page. The code asks for none: the authorize URL in `ZoomOAuthApp` sends no `scope`    | Development: at once. Production: once Zoom approves an update with them and it goes live. A person who connected earlier keeps what they granted for 90 days; then Zoom expires the refresh tokens that carry only the old scopes, and the connection stops working until someone **Reconnects** it ([Zoom: updating a published app](https://developers.zoom.us/docs/distribute/published-apps/updating/)). |
+| Redirect URLs, the OAuth allow list, the deauthorization endpoint, the listing | The app's pages in the Zoom App Marketplace                                                                | Development: at once. Production: once the update that carries them is approved and goes live.                                                                                                                                                                                                                                                                                                                |
+| What OneUptime does with the scopes and events                                 | The server code ([The code that uses it](#the-code-that-uses-it))                                          | When the release containing it is deployed.                                                                                                                                                                                                                                                                                                                                                                   |
+| Which app a server uses, and its secrets                                       | The server's `ZOOM_APP_*` environment variables ([The servers' configuration](#the-servers-configuration)) | When the server restarts with them.                                                                                                                                                                                                                                                                                                                                                                           |
 
 So the order matters:
 
@@ -39,22 +40,24 @@ So the order matters:
   starts calls, and **Get from Zoom** asks for **Reconnect**). Let it reach
   both servers. Then add the scope to the app, test it on test.oneuptime.com
   and submit the update ([Submitting an update](#submitting-an-update-so-it-passes-review)).
-  Every existing connection lacks the scope until someone reconnects it, so
-  the code must cope with that forever, not only until Zoom approves.
+  Plan for what follows Zoom's approval: every connection made before it
+  lacks the scope, and stops working 90 days after the update goes live
+  unless someone reconnects it. The release notes must ask people to
+  reconnect, and OneUptime should ask too (#9269).
 - **Code that needs less**: deploy the code first, then remove the scope.
 - **A new URL or secret**: change the app and the server's configuration
   together. A Secret Token that differs between the two refuses every event.
 
 ## The app
 
-| What          | Value                                                                                                                                                                  |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Name          | **OneUptime Meetings**                                                                                                                                                 |
-| App ID        | `Ss8g78dtSy6uOu3wehhqtA`                                                                                                                                               |
-| Type          | **General app**, managed by **users** (user-managed): each Zoom user who connects authorizes it for their own Zoom user, rather than an admin for the whole account    |
-| Where         | The Zoom App Marketplace's build console ([marketplace.zoom.us](https://marketplace.zoom.us/)), signed in to the Zoom account that owns the app                        |
-| Listing       | Published. Installed **From your site**, with the Direct landing URL `https://oneuptime.com/dashboard/connect-return?provider=zoom`                                    |
-| Documentation | The listing's Documentation URL points at [Connect in one click](../../../../App/FeatureSet/Docs/Content/en/workspace-connections/video-calls.md#connect-in-one-click) |
+| What          | Value                                                                                                                                                                                                                              |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Name          | **OneUptime Meetings**                                                                                                                                                                                                             |
+| App ID        | `Ss8g78dtSy6uOu3wehhqtA`                                                                                                                                                                                                           |
+| Type          | **General app**, managed by **users** (user-managed): each Zoom user who connects authorizes it for their own Zoom user, rather than an admin for the whole account                                                                |
+| Where         | The Zoom App Marketplace ([marketplace.zoom.us](https://marketplace.zoom.us/)), **Manage** > **Created Apps**, signed in to the Zoom account that owns the app                                                                     |
+| Listing       | Published; the update with the transcript scopes is not approved yet ([Review history](#review-history)). Installed **From your site**, with the Direct landing URL `https://oneuptime.com/dashboard/connect-return?provider=zoom` |
+| Documentation | The listing's Documentation URL points at [Connect in one click](../../../../App/FeatureSet/Docs/Content/en/workspace-connections/video-calls.md#connect-in-one-click)                                                             |
 
 Do not create a replacement app: every customer's sign-in belongs to this
 one, and a new app would start without any of them and need Zoom's full
@@ -101,17 +104,19 @@ test.oneuptime.com instead, so the review instructions must say so
 Zoom gives the app two sets of credentials, **Development** and
 **Production**. OneUptime runs one on each server:
 
-|                          | Development                                                     | Production                                                 |
-| ------------------------ | --------------------------------------------------------------- | ---------------------------------------------------------- |
-| Server                   | test.oneuptime.com                                              | oneuptime.com                                              |
-| Client ID                | `9jqiv0sYQtei9MlJNWFtuA`                                        | `g7iOncHoRkKOkHhwHKbw`                                     |
-| OAuth Redirect URL       | `https://test.oneuptime.com/api/video-call-oauth/zoom/callback` | `https://oneuptime.com/api/video-call-oauth/zoom/callback` |
-| Deauthorization endpoint | Not recorded                                                    | `https://oneuptime.com/api/video-call-oauth/zoom/events`   |
-| Who can connect          | Zoom users of the account that owns the app                     | Any Zoom user                                              |
-| What it is for           | Our own tests, and Zoom's review of every update                | Customers                                                  |
+|                          | Development                                                                                                                                                                  | Production                                                 |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Server                   | test.oneuptime.com                                                                                                                                                           | oneuptime.com                                              |
+| Client ID                | `9jqiv0sYQtei9MlJNWFtuA`                                                                                                                                                     | `g7iOncHoRkKOkHhwHKbw`                                     |
+| OAuth Redirect URL       | `https://test.oneuptime.com/api/video-call-oauth/zoom/callback`                                                                                                              | `https://oneuptime.com/api/video-call-oauth/zoom/callback` |
+| Deauthorization endpoint | Not used: Zoom sends no deauthorization notification for an app in development ([Zoom: end-user authorization](https://developers.zoom.us/docs/integrations/end-user-auth/)) | `https://oneuptime.com/api/video-call-oauth/zoom/events`   |
+| Who can connect          | Zoom users of the account that owns the app, and Zoom's reviewers                                                                                                            | Any Zoom user                                              |
+| What it is for           | Our own tests, and Zoom's review of every update                                                                                                                             | Customers                                                  |
 
 Shared by both: the **OAuth allow list**, which holds both redirect URLs,
-with strict mode on (Zoom compares a redirect URL exactly), and the scopes.
+with strict mode on (Zoom compares a redirect URL exactly). One **Scopes**
+page serves both, but a scope added there reaches Production only through
+an approved update.
 
 What each server must be set to:
 
@@ -215,13 +220,16 @@ When a scope changes, change all of these together:
 
 ## Submitting an update so it passes review
 
-An update to the published app (a scope, a redirect URL, the deauthorization
-endpoint, the listing) reaches customers only after Zoom reviews it. Zoom
-reviews an update **with the Development client ID**, on a staging
-environment that is not on localhost and has its own redirect URL, separate
-from production's: for OneUptime, that is test.oneuptime.com. Zoom wants a
-test plan for every new scope, and release notes for users, because a scope
-change asks every existing user to authorize the app again.
+Any change to the published app, whether a scope, a redirect URL or the
+listing, reaches customers only through an update that Zoom reviews
+([Zoom: updating a published app](https://developers.zoom.us/docs/distribute/published-apps/updating/)).
+A change to the listing alone gets a functional review. A change to scopes,
+features or data access gets a security review as well, and takes up to five
+business days. Zoom's reviewers test an update **with the Development client
+ID**, so they work on test.oneuptime.com: a staging server reachable from the
+internet (not localhost), with a redirect URL of its own. They want a test
+plan that covers every new scope, and release notes for users, since a scope
+change means every existing user has to authorize the app again.
 
 ### Before you submit
 
@@ -233,7 +241,8 @@ change asks every existing user to authorize the app again.
    yourself on test.oneuptime.com with a Zoom user of the account that owns
    the app. The reviewer does exactly that, with nobody to ask.
 3. **The reviewer has a ready staging account.** A review must not depend on
-   email delivery:
+   email delivery. Zoom lets an app leave out test credentials when anyone
+   can sign up for free, but a sign-up on staging needs an email to arrive:
    - test.oneuptime.com runs with `BILLING_ENABLED=true`, so an account made
      at `https://test.oneuptime.com/accounts/register` cannot sign in until
      its owner clicks the link in a confirmation email
@@ -243,15 +252,15 @@ change asks every existing user to authorize the app again.
      has empty `GOOGLE_SIGN_IN_CLIENT_ID` and `MICROSOFT_SIGN_IN_CLIENT_ID`.
    - So a maintainer makes the account and the project before submitting: a
      user with an address the team reads (Admin Dashboard > **Users** >
-     **Create User**), marked verified (the user's page > **Edit User** > **Email
-     Verified** on, which only a master admin can do), and a project the
-     user owns or administers. Connecting a video call provider needs
+     **Create User**), marked verified (the user's page > **Edit User** >
+     **Email Verified** on, which only a master admin can do), and a project
+     the user owns or administers. Connecting a video call provider needs
      **Project Owner**, **Project Admin**, **Settings Admin** or **Create
-     Video Call Connection**; **Project Member** is not enough. Admin Dashboard >
-     **Projects** > **Create Project** asks for no payment details, makes the
-     admin its owner, and the project's **Users** page adds the reviewer's
-     account to **Owners**. Then sign in as the account once, connect your
-     own Zoom user, and delete that connection.
+     Video Call Connection**; **Project Member** is not enough. Admin
+     Dashboard > **Projects** > **Create Project** asks for no payment
+     details, makes the admin its owner, and the project's **Users** page
+     adds the reviewer's account to **Owners**. Then sign in as the account
+     once, connect your own Zoom user, and delete that connection.
    - Still check that email works: sign up at
      `https://test.oneuptime.com/accounts/register` with an address outside
      OneUptime (a Gmail address, say) and confirm the confirmation email
@@ -259,34 +268,77 @@ change asks every existing user to authorize the app again.
      on their own instead of using the account, and that sign-up depends on
      it. An unverified account that signs in with its password is emailed a
      fresh link (the `isEmailVerified` check in the `login()` handler of
-     `Authentication.ts`), so a reviewer stuck on an unverified sign-up can
-     also be unblocked by a master admin turning **Email Verified** on.
+     `Authentication.ts`), and a master admin can turn **Email Verified** on
+     for a reviewer stuck on an unverified sign-up.
 4. **The test plan** names the environment, the account and every new
-   scope, and starts from test.oneuptime.com. The listing's Direct landing
-   URL opens production, where the Development client ID is not used. Use
-   [the template below](#the-reviewers-test-plan).
-5. **The release notes** say what the update does for users and that people
-   who connected before it must reconnect to get it. Use the template below.
-6. **The listing matches the app.** The long description says what the app
-   does with every scope (with the transcript scopes, that OneUptime reads
-   the transcripts of the meetings it started). The Documentation URL opens
-   a section that names the scopes. The privacy policy covers the data the
-   new scopes read ([Known gaps](#known-gaps)).
-7. **A maintainer submits it** and adds a row to
-   [Review history](#review-history).
+   scope, and starts from test.oneuptime.com: adding the app from the
+   listing opens production, where the Development client ID is not used.
+   Use [the template](#the-reviewers-test-plan).
+5. **The release notes for users** say what the update does, and ask
+   everyone who connected before it to reconnect within 90 days. Use
+   [the template](#release-notes-for-users).
+6. **The listing and the pages it links match the app.** Zoom returns an
+   update over each of these
+   ([Zoom: common rejection issues](https://developers.zoom.us/docs/distribute/app-submission/common-rejection-issues/)):
+   - The long description says what the app does with every scope: with the
+     transcript scopes, that OneUptime reads the transcripts of the meetings
+     it started.
+   - Every scope has a reason ([the scope table](#the-scopes-and-why-each-exists))
+     and steps in the test plan. Zoom denies a scope that lacks either, and
+     asks for it to be removed.
+   - The Documentation URL covers adding the app step by step, using each
+     feature, and removing it, with what happens to the data afterwards. For
+     transcripts, the docs do not say yet (#9264).
+   - The privacy policy discloses how the app accesses, uses, keeps and
+     shares people's data, for how long, and how people can ask to see or
+     delete it
+     ([Zoom: app review guidelines](https://developers.zoom.us/docs/distribute/app-review-guidelines/)).
+     It does not cover transcripts yet (#9264).
+   - The support page gives support hours, a first-response time and ways
+     to reach support.
+   - The Direct landing URL lets a signed-in person authorize the app, a
+     signed-out person sign in and then authorize, and someone new learn
+     what OneUptime is and sign up. The signed-out path was not checked in
+     November 2026.
+7. **A maintainer submits it** ([The submission form](#the-submission-form))
+   and adds a row to [Review history](#review-history).
 
-While Zoom reviews the update, keep test.oneuptime.com on a release that
-passes the test plan, keep the reviewer's account and project as they are,
-and keep the Development settings unchanged.
+### The submission form
+
+In the Zoom App Marketplace, open **Manage** > **Created Apps** >
+**OneUptime Meetings** and make the changes on the app's pages. Then open
+**App Submission**, fill it in, and press **Send Updates**
+([Zoom: submitting an app](https://developers.zoom.us/docs/distribute/app-submission/submit-apps-review/)):
+
+| Field                              | What goes in it                                                                                                                                                       |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Release notes for app reviewer** | The [test plan](#the-reviewers-test-plan), or a link to it. Zoom wants one with every submission, resubmissions included.                                             |
+| **Release notes for users**        | The [release notes](#release-notes-for-users). When a scope change goes live, Zoom adds this text to the email it sends everyone who added the app.                   |
+| **Test account and credentials**   | The reviewer's staging account and its password, typed by a maintainer. Use the Development client ID here: the Production one is only for an app's first submission. |
+| **App activation**                 | Whether the update goes live as soon as Zoom approves it, or when a maintainer activates it. The 90 days for earlier connections start when it goes live.             |
+| **Domain validation**              | Proof that OneUptime owns the domains of the app's URLs.                                                                                                              |
+
+### While Zoom reviews it
+
+- Zoom's notes appear behind a speech-bubble icon in the app's status panel
+  ([Zoom: checking review status](https://developers.zoom.us/docs/build-flow/check-review-status/)).
+  Answer or acknowledge every note, then resubmit from **App Submission**,
+  the only way to send changes and answers. Zoom's address for help with
+  the functional review is integration.testers@zoom.us.
+- Keep test.oneuptime.com on a release that passes the test plan, keep the
+  reviewer's account and project as they are, and leave the Development
+  side alone. Zoom's docs do not say whether the app can be changed during a
+  review; plan as if it cannot.
 
 ### The reviewer's test plan
 
-Copy this into the submission, fill in the lines in `>>> <<<`, and drop the
-sections the update does not touch. The account and password go only into
-Zoom's form, typed by a maintainer.
+Copy this into **Release notes for app reviewer**, fill in the lines in
+`>>> <<<`, and drop the sections the update does not touch.
 
 ```text
->>> TEST ACCOUNT: email, password, and project name on https://test.oneuptime.com <<<
+TEST ACCOUNT
+Use the account under Test account and credentials. It signs in to
+https://test.oneuptime.com and may connect Zoom in the project >>> name <<<.
 
 ENVIRONMENT
 This update is reviewed on our development environment, https://test.oneuptime.com.
@@ -295,7 +347,7 @@ https://test.oneuptime.com/api/video-call-oauth/zoom/callback. Our production si
 https://oneuptime.com, uses the Production client ID. Adding the app from its
 Marketplace listing opens production, so please start from the links below instead.
 
-The test account above is ready: its email address is verified, so no confirmation
+The test account is ready: its email address is verified, so no confirmation
 email is needed. Please use it rather than signing up. Sign in at
 https://test.oneuptime.com/accounts/login.
 
@@ -342,21 +394,31 @@ AUTOMATIC TRANSCRIPTS (optional)
 REMOVE
 10. Delete the connection on the Video Calls page: OneUptime revokes its token,
     which removes the app from your Zoom account.
+11. You can also remove the app in Zoom (Manage > Added Apps > Remove). Zoom sends
+    no deauthorization notification for an app in development, so on
+    test.oneuptime.com the connection shows Not working only once OneUptime next
+    uses its sign-in. In production, OneUptime deletes the sign-in as soon as
+    Zoom's app_deauthorized notification arrives.
 
 WHAT CHANGED IN THIS UPDATE
 >>> each new or changed scope or setting, and the steps above that test it <<<
 ```
 
-The release notes for users, for a scope change:
+### Release notes for users
+
+For **Release notes for users**, when an update changes the scopes:
 
 ```text
 OneUptime Meetings can now >>> what the update does, for example: read the
 transcript of an incident call it started (Get from Zoom on the incident's
 Video Call card) <<<. It asks for >>> the new scopes <<<.
 
-If you connected Zoom before this update, calls keep starting as before.
-To >>> use the new feature <<<, open Project Settings > Workspace > Video Calls
-in OneUptime and click Reconnect on the Zoom connection.
+If you connected Zoom to OneUptime before this update, reconnect it: open
+Project Settings > Workspace > Video Calls in OneUptime and click Reconnect on
+the Zoom connection. Until you do, calls keep starting as before, without
+>>> the new feature <<<. 90 days after this update, Zoom stops accepting
+sign-ins made before it, and a connection that has not been reconnected stops
+starting calls.
 ```
 
 ## What only a maintainer can do
@@ -373,8 +435,9 @@ and some of it a password. No agent can do these from the repository:
 3. Create the reviewer's staging account and project, set its password, and
    turn **Email Verified** on (a master admin). Adding the account to
    **Owners** grants permissions, so a person does it.
-4. Type the test account's password into the submission, press **Submit**,
-   and answer Zoom's reviewers.
+4. Type the test account's password into **Test account and credentials**,
+   press **Send Updates**, answer Zoom's review notes, and activate an update
+   set to be activated by hand.
 5. Delete anything: a connection a customer made, the reviewer's account or
    project after the review, the app.
 
@@ -395,14 +458,21 @@ Add a row for every submission.
 
 Found while writing this guide on 17 November 2026:
 
+- Once Zoom approves the transcript scopes, connections made before them stop
+  starting calls 90 days after the update goes live, unless someone
+  reconnects them. The user docs say they start calls as before, and nothing
+  in OneUptime asks them to reconnect (#9269). Settle this before the update
+  goes live: **App activation** can hold it until a maintainer activates it.
 - The privacy policy's **Connected Services** section names only
   `user:read:user` and `meeting:write:meeting` for Zoom, and says the data is
   used only to create meetings. It does not mention the `cloud_recording`
-  scopes, reading transcripts, or OneUptime AI reading them. Update it before
-  the transcript scopes are submitted again (#9264).
+  scopes, reading transcripts, or OneUptime AI reading them. The user docs do
+  not say what happens to transcripts once the app is removed. Zoom's review
+  checks both (#9264).
 - The comments on the Zoom app in `config.example.env` and `values.yaml`
   list only `meeting:write:meeting` and `user:read:user`, as does the header
   comment of `ZoomOAuthApp.ts`. The user docs list all four scopes (#9265).
-- This guide does not record which Zoom account owns the app, or whether the
-  Development side has a deauthorization endpoint. Add both the next time a
-  maintainer signs in.
+- Whether a signed-out visitor to the Direct landing URL comes back to
+  **Video Calls** after signing in was not checked.
+- This guide does not record which Zoom account owns the app. Add it the
+  next time a maintainer signs in.
