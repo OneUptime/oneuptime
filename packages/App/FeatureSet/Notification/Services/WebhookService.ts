@@ -6,6 +6,7 @@ import WebhookLogService from "Common/Server/Services/WebhookLogService";
 import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import WebhookLog from "Common/Models/DatabaseModels/WebhookLog";
+import WebhookAddressMask from "Common/Utils/WebhookAddressMask";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import SafeWebhookRequest, {
@@ -84,7 +85,13 @@ export default class WebhookService {
   ): Promise<void> {
     let sendError: Error | null = null;
     const webhookLog: WebhookLog = new WebhookLog();
-    webhookLog.webhookUrl = message.url;
+    /*
+     * The address by its scheme and host alone: the rest is the webhook's
+     * credential - a Slack, Teams or Discord webhook's secret is in its path -
+     * and the log is read by everyone who reads the project's notification
+     * logs (WebhookAddressMask).
+     */
+    webhookLog.webhookUrl = WebhookAddressMask.mask(message.url);
 
     if (options.projectId) {
       webhookLog.projectId = options.projectId;
@@ -224,7 +231,11 @@ export default class WebhookService {
         error instanceof Error && error.message
           ? error.message
           : `${error as string}`;
-      webhookLog.statusMessage = errorMessage;
+      // Kept, with the address it may quote masked as the log's address is.
+      webhookLog.statusMessage = WebhookAddressMask.maskIn(
+        errorMessage,
+        message.url,
+      );
 
       sendError = error instanceof Error ? error : new Error(errorMessage);
     }
