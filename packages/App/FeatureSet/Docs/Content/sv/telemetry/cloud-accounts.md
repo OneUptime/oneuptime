@@ -197,6 +197,8 @@ for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer
 
 En organisations anslutning läser upp till 50 av dess projekt, om du inte listar några under **Projekt**.
 
+I varje projekt listar OneUptime Compute Engine-instanser, VPC-nätverk, undernät och brandväggsregler, lastbalanserare med deras vidarebefordringsregler och backend-tjänster, Cloud Storage-buckets, GKE-kluster, Cloud SQL-, Memorystore- och Spanner-instanser, Cloud Run-tjänster, Cloud Functions samt Pub/Sub-ämnen och -prenumerationer, med deras etiketter, regioner och zoner. Den registrerar också hur de hänger ihop: det undernät och nätverk en instans körs i och de brandväggsregler som gäller för den, vart varje lastbalanserare skickar trafik, och nätverket och nod-VM:arna för varje GKE-kluster. Ett projekt där Cloud Asset API är avstängt ansluts ändå, med en varning som ger kommandot för att slå på det: `gcloud services enable cloudasset.googleapis.com`.
+
 Google Cloud har inget API för ett projekts kostnader: OneUptime läser dem från faktureringskontots export till BigQuery, så snart du anger dess tabell under **Tabell för faktureringsexport**. [Molnkostnader och besparingar](/docs/telemetry/cloud-costs#google-cloud) visar hur.
 
 ## Datasäkerhet

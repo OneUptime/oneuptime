@@ -56569,7 +56569,7 @@
   "Switch or router": "سوئیچ یا روتر",
   "Network Endpoint Group": "گروه نقطه‌های پایانی شبکه",
   "Backend Bucket": "باکت بک‌اند",
-  "Target Pool": "مخزن هدف",
+  "Target Pool": "استخر هدف",
   "Couldn't read who was told. {{error}}": "خوانده نشد چه کسانی مطلع شدند. {{error}}",
   "Nobody has been told about this alert yet.": "هنوز کسی از این هشدار مطلع نشده است.",
   "Nobody has been told about this incident yet.": "هنوز کسی از این حادثه مطلع نشده است.",
