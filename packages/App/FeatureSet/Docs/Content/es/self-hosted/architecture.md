@@ -58,6 +58,7 @@ flowchart TB
 | PostgreSQL | `postgres` | `postgresql`, o `postgresOperator.cnpg` | Proyectos, monitores, incidentes, usuarios y todos los demás ajustes y estados. |
 | ClickHouse | `clickhouse` | `clickhouse`, o `clickhouseOperator.altinity` | Logs, métricas, trazas, excepciones, perfiles y logs de monitores. |
 | Valkey | `valkey` | `valkey` | La caché, las colas de trabajos y el estado de corta duración, como los acuses de push pendientes. |
+| ClamAV | `clamav` | `clamav` (desactivado por defecto) | Analiza en busca de malware los archivos que envían las personas antes de guardarlos. Solo se ejecuta si lo activa: `COMPOSE_PROFILES=clamav` con Docker Compose, `clamav.enabled` con Helm. |
 
 Todos los roles de la aplicación son la misma imagen: Docker Compose los ejecuta en un solo contenedor `app`, y el chart de Helm puede ejecutar el worker y el telemetry writer como despliegues propios. Para dimensionar cada nivel, consulta [Dimensionamiento y planificación de capacidad](/docs/installation/sizing).
 
