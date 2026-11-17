@@ -23,6 +23,8 @@ import {
 import RecordIdModal from "../ObjectID/RecordIdModal";
 import { getRecordIdText, hasRecordId } from "../ObjectID/RecordIdText";
 import SimpleLogViewer from "../SimpleLogViewer/SimpleLogViewer";
+import TrimmedLogNote from "../SimpleLogViewer/TrimmedLogNote";
+import StoredCheckEvidence from "../../../Utils/Monitor/StoredCheckEvidence";
 import StatusTimeline, { StatusTimelineDisplayEntry } from "./StatusTimeline";
 import {
   getStatusTimelineFitWindow,
@@ -313,9 +315,12 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
     isLoading: boolean;
     text: string;
   } | null>(null);
-  const [logs, setLogs] = useState<{ isLoading: boolean; text: string } | null>(
-    null,
-  );
+  const [logs, setLogs] = useState<{
+    isLoading: boolean;
+    text: string;
+    // The check it kept was cut to its size limit (StoredCheckEvidence).
+    isTrimmed?: boolean | undefined;
+  } | null>(null);
 
   const queryKey: string = JSON.stringify(props.query);
 
@@ -864,6 +869,7 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
           text: value
             ? JSON.stringify(value, null, 2)
             : translator.translateText(noLogs) || noLogs,
+          isTrimmed: StoredCheckEvidence.isTrimmed(value),
         });
       })
       .catch((err: unknown) => {
@@ -1307,6 +1313,7 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
             setLogs(null);
           }}
         >
+          <TrimmedLogNote isTrimmed={Boolean(logs.isTrimmed)} />
           <SimpleLogViewer
             title={props.logViewerTitle || DEFAULT_LOG_VIEWER_TITLE}
             height="500px"
