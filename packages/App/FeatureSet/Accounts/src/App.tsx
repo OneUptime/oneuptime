@@ -64,11 +64,12 @@ const NotFound: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
 const RegisterPage: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/Register");
 });
-const ResetPasswordPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
-  () => {
-    return import("./Pages/ResetPassword");
-  },
-);
+// Also the set-password page of an account made for someone, by its prop.
+const ResetPasswordPage: React.LazyExoticComponent<
+  ComponentType<{ isSettingFirstPassword?: boolean | undefined }>
+> = lazy(() => {
+  return import("./Pages/ResetPassword");
+});
 const VerifyEmail: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/VerifyEmail");
 });

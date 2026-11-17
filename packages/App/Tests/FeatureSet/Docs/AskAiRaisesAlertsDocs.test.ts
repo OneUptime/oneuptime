@@ -108,7 +108,7 @@ describe("the Ask AI page says which to ask for, and what an alert rule is", () 
     expect(listAbove.length).toBeGreaterThan(0);
     expect(
       listAbove.some((item: string): boolean => {
-        return /^- Propose a code change:/.test(item);
+        return item.startsWith("- Propose a code change:");
       }),
     ).toBe(true);
     expect(ENGLISH_LINES[PARAGRAPH_LINE + 1]).toBe("");
