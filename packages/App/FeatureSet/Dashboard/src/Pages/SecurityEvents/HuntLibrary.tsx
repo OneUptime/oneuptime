@@ -37,7 +37,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { SecurityEventKindsSeen } from "Common/Types/SecurityEvent/DetectionRuleDataKind";
 import { SecurityHuntLibraryEntry } from "Common/Types/SecurityEvent/SecurityHuntLibrary";
 import Card from "Common/UI/Components/Card/Card";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import ResellerPlanNotice from "../../Components/Billing/ResellerPlanNotice";
 import Icon from "Common/UI/Components/Icon/Icon";
 import {
   TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
@@ -256,7 +256,10 @@ const HuntLibraryPage: FunctionComponent<PageComponentProps> = (
   // Same reseller-telemetry gate as every other Security Events page.
   if (props.currentProject?.reseller?.enableTelemetryFeatures === false) {
     return (
-      <ErrorMessage message="Looks like you have bought this plan from a reseller. It did not include telemetry features in your plan. Telemetry features are disabled for this project." />
+      <ResellerPlanNotice
+        project={props.currentProject}
+        product="Security Events"
+      />
     );
   }
 

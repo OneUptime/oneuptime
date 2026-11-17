@@ -557,7 +557,7 @@ describe("rights and plans", () => {
     await openPage({ ...pageProps, currentProject: project });
 
     expect(document.body).toHaveTextContent(
-      "Telemetry features are disabled for this project.",
+      "Your plan does not include cloud monitoring",
     );
     expect(getListSpy).not.toHaveBeenCalled();
     expect(getSpy).not.toHaveBeenCalled();

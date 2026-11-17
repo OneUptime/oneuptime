@@ -1,3 +1,4 @@
+import ResellerPlanNotice from "../../../Components/Billing/ResellerPlanNotice";
 import PageComponentProps from "../../PageComponentProps";
 import DeviceSecurityEventsEmptyState from "../../../Components/NetworkDevice/DeviceSecurityEventsEmptyState";
 import { getDeviceSecurityEventsChip } from "../../../Components/NetworkDevice/DeviceSecurityEventsScope";
@@ -115,7 +116,10 @@ const NetworkDeviceSecurityEvents: FunctionComponent<PageComponentProps> = (
 
   if (isTelemetryDisabled) {
     return (
-      <ErrorMessage message="Looks like you have bought this plan from a reseller. It did not include telemetry features in your plan. Telemetry features are disabled for this project." />
+      <ResellerPlanNotice
+        project={props.currentProject}
+        product="Security Events"
+      />
     );
   }
 
