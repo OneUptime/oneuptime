@@ -70,6 +70,8 @@ const STORED_DATA_USES: Record<string, string> = {
     "keys the stored Data Security fingerprints of a project's sensitive values, so they compare only within the project and reveal no value",
   "packages/Common/Server/Utils/ServerSending/ServerSendingSettings.ts":
     "keys the stored fingerprints of the settings the server's email, SMS and calls go out with (GlobalConfig.serverSendingHealth), so they reveal no mail server, Twilio or gateway credential",
+  "packages/Common/Server/Utils/APIKey/HashedApiKey.ts":
+    "keys the stored digests of the master API key and every project's API keys (#7901, #8902), which a request's key is looked up by",
 };
 
 /*

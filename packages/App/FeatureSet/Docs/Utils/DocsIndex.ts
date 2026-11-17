@@ -1,6 +1,7 @@
 import { DocsVocabulary } from "./DocsSearchWords";
 import { AIDocsSection } from "Common/Server/Utils/AI/Docs/AIDocsLibrary";
 import zlib from "zlib";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 
 /*
  * A DOCS LANGUAGE'S INDEX, LAID OUT TO HOLD LITTLE (issue #8818).
@@ -602,7 +603,8 @@ class DocsIndexEntries {
   // Every page's sections' text, deflated, one page after another (DocsPageText).
   public texts: Buffer = Buffer.alloc(0);
   // The pages whose text was read last, newest last: a search's results share pages.
-  private readonly recentTexts: Map<DocsPageText, string> = new Map();
+  private readonly recentTexts: OldestKeyMap<DocsPageText, string> =
+    new OldestKeyMap();
 
   public get(): DocsIndexPostings {
     if (!this.postings) {
@@ -634,7 +636,7 @@ class DocsIndexEntries {
     this.recentTexts.set(page, text);
 
     if (this.recentTexts.size > RECENT_PAGE_TEXTS) {
-      this.recentTexts.delete(this.recentTexts.keys().next().value!);
+      this.recentTexts.delete(this.recentTexts.oldestKey()!);
     }
 
     return text;

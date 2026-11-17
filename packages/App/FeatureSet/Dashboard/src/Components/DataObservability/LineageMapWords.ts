@@ -17,6 +17,7 @@ import {
   PluralTemplate,
   Translator,
   formatInline,
+  toLabelTerm,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 
@@ -197,7 +198,11 @@ export function getLineageMapEdgeEvidence(
   const parts: Array<string> = edge.seenIn.map(
     (evidence: DataLineageMapEvidence): string => {
       const words: string = EVIDENCE_WORDS[evidence];
-      return translator.translateText(words) || words;
+      // Each place opens its own part of the line, so it reads as a label.
+      return toLabelTerm(
+        translator.translateText(words) || words,
+        translator.language,
+      );
     },
   );
 
