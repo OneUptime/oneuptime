@@ -103,7 +103,7 @@ En policy som er startet manuelt, er en som er startet med **Kjør vaktpolicy**,
 
 **Send testoppkall** forblir slått av så lenge testen ikke ville nådd noen: alle den kaller opp, har valgt bort alvorlighetsgraden, har ingen regel for den og ingenting å falle tilbake på, eller har bare metoder som ikke er verifisert eller er slått av i prosjektet. En linje under listen sier hvorfor. Kan bare et senere nivå nås, tilbyr linjen **Gå gjennom hvert eskaleringsnivå** med ett klikk.
 
-Den som kalles opp, bekrefter testen fra hvilken som helst av meldingene sine: lenken i en e-post, en SMS eller en chatmelding, 1 i et anrop eller pushvarselet i OneUptime On-Call-appen, i versjoner nyere enn 1.6.0. En policy kan testes én gang hvert 5. minutt, og et prosjekt sender høyst 20 tester i timen.
+Den som kalles opp, bekrefter testen fra hvilken som helst av meldingene sine: lenken i en e-post, en SMS eller en chatmelding, 1 i et anrop eller push-varslingen i OneUptime On-Call-appen, i versjoner nyere enn 1.6.0. En policy kan testes én gang hvert 5. minutt, og et prosjekt sender høyst 20 tester i timen.
 
 ### Hold en beredskapsøvelse for en monitor
 
