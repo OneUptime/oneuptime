@@ -140,6 +140,8 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 OneUptime lee cada suscripción que la aplicación puede leer, hasta 50, salvo que enumeres algunas en **Suscripciones**. El secreto de la aplicación deja de funcionar en la fecha en que vence: desde 30 días antes, cada lectura avisa de ello. Ejecuta de nuevo el comando y pega lo que imprime para darle uno nuevo.
 
+En cada suscripción, OneUptime lista los recursos de cada tipo cuyas métricas lee, con sus etiquetas, regiones y grupos de recursos, y también las subredes de cada red virtual y cada grupo de seguridad de red, con sus reglas. También registra cómo se conectan: la subred y la red virtual en las que se ejecuta cada máquina virtual, interfaz de red y conjunto de escalado, y los grupos de seguridad de red que la protegen, en sus interfaces y en su subred, adónde envía el tráfico cada balanceador de carga y cada puerta de enlace de aplicaciones, y la red y los conjuntos de escalado de nodos de cada clúster de AKS. **Monitoring Reader** lo lee todo, así que no hay nada más que conceder.
+
 ## Google Cloud
 
 :::steps

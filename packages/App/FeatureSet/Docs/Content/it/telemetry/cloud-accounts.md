@@ -140,6 +140,8 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 OneUptime legge ogni sottoscrizione che l'app può leggere, fino a 50, a meno che tu non ne elenchi alcune in **Sottoscrizioni**. Il segreto dell'app smette di funzionare alla data di scadenza: da 30 giorni prima, ogni lettura ti avvisa. Esegui di nuovo il comando e incolla ciò che stampa per dargliene uno nuovo.
 
+In ogni sottoscrizione, OneUptime elenca le risorse di ogni tipo di cui legge le metriche, con i loro tag, aree geografiche e gruppi di risorse, e anche le subnet di ogni rete virtuale e ogni gruppo di sicurezza di rete, con le sue regole. Registra anche come sono collegati: la subnet e la rete virtuale in cui gira ogni macchina virtuale, interfaccia di rete e set di scalabilità, e i gruppi di sicurezza di rete che la proteggono, sulle sue interfacce e sulla sua subnet, dove ogni bilanciatore di carico e ogni gateway applicazione invia il traffico, e la rete e i set di scalabilità dei nodi di ogni cluster AKS. **Monitoring Reader** legge tutto questo, quindi non c'è altro da concedere.
+
 ## Google Cloud
 
 :::steps
