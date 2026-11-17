@@ -342,7 +342,7 @@ const ComparisonResultRow: FunctionComponent<RowProps> = (
               dataTestId="multi-snmp-walk-row-collected"
               text={
                 isCollectedEverywhere
-                  ? translator.translateText("Collected")
+                  ? translator.translateText("Collected") ?? "Collected"
                   : translator.translateTemplate(
                       "Collected on {{collected}} of {{total}}",
                       {

@@ -189,7 +189,7 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
                         ERROR_COUNT,
                         summary.errorCount,
                       )
-                    : translator.translateText("No errors")
+                    : translator.translateText("No errors") ?? "No errors"
                 }
                 isUserContent={true}
                 tone={summary.isError ? PillTone.Danger : PillTone.Success}
