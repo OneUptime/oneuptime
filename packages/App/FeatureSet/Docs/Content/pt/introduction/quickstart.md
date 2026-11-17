@@ -74,7 +74,7 @@ A configuração do site já criou a **Política de plantão padrão**, que acio
 :::steps
 ### Abrir a configuração de plantão
 
-Pressione `Ctrl+K` (`Cmd+K` em um Mac), digite `get paged` e escolha **Acionar a pessoa certa quando algo quebrar**. Enquanto a lista não marcar **Configure uma política de plantão**, essa etapa abre a mesma configuração guiada.
+No resumo da configuração do site, clique em **Ser acionado por SMS ou ligação telefônica**: o link abre a configuração guiada **Acionar a pessoa certa quando algo quebrar**. Para abri-la mais tarde, pressione `Ctrl+K` (`Cmd+K` em um Mac), digite `get paged` e escolha-a. Enquanto a lista não marcar **Configure uma política de plantão**, essa etapa abre a mesma configuração guiada.
 
 ### Escolher como você é contatado
 

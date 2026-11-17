@@ -2,6 +2,8 @@
 
 Un moniteur vérifie quelque chose que vous exploitez, comme un site web, une API, un hôte ou un cluster Kubernetes, et vous prévient quand cela cesse de fonctionner. **Créer un moniteur** demande d'abord quoi surveiller, puis quoi vérifier, puis à quelle fréquence. Tout, sauf le type, le nom et ce qu'il faut vérifier, commence avec des valeurs par défaut qui conviennent à la plupart des moniteurs.
 
+Pour un site web ou une API, une configuration guidée vous mène plutôt de son adresse jusqu'à un appel de test : cliquez sur **Configuration guidée** dans la liste vide **Moniteurs**, ou sous **Fonctionnement**. **Créer un moniteur** la propose aussi, dès que vous choisissez **Site web** ou **API**. Voir [Savoir quand votre site web ou votre API tombe](/docs/guides/website-down).
+
 > [!NOTE]
 > Pour créer un moniteur, il vous faut le rôle Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des moniteurs ou Membre des moniteurs, ou un rôle personnalisé avec l'autorisation Create Monitor.
 

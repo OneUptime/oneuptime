@@ -2,6 +2,8 @@
 
 En monitor kontrollerar något du driver, som en webbplats, ett API, en värd eller ett Kubernetes-kluster, och säger till när det slutar fungera. **Skapa monitor** frågar först vad som ska övervakas, sedan vad som ska kontrolleras och därefter hur ofta. Allt utom typen, namnet och vad som ska kontrolleras börjar med standardvärden som passar de flesta monitorer.
 
+För en webbplats eller ett API leder en guidad installation dig i stället från adressen till ett testlarm: klicka på **Guidad installation** i den tomma listan **Monitorer** eller under **Så fungerar det**. **Skapa monitor** erbjuder den också, så snart du väljer **Webbplats** eller **API**. Se [Få veta när din webbplats eller ditt API går ner](/docs/guides/website-down).
+
 > [!NOTE]
 > För att skapa en monitor behöver du rollen Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 

@@ -28,13 +28,15 @@ Adressen tjekkes fra din servers egen sonde, så den skal kunne nås derfra. For
 
 ![Hjem spørger »Hvad vil du gøre først?«, med »Vide, når mit website eller API er nede« markeret](screen:home-goal-website)
 
-Siden **Hjem** i et nyt projekt spørger først **Hvad vil du gøre først?**: sæt flueben ved **Vide, når mit website eller API er nede**, og klik på **Fortsæt**. Klik derefter på **Opret din første monitor** i tjeklisten **Velkommen til OneUptime 👋**. Mangler trinnet i tjeklisten, så tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `website down`, og vælg **Vide, når mit website eller API er nede**.
+Siden **Hjem** i et nyt projekt spørger først **Hvad vil du gøre først?**: sæt flueben ved **Vide, når mit website eller API er nede**, og klik på **Fortsæt**. Klik derefter på **Opret din første monitor** i tjeklisten **Velkommen til OneUptime 👋**. Mangler trinnet i tjeklisten, så tryk på `Ctrl+K` (`Cmd+K` på en Mac), skriv `website down`, og vælg **Vide, når mit website eller API er nede**. **Monitorer** tilbyder den også: **Guidet opsætning** på den tomme liste og under **Sådan fungerer det**, og en linje på **Opret monitor**, når du vælger **Websted** eller **API**.
 
 ### Indtast adressen
 
 ![Trinnet »Hvad skal vi tjekke?«, med »Start tjekket« fremhævet](screen:website-down-address)
 
-Under **Hvad skal vi tjekke?** skriver du adressen i **Adresse på website eller API**. Er det et API-endpoint, så sæt flueben ved **Dette er et API-endpoint**. Klik på **Start tjekket**: sonderne tjekker adressen med det samme, og en sætning fortæller, hvad de fandt. Klik på **Fortsæt**.
+Under **Hvad skal vi tjekke?** siger trinnet, fra hvor mange placeringer adressen bliver tjekket. Skriv den i **Adresse på website eller API**. Er det et API-endpoint, så sæt flueben ved **Dette er et API-endpoint**. Klik på **Start tjekket**: sonderne tjekker adressen med det samme, og en sætning fortæller, hvad de fandt. Klik på **Fortsæt**.
+
+Tjekker en kollegas monitor allerede adressen, eller en monitor, som API'et, Terraform eller en import har oprettet, siger trinnet det, før det opretter noget. Klik på **Åbn monitoren** for at se, hvem den giver besked, eller på **Opret min egen monitor** for at fortsætte med din egen. Det nævner kun en monitor, du må åbne.
 
 ### Vælg, hvem der får besked
 
@@ -42,7 +44,7 @@ Under **Hvad skal vi tjekke?** skriver du adressen i **Adresse på website eller
 
 Under **Hvem skal have besked?** afhænger det af projektet, hvad du ser:
 
-- Har projektet endnu ingen vagtpolitik eller vagtregel, er du allerede med i **Hvem der tilkaldes**. Klik på **Tilføj teammedlemmer** for at tilføje personer, der allerede er med i projektet, og klik derefter på **Gem og fortsæt**. Dermed oprettes **Standardvagtpolitik**, som tilkalder dem ved hver ny hændelse og advarsel i projektet.
+- Har projektet endnu ingen vagtpolitik eller vagtregel, er du allerede med i **Hvem der tilkaldes**. Klik på **Tilføj teammedlemmer** for at tilføje personer, der allerede er med i projektet, og klik derefter på **Gem og fortsæt**. Dermed oprettes **Standardvagtpolitik**, som tilkalder dem ved hver ny hændelse og advarsel i projektet. Hver person tilkaldes, som deres **Sådan når man mig** siger: linket åbner dit i en ny fane.
 - Har projektet en vagtpolitik eller vagtregel, afgør projektets egne regler, hvem der tilkaldes: klik på **Fortsæt**.
 - Som medlem må du ikke sætte tilkaldelse op, så trinnet fortæller, at du får e-mails som monitorens ejer: klik på **Fortsæt**.
 
@@ -50,18 +52,23 @@ Under **Hvem skal have besked?** afhænger det af projektet, hvad du ser:
 
 ![Trinnet »Send en test«, med »Send mig et testkald« fremhævet](screen:website-down-test)
 
-Under **Send en test** klikker du på **Send mig et testkald**. Vælg en **Alvorlighed**, og klik på **Send testkald**. Testen når dig på samme måde som et rigtigt tilkald, og der står TEST i hver besked. Der oprettes ingen hændelse.
+Under **Send en test** klikker du på **Send mig et testkald**. Vælg en **Alvorlighed**: linjen under den siger, at testen når dig, som dit **Sådan når man mig** siger for den alvorsgrad. Klik på **Send testkald**. Testen når dig på samme måde som et rigtigt tilkald, og der står TEST i hver besked. Der oprettes ingen hændelse.
 
 ### Kvittér for testkaldet
 
 Åbn linket i e-mailen, og kvittér for tilkaldet dér. Et bekræftet telefonnummer virker også, så snart sms og opkald er slået til for projektet: åbn linket i sms'en, eller tryk 1 under opkaldet. Klik derefter på **Færdig** i dialogen og på **Fortsæt**.
+
+### Vis den til kunderne
+
+Har projektet en statusside, og må du føje monitorer til den, følger der ét trin mere. Under **Vise den til kunderne?** vælger du siden i **Statusside** og klikker på **Føj til statusside**, eller du klikker på **Ikke nu**. Et projekt uden statusside springer det over: oversigten tilbyder i stedet **Vis den på en statusside**, med din monitor allerede markeret.
 :::
 
 ## Tjek, at det virker
 
 ![Oversigten, læst fra posterne: »Tjekket«, »Når den går ned«, »Hvem der får besked« og »Testet«](screen:website-down-summary)
 
-- Opsætningen slutter med en oversigt, hentet fra det, der faktisk er gemt: **Tjekket**, **Når den går ned**, **Hvem der får besked** og **Testet**.
+- Opsætningen slutter med en oversigt, hentet fra det, der faktisk er gemt: **Tjekket**, **Når den går ned**, **Hvem der får besked** og **Testet**, og **Statusside**, så snart en side viser monitoren.
+- Under **Næste trin** åbner **Få kald via SMS eller telefonopkald** den guidede opsætning **Tilkalde den rette person, når noget går ned**, som tilføjer din telefon.
 - Klik på **Åbn monitoren** og derefter på **Vis kæden** på kortet **Når den går ned**: så vises kæden fra monitoren til de personer, den når, og der står **Intet stopper kæden.**, når intet ville stoppe den.
 - På **Hjem** markerer tjeklisten **Opret din første monitor** som udført, så snart det første tjek kommer ind. Var det det sidste trin, er tjeklisten væk.
 
