@@ -17,7 +17,9 @@ import DatabaseService from "./DatabaseService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
 import MailService from "./MailService";
 import ProductBrandingText from "../Utils/ProductBrandingText";
-import RequestOriginUtil from "../Utils/RequestOrigin/RequestOriginUtil";
+import RequestOriginUtil, {
+  RequestOriginEmailVars,
+} from "../Utils/RequestOrigin/RequestOriginUtil";
 import TeamMemberService from "./TeamMemberService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
 import UserNotificationSettingService from "./UserNotificationSettingService";
@@ -1860,10 +1862,16 @@ export class Service extends DatabaseService<Model> {
    * SET_PASSWORD_LINK_EXPIRY_DAYS. Both are the same token in the same
    * column, redeemed by the same POST /identity/reset-password, so there is
    * no second code path that can set a password. Identity's /forgot-password
-   * keeps its own copy of the minting because it differs around the edges
-   * (it finds the user by a typed email, refuses accounts with no password,
+   * keeps its own copy of the minting for an account with a password,
+   * because it differs around the edges (it finds the user by a typed email
    * and answers success without waiting for the mail); if either changes the
-   * token scheme, both must move together.
+   * token scheme, both must move together. For an account with no password
+   * yet it calls this, with `requestOrigin` (#9260).
+   *
+   * `requestOrigin` is set when the account's owner asked for the link
+   * themselves, from Forgot password: the email then says a request was
+   * made, and when and from where, as a reset email does - not that an
+   * administrator created the account.
    *
    * Only the SHA-256 of the token is stored. The token itself exists just long
    * enough to be put in the email, so a leaked database row cannot be replayed
@@ -1874,6 +1882,7 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async sendPasswordResetLink(data: {
     userId: ObjectID;
+    requestOrigin?: RequestOriginEmailVars | undefined;
   }): Promise<Email> {
     const user: Model = await this.findUserForPasswordLink(data.userId);
 
@@ -1935,6 +1944,7 @@ export class Service extends DatabaseService<Model> {
                   tokenVerifyUrl: link,
                   email: user.email.toString(),
                   expiresInDays: String(SET_PASSWORD_LINK_EXPIRY_DAYS),
+                  ...(data.requestOrigin || {}),
                 },
               }
             : {
@@ -1943,6 +1953,7 @@ export class Service extends DatabaseService<Model> {
                 vars: {
                   homeURL: homeURL,
                   tokenVerifyUrl: link,
+                  ...(data.requestOrigin || {}),
                 },
               }),
         });
@@ -2001,7 +2012,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     logger.info(
-      `${isSettingFirstPassword ? "Set-password" : "Password reset"} link sent by a master admin to user: ${data.userId.toString()}`,
+      `${isSettingFirstPassword ? "Set-password" : "Password reset"} link sent ${data.requestOrigin ? "from Forgot password" : "by a master admin"} to user: ${data.userId.toString()}`,
     );
 
     // Returned so the caller can tell the operator where the link went.

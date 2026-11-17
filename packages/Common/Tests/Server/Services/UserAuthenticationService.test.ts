@@ -1370,6 +1370,39 @@ describe("UserService -- master-admin authentication management", () => {
       );
     });
 
+    test("asked for by its owner from Forgot password (#9260), the email carries where the request came from", async () => {
+      resolveUser(buildNewAccount());
+
+      await UserService.sendPasswordResetLink({
+        userId: userId,
+        requestOrigin: {
+          requestedAt: "Nov 17, 2026, 09:30 UTC",
+          requestIpAddress: "203.0.113.7",
+          requestLocation: "",
+          requestDevice: "Firefox on Linux",
+        },
+      });
+
+      const mail: any = sentMail();
+
+      expect(mail.templateType).toBe(EmailTemplateType.SetPassword);
+      expect(mail.vars.tokenVerifyUrl).toContain("/accounts/set-password/");
+      expect(mail.vars.requestedAt).toBe("Nov 17, 2026, 09:30 UTC");
+      expect(mail.vars.requestIpAddress).toBe("203.0.113.7");
+      expect(mail.vars.requestDevice).toBe("Firefox on Linux");
+      expect(mail.vars.expiresInDays).toBe(
+        String(SET_PASSWORD_LINK_EXPIRY_DAYS),
+      );
+    });
+
+    test("sent by a master admin, the email names no request: the template says an administrator made the account", async () => {
+      resolveUser(buildNewAccount());
+
+      await UserService.sendPasswordResetLink({ userId: userId });
+
+      expect(sentMail().vars.requestedAt).toBeUndefined();
+    });
+
     test("reads whether the account has a password, as root", async () => {
       resolveUser(buildNewAccount());
 
