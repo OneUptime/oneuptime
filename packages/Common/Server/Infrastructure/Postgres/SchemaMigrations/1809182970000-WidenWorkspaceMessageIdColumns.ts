@@ -30,10 +30,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * The ids already cut are put back by the RestoreCutMicrosoftTeamsChatIds
  * data migration, which runs after this one.
  */
-export class WidenWorkspaceMessageIdColumns1809182960000
+export class WidenWorkspaceMessageIdColumns1809182970000
   implements MigrationInterface
 {
-  public name: string = "WidenWorkspaceMessageIdColumns1809182960000";
+  public name: string = "WidenWorkspaceMessageIdColumns1809182970000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

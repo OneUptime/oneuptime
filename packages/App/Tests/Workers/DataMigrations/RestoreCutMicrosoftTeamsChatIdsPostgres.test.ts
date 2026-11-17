@@ -1,6 +1,6 @@
 import RestoreCutMicrosoftTeamsChatIds from "../../../FeatureSet/Workers/DataMigrations/RestoreCutMicrosoftTeamsChatIds";
 import Entities from "Common/Models/DatabaseModels/Index";
-import { WidenWorkspaceMessageIdColumns1809182960000 } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809182960000-WidenWorkspaceMessageIdColumns";
+import { WidenWorkspaceMessageIdColumns1809182970000 } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809182970000-WidenWorkspaceMessageIdColumns";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
@@ -23,7 +23,7 @@ import {
  * On the tables as they were before the upgrade - every id of a message's
  * place a varchar(100) - with each Microsoft Teams personal chat kept cut
  * to its first 100 characters, as the code wrote it, the upgrade runs as it
- * does: the schema migration (1809182960000-WidenWorkspaceMessageIdColumns),
+ * does: the schema migration (1809182970000-WidenWorkspaceMessageIdColumns),
  * then the RestoreCutMicrosoftTeamsChatIds data migration.
  *
  *   - the schema migration keeps every value, rewrites no row and keeps the
@@ -432,7 +432,7 @@ describePostgres(
 
       // The tables as they were before the upgrade.
       await withRunner(async (queryRunner: QueryRunner) => {
-        await new WidenWorkspaceMessageIdColumns1809182960000().down(
+        await new WidenWorkspaceMessageIdColumns1809182970000().down(
           queryRunner,
         );
       });
@@ -496,7 +496,7 @@ describePostgres(
 
       // The schema migration keeps every value, in place.
       await withRunner(async (queryRunner: QueryRunner) => {
-        await new WidenWorkspaceMessageIdColumns1809182960000().up(queryRunner);
+        await new WidenWorkspaceMessageIdColumns1809182970000().up(queryRunner);
       });
 
       for (const [table, column] of [
@@ -548,7 +548,7 @@ describePostgres(
           (await columnType("WorkspaceLiveMessage", "channelId")) !==
           "character varying(500)"
         ) {
-          await new WidenWorkspaceMessageIdColumns1809182960000().up(
+          await new WidenWorkspaceMessageIdColumns1809182970000().up(
             queryRunner,
           );
         }
@@ -570,7 +570,7 @@ describePostgres(
           (await columnType("WorkspaceLiveMessage", "channelId")) !==
           "character varying(500)"
         ) {
-          await new WidenWorkspaceMessageIdColumns1809182960000().up(
+          await new WidenWorkspaceMessageIdColumns1809182970000().up(
             queryRunner,
           );
         }
@@ -599,7 +599,7 @@ describePostgres(
           (await columnType("WorkspaceLiveMessage", "channelId")) !==
           "character varying(500)"
         ) {
-          await new WidenWorkspaceMessageIdColumns1809182960000().up(
+          await new WidenWorkspaceMessageIdColumns1809182970000().up(
             queryRunner,
           );
         }
@@ -614,7 +614,7 @@ describePostgres(
       );
 
       await withRunner(async (queryRunner: QueryRunner) => {
-        await new WidenWorkspaceMessageIdColumns1809182960000().down(
+        await new WidenWorkspaceMessageIdColumns1809182970000().down(
           queryRunner,
         );
       });
@@ -641,7 +641,7 @@ describePostgres(
 
       // Back up, for any test after this one.
       await withRunner(async (queryRunner: QueryRunner) => {
-        await new WidenWorkspaceMessageIdColumns1809182960000().up(queryRunner);
+        await new WidenWorkspaceMessageIdColumns1809182970000().up(queryRunner);
       });
     });
   },

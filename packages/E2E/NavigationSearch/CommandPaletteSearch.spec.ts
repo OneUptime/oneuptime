@@ -110,8 +110,25 @@ test("Delete Project is offered only to people allowed to delete the project; th
   await input.fill("delete project");
 
   await expect(options(page).first()).toContainText("Danger Zone");
+
+  /*
+   * The Danger Zone page is called Delete Project since #9134, so the row
+   * they find is named that too: it is the page, under Pages, and says it is
+   * Project Settings > Danger Zone. The action, which would stand in for the
+   * page's row for someone allowed to delete, is not under Actions.
+   */
+  const pages: Locator = page.getByRole("group", { name: "Pages" });
+  const pageRow: Locator = pages
+    .getByRole("option")
+    .filter({ hasText: /^Delete Project/ });
+  await expect(pageRow).toHaveCount(1);
+  await expect(pageRow).toContainText("Project Settings");
+  await expect(pageRow).toContainText("Danger Zone");
   await expect(
-    options(page).filter({ hasText: /^Delete Project/ }),
+    page
+      .getByRole("group", { name: "Actions" })
+      .getByRole("option")
+      .filter({ hasText: /^Delete Project/ }),
   ).toHaveCount(0);
 });
 

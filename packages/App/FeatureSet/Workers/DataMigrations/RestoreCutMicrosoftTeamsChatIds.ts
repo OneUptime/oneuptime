@@ -14,7 +14,7 @@ export interface ProjectChatsRow {
  * Puts back the Microsoft Teams chat ids OneUptime kept cut to 100
  * characters (issue #9284).
  *
- * Before WidenWorkspaceMessageIdColumns1809182960000, the place of a message
+ * Before WidenWorkspaceMessageIdColumns1809182970000, the place of a message
  * OneUptime keeps up to date (WorkspaceLiveMessage.channelId) and the
  * channel of every Notification Log (WorkspaceNotificationLog.channelId)
  * were cut to 100 characters when they were written. A personal chat's id

@@ -547,10 +547,16 @@ export default class ProjectCallSMSConfig extends BaseModel {
    * NOT unique, for the same reason as twilioAccountSID above — and a unique
    * constraint would be meaningless now the value is stored encrypted: the
    * same token encrypts to different ciphertext each time it is written.
+   *
+   * A text column (#9267), as every encrypted column is: what is stored is
+   * the token's ciphertext, about 40% longer than the token. The token as
+   * written is still held to its type's 500 characters, by DatabaseService
+   * before it encrypts it (assertFitsBeforeEncrypted), with a message that
+   * names the field; a varchar(500) refused the ciphertext of a token of
+   * 352 to 500 characters in an error that named none.
    */
   @Column({
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
+    type: ColumnType.VeryLongText,
     nullable: true,
     unique: false,
   })

@@ -1,4 +1,5 @@
 import EncryptProjectCredentials from "../../../FeatureSet/Workers/DataMigrations/EncryptProjectCredentials";
+import { encryptInPlaceADayLater } from "./Fixtures/CredentialsAtRestPass";
 import Entities from "Common/Models/DatabaseModels/Index";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
@@ -31,16 +32,20 @@ import { DataSource, QueryRunner } from "Common/node_modules/typeorm";
  * varchar(500), the webhook signing secret a varchar(100) - with every
  * credential stored as written, the upgrade runs as it does: the schema
  * migration (1809182300000-ProjectCredentialsEncryptedColumns), then the
- * EncryptProjectCredentials data migration. Every reader reads through the
- * real services all along:
+ * EncryptProjectCredentials data migration, and a day later the
+ * CredentialsAtRest:EncryptInPlace job's pass (#9266). Every reader reads
+ * through the real services all along:
  *
- *   - before either, after the schema migration and after the data
- *     migration, every credential reads as written - a status page's SMTP
- *     config through its relation included - and toEmailServer hands the
- *     mail service the password and client secret as written;
- *   - the schema migration keeps every value; the data migration leaves
- *     only ciphertext, which decrypts to the value written - a 500-character
- *     password included, which only the widened column holds encrypted;
+ *   - before any of it, after the schema migration, after the data
+ *     migration and after the job, every credential reads as written - a
+ *     status page's SMTP config through its relation included - and
+ *     toEmailServer hands the mail service the password and client secret
+ *     as written;
+ *   - the schema migration and the data migration keep every value as
+ *     written - what a server of the release before reads while the upgrade
+ *     rolls out; the job leaves only ciphertext, which decrypts to the value
+ *     written - a 500-character password included, which only the widened
+ *     column holds encrypted;
  *   - a second run changes nothing, byte for byte; two runs at once encrypt
  *     each value once;
  *   - a credential saved through a service afterwards is stored encrypted.
@@ -444,8 +449,22 @@ describePostgres(
       );
       expect(await readThroughServices()).toEqual(AS_WRITTEN);
 
-      // The data migration leaves only ciphertext, of the values written.
+      /*
+       * The data migration changes nothing: a server of the release before,
+       * still running while the upgrade rolls out, reads every credential as
+       * stored, as written.
+       */
       await new EncryptProjectCredentials().migrate();
+
+      expect(await storedValues()).toEqual(
+        STORED.map((credential: (typeof STORED)[number]): string => {
+          return credential.written;
+        }),
+      );
+      expect(await readThroughServices()).toEqual(AS_WRITTEN);
+
+      // A day later, the job leaves only ciphertext, of the values written.
+      await encryptInPlaceADayLater(new EncryptProjectCredentials().name);
 
       for (const credential of STORED) {
         const value: string | null = await stored(
@@ -476,6 +495,7 @@ describePostgres(
       const afterOne: Array<string | null> = await storedValues();
 
       await new EncryptProjectCredentials().migrate();
+      await encryptInPlaceADayLater(new EncryptProjectCredentials().name);
 
       expect(await storedValues()).toEqual(afterOne);
     });
@@ -485,8 +505,8 @@ describePostgres(
       await seedAsWritten();
 
       await Promise.all([
-        new EncryptProjectCredentials().migrate(),
-        new EncryptProjectCredentials().migrate(),
+        encryptInPlaceADayLater(new EncryptProjectCredentials().name),
+        encryptInPlaceADayLater(new EncryptProjectCredentials().name),
       ]);
 
       for (const credential of STORED) {
@@ -509,6 +529,7 @@ describePostgres(
       await upgradeSchema();
       await seedAsWritten();
       await new EncryptProjectCredentials().migrate();
+      await encryptInPlaceADayLater(new EncryptProjectCredentials().name);
 
       await ProjectSmtpConfigService.updateOneById({
         id: new ObjectID(PASSWORD_CONFIG_ID),

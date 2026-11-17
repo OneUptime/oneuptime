@@ -1049,7 +1049,8 @@ import { StatusPageSubscriberTokenEncryptedColumn1809182920000 } from "./1809182
 import { MonitorKeysEncryptedColumns1809182930000 } from "./1809182930000-MonitorKeysEncryptedColumns";
 import { PresentedKeyLookupHashIndexes1809182940000 } from "./1809182940000-PresentedKeyLookupHashIndexes";
 import { WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182950000 } from "./1809182950000-WebhookAddressesAndSnmpCredentialsEncryptedColumns";
-import { WidenWorkspaceMessageIdColumns1809182960000 } from "./1809182960000-WidenWorkspaceMessageIdColumns";
+import { TwilioAuthTokenTextColumn1809182960000 } from "./1809182960000-TwilioAuthTokenTextColumn";
+import { WidenWorkspaceMessageIdColumns1809182970000 } from "./1809182970000-WidenWorkspaceMessageIdColumns";
 
 export default [
   InitialMigration,
@@ -2103,5 +2104,6 @@ export default [
   MonitorKeysEncryptedColumns1809182930000,
   PresentedKeyLookupHashIndexes1809182940000,
   WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182950000,
-  WidenWorkspaceMessageIdColumns1809182960000,
+  TwilioAuthTokenTextColumn1809182960000,
+  WidenWorkspaceMessageIdColumns1809182970000,
 ];

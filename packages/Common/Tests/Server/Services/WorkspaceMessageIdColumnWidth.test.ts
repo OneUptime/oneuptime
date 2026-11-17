@@ -5,7 +5,7 @@ import WorkspaceNotificationLog from "../../../Models/DatabaseModels/WorkspaceNo
 import WorkspacePublicNoteApprovalMessage from "../../../Models/DatabaseModels/WorkspacePublicNoteApprovalMessage";
 import { MigrationName1754910440587 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1754910440587-MigrationName";
 import { AddWorkspaceLiveMessage1801500000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1801500000000-AddWorkspaceLiveMessage";
-import { WidenWorkspaceMessageIdColumns1809182960000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182960000-WidenWorkspaceMessageIdColumns";
+import { WidenWorkspaceMessageIdColumns1809182970000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182970000-WidenWorkspaceMessageIdColumns";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import WorkspaceLiveMessageService from "../../../Server/Services/WorkspaceLiveMessageService";
 import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceNotificationLogService";
@@ -39,7 +39,7 @@ import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArg
  * WorkspacePublicNoteApprovalMessage keeps the same ids, and the length
  * check, the model and the database agree on it. TypeORM generates the
  * change as DROP COLUMN + ADD, which drops every kept message and every
- * log's channel; WidenWorkspaceMessageIdColumns1809182960000 is ALTER
+ * log's channel; WidenWorkspaceMessageIdColumns1809182970000 is ALTER
  * COLUMN ... TYPE instead: the same schema, every value kept. Pure metadata,
  * the real length check and recorded SQL here - no Postgres.
  */
@@ -257,9 +257,9 @@ describe("A Microsoft Teams personal chat's id in those columns", () => {
   );
 });
 
-describe("WidenWorkspaceMessageIdColumns1809182960000", () => {
-  const migration: WidenWorkspaceMessageIdColumns1809182960000 =
-    new WidenWorkspaceMessageIdColumns1809182960000();
+describe("WidenWorkspaceMessageIdColumns1809182970000", () => {
+  const migration: WidenWorkspaceMessageIdColumns1809182970000 =
+    new WidenWorkspaceMessageIdColumns1809182970000();
 
   test("up() widens each column in place, keeping every value", async () => {
     const { runner, sql } = recordQueries();
@@ -367,13 +367,13 @@ describe("WidenWorkspaceMessageIdColumns1809182960000", () => {
         },
       );
       const widened: number = names.indexOf(
-        "WidenWorkspaceMessageIdColumns1809182960000",
+        "WidenWorkspaceMessageIdColumns1809182970000",
       );
       const created: number = names.indexOf(column.createdByName);
 
       expect(
         names.filter((name: string): boolean => {
-          return name === "WidenWorkspaceMessageIdColumns1809182960000";
+          return name === "WidenWorkspaceMessageIdColumns1809182970000";
         }),
       ).toHaveLength(1);
       expect(created).toBeGreaterThan(-1);
@@ -382,6 +382,6 @@ describe("WidenWorkspaceMessageIdColumns1809182960000", () => {
   );
 
   test("its name carries its timestamp, as its file's does", () => {
-    expect(migration.name).toBe("WidenWorkspaceMessageIdColumns1809182960000");
+    expect(migration.name).toBe("WidenWorkspaceMessageIdColumns1809182970000");
   });
 });

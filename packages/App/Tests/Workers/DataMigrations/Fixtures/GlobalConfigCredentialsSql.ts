@@ -7,6 +7,12 @@ import crypto from "crypto";
  *
  *   SELECT "_id", "<column>", ... FROM "GlobalConfig"
  *     every row's id and the columns named, NULL for a column not set;
+ *   SELECT "_id", "<column>" FROM "GlobalConfig" WHERE "<column>" IS NOT
+ *     NULL AND "<column>" <> '' AND "<column>" NOT LIKE $1 [AND "_id" > $2]
+ *     ORDER BY "_id" ASC LIMIT <n>
+ *     a page of the rows whose column is set and does not start with $1's
+ *     prefix, in id order after $2 - how EncryptColumnInPlace reads one
+ *     column, for the CredentialsAtRest:EncryptInPlace job;
  *   UPDATE "GlobalConfig" SET "<column>" = $1
  *     WHERE "_id" = $2 AND "<column>" = $3
  *     the one column of the one row, only while the column still holds $3
@@ -57,6 +63,9 @@ const TABLE: string = "GlobalConfig";
 const SELECT_START: string = `SELECT "_id", `;
 const SELECT_END: string = ` FROM "${TABLE}"`;
 const QUOTED_COLUMN: RegExp = /^"(\w+)"$/;
+// One column's page, as EncryptColumnInPlace reads it.
+const SELECT_ONE_COLUMN_PAGE: RegExp =
+  /^SELECT "_id", "(\w+)" FROM "GlobalConfig" WHERE "(\w+)" IS NOT NULL AND "(\w+)" <> '' AND "(\w+)" NOT LIKE \$1( AND "_id" > \$2)? ORDER BY "_id" ASC LIMIT (\d+)$/;
 const UPDATE_ONE_COLUMN: RegExp =
   /^UPDATE "GlobalConfig" SET "(\w+)" = \$1 WHERE "_id" = \$2 AND "(\w+)" = \$3$/;
 // The same write without the compare: answered too, so a test sees what it would do.
@@ -96,6 +105,49 @@ export function answerGlobalConfigSql(
     beforeUpdate: null,
     query: async (text: string, params?: Array<unknown>): Promise<unknown> => {
       sql.calls.push({ sql: text, params: params ? [...params] : [] });
+
+      const page: RegExpMatchArray | null = text.match(SELECT_ONE_COLUMN_PAGE);
+
+      if (page) {
+        const column: string = page[1]!;
+
+        if (page[2] !== column || page[3] !== column || page[4] !== column) {
+          throw new Error(
+            `GlobalConfigSql: a SELECT reads ${column} and filters on another column`,
+          );
+        }
+
+        const prefix: string = String(params?.[0] || "").replace(/%$/, "");
+        const afterId: string | null = page[5] ? String(params?.[1]) : null;
+        const limit: number = Number(page[6]);
+
+        if (sql.beforeSelect) {
+          await sql.beforeSelect();
+        }
+
+        return rows()
+          .filter((row: SqlRow): boolean => {
+            const value: unknown = row[column];
+
+            return (
+              typeof value === "string" &&
+              value !== "" &&
+              !value.startsWith(prefix) &&
+              (afterId === null ||
+                String(row["_id"]).toLowerCase() > afterId.toLowerCase())
+            );
+          })
+          .sort((left: SqlRow, right: SqlRow): number => {
+            return String(left["_id"]).toLowerCase() <
+              String(right["_id"]).toLowerCase()
+              ? -1
+              : 1;
+          })
+          .slice(0, limit)
+          .map((row: SqlRow): SqlRow => {
+            return { _id: row["_id"], [column]: row[column] };
+          });
+      }
 
       if (text.startsWith(SELECT_START) && text.endsWith(SELECT_END)) {
         const columns: Array<string> = text

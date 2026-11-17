@@ -164,7 +164,7 @@ const MessageQueueTopologyMap: FunctionComponent<ComponentProps> = (
       }): DropdownOption => {
         return getTranslatedDropdownOption(
           option.value,
-          translator.translateText(option.label),
+          translator.translateText(option.label) || option.label,
         );
       },
     );

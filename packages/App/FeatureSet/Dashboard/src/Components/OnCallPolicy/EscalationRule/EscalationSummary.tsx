@@ -2,7 +2,7 @@ import { ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME } from "../OnCallLabelClasses
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Pill from "Common/UI/Components/Pill/Pill";
+import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import React, {
   Fragment,
@@ -517,22 +517,20 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
                         <span className="text-sm font-semibold text-gray-900">
                           {level.name}
                         </span>
-                        <span
-                          data-testid={
+                        <Pill
+                          dataTestId={
                             isSkipped
                               ? "escalation-summary-level-skipped"
                               : "escalation-summary-level-timing"
                           }
-                          className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-500 ring-1 ring-inset ring-gray-200"
-                        >
-                          <Icon
-                            icon={isSkipped ? IconProp.Forward : IconProp.Clock}
-                            className="h-2.5 w-2.5 text-gray-400"
-                            // On to the next level: the way the words run.
-                            isMirroredRightToLeft={isSkipped}
-                          />
-                          {timingLabel}
-                        </span>
+                          text={timingLabel}
+                          isUserContent={true}
+                          tone={PillTone.Neutral}
+                          size={PillSize.Small}
+                          icon={isSkipped ? IconProp.Forward : IconProp.Clock}
+                          // On to the next level: the way the words run.
+                          isIconMirroredRightToLeft={isSkipped}
+                        />
                       </div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1">
                         <span className="text-xs text-gray-500">
