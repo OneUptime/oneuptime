@@ -468,7 +468,7 @@ const PROSE_LEADS: Array<string> = [
   "Code work that carries a private incident or alert follows its owners too.",
   "Production reviews, pull requests from chats and the fix panels follow private records too.",
   "Webhook addresses and SNMP credentials are stored encrypted, and logs keep a webhook's address by its host.",
-  "Webhook addresses and SNMP credentials are encrypted a day after the upgrade, so a server of the earlier release keeps using them while it rolls out.",
+  "From the release after 16.0.0, webhook addresses and SNMP credentials are encrypted a day after the upgrade, so a server of 15 keeps using them while it rolls out.",
   "A new on-call rule made through the API or with Terraform starts on Key updates only.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
