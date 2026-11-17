@@ -285,6 +285,7 @@ Et banner øverst på SLO'ets sider fortæller, hvad der forhindrer det i at må
 | --- | --- | --- |
 | **Ingen monitorer tilknyttet** | SLO'et har ingen monitorer, så der er intet at måle. | Tilknyt monitorer, eller opret en monitorregel. |
 | **Venter på SLO-evaluering** | Der er tilknyttet monitorer, men den seneste evaluering havde ingen statusdata fra dem. | Tjek, at monitorerne bliver tjekket. Tallene vises efter den næste evaluering med data. |
+| **Venter på første tjek** | Der er tilknyttet monitorer, men intet har tjekket dem endnu: en monitor oprettet for et minut siden eller en selvhostet sonde, der ikke er forbundet. | Intet: SLO'et måles fra deres første tjek. Kommer det ikke, så åbn monitorerne for at se hvorfor. |
 | **Målingen er sat på pause** | Alle monitorer, det måler, er arkiveret eller har aktiv overvågning slået fra. | Slå overvågning til igen for mindst én monitor, eller vent på, at vedligeholdelsen slutter. |
 | **Målet er uden for det tilladte interval** | Målet er ikke større end 0 og mindre end 100. | Sæt et mål som 99,9 under **Indstillinger** → **Mål**. |
 | **Denne SLO er deaktiveret** | Evalueringen er slået fra. | Klik på **Slå evaluering til**. |

@@ -285,6 +285,7 @@ Un bandeau en haut des pages du SLO dit ce qui l'empêche de mesurer :
 | --- | --- | --- |
 | **Aucun moniteur rattaché** | Le SLO n'a aucun moniteur, il n'y a donc rien à mesurer. | Rattachez des moniteurs ou créez une règle de moniteurs. |
 | **En attente de l'évaluation du SLO** | Des moniteurs sont rattachés, mais la dernière évaluation n'avait aucune donnée de statut venant d'eux. | Vérifiez que les moniteurs sont bien vérifiés. Les chiffres apparaissent après la prochaine évaluation qui a des données. |
+| **En attente de la première vérification** | Des moniteurs sont rattachés, mais rien ne les a encore vérifiés : un moniteur créé il y a une minute, ou une sonde auto-hébergée qui n'est pas connectée. | Rien : le SLO est mesuré à partir de leur première vérification. Si elle n'arrive pas, ouvrez les moniteurs pour voir pourquoi. |
 | **La mesure est en pause** | Chaque moniteur qu'il mesure est archivé ou a la surveillance active désactivée. | Réactivez la surveillance d'au moins un moniteur, ou attendez la fin de la maintenance. |
 | **L'objectif est hors limites** | L'objectif n'est pas supérieur à 0 et inférieur à 100. | Fixez un objectif comme 99,9 dans **Paramètres** → **Objectif**. |
 | **Ce SLO est désactivé** | L'évaluation est désactivée. | Cliquez sur **Activer l'évaluation**. |

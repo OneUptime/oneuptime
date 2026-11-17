@@ -285,6 +285,7 @@ Een banner bovenaan de pagina's van de SLO zegt wat hem verhindert te meten:
 | --- | --- | --- |
 | **Geen monitoren gekoppeld** | De SLO heeft geen monitoren, dus er valt niets te meten. | Koppel monitoren of maak een monitorregel. |
 | **Wachten op de SLO-evaluatie** | Er zijn monitoren gekoppeld, maar de laatste evaluatie had geen statusgegevens van ze. | Controleer of de monitoren worden gecontroleerd. De cijfers verschijnen na de volgende evaluatie met gegevens. |
+| **Wachten op de eerste controle** | Er zijn monitoren gekoppeld, maar nog niets heeft ze gecontroleerd: een monitor die een minuut geleden is aangemaakt, of een zelfgehoste sonde die niet verbonden is. | Niets: de SLO wordt gemeten vanaf hun eerste controle. Blijft die uit, open dan de monitoren om te zien waarom. |
 | **De meting is gepauzeerd** | Alle monitoren die hij meet, zijn gearchiveerd of hebben actieve bewaking uitgeschakeld. | Zet de bewaking van minstens één monitor weer aan, of wacht tot het onderhoud voorbij is. |
 | **Het doel valt buiten het bereik** | Het doel is niet groter dan 0 en kleiner dan 100. | Stel een doel zoals 99,9 in onder **Instellingen** → **Doelstelling**. |
 | **Deze SLO is uitgeschakeld** | De evaluatie staat uit. | Klik op **Evaluatie aanzetten**. |
