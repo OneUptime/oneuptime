@@ -4,6 +4,7 @@ import StatusPageDomainService from "Common/Server/Services/StatusPageDomainServ
 import Encryption from "Common/Server/Utils/Encryption";
 import logger from "Common/Server/Utils/Logger";
 import EncryptUploadedCertificateKeys from "../../../FeatureSet/Workers/DataMigrations/EncryptUploadedCertificateKeys";
+import { encryptInPlaceADayLater } from "./Fixtures/CredentialsAtRestPass";
 import fs from "fs";
 import path from "path";
 import {
@@ -16,18 +17,22 @@ import {
 } from "@jest/globals";
 
 /*
- * EncryptUploadedCertificateKeys encrypts the private keys customers uploaded
- * for their status page, dashboard and form domains, stored as plaintext
- * before the column was kept encrypted at rest. It reads each row's raw key
- * and, when it is not already our ciphertext, encrypts it and writes it back
- * - in raw SQL, so the services' own encrypt and decrypt never touch it.
+ * The private keys customers uploaded for their status page, dashboard and
+ * form domains, stored as plaintext before the column was kept encrypted
+ * at rest. The upgrade's EncryptUploadedCertificateKeys leaves them as
+ * written (#9266), so the ingress of the release before serves them while
+ * the upgrade rolls out; a day later the CredentialsAtRest:EncryptInPlace
+ * job reads each row's raw key and, when it is not already our ciphertext,
+ * encrypts it and writes it back - in raw SQL, so the services' own encrypt
+ * and decrypt never touch it.
  *
  * Pinned here, with the three repositories stubbed so the real migrate()
- * runs without Postgres:
+ * and the job's real pass run without Postgres:
  *   1. it is registered in DataMigrations/Index.ts, once, before the slot
- *      AddAuditLogMcpClientColumns keeps last;
- *   2. it encrypts a plaintext key on every kind of domain, and the stored
- *      value decrypts back to the key;
+ *      AddAuditLogMcpClientColumns keeps last, and the upgrade's run of it
+ *      changes nothing;
+ *   2. the pass encrypts a plaintext key on every kind of domain, and the
+ *      stored value decrypts back to the key;
  *   3. each write holds to the plaintext it read, so a key replaced
  *      meanwhile is left as its new write stored it;
  *   4. it leaves an encrypted, empty or null key alone, so a second run
@@ -178,7 +183,7 @@ describe("EncryptUploadedCertificateKeys", () => {
     expect(new EncryptUploadedCertificateKeys().name).toBe(MIGRATION_NAME);
   });
 
-  test("encrypts a plaintext key on every kind of custom domain, and each decrypts back", async () => {
+  test("the upgrade's run changes nothing: the ingress of the release before serves every key as written", async () => {
     const calls: Array<QueryCall> = stubTables({
       StatusPageDomain: {
         rows: [{ _id: "status-1", customCertificateKey: KEY_A }],
@@ -190,6 +195,22 @@ describe("EncryptUploadedCertificateKeys", () => {
     });
 
     await new EncryptUploadedCertificateKeys().migrate();
+
+    expect(calls).toHaveLength(0);
+  });
+
+  test("encrypts a plaintext key on every kind of custom domain, and each decrypts back", async () => {
+    const calls: Array<QueryCall> = stubTables({
+      StatusPageDomain: {
+        rows: [{ _id: "status-1", customCertificateKey: KEY_A }],
+      },
+      DashboardDomain: {
+        rows: [{ _id: "dashboard-1", customCertificateKey: KEY_B }],
+      },
+      FormDomain: { rows: [{ _id: "form-1", customCertificateKey: KEY_C }] },
+    });
+
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     const updates: Array<QueryCall> = updateCalls(calls);
 
@@ -219,7 +240,7 @@ describe("EncryptUploadedCertificateKeys", () => {
   test("reads only the keys that are there", async () => {
     const calls: Array<QueryCall> = stubTables({});
 
-    await new EncryptUploadedCertificateKeys().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     const selects: Array<QueryCall> = calls.filter(
       (call: QueryCall): boolean => {
@@ -247,7 +268,7 @@ describe("EncryptUploadedCertificateKeys", () => {
       },
     });
 
-    await new EncryptUploadedCertificateKeys().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     expect(updateCalls(calls)).toHaveLength(0);
   });
@@ -257,7 +278,7 @@ describe("EncryptUploadedCertificateKeys", () => {
       FormDomain: { rows: [{ _id: "form-1", customCertificateKey: KEY_C }] },
     });
 
-    await new EncryptUploadedCertificateKeys().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     const encrypted: string = (
       updateCalls(first)[0]!.params as Array<string>
@@ -273,7 +294,7 @@ describe("EncryptUploadedCertificateKeys", () => {
       },
     });
 
-    await new EncryptUploadedCertificateKeys().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     expect(updateCalls(second)).toHaveLength(0);
   });
@@ -291,7 +312,7 @@ describe("EncryptUploadedCertificateKeys", () => {
       FormDomain: { rows: [{ _id: "form-1", customCertificateKey: KEY_C }] },
     });
 
-    await new EncryptUploadedCertificateKeys().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     const written: Array<string> = updateCalls(calls).map(
       (call: QueryCall): string => {

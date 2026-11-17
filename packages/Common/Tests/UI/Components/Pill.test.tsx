@@ -16,6 +16,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import Color from "../../../Types/Color";
 import { Black, Gray500, Green, Red } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
+import { ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME } from "../../../UI/Components/Icon/Icon";
 import * as React from "react";
 import { describe, expect, test } from "@jest/globals";
 import { createInstance, i18n } from "i18next";
@@ -294,6 +295,55 @@ describe("<Pill />", () => {
       );
 
       expect(container.querySelector("svg")).toHaveClass("h-[1em]", "w-[1em]");
+    });
+
+    /*
+     * #9243: an escalation step's Forward arrow means "on to the next
+     * level", so on an Arabic or Persian page it points the way the words
+     * run. It is not one of the icons that point along the line, which turn
+     * by themselves, so the Pill is asked to turn it.
+     */
+    test("turns its icon round on a page read right to left when asked to", () => {
+      const { container } = render(
+        <Pill
+          text="Skipped at once"
+          icon={IconProp.Forward}
+          isIconMirroredRightToLeft={true}
+        />,
+      );
+
+      expect(container.querySelector("svg")).toHaveClass(
+        ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME,
+      );
+    });
+
+    test("left to itself, an icon turns only if it points along the line", () => {
+      const { container } = render(
+        <>
+          <Pill text="Skipped" icon={IconProp.Forward} />
+          <Pill text="Next" icon={IconProp.ArrowRight} />
+          <Pill text="Waits" icon={IconProp.Clock} />
+        </>,
+      );
+      const icons: NodeListOf<SVGElement> = container.querySelectorAll("svg");
+
+      expect(icons[0]).not.toHaveClass(ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME);
+      expect(icons[1]).toHaveClass(ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME);
+      expect(icons[2]).not.toHaveClass(ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME);
+    });
+
+    test("false keeps an arrow that means a fixed side as it is drawn", () => {
+      const { container } = render(
+        <Pill
+          text="Later"
+          icon={IconProp.ArrowRight}
+          isIconMirroredRightToLeft={false}
+        />,
+      );
+
+      expect(container.querySelector("svg")).not.toHaveClass(
+        ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME,
+      );
     });
   });
 

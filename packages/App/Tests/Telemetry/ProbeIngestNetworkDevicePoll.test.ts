@@ -209,6 +209,8 @@ function makeDevice(data: {
    */
   snmpCommunityString?: string | undefined;
   snmpV3Username?: string | undefined;
+  // The deprecated v3 object of a device from before the snmpV3* columns.
+  snmpV3Auth?: JSONObject | undefined;
   snmpPort?: number | undefined;
   oidTemplateId?: ObjectID | undefined;
 }): NetworkDevice {
@@ -241,6 +243,9 @@ function makeDevice(data: {
   }
   if (data.snmpV3Username !== undefined) {
     device.snmpV3Username = data.snmpV3Username;
+  }
+  if (data.snmpV3Auth !== undefined) {
+    device.snmpV3Auth = data.snmpV3Auth;
   }
   if (data.snmpPort !== undefined) {
     device.snmpPort = data.snmpPort;
@@ -581,6 +586,51 @@ describe("POST /probe/network-device/list", () => {
       ).toBe("monitoring");
       expect(devices[1]!["pollMode"]).toBe("ping");
       expect(devices[1]).not.toHaveProperty("snmpMonitor");
+    });
+
+    /*
+     * #9268: a device whose v3 credentials are only in its deprecated
+     * snmpV3Auth object - from before the snmpV3* columns, or written by an
+     * API client - was handed out "ping", so its interfaces, inventory and
+     * health were never collected. It is walked with the object now.
+     */
+    test("a v3 device whose credentials are only in its legacy snmpV3Auth object is walked with them, not pinged", async () => {
+      const legacy: ObjectID = ObjectID.generate();
+      deviceService.claimDevicesForPolling.mockResolvedValue([legacy] as never);
+      deviceService.findBy.mockResolvedValue([
+        makeDevice({
+          id: legacy,
+          projectId: projectId,
+          hostname: "10.0.0.3",
+          snmpVersion: "V3",
+          snmpCommunityString: undefined,
+          snmpV3Auth: {
+            securityLevel: "authPriv",
+            username: "legacy-monitoring",
+            authProtocol: "SHA",
+            authKey: "a legacy auth passphrase",
+            privProtocol: "AES",
+            privKey: "a legacy privacy passphrase",
+          },
+        }),
+      ] as never);
+
+      await callListEndpoint(makeRequest({ probeId, body: PING_CAPABLE_BODY }));
+
+      const devices: Array<JSONObject> = respondedDevices();
+      expect(devices).toHaveLength(1);
+      expect(devices[0]!["pollMode"]).toBe("snmp");
+      expect(
+        (devices[0]!["snmpMonitor"] as unknown as MonitorStepSnmpMonitor)
+          .snmpV3Auth,
+      ).toEqual({
+        securityLevel: "authPriv",
+        username: "legacy-monitoring",
+        authProtocol: "SHA",
+        authKey: "a legacy auth passphrase",
+        privProtocol: "AES",
+        privKey: "a legacy privacy passphrase",
+      });
     });
 
     /*

@@ -436,15 +436,16 @@ const RumApplicationUserFlows: FunctionComponent<
   const sessionFilterOptions: Array<DropdownOption> = [
     getTranslatedDropdownOption(
       "all",
-      translator.translateText("All sessions"),
+      translator.translateText("All sessions") || "All sessions",
     ),
     getTranslatedDropdownOption(
       "errors",
-      translator.translateText("With errors"),
+      translator.translateText("With errors") || "With errors",
     ),
     getTranslatedDropdownOption(
       "frustration",
-      translator.translateText("With frustration signals"),
+      translator.translateText("With frustration signals") ||
+        "With frustration signals",
     ),
   ];
   // A device type is drawn as the data names it ("mobile").

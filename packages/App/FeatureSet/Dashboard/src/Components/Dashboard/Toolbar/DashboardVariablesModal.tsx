@@ -61,7 +61,8 @@ export function getDefaultLabelOptions(
       ? [
           getTranslatedDropdownOption(
             variable.defaultValue,
-            translator.translateText("Unavailable label"),
+            translator.translateText("Unavailable label") ||
+              "Unavailable label",
           ),
         ]
       : []),

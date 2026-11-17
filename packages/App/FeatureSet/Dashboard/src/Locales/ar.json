@@ -245,7 +245,8 @@
       "incidents": "الحوادث",
       "monitors": "المراقبات",
       "onCallPolicies": "سياسات المناوبة",
-      "statusPages": "صفحات الحالة"
+      "statusPages": "صفحات الحالة",
+      "recordPages": "صفحات السجلات"
     }
   },
   "keyboardShortcuts": {

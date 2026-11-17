@@ -93,7 +93,6 @@ const getRowButtonStyle: (style: ButtonStyleType) => ButtonStyleType = (
   switch (style) {
     case ButtonStyleType.OUTLINE:
     case ButtonStyleType.HOVER_PRIMARY_OUTLINE:
-    case ButtonStyleType.HOVER_SUCCESS_OUTLINE:
       return ButtonStyleType.NORMAL;
     case ButtonStyleType.HOVER_DANGER_OUTLINE:
       return ButtonStyleType.DANGER_OUTLINE;

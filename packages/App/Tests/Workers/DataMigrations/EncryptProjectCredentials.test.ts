@@ -12,6 +12,7 @@ import WorkspaceUserAuthToken from "Common/Models/DatabaseModels/WorkspaceUserAu
 import Encryption from "Common/Server/Utils/Encryption";
 import logger from "Common/Server/Utils/Logger";
 import EncryptProjectCredentials from "../../../FeatureSet/Workers/DataMigrations/EncryptProjectCredentials";
+import { encryptInPlaceADayLater } from "./Fixtures/CredentialsAtRestPass";
 import fs from "fs";
 import path from "path";
 import {
@@ -24,31 +25,35 @@ import {
 } from "@jest/globals";
 
 /*
- * EncryptProjectCredentials encrypts the project credentials stored as
- * written before their columns were kept encrypted at rest (#8989): the
- * SMTP configs' passwords and OAuth client secrets, the Slack, Microsoft
- * Teams and Mattermost bot tokens, the members' chat sign-in tokens, the
- * code repositories' webhook secrets and the webhook notification
- * methods' signing secrets. Pinned here, with the repositories stubbed so
- * the real migrate() runs without Postgres (its run on Postgres:
- * EncryptProjectCredentialsPostgres):
+ * The project credentials stored as written before their columns were kept
+ * encrypted at rest (#8989): the SMTP configs' passwords and OAuth client
+ * secrets, the Slack, Microsoft Teams and Mattermost bot tokens, the
+ * members' chat sign-in tokens, the code repositories' webhook secrets and
+ * the webhook notification methods' signing secrets. The upgrade's data
+ * migration, EncryptProjectCredentials, leaves them as written (#9266), so
+ * a server of the release before sends with them while the upgrade rolls
+ * out; a day later the CredentialsAtRest:EncryptInPlace job encrypts them
+ * in place. Pinned here, with the repositories stubbed so the real
+ * migrate() and the job's real pass run without Postgres (on Postgres:
+ * EncryptProjectCredentialsPostgres, CredentialsAtRestPostgres):
  *
  *   1. it is registered in DataMigrations/Index.ts, once, after the repair
  *      of the signing secrets a broken write wrapped and before the slot
  *      AddAuditLogMcpClientColumns keeps last;
- *   2. every column it encrypts is declared encrypted, so what it writes
- *      is read back decrypted, and every later write is encrypted by the
- *      service;
- *   3. it encrypts a value as written in each table, and each stored value
- *      decrypts back to exactly what the sender used before;
- *   4. each write holds to the value it read, so a credential saved
+ *   2. the upgrade's run changes nothing: it sends no statement at all;
+ *   3. every column the job encrypts is declared encrypted, so what it
+ *      writes is read back decrypted, and every later write is encrypted by
+ *      the service;
+ *   4. the job's pass encrypts a value as written in each table, and each
+ *      stored value decrypts back to exactly what the sender used before;
+ *   5. each write holds to the value it read, so a credential saved
  *      meanwhile is left as its save stored it;
- *   5. it leaves an encrypted, empty or null value alone, so a second run
+ *   6. it leaves an encrypted, empty or null value alone, so a second pass
  *      rewrites nothing;
- *   6. a table that cannot be read, or a row that cannot be written, costs
+ *   7. a table that cannot be read, or a row that cannot be written, costs
  *      the others nothing - and no credential is ever logged, not even the
  *      one a failed write's error carries in its parameters;
- *   7. rollback changes nothing.
+ *   8. rollback changes nothing.
  */
 
 const MIGRATION_NAME: string = "EncryptProjectCredentials";
@@ -272,6 +277,14 @@ describe("EncryptProjectCredentials", () => {
     expect(new EncryptProjectCredentials().name).toBe(MIGRATION_NAME);
   });
 
+  test("the upgrade's run changes nothing: a server of the release before reads every credential as written", async () => {
+    const calls: Array<QueryCall> = stubTables(storedAsWritten());
+
+    await new EncryptProjectCredentials().migrate();
+
+    expect(calls).toHaveLength(0);
+  });
+
   test("every column it encrypts is declared encrypted, so it is read back decrypted", () => {
     const expected: Array<[DatabaseBaseModel, string]> = [
       [new ProjectSmtpConfig(), "password"],
@@ -313,7 +326,7 @@ describe("EncryptProjectCredentials", () => {
   test("encrypts the credential as written in every table, and each decrypts back to it", async () => {
     const calls: Array<QueryCall> = stubTables(storedAsWritten());
 
-    await new EncryptProjectCredentials().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     const updates: Array<QueryCall> = updateCalls(calls);
 
@@ -362,7 +375,7 @@ describe("EncryptProjectCredentials", () => {
   test("reads only the values that are set and not encrypted yet, in every table", async () => {
     const calls: Array<QueryCall> = stubTables({});
 
-    await new EncryptProjectCredentials().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     const selects: Array<QueryCall> = calls.filter(
       (call: QueryCall): boolean => {
@@ -421,15 +434,19 @@ describe("EncryptProjectCredentials", () => {
       },
     });
 
-    await new EncryptProjectCredentials().migrate();
+    await encryptInPlaceADayLater(MIGRATION_NAME);
 
     expect(updateCalls(calls)).toHaveLength(0);
   });
 
-  test("a second run over the credentials it encrypted rewrites nothing", async () => {
+  test("a second pass over the credentials it encrypted rewrites nothing, and is done", async () => {
     const first: Array<QueryCall> = stubTables(storedAsWritten());
 
-    await new EncryptProjectCredentials().migrate();
+    // It encrypted seven values: the next pass is to find none left.
+    expect(await encryptInPlaceADayLater(MIGRATION_NAME)).toEqual({
+      isDone: false,
+      written: 7,
+    });
 
     // The tables as the first run left them: every value encrypted.
     const after: Partial<Record<TableName, TableStub>> = storedAsWritten();
@@ -453,7 +470,10 @@ describe("EncryptProjectCredentials", () => {
 
     const second: Array<QueryCall> = stubTables(after);
 
-    await new EncryptProjectCredentials().migrate();
+    expect(await encryptInPlaceADayLater(MIGRATION_NAME)).toEqual({
+      isDone: true,
+      written: 0,
+    });
 
     expect(updateCalls(second)).toHaveLength(0);
   });
@@ -466,9 +486,11 @@ describe("EncryptProjectCredentials", () => {
 
     const calls: Array<QueryCall> = stubTables(tables);
 
-    await expect(new EncryptProjectCredentials().migrate()).resolves.toBe(
-      undefined,
-    );
+    // Not done: the next run of the job goes on.
+    await expect(encryptInPlaceADayLater(MIGRATION_NAME)).resolves.toEqual({
+      isDone: false,
+      written: 4,
+    });
 
     expect(
       updateCalls(calls).map((call: QueryCall): string => {

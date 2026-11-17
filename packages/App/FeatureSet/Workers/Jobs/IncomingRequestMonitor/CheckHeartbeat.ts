@@ -9,7 +9,6 @@ import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import { logMonitorEvaluationError } from "Common/Server/Utils/Monitor/NonActionableIngestError";
 import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
-import LatestIncomingRequest from "Common/Server/Utils/Monitor/LatestIncomingRequest";
 import MonitorHeartbeatState, {
   HeartbeatKind,
   HeartbeatWrite,
@@ -50,12 +49,14 @@ RunCron(
         monitorSteps: true,
         /*
          * The latest request as it came, which this job judges again, and
-         * the copy people read: a server from before the two were split
-         * writes that one alone, as it came
-         * (LatestIncomingRequest.getAsReceived).
+         * not the copy people read beside it, which is cut. Every server
+         * since 14.0.106 writes the two in one statement
+         * (LatestIncomingRequest.toColumns), and 16 is upgraded to from 15
+         * only, so no server that writes the copy alone runs beside this
+         * one any more. One JSON column, read for every monitor every 30
+         * seconds (#8906).
          */
         incomingMonitorRequestAsReceived: true,
-        incomingMonitorRequest: true,
         // Keys this monitor's arrivals in IncomingRequestReceivedAtStore.
         incomingRequestSecretKey: true,
         createdAt: true,
@@ -83,25 +84,6 @@ const checkHeartBeat: (monitor: Monitor) => Promise<void> = async (
 
     await stampStatusCheckedAt(monitor);
 
-    /*
-     * A copy people read that is still the request as it came - one a
-     * server from before the two copies were split wrote while an upgrade
-     * ran - is cut now, the request kept beside it (LatestIncomingRequest).
-     * In a try/catch of its own: it never stands in the way of the check.
-     */
-    if (LatestIncomingRequest.isReadersCopyAsItCame(monitor)) {
-      try {
-        await MonitorService.rewriteLatestIncomingRequestForReaders(
-          monitor.id!,
-        );
-      } catch (error) {
-        logger.error(
-          `Splitting the latest request of incoming request monitor ${monitor.id?.toString()} failed`,
-        );
-        logger.error(error);
-      }
-    }
-
     const processRequest: boolean = shouldProcessRequest(monitor);
 
     logger.debug(
@@ -115,9 +97,11 @@ const checkHeartBeat: (monitor: Monitor) => Promise<void> = async (
     /*
      * The request as the sender sent it, never the copy people read: that
      * one is cut, and a filter on the body or on a header needs what came.
+     * A monitor no request has reached has none, and is judged on when it
+     * was made and on the arrivals the store has (below).
      */
     const latestRequest: IncomingMonitorRequest | undefined =
-      LatestIncomingRequest.getAsReceived(monitor);
+      monitor.incomingMonitorRequestAsReceived || undefined;
 
     /*
      * Judge the latest ARRIVAL, not the last heartbeat a Telemetry worker

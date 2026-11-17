@@ -50,7 +50,8 @@ export function getFilterChipOperatorOptions(
   return operators.map((operator: FilterOperator): DropdownOption => {
     return getTranslatedDropdownOption(
       operator,
-      translator.translateText(FILTER_OPERATOR_LABELS[operator]),
+      translator.translateText(FILTER_OPERATOR_LABELS[operator]) ||
+        FILTER_OPERATOR_LABELS[operator],
     );
   });
 }
