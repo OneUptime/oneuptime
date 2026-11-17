@@ -96,20 +96,30 @@ export interface PaginationSize {
   selectClassName: string;
 }
 
+/*
+ * Under a finger (pointer: coarse) every control on the bar is 44px tall and
+ * at least as wide, WCAG 2.2's comfortable target, whichever size the bar
+ * is: at 28px (24px compact) a thumb on a phone hit the page beside the one
+ * it meant (#9136). A mouse keeps the compact bar.
+ */
+export const TOUCH_HEIGHT_CLASS_NAME: string = "[@media(pointer:coarse)]:h-11";
+export const TOUCH_SQUARE_CLASS_NAME: string = `${TOUCH_HEIGHT_CLASS_NAME} [@media(pointer:coarse)]:w-11`;
+export const TOUCH_PAGE_CLASS_NAME: string = `${TOUCH_HEIGHT_CLASS_NAME} [@media(pointer:coarse)]:min-w-11`;
+
 export const DefaultPaginationSize: PaginationSize = {
   barClassName: "px-5 py-2.5 md:px-6",
-  heightClassName: "h-7",
-  squareClassName: "h-7 w-7",
-  pageClassName: "h-7 min-w-7 px-1.5",
-  selectClassName: "h-7 pl-2.5 pr-7",
+  heightClassName: `h-7 ${TOUCH_HEIGHT_CLASS_NAME}`,
+  squareClassName: `h-7 w-7 ${TOUCH_SQUARE_CLASS_NAME}`,
+  pageClassName: `h-7 min-w-7 px-1.5 ${TOUCH_PAGE_CLASS_NAME}`,
+  selectClassName: `h-7 pl-2.5 pr-7 ${TOUCH_HEIGHT_CLASS_NAME}`,
 };
 
 export const CompactPaginationSize: PaginationSize = {
   barClassName: "px-4 py-2",
-  heightClassName: "h-6",
-  squareClassName: "h-6 w-6",
-  pageClassName: "h-6 min-w-6 px-1",
-  selectClassName: "h-6 pl-2 pr-6",
+  heightClassName: `h-6 ${TOUCH_HEIGHT_CLASS_NAME}`,
+  squareClassName: `h-6 w-6 ${TOUCH_SQUARE_CLASS_NAME}`,
+  pageClassName: `h-6 min-w-6 px-1 ${TOUCH_PAGE_CLASS_NAME}`,
+  selectClassName: `h-6 pl-2 pr-6 ${TOUCH_HEIGHT_CLASS_NAME}`,
 };
 
 /*
