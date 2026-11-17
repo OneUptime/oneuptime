@@ -222,7 +222,9 @@ function aStep(): OnCallDutyPolicyExecutionLogTimeline {
     acknowledgedAt: AT(3),
     alertSentToUserId: ANA,
     alertSentToUser: { name: "Ana Lopez" },
-    onCallDutyPolicyEscalationRule: { name: "First responders", order: 1 },
+    onCallDutyPolicyEscalationRule: { name: "First responders" },
+    // The level's place, as the line kept it when it was written.
+    escalationRuleOrder: 1,
     userBelongsToTeam: { name: "Platform" },
     notificationChannels: [OnCallPageChannel.SMS, OnCallPageChannel.Email],
   });
@@ -308,6 +310,23 @@ describe("every row is read as the caller, about this record only", () => {
     expect(sqlOf(query["onCallDutyPolicyExecutionLogId"], "r")).toContain(
       "r IN",
     );
+  });
+
+  /*
+   * A rule's order is no column a reader may read through a relation: the
+   * real read refuses the whole find (the Postgres suite found it). The
+   * steps ask a level's name only, and take its place from the line.
+   */
+  test("the steps ask a level's name through its rule, never its order", async () => {
+    runFind.mockResolvedValue([aRun()] as never);
+
+    await readIncident();
+
+    const select: Record<string, unknown> = (
+      stepFind.mock.calls[0]![0] as { select: Record<string, unknown> }
+    ).select;
+    expect(select["onCallDutyPolicyEscalationRule"]).toEqual({ name: true });
+    expect(select["escalationRuleOrder"]).toBe(true);
   });
 
   test("with no run the caller may read, no step is read", async () => {

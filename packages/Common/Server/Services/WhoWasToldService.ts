@@ -668,9 +668,13 @@ export class WhoWasToldService {
           },
           escalationRuleOrder: true,
           escalationRuleName: true,
+          /*
+           * The level's name as it is now. Its place is the line's own
+           * (escalationRuleOrder, kept as the line is written): a rule's
+           * order is no column a reader may read through a relation.
+           */
           onCallDutyPolicyEscalationRule: {
             name: true,
-            order: true,
           },
           userBelongsToTeam: {
             name: true,
@@ -734,11 +738,8 @@ export class WhoWasToldService {
           row.acknowledgedAt = toIso(step.acknowledgedAt);
         }
 
-        // The level as it is now, or as the line kept it once it was deleted.
-        const order: number | undefined =
-          step.onCallDutyPolicyEscalationRule?.order ||
-          step.escalationRuleOrder ||
-          undefined;
+        // The level's place as the line kept it, and its name as it is now, or as kept.
+        const order: number | undefined = step.escalationRuleOrder || undefined;
         const levelName: string =
           step.onCallDutyPolicyEscalationRule?.name?.toString() ||
           step.escalationRuleName?.toString() ||
