@@ -245,8 +245,7 @@ async function colourOf(locator: Locator): Promise<string> {
   });
 }
 
-// Tailwind's gray-600, red-700 and amber-700, as computed colours.
-const GREY_600: string = "rgb(75, 85, 99)";
+// Tailwind's red-700 and amber-700, as computed colours.
 const RED_700: string = "rgb(185, 28, 28)";
 const AMBER_700: string = "rgb(180, 83, 9)";
 
@@ -1058,15 +1057,17 @@ test.describe("a node's page", () => {
     await expect(page.getByTestId("proxmox-node-alerts-turn-on")).toHaveText(
       "Turn on 5 alerts",
     );
-    // Not set up reads grey, never five amber warnings.
-    expect(
-      await colourOf(
-        page
-          .getByTestId("proxmox-node-alerts-item")
-          .first()
-          .getByText("Not set up"),
-      ),
-    ).toBe(GREY_600);
+    /*
+     * Not set up reads grey, never five amber warnings: the shared Pill in
+     * its Neutral tone since 88536f777a1, which works its words' grey out
+     * from the tone (a gray-600 class drew the hand-made chip before).
+     */
+    const notSetUp: Locator = page
+      .getByTestId("proxmox-node-alerts-item")
+      .first()
+      .getByTestId("pill");
+    await expect(notSetUp).toHaveText("Not set up");
+    await expect(notSetUp).toHaveAttribute("data-tone", "neutral");
     await page.getByTestId("proxmox-node-alerts-turn-on").click();
 
     const selected: Array<string> = await selectedRecommendations(page);
