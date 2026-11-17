@@ -35,6 +35,9 @@ export const FOCUS_KEEPING_PRESS_MS: number = 2000;
  * outlined yellow WARNING and WARNING_OUTLINE are gone: a page used SUCCESS
  * once (a playbook run's Approve, now PRIMARY) and nothing used the rest,
  * so they were four more looks for jobs the main styles already do (#9195).
+ * ICON_LIGHT (ICON in a lighter grey) and HOVER_SUCCESS_OUTLINE (the plain
+ * button tinted green under the pointer) went the same way: no page used
+ * them (#9296). ICON and HOVER_PRIMARY_OUTLINE do their jobs.
  */
 export enum ButtonStyleType {
   PRIMARY,
@@ -43,12 +46,10 @@ export enum ButtonStyleType {
   DANGER,
   DANGER_OUTLINE,
   SUCCESS_OUTLINE,
-  ICON_LIGHT,
   LINK,
   SECONDARY_LINK,
   ICON,
   HOVER_DANGER_OUTLINE,
-  HOVER_SUCCESS_OUTLINE,
   HOVER_PRIMARY_OUTLINE,
 }
 
@@ -111,7 +112,6 @@ export type BoxedButtonStyleType =
   | ButtonStyleType.DANGER_OUTLINE
   | ButtonStyleType.SUCCESS_OUTLINE
   | ButtonStyleType.HOVER_DANGER_OUTLINE
-  | ButtonStyleType.HOVER_SUCCESS_OUTLINE
   | ButtonStyleType.HOVER_PRIMARY_OUTLINE;
 
 // The plain button's colours: NORMAL, OUTLINE and the HOVER_* outlines.
@@ -134,7 +134,6 @@ export const BOXED_BUTTON_LOOK_CLASS_NAMES: Record<
   [ButtonStyleType.SUCCESS_OUTLINE]:
     "border-green-700 bg-white text-green-700 focus-visible:ring-green-500",
   [ButtonStyleType.HOVER_DANGER_OUTLINE]: PLAIN_BUTTON_LOOK_CLASS_NAME,
-  [ButtonStyleType.HOVER_SUCCESS_OUTLINE]: PLAIN_BUTTON_LOOK_CLASS_NAME,
   [ButtonStyleType.HOVER_PRIMARY_OUTLINE]: PLAIN_BUTTON_LOOK_CLASS_NAME,
 };
 
@@ -152,7 +151,6 @@ export type OutlineButtonStyleType =
   | ButtonStyleType.OUTLINE
   | ButtonStyleType.NORMAL
   | ButtonStyleType.HOVER_DANGER_OUTLINE
-  | ButtonStyleType.HOVER_SUCCESS_OUTLINE
   | ButtonStyleType.HOVER_PRIMARY_OUTLINE;
 
 export const isOutlineButtonStyle: (
@@ -164,7 +162,6 @@ export const isOutlineButtonStyle: (
     style === ButtonStyleType.OUTLINE ||
     style === ButtonStyleType.NORMAL ||
     style === ButtonStyleType.HOVER_DANGER_OUTLINE ||
-    style === ButtonStyleType.HOVER_SUCCESS_OUTLINE ||
     style === ButtonStyleType.HOVER_PRIMARY_OUTLINE
   );
 };
@@ -187,8 +184,6 @@ export const OUTLINE_BUTTON_HOVER_CLASS_NAMES: Record<
   [ButtonStyleType.OUTLINE]: "hover:bg-gray-50",
   [ButtonStyleType.NORMAL]: "hover:bg-gray-50",
   [ButtonStyleType.HOVER_DANGER_OUTLINE]: "hover:bg-red-50 hover:text-red-700",
-  [ButtonStyleType.HOVER_SUCCESS_OUTLINE]:
-    "hover:bg-green-50 hover:text-green-700",
   [ButtonStyleType.HOVER_PRIMARY_OUTLINE]:
     "hover:bg-indigo-50 hover:text-indigo-700",
 };
@@ -497,10 +492,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     : `w-5 h-5 animate-spin`;
   let iconClassName: string = `w-5 h-5`;
 
-  if (
-    buttonStyle !== ButtonStyleType.ICON &&
-    buttonStyle !== ButtonStyleType.ICON_LIGHT
-  ) {
+  if (buttonStyle !== ButtonStyleType.ICON) {
     if (hasWords) {
       iconClassName += ` me-1`;
 
@@ -557,12 +549,6 @@ const Button: FunctionComponent<ComponentProps> = ({
     if (icon || isLoading) {
       buttonStyleCssClass += ` flex`;
     }
-  }
-
-  if (buttonStyle === ButtonStyleType.ICON_LIGHT) {
-    buttonStyleCssClass = `rounded-md bg-white text-gray-400 ${
-      isInert ? "" : "hover:text-gray-500"
-    }  focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
   }
 
   if (buttonStyle === ButtonStyleType.ICON) {
@@ -641,9 +627,7 @@ const Button: FunctionComponent<ComponentProps> = ({
    */
   const computedAriaLabel: string | undefined =
     (isAriaLabelTranslated ? ariaLabel : translateString(ariaLabel)) ||
-    (buttonStyle === ButtonStyleType.ICON ||
-    buttonStyle === ButtonStyleType.ICON_LIGHT ||
-    !hasWords
+    (buttonStyle === ButtonStyleType.ICON || !hasWords
       ? translatedTitle || translatedTooltip
       : undefined);
 

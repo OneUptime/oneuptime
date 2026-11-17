@@ -308,7 +308,6 @@ describe("Button hover styling", () => {
     ["DANGER_OUTLINE", ButtonStyleType.DANGER_OUTLINE, "hover:bg-red-50"],
     ["SUCCESS_OUTLINE", ButtonStyleType.SUCCESS_OUTLINE, "hover:bg-green-50"],
     ["ICON", ButtonStyleType.ICON, "hover:text-gray-900"],
-    ["ICON_LIGHT", ButtonStyleType.ICON_LIGHT, "hover:text-gray-500"],
   ];
 
   test.each(HOVER_GATED_STYLES)(
@@ -437,7 +436,6 @@ describe("Button focus rings", () => {
     ["DANGER_OUTLINE", ButtonStyleType.DANGER_OUTLINE],
     ["SUCCESS_OUTLINE", ButtonStyleType.SUCCESS_OUTLINE],
     ["ICON", ButtonStyleType.ICON],
-    ["ICON_LIGHT", ButtonStyleType.ICON_LIGHT],
     ["LINK", ButtonStyleType.LINK],
     ["SECONDARY_LINK", ButtonStyleType.SECONDARY_LINK],
   ];

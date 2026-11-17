@@ -43,7 +43,6 @@ const LOCALES: string = path.resolve(
 const OUTLINE_STYLES: Array<string> = [
   "OUTLINE",
   "HOVER_DANGER_OUTLINE",
-  "HOVER_SUCCESS_OUTLINE",
   "HOVER_PRIMARY_OUTLINE",
 ];
 
@@ -54,12 +53,10 @@ const ALL_STYLES: Array<string> = [
   "DANGER",
   "DANGER_OUTLINE",
   "SUCCESS_OUTLINE",
-  "ICON_LIGHT",
   "LINK",
   "SECONDARY_LINK",
   "ICON",
   "HOVER_DANGER_OUTLINE",
-  "HOVER_SUCCESS_OUTLINE",
   "HOVER_PRIMARY_OUTLINE",
 ];
 
@@ -71,8 +68,6 @@ const GRAY_50: string = "rgb(249, 250, 251)";
 const GRAY_100: string = "rgb(243, 244, 246)";
 const RED_50: string = "rgb(254, 242, 242)";
 const RED_700: string = "rgb(185, 28, 28)";
-const GREEN_50: string = "rgb(240, 253, 244)";
-const GREEN_700: string = "rgb(21, 128, 61)";
 const INDIGO_50: string = "rgb(238, 242, 255)";
 const INDIGO_700: string = "rgb(67, 56, 202)";
 
@@ -329,7 +324,6 @@ test.describe("an outline button draws a border, a fill, a hover and a focus rin
     const hovers: Array<[string, string, string | undefined]> = [
       ["OUTLINE", GRAY_50, undefined],
       ["HOVER_DANGER_OUTLINE", RED_50, RED_700],
-      ["HOVER_SUCCESS_OUTLINE", GREEN_50, GREEN_700],
       ["HOVER_PRIMARY_OUTLINE", INDIGO_50, INDIGO_700],
     ];
 
