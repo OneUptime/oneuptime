@@ -13,13 +13,23 @@ import {
 } from "Common/Types/Monitor/WhoIsTold";
 import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
+  OnCallTestPagePreview,
+  OnCallTestPagePreviewMethod,
   OnCallTestPageResult,
   OnCallTestPageStatus,
+  OnCallTestPageWarning,
+  OnCallTestPageWarningCode,
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import { formatProjectBalanceAmount } from "Common/Utils/Project/ProjectBalance";
 import { getChannelName } from "../../Monitor/Overview/WhoIsToldWords";
+import { CHANNEL_NAMES } from "../../OnCallTestPage/OnCallTestPageWords";
+import { formatNameList } from "../../AiAccess/AiAccessModes";
 
 /*
  * GUIDED SETUP: PAGE THE RIGHT PERSON, AND ESCALATE (issue #6805).
@@ -846,6 +856,11 @@ export interface OnCallSummaryFacts {
    * which may match only some incidents: the summary says so, not "any".
    */
   isCatchAll: boolean;
+  /*
+   * The order a page reaches each person, by user id (getReachOrders), when
+   * it was read: the first row says it (#7154). Absent, it names how.
+   */
+  reachOrders?: ReachOrders | null | undefined;
 }
 
 export interface OnCallSummaryRow {
@@ -854,24 +869,213 @@ export interface OnCallSummaryRow {
   text: string;
 }
 
-// "Ana Lopez (Email, SMS)": a person and how a page reaches them.
+/*
+ * THE ORDER A PAGE REACHES A PERSON (#7154): "SMS at once, then phone
+ * call after 5 minutes". It is each person's own How to Reach Me for the
+ * test's first severity, as the test page's preview reads it on the server
+ * (OnCallTestPageApi.preview, sortRulesAsAPageReachesThem): the same rules,
+ * the same order, the same fallback - never worked out a second time here.
+ */
+export interface ReachStep {
+  channel: string;
+  notifyAfterMinutes: number;
+}
+
+// The steps a page takes to each person a policy's first level pages, by user id.
+export type ReachOrders = Record<string, Array<ReachStep>>;
+
+export const REACH_AT_ONCE: string = translationKey("{{methods}} at once");
+
+export const REACH_AFTER: PluralTemplate = {
+  one: "{{methods}} after {{count}} minute",
+  other: "{{methods}} after {{count}} minutes",
+};
+
+export const REACH_THEN: string = translationKey("{{first}}, then {{next}}");
+
+/*
+ * The steps of a test page's preview that would reach each person: a
+ * method that is verified, on a channel the project has not turned off. A
+ * person who opted out of the severity is reached by nothing.
+ */
+export const getReachOrders: (preview: OnCallTestPagePreview) => ReachOrders = (
+  preview: OnCallTestPagePreview,
+): ReachOrders => {
+  const orders: ReachOrders = {};
+
+  for (const person of preview.people || []) {
+    const channelsOff: Array<string> = (person.warningCodes || [])
+      .filter((warning: OnCallTestPageWarning): boolean => {
+        return (
+          warning.code === OnCallTestPageWarningCode.ChannelOff &&
+          Boolean(warning.channel)
+        );
+      })
+      .map((warning: OnCallTestPageWarning): string => {
+        return String(warning.channel);
+      });
+
+    orders[person.userId] = person.isOptedOut
+      ? []
+      : (person.methods || [])
+          .filter((method: OnCallTestPagePreviewMethod): boolean => {
+            return (
+              method.isVerified && !channelsOff.includes(String(method.channel))
+            );
+          })
+          .map((method: OnCallTestPagePreviewMethod): ReachStep => {
+            return {
+              channel: String(method.channel),
+              notifyAfterMinutes: Math.max(
+                0,
+                Number(method.notifyAfterMinutes) || 0,
+              ),
+            };
+          });
+  }
+
+  return orders;
+};
+
+/*
+ * The steps gathered by when they are taken, soonest first: methods with
+ * the same wait are taken together, each named once.
+ */
+export const groupReachSteps: (
+  steps: ReadonlyArray<ReachStep>,
+) => Array<{ notifyAfterMinutes: number; channels: Array<string> }> = (
+  steps: ReadonlyArray<ReachStep>,
+): Array<{ notifyAfterMinutes: number; channels: Array<string> }> => {
+  const groups: Array<{ notifyAfterMinutes: number; channels: Array<string> }> =
+    [];
+
+  const ordered: Array<ReachStep> = steps
+    .map(
+      (step: ReachStep, index: number): { step: ReachStep; index: number } => {
+        return { step: step, index: index };
+      },
+    )
+    .sort(
+      (
+        a: { step: ReachStep; index: number },
+        b: { step: ReachStep; index: number },
+      ): number => {
+        return (
+          a.step.notifyAfterMinutes - b.step.notifyAfterMinutes ||
+          a.index - b.index
+        );
+      },
+    )
+    .map((entry: { step: ReachStep; index: number }): ReachStep => {
+      return entry.step;
+    });
+
+  for (const step of ordered) {
+    const last:
+      | { notifyAfterMinutes: number; channels: Array<string> }
+      | undefined = groups[groups.length - 1];
+
+    if (last && last.notifyAfterMinutes === step.notifyAfterMinutes) {
+      if (!last.channels.includes(step.channel)) {
+        last.channels.push(step.channel);
+      }
+
+      continue;
+    }
+
+    groups.push({
+      notifyAfterMinutes: step.notifyAfterMinutes,
+      channels: [step.channel],
+    });
+  }
+
+  return groups;
+};
+
+// "SMS and email": the channels of one step, cased for the middle of a sentence.
+const describeReachChannels: (
+  translator: Translator,
+  channels: ReadonlyArray<string>,
+) => string = (
+  translator: Translator,
+  channels: ReadonlyArray<string>,
+): string => {
+  return formatNameList(
+    channels.map((channel: string): string => {
+      const name: string =
+        CHANNEL_NAMES[channel as OnCallPageChannel] || channel;
+
+      return translator.translateTerm(name, { inSentence: true }) || name;
+    }),
+    "and",
+    translator,
+  );
+};
+
+/*
+ * "SMS at once, then phone call after 5 minutes", or "" for no steps: the
+ * order a page reaches a person, in the reader's language.
+ */
+export const describeReachOrder: (
+  translator: Translator,
+  steps: ReadonlyArray<ReachStep>,
+) => string = (
+  translator: Translator,
+  steps: ReadonlyArray<ReachStep>,
+): string => {
+  let text: string = "";
+
+  for (const group of groupReachSteps(steps)) {
+    const methods: string = describeReachChannels(translator, group.channels);
+    const groupText: string =
+      group.notifyAfterMinutes === 0
+        ? translator.translateTemplate(REACH_AT_ONCE, { methods: methods })
+        : translator.translatePlural(REACH_AFTER, group.notifyAfterMinutes, {
+            methods: methods,
+          });
+
+    text = text
+      ? translator.translateTemplate(REACH_THEN, {
+          first: text,
+          next: groupText,
+        })
+      : groupText;
+  }
+
+  return text;
+};
+
+/*
+ * "Ana Lopez (Email, SMS)": a person and how a page reaches them - or, with
+ * the order a page takes (#7154), "Ana Lopez (SMS at once, then phone call
+ * after 5 minutes)".
+ */
 export const describeResponder: (
   translator: Translator,
   person: ResponderReach,
-) => string = (translator: Translator, person: ResponderReach): string => {
+  steps?: ReadonlyArray<ReachStep> | undefined,
+) => string = (
+  translator: Translator,
+  person: ResponderReach,
+  steps?: ReadonlyArray<ReachStep> | undefined,
+): string => {
   if (!person.isReachable || person.channels.length === 0) {
     return translator.translateTemplate("{{name}} (not reachable yet)", {
       name: person.name,
     });
   }
 
+  const order: string = steps ? describeReachOrder(translator, steps) : "";
+
   return translator.translateTemplate("{{name}} ({{channels}})", {
     name: person.name,
-    channels: person.channels
-      .map((channel: string): string => {
-        return getChannelName(channel as OnCallPageChannel, translator);
-      })
-      .join(", "),
+    channels:
+      order ||
+      person.channels
+        .map((channel: string): string => {
+          return getChannelName(channel as OnCallPageChannel, translator);
+        })
+        .join(", "),
   });
 };
 
@@ -881,12 +1085,14 @@ export const describeFirstLevel: (
   data: {
     level: PolicyLevel | undefined;
     responders: ReadonlyArray<ResponderReach>;
+    reachOrders?: ReachOrders | null | undefined;
   },
 ) => string = (
   translator: Translator,
   data: {
     level: PolicyLevel | undefined;
     responders: ReadonlyArray<ResponderReach>;
+    reachOrders?: ReachOrders | null | undefined;
   },
 ): string => {
   if (!data.level) {
@@ -901,7 +1107,9 @@ export const describeFirstLevel: (
     level: data.level,
     responders: data.responders,
   })) {
-    parts.push(describeResponder(translator, person));
+    parts.push(
+      describeResponder(translator, person, data.reachOrders?.[person.userId]),
+    );
     described.add(person.name);
   }
 
@@ -929,6 +1137,7 @@ export const getOnCallSummaryRows: (
   const people: string = describeFirstLevel(translator, {
     level: first,
     responders: facts.responders,
+    reachOrders: facts.reachOrders,
   });
 
   let firstText: string;

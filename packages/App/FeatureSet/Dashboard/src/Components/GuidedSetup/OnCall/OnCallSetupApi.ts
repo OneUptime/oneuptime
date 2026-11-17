@@ -4,8 +4,16 @@ import {
   OnCallPolicyRecord,
   PolicyLevel,
   ReachMethod,
+  ReachOrders,
   ResponderReach,
+  getReachOrders,
 } from "./OnCallSetup";
+import OnCallTestPageApi from "../../OnCallTestPage/OnCallTestPageApi";
+import {
+  OnCallTestPageSeverityOption,
+  loadSeverityOptions,
+} from "../../OnCallTestPage/OnCallTestPageSeverities";
+import { OnCallTestPagePreview } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import {
   EnabledProjectChannels,
   ProjectNotificationChannel,
@@ -887,5 +895,40 @@ export default class OnCallSetupApi {
     userIds: Array<string>,
   ): Promise<SetupReminderStatuses> {
     return requestSetupReminders(userIds);
+  }
+
+  /*
+   * The order a page reaches each person the policy's first level pages
+   * (#7154), as "Test this policy" previews it: their own How to Reach Me
+   * for the first severity the test dialog starts on - an incident's most
+   * severe - read on the server (OnCallTestPageAPI's preview), never
+   * worked out a second time here. Null when it cannot be read - no
+   * severity, or someone who may not test the policy: the summary then
+   * names how each person is reached, as before.
+   */
+  public static async loadReachOrders(
+    policyId: string,
+  ): Promise<ReachOrders | null> {
+    try {
+      const severities: Array<OnCallTestPageSeverityOption> =
+        await loadSeverityOptions();
+      const severity: OnCallTestPageSeverityOption | undefined = severities[0];
+
+      if (!severity) {
+        return null;
+      }
+
+      const preview: OnCallTestPagePreview = await OnCallTestPageApi.preview({
+        target: { kind: "policy", policyId: policyId },
+        severity: {
+          recordKind: severity.recordKind,
+          severityId: severity.severityId,
+        },
+      });
+
+      return getReachOrders(preview);
+    } catch {
+      return null;
+    }
   }
 }

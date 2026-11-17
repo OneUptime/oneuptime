@@ -51,6 +51,7 @@ const API_NAMES: Array<string> = [
   "setRepeat",
   "loadPolicyReadiness",
   "sendSetupReminders",
+  "loadReachOrders",
 ];
 
 for (const name of API_NAMES) {
@@ -80,6 +81,7 @@ jest.mock(
       "setRepeat",
       "loadPolicyReadiness",
       "sendSetupReminders",
+      "loadReachOrders",
     ]) {
       calls[name] = (...args: Array<unknown>): unknown => {
         return api[name]!(...args);
@@ -670,6 +672,8 @@ beforeEach(() => {
   api["sendSetupReminders"]!.mockResolvedValue({
     "user-ben": { state: "sent", message: "" },
   });
+  // Not read: the summary names how each person is reached.
+  api["loadReachOrders"]!.mockResolvedValue(null);
   getResultMock.mockResolvedValue(result(OnCallTestPageStatus.Acknowledged));
 });
 
@@ -1724,6 +1728,63 @@ describe("coming back", () => {
       "href",
       expect.stringContaining(`/on-call-duty/policies/${POLICY_ID}/escalation`),
     );
+  });
+
+  /*
+   * ISSUE #7154: the summary named who is paged and by what, never in which
+   * order. It says the order a page reaches each person - their own How to
+   * Reach Me, as "Test this policy" previews it on the server.
+   */
+  test("says the order a page reaches each person, as the test page's preview reads it (#7154)", async () => {
+    keepRun({
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      noAnswerDone: true,
+      testExecutionLogId: "log-1",
+    });
+    api["loadReachOrders"]!.mockResolvedValue({
+      [USER_ID]: [
+        { channel: OnCallPageChannel.SMS, notifyAfterMinutes: 0 },
+        { channel: OnCallPageChannel.Call, notifyAfterMinutes: 5 },
+      ],
+    });
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("on-call-setup-summary-first"),
+      ).toHaveTextContent(
+        'Any new incident or alert runs "Default on-call policy", which pages Ana Lopez (SMS at once, then phone call after 5 minutes).',
+      );
+    });
+    // The policy's own preview: nothing is worked out a second time here.
+    expect(api["loadReachOrders"]).toHaveBeenCalledWith(POLICY_ID);
+  });
+
+  test("an order that cannot be read leaves the summary naming how each person is reached (#7154)", async () => {
+    keepRun({
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      noAnswerDone: true,
+      testExecutionLogId: "log-1",
+    });
+    api["loadReachOrders"]!.mockResolvedValue(null);
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(api["loadReachOrders"]).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByTestId("on-call-setup-summary-first")).toHaveTextContent(
+      "which pages Ana Lopez (Email, SMS).",
+    );
+  });
+
+  test("the order is read only once the summary shows, never on the steps", async () => {
+    keepRun({ reachConfirmed: true, policyId: POLICY_ID });
+    await renderSetup();
+
+    expect(stepState("no_answer")).toBe("open");
+    expect(api["loadReachOrders"]).not.toHaveBeenCalled();
   });
 
   test("a policy the project had: its own rules decide, never 'any new incident'", async () => {

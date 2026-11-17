@@ -17,6 +17,11 @@ import {
   ResponderReach,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallSetup";
 import AlertOnCallRule from "../../../Models/DatabaseModels/AlertOnCallRule";
+import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
+import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import IncidentOnCallRule from "../../../Models/DatabaseModels/IncidentOnCallRule";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
@@ -901,6 +906,155 @@ describe("whether a page reaches people", () => {
     expect(
       String((apiGetSpy.mock.calls[0]![0] as unknown as { url: unknown }).url),
     ).toContain(`/on-call-readiness/policy/${POLICY_ID}`);
+  });
+});
+
+/*
+ * ISSUE #7154: the order a page reaches each person the policy pages
+ * first, for the summary. It is "Test this policy"'s preview, asked for
+ * the severity the test dialog starts on - the project's most severe
+ * incident severity - never worked out a second time in the Dashboard.
+ */
+describe("the order a page reaches each person (#7154)", () => {
+  const CRITICAL: string = "50000000-0000-4000-8000-000000000001";
+  const MINOR: string = "50000000-0000-4000-8000-000000000002";
+  const HIGH_ALERT: string = "50000000-0000-4000-8000-000000000003";
+
+  let apiPostSpy: LooseSpy;
+
+  const severities: (incident: Array<string>, alert: Array<string>) => void = (
+    incident: Array<string>,
+    alert: Array<string>,
+  ): void => {
+    getListSpy.mockImplementation((async (args: {
+      modelType: { new (): unknown };
+    }) => {
+      if (args.modelType === IncidentSeverity) {
+        return list(
+          incident.map((id: string) => {
+            return model(IncidentSeverity, { _id: id, name: id });
+          }),
+        );
+      }
+
+      if (args.modelType === AlertSeverity) {
+        return list(
+          alert.map((id: string) => {
+            return model(AlertSeverity, { _id: id, name: id });
+          }),
+        );
+      }
+
+      return list([]);
+    }) as unknown as (...args: Array<never>) => Promise<unknown>);
+  };
+
+  const preview: Record<string, unknown> = {
+    kind: "Policy",
+    people: [
+      {
+        userId: USER_ID,
+        userName: "Ana Lopez",
+        methods: [
+          {
+            channel: OnCallPageChannel.SMS,
+            notifyAfterMinutes: 0,
+            isVerified: true,
+            canAcknowledge: true,
+          },
+          {
+            channel: OnCallPageChannel.Call,
+            notifyAfterMinutes: 5,
+            isVerified: true,
+            canAcknowledge: true,
+          },
+        ],
+        hasNoRule: false,
+        isOptedOut: false,
+        warnings: [],
+      },
+    ],
+    notPaged: [],
+    cost: {
+      isPaid: false,
+      smsCount: 1,
+      callCount: 1,
+      whatsAppCount: 0,
+      telegramCount: 0,
+    },
+  };
+
+  beforeEach(() => {
+    apiPostSpy = jest.spyOn(API, "post") as unknown as LooseSpy;
+    apiPostSpy.mockResolvedValue(
+      new HTTPResponse(200, preview as never, {}) as never,
+    );
+  });
+
+  test("asks the policy's test preview for the most severe incident severity, and reads each person's steps", async () => {
+    severities([CRITICAL, MINOR], [HIGH_ALERT]);
+
+    expect(await OnCallSetupApi.loadReachOrders(POLICY_ID)).toEqual({
+      [USER_ID]: [
+        { channel: OnCallPageChannel.SMS, notifyAfterMinutes: 0 },
+        { channel: OnCallPageChannel.Call, notifyAfterMinutes: 5 },
+      ],
+    });
+
+    expect(apiPostSpy).toHaveBeenCalledTimes(1);
+
+    const request: { url: unknown; data: Record<string, unknown> } = apiPostSpy
+      .mock.calls[0]![0] as unknown as {
+      url: unknown;
+      data: Record<string, unknown>;
+    };
+
+    expect(String(request.url)).toContain("/on-call-test-page/preview");
+    expect(request.data).toEqual({
+      recordKind: "Incident",
+      severityId: CRITICAL,
+      policyId: POLICY_ID,
+      walksEscalation: false,
+    });
+  });
+
+  test("a project with only alert severities asks for its first", async () => {
+    severities([], [HIGH_ALERT]);
+
+    await OnCallSetupApi.loadReachOrders(POLICY_ID);
+
+    expect(
+      (
+        apiPostSpy.mock.calls[0]![0] as unknown as {
+          data: Record<string, unknown>;
+        }
+      ).data,
+    ).toEqual(
+      expect.objectContaining({ recordKind: "Alert", severityId: HIGH_ALERT }),
+    );
+  });
+
+  test("no severity to stand in for: nothing is asked, and nothing is said", async () => {
+    severities([], []);
+
+    expect(await OnCallSetupApi.loadReachOrders(POLICY_ID)).toBeNull();
+    expect(apiPostSpy).not.toHaveBeenCalled();
+  });
+
+  test("a preview the server refuses - someone who may not test the policy - says nothing", async () => {
+    severities([CRITICAL], []);
+    apiPostSpy.mockResolvedValue(
+      new HTTPErrorResponse(
+        403,
+        {
+          message:
+            "You can test an on-call policy you can edit. Ask a Project Admin, or an owner of the policy.",
+        },
+        {},
+      ) as never,
+    );
+
+    expect(await OnCallSetupApi.loadReachOrders(POLICY_ID)).toBeNull();
   });
 });
 

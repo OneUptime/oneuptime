@@ -23,6 +23,7 @@ import {
   PhoneChannelFacts,
   PolicyLevel,
   ReachMethod,
+  ReachOrders,
   ResponderReach,
   SMS_METHOD_TYPE,
   canAddPhone,
@@ -299,6 +300,35 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   // Step 4.
   const [showNotReceivedHelp, setShowNotReceivedHelp] =
     useState<boolean>(false);
+
+  /*
+   * The summary: the order a page reaches each person the policy pages
+   * first (#7154), read once the summary shows, for its policy.
+   */
+  const [reachOrders, setReachOrders] = useState<ReachOrders | null>(null);
+  const summaryPolicyId: string =
+    !isLoading && openStepKey === null && policy ? policy.id : "";
+
+  useEffect(() => {
+    if (!summaryPolicyId) {
+      return;
+    }
+
+    let isActive: boolean = true;
+    setReachOrders(null);
+
+    void OnCallSetupApi.loadReachOrders(summaryPolicyId).then(
+      (orders: ReachOrders | null) => {
+        if (isActive) {
+          setReachOrders(orders);
+        }
+      },
+    );
+
+    return () => {
+      isActive = false;
+    };
+  }, [summaryPolicyId]);
 
   const executionLogId: string =
     typeof run[OnCallRunValue.TestExecutionLogId] === "string"
@@ -2139,6 +2169,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
         testResultSentence: testResult
           ? getResultSentence(translator, testResult)
           : null,
+        reachOrders: reachOrders,
       })
     : [];
 
