@@ -584,12 +584,33 @@ describe("a public dashboard's list widgets sorted by a viewer", () => {
       "currentMonitorStatus",
       "name",
     ]);
+    /*
+     * The status's priority, which the order reads, beside what a row
+     * draws: whether monitoring is off (issue #6476), and everything else
+     * the Monitors table's row rule reads (MonitorRowStatus), so the public
+     * page says Waiting for data, No results yet, Paused or a probe problem
+     * where the board does (issue #8899).
+     */
     expect(reads[0]!["select"]).toEqual({
       _id: true,
       name: true,
-      monitorType: true,
+      isArchived: true,
       disableActiveMonitoring: true,
-      currentMonitorStatus: { name: true, color: true, priority: true },
+      disableActiveMonitoringBecauseOfManualIncident: true,
+      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      isNoProbeEnabledOnThisMonitor: true,
+      isAllProbesDisconnectedFromThisMonitor: true,
+      monitorType: true,
+      firstMeasuredAt: true,
+      createdAt: true,
+      monitoringInterval: true,
+      currentMonitorStatus: {
+        name: true,
+        color: true,
+        isOperationalState: true,
+        isOfflineState: true,
+        priority: true,
+      },
     });
   });
 
