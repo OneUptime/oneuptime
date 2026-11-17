@@ -25,6 +25,7 @@ import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
+import { WorkspacePayloadMarkdown } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import API from "../../../../../Utils/API";
 import WorkspaceRefusal, {
   SLACK_CHANNEL_ARCHIVED_REFUSAL,
@@ -86,7 +87,7 @@ async function postInOps(): Promise<WorkspaceSendMessageResponse> {
         {
           _type: "WorkspacePayloadMarkdown",
           text: "**Incident #12** is acknowledged.",
-        },
+        } as WorkspacePayloadMarkdown,
       ],
     },
     authToken: BOT_TOKEN,
