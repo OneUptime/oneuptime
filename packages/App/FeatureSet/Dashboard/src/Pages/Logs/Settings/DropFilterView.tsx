@@ -7,6 +7,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Pill from "Common/UI/Components/Pill/Pill";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
@@ -103,9 +104,7 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
                     <Pill color={Green} text="Enabled" icon={IconProp.Check} />
                   );
                 }
-                return (
-                  <Pill color={Red} text="Disabled" icon={IconProp.Close} />
-                );
+                return <Pill tone={PillTone.Paused} text="Disabled" />;
               },
             },
           ],

@@ -51,6 +51,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Filter from "Common/UI/Components/Filters/Types/Filter";
 import FilterData from "Common/UI/Components/Filters/Types/FilterData";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import Table, { BulkActionProps } from "Common/UI/Components/Table/Table";
@@ -483,30 +485,24 @@ export interface StatusChipProps {
 const StatusChip: FunctionComponent<StatusChipProps> = (
   props: StatusChipProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   if (props.status === READINESS_STATUS_NOT_REACHABLE) {
     return (
-      <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-200">
-        <Icon icon={IconProp.Alert} className="h-3 w-3 text-red-500" />
-        {translator.translateText(props.label)}
-      </span>
+      <Pill text={props.label} tone={PillTone.Danger} icon={IconProp.Alert} />
     );
   }
 
   if (props.status === READINESS_STATUS_PARTIALLY_READY) {
     return (
-      <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
-        <Icon icon={IconProp.Alert} className="h-3 w-3 text-amber-500" />
-        {translator.translateText(props.label)}
-      </span>
+      <Pill text={props.label} tone={PillTone.Warning} icon={IconProp.Alert} />
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
-      <Icon icon={IconProp.CheckCircle} className="h-3 w-3 text-emerald-500" />
-      {translator.translateText(props.label)}
-    </span>
+    <Pill
+      text={props.label}
+      tone={PillTone.Success}
+      icon={IconProp.CheckCircle}
+    />
   );
 };
 
@@ -2068,9 +2064,7 @@ const OnCallReadinessPage: FunctionComponent<
                             {method.maskedIdentifier}
                           </span>
                           {method.isVerified ? (
-                            <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
-                              {translator.translateText("Verified")}
-                            </span>
+                            <Pill text="Verified" tone={PillTone.Success} />
                           ) : method.methodType ===
                             READINESS_METHOD_TYPE_PUSH ? (
                             /*
@@ -2078,15 +2072,12 @@ const OnCallReadinessPage: FunctionComponent<
                              * said it was gone: the words the person's own
                              * device list uses for it.
                              */
-                            <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
-                              {translator.translateText(
-                                "Not receiving notifications",
-                              )}
-                            </span>
+                            <Pill
+                              text="Not receiving notifications"
+                              tone={PillTone.Warning}
+                            />
                           ) : (
-                            <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
-                              {translator.translateText("Unverified")}
-                            </span>
+                            <Pill text="Unverified" tone={PillTone.Warning} />
                           )}
                         </li>
                       );

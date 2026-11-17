@@ -1,4 +1,6 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { getCoverageWindowEnd } from "./CoverageWindow";
 import DeletedLayerCard from "./DeletedLayerCard";
 import LayerCard from "./LayerCard";
@@ -1610,16 +1612,11 @@ const Layers: FunctionComponent<ComponentProps> = (
           description={SCHEDULE_FINAL_SCHEDULE_DESCRIPTION}
           rightElement={
             hasUnsavedChanges ? (
-              <span
-                data-testid="final-schedule-unsaved"
-                className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200"
-              >
-                <span
-                  aria-hidden="true"
-                  className="h-1.5 w-1.5 rounded-full bg-amber-500"
-                />
-                {translator.translateText("Includes unsaved changes")}
-              </span>
+              <Pill
+                text="Includes unsaved changes"
+                tone={PillTone.Warning}
+                dataTestId="final-schedule-unsaved"
+              />
             ) : undefined
           }
         >

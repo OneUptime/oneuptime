@@ -149,7 +149,7 @@ Die cyclus — toevoegen, verbinden, instellen, uitvoeren, het logboek lezen —
 
 Nieuwe workflows beginnen uitgeschakeld, net als elke workflow die je dupliceert of importeert. Uit pauzeert de trigger van de workflow, zodat niets hem uit zichzelf start, maar je kunt hem nog steeds testen. Zolang een workflow uit staat, zegt de Bouwer dat boven het canvas, met een knop **Workflow inschakelen**.
 
-De schakelaar **Ingeschakeld** staat bovenaan de **Bouwer**, naast **Component toevoegen** en **Workflow uitvoeren**. Hij staat ook op de pagina **Overzicht** van de workflow, waarvan de kaart **Workflow-details** de huidige toestand toont als groen label **Ingeschakeld** of rood label **Uitgeschakeld**: klik op **Workflow bewerken** en open **Meer velden**. Alleen mensen die de workflow mogen bewerken, kunnen hem aan- of uitzetten; anderen zien de schakelaar grijs.
+De schakelaar **Ingeschakeld** staat bovenaan de **Bouwer**, naast **Component toevoegen** en **Workflow uitvoeren**. Hij staat ook op de pagina **Overzicht** van de workflow, waarvan de kaart **Workflow-details** de huidige toestand toont als groen label **Ingeschakeld** of grijs label **Uitgeschakeld**: klik op **Workflow bewerken** en open **Meer velden**. Alleen mensen die de workflow mogen bewerken, kunnen hem aan- of uitzetten; anderen zien de schakelaar grijs.
 
 Zolang een workflow uit staat, bepaalt wat hem start of hij draait:
 

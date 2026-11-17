@@ -50160,8 +50160,6 @@
   "Either {{name}} has an A record, or your DNS provider proxies or flattens it (Cloudflare's orange cloud does), which hides the CNAME record. Replace the A record with a CNAME record whose value is {{expectedValue}}, or set the name to DNS only.": "Enten har {{name}} en A-post, eller også proxyer eller flader din DNS-udbyder det ud (det gør Cloudflares orange sky), hvilket skjuler CNAME-posten. Erstat A-posten med en CNAME-post, hvis værdi er {{expectedValue}}, eller sæt navnet til kun DNS.",
   "Email is failing": "E-mail fejler",
   "Email is not set up": "E-mail er ikke sat op",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "Afsendelse af e-mails har fejlet siden {{time}}, så invitationer og hændelsesmails når ikke frem.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "Afsendelse af e-mails har fejlet siden {{time}}, så invitationer og hændelsesmails når ikke frem. Mailserveren svarede: {{reason}}",
   "Enter the address people will open, such as status.example.com: letters, digits, dots and hyphens only.": "Skriv den adresse, folk skal åbne, såsom status.example.com: kun bogstaver, cifre, punktummer og bindestreger.",
   "Found": "Fundet",
   "Invitations, password resets and incident emails are not sent.": "Invitationer, nulstilling af adgangskoder og hændelsesmails bliver ikke sendt.",
@@ -56515,5 +56513,10 @@
   "AI reads the alert as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "AI læser advarslen, som den er nu: status, beskrivelse og grundårsag. Hvis den er privat, vises denne opgave kun for dem, der kan se den.",
   "AI reads the incident as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "AI læser hændelsen, som den er nu: status, beskrivelse og grundårsag. Hvis den er privat, vises denne opgave kun for dem, der kan se den.",
   "Carried Alert IDs": "Id'er for medtagne advarsler",
-  "Carried Incident IDs": "Id'er for medtagne hændelser"
+  "Carried Incident IDs": "Id'er for medtagne hændelser",
+  "VPA": "VPA",
+  "This check was too large to keep in full, so it was trimmed.": "Dette tjek var for stort til at blive gemt i sin helhed, så det er blevet afkortet.",
+  "No email has gone out through this server's email settings since {{time}}.": "Der er ikke sendt nogen e-mail via denne servers e-mailindstillinger siden {{time}}.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Der er ikke sendt nogen e-mail via denne servers e-mailindstillinger siden {{time}}. Mailserveren svarede: {{reason}}",
+  "See email logs": "Se e-maillogge"
 }

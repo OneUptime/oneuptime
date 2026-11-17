@@ -39,7 +39,7 @@ Reglerna skiljer sig åt i hur flera träffar avgörs:
 - **Ägarregler**, **Etikettregler** och **Runbook-regler** verkar alla när de matchar. Ägare och etiketter som flera regler lägger till läggs till en gång.
 - **Påminnelseregler** kontrolleras uppifrån och ned i sin lista, och den första träffen vinner. Dra en regel för att ändra dess plats; en ny regel hamnar sist.
 
-En ny regel börjar aktiverad; stäng av **Aktiverad** i dess redigeringsformulär för att pausa den, och listan visar en grön **Aktiverad** eller en röd **Inaktiverad** för varje regel. Ägar-, etikett- och runbook-regler verkar på händelser som skapas efter att du har sparat dem. För att tillämpa en ägar- eller etikettregel på de händelser du redan har använder du **Kör nu**: se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now).
+En ny regel börjar aktiverad; stäng av **Aktiverad** i dess redigeringsformulär för att pausa den, och listan visar en grön **Aktiverad** eller en grå **Inaktiverad** för varje regel. Ägar-, etikett- och runbook-regler verkar på händelser som skapas efter att du har sparat dem. För att tillämpa en ägar- eller etikettregel på de händelser du redan har använder du **Kör nu**: se [Köra regler på befintliga resurser](/docs/configuration/run-rules-now).
 
 ## Ägar- och etikettregler
 

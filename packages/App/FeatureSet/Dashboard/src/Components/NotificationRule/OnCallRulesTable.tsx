@@ -14,6 +14,8 @@ import PushRepeatControl, {
   PUSH_REPEAT_DROPDOWN_OPTIONS,
 } from "./PushRepeatControl";
 import UserCall from "Common/Models/DatabaseModels/UserCall";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
@@ -548,7 +550,6 @@ const SeverityCardTitle: FunctionComponent<{
   severity: OnCallRuleSeverity;
   differsFromLadder?: boolean | undefined;
 }): ReactElement => {
-  const translator: Translator = useTranslator();
   const color: string | undefined = props.severity.color?.toString();
 
   return (
@@ -570,12 +571,13 @@ const SeverityCardTitle: FunctionComponent<{
       {isArchivedValue(props.severity) ? <ArchivedTag /> : <></>}
       {/* How to Reach Me: this card pages otherwise than the ladder. */}
       {props.differsFromLadder ? (
-        <span
-          className="inline-flex flex-none items-center whitespace-nowrap rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-medium leading-4 text-amber-800 ring-1 ring-inset ring-amber-200"
-          data-testid="on-call-rules-differs-tag"
-        >
-          {translator.translateText(DIFFERS_FROM_LADDER_TAG)}
-        </span>
+        <Pill
+          dataTestId="on-call-rules-differs-tag"
+          text={DIFFERS_FROM_LADDER_TAG}
+          tone={PillTone.Warning}
+          isDotHidden={true}
+          className="flex-none"
+        />
       ) : (
         <></>
       )}

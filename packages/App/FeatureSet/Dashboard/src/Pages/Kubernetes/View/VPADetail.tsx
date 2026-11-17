@@ -238,7 +238,7 @@ const KubernetesClusterVPADetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return <Tabs label="VPA" tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterVPADetail;

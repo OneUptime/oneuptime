@@ -1,3 +1,4 @@
+import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import PageComponentProps from "../../PageComponentProps";
 import RunAutoImportRuleModal from "../../../Components/NetworkAutomation/RunAutoImportRuleModal";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -28,7 +29,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
-import { Blue, Green, Red } from "Common/Types/BrandColors";
+import { Blue, Red } from "Common/Types/BrandColors";
 import {
   canSelectAutoImportMonitorTemplate,
   getReadableMonitorTemplateColumn,
@@ -299,11 +300,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             title: "Status",
             type: FieldType.Boolean,
             getElement: (item: NetworkDeviceAutoImportRule): ReactElement => {
-              return item.isEnabled ? (
-                <Pill color={Green} text="Enabled" />
-              ) : (
-                <Pill color={Red} text="Disabled" />
-              );
+              return <EnabledPill isEnabled={item.isEnabled} />;
             },
           },
           {

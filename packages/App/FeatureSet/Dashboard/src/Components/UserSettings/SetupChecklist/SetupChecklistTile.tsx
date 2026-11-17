@@ -3,6 +3,8 @@ import {
   SetupStepImportance,
   SetupStepStatus,
 } from "./ChecklistModel";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { RouteUtil } from "../../../Utils/RouteMap";
 import IconProp from "Common/Types/Icon/IconProp";
 import ProviderLogo from "Common/Types/ProviderLogo/ProviderLogo";
@@ -200,9 +202,7 @@ const SetupChecklistTile: FunctionComponent<ComponentProps> = (
         >
           <span>{translator.translateText(step.title)}</span>
           {step.importance === SetupStepImportance.Optional && (
-            <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
-              {translator.translateText("Optional")}
-            </span>
+            <Pill text="Optional" tone={PillTone.Neutral} isDotHidden={true} />
           )}
         </div>
         <div className="mt-1 text-sm text-gray-500">

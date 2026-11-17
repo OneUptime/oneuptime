@@ -53,9 +53,12 @@ import Query from "../Types/AnalyticsDatabase/Query";
 import { OwnedThroughMetadata } from "../../Types/Database/AccessControl/OwnedThrough";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import StreamUtil from "../Utils/Stream";
+import JsonEachRowBody from "../Utils/AnalyticsDatabase/JsonEachRowBody";
 import BaseService from "./BaseService";
 import {
   ClickHouseSettings,
+  CommandResult,
+  ExecParams,
   ExecResult,
   ResponseJSON,
   ResultSet,
@@ -380,12 +383,23 @@ export default class AnalyticsDatabaseService<
     }
 
     try {
-      await client.insert({
-        table: tableName,
-        values: rows,
-        format: "JSONEachRow",
+      /*
+       * What client.insert({ table, values: rows, format: "JSONEachRow" })
+       * sends - the statement, the settings, the same body bytes - but with
+       * the body written in pieces rather than as one string of every row
+       * (JsonEachRowBody). Rows that cannot be written throw here, before
+       * a request is made, as they did in the client's encoder.
+       */
+      const body: Array<Buffer> = JsonEachRowBody.encode(rows);
+
+      const result: ExecResult<Stream> = (await client.exec({
+        query: `INSERT INTO ${tableName} FORMAT JSONEachRow`,
+        values: JsonEachRowBody.toStream(body),
         clickhouse_settings: clickhouseSettings,
-      });
+      })) as ExecResult<Stream>;
+
+      // Read to its end, so the connection goes back to the pool.
+      await JsonEachRowBody.drain(result.stream);
 
       logger.debug(
         `ClickHouse insert succeeded for table ${tableName} at ${OneUptimeDate.toString(OneUptimeDate.getCurrentDate())}`,
@@ -406,11 +420,7 @@ export default class AnalyticsDatabaseService<
     const statement: string =
       this.statementGenerator.toDoesColumnExistStatement(columnName);
 
-    const dbResult: ExecResult<Stream> = await this.execute(statement);
-
-    const strResult: string = await StreamUtil.convertStreamToText(
-      dbResult.stream,
-    );
+    const strResult: string = await this.executeAndReadText(statement);
 
     return strResult.trim().length > 0;
   }
@@ -432,11 +442,7 @@ export default class AnalyticsDatabaseService<
     const statement: string =
       this.statementGenerator.getColumnTypesStatement(columnName);
 
-    const dbResult: ExecResult<Stream> = await this.execute(statement);
-
-    let strResult: string = await StreamUtil.convertStreamToText(
-      dbResult.stream,
-    );
+    let strResult: string = await this.executeAndReadText(statement);
 
     /*
      * Unwrap LowCardinality(...) first so dictionary-encoded columns
@@ -2826,28 +2832,76 @@ export default class AnalyticsDatabaseService<
     this.migrationDatabaseClient = this.migrationDatabase.getDataSource();
   }
 
+  /*
+   * Runs a statement whose answer nobody reads - an INSERT ... VALUES, an
+   * ALTER ... UPDATE or DELETE, a CREATE, a DROP - and gives its connection
+   * back to the pool before it returns.
+   *
+   * It used to hand back the response stream (client.exec), which no caller
+   * read. The HTTP connection stays checked out until its response is read
+   * to the end, so each one stayed out until ClickHouse closed the idle
+   * keep-alive (30 s on the image's own config) or the client's 58 s idle
+   * timer did. A pool has CLICKHOUSE_MAX_OPEN_CONNECTIONS (100) of them: two
+   * or three such statements a second - every create, update and delete of
+   * an analytics row, such as an incident's or an alert's metrics - held
+   * them all, and every read from the pool queued behind them (#6086). On
+   * the perf kit's stack, seeding incidents and alerts left 3,317 requests
+   * queued for half an hour, among them the telemetry monitor checks, which
+   * share the telemetry queue's 100 workers with OTLP ingest and so stopped
+   * it too. client.command() reads the answer to its end (and nothing else
+   * differs: the same request, settings and query id), so the connection is
+   * free when this returns.
+   */
   @CaptureSpan()
   public async execute(
     statement: Statement | string,
     options?: ClickhouseExecuteOptions,
-  ): Promise<ExecResult<Stream>> {
-    const client: ClickhouseClient = options?.useMigrationConnection
+  ): Promise<CommandResult> {
+    return await this.getClientFor(options).command(
+      this.toExecParams(statement, options),
+    );
+  }
+
+  /*
+   * Runs a statement and reads its answer, as text, to the end - which is
+   * what gives the connection back. For the few statements whose answer is
+   * read (whether a column exists, and its type).
+   */
+  @CaptureSpan()
+  public async executeAndReadText(
+    statement: Statement | string,
+    options?: ClickhouseExecuteOptions,
+  ): Promise<string> {
+    const result: ExecResult<Stream> = (await this.getClientFor(options).exec(
+      this.toExecParams(statement, options),
+    )) as ExecResult<Stream>;
+
+    return await StreamUtil.convertStreamToText(result.stream);
+  }
+
+  private getClientFor(options?: ClickhouseExecuteOptions): ClickhouseClient {
+    return options?.useMigrationConnection
       ? this.getMigrationClient()
       : this.getDatabaseClient();
+  }
 
+  private toExecParams(
+    statement: Statement | string,
+    options?: ClickhouseExecuteOptions,
+  ): ExecParams {
     const query: string =
       statement instanceof Statement ? statement.query : statement;
     const queryParams: Record<string, unknown> | undefined =
       statement instanceof Statement ? statement.query_params : undefined;
 
-    return (await client.exec({
+    return {
       query: query,
       query_params: queryParams || (undefined as any), // undefined is not specified in the type for query_params, but its ok to pass undefined.
       ...(options?.clickhouseSettings
         ? { clickhouse_settings: options.clickhouseSettings }
         : {}),
       ...(options?.queryId ? { query_id: options.queryId } : {}),
-    })) as ExecResult<Stream>;
+    };
   }
 
   /*

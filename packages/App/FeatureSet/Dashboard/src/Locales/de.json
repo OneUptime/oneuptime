@@ -50160,8 +50160,6 @@
   "Either {{name}} has an A record, or your DNS provider proxies or flattens it (Cloudflare's orange cloud does), which hides the CNAME record. Replace the A record with a CNAME record whose value is {{expectedValue}}, or set the name to DNS only.": "Entweder hat {{name}} einen A-Eintrag, oder Ihr DNS-Anbieter leitet den Namen über einen Proxy oder flacht ihn ab (die orange Wolke von Cloudflare tut das), was den CNAME-Eintrag verbirgt. Ersetzen Sie den A-Eintrag durch einen CNAME-Eintrag mit dem Wert {{expectedValue}}, oder stellen Sie den Namen auf DNS only.",
   "Email is failing": "E-Mail-Versand schlägt fehl",
   "Email is not set up": "E-Mail ist nicht eingerichtet",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "Seit {{time}} schlägt der E-Mail-Versand fehl, daher kommen Einladungen und Vorfall-E-Mails nicht an.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "Seit {{time}} schlägt der E-Mail-Versand fehl, daher kommen Einladungen und Vorfall-E-Mails nicht an. Der Mailserver meldete: {{reason}}",
   "Enter the address people will open, such as status.example.com: letters, digits, dots and hyphens only.": "Geben Sie die Adresse ein, die Leute öffnen werden, etwa status.example.com: nur Buchstaben, Ziffern, Punkte und Bindestriche.",
   "Found": "Gefunden",
   "Invitations, password resets and incident emails are not sent.": "Einladungen, Links zum Zurücksetzen des Passworts und Vorfall-E-Mails werden nicht gesendet.",
@@ -56515,5 +56513,10 @@
   "AI reads the alert as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "Die KI liest die Warnung, wie sie jetzt ist: Status, Beschreibung und Grundursache. Ist sie privat, wird diese Aufgabe nur den Personen angezeigt, die sie sehen können.",
   "AI reads the incident as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "Die KI liest den Vorfall, wie er jetzt ist: Status, Beschreibung und Grundursache. Ist er privat, wird diese Aufgabe nur den Personen angezeigt, die ihn sehen können.",
   "Carried Alert IDs": "IDs mitgeführter Warnungen",
-  "Carried Incident IDs": "IDs mitgeführter Vorfälle"
+  "Carried Incident IDs": "IDs mitgeführter Vorfälle",
+  "VPA": "VPA",
+  "This check was too large to keep in full, so it was trimmed.": "Diese Prüfung war zu groß, um sie vollständig zu speichern, daher wurde sie gekürzt.",
+  "No email has gone out through this server's email settings since {{time}}.": "Seit {{time}} wurde keine E-Mail über die E-Mail-Einstellungen dieses Servers versendet.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Seit {{time}} wurde keine E-Mail über die E-Mail-Einstellungen dieses Servers versendet. Der Mailserver meldete: {{reason}}",
+  "See email logs": "E-Mail-Protokolle ansehen"
 }

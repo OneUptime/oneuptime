@@ -103,7 +103,7 @@ const DockerSwarmClusterNodeDetail: FunctionComponent<
         }
         now={part.readAt}
       />
-      <ResourcePartTabs tabs={tabs} />
+      <ResourcePartTabs label="Node" tabs={tabs} />
     </div>
   );
 };

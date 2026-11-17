@@ -50160,8 +50160,6 @@
   "Either {{name}} has an A record, or your DNS provider proxies or flattens it (Cloudflare's orange cloud does), which hides the CNAME record. Replace the A record with a CNAME record whose value is {{expectedValue}}, or set the name to DNS only.": "إما أن لدى {{name}} سجل A، وإما أن موفّر DNS لديك يمرّره عبر وكيل أو يسطّحه (وهذا ما تفعله السحابة البرتقالية في Cloudflare)، مما يخفي سجل CNAME. احذف سجل A وأضف بدلًا منه سجل CNAME قيمته {{expectedValue}}، أو اضبط الاسم على DNS فقط.",
   "Email is failing": "يتعذر إرسال البريد الإلكتروني",
   "Email is not set up": "البريد الإلكتروني غير مُعدّ",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "يتعذر إرسال الرسائل منذ {{time}}، لذا لا تصل الدعوات ورسائل الحوادث.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "يتعذر إرسال الرسائل منذ {{time}}، لذا لا تصل الدعوات ورسائل الحوادث. ردّ خادم البريد: {{reason}}",
   "Enter the address people will open, such as status.example.com: letters, digits, dots and hyphens only.": "أدخل العنوان الذي سيفتحه الناس، مثل status.example.com: أحرف وأرقام ونقاط وشرطات فقط.",
   "Found": "عُثر عليه",
   "Invitations, password resets and incident emails are not sent.": "لا تُرسَل الدعوات ولا رسائل إعادة تعيين كلمة المرور ولا رسائل الحوادث.",
@@ -56515,5 +56513,10 @@
   "AI reads the alert as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "يقرأ الذكاء الاصطناعي التنبيه كما هو الآن: حالته ووصفه وسببه الجذري. إذا كان خاصًا، فلن تظهر هذه المهمة إلا لمن يمكنهم رؤيته.",
   "AI reads the incident as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "يقرأ الذكاء الاصطناعي الحادثة كما هي الآن: حالتها ووصفها وسببها الجذري. إذا كانت خاصة، فلن تظهر هذه المهمة إلا لمن يمكنهم رؤيتها.",
   "Carried Alert IDs": "معرّفات التنبيهات المضمّنة",
-  "Carried Incident IDs": "معرّفات الحوادث المضمّنة"
+  "Carried Incident IDs": "معرّفات الحوادث المضمّنة",
+  "VPA": "VPA",
+  "This check was too large to keep in full, so it was trimmed.": "كان هذا الفحص أكبر من أن يُحفظ كاملًا، لذا اختُصر.",
+  "No email has gone out through this server's email settings since {{time}}.": "لم يُرسَل أي بريد إلكتروني عبر إعدادات البريد في هذا الخادم منذ {{time}}.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "لم يُرسَل أي بريد إلكتروني عبر إعدادات البريد في هذا الخادم منذ {{time}}. ردّ خادم البريد: {{reason}}",
+  "See email logs": "عرض سجلات البريد"
 }

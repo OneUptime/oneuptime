@@ -57,6 +57,34 @@ export enum ServerSendingState {
   Failing = "failing",
 }
 
+/*
+ * Whose problem a failed send is (#9217): the server's - its settings, the
+ * way to the provider, its account - which every admin is told of; one
+ * recipient's or one message's, which is said on that email's log row and
+ * the record that sent it, never in the banner; or the provider asking to
+ * slow down, which is the server's only once it has lasted
+ * (SERVER_SENDING_THROTTLE_SUSTAINED_MS). Email works it out from what the
+ * mail service said (Types/Email/EmailSendFailure); SMS and calls say
+ * nothing, and every failure of theirs is the server's, as it always was.
+ */
+export enum ServerSendingFailureScope {
+  Server = "server",
+  Recipient = "recipient",
+  Throttled = "throttled",
+}
+
+/*
+ * A recipient the server's own mail service refused while every other
+ * email went out: who, why, and when it last did. Kept for the server's
+ * admins (Settings > Emails), since an email with no project - an
+ * invitation, a password reset - has no log row a project's owners read.
+ */
+export interface ServerSendingRecipientRefusal {
+  recipient: string;
+  reason: string;
+  at: string;
+}
+
 export const SERVER_SENDING_CHANNELS: ReadonlyArray<ServerSendingChannel> = [
   ServerSendingChannel.Email,
   ServerSendingChannel.SMS,
@@ -74,6 +102,23 @@ export interface ServerSendingHealthEntry {
   lastFailedAt: string | null;
   failingSince: string | null;
   lastFailure: string | null;
+  /*
+   * Whose problem the failure since `failingSince` is: the server's, or a
+   * slow-down that has lasted. Left out by entries written before failures
+   * were told apart (#9217).
+   */
+  failureScope?: ServerSendingFailureScope | undefined;
+  /*
+   * Since when the provider has asked to slow down, with no send going out
+   * since: failing once it has lasted SERVER_SENDING_THROTTLE_SUSTAINED_MS.
+   */
+  throttledSince?: string | undefined;
+  /*
+   * The recipients refused lately, newest first, at most
+   * MAX_SERVER_SENDING_RECIPIENT_REFUSALS: a send to one that goes out
+   * takes it off.
+   */
+  recipientRefusals?: Array<ServerSendingRecipientRefusal> | undefined;
   /*
    * Which settings the entry was learned with, for a channel whose settings
    * can change without anyone saving them: SMS and calls, whose Twilio
@@ -116,6 +161,11 @@ export interface ServerChannelStatus {
   lastFailure: string | null;
   // What the settings are missing, while the channel is not set up.
   setUpProblem: string | null;
+  /*
+   * Recipients refused lately while other sends went out (#9217): never a
+   * reason for the banner. Left out when there are none.
+   */
+  recipientRefusals?: Array<ServerSendingRecipientRefusal> | undefined;
 }
 
 /*
@@ -144,6 +194,20 @@ export const SERVER_SENDING_HEALTH_REWRITE_INTERVAL_MS: number = 60 * 60 * 1000;
 
 // The longest failure reason kept: a mail server's answer can be long.
 export const MAX_SERVER_SENDING_FAILURE_LENGTH: number = 500;
+
+/*
+ * How long a provider may ask to slow down, with nothing going out, before
+ * the server's sends are said to fail: a burst is the provider pacing a
+ * busy hour, and the email is sent again; a quarter of an hour of it is the
+ * account's limit, and email is late.
+ */
+export const SERVER_SENDING_THROTTLE_SUSTAINED_MS: number = 15 * 60 * 1000;
+
+// The most recipient refusals kept, newest first.
+export const MAX_SERVER_SENDING_RECIPIENT_REFUSALS: number = 5;
+
+// The longest recipient address kept.
+const MAX_RECIPIENT_LENGTH: number = 320;
 
 const EMPTY_ENTRY: ServerSendingHealthEntry = {
   lastSucceededAt: null,
@@ -213,6 +277,62 @@ const isObject: (value: unknown) => value is Record<string, unknown> = (
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 };
 
+const readRecipient: (value: unknown) => string | null = (
+  value: unknown,
+): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const recipient: string = value.trim();
+
+  return recipient && recipient.length <= MAX_RECIPIENT_LENGTH
+    ? recipient
+    : null;
+};
+
+const isSameRecipient: (a: string, b: string) => boolean = (
+  a: string,
+  b: string,
+): boolean => {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+};
+
+// The recipient refusals kept, read whole: a row that is not one is left out.
+const readRecipientRefusals: (
+  value: unknown,
+) => Array<ServerSendingRecipientRefusal> = (
+  value: unknown,
+): Array<ServerSendingRecipientRefusal> => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const refusals: Array<ServerSendingRecipientRefusal> = [];
+
+  for (const row of value as Array<unknown>) {
+    if (!isObject(row)) {
+      continue;
+    }
+
+    const recipient: string | null = readRecipient(row["recipient"]);
+    const reason: string | null = readText(row["reason"]);
+    const at: string | null = readDate(row["at"]);
+
+    if (!recipient || !reason || !at) {
+      continue;
+    }
+
+    refusals.push({ recipient: recipient, reason: reason, at: at });
+
+    if (refusals.length >= MAX_SERVER_SENDING_RECIPIENT_REFUSALS) {
+      break;
+    }
+  }
+
+  return refusals;
+};
+
 export default class ServerSendingStatusUtil {
   // One channel's entry, read whole from whatever was stored.
   public static readEntry(value: unknown): ServerSendingHealthEntry {
@@ -233,6 +353,23 @@ export default class ServerSendingStatusUtil {
 
     if (settingsFingerprint) {
       entry.settingsFingerprint = settingsFingerprint;
+    }
+
+    if (ServerSendingStatusUtil.isFailureScope(value["failureScope"])) {
+      entry.failureScope = value["failureScope"];
+    }
+
+    const throttledSince: string | null = readDate(value["throttledSince"]);
+
+    if (throttledSince) {
+      entry.throttledSince = throttledSince;
+    }
+
+    const refusals: Array<ServerSendingRecipientRefusal> =
+      readRecipientRefusals(value["recipientRefusals"]);
+
+    if (refusals.length > 0) {
+      entry.recipientRefusals = refusals;
     }
 
     return entry;
@@ -342,7 +479,7 @@ export default class ServerSendingStatusUtil {
   }): ServerChannelStatus {
     const isSetUp: boolean = !data.setUpProblem;
 
-    return {
+    const status: ServerChannelStatus = {
       channel: data.channel,
       state: ServerSendingStatusUtil.getState({
         isSetUp: isSetUp,
@@ -354,6 +491,18 @@ export default class ServerSendingStatusUtil {
       lastFailure: data.entry.lastFailure,
       setUpProblem: data.setUpProblem,
     };
+
+    if (isSetUp && data.entry.recipientRefusals?.length) {
+      status.recipientRefusals = data.entry.recipientRefusals.map(
+        (
+          refusal: ServerSendingRecipientRefusal,
+        ): ServerSendingRecipientRefusal => {
+          return { ...refusal };
+        },
+      );
+    }
+
+    return status;
   }
 
   /*
@@ -388,19 +537,43 @@ export default class ServerSendingStatusUtil {
     );
   }
 
-  // The entry after a send went out.
+  /*
+   * The entry after a send went out through the settings the entry is
+   * learned with - the same settings, sender and way to the provider every
+   * failure of the server's was about: the server's sends go out again, and
+   * the provider no longer asks to slow down. A recipient refused before is
+   * taken off only by a send to that recipient, never by a test to another.
+   */
   public static withSucceeded(
     entry: ServerSendingHealthEntry,
     now: Date,
+    recipient?: string | undefined,
   ): ServerSendingHealthEntry {
-    return {
+    const next: ServerSendingHealthEntry = {
       ...entry,
       lastSucceededAt: now.toISOString(),
       failingSince: null,
     };
+
+    delete next.failureScope;
+    delete next.throttledSince;
+
+    const refusals: Array<ServerSendingRecipientRefusal> = (
+      entry.recipientRefusals || []
+    ).filter((refusal: ServerSendingRecipientRefusal): boolean => {
+      return !recipient || !isSameRecipient(refusal.recipient, recipient);
+    });
+
+    if (refusals.length > 0) {
+      next.recipientRefusals = refusals;
+    } else {
+      delete next.recipientRefusals;
+    }
+
+    return next;
   }
 
-  // The entry after a send failed, and why.
+  // The entry after a send failed for a reason of the server's, and why.
   public static withFailed(
     entry: ServerSendingHealthEntry,
     reason: string,
@@ -411,7 +584,77 @@ export default class ServerSendingStatusUtil {
       lastFailedAt: now.toISOString(),
       failingSince: entry.failingSince || now.toISOString(),
       lastFailure: readText(reason) || "Unknown error.",
+      failureScope: ServerSendingFailureScope.Server,
     };
+  }
+
+  /*
+   * The entry after the provider asked to slow down: failing, since it
+   * first did, once it has lasted SERVER_SENDING_THROTTLE_SUSTAINED_MS with
+   * nothing going out.
+   */
+  public static withThrottled(
+    entry: ServerSendingHealthEntry,
+    reason: string,
+    now: Date,
+  ): ServerSendingHealthEntry {
+    const throttledSince: string = entry.throttledSince || now.toISOString();
+
+    const next: ServerSendingHealthEntry = {
+      ...entry,
+      throttledSince: throttledSince,
+    };
+
+    if (
+      !entry.failingSince &&
+      now.getTime() - new Date(throttledSince).getTime() <
+        SERVER_SENDING_THROTTLE_SUSTAINED_MS
+    ) {
+      return next;
+    }
+
+    return {
+      ...next,
+      lastFailedAt: now.toISOString(),
+      failingSince: entry.failingSince || throttledSince,
+      lastFailure: readText(reason) || "Unknown error.",
+      failureScope: entry.failingSince
+        ? entry.failureScope || ServerSendingFailureScope.Server
+        : ServerSendingFailureScope.Throttled,
+    };
+  }
+
+  /*
+   * The entry after one recipient was refused: kept among the recipient
+   * refusals, newest first. Whether the server's sends fail is left as it
+   * was - every other email still goes out.
+   */
+  public static withRecipientRefused(
+    entry: ServerSendingHealthEntry,
+    recipient: string,
+    reason: string,
+    now: Date,
+  ): ServerSendingHealthEntry {
+    const address: string | null = readRecipient(recipient);
+
+    if (!address) {
+      return { ...entry };
+    }
+
+    const refusals: Array<ServerSendingRecipientRefusal> = [
+      {
+        recipient: address,
+        reason: readText(reason) || "Unknown error.",
+        at: now.toISOString(),
+      },
+      ...(entry.recipientRefusals || []).filter(
+        (refusal: ServerSendingRecipientRefusal): boolean => {
+          return !isSameRecipient(refusal.recipient, address);
+        },
+      ),
+    ].slice(0, MAX_SERVER_SENDING_RECIPIENT_REFUSALS);
+
+    return { ...entry, recipientRefusals: refusals };
   }
 
   /*
@@ -421,8 +664,21 @@ export default class ServerSendingStatusUtil {
   public static shouldWriteSucceeded(
     entry: ServerSendingHealthEntry,
     now: Date,
+    recipient?: string | undefined,
   ): boolean {
-    if (!entry.lastSucceededAt || entry.failingSince) {
+    if (!entry.lastSucceededAt || entry.failingSince || entry.throttledSince) {
+      return true;
+    }
+
+    // A recipient refused before, that a send has now gone out to.
+    if (
+      recipient &&
+      (entry.recipientRefusals || []).some(
+        (refusal: ServerSendingRecipientRefusal): boolean => {
+          return isSameRecipient(refusal.recipient, recipient);
+        },
+      )
+    ) {
       return true;
     }
 
@@ -452,6 +708,74 @@ export default class ServerSendingStatusUtil {
     return (
       now.getTime() - new Date(entry.lastFailedAt).getTime() >=
       SERVER_SENDING_HEALTH_REWRITE_INTERVAL_MS
+    );
+  }
+
+  /*
+   * Whether a slow-down is news worth a write: the first, the one that
+   * makes it last long enough to be failing, or the same an hour later.
+   */
+  public static shouldWriteThrottled(
+    entry: ServerSendingHealthEntry,
+    now: Date,
+  ): boolean {
+    if (!entry.throttledSince) {
+      return true;
+    }
+
+    if (!entry.failingSince) {
+      return (
+        now.getTime() - new Date(entry.throttledSince).getTime() >=
+        SERVER_SENDING_THROTTLE_SUSTAINED_MS
+      );
+    }
+
+    return (
+      !entry.lastFailedAt ||
+      now.getTime() - new Date(entry.lastFailedAt).getTime() >=
+        SERVER_SENDING_HEALTH_REWRITE_INTERVAL_MS
+    );
+  }
+
+  /*
+   * Whether a recipient's refusal is news worth a write: one not kept, a
+   * new reason, or the same an hour later.
+   */
+  public static shouldWriteRecipientRefused(
+    entry: ServerSendingHealthEntry,
+    recipient: string,
+    reason: string,
+    now: Date,
+  ): boolean {
+    if (!readRecipient(recipient)) {
+      return false;
+    }
+
+    const kept: ServerSendingRecipientRefusal | undefined = (
+      entry.recipientRefusals || []
+    ).find((refusal: ServerSendingRecipientRefusal): boolean => {
+      return isSameRecipient(refusal.recipient, recipient);
+    });
+
+    if (!kept) {
+      return true;
+    }
+
+    if ((readText(reason) || "Unknown error.") !== kept.reason) {
+      return true;
+    }
+
+    return (
+      now.getTime() - new Date(kept.at).getTime() >=
+      SERVER_SENDING_HEALTH_REWRITE_INTERVAL_MS
+    );
+  }
+
+  public static isFailureScope(
+    value: unknown,
+  ): value is ServerSendingFailureScope {
+    return Object.values(ServerSendingFailureScope).includes(
+      value as ServerSendingFailureScope,
     );
   }
 
@@ -486,7 +810,7 @@ export default class ServerSendingStatusUtil {
         continue;
       }
 
-      channels.push({
+      const status: ServerChannelStatus = {
         channel: row["channel"],
         state: row["state"],
         hasWorked: row["hasWorked"] === true,
@@ -494,7 +818,16 @@ export default class ServerSendingStatusUtil {
         failingSince: readDate(row["failingSince"]),
         lastFailure: readText(row["lastFailure"]),
         setUpProblem: readText(row["setUpProblem"]),
-      });
+      };
+
+      const refusals: Array<ServerSendingRecipientRefusal> =
+        readRecipientRefusals(row["recipientRefusals"]);
+
+      if (refusals.length > 0) {
+        status.recipientRefusals = refusals;
+      }
+
+      channels.push(status);
     }
 
     const probes: unknown = value["globalProbes"];

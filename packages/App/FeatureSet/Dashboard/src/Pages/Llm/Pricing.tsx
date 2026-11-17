@@ -1,3 +1,4 @@
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import PageComponentProps from "../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -5,7 +6,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ResellerPlanNotice from "../../Components/Billing/ResellerPlanNotice";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green } from "Common/Types/BrandColors";
 import LlmModelPrice from "Common/Models/DatabaseModels/LlmModelPrice";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -167,7 +168,7 @@ const LlmPricingPage: FunctionComponent<PageComponentProps> = (
             if (item.isEnabled) {
               return <Pill color={Green} text="Enabled" />;
             }
-            return <Pill color={Red} text="Disabled" />;
+            return <Pill tone={PillTone.Paused} text="Disabled" />;
           },
         },
       ]}

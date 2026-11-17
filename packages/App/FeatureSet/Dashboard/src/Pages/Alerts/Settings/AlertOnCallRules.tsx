@@ -1,3 +1,5 @@
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
+import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -17,7 +19,7 @@ import useRuleOwningTeams, {
   RuleOwningTeamsTable,
 } from "../../../Components/TeamOwnedRule/RuleOwningTeams";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -145,7 +147,7 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
             if (item.isEnabled) {
               return <Pill color={Green} text="Enabled" />;
             }
-            return <Pill color={Red} text="Disabled" />;
+            return <Pill tone={PillTone.Paused} text="Disabled" />;
           },
         },
         owningTeams.owningTeamsColumn,
@@ -329,11 +331,7 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
           title: "Status",
           type: FieldType.Boolean,
           getElement: (item: AlertEpisodeOnCallRule): ReactElement => {
-            return item.isEnabled ? (
-              <Pill color={Green} text="Enabled" />
-            ) : (
-              <Pill color={Red} text="Disabled" />
-            );
+            return <EnabledPill isEnabled={item.isEnabled} />;
           },
         },
         owningTeams.owningTeamsColumn,
@@ -407,6 +405,7 @@ const AlertOnCallRulesPage: FunctionComponent<
   return (
     <Fragment>
       <Tabs
+        label="Alert On-Call Rules"
         tabs={[
           {
             name: "Alert Rules",

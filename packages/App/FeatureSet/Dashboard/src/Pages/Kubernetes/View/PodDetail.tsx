@@ -588,7 +588,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
               }
         }
       />
-      <Tabs tabs={tabs} onTabChange={() => {}} />
+      <Tabs label="Pod" tabs={tabs} onTabChange={() => {}} />
     </Fragment>
   );
 };

@@ -16,6 +16,7 @@ import MonitorNotCheckedReason from "Common/Types/Monitor/MonitorNotCheckedReaso
 import { Gray500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -329,9 +330,7 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
               <></>
             )}
             {isEndpoint ? (
-              <span className="inline-flex items-center rounded-full border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700">
-                {translateString("Endpoint")}
-              </span>
+              <Pill text="Endpoint" tone={PillTone.Info} isDotHidden={true} />
             ) : !node.isManaged ? (
               <span className="inline-flex items-center rounded-full border border-gray-300 px-2.5 py-0.5 text-xs font-medium text-gray-600">
                 {translateString("Unmanaged")}

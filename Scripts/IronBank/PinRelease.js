@@ -42,6 +42,13 @@
  * whose layout drifted fails here instead of keeping the old release in one
  * place. Tests/Ops/IronBankApp.test.js and IronBankProjects.test.js run `pin`
  * on the real files.
+ *
+ * The Dockerfile sets the release's start command again (a COPY --from
+ * brings files, not a CMD), so it also refuses, pinning or checking, a release
+ * whose own start command runs another file than the Dockerfile's: since the
+ * images run the JavaScript their build compiles, the start command runs
+ * Index.js, which no release built before then has (they ran Index.ts through
+ * ts-node), so an earlier release cannot be pinned under it.
  */
 
 const fs = require("fs");
@@ -308,6 +315,52 @@ function releaseEnvironment(config, version, project = PROJECTS.App) {
   return { gitSha: environment["GIT_SHA"] };
 }
 
+/**
+ * The file a start command runs: the last word of its last argument. The
+ * Node.js images start `sh -c "<heap rule> && exec node ... Index.js"`, the
+ * ingress `./run.sh` (which runs the release's own start script).
+ * @param {Array<string>} command - A CMD, as Docker keeps it
+ * @returns {string}
+ */
+function startedFile(command) {
+  const words = String((command || []).slice(-1)[0] || "")
+    .trim()
+    .split(/\s+/);
+  return words[words.length - 1] || "";
+}
+
+/**
+ * The start command of a Dockerfile's last stage, as Docker keeps it: an exec
+ * form as written, a shell form run by /bin/sh -c.
+ * @param {string} dockerfile
+ * @returns {Array<string>}
+ */
+function dockerfileCommand(dockerfile) {
+  const lines = dockerfile.split("\n").filter((line) => {
+    return /^CMD\s/.test(line);
+  });
+  if (lines.length === 0) {
+    return [];
+  }
+  const text = lines[lines.length - 1].slice("CMD".length).trim();
+  return text.startsWith("[") ? JSON.parse(text) : ["/bin/sh", "-c", text];
+}
+
+/**
+ * Why the release cannot run under the Dockerfile's start command, or null.
+ * @param {string} dockerfile - The project's Dockerfile
+ * @param {Array<string>} releaseCommand - The release image's CMD
+ * @returns {string|null}
+ */
+function startCommandMismatch(dockerfile, releaseCommand) {
+  const ours = startedFile(dockerfileCommand(dockerfile));
+  const theirs = startedFile(releaseCommand);
+  if (ours === theirs) {
+    return null;
+  }
+  return `the release's own start command runs ${theirs || "nothing"}, and the Dockerfile's runs ${ours || "nothing"}. Pin a release whose image starts ${ours || "the same file"} (a release built before the images ran precompiled JavaScript started Index.ts through ts-node)`;
+}
+
 function sleep(milliseconds) {
   return new Promise((resolve) => {
     setTimeout(resolve, milliseconds);
@@ -381,7 +434,12 @@ async function readRelease(version, project = PROJECTS.App) {
     await get(`${registry}/blobs/${manifest.config.digest}`, authorization)
   ).json();
 
-  return { version, digest, ...releaseEnvironment(config, version, project) };
+  return {
+    version,
+    digest,
+    command: (config.config || {}).Cmd || [],
+    ...releaseEnvironment(config, version, project),
+  };
 }
 
 /**
@@ -443,11 +501,17 @@ async function main(argv) {
   }
 
   const release = await readRelease(options.version, project);
+  const summary = `${project.repository}:${project.tagPrefix}${release.version} (${release.digest}, commit ${release.gitSha})`;
+  const mismatch = startCommandMismatch(current.dockerfile, release.command);
+  if (mismatch) {
+    throw new Error(
+      `IronBank/${options.project} cannot run ${summary}: ${mismatch}.`,
+    );
+  }
   const pinned = pin(current, release, project);
   const stale = Object.keys(FILES).filter((file) => {
     return pinned[file] !== current[file];
   });
-  const summary = `${project.repository}:${project.tagPrefix}${release.version} (${release.digest}, commit ${release.gitSha})`;
 
   if (options.check) {
     if (stale.length > 0) {
@@ -481,8 +545,12 @@ module.exports = {
   pin,
   platformDigest,
   releaseEnvironment,
+  startedFile,
+  dockerfileCommand,
+  startCommandMismatch,
   parseArgs,
   readRelease,
+  main,
 };
 
 if (require.main === module) {

@@ -81,6 +81,7 @@ router.post(
           options: {
             dedupToken: string;
             clickhouseSettings?: ClickHouseSettings | undefined;
+            due?: boolean | undefined;
           },
         ): Promise<FanInSubmitResult> => {
           return TelemetryFanInWriter.submit(target, rows, options);

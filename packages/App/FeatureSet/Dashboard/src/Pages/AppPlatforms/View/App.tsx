@@ -278,17 +278,6 @@ const AppPlatformApp: FunctionComponent<
     load(true);
   }, [appId.toString(), environmentId.toString()]);
 
-  /*
-   * The tab Set up alerts opened, focused as a click on it leaves it: in
-   * view on a phone, where the header fills the screen, and where a
-   * keyboard continues from.
-   */
-  useEffect(() => {
-    if (tabRequest) {
-      document.getElementById(`tab-${tabRequest.name}`)?.focus();
-    }
-  }, [tabRequest]);
-
   const refresh: () => void = (): void => {
     load(false);
     setRefreshToken((count: number): number => {
@@ -512,12 +501,19 @@ const AppPlatformApp: FunctionComponent<
          * the side menu, the row ran past the page and scrolled it sideways.
          */}
         <Tabs
+          label="App"
           key={
             tabRequest ? `${tabRequest.name}-${tabRequest.count}` : "address"
           }
           tabs={tabs}
           wrap={true}
           initialTabName={tabRequest?.name || requestedTab || undefined}
+          /*
+           * The tab Set up alerts opened, focused as a click on it leaves
+           * it: in view on a phone, where the header fills the screen, and
+           * where a keyboard continues from.
+           */
+          focusInitialTab={Boolean(tabRequest)}
           onTabChange={() => {}}
         />
       </Fragment>

@@ -428,7 +428,7 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
               }
         }
       />
-      <Tabs tabs={tabs} onTabChange={() => {}} />
+      <Tabs label="StatefulSet" tabs={tabs} onTabChange={() => {}} />
     </Fragment>
   );
 };

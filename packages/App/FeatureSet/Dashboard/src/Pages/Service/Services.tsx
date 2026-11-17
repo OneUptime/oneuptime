@@ -9,7 +9,8 @@ import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArch
 import ServiceElement from "../../Components/Service/ServiceElement";
 import PageComponentProps from "../PageComponentProps";
 import IconProp from "Common/Types/Icon/IconProp";
-import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import {
   detectServiceLanguage,
   SERVICE_LANGUAGE_DISPLAY_NAMES,
@@ -302,13 +303,12 @@ const ServicesPage: FunctionComponent<
                 return <TableEmptyValue />;
               }
               return (
-                <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700">
-                  <Icon
-                    icon={IconProp.Code}
-                    className="h-3 w-3 text-gray-500"
-                  />
-                  {SERVICE_LANGUAGE_DISPLAY_NAMES[language]}
-                </span>
+                <Pill
+                  text={SERVICE_LANGUAGE_DISPLAY_NAMES[language]}
+                  isUserContent={true}
+                  tone={PillTone.Neutral}
+                  icon={IconProp.Code}
+                />
               );
             },
           },

@@ -69,6 +69,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Image from "Common/UI/Components/Image/Image";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -1650,15 +1652,9 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                         {translator.translateText(SKIPPED_LEVEL_TIMING)}
                       </span>
                     ) : (
-                      <span
-                        data-testid="escalation-rule-escalates-after"
-                        className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200"
-                      >
-                        <Icon
-                          icon={IconProp.Clock}
-                          className="h-3 w-3 text-gray-400"
-                        />
-                        {translator.translateTemplate(
+                      <Pill
+                        dataTestId="escalation-rule-escalates-after"
+                        text={translator.translateTemplate(
                           "Escalates after {{duration}}",
                           {
                             duration: formatMinutes(
@@ -1666,7 +1662,10 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                             ),
                           },
                         )}
-                      </span>
+                        isUserContent={true}
+                        tone={PillTone.Neutral}
+                        icon={IconProp.Clock}
+                      />
                     )}
                   </div>
                 </div>

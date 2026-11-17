@@ -57,34 +57,48 @@ const IconText: FunctionComponent<ComponentProps> = ({
     }
   };
 
-  const handleClick: () => void = (): void => {
-    if (onClick) {
-      onClick();
-    }
-  };
-
-  return (
-    <div
-      className={`flex items-center ${getSpacingClass()} ${getAlignmentClass()} ${containerClassName}`}
-      onClick={handleClick}
-      data-testid={dataTestId}
-      style={{ cursor: onClick ? "pointer" : "default" }}
-    >
-      <div className="flex-shrink-0">
+  const content: ReactElement = (
+    <>
+      <span className="flex-shrink-0" aria-hidden="true">
         <Icon
           className={iconClassName}
           icon={icon}
           color={iconColor}
           size={iconSize}
         />
-      </div>
-      <div
+      </span>
+      <span
         className={`flex ${getAlignmentClass()} ${textClassName}`}
         style={{ color: textColor?.toString() || "inherit" }}
       >
         {text}
+      </span>
+    </>
+  );
+
+  const className: string = `flex items-center ${getSpacingClass()} ${getAlignmentClass()} ${containerClassName}`;
+
+  if (!onClick) {
+    return (
+      <div className={className} data-testid={dataTestId}>
+        {content}
       </div>
-    </div>
+    );
+  }
+
+  /*
+   * A button when it does something: it was a div with only a click, which
+   * a keyboard could not reach (#9136).
+   */
+  return (
+    <button
+      type="button"
+      className={`${className} cursor-pointer rounded text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}
+      onClick={onClick}
+      data-testid={dataTestId}
+    >
+      {content}
+    </button>
   );
 };
 

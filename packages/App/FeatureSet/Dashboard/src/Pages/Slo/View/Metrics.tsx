@@ -63,6 +63,7 @@ const SloMetrics: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <Fragment>
       <SloNoticeBanner sloId={modelId} />
       <Tabs
+        label="Metrics"
         tabs={tabs}
         onTabChange={(tab: Tab) => {
           setCurrentTab(tab);

@@ -8,7 +8,7 @@
   },
   "main": "Index.ts",
   "scripts": {
-    "start": "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --require ts-node/register Index.ts",
+    "start": "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js Index.js",
     "compile": "tsc",
     "build:css": "node -r ts-node/register/transpile-only Scripts/BuildTailwindCss.ts",
     "verify:otel-guides": "node -r ts-node/register/transpile-only Scripts/VerifyOpenTelemetryGuides.ts",
@@ -24,7 +24,6 @@
   "dependencies": {
     "Common": "file:../Common",
     "ejs": "^3.1.10",
-    "ts-node": "^10.9.1",
     "xmlbuilder2": "^4.0.3"
   },
   "devDependencies": {
@@ -39,6 +38,7 @@
     "postcss": "^8.5.28",
     "tailwindcss": "3.4.5",
     "ts-jest": "^28.0.8",
+    "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
   "overrides": {

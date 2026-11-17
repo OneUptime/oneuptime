@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import RecommendationCard from "./RecommendationCard";
@@ -109,15 +111,15 @@ const RecommendationsList: FunctionComponent<ComponentProps> = (
                     group.category}
                 </h4>
                 {availableInGroup.length > 0 ? (
-                  <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200/80">
-                    {translator.translateTemplate("{{count}} to set up", {
+                  <Pill
+                    text={translator.translateTemplate("{{count}} to set up", {
                       count: translator.formatNumber(availableInGroup.length),
                     })}
-                  </span>
+                    isUserContent={true}
+                    tone={PillTone.Warning}
+                  />
                 ) : (
-                  <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-200/80">
-                    {translator.translateText("All handled")}
-                  </span>
+                  <Pill text="All handled" tone={PillTone.Success} />
                 )}
                 {handledInGroup > 0 && availableInGroup.length > 0 ? (
                   <span className="max-sm:hidden text-xs text-gray-400 sm:inline">

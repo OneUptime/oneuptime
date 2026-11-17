@@ -208,7 +208,7 @@ const KubernetesClusterPVDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return <Tabs label="PV" tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterPVDetail;

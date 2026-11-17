@@ -24,6 +24,8 @@ import {
 } from "Common/Types/OnCallDutyPolicy/ScheduleShiftUtil";
 import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -211,16 +213,18 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
             : translator.translateText("Override")}
         </span>
         <span className="text-gray-700">{described.coveringLabel}</span>
-        <span
-          title={described.scope.detail}
-          className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ${
+        <Pill
+          text={described.scope.label}
+          isUserContent={true}
+          tone={
             described.scope.kind === OverrideScopeKind.Global
-              ? "bg-gray-50 text-gray-600 ring-gray-200"
-              : "bg-amber-50 text-amber-800 ring-amber-200"
-          }`}
-        >
-          {described.scope.label}
-        </span>
+              ? PillTone.Neutral
+              : PillTone.Warning
+          }
+          isDotHidden={true}
+          tooltip={described.scope.detail}
+          isTooltipUserContent={true}
+        />
         <span className="basis-full text-[11px] text-gray-500">
           <TranslatedSentence
             template={
@@ -270,13 +274,14 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
       <span
         data-testid="upcoming-override-pill"
         data-skip={described.isSkip ? "true" : "false"}
-        className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-md bg-indigo-50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200"
+        className="mt-0.5 flex max-w-full"
       >
-        <Icon
+        <Pill
+          text={described.coveringLabel}
+          isUserContent={true}
+          tone={PillTone.Info}
           icon={described.isSkip ? IconProp.Forward : IconProp.ArrowUturnRight}
-          className="h-3 w-3"
         />
-        {described.coveringLabel}
       </span>
     );
   };

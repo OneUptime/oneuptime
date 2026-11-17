@@ -408,7 +408,7 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
         routes={routes}
         namespace={namespaceParam}
       />
-      <Tabs tabs={tabs} onTabChange={() => {}} />
+      <Tabs label="CronJob" tabs={tabs} onTabChange={() => {}} />
     </Fragment>
   );
 };

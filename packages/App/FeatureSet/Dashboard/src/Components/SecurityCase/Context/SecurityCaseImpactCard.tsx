@@ -97,6 +97,7 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import TableEmptyState, {
@@ -216,9 +217,13 @@ const Figure: FunctionComponent<{ text: string; icon: IconProp }> = (props: {
   icon: IconProp;
 }): ReactElement => {
   return (
-    <li className="inline-flex items-center gap-1.5 rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200">
-      <Icon icon={props.icon} className="h-3.5 w-3.5 shrink-0 text-gray-400" />
-      <span>{props.text}</span>
+    <li className="flex max-w-full">
+      <Pill
+        text={props.text}
+        isUserContent={true}
+        tone={PillTone.Neutral}
+        icon={props.icon}
+      />
     </li>
   );
 };
@@ -755,26 +760,26 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
                       {owners.teams.map(
                         (team: { id: string; name: string }): ReactElement => {
                           return (
-                            <span
+                            <Pill
                               key={`team-${team.id}`}
-                              className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700"
-                            >
-                              <Icon icon={IconProp.Team} className="h-3 w-3" />
-                              <bdi>{team.name}</bdi>
-                            </span>
+                              text={team.name}
+                              isUserContent={true}
+                              tone={PillTone.Info}
+                              icon={IconProp.Team}
+                            />
                           );
                         },
                       )}
                       {owners.users.map(
                         (user: { id: string; name: string }): ReactElement => {
                           return (
-                            <span
+                            <Pill
                               key={`user-${user.id}`}
-                              className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
-                            >
-                              <Icon icon={IconProp.User} className="h-3 w-3" />
-                              <bdi>{user.name}</bdi>
-                            </span>
+                              text={user.name}
+                              isUserContent={true}
+                              tone={PillTone.Neutral}
+                              icon={IconProp.User}
+                            />
                           );
                         },
                       )}

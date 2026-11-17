@@ -9,12 +9,18 @@ change can be measured the same way. Memory has a section of its own below.
 
 ## What the stack is like
 
-- The App and the Probe run natively, the way their images run them:
-  `NODE_ENV=production`, ts-node in transpile-only mode, from
-  `/usr/src/app` and `/usr/src/Common` (a private mount namespace maps those
-  paths onto this checkout's packages, so CPU profiles name files as
-  production profiles do). Settings are `config.example.env`'s with logs at
-  `ERROR`, as it ships them.
+- The App and the Probe run natively from this checkout's TypeScript:
+  `NODE_ENV=production`, ts-node in transpile-only mode with Common's
+  transpiler, from `/usr/src/app` and `/usr/src/Common` (a private mount
+  namespace maps those paths onto this checkout's packages, so CPU profiles
+  name files as production profiles do). Settings are `config.example.env`'s
+  with logs at `ERROR`, as it ships them. That is how the images ran before
+  they ran the JavaScript their build compiles
+  (`packages/Common/Server/Utils/TsNode/Precompile.js`): the same code, with
+  TypeScript and ts-node in the process and every module compiled at start.
+  To measure a server as its image runs it now, run the image:
+  `app-image.sh` for the App (below), or a server's container with
+  `heap-snapshot.js` over its inspector.
 - Postgres 15, Valkey 9.1 and ClickHouse 26.7 run in containers of their
   own, with the settings and the ClickHouse drop-ins `docker-compose.base.yml`
   mounts.
@@ -74,7 +80,7 @@ Website, API and Port monitor once a minute:
 - `otlp-load.js`: 20 OpenTelemetry Collectors sending gzipped OTLP/protobuf
   logs, traces and metrics every 4 seconds (500 logs, 250 spans and about
   560 metric points a second; `PERF_OTLP_PERIOD_MS` changes it - at 2
-  seconds the App's telemetry queue falls behind, and a window then measures
+  seconds an App from before #6086 falls behind, and a window then measures
   a backlog rather than a steady load);
 - `browse-load.js`: 5 people on the Dashboard, opening a page every 15
   seconds through the app's own navigation, each page polling as it does.
@@ -109,6 +115,44 @@ bash ab-monitor.sh probe 300 3            # one probe result
 The baseline links this checkout's `node_modules`, so compare commits with
 the same lock files. Rounds alternate so that slow drift (data growing, the
 machine's other work) favours neither side; `ab-summary.py` prints them.
+
+## Telemetry ingest: throughput and CPU
+
+```sh
+bash make-baseline.sh                     # the merge base with origin/main
+bash ab-ingest.sh /tmp/oneuptime-perf/seed.json 2 4
+                                          # both sides twice, about 50 minutes
+node ingest-queue.js 120 10               # the telemetry queue now, every 10 s
+```
+
+`ab-ingest.sh` runs the baseline and this checkout in turn, round after
+round, with the Probe stopped: 4 minutes of the kit's OTLP load (after 2 of
+warm-up) sampled by `cpu-sample.py` for CPU and ClickHouse's part log for
+the parts its inserts made and merged, then a burst - the same 20
+collectors every second, 60 batches a second, for 90 seconds - to see how
+many batches a second one App finishes, and how long what was left takes to
+work off. `ingest-queue.js` reads the telemetry queue as the App works it:
+how many jobs wait, how many completed in each window (from the queue's own
+event stream) and how long the OTLP jobs ran and waited to start - a job
+waits for its rows' insert, so a job's run time is mostly how long the
+fan-in writer holds its rows. `ab-ingest-summary.py` prints the rounds side
+by side with the load average at each window's start and end: on a shared
+machine read the rounds, not only the means.
+
+The App's CPU in a window carries every other job it runs too (one that
+runs on the hour lands in one side's window and not the other's). What one
+batch costs ingest itself:
+
+```sh
+node --expose-gc ingest-cost.js /tmp/oneuptime-perf/baseline/packages/App 600 3
+node --expose-gc ingest-cost.js ../../packages/App 600 3
+```
+
+`ingest-cost.js` sends the kit's logs, traces and metrics batches (gzipped
+protobuf, as the queue stores them) through a tree's own payload decoder
+and ingest services in a process of its own, the datastores stubbed and the
+fan-in writer only writing the insert body, and prints the CPU, wall time
+and garbage collection of a batch. Run the two trees in turn, a few times.
 
 ## What each job costs
 
@@ -206,18 +250,23 @@ bash app-image.sh stop
 
 `image/App.Dockerfile` is the production stage of `packages/App/Dockerfile.tpl`
 without the frontends' production builds (the Dashboard's bundle is copied
-in from this checkout) and without the build-time type check.
+in from this checkout), the build-time type check and the prune: it compiles
+the App's and Common's TypeScript as the image does and runs `Index.js`.
+`build` builds each side with its own commit's `image/App.Dockerfile`, so
+a change to how the image runs the App is measured against the image before
+it.
 
 The other servers - the Probe, the Runner, the ingress sidecar
-(`packages/Nginx`) - one at a time, natively as their images run them, the
-live heap a while after start (`npm ci` in the package first; the env file
-gives the settings, `app.env` for the sidecar, `probe.env` for the Probe):
+(`packages/Nginx`) - one at a time, natively from their TypeScript, the live
+heap a while after start (`npm ci` in the package first; the env file gives
+the settings, `app.env` for the sidecar, `probe.env` for the Probe):
 
 ```sh
 bash server-heap.sh Nginx development 45 /tmp/oneuptime-perf/app.env
                                           # ts-node's own compile: inline source maps
 bash server-heap.sh Nginx production 45 /tmp/oneuptime-perf/app.env
-                                          # Common's transpiler, as the image runs it
+                                          # Common's transpiler, as images ran before
+                                          # they ran compiled JavaScript
 ```
 
 `Tests/Ops/PerfKit.test.js` keeps the kit runnable without a stack: every

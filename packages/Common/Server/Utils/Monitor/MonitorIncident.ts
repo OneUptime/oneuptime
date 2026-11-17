@@ -37,6 +37,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import MonitorStoredCheck from "./MonitorStoredCheck";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorEvaluationDetailsCapture, {
   GetEvaluationDetails,
@@ -962,7 +963,7 @@ export default class MonitorIncident {
            * headers when the monitor keeps no response content
            * (MonitorRecordEvidence).
            */
-          incident.createdStateLog = MonitorRecordEvidence.toStoredCheck({
+          incident.createdStateLog = MonitorStoredCheck.toStoredCheck({
             dataToProcess: input.dataToProcess,
             keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
               input.monitor,
@@ -971,6 +972,7 @@ export default class MonitorIncident {
               monitor: input.monitor,
               check: input.dataToProcess,
             }),
+            seriesFingerprint: seriesFingerprint,
           });
 
           /*
@@ -1504,13 +1506,16 @@ export default class MonitorIncident {
     }
 
     if (input.dataToProcess) {
-      // Redacted and storable, as createdStateLog above.
-      incidentStateTimeline.stateChangeLog =
-        MonitorRecordEvidence.toStoredCheck({
-          dataToProcess: input.dataToProcess as DataToProcess,
-          keepResponseContent: input.keepResponseContent !== false,
-          monitorStep: input.monitorStep,
-        });
+      /*
+       * Redacted, storable and bounded, as createdStateLog above: the
+       * resolving series only, when the incident is about one.
+       */
+      incidentStateTimeline.stateChangeLog = MonitorStoredCheck.toStoredCheck({
+        dataToProcess: input.dataToProcess as DataToProcess,
+        keepResponseContent: input.keepResponseContent !== false,
+        monitorStep: input.monitorStep,
+        seriesFingerprint: input.openIncident.seriesFingerprint,
+      });
     }
 
     try {

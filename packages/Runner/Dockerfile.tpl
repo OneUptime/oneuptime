@@ -213,9 +213,8 @@ RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 # avoid a slow recursive `chown -R` over node_modules; deps stay root-owned and
 # world-readable. The last stage's copy keeps both owners.
 COPY --chown=1000:1000 ./packages/Runner /usr/src/app
-# Bundle app source. This type-checks the package at build time, which is the
-# precondition for TS_NODE_TRANSPILE_ONLY below: without it, disabling the
-# boot-time check would leave this service's types verified nowhere at all.
+# Type-check app source. The image runs the JavaScript compiled below without
+# checking it, so this is where the Runner's types are checked in the image.
 RUN npm run compile
 
 # A global Runner's JavaScript sandbox (Utils/JavaScriptSandbox): each step
@@ -237,15 +236,24 @@ RUN mkdir -p /usr/lib/oneuptime-runner \
        --bundle --platform=node --target=node26 --external:isolated-vm --tsconfig=/usr/src/app/tsconfig.json \
        --legal-comments=none --log-level=warning --outfile=/usr/lib/oneuptime-runner/javascript-sandbox-worker.js
 
+# Compile the Runner's TypeScript and Common's to JavaScript, each file beside
+# its TypeScript, as ts-node compiled them when the image ran it: the Runner
+# runs JavaScript, and loads neither TypeScript nor ts-node. After the
+# sandbox's bundle, which is built from the TypeScript alone. See
+# App/Dockerfile.tpl.
+RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common
+
 # Leave in /usr/src only what the Runner runs: Common pruned to the packages
-# its imports reach (see the script's header), the Runner without its own
-# development packages (ts-node keeps TypeScript, which it runs on), and
-# neither package's tests nor the type-check's output (ts-node runs
-# Index.ts). npm's download cache stays behind in this stage.
+# its imports and the stack-trace support its start command requires reach
+# (see the script's header), the Runner without its own development packages
+# (ts-node and TypeScript go with them: it runs the JavaScript compiled above,
+# and the check after the prune holds it to that), and neither package's tests
+# nor the type-check's output. npm's download cache stays behind in this
+# stage.
 COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js
-RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --package /usr/src/Common \
+RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --entry /usr/src/Common/Server/Utils/TsNode/PrecompiledSourceMaps.js --package /usr/src/Common \
     && npm prune --omit=dev --offline --no-audit --no-fund \
-    && node -e "require('ts-node'); require('typescript')" \
+    && node -e "for (const name of ['ts-node', 'typescript']) for (const from of ['/usr/src/app', '/usr/src/Common']) { let found = ''; try { found = require.resolve(name, { paths: [from] }); } catch {} if (found) throw new Error(found + ' is still installed, and the image runs JavaScript'); }" \
     && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests
 
 # ---------------------------------------------------------------------------
@@ -284,13 +292,10 @@ ENV GIT_SHA=${GIT_SHA}
 ENV APP_VERSION=${APP_VERSION}
 LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.version="${APP_VERSION}"
-# The full TypeScript type-check already ran at build time (`npm run compile`
-# above). Without this, ts-node/register redoes it on every container start.
-# See App/Dockerfile.tpl for the full rationale.
-ENV TS_NODE_TRANSPILE_ONLY=1
 # Run the app: package.json's start script, through sh instead of npm, so npm
 # is not a second Node.js process beside the runner. tini stays PID 1 and reaps
 # the commands it runs. The script sizes node's heap to the container's memory
-# limit first. See App/Dockerfile.tpl for both.
-CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
+# limit first, then runs the JavaScript compiled in the build stage. See
+# App/Dockerfile.tpl for all three.
+CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js Index.js" ]
 {{ end }}

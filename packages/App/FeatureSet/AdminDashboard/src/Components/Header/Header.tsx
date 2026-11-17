@@ -29,7 +29,7 @@ const DashboardHeader: FunctionComponent = (): ReactElement => {
       <Header
         leftComponents={
           <>
-            <Logo onClick={() => {}} />
+            <Logo />
             <span
               data-testid={ADMIN_DASHBOARD_LABEL_TEST_ID}
               className={ADMIN_DASHBOARD_LABEL_CLASS_NAME}

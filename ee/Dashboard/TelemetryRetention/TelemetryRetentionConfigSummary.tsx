@@ -3,6 +3,8 @@ import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionC
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   PluralTemplate,
@@ -84,15 +86,11 @@ const PillarCard: FunctionComponent<{ pillar: PillarRender }> = (props: {
             <h4 className="text-sm font-semibold text-gray-900 dark:text-slate-100">
               {translator.translateText(title)}
             </h4>
-            <span
-              className={
-                isCustomized
-                  ? "inline-flex items-center rounded-full bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900"
-                  : "inline-flex items-center rounded-full bg-gray-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400 border border-gray-200 dark:border-slate-700"
-              }
-            >
-              {translator.translateText(isCustomized ? "Custom" : "Default")}
-            </span>
+            <Pill
+              text={isCustomized ? "Custom" : "Default"}
+              tone={isCustomized ? PillTone.Info : PillTone.Neutral}
+              isDotHidden={true}
+            />
           </div>
           <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">
             {translator.translateText(hint)}

@@ -45,9 +45,16 @@ const NotificationBellItem: (props: ComponentProps) => ReactElement = (
       break;
   }
 
+  /*
+   * A real button: it was a div with only a click, so a keyboard could open
+   * the bell but not choose anything in it (#9136). Tab reaches each item,
+   * Enter and Space open it, and it shows the focus ring every control does.
+   */
   return (
-    <div
-      className={`cursor-pointer ${bgColor} ${hoverBgColor} border ${borderColor} py-2 px-3 rounded-lg transition-all duration-150`}
+    <button
+      type="button"
+      data-testid={`notification-bell-item-${item.id}`}
+      className={`flex w-full items-center gap-2 text-start cursor-pointer ${bgColor} ${hoverBgColor} border ${borderColor} py-2 px-3 rounded-lg transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 [@media(pointer:coarse)]:min-h-11`}
       onClick={() => {
         if (props.onClick) {
           props.onClick();
@@ -57,21 +64,17 @@ const NotificationBellItem: (props: ComponentProps) => ReactElement = (
       }}
       title={item.tooltip}
     >
-      <div className="flex items-center gap-2">
-        <div className={`flex-shrink-0 ${textColor}`}>
-          <Icon
-            icon={item.icon}
-            thick={ThickProp.Thick}
-            className={`h-4 w-4 stroke-[2.5px] ${textColor}`}
-          />
-        </div>
-        <div className="flex-1">
-          <span className={`text-sm font-medium ${textColor}`}>
-            {item.title}
-          </span>
-        </div>
-      </div>
-    </div>
+      <span className={`flex-shrink-0 ${textColor}`} aria-hidden="true">
+        <Icon
+          icon={item.icon}
+          thick={ThickProp.Thick}
+          className={`h-4 w-4 stroke-[2.5px] ${textColor}`}
+        />
+      </span>
+      <span className={`flex-1 text-sm font-medium ${textColor}`}>
+        {item.title}
+      </span>
+    </button>
   );
 };
 

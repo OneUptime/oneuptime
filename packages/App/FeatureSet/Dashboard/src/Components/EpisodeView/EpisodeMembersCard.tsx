@@ -9,6 +9,8 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
@@ -295,12 +297,13 @@ const EpisodeMembersCard: <
     <span className="inline-flex flex-wrap items-center gap-2">
       <span>{translator.translateText(props.title) || props.title}</span>
       {countLabel && (
-        <span
-          data-testid="episode-members-count"
-          className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
-        >
-          {countLabel}
-        </span>
+        <Pill
+          dataTestId="episode-members-count"
+          text={countLabel}
+          isUserContent={true}
+          tone={PillTone.Neutral}
+          isDotHidden={true}
+        />
       )}
     </span>
   );
@@ -401,12 +404,14 @@ const EpisodeMembersCard: <
               >
                 <div className="flex min-w-0 flex-1 items-center gap-2.5">
                   {row.number && (
-                    <span
-                      data-testid="episode-member-number"
-                      className="inline-flex flex-shrink-0 items-center rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-gray-600"
-                    >
-                      {row.number}
-                    </span>
+                    <Pill
+                      dataTestId="episode-member-number"
+                      text={row.number}
+                      isUserContent={true}
+                      tone={PillTone.Neutral}
+                      isDotHidden={true}
+                      className="flex-shrink-0 tabular-nums"
+                    />
                   )}
                   {row.id ? (
                     <Link

@@ -162,8 +162,9 @@ describe("the Templates page in the dark theme", () => {
       "utf8",
     );
 
+    // The builder marks it with the shared Pill, in its amber Warning tone.
+    expect(builderCard).toMatch(/text="Hidden"\s+tone=\{PillTone\.Warning\}/);
     for (const token of ["bg-amber-50", "text-amber-800", "ring-amber-200"]) {
-      expect(builderCard).toContain(token);
       expect(TOKENS).toContain(token);
     }
   });

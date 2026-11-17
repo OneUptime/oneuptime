@@ -1,4 +1,7 @@
 import OneUptimeDate from "Common/Types/Date";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
+import Color from "Common/Types/Color";
 import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, {
@@ -179,44 +182,46 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
+              <Pill
+                text={
                   summary.isError
-                    ? "bg-red-50 text-red-700 ring-red-600/20"
-                    : "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
-                }`}
-                data-testid="trace-status"
-              >
-                {summary.isError
-                  ? translator.translatePlural(ERROR_COUNT, summary.errorCount)
-                  : translator.translateText("No errors")}
-              </span>
+                    ? translator.translatePlural(
+                        ERROR_COUNT,
+                        summary.errorCount,
+                      )
+                    : translator.translateText("No errors")
+                }
+                isUserContent={true}
+                tone={summary.isError ? PillTone.Danger : PillTone.Success}
+                dataTestId="trace-status"
+              />
               {summary.rootSpan?.kind && (
-                <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/15">
-                  {SpanUtil.getSpanKindFriendlyName(
+                <Pill
+                  text={SpanUtil.getSpanKindFriendlyName(
                     summary.rootSpan.kind,
                     translator,
                   )}
-                </span>
+                  isUserContent={true}
+                  tone={PillTone.Neutral}
+                  isDotHidden={true}
+                />
               )}
               {rootService && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-500/15">
-                  <span
-                    className="h-2 w-2 rounded-full"
-                    style={{ backgroundColor: rootService.color }}
-                    aria-hidden="true"
-                  />
-                  {rootService.name}
-                </span>
+                <Pill
+                  text={rootService.name}
+                  isUserContent={true}
+                  color={new Color(rootService.color)}
+                />
               )}
               {orphanNote && (
-                <span
-                  className="inline-flex cursor-help items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20"
-                  title={orphanNote.hint}
-                  data-testid="trace-orphans"
-                >
-                  {orphanNote.label}
-                </span>
+                <Pill
+                  text={orphanNote.label}
+                  isUserContent={true}
+                  tone={PillTone.Warning}
+                  tooltip={orphanNote.hint}
+                  isTooltipUserContent={true}
+                  dataTestId="trace-orphans"
+                />
               )}
             </div>
             <h2

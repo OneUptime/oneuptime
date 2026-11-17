@@ -9,6 +9,8 @@ import React, {
 } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -185,16 +187,13 @@ function AlertTemplatePicker<T extends AlertTemplatePickerTemplate>(
     testId: string,
   ): ReactElement => {
     return (
-      <span
-        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-          isCriticalAlertTemplate(template)
-            ? "bg-red-100 text-red-800"
-            : "bg-yellow-100 text-yellow-800"
-        }`}
-        data-testid={testId}
-      >
-        {translator.translateText(template.severity)}
-      </span>
+      <Pill
+        dataTestId={testId}
+        text={template.severity}
+        tone={
+          isCriticalAlertTemplate(template) ? PillTone.Danger : PillTone.Warning
+        }
+      />
     );
   };
 

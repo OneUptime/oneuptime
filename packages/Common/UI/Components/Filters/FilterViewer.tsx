@@ -45,6 +45,14 @@ import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import PhoneNumberText from "../PhoneNumber/PhoneNumberText";
 import React, { ReactElement, useEffect, useState } from "react";
 
+/*
+ * An attribute filter's chip (`host.name = prod-1`). At least 28px tall and
+ * growing with its words; never wider than the line it is on, a long key or
+ * value breaking anywhere rather than running past it.
+ */
+export const FILTER_ATTRIBUTE_CHIP_CLASS_NAME: string =
+  "inline-flex min-h-7 max-w-full items-center rounded-full border-2 border-gray-200 bg-gray-100 px-2 py-1 text-xs text-gray-500 [overflow-wrap:anywhere]";
+
 export interface ComponentProps<T extends GenericObject> {
   filters: Array<Filter<T>>;
   singularLabel?: string;
@@ -264,13 +272,19 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
     );
 
     return (
-      <div className="flex space-x-2 -mt-1">
+      /*
+       * The chips wrap onto as many lines as they need, and a long key or
+       * value breaks inside its chip: in one row that did not wrap, a few
+       * chips ran off a 390px phone and their words were out of reach
+       * (#9136). Every word stays in sight; nothing is cut short.
+       */
+      <div
+        className="flex min-w-0 max-w-full flex-wrap gap-2"
+        data-testid="filter-attribute-chips"
+      >
         {visibleKeys.map((key: string, i: number) => {
           return (
-            <div
-              key={i}
-              className="rounded-full h-7 bg-gray-100 text-gray-500 border-2 border-gray-200 p-1 pr-2 pl-2 text-xs"
-            >
+            <div key={i} className={FILTER_ATTRIBUTE_CHIP_CLASS_NAME}>
               <DictionaryFilterSentence
                 attributeKey={key}
                 value={json[key]}
@@ -538,8 +552,9 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         other: "{{field}} are {{value}}",
       };
 
+      // The sentence wraps too, its chips onto lines of their own.
       return (
-        <span className="inline-flex items-center space-x-1">
+        <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1">
           <TranslatedSentence
             template={jsonTemplate}
             count={nonEmptyEntryCount}
@@ -547,7 +562,11 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
               field: (
                 <span className="font-medium">{tx(data.filter.title)}</span>
               ),
-              value: <span className="font-medium">{formatJson(json)}</span>,
+              value: (
+                <span className="min-w-0 max-w-full font-medium">
+                  {formatJson(json)}
+                </span>
+              ),
             }}
             renderText={(text: string): ReactElement => {
               return <span>{text.trim()}</span>;

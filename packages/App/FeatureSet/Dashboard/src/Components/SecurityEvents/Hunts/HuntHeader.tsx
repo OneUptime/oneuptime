@@ -17,6 +17,8 @@ import {
   SEARCH_CHANGED,
   SHOW_THEM,
 } from "./HuntsCopy";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import {
   HuntRecipients,
   HuntSearchLine,
@@ -276,27 +278,17 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
       <div className="px-4 py-4 sm:px-5">
         <div className={SECURITY_CASE_HEADER_TOP_ROW_CLASS_NAME}>
           <div className={SECURITY_CASE_HEADER_CHIPS_CLASS_NAME}>
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-700">
-              <Icon
-                icon={IconProp.ViewfinderCircle}
-                className="h-3.5 w-3.5 flex-shrink-0 text-gray-500"
-              />
-              {translator.translateText(HUNT_SINGULAR) || HUNT_SINGULAR}
-            </span>
-            <span
-              className={
-                isScheduled
-                  ? "inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700"
-                  : "inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-200"
-              }
-            >
-              {isScheduled ? (
-                <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 shrink-0" />
-              ) : (
-                <></>
-              )}
-              {translator.translateText(scheduleLabel) || scheduleLabel}
-            </span>
+            <Pill
+              text={HUNT_SINGULAR}
+              tone={PillTone.Neutral}
+              icon={IconProp.ViewfinderCircle}
+            />
+            <Pill
+              text={scheduleLabel}
+              tone={isScheduled ? PillTone.Info : PillTone.Neutral}
+              icon={isScheduled ? IconProp.Clock : undefined}
+              isDotHidden={!isScheduled}
+            />
           </div>
 
           {/* Before the actions, as it is read; drawn under them on a wide header. */}

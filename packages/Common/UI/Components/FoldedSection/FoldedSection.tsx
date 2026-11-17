@@ -5,6 +5,8 @@ import { getListSeparator } from "../../Utils/ListSeparator";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import Icon from "../Icon/Icon";
+import Pill from "../Pill/Pill";
+import { PillTone } from "../Pill/PillTone";
 import {
   FoldedSectionItem,
   FoldedSectionItemsShown,
@@ -657,12 +659,13 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
               {showBadge ? (
                 <>
                   {showContents ? renderSeparator() : <></>}
-                  <span
-                    className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
-                    data-testid="folded-section-badge"
-                  >
-                    {badgeText}
-                  </span>
+                  <Pill
+                    text={badgeText}
+                    isUserContent={true}
+                    tone={PillTone.Neutral}
+                    isDotHidden={true}
+                    dataTestId="folded-section-badge"
+                  />
                 </>
               ) : (
                 <></>

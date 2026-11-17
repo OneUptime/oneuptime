@@ -50160,8 +50160,6 @@
   "Either {{name}} has an A record, or your DNS provider proxies or flattens it (Cloudflare's orange cloud does), which hides the CNAME record. Replace the A record with a CNAME record whose value is {{expectedValue}}, or set the name to DNS only.": "Ofwel heeft {{name}} een A-record, ofwel leidt uw DNS-provider de naam via een proxy of vlakt hem af (de oranje wolk van Cloudflare doet dat), waardoor het CNAME-record verborgen blijft. Vervang het A-record door een CNAME-record met de waarde {{expectedValue}}, of zet de naam op DNS only.",
   "Email is failing": "E-mail mislukt",
   "Email is not set up": "E-mail is niet ingesteld",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "E-mails mislukken sinds {{time}}, dus uitnodigingen en incidentmails komen niet aan.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "E-mails mislukken sinds {{time}}, dus uitnodigingen en incidentmails komen niet aan. De mailserver antwoordde: {{reason}}",
   "Enter the address people will open, such as status.example.com: letters, digits, dots and hyphens only.": "Voer het adres in dat mensen gaan openen, zoals status.example.com: alleen letters, cijfers, punten en koppeltekens.",
   "Found": "Gevonden",
   "Invitations, password resets and incident emails are not sent.": "Uitnodigingen, wachtwoordherstel en incidentmails worden niet verzonden.",
@@ -56515,5 +56513,10 @@
   "AI reads the alert as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "AI leest de waarschuwing zoals die nu is: status, beschrijving en hoofdoorzaak. Als die privé is, is deze taak alleen zichtbaar voor wie die kan zien.",
   "AI reads the incident as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "AI leest het incident zoals het nu is: status, beschrijving en hoofdoorzaak. Als het privé is, is deze taak alleen zichtbaar voor wie het kan zien.",
   "Carried Alert IDs": "ID's van opgenomen waarschuwingen",
-  "Carried Incident IDs": "ID's van opgenomen incidenten"
+  "Carried Incident IDs": "ID's van opgenomen incidenten",
+  "VPA": "VPA",
+  "This check was too large to keep in full, so it was trimmed.": "Deze controle was te groot om volledig te bewaren en is daarom ingekort.",
+  "No email has gone out through this server's email settings since {{time}}.": "Sinds {{time}} is er geen e-mail meer verstuurd via de e-mailinstellingen van deze server.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Sinds {{time}} is er geen e-mail meer verstuurd via de e-mailinstellingen van deze server. De mailserver meldde: {{reason}}",
+  "See email logs": "E-maillogboeken bekijken"
 }

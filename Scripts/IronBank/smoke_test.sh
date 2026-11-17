@@ -11,10 +11,13 @@
 #            Iron Bank's nginx image does not install). nginx.conf includes
 #            conf.d/default.conf, which run.sh renders from a template and the
 #            deployment's settings at start, so an empty one stands in for it.
-#            And the certificate sidecar's TypeScript loader resolves, and
-#            Node.js, npm, bash, envsubst and openssl run: run.sh needs them.
-#   Runner   the runner's TypeScript loader resolves, kubectl, git, ssh and
-#            tini run, and it is the node user.
+#            And the certificate sidecar's compiled JavaScript is there and
+#            its stack-trace support loads (the start script requires it
+#            first), and Node.js, npm, bash, envsubst and openssl run: run.sh
+#            needs them.
+#   Runner   the runner's compiled JavaScript is there and its stack-trace
+#            support loads, kubectl, git, ssh and tini run, and it is the
+#            node user.
 #   Probe    the checks the release's own Dockerfile ends with (the SQL Server
 #            driver and its ODBC registration, isolated-vm, the memory
 #            helper), Playwright's Chromium and Firefox render a page, and the
@@ -54,20 +57,28 @@ const { chromium, firefox } = require("playwright");
   process.exit(1);
 });'
 
+# What the start script loads first, and the JavaScript it runs: the
+# release compiled its TypeScript when it was built
+# (Common/Server/Utils/TsNode/Precompile.js), and runs no TypeScript.
+COMPILED_START_CHECK='
+require("Common/Server/Utils/TsNode/PrecompiledSourceMaps.js");
+require.resolve("./Index.js");
+console.log("the compiled start and its stack-trace support load");'
+
 case "$PROJECT" in
 App)
 	echo "The App is booted with its datastores by Tests/Ops/AppImageRuntime.test.js."
 	;;
 Ingress)
 	run sh -c 'touch /etc/nginx/conf.d/default.conf && nginx -t'
-	run node -e 'require.resolve("ts-node/register"); console.log("ts-node resolves")'
+	run node -e "$COMPILED_START_CHECK"
 	run node --version
 	run npm --version
 	run bash -c 'command -v envsubst && openssl version'
 	run sh -c 'test -x /etc/nginx/envsubst-on-templates.sh && test -x /usr/src/app/run.sh'
 	;;
 Runner)
-	run node -e 'require.resolve("ts-node/register"); console.log("ts-node resolves")'
+	run node -e "$COMPILED_START_CHECK"
 	run kubectl version --client
 	run git --version
 	run ssh -V

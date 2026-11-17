@@ -149,7 +149,7 @@ Esse ciclo — adicionar, ligar, configurar, executar, ler o log — é como voc
 
 Os novos workflows começam desabilitados, assim como qualquer workflow que você duplique ou importe. Desligado, o gatilho do workflow fica pausado, então nada o inicia sozinho, mas você ainda pode testá-lo. Enquanto um workflow está desligado, o Construtor avisa acima do canvas, com um botão **Ativar fluxo de trabalho**.
 
-A chave **Habilitado** fica no topo do **Construtor**, ao lado de **Adicionar componente** e **Executar fluxo de trabalho**. Ela também está na página **Visão geral** do workflow, cujo cartão **Detalhes do Fluxo de Trabalho** mostra o estado atual com um selo verde **Habilitado** ou vermelho **Desabilitado**: clique em **Editar fluxo de trabalho** e abra **Mais campos**. Só quem pode editar o workflow pode ligá-lo ou desligá-lo; os demais veem a chave em cinza.
+A chave **Habilitado** fica no topo do **Construtor**, ao lado de **Adicionar componente** e **Executar fluxo de trabalho**. Ela também está na página **Visão geral** do workflow, cujo cartão **Detalhes do Fluxo de Trabalho** mostra o estado atual com um selo verde **Habilitado** ou cinza **Desabilitado**: clique em **Editar fluxo de trabalho** e abra **Mais campos**. Só quem pode editar o workflow pode ligá-lo ou desligá-lo; os demais veem a chave em cinza.
 
 Enquanto um workflow está desligado, o que o inicia decide se ele roda:
 

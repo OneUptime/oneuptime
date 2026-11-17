@@ -7,6 +7,8 @@ import {
   StatusPageGroupCsvParseResult,
   parseStatusPageGroupCsv,
 } from "../../Utils/StatusPageGroupCsv";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import {
   CreateStatusPageGroupFunction,
   StatusPageGroupCreateResult,
@@ -618,19 +620,16 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
                         </td>
                         <td className="px-3 py-2">
                           {result.status === "created" && (
-                            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                              {translator.translateText(CREATED_IMPORT_RESULT)}
-                            </span>
+                            <Pill
+                              text={CREATED_IMPORT_RESULT}
+                              tone={PillTone.Success}
+                            />
                           )}
                           {result.status === "failed" && (
-                            <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
-                              {translator.translateText("Failed")}
-                            </span>
+                            <Pill text="Failed" tone={PillTone.Danger} />
                           )}
                           {result.status === "skipped" && (
-                            <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-                              {translator.translateText("Skipped")}
-                            </span>
+                            <Pill text="Skipped" tone={PillTone.Warning} />
                           )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">

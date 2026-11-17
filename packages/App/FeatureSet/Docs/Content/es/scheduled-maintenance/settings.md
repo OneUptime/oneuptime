@@ -39,7 +39,7 @@ Las reglas se diferencian en cómo resuelven varias coincidencias:
 - **Reglas del propietario**, **Reglas de etiquetas** y **Reglas de runbook** actúan todas cuando coinciden. Los propietarios y las etiquetas que añaden varias reglas se añaden una sola vez.
 - **Reglas de recordatorio** se comprueban de arriba abajo en su lista, y gana la primera que coincide. Arrastra una regla para cambiar su lugar; una regla nueva va al final.
 
-Una regla nueva empieza habilitada; desactiva **Habilitado** en su formulario de edición para pausarla, y la lista muestra para cada regla un **Habilitado** verde o un **Deshabilitado** rojo. Las reglas del propietario, de etiquetas y de runbook actúan sobre los eventos creados después de guardarlas. Para aplicar una regla del propietario o de etiquetas a los eventos que ya tienes, usa **Ejecutar ahora**: consulta [Ejecutar reglas sobre recursos existentes](/docs/configuration/run-rules-now).
+Una regla nueva empieza habilitada; desactiva **Habilitado** en su formulario de edición para pausarla, y la lista muestra para cada regla un **Habilitado** verde o un **Deshabilitado** gris. Las reglas del propietario, de etiquetas y de runbook actúan sobre los eventos creados después de guardarlas. Para aplicar una regla del propietario o de etiquetas a los eventos que ya tienes, usa **Ejecutar ahora**: consulta [Ejecutar reglas sobre recursos existentes](/docs/configuration/run-rules-now).
 
 ## Reglas del propietario y de etiquetas
 

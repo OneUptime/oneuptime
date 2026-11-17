@@ -50160,8 +50160,6 @@
   "Either {{name}} has an A record, or your DNS provider proxies or flattens it (Cloudflare's orange cloud does), which hides the CNAME record. Replace the A record with a CNAME record whose value is {{expectedValue}}, or set the name to DNS only.": "Soit {{name}} a un enregistrement A, soit votre fournisseur DNS le fait passer par un proxy ou l'aplatit (c'est ce que fait le nuage orange de Cloudflare), ce qui cache l'enregistrement CNAME. Remplacez l'enregistrement A par un enregistrement CNAME dont la valeur est {{expectedValue}}, ou passez le nom en DNS only.",
   "Email is failing": "L'envoi d'e-mails échoue",
   "Email is not set up": "L'e-mail n'est pas configuré",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "L'envoi d'e-mails échoue depuis le {{time}} : les invitations et les e-mails d'incident n'arrivent pas.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "L'envoi d'e-mails échoue depuis le {{time}} : les invitations et les e-mails d'incident n'arrivent pas. Le serveur de messagerie a répondu : {{reason}}",
   "Enter the address people will open, such as status.example.com: letters, digits, dots and hyphens only.": "Saisissez l'adresse que les gens ouvriront, par exemple status.example.com : lettres, chiffres, points et traits d'union uniquement.",
   "Found": "Trouvé",
   "Invitations, password resets and incident emails are not sent.": "Les invitations, les réinitialisations de mot de passe et les e-mails d'incident ne sont pas envoyés.",
@@ -56515,5 +56513,10 @@
   "AI reads the alert as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "L'IA lit l'alerte telle qu'elle est maintenant : son état, sa description et sa cause racine. Si elle est privée, seules les personnes qui peuvent la voir verront cette tâche.",
   "AI reads the incident as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "L'IA lit l'incident tel qu'il est maintenant : son état, sa description et sa cause racine. S'il est privé, seules les personnes qui peuvent le voir verront cette tâche.",
   "Carried Alert IDs": "ID des alertes incluses",
-  "Carried Incident IDs": "ID des incidents inclus"
+  "Carried Incident IDs": "ID des incidents inclus",
+  "VPA": "VPA",
+  "This check was too large to keep in full, so it was trimmed.": "Cette vérification était trop volumineuse pour être conservée en entier : elle a donc été raccourcie.",
+  "No email has gone out through this server's email settings since {{time}}.": "Aucun e-mail n'est parti via les paramètres e-mail de ce serveur depuis le {{time}}.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Aucun e-mail n'est parti via les paramètres e-mail de ce serveur depuis le {{time}}. Le serveur de messagerie a répondu : {{reason}}",
+  "See email logs": "Voir les journaux des e-mails"
 }

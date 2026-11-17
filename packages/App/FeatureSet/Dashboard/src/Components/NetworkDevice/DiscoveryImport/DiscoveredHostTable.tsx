@@ -16,6 +16,8 @@ import FilterButtons, {
   FilterButtonOption,
 } from "Common/UI/Components/FilterButtons/FilterButtons";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Pagination from "Common/UI/Components/Pagination/Pagination";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
@@ -881,21 +883,21 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
       )}
       <div className="flex flex-wrap items-center gap-2 pl-10 md:justify-end md:pl-0">
         {isPingOnly ? (
-          <span
-            className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
-            title={translator.translateText(
-              "Responds to ping only. Imports as a device pinged by the scan's probe, with no SNMP credentials — add them later for interfaces and inventory.",
-            )}
-          >
-            {translator.translateText("No SNMP")}
-          </span>
+          <Pill
+            text="No SNMP"
+            tone={PillTone.Neutral}
+            tooltip="Responds to ping only. Imports as a device pinged by the scan's probe, with no SNMP credentials — add them later for interfaces and inventory."
+            className="flex-shrink-0"
+          />
         ) : (
           <></>
         )}
         {entry.isAlreadyRegistered && (
-          <span className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-            {translator.translateText("Already added")}
-          </span>
+          <Pill
+            text="Already added"
+            tone={PillTone.Neutral}
+            className="flex-shrink-0"
+          />
         )}
       </div>
     </li>

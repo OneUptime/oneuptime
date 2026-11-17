@@ -624,10 +624,15 @@ describe("a part's hero", () => {
     expect(screen.getByTestId("hero-chips")).toHaveTextContent(
       "64 cores256 GiB memoryprodweb",
     );
-    // Blank tags are dropped; each tag is isolated for a right-to-left page.
+    /*
+     * Blank tags are dropped; each tag is a Pill, whose words read their own
+     * way on a right-to-left page.
+     */
     const tags: Array<HTMLElement> = screen.getAllByTestId("hero-tag");
     expect(tags).toHaveLength(2);
-    expect(tags[0]!.querySelector("bdi")).toHaveTextContent("prod");
+    expect(
+      tags[0]!.querySelector('[data-testid="pill-text"]'),
+    ).toHaveTextContent("prod");
   });
 
   test("a part with nothing more to say draws only its name", () => {
@@ -1015,9 +1020,10 @@ describe("which of a part's alerts are on", () => {
      * Not set up reads grey, as it does everywhere in the product: a row of
      * amber pills read as that many warnings.
      */
-    const notSetUp: HTMLElement = screen.getByText("Not set up");
-    expect(notSetUp.className).toContain("text-gray-600");
-    expect(notSetUp.className).not.toContain("amber");
+    const notSetUp: HTMLElement = screen
+      .getByText("Not set up")
+      .closest("[data-tone]") as HTMLElement;
+    expect(notSetUp).toHaveAttribute("data-tone", "neutral");
     // Only what nobody turned on or dismissed is ticked.
     const turnOn: HTMLElement = screen.getByTestId("alerts-turn-on");
     expect(turnOn).toHaveTextContent("Turn on 1 alert");

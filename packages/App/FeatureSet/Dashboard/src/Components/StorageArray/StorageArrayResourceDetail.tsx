@@ -505,7 +505,7 @@ const StorageArrayResourceDetail: FunctionComponent<ComponentProps> = (
   return (
     <div data-testid="storage-array-part-page" data-kind={props.kind}>
       {hero}
-      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+      <Tabs label="Resource" tabs={tabs} wrap={true} onTabChange={() => {}} />
     </div>
   );
 };

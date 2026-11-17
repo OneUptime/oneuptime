@@ -1,3 +1,4 @@
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import PageComponentProps from "../../PageComponentProps";
 import { INCIDENT_EPISODE_TEMPLATE_VARIABLE_GROUPS } from "Common/Utils/Episode/EpisodeTemplateVariables";
 import EpisodeTemplateVariablesCopy from "../../../Components/IncidentGroupingRule/EpisodeTemplateVariablesCopy";
@@ -14,7 +15,7 @@ import IncidentGroupingRule, {
   EpisodeMemberRoleAssignment,
 } from "Common/Models/DatabaseModels/IncidentGroupingRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green } from "Common/Types/BrandColors";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -267,7 +268,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
               if (item.isEnabled) {
                 return <Pill color={Green} text="Enabled" />;
               }
-              return <Pill color={Red} text="Disabled" />;
+              return <Pill tone={PillTone.Paused} text="Disabled" />;
             },
           },
         ]}

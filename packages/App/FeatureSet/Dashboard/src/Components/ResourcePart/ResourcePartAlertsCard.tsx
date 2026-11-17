@@ -4,6 +4,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -139,18 +141,10 @@ const ResourcePartAlertsCard: FunctionComponent<ComponentProps> = (
     }
 
     if (viewModel.status === RecommendationStatus.Dismissed) {
-      return (
-        <span className="inline-flex whitespace-nowrap rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
-          {tx("Dismissed")}
-        </span>
-      );
+      return <Pill text="Dismissed" tone={PillTone.Paused} />;
     }
 
-    return (
-      <span className="inline-flex whitespace-nowrap rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
-        {tx("Not set up")}
-      </span>
-    );
+    return <Pill text="Not set up" tone={PillTone.Neutral} />;
   };
 
   return (

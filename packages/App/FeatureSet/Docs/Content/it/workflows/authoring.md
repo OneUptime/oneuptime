@@ -149,7 +149,7 @@ Questo ciclo — aggiungere, collegare, configurare, eseguire, leggere il log �
 
 I nuovi flussi di lavoro partono disabilitati, come ogni flusso di lavoro che duplichi o importi. Da disattivato, il trigger del flusso di lavoro è in pausa, quindi niente lo avvia da solo, ma puoi comunque provarlo. Finché un flusso di lavoro è disattivato, il Costruttore lo segnala sopra la tela, con un pulsante **Attiva flusso di lavoro**.
 
-L'interruttore **Abilitato** si trova in cima al **Costruttore**, accanto a **Aggiungi componente** e **Esegui flusso di lavoro**. Si trova anche nella pagina **Panoramica** del flusso di lavoro, la cui scheda **Dettagli del flusso di lavoro** mostra lo stato attuale con una pillola verde **Abilitato** o rossa **Disabilitato**: fai clic su **Modifica flusso di lavoro** e apri **Altri campi**. Solo le persone che possono modificare il flusso di lavoro possono attivarlo o disattivarlo; gli altri vedono l'interruttore in grigio.
+L'interruttore **Abilitato** si trova in cima al **Costruttore**, accanto a **Aggiungi componente** e **Esegui flusso di lavoro**. Si trova anche nella pagina **Panoramica** del flusso di lavoro, la cui scheda **Dettagli del flusso di lavoro** mostra lo stato attuale con una pillola verde **Abilitato** o grigia **Disabilitato**: fai clic su **Modifica flusso di lavoro** e apri **Altri campi**. Solo le persone che possono modificare il flusso di lavoro possono attivarlo o disattivarlo; gli altri vedono l'interruttore in grigio.
 
 Mentre un flusso di lavoro è disattivato, ciò che lo avvia decide se viene eseguito:
 

@@ -7,6 +7,8 @@ import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { getIsolatedLine } from "Common/UI/Components/IsolatedText/IsolatedLine";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -504,19 +506,17 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
               </p>
             </div>
             {seatTone !== "healthy" && (
-              <span
-                className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                  seatTone === "breached"
-                    ? "bg-red-100 text-red-700"
-                    : "bg-amber-100 text-amber-800"
-                }`}
-              >
-                {translator.translateText(
+              <Pill
+                text={
                   seatTone === "breached"
                     ? LicenseDetailsCopy.limitExceeded
-                    : LicenseDetailsCopy.nearlyFull,
-                )}
-              </span>
+                    : LicenseDetailsCopy.nearlyFull
+                }
+                tone={
+                  seatTone === "breached" ? PillTone.Danger : PillTone.Warning
+                }
+                className="shrink-0"
+              />
             )}
           </div>
 

@@ -10,8 +10,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green500, Red500 } from "Common/Types/BrandColors";
+import { Green500 } from "Common/Types/BrandColors";
 
 /*
  * The Workflow Details card's Edit asks for the name and the description,
@@ -103,7 +104,13 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     <Pill text="Enabled" color={Green500} isMinimal={true} />
                   );
                 }
-                return <Pill text="Disabled" color={Red500} isMinimal={true} />;
+                return (
+                  <Pill
+                    text="Disabled"
+                    tone={PillTone.Paused}
+                    isMinimal={true}
+                  />
+                );
               },
             },
             {

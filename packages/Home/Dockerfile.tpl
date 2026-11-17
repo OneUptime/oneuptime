@@ -101,8 +101,12 @@ CMD [ "npm", "run", "dev" ]
 # world-readable. Without its tests, like Common above: they import Common's, so
 # the compile below type-checks neither, and the Compile workflow does.
 COPY --chown=1000:1000 --exclude=Tests ./packages/Home /usr/src/app
-# Bundle app source
+# Type-check app source
 RUN npm run compile
+# Compile Home's TypeScript and Common's to JavaScript, each file beside its
+# TypeScript, as ts-node compiled them when the image ran it: Home runs
+# JavaScript, and loads neither TypeScript nor ts-node. See App/Dockerfile.tpl.
+RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common
 # Give node ownership of /usr/src itself (non-recursive — instant) so it can
 # create and own the blog clone below. Common/node_modules stay root-owned.
 # Likewise /usr/src/app/build, which the compile above created as root, so the
@@ -128,12 +132,9 @@ ENV APP_VERSION=${APP_VERSION}
 ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
 LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.version="${APP_VERSION}"
-# The full TypeScript type-check already ran at build time (`npm run compile`
-# above). Without this, ts-node/register redoes it on every container start.
-# See App/Dockerfile.tpl for the full rationale.
-ENV TS_NODE_TRANSPILE_ONLY=1
 # Run the app: package.json's start script, through sh instead of npm, so node
 # is the container's only Node.js process, with a heap the script sizes to the
-# container's memory limit. See App/Dockerfile.tpl for both.
-CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --require ts-node/register Index.ts" ]
+# container's memory limit, running the JavaScript compiled above. See
+# App/Dockerfile.tpl for all three.
+CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js Index.js" ]
 {{ end }}

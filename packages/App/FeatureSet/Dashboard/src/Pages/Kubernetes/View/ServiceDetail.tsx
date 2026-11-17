@@ -268,7 +268,7 @@ const KubernetesClusterServiceDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return <Tabs label="Service" tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterServiceDetail;

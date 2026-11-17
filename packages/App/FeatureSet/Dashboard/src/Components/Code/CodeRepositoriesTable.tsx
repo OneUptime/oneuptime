@@ -12,6 +12,8 @@ import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Link from "Common/UI/Components/Link/Link";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Table from "Common/UI/Components/Table/Table";
 import { TableEmptyStateProps } from "Common/UI/Components/Table/TableEmptyState";
 import {
@@ -273,12 +275,11 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
                   <></>
                 )}
                 {repository.connection?.isTokenRefused ? (
-                  <span
-                    data-testid="code-repository-token-refused"
-                    className="inline-flex items-center whitespace-nowrap rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20"
-                  >
-                    {translator.translateText("Token refused")}
-                  </span>
+                  <Pill
+                    dataTestId="code-repository-token-refused"
+                    text="Token refused"
+                    tone={PillTone.Warning}
+                  />
                 ) : (
                   <></>
                 )}
@@ -335,24 +336,22 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
                 className="mt-1 flex flex-wrap items-center gap-1.5"
               >
                 {words.working ? (
-                  <span
-                    data-testid="code-repository-working"
-                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20"
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-                    {words.working}
-                  </span>
+                  <Pill
+                    dataTestId="code-repository-working"
+                    text={words.working}
+                    isUserContent={true}
+                    tone={PillTone.Info}
+                  />
                 ) : (
                   <></>
                 )}
                 {words.waiting ? (
-                  <span
-                    data-testid="code-repository-waiting"
-                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20"
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                    {words.waiting}
-                  </span>
+                  <Pill
+                    dataTestId="code-repository-waiting"
+                    text={words.waiting}
+                    isUserContent={true}
+                    tone={PillTone.Warning}
+                  />
                 ) : (
                   <></>
                 )}

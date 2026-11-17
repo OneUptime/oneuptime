@@ -110,7 +110,9 @@ and phone summary: change the suite in the same pull request as the menu.
   under Attention Required. Monitors filed Disabled there with the error icon and a red count beside
   Not Operational, and a red count that never went away taught people to ignore red (#9126). The
   same state is grey wherever it shows: a monitor's row, its badge and an SLO's list of monitors.
-  Enforced by
+  A chip that says Disabled, Archived or Paused is the `Paused` tone, grey with a hollow dot, and a
+  rule's on or off is `EnabledPill`: about ninety rule lists, from owner rules to drop filters and
+  workflows, drew a rule someone switched off as a red "Disabled" (#9184). Enforced by
   [DeliberateStatesNotDangerGuard](../../packages/App/Tests/Dashboard/DeliberateStatesNotDangerGuard.test.ts).
 - **A section with one entry does not repeat that entry's name.** A heading that says what its only
   entry says doubles the menu's height and, folded, hides the page behind a click that tells nothing
@@ -285,6 +287,16 @@ work out, starts from a default for everything else, and folds what most people 
   [DragOrderedListsGuard](../../packages/App/Tests/Dashboard/DragOrderedListsGuard.test.ts).
 - **No control inside another control,** such as a button inside a link. Enforced by
   [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts).
+- **Nothing is pressed with a mouse alone.** Anything that does something on a click is a
+  `<button type="button">` or a link, which Tab reaches, Enter and Space press, and which shows the
+  focus ring. A `div` or `li` with only a click is out of a keyboard's reach and is read as text:
+  a keyboard could open the header's notification bell but choose nothing in it, and could not go
+  back to a finished step of a form (#9136). Enforced by
+  [ClickOnlyControlsGuard](../../packages/Common/Tests/UI/Components/ClickOnlyControlsGuard.test.ts).
+- **A finger can hit it.** Under a finger (`[@media(pointer:coarse)]:min-h-11`) a control is at
+  least 44px across, or 24px with room around it: the list's page buttons were 28px, 24px in a
+  compact list, with nothing larger for touch (#9136). A mouse keeps the compact size. Not enforced:
+  use judgement.
 - **One button.** An action is the shared `Button` (`Common/UI/Components/Button`), never a
   `<button>` drawn by hand in the primary colours: 34 of them each had their own size and corners,
   and their focus ring, locked look and phone layout had drifted from the shared one (#9128). Every

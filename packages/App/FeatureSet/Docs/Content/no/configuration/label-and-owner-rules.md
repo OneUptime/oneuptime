@@ -57,7 +57,7 @@ I trinnet **Etiketter** velger du **Etiketter å legge til**. I en eierregel het
 I det siste trinnet klikker du igjen på knappen som er oppkalt etter regelen, for eksempel **Opprett Monitor Label Rule**. Regelen starter som aktivert, og listen viser den med et grønt merke **Aktivert**.
 :::
 
-En ny regel må legge til noe: minst én etikett (eller eier) eller, i en regel for hendelser, varsler eller planlagt vedlikehold, noe den arver (se nedenfor). For å sette en regel på pause uten å slette den slår du av **Aktivert** i redigeringsskjemaet; listen viser da et rødt merke **Deaktivert**. På en eierregel for hendelser eller varsler holder det også med et team under **Oppretterens team**.
+En ny regel må legge til noe: minst én etikett (eller eier) eller, i en regel for hendelser, varsler eller planlagt vedlikehold, noe den arver (se nedenfor). For å sette en regel på pause uten å slette den slår du av **Aktivert** i redigeringsskjemaet; listen viser da et grått merke **Deaktivert**. På en eierregel for hendelser eller varsler holder det også med et team under **Oppretterens team**.
 
 ### Uansett hvordan regelen opprettes
 

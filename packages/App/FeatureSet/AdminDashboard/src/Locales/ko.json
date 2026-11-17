@@ -2144,8 +2144,6 @@
   "Check email settings": "이메일 설정 확인",
   "Email is failing": "이메일 전송 실패 중",
   "Email is not set up": "이메일이 설정되지 않음",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "{{time}}부터 이메일 전송이 실패하고 있어 초대와 인시던트 이메일이 도착하지 않습니다.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "{{time}}부터 이메일 전송이 실패하고 있어 초대와 인시던트 이메일이 도착하지 않습니다. 메일 서버 응답: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "초대, 비밀번호 재설정, 인시던트 이메일이 전송되지 않습니다.",
   "Monitors that run on global probes are not being checked.": "글로벌 프로브에서 실행되는 모니터가 확인되지 않고 있습니다.",
   "No global probe is reporting": "보고 중인 글로벌 프로브가 없음",
@@ -4165,5 +4163,11 @@
   "OneUptime switched this rule off when they were deleted.": "해당 항목이 삭제될 때 OneUptime이 이 규칙을 비활성화했습니다.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "이대로 활성화하면 이 규칙은 이 목록들로 전혀 제한되지 않습니다. 규칙을 편집해 적용 대상을 선택한 다음 활성화하세요.",
   "{{names}} and {{count}} more": "{{names}} 외 {{count}}개",
-  "{{names}} and {{count}} more_one": "{{names}} 외 {{count}}개"
+  "{{names}} and {{count}} more_one": "{{names}} 외 {{count}}개",
+  "No email has gone out through this server's email settings since {{time}}.": "{{time}} 이후 이 서버의 이메일 설정으로 발송된 이메일이 없습니다.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "{{time}} 이후 이 서버의 이메일 설정으로 발송된 이메일이 없습니다. 메일 서버 응답: {{reason}}",
+  "See email logs": "이메일 로그 보기",
+  "Addresses the mail server refused": "메일 서버가 거부한 주소",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "다른 이메일은 발송되었으므로 이 주소들만 영향을 받습니다. 주소를 수정하거나 메일 제공업체가 이 주소를 허용하도록 하세요. Amazon SES 샌드박스는 확인된 주소로만 발송합니다.",
+  "Last refused {{time}}": "마지막 거부: {{time}}"
 }

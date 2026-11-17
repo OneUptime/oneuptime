@@ -4,6 +4,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Card from "Common/UI/Components/Card/Card";
 import Button, {
   ButtonSize,
@@ -362,14 +364,12 @@ const SlackOrganizationCard: FunctionComponent<ComponentProps> = (
                         </div>
                       </div>
                       {isDefault ? (
-                        <span
-                          className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20"
-                          data-testid="slack-workspace-default"
-                        >
-                          {translator.translateText(
-                            SLACK_WORKSPACE_DEFAULT_BADGE,
-                          ) || SLACK_WORKSPACE_DEFAULT_BADGE}
-                        </span>
+                        <Pill
+                          text={SLACK_WORKSPACE_DEFAULT_BADGE}
+                          tone={PillTone.Info}
+                          isDotHidden={true}
+                          dataTestId="slack-workspace-default"
+                        />
                       ) : (
                         <Button
                           title={SLACK_WORKSPACE_MAKE_DEFAULT}

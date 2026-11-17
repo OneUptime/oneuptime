@@ -3,6 +3,8 @@ import {
   getBuiltInDataType,
 } from "Common/Types/DataSecurity/DataTypeCatalog";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -79,12 +81,12 @@ const StoreDataTypeList: FunctionComponent<ComponentProps> = (
     <div className="flex min-w-0 flex-wrap items-center gap-1">
       {visible.map((name: string): ReactElement => {
         return (
-          <span
+          <Pill
             key={name}
-            className="inline-flex max-w-full items-center truncate rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
-          >
-            {translator.translateText(name)}
-          </span>
+            text={name}
+            tone={PillTone.Neutral}
+            isDotHidden={true}
+          />
         );
       })}
       {hidden.length > 0 ? (

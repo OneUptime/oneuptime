@@ -625,8 +625,10 @@ describe("Label and Owner Rules, against the Dashboard", () => {
 
     const list: string = readSource("monitorLabelRules");
 
-    expect(list).toContain('<Pill color={Green} text="Enabled" />');
-    expect(list).toContain('<Pill color={Red} text="Disabled" />');
+    expect(list).toContain(
+      'import EnabledPill from "Common/UI/Components/Pill/EnabledPill";',
+    );
+    expect(list).toContain("<EnabledPill isEnabled={item.isEnabled} />");
 
     expect(page).toContain(
       `**${MORE_FIELDS_SECTION_TITLE}** holds the optional **Description** and, on an owner rule, **Notify Owners**, which is on by default`,
@@ -634,7 +636,7 @@ describe("Label and Owner Rules, against the Dashboard", () => {
     expect(page).toContain(
       "The rule starts enabled, and the list shows it with a green **Enabled** pill.",
     );
-    expect(page).toContain("the list then shows a red **Disabled** pill");
+    expect(page).toContain("the list then shows a grey **Disabled** pill");
   });
 
   it("names the inherit switches as the form draws them, an alert's one monitor singular", () => {

@@ -249,10 +249,14 @@ function latestNetworkWindow(): string {
   return windowKey(latest.start, latest.end);
 }
 
-// The card whose title (a section title span) reads `title`.
+/*
+ * The card whose title (a section title span) reads `title`. A tab of the
+ * same name ("etcd") holds its words in a span too, so the tab row is left
+ * out.
+ */
 function card(title: string): HTMLElement {
   const found: HTMLElement | null = screen
-    .getByText(title, { selector: "span" })
+    .getByText(title, { selector: "span", ignore: '[role="tab"] *' })
     .closest('[data-testid="card"]');
 
   if (!found) {

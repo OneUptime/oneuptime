@@ -124,6 +124,7 @@ const StatusPageSubscribers: FunctionComponent<PageComponentProps> = (
   return (
     <div data-testid={STATUS_PAGE_SUBSCRIBERS_TABS_TEST_ID}>
       <Tabs
+        label="Subscribers"
         tabs={tabs}
         initialTabName={getSubscriberListChannel(requestedChannel).copy.title}
         onTabChange={(tab: Tab): void => {

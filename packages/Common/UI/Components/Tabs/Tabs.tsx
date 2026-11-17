@@ -1,10 +1,11 @@
-import TabElement, { Tab } from "./Tab";
+import TabElement, { Tab, TabsVariant } from "./Tab";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -12,11 +13,24 @@ import React, {
 export interface ComponentProps {
   tabs: Array<Tab>;
   onTabChange: (tab: Tab) => void;
+  /*
+   * What the row of tabs is for, in English and looked up like any other
+   * words ("Incident on-call rules", "Pod"). A screen reader says it as it
+   * enters the row: every row was called "Tabs", so two on a page could not
+   * be told apart (#9136).
+   */
+  label: string;
   /**
    * Tab selected on first render (e.g. restored from a URL param).
    * Falls back to the first tab when absent or unknown.
    */
   initialTabName?: string | undefined;
+  /*
+   * Focus the tab selected on first render, as a click on it leaves it:
+   * for a page that opens a tab for the reader (AppPlatforms' Set up
+   * alerts), so a keyboard carries on from there.
+   */
+  focusInitialTab?: boolean | undefined;
   /*
    * A few tabs inside a card, such as one per client to set up: on a narrow
    * screen the tab row wraps onto a second line instead of scrolling
@@ -25,8 +39,17 @@ export interface ComponentProps {
    * and the panel is set in a little, as it always was.
    */
   wrap?: boolean | undefined;
+  // Pills (the default) or an underlined row (TabsVariant).
+  variant?: TabsVariant | undefined;
 }
 
+/*
+ * The ARIA tabs pattern (https://www.w3.org/WAI/ARIA/apg/patterns/tabs/):
+ * a tablist named by `label`, tabs that are buttons, one of them in the Tab
+ * order (roving tabindex), the arrow keys, Home and End moving between them
+ * and choosing as they go, and the panel named by its tab. Every id comes
+ * from useId, so it holds no space and two rows on one page never share one.
+ */
 const Tabs: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -35,37 +58,47 @@ const Tabs: FunctionComponent<ComponentProps> = (
   const hasInitialized: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
+  const baseId: string = useId();
+
+  type GetTabIdFunction = (index: number) => string;
+
+  const getTabId: GetTabIdFunction = (index: number): string => {
+    return `${baseId}tab-${index}`;
+  };
+
+  const tabPanelId: string = `${baseId}tabpanel`;
+
   /*
    * When the active tab changes as a result of keyboard arrow navigation we move
    * DOM focus onto the newly active tab (roving tabindex pattern). This ref keeps
    * us from stealing focus when the tab changes for any other reason (e.g. click).
    */
-  const moveFocusToActiveTab: React.MutableRefObject<boolean> =
-    useRef<boolean>(false);
+  const moveFocusToActiveTab: React.MutableRefObject<boolean> = useRef<boolean>(
+    Boolean(props.focusInitialTab),
+  );
+
+  const currentIndex: number = props.tabs.findIndex((t: Tab) => {
+    return t.name === currentTabName;
+  });
 
   useEffect(() => {
-    if (moveFocusToActiveTab.current && currentTabName) {
-      document.getElementById(`tab-${currentTabName}`)?.focus();
+    if (moveFocusToActiveTab.current && currentIndex >= 0) {
+      document.getElementById(getTabId(currentIndex))?.focus();
       moveFocusToActiveTab.current = false;
     }
   }, [currentTabName]);
 
-  type ActivateTabByOffsetFunction = (offset: number) => void;
+  type ActivateTabAtFunction = (index: number) => void;
 
-  const activateTabByOffset: ActivateTabByOffsetFunction = (
-    offset: number,
-  ): void => {
-    if (props.tabs.length === 0) {
+  const activateTabAt: ActivateTabAtFunction = (index: number): void => {
+    const tab: Tab | undefined = props.tabs[index];
+
+    if (!tab) {
       return;
     }
-    const currentIndex: number = props.tabs.findIndex((t: Tab) => {
-      return t.name === currentTabName;
-    });
-    const fromIndex: number = currentIndex < 0 ? 0 : currentIndex;
-    const nextIndex: number =
-      (fromIndex + offset + props.tabs.length) % props.tabs.length;
+
     moveFocusToActiveTab.current = true;
-    setCurrentTabName(props.tabs[nextIndex]!.name);
+    setCurrentTabName(tab.name);
   };
 
   type HandleTabListKeyDownFunction = (
@@ -75,24 +108,36 @@ const Tabs: FunctionComponent<ComponentProps> = (
   const handleTabListKeyDown: HandleTabListKeyDownFunction = (
     event: React.KeyboardEvent<HTMLElement>,
   ): void => {
-    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+    const count: number = props.tabs.length;
+
+    if (count === 0) {
+      return;
+    }
+
+    const fromIndex: number = currentIndex < 0 ? 0 : currentIndex;
+
+    /*
+     * The row reads in the page's direction: in a right-to-left page the
+     * tab on the right is the one before, so ArrowRight goes back.
+     */
+    const isRightToLeft: boolean =
+      (event.currentTarget.closest("[dir]")?.getAttribute("dir") ||
+        document.documentElement.dir) === "rtl";
+    const forwardKey: string = isRightToLeft ? "ArrowLeft" : "ArrowRight";
+    const backwardKey: string = isRightToLeft ? "ArrowRight" : "ArrowLeft";
+
+    if (event.key === forwardKey || event.key === "ArrowDown") {
       event.preventDefault();
-      activateTabByOffset(1);
-    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      activateTabAt((fromIndex + 1) % count);
+    } else if (event.key === backwardKey || event.key === "ArrowUp") {
       event.preventDefault();
-      activateTabByOffset(-1);
+      activateTabAt((fromIndex - 1 + count) % count);
     } else if (event.key === "Home") {
       event.preventDefault();
-      if (props.tabs.length > 0) {
-        moveFocusToActiveTab.current = true;
-        setCurrentTabName(props.tabs[0]!.name);
-      }
+      activateTabAt(0);
     } else if (event.key === "End") {
       event.preventDefault();
-      if (props.tabs.length > 0) {
-        moveFocusToActiveTab.current = true;
-        setCurrentTabName(props.tabs[props.tabs.length - 1]!.name);
-      }
+      activateTabAt(count - 1);
     }
   };
 
@@ -125,9 +170,7 @@ const Tabs: FunctionComponent<ComponentProps> = (
   ]);
 
   // Find the current tab object by name
-  const currentTab: Tab | undefined = props.tabs.find((t: Tab) => {
-    return t.name === currentTabName;
-  });
+  const currentTab: Tab | undefined = props.tabs[currentIndex];
 
   useEffect(() => {
     if (currentTab && props.onTabChange) {
@@ -135,44 +178,70 @@ const Tabs: FunctionComponent<ComponentProps> = (
     }
   }, [currentTabName]);
 
-  const tabPanelId: string = `tabpanel-${currentTabName || "default"}`;
+  const isUnderline: boolean = props.variant === TabsVariant.Underline;
+
+  let tabListClassName: string =
+    "flex space-x-2 overflow-x-auto md:overflow-visible md:space-x-4";
+
+  if (props.wrap) {
+    tabListClassName = "flex flex-wrap gap-2 py-3 md:gap-x-4";
+  }
+
+  if (isUnderline) {
+    tabListClassName = `flex gap-x-6 border-b border-gray-200 ${
+      props.wrap ? "flex-wrap" : "overflow-x-auto"
+    }`;
+  }
+
+  let tabPanelClassName: string = props.wrap ? "mt-3" : "mt-3 ml-1";
+
+  if (isUnderline) {
+    tabPanelClassName = "mt-4";
+  }
 
   return (
     <div>
-      <nav
+      <div
         role="tablist"
         aria-orientation="horizontal"
-        className={
-          props.wrap
-            ? "flex flex-wrap gap-2 py-3 md:gap-x-4"
-            : "flex space-x-2 overflow-x-auto md:overflow-visible md:space-x-4"
-        }
-        aria-label={translator.translateText("Tabs")}
+        className={tabListClassName}
+        aria-label={translator.translateText(props.label)}
         onKeyDown={handleTabListKeyDown}
       >
-        {props.tabs.map((tab: Tab) => {
+        {props.tabs.map((tab: Tab, index: number) => {
           return (
             <TabElement
               key={tab.name}
+              id={getTabId(index)}
               tab={tab}
               onClick={() => {
                 setCurrentTabName(tab.name);
               }}
-              isSelected={tab.name === currentTabName}
+              isSelected={index === currentIndex}
               tabPanelId={tabPanelId}
               isInWrappingRow={props.wrap}
+              variant={props.variant}
             />
           );
         })}
-      </nav>
-      <div
-        id={tabPanelId}
-        role="tabpanel"
-        aria-labelledby={`tab-${currentTabName || "default"}`}
-        className={props.wrap ? "mt-3" : "mt-3 ml-1"}
-      >
-        {currentTab && currentTab.children}
       </div>
+      {currentTab ? (
+        <div
+          id={tabPanelId}
+          role="tabpanel"
+          /*
+           * In the Tab order, so Tab moves from the row into a panel that
+           * holds no control of its own and a screen reader says its name.
+           */
+          tabIndex={0}
+          aria-labelledby={getTabId(currentIndex)}
+          className={`${tabPanelClassName} rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`}
+        >
+          {currentTab.children}
+        </div>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

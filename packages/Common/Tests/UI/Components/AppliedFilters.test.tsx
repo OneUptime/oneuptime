@@ -67,11 +67,11 @@ describe("AppliedFilters", () => {
 
     expect(within(box).getByText("Showing monitors that match")).toBeVisible();
     expect(
-      Array.from(box.querySelectorAll(".rounded-full")).map(
-        (chip: Element): string => {
-          return chip.textContent || "";
-        },
-      ),
+      Array.from(
+        box.querySelectorAll('[data-testid="applied-filter-chip"]'),
+      ).map((chip: Element): string => {
+        return chip.textContent || "";
+      }),
     ).toEqual(["Name is API", "Enabled is Yes"]);
 
     fireEvent.click(within(box).getByRole("button", { name: "Edit Filters" }));
@@ -125,10 +125,13 @@ describe("AppliedFilters", () => {
 
     const chip: Element | null = screen
       .getByTestId("applied")
-      .querySelector(".rounded-full");
+      .querySelector('[data-testid="applied-filter-chip"]');
 
     expect(chip).not.toBeNull();
     expect(chip).toHaveClass("max-w-full", "min-w-0", "break-words");
+    // A pill on one line, never an ellipse around several (#9136).
+    expect(chip).toHaveClass("rounded-2xl");
+    expect(chip).not.toHaveClass("rounded-full");
     expect(chip).not.toHaveClass("whitespace-nowrap");
     expect(chip!.parentElement).toHaveClass("flex", "flex-wrap");
   });

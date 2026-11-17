@@ -2144,8 +2144,6 @@
   "Check email settings": "بررسی تنظیمات ایمیل",
   "Email is failing": "ارسال ایمیل ناموفق است",
   "Email is not set up": "ایمیل راه‌اندازی نشده است",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "از {{time}} ارسال ایمیل ناموفق بوده است، پس دعوت‌نامه‌ها و ایمیل‌های حادثه نمی‌رسند.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "از {{time}} ارسال ایمیل ناموفق بوده است، پس دعوت‌نامه‌ها و ایمیل‌های حادثه نمی‌رسند. پاسخ سرور ایمیل: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "دعوت‌نامه‌ها، بازنشانی گذرواژه و ایمیل‌های حادثه ارسال نمی‌شوند.",
   "Monitors that run on global probes are not being checked.": "مانیتورهایی که روی پراب‌های سراسری اجرا می‌شوند بررسی نمی‌شوند.",
   "No global probe is reporting": "هیچ پراب سراسری گزارش نمی‌دهد",
@@ -4165,5 +4163,11 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime هنگام حذف آن‌ها این قاعده را غیرفعال کرد.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "اگر همین‌طور فعال شود، این فهرست‌ها دیگر هیچ محدودیتی بر این قاعده نمی‌گذارند. آن را ویرایش کنید تا انتخاب کنید بر چه چیزی اعمال شود، سپس فعالش کنید.",
   "{{names}} and {{count}} more": "{{names}} و {{count}} مورد دیگر",
-  "{{names}} and {{count}} more_one": "{{names}} و {{count}} مورد دیگر"
+  "{{names}} and {{count}} more_one": "{{names}} و {{count}} مورد دیگر",
+  "No email has gone out through this server's email settings since {{time}}.": "از {{time}} هیچ ایمیلی از طریق تنظیمات ایمیل این سرور ارسال نشده است.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "از {{time}} هیچ ایمیلی از طریق تنظیمات ایمیل این سرور ارسال نشده است. پاسخ سرور ایمیل: {{reason}}",
+  "See email logs": "مشاهده گزارش‌های ایمیل",
+  "Addresses the mail server refused": "نشانی‌هایی که سرور ایمیل نپذیرفت",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "ایمیل‌های دیگر ارسال شدند، پس فقط همین نشانی‌ها تحت تأثیرند. نشانی را اصلاح کنید یا از ارائه‌دهندهٔ ایمیل خود بخواهید آن را بپذیرد: سندباکس Amazon SES فقط به نشانی‌هایی ارسال می‌کند که تأیید کرده است.",
+  "Last refused {{time}}": "آخرین رد: {{time}}"
 }

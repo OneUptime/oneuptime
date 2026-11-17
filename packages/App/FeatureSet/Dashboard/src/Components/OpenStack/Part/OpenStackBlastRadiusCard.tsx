@@ -1,4 +1,6 @@
 import ObjectID from "Common/Types/ObjectID";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import {
   OpenStackBlastRadius,
   OpenStackBlastRadiusCount,
@@ -215,12 +217,13 @@ const OpenStackBlastRadiusCard: FunctionComponent<ComponentProps> = (
               {counts.map(
                 (count: { key: string; text: string }): ReactElement => {
                   return (
-                    <span
+                    <Pill
                       key={count.key}
-                      className="inline-flex rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700"
-                    >
-                      {count.text}
-                    </span>
+                      text={count.text}
+                      isUserContent={true}
+                      tone={PillTone.Neutral}
+                      isDotHidden={true}
+                    />
                   );
                 },
               )}

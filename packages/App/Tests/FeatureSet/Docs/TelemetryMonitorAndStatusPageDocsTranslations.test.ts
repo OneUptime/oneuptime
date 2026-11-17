@@ -317,7 +317,7 @@ const OWN_KEY: Record<string, Array<OwnKeyLabel>> = {
         return translator.translateText(CREATED_IMPORT_RESULT) || "";
       },
       file: "App/FeatureSet/Dashboard/src/Components/StatusPage/ImportGroupsFromCsvModal.tsx",
-      draws: "translator.translateText(CREATED_IMPORT_RESULT)",
+      draws: "text={CREATED_IMPORT_RESULT}",
     },
   ],
 };

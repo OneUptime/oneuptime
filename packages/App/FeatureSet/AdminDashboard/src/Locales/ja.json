@@ -2144,8 +2144,6 @@
   "Check email settings": "メール設定を確認",
   "Email is failing": "メール送信が失敗しています",
   "Email is not set up": "メールが設定されていません",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "{{time}} からメールの送信に失敗しているため、招待やインシデントのメールが届いていません。",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "{{time}} からメールの送信に失敗しているため、招待やインシデントのメールが届いていません。メールサーバーの応答: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "招待、パスワード再設定、インシデントのメールは送信されません。",
   "Monitors that run on global probes are not being checked.": "グローバルプローブで実行されるモニターはチェックされていません。",
   "No global probe is reporting": "報告しているグローバルプローブがありません",
@@ -4165,5 +4163,11 @@
   "OneUptime switched this rule off when they were deleted.": "それらが削除されたときに、OneUptime がこのルールを無効にしました。",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "このまま有効にすると、このルールはこれらのリストでまったく制限されなくなります。編集して適用先を選んでから、有効にしてください。",
   "{{names}} and {{count}} more": "{{names}} ほか {{count}} 件",
-  "{{names}} and {{count}} more_one": "{{names}} ほか {{count}} 件"
+  "{{names}} and {{count}} more_one": "{{names}} ほか {{count}} 件",
+  "No email has gone out through this server's email settings since {{time}}.": "{{time}} 以降、このサーバーのメール設定からメールが 1 通も送信されていません。",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "{{time}} 以降、このサーバーのメール設定からメールが 1 通も送信されていません。メールサーバーの応答: {{reason}}",
+  "See email logs": "メールログを見る",
+  "Addresses the mail server refused": "メールサーバーが拒否したアドレス",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "ほかのメールは送信されているため、影響を受けているのはこれらのアドレスだけです。アドレスを修正するか、メールプロバイダーで受け付けられるようにしてください。Amazon SES のサンドボックスは検証済みのアドレスにしか送信しません。",
+  "Last refused {{time}}": "最終拒否: {{time}}"
 }
