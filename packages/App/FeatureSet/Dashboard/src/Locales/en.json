@@ -56621,5 +56621,11 @@
   "Dead Letters": "Dead Letters",
   "Message Age": "Message Age",
   "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.",
-  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do."
+  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} is any of {{count}} selected people or teams",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} is any of {{count}} selected person or team",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} is none of {{count}} selected people or teams",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} is none of {{count}} selected person or team",
+  "Is any of": "Is any of",
+  "Is none of": "Is none of"
 }

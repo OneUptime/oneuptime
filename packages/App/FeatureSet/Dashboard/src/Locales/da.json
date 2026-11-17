@@ -56621,5 +56621,11 @@
   "Dead Letters": "Døde beskeder",
   "Message Age": "Beskedalder",
   "Monitors OneUptime recommends for this queue, from the broker metrics it reports. Pick the ones you want and create them in one step.": "Monitorer, som OneUptime anbefaler til denne kø, ud fra de broker-metrikker, den rapporterer. Vælg dem, du vil have, og opret dem i ét trin.",
-  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "Ingen broker-metrik, som en anbefalet monitor læser, er kommet for denne kø inden for de seneste 7 dage. Anbefalinger vises, når dens brokers metrikker kommer."
+  "No broker metric a recommended monitor reads has arrived for this queue in the last 7 days. Recommendations appear once its broker's metrics do.": "Ingen broker-metrik, som en anbefalet monitor læser, er kommet for denne kø inden for de seneste 7 dage. Anbefalinger vises, når dens brokers metrikker kommer.",
+  "{{field}} is any of {{count}} selected people or teams": "{{field}} er en af {{count}} valgte personer eller teams",
+  "{{field}} is any of {{count}} selected people or teams_one": "{{field}} er {{count}} valgt person eller team",
+  "{{field}} is none of {{count}} selected people or teams": "{{field}} er ingen af {{count}} valgte personer eller teams",
+  "{{field}} is none of {{count}} selected people or teams_one": "{{field}} er ikke {{count}} valgt person eller team",
+  "Is any of": "Er en af",
+  "Is none of": "Er ingen af"
 }

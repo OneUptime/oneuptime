@@ -31,6 +31,7 @@ import {
   findRuleCriteriaField,
   getRuleCriteriaFieldTitle,
   isRuleCriteriaAddressRangeField,
+  isRuleCriteriaOwnerField,
   RULE_CRITERIA_ARRAY_OPERATORS,
 } from "./RuleCriteriaFields";
 import { getRuleCriteriaSubjectCopy } from "./RuleCriteriaSubjectCopy";
@@ -154,6 +155,24 @@ export const RULE_CRITERIA_LIST_SENTENCES: Record<
   },
 };
 
+/*
+ * Who owns the record (#9353), counted: "Alert Owner is any of 2 selected
+ * people or teams" - the words the condition's operator reads as.
+ */
+export const RULE_CRITERIA_OWNER_SENTENCES: Record<
+  RuleCriteriaOperator.HasAnyOf | RuleCriteriaOperator.HasNoneOf,
+  PluralTemplate
+> = {
+  [RuleCriteriaOperator.HasAnyOf]: {
+    one: "{{field}} is any of {{count}} selected person or team",
+    other: "{{field}} is any of {{count}} selected people or teams",
+  },
+  [RuleCriteriaOperator.HasNoneOf]: {
+    one: "{{field}} is none of {{count}} selected person or team",
+    other: "{{field}} is none of {{count}} selected people or teams",
+  },
+};
+
 // Two or more conditions, and how they are combined.
 export const RULE_CRITERIA_MATCH_ALL_SENTENCE: string = translationKey(
   "Match all: {{conditions}}",
@@ -196,6 +215,19 @@ export function readRuleCriteriaCondition<TEntity>(
     filter.field,
   );
   const fieldTitle: string = getRuleCriteriaFieldTitle(field, filter.field);
+
+  // Who owns the record: the people and teams picked, counted.
+  if (
+    isRuleCriteriaOwnerField(field) &&
+    (filter.operator === RuleCriteriaOperator.HasAnyOf ||
+      filter.operator === RuleCriteriaOperator.HasNoneOf)
+  ) {
+    return {
+      template: RULE_CRITERIA_OWNER_SENTENCES[filter.operator],
+      field: fieldTitle,
+      count: Array.isArray(filter.value) ? filter.value.length : 1,
+    };
+  }
 
   /*
    * A list of records, counted. A saved rule holds a list operator with a
