@@ -19,9 +19,11 @@ import React, {
   MutableRefObject,
   ReactElement,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
+import WebsiteDownSetupOffer from "../../Components/GuidedSetup/WebsiteDown/WebsiteDownSetupOffer";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -387,6 +389,20 @@ const MonitorCreate: FunctionComponent<
   const serverEmail: ServerEmail = useServerEmail();
   const monitorTemplateId: string | null =
     Navigation.getQueryStringByName("monitorTemplateId");
+
+  /*
+   * A plain Create Monitor - opened with nothing in its address but, at
+   * most, the type to start on - and not a template's, an action item's, a
+   * device's or a chart's monitor, each of which is a job of its own. Only
+   * it offers the guided setup (#7054).
+   */
+  const isPlainCreate: boolean = useMemo((): boolean => {
+    return Array.from(new URLSearchParams(window.location.search).keys()).every(
+      (key: string): boolean => {
+        return key === "monitorType";
+      },
+    );
+  }, []);
 
   const [isLoading, setIsLoading] = useState<boolean>(
     Boolean(monitorTemplateId),
@@ -2004,6 +2020,21 @@ const MonitorCreate: FunctionComponent<
                  */
                 getMonitorTypeFormField<Monitor>({
                   stepId: "monitor-info",
+                  /*
+                   * Website or API picked: the guided setup does the whole
+                   * job - who is told and a test page too - on one page
+                   * (#7054). Offered on a plain Create Monitor only.
+                   */
+                  getFooterElement: (
+                    monitorType: MonitorType | undefined,
+                  ): ReactElement => {
+                    return (
+                      <WebsiteDownSetupOffer
+                        monitorType={monitorType}
+                        isOffered={isPlainCreate}
+                      />
+                    );
+                  },
                 }),
                 {
                   field: {
