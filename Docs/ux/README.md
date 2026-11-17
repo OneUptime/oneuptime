@@ -1334,8 +1334,10 @@ person writes in Give Feedback also reaches whoever can answer it.
 
 - **Look at it as a newcomer would.** At 1280 and 390 pixels wide (and at 1024 and 768 beside the side
   menu), in light and dark, in German (a long language) and Persian (right to left), as a brand-new
-  project and as a busy one. Put before and after screenshots in the pull request. Not enforced: use
-  judgement.
+  project and as a busy one. Put before and after screenshots in the pull request's description with
+  [Scripts/PR/PublishScreenshots.js](../../Scripts/PR/PublishScreenshots.js), which puts them on the
+  `pr-assets` branch and prints the Markdown to paste; committed to your branch, they would be in
+  every CI job's checkout. Not enforced: use judgement.
 - **Run the guards that read what you changed.** Find them by your files' names in the test folders.
   When you change a menu, run its product's `*SideMenu*` suite; when you change a shared component, run
   every suite that renders it. Not enforced: use judgement.
