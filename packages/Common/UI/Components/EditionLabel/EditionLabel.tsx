@@ -1092,7 +1092,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         "Full OneUptime platform with incident response, status pages, and workflow automation.",
       ),
       translationKey(
-        'SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including "Require SSO for login".',
+        'SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including "Require SSO to sign in".',
       ),
       translationKey(
         "Community support, documentation, and tutorials to help teams get started quickly.",

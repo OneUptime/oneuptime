@@ -464,7 +464,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Licence obtenue via votre abonnement à la place de marché cloud : chaque utilisateur est facturé à l'heure.",
   "License, version, seat usage, and the instances covered by this key.": "Licence, version, utilisation des sièges et instances couvertes par cette clé.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "La plateforme OneUptime complète avec la réponse aux incidents, les pages de statut et l'automatisation des flux de travail.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "Authentification unique (SSO) SAML et OIDC pour les projets, les pages de statut et toute l'instance, y compris « Exiger le SSO pour la connexion ».",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "Authentification unique (SSO) SAML et OIDC pour les projets, les pages de statut et toute l'instance, y compris « Exiger le SSO pour la connexion ».",
   "Community support, documentation, and tutorials to help teams get started quickly.": "Support communautaire, documentation et tutoriels pour aider les équipes à démarrer rapidement.",
   "Regular updates, bug fixes, and open-source extensibility.": "Mises à jour régulières, corrections de bugs et extensibilité open source.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Intégrations avec les outils DevOps populaires grâce à des connecteurs maintenus par la communauté.",

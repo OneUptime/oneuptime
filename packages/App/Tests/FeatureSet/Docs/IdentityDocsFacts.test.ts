@@ -98,7 +98,7 @@ const SOURCES: Record<string, string> = {
   adminNavBar: `${ADMIN_DASHBOARD}/Components/NavBar/NavBar.tsx`,
   adminSettingsSideMenu: `${ADMIN_DASHBOARD}/Pages/Settings/SideMenu.tsx`,
   adminAuthenticationPage: `${ADMIN_DASHBOARD}/Pages/Settings/Authentication/Index.tsx`,
-  // The providers, SAML then OIDC, and Require SSO for Login under them.
+  // The providers, SAML then OIDC, and Require SSO to Sign In under them.
   adminSsoPage: `${ADMIN_DASHBOARD}/Pages/Settings/SSO/Index.tsx`,
   adminSsoCopy: `${ADMIN_DASHBOARD}/Pages/Settings/SSO/SsoSettingsCopy.ts`,
   adminLocaleEn: `${ADMIN_DASHBOARD}/Locales/en.json`,
@@ -864,9 +864,9 @@ describe("the SSO guide", () => {
     );
   });
 
-  it("names the project's Require SSO for Login switch and its confirm button, under the providers", () => {
+  it("names the project's Require SSO to Sign In switch and its confirm button, under the providers", () => {
     expect(RequireSsoForLoginSwitchCopy.switchTitle).toBe(
-      "Require SSO for Login",
+      "Require SSO to Sign In",
     );
     expect(RequireSsoForLoginSwitchCopy.requireConfirmButton).toBe(
       "Require SSO",
@@ -882,14 +882,14 @@ describe("the SSO guide", () => {
     const page: string = english(SSO);
 
     expect(page).toContain(
-      "use the **Require SSO for Login** switch on **Project Settings** > **Security** > **SSO**, under your providers:",
+      "use the **Require SSO to Sign In** switch on **Project Settings** > **Security** > **SSO**, under your providers:",
     );
     expect(page).toContain(
       "Click **Require SSO** to confirm. The switch saves straight away; there is no separate Save button.",
     );
   });
 
-  it("names who may change Require SSO for Login, and that requiring it needs Scale", () => {
+  it("names who may change Require SSO to Sign In, and that requiring it needs Scale", () => {
     expect(
       titlesOf(updatePermissionsOf(new Project(), "requireSsoForLogin")),
     ).toEqual(
@@ -915,7 +915,7 @@ describe("the SSO guide", () => {
   });
 
   it("finds the server-wide switch on the Admin Dashboard's Single Sign-On page, as it is named there", () => {
-    expect(REQUIRE_SSO_COPY.switchTitle).toBe("Require SSO for Login");
+    expect(REQUIRE_SSO_COPY.switchTitle).toBe("Require SSO to Sign In");
     expect(REQUIRE_SSO_COPY.cardTitle).toBe("Require SSO");
     expect(REQUIRE_SSO_COPY.confirmButton).toBe("Require SSO");
     expect(readSource("adminSsoPage")).toContain('column="requireSsoForLogin"');
@@ -937,7 +937,7 @@ describe("the SSO guide", () => {
     }
 
     expect(english(GLOBAL_SSO)).toContain(
-      "the **Require SSO** card at the bottom of **Admin** > **Settings** > **Single Sign-On** has a **Require SSO for Login** switch",
+      "the **Require SSO** card at the bottom of **Admin** > **Settings** > **Single Sign-On** has a **Require SSO to Sign In** switch",
     );
   });
 

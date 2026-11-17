@@ -180,10 +180,10 @@ test("a setting is a result of its own: its name, the page it is on, and Enter o
   page: Page;
 }) => {
   const input: Locator = await openSearch(page);
-  await input.fill("require sso for login");
+  await input.fill("require sso to sign in");
 
   const first: Locator = options(page).first();
-  await expect(first).toContainText("Require SSO for Login");
+  await expect(first).toContainText("Require SSO to Sign In");
   await expect(first).toContainText("Project Settings");
   await expect(first).toContainText("Security");
   await expect(first.locator('[data-testid$="-breadcrumb"]')).toContainText(

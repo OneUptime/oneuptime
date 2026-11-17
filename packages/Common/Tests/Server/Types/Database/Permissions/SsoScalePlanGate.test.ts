@@ -58,7 +58,7 @@ import { setTestBillingEnabled } from "../../../Enterprise/TestBillingFlag";
  *   - whatever the edition and the license say, since on the Cloud the plan
  *     is the only gate (EditionPermission never refuses with billing on).
  *
- * A project's own "Require SSO for login" switch is Scale-gated the same way
+ * A project's own "Require SSO to sign in" switch is Scale-gated the same way
  * (Project.requireSsoForLogin's @ColumnBillingAccessControl), and so is a
  * status page's (StatusPage.requireSsoForLogin): turning either on needs
  * Scale, turning it off works on every plan. Global SSO/OIDC
@@ -345,7 +345,7 @@ describe("single sign-on on OneUptime Cloud: the Scale plan gate", () => {
         },
       );
 
-      test('a project\'s own "Require SSO for login" switch is Scale-gated too', () => {
+      test('a project\'s own "Require SSO to sign in" switch is Scale-gated too', () => {
         const data: Project = new Project();
         data.requireSsoForLogin = true;
 
@@ -372,7 +372,7 @@ describe("single sign-on on OneUptime Cloud: the Scale plan gate", () => {
         }
       });
 
-      test('a status page\'s "Require SSO for login" switch is Scale-gated too, on a create as on an update; off works on every plan', () => {
+      test('a status page\'s "Require SSO to sign in" switch is Scale-gated too, on a create as on an update; off works on every plan', () => {
         for (const operation of [
           DatabaseRequestType.Create,
           DatabaseRequestType.Update,
@@ -480,7 +480,7 @@ describe("single sign-on on OneUptime Cloud: the Scale plan gate", () => {
         },
       );
 
-      test('a project\'s "Require SSO for login" switch is not plan-gated', () => {
+      test('a project\'s "Require SSO to sign in" switch is not plan-gated', () => {
         const data: Project = new Project();
         data.requireSsoForLogin = true;
 
@@ -494,7 +494,7 @@ describe("single sign-on on OneUptime Cloud: the Scale plan gate", () => {
         }).not.toThrow();
       });
 
-      test('a status page\'s "Require SSO for login" switch is not plan-gated', () => {
+      test('a status page\'s "Require SSO to sign in" switch is not plan-gated', () => {
         const data: StatusPage = new StatusPage();
         data.requireSsoForLogin = true;
 

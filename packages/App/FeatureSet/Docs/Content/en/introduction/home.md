@@ -157,7 +157,7 @@ Over every page's title, a trail such as *Project › Docker › Settings › Ow
 Press **Cmd+K** (Mac) or **Ctrl+K** (Windows and Linux), or click the search icon in the top bar, and start typing. Search finds:
 
 - **Every page in the menus**, by the name the menu gives it: API Keys, Delete Project, On-Call Schedules, Incident Severity, your own Notification Methods. Each result says where it lives, such as *Project Settings › Advanced*, so pages that share a name (Custom Fields in Incidents, Alerts and Monitors) are easy to tell apart.
-- **The settings on a page**, by the name their card or switch shows: *Require SSO for Login* finds SSO, and *Custom SMTP Configs* finds Notification Channels. Type the name in English or in your language.
+- **The settings on a page**, by the name their card or switch shows: *Require SSO to Sign In* finds SSO, and *Custom SMTP Configs* finds Notification Channels. Type the name in English or in your language.
 - **Actions**, by what you want to do: Declare Incident, Create Monitor, or Delete Project, which opens the Danger Zone. An action that changes something is offered only to people allowed to do it.
 - **Your monitors, incidents, alerts, status pages and on-call policies**, by name, and incidents and alerts by number too, such as `INC-42`. Each incident and alert result starts with its number, so two of one title are told apart.
 - **The docs**, in a *Documentation* group under everything else: the pages and sections whose words match what you typed, in your language, even with a typo. Each opens in a new tab, so you keep your place.

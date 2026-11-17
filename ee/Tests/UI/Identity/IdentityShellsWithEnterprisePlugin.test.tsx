@@ -23,7 +23,7 @@ import React, { FunctionComponent, ReactElement } from "react";
  *
  * Every request goes through API.fetch, and only one to the license route
  * counts as asking for the license (mockLicenseFetch). The others - Settings
- * > SSO's "Require SSO for Login" switch reading the project, Settings >
+ * > SSO's "Require SSO to Sign In" switch reading the project, Settings >
  * OIDC looking up the members team its new providers start on - get canned
  * answers (mockServerFetch).
  */
@@ -134,7 +134,7 @@ const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
 
 /*
  * The canned answer to every request that is not the license request: the
- * project, for the "Require SSO for Login" switch's read of
+ * project, for the "Require SSO to Sign In" switch's read of
  * requireSsoForLogin, and an empty list for a list read (Settings > SSO
  * looks up the members team its new providers start on).
  */

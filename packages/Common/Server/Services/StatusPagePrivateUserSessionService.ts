@@ -294,7 +294,7 @@ export class Service extends DatabaseService<Model> {
    *   - A session that names no provider - a password sign-in, or an SSO
    *     sign-in from before sessions named their provider - counts only
    *     while the status page does not require SSO (`requiresSso`, its
-   *     Require SSO for Login, read by the caller with the page): Require
+   *     Require SSO to Sign In, read by the caller with the page): Require
    *     SSO for Login lets in only people an SSO provider signs in.
    *   - Whichever way it signed in, a session counts only for as long as the
    *     page's Sign Readers Out After allows (`sessionLengthInHours`, read by
@@ -373,8 +373,8 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Whether this session still counts by the sign-in rule above
-   * (addSignInRule), read now, with its status page's own Require SSO for
-   * Login and Sign Readers Out After, in one database read: a refresh and a
+   * (addSignInRule), read now, with its status page's own Require SSO to
+   * Sign In and Sign Readers Out After, in one database read: a refresh and a
    * login code ask it before they hand the session a new access token. A
    * session whose status page is gone does not count.
    */

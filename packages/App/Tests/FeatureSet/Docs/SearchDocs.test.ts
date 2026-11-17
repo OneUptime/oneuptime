@@ -213,7 +213,7 @@ const SETTING_EXAMPLES: Array<{
   pageKey: string;
 }> = [
   {
-    setting: "Require SSO for Login",
+    setting: "Require SSO to Sign In",
     page: "SSO",
     pageKey: PageMap.SETTINGS_SSO,
   },
@@ -317,7 +317,7 @@ describe("Home Page & Shortcuts finds a setting by its name", () => {
   test("it names the settings, and the pages they are on", () => {
     expect(SECTION).toContain("**The settings on a page**");
     expect(SECTION).toContain(
-      "*Require SSO for Login* finds SSO, and *Custom SMTP Configs* finds Notification Channels",
+      "*Require SSO to Sign In* finds SSO, and *Custom SMTP Configs* finds Notification Channels",
     );
     expect(SECTION).toContain("Type the name in English or in your language.");
 

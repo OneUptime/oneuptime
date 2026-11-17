@@ -3,7 +3,7 @@
 El inicio de sesión único (SSO) permite que las personas de tu proyecto inicien sesión en OneUptime con el proveedor de identidad (IdP) de tu organización, mediante SAML 2.0 u OpenID Connect. Gestionas el acceso, las contraseñas y la autenticación multifactor en un solo lugar, y puedes exigir SSO a todos los miembros del proyecto.
 
 > [!NOTE]
-> **Edición:** el SSO, incluido "Require SSO for login", forma parte de todas las ediciones de OneUptime: las instalaciones autoalojadas lo tienen en la Community Edition, sin necesidad de licencia. En OneUptime Cloud está disponible a partir del plan **Scale**. Consulta [Edición Enterprise](/docs/self-hosted/enterprise) para ver qué incluye cada edición.
+> **Edición:** el SSO, incluido "Require SSO to sign in", forma parte de todas las ediciones de OneUptime: las instalaciones autoalojadas lo tienen en la Community Edition, sin necesidad de licencia. En OneUptime Cloud está disponible a partir del plan **Scale**. Consulta [Edición Enterprise](/docs/self-hosted/enterprise) para ver qué incluye cada edición.
 
 :::cards
 - [Configurar un proveedor SAML](#configurar-sso): Crearlo en OneUptime y dar dos URL a tu IdP.

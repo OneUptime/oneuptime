@@ -3,7 +3,7 @@
 글로벌 SSO를 사용하면 OneUptime **인스턴스 관리자**(마스터 관리자)가 SAML 2.0 또는 OpenID Connect(OIDC) ID 공급자를 인스턴스 수준에서 **한 번만** 구성하고, 서버의 어느 프로젝트에든 연결할 수 있습니다. 프로젝트 소유자가 저마다 자신의 ID 공급자를 구성하는 대신, 마스터 관리자가 인스턴스 전체에서 쓸 공급자 하나를 설정합니다.
 
 > [!NOTE]
-> 인스턴스 전체의 "Require SSO for Login" 스위치를 포함한 글로벌 SSO는 모든 OneUptime 에디션에 포함됩니다. Community Edition을 포함한 모든 자체 호스팅 인스턴스에서 사용할 수 있으며 라이선스가 필요하지 않습니다. 인스턴스 관리 기능이므로 OneUptime Cloud에는 적용되지 않습니다. 각 에디션에 포함된 기능은 [엔터프라이즈 에디션](/docs/self-hosted/enterprise)을 참고하세요.
+> 인스턴스 전체의 "Require SSO to Sign In" 스위치를 포함한 글로벌 SSO는 모든 OneUptime 에디션에 포함됩니다. Community Edition을 포함한 모든 자체 호스팅 인스턴스에서 사용할 수 있으며 라이선스가 필요하지 않습니다. 인스턴스 관리 기능이므로 OneUptime Cloud에는 적용되지 않습니다. 각 에디션에 포함된 기능은 [엔터프라이즈 에디션](/docs/self-hosted/enterprise)을 참고하세요.
 
 :::cards
 - [공급자 설정](#글로벌-sso-설정): 공급자를 만들고, OneUptime의 URL을 ID 공급자에 넘겨준 다음 테스트합니다.

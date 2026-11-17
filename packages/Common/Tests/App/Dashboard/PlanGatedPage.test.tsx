@@ -298,7 +298,7 @@ describe("PlanGatedPage on OneUptime Cloud (billing on)", () => {
  */
 describe("PlanGatedPage draws what can still be switched off under the upsell", () => {
   const BelowPlan: FunctionComponent = (): ReactElement => {
-    return <div data-testid="below-plan">Require SSO for Login</div>;
+    return <div data-testid="below-plan">Require SSO to Sign In</div>;
   };
 
   const renderWithBelowPlan: () => ReturnType<typeof render> = (): ReturnType<

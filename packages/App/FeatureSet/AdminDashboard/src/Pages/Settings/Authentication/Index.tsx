@@ -39,7 +39,7 @@ import { useTranslation } from "react-i18next";
  *     GlobalConfig.disableUserProjectCreation is false. Master admins can
  *     always create projects.
  *
- * Require SSO for Login, which was the card between them, is on Settings >
+ * Require SSO to Sign In, which was the card between them, is on Settings >
  * Single Sign-On now, under the providers it depends on (../SSO).
  *
  * GlobalConfig is one row, with the zero id.

@@ -39,7 +39,7 @@ import ts from "typescript";
  *
  * Search (Cmd/Ctrl+K) found a settings page by its menu entry only: "SSO",
  * "Feature Flags", "Billing". The settings on those pages - the names their
- * cards and switches show - found nothing: "require sso for login",
+ * cards and switches show - found nothing: "require sso to sign in",
  * "monitor groups", "cancel plan", "customer support access", "business
  * details", "notification channels" (that one found the Slack pages), "ai
  * context" (the MCP pages), "timezone" (the on-call Schedule Timeline). A
@@ -248,7 +248,10 @@ describe("what people searched for, and found nothing, lands where the setting i
   const commands: Array<PaletteCommand> = toCommands(build());
 
   test.each([
+    ["require sso to sign in", PageMap.SETTINGS_SSO],
+    // Its old names (#9278), which people who learned them still type.
     ["require sso for login", PageMap.SETTINGS_SSO],
+    ["force sso for login", PageMap.SETTINGS_SSO],
     ["require sso", PageMap.SETTINGS_SSO],
     ["test single sign on", PageMap.SETTINGS_SSO],
     ["customer support access", PageMap.SETTINGS],
@@ -687,7 +690,7 @@ describe("in the reader's language", () => {
   );
 
   test.each([
-    ["Require SSO for Login", PageMap.SETTINGS_SSO],
+    ["Require SSO to Sign In", PageMap.SETTINGS_SSO],
     ["Customer Support Access", PageMap.SETTINGS],
     ["Cancel Plan", PageMap.SETTINGS_BILLING],
     ["Notification Channels", PageMap.SETTINGS_NOTIFICATION_SETTINGS],
@@ -712,12 +715,12 @@ describe("in the reader's language", () => {
 
     const requireSso: PageSearchCommandDescriptor | undefined = germanRows.find(
       (row: PageSearchCommandDescriptor): boolean => {
-        return row.titleAliases.includes("Require SSO for Login");
+        return row.titleAliases.includes("Require SSO to Sign In");
       },
     );
 
     expect(requireSso?.title).toBe("SSO für die Anmeldung erzwingen");
-    expect(requireSso?.titleAliases).toEqual(["Require SSO for Login"]);
+    expect(requireSso?.titleAliases).toEqual(["Require SSO to Sign In"]);
 
     // "SAML" reads the same in German: no second name for it.
     const saml: PageSearchCommandDescriptor | undefined = germanRows.find(

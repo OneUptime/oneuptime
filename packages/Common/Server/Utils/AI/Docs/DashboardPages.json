@@ -1141,7 +1141,7 @@
     "kind": "setting"
   },
   {
-    "title": "Require SSO for Login",
+    "title": "Require SSO to Sign In",
     "where": [
       "Project Settings",
       "Security",

@@ -55,7 +55,7 @@ jest.mock("../../../../Server/Services/GlobalConfigService", () => {
     __esModule: true,
     default: {
       forgetSignInRules: jest.fn(),
-      // The server's Require SSO for Login, off: a project created now needs no provider.
+      // The server's Require SSO to Sign In, off: a project created now needs no provider.
       findOneBy: jest.fn(async () => {
         return { requireSsoForLogin: false };
       }),
@@ -441,7 +441,7 @@ describe("project SSO provider changes reach every server through Valkey", () =>
 
   /*
    * Every change to who can sign in - a global provider or one of its
-   * attachments, Require SSO for Login for a project or the server, a
+   * attachments, Require SSO to Sign In for a project or the server, a
    * project's provider taken away - is checked and written under the lock
    * on the server's sign-in rules (ProjectSsoProviderChanges.
    * lockSignInChange), held in Valkey: one server's change waits for
@@ -459,7 +459,7 @@ describe("project SSO provider changes reach every server through Valkey", () =>
       });
     expect(heldByA).toHaveLength(1);
 
-    // Server B turns Require SSO for Login on for a project meanwhile.
+    // Server B turns Require SSO to Sign In on for a project meanwhile.
     let heldByB: Array<SemaphoreMutex> | null = null;
     const waitingB: Promise<void> = serverB.providerChanges
       .lockSignInChange({
@@ -867,7 +867,7 @@ describe("project SSO provider changes reach every server through Valkey", () =>
     );
     expect(write).not.toBeNull();
 
-    // Server B turns the server's Require SSO for Login on meanwhile.
+    // Server B turns the server's Require SSO to Sign In on meanwhile.
     let heldByB: Array<SemaphoreMutex> | null = null;
     const waitingB: Promise<void> = serverB.providerChanges
       .lockSignInChange({ projectIds: [], wholeServer: true })

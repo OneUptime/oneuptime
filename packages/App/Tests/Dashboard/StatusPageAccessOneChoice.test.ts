@@ -321,7 +321,7 @@ describe("the status page menu, breadcrumbs and links", () => {
     expect(mcp).not.toContain('"Authentication Settings"');
   });
 
-  test("the SSO page's Require SSO for Login is the switch, with no Edit dialog", () => {
+  test("the SSO page's Require SSO to Sign In is the switch, with no Edit dialog", () => {
     const sso: string = readSource(
       dashboardFile("Pages", "StatusPages", "View", "SSO.tsx"),
     );

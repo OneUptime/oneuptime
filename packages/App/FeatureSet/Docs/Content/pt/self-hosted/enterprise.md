@@ -19,7 +19,7 @@ flowchart TB
 ```
 
 > [!NOTE]
-> **O login único está em todas as edições.** O login SAML e OIDC em projetos e páginas de status, o SSO global e «Require SSO for login» fazem parte da Community Edition, e nenhum estado da licença os desativa.
+> **O login único está em todas as edições.** O login SAML e OIDC em projetos e páginas de status, o SSO global e «Require SSO to sign in» fazem parte da Community Edition, e nenhum estado da licença os desativa.
 
 Esta página explica o que cada edição inclui, como executar a Enterprise Edition, como funciona o licenciamento e o que acontece quando você troca de edição.
 
@@ -57,11 +57,11 @@ Esta página explica o que cada edição inclui, como executar a Enterprise Edit
 | Status das migrações, pacote de suporte e sondas globais no painel do administrador | Sim | Sim | Não se aplica |
 | Gestão da licença Enterprise, de assentos e de instâncias | Não | Sim | Não se aplica |
 
-O login único inclui «Require SSO for login» para projetos, páginas de status privadas e a instância inteira, nas duas edições.
+O login único inclui «Require SSO to sign in» para projetos, páginas de status privadas e a instância inteira, nas duas edições.
 
 Todas as edições têm a retenção de telemetria padrão do projeto, em **Configurações do projeto > Telemetria e APM > Retenção de dados**. As substituições de retenção são o que a Enterprise Edition acrescenta por cima disso.
 
-No OneUptime Cloud, um recurso pago sempre pode ser desativado, em qualquer plano. Uma substituição de retenção que um período de teste (ou uma mudança para um plano inferior) deixou configurada continua valendo para a telemetria nova, então abaixo do plano Scale as páginas de retenção a mostram sob o cartão de upgrade com um botão **Remover substituição**. A remoção funciona em todos os planos; configurar uma de novo exige o plano Scale. A telemetria já armazenada mantém a retenção com que foi armazenada. Da mesma forma, **Configurações do projeto > Segurança > SSO** mostra a chave **Exigir SSO para login** sob o seu cartão de upgrade enquanto o projeto ainda exigir SSO, para que ela possa ser desligada.
+No OneUptime Cloud, um recurso pago sempre pode ser desativado, em qualquer plano. Uma substituição de retenção que um período de teste (ou uma mudança para um plano inferior) deixou configurada continua valendo para a telemetria nova, então abaixo do plano Scale as páginas de retenção a mostram sob o cartão de upgrade com um botão **Remover substituição**. A remoção funciona em todos os planos; configurar uma de novo exige o plano Scale. A telemetria já armazenada mantém a retenção com que foi armazenada. Da mesma forma, **Configurações do projeto > Segurança > SSO** mostra a chave **Exigir SSO para entrar** sob o seu cartão de upgrade enquanto o projeto ainda exigir SSO, para que ela possa ser desligada.
 
 Funções personalizadas, listas de IPs permitidos, controles de acesso das páginas de status e uma linha «Powered by OneUptime» oculta funcionam da mesma forma: o que um período de teste ou um plano inferior deixou configurado continua valendo, e as configurações mostram isso sob o cartão de upgrade com um botão para remover.
 
@@ -166,7 +166,7 @@ Nada mais é enviado. Nenhum dado de monitoramento, telemetria, log ou configura
 
 ### Quando uma licença expira ou está ausente
 
-Todos os recursos enterprise funcionam durante o período de teste de 14 dias e por 30 dias depois que uma licença expira (o período de carência). O rótulo da edição avisa antes que qualquer um deles termine. Depois disso, **SCIM, o registro de auditoria e as substituições de retenção param** até que uma licença seja ativada, como na Community Edition, e a configuração enterprise passa a ser somente leitura. O login único não é um recurso enterprise: o login SAML e OIDC, o SSO global e «Require SSO for login» funcionam da mesma forma em qualquer estado da licença.
+Todos os recursos enterprise funcionam durante o período de teste de 14 dias e por 30 dias depois que uma licença expira (o período de carência). O rótulo da edição avisa antes que qualquer um deles termine. Depois disso, **SCIM, o registro de auditoria e as substituições de retenção param** até que uma licença seja ativada, como na Community Edition, e a configuração enterprise passa a ser somente leitura. O login único não é um recurso enterprise: o login SAML e OIDC, o SSO global e «Require SSO to sign in» funcionam da mesma forma em qualquer estado da licença.
 
 ```mermaid title="Como uma licença passa de um estado para outro"
 stateDiagram-v2
@@ -200,7 +200,7 @@ O que para quando uma licença expira:
 
 O que **não** para:
 
-- **O login único.** O login SAML e OIDC em projetos, páginas de status privadas, na instância inteira (SSO global) e nos aplicativos móveis, e «Require SSO for login», fazem parte de todas as edições. Uma licença expirada não muda nada disso, e a configuração do login único continua editável.
+- **O login único.** O login SAML e OIDC em projetos, páginas de status privadas, na instância inteira (SSO global) e nos aplicativos móveis, e «Require SSO to sign in», fazem parte de todas as edições. Uma licença expirada não muda nada disso, e a configuração do login único continua editável.
 - **O monitoramento principal nunca é afetado**: monitores, alertas, incidentes, plantão, páginas de status e telemetria continuam funcionando.
 - **Os administradores master sempre podem entrar com a sua senha.**
 - **Funções personalizadas, listas de IPs permitidos e controles de acesso das páginas de status continuam valendo.** Você pode removê-los, mas não criá-los nem alterá-los.
@@ -210,11 +210,11 @@ O que **não** para:
 **Tudo volta a funcionar assim que uma licença é ativada**, sem reiniciar: o provisionamento SCIM, o registro de auditoria e as substituições de retenção voltam com a configuração que você tem. O OneUptime só os desliga quando sabe que a licença expirou. Enquanto não consegue ler o estado da licença, por exemplo por um momento enquanto o servidor inicia, SCIM, o registro de auditoria e as substituições de retenção continuam ligados.
 
 > [!WARNING]
-> **Se o seu provedor de identidade desprovisiona usuários pelo SCIM, ative uma licença antes que o período de teste ou de carência termine.** Depois disso, o SCIM não desprovisiona mais as pessoas que você remove no seu provedor de identidade: as contas delas no OneUptime continuam e, a menos que «Require SSO for login» se aplique a elas, qualquer pessoa que ainda consiga acessar a caixa de e-mail de uma dessas contas pode definir uma senha e entrar. Se você deixar a licença expirar, remova você mesmo esses usuários no OneUptime.
+> **Se o seu provedor de identidade desprovisiona usuários pelo SCIM, ative uma licença antes que o período de teste ou de carência termine.** Depois disso, o SCIM não desprovisiona mais as pessoas que você remove no seu provedor de identidade: as contas delas no OneUptime continuam e, a menos que «Require SSO to sign in» se aplique a elas, qualquer pessoa que ainda consiga acessar a caixa de e-mail de uma dessas contas pode definir uma senha e entrar. Se você deixar a licença expirar, remova você mesmo esses usuários no OneUptime.
 
 ## Passar de Enterprise para Community
 
-A sua configuração fica no banco de dados. Voltar para a imagem Enterprise restaura tudo como estava, desde que a instalação tenha uma licença válida ou ainda esteja no período de teste ou de carência. O login único não muda: o login SAML e OIDC, o SSO global e «Require SSO for login» funcionam da mesma forma nas duas imagens. Na imagem Community:
+A sua configuração fica no banco de dados. Voltar para a imagem Enterprise restaura tudo como estava, desde que a instalação tenha uma licença válida ou ainda esteja no período de teste ou de carência. O login único não muda: o login SAML e OIDC, o SSO global e «Require SSO to sign in» funcionam da mesma forma nas duas imagens. Na imagem Community:
 
 - **O SCIM para.** Os seus endpoints de provisionamento deixam de existir, então as chamadas SCIM disparadas pelo IdP falham. Isso inclui o desprovisionamento SCIM.
 - **Os bloqueios de equipe do SCIM são removidos**, então as equipes que eram gerenciadas por grupos push do SCIM podem ser editadas manualmente. Na inicialização, o servidor registra em quais projetos os bloqueios de equipe do SCIM foram removidos.
@@ -227,7 +227,7 @@ A sua configuração fica no banco de dados. Voltar para a imagem Enterprise res
 - **Os painéis Health enterprise, a Query Console e os alertas de saúde do PostgreSQL e do Valkey param.** O monitoramento de capacidade e a limpeza do ClickHouse, o status das migrações e o pacote de suporte continuam funcionando.
 
 > [!CAUTION]
-> **Antes de passar para a imagem Community uma instalação cujo provedor de identidade desprovisiona usuários pelo SCIM, revise quem tem acesso.** Sem o SCIM, as pessoas que você remove no seu provedor de identidade mantêm as suas contas no OneUptime e, a menos que «Require SSO for login» se aplique a elas, qualquer pessoa que ainda consiga acessar a caixa de e-mail de uma dessas contas pode definir uma senha e entrar. Remova esses usuários primeiro.
+> **Antes de passar para a imagem Community uma instalação cujo provedor de identidade desprovisiona usuários pelo SCIM, revise quem tem acesso.** Sem o SCIM, as pessoas que você remove no seu provedor de identidade mantêm as suas contas no OneUptime e, a menos que «Require SSO to sign in» se aplique a elas, qualquer pessoa que ainda consiga acessar a caixa de e-mail de uma dessas contas pode definir uma senha e entrar. Remova esses usuários primeiro.
 
 ## Solução de problemas
 

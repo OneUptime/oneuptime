@@ -363,7 +363,7 @@ describe("Edition retired claims catch what the split made false", () => {
 
 describe("The single sign-on edition rule catches SSO filed under the Enterprise Edition", () => {
   /*
-   * SAML and OIDC single sign-on, global SSO, and "Require SSO for login" are
+   * SAML and OIDC single sign-on, global SSO, and "Require SSO to sign in" are
    * part of the Apache 2.0 Community Edition and need no license. The
    * Enterprise Edition adds SCIM, audit logs, team compliance, and the
    * instance health dashboards.

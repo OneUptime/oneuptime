@@ -19,7 +19,7 @@ flowchart TB
 ```
 
 > [!NOTE]
-> **El inicio de sesión único está en todas las ediciones.** El inicio de sesión SAML y OIDC en proyectos y páginas de estado, el SSO global y «Require SSO for login» forman parte de la Community Edition, y ningún estado de la licencia los desactiva.
+> **El inicio de sesión único está en todas las ediciones.** El inicio de sesión SAML y OIDC en proyectos y páginas de estado, el SSO global y «Require SSO to sign in» forman parte de la Community Edition, y ningún estado de la licencia los desactiva.
 
 Esta página explica qué incluye cada edición, cómo ejecutar la Enterprise Edition, cómo funcionan las licencias y qué ocurre cuando cambia de edición.
 
@@ -57,7 +57,7 @@ Esta página explica qué incluye cada edición, cómo ejecutar la Enterprise Ed
 | Estado de las migraciones, paquete de soporte y sondas globales en el panel de administración | Sí | Sí | No aplica |
 | Gestión de la licencia Enterprise, de los puestos y de las instancias | No | Sí | No aplica |
 
-El inicio de sesión único incluye «Require SSO for login» para proyectos, páginas de estado privadas y toda la instancia, en ambas ediciones.
+El inicio de sesión único incluye «Require SSO to sign in» para proyectos, páginas de estado privadas y toda la instancia, en ambas ediciones.
 
 Todas las ediciones tienen la retención de telemetría predeterminada del proyecto, en **Ajustes del proyecto > Telemetría y APM > Retención de datos**. Las anulaciones de retención son lo que la Enterprise Edition añade por encima.
 
@@ -166,7 +166,7 @@ No se envía nada más. Ningún dato de monitorización, telemetría, logs o con
 
 ### Cuando una licencia caduca o falta
 
-Todas las funciones Enterprise funcionan durante la prueba de 14 días y durante 30 días después de que caduque una licencia (el periodo de gracia). La etiqueta de edición avisa antes de que termine cualquiera de los dos. Después, **SCIM, el registro de auditoría y las anulaciones de retención se detienen** hasta que se active una licencia, igual que en la Community Edition, y la configuración Enterprise pasa a ser de solo lectura. El inicio de sesión único no es una función Enterprise: el inicio de sesión SAML y OIDC, el SSO global y «Require SSO for login» funcionan igual en cualquier estado de la licencia.
+Todas las funciones Enterprise funcionan durante la prueba de 14 días y durante 30 días después de que caduque una licencia (el periodo de gracia). La etiqueta de edición avisa antes de que termine cualquiera de los dos. Después, **SCIM, el registro de auditoría y las anulaciones de retención se detienen** hasta que se active una licencia, igual que en la Community Edition, y la configuración Enterprise pasa a ser de solo lectura. El inicio de sesión único no es una función Enterprise: el inicio de sesión SAML y OIDC, el SSO global y «Require SSO to sign in» funcionan igual en cualquier estado de la licencia.
 
 ```mermaid title="Cómo pasa una licencia de un estado a otro"
 stateDiagram-v2
@@ -200,7 +200,7 @@ Qué se detiene cuando una licencia caduca:
 
 Qué **no** se detiene:
 
-- **El inicio de sesión único.** El inicio de sesión SAML y OIDC en proyectos, páginas de estado privadas, toda la instancia (SSO global) y las aplicaciones móviles, así como «Require SSO for login», forman parte de todas las ediciones. Una licencia caducada no cambia nada de esto, y la configuración del inicio de sesión único sigue siendo editable.
+- **El inicio de sesión único.** El inicio de sesión SAML y OIDC en proyectos, páginas de estado privadas, toda la instancia (SSO global) y las aplicaciones móviles, así como «Require SSO to sign in», forman parte de todas las ediciones. Una licencia caducada no cambia nada de esto, y la configuración del inicio de sesión único sigue siendo editable.
 - **La monitorización básica nunca se ve afectada**: monitores, alertas, incidentes, guardias, páginas de estado y telemetría siguen funcionando.
 - **Los administradores maestros siempre pueden iniciar sesión con su contraseña.**
 - **Los roles personalizados, las listas de IP permitidas y los controles de acceso de las páginas de estado siguen aplicándose.** Puede quitarlos, pero no crearlos ni cambiarlos.
@@ -210,11 +210,11 @@ Qué **no** se detiene:
 **Todo se reanuda en cuanto se activa una licencia**, sin reiniciar: el aprovisionamiento SCIM, el registro de auditoría y las anulaciones de retención vuelven con la configuración que tiene. OneUptime solo los desactiva cuando sabe que la licencia ha caducado. Mientras no puede leer el estado de la licencia, por ejemplo un momento mientras arranca el servidor, SCIM, el registro de auditoría y las anulaciones de retención siguen activos.
 
 > [!WARNING]
-> **Si su proveedor de identidad desaprovisiona usuarios mediante SCIM, active una licencia antes de que termine la prueba o el periodo de gracia.** Después, SCIM ya no desaprovisiona a las personas que quita en su proveedor de identidad: sus cuentas de OneUptime permanecen y, salvo que «Require SSO for login» se les aplique, cualquiera que todavía pueda acceder al buzón de correo de una de esas cuentas puede establecer una contraseña e iniciar sesión. Si deja caducar la licencia, elimine usted mismo a esos usuarios en OneUptime.
+> **Si su proveedor de identidad desaprovisiona usuarios mediante SCIM, active una licencia antes de que termine la prueba o el periodo de gracia.** Después, SCIM ya no desaprovisiona a las personas que quita en su proveedor de identidad: sus cuentas de OneUptime permanecen y, salvo que «Require SSO to sign in» se les aplique, cualquiera que todavía pueda acceder al buzón de correo de una de esas cuentas puede establecer una contraseña e iniciar sesión. Si deja caducar la licencia, elimine usted mismo a esos usuarios en OneUptime.
 
 ## Cambiar de Enterprise a Community
 
-Su configuración se queda en la base de datos. Volver a la imagen Enterprise lo restaura todo como estaba, siempre que la instalación tenga una licencia válida o siga en su prueba o periodo de gracia. El inicio de sesión único no cambia: el inicio de sesión SAML y OIDC, el SSO global y «Require SSO for login» funcionan igual en ambas imágenes. En la imagen Community:
+Su configuración se queda en la base de datos. Volver a la imagen Enterprise lo restaura todo como estaba, siempre que la instalación tenga una licencia válida o siga en su prueba o periodo de gracia. El inicio de sesión único no cambia: el inicio de sesión SAML y OIDC, el SSO global y «Require SSO to sign in» funcionan igual en ambas imágenes. En la imagen Community:
 
 - **SCIM se detiene.** Sus endpoints de aprovisionamiento dejan de existir, así que las llamadas SCIM que lanza el IdP fallan. Eso incluye el desaprovisionamiento SCIM.
 - **Los bloqueos de equipo de SCIM se levantan**, así que los equipos que estaban gestionados por grupos push de SCIM se pueden editar a mano. Al arrancar, el servidor registra en qué proyectos se levantaron los bloqueos de equipo de SCIM.
@@ -227,7 +227,7 @@ Su configuración se queda en la base de datos. Volver a la imagen Enterprise lo
 - **Los paneles Health Enterprise, la Query Console y las alertas de salud de PostgreSQL y Valkey se detienen.** La supervisión de capacidad y la depuración de ClickHouse, el estado de las migraciones y el paquete de soporte siguen funcionando.
 
 > [!CAUTION]
-> **Antes de pasar a la imagen Community una instalación cuyo proveedor de identidad desaprovisiona usuarios mediante SCIM, revise quién tiene acceso.** Sin SCIM, las personas que quita en su proveedor de identidad conservan sus cuentas de OneUptime y, salvo que «Require SSO for login» se les aplique, cualquiera que todavía pueda acceder al buzón de correo de una de esas cuentas puede establecer una contraseña e iniciar sesión. Elimine primero a esos usuarios.
+> **Antes de pasar a la imagen Community una instalación cuyo proveedor de identidad desaprovisiona usuarios mediante SCIM, revise quién tiene acceso.** Sin SCIM, las personas que quita en su proveedor de identidad conservan sus cuentas de OneUptime y, salvo que «Require SSO to sign in» se les aplique, cualquiera que todavía pueda acceder al buzón de correo de una de esas cuentas puede establecer una contraseña e iniciar sesión. Elimine primero a esos usuarios.
 
 ## Solución de problemas
 

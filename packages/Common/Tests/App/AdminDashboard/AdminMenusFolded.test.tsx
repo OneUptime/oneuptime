@@ -235,7 +235,7 @@ describe("Admin Settings: only Basic starts open", () => {
 
   /*
    * Single sign-on is one entry under Basic, beside Authentication: the SAML
-   * and OIDC providers and Require SSO for Login on one page. It was "Global
+   * and OIDC providers and Require SSO to Sign In on one page. It was "Global
    * SSO" and "Global OIDC" in a folded section that was also called
    * Authentication, and the switch was on the Authentication page. Products
    * (#6815) follows them: what the server offers every project is as basic

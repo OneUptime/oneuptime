@@ -13,7 +13,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 /*
  * Test Single Sign On (SSO), under a project's SAML and OIDC providers on
  * Settings > SSO: the project's sign-in page, which lists both kinds
- * (Pages/Onboarding/SSO), to try a provider before Require SSO for Login is
+ * (Pages/Onboarding/SSO), to try a provider before Require SSO to Sign In is
  * turned on. The page draws it only while the project has a provider to
  * try.
  */

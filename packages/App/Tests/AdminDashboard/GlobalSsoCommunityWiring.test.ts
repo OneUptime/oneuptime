@@ -10,7 +10,7 @@ import {
 
 /*
  * Settings > Single Sign-On (the instance-wide SAML and OIDC providers, and
- * the "Require SSO for Login" toggle under them), one provider's page, and
+ * the "Require SSO to Sign In" toggle under them), one provider's page, and
  * Settings > Authentication are Community Edition screens: plain core pages
  * that every edition bundles and renders the same way. (The providers were
  * listed on Settings > Global SSO and Global OIDC, and the toggle was on

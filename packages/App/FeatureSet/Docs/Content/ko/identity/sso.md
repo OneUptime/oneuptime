@@ -3,7 +3,7 @@
 SSO(Single Sign-On)를 사용하면 프로젝트 구성원이 조직의 ID 공급자(IdP)를 통해 SAML 2.0 또는 OpenID Connect로 OneUptime에 로그인할 수 있습니다. 액세스, 비밀번호, 다단계 인증을 한곳에서 관리하고, 프로젝트의 모든 사람에게 SSO를 필수로 지정할 수 있습니다.
 
 > [!NOTE]
-> **에디션:** "Require SSO for login"을 포함한 SSO는 모든 OneUptime 에디션에 포함됩니다. 자체 호스팅 설치에서는 Community Edition에서 라이선스 없이 사용할 수 있습니다. OneUptime Cloud에서는 **Scale** 플랜 이상에서 사용할 수 있습니다. 각 에디션에 포함된 기능은 [엔터프라이즈 에디션](/docs/self-hosted/enterprise)을 참고하세요.
+> **에디션:** "Require SSO to sign in"을 포함한 SSO는 모든 OneUptime 에디션에 포함됩니다. 자체 호스팅 설치에서는 Community Edition에서 라이선스 없이 사용할 수 있습니다. OneUptime Cloud에서는 **Scale** 플랜 이상에서 사용할 수 있습니다. 각 에디션에 포함된 기능은 [엔터프라이즈 에디션](/docs/self-hosted/enterprise)을 참고하세요.
 
 :::cards
 - [SAML 공급자 설정](#sso-설정): OneUptime에서 만들고 IdP에 URL 두 개를 넘겨줍니다.

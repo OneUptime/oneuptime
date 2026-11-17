@@ -19,7 +19,7 @@ flowchart TB
 ```
 
 > [!NOTE]
-> **Single sign-on is in every edition.** SAML and OIDC sign-in for projects and status pages, global SSO and "Require SSO for login" are part of the Community Edition, and no license state switches them off.
+> **Single sign-on is in every edition.** SAML and OIDC sign-in for projects and status pages, global SSO and "Require SSO to sign in" are part of the Community Edition, and no license state switches them off.
 
 This page covers what each edition includes, how to run the Enterprise Edition, how licensing works, and what happens when you switch editions.
 
@@ -57,11 +57,11 @@ This page covers what each edition includes, how to run the Enterprise Edition, 
 | Migration status, support bundle and global probes in the Admin Dashboard | Yes | Yes | Not applicable |
 | Enterprise license, seat and instance management | No | Yes | Not applicable |
 
-Single sign-on includes "Require SSO for login" for projects, private status pages and the whole instance, in both editions.
+Single sign-on includes "Require SSO to sign in" for projects, private status pages and the whole instance, in both editions.
 
 Every edition has the project's default telemetry retention, on **Project Settings > Telemetry & APM > Data Retention**. Retention overrides are what the Enterprise Edition adds on top of it.
 
-On OneUptime Cloud, a paid feature can always be switched off, on any plan. A retention override a trial (or a move to a lower plan) left set keeps applying to new telemetry, so below the Scale plan the retention pages show it under the upgrade card with a **Remove Override** button. Removing it works on every plan; setting one again needs the Scale plan. Telemetry already stored keeps the retention it was stored with. In the same way, **Project Settings > Security > SSO** shows the **Require SSO for Login** switch under its upgrade card while the project still requires SSO, so it can be turned off.
+On OneUptime Cloud, a paid feature can always be switched off, on any plan. A retention override a trial (or a move to a lower plan) left set keeps applying to new telemetry, so below the Scale plan the retention pages show it under the upgrade card with a **Remove Override** button. Removing it works on every plan; setting one again needs the Scale plan. Telemetry already stored keeps the retention it was stored with. In the same way, **Project Settings > Security > SSO** shows the **Require SSO to Sign In** switch under its upgrade card while the project still requires SSO, so it can be turned off.
 
 Custom roles, IP allowlists, status page access controls and a hidden "Powered by OneUptime" line work the same way: whatever a trial or a lower plan left set keeps applying, and its settings show it under the upgrade card with a button to remove it.
 
@@ -166,7 +166,7 @@ Nothing else is sent. No monitoring data, telemetry, logs or configuration leave
 
 ### When a license expires or is missing
 
-Every enterprise feature keeps working during the 14-day trial, and for 30 days after a license expires (the grace period). The edition label warns before either one ends. After that, **SCIM, audit logging and retention overrides stop** until a license is activated, the same as on the Community Edition, and enterprise configuration becomes read-only. Single sign-on is not an enterprise feature: SAML and OIDC sign-in, global SSO and "Require SSO for login" work the same in every license state.
+Every enterprise feature keeps working during the 14-day trial, and for 30 days after a license expires (the grace period). The edition label warns before either one ends. After that, **SCIM, audit logging and retention overrides stop** until a license is activated, the same as on the Community Edition, and enterprise configuration becomes read-only. Single sign-on is not an enterprise feature: SAML and OIDC sign-in, global SSO and "Require SSO to sign in" work the same in every license state.
 
 ```mermaid title="How a license moves between states"
 stateDiagram-v2
@@ -200,7 +200,7 @@ What stops when a license lapses:
 
 What does **not** stop:
 
-- **Single sign-on.** SAML and OIDC sign-in for projects, private status pages, the whole instance (global SSO) and the mobile apps, and "Require SSO for login", are part of every edition. A lapsed license changes none of it, and single sign-on configuration stays editable.
+- **Single sign-on.** SAML and OIDC sign-in for projects, private status pages, the whole instance (global SSO) and the mobile apps, and "Require SSO to sign in", are part of every edition. A lapsed license changes none of it, and single sign-on configuration stays editable.
 - **Core monitoring is never affected**: monitors, alerts, incidents, on-call, status pages and telemetry all keep working.
 - **Master admins can always sign in with their password.**
 - **Custom roles, IP allowlists and status page access controls keep applying.** You can remove them, but not create or change them.
@@ -210,11 +210,11 @@ What does **not** stop:
 **Everything resumes as soon as a license is activated**, without a restart: SCIM provisioning, audit logging and retention overrides come back with the configuration you have. OneUptime only switches them off when it knows the license has lapsed. While it cannot read the license state, for example for a moment while the server starts, SCIM, audit logging and retention overrides stay on.
 
 > [!WARNING]
-> **If your identity provider deprovisions users through SCIM, activate a license before the trial or grace period ends.** After that, SCIM no longer deprovisions the people you remove at your identity provider: their OneUptime accounts stay, and unless "Require SSO for login" applies to them, anyone who can still reach such an account's email inbox can set a password and sign in. If you let the license lapse, remove those users in OneUptime yourself.
+> **If your identity provider deprovisions users through SCIM, activate a license before the trial or grace period ends.** After that, SCIM no longer deprovisions the people you remove at your identity provider: their OneUptime accounts stay, and unless "Require SSO to sign in" applies to them, anyone who can still reach such an account's email inbox can set a password and sign in. If you let the license lapse, remove those users in OneUptime yourself.
 
 ## Switching from Enterprise to Community
 
-Your configuration stays in the database. Switching back to the Enterprise image restores everything as it was, as long as the install has a valid license or is still in its trial or grace period. Single sign-on does not change: SAML and OIDC sign-in, global SSO and "Require SSO for login" work the same on both images. On the Community image:
+Your configuration stays in the database. Switching back to the Enterprise image restores everything as it was, as long as the install has a valid license or is still in its trial or grace period. Single sign-on does not change: SAML and OIDC sign-in, global SSO and "Require SSO to sign in" work the same on both images. On the Community image:
 
 - **SCIM stops.** Its provisioning endpoints no longer exist, so IdP-driven SCIM calls fail. That includes SCIM deprovisioning.
 - **SCIM team locks are lifted**, so teams that were managed by SCIM push groups can be edited by hand. At startup the server logs which projects had their SCIM team locks lifted.
@@ -227,7 +227,7 @@ Your configuration stays in the database. Switching back to the Enterprise image
 - **The enterprise Health dashboards, the Query Console, and the PostgreSQL and Valkey health alerts stop.** ClickHouse capacity monitoring and pruning, migration status and the support bundle keep working.
 
 > [!CAUTION]
-> **Before you switch an install whose identity provider deprovisions users through SCIM to the Community image, review who has access.** Without SCIM, the people you remove at your identity provider keep their OneUptime accounts, and unless "Require SSO for login" applies to them, anyone who can still reach such an account's email inbox can set a password and sign in. Remove those users first.
+> **Before you switch an install whose identity provider deprovisions users through SCIM to the Community image, review who has access.** Without SCIM, the people you remove at your identity provider keep their OneUptime accounts, and unless "Require SSO to sign in" applies to them, anyone who can still reach such an account's email inbox can set a password and sign in. Remove those users first.
 
 ## Troubleshooting
 
