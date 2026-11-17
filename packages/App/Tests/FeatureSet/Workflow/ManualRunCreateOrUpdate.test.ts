@@ -119,6 +119,26 @@ jest.mock("../../../FeatureSet/Workflow/Services/QueueWorkflow", () => {
   };
 });
 
+/*
+ * The rule a record's lookup adds on an incident's own ID, which leaves
+ * private incidents out (PrivateRecordReadFilter.keepToNotPrivate): a run of
+ * a workflow never acts on one (#8914). Read off the incident's isPrivate.
+ */
+function isNotPrivateRule(condition: unknown): boolean {
+  const operator: { type?: unknown; getSql?: unknown } = (condition || {}) as {
+    type?: unknown;
+    getSql?: unknown;
+  };
+
+  return (
+    operator.type === "raw" &&
+    typeof operator.getSql === "function" &&
+    String((operator.getSql as (alias: string) => string)("c")).includes(
+      `"isPrivate" = TRUE`,
+    )
+  );
+}
+
 describe("Run Workflow on On Create or Update", () => {
   let projectId: ObjectID;
   let userId: ObjectID;
@@ -203,6 +223,10 @@ describe("Run Workflow on On Create or Update", () => {
           return incidents.filter((incident: Incident): boolean => {
             return Object.entries(args.query).every(
               ([column, expected]: [string, unknown]): boolean => {
+                if (isNotPrivateRule(expected)) {
+                  return incident.isPrivate !== true;
+                }
+
                 return (
                   String(
                     (incident as unknown as Dictionary<unknown>)[column],
@@ -343,6 +367,22 @@ describe("Run Workflow on On Create or Update", () => {
       _id: eight._id,
       [WHAT_HAPPENED_ID]: "updated",
     });
+  });
+
+  test("a private incident's number runs nothing: a workflow does not act on one (#8914)", async () => {
+    const nine: Incident = incident(9);
+    nine.isPrivate = true;
+
+    const thrown: unknown = await run({
+      _id: "INC-9",
+      [WHAT_HAPPENED_ID]: "updated",
+    });
+
+    expect(thrown).toBeInstanceOf(BadDataException);
+    expect((thrown as Error).message).toBe(
+      "No incident in this project has the number INC-9.",
+    );
+    expect(queueSpy).not.toHaveBeenCalled();
   });
 
   test("a wrong answer is refused before any incident is looked up", async () => {
