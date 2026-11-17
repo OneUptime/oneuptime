@@ -1055,7 +1055,13 @@ describe("the Status Pages Overview: the password, the badge, the feed and archi
       'const token: string = req.query["token"] as string;',
     );
     expect(api).toContain("enableEmbeddedOverallStatus: true,");
-    expect(api).toContain("embeddedOverallStatusToken: token,");
+    /*
+     * The page by its id, and the token presented compared with its own:
+     * the token is kept encrypted (#9012), so no query names it.
+     */
+    expect(api).toMatch(
+      /StatusPageService\.findOneByPresentedKey\(\{\s*column: "embeddedOverallStatusToken",\s*presentedKey: token,/,
+    );
 
     for (const name of [
       'title="Enable Embedded Status Badge"',
