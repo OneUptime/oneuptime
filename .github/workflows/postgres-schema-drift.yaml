@@ -4062,6 +4062,33 @@ jobs:
           Tests/Workers/DataMigrations/EncryptProjectCredentialsPostgres.test.ts
           --forceExit
 
+      # Webhook addresses and SNMP credentials through the upgrade that
+      # encrypts them (#9013, #9014): on the tables as they were (a webhook
+      # notification method's address a varchar(500), a community string a
+      # varchar(100)), with every address and credential stored as written,
+      # the schema migration widens them in place, EncryptWebhookAddresses
+      # and EncryptSnmpCredentials leave only ciphertext - in a scan's
+      # credential sets, each entry's secret fields alone - and
+      # MaskWebhookAddressesInLogs keeps the logs' addresses by their host;
+      # every value reads as written through the services before, between
+      # and after; a second run changes nothing, two at once encrypt each
+      # value once, and a save afterwards is stored encrypted. Clones the
+      # migrated StatusPageSubscriber, UserWebhook, OpenStackProjectNotice,
+      # CustomNotificationChannel, NetworkDevice, NetworkDeviceDiscoveryScan,
+      # WebhookLog and UserOnCallLogTimeline tables into an isolated schema.
+      - name: Test webhook addresses' and SNMP credentials' upgrade to encrypted on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_WEBHOOK_SNMP_CREDENTIALS_TESTS: "true"
+          WEBHOOK_SNMP_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WEBHOOK_SNMP_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WEBHOOK_SNMP_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/EncryptWebhookAddressesAndSnmpCredentialsPostgres.test.ts
+          --forceExit
+
       # Exceptions: the exception group upsert's ON CONFLICT branch, which is
       # all of regression detection - an occurrence after the resolve
       # reopens it as Regressed, a late one from before does not, and one
