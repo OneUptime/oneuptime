@@ -599,16 +599,20 @@ describe("the alert page's menu table is the alert's own menu", () => {
   );
 
   it("reads the menu, with the Developer section where the menu adds it", () => {
-    // The incident page's sections, in the incident page's order.
+    /*
+     * The incident page's sections, in the incident page's order, less
+     * Notes: its one entry, Private Notes, is now last in Investigation
+     * (#9216).
+     */
     expect(titlesOf(alertViewMenu())).toEqual([
       "Overview",
       "Investigation",
       "Team",
       "Notifications",
-      "Notes",
       "Developer",
       "Advanced",
     ]);
+    expect(alertViewMenu()[1]!.items.at(-1)).toBe("Private Notes");
   });
 
   it("has a row per section with its pages, in the menu's order", () => {
@@ -620,17 +624,15 @@ describe("the alert page's menu table is the alert's own menu", () => {
       "Pages/Alerts/View/SideMenu.tsx",
     );
 
+    // Notes is no longer a section of its own (#9216).
     expect(table).toContain(
-      "**Overview**, **Investigation**, **Team** and **Notes** are open; the other sections start folded until you click them.",
+      "**Overview**, **Investigation** and **Team** are open; the other sections start folded until you click them.",
     );
 
     for (const menuSection of alertViewMenu()) {
-      const open: boolean = [
-        "Overview",
-        "Investigation",
-        "Team",
-        "Notes",
-      ].includes(menuSection.title);
+      const open: boolean = ["Overview", "Investigation", "Team"].includes(
+        menuSection.title,
+      );
 
       expect({
         section: menuSection.title,
@@ -648,12 +650,29 @@ describe("the episode page's menu table is the episode's own menu", () => {
   );
 
   it("reads the menu, with the Developer section where the menu adds it", () => {
+    /*
+     * Team, Alerts and Notes, one entry each, joined Overview and
+     * Investigation (#9216).
+     */
+    expect(episodeViewMenu()).toEqual([
+      {
+        title: "Overview",
+        items: ["Overview", "State Timeline", "Member Alerts", "Owners"],
+      },
+      {
+        title: "Investigation",
+        items: [
+          "Description",
+          "Root Cause",
+          "Remediation Notes",
+          "Private Notes",
+        ],
+      },
+      ...episodeViewMenu().slice(2),
+    ]);
     expect(titlesOf(episodeViewMenu())).toEqual([
       "Overview",
       "Investigation",
-      "Team",
-      "Alerts",
-      "Notes",
       "Developer",
       "Advanced",
     ]);

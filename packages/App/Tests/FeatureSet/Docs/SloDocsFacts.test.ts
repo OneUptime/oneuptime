@@ -781,7 +781,7 @@ describe("SLOs Overview, against the product", () => {
     );
   });
 
-  it("says which side menu sections hold which pages, and that they start folded", () => {
+  it("says which side menu sections hold which pages, and which of them start folded", () => {
     const menu: string = readSource("sloViewSideMenu");
     const sections: Record<string, Array<string>> = {};
 
@@ -792,7 +792,17 @@ describe("SLOs Overview, against the product", () => {
       );
     }
 
-    expect(sections["Configuration"]).toEqual(["Monitors"]);
+    /*
+     * Monitors sits in Overview, right after Overview: it had a Configuration
+     * section of its own for this one entry (#9216).
+     */
+    expect(sections["Configuration"]).toBeUndefined();
+    expect(sections["Overview"]).toEqual([
+      "Overview",
+      "Monitors",
+      "Metrics",
+      "Monthly Report",
+    ]);
     expect(sections["Rules"]).toEqual([
       "Monitor Rules",
       "Burn Rate Rules",
@@ -806,14 +816,16 @@ describe("SLOs Overview, against the product", () => {
     ]);
     expect(menu).toContain("getDeveloperSideMenuSection(");
 
-    // In the menu's order: Configuration, then Rules, then Management.
+    // In the menu's order: Overview, then Rules, then Management.
     expect(
       Object.keys(sections).filter((title: string): boolean => {
-        return ["Configuration", "Rules", "Management"].includes(title);
+        return ["Overview", "Rules", "Management"].includes(title);
       }),
-    ).toEqual(["Configuration", "Rules", "Management"]);
+    ).toEqual(["Overview", "Rules", "Management"]);
 
-    for (const title of ["Configuration", "Rules", "Management", "Developer"]) {
+    expect(startsFolded("Overview")).toBe(false);
+
+    for (const title of ["Rules", "Management", "Developer"]) {
       expect({ title, folded: startsFolded(title) }).toEqual({
         title,
         folded: true,
@@ -821,7 +833,7 @@ describe("SLOs Overview, against the product", () => {
     }
 
     expect(page).toContain(
-      "**Monitors** sits in a **Configuration** section, **Monitor Rules**, **Burn Rate Rules** and **Error Budget Policy** in a **Rules** section, and **Owners**, **Settings**, **Audit Logs** and **Delete SLO** in a **Management** section. All three start folded, as does a **Developer** section",
+      "**Monitors** sits in the **Overview** section, under **Overview**; **Monitor Rules**, **Burn Rate Rules** and **Error Budget Policy** in a **Rules** section; and **Owners**, **Settings**, **Audit Logs** and **Delete SLO** in a **Management** section. **Rules** and **Management** start folded, as does a **Developer** section",
     );
   });
 
@@ -836,10 +848,11 @@ describe("SLOs Overview, against the product", () => {
       );
     }
 
-    expect(sections["Configuration"]).toContain("Monitors");
+    // Monitors moved into Overview from a one-entry Configuration (#9216).
+    expect(sections["Overview"]).toContain("Monitors");
     expect(sections["Rules"]).toContain("Monitor Rules");
     expect(englishPage(MONITOR_RULES)).toContain(
-      "This page covers an SLO's **Monitors** page, under **Configuration** in its side menu, and its **Monitor Rules** page, under **Rules**.",
+      "This page covers an SLO's **Monitors** page, under **Overview** in its side menu, and its **Monitor Rules** page, under **Rules**.",
     );
 
     /*
