@@ -18,11 +18,16 @@ import { expect, Locator, Page, test } from "@playwright/test";
  *   Run Workflow tests it, neither true without one, and its Turn on
  *   workflow would be a second primary button beside Add Trigger.
  * - The toolbar's buttons line up with the Enabled switch when they wrap
- *   under it (a tablet's column beside the side menu), and fill the
- *   toolbar's width on a phone.
+ *   under it (a tablet's column beside the side menu). On a phone they
+ *   share a row while they fit, each as wide as its words, and wrap a whole
+ *   button at a time: they filled the toolbar's width, one per line, while
+ *   a button took a phone's whole row by itself - since every button is
+ *   one frame with no width of its own (#9199), the box that holds buttons
+ *   decides, and this one keeps them to their words.
  * - The notice puts Turn on workflow under its sentences until the window
  *   is lg wide: beside them, in a tablet's column, they were squeezed into
- *   a column of a word or two a line.
+ *   a column of a word or two a line. On a phone the button starts at the
+ *   notice's edge, under the icon, as wide as its words.
  *
  * jsdom draws no layout and runs no Tailwind, so these live here.
  */
@@ -31,6 +36,12 @@ import { expect, Locator, Page, test } from "@playwright/test";
 const INDIGO_600: string = "rgb(79, 70, 229)";
 const WHITE: string = "rgb(255, 255, 255)";
 const GRAY_300: string = "rgb(209, 213, 219)";
+
+// A button's one height: its 20px line, 8px above and below, a 1px border.
+const BUTTON_HEIGHT: number = 38;
+
+// The toolbar's gap between two buttons in a row (gap-x-3).
+const BUTTON_GAP: number = 12;
 
 // The Builder's column on a tablet, beside the side menu.
 const TABLET: { width: number; height: number } = { width: 768, height: 1000 };
@@ -221,7 +232,14 @@ test.describe("Workflow builder page: what the toolbar and the off notice put fi
     }
   });
 
-  test("on a phone, the add button and Run Workflow are each as wide as the toolbar, under the switch", async ({
+  /*
+   * A button has no width of its own since every style is one frame
+   * (f8d33e2202e, #9199), and the toolbar keeps its buttons to their words:
+   * "The buttons share a row while they fit, on a phone too, and wrap a
+   * whole button at a time" (be0954dcacf). They used to fill the toolbar's
+   * width, one per line.
+   */
+  test("on a phone, the add button and Run Workflow are each as wide as their words, under the switch, and share a row while they fit", async ({
     page,
     isMobile,
   }: {
@@ -236,13 +254,32 @@ test.describe("Workflow builder page: what the toolbar and the off notice put fi
       const toggle: Box = await boxOf(enabledSwitch(page));
       const add: Box = await boxOf(addButton(page));
       const run: Box = await boxOf(runButton(page));
+      // The line the switch and the buttons wrap in: the toolbar's width.
+      const line: Box = await boxOf(page.getByTestId("workflow-toolbar-run"));
 
+      // Under the switch, starting where it does - not indented.
       expectSameX(add, toggle);
-      expectSameX(run, add);
-      expect(Math.abs(run.width - add.width)).toBeLessThanOrEqual(1);
-      expect(run.y).toBeGreaterThanOrEqual(add.y + add.height);
-      // The width of the toolbar inside its padding, not of the label.
-      expect(add.width).toBeGreaterThan(page.viewportSize()!.width / 2);
+
+      // As wide as their words, not the toolbar's line.
+      expect(add.width).toBeLessThan(line.width);
+      expect(run.width).toBeLessThan(line.width);
+
+      // Each label on one line: never broken inside its button.
+      expect(Math.round(add.height)).toBe(BUTTON_HEIGHT);
+      expect(Math.round(run.height)).toBe(BUTTON_HEIGHT);
+
+      /*
+       * Run Workflow beside it, a gap away, while both fit on the line;
+       * under it, starting where it does, only when a font's widths leave
+       * no room for both.
+       */
+      if (add.width + BUTTON_GAP + run.width <= line.width) {
+        expect(Math.abs(run.y - add.y)).toBeLessThanOrEqual(1);
+        expect(run.x).toBeGreaterThan(add.x + add.width);
+      } else {
+        expect(run.y).toBeGreaterThanOrEqual(add.y + add.height);
+        expectSameX(run, add);
+      }
     }
   });
 
@@ -272,9 +309,14 @@ test.describe("Workflow builder page: what the toolbar and the off notice put fi
     expect(turnOn.y).toBeGreaterThanOrEqual(body.y + body.height);
 
     if (isMobile) {
-      // A phone's button is as wide as the notice, from under the icon.
+      /*
+       * A phone's button starts at the notice's edge, under the icon (the
+       * indent past it is from md up), as wide as its words: a button has
+       * no width of its own (#9199), and the box round it only indents it
+       * from md up (929b31bdf4f). It used to be as wide as the notice.
+       */
       expect(turnOn.x).toBeLessThan(body.x);
-      expect(turnOn.width).toBeGreaterThan(body.width);
+      expect(turnOn.width).toBeLessThan(body.width);
     } else {
       expectSameX(turnOn, body);
     }
