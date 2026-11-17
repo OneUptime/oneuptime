@@ -52,6 +52,7 @@ import {
   readPagingLadderSteps,
 } from "../../Types/NotificationRule/PagingLadder";
 import {
+  PAGING_LADDER_ADMIN_PERMISSIONS,
   PagingLadderDefaultMemberResult,
   PagingLadderDefaultOutcome,
   PagingLadderDefaultStep,
@@ -103,11 +104,7 @@ import Permission from "../../Types/Permission";
  * lists to each other.
  */
 export const PAGING_LADDER_ADMIN_WRITE_PERMISSIONS: ReadonlyArray<Permission> =
-  [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.EditProjectUserNotificationRule,
-  ];
+  PAGING_LADDER_ADMIN_PERMISSIONS;
 
 export const PAGING_LADDER_NOT_ALLOWED_MESSAGE: string =
   "You can change your own ladder. To change a member's, ask a Project Admin, or someone who may edit members' notification rules.";

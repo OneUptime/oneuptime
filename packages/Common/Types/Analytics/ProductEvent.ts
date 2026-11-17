@@ -114,6 +114,12 @@ export enum ProductEventName {
   // How to reach me (#6820): a paging ladder saved, and the grid opened.
   PagingLadderSaved = "paging_ladder/saved",
   PagingLadderGridOpened = "paging_ladder/grid_opened",
+  /*
+   * The project's default ladder (#7449) saved, and applied to members from
+   * On-Call Readiness (#7450).
+   */
+  PagingLadderDefaultSaved = "paging_ladder/default_saved",
+  PagingLadderDefaultApplied = "paging_ladder/default_applied",
 
   // "Used by" (#6813): the full list of what refers to a record was opened.
   UsedByListOpened = "used_by/list_opened",
@@ -466,6 +472,23 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     description:
       "The per-severity grid behind a paging ladder was opened on How to Reach Me, and how many cards differed from the ladder then.",
     properties: [{ name: "is_own" }, { name: "differing_card_count" }],
+  },
+  {
+    name: ProductEventName.PagingLadderDefaultSaved,
+    description:
+      "The project's default ladder for new members was saved in Project Settings > Notification Channels: how many steps it has (0: turned off).",
+    properties: [{ name: "step_count" }],
+  },
+  {
+    name: ProductEventName.PagingLadderDefaultApplied,
+    description:
+      "The project's default ladder was applied from On-Call Readiness to the members picked: how many were picked, and how many got it, were skipped or failed.",
+    properties: [
+      { name: "member_count" },
+      { name: "applied_count" },
+      { name: "skipped_count" },
+      { name: "failed_count" },
+    ],
   },
   {
     name: ProductEventName.UsedByListOpened,

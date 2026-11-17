@@ -18,6 +18,7 @@ import {
   REPEAT_EVERY_MINUTES_OPTIONS,
 } from "./NotificationRepeat";
 import { JSONArray, JSONObject } from "../JSON";
+import Permission from "../Permission";
 import {
   OnCallPageChannel,
   getOnCallPageChannelName,
@@ -62,6 +63,19 @@ import {
 
 // Where the Dashboard applies the default to a member (Server/API/PagingLadderAPI).
 export const PAGING_LADDER_APPLY_DEFAULT_ROUTE: string = `${PAGING_LADDER_API_PATH}/apply-default`;
+
+/*
+ * Who, besides the person, may change their rules - and so who may apply the
+ * project's default to members: the write list of UserNotificationRule
+ * without CurrentUser, which every signed-in caller holds
+ * (PagingLadderService pins the two to each other). The Dashboard offers
+ * Readiness's Apply Default Ladder to them alone; the server asks again.
+ */
+export const PAGING_LADDER_ADMIN_PERMISSIONS: ReadonlyArray<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.EditProjectUserNotificationRule,
+];
 
 // How many members one request may name.
 export const MAX_PAGING_LADDER_DEFAULT_MEMBERS: number = 100;
@@ -600,6 +614,71 @@ export interface PagingLadderDefaultMemberResult {
   // In English, for the API: why it was skipped or failed, or what it did.
   message: string;
 }
+
+/*
+ * A request's answer, as the Dashboard reads it: each member's result, with
+ * what cannot be read left out - an outcome it does not know is no result.
+ */
+export const readPagingLadderDefaultMemberResults: (
+  value: unknown,
+) => Array<PagingLadderDefaultMemberResult> = (
+  value: unknown,
+): Array<PagingLadderDefaultMemberResult> => {
+  const results: unknown =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)["results"]
+      : undefined;
+
+  if (!Array.isArray(results)) {
+    return [];
+  }
+
+  const channelsOf: (list: unknown) => Array<OnCallPageChannel> = (
+    list: unknown,
+  ): Array<OnCallPageChannel> => {
+    return Array.isArray(list)
+      ? list.filter((channel: unknown): channel is OnCallPageChannel => {
+          return Object.values(OnCallPageChannel).includes(
+            channel as OnCallPageChannel,
+          );
+        })
+      : [];
+  };
+
+  const read: Array<PagingLadderDefaultMemberResult> = [];
+
+  for (const entry of results) {
+    if (!entry || typeof entry !== "object") {
+      continue;
+    }
+
+    const result: Record<string, unknown> = entry as Record<string, unknown>;
+    const outcome: unknown = result["outcome"];
+
+    if (
+      !Object.values(PagingLadderDefaultOutcome).includes(
+        outcome as PagingLadderDefaultOutcome,
+      )
+    ) {
+      continue;
+    }
+
+    read.push({
+      userId: readPagingId(result["userId"]),
+      outcome: outcome as PagingLadderDefaultOutcome,
+      appliedSteps: readPagingLadderDefault(result["appliedSteps"]),
+      leftOutChannels: channelsOf(result["leftOutChannels"]),
+      keptChannels: channelsOf(result["keptChannels"]),
+      changedRuleCount: Number(result["changedRuleCount"]) || 0,
+      message:
+        typeof result["message"] === "string"
+          ? (result["message"] as string)
+          : "",
+    });
+  }
+
+  return read;
+};
 
 export const PAGING_LADDER_DEFAULT_SKIPPED_MESSAGE: string =
   "Skipped: they have verified none of the ways the default ladder uses, so their own rules stay as they are.";

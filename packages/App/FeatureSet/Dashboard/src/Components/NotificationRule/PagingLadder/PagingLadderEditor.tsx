@@ -110,6 +110,15 @@ export interface ComponentProps {
   setUpMoreMethodsRoute?: Route | undefined;
   // Below the steps: what is not verified yet, or why nothing can be added.
   footer?: ReactElement | undefined;
+  /*
+   * Words for a ladder that is nobody's own - the project's default ladder
+   * of channels (#7449) - already in the reader's language: the empty
+   * ladder's sentence, its button and each step's Add, and what a save
+   * says. Left out, the person's own words.
+   */
+  noStepsText?: string | undefined;
+  addLabel?: string | undefined;
+  savedText?: string | undefined;
 }
 
 const getStepsSignature: (steps: ReadonlyArray<PagingLadderStep>) => string = (
@@ -308,17 +317,21 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
     ? getNextStepWait(lastGroup.wait)
     : null;
 
-  const addLabel: string = props.memberName
-    ? translator.translateTemplate(PAGING_LADDER_COPY.memberAddPlaceholder, {
-        name: props.memberName,
-      })
-    : translator.translateTemplate(PAGING_LADDER_COPY.ownAddPlaceholder);
+  const addLabel: string =
+    props.addLabel ||
+    (props.memberName
+      ? translator.translateTemplate(PAGING_LADDER_COPY.memberAddPlaceholder, {
+          name: props.memberName,
+        })
+      : translator.translateTemplate(PAGING_LADDER_COPY.ownAddPlaceholder));
 
-  const noStepsText: string = props.memberName
-    ? translator.translateTemplate(PAGING_LADDER_COPY.memberNoSteps, {
-        name: props.memberName,
-      })
-    : translator.translateTemplate(PAGING_LADDER_COPY.ownNoSteps);
+  const noStepsText: string =
+    props.noStepsText ||
+    (props.memberName
+      ? translator.translateTemplate(PAGING_LADDER_COPY.memberNoSteps, {
+          name: props.memberName,
+        })
+      : translator.translateTemplate(PAGING_LADDER_COPY.ownNoSteps));
 
   // One way to reach the person, in its step: what it is, how a push sounds, and its ×.
   const getStepRow: (index: number) => ReactElement = (
@@ -645,11 +658,12 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
             >
               <Icon icon={IconProp.Check} className="h-4 w-4 flex-shrink-0" />
               <span>
-                {translator.translateText(
-                  savedKeptDifferences
-                    ? PAGING_LADDER_COPY.savedKeepingDifferences
-                    : PAGING_LADDER_COPY.saved,
-                )}
+                {props.savedText ||
+                  translator.translateText(
+                    savedKeptDifferences
+                      ? PAGING_LADDER_COPY.savedKeepingDifferences
+                      : PAGING_LADDER_COPY.saved,
+                  )}
               </span>
             </p>
           ) : (
