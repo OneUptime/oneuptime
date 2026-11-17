@@ -22,6 +22,7 @@ import {
   seriesLabels,
 } from "../../../Helpers/GroupedMetricCheck";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * THE CHECK AN INCIDENT OR AN ALERT KEEPS IS ABOUT ITS OWN SERIES, AND
@@ -185,9 +186,8 @@ describe("a record about one series of a grouped metric monitor", () => {
 
   test("redacts only what it keeps: never the series it dropped", () => {
     const fleet: GroupedMetricCheck = groupedMetricCheck({ seriesCount: 300 });
-    const redactText: jest.SpiedFunction<
-      typeof MonitorEvidenceRedaction.redactText
-    > = jest.spyOn(MonitorEvidenceRedaction, "redactText");
+    const redactText: SpyInstance<typeof MonitorEvidenceRedaction.redactText> =
+      jest.spyOn(MonitorEvidenceRedaction, "redactText");
 
     stored({ check: fleet.check, seriesFingerprint: fingerprintOf(5) });
     const scopedCalls: number = redactText.mock.calls.length;
@@ -355,9 +355,8 @@ describe("the size limit", () => {
     const fleet: GroupedMetricCheck = groupedMetricCheck({
       seriesCount: 5000,
     });
-    const redactText: jest.SpiedFunction<
-      typeof MonitorEvidenceRedaction.redactText
-    > = jest.spyOn(MonitorEvidenceRedaction, "redactText");
+    const redactText: SpyInstance<typeof MonitorEvidenceRedaction.redactText> =
+      jest.spyOn(MonitorEvidenceRedaction, "redactText");
 
     const log: JSONObject = stored({ check: fleet.check });
 

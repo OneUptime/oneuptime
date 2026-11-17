@@ -93,7 +93,13 @@ The suite checks what jsdom cannot:
   with Tab and opened with Space, and the step being filled in is not a
   button. On a 390 pixel touch phone, light and dark, the tabs and steps are
   44 pixels tall and attribute filter chips wrap with every word on the
-  screen (#9136).
+  screen (#9136);
+- a stepped edit dialog (`BasicFormModal`, "Edit SMTP Config" on
+  `?section=keyboard`): at 1280 pixels Next walks on, a step's row opens it
+  from any corner, the far end too, and Save Changes is on the last step,
+  each by the mouse and by Tab with Enter or Space; on a 390 pixel touch
+  phone, light and dark, Next and Save Changes are on the screen and work by
+  a tap and by the keyboard (#9245).
 
 `Fixture/Fixture.js` records every read on `window.__fixture.reads`, every
 write on `window.__fixture.updates`, and every read it does not model on

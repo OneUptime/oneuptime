@@ -193,6 +193,15 @@ Zonder Group By is dezelfde monitor één scalair: de query voegt alle hosts sam
 
 Elke waarschuwing per groep volgt haar eigen groep. Wanneer host A weer onder de drempel zakt, wordt diens waarschuwing vanzelf opgelost, en de waarschuwing van host B blijft open tot host B herstelt. Het herstel van de ene groep sluit nooit de waarschuwing van een andere.
 
+### Wat elke waarschuwing bewaart
+
+Elke waarschuwing of elk incident dat voor één groep wordt geopend, bewaart de controle die het opende alleen voor die groep: de reeks, de punten en de samenvatting van de evaluatie. Geen bewaarde controle is groter dan 256 KB, en de logboeken van een controle die moest worden ingekort om te passen, zeggen dat.
+
+Waarschuwingen en incidenten die hiervoor werden geopend, bewaarden elke groep van de evaluatie, tot tientallen megabytes per stuk, op het record en opnieuw bij elk van zijn statuswijzigingen. Na de upgrade kort een taak die elk uur draait ze beetje bij beetje in, waarbij de eigen groep van elk record blijft, tot er geen meer over zijn.
+
+> [!NOTE]
+> Bij een zelfgehoste installatie hergebruikt PostgreSQL de ruimte die de ingekorte controles achterlaten, maar geeft die niet terug aan de schijf. Om de database te verkleinen zodra ze ingekort zijn, voert u in een onderhoudsvenster `VACUUM FULL` uit op de grootste tabellen, omdat dat elke tabel vergrendelt terwijl het die herschrijft, of gebruikt u `pg_repack`, dat dat niet doet.
+
 ### De evaluatie van criteria verschilt
 
 - **Gegroepeerde monitoren evalueren elk criterium.** Ernstniveaus kunnen daardoor tegelijk bij verschillende groepen afgaan: met "Critical: groter dan 95" boven "Warning: groter dan 80" opent een host op 96% een kritieke waarschuwing terwijl een host op 85% bij dezelfde controle een gewone waarschuwing opent. Een host die beide niveaus overschrijdt, krijgt nog steeds precies één waarschuwing, van het eerste criterium dat overeenkomt, dus **zet de criteria op volgorde van ernstigst naar minst ernstig**.

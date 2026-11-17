@@ -114,7 +114,7 @@ state, touch targets, bottom clearance and horizontal overflow. It runs at
 
 ## Screenshots and environment limits
 
-See the [review gallery](../../../.github/pr-assets/mobile-experience-polish/README.md)
+See the [review gallery](https://github.com/OneUptime/oneuptime/blob/pr-assets/mobile-experience-polish/README.md)
 for current captures. `npm run test-ui` attaches screenshots to its Playwright
 report; the gallery selects representative screens and recovery states.
 

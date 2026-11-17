@@ -36,7 +36,7 @@ flowchart TB
 - **Indstillinger**: **Ejerregler**, **Etiketregler** og projektets fælles **Sessionsafspilning**-kontakt.
 - **Avanceret**: **Arkiveret**, de applikationer, du har arkiveret.
 
-En applikations egen sidemenu grupperer dens sider sådan; **Indstillinger**, **Udvikler** og **Avanceret** er foldet sammen fra start:
+En applikations egen sidemenu grupperer dens sider sådan; **Udvikler** og **Avanceret** er foldet sammen fra start:
 
 | Sektion | Sider |
 | --- | --- |
@@ -44,9 +44,8 @@ En applikations egen sidemenu grupperer dens sider sådan; **Indstillinger**, **
 | **Observabilitet** | **Metrikker**, **Protokoller**, **Spor**, **Klienter** |
 | **Produktanalyse** | **Brugere**, **Sessioner**, **Begivenheder**, **Tragte**, **Fastholdelse af brugere**, **Brugerforløb**, **Analyseindstillinger** |
 | **Sessionsafspilning** | **Sessionsafspilning**, **Brugere i afspilninger**, **Sundhed**, **Afspilningspolitik**, **Frustrationssignaler**, **Adgangslog for afspilninger**, **Dokumentation** |
-| **Indstillinger** | **Indstillinger** |
 | **Udvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
-| **Avanceret** | **Auditlogs**, **Slet applikation** |
+| **Avanceret** | **Indstillinger**, **Auditlogs**, **Slet applikation** |
 
 ## Sådan genkender OneUptime RUM
 

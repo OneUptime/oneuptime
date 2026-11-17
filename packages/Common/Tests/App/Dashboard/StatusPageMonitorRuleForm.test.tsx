@@ -247,6 +247,7 @@ import StatusPageMonitorRuleCopy, {
   STATUS_PAGE_MONITOR_RULE_NAMES,
   getStatusPageMonitorRuleName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageMonitorRuleForm";
+import { formStepButton } from "../../Helpers/FormStepButton";
 
 function dialog(): HTMLElement {
   return screen.getByTestId("modal");
@@ -749,7 +750,7 @@ describe("editing a status page monitor rule", () => {
       });
       const steps: Array<HTMLElement> =
         within(progress).getAllByRole("listitem");
-      fireEvent.click(steps[steps.length - 1]!);
+      fireEvent.click(formStepButton(steps[steps.length - 1]!));
     });
     await settle();
 

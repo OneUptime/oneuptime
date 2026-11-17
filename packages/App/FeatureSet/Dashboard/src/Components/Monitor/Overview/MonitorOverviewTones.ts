@@ -19,6 +19,7 @@ export const TONE_TILE_CLASS: Record<MonitorOverviewTone, string> = {
   danger: "bg-red-50 text-red-700",
   info: "bg-sky-50 text-sky-700",
   neutral: "bg-gray-100 text-gray-500",
+  paused: "bg-gray-100 text-gray-500",
 };
 
 // A fact's value. Neutral reads as ordinary text, not as a muted grey.
@@ -28,6 +29,7 @@ export const TONE_TEXT_CLASS: Record<MonitorOverviewTone, string> = {
   danger: "text-red-700",
   info: "text-sky-700",
   neutral: "text-gray-900",
+  paused: "text-gray-900",
 };
 
 export const TONE_BADGE: Record<MonitorOverviewTone, StatusBadgeType> = {
@@ -36,6 +38,8 @@ export const TONE_BADGE: Record<MonitorOverviewTone, StatusBadgeType> = {
   danger: StatusBadgeType.Danger,
   info: StatusBadgeType.Info,
   neutral: StatusBadgeType.Neutral,
+  // A choice, not a fault: grey with a hollow dot (StatusBadgeType.Paused).
+  paused: StatusBadgeType.Paused,
 };
 
 export type MonitorOverviewFactCount = 1 | 2 | 3 | 4;

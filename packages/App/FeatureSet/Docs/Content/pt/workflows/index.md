@@ -81,11 +81,11 @@ Abra um workflow específico e o menu dele tem:
 - **Construtor** — o canvas onde você projeta o workflow, com a chave **Habilitado** no topo.
 - **Variáveis do fluxo** — valores que valem só para esse workflow.
 - **Registros → Execuções** — cada execução desse workflow, com detalhes.
-- **Proprietários** — as pessoas e equipes responsáveis pelo workflow.
 - **Desenvolvedores** — como gerenciar esse workflow com Terraform, a API ou um assistente de IA.
 - **Configurações** — duplicar, exportar e arquivar.
+- **Proprietários** — as pessoas e equipes responsáveis pelo workflow.
 
-**Configurações** fica na seção **Avançado** do menu, junto com **Registros de auditoria** e **Excluir fluxo de trabalho**. **Avançado** e **Desenvolvedores** começam recolhidas, neste menu e em todos os outros, para que as páginas que você usa todo dia venham primeiro. Clique no nome de uma seção para mostrar as páginas dela. Ela se abre sozinha sempre que você está em uma delas.
+**Configurações** e **Proprietários** ficam na seção **Avançado** do menu, junto com **Registros de auditoria** e **Excluir fluxo de trabalho**. **Avançado** e **Desenvolvedores** começam recolhidas, neste menu e em todos os outros, para que as páginas que você usa todo dia venham primeiro. Clique no nome de uma seção para mostrar as páginas dela. Ela se abre sozinha sempre que você está em uma delas.
 
 ## Monte o seu primeiro workflow
 

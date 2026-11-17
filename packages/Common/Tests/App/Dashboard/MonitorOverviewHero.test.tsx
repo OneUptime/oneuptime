@@ -26,6 +26,7 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import Color from "../../../Types/Color";
+import { PillTone } from "../../../UI/Components/Pill/PillTone";
 import {
   MODEL_SWITCH_SAVED_EVENT,
   ModelSwitchSaved,
@@ -274,13 +275,22 @@ const routeFor: (pageMap: PageMap) => string = (pageMap: PageMap): string => {
   }).toString();
 };
 
-const BADGE_TONE_CLASS: Record<string, string> = {
-  good: "text-emerald-800",
-  warning: "text-amber-800",
-  danger: "text-red-800",
-  info: "text-blue-800",
-  neutral: "text-gray-700",
-};
+/*
+ * The pill a badge is drawn in, whose data-tone says what it means: a test
+ * reads that tone, never the classes the Pill paints it with, which broke
+ * these tests when status badges became Pills (#9255).
+ */
+function badgePillOf(text: string): HTMLElement {
+  const pill: HTMLElement | null = within(
+    screen.getByTestId("monitor-overview-badge"),
+  )
+    .getByText(text, { exact: true })
+    .closest("[data-testid=pill]");
+
+  expect(pill).not.toBeNull();
+
+  return pill as HTMLElement;
+}
 
 let columnGate: PermissionGateResult = { isAllowed: true };
 let statusEventGate: PermissionGateResult = { isAllowed: true };
@@ -346,7 +356,7 @@ interface RunStateCase {
   overrides: Partial<MonitorOverviewPresentationInput>;
   runState: MonitorOverviewRunState;
   badge: string;
-  badgeTone: string;
+  badgeTone: PillTone;
   secondary: Array<string>;
   headline: string;
   hasExplanation: boolean;
@@ -368,7 +378,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     overrides: {},
     runState: MonitorOverviewRunState.Manual,
     badge: "Operational",
-    badgeTone: "good",
+    badgeTone: PillTone.Success,
     secondary: ["Manual"],
     headline: "Operational for 3 days, 4 hours",
     hasExplanation: true,
@@ -380,7 +390,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     overrides: { currentStatus: undefined, statusSince: undefined },
     runState: MonitorOverviewRunState.Manual,
     badge: "Unknown status",
-    badgeTone: "neutral",
+    badgeTone: PillTone.Neutral,
     secondary: ["Manual"],
     headline: "No status recorded yet",
     hasExplanation: true,
@@ -399,7 +409,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     },
     runState: MonitorOverviewRunState.Paused,
     badge: "Disabled",
-    badgeTone: "neutral",
+    badgeTone: PillTone.Paused,
     secondary: ["No Probe Enabled"],
     headline: "Monitoring is turned off",
     hasExplanation: true,
@@ -419,7 +429,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     },
     runState: MonitorOverviewRunState.Paused,
     badge: "Paused",
-    badgeTone: "neutral",
+    badgeTone: PillTone.Paused,
     secondary: [],
     headline: "Monitoring is paused by an incident",
     hasExplanation: true,
@@ -438,7 +448,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     },
     runState: MonitorOverviewRunState.Paused,
     badge: "Paused",
-    badgeTone: "neutral",
+    badgeTone: PillTone.Paused,
     secondary: [],
     headline: "Monitoring is paused for scheduled maintenance",
     hasExplanation: true,
@@ -456,7 +466,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     },
     runState: MonitorOverviewRunState.NotChecking,
     badge: "No Probe Enabled",
-    badgeTone: "danger",
+    badgeTone: PillTone.Danger,
     secondary: [],
     headline: "Every probe is turned off for this monitor",
     hasExplanation: true,
@@ -476,7 +486,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     },
     runState: MonitorOverviewRunState.NotChecking,
     badge: "No Probe Enabled",
-    badgeTone: "danger",
+    badgeTone: PillTone.Danger,
     secondary: [],
     headline: "No probes are attached to this monitor",
     hasExplanation: true,
@@ -492,7 +502,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     },
     runState: MonitorOverviewRunState.NotChecking,
     badge: "No Probe Enabled",
-    badgeTone: "danger",
+    badgeTone: PillTone.Danger,
     secondary: [],
     headline: "Nothing is checking this monitor",
     hasExplanation: true,
@@ -507,7 +517,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     },
     runState: MonitorOverviewRunState.NotChecking,
     badge: "Probes Disconnected",
-    badgeTone: "danger",
+    badgeTone: PillTone.Danger,
     secondary: [],
     headline: "Every probe checking this monitor is disconnected",
     hasExplanation: true,
@@ -520,7 +530,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     overrides: { monitorSteps: stepsOf() },
     runState: MonitorOverviewRunState.NotConfigured,
     badge: "Not set up",
-    badgeTone: "neutral",
+    badgeTone: PillTone.Neutral,
     secondary: [],
     headline: "This monitor has no criteria yet",
     hasExplanation: true,
@@ -532,7 +542,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     overrides: { monitorSteps: stepsOf({}) },
     runState: MonitorOverviewRunState.NotConfigured,
     badge: "Not set up",
-    badgeTone: "neutral",
+    badgeTone: PillTone.Neutral,
     secondary: [],
     headline: "No network device is selected",
     hasExplanation: true,
@@ -547,7 +557,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     },
     runState: MonitorOverviewRunState.AwaitingFirstData,
     badge: "Waiting for data",
-    badgeTone: "info",
+    badgeTone: PillTone.Info,
     secondary: [],
     headline: "Waiting for the first check",
     hasExplanation: true,
@@ -565,7 +575,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     },
     runState: MonitorOverviewRunState.AwaitingFirstData,
     badge: "Waiting for data",
-    badgeTone: "info",
+    badgeTone: PillTone.Info,
     secondary: [],
     headline: "Waiting for the first heartbeat",
     hasExplanation: true,
@@ -581,7 +591,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     overrides: { agent: { lastReportAt: undefined } },
     runState: MonitorOverviewRunState.AwaitingFirstData,
     badge: "Waiting for data",
-    badgeTone: "info",
+    badgeTone: PillTone.Info,
     secondary: [],
     headline: "Waiting for the agent to report",
     hasExplanation: true,
@@ -602,7 +612,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     },
     runState: MonitorOverviewRunState.Overdue,
     badge: "Operational",
-    badgeTone: "good",
+    badgeTone: PillTone.Success,
     secondary: ["Checks overdue"],
     headline: "Operational for 3 days, 4 hours",
     hasExplanation: true,
@@ -622,7 +632,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
      * headline, and no status was recorded (#7464).
      */
     badge: "No results yet",
-    badgeTone: "warning",
+    badgeTone: PillTone.Warning,
     secondary: ["Checks overdue"],
     headline: "No check has completed yet",
     lastKnown: undefined,
@@ -635,7 +645,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     overrides: {},
     runState: MonitorOverviewRunState.Running,
     badge: "Operational",
-    badgeTone: "good",
+    badgeTone: PillTone.Success,
     secondary: [],
     headline: "Operational for 3 days, 4 hours",
     hasExplanation: false,
@@ -646,7 +656,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     overrides: { currentStatus: undefined, statusSince: undefined },
     runState: MonitorOverviewRunState.Running,
     badge: "Unknown status",
-    badgeTone: "neutral",
+    badgeTone: PillTone.Neutral,
     secondary: [],
     headline: "No status recorded yet",
     hasExplanation: false,
@@ -668,10 +678,10 @@ describe("MonitorOverviewHero run states", () => {
       presentation: presentation,
     });
 
-    const badge: HTMLElement = within(
-      screen.getByTestId("monitor-overview-badge"),
-    ).getByText(testCase.badge, { exact: true });
-    expect(badge).toHaveClass(BADGE_TONE_CLASS[testCase.badgeTone]!);
+    expect(badgePillOf(testCase.badge)).toHaveAttribute(
+      "data-tone",
+      testCase.badgeTone,
+    );
 
     expect(
       screen

@@ -369,7 +369,10 @@ jobs:
       # #6942): a log with screenshots loses only them, every other row is
       # not written at all - not even its updatedAt - a second walk writes
       # nothing, a run keeps to its limits, and a table done is never read
-      # again.
+      # again. A log without screenshots - a grouped monitor's 35 MB check
+      # from before #9189 - is looked through in Postgres and never read
+      # into Node (#9253); reads and writes keep to their statement and lock
+      # timeouts.
       - name: Test clearing stored log screenshots on migrated Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
@@ -381,6 +384,24 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Retention/StoredLogScreenshotsPostgres.test.ts
+          --forceExit
+
+      # Trimming the oversized checks grouped monitors kept before #9189
+      # (issue #9232): each record keeps its own series, trimmed in SQL one
+      # row a statement, within its statement and lock timeouts; a check too
+      # big to trim keeps the markers alone; other rows are not written; a
+      # second walk writes nothing, and a table done is never read again.
+      - name: Test trimming oversized stored checks on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OVERSIZED_STORED_CHECKS_TESTS: "true"
+          OVERSIZED_STORED_CHECKS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OVERSIZED_STORED_CHECKS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OVERSIZED_STORED_CHECKS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Retention/OversizedStoredChecksPostgres.test.ts
           --forceExit
 
       # Deleting for good the rows soft deleted more than 30 days ago (issue

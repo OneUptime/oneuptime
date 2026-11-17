@@ -151,7 +151,7 @@ describe("a state someone chose is never drawn as danger", () => {
     );
 
     expect(disabled).toHaveLength(1);
-    expect(disabled[0]!.body).toContain("badgeType: BadgeType.NEUTRAL,");
+    expect(disabled[0]!.body).toContain("badgeType: BadgeType.PAUSED,");
     expect(disabled[0]!.body).toContain("icon: IconProp.Pause,");
     // Not filed under Attention Required, which lists what needs fixing.
     expect(disabled[0]!.at).toBeLessThan(

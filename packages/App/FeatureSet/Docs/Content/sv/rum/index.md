@@ -36,7 +36,7 @@ flowchart TB
 - **Inställningar**: **Ägarregler**, **Etikettregler** och projektets gemensamma **Sessionsuppspelning**-reglage.
 - **Avancerad**: **Arkiverad**, de applikationer du har arkiverat.
 
-En applikations egen sidomeny grupperar dess sidor så här; **Inställningar**, **Utvecklare** och **Avancerad** är hopfällda från början:
+En applikations egen sidomeny grupperar dess sidor så här; **Utvecklare** och **Avancerad** är hopfällda från början:
 
 | Avsnitt | Sidor |
 | --- | --- |
@@ -44,9 +44,8 @@ En applikations egen sidomeny grupperar dess sidor så här; **Inställningar**,
 | **Observerbarhet** | **Mätvärden**, **Loggar**, **Spår**, **Klienter** |
 | **Produktanalys** | **Användare**, **Sessioner**, **Händelser**, **Trattar**, **Kvarhållning av användare**, **Användarflöden**, **Analysinställningar** |
 | **Sessionsuppspelning** | **Sessionsuppspelning**, **Användare i uppspelningar**, **Hälsa**, **Uppspelningspolicy**, **Frustrationssignaler**, **Åtkomstlogg för uppspelningar**, **Dokumentation** |
-| **Inställningar** | **Inställningar** |
 | **Utvecklare** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
-| **Avancerad** | **Granskningsloggar**, **Radera applikation** |
+| **Avancerad** | **Inställningar**, **Granskningsloggar**, **Radera applikation** |
 
 ## Så känner OneUptime igen RUM
 

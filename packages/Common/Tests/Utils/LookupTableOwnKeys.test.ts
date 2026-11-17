@@ -7,6 +7,7 @@ import {
   writeOwnValue,
 } from "../../Utils/LookupTable";
 import { INHERITED_PROPERTY_NAMES } from "../Helpers/InheritedNames";
+import { seededRandom } from "../Helpers/SeededRandom";
 
 /*
  * Copying and merging a record keyed by what a sender wrote (issue #8025).
@@ -225,18 +226,7 @@ describe("assignOwnValues", () => {
  * __proto__ kept as a key, Object.prototype as the prototype.
  */
 describe("mergeOwnValues", () => {
-  // A seeded generator, so a failure names the same maps every run.
-  function prng(seed: number): () => number {
-    let state: number = seed >>> 0;
-    return (): number => {
-      state = (state + 0x6d2b79f5) >>> 0;
-      let t: number = state;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
-
+  // Keys for maps drawn from the shared seeded generator (seededRandom).
   const KEYS: Array<string> = [
     ...INHERITED_PROPERTY_NAMES,
     "service.name",
@@ -279,7 +269,7 @@ describe("mergeOwnValues", () => {
   }
 
   test("gives assignOwnValues({}, ...)'s object for 5,000 random triples of records", () => {
-    const random: () => number = prng(6086);
+    const random: () => number = seededRandom(6086);
 
     for (let i: number = 0; i < 5000; i++) {
       const first: Record<string, unknown> | null =

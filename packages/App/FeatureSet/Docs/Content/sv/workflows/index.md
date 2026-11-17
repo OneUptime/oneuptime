@@ -81,11 +81,11 @@ Orden som används i hela OneUptime finns samlade på sidan [Ordlista](/docs/int
 - **Byggare** — arbetsytan där du utformar arbetsflödet, med brytaren **Aktiverad** högst upp.
 - **Arbetsflödesvariabler** — värden som bara gäller just det här arbetsflödet.
 - **Loggar → Körningar** — varje körning av det här arbetsflödet, med detaljer.
-- **Ägare** — de personer och team som ansvarar för arbetsflödet.
 - **Utvecklare** — hur du hanterar det här arbetsflödet med Terraform, API:t eller en AI-assistent.
 - **Inställningar** — duplicera, exportera och arkivera.
+- **Ägare** — de personer och team som ansvarar för arbetsflödet.
 
-**Inställningar** ligger i menyns avsnitt **Avancerad** tillsammans med **Granskningsloggar** och **Ta bort arbetsflöde**. **Avancerad** och **Utvecklare** är hopfällda från början, i den här menyn och i alla andra, så att sidorna du använder varje dag kommer först. Klicka på ett avsnitts namn för att visa dess sidor. Det fälls ut av sig självt när du är på någon av dem.
+**Inställningar** och **Ägare** ligger i menyns avsnitt **Avancerad** tillsammans med **Granskningsloggar** och **Ta bort arbetsflöde**. **Avancerad** och **Utvecklare** är hopfällda från början, i den här menyn och i alla andra, så att sidorna du använder varje dag kommer först. Klicka på ett avsnitts namn för att visa dess sidor. Det fälls ut av sig självt när du är på någon av dem.
 
 ## Bygg ditt första arbetsflöde
 

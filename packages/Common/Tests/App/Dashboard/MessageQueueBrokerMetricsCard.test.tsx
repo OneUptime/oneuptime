@@ -60,6 +60,7 @@ import {
 } from "../../../Types/MessageQueue/MessageQueueMetricCatalog";
 import ObjectID from "../../../Types/ObjectID";
 import { createTranslator } from "../../../Types/Translator";
+import { PillTone } from "../../../UI/Components/Pill/PillTone";
 
 afterEach(() => {
   cleanup();
@@ -196,6 +197,14 @@ function linksOf(finding: HTMLElement): Array<[string, string | null]> {
   );
 }
 
+/*
+ * The tone of the pill a badge's words are drawn in (its data-tone): what the
+ * badge means, never the classes the Pill paints it with (#9255).
+ */
+function toneOf(text: HTMLElement): string | null {
+  return text.closest("[data-testid=pill]")?.getAttribute("data-tone") || null;
+}
+
 describe("the card's head", () => {
   test("its title, what it shows for the queue's system, and the set's badge", () => {
     renderCard({ status: INCOMPLETE });
@@ -206,8 +215,7 @@ describe("the card's head", () => {
         "Which Azure Service Bus metrics arrive for this queue, and why any others do not.",
       ),
     ).toBeInTheDocument();
-    const badge: HTMLElement = screen.getByText("4 missing");
-    expect(badge.className).toContain("text-amber-800");
+    expect(toneOf(screen.getByText("4 missing"))).toBe(PillTone.Warning);
   });
 
   test("how many arrived, and when the newest did, with the moment on hover", () => {
@@ -241,11 +249,11 @@ describe("the card's head", () => {
           ),
         }),
         "Arriving",
-        "text-emerald-800",
+        PillTone.Success,
       ],
-      [STOPPED, "Stopped", "text-red-800"],
-      [NEVER, "None yet", "text-gray-700"],
-    ] as Array<[MessageQueueBrokerMetricsStatus, string, string]>) {
+      [STOPPED, "Stopped", PillTone.Danger],
+      [NEVER, "None yet", PillTone.Neutral],
+    ] as Array<[MessageQueueBrokerMetricsStatus, string, PillTone]>) {
       renderCard({ status });
       const card: HTMLElement = screen.getByTestId(
         "message-queue-broker-metrics-status",
@@ -255,7 +263,7 @@ describe("the card's head", () => {
       const badges: Array<HTMLElement> = screen.getAllByText(label);
       expect(
         badges.some((badge: HTMLElement): boolean => {
-          return badge.className.includes(colour) && !card.contains(badge);
+          return toneOf(badge) === colour && !card.contains(badge);
         }),
       ).toBe(true);
       cleanup();
@@ -421,8 +429,9 @@ describe("what reads the queue's metrics", () => {
       })!;
     expect(row).toHaveAttribute("data-state", "collectorOnly");
     expect(row).toHaveAttribute("data-reason", "notReadByConnection");
-    const badge: HTMLElement = within(row).getByText("Collector only");
-    expect(badge.className).toContain("text-gray-700");
+    expect(toneOf(within(row).getByText("Collector only"))).toBe(
+      PillTone.Neutral,
+    );
     const line: HTMLElement = within(row).getByTestId(
       "message-queue-broker-metric-status-line",
     );
@@ -856,9 +865,7 @@ describe("the supported metrics", () => {
     expect(active).toHaveAttribute("data-reason", "");
     expect(active).toHaveTextContent("Active messages");
     expect(active).toHaveTextContent("azure_activemessages_average");
-    expect(within(active).getByText("Arriving").className).toContain(
-      "text-emerald-800",
-    );
+    expect(toneOf(within(active).getByText("Arriving"))).toBe(PillTone.Success);
     const arrived: HTMLElement = within(active).getByTestId(
       "message-queue-broker-metric-last-arrived",
     );
@@ -883,8 +890,8 @@ describe("the supported metrics", () => {
     );
     expect(scheduled).toHaveAttribute("data-state", "notCollected");
     expect(scheduled).toHaveAttribute("data-reason", "notRequested");
-    expect(within(scheduled).getByText("Not collected").className).toContain(
-      "text-amber-800",
+    expect(toneOf(within(scheduled).getByText("Not collected"))).toBe(
+      PillTone.Warning,
     );
     const line: HTMLElement = within(scheduled).getByTestId(
       "message-queue-broker-metric-status-line",
@@ -913,9 +920,9 @@ describe("the supported metrics", () => {
       "servicebus:azure_throttledrequests_total",
     );
     expect(throttled).toHaveAttribute("data-state", "nothingToReport");
-    expect(
-      within(throttled).getByText("Nothing to report").className,
-    ).toContain("text-gray-700");
+    expect(toneOf(within(throttled).getByText("Nothing to report"))).toBe(
+      PillTone.Neutral,
+    );
     /*
      * The stored name reads left to right on a right-to-left page too, in
      * a block that keeps the page's direction, so it starts where the

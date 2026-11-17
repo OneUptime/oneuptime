@@ -36,7 +36,7 @@ flowchart TB
 - **Innstillinger**: **Eierregler**, **Etikettregler** og prosjektets felles **Øktavspilling**-bryter.
 - **Avansert**: **Arkivert**, applikasjonene du har arkivert.
 
-Sidemenyen til en applikasjon grupperer sidene slik; **Innstillinger**, **Utvikler** og **Avansert** er lukket fra start:
+Sidemenyen til en applikasjon grupperer sidene slik; **Utvikler** og **Avansert** er lukket fra start:
 
 | Seksjon | Sider |
 | --- | --- |
@@ -44,9 +44,8 @@ Sidemenyen til en applikasjon grupperer sidene slik; **Innstillinger**, **Utvikl
 | **Observerbarhet** | **Målinger**, **Logger**, **Spor**, **Klienter** |
 | **Produktanalyse** | **Brukere**, **Økter**, **Hendelser**, **Trakter**, **Brukerlojalitet**, **Brukerflyter**, **Analyseinnstillinger** |
 | **Øktavspilling** | **Øktavspilling**, **Brukere i avspillinger**, **Helse**, **Avspillingspolicy**, **Frustrasjonssignaler**, **Tilgangslogg for avspillinger**, **Dokumentasjon** |
-| **Innstillinger** | **Innstillinger** |
 | **Utvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
-| **Avansert** | **Revisjonslogger**, **Slett applikasjon** |
+| **Avansert** | **Innstillinger**, **Revisjonslogger**, **Slett applikasjon** |
 
 ## Slik gjenkjenner OneUptime RUM
 

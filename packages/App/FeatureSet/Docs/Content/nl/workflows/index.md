@@ -81,11 +81,11 @@ Open één workflow, en het eigen menu daarvan bevat:
 - **Bouwer** — het canvas waarop je de workflow ontwerpt, met de schakelaar **Ingeschakeld** bovenaan.
 - **Workflow-variabelen** — waarden die alleen voor deze ene workflow gelden.
 - **Logboeken → Uitvoeringen** — elke uitvoering van deze workflow, met details.
-- **Eigenaren** — de mensen en teams die verantwoordelijk zijn voor de workflow.
 - **Ontwikkelaars** — hoe je deze workflow beheert met Terraform, de API of een AI-assistent.
 - **Instellingen** — dupliceren, exporteren en archiveren.
+- **Eigenaren** — de mensen en teams die verantwoordelijk zijn voor de workflow.
 
-**Instellingen** staat in de sectie **Geavanceerd** van het menu, samen met **Auditlogboeken** en **Workflow verwijderen**. **Geavanceerd** en **Ontwikkelaars** zijn eerst ingeklapt, in dit menu en in elk ander menu, zodat de pagina's die je dagelijks gebruikt vooraan staan. Klik op de naam van een sectie om de pagina's ervan te tonen. Ze klapt vanzelf open als je op een van die pagina's bent.
+**Instellingen** en **Eigenaren** staan in de sectie **Geavanceerd** van het menu, samen met **Auditlogboeken** en **Workflow verwijderen**. **Geavanceerd** en **Ontwikkelaars** zijn eerst ingeklapt, in dit menu en in elk ander menu, zodat de pagina's die je dagelijks gebruikt vooraan staan. Klik op de naam van een sectie om de pagina's ervan te tonen. Ze klapt vanzelf open als je op een van die pagina's bent.
 
 ## Je eerste workflow bouwen
 

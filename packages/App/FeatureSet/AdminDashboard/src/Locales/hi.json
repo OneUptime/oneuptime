@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "{{userCount}} चयनित उपयोगकर्ता सभी सक्रिय सत्रों से साइन आउट कर दिए जाएँगे और अगली बार साइन इन करते समय उन्हें प्रमाणक ऐप सेट करना होगा। यदि आप भी उनमें शामिल हैं, तो यह आप पर भी लागू होगा।",
       "bulkDoNotRequireTwoFactorAuth": "दो-कारक प्रमाणीकरण अनिवार्य न करें",
       "bulkDoNotRequireTwoFactorAuthTitle": "{{userCount}} उपयोगकर्ता(ओं) के लिए दो-कारक प्रमाणीकरण की अनिवार्यता हटाएँ",
-      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} चयनित उपयोगकर्ता केवल अपने पासवर्ड से साइन इन कर सकेंगे। उन्होंने पहले से जो कुछ सेट किया है वह बना रहेगा, लेकिन अब उसकी माँग नहीं की जाएगी।"
+      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} चयनित उपयोगकर्ता केवल अपने पासवर्ड से साइन इन कर सकेंगे। उन्होंने पहले से जो कुछ सेट किया है वह बना रहेगा, लेकिन अब उसकी माँग नहीं की जाएगी।",
+      "createdAndEmailed": "{{name}} बनाया गया। पासवर्ड सेट करने का लिंक {{email}} पर ईमेल किया गया।",
+      "createdWithPassword": "{{name}} बनाया गया। आपने जो पासवर्ड सेट किया है, उसे सुरक्षित तरीके से साझा करें।",
+      "setPasswordLinkTitle": "पासवर्ड सेट करने का लिंक भेजें",
+      "setPasswordLinkDescription": "यह लिंक कॉपी करें और खुद {{email}} को ऐसी जगह भेजें जहाँ सिर्फ़ वही इसे पढ़ सकें। यह एक बार, {{days}} दिन तक काम करता है।",
+      "setPasswordLinkOrSetIt": "या उनके प्रमाणीकरण पेज पर खुद उनके लिए पासवर्ड सेट करें।"
     },
     "enterpriseLicenses": {
       "title": "एंटरप्राइज़ लाइसेंस",
@@ -4169,5 +4174,13 @@
   "See email logs": "ईमेल लॉग देखें",
   "Addresses the mail server refused": "मेल सर्वर द्वारा अस्वीकृत पते",
   "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "अन्य ईमेल भेजे गए, इसलिए केवल ये पते प्रभावित हैं। पता ठीक करें, या अपने मेल प्रदाता से इसे स्वीकार करवाएँ: Amazon SES सैंडबॉक्स केवल उन्हीं पतों पर भेजता है जिन्हें उसने सत्यापित किया है।",
-  "Last refused {{time}}": "अंतिम अस्वीकृति: {{time}}"
+  "Last refused {{time}}": "अंतिम अस्वीकृति: {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} बनाया गया, लेकिन पासवर्ड सेट करने के लिंक वाला ईमेल नहीं भेजा गया। {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "खुद भेजने के लिए लिंक भी नहीं बन सका। {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime उन्हें अपना पासवर्ड खुद सेट करने का लिंक ईमेल करता है।",
+  "They sign in with the password you set. Share it with them securely.": "वे आपके सेट किए गए पासवर्ड से साइन इन करेंगे। इसे सुरक्षित तरीके से साझा करें।",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "यह सर्वर अभी ईमेल नहीं भेज सकता। यहाँ उनका पासवर्ड सेट करें, या इसे खाली छोड़ें ताकि आपको खुद भेजने के लिए एक लिंक मिले।",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "यह सर्वर अभी ईमेल नहीं भेज सकता। सेटिंग्स > ईमेल में ईमेल सेट अप करें।",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "यह सर्वर अभी ईमेल नहीं भेज सकता, इसलिए पासवर्ड रीसेट लिंक ईमेल नहीं किया गया। सेटिंग्स > ईमेल में ईमेल सेट अप करें, या खुद उनका पासवर्ड सेट करें।",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "इस उपयोगकर्ता का पासवर्ड पहले से है, इसलिए कॉपी करने के लिए पासवर्ड सेट करने का कोई लिंक नहीं है। इसके बजाय उनके प्रमाणीकरण पेज से पासवर्ड रीसेट लिंक भेजें।"
 }

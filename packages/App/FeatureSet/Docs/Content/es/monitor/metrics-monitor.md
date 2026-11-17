@@ -193,6 +193,15 @@ Sin Group By, el mismo monitor es un único escalar: la consulta reduce todos lo
 
 Cada alerta por grupo sigue a su propio grupo. Cuando el host A vuelve por debajo del umbral, su alerta se resuelve por su cuenta, y la alerta del host B sigue abierta hasta que el host B se recupere. La recuperación de un grupo nunca cierra la alerta de otro.
 
+### Qué guarda cada alerta
+
+Cada alerta o incidente abierto para un grupo guarda la comprobación que lo abrió solo para ese grupo: su serie, sus puntos y el resumen de la evaluación. Ninguna comprobación guardada ocupa más de 256 KB, y los registros de una que tuvo que recortarse para caber lo indican.
+
+Las alertas y los incidentes abiertos antes de esto guardaban todos los grupos de la evaluación, hasta decenas de megabytes cada uno, en el registro y otra vez en cada uno de sus cambios de estado. Tras la actualización, una tarea que se ejecuta cada hora los recorta poco a poco, conservando el grupo propio de cada registro, hasta que no queda ninguno.
+
+> [!NOTE]
+> En una instalación autoalojada, PostgreSQL reutiliza el espacio que dejan las comprobaciones recortadas, pero no lo devuelve al disco. Para reducir la base de datos una vez recortadas, ejecute `VACUUM FULL` en las tablas más grandes durante una ventana de mantenimiento, ya que bloquea cada tabla mientras la reescribe, o use `pg_repack`, que no la bloquea.
+
 ### La evaluación de los criterios es distinta
 
 - **Los monitores agrupados evalúan todos los criterios.** Así, distintos niveles de gravedad pueden dispararse en distintos grupos a la vez: con «Critical: mayor que 95» por encima de «Warning: mayor que 80», un host al 96 % abre una alerta crítica mientras que un host al 85 % abre una de advertencia en la misma comprobación. Un host que supera ambos niveles sigue recibiendo exactamente una alerta, la del primer criterio que coincide, así que **ordena los criterios del más grave al menos grave**.

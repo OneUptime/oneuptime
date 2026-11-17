@@ -149,11 +149,13 @@ describe("ProductText", () => {
     render(
       <>
         <Tab
+          id="tab-overview"
           tab={{ name: "Overview", children: <></> }}
           onClick={() => {}}
           isSelected={true}
         />
         <Tab
+          id="tab-payments-api"
           tab={{ name: "payments-api", isName: true, children: <></> }}
           onClick={() => {}}
           isSelected={false}

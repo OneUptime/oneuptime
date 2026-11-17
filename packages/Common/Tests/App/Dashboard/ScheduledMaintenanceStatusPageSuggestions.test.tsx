@@ -471,7 +471,9 @@ describe("Create Maintenance Event says what an empty status page picker means",
       MaintenanceStatusPagesCopy.pickerPlaceholder,
     );
     expect(picker).toHaveAccessibleDescription(
-      expect.stringContaining(MaintenanceStatusPagesCopy.pickerDescription),
+      expect.stringContaining(
+        MaintenanceStatusPagesCopy.pickerDescription,
+      ) as unknown as string,
     );
     expect(MaintenanceStatusPagesCopy.pickerDescription).toContain(
       "Unlike an incident",

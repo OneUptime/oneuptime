@@ -747,6 +747,7 @@ describe("a part page's tabs", () => {
   test("one tab: its cards, and no tab row", () => {
     render(
       <ResourcePartTabs
+        label="Node"
         tabs={[{ name: "Overview", children: <p>Cards of the node</p> }]}
       />,
     );
@@ -759,6 +760,7 @@ describe("a part page's tabs", () => {
   test("more than one: a row that wraps, the first tab open, its cards in line with the hero", () => {
     render(
       <ResourcePartTabs
+        label="Task"
         tabs={[
           { name: "Overview", children: <p>Cards of the task</p> },
           { name: "Logs", children: <p>Logs of the task</p> },

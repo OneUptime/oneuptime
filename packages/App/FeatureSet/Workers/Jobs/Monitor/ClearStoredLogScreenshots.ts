@@ -35,6 +35,7 @@ RunCron(
 
       if (
         summary.rowsCleared === 0 &&
+        summary.rowsTooBigToRead === 0 &&
         summary.finishedTables.length === 0 &&
         summary.failedRows === 0 &&
         summary.failedTables === 0
@@ -45,6 +46,12 @@ RunCron(
       const parts: Array<string> = [
         `cleared the Synthetic monitor screenshots kept in ${summary.rowsCleared} stored ${summary.rowsCleared === 1 ? "log" : "logs"} (${formatStoredBytes(summary.storedBytesCleared)} as stored)`,
       ];
+
+      if (summary.rowsTooBigToRead > 0) {
+        parts.push(
+          `${summary.rowsTooBigToRead} ${summary.rowsTooBigToRead === 1 ? "log was" : "logs were"} too big to read and ${summary.rowsTooBigToRead === 1 ? "is" : "are"} left as ${summary.rowsTooBigToRead === 1 ? "it is" : "they are"}`,
+        );
+      }
 
       if (summary.finishedTables.length > 0) {
         parts.push(

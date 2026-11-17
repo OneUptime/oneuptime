@@ -300,6 +300,9 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
      * possession of the user's credentials, which is the better default when
      * the point is simply to get somebody back into a locked-out account. The
      * link is the same one /forgot-password sends, redeemed by the same page.
+     * A user with no password yet - one a master admin has just created
+     * (Users > Create User, #9139) - is sent a link to set their first one
+     * instead (Types/Accounts/SetPasswordLink).
      */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/:userId/send-password-reset-link`,
@@ -319,6 +322,36 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
            */
           return Response.sendJsonObjectResponse(req, res, {
             email: email.toString(),
+          });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * A link to set their first password, for the master admin to send the
+     * user themselves: Create User's way out when the email with it could
+     * not be sent (#9139). Session-only, like every write here, and refused
+     * for an account that has a password (UserService.getSetPasswordLink).
+     * The link is a bearer credential until it is spent, so it goes in the
+     * response body only, and is never logged.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:userId/set-password-link`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const userId: ObjectID = UserAPI.getUserIdFromParams(req);
+
+          const setPasswordLink: { link: string; email: Email } =
+            await UserService.getSetPasswordLink({
+              userId: userId,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            link: setPasswordLink.link,
+            email: setPasswordLink.email.toString(),
           });
         } catch (err) {
           return next(err);

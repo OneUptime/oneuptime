@@ -2936,13 +2936,13 @@ describe("SessionReplayTable honesty", () => {
      * row nor the button carries a margin now.
      */
     expect(
-      screen.getByTestId("list-error-retry").parentElement.className,
+      screen.getByTestId("list-error-retry").parentElement!.className,
     ).not.toMatch(/(^|\s)(\S+:)?!?-?m[ls]-/u);
     // Nor does the button inside it: a Button has no margin of its own (#9128).
     for (const button of Array.from(
       screen
         .getByTestId("list-error-retry")
-        .parentElement.querySelectorAll("button"),
+        .parentElement!.querySelectorAll("button"),
     )) {
       expect(button.className).not.toMatch(/(^|\s)(\S+:)?!?-?m[ls]-/u);
     }
