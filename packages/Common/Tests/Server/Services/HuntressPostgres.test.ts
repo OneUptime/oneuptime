@@ -17,7 +17,9 @@ import HuntressConnectionsToWorkflows, {
 import HuntressWebhookHandler, {
   HuntressWebhookAnswer,
 } from "../../../Server/Utils/Huntress/HuntressWebhookHandler";
+import PresentedKey from "../../../Server/Utils/PresentedKey/PresentedKey";
 import StandardWebhookSignature from "../../../Server/Utils/Webhook/StandardWebhookSignature";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import ObjectID from "../../../Types/ObjectID";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import {
@@ -61,8 +63,9 @@ import { DataSource, Logger } from "typeorm";
  * database.
  *
  * Why a real Postgres. The signing secret is only as private as what is
- * written to the Workflow row, and the webhook reads that row by its key
- * and writes what each request did to it, without touching the row's
+ * written to the Workflow row, and the webhook reads that row by its key -
+ * kept encrypted, so by the key's lookup hash beside it (#9012) - and
+ * writes what each request did to it, without touching the row's
  * Updated At. And every Huntress connection made before becomes a workflow
  * by statements written against the legacy tables the migrations made
  * ("HuntressConnection", its join tables, "HuntressIncidentReport") and
@@ -151,6 +154,7 @@ function signedHeaders(
 
 interface StoredWorkflowRow {
   webhookSecretKey: string | null;
+  webhookSecretKeyHash: string | null;
   webhookSigningSecret: string | null;
   isWebhookSigningSecretSet: boolean;
   isEnabled: boolean;
@@ -183,11 +187,26 @@ describePostgres("Huntress workflows against a migrated Postgres", () => {
 
   async function storedRow(id: string): Promise<StoredWorkflowRow> {
     const rows: Array<StoredWorkflowRow> = await database.query(
-      `SELECT "webhookSecretKey", "webhookSigningSecret", "isWebhookSigningSecretSet", "isEnabled", "triggerId", "triggerArguments", "lastWebhookRequestAt", "lastWebhookError", "lastWebhookErrorAt", "updatedAt", "name" FROM "${schema}"."Workflow" WHERE "_id" = $1`,
+      `SELECT "webhookSecretKey", "webhookSecretKeyHash", "webhookSigningSecret", "isWebhookSigningSecretSet", "isEnabled", "triggerId", "triggerArguments", "lastWebhookRequestAt", "lastWebhookError", "lastWebhookErrorAt", "updatedAt", "name" FROM "${schema}"."Workflow" WHERE "_id" = $1`,
       [id],
     );
 
     return rows[0]!;
+  }
+
+  /*
+   * The key in the workflow's webhook address, as the Builder shows it: the
+   * row holds it encrypted (#9012), and only the server reads it back as
+   * written.
+   */
+  async function webhookKeyOf(id: ObjectID): Promise<string> {
+    const read: Workflow | null = await WorkflowService.findOneById({
+      id: id,
+      select: { _id: true, webhookSecretKey: true },
+      props: { isRoot: true },
+    });
+
+    return read!.webhookSecretKey!;
   }
 
   async function createHuntressWorkflow(data: {
@@ -441,12 +460,19 @@ describePostgres("Huntress workflows against a migrated Postgres", () => {
       });
       const id: string = created.id!.toString();
       const before: StoredWorkflowRow = await storedRow(id);
+      const key: string = await webhookKeyOf(created.id!);
       const runs: Array<ExecuteWorkflowType> = [];
       const body: string = JSON.stringify(getHuntressIncidentReportBody());
 
+      // Kept encrypted, so the key is found by its lookup hash alone.
+      expect(before.webhookSecretKey).not.toBe(key);
+      expect(before.webhookSecretKeyHash).toBe(
+        PresentedKey.hash(key, TableColumnType.LongText),
+      );
+
       const answer: HuntressWebhookAnswer = await HuntressWebhookHandler.handle(
         {
-          secretKey: before.webhookSecretKey!,
+          secretKey: key,
           headers: signedHeaders(body, secret),
           rawBody: body,
           executeWorkflow: async (run: ExecuteWorkflowType): Promise<void> => {
@@ -474,12 +500,11 @@ describePostgres("Huntress workflows against a migrated Postgres", () => {
         name: "Huntress",
       });
       const id: string = created.id!.toString();
-      const row: StoredWorkflowRow = await storedRow(id);
       const body: string = JSON.stringify(getHuntressIncidentReportBody());
 
       const answer: HuntressWebhookAnswer = await HuntressWebhookHandler.handle(
         {
-          secretKey: row.webhookSecretKey!,
+          secretKey: await webhookKeyOf(created.id!),
           headers: signedHeaders(body, svixSecret()),
           rawBody: body,
           executeWorkflow: async (): Promise<void> => {},
@@ -559,7 +584,12 @@ describePostgres("Huntress workflows against a migrated Postgres", () => {
 
       expect(row.name).toBe("Acme MSP");
       expect(row.isEnabled).toBe(true);
-      expect(row.webhookSecretKey).toBe(connectionId);
+      // The address's key is the connection's id, kept encrypted (#9012).
+      expect(row.webhookSecretKey).not.toBe(connectionId);
+      expect(row.webhookSecretKeyHash).toBe(
+        PresentedKey.hash(connectionId, TableColumnType.LongText),
+      );
+      expect(await webhookKeyOf(new ObjectID(connectionId))).toBe(connectionId);
       expect(row.isWebhookSigningSecretSet).toBe(true);
       expect(row.webhookSigningSecret).not.toBe(secret);
       expect(row.triggerId).toBe(ComponentID.HuntressIncidentReport);
