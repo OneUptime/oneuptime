@@ -80,7 +80,7 @@
     "test-monitor-overview-ui 1/2": 8.3,
     "test-monitor-overview-ui 2/2": 11.5,
     "test-multi-device-snmp-walk-ui": 1.3,
-    "test-navigation-search-ui": 5.2,
+    "test-navigation-search-ui": 6.3,
     "test-network-first-run-ui": 1.4,
     "test-network-traffic-names-ui": 2.3,
     "test-new-version-ui": 2.9,
