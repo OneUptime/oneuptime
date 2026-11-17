@@ -11,10 +11,13 @@ import {
   ServerSendingState,
 } from "Common/Types/ServerSending/ServerSendingStatus";
 import ServerSetupChecklistUtil, {
+  getServerSetupBackupGuides,
   SERVER_SETUP_ADMIN_PATHS,
   SERVER_SETUP_CHECKED_WORDS,
   SERVER_SETUP_CHECKS,
   SERVER_SETUP_GUIDES,
+  ServerInstallKind,
+  ServerSetupBackupGuide,
   ServerSetupCheckDefinition,
   ServerSetupCheckId,
   ServerSetupCheckResult,
@@ -25,7 +28,10 @@ import ServerSetupChecklistUtil, {
 } from "Common/Types/ServerSetup/ServerSetupChecklist";
 import { ServerTestSendAnswer } from "Common/Types/ServerSetup/ServerTestSend";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
@@ -87,6 +93,8 @@ export const SERVER_SETUP_COPY: {
     seeGlobalProbes: string;
     notNeeded: string;
     howToBackUp: string;
+    howToBackUpWithDockerCompose: string;
+    howToBackUpOnKubernetes: string;
     setUpBackups: string;
     isBackedUp: string;
     readTheGuide: string;
@@ -125,6 +133,9 @@ export const SERVER_SETUP_COPY: {
     seeGlobalProbes: "See global probes",
     notNeeded: "Not needed",
     howToBackUp: "How to back up",
+    // While the server cannot tell how it was installed: both, each named (#9378).
+    howToBackUpWithDockerCompose: "How to back up with Docker Compose",
+    howToBackUpOnKubernetes: "How to back up on Kubernetes",
     setUpBackups: "Set up backups",
     isBackedUp: "This server is backed up",
     readTheGuide: "Read the guide",
@@ -133,6 +144,17 @@ export const SERVER_SETUP_COPY: {
     undo: "Undo",
   },
 };
+
+/*
+ * "Set up email" opens Settings > Emails in the form of the server that
+ * sends the email (#7460): that page reads this from its address
+ * (Pages/Settings/Email), opens the form, and takes it off again.
+ */
+export const SERVER_SETUP_SET_UP_EMAIL_QUERY: { name: string; value: string } =
+  {
+    name: "set-up",
+    value: "email",
+  };
 
 /*
  * Whether people reach the server over HTTPS: OneUptime is told so
@@ -200,9 +222,37 @@ export interface ServerSetupAction {
   url?: string | undefined;
   channel?: ServerSendingChannel | undefined;
   choice?: ServerSetupChoiceKind | undefined;
-  // The quieter of two actions: drawn as a link.
+  /*
+   * The quieter of two actions, drawn as a muted link beside the main fix:
+   * Open settings, and every choice the admin makes in the server's place -
+   * Not needed, Keep sign-ups open, Use email and push only, This server is
+   * backed up - and its Undo (#7030).
+   */
   isSecondary?: boolean | undefined;
 }
+
+/*
+ * How a quiet action is drawn, a link or a button alike: muted words,
+ * underlined, as tall as a finger needs (Docs/ux/README.md, "A finger can
+ * hit it"), on a line with the main fix (#7030). The choices used to be
+ * indigo links padded as big as a button, louder than the fix beside them.
+ */
+export const SERVER_SETUP_QUIET_ACTION_CLASS_NAME: string =
+  "inline-flex flex-none items-center text-sm font-medium text-gray-600 underline decoration-gray-300 underline-offset-2 hover:text-gray-900 [@media(pointer:coarse)]:min-h-11";
+
+/*
+ * How a guide's address is opened: a docs page this server serves itself
+ * (/docs/...) at this server, and the Helm chart's docs, which only GitHub
+ * has, as they are.
+ */
+export const getServerSetupGuideUrl: (data: {
+  guide: string;
+  origin: string;
+}) => string = (data: { guide: string; origin: string }): string => {
+  return /^https:\/\//.test(data.guide)
+    ? data.guide
+    : `${data.origin}${data.guide}`;
+};
 
 // A row as drawn: its words and its actions.
 export interface ServerSetupRow {
@@ -331,10 +381,14 @@ export const getServerSetupRow: (data: {
       }
 
       if (check.status === ServerSetupStatus.NotSetUp) {
+        // Lands in the mail server's form, not on the page around it (#7460).
         actions.push({
           kind: "route",
           title: SERVER_SETUP_COPY.actions.setUpEmail,
-          route: route(PageMap.SETTINGS_SMTP),
+          route: route(PageMap.SETTINGS_SMTP).addQueryParams({
+            [SERVER_SETUP_SET_UP_EMAIL_QUERY.name]:
+              SERVER_SETUP_SET_UP_EMAIL_QUERY.value,
+          }),
         });
       } else if (!check.isFinished) {
         actions.push({
@@ -466,27 +520,43 @@ export const getServerSetupRow: (data: {
 
       if (
         check.status === ServerSetupStatus.NotSetUp ||
-        check.status === ServerSetupStatus.Failing
+        check.status === ServerSetupStatus.Failing ||
+        check.status === ServerSetupStatus.Stale
       ) {
         /*
          * Scheduled backups are the Enterprise Edition's page, linked only
          * when it is loaded: its address is Common's, never this page's own.
          */
-        actions.push(
-          check.hasScheduledBackups
-            ? {
-                kind: "route",
-                title: SERVER_SETUP_COPY.actions.setUpBackups,
-                route: new Route(
-                  data.definition.adminPath || SERVER_SETUP_ADMIN_PATHS.backups,
-                ),
-              }
-            : {
-                kind: "guide",
-                title: SERVER_SETUP_COPY.actions.howToBackUp,
-                url: SERVER_SETUP_GUIDES.backups,
-              },
-        );
+        if (check.hasScheduledBackups) {
+          actions.push({
+            kind: "route",
+            title: SERVER_SETUP_COPY.actions.setUpBackups,
+            route: new Route(
+              data.definition.adminPath || SERVER_SETUP_ADMIN_PATHS.backups,
+            ),
+          });
+        } else {
+          /*
+           * Steps this install can run (#9378): `npm run backup` on Docker
+           * Compose, the Helm chart's on Kubernetes - and both, each named,
+           * while the server cannot tell which it is.
+           */
+          const guides: Array<ServerSetupBackupGuide> =
+            getServerSetupBackupGuides(check.installKind);
+
+          for (const guide of guides) {
+            actions.push({
+              kind: "guide",
+              title:
+                guides.length === 1
+                  ? SERVER_SETUP_COPY.actions.howToBackUp
+                  : guide.installKind === ServerInstallKind.Kubernetes
+                    ? SERVER_SETUP_COPY.actions.howToBackUpOnKubernetes
+                    : SERVER_SETUP_COPY.actions.howToBackUpWithDockerCompose,
+              url: guide.path,
+            });
+          }
+        }
       }
       break;
 
@@ -514,6 +584,14 @@ export const getServerSetupRow: (data: {
           title: SERVER_SETUP_COPY.actions.readTheGuide,
           url: SERVER_SETUP_GUIDES.browserPush,
         });
+      }
+
+      /*
+       * A test push to this admin's own phones and browsers (#7028), done
+       * or not: nothing yet tells the server how its pushes go (#6881).
+       */
+      for (const channel of check.tests) {
+        actions.push({ kind: "test", title: "", channel: channel });
       }
       break;
 
@@ -730,11 +808,16 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
     index: number,
   ): ReactElement => {
     const key: string = `${row.id}-${action.kind}-${index}`;
-    const testId: string = `server-setup-${row.id}-${action.kind}`;
+    const isOneOfItsKind: boolean =
+      row.actions.filter((other: ServerSetupAction): boolean => {
+        return other.kind === action.kind;
+      }).length === 1;
+    // A second guide of a row (both ways to back up) is told apart by its place.
+    const testId: string = isOneOfItsKind
+      ? `server-setup-${row.id}-${action.kind}`
+      : `server-setup-${row.id}-${action.kind}-${index}`;
     const buttonClassName: string =
       "inline-flex flex-none items-center rounded-md bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50";
-    const linkClassName: string =
-      "inline-flex flex-none items-center text-sm font-medium text-gray-600 underline decoration-gray-300 underline-offset-2 hover:text-gray-900";
 
     switch (action.kind) {
       case "test":
@@ -748,11 +831,14 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
         );
       case "choose":
       case "undo":
+        // The admin's own choice, and its Undo: quiet beside the fix (#7030).
         return (
           <Button
             key={key}
             title={action.title}
-            buttonStyle={ButtonStyleType.LINK}
+            buttonStyle={ButtonStyleType.SECONDARY_LINK}
+            buttonSize={ButtonSize.ExtraSmall}
+            className={SERVER_SETUP_QUIET_ACTION_CLASS_NAME}
             isLoading={busyCheck === row.id}
             disabled={busyCheck !== null}
             onClick={() => {
@@ -774,11 +860,20 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
               action.route ||
               (action.kind === "address"
                 ? URL.fromString(action.url!)
-                : URL.fromString(`${window.location.origin}${action.url!}`))
+                : URL.fromString(
+                    getServerSetupGuideUrl({
+                      guide: action.url!,
+                      origin: window.location.origin,
+                    }),
+                  ))
             }
             openInNewTab={isGuide}
             dataTestId={testId}
-            className={action.isSecondary ? linkClassName : buttonClassName}
+            className={
+              action.isSecondary
+                ? SERVER_SETUP_QUIET_ACTION_CLASS_NAME
+                : buttonClassName
+            }
           >
             {translator.translateText(action.title)}
             {/* A guide opens in a tab of its own, and says so. */}

@@ -4175,5 +4175,22 @@
   "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "این سرور هنوز نمی‌تواند ایمیل بفرستد. گذرواژه را همین‌جا تعیین کنید، یا خالی بگذارید تا پیوندی بگیرید و خودتان برایش بفرستید.",
   "This server cannot send email yet. Set up email under Settings > Emails.": "این سرور هنوز نمی‌تواند ایمیل بفرستد. ایمیل را در تنظیمات > ایمیل‌ها راه‌اندازی کنید.",
   "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "این سرور هنوز نمی‌تواند ایمیل بفرستد، پس پیوند بازنشانی گذرواژه ایمیل نشد. ایمیل را در تنظیمات > ایمیل‌ها راه‌اندازی کنید، یا خودتان گذرواژه‌اش را تعیین کنید.",
-  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "این کاربر از قبل گذرواژه دارد، پس پیوند تعیین گذرواژه‌ای برای کپی نیست. به جای آن از صفحهٔ احراز هویتش پیوند بازنشانی گذرواژه بفرستید."
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "این کاربر از قبل گذرواژه دارد، پس پیوند تعیین گذرواژه‌ای برای کپی نیست. به جای آن از صفحهٔ احراز هویتش پیوند بازنشانی گذرواژه بفرستید.",
+  "How to back up with Docker Compose": "روش پشتیبان‌گیری با Docker Compose",
+  "How to back up on Kubernetes": "روش پشتیبان‌گیری روی Kubernetes",
+  "Out of date: the last backup finished on {{time}}, more than a week ago.": "قدیمی: آخرین پشتیبان‌گیری در {{time}} تمام شد، بیش از یک هفته پیش.",
+  "Backed up with npm run backup.": "با npm run backup پشتیبان گرفته می‌شود.",
+  "npm run backup did not finish a backup. Run it on the server to see why.": "npm run backup هیچ پشتیبانی را تمام نکرد. آن را روی سرور اجرا کنید تا دلیلش را ببینید.",
+  "Send test push": "فرستادن اعلان پوش آزمایشی",
+  "The test push was accepted for {{to}}. If it does not show, look at the notification settings of that phone or browser.": "اعلان پوش آزمایشی برای {{to}} پذیرفته شد. اگر نشان داده نشد، تنظیمات اعلان آن گوشی یا مرورگر را ببینید.",
+  "None of your devices took the test push: {{reason}}": "هیچ‌کدام از دستگاه‌های شما اعلان پوش آزمایشی را نگرفت: {{reason}}",
+  "Push notifications are turned off under Settings > Push Notifications.": "اعلان‌های پوش در تنظیمات > اعلان‌های پوش خاموش هستند.",
+  "You have no phone or browser registered for push notifications. Register one under User Settings > Notification Methods in the Dashboard.": "هیچ گوشی یا مرورگری برای اعلان‌های پوش ثبت نکرده‌اید. یکی را در تنظیمات کاربر > روش‌های اعلان در Dashboard ثبت کنید.",
+  "Your browsers cannot get a push from this server: it has no VAPID keys. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY, or register a phone with the OneUptime On-Call app.": "مرورگرهای شما نمی‌توانند از این سرور اعلان پوش بگیرند: این سرور کلید VAPID ندارد. VAPID_PUBLIC_KEY و VAPID_PRIVATE_KEY را تعیین کنید، یا یک گوشی را با برنامهٔ OneUptime On-Call ثبت کنید.",
+  "A test notification goes to the phones and browsers you registered for push notifications, and to nobody else.": "یک اعلان آزمایشی به گوشی‌ها و مرورگرهایی می‌رود که برای اعلان‌های پوش ثبت کرده‌اید، و به هیچ‌کس دیگر نمی‌رود.",
+  "Test push notifications": "آزمایش اعلان‌های پوش",
+  "Send a test push to your own phones and browsers to make sure push notifications reach them.": "یک اعلان پوش آزمایشی به گوشی‌ها و مرورگرهای خودتان بفرستید تا مطمئن شوید اعلان‌های پوش به آن‌ها می‌رسند.",
+  "Check Gateway": "بررسی گیت‌وی",
+  "Checking your gateway…": "در حال بررسی گیت‌وی شما…",
+  "Your gateway answered the test request.": "گیت‌وی شما به درخواست آزمایشی پاسخ داد."
 }

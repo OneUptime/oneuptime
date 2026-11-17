@@ -150,7 +150,8 @@ export default class ServerSetupChecklistLoader {
 /*
  * One test send through the server's own settings. Throws only when the
  * request itself fails (an address that is not one, a lost connection); a
- * refusal by the provider is an answer.
+ * refusal by the provider is an answer. A test push takes no address: it
+ * goes to whoever is signed in, on their own devices.
  */
 export const sendServerTest: (data: {
   channel: ServerSendingChannel;
@@ -167,7 +168,9 @@ export const sendServerTest: (data: {
       data:
         data.channel === ServerSendingChannel.Email
           ? { toEmail: data.to }
-          : { toPhone: data.to },
+          : data.channel === ServerSendingChannel.Push
+            ? {}
+            : { toPhone: data.to },
     });
 
   if (response instanceof HTTPErrorResponse || !response.isSuccess()) {

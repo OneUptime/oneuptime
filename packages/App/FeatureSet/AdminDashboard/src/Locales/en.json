@@ -4175,5 +4175,22 @@
   "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.",
   "This server cannot send email yet. Set up email under Settings > Emails.": "This server cannot send email yet. Set up email under Settings > Emails.",
   "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.",
-  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead."
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.",
+  "How to back up with Docker Compose": "How to back up with Docker Compose",
+  "How to back up on Kubernetes": "How to back up on Kubernetes",
+  "Out of date: the last backup finished on {{time}}, more than a week ago.": "Out of date: the last backup finished on {{time}}, more than a week ago.",
+  "Backed up with npm run backup.": "Backed up with npm run backup.",
+  "npm run backup did not finish a backup. Run it on the server to see why.": "npm run backup did not finish a backup. Run it on the server to see why.",
+  "Send test push": "Send test push",
+  "The test push was accepted for {{to}}. If it does not show, look at the notification settings of that phone or browser.": "The test push was accepted for {{to}}. If it does not show, look at the notification settings of that phone or browser.",
+  "None of your devices took the test push: {{reason}}": "None of your devices took the test push: {{reason}}",
+  "Push notifications are turned off under Settings > Push Notifications.": "Push notifications are turned off under Settings > Push Notifications.",
+  "You have no phone or browser registered for push notifications. Register one under User Settings > Notification Methods in the Dashboard.": "You have no phone or browser registered for push notifications. Register one under User Settings > Notification Methods in the Dashboard.",
+  "Your browsers cannot get a push from this server: it has no VAPID keys. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY, or register a phone with the OneUptime On-Call app.": "Your browsers cannot get a push from this server: it has no VAPID keys. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY, or register a phone with the OneUptime On-Call app.",
+  "A test notification goes to the phones and browsers you registered for push notifications, and to nobody else.": "A test notification goes to the phones and browsers you registered for push notifications, and to nobody else.",
+  "Test push notifications": "Test push notifications",
+  "Send a test push to your own phones and browsers to make sure push notifications reach them.": "Send a test push to your own phones and browsers to make sure push notifications reach them.",
+  "Check Gateway": "Check Gateway",
+  "Checking your gateway…": "Checking your gateway…",
+  "Your gateway answered the test request.": "Your gateway answered the test request."
 }

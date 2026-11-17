@@ -134,12 +134,13 @@ export const SERVER_TEST_SEND_WORDS: {
   callAccepted: translationKey(
     "{{sentThrough}} accepted the test call to {{to}}.",
   ),
+  // Taken by the push services, which is not shown: the words say so.
   pushAccepted: translationKey(
-    "A test push went to {{to}}. If it does not show, look at the notification settings of that phone or browser.",
+    "The test push was accepted for {{to}}. If it does not show, look at the notification settings of that phone or browser.",
   ),
   refused: translationKey("{{sentThrough}} refused it: {{reason}}"),
   pushRefused: translationKey(
-    "The test push reached none of your devices: {{reason}}",
+    "None of your devices took the test push: {{reason}}",
   ),
   notSetUp: translationKey("Nothing was sent: {{reason}}"),
 };
