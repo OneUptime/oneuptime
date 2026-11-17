@@ -716,24 +716,33 @@ describe("3. every incident, alert, episode and maintenance list offers its stat
 });
 
 describe("4. a status page's subscriber lists offer Unsubscribe in each row", () => {
-  const SUBSCRIBER_PAGES: Array<string> = [
-    "Email",
-    "SMS",
-    "Slack",
-    "MicrosoftTeams",
-    "Webhook",
-  ].map((channel: string): string => {
-    return `Dashboard/src/Pages/StatusPages/View/${channel}Subscribers.tsx`;
-  });
+  /*
+   * The five channel pages became one page with a tab per channel (#9125),
+   * each tab drawing the same list, so the row action is held there once.
+   */
+  const SUBSCRIBER_LIST: string =
+    "Dashboard/src/Components/StatusPage/StatusPageSubscriberList.tsx";
 
-  test.each(SUBSCRIBER_PAGES)("%s", (file: string) => {
+  test("the shared subscriber list offers Unsubscribe in each row", () => {
     const list: ListUse | undefined = uses.find((use: ListUse): boolean => {
-      return use.file === file;
+      return (
+        use.file === SUBSCRIBER_LIST &&
+        use.modelType === "StatusPageSubscriber"
+      );
     });
 
     expect(list).toBeDefined();
     expect(list!.source).toContain("useSubscriberRowActions();");
     expect(list!.actionButtons).toContain("...subscriberRowActions");
+  });
+
+  test("every channel's tab draws that list", () => {
+    const page: string = readSource(
+      "Dashboard/src/Pages/StatusPages/View/Subscribers.tsx",
+    );
+
+    expect(page).toContain("<StatusPageSubscriberList");
+    expect(page).toContain("channel={definition.channel}");
   });
 
   test("the row's Unsubscribe is the bulk one's row counterpart", () => {
