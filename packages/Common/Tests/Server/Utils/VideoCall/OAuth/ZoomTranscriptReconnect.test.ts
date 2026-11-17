@@ -82,8 +82,12 @@ function zoomConnection(data: {
   connection.name = data.name;
   connection.provider = VideoCallProvider.Zoom;
   connection.authMethod = VideoCallAuthMethod.OAuth;
-  connection.connectedAccount = data.connectedAccount;
   connection.secrets = JSON.stringify(data.secrets);
+
+  if (data.connectedAccount) {
+    connection.connectedAccount = data.connectedAccount;
+  }
+
   return connection;
 }
 
