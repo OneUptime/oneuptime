@@ -1912,6 +1912,16 @@ export const INVENTORY_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescr
       "URL Map",
       IAAS,
       C.Networking,
+    ) /*
+     * A GKE cluster: its Kubernetes metrics are the Kubernetes product's
+     * (no k8s_ rule above), so the cluster is listed only.
+     */,
+    descriptorOf(
+      CloudProvider.GCP,
+      "container.googleapis.com/Cluster",
+      "GKE Cluster",
+      PAAS,
+      C.Containers,
     ),
   ];
 
