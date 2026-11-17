@@ -10,6 +10,8 @@ import MetricQuery from "./MetricQuery";
 import SeriesColorSelector from "./SeriesColorSelector";
 import SeriesGroupColorSelector from "./SeriesGroupColorSelector";
 import Card from "Common/UI/Components/Card/Card";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import MetricQueryConfigData, {
   MetricChartType,
 } from "Common/Types/Metrics/MetricQueryConfigData";
@@ -335,26 +337,34 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
               <span className="text-sm font-semibold text-gray-900 truncate">
                 {metricName}
               </span>
-              <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                {aggregationType}
-              </span>
+              <Pill
+                text={aggregationType}
+                isUserContent={true}
+                tone={PillTone.Neutral}
+                isDotHidden={true}
+              />
               {/* Quiet metadata chips — summary while the body is collapsed */}
               {!isExpanded && activeAttributeCount > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
-                  <Icon icon={IconProp.Filter} className="h-3 w-3" />
-                  {translator.translatePlural(
+                <Pill
+                  text={translator.translatePlural(
                     { one: "{{count}} filter", other: "{{count}} filters" },
                     activeAttributeCount,
                   )}
-                </span>
+                  isUserContent={true}
+                  tone={PillTone.Neutral}
+                  icon={IconProp.Filter}
+                />
               )}
               {!isExpanded && groupByKeys.length > 0 && (
-                <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
-                  {translator.translatePlural(
+                <Pill
+                  text={translator.translatePlural(
                     { one: "{{count}} group-by", other: "{{count}} group-bys" },
                     groupByKeys.length,
                   )}
-                </span>
+                  isUserContent={true}
+                  tone={PillTone.Neutral}
+                  isDotHidden={true}
+                />
               )}
             </div>
             {props.data?.metricAliasData?.title &&

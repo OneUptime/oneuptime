@@ -1,4 +1,6 @@
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
@@ -148,18 +150,18 @@ const OpenStackServicesCard: FunctionComponent<ComponentProps> = (
                     data-testid="openstack-services-card-state"
                   >
                     {group.counts.down > 0 ? (
-                      <span
-                        data-testid="openstack-services-card-down"
-                        className="inline-flex whitespace-nowrap rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-200"
-                      >
-                        {translator.translatePlural(
+                      <Pill
+                        text={translator.translatePlural(
                           {
                             one: "{{count}} worker down",
                             other: "{{count}} workers down",
                           },
                           group.counts.down,
                         )}
-                      </span>
+                        isUserContent={true}
+                        tone={PillTone.Danger}
+                        dataTestId="openstack-services-card-down"
+                      />
                     ) : (
                       <></>
                     )}

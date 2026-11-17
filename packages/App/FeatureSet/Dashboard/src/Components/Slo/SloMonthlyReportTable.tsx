@@ -1,4 +1,6 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { translationKey } from "Common/Types/Translator";
 import StatusBadge from "Common/UI/Components/StatusBadge/StatusBadge";
 import Table from "Common/UI/Components/Table/Table";
@@ -117,12 +119,12 @@ const SloMonthlyReportTable: FunctionComponent<ComponentProps> = (
           })}
         </span>
         {row.isMonthToDate ? (
-          <span
-            className="inline-flex items-center rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600"
-            data-testid="slo-monthly-report-so-far"
-          >
-            {translator.translateText("So far")}
-          </span>
+          <Pill
+            text="So far"
+            tone={PillTone.Neutral}
+            isDotHidden={true}
+            dataTestId="slo-monthly-report-so-far"
+          />
         ) : (
           <></>
         )}

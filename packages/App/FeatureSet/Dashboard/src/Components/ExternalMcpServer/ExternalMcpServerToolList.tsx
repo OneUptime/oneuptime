@@ -5,6 +5,8 @@ import {
 import { ExternalMcpServerTool } from "Common/Types/AI/ExternalMcpServer/ExternalMcpServerTool";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
@@ -72,19 +74,15 @@ const ExternalMcpServerToolList: FunctionComponent<ComponentProps> = (
                   <></>
                 )}
               </div>
-              <span
-                className={`inline-flex w-fit shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                  tool.readsOnly
-                    ? "bg-green-50 text-green-700 ring-green-200"
-                    : "bg-amber-50 text-amber-800 ring-amber-200"
-                }`}
-              >
-                {translator.translateText(
+              <Pill
+                text={
                   tool.readsOnly
                     ? EXTERNAL_MCP_SERVER_TOOL_BADGES.readsOnly
-                    : EXTERNAL_MCP_SERVER_TOOL_BADGES.mayChange,
-                )}
-              </span>
+                    : EXTERNAL_MCP_SERVER_TOOL_BADGES.mayChange
+                }
+                tone={tool.readsOnly ? PillTone.Success : PillTone.Warning}
+                className="w-fit shrink-0"
+              />
             </li>
           );
         })}

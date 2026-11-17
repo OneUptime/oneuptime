@@ -1,4 +1,6 @@
 import { ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME } from "../OnCallLabelClasses";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -266,12 +268,13 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
         {shown.map(
           (cell: ReadinessCoverageCellWire, index: number): ReactElement => {
             return (
-              <span
+              <Pill
                 key={`gap-${index}`}
-                className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200"
-              >
-                {getCoverageCellLabel(cell)}
-              </span>
+                text={getCoverageCellLabel(cell)}
+                isUserContent={true}
+                tone={PillTone.Warning}
+                isDotHidden={true}
+              />
             );
           },
         )}
@@ -378,21 +381,12 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
               profilePictureId: user.userProfilePictureId,
             }}
           />
-          <span
-            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
-              isNotReachable
-                ? "bg-red-50 text-red-700 ring-red-200"
-                : "bg-amber-50 text-amber-700 ring-amber-200"
-            }`}
-          >
-            <Icon
-              icon={isNotReachable ? IconProp.BellSlash : IconProp.Alert}
-              className={`h-3 w-3 ${
-                isNotReachable ? "text-red-500" : "text-amber-500"
-              }`}
-            />
-            {getStatusShortLabel(user)}
-          </span>
+          <Pill
+            text={getStatusShortLabel(user)}
+            isUserContent={true}
+            tone={isNotReachable ? PillTone.Danger : PillTone.Warning}
+            icon={isNotReachable ? IconProp.BellSlash : IconProp.Alert}
+          />
         </div>
 
         <p className="mt-2.5 text-sm leading-relaxed text-gray-700">

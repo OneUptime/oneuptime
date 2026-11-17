@@ -18,7 +18,8 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import LazyMarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -60,13 +61,10 @@ const CONFIDENCE_LABELS: Record<ExceptionExplanationConfidence, string> = {
   [ExceptionExplanationConfidence.Low]: translationKey("Low confidence"),
 };
 
-const CONFIDENCE_CLASSES: Record<ExceptionExplanationConfidence, string> = {
-  [ExceptionExplanationConfidence.High]:
-    "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  [ExceptionExplanationConfidence.Medium]:
-    "bg-amber-50 text-amber-700 ring-amber-600/20",
-  [ExceptionExplanationConfidence.Low]:
-    "bg-gray-50 text-gray-600 ring-gray-500/20",
+const CONFIDENCE_TONES: Record<ExceptionExplanationConfidence, PillTone> = {
+  [ExceptionExplanationConfidence.High]: PillTone.Success,
+  [ExceptionExplanationConfidence.Medium]: PillTone.Warning,
+  [ExceptionExplanationConfidence.Low]: PillTone.Neutral,
 };
 
 const CATEGORY_LABELS: Record<ExceptionExplanationCategory, string> = {
@@ -235,21 +233,18 @@ const ExceptionAIExplanation: FunctionComponent<ComponentProps> = (
     >
       <div className="space-y-4" data-testid="exception-ai-explanation">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${CONFIDENCE_CLASSES[explanation.confidence]}`}
-            data-testid="exception-ai-explanation-confidence"
-          >
-            <Icon icon={IconProp.Sparkles} className="h-3 w-3" />
-            {translator.translateText(
-              CONFIDENCE_LABELS[explanation.confidence],
-            )}
-          </span>
-          <span
-            className="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/15"
-            data-testid="exception-ai-explanation-category"
-          >
-            {translator.translateText(CATEGORY_LABELS[explanation.category])}
-          </span>
+          <Pill
+            dataTestId="exception-ai-explanation-confidence"
+            text={CONFIDENCE_LABELS[explanation.confidence]}
+            tone={CONFIDENCE_TONES[explanation.confidence]}
+            icon={IconProp.Sparkles}
+          />
+          <Pill
+            dataTestId="exception-ai-explanation-category"
+            text={CATEGORY_LABELS[explanation.category]}
+            tone={PillTone.Neutral}
+            isDotHidden={true}
+          />
         </div>
 
         <p

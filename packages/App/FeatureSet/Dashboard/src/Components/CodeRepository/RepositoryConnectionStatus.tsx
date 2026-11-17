@@ -3,9 +3,8 @@ import CodeHostMark from "../Code/CodeHostMark";
 import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import IconProp from "Common/Types/Icon/IconProp";
-import Icon from "Common/UI/Components/Icon/Icon";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export const REPOSITORY_CONNECTION_STATUS_TEST_ID: string =
@@ -40,8 +39,6 @@ export interface ComponentProps {
 const RepositoryConnectionStatus: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
-
   const gitHubMark: ReactElement = <GitHubMark className="h-3.5 w-3.5" />;
 
   const provider: CodeRepositoryType = CodeHost.readType(props.provider);
@@ -71,10 +68,11 @@ const RepositoryConnectionStatus: FunctionComponent<ComponentProps> = (
           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-gray-500">
             {hostMark}
           </div>
-          <div className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20">
-            <Icon icon={IconProp.LinkSlash} className="h-3 w-3" />
-            <span>{translator.translateText("Token refused")}</span>
-          </div>
+          <Pill
+            text="Token refused"
+            tone={PillTone.Warning}
+            icon={IconProp.LinkSlash}
+          />
         </div>
       );
     }
@@ -90,10 +88,11 @@ const RepositoryConnectionStatus: FunctionComponent<ComponentProps> = (
           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-gray-500">
             {hostMark}
           </div>
-          <div className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20">
-            <Icon icon={IconProp.LinkSlash} className="h-3 w-3" />
-            <span>{translator.translateText("Not connected")}</span>
-          </div>
+          <Pill
+            text="Not connected"
+            tone={PillTone.Warning}
+            icon={IconProp.LinkSlash}
+          />
         </div>
       );
     }
@@ -108,9 +107,7 @@ const RepositoryConnectionStatus: FunctionComponent<ComponentProps> = (
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-900 text-white">
           {hostMark}
         </div>
-        <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-          {translator.translateText("Access Token")}
-        </span>
+        <Pill text="Access Token" tone={PillTone.Success} />
       </div>
     );
   }
@@ -131,10 +128,11 @@ const RepositoryConnectionStatus: FunctionComponent<ComponentProps> = (
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-gray-500">
           {gitHubMark}
         </div>
-        <div className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20">
-          <Icon icon={IconProp.LinkSlash} className="h-3 w-3" />
-          <span>{translator.translateText("Not connected")}</span>
-        </div>
+        <Pill
+          text="Not connected"
+          tone={PillTone.Warning}
+          icon={IconProp.LinkSlash}
+        />
       </div>
     );
   }
@@ -149,9 +147,7 @@ const RepositoryConnectionStatus: FunctionComponent<ComponentProps> = (
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-900 text-white">
           {gitHubMark}
         </div>
-        <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-          {translator.translateText("GitHub App")}
-        </span>
+        <Pill text="GitHub App" tone={PillTone.Success} />
       </div>
     );
   }
@@ -179,9 +175,7 @@ const RepositoryConnectionStatus: FunctionComponent<ComponentProps> = (
           />
         </svg>
       </div>
-      <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
-        {translator.translateText("Access Token")}
-      </span>
+      <Pill text="Access Token" tone={PillTone.Neutral} />
     </div>
   );
 };

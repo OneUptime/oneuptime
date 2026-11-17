@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Dropdown, {
   DropdownOption,
   DropdownOptionGroup,
@@ -406,22 +408,20 @@ const ProfileScopeBar: FunctionComponent<ComponentProps> = (
             })}
           </div>
           {props.customWindow ? (
-            <span
-              className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200"
-              data-testid="profiles-custom-window"
-            >
-              <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 flex-none" />
-              <span className="truncate">
-                {translator.translateTemplate("{{start}} to {{end}}", {
-                  start: OneUptimeDate.getDateAsLocalFormattedString(
-                    props.customWindow.startTime,
-                  ),
-                  end: OneUptimeDate.getDateAsLocalFormattedString(
-                    props.customWindow.endTime,
-                  ),
-                })}
-              </span>
-            </span>
+            <Pill
+              text={translator.translateTemplate("{{start}} to {{end}}", {
+                start: OneUptimeDate.getDateAsLocalFormattedString(
+                  props.customWindow.startTime,
+                ),
+                end: OneUptimeDate.getDateAsLocalFormattedString(
+                  props.customWindow.endTime,
+                ),
+              })}
+              isUserContent={true}
+              tone={PillTone.Info}
+              icon={IconProp.Clock}
+              dataTestId="profiles-custom-window"
+            />
           ) : (
             <></>
           )}

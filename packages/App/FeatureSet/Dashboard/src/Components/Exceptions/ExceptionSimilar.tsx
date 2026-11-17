@@ -18,6 +18,8 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -296,15 +298,18 @@ const ExceptionSimilar: FunctionComponent<ComponentProps> = (
                     ) : (
                       <></>
                     )}
-                    <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20">
-                      {translator.translateText(REASON_LABELS[entry.reason])}
-                    </span>
+                    <Pill
+                      text={REASON_LABELS[entry.reason]}
+                      tone={PillTone.Info}
+                      isDotHidden={true}
+                    />
                     {entry.isArchived || entry.isResolved ? (
-                      <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-                        {translator.translateText(
-                          entry.isArchived ? "Archived" : "Resolved",
-                        )}
-                      </span>
+                      <Pill
+                        text={entry.isArchived ? "Archived" : "Resolved"}
+                        tone={
+                          entry.isArchived ? PillTone.Paused : PillTone.Success
+                        }
+                      />
                     ) : (
                       <></>
                     )}

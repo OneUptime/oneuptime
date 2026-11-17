@@ -14,6 +14,8 @@ import {
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Table from "Common/UI/Components/Table/Table";
 import {
   useAreTableColumnsFolded,
@@ -198,19 +200,12 @@ function compareRows(
 export const KubernetesEventTypeLabel: FunctionComponent<{
   row: KubernetesEventRow;
 }> = (props: { row: KubernetesEventRow }): ReactElement => {
-  const translator: Translator = useTranslator();
-
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-        props.row.isWarning
-          ? "bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200"
-          : "bg-gray-100 text-gray-600"
-      }`}
-      data-testid="kubernetes-event-type"
-    >
-      {translator.translateText(props.row.isWarning ? "Warning" : "Normal")}
-    </span>
+    <Pill
+      dataTestId="kubernetes-event-type"
+      text={props.row.isWarning ? "Warning" : "Normal"}
+      tone={props.row.isWarning ? PillTone.Warning : PillTone.Neutral}
+    />
   );
 };
 

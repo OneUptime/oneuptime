@@ -13,6 +13,8 @@ import React, {
 import ReactDOM from "react-dom";
 import OneUptimeDate from "Common/Types/Date";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecision";
 import XAxisUtil from "Common/UI/Components/Charts/Utils/XAxis";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
@@ -1217,9 +1219,12 @@ function renderSeriesControls(input: {
        */}
       <div className="flex flex-wrap items-center gap-2">
         {unitLabel ? (
-          <span className="inline-flex items-center rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600">
-            {unitLabel}
-          </span>
+          <Pill
+            text={unitLabel}
+            isUserContent={true}
+            tone={PillTone.Neutral}
+            isDotHidden={true}
+          />
         ) : null}
         <span className="text-xs text-gray-500">
           {translator.translatePlural(SERIES_COUNT_TEMPLATE, totalSeries)}

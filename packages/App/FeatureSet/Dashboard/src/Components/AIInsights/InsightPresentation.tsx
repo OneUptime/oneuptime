@@ -11,7 +11,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { CodeTaskSummaryJSON } from "Common/Types/AI/CodeTask";
 import CodeTaskStageUtil from "Common/Types/AI/CodeTaskStage";
 import CodeTaskStageBadge from "../Code/CodeTaskStageBadge";
-import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -81,19 +82,10 @@ const SeverityLabel: FunctionComponent<{
   );
 };
 
-// One of the labels above, in the reader's language.
-const TranslatedLabel: FunctionComponent<{ text: string }> = (props: {
-  text: string;
-}): ReactElement => {
-  const translator: Translator = useTranslator();
-
-  return <>{translator.translateText(props.text)}</>;
-};
-
-const SEVERITY_BADGE_CLASSES: Record<AIInsightSeverity, string> = {
-  [AIInsightSeverity.High]: "bg-red-50 text-red-700 ring-red-600/20",
-  [AIInsightSeverity.Medium]: "bg-amber-50 text-amber-700 ring-amber-600/20",
-  [AIInsightSeverity.Low]: "bg-blue-50 text-blue-700 ring-blue-600/20",
+const SEVERITY_TONES: Record<AIInsightSeverity, PillTone> = {
+  [AIInsightSeverity.High]: PillTone.Danger,
+  [AIInsightSeverity.Medium]: PillTone.Warning,
+  [AIInsightSeverity.Low]: PillTone.Info,
 };
 
 // The inline (badge-less) severity used in the dense list rows.
@@ -121,14 +113,12 @@ const SEVERITY_TILE_CLASSES: Record<AIInsightSeverity, string> = {
  * it, the terminal human states are calm (green/gray), and Detected — a
  * transient state the scanner routes out of in the same tick — stays gray.
  */
-const STATUS_BADGE_CLASSES: Record<AIInsightStatus, string> = {
-  [AIInsightStatus.Detected]: "bg-gray-100 text-gray-600 ring-gray-500/20",
-  [AIInsightStatus.ActionRequired]:
-    "bg-orange-50 text-orange-700 ring-orange-600/20",
-  [AIInsightStatus.FixOpened]:
-    "bg-purple-50 text-purple-700 ring-purple-600/20",
-  [AIInsightStatus.Resolved]: "bg-green-50 text-green-700 ring-green-600/20",
-  [AIInsightStatus.Dismissed]: "bg-gray-100 text-gray-600 ring-gray-500/20",
+const STATUS_TONES: Record<AIInsightStatus, PillTone> = {
+  [AIInsightStatus.Detected]: PillTone.Neutral,
+  [AIInsightStatus.ActionRequired]: PillTone.Warning,
+  [AIInsightStatus.FixOpened]: PillTone.Info,
+  [AIInsightStatus.Resolved]: PillTone.Success,
+  [AIInsightStatus.Dismissed]: PillTone.Paused,
 };
 
 const STATUS_DOT_CLASSES: Record<AIInsightStatus, string> = {
@@ -207,9 +197,11 @@ export function getInsightTypeElement(
     return <></>;
   }
   return (
-    <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20">
-      <TranslatedLabel text={getInsightTypeLabel(insightType)} />
-    </span>
+    <Pill
+      text={getInsightTypeLabel(insightType)}
+      tone={PillTone.Info}
+      isDotHidden={true}
+    />
   );
 }
 
@@ -220,19 +212,10 @@ export function getSeverityElement(
     return <></>;
   }
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
-        SEVERITY_BADGE_CLASSES[severity] ||
-        "bg-gray-100 text-gray-600 ring-gray-500/20"
-      }`}
-    >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${
-          SEVERITY_DOT_CLASSES[severity] || "bg-gray-400"
-        }`}
-      />
-      <SeverityLabel severity={severity} />
-    </span>
+    <Pill
+      text={SEVERITY_LABELS[severity] || severity}
+      tone={SEVERITY_TONES[severity] || PillTone.Neutral}
+    />
   );
 }
 
@@ -286,19 +269,10 @@ export function getStatusElement(
   }
 
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
-        STATUS_BADGE_CLASSES[status] ||
-        "bg-gray-100 text-gray-600 ring-gray-500/20"
-      }`}
-    >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${
-          STATUS_DOT_CLASSES[status] || "bg-gray-400"
-        }`}
-      />
-      <TranslatedLabel text={getStatusLabel(status)} />
-    </span>
+    <Pill
+      text={getStatusLabel(status)}
+      tone={STATUS_TONES[status] || PillTone.Neutral}
+    />
   );
 }
 
@@ -307,18 +281,12 @@ export function getHumanVerdictElement(
 ): ReactElement {
   if (verdict === AIInsightHumanVerdict.Confirmed) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-        <Icon icon={IconProp.Check} className="h-3 w-3" />
-        <TranslatedLabel text={translationKey("Confirmed")} />
-      </span>
+      <Pill text="Confirmed" tone={PillTone.Success} icon={IconProp.Check} />
     );
   }
   if (verdict === AIInsightHumanVerdict.Dismissed) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/20">
-        <Icon icon={IconProp.Close} className="h-3 w-3" />
-        <TranslatedLabel text={translationKey("Dismissed")} />
-      </span>
+      <Pill text="Dismissed" tone={PillTone.Paused} icon={IconProp.Close} />
     );
   }
   return <></>;

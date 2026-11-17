@@ -1,4 +1,6 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import NetworkTopology, {
   NetworkTopologyEdge,
   NetworkTopologyNode,
@@ -1929,12 +1931,13 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
     );
     if (!props.onShowOriginalLayoutChange) {
       return (
-        <div
-          className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700"
-          data-testid="network-topology-custom-layout-chip"
-        >
-          {customText}
-        </div>
+        <Pill
+          text={customText}
+          isUserContent={true}
+          tone={PillTone.Info}
+          isDotHidden={true}
+          dataTestId="network-topology-custom-layout-chip"
+        />
       );
     }
     const segmentClassName: (isActive: boolean) => string = (

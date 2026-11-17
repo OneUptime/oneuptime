@@ -10,6 +10,8 @@ import React, {
 } from "react";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   MapViewport,
@@ -2343,12 +2345,15 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
           <span data-testid="site-geo-map-count">{coverageLabel}</span>
           {/* Coordinates the projection cannot read at all. */}
           {unmappableCount > 0 ? (
-            <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-600">
-              {translator.translateTemplate(
+            <Pill
+              text={translator.translateTemplate(
                 "{{count}} without usable coordinates",
                 { count: translator.formatNumber(unmappableCount) },
               )}
-            </span>
+              isUserContent={true}
+              tone={PillTone.Neutral}
+              isDotHidden={true}
+            />
           ) : (
             <></>
           )}
