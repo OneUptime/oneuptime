@@ -7,6 +7,8 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
+import DefinedTerm from "Common/UI/Components/Glossary/DefinedTerm";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import { ComposedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
@@ -55,6 +57,8 @@ interface Stat {
   testId: string;
   // English too.
   hint?: string | undefined;
+  // The label drawn as a defined term: what the word means, one tap away.
+  glossaryTerm?: GlossaryTerm | undefined;
 }
 
 /*
@@ -98,6 +102,8 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
     },
     {
       label: "Spans",
+      // A trace's page shows its spans: what one is, where it is counted (#9133).
+      glossaryTerm: GlossaryTerm.Span,
       value:
         // More spans follow the loaded ones, and they are not counted yet.
         summary.totalSpanCount === null ? (
@@ -299,7 +305,13 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
               }
             >
               <dt className="text-xs font-medium text-gray-500">
-                {translator.translateText(stat.label)}
+                {stat.glossaryTerm ? (
+                  <DefinedTerm term={stat.glossaryTerm}>
+                    {translator.translateText(stat.label)}
+                  </DefinedTerm>
+                ) : (
+                  translator.translateText(stat.label)
+                )}
               </dt>
               <dd className="mt-0.5 text-xl font-semibold tabular-nums text-gray-900">
                 {getFigure(stat.value)}

@@ -9,6 +9,7 @@ import { FacetValue } from "../types";
 import TelemetryFacetValueRow from "./TelemetryFacetValueRow";
 import IconProp from "../../../../Types/Icon/IconProp";
 import FacetSectionHeader from "./FacetSectionHeader";
+import GlossaryTerm from "../../../../Types/Docs/GlossaryTerm";
 import FacetSearchInput from "./FacetSearchInput";
 import FacetShowMoreButton from "./FacetShowMoreButton";
 import useFacetSectionSearch, {
@@ -65,6 +66,8 @@ export interface TelemetryFacetSectionProps {
    */
   description?: string | undefined;
   valueDescriptionMap?: Record<string, string> | undefined;
+  // FacetConfig.titleGlossaryTerm: the title drawn as a defined term.
+  titleGlossaryTerm?: GlossaryTerm | undefined;
   defaultExpanded?: boolean;
   /*
    * When set, the search box also emits typed text to the parent (debounced)
@@ -230,6 +233,7 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
           setIsExpanded(!isExpanded);
         }}
         help={help}
+        titleGlossaryTerm={props.titleGlossaryTerm}
       />
 
       {isExpanded && (
