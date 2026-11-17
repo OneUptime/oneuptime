@@ -292,7 +292,9 @@ describe("the notice's layout on narrow screens", () => {
     expect(
       classesOf(screen.getByTestId("workflow-turn-on-button")).filter(
         (name: string): boolean => {
-          return /(^|:)!?-?m[ls]-/u.test(name);
+          const startMargin: RegExp = /(^|:)!?-?m[ls]-/u;
+
+          return startMargin.test(name);
         },
       ),
     ).toEqual([]);
