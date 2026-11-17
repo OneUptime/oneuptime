@@ -498,7 +498,9 @@ describe("Settings > License in the reader's language", () => {
     const drawn: string = await drawIn("de", noLicense());
 
     // Ten or eleven days, as the hour of the run falls against noon.
-    expect(drawn).toMatch(/Testphase der Enterprise Edition: noch 1[01] Tage/);
+    expect(drawn).toMatch(
+      /Testphase der Enterprise Edition: noch 1[01]\u00A0Tage/,
+    );
     expect(drawn).toContain(word("de", LicenseStatusCopy.noLicenseInstalled));
     expect(drawn).toContain(
       `Validieren Sie Ihren Lizenzschlüssel bei OneUptime, um ihn zu aktivieren. Sie benötigen einen Lizenzschlüssel? Wenden Sie sich an unser Vertriebsteam unter ${SALES_EMAIL}.`,
@@ -622,7 +624,7 @@ describe("Settings > License in the reader's language", () => {
     // Ten or eleven days, as the hour of the run falls against noon.
     expect(
       ["۱۰", "۱۱"].map((days: string): string => {
-        return `دورهٔ آزمایشی Enterprise Edition: ${FIRST_STRONG_ISOLATE}${days} روز مانده${POP_DIRECTIONAL_ISOLATE}`;
+        return `دورهٔ آزمایشی Enterprise Edition: ${FIRST_STRONG_ISOLATE}${days}\u00A0روز مانده${POP_DIRECTIONAL_ISOLATE}`;
       }),
     ).toContain(title);
   });
