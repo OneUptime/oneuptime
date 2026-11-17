@@ -203,6 +203,10 @@ jest.mock("../screens/CreateOnCallOverrideScreen", () => {
   return mockScreenStub("screen-create-on-call-override");
 });
 
+jest.mock("../screens/EditOnCallOverrideScreen", () => {
+  return mockScreenStub("screen-edit-on-call-override");
+});
+
 jest.mock("../screens/MyOnCallPagesScreen", () => {
   return mockScreenStub("screen-my-on-call-pages");
 });
@@ -396,10 +400,30 @@ const ON_CALL_ROUTES: Record<keyof OnCallStackParamList, TitledRoute> = {
     title: "New Override",
 
     /*
-     * The one route in this stack presented as a modal rather than pushed. A
+     * One of the two routes in this stack presented as a modal, not pushed. A
      * sheet that re-expanded into a large title on scroll would read as a
      * pushed screen, so it keeps the compact header.
      */
+    keepsIosLargeTitle: false,
+  },
+
+  // Editing one override (#7897): a sheet too, as the form it mirrors.
+  EditOnCallOverride: {
+    testID: "screen-edit-on-call-override",
+    params: {
+      override: {
+        _id: "override-1",
+        projectId: "project-1",
+        projectName: "Project",
+        overrideUser: { _id: "user-1", name: "Alex" },
+        routeAlertsToUser: { _id: "user-2", name: "Sam" },
+        onCallDutyPolicy: null,
+        startsAt: "2026-11-13T08:00:00.000Z",
+        endsAt: "2026-11-14T08:00:00.000Z",
+        createdAt: "2026-11-01T00:00:00.000Z",
+      },
+    },
+    title: "Edit Override",
     keepsIosLargeTitle: false,
   },
   MyOnCallPages: {

@@ -451,6 +451,11 @@ export interface OnCallOverrideItem {
   overrideUser: OnCallUserRef | null;
   routeAlertsToUser: OnCallUserRef | null;
   onCallDutyPolicy: { _id?: string; name?: string } | null;
+  /*
+   * Its policy's id, or null for a global override, whether or not the
+   * policy's name could be read: an edit and a conflict are of one scope.
+   */
+  onCallDutyPolicyId?: string | null;
   startsAt: string | null;
   endsAt: string | null;
   createdAt: string;
