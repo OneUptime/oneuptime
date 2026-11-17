@@ -12,6 +12,7 @@
  * Compile workflow to running it where the frontends are installed.
  */
 
+const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
@@ -141,18 +142,21 @@ function gzipped(file) {
 
 /*
  * Each output as 64 KiB that gzip cannot shrink, the same every run: a page
- * large enough that 1% of its ceiling is hundreds of bytes.
+ * large enough that 1% of its ceiling is hundreds of bytes. The bytes are
+ * SHA-256 digests of the file's name and a block number, one after another:
+ * no generator of the test's own (SeededRandomGuard), and a .js suite with
+ * no transform cannot import Tests/Helpers/SeededRandom.ts.
  */
 function largeContentsOf(file) {
-  const contents = Buffer.alloc(64 * 1024);
-  let seed = file.length;
+  const blocks = [];
 
-  for (let index = 0; index < contents.length; index++) {
-    seed = (Math.imul(seed, 1103515245) + 12345) >>> 0;
-    contents[index] = seed >>> 24;
+  for (let block = 0; block < (64 * 1024) / 32; block++) {
+    blocks.push(
+      crypto.createHash("sha256").update(`${file}\n${block}`).digest(),
+    );
   }
 
-  return contents;
+  return Buffer.concat(blocks);
 }
 
 describe("the outputs a page loads first", () => {
