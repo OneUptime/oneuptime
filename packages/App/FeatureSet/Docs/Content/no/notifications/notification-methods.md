@@ -188,7 +188,7 @@ Den kanalen er slått av i dette prosjektet. Kortet sier hvem som kan slå den p
 :::
 
 :::details Koden kom aldri
-E-poster kan ta noen minutter, og havner noen ganger i søppelpost; SMS kan ta ett minutt. Vent ett minutt, og klikk så **Send en ny kode** i dialogen. **Prosjektinnstillinger → Varslinger → Varslingslogger** viser hva som skjedde med meldingen.
+E-poster kan ta noen minutter, og havner noen ganger i søppelpost; SMS kan ta ett minutt. Vent ett minutt, og klikk så **Send en ny kode** i dialogen. **Prosjektinnstillinger → Varslinger → Varslingslogger** viser hva som skjedde med meldingen. Den som kan lese loggene, får **Åpne Varslingslogger** under koden, som åpner fanen til meldingen; alle andre blir bedt om å spørre en Prosjekteier eller Prosjektadministrator.
 :::
 
 :::details Det mislykkes å legge til Slack-kontoen min

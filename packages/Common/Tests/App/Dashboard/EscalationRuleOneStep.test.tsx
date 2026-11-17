@@ -106,10 +106,16 @@ jest.mock("react-i18next", () => {
   };
 });
 
-// A project owner, so the form shows every field it would in the product.
+/*
+ * A project owner, so the form shows every field it would in the product;
+ * a test that needs someone else says who (permissionsForTest).
+ */
+const OWNER_PERMISSIONS: Array<string> = ["ProjectOwner", "User", "Public"];
+let permissionsForTest: Array<string> = OWNER_PERMISSIONS;
+
 jest.mock("../../../UI/Utils/Permission", () => {
   const owner: () => Array<string> = (): Array<string> => {
-    return ["ProjectOwner", "User", "Public"];
+    return permissionsForTest;
   };
 
   return {
@@ -144,6 +150,7 @@ import { JSONObject } from "../../../Types/JSON";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
+import Toast from "../../../UI/Utils/Toast";
 import {
   hasSetChip,
   setChips,
@@ -493,6 +500,7 @@ function idOf(value: unknown): string {
 
 afterEach(() => {
   cleanup();
+  permissionsForTest = OWNER_PERMISSIONS;
   for (const mock of [
     getMock,
     postMock,
@@ -533,18 +541,73 @@ describe("adding an escalation rule", () => {
     expect(screen.getByRole("button", { name: "Create Rule" })).toBeEnabled();
   });
 
-  test("asks who to notify and how long to wait, with 30 minutes filled in", async () => {
+  /*
+   * ISSUE #7373: a new rule's form asked "Escalate after", and a newcomer
+   * adding a teammate to page "after 5 minutes" typed 5 there - the new
+   * level's own wait, before a level that did not exist - while the
+   * teammate was still paged 30 minutes after Level 1. A new rule after the
+   * first asks when it is paged, starting from the level before's wait.
+   */
+  test("a rule after the first asks when it is paged, starting from the level before's wait (#7373)", async () => {
     await renderPage(TWO_LEVELS);
     await openAddDialog();
 
     expect(screen.getByText("Notify")).toBeInTheDocument();
-    expect(screen.getByText("Escalate after (in minutes)")).toBeInTheDocument();
+    expect(screen.getByText("Paged after (in minutes)")).toBeInTheDocument();
+    expect(screen.queryByText("Escalate after (in minutes)")).toBeNull();
+    expect(
+      screen.getByTestId("escalation-rule-paged-after-description"),
+    ).toHaveTextContent(
+      "How long Backup waits for someone to acknowledge before this level is paged. Saved as the wait of Backup.",
+    );
+    // The field says it, so the line under Notify does not say it again.
+    expect(screen.queryByTestId("escalation-rule-when-paged")).toBeNull();
 
     const wait: HTMLInputElement = screen.getByPlaceholderText(
       "30",
     ) as HTMLInputElement;
 
-    expect(wait.value).toBe("30");
+    // Backup waits 10 minutes: the new level is paged 10 minutes after it.
+    expect(wait.value).toBe("10");
+  });
+
+  test("the first rule of a policy asks how long to wait, with 30 minutes filled in", async () => {
+    await renderPage({ rules: [] });
+    await openAddDialog();
+
+    expect(screen.getByText("Escalate after (in minutes)")).toBeInTheDocument();
+    expect(screen.queryByText("Paged after (in minutes)")).toBeNull();
+    expect((screen.getByPlaceholderText("30") as HTMLInputElement).value).toBe(
+      "30",
+    );
+  });
+
+  test("the dialog says which level the rule adds: a rule is a level (#7373)", async () => {
+    await renderPage(TWO_LEVELS);
+    await openAddDialog();
+
+    expect(
+      screen.getByTestId("escalation-rule-create-description"),
+    ).toHaveTextContent("Adds level 3 of this policy: who is paged, and when.");
+  });
+
+  test("someone who may add rules but not change them is told when it is paged, and asked how long it waits", async () => {
+    permissionsForTest = [
+      "CreateProjectOnCallDutyPolicyEscalationRule",
+      "ReadProjectOnCallDutyPolicyEscalationRule",
+      "ReadProjectOnCallDutyPolicy",
+      "ReadProjectOnCallDutyPolicyEscalationRuleUser",
+      "CreateProjectOnCallDutyPolicyEscalationRuleUser",
+      "User",
+      "Public",
+    ];
+    await renderPage(TWO_LEVELS);
+    await openAddDialog();
+
+    expect(screen.queryByText("Paged after (in minutes)")).toBeNull();
+    expect(screen.getByTestId("escalation-rule-when-paged")).toHaveTextContent(
+      "This level is paged 10 minutes after Backup, if nobody acknowledges Backup. That wait is set on Backup.",
+    );
   });
 
   test("folds the name and the description under Advanced, the name showing the level it will be", async () => {
@@ -721,7 +784,7 @@ describe("adding an escalation rule", () => {
     expect(model.description).toBe("Paged after hours.");
   });
 
-  test("a wait typed in is the wait it is created with", async () => {
+  test("a Paged after typed in is saved as the wait of the level before; the new level waits the usual 30 itself (#7373)", async () => {
     await renderPage(TWO_LEVELS);
     await openAddDialog();
 
@@ -736,9 +799,80 @@ describe("adding an escalation rule", () => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
     });
 
-    expect(
-      Number(createOrUpdateMock.mock.calls[0]![0].model.escalateAfterInMinutes),
-    ).toBe(5);
+    const request: {
+      model: OnCallDutyEscalationRule;
+      miscDataProps: JSONObject;
+    } = createOrUpdateMock.mock.calls[0]![0];
+
+    expect(Number(request.model.escalateAfterInMinutes)).toBe(30);
+    // The answer is the form's: it is not sent with the new rule.
+    expect(request.miscDataProps).not.toHaveProperty("pagedAfterInMinutes");
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    const update: { modelType: unknown; id: ObjectID; data: JSONObject } =
+      updateByIdMock.mock.calls[0]![0] as never;
+
+    expect(update.modelType).toBe(OnCallDutyEscalationRule);
+    expect(update.id.toString()).toBe(RULE_TWO_ID);
+    expect(update.data).toEqual({ escalateAfterInMinutes: 5 });
+  });
+
+  test("Paged after left as it was changes nothing on the level before", async () => {
+    await renderPage(TWO_LEVELS);
+    await openAddDialog();
+    await pick("Alex Chen");
+
+    await submit("Create Rule");
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    // The ladder is read again once the rule is made.
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("button", { name: "Create Rule" }),
+      ).not.toBeInTheDocument();
+    });
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("a wait the level before refuses is said in an error toast; the new level is there all the same", async () => {
+    await renderPage(TWO_LEVELS);
+    updateByIdMock.mockRejectedValue(
+      new Error("You do not have permission to edit this rule."),
+    );
+    await openAddDialog();
+
+    fireEvent.change(screen.getByPlaceholderText("30"), {
+      target: { value: "5" },
+    });
+    await pick("Alex Chen");
+
+    await submit("Create Rule");
+
+    await waitFor(() => {
+      expect(
+        Toast.getToasts().some((toast: { dataTestId?: string | undefined }) => {
+          return toast.dataTestId === "escalation-rule-paged-after-not-saved";
+        }),
+      ).toBe(true);
+    });
+
+    const toast: { title: string } | undefined = Toast.getToasts().find(
+      (candidate: { dataTestId?: string | undefined }) => {
+        return candidate.dataTestId === "escalation-rule-paged-after-not-saved";
+      },
+    );
+
+    expect(toast?.title).toBe(
+      "The rule was added, but the wait of Backup was not changed",
+    );
+    expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    Toast.dismissAll();
   });
 
   test("the first rule of a policy is Level 1", async () => {
@@ -750,6 +884,29 @@ describe("adding an escalation rule", () => {
 });
 
 describe("editing an escalation rule", () => {
+  test("a level after the first says which level it is, and when it is paged (#7373)", async () => {
+    const cards: Array<HTMLElement> = await renderPage(TWO_LEVELS);
+    await openEditDialog(cards[1]!);
+
+    expect(
+      screen.getByTestId("escalation-rule-edit-description"),
+    ).toHaveTextContent(
+      "Level 2 of this policy: who is paged, and how long to wait for an acknowledgement before the next level.",
+    );
+    expect(screen.getByTestId("escalation-rule-when-paged")).toHaveTextContent(
+      "This level is paged 5 minutes after First Responders, if nobody acknowledges First Responders. That wait is set on First Responders.",
+    );
+    // Its own wait is still asked as "Escalate after".
+    expect(screen.getByText("Escalate after (in minutes)")).toBeInTheDocument();
+  });
+
+  test("the first level says nothing of a level before it", async () => {
+    const cards: Array<HTMLElement> = await renderPage(TWO_LEVELS);
+    await openEditDialog(cards[0]!);
+
+    expect(screen.queryByTestId("escalation-rule-when-paged")).toBeNull();
+  });
+
   test("is the same one step, opened on the rule as it is", async () => {
     const cards: Array<HTMLElement> = await renderPage(TWO_LEVELS);
     await openEditDialog(cards[0]!);

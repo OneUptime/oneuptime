@@ -275,20 +275,22 @@
       "Turn on SMS and phone calls",
       "Mobile app or browser",
       "Not set up.",
-      "Get the OneUptime app, or turn on notifications in this browser, from your notification methods.",
-      "Set up the app or this browser",
+      "Get pages on your phone with the OneUptime On-Call app, or in this browser.",
+      "Use this browser",
+      "Get the app",
       "Continue",
       "Recheck"
     ],
     "outline": [
       "button: Add balance",
       "button: Turn on SMS and phone calls",
-      "link: Set up the app or this browser",
+      "button: Use this browser",
+      "button: Get the app",
       "button: Continue",
       "button: Recheck"
     ],
     "width": 768,
-    "height": 592
+    "height": 618
   },
   "paging-phone": {
     "text": [
@@ -304,8 +306,9 @@
       "Text me a code",
       "Mobile app or browser",
       "Not set up.",
-      "Get the OneUptime app, or turn on notifications in this browser, from your notification methods.",
-      "Set up the app or this browser",
+      "Get pages on your phone with the OneUptime On-Call app, or in this browser.",
+      "Use this browser",
+      "Get the app",
       "Continue",
       "Recheck",
       "placeholder: +15551234567"
@@ -313,31 +316,35 @@
     "outline": [
       "field text: +15551234567",
       "button: Text me a code",
-      "link: Set up the app or this browser",
+      "button: Use this browser",
+      "button: Get the app",
       "button: Continue",
       "button: Recheck"
     ],
     "width": 768,
-    "height": 564
+    "height": 590
   },
   "paging-who-else": {
     "text": [
       "2",
-      "Who else is on call?",
+      "Who is paged first?",
       "This makes the on-call policy \"Default on-call policy\". It pages these people first, for every new incident and alert in this project.",
       "Paged first",
       "Add teammates",
       "AL",
       "Ada Lovelace",
+      "Everyone here is paged at the same time. Someone to page only if nobody answers comes in the next step.",
+      "Invite by email",
       "Save and continue"
     ],
     "outline": [
       "button: Add teammates",
       "button: Remove Ada Lovelace",
+      "button: Invite by email",
       "button: Save and continue"
     ],
     "width": 768,
-    "height": 246
+    "height": 342
   },
   "paging-no-answer": {
     "text": [
@@ -389,7 +396,7 @@
     "text": [
       "Paging is set up",
       "Who is paged",
-      "Any new incident or alert runs \"Default on-call policy\", which pages Ada Lovelace (Email, SMS, Phone call).",
+      "Any new incident or alert runs \"Default on-call policy\", which pages Ada Lovelace (email, SMS and phone call at once).",
       "If nobody answers",
       "If nobody acknowledges within 30 minutes, Grace Hopper is paged.",
       "Tested",

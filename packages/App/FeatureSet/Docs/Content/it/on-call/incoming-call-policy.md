@@ -276,7 +276,7 @@ L'account può cambiare solo finché la policy non ha numeri di telefono: la pag
 :::
 
 :::details Il codice per il numero di una persona non arriva
-Gli SMS devono essere attivi per il progetto. Su OneUptime Cloud, un progetto senza una propria configurazione Twilio predefinita paga gli SMS con il suo saldo, che deve superare 1 USD. I codici possono impiegare un minuto ad arrivare; fai clic su **Invia un nuovo codice** per inviarne un altro, e **Impostazioni del progetto** > **Notifiche** > **Log di notifica** mostra che cosa gli è successo.
+Gli SMS devono essere attivi per il progetto. Su OneUptime Cloud, un progetto senza una propria configurazione Twilio predefinita paga gli SMS con il suo saldo, che deve superare 1 USD. I codici possono impiegare un minuto ad arrivare; fai clic su **Invia un nuovo codice** per inviarne un altro, e **Impostazioni del progetto** > **Notifiche** > **Log di notifica** mostra che cosa gli è successo. Chi può leggere quei log vede **Apri i Log di notifica** nella finestra, che apre la loro scheda SMS.
 :::
 
 ## Passaggi successivi

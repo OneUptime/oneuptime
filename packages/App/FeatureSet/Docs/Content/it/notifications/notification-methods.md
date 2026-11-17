@@ -188,7 +188,7 @@ Quel canale è disattivato in questo progetto. Il riquadro dice chi può attivar
 :::
 
 :::details Il codice non è mai arrivato
-Le e-mail possono richiedere qualche minuto, e a volte finiscono nello spam; gli SMS possono richiedere un minuto. Aspettate un minuto, poi fate clic su **Invia un nuovo codice** nella finestra. **Impostazioni del progetto → Notifiche → Log di notifica** mostra cosa è successo al messaggio.
+Le e-mail possono richiedere qualche minuto, e a volte finiscono nello spam; gli SMS possono richiedere un minuto. Aspettate un minuto, poi fate clic su **Invia un nuovo codice** nella finestra. **Impostazioni del progetto → Notifiche → Log di notifica** mostra cosa è successo al messaggio. Chi può leggere quei log vede **Apri i Log di notifica** sotto il codice, che apre la scheda del messaggio; agli altri viene detto di chiedere a un Proprietario del progetto o Amministratore del progetto.
 :::
 
 :::details L'aggiunta del mio account Slack non riesce

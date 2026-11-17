@@ -11,6 +11,9 @@ import {
   getEveryNewAlertRuleName,
   getEveryNewIncidentRuleDescription,
   getEveryNewIncidentRuleName,
+  EveryNewEventRulesOfferKind,
+  doesEveryNewEventRulesOfferStartOn,
+  getEveryNewEventRulesOfferKind,
   readEveryNewEventRulesLanguage,
   readPageForEveryNewIncidentAndAlert,
   shouldOfferEveryNewEventRules,
@@ -212,6 +215,95 @@ describe("shouldOfferEveryNewEventRules", () => {
       );
     },
   );
+});
+
+/*
+ * ISSUE #7371: a later policy is offered the switch too, off to start
+ * with. A project's second policy hid it, with nothing in its place, and
+ * was saved paging nobody without a word.
+ */
+describe("getEveryNewEventRulesOfferKind (#7371)", () => {
+  const NEW_PROJECT: {
+    policyCount: number | null;
+    incidentRuleCount: number | null;
+    alertRuleCount: number | null;
+    mayAddRules: boolean;
+  } = {
+    policyCount: 0,
+    incidentRuleCount: 0,
+    alertRuleCount: 0,
+    mayAddRules: true,
+  };
+
+  test("a new project's first policy is offered it, on", () => {
+    const kind: EveryNewEventRulesOfferKind =
+      getEveryNewEventRulesOfferKind(NEW_PROJECT);
+
+    expect(kind).toBe(EveryNewEventRulesOfferKind.FirstPolicy);
+    expect(doesEveryNewEventRulesOfferStartOn(kind)).toBe(true);
+  });
+
+  test.each([
+    ["a policy already", { policyCount: 1 }],
+    // The list's first page says so before the rules are counted.
+    [
+      "a policy in the list, the rules not counted",
+      { policyCount: 2, incidentRuleCount: null, alertRuleCount: null },
+    ],
+    ["an incident on-call rule", { incidentRuleCount: 1 }],
+    ["an alert on-call rule", { alertRuleCount: 3 }],
+  ] as Array<[string, Partial<typeof NEW_PROJECT>]>)(
+    "a project with %s is offered it for a later policy, off",
+    (_label: string, change: Partial<typeof NEW_PROJECT>) => {
+      const kind: EveryNewEventRulesOfferKind = getEveryNewEventRulesOfferKind({
+        ...NEW_PROJECT,
+        ...change,
+      });
+
+      expect(kind).toBe(EveryNewEventRulesOfferKind.LaterPolicy);
+      expect(doesEveryNewEventRulesOfferStartOn(kind)).toBe(false);
+    },
+  );
+
+  test.each([
+    ["no right to add rules", { mayAddRules: false }],
+    [
+      "no right to add rules, in a project with a policy",
+      { mayAddRules: false, policyCount: 4 },
+    ],
+    [
+      "counts not known yet",
+      { policyCount: null, incidentRuleCount: null, alertRuleCount: null },
+    ],
+    ["counts read as nothing but unknown rules", { incidentRuleCount: null }],
+  ] as Array<[string, Partial<typeof NEW_PROJECT>]>)(
+    "offers nothing with %s",
+    (_label: string, change: Partial<typeof NEW_PROJECT>) => {
+      expect(
+        getEveryNewEventRulesOfferKind({ ...NEW_PROJECT, ...change }),
+      ).toBe(EveryNewEventRulesOfferKind.None);
+    },
+  );
+
+  test("while the counts are on their way, the switch would start on: a new project's joins the dialog on", () => {
+    expect(
+      doesEveryNewEventRulesOfferStartOn(EveryNewEventRulesOfferKind.None),
+    ).toBe(true);
+  });
+
+  test("the first policy's offer is exactly shouldOfferEveryNewEventRules", () => {
+    for (const facts of [
+      NEW_PROJECT,
+      { ...NEW_PROJECT, policyCount: 1 },
+      { ...NEW_PROJECT, mayAddRules: false },
+      { ...NEW_PROJECT, alertRuleCount: null },
+    ]) {
+      expect(
+        getEveryNewEventRulesOfferKind(facts) ===
+          EveryNewEventRulesOfferKind.FirstPolicy,
+      ).toBe(shouldOfferEveryNewEventRules(facts));
+    }
+  });
 });
 
 /*

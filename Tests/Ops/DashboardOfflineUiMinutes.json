@@ -84,6 +84,7 @@
     "test-network-first-run-ui": 1.4,
     "test-network-traffic-names-ui": 2.3,
     "test-new-version-ui": 2.9,
+    "test-on-call-guided-setup-ui": 1.3,
     "test-openshift-pages-ui": 2.6,
     "test-openstack-pages-ui 1/3": 16.2,
     "test-openstack-pages-ui 2/3": 11.4,
