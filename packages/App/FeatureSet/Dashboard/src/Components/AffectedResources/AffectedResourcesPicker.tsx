@@ -2001,7 +2001,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                   <span
                     className={`min-w-0 break-words ${
                       item.isNameLoading
-                        ? "italic text-gray-400"
+                        ? "italic text-gray-500"
                         : "text-gray-800"
                     }`}
                     aria-busy={item.isNameLoading ? true : undefined}
@@ -2285,7 +2285,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
               <Icon icon={IconProp.Tag} className="h-3.5 w-3.5" />
               {translator.translateText("Labels")}
               {selectedLabelIds.length > 0 && (
-                <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-700">
+                <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-100 px-1 text-xs font-semibold text-indigo-700">
                   {selectedLabelIds.length}
                 </span>
               )}
@@ -2294,7 +2294,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
              * What each tab is for. Left out on a phone, where it wrapped to
              * three lines beside the tabs and pushed the results down.
              */}
-            <span className="ms-auto pe-1 text-[11px] text-gray-500 max-sm:hidden sm:inline">
+            <span className="ms-auto pe-1 text-xs text-gray-500 max-sm:hidden sm:inline">
               {translator.translateText(
                 activeTab === "resources"
                   ? "Search and add individually"
@@ -2887,7 +2887,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                             </span>
                           </button>
                           {previewResources !== undefined && (
-                            <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
+                            <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
                               {previewResources.length}
                               {previewResources.length >= previewCapTotal
                                 ? "+"
@@ -2957,7 +2957,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                                       RESOURCE_CONFIG[type];
                                     return (
                                       <div key={type}>
-                                        <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                                        <div className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
                                           <Icon
                                             icon={cfg.icon}
                                             className="h-3 w-3 text-gray-400"

@@ -122,7 +122,7 @@ const ProfileTypeSelector: FunctionComponent<ProfileTypeSelectorProps> = (
                 props.onChange(pill.value);
               }}
             >
-              <span className="mr-1.5 text-gray-400">{pill.icon}</span>
+              <span className="mr-1.5 text-gray-500">{pill.icon}</span>
               {translator.translateText(pill.label)}
             </button>
           );

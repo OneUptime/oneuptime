@@ -475,7 +475,7 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
           {row.otherType ? (
             <InventoryTypeBadge entityType={row.otherType} />
           ) : null}
-          <span className="ml-auto text-xs text-gray-400">
+          <span className="ml-auto text-xs text-gray-500">
             {row.lastSeenAt
               ? OneUptimeDate.getDateAsLocalFormattedString(row.lastSeenAt)
               : ""}

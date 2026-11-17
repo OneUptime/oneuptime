@@ -1088,7 +1088,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
           <Card>
             <div className="-mt-5">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                   {translator.translateText("Time Range")}
                 </span>
               </div>
@@ -1111,10 +1111,10 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
         {/* Query configs */}
         {!props.hideQueryElements && (
           <div>
-            <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+            <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
               <span>{translator.translateText("Queries")}</span>
               {props.data.queryConfigs.length > 1 && (
-                <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gray-100 px-1 text-[10px] font-semibold text-gray-500">
+                <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gray-100 px-1 text-xs font-semibold text-gray-500">
                   {props.data.queryConfigs.length}
                 </span>
               )}
@@ -1516,7 +1516,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
           (!isMetricResultsLoading || hasFetchedResultsOnce) && (
             <div>
               {!props.hideQueryElements && (
-                <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                   <span>{translator.translateText("Charts")}</span>
                   {/*
                    * Panel count, not result count: a query flagged
@@ -1537,7 +1537,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                         },
                       ).length + props.data.formulaConfigs.length;
                     return chartPanelCount > 1 ? (
-                      <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gray-100 px-1 text-[10px] font-semibold text-gray-500">
+                      <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gray-100 px-1 text-xs font-semibold text-gray-500">
                         {chartPanelCount}
                       </span>
                     ) : null;

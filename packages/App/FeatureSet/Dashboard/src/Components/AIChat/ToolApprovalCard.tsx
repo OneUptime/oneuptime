@@ -183,7 +183,7 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                 className="flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5"
               >
                 <span
-                  className={`inline-flex flex-shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusChipTone[action.status]}`}
+                  className={`inline-flex flex-shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusChipTone[action.status]}`}
                 >
                   <Icon icon={statusIcon[action.status]} className="h-3 w-3" />
                   {translator.translateText(
@@ -309,7 +309,7 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                       {description.length > 0 && (
                         <div
                           data-testid="tool-approval-description"
-                          className="mt-1 break-words text-[11px] leading-relaxed text-gray-700"
+                          className="mt-1 break-words text-xs leading-relaxed text-gray-700"
                         >
                           {lineSentences.length > 0 && (
                             <ToolActionSentences sentences={lineSentences} />
@@ -374,7 +374,7 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                       {argumentParts.length > 0 && (
                         <dl
                           data-testid="tool-approval-arguments"
-                          className="mt-1.5 space-y-0.5 text-[11px] leading-[1.125rem]"
+                          className="mt-1.5 space-y-0.5 text-xs leading-[1.125rem]"
                         >
                           {argumentParts.map((part: ActionArgumentPart) => {
                             return (
@@ -424,7 +424,7 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                               },
                             );
                           }}
-                          className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                          className={`px-2.5 py-1 text-xs font-medium transition-colors ${
                             isApproved
                               ? "bg-gray-900 text-white"
                               : "bg-white text-gray-500 hover:bg-gray-50"
@@ -443,7 +443,7 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                               },
                             );
                           }}
-                          className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                          className={`px-2.5 py-1 text-xs font-medium transition-colors ${
                             !isApproved
                               ? "bg-gray-500 text-white"
                               : "bg-white text-gray-500 hover:bg-gray-50"
@@ -467,7 +467,7 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
           {isSetupPlan(pending) && (
             <p
               data-testid="tool-approval-setup-plan-end"
-              className="mt-2 text-[11px] leading-relaxed text-amber-800"
+              className="mt-2 text-xs leading-relaxed text-amber-800"
             >
               {translator.translateText(SETUP_PLAN_END)}
             </p>

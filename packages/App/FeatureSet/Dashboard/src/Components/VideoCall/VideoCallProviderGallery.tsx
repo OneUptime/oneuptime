@@ -211,7 +211,7 @@ const SlackHuddleTile: FunctionComponent = (): ReactElement => {
 
       <div className="mt-4 flex items-center gap-2 text-xs font-medium">
         {connections.connected === null ? (
-          <span className="text-gray-400">
+          <span className="text-gray-500">
             {translator.translateText("Checking Slack…")}
           </span>
         ) : isSlackConnected ? (

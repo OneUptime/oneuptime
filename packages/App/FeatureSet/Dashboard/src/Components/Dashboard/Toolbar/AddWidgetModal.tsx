@@ -152,7 +152,7 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
         </span>
         <span
           className={`ml-1 shrink-0 text-xs tabular-nums ${
-            options.isSelected ? "text-indigo-400" : "text-gray-400"
+            options.isSelected ? "text-indigo-400" : "text-gray-500"
           }`}
         >
           {options.count}
@@ -230,7 +230,7 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
             {railSections.map((section: WidgetCategoryGroupSection) => {
               return (
                 <div key={section.group} className="contents md:block">
-                  <h5 className="mt-4 max-md:hidden px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400 md:block">
+                  <h5 className="mt-4 max-md:hidden px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-500 md:block">
                     {translator.translateText(
                       WIDGET_CATEGORY_GROUP_LABELS[section.group],
                     )}
@@ -260,7 +260,7 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
               <p
                 aria-live="polite"
                 data-testid="add-widget-result-count"
-                className="text-xs text-gray-400"
+                className="text-xs text-gray-500"
               >
                 {translator.translatePlural(
                   {
@@ -277,7 +277,7 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
             {totalMatches === 0 && (
               <div
                 data-testid="add-widget-empty"
-                className="flex flex-col items-center justify-center py-12 text-center text-gray-400"
+                className="flex flex-col items-center justify-center py-12 text-center text-gray-500"
               >
                 <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gray-50">
                   <Icon
@@ -316,7 +316,7 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
                       <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                         {translator.translateText(category.name)}
                       </h4>
-                      <p className="mt-0.5 text-xs text-gray-400">
+                      <p className="mt-0.5 text-xs text-gray-500">
                         {translator.translateText(category.description)}
                       </p>
                     </div>

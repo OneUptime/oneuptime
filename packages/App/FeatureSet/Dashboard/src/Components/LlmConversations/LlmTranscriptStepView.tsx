@@ -182,7 +182,7 @@ export const LlmStepTime: FunctionComponent<{
   if (!props.onReplayFromHere) {
     return (
       <span
-        className="text-xs text-gray-400"
+        className="text-xs text-gray-500"
         data-testid="llm-step-time"
         title={fullDate}
       >
@@ -194,7 +194,7 @@ export const LlmStepTime: FunctionComponent<{
   return (
     <button
       type="button"
-      className="rounded text-xs text-gray-400 hover:text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      className="rounded text-xs text-gray-500 hover:text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       data-testid="llm-step-time"
       title={
         translator.translateTemplate("Replay from here ({{date}})", {

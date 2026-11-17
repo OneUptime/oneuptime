@@ -65,7 +65,7 @@ const OperatorCondition: FunctionComponent<ConditionProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const statusClass: string = !props.status
-    ? "text-gray-400"
+    ? "text-gray-500"
     : props.status === props.healthyStatus
       ? "text-gray-600"
       : "font-medium text-amber-700";

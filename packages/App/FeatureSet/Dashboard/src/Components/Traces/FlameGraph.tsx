@@ -369,7 +369,7 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
       {/* Controls */}
       <div className="flex items-center justify-between mb-2 px-1">
         <div
-          className="text-[11px] text-gray-500"
+          className="text-xs text-gray-500"
           data-testid="flame-graph-instructions"
         >
           {translator.translateText(FLAME_GRAPH_INSTRUCTIONS)}
@@ -380,7 +380,7 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
             onClick={() => {
               setFocusedSpanId(null);
             }}
-            className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+            className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
           >
             {translator.translateText("Reset Zoom")}
           </button>

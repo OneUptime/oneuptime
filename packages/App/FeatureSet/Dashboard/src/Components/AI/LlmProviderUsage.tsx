@@ -550,7 +550,7 @@ const LlmProviderUsage: FunctionComponent = (): ReactElement => {
                       key={`${row.key || "unnamed"}-${index}`}
                       data-testid="llm-provider-usage-row"
                     >
-                      <td className="px-4 py-2 text-gray-400">{index + 1}</td>
+                      <td className="px-4 py-2 text-gray-500">{index + 1}</td>
                       <td className="max-w-xs truncate px-4 py-2">
                         {renderGroup(row)}
                       </td>
@@ -571,7 +571,7 @@ const LlmProviderUsage: FunctionComponent = (): ReactElement => {
                         {formatCost(row.costUsd)}
                         {row.costIncludesEstimate ? (
                           <span
-                            className="ml-1 text-gray-400"
+                            className="ml-1 text-gray-500"
                             title={
                               translator.translateText(
                                 "Estimated from the tokens at list price",

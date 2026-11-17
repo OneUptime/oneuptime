@@ -460,7 +460,7 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
 
     if (!item.ownerUser || !name) {
       return (
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-gray-500">
           {translator.translateText(POSTMORTEM_ACTION_ITEMS_COPY.noOwner)}
         </span>
       );
