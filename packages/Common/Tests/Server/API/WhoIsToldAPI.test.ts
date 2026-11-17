@@ -326,7 +326,7 @@ describe("POST /who-is-told/draft", () => {
   test("what the service refuses is passed on", async () => {
     getForDraft.mockRejectedValue(
       new NotAuthorizedException(
-        "Seeing who a new monitor tells takes a role that can create monitors, such as Project Member.",
+        "You do not have permission to create Monitor.",
       ),
     );
 

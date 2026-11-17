@@ -4606,6 +4606,32 @@ describe("WhoIsToldService", () => {
       });
     }
 
+    /*
+     * The monitor's own create check, asked without creating it
+     * (checkCallerMayCreate): stood in for, as it reads the project's plan,
+     * labels and grants - refusing, as the create would, whoever holds no
+     * role at all in the project (CALLER), and passing a server admin.
+     */
+    let mayCreate: SpyInstance<typeof MonitorService.checkCallerMayCreate>;
+
+    beforeEach(() => {
+      mayCreate = jest
+        .spyOn(MonitorService, "checkCallerMayCreate")
+        .mockImplementation((async (args: {
+          props: DatabaseCommonInteractionProps;
+        }) => {
+          if (
+            !args.props.isRoot &&
+            !args.props.isMasterAdmin &&
+            !args.props.userTenantAccessPermission
+          ) {
+            throw new NotAuthorizedException(
+              "You do not have permission to create Monitor.",
+            );
+          }
+        }) as never);
+    });
+
     test("a new monitor is worked out from the form, and names no saved monitor", async () => {
       const result: WhoIsToldResult = await forDraft();
 
@@ -4759,13 +4785,47 @@ describe("WhoIsToldService", () => {
       });
     });
 
-    test("seeing who a new monitor tells takes what creating one takes", async () => {
+    test("seeing who a new monitor tells takes what creating it takes: its create's own check, of the monitor the form holds", async () => {
       await expect(forDraft({ props: CALLER })).rejects.toThrow(
-        "Seeing who a new monitor tells takes a role that can create monitors, such as Project Member.",
+        "You do not have permission to create Monitor.",
       );
       await expect(forDraft({ props: CALLER })).rejects.toBeInstanceOf(
         NotAuthorizedException,
       );
+
+      await forDraft({
+        draft: draftOf({ labelIds: [new ObjectID(MONITOR_LABEL)] }),
+      });
+
+      const asked: {
+        data: Monitor;
+        props: DatabaseCommonInteractionProps;
+      } = mayCreate.mock.calls[mayCreate.mock.calls.length - 1]![0] as {
+        data: Monitor;
+        props: DatabaseCommonInteractionProps;
+      };
+
+      expect(asked.props.userId?.toString()).toBe(DAN);
+      expect(asked.data.projectId?.toString()).toBe(PROJECT_ID.toString());
+      expect(asked.data.name).toBe("Payments API");
+      expect(asked.data.monitorType).toBe(MonitorType.Website);
+      // With its labels: a grant limited to labels is weighed for these.
+      expect(
+        (asked.data.labels || []).map((label: Label): string => {
+          return label._id || "";
+        }),
+      ).toEqual([MONITOR_LABEL]);
+      // A copy of its own, with no id: the check stamps what it is handed.
+      expect(asked.data._id).toBeUndefined();
+    });
+
+    test("a saved monitor's criteria being edited asks no create", async () => {
+      await forDraft({
+        props: CALLER,
+        draft: draftOf({ monitorId: MONITOR_ID }),
+      });
+
+      expect(mayCreate).not.toHaveBeenCalled();
     });
 
     test("a saved monitor's criteria being edited: the steps being edited, with its own name and status pages", async () => {

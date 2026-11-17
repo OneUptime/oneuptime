@@ -922,7 +922,15 @@ function stubBase(): void {
   }) => {
     const alert: Alert = createBy.data;
     alert._id = ObjectID.generate().toString();
-    alert.monitorId = alert.monitorId || alert.monitor?.id || undefined;
+
+    // The monitor it is of, under either name.
+    const monitorId: ObjectID | undefined =
+      alert.monitorId || alert.monitor?.id || undefined;
+
+    if (monitorId) {
+      alert.monitorId = monitorId;
+    }
+
     // Created now: a rule's wait starts as the alert opens.
     alert.createdAt = new Date();
     createdAlerts.push(alert);

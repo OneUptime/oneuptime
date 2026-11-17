@@ -118,8 +118,6 @@ import MonitorCriteriaInstance from "../../Types/Monitor/MonitorCriteriaInstance
 import MonitorStep from "../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
-import CallerPermission from "../Utils/Permission/CallerPermission";
 import OwnedScopePermission from "../Types/Database/Permissions/OwnedScopePermission";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import {
@@ -928,23 +926,31 @@ export class WhoIsToldService {
       return saved;
     }
 
-    // As CreatePermission.checkCreatePermissions lets them create one.
-    if (
-      !data.props.isRoot &&
-      !data.props.isMasterAdmin &&
-      !CallerPermission.holdsModelPermission(
-        data.props,
-        { model: new Monitor(), operation: "create" },
-        { projectId: data.projectId },
-      )
-    ) {
-      throw new NotAuthorizedException(
-        "Seeing who a new monitor tells takes a role that can create monitors, such as Project Member.",
-      );
-    }
+    /*
+     * Seeing who a new monitor tells takes what creating it takes: the very
+     * checks its create runs, asked without creating it
+     * (DatabaseService.checkCallerMayCreate) - the table and every column
+     * it is written with, its labels, and what a grant limited to labels or
+     * to owned records reaches - refused as its create would be. Asked of a
+     * copy of its own, as the check stamps what it is handed.
+     */
+    await MonitorService.checkCallerMayCreate({
+      data: this.newMonitorOfDraft(data),
+      props: data.props,
+    });
 
-    const monitor: Monitor = new Monitor();
+    const monitor: Monitor = this.newMonitorOfDraft(data);
     monitor.id = ObjectID.generate();
+
+    return monitor;
+  }
+
+  // A new monitor as a draft describes it, as its create would be handed it.
+  private static newMonitorOfDraft(data: {
+    projectId: ObjectID;
+    draft: WhoIsToldDraft;
+  }): Monitor {
+    const monitor: Monitor = new Monitor();
     monitor.projectId = data.projectId;
     monitor.name = data.draft.name;
     monitor.description = data.draft.description || "";

@@ -1180,7 +1180,10 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
       AlertIncidentRuleService,
     ]) {
       jest
-        .spyOn(service as { findBy: () => Promise<unknown> }, "findBy")
+        .spyOn(
+          service as unknown as { findBy: () => Promise<unknown> },
+          "findBy",
+        )
         .mockResolvedValue([] as never);
     }
 
