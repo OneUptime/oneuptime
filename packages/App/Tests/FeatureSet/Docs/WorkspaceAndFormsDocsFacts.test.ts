@@ -326,6 +326,73 @@ function tableHeaded(
 }
 
 // The line of a piece of markdown that starts with the words given.
+/*
+ * A translated page's section at the place the English page has the
+ * section of this title: the same level-2 heading, counted from the top,
+ * up to the next one. Translated pages lay out their sections as the
+ * English page does, line for line.
+ */
+function sectionWhereEnglishHas(
+  language: string,
+  page: string,
+  englishTitle: string,
+): string {
+  const headings: (markdown: string) => Array<number> = (
+    markdown: string,
+  ): Array<number> => {
+    return markdown
+      .split("\n")
+      .map((line: string, index: number): number => {
+        return line.startsWith("## ") ? index : -1;
+      })
+      .filter((index: number): boolean => {
+        return index >= 0;
+      });
+  };
+
+  const english: Array<string> = englishPage(page).split("\n");
+  const englishAt: number = headings(englishPage(page)).findIndex(
+    (index: number): boolean => {
+      return english[index] === `## ${englishTitle}`;
+    },
+  );
+
+  expect({ page, englishTitle, found: englishAt >= 0 }).toEqual({
+    page,
+    englishTitle,
+    found: true,
+  });
+
+  const markdown: string = readPage(language, page);
+  const lines: Array<string> = markdown.split("\n");
+  const starts: Array<number> = headings(markdown);
+  const start: number = starts[englishAt] as number;
+  const end: number = starts[englishAt + 1] ?? lines.length;
+
+  return lines.slice(start + 1, end).join("\n");
+}
+
+// A translated page's line at the place the English page has this line.
+function lineAtEnglishLine(
+  language: string,
+  page: string,
+  englishStart: string,
+): string {
+  const index: number = englishPage(page)
+    .split("\n")
+    .findIndex((line: string): boolean => {
+      return line.startsWith(englishStart);
+    });
+
+  expect({ page, englishStart, found: index >= 0 }).toEqual({
+    page,
+    englishStart,
+    found: true,
+  });
+
+  return readPage(language, page).split("\n")[index] || "";
+}
+
 function lineStarting(markdown: string, start: string): string {
   const line: string | undefined = markdown
     .split("\n")
@@ -1147,9 +1214,29 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
         return `**${drawnDashboardLabel(language, english)}**`;
       };
 
-      for (const page of [...CHAT_PAGES, MATTERMOST]) {
-        const markdown: string = readPage(language, page);
+      /*
+       * Where it is said: a chat page's Summaries section - the section
+       * a translation has where the English page has it - and the line of
+       * Mattermost's page that says how its rules and summaries are tested.
+       */
+      const places: Array<{ page: string; text: string }> = [
+        ...CHAT_PAGES.map((page: string): { page: string; text: string } => {
+          return {
+            page: page,
+            text: sectionWhereEnglishHas(language, page, "Summaries"),
+          };
+        }),
+        {
+          page: MATTERMOST,
+          text: lineAtEnglishLine(
+            language,
+            MATTERMOST,
+            "**Test Rule** on a rule's row posts a test message for that rule to the channels it names, as it does for Slack.",
+          ),
+        },
+      ];
 
+      for (const place of places) {
         for (const label of [
           "Send Test Now",
           "Summary Sent",
@@ -1157,24 +1244,22 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
           "Notification Logs",
           "Reason",
         ]) {
-          expect({ language, page, label, named: true }).toEqual({
+          expect({ language, page: place.page, label, named: true }).toEqual({
             language,
-            page,
+            page: place.page,
             label,
-            named: markdown.includes(bold(label)),
+            named: place.text.includes(bold(label)),
           });
         }
       }
 
-      for (const page of CHAT_PAGES) {
-        const markdown: string = readPage(language, page);
-
+      for (const place of places.slice(0, CHAT_PAGES.length)) {
         for (const label of ["Success", "Error", "Last Sent"]) {
-          expect({ language, page, label, named: true }).toEqual({
+          expect({ language, page: place.page, label, named: true }).toEqual({
             language,
-            page,
+            page: place.page,
             label,
-            named: markdown.includes(bold(label)),
+            named: place.text.includes(bold(label)),
           });
         }
       }
