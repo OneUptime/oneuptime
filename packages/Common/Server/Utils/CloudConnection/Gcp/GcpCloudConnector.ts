@@ -93,7 +93,7 @@ import GcpInventoryClient, {
   GcpAsset,
   GcpAssetListing,
   GcpInventoryType,
-  addGcpTopicEdges,
+  addGcpInventoryEdges,
   buildGcpInventoryItem,
 } from "./GcpInventory";
 import GcpMonitoring, { GcpTimeSeries } from "./GcpMonitoring";
@@ -1103,7 +1103,7 @@ export default class GcpCloudConnector implements CloudConnector {
         }
       }
 
-      addGcpTopicEdges({ items: projectItems, assets });
+      addGcpInventoryEdges({ items: projectItems, assets });
       items.push(...projectItems);
 
       if (listing.complete) {

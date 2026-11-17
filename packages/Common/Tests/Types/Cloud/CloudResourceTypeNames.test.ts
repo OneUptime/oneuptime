@@ -91,8 +91,13 @@ describe("the types only ever named", () => {
         "Microsoft.Network/networkSecurityGroups",
         "Network Security Group",
       ],
-      [CloudProvider.GCP, "compute.googleapis.com/Subnetwork", "Subnet"],
-      [CloudProvider.GCP, "compute.googleapis.com/Firewall", "Firewall Rule"],
+      // Google Cloud's are listed, so they go by the catalog's labels.
+      [CloudProvider.GCP, "compute.googleapis.com/Subnetwork", "VPC Subnet"],
+      [
+        CloudProvider.GCP,
+        "compute.googleapis.com/Firewall",
+        "VPC Firewall Rule",
+      ],
     ] as Array<[CloudProvider, string, string]>) {
       expect(getCloudResourceTypeDisplayName(provider, type)).toBe(label);
       // Whatever case it is spelled in.

@@ -188,12 +188,15 @@ describe("types that publish no metrics", () => {
     expect(
       isInventoryOnlyCloudResourceType(CloudProvider.AWS, " aws::ec2::vpc "),
     ).toBe(true);
-    expect(
-      isInventoryOnlyCloudResourceType(
-        CloudProvider.GCP,
-        "compute.googleapis.com/Network",
-      ),
-    ).toBe(true);
+    for (const type of [
+      "compute.googleapis.com/Network",
+      "compute.googleapis.com/Subnetwork",
+      "compute.googleapis.com/Firewall",
+    ]) {
+      expect(isInventoryOnlyCloudResourceType(CloudProvider.GCP, type)).toBe(
+        true,
+      );
+    }
 
     for (const descriptor of INVENTORY_ONLY_RESOURCE_TYPES) {
       expect(
