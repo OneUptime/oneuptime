@@ -305,13 +305,13 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      {/* File upload area */}
-      <div
-        className="flex w-full justify-center rounded-md border-2 border-dashed border-gray-300 bg-white px-6 py-8 cursor-pointer hover:border-indigo-400 transition"
-        onClick={() => {
-          return fileInputRef.current?.click();
-        }}
-      >
+      {/*
+       * File upload area: a label around the file input, so a click anywhere
+       * on it opens the file chooser with no code of its own, and Tab reaches
+       * the input inside, whose focus rings the whole area. It was a div that
+       * only a mouse could press (#9136).
+       */}
+      <label className="flex w-full justify-center rounded-md border-2 border-dashed border-gray-300 bg-white px-6 py-8 cursor-pointer hover:border-indigo-400 transition focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500">
         <div className="flex flex-col items-center space-y-2 text-center">
           <Icon icon={IconProp.File} className="h-10 w-10 text-gray-400" />
           <div className="text-sm text-gray-600">
@@ -337,7 +337,7 @@ const CSVFileUpload: FunctionComponent<ComponentProps> = (
             onChange={handleFileChange}
           />
         </div>
-      </div>
+      </label>
 
       {/* File name */}
       {fileName && !error && (

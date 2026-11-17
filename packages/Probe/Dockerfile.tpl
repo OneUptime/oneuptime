@@ -228,10 +228,16 @@ CMD [ "bash", "/usr/src/app/Start.dev.sh" ]
 # so the compile below type-checks neither: the Compile workflow does, on the
 # checkout.
 COPY --exclude=Tests ./packages/Probe /usr/src/app
-# Bundle app source
+# Type-check app source
 RUN npm run compile
+# Compile the probe's TypeScript and Common's to JavaScript, each file beside
+# its TypeScript, as ts-node compiled them when the image ran it: the probe and
+# its synthetic-check workers run JavaScript, and none of them loads TypeScript
+# or ts-node. See App/Dockerfile.tpl.
+RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common
 # Production source is copied after the shared permission setup above. Keep it
-# readable by the arbitrary, per-execution synthetic worker UIDs as well.
+# (and the JavaScript compiled from it) readable by the arbitrary,
+# per-execution synthetic worker UIDs as well.
 RUN chmod -R a+rX /usr/src/Common /usr/src/app /ms-playwright-browsers
 # Remove the build toolchain (python3, make, g++ and the unixODBC headers) now
 # that the native modules, the no-sync library and the process-memory helper
@@ -256,13 +262,10 @@ RUN apt-get purge -y --auto-remove python3 make g++ unixodbc-dev \
 # so no extra chown is needed for non-root runtimes.)
 ARG IS_ENTERPRISE_EDITION=false
 ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
-# The full TypeScript type-check already ran at build time (`npm run compile`
-# above). Without this, ts-node/register redoes it on every container start
-# before the probe comes up. See App/Dockerfile.tpl for the full rationale.
-ENV TS_NODE_TRANSPILE_ONLY=1
 # Run the app: package.json's start script, through sh instead of npm, so npm
 # is not a second Node.js process beside the probe. tini stays PID 1 and reaps
 # Chromium's children. The script sizes node's heap to the container's memory
-# limit first. See App/Dockerfile.tpl for both.
-CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
+# limit first, then runs the JavaScript compiled above. See App/Dockerfile.tpl
+# for all three.
+CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js Index.js" ]
 {{ end }}

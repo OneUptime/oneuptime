@@ -274,7 +274,7 @@ const KubernetesClusterNamespaceDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return <Tabs label="Namespace" tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterNamespaceDetail;

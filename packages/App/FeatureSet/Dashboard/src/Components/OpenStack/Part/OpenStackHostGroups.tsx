@@ -674,7 +674,12 @@ export const OpenStackHostGroupPage: FunctionComponent<{
           />
         }
       />
-      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+      <Tabs
+        label="Host Groups"
+        tabs={tabs}
+        wrap={true}
+        onTabChange={() => {}}
+      />
     </div>
   );
 };

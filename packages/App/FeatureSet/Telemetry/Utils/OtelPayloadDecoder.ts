@@ -8,6 +8,7 @@ import InventoryItem, {
   ResourceEntityRef,
 } from "Common/Server/Utils/Telemetry/TelemetryEntity";
 import TelemetryBodyStore from "./TelemetryBodyStore";
+import OtlpWireDecoder from "./OtlpWireDecoder";
 
 /*
  * Shared OTel protobuf decoders. We previously decoded payloads inside
@@ -331,23 +332,17 @@ export default class OtelPayloadDecoder {
     }
 
     /*
-     * Mirror the previous middleware behavior: decode the protobuf
-     * message and then `.toJSON()` it into a plain JS object that
-     * downstream code already consumes (resourceSpans / resourceLogs
-     * / resourceMetrics / resourceProfiles).
-     *
-     * The Buffer is handed to `decode` as-is: protobufjs' `Reader.create`
-     * has a dedicated Buffer fast path (BufferReader), so copying the
-     * payload into a fresh Uint8Array first would only add an extra
-     * full-payload allocation + memcpy per job. The `as unknown as`
-     * cast is type-level only — Buffer IS a Uint8Array at runtime, but
-     * our pinned @types/node predates TypeScript 5.7's generic typed
-     * arrays and no longer structurally satisfies the lib `Uint8Array`.
+     * The plain object `protoType.decode(raw).toJSON()` gives - what the
+     * ingest services read (resourceSpans / resourceLogs / resourceMetrics
+     * / resourceProfiles) - read in one pass, without protobufjs' message
+     * objects, long.js and toObject (OtlpWireDecoder). The Buffer is handed
+     * over as-is: protobufjs' Reader has a Buffer fast path, so copying the
+     * payload into a fresh Uint8Array would only add an allocation and a
+     * memcpy. The `as unknown as` cast is type-level only - Buffer IS a
+     * Uint8Array at runtime, but our pinned @types/node predates TypeScript
+     * 5.7's generic typed arrays.
      */
-    const message: protobuf.Message<Record<string, unknown>> = protoType.decode(
-      raw as unknown as Uint8Array,
-    );
-    return message.toJSON() as JSONObject;
+    return OtlpWireDecoder.decode(protoType, raw as unknown as Uint8Array);
   }
 
   /*
@@ -465,18 +460,10 @@ export default class OtelPayloadDecoder {
    * decodeFromQueue). Throws on bytes that are not that.
    */
   public static decodeDelimitedMetrics(raw: Buffer): Array<JSONObject> {
-    const reader: protobuf.Reader = protobuf.Reader.create(
+    return OtlpWireDecoder.decodeAllDelimited(
+      MetricsData,
       raw as unknown as Uint8Array,
     );
-    const messages: Array<JSONObject> = [];
-
-    while (reader.pos < reader.len) {
-      const message: protobuf.Message<Record<string, unknown>> =
-        MetricsData.decodeDelimited(reader);
-      messages.push(message.toJSON() as JSONObject);
-    }
-
-    return messages;
   }
 
   public static formatFromContentType(

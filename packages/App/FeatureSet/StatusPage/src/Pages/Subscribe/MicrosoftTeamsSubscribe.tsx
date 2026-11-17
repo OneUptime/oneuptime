@@ -304,6 +304,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
                   description={t("subscribe.microsoftTeams.description")}
                 >
                   <Tabs
+                    label={t("subscribe.microsoftTeams.title")}
                     tabs={[
                       {
                         name: t("subscribe.newSubscription"),

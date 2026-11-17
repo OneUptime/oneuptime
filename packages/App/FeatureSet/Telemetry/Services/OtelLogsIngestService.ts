@@ -40,7 +40,7 @@ import {
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
-import { assignOwnValues } from "Common/Utils/LookupTable";
+import { mergeOwnValues } from "Common/Utils/LookupTable";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import logger, {
   getLogAttributesFromRequest,
@@ -819,19 +819,18 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   /*
                    * One fresh attribute map per record (downstream scrub /
                    * pipeline transforms mutate it, so records must never
-                   * share one). A single Object.assign with ordered sources
-                   * reproduces the historical spread + per-record scope loop
-                   * exactly — same key-collision winners (resource < record
-                   * attributes < scope.*) and same key insertion order —
-                   * while the scope prefixing now happens once per scopeLog
-                   * (see above) instead of per record. assignOwnValues is
-                   * that Object.assign, but it keeps a record attribute
-                   * named __proto__ as a key, where Object.assign dropped it.
+                   * share one), merged from ordered sources - same
+                   * key-collision winners (resource < record attributes <
+                   * scope.*) and same key order as the historical spread +
+                   * per-record scope loop - while the scope prefixing
+                   * happens once per scopeLog (see above). mergeOwnValues
+                   * keeps a record attribute named __proto__ as a key, and
+                   * copies by spread, which costs a twentieth of the
+                   * key-by-key Object.assign it replaces (#6086).
                    */
                   const attributesObject: Dictionary<
                     AttributeType | Array<AttributeType>
-                  > = assignOwnValues<AttributeType | Array<AttributeType>>(
-                    {},
+                  > = mergeOwnValues<AttributeType | Array<AttributeType>>(
                     resourceAttributes,
                     TelemetryUtil.getAttributes({
                       items: (log["attributes"] as JSONArray) || [],

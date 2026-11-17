@@ -1069,6 +1069,7 @@ const NotificationSettingsBody: FunctionComponent = (): ReactElement => {
         <></>
       )}
       <Tabs
+        label="Notification Settings"
         tabs={[
           {
             name: "Incidents",

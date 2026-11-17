@@ -2,8 +2,8 @@ import Image from "Common/UI/Components/Image/Image";
 import File from "Common/Models/DatabaseModels/File";
 import React, { FunctionComponent, ReactElement } from "react";
 
+// A picture, never a control: nothing handed it a click.
 export interface ComponentProps {
-  onClick?: () => void | undefined;
   file?: File | undefined;
   alt?: string | undefined;
 }
@@ -26,11 +26,6 @@ const Banner: FunctionComponent<ComponentProps> = (
   return (
     <div className="mb-5 mt-5 h-48 w-full overflow-hidden rounded-lg bg-gray-100 md:h-64 lg:h-80">
       <Image
-        onClick={() => {
-          if (props.onClick) {
-            props.onClick();
-          }
-        }}
         className="h-full w-full object-cover"
         file={props.file}
         alt={props.alt || ""}

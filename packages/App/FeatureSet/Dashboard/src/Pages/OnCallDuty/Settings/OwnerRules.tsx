@@ -412,6 +412,7 @@ const OnCallDutyOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   return (
     <Fragment>
       <Tabs
+        label="Owner Rules"
         tabs={[
           {
             name: "On-Call Policies",

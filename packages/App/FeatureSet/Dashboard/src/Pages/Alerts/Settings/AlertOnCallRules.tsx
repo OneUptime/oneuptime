@@ -407,6 +407,7 @@ const AlertOnCallRulesPage: FunctionComponent<
   return (
     <Fragment>
       <Tabs
+        label="Alert On-Call Rules"
         tabs={[
           {
             name: "Alert Rules",

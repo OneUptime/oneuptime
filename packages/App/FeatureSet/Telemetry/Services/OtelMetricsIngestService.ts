@@ -36,7 +36,7 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
-import { assignOwnValues, readOwnValue } from "Common/Utils/LookupTable";
+import { mergeOwnValues, readOwnValue } from "Common/Utils/LookupTable";
 import MetricCatalog from "../Utils/MetricCatalog";
 import MetricsQueueService from "./Queue/MetricsQueueService";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
@@ -1828,19 +1828,18 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                    * The per-metric invariant attribute base: every datapoint
                    * of this metric copies it once (in buildMetricRow /
                    * buildMetricEvaluationRow) and layers its own few
-                   * datapoint attributes on top. A single Object.assign with
-                   * ordered sources reproduces the historical spread + scope
-                   * loop exactly — same key-collision winners (resource <
+                   * datapoint attributes on top. One merge of ordered
+                   * sources reproduces the historical spread + scope loop
+                   * exactly — same key-collision winners (resource <
                    * metric attributes < scope.*) and same key insertion
                    * order — while the scope prefixing itself now happens
                    * once per scopeMetric (see above) instead of per metric.
-                   * assignOwnValues is that Object.assign, but it keeps an
-                   * attribute named __proto__ as a key.
+                   * mergeOwnValues merges by spread, keeping an attribute
+                   * named __proto__ as a key (#6086).
                    */
                   const metricAttributes: Dictionary<
                     AttributeType | Array<AttributeType>
-                  > = assignOwnValues<AttributeType | Array<AttributeType>>(
-                    {},
+                  > = mergeOwnValues<AttributeType | Array<AttributeType>>(
                     resourceAttributes,
                     TelemetryUtil.getAttributes({
                       items: (metric["attributes"] as JSONArray) || [],
@@ -5067,9 +5066,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
      * Each datapoint gets its OWN attribute map — pipeline rules mutate
      * attributes in place, so sharing the base map (or any row's map)
      * across datapoints would let one row's transform corrupt its
-     * siblings. One Object.assign copy per row is the floor:
-     * assignOwnValues, which is Object.assign keeping an attribute named
-     * __proto__ as a key.
+     * siblings. One copy per row is the floor: mergeOwnValues, which keeps
+     * an attribute named __proto__ as a key and copies by spread - a
+     * twentieth of the key-by-key Object.assign it replaces (#6086).
      */
     let attributes: Dictionary<AttributeType | Array<AttributeType>>;
     let attributeKeys: Array<string>;
@@ -5082,8 +5081,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         prefixKeysWithString: "",
       });
 
-      attributes = assignOwnValues<AttributeType | Array<AttributeType>>(
-        {},
+      attributes = mergeOwnValues<AttributeType | Array<AttributeType>>(
         data.baseAttributes,
         datapointAttributes,
       );
@@ -5095,8 +5093,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           })
         : TelemetryUtil.getAttributeKeys(attributes);
     } else {
-      attributes = assignOwnValues<AttributeType | Array<AttributeType>>(
-        {},
+      attributes = mergeOwnValues<AttributeType | Array<AttributeType>>(
         data.baseAttributes,
       );
 

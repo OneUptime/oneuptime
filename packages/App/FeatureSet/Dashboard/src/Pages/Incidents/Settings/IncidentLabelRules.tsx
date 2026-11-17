@@ -383,6 +383,7 @@ const IncidentLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   return (
     <Fragment>
       <Tabs
+        label="Incident Label Rules"
         tabs={[
           {
             name: "Incident Rules",

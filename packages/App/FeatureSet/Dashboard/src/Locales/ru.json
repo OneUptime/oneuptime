@@ -56511,5 +56511,7 @@
   "Everyone with access to the repository can see this pull request, with the change and its description.": "Этот pull request с изменением и его описанием видят все, у кого есть доступ к репозиторию.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Этот pull request с изменением и его описанием видят все, у кого есть доступ к репозиторию. Это приватное оповещение в нём не упоминается.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Этот pull request с изменением и его описанием видят все, у кого есть доступ к репозиторию. Этот приватный инцидент в нём не упоминается.",
-  "Only someone who may approve fixes can open this pull request.": "Открыть этот pull request может только тот, у кого есть право одобрять исправления."
+  "Only someone who may approve fixes can open this pull request.": "Открыть этот pull request может только тот, у кого есть право одобрять исправления.",
+  "VPA": "VPA",
+  "This check was too large to keep in full, so it was trimmed.": "Эта проверка была слишком большой, чтобы сохранить её полностью, поэтому она сокращена."
 }

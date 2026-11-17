@@ -12,6 +12,8 @@ import { Tab } from "Common/UI/Components/Tabs/Tab";
  */
 export interface ComponentProps {
   tabs: Array<Tab>;
+  // What the part is, naming its row of tabs to a screen reader ("Task").
+  label: string;
 }
 
 const ResourcePartTabs: FunctionComponent<ComponentProps> = (
@@ -21,7 +23,14 @@ const ResourcePartTabs: FunctionComponent<ComponentProps> = (
     return props.tabs[0]!.children;
   }
 
-  return <Tabs tabs={props.tabs} wrap={true} onTabChange={() => {}} />;
+  return (
+    <Tabs
+      label={props.label}
+      tabs={props.tabs}
+      wrap={true}
+      onTabChange={() => {}}
+    />
+  );
 };
 
 export default ResourcePartTabs;

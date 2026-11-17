@@ -213,7 +213,7 @@ describe("every Node.js service's start script opens with the heap rule", () => 
       expect({ name, handOver }).toEqual({
         name,
         handOver: expect.stringMatching(
-          /^export NODE_OPTIONS="--max-old-space-size=\$heap( --max-http-header-size=8388608)?\$\{NODE_OPTIONS:\+ \$NODE_OPTIONS\}" && exec node (--no-node-snapshot )?--require ts-node\/register (Index|Migrate)\.ts$/,
+          /^export NODE_OPTIONS="--max-old-space-size=\$heap( --max-http-header-size=8388608)?\$\{NODE_OPTIONS:\+ \$NODE_OPTIONS\}" && exec node (--no-node-snapshot )?--require Common\/Server\/Utils\/TsNode\/PrecompiledSourceMaps\.js (Index|Migrate)\.js$/,
         ),
       });
     }

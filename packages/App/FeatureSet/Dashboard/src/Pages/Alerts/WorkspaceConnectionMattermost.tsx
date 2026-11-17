@@ -63,6 +63,7 @@ const AlertsMattermostPage: FunctionComponent<
     >
       <WorkspaceConnectionGate workspaceType={WorkspaceType.Mattermost}>
         <Tabs
+          label="Mattermost"
           tabs={tabs}
           onTabChange={() => {
             // Tab changed

@@ -93,7 +93,8 @@ function legendNames(container: HTMLElement): Array<string> {
 
 // The colour swatch of each legend item, first to last.
 function legendSwatches(container: HTMLElement): Array<string> {
-  return Array.from(container.querySelectorAll("li > span")).map(
+  // The swatch is the item's one picture, hidden from a screen reader.
+  return Array.from(container.querySelectorAll('li [aria-hidden="true"]')).map(
     (swatch: Element): string => {
       return (
         Array.from(swatch.classList).find((name: string): boolean => {
@@ -219,6 +220,35 @@ describe.each([
       });
 
       expect(legendNames(container)).toEqual(ACTIVE_USERS);
+    });
+
+    /*
+     * #9136: the click was on the `li` alone, so a keyboard could not pick
+     * a series. A series that can be picked is a button in its item.
+     */
+    test("a series that can be picked is a button in its item; one that cannot is not", () => {
+      const clickable: HTMLElement = draw(ACTIVE_USERS, {
+        onValueChange: (): void => {},
+      });
+      const buttons: Array<HTMLButtonElement> = Array.from(
+        clickable.querySelectorAll<HTMLButtonElement>("li > button"),
+      );
+
+      expect(
+        buttons.map((button: HTMLButtonElement): string => {
+          return button.textContent || "";
+        }),
+      ).toEqual(ACTIVE_USERS);
+
+      for (const button of buttons) {
+        expect(button).toHaveAttribute("type", "button");
+        expect(button).toHaveAttribute("aria-pressed", "false");
+        expect(button).toHaveClass("focus-visible:ring-2");
+      }
+
+      cleanup();
+
+      expect(draw(ACTIVE_USERS).querySelectorAll("li button")).toHaveLength(0);
     });
 
     test("no legend is drawn when the page asks for none", () => {

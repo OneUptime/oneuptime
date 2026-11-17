@@ -351,7 +351,7 @@ const DockerHostContainerDetail: FunctionComponent<
         resourceLabel="container"
         target={databaseTarget}
       />
-      <ResourcePartTabs tabs={tabs} />
+      <ResourcePartTabs label="Container" tabs={tabs} />
     </Fragment>
   );
 };

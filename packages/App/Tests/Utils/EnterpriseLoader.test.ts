@@ -250,16 +250,40 @@ describe("EnterpriseLoader entry file detection", () => {
     );
   });
 
-  test("prefers Index.ts when both exist", async () => {
+  /*
+   * Where both are there, the entry is the one require() resolves, as for
+   * every other module of the process: here jest, which runs TypeScript,
+   * takes Index.ts; an image's node takes the Index.js its build compiled
+   * (EnterpriseLoaderNodeBoot runs that, and App/Tests/PrecompiledServer
+   * loads a compiled ee/ entry).
+   */
+  test("takes the one require() resolves when both exist: Index.ts where the process runs TypeScript", async () => {
     const { EnterpriseLoader } = await loadFresh();
     const directory: string = makeTemporaryDirectory();
     writeFile(path.join(directory, "Server", "Index.ts"), "");
     writeFile(path.join(directory, "Server", "Index.js"), "");
 
     expect(EnterpriseLoader.findEntryFile(directory)).toBe(
+      require.resolve(path.join(directory, "Server", "Index")),
+    );
+    expect(EnterpriseLoader.findEntryFile(directory)).toBe(
       path.join(directory, "Server", "Index.ts"),
     );
   });
+
+  test.each([
+    ["an Index.json", path.join("Server", "Index.json")],
+    ["an Index folder", path.join("Server", "Index", "index.js")],
+  ])(
+    "%s, which require() would also resolve, is not an entry file",
+    async (_label: string, file: string) => {
+      const { EnterpriseLoader } = await loadFresh();
+      const directory: string = makeTemporaryDirectory();
+      writeFile(path.join(directory, file), "{}");
+
+      expect(EnterpriseLoader.findEntryFile(directory)).toBeNull();
+    },
+  );
 
   test("a directory with only node_modules (a leftover checkout) is not Enterprise", async () => {
     const { EnterpriseLoader } = await loadFresh();
