@@ -45,6 +45,7 @@ import ScheduleTimelineAPI, {
   TIMELINE_MAX_ATTEMPTS,
   getRetryDelayMilliseconds,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/ScheduleTimelineAPI";
+import { SpyInstance } from "jest-mock";
 
 const FROM: Date = new Date("2026-09-14T04:00:00.000Z");
 const TO: Date = new Date("2026-09-21T04:00:00.000Z");
@@ -162,7 +163,7 @@ describe("getRetryDelayMilliseconds", () => {
   );
 
   test("an HTTP-date is waited until, a second at least and ten at most", () => {
-    const now: jest.SpiedFunction<typeof Date.now> = jest
+    const now: SpyInstance<typeof Date.now> = jest
       .spyOn(Date, "now")
       .mockReturnValue(Date.UTC(2026, 10, 16, 10, 0, 0));
 

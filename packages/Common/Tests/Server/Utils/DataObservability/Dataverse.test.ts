@@ -42,6 +42,7 @@ import DataSourceHttpFetch, {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
 } from "../../../../Server/Utils/DataSource/HttpFetch";
+import { SpyInstance } from "jest-mock";
 
 jest.mock("mssql", () => {
   return { __esModule: true, ConnectionPool: jest.fn() };
@@ -834,7 +835,7 @@ describe("DataverseApi", () => {
   ])(
     "a 429's Retry-After of %j is a wait of %j seconds",
     async (retryAfter: string, seconds: number | null) => {
-      const now: jest.SpiedFunction<typeof Date.now> = jest
+      const now: SpyInstance<typeof Date.now> = jest
         .spyOn(Date, "now")
         .mockReturnValue(Date.UTC(2026, 10, 16, 10, 0, 0));
 

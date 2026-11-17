@@ -35,6 +35,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { Mock, SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -174,7 +175,7 @@ async function callRoute(): Promise<RouteCall> {
     headers: { "is-multi-tenant-query": "true" },
   } as unknown as ExpressRequest;
 
-  const next: jest.Mock = jest.fn();
+  const next: Mock = jest.fn();
 
   await mockRouter
     .match("get", ROUTE)
@@ -199,10 +200,10 @@ function sentJson(): JSONObject {
   return sendJson.mock.calls[0]![2] as JSONObject;
 }
 
-let acrossProjects: jest.SpiedFunction<
+let acrossProjects: SpyInstance<
   typeof OnCallDutyPolicyService.getOnCallPoliciesWhereUserIsOnCallDutyInProjects
 >;
-let oneProject: jest.SpiedFunction<
+let oneProject: SpyInstance<
   typeof OnCallDutyPolicyService.getOnCallPoliciesWhereUserIsOnCallDuty
 >;
 
