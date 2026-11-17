@@ -1510,11 +1510,20 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
                     className="text-gray-500"
                     data-testid={`on-call-setup-reminder-${person.userId}`}
                   >
-                    {reminder.state === "sent"
-                      ? translator.translateText(
-                          ON_CALL_SETUP_COPY.reminderSent,
-                        )
-                      : reminder.message}
+                    {reminder.state === "sent" ? (
+                      translator.translateText(ON_CALL_SETUP_COPY.reminderSent)
+                    ) : reminder.message ? (
+                      /*
+                       * The server's sentence, or a failure nobody explained,
+                       * in the reader's language: as the Readiness card says it.
+                       */
+                      <ErrorInSentence
+                        message={reminder.message}
+                        showWhereToLook={true}
+                      />
+                    ) : (
+                      <></>
+                    )}
                   </span>
                 ) : (
                   <Button
