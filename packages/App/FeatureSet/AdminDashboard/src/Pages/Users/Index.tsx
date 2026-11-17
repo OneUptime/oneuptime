@@ -10,6 +10,13 @@ import {
 import BulkAddUsersToProjectModal, {
   BulkAddUsersToProjectSelection,
 } from "../../Components/User/BulkAddUsersToProjectModal";
+import SetPasswordLinkModal, {
+  PASSWORD_FOLD_SUMMARY_EMAIL,
+  PASSWORD_FOLD_SUMMARY_PASSWORD,
+  PASSWORD_HELP_NO_EMAIL,
+  SetPasswordEmailResult,
+  sendSetPasswordEmail,
+} from "../../Components/User/SetPasswordLink";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
@@ -31,6 +38,13 @@ import { getRecordDisplayName } from "Common/UI/Utils/ModelDisplayName";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import HashedString from "Common/Types/HashedString";
+import Toast from "Common/UI/Utils/Toast";
+import { useServerCanSendEmail } from "Common/UI/Utils/ServerSending";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -45,6 +59,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useId,
+  useRef,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -67,10 +82,92 @@ const setTwoFactorAuthRequiredRoute: (userId: ObjectID) => URL = (
   );
 };
 
+/*
+ * Whether the Create User form holds a password: BasicForm hands it on as a
+ * HashedString, and an empty field as nothing or "".
+ */
+const hasPassword: (value: unknown) => boolean = (value: unknown): boolean => {
+  const password: unknown =
+    value instanceof HashedString ? value.toString() : value;
+
+  return typeof password === "string" && password.length > 0;
+};
+
+// A user just created whose email with a link to set a password was not sent.
+interface UnsentSetPasswordEmail {
+  userId: ObjectID;
+  name: string;
+  email: string;
+  error: string;
+}
+
 const Users: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   const translator: Translator = useTranslator();
   const passwordRequirementsId: string = useId();
+
+  /*
+   * Create User asks for a name and an email (#9139). Unless the master
+   * admin sets a password under More fields, the new user is emailed a link
+   * to set their own, and the page says so. On a server known not to send
+   * email the password is in view with help that says why, and leaving it
+   * empty ends in a link to send them by hand (SetPasswordLinkModal).
+   */
+  const canSendEmail: boolean | null = useServerCanSendEmail();
+  const passwordSection: FormFieldCollapsibleSection<User> =
+    getAdvancedFormSection<User>({
+      getSummary: (values: FormValues<User>): Array<string> => {
+        return [
+          hasPassword((values as JSONObject)["password"])
+            ? PASSWORD_FOLD_SUMMARY_PASSWORD
+            : PASSWORD_FOLD_SUMMARY_EMAIL,
+        ];
+      },
+    });
+  // Whether the form just submitted held a password: read before it is sent.
+  const createdWithPassword: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  const [unsentSetPasswordEmail, setUnsentSetPasswordEmail] =
+    useState<UnsentSetPasswordEmail | null>(null);
+
+  type OnUserCreatedFunction = (user: User) => Promise<void>;
+
+  const onUserCreated: OnUserCreatedFunction = async (
+    user: User,
+  ): Promise<void> => {
+    const name: string = user.name?.toString() || "";
+    const email: string = user.email?.toString() || "";
+
+    if (createdWithPassword.current) {
+      Toast.success(
+        t("pages.users.createdWithPassword", { name: name || email }),
+      );
+      return;
+    }
+
+    if (!user.id) {
+      return;
+    }
+
+    const result: SetPasswordEmailResult = await sendSetPasswordEmail(user.id);
+
+    if (result.isSent) {
+      Toast.success(
+        t("pages.users.createdAndEmailed", {
+          name: name || email,
+          email: result.email || email,
+        }),
+      );
+      return;
+    }
+
+    setUnsentSetPasswordEmail({
+      userId: user.id,
+      name: name,
+      email: email,
+      error: result.error,
+    });
+  };
 
   /*
    * Adding to a project needs two things the bulk bar cannot ask for on its
@@ -368,7 +465,42 @@ const Users: FunctionComponent = (): ReactElement => {
               getBulkDeleteAction(),
             ],
           }}
+          /*
+           * The create says what it did itself: who was emailed a link, or
+           * that the password set is theirs to pass on (onUserCreated).
+           */
+          hideChangeToasts={true}
+          onBeforeCreate={(
+            item: User,
+            _miscDataProps: JSONObject,
+            formValues: JSONObject,
+          ): Promise<User> => {
+            createdWithPassword.current = hasPassword(
+              formValues["password"] ?? item.password,
+            );
+
+            return Promise.resolve(item);
+          }}
+          onCreateSuccess={async (
+            item: User,
+            modalType?: ModalType,
+          ): Promise<User> => {
+            if (modalType !== ModalType.Edit) {
+              await onUserCreated(item);
+            }
+
+            return item;
+          }}
           formFields={[
+            {
+              field: {
+                name: true,
+              },
+              title: "Full Name",
+              fieldType: FormFieldSchemaType.Text,
+              required: true,
+              placeholder: "John Smith",
+            },
             {
               field: {
                 email: true,
@@ -381,9 +513,10 @@ const Users: FunctionComponent = (): ReactElement => {
             },
             /*
              * The one password rule, with its checklist, as every form that
-             * sets a password asks it (#9123). Create User used to take any
-             * password at all. No confirmation: the form stays at three
-             * fields, and Set Password can change a mistyped one.
+             * sets a password asks it (#9123) - but no longer asked: the new
+             * user is emailed a link to set their own (#9139). A master
+             * admin who wants to set one opens More fields. No
+             * confirmation: Set Password can change a mistyped one.
              */
             getNewPasswordField<User>({
               translator: translator,
@@ -391,16 +524,12 @@ const Users: FunctionComponent = (): ReactElement => {
               passwordTitle: translator.translateText("Password")!,
               // Somebody else's password: no password manager saves it as the admin's.
               isOwnPassword: false,
+              isOptional: true,
+              passwordField:
+                canSendEmail === false
+                  ? { description: PASSWORD_HELP_NO_EMAIL }
+                  : { collapsibleSection: passwordSection },
             }),
-            {
-              field: {
-                name: true,
-              },
-              title: "Full Name",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "John Smith",
-            },
           ]}
           showRefreshButton={true}
           viewPageRoute={Navigation.getCurrentRoute()}
@@ -474,6 +603,18 @@ const Users: FunctionComponent = (): ReactElement => {
             },
           ]}
         />
+
+        {unsentSetPasswordEmail && (
+          <SetPasswordLinkModal
+            userId={unsentSetPasswordEmail.userId}
+            name={unsentSetPasswordEmail.name}
+            email={unsentSetPasswordEmail.email}
+            error={unsentSetPasswordEmail.error}
+            onClose={() => {
+              setUnsentSetPasswordEmail(null);
+            }}
+          />
+        )}
 
         {addToProjectProps && (
           <BulkAddUsersToProjectModal

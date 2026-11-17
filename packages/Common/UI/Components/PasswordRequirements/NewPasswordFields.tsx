@@ -47,6 +47,12 @@ export interface NewPasswordFieldsOptions<TEntity> {
    * Password), which it must not offer to save as the admin's own.
    */
   isOwnPassword?: boolean | undefined;
+  /*
+   * A password the form can do without: Create User, where leaving it empty
+   * emails the new user a link to set their own (#9139). Empty is then no
+   * error; anything typed is still held to the whole rule.
+   */
+  isOptional?: boolean | undefined;
 }
 
 // The new password, with the rule's checklist under it.
@@ -62,9 +68,18 @@ export const getNewPasswordField: <TEntity>(
     fieldType: FormFieldSchemaType.Password,
     errorMessageInFooter: true,
     customValidation: (values: FormValues<TEntity>): string | null => {
-      const message: string | null = getPasswordValidationError(
-        getFormPasswordValue((values as JSONObject)["password"]),
+      const password: unknown = getFormPasswordValue(
+        (values as JSONObject)["password"],
       );
+
+      if (
+        options.isOptional &&
+        (password === undefined || password === null || password === "")
+      ) {
+        return null;
+      }
+
+      const message: string | null = getPasswordValidationError(password);
 
       return message
         ? translatePasswordRefusal(options.translator, message)
@@ -92,7 +107,7 @@ export const getNewPasswordField: <TEntity>(
     placeholder: options.passwordTitle,
     isPlaceholderTranslated: true,
     title: options.passwordTitle,
-    required: true,
+    required: !options.isOptional,
     showEvenIfPermissionDoesNotExist: true,
     disableSpellCheck: true,
     ...(options.passwordField || {}),

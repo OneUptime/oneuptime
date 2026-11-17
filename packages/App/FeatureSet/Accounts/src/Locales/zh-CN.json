@@ -188,6 +188,17 @@
     "linkInvalidDescription": "它可能已被使用，或只复制了一部分。请申请新链接，我们会通过电子邮件发送给您。",
     "requestNewLinkButton": "申请新链接"
   },
+  "setPassword": {
+    "title": "设置密码",
+    "subtitle": "设置一个密码，完成账户设置。",
+    "submitButton": "设置密码",
+    "successTitle": "密码已设置",
+    "successDescription": "请使用新密码登录。",
+    "linkExpiredTitle": "此链接已过期",
+    "linkExpiredDescription": "设置密码的链接有效期为 {{days}} 天。请让创建您账户的管理员重新发送一个。",
+    "linkInvalidTitle": "此链接已失效",
+    "linkInvalidDescription": "它可能已被使用，或只复制了一部分。如果您已设置密码，请登录。否则，请向管理员索取新链接。"
+  },
   "sso": {
     "title": "使用 SSO 登录",
     "emailFormSubtitle": "输入您的邮箱，查找您组织的登录方式。",

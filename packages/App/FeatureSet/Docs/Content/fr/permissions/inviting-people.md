@@ -118,7 +118,7 @@ La retirer l'enlève de chaque équipe du projet. Elle perd l'accès aussitôt, 
 
 - **Authentification unique.** Une personne qui se connecte pour la première fois avec le fournisseur d'identité du projet rejoint les équipes que le fournisseur nomme. Voir [Rôles et équipes des utilisateurs SSO](/docs/identity/sso#rôles-et-équipes-des-utilisateurs-sso).
 - **SCIM.** Votre fournisseur d'identité crée les personnes et les ajoute aux équipes par défaut de la connexion. Voir [SCIM](/docs/identity/scim#provisionnement-dun-utilisateur-de-projet).
-- **L'Admin Dashboard.** Sur une installation auto-hébergée, un administrateur principal peut ajouter quelqu'un à un projet et accepter l'invitation pour lui. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index#utilisateurs).
+- **L'Admin Dashboard.** Sur une installation auto-hébergée, un administrateur principal peut ajouter quelqu'un à un projet et accepter l'invitation pour lui. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index#utilisateurs). Un administrateur principal peut aussi créer le compte de quelqu'un dans **Utilisateurs** avec **Créer : Utilisateur** : il saisit un nom et une adresse e-mail, et OneUptime envoie à cette adresse un lien pour choisir un mot de passe, valable une fois, pendant 7 jours. Pour définir lui-même le mot de passe, il ouvre **Plus de champs**. Si l'e-mail n'est pas envoyé, le lien lui est affiché pour qu'il l'envoie lui-même.
 
 ## Dépannage
 

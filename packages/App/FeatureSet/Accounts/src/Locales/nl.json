@@ -188,6 +188,17 @@
     "linkInvalidDescription": "Hij is misschien al gebruikt, of maar voor een deel gekopieerd. Vraag een nieuwe link aan, dan mailen we die naar je.",
     "requestNewLinkButton": "Nieuwe link aanvragen"
   },
+  "setPassword": {
+    "title": "Stel je wachtwoord in",
+    "subtitle": "Kies een wachtwoord om je account verder in te stellen.",
+    "submitButton": "Wachtwoord instellen",
+    "successTitle": "Je wachtwoord is ingesteld",
+    "successDescription": "Meld je aan met je nieuwe wachtwoord.",
+    "linkExpiredTitle": "Deze link is verlopen",
+    "linkExpiredDescription": "Links om een wachtwoord in te stellen werken {{days}} dagen. Vraag de beheerder die je account heeft aangemaakt om je een nieuwe te sturen.",
+    "linkInvalidTitle": "Deze link werkt niet meer",
+    "linkInvalidDescription": "Misschien is hij al gebruikt, of is maar een deel ervan gekopieerd. Heb je je wachtwoord al ingesteld, meld je dan aan. Zo niet, vraag je beheerder om een nieuwe link."
+  },
   "sso": {
     "title": "Inloggen met SSO",
     "emailFormSubtitle": "Vul uw e-mailadres in om de aanmelding van uw organisatie te vinden.",

@@ -188,6 +188,17 @@
     "linkInvalidDescription": "Den kan allerede være brukt, eller bare en del av den ble kopiert. Be om en ny lenke, så sender vi den til deg på e-post.",
     "requestNewLinkButton": "Be om en ny lenke"
   },
+  "setPassword": {
+    "title": "Angi passordet ditt",
+    "subtitle": "Velg et passord for å fullføre oppsettet av kontoen din.",
+    "submitButton": "Angi passord",
+    "successTitle": "Passordet ditt er angitt",
+    "successDescription": "Logg på med det nye passordet ditt.",
+    "linkExpiredTitle": "Denne lenken har utløpt",
+    "linkExpiredDescription": "Lenker for å angi et passord virker i {{days}} dager. Be administratoren som opprettet kontoen din, om å sende deg en ny.",
+    "linkInvalidTitle": "Denne lenken virker ikke lenger",
+    "linkInvalidDescription": "Den kan allerede være brukt, eller bare en del av den ble kopiert. Har du angitt passordet ditt, logger du på. Hvis ikke, ber du administratoren din om en ny lenke."
+  },
   "sso": {
     "title": "Logg inn med SSO",
     "emailFormSubtitle": "Skriv inn e-postadressen din for å finne organisasjonens pålogging.",

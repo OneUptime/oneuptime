@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "Todas as sessões ativas de {{userCount}} usuário(s) selecionado(s) serão encerradas e eles precisarão configurar um aplicativo de autenticação no próximo login. Isso inclui você, caso esteja entre eles.",
       "bulkDoNotRequireTwoFactorAuth": "Não exigir autenticação de dois fatores",
       "bulkDoNotRequireTwoFactorAuthTitle": "Deixar de exigir autenticação de dois fatores para {{userCount}} usuário(s)",
-      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} usuário(s) selecionado(s) poderão fazer login apenas com a senha. Tudo o que já configuraram é mantido, mas deixa de ser solicitado."
+      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} usuário(s) selecionado(s) poderão fazer login apenas com a senha. Tudo o que já configuraram é mantido, mas deixa de ser solicitado.",
+      "createdAndEmailed": "{{name}} criado. Um link para definir a senha foi enviado para {{email}}.",
+      "createdWithPassword": "{{name}} criado. Compartilhe a senha que você definiu de forma segura.",
+      "setPasswordLinkTitle": "Envie um link para definir a senha",
+      "setPasswordLinkDescription": "Copie este link e envie-o você mesmo para {{email}}, por um meio que só essa pessoa possa ler. Ele funciona uma vez, por {{days}} dias.",
+      "setPasswordLinkOrSetIt": "Ou defina você mesmo uma senha na página de Autenticação dessa pessoa."
     },
     "enterpriseLicenses": {
       "title": "Licenças Enterprise",
@@ -4169,5 +4174,13 @@
   "See email logs": "Ver registros de e-mail",
   "Addresses the mail server refused": "Endereços recusados pelo servidor de e-mail",
   "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Os outros e-mails foram enviados, então só estes endereços foram afetados. Corrija o endereço ou faça seu provedor de e-mail aceitá-lo: um sandbox do Amazon SES só envia para endereços que verificou.",
-  "Last refused {{time}}": "Última recusa: {{time}}"
+  "Last refused {{time}}": "Última recusa: {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} foi criado, mas o e-mail com o link para definir a senha não foi enviado. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "O link para você mesmo enviar também não pôde ser criado. {{error}}",
+  "OneUptime emails them a link to set their own password.": "O OneUptime envia por e-mail um link para a pessoa definir a própria senha.",
+  "They sign in with the password you set. Share it with them securely.": "A pessoa entra com a senha que você definir. Compartilhe-a de forma segura.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Este servidor ainda não consegue enviar e-mails. Defina a senha aqui, ou deixe em branco para obter um link e enviá-lo você mesmo.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "Este servidor ainda não consegue enviar e-mails. Configure o e-mail em Configurações > E-mails.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Este servidor ainda não consegue enviar e-mails, por isso nenhum link de redefinição de senha foi enviado. Configure o e-mail em Configurações > E-mails, ou defina a senha você mesmo.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Este usuário já tem uma senha, então não há link de definição de senha para copiar. Envie um link de redefinição de senha pela página de Autenticação dele."
 }

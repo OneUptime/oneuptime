@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "Se cerrarán todas las sesiones activas de los {{userCount}} usuario(s) seleccionado(s) y deberán configurar una aplicación de autenticación la próxima vez que inicien sesión. Usted incluido, si es uno de ellos.",
       "bulkDoNotRequireTwoFactorAuth": "No exigir autenticación de dos factores",
       "bulkDoNotRequireTwoFactorAuthTitle": "Dejar de exigir la autenticación de dos factores para {{userCount}} usuario(s)",
-      "bulkDoNotRequireTwoFactorAuthDescription": "Los {{userCount}} usuario(s) seleccionado(s) podrán iniciar sesión solo con su contraseña. Lo que ya hayan configurado se conserva, pero ya no se les pedirá."
+      "bulkDoNotRequireTwoFactorAuthDescription": "Los {{userCount}} usuario(s) seleccionado(s) podrán iniciar sesión solo con su contraseña. Lo que ya hayan configurado se conserva, pero ya no se les pedirá.",
+      "createdAndEmailed": "{{name}} creado. Se envió a {{email}} un enlace para establecer su contraseña.",
+      "createdWithPassword": "{{name}} creado. Comparte con esa persona la contraseña que estableciste de forma segura.",
+      "setPasswordLinkTitle": "Envía un enlace para establecer la contraseña",
+      "setPasswordLinkDescription": "Copia este enlace y envíalo tú mismo a {{email}}, por un medio que solo esa persona pueda leer. Funciona una vez, durante {{days}} días.",
+      "setPasswordLinkOrSetIt": "O establece tú mismo una contraseña en su página de Autenticación."
     },
     "enterpriseLicenses": {
       "title": "Licencias Enterprise",
@@ -4169,5 +4174,13 @@
   "See email logs": "Ver registros de correo",
   "Addresses the mail server refused": "Direcciones rechazadas por el servidor de correo",
   "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Los demás correos salieron, así que solo estas direcciones están afectadas. Corrige la dirección o haz que tu proveedor de correo la acepte: un sandbox de Amazon SES solo envía a direcciones que ha verificado.",
-  "Last refused {{time}}": "Último rechazo: {{time}}"
+  "Last refused {{time}}": "Último rechazo: {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "Se creó {{name}}, pero no se envió el correo con el enlace para establecer su contraseña. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "Tampoco se pudo crear el enlace para que lo envíes tú. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime le envía por correo un enlace para establecer su propia contraseña.",
+  "They sign in with the password you set. Share it with them securely.": "Esa persona inicia sesión con la contraseña que establezcas. Compártela de forma segura.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Este servidor aún no puede enviar correos. Establece su contraseña aquí, o déjala vacía para obtener un enlace y enviárselo tú.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "Este servidor aún no puede enviar correos. Configura el correo en Ajustes > Correos.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Este servidor aún no puede enviar correos, así que no se envió ningún enlace para restablecer la contraseña. Configura el correo en Ajustes > Correos, o establece tú la contraseña.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Este usuario ya tiene contraseña, así que no hay enlace para establecerla que copiar. Envíale un enlace para restablecerla desde su página de Autenticación."
 }

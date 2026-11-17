@@ -188,6 +188,17 @@
     "linkInvalidDescription": "Puede que ya se haya usado o que solo se haya copiado una parte. Pide un enlace nuevo y te lo enviaremos por correo electrónico.",
     "requestNewLinkButton": "Pedir un enlace nuevo"
   },
+  "setPassword": {
+    "title": "Establece tu contraseña",
+    "subtitle": "Elige una contraseña para terminar de configurar tu cuenta.",
+    "submitButton": "Establecer contraseña",
+    "successTitle": "Tu contraseña está establecida",
+    "successDescription": "Inicia sesión con tu nueva contraseña.",
+    "linkExpiredTitle": "Este enlace ha caducado",
+    "linkExpiredDescription": "Los enlaces para establecer una contraseña funcionan durante {{days}} días. Pide al administrador que creó tu cuenta que te envíe uno nuevo.",
+    "linkInvalidTitle": "Este enlace ya no funciona",
+    "linkInvalidDescription": "Puede que ya se haya usado o que solo se copiara una parte. Si ya estableciste tu contraseña, inicia sesión. Si no, pide un enlace nuevo a tu administrador."
+  },
   "sso": {
     "title": "Iniciar sesión con SSO",
     "emailFormSubtitle": "Introduzca su correo electrónico para encontrar el inicio de sesión de su organización.",

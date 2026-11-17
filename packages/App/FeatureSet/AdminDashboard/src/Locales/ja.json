@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "選択した {{userCount}} 人のユーザーはすべてのアクティブなセッションからサインアウトされ、次回サインイン時に認証アプリを設定する必要があります。あなた自身が含まれている場合は、あなたも対象になります。",
       "bulkDoNotRequireTwoFactorAuth": "2 要素認証を必須にしない",
       "bulkDoNotRequireTwoFactorAuthTitle": "{{userCount}} 人のユーザーの 2 要素認証の必須を解除",
-      "bulkDoNotRequireTwoFactorAuthDescription": "選択した {{userCount}} 人のユーザーはパスワードだけでサインインできるようになります。すでに設定済みの内容は保持されますが、今後は要求されません。"
+      "bulkDoNotRequireTwoFactorAuthDescription": "選択した {{userCount}} 人のユーザーはパスワードだけでサインインできるようになります。すでに設定済みの内容は保持されますが、今後は要求されません。",
+      "createdAndEmailed": "{{name}} を作成しました。パスワード設定用のリンクを {{email}} に送信しました。",
+      "createdWithPassword": "{{name}} を作成しました。設定したパスワードは安全な方法で伝えてください。",
+      "setPasswordLinkTitle": "パスワード設定用のリンクを送る",
+      "setPasswordLinkDescription": "このリンクをコピーし、本人だけが読める方法で {{email}} に直接送ってください。リンクは 1 回だけ、{{days}} 日間有効です。",
+      "setPasswordLinkOrSetIt": "または、そのユーザーの認証ページでパスワードを直接設定します。"
     },
     "enterpriseLicenses": {
       "title": "エンタープライズライセンス",
@@ -4169,5 +4174,13 @@
   "See email logs": "メールログを見る",
   "Addresses the mail server refused": "メールサーバーが拒否したアドレス",
   "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "ほかのメールは送信されているため、影響を受けているのはこれらのアドレスだけです。アドレスを修正するか、メールプロバイダーで受け付けられるようにしてください。Amazon SES のサンドボックスは検証済みのアドレスにしか送信しません。",
-  "Last refused {{time}}": "最終拒否: {{time}}"
+  "Last refused {{time}}": "最終拒否: {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} を作成しましたが、パスワード設定用リンクのメールは送信されませんでした。{{error}}",
+  "The link to send them yourself was not made either. {{error}}": "直接送るためのリンクも作成できませんでした。{{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime から本人にパスワード設定用のリンクをメールで送ります。",
+  "They sign in with the password you set. Share it with them securely.": "本人は設定したパスワードでサインインします。安全な方法で伝えてください。",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "このサーバーはまだメールを送信できません。ここでパスワードを設定するか、空欄のままにして直接送るためのリンクを取得してください。",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "このサーバーはまだメールを送信できません。[設定] > [メール] でメールを設定してください。",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "このサーバーはまだメールを送信できないため、パスワードリセット用のリンクは送信されませんでした。[設定] > [メール] でメールを設定するか、パスワードを直接設定してください。",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "このユーザーにはすでにパスワードがあるため、コピーできるパスワード設定用リンクはありません。代わりに認証ページからパスワードリセット用のリンクを送ってください。"
 }
