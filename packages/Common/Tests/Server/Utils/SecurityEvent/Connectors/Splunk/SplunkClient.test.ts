@@ -15,7 +15,6 @@ import APIException from "../../../../../../Types/Exception/ApiException";
 import BadDataException from "../../../../../../Types/Exception/BadDataException";
 import Dictionary from "../../../../../../Types/Dictionary";
 import { JSONObject } from "../../../../../../Types/JSON";
-import { SpyInstance } from "jest-mock";
 
 /*
  * The Splunk client contract as the connector depends on it: the

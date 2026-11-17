@@ -11,7 +11,6 @@ import {
 import React, { ReactElement } from "react";
 import ProductKey from "../../../Types/Product/ProductKey";
 import Toast, { ToastItem, ToastType } from "../../../UI/Utils/Toast";
-import { Mock } from "jest-mock";
 
 /*
  * A pin or an unpin the server did not keep (#9120). The bar put the

@@ -55,7 +55,6 @@ import HashedString from "../../../Types/HashedString";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { getJestSpyOn } from "../../Spy";
-import { Mock } from "jest-mock";
 
 /*
  * A PROJECT'S API KEYS, STORED HASHED (#8902), in ApiKeyService.

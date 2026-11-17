@@ -48,7 +48,6 @@ import {
   resetNotificationChannelReadiness,
   stubNotificationChannelReadiness,
 } from "./NotificationChannelReadinessStub";
-import { SpyInstance } from "jest-mock";
 
 /*
  * USER SETTINGS > NOTIFICATION SETTINGS, EASIER TO UNDERSTAND AND USE (#8887).
