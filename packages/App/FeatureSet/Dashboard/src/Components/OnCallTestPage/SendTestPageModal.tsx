@@ -7,9 +7,15 @@ import {
   fromSeverityOptionValue,
   loadSeverityOptions,
 } from "./OnCallTestPageSeverities";
+import AppLink from "../AppLink/AppLink";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
   CHANNEL_NAMES,
   COST_SENTENCES,
+  FIX_LINKS,
+  OnCallTestPageFixLink,
+  REACHES_NOBODY_SENTENCES,
+  WALK_EVERY_LEVEL,
   WALK_UNREACHED_LEVELS,
   getNotPagedLines,
   getPersonWarnings,
@@ -17,21 +23,26 @@ import {
   getWalkLevelHeading,
 } from "./OnCallTestPageWords";
 import TestPageResult from "./TestPageResult";
+import Route from "Common/Types/API/Route";
 import { getNumberLocale } from "Common/Types/DateLanguage";
 import IconProp from "Common/Types/Icon/IconProp";
+import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
   ON_CALL_TEST_PAGE_ANSWER_WINDOW_IN_MINUTES,
   ON_CALL_TEST_PAGE_ESCALATION_WAIT_IN_MINUTES,
   OnCallTestPageCost,
+  OnCallTestPageFix,
   OnCallTestPagePreview,
   OnCallTestPagePreviewLevel,
   OnCallTestPagePreviewMethod,
   OnCallTestPagePreviewPerson,
   OnCallTestPageRecordKind,
   OnCallTestPageResult,
+  OnCallTestPageWarning,
+  OnCallTestPageWarningCode,
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import Dropdown, {
   DropdownOption,
@@ -342,9 +353,74 @@ export function describeTestPageCost(
 }
 
 /*
- * Whether the test pages anybody: its first level - or, walking every
- * level, any level it reaches (a run moves past a level that pages nobody
- * at once).
+ * Whether the test reaches a person (#7529): it sends them something, by a
+ * method it may use - one that is verified, on a channel the project has not
+ * turned off. A person it names and sends nothing - opted out, no rule and
+ * no fallback, nothing the fallback may use, only methods that are not
+ * verified or whose channel is off - is not reached, whatever the preview
+ * lists for them.
+ *
+ * A server from before #7262 lists no method for a person with no rule, and
+ * says the test falls back to every verified method (NoRuleFallsBack): the
+ * fallback may well reach them, so they count as reached. So does such a
+ * person on a server from before the codes (#7015), which said nothing a
+ * Dashboard can read either way.
+ */
+export function isPersonReachedByTest(
+  person: OnCallTestPagePreviewPerson,
+): boolean {
+  const channelsOff: Set<OnCallPageChannel> = new Set<OnCallPageChannel>();
+
+  for (const warning of person.warningCodes || []) {
+    if (
+      warning.code === OnCallTestPageWarningCode.ChannelOff &&
+      warning.channel
+    ) {
+      channelsOff.add(warning.channel);
+    }
+  }
+
+  const hasUsableMethod: boolean = person.methods.some(
+    (method: OnCallTestPagePreviewMethod): boolean => {
+      return method.isVerified && !channelsOff.has(method.channel);
+    },
+  );
+
+  if (hasUsableMethod) {
+    return true;
+  }
+
+  // What the fallback picks is listed (#7262), and none of it is usable.
+  const isFallbackListed: boolean = person.methods.some(
+    (method: OnCallTestPagePreviewMethod): boolean => {
+      return Boolean(method.isFallback);
+    },
+  );
+
+  if (!person.hasNoRule || person.isOptedOut || isFallbackListed) {
+    return false;
+  }
+
+  if (!Array.isArray(person.warningCodes)) {
+    return true;
+  }
+
+  return person.warningCodes.some((warning: OnCallTestPageWarning): boolean => {
+    return warning.code === OnCallTestPageWarningCode.NoRuleFallsBack;
+  });
+}
+
+// Whether a level of the test reaches anybody it names.
+export function doesLevelReachAnybody(level: {
+  people: Array<OnCallTestPagePreviewPerson>;
+}): boolean {
+  return level.people.some(isPersonReachedByTest);
+}
+
+/*
+ * Whether the test reaches anybody (#7529): its first level - or, walking
+ * every level, any level it reaches (a run moves past a level that pages
+ * nobody at once). A person it names and sends nothing does not count.
  */
 export function doesTestPageAnybody(
   preview: OnCallTestPagePreview | null,
@@ -354,7 +430,7 @@ export function doesTestPageAnybody(
     return false;
   }
 
-  if (preview.people.length > 0) {
+  if (doesLevelReachAnybody(preview)) {
     return true;
   }
 
@@ -362,11 +438,188 @@ export function doesTestPageAnybody(
     walksEscalation &&
     (preview.walkLevels || []).some(
       (level: OnCallTestPagePreviewLevel): boolean => {
-        return level.people.length > 0;
+        return doesLevelReachAnybody(level);
       },
     )
   );
 }
+
+/*
+ * WHY SEND IS OFF (#7529, #7259): the test reaches nobody, and the one
+ * thing to do about it.
+ *
+ *   walkReachesLaterLevel  a policy's first level reaches nobody, the walk
+ *                          is offered and off, and a later level reaches
+ *                          somebody: walk every level (one click).
+ *   self                   "Send me a test page" sends you nothing: the page
+ *                          that puts it right (`fix`).
+ *   member                 a member's test sends them nothing: their line
+ *                          says why, and it is theirs to fix.
+ *   policy                 nobody the policy's test pages can receive it.
+ */
+export type TestPageNobodyReached =
+  | { kind: "walkReachesLaterLevel" }
+  | {
+      kind: "self";
+      fix: OnCallTestPageFix.NotificationMethods | OnCallTestPageFix.OnCallRules;
+    }
+  | { kind: "member" }
+  | { kind: "policy" };
+
+/*
+ * Where a person the test sends nothing puts it right: Notification Methods
+ * when a method of theirs is not verified, or they have none the fallback
+ * may use; else How to Reach Me - they opted out, have no rule while the
+ * project does not fall back, or their rules use only channels that are off.
+ */
+export function getNobodyReachedFix(
+  person: OnCallTestPagePreviewPerson | undefined,
+): OnCallTestPageFix.NotificationMethods | OnCallTestPageFix.OnCallRules {
+  if (!person) {
+    return OnCallTestPageFix.OnCallRules;
+  }
+
+  const needsVerifying: boolean =
+    person.methods.some((method: OnCallTestPagePreviewMethod): boolean => {
+      return !method.isVerified;
+    }) ||
+    (person.warningCodes || []).some(
+      (warning: OnCallTestPageWarning): boolean => {
+        return (
+          warning.code === OnCallTestPageWarningCode.MethodNotVerified ||
+          warning.code === OnCallTestPageWarningCode.NoRuleNothingToFallBackTo
+        );
+      },
+    );
+
+  return needsVerifying
+    ? OnCallTestPageFix.NotificationMethods
+    : OnCallTestPageFix.OnCallRules;
+}
+
+// Why Send is off, or null while it is on (or nothing is read yet).
+export function getTestPageNobodyReached(data: {
+  target: OnCallTestPageTarget;
+  preview: OnCallTestPagePreview | null;
+  offersWalk: boolean;
+  isWalking: boolean;
+}): TestPageNobodyReached | null {
+  const preview: OnCallTestPagePreview | null = data.preview;
+
+  if (!preview || doesTestPageAnybody(preview, data.isWalking)) {
+    return null;
+  }
+
+  if (
+    data.offersWalk &&
+    !data.isWalking &&
+    (preview.walkLevels || []).some(
+      (level: OnCallTestPagePreviewLevel): boolean => {
+        return doesLevelReachAnybody(level);
+      },
+    )
+  ) {
+    return { kind: "walkReachesLaterLevel" };
+  }
+
+  if (data.target.kind === "self") {
+    return { kind: "self", fix: getNobodyReachedFix(preview.people[0]) };
+  }
+
+  if (data.target.kind === "member") {
+    return { kind: "member" };
+  }
+
+  return { kind: "policy" };
+}
+
+// The line that says why Send is off, in the reader's words.
+export function getNobodyReachedSentence(
+  translator: Translator,
+  reason: TestPageNobodyReached,
+  target: OnCallTestPageTarget,
+): string {
+  switch (reason.kind) {
+    case "walkReachesLaterLevel":
+      return translator.translateTemplate(
+        REACHES_NOBODY_SENTENCES.firstLevelOnly,
+      );
+    case "self":
+      return translator.translateTemplate(
+        reason.fix === OnCallTestPageFix.NotificationMethods
+          ? REACHES_NOBODY_SENTENCES.selfVerify
+          : REACHES_NOBODY_SENTENCES.selfChooseHow,
+      );
+    case "member":
+      return target.kind === "member" && target.userName
+        ? translator.translateTemplate(
+            REACHES_NOBODY_SENTENCES.member,
+            { name: target.userName },
+            { setsValuesApart: true },
+          )
+        : translator.translateTemplate(REACHES_NOBODY_SENTENCES.memberUnnamed);
+    case "policy":
+      return translator.translateTemplate(REACHES_NOBODY_SENTENCES.policy);
+  }
+}
+
+/*
+ * The line under the preview while the test reaches nobody: why, and the
+ * one next step - the button that walks every level, or the page that puts
+ * it right for yourself.
+ */
+const NobodyReachedLine: FunctionComponent<{
+  reason: TestPageNobodyReached;
+  target: OnCallTestPageTarget;
+  onWalkEveryLevel: () => void;
+}> = (props: {
+  reason: TestPageNobodyReached;
+  target: OnCallTestPageTarget;
+  onWalkEveryLevel: () => void;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const reason: TestPageNobodyReached = props.reason;
+  const fix: OnCallTestPageFixLink | null =
+    reason.kind === "self" ? FIX_LINKS[reason.fix] : null;
+
+  return (
+    <Alert
+      type={AlertType.WARNING}
+      dataTestId="test-page-reaches-nobody"
+      title={
+        <div className="flex flex-col items-start gap-1.5">
+          <p data-testid="test-page-reaches-nobody-reason">
+            {getNobodyReachedSentence(translator, reason, props.target)}
+          </p>
+          {reason.kind === "walkReachesLaterLevel" ? (
+            <Button
+              title={WALK_EVERY_LEVEL}
+              buttonStyle={ButtonStyleType.LINK}
+              onClick={props.onWalkEveryLevel}
+              dataTestId="test-page-reaches-nobody-walk"
+            />
+          ) : (
+            <></>
+          )}
+          {fix ? (
+            <AppLink
+              to={RouteUtil.populateRouteParams(RouteMap[fix.pageMap] as Route)}
+              className="inline-flex w-fit items-center gap-1 text-sm font-medium text-indigo-700 hover:text-indigo-800"
+              dataTestId="test-page-reaches-nobody-fix"
+            >
+              <>
+                <span>{translator.translateText(fix.text) || fix.text}</span>
+                <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
+              </>
+            </AppLink>
+          ) : (
+            <></>
+          )}
+        </div>
+      }
+    />
+  );
+};
 
 /*
  * Whether "Walk every escalation level" is offered: for a policy with a
@@ -803,6 +1056,16 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
 
   const hasAnybodyToPage: boolean = doesTestPageAnybody(preview, isWalking);
 
+  // Why Send is off, said under the preview once it is read (#7529, #7259).
+  const nobodyReached: TestPageNobodyReached | null = isLoadingPreview
+    ? null
+    : getTestPageNobodyReached({
+        target: props.target,
+        preview: preview,
+        offersWalk: offersWalk,
+        isWalking: isWalking,
+      });
+
   const send: () => Promise<void> = async (): Promise<void> => {
     if (!severity) {
       return;
@@ -925,6 +1188,18 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
             <></>
           )}
         </div>
+
+        {nobodyReached ? (
+          <NobodyReachedLine
+            reason={nobodyReached}
+            target={props.target}
+            onWalkEveryLevel={() => {
+              setWalksEscalation(true);
+            }}
+          />
+        ) : (
+          <></>
+        )}
 
         {costSentence ? (
           <Alert

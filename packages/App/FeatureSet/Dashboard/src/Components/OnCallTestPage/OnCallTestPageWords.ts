@@ -399,6 +399,51 @@ export const WALK_UNREACHED_LEVELS: PluralTemplate = {
     "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.",
 };
 
+/*
+ * WHEN A TEST WOULD SEND NOTHING (#7529, #7259): Send is off, and one line
+ * under the preview says why and the one thing to do. For yourself, the page
+ * that puts it right (FIX_LINKS): a way to reach you to verify, or how you
+ * are reached for the severity. For a member or a policy, that the lines
+ * above say why - they are somebody else's to fix. For a policy whose first
+ * level reaches nobody while a later one can, walking every level, which
+ * the line turns on in one click (WALK_EVERY_LEVEL).
+ */
+export const REACHES_NOBODY_SENTENCES: Readonly<{
+  selfVerify: string;
+  selfChooseHow: string;
+  member: string;
+  memberUnnamed: string;
+  policy: string;
+  firstLevelOnly: string;
+}> = {
+  selfVerify: translationKey(
+    "This test would send you nothing yet. Verify a way to reach you, then send it.",
+  ),
+  selfChooseHow: translationKey(
+    "This test would send you nothing yet. Choose how you are reached for this severity, then send it.",
+  ),
+  member: translationKey(
+    "This test would send {{name}} nothing yet. The line above says why.",
+  ),
+  memberUnnamed: translationKey(
+    "This test would send them nothing yet. The line above says why.",
+  ),
+  policy: translationKey(
+    "This test would send nothing yet: nobody it pages can receive it right now. Each line above says why.",
+  ),
+  firstLevelOnly: translationKey(
+    "Nobody on the first level can receive this test right now, so it would send nothing. A later level can.",
+  ),
+};
+
+/*
+ * What the line's button says: the walk's own name, as the box above it
+ * says it - pressing it ticks that box.
+ */
+export const WALK_EVERY_LEVEL: string = translationKey(
+  "Walk every escalation level",
+);
+
 // What a test costs, in a sentence: the first level's, or a walk's at most.
 export const COST_SENTENCES: Readonly<{
   firstLevel: { withAmount: string; withoutAmount: string };
