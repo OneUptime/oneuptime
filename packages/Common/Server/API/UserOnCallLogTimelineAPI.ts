@@ -50,14 +50,16 @@ import {
   isOnCallObserverPage,
 } from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import OnCallPageLinks from "../Utils/OnCall/OnCallPageLinks";
-import UserOnCallLogService from "../Services/UserOnCallLogService";
-import UserOnCallLog from "../../Models/DatabaseModels/UserOnCallLog";
+import OnCallTestPageAcknowledge, {
+  OnCallTestPageAnswer,
+} from "../Utils/OnCall/OnCallTestPageAcknowledge";
 import {
   ON_CALL_TEST_PAGE_ACKNOWLEDGE_MESSAGE,
   ON_CALL_TEST_PAGE_ACKNOWLEDGE_TITLE,
   ON_CALL_TEST_PAGE_ANSWERED_MESSAGE,
   ON_CALL_TEST_PAGE_ANSWERED_TITLE,
-  ON_CALL_TEST_PAGE_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+  ON_CALL_TEST_PAGE_NOT_ACKNOWLEDGED_MESSAGE,
+  ON_CALL_TEST_PAGE_NOT_ACKNOWLEDGED_TITLE,
   isOnCallTestPage,
 } from "../../Types/OnCallDutyPolicy/OnCallTestPage";
 import OnCallPageLinkToken, {
@@ -822,43 +824,17 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
   }
 
   /*
-   * Whether the person already acknowledged a test page (OnCallTestPage):
-   * from this message, or from another of theirs - a test is theirs to
-   * acknowledge once, whoever else it reached.
+   * A test page's link: Acknowledge, or that it works once the person
+   * acknowledged it - from this message, or another of theirs
+   * (OnCallTestPageAcknowledge, the rule the On-Call app's push asks too).
    */
-  private async isTestPageAnswered(
-    timelineItem: UserOnCallLogTimeline,
-  ): Promise<boolean> {
-    if (timelineItem.isAcknowledged) {
-      return true;
-    }
-
-    if (!timelineItem.userNotificationLogId) {
-      return false;
-    }
-
-    const log: UserOnCallLog | null = await UserOnCallLogService.findOneById({
-      id: timelineItem.userNotificationLogId,
-      select: {
-        _id: true,
-        acknowledgedAt: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return Boolean(log?.acknowledgedAt);
-  }
-
-  // A test page's link: Acknowledge, or that it works once it is acknowledged.
   private async renderTestPageAcknowledgePage(data: {
     req: ExpressRequest;
     res: ExpressResponse;
     itemId: ObjectID;
     timelineItem: UserOnCallLogTimeline;
   }): Promise<void> {
-    if (await this.isTestPageAnswered(data.timelineItem)) {
+    if (await OnCallTestPageAcknowledge.isAnswered(data.timelineItem)) {
       return this.renderTestPageAnswered(data.req, data.res);
     }
 
@@ -877,19 +853,34 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
     );
   }
 
-  // The test page's Acknowledge: the message is acknowledged, and it works.
+  /*
+   * The test page's Acknowledge: the message is acknowledged - once, by the
+   * rule every way of answering a test asks (OnCallTestPageAcknowledge) -
+   * and it works. A message that kept changing under every try is not
+   * acknowledged, and the page says so rather than that it works.
+   */
   private async acknowledgeTestPage(data: {
     req: ExpressRequest;
     res: ExpressResponse;
     itemId: ObjectID;
     timelineItem: UserOnCallLogTimeline;
   }): Promise<void> {
-    // Written once, as any acknowledgement is (recordAcknowledgement).
-    if (!(await this.isTestPageAnswered(data.timelineItem))) {
-      await recordAcknowledgement({
+    const answer: OnCallTestPageAnswer =
+      await OnCallTestPageAcknowledge.acknowledge({
         userOnCallLogTimelineId: data.itemId,
-        statusMessage: ON_CALL_TEST_PAGE_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+        message: data.timelineItem,
       });
+
+    if (answer === OnCallTestPageAnswer.NotAcknowledged) {
+      return Response.render(
+        data.req,
+        data.res,
+        "/usr/src/Common/Server/Views/ViewMessage.ejs",
+        {
+          title: ON_CALL_TEST_PAGE_NOT_ACKNOWLEDGED_TITLE,
+          message: ON_CALL_TEST_PAGE_NOT_ACKNOWLEDGED_MESSAGE,
+        },
+      );
     }
 
     return this.renderTestPageAnswered(data.req, data.res);

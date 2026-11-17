@@ -1,7 +1,10 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
 import OnCallDutyPolicyService from "../Services/OnCallDutyPolicyService";
 import { OnCallDirectPageRun } from "../Services/OnCallDutyPolicyExecutionLogService";
-import OnCallTestPageService from "../Services/OnCallTestPageService";
+import OnCallTestPageService, {
+  ON_CALL_TEST_PAGE_MESSAGE_NOT_FOUND_MESSAGE,
+} from "../Services/OnCallTestPageService";
+import { OnCallTestPageAnswer } from "../Utils/OnCall/OnCallTestPageAcknowledge";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -31,6 +34,9 @@ import {
  *   POST /on-call-test-page/page-person  a test page to yourself, or a member
  *   POST /on-call-test-page/page-policy  a test of an on-call policy
  *   GET  /on-call-test-page/result/:id   what became of it, as it happens
+ *   GET  /on-call-test-page/acknowledge/:id  whether you acknowledged one
+ *   POST /on-call-test-page/acknowledge/:id  acknowledge one, from the app
+ *                                        (its push's message: #7014)
  *
  * Every one asks the test-send rule's first two steps (TestSendAccess
  * .getCaller): a signed-in member of the project, as a person - a test is
@@ -271,6 +277,83 @@ router.post(
       return Response.sendJsonObjectResponse(req, res, {
         executionLogId: executionLogId.toString(),
       });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * A TEST PAGE ANSWERED FROM THE ON-CALL APP (#7014): "Acknowledge test
+ * page" under its push, or the button on the screen the push opens. The
+ * message is the push's own row of the person's on-call timeline, and only
+ * the signed-in person's own message of a test page, in the project the
+ * request names, is answered (OnCallTestPageService.readOwnTestPageMessage).
+ * GET says whether they acknowledged it already; POST acknowledges it, by
+ * the rule every message of a test page answers by
+ * (OnCallTestPageAcknowledge).
+ */
+router.get(
+  `${ON_CALL_TEST_PAGE_API_PATH}/acknowledge/:userOnCallLogTimelineId`,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(props);
+
+      if (!props.userId) {
+        throw new BadDataException(ON_CALL_TEST_PAGE_MESSAGE_NOT_FOUND_MESSAGE);
+      }
+
+      const isAcknowledged: boolean =
+        await OnCallTestPageService.isOwnTestPageAnswered({
+          projectId: projectId,
+          userId: props.userId,
+          userOnCallLogTimelineId: readObjectId(
+            req.params["userOnCallLogTimelineId"],
+            "userOnCallLogTimelineId",
+          ),
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        isAcknowledged: isAcknowledged,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.post(
+  `${ON_CALL_TEST_PAGE_API_PATH}/acknowledge/:userOnCallLogTimelineId`,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      // A signed-in member, as a person, on a credential that may make changes.
+      const caller: TestSendCaller = await TestSendAccess.getCaller(req);
+
+      const answer: OnCallTestPageAnswer =
+        await OnCallTestPageService.acknowledgeOwnTestPage({
+          projectId: caller.projectId,
+          userId: caller.userId,
+          userOnCallLogTimelineId: readObjectId(
+            req.params["userOnCallLogTimelineId"],
+            "userOnCallLogTimelineId",
+          ),
+        });
+
+      return Response.sendJsonObjectResponse(req, res, { answer: answer });
     } catch (err) {
       next(err);
     }

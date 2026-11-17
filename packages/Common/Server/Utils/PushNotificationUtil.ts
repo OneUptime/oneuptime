@@ -1,4 +1,5 @@
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
+import { ON_CALL_TEST_PAGE_PUSH_CATEGORY } from "../../Types/PushNotification/PushNotificationCategory";
 import { OnCallPageAgainNotice } from "../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import {
   OnCallPersonPageNotice,
@@ -955,6 +956,40 @@ export default class PushNotificationUtil {
     }
 
     return PushNotificationUtil.applyDefaults(notification);
+  }
+
+  /*
+   * A test page's push (OnCallTestPage): TEST first, and what it tests. It
+   * names the test page's own category (#7014), so the On-Call app draws
+   * "Acknowledge test page" under it - never a real page's Acknowledge and
+   * Escalate - and it is about no record: `entityType` is "test-page", and
+   * `entityId` the message's own row of the person's on-call timeline, the
+   * one the app acknowledges it from. Tapped in a browser, or in an app
+   * older than the category, it opens the page that acknowledges it.
+   */
+  public static createTestPageNotification(params: {
+    title: string;
+    body: string;
+    acknowledgeUrl: string;
+    userOnCallLogTimelineId: string;
+    projectId: string;
+  }): PushNotificationMessage {
+    return PushNotificationUtil.applyDefaults({
+      title: params.title,
+      body: params.body,
+      clickAction: params.acknowledgeUrl,
+      url: params.acknowledgeUrl,
+      tag: "oneuptime-test-page",
+      requireInteraction: false,
+      categoryId: ON_CALL_TEST_PAGE_PUSH_CATEGORY,
+      data: {
+        type: "test-page",
+        entityType: "test-page",
+        entityId: params.userOnCallLogTimelineId,
+        projectId: params.projectId,
+        url: params.acknowledgeUrl,
+      },
+    });
   }
 
   /*

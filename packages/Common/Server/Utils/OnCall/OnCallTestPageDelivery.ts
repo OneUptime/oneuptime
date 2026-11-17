@@ -675,6 +675,8 @@ export default class OnCallTestPageDelivery {
           acknowledgeUrl: (
             await OnCallPageLinks.getAcknowledgePageUrl(row.id!)
           ).toString(),
+          userOnCallLogTimelineId: row.id!,
+          projectId: options.projectId,
         });
 
         pushMessage.isCriticalAlert = isCriticalPushNotification({
@@ -1015,21 +1017,27 @@ export default class OnCallTestPageDelivery {
   }
 
   /*
-   * The test's push: TEST first, and what it tests. Tapping it opens the
-   * page that acknowledges it in a browser; the On-Call app has no record to
-   * open, so it offers none of a page's buttons (no category).
+   * The test's push: TEST first, and what it tests. The On-Call app draws
+   * "Acknowledge test page" under it, and opens the test page's own screen
+   * when it is tapped (#7014): its message's row is what the app
+   * acknowledges it from, as the link of any other message is. Tapped in a
+   * browser, or in an app older than that, it opens the page that
+   * acknowledges it. A real page's Acknowledge and Escalate are never under
+   * it (PushNotificationCategory).
    */
   public static getPushMessage(data: {
     context: OnCallTestPageContext;
     translator: Translator;
     acknowledgeUrl: string;
+    userOnCallLogTimelineId: ObjectID;
+    projectId: ObjectID;
   }): PushNotificationMessage {
-    return PushNotificationUtil.createGenericNotification({
+    return PushNotificationUtil.createTestPageNotification({
       title: getOnCallTestPageHeadline(data.translator, ONEUPTIME_PRODUCT_NAME),
       body: this.getWhatItTests(data.context, data.translator),
-      clickAction: data.acknowledgeUrl,
-      tag: "oneuptime-test-page",
-      requireInteraction: false,
+      acknowledgeUrl: data.acknowledgeUrl,
+      userOnCallLogTimelineId: data.userOnCallLogTimelineId.toString(),
+      projectId: data.projectId.toString(),
     });
   }
 

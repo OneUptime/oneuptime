@@ -6,6 +6,9 @@ import logger from "../Utils/Logger";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallTestPageEvents from "../Utils/OnCall/OnCallTestPageEvents";
+import OnCallTestPageAcknowledge, {
+  OnCallTestPageAnswer,
+} from "../Utils/OnCall/OnCallTestPageAcknowledge";
 import AlertSeverityService from "./AlertSeverityService";
 import BaseService from "./BaseService";
 import IncidentSeverityService from "./IncidentSeverityService";
@@ -177,6 +180,13 @@ export const ON_CALL_TEST_PAGE_RESULT_READ_PERMISSIONS: ReadonlyArray<Permission
 // The words a refusal of someone who may not do this says, as the routes' do.
 export const ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE: string =
   "You are not authorized to access this project's data.";
+
+/*
+ * A message the On-Call app asks about that is not one of the person's own
+ * of a test page (#7014), whatever else it is.
+ */
+export const ON_CALL_TEST_PAGE_MESSAGE_NOT_FOUND_MESSAGE: string =
+  "This test page was not found. It may have been sent to you in another project, or to somebody else.";
 
 const PERSON_LIMIT_NAMESPACE: string = "oncall-test-page-person";
 const POLICY_LIMIT_NAMESPACE: string = "oncall-test-page-policy";
@@ -523,6 +533,83 @@ export class OnCallTestPageService extends BaseService {
   }
 
   /*
+   * ONE OF THE SIGNED-IN PERSON'S OWN MESSAGES OF A TEST PAGE, for the
+   * On-Call app (#7014): a row of their on-call timeline, in the project the
+   * request names. A message of somebody else's, of another project, of a
+   * real page or of nothing at all is answered alike - not found - so nobody
+   * learns of a message that is not theirs.
+   */
+  public async readOwnTestPageMessage(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    userOnCallLogTimelineId: ObjectID;
+  }): Promise<UserOnCallLogTimeline> {
+    const message: UserOnCallLogTimeline | null =
+      await UserOnCallLogTimelineService.findOneById({
+        id: data.userOnCallLogTimelineId,
+        select: {
+          _id: true,
+          projectId: true,
+          userId: true,
+          userNotificationEventType: true,
+          isAcknowledged: true,
+          userNotificationLogId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (
+      !message ||
+      !isOnCallTestPage(message) ||
+      message.projectId?.toString() !== data.projectId.toString() ||
+      message.userId?.toString() !== data.userId.toString()
+    ) {
+      throw new BadDataException(ON_CALL_TEST_PAGE_MESSAGE_NOT_FOUND_MESSAGE);
+    }
+
+    return message;
+  }
+
+  /*
+   * Whether the person acknowledged the test page already - from this
+   * message or another of theirs: what the app's test page screen says
+   * when it opens.
+   */
+  public async isOwnTestPageAnswered(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    userOnCallLogTimelineId: ObjectID;
+  }): Promise<boolean> {
+    return await OnCallTestPageAcknowledge.isAnswered(
+      await this.readOwnTestPageMessage(data),
+    );
+  }
+
+  /*
+   * ACKNOWLEDGES A TEST PAGE FROM THE ON-CALL APP (#7014): "Acknowledge test
+   * page" under its push, or the button on its screen. The same rule, and
+   * the same write on the same row, as the link of any other message
+   * (OnCallTestPageAcknowledge): so its result says the person acknowledged
+   * it by push notification, and how fast.
+   */
+  @CaptureSpan()
+  public async acknowledgeOwnTestPage(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    userOnCallLogTimelineId: ObjectID;
+  }): Promise<OnCallTestPageAnswer> {
+    const message: UserOnCallLogTimeline =
+      await this.readOwnTestPageMessage(data);
+
+    return await OnCallTestPageAcknowledge.acknowledge({
+      userOnCallLogTimelineId: data.userOnCallLogTimelineId,
+      message: message,
+    });
+  }
+
+  /*
    * HOW OFTEN TESTS ARE SENT: the person's or policy's own window first -
    * claimed with SET NX, so two clicks on two servers send once - then the
    * project's hour. A test the project's hour refuses hands its window
@@ -698,6 +785,7 @@ export class OnCallTestPageService extends BaseService {
       const [cost]: Array<OnCallTestPageCost> = await this.getCosts({
         projectId: data.projectId,
         peopleOfEach: [people],
+        project: project,
       });
 
       return {
@@ -801,6 +889,7 @@ export class OnCallTestPageService extends BaseService {
 
     const [cost, walkCost]: Array<OnCallTestPageCost> = await this.getCosts({
       projectId: data.projectId,
+      project: project,
       peopleOfEach: [
         people,
         [
@@ -844,12 +933,34 @@ export class OnCallTestPageService extends BaseService {
 
   /*
    * What each of several tests costs - a policy's first level, and its walk
-   * - with the project's own Twilio accounts read once.
+   * - with the project's own Twilio accounts read once. A method on a
+   * channel the project turned off sends nothing and costs nothing (#7529):
+   * the project's switches are read here unless the caller hands them.
    */
   public async getCosts(data: {
     projectId: ObjectID;
     peopleOfEach: Array<Array<OnCallTestPagePreviewPerson>>;
+    project?: PreviewProject | undefined;
   }): Promise<Array<OnCallTestPageCost>> {
+    const project: PreviewProject =
+      data.project !== undefined
+        ? data.project
+        : await ProjectService.findOneById({
+            id: data.projectId,
+            select: {
+              enableSmsNotifications: true,
+              enableCallNotifications: true,
+              enableWhatsAppNotifications: true,
+              enableTelegramNotifications: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+    const channelsOff: Array<OnCallPageChannel> =
+      getChannelsOffInProject(project);
+
     const smsConfig: TwilioConfig | undefined =
       await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
         data.projectId,
@@ -869,6 +980,7 @@ export class OnCallTestPageService extends BaseService {
           isBillingEnabled: IsBillingEnabled,
           hasOwnTwilioForSms: Boolean(smsConfig),
           hasOwnTwilioForCalls: Boolean(callConfig),
+          channelsOff: channelsOff,
           prices: {
             smsInCents: readPrice(MESSAGING_PRICE_SETTINGS.sms),
             callPerMinuteInCents: readPrice(
@@ -2087,7 +2199,7 @@ export function getPreviewMethodsOfRule(data: {
 }
 
 // The project's preview of a person: the switches its warnings read.
-type PreviewProject = Pick<
+export type PreviewProject = Pick<
   Project,
   | "enableSmsNotifications"
   | "enableCallNotifications"
@@ -2095,6 +2207,54 @@ type PreviewProject = Pick<
   | "enableTelegramNotifications"
   | "disableOnCallNotificationFallback"
 > | null;
+
+/*
+ * The channels a project can switch off for on-call pages, and whether it
+ * has: what a preview warns of (getPreviewWarningCodes) and what a test's
+ * cost leaves out (getCosts), read from the same switches. A project that
+ * could not be read switches nothing off.
+ */
+export function getProjectChannelSwitches(project: PreviewProject): Array<{
+  channel: OnCallPageChannel;
+  projectChannel: ProjectNotificationChannel;
+  isOff: boolean;
+}> {
+  return [
+    {
+      channel: OnCallPageChannel.SMS,
+      projectChannel: ProjectNotificationChannel.SMS,
+      isOff: project?.enableSmsNotifications === false,
+    },
+    {
+      channel: OnCallPageChannel.Call,
+      projectChannel: ProjectNotificationChannel.Call,
+      isOff: project?.enableCallNotifications === false,
+    },
+    {
+      channel: OnCallPageChannel.WhatsApp,
+      projectChannel: ProjectNotificationChannel.WhatsApp,
+      isOff: project?.enableWhatsAppNotifications === false,
+    },
+    {
+      channel: OnCallPageChannel.Telegram,
+      projectChannel: ProjectNotificationChannel.Telegram,
+      isOff: project?.enableTelegramNotifications === false,
+    },
+  ];
+}
+
+// The channels the project turned off for on-call pages.
+export function getChannelsOffInProject(
+  project: PreviewProject,
+): Array<OnCallPageChannel> {
+  return getProjectChannelSwitches(project)
+    .filter((off: { isOff: boolean }): boolean => {
+      return off.isOff;
+    })
+    .map((off: { channel: OnCallPageChannel }): OnCallPageChannel => {
+      return off.channel;
+    });
+}
 
 // What a preview warns about before anything is sent, in English.
 export function getPreviewWarnings(data: {
@@ -2138,37 +2298,9 @@ export function getPreviewWarningCodes(data: {
     warnings.push(getNoRuleWarning(data));
   }
 
-  const offChannels: Array<{
-    channel: OnCallPageChannel;
-    projectChannel: ProjectNotificationChannel;
-    isOn: boolean | undefined;
-  }> = [
-    {
-      channel: OnCallPageChannel.SMS,
-      projectChannel: ProjectNotificationChannel.SMS,
-      isOn: data.project?.enableSmsNotifications,
-    },
-    {
-      channel: OnCallPageChannel.Call,
-      projectChannel: ProjectNotificationChannel.Call,
-      isOn: data.project?.enableCallNotifications,
-    },
-    {
-      channel: OnCallPageChannel.WhatsApp,
-      projectChannel: ProjectNotificationChannel.WhatsApp,
-      isOn: data.project?.enableWhatsAppNotifications,
-    },
-    {
-      channel: OnCallPageChannel.Telegram,
-      projectChannel: ProjectNotificationChannel.Telegram,
-      isOn: data.project?.enableTelegramNotifications,
-    },
-  ];
-
-  for (const off of offChannels) {
+  for (const off of getProjectChannelSwitches(data.project)) {
     if (
-      data.project &&
-      off.isOn === false &&
+      off.isOff &&
       data.methods.some((method: OnCallTestPagePreviewMethod): boolean => {
         return method.channel === off.channel;
       })
