@@ -120,7 +120,13 @@ and phone summary: change the suite in the same pull request as the menu.
   Retention", Project Settings "Danger Zone › Danger Zone" and seven resource pages "Settings ›
   Settings" (#9134). Put the entry in a section of related pages (a resource's Settings sits in
   Advanced, beside Owners and Audit Logs), or name the entry for what the page does (Danger Zone ›
-  Delete Project). Enforced by
+  Delete Project). Nor does it nearly repeat it: a heading whose every word is in its only entry
+  ("Logs › Call Logs", "Calendar › Maintenance Calendar", "Notes › Private Notes", "Rules › Monitor
+  Rules") says nothing the entry does not (#9216). Call Logs went to its policy's Basic, the
+  maintenance calendar to Overview, a runbook's Executions to Advanced. A page that is the only
+  entry of the only section has no side menu (an AI insight, Send Email). A product's own list
+  ("Users › All Users") and a status page's folded Rules section, which the maintainer asked for,
+  are allowed, with their reasons in the guard. Enforced by
   [OneEntryMenuSectionsGuard](../../packages/App/Tests/OneEntryMenuSectionsGuard.test.ts).
 - **A setting only the public link reads says what it is for.** A dashboard's Branding and Custom
   Domains change only its public link, and showed on every dashboard as if they did more. They sit
