@@ -5,6 +5,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import { NodeValuesEncoder } from "@clickhouse/client/dist/utils/encoder";
 import { Readable } from "stream";
 import { describe, expect, test } from "@jest/globals";
+import { seededRandom } from "../../../Helpers/SeededRandom";
 
 /*
  * ---------------------------------------------------------------------------
@@ -30,17 +31,6 @@ function clientBody(rows: Array<JSONObject>): Buffer {
     clientEncoder.encodeValues(rows, "JSONEachRow") as string,
     "utf-8",
   );
-}
-
-function prng(seed: number): () => number {
-  let state: number = seed >>> 0;
-  return (): number => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t: number = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 const TEXTS: Array<string> = [
@@ -101,7 +91,7 @@ function randomRow(random: () => number, index: number): JSONObject {
 
 describe("JsonEachRowBody.encode writes what the ClickHouse client writes", () => {
   test("2,000 rows of every kind, in pieces that join to the client's body", () => {
-    const random: () => number = prng(6086);
+    const random: () => number = seededRandom(6086);
     const rows: Array<JSONObject> = [];
 
     for (let i: number = 0; i < 2000; i++) {
@@ -115,7 +105,7 @@ describe("JsonEachRowBody.encode writes what the ClickHouse client writes", () =
   });
 
   test("a piece ends only where a row ends, and is cut once it reaches the size", () => {
-    const random: () => number = prng(7);
+    const random: () => number = seededRandom(7);
     const rows: Array<JSONObject> = [];
 
     for (let i: number = 0; i < 500; i++) {

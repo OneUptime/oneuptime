@@ -3,6 +3,7 @@ import ExceptionUtil from "../../FeatureSet/Telemetry/Utils/Exception";
 import Crypto from "Common/Utils/Crypto";
 import ObjectID from "Common/Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 
 /*
  * ---------------------------------------------------------------------------
@@ -16,17 +17,6 @@ import { describe, expect, test } from "@jest/globals";
  * crypto-js could not hash (a lone surrogate) still fails as it did.
  * ---------------------------------------------------------------------------
  */
-
-function prng(seed: number): () => number {
-  let state: number = seed >>> 0;
-  return (): number => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t: number = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 const PIECES: Array<string> = [
   "",
@@ -44,7 +34,7 @@ const PIECES: Array<string> = [
 
 describe("fingerprintSha256 is crypto-js's SHA-256, by Node", () => {
   test("3,000 texts of every kind hash to the same hex", () => {
-    const random: () => number = prng(6086);
+    const random: () => number = seededRandom(6086);
 
     for (let i: number = 0; i < 3000; i++) {
       let text: string = "";
