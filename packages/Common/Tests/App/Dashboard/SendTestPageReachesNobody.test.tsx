@@ -669,6 +669,16 @@ describe("the dialog: yourself", () => {
     expect(sendMock).not.toHaveBeenCalled();
   });
 
+  test("the severity picker is named by its label", async () => {
+    previewMock.mockResolvedValue(selfPreview(person("You")));
+
+    await openDialog(SELF);
+
+    expect(
+      screen.getByRole("combobox", { name: "Severity" }),
+    ).toBeInTheDocument();
+  });
+
   test("opted out: the line points to How to Reach Me", async () => {
     previewMock.mockResolvedValue(selfPreview(optedOut("You")));
 

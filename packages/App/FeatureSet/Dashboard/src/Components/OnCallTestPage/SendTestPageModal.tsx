@@ -1133,7 +1133,7 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
             {translator.translateText("Severity")}
           </label>
           <Dropdown
-            id="test-page-severity"
+            inputId="test-page-severity"
             dataTestId="test-page-severity"
             options={groups}
             value={selectedOption}

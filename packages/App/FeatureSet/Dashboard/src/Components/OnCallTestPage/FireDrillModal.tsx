@@ -334,35 +334,41 @@ const FireDrillModal: FunctionComponent<ComponentProps> = (
       <div className="flex flex-col gap-4" data-testid="fire-drill-dialog">
         {events.length > 0 ? (
           <div className="flex flex-col gap-1">
-            <label
-              className="text-sm font-medium text-gray-700"
-              htmlFor="fire-drill-failure"
-            >
-              {translator.translateText(FIRE_DRILL_WORDS.whatFails)}
-            </label>
             {events.length > 1 ? (
-              <Dropdown
-                id="fire-drill-failure"
-                dataTestId="fire-drill-failure"
-                options={options}
-                value={selected}
-                isClearable={false}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  if (typeof value === "string" && value) {
-                    setEventKey(value);
-                  }
-                }}
-              />
+              <>
+                <label
+                  className="text-sm font-medium text-gray-700"
+                  htmlFor="fire-drill-failure"
+                >
+                  {translator.translateText(FIRE_DRILL_WORDS.whatFails)}
+                </label>
+                <Dropdown
+                  inputId="fire-drill-failure"
+                  dataTestId="fire-drill-failure"
+                  options={options}
+                  value={selected}
+                  isClearable={false}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    if (typeof value === "string" && value) {
+                      setEventKey(value);
+                    }
+                  }}
+                />
+              </>
             ) : (
-              <p
-                id="fire-drill-failure"
-                className="text-sm text-gray-900 break-words"
-                data-testid="fire-drill-failure-only"
-              >
-                {selected?.label || ""}
-              </p>
+              <>
+                <p className="text-sm font-medium text-gray-700">
+                  {translator.translateText(FIRE_DRILL_WORDS.whatFails)}
+                </p>
+                <p
+                  className="text-sm text-gray-900 break-words"
+                  data-testid="fire-drill-failure-only"
+                >
+                  {selected?.label || ""}
+                </p>
+              </>
             )}
           </div>
         ) : (

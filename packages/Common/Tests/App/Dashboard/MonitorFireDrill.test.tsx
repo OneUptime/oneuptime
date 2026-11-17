@@ -15,6 +15,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import fs from "fs";
@@ -111,6 +112,7 @@ import {
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { Translator, createTranslator } from "../../../Types/Translator";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { getShownDropdownValue, pickDropdownOption } from "../../DropdownPicks";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
@@ -456,13 +458,31 @@ describe("before the drill starts", () => {
 
     await openDialog();
 
-    // A picker, showing the one this preview is of, rather than a line.
+    /*
+     * A picker named by its label, showing the one this preview is of,
+     * rather than a line.
+     */
     expect(
       screen.queryByTestId("fire-drill-failure-only"),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByText("Offline · An incident (Critical)", { exact: false }),
-    ).toBeInTheDocument();
+    const picker: HTMLElement = screen.getByRole("combobox", {
+      name: "What fails",
+    });
+    expect(withoutIsolateMarks(getShownDropdownValue(picker) || "")).toBe(
+      "Offline · An incident (Critical)",
+    );
+
+    // Picking another failure reads who that one pages.
+    await pickDropdownOption(picker, (name: string): boolean => {
+      return withoutIsolateMarks(name) === "Slow · An alert (Warning)";
+    });
+
+    await waitFor(() => {
+      expect(previewMock).toHaveBeenLastCalledWith({
+        monitorId: MONITOR_ID,
+        eventKey: SLOW_KEY,
+      });
+    });
   });
 
   test("a policy the reader may not test is named, who it pages is not shown, and the drill can't start", async () => {

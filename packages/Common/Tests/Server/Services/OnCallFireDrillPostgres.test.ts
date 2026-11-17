@@ -373,7 +373,7 @@ describePostgres("a monitor's fire drill, against a migrated Postgres", () => {
       .spyOn(OnCallTestPageService, "claimLimitsOfEach")
       .mockImplementation(
         async (data: {
-          keys: Array<OnCallTestPageLimitKey>;
+          keys: ReadonlyArray<OnCallTestPageLimitKey>;
         }): Promise<void> => {
           claimed.push(
             data.keys.map((key: OnCallTestPageLimitKey): string => {
