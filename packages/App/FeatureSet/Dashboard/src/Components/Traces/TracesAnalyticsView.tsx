@@ -742,6 +742,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
         )}
         <AnalyticsQueryPicker
           ariaLabel={caption}
+          isAriaLabelTranslated={true}
           value={value}
           onChange={onChange}
           options={options}

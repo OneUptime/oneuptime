@@ -29,6 +29,11 @@ export interface AnalyticsQueryChoice {
 export interface ComponentProps {
   // What names the picker for a screen reader, as its caption reads.
   ariaLabel: string;
+  /*
+   * The name is in the reader's words already (the caption beside it):
+   * said as given. Left out, it is English, looked up by the picker.
+   */
+  isAriaLabelTranslated?: boolean | undefined;
   value: string | number;
   onChange: (value: string) => void;
   options: Array<AnalyticsQueryChoice>;
@@ -81,7 +86,7 @@ const AnalyticsQueryPicker: FunctionComponent<ComponentProps> = (
         className={getAnalyticsQueryPickerClassName(props.options)}
         isCompact={true}
         ariaLabel={props.ariaLabel}
-        isAriaLabelTranslated={true}
+        isAriaLabelTranslated={props.isAriaLabelTranslated}
         options={options}
         value={findDropdownOption(options, props.value)}
         placeholder={emptyChoice?.label}

@@ -716,6 +716,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
          */}
         <AnalyticsQueryPicker
           ariaLabel={label}
+          isAriaLabelTranslated={true}
           value={value}
           onChange={onChange}
           options={options}

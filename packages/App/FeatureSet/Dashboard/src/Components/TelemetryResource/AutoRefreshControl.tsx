@@ -244,8 +244,8 @@ const AutoRefreshControl: FunctionComponent<AutoRefreshControlProps> = (
         <Dropdown
           className="relative w-36 overflow-visible"
           isCompact={true}
-          ariaLabel={autoRefreshLabel}
-          isAriaLabelTranslated={true}
+          // English: the picker says it in the reader's language.
+          ariaLabel="Auto-refresh"
           options={intervalOptions}
           value={findDropdownOption(intervalOptions, props.autoRefreshInterval)}
           // An interval is always chosen, "Off" among them.
