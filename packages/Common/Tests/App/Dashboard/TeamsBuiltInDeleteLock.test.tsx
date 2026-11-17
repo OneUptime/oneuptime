@@ -16,6 +16,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -27,7 +28,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * the server's words (BuiltInTeam); every other team - Members included -
  * deletes as any row does. A bulk Delete that includes a built-in team sends
  * nothing for it and lists it, with that reason, among the teams it did not
- * delete.
+ * delete. Each Delete reads what still uses the teams first (#7435): a
+ * row's that team's, a bulk one the selection's - nothing, here.
  */
 
 let allPermissionsForTest: Array<string> = [];
@@ -148,6 +150,7 @@ import TeamsPage, {
   getTeamDeleteDisabledReason,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Teams/Index";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import UsedByApi from "../../../../App/FeatureSet/Dashboard/src/Components/UsedBy/UsedByApi";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Team from "../../../Models/DatabaseModels/Team";
@@ -155,6 +158,7 @@ import Route from "../../../Types/API/Route";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import { BUILT_IN_TEAM_DELETE_MESSAGE } from "../../../Types/Team/BuiltInTeam";
+import { UsedByRecordKind } from "../../../Types/UsedBy/UsedBy";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 
@@ -259,15 +263,25 @@ async function runBulkDelete(): Promise<void> {
     ).not.toBeNull();
   });
 
-  fireEvent.click(
-    Array.from(
+  /*
+   * The dialog holds its Delete until it has read what still uses the
+   * selection (#7435): pressed once it may be, as a person would.
+   */
+  let deleteButton: HTMLButtonElement | undefined;
+
+  await waitFor(() => {
+    deleteButton = Array.from(
       document.querySelectorAll<HTMLButtonElement>(
         '[data-testid="modal-footer"] button',
       ),
     ).find((button: HTMLButtonElement): boolean => {
       return (button.textContent || "").trim() === "Delete";
-    })!,
-  );
+    });
+
+    expect(deleteButton).toBeEnabled();
+  });
+
+  fireEvent.click(deleteButton!);
 }
 
 function deletedIds(): Array<string> {
@@ -275,6 +289,10 @@ function deletedIds(): Array<string> {
     return String(args[0].id);
   });
 }
+
+// What still uses one team, and what uses any of a selection (#7435).
+let getUsedBy: SpyInstance<typeof UsedByApi.getSummary>;
+let getUsedByOfSelection: SpyInstance<typeof UsedByApi.getSummaries>;
 
 beforeEach(() => {
   holding([Permission.ProjectOwner]);
@@ -293,6 +311,29 @@ beforeEach(() => {
   deleteItemMock.mockImplementation(async (): Promise<void> => {
     return undefined;
   });
+  // Nothing uses these teams: each Delete's read of it answers so.
+  getUsedBy = jest
+    .spyOn(UsedByApi, "getSummary")
+    .mockImplementation(
+      async (data: Parameters<typeof UsedByApi.getSummary>[0]) => {
+        return {
+          recordKind: data.recordKind,
+          recordId: data.recordId.toString(),
+          groups: [],
+        };
+      },
+    );
+  getUsedByOfSelection = jest
+    .spyOn(UsedByApi, "getSummaries")
+    .mockImplementation(
+      async (data: Parameters<typeof UsedByApi.getSummaries>[0]) => {
+        return {
+          recordKind: data.recordKind,
+          recordCount: data.recordIds.length,
+          groups: [],
+        };
+      },
+    );
 });
 
 afterEach(() => {
@@ -395,6 +436,19 @@ describe("the Teams list", () => {
       expect(deletedIds()).toEqual([
         name === "Members" ? MEMBERS_ID : ENGINEERING_ID,
       ]);
+      // Its dialog said what still uses that team, read once, first.
+      expect(
+        getUsedBy.mock.calls.map(
+          ([data]: Parameters<typeof UsedByApi.getSummary>) => {
+            return [data.recordKind, data.recordId.toString()];
+          },
+        ),
+      ).toEqual([
+        [
+          UsedByRecordKind.Team,
+          name === "Members" ? MEMBERS_ID : ENGINEERING_ID,
+        ],
+      ]);
     },
   );
 
@@ -415,5 +469,15 @@ describe("the Teams list", () => {
     expect(screen.getByText("1 Team deleted")).toBeInTheDocument();
     expect(screen.getByText("1 Team not deleted")).toBeInTheDocument();
     expect(screen.getByText(BUILT_IN_TEAM_DELETE_MESSAGE)).toBeInTheDocument();
+    // What still uses the selection was read once, for both teams.
+    expect(getUsedByOfSelection).toHaveBeenCalledTimes(1);
+    expect(getUsedByOfSelection.mock.calls[0]![0].recordKind).toBe(
+      UsedByRecordKind.Team,
+    );
+    expect(
+      getUsedByOfSelection.mock.calls[0]![0].recordIds.map((id: unknown) => {
+        return String(id);
+      }),
+    ).toEqual([OWNERS_ID, ENGINEERING_ID]);
   });
 });

@@ -66,9 +66,9 @@ Once the domain is live, the **Share Link** card lists it above the form's link.
 Click **Add Custom Domain**. The dialog asks for one thing:
 
 - **Domain**: the whole address people will open, placeholder `report.example.com`. A pasted link works too: only its hostname is kept. To use the root of a domain, type the domain itself.
-- **More fields**: folded. Open it only to use a certificate of your own: switch on **Upload Custom Certificate**, and paste the **Certificate** and its **Certificate Private Key**.
+- **More fields**: folded. Open it only to use a certificate of your own: switch on **Upload Custom Certificate**, and paste the **Certificate** and its **Certificate Private Key**. The key is stored encrypted and never shown again. A certificate and key that do not belong together are refused, with the reason under the field that is wrong.
 
-Click **Continue**. If the project has verified the domain the address is on, under **Project Settings** > **Advanced** > **Domains**, the domain is added and its **DNS Setup** opens. If it has not, OneUptime adds that domain to the project and **DNS Setup** opens with its TXT record too, so you verify it right there. A domain's name and its form are fixed once it is added, so **Edit** changes only its certificate: to change either, add the new domain and delete the old one.
+Click **Continue**. If the project has verified the domain the address is on, under **Project Settings** > **Advanced** > **Domains**, the domain is added and its **DNS Setup** opens. If it has not, OneUptime adds that domain to the project and **DNS Setup** opens with its TXT record too, so you verify it right there. A domain's name and its form are fixed once it is added, so **Edit** changes only its certificate: to change either, add the new domain and delete the old one. On a domain that serves your own certificate, **Certificate Private Key** is empty in the **Edit** dialog: leave it blank to keep the stored key, which is all a certificate renewed with the same key needs, or paste a new key. On a domain on the free certificate, switching **Upload Custom Certificate** on asks for the key.
 
 One domain shows one status page, dashboard or form, so a name that any of them already has, in any project, is refused: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
 
@@ -186,6 +186,10 @@ Each variable also reads its old name, with `INCIDENT_FORM_` in front instead of
 ### Captcha
 
 When your OneUptime instance has hCaptcha turned on, the form shows a captcha, and a submission that has not passed it is refused. There is no per-form setting. A self-hosted installation turns captcha on with `CAPTCHA_ENABLED`, `CAPTCHA_SITE_KEY` and `CAPTCHA_SECRET_KEY` — the same settings that protect sign-up. Without it, the rate limits and the IP allowlist carry the load.
+
+### Malware scanning
+
+A self-hosted installation can have every file people send scanned for malware with ClamAV before it is stored: a form's files, and the files people upload while signed in or with an API key. Set `CLAMAV_HOST` (and `CLAMAV_PORT`, `3310` by default) to a ClamAV daemon. With Docker Compose, `COMPOSE_PROFILES=clamav` and `CLAMAV_HOST=clamav` in `config.env` start the ClamAV bundled with OneUptime; with Helm, set `clamav.enabled`. A file ClamAV flags is refused, saying which, and nothing of the submission is stored. While ClamAV does not answer, every file is refused with "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes." (503), so no file is stored unchecked. Without `CLAMAV_HOST`, files are not scanned, as before.
 
 ## Troubleshooting
 

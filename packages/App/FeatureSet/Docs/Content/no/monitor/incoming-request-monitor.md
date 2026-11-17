@@ -12,7 +12,7 @@ Begge bruker samme monitortype. Det som skiller dem, er kriteriene du konfigurer
 :::cards
 - [Opprett monitoren](#opprett-en-monitor-for-innkommende-forespørsler): Få en heartbeat-URL i noen få trinn.
 - [Send et heartbeat](#send-et-heartbeat): Fra curl, cron, Node.js, Python eller Go.
-- [Varsle når kallene stopper](#marker-som-frakoblet-hvis-det-ikke-kommer-noe-heartbeat-på-10-minutter-en-dødmannsbryter): Gjør monitoren til en dødmannsbryter.
+- [Varsle når kallene stopper](#marker-som-offline-hvis-det-ikke-kommer-noe-heartbeat-på-10-minutter-en-dødmannsbryter): Gjør monitoren til en dødmannsbryter.
 - [Motta varsler](#motta-varsler-fra-et-annet-system): Én hendelse per varsel fra Alertmanager eller Grafana.
 - [Abonner på SNS eller Event Grid](#abonnere-på-amazon-sns-eller-azure-event-grid): Bekreft abonnementet med ett klikk.
 :::
@@ -54,7 +54,7 @@ Under **Monitortype** velger du **Innkommende forespørsel** — den er en av de
 
 ### Gå gjennom kriteriene
 
-Trinnet **Kriterier** starter med [standardkriteriene](#hva-du-får-fra-start). For et heartbeat klikker du på **Legg til kriterier** og gir det nye kriteriet et filter **Innkommende forespørsel** / **Ikke mottatt innen (minutter)** som endrer statusen til frakoblet og erklærer en hendelse, med **Løs hendelse automatisk** slått på. Dra det deretter øverst i listen — se [Eksempler på kriterier](#eksempler-på-kriterier) for hvorfor.
+Trinnet **Kriterier** starter med [standardkriteriene](#hva-du-får-fra-start). For et heartbeat klikker du på **Legg til kriterier** og gir det nye kriteriet et filter **Innkommende forespørsel** / **Ikke mottatt innen (minutter)** som endrer statusen til offline og erklærer en hendelse, med **Løs hendelse automatisk** slått på. Dra det deretter øverst i listen — se [Eksempler på kriterier](#eksempler-på-kriterier) for hvorfor.
 
 ### Opprett monitoren
 
@@ -84,7 +84,7 @@ Send **GET**- eller **POST**-forespørsler til denne URL-en. HEAD godtas og beha
 > Alle som kjenner denne URL-en, kan markere monitoren som frisk, så behandle den som en hemmelighet. Hvis den lekker, åpner du monitorens side **Innstillinger** og klikker på **Tilbakestill hemmelig nøkkel for innkommende forespørsel**, og deretter oppdaterer du hver avsender. Monitorens oversikt viser den siste forespørselen slik loggene beholder den: med hemmeligheter og personopplysninger maskert, og uten headere eller brødtekst når **Behold forespørselsinnhold** er slått av. Maskeringen fanger bare navnene og mønstrene den kjenner, så ikke send API-nøkler eller tokener til dette endepunktet.
 
 > [!IMPORTANT]
-> OneUptime svarer `200` med et tomt JSON-objekt (`{}`) med en gang og behandler forespørselen via en kø. Svaret skrives før noen validering skjer, så en `200` er **ikke** en bekreftelse på at forespørselen ble godtatt — en feil hemmelig nøkkel, en slettet monitor og en deaktivert monitor returnerer også `200`. Sjekk monitorens egen tidslinje for å bekrefte at forespørslene kommer frem. Det eneste unntaket er et prosjekt som krever en hemmelighet ved hver forespørsel: En forespørsel uten hemmelighet besvares med `401`.
+> OneUptime svarer `200` med et tomt JSON-objekt (`{}`) med en gang og behandler forespørselen via en kø. Svaret skrives før noen validering skjer, så en `200` er **ikke** en bekreftelse på at forespørselen ble godtatt — en feil hemmelig nøkkel, en slettet monitor og en deaktivert monitor returnerer også `200`. Sjekk monitorens egen tidslinje for å bekrefte at forespørslene kommer frem. Et prosjekt som krever en hemmelighet ved hver forespørsel, besvarer en forespørsel uten hemmelighet med `401`, og en tjeneste som sjekker URL-en før den leverer noe, får svaret den forventer: se [Tjenester som sjekker URL-en først](#tjenester-som-sjekker-url-en-først).
 
 ### Send en forespørselstekst
 
@@ -94,8 +94,9 @@ Hvis du vil bruke felt inne i forespørselsteksten — `{{requestBody.status}}` 
 | --- | --- |
 | `application/json` | Den tolkede JSON-en. |
 | `application/x-www-form-urlencoded` | Det tolkede skjemaet. Nøkler i hakeparenteser nestes (`alerts[0][status]=firing`), og alle verdier er strenger. |
-| `text/plain` | Den tolkede JSON-en, når teksten er et JSON-objekt eller en JSON-matrise: slik sender Amazon SNS meldingene sine. All annen tekst gir en tom forespørselstekst. |
-| Alt annet, eller ingen | En tom tekst (`{}`), så hver henvisning til `requestBody` blir til ingenting. |
+| `text/plain` | Den tolkede JSON-en, når teksten er et JSON-objekt eller en JSON-matrise: slik sender Amazon SNS meldingene sine. All annen tekst er selve teksten, så `backup failed: error 42` setter monitoren offline med standardkriteriene. |
+| `application/cloudevents+json` eller en annen `+json`-type | Den tolkede JSON-en: slik leverer Azure Event Grid CloudEvents. |
+| Alt annet, eller ingen | En tom tekst (`{}`), så ingen henvisning til `requestBody` løses opp, og en mal skriver den ordrett. |
 
 Tekster på opptil 50 MB godtas; en større avvises med en `413`. Ikke komprimer teksten med `Content-Encoding: gzip`: da lagres den ikke som JSON, og stier inn i den blir ikke løst opp.
 
@@ -193,6 +194,8 @@ Invoke-RestMethod -Method Post `
 
 Alle som har URL-en til en monitor, kan sende den forespørsler. En Prosjekteier eller Prosjektadministrator kan få alle monitorer av innkommende forespørsler i prosjektet til også å kreve en av prosjektets egne hemmeligheter, uansett hvem som satte opp monitoren: slå på **Krev en hemmelighet ved hver forespørsel**. En forespørsel uten hemmelighet avvises med `401` og årsaken, før den teller som heartbeat, lagres som monitorens siste forespørsel eller når noen kriterier. En forespørsel med hemmelighet går videre til monitorens egne kriterier, som før.
 
+Prosjekteiere og Prosjektadministratorer administrerer hemmelighetene og bryteren, og det gjør også en egendefinert rolle med tillatelsene Create, Read, Edit og Delete Incoming Request Secret: Read viser verdiene til hemmelighetene, og Edit slår også bryteren av og på.
+
 :::steps
 ### Opprett en hemmelighet
 
@@ -200,7 +203,7 @@ Gå til **Monitorer → Innstillinger → Hemmeligheter for innkommende forespø
 
 ### Send den fra alle avsendere
 
-Send hemmeligheten i headeren `X-OneUptime-Secret`, eller som Bearer-token i headeren `Authorization`, avhengig av hva avsenderen din kan sette.
+Send hemmeligheten i headeren `X-OneUptime-Secret`, eller som Bearer-token i headeren `Authorization`, avhengig av hva avsenderen din kan sette. En avsender som ikke selv kan sette en header, kan i stedet signere hver forespørsel med hemmeligheten: se [Signer forespørsler med hemmeligheten](#signer-forespørsler-med-hemmeligheten).
 
 ### Finn avsenderne du har glemt
 
@@ -208,7 +211,7 @@ Så snart prosjektet har en hemmelighet, sjekker OneUptime hver forespørsel for
 
 ### Slå på kravet
 
-Slå på **Krev en hemmelighet ved hver forespørsel**. Kravet kan ikke slås på mens prosjektet ikke har noen hemmelighet, så ingen avsender avvises ved en feil.
+Slå på **Krev en hemmelighet ved hver forespørsel**. Kravet kan ikke slås på mens prosjektet ikke har noen hemmelighet, så ingen avsender avvises ved en feil. Før kravet slås på, oppgis det hvor mange monitorer av innkommende forespørsler som har fått en forespørsel uten gyldig hemmelighet de siste 24 timene, hvis noen: Avsenderne deres avvises fra da av.
 :::
 
 ```bash
@@ -222,12 +225,44 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 OneUptime lagrer aldri hemmeligheten: Den fjerner headeren fra forespørselen og maskerer et Bearer-token som er en av prosjektets hemmeligheter, før den lagrer noe.
 
+En adresse som sender en monitor mer enn 10 ulike feil hemmeligheter på 15 minutter, avvises deretter med `429` for hver hemmelighet den sender, riktig eller feil, til tidspunktet headeren `Retry-After` oppgir, høyst 15 minutter. Avsendere på andre adresser påvirkes ikke, og en avsender som fortsetter å sende én gammel hemmelighet, får fortsatt den `401` som sier hva som er galt.
+
 > [!TIP]
-> For å bytte ut en hemmelighet uten å avvise noen, opprett en ny, flytt avsenderne dine til den, og slett den gamle når **Sist brukt** slutter å endre seg. Alle prosjektets hemmeligheter godtas, og den siste kan ikke slettes mens kravet er slått på.
+> For å bytte ut en hemmelighet uten å avvise noen, opprett en ny, flytt avsenderne dine til den, og slett den gamle når **Sist brukt** slutter å endre seg. Alle prosjektets hemmeligheter godtas med mindre de er begrenset til andre monitorer, og den siste som dekker en monitor, kan ikke slettes mens kravet er slått på.
+
+### Signer forespørsler med hemmeligheten
+
+En avsender kan signere hver forespørsel med hemmeligheten i stedet for å sende den, og det er tryggere: Ingenting hemmelig sendes, og en forespørsel noen har fanget opp, kan ikke sendes på nytt senere. Foretrekk det overalt der en avsender kan signere. OneUptime sjekker disse signaturene, hver en HMAC-SHA256 i hex med hemmeligheten som nøkkel:
+
+| Avsender | Header | Hva som signeres |
+| --- | --- | --- |
+| Din egen kode | `X-OneUptime-Signature: t=<time>,v1=<signature>` | `<time>.<body>` |
+| GitHub-webhooks | `X-Hub-Signature-256` | Bodyen |
+| Slack | `X-Slack-Signature`, med `X-Slack-Request-Timestamp` | `v0:<time>:<body>` |
+| Stripe | `Stripe-Signature` | `<time>.<body>` |
+
+`<time>` er tidspunktet forespørselen ble signert, i sekunder siden 1970. En signatur som er mer enn 5 minutter fra OneUptimes klokke, avvises, og det samme gjør en signert forespørsel som sendes en gang til; GitHubs signatur har ingen tid, så OneUptime husker hver av dem i ett døgn. For GitHub gir du webhooken en av prosjektets hemmeligheter som secret. Slack og Stripe lager sin egen signeringshemmelighet: Opprett prosjektets hemmelighet med den verdien under **Flere felt**.
+
+```bash
+body='{"status":"healthy"}'
+t=$(date +%s)
+sig=$(printf '%s.%s' "$t" "$body" | openssl dgst -sha256 -hmac "YOUR_PROJECT_SECRET" | sed 's/^.* //')
+
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Content-Type: application/json" \
+  -H "X-OneUptime-Signature: t=$t,v1=$sig" \
+  -d "$body"
+```
+
+En hemmelighet i URL-ens query string godtas ikke: Proxyer og tilgangslogger lagrer hele URL-er ved siden av monitorens egen nøkkel. En sondes inngangsport for innkommende forespørsler videresender bodyen til en signert forespørsel slik den kom, så signaturen holder også den veien.
+
+### Begrens en hemmelighet til bestemte monitorer
+
+En hemmelighet godtas av alle monitorer av innkommende forespørsler i prosjektet med mindre du begrenser den, slik et prosjekt gjør der hver leietaker sender sin egen hemmelighet: Velg under **Flere felt** enten **Bestemte monitorer** eller **Monitorer med etiketter**. Alle andre monitorer avviser den med `401`, slik de avviser en feil hemmelighet, og **Forespørsler uten hemmelighet** oppgir årsaken som **Hemmelighet ikke for denne monitoren**. Så lenge kravet er slått på, beholder prosjektet minst én hemmelighet som dekker en monitor.
 
 ## Overvåkingskriterier
 
-Du kan konfigurere kriterier som avgjør når tjenesten din regnes som online, redusert eller frakoblet. Hvert kriteriefilter har en **Filtertype** (hva det ses på), et **Filtervilkår** (hvordan det sammenlignes) og en **Verdi**.
+Du kan konfigurere kriterier som avgjør når tjenesten din regnes som online, redusert eller offline. Hvert kriteriefilter har en **Filtertype** (hva det ses på), et **Filtervilkår** (hvordan det sammenlignes) og en **Verdi**.
 
 ### Hva du får fra start
 
@@ -235,7 +270,7 @@ En ny monitor for innkommende forespørsler opprettes med to kriterier som leser
 
 | Kriterium | Filtertype | Filtervilkår | Verdi | Virkning |
 | -------- | ------------ | ---------------- | ------- | -------------------------------------------- |
-| Offline  | Forespørselstekst | Inneholder | `error` | Markerer monitoren som frakoblet, åpner en hendelse |
+| Offline  | Forespørselstekst | Inneholder | `error` | Markerer monitoren som offline, åpner en hendelse |
 | Online   | Forespørselstekst | Inneholder ikke | `error` | Markerer monitoren som online |
 
 Dette passer for det vanlige tilfellet der avsenderen rapporterer sin egen helse i nyttelasten: en forespørsel der teksten nevner `error`, tar monitoren ned, og den neste forespørselen uten ordet får monitoren opp igjen og løser hendelsen. En forespørsel helt uten tekst regnes som "inneholder ikke `error`", så et rent heartbeat-kall holder monitoren online.
@@ -272,7 +307,7 @@ Objekter som tekst sammenlignes som kompakt JSON uten mellomrom, så et filter *
 
 ### Eksempler på kriterier
 
-#### Marker som frakoblet hvis det ikke kommer noe heartbeat på 10 minutter (en dødmannsbryter)
+#### Marker som offline hvis det ikke kommer noe heartbeat på 10 minutter (en dødmannsbryter)
 
 | Felt | Verdi |
 | --- | --- |
@@ -292,7 +327,7 @@ Objekter som tekst sammenlignes som kompakt JSON uten mellomrom, så et filter *
 > Legg dødmannsbryteren **over** standardkriteriene. Kriteriene sjekkes ovenfra, og det første som samsvarer, avgjør. Bakgrunnskontrollen leser den siste forespørselen på nytt, så standardkriteriet for online — "Forespørselstekst Inneholder ikke `error`" — fortsetter å samsvare med den, og et kriterium under det kommer aldri til. **Legg til kriterier** legger til et kriterium nederst: dra det opp.
 
 > [!WARNING]
-> En monitor evalueres bare på nytt i bakgrunnen hvis minst ett av kriteriene sjekker **Innkommende forespørsel**. En monitor der kriteriene bare sjekker forespørselsteksten, Forespørselshode eller et JavaScript-uttrykk, evalueres når en forespørsel kommer, og ikke på noe annet tidspunkt — så den kan aldri bli frakoblet av seg selv. Vil du ha en alarm for manglende heartbeat, trenger du et kriterium med **Innkommende forespørsel**.
+> En monitor evalueres bare på nytt i bakgrunnen hvis minst ett av kriteriene sjekker **Innkommende forespørsel**. En monitor der kriteriene bare sjekker forespørselsteksten, Forespørselshode eller et JavaScript-uttrykk, evalueres når en forespørsel kommer, og ikke på noe annet tidspunkt — så den kan aldri bli offline av seg selv. Vil du ha en alarm for manglende heartbeat, trenger du et kriterium med **Innkommende forespørsel**.
 
 Bakgrunnskontrollen teller hele minutter og utløses så snart *mer* enn verdien har gått: "Ikke mottatt innen (minutter): 10" utløses omtrent 11 minutter etter den siste forespørselen (kontrollen kjører hvert 30. sekund). En monitor som aldri har mottatt en forespørsel, behandles som om opprettelsestidspunktet var den siste forespørselen, så det samme kriteriet på en helt ny monitor utløses omtrent 11 minutter etter at du oppretter den, selv om avsenderen aldri ble koblet til. Bare minutter da OneUptime tok imot, teller med: minutter mens OneUptime selv starter på nytt, oppgraderes eller tar igjen etterslep, teller ikke, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
@@ -349,7 +384,7 @@ Kortet **Monitor-sammendrag** på monitorens **Oversikt** viser hva hver foresp�
 En webhook beskriver bare det som står i den nyttelasten, så OneUptime løser aldri en hendelse fordi nøkkelen sluttet å dukke opp. En hendelse løses bare når en nyttelast uttrykkelig sier at den nøkkelen er over. To ting må begge være sanne:
 
 1. **Field that signals recovery** og **Value that means recovered** er fylt inn og samsvarer med nyttelasten. Sammenligningen er nøyaktig og skiller mellom store og små bokstaver — `Resolved` samsvarer ikke med `resolved`.
-2. Hendelsen til kriteriet har **Løs hendelse automatisk** slått på, under **Flere felt** i hendelsesskjemaet. Uten det ignoreres samsvarende meldinger om at problemet er over, og hendelsene forblir åpne. (Det samme gjelder varsler og **Løs varsel automatisk**.) Standardkriteriet for frakoblet starter med det slått på; en hendelse du selv legger til i et kriterium, starter med det slått av.
+2. Hendelsen til kriteriet har **Løs hendelse automatisk** slått på, under **Flere felt** i hendelsesskjemaet. Uten det ignoreres samsvarende meldinger om at problemet er over, og hendelsene forblir åpne. (Det samme gjelder varsler og **Løs varsel automatisk**.) Standardkriteriet for offline starter med det slått på; en hendelse du selv legger til i et kriterium, starter med det slått av.
 
 **Max incidents per request** begrenser uthentingen, ikke bare opprettelsen. Nøkler forbi taket er også usynlige for løsningen, så i en nyttelast med flere særskilte nøkler enn taket lukker ikke et varsel som melder `resolved` forbi taket, hendelsen sin.
 
@@ -383,9 +418,25 @@ Hele nyttelasten er tilgjengelig ved siden av, så både en hendelsestittel `{{a
 
 En fullstendig Alertmanager-konfigurasjon finner du under [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). For Grafana, se [Grafana](/docs/integrations/grafana).
 
+## Tjenester som sjekker URL-en først
+
+Noen tjenester sjekker et nytt endepunkt før de leverer noe til det: De sender det en forespørsel og leverer først når det svarer slik de forventer. OneUptime besvarer disse sjekkene selv, så du trenger bare å lime inn monitorens **Heartbeat URL** i tjenesten.
+
+| Tjeneste | Sjekken | Det OneUptime svarer |
+| --- | --- | --- |
+| Azure Event Grid, Event Grid-skjema | En `SubscriptionValidationEvent` | Dens `validationCode`, som `validationResponse` |
+| Azure Event Grid, CloudEvents-skjema | En `OPTIONS`-forespørsel som nevner opprinnelsen sin | `WebHook-Allowed-Origin`, med den opprinnelsen |
+| Slack Events API | En `url_verification`-forespørsel | Dens `challenge` |
+| Endringsvarsler fra Microsoft Graph | En `POST` med et `validationToken` | Tokenet, som `text/plain` |
+| Event hooks fra Okta | En `GET` med `X-Okta-Verification-Challenge` | Utfordringen, som `verification` |
+
+En sjekk besvares bare på en monitors egen URL, og bare når forespørselen teller: I et prosjekt som krever en hemmelighet ved hver forespørsel, avvises en sjekk uten hemmelighet med `401`, som enhver forespørsel, så tjenesten må sende hemmeligheten i en header. Svaret inneholder det tjenesten sendte for å få det tilbake, og ingenting annet fra forespørselen, og bare når det har formen tjenesten gir det.
+
+En sjekk når monitoren som enhver forespørsel, så kriteriene vurderer den, og den vises på monitorens **Oversikt**; CloudEvents-sjekken besvares og ingenting mer. En sondes inngangsport for innkommende forespørsler besvarer en sjekk slik den besvarer enhver forespørsel, med `{}`, så send disse tjenestene til OneUptimes egen URL.
+
 ## Abonnere på Amazon SNS eller Azure Event Grid
 
-Amazon SNS og Azure Event Grid sender ingenting til et nytt endepunkt før noen bekrefter abonnementet ved å åpne en lenke som tjenesten sender til det. Når den forespørselen kommer, viser kortet **Monitor-sammendrag** på monitorens **Oversikt** hva tjenesten venter på, emnet og én knapp som åpner lenken i en ny fane.
+Amazon SNS sender ingenting til et nytt endepunkt før noen bekrefter abonnementet ved å åpne en lenke som SNS sender dit. Azure Event Grid sender også en slik lenke, til et endepunkt som ikke besvarer sjekken dens, og OneUptime besvarer den. Når det kommer en lenke som ennå skal åpnes, viser kortet **Monitor-sammendrag** på monitorens **Oversikt** hva tjenesten venter på, emnet og én knapp som åpner lenken i en ny fane.
 
 | Tjeneste | Forespørselen | Knapp | Lenken virker i |
 | --- | --- | --- | --- |
@@ -411,11 +462,11 @@ Hvis kortet sier at lenken ikke lenger kan åpnes, merker du abonnementet i SNS-
 ### Azure Event Grid
 
 :::steps
-1. Åpne ressursen du vil ha hendelser fra, i Azure-portalen, og legg til et hendelsesabonnement. Velg **Event Grid Schema** som hendelsesskjema, **Web Hook** som endepunkttype og monitorens **Heartbeat URL** som endepunkt.
-2. Innen 10 minutter åpner du monitorens **Oversikt** og klikker på **Valider abonnement** i kortet **Monitor-sammendrag**.
+1. Åpne ressursen du vil ha hendelser fra, i Azure-portalen, og legg til et hendelsesabonnement. Velg **Event Grid Schema** eller **Cloud Event Schema v1.0** som hendelsesskjema, **Web Hook** som endepunkttype og monitorens **Heartbeat URL** som endepunkt.
+2. Opprett hendelsesabonnementet. OneUptime besvarer sjekken fra Event Grid, så abonnementet valideres mens det opprettes, og hendelsene begynner å komme.
 :::
 
-Event Grid validerer et endepunkt som sender en kode tilbake til Event Grid, eller der eieren åpner lenken Event Grid sender. OneUptime svarer på hver forespørsel med en tom `200`, så lenken er veien å gå. Lenken peker til Event Grid på port 553, som en brannmur foran nettleseren din må tillate. Går 10 minutter først, mislykkes hendelsesabonnementet: opprett det på nytt.
+Event Grid validerer et endepunkt som sender en kode tilbake til Event Grid, eller der eieren åpner lenken Event Grid sender. OneUptime sender koden tilbake, så kortet **Monitor-sammendrag** tilbyr **Valider abonnement** bare for en validering OneUptime ikke besvarte: Åpne den innen 10 minutter. Lenken peker til Event Grid på port 553, som en brannmur foran nettleseren din må tillate. Går 10 minutter først, mislykkes hendelsesabonnementet: opprett det på nytt.
 
 ## Beste praksis
 
@@ -432,19 +483,27 @@ Event Grid validerer et endepunkt som sender en kode tilbake til Event Grid, ell
 :::
 
 :::details Avsenderen min får en 401
-Prosjektet krever en hemmelighet ved hver forespørsel, og forespørselen sendte ingen, eller en som ikke er prosjektets: Svaret sier hvilken. Send en av prosjektets hemmeligheter i headeren `X-OneUptime-Secret` eller som Bearer-token, slik [Krev en hemmelighet ved hver forespørsel](#krev-en-hemmelighet-ved-hver-forespørsel) viser. En avvist forespørsel når aldri monitoren.
+Prosjektet krever en hemmelighet ved hver forespørsel, og forespørselen sendte ingen, eller en som ikke er prosjektets: Svaret sier hvilken. Send en av prosjektets hemmeligheter i headeren `X-OneUptime-Secret` eller som Bearer-token, slik [Krev en hemmelighet ved hver forespørsel](#krev-en-hemmelighet-ved-hver-forespørsel) viser. En avvist forespørsel når aldri monitoren. Den får også `401` med en av prosjektets hemmeligheter som er begrenset til andre monitorer, og for en signert forespørsel der signaturen er mer enn 5 minutter gammel, er sendt før, eller er laget med en annen hemmelighet eller over en body som endret seg underveis.
+:::
+
+:::details Avsenderen min får en 429
+Adressen dens har sendt en monitor mer enn 10 ulike feil hemmeligheter eller signaturer på 15 minutter, så hver forespørsel med en hemmelighet som den sender til den monitoren, avvises til tidspunktet i headeren `Retry-After`. En avsender som signerer med en feil hemmelighet, lager en ny feil signatur hver gang og havner raskt her: Gi den en hemmelighet som monitoren godtar, slik [Krev en hemmelighet ved hver forespørsel](#krev-en-hemmelighet-ved-hver-forespørsel) viser, så godtas forespørslene dens når tiden er ute.
 :::
 
 :::details Monitoren får ikke lenger forespørsler etter at en hemmelighet ble påkrevd
 Avsenderne sender ingen hemmelighet, eller en feil, så hver forespørsel de sender, avvises. En linje under monitorens **Heartbeat URL** sier når den siste avviste forespørselen kom, og **Forespørsler uten hemmelighet** viser hver monitor som har fått en de siste 24 timene, og hvorfor. Send en av prosjektets hemmeligheter fra disse avsenderne, slik [Krev en hemmelighet ved hver forespørsel](#krev-en-hemmelighet-ved-hver-forespørsel) viser.
 :::
 
-:::details Monitoren blir aldri frakoblet når heartbeats stopper
+:::details Monitoren blir aldri offline når heartbeats stopper
 Bare et kriterium med **Innkommende forespørsel** (**Ikke mottatt innen (minutter)**) kan merke stillhet. Legg til et hvis det ikke finnes, og dra det over standardkriteriene: standardkriteriet for online samsvarer med den siste forespørselen ved hver bakgrunnskontroll, og det første kriteriet som samsvarer, avgjør.
 :::
 
 :::details Et filter på Forespørselstekst samsvarer aldri
-Send `Content-Type: application/json`, og skriv verdien som kompakt JSON — `"status":"firing"`, uten mellomrom etter kolonet. Uten en innholdstype for JSON eller skjema blir teksten ikke tolket: bare JSON sendt som `text/plain` blir det.
+Send `Content-Type: application/json`, og skriv verdien som kompakt JSON — `"status":"firing"`, uten mellomrom etter kolonet. Uten en innholdstype for JSON, skjema eller `text/plain` er teksten tom, og et filter på den samsvarer aldri.
+:::
+
+:::details En tjeneste sier at URL-en ikke besvarte sjekken dens
+Gi tjenesten monitorens **Heartbeat URL**, på OneUptime selv og ikke på en sonde. Krever prosjektet en hemmelighet ved hver forespørsel, avvises sjekken med `401` med mindre tjenesten sender hemmeligheten. La deretter tjenesten sjekke URL-en på nytt: Den besvares med en gang.
 :::
 
 :::details Et filter på Forespørselshode samsvarer aldri

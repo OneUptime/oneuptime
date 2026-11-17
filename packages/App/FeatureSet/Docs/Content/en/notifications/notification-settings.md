@@ -18,10 +18,10 @@ flowchart TB
     setting -->|"all off"| nothing["Nothing is sent"]
 ```
 
-- Each row is an event, and each column a channel: Email, SMS, Call, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost and Webhook. Slack, Microsoft Teams and Mattermost are columns only when the project has connected them.
+- Each row is an event, and each column a channel: Email, SMS, Call, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost and Webhook. Slack, Microsoft Teams and Mattermost are columns only when the project has connected them. A channel you have not set up yet is not a column: it is listed under **Channels not set up yet**, above the tabs, as a link to set it up.
 - A channel that is on sends to every verified method you have on it in this project, not just one.
-- A channel that is on, with no verified method behind it, sends nothing. **Your setup checklist** says so under **Staying informed**.
-- An update goes to the record's owners: the people named as owners, and the members of its owner teams. When a record has no owners, it goes to the Project Owners instead. An event about being added as an owner goes only to the person added. If OneUptime stops while it is sending an update to a record's owners, the people it had not got to yet get it once OneUptime is back, a few minutes late, and nobody gets it twice.
+- A channel that is on, with no verified method behind it, sends nothing. Its column says **Set up** under its name, and its switches can only be turned off. **Your setup checklist** says so too, under **Staying informed**.
+- An update goes to the record's owners: the people named as owners, and the members of its owner teams. When a record has no owners, it goes to the Project Owners instead. Someone the on-call page of a new incident, alert or episode has reached already is not notified again that it was created. An event about being added as an owner goes only to the person added. If OneUptime stops while it is sending an update to a record's owners, the people it had not got to yet get it once OneUptime is back, a few minutes late, and nobody gets it twice.
 - Security cases have no owners. A new case goes to everyone who can see the project's cases, at the priority each of them chooses, and an assigned case to the people it is assigned to. See [Security Cases](/docs/telemetry/security-cases#notifications).
 - Every owner email ends with a "Manage notification preferences" link back to this page.
 
@@ -34,11 +34,11 @@ Go to **User Settings → Notification Settings**. The tabs are **Incidents**, *
 
 ### Find the event
 
-Each tab holds one or more cards, such as **Incident Episodes** on the **Incidents** tab. Every row is an event, with a line saying when it is sent.
+Each tab holds one or more cards, such as **Incident Episodes** on the **Incidents** tab. Every row is an event, with a line saying when it is sent. Above the cards, the tab says how many of its events reach you, and by which channels.
 
 ### Click a channel
 
-Click a channel's circle to switch it on, and again to switch it off. A check mark means on. Changes save automatically.
+Click a channel's switch to turn it on, and again to turn it off. A card's first row, **All events**, turns a channel on or off for every event of the card. Each change saves at once, and the card says **Saved**.
 :::
 
 ## What is on for a new member

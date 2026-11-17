@@ -46,10 +46,13 @@ import {
   getResourceAiSettingsSource,
   isResourceAiSettingsSetByAgent,
   isResourceUnreachable,
+  RESOURCE_ACCESS_TEST_VERDICT_TITLES,
+  getResourceAccessTestVerdict,
   parseResourceAccessTestResult,
   parseResourceAiAccessStatus,
   shouldShowResourceWriteAccessCommands,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentStatus";
+import { CloudWritePathProblem } from "../../../Utils/AiRemediation/Resource/CloudOperationCatalog";
 import {
   RESOURCE_AI_AGENT_DESCRIPTORS,
   ResourceAiAgentDescriptor,
@@ -876,7 +879,7 @@ describe("the card's sentence", () => {
       ),
     ).toBe(getResourceAiAgentSilentText(DOCKER));
     expect(getResourceAiAgentSilentText(DOCKER)).toBe(
-      "The Docker AI agent has not checked in for over 5 minutes. Check its logs:",
+      "The Docker AI agent has not checked in for over 5\u00A0minutes. Check its logs:",
     );
 
     expect(
@@ -1480,6 +1483,8 @@ const SERVER_FLAGS: Record<
   ai_balance_insufficient: { investigation: true, fixes: true },
   // A cloud account with no read-only connection: nothing to read it with.
   cloud_connection_missing: { investigation: true, fixes: false },
+  // Advice, never a block: a Cloud AI agent that changes as its reader.
+  cloud_agent_changes_as_itself: { investigation: false, fixes: false },
 };
 
 function serverGap(code: ResourceAiAccessGapCode): ResourceAiAccessGap {
@@ -1868,6 +1873,13 @@ describe("Needs attention's steps", () => {
         if (code === "remediation_disabled") {
           continue;
         }
+        // Advice the server gives only a cloud account's agent.
+        if (
+          code === "cloud_agent_changes_as_itself" &&
+          !isCloudAiResourceType(type)
+        ) {
+          continue;
+        }
         texts[code] = getResourceAiAttentionStepText(
           serverGap(code),
           status,
@@ -1946,6 +1958,77 @@ describe("the AI Insights and AI Logs pages' pointer to the agent page", () => {
   });
 });
 
+/*
+ * A cloud account's Test connection whose agent reads, but whose every
+ * change would fail as it is set up: the server answers ok with the
+ * problem (writePathProblem), and the page's verdict is that reads work
+ * and changes will fail - amber - never that the connection works (#6212).
+ */
+describe("Test connection's verdict", () => {
+  test.each<[CloudWritePathProblem]>([
+    ["cannot-sign-in"],
+    ["unreadable-setting"],
+    ["another-account"],
+  ])(
+    "reads %s, and says changes will fail",
+    (problem: CloudWritePathProblem) => {
+      const result: ResourceAccessTestResult = parseResourceAccessTestResult({
+        ok: true,
+        message: "Reads work.",
+        writePathProblem: problem,
+        results: [],
+      });
+
+      expect(result.writePathProblem).toBe(problem);
+      expect(getResourceAccessTestVerdict(result)).toBe("changes-will-fail");
+      expect(RESOURCE_ACCESS_TEST_VERDICT_TITLES["changes-will-fail"]).toBe(
+        "Reads work, but changes will fail",
+      );
+    },
+  );
+
+  test.each<[string, unknown]>([
+    ["absent", undefined],
+    ["null", null],
+    ["unknown", "gremlins"],
+    ["not text", 3],
+  ])(
+    "a problem that is %s is none: the connection works",
+    (_name: string, value: unknown) => {
+      const result: ResourceAccessTestResult = parseResourceAccessTestResult({
+        ok: true,
+        message: "Works.",
+        writePathProblem: value,
+        results: [],
+      });
+
+      expect(result.writePathProblem).toBeNull();
+      expect(getResourceAccessTestVerdict(result)).toBe("works");
+    },
+  );
+
+  test("commands that failed are not working, whatever else it says", () => {
+    expect(
+      getResourceAccessTestVerdict(
+        parseResourceAccessTestResult({
+          ok: false,
+          message: "Failed.",
+          writePathProblem: "cannot-sign-in",
+          results: [],
+        }),
+      ),
+    ).toBe("not-working");
+  });
+
+  test("each verdict's headline", () => {
+    expect(RESOURCE_ACCESS_TEST_VERDICT_TITLES).toEqual({
+      works: "The connection works",
+      "changes-will-fail": "Reads work, but changes will fail",
+      "not-working": "The connection is not working yet",
+    });
+  });
+});
+
 describe("parseResourceAccessTestResult", () => {
   test("reads the test route's answer", () => {
     expect(
@@ -1973,6 +2056,7 @@ describe("parseResourceAccessTestResult", () => {
     ).toEqual({
       ok: true,
       message: "Both commands worked.",
+      writePathProblem: null,
       results: [
         {
           command: "docker version",
@@ -1996,6 +2080,7 @@ describe("parseResourceAccessTestResult", () => {
     const empty: ResourceAccessTestResult = {
       ok: false,
       message: "",
+      writePathProblem: null,
       results: [],
     };
     expect(parseResourceAccessTestResult(null)).toEqual(empty);
@@ -2165,15 +2250,33 @@ describe("in the reader's language", () => {
 
     /*
      * Every step this page words is looked up; only remediation_disabled,
-     * a choice rather than a gap, keeps the server's.
+     * a choice rather than a gap, keeps the server's. A Docker host is never
+     * told cloud_agent_changes_as_itself: the server gives that advice only
+     * to a cloud account's agent, whose step is looked up as well.
      */
     expect(
       ALL_GAP_CODES.filter((code: ResourceAiAccessGapCode): boolean => {
-        return !LOOKED_UP.test(
-          getResourceAiAttentionStepText(serverGap(code), makeStatus(), DOCKER),
+        return (
+          code !== "cloud_agent_changes_as_itself" &&
+          !LOOKED_UP.test(
+            getResourceAiAttentionStepText(
+              serverGap(code),
+              makeStatus(),
+              DOCKER,
+            ),
+          )
         );
       }),
     ).toEqual(["remediation_disabled"]);
+    for (const type of CLOUD_AI_RESOURCE_TYPES) {
+      expect(
+        getResourceAiAttentionStepText(
+          serverGap("cloud_agent_changes_as_itself"),
+          makeStatus({ resourceType: type }),
+          getResourceAiAgentDescriptor(type),
+        ),
+      ).toMatch(LOOKED_UP);
+    }
 
     expect(
       getResourceAiAttentionStepText(

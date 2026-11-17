@@ -10,7 +10,7 @@
 - [OpenStack-Helm](#openstack-helm): 针对 OpenStack-Helm 和 Atmosphere：一个探测器，以及 Kubernetes 代理。
 - [Canonical Sunbeam](#canonical-sunbeam): Canonical Observability Stack。
 - [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift): OpenShift 预设，以及 Ceilometer。
-- [Mirantis MOSK](#mirantis-mosk): StackLight 的告警。
+- [Mirantis MOSK](#mirantis-mosk): StackLight 的警报。
 - [使用您已在运行的导出器](#使用您已在运行的导出器): 在 1.7.0 上页面缺少哪些内容。
 :::
 
@@ -36,12 +36,12 @@
 
 ## 转发已经触发的告警
 
-任何带有 Alertmanager 的工具今天就可以拥有事件：触发的告警会变成事件，从第一个小时起就具备值班和状态页，并在告警解除时自动解决。无需安装任何东西，并且这与本页的其他所有内容并行工作。
+任何带有 Alertmanager 的工具今天就可以拥有事件：触发的警报会变成事件，从第一个小时起就具备值班和状态页，并在警报解除时自动解决。无需安装任何东西，并且这与本页的其他所有内容并行工作。
 
 :::steps
 ### 创建监视器
 
-按 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#用监视器接收告警) 的说明创建一个 传入请求 监视器，并复制它的 **Heartbeat URL**。这就是下面每种工具的接收器中的 `<secret key>` 地址。
+按 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#用监视器接收警报) 的说明创建一个 传入请求 监视器，并复制它的 **Heartbeat URL**。这就是下面每种工具的接收器中的 `<secret key>` 地址。
 
 ### 将它关联到云
 
@@ -52,11 +52,11 @@ Alertmanager（Kolla-Ansible 所固定的版本）已被记录下按这个确切
 
 ## Kolla-Ansible
 
-在 `/etc/kolla/globals.yml` 中开启 `enable_prometheus`（Kolla-Ansible 在您设置之前默认关闭它）后，它会运行 Prometheus、Alertmanager，并为云之下的每一部分运行一个导出器，但不附带任何告警规则。本指南读取这些已在运行的组件，而不是再启动一份副本。
+在 `/etc/kolla/globals.yml` 中开启 `enable_prometheus`（Kolla-Ansible 在您设置之前默认关闭它）后，它会运行 Prometheus、Alertmanager，并为云之下的每一部分运行一个导出器，但不附带任何警报规则。本指南读取这些已在运行的组件，而不是再启动一份副本。
 
 ### 在 Kolla-Ansible 上转发正在触发的告警
 
-仅当您编写了自己的规则时：Kolla-Ansible 不附带任何规则，因此在 `/etc/kolla/config/prometheus/*.rules` 中有规则之前不会有任何告警触发。在您用来部署的主机上编写 `/etc/kolla/config/prometheus/prometheus-alertmanager.yml`，Kolla-Ansible 会读取它而不是自己的配置，然后应用：
+仅当您编写了自己的规则时：Kolla-Ansible 不附带任何规则，因此在 `/etc/kolla/config/prometheus/*.rules` 中有规则之前不会有任何警报触发。在您用来部署的主机上编写 `/etc/kolla/config/prometheus/prometheus-alertmanager.yml`，Kolla-Ansible 会读取它而不是自己的配置，然后应用：
 
 ```yaml title="/etc/kolla/config/prometheus/prometheus-alertmanager.yml"
 global:
@@ -323,11 +323,11 @@ conf:
 
 ## Atmosphere
 
-Atmosphere 运行带有自己告警规则的 kube-prometheus-stack，并用 Loki 和 Vector 处理日志。先转发它的告警，然后由探测器读取 API，由 Kubernetes 代理查看 pod。
+Atmosphere 运行带有自己警报规则的 kube-prometheus-stack，并用 Loki 和 Vector 处理日志。先转发它的警报，然后由探测器读取 API，由 Kubernetes 代理查看 pod。
 
 ### 在 Atmosphere 上转发正在触发的告警
 
-Atmosphere 附带的告警规则曾真正呼叫过值班人员，因此从第一个小时起就有效。把接收器添加到您的 Atmosphere 配置中，放在您已有的其他接收器旁边，然后部署：
+Atmosphere 附带的警报规则曾真正呼叫过值班人员，因此从第一个小时起就有效。把接收器添加到您的 Atmosphere 配置中，放在您已有的其他接收器旁边，然后部署：
 
 ```yaml title="Atmosphere configuration"
 kube_prometheus_stack_helm_values:
@@ -503,11 +503,11 @@ spec:
 
 ## Mirantis MOSK
 
-StackLight 已经用它自己的告警规则监视着 OpenStack 的服务、MariaDB、Memcached、RabbitMQ 和 libvirt。先转发它的告警，然后由探测器读取 API。
+StackLight 已经用它自己的警报规则监视着 OpenStack 的服务、MariaDB、Memcached、RabbitMQ 和 libvirt。先转发它的警报，然后由探测器读取 API。
 
 ### 在 Mirantis MOSK 上转发正在触发的告警
 
-StackLight 附带告警规则，因此从第一个小时起就有效。把接收器及其路由添加到您的 StackLight values 中。Mirantis 的文档展示的是其他接收器而不是 webhook，这一做法尚未在 MOSK 上运行过：
+StackLight 附带警报规则，因此从第一个小时起就有效。把接收器及其路由添加到您的 StackLight values 中。Mirantis 的文档展示的是其他接收器而不是 webhook，这一做法尚未在 MOSK 上运行过：
 
 ```yaml title="StackLight values"
 alertmanagerSimpleConfig:

@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import * as mssql from "mssql";
 import DataverseApi, {
   DATAVERSE_CORE_TABLES,
@@ -819,6 +820,50 @@ describe("DataverseApi", () => {
       /slow down \(429\), for 17 seconds/,
     );
   });
+
+  /*
+   * Issue #8928: Retry-After as RFC 9110 writes it. Number() read "1.5" as
+   * two seconds and an HTTP-date as nothing; now a fraction is no wait said,
+   * and a date the seconds until it.
+   */
+  test.each([
+    ["1.5", null],
+    ["-5", null],
+    ["soon", null],
+    ["0", 1],
+    ["Mon, 16 Nov 2026 10:00:42 GMT", 42],
+  ])(
+    "a 429's Retry-After of %j is a wait of %j seconds",
+    async (retryAfter: string, seconds: number | null) => {
+      const now: SpyInstance<typeof Date.now> = jest
+        .spyOn(Date, "now")
+        .mockReturnValue(Date.UTC(2026, 10, 16, 10, 0, 0));
+
+      try {
+        const client: DataverseApi = api(
+          async (
+            request: DataSourceHttpRequest,
+          ): Promise<DataSourceHttpResponse> => {
+            return request.url === TOKEN_URL
+              ? json({ access_token: "token-1" })
+              : json({}, 429, { "retry-after": retryAfter });
+          },
+        );
+        const error: unknown = await client
+          .readNewestChange("accounts")
+          .catch((thrown: unknown) => {
+            return thrown;
+          });
+
+        expect(error).toBeInstanceOf(DataverseThrottledError);
+        expect((error as DataverseThrottledError).retryAfterInSeconds).toBe(
+          seconds,
+        );
+      } finally {
+        now.mockRestore();
+      }
+    },
+  );
 
   test("columns: twenty tables a call, each table's attributes by its name", async () => {
     const filters: Array<string> = [];

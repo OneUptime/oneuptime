@@ -1,7 +1,7 @@
 import RemediationApproval, {
   getFixChangedSinceMessage,
 } from "../../../../Server/Utils/AutoRemediation/RemediationApproval";
-import { getRemediationPlanFingerprint } from "../../../../Server/Utils/AutoRemediation/RemediationPlanFingerprint";
+import { getRemediationPlanFingerprint } from "../../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import AlertFeedService from "../../../../Server/Services/AlertFeedService";
 import AutoRemediationSuggestionService from "../../../../Server/Services/AutoRemediationSuggestionService";
 import ExternalMcpServerService from "../../../../Server/Services/ExternalMcpServerService";
@@ -35,6 +35,7 @@ import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
 import UserType from "../../../../Types/UserType";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import PrivateRecordWriteCheck from "../../../../Server/Utils/Permission/PrivateRecordWriteCheck";
 
 /*
  * Contract under test - approving and dismissing a fix from a Slack or
@@ -111,6 +112,8 @@ function mcpRow(
     projectId: PROJECT_ID,
     incidentId: INCIDENT_ID,
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     suggestionType: AutoRemediationSuggestionType.McpToolCalls,
     mcpToolCallPlan: ExternalMcpToolCallPlanUtil.toJSON({
       calls: [call(ExternalMcpToolCallStatus.Proposed)],
@@ -127,6 +130,8 @@ function commandRow(): Record<string, unknown> {
     projectId: PROJECT_ID,
     incidentId: INCIDENT_ID,
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     suggestionType: AutoRemediationSuggestionType.CommandPlan,
     commandPlan: AiRemediationCommandPlanUtil.toJSON({
       commands: [
@@ -154,6 +159,15 @@ function fingerprintOf(row: Record<string, unknown>): string {
     mcpToolCallPlan: row["mcpToolCallPlan"] as JSONObject | undefined,
   });
 }
+
+/*
+ * The fixes here are for incidents and alerts that are not private, or that
+ * the person reaches: what a fix's buttons ask of a private record's owning
+ * teams (#8913) is RemediationPrivateRecord's own suite.
+ */
+beforeEach(() => {
+  jest.spyOn(PrivateRecordWriteCheck, "reaches").mockResolvedValue(true);
+});
 
 describe("approving or dismissing a fix from a chat message", () => {
   let row: Record<string, unknown>;

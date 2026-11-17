@@ -33,8 +33,10 @@ import Filter from "../../../UI/Components/ModelFilter/Filter";
 import StatusPageDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Domains";
 import DashboardCustomDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/Dashboards/View/CustomDomains";
 import FormCustomDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/CustomDomains";
+import { getLearnMoreUrl } from "../../../UI/Components/Link/LearnMoreLink";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
+  CUSTOM_DOMAINS_GUIDE_LINK_TEST_ID,
   CUSTOM_DOMAIN_STATUS,
   CustomDomainCopy,
   CustomDomainKindCopy,
@@ -201,7 +203,14 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 
       return (
         <section data-testid={props.id}>
-          <p data-testid="card-description">{props.cardProps?.description}</p>
+          {/*
+           * A div, as the real Card draws a description that is an element
+           * (isCardDescriptionDrawnAsBlock): the status page's links its
+           * guide, and a link's icon is a div of its own.
+           */}
+          <div data-testid="card-description">
+            {props.cardProps?.description}
+          </div>
           {mockRows.map((row: CustomDomainModel): React.ReactElement => {
             return (
               <div key={row.fullDomain} data-testid={`row-${row.fullDomain}`}>
@@ -669,10 +678,10 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
         "Waiting for DNS: add the CNAME record.",
       );
       expect(statusOf(VERIFIED)).toBe(
-        "Issuing a free certificate, usually within 15 minutes.",
+        "Issuing a free certificate, usually within 15\u00A0minutes.",
       );
       expect(statusOf(ORDERED)).toBe(
-        "Issuing a free certificate, usually within 15 minutes.",
+        "Issuing a free certificate, usually within 15\u00A0minutes.",
       );
       expect(statusOf(PROVISIONED)).toBe(
         "Certificate issued, renews automatically.",
@@ -800,7 +809,7 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
         "Certificate issued, renews automatically.",
       );
       expect(statusOf(VERIFIED)).toBe(
-        "Issuing a free certificate, usually within 15 minutes.",
+        "Issuing a free certificate, usually within 15\u00A0minutes.",
       );
       expect(errorOf(PROVISIONED)).toBeNull();
       expect(errorOf(VERIFIED)).toBeNull();
@@ -929,7 +938,7 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
       });
 
       expect(statusOf(FAILING)).toBe(
-        "Issuing a free certificate, usually within 15 minutes.",
+        "Issuing a free certificate, usually within 15\u00A0minutes.",
       );
       expect(statusOf(EXPIRED)).toBe(
         "Certificate issued, renews automatically.",
@@ -1468,7 +1477,9 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
      * A form domain's columns describe the certificate and its key for the
      * API reference ("... while isCustomCertificate is on"), in English; the
      * form would draw that under the field. The title and the PEM
-     * placeholder say what goes there, on every kind.
+     * placeholder say what goes there, on every kind, and the key says, in
+     * the product's words, why it is needed and that it is never shown
+     * again.
      */
     test("the certificate and its key show none of the API reference's words", () => {
       renderPage();
@@ -1483,10 +1494,21 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
 
       expect(certificateFields).toHaveLength(2);
 
+      const model: CustomDomainModel = new page.modelType();
+
       for (const field of certificateFields) {
+        const column: string = Object.keys(field.field || {})[0] || "";
+
         expect(field.hideColumnDescription).toBe(true);
-        expect(field.description).toBeUndefined();
+        expect(field.description).not.toBe(
+          model.getTableColumnMetadata(column).description,
+        );
       }
+
+      expect(certificateFields[0]!.description).toBeUndefined();
+      expect(certificateFields[1]!.description).toBe(
+        "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.",
+      );
     });
 
     test("Add's certificate options are one folded Advanced section, which says which certificate the domain will use", () => {
@@ -1566,6 +1588,66 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
 
       expect(screen.getByTestId("card-description")).toHaveTextContent(
         "Custom Domains not enabled for this OneUptime installation.",
+      );
+    });
+
+    /*
+     * #7021: the step-by-step guide that puts a status page on its own
+     * domain (Publish a Status Page) is linked where people do it, after
+     * the card's description, at its first custom domain step. Dashboards
+     * and forms have no guide, and link none.
+     */
+    test("links its kind's step-by-step guide after the description, in a new tab, or none for a kind without one", () => {
+      renderPage();
+
+      const description: HTMLElement = screen.getByTestId("card-description");
+      const link: HTMLElement | null = within(description).queryByTestId(
+        CUSTOM_DOMAINS_GUIDE_LINK_TEST_ID,
+      );
+
+      if (!page.kind.guideDocsPath) {
+        expect(link).toBeNull();
+        return;
+      }
+
+      expect(page.kind.guideDocsPath).toBe(
+        "/docs/guides/status-page#add-your-domain",
+      );
+      expect(link).not.toBeNull();
+      expect(link!.tagName).toBe("A");
+      // The docs page in the reader's language, as every Learn more opens it.
+      expect(link!.getAttribute("href")).toBe(
+        getLearnMoreUrl(page.kind.guideDocsPath, "en"),
+      );
+      expect(link!.getAttribute("href")).toMatch(
+        /\/guides\/status-page#add-your-domain$/,
+      );
+      expect(link!.getAttribute("target")).toBe("_blank");
+      expect(link!.getAttribute("rel")).toContain("noopener");
+      expect(link).toHaveTextContent(CustomDomainCopy.guideLink);
+
+      // The description reads as before, the link after its last word.
+      expect(description).toHaveTextContent(
+        `${page.cardDescription} ${CustomDomainCopy.guideLink}`,
+      );
+    });
+
+    test("only status pages have a guide to link: Publish a Status Page", () => {
+      expect(
+        PAGES.filter((candidate: PageCase): boolean => {
+          return Boolean(candidate.kind.guideDocsPath);
+        }).map((candidate: PageCase): string => {
+          return candidate.name;
+        }),
+      ).toEqual(["a status page"]);
+    });
+
+    test("without this kind's CNAME record there is nothing to set up, and no guide link", () => {
+      setCnameRecord("");
+      renderPage();
+
+      expect(screen.queryByTestId(CUSTOM_DOMAINS_GUIDE_LINK_TEST_ID)).toBe(
+        null,
       );
     });
   });

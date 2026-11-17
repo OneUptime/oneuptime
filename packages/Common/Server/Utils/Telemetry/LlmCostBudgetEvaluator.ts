@@ -13,6 +13,7 @@ import {
 } from "../../../Types/Telemetry/LlmUsageApi";
 import LlmCostBudgetService from "../../Services/LlmCostBudgetService";
 import MetricService from "../../Services/MetricService";
+import JobDeadline from "../JobDeadline";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import LlmUsageReader, { LlmUsageReadQuery } from "./LlmUsageReader";
@@ -217,9 +218,14 @@ export default class LlmCostBudgetEvaluator {
 
   /**
    * Evaluate every enabled budget. One bad budget never aborts the sweep.
+   * Once the run's `deadline` has passed - its time limit, or its lease lost
+   * (RunCron, CronLock) - no further budget is started; the one in flight
+   * finishes, and the next tick evaluates every budget again.
    */
   @CaptureSpan()
-  public static async evaluateAllBudgets(): Promise<void> {
+  public static async evaluateAllBudgets(options?: {
+    deadline?: JobDeadline | undefined;
+  }): Promise<void> {
     const budgets: Array<LlmCostBudget> = await LlmCostBudgetService.findBy({
       query: {
         isEnabled: true,
@@ -250,8 +256,18 @@ export default class LlmCostBudgetEvaluator {
     );
 
     const now: Date = new Date();
+    let evaluated: number = 0;
 
     for (const budget of budgets) {
+      if (options?.deadline?.hasPassed()) {
+        logger.debug(
+          `Llm:EvaluateLlmCostBudgets: the run's deadline has passed; stopping after ${evaluated} of ${budgets.length} budget(s). The next tick evaluates them all again.`,
+        );
+        return;
+      }
+
+      evaluated++;
+
       try {
         await this.evaluateBudget({ budget, now });
       } catch (err) {

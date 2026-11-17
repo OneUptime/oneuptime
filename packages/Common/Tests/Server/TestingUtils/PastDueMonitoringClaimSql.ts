@@ -26,7 +26,9 @@ export interface ClaimQueryServiceLike {
 
 /*
  * The probes' claims - monitor probes, network devices, VMware vCenters,
- * OpenStack clouds and checks, data stores - run as auto-committed
+ * OpenStack clouds and checks, data stores, and the on-demand jobs a probe
+ * is handed (monitor tests, device diagnostics, packet captures and
+ * connection tests: OneUptime issue #7392) - run as auto-committed
  * statements on the service's own connection, never in a transaction
  * (OneUptime issue #7194: a transaction held every claimed row's lock
  * across the round trips between its statements). So they are captured at

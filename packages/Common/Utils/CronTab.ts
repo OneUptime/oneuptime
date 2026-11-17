@@ -1,3 +1,4 @@
+import { NO_BREAK_SPACE } from "../Types/NoBreakSpaces";
 /**
  * CronTab
  *
@@ -814,7 +815,7 @@ export default class CronTab {
       case "everyMinute":
         return "Every minute";
       case "everyMinutes":
-        return `Every ${shape.step} minutes`;
+        return `Every ${shape.step}${NO_BREAK_SPACE}minutes`;
       case "everyHourOnTheHour":
         return "Every hour, on the hour";
       case "everyHours": {
@@ -822,7 +823,7 @@ export default class CronTab {
           shape.minute === 0 ? "" : ` at minute ${this.pad(shape.minute)}`;
         return shape.step === 1
           ? `Every hour${atMinute}`
-          : `Every ${shape.step} hours${atMinute}`;
+          : `Every ${shape.step}${NO_BREAK_SPACE}hours${atMinute}`;
       }
       case "daily":
         return `Every day at ${this.describeTimeOfDay(
@@ -835,7 +836,9 @@ export default class CronTab {
         )} at ${this.describeTimeOfDay(shape.hour, shape.minute)} (UTC)`;
       case "monthly": {
         const everyMonths: string =
-          shape.monthStep === 1 ? "month" : `${shape.monthStep} months`;
+          shape.monthStep === 1
+            ? "month"
+            : `${shape.monthStep}${NO_BREAK_SPACE}months`;
         return `Every ${everyMonths} on the ${this.describeDaysOfMonth(
           shape.daysOfMonth,
         )} at ${this.describeTimeOfDay(shape.hour, shape.minute)} (UTC)`;

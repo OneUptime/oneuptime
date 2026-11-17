@@ -30,6 +30,7 @@ import "./Jobs/TelemetryException/SendAssignedNotification";
 
 // Monitor Jobs.
 import "./Jobs/Monitor/KeepCurrentStateConsistent";
+import "./Jobs/Monitor/ClearStoredLogScreenshots";
 
 // Alert Owners
 import "./Jobs/AlertOwners/SendCreatedResourceNotification";
@@ -275,6 +276,7 @@ import "./Jobs/PacketCapture/SweepPacketCaptures";
 import "./Jobs/AIAgent/SendOwnerAddedNotification";
 import "./Jobs/AIAgent/UpdateConnectionStatus";
 import "./Jobs/AIAgent/FailOrphanedQueuedCodeFixRuns";
+import "./Jobs/AIAgent/RevokeMintedRepositoryTokens";
 import "./Jobs/AIAgent/SyncPullRequestStates";
 import "./Jobs/AIAgent/VerifyFixesInProduction";
 import "./Jobs/AIAgent/ReportGitHubRunOutcomes";
@@ -454,6 +456,7 @@ import "./Jobs/TelemetryIngestionBudget/PublishTelemetryIngestionBudgetMetrics";
  */
 
 import "./Jobs/OnCallDutySchedule/RefreshHandoffTime";
+import "./Jobs/OnCallDutySchedule/TellLayerChanges";
 
 /*
  * On-call shift reminders ("your shift starts in 1 hour") and the ledger
@@ -486,9 +489,6 @@ import "./Jobs/InstanceUpdate/CheckForNewVersion";
 
 // Tells oneuptime.com once a day which URL and version this install runs.
 import "./Jobs/InstanceCheckIn/CheckIn";
-
-// On OneUptime Cloud, deletes a sample project nobody has opened for two weeks (#6808).
-import "./Jobs/SampleProject/DeleteIdleSampleProjects";
 
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";

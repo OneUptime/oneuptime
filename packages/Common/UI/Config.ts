@@ -25,7 +25,7 @@ import URL from "../Types/API/URL";
 import Route from "../Types/API/Route";
 import SubscriptionPlan from "../Types/Billing/SubscriptionPlan";
 import { JSONObject } from "../Types/JSON";
-import Version from "../Types/Version";
+import VersionUtil from "../Utils/VersionUtil";
 import getBrowserTelemetryConfig, {
   BrowserTelemetryConfig,
 } from "./Utils/Telemetry/BrowserTelemetryConfig";
@@ -54,13 +54,67 @@ export const IS_ENTERPRISE_EDITION: boolean =
   env("IS_ENTERPRISE_EDITION") === "true";
 export const BILLING_PUBLIC_KEY: string = env("BILLING_PUBLIC_KEY") || "";
 
+/*
+ * Whether global Runners keep GitLab, Forgejo, Gitea and Git repositories
+ * off themselves (Common/Types/Runner/GlobalRunnerRepositoryTokens): on
+ * OneUptime Cloud (billing on), where every customer shares the same global
+ * Runners, and on a self-hosted multi-tenant install that turns the rule on
+ * with GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY=true. The Dashboard's Runner
+ * picker draws its amber line by this.
+ */
+export const GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY: boolean =
+  env("GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY") === "true";
+
+export const GLOBAL_RUNNERS_KEEP_CONNECTION_TOKENS_OFF: boolean =
+  BILLING_ENABLED || GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY;
+
 export const CAPTCHA_ENABLED: boolean = env("CAPTCHA_ENABLED") === "true";
 export const CAPTCHA_SITE_KEY: string = env("CAPTCHA_SITE_KEY") || "";
+
+/*
+ * The daily check-in with oneuptime.com turned off: a self-hosted sign-up
+ * form then offers no release emails from it (Accounts' Register page). The
+ * server reads the same setting as Server/EnvironmentConfig's
+ * DisableInstanceCheckIn, which a page does not import: that module is the
+ * server's whole configuration.
+ */
+export const DISABLE_INSTANCE_CHECK_IN: boolean =
+  env("DISABLE_INSTANCE_CHECK_IN") === "true";
 
 // VAPID Configuration for Push Notifications
 export const VAPID_PUBLIC_KEY: string = env("VAPID_PUBLIC_KEY") || "";
 
-export const VERSION: Version = new Version(env("VERSION") || "1.0.0");
+/*
+ * THE ONEUPTIME RELEASE THIS SERVER RUNS ("14.3.0"), as a page says it: Give
+ * Feedback, the Developer pages' CLI and Terraform versions (issue #8893).
+ *
+ * Every image is built with APP_VERSION (packages/App/Dockerfile.tpl's build
+ * argument, from the root VERSION file), the server reports it at
+ * /api/version, and env.js hands it to the page (the server's
+ * FRONTEND_ENV_ALLOW_LIST). The page read VERSION instead: a name no image,
+ * Compose file or Helm chart sets, so every page said "1.0.0", a version
+ * that never existed. VERSION is still read, after APP_VERSION, for an
+ * install that sets it by hand.
+ *
+ * "" when neither is a version - a development build - so nothing names a
+ * version that is not the server's. Never throws: a page that cannot read
+ * its version still loads.
+ */
+export const getProductVersion: (read: GetEnvFunction) => string = (
+  read: GetEnvFunction,
+): string => {
+  for (const name of ["APP_VERSION", "VERSION"]) {
+    const version: string = VersionUtil.normalize(read(name));
+
+    if (VersionUtil.isValid(version)) {
+      return version;
+    }
+  }
+
+  return "";
+};
+
+export const VERSION: string = getProductVersion(env);
 
 export const APP_HOSTNAME: Hostname = Hostname.fromString(HOST);
 

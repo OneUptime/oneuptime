@@ -166,10 +166,24 @@ function startProcess(installation: TestServer): Process {
           return null;
         }) as never);
 
+      /*
+       * A workflow trigger is posted only for a record that is no private
+       * incident, nor part of one (#8914), which the service reads first.
+       * This incident is not, and no database is here to say so.
+       */
+      const IncidentService: AnyModule = require_(
+        "Common/Server/Services/IncidentService",
+      ).default;
+
+      jest
+        .spyOn(IncidentService, "isAboutPrivateRecord")
+        .mockImplementation((async () => {
+          return false;
+        }) as never);
+
       started = {
         logger: require_("Common/Server/Utils/Logger").default,
-        IncidentService: require_("Common/Server/Services/IncidentService")
-          .default,
+        IncidentService: IncidentService,
         MailService: require_("Common/Server/Services/MailService").default,
         SmsService: require_("Common/Server/Services/SmsService").default,
         CallService: require_("Common/Server/Services/CallService").default,

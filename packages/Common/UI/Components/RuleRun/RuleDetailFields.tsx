@@ -15,11 +15,11 @@ import {
   getPeoplePickerOptionsFromModels,
 } from "../PeoplePicker/PeoplePickerKinds";
 import { PeoplePickerFieldKind } from "../PeoplePicker/PeoplePickerTypes";
-import { getRuleCriteriaFieldName } from "../RuleCriteria/RuleCriteriaFields";
 import {
   getLegacyRuleCriteriaFields,
+  getRuleCriteriaFieldName,
   RULE_CRITERIA_FIELD_NAME,
-} from "../RuleCriteria/RuleCriteriaModelForm";
+} from "../RuleCriteria/RuleCriteriaLegacyFields";
 import RuleCriteriaSummary from "../RuleCriteria/RuleCriteriaSummary";
 import FieldType from "../Types/FieldType";
 import React, { ReactElement } from "react";

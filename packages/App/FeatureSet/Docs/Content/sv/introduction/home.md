@@ -20,6 +20,8 @@ Hem är den första sidan du ser i ett projekt. Den visar med en blick om något
 5. **Ditt projekt**, vad projektet består av, och **Kommande underhåll** när något underhåll är schemalagt.
 6. **Utforska OneUptime**, varje produkt, en kategori i taget.
 
+Så länge ett nytt projekts checklista **Välkommen till OneUptime 👋** visas är den hela Hem: det första du ser är vad du ska göra först. En öppen incident, eller något annat som behöver någon, visas ändå ovanför den. Dölj checklistan, eller gör klart den, så kommer resten av Hem tillbaka.
+
 ### Sök och skapa
 
 Sökrutan öppnar sökningen, precis som `Mod` + `K`: skriv namnet på vilken sida, monitor, incident, larm, statussida eller jourpolicy som helst. Se [Sök](#sök-efter-en-sida-en-inställning-eller-en-åtgärd). **Deklarera incident** öppnar formuläret där du deklarerar en incident. **Skapa** erbjuder **Skapa monitor**, **Schemalägg underhåll** och **Skapa meddelande**. Var och en visas bara för den som får använda den.
@@ -36,7 +38,7 @@ Raden högst upp nämner det mest brådskande som är öppet, i en färg som pas
 | Monitorer körs och inget är öppet | **Alla system fungerar** |
 | Projektet har inga monitorer ännu | **Inget övervakas ännu** |
 
-Bredvid den visar Hem när projektet senast lästes in, och **Uppdatera** läser in det igen. När du kommer tillbaka till en flik med Hem efter en minut eller mer uppdateras den av sig själv.
+Bredvid den visar Hem när projektet senast lästes in, och **Uppdatera** läser in det igen. Hem följer också det den räknar när det ändras: när en incident, ett larm, en monitor, en underhållshändelse eller ett SLO skapas, ändras eller tas bort kommer raden, siffrorna, **Kräver uppmärksamhet** och **Kommande underhåll** i kapp inom några sekunder, utan omladdning. När du kommer tillbaka till en flik med Hem efter en minut eller mer uppdateras den av sig själv.
 
 Så länge inget övervakas ännu slutar raden med knappen **Skapa din första monitor**, som öppnar den guidade installationen **Veta när min webbplats eller mitt API ligger nere**. Bara den som får skapa monitorer ser den.
 
@@ -56,7 +58,7 @@ En siffra över noll visar **Kräver uppmärksamhet**, eller **Pågår** och **B
 
 ### Välkomstchecklistan
 
-Första gången en Projektägare eller Projektadministratör öppnar Hem i ett nytt projekt frågar kortet **Vad vill du göra först?** Kryssa i ett eller flera mål, till exempel **Veta när min webbplats eller mitt API ligger nere** eller **Jag tittar bara runt**, och klicka på **Fortsätt**: checklistan innehåller då de steg som målen behöver. **Hoppa över** ger de fyra steg som alla projekt får. För att svara igen senare klickar du på **Ändra** i checklistan. Ett projekt som redan använder monitorer, telemetri eller jour får inte frågan.
+Första gången en Projektägare eller Projektadministratör öppnar Hem i ett nytt projekt hälsar kortet på dem med förnamn och frågar **Vad vill du göra först?** Välj ett eller flera mål, till exempel **Veta när min webbplats eller mitt API ligger nere**, och klicka på **Fortsätt**: checklistan innehåller då de steg som målen behöver. Medan du väljer säger den hur många steg det blir och ungefär hur lång tid de tar. **Jag tittar bara runt** tar dig i stället direkt till resten av Hem och lämnar en rad kvar så att du kan visa checklistan igen. För att svara igen senare klickar du på **Ändra** i checklistan. Ett projekt som redan använder monitorer, telemetri eller jour får inte frågan.
 
 Varje steg bockar av sig självt när saken fungerar, inte när en post finns, och alla som konfigurerar projektet ser samma lista, på alla enheter:
 
@@ -72,9 +74,13 @@ Varje steg bockar av sig självt när saken fungerar, inte när en post finns, o
 
 Steget du ska ta först är markerat med **Nästa steg**. På OneUptime Clouds Free-plan, som har en person, säger **Bjud in ditt team** att den behöver Growth-planen, och öppnar **Fakturering**. På en egen server som ännu inte kan skicka e-post ser serverns administratörer först **Den här servern kan inte skicka e-post än**; den öppnar administratörsdashboarden.
 
+Varje steg säger ungefär hur lång tid det tar, checklistan ungefär hur lång tid som är kvar, och nästa steg har en egen knapp **Starta**.
+
 En guidad installation gör hela jobbet på en sida, ett steg i taget, och slutar med vad den har konfigurerat och vad du gör härnäst. Sök på dess namn för att öppna den igen senare.
 
-Under stegen visar **Så fungerar OneUptime** de fyra kärnprodukterna i den ordning ett problem går igenom dem: **Monitorer**, **Incidenter och larm**, **Jour** och **Statussidor**. Klicka på en för att öppna den. Under dem står vad som matar kretsloppet, telemetri och infrastruktur, med länkar till [Grundbegrepp](/docs/introduction/core-concepts) och [Ordlista](/docs/introduction/glossary).
+Bredvid sina steg listar en guidad installation vad den sätter upp, avbockat allt eftersom, och säger ungefär hur lång tid den tar.
+
+Under stegen öppnar en rad **Så fungerar OneUptime**: allt OneUptime gör, och hur det hänger ihop.
 
 ```mermaid title="När välkomstchecklistan visas"
 flowchart TB
@@ -89,13 +95,15 @@ flowchart TB
 
 Checklistan försvinner för alla när varje steg är klart. För att dölja den tidigare klickar du på **Dölj**: den döljs då bara för dig, på alla enheter, och en rad blir kvar med **Visa den** och **Så fungerar OneUptime**. Den som har bjudits in till projektet som medlem ser inte checklistan. **Så fungerar OneUptime** finns kvar ett klick bort, i alla projekt: öppna det från **Hjälp** eller med knappen bredvid **Utforska OneUptime**.
 
+**Så fungerar OneUptime** öppnar med **Så hänger det ihop**: de fyra steg ett problem går igenom, **Upptäck**, **Reagera**, **Kommunicera** och **Förbättra**, vart och ett med de produkter som gör det. Sedan kommer kategorierna i menyn **Produkter**, var och en med sina produkter och vad varje produkt är till för: välj en, eller gå vidare med piltangenterna eller **Nästa**. Klicka på en produkt för att öppna den. Produkter som ditt projekt döljer är utelämnade.
+
 ### Kräver uppmärksamhet
 
 **Kräver uppmärksamhet** listar med namn det som siffrorna räknar: de öppna incidenterna, de öppna larmen, monitorerna som inte fungerar, SLO:erna i riskzonen och underhållet som pågår, det mest brådskande först. Varje rad visar sin allvarlighetsgrad eller status, säger när en incident eller larm började och när ett underhåll slutar, och öppnar posten. Varje typ visar upp till fem, med **Visa alla** för resten, som öppnar samma lista som dess siffra. När inget är öppet står det **Inget kräver din uppmärksamhet**.
 
 ### Inställningarnas hälsa
 
-När något i projektets inställningar skulle hindra att folk får veta, slutar **Kräver uppmärksamhet** med **Inställning**: hur många saker som behöver en titt. Den öppnar **Inställningarnas hälsa**, som börjar med en rad i färgen för det allvarligaste fyndet: hur många problem som skulle hindra att folk får veta, hur många saker som är värda att åtgärda, eller **Inget att åtgärda**. Under den listar sidan vad som är felinställt, det allvarligaste först, under **Larm kommer inte fram**, **Värt att åtgärda** och **Förslag**: en monitor som inte larmar någon, en jourpolicy som ingenting kör, en person som inte kan larmas, sms avstängt, ett jourschema utan någon i jour, en statussida som inte visar någon monitor. Varje fynd säger i en mening vad som är fel, med namnen på era monitorer, policyer och personer i fetstil, de monitorer eller policyer som fyndet rör efter **Påverkar**, och direkt under det knappen som öppnar åtgärden. En monitors fynd är de avbrott som dess kort **När den går ner** nämner. Ett fynd som ert team medvetet låter vara kan döljas med en motivering, för alla, och återställas från **Avfärdad**. Sök hittar sidan som **Inställningarnas hälsa**, och Fråga AI svarar på ”är mina inställningar okej?” utifrån den.
+När något i projektets inställningar skulle hindra att folk får veta, slutar **Kräver uppmärksamhet** med **Inställning**: hur många saker som behöver en titt. Den öppnar **Inställningarnas hälsa**, som börjar med en rad i färgen för det allvarligaste fyndet: hur många problem som skulle hindra att folk får veta, hur många saker som är värda att åtgärda, eller **Inget att åtgärda**. Under den listar sidan vad som är felinställt, det allvarligaste först, under **Larm kommer inte fram**, **Värt att åtgärda** och **Förslag**: en monitor som inte larmar någon, en jourpolicy som ingenting kör, en person som inte kan larmas, sms avstängt, ett jourschema utan någon i jour, en statussida som inte visar någon monitor, en anpassad domän vars SSL-certifikat inte kunde utfärdas, en intagningsnyckel som inga data har kommit in med. Varje fynd säger i en mening vad som är fel, med namnen på era monitorer, policyer och personer i fetstil, de monitorer eller policyer som fyndet rör efter **Påverkar**, och direkt under det knappen som öppnar åtgärden. Två går att åtgärda direkt där, när en dialog har sagt exakt vad som ändras: **Slå på SMS** (eller telefonsamtal, WhatsApp eller Telegram) för den som får slå på det, och **Skapa jourregel**, som larmar den jourpolicy du väljer för en monitor som inte larmade någon. En monitors fynd är de avbrott som dess kort **När den går ner** nämner, och en jourpolicy som ingenting kör, eller en anpassad domän som inte öppnar sin statussida, säger det också högst upp på policyns eller statussidans egen sida. Ett fynd som ert team medvetet låter vara kan döljas med en motivering, för alla, och återställas från **Avfärdad**. Sök hittar sidan som **Inställningarnas hälsa**, och Fråga AI svarar på ”är mina inställningar okej?” utifrån den.
 
 ### Ditt projekt
 
@@ -137,7 +145,7 @@ Ett ord med en prickad linje under, som **Sonder** i formuläret för en ny moni
 
 Ovanför varje sidas rubrik visar ett spår som *Projekt › Docker › Inställningar › Ägarregler* var sidan ligger. Varje steg före det sista öppnar sin sida.
 
-- **Listor håller sig själva aktuella.** När en incident eller ett larm skapas, kvitteras eller löses någonstans visar listorna över incidenter, larm och episoder det inom några sekunder, utan omladdning. Medan du är mitt i något på en lista, till exempel med rader markerade eller en dialogruta öppen, väntar den och kommer i kapp när du är klar.
+- **Listor håller sig själva aktuella.** När en incident, ett larm, en monitor eller en underhållshändelse skapas, ändras eller tas bort någonstans visar listorna över incidenter, larm, episoder, monitorer och underhållshändelser det inom några sekunder, utan omladdning, och det gör även antalen bredvid dem i sidomenyerna. Klockans antal, och listorna **Aktiva incidenter**, **Aktiva larm**, **Aktiva incidentepisoder** och **Aktiva larmepisoder**, följer alla projekt du är med i, inte bara det som är öppet. Medan du är mitt i något på en lista, till exempel med rader markerade eller en dialogruta öppen, väntar den och kommer i kapp när du är klar.
 - **På en telefon fälls filterchippen ihop** bakom **Filter**, så att listan börjar högre upp. Chippen du har satt syns fortfarande, med **Rensa alla**. Tryck på **Filter** för att se alla chipp, och igen för att fälla ihop dem.
 - **Kolumner**, i menyn **⋯** på en lista, väljer vilka kolumner listan visar och i vilken ordning, och sparar dem åt dig i den här webbläsaren. En Projektägare eller en Projektadministratör kan också kryssa i **Visa de här kolumnerna för alla i det här projektet** där: alla som inte har valt egna kolumner för listan ser de här, och **Återställ till projektets standard** sätter tillbaka dina egna till dem.
 - **Kompakta rader**, i samma meny, gör raderna i alla listor lägre, så att en lång lista visar ungefär en femtedel fler av dem. Valet sparas i den här webbläsaren.

@@ -63,35 +63,37 @@ Espandi **Sicurezza** nel menu laterale di **Profilo utente**. Contiene tre pagi
 | Pagina | A cosa serve |
 | --- | --- |
 | **Gestione password** | Impostare una nuova password. |
-| **Passkeys** | Accedere senza password, con impronta digitale, volto, blocco schermo o una chiave di sicurezza. |
-| **Two-factor authentication** | Chiedere un secondo passaggio dopo la password o un link inviato via e-mail: un codice da un'app, o una chiave di sicurezza. |
+| **Passkey** | Accedere senza password, con impronta digitale, volto, blocco schermo o una chiave di sicurezza. |
+| **Autenticazione a due fattori** | Chiedere un secondo passaggio dopo la password o un link inviato via e-mail: un codice da un'app, o una chiave di sicurezza. |
 
 ### Cambiare la password
 
 :::steps
 1. Apri **Sicurezza → Gestione password**.
-2. Inserisci la nuova password in **Password** e di nuovo in **Conferma password**. Deve essere lunga almeno 6 caratteri.
+2. Inserisci la nuova password in **Nuova password** e di nuovo in **Conferma password**. Deve essere lunga almeno 15 caratteri e non essere prevedibile, come una password comune o una sequenza ripetuta: alcune parole senza legame tra loro funzionano bene. La checklist sotto il campo spunta ogni requisito mentre scrivi.
 3. Fai clic su **Aggiorna password**.
 :::
 
 Una nuova password disconnette tutti i dispositivi dal tuo account, e qualsiasi link di reimpostazione o di accesso già inviato smette di funzionare.
 
+Ogni pagina che imposta una password chiede lo stesso: la registrazione, il link di reimpostazione di **Password dimenticata?**, questa pagina e **Imposta password** di un amministratore del server. Una password impostata prima di questa regola continua a funzionare finché non la cambi.
+
 ### Aggiungere una passkey
 
 :::steps
-1. Apri **Sicurezza → Passkeys** e fai clic su **Add Passkey**.
-2. Dalle un nome che riconoscerai, come il tuo dispositivo o il tuo gestore di password, e fai clic su **Create Passkey**.
+1. Apri **Sicurezza → Passkey** e fai clic su **Aggiungi passkey**.
+2. Dalle un nome che riconoscerai, come il tuo dispositivo o il tuo gestore di password, e fai clic su **Crea passkey**.
 3. Segui la richiesta del browser per salvare la passkey.
 :::
 
-La prossima volta, scegli **Accedi con una passkey** nella pagina di accesso.
+La prossima volta, scegli **Altri modi per accedere** → **Accedi con una passkey** nella pagina di accesso.
 
 ### Accedere con un link inviato via e-mail
 
 Puoi accedere con un link invece della password. Non c'è nulla da configurare.
 
 :::steps
-1. Nella pagina di accesso, scegli **Inviami un link di accesso**.
+1. Nella pagina di accesso, scegli **Altri modi per accedere** → **Inviami un link di accesso**.
 2. Inserisci il tuo indirizzo e-mail e fai clic su **Inviami un link di accesso**. La pagina mostra quindi **Controlla la tua e-mail**.
 3. Apri il link nell'e-mail e fai clic su **Accedi**.
 :::
@@ -108,19 +110,19 @@ L'autenticazione a due fattori si applica quando accedi con la password o con un
 :::steps
 ### Aggiungere un'app di autenticazione
 
-Apri **Sicurezza → Two-factor authentication**. In **Authenticator apps**, aggiungi un'app e dalle un nome. Scansiona il codice QR con un'app come 1Password, Google Authenticator o Microsoft Authenticator, inserisci il codice a 6 cifre che mostra e fai clic su **Verify and finish**. Per usare invece una chiave USB o NFC, aggiungila in **Security keys**.
+Apri **Sicurezza → Autenticazione a due fattori**. In **App di autenticazione**, aggiungi un'app e dalle un nome. Scansiona il codice QR con un'app come 1Password, Google Authenticator o Microsoft Authenticator, inserisci il codice a 6 cifre che mostra e fai clic su **Verifica e completa**. Per usare invece una chiave USB o NFC, aggiungila in **Chiavi di sicurezza**.
 
 ### Salvare i codici di backup
 
-La prima volta che aggiungi un'app, una chiave o una passkey, OneUptime mostra **Your backup codes**. Ogni codice ti fa accedere una volta se perdi l'app o la chiave. Copiali o scaricali, spunta la casella che conferma di averli salvati e fai clic su **Fatto**.
+La prima volta che aggiungi un'app, una chiave o una passkey, OneUptime mostra **I tuoi codici di backup**. Ogni codice ti fa accedere una volta se perdi l'app o la chiave. Copiali o scaricali, spunta la casella che conferma di averli salvati e fai clic su **Fatto**.
 
 ### Attivarla
 
-In cima alla pagina, fai clic su **Enable two-factor authentication** e conferma. La scheda ora mostra **Abilitato**. Dal prossimo accesso con password o con un link inviato via e-mail, OneUptime ti chiede il secondo passaggio.
+In cima alla pagina, fai clic su **Attiva l'autenticazione a due fattori** e conferma. La scheda ora mostra **Abilitato**. Dal prossimo accesso con password o con un link inviato via e-mail, OneUptime ti chiede il secondo passaggio.
 :::
 
 > [!TIP]
-> Ti restano pochi codici di backup? **Regenerate codes** nella stessa pagina ti dà un nuovo set, e i vecchi codici smettono subito di funzionare.
+> Ti restano pochi codici di backup? **Rigenera i codici** nella stessa pagina ti dà un nuovo set, e i vecchi codici smettono subito di funzionare.
 
 ## I tuoi progetti
 
@@ -163,7 +165,7 @@ Accedere di nuovo invia un nuovo link: controlla anche la cartella dello spam. S
 :::
 
 :::details Ho perso la mia app di autenticazione
-Al secondo passaggio dell'accesso, scegli **Hai perso l'accesso alla tua app di autenticazione?** e inserisci uno dei tuoi codici di backup. Poi apri **Sicurezza → Two-factor authentication** e aggiungi la nuova app. Senza codici di backup, chiedi a un amministratore della tua installazione di OneUptime di reimpostare l'autenticazione a due fattori del tuo account.
+Al secondo passaggio dell'accesso, scegli **Hai perso l'accesso alla tua app di autenticazione?** e inserisci uno dei tuoi codici di backup. Poi apri **Sicurezza → Autenticazione a due fattori** e aggiungi la nuova app. Senza codici di backup, chiedi a un amministratore della tua installazione di OneUptime di reimpostare l'autenticazione a due fattori del tuo account.
 :::
 
 :::details L'accesso mi chiede di aspettare prima di provare un altro codice

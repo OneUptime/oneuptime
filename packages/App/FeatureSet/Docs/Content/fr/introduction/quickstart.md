@@ -26,7 +26,7 @@ Dans OneUptime, tout se trouve dans un projet : vos moniteurs, incidents, politi
 :::steps
 ### Commencer un nouveau projet
 
-À votre première connexion, OneUptime affiche **Aucun projet**. Cliquez sur **Créer un nouveau projet**. Si quelqu'un vous a déjà invité dans un projet, acceptez plutôt l'invitation sur la même page.
+À votre première connexion, OneUptime affiche **Aucun projet pour l'instant**. Cliquez sur **Créer un projet**. Si quelqu'un vous a déjà invité dans un projet, acceptez plutôt l'invitation sur la même page.
 
 ### Lui donner un nom
 

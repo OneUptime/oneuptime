@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -140,9 +141,51 @@ describe("getRetryDelayMilliseconds", () => {
     expect(
       getRetryDelayMilliseconds(failure(503, { "retry-after": "soon" })),
     ).toBe(TIMELINE_DEFAULT_RETRY_MS);
+  });
+
+  test("waits a second for a Retry-After of 0, never retrying at once", () => {
     expect(
       getRetryDelayMilliseconds(failure(503, { "retry-after": "0" })),
-    ).toBe(TIMELINE_DEFAULT_RETRY_MS);
+    ).toBe(1000);
+  });
+
+  /*
+   * Issue #8928: Number() read "1.5" as a second and a half and "0x10" as
+   * 16. RFC 9110 allows digits only, or a date: these are no Retry-After.
+   */
+  test.each([["1.5"], ["-5"], ["5 seconds"], ["0x10"], ["1e1"]])(
+    "a Retry-After of %j waits the default",
+    (retryAfter: string) => {
+      expect(
+        getRetryDelayMilliseconds(failure(503, { "retry-after": retryAfter })),
+      ).toBe(TIMELINE_DEFAULT_RETRY_MS);
+    },
+  );
+
+  test("an HTTP-date is waited until, a second at least and ten at most", () => {
+    const now: SpyInstance<typeof Date.now> = jest
+      .spyOn(Date, "now")
+      .mockReturnValue(Date.UTC(2026, 10, 16, 10, 0, 0));
+
+    try {
+      expect(
+        getRetryDelayMilliseconds(
+          failure(503, { "retry-after": "Mon, 16 Nov 2026 10:00:04 GMT" }),
+        ),
+      ).toBe(4000);
+      expect(
+        getRetryDelayMilliseconds(
+          failure(503, { "retry-after": "Mon, 16 Nov 2026 09:00:00 GMT" }),
+        ),
+      ).toBe(1000);
+      expect(
+        getRetryDelayMilliseconds(
+          failure(503, { "retry-after": "Mon, 16 Nov 2026 11:00:00 GMT" }),
+        ),
+      ).toBe(10000);
+    } finally {
+      now.mockRestore();
+    }
   });
 });
 

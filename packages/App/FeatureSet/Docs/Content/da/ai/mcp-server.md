@@ -144,7 +144,7 @@ Under **Adgang** vælger du **Seer** til en agent, der kun læser, eller **Proje
 
 ### Kopier nøglen
 
-Klik på **Opret API-nøgle**: nøglens side åbnes. Kopier nøglen derfra.
+Klik på **Opret API-nøgle**. OneUptime viser nøglen én gang, i dialogen **Kopiér din API-nøgle**: kopiér den, før du trykker på **Færdig**.
 :::
 
 API-nøgler hører til ét projekt: MCP-serveren tager projektet fra nøglen, så oprettelsesværktøjer aldrig har brug for et `projectId`-argument.
@@ -360,6 +360,8 @@ Forespørg altid telemetri med et tidsinterval. Et forespørgselsfelt tager en v
 Operatorerne er `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` og `Includes`. Sorteringsværdier er `"ASC"` eller `"DESC"`.
 
 Værktøjerne `list_` og `count_` tager ethvert felt, så listen over værktøjer er lille nok til, at en klient kan indlæse den på én gang. For at se en ressources felter, hvad hvert felt betyder, og hvilke operatorer det tager, kalder en agent `oneuptime_describe_resource` med ressourcen eller et af dens værktøjer, for eksempel `Incident` eller `list_incidents`.
+
+De andre `list_`-tools, for hændelser, monitorer og alle andre slags poster, sorterer, som API'et gør: et felt tager en retning, eller `{ "direction": "DESC", "nulls": "LAST" }` for at sætte posterne uden en værdi i det sidst, og en relation til én post sorterer efter et felt i den post, den nævner, som i `{ "incidentSeverity": { "order": "ASC" } }`. `oneuptime_describe_resource` markerer hver sådan relation med `sort` og nævner de felter, den sorterer efter, under `sortBy`.
 
 ## Feltvalg og paginering
 

@@ -298,10 +298,10 @@ describe("describeInvestigationRuleTiming: what the rules table says", () => {
     [undefined, "Right away"],
     [null, "Right away"],
     [0, "Right away"],
-    [1, "If still open after 1 minute"],
-    [10, "If still open after 10 minutes"],
+    [1, "If still open after 1\u00A0minute"],
+    [10, "If still open after 10\u00A0minutes"],
     // A count is written the reader's way, as every plural is.
-    [1440, "If still open after 1,440 minutes"],
+    [1440, "If still open after 1,440\u00A0minutes"],
   ])("%p reads %p", (minutes: unknown, expected: string) => {
     expect(describeInvestigationRuleTiming(minutes)).toBe(expected);
   });

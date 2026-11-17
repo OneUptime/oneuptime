@@ -7,6 +7,7 @@ import DatabaseModels from "Common/Models/DatabaseModels/Index";
 import AnalyticsModels from "Common/Models/AnalyticsModels/Index";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import SortNulls from "Common/Types/BaseDatabase/SortNulls";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ModelSchema, ModelSchemaType } from "Common/Utils/Schema/ModelSchema";
 import {
@@ -70,14 +71,64 @@ function buildQueryProperty(): JSONSchemaProperty {
   };
 }
 
-// Any sortable field, ascending or descending: the directions stay checkable.
+const SORT_DIRECTIONS: Array<string> = [
+  SortOrder.Ascending,
+  SortOrder.Descending,
+];
+
+/*
+ * A telemetry list's sort: any field, ascending or descending, which is all
+ * ClickHouse is asked (StatementGenerator.toSortStatement). The directions
+ * stay checkable.
+ */
 function buildSortProperty(exampleField: string): JSONSchemaProperty {
   return {
     type: "object",
     description: `For example {"${exampleField}":"DESC"}.`,
     additionalProperties: {
       type: "string",
-      enum: [SortOrder.Ascending, SortOrder.Descending],
+      enum: SORT_DIRECTIONS,
+    },
+  };
+}
+
+/*
+ * A database list's sort, in the forms the API reads (SortValidator, #8141)
+ * and the OpenAPI spec publishes (ModelSchema.getSortModelSchema, #8840):
+ *
+ *   - a field and its direction: {"createdAt":"DESC"};
+ *   - a field and where the records with no value go:
+ *     {"declaredAt":{"direction":"DESC","nulls":"LAST"}};
+ *   - a relation of one record, by a field of the related record:
+ *     {"incidentSeverity":{"order":"ASC"}}.
+ *
+ * Any field, as the query takes any: which fields and relations a resource
+ * sorts by is oneuptime_describe_resource's to say, asked one resource at a
+ * time, not every tool's on every connection (Tests/ToolListBudget). The
+ * values stay checkable: "UP", a nulls of "NEVER" or a relation's field
+ * given "LAST" is refused before the API is asked.
+ */
+function buildRecordSortProperty(): JSONSchemaProperty {
+  return {
+    type: "object",
+    description:
+      'For example {"createdAt":"DESC"}, or a related record\'s field: {"<relation>":{"<field>":"ASC"}}.',
+    additionalProperties: {
+      anyOf: [
+        { enum: SORT_DIRECTIONS },
+        {
+          type: "object",
+          properties: {
+            direction: { enum: SORT_DIRECTIONS },
+            nulls: { enum: [SortNulls.First, SortNulls.Last] },
+          },
+          additionalProperties: false,
+        },
+        {
+          type: "object",
+          additionalProperties: { enum: SORT_DIRECTIONS },
+        },
+      ],
     },
   };
 }
@@ -583,7 +634,7 @@ function createListTool(
           type: "number",
           description: `Default: ${LIST_DEFAULT_LIMIT}, maximum: ${LIST_MAX_LIMIT}.`,
         },
-        sort: buildSortProperty("createdAt"),
+        sort: buildRecordSortProperty(),
       },
       additionalProperties: false,
     },

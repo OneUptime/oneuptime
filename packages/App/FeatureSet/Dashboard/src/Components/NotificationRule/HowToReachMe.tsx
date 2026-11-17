@@ -73,13 +73,17 @@ import React, {
  * steps (#8139). That is what most people mean, and it is what the product
  * already makes: a verified method starts with a rule in every card, at
  * once. The per-severity grid (the tabs and cards of OnCallRulesTabs) is
- * one click away, "Different for Some Severities" at the ladder's foot,
- * and opens by itself:
+ * one click away, the "Different for Some Severities" button beside the
+ * ladder's title, and opens by itself only for a link to one kind's rules
+ * (?type=alerts) - the setup checklist, a readiness card, a reminder email
+ * - which is about that kind.
  *
- *   - for somebody whose rules already differ between cards, with the
- *     differences named and an offer to use one ladder;
- *   - for a link to one kind's rules (?type=alerts) - the setup checklist,
- *     a readiness card, a reminder email - which is about that kind.
+ * Somebody whose cards differ opens on the steps too, with the cards that
+ * differ listed under them (#8890). The page used to open on the grid for
+ * them, with the steps behind "Use One Ladder for Everything", which read
+ * as a reset: once one severity differed, the steps looked gone for good.
+ * Saving the steps now leaves the cards that differ as they are, and
+ * giving them the ladder too is a button of its own.
  *
  * The ladder is not stored: it is read from the grid's rows and saved as
  * them (Common/Types/NotificationRule/PagingLadder, PagingLadderService).
@@ -125,15 +129,17 @@ export const isGridRequested: (
   );
 };
 
-// The view a page opens on: the grid for a link to one kind's rules, or for rules that differ.
+/*
+ * The view a page opens on: the grid for a link to one kind's rules, and
+ * the steps otherwise - for rules that differ too, which the steps list
+ * (#8890).
+ */
 export const getInitialView: (data: {
   requestsKind: boolean;
-  reading: PagingLadderReading;
 }) => HowToReachMeView = (data: {
   requestsKind: boolean;
-  reading: PagingLadderReading;
 }): HowToReachMeView => {
-  if (data.requestsKind || !data.reading.isOneLadder) {
+  if (data.requestsKind) {
     return HowToReachMeView.Grid;
   }
 
@@ -199,13 +205,7 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
       setOwnMethods(loadedMethods);
 
       setView((current: HowToReachMeView | null) => {
-        return (
-          current ||
-          getInitialView({
-            requestsKind: requestsKind,
-            reading: readPagingLadder(ladderData),
-          })
-        );
+        return current || getInitialView({ requestsKind: requestsKind });
       });
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -283,18 +283,27 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
     setView(next);
   };
 
-  const save: (steps: Array<PagingLadderStep>) => Promise<void> = async (
+  const save: (
     steps: Array<PagingLadderStep>,
+    keepDifferences: boolean,
+  ) => Promise<void> = async (
+    steps: Array<PagingLadderStep>,
+    keepDifferences: boolean,
   ): Promise<void> => {
     await savePagingLadder({
       userId: isOwn ? undefined : props.userId,
       steps: steps,
+      keepCards: keepDifferences
+        ? differences.map((difference: PagingLadderDifference) => {
+            return difference.cell;
+          })
+        : undefined,
     });
 
     ProductEvents.send(ProductEventName.PagingLadderSaved, {
       is_own: isOwn,
       step_count: steps.length,
-      replaced_card_count: differences.length,
+      replaced_card_count: keepDifferences ? 0 : differences.length,
     });
 
     await load();
@@ -442,9 +451,7 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
             }
             buttons={[
               {
-                title: reading?.isOneLadder
-                  ? PAGING_LADDER_COPY.backToLadder
-                  : PAGING_LADDER_COPY.useOneLadder,
+                title: PAGING_LADDER_COPY.backToLadder,
                 buttonStyle: ButtonStyleType.NORMAL,
                 icon: IconProp.List,
                 onClick: () => {

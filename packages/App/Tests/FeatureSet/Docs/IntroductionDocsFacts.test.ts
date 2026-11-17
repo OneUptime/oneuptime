@@ -649,10 +649,11 @@ describe("Quickstart", () => {
           serverCanSendEmail: true,
         };
       };
+      // Each step of the path is drawn by WelcomePlanStep (#8897).
       const doneStep: string = oneLine(
         blockFrom(
-          CHECKLIST_SOURCE,
-          "if (isComplete) {",
+          PLAN_STEP_SOURCE,
+          "// A done step is a record, not a way anywhere.",
           "A step to do is a button",
         ),
       );
@@ -1643,6 +1644,24 @@ const UPCOMING_SOURCE: string = dashboard(
   "Components/Home/UpcomingMaintenance.tsx",
 );
 const EXPLORE_SOURCE: string = dashboard("Components/Home/ExploreProducts.tsx");
+// The greeting the checklist opens with (#8897).
+const GREETING_SOURCE: string = dashboard(
+  "Components/Home/WelcomeChecklist/WelcomeGreeting.tsx",
+);
+// Home, which is the checklist alone while it shows (#8897).
+const HOME_PAGE_SOURCE: string = dashboard("Pages/Home/Home.tsx");
+// One step of the checklist's path, with about how long it takes (#8897).
+const PLAN_STEP_SOURCE: string = dashboard(
+  "Components/Home/WelcomeChecklist/WelcomePlanStep.tsx",
+);
+// The question, with what the goals picked bring (#8897).
+const QUESTION_SOURCE: string = dashboard(
+  "Components/Home/WelcomeChecklist/GoalQuestion.tsx",
+);
+// The frame every guided setup is drawn in.
+const GUIDED_SETUP_FRAME_SOURCE: string = dashboard(
+  "Components/GuidedSetup/GuidedSetupFrame.tsx",
+);
 
 const TASK_STEP: RegExp =
   /^ {4}step: WelcomeStep\.(\w+),\n {4}title: translationKey\("([^"]+)"\),$/gm;
@@ -1680,7 +1699,6 @@ const TRANSLATION_KEY_CONSTANT: (name: string) => RegExp = (
 const NUMBER_CONSTANT: (name: string) => RegExp = (name: string): RegExp => {
   return new RegExp(`export const ${name}: number = (\\d+);`);
 };
-const HOW_IT_WORKS_STEP_TITLE: RegExp = /^ {4}title: "([^"]+)",$/gm;
 const KEY_SEQUENCE: RegExp = /keySequence: \[\[([^\]]+)\]\]/g;
 const QUICK_ACTION_TITLE: RegExp = /title: translationKey\("([^"]+)"\)/g;
 const RESOURCE_TITLE: RegExp = /title: translationKey\("([^"]+)"\)/g;
@@ -2300,7 +2318,14 @@ describe("Home Page & Shortcuts", () => {
     expect(CHECKLIST_CATALOG_SOURCE).toContain(
       'title: "Welcome to OneUptime 👋",',
     );
-    expect(CHECKLIST_SOURCE).toContain("title={WELCOME_CHECKLIST_COPY.title}");
+    /*
+     * The checklist opens on a greeting (#8897): the card's title, with the
+     * person's first name when the Dashboard knows it.
+     */
+    expect(CHECKLIST_SOURCE).toContain("<WelcomeGreeting");
+    expect(GREETING_SOURCE).toContain(
+      "translator.translateText(WELCOME_CHECKLIST_COPY.title)",
+    );
 
     const items: Array<string> = Array.from(
       whatHomeShows.matchAll(NUMBERED_ITEM),
@@ -2396,6 +2421,60 @@ describe("Home Page & Shortcuts", () => {
     );
   });
 
+  /*
+   * Home follows what it counts as it changes (#8963): its batch hears every
+   * kind it counts (UseHomeOverview), and Upcoming maintenance its events.
+   */
+  it("says Home follows what it counts as it changes, as the overview and Upcoming maintenance hear it", () => {
+    expect(sectionOf(HOME, "### The headline")).toContain(
+      "Home also follows what it counts as it changes: when an incident, alert, monitor, maintenance event or SLO is created, changed or deleted, the line, the numbers, **Needs attention** and **Upcoming maintenance** catch up within seconds, without a refresh.",
+    );
+
+    const hook: string = oneLine(
+      dashboard("Components/Home/UseHomeOverview.ts"),
+    );
+    const kinds: RegExpMatchArray | null = hook.match(
+      /HOME_OVERVIEW_LIVE_MODEL_TYPES: ReadonlyArray<\{ new \(\): BaseModel; \}> = \[([^\]]+)\]/,
+    );
+
+    expect(
+      (kinds?.[1] || "")
+        .split(",")
+        .map((kind: string): string => {
+          return kind.trim();
+        })
+        .filter(Boolean),
+    ).toEqual([
+      "Incident",
+      "Alert",
+      "Monitor",
+      "ScheduledMaintenance",
+      "ServiceLevelObjective",
+    ]);
+    expect(hook).toContain(
+      "useLiveRefresh({ modelTypes: HOME_OVERVIEW_LIVE_MODEL_TYPES,",
+    );
+
+    const upcoming: string = oneLine(UPCOMING_SOURCE);
+    expect(upcoming).toContain(
+      "UPCOMING_MAINTENANCE_LIVE_MODEL_TYPES: ReadonlyArray<{ new (): BaseModel; }> = [ScheduledMaintenance];",
+    );
+    expect(upcoming).toContain(
+      "useLiveRefresh({ modelTypes: UPCOMING_MAINTENANCE_LIVE_MODEL_TYPES,",
+    );
+
+    // The words the sentence uses for what it follows are the batch's kinds.
+    for (const kind of [
+      "an incident",
+      "alert",
+      "monitor",
+      "maintenance event",
+      "SLO",
+    ]) {
+      expect(sectionOf(HOME, "### The headline")).toContain(kind);
+    }
+  });
+
   it("says where Create your first monitor leads, as the headline links it", () => {
     const card: string = oneLine(
       dashboard("Components/Home/ProjectHealthCard.tsx"),
@@ -2436,17 +2515,89 @@ describe("Home Page & Shortcuts", () => {
       'title: translationKey("What do you want to do first?"),',
     );
     expect(section).toContain(
-      "the card asks **What do you want to do first?**",
+      "the card greets them by their first name and asks **What do you want to do first?**",
     );
+    expect(GREETING_SOURCE).toContain("getFirstName()");
     // The first goal and the last, as the question lists them.
     expect(goals[0]).toBe("Know when my website or API is down");
     expect(goals[goals.length - 1]).toBe("Just looking around");
     expect(section).toContain(`**${goals[0]}**`);
     expect(section).toContain(`**${goals[goals.length - 1]}**`);
-    for (const button of ["Continue", "Skip", "Change"]) {
+    for (const button of ["Continue", "Change"]) {
       expect(CHECKLIST_CATALOG_SOURCE).toContain(`translationKey("${button}")`);
       expect(section).toContain(`**${button}**`);
     }
+    /*
+     * Skip is gone (#8897): "Just looking around" is the way out, under the
+     * cards, and it hides the checklist for the person who chose it.
+     */
+    expect(CHECKLIST_CATALOG_SOURCE).not.toContain('translationKey("Skip")');
+    expect(section).not.toContain("**Skip**");
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      "export const WELCOME_JUST_LOOKING_GOAL: ProjectGoal = ProjectGoal.Explore;",
+    );
+    expect(CHECKLIST_SOURCE).toMatch(
+      /const justLookAround[\s\S]*WELCOME_CHECKLIST_GOALS_ROUTE[\s\S]*WELCOME_CHECKLIST_HIDE_ROUTE/,
+    );
+    expect(section).toContain(
+      `**${goals[goals.length - 1]}** takes you straight to the rest of Home instead, and leaves a line to show the checklist again.`,
+    );
+    // While picking, how many steps and about how long.
+    expect(QUESTION_SOURCE).toContain("WELCOME_QUESTION_COPY.stepsToSetUp");
+    expect(QUESTION_SOURCE).toContain("getWelcomeStepsMinutes(planSteps)");
+    expect(section).toContain(
+      "While you pick, it says how many steps that is and about how long they take.",
+    );
+  });
+
+  it("says the checklist is all of Home while it shows, with what cannot wait above it", () => {
+    expect(whatHomeShows).toContain(
+      "While a new project's **Welcome to OneUptime 👋** checklist shows, it is all of Home, so the first thing you meet is what to do first. An open incident, or anything else that needs someone, still shows above it. Hide the checklist, or finish it, and the rest of Home comes back.",
+    );
+    // The question and the steps are the quickstart; Home draws only it.
+    expect(HOME_PAGE_SOURCE).toContain(
+      "return welcome.isTakingHome ? HomeMode.Quickstart : HomeMode.Overview;",
+    );
+    /*
+     * A new project's: the question, and the steps once someone answered
+     * it, as the page says ("a new project's ... checklist").
+     */
+    expect(CHECKLIST_SOURCE).toContain(
+      "data.view === WelcomeCardView.Question",
+    );
+    expect(CHECKLIST_SOURCE).toContain("data.answer.goals !== null");
+    // An open incident or anything else that needs someone: the health card.
+    expect(HOME_PAGE_SOURCE).toContain(
+      "kind === ProjectHealthKind.Incidents ||",
+    );
+    expect(HOME_PAGE_SOURCE).toContain(
+      "kind === ProjectHealthKind.NeedsAttention",
+    );
+  });
+
+  it("says each step's minutes, the minutes left and the next step's Start, as the path draws them", () => {
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+
+    expect(PLAN_STEP_SOURCE).toContain("WELCOME_STEP_MINUTES[state.step]");
+    expect(CHECKLIST_SOURCE).toContain("getWelcomeMinutesLeft(answer.steps)");
+    expect(CHECKLIST_CATALOG_SOURCE).toContain(
+      'startButton: translationKey("Start"),',
+    );
+    expect(section).toContain(
+      "Each step says about how long it takes, the checklist says about how long is left, and the next step has a **Start** button of its own.",
+    );
+  });
+
+  it("says a guided setup lists what it sets up beside its steps, and how long it takes", () => {
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+
+    expect(GUIDED_SETUP_FRAME_SOURCE).toContain(
+      'translationKey("What this sets up")',
+    );
+    expect(GUIDED_SETUP_FRAME_SOURCE).toContain("props.minutes");
+    expect(section).toContain(
+      "Beside its steps, a guided setup lists what it sets up, ticked off as you go, and says about how long it takes.",
+    );
   });
 
   it("gives the checklist's steps, what finishes each and what each opens, as the catalog routes them", () => {
@@ -2744,28 +2895,78 @@ describe("Home Page & Shortcuts", () => {
     expect(section).not.toContain("this browser");
   });
 
-  it("names How OneUptime works and its four products in their order", () => {
+  /*
+   * The checklist drew a strip of four products of its own, beside the
+   * dialog's four steps; now one line under its steps opens the dialog,
+   * saying what it holds in the dialog's own words (#8995).
+   */
+  it("says a line under the steps opens How OneUptime works, in the words the line says", () => {
     const source: string = dashboard("Components/Home/HowOneUptimeWorks.tsx");
-    const steps: Array<string> = Array.from(
-      blockFrom(source, "export const HOW_IT_WORKS_STEPS", "\n];").matchAll(
-        HOW_IT_WORKS_STEP_TITLE,
-      ),
-    ).map((match: RegExpMatchArray): string => {
-      return match[1] as string;
-    });
+    const description: string = (
+      dashboard("Components/Home/HowOneUptimeWorksDialog.tsx").match(
+        TRANSLATION_KEY_CONSTANT("HOW_ONEUPTIME_WORKS_DESCRIPTION"),
+      ) as RegExpMatchArray
+    )[1] as string;
 
     expect(source).toContain(
       'export const HOW_IT_WORKS_TITLE: string = "How OneUptime works";',
     );
-    expect(CHECKLIST_SOURCE).toContain("<HowOneUptimeWorks");
+    expect(CHECKLIST_SOURCE).toContain(
+      "openHowOneUptimeWorks(HowOneUptimeWorksOpenedFrom.WelcomeChecklist);",
+    );
+    expect(CHECKLIST_SOURCE).toContain(
+      "translator.translateText(HOW_ONEUPTIME_WORKS_DESCRIPTION)",
+    );
+    expect(CHECKLIST_SOURCE).not.toContain("<HowOneUptimeWorks");
+    expect(description).toBe(
+      "Everything OneUptime does, and how it fits together.",
+    );
     expect(whatHomeShows).toContain(
-      `**How OneUptime works** shows the four core products in the order a problem flows through them: ${steps
+      `Under the steps, a line opens **How OneUptime works**: ${description
+        .charAt(0)
+        .toLowerCase()}${description.slice(1)}`,
+    );
+    // The products are the dialog's to name, in its four steps.
+    expect(whatHomeShows).not.toContain("four core products");
+  });
+
+  /*
+   * The dialog Help, Home and Search open (#8891): its first section and its
+   * four steps, in the order the overview draws them, and its categories.
+   */
+  it("says what How OneUptime works opens on: its first section and its four steps, in their order", () => {
+    const source: string = dashboard(
+      "Components/Home/HowOneUptimeWorksOverview.tsx",
+    );
+    const steps: Array<string> = Array.from(
+      blockFrom(source, "export const HOW_IT_WORKS_LOOP:", "\n];").matchAll(
+        /^ {4}title: translationKey\("([^"]+)"\),$/gm,
+      ),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+    const section: string = sectionOf(HOME, "### The welcome checklist");
+
+    expect(steps).toHaveLength(4);
+    expect(source).toContain(
+      'export const HOW_IT_WORKS_LOOP_TAB: string = translationKey(\n  "How it fits together",\n);',
+    );
+    expect(section).toContain(
+      `**How OneUptime works** opens on **How it fits together**: the four steps a problem moves through, ${steps
         .slice(0, -1)
         .map((step: string): string => {
           return `**${step}**`;
         })
-        .join(", ")} and **${steps[steps.length - 1]}**.`,
+        .join(
+          ", ",
+        )} and **${steps[steps.length - 1]}**, each with the products that do it.`,
     );
+    // Then the products menu's categories, walked with the arrow keys or Next.
+    expect(source).toContain('translationKey("Next: {{section}}")');
+    expect(section).toContain(
+      "Then come the categories of the **Products** menu, each listing its products and what each is for: pick one, or move on with the arrow keys or **Next**.",
+    );
+    expect(section).toContain("Products your project hides are left out.");
   });
 
   it("describes every number by its label, what makes it count and the words it shows", () => {
@@ -2961,6 +3162,35 @@ describe("Home Page & Shortcuts", () => {
       'export const SETUP_HEALTH_AFFECTS: string = translationKey("Affects");',
     );
     expect(section).toContain("the monitors or policies it **Affects**");
+
+    // The two one-click fixes (#7299), by the buttons that open their dialogs.
+    const quickFixWords: string = dashboard(
+      "Components/SetupHealth/SetupHealthQuickFix.ts",
+    );
+
+    expect(quickFixWords).toContain('button: translationKey("Turn On SMS"),');
+    expect(quickFixWords).toContain(
+      'button: translationKey("Create On-Call Rule"),',
+    );
+    expect(section).toContain(
+      "**Turn On SMS** (or phone calls, WhatsApp or Telegram)",
+    );
+    expect(section).toContain("**Create On-Call Rule**");
+    expect(section).toContain(
+      "once a dialog has said exactly what will change",
+    );
+
+    // A policy's and a status page's own Overview say their findings (#7297).
+    for (const page of [
+      "Pages/OnCallDuty/OnCallDutyPolicy/Index.tsx",
+      "Pages/StatusPages/View/Index.tsx",
+    ]) {
+      expect(dashboard(page)).toContain("<SetupHealthRecordFindings");
+    }
+
+    expect(section).toContain(
+      "says so at the top of the policy's or the status page's own page too",
+    );
 
     // A monitor's findings are its own card's breaks; dismissed ones fold away.
     expect(
@@ -3608,14 +3838,24 @@ describe("Your Account", () => {
     );
   });
 
-  it("asks for a password of at least 6 characters, twice", () => {
+  it("asks for a password that keeps the one password rule, twice", () => {
     const password: string = dashboard("Pages/Global/UserProfile/Password.tsx");
+    const rule: string = readSource(COMMON_DIR, "Types/Password.ts");
 
-    expect(password.split("minLength: 6").length - 1).toBe(2);
-    expect(password).toContain('title: "Password"');
-    expect(password).toContain('title: "Confirm Password"');
+    // The shared fields: the rule's checklist, then its confirmation (#9123).
+    expect(password).toContain("getNewPasswordFields<");
+    expect(password).toContain('translator.translateText("New Password")');
+    expect(password).toContain('translator.translateText("Confirm Password")');
     expect(password).toContain('submitButtonText={"Update Password"}');
-    expect(YOUR_ACCOUNT).toContain("It must be at least 6 characters long.");
+    expect(rule).toContain(
+      "export const MINIMUM_PASSWORD_LENGTH: number = 15;",
+    );
+    expect(YOUR_ACCOUNT).toContain(
+      "Enter the new password in **New Password** and again in **Confirm Password**. It must be at least 15 characters long",
+    );
+    expect(YOUR_ACCOUNT).toContain(
+      "A password you set before this rule keeps working until you change it.",
+    );
   });
 
   it("says what a new password ends, as the write that stores one ends it", () => {

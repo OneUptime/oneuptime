@@ -1,5 +1,6 @@
 import { Green } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
@@ -94,6 +95,12 @@ export interface ComponentProps {
    * monitored, in gray.
    */
   isNotMonitored?: boolean | undefined;
+  /*
+   * One of those that nothing has checked yet (the overview's
+   * notMonitoredYetResourceIds, issue #8899): its Operational is only the
+   * status every monitor is created in. It says Not monitored yet.
+   */
+  isNotMonitoredYet?: boolean | undefined;
 }
 
 const MonitorOverview: FunctionComponent<ComponentProps> = (
@@ -127,8 +134,18 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
     dayLabelWithIncidents: t("uptimeHistory.dayLabelWithIncidents"),
     dayLabelNoData: t("uptimeHistory.dayLabelNoData"),
     dayLabelNoDataWithIncidents: t("uptimeHistory.dayLabelNoDataWithIncidents"),
+    /*
+     * A day nothing checked the resource because monitoring was off (issue
+     * #7112), in the page's word for it beside a resource: Not monitored.
+     */
+    dayLabelMonitoringOff: t("uptimeHistory.dayLabelMonitoringOff"),
+    dayLabelMonitoringOffWithIncidents: t(
+      "uptimeHistory.dayLabelMonitoringOffWithIncidents",
+    ),
     uptime: t("uptimeHistory.uptime"),
     noMonitoringData: t("uptimeHistory.noMonitoringData"),
+    monitoringOffOnThisDay: t("uptimeHistory.monitoringOffOnThisDay"),
+    monitoringOffFor: t("uptimeHistory.monitoringOffFor"),
     incidents: t("uptimeHistory.incidents"),
     noIncidents: t("uptimeHistory.noIncidents"),
     noIncidentsDescription: t("uptimeHistory.noIncidentsDescription"),
@@ -162,7 +179,9 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
           data-testid="resource-not-monitored"
           {...getStatusTextProps(NOT_MONITORED_STATUS_COLOR.toString())}
         >
-          {t("overview.notMonitored")}
+          {props.isNotMonitoredYet
+            ? t("overview.notMonitoredYet")
+            : t("overview.notMonitored")}
         </div>
       );
     }
@@ -192,9 +211,19 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
        * those days - it read 99.876% for a monitor that was up 99.667% of
        * its sixty days. The buckets are measured from every row.
        */
-      let uptimePercent: number | null = props.uptimeBuckets
+      /*
+       * The server's reading - its buckets have a bucket for every day of
+       * the window - is the figure, and one that covers nothing is no
+       * figure: the rows would read the time it leaves out (before the
+       * monitor's first check, issue #8960, or with monitoring off) as 100%.
+       */
+      const hasBuckets: boolean = Boolean(
+        props.uptimeBuckets && props.uptimeBuckets.length > 0,
+      );
+
+      let uptimePercent: number | null = hasBuckets
         ? UptimeDailyAggregateUtil.getUptimePercent({
-            buckets: props.uptimeBuckets,
+            buckets: props.uptimeBuckets!,
             downtimeMonitorStatusIds: props.downtimeMonitorStatuses
               .map((status: MonitorStatus) => {
                 return status.id?.toString() || "";
@@ -210,7 +239,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
        * also merged by priority, which lets a later-starting, longer-running
        * row of one monitor cut another monitor's outage short.
        */
-      if (uptimePercent === null && props.mergedDowntime) {
+      if (!hasBuckets && props.mergedDowntime) {
         uptimePercent = UptimeUtil.calculateUptimePercentOfCoveredSeconds({
           coveredSeconds: props.mergedDowntime.coveredSeconds,
           downtimeSeconds: props.mergedDowntime.downtimeSeconds,
@@ -219,13 +248,14 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
       }
 
       /*
-       * Otherwise (no reading, or one that covers nothing) measure uptime
-       * over the same window the history chart is drawn for. Without this
-       * an open (endsAt = null) row that started before the window
-       * contributes its whole duration, and the denominator becomes "first
-       * event -> now" rather than the window.
+       * Otherwise (no reading from the server at all: one that predates it,
+       * or a monitor added after the page's aggregate was cut) measure
+       * uptime over the same window the history chart is drawn for.
+       * Without this an open (endsAt = null) row that started before the
+       * window contributes its whole duration, and the denominator becomes
+       * "first event -> now" rather than the window.
        */
-      if (uptimePercent === null) {
+      if (!hasBuckets && !props.mergedDowntime) {
         uptimePercent = UptimeUtil.calculateUptimePercentage(
           props.monitorStatusTimeline,
           precision,
@@ -246,11 +276,17 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
         >
           {/* One phrase, the figure where the reader's language puts it (#8076). */}
           {t("overview.uptimePercent", {
-            // In the page's digits and percent sign (#8292).
-            percent: formatUptimePercentFigure(
-              uptimePercent,
-              i18n.resolvedLanguage || i18n.language || "en",
-            ),
+            /*
+             * In the page's digits and percent sign (#8292); a dash when
+             * nothing was measured, as a group's rollup writes it.
+             */
+            percent:
+              uptimePercent === null
+                ? EMPTY_VALUE_MARK
+                : formatUptimePercentFigure(
+                    uptimePercent,
+                    i18n.resolvedLanguage || i18n.language || "en",
+                  ),
           })}
         </div>
       );
@@ -418,6 +454,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
           uptimePercent={selectedDaySummary?.uptimePercent}
           hasEvents={selectedDaySummary?.hasEvents}
           statusDurations={selectedDaySummary?.statusDurations}
+          monitoringOffSeconds={selectedDaySummary?.monitoringOffSeconds}
           maintenanceEvents={selectedDaySummary?.maintenanceEvents}
           onMaintenanceClick={props.onMaintenanceClick}
           labels={uptimeHistoryLabels}

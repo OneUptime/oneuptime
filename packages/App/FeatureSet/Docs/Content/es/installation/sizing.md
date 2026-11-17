@@ -82,6 +82,8 @@ El almacenamiento crece **de forma lineal con la retención**: una ventana de 90
 
 PostgreSQL guarda tu configuración y tu estado operativo, no la telemetría, así que crece despacio y se mantiene pequeño junto a ClickHouse. Incluso las instalaciones grandes suelen quedarse en decenas de GB. El volumen predeterminado de **25 Gi** basta para instalaciones pequeñas; prevé 50–100 GB para las más grandes, con margen para el historial de incidentes y alertas.
 
+Los incidentes y las alertas resueltos se quedan hasta que cada proyecto elige cuánto tiempo conservarlos. Para someter todos los proyectos a un límite, fija **Conservar como máximo** en **Admin Dashboard → Ajustes → Retención de datos**: consulta [Un límite para todo el servidor](/docs/incidents/settings#un-límite-para-todo-el-servidor).
+
 Con muchas réplicas de app, workers y sondas, las conexiones a la base de datos pueden agotarse antes que el almacenamiento. Cada pod abre hasta 50 conexiones de forma predeterminada, y el PostgreSQL incluido admite 500. Justo para esto, el chart incluye un pooler de conexiones **PgBouncer** opcional (`pgbouncer.enabled`): actívalo en instalaciones con muchas réplicas.
 
 ## Valkey – caché, colas y sesiones
@@ -99,6 +101,8 @@ Además de los almacenes de datos, dimensiona las cargas de trabajo sin estado. 
 | Sondas | `probes` | El número de monitores activos |
 | Pasarela de entrada | `nginx` | El volumen de solicitudes |
 | Telemetry writer, cuando está activado | `telemetryWriter` | No con la carga: agrupa cada inserción de telemetría en ClickHouse, así que se dimensiona según lo que ClickHouse puede asumir |
+
+Cada una ejecuta Node.js, que ajusta su heap al límite de memoria de su contenedor (`resources.limits.memory`): el 75 % del límite, como mínimo 256 MB y como máximo 8096 MB. Sin límite, el heap puede crecer hasta 8096 MB. El resto del límite queda para la memoria que Node.js usa fuera de su heap. Para elegir el heap usted mismo, defina `NODE_OPTIONS` como `--max-old-space-size=` seguido de un tamaño en MB, en el `extraEnv` del servicio (con Docker Compose, en el `environment` del servicio, en un archivo de override). Tiene prioridad sobre el tamaño que da el límite.
 
 El chart incluye **KEDA**, para que la app, los workers, las sondas y el Runner global escalen según su cola de trabajo pendiente. Activa `keda.enabled` junto con el `keda.enabled` propio de cada servicio (por ejemplo, `app.keda.enabled`). En un clúster que todavía no tiene KEDA, la primera instalación necesita una pasada adicional: consulta la [guía de KEDA](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) del chart. Los servicios que KEDA no gestiona pueden usar en su lugar un escalador automático por CPU o memoria (`autoscaling`).
 

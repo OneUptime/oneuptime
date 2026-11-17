@@ -396,13 +396,13 @@ describe("counts in Japanese", () => {
         { one: "{{count}} minute", other: "{{count}} minutes" },
         1,
       ),
-    ).toBe("1 分");
+    ).toBe("1\u00A0分");
     expect(
       translator.translatePlural(
         { one: "{{count}} minute", other: "{{count}} minutes" },
         1500,
       ),
-    ).toBe("1,500 分");
+    ).toBe("1,500\u00A0分");
   });
 });
 

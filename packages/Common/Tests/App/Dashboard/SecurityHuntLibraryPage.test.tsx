@@ -391,11 +391,11 @@ describe("whether the project sends what each starter reads", () => {
     // A starter is no rule that runs: its dot says what a hunt finds.
     expect(dataStatus(ENCODED_POWERSHELL)).toHaveAttribute(
       "title",
-      "No events of this kind arrived in the last 7 days. The hunt finds nothing until they do.",
+      "No events of this kind arrived in the last 7\u00A0days. The hunt finds nothing until they do.",
     );
     expect(dataStatus(FAILED_SIGN_INS)).toHaveAttribute(
       "title",
-      "Events of this kind arrived in the last 7 days.",
+      "Events of this kind arrived in the last 7\u00A0days.",
     );
     // A threat intel match is stamped on any event: any event will do.
     expect(

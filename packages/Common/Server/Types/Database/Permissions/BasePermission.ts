@@ -6,8 +6,10 @@ import Select from "../Select";
 import AccessControlPermission, { LabelGrant } from "./AccessControlPermission";
 import OwnedScopePermission from "./OwnedScopePermission";
 import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
+import SortValidator from "./SortValidator";
 import PermissionUtil from "./PermissionsUtil";
 import PrivateRecordPermission from "./PrivateRecordPermission";
+import PrivateRecordReadFilter from "../../../Utils/Permission/PrivateRecordReadFilter";
 import TeamOwnedRulePermission from "./TeamOwnedRulePermission";
 import PublicPermission from "./PublicPermission";
 import QueryPermission from "./QueryPermission";
@@ -41,6 +43,8 @@ export default class BasePermission {
    * `updateData` is what an update writes, handed on to the table-level
    * plan check: below a table's update plan only an update that switches
    * records off passes, and only the data shows that (BillingPermission).
+   * `sort` is the order a read asked for, held to the caller's read of each
+   * column it names, beside the select (SortValidator.checkSortPermission).
    */
   @CaptureSpan()
   public static async checkPermissions<TBaseModel extends BaseModel>(
@@ -50,6 +54,7 @@ export default class BasePermission {
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
     updateData?: unknown,
+    sort?: unknown,
   ): Promise<CheckPermissionBaseInterface<TBaseModel>> {
     /*
      * Permission checks add predicates and QueryUtil serializes values in
@@ -78,6 +83,7 @@ export default class BasePermission {
         props,
         type,
         updateData,
+        sort,
       );
 
       // add user scope if any
@@ -142,6 +148,20 @@ export default class BasePermission {
             props,
           );
         }
+
+        /*
+         * A sort reads the columns it orders by, so it is held to their read
+         * as the select is - with the same query and the same caller, in a
+         * read across projects once for each project (#8839).
+         */
+        if (sort) {
+          SortValidator.checkSortPermission({
+            modelType: modelType,
+            query: query as Query<BaseModel>,
+            sort: sort,
+            props: props,
+          });
+        }
       }
     }
 
@@ -171,6 +191,9 @@ export default class BasePermission {
    *   - on an update and a delete, a private incident, alert or episode,
    *     and the parts of one, only where the caller owns it or a team
    *     granting the operation does (PrivateRecordPermission);
+   *   - a filter through a relation to a private record, or to a part of
+   *     one, matching only the related records the caller sees
+   *     (PrivateRecordReadFilter.addToRelationFilters);
    *   - on an update and a delete, a rule some teams own (an on-call, owner
    *     or workspace notification rule) and its owning teams, only where a
    *     team granting the operation owns it (TeamOwnedRulePermission);
@@ -365,6 +388,20 @@ export default class BasePermission {
       query,
       props,
       type,
+    );
+
+    /*
+     * A filter through a relation to a private incident, alert or episode,
+     * or to a part of one - `{ incident: { title: ... } }` on a Data
+     * Security issue - matches only the related records the caller sees, on
+     * a read, a count, an update and a delete alike: which rows a filter
+     * matches says what the related record holds (#9102). See
+     * PrivateRecordReadFilter.addToRelationFilters.
+     */
+    query = PrivateRecordReadFilter.addToRelationFilters(
+      modelType,
+      query,
+      props,
     );
 
     /*

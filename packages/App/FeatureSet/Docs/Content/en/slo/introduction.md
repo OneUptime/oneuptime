@@ -12,7 +12,7 @@ A service level objective (SLO) is a reliability target for what you run, such a
 
 ## How it works
 
-An SLO measures one of two things. A monitor uptime SLO reads the status timelines of the monitors attached to it: the same data your status pages show. A request SLO counts the requests its services serve, from their traces: see [Request and Latency SLOs](/docs/slo/request-slos). The rest of this page describes monitor uptime SLOs, and request SLOs work the same way unless it says otherwise. From them OneUptime works out how much of the compliance window was good time, how much of the error budget is left, and how fast it is being spent. Time with a monitor's monitoring turned off is left out: nothing checks the monitor then, so that time neither spends the error budget nor counts as good time.
+An SLO measures one of two things. A monitor uptime SLO reads the status timelines of the monitors attached to it: the same data your status pages show. A request SLO counts the requests its services serve, from their traces: see [Request and Latency SLOs](/docs/slo/request-slos). The rest of this page describes monitor uptime SLOs, and request SLOs work the same way unless it says otherwise. From them OneUptime works out how much of the compliance window was good time, how much of the error budget is left, and how fast it is being spent. Time with a monitor's monitoring turned off is left out: nothing checks the monitor then, so that time neither spends the error budget nor counts as good time. So is the time before a monitor's first check: until something has checked a monitor, its status is only the operational one every monitor is created in, so an SLO is measured from its monitors' first checks, and one whose monitors nothing has checked yet has nothing to measure until they are checked.
 
 ```mermaid title="From monitor checks to an SLO's status"
 flowchart TB
@@ -139,7 +139,7 @@ OneUptime gives every evaluated SLO a status:
 | **Healthy** | More than the at-risk threshold of the budget is left. |
 | **At Risk** | The budget left has dropped to the at-risk threshold or below: 20% by default. |
 | **Budget Exhausted** | The budget is fully spent, or overspent. |
-| **Misconfigured** | The SLO cannot be measured: it has no monitors, its monitors no longer exist or have not recorded a status in its window yet, or its target is out of range. A request SLO is misconfigured without services, without a latency threshold, or before its services have served a request in its window. |
+| **Misconfigured** | The SLO cannot be measured: it has no monitors, its monitors no longer exist, nothing has checked them yet or they have not recorded a status in its window yet, or its target is out of range. A request SLO is misconfigured without services, without a latency threshold, or before its services have served a request in its window. |
 | **Paused** | Every monitor it measures is archived or has active monitoring turned off, by hand, by a manual incident or by scheduled maintenance. It resumes by itself once one of them is monitored again. |
 
 A turned-off or archived SLO is not evaluated, so its status stays where it was; the SLO list shows a **Disabled** or **Archived** pill instead. SLO owners are notified when the status changes to **At Risk** or **Budget Exhausted**: see [Error Budgets](/docs/slo/error-budget).
@@ -161,6 +161,7 @@ Open an SLO to see its pages in the side menu:
 | --- | --- |
 | **Overview** | The status, the headline numbers, the error budget burn-down, recent activity, open alerts and incidents, and the burn rate rules. |
 | **Metrics** | The SLO's `oneuptime.slo.*` metrics, its long-range error budget history, and metrics of the incidents and alerts that affect it. See [SLO Metrics and Dashboards](/docs/slo/metrics). |
+| **Monthly Report** | How the SLO did in each calendar month, and over the whole period. See [The Monthly Report](#the-monthly-report). |
 | **Incidents** | The incidents its burn rate rules and error budget policy declared. The badge counts the open ones. |
 | **Alerts** | The alerts its burn rate rules and error budget policy raised. The badge counts the open ones. |
 | **Feed** | What happened to the SLO, as a timeline. See [SLO Feed and Audit Logs](/docs/slo/feed-and-audit-logs). |
@@ -195,6 +196,8 @@ The **Overview** answers "are we within budget?", from top to bottom:
 
 When the SLO is in a tier of its error budget policy, the **Overview** also shows that tier and what the team agreed to do in it: see [Error Budget Policy](/docs/slo/error-budget-policy).
 
+The **Used by** card lists the burn-rate rules and the error budget policy tiers that act on the SLO, and the dashboards that show it. Archiving or deleting the SLO says these first: its rules and tiers go with it.
+
 ### Settings
 
 The **Settings** page holds how an SLO measures, one card each:
@@ -209,6 +212,31 @@ The **Settings** page holds how an SLO measures, one card each:
 | **Archive SLO** | **Archive** or **Unarchive**. | See [Archiving an SLO](#archiving-an-slo). |
 
 After a change to what it measures, the objective, period or downtime calculation, OneUptime re-evaluates the SLO on its next run.
+
+### The Monthly Report
+
+The **Monthly Report** shows how the SLO did in each calendar month of the last **3 months**, **6 months**, **9 months** or **12 months**, or of a calendar year. Each month shows its SLI, its downtime (a request SLO's failed or slow requests, a Metric SLO's bad events), the share of its error budget it used, and its result:
+
+| Result | What it means |
+| --- | --- |
+| Met | The month is over, and its SLI reached the target. |
+| Missed | The month is over and fell short of the target, or the month is still running and already has more downtime than the whole month allows. |
+| On track | The month is still running, and its SLI so far reaches the target. |
+| Below target | The month is still running, and its SLI so far is below the target. |
+| No data | Nothing was measured that month. |
+
+The **Total** row measures the whole period as one. An SLO with several monitors also gets a **By Monitor** table: each monitor's own SLI in every month, with the monitor that cost the SLO most first. **Download CSV** saves the report as a file for a spreadsheet.
+
+Nothing extra is stored for the report. Each month is worked out from the monitors' status history when you open it, with the SLO's monitors, downtime statuses and target as they are now, so it reaches back to before the SLO was created. A request SLO's months come from the requests OneUptime counted for it, and a Metric SLO's from the events of its metric, which OneUptime keeps for 400 days. Months run in the SLO's timezone, or in UTC when it has none.
+
+The API answers with the same report:
+
+```bash
+curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/monthly-report?months=12" \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Ask for `months` from 1 to 24, ending with the current month, or for a calendar year with `year`, such as `year=2025`.
 
 ## Archiving an SLO
 

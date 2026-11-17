@@ -1,6 +1,6 @@
 # RUM – Übersicht
 
-Real User Monitoring (RUM) zeigt, was echte Benutzer in Ihren Web- und Mobil-Apps erleben: Seitenaufrufe, Anfragen, Fehler und Core Web Vitals, gemeldet von der App selbst statt von einer Sonde. OneUptime ordnet diese Telemetrie einer RUM-Anwendung zu, die Sie in Diagrammen darstellen, durchsuchen und mit Alarmen überwachen können.
+Real User Monitoring (RUM) zeigt, was echte Benutzer in Ihren Web- und Mobil-Apps erleben: Seitenaufrufe, Anfragen, Fehler und Core Web Vitals, gemeldet von der App selbst statt von einer Sonde. OneUptime ordnet diese Telemetrie einer RUM-Anwendung zu, die Sie in Diagrammen darstellen, durchsuchen und mit Warnungen überwachen können.
 
 :::cards
 - [So funktioniert es](#so-funktioniert-es): Eine OpenTelemetry-Pipeline, beim Eintreffen als RUM eingeordnet.
@@ -95,7 +95,7 @@ Eine Anwendung zeigt **Empfängt Daten**, solange Telemetrie eintrifft, und **Ke
 :::steps
 ### Ingestion-Schlüssel erstellen
 
-Öffnen Sie **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** und klicken Sie auf **Aufnahmeschlüssel erstellen**. Eine Web-App braucht einen **Browser**-Schlüssel, der nur von den Ursprüngen aus funktioniert, die Sie angeben. Eine Mobil-App braucht einen **Server**-Schlüssel, weil ein mobiles SDK keinen `Origin`-Header sendet.
+Öffnen Sie **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** und klicken Sie auf **Ingestion-Schlüssel erstellen**. Eine Web-App braucht einen **Browser**-Schlüssel, der nur von den Ursprüngen aus funktioniert, die Sie angeben. Eine Mobil-App braucht einen **Server**-Schlüssel, weil ein mobiles SDK keinen `Origin`-Header sendet.
 
 ### App instrumentieren
 

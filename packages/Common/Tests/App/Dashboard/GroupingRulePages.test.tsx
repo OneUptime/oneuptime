@@ -395,8 +395,13 @@ describe.each(PAGES)(
         `instead of a flood of ${pageCase.ruleNoun}`,
       );
       expect(table.cardProps.description).toContain("drag a rule");
-      // The in-depth help is still a click away.
-      expect(table.helpContent.markdown).toContain("Group By");
+      /*
+       * The in-depth help is still a click away, and names the steps the
+       * form shows: Which Incidents, Which Alerts.
+       */
+      expect(table.helpContent.markdown).toContain(
+        `**${GROUPING_RULE_COPY.whichStepTitle[pageCase.kind]}**`,
+      );
     });
 
     test("lists a rule's name, what it groups and whether it is on - not raw minutes", () => {
@@ -438,7 +443,7 @@ describe.each(PAGES)(
         "One episode per title",
       );
       expect(column.getExportValue!(rule)).toBe(
-        `One episode per title. New ${pageCase.ruleNoun} join while they arrive within 1 hour of the last one`,
+        `One episode per title. New ${pageCase.ruleNoun} join while they arrive within 1\u00A0hour of the last one`,
       );
     });
 
@@ -886,19 +891,19 @@ describe.each(PAGES)(
           "reopenWindowSetting",
           "enableReopenWindow",
           "reopenWindowMinutes",
-          "45 minutes",
+          "45\u00A0minutes",
         ],
         [
           "resolveDelaySetting",
           "enableResolveDelay",
           "resolveDelayMinutes",
-          "45 minutes",
+          "45\u00A0minutes",
         ],
         [
           "inactivityTimeoutSetting",
           "enableInactivityTimeout",
           "inactivityTimeoutMinutes",
-          "45 minutes",
+          "45\u00A0minutes",
         ],
       ];
 
@@ -914,7 +919,7 @@ describe.each(PAGES)(
             [enabledColumn]: true,
             [minutesColumn]: 180,
           }),
-        ).toBe("3 hours");
+        ).toBe("3\u00A0hours");
         // Off, or on with 0 minutes the engines ignore: not set.
         expect(
           field.getFoldedValue!({

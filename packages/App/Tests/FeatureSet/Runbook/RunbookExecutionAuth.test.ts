@@ -5,6 +5,8 @@ import DatabaseService from "Common/Server/Services/DatabaseService";
 import IncidentService from "Common/Server/Services/IncidentService";
 import RunbookService from "Common/Server/Services/RunbookService";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
+import RunbookRunAccess from "Common/Server/Utils/Runbook/RunbookRunAccess";
+import NotFoundException from "Common/Types/Exception/NotFoundException";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import {
   RUNBOOK_ADVANCE_PERMISSIONS,
@@ -1552,6 +1554,127 @@ describe("Runbook execution routes require an authorized member of the runbook's
 
       expect(linked.thrownToNext).toBeUndefined();
       expect(startExecutionMock).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * A RUN LINKED TO A PRIVATE INCIDENT, ONLY THROUGH ITS OWNERS (#8913):
+     * a runner who sees the incident - a team of theirs owns it - but whose
+     * teams that own it may not start runs is refused, saying why, and
+     * nothing runs. The read of which private records their permission to
+     * start runs does not reach is stubbed: it finds the incident, or none.
+     */
+    test("a run linked to a private incident its owning teams may not run for is refused, saying why, and nothing runs", async () => {
+      runnerReadingIncidents([]);
+      readableIncidents = [incidentId.toString().toLowerCase()];
+      jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
+        projectId: callerProjectId,
+        isPrivate: true,
+      } as unknown as Incident);
+      const unreachable: jest.SpyInstance = jest
+        .spyOn(IncidentService, "findOneBy")
+        .mockResolvedValue({ _id: incidentId.toString() } as never);
+
+      const result: RouteCallResult = await linkedRun();
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as Error).message).toBe(
+        "You do not have permission to run a runbook for this incident. This incident is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this. Ask a Project Admin to give one of the teams that own it this permission, or to add you as an owner.",
+      );
+      expect(unreachable).toHaveBeenCalledTimes(1);
+      expectNothingExecutedOrMutated();
+    });
+
+    test("a run linked to a private incident its owning teams may run for starts", async () => {
+      runnerReadingIncidents([]);
+      readableIncidents = [incidentId.toString().toLowerCase()];
+      jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
+        projectId: callerProjectId,
+        isPrivate: true,
+      } as unknown as Incident);
+      jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(null as never);
+
+      const result: RouteCallResult = await linkedRun();
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(executionCreateSpy).toHaveBeenCalledTimes(1);
+      expect(startExecutionMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("a run linked to a public incident asks nothing of its owners", async () => {
+      runnerReadingIncidents([]);
+      readableIncidents = [incidentId.toString().toLowerCase()];
+      const unreachable: jest.SpyInstance = jest.spyOn(
+        IncidentService,
+        "findOneBy",
+      );
+
+      const result: RouteCallResult = await linkedRun();
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(unreachable).not.toHaveBeenCalled();
+      expect(startExecutionMock).toHaveBeenCalledTimes(1);
+    });
+
+    test.each([COMPLETE_ROUTE, SKIP_ROUTE, CANCEL_ROUTE])(
+      "%s on a run linked to a private incident its owning teams may not move along is refused, saying why, and nothing changes",
+      async (uri: string) => {
+        memberProps([Permission.RunbookMember]);
+        mockExecutionInProject({ projectId: callerProjectId });
+        const paused: RunbookExecution =
+          (await executionFindSpy.getMockImplementation()?.()) as RunbookExecution;
+        executionFindSpy.mockResolvedValue({
+          ...(paused as unknown as Record<string, unknown>),
+          incidentId: incidentId,
+        } as unknown as RunbookExecution);
+        jest.spyOn(RunbookRunAccess, "assertMayAdvance").mockResolvedValue();
+        // Neither its create nor its update reaches the incident.
+        jest
+          .spyOn(IncidentService, "findOneBy")
+          .mockResolvedValue({ _id: incidentId.toString() } as never);
+
+        const result: RouteCallResult = await callRoute({
+          uri: uri,
+          params: paramsForRoute(uri),
+        });
+
+        expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+        expect((result.thrownToNext as Error).message).toBe(
+          "You do not have permission to change this runbook run. This incident is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this. Ask a Project Admin to give one of the teams that own it this permission, or to add you as an owner.",
+        );
+        expectNothingExecutedOrMutated();
+      },
+    );
+
+    test("a run linked to a private incident the caller does not see is answered as missing", async () => {
+      memberProps([Permission.RunbookMember]);
+      mockExecutionInProject({ projectId: callerProjectId });
+      const paused: RunbookExecution =
+        (await executionFindSpy.getMockImplementation()?.()) as RunbookExecution;
+      // As OneUptime reads it, linked; as the caller reads it, not there.
+      executionFindSpy.mockImplementation((async (data: {
+        props: DatabaseCommonInteractionProps;
+      }): Promise<RunbookExecution | null> => {
+        if (!data.props.isRoot) {
+          return null;
+        }
+
+        return {
+          ...(paused as unknown as Record<string, unknown>),
+          incidentId: incidentId,
+        } as unknown as RunbookExecution;
+      }) as never);
+      jest.spyOn(RunbookRunAccess, "assertMayAdvance").mockResolvedValue();
+      jest
+        .spyOn(IncidentService, "findOneBy")
+        .mockResolvedValue({ _id: incidentId.toString() } as never);
+
+      const result: RouteCallResult = await callRoute({
+        uri: CANCEL_ROUTE,
+        params: cancelParams(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotFoundException);
+      expectNothingExecutedOrMutated();
     });
 
     test("only the link is asked about: the runbook is the one the permission to run it reached, whatever their read of runbooks", async () => {

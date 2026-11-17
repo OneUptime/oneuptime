@@ -14,7 +14,7 @@
 | 消息或现象 | 怎么做 |
 | --- | --- |
 | `Missing API Key` | 为提供程序提供密钥：参阅 [`Missing API Key` 或 `Invalid API Key`](#missing-api-key-或-invalid-api-key) |
-| `Invalid API Key` | 重新复制密钥，或创建一个新密钥：参阅 [`Missing API Key` 或 `Invalid API Key`](#missing-api-key-或-invalid-api-key) |
+| `Invalid API Key` | 检查密钥，或重置它以获得一个新密钥：参阅 [`Missing API Key` 或 `Invalid API Key`](#missing-api-key-或-invalid-api-key) |
 | `ProjectId required` | 使用项目的 API 密钥，而不是主密钥：参阅 [`ProjectId required`](#projectid-required) |
 | `You do not have permissions to create Monitor` | 为密钥授予消息中提到的权限：参阅[密钥缺少权限](#密钥缺少权限) |
 | `API keys need the Growth plan` | 把项目改回 Growth 套餐：参阅[需要付款](#需要付款) |
@@ -60,7 +60,7 @@ flowchart TB
 
 `Missing API Key` 会让提供程序在发出任何请求之前就停止：提供程序块中的 `api_key` 和环境变量 `ONEUPTIME_API_KEY` 都没有设置。请在你运行 Terraform 的 shell 中导出该变量，或通过标记为 `sensitive` 的变量传入密钥。
 
-`Invalid API Key` 是 OneUptime 对它不认识的密钥的回答：密钥输入有误、已过期或已删除，或者属于另一个 OneUptime，而不是 `oneuptime_url` 指向的那个。请从 **项目设置 → 高级 → API 密钥** 下的密钥页面重新复制密钥，或创建一个新密钥。
+`Invalid API Key` 是 OneUptime 对它不认识的密钥的回答：密钥输入有误、已过期或已删除，或者属于另一个 OneUptime，而不是 `oneuptime_url` 指向的那个。请将它与 **项目设置 → 高级 → API 密钥** 下密钥页面上显示的结尾字符核对，或在那里重置它以获得一个新密钥。
 
 ### `ProjectId required`
 
@@ -131,7 +131,7 @@ This network device references records that are not in this project: Network Sit
 
 ### 会移动的优先级或顺序
 
-监视器状态、事件和告警的状态与严重程度，以及你在仪表板中排序的其他列表，每个编号只保存一次。其他项都没有的编号会按所写保留。已被其他项占用的编号会被接管，挡在中间的项会像在仪表板中拖动时那样依次后移一位。因此，配置了相同编号的两项会在每次 apply 时互换位置。
+监视器状态、事件和警报的状态与严重程度，以及你在仪表板中排序的其他列表，每个编号只保存一次。其他项都没有的编号会按所写保留。已被其他项占用的编号会被接管，挡在中间的项会像在仪表板中拖动时那样依次后移一位。因此，配置了相同编号的两项会在每次 apply 时互换位置。
 
 请为每一项分配各自的编号，并在编号之间留出间隔，例如 `101`、`102` 和 `103`；Terraform 管理的项请在 Terraform 中调整顺序，而不是在仪表板中拖动。
 
@@ -158,7 +158,7 @@ moved {
 
 ### 步骤 ID 出现之前创建的监视器
 
-监视器步骤中的 ID（每个步骤、条件以及事件和告警模板的 ID）由服务器分配。旧版 OneUptime 只给条件分配 ID，而且每次写入都分配一组新的，所以通过 API 写入的监视器（提供程序创建的每个监视器都是如此）在保存时步骤没有 ID。探测器仍然会检查它，它的状态也仍然会变化，但监视器页面找不到它的检查，它的事件无法自动解决，而每次更改 `monitor_steps` 的 `terraform apply` 都会让未关闭的事件与其条件脱钩。
+监视器步骤中的 ID（每个步骤、条件以及事件和警报模板的 ID）由服务器分配。旧版 OneUptime 只给条件分配 ID，而且每次写入都分配一组新的，所以通过 API 写入的监视器（提供程序创建的每个监视器都是如此）在保存时步骤没有 ID。探测器仍然会检查它，它的状态也仍然会变化，但监视器页面找不到它的检查，它的事件无法自动解决，而每次更改 `monitor_steps` 的 `terraform apply` 都会让未关闭的事件与其条件脱钩。
 
 当前的 OneUptime 会在创建时为每一项分配 ID，在每次 apply 时保留它们，并在升级时为现有监视器补上缺失的 ID。你的配置无需任何更改：仍然没有需要写的 ID。旧行为遗留下来的未关闭事件，只要打开它的条件仍然存在，就会在监视器下一次恢复时关闭；条件已被之前的 apply 替换的事件，需要手动解决一次。
 

@@ -33,7 +33,7 @@ import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import UnknownQueueJob from "Common/Server/Infrastructure/UnknownQueueJob";
 import { DisableQueueWorkers } from "Common/Server/EnvironmentConfig";
 import ObjectID from "Common/Types/ObjectID";
-import { isNonActionableIngestError } from "../../Utils/NonActionableIngestError";
+import { isNonActionableIngestError } from "Common/Server/Utils/Monitor/NonActionableIngestError";
 import {
   SESSION_REPLAY_WORKER_CONCURRENCY,
   TELEMETRY_CONCURRENCY,

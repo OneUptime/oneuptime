@@ -29,8 +29,13 @@ import SecurityEventConnectionRunDetails from "../../../../App/FeatureSet/Dashbo
 import SecurityEventConnectionsTable, {
   CONNECTION_ROW_MARK_SIZE,
   getConnectionProviderDetailParts,
+  getConnectorProviderHelpTopics,
   securityEventConnectionsHelpMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionsTable";
+import readHelpDocument, {
+  HelpDocument,
+  HelpSection,
+} from "../../../UI/Components/Help/HelpDocument";
 import {
   createTranslator,
   Translator,
@@ -1358,19 +1363,35 @@ describe("SecurityEventConnectionsTable", () => {
     expect(help.title).toBe("How Security Event Connections Work");
     expect(help.markdown).toBe(securityEventConnectionsHelpMarkdown());
 
+    /*
+     * In the help dialog's shape (#8889): what a connection is in short,
+     * the framework's topics, then the Google SecOps help's own sections as
+     * topics after them, with no line drawn between them.
+     */
     const googleHelp: string =
       ConnectorProviderHelp[SecurityEventConnectorProvider.GoogleSecOps]!
         .markdown;
-    const frameworkIndex: number = help.markdown.indexOf(
-      "### How Security Event Connections Work",
+    const document: HelpDocument = readHelpDocument(help.markdown);
+
+    expect(document.summary).toMatch(
+      /^A connection brings in what one security product finds/,
     );
-    const googleIndex: number = help.markdown.indexOf(googleHelp);
-    expect(frameworkIndex).toBe(1);
-    expect(googleIndex).toBeGreaterThan(frameworkIndex);
+    expect(
+      document.sections.map((section: HelpSection): string => {
+        return section.title;
+      }),
+    ).toEqual([
+      "How a Connection Works",
+      "Testing and Health",
+      "Credentials",
+      "How the Google SecOps Connector Works",
+      "Reading a Google SecOps Connector's Health",
+    ]);
+    expect(help.markdown).toContain(getConnectorProviderHelpTopics(googleHelp));
     expect(help.markdown).toContain(
-      "### How the Google SecOps Connector Works",
+      "\n\n## How the Google SecOps Connector Works\n",
     );
-    expect(help.markdown).toContain("\n---\n\n### How the Google SecOps");
+    expect(help.markdown).not.toMatch(/^---$/m);
     expect(help.markdown).toContain(
       "select **Detections** under **Data to import**",
     );

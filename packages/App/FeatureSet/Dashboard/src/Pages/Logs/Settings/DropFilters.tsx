@@ -26,77 +26,40 @@ import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const documentationMarkdown: string = `
-### How Log Drop Filters Work
+A drop filter throws away logs you do not need, or keeps only a sample of them, before they are stored. Fewer noisy logs cost less and are easier to search.
 
-Drop filters let you **discard or sample logs before they are stored**, reducing storage costs and noise. They run **before** pipeline processing.
+## How It Works
 
-\`\`\`mermaid
-flowchart TD
-    A[Log Arrives] --> B{Match Against Drop Filters}
-    B -->|Filter Matches| C{Action Type}
-    B -->|No Match| D[Continue to Pipelines]
-    C -->|Drop| E[Log Discarded]
-    C -->|Sample| F{Random Check}
-    F -->|Keep %| D
-    F -->|Discard %| E
-\`\`\`
+- Drop filters run first, before scrub rules and pipelines: a dropped log is never stored or processed.
+- Filters are checked from the top of the list down. Drag a filter to change its place. The first **Drop** filter a log matches drops it.
+- A **Sample** filter keeps the share of matching logs you set, such as 10% (about 1 in 10), and drops the rest.
+- The **Dropped** column counts what each filter has dropped, so you can see what it does.
+- A filter changes the logs that arrive after you save it, within about a minute.
 
----
+## Filter Queries
 
-### Actions
+| Operator | Example | Matches |
+|----------|---------|---------|
+| \`=\` | \`severityText = 'Debug'\` | Exactly this value |
+| \`!=\` | \`severityText != 'Error'\` | Anything but this value |
+| \`IN\` | \`severityText IN ('Debug', 'Trace')\` | Any value in the list |
+| \`LIKE\` | \`body LIKE 'healthcheck'\` | Text that contains this, in any case (\`%\` stands for any text) |
+| \`AND\`, \`OR\` | \`severityText = 'Debug' AND attributes.source = 'loadbalancer'\` | Both, or either, of two conditions |
 
-| Action | Description |
-|--------|-------------|
-| **Drop** | Permanently discard all matching logs — they will never be stored |
-| **Sample** | Keep only a percentage of matching logs. For example, 10% means ~1 in 10 matching logs are kept |
+- **Fields:** \`severityText\`, \`body\`, \`primaryEntityId\` and \`attributes.<key>\`.
+- **Severities:** \`Unspecified\`, \`Trace\`, \`Debug\`, \`Information\`, \`Warning\`, \`Error\` and \`Fatal\`. It is \`Information\`, not \`INFO\`, and \`Warning\`, not \`WARN\`.
+- \`=\`, \`!=\` and \`IN\` are case-sensitive: \`'Debug'\` matches, \`'DEBUG'\` does not. Only \`LIKE\` ignores case.
 
----
+## Examples
 
-### Filter Query Syntax
+- **Drop every debug log**: \`severityText = 'Debug'\`, with **Drop**.
+- **Keep a few health checks**: \`body LIKE 'healthcheck' AND severityText = 'Information'\`, with **Sample** at 5%: enough to spot a trend, without the noise.
+- **Drop the internal load balancer's logs**: \`attributes.source = 'internal-lb'\`, with **Drop**.
 
-Filter queries determine which logs this drop filter applies to.
+## Tips
 
-| Operator | Example | Description |
-|----------|---------|-------------|
-| \`=\` | \`severityText = 'Debug'\` | Exact match |
-| \`!=\` | \`severityText != 'Error'\` | Not equal |
-| \`LIKE\` | \`body LIKE 'healthcheck'\` | Substring match (use \`%\` for SQL-style wildcards) |
-| \`IN\` | \`severityText IN ('Debug', 'Trace')\` | Match any value in list |
-| \`AND\` / \`OR\` | \`severityText = 'Debug' AND attributes.source = 'loadbalancer'\` | Combine conditions |
-
-**Available fields:** \`severityText\`, \`body\`, \`primaryEntityId\`, \`attributes.<key>\`
-
-**Severity values:** \`Unspecified\`, \`Trace\`, \`Debug\`, \`Information\`, \`Warning\`, \`Error\`, \`Fatal\`
-
-> \`=\`, \`!=\` and \`IN\` are **case-sensitive** — \`'Debug'\` matches, \`'DEBUG'\` never will. Only \`LIKE\` ignores case. Note the level is \`Information\` (not \`INFO\`) and \`Warning\` (not \`WARN\`).
-
----
-
-### Examples
-
-#### Example 1: Drop all debug logs
-- **Filter Query:** \`severityText = 'Debug'\`
-- **Action:** Drop
-- **Result:** All debug-level logs are discarded before storage
-
-#### Example 2: Sample verbose health check logs
-- **Filter Query:** \`body LIKE 'healthcheck' AND severityText = 'Information'\`
-- **Action:** Sample
-- **Sample Percentage:** 5
-- **Result:** Only 5% of health check info logs are kept — enough to spot trends without the noise
-
-#### Example 3: Drop internal load balancer logs
-- **Filter Query:** \`attributes.source = 'internal-lb'\`
-- **Action:** Drop
-- **Result:** All logs from the internal load balancer are discarded
-
----
-
-### Tips
-- **Order matters** — filters run in order. Drag rows to reorder
-- **Start with Sample** — if unsure, sample at 50% first to see the impact before dropping entirely
-- **Be specific** — use narrow filters to avoid accidentally dropping important logs
-- **Drop filters run before pipelines** — a dropped log will never reach any pipeline processor
+- Not sure? Sample at 50% first, and see what you lose before you drop it all.
+- Keep each filter narrow, so it never catches logs you need.
 `;
 
 const LogDropFilters: FunctionComponent<
@@ -164,7 +127,7 @@ const LogDropFilters: FunctionComponent<
       helpContent={{
         title: "How Log Drop Filters Work",
         description:
-          "Understanding drop vs sample actions, filter queries, and how logs are discarded at ingest time",
+          "Drop or sample the logs you do not need, before they are stored.",
         markdown: documentationMarkdown,
       }}
       noItemsMessage={"No drop filters found."}

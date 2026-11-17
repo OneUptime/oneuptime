@@ -39,6 +39,7 @@ AI एजेंटों को डेटा का उपयोग करने
 | `POST /api/data-observability/pipelines/lineage` | वे टेबल जिन्हें कोई पाइपलाइन पढ़ती और लिखती है, हर टेबल के मौजूदा हाल के साथ, जैसे उसका पेज उन्हें दिखाता है, `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` के साथ | API कुंजी |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | किसी डेटा अलर्ट की वंशावली, जैसे उसका पेज उसे दिखाता है, उस अलर्ट तक के रास्ते के साथ जिसकी वजह से यह हुआ, और उन अलर्ट तक के रास्तों के साथ जो इसकी वजह से हुए, और किसी एक कॉलम की जांच से आए अलर्ट के लिए उसका `column` और वे कॉलम जो हर तीर ले जाता है | API कुंजी |
 | `POST /api/data-observability/lineage/expand` | वंशावली आरेख के किसी कार्ड की वे अगली टेबल जो वह नहीं दिखाता, जैसे उसकी गिनती चुनने पर दिखती हैं: कार्ड `nodeId` और उसकी `side` के रूप में, और जो दिखाया गया है वह `focusNodeId`, `tables` और `dataDashboardIds` के रूप में | API कुंजी |
+| `POST /api/data-observability/lineage/map` | प्रोजेक्ट का वंशावली मानचित्र, जैसा **वंशावली मानचित्र** पेज उसे बनाता है: आपका डेटा लिखने और पढ़ने वाली सेवाएं, टेबल, पाइपलाइन और डैशबोर्ड, और उनके बीच के तीर, सबसे हाल में देखे गए पहले | API कुंजी |
 | `POST /api/data-observability/checks/apply` | प्रोजेक्ट की जाँचों को किसी फ़ाइल से मिलाना, जैसे `oneuptime data-checks apply` करता है, `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` के साथ | API कुंजी |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | किसी डेटा प्रोडक्ट का "data as of" बैज | बैज का अपना टोकन |
 

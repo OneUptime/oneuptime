@@ -58,6 +58,7 @@ flowchart TB
 | PostgreSQL | `postgres` | `postgresql` 또는 `postgresOperator.cnpg` | 프로젝트, 모니터, 인시던트, 사용자와 그 밖의 모든 설정과 상태. |
 | ClickHouse | `clickhouse` | `clickhouse` 또는 `clickhouseOperator.altinity` | 로그, 메트릭, 트레이스, 예외, 프로파일, 모니터 로그. |
 | Valkey | `valkey` | `valkey` | 캐시, 작업 큐, 그리고 대기 중인 푸시 수신 확인 같은 수명이 짧은 상태. |
+| ClamAV | `clamav` | `clamav`(기본값은 꺼짐) | 사람들이 보낸 파일을 저장하기 전에 악성코드가 있는지 검사합니다. 켰을 때만 실행됩니다. Docker Compose에서는 `COMPOSE_PROFILES=clamav`, Helm에서는 `clamav.enabled`입니다. |
 
 앱의 모든 역할은 같은 이미지입니다. Docker Compose는 이들을 하나의 `app` 컨테이너에서 실행하고, Helm 차트는 worker와 telemetry writer를 각각 별도의 배포로 실행할 수 있습니다. 각 계층의 크기를 정하는 방법은 [크기 산정 및 용량 계획](/docs/installation/sizing)을 참고하세요.
 

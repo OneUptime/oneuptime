@@ -51,11 +51,12 @@ export const PAGING_LADDER_COPY: {
   saved: string;
   scope: string;
   differentForSome: string;
-  useOneLadder: string;
   backToLadder: string;
   ownGridSame: string;
   memberGridSame: string;
-  replacesNote: string;
+  keepsNote: string;
+  savedKeepingDifferences: string;
+  useForEverySeverity: string;
   confirmTitle: string;
   ownConfirmDescription: string;
   memberConfirmDescription: string;
@@ -116,8 +117,8 @@ export const PAGING_LADDER_COPY: {
   scope: translationKey(
     "Used for every incident, alert and episode, of every severity.",
   ),
+  // The way to the grid of cards: a button beside the title (#8890).
   differentForSome: translationKey("Different for Some Severities"),
-  useOneLadder: translationKey("Use One Ladder for Everything"),
   backToLadder: translationKey("Back to One Ladder"),
   ownGridSame: translationKey(
     "Every card below uses your ladder. Change a card to make it different.",
@@ -125,9 +126,15 @@ export const PAGING_LADDER_COPY: {
   memberGridSame: translationKey(
     "Every card below uses {{name}}'s ladder. Change a card to make it different.",
   ),
-  replacesNote: translationKey(
-    "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.",
+  // Over the cards that differ: what Save Changes does to them (#8890).
+  keepsNote: translationKey(
+    "These keep their own rules when you save changes to the steps.",
   ),
+  savedKeepingDifferences: translationKey(
+    "Saved. The severities that differ keep their own rules.",
+  ),
+  // Gives the cards that differ the ladder too, after naming them.
+  useForEverySeverity: translationKey("Use This Ladder for Every Severity"),
   confirmTitle: translationKey("Use This Ladder for Every Severity?"),
   ownConfirmDescription: translationKey(
     "These cards lose what makes them different, and page you by this ladder instead:",

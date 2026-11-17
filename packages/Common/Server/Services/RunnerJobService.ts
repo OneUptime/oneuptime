@@ -75,7 +75,9 @@ import {
 import ResourceCommandPolicy from "../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
 import { ResourceCommandPolicyResult } from "../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 import { redactResourceCommandOutput } from "../../Utils/AiRemediation/Resource/ResourceOutputRedactor";
+import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import RunbookExecutionService from "./RunbookExecutionService";
 import RunbookExecution from "../../Models/DatabaseModels/RunbookExecution";
 import RunbookVariableResolver, {
@@ -96,6 +98,7 @@ import {
 import ProjectLimitLock from "../Utils/Database/ProjectLimitLock";
 import AiCommandKillSwitch, {
   AI_COMMANDS_OFF_ENQUEUE_MESSAGE,
+  AI_COMMANDS_UNCONFIRMED_STOP_MESSAGE,
 } from "../Utils/AI/AiCommandKillSwitch";
 import { EntityManager } from "typeorm";
 
@@ -216,6 +219,41 @@ import PostgresAppInstance from "../Infrastructure/PostgresDatabase";
 import logger from "../Utils/Logger";
 import Sleep from "../../Types/Sleep";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import AutoRemediationSuggestion from "../../Models/DatabaseModels/AutoRemediationSuggestion";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import PositiveNumber from "../../Types/PositiveNumber";
+import CountBy from "../Types/Database/CountBy";
+import FindBy from "../Types/Database/FindBy";
+import { OnFind } from "../Types/Database/Hooks";
+import PrivateRecordReadFilter from "../Utils/Permission/PrivateRecordReadFilter";
+import AIRunOutputReadFilter from "../Utils/AI/AIRunOutputReadFilter";
+
+/*
+ * What a Runner job is read through: the runbook run it is a step of, and
+ * the fix OneUptime AI proposed that it runs a command of. A job carries
+ * what the step ran and printed - the run's or the fix's own output - so it
+ * is read only by those who see every private incident or alert the run or
+ * the fix is about (PrivateRecordReadFilter.applyToPartKeys).
+ */
+export const RUNNER_JOB_READ_THROUGH: Array<{
+  column: string;
+  partModelType: { new (): BaseModel };
+}> = [
+  { column: "runbookExecutionId", partModelType: RunbookExecution },
+  {
+    column: "autoRemediationSuggestionId",
+    partModelType: AutoRemediationSuggestion,
+  },
+];
+
+/*
+ * The AI run a job ran a command for: a chat's, an investigation's, a fix's
+ * or a CodeFix run's. The job holds what the run ran and printed, so it is
+ * read only by those who may read the run, and the private incident or
+ * alert it is about (AIRunOutputReadFilter, #9155).
+ */
+export const RUNNER_JOB_AI_RUN_KEY: string = "aiRunId";
 
 /*
  * Lease the Worker grants on each successful claim. While the lease is fresh
@@ -501,6 +539,97 @@ interface RunnerWriteScopeSettings {
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A job of a runbook run or of a fix about a private incident or alert,
+   * only for those who see that record (RUNNER_JOB_READ_THROUGH); a job of
+   * an AI run only for those who may read the run, and the private
+   * incident or alert it is about (RUNNER_JOB_AI_RUN_KEY): a chat's only
+   * for the person who asked. Every read OneUptime makes itself - the
+   * Runners' claims, the AI pages' summaries - is made as OneUptime and is
+   * not narrowed.
+   */
+  public static applyPrivacyFilters<T>(
+    query: T,
+    props: DatabaseCommonInteractionProps,
+  ): T {
+    return AIRunOutputReadFilter.applyToRunKey({
+      query: PrivateRecordReadFilter.applyToPartKeys(
+        query,
+        props,
+        RUNNER_JOB_READ_THROUGH,
+      ),
+      props: props,
+      modelType: Model,
+      column: RUNNER_JOB_AI_RUN_KEY,
+    });
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = Service.applyPrivacyFilters(findBy.query, findBy.props);
+
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = Service.applyPrivacyFilters(countBy.query, countBy.props);
+
+    return super.countBy(countBy);
+  }
+
+  /*
+   * How many of the jobs `query` matches the caller may not read
+   * (applyPrivacyFilters): another person's chat's, those about a private
+   * incident or alert they don't see, those of a run or a fix that is gone.
+   * Counted as OneUptime and then as the caller, so only the number leaves,
+   * never anything of those jobs: what a page says it leaves out (the AI
+   * Logs pages' commands). Null when the caller may not read Runner jobs
+   * at all, which a page says on its own (CommandJobsNoAccess).
+   */
+  @CaptureSpan()
+  public async countJobsHiddenFrom(data: {
+    query: Query<Model>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<number | null> {
+    let readable: number;
+
+    try {
+      readable = (
+        await this.countBy({ query: { ...data.query }, props: data.props })
+      ).toNumber();
+    } catch (error) {
+      if (error instanceof NotAuthorizedException) {
+        return null;
+      }
+
+      throw error;
+    }
+
+    const every: number = (
+      await this.countBy({ query: { ...data.query }, props: { isRoot: true } })
+    ).toNumber();
+
+    return Math.max(0, every - readable);
+  }
+
+  /*
+   * The read hooks narrow by the run, the fix and the AI run a job names.
+   * See DatabaseService.
+   */
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return [
+      ...RUNNER_JOB_READ_THROUGH.map((key: { column: string }): string => {
+        return key.column;
+      }),
+      RUNNER_JOB_AI_RUN_KEY,
+    ];
   }
 
   /*
@@ -2248,6 +2377,73 @@ export class Service extends DatabaseService<Model> {
     );
 
     return rows.length > 0;
+  }
+
+  /*
+   * Why the agent holding this job must stop it (AiCommandKillSwitch
+   * .getStopReason: an AI command, not an access test, of a project whose
+   * Enable AI is off now), or null while it may go on. Read on every job
+   * heartbeat by each agent ingress - a Runner's, a Kubernetes AI agent's
+   * and a resource AI agent's, a cloud account's Cloud AI agent among them
+   * - after the lease was renewed, so a stopped agent still reports what it
+   * did.
+   *
+   * projectId is the authenticated agent's, which every claim query holds
+   * the job to. A global Runner has none: it holds only a runbook's own
+   * JavaScript steps, which Enable AI never stops, so nothing is read for
+   * it. A job the agent no longer holds says nothing here: the heartbeat
+   * already refused it.
+   */
+  @CaptureSpan()
+  public async getStopReasonOfHeldJob(data: {
+    jobId: ObjectID;
+    agentId: ObjectID;
+    projectId: ObjectID | null | undefined;
+  }): Promise<string | null> {
+    if (!data.projectId) {
+      return null;
+    }
+
+    const job: Model | null = await this.findOneBy({
+      query: {
+        _id: data.jobId.toString(),
+        assignedAgentId: data.agentId,
+      },
+      select: {
+        origin: true,
+        aiRunId: true,
+        autoRemediationSuggestionId: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!job) {
+      return null;
+    }
+
+    /*
+     * Enable AI fails closed here as everywhere: a job known to be an AI
+     * command (getStopReason reads the switch for no other) whose project's
+     * switch could not be read is stopped, not left to run because the
+     * heartbeat failed - the agent starts a command when its pre-spawn
+     * heartbeat gets no answer. A runbook step or an access test reads
+     * nothing, so it is never stopped by a read that fails. A read of the
+     * job itself that fails still throws: without the job, whether it is AI's
+     * at all is not known.
+     */
+    try {
+      return await AiCommandKillSwitch.getStopReason({
+        job,
+        projectId: data.projectId,
+      });
+    } catch (error: unknown) {
+      logger.error(
+        `Could not read Enable AI for the AI command job ${data.jobId.toString()} its agent holds; telling the agent to stop it.`,
+      );
+      logger.error(error);
+
+      return AI_COMMANDS_UNCONFIRMED_STOP_MESSAGE;
+    }
   }
 
   /*

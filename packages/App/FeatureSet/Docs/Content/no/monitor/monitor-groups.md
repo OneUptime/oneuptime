@@ -11,7 +11,7 @@ En monitorgruppe samler flere monitorer i én status. Grupper monitorene som til
 
 ## Slik beregnes en gruppes status
 
-En gruppe starter på den driftsklare statusen din og tar den verste statusen blant monitorene sine: den som står lengst ned i prosjektets liste over monitorstatuser. Går én monitor til **Redusert**, blir hele gruppen **Redusert**; går én til **Frakoblet**, blir den **Frakoblet**.
+En gruppe starter på den driftsklare statusen din og tar den verste statusen blant monitorene sine: den som står lengst ned i prosjektets liste over monitorstatuser. Går én monitor til **Redusert**, blir hele gruppen **Redusert**; går én til **Offline**, blir den **Offline**.
 
 ```mermaid title="En gruppe viser den verste statusen blant monitorene sine"
 flowchart TB
@@ -27,9 +27,9 @@ flowchart TB
 ```
 
 - **Arkiverte monitorer teller ikke.** En arkivert monitor kontrolleres ikke, så statusen er frosset; gruppen utelater den.
-- **Monitorer med overvåking slått av teller ikke.** Ingenting sjekker en monitor med overvåking slått av, så statusen er bare det den siste kontrollen så. Gruppen utelater den fra statusen sin: en monitor som sto på **Frakoblet** da overvåkingen ble slått av, gjør ikke gruppen **Frakoblet**. Gruppens oppetid og **Oppetidsgraf** beholder monitorens historikk frem til overvåkingen ble slått av, og utelater tiden etterpå, både på dashbordet og på statussider. Slås den på igjen, teller monitoren med fra det øyeblikket.
+- **Monitorer med overvåking slått av teller ikke.** Ingenting sjekker en monitor med overvåking slått av, så statusen er bare det den siste kontrollen så. Gruppen utelater den fra statusen sin: en monitor som sto på **Offline** da overvåkingen ble slått av, gjør ikke gruppen **Offline**. Gruppens oppetid og **Oppetidsgraf** beholder monitorens historikk frem til overvåkingen ble slått av, og utelater tiden etterpå, både på dashbordet og på statussider. Slås den på igjen, teller monitoren med fra det øyeblikket.
 - **En tom gruppe er i drift.** En gruppe uten monitorer, eller bare med arkiverte, viser den driftsklare statusen din. Til du legger til en monitor, viser dashbordet **Ingen monitorer ennå** i stedet for statusen.
-- **Overvåking slått av viser Deaktivert.** Når overvåking er slått av for alle monitorer i en gruppe, sjekker ingenting dem, så dashbordet viser **Deaktivert** i stedet for gruppens status, og **Oppetidsgraf** og oppetiden slutter der overvåkingen ble slått av for den siste av dem. En statusside viser gruppen som **Ikke overvåket**.
+- **Overvåking slått av viser Deaktivert.** Når overvåking er slått av for alle monitorer i en gruppe, sjekker ingenting dem, så dashbordet viser **Deaktivert** i stedet for gruppens status, og **Oppetidsgraf** og oppetiden slutter der overvåkingen ble slått av for den siste av dem. En statusside viser gruppen som **Ikke overvåket**. Hver dag de alle forblir slått av, tegner begge dagens stolpe som en dag med overvåking slått av, ikke som en dag uten data.
 - **Rekkefølgen er din.** Hvilken status som er verst, følger rekkefølgen under **Monitorer → Innstillinger → Monitorstatus**. Se [Monitorstatuser](/docs/monitor/criteria-and-statuses#monitorstatuser).
 
 En monitorgruppe er ikke en statussidegruppe. En statussidegruppe er en overskrift på én statusside som rommer rader. En monitorgruppe er én rad som står for flere monitorer, og enhver statusside kan vise den.
@@ -92,9 +92,11 @@ For å ta en monitor ut av gruppen klikker du på **Fjern** i raden i **Monitore
 
 Oppetiden på **Oversikt** teller alle statuser unntatt den driftsklare som nedetid. En statusside teller bare statusene i sin egen liste **Teller som nedetid**: se [Velg hva siden viser](/docs/status-pages/index#å-velge-hva-som-vises-på-siden).
 
-Hver stolpe i oppetidsgrafen, her og på en statusside, viser hvor lenge gruppen selv var i hver status den dagen: i hvert øyeblikk har den den verste statusen blant monitorene sine, så en time da to av dem er offline samtidig, er én time for gruppen, og en dag blir aldri mer enn en dag. Dagene er dine egne: dashbordet tegner dem i tidssonen fra brukerinnstillingene dine, og en statusside i hver besøkendes.
+Hver stolpe i oppetidsgrafen, her og på en statusside, viser hvor lenge gruppen selv var i hver status den dagen: i hvert øyeblikk har den den verste statusen blant monitorene sine, så en time da to av dem er offline samtidig, er én time for gruppen, og en dag blir aldri mer enn en dag. Dagene er dine egne: dashbordet tegner dem i tidssonen fra brukerinnstillingene dine, og en statusside i hver besøkendes. En monitors tid før den første sjekken er ikke med i dem: frem til noe har sjekket en monitor, er statusen bare den driftsklare som hver monitor opprettes med, så gruppens stolper og oppetid utelater den tiden. Dashbordet måler dem ut fra hver statusendring for monitorene i gruppen, uansett hvor mange det er, slik en statusside gjør.
 
 Listen **Monitorgrupper** kan filtrere grupper etter eier og etikett, sette etiketter og eiere på mange grupper samtidig, og eksportere eller importere grupper som JSON.
+
+**Oversikt** har også kortet **Brukes av**: statussidene som viser gruppen, og SLO-ene som måler monitorene i den. Når ingen statusside viser den, sier kortet det og lenker til statussidene. Når du sletter gruppen, på siden dens eller fra listen, sies det først hvilke statussider som viser den.
 
 ## Slå av overvåking for en hel gruppe
 
@@ -144,7 +146,7 @@ En gruppe er `/api/monitor-group`, og hver monitor i den er en rad i `/api/monit
 Bryteren **Monitorgrupper** er slått av. Slå den på under **Prosjektinnstillinger → Avansert → Funksjonsflagg**. På OneUptime Cloud krever grupper også Scale-planen.
 :::
 
-:::details Gruppen viser Frakoblet, men de fleste monitorene er oppe
+:::details Gruppen viser Offline, men de fleste monitorene er oppe
 Det er regelen: gruppen viser den verste monitoren sin. Åpne **Monitorer** i gruppen for å finne monitoren som er nede, eller fjern en monitor som ikke hører hjemme i gruppen.
 :::
 

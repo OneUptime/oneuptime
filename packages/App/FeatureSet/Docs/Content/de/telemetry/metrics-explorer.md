@@ -31,7 +31,7 @@ Der Explorer hat sechs Tabs:
 | **PromQL** | Fragen Sie Ihre Metriken mit PromQL ab, der Abfragesprache von Prometheus, und verbinden Sie Grafana mit ihnen. Siehe [Metriken mit PromQL abfragen](/docs/telemetry/promql). |
 | **Einblicke** | Welche Dienste Metriken melden, und wie viele. |
 | **KI** | Die Probleme, die OneUptime in Ihren Metriken findet (zu viele Werte, Histogramm-Buckets, die nicht passen, fehlende Metriken), und was OneUptime AI dagegen getan hat. Siehe [Metriken mit KI verbessern und fehlende ergänzen](#metriken-mit-ki-verbessern-und-fehlende-ergänzen). |
-| **Einrichtungsanleitung** | Wie Sie Metriken mit OpenTelemetry senden, mit einem Ihrer Aufnahmeschlüssel. |
+| **Einrichtungsanleitung** | Wie Sie Metriken mit OpenTelemetry senden, mit einem Ihrer Ingestion-Schlüssel. |
 | **Einstellungen** | **Pipeline-Regeln** und **Aufzeichnungsregeln**: was mit Metriken beim Eintreffen geschieht. |
 
 ## Bevor Sie beginnen
@@ -85,6 +85,8 @@ Klicken Sie auf **Formel hinzufügen** und schreiben Sie die **Formel** mit den 
 :::
 
 Eine Variable lässt sich mit oder ohne ihr `$` schreiben, in beliebiger Groß- und Kleinschreibung. Eine Formel, die eine nicht definierte Abfrage nennt, meldet das, statt etwas zu zeichnen.
+
+Eine Abfrage, die zählt, was geschah, die Summe oder die Anzahl eines Zählers oder eines Histogramms, hat in einem Schritt, in dem nichts geschah, keinen Datenpunkt, also liest eine Formel sie dort als 0: `$b / $a * 100` zeichnet in einem Schritt ohne Fehlschlag 0. Ein Messwert, ein Durchschnitt oder ein Perzentil ohne Datenpunkt ist unbekannt, und die Formel lässt diesen Schritt aus. Sie lässt auch einen Schritt aus, in dem keine ihrer Abfragen einen Datenpunkt hat, und einen, der vor weniger als einer Minute endete und dessen letzte Datenpunkte noch unterwegs sein können.
 
 ## Rund um ein Diagramm erkunden
 

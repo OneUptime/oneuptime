@@ -18,7 +18,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Only the **active** mgr returns metrics — standbys answer with an empty response — so scraping every mgr keeps metrics flowing when the active one fails over.":
     "केवल **सक्रिय** mgr मेट्रिक्स लौटाता है (स्टैंडबाय खाली जवाब देते हैं), इसलिए हर mgr को स्क्रैप करने से सक्रिय mgr के फ़ेलओवर होने पर भी मेट्रिक्स आते रहते हैं।",
   "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:":
-    "स्क्रिप्ट आपका OneUptime URL और इन्जेशन कुंजी पूछती है, दोनों चरण 1 में दिखते हैं (उन्हें यहाँ भरा पाने के लिए वहाँ एक कुंजी चुनें), और फिर ये पूछती है:",
+    "स्क्रिप्ट आपका OneUptime URL और इंजेशन कुंजी पूछती है, दोनों चरण 1 में दिखते हैं (उन्हें यहाँ भरा पाने के लिए वहाँ एक कुंजी चुनें), और फिर ये पूछती है:",
   "- **Cluster name** — how the cluster appears in OneUptime. Give every cluster its own and keep it stable: a new name registers a new cluster.":
     "- **क्लस्टर का नाम**: OneUptime में क्लस्टर किस नाम से दिखे। हर क्लस्टर को उसका अपना नाम दें और उसे स्थिर रखें: नया नाम एक नया क्लस्टर रजिस्टर करता है।",
   "- **Mgr endpoints** — every mgr from the previous step as comma-separated `host:port`, e.g. `ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283`. The script adds the square brackets.":
@@ -39,7 +39,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | हाँ | आपके OneUptime इंस्टेंस का URL (जैसे `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key — the one picked in step 1 |":
-    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | हाँ | टेलीमेट्री इन्जेशन कुंजी, वही जो चरण 1 में चुनी गई |",
+    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | हाँ | टेलीमेट्री इंजेशन कुंजी, वही जो चरण 1 में चुनी गई |",
   "| `CEPH_CLUSTER_NAME` | Yes | Cluster identifier shown in OneUptime. Stamped on every metric as the `ceph.cluster.name` resource attribute. Keep it stable — changing it registers a new cluster (default: `ceph`) |":
     "| `CEPH_CLUSTER_NAME` | हाँ | OneUptime में दिखने वाला क्लस्टर पहचानकर्ता। हर मेट्रिक पर `ceph.cluster.name` रिसोर्स एट्रिब्यूट के रूप में लगाया जाता है। इसे स्थिर रखें: इसे बदलने से एक नया क्लस्टर रजिस्टर होता है (डिफ़ॉल्ट: `ceph`) |",
   "| `CEPH_MGR_ENDPOINTS` | Yes | Comma-separated `host:port` list of **all** mgr daemons, wrapped in square brackets, e.g. `[ceph-mon-1:9283,ceph-mon-2:9283]`. The install script adds the brackets for you |":
@@ -102,11 +102,11 @@ const TRANSLATION: SetupGuideTranslation = {
   "If you created the AI agent's Ceph client, remove it on an admin node: `ceph auth del client.oneuptime-ai`.":
     "अगर आपने AI एजेंट का Ceph क्लाइंट बनाया था, तो उसे किसी एडमिन नोड पर हटाएँ: `ceph auth del client.oneuptime-ai`।",
   "`troubleshoot.sh` checks the whole chain — container runtime, every mgr endpoint (including the active-vs-standby trap), cluster-name stamping, token shape, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key. That last check matters most: OneUptime's OTLP endpoints refuse a bad key with `401` or `422`, which the collector logs as a single `Exporting failed` line per batch that is easy to miss, so the script asks `GET /otlp/v1/validate` for a direct 200/401 verdict.":
-    "`troubleshoot.sh` पूरी कड़ी जाँचता है (कंटेनर रनटाइम, हर mgr एंडपॉइंट, सक्रिय और स्टैंडबाय वाली उलझन सहित, क्लस्टर के नाम का लगना, टोकन का रूप, कलेक्टर के अपने मेट्रिक्स) और OneUptime से सीधे पूछता है कि क्या वह आपकी इन्जेशन कुंजी स्वीकार करता है। यह आख़िरी जाँच सबसे ज़्यादा मायने रखती है: OneUptime के OTLP एंडपॉइंट ग़लत कुंजी को `401` या `422` से ठुकराते हैं, जिसे कलेक्टर हर बैच के लिए `Exporting failed` की एक ही ऐसी पंक्ति के रूप में लॉग करता है जो आसानी से छूट जाती है, इसलिए स्क्रिप्ट `GET /otlp/v1/validate` से सीधा 200/401 फ़ैसला माँगती है।",
+    "`troubleshoot.sh` पूरी कड़ी जाँचता है (कंटेनर रनटाइम, हर mgr एंडपॉइंट, सक्रिय और स्टैंडबाय वाली उलझन सहित, क्लस्टर के नाम का लगना, टोकन का रूप, कलेक्टर के अपने मेट्रिक्स) और OneUptime से सीधे पूछता है कि क्या वह आपकी इंजेशन कुंजी स्वीकार करता है। यह आख़िरी जाँच सबसे ज़्यादा मायने रखती है: OneUptime के OTLP एंडपॉइंट ग़लत कुंजी को `401` या `422` से ठुकराते हैं, जिसे कलेक्टर हर बैच के लिए `Exporting failed` की एक ही ऐसी पंक्ति के रूप में लॉग करता है जो आसानी से छूट जाती है, इसलिए स्क्रिप्ट `GET /otlp/v1/validate` से सीधा 200/401 फ़ैसला माँगती है।",
   "It ends with a verdict naming the most likely cause.":
     "यह सबसे संभावित कारण बताने वाले फ़ैसले के साथ ख़त्म होता है।",
   "1. Check the collector logs: `docker logs oneuptime-ceph-agent` — look for export errors (`401` means a bad ingestion key, connection refused means a wrong `ONEUPTIME_URL`).":
-    "1. कलेक्टर के लॉग जाँचें: `docker logs oneuptime-ceph-agent`; निर्यात की त्रुटियाँ देखें (`401` का मतलब ग़लत इन्जेशन कुंजी है, कनेक्शन अस्वीकार होने का मतलब ग़लत `ONEUPTIME_URL` है)।",
+    "1. कलेक्टर के लॉग जाँचें: `docker logs oneuptime-ceph-agent`; निर्यात की त्रुटियाँ देखें (`401` का मतलब ग़लत इंजेशन कुंजी है, कनेक्शन अस्वीकार होने का मतलब ग़लत `ONEUPTIME_URL` है)।",
   "2. Verify a mgr endpoint serves metrics: `curl http://<active-mgr>:9283/metrics | head` — you should see `ceph_*` metric lines. If not, enable the module: `ceph mgr module enable prometheus`.":
     "2. पुष्टि करें कि कोई mgr एंडपॉइंट मेट्रिक्स देता है: `curl http://<active-mgr>:9283/metrics | head`; आपको `ceph_*` मेट्रिक की पंक्तियाँ दिखनी चाहिए। अगर नहीं, तो मॉड्यूल चालू करें: `ceph mgr module enable prometheus`।",
   "3. Make sure `CEPH_MGR_ENDPOINTS` is wrapped in square brackets — without them the collector treats the whole comma-separated string as a single (invalid) target.":
@@ -116,7 +116,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent logs for errors: `docker logs oneuptime-ceph-agent 2>&1 | grep -i error`":
     "2. एजेंट के लॉग में त्रुटियाँ जाँचें: `docker logs oneuptime-ceph-agent 2>&1 | grep -i error`",
   "3. Verify your OneUptime URL and ingestion key are correct.":
-    "3. पुष्टि करें कि आपका OneUptime URL और इन्जेशन कुंजी सही हैं।",
+    "3. पुष्टि करें कि आपका OneUptime URL और इंजेशन कुंजी सही हैं।",
   "4. Ensure the agent machine can reach the OneUptime instance over the network.":
     "4. पक्का करें कि एजेंट की मशीन नेटवर्क पर OneUptime इंस्टेंस तक पहुँच सकती है।",
   "You are probably scraping only the (previously) active mgr. List **every** mgr daemon in `CEPH_MGR_ENDPOINTS` — scrapes of standby mgrs are cheap and return empty responses.":
@@ -130,7 +130,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The cluster's identity comes from `CEPH_CLUSTER_NAME`, stamped on every metric as `ceph.cluster.name`. This cluster is **`ceph-1`**. Fix it in `.env` and apply it with `docker compose up -d` in `/opt/oneuptime-ceph-agent` — note that a new name registers a new cluster.":
     "क्लस्टर की पहचान `CEPH_CLUSTER_NAME` से आती है, जो हर मेट्रिक पर `ceph.cluster.name` के रूप में लगाई जाती है। यह क्लस्टर **`ceph-1`** है। इसे `.env` में ठीक करें और `/opt/oneuptime-ceph-agent` में `docker compose up -d` से लागू करें; ध्यान दें कि नया नाम एक नया क्लस्टर रजिस्टर करता है।",
   "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:":
-    "कमांड में आपका OneUptime URL और इन्जेशन कुंजी पहले से हैं। बाकी स्क्रिप्ट पूछती है:",
+    "कमांड में आपका OneUptime URL और इंजेशन कुंजी पहले से हैं। बाकी स्क्रिप्ट पूछती है:",
   "Download `docker-compose.yml` and `otel-collector-config.yaml` from this OneUptime into a new folder:":
     "इस OneUptime से `docker-compose.yml` और `otel-collector-config.yaml` एक नए फ़ोल्डर में डाउनलोड करें:",
   "Create a `.env` file next to them:": "उनके बगल में एक `.env` फ़ाइल बनाएँ:",
@@ -140,7 +140,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- `CEPH_MGR_ENDPOINTS` में **हर** mgr डेमॉन की सूची दें, अल्पविराम से अलग और वर्गाकार कोष्ठकों में: कोष्ठकों के बिना कलेक्टर पूरी सूची को एक अमान्य टारगेट के रूप में पढ़ता है।",
   "Start the agent:": "एजेंट शुरू करें:",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "`<YOUR_API_KEY>` भरने के लिए चरण 1 में एक इन्जेशन कुंजी चुनें।",
+    "`<YOUR_API_KEY>` भरने के लिए चरण 1 में एक इंजेशन कुंजी चुनें।",
   "Docker Compose also starts **`oneuptime-ceph-ai-agent`**, the OneUptime AI agent. It waits for a Ceph client of its own — see **OneUptime AI agent** under Advanced, or delete its service from `docker-compose.yml` if you do not use OneUptime AI.":
     "Docker Compose **`oneuptime-ceph-ai-agent`** भी शुरू करता है, जो OneUptime AI एजेंट है। यह अपने ख़ुद के Ceph क्लाइंट का इंतज़ार करता है; उन्नत में **OneUptime AI एजेंट** देखें, या अगर आप OneUptime AI इस्तेमाल नहीं करते तो `docker-compose.yml` से इसकी सर्विस हटा दें।",
   "The agent reads these from the `.env` file next to `docker-compose.yml`. After changing one, apply it with `docker compose up -d` in the folder with `docker-compose.yml`.":

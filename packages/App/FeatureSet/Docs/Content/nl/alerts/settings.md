@@ -80,7 +80,7 @@ Met twee of meer voorwaarden kies je **Voldoet aan alle**, waarbij elke voorwaar
 :::steps
 ### De waarschuwingen kiezen
 
-Klik op **Alert On-Call Rule aanmaken**. Bij **Overeenkomst** komt **Alle waarschuwingen**, waar een nieuwe regel mee begint, overeen met elke nieuwe waarschuwing. Om de regel in te perken, kies **Alleen waarschuwingen die aan de voorwaarden voldoen** en voeg de voorwaarden toe waaraan een waarschuwing moet voldoen.
+Klik op **Bereikbaarheidsregel voor waarschuwingen aanmaken**. Bij **Overeenkomst** komt **Alle waarschuwingen**, waar een nieuwe regel mee begint, overeen met elke nieuwe waarschuwing. Om de regel in te perken, kies **Alleen waarschuwingen die aan de voorwaarden voldoen** en voeg de voorwaarden toe waaraan een waarschuwing moet voldoen.
 
 ### Het beleid kiezen
 
@@ -171,7 +171,7 @@ De kaart **Volgend nummer** eronder stelt het nummer in dat de volgende waarschu
 
 ### Gegevensbewaring
 
-**Waarschuwingen → Instellingen → Gegevensbewaring** verwijdert waarschuwingen zodra ze lang genoeg zijn opgelost, zoals [Gegevensbewaring](/docs/incidents/settings#gegevensbewaring) dat voor incidenten doet. De kaart **Opgeloste waarschuwingen** vraagt om **Verwijderen na**, **Nooit** tot je een periode kiest, en vraagt om bevestiging voordat er meer wordt verwijderd, met **Oude waarschuwingen verwijderen**. Een waarschuwing blijft zolang ze niet is opgelost, zolang ze in een episode zit die nog open is of korter geleden is opgelost, en zolang een incident waaraan ze is gekoppeld blijft. Alleen Projecteigenaren en Projectbeheerders kunnen dit wijzigen; in de API is het `alertRetentionInDays` van het project.
+**Waarschuwingen → Instellingen → Gegevensbewaring** verwijdert waarschuwingen zodra ze lang genoeg zijn opgelost, zoals [Gegevensbewaring](/docs/incidents/settings#gegevensbewaring) dat voor incidenten doet. De kaart **Opgeloste waarschuwingen** vraagt om **Verwijderen na**, **Nooit** tot je een periode kiest, en vraagt om bevestiging voordat er meer wordt verwijderd, met **Oude waarschuwingen verwijderen**, en zegt daarbij hoeveel waarschuwingen dat nu verwijdert. Een waarschuwing wordt verwijderd met haar tijdlijn, notities en de bestanden die daaraan zijn toegevoegd, tenzij iets anders een bestand nog gebruikt. Een waarschuwing blijft zolang ze niet is opgelost, zolang ze in een episode zit die nog open is of korter geleden is opgelost, en zolang een incident waaraan ze is gekoppeld blijft. Alleen Projecteigenaren en Projectbeheerders kunnen dit wijzigen; in de API is het `alertRetentionInDays` van het project. Op een zelfgehoste server kan een hoofdbeheerder alle projecten aan een limiet houden en kiezen waarmee nieuwe projecten beginnen: zie [Een limiet voor de hele server](/docs/incidents/settings#een-limiet-voor-de-hele-server).
 
 > [!NOTE]
 > In OneUptime Cloud vragen notitie-sjablonen en aangepaste velden het abonnement **Growth** of hoger.

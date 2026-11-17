@@ -187,8 +187,9 @@ if [ -n "$OPEN_HOST" ]; then
     # The server's setup checklist: email, HTTPS, sign-ups and the rest (#6824).
     echo "Then finish setting up this server: ${OPEN_PROTOCOL}://${OPEN_HOST}/admin/setup"
 
+    # This computer's names, IPv6's in brackets as HOST writes it ([::1]:8080).
     case "$OPEN_HOST" in
-        localhost | localhost:* | 127.0.0.1 | 127.0.0.1:*)
+        localhost | localhost:* | 127.0.0.1 | 127.0.0.1:* | \[::1\] | \[::1\]:*)
             echo "Only this computer can open ${OPEN_PROTOCOL}://${OPEN_HOST}. To open OneUptime from other computers, set HOST in config.env to this server's domain name or IP address, then run npm start again."
             ;;
     esac

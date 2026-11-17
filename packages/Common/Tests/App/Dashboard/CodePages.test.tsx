@@ -229,9 +229,15 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoriesList";
 import CodeRepositoryTasks from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Repository/Tasks";
 import CodeTaskConversation, {
+  CODE_TASK_HEADER_FACTS_CLASS_NAME,
+  CODE_TASK_PAGE_CLASS_NAME,
   getTaskBaseBranch,
   STICKY_FOOTER_STYLE,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Task/Conversation";
+import {
+  CODE_TASK_DETAILS_CLASS_NAME,
+  getCodeTaskDetailFacts,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskDetails";
 import { CODE_TASK_POLL_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskLive";
 import CodeTaskLog from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Task/Log";
 import { CodeRepositoryListItem } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
@@ -2393,6 +2399,161 @@ describe("a task's conversation", () => {
     expect(
       within(composer).queryByTestId("code-branch-picker-button"),
     ).toBeNull();
+  });
+
+  test("a wide screen lists the task's Details beside the conversation: who started it, where it works, its pull request, what it changed and when", async () => {
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        task: summary({
+          changes: { files: 3, additions: 27, deletions: 1 },
+          requestedBy: { id: "ada", name: "Ada Lovelace" },
+          pullRequest: {
+            number: 418,
+            url: "https://github.com/acme/checkout-api/pull/418",
+            state: "merged",
+          },
+        }),
+      }) as never,
+    );
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    const details: HTMLElement = await screen.findByTestId("code-task-details");
+    expect(details.tagName).toBe("ASIDE");
+    expect(details).toHaveAccessibleName("Details");
+
+    expect(
+      within(details)
+        .getAllByRole("term")
+        .map((term: HTMLElement) => {
+          return term.textContent;
+        }),
+    ).toEqual([
+      "Started by",
+      "Repository",
+      "Branch",
+      "Pull request",
+      "Changes",
+      "Time worked",
+      "Created",
+      "Last activity",
+    ]);
+    expect(
+      within(details).getByTestId("code-task-detail-startedBy"),
+    ).toHaveTextContent("Ada Lovelace");
+    expect(
+      within(details).getByTestId("code-task-details-repository"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}`,
+    );
+    expect(
+      within(details).getByTestId("code-task-detail-branch"),
+    ).toHaveTextContent("main");
+    expect(
+      within(details).getByTestId("code-task-details-pull-request"),
+    ).toHaveAttribute("href", "https://github.com/acme/checkout-api/pull/418");
+    expect(
+      within(details).getByTestId("code-task-details-pull-request-state"),
+    ).toHaveTextContent("Merged");
+    expect(
+      within(details).getByTestId("code-task-details-changes-stat"),
+    ).toHaveTextContent("+27−1");
+    // Under "Time worked", the time alone: not "worked 9 minutes".
+    expect(
+      within(details).getByTestId("code-task-details-work-time"),
+    ).not.toHaveTextContent(/worked/);
+
+    // Each fact is said once at any width: Details on a wide screen, the header's line below it.
+    expect(CODE_TASK_DETAILS_CLASS_NAME.split(" ")).toEqual([
+      "max-xl:hidden",
+      "xl:block",
+    ]);
+    expect(screen.getByTestId("code-task-facts").className).toBe(
+      CODE_TASK_HEADER_FACTS_CLASS_NAME,
+    );
+    expect(CODE_TASK_HEADER_FACTS_CLASS_NAME.split(" ")).toContain("xl:hidden");
+    expect(CODE_TASK_PAGE_CLASS_NAME.split(" ")).toContain("xl:grid");
+  });
+
+  test("a task OneUptime started says so in its Details, and links what it started from", async () => {
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        task: summary({
+          recipe: CodeFixTaskType.FixException,
+          title: "Error: newDate is not defined",
+          origin: {
+            type: CodeTaskOriginType.Exception,
+            label: "Error: newDate is not defined",
+            recordId: REPOSITORY_ID,
+          },
+          pullRequest: undefined,
+          state: CodeTaskState.Working,
+          isQueued: true,
+        }),
+        turns: [
+          turn({
+            requestedBy: undefined,
+            status: AIRunStatus.Queued,
+            state: CodeTaskState.Working,
+            startedAt: undefined,
+            completedAt: undefined,
+          }),
+        ],
+      }) as never,
+    );
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    const details: HTMLElement = await screen.findByTestId("code-task-details");
+    expect(
+      within(details).getByTestId("code-task-detail-startedBy"),
+    ).toHaveTextContent("OneUptime");
+    const from: HTMLElement = within(details).getByTestId(
+      "code-task-detail-startedFrom",
+    );
+    expect(from).toHaveTextContent("Exception");
+    expect(
+      within(from).getByTestId("code-task-details-origin"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/exceptions/${REPOSITORY_ID}`,
+    );
+    // No pull request yet, on a host that opens them: said, not left out.
+    expect(
+      within(details).getByTestId("code-task-detail-pullRequest"),
+    ).toHaveTextContent("None yet");
+    // Queued: AI has not worked on it, so no time is listed.
+    expect(
+      within(details).queryByTestId("code-task-detail-timeWorked"),
+    ).toBeNull();
+  });
+
+  test("Details name a merge request as GitLab does, and leave out a pull request a plain Git repository never opens", () => {
+    const base: Record<string, unknown> = taskAnswer({
+      task: summary({ pullRequest: undefined }),
+    });
+    const keysFor: (provider: string) => Array<string> = (
+      provider: string,
+    ): Array<string> => {
+      return getCodeTaskDetailFacts({
+        ...(base as Parameters<typeof getCodeTaskDetailFacts>[0]),
+        repository: {
+          ...(base["repository"] as Record<string, unknown>),
+          provider,
+        } as never,
+      }).map((fact: { key: string; title: string }) => {
+        return `${fact.key}:${fact.title}`;
+      });
+    };
+
+    expect(keysFor("GitLab")).toContain("pullRequest:Merge request");
+    expect(keysFor("GitHub")).toContain("pullRequest:Pull request");
+    expect(
+      keysFor("Git").some((fact: string) => {
+        return fact.startsWith("pullRequest");
+      }),
+    ).toBe(false);
   });
 
   test("how much it changed is said at the top, in lines added and removed", async () => {

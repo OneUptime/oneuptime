@@ -26,7 +26,7 @@ flowchart TB
     failed --> criteria
 ```
 
-Hvis et oppslag ikke kan gi registreringsdata — fordi TLD-ens tjeneste er lagt ned, eller domenet ikke er registrert — rapporteres monitoren som **frakoblet** med årsaken vist i monitorens sondesvar, i stedet for å bli rapportert som frisk med en tom utløpsdato. Et register som svarer "dette domenet er ledig" (for eksempel `Status: free` hos DENIC), behandles som **ikke registrert**, ikke som en frisk post.
+Hvis et oppslag ikke kan gi registreringsdata — fordi TLD-ens tjeneste er lagt ned, eller domenet ikke er registrert — rapporteres monitoren som **offline** med årsaken vist i monitorens sondesvar, i stedet for å bli rapportert som frisk med en tom utløpsdato. Et register som svarer "dette domenet er ledig" (for eksempel `Status: free` hos DENIC), behandles som **ikke registrert**, ikke som en frisk post.
 
 Internasjonaliserte domenenavn godtas i begge former: `münchen.de` konverteres til A-labelen sin (`xn--mnchen-3ya.de`) før oppslaget.
 
@@ -64,7 +64,7 @@ Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **K
 
 ### Gå gjennom kriteriene
 
-**Kriterier** starter med [standardkriteriene](#standardkriterier): frakoblet når registreringen er utløpt eller ikke kan leses, et varsel når den utløper om 30 dager eller mindre. Endre dem ved behov, og klikk så på **Neste**.
+**Kriterier** starter med [standardkriteriene](#standardkriterier): offline når registreringen er utløpt eller ikke kan leses, et varsel når den utløper om 30 dager eller mindre. Endre dem ved behov, og klikk så på **Neste**.
 
 ### Velg sonder og opprett
 
@@ -122,7 +122,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny domenemonitor starter med tre kriterier, så den varsler deg før en registrering utløper, helt uten oppsett:
 
-1. **Domenesjekken feilet** — registreringen er utløpt, eller registreringsdataene kunne ikke leses. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "Domenesjekken for _monitornavn_ mislyktes". Hendelsen løser seg selv når registreringen kan leses og er gjeldende igjen.
+1. **Domenesjekken feilet** — registreringen er utløpt, eller registreringsdataene kunne ikke leses. Monitoren merkes som **Offline**, og det opprettes en hendelse med navnet "Domenesjekken for _monitornavn_ mislyktes". Hendelsen løser seg selv når registreringen kan leses og er gjeldende igjen.
 2. **Domenet utløper snart** — registreringen er ikke utløpt, men utløper om 30 dager eller mindre. Det opprettes et **varsel** med navnet "Domenet _monitornavn_ utløper snart".
 3. **Domenet er ikke utløpt** — monitoren merkes som **I drift**.
 
@@ -146,8 +146,8 @@ Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke no
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
 | Varsle når domenet utløper innen 30 dager (et standardkriterium) | **Dager til domenet utløper** | **Mindre enn eller lik** | `30` |
-| Frakoblet når domenet er utløpt | **Domenet er utløpt** | **Sann** | — |
-| Frakoblet når registreringen ikke kan leses | **Er tilkoblet** | **Usann** | — |
+| Offline når domenet er utløpt | **Domenet er utløpt** | **Sann** | — |
+| Offline når registreringen ikke kan leses | **Er tilkoblet** | **Usann** | — |
 | Varsle når navneserverne endres | **Navneserver for domenet** | **Inneholder ikke** | `ns1.example.com` |
 | Varsle når domenet er låst opp for overføring | **Statuskode for domenet** | **Inneholder ikke** | `clientTransferProhibited` |
 
@@ -156,7 +156,7 @@ Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke no
 ## Beste praksis
 
 1. **Gi deg selv tid til å fornye** — Standardvarselet kommer 30 dager før utløp. Hvis fornyelsen krever godkjenninger eller en betaling som tar lenger tid, øker du det til 60 dager.
-2. **Dekk mislykkede oppslag** — Ta med et filter **Er tilkoblet** / **Usann** i frakoblet-kriteriet ditt, så en registrering som ikke kan leses, ikke forveksles med en frisk. Nye monitorer har det i standardkriteriene sine; en monitor som ble opprettet før det kom, må få det lagt til for hånd. For å komme gjennom en WHOIS-server som av og til begrenser sonden, krysser du av for **Evaluer disse kriteriene over en tidsperiode** under det filteret og velger **Alle verdier**: domenet går da først frakoblet når hvert oppslag i vinduet har feilet.
+2. **Dekk mislykkede oppslag** — Ta med et filter **Er tilkoblet** / **Usann** i offline-kriteriet ditt, så en registrering som ikke kan leses, ikke forveksles med en frisk. Nye monitorer har det i standardkriteriene sine; en monitor som ble opprettet før det kom, må få det lagt til for hånd. For å komme gjennom en WHOIS-server som av og til begrenser sonden, krysser du av for **Evaluer disse kriteriene over en tidsperiode** under det filteret og velger **Alle verdier**: domenet går da først offline når hvert oppslag i vinduet har feilet.
 3. **Overvåk alle viktige domener** — Ta med primærdomener, separat registrerte underdomener og alle domener som brukes til e-post eller API-er.
 4. **Følg med på registrarbytter** — Legg til et kriterium med **Domeneregistrar** / **Inneholder ikke** / navnet på registraren din, for å fange opp en uautorisert overføring.
 

@@ -50,7 +50,7 @@ Os destinos bloqueados se dividem em dois níveis.
 
 O endpoint de metadados da nuvem `169.254.169.254` está no nível proibido por um motivo. Numa VM na nuvem ele entrega as credenciais IAM da instância a qualquer coisa que consiga fazer uma requisição HTTP a partir da máquina, então nenhuma configuração geral vai abri-lo.
 
-As grafias de IPv6 que carregam um destino IPv4 dentro de si – IPv4-mapped (`::ffff:10.0.0.5`), NAT64, 6to4, Teredo – são classificadas pelo endereço IPv4 que alcançam, então não servem para contrabandear um endereço proibido por uma permissão do nível privado.
+As grafias de IPv6 que carregam um destino IPv4 dentro de si – IPv4-mapped (`::ffff:10.0.0.5`), IPv4-compatible (`::10.0.0.5`), NAT64, 6to4, Teredo – são classificadas pelo endereço IPv4 que alcançam, seja qual for a grafia, então não servem para contrabandear um endereço proibido por uma permissão do nível privado.
 
 ## Webhooks e workflows
 
@@ -142,6 +142,8 @@ No Docker Compose, o `config.env` tem uma linha `DATA_SOURCE_BLOCK_PRIVATE_ADDRE
 
 Com ela ligada, um nome de host recusado é informado sem dizer para o que ele se resolveu, por exemplo _"LLM provider host ollama.internal could not be reached."_ Um nome que nem se resolve recebe a mesma mensagem, para que membros do projeto não possam usar esses campos para descobrir quais nomes internos existem. Um endereço digitado como IP continua sendo nomeado junto com o motivo, por exemplo _"LLM provider host 10.0.4.12 is not allowed: private network address."_ Com `LOG_LEVEL=DEBUG`, a aplicação registra o endereço para o qual cada nome recusado se resolveu.
 
+Através de um proxy de saída, as conexões feitas por HTTP passam por ele, como os webhooks: as fontes de dados e as conexões de eventos de segurança lidas por HTTP, os feeds de threat intel, os provedores de LLM, as URLs de tokens OAuth, o login único com OIDC, os calendários externos, os servidores MCP, os backups, a verificação de domínios personalizados, os passos HTTP de runbooks e a importação do Grafana OnCall usam o proxy definido em `HTTPS_PROXY`, `HTTP_PROXY` ou `ALL_PROXY`, seja ele indicado por um endereço ou por um nome de host. O OneUptime ainda verifica o endereço primeiro e nunca segue um redirecionamento, mas é o proxy que resolve o nome e abre a conexão, então recuse destinos link-local no próprio proxy, sobretudo `169.254.169.254`. Um host em `NO_PROXY` é conectado diretamente, no endereço que o OneUptime verificou: liste lá os seus hosts internos. As conexões de bancos de dados e SMTP e os servidores Git sempre se conectam diretamente, sem proxy.
+
 ## Sondas e monitores
 
 Quatro tipos de monitor são afetados: **API**, **Site**, **Página de status externa** e **Código JavaScript personalizado**. Numa sonda padrão, eles podem alcançar destinos HTTP(S) públicos, mas recusam o espaço de endereços privado. Os monitores API, Website e Página de status externa validam e fixam os resultados de DNS em cada conexão e revalidam cada redirecionamento; o Código JavaScript personalizado aplica a mesma política de endereços na ponte da sua sandbox.
@@ -201,6 +203,8 @@ Abrir isso muda de verdade o que a sua instância do OneUptime pode ser levada a
 - **Qualquer pessoa que possa criar um workflow ou um monitor API, Website, External Status Page ou Custom JavaScript Code, ou adicionar um assinante a uma página de status, consegue alcançar tudo o que você permitiu.** Trate a participação nesses projetos de acordo.
 - **O corpo da resposta volta.** Um componente API de workflow devolve o status, os cabeçalhos e o corpo ao log do workflow, então um host permitido pode ser lido, não só receber escrita.
 - **Os redirecionamentos nunca são seguidos** nas requisições de webhook, então um host público permitido não consegue redirecionar o servidor para um interno num segundo salto.
+- **O OneUptime conecta ao endereço que verificou.** O nome de host de um webhook é resolvido uma vez, quando a URL é verificada, e a requisição vai para um endereço que essa resolução aprovou, então um nome que responde de outro jeito um instante depois (DNS rebinding) nunca recebe a conexão. O TLS continua verificando o certificado contra o nome na URL.
+- **Através de um proxy de saída, quem conecta é o proxy.** Se o servidor de API envia por um proxy definido em `HTTPS_PROXY`, `HTTP_PROXY` ou `ALL_PROXY` (exceto os hosts em `NO_PROXY`), os webhooks continuam passando por ele: o OneUptime ainda verifica o endereço primeiro e nunca segue um redirecionamento, mas é o proxy que resolve o nome e abre a conexão. Recuse destinos privados e link-local no próprio proxy, sobretudo `169.254.169.254`.
 - **Restrinja por sonda em vez de para a instância inteira sempre que possível.** Uma sonda implantada dentro de uma rede é uma permissão mais estreita do que abrir a saída do servidor de API.
 
 ## Próximos passos

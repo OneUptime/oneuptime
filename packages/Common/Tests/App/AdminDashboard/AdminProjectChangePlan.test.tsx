@@ -364,9 +364,10 @@ describe("Admin > Project > Subscription > Change Plan", () => {
     await openChangePlan();
 
     expect(screen.getByTestId("modal-title")).toHaveTextContent("Change Plan");
+    // Staff move a project whatever the customer has on file, and are told so.
     expect(
       within(dialog()).getByText(
-        "Move this project to another plan. A running trial carries over; otherwise the new plan is billed from now on, prorated on the next invoice.",
+        "Move this project to another plan, prorated on the next invoice. A running trial carries over. No payment method is needed: charges wait for one.",
       ),
     ).toBeInTheDocument();
 

@@ -41,10 +41,11 @@ flowchart TB
 Öffnen Sie **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungskanäle** und dort **Weitere Einstellungen**. Klicken Sie in der Karte **Twilio-Konfiguration** auf **Twilio-Konfiguration erstellen** und füllen Sie das Formular aus:
 
 - **Name** und **Beschreibung**: wofür das Konto da ist, etwa „Support-Hotline“.
+- **Dieses Konto verwenden für**: **Anrufe und SMS** oder **Nur Anrufe**, wenn die Nummern des Kontos keine SMS senden können. Eingehende Anrufe funktionieren mit beidem.
 - **Twilio Account SID**: aus der Twilio-Konsole. Sie beginnt mit `AC`.
 - **Twilio Auth Token**: aus der Twilio-Konsole.
-- **Twilio-Primärrufnummer**: eine Nummer dieses Kontos für die SMS und Anrufe, die es sendet. Unter **Weitere Felder**, optional: Nummern für Empfänger in anderen Ländern und Nummern für SMS, wenn die Nummern des Kontos nur Anrufe tätigen können (siehe [Getrennte Nummern für Anrufe und SMS](/docs/self-hosted/twilio-integration#getrennte-nummern-für-anrufe-und-sms)).
-- **Als Projektstandard festlegen**: für die erste Twilio-Konfiguration des Projekts eingeschaltet, sodass auch SMS und Anrufe an die Mitglieder des Projekts über dieses Konto laufen. Schalten Sie es aus, wenn dieses Konto nur für eingehende Anrufe gedacht ist.
+- **Twilio-Primärrufnummer**: eine Nummer dieses Kontos für die Anrufe, die es tätigt, und für seine SMS, wenn es welche sendet. Unter **Weitere Felder**, optional: Nummern für Empfänger in anderen Ländern und Nummern für SMS, wenn die Nummern des Kontos nur Anrufe tätigen können (siehe [Getrennte Nummern für Anrufe und SMS](/docs/self-hosted/twilio-integration#getrennte-nummern-für-anrufe-und-sms)).
+- **Als Projektstandard festlegen**: für die erste Twilio-Konfiguration des Projekts eingeschaltet, sodass auch Anrufe an die Mitglieder des Projekts über dieses Konto laufen, und ihre SMS, wenn es für **Anrufe und SMS** verwendet wird. Schalten Sie es aus, wenn dieses Konto nur für eingehende Anrufe gedacht ist.
 
 ### Die Richtlinie anlegen
 

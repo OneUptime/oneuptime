@@ -593,7 +593,7 @@ describe("what the Admin Dashboard's shipped locales read, against its files", (
       "fr",
       { one: "{{count}} minute", other: "{{count}} minutes" },
       0,
-      "0 minute",
+      "0\u00A0minute",
     ],
     [
       "fr",

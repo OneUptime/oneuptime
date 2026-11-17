@@ -42,7 +42,7 @@ Beginnen Sie oben in der Tabelle: Je weiter oben ein Weg steht, desto weniger gi
 | --- | --- | --- |
 | [Zabbix](/docs/integrations/zabbix) | Beide | Macht aus Zabbix-Problemen Vorfälle oder Warnungen, behebt sie bei der Erholung und bestätigt oder schließt die Probleme aus OneUptime heraus. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Eingehend | Macht aus Alertmanager-Benachrichtigungen Vorfälle. |
-| [Grafana](/docs/integrations/grafana) | Eingehend | Macht aus Grafana-Alarmen Vorfälle. |
+| [Grafana](/docs/integrations/grafana) | Eingehend | Macht aus Grafana-Warnungen Vorfälle. |
 | [Datadog](/docs/integrations/datadog) | Eingehend | Macht aus Datadog-Monitoralarmen Vorfälle oder Warnungen und behebt sie bei der Erholung. |
 | [New Relic](/docs/integrations/new-relic) | Eingehend | Macht aus New-Relic-Issues Vorfälle oder Warnungen und behebt sie, wenn das Issue geschlossen wird. |
 
@@ -53,8 +53,8 @@ Beginnen Sie oben in der Tabelle: Je weiter oben ein Weg steht, desto weniger gi
 | [Huntress](/docs/integrations/huntress) | Eingehend | Alarmiert die Bereitschaft bei Huntress-Vorfallberichten und behebt den Vorfall, wenn der Bericht geschlossen wird. |
 | [Google SecOps](/docs/integrations/google-secops) | Beide | Bringt Google-SecOps-Erkennungen und -Indikatoren in die Sicherheitsereignisse und sendet dorthin, was OneUptime findet. |
 | [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Beide | Bringt Microsoft-Sentinel-Vorfälle in die Sicherheitsereignisse und sendet dorthin, was OneUptime findet. |
-| [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | Eingehend | Bringt Microsoft-Defender-XDR-Alarme in die Sicherheitsereignisse. |
-| [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | Eingehend | Bringt CrowdStrike-Falcon-Alarme in die Sicherheitsereignisse. |
+| [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | Eingehend | Bringt Microsoft-Defender-XDR-Warnungen in die Sicherheitsereignisse. |
+| [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | Eingehend | Bringt CrowdStrike-Falcon-Warnungen in die Sicherheitsereignisse. |
 | [Splunk Enterprise Security](/docs/integrations/splunk) | Beide | Bringt Splunk-Notable-Events in die Sicherheitsereignisse und sendet dorthin, was OneUptime findet. |
 | [Elastic Security](/docs/integrations/elastic-security) | Beide | Bringt Erkennungsalarme von Elastic Security in die Sicherheitsereignisse und sendet dorthin, was OneUptime findet. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | Eingehend | Bringt Befunde von AWS Security Hub in die Sicherheitsereignisse. |
@@ -77,7 +77,7 @@ Beginnen Sie oben in der Tabelle: Je weiter oben ein Weg steht, desto weniger gi
 | Werkzeug | Richtung | Was es tut |
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | Ausgehend | Löst für jeden OneUptime-Vorfall einen PagerDuty-Vorfall aus und behebt ihn mit dem Vorfall. |
-| [Opsgenie](/docs/integrations/opsgenie) | Ausgehend | Legt für jeden OneUptime-Vorfall einen Opsgenie-Alarm an und schließt ihn mit dem Vorfall. |
+| [Opsgenie](/docs/integrations/opsgenie) | Ausgehend | Legt für jeden OneUptime-Vorfall einen Opsgenie-Warnung an und schließt ihn mit dem Vorfall. |
 
 ### Chatwerkzeuge
 
@@ -112,7 +112,7 @@ Ein Werkzeug ohne Anleitung passt trotzdem in eines von zwei Mustern. Kann es ei
 
 ### Eingehend: Ein anderes Werkzeug sendet Daten an OneUptime
 
-Für ein Alarmierungswerkzeug beginnen Sie mit einem [Monitor für eingehende Anfragen](/docs/monitor/incoming-request-monitor#warnungen-aus-einem-anderen-system-empfangen): Er eröffnet einen Vorfall pro Alarm und behebt ihn bei der Erholung, ohne dass Sie etwas bauen. Bauen Sie einen Workflow, wenn Sie eigene Logik brauchen:
+Für ein Alarmierungswerkzeug beginnen Sie mit einem [Monitor für eingehende Anfragen](/docs/monitor/incoming-request-monitor#warnungen-aus-einem-anderen-system-empfangen): Er eröffnet einen Vorfall pro Warnung und behebt ihn bei der Erholung, ohne dass Sie etwas bauen. Bauen Sie einen Workflow, wenn Sie eigene Logik brauchen:
 
 :::steps
 1. Öffnen Sie **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen** und dann auf **Ohne Vorlage beginnen**. Benennen Sie den Workflow und klicken Sie auf **Arbeitsablauf erstellen**.
@@ -181,7 +181,7 @@ Ein selbst gehostetes OneUptime ruft andere Werkzeuge aus Ihrem Netz auf, und an
 
 :::cards
 - [Workflows – Übersicht](/docs/workflows/index): Wie Workflows laufen und wie Sie Ihren ersten bauen.
-- [Eingehende-Anfrage-Überwachung](/docs/monitor/incoming-request-monitor): Alarme von jedem Werkzeug ohne Workflow empfangen.
+- [Eingehende-Anfrage-Überwachung](/docs/monitor/incoming-request-monitor): Warnungen von jedem Werkzeug ohne Workflow empfangen.
 - [Jira](/docs/integrations/jira): Eine vollständige Zwei-Wege-Integration aus Vorlagen.
 - [Workflow-Variablen](/docs/workflows/variables): Daten zwischen Bausteinen weitergeben und Geheimnisse aus ihnen heraushalten.
 :::

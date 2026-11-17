@@ -240,6 +240,7 @@ export const SloRoutePath: Dictionary<string> = {
   [PageMap.SLO_VIEW_MONITOR_RULES]: `${RouteParams.ModelID}/monitor-rules`,
   [PageMap.SLO_VIEW_MONITOR_RULE_VIEW]: `${RouteParams.ModelID}/monitor-rules/${RouteParams.SubModelID}`,
   [PageMap.SLO_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.SLO_VIEW_MONTHLY_REPORT]: `${RouteParams.ModelID}/monthly-report`,
   [PageMap.SLO_VIEW_CHARTS]: `${RouteParams.ModelID}/charts`,
   [PageMap.SLO_VIEW_BURN_RATE_RULES]: `${RouteParams.ModelID}/burn-rate-rules`,
   [PageMap.SLO_VIEW_ERROR_BUDGET_POLICY]: `${RouteParams.ModelID}/error-budget-policy`,
@@ -1137,6 +1138,7 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_BI_DASHBOARDS]: "bi-dashboards",
   [PageMap.DATA_OBSERVABILITY_SPEND]: "spend",
+  [PageMap.DATA_OBSERVABILITY_LINEAGE_MAP]: "lineage",
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW]: `data-products/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_SETTINGS]: `data-products/${RouteParams.ModelID}/settings`,
   [PageMap.DATA_OBSERVABILITY_DATA_PRODUCT_VIEW_AUDIT_LOGS]: `data-products/${RouteParams.ModelID}/audit-logs`,
@@ -4247,6 +4249,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SLO_VIEW_METRICS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/slos/${
       SloRoutePath[PageMap.SLO_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_MONTHLY_REPORT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_MONTHLY_REPORT]
     }`,
   ),
 
@@ -9031,6 +9039,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_OBSERVABILITY_SPEND]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_SPEND]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_LINEAGE_MAP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_LINEAGE_MAP]
     }`,
   ),
 

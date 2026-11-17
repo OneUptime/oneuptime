@@ -43,7 +43,23 @@ const GENERATION_CACHES: ReadonlyArray<string> = [
   "Server/Services/TelemetryIngestionKeyService.ts",
   // Each IoT device credential, for the MQTT broker's every publish (#8371).
   "Server/Services/IoTDeviceCredentialService.ts",
+  // Each project's rules, for every incident and alert created (#6085).
+  "Server/Utils/Rules/RuleSetCache.ts",
 ];
+
+/*
+ * Code that takes only a fresh, unpredictable token from the helper
+ * (CacheGenerations.newToken), keeping no cache by its generations: each
+ * named with what it uses the token for.
+ */
+const TOKEN_USERS: Readonly<Record<string, string>> = {
+  /*
+   * Which triggers each project's workflows listen to (#8861), kept in Redis
+   * alone under a token of the project's - read and written there, never
+   * per process.
+   */
+  "Server/Utils/Workflow/WorkflowListeners.ts": "a project's workflow change",
+};
 
 // Pieces of the scheme that live in CacheGenerations alone.
 const SCHEME_PIECES: ReadonlyArray<{ name: string; pattern: RegExp }> = [
@@ -161,6 +177,24 @@ describe("GUARD: caches kept by generation use CacheGenerations", () => {
       .sort();
 
     // A new cache kept by generation is named above, and held to the same.
-    expect(users).toEqual([...GENERATION_CACHES].sort());
+    expect(users).toEqual(
+      [...GENERATION_CACHES, ...Object.keys(TOKEN_USERS)].sort(),
+    );
   });
+
+  test.each(Object.keys(TOKEN_USERS))(
+    "%s takes only tokens from the helper, and keeps no generations of its own in memory",
+    (user: string) => {
+      const source: string = read(user);
+
+      expect(source).not.toMatch(/new CacheGenerations\(/);
+      expect(source.replace(/CacheGenerations\.newToken\(\)/g, "")).not.toMatch(
+        /CacheGenerations\./,
+      );
+
+      for (const piece of SCHEME_PIECES.slice(0, 3)) {
+        expect(source).not.toMatch(piece.pattern);
+      }
+    },
+  );
 });

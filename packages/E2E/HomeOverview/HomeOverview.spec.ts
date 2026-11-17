@@ -128,6 +128,24 @@ async function openReady(page: Page, query: string = ""): Promise<void> {
   await expect(page.getByTestId("home-overview-stats")).toBeVisible();
 }
 
+/*
+ * A new project's Home while its quickstart shows (#8897): the question or
+ * the steps its goals bring, and nothing else.
+ */
+async function openQuickstart(page: Page, query: string): Promise<void> {
+  await open(page, query);
+  await expect(page.getByTestId("home-overview")).toHaveAttribute(
+    "data-home-mode",
+    "quickstart",
+    { timeout: 30000 },
+  );
+  await expect(
+    page
+      .getByTestId("getting-started")
+      .or(page.getByTestId("welcome-question")),
+  ).toBeVisible();
+}
+
 async function fixture(page: Page): Promise<FixtureState> {
   return page.evaluate((): FixtureState => {
     return JSON.parse(
@@ -859,12 +877,36 @@ test.describe("the verdicts", () => {
     await expect(page.getByTestId("home-attention-total")).toHaveCount(0);
   });
 
-  test("a new project: nothing monitored yet, the checklist under it, everything to set up", async ({
+  test("a new project: Home is its quickstart, and nothing else", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openReady(page, "scenario=new");
+    await openQuickstart(page, "scenario=new");
+
+    await expect(page.getByTestId("getting-started")).toBeVisible();
+    for (const testId of [
+      "home-command-bar",
+      "home-project-health",
+      "home-overview-stats",
+      "home-needs-attention",
+      "home-project-resources",
+      "home-upcoming-maintenance",
+      "home-explore-products",
+    ]) {
+      await expect(page.getByTestId(testId)).toHaveCount(0);
+    }
+    await expectNoSidewaysScroll(page);
+
+    await screenshot(page, "home-new-project");
+  });
+
+  test("a new project whose quickstart is hidden: nothing monitored yet, the line to show it again, everything to set up", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new&welcome=hidden");
 
     await expect(page.getByTestId("home-project-health")).toHaveAttribute(
       "data-health",
@@ -876,7 +918,7 @@ test.describe("the verdicts", () => {
     await expect(statStatus(page, "not-operational-monitors")).toHaveText(
       "No monitors yet",
     );
-    await expect(page.getByTestId("getting-started")).toBeVisible();
+    await expect(page.getByTestId("welcome-checklist-hidden")).toBeVisible();
     await expect(page.getByTestId("home-attention-empty")).toHaveAttribute(
       "data-state",
       "nothing-monitored",
@@ -900,12 +942,12 @@ test.describe("the verdicts", () => {
     const health: { y: number } = (await page
       .getByTestId("home-project-health")
       .boundingBox())!;
-    const checklist: { y: number } = (await page
-      .getByTestId("getting-started")
+    const line: { y: number } = (await page
+      .getByTestId("welcome-checklist-hidden")
       .boundingBox())!;
-    expect(checklist.y).toBeGreaterThan(health.y);
+    expect(line.y).toBeGreaterThan(health.y);
 
-    await screenshot(page, "home-new-project");
+    await screenshot(page, "home-new-project-hidden");
   });
 
   test("more open than a group shows: five rows and View all with the total", async ({
@@ -954,7 +996,7 @@ const ON_CALL_STEP_SENTENCE: string =
 async function checklistSteps(page: Page): Promise<Array<string>> {
   return page
     .getByTestId("getting-started")
-    .locator('[data-testid^="getting-started-task-"]')
+    .locator('[data-testid^="getting-started-task-"][data-done]')
     .evaluateAll((elements: Array<Element>): Array<string> => {
       return elements.map((element: Element): string => {
         return (element.getAttribute("data-testid") || "").replace(
@@ -976,7 +1018,7 @@ test.describe("a newcomer's first steps", () => {
         width: width,
         height: width === 390 ? 844 : 900,
       });
-      await openReady(page, "scenario=new");
+      await openQuickstart(page, "scenario=new");
 
       await expect(page.getByTestId("getting-started")).toBeVisible();
       expect(await checklistSteps(page)).toEqual(NEWCOMER_STEPS);
@@ -1004,7 +1046,7 @@ test.describe("a newcomer's first steps", () => {
         // One column: every step's tile starts at the same left edge.
         const lefts: Array<number> = await page
           .getByTestId("getting-started")
-          .locator('[data-testid^="getting-started-task-"]')
+          .locator('[data-testid^="getting-started-task-"][data-done]')
           .evaluateAll((elements: Array<Element>): Array<number> => {
             return elements.map((element: Element): number => {
               return Math.round(element.getBoundingClientRect().left);
@@ -1023,7 +1065,7 @@ test.describe("a newcomer's first steps", () => {
   }: {
     page: Page;
   }) => {
-    await openReady(page, "scenario=new&lang=de");
+    await openQuickstart(page, "scenario=new&lang=de");
 
     const onCall: Locator = page.getByTestId("getting-started-task-on_call");
 
@@ -1041,22 +1083,24 @@ test.describe("a newcomer's first steps", () => {
   }: {
     page: Page;
   }) => {
-    await openReady(page, "scenario=new&theme=dark");
+    await openQuickstart(page, "scenario=new&theme=dark");
 
     const onCall: Locator = page.getByTestId("getting-started-task-on_call");
 
     await expect(onCall).toContainText(ON_CALL_STEP_SENTENCE);
 
-    const colors: { text: string; surface: string } = await onCall.evaluate(
-      (tile: Element): { text: string; surface: string } => {
-        const sentence: Element = tile.querySelectorAll("span span")[1]!;
+    const colors: { text: string; surface: string } = await page
+      .getByTestId("getting-started")
+      .evaluate((card: Element): { text: string; surface: string } => {
+        const sentence: Element = card.querySelector(
+          '[data-testid="getting-started-task-on_call-description"]',
+        )!;
 
         return {
           text: getComputedStyle(sentence).color,
-          surface: getComputedStyle(tile).backgroundColor,
+          surface: getComputedStyle(card).backgroundColor,
         };
-      },
-    );
+      });
 
     // Light text on a dark tile, never the light theme's grey on white.
     expect(colors.text).not.toBe(colors.surface);
@@ -1112,17 +1156,23 @@ test.describe("what do you want to do first?", () => {
         width: width,
         height: width === 390 ? 844 : 900,
       });
-      await openReady(page, "scenario=new&welcome=ask");
+      await openQuickstart(page, "scenario=new&welcome=ask");
 
       const question: Locator = page.getByTestId("welcome-question");
 
       await expect(question).toBeVisible();
       await expect(question).toContainText("What do you want to do first?");
-      await expect(question.getByRole("checkbox")).toHaveCount(7);
+      // Six goals as cards; "Just looking around" is the way out under them.
+      await expect(question.getByRole("checkbox")).toHaveCount(6);
+      await expect(
+        page.getByTestId("welcome-question-just-looking"),
+      ).toHaveText("Just looking around");
       await expect(page.getByTestId("getting-started")).toHaveCount(0);
       await expect(
         page.getByTestId("welcome-question-continue"),
       ).toBeDisabled();
+      // The question is the whole of Home: no headline, no zeros.
+      await expect(page.getByTestId("home-project-health")).toHaveCount(0);
       await expectNoSidewaysScroll(page);
 
       await screenshot(page, `home-welcome-question-${width}`);
@@ -1135,6 +1185,18 @@ test.describe("what do you want to do first?", () => {
         .getByTestId("welcome-goal-status_page")
         .getByRole("checkbox")
         .check();
+      // What the goals bring, before they are sent.
+      await expect(page.getByTestId("welcome-question-plan-steps")).toHaveText(
+        "3 steps to set up",
+      );
+      await expect(page.getByTestId("welcome-goal-uptime")).toHaveAttribute(
+        "data-chosen",
+        "true",
+      );
+      await expect(page.getByTestId("welcome-question-continue")).toBeEnabled();
+
+      await screenshot(page, `home-welcome-picked-${width}`);
+
       await page.getByTestId("welcome-question-continue").click();
 
       await expect(page.getByTestId("getting-started")).toBeVisible();
@@ -1170,17 +1232,42 @@ test.describe("what do you want to do first?", () => {
     });
   }
 
-  test("Skip gives the four steps, and Change asks again with the answer ticked", async ({
+  test("Just looking around goes straight to the rest of Home, Show it brings its step back, and Change asks again", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openReady(page, "scenario=new&welcome=ask");
+    await openQuickstart(page, "scenario=new&welcome=ask");
 
-    await page.getByTestId("welcome-question-skip").click();
+    await page.getByTestId("welcome-question-just-looking").click();
+
+    await expect(page.getByTestId("home-overview")).toHaveAttribute(
+      "data-home-mode",
+      "overview",
+    );
+    await expect(page.getByTestId("welcome-checklist-hidden")).toBeVisible();
+    await expect(page.getByTestId("home-health-headline")).toBeVisible();
+    expect(
+      (await welcomeRequests(page)).filter(
+        (request: { method: string }): boolean => {
+          return request.method === "POST";
+        },
+      ),
+    ).toEqual([
+      {
+        method: "POST",
+        path: "/api/welcome-checklist/goals",
+        data: { goals: ["explore"] },
+      },
+      { method: "POST", path: "/api/welcome-checklist/hide", data: {} },
+    ]);
+
+    await screenshot(page, "home-welcome-just-looking");
+
+    await page.getByTestId("welcome-checklist-show").click();
 
     await expect(page.getByTestId("getting-started")).toBeVisible();
-    expect(await checklistSteps(page)).toEqual(NEWCOMER_STEPS);
+    expect(await checklistSteps(page)).toEqual(["monitor"]);
 
     await page.getByTestId("welcome-checklist-change-goals").click();
 
@@ -1197,7 +1284,7 @@ test.describe("what do you want to do first?", () => {
   }: {
     page: Page;
   }) => {
-    await openReady(page, "scenario=new&welcome=half");
+    await openQuickstart(page, "scenario=new&welcome=half");
 
     const monitor: Locator = page.getByTestId("getting-started-task-monitor");
 
@@ -1210,12 +1297,64 @@ test.describe("what do you want to do first?", () => {
     await screenshot(page, "home-welcome-half");
   });
 
+  test("under the steps, one line opens How OneUptime works: its four steps, told once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openQuickstart(page, "scenario=new&welcome=half");
+
+    const line: Locator = page.getByTestId("getting-started-how-it-works");
+
+    await expect(line).toBeVisible();
+    await expect(line).toHaveAttribute("aria-haspopup", "dialog");
+    await expect(line).toContainText("How OneUptime works");
+    await expect(line).toContainText(
+      "Everything OneUptime does, and how it fits together.",
+    );
+    // The card tells no story of its own.
+    await expect(
+      page.getByTestId("getting-started").getByTestId("how-oneuptime-works"),
+    ).toHaveCount(0);
+
+    /*
+     * In line with the steps: its icon where theirs is, as wide. Read in one
+     * frame, as the card settles (E2EBoxesInOneFrame).
+     */
+    const [lineIcon, stepIcon] = await boxesInOneFrame([
+      line.locator("span").first(),
+      page.getByTestId("getting-started-task-on_call").locator("span").first(),
+    ]);
+    expect(Math.round(lineIcon!.x)).toBe(Math.round(stepIcon!.x));
+    expect(Math.round(lineIcon!.width)).toBe(Math.round(stepIcon!.width));
+
+    await line.click();
+
+    const dialog: Locator = page.getByTestId("how-oneuptime-works-dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByTestId("how-oneuptime-works-loop")).toBeVisible();
+    await expect(
+      dialog.locator('[data-testid^="how-oneuptime-works-step-"]'),
+    ).toHaveCount(4);
+
+    await screenshot(page, "home-welcome-how-it-works");
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    // Back where it was opened: still the quickstart.
+    await expect(page.getByTestId("home-overview")).toHaveAttribute(
+      "data-home-mode",
+      "quickstart",
+    );
+    await expect(line).toBeVisible();
+  });
+
   test("on the Free plan, the team step says it needs Growth before the click", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openReady(page, "scenario=new&plan=free");
+    await openQuickstart(page, "scenario=new&plan=free");
 
     await expect(
       page.getByTestId("getting-started-task-team-needs-plan"),
@@ -1232,7 +1371,7 @@ test.describe("what do you want to do first?", () => {
   }: {
     page: Page;
   }) => {
-    await openReady(page, "scenario=new");
+    await openQuickstart(page, "scenario=new");
 
     await page.getByTestId("getting-started-dismiss").click();
 
@@ -1240,11 +1379,17 @@ test.describe("what do you want to do first?", () => {
     await expect(page.getByTestId("welcome-checklist-hidden")).toContainText(
       "You hid the Welcome checklist.",
     );
-
-    await page.getByTestId("welcome-checklist-how-it-works").click();
-    await expect(page.getByTestId("how-oneuptime-works")).toBeVisible();
+    // Hidden: the rest of Home is back.
+    await expect(page.getByTestId("home-health-headline")).toBeVisible();
 
     await screenshot(page, "home-welcome-hidden");
+
+    // How OneUptime works opens its dialog, the one Help and Search open.
+    await page.getByTestId("welcome-checklist-how-it-works").click();
+    await expect(page.getByTestId("how-oneuptime-works-dialog")).toBeVisible();
+    await expect(page.getByTestId("how-oneuptime-works-loop")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("how-oneuptime-works-dialog")).toHaveCount(0);
 
     await page.getByTestId("welcome-checklist-show").click();
     await expect(page.getByTestId("getting-started")).toBeVisible();
@@ -1278,7 +1423,7 @@ test.describe("what do you want to do first?", () => {
   }: {
     page: Page;
   }) => {
-    await openReady(page, "scenario=new&welcome=ask&lang=de&theme=dark");
+    await openQuickstart(page, "scenario=new&welcome=ask&lang=de&theme=dark");
 
     const question: Locator = page.getByTestId("welcome-question");
 
@@ -1878,8 +2023,8 @@ test.describe("the row under the health card", () => {
       ["home-project-resources"],
     ],
     [
-      "a new project: where problems will show, beside everything to set up",
-      "scenario=new",
+      "a new project whose quickstart is hidden: where problems will show, beside everything to set up",
+      "scenario=new&welcome=hidden",
       ["home-project-resources"],
     ],
     [
@@ -1985,7 +2130,7 @@ test.describe("the row under the health card", () => {
     page: Page;
   }) => {
     for (const [query, testId] of [
-      ["scenario=new", "home-attention-empty"],
+      ["scenario=new&welcome=hidden", "home-attention-empty"],
       ["fail=overview", "home-attention-unavailable"],
     ]) {
       await openSettled(page, query!);
@@ -2050,7 +2195,7 @@ test.describe("the row under the health card", () => {
       for (const query of [
         "scenario=quiet",
         "scenario=busy",
-        "scenario=new",
+        "scenario=new&welcome=hidden",
         "fail=overview",
       ]) {
         await page.setViewportSize({ width, height: 1000 });
@@ -2329,19 +2474,78 @@ test.describe("setup health", () => {
 
     for (let index: number = 0; index < count; index++) {
       const row: Locator = rows.nth(index);
-      // Both boxes from one moment: a gap read across two would be off (Frames).
-      const [sentence, fix] = await boxesInOneFrame([
+      /*
+       * A finding fixed in one click (#7299) leads with that button, and
+       * its fix's link follows it on the same line; any other leads with
+       * the link.
+       */
+      const hasQuickFix: boolean =
+        (await row.getByTestId("setup-health-quick-fix").count()) > 0;
+      // The boxes from one moment: a gap read across two would be off (Frames).
+      const [sentence, first, fix] = await boxesInOneFrame([
         row.getByTestId("setup-health-sentence"),
+        row.getByTestId(
+          hasQuickFix ? "setup-health-quick-fix" : "setup-health-fix",
+        ),
         row.getByTestId("setup-health-fix"),
       ]);
 
       expect(sentence).not.toBeNull();
+      expect(first).not.toBeNull();
       expect(fix).not.toBeNull();
-      expect(Math.abs(fix!.x - sentence!.x)).toBeLessThan(2);
-      expect(fix!.y).toBeGreaterThanOrEqual(sentence!.y + sentence!.height);
+      expect(Math.abs(first!.x - sentence!.x)).toBeLessThan(2);
+      expect(first!.y).toBeGreaterThanOrEqual(sentence!.y + sentence!.height);
+
+      if (hasQuickFix) {
+        expect(fix!.x).toBeGreaterThan(first!.x + first!.width);
+        expect(
+          Math.abs(fix!.y + fix!.height / 2 - (first!.y + first!.height / 2)),
+        ).toBeLessThan(2);
+      }
     }
 
     await screenshot(page, "setup-health-1600");
+  });
+
+  /*
+   * #7299: SMS left off is fixed from its row, once a dialog has said
+   * exactly what will change - and Cancel changes nothing.
+   */
+  test("a one-click fix opens a dialog that says exactly what will change, and Cancel changes nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openSetupHealth(page);
+
+    const sms: Locator = page
+      .getByTestId("setup-health-finding")
+      .filter({ hasText: "SMS is off in this project" });
+    const button: Locator = sms.getByTestId("setup-health-quick-fix");
+
+    await expect(button).toHaveText("Turn On SMS");
+    // The link to the page that fixes it stays beside it.
+    await expect(sms.getByTestId("setup-health-fix")).toHaveText(
+      "Open Notification Channels",
+    );
+
+    await button.click();
+
+    await expect(page.getByTestId("setup-health-quick-fix-change")).toHaveText(
+      "SMS will be on for everyone in this project, so pages that use it are sent.",
+    );
+    await expect(page.getByTestId("setup-health-quick-fix-undo")).toHaveText(
+      "The switch is in Project Settings → Notifications → Notification Channels, where it can be turned off again.",
+    );
+    await screenshot(page, "setup-health-quick-fix-1280");
+
+    await page.getByTestId("modal-footer-close-button").click();
+
+    await expect(page.getByTestId("setup-health-quick-fix-dialog")).toHaveCount(
+      0,
+    );
+    await expect(sms).toBeVisible();
   });
 
   test("at 390px: one column, nothing wider than the screen", async ({

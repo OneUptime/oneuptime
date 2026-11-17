@@ -348,7 +348,32 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
+// What the setup sets up, beside the steps (#8897), in the order listed.
+const outcomesBeside: () => Array<string> = (): Array<string> => {
+  return Array.from(
+    screen.getByTestId("guided-setup-aside").querySelectorAll("li"),
+  ).map((item: HTMLLIElement): string => {
+    return item.textContent || "";
+  });
+};
+
 describe("1. Send your first data", () => {
+  test("beside the steps, what it sets up, the first one open, and about how long", async () => {
+    await renderSetup();
+
+    expect(outcomesBeside()).toEqual([
+      "Your app sends its logs, metrics and traces to OneUptime.",
+      "Recommended monitors alert you when that data shows a problem.",
+    ]);
+    expect(screen.getByTestId("guided-setup-outcome-send")).toHaveAttribute(
+      "data-state",
+      "open",
+    );
+    expect(screen.getByTestId("guided-setup-minutes")).toHaveTextContent(
+      /^About 10\sminutes$/,
+    );
+  });
+
   test("opens with the setup guide, OpenTelemetry for all three signals, and the wait", async () => {
     await renderSetup();
 

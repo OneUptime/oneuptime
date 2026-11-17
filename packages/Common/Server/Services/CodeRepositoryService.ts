@@ -7,6 +7,7 @@ import { CodeHost } from "../../Types/CodeRepository/CodeHost";
 import URL from "../../Types/API/URL";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import WriteOnlyCredentialChanges from "../Utils/AuditLog/WriteOnlyCredentialChanges";
 import {
   RepoResolution,
   ResolvableRepository,
@@ -73,6 +74,26 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * A create hands back the row it saved, with the webhook secret on it as
+   * it was stored: encrypted. BaseAPI serializes the row whole into the
+   * answer of POST /code-repository, without a column read check, and a
+   * workflow step's create returns it to the workflow's logs - a ciphertext
+   * of a secret nobody may read back (read: []). So it is taken off first.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    const created: Model = await super.create(createBy);
+
+    /*
+     * Cleared rather than deleted, as BaseAPI.createItem clears a model's
+     * `_id`: an unset column holds undefined, which serializes as nothing.
+     */
+    (created as unknown as Record<string, unknown>)["secretToken"] = undefined;
+
+    return created;
+  }
+
+  /*
    * Last line of defence for the installation-to-project binding.
    *
    * gitHubAppInstallationId is already closed to API callers at the column
@@ -126,6 +147,12 @@ export class Service extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
+
+    /*
+     * The webhook secret is write-only: a change to it is recorded in the
+     * audit log as changed, never with its value (WriteOnlyCredentialChanges).
+     */
+    WriteOnlyCredentialChanges.recordInAuditLog(updateBy, ["secretToken"]);
 
     await Service.assertRunnerCanWorkInRepositories(updateBy.data);
 

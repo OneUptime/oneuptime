@@ -29,6 +29,11 @@ import {
   useParams,
 } from "react-router-dom";
 import i18next from "i18next";
+/*
+ * English, the fallback, as the Dashboard ships it (#8645): what another
+ * language's chunk leaves out because English reads the same.
+ */
+import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import LogsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Logs/Layout";
@@ -345,7 +350,7 @@ API.post = async (options) => handleApi("POST", options);
 await i18next.use(initReactI18next).init({
   lng: "en",
   fallbackLng: "en",
-  resources: { en: { translation: {} } },
+  resources: { en: { translation: EN } },
   interpolation: { escapeValue: false },
 });
 // Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.

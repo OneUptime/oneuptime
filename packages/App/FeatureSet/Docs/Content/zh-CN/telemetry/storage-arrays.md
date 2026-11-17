@@ -1,6 +1,6 @@
 # 存储阵列代理
 
-OneUptime Storage Array 代理监控存储阵列：容量和数据缩减、延迟、IOPS 和带宽、卷、主机、Pod 和复制、硬件健康状况、文件系统和存储桶。它是一个标准的 OpenTelemetry Collector，使用只读用户的 API 令牌抓取阵列的 OpenMetrics 端点，在每个指标上打上阵列的身份信息，并把它发送到 OneUptime。[存储阵列监控](/docs/monitor/storage-array-monitor) 会根据到达的数据发出告警。
+OneUptime Storage Array 代理监控存储阵列：容量和数据缩减、延迟、IOPS 和带宽、卷、主机、Pod 和复制、硬件健康状况、文件系统和存储桶。它是一个标准的 OpenTelemetry Collector，使用只读用户的 API 令牌抓取阵列的 OpenMetrics 端点，在每个指标上打上阵列的身份信息，并把它发送到 OneUptime。[存储阵列监控](/docs/monitor/storage-array-monitor) 会根据到达的数据发出警报。
 
 :::cards
 - [安装代理](#安装代理): 先创建只读用户，再使用安装脚本或 Docker Compose。
@@ -136,7 +136,7 @@ Everything is ready. Begin running and processing data.
 
 ### 在 OneUptime 中找到阵列
 
-打开 **产品 → 基础设施 → 存储阵列 → 所有存储阵列**。第一次抓取之后（大约一分钟），阵列就会出现，带有它的容量、性能、未关闭的告警和硬件。卷、主机和 Pod 会在 2 分钟内出现，FlashBlade 的文件系统和存储桶在 5 分钟内出现，FlashArray 目录在 30 分钟内出现。阵列的 **拓扑** 页面将其主机、卷、文件系统和硬件绘制在一张地图上：请参阅 [拓扑](/docs/telemetry/topology#打开资源自己的地图)。
+打开 **产品 → 基础设施 → 存储阵列 → 所有存储阵列**。第一次抓取之后（大约一分钟），阵列就会出现，带有它的容量、性能、未关闭的警报和硬件。卷、主机和 Pod 会在 2 分钟内出现，FlashBlade 的文件系统和存储桶在 5 分钟内出现，FlashArray 目录在 30 分钟内出现。阵列的 **拓扑** 页面将其主机、卷、文件系统和硬件绘制在一张地图上：请参阅 [拓扑](/docs/telemetry/topology#打开资源自己的地图)。
 :::
 
 ## 环境变量
@@ -171,12 +171,12 @@ Pure 的语义约定由 FlashArray 原生端点和两个导出器共享。每个
 
 | 端点 | 指标族 | OneUptime 据此构建的内容 |
 | --- | --- | --- |
-| FlashArray `/metrics/array` | `purefa_info`、`purefa_alerts_open`、`purefa_array_space_*`、`purefa_array_performance_*`、`purefa_hw_component_status`、`purefa_hw_component_temperature_celsius`、`purefa_hw_controller_info`、`purefa_drive_capacity_bytes`、`purefa_network_interface_*` | 阵列的名称、Purity 版本和系统 ID；容量、已用空间和数据缩减；未关闭的告警数；阵列的健康状况；**硬件** 页面（组件、驱动器、控制器、网络接口） |
+| FlashArray `/metrics/array` | `purefa_info`、`purefa_alerts_open`、`purefa_array_space_*`、`purefa_array_performance_*`、`purefa_hw_component_status`、`purefa_hw_component_temperature_celsius`、`purefa_hw_controller_info`、`purefa_drive_capacity_bytes`、`purefa_network_interface_*` | 阵列的名称、Purity 版本和系统 ID；容量、已用空间和数据缩减；未关闭的警报数；阵列的健康状况；**硬件** 页面（组件、驱动器、控制器、网络接口） |
 | FlashArray `/metrics/volumes` | `purefa_volume_performance_*`、`purefa_volume_space_*`、`purefa_volume_qos_*` | **卷** 页面：每个卷的预配大小和物理大小、数据缩减、读写延迟、IOPS 和带宽 |
 | FlashArray `/metrics/hosts` | `purefa_host_connectivity_info`、`purefa_host_connections_info`、`purefa_host_performance_*`、`purefa_host_space_*` | **主机** 页面：每台主机的连接性（是否有冗余路径）、已连接的卷、延迟、IOPS 和带宽 |
 | FlashArray `/metrics/pods` | `purefa_pod_performance_*`、`purefa_pod_space_*`、`purefa_pod_replica_links_*`、`purefa_pod_mediator_status` | **复制** 页面：ActiveCluster 和 ActiveDR Pod、副本链接状态和滞后 |
 | FlashArray `/metrics/directories` | `purefa_directory_performance_*`、`purefa_directory_space_*` | **目录** 页面（FlashArray File Services） |
-| FlashBlade `/metrics/array` | `purefb_info`、`purefb_alerts_open`、`purefb_array_space_*`、`purefb_array_performance_*`、`purefb_hardware_health` | FlashBlade 的名称、Purity 版本和系统 ID；容量和数据缩减；未关闭的告警数；阵列的健康状况；**硬件** 页面 |
+| FlashBlade `/metrics/array` | `purefb_info`、`purefb_alerts_open`、`purefb_array_space_*`、`purefb_array_performance_*`、`purefb_hardware_health` | FlashBlade 的名称、Purity 版本和系统 ID；容量和数据缩减；未关闭的警报数；阵列的健康状况；**硬件** 页面 |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`、`purefb_file_systems_performance_*` | **文件系统** 页面：每个文件系统的预配空间和已用空间、数据缩减、延迟、IOPS 和带宽 |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`、`purefb_buckets_quota_space_bytes`、`purefb_buckets_object_count`、`purefb_buckets_performance_*`、`purefb_object_store_accounts_*` | **存储桶** 页面：每个存储桶的空间、配额、对象数和性能，按帐户分组 |
 
@@ -196,7 +196,7 @@ Pure 的语义约定由 FlashArray 原生端点和两个导出器共享。每个
 
 ## 可选 — 发送阵列的 syslog
 
-默认情况下，代理只发送指标，因此阵列的 **日志** 页面保持为空。阵列会把它们的告警和审计事件作为 syslog 转发，每个随附的 Collector 配置中都有一对已注释掉的 `syslog` 接收器（端口 5514 上的 TCP 和 UDP，RFC 3164），连接到一个已注释掉的 `logs` 管道，该管道会打上 `storage.array.name`，使日志落到你的阵列上。
+默认情况下，代理只发送指标，因此阵列的 **日志** 页面保持为空。阵列会把它们的警报和审计事件作为 syslog 转发，每个随附的 Collector 配置中都有一对已注释掉的 `syslog` 接收器（端口 5514 上的 TCP 和 UDP，RFC 3164），连接到一个已注释掉的 `logs` 管道，该管道会打上 `storage.array.name`，使日志落到你的阵列上。
 
 :::steps
 ### 打开接收器
@@ -332,7 +332,7 @@ OneUptime 根据 `storage.array.name` 注册存储阵列，代理从 `STORAGE_AR
 ## 后续步骤
 
 :::cards
-- [存储阵列监控](/docs/monitor/storage-array-monitor): 针对告警、容量、延迟、硬件、主机路径、复制和文件系统发出告警。
+- [存储阵列监控](/docs/monitor/storage-array-monitor): 针对警报、容量、延迟、硬件、主机路径、复制和文件系统发出警报。
 - [VMware 代理](/docs/telemetry/vmware): 在这个阵列上运行 VMware？也可以查看它的数据存储和 VM。
 - [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector): 从操作系统的角度查看使用该阵列的机器。
 :::

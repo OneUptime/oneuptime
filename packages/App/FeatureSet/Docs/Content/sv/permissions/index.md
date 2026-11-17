@@ -103,6 +103,8 @@ Rollen du väljer blir teamets första behörighet, för alla resurser i projekt
 
 Var du hittar det: öppna ett team under **Team** för att nå **Medlemmar** och **Behörigheter**; dess anpassade roller och **Blockera behörigheter** finns under **Fler inställningar** längst ned på sidan Behörigheter, vars hopfällda rubrik visar hur många av varje teamet har.
 
+Ett teams sida har kortet **Används av**: jourpolicyerna vars eskaleringsregler larmar teamet, och allt teamet äger, från monitorer och statussidor till SLO:er, instrumentpaneler, infrastruktur och incidenter. När du tar bort ett team, på dess sida eller från listan, sägs detta först: dess policyer slutar larma dess medlemmar, och det äger dem inte längre. Det du inte får öppna räknas men namnges inte.
+
 ## Behörigheter
 
 En behörighet är en enskild förmåga. Det finns två sätt att dela ut dem, och båda finns på teamets flik **Behörigheter**.
@@ -280,7 +282,7 @@ API-nycklar får behörigheter direkt, på själva nyckeln, eller genom de anpas
 :::steps
 1. Öppna **Projektinställningar > Avancerad > API-nycklar** och klicka på **Skapa API-nyckel**. På OneUptime Cloud kräver API-nycklar Growth-planen.
 2. Skriv in nyckelns **Namn** och välj dess **Åtkomst**. Beskrivningen och utgångsdatumet finns under **Fler fält**; en nyckel går ut ett år efter dagen den skapas, om du inte väljer ett annat datum, och det hopfällda avsnittet säger det.
-3. Skapa nyckeln. Den öppnas på sin sida, där du kopierar den.
+3. Skapa nyckeln. OneUptime visar den en gång, i en dialogruta: kopiera den där. Sedan öppnas dess sida.
 :::
 
 Rollen du väljer blir nyckelns första behörighet så snart nyckeln finns, precis som om du hade lagt till den på nyckelns sida. Du erbjuds bara de roller du själv har — en nyckel kan aldrig få mer än personen som ger den har — och den som får skapa nycklar men inte ändra vad de får göra tillfrågas inte.
@@ -340,7 +342,7 @@ Upplösta behörigheter cachas per användare och projekt och uppdateras när te
 
 En incident, ett larm eller en episod som är markerad som privat kan bara ses av sina ägare — de personer som anges som ägare och medlemmarna i ägarteamen som har accepterat sin inbjudan — och av Projektägare och Projektadministratörer.
 
-En sådan post ändras bara med behörigheterna för de team som äger den och för de personer som anges som dess ägare. Den som anges som ägare agerar på den med alla behörigheter hen har. Alla andra agerar bara på den med behörigheterna för sina team som äger den, var och en med sin egen omfattning och sina egna etiketter: ett annat teams behörighet når ingen privat post som det teamet inte äger. Det gäller allt som görs med posten och det som hör till den — att redigera den, ändra dess tillstånd, dess anteckningar, ägare, roller, etiketter, länkade larm, episodmedlemmar och samtal, och att ta bort den — från instrumentpanelen, API:et, massåtgärder, Slack, Microsoft Teams eller OneUptime AI. Projektägare och Projektadministratörer ändrar varje privat post, och det gör även arbetsflödessteg, som agerar som Projektadministratör; en API-nyckel gör det bara med `ProjectOwner` eller `ProjectAdmin`.
+En sådan post ändras bara med behörigheterna för de team som äger den och för de personer som anges som dess ägare. Den som anges som ägare agerar på den med alla behörigheter hen har. Alla andra agerar bara på den med behörigheterna för sina team som äger den, var och en med sin egen omfattning och sina egna etiketter: ett annat teams behörighet når ingen privat post som det teamet inte äger. Det gäller allt som görs med posten och det som hör till den — att redigera den, ändra dess tillstånd, dess anteckningar, ägare, roller, etiketter, länkade larm, episodmedlemmar och samtal, och att ta bort den — från instrumentpanelen, API:et, massåtgärder, Slack, Microsoft Teams eller OneUptime AI. Projektägare och Projektadministratörer ändrar varje privat post, och en API-nyckel gör det bara med `ProjectOwner` eller `ProjectAdmin`.
 
 | Någon i team 1 och team 2 | En privat incident som team 2 äger | En offentlig incident som team 2 äger |
 | --- | --- | --- |
@@ -349,6 +351,18 @@ En sådan post ändras bara med behörigheterna för de team som äger den och f
 | Team 2 har också `IncidentMember` | Ändrar den via team 2 | Ändrar den via vilket som helst av teamen |
 
 Ett team som äger privata poster men inte har några behörigheter, ett team som bara används för att samla personer, låter sina medlemmar se dem och ändra ingen av dem. På en privat posts sida är en ändring som personens team som äger den inte får göra låst och säger varför. För att tillåta den ger du ett team som äger den behörigheten, gör ett team med behörigheten till ägare eller gör personen till ägare.
+
+Det som görs med anledning av en privat post följer samma regel: att kalla in någon om den (**Kör jourpolicy**, **Larma nu** och inkallning från Slack, Microsoft Teams, Mattermost eller OneUptime AI), att starta en runbook för den eller föra den körningen vidare, och att godkänna, provköra eller avvisa en rättning som OneUptime AI föreslagit för den. Var och en kräver sin egen behörighet, till exempel att kalla in via jourpolicyer eller att starta runbook-körningar, och på en privat post lånar bara de team som äger den ut den, utöver de personer som anges som dess ägare. Alla andra nekas med orsaken, och ingenting kallas in, körs eller ändras.
+
+Det som görs och skickas med anledning av en privat post läses bara av dem som får läsa posten: dess körningar av jourpolicyer, dess runbook-körningar, de rättningar som föreslagits för den, och loggarna över de e-postmeddelanden, sms, samtal, push-aviseringar, chattmeddelanden, webhooks och AI-förfrågningar som OneUptime skickat om den. De som kallas in om den ser fortfarande sin inkallning.
+
+När en privat post tas bort tas allt detta bort med den, hur den än tas bort: en i taget eller många på en gång, från instrumentpanelen, API:et, Terraform eller MCP, genom lagringstiden för lösta poster eller tillsammans med dess projekt. Runbook-körningar och rättningar tas bort med den incident eller det larm de är kopplade till, privat eller inte.
+
+De kommandon som en Runner körde för en runbook-körning eller en rättning, med det de skrev ut, läses bara av dem som får läsa körningen eller rättningen. De tas bort med körningen. Kommandona för en borttagen rättning finns kvar, som en uppgift om vad som kördes på din infrastruktur, och bara Projektägare och Projektadministratörer läser dem. De kommandon som OneUptime AI körde för sitt eget arbete följer det arbetet. De från en chatt, i Fråga AI eller i en incidents eller ett larms AI-konversation, läses bara av personen som frågade, inte av Projektägare eller Projektadministratörer, och av ingen när chatten har tagits bort. De från en utredning läses av dem som får läsa incidenten eller larmet den utredde, och när den posten har tagits bort, bara av Projektägare och Projektadministratörer. En API-nyckel läser ingen chatts kommandon.
+
+En post som nämner en privat post utan att vara en del av den, till exempel ett Data Security-problem, ett säkerhetsärende, en formulärinsändning, en sessionsinspelning eller ett offentligt larm eller en offentlig incident i en privat episod, läses som tidigare. Bara de som får läsa den privata posten ser dess titel och övriga fält där: för alla andra hittar ett filter på dem den inte, och en lista som nämner den kan inte sorteras efter dem.
+
+Arbetsflöden agerar inte på privata poster. Stegen i ett arbetsflöde agerar som Projektadministratör, men får aldrig låna dess insyn i privata incidenter, larm och episoder: de hittar inga, ändrar inga och lägger inte till något till en, och ett arbetsflöde startar inte på en sådan post eller på något som hör till den. Se [Vad arbetsflödessteg får göra](/docs/workflows/configuration#vad-arbetsflödessteg-får-göra).
 
 ### Regler som tillhör team
 

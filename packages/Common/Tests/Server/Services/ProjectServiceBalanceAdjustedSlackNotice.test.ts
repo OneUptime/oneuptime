@@ -188,9 +188,9 @@ describe("ProjectService.adjustBalance tells the operator's Slack channel", () =
       "*AI Balance Adjusted:*",
       "*Project Name:* Kerberos Compliance Platform",
       `*Project ID:* ${PROJECT_ID.toString()}`,
-      "*Adjustment:* Added $10 USD",
-      "*Previous Balance:* $25 USD",
-      "*New Balance:* $35 USD",
+      "*Adjustment:* Added $10\u00A0USD",
+      "*Previous Balance:* $25\u00A0USD",
+      "*New Balance:* $35\u00A0USD",
       "*Adjusted By:* Ops Admin (ops@oneuptime.example)",
       "*Reason:* Goodwill credit agreed on ticket 4821",
     ]);
@@ -211,9 +211,9 @@ describe("ProjectService.adjustBalance tells the operator's Slack channel", () =
       "*SMS and Call Balance Adjusted:*",
       "*Project Name:* Kerberos Compliance Platform",
       `*Project ID:* ${PROJECT_ID.toString()}`,
-      "*Adjustment:* Deducted $10.50 USD",
-      "*Previous Balance:* $50 USD",
-      "*New Balance:* $39.50 USD",
+      "*Adjustment:* Deducted $10.50\u00A0USD",
+      "*Previous Balance:* $50\u00A0USD",
+      "*New Balance:* $39.50\u00A0USD",
       "*Adjusted By:* Ops Admin (ops@oneuptime.example)",
       "*Reason:* Clawback of a duplicated goodwill credit",
     ]);
@@ -231,9 +231,9 @@ describe("ProjectService.adjustBalance tells the operator's Slack channel", () =
 
     const lines: Array<string> = linesOf(slack.messages[0]);
 
-    expect(lines).toContain("*Adjustment:* Set to $0 USD");
-    expect(lines).toContain("*Previous Balance:* $25 USD");
-    expect(lines).toContain("*New Balance:* $0 USD");
+    expect(lines).toContain("*Adjustment:* Set to $0\u00A0USD");
+    expect(lines).toContain("*Previous Balance:* $25\u00A0USD");
+    expect(lines).toContain("*New Balance:* $0\u00A0USD");
   });
 
   test("is posted once the balance has moved", async () => {

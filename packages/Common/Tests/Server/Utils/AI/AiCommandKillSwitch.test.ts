@@ -2,6 +2,7 @@ import AiCommandKillSwitch, {
   AI_COMMANDS_OFF_CLAIM_MESSAGE,
   AI_COMMANDS_OFF_ENQUEUE_MESSAGE,
   AI_COMMANDS_OFF_STOP_MESSAGE,
+  AI_COMMANDS_UNCONFIRMED_STOP_MESSAGE,
 } from "../../../../Server/Utils/AI/AiCommandKillSwitch";
 import RunnerJobService, {
   ResourceCommandEnqueueRefusedException,
@@ -471,6 +472,198 @@ describe("AiCommandKillSwitch", () => {
           projectId: PROJECT_ID,
         }),
       ).rejects.toThrow("database is down");
+    });
+  });
+
+  /*
+   * What every agent's job heartbeat reads - a Runner's, a Kubernetes AI
+   * agent's and a resource AI agent's: the job the agent holds, then
+   * getStopReason for it in the agent's own project.
+   */
+  describe("RunnerJobService.getStopReasonOfHeldJob (each agent's job heartbeat)", () => {
+    const HELD_JOB_ID: ObjectID = new ObjectID(
+      "89898989-8989-4989-8989-898989898989",
+    );
+    let jobLookup: jest.SpyInstance;
+
+    function heldJob(overrides: Partial<RunnerJob> = {}): RunnerJob {
+      const job: RunnerJob = new RunnerJob();
+      job.origin = RunnerJobOrigin.AiRemediation;
+      job.autoRemediationSuggestionId = SUGGESTION_ID;
+      Object.assign(job, overrides);
+      return job;
+    }
+
+    beforeEach(() => {
+      jobLookup = jest
+        .spyOn(RunnerJobService, "findOneBy")
+        .mockResolvedValue(heldJob());
+    });
+
+    it("stops the AI command an agent holds once Enable AI is off", async () => {
+      projectLookup.mockResolvedValue(project(false));
+
+      expect(
+        await RunnerJobService.getStopReasonOfHeldJob({
+          jobId: HELD_JOB_ID,
+          agentId: AGENT_ID,
+          projectId: PROJECT_ID,
+        }),
+      ).toBe(AI_COMMANDS_OFF_STOP_MESSAGE);
+    });
+
+    it("reads only the job this agent holds, the three columns the rule needs, as root", async () => {
+      projectLookup.mockResolvedValue(project(false));
+
+      await RunnerJobService.getStopReasonOfHeldJob({
+        jobId: HELD_JOB_ID,
+        agentId: AGENT_ID,
+        projectId: PROJECT_ID,
+      });
+
+      expect(jobLookup).toHaveBeenCalledTimes(1);
+      expect(jobLookup).toHaveBeenCalledWith({
+        query: { _id: HELD_JOB_ID.toString(), assignedAgentId: AGENT_ID },
+        select: {
+          origin: true,
+          aiRunId: true,
+          autoRemediationSuggestionId: true,
+        },
+        props: { isRoot: true },
+      });
+      // In the agent's own project.
+      expect(
+        (
+          (projectLookup.mock.calls[0]![0] as Record<string, unknown>)[
+            "id"
+          ] as ObjectID
+        ).toString(),
+      ).toBe(PROJECT_ID.toString());
+    });
+
+    it("lets the job go on while Enable AI is on", async () => {
+      projectLookup.mockResolvedValue(project(true));
+
+      expect(
+        await RunnerJobService.getStopReasonOfHeldJob({
+          jobId: HELD_JOB_ID,
+          agentId: AGENT_ID,
+          projectId: PROJECT_ID,
+        }),
+      ).toBeNull();
+    });
+
+    it("never stops a runbook's own step, nor an access test", async () => {
+      projectLookup.mockResolvedValue(project(false));
+
+      // A runbook's own step, and Test access: no AI run, no suggestion.
+      const runbookStep: RunnerJob = new RunnerJob();
+      runbookStep.origin = RunnerJobOrigin.Runbook;
+      const accessTest: RunnerJob = new RunnerJob();
+      accessTest.origin = RunnerJobOrigin.AiInvestigation;
+
+      for (const job of [runbookStep, accessTest]) {
+        jobLookup.mockResolvedValue(job);
+
+        expect(
+          await RunnerJobService.getStopReasonOfHeldJob({
+            jobId: HELD_JOB_ID,
+            agentId: AGENT_ID,
+            projectId: PROJECT_ID,
+          }),
+        ).toBeNull();
+      }
+
+      expect(projectLookup).not.toHaveBeenCalled();
+    });
+
+    it("says nothing of a job the agent no longer holds", async () => {
+      projectLookup.mockResolvedValue(project(false));
+      jobLookup.mockResolvedValue(null);
+
+      expect(
+        await RunnerJobService.getStopReasonOfHeldJob({
+          jobId: HELD_JOB_ID,
+          agentId: AGENT_ID,
+          projectId: PROJECT_ID,
+        }),
+      ).toBeNull();
+    });
+
+    it("reads nothing for an agent with no project - a global Runner, which holds only a runbook's own JavaScript steps", async () => {
+      projectLookup.mockResolvedValue(project(false));
+
+      for (const projectId of [undefined, null]) {
+        expect(
+          await RunnerJobService.getStopReasonOfHeldJob({
+            jobId: HELD_JOB_ID,
+            agentId: RUNNER_ID,
+            projectId,
+          }),
+        ).toBeNull();
+      }
+
+      expect(jobLookup).not.toHaveBeenCalled();
+      expect(projectLookup).not.toHaveBeenCalled();
+    });
+
+    it("lets a read of the job that fails throw: without it, whether the job is AI's is not known", async () => {
+      jobLookup.mockRejectedValue(new Error("database is down"));
+
+      await expect(
+        RunnerJobService.getStopReasonOfHeldJob({
+          jobId: HELD_JOB_ID,
+          agentId: AGENT_ID,
+          projectId: PROJECT_ID,
+        }),
+      ).rejects.toThrow("database is down");
+    });
+
+    /*
+     * Enable AI fails closed: the agent starts a command when its pre-spawn
+     * heartbeat gets no answer, so a heartbeat that failed on the switch's
+     * read would let the command run unchecked.
+     */
+    it("stops the AI command when Enable AI cannot be read, and says so", async () => {
+      projectLookup.mockRejectedValue(new Error("database is down"));
+
+      // An investigation's command: its run's, with no suggestion behind it.
+      const investigationCommand: RunnerJob = new RunnerJob();
+      investigationCommand.origin = RunnerJobOrigin.AiInvestigation;
+      investigationCommand.aiRunId = RUN_ID;
+
+      for (const job of [heldJob(), investigationCommand]) {
+        jobLookup.mockResolvedValue(job);
+
+        expect(
+          await RunnerJobService.getStopReasonOfHeldJob({
+            jobId: HELD_JOB_ID,
+            agentId: AGENT_ID,
+            projectId: PROJECT_ID,
+          }),
+        ).toBe(AI_COMMANDS_UNCONFIRMED_STOP_MESSAGE);
+      }
+    });
+
+    it("never stops a runbook's own step or an access test for a read that fails: they read no switch", async () => {
+      projectLookup.mockRejectedValue(new Error("database is down"));
+
+      const runbookStep: RunnerJob = new RunnerJob();
+      runbookStep.origin = RunnerJobOrigin.Runbook;
+      const accessTest: RunnerJob = new RunnerJob();
+      accessTest.origin = RunnerJobOrigin.AiInvestigation;
+
+      for (const job of [runbookStep, accessTest]) {
+        jobLookup.mockResolvedValue(job);
+
+        expect(
+          await RunnerJobService.getStopReasonOfHeldJob({
+            jobId: HELD_JOB_ID,
+            agentId: AGENT_ID,
+            projectId: PROJECT_ID,
+          }),
+        ).toBeNull();
+      }
     });
   });
 

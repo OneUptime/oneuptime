@@ -2,6 +2,7 @@ import {
   formatServerSetupTime,
   getServerSetupRow,
   ServerSetupRow,
+  ServerSetupStatusIcon,
 } from "./ServerSetupChecklist";
 import ServerTestSendButton, {
   describeServerTestSend,
@@ -33,6 +34,13 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * said here, by what took it; one it refuses stays in the dialog, in the
  * provider's words. Either way the card reads the checklist again, so it
  * says what the banner and Server setup now say.
+ *
+ * The test buttons are the card's actions, so they sit at the right of its
+ * title like any card's (CardHeaderActionsGuard), and the status is drawn as
+ * a Server setup row is: its icon, then its words. Drawn in the body under
+ * the status, the button stood 12px further in than the words above it (a
+ * footer button's step, md:ml-3) and the status read as a bare line of grey
+ * text with no sign of whether email works (issue #8844).
  */
 
 export const SERVER_TEST_CARD_COPY: {
@@ -90,69 +98,81 @@ const ServerTestCard: FunctionComponent<ComponentProps> = (
     return translator.translateTemplate(sentence.template, sentence.values);
   };
 
+  const buttons: Array<ReactElement> = props.channels.map(
+    (channel: ServerSendingChannel): ReactElement => {
+      return (
+        <ServerTestSendButton
+          key={channel}
+          channel={channel}
+          onAnswer={(answer: ServerTestSendAnswer) => {
+            setAccepted(
+              answer.result === ServerTestSendResult.Accepted ? answer : null,
+            );
+            void props.checklist.reload();
+          }}
+        />
+      );
+    },
+  );
+
   return (
     <div data-testid={`server-test-card-${props.check}`}>
-      <Card title={props.title} description={props.description}>
-        <div className="space-y-3">
-          {row ? (
-            <div data-testid={`server-test-card-${props.check}-status`}>
-              <p className="text-sm text-gray-700 text-pretty">
-                {words(row.status)}
-              </p>
-              {row.checked.map(
-                (
-                  sentence: {
-                    template: string;
-                    values: Record<string, string>;
-                  },
-                  index: number,
-                ): ReactElement => {
-                  return (
-                    <p
-                      key={index}
-                      className="mt-1 break-words text-xs text-gray-500"
-                    >
-                      {words(sentence)}
-                    </p>
-                  );
-                },
-              )}
-            </div>
-          ) : (
-            <></>
-          )}
-
-          {accepted ? (
-            <Alert
-              type={AlertType.SUCCESS}
-              title={describeServerTestSend(translator, accepted)}
-              dataTestId={`server-test-card-${props.check}-accepted`}
-            />
-          ) : (
-            <></>
-          )}
-
-          <div className="flex flex-wrap gap-2">
-            {props.channels.map(
-              (channel: ServerSendingChannel): ReactElement => {
-                return (
-                  <ServerTestSendButton
-                    key={channel}
-                    channel={channel}
-                    onAnswer={(answer: ServerTestSendAnswer) => {
-                      setAccepted(
-                        answer.result === ServerTestSendResult.Accepted
-                          ? answer
-                          : null,
+      <Card
+        title={props.title}
+        description={props.description}
+        buttons={buttons}
+      >
+        {row || accepted ? (
+          <div className="space-y-3">
+            {row ? (
+              <div className="flex items-start gap-3">
+                <ServerSetupStatusIcon
+                  row={row}
+                  dataTestId={`server-test-card-${props.check}-icon`}
+                />
+                <div
+                  className="min-w-0"
+                  data-testid={`server-test-card-${props.check}-status`}
+                >
+                  <p className="text-sm text-gray-700 text-pretty">
+                    {words(row.status)}
+                  </p>
+                  {row.checked.map(
+                    (
+                      sentence: {
+                        template: string;
+                        values: Record<string, string>;
+                      },
+                      index: number,
+                    ): ReactElement => {
+                      return (
+                        <p
+                          key={index}
+                          className="mt-1 break-words text-xs text-gray-500"
+                        >
+                          {words(sentence)}
+                        </p>
                       );
-                      void props.checklist.reload();
-                    }}
-                  />
-                );
-              },
+                    },
+                  )}
+                </div>
+              </div>
+            ) : (
+              <></>
+            )}
+
+            {accepted ? (
+              <Alert
+                type={AlertType.SUCCESS}
+                title={describeServerTestSend(translator, accepted)}
+                dataTestId={`server-test-card-${props.check}-accepted`}
+              />
+            ) : (
+              <></>
             )}
           </div>
-        </div>
+        ) : // Nothing read yet: a title, a sentence and its button.
+        undefined}
       </Card>
     </div>
   );

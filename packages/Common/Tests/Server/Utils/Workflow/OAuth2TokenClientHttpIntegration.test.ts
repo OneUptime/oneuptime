@@ -267,7 +267,10 @@ function pinToLoopback(): void {
       return {
         url: new URL(urlString),
         addresses,
-        ...DataSourceEgressGuard.createPinnedAgents(addresses),
+        ...DataSourceEgressGuard.createPinnedAgents({
+          url: new URL(urlString),
+          addresses,
+        }),
       };
     });
 }

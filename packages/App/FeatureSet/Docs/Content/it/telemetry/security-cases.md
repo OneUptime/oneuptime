@@ -246,6 +246,8 @@ Per pubblicare in un canale, aggiungi una regola in **Prodotti → Eventi di sic
 
 Ogni notifica, tranne quella di un'attività, viene pubblicata nei canali di ogni regola a cui il caso corrisponde in quel momento. Una regola in cui **Priorità del caso di sicurezza** contiene uno tra **Critico** e **Alto** pubblica i casi con priorità High e Critico appena si aprono, e un caso Medium quando sale a High. Un caso di sicurezza non ha mai un canale tutto suo.
 
+Il passaggio **Aggiornamenti** di una regola sceglie quali di queste notifiche pubblica: **Nuovi casi e aumenti di priorità**, **Assegnazioni**, **Approvazioni richieste** e **Obiettivi di risposta**, una casella ciascuna sotto **Scegli gli aggiornamenti**. **Solo aggiornamenti chiave** le pubblica tutte tranne le assegnazioni, per un canale che deve sentire solo ciò su cui qualcuno deve agire. Una regola salvata prima del passaggio, come una nuova regola, pubblica ogni notifica.
+
 ## Playbook
 
 Un playbook è un elenco di passi che vengono eseguiti su un caso. Creane uno in **Prodotti → Eventi di sicurezza → Playbook**, da un modello o da zero, e aggiungi i suoi passi nella sua pagina. Un progetto senza playbook vede i modelli al posto di un elenco vuoto; quando ci sono playbook, **Crea da modello** sull'elenco li apre, con **Aggiunto** su quelli che il progetto ha già.

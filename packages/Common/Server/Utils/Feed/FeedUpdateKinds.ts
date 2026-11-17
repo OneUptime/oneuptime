@@ -26,9 +26,10 @@ import { NotificationRuleUpdateKind } from "../../../Types/Workspace/Notificatio
  * can choose that says it best, or Everything else.
  *
  * Where an entry is more than its type - a state change that resolves the
- * incident, an edit that changes its severity - the code that writes it
- * says so (FeedWorkspaceNotification.updateKinds), and its type's kind here
- * is only the default.
+ * incident, an edit that changes its severity or its custom fields, a
+ * reminder that it is still open - the code that writes it says so
+ * (FeedWorkspaceNotification.updateKinds), and its type's kind here is only
+ * the default.
  */
 
 export const INCIDENT_FEED_UPDATE_KINDS: Readonly<
@@ -38,7 +39,10 @@ export const INCIDENT_FEED_UPDATE_KINDS: Readonly<
   // Resolved and reopened, said where it is written (getStateChangeKind).
   [IncidentFeedEventType.IncidentStateChanged]:
     NotificationRuleUpdateKind.StateChanges,
-  // The severity and the postmortem's status are said where it is written.
+  /*
+   * The severity, the postmortem's status and the custom fields are said
+   * where it is written.
+   */
   [IncidentFeedEventType.IncidentUpdated]: NotificationRuleUpdateKind.Edits,
   [IncidentFeedEventType.PublicNote]: NotificationRuleUpdateKind.PublicNotes,
   [IncidentFeedEventType.PublicNoteApproval]:
@@ -71,7 +75,11 @@ export const INCIDENT_FEED_UPDATE_KINDS: Readonly<
   // Delivery problems: not every subscriber was notified.
   [IncidentFeedEventType.SubscriberNotificationSent]:
     NotificationRuleUpdateKind.Other,
-  // Reminders that the incident is still open.
+  /*
+   * That the owners were told. The one of these posted to the channels, a
+   * reminder that the incident is still open, is Reminders: its job names
+   * it (SendUnresolvedReminderNotification), so no other is called one.
+   */
   [IncidentFeedEventType.OwnerNotificationSent]:
     NotificationRuleUpdateKind.Other,
   [IncidentFeedEventType.AlertLinked]: NotificationRuleUpdateKind.Other,
@@ -89,7 +97,7 @@ export const ALERT_FEED_UPDATE_KINDS: Readonly<
   // Resolved and reopened, said where it is written (getStateChangeKind).
   [AlertFeedEventType.AlertStateChanged]:
     NotificationRuleUpdateKind.StateChanges,
-  // The severity is said where it is written.
+  // The severity and the custom fields are said where it is written.
   [AlertFeedEventType.AlertUpdated]: NotificationRuleUpdateKind.Edits,
   [AlertFeedEventType.PrivateNote]: NotificationRuleUpdateKind.PrivateNotes,
   // An alert has no status page: nothing of it is posted as a public note.
@@ -110,7 +118,7 @@ export const ALERT_FEED_UPDATE_KINDS: Readonly<
   [AlertFeedEventType.VideoCallFailed]: NotificationRuleUpdateKind.Other,
   [AlertFeedEventType.SubscriberNotificationSent]:
     NotificationRuleUpdateKind.Other,
-  // Reminders that the alert is still open.
+  // A reminder that the alert is still open is Reminders: its job names it.
   [AlertFeedEventType.OwnerNotificationSent]: NotificationRuleUpdateKind.Other,
   [AlertFeedEventType.AddedToEpisode]: NotificationRuleUpdateKind.Other,
   [AlertFeedEventType.RemovedFromEpisode]: NotificationRuleUpdateKind.Other,
@@ -263,7 +271,7 @@ export const SCHEDULED_MAINTENANCE_FEED_UPDATE_KINDS: Readonly<
     NotificationRuleUpdateKind.Other,
   [ScheduledMaintenanceFeedEventType.SubscriberNotificationSent]:
     NotificationRuleUpdateKind.Other,
-  // Reminders that the event has not ended.
+  // A reminder that the event is still open is Reminders: its job names it.
   [ScheduledMaintenanceFeedEventType.OwnerNotificationSent]:
     NotificationRuleUpdateKind.Other,
   [ScheduledMaintenanceFeedEventType.OwnerRuleExecuted]:

@@ -108,6 +108,73 @@ function distinctNames(names: Array<string>): Array<string> {
   return Array.from(new Set(names));
 }
 
+// An executed row of DataMigrations, as the status card reads it.
+export interface AppliedDataMigrationRow {
+  name: string;
+  executedAt: string | null;
+}
+
+/*
+ * The build's own data migrations among the executed rows of DataMigrations:
+ * how many are applied, which are pending (in run order) and the latest one
+ * run. Only names the build ships count. Other rows - a migration a later
+ * build renamed, or a job's done marker such as
+ * ClearStoredLogScreenshots:<table> (StoredLogScreenshots, issue #6942) -
+ * are no migration of this build, so they never make the server look ahead
+ * of what it ships, nor stand in for the latest migration.
+ */
+export function readAppliedDataMigrations(data: {
+  definedNames: Array<string>;
+  rows: Array<AppliedDataMigrationRow>;
+}): {
+  totalApplied: number;
+  pending: Array<string>;
+  lastExecuted: AppliedDataMigrationRow | null;
+} {
+  const defined: Set<string> = new Set(data.definedNames);
+
+  const applied: Array<AppliedDataMigrationRow> = data.rows.filter(
+    (row: AppliedDataMigrationRow): boolean => {
+      return defined.has(row.name);
+    },
+  );
+
+  const appliedNames: Set<string> = new Set(
+    applied.map((row: AppliedDataMigrationRow): string => {
+      return row.name;
+    }),
+  );
+
+  // Keep run order so the first pending migration is the one blocking the chain.
+  const pending: Array<string> = data.definedNames.filter(
+    (name: string): boolean => {
+      return !appliedNames.has(name);
+    },
+  );
+
+  // Most-recently executed migration (executedAt may be null on very old rows).
+  const lastExecuted: AppliedDataMigrationRow | null =
+    applied
+      .filter((row: AppliedDataMigrationRow): boolean => {
+        return Boolean(row.executedAt);
+      })
+      .sort(
+        (a: AppliedDataMigrationRow, b: AppliedDataMigrationRow): number => {
+          return (
+            new Date(a.executedAt as string).getTime() -
+            new Date(b.executedAt as string).getTime()
+          );
+        },
+      )
+      .pop() || null;
+
+  return {
+    totalApplied: appliedNames.size,
+    pending: pending,
+    lastExecuted: lastExecuted,
+  };
+}
+
 // Most-recent failed attempts we surface per migration runner.
 const MAX_MIGRATION_FAILURES: number = 25;
 
@@ -315,50 +382,25 @@ async function getDataMigrationStatus(): Promise<JSONObject> {
       return result;
     }
 
-    const rows: Array<{ name: string; executedAt: string | null }> =
-      await dataSource.query(
-        'SELECT name, "executedAt" FROM "DataMigrations" WHERE executed = true',
-      );
+    const rows: Array<AppliedDataMigrationRow> = await dataSource.query(
+      'SELECT name, "executedAt" FROM "DataMigrations" WHERE executed = true',
+    );
 
     result["connected"] = true;
-    result["totalApplied"] = rows.length;
 
-    const appliedNames: Set<string> = new Set(
-      rows.map((row: { name: string }): string => {
-        return row.name;
-      }),
-    );
+    const status: ReturnType<typeof readAppliedDataMigrations> =
+      readAppliedDataMigrations({ definedNames: definedNames, rows: rows });
 
-    // Keep run order so the first pending migration is the one blocking the chain.
-    const pending: Array<string> = definedNames.filter(
-      (name: string): boolean => {
-        return !appliedNames.has(name);
-      },
-    );
+    result["totalApplied"] = status.totalApplied;
+
+    const pending: Array<string> = status.pending;
 
     result["pendingMigrations"] = pending;
     result["totalPending"] = pending.length;
     result["isUpToDate"] = pending.length === 0;
     result["nextPendingMigration"] = pending[0] || null;
 
-    // Most-recently executed migration (executedAt may be null on very old rows).
-    const lastExecuted: { name: string; executedAt: string | null } | null =
-      rows
-        .filter((row: { executedAt: string | null }): boolean => {
-          return Boolean(row.executedAt);
-        })
-        .sort(
-          (
-            a: { executedAt: string | null },
-            b: { executedAt: string | null },
-          ): number => {
-            return (
-              new Date(a.executedAt as string).getTime() -
-              new Date(b.executedAt as string).getTime()
-            );
-          },
-        )
-        .pop() || null;
+    const lastExecuted: AppliedDataMigrationRow | null = status.lastExecuted;
 
     if (lastExecuted) {
       result["lastExecutedMigration"] = {

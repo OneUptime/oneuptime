@@ -28,21 +28,31 @@ import UsedByApi, {
 import UsedByCard from "../../../../App/FeatureSet/Dashboard/src/Components/UsedBy/UsedByCard";
 import UsedByDialog from "../../../../App/FeatureSet/Dashboard/src/Components/UsedBy/UsedByDialog";
 import {
+  UsedByBulkImpact,
   UsedByImpactForRecord,
   UsedByImpactList,
   UsedByImpactNotice,
   hasUsedByImpact,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/UsedBy/UsedByImpact";
 import {
+  UsedByListActions,
+  getUsedByListActions,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/UsedBy/UsedByListActions";
+import {
   USED_BY_CARD_WORDS,
   USED_BY_RELATION_WORDS,
+  USED_BY_ROW_KIND_NAMES,
+  getUsedByBulkImpactSentence,
   getUsedByHiddenInImpact,
   getUsedByHiddenNote,
   getUsedByImpactSentence,
+  getUsedByPartsLine,
   getUsedByRowName,
   getUsedByRowPage,
   getUsedByRowRoute,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/UsedBy/UsedByWords";
+import { BulkActionConfirmControls } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
+import { DeleteConfirmation } from "../../../UI/Components/ModelTable/BaseModelTable";
 import { UsedBySummaryState } from "../../../../App/FeatureSet/Dashboard/src/Components/UsedBy/useUsedBySummary";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -55,6 +65,8 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ObjectID from "../../../Types/ObjectID";
 import {
   USED_BY_PAGE_SIZE,
+  UsedByBulkSummary,
+  UsedByCounts,
   UsedByGroup,
   UsedByPage,
   UsedByRecordKind,
@@ -62,6 +74,7 @@ import {
   UsedByRow,
   UsedByRowKind,
   UsedBySummary,
+  getUsedByBulkRelations,
   getUsedByRelations,
 } from "../../../Types/UsedBy/UsedBy";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -287,13 +300,26 @@ describe("the words", () => {
     );
   });
 
-  test("every kind of row opens its own page", () => {
+  test("every kind of row opens its own page, but an AI agent, which has none", () => {
     for (const rowKind of Object.values(UsedByRowKind)) {
-      expect(RouteMap[getUsedByRowPage(rowKind)]).toBeDefined();
+      const page: PageMap | null = getUsedByRowPage(rowKind);
+
+      if (rowKind === UsedByRowKind.AIAgent) {
+        expect(page).toBeNull();
+        expect(getUsedByRowRoute(rowKind, row(1).id)).toBeNull();
+        continue;
+      }
+
+      expect({ rowKind, route: RouteMap[page as PageMap] }).toEqual({
+        rowKind,
+        route: expect.anything(),
+      });
+      // And is named by the model's own name.
+      expect(USED_BY_ROW_KIND_NAMES[rowKind].length).toBeGreaterThan(0);
     }
 
     expect(
-      getUsedByRowRoute(UsedByRowKind.StatusPage, row(1).id).toString(),
+      getUsedByRowRoute(UsedByRowKind.StatusPage, row(1).id)?.toString(),
     ).toBe(
       RouteUtil.populateRouteParams(
         RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
@@ -391,7 +417,7 @@ describe("the card", () => {
 
     const link: HTMLElement = within(pages).getByText("Public status");
     expect(link.closest("a")?.getAttribute("href")).toBe(
-      getUsedByRowRoute(UsedByRowKind.StatusPage, row(1).id).toString(),
+      getUsedByRowRoute(UsedByRowKind.StatusPage, row(1).id)?.toString(),
     );
 
     // Three rows or fewer, all shown: nothing more to see.
@@ -1007,5 +1033,628 @@ describe("Delete and Archive say what still uses it", () => {
     await screen.findByText(/unarchive this monitor/u);
     expect(screen.queryByTestId("used-by-impact")).toBeNull();
     expect(getSummary).not.toHaveBeenCalled();
+  });
+});
+
+describe("a family's line: rules, templates, everything a team owns (#7433, #7434)", () => {
+  const rulesSummary: UsedBySummary = monitorSummary([
+    {
+      relation: UsedByRelation.MonitorRules,
+      rowKind: UsedByRowKind.IncidentOnCallRule,
+      count: 3,
+      hiddenCount: 2,
+      parts: [
+        { rowKind: UsedByRowKind.IncidentOnCallRule, count: 2, hiddenCount: 0 },
+        { rowKind: UsedByRowKind.AlertOwnerRule, count: 1, hiddenCount: 2 },
+      ],
+      rows: [
+        row(1, {
+          name: "Page the platform team",
+          rowKind: UsedByRowKind.IncidentOnCallRule,
+        }),
+        row(2, {
+          name: "Database alerts",
+          rowKind: UsedByRowKind.AlertOwnerRule,
+          isOff: true,
+        }),
+        row(3, {
+          name: "Fast burn",
+          rowKind: UsedByRowKind.SloBurnRateRule,
+          linkId: "68135555-0000-4000-8000-000000000777",
+        }),
+      ],
+    },
+  ]);
+
+  test("each row says its kind under its name, Off when it is, and opens its own page", async () => {
+    getSummary.mockResolvedValue(rulesSummary);
+    renderCard();
+
+    const rows: Array<HTMLElement> =
+      await screen.findAllByTestId("used-by-row");
+
+    expect(
+      rows.map((each: HTMLElement): string | null => {
+        return each.getAttribute("data-row-kind");
+      }),
+    ).toEqual([
+      UsedByRowKind.IncidentOnCallRule,
+      UsedByRowKind.AlertOwnerRule,
+      UsedByRowKind.SloBurnRateRule,
+    ]);
+    expect(
+      within(rows[0] as HTMLElement).getByTestId("used-by-row-detail"),
+    ).toHaveTextContent("Incident On-Call Rule");
+    expect(
+      within(rows[1] as HTMLElement).getByTestId("used-by-row-detail"),
+    ).toHaveTextContent("Alert Owner Rule · Off");
+
+    // An on-call rule opens its event's rules; an owner rule its own page.
+    expect(
+      within(rows[0] as HTMLElement)
+        .getByText("Page the platform team")
+        .closest("a")
+        ?.getAttribute("href"),
+    ).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES] as Route,
+      ).toString(),
+    );
+    expect(
+      within(rows[1] as HTMLElement)
+        .getByText("Database alerts")
+        .closest("a")
+        ?.getAttribute("href"),
+    ).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ALERTS_SETTINGS_OWNER_RULE_VIEW] as Route,
+        { modelId: new ObjectID(row(2).id) },
+      ).toString(),
+    );
+    // An SLO's burn-rate rule opens its SLO's page of them.
+    expect(
+      within(rows[2] as HTMLElement)
+        .getByText("Fast burn")
+        .closest("a")
+        ?.getAttribute("href"),
+    ).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SLO_VIEW_BURN_RATE_RULES] as Route,
+        { modelId: new ObjectID("68135555-0000-4000-8000-000000000777") },
+      ).toString(),
+    );
+
+    const family: HTMLElement = screen.getByTestId("used-by-group");
+    expect(within(family).getByText("Rules that name it")).toBeInTheDocument();
+    expect(within(family).getByTestId("used-by-hidden")).toHaveTextContent(
+      "and 2 you can't see",
+    );
+  });
+
+  test("a kind with no page of its own is its name, not a link", async () => {
+    getSummary.mockResolvedValue({
+      recordKind: UsedByRecordKind.Team,
+      recordId: RECORD.toString(),
+      groups: [
+        group({
+          relation: UsedByRelation.TeamOwnedOther,
+          rowKind: UsedByRowKind.ServiceLevelObjective,
+          count: 1,
+          parts: [{ rowKind: UsedByRowKind.AIAgent, count: 1, hiddenCount: 0 }],
+          rows: [
+            row(1, { name: "Cluster agent", rowKind: UsedByRowKind.AIAgent }),
+          ],
+        }),
+      ],
+    });
+    renderCard(UsedByRecordKind.Team);
+
+    const name: HTMLElement = await screen.findByTestId("used-by-row-name");
+
+    expect(name).toHaveTextContent("Cluster agent");
+    expect(name.closest("a")).toBeNull();
+    expect(screen.getByText("Everything else it owns")).toBeInTheDocument();
+  });
+
+  test("its Delete dialog says its kinds under its sentence", () => {
+    render(<UsedByImpactList state={loaded(rulesSummary)} />);
+
+    const line: HTMLElement = screen.getByTestId("used-by-impact-line");
+
+    expect(line).toHaveTextContent("5 rules name this monitor.");
+    expect(within(line).getByTestId("used-by-impact-parts")).toHaveTextContent(
+      "Incident On-Call Rule: 2 · Alert Owner Rule: 3",
+    );
+  });
+
+  test("the kinds read in the reader's language, with its own colon", () => {
+    const french: Translator = localeTranslator("fr");
+    const german: Translator = localeTranslator("de");
+    const parts: Pick<UsedByCounts, "parts"> = {
+      parts: [
+        { rowKind: UsedByRowKind.IncidentOnCallRule, count: 2, hiddenCount: 0 },
+      ],
+    };
+
+    expect(getUsedByPartsLine(parts, german)).toBe(
+      "Bereitschaftsregel für Vorfälle: 2",
+    );
+    // French sets its colon apart (Docs/ux/README.md#in-every-language).
+    expect(getUsedByPartsLine(parts, french)).toMatch(
+      /^Règle d'astreinte des incidents\s:\s2$/u,
+    );
+    expect(getUsedByPartsLine({}, german)).toBe("");
+  });
+});
+
+describe("what runs an on-call policy (#7758)", () => {
+  test("the card says what runs it, its on-call rules first", async () => {
+    getSummary.mockResolvedValue({
+      recordKind: UsedByRecordKind.OnCallPolicy,
+      recordId: RECORD.toString(),
+      groups: [
+        group({
+          relation: UsedByRelation.OnCallPolicyRules,
+          rowKind: UsedByRowKind.IncidentOnCallRule,
+          count: 1,
+          parts: [
+            {
+              rowKind: UsedByRowKind.IncidentOnCallRule,
+              count: 1,
+              hiddenCount: 0,
+            },
+          ],
+          rows: [
+            row(1, {
+              name: "Page Default on-call policy for every incident",
+              rowKind: UsedByRowKind.IncidentOnCallRule,
+            }),
+          ],
+        }),
+        group({
+          relation: UsedByRelation.OnCallPolicyMonitors,
+          rowKind: UsedByRowKind.Monitor,
+          count: 1,
+          rows: [row(2, { name: "Checkout API", isOff: true })],
+        }),
+      ],
+    });
+    renderCard(UsedByRecordKind.OnCallPolicy);
+
+    const groups: Array<HTMLElement> =
+      await screen.findAllByTestId("used-by-group");
+
+    expect(screen.getByText("What runs this policy")).toBeInTheDocument();
+    expect(
+      within(groups[0] as HTMLElement).getByText("On-call rules that page it"),
+    ).toBeInTheDocument();
+    expect(
+      within(groups[1] as HTMLElement).getByText(
+        "Monitors whose criteria page it",
+      ),
+    ).toBeInTheDocument();
+    // A monitor that is not checked pages nobody: it says Off.
+    expect(
+      within(groups[1] as HTMLElement).getByTestId("used-by-row-detail"),
+    ).toHaveTextContent("Off");
+  });
+
+  test("nothing runs it: says so plainly, and where to add a rule", async () => {
+    getSummary.mockResolvedValue({
+      recordKind: UsedByRecordKind.OnCallPolicy,
+      recordId: RECORD.toString(),
+      groups: getUsedByRelations(UsedByRecordKind.OnCallPolicy).map(
+        (description: { relation: UsedByRelation; rowKind: UsedByRowKind }) => {
+          return group({
+            relation: description.relation,
+            rowKind: description.rowKind,
+          });
+        },
+      ),
+    });
+    renderCard(UsedByRecordKind.OnCallPolicy);
+
+    const empty: HTMLElement = await screen.findByTestId("used-by-empty");
+
+    expect(empty).toHaveTextContent("Nothing runs this policy yet");
+    expect(empty).toHaveTextContent(
+      "No on-call rule, monitor or template pages it, so it pages nobody.",
+    );
+    expect(
+      within(empty)
+        .getByTestId("used-by-empty-action")
+        .closest("a")
+        ?.getAttribute("href"),
+    ).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES] as Route,
+      ).toString(),
+    );
+  });
+});
+
+describe("a monitor group's and an SLO's card (#7437)", () => {
+  test("a group no status page shows says where to add it", async () => {
+    getSummary.mockResolvedValue({
+      recordKind: UsedByRecordKind.MonitorGroup,
+      recordId: RECORD.toString(),
+      groups: [
+        group({
+          relation: UsedByRelation.MonitorGroupStatusPages,
+          rowKind: UsedByRowKind.StatusPage,
+        }),
+      ],
+    });
+    renderCard(UsedByRecordKind.MonitorGroup);
+
+    const empty: HTMLElement = await screen.findByTestId("used-by-empty");
+
+    expect(empty).toHaveTextContent("No status page shows this group yet");
+    expect(
+      within(empty)
+        .getByTestId("used-by-empty-action")
+        .closest("a")
+        ?.getAttribute("href"),
+    ).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.STATUS_PAGES] as Route,
+      ).toString(),
+    );
+  });
+
+  test("a group two status pages show says so", async () => {
+    getSummary.mockResolvedValue({
+      recordKind: UsedByRecordKind.MonitorGroup,
+      recordId: RECORD.toString(),
+      groups: [
+        group({
+          relation: UsedByRelation.MonitorGroupStatusPages,
+          rowKind: UsedByRowKind.StatusPage,
+          count: 2,
+          rows: [row(1, { name: "Public" }), row(2, { name: "Partners" })],
+        }),
+      ],
+    });
+    renderCard(UsedByRecordKind.MonitorGroup);
+
+    expect(await screen.findByTestId("used-by-count")).toHaveTextContent("2");
+    expect(
+      screen.getByText("Partners").closest("a")?.getAttribute("href"),
+    ).toBe(getUsedByRowRoute(UsedByRowKind.StatusPage, row(2).id)?.toString());
+  });
+
+  test("an unused SLO says so with no button of its own: its Getting started card offers burn-rate rules", async () => {
+    getSummary.mockResolvedValue({
+      recordKind: UsedByRecordKind.Slo,
+      recordId: RECORD.toString(),
+      groups: [],
+    });
+    renderCard(UsedByRecordKind.Slo);
+
+    expect(await screen.findByTestId("used-by-empty")).toHaveTextContent(
+      "Nothing uses this SLO yet",
+    );
+    expect(screen.queryByTestId("used-by-empty-action")).toBeNull();
+  });
+});
+
+describe("a list's bulk Delete and Archive (#7435)", () => {
+  const SECOND: ObjectID = new ObjectID("68135555-0000-4000-8000-000000000002");
+
+  const bulkSummary: UsedByBulkSummary = {
+    recordKind: UsedByRecordKind.Monitor,
+    recordCount: 2,
+    groups: [
+      {
+        relation: UsedByRelation.MonitorStatusPages,
+        rowKind: UsedByRowKind.StatusPage,
+        count: 10,
+        hiddenCount: 2,
+      },
+      {
+        relation: UsedByRelation.MonitorGroups,
+        rowKind: UsedByRowKind.MonitorGroup,
+        count: 0,
+        hiddenCount: 0,
+      },
+      {
+        relation: UsedByRelation.MonitorRules,
+        rowKind: UsedByRowKind.IncidentOnCallRule,
+        count: 1,
+        hiddenCount: 0,
+        parts: [
+          {
+            rowKind: UsedByRowKind.IncidentOnCallRule,
+            count: 1,
+            hiddenCount: 0,
+          },
+        ],
+      },
+    ],
+  };
+
+  function controls(): {
+    held: Array<boolean>;
+    value: BulkActionConfirmControls;
+  } {
+    const held: Array<boolean> = [];
+
+    return {
+      held: held,
+      value: {
+        setIsSubmitHeld: (isHeld: boolean): void => {
+          held.push(isHeld);
+        },
+      },
+    };
+  }
+
+  test("one request for the whole selection; its action waits for the answer", async () => {
+    const getSummaries: SpyInstance<typeof UsedByApi.getSummaries> = jest
+      .spyOn(UsedByApi, "getSummaries")
+      .mockResolvedValue(bulkSummary);
+    const hold: { held: Array<boolean>; value: BulkActionConfirmControls } =
+      controls();
+
+    render(
+      <UsedByBulkImpact
+        recordKind={UsedByRecordKind.Monitor}
+        recordIds={[RECORD, SECOND]}
+        controls={hold.value}
+      />,
+    );
+
+    expect(screen.getByTestId("used-by-bulk-checking")).toHaveTextContent(
+      "Checking what still uses them…",
+    );
+
+    const box: HTMLElement = await screen.findByTestId("used-by-bulk-impact");
+    const lines: Array<HTMLElement> = within(box).getAllByTestId(
+      "used-by-impact-line",
+    );
+
+    expect(
+      lines.map((line: HTMLElement): string | null => {
+        return line.getAttribute("data-relation");
+      }),
+    ).toEqual([UsedByRelation.MonitorStatusPages, UsedByRelation.MonitorRules]);
+    expect(lines[0]).toHaveTextContent(
+      "12 status pages show the selected monitors.(2 of them you can't see)",
+    );
+    expect(lines[1]).toHaveTextContent("1 rule names the selected monitors.");
+    expect(box).toHaveTextContent("Still in use");
+    expect(getSummaries).toHaveBeenCalledTimes(1);
+    expect(getSummaries.mock.calls[0]?.[0]).toEqual({
+      recordKind: UsedByRecordKind.Monitor,
+      recordIds: [RECORD, SECOND],
+    });
+    // Held while it read, let go once it had the answer.
+    expect(hold.held).toEqual([true, false]);
+  });
+
+  test("a read that fails says nothing and lets the action go", async () => {
+    jest
+      .spyOn(UsedByApi, "getSummaries")
+      .mockRejectedValue(new Error("The server could not be reached."));
+    const hold: { held: Array<boolean>; value: BulkActionConfirmControls } =
+      controls();
+
+    render(
+      <UsedByBulkImpact
+        recordKind={UsedByRecordKind.Monitor}
+        recordIds={[RECORD]}
+        controls={hold.value}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(hold.held).toEqual([true, false]);
+    });
+    expect(screen.queryByTestId("used-by-bulk-impact")).toBeNull();
+    expect(screen.queryByTestId("used-by-bulk-checking")).toBeNull();
+  });
+
+  test("nothing using the selection says nothing", async () => {
+    jest.spyOn(UsedByApi, "getSummaries").mockResolvedValue({
+      ...bulkSummary,
+      groups: [],
+    });
+
+    render(
+      <UsedByBulkImpact
+        recordKind={UsedByRecordKind.Monitor}
+        recordIds={[RECORD]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("used-by-bulk-checking")).toBeNull();
+    });
+    expect(screen.queryByTestId("used-by-bulk-impact")).toBeNull();
+  });
+
+  test("a row's Delete reads its record's summary and says what still uses it under its question", async () => {
+    getSummary.mockResolvedValue(
+      monitorSummary([
+        {
+          relation: UsedByRelation.MonitorStatusPages,
+          count: 3,
+          rows: [row(1)],
+        },
+      ]),
+    );
+    const actions: UsedByListActions<Monitor> = getUsedByListActions<Monitor>(
+      UsedByRecordKind.Monitor,
+    );
+    const monitor: Monitor = Object.assign(new Monitor(), {
+      _id: RECORD.toString(),
+    });
+
+    const confirmation: DeleteConfirmation =
+      await actions.getDeleteConfirmation(monitor);
+
+    // The table's own question stays: only details are added.
+    expect(confirmation.description).toBeUndefined();
+    render(<>{confirmation.details}</>);
+    expect(screen.getByTestId("used-by-impact-line")).toHaveTextContent(
+      "3 status pages show this monitor.",
+    );
+    expect(getSummary).toHaveBeenCalledWith({
+      recordKind: UsedByRecordKind.Monitor,
+      recordId: RECORD,
+    });
+  });
+
+  test("a row's Delete whose read fails opens as it always did", async () => {
+    getSummary.mockRejectedValue(new Error("No."));
+    const actions: UsedByListActions<Monitor> = getUsedByListActions<Monitor>(
+      UsedByRecordKind.Monitor,
+    );
+
+    expect(
+      await actions.getDeleteConfirmation(
+        Object.assign(new Monitor(), { _id: RECORD.toString() }),
+      ),
+    ).toEqual({});
+  });
+
+  test("a row's Archive reads what uses it when its dialog opens, saying it is checking", async () => {
+    let resolve: (summary: UsedBySummary) => void = () => {
+      return undefined;
+    };
+    getSummary.mockImplementation(() => {
+      return new Promise<UsedBySummary>((done: (s: UsedBySummary) => void) => {
+        resolve = done;
+      });
+    });
+    const actions: UsedByListActions<Monitor> = getUsedByListActions<Monitor>(
+      UsedByRecordKind.Monitor,
+    );
+
+    render(
+      <>
+        {actions.getArchiveConfirmationDetails(
+          Object.assign(new Monitor(), { _id: RECORD.toString() }),
+        )}
+      </>,
+    );
+
+    expect(screen.getByTestId("used-by-checking")).toHaveTextContent(
+      "Checking what still uses it…",
+    );
+
+    await act(async () => {
+      resolve(
+        monitorSummary([
+          { relation: UsedByRelation.MonitorSlos, count: 2, rows: [row(1)] },
+        ]),
+      );
+    });
+
+    expect(screen.getByTestId("used-by-impact")).toHaveTextContent(
+      "2 SLOs measure this monitor.",
+    );
+  });
+
+  test("the bulk dialogs' details read the selection's ids", () => {
+    const actions: UsedByListActions<Monitor> = getUsedByListActions<Monitor>(
+      UsedByRecordKind.Monitor,
+    );
+    const element: React.ReactElement | undefined =
+      actions.deleteConfirmationDetails(
+        [
+          Object.assign(new Monitor(), { _id: RECORD.toString() }),
+          Object.assign(new Monitor(), { _id: SECOND.toString() }),
+        ],
+        controls().value,
+      );
+
+    expect(
+      (element?.props as { recordIds: Array<ObjectID> }).recordIds.map(
+        (id: ObjectID): string => {
+          return id.toString();
+        },
+      ),
+    ).toEqual([RECORD.toString(), SECOND.toString()]);
+    expect(actions.archiveConfirmDetails([], controls().value)).toBeUndefined();
+  });
+
+  test("every relation a list's bulk Delete counts has its sentence for a selection", () => {
+    for (const kind of [
+      UsedByRecordKind.Monitor,
+      UsedByRecordKind.OnCallSchedule,
+      UsedByRecordKind.Service,
+      UsedByRecordKind.StatusPage,
+      UsedByRecordKind.Team,
+      UsedByRecordKind.OnCallPolicy,
+      UsedByRecordKind.MonitorGroup,
+      UsedByRecordKind.Slo,
+    ]) {
+      for (const description of getUsedByBulkRelations(kind)) {
+        const words: (typeof USED_BY_RELATION_WORDS)[UsedByRelation] =
+          USED_BY_RELATION_WORDS[description.relation];
+
+        expect({
+          relation: description.relation,
+          one: words.bulkImpact?.one.includes("{{count}}"),
+          other: words.bulkImpact?.other.includes("{{count}}"),
+        }).toEqual({ relation: description.relation, one: true, other: true });
+      }
+    }
+
+    expect(
+      getUsedByBulkImpactSentence(
+        {
+          relation: UsedByRelation.TeamOwnedOther,
+          count: 1,
+          hiddenCount: 0,
+        },
+        translator,
+      ),
+    ).toBe("The selected teams own 1 other record.");
+    // A relation no list counts for a selection has no sentence for one.
+    expect(
+      getUsedByBulkImpactSentence(
+        {
+          relation: UsedByRelation.StatusPageOpenIncidents,
+          count: 1,
+          hiddenCount: 0,
+        },
+        translator,
+      ),
+    ).toBe("");
+  });
+
+  test("the sentences for a selection read in German and Persian, with the count in them", () => {
+    expect(
+      getUsedByBulkImpactSentence(
+        {
+          relation: UsedByRelation.MonitorStatusPages,
+          count: 12,
+          hiddenCount: 0,
+        },
+        localeTranslator("de"),
+      ),
+    ).toBe("12 Statusseiten zeigen die ausgewählten Monitore.");
+    expect(
+      getUsedByBulkImpactSentence(
+        {
+          relation: UsedByRelation.MonitorStatusPages,
+          count: 1,
+          hiddenCount: 0,
+        },
+        localeTranslator("de"),
+      ),
+    ).toBe("1 Statusseite zeigt die ausgewählten Monitore.");
+    expect(
+      getUsedByBulkImpactSentence(
+        {
+          relation: UsedByRelation.TeamOwnedMonitors,
+          count: 3,
+          hiddenCount: 0,
+        },
+        localeTranslator("fa"),
+      ),
+    ).toContain("تیم‌های انتخاب‌شده");
   });
 });

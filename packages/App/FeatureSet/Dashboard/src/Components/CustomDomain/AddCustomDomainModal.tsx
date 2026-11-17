@@ -18,6 +18,11 @@ import CustomDomainDnsSetupModal, {
   CustomDomainDnsSetupProjectDomain,
 } from "./CustomDomainDnsSetupModal";
 import CustomDomainServerReadinessNotice from "./CustomDomainServerReadinessNotice";
+import CustomDomainEvents from "./CustomDomainEvents";
+import {
+  isUploadedCertificateRefusal,
+  isUploadedKeyRefusal,
+} from "Common/Types/CustomDomain/UploadedCertificateRefusals";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import DomainType from "Common/Types/Domain";
 import { JSONObject } from "Common/Types/JSON";
@@ -38,7 +43,12 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Domain from "Common/Models/DatabaseModels/Domain";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 
 /*
  * Add Custom Domain, for a status page, a dashboard or a form: one field,
@@ -64,10 +74,19 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * where one verified domain serves many pages. Who may claim a domain is a
  * security decision, left as it was.
  *
- * The certificate options stay folded under Advanced, as they were.
+ * The certificate options stay folded under Advanced, as they were. A pair
+ * the server refuses says why under the half it is about. On a domain not
+ * verified yet the pair is checked only when the custom domain is added,
+ * after its TXT record is found, in DNS Setup, which has no field to fix it
+ * in: the dialog then goes back to the form, with what was typed and the
+ * refusal under its field.
  *
  * On a self-hosted server, what the server still needs before any custom
  * domain can work is said above the field (CustomDomainServerReadiness).
+ *
+ * Opening it, and adding the address's domain to the project, are product
+ * events (CustomDomainEvents, #7024): with DNS Setup's, they say where
+ * people stop on the way to a verified domain.
  */
 
 export interface ComponentProps {
@@ -168,6 +187,7 @@ export const getAddCustomDomainFields: (
       showIf: (values: FormValues<AddValues>): boolean => {
         return Boolean(values.isCustomCertificate);
       },
+      ownsServerError: isUploadedCertificateRefusal,
       collapsibleSection: certificateSection,
     },
     {
@@ -179,12 +199,16 @@ export const getAddCustomDomainFields: (
       required: (values: FormValues<AddValues>): boolean => {
         return Boolean(values.isCustomCertificate);
       },
+      // Why the key is asked for, and that it is never shown again.
+      description:
+        "OneUptime needs this key to serve your domain over HTTPS. It is stored encrypted and never shown again.",
       placeholder:
         "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
       disableSpellCheck: true,
       showIf: (values: FormValues<AddValues>): boolean => {
         return Boolean(values.isCustomCertificate);
       },
+      ownsServerError: isUploadedKeyRefusal,
       collapsibleSection: certificateSection,
     },
   ];
@@ -234,6 +258,19 @@ const AddCustomDomainModal: FunctionComponent<ComponentProps> = (
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [pending, setPending] = useState<PendingDomain | null>(null);
+
+  /*
+   * What the form opens on: nothing yet, or what was typed, when DNS Setup
+   * hands the form back a pair the server refused (returnToFormForPair).
+   */
+  const [formValues, setFormValues] = useState<AddValues>({
+    address: "",
+    isCustomCertificate: false,
+  });
+
+  useEffect(() => {
+    CustomDomainEvents.addStarted(props.kind);
+  }, []);
 
   // Checking a domain's TXT record verifies it: an update of the domain.
   const verifyDomainGate: PermissionGateResult = PermissionGate.check(
@@ -307,6 +344,32 @@ const AddCustomDomainModal: FunctionComponent<ComponentProps> = (
     return created;
   };
 
+  /*
+   * A certificate and key the server refused when DNS Setup added the
+   * custom domain, once its project domain's TXT record was found: DNS
+   * Setup has no field to fix them in, so the dialog goes back to the form,
+   * with what was typed and the refusal under the half it is about. The
+   * project's domain is verified by now, so Add adds the custom domain at
+   * once. Any other refusal stays in DNS Setup, which says it.
+   */
+  const returnToFormForPair: (
+    pendingDomain: PendingDomain,
+    err: unknown,
+  ) => void = (pendingDomain: PendingDomain, err: unknown): void => {
+    const message: string = API.getFriendlyMessage(err);
+
+    if (
+      !isUploadedCertificateRefusal(message) &&
+      !isUploadedKeyRefusal(message)
+    ) {
+      return;
+    }
+
+    setFormValues({ ...pendingDomain.values });
+    setError(message);
+    setPending(null);
+  };
+
   const onSubmit: (values: AddValues) => Promise<void> = async (
     values: AddValues,
   ): Promise<void> => {
@@ -374,6 +437,8 @@ const AddCustomDomainModal: FunctionComponent<ComponentProps> = (
           modelType: Domain,
         });
 
+        CustomDomainEvents.projectDomainAdded(props.kind);
+
         // Read back for its verification text, which the server writes.
         projectDomain = findProjectDomainForAddress(
           parsed.fullDomain,
@@ -410,6 +475,14 @@ const AddCustomDomainModal: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * A refusal of the pair is the form's to say, under the half it is about
+   * (Field.ownsServerError): the dialog's alert above the form says every
+   * other.
+   */
+  const isPairRefusal: boolean =
+    isUploadedCertificateRefusal(error) || isUploadedKeyRefusal(error);
+
   if (pending) {
     const pendingDomain: CustomDomainDnsSetupDomain = {
       fullDomain: pending.fullDomain,
@@ -425,12 +498,17 @@ const AddCustomDomainModal: FunctionComponent<ComponentProps> = (
         projectDomain={pending.projectDomain}
         verifyDomainGate={verifyDomainGate}
         createCustomDomain={async (): Promise<CustomDomainDnsSetupDomain> => {
-          return await createCustomDomain({
-            fullDomain: pending.fullDomain,
-            subdomain: pending.subdomain,
-            projectDomainId: pending.projectDomain.id.toString(),
-            values: pending.values,
-          });
+          try {
+            return await createCustomDomain({
+              fullDomain: pending.fullDomain,
+              subdomain: pending.subdomain,
+              projectDomainId: pending.projectDomain.id.toString(),
+              values: pending.values,
+            });
+          } catch (err) {
+            returnToFormForPair(pending, err);
+            throw err;
+          }
         }}
         onCreated={() => {
           props.onChanged();
@@ -446,22 +524,27 @@ const AddCustomDomainModal: FunctionComponent<ComponentProps> = (
   return (
     <BasicFormModal<AddValues>
       title={CustomDomainCopy.addTitle}
-      isLoading={isSubmitting}
-      error={error}
+      /*
+       * Busy, with the form kept as it was filled in: a refusal leaves the
+       * address and a pasted certificate where they were, to fix.
+       */
+      isSubmitting={isSubmitting}
+      error={isPairRefusal ? undefined : error}
       submitButtonText={CustomDomainCopy.addSubmit}
       onClose={props.onClose}
       beforeFormElement={
-        <CustomDomainServerReadinessNotice kind={props.kind} />
+        <CustomDomainServerReadinessNotice
+          kind={props.kind}
+          eventSource="add"
+        />
       }
       onSubmit={(values: AddValues): void => {
         void onSubmit(values);
       }}
       formProps={{
-        initialValues: {
-          address: "",
-          isCustomCertificate: false,
-        },
+        initialValues: formValues,
         fields: getAddCustomDomainFields(props.kind),
+        error: isPairRefusal ? error : undefined,
       }}
     />
   );

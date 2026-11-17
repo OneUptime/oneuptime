@@ -34,6 +34,10 @@ import AppLink from "../../AppLink/AppLink";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import {
+  WELCOME_STEP_MINUTES,
+  WelcomeStep,
+} from "Common/Types/WelcomeChecklist/WelcomeChecklist";
 import IconProp from "Common/Types/Icon/IconProp";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -703,6 +707,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
     {
       ...progress[0]!,
       title: STATUS_PAGE_SETUP_COPY.pickTitle,
+      outcome: STATUS_PAGE_SETUP_COPY.pickOutcome,
       doneLine: statusPage
         ? getPickDoneLine({
             translator: translator,
@@ -715,6 +720,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
     {
       ...progress[1]!,
       title: STATUS_PAGE_SETUP_COPY.reviewTitle,
+      outcome: STATUS_PAGE_SETUP_COPY.reviewOutcome,
       doneLine: publicUrl,
       content: reviewContent,
     },
@@ -903,6 +909,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
       summary={summary}
       isFinished={isStatusPageSetupFinished(facts)}
       guideDocsPath={STATUS_PAGE_SETUP_GUIDE_DOCS_PATH}
+      minutes={WELCOME_STEP_MINUTES[WelcomeStep.StatusPage]}
     />
   );
 };

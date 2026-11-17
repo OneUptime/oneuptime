@@ -85,6 +85,7 @@ import RunnersPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Run
 import StepsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Steps";
 import VariablesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Variables";
 import RunnerViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerView";
+import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
@@ -667,34 +668,41 @@ if (target && window.location.pathname !== target) {
 
 /*
  * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
- * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
+ * at once, not in a React transition (Tests/Ops/E2EFixtureRouters). Beside
+ * it, as there, the corner where the Dashboard says a change worked
+ * (ToastRegion): Save Steps says "Changes saved" in it (#9120).
  */
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter useTransitions={false}>
-    <Routes>
-      <PageRoute
-        path="/dashboard/:projectId/runbooks/runners"
-        element={<Shell component={RunnersPage} trail="Runners" />}
-      />
-      <PageRoute
-        path="/dashboard/:projectId/runbooks/runners/:id"
-        element={<Shell component={RunnerViewPage} trail="Runners / Runner" />}
-      />
-      <PageRoute
-        path="/dashboard/:projectId/runbooks/settings/variables"
-        element={
-          <Shell
-            component={VariablesPage}
-            trail="Settings / Global Variables"
-          />
-        }
-      />
-      <PageRoute
-        path="/dashboard/:projectId/runbooks/:id/steps"
-        element={
-          <Shell component={StepsPage} trail="Database failover / Steps" />
-        }
-      />
-    </Routes>
-  </BrowserRouter>,
+  <>
+    <BrowserRouter useTransitions={false}>
+      <Routes>
+        <PageRoute
+          path="/dashboard/:projectId/runbooks/runners"
+          element={<Shell component={RunnersPage} trail="Runners" />}
+        />
+        <PageRoute
+          path="/dashboard/:projectId/runbooks/runners/:id"
+          element={
+            <Shell component={RunnerViewPage} trail="Runners / Runner" />
+          }
+        />
+        <PageRoute
+          path="/dashboard/:projectId/runbooks/settings/variables"
+          element={
+            <Shell
+              component={VariablesPage}
+              trail="Settings / Global Variables"
+            />
+          }
+        />
+        <PageRoute
+          path="/dashboard/:projectId/runbooks/:id/steps"
+          element={
+            <Shell component={StepsPage} trail="Database failover / Steps" />
+          }
+        />
+      </Routes>
+    </BrowserRouter>
+    <ToastRegion />
+  </>,
 );

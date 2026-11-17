@@ -99,7 +99,14 @@ global Runner takes two kinds of work from every project that uses global
 Runners, and nothing else:
 
 - runbook JavaScript steps, each in a sandbox of its own that reaches the
-  internet only;
+  internet only, in a process started for that step alone, as a user of its
+  own, with none of the Runner's key, settings or files
+  (`Utils/JavaScriptSandbox`). The image installs the launcher that switches
+  the step's process to its user setuid, run by the `node` group alone; a
+  container started with `no-new-privileges`, or without the `SETUID` and
+  `SETGID` capabilities, runs each step as the Runner's own user instead,
+  still in a process of its own, and the Runner logs why. A step costs a
+  process start (about 0.3 s) and about 130 MB while it runs;
 - the AI code fixes of every code repository on the Global Runner (one that
   picks no Runner of its own in Code), written with the code agent's file
   tools alone. None of the repository's setup, build or test commands, and no
@@ -141,6 +148,12 @@ push forbidden work onto this host.
 
 Revoking the capability in the dashboard takes effect on the next heartbeat —
 within a minute by default — like every other capability.
+
+Turning **Enable AI** off for the project stops a command this Runner has
+already claimed: the job's heartbeat says to stop, and a command that has not
+started yet does not start (its result says why). One that is already running
+is left to finish, and its result is reported. A runbook's own steps are never
+stopped this way.
 
 ### AI kubectl access
 

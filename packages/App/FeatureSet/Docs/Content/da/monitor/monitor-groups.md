@@ -29,7 +29,7 @@ flowchart TB
 - **Arkiverede monitorer tæller ikke.** En arkiveret monitor kontrolleres ikke, så dens status er frosset; gruppen udelader den.
 - **Monitorer med overvågning slået fra tæller ikke.** Intet tjekker en monitor, hvis overvågning er slået fra, så dens status er kun det, dens sidste kontrol så. Gruppen udelader den af sin status: en monitor, der stod på **Offline**, da dens overvågning blev slået fra, gør ikke gruppen **Offline**. Gruppens oppetid og **Oppetidgraf** beholder monitorens historik, indtil dens overvågning blev slået fra, og udelader tiden derefter, både på dashboardet og på statussider. Slås den til igen, tæller monitoren med fra det øjeblik.
 - **En tom gruppe er driftsklar.** En gruppe uden monitorer, eller kun med arkiverede, viser din driftsklare status. Indtil du tilføjer en monitor, viser dashboardet **Ingen monitorer endnu** i stedet for gruppens status.
-- **Overvågning slået fra viser Deaktiveret.** Når overvågning er slået fra for alle monitorer i en gruppe, tjekker intet dem, så dashboardet viser **Deaktiveret** i stedet for gruppens status, og dens **Oppetidgraf** og oppetid slutter, hvor overvågningen blev slået fra for den sidste af dem. En statusside viser gruppen som **Ikke overvåget**.
+- **Overvågning slået fra viser Deaktiveret.** Når overvågning er slået fra for alle monitorer i en gruppe, tjekker intet dem, så dashboardet viser **Deaktiveret** i stedet for gruppens status, og dens **Oppetidgraf** og oppetid slutter, hvor overvågningen blev slået fra for den sidste af dem. En statusside viser gruppen som **Ikke overvåget**. Hver dag, de alle forbliver slået fra, tegner begge dagens bjælke som en dag med overvågning slået fra, ikke som en dag uden data.
 - **Rækkefølgen er din.** Hvilken status der er den værste, følger rækkefølgen under **Monitorer → Indstillinger → Monitorstatus**. Se [Monitorstatusser](/docs/monitor/criteria-and-statuses#monitorstatusser).
 
 En monitorgruppe er ikke en statussidegruppe. En statussidegruppe er en overskrift på én statusside, der rummer rækker. En monitorgruppe er én række, der står for flere monitorer, og enhver statusside kan vise den.
@@ -92,9 +92,11 @@ For at tage en monitor ud af gruppen klikker du på **Fjern** i dens række unde
 
 Oppetiden på **Oversigt** tæller enhver status undtagen den driftsklare som nedetid. En statusside tæller kun statusserne på sin egen liste **Tæller som nedetid**: se [Vælg, hvad siden viser](/docs/status-pages/index#at-vælge-hvad-der-vises-på-siden).
 
-Hver søjle i oppetidsgrafen, her og på en statusside, viser, hvor længe gruppen selv var i hver status den dag: i hvert øjeblik har den den værste status blandt sine monitorer, så en time, hvor to af dem er offline samtidig, er én time for gruppen, og en dag bliver aldrig til mere end en dag. Dagene er dine egne: dashboardet tegner dem i tidszonen fra dine brugerindstillinger, og en statusside i hver besøgendes.
+Hver søjle i oppetidsgrafen, her og på en statusside, viser, hvor længe gruppen selv var i hver status den dag: i hvert øjeblik har den den værste status blandt sine monitorer, så en time, hvor to af dem er offline samtidig, er én time for gruppen, og en dag bliver aldrig til mere end en dag. Dagene er dine egne: dashboardet tegner dem i tidszonen fra dine brugerindstillinger, og en statusside i hver besøgendes. En monitors tid før dens første tjek er ikke med i dem: indtil noget har tjekket en monitor, er dens status kun den driftsklare, som hver monitor oprettes med, så gruppens søjler og oppetid udelader den tid. Dashboardet måler dem ud fra hver statusændring for gruppens monitorer, uanset hvor mange der er, ligesom en statusside gør.
 
 Listen **Monitorgrupper** kan filtrere grupper efter ejer og etiket, sætte etiketter og ejere på mange grupper på én gang og eksportere eller importere grupper som JSON.
+
+**Oversigt** har også et kort **Bruges af**: de statussider, der viser gruppen, og de SLOs, der måler dens monitorer. Når ingen statusside viser den, siger kortet det og linker til statussiderne. Når du sletter gruppen, på dens side eller fra listen, siges det først, hvilke statussider der viser den.
 
 ## Slå overvågning fra for en hel gruppe
 

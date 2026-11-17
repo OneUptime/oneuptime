@@ -2523,6 +2523,38 @@ describe("a monitor group's status", () => {
   });
 
   /*
+   * Issue #8960, documented in #9032: a member's time before its first
+   * check is in neither the group's bars nor its uptime. Both are read
+   * from the statement every status page reads a group's days from, which
+   * reads its rows through the first-check cut; and the Dashboard's group
+   * page reads them through the uptime summary route, which measures every
+   * status change (#6886) rather than the newest 10,000 rows.
+   */
+  it("leaves each monitor's time before its first check out of the group's bars and uptime, on the Dashboard as on a status page (#8960)", () => {
+    const timelineService: string = compact(
+      readCommonSource("Server/Services/MonitorStatusTimelineService.ts"),
+    );
+    const summary: string = between(
+      MONITOR_GROUP_SERVICE,
+      "public async getUptimeSummary(",
+      "\n  }\n",
+    );
+
+    expect(summary).toContain("getMonitorGroupDailyUptimeAggregate(");
+    expect(timelineService).toContain(
+      compact('${Service.getTimelineSourceCtes({ monitorIds: "$2::uuid[]" })}'),
+    );
+    expect(timelineService).toContain(
+      compact("public static getFirstCheckCutSql("),
+    );
+    expect(GROUP_OVERVIEW_PAGE).toContain("fetchMonitorGroupUptimeSummary(");
+
+    expect(groupsPage).toContain(
+      "A monitor's time before its first check is not in them: until something has checked a monitor, its status is only the operational one every monitor is created in, so the group's bars and uptime leave that time out. The Dashboard measures them from every status change of the group's monitors, however many there are, as a status page does.",
+    );
+  });
+
+  /*
    * Issue #6478: a monitor whose monitoring is off holds the status its last
    * check saw. The group's status, and its batched twin a status page reads,
    * leave it out, so one monitor left Offline does not hold the group
@@ -2694,7 +2726,7 @@ describe("a monitor group's status", () => {
       }),
     ).toBe(false);
     expect(groupsPage).toContain(
-      "- **Monitoring off shows Disabled.** When monitoring is turned off for every monitor in a group, nothing checks them, so the Dashboard shows **Disabled** in place of the group's status, and its **Uptime Graph** and uptime end where monitoring was turned off for the last of them. A status page shows the group as **Not monitored**.",
+      "- **Monitoring off shows Disabled.** When monitoring is turned off for every monitor in a group, nothing checks them, so the Dashboard shows **Disabled** in place of the group's status, and its **Uptime Graph** and uptime end where monitoring was turned off for the last of them. A status page shows the group as **Not monitored**. Each day all of them stay off, both draw that day's bar as monitoring off, not as a day with no data.",
     );
     // A status page draws such a group in the words the Dashboard has for it.
     expect(STATUS_PAGE_ENGLISH_OVERVIEW["notMonitored"]).toBe("Not monitored");

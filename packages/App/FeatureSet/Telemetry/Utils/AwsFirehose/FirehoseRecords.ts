@@ -1,4 +1,4 @@
-import EventLoop from "Common/Server/Utils/EventLoop";
+import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import { isAwsRegion } from "Common/Types/Cloud/AwsRegionCode";
 import { JSONObject } from "Common/Types/JSON";
 import {
@@ -46,9 +46,6 @@ import {
  * connection's read writes them, a gauge of the read's statistic, so the
  * two are one series (shapeStreamedMetrics).
  */
-
-// Records read between two yields to the event loop.
-const RECORDS_PER_YIELD: number = 50;
 
 export interface DeliverySightings {
   // "account|region": the namespaces its metrics carried.
@@ -236,9 +233,16 @@ export async function decodeFirehoseRecords(data: {
   const messages: Array<CloudWatchLogsMessage> = [];
   const metricResources: Array<JSONObject> = [];
 
+  /*
+   * Handed back by the time the work took, not every 50 records: a record
+   * is up to a megabyte, decompressed and read as JSON, or a few bytes
+   * (Common/Server/Utils/EventLoop.ts, #8925).
+   */
+  const eventLoopBudget: EventLoopBudget = new EventLoopBudget();
+
   for (let index: number = 0; index < data.records.length; index++) {
-    if (index > 0 && index % RECORDS_PER_YIELD === 0) {
-      await EventLoop.yieldToEventLoop();
+    if (eventLoopBudget.isSpent()) {
+      await eventLoopBudget.handBack();
     }
 
     const reading: RecordReading = await readRecord(

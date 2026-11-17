@@ -64,6 +64,15 @@ Test" workflow provides both:
   the built Runner image against a stand-in OneUptime server and has it run a
   JavaScript and a Bash step. The Build workflow's Runner job builds the image
   as `oneuptime-runner:ci` and runs it so, and the suite checks that it does.
+- **docker, for the Node.js images' heap.** `NodeImageHeapLimit.test.js` runs
+  every service's start script up to node under sh, bash and (where it is
+  installed) BusyBox, against cgroup files it writes for each case. With
+  `RUN_NODE_HEAP_CONTAINER_TESTS=1` it also runs the rule in
+  `node:26-alpine3.24` containers with real `--memory` limits, in the host's
+  cgroup namespace and with a cgroup v1 tree mounted; the workflow sets it on
+  the jest step, and the suite checks that it does. `NODE_HEAP_IMAGES` (image
+  references, space-separated) adds each built image's own start script, run
+  with the image's shell and node, with and without a limit.
 - **packages/Common's and packages/Nginx's packages.**
   `PruneUnreachablePackages.test.js` walks the real certificate sidecar's
   imports, as the ingress image's build does, only where both are installed
@@ -1155,7 +1164,12 @@ run, only after a merge), so the suite pins the machinery itself:
   anything (core is the Community Edition by construction); `compile-ee` and
   `test.ee.yaml` install what ee needs and compile/test it, and `test.ee.yaml`
   also runs App's two Enterprise boundary guards with `ee/` present (their
-  ee-direction checks skip without it); the Build workflow
+  ee-direction checks skip without it). Its `test` job is played step by
+  step through its real `if`s (`Utils/WorkflowExpression.js`), one failure
+  at a time: a red guard leaves every other guard and ee's own tests running
+  and still fails the job, a failed `test-setup.sh` leaves the guards
+  running, and a failed install skips only the steps that need it (#6572);
+  every `steps.<id>` an `if` reads is an earlier step's id. The Build workflow
   builds both App targets and checks each with
   `Scripts/GHA/check_app_image_edition.sh`; the release jobs that enable
   billing (the SaaS e2e jobs) run the `enterprise-` tags, the self-hosted e2e
@@ -1487,6 +1501,24 @@ A new or renamed pull request workflow fails it until the matrix lists it.
 Groups are evaluated by a small reader that understands context paths and `||`
 and throws on anything else.
 
+### `PullRequestChecksNotOnPush.test.js`
+
+A workflow that checks every pull request does not run again on every push to
+main. A pull request's checks run on its merge with main, so the push of the
+merge commit tested what had just been tested, and those runs never finished:
+main takes a merge every few minutes, the organization runs at most 20 jobs at
+once, and each push's run was cancelled by the next merge's or by
+`Scripts/Release/PrioritizeReleaseRuns.sh`. None of the last 100 push runs of
+Compile, App Test or Common Test since 2026-11-09 finished, and on 2026-11-16
+the cancelled push runs took about a fifth of every runner-minute spent
+(1,304 of 6,416), on runners pull requests and the release's gate were queued
+for. The suite holds every workflow whose `pull_request` trigger has no `paths`
+or `paths-ignore` to having no `push` trigger, and to running on main on a
+daily `schedule` and on `workflow_dispatch` (`build.yml` is left out, with its
+reason: `test-release.yaml` builds the same images on every push to main). A
+workflow that checks only the pull requests touching certain paths may run on
+pushes touching them, and must filter those pushes by path too.
+
 ### `ReleaseE2ePipeline.test.js`
 
 How the release workflows run the e2e suite. test-release.yaml runs on every
@@ -1698,8 +1730,33 @@ runs), every group's suites to summing to at most 22, naming a group past it
 with its sum, its suites and the groups with the most room, and the run step's
 limit to 22 x 1.45. A new suite's minutes
 come from a local run (CI=1, its bundle built, nothing else running) until App
-Test's runs measure it. Re-measure from finished runs (each group job's log,
-from one `▶ npm run` to the next) when the groups are moved again.
+Test's runs measure it. Since 2026-11-16 a group runs two suites at a time
+(`RunUiSuites.test.js`), so a group's log no longer runs from one `▶ npm run`
+to the next: re-measure from each group's step summary, which lists every
+suite's minutes from its start to its end, taken beside another suite. The
+budget still holds a group's sum of one-at-a-time minutes, which two at a time
+stays far inside; planning the groups by what two lanes take waits for those
+measurements.
+
+### `RunUiSuites.test.js`
+
+`packages/E2E/Scripts/RunUiSuites.js` runs a Dashboard Offline UI group's
+suites two at a time (`UI_SUITE_LANES`), since one suite kept about one and a
+half of the runner's four CPUs busy and left the rest of a group's runner idle
+for twenty minutes. Two suites never run at once when they share a port, a
+fixture server or an output directory, each read from the suite's Playwright
+config (bundled with esbuild, as Playwright reads it); a config it cannot read
+runs alone. The slowest suites start first, by `DashboardOfflineUiMinutes.json`.
+The suite holds how the script reads a config, a URL's port, a suite's minutes'
+key and which suite starts next; runs the script against stub suites (a fake
+`playwright` that records when each ran) to hold that two run at once, two
+sharing a port never do, an unreadable config runs alone, every suite runs when
+one fails, an unknown name fails before anything runs, and each suite's lines
+reach the log (after its name), its own log file and the step summary; reads
+every suite App Test's groups run, none of which may run alone for want of a
+readable config; and holds App Test to running each group through the script,
+two at a time, after installing Common (whose esbuild reads the configs), with
+`output/playwright/ui-suite-logs` uploaded.
 
 ### `DashboardOfflineUiShards.test.js`
 
@@ -1817,7 +1874,7 @@ they import, with Common's own compiler options (the generator's
 `tsconfig.json` extends `packages/Common/tsconfig.json`). No workflow ran it,
 and it failed with about 10,700 errors before anyone looked. The suite pins
 that `.github/workflows/terraform-provider-generation.yml` runs it in one step,
-on every pull request and every push to main, after installing Common,
+on every pull request and on main nightly, after installing Common,
 `Scripts` and the generator in the same job (what its imports resolve from),
 before the provider is generated, with nothing that lets it fail quietly, and
 with the generator's unit tests still running when it fails.
@@ -2171,9 +2228,14 @@ script. `KubernetesAiAgentRelease.test.js` keeps its own
 copies of these helpers as written; new image release tests use this module.
 
 `Utils/WorkflowExpression.js` evaluates a workflow's `${{ }}` expressions for
-one run, for the suites that work out a concurrency group: context paths and
-`||` only (a missing path reads as null, as on GitHub). It throws on anything
-else rather than misread it.
+one run. `evaluateExpressions` writes out a string, for the suites that work
+out a concurrency group: context paths and `||` only. `stepRuns` says whether
+a step's `if` lets it run, and `playJob` plays a whole job's steps through
+theirs, given which steps fail: the status functions (with the `success() &&`
+an `if` that calls none of them gets), `!`, `&&`, `||`, `==`, `!=`,
+parentheses, literals and context paths such as `steps.<id>.outcome`. A
+missing path reads as null, as on GitHub. It throws on anything else rather
+than misread it; `WorkflowExpression.test.js` holds it to GitHub's rules.
 
 `Utils/ContainerAgentCpuBehaviour.js` is the node half of
 `container-agent-cpu-utilization-behaviour.sh`: it writes the collector configs

@@ -37,11 +37,14 @@ import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import { APP_API_URL } from "Common/UI/Config";
 import User from "Common/Models/DatabaseModels/User";
-import { translationKey } from "Common/Types/Translator";
+import { Translator, translationKey } from "Common/Types/Translator";
+import { getNewPasswordField } from "Common/UI/Components/PasswordRequirements/NewPasswordFields";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useId,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -66,6 +69,8 @@ const setTwoFactorAuthRequiredRoute: (userId: ObjectID) => URL = (
 
 const Users: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+  const translator: Translator = useTranslator();
+  const passwordRequirementsId: string = useId();
 
   /*
    * Adding to a project needs two things the bulk bar cannot ask for on its
@@ -374,16 +379,19 @@ const Users: FunctionComponent = (): ReactElement => {
               placeholder: "email@company.com",
               disableSpellCheck: true,
             },
-            {
-              field: {
-                password: true,
-              },
-              title: "Password",
-              fieldType: FormFieldSchemaType.Password,
-              required: true,
-              placeholder: "Password",
-              disableSpellCheck: true,
-            },
+            /*
+             * The one password rule, with its checklist, as every form that
+             * sets a password asks it (#9123). Create User used to take any
+             * password at all. No confirmation: the form stays at three
+             * fields, and Set Password can change a mistyped one.
+             */
+            getNewPasswordField<User>({
+              translator: translator,
+              requirementsId: passwordRequirementsId,
+              passwordTitle: translator.translateText("Password")!,
+              // Somebody else's password: no password manager saves it as the admin's.
+              isOwnPassword: false,
+            }),
             {
               field: {
                 name: true,

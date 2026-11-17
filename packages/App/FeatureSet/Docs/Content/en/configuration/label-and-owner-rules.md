@@ -107,6 +107,8 @@ A rule's edit form has the same two steps and adds the **Enabled** switch. It do
 
 Such a rule can still be renamed, switched off or deleted, through the API and Terraform too. The list marks a rule that adds nothing **Adds nothing** beside its status, and so does the rule's own page. Edit it to choose what it adds, or delete it.
 
+A rule whose matching labels are all deleted is switched off rather than left matching every resource, and the list marks it **Limited to deleted records** beside its status. Edit it to choose what it matches, then switch it on. See [When the records a rule is limited to are deleted](/docs/incidents/settings#when-the-records-a-rule-is-limited-to-are-deleted).
+
 ## When rules run
 
 Every enabled rule runs when a resource is created, from the dashboard or through the API, and every rule that matches adds what it adds:

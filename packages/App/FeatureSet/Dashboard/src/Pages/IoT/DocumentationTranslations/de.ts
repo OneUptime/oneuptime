@@ -16,7 +16,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Replace `building-a-sensors` and `sensor-001` with your fleet name and device id. Keep `iot.fleet.name` stable: changing it registers a brand-new fleet.":
     "Ersetzen Sie `building-a-sensors` und `sensor-001` durch Ihren Flottennamen und Ihre Geräte-ID. Halten Sie `iot.fleet.name` stabil: Eine Änderung registriert eine ganz neue Flotte.",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Wählen Sie in Schritt 1 einen Aufnahmeschlüssel, um `<YOUR_API_KEY>` auszufüllen.",
+    "Wählen Sie in Schritt 1 einen Ingestion-Schlüssel, um `<YOUR_API_KEY>` auszufüllen.",
   "Emit your readings as metrics named after the `iot_*` conventions, and give every datapoint a `device.id` attribute — for example:":
     "Geben Sie Ihre Messwerte als Metriken nach den `iot_*`-Konventionen aus, und versehen Sie jeden Datenpunkt mit einem `device.id`-Attribut, zum Beispiel:",
   "| Metric | Value | Datapoint attribute |":
@@ -75,7 +75,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "1. Verify `iot.fleet.name` is set as a **resource** attribute (not a datapoint label), and that `service.name` is `iot/<fleet>`.":
     "1. Prüfen Sie, ob `iot.fleet.name` als **Ressourcen**-Attribut gesetzt ist (nicht als Datenpunkt-Label) und ob `service.name` den Wert `iot/<fleet>` hat.",
   "2. Confirm the exporter endpoint is `<YOUR_ONEUPTIME_URL>/otlp` and the `x-oneuptime-token` header carries a valid ingestion key.":
-    "2. Vergewissern Sie sich, dass der Exporter-Endpunkt `<YOUR_ONEUPTIME_URL>/otlp` ist und der Header `x-oneuptime-token` einen gültigen Aufnahmeschlüssel trägt.",
+    "2. Vergewissern Sie sich, dass der Exporter-Endpunkt `<YOUR_ONEUPTIME_URL>/otlp` ist und der Header `x-oneuptime-token` einen gültigen Ingestion-Schlüssel trägt.",
   "1. Make sure each datapoint carries a `device.id` label — devices are keyed on it.":
     "1. Stellen Sie sicher, dass jeder Datenpunkt ein Label `device.id` trägt: Geräte werden danach geschlüsselt.",
   "2. Send `iot_device_info` (identity-only) for devices that have not yet reported readings so they still show up in the inventory.":
@@ -83,7 +83,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "3. Check that `device.id` values are stable across reports; a changing id creates duplicate device rows.":
     "3. Prüfen Sie, ob die Werte von `device.id` über alle Meldungen stabil sind; eine wechselnde ID erzeugt doppelte Gerätezeilen.",
   "`401` means the ingestion key is missing, wrong or expired; `422` means it has been disabled, or is a browser key, which cannot send device telemetry. Select a different key above (or create a new one) and update the `x-oneuptime-token` header your device or collector sends.":
-    "`401` bedeutet, dass der Aufnahmeschlüssel fehlt, falsch oder abgelaufen ist; `422` bedeutet, dass er deaktiviert wurde oder ein Browserschlüssel ist, der keine Gerätetelemetrie senden kann. Wählen Sie oben einen anderen Schlüssel (oder erstellen Sie einen neuen) und aktualisieren Sie den Header `x-oneuptime-token`, den Ihr Gerät oder Collector sendet.",
+    "`401` bedeutet, dass der Ingestion-Schlüssel fehlt, falsch oder abgelaufen ist; `422` bedeutet, dass er deaktiviert wurde oder ein Browserschlüssel ist, der keine Gerätetelemetrie senden kann. Wählen Sie oben einen anderen Schlüssel (oder erstellen Sie einen neuen) und aktualisieren Sie den Header `x-oneuptime-token`, den Ihr Gerät oder Collector sendet.",
   "1. Use the exact `iot_*` metric names from **Metric conventions** under Advanced — other names are stored as generic metrics and do not populate the IoT charts.":
     "1. Verwenden Sie die genauen `iot_*`-Metriknamen aus **Metrikkonventionen** unter Erweitert: Andere Namen werden als allgemeine Metriken gespeichert und füllen die IoT-Diagramme nicht.",
   "2. `iot_cpu_usage_ratio` is a `0`–`1` ratio; send the raw ratio and OneUptime renders it as a percentage.":
@@ -148,7 +148,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "OneUptime recognizes the following `iot_*` metric names. Over MQTT the topic names the device, so every reading is attributed to it. You only need to send the metrics that make sense for your device — missing ones are simply not charted.":
     "OneUptime erkennt die folgenden `iot_*`-Metriknamen. Über MQTT benennt das Topic das Gerät, daher wird jeder Messwert ihm zugeordnet. Senden Sie nur die Metriken, die für Ihr Gerät sinnvoll sind; fehlende werden einfach nicht dargestellt.",
   "The project-wide ingestion key suits gateways that publish on behalf of many devices. For devices that connect directly, register each device under the fleet's **Device Registry** tab: it issues a per-device credential — the credential ID is the MQTT **username** and the secret is the **password**. The fleet appears with its first reading, so send one with the project-wide key first, as in step 2.":
-    "Der projektweite Aufnahmeschlüssel passt zu Gateways, die im Namen vieler Geräte veröffentlichen. Registrieren Sie Geräte, die sich direkt verbinden, einzeln im Tab **Geräteregister** der Flotte: Er stellt eine Zugangskennung pro Gerät aus; die Kennungs-ID ist der MQTT-**Benutzername** und das Geheimnis das **Passwort**. Die Flotte erscheint mit ihrem ersten Messwert, senden Sie also zuerst einen mit dem projektweiten Schlüssel, wie in Schritt 2.",
+    "Der projektweite Ingestion-Schlüssel passt zu Gateways, die im Namen vieler Geräte veröffentlichen. Registrieren Sie Geräte, die sich direkt verbinden, einzeln im Tab **Geräteregister** der Flotte: Er stellt eine Zugangskennung pro Gerät aus; die Kennungs-ID ist der MQTT-**Benutzername** und das Geheimnis das **Passwort**. Die Flotte erscheint mit ihrem ersten Messwert, senden Sie also zuerst einen mit dem projektweiten Schlüssel, wie in Schritt 2.",
   "- **Topic isolation** — a device credential can only publish under its own `oneuptime/<fleet>/<device>/…` topics; anything else is dropped.":
     "- **Topic-Isolation**: Eine Gerätekennung kann nur unter ihren eigenen Topics `oneuptime/<fleet>/<device>/…` veröffentlichen; alles andere wird verworfen.",
   "- **Individual revocation** — disable or delete one device's credential without touching the rest of the fleet; a connected device is cut off within a few seconds.":
@@ -156,9 +156,9 @@ const TRANSLATION: SetupGuideTranslation = {
   "- **Silent-death offline detection** — a registered device stays in the inventory as offline when it stops reporting, instead of vanishing, even if it dies without a Last Will.":
     "- **Offline-Erkennung bei stillem Ausfall**: Ein registriertes Gerät bleibt als offline im Inventar, wenn es nicht mehr meldet, statt zu verschwinden, selbst wenn es ohne Last Will ausfällt.",
   "Register an MQTT **Last Will** on `oneuptime/<fleet>/<device>/status` with payload `offline` — if the device dies, OneUptime publishes `iot_device_up = 0` on its behalf the moment the session drops, which trips the stock Device Offline alert template with no polling. Publish `online` to the same topic after connecting so the device shows as up again; the example in step 2 does both. Any reading the device publishes counts as up too, so a device that keeps sending readings stays up without publishing its status again. The status topic also accepts `1`/`0`, `true`/`false` and `up`/`down`.":
-    "Registrieren Sie einen MQTT-**Last Will** auf `oneuptime/<fleet>/<device>/status` mit der Payload `offline`: Fällt das Gerät aus, veröffentlicht OneUptime in seinem Namen `iot_device_up = 0`, sobald die Sitzung abbricht, was die mitgelieferte Alarmvorlage Device Offline ohne Polling auslöst. Veröffentlichen Sie nach dem Verbinden `online` auf demselben Topic, damit das Gerät wieder als up erscheint; das Beispiel in Schritt 2 tut beides. Jeder Messwert, den das Gerät veröffentlicht, zählt ebenfalls als up, sodass ein Gerät, das weiter Messwerte sendet, up bleibt, ohne seinen Status erneut zu veröffentlichen. Das Status-Topic akzeptiert auch `1`/`0`, `true`/`false` und `up`/`down`.",
+    "Registrieren Sie einen MQTT-**Last Will** auf `oneuptime/<fleet>/<device>/status` mit der Payload `offline`: Fällt das Gerät aus, veröffentlicht OneUptime in seinem Namen `iot_device_up = 0`, sobald die Sitzung abbricht, was die mitgelieferte Warnungsvorlage Device Offline ohne Polling auslöst. Veröffentlichen Sie nach dem Verbinden `online` auf demselben Topic, damit das Gerät wieder als up erscheint; das Beispiel in Schritt 2 tut beides. Jeder Messwert, den das Gerät veröffentlicht, zählt ebenfalls als up, sodass ein Gerät, das weiter Messwerte sendet, up bleibt, ohne seinen Status erneut zu veröffentlichen. Das Status-Topic akzeptiert auch `1`/`0`, `true`/`false` und `up`/`down`.",
   "Keep the MQTT keepalive **under 5 minutes** on the WebSocket endpoint (client-library defaults of 60 s are fine) — idle WebSocket connections are closed after 300 seconds, which would fire the Last Will and a false offline alert.":
-    "Halten Sie das MQTT-Keepalive auf dem WebSocket-Endpunkt **unter 5 Minuten** (die Standardwerte der Client-Bibliotheken von 60 s sind in Ordnung): Inaktive WebSocket-Verbindungen werden nach 300 Sekunden geschlossen, was den Last Will und einen falschen Offline-Alarm auslösen würde.",
+    "Halten Sie das MQTT-Keepalive auf dem WebSocket-Endpunkt **unter 5 Minuten** (die Standardwerte der Client-Bibliotheken von 60 s sind in Ordnung): Inaktive WebSocket-Verbindungen werden nach 300 Sekunden geschlossen, was den Last Will und einen falschen Offline-Warnung auslösen würde.",
   "Publish under the fixed `oneuptime/` prefix. The fleet and device segments must not contain `/`, `+` or `#` or start with `$`, and are limited to 100 characters.":
     "Veröffentlichen Sie unter dem festen Präfix `oneuptime/`. Die Flotten- und Gerätesegmente dürfen weder `/`, `+` noch `#` enthalten, nicht mit `$` beginnen und sind auf 100 Zeichen begrenzt.",
   "| Topic | Payload |": "| MQTT-Topic | Payload |",
@@ -183,7 +183,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "OneUptime rejects bad credentials at CONNECT with return code 4. Check that:":
     "OneUptime weist falsche Zugangsdaten bei CONNECT mit Rückgabecode 4 ab. Prüfen Sie, ob:",
   "- the password is a valid ingestion key — or, for a registered device, the credential's secret, with its credential ID as the username;":
-    "- das Passwort ein gültiger Aufnahmeschlüssel ist (oder, bei einem registrierten Gerät, das Geheimnis der Zugangskennung mit ihrer Kennungs-ID als Benutzername);",
+    "- das Passwort ein gültiger Ingestion-Schlüssel ist (oder, bei einem registrierten Gerät, das Geheimnis der Zugangskennung mit ihrer Kennungs-ID als Benutzername);",
   "- the key is a server key (browser keys are refused over MQTT) and has not been disabled or expired.":
     "- der Schlüssel ein Serverschlüssel ist (Browserschlüssel werden über MQTT abgelehnt) und weder deaktiviert noch abgelaufen ist.",
   "1. The device id is the `<device>` segment of the topic — keep it stable across publishes; a changing id creates duplicate device rows.":
@@ -191,7 +191,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Publish `iot_device_info` (identity-only) or a `status` message for devices that have not yet reported readings, so they still show up in the inventory.":
     "2. Veröffentlichen Sie `iot_device_info` (nur Identität) oder eine `status`-Nachricht für Geräte, die noch keine Messwerte gemeldet haben, damit sie trotzdem im Inventar erscheinen.",
   "On the WebSocket endpoint, idle connections are closed after 300 seconds, which fires the Last Will and a false Device Offline alert. Keep the MQTT keepalive under 5 minutes — client-library defaults of 60 s are fine.":
-    "Auf dem WebSocket-Endpunkt werden inaktive Verbindungen nach 300 Sekunden geschlossen, was den Last Will und einen falschen Device-Offline-Alarm auslöst. Halten Sie das MQTT-Keepalive unter 5 Minuten; die Standardwerte der Client-Bibliotheken von 60 s sind in Ordnung.",
+    "Auf dem WebSocket-Endpunkt werden inaktive Verbindungen nach 300 Sekunden geschlossen, was den Last Will und einen falschen Device-Offline-Warnung auslöst. Halten Sie das MQTT-Keepalive unter 5 Minuten; die Standardwerte der Client-Bibliotheken von 60 s sind in Ordnung.",
   "Replace `sensor-001` with the device's id — OneUptime adds the device to the fleet **`fleet-1`** from the topic. The Last Will reports the device offline the moment its connection drops; devices that connect directly are better off with their own credential (both under Advanced).":
     "Ersetzen Sie `sensor-001` durch die ID des Geräts: OneUptime fügt das Gerät anhand des Topics der Flotte **`fleet-1`** hinzu. Der Last Will meldet das Gerät offline, sobald seine Verbindung abbricht; Geräte, die sich direkt verbinden, fahren mit einer eigenen Zugangskennung besser (beides unter Erweitert).",
 };

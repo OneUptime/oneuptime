@@ -1,5 +1,10 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import OwnerNotificationBacklog, {
+  OwnerNotificationPage,
+} from "../../Utils/OwnerNotificationBacklog";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
+import ProjectService from "Common/Server/Services/ProjectService";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
@@ -28,8 +33,11 @@ import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 import OwnerNotificationDeliveries, {
   OwnerNotificationDelivery,
+  OwnerNotificationOf,
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import OwnersReachedByAPage from "Common/Server/Utils/Notification/OwnersReachedByAPage";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+import { MarkdownText } from "Common/Utils/Markdown/FeedMarkdown";
 
 // What an episode is read with.
 const EPISODE_SELECT: Select<IncidentEpisode> = {
@@ -60,7 +68,7 @@ const EPISODE_SELECT: Select<IncidentEpisode> = {
 RunCron(
   "IncidentEpisodeOwner:SendCreatedResourceEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8509) - told first, exactly
@@ -88,83 +96,121 @@ RunCron(
       },
     });
 
-    // Get all incident episodes that need owner notification
-    const episodes: Array<IncidentEpisode> =
-      await IncidentEpisodeService.findAllBy({
-        query: {
-          isOwnerNotifiedOfEpisodeCreation: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        select: EPISODE_SELECT,
-      });
+    /*
+     * Every episode whose owners have not been told it was created, a page at a
+     * time, oldest first, each taken by one run alone and told by the run
+     * that took it; the run stops at its deadline and the next carries on
+     * (OwnerNotificationBacklog, issue #8862).
+     */
+    await OwnerNotificationBacklog.forEachToNotify<IncidentEpisode>({
+      jobName: "IncidentEpisodeOwner:SendCreatedResourceEmail",
+      service: IncidentEpisodeService,
+      notYetNotified: {
+        isOwnerNotifiedOfEpisodeCreation: false,
+      },
+      notified: {
+        isOwnerNotifiedOfEpisodeCreation: true,
+      },
+      select: EPISODE_SELECT,
+      deadline: deadline,
+      notify: async (input: {
+        record: IncidentEpisode;
+        page: OwnerNotificationPage;
+        take: () => Promise<boolean>;
+      }): Promise<void> => {
+        const episode: IncidentEpisode = input.record;
+        const notification: OwnerNotificationOf = {
+          kind: OwnerNotificationKind.IncidentEpisodeCreated,
+          projectId: episode.projectId!,
+          resourceId: episode.id!,
+          eventId: episode.id!,
+        };
 
-    for (const episode of episodes) {
-      /*
-       * Whom it is to tell - its owners, or the project's when it has none -
-       * written before the take: a worker stopped from here on leaves them to
-       * be told by a later run, and one stopped before the take leaves the
-       * episode to be read again.
-       */
-      const delivery: OwnerNotificationDelivery =
-        await OwnerNotificationDeliveries.planForOwnersOf({
-          notification: {
-            kind: OwnerNotificationKind.IncidentEpisodeCreated,
-            projectId: episode.projectId!,
-            resourceId: episode.id!,
-            eventId: episode.id!,
-          },
-          findOwners: () => {
-            return IncidentEpisodeService.findOwners(episode.id!);
-          },
-          writesFeedItem: true,
-        });
+        /*
+         * Whom it is to tell - its owners, or the project's when it has none -
+         * written before the take: a worker stopped from here on leaves them to
+         * be told by a later run, and one stopped before the take leaves the
+         * episode to be read again.
+         */
+        const delivery: OwnerNotificationDelivery =
+          await OwnerNotificationDeliveries.planForOwnersOf({
+            notification: notification,
+            findOwners: () => {
+              return IncidentEpisodeService.findOwners(episode.id!);
+            },
+            // Read once for every record of the page.
+            findProjectOwners: (): Promise<Array<User>> => {
+              return input.page.once(
+                `projectOwners:${episode.projectId!.toString()}`,
+                () => {
+                  return ProjectService.getOwners(episode.projectId!);
+                },
+              );
+            },
+            writesFeedItem: true,
+            /*
+             * Not those the episode's on-call page reached already: someone
+             * who is on call and an owner is told of the episode once, not
+             * twice (#7987).
+             */
+            findOwnersToLeaveOut: (
+              owners: Array<User>,
+            ): Promise<Array<User>> => {
+              return OwnersReachedByAPage.findAmong({
+                notification: notification,
+                owners: owners,
+              });
+            },
+          });
 
-      await IncidentEpisodeService.updateOneById({
-        id: episode.id!,
-        data: {
-          isOwnerNotifiedOfEpisodeCreation: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+        /*
+         * Taken - marked notified, by one hook-free compare-and-set - before
+         * its owners are told, so one whose notification keeps failing is
+         * never read again on every run. Taken by another run first: that run
+         * tells them.
+         */
+        if (!(await input.take())) {
+          return;
+        }
 
-      try {
-        await notifyOwnersOfEpisodeCreated(episode, delivery);
-      } catch (e) {
-        logger.error(
-          "Error in sending incident episode created resource notification",
-          {
+        try {
+          await notifyOwnersOfEpisodeCreated(episode, delivery);
+        } catch (e) {
+          logger.error(
+            "Error in sending incident episode created resource notification",
+            {
+              projectId: episode.projectId?.toString(),
+              incidentEpisodeId: episode.id?.toString(),
+            },
+          );
+          logger.error(e, {
             projectId: episode.projectId?.toString(),
             incidentEpisodeId: episode.id?.toString(),
-          },
-        );
-        logger.error(e, {
-          projectId: episode.projectId?.toString(),
-          incidentEpisodeId: episode.id?.toString(),
-        });
-      }
-    }
+          });
+        }
+      },
+    });
   },
 );
 
+// A person, as the episode's feed names them: "Ana Lopez (ana@acme.com)".
+function personMarkdown(user: User): MarkdownText {
+  return OwnerNotificationFeedText.nameAndEmail({
+    name: user.name?.toString(),
+    email: user.email?.toString(),
+  });
+}
+
 // A person told, as the episode's feed names them.
 function feedLineMarkdown(user: User): string {
-  return OwnerNotificationFeedText.notifiedLineMarkdown(
-    OwnerNotificationFeedText.nameAndEmail({
-      name: user.name?.toString(),
-      email: user.email?.toString(),
-    }),
-  );
+  return OwnerNotificationFeedText.notifiedLineMarkdown(personMarkdown(user));
 }
 
 /*
  * Tells the delivery's owners that the episode was created, each once
  * (OwnerNotificationDelivery.tell), and says in the episode's feed whom it
- * reached - those a stopped run told first among them.
+ * reached - those a stopped run told first among them - and whom it left
+ * out, as the episode's on-call page reached them already.
  */
 async function notifyOwnersOfEpisodeCreated(
   episode: IncidentEpisode,
@@ -315,6 +361,12 @@ async function notifyOwnersOfEpisodeCreated(
   if (!delivery.isFeedItemToWrite) {
     return;
   }
+
+  // Whom it left out, named apart from those notified (OwnersReachedByAPage).
+  moreEpisodeFeedInformationInMarkdown +=
+    OwnerNotificationFeedText.reachedByPageMarkdown(
+      delivery.leftOut.map(personMarkdown),
+    );
 
   await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
     incidentEpisodeId: episode.id!,

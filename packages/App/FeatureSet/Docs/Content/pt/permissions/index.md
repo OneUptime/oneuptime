@@ -103,6 +103,8 @@ A função que você escolher se torna a primeira permissão da equipe, para tod
 
 Onde encontrar: abra uma equipe em **Equipes** para chegar a **Membros** e **Permissões**; as funções personalizadas dela e **Bloquear permissões** ficam em **Mais configurações**, no fim da página Permissões, cujo cabeçalho recolhido mostra quantas de cada a equipe tem.
 
+A página de uma equipe tem um cartão **Usado por**: as políticas de plantão cujas regras de escalonamento acionam a equipe, e tudo o que a equipe possui, de monitores e páginas de status a SLOs, painéis, infraestrutura e incidentes. Excluir uma equipe, em sua página ou pela lista, diz isso primeiro: suas políticas deixam de acionar seus membros, e ela deixa de possuí-los. O que você não pode abrir é contado, não nomeado.
+
 ## Permissões
 
 Uma permissão é uma capacidade única. Há duas formas de distribuí-las, e as duas ficam na aba **Permissões** da equipe.
@@ -280,7 +282,7 @@ As chaves de API recebem permissões diretamente, na própria chave, ou pelas fu
 :::steps
 1. Abra **Configurações do projeto > Avançado > Chaves de API** e clique em **Criar: Chave de API**. No OneUptime Cloud, as chaves de API exigem o plano Growth.
 2. Digite o **Nome** da chave e escolha o **Acesso** dela. A descrição e a data de expiração ficam em **Mais campos**; uma chave expira um ano depois do dia em que é criada, a menos que você escolha outra data, e a seção recolhida diz isso.
-3. Crie a chave. Ela abre na página dela, onde você a copia.
+3. Crie a chave. O OneUptime a mostra uma única vez, em uma caixa de diálogo: copie-a ali. Depois, a página dela se abre.
 :::
 
 A função que você escolher se torna a primeira permissão da chave assim que a chave existe, exatamente como se você a tivesse adicionado na página da chave. Só são oferecidas as funções que você mesmo tem — uma chave nunca pode receber mais do que a pessoa que a dá tem — e quem pode criar chaves mas não alterar o que elas podem fazer não é consultado.
@@ -340,7 +342,7 @@ As permissões resolvidas ficam em cache por usuário e projeto, e são atualiza
 
 Um incidente, um alerta ou um episódio marcado como privado só é visto pelos seus proprietários — as pessoas indicadas como seus proprietários e os membros das suas equipes proprietárias que aceitaram o convite — e pelos Proprietários do projeto e Administradores do projeto.
 
-Um registro assim só é alterado com as permissões das equipes que são suas proprietárias e das pessoas indicadas como seus proprietários. Quem está indicado como proprietário age sobre ele com todas as permissões que tem. Qualquer outra pessoa só age sobre ele com as permissões das suas equipes que são proprietárias dele, cada uma com o próprio escopo e os próprios rótulos: a permissão de outra equipe não alcança nenhum registro privado do qual essa equipe não seja proprietária. Isso vale para tudo o que se faz com o registro e com o que pertence a ele — editá-lo, mudar seu estado, suas notas, proprietários, funções, rótulos, alertas vinculados, membros do episódio e chamadas, e excluí-lo — pelo painel, pela API, por ações em massa, pelo Slack, pelo Microsoft Teams ou pelo OneUptime AI. Os Proprietários do projeto e Administradores do projeto alteram qualquer registro privado, assim como as etapas de workflows, que agem como Administrador do projeto; uma chave de API só o faz com `ProjectOwner` ou `ProjectAdmin`.
+Um registro assim só é alterado com as permissões das equipes que são suas proprietárias e das pessoas indicadas como seus proprietários. Quem está indicado como proprietário age sobre ele com todas as permissões que tem. Qualquer outra pessoa só age sobre ele com as permissões das suas equipes que são proprietárias dele, cada uma com o próprio escopo e os próprios rótulos: a permissão de outra equipe não alcança nenhum registro privado do qual essa equipe não seja proprietária. Isso vale para tudo o que se faz com o registro e com o que pertence a ele — editá-lo, mudar seu estado, suas notas, proprietários, funções, rótulos, alertas vinculados, membros do episódio e chamadas, e excluí-lo — pelo painel, pela API, por ações em massa, pelo Slack, pelo Microsoft Teams ou pelo OneUptime AI. Os Proprietários do projeto e Administradores do projeto alteram qualquer registro privado, e uma chave de API só o faz com `ProjectOwner` ou `ProjectAdmin`.
 
 | Alguém na equipe 1 e na equipe 2 | Um incidente privado da equipe 2 | Um incidente público da equipe 2 |
 | --- | --- | --- |
@@ -349,6 +351,18 @@ Um registro assim só é alterado com as permissões das equipes que são suas p
 | A equipe 2 também tem `IncidentMember` | Altera pela equipe 2 | Altera por qualquer uma das equipes |
 
 Uma equipe proprietária de registros privados, mas sem permissões, usada só para agrupar pessoas, deixa seus membros vê-los e não alterar nenhum. Na página de um registro privado, uma alteração que as equipes proprietárias da pessoa não podem fazer aparece bloqueada e diz por quê. Para que ela possa fazê-la, dê a permissão a uma equipe proprietária, torne proprietária uma equipe que tenha a permissão ou torne a pessoa proprietária.
+
+O que se faz a respeito de um registro privado segue a mesma regra: acionar alguém por causa dele (**Executar política de plantão**, **Acionar agora** e acionamentos pelo Slack, Microsoft Teams, Mattermost ou OneUptime AI), iniciar um runbook para ele ou fazer avançar essa execução, e aprovar, testar em simulação ou descartar uma correção que o OneUptime AI propôs para ele. Cada ação exige sua própria permissão, como acionar políticas de plantão ou iniciar execuções de runbooks, e em um registro privado só a emprestam as equipes que são donas dele, além das pessoas indicadas como seus proprietários. Qualquer outra pessoa é recusada com o motivo, e nada é acionado, executado ou alterado.
+
+O que se faz e se envia a respeito de um registro privado só é lido por quem pode ler o registro: suas execuções de políticas de plantão, suas execuções de runbooks, as correções propostas para ele e os registros dos e-mails, SMS, chamadas, notificações push, mensagens de chat, webhooks e solicitações de IA que o OneUptime enviou sobre ele. As pessoas acionadas por causa dele continuam vendo o seu acionamento.
+
+Excluir um registro privado exclui tudo isso junto com ele, seja qual for a forma como é excluído: um de cada vez ou vários de uma vez, pelo painel, pela API, pelo Terraform ou pelo MCP, pela retenção de registros resolvidos ou junto com o seu projeto. As execuções de runbooks e as correções são excluídas com o incidente ou o alerta ao qual estão vinculadas, privado ou não.
+
+Os comandos que um Runner executou para uma execução de runbook ou uma correção, com o que imprimiram, só são lidos por quem pode ler a execução ou a correção. Eles são excluídos com a execução. Os comandos de uma correção excluída permanecem, como registro do que foi executado na sua infraestrutura, e só os Proprietários do projeto e Administradores do projeto os leem. Os comandos que a OneUptime AI executou para o próprio trabalho seguem esse trabalho. Os de um chat, em Pergunte à IA ou na conversa de IA de um incidente ou alerta, só são lidos pela pessoa que perguntou, não pelos Proprietários do projeto nem pelos Administradores do projeto, e por ninguém depois que o chat é excluído. Os de uma investigação são lidos por quem pode ler o incidente ou alerta que ela investigou e, depois que esse registro é excluído, só pelos Proprietários do projeto e Administradores do projeto. Uma chave de API não lê os comandos de nenhum chat.
+
+Um registro que cita um registro privado sem fazer parte dele, como um problema de Data Security, um caso de segurança, um envio de formulário, uma gravação de sessão, ou um alerta ou um incidente públicos em um episódio privado, é lido como antes. Só quem pode ler o registro privado vê ali o seu título e os seus outros campos: para qualquer outra pessoa, um filtro por eles não o encontra, e uma lista que o cita não pode ser ordenada por eles.
+
+Workflows não agem sobre registros privados. As etapas de um workflow agem como Administrador do projeto, mas nunca recebem emprestada a visão dele sobre incidentes, alertas e episódios privados: não encontram nenhum, não alteram nenhum nem acrescentam nada a eles, e um workflow não começa por um deles nem por algo que pertença a ele. Veja [O que os passos de um workflow podem fazer](/docs/workflows/configuration#o-que-os-passos-de-um-workflow-podem-fazer).
 
 ### Regras que pertencem a equipes
 

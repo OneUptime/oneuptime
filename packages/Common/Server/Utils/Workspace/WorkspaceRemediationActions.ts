@@ -24,12 +24,16 @@ import RemediationChatMessage, {
   TrackRecordRunLinks,
 } from "../AutoRemediation/RemediationChatMessage";
 import {
-  getFixApprovalsNeeded,
+  getFixApprovalStep,
   readTwoApprovalsRule,
 } from "../AutoRemediation/RemediationApprovalsNeeded";
-import { AiRemediationCommandPlanUtil } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
-import { isSameApprover } from "../../../Types/AutoRemediation/RemediationApprovals";
+import {
+  encodeRemediationApprovalStep,
+  isSameApprover,
+  RemediationApprovalStep,
+  RemediationApprovalStepKind,
+} from "../../../Types/AutoRemediation/RemediationApprovals";
 import { REMEDIATION_CHAT_WORDS } from "../AutoRemediation/RemediationChatWords";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -158,6 +162,8 @@ export default class WorkspaceRemediationActions {
           firstApprovedByUserId: true,
           firstApprovedAt: true,
           firstApprovedFrom: true,
+          // What it approved: it counts only for the fix as it is now.
+          firstApprovedPlanFingerprint: true,
           dismissedByUserId: true,
           dismissedAt: true,
         },
@@ -169,40 +175,52 @@ export default class WorkspaceRemediationActions {
 
   /*
    * Where a fix stands with the approvals it needs, as the project's rule
-   * reads now: two for a riskier command plan where the project asks two
-   * people to approve one (a rule that cannot be read counts as off here -
-   * the approval itself decides), and the first approval when there is
-   * one, with its approver's name.
+   * reads now: two for a riskier command plan or a fix through MCP servers
+   * where the project asks two people to approve one (a rule that cannot be
+   * read counts as off here - the approval itself decides), and the first
+   * approval when there is one that counts - given to the fix as it is now
+   * - with its approver's name; and what a press of Approve does, as the
+   * dialog's button carries it.
    */
   @CaptureSpan()
   public static async getFixApprovals(
     suggestion: AutoRemediationSuggestion,
   ): Promise<RemediationChatApprovals> {
     if (
-      suggestion.suggestionType !== AutoRemediationSuggestionType.CommandPlan ||
+      suggestion.suggestionType === AutoRemediationSuggestionType.Runbook ||
+      !suggestion.suggestionType ||
       !suggestion.projectId
     ) {
-      return { needed: 1, hasFirstApproval: false };
+      return {
+        needed: 1,
+        hasFirstApproval: false,
+        step: { kind: RemediationApprovalStepKind.Only },
+      };
     }
 
-    const needed: number = getFixApprovalsNeeded({
+    const step: RemediationApprovalStep = getFixApprovalStep({
       project: {
         requireTwoApprovalsForRiskierFixes:
           (await readTwoApprovalsRule(suggestion.projectId)) === true,
       },
-      suggestionType: suggestion.suggestionType,
-      plan: AiRemediationCommandPlanUtil.parse(suggestion.commandPlan),
+      suggestion,
     });
 
-    if (needed < 2 || !suggestion.firstApprovedByUserId) {
-      return { needed, hasFirstApproval: false };
+    if (step.kind === RemediationApprovalStepKind.Only) {
+      return { needed: 1, hasFirstApproval: false, step };
+    }
+
+    if (step.kind === RemediationApprovalStepKind.First) {
+      return { needed: 2, hasFirstApproval: false, step };
     }
 
     return {
-      needed,
+      needed: 2,
       hasFirstApproval: true,
       firstApproverName:
-        (await this.getUserName(suggestion.firstApprovedByUserId)) || undefined,
+        (await this.getUserName(new ObjectID(step.firstApprovedByUserId!))) ||
+        undefined,
+      step,
     };
   }
 
@@ -211,7 +229,8 @@ export default class WorkspaceRemediationActions {
    * person who already gave a riskier fix its first approval: why pressing
    * again does nothing - it runs once someone else approves it too. Null
    * for everyone else, and when one approval runs the fix now (the project
-   * no longer asks for two): their press then runs it.
+   * no longer asks for two): their press then runs it. A first approval
+   * given to what the fix no longer runs is no longer theirs to point to.
    */
   @CaptureSpan()
   public static async getAlreadyApprovedAnswer(data: {
@@ -228,7 +247,10 @@ export default class WorkspaceRemediationActions {
     const approvals: RemediationChatApprovals =
       await WorkspaceRemediationActions.getFixApprovals(data.suggestion);
 
-    if (approvals.needed < 2) {
+    if (
+      approvals.step?.kind !== RemediationApprovalStepKind.Second ||
+      !isSameApprover(approvals.step.firstApprovedByUserId, data.userId)
+    ) {
       return null;
     }
 
@@ -402,9 +424,18 @@ export default class WorkspaceRemediationActions {
           ? REMEDIATION_CHAT_WORDS.approve
           : REMEDIATION_CHAT_WORDS.approveAndRun,
       cancelTitle: REMEDIATION_CHAT_WORDS.cancel,
+      /*
+       * The fix, what it runs, and what this press does as the dialog says
+       * it: left open while someone else approves first (or the rule is
+       * turned on or off), the press does nothing and asks for a fresh
+       * review instead of doing what the dialog did not say.
+       */
       value: RemediationChatMessage.encodeActionValue({
         suggestionId: fix.suggestionId,
         fingerprint: RemediationChatMessage.getFingerprint(fix),
+        approvalStep: encodeRemediationApprovalStep(
+          approvals.step || { kind: RemediationApprovalStepKind.Only },
+        ),
       }),
     };
   }
@@ -426,6 +457,10 @@ export default class WorkspaceRemediationActions {
       props: data.props,
       suggestionId: data.value.suggestionId.toString(),
       expectedPlanFingerprint: data.value.fingerprint,
+      // What the dialog said the press does: a step that changed does nothing.
+      ...(data.value.approvalStep
+        ? { expectedApprovalStep: data.value.approvalStep }
+        : {}),
       from: data.from,
     });
 

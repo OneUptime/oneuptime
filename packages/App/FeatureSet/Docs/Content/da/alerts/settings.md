@@ -80,7 +80,7 @@ Med to eller flere betingelser vælger du **Alle skal matche**, hvor hver skal h
 :::steps
 ### Vælg advarslerne
 
-Klik på **Opret Alert On-Call Rule**. Under **Match** matcher **Alle advarsler**, som en ny regel starter på, hver ny advarsel. For at indsnævre reglen vælger du **Kun advarsler, der opfylder betingelserne** og tilføjer de betingelser, en advarsel skal opfylde.
+Klik på **Opret Vagtregel for advarsler**. Under **Match** matcher **Alle advarsler**, som en ny regel starter på, hver ny advarsel. For at indsnævre reglen vælger du **Kun advarsler, der opfylder betingelserne** og tilføjer de betingelser, en advarsel skal opfylde.
 
 ### Vælg politikkerne
 
@@ -171,7 +171,7 @@ Kortet **Næste nummer** nedenunder sætter det nummer, den næste advarsel og d
 
 ### Dataopbevaring
 
-**Advarsler → Indstillinger → Dataopbevaring** sletter advarsler, når de har været løst længe nok, ligesom [Dataopbevaring](/docs/incidents/settings#dataopbevaring) gør for hændelser. Kortet **Løste advarsler** spørger om **Slet efter**, **Aldrig**, indtil du vælger en periode, og beder om bekræftelse, før der slettes mere, med **Slet gamle advarsler**. En advarsel bliver, så længe den ikke er løst, så længe den er i en episode, der stadig er åben eller blev løst for kortere tid siden, og så længe en hændelse, den er knyttet til, bliver. Kun Projektejere og Projektadministratorer kan ændre den; i API'et er det projektets `alertRetentionInDays`.
+**Advarsler → Indstillinger → Dataopbevaring** sletter advarsler, når de har været løst længe nok, ligesom [Dataopbevaring](/docs/incidents/settings#dataopbevaring) gør for hændelser. Kortet **Løste advarsler** spørger om **Slet efter**, **Aldrig**, indtil du vælger en periode, og beder om bekræftelse, før der slettes mere, med **Slet gamle advarsler**, og siger samtidig, hvor mange advarsler det sletter nu. En advarsel slettes med sin tidslinje, sine noter og de filer, der er vedhæftet dem, medmindre noget andet stadig bruger en fil. En advarsel bliver, så længe den ikke er løst, så længe den er i en episode, der stadig er åben eller blev løst for kortere tid siden, og så længe en hændelse, den er knyttet til, bliver. Kun Projektejere og Projektadministratorer kan ændre den; i API'et er det projektets `alertRetentionInDays`. På en selvhostet server kan en masteradministrator holde alle projekter til en grænse og vælge, hvad nye projekter starter med: se [En grænse for hele serveren](/docs/incidents/settings#en-grænse-for-hele-serveren).
 
 > [!NOTE]
 > På OneUptime Cloud kræver noteskabeloner og brugerdefinerede felter planen **Growth** eller højere.

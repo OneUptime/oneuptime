@@ -179,6 +179,29 @@ export const CODE_TASK_ORIGIN_SENTENCES: Record<CodeTaskOriginType, string> = {
 };
 
 /*
+ * What kind of thing started a task, over its name in the task's Details
+ * ("Exception", then "TypeError: x is undefined"). Empty for a person's
+ * request and for an origin OneUptime cannot name: Details then says
+ * nothing of where it started.
+ */
+export const CODE_TASK_ORIGIN_KINDS: Record<CodeTaskOriginType, string> = {
+  [CodeTaskOriginType.Request]: "",
+  [CodeTaskOriginType.Exception]: translationKey("Exception"),
+  [CodeTaskOriginType.Incident]: translationKey("Incident"),
+  [CodeTaskOriginType.Alert]: translationKey("Alert"),
+  [CodeTaskOriginType.Trace]: translationKey("Slow Trace"),
+  [CodeTaskOriginType.Service]: translationKey("Service"),
+  [CodeTaskOriginType.Insight]: translationKey("AI Insight"),
+  [CodeTaskOriginType.GitHubIssue]: translationKey("GitHub Issue"),
+  [CodeTaskOriginType.GitHubPullRequest]: translationKey("GitHub Pull Request"),
+  [CodeTaskOriginType.GitLabMergeRequest]: translationKey(
+    "GitLab Merge Request",
+  ),
+  [CodeTaskOriginType.CodeHostPullRequest]: translationKey("Pull Request"),
+  [CodeTaskOriginType.Unknown]: "",
+};
+
+/*
  * Who asked, in a list row's meta line. A task OneUptime started is named
  * by its kind there ("Fix Exception"); its title already names the record.
  */
@@ -364,6 +387,9 @@ export const CODE_TASK_BLOCKER_SENTENCES: Partial<
   [CodeTaskBlockerType.RepositoryNeedsOwnRunner]: translationKey(
     "This repository's Git server is on a network OneUptime does not reach, so a global Runner cannot work in it. Pick one of your own Runners on that network.",
   ),
+  [CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner]: translationKey(
+    "AI works in a Forgejo, Gitea or Git repository on one of your own Runners: its access token is never handed to a global Runner. Pick one of your Runners.",
+  ),
   [CodeTaskBlockerType.NoLlmProvider]: translationKey(
     "AI needs an LLM provider for this project.",
   ),
@@ -398,6 +424,16 @@ export const CODE_TASK_BLOCKER_SENTENCES: Partial<
  */
 export const CODE_TASK_REPOSITORY_CONNECTION_GONE: string = translationKey(
   "This repository is no longer connected to its Git server, so AI cannot work in it. Connect it again from Code's Repositories.",
+);
+
+/*
+ * What a GitLab repository on the Global Runner is told when GitLab did not
+ * let OneUptime make the short-lived token a fix pushes with
+ * (RepositoryTokenNeedsOwnRunner for GitLab): the same sentence as the one
+ * under its Runner picker.
+ */
+export const CODE_TASK_GITLAB_TOKEN_NOT_MINTED: string = translationKey(
+  "GitLab did not let OneUptime make a short-lived token for this repository, so AI works in it on one of your own Runners. Give its connection a Maintainer's token with the api scope, or pick one of your Runners.",
 );
 
 // The fix that goes with it: Repositories, where any host connects.
@@ -492,6 +528,11 @@ export const CODE_TASK_BLOCKER_FIXES: Partial<
     title: translationKey("Pick a Runner"),
     setting: CodeRepositorySetting.Runner,
   },
+  [CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner]: {
+    pageMap: PageMap.CODE_REPOSITORY_VIEW_SETTINGS,
+    title: translationKey("Pick a Runner"),
+    setting: CodeRepositorySetting.Runner,
+  },
   [CodeTaskBlockerType.NoLlmProvider]: {
     pageMap: PageMap.SETTINGS_AI_LLM_PROVIDERS,
     title: translationKey("Add an LLM provider"),
@@ -532,6 +573,7 @@ export const CODE_TASK_BLOCKER_FIXES: Partial<
 export const CODE_TASK_REPOSITORY_SETTINGS_FIXES: Array<CodeTaskBlockerType> = [
   CodeTaskBlockerType.RepositoryTokenRefused,
   CodeTaskBlockerType.RepositoryNeedsOwnRunner,
+  CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner,
   CodeTaskBlockerType.NoAgent,
   CodeTaskBlockerType.RunnerNotOnline,
   CodeTaskBlockerType.GlobalRunnersOff,
@@ -557,6 +599,9 @@ export const CODE_TASK_BLOCKER_WHO_CAN_FIX: Partial<
     "A Project Admin can replace the access token in this repository's settings.",
   ),
   [CodeTaskBlockerType.RepositoryNeedsOwnRunner]: translationKey(
+    "A Project Admin can pick this repository's Runner in its settings.",
+  ),
+  [CodeTaskBlockerType.RepositoryTokenNeedsOwnRunner]: translationKey(
     "A Project Admin can pick this repository's Runner in its settings.",
   ),
   [CodeTaskBlockerType.NoAgent]: translationKey(

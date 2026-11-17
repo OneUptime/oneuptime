@@ -4,14 +4,24 @@ import {
   AiRemediationCommandPlan,
   AiRemediationCommandPolicyVerdict,
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
+import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import {
   ALREADY_APPROVED_FIRST_MESSAGE,
   APPROVALS_FOR_A_RISKIER_FIX,
+  decodeRemediationApprovalStep,
+  encodeRemediationApprovalStep,
+  getApprovalStepChangedMessage,
   getRemediationApprovalsNeeded,
+  getRemediationApprovalStep,
+  getWaitingFirstApprovedAt,
   getRiskierRemediationCommands,
   isRiskierRemediationCommand,
+  isRiskierWhateverItChanges,
   isSameApprover,
+  isSameRemediationApprovalStep,
+  RemediationApprovalStep,
+  RemediationApprovalStepKind,
 } from "../../../Types/AutoRemediation/RemediationApprovals";
 import { KubectlCommandTier } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import ObjectID from "../../../Types/ObjectID";
@@ -28,10 +38,14 @@ import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
  *    a resource; a safe change, a read, a Runner's Bash command and an SSH
  *    command from before credentials were removed are not;
  *  - two approvals are needed exactly where the project asks for them and
- *    the fix is a command plan holding a riskier change - never for a
- *    runbook or a fix through MCP servers;
+ *    the fix is a command plan holding a riskier change, or a fix through
+ *    MCP servers (no policy of OneUptime's tiers what an MCP tool changes) -
+ *    never for a runbook;
  *  - "the same person" is the same id, whatever its case;
- *  - why a first approver's second press does nothing, in one sentence.
+ *  - why a first approver's second press does nothing, in one sentence;
+ *  - the step a press is offered as (the only approval, the first of two,
+ *    the second after someone's), as a button carries it, and why a press
+ *    whose step changed does nothing.
  */
 
 function command(
@@ -176,7 +190,30 @@ describe("how many approvals a fix needs", () => {
     ).toBe(2);
   });
 
-  test("one in every other case: the rule off, safe changes only, a runbook, a fix through MCP servers, no type", () => {
+  test("two for a fix through MCP servers wherever the rule is on, whatever its changes are: no policy of OneUptime's tiers them", () => {
+    for (const hasRiskierChange of [true, false]) {
+      expect(
+        getRemediationApprovalsNeeded({
+          isTwoApprovalsRuleOn: true,
+          suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+          hasRiskierChange,
+        }),
+      ).toBe(2);
+    }
+
+    expect(
+      isRiskierWhateverItChanges(AutoRemediationSuggestionType.McpToolCalls),
+    ).toBe(true);
+    expect(
+      isRiskierWhateverItChanges(AutoRemediationSuggestionType.Runbook),
+    ).toBe(false);
+    expect(
+      isRiskierWhateverItChanges(AutoRemediationSuggestionType.CommandPlan),
+    ).toBe(false);
+    expect(isRiskierWhateverItChanges(undefined)).toBe(false);
+  });
+
+  test("one in every other case: the rule off (for every kind of fix), safe changes only, a runbook, no type", () => {
     const cases: Array<{
       isTwoApprovalsRuleOn: boolean;
       suggestionType: AutoRemediationSuggestionType | undefined;
@@ -188,6 +225,11 @@ describe("how many approvals a fix needs", () => {
         hasRiskierChange: true,
       },
       {
+        isTwoApprovalsRuleOn: false,
+        suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+        hasRiskierChange: true,
+      },
+      {
         isTwoApprovalsRuleOn: true,
         suggestionType: AutoRemediationSuggestionType.CommandPlan,
         hasRiskierChange: false,
@@ -195,11 +237,6 @@ describe("how many approvals a fix needs", () => {
       {
         isTwoApprovalsRuleOn: true,
         suggestionType: AutoRemediationSuggestionType.Runbook,
-        hasRiskierChange: true,
-      },
-      {
-        isTwoApprovalsRuleOn: true,
-        suggestionType: AutoRemediationSuggestionType.McpToolCalls,
         hasRiskierChange: true,
       },
       {
@@ -247,6 +284,184 @@ describe("why a first approver's second press does nothing", () => {
   test("says they approved, why the fix waits, and what runs it", () => {
     expect(ALREADY_APPROVED_FIRST_MESSAGE).toBe(
       "You already approved this fix. It holds a riskier change, and this project asks two people to approve one, so it runs once someone else approves it too.",
+    );
+  });
+});
+
+describe("when a fix that still waits was approved first", () => {
+  const at: Date = new Date("2026-11-06T09:02:00.000Z");
+
+  test("a waiting fix approved once waits for its second approval", () => {
+    expect(
+      getWaitingFirstApprovedAt({
+        status: AutoRemediationSuggestionStatus.Suggested,
+        firstApprovedAt: at,
+      }),
+    ).toBe(at);
+  });
+
+  test("nobody approved it yet, or it no longer waits: no first approval to name", () => {
+    expect(
+      getWaitingFirstApprovedAt({
+        status: AutoRemediationSuggestionStatus.Suggested,
+      }),
+    ).toBeUndefined();
+
+    for (const status of [
+      AutoRemediationSuggestionStatus.Approved,
+      AutoRemediationSuggestionStatus.Dismissed,
+      AutoRemediationSuggestionStatus.Planning,
+      AutoRemediationSuggestionStatus.AutoExecuted,
+      AutoRemediationSuggestionStatus.NoneApplicable,
+    ]) {
+      expect(
+        getWaitingFirstApprovedAt({ status, firstApprovedAt: at }),
+      ).toBeUndefined();
+    }
+  });
+});
+
+describe("the step a press of Approve is offered as", () => {
+  const MAYA: string = "0193c0de-4444-4aaa-8bbb-0000000000d4";
+  const SAM: string = "0193c0de-5555-4aaa-8bbb-0000000000d5";
+
+  test("the only approval where one runs the fix, whoever approved before", () => {
+    expect(getRemediationApprovalStep({ approvalsNeeded: 1 })).toEqual({
+      kind: RemediationApprovalStepKind.Only,
+    });
+    expect(
+      getRemediationApprovalStep({
+        approvalsNeeded: 1,
+        firstApprovedByUserId: MAYA,
+      }),
+    ).toEqual({ kind: RemediationApprovalStepKind.Only });
+  });
+
+  test("the first of two where nobody's first approval counts, and the second after the one that does", () => {
+    expect(getRemediationApprovalStep({ approvalsNeeded: 2 })).toEqual({
+      kind: RemediationApprovalStepKind.First,
+    });
+    expect(
+      getRemediationApprovalStep({
+        approvalsNeeded: 2,
+        firstApprovedByUserId: new ObjectID(MAYA.toUpperCase()),
+      }),
+    ).toEqual({
+      kind: RemediationApprovalStepKind.Second,
+      firstApprovedByUserId: MAYA,
+    });
+  });
+
+  test("is carried as a button value and read back as the same step", () => {
+    const steps: Array<RemediationApprovalStep> = [
+      { kind: RemediationApprovalStepKind.Only },
+      { kind: RemediationApprovalStepKind.First },
+      {
+        kind: RemediationApprovalStepKind.Second,
+        firstApprovedByUserId: MAYA,
+      },
+    ];
+
+    expect(steps.map(encodeRemediationApprovalStep)).toEqual([
+      "only",
+      "first",
+      `second:${MAYA}`,
+    ]);
+
+    for (const step of steps) {
+      expect(
+        decodeRemediationApprovalStep(encodeRemediationApprovalStep(step)),
+      ).toEqual(step);
+    }
+  });
+
+  test.each([
+    undefined,
+    null,
+    "",
+    "ONLY",
+    "second",
+    "second:",
+    "second:Maya Chen",
+    "second:'; DROP TABLE x; --",
+    `second:${"a".repeat(60)}`,
+    "third",
+    7,
+    { kind: "only" },
+  ])("%j is no step this code wrote", (value: unknown) => {
+    expect(decodeRemediationApprovalStep(value)).toBeNull();
+  });
+
+  test("two steps are the same press: the same kind, after the same first approver", () => {
+    const second: RemediationApprovalStep = {
+      kind: RemediationApprovalStepKind.Second,
+      firstApprovedByUserId: MAYA,
+    };
+
+    expect(
+      isSameRemediationApprovalStep(second, {
+        kind: RemediationApprovalStepKind.Second,
+        firstApprovedByUserId: MAYA.toUpperCase(),
+      }),
+    ).toBe(true);
+    expect(
+      isSameRemediationApprovalStep(second, {
+        kind: RemediationApprovalStepKind.Second,
+        firstApprovedByUserId: SAM,
+      }),
+    ).toBe(false);
+    expect(
+      isSameRemediationApprovalStep(second, {
+        kind: RemediationApprovalStepKind.First,
+      }),
+    ).toBe(false);
+    expect(
+      isSameRemediationApprovalStep(
+        { kind: RemediationApprovalStepKind.First },
+        { kind: RemediationApprovalStepKind.Only },
+      ),
+    ).toBe(false);
+    expect(
+      isSameRemediationApprovalStep(
+        { kind: RemediationApprovalStepKind.Only },
+        { kind: RemediationApprovalStepKind.Only },
+      ),
+    ).toBe(true);
+  });
+
+  test("a press whose step changed is told what pressing does now, and that nothing was done", () => {
+    expect(
+      getApprovalStepChangedMessage({
+        now: {
+          kind: RemediationApprovalStepKind.Second,
+          firstApprovedByUserId: MAYA,
+        },
+        firstApproverName: "Maya Chen",
+      }),
+    ).toBe(
+      "Maya Chen approved this fix while you were reviewing it, so approving it now would run it. Nothing was done: review it again before you approve.",
+    );
+    expect(
+      getApprovalStepChangedMessage({
+        now: {
+          kind: RemediationApprovalStepKind.Second,
+          firstApprovedByUserId: MAYA,
+        },
+      }),
+    ).toMatch(/^Someone else approved this fix while you were reviewing it/);
+    expect(
+      getApprovalStepChangedMessage({
+        now: { kind: RemediationApprovalStepKind.First },
+      }),
+    ).toBe(
+      "This fix now needs two people to approve it, and yours would be the first. Nothing was done: review it again before you approve.",
+    );
+    expect(
+      getApprovalStepChangedMessage({
+        now: { kind: RemediationApprovalStepKind.Only },
+      }),
+    ).toBe(
+      "One approval now runs this fix, so yours would run it. Nothing was done: review it again before you approve.",
     );
   });
 });

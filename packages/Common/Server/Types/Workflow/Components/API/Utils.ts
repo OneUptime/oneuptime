@@ -1,7 +1,9 @@
 import { RunOptions } from "../../ComponentCode";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
+import HTTPMethod from "../../../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import URL from "../../../../../Types/API/URL";
+import Dictionary from "../../../../../Types/Dictionary";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import Exception from "../../../../../Types/Exception/Exception";
 import { JSONObject, JSONValue } from "../../../../../Types/JSON";
@@ -9,20 +11,73 @@ import JSONFunctions from "../../../../../Types/JSONFunctions";
 import ComponentMetadata, {
   Port,
 } from "../../../../../Types/Workflow/Component";
-import { RequestOptions } from "../../../../../Utils/API";
-import SSRFProtection from "../../../../Utils/SSRFProtection";
+import SafeWebhookRequest, {
+  WebhookTarget,
+} from "../../../../Utils/SafeWebhookRequest";
+import { WebhookTargetValidationOptions } from "../../../../Utils/SSRFProtection";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
+
+/*
+ * A workflow is authored by a member of the project it runs in, not by a
+ * passing visitor, so its URLs are eligible for the instance's
+ * private-network exception (issue #3424). Whether that eligibility grants
+ * anything is decided by the instance configuration, which is off on every
+ * SaaS deployment and off by default everywhere else.
+ */
+export const API_COMPONENT_TARGET_VALIDATION: WebhookTargetValidationOptions = {
+  allowPrivateNetworkTargets: true,
+};
+
+/*
+ * The most of an answer an API step reads: 10 MB, as the Custom JavaScript
+ * step's HTTP requests do (MAX_HTTP_RESPONSE_BYTES in VM/VMRunner). A step
+ * hands its answer to the rest of the workflow as Response Body, so the cap
+ * is generous - a page of a large JSON list fits - but it is there: a
+ * workflow pointed at an endpoint that streams forever used to fill the
+ * workflow worker's memory, and on OneUptime Cloud every project shares
+ * that worker (issue #8875). A larger answer takes the error port, unread,
+ * with Error saying so (WebhookAnswerTooLargeException). The workflow
+ * components docs say the limit.
+ */
+export const API_COMPONENT_MAX_RESPONSE_BYTES: number = 10 * 1024 * 1024;
+
+// What sanitizeArgs hands a step: its arguments, its ports, and where it may send.
+export interface SanitizedApiArgs {
+  args: JSONObject;
+  successPort: Port;
+  errorPort: Port;
+  // The step's URL as its check approved it: the only place the request may go.
+  target: WebhookTarget;
+}
 
 export class ApiComponentUtils {
   /*
-   * Every API component sends its request with these. Redirects MUST stay off:
-   * sanitizeArgs validates the URL before the request is dispatched, and a
-   * validated public host that answers 302 -> http://169.254.169.254/ would
-   * otherwise walk the server straight past that check.
+   * Sends a step's request - its body and headers as sanitizeArgs left them -
+   * to the address sanitizeArgs approved, and nowhere else
+   * (SafeWebhookRequest). Redirects stay off: a validated public host that
+   * answers 302 -> http://169.254.169.254/ would otherwise walk the server
+   * straight past the check, and a name that resolves somewhere else by now
+   * is never dialled. At most API_COMPONENT_MAX_RESPONSE_BYTES of the
+   * answer is read.
    */
-  public static readonly requestOptions: RequestOptions = {
-    doNotFollowRedirects: true,
-  };
+  public static async send(data: {
+    method: HTTPMethod;
+    sanitized: SanitizedApiArgs;
+    // Whether the step sends a body: API Get By ID never does.
+    withBody?: boolean | undefined;
+  }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
+    const args: JSONObject = data.sanitized.args;
+
+    return await SafeWebhookRequest.send<JSONObject>(data.sanitized.target, {
+      method: data.method,
+      data:
+        data.withBody === false
+          ? undefined
+          : (args["request-body"] as JSONObject | undefined) || undefined,
+      headers: args["request-headers"] as Dictionary<string> | undefined,
+      maxContentLength: API_COMPONENT_MAX_RESPONSE_BYTES,
+    });
+  }
 
   @CaptureSpan()
   public static getReturnValues(
@@ -50,7 +105,7 @@ export class ApiComponentUtils {
     metadata: ComponentMetadata,
     args: JSONObject,
     options: RunOptions,
-  ): Promise<{ args: JSONObject; successPort: Port; errorPort: Port }> {
+  ): Promise<SanitizedApiArgs> {
     const successPort: Port | undefined = metadata.outPorts.find((p: Port) => {
       return p.id === "success";
     });
@@ -149,15 +204,19 @@ export class ApiComponentUtils {
      *
      * A self-hosted install may legitimately point a workflow at an internal
      * service (issue #3424), so this URL is eligible for the instance's
-     * private-network exception: a workflow is authored by a member of the
-     * project it runs in, not by a passing visitor. Whether that eligibility
-     * grants anything is decided by the instance configuration, which is off
-     * on every SaaS deployment and off by default everywhere else.
+     * private-network exception (API_COMPONENT_TARGET_VALIDATION).
+     *
+     * The check answers the addresses it approved, and send() dials one of
+     * those and no other: checking a name and then letting the HTTP client
+     * look it up again would leave the window a rebinding DNS server needs.
      */
+    let target: WebhookTarget;
+
     try {
-      await SSRFProtection.validateWebhookTargetIsSafe(args["url"] as string, {
-        allowPrivateNetworkTargets: true,
-      });
+      target = await SafeWebhookRequest.resolveTarget(
+        args["url"] as string,
+        API_COMPONENT_TARGET_VALIDATION,
+      );
     } catch (err) {
       throw options.onError(
         new BadDataException(
@@ -170,6 +229,6 @@ export class ApiComponentUtils {
 
     args["url"] = URL.fromString(args["url"] as string);
 
-    return { args, successPort, errorPort };
+    return { args, successPort, errorPort, target };
   }
 }

@@ -13,6 +13,10 @@ import AmazonSesAuthenticationType, {
   toAmazonSesAuthenticationType,
 } from "Common/Types/Email/AmazonSesAuthenticationType";
 import EmailMessage from "Common/Types/Email/EmailMessage";
+import {
+  getCcAddresses,
+  getReplyToAddress,
+} from "Common/Types/Email/EmailRecipients";
 import EmailServer from "Common/Types/Email/EmailServer";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import AwsDefaultCredentialChain, {
@@ -78,7 +82,9 @@ export const AMAZON_SES_CREDENTIAL_REFUSAL_CODES: ReadonlyArray<string> = [
 // The JSON body of a SendEmail request, as this provider writes it.
 export interface AmazonSesSendEmailRequest {
   FromEmailAddress: string;
-  Destination: { ToAddresses: Array<string> };
+  Destination: { ToAddresses: Array<string>; CcAddresses?: Array<string> };
+  // Where a reply goes, when not to the sender (EmailRecipients, #8893).
+  ReplyToAddresses?: Array<string>;
   Content: {
     Simple: {
       Subject: { Data: string; Charset: "UTF-8" };
@@ -145,6 +151,9 @@ export default class AmazonSesMailProvider implements MailProvider {
     const html: string = data.mail.body || "";
     // SES takes a text part beside the HTML; one with no words is left out.
     const text: string = EmailPlainText.fromHtml(html);
+    // Who is copied and where a reply goes (EmailRecipients, #8893).
+    const ccAddresses: Array<string> = getCcAddresses(data.mail);
+    const replyToAddress: string | null = getReplyToAddress(data.mail);
 
     return {
       FromEmailAddress: formatMailbox({
@@ -152,7 +161,11 @@ export default class AmazonSesMailProvider implements MailProvider {
         address: data.emailServer.fromEmail.toString(),
         encodeNonAscii: true,
       }),
-      Destination: { ToAddresses: [data.mail.toEmail.toString()] },
+      Destination: {
+        ToAddresses: [data.mail.toEmail.toString()],
+        ...(ccAddresses.length > 0 ? { CcAddresses: ccAddresses } : {}),
+      },
+      ...(replyToAddress ? { ReplyToAddresses: [replyToAddress] } : {}),
       Content: {
         Simple: {
           Subject: {

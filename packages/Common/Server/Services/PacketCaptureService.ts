@@ -202,6 +202,16 @@ interface DeletedCaptureFile {
   fileId: ObjectID;
 }
 
+/*
+ * The hand-written writes below - the probe's capability, its heartbeat, its
+ * failure and completion reports, Stop from the dashboard, the stale capture
+ * sweep and each batch of the retention sweep - are each one self-committing
+ * statement, whose own WHERE is its guard (OneUptime issues #8870 and
+ * #8929). They ran inside transactions, which added a BEGIN and a COMMIT
+ * round trip to each, and held the connection between them. A retention
+ * batch's two deletes must commit together, and do: they are one statement
+ * (see deleteExpiredCaptures).
+ */
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
@@ -566,19 +576,15 @@ export class Service extends ProjectReferencesService<Model> {
       return false;
     }
 
-    await this.executeTransaction(
-      async (transactionalEntityManager: EntityManager): Promise<void> => {
-        await transactionalEntityManager.query(
-          `
-            UPDATE "Probe"
-            SET "packetCaptureCapability" = $2::jsonb
-            WHERE "_id" = $1
-              AND "projectId" IS NOT NULL
-              AND "packetCaptureCapability" IS DISTINCT FROM $2::jsonb
-          `,
-          [data.probeId.toString(), JSON.stringify(data.capability)],
-        );
-      },
+    await this.getRepository().manager.query(
+      `
+        UPDATE "Probe"
+        SET "packetCaptureCapability" = $2::jsonb
+        WHERE "_id" = $1
+          AND "projectId" IS NOT NULL
+          AND "packetCaptureCapability" IS DISTINCT FROM $2::jsonb
+      `,
+      [data.probeId.toString(), JSON.stringify(data.capability)],
     );
 
     return true;
@@ -586,10 +592,22 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * Hands a probe its Pending captures, oldest first, at most `limit` (the
-   * capture slots it has free), and marks them Running. FOR UPDATE SKIP
-   * LOCKED, so two replicas of one probe never run the same capture.
-   * Captures older than the pickup window are left for the sweep to fail:
-   * whoever started one has long since been told it was not picked up.
+   * capture slots it has free), and marks them Running. Captures older than
+   * the pickup window are left for the sweep to fail: whoever started one
+   * has long since been told it was not picked up.
+   *
+   * One self-committing statement (OneUptime issue #7392), the shape of
+   * NetworkDeviceService.claimDevicesForPolling: the captures are locked FOR
+   * NO KEY UPDATE SKIP LOCKED, so two replicas of one probe never run the
+   * same capture, and marked Running by the same statement, so the locks
+   * last only as long as it runs - and the foreign-key check of a row that
+   * names a capture does not wait for them. It was a transaction of a
+   * SELECT ... FOR UPDATE and an UPDATE of the ids: four round trips on
+   * every probe tick, even with nothing pending.
+   *
+   * What the probe runs is read with the lock, from the row the UPDATE
+   * writes (it changes none of those columns), and comes back in claim
+   * order, the oldest first.
    */
   @CaptureSpan()
   public async claimPendingForProbe(data: {
@@ -605,60 +623,57 @@ export class Service extends ProjectReferencesService<Model> {
       -PACKET_CAPTURE_PICKUP_TIMEOUT_IN_MINUTES,
     );
 
-    return await this.executeTransaction(
-      async (
-        transactionalEntityManager: EntityManager,
-      ): Promise<Array<PacketCaptureJob>> => {
-        const rows: unknown = await transactionalEntityManager.query(
-          `
-            SELECT c."_id", c."interfaceName", c."bpfFilter",
-                   c."maxDurationInSeconds", c."maxPackets", c."maxFileSizeInMB"
-            FROM "PacketCapture" c
-            WHERE c."probeId" = $1
-              AND c."status" = $2
-              AND c."createdAt" >= $3
-              AND c."deletedAt" IS NULL
-            ORDER BY c."createdAt" ASC
-            LIMIT $4
-            FOR UPDATE OF c SKIP LOCKED
-          `,
-          [
-            data.probeId.toString(),
-            PacketCaptureStatus.Pending,
-            pickupWindowStart,
-            data.limit,
-          ],
-        );
-
-        const claimed: Array<Record<string, unknown>> = Array.isArray(rows)
-          ? (rows as Array<Record<string, unknown>>)
-          : [];
-
-        if (claimed.length === 0) {
-          return [];
-        }
-
-        await transactionalEntityManager.query(
-          `
-            UPDATE "PacketCapture"
-            SET "status" = $2,
-                "startedAt" = now(),
-                "updatedAt" = now()
-            WHERE "_id" = ANY($1::uuid[])
-          `,
-          [
-            claimed.map((row: Record<string, unknown>): string => {
-              return String(row["_id"]);
-            }),
-            PacketCaptureStatus.Running,
-          ],
-        );
-
-        return claimed.map((row: Record<string, unknown>): PacketCaptureJob => {
-          return Service.toJob(row);
-        });
-      },
+    /*
+     * A SELECT of the rows the UPDATE wrote: TypeORM hands a top-level
+     * UPDATE ... RETURNING back as [rows, rowCount] instead.
+     */
+    const rows: unknown = await this.getRepository().manager.query(
+      `
+        WITH "pending" AS (
+          SELECT c."_id", c."interfaceName", c."bpfFilter",
+                 c."maxDurationInSeconds", c."maxPackets", c."maxFileSizeInMB",
+                 c."createdAt"
+          FROM "PacketCapture" c
+          WHERE c."probeId" = $1
+            AND c."status" = $2
+            AND c."createdAt" >= $3
+            AND c."deletedAt" IS NULL
+          ORDER BY c."createdAt" ASC
+          LIMIT $4
+          FOR NO KEY UPDATE OF c SKIP LOCKED
+        ),
+        "claimed" AS (
+          UPDATE "PacketCapture" AS c
+          SET "status" = $5,
+              "startedAt" = now(),
+              "updatedAt" = now()
+          FROM "pending"
+          WHERE c."_id" = "pending"."_id"
+          RETURNING c."_id"
+        )
+        SELECT "pending"."_id", "pending"."interfaceName", "pending"."bpfFilter",
+               "pending"."maxDurationInSeconds", "pending"."maxPackets",
+               "pending"."maxFileSizeInMB"
+        FROM "pending"
+        INNER JOIN "claimed" ON "claimed"."_id" = "pending"."_id"
+        ORDER BY "pending"."createdAt" ASC
+      `,
+      [
+        data.probeId.toString(),
+        PacketCaptureStatus.Pending,
+        pickupWindowStart,
+        data.limit,
+        PacketCaptureStatus.Running,
+      ],
     );
+
+    const claimed: Array<Record<string, unknown>> = Array.isArray(rows)
+      ? (rows as Array<Record<string, unknown>>)
+      : [];
+
+    return claimed.map((row: Record<string, unknown>): PacketCaptureJob => {
+      return Service.toJob(row);
+    });
   }
 
   /*
@@ -734,21 +749,17 @@ export class Service extends ProjectReferencesService<Model> {
     const keepRunning: Set<string> = new Set();
 
     if (valid.length > 0) {
-      const result: unknown = await this.executeTransaction(
-        async (transactionalEntityManager: EntityManager): Promise<unknown> => {
-          return await transactionalEntityManager.query(
-            `
-              UPDATE "PacketCapture"
-              SET "updatedAt" = now()
-              WHERE "_id" = ANY($1::uuid[])
-                AND "probeId" = $2
-                AND "status" = $3
-                AND "deletedAt" IS NULL
-              RETURNING "_id", "stopRequestedAt"
-            `,
-            [valid, data.probeId.toString(), PacketCaptureStatus.Running],
-          );
-        },
+      const result: unknown = await this.getRepository().manager.query(
+        `
+          UPDATE "PacketCapture"
+          SET "updatedAt" = now()
+          WHERE "_id" = ANY($1::uuid[])
+            AND "probeId" = $2
+            AND "status" = $3
+            AND "deletedAt" IS NULL
+          RETURNING "_id", "stopRequestedAt"
+        `,
+        [valid, data.probeId.toString(), PacketCaptureStatus.Running],
       );
 
       for (const row of readReturnedRows(result)) {
@@ -774,31 +785,27 @@ export class Service extends ProjectReferencesService<Model> {
     packetCaptureId: ObjectID;
     statusMessage: string;
   }): Promise<boolean> {
-    const result: unknown = await this.executeTransaction(
-      async (transactionalEntityManager: EntityManager): Promise<unknown> => {
-        return await transactionalEntityManager.query(
-          `
-            UPDATE "PacketCapture"
-            SET "status" = $3,
-                "statusMessage" = $4,
-                "completedAt" = now(),
-                "updatedAt" = now()
-            WHERE "_id" = $1
-              AND "probeId" = $2
-              AND "status" = $5
-              AND "deletedAt" IS NULL
-            RETURNING "_id"
-          `,
-          [
-            data.packetCaptureId.toString(),
-            data.probeId.toString(),
-            PacketCaptureStatus.Failed,
-            Service.cutMessage(data.statusMessage) ||
-              "The probe could not run this capture.",
-            PacketCaptureStatus.Running,
-          ],
-        );
-      },
+    const result: unknown = await this.getRepository().manager.query(
+      `
+        UPDATE "PacketCapture"
+        SET "status" = $3,
+            "statusMessage" = $4,
+            "completedAt" = now(),
+            "updatedAt" = now()
+        WHERE "_id" = $1
+          AND "probeId" = $2
+          AND "status" = $5
+          AND "deletedAt" IS NULL
+        RETURNING "_id"
+      `,
+      [
+        data.packetCaptureId.toString(),
+        data.probeId.toString(),
+        PacketCaptureStatus.Failed,
+        Service.cutMessage(data.statusMessage) ||
+          "The probe could not run this capture.",
+        PacketCaptureStatus.Running,
+      ],
     );
 
     return readReturnedRows(result).length > 0;
@@ -900,38 +907,34 @@ export class Service extends ProjectReferencesService<Model> {
     const endReason: PacketCaptureEndReason | undefined =
       PacketCaptureEndReasonUtil.parse(data.endReason);
 
-    const result: unknown = await this.executeTransaction(
-      async (transactionalEntityManager: EntityManager): Promise<unknown> => {
-        return await transactionalEntityManager.query(
-          `
-            UPDATE "PacketCapture"
-            SET "status" = $3,
-                "endReason" = $4,
-                "statusMessage" = $5,
-                "packetCount" = $6,
-                "fileSizeInBytes" = $7,
-                "fileId" = $8,
-                "completedAt" = now(),
-                "updatedAt" = now()
-            WHERE "_id" = $1
-              AND "probeId" = $2
-              AND "status" = $9
-              AND "deletedAt" IS NULL
-            RETURNING "_id"
-          `,
-          [
-            data.packetCaptureId.toString(),
-            data.probeId.toString(),
-            PacketCaptureStatus.Completed,
-            endReason || null,
-            Service.cutMessage(data.statusMessage),
-            packetCount,
-            fileSizeInBytes,
-            fileId ? fileId.toString() : null,
-            PacketCaptureStatus.Running,
-          ],
-        );
-      },
+    const result: unknown = await this.getRepository().manager.query(
+      `
+        UPDATE "PacketCapture"
+        SET "status" = $3,
+            "endReason" = $4,
+            "statusMessage" = $5,
+            "packetCount" = $6,
+            "fileSizeInBytes" = $7,
+            "fileId" = $8,
+            "completedAt" = now(),
+            "updatedAt" = now()
+        WHERE "_id" = $1
+          AND "probeId" = $2
+          AND "status" = $9
+          AND "deletedAt" IS NULL
+        RETURNING "_id"
+      `,
+      [
+        data.packetCaptureId.toString(),
+        data.probeId.toString(),
+        PacketCaptureStatus.Completed,
+        endReason || null,
+        Service.cutMessage(data.statusMessage),
+        packetCount,
+        fileSizeInBytes,
+        fileId ? fileId.toString() : null,
+        PacketCaptureStatus.Running,
+      ],
     );
 
     const recorded: boolean = readReturnedRows(result).length > 0;
@@ -992,26 +995,22 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(ALREADY_FINISHED_MESSAGE);
     }
 
-    const result: unknown = await this.executeTransaction(
-      async (transactionalEntityManager: EntityManager): Promise<unknown> => {
-        return await transactionalEntityManager.query(
-          `
-            UPDATE "PacketCapture"
-            SET "stopRequestedAt" = COALESCE("stopRequestedAt", now()),
-                "updatedAt" = now()
-            WHERE "_id" = $1
-              AND "projectId" = $2
-              AND "status" = $3
-              AND "deletedAt" IS NULL
-            RETURNING "_id", "stopRequestedAt"
-          `,
-          [
-            data.packetCaptureId.toString(),
-            data.projectId.toString(),
-            PacketCaptureStatus.Running,
-          ],
-        );
-      },
+    const result: unknown = await this.getRepository().manager.query(
+      `
+        UPDATE "PacketCapture"
+        SET "stopRequestedAt" = COALESCE("stopRequestedAt", now()),
+            "updatedAt" = now()
+        WHERE "_id" = $1
+          AND "projectId" = $2
+          AND "status" = $3
+          AND "deletedAt" IS NULL
+        RETURNING "_id", "stopRequestedAt"
+      `,
+      [
+        data.packetCaptureId.toString(),
+        data.projectId.toString(),
+        PacketCaptureStatus.Running,
+      ],
     );
 
     const stopped: Record<string, unknown> | undefined =
@@ -1041,6 +1040,14 @@ export class Service extends ProjectReferencesService<Model> {
    * not pick up in time, one its probe stopped naming (restarted, lost its
    * connection), and one past its duration and upload grace. Returns how
    * many it failed.
+   *
+   * Three statements, in this order, each committing on its own (OneUptime
+   * issue #8870): each one's WHERE is its guard, and none has to commit with
+   * another. They ran in one transaction - five round trips, every minute,
+   * holding every row they failed locked until the last one was done. The
+   * order is what says why: a capture past its deadline whose probe also
+   * stopped naming it is failed as past its deadline by the second, and the
+   * third no longer finds it Running.
    */
   @CaptureSpan()
   public async failStaleCaptures(): Promise<number> {
@@ -1061,68 +1068,66 @@ export class Service extends ProjectReferencesService<Model> {
       -PACKET_CAPTURE_UPLOAD_GRACE_IN_MINUTES,
     );
 
-    return await this.executeTransaction(
-      async (transactionalEntityManager: EntityManager): Promise<number> => {
-        const notPickedUp: unknown = await transactionalEntityManager.query(
-          `
-            UPDATE "PacketCapture"
-            SET "status" = $1, "statusMessage" = $2,
-                "completedAt" = now(), "updatedAt" = now()
-            WHERE "status" = $3
-              AND "createdAt" < $4
-              AND "deletedAt" IS NULL
-            RETURNING "_id"
-          `,
-          [
-            PacketCaptureStatus.Failed,
-            PICKUP_TIMEOUT_MESSAGE,
-            PacketCaptureStatus.Pending,
-            pickupDeadline,
-          ],
-        );
+    const manager: EntityManager = this.getRepository().manager;
 
-        const pastDeadline: unknown = await transactionalEntityManager.query(
-          `
-            UPDATE "PacketCapture"
-            SET "status" = $1, "statusMessage" = $2,
-                "completedAt" = now(), "updatedAt" = now()
-            WHERE "status" = $3
-              AND "startedAt" + ("maxDurationInSeconds" * INTERVAL '1 second') < $4
-              AND "deletedAt" IS NULL
-            RETURNING "_id"
-          `,
-          [
-            PacketCaptureStatus.Failed,
-            UPLOAD_TIMEOUT_MESSAGE,
-            PacketCaptureStatus.Running,
-            uploadDeadline,
-          ],
-        );
+    const notPickedUp: unknown = await manager.query(
+      `
+        UPDATE "PacketCapture"
+        SET "status" = $1, "statusMessage" = $2,
+            "completedAt" = now(), "updatedAt" = now()
+        WHERE "status" = $3
+          AND "createdAt" < $4
+          AND "deletedAt" IS NULL
+        RETURNING "_id"
+      `,
+      [
+        PacketCaptureStatus.Failed,
+        PICKUP_TIMEOUT_MESSAGE,
+        PacketCaptureStatus.Pending,
+        pickupDeadline,
+      ],
+    );
 
-        const notHeardFrom: unknown = await transactionalEntityManager.query(
-          `
-            UPDATE "PacketCapture"
-            SET "status" = $1, "statusMessage" = $2,
-                "completedAt" = now(), "updatedAt" = now()
-            WHERE "status" = $3
-              AND "updatedAt" < $4
-              AND "deletedAt" IS NULL
-            RETURNING "_id"
-          `,
-          [
-            PacketCaptureStatus.Failed,
-            ProductBrandingText.brandText(HEARTBEAT_TIMEOUT_MESSAGE),
-            PacketCaptureStatus.Running,
-            heartbeatDeadline,
-          ],
-        );
+    const pastDeadline: unknown = await manager.query(
+      `
+        UPDATE "PacketCapture"
+        SET "status" = $1, "statusMessage" = $2,
+            "completedAt" = now(), "updatedAt" = now()
+        WHERE "status" = $3
+          AND "startedAt" + ("maxDurationInSeconds" * INTERVAL '1 second') < $4
+          AND "deletedAt" IS NULL
+        RETURNING "_id"
+      `,
+      [
+        PacketCaptureStatus.Failed,
+        UPLOAD_TIMEOUT_MESSAGE,
+        PacketCaptureStatus.Running,
+        uploadDeadline,
+      ],
+    );
 
-        return (
-          readReturnedRows(notPickedUp).length +
-          readReturnedRows(pastDeadline).length +
-          readReturnedRows(notHeardFrom).length
-        );
-      },
+    const notHeardFrom: unknown = await manager.query(
+      `
+        UPDATE "PacketCapture"
+        SET "status" = $1, "statusMessage" = $2,
+            "completedAt" = now(), "updatedAt" = now()
+        WHERE "status" = $3
+          AND "updatedAt" < $4
+          AND "deletedAt" IS NULL
+        RETURNING "_id"
+      `,
+      [
+        PacketCaptureStatus.Failed,
+        ProductBrandingText.brandText(HEARTBEAT_TIMEOUT_MESSAGE),
+        PacketCaptureStatus.Running,
+        heartbeatDeadline,
+      ],
+    );
+
+    return (
+      readReturnedRows(notPickedUp).length +
+      readReturnedRows(pastDeadline).length +
+      readReturnedRows(notHeardFrom).length
     );
   }
 
@@ -1130,6 +1135,21 @@ export class Service extends ProjectReferencesService<Model> {
    * Deletes captures - finished or not, deleted or not - and their files
    * once they are older than the retention period, a batch at a time.
    * Returns how many captures it deleted.
+   *
+   * A batch's captures and their files must go together, or a file outlives
+   * the capture that was the only way to find it. Each batch is one
+   * self-committing statement (OneUptime issue #8929): the captures are
+   * deleted by a data-modifying WITH, and their files by a second one that
+   * reads what the first returned, so the two commit together or not at all.
+   * It was a transaction - START TRANSACTION, the two DELETEs, COMMIT - so
+   * three round trips an hour with nothing expired, four a batch with files,
+   * the connection held between them.
+   *
+   * A capture's foreign key to its file (ON DELETE SET NULL) is checked at
+   * the end of the statement, when the captures it would set to NULL are
+   * already gone: it sets nothing. A file that something else still holds
+   * refuses its delete, and the whole batch with it (PacketCaptureSqlPostgres
+   * shows both on real Postgres).
    */
   @CaptureSpan()
   public async deleteExpiredCaptures(): Promise<number> {
@@ -1141,42 +1161,29 @@ export class Service extends ProjectReferencesService<Model> {
     let deletedCount: number = 0;
 
     for (;;) {
-      const deletedInBatch: number = await this.executeTransaction(
-        async (transactionalEntityManager: EntityManager): Promise<number> => {
-          const result: unknown = await transactionalEntityManager.query(
-            `
-              DELETE FROM "PacketCapture"
-              WHERE "_id" IN (
-                SELECT "_id" FROM "PacketCapture"
-                WHERE "createdAt" < $1
-                ORDER BY "createdAt" ASC
-                LIMIT $2
-              )
-              RETURNING "_id", "fileId"
-            `,
-            [cutoff, RETENTION_BATCH_SIZE],
-          );
-
-          const rows: Array<Record<string, unknown>> = readReturnedRows(result);
-
-          const fileIds: Array<string> = rows
-            .map((row: Record<string, unknown>): string => {
-              return String(row["fileId"] || "");
-            })
-            .filter((fileId: string): boolean => {
-              return ObjectID.isValidUUID(fileId);
-            });
-
-          if (fileIds.length > 0) {
-            await transactionalEntityManager.query(
-              `DELETE FROM "File" WHERE "_id" = ANY($1::uuid[])`,
-              [fileIds],
-            );
-          }
-
-          return rows.length;
-        },
+      const result: unknown = await this.getRepository().manager.query(
+        `
+          WITH "expired" AS (
+            DELETE FROM "PacketCapture"
+            WHERE "_id" IN (
+              SELECT "_id" FROM "PacketCapture"
+              WHERE "createdAt" < $1
+              ORDER BY "createdAt" ASC
+              LIMIT $2
+            )
+            RETURNING "_id", "fileId"
+          ), "files" AS (
+            DELETE FROM "File"
+            WHERE "_id" IN (
+              SELECT "fileId" FROM "expired" WHERE "fileId" IS NOT NULL
+            )
+          )
+          SELECT "_id" FROM "expired"
+        `,
+        [cutoff, RETENTION_BATCH_SIZE],
       );
+
+      const deletedInBatch: number = readReturnedRows(result).length;
 
       deletedCount += deletedInBatch;
 

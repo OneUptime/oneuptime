@@ -206,6 +206,8 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
 import ProxmoxResource from "../../../Models/DatabaseModels/ProxmoxResource";
 import ValueFormatter from "../../../Utils/ValueFormatter";
+// What a page draws holds a duration's figure to its word (#8811).
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -631,7 +633,7 @@ describe("Proxmox cluster overview: every metric has an (i)", () => {
       await renderOverview();
 
       expect(await tooltipTextOf(infoButton(title, index))).toBe(
-        PROXMOX_METRIC_DESCRIPTIONS[key],
+        withDurationWordsHeld(PROXMOX_METRIC_DESCRIPTIONS[key]),
       );
     },
   );

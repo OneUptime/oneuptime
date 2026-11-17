@@ -328,7 +328,7 @@ describe("an SMS the balance cannot pay for", () => {
       }),
     );
     expect(firstLogged<SmsLog>(SmsLogService).statusMessage).toBe(
-      `This project's balance (0.04 USD) is less than this SMS costs (0.10 USD). ${WHO_CAN}`,
+      `This project's balance (0.04\u00A0USD) is less than this SMS costs (0.10\u00A0USD). ${WHO_CAN}`,
     );
   });
 
@@ -346,7 +346,7 @@ describe("an SMS the balance cannot pay for", () => {
     expect(projectId).toEqual(PROJECT_ID);
     expect(subject).toBe("Low SMS and Call Balance for Acme");
     expect(body).toContain(
-      "This SMS was not sent. This project&#39;s balance (0.04 USD) is less than this SMS costs (0.10 USD).",
+      "This SMS was not sent. This project&#39;s balance (0.04\u00A0USD) is less than this SMS costs (0.10\u00A0USD).",
     );
     expect(body).toContain("Incident Checkout down.");
     expectOwnerEmailAboutBalance(body);
@@ -435,14 +435,14 @@ describe("a call the balance cannot pay for", () => {
     await CallService.makeCall(call(), { projectId: PROJECT_ID });
 
     expect(firstLogged<CallLog>(CallLogService).statusMessage).toBe(
-      `This project's balance (0.20 USD) is less than this call costs (0.35 USD). ${WHO_CAN}`,
+      `This project's balance (0.20\u00A0USD) is less than this call costs (0.35\u00A0USD). ${WHO_CAN}`,
     );
 
     const body: string = ownerEmails()[0]![2];
 
     expect(ownerEmails()[0]![1]).toBe("Low SMS and Call Balance for Acme");
     expect(body).toContain(
-      `We tried to make a call to ${TO.toString()}. <br/> <br/> This call was not made. This project&#39;s balance (0.20 USD) is less than this call costs (0.35 USD).`,
+      `We tried to make a call to ${TO.toString()}. <br/> <br/> This call was not made. This project&#39;s balance (0.20\u00A0USD) is less than this call costs (0.35\u00A0USD).`,
     );
     expect(body).not.toContain("SMS should");
     expectOwnerEmailAboutBalance(body);
@@ -473,7 +473,7 @@ describe("a WhatsApp message the balance cannot pay for", () => {
 
     expect(log.status).toBe(WhatsAppStatus.LowBalance);
     expect(log.statusMessage).toBe(
-      `This project's balance (0.03 USD) is less than this WhatsApp message costs (0.05 USD). ${WHO_CAN}`,
+      `This project's balance (0.03\u00A0USD) is less than this WhatsApp message costs (0.05\u00A0USD). ${WHO_CAN}`,
     );
   });
 
@@ -525,7 +525,7 @@ describe("a Telegram message the balance cannot pay for", () => {
 
     expect(log.status).toBe(TelegramStatus.LowBalance);
     expect(log.statusMessage).toBe(
-      `This project's balance (0.01 USD) is less than this Telegram message costs (0.02 USD). ${WHO_CAN}`,
+      `This project's balance (0.01\u00A0USD) is less than this Telegram message costs (0.02\u00A0USD). ${WHO_CAN}`,
     );
   });
 

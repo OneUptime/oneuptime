@@ -305,20 +305,20 @@ Legg den til én gang: hver node i klyngen pusher sine egne målinger. OneUptime
 
 Hver node pusher bare sin egen status, så en node som går ned, kan ikke si det selv. Nodene som fortsatt lever, rapporterer det for den:
 
-- Omtrent 2 minutter etter den siste rapporten vises noden som **Frakoblet** på nodesiden. **Sist sett** på nodens egen side beholder tidspunktet for dens egen siste rapport.
-- Etter omtrent 5 minutter utløses **Node Offline** for den. **Cluster Quorum at Risk** teller den også som frakoblet; fordi den malen trenger et fullt 5-minutters vindu med rapporter, utløses den omtrent 7–9 minutter etter at noden ble stille.
+- Omtrent 2 minutter etter den siste rapporten vises noden som **Offline** på nodesiden. **Sist sett** på nodens egen side beholder tidspunktet for dens egen siste rapport.
+- Etter omtrent 5 minutter utløses **Node Offline** for den. **Cluster Quorum at Risk** teller den også som offline; fordi den malen trenger et fullt 5-minutters vindu med rapporter, utløses den omtrent 7–9 minutter etter at noden ble stille.
 - Med neste rapport er den **Online** igjen, og varselet gjenopprettes.
 
-Frakoblet betyr her at noden sluttet å rapportere, ikke nødvendigvis at den er nede. En node som er oppe, men der `pvestatd` henger eller er drept, der klyngefilsystemet (`pmxcfs`) er nede, eller der nettverket til OneUptime er brutt, rapporteres på samme måte.
+Offline betyr her at noden sluttet å rapportere, ikke nødvendigvis at den er nede. En node som er oppe, men der `pvestatd` henger eller er drept, der klyngefilsystemet (`pmxcfs`) er nede, eller der nettverket til OneUptime er brutt, rapporteres på samme måte.
 
 Det dette ikke kan dekke:
 
 - En frittstående vert, eller en hel klynge som blir stille på én gang: det er ingen igjen til å rapportere det, så ingen varsler per node utløses. Klyngen blir i stedet **Frakoblet**, som når agenten stopper.
 - En node som har vært stille i mer enn 7 dager, rapporteres ikke lenger: varselet løses, og den forsvinner fra nodesiden. En selvhostet OneUptime endrer de 7 dagene med `PVE_SILENT_NODE_RETENTION_HOURS`.
-- En node du tar ut av klyngen, ser lik ut som en død node. Bruk **Fjern node** på siden dens: den forsvinner, og varselet løses. Ellers forblir den Frakoblet i opptil 7 dager.
-- Nodens gjester og lagring: bare selve noden beholdes som Frakoblet. VM-ene, containerne og lagringen forsvinner fra sidene sine omtrent 15 minutter etter den siste rapporten, og gjester som HA starter på nytt på en annen node, kommer tilbake under den noden.
+- En node du tar ut av klyngen, ser lik ut som en død node. Bruk **Fjern node** på siden dens: den forsvinner, og varselet løses. Ellers forblir den Offline i opptil 7 dager.
+- Nodens gjester og lagring: bare selve noden beholdes som Offline. VM-ene, containerne og lagringen forsvinner fra sidene sine omtrent 15 minutter etter den siste rapporten, og gjester som HA starter på nytt på en annen node, kommer tilbake under den noden.
 
-Etter et inntaksbrudd i OneUptime rapporteres en node som nylig ble stille, først når en av de andre har pushet igjen i 2 minutter, så selve bruddet varsler aldri for hver node. En node som allerede var Frakoblet, forblir Frakoblet gjennom et kort brudd og beholder varselet sitt; etter et brudd på mer enn 5 minutter rapporteres den igjen når de andre har pushet i 2 minutter.
+Etter et inntaksbrudd i OneUptime rapporteres en node som nylig ble stille, først når en av de andre har pushet igjen i 2 minutter, så selve bruddet varsler aldri for hver node. En node som allerede var Offline, forblir Offline gjennom et kort brudd og beholder varselet sitt; etter et brudd på mer enn 5 minutter rapporteres den igjen når de andre har pushet i 2 minutter.
 
 I [Metrics Explorer](/docs/monitor/metrics-monitor) er disse rapportene `pve_up` = 0-punktene merket `oneuptime.proxmox.inferred` = `not-reporting`, så du alltid kan skille dem fra det en node sa om seg selv.
 
@@ -426,8 +426,8 @@ Flaggene deres for start ved oppstart og replikeringsjobbene deres kommer fra no
 OneUptime registrerer en Proxmox-klynge etter sitt `proxmox.cluster.name`, som agenten tar fra `PROXMOX_CLUSTER_NAME`. Å endre det etter de første dataene oppretter en ny klynge i stedet for å gi den første nytt navn.
 :::
 
-:::details Med native push vises en node som Frakoblet
-Den sluttet å rapportere: en node som er nede, en `pvestatd` som henger, en stoppet `pmxcfs` eller et brutt nettverk til OneUptime ser like ut. Neste rapport bringer den tilbake. Hvis du tok noden ut av klyngen, bruk **Fjern node** på siden dens; ellers forblir den Frakoblet i opptil 7 dager. Se [Når en node slutter å rapportere](#når-en-node-slutter-å-rapportere).
+:::details Med native push vises en node som Offline
+Den sluttet å rapportere: en node som er nede, en `pvestatd` som henger, en stoppet `pmxcfs` eller et brutt nettverk til OneUptime ser like ut. Neste rapport bringer den tilbake. Hvis du tok noden ut av klyngen, bruk **Fjern node** på siden dens; ellers forblir den Offline i opptil 7 dager. Se [Når en node slutter å rapportere](#når-en-node-slutter-å-rapportere).
 :::
 
 :::details Med native push utløses aldri Guest Down-, HA- eller sikkerhetskopivarsler

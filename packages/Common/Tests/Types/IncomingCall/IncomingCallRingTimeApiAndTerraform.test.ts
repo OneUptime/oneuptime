@@ -299,7 +299,7 @@ describe("the dashboard's Developer pages", () => {
     expect(
       recipes.some((recipe: DeveloperDocsRecipe): boolean => {
         return (recipe.description || "").includes(
-          `for ${DEFAULT_INCOMING_CALL_RING_SECONDS} seconds before the next rule`,
+          `for ${DEFAULT_INCOMING_CALL_RING_SECONDS}\u00A0seconds before the next rule`,
         );
       }),
     ).toBe(true);

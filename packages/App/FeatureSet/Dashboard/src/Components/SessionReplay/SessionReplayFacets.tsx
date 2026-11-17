@@ -149,7 +149,9 @@ const FACETS_WITH_OUR_WORDS: ReadonlySet<SessionReplayFacetField> =
   ]);
 
 // English, word for word, for a caller that hands in no translator.
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 /** Match the normalization and signal precedence of the list endpoint. */
 export function getSessionReplayFacetValue(

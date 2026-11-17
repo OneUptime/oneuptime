@@ -17,7 +17,9 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   NOT_MONITORED_STATUS_COLOR,
   NOT_MONITORED_STATUS_NAME,
+  NOT_MONITORED_YET_STATUS_NAME,
 } from "../../../Utils/StatusPage/FrozenMonitorResources";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import { mockRouter } from "./Helpers";
 import {
   afterEach,
@@ -355,5 +357,116 @@ describe("GET /status-page-api/badge/:statusPageId and monitoring off", () => {
 
     expect(drawn.name).toBe("Offline");
     expect(drawn.color).toBe("#ef4444");
+  });
+});
+
+/*
+ * Issue #8899: a monitor nothing has checked yet holds the operational
+ * status every monitor is created in. It colors the badge no more than one
+ * whose monitoring is off, and a page of nothing else says so.
+ */
+describe("GET /status-page-api/badge/:statusPageId and monitors nothing has checked yet", () => {
+  beforeAll(() => {
+    mockRouter.routes.length = 0;
+    new StatusPageAPI();
+  });
+
+  beforeEach(() => {
+    resourceReads = [];
+    groupReads = [];
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function neverChecked(resource: StatusPageResource): StatusPageResource {
+    (resource.monitor as unknown as JSONObject)["firstMeasuredAt"] = null;
+    resource.monitor!.monitorType = MonitorType.Website;
+    return resource;
+  }
+
+  function neverCheckedMember(row: MonitorGroupResource): MonitorGroupResource {
+    (row.monitor as unknown as JSONObject)["firstMeasuredAt"] = null;
+    row.monitor!.monitorType = MonitorType.Ping;
+    return row;
+  }
+
+  it("reads whether anything has checked each monitor, with the resources", async () => {
+    mockPage({ resources: [monitorResource(OPERATIONAL)] });
+
+    await badge();
+
+    const select: JSONObject = resourceReads[0]!["select"] as JSONObject;
+    expect((select["monitor"] as JSONObject)["firstMeasuredAt"]).toBe(true);
+    expect((select["monitor"] as JSONObject)["monitorType"]).toBe(true);
+  });
+
+  it("does not color the badge: the checked monitors' worst status does", async () => {
+    mockPage({
+      resources: [
+        monitorResource(DEGRADED),
+        neverChecked(monitorResource(OPERATIONAL)),
+      ],
+    });
+
+    expect((await badge()).name).toBe("Degraded");
+  });
+
+  it("a page nothing on which has been checked yet draws Not monitored yet, in gray", async () => {
+    const allNew: ObjectID = ObjectID.generate();
+
+    mockPage({
+      resources: [
+        neverChecked(monitorResource(OPERATIONAL)),
+        groupResource(allNew),
+      ],
+      members: {
+        [allNew.toString()]: [
+          neverCheckedMember(member(allNew, OPERATIONAL)),
+          neverCheckedMember(member(allNew, OPERATIONAL)),
+        ],
+      },
+    });
+
+    const drawn: Badge = await badge();
+
+    expect(drawn.name).toBe(NOT_MONITORED_YET_STATUS_NAME);
+    expect(drawn.name).toBe("Not monitored yet");
+    expect(drawn.color).toBe(NOT_MONITORED_STATUS_COLOR.toString());
+    expect(drawn.svg).not.toContain("Operational");
+  });
+
+  it("one turned off among them, and the page is Not monitored", async () => {
+    mockPage({
+      resources: [
+        neverChecked(monitorResource(OPERATIONAL)),
+        monitorResource(OFFLINE, { isMonitoringOff: true }),
+      ],
+    });
+
+    expect((await badge()).name).toBe("Not monitored");
+  });
+
+  it("a status an incident set before the first check colors it as it is", async () => {
+    mockPage({
+      resources: [
+        neverChecked(monitorResource(OFFLINE)),
+        monitorResource(OPERATIONAL),
+      ],
+    });
+
+    expect((await badge()).name).toBe("Offline");
+  });
+
+  it("a manual monitor in Operational speaks for itself", async () => {
+    const manual: StatusPageResource = neverChecked(
+      monitorResource(OPERATIONAL),
+    );
+    manual.monitor!.monitorType = MonitorType.Manual;
+
+    mockPage({ resources: [manual] });
+
+    expect((await badge()).name).toBe("Operational");
   });
 });

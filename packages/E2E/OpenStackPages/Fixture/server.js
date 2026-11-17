@@ -17,6 +17,9 @@ const fs = require("fs");
 const http = require("http");
 const path = require("path");
 const { createConfig } = require("../../../Common/UI/esbuild-config.js");
+const {
+  dashboardLocalesPlugin,
+} = require("../../SuiteHelpers/FixtureLocalesBuild.js");
 const esbuild = require("../../../Common/node_modules/esbuild");
 const repository = path.resolve(__dirname, "../../../..");
 /*
@@ -224,7 +227,11 @@ const config = createConfig({
   publicPath: "/dist/",
   entryPoint: path.join(__dirname, "Fixture.js"),
   outdir: output,
-  additionalPlugins: [recordingsPlugin],
+  additionalPlugins: [
+    // The locales as the Dashboard's own build ships them (#8366).
+    dashboardLocalesPlugin(),
+    recordingsPlugin,
+  ],
   additionalAlias: {
     Common: path.join(repository, "packages/Common"),
     react: path.join(repository, "packages/Common/node_modules/react"),

@@ -101,24 +101,28 @@ export const GLOBAL_RUNNER_PUBLIC_SELECT: Select<Model> = {
 };
 
 /*
- * What findGlobalRunners reads: the public columns, and the release, which
- * judges whether one that does not say takes AI code fixes - read on the
+ * What findGlobalRunners reads: the public columns, the release, which
+ * judges whether one that does not say takes AI code fixes, and the
+ * server's switch for its code fixes (Runner.canRunCodeFixes) - read on the
  * server, never handed on.
  */
 export const GLOBAL_RUNNER_LIST_READ_SELECT: Select<Model> = {
   ...GLOBAL_RUNNER_PUBLIC_SELECT,
   agentVersion: true,
+  canRunCodeFixes: true,
 };
 
 /*
  * What the code-fix rule reads off a global Runner (Types/Runner/
- * RunnerCodeFixes): what it said on its last heartbeat, and - for one of a
- * release that does not say - that release. Read as OneUptime, for the
- * server's own answer; the release never leaves the server.
+ * RunnerCodeFixes): the server's switch for its code fixes, what it said on
+ * its last heartbeat, and - for one of a release that does not say - that
+ * release. Read as OneUptime, for the server's own answer; the release
+ * never leaves the server.
  */
 export const GLOBAL_RUNNER_CODE_FIX_SELECT: Select<Model> = {
   _id: true,
   isGlobalRunner: true,
+  canRunCodeFixes: true,
   takesCodeFixes: true,
   agentVersion: true,
   lastAlive: true,
@@ -763,8 +767,9 @@ export class Service extends ProjectReferencesService<Model> {
    * GLOBAL_RUNNER_PUBLIC_SELECT only - never a key, a host or a version.
    * Read as OneUptime: no project owns them, so no project's read reaches
    * them. Whether each takes AI code fixes is said as OneUptime counts it
-   * (Types/Runner/RunnerCodeFixes): one of a release that does not say is
-   * judged by that release, read here and left out of what is handed on.
+   * (Types/Runner/RunnerCodeFixes): one a master admin turned code fixes off
+   * for takes none, and one of a release that does not say is judged by that
+   * release - both read here and left out of what is handed on.
    */
   @CaptureSpan()
   public async findGlobalRunners(): Promise<Array<Model>> {
@@ -780,12 +785,14 @@ export class Service extends ProjectReferencesService<Model> {
     for (const runner of runners) {
       runner.takesCodeFixes = doesRunnerTakeCodeFixes({
         isGlobalRunner: true,
+        canRunCodeFixes: runner.canRunCodeFixes,
         takesCodeFixes: runner.takesCodeFixes,
         agentVersion: runner.agentVersion,
         lastAlive: runner.lastAlive,
       });
 
       delete runner.agentVersion;
+      delete runner.canRunCodeFixes;
     }
 
     return runners;
@@ -795,11 +802,11 @@ export class Service extends ProjectReferencesService<Model> {
    * Whether a global Runner that takes AI code fixes is online - what a
    * repository on the Global Runner waits for - or, when none is, whether
    * any global Runner is online at all, so the repository can say which:
-   * global Runners that are online but take no code fixes (a release
-   * from before global Runners took them, or a host that turned them off,
-   * Types/Runner/RunnerCodeFixes) are not counted as there to take its
-   * work. lastAlive is a query predicate, as for every other Runner
-   * liveness check.
+   * global Runners that are online but take no code fixes (one a master
+   * admin turned them off for, a release from before global Runners took
+   * them, or a host that turned them off, Types/Runner/RunnerCodeFixes) are
+   * not counted as there to take its work. lastAlive is a query predicate,
+   * as for every other Runner liveness check.
    */
   @CaptureSpan()
   public async getGlobalRunnerCodeFixAvailability(): Promise<GlobalRunnerCodeFixAvailability> {
@@ -886,6 +893,11 @@ export class Service extends ProjectReferencesService<Model> {
         hostInfo: true,
         // A global Runner is served the global jobs, and nothing else.
         isGlobalRunner: true,
+        /*
+         * Whether its heartbeat grants a global Runner AI code fixes: the
+         * server's switch, a master admin's (RunnerIngress).
+         */
+        canRunCodeFixes: true,
       },
       props: { isRoot: true },
     });

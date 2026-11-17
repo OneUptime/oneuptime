@@ -4,6 +4,7 @@ import {
   getNumberLocale,
   isEnglishDateLanguage,
 } from "../../Types/DateLanguage";
+import { withDurationWordsHeld } from "../../Types/NoBreakSpaces";
 import { isRightToLeftLanguage } from "../../Types/ReadingDirection";
 import SliType from "../../Types/ServiceLevelObjective/SliType";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
@@ -382,9 +383,10 @@ export const formatErrorBudgetRemainingSeconds: FormatErrorBudgetRemainingSecond
         ? UNDER_A_MINUTE_OVER_BUDGET
         : UNDER_A_MINUTE_REMAINING;
 
+      // Its "1 min" held, as the count's own "44 min" is (#8811).
       return translator
         ? translator.translateText(underAMinute) || underAMinute
-        : underAMinute;
+        : withDurationWordsHeld(underAMinute);
     }
 
     if (!translator) {

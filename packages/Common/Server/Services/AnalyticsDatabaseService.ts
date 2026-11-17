@@ -676,6 +676,158 @@ export default class AnalyticsDatabaseService<
   }
 
   /**
+   * How many rows match a query in each of several time windows, for each
+   * value of a column: in one statement, what a countBy per value and per
+   * window - the query and `valueColumnName = value` and
+   * `timeColumnName >= startsAt AND timeColumnName <= endsAt`, both ends in
+   * as InBetween has them - would count, read with the same permission
+   * check, retention filter and time limit as a count. The AI insight scan
+   * counts each exception's occurrences in its two windows this way: one
+   * statement a project, not two an exception.
+   *
+   * A statement that runs out of its time fails (QueryTimeoutException):
+   * ClickHouse answers a grouped read it breaks off with an empty or cut-off
+   * body (ExplorerReadsStopWithErrorGuard), never with counts to trust. The
+   * scan then files nothing from the detector for the project, as when its
+   * counts broke off at 0, and reads again on its next tick.
+   *
+   * Returns, for each value that has a row in any window, its count in each
+   * window, in the order the windows were given. A value with no row in any
+   * window is not there: its counts are all 0.
+   */
+  @CaptureSpan()
+  public async countPerValueInWindows(data: {
+    query: Query<TBaseModel>;
+    valueColumnName: string;
+    timeColumnName: string;
+    windows: Array<{ startsAt: Date; endsAt: Date }>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, Array<number>>> {
+    try {
+      const valueColumn: AnalyticsTableColumn | null =
+        this.model.getTableColumn(data.valueColumnName);
+      const timeColumn: AnalyticsTableColumn | null = this.model.getTableColumn(
+        data.timeColumnName,
+      );
+
+      if (!valueColumn || !timeColumn) {
+        throw new BadDataException(
+          `This table has no column named ${valueColumn ? data.timeColumnName : data.valueColumnName}. Name one of its columns.`,
+        );
+      }
+
+      if (data.windows.length === 0) {
+        return new Map<string, Array<number>>();
+      }
+
+      const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
+        await ModelPermission.checkReadPermission(
+          this.modelType,
+          data.query,
+          null,
+          data.props,
+        );
+
+      if (!this.database) {
+        this.useDefaultDatabase();
+      }
+
+      const databaseName: string =
+        this.database.getDatasourceOptions().database!;
+
+      const statement: Statement = SQL`
+            SELECT
+                ${data.valueColumnName} AS countedValue`;
+
+      data.windows.forEach(
+        (window: { startsAt: Date; endsAt: Date }, index: number): void => {
+          statement
+            .append(
+              SQL`,
+                countIf(${data.timeColumnName} >= ${{
+                  value: window.startsAt,
+                  type: timeColumn.type,
+                }} AND ${data.timeColumnName} <= ${{
+                  value: window.endsAt,
+                  type: timeColumn.type,
+                }})`,
+            )
+            // The window's place, a number of this method's: never a value sent.
+            .append(` AS windowCount${index}`);
+        },
+      );
+
+      // The rows of every window, and no other: the counts read only these.
+      const startsAt: Date = new Date(
+        Math.min(
+          ...data.windows.map((window: { startsAt: Date }): number => {
+            return window.startsAt.getTime();
+          }),
+        ),
+      );
+      const endsAt: Date = new Date(
+        Math.max(
+          ...data.windows.map((window: { endsAt: Date }): number => {
+            return window.endsAt.getTime();
+          }),
+        ),
+      );
+
+      statement
+        .append(
+          SQL`
+            FROM ${databaseName}.${this.model.tableName}
+            WHERE TRUE `,
+        )
+        .append(
+          this.statementGenerator.toWhereStatement(
+            checkReadPermissionType.query,
+          ),
+        )
+        .append(
+          SQL` AND ${data.timeColumnName} >= ${{
+            value: startsAt,
+            type: timeColumn.type,
+          }} AND ${data.timeColumnName} <= ${{
+            value: endsAt,
+            type: timeColumn.type,
+          }}`,
+        )
+        .append(this.getRetentionReadFilter())
+        .append(" GROUP BY countedValue")
+        .append(
+          getQuerySettings({
+            maxExecutionTimeInSeconds: COUNT_MAX_EXECUTION_TIME_IN_SECONDS,
+            timeoutOverflowMode: "throw",
+          }),
+        );
+
+      const dbResult: ResultSet<"JSON"> = await this.executeQuery(statement);
+      const resultInJSON: ResponseJSON<JSONObject> =
+        await dbResult.json<JSONObject>();
+
+      const counts: Map<string, Array<number>> = new Map<
+        string,
+        Array<number>
+      >();
+
+      for (const row of resultInJSON.data || []) {
+        // A UInt64 arrives as a JSON string or a number (see countBy).
+        counts.set(
+          String(row["countedValue"]),
+          data.windows.map((_window: unknown, index: number): number => {
+            return Number(row[`windowCount${index}`] || 0);
+          }),
+        );
+      }
+
+      return counts;
+    } catch (error) {
+      throw this.getException(error as Exception);
+    }
+  }
+
+  /**
    * Returns whether at least one row matches the query, without counting
    * every match. Prefer this over `countBy(...).toNumber() === 0` for
    * existence checks: `count()` scans every matching row, whereas this
@@ -1154,7 +1306,11 @@ export default class AnalyticsDatabaseService<
         );
       }
 
-      // Every row carries the columns the aggregate groups by.
+      /*
+       * Every row carries the columns the aggregate groups by, and the rows
+       * come in the order its sort asks for: both are held to the caller's
+       * read (#8839).
+       */
       const result: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
           this.modelType,
@@ -1168,6 +1324,8 @@ export default class AnalyticsDatabaseService<
             aggregateBy.groupBy,
           ),
           aggregateBy.props,
+          undefined,
+          aggregateBy.sort,
         );
 
       aggregateBy.query = result.query;
@@ -1317,6 +1475,9 @@ export default class AnalyticsDatabaseService<
     findBy: FindBy<TBaseModel>,
   ): Promise<Array<TBaseModel>> {
     try {
+      // The order the caller asked for, before the model's own is put in.
+      const askedSort: Sort<TBaseModel> | undefined = findBy.sort;
+
       if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
         /*
          * Default sort uses the model's declared `defaultSortColumn`
@@ -1368,7 +1529,8 @@ export default class AnalyticsDatabaseService<
 
       /*
        * A group by is checked with the select: toFindStatement selects its
-       * columns in place of the select.
+       * columns in place of the select. The sort is held to the caller's
+       * read of each column it names, as the select is (#8839).
        */
       const result: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadPermission(
@@ -1380,6 +1542,8 @@ export default class AnalyticsDatabaseService<
             onBeforeFind.groupBy,
           ),
           onBeforeFind.props,
+          undefined,
+          askedSort,
         );
 
       onBeforeFind.query = result.query;

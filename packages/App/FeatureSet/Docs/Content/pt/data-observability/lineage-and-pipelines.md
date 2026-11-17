@@ -23,6 +23,21 @@ Quando a origem nomeia colunas, a aba **Colunas** de uma tabela diz de onde vem 
 
 Na aba **Linhagem**, escolha uma coluna da tabela em **Seguir uma coluna** para destacar de onde ela vem e para onde vai: subindo o diagrama até as colunas a partir das quais é construída, descendo até as colunas construídas a partir dela, cada uma nomeada na sua tabela, mesmo onde foi renomeada no caminho. Uma seta cujas origens não nomeiam colunas pode levá-la além do que está destacado, e o diagrama avisa.
 
+## Mapa de linhagem
+
+**Observabilidade de dados > Mapa de linhagem** desenha em uma só página cada fluxo de dados que o seu projeto viu, para que você veja quem usa quais dados e para onde eles vão sem precisar antes escolher uma tabela. Ele mostra:
+
+- **Serviços** que escrevem e leem tabelas, a partir dos spans de banco de dados nos seus traces: um span que nomeia a sua tabela (`db.collection.name`, ou o mais antigo `db.sql.table`) e a sua instrução (`db.operation.name`), como um `INSERT` ou um `SELECT`.
+- **Tabelas** construídas a partir de outras tabelas, de todas as fontes acima.
+- **Pipelines** que carregam uma tabela a partir de dados que o OneUptime não monitora, como uma sincronização do Fivetran. Um pipeline que move dados entre duas tabelas monitoradas é nomeado na seta entre elas.
+- **Painéis** e sincronizações de reverse ETL nas suas ferramentas de BI, que leem as tabelas sobre as quais são construídos.
+
+Cada seta é algo que o OneUptime registrou, nunca um palpite. Os cartões ficam da esquerda para a direita conforme os dados fluem e mostram o seu estado como no diagrama de uma tabela: vermelho para uma tabela atrasada, um alerta aberto ou uma execução com falha. Uma seta fica verde-azulada onde os traces de um serviço a viram.
+
+Pesquise uma tabela, um serviço, um pipeline ou um painel para manter o que corresponde e tudo o que está acima e abaixo dele no fluxo. Selecione um cartão para destacar toda a linhagem dele, ver de onde ele vem e para onde vai, e abrir a página dele; **Mostrar só a linhagem dela** deixa só isso no mapa. As chaves ao lado da pesquisa deixam de fora serviços, pipelines ou painéis. **Lista** mostra cada seta como uma linha, e é o que um celular abre.
+
+Um mapa desenha até 400 cartões, começando pelos fluxos vistos mais recentemente; quando o seu projeto tem mais, o mapa avisa. O mesmo mapa é servido por `POST /api/data-observability/lineage/map`, para quem puder ler os ativos de dados, e as chaves de API deles.
+
 ## OpenLineage
 
 Envie eventos do OpenLineage ao OneUptime, sem alterações, com uma [chave de ingestão](/docs/telemetry/ingestion-keys) de telemetria:

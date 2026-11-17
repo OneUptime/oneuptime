@@ -61,7 +61,45 @@ import ServerSendingStatusUtil, {
 } from "../../Types/ServerSending/ServerSendingStatus";
 import { JSONObject } from "../../Types/JSON";
 import PartialEntity from "../../Types/Database/PartialEntity";
+import {
+  KEEP_EVERY_RESOLVED_RECORD,
+  ResolvedRecordKind,
+  getResolvedRecordRetentionDefaultProblem,
+  getResolvedRecordRetentionMaximumProblem,
+  readResolvedRecordRetentionDefaultInDays,
+  readResolvedRecordRetentionMaximumInDays,
+  toResolvedRecordRetentionServerValue,
+} from "../../Types/Retention/ResolvedRecordRetention";
+import HashedString from "../../Types/HashedString";
+import { MasterApiKeyState } from "../../Types/MasterApiKey/MasterApiKeyAnswer";
+import MasterApiKey from "../Utils/MasterApiKey";
+import UserService from "./UserService";
+import User from "../../Models/DatabaseModels/User";
+import OneUptimeDate from "../../Types/Date";
 import crypto from "crypto";
+
+// The server's two limits for each kind of resolved record (issue #6941).
+export interface ResolvedRecordRetentionLimitColumns {
+  kind: ResolvedRecordKind;
+  maximumColumn: "maxIncidentRetentionInDays" | "maxAlertRetentionInDays";
+  defaultColumn:
+    | "defaultIncidentRetentionInDays"
+    | "defaultAlertRetentionInDays";
+}
+
+export const RESOLVED_RECORD_RETENTION_LIMIT_COLUMNS: ReadonlyArray<ResolvedRecordRetentionLimitColumns> =
+  [
+    {
+      kind: ResolvedRecordKind.Incident,
+      maximumColumn: "maxIncidentRetentionInDays",
+      defaultColumn: "defaultIncidentRetentionInDays",
+    },
+    {
+      kind: ResolvedRecordKind.Alert,
+      maximumColumn: "maxAlertRetentionInDays",
+      defaultColumn: "defaultAlertRetentionInDays",
+    },
+  ];
 
 /*
  * How long a server keeps whether push notifications are turned off before
@@ -236,6 +274,33 @@ export const ROOT_ONLY_SERVER_PRODUCTS_COLUMNS: ReadonlyArray<keyof Model> = [
   "serverProducts",
 ];
 
+/*
+ * The server's master API key (#7901): the SHA-256 of the key, never the
+ * key itself (Utils/MasterApiKey), and which key it is (#8903): when it was
+ * made, by whom, and its hint, its last four characters. They are made only
+ * by createMasterApiKey, as OneUptime itself, on Admin Dashboard >
+ * Settings > API Key, which shows the new key once. The generic API neither
+ * writes them (assertMasterApiKeyWrittenByRootOnly) - through it a master
+ * admin, or the master API key itself, could set a key of their own
+ * choosing, stored as it was sent, or say a key was made by someone else -
+ * nor reads them back (onBeforeFind drops them): not even the hash leaves
+ * the server. The page reads whether there is one, and which
+ * (getMasterApiKeyState).
+ */
+export const ROOT_ONLY_MASTER_API_KEY_COLUMNS: ReadonlyArray<keyof Model> = [
+  "masterApiKey",
+  "masterApiKeyCreatedAt",
+  "masterApiKeyCreatedByUserId",
+  "masterApiKeyHint",
+];
+
+// What a write of the master API key through the API is told.
+export const MASTER_API_KEY_WRITTEN_HERE_MESSAGE: string =
+  "The master API key cannot be set through the API. Create or reset it on Admin Dashboard > Settings > API Key, which shows the new key once.";
+
+// A SHA-256 digest, as HashedString writes it: 64 lower-case hex digits.
+const SHA_256_HEX_DIGEST: RegExp = /^[0-9a-f]{64}$/;
+
 const TELEGRAM_WEBHOOK_SECRET_CACHE_NAMESPACE: string =
   "global-config-security";
 const TELEGRAM_WEBHOOK_SECRET_GENERATION_KEY: string =
@@ -409,6 +474,132 @@ export class Service extends DatabaseService<Model> {
       allowZero: false,
     });
     TelemetryIngestionBudgetValidation.applyInstanceSettingRules(data);
+  }
+
+  /*
+   * The server's limits on how long projects keep resolved incidents and
+   * alerts (issue #6941): each maximum and each new-project default one of
+   * the project choices, or empty (null; 0 is read as empty too) - no
+   * maximum, and Never. A default longer than its maximum is refused, for
+   * the maximum written with it or, when the write leaves it out, the one
+   * stored (`stored`); a maximum lowered below the stored default takes the
+   * default down with it, so a new project never starts beyond what it may
+   * keep. A write that names none of the four is not judged on them.
+   */
+  public static applyResolvedRecordRetentionLimitRules(
+    data: Record<string, unknown>,
+    stored: Record<string, unknown>,
+  ): void {
+    for (const limit of RESOLVED_RECORD_RETENTION_LIMIT_COLUMNS) {
+      const writesMaximum: boolean = data[limit.maximumColumn] !== undefined;
+      const writesDefault: boolean = data[limit.defaultColumn] !== undefined;
+
+      if (writesMaximum) {
+        const problem: string | null = getResolvedRecordRetentionMaximumProblem(
+          data[limit.maximumColumn],
+          limit.kind,
+        );
+
+        if (problem) {
+          throw new BadDataException(problem);
+        }
+
+        data[limit.maximumColumn] = toResolvedRecordRetentionServerValue(
+          data[limit.maximumColumn],
+        );
+      }
+
+      const maximumInDays: number | undefined =
+        readResolvedRecordRetentionMaximumInDays(
+          writesMaximum
+            ? data[limit.maximumColumn]
+            : stored[limit.maximumColumn],
+        );
+
+      if (writesDefault) {
+        const problem: string | null = getResolvedRecordRetentionDefaultProblem(
+          {
+            value: data[limit.defaultColumn],
+            kind: limit.kind,
+            maximumInDays: maximumInDays,
+          },
+        );
+
+        if (problem) {
+          throw new BadDataException(problem);
+        }
+
+        data[limit.defaultColumn] = toResolvedRecordRetentionServerValue(
+          data[limit.defaultColumn],
+        );
+
+        continue;
+      }
+
+      if (!writesMaximum || maximumInDays === undefined) {
+        continue;
+      }
+
+      const storedDefault: number = readResolvedRecordRetentionDefaultInDays(
+        stored[limit.defaultColumn],
+      );
+
+      if (
+        storedDefault !== KEEP_EVERY_RESOLVED_RECORD &&
+        storedDefault > maximumInDays
+      ) {
+        data[limit.defaultColumn] = maximumInDays;
+      }
+    }
+  }
+
+  /*
+   * The stored limits applyResolvedRecordRetentionLimitRules weighs a write
+   * against: read only when the write names one of them.
+   */
+  private async applyResolvedRecordRetentionLimitRulesOnUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    const isLimitWrite: boolean = RESOLVED_RECORD_RETENTION_LIMIT_COLUMNS.some(
+      (limit: ResolvedRecordRetentionLimitColumns): boolean => {
+        return (
+          data[limit.maximumColumn] !== undefined ||
+          data[limit.defaultColumn] !== undefined
+        );
+      },
+    );
+
+    if (!isLimitWrite) {
+      return;
+    }
+
+    const select: Record<string, boolean> = {};
+
+    for (const limit of RESOLVED_RECORD_RETENTION_LIMIT_COLUMNS) {
+      select[limit.maximumColumn] = true;
+      select[limit.defaultColumn] = true;
+    }
+
+    const current: Model | null = await this.findOneById({
+      id: ObjectID.getZeroObjectID(),
+      select: select,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const stored: Record<string, unknown> = {};
+
+    for (const column of Object.keys(select)) {
+      stored[column] = current?.getColumnValue(column);
+    }
+
+    Service.applyResolvedRecordRetentionLimitRules(data, stored);
   }
 
   /*
@@ -976,6 +1167,167 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Refuses a write of the master API key by anyone but OneUptime itself
+   * (ROOT_ONLY_MASTER_API_KEY_COLUMNS). An explicit null counts as a write:
+   * clearing the key takes it away as surely as replacing it.
+   *
+   * OneUptime's own write stores the key's hash, or nothing: a write of
+   * anything else - a key as it is, which the lookup would take for one
+   * stored before keys were hashed (MasterApiKey.isStoredAsWritten), or a
+   * HashedString still to be hashed, which the write path would hash
+   * without the key's own rules - is refused, so no path can put a key in
+   * the database as it is.
+   */
+  public assertMasterApiKeyWrittenByRootOnly(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    const record: Record<string, unknown> | undefined = data as
+      | Record<string, unknown>
+      | undefined;
+
+    const isWritten: boolean = ROOT_ONLY_MASTER_API_KEY_COLUMNS.some(
+      (column: keyof Model): boolean => {
+        return record?.[column as string] !== undefined;
+      },
+    );
+
+    if (!isWritten) {
+      return;
+    }
+
+    if (!props.isRoot) {
+      throw new NotAuthorizedException(MASTER_API_KEY_WRITTEN_HERE_MESSAGE);
+    }
+
+    const value: unknown = record?.["masterApiKey"];
+
+    if (value === undefined || value === null) {
+      return;
+    }
+
+    if (
+      !(value instanceof HashedString) ||
+      !value.isValueHashed() ||
+      !SHA_256_HEX_DIGEST.test(value.toString())
+    ) {
+      throw new BadDataException(
+        "The master API key is stored only as its hash. Make it with GlobalConfigService.createMasterApiKey.",
+      );
+    }
+  }
+
+  /*
+   * Makes the server's master API key (Admin Dashboard > Settings > API Key,
+   * POST /global-config/master-api-key): a new random key in place of the
+   * one before, which stops working at once, stored as its hash and turned
+   * on - a key is made to be used, and the switch beside it turns it off.
+   * Which key it is is written with it (#8903): now, the master admin who
+   * made it - nobody, when OneUptime makes it for no one - and its hint.
+   *
+   * Answers the key. It is never stored, logged or sent again: the caller
+   * shows it once.
+   */
+  @CaptureSpan()
+  public async createMasterApiKey(data?: {
+    createdByUserId?: ObjectID | null | undefined;
+  }): Promise<string> {
+    const masterApiKey: string = MasterApiKey.generate();
+
+    const updated: number = await this.updateOneById({
+      id: ObjectID.getZeroObjectID(),
+      data: {
+        masterApiKey: new HashedString(MasterApiKey.hash(masterApiKey), true),
+        isMasterApiKeyEnabled: true,
+        masterApiKeyCreatedAt: OneUptimeDate.getCurrentDate(),
+        // The key before's maker made no part of this one.
+        masterApiKeyCreatedByUserId: (data?.createdByUserId ||
+          null) as ObjectID,
+        masterApiKeyHint: MasterApiKey.getHint(masterApiKey),
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (updated === 0) {
+      throw new BadDataException(
+        "No master API key was made: this server's settings were not found. Restart OneUptime so it creates them, then try again.",
+      );
+    }
+
+    return masterApiKey;
+  }
+
+  /*
+   * Whether the server has a master API key, whether it is on, and which
+   * key it is - when it was made, by whom, how it ends (#8903): what Admin
+   * Dashboard > Settings > API Key shows in place of the key, which nothing
+   * can read back. Never the key, nor its hash.
+   */
+  @CaptureSpan()
+  public async getMasterApiKeyState(): Promise<MasterApiKeyState> {
+    const config: Model | null = await this.findOneById({
+      id: ObjectID.getZeroObjectID(),
+      select: {
+        masterApiKey: true,
+        isMasterApiKeyEnabled: true,
+        masterApiKeyCreatedAt: true,
+        masterApiKeyCreatedByUserId: true,
+        masterApiKeyHint: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const isSet: boolean = Boolean(config?.masterApiKey?.toString());
+
+    return {
+      isSet: isSet,
+      isEnabled: Boolean(config?.isMasterApiKeyEnabled),
+      createdAt:
+        isSet && config?.masterApiKeyCreatedAt
+          ? OneUptimeDate.fromString(config.masterApiKeyCreatedAt)
+          : null,
+      createdByName: isSet
+        ? await this.getMasterApiKeyMakerName(
+            config?.masterApiKeyCreatedByUserId,
+          )
+        : null,
+      hint: (isSet && config?.masterApiKeyHint?.toString()) || null,
+    };
+  }
+
+  /*
+   * Who made the master API key, as the page names them: their name, or
+   * their email when they have none. Null for nobody, and for a user who
+   * was since deleted.
+   */
+  private async getMasterApiKeyMakerName(
+    userId: ObjectID | null | undefined,
+  ): Promise<string | null> {
+    if (!userId) {
+      return null;
+    }
+
+    const user: User | null = await UserService.findOneById({
+      id: userId,
+      select: {
+        name: true,
+        email: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return (
+      user?.name?.toString().trim() || user?.email?.toString().trim() || null
+    );
+  }
+
+  /*
    * Writes the products switched off for every project: one statement, no
    * hooks. The caller (ServerProducts) forgets its copy afterwards.
    */
@@ -1070,11 +1422,16 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The branding columns, removed from what a caller other than OneUptime
-   * itself selects or filters on: read back through the generic API, they
-   * would show values the enterprise module has decided not to apply.
+   * The columns only OneUptime itself reads, removed from what any other
+   * caller selects or filters on:
+   *
+   *   - the branding columns: read back through the generic API, they would
+   *     show values the enterprise module has decided not to apply;
+   *   - the master API key: its hash, which no reader needs - the key is
+   *     shown once, when it is made - and which, filtered on, would answer
+   *     whether a guess is the key.
    */
-  public dropBrandingColumnsFromRead(findBy: FindBy<Model>): FindBy<Model> {
+  public dropRootOnlyColumnsFromRead(findBy: FindBy<Model>): FindBy<Model> {
     if (findBy.props.isRoot) {
       return findBy;
     }
@@ -1088,7 +1445,10 @@ export class Service extends DatabaseService<Model> {
         ...(value as unknown as Record<string, unknown>),
       };
 
-      for (const column of ROOT_ONLY_BRANDING_COLUMNS) {
+      for (const column of [
+        ...ROOT_ONLY_BRANDING_COLUMNS,
+        ...ROOT_ONLY_MASTER_API_KEY_COLUMNS,
+      ]) {
         delete copy[column as string];
       }
 
@@ -1352,7 +1712,7 @@ export class Service extends DatabaseService<Model> {
     findBy: FindBy<Model>,
   ): Promise<OnFind<Model>> {
     return {
-      findBy: this.dropBrandingColumnsFromRead(findBy),
+      findBy: this.dropRootOnlyColumnsFromRead(findBy),
       carryForward: null,
     };
   }
@@ -1373,6 +1733,7 @@ export class Service extends DatabaseService<Model> {
       createBy.props,
     );
     this.assertServerProductsWrittenByRootOnly(createBy.data, createBy.props);
+    this.assertMasterApiKeyWrittenByRootOnly(createBy.data, createBy.props);
     this.assertTwilioAccountNotSetByEnvironment(createBy.data, createBy.props);
     this.assertEmailSettingsNotSetByEnvironment(createBy.data, createBy.props);
     this.assertTwilioSmsNumbersAreValid(createBy.data);
@@ -1409,6 +1770,7 @@ export class Service extends DatabaseService<Model> {
       updateBy.props,
     );
     this.assertServerProductsWrittenByRootOnly(updateBy.data, updateBy.props);
+    this.assertMasterApiKeyWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertTwilioAccountNotSetByEnvironment(updateBy.data, updateBy.props);
     this.assertEmailSettingsNotSetByEnvironment(updateBy.data, updateBy.props);
     this.assertTwilioSmsNumbersAreValid(updateBy.data);
@@ -1422,6 +1784,7 @@ export class Service extends DatabaseService<Model> {
     Service.applyAmazonSesAuthenticationRules(
       updateBy.data as unknown as Record<string, unknown>,
     );
+    await this.applyResolvedRecordRetentionLimitRulesOnUpdate(updateBy);
     await this.prepareCallAndSmsGateway(updateBy);
 
     if (updateBy.data.telegramWebhookSecretToken !== undefined) {

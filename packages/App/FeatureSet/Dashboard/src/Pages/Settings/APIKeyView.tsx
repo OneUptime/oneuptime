@@ -12,6 +12,9 @@ import ApiKeyPermissionTable, {
   ApiKeyPermissionType,
 } from "../../Components/ApiKey/ApiKeyPermissionTable";
 import ApiKeyStoppedNote from "../../Components/Billing/ApiKeyStoppedNote";
+import ApiKeyHint from "../../Components/ApiKey/ApiKeyHint";
+import { ApiKeyShownOnceCopy } from "../../Components/ApiKey/ApiKeyShownOnceCopy";
+import ResetApiKeyCard from "../../Components/ApiKey/ResetApiKeyCard";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
@@ -23,17 +26,18 @@ import {
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
- * An API key's page, in the order it is used: what the key is (and the key
- * itself, to copy), what it can do - its own roles and permissions -
- * resetting it, then - folded under More settings - the custom roles it is
- * given and what it can never do, and deleting it.
+ * An API key's page, in the order it is used: what the key is - and how it
+ * ends, in place of the key, which is stored as its hash and was shown once,
+ * when it was made (#8902, #8903) - what it can do - its own roles and
+ * permissions - resetting it, which shows the new key once, then - folded
+ * under More settings - the custom roles it is given and what it can never
+ * do, and deleting it.
  *
  * Block permissions are rarely needed and were always on screen, as large as
  * what the key can do; they now sit in the More settings section, whose
@@ -151,13 +155,18 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
               },
             },
             {
+              /*
+               * How the key ends: the key itself is stored as its hash and
+               * was shown once, when it was made or last reset.
+               */
               field: {
-                apiKey: true,
+                apiKeyHint: true,
               },
               title: "API Key",
-              fieldType: FieldType.HiddenText,
-              opts: {
-                isCopyable: true,
+              description: ApiKeyShownOnceCopy.keyFieldDescription,
+              fieldType: FieldType.Element,
+              getElement: (item: ApiKey): ReactElement => {
+                return <ApiKeyHint hint={item.apiKeyHint} />;
               },
             },
           ],
@@ -173,14 +182,16 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
         customRoleCount={getCustomRoleCount(customRoles)}
       />
 
-      <ResetObjectID<ApiKey>
-        modelType={ApiKey}
-        fieldName={"apiKey"}
-        title={"Reset API Key"}
-        description={"Reset the API Key to a new value."}
-        modelId={modelId}
-        onUpdateComplete={() => {
-          setRefresher(!refresher);
+      {/*
+       * A new key, made by the server and shown once; the details then say
+       * how the new one ends.
+       */}
+      <ResetApiKeyCard
+        apiKeyId={modelId}
+        onReset={() => {
+          setRefresher((value: boolean): boolean => {
+            return !value;
+          });
         }}
       />
 

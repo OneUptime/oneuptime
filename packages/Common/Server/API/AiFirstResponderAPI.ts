@@ -18,6 +18,10 @@ import AlertService from "../Services/AlertService";
 import IncidentService from "../Services/IncidentService";
 import AiFirstResponder from "../Utils/AI/FirstResponder/AiFirstResponder";
 import CallerPermission from "../Utils/Permission/CallerPermission";
+import PrivateRecordWriteCheck from "../Utils/Permission/PrivateRecordWriteCheck";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import DatabaseService from "../Services/DatabaseService";
+import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 /*
  * PAGE NOW: a person does not want to wait for OneUptime AI.
@@ -28,7 +32,10 @@ import CallerPermission from "../Utils/Permission/CallerPermission";
  * paged when the hold ran out, so it takes what paging a policy by hand
  * takes: the create permission of an on-call policy's execution log - and
  * the record, read as the person may see it, so another project's id is
- * refused like one that does not exist.
+ * refused like one that does not exist. On a private incident or alert, that
+ * permission counts only through the teams that own it, as a person named
+ * its owner, or as a Project Owner or Admin (#8913): a member whose team
+ * that owns it may only view it is refused, saying why, and nobody is paged.
  *
  *   POST /ai-first-responder/page-now  { incidentId } or { alertId }
  *   -> { startedRuns: 1 }
@@ -37,6 +44,9 @@ const router: ExpressRouter = Express.getRouter();
 
 export const PAGE_NOW_REFUSED_MESSAGE: string =
   "You need permission to page on-call policies to page now.";
+
+// Completes "You do not have permission to ..." for a private record.
+export const PAGE_NOW_ACTION: string = "page now";
 
 router.post(
   "/ai-first-responder/page-now",
@@ -65,11 +75,13 @@ router.post(
       let projectId: ObjectID | undefined = undefined;
       let incidentId: ObjectID | undefined = undefined;
       let alertId: ObjectID | undefined = undefined;
+      // The record as the person read it, whether it is private with it.
+      let record: Incident | Alert | null = null;
 
       if (typeof incidentIdText === "string" && incidentIdText) {
         const incident: Incident | null = await IncidentService.findOneById({
           id: new ObjectID(incidentIdText),
-          select: { _id: true, projectId: true },
+          select: { _id: true, projectId: true, isPrivate: true },
           props: props,
         });
 
@@ -81,10 +93,11 @@ router.post(
 
         incidentId = incident.id;
         projectId = incident.projectId;
+        record = incident;
       } else {
         const alert: Alert | null = await AlertService.findOneById({
           id: new ObjectID(alertIdText as string),
-          select: { _id: true, projectId: true },
+          select: { _id: true, projectId: true, isPrivate: true },
           props: props,
         });
 
@@ -96,6 +109,7 @@ router.post(
 
         alertId = alert.id;
         projectId = alert.projectId;
+        record = alert;
       }
 
       if (
@@ -107,6 +121,20 @@ router.post(
       ) {
         throw new NotAuthorizedException(PAGE_NOW_REFUSED_MESSAGE);
       }
+
+      // A private record, only through the teams that own it. See the top.
+      await PrivateRecordWriteCheck.assertReaches({
+        modelType: OnCallDutyPolicyExecutionLog,
+        type: DatabaseRequestType.Create,
+        recordService: (incidentId
+          ? IncidentService
+          : AlertService) as unknown as DatabaseService<DatabaseBaseModel>,
+        recordId: (incidentId || alertId)!,
+        props: props,
+        action: PAGE_NOW_ACTION,
+        // Read as not private: nothing more to ask.
+        readRecord: record || undefined,
+      });
 
       const startedRuns: number = await AiFirstResponder.pageNow({
         projectId: projectId,

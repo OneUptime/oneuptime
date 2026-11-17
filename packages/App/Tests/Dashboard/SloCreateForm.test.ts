@@ -517,7 +517,7 @@ describe("validating the SLO create form, one page at once", () => {
     expect(
       validateForm(withValues({ name: "API Availability", windowDays: 400 })),
     ).toEqual({
-      windowDays: "Window must be between 1 and 366 days.",
+      windowDays: "Window must be between 1 and 366\u00A0days.",
     });
   });
 

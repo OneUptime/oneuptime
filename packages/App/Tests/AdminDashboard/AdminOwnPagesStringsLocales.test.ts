@@ -20,6 +20,11 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { ADMIN_DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
+import {
+  GIVE_FEEDBACK_CATEGORY_TITLES,
+  GUIDED_SETUP_TITLES,
+  PRODUCT_FEEDBACK_KIND_TITLES,
+} from "Common/Types/ProductFeedback/ProductFeedback";
 
 /*
  * THE ADMIN DASHBOARD'S OWN PAGES, IN EVERY LANGUAGE IT SPEAKS (#8227).
@@ -147,6 +152,8 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Shard {{shard}}",
     "**Variables**",
     "**Variables ({{count}})**",
+    // The project Invoices page's actions column: French says "Actions" too.
+    "Actions",
   ],
   es: [
     "No",
@@ -157,8 +164,12 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Host",
     "**Variables**",
     "**Variables ({{count}})**",
+    // What Give feedback was about (#8893): Spanish says "Idea" too.
+    "Idea",
   ],
   it: [
+    // What Give feedback was about (#8893): Italian says "Idea" too.
+    "Idea",
     "Home",
     "Feedback",
     "No",
@@ -638,6 +649,28 @@ describe("the Admin Dashboard's own pages", () => {
 
     // The milestones' own names are values, not words.
     expect(TEXTS.has("FirstMonitorCreated")).toBe(false);
+  });
+
+  test("hand over what a feedback answer was about, which the Feedback page looks up by its kind and topic (#8893)", () => {
+    for (const text of [
+      // Each kind of answer, in the By Question table and the Kind filter.
+      ...Object.values(PRODUCT_FEEDBACK_KIND_TITLES),
+      // A guided setup by its name.
+      ...Object.values(GUIDED_SETUP_TITLES),
+      // What Give feedback was about.
+      ...Object.values(GIVE_FEEDBACK_CATEGORY_TITLES),
+      "How OneUptime works",
+      "Is OneUptime set up the way you wanted?",
+    ]) {
+      expect({ text, handedOver: TEXTS.has(text) }).toEqual({
+        text,
+        handedOver: true,
+      });
+    }
+
+    // The rules for asking people are no words of the page.
+    expect(TEXTS.has("first_week")).toBe(false);
+    expect(TEXTS.has("support@oneuptime.com")).toBe(false);
   });
 
   test("hand over the texts #8555 routed through translation, which they drew as written", () => {

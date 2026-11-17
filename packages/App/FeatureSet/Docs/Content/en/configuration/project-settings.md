@@ -64,7 +64,7 @@ A hidden product is not switched off. It moves under **More products**, the last
 
 On a self-hosted server, a master admin can also switch a product off for every project, under **Settings → Products** in the Admin Dashboard (see [Run only what you need](/docs/installation/docker-compose#run-only-what-you-need)). Such a product has no switch here: it says **Switched off on this server**, with who can switch it on.
 
-A new project starts from what its owner said it came to do on Home: the essentials, Settings and what those goals need are shown, and the rest are hidden. A project that skipped the question, or was created before it, shows every product. Once someone changes the list here, the goals no longer change it.
+Every product is shown until someone hides it here. Nothing hides a product by itself: what a Project Owner or Project Admin told Home the project came to do only sets up the first steps there, and a product that is not set up yet stays where it is in the menu.
 
 Each product says what it is to this project: **In use**, **Not set up**, or, on OneUptime Cloud, the plan it needs. When a hidden product starts receiving data, Home tells the Project Owners and Admins and offers **Show It** or **Keep Hidden**.
 
@@ -91,6 +91,8 @@ In a list, a record's labels are shown one under another; when there are more th
 ### Archive a label
 
 To retire a label, archive it from its row's **⋯** menu instead of deleting it. Everything that has the label keeps it, and you can still filter by it, but nobody can add it to anything again: every label picker leaves it out, and the API, Terraform and MCP refuse it. The dialog lists the rules and permissions set up to use the label, which keep using it until you change them. Archived labels are listed apart, in the folded **Archived Labels** section, where **Unarchive** puts one back. **Delete** first lists everything the label would come off, and offers **Archive instead**.
+
+**Used by**, in a label's row menu, counts the records of each kind that carry the label, and opens them a page at a time. Records you may not open are counted, not named.
 
 ## Notifications
 

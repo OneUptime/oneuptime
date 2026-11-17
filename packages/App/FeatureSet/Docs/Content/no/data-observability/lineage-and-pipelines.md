@@ -23,6 +23,21 @@ Der kilden oppgir kolonner, sier fanen **Kolonner** for en tabell hvor hver kolo
 
 Velg i fanen **Opphav** en av tabellens kolonner i **Følg en kolonne** for å utheve hvor den kommer fra og hvor den går: opp i diagrammet til kolonnene den er bygget fra, ned til kolonnene som er bygget fra den, hver navngitt på sin tabell, også der kolonnen fikk nytt navn underveis. En pil der kildene ikke oppgir kolonner, kan føre den lenger enn det som er uthevet, og diagrammet sier fra om det.
 
+## Opphavskart
+
+**Dataobserverbarhet > Opphavskart** tegner hver dataflyt prosjektet ditt har sett, på én side, så du kan se hvem som bruker hvilke data og hvor de flyter, uten først å velge en tabell. Det viser:
+
+- **Tjenester** som skriver til og leser tabeller, fra databasespannene i sporene dine: et spann som navngir tabellen sin (`db.collection.name`, eller den eldre `db.sql.table`) og setningen sin (`db.operation.name`), for eksempel en `INSERT` eller en `SELECT`.
+- **Tabeller** som er bygget av andre tabeller, fra alle kildene over.
+- **Pipelines** som laster en tabell fra data OneUptime ikke overvåker, for eksempel en Fivetran-synkronisering. En pipeline som flytter data mellom to overvåkede tabeller, er navngitt på pilen mellom dem.
+- **Dashbord** og reverse ETL-synkroniseringer i BI-verktøyene dine, som leser tabellene de er bygget på.
+
+Hver pil er noe OneUptime har registrert, aldri et gjett. Kortene står fra venstre mot høyre slik dataene flyter, og sier hvordan de har det, som på en tabells diagram: rødt for en sen tabell, et åpent varsel eller en mislykket kjøring. En pil er blågrønn der sporene til en tjeneste har sett den.
+
+Søk etter en tabell, tjeneste, pipeline eller dashbord for å beholde det som samsvarer, og alt oppstrøms og nedstrøms for det. Velg et kort for å utheve hele opphavet, se hva det kommer fra og hva det går til, og åpne siden; **Vis bare opphavet** lar bare det stå igjen på kartet. Bryterne ved siden av søket lar tjenester, pipelines eller dashbord stå av. **Liste** viser hver pil som en linje, og er det en telefon åpner med.
+
+Ett kart tegner opptil 400 kort, de sist sette flytene først; når prosjektet ditt har flere, sier kartet fra om det. Det samme kartet leveres av `POST /api/data-observability/lineage/map`, til alle som kan lese dataressurser, og API-nøklene deres.
+
 ## OpenLineage
 
 Send OpenLineage-hendelser til OneUptime, uendret, med en [inntaksnøkkel](/docs/telemetry/ingestion-keys) for telemetri:

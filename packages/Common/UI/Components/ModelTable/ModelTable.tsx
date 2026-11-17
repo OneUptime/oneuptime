@@ -53,7 +53,7 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
-import React, { ReactElement, useState } from "react";
+import React, { ReactElement, useEffect, useState } from "react";
 
 /*
  * The create dialog's title. A table's own verb ("Add", "Invite") gets its
@@ -82,6 +82,13 @@ import {
   RuleCriteriaTableConfiguration,
 } from "../RuleCriteria/RuleCriteriaModelTable";
 import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
+import { shouldUseRuleCriteriaBuilder } from "../RuleCriteria/RuleCriteriaLegacyFields";
+import { loadRuleCriteriaModelForm } from "../RuleCriteria/LazyRuleCriteriaModelForm";
+import {
+  RULE_EMPTIED_LIMITS_COLUMN,
+  withRuleEmptiedLimitsMarker,
+} from "../RuleCriteria/RuleEmptiedLimitsNote";
+import RuleBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/RuleBaseModel";
 
 /**
  * The columns of the fields an Edit form leaves out (doNotShowWhenEditing):
@@ -175,6 +182,26 @@ const ModelTable: <TBaseModel extends BaseModel>(
 
   const [showImportModal, setShowImportModal] = useState<boolean>(false);
   const [importRefreshCounter, setImportRefreshCounter] = useState<number>(0);
+
+  /*
+   * A table of rules opens a rule's form, which draws the match fields as
+   * one condition builder, a file of its own (LazyRuleCriteriaModelForm).
+   * Asked for as the table draws, it is there when the form opens, which
+   * then draws its fields at once; a file that does not arrive is said by
+   * the form, which asks again.
+   */
+  const isRuleTable: boolean = shouldUseRuleCriteriaBuilder(
+    model,
+    props.formFields || [],
+  );
+
+  useEffect(() => {
+    if (isRuleTable) {
+      loadRuleCriteriaModelForm().catch((): void => {
+        // ModelForm says so, where the builder would be.
+      });
+    }
+  }, [isRuleTable]);
 
   type GetExportBulkActionFunction = () => BulkActionButtonSchema<TBaseModel>;
 
@@ -298,6 +325,27 @@ const ModelTable: <TBaseModel extends BaseModel>(
       subject: props.ruleCriteriaSubject,
     });
 
+  /*
+   * A rule OneUptime switched off because every record a list of it was
+   * limited to was deleted (#9066) says so beside its status, and its Edit
+   * form says so above what it applies to (RuleEmptiedLimitsNote). The note
+   * is read with the rules: everyone who may read a rule may read it.
+   */
+  const isRule: boolean = model instanceof RuleBaseModel;
+
+  const columns: typeof ruleCriteriaTable.columns = isRule
+    ? withRuleEmptiedLimitsMarker(model, ruleCriteriaTable.columns)
+    : ruleCriteriaTable.columns;
+
+  const baseSelectMoreFields: Select<TBaseModel> | undefined = isRule
+    ? ({
+        ...((ruleCriteriaTable.selectMoreFields ||
+          props.selectMoreFields ||
+          {}) as Select<TBaseModel>),
+        [RULE_EMPTIED_LIMITS_COLUMN]: true,
+      } as Select<TBaseModel>)
+    : ruleCriteriaTable.selectMoreFields;
+
   if (props.enableJsonImportExport) {
     bulkActions = {
       ...(props.bulkActions || {}),
@@ -357,15 +405,15 @@ const ModelTable: <TBaseModel extends BaseModel>(
       )}
       <BaseModelTable
         {...props}
-        columns={ruleCriteriaTable.columns}
+        columns={columns}
         filters={ruleCriteriaTable.filters}
-        {...(ruleCriteriaTable.selectMoreFields
-          ? { selectMoreFields: ruleCriteriaTable.selectMoreFields }
+        {...(baseSelectMoreFields
+          ? { selectMoreFields: baseSelectMoreFields }
           : {})}
         {...(props.rowSwitch
           ? {
               selectMoreFields: {
-                ...((ruleCriteriaTable.selectMoreFields ||
+                ...((baseSelectMoreFields ||
                   props.selectMoreFields ||
                   {}) as Select<TBaseModel>),
                 [props.rowSwitch.column]: true,
@@ -561,7 +609,11 @@ const ModelTable: <TBaseModel extends BaseModel>(
                    */
                   alsoReadColumns:
                     modalType === ModalType.Edit
-                      ? getColumnsLeftOffEditForm(props.formFields)
+                      ? [
+                          ...getColumnsLeftOffEditForm(props.formFields),
+                          // Why OneUptime switched the rule off, if it did.
+                          ...(isRule ? [RULE_EMPTIED_LIMITS_COLUMN] : []),
+                        ]
                       : undefined,
                 }}
                 modelIdToEdit={modelIdToEdit}

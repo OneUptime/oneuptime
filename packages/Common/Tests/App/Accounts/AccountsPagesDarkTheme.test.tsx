@@ -138,7 +138,7 @@ jest.mock("../../../UI/Components/EditionLabel/EditionLabel", () => {
 // Registers the Accounts locale resources on the shared i18next instance.
 import "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import Footer from "../../../../App/FeatureSet/Accounts/src/Components/Footer/Footer";
-import PasswordRequirements from "../../../../App/FeatureSet/Accounts/src/Components/PasswordRequirements/PasswordRequirements";
+import PasswordRequirements from "../../../UI/Components/PasswordRequirements/PasswordRequirements";
 import VerifyEmailPending from "../../../../App/FeatureSet/Accounts/src/Components/VerifyEmailPending/VerifyEmailPending";
 import ForbiddenPage from "../../../../App/FeatureSet/Accounts/src/Pages/Forbidden";
 import ForgotPasswordPage from "../../../../App/FeatureSet/Accounts/src/Pages/ForgotPassword";
@@ -152,6 +152,7 @@ import RegisterPage from "../../../../App/FeatureSet/Accounts/src/Pages/Register
 import ResetPasswordPage from "../../../../App/FeatureSet/Accounts/src/Pages/ResetPassword";
 import VerifyEmailPage from "../../../../App/FeatureSet/Accounts/src/Pages/VerifyEmail";
 import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+import { MORE_WAYS_TO_SIGN_IN_OPEN_KEY } from "../../../../App/FeatureSet/Accounts/src/Components/MoreWaysToSignIn/MoreWaysToSignIn";
 
 // The server's global config, answered here rather than over the network.
 beforeEach((): void => {
@@ -284,6 +285,12 @@ beforeEach(() => {
 
   window.localStorage.clear();
   window.localStorage.setItem("oneuptime-dashboard-theme", "dark");
+  /*
+   * "More ways to sign in" left open in this browser: single sign-on, a
+   * sign-in link and the passkey are folded under it on a first visit
+   * (#9023). LoginSignInOptions tests the fold itself.
+   */
+  window.localStorage.setItem(MORE_WAYS_TO_SIGN_IN_OPEN_KEY, "true");
   ThemeUtil.initialize();
 
   jest.spyOn(UserUtil, "isLoggedIn").mockReturnValue(false);

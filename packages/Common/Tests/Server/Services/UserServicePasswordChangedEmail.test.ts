@@ -97,7 +97,7 @@ function passwordUpdate(data: {
   const updateBy: UpdateBy<User> = {
     query: { _id: USER_ID.toString() } as unknown as UpdateBy<User>["query"],
     data: {
-      password: "a new password",
+      password: "a new river lantern",
     } as unknown as UpdateBy<User>["data"],
     props: data.props || { isRoot: true },
     limit: 1,

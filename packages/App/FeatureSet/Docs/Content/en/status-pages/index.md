@@ -243,6 +243,8 @@ Archive a status page to take it offline without deleting it. An archived status
 
 To archive one status page, open it and go to **Advanced → Advanced Settings → Archive status page**. To archive several, select them in the **Status Pages** list and choose **Archive**. To bring one back, open **Status Pages → Advanced → Archived**, select it and choose **Unarchive**, or open it and click **Unarchive** on the banner at the top of its pages.
 
+A status page's **Overview** has a **Showing now** card: the open incidents and the maintenance coming up or in progress that visitors see on it right now. Archiving or deleting the page, on its own pages or from the list, says first what visitors would stop seeing.
+
 ## Next steps
 
 :::cards

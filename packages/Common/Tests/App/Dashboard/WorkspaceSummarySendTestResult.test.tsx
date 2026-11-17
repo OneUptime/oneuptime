@@ -21,6 +21,7 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import React, { ReactElement } from "react";
+import Toast from "../../../UI/Utils/Toast";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
@@ -197,6 +198,7 @@ import WorkspaceSummaryTable from "../../../../App/FeatureSet/Dashboard/src/Comp
 import WorkspaceNotificationSummaryType from "../../../Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { WorkspaceSummaryTestChannel } from "../../../Types/Workspace/NotificationSummary/WorkspaceSummaryTestChannel";
+import { withNumbersKeptWithUnits } from "../../../Types/NoBreakSpaces";
 
 const NOT_FOUND: (name: string) => string = (name: string): string => {
   return `The Slack channel ${name} was not found. If it is a private channel, invite OneUptime's bot to it in Slack.`;
@@ -353,6 +355,38 @@ async function sendTest(): Promise<HTMLElement> {
   return onlyDialog();
 }
 
+/*
+ * Send Test Now, then the confirm dialog's submit, for a test that went
+ * out: no dialog after it, a toast (#9120). Its title and words.
+ */
+async function sendTestThatWorks(): Promise<{
+  title: string;
+  description: string;
+}> {
+  Toast.dismissAll();
+
+  fireEvent.click(
+    within(screen.getByTestId("summary-row")).getAllByRole("button")[0]!,
+  );
+
+  const confirm: HTMLElement = onlyDialog();
+
+  await act(async (): Promise<void> => {
+    fireEvent.click(within(confirm).getByTestId("modal-footer-submit-button"));
+  });
+
+  await waitFor(() => {
+    expect(Toast.getToasts()).toHaveLength(1);
+  });
+
+  expect(dialogs()).toHaveLength(0);
+
+  return {
+    title: Toast.getToasts()[0]!.title,
+    description: String(Toast.getToasts()[0]!.description),
+  };
+}
+
 beforeAll(async () => {
   await i18next.use(initReactI18next).init({
     lng: "en",
@@ -391,6 +425,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  Toast.dismissAll();
   cleanup();
   jest.restoreAllMocks();
   await act(async (): Promise<void> => {
@@ -414,10 +449,11 @@ describe("Send Test Now on a summary says what the test came to", () => {
     expect(testRoutesCalled).toEqual([]);
   });
 
-  test("a test the server says reached every channel: Summary Sent, and Close is its one way out", async () => {
+  test("a test the server says reached every channel: Summary Sent, in a toast with nothing to click away", async () => {
     await renderTable();
 
-    const result: HTMLElement = await sendTest();
+    const result: { title: string; description: string } =
+      await sendTestThatWorks();
 
     // The summary's own test route, once.
     expect(testRoutesCalled).toHaveLength(1);
@@ -426,15 +462,7 @@ describe("Send Test Now on a summary says what the test came to", () => {
         `/workspace-notification-summary/test/${SUMMARY_ID.toString()}`,
       ),
     ).toBe(true);
-    expect(titleOf(result)).toBe("Summary Sent");
-    expect(
-      within(result).getByTestId("confirm-modal-description"),
-    ).toHaveTextContent(SENT);
-    expect(within(result).queryByTestId("modal-error")).toBeNull();
-    expect(buttonsOf(result)).toEqual(["Close"]);
-
-    fireEvent.click(within(result).getByTestId("modal-footer-submit-button"));
-
+    expect(result).toEqual({ title: "Summary Sent", description: SENT });
     expect(dialogs()).toHaveLength(0);
   });
 
@@ -668,20 +696,10 @@ describe("Send Test Now on a summary says what the test came to", () => {
     const confirm: HTMLElement = onlyDialog();
     expect(titleOf(confirm)).toBe("Send Test Summary Now");
     expect(within(confirm).queryByTestId("modal-error")).toBeNull();
+    fireEvent.click(within(confirm).getByTestId("modal-footer-close-button"));
 
-    await act(async (): Promise<void> => {
-      fireEvent.click(
-        within(confirm).getByTestId("modal-footer-submit-button"),
-      );
-    });
-
-    await waitFor(() => {
-      expect(titleOf(onlyDialog())).toBe("Summary Sent");
-    });
-    expect(within(onlyDialog()).queryByTestId("modal-error")).toBeNull();
-    expect(
-      within(onlyDialog()).queryByTestId("workspace-summary-test-channels"),
-    ).toBeNull();
+    expect((await sendTestThatWorks()).title).toBe("Summary Sent");
+    expect(screen.queryByTestId("workspace-summary-test-channels")).toBeNull();
     expect(screen.queryByText(NOT_POSTED)).toBeNull();
   });
 });
@@ -787,10 +805,11 @@ describe("in the reader's language", () => {
 
       await renderTable();
 
-      const result: HTMLElement = await sendTest();
+      const result: { title: string; description: string } =
+        await sendTestThatWorks();
 
-      expect(titleOf(result)).toBe(words["Summary Sent"]);
-      expect(screen.queryByText("Summary Sent")).toBeNull();
+      expect(result.title).toBe(words["Summary Sent"]);
+      expect(result.title).not.toBe("Summary Sent");
     },
   );
 
@@ -818,10 +837,13 @@ describe("in the reader's language", () => {
       expect(
         within(confirm).getByTestId("confirm-modal-description").textContent,
       ).toBe(
-        words[`${CONFIRM_DESCRIPTION}_one`]!.replace(
-          "{{name}}",
-          "Daily incidents",
+        // As the page sets it: the count held to its word (#8770).
+        withNumbersKeptWithUnits(
+          words[`${CONFIRM_DESCRIPTION}_one`]!,
+          CONFIRM_DESCRIPTION,
+          { durationWords: true },
         )
+          .replace("{{name}}", "Daily incidents")
           .replace("{{workspace}}", "Slack")
           .replace("{{count}}", "1"),
       );

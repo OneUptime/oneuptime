@@ -27,7 +27,9 @@ import { formatDurationInUnit, formatMilliseconds } from "./Milliseconds";
 import { formatReplayDurationInLanguage } from "../Components/SessionReplay/ReplayTimelineMath";
 
 // The panel's own English, and a caller that hands in no sentence's translator.
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 /*
  * Pure helpers behind the session replay rail's backend tabs (Logs / Traces /

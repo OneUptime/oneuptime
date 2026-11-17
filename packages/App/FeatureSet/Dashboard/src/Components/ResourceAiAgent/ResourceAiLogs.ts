@@ -8,6 +8,7 @@ import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
 import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
 import { DRY_RUN_COMMAND_STEP_ID_PREFIX } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
+import { readHiddenCommandCount } from "./CommandJobsHidden";
 import {
   translatableTerm,
   translateTemplate,
@@ -180,11 +181,18 @@ export interface ResourceAiLogsFix {
   approvedAt: string | null;
   // Who approved it (a name, or an email without one); null when nobody did.
   approvedByName: string | null;
+  // A fix that waits for its second approval: when the first was given.
+  firstApprovedAt: string | null;
 }
 
 export interface ResourceAiLogs {
   investigations: Array<ResourceAiLogsInvestigation>;
   fixes: Array<ResourceAiLogsFix>;
+  /*
+   * How many of the resource's commands the reader may not read, which the
+   * commands card says it leaves out (CommandJobsHidden); 0 when none.
+   */
+  hiddenCommandCount: number;
 }
 
 function isObject(value: unknown): value is JSONObject {
@@ -276,6 +284,7 @@ function parseFix(value: unknown): ResourceAiLogsFix | null {
     alertId: readString(value["alertId"]),
     approvedAt: readString(value["approvedAt"]),
     approvedByName: readString(value["approvedByName"]),
+    firstApprovedAt: readString(value["firstApprovedAt"]),
   };
 }
 
@@ -322,6 +331,7 @@ export function parseResourceAiLogs(value: unknown): ResourceAiLogs | null {
   return {
     investigations: parseList(value["investigations"], parseInvestigation),
     fixes: parseList(value["fixes"], parseFix),
+    hiddenCommandCount: readHiddenCommandCount(value["hiddenCommandCount"]),
   };
 }
 
@@ -386,7 +396,25 @@ export function getResourceInvestigationStatusLook(
   );
 }
 
-export function getResourceFixStatusLook(status: string): ResourceAiStatusLook {
+/*
+ * A fix that waits for approval, and was approved once already, waits for
+ * the second of the two approvals a riskier fix needs: it says so (#6422),
+ * as the incident's AI card does.
+ */
+const WAITING_FOR_SECOND_APPROVAL_LOOK: ResourceAiStatusLook = {
+  label: "Waiting for a second approval",
+  color: Yellow500,
+};
+
+export function getResourceFixStatusLook(
+  status: string,
+  // When a fix that still waits was approved first (the server says so).
+  firstApprovedAt?: string | null | undefined,
+): ResourceAiStatusLook {
+  if (status === AutoRemediationSuggestionStatus.Suggested && firstApprovedAt) {
+    return WAITING_FOR_SECOND_APPROVAL_LOOK;
+  }
+
   return (
     FIX_STATUS_LOOKS[status as AutoRemediationSuggestionStatus] || {
       label: status,

@@ -303,6 +303,7 @@ import TwilioTestSendCopy, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/TwilioTestSendCopy";
 import TwilioConfigDefaultCopy from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigDefaultCopy";
 import API from "../../../UI/Utils/API/API";
+import Toast, { ToastItem } from "../../../UI/Utils/Toast";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import {
@@ -457,7 +458,27 @@ beforeEach(() => {
   stored = {};
   capturedModels = [];
   tableProps = [];
+  Toast.dismissAll();
 });
+
+/*
+ * What a test that went out says, in the corner: it was a dialog to click
+ * away (#9120).
+ */
+type SentToastFunction = () => { title: string; description: string };
+
+const sentToast: SentToastFunction = (): {
+  title: string;
+  description: string;
+} => {
+  const toasts: ReadonlyArray<ToastItem> = Toast.getToasts();
+  const last: ToastItem | undefined = toasts[toasts.length - 1];
+
+  return {
+    title: last?.title || "",
+    description: String(last?.description || ""),
+  };
+};
 
 afterEach(() => {
   cleanup();
@@ -1220,7 +1241,7 @@ describe("Send Test SMS and Send Test Call", () => {
     );
   });
 
-  test("after a test SMS, the dialog names the number it went out from", async () => {
+  test("after a test SMS, the toast names the number it went out from", async () => {
     stored = {
       twilioPrimaryPhoneNumber: SG_NATIONAL,
       twilioSmsPhoneNumbers: SG_MOBILE,
@@ -1243,15 +1264,15 @@ describe("Send Test SMS and Send Test Call", () => {
 
     expect(request.url.toString()).toContain("/sms/test");
     expect(request.data["toPhone"]).toBe("+6598765432");
-    expect(screen.getByTestId("modal-title")).toHaveTextContent(
-      "Test SMS Sent",
-    );
-    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+    expect(sentToast().title).toBe("Test SMS Sent");
+    expect(sentToast().description).toBe(
       `Twilio accepted the test SMS from ${SG_MOBILE}. It should arrive within a few minutes.`,
     );
+    // Said in the corner, not in a dialog to click away.
+    expect(screen.queryByTestId("confirm-modal-description")).toBeNull();
   });
 
-  test("after a test call, the dialog names the number it calls from", async () => {
+  test("after a test call, the toast names the number it calls from", async () => {
     answerWith(
       new HTTPResponse(
         200,
@@ -1267,14 +1288,12 @@ describe("Send Test SMS and Send Test Call", () => {
         postSpy.mock.calls[0]![0] as { url: { toString: () => string } }
       ).url.toString(),
     ).toContain("/call/test");
-    expect(screen.getByTestId("modal-title")).toHaveTextContent(
-      "Test Call Placed",
-    );
-    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+    expect(sentToast().title).toBe("Test Call Placed");
+    expect(sentToast().description).toBe(
       `Twilio is calling from ${SG_NATIONAL}. Your phone should ring within a minute.`,
     );
     // Never the words a test email says: a call has no spam folder.
-    expect(document.body.textContent).not.toContain("spam");
+    expect(sentToast().description).not.toContain("spam");
   });
 
   test("an answer that names no number still says the test went out", async () => {
@@ -1282,9 +1301,7 @@ describe("Send Test SMS and Send Test Call", () => {
 
     await runTest("Send Test SMS", "+6598765432");
 
-    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
-      TwilioTestSendCopy.smsSent,
-    );
+    expect(sentToast().description).toBe(TwilioTestSendCopy.smsSent);
   });
 
   test("a refused test stays in its dialog, saying why, and no success is shown", async () => {
@@ -1301,7 +1318,7 @@ describe("Send Test SMS and Send Test Call", () => {
     expect(
       within(dialog()).getByText("SMS not sent: SMS is off in this project."),
     ).toBeVisible();
-    expect(screen.queryByTestId("confirm-modal-description")).toBeNull();
+    expect(Toast.getToasts()).toEqual([]);
   });
 
   test("says what went out in the reader's language", async () => {
@@ -1572,8 +1589,7 @@ describe("a config's numbers on a page read right to left", () => {
       });
       await settle();
 
-      const description: string =
-        screen.getByTestId("confirm-modal-description").textContent || "";
+      const description: string = sentToast().description;
 
       expect(words[template]).toContain("{{phoneNumber}}");
       expect(description).toBe(
@@ -1811,7 +1827,7 @@ describe("a config's numbers on a page read right to left", () => {
     });
     await settle();
 
-    expect(screen.getByTestId("confirm-modal-description").textContent).toBe(
+    expect(sentToast().description).toBe(
       `Twilio accepted the test SMS from ${SG_MOBILE}. It should arrive within a few minutes.`,
     );
   });

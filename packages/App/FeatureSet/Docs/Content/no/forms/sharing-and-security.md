@@ -66,9 +66,9 @@ Når domenet er live, viser kortet **Delingslenke** det over skjemaets lenke. Be
 Klikk på **Legg til egendefinert domene**. Dialogen ber om én ting:
 
 - **Domene**: hele adressen folk skal åpne, med plassholderen `report.example.com`. En innlimt lenke fungerer også: bare vertsnavnet beholdes. For å bruke roten av et domene skriver du selve domenet.
-- **Flere felt**: brettet sammen. Åpne det bare for å bruke ditt eget sertifikat: slå på **Last opp tilpasset sertifikat**, og lim inn **Sertifikat** og dets **Sertifikatets private nøkkel**.
+- **Flere felt**: brettet sammen. Åpne det bare for å bruke ditt eget sertifikat: slå på **Last opp tilpasset sertifikat**, og lim inn **Sertifikat** og dets **Sertifikatets private nøkkel**. Nøkkelen lagres kryptert og vises aldri igjen. Et sertifikat og en nøkkel som ikke hører sammen, avvises, med årsaken under feltet som er feil.
 
-Klikk på **Fortsett**. Hvis prosjektet har verifisert domenet adressen ligger på, under **Prosjektinnstillinger** > **Avansert** > **Domener**, legges domenet til, og domenets **DNS-oppsett** åpner. Hvis ikke, legger OneUptime til det domenet i prosjektet, og **DNS-oppsett** åpner også med TXT-posten, så du verifiserer det der og da. Navnet på et domene og skjemaet det viser ligger fast når det er lagt til, så **Rediger** endrer bare sertifikatet: for å endre ett av dem legger du til det nye domenet og sletter det gamle.
+Klikk på **Fortsett**. Hvis prosjektet har verifisert domenet adressen ligger på, under **Prosjektinnstillinger** > **Avansert** > **Domener**, legges domenet til, og domenets **DNS-oppsett** åpner. Hvis ikke, legger OneUptime til det domenet i prosjektet, og **DNS-oppsett** åpner også med TXT-posten, så du verifiserer det der og da. Navnet på et domene og skjemaet det viser ligger fast når det er lagt til, så **Rediger** endrer bare sertifikatet: for å endre ett av dem legger du til det nye domenet og sletter det gamle. På et domene som serverer ditt eget sertifikat, er **Sertifikatets private nøkkel** tom i dialogen **Rediger**: la den stå tom for å beholde den lagrede nøkkelen, som er alt et sertifikat fornyet med samme nøkkel trenger, eller lim inn en ny nøkkel. På et domene med det gratis sertifikatet ber **Last opp tilpasset sertifikat** om nøkkelen når du slår det på.
 
 Et domene viser én statusside, ett dashbord eller ett skjema, så et navn som en av dem allerede har, i hvilket som helst prosjekt, avvises: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
 
@@ -186,6 +186,10 @@ Hver variabel leser også det gamle navnet sitt, med `INCIDENT_FORM_` foran i st
 ### Captcha
 
 Når OneUptime-instansen din har hCaptcha slått på, viser skjemaet en captcha, og en innsending som ikke har bestått den, avvises. Det finnes ingen innstilling per skjema. En selvdriftet installasjon slår på captcha med `CAPTCHA_ENABLED`, `CAPTCHA_SITE_KEY` og `CAPTCHA_SECRET_KEY` — de samme innstillingene som beskytter registrering. Uten den bærer frekvensgrensene og IP-tillatelseslisten belastningen.
+
+### Skanning etter skadevare
+
+En selvhostet installasjon kan la ClamAV skanne hver fil folk sender, etter skadevare, før den lagres: filene i et skjema, og filene folk laster opp når de er logget inn eller med en API-nøkkel. Sett `CLAMAV_HOST` (og `CLAMAV_PORT`, `3310` som standard) til en ClamAV-daemon. Med Docker Compose starter `COMPOSE_PROFILES=clamav` og `CLAMAV_HOST=clamav` i `config.env` ClamAV-en som følger med OneUptime; med Helm slår du på `clamav.enabled`. En fil ClamAV flagger, avvises med navnet på filen, og ingenting fra innsendingen lagres. Så lenge ClamAV ikke svarer, avvises hver fil med "Filer kan ikke sjekkes for virus akkurat nå, så de ble ikke tatt imot. Prøv igjen om noen minutter." (503), slik at ingen fil lagres uten å være sjekket. Uten `CLAMAV_HOST` skannes ikke filer, som før.
 
 ## Feilsøking
 

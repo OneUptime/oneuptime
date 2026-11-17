@@ -294,7 +294,9 @@ export interface CheckByCheckWindow {
 }
 
 // The criteria list in English: a test, and a caller with no translator.
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 // A threshold typed as a plain number: "90", "-14", "99.5".
 const NUMERIC_THRESHOLD: RegExp = /^-?\d+(\.\d+)?$/;

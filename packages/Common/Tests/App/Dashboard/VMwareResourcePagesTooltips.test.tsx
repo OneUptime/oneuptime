@@ -103,9 +103,12 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/VMwareMetricDescriptions";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
+// A page draws a duration's figure held to its word (#8811).
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 import ProjectUtil from "../../../UI/Utils/Project";
 import {
   GIB,
+  asDrawn,
   explainedLabels,
   explanationOnFocus,
   expectNotNested,
@@ -253,24 +256,26 @@ describe("VMware ESXi host detail", () => {
     await waitForInfo("Busiest virtual machines");
     await waitForInfo("Received");
 
-    expect(await explainedLabels()).toEqual([
-      ["CPU", D.hostCpu],
-      ["Memory", D.hostMemory],
-      ["Disk latency", D.hostPageDiskLatency],
-      ["Network", D.hostPageNetwork],
-      ["CPU", D.hostPageCpuChart],
-      ["Memory", D.hostPageMemoryChart],
-      ["Disk latency", D.hostPageDiskLatencyChart],
-      ["Network", D.hostPageNetworkChart],
-      ["Busiest virtual machines", D.hostPageBusiestVirtualMachines],
-      ["Received", D.hostPageAdapterThroughput],
-      ["Packets", D.hostPageAdapterPackets],
-      ["Errors", D.hostPageAdapterErrors],
-      ["Drops", D.hostPageAdapterDrops],
-      ["Read", D.hostPageDeviceThroughput],
-      ["Read latency", D.hostPageDeviceLatency],
-      ["CPU capacity", D.hostCpuCapacity],
-    ]);
+    expect(await explainedLabels()).toEqual(
+      asDrawn([
+        ["CPU", D.hostCpu],
+        ["Memory", D.hostMemory],
+        ["Disk latency", D.hostPageDiskLatency],
+        ["Network", D.hostPageNetwork],
+        ["CPU", D.hostPageCpuChart],
+        ["Memory", D.hostPageMemoryChart],
+        ["Disk latency", D.hostPageDiskLatencyChart],
+        ["Network", D.hostPageNetworkChart],
+        ["Busiest virtual machines", D.hostPageBusiestVirtualMachines],
+        ["Received", D.hostPageAdapterThroughput],
+        ["Packets", D.hostPageAdapterPackets],
+        ["Errors", D.hostPageAdapterErrors],
+        ["Drops", D.hostPageAdapterDrops],
+        ["Read", D.hostPageDeviceThroughput],
+        ["Read latency", D.hostPageDeviceLatency],
+        ["CPU capacity", D.hostCpuCapacity],
+      ]),
+    );
     expect(screen.getByText("37.5%")).toBeInTheDocument();
     expectNoInfoOn([
       "Host name",
@@ -293,17 +298,19 @@ describe("VMware ESXi host detail", () => {
     await waitForInfo("CPU capacity");
 
     // No VMs, no device counters: no busiest-VMs list and no device tables.
-    expect(await explainedLabels()).toEqual([
-      ["CPU", D.hostCpu],
-      ["Memory", D.hostMemory],
-      ["Disk latency", D.hostPageDiskLatency],
-      ["Network", D.hostPageNetwork],
-      ["CPU", D.hostPageCpuChart],
-      ["Memory", D.hostPageMemoryChart],
-      ["Disk latency", D.hostPageDiskLatencyChart],
-      ["Network", D.hostPageNetworkChart],
-      ["CPU capacity", D.hostCpuCapacity],
-    ]);
+    expect(await explainedLabels()).toEqual(
+      asDrawn([
+        ["CPU", D.hostCpu],
+        ["Memory", D.hostMemory],
+        ["Disk latency", D.hostPageDiskLatency],
+        ["Network", D.hostPageNetwork],
+        ["CPU", D.hostPageCpuChart],
+        ["Memory", D.hostPageMemoryChart],
+        ["Disk latency", D.hostPageDiskLatencyChart],
+        ["Network", D.hostPageNetworkChart],
+        ["CPU capacity", D.hostCpuCapacity],
+      ]),
+    );
   });
 
   test("an (i) in a table header is a button of its own, outside the header's text", async () => {
@@ -318,7 +325,7 @@ describe("VMware ESXi host detail", () => {
       expectNotNested(button);
     }
     expect(await explanationOnFocus(infoButtonsFor("Read latency")[0]!)).toBe(
-      D.hostPageDeviceLatency,
+      withDurationWordsHeld(D.hostPageDeviceLatency),
     );
   });
 });
@@ -365,14 +372,16 @@ describe("VMware virtual machine detail", () => {
     render(<VirtualMachineDetail {...PAGE_PROPS} />);
     await waitForInfo("Memory Swapped");
 
-    expect(await explainedLabels()).toEqual([
-      ["CPU", D.vmCpu],
-      ["CPU Ready", D.vmCpuReady],
-      ["Memory", D.vmMemory],
-      ["Disk", D.vmDisk],
-      ["Memory Ballooned", D.vmMemoryBallooned],
-      ["Memory Swapped", D.vmMemorySwapped],
-    ]);
+    expect(await explainedLabels()).toEqual(
+      asDrawn([
+        ["CPU", D.vmCpu],
+        ["CPU Ready", D.vmCpuReady],
+        ["Memory", D.vmMemory],
+        ["Disk", D.vmDisk],
+        ["Memory Ballooned", D.vmMemoryBallooned],
+        ["Memory Swapped", D.vmMemorySwapped],
+      ]),
+    );
     // Above 10% CPU Ready the tile says what that means.
     expect(screen.getByText("waits for a free CPU")).toBeInTheDocument();
     expectNoInfoOn([
@@ -417,7 +426,7 @@ describe("VMware virtual machine detail", () => {
     render(<VirtualMachineDetail {...PAGE_PROPS} />);
     await waitForInfo("Disk");
 
-    expect(await explainedLabels()).toEqual([["Disk", D.vmDisk]]);
+    expect(await explainedLabels()).toEqual(asDrawn([["Disk", D.vmDisk]]));
     const status: HTMLElement = await screen.findByTestId(
       "vmware-vm-hero-status",
     );
@@ -458,11 +467,13 @@ describe("VMware datastore detail", () => {
     render(<DatastoreDetail {...PAGE_PROPS} />);
     await waitForInfo("Growth Forecast");
 
-    expect(await explainedLabels()).toEqual([
-      ["Used", D.datastoreUsedPercent],
-      ["Free", D.datastoreFree],
-      ["Growth Forecast", D.datastoreGrowthForecast],
-    ]);
+    expect(await explainedLabels()).toEqual(
+      asDrawn([
+        ["Used", D.datastoreUsedPercent],
+        ["Free", D.datastoreFree],
+        ["Growth Forecast", D.datastoreGrowthForecast],
+      ]),
+    );
     expectNoInfoOn(["Name", "Datacenter", "vCenter ID", "Last report"]);
   });
 
@@ -513,14 +524,16 @@ describe("VMware cluster detail", () => {
     render(<ClusterDetail {...PAGE_PROPS} />);
     await waitForInfo("Host failure");
 
-    expect(await explainedLabels()).toEqual([
-      ["Effective hosts", D.clusterHosts],
-      ["CPU", D.clusterCpuInUse],
-      ["Memory", D.clusterMemoryInUse],
-      ["Host failure", D.clusterHostFailure],
-      ["CPU (Effective / Total)", D.clusterCpu],
-      ["Memory (Effective / Total)", D.clusterMemory],
-    ]);
+    expect(await explainedLabels()).toEqual(
+      asDrawn([
+        ["Effective hosts", D.clusterHosts],
+        ["CPU", D.clusterCpuInUse],
+        ["Memory", D.clusterMemoryInUse],
+        ["Host failure", D.clusterHostFailure],
+        ["CPU (Effective / Total)", D.clusterCpu],
+        ["Memory (Effective / Total)", D.clusterMemory],
+      ]),
+    );
     // The host that is not effective is said under the count the (i) explains.
     expect(screen.getByText("3/4")).toBeInTheDocument();
     expect(screen.getByText("1 in maintenance mode")).toBeInTheDocument();
@@ -560,12 +573,14 @@ describe("VMware list pages: metric column headers", () => {
 
     await renderList(HostsPage, "hosts", "CPU Capacity");
 
-    expect(await explainedLabels()).toEqual([
-      ["Status", D.hostListStatus],
-      ["CPU Capacity", D.hostListCpuCapacity],
-      ["CPU", D.hostListCpu],
-      ["Memory", D.hostListMemory],
-    ]);
+    expect(await explainedLabels()).toEqual(
+      asDrawn([
+        ["Status", D.hostListStatus],
+        ["CPU Capacity", D.hostListCpuCapacity],
+        ["CPU", D.hostListCpu],
+        ["Memory", D.hostListMemory],
+      ]),
+    );
     expectNoInfoOn(["Name", "Datacenter", "Cluster"]);
   });
 
@@ -588,12 +603,14 @@ describe("VMware list pages: metric column headers", () => {
 
     await renderList(VirtualMachinesPage, "virtual-machines", "CPU Ready");
 
-    expect(await explainedLabels()).toEqual([
-      ["Status", D.vmListStatus],
-      ["CPU Ready", D.vmListCpuReady],
-      ["CPU", D.vmListCpu],
-      ["Memory", D.vmListMemory],
-    ]);
+    expect(await explainedLabels()).toEqual(
+      asDrawn([
+        ["Status", D.vmListStatus],
+        ["CPU Ready", D.vmListCpuReady],
+        ["CPU", D.vmListCpu],
+        ["Memory", D.vmListMemory],
+      ]),
+    );
     expectNoInfoOn(["Name", "Host", "Cluster", "Resource Pool"]);
   });
 
@@ -611,9 +628,9 @@ describe("VMware list pages: metric column headers", () => {
 
     await renderList(DatastoresPage, "datastores", "Used / Capacity");
 
-    expect(await explainedLabels()).toEqual([
-      ["Used / Capacity", D.datastoreListUsedCapacity],
-    ]);
+    expect(await explainedLabels()).toEqual(
+      asDrawn([["Used / Capacity", D.datastoreListUsedCapacity]]),
+    );
   });
 
   test("Clusters: Status, Hosts, VMs, and the CPU and memory its hosts use", async () => {
@@ -639,13 +656,15 @@ describe("VMware list pages: metric column headers", () => {
 
     await renderList(ClustersPage, "clusters", "Hosts");
 
-    expect(await explainedLabels()).toEqual([
-      ["Status", D.clusterListStatus],
-      ["Hosts", D.clusterListHosts],
-      ["VMs", D.clusterListVirtualMachines],
-      ["CPU", D.clusterCpuInUse],
-      ["Memory", D.clusterMemoryInUse],
-    ]);
+    expect(await explainedLabels()).toEqual(
+      asDrawn([
+        ["Status", D.clusterListStatus],
+        ["Hosts", D.clusterListHosts],
+        ["VMs", D.clusterListVirtualMachines],
+        ["CPU", D.clusterCpuInUse],
+        ["Memory", D.clusterMemoryInUse],
+      ]),
+    );
   });
 
   test("Resource Pools: CPU, memory and ballooned / swapped", async () => {
@@ -666,11 +685,13 @@ describe("VMware list pages: metric column headers", () => {
 
     await renderList(ResourcePoolsPage, "resource-pools", "CPU Usage");
 
-    expect(await explainedLabels()).toEqual([
-      ["CPU Usage", D.resourcePoolListCpu],
-      ["Memory Usage", D.resourcePoolListMemory],
-      ["Ballooned / Swapped", D.resourcePoolListBalloonedSwapped],
-    ]);
+    expect(await explainedLabels()).toEqual(
+      asDrawn([
+        ["CPU Usage", D.resourcePoolListCpu],
+        ["Memory Usage", D.resourcePoolListMemory],
+        ["Ballooned / Swapped", D.resourcePoolListBalloonedSwapped],
+      ]),
+    );
     expectNoInfoOn(["Inventory Path", "Cluster / Host"]);
   });
 
@@ -709,7 +730,9 @@ describe("VMware list pages: metric column headers", () => {
     fireEvent.click(cpuInfo);
     // Pressing the (i) did not sort the column.
     expect(header.getAttribute("aria-sort")).toBe("none");
-    expect(await explanationOnFocus(cpuInfo)).toBe(D.vmListCpu);
+    expect(await explanationOnFocus(cpuInfo)).toBe(
+      withDurationWordsHeld(D.vmListCpu),
+    );
 
     // The sort button next to it still sorts.
     fireEvent.click(

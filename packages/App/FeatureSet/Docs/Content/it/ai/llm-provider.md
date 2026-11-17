@@ -15,7 +15,7 @@ Un provider LLM è il modello dietro ogni funzionalità di IA di OneUptime: inda
 - **Domande**: **Chiedi all'IA** risponde a partire dai dati del tuo progetto, con una fonte per ogni affermazione. Vedi [Chiedi all'IA](/docs/ai/ask-ai).
 - **Bozze**: **Bozza con IA** nelle note di incidenti, avvisi e manutenzioni programmate, e i postmortem, scritti su richiesta o quando un incidente si risolve.
 - **Codice**: pull request che correggono eccezioni, tracce lente e le cause trovate dalle indagini, da OneUptime o da GitHub. Vedi [Codice](/docs/ai/ai-agent).
-- **Tutto il resto**: il triage di AI Insights, i passaggi di IA dei flussi di lavoro e dei runbook, e le risposte in Slack e Microsoft Teams.
+- **Tutto il resto**: il triage di Insight IA, i passaggi di IA dei flussi di lavoro e dei runbook, e le risposte in Slack e Microsoft Teams.
 
 ## Quale provider usa l'IA
 
@@ -113,7 +113,7 @@ In **Connessione**, il modulo chiede solo ciò che quel provider usa, con il suo
 
 ### Mettilo alla prova
 
-**Provare un provider.** **Test**, nella pagina del provider o nel menu della sua riga, invia al provider un breve prompt con la sua **Chiave API**, il **Nome modello**, l'**URL di base** e i **Parametri aggiuntivi**, e dice se ha risposto e chiamato uno strumento, cosa di cui le funzionalità di IA di OneUptime hanno bisogno. Un test fallito dice prima cosa controllare, poi cosa ha risposto il provider. Chi può modificare un provider può provarlo: **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore delle impostazioni**, **Membro delle impostazioni** e **Edit LLM**. Tutti gli altri che possono vedere il provider trovano **Test** bloccato. Un provider LLM globale lo prova un amministratore del server, nell'Admin Dashboard in **Impostazioni → Fornitori LLM globali**.
+**Provare un provider.** **Test**, nella pagina del provider o nel menu della sua riga, invia al provider un breve prompt con la sua **Chiave API**, il **Nome modello**, l'**URL di base** e i **Parametri aggiuntivi**, e dice se ha risposto e chiamato uno strumento, cosa di cui le funzionalità di IA di OneUptime hanno bisogno. Un test fallito dice prima cosa controllare, poi cosa ha risposto il provider. Chi può modificare un provider può provarlo: **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore delle impostazioni**, **Membro delle impostazioni** e **Edit LLM**. Tutti gli altri che possono vedere il provider trovano **Test** bloccato. Un provider LLM globale lo prova un amministratore del server, nell'Admin Dashboard in **Impostazioni → Fornitori LLM globali**. OneUptime legge al massimo 16 MB della risposta di un provider, in un test e in ogni funzionalità di IA. Una risposta più grande non viene letta: la richiesta non riesce, e il test lo dice.
 :::
 
 ## Configurazione per provider

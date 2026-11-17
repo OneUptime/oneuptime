@@ -17,11 +17,13 @@ import WorkspaceMessagePayload, {
   WorkspacePayloadImage,
   WorkspacePayloadInlineImage,
   WorkspacePayloadMarkdown,
+  WorkspacePayloadMention,
   WorkspacePayloadMenu,
   WorkspacePayloadMenuOption,
   WorkspaceTextAreaBlock,
   WorkspaceTextBoxBlock,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
+import WorkspaceMentions from "../WorkspaceMentions";
 import logger from "../../Logger";
 import Dictionary from "../../../../Types/Dictionary";
 import WorkspaceBase, {
@@ -3450,6 +3452,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     let imageBytes: number = 0;
     // A menu's dropdown is on the card: the card's own buttons leave it out.
     let hasMenuInput: boolean = false;
+    // The people the card's text mentions on purpose (issue #7968).
+    const mentions: Array<WorkspacePayloadMention> = [];
 
     for (const block of data.messageBlocks) {
       logger.debug(`Processing message block of type: ${block._type}`);
@@ -3490,6 +3494,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           payloadMarkdownBlock: markdownBlock,
         });
         body.push(markdownObj);
+        mentions.push(...(markdownBlock.mentions || []));
 
         // Its menu, under it (getMenuElements).
         if (markdownBlock.menu) {
@@ -3562,6 +3567,28 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     card["body"] = body;
     card["actions"] = actions;
+
+    /*
+     * Teams notifies the person of each <at> tag the text holds only with
+     * a mention entity for it (WorkspaceMentions).
+     */
+    if (mentions.length > 0) {
+      const entities: Array<JSONObject> =
+        WorkspaceMentions.getMicrosoftTeamsEntities({
+          texts: body
+            .filter((element: JSONObject): boolean => {
+              return typeof element["text"] === "string";
+            })
+            .map((element: JSONObject): string => {
+              return element["text"] as string;
+            }),
+          mentions: mentions,
+        });
+
+      if (entities.length > 0) {
+        card["msteams"] = { entities: entities };
+      }
+    }
 
     logger.debug(
       `Built adaptive card with ${body.length} body elements and ${actions.length} actions`,

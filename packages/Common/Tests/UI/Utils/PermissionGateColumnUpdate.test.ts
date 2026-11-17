@@ -231,11 +231,14 @@ describe("PermissionGate.checkColumnUpdate, refused by the record's own gate", (
     (column: string) => {
       permissionsForTest = [Permission.Viewer];
 
-      // The record's own list is wider: billing and Edit Project open it.
+      /*
+       * The record's own list is wider: billing, Edit Project and Edit
+       * Incoming Request Secret (its one column, #8502) open it.
+       */
       expect(
         PermissionGate.check(new Project(), ModelAction.Update).disabledReason,
       ).toBe(
-        "You do not have permission to update this Project. You need one of these permissions: Manage Billing, Edit Project.",
+        "You do not have permission to update this Project. You need one of these permissions: Manage Billing, Edit Project, Edit Incoming Request Secret.",
       );
 
       const result: PermissionGateResult = PermissionGate.checkColumnUpdate(
@@ -249,6 +252,7 @@ describe("PermissionGate.checkColumnUpdate, refused by the record's own gate", (
       });
       expect(result.disabledReason).not.toContain("Billing");
       expect(result.disabledReason).not.toContain("Edit Project");
+      expect(result.disabledReason).not.toContain("Incoming Request Secret");
     },
   );
 
@@ -410,7 +414,7 @@ describe("PermissionGate.getMissingPermissionMessage is unchanged", () => {
         ModelAction.Update,
       ),
     ).toBe(
-      "You do not have permission to update this Project. You need one of these permissions: Manage Billing, Edit Project.",
+      "You do not have permission to update this Project. You need one of these permissions: Manage Billing, Edit Project, Edit Incoming Request Secret.",
     );
   });
 });

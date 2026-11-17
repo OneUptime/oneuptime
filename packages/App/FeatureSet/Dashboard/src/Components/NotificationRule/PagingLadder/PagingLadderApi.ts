@@ -402,13 +402,18 @@ export const loadOwnPagingMethods: (
   );
 };
 
-// The body a save sends: the person (left out for your own) and the steps.
+/*
+ * The body a save sends: the person (left out for your own), the steps,
+ * and the cards that keep their own rules (#8890), left out for none.
+ */
 export const getPagingLadderSaveBody: (data: {
   userId?: ObjectID | undefined;
   steps: ReadonlyArray<PagingLadderStep>;
+  keepCards?: ReadonlyArray<PagingLadderCell> | undefined;
 }) => JSONObject = (data: {
   userId?: ObjectID | undefined;
   steps: ReadonlyArray<PagingLadderStep>;
+  keepCards?: ReadonlyArray<PagingLadderCell> | undefined;
 }): JSONObject => {
   const body: JSONObject = {
     steps: data.steps.map((step: PagingLadderStep): JSONObject => {
@@ -436,15 +441,25 @@ export const getPagingLadderSaveBody: (data: {
     body["userId"] = data.userId.toString();
   }
 
+  if (data.keepCards && data.keepCards.length > 0) {
+    body["keepCards"] = data.keepCards.map(
+      (cell: PagingLadderCell): JSONObject => {
+        return { ruleType: cell.ruleType, severityId: cell.severityId };
+      },
+    );
+  }
+
   return body;
 };
 
 export const savePagingLadder: (data: {
   userId?: ObjectID | undefined;
   steps: ReadonlyArray<PagingLadderStep>;
+  keepCards?: ReadonlyArray<PagingLadderCell> | undefined;
 }) => Promise<PagingLadderSaveResult> = async (data: {
   userId?: ObjectID | undefined;
   steps: ReadonlyArray<PagingLadderStep>;
+  keepCards?: ReadonlyArray<PagingLadderCell> | undefined;
 }): Promise<PagingLadderSaveResult> => {
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
     await API.post<JSONObject>({

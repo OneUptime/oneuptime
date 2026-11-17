@@ -35,11 +35,11 @@ Du trenger en telemetri-inntaksnøkkel av typen **Server**. Hvis du ikke har en 
 
 Gå til **Produkter → Prosjektinnstillinger**, åpne **Telemetri og APM** i sidemenyen, og velg **Inntaksnøkler**.
 
-![Listen «Inntaksnøkler», med «Opprett ingestion-nøkkel» uthevet](screen:ingestion-keys)
+![Listen «Inntaksnøkler», med «Opprett inntaksnøkkel» uthevet](screen:ingestion-keys)
 
 ### Opprett en nøkkel
 
-Klikk på **Opprett ingestion-nøkkel**. Dialogen har allerede fylt ut nøkkelens navn og valgt **Server** (den typen nøkkel en applikasjon eller en collector sender med), så klikk på **Opprett ingestion-nøkkel** for å opprette den, eller gi den et nytt navn først.
+Klikk på **Opprett inntaksnøkkel**. Dialogen har allerede fylt ut nøkkelens navn og valgt **Server** (den typen nøkkel en applikasjon eller en collector sender med), så klikk på **Opprett inntaksnøkkel** for å opprette den, eller gi den et nytt navn først.
 
 ### Kopier hemmeligheten
 
@@ -289,7 +289,20 @@ For .NET-profileren setter du `DD_TRACE_DEBUG=1` på applikasjonen i ett minutt:
 | --- | --- |
 | **Hvor CPU-tiden går** | Alle profiler i tidsvinduet, slått sammen til én flammegraf. Jo bredere en ramme er, desto større andel har den. Klikk på en ramme for å zoome inn. |
 | **Funksjoner** | Funksjonene som tar mest, sortert etter **Egen** (tiden i funksjonens egen kode), **Totalt** (med alt den kaller) eller **Koden din** (dine egne funksjoner, hver med biblioteks- og kjøretidskoden den kaller: tiden en endring i dem kan vinne tilbake). |
-| **Profilerte tjenester** | Alle profilerte tjenester, travleste først. Kjernetråder som eBPF-profilereren sampler, skjules. |
+| **Profilerte tjenester** | Alle profilerte tjenester, travleste først, hver med hvor dens egen tid går: dens egen kode som tar mest. Med flere tjenester og ingen valgt kommer dette kortet først. Kjernetråder som eBPF-profilereren sampler, skjules. |
+
+### Slik leser du en flammegraf
+
+En flammegraf slår sammen alle profilene i tidsvinduet til ett bilde. Hver stolpe er en funksjon: jo bredere den er, desto større andel av tiden har den, og stolpene under den er funksjonene den kaller. **Slik leser du den**, ved siden av tittelen på grafen, forklarer det på siden.
+
+- **Egen** er tiden i funksjonens egen kode, og **Totalt** legger til alt den kaller. En bred stolpe med lite under seg gjør arbeidet selv: begynn der.
+- Fargene viser hvem sin kode en stolpe er: **Koden din** (oransje), **Bibliotek** (blå), **Kjøretid** (grå), **System** (lilla) og **Ingen symboler** (lysegrå). Listen ved siden av grafen bruker de samme ordene.
+- En stolpe viser det korte navnet til en funksjon, for eksempel `aggregate.(*Builder).Sum`. Hold pekeren over den for å se hele navnet, filen og andelene egen og totalt.
+- Klikk på en stolpe for å zoome inn, og trykk Esc for å zoome ut igjen.
+
+### Kode uten symboler
+
+Native kode bygget uten symboler når profilereren bare som adresser, for eksempel `0x270675`. Flammegrafen samler dem i én stolpe **Ingen symboler** under funksjonen som kalte dem, og viser under grafen hvor mye av den som mangler symboler. For å se funksjonene ved navn må du beholde symbolene i binærfilen: ikke fjern dem (for Go: utelat `-ldflags="-s -w"`; for C, C++ og Rust: bygg med feilsøkingsinformasjon), eller installer pakken med feilsøkingssymboler der profilereren kjører.
 
 ### Sammenlign to tidsvinduer
 

@@ -23,6 +23,7 @@ import {
   TEMPLATES_AND_RECURRING,
   WORKFLOW_COMPONENTS,
 } from "./ScheduledMaintenanceDocsPages";
+import { drawnStepName } from "./DocsWorkflowStepNames";
 import {
   DocsHeading,
   DocsLink,
@@ -248,10 +249,15 @@ function englishBoldDrawings(
   ];
 }
 
-// How a page in any language writes the words it keeps: as the English does.
-function keptWords(page: string): Array<string> {
+/*
+ * How a page in a language writes the words it keeps: as the English does,
+ * but a workflow step as that language's builder draws it (#8708).
+ */
+function keptWords(language: string, page: string): Array<string> {
   return listed(KEPT_AS_WRITTEN, page).map((word: string): string => {
-    return `**${word}**`;
+    return WORKFLOW_COMPONENTS.includes(word)
+      ? `**${drawnStepName(language, word)}**`
+      : `**${word}**`;
   });
 }
 
@@ -442,7 +448,7 @@ function untranslatedLines(language: string, page: string): Array<string> {
       .replace(LINK_TARGET, "]");
 
     for (const kept of [
-      ...keptWords(page),
+      ...keptWords(language, page),
       ...listed(SERVER_TEXT, page),
       ...drawnInEnglish,
     ]) {
@@ -922,7 +928,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
           ...drawnHere.map((drawing: [string, string]): string => {
             return drawing[1];
           }),
-          ...keptWords(entry.page),
+          ...keptWords(language, entry.page),
           ...(language === "fa"
             ? dashboardPaths(entry.page).flatMap(
                 (segments: Array<string>): Array<string> => {
@@ -954,7 +960,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 
       it("keeps the words the product shows in English as written: roles, permissions, workflow steps", () => {
         const translated: string = readPage(language, entry.page);
-        const missing: Array<string> = keptWords(entry.page).filter(
+        const missing: Array<string> = keptWords(language, entry.page).filter(
           (kept: string): boolean => {
             return !translated.includes(kept);
           },

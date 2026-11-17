@@ -22,6 +22,8 @@ import AIRunType from "../../../../../Types/AI/AIRunType";
 import {
   AI_ACTIVITY_INSIGHTS_MAX_FIXES,
   AI_ACTIVITY_INSIGHTS_MAX_INVESTIGATIONS,
+  AiActivityInsight,
+  AiActivityInsightKind,
   AiActivityInsights,
   AiActivityProblem,
 } from "../../../../../Types/AI/AiActivityInsights";
@@ -756,6 +758,49 @@ describe("AiActivityInsightsReader.read", () => {
         failed: 1,
       }),
     );
+  });
+
+  /*
+   * A waiting fix the caller gave the first of two approvals waits for
+   * someone else's approval (#6422): the insight counts it apart.
+   */
+  test("a waiting fix the caller approved first is counted as waiting for someone else's approval", async () => {
+    serveMonth();
+    suggestionFind.mockImplementation(async (args: unknown) => {
+      const query: Record<string, unknown> = (
+        args as { query: Record<string, unknown> }
+      ).query;
+
+      if (query["kubernetesClusterId"]) {
+        return [
+          {
+            id: FIX_OWN,
+            status: AutoRemediationSuggestionStatus.Suggested,
+            createdAt: minutesAgo(15),
+            alertId: ALERT_ID,
+            firstApprovedByUserId: CALLER.userId,
+          },
+        ];
+      }
+
+      return [];
+    });
+
+    const insights: AiActivityInsights = await AiActivityInsightsReader.read(
+      scope(),
+      NOW,
+    );
+    const awaiting: AiActivityInsight | undefined = insights.insights.find(
+      (item: AiActivityInsight): boolean => {
+        return item.kind === AiActivityInsightKind.FixesAwaitingApproval;
+      },
+    );
+
+    expect(awaiting?.approvedFirstByReaderCount).toBe(1);
+    expect(
+      (suggestionFind.mock.calls[0]![0] as { select: Record<string, unknown> })
+        .select["firstApprovedByUserId"],
+    ).toBe(true);
   });
 
   test("links insights to readable incidents and alerts only", async () => {

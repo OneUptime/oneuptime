@@ -502,6 +502,6 @@ describe("how often, in words", () => {
   });
 
   test("a value that is no choice still reads as minutes", () => {
-    expect(getPollingIntervalLabel(7)).toBe("Every 7 minutes");
+    expect(getPollingIntervalLabel(7)).toBe("Every 7\u00A0minutes");
   });
 });

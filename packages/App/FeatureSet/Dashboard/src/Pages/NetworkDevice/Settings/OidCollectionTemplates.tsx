@@ -35,49 +35,46 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const oidCollectionTemplateDocumentation: string = `
-### What an OID Collection Template Is
+An OID collection template is one list of SNMP OIDs many devices share, for what is not per port: CPU, memory, temperature, fans and power supplies. You do not need OIDs for interfaces: every port's traffic, errors, utilization and up or down state are collected on every poll already, and can be alerted on per port.
 
-**You do not need OIDs for interfaces. Bits in/out, errors, utilization and up/down are collected for every port on every poll, automatically, and can be alerted on per port. OID Collection Templates are for the things that are not per-port: CPU, memory, temperature, fans, power supplies.**
+## How a Template Works
 
-A template is one named list of SNMP OIDs that many devices share. Link devices to it and they poll that list. Nothing is copied onto the device: the list is merged fresh on every poll, so editing the template changes what every linked device collects, with no per-device edit and no re-import.
+- Link devices to a template and they poll its list. Nothing is copied onto a device: the list is read fresh on every poll, so editing the template changes what every linked device collects.
+- A device can add **Device-Specific Health OIDs** of its own, for the one sensor only its chassis has. A probe polls the template's OIDs first, in their order, then the device's own. An OID in both keeps the device's name and description, at the template's place.
+- **Start from a vendor profile** fills a new template with a platform's CPU, memory, temperature, fan and power supply OIDs, once: prune it or add to it, and the profile is not read again. Applying it twice never adds an OID twice.
 
-A device can still carry its own **Device-Specific Health OIDs** on top of the template — the one sensor that only that chassis has. The effective list a probe receives is the template's OIDs first, in template order, then the device's own additions. If the same OID is in both, the device's entry wins (it keeps the name and description the operator gave it) but stays at the template's position, so growing a shared template can never push somebody's device-specific OID off the end.
+## Alerting on What Is Collected
 
-### Coming from Zabbix
+Criteria are set on the monitor, not here. Interface criteria and SNMP table criteria fan out: with \`*\`, one criterion covers every port or every row, with one alert each. **OID criteria do not: one criterion covers one OID.** Alerting on CPU, memory and temperature is three criteria.
+
+## SNMP Tables
+
+Some things a device keeps as a list, one row per IPsec tunnel, Wi-Fi radio, SSID, routing neighbour, fan or power supply. Pinning an OID to one row (\`…ConnStatus.3\`) collects whatever is at row 3 that day. A **table** is defined by its columns instead, and every row is walked on every poll, so tunnels that come, change or go are followed.
+
+- List the **column OIDs** to collect and, if you like, the columns that **name each row**, such as a tunnel's name or a radio's band.
+- An enumeration takes **value labels** (\`0=inactive, 1=active\`) and the **healthy values** that mean all is well (\`1\`). They colour the device's **SNMP Tables** tab and drive the **SNMP Table Row Is Unhealthy** criteria.
+- Every number is recorded as a metric, and **SNMP Table Value** criteria compare a column row by row: with Row set to \`*\`, one alert per row.
+
+The vendor templates for Sophos, Extreme (EXOS, Fabric Engine, IQ Engine access points and wireless controllers), Cambium (Wi-Fi and cnMatrix), HPE Aruba (Instant and Mobility Controllers) and Ubiquiti UniFi access points come with tables.
+
+## Limits
+
+- Up to **${MAX_OIDS_PER_TEMPLATE} OIDs** and **${MAX_TABLES_PER_TEMPLATE} tables** per template.
+- Up to **${MAX_DEVICE_SPECIFIC_OIDS} device-specific OIDs** on a linked device, so it never polls more than **${MAX_EFFECTIVE_OIDS_PER_DEVICE}**. A device with no template keeps all **${MAX_EFFECTIVE_OIDS_PER_DEVICE}** for its own list.
+
+Both are checked when you save. Split a big inventory across templates by device role (core routers, access switches, firewalls) rather than one list for every platform.
+
+## Coming from Zabbix
 
 | Zabbix | OneUptime |
 | --- | --- |
 | Template | OID Collection Template |
-| Item | An OID on that template |
-| The "Network interfaces by SNMP" discovery rule, and its item prototypes | Built in and always on. There is nothing to author — every port is walked, charted and alertable on every poll |
+| Item | An OID on the template |
+| The "Network interfaces by SNMP" discovery rule and its item prototypes | Built in, always on: every port is walked, charted and can be alerted on |
 | Trigger | Monitor criteria |
 | Host group | Labels |
 
-The discovery-rule row is the one that saves the most work. In Zabbix, per-port counters exist because you attached a low-level discovery rule with item prototypes. Here the interface walk is part of every poll: bits in and out, errors per second, utilization and oper status already exist for every port on every SNMP device, keyed by interface name and index. Do not re-create them as OIDs. A hand-typed per-port OID gives you one flat series for one interface index, and it silently follows the wrong port the day that index moves.
-
-### Criteria
-
-Criteria alert on what is collected, and they are set on the monitor, not here. Interface criteria and SNMP table criteria fan out — with \`*\`, one criterion covers every port or every table row and raises one alert per port or row. **OID criteria do not: one criterion covers one OID.** Alerting on CPU, memory and temperature is three criteria.
-
-### Limits
-
-- Up to **${MAX_OIDS_PER_TEMPLATE} OIDs per template**.
-- Plus up to **${MAX_DEVICE_SPECIFIC_OIDS} device-specific OIDs** on a device linked to one. The two compose to the **${MAX_EFFECTIVE_OIDS_PER_DEVICE}** a device may poll, so a linked device can never be silently truncated.
-- A device with no template keeps the full **${MAX_EFFECTIVE_OIDS_PER_DEVICE}** for its own list. The tighter device-specific budget is what linking costs, and it applies from the moment you link.
-
-Both caps are enforced when you save, which is what keeps the effective list a device polls at or below ${MAX_EFFECTIVE_OIDS_PER_DEVICE} OIDs. Split a bigger inventory across templates by device role — core routers, access switches, firewalls — rather than trying to carry every platform in one list.
-
-### SNMP Tables
-
-Some things a device keeps as a **list** rather than a value: one row per IPsec tunnel, Wi-Fi radio, SSID, routing neighbour, fan or power supply. Pinning a health OID to one row (\`…ConnStatus.3\`) collects whatever sits at row 3 that day; a **table** is defined by its columns instead, and every row is walked on every poll — tunnels that are added, renamed or removed are followed automatically.
-
-A table lists the **column OIDs** to collect and, optionally, the columns that **name each row** (a tunnel's connection name, a radio's band). Enumerations take **value labels** (\`0=inactive, 1=active\`) and the **healthy values** that mean "fine" (\`1\`), which colour the device's SNMP Tables tab and drive the **SNMP Table Row Is Unhealthy** criteria. Every numeric cell is recorded as a metric, and **SNMP Table Value** criteria compare a column row by row — with Row set to \`*\`, one alert per row.
-
-Up to **${MAX_TABLES_PER_TEMPLATE} tables per template**. The vendor templates for Sophos, Extreme (EXOS, Fabric Engine, IQ Engine access points and wireless controllers), Cambium (Wi-Fi and cnMatrix), HPE Aruba (Instant and Mobility Controllers) and Ubiquiti UniFi access points ship ready-made tables.
-
-### Vendor Profiles
-
-**Start from a vendor profile** prefills a new template with a prebuilt set of CPU, memory, temperature, fan and power-supply OIDs for a common platform. It is a one-time prefill into this template's list: prune it, extend it, and the profile is not consulted again. Applying a profile twice, or two overlapping profiles, never duplicates an OID.
+Do not re-create per-port counters as OIDs: an OID typed for one interface index is one flat series, and follows the wrong port the day that index moves.
 `;
 
 const vendorProfileOptions: Array<DropdownOption> =

@@ -29,7 +29,7 @@ flowchart TB
 - **Arkiverade monitorer räknas inte.** En arkiverad monitor kontrolleras inte, så dess status är fryst; gruppen utelämnar den.
 - **Monitorer med avstängd övervakning räknas inte.** Ingenting kontrollerar en monitor vars övervakning är avstängd, så dess status är bara vad dess senaste kontroll såg. Gruppen utelämnar den ur sin status: en monitor som stod på **Offline** när dess övervakning stängdes av gör inte gruppen **Offline**. Gruppens drifttid och **Drifttidsgraf** behåller monitorns historik fram till att dess övervakning stängdes av och utelämnar tiden därefter, både på instrumentpanelen och på statussidor. Slås den på igen räknas monitorn med från det ögonblicket.
 - **En tom grupp fungerar.** En grupp utan monitorer, eller bara med arkiverade, visar din fungerande status. Tills du lägger till en monitor visar instrumentpanelen **Inga monitorer ännu** i stället för gruppens status.
-- **Avstängd övervakning visar Inaktiverad.** När övervakningen är avstängd för alla monitorer i en grupp kontrollerar ingenting dem, så instrumentpanelen visar **Inaktiverad** i stället för gruppens status, och dess **Drifttidsgraf** och drifttid slutar där övervakningen stängdes av för den sista av dem. En statussida visar gruppen som **Inte övervakad**.
+- **Avstängd övervakning visar Inaktiverad.** När övervakningen är avstängd för alla monitorer i en grupp kontrollerar ingenting dem, så instrumentpanelen visar **Inaktiverad** i stället för gruppens status, och dess **Drifttidsgraf** och drifttid slutar där övervakningen stängdes av för den sista av dem. En statussida visar gruppen som **Inte övervakad**. Varje dag som alla förblir avstängda ritar båda dagens stapel som en dag med avstängd övervakning, inte som en dag utan data.
 - **Ordningen är din.** Vilken status som är värst följer ordningen under **Monitorer → Inställningar → Monitorstatus**. Se [Monitorstatusar](/docs/monitor/criteria-and-statuses#monitorstatusar).
 
 En monitorgrupp är inte en statussidegrupp. En statussidegrupp är en rubrik på en statussida som rymmer rader. En monitorgrupp är en rad som står för flera monitorer, och vilken statussida som helst kan visa den.
@@ -92,9 +92,11 @@ För att ta bort en monitor från gruppen klickar du på **Ta bort** på dess ra
 
 Tillgängligheten på **Översikt** räknar varje status utom den fungerande som driftstopp. En statussida räknar bara statusarna i sin egen lista **Räknas som driftstopp**: se [Välj vad sidan visar](/docs/status-pages/index#välja-vad-som-visas-på-sidan).
 
-Varje stapel i drifttidsgrafen, här och på en statussida, visar hur länge gruppen själv var i varje status den dagen: i varje ögonblick har den den sämsta statusen bland sina monitorer, så en timme då två av dem är offline samtidigt är en timme för gruppen, och en dag blir aldrig mer än en dag. Dagarna är dina egna: instrumentpanelen ritar dem i tidszonen från dina användarinställningar, och en statussida i varje besökares.
+Varje stapel i drifttidsgrafen, här och på en statussida, visar hur länge gruppen själv var i varje status den dagen: i varje ögonblick har den den sämsta statusen bland sina monitorer, så en timme då två av dem är offline samtidigt är en timme för gruppen, och en dag blir aldrig mer än en dag. Dagarna är dina egna: instrumentpanelen ritar dem i tidszonen från dina användarinställningar, och en statussida i varje besökares. En monitors tid före dess första kontroll ingår inte i dem: tills något har kontrollerat en monitor är dess status bara den fungerande som varje monitor skapas med, så gruppens staplar och drifttid utelämnar den tiden. Instrumentpanelen mäter dem utifrån varje statusändring hos gruppens monitorer, hur många de än är, precis som en statussida.
 
 Listan **Monitorgrupper** kan filtrera grupper efter ägare och etikett, sätta etiketter och ägare på många grupper på en gång och exportera eller importera grupper som JSON.
+
+**Översikt** har också kortet **Används av**: statussidorna som visar gruppen, och SLO:erna som mäter dess monitorer. När ingen statussida visar den säger kortet det och länkar till statussidorna. När du tar bort gruppen, på dess sida eller från listan, sägs först vilka statussidor som visar den.
 
 ## Stäng av övervakningen för en hel grupp
 

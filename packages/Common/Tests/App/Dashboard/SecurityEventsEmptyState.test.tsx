@@ -783,7 +783,7 @@ describe("SecurityEventsEmptyState", () => {
       );
 
       expect(failure.textContent).toBe(
-        "The last check failed: Could not read this project's logs: the query took longer than 30 seconds.",
+        "The last check failed: Could not read this project's logs: the query took longer than 30\u00A0seconds.",
       );
       expect(failure).toHaveClass("bg-amber-50", "text-amber-800");
       // After what Your logs says of itself, before its one action.

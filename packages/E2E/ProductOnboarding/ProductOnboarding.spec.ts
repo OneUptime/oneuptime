@@ -12,6 +12,7 @@ import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { cardBodyMisfits } from "../SuiteHelpers/CardBodyFit";
 import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
+import { NO_BREAK_SPACE, withUnit } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * How a product explains itself (Components/ProductOnboarding, #6430), in a
@@ -520,6 +521,15 @@ function fill(template: string, values: Record<string, string>): string {
   );
 }
 
+/*
+ * A translation whose count names a duration, as the page draws it: the
+ * Translator holds the count to the duration's word after it (#8770), so
+ * 26 never ends a line with "Stunden" on the next.
+ */
+function withCountHeld(template: string): string {
+  return template.split("{{count}} ").join(`{{count}}${NO_BREAK_SPACE}`);
+}
+
 // A side menu section's toggle, by its heading's text (CSS draws it in capitals).
 function sectionToggle(menu: Locator, title: string): Locator {
   return menu.locator(
@@ -1014,9 +1024,9 @@ test("a busy project's Overview says what is wrong now: the step left to do, the
     "Failing",
     "Drifted",
     "Late",
-    // A late table says by how much.
-    "Late by 26 hours",
-    "Late by 3 hours",
+    // A late table says by how much, the count held to its unit (#8770).
+    `Late by ${withUnit(26, "hours")}`,
+    `Late by ${withUnit(3, "hours")}`,
     "Could Not Run",
   ]);
 
@@ -1492,8 +1502,8 @@ test("in German: the steps, the counts and what needs someone in the Dashboard's
     GERMAN["Failing"],
     GERMAN["Drifted"],
     GERMAN["Late"],
-    fill(GERMAN["Late by {{count}} hours"]!, { count: "26" }),
-    fill(GERMAN["Late by {{count}} hours"]!, { count: "3" }),
+    fill(withCountHeld(GERMAN["Late by {{count}} hours"]!), { count: "26" }),
+    fill(withCountHeld(GERMAN["Late by {{count}} hours"]!), { count: "3" }),
     GERMAN["Could Not Run"],
   ]);
   const sessions: Locator = attentionItem(page, "Table Late").filter({

@@ -79,6 +79,7 @@ import {
   drawLine,
   isDrawnAsWritten,
 } from "../../Helpers/BidiLayout";
+import { withNumbersKeptWithUnits } from "../../../Types/NoBreakSpaces";
 
 /*
  * NETWORK NAMING RULES AND POWER BI VIEWS AND REFRESHES, ON THE PAGE, IN THE
@@ -187,14 +188,19 @@ function fill(template: string, values: Record<string, string>): string {
   return text;
 }
 
-// The locale's own words for a key: never missing, never the English.
+/*
+ * The locale's own words for a key: never missing, never the English; set
+ * as the Translator sets a wording, a duration's figure held (#8770).
+ */
 function wordsOf(locale: Locale, key: string): string {
   const words: string | undefined = locale[key];
 
   expect({ key, words }).toEqual({ key, words: expect.any(String) });
   expect({ key, same: words === EN[key] }).toEqual({ key, same: false });
 
-  return words as string;
+  return withNumbersKeptWithUnits(words as string, key.replace(/_one$/, ""), {
+    durationWords: true,
+  });
 }
 
 function instanceFor(language: string, locale: Locale): i18n {

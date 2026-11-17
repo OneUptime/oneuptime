@@ -48,7 +48,7 @@ import VersionUtil from "Common/Utils/VersionUtil";
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
 
 // The sentences of a reader whose language is not known: English.
-const ENGLISH: Translator = createTranslator(undefined, "en");
+const ENGLISH: Translator = createTranslator(undefined, "en", { drawsOnPage: true });
 
 type DrawnOnThePageFunction = (translator: Translator) => Translator;
 

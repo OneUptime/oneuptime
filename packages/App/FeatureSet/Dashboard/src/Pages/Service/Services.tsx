@@ -1,4 +1,9 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import {
+  UsedByListActions,
+  getUsedByListActions,
+} from "../../Components/UsedBy/UsedByListActions";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
 import ServiceElement from "../../Components/Service/ServiceElement";
@@ -68,8 +73,18 @@ const ServicesPage: FunctionComponent<
       resourceIdField: "serviceId",
     });
 
+  /*
+   * A row's Delete and Archive, and the bulk ones, say what still uses
+   * the records first (#7435).
+   */
+  const usedBy: UsedByListActions<Service> = getUsedByListActions<Service>(
+    UsedByRecordKind.Service,
+  );
+
   const { archiveBulkActions, archiveRowActions } =
     useBulkArchiveActions<Service>({
+      archiveConfirmDetails: usedBy.archiveConfirmDetails,
+      getArchiveConfirmationDetails: usedBy.getArchiveConfirmationDetails,
       modelType: Service,
     });
 
@@ -147,6 +162,7 @@ const ServicesPage: FunctionComponent<
           tableId: "service-table",
         }}
         isDeleteable={true}
+        getDeleteConfirmation={usedBy.getDeleteConfirmation}
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
@@ -169,6 +185,7 @@ const ServicesPage: FunctionComponent<
             ...ownerBulkActions,
             ...archiveBulkActions,
           ],
+          deleteConfirmationDetails: usedBy.deleteConfirmationDetails,
         }}
         name="Services"
         isViewable={true}

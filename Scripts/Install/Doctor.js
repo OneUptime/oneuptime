@@ -19,6 +19,7 @@ const {
   dockerFindings,
   freeDiskBytes,
   hostFindings,
+  isIpAddress,
   isTruthy,
   resourceFindings,
   splitHost,
@@ -994,7 +995,16 @@ const run = async (options) => {
   const ready = await request(`${ingressUrl}${READY_PATH}`, {});
   add(ingressFindings(ingressUrl, ready));
 
-  const publicUrl = publicUrlOf(settings);
+  /*
+   * No address is built from a HOST the configuration check above stops on
+   * (an IPv6 address without brackets, a placeholder, a listening address):
+   * its fix is said there, and http://2001:db8::1 is no address to open or
+   * to send people to.
+   */
+  const hostIsAnAddress = !hostFindings(settings, interfaces).some((entry) => {
+    return entry.level === "stop";
+  });
+  const publicUrl = hostIsAnAddress ? publicUrlOf(settings) : null;
   const secret = String(settings.get("ONEUPTIME_SECRET") || "").trim();
   let addressProof = null;
 
@@ -1034,11 +1044,18 @@ const run = async (options) => {
 
   const hostname = splitHost(host).hostname;
 
+  /*
+   * Not for an IP address, IPv4 or IPv6: Let's Encrypt certifies domain
+   * names only, so CoreSSL orders nothing for one, and the configuration
+   * check says so. Asked of [2001:db8::1], the TLS connection went to the
+   * resolver with the brackets on and came back "the name does not resolve".
+   */
   if (
     isTruthy(settings.get("PROVISION_SSL")) &&
+    hostIsAnAddress &&
     hostname &&
     !isLoopbackOrEmpty(host) &&
-    !/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)
+    !isIpAddress(hostname)
   ) {
     const presented = await certificate(hostname, 443);
     const sslLog =

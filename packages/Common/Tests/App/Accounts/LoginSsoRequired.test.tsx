@@ -38,6 +38,7 @@ import LoginWithSSOPage, {
   SSO_SUBTITLE_TEST_ID,
 } from "../../../../App/FeatureSet/Accounts/src/Pages/LoginWithSSO";
 import RegisterPage from "../../../../App/FeatureSet/Accounts/src/Pages/Register";
+import { MORE_WAYS_TO_SIGN_IN_OPEN_KEY } from "../../../../App/FeatureSet/Accounts/src/Components/MoreWaysToSignIn/MoreWaysToSignIn";
 
 /*
  * WHILE THE SERVER REQUIRES SSO, THE SIGN-IN PAGES OFFER ONLY SSO (#5193).
@@ -254,6 +255,12 @@ const navigatedTo: () => Array<string> = (): Array<string> => {
 
 beforeEach(() => {
   signInMethodsAnswer = NOT_REQUIRED;
+  /*
+   * "More ways to sign in" left open in this browser: single sign-on, a
+   * sign-in link and the passkey are folded under it on a first visit
+   * (#9023). LoginSignInOptions tests the fold itself.
+   */
+  window.localStorage.setItem(MORE_WAYS_TO_SIGN_IN_OPEN_KEY, "true");
   projectProvidersAnswer = {
     status: 400,
     data: { message: "No SSO config found for this user" },
@@ -630,11 +637,18 @@ describe("the master admins' sign-in (/accounts/admin-login)", () => {
     expect(screen.getByTestId("password")).toBeInTheDocument();
     expect(screen.getByText(english.login.forgotPassword)).toBeInTheDocument();
 
-    // SSO stays one click away; nothing the server would refuse is offered.
+    /*
+     * SSO stays in reach, in More ways to sign in (left open here by the
+     * beforeEach); nothing the server would refuse is offered, and no "or"
+     * is drawn over a fold with nothing beside it.
+     */
     expect(screen.getByTestId("sso-login")).toHaveAttribute(
       "href",
       "/accounts/sso",
     );
+    expect(
+      screen.queryByTestId("sign-in-options-divider"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId("passkey-login")).not.toBeInTheDocument();
     expect(screen.queryByTestId("microsoft-sign-in")).not.toBeInTheDocument();
     expect(screen.queryByTestId("google-sign-in")).not.toBeInTheDocument();

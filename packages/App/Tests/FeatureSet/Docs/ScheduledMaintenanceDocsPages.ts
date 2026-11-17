@@ -67,12 +67,10 @@ export const ROLE_NAMES: ReadonlyArray<string> = [
 ];
 
 /*
- * The workflow builder's components for the maintenance models, as the
- * English pages name them: their titles are made from each model's name
- * (BaseModelComponent). Since #8738 the builder draws a record step's title
- * as the sentence it was built from, in the reader's language, and a
- * translated page names each as its builder draws it
- * (WorkflowStepNamesAsDrawnDocs).
+ * The workflow builder's components for the maintenance models: their
+ * titles are made from each model's name (BaseModelComponent). The builder
+ * draws them in the reader's words (#8708), so a translation names each as
+ * its builder draws it (drawnStepName), and the English as written.
  */
 export const WORKFLOW_COMPONENTS: ReadonlyArray<string> = [
   "On Create Maintenance Event",
@@ -85,19 +83,30 @@ export const WORKFLOW_COMPONENTS: ReadonlyArray<string> = [
 
 /*
  * Bold words every language writes as the English does, by page: the
- * permissions' titles, the model the workflow components are named after,
- * and the "⋯" that opens a menu. (A built-in role's name reads in the page's
- * language, as its Dashboard draws it, and so does a workflow component's
- * title, as its builder draws it: WORKFLOW_COMPONENTS.)
+ * permissions' titles, the model a workflow component is named after, and
+ * the "⋯" that opens a menu. The workflow components are listed here too,
+ * and a translation writes them as its builder draws them (keptWords). (A
+ * built-in role's name reads in the page's language, as its Dashboard draws
+ * it.)
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
-    [MAINTENANCE_OVERVIEW]: ["⋯"],
-    [CREATING_EVENTS]: ["Create Scheduled Maintenance"],
+    [MAINTENANCE_OVERVIEW]: ["Create One Maintenance Event", "⋯"],
+    [CREATING_EVENTS]: [
+      "Create Scheduled Maintenance",
+      "On Create Maintenance Event",
+      "Create One Maintenance Event",
+    ],
     [MAINTENANCE_STATES]: ["⋯"],
     [TEMPLATES_AND_RECURRING]: [],
     [RULES_AND_SETTINGS]: [
+      "On Create Maintenance Event",
+      "On Update Maintenance Event",
+      "On Create or Update Maintenance Event",
+      "On Delete Maintenance Event",
       "Scheduled Maintenance State Timeline",
+      "Create One Maintenance Event",
+      "Update One Maintenance Event",
       "Create Scheduled Maintenance Owner Rule",
     ],
     // The + a day of the calendar shows, and the list's menu.

@@ -8,7 +8,7 @@ import {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
-import EventLoop from "Common/Server/Utils/EventLoop";
+import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -49,6 +49,8 @@ import {
 import SyslogEventNormalizer, {
   NormalizedSyslogMessage,
 } from "Common/Utils/Syslog/SyslogEventNormalizer";
+import { syslogStructuredDataAttributeKey } from "Common/Utils/Syslog/SyslogMessageParser";
+import SyslogRawCopies from "Common/Utils/Syslog/SyslogRawCopies";
 import { SyslogParserId } from "Common/Utils/Syslog/SyslogVendorParser";
 import {
   SYSLOG_FACILITY_LABELS,
@@ -117,9 +119,26 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         messages,
       } satisfies JSONObject;
 
-      Response.sendEmptySuccessResponse(req, res);
+      /*
+       * Acknowledge only after queue admission, as the OTLP endpoints do.
+       * This answered 200 first and queued after, so messages the queue then
+       * refused were lost behind a success; a relay retries a 503. The queue
+       * service logs the failure; the sender is told nothing of the backend
+       * or its payload.
+       */
+      try {
+        await SyslogQueueService.addSyslogIngestJob(req as TelemetryRequest);
+      } catch {
+        return Response.sendCustomResponse(
+          req,
+          res,
+          503,
+          { message: "Telemetry queue unavailable. Please retry." },
+          {},
+        );
+      }
 
-      await SyslogQueueService.addSyslogIngestJob(req as TelemetryRequest);
+      Response.sendEmptySuccessResponse(req, res);
 
       return;
     } catch (error) {
@@ -192,15 +211,18 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         logger.error(loadError);
       }
 
-      let messageCounter: number = 0;
+      /*
+       * Handed back by the time the work took, not every so many messages:
+       * a message's work grows with its scrub rules and what they read
+       * (Common/Server/Utils/EventLoop.ts).
+       */
+      const eventLoopBudget: EventLoopBudget = new EventLoopBudget();
 
       for (const rawMessage of messages) {
         try {
-          if (messageCounter % 500 === 0) {
-            await EventLoop.yieldToEventLoop();
+          if (eventLoopBudget.isSpent()) {
+            await eventLoopBudget.handBack();
           }
-
-          messageCounter++;
 
           const parsed: ParsedSyslogMessage | null =
             parseSyslogMessage(rawMessage);
@@ -326,8 +348,20 @@ export default class SyslogIngestService extends OtelIngestBaseService {
             continue;
           }
 
+          /*
+           * The line's raw copies, syslog.raw and syslog.structured.raw,
+           * are put together again from what the rules left of its parts,
+           * before a pipeline reads them (Common/Utils/Syslog/
+           * SyslogRawCopies, #9039).
+           */
           if (loadedScrubRules.length > 0) {
-            logRow = LogScrubRuleService.scrubLog(logRow, loadedScrubRules);
+            logRow = SyslogRawCopies.scrubLog({
+              logRow: logRow,
+              line: parsed,
+              scrub: (row: JSONObject): JSONObject => {
+                return LogScrubRuleService.scrubLog(row, loadedScrubRules);
+              },
+            });
           }
 
           if (loadedPipelines.length > 0) {
@@ -524,49 +558,49 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         serviceId: data.primaryEntityId,
         serviceName: data.serviceName,
       }),
-      "syslog.raw": parsed.raw,
+      [SyslogAttribute.Raw]: parsed.raw,
     };
 
     if (parsed.hostname) {
-      attributes["syslog.hostname"] = parsed.hostname;
+      attributes[SyslogAttribute.Hostname] = parsed.hostname;
     }
 
     if (parsed.appName) {
-      attributes["syslog.appName"] = parsed.appName;
+      attributes[SyslogAttribute.AppName] = parsed.appName;
     }
 
     if (parsed.procId) {
-      attributes["syslog.processId"] = parsed.procId;
+      attributes[SyslogAttribute.ProcessId] = parsed.procId;
     }
 
     if (parsed.msgId) {
-      attributes["syslog.messageId"] = parsed.msgId;
+      attributes[SyslogAttribute.MessageId] = parsed.msgId;
     }
 
     if (parsed.version !== undefined) {
-      attributes["syslog.version"] = parsed.version;
+      attributes[SyslogAttribute.Version] = parsed.version;
     }
 
     if (parsed.priority !== undefined) {
-      attributes["syslog.priority"] = parsed.priority;
+      attributes[SyslogAttribute.Priority] = parsed.priority;
     }
 
     if (parsed.severity !== undefined) {
-      attributes["syslog.severity.code"] = parsed.severity;
-      attributes["syslog.severity.name"] = this.getSeverityLabel(
+      attributes[SyslogAttribute.SeverityCode] = parsed.severity;
+      attributes[SyslogAttribute.SeverityName] = this.getSeverityLabel(
         parsed.severity,
       );
     }
 
     if (parsed.facility !== undefined) {
-      attributes["syslog.facility.code"] = parsed.facility;
-      attributes["syslog.facility.name"] = this.getFacilityLabel(
+      attributes[SyslogAttribute.FacilityCode] = parsed.facility;
+      attributes[SyslogAttribute.FacilityName] = this.getFacilityLabel(
         parsed.facility,
       );
     }
 
     if (parsed.structuredDataRaw) {
-      attributes["syslog.structured.raw"] = parsed.structuredDataRaw;
+      attributes[SyslogAttribute.StructuredRaw] = parsed.structuredDataRaw;
     }
 
     if (parsed.structuredData) {
@@ -582,8 +616,7 @@ export default class SyslogIngestService extends OtelIngestBaseService {
   ): void {
     for (const [sdId, params] of Object.entries(structuredData)) {
       for (const [key, value] of Object.entries(params)) {
-        const attributeKey: string = `syslog.structured.${this.sanitizeAttributeKey(sdId)}.${this.sanitizeAttributeKey(key)}`;
-        attributes[attributeKey] = value;
+        attributes[syslogStructuredDataAttributeKey(sdId, key)] = value;
       }
     }
   }
@@ -744,9 +777,5 @@ export default class SyslogIngestService extends OtelIngestBaseService {
     }
 
     return [];
-  }
-
-  private static sanitizeAttributeKey(value: string): string {
-    return value.replace(/[^A-Za-z0-9_.-]/g, "_");
   }
 }

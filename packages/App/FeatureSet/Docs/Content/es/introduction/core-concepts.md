@@ -26,6 +26,8 @@ flowchart TB
     statuspage --> subscribers["Suscriptores"]
 ```
 
+La página de cada registro también dice qué lo usa. La tarjeta **Usado por** de un monitor lista las páginas de estado que lo muestran, sus grupos de monitores, los SLO que lo miden, el mantenimiento próximo que lo menciona, los monitores que dependen de él, las reglas y plantillas que lo mencionan, y los flujos de trabajo y paneles que lo usan. Lo que no puedes abrir se cuenta, pero no se nombra. Eliminar o archivar un registro lo dice primero, en sus propias páginas y en las listas.
+
 ## Proyectos y personas
 
 Un **proyecto** lo contiene todo: monitores, incidentes, políticas de guardia, páginas de estado, telemetría y ajustes. La mayoría de las empresas necesitan uno, y algunas tienen uno por entorno o por unidad de negocio. Nada de lo que creas en un proyecto es visible en otro.

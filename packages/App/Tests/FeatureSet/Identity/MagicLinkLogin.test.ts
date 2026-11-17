@@ -2127,7 +2127,7 @@ describe("a new password ends a sign-in link sent before it", () => {
 describe("a new password ends a reset link sent before it", () => {
   const RESET_TOKEN: string = "2d3f8c7a-5e41-4a9c-9dae-3f4a5b6c7d8e";
   const INVALID_RESET_LINK_MESSAGE: string =
-    "Invalid link. Please go to forgot password page again and request a new link.";
+    "This password reset link has already been used or is not valid. Ask for a new link.";
 
   async function resetWithLink(password: string): Promise<void> {
     await post("/reset-password", {

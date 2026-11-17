@@ -58,6 +58,9 @@ import OnCallRunPageMessage from "../Utils/OnCall/OnCallRunPageMessage";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import TeamService from "./TeamService";
 import UserService from "./UserService";
+import DatabaseService from "./DatabaseService";
+import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import PrivateRecordWriteCheck from "../Utils/Permission/PrivateRecordWriteCheck";
 
 /*
  * PAGING PEOPLE: THE ONE CALL.
@@ -276,6 +279,15 @@ const MAX_NAMES_IN_SUMMARY: number = 5;
  */
 export const ON_CALL_DIRECT_PAGE_NOT_ALLOWED_MESSAGE: string =
   "Paging people, teams or on-call schedules directly takes access to every on-call policy of the project.";
+
+/*
+ * What "You do not have permission to ..." says of a page about a private
+ * incident or alert the caller's teams that own it may not page about
+ * (assertMayPageAbout).
+ */
+export function getPageAboutAction(recordNoun: string): string {
+  return `page anyone about this ${recordNoun}`;
+}
 
 export class Service {
   @CaptureSpan()
@@ -928,6 +940,8 @@ export class Service {
               title: true,
               incidentNumber: true,
               incidentNumberWithPrefix: true,
+              // Whose permission pages about it. See assertMayPageAbout.
+              isPrivate: true,
             },
             props: props,
           })
@@ -938,6 +952,14 @@ export class Service {
           `Nobody was paged. No incident has the ID ${request.about.incidentId.toString()}.`,
         );
       }
+
+      await this.assertMayPageAbout({
+        props: props,
+        recordService:
+          IncidentService as unknown as DatabaseService<DatabaseBaseModel>,
+        record: incident,
+        noun: "incident",
+      });
 
       return {
         type: OnCallPageRecordType.Incident,
@@ -964,6 +986,8 @@ export class Service {
               title: true,
               alertNumber: true,
               alertNumberWithPrefix: true,
+              // Whose permission pages about it. See assertMayPageAbout.
+              isPrivate: true,
             },
             props: props,
           })
@@ -974,6 +998,14 @@ export class Service {
           `Nobody was paged. No alert has the ID ${request.about.alertId.toString()}.`,
         );
       }
+
+      await this.assertMayPageAbout({
+        props: props,
+        recordService:
+          AlertService as unknown as DatabaseService<DatabaseBaseModel>,
+        record: alert,
+        noun: "alert",
+      });
 
       return this.getAlertRecord({
         projectId: projectId,
@@ -986,6 +1018,42 @@ export class Service {
       request: request,
       newAlert: request.about.newAlert!,
       policies: data.policiesForNewAlert,
+    });
+  }
+
+  /*
+   * A PAGE ABOUT A PRIVATE INCIDENT OR ALERT, ONLY THROUGH ITS OWNERS (#8913).
+   * Paging about a record takes the permission to start an on-call run
+   * (OnCallDutyPolicyExecutionLog's create list); on a private one that
+   * permission counts only through the teams that own it, as a person named
+   * its owner, or as a Project Owner or Admin - as every change of a private
+   * record does (PrivateRecordPermission). Asked before anyone is paged: the
+   * policies a page starts are held to it as they are created, and its
+   * direct pages are started by OneUptime, so a member whose team that owns
+   * the incident may only view it is refused here, saying why, and nobody is
+   * paged. The record was read as the caller first, with whether it is
+   * private, so one they do not see was answered as missing, and one that
+   * is not private is asked nothing more. OneUptime's own pages are not
+   * asked.
+   */
+  private async assertMayPageAbout(data: {
+    props: DatabaseCommonInteractionProps;
+    recordService: DatabaseService<DatabaseBaseModel>;
+    record: DatabaseBaseModel;
+    noun: string;
+  }): Promise<void> {
+    if (data.props.isRoot || data.props.isMasterAdmin || !data.record.id) {
+      return;
+    }
+
+    await PrivateRecordWriteCheck.assertReaches({
+      modelType: OnCallDutyPolicyExecutionLog,
+      type: DatabaseRequestType.Create,
+      recordService: data.recordService,
+      recordId: data.record.id,
+      props: data.props,
+      action: getPageAboutAction(data.noun),
+      readRecord: data.record,
     });
   }
 

@@ -129,7 +129,7 @@ describe("the badges a row shows", () => {
     expect(screen.getByTestId("exception-badge-new")).toHaveTextContent("New");
     expect(screen.getByTestId("exception-badge-new")).toHaveAttribute(
       "title",
-      "First seen in the last 24 hours.",
+      "First seen in the last 24\u00A0hours.",
     );
   });
 

@@ -1,7 +1,11 @@
 import GoalQuestion from "./WelcomeChecklist/GoalQuestion";
-import HowOneUptimeWorks from "./HowOneUptimeWorks";
+import { HOW_IT_WORKS_TITLE } from "./HowOneUptimeWorks";
+import {
+  HOW_ONEUPTIME_WORKS_DESCRIPTION,
+  HowOneUptimeWorksOpenedFrom,
+  openHowOneUptimeWorks,
+} from "./HowOneUptimeWorksDialog";
 import MemberFirstSteps from "./MemberFirstSteps/MemberFirstSteps";
-import ExploreSampleProject from "../SampleProject/ExploreSampleProject";
 import {
   fetchWelcomeChecklist,
   postWelcomeChecklist,
@@ -9,12 +13,18 @@ import {
 } from "./WelcomeChecklist/WelcomeChecklistApi";
 import {
   WELCOME_CHECKLIST_COPY,
+  WELCOME_JUST_LOOKING_GOAL,
+  WELCOME_MINUTES_COPY,
   WELCOME_PLAN_PAGE,
   WelcomeStepEntry,
   getWelcomeGoalEntry,
   getWelcomeStepEntry,
   getWelcomeStepRoute,
 } from "./WelcomeChecklist/WelcomeChecklistCatalog";
+import WelcomeGreeting, {
+  getGreetingFirstName,
+} from "./WelcomeChecklist/WelcomeGreeting";
+import WelcomePlanStep from "./WelcomeChecklist/WelcomePlanStep";
 import { rememberWelcomeStepStarted } from "./WelcomeChecklist/WelcomeStepInProgress";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { ServerEmail, cannotSendEmail } from "../../Utils/ServerEmail";
@@ -24,7 +34,6 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import { SampleProjectEntryPoint } from "Common/Types/SampleProject/SampleProject";
 import ProjectGoal, {
   toGoalsEventValue,
 } from "Common/Types/WelcomeChecklist/ProjectGoal";
@@ -32,6 +41,7 @@ import {
   WelcomeAudience,
   WelcomeChecklistStepState,
   WelcomeStep,
+  getWelcomeMinutesLeft,
 } from "Common/Types/WelcomeChecklist/WelcomeChecklist";
 import {
   WELCOME_CHECKLIST_GOALS_ROUTE,
@@ -43,7 +53,6 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ProgressBar, {
   ProgressBarSize,
@@ -59,25 +68,33 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
 
 /*
- * THE WELCOME CARD ON HOME (issue #6803).
+ * THE QUICKSTART ON HOME (issue #6803, redrawn for #8897).
  *
  * It starts from what the person came to do: a new project's owner is asked
  * once, "What do you want to do first?" (GoalQuestion), and the checklist
  * that follows has the steps of those goals, in the order of "How OneUptime
- * works". Everything is the server's - one answer for the project and the
- * person (WelcomeChecklistApi, Common/Types/WelcomeChecklist) - so a second
- * member and another browser see the same progress:
+ * works". While either is shown, it is the whole of Home (Pages/Home/Home):
+ * this card says which view it draws (onViewChange), and Home draws nothing
+ * else but what cannot wait.
+ *
+ * Everything is the server's - one answer for the project and the person
+ * (WelcomeChecklistApi, Common/Types/WelcomeChecklist) - so a second member
+ * and another browser see the same progress:
  *
  *   - a step ticks when the thing works, not when a record exists (a monitor
  *     that reported, a status page that shows a monitor);
+ *   - each step says about how long it takes, and the card how long is left;
  *   - a step the plan cannot finish says which plan it needs before the click;
- *   - one step is marked next;
+ *   - one step is marked next, with its own Start;
+ *   - under the steps, one line opens "How OneUptime works" (#8995);
  *   - Hide hides the card for this person only, on every device, and leaves
  *     a line to show it again and to "How OneUptime works";
+ *   - "Just looking around" keeps that goal and hides the card the same way;
  *   - once every step is done the card is gone, for everyone.
  *
  * Invited members are not shown the owner's checklist: the server answers
@@ -90,6 +107,15 @@ export interface ComponentProps {
   projectId: ObjectID;
   // Passed to the card, e.g. to drop its margin inside a spaced layout.
   className?: string | undefined;
+  /*
+   * Which view the card draws, each time it changes: null until the answer
+   * is read (or while a new project's is), then the view - and whether it
+   * is a new project's quickstart, which is then the whole of Home
+   * (isQuickstartTakingHome). Home draws the rest of the page by them.
+   */
+  onViewChange?:
+    | ((view: WelcomeCardView | null, isTakingHome: boolean) => void)
+    | undefined;
 }
 
 /*
@@ -112,36 +138,6 @@ export const getGettingStartedTaskDescription: (
     : task.descriptionWithoutEmail.forOthers;
 };
 
-/*
- * Where Home's Welcome card offers the sample project (issue #6808): to
- * someone "Just looking around", right under their goals, and to a
- * project with nothing in it yet, at the foot of the card. Never once a
- * step is done: the project is being set up for real.
- */
-export enum SampleProjectOffer {
-  None = "none",
-  // "Just looking around": offered first, under the goals.
-  Goals = "goals",
-  // Nothing in the project yet: offered at the foot of the card.
-  Home = "home",
-}
-
-export const getSampleProjectOffer: (data: {
-  goals: ReadonlyArray<ProjectGoal>;
-  doneCount: number;
-}) => SampleProjectOffer = (data: {
-  goals: ReadonlyArray<ProjectGoal>;
-  doneCount: number;
-}): SampleProjectOffer => {
-  if (data.doneCount > 0) {
-    return SampleProjectOffer.None;
-  }
-
-  return data.goals.includes(ProjectGoal.Explore)
-    ? SampleProjectOffer.Goals
-    : SampleProjectOffer.Home;
-};
-
 export enum WelcomeCardView {
   // Nothing: not read yet, could not be read, finished, or nothing to do.
   None = "none",
@@ -152,6 +148,50 @@ export enum WelcomeCardView {
   // An invited member: their own first steps (MemberFirstSteps, #6807).
   InvitedMember = "invited_member",
 }
+
+/*
+ * The views that are the quickstart: while one of them is drawn, it is the
+ * whole of Home (#8897).
+ */
+export const QUICKSTART_VIEWS: ReadonlyArray<WelcomeCardView> = [
+  WelcomeCardView.Question,
+  WelcomeCardView.Checklist,
+];
+
+export const isQuickstartView: (view: WelcomeCardView | null) => boolean = (
+  view: WelcomeCardView | null,
+): boolean => {
+  return view !== null && QUICKSTART_VIEWS.includes(view);
+};
+
+/*
+ * Whether the quickstart is the whole of Home (#8897): a new project's -
+ * the question, and the steps its goals bring once someone chose them (or
+ * skipped choosing). The question is only ever asked of a project that is
+ * new and not in use yet, so an answer to it is what makes a project's
+ * checklist a quickstart. A project that never answered it - in use before
+ * it would have been asked, or from before there was one - keeps the whole
+ * of Home, with the checklist as a card in it, as it always had: its
+ * people come to Home for what is open, and an unfinished checklist (no
+ * status page yet, say) must never stand in the way.
+ */
+export const isQuickstartTakingHome: (data: {
+  view: WelcomeCardView | null;
+  answer: WelcomeChecklistAnswer | null;
+}) => boolean = (data: {
+  view: WelcomeCardView | null;
+  answer: WelcomeChecklistAnswer | null;
+}): boolean => {
+  if (data.view === WelcomeCardView.Question) {
+    return true;
+  }
+
+  return (
+    data.view === WelcomeCardView.Checklist &&
+    data.answer !== null &&
+    data.answer.goals !== null
+  );
+};
 
 // What the card draws for an answer.
 export const getWelcomeCardView: (data: {
@@ -223,17 +263,33 @@ export const getStepAfter: (
 // The plan a project is on, as a step held back by its plan names it.
 const CURRENT_PLAN_HELD_BACK: PlanType = PlanType.Free;
 
+// How wide the quickstart is while it is the whole of Home.
+export const QUICKSTART_MAX_WIDTH_CLASS_NAME: string = "max-w-7xl";
+
+export const HOW_ONEUPTIME_WORKS_LINE_TEST_ID: string =
+  "getting-started-how-it-works";
+
+/*
+ * The line under the steps that opens How OneUptime works: a row as wide as
+ * a step's, its icon and words in line with theirs, quieter than they are.
+ */
+export const HOW_ONEUPTIME_WORKS_LINE_CLASS_NAME: string =
+  "group flex w-full items-center gap-4 rounded-xl border border-transparent px-3 py-3 text-start transition hover:border-gray-200 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
 const GettingStarted: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const projectIdString: string = props.projectId.toString();
+  const headingId: string = `getting-started-title-${useId()}`;
+  const howItWorksId: string = `getting-started-how-it-works-${useId()}`;
 
   const [answer, setAnswer] = useState<WelcomeChecklistAnswer | null>(null);
+  // The answer for this project was read, or could not be.
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [isChangingGoals, setIsChangingGoals] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [showHowItWorks, setShowHowItWorks] = useState<boolean>(false);
 
   /*
    * One read per project: what this browser remembered of the checklist
@@ -246,6 +302,7 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     let isCurrent: boolean = true;
 
     setAnswer(null);
+    setIsLoaded(false);
     setIsChangingGoals(false);
     setError("");
 
@@ -257,11 +314,15 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
 
       if (isCurrent) {
         setAnswer(loaded);
+        setIsLoaded(true);
       }
     };
 
     load().catch(() => {
       // Each read answers null on a failure: the card is left out.
+      if (isCurrent) {
+        setIsLoaded(true);
+      }
     });
 
     return () => {
@@ -312,6 +373,16 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     answer: answer,
     isChangingGoals: isChangingGoals,
   });
+
+  const isTakingHome: boolean = isQuickstartTakingHome({
+    view: view,
+    answer: answer,
+  });
+
+  // Home draws the rest of the page by these.
+  useEffect(() => {
+    props.onViewChange?.(isLoaded ? view : null, isLoaded && isTakingHome);
+  }, [isLoaded, view, isTakingHome]);
 
   if (!answer || view === WelcomeCardView.None) {
     return <></>;
@@ -364,14 +435,47 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     });
   };
 
-  const skipOrCancel: () => void = (): void => {
-    if (isChangingGoals) {
-      setIsChangingGoals(false);
-      setError("");
+  const cancelChange: () => void = (): void => {
+    setIsChangingGoals(false);
+    setError("");
+  };
+
+  /*
+   * "Just looking around": the project's goal is Explore, and the card is
+   * hidden for this person, so they land on the rest of Home at once. The
+   * card in between is never drawn: both answers come first. Should the
+   * hide not save, the checklist Explore brings shows, with its Hide.
+   */
+  const justLookAround: () => Promise<void> = async (): Promise<void> => {
+    const chosen: Array<ProjectGoal> = [WELCOME_JUST_LOOKING_GOAL];
+
+    setIsSaving(true);
+    setError("");
+
+    const saved: WelcomeChecklistAnswer | null = await postWelcomeChecklist(
+      WELCOME_CHECKLIST_GOALS_ROUTE,
+      { goals: chosen } as never,
+    );
+
+    if (!saved) {
+      setIsSaving(false);
+      setError(WELCOME_CHECKLIST_COPY.couldNotSave);
       return;
     }
 
-    chooseGoals([]);
+    ProductEvents.send(ProductEventName.GoalsChosen, {
+      goals: toGoalsEventValue(chosen),
+      goal_count: chosen.length,
+      is_change: false,
+    });
+
+    const hidden: WelcomeChecklistAnswer | null = await postWelcomeChecklist(
+      WELCOME_CHECKLIST_HIDE_ROUTE,
+      {},
+    );
+
+    setIsSaving(false);
+    setAnswer(hidden || saved);
   };
 
   /*
@@ -400,31 +504,61 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     );
   }
 
+  const firstName: string = getGreetingFirstName();
+
+  /*
+   * While it is the whole of Home, the quickstart keeps to a width the eye
+   * can take in, under the page's title, so Continue and Start sit near
+   * what they act on; as a card among others it is as wide as they are.
+   */
+  const quickstartClassName: string = `${props.className || ""} ${
+    isTakingHome ? QUICKSTART_MAX_WIDTH_CLASS_NAME : ""
+  }`.trim();
+
   if (view === WelcomeCardView.Question) {
     return (
       <GoalQuestion
         key={isChangingGoals ? "change" : "first"}
-        className={props.className}
+        className={quickstartClassName}
         initialGoals={isChangingGoals ? goals : []}
         isChange={isChangingGoals}
         isSaving={isSaving}
         error={error || undefined}
+        firstName={firstName}
         onSubmit={chooseGoals}
-        onSkip={skipOrCancel}
+        onCancel={cancelChange}
+        onJustLooking={() => {
+          justLookAround().catch(() => {
+            // justLookAround() says so.
+          });
+        }}
       />
     );
   }
 
-  const howItWorks: ReactElement = (
-    <HowOneUptimeWorks projectId={projectIdString} />
-  );
+  /*
+   * How OneUptime works, in the dialog Help, Search and Explore OneUptime
+   * open too (HowOneUptimeWorksDialog): the four steps a problem moves
+   * through, then every product. The checklist used to draw a shorter strip
+   * of its own, so a newcomer met two shapes of one story; now it opens the
+   * one (#8995).
+   */
+  const openHowItWorks: () => void = (): void => {
+    openHowOneUptimeWorks(HowOneUptimeWorksOpenedFrom.WelcomeChecklist);
+  };
 
   if (view === WelcomeCardView.Hidden) {
     return (
       <div className={props.className} data-testid="welcome-checklist-hidden">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
-          <span>
-            {translator.translateText(WELCOME_CHECKLIST_COPY.hiddenLine)}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600 shadow-sm">
+          <span className="flex min-w-0 items-center gap-2">
+            <Icon
+              icon={IconProp.RocketLaunch}
+              className="h-4 w-4 flex-none text-indigo-500"
+            />
+            <span>
+              {translator.translateText(WELCOME_CHECKLIST_COPY.hiddenLine)}
+            </span>
           </span>
           <Button
             title={WELCOME_CHECKLIST_COPY.showButton}
@@ -442,10 +576,8 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
             title={WELCOME_CHECKLIST_COPY.howItWorksButton}
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
             buttonSize={ButtonSize.Small}
-            ariaExpanded={showHowItWorks}
-            onClick={() => {
-              setShowHowItWorks(!showHowItWorks);
-            }}
+            ariaHaspopup="dialog"
+            onClick={openHowItWorks}
             dataTestId="welcome-checklist-how-it-works"
           />
           {error ? (
@@ -456,7 +588,6 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
             <></>
           )}
         </div>
-        {showHowItWorks ? <div className="mt-3">{howItWorks}</div> : <></>}
       </div>
     );
   }
@@ -465,11 +596,6 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     canSendEmail: answer.canSendEmail,
     isMasterAdmin: Boolean(UserUtil.isMasterAdmin()),
   };
-
-  const sampleProjectOffer: SampleProjectOffer = getSampleProjectOffer({
-    goals: goals,
-    doneCount: answer.doneCount,
-  });
 
   const hide: () => void = (): void => {
     ProductEvents.send(ProductEventName.ChecklistDismissed, {
@@ -567,8 +693,12 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
               <span
                 key={goal}
                 data-testid={`welcome-checklist-goal-${goal}`}
-                className="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700"
+                className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 font-medium text-gray-700"
               >
+                <Icon
+                  icon={getWelcomeGoalEntry(goal).icon}
+                  className="h-3.5 w-3.5 flex-none text-indigo-500"
+                />
                 {translator.translateText(getWelcomeGoalEntry(goal).title)}
               </span>
             );
@@ -596,25 +726,39 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     <></>
   );
 
+  const minutesLeft: number = getWelcomeMinutesLeft(answer.steps);
+
   return (
-    <Card
-      className={props.className}
-      title={WELCOME_CHECKLIST_COPY.title}
-      description={WELCOME_CHECKLIST_COPY.description}
-      rightElement={
-        <Button
-          title={WELCOME_CHECKLIST_COPY.hideButton}
-          buttonStyle={ButtonStyleType.SECONDARY_LINK}
-          buttonSize={ButtonSize.Small}
-          disabled={isSaving}
-          onClick={hide}
-          dataTestId="getting-started-dismiss"
-        />
-      }
+    <section
+      data-testid="getting-started"
+      aria-labelledby={headingId}
+      className={`overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm ${quickstartClassName}`}
     >
-      <div data-testid="getting-started">
-        <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="w-full max-w-md">
+      <div className="bg-gradient-to-br from-indigo-50 via-white to-white px-5 pb-6 pt-6 sm:px-8 sm:pt-8">
+        <WelcomeGreeting
+          firstName={firstName}
+          headingId={headingId}
+          dataTestId="getting-started-greeting"
+          rightElement={
+            <Button
+              title={WELCOME_CHECKLIST_COPY.hideButton}
+              buttonStyle={ButtonStyleType.SECONDARY_LINK}
+              buttonSize={ButtonSize.Small}
+              disabled={isSaving}
+              onClick={hide}
+              dataTestId="getting-started-dismiss"
+            />
+          }
+        />
+        <p className="mt-2 max-w-2xl text-sm text-gray-600">
+          {translator.translateText(WELCOME_CHECKLIST_COPY.description)}
+        </p>
+        <div className="mt-6 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0 lg:flex-1">{goalsRow}</div>
+          <div
+            data-testid="getting-started-progress"
+            className="w-full flex-none lg:w-80"
+          >
             <ProgressBar
               count={answer.doneCount}
               totalCount={answer.totalCount}
@@ -625,167 +769,104 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
               }
               size={ProgressBarSize.Small}
             />
+            {/* A div, not a p: an Icon draws a div around its svg. */}
+            {minutesLeft > 0 ? (
+              <div
+                data-testid="getting-started-minutes-left"
+                className="mt-2 flex items-center gap-1.5 text-xs text-gray-500"
+              >
+                <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 flex-none" />
+                <span>
+                  {translator.translatePlural(
+                    WELCOME_MINUTES_COPY.left,
+                    minutesLeft,
+                  )}
+                </span>
+              </div>
+            ) : (
+              <></>
+            )}
           </div>
-          {goalsRow}
         </div>
-        {error ? (
-          <p role="alert" className="mb-4 text-sm text-red-600">
-            {translator.translateText(error)}
-          </p>
-        ) : (
-          <></>
-        )}
-        {sampleProjectOffer === SampleProjectOffer.Goals ? (
-          <ExploreSampleProject
-            className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4"
-            from={SampleProjectEntryPoint.Goals}
-            isOffered={answer.canExploreSampleProject}
-            buttonStyle={ButtonStyleType.PRIMARY}
-          />
-        ) : (
-          <></>
-        )}
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          {answer.steps.map((state: WelcomeChecklistStepState) => {
-            const entry: WelcomeStepEntry = getWelcomeStepEntry(state.step);
-            const isComplete: boolean = state.isDone;
-
-            // Spans, not divs: a button may only hold phrasing content.
-            const tileContent: ReactElement = (
-              <>
-                <span
-                  className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
-                    isComplete
-                      ? "bg-emerald-100"
-                      : entry.iconBackgroundClassName
-                  }`}
-                >
-                  <Icon
-                    icon={isComplete ? IconProp.Check : entry.icon}
-                    className={`h-5 w-5 ${
-                      isComplete ? "text-emerald-600" : "text-white"
-                    }`}
-                  />
-                </span>
-                <span className="block min-w-0 flex-1">
-                  <span
-                    className={`flex flex-wrap items-center gap-2 text-sm font-medium ${
-                      isComplete ? "text-gray-500" : "text-gray-900"
-                    }`}
-                  >
-                    {translator.translateText(entry.title)}
-                    {state.isNext ? (
-                      <span
-                        data-testid="getting-started-next"
-                        className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700"
-                      >
-                        {translator.translateText(
-                          WELCOME_CHECKLIST_COPY.nextBadge,
-                        )}
-                      </span>
-                    ) : (
-                      <></>
-                    )}
-                  </span>
-                  <span className="mt-1 block text-sm text-gray-500">
-                    {describe(state)}
-                  </span>
-                </span>
-                {isComplete ? (
-                  <span className="mt-0.5 flex-shrink-0 text-xs font-medium text-emerald-600">
-                    {translator.translateText(WELCOME_CHECKLIST_COPY.done)}
-                  </span>
-                ) : state.needsPlan ? (
-                  <span
-                    data-testid={`getting-started-task-${state.step}-needs-plan`}
-                    className="mt-0.5 flex-shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
-                  >
-                    {translator.translateTemplate(
-                      WELCOME_CHECKLIST_COPY.needsPlan,
-                      {
-                        plan: state.needsPlan,
-                      },
-                    )}
-                  </span>
-                ) : (
-                  /*
-                   * Grey at rest, indigo on hover - on two elements: the dark
-                   * theme paints any hovered group child that carries a
-                   * text-gray-* class near-white, which would outrank the
-                   * indigo on one element.
-                   */
-                  <span className="mt-0.5 flex-shrink-0 text-gray-400">
-                    <Icon
-                      icon={
-                        entry.externalUrl
-                          ? IconProp.ExternalLink
-                          : IconProp.ChevronRight
-                      }
-                      className="h-5 w-5 transition group-hover:text-indigo-500"
-                    />
-                  </span>
-                )}
-              </>
-            );
-
-            // A done step is a record, not a way anywhere.
-            if (isComplete) {
-              return (
-                <div
-                  key={state.step}
-                  data-testid={`getting-started-task-${state.step}`}
-                  data-done="true"
-                  className="group flex items-start gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4 transition"
-                >
-                  {tileContent}
-                </div>
-              );
-            }
-
-            /*
-             * A step to do is a button: Tab reaches it, and Enter or Space
-             * opens it.
-             */
+      </div>
+      {error ? (
+        <p role="alert" className="px-5 pt-4 text-sm text-red-600 sm:px-8">
+          {translator.translateText(error)}
+        </p>
+      ) : (
+        <></>
+      )}
+      <ol
+        data-testid="getting-started-steps"
+        className="space-y-1 px-3 py-4 sm:px-5"
+      >
+        {answer.steps.map(
+          (state: WelcomeChecklistStepState, index: number): ReactElement => {
             return (
-              <button
+              <WelcomePlanStep
                 key={state.step}
-                type="button"
-                onClick={() => {
+                state={state}
+                entry={getWelcomeStepEntry(state.step)}
+                description={describe(state)}
+                isLast={index === answer.steps.length - 1}
+                onOpen={() => {
                   openStep(state);
                 }}
-                data-testid={`getting-started-task-${state.step}`}
-                data-done="false"
-                data-next={state.isNext ? "true" : "false"}
-                className={`group flex w-full items-start gap-4 rounded-lg border bg-white p-4 text-left transition hover:border-indigo-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                  state.isNext
-                    ? "border-indigo-300 ring-1 ring-indigo-200"
-                    : "border-gray-200"
-                }`}
-              >
-                {tileContent}
-              </button>
+              />
             );
-          })}
-        </div>
-        {/*
-         * The checklist says what to do; this says how the pieces connect.
-         * Hiding the card keeps it one click away, on the line left behind.
-         * Help and Home's Explore OneUptime open it in a dialog
-         * (HowOneUptimeWorksDialog) at any time too, however old the project.
-         */}
-        <div className="mt-6">{howItWorks}</div>
-        {sampleProjectOffer === SampleProjectOffer.Home ? (
-          <ExploreSampleProject
-            className="mt-6 border-t border-gray-100 pt-4"
-            from={SampleProjectEntryPoint.Home}
-            isOffered={answer.canExploreSampleProject}
-            buttonSize={ButtonSize.Small}
-          />
-        ) : (
-          <></>
+          },
         )}
+      </ol>
+      {/*
+       * The checklist says what to do; How OneUptime works says how the
+       * pieces connect. One line opens it, named as the dialog is and
+       * saying what the dialog says it holds, so the path stays about what
+       * to do first. Hiding the card keeps it one click away, on the line
+       * left behind.
+       */}
+      <div className="border-t border-gray-200 px-3 py-3 sm:px-5">
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          aria-labelledby={`${howItWorksId}-title`}
+          aria-describedby={`${howItWorksId}-description`}
+          onClick={openHowItWorks}
+          data-testid={HOW_ONEUPTIME_WORKS_LINE_TEST_ID}
+          className={HOW_ONEUPTIME_WORKS_LINE_CLASS_NAME}
+        >
+          <span
+            aria-hidden="true"
+            className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-gray-100"
+          >
+            <Icon icon={IconProp.Map} className="h-5 w-5 text-gray-500" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span
+              id={`${howItWorksId}-title`}
+              className="block text-sm font-semibold text-gray-900"
+            >
+              {translator.translateText(HOW_IT_WORKS_TITLE)}
+            </span>
+            <span
+              id={`${howItWorksId}-description`}
+              className="mt-0.5 block text-sm text-gray-600"
+            >
+              {translator.translateText(HOW_ONEUPTIME_WORKS_DESCRIPTION)}
+            </span>
+          </span>
+          {/*
+           * Grey at rest, indigo on hover - on two elements, as a step's
+           * chevron is (WelcomePlanStep).
+           */}
+          <span className="flex-none text-gray-400">
+            <Icon
+              icon={IconProp.ChevronRight}
+              className="h-5 w-5 transition group-hover:text-indigo-500"
+            />
+          </span>
+        </button>
       </div>
-    </Card>
+    </section>
   );
 };
 

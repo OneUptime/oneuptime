@@ -12,6 +12,11 @@ import {
   readOnCallEmptyLevelLine,
 } from "Common/Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import { isOnCallLevelSkippedByEscalationMessage } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
+import {
+  getOnCallDeletedLevelWords,
+  ON_CALL_DELETED_LEVEL_TEMPLATE,
+  ON_CALL_DELETED_LEVEL_WITH_NAME_TEMPLATE,
+} from "Common/Types/OnCallDutyPolicy/OnCallRunLevel";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -98,6 +103,67 @@ export const LEVEL_SKIPPED_BY_ESCALATION_LABEL: string = translationKey(
   "The page was escalated past this level",
 );
 
+/*
+ * A line whose escalation rule was deleted after it was written (issue
+ * #9036): the line stays, its rule cleared, and it says which level it
+ * was from what it recorded as it was written - or, written before levels
+ * were recorded, that its rule was deleted. The same words as the run's
+ * chat message (OnCallRunLevel's ON_CALL_DELETED_LEVEL_*).
+ */
+export const DELETED_LEVEL_WITH_NAME_TEMPLATE: string = translationKey(
+  "Level {{order}}: {{name}} (deleted)",
+);
+export const DELETED_LEVEL_TEMPLATE: string = translationKey(
+  "Level {{order}} (deleted)",
+);
+export const DELETED_ESCALATION_RULE_LABEL: string = translationKey(
+  "Deleted escalation rule",
+);
+
+/*
+ * The words for a deleted level, in the reader's language, from what its
+ * line recorded (getOnCallDeletedLevelWords picks which).
+ */
+export const getDeletedLevelText: (
+  translator: Translator,
+  line: {
+    escalationRuleOrder?: number | null | undefined;
+    escalationRuleName?: string | null | undefined;
+  },
+) => string = (
+  translator: Translator,
+  line: {
+    escalationRuleOrder?: number | null | undefined;
+    escalationRuleName?: string | null | undefined;
+  },
+): string => {
+  const words: {
+    template: string;
+    values: { order?: number; name?: string };
+  } = getOnCallDeletedLevelWords({
+    order: line.escalationRuleOrder,
+    name: line.escalationRuleName,
+  });
+
+  if (words.template === ON_CALL_DELETED_LEVEL_WITH_NAME_TEMPLATE) {
+    return translator.translateTemplate(DELETED_LEVEL_WITH_NAME_TEMPLATE, {
+      order: words.values.order!,
+      name: words.values.name!,
+    });
+  }
+
+  if (words.template === ON_CALL_DELETED_LEVEL_TEMPLATE) {
+    return translator.translateTemplate(DELETED_LEVEL_TEMPLATE, {
+      order: words.values.order!,
+    });
+  }
+
+  return (
+    translator.translateText(DELETED_ESCALATION_RULE_LABEL) ||
+    DELETED_ESCALATION_RULE_LABEL
+  );
+};
+
 export interface ComponentProps {
   onCallPolicyExecutionLogId: ObjectID;
 }
@@ -141,6 +207,14 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
           userNotificationEventType: true,
           // Read with every row: a row with none is a direct page's.
           onCallDutyPolicyId: true,
+          /*
+           * A policy's line with no rule had its rule deleted (issue #9036),
+           * and says which level it was from these; one whose rule is there
+           * but not readable by the reader still names its id.
+           */
+          onCallDutyPolicyEscalationRuleId: true,
+          escalationRuleOrder: true,
+          escalationRuleName: true,
           /*
            * The schedule this step targeted. Populated by the escalation runner
            * on every schedule step — including the "nobody was on call" skip,
@@ -263,6 +337,23 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                */
               if (item && isOnCallDirectPage(item)) {
                 return <DirectPageLabel />;
+              }
+
+              /*
+               * A policy's line whose rule was deleted after it was written
+               * (issue #9036): its rule is cleared, and it says which level
+               * it was. One whose rule is there, but not readable by the
+               * reader, still names the rule's id, and says it was not found.
+               */
+              if (item && !item["onCallDutyPolicyEscalationRuleId"]) {
+                return (
+                  <span
+                    data-testid="on-call-timeline-deleted-escalation-rule"
+                    className="text-sm text-gray-500"
+                  >
+                    {getDeletedLevelText(translator, item)}
+                  </span>
+                );
               }
 
               return (
@@ -639,6 +730,24 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                     text={
                       ON_CALL_TIMELINE_STATUS_LABELS[
                         OnCallDutyExecutionLogTimelineStatus.PassedOn
+                      ]
+                    }
+                  />
+                );
+              } else if (
+                /*
+                 * Another policy is paging them already, and its page stands
+                 * for this one (OnCallPageMerge): reached, as a page sent is.
+                 */
+                item["status"] ===
+                OnCallDutyExecutionLogTimelineStatus.AlreadyPaged
+              ) {
+                return (
+                  <Pill
+                    color={Green}
+                    text={
+                      ON_CALL_TIMELINE_STATUS_LABELS[
+                        OnCallDutyExecutionLogTimelineStatus.AlreadyPaged
                       ]
                     }
                   />

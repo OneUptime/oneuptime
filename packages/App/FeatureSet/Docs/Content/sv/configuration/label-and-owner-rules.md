@@ -107,6 +107,8 @@ En regels redigeringsformulär har samma två steg och lägger till brytaren **A
 
 En sådan regel kan fortfarande byta namn, stängas av eller tas bort, även via API:t och Terraform. Listan märker en regel som inte lägger till något med **Lägger inte till något** bredvid dess status, och det gör även regelns egen sida. Redigera den för att välja vad den lägger till, eller ta bort den.
 
+En regel vars matchande etiketter alla har tagits bort stängs av i stället för att matcha alla resurser, och listan märker den med **Begränsad till borttagna poster** bredvid dess status. Redigera den för att välja vad den matchar, och slå sedan på den. Se [När posterna som en regel är begränsad till tas bort](/docs/incidents/settings#när-posterna-som-en-regel-är-begränsad-till-tas-bort).
+
 ## När regler körs
 
 Varje aktiverad regel körs när en resurs skapas, från instrumentpanelen eller via API:t, och varje regel som matchar lägger till det den lägger till:

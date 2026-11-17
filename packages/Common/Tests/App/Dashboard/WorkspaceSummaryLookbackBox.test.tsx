@@ -333,22 +333,22 @@ describe("the summaries table's Lookback column", () => {
   test("says the days a summary covers", async () => {
     await renderTable();
 
-    expect(lookbackShown(30)).toBe("30 days");
-    expect(lookbackShown(1)).toBe("1 day");
-    expect(lookbackShown(365)).toBe("365 days");
+    expect(lookbackShown(30)).toBe("30\u00A0days");
+    expect(lookbackShown(1)).toBe("1\u00A0day");
+    expect(lookbackShown(365)).toBe("365\u00A0days");
   });
 
   test("REGRESSION: a summary stored with 0 or -5 covers 7 days, and says so - not 0 days or -5 days", async () => {
     await renderTable();
 
-    expect(lookbackShown(0)).toBe("7 days");
-    expect(lookbackShown(-5)).toBe("7 days");
+    expect(lookbackShown(0)).toBe("7\u00A0days");
+    expect(lookbackShown(-5)).toBe("7\u00A0days");
   });
 
   test("a summary stored with more than a year covers a year, and says so", async () => {
     await renderTable();
 
-    expect(lookbackShown(400)).toBe("365 days");
+    expect(lookbackShown(400)).toBe("365\u00A0days");
   });
 });
 
@@ -369,13 +369,13 @@ describe("Send Test Now", () => {
 
   test("asks to send the days the summary covers", async () => {
     expect(await confirmText(14)).toContain(
-      'Send the "Weekly incidents" summary to Slack now, with the last 14 days of data.',
+      'Send the "Weekly incidents" summary to Slack now, with the last 14\u00A0days of data.',
     );
   });
 
   test("REGRESSION: for a summary stored with -5, the 7 days its report covers", async () => {
     expect(await confirmText(-5)).toContain(
-      "now, with the last 7 days of data.",
+      "now, with the last 7\u00A0days of data.",
     );
   });
 });

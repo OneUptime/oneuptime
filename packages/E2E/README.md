@@ -302,6 +302,25 @@ when its words fit one line, and balances its lines when they wrap. See
 `SignInOptions/README.md`. Failure traces and review screenshots are written to
 `output/playwright/sign-in-options-ui/test-results/` at the repository root.
 
+## Security page UI regression tests
+
+Run the User Profile > Security checks without starting the app or database:
+
+```bash
+cd packages/E2E
+npm run test-security-page-ui
+```
+
+The fixture (`SecurityPage/Fixture`, port 4493) renders the Dashboard's real
+Two-factor authentication and Passkeys pages in their User Profile layout, with
+the data boundary stubbed, the production Tailwind and the Inter font. In
+English, German, Arabic and Persian it checks that every card, row, status and
+button reads in the page's language, that the page fits its window and reads
+right to left in Arabic and Persian, a new account's empty states (Persian,
+dark), the regenerate dialog (German) and the Arabic page on a phone (#8796).
+See `SecurityPage/README.md`. Screenshots of each are written to
+`output/playwright/security-page-ui/` at the repository root.
+
 ## Helpers the focused suites share
 
 `SuiteHelpers/` holds what more than one focused suite needs:
@@ -364,9 +383,9 @@ when its words fit one line, and balances its lines when they wrap. See
   a page that switches language while open. In a spec,
   `expectPageLoadsOnlyItsLanguage(page, check, language)` holds a page to
   its own locale and a script budget, and `dashboardWord(language, english)`
-  reads the words it should show. `Tests/Ops/E2EFixtureLocalesAsShipped`
-  holds every fixture to this. Its `KNOWN_STATIC` lists the fixtures still
-  to move (#8645), and the list only shrinks.
+  reads the words it should show, and `describePageLanguages(block)` gives a
+  suite those checks in one call. `Tests/Ops/E2EFixtureLocalesAsShipped`
+  holds every fixture to this (#8645 moved the last ones).
 
 A fixture navigates as the frontend it draws: one that draws Dashboard pages
 mounts `<BrowserRouter useTransitions={false}>`, as the Dashboard's

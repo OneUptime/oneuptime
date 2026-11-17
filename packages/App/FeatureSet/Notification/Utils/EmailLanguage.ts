@@ -13,6 +13,7 @@ import {
 import { removeHtmlMarkup, replaceHtmlMarkup } from "Common/Types/HtmlMarkup";
 import { getServerTranslator } from "Common/Server/Utils/ServerTranslation";
 import { TemplateValues, Translator } from "Common/Types/Translator";
+import { withDurationWordsHeld } from "Common/Types/NoBreakSpaces";
 
 /*
  * AN EMAIL'S OWN WORDS, IN ITS READER'S LANGUAGE.
@@ -128,10 +129,17 @@ const isRightToLeftEmail: (options: unknown) => boolean = (
   return getEmailRoot(options)?.["isEmailRightToLeft"] === "true";
 };
 
+/*
+ * An email's translator: read by a person in a mail client, which draws a
+ * no-break space as a browser does, so its English holds a duration's
+ * figure to its word too (readByAPerson, #8811).
+ */
 const translatorOf: (options: unknown) => Translator = (
   options: unknown,
 ): Translator => {
-  return getServerTranslator(getEmailLanguageFromRoot(options));
+  return getServerTranslator(getEmailLanguageFromRoot(options), {
+    readByAPerson: true,
+  });
 };
 
 /*
@@ -364,15 +372,24 @@ export const writeEmailNumber: (value: unknown, language: string) => string = (
 export const registerEmailLanguageHelpers: (
   handlebars: HandlebarsEngine,
 ) => void = (handlebars: HandlebarsEngine): void => {
+  /*
+   * A template's own words, as the reader reads them: OneUptime's English
+   * is held too where it names a duration ("within 15\u00A0minutes"),
+   * as its wordings are (#8811).
+   */
   handlebars.registerHelper("t", (text: unknown, options: unknown): string => {
-    return translatorOf(options).translateText(asText(text)) || "";
+    return withDurationWordsHeld(
+      translatorOf(options).translateText(asText(text)) || "",
+    );
   });
 
   handlebars.registerHelper(
     "tHtml",
     (text: unknown, options: unknown): string => {
       return handlebars.escapeExpression(
-        translatorOf(options).translateText(asText(text)) || "",
+        withDurationWordsHeld(
+          translatorOf(options).translateText(asText(text)) || "",
+        ),
       );
     },
   );

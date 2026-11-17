@@ -53,7 +53,7 @@
       "signIn": "Accedi con una passkey",
       "inProgress": "Completa o annulla l’accesso con passkey prima di usare la password.",
       "helpTitle": "Non conosci le passkey?",
-      "help": "Una passkey ti permette di accedere con l’impronta digitale, il volto o il PIN del dispositivo invece che con una password. Per aggiungerne una, accedi con la password o l’SSO, poi apri Profilo utente → Sicurezza → Passkeys.",
+      "help": "Una passkey ti permette di accedere con l’impronta digitale, il volto o il PIN del dispositivo invece che con una password. Per aggiungerne una, accedi con la password o l’SSO, poi apri Profilo utente → Sicurezza → Passkey.",
       "preparing": "Preparazione della passkey…",
       "waiting": "Controlla il dispositivo",
       "waitingDescription": "Segui le indicazioni del browser o del gestore di password.",
@@ -68,6 +68,7 @@
     "signInWithSso": "Accedi con SSO",
     "signInWithMicrosoft": "Accedi con Microsoft",
     "emailSignInLink": "Inviami un link di accesso",
+    "moreWaysToSignIn": "Altri modi per accedere",
     "noAccountPrompt": "Non hai un account?",
     "registerLink": "Registrati.",
     "twoFactor": {
@@ -175,10 +176,17 @@
   "resetPassword": {
     "title": "Reimposta la password",
     "subtitle": "Inserisci la tua nuova password e la aggiorneremo.",
-    "successMessage": "La tua password è stata aggiornata. Effettua l'accesso.",
     "submitButton": "Reimposta password",
     "knowPasswordPrompt": "Conosci la tua password?",
-    "loginLink": "Accedi."
+    "loginLink": "Accedi.",
+    "successTitle": "La tua password è stata reimpostata",
+    "successDescription": "Accedi con la nuova password.",
+    "signInButton": "Accedi",
+    "linkExpiredTitle": "Questo link di reimpostazione è scaduto",
+    "linkExpiredDescription": "I link di reimpostazione valgono un giorno. Richiedi un nuovo link e te lo invieremo via email.",
+    "linkInvalidTitle": "Questo link di reimpostazione non funziona più",
+    "linkInvalidDescription": "Potrebbe essere già stato usato, oppure ne è stata copiata solo una parte. Richiedi un nuovo link e te lo invieremo via email.",
+    "requestNewLinkButton": "Richiedi un nuovo link"
   },
   "sso": {
     "title": "Accedi con SSO",
@@ -255,7 +263,7 @@
     "complete": "La tua passkey è stata verificata. Torna all’app per completare l’accesso.",
     "returnToApp": "Torna all’app",
     "cancel": "Annulla e torna all’app",
-    "setup": "Crea una passkey nella dashboard web, in Profilo utente → Sicurezza → Passkeys."
+    "setup": "Crea una passkey nella dashboard web, in Profilo utente → Sicurezza → Passkey."
   },
   "mcpAuthorize": {
     "title": "Collega un client MCP",
@@ -562,6 +570,7 @@
   "What was sent is larger than the 50 MB OneUptime takes in one request.": "Ciò che è stato inviato supera i 50 MB che OneUptime accetta in una richiesta.",
   "Try again with less at once, such as a smaller file.": "Riprova inviando meno dati alla volta, ad esempio un file più piccolo.",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Se l'ha rifiutato un proxy davanti a OneUptime, porta il limite di dimensione delle richieste di quel proxy a 50 MB, quanto accetta OneUptime stesso (in nginx, client_max_body_size 50M).",
+  "Dismiss": "Nascondi",
   "This form is not available. It may have been turned off, or the link may be out of date.": "Questo modulo non è disponibile. Potrebbe essere stato disattivato oppure il link potrebbe non essere più valido.",
   "This form can only be opened from an allowed network.": "Questo modulo può essere aperto solo da una rete consentita.",
   "Too many submissions from your network. Please wait a few minutes and try again.": "Troppe segnalazioni dalla tua rete. Attendi qualche minuto e riprova.",
@@ -572,6 +581,7 @@
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "Questo modulo non può creare un incidente perché non ha una gravità. Avvisa il team che lo ha condiviso.",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "Al momento non è possibile accettare invii. Riprova tra qualche minuto.",
   "This form is receiving too many files right now. Please try again later.": "Questo modulo sta ricevendo troppi file in questo momento. Riprova più tardi.",
+  "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "Al momento non è possibile controllare i file per i virus, quindi non sono stati accettati. Riprova tra qualche minuto.",
   "A response can carry at most 10 files.": "Una risposta può contenere al massimo 10 file.",
   "The files of a response can be at most 20 MB together.": "I file di una risposta possono occupare al massimo 20 MB in tutto.",
   "Your response could not be submitted. Please try again in a few minutes.": "Non è stato possibile inviare la tua risposta. Riprova tra qualche minuto.",

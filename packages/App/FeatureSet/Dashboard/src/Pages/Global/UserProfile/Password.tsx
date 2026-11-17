@@ -2,10 +2,10 @@ import PageComponentProps from "../../PageComponentProps";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { getNewPasswordFields } from "Common/UI/Components/PasswordRequirements/NewPasswordFields";
 import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -16,6 +16,7 @@ class UserWithConfirmPassword extends User {
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
   const [hasPasswordChanged, setHasPasswordChanged] = useState<boolean>(false);
+  const passwordRequirementsId: string = useId();
 
   return (
     <Card
@@ -39,45 +40,12 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             password: "",
             confirmPassword: "",
           }}
-          fields={[
-            {
-              field: {
-                password: true,
-              },
-              fieldType: FormFieldSchemaType.Password,
-              /*
-               * The person's own new password - the one password field in the
-               * Dashboard password managers should save.
-               */
-              autoComplete: "new-password",
-              isOwnCredential: true,
-              validation: {
-                minLength: 6,
-              },
-              placeholder: "Password",
-              title: "Password",
-              required: true,
-              showEvenIfPermissionDoesNotExist: true,
-              disableSpellCheck: true,
-            },
-            {
-              field: {
-                confirmPassword: true,
-              },
-              validation: {
-                minLength: 6,
-                toMatchField: "password",
-              },
-              fieldType: FormFieldSchemaType.Password,
-              autoComplete: "new-password",
-              isOwnCredential: true,
-              placeholder: "Confirm Password",
-              title: "Confirm Password",
-              required: true,
-              showEvenIfPermissionDoesNotExist: true,
-              disableSpellCheck: true,
-            },
-          ]}
+          fields={getNewPasswordFields<UserWithConfirmPassword>({
+            translator: translator,
+            requirementsId: passwordRequirementsId,
+            passwordTitle: translator.translateText("New Password")!,
+            confirmPasswordTitle: translator.translateText("Confirm Password")!,
+          })}
           formType={FormType.Update}
           submitButtonText={"Update Password"}
         />

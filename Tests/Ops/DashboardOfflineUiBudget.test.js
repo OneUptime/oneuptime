@@ -26,6 +26,11 @@
  *     the most room;
  *   - the run step's limit holds a group at the budget on the slowest runner
  *     seen (22 x 1.45 = 31.9 <= 35).
+ *
+ * Since 2026-11-16 the run step runs two suites at a time
+ * (packages/E2E/Scripts/RunUiSuites.js, RunUiSuites.test.js), so a group takes
+ * about half its sum; the budget still holds the sum of its suites' minutes
+ * one at a time, which leaves it far inside the step's limit.
  */
 
 const fs = require("fs");

@@ -5,10 +5,18 @@ import IncidentService, {
 import AlertService from "../../../Server/Services/AlertService";
 import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
 import AIRunEventService from "../../../Server/Services/AIRunEventService";
-import AIConversationMessageService from "../../../Server/Services/AIConversationMessageService";
+import AIConversationMessageService, {
+  Service as AIConversationMessageServiceClass,
+} from "../../../Server/Services/AIConversationMessageService";
 import AIInsightService from "../../../Server/Services/AIInsightService";
+import { Service as AIRunServiceClass } from "../../../Server/Services/AIRunService";
 import AuditLogService from "../../../Server/Services/AuditLogService";
+import { Service as ActionItemServiceClass } from "../../../Server/Services/IncidentPostmortemActionItemService";
+import { Service as MonitorServiceClass } from "../../../Server/Services/MonitorService";
 import Realtime from "../../../Server/Utils/Realtime";
+import RealtimeMetrics, {
+  BeforeWriteDecisionOutcome,
+} from "../../../Server/Utils/Realtime/RealtimeMetrics";
 import RealtimeReaders from "../../../Server/Utils/Realtime/RealtimeReaders";
 import {
   NO_READER_ACCESS,
@@ -22,6 +30,7 @@ import QueryUtil from "../../../Server/Types/Database/QueryUtil";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "../../../Models/DatabaseModels/Label";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
@@ -782,6 +791,24 @@ describe("DatabaseService.getColumnsNarrowingReadOf", () => {
     ).resolves.toContain("labels");
   });
 
+  test("a grant for some labels, with the label join tables known, narrows the read by a condition on the row itself", async () => {
+    withLabelLinks();
+
+    const narrowedBy: Array<string> | null =
+      await ServiceLevelObjectiveService.getColumnsNarrowingReadOf(
+        propsWith([
+          {
+            permission: Permission.ProjectMember,
+            labelIds: [LABEL_ID],
+            scope: PermissionScope.Labels,
+          },
+        ]),
+      );
+
+    expect(narrowedBy).toContain("_id");
+    expect(narrowedBy).not.toContain("labels");
+  });
+
   test("a block with labels narrows the read by a condition on the row itself", async () => {
     withLabelLinks();
 
@@ -829,6 +856,18 @@ describe("updating records: who could read them before the write hears about it 
       permission: Permission.ProjectOwner,
       labelIds: [LABEL_ID],
       isBlockPermission: true,
+    },
+  ]);
+  /*
+   * A grant limited to labels keeps the incidents by a condition on their
+   * id against the label join table (#8113), not through the labels
+   * relation: still asked when the labels are written, and only then.
+   */
+  const LIMITED: DatabaseCommonInteractionProps = propsWith([
+    {
+      permission: Permission.ProjectOwner,
+      labelIds: [LABEL_ID],
+      scope: PermissionScope.Labels,
     },
   ]);
 
@@ -994,10 +1033,10 @@ describe("updating records: who could read them before the write hears about it 
       true,
     ],
     [
-      "a member, when only the title is written",
+      "a member, when the private switch and the title are written",
       MEMBER,
-      { title: "Renamed" },
-      false,
+      { isPrivate: true, title: "Renamed" },
+      true,
     ],
     [
       "someone who reads every record, whatever is written",
@@ -1012,10 +1051,16 @@ describe("updating records: who could read them before the write hears about it 
       true,
     ],
     [
-      "someone with a block with labels, when only the title is written",
+      "someone with a block with labels, when the private switch is written",
       BLOCKED,
-      { title: "Renamed" },
+      { isPrivate: true },
       false,
+    ],
+    [
+      "someone limited to some labels, when the labels are written",
+      LIMITED,
+      { labels: [] },
+      true,
     ],
   ] as Array<
     [string, DatabaseCommonInteractionProps, Record<string, unknown>, boolean]
@@ -1034,6 +1079,50 @@ describe("updating records: who could read them before the write hears about it 
       await expect(askedOf().onlyFor(readerWith(props))).resolves.toBe(asked);
     },
   );
+
+  /*
+   * No read of an incident is narrowed by its title - nor its state, its
+   * severity, its description - so writing them cannot take the incident
+   * away from anyone: nobody is asked, here or on the other App servers,
+   * and the write does not wait (#8964).
+   */
+  test.each([
+    ["the title", { title: "Renamed" }],
+    ["the description", { description: "Checkout fails for some cards." }],
+  ] as Array<[string, Record<string, unknown>]>)(
+    "a write of %s alone asks nobody before the write, and is heard by whoever reads the incident",
+    async (_what: string, data: Record<string, unknown>) => {
+      jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+
+      await update(data);
+
+      expect(snapshot).not.toHaveBeenCalled();
+      expect(order).toEqual(["write"]);
+      // The service's own access: who reads it after the write.
+      expect(accessOfEvents()).toEqual([undefined]);
+    },
+  );
+
+  /*
+   * Someone limited to some labels is re-checked when the labels are
+   * written, and only then (above). Their read is narrowed - by a condition
+   * on the incident's id - but never by its title, so a write of the title
+   * alone asks nobody, them included.
+   */
+  test("someone limited to some labels is not asked when only the title is written: nobody is", async () => {
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+
+    const narrowedBy: Array<string> | null =
+      await service.getColumnsNarrowingReadOf(LIMITED);
+
+    expect(narrowedBy).toContain("_id");
+    expect(narrowedBy).not.toContain("title");
+
+    await update({ title: "Renamed" });
+
+    expect(snapshot).not.toHaveBeenCalled();
+    expect(order).toEqual(["write"]);
+  });
 
   test("a write that leaves the rows as they are decides nothing before it", async () => {
     jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
@@ -1266,6 +1355,13 @@ describe("updating a switch that records who turned it, back as it stands", () =
         order.push("decide");
         return NO_READER_ACCESS;
       });
+
+    /*
+     * No read of an SLO is narrowed by Archived, so no update of it is
+     * decided on before the write (#8964). Here every column is taken to
+     * narrow one, so the decision shows which rows a write changes.
+     */
+    jest.spyOn(service, "getColumnsAnyReadMayNarrowBy").mockReturnValue(null);
   });
 
   afterEach(() => {
@@ -1350,5 +1446,587 @@ describe("updating a switch that records who turned it, back as it stands", () =
     // The SLO archived already keeps its stamps; the other gets them now.
     expect(table.get(SLO_ROW)!["archivedAt"]).toEqual(ARCHIVED_AT);
     expect(table.get(OTHER_ROW)!["archivedAt"]).toBeInstanceOf(Date);
+  });
+});
+
+/*
+ * AN UPDATE NO READ IS NARROWED BY ASKS NOBODY BEFORE THE WRITE (#8964).
+ *
+ * Every update of a table that announces its changes used to ask, before
+ * the write, who listens - on this server and, over the cluster, on every
+ * other App server - and only then which of them the written columns could
+ * take the rows away from. Most writes can take them from nobody: a
+ * monitor's status, an incident's state or title. Those writes now ask
+ * nobody: no read anyone makes names a column they write
+ * (getColumnsAnyReadMayNarrowBy), so who reads a row after is who read it
+ * before. A write that may - a label, a private switch - still decides
+ * before it is made, as before.
+ */
+describe("an update that names no column any read is narrowed by asks nobody before the write (#8964)", () => {
+  const MONITOR_A: string = "e0000000-0000-4000-8000-00000000000e";
+  const ONLINE: string = "e1000000-0000-4000-8000-0000000000e1";
+  const OFFLINE: string = "e2000000-0000-4000-8000-0000000000e2";
+
+  let monitors: DatabaseService<Monitor>;
+  let order: Array<string>;
+  let snapshot: jest.SpyInstance;
+  let skipped: jest.SpyInstance;
+
+  function eventsOf(
+    service: DatabaseService<BaseModel>,
+  ): Array<{ eventType: unknown; access: unknown }> {
+    return (
+      service.onTriggerRealtime as unknown as jest.SpyInstance
+    ).mock.calls.map((call: Array<unknown>) => {
+      return {
+        eventType: call[2],
+        access: (call[3] as { access?: unknown } | undefined)?.access,
+      };
+    });
+  }
+
+  /*
+   * The service's table in memory, every write noted in `order`: a row's
+   * columns are updated, a row with its links (labels) is saved.
+   */
+  function inMemory(
+    service: DatabaseService<BaseModel>,
+    rows: Array<Record<string, unknown>>,
+  ): ReturnType<typeof useInMemoryTable> {
+    const table: ReturnType<typeof useInMemoryTable> = useInMemoryTable(
+      service,
+      rows,
+    );
+
+    noteWrites(table.repository.update as unknown as jest.SpyInstance);
+    noteWrites(table.repository.save as unknown as jest.SpyInstance);
+
+    return table;
+  }
+
+  function noteWrites(write: jest.SpyInstance): void {
+    const writeRows: (...args: Array<unknown>) => Promise<unknown> =
+      write.getMockImplementation() as (
+        ...args: Array<unknown>
+      ) => Promise<unknown>;
+
+    write.mockImplementation(
+      async (...args: Array<unknown>): Promise<unknown> => {
+        order.push("write");
+        return await writeRows(...args);
+      },
+    );
+  }
+
+  async function updateMonitor(data: Record<string, unknown>): Promise<void> {
+    await monitors.updateOneBy({
+      query: { _id: MONITOR_A },
+      data: data as never,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+  }
+
+  // What a snapshot's caller was asked to keep to (RealtimeAudience).
+  function onlyForOf(
+    call: number,
+  ): (reader: RealtimeReader) => Promise<boolean> {
+    return (
+      snapshot.mock.calls[call]![0] as {
+        onlyFor: (reader: RealtimeReader) => Promise<boolean>;
+      }
+    ).onlyFor;
+  }
+
+  beforeEach(() => {
+    order = [];
+    RealtimeReaders.clear();
+    withLabelLinks();
+
+    jest.spyOn(PublishedImages, "afterUpdate").mockResolvedValue(undefined);
+    jest
+      .spyOn(StatusPageOverviewCache, "afterUpdate")
+      .mockResolvedValue(undefined);
+    jest.spyOn(AuditLogService, "recordUpdate").mockResolvedValue(undefined);
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+
+    snapshot = jest
+      .spyOn(Realtime, "snapshotReadAccess")
+      .mockImplementation(async (): Promise<RealtimeReadAccess> => {
+        order.push("decide");
+        return NO_READER_ACCESS;
+      });
+    skipped = jest.spyOn(RealtimeMetrics, "recordBeforeWriteDecisionsSkipped");
+
+    monitors = new MonitorServiceClass();
+    inMemory(monitors as unknown as DatabaseService<BaseModel>, [
+      {
+        _id: MONITOR_A,
+        projectId: PROJECT_ID.toString(),
+        name: "Checkout API",
+        currentMonitorStatusId: ONLINE,
+        disableActiveMonitoring: false,
+        isArchived: false,
+        isAllProbesDisconnectedFromThisMonitor: false,
+        isNoProbeEnabledOnThisMonitor: false,
+      },
+    ]);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  describe("the columns some read of a table may be narrowed by", () => {
+    test("a monitor's: its labels and links, never its status, its probes' flags or its name", () => {
+      const columns: ReadonlySet<string> | null =
+        new MonitorServiceClass().getColumnsAnyReadMayNarrowBy();
+
+      expect(columns).not.toBeNull();
+      expect(columns!.has("labels")).toBe(true);
+
+      for (const column of [
+        "currentMonitorStatusId",
+        "currentMonitorStatus",
+        "isAllProbesDisconnectedFromThisMonitor",
+        "isNoProbeEnabledOnThisMonitor",
+        "disableActiveMonitoring",
+        "isArchived",
+        "name",
+        "firstMeasuredAt",
+        "_id",
+        "projectId",
+      ]) {
+        expect({ column, narrows: columns!.has(column) }).toEqual({
+          column,
+          narrows: false,
+        });
+      }
+    });
+
+    test("an incident's: its labels and its private switch, never its state, severity or title", () => {
+      const columns: ReadonlySet<string> | null =
+        new IncidentServiceClass().getColumnsAnyReadMayNarrowBy();
+
+      expect(columns!.has("labels")).toBe(true);
+      expect(columns!.has("isPrivate")).toBe(true);
+
+      for (const column of [
+        "currentIncidentStateId",
+        "incidentSeverityId",
+        "title",
+        "description",
+      ]) {
+        expect({ column, narrows: columns!.has(column) }).toEqual({
+          column,
+          narrows: false,
+        });
+      }
+    });
+
+    test("an action item read through its incident: the incident, by relation and by key", () => {
+      const columns: ReadonlySet<string> | null =
+        new ActionItemServiceClass().getColumnsAnyReadMayNarrowBy();
+
+      expect(columns!.has("incident")).toBe(true);
+      expect(columns!.has("incidentId")).toBe(true);
+      expect(columns!.has("title")).toBe(false);
+    });
+
+    test("a person's own AI conversation: whose it is", () => {
+      expect(
+        new AIConversationMessageServiceClass()
+          .getColumnsAnyReadMayNarrowBy()!
+          .has("userId"),
+      ).toBe(true);
+    });
+
+    test("is worked out once per service", () => {
+      const service: DatabaseService<Monitor> = new MonitorServiceClass();
+
+      expect(service.getColumnsAnyReadMayNarrowBy()).toBe(
+        service.getColumnsAnyReadMayNarrowBy(),
+      );
+    });
+
+    test("a service whose read hook does not say what it narrows by: it cannot be told", () => {
+      class HookedIncidents extends DatabaseService<Incident> {
+        public constructor() {
+          super(Incident);
+        }
+
+        protected override async onBeforeFind(
+          findBy: FindBy<Incident>,
+        ): Promise<{ findBy: FindBy<Incident>; carryForward: null }> {
+          return { findBy, carryForward: null };
+        }
+      }
+
+      expect(new HookedIncidents().getColumnsReadHooksNarrowBy()).toBeNull();
+      expect(new HookedIncidents().getColumnsAnyReadMayNarrowBy()).toBeNull();
+      // The base read hook narrows nothing.
+      expect(
+        new DatabaseService<Incident>(Incident).getColumnsReadHooksNarrowBy(),
+      ).toEqual([]);
+    });
+
+    test("a table no read of which is told apart before it is made: nothing narrows anyone's", () => {
+      class OwnRead extends DatabaseService<Incident> {
+        public constructor() {
+          super(Incident);
+        }
+
+        public override async findBy(
+          findBy: FindBy<Incident>,
+        ): Promise<Array<Incident>> {
+          return await super.findBy(findBy);
+        }
+      }
+
+      expect(Array.from(new OwnRead().getColumnsAnyReadMayNarrowBy()!)).toEqual(
+        [],
+      );
+    });
+  });
+
+  describe("a monitor", () => {
+    test("whose status changes asks nobody before the write, and is announced to whoever reads it", async () => {
+      await updateMonitor({ currentMonitorStatusId: OFFLINE });
+
+      expect(snapshot).not.toHaveBeenCalled();
+      expect(order).toEqual(["write"]);
+      expect(
+        eventsOf(monitors as unknown as DatabaseService<BaseModel>),
+      ).toEqual([{ eventType: ModelEventType.Update, access: undefined }]);
+    });
+
+    test.each([
+      [
+        "every probe disconnected",
+        { isAllProbesDisconnectedFromThisMonitor: true },
+      ],
+      ["no probe left enabled", { isNoProbeEnabledOnThisMonitor: true }],
+      ["monitoring turned off", { disableActiveMonitoring: true }],
+      ["archived", { isArchived: true }],
+      ["renamed", { name: "Checkout API (EU)" }],
+    ] as Array<[string, Record<string, unknown>]>)(
+      "%s asks nobody before the write either",
+      async (_what: string, data: Record<string, unknown>) => {
+        await updateMonitor(data);
+
+        expect(snapshot).not.toHaveBeenCalled();
+        expect(order).toEqual(["write"]);
+        expect(
+          eventsOf(monitors as unknown as DatabaseService<BaseModel>),
+        ).toHaveLength(1);
+      },
+    );
+
+    test("whose labels are written may be taken from someone: decided before the write", async () => {
+      await updateMonitor({ labels: [] });
+
+      expect(snapshot).toHaveBeenCalledTimes(1);
+      expect(order).toEqual(["decide", "write"]);
+      expect(skipped).not.toHaveBeenCalled();
+    });
+
+    test("the decision it did not make is counted, one for its project", async () => {
+      await updateMonitor({ currentMonitorStatusId: OFFLINE });
+
+      expect(skipped).toHaveBeenCalledTimes(1);
+      expect(skipped).toHaveBeenCalledWith({
+        tableName: "Monitor",
+        eventType: ModelEventType.Update,
+        decisions: 1,
+      });
+    });
+
+    test("a status written back as it stands is no change: nothing decided, nothing counted, nothing sent", async () => {
+      await updateMonitor({ currentMonitorStatusId: ONLINE });
+
+      expect(snapshot).not.toHaveBeenCalled();
+      expect(skipped).not.toHaveBeenCalled();
+      expect(
+        eventsOf(monitors as unknown as DatabaseService<BaseModel>),
+      ).toHaveLength(0);
+    });
+  });
+
+  test("an incident made private is decided on before the write, as before", async () => {
+    const incidents: DatabaseService<Incident> = new IncidentServiceClass();
+    inMemory(incidents as unknown as DatabaseService<BaseModel>, [
+      {
+        _id: "e3000000-0000-4000-8000-0000000000e3",
+        projectId: PROJECT_ID.toString(),
+        isPrivate: false,
+      },
+    ]);
+
+    await incidents.updateBy({
+      query: { projectId: PROJECT_ID },
+      data: { isPrivate: true } as never,
+      limit: 10,
+      skip: 0,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+
+    expect(snapshot).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(["decide", "write"]);
+  });
+
+  test("a service whose read hook says nothing of what it narrows by decides before every write, as before", async () => {
+    class HookedMonitors extends DatabaseService<Monitor> {
+      public constructor() {
+        super(Monitor);
+      }
+
+      protected override async onBeforeFind(
+        findBy: FindBy<Monitor>,
+      ): Promise<{ findBy: FindBy<Monitor>; carryForward: null }> {
+        return { findBy, carryForward: null };
+      }
+    }
+
+    const hooked: DatabaseService<Monitor> = new HookedMonitors();
+    inMemory(hooked as unknown as DatabaseService<BaseModel>, [
+      {
+        _id: MONITOR_A,
+        projectId: PROJECT_ID.toString(),
+        currentMonitorStatusId: ONLINE,
+      },
+    ]);
+
+    await hooked.updateOneBy({
+      query: { _id: MONITOR_A },
+      data: { currentMonitorStatusId: OFFLINE } as never,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+
+    expect(snapshot).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(["decide", "write"]);
+  });
+
+  /*
+   * A read narrowed through the record its rows are read through names the
+   * relation itself (an action item's `incident`), and a write may name its
+   * key (`incidentId`): moving an action item to another incident may take
+   * it from someone, and they are asked.
+   */
+  test("a write of a record's key reaches a read narrowed by its relation", async () => {
+    const items: DatabaseService<BaseModel> =
+      new ActionItemServiceClass() as unknown as DatabaseService<BaseModel>;
+    inMemory(items, [
+      {
+        _id: "e4000000-0000-4000-8000-0000000000e4",
+        projectId: PROJECT_ID.toString(),
+        incidentId: "e5000000-0000-4000-8000-0000000000e5",
+      },
+    ]);
+    jest
+      .spyOn(items, "getColumnsNarrowingReadOf")
+      .mockResolvedValue(["incident"]);
+
+    await items.updateBy({
+      query: { projectId: PROJECT_ID } as never,
+      data: { incidentId: "e6000000-0000-4000-8000-0000000000e6" } as never,
+      limit: 10,
+      skip: 0,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+
+    expect(snapshot).toHaveBeenCalledTimes(1);
+    await expect(
+      onlyForOf(0)(
+        readerWith(
+          propsWith([
+            {
+              permission: Permission.ProjectMember,
+              scope: PermissionScope.All,
+            },
+          ]),
+        ),
+      ),
+    ).resolves.toBe(true);
+  });
+
+  /*
+   * An AI run's read hook puts its condition on the run's type, and the
+   * condition reads who started it: a reader the hook narrows is narrowed
+   * by both. (An AI run's update announces itself, CodeTaskLive; here the
+   * service sends its update events, as a model with the update workflow
+   * trigger does.)
+   */
+  test("a reader narrowed by a read hook is asked about a write of any column the hook reads", async () => {
+    const runs: DatabaseService<BaseModel> =
+      new AIRunServiceClass() as unknown as DatabaseService<BaseModel>;
+    jest
+      .spyOn(
+        runs as unknown as { sendsRealtimeUpdateEvents: () => boolean },
+        "sendsRealtimeUpdateEvents",
+      )
+      .mockReturnValue(true);
+    inMemory(runs, [
+      {
+        _id: "e7000000-0000-4000-8000-0000000000e7",
+        projectId: PROJECT_ID.toString(),
+        userId: USER_ID.toString(),
+      },
+    ]);
+    jest
+      .spyOn(runs, "getColumnsNarrowingReadOf")
+      .mockResolvedValue(["runType"]);
+
+    await runs.updateBy({
+      query: { projectId: PROJECT_ID } as never,
+      data: { userId: "e8000000-0000-4000-8000-0000000000e8" } as never,
+      limit: 10,
+      skip: 0,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+
+    expect(snapshot).toHaveBeenCalledTimes(1);
+    await expect(
+      onlyForOf(0)(
+        readerWith(
+          propsWith([
+            {
+              permission: Permission.ProjectMember,
+              scope: PermissionScope.All,
+            },
+          ]),
+        ),
+      ),
+    ).resolves.toBe(true);
+  });
+});
+
+/*
+ * The round trip itself, through the real Realtime: a socket server with
+ * another App server in its cluster, which answers who listens after a
+ * while. A monitor's status change does not ask it; an incident made
+ * private does, before the write, and the time it waited is measured.
+ */
+describe("the other App servers are asked only about a write that may change who reads (#8964)", () => {
+  const OTHERS_ANSWER_AFTER_MS: number = 150;
+
+  let askOthers: jest.Mock;
+  let decisions: jest.SpyInstance;
+  let skipped: jest.SpyInstance;
+
+  beforeEach(() => {
+    RealtimeReaders.clear();
+    withLabelLinks();
+
+    jest.spyOn(PublishedImages, "afterUpdate").mockResolvedValue(undefined);
+    jest
+      .spyOn(StatusPageOverviewCache, "afterUpdate")
+      .mockResolvedValue(undefined);
+    jest.spyOn(AuditLogService, "recordUpdate").mockResolvedValue(undefined);
+    // The delivery after the write is not what is measured here.
+    jest.spyOn(Realtime, "emitModelEvent").mockResolvedValue(undefined);
+
+    askOthers = jest.fn(async (): Promise<Array<unknown>> => {
+      await new Promise<void>((resolve: () => void): void => {
+        setTimeout(resolve, OTHERS_ANSWER_AFTER_MS);
+      });
+      // Nobody listens there either.
+      return [[]];
+    });
+
+    (Realtime as unknown as { socketServer: unknown }).socketServer = {
+      // Nobody listens on this server.
+      local: {
+        in: (): { fetchSockets: () => Promise<Array<unknown>> } => {
+          return {
+            fetchSockets: async (): Promise<Array<unknown>> => {
+              return [];
+            },
+          };
+        },
+      },
+      of: (): { adapter: unknown } => {
+        return {
+          adapter: {
+            serverCount: async (): Promise<number> => {
+              return 2;
+            },
+            canReachOthers: (): boolean => {
+              return true;
+            },
+          },
+        };
+      },
+      serverSideEmitWithAck: askOthers,
+    };
+
+    decisions = jest.spyOn(RealtimeMetrics, "recordBeforeWriteDecision");
+    skipped = jest.spyOn(RealtimeMetrics, "recordBeforeWriteDecisionsSkipped");
+  });
+
+  afterEach(() => {
+    (Realtime as unknown as { socketServer: unknown }).socketServer = null;
+    jest.restoreAllMocks();
+  });
+
+  test("a monitor's status change asks no other server, and waits for none", async () => {
+    const service: DatabaseService<Monitor> = new MonitorServiceClass();
+    useInMemoryTable(service as unknown as DatabaseService<BaseModel>, [
+      {
+        _id: "f0000000-0000-4000-8000-00000000000f",
+        projectId: PROJECT_ID.toString(),
+        currentMonitorStatusId: "f1000000-0000-4000-8000-0000000000f1",
+      },
+    ]);
+
+    await service.updateOneBy({
+      query: { _id: "f0000000-0000-4000-8000-00000000000f" },
+      data: {
+        currentMonitorStatusId: "f2000000-0000-4000-8000-0000000000f2",
+      } as never,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+
+    expect(askOthers).not.toHaveBeenCalled();
+    expect(decisions).not.toHaveBeenCalled();
+    expect(skipped).toHaveBeenCalledWith({
+      tableName: "Monitor",
+      eventType: ModelEventType.Update,
+      decisions: 1,
+    });
+  });
+
+  test("an incident made private asks them before the write, and what it waited is measured", async () => {
+    const service: DatabaseService<Incident> = new IncidentServiceClass();
+    useInMemoryTable(service as unknown as DatabaseService<BaseModel>, [
+      {
+        _id: "f3000000-0000-4000-8000-0000000000f3",
+        projectId: PROJECT_ID.toString(),
+        isPrivate: false,
+      },
+    ]);
+
+    await service.updateOneBy({
+      query: { _id: "f3000000-0000-4000-8000-0000000000f3" },
+      data: { isPrivate: true } as never,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+
+    expect(askOthers).toHaveBeenCalledTimes(1);
+    expect(skipped).not.toHaveBeenCalled();
+    expect(decisions).toHaveBeenCalledTimes(1);
+
+    const measured: {
+      tableName: string;
+      eventType: ModelEventType;
+      outcome: BeforeWriteDecisionOutcome;
+      durationInMs: number;
+    } = decisions.mock.calls[0]![0];
+
+    expect(measured.tableName).toBe("Incident");
+    expect(measured.eventType).toBe(ModelEventType.Update);
+    expect(measured.outcome).toBe(BeforeWriteDecisionOutcome.NobodyCouldRead);
+    // The write waited for the other server's answer.
+    expect(measured.durationInMs).toBeGreaterThanOrEqual(
+      OTHERS_ANSWER_AFTER_MS - 5,
+    );
   });
 });

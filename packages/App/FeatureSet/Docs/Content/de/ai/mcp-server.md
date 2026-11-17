@@ -144,7 +144,7 @@ Wählen Sie unter **Zugriff** **Betrachter** für einen Agenten, der nur liest, 
 
 ### Den Schlüssel kopieren
 
-Klicken Sie auf **API-Schlüssel erstellen**: Die Seite des Schlüssels öffnet sich. Kopieren Sie den Schlüssel dort.
+Klicken Sie auf **API-Schlüssel erstellen**. OneUptime zeigt den Schlüssel einmal an, im Dialog **Kopieren Sie Ihren API-Schlüssel**: Kopieren Sie ihn, bevor Sie auf **Fertig** klicken.
 :::
 
 API-Schlüssel gehören zu einem Projekt: Der MCP-Server entnimmt das Projekt dem Schlüssel, sodass Tools zum Anlegen nie ein Argument `projectId` brauchen.
@@ -360,6 +360,8 @@ Fragen Sie Telemetrie immer mit einem Zeitraum ab. Ein Abfragefeld nimmt einen W
 Die Operatoren sind `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` und `Includes`. Sortierwerte sind `"ASC"` oder `"DESC"`.
 
 Die Tools `list_` und `count_` nehmen jedes Feld entgegen. So bleibt die Liste der Tools klein genug, dass ein Client sie auf einmal laden kann. Um die Felder einer Ressource zu sehen, was jedes bedeutet und welche Operatoren es nimmt, ruft ein Agent `oneuptime_describe_resource` mit der Ressource oder einem ihrer Tools auf, etwa `Incident` oder `list_incidents`.
+
+Die anderen `list_`-Tools, für Vorfälle, Monitore und jede andere Art von Datensatz, sortieren so, wie die API es tut: Ein Feld nimmt eine Richtung oder `{ "direction": "DESC", "nulls": "LAST" }`, um die Datensätze ohne Wert darin ans Ende zu stellen, und eine Beziehung zu einem Datensatz sortiert nach einem Feld des Datensatzes, den sie nennt, wie in `{ "incidentSeverity": { "order": "ASC" } }`. `oneuptime_describe_resource` markiert jede solche Beziehung mit `sort` und nennt die Felder, nach denen sie sortiert, unter `sortBy`.
 
 ## Feldauswahl und Paginierung
 

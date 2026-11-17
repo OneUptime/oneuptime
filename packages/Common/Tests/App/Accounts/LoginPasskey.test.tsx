@@ -40,6 +40,10 @@ import english from "../../../../App/FeatureSet/Accounts/src/Locales/en.json";
 import german from "../../../../App/FeatureSet/Accounts/src/Locales/de.json";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 import { getSignInOptionClassName } from "../../../UI/Components/SignInOption/SignInOptionStyle";
+import {
+  MORE_WAYS_TO_SIGN_IN_OPEN_KEY,
+  MORE_WAYS_TO_SIGN_IN_TOGGLE_TEST_ID,
+} from "../../../../App/FeatureSet/Accounts/src/Components/MoreWaysToSignIn/MoreWaysToSignIn";
 
 // A filled button - what a primary button looks like, whatever its colour.
 const FILLED_BUTTON_CLASS: RegExp = /\bbg-(indigo|red|green|yellow)-600\b/;
@@ -175,6 +179,12 @@ const pendingCredential: () => {
 
 describe("Passwordless passkey login", () => {
   beforeEach(() => {
+    /*
+     * "More ways to sign in" left open in this browser: single sign-on, a
+     * sign-in link and the passkey are folded under it on a first visit
+     * (#9023). LoginSignInOptions tests the fold itself.
+     */
+    window.localStorage.setItem(MORE_WAYS_TO_SIGN_IN_OPEN_KEY, "true");
     posted = [];
     WebAuthnTestUtil.install();
     jest.spyOn(UserUtil, "isLoggedIn").mockReturnValue(false);
@@ -227,21 +237,20 @@ describe("Passwordless passkey login", () => {
   });
 
   describe("the page leads with the password form; the other ways in are buttons under it, the passkey last", () => {
-    test("the email, the password and Login come first; then 'or', single sign-on, and the passkey, last", async () => {
+    test("the email, the password and Login come first; then More ways to sign in, single sign-on, and the passkey, last", async () => {
       renderPage();
       const email: HTMLElement = await screen.findByTestId("email");
       const password: HTMLElement = screen.getByTestId("password");
       const signIn: HTMLElement = screen.getByTestId("Sign in");
-      const divider: HTMLElement = screen.getByTestId(
-        "sign-in-options-divider",
+      const more: HTMLElement = screen.getByTestId(
+        MORE_WAYS_TO_SIGN_IN_TOGGLE_TEST_ID,
       );
       const passkey: HTMLElement = screen.getByTestId("passkey-login");
 
       expect(comesAfter(password, email)).toBe(true);
       expect(comesAfter(signIn, password)).toBe(true);
-      expect(comesAfter(divider, signIn)).toBe(true);
-      expect(divider).toHaveTextContent(/^or$/);
-      expect(comesAfter(ssoLink(), divider)).toBe(true);
+      expect(comesAfter(more, signIn)).toBe(true);
+      expect(comesAfter(ssoLink(), more)).toBe(true);
       expect(comesAfter(passkey, ssoLink())).toBe(true);
 
       // Nothing about passkeys is drawn above the form.
@@ -959,14 +968,14 @@ describe("Passwordless passkey login", () => {
       expect(form).not.toHaveClass("pointer-events-none");
       expect(form.contains(screen.getByTestId("passkey-option"))).toBe(false);
       /*
-       * Everything of the form pauses together: its links, the "or" divider
-       * and single sign-on, which would leave the page.
+       * Everything of the form pauses together: its links, "More ways to sign
+       * in" and single sign-on, which would leave the page.
        */
       expect(form.contains(screen.getByTestId("Sign in"))).toBe(true);
       expect(form.contains(ssoLink())).toBe(true);
-      expect(form.contains(screen.getByTestId("sign-in-options-divider"))).toBe(
-        true,
-      );
+      expect(
+        form.contains(screen.getByTestId(MORE_WAYS_TO_SIGN_IN_TOGGLE_TEST_ID)),
+      ).toBe(true);
       expect(
         form.contains(screen.getByText("Forgot password?").closest("a")),
       ).toBe(true);

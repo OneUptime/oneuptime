@@ -203,7 +203,7 @@ describe("SloOverviewHero", () => {
     // A reader whose permissions are not known yet is offered nothing to add.
     expect(getFactValues()).toEqual([
       "99.9%",
-      "Rolling 30 days",
+      "Rolling 30\u00A0days",
       "3 monitors",
       "No owners",
     ]);
@@ -695,7 +695,7 @@ describe("SloOverviewHero - a request SLO", () => {
     expect(getFactValues()).toEqual([
       "99.9%",
       "Within 300\u00A0ms",
-      "Rolling 30 days",
+      "Rolling 30\u00A0days",
       "2 services",
       "No owners",
     ]);
@@ -747,7 +747,7 @@ describe("SloOverviewHero - a request SLO", () => {
     ).toBeNull();
     expect(getFactValues()).toEqual([
       "99.9%",
-      "Rolling 30 days",
+      "Rolling 30\u00A0days",
       "1 service",
       "No owners",
     ]);

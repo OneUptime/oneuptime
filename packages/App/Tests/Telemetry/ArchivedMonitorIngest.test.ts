@@ -97,7 +97,7 @@ import {
   IncomingRequestIngestJobData,
   ProbeIngestJobData,
 } from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
-import { isNonActionableIngestError } from "../../FeatureSet/Telemetry/Utils/NonActionableIngestError";
+import { isNonActionableIngestError } from "Common/Server/Utils/Monitor/NonActionableIngestError";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";

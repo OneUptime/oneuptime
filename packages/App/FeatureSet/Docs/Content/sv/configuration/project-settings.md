@@ -64,7 +64,7 @@ En dold produkt är inte avstängd. Den flyttas till **Fler produkter**, den sis
 
 På en självhostad server kan en huvudadministratör också stänga av en produkt för alla projekt, under **Inställningar → Produkter** i Admin Dashboard (se [Kör bara det du behöver](/docs/installation/docker-compose#kör-bara-det-du-behöver)). En sådan produkt har ingen brytare här: den visar **Avstängd på den här servern** och vem som kan slå på den.
 
-Ett nytt projekt börjar med det som ägaren sade på Hem att det ska användas till: det grundläggande, inställningarna och det som de målen behöver visas, och resten döljs. Ett projekt som hoppade över frågan, eller som skapades före den, visar alla produkter. Så snart någon ändrar listan här ändrar målen den inte längre.
+Varje produkt visas tills någon döljer den här. Ingen produkt döljs av sig själv: det som en Projektägare eller Projektadministratör sade på Hem att projektet ska användas till ställer bara in de första stegen där, och en produkt som inte är konfigurerad ännu stannar på sin plats i menyn.
 
 Varje produkt säger vad den är för det här projektet: **Används**, **Inte konfigurerad** eller, i OneUptime Cloud, den plan den behöver. När en dold produkt börjar ta emot data säger Hem det till Projektägare och Projektadministratörer och erbjuder **Visa den** eller **Behåll dold**.
 
@@ -91,6 +91,8 @@ I en lista visas en posts etiketter under varandra; är de fler än fyra visas d
 ### Arkivera en etikett
 
 För att fasa ut en etikett arkiverar du den från radens meny **⋯** i stället för att ta bort den. Allt som har etiketten behåller den, och du kan fortfarande filtrera på den, men ingen kan lägga till den på något igen: Varje etikettväljare utelämnar den, och API:et, Terraform och MCP avvisar den. Dialogen listar de regler och behörigheter som är inställda på att använda etiketten, och som fortsätter att använda den tills du ändrar dem. Arkiverade etiketter listas för sig, i det hopfällda avsnittet **Arkiverade etiketter**, där **Avarkivera** återställer en. **Ta bort** listar först allt som etiketten skulle tas bort från och erbjuder **Arkivera i stället**.
+
+**Används av**, i menyn på en etiketts rad, räknar posterna av varje slag som har etiketten, och öppnar dem en sida i taget. Poster du inte får öppna räknas men namnges inte.
 
 ## Aviseringar
 

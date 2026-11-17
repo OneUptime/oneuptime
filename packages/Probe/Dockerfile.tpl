@@ -262,6 +262,7 @@ ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
 ENV TS_NODE_TRANSPILE_ONLY=1
 # Run the app: package.json's start script, through sh instead of npm, so npm
 # is not a second Node.js process beside the probe. tini stays PID 1 and reaps
-# Chromium's children. See App/Dockerfile.tpl for why.
-CMD [ "sh", "-c", "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
+# Chromium's children. The script sizes node's heap to the container's memory
+# limit first. See App/Dockerfile.tpl for both.
+CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
 {{ end }}

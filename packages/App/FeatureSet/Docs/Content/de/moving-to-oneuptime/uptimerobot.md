@@ -68,7 +68,7 @@ Jeder Monitor wird von den Sonden Ihres Projekts geprüft, so wie einer, den Sie
 ## Was nicht übernommen wird
 
 - **Verfügbarkeitsverlauf, Antwortzeiten und Vorfälle.** OneUptime beginnt mit den Prüfungen, wenn der Import fertig ist.
-- **Alarmkontakte und Integrationen.** Legen Sie in OneUptime fest, wer benachrichtigt wird, wie unter [Den Wechsel abschließen](#den-wechsel-abschließen) beschrieben.
+- **Warnungskontakte und Integrationen.** Legen Sie in OneUptime fest, wer benachrichtigt wird, wie unter [Den Wechsel abschließen](#den-wechsel-abschließen) beschrieben.
 - **Passwörter und Header, die ein Geheimnis enthalten können.** Ein Monitor, der sich anmeldet oder einen `Authorization`-, Cookie- oder Token-Header sendet, wird ohne ihn übernommen: Fügen Sie ihn mit einem [Monitor-Geheimnis](/docs/monitor/monitor-secrets) hinzu.
 - **UDP-, Visual-Comparison- und Dependency-Monitore.** OneUptime hat keinen Monitor, der dasselbe tut, und die Vorschau nennt jeden.
 - **Port-Monitore, die alarmieren, solange der Port offen ist.** Sie arbeiten umgekehrt wie die Port-Monitore von OneUptime.

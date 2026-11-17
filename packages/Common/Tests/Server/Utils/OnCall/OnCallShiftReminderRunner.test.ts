@@ -4,8 +4,6 @@ import OnCallShiftReminderRunner, {
   SHIFT_REMINDER_LOG_RETENTION_DAYS,
   SHIFT_REMINDER_MAX_LOOKBACK_MINUTES,
   SHIFT_REMINDER_RECLAIM_AFTER_MINUTES,
-  SHIFT_REMINDER_SWEEP_LOCK_NAMESPACE,
-  SHIFT_REMINDER_SWEEP_LOCK_TIMEOUT_MS,
   SHIFT_REMINDER_WINDOW_PADDING_MINUTES,
   ShiftReminderChangePassStats,
   ShiftReminderMessage,
@@ -21,7 +19,7 @@ import OnCallShiftMaterializer from "../../../../Server/Utils/OnCall/OnCallShift
 import UserOnCallShiftReminderLogService from "../../../../Server/Services/UserOnCallShiftReminderLogService";
 import UserNotificationSettingService from "../../../../Server/Services/UserNotificationSettingService";
 import UserService from "../../../../Server/Services/UserService";
-import Semaphore from "../../../../Server/Infrastructure/Semaphore";
+import JobDeadline from "../../../../Server/Utils/JobDeadline";
 import { UserOnCallShiftReminderLogKind } from "../../../../Models/DatabaseModels/UserOnCallShiftReminderLog";
 import OneUptimeDate from "../../../../Types/Date";
 import EmailTemplateType from "../../../../Types/Email/EmailTemplateType";
@@ -2074,70 +2072,163 @@ describe("OnCallShiftReminderRunner", () => {
 
   /*
    * ---------------------------------------------------------------------
-   * The sweep lock
+   * One sweep at a time, and the run's deadline (issue #8103)
    * ---------------------------------------------------------------------
    */
 
-  describe("runSweepUnderLock", () => {
-    test("takes the cross-replica lock with the job name, a 12-minute timeout and a single attempt", async () => {
+  describe("runSweep and the run", () => {
+    function twoProjects(): void {
+      harness.reminders = [
+        reminder(USER_A, 60, PROJECT),
+        reminder(USER_B, 60, PROJECT_2),
+      ];
+      harness.schedules.set(
+        "schedule-p2",
+        scheduleInfo({
+          scheduleId: "schedule-p2",
+          projectId: PROJECT_2.toString(),
+          attachedPolicies: [{ ...DEFAULT_POLICY }],
+        }),
+      );
+      harness.shifts = [
+        aliceShift(),
+        aliceShift({
+          scheduleId: "schedule-p2",
+          projectId: PROJECT_2.toString(),
+          userId: USER_B.toString(),
+          userName: "Bob Brown",
+        }),
+      ];
+      harness.cache.set(
+        "OnCallShiftReminders:watermark",
+        minutes(NOW, -5).toISOString(),
+      );
+    }
+
+    /*
+     * RunCron runs one sweep at a time (CronLock); the UNIQUE ledger is
+     * what keeps a reminder from going out twice. So the runner takes no
+     * lock of its own.
+     */
+    test("takes no lock of its own: one sweep at a time is RunCron's", async () => {
       harness.reminders = [reminder(USER_A, 60)];
       harness.shifts = [aliceShift()];
 
-      const stats: ShiftReminderSweepStats | null =
-        await OnCallShiftReminderRunner.runSweepUnderLock({ now: NOW });
+      const stats: ShiftReminderSweepStats =
+        await OnCallShiftReminderRunner.runSweep({
+          now: NOW,
+          deadline: new JobDeadline(),
+        });
 
-      expect(stats?.sent).toBe(1);
-      expect(harness.lockCalls).toHaveLength(1);
-      expect(harness.lockCalls[0]).toEqual({
-        key: SHIFT_REMINDER_JOB_NAME,
-        namespace: SHIFT_REMINDER_SWEEP_LOCK_NAMESPACE,
-        lockTimeout: SHIFT_REMINDER_SWEEP_LOCK_TIMEOUT_MS,
-        acquireAttemptsLimit: 1,
-      });
-      expect(SHIFT_REMINDER_SWEEP_LOCK_NAMESPACE).toBe("Workers.Cron");
-      expect(SHIFT_REMINDER_SWEEP_LOCK_TIMEOUT_MS).toBe(12 * 60 * 1000);
-      expect(harness.releasedMutexes).toHaveLength(1);
-    });
-
-    test("skips the tick when the lock is held (or Redis is unavailable), without touching anything", async () => {
-      harness.lockAvailable = false;
-      harness.reminders = [reminder(USER_A, 60)];
-      harness.shifts = [aliceShift()];
-
-      const stats: ShiftReminderSweepStats | null =
-        await OnCallShiftReminderRunner.runSweepUnderLock({ now: NOW });
-
-      expect(stats).toBeNull();
-      expect(harness.materializeCalls).toHaveLength(0);
-      expect(harness.sent).toHaveLength(0);
-      expect(watermarkOf(harness)).toBeUndefined();
+      expect(stats.sent).toBe(1);
+      expect(stats.stoppedAtDeadline).toBe(false);
+      expect(harness.lockCalls).toHaveLength(0);
       expect(harness.releasedMutexes).toHaveLength(0);
     });
 
-    test("releases the lock even when the sweep throws, and lets the error surface", async () => {
+    test("sweeps every project and moves the watermark on while its deadline has not passed", async () => {
+      twoProjects();
+
+      const stats: ShiftReminderSweepStats =
+        await OnCallShiftReminderRunner.runSweep({
+          now: NOW,
+          deadline: new JobDeadline(),
+        });
+
+      expect(stats.sent).toBe(2);
+      expect(stats.stoppedAtDeadline).toBe(false);
+      expect(stats.watermarkWrittenAt.toISOString()).toBe(NOW.toISOString());
+    });
+
+    /*
+     * The time limit ran out while the first project was swept: it finished,
+     * the second was not started, and the watermark is HELD at this tick's
+     * lookbackFrom, exactly as after a failure, so the next tick re-covers
+     * the window: the second project's reminders go out then, and the first
+     * one's come back "already sent" from the ledger.
+     */
+    test("stops before the next project once the deadline has passed, and holds the watermark", async () => {
+      twoProjects();
+
+      const deadline: JobDeadline = new JobDeadline();
+      const materializeCalls: Array<unknown> =
+        harness.materializeCalls as Array<unknown>;
+      const push: (...items: Array<unknown>) => number =
+        materializeCalls.push.bind(materializeCalls);
+
+      jest
+        .spyOn(harness.materializeCalls, "push")
+        .mockImplementation((...items: Array<unknown>): number => {
+          deadline.end();
+          return push(...items);
+        });
+
+      const stats: ShiftReminderSweepStats =
+        await OnCallShiftReminderRunner.runSweep({
+          now: NOW,
+          deadline: deadline,
+        });
+
+      expect(stats.projects).toBe(2);
+      expect(stats.stoppedAtDeadline).toBe(true);
+      expect(stats.errors).toBe(0);
+      expect(stats.sent).toBe(1);
+      expect(harness.sent[0]!.projectId).toBe(PROJECT.toString());
+      expect(stats.watermarkWrittenAt.toISOString()).toBe(
+        minutes(NOW, -5).toISOString(),
+      );
+      expect(watermarkOf(harness)).toBe(minutes(NOW, -5).toISOString());
+      expect(
+        harness.warnings.some((line: string) => {
+          return line.includes("the run's deadline passed");
+        }),
+      ).toBe(true);
+
+      // The next tick, with time to spare, sends the second project's.
+      jest.restoreAllMocks();
+      installReminderHarness(harness);
+
+      const next: ShiftReminderSweepStats =
+        await OnCallShiftReminderRunner.runSweep({
+          now: minutes(NOW, 1),
+          deadline: new JobDeadline(),
+        });
+
+      expect(next.stoppedAtDeadline).toBe(false);
+      expect(
+        harness.sent.map((sent: SentNotification): string => {
+          return sent.projectId;
+        }),
+      ).toEqual([PROJECT.toString(), PROJECT_2.toString()]);
+    });
+
+    test("a deadline that passed before it started sweeps nothing, and holds the watermark", async () => {
+      twoProjects();
+
+      const deadline: JobDeadline = new JobDeadline();
+      deadline.end();
+
+      const stats: ShiftReminderSweepStats =
+        await OnCallShiftReminderRunner.runSweep({
+          now: NOW,
+          deadline: deadline,
+        });
+
+      expect(stats.stoppedAtDeadline).toBe(true);
+      expect(stats.sent).toBe(0);
+      expect(harness.materializeCalls).toHaveLength(0);
+      expect(watermarkOf(harness)).toBe(minutes(NOW, -5).toISOString());
+    });
+
+    test("lets a failure to read the reminders surface, so the run is marked failed", async () => {
       harness.remindersReadError = new Error("database unavailable");
 
       await expect(
-        OnCallShiftReminderRunner.runSweepUnderLock({ now: NOW }),
-      ).rejects.toThrow("database unavailable");
-
-      expect(harness.releasedMutexes).toHaveLength(1);
-    });
-
-    test("a failed release is logged, not thrown", async () => {
-      jest.spyOn(Semaphore, "release").mockImplementation((): Promise<void> => {
-        return Promise.reject(new Error("release failed"));
-      });
-
-      const stats: ShiftReminderSweepStats | null =
-        await OnCallShiftReminderRunner.runSweepUnderLock({ now: NOW });
-
-      expect(stats).not.toBeNull();
-      expect(
-        harness.errors.some((entry: unknown) => {
-          return String(entry).includes("releasing the sweep lock");
+        OnCallShiftReminderRunner.runSweep({
+          now: NOW,
+          deadline: new JobDeadline(),
         }),
-      ).toBe(true);
+      ).rejects.toThrow("database unavailable");
     });
   });
 

@@ -16,7 +16,8 @@ const port: string = process.env["PUBLIC_ADDRESSES_FIXTURE_PORT"] || "4381";
 
 export default defineConfig({
   testDir: "./PublicAddresses",
-  testMatch: "PublicAddresses.spec.ts",
+  // ShowingNow: the same Overview's Showing now card, in a used state (#7438).
+  testMatch: ["PublicAddresses.spec.ts", "ShowingNow.spec.ts"],
   fullyParallel: false,
   workers: 1,
   timeout: 90000,

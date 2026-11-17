@@ -70,6 +70,7 @@ import { formatSloPercent } from "../../../Utils/Slo/SloWidgetFormat";
 import { drawLine, isDrawnAsWritten } from "../../Helpers/BidiLayout";
 import { isolated } from "../../Helpers/IsolateMarks";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
+import { withNumbersKeptWithUnits } from "../../../Types/NoBreakSpaces";
 
 /*
  * AN SLO'S OBJECTIVE IN THE READER'S LANGUAGE (#6925), from the Dashboard's
@@ -126,9 +127,15 @@ function worded(
     translated: true,
   });
 
-  return Object.keys(values).reduce((sentence: string, name: string) => {
-    return sentence.split(`{{${name}}}`).join(values[name] as string);
-  }, text as string);
+  // As the page's Translator sets it: a duration's figure held (#8770).
+  return Object.keys(values).reduce(
+    (sentence: string, name: string) => {
+      return sentence.split(`{{${name}}}`).join(values[name] as string);
+    },
+    withNumbersKeptWithUnits(text as string, key.replace(/_one$/, ""), {
+      durationWords: true,
+    }),
+  );
 }
 
 // German sets its percent sign apart with a no-break space: "99,9 %".
@@ -214,7 +221,7 @@ afterEach(() => {
 describe("the create form's help under Target (%) (#6925)", () => {
   test("English: word for word as before", () => {
     const help: string =
-      "The share of time, or of requests, that must be good. Over 30 days, 99.9% allows 43 minutes of downtime, or 1 bad request in 1,000.";
+      "The share of time, or of requests, that must be good. Over 30\u00A0days, 99.9% allows 43\u00A0minutes of downtime, or 1 bad request in 1,000.";
 
     expect(getSloTargetHelpText()).toBe(help);
     expect(targetField(getSloFormFields()).description).toBe(help);
@@ -406,7 +413,7 @@ describe("what the form's checks say (#6925)", () => {
       validateAtRiskThreshold(form({ atRiskThresholdPercentage: 20.5 })),
     ).toBe("At-risk threshold must be a whole number.");
     expect(validateWindowDays(form({ windowDays: 400 }))).toBe(
-      "Window must be between 1 and 366 days.",
+      "Window must be between 1 and 366\u00A0days.",
     );
     expect(validateWindowDays(form({ windowDays: 30.5 }))).toBe(
       "Window must be a whole number of days.",

@@ -1,3 +1,4 @@
+import { getOwnerRuleHelpMarkdown } from "../../../Utils/Help/ResourceRuleHelp";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -17,22 +18,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 
-const dockerHostOwnerDocumentation: string = `
-### How Docker Host Owner Rules Work
-
-Docker Host Owner Rules add owner users and teams to a Docker host automatically when it matches your criteria — without anyone having to remember to assign owners.
-
-### Match Criteria
-
-A rule matches a Docker host only when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Docker Host Labels** — any-of (M2M)
-- **Name / Description Pattern** — case-insensitive regex
-
-### Action
-
-When a rule matches, every user and team listed on the rule is added as an owner. Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned.
-`;
+const dockerHostOwnerDocumentation: string = getOwnerRuleHelpMarkdown({
+  nouns: { singular: "Docker host", plural: "Docker hosts" },
+});
 
 const DockerHostOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,

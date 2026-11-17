@@ -51,8 +51,14 @@ const VERIFIES_A_TOTP_CODE: RegExp = /\bTotpAuth\.verifyToken\s*\(/;
 const SPENDS_A_BACKUP_CODE_CALL: RegExp = /\.consumeCode\s*\(/;
 const MOVES_THE_COUNT: RegExp = /\bTwoFactorWrongCodes\.startCheck\s*\(/;
 
-// What follows the refusal test: its block, which answers and returns at once.
-const REFUSES_AT_ONCE: RegExp = /^[^{]*\{\s*return sendCodeNotChecked\(/;
+/*
+ * What follows the refusal test: its block, which answers and returns at
+ * once - recording first, for a code that waits, the failed sign-in the
+ * audit log keeps (recordFailedSignIn, which writes nothing until the
+ * answer has gone, issue #6788), and nothing else.
+ */
+const REFUSES_AT_ONCE: RegExp =
+  /^[^{]*\{\s*(?:if \(\w+\.outcome === TwoFactorCodeCheckOutcome\.Waiting\) \{\s*recordFailedSignIn\(SignInFailureReason\.TooManyWrongCodes\);\s*\}\s*)?return sendCodeNotChecked\(/;
 
 function sourceOf(relativePath: string): string {
   return fs.readFileSync(path.join(REPOSITORY_DIRECTORY, relativePath), "utf8");
@@ -392,6 +398,16 @@ describe("the guard's own reading", () => {
     expect(
       REFUSES_AT_ONCE.test(
         ") {\n    logger.info(x);\n    return sendCodeNotChecked({",
+      ),
+    ).toBe(false);
+    expect(
+      REFUSES_AT_ONCE.test(
+        ") {\n    if (codeCheck.outcome === TwoFactorCodeCheckOutcome.Waiting) {\n        recordFailedSignIn(SignInFailureReason.TooManyWrongCodes);\n    }\n    return sendCodeNotChecked({",
+      ),
+    ).toBe(true);
+    expect(
+      REFUSES_AT_ONCE.test(
+        ") {\n    if (codeCheck.outcome === TwoFactorCodeCheckOutcome.Waiting) {\n        recordFailedSignIn(SignInFailureReason.TooManyWrongCodes);\n        logger.info(code);\n    }\n    return sendCodeNotChecked({",
       ),
     ).toBe(false);
   });

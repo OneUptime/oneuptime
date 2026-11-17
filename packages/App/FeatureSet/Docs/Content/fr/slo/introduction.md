@@ -12,7 +12,7 @@ Un objectif de niveau de service (SLO) est un objectif de fiabilité pour ce que
 
 ## Comment ça marche
 
-Un SLO mesure l'une de deux choses. Un SLO de disponibilité des moniteurs lit les chronologies de statut des moniteurs qui lui sont rattachés : les mêmes données que celles de vos pages de statut. Un SLO de requêtes compte les requêtes que servent ses services, à partir de leurs traces : voir [SLO de requêtes et de latence](/docs/slo/request-slos). La suite de cette page décrit les SLO de disponibilité des moniteurs, et les SLO de requêtes fonctionnent de la même façon, sauf mention contraire. À partir de ces données, OneUptime calcule quelle part de la fenêtre de conformité était du bon temps, ce qu'il reste du budget d'erreur et à quelle vitesse il se consomme. Le temps pendant lequel la surveillance d'un moniteur est désactivée est écarté : rien ne vérifie alors le moniteur, ce temps ne consomme donc pas de budget d'erreur et ne compte pas non plus comme du bon temps.
+Un SLO mesure l'une de deux choses. Un SLO de disponibilité des moniteurs lit les chronologies de statut des moniteurs qui lui sont rattachés : les mêmes données que celles de vos pages de statut. Un SLO de requêtes compte les requêtes que servent ses services, à partir de leurs traces : voir [SLO de requêtes et de latence](/docs/slo/request-slos). La suite de cette page décrit les SLO de disponibilité des moniteurs, et les SLO de requêtes fonctionnent de la même façon, sauf mention contraire. À partir de ces données, OneUptime calcule quelle part de la fenêtre de conformité était du bon temps, ce qu'il reste du budget d'erreur et à quelle vitesse il se consomme. Le temps pendant lequel la surveillance d'un moniteur est désactivée est écarté : rien ne vérifie alors le moniteur, ce temps ne consomme donc pas de budget d'erreur et ne compte pas non plus comme du bon temps. Le temps qui précède la première vérification d'un moniteur l'est aussi : tant que rien n'a vérifié un moniteur, son statut n'est que le statut opérationnel dans lequel tout moniteur est créé, si bien qu'un SLO se mesure à partir des premières vérifications de ses moniteurs, et qu'un SLO dont rien n'a encore vérifié les moniteurs n'a rien à mesurer tant qu'ils ne l'ont pas été.
 
 ```mermaid title="Des vérifications des moniteurs au statut d'un SLO"
 flowchart TB
@@ -139,7 +139,7 @@ OneUptime donne un statut à chaque SLO évalué :
 | **Sain** | Il reste plus que le seuil à risque du budget. |
 | **À risque** | Le budget restant est tombé au seuil à risque ou en dessous : 20 % par défaut. |
 | **Budget épuisé** | Le budget est entièrement consommé, voire dépassé. |
-| **Mal configuré** | Le SLO ne peut pas être mesuré : il n'a aucun moniteur, ses moniteurs n'existent plus ou n'ont encore enregistré aucun statut dans sa fenêtre, ou son objectif est hors limites. Un SLO de requêtes est mal configuré sans services, sans seuil de latence, ou tant que ses services n'ont servi aucune requête dans sa fenêtre. |
+| **Mal configuré** | Le SLO ne peut pas être mesuré : il n'a aucun moniteur, ses moniteurs n'existent plus, rien ne les a encore vérifiés ou ils n'ont encore enregistré aucun statut dans sa fenêtre, ou son objectif est hors limites. Un SLO de requêtes est mal configuré sans services, sans seuil de latence, ou tant que ses services n'ont servi aucune requête dans sa fenêtre. |
 | **En pause** | Chaque moniteur qu'il mesure est archivé ou a la surveillance active désactivée, à la main, par un incident manuel ou par une maintenance planifiée. Il reprend tout seul dès que l'un d'eux est de nouveau surveillé. |
 
 Un SLO désactivé ou archivé n'est pas évalué, son statut reste donc tel quel ; la liste des SLO affiche à la place une pastille **Désactivé** ou **Archivé**. Les propriétaires d'un SLO sont notifiés quand le statut passe à **À risque** ou **Budget épuisé** : voir [Budgets d'erreur](/docs/slo/error-budget).
@@ -161,6 +161,7 @@ Ouvrez un SLO pour voir ses pages dans le menu latéral :
 | --- | --- |
 | **Vue d'ensemble** | Le statut, les chiffres clés, la consommation du budget d'erreur, l'activité récente, les alertes et incidents ouverts et les règles de taux de consommation. |
 | **Métriques** | Les métriques `oneuptime.slo.*` du SLO, l'historique à long terme de son budget d'erreur, et les métriques des incidents et des alertes qui le concernent. Voir [Métriques et tableaux de bord des SLO](/docs/slo/metrics). |
+| **Rapport mensuel** | Comment le SLO s'est comporté chaque mois calendaire, et sur toute la période. Voir [Le rapport mensuel](#le-rapport-mensuel). |
 | **Incidents** | Les incidents que ses règles de taux de consommation et sa politique de budget d'erreur ont déclarés. Le badge compte ceux qui sont ouverts. |
 | **Alertes** | Les alertes que ses règles de taux de consommation et sa politique de budget d'erreur ont déclenchées. Le badge compte celles qui sont ouvertes. |
 | **Fil d'activité** | Ce qui est arrivé au SLO, sous forme de chronologie. Voir [Fil d'activité et journaux d'audit des SLO](/docs/slo/feed-and-audit-logs). |
@@ -195,6 +196,8 @@ La **Vue d'ensemble** répond à « sommes-nous dans le budget ? », de haut en 
 
 Quand le SLO est dans un palier de sa politique de budget d'erreur, la **Vue d'ensemble** affiche aussi ce palier et ce que l'équipe s'est engagée à y faire : voir [Politique de budget d'erreur](/docs/slo/error-budget-policy).
 
+La carte **Utilisé par** liste les règles de taux de consommation et les paliers de la politique de budget d'erreur qui agissent sur le SLO, et les tableaux de bord qui l'affichent. Archiver ou supprimer le SLO les dit d'abord : ses règles et paliers partent avec lui.
+
 ### Paramètres
 
 La page **Paramètres** regroupe la façon dont un SLO mesure, une carte chacun :
@@ -209,6 +212,31 @@ La page **Paramètres** regroupe la façon dont un SLO mesure, une carte chacun 
 | **Archiver : SLO** | **Archiver** ou **Désarchiver**. | Voir [Archiver un SLO](#archiver-un-slo). |
 
 Après une modification de ce qu'il mesure, de l'objectif, de la période ou du calcul de l'indisponibilité, OneUptime réévalue le SLO à son exécution suivante.
+
+### Le rapport mensuel
+
+Le **Rapport mensuel** montre comment le SLO s'est comporté chaque mois calendaire des **3 mois**, **6 mois**, **9 mois** ou **12 mois** écoulés, ou d'une année civile. Chaque mois indique son SLI, son indisponibilité (pour un SLO de requêtes, ses requêtes en échec ou lentes ; pour un SLO de métrique, ses mauvais événements), la part de son budget d'erreur qu'il a consommée, et son résultat :
+
+| Résultat | Signification |
+| --- | --- |
+| Atteint | Le mois est terminé, et son SLI a atteint l'objectif. |
+| Non atteint | Le mois est terminé et n'a pas atteint l'objectif, ou le mois est en cours et a déjà plus d'indisponibilité que tout le mois n'en autorise. |
+| En bonne voie | Le mois est en cours, et son SLI jusqu'ici atteint l'objectif. |
+| Sous l'objectif | Le mois est en cours, et son SLI jusqu'ici est sous l'objectif. |
+| Aucune donnée | Rien n'a été mesuré ce mois-là. |
+
+La ligne **Total** mesure toute la période d'un seul tenant. Un SLO à plusieurs moniteurs a aussi un tableau **Par moniteur** : le SLI propre à chaque moniteur pour chaque mois, le moniteur qui a le plus coûté au SLO en premier. **Télécharger le CSV** enregistre le rapport dans un fichier pour un tableur.
+
+Rien de plus n'est stocké pour le rapport. Chaque mois est calculé à partir de l'historique de statut des moniteurs à l'ouverture du rapport, avec les moniteurs, les statuts d'indisponibilité et l'objectif du SLO tels qu'ils sont aujourd'hui : il remonte donc avant la création du SLO. Les mois d'un SLO de requêtes viennent des requêtes que OneUptime a comptées pour lui, et ceux d'un SLO de métrique des événements de sa métrique, conservés 400 jours. Les mois suivent le fuseau horaire du SLO, ou UTC s'il n'en a pas.
+
+L'API renvoie le même rapport :
+
+```bash
+curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/monthly-report?months=12" \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Demandez avec `months` de 1 à 24 mois se terminant par le mois en cours, ou une année civile avec `year`, par exemple `year=2025`.
 
 ## Archiver un SLO
 

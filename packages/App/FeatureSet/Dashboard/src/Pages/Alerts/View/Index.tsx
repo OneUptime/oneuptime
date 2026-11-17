@@ -1228,7 +1228,12 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
           <EntityRunbooks alertId={modelId} hideIfEmpty={true} />
 
-          <AlertFeedElement alertId={modelId} refreshToken={feedRefreshToken} />
+          <AlertFeedElement
+            alertId={modelId}
+            refreshToken={feedRefreshToken}
+            // Execute On-Call Policy follows where the alert stands.
+            standing={standing}
+          />
         </div>
 
         <div className="min-w-0 xl:col-span-1">
@@ -1750,6 +1755,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               selectMoreFields: {
                 alertNumberWithPrefix: true,
                 isPrivate: true,
+                // Read without the episode itself when it is private and not yours.
+                alertEpisodeId: true,
               },
               onItemLoaded: (item: Alert): void => {
                 // The header's "Monitor" and "Episode" facts, from the row this card already reads.
@@ -1820,6 +1827,20 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         <AlertEpisodeElement alertEpisode={item.alertEpisode} />
                       );
                     }
+
+                    /*
+                     * In an episode the server read back without it: a
+                     * private one, which only its owners, Project Owners
+                     * and Project Admins see (#9102).
+                     */
+                    if (item.alertEpisodeId) {
+                      return (
+                        <span className="text-gray-500">
+                          {translator.translateText("In a private episode")}
+                        </span>
+                      );
+                    }
+
                     return (
                       <span className="text-gray-500">
                         {translator.translateText("Not part of an episode")}

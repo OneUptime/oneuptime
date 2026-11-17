@@ -1,7 +1,6 @@
 import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
-import Semaphore, {
-  SemaphoreMutex,
-} from "Common/Server/Infrastructure/Semaphore";
+import Semaphore from "Common/Server/Infrastructure/Semaphore";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import NetworkAlertPolicyEngineService, {
   PolicyRunContext,
 } from "Common/Server/Services/NetworkAlertPolicyEngineService";
@@ -25,11 +24,12 @@ import ObjectID from "Common/Types/ObjectID";
  * minutes across a many-replica worker fleet, because each piece fails
  * silently on its own:
  *
- *   - THE SWEEP LOCK. RunCron has no overlap guard, and a sweep that
- *     provisions hundreds of monitors easily outlives its schedule; the next
- *     tick would then pick the SAME policies, because none of them has been
- *     stamped yet. One sweep at a time, never queued behind the one in
- *     flight, and released even when the body throws.
+ *   - ONE SWEEP AT A TIME, STOPPED AT ITS DEADLINE. RunCron runs one copy
+ *     of the job at a time (CronLock), so the job takes no lock of its own
+ *     (issue #8103). A sweep that provisions hundreds of monitors can still
+ *     outlive its schedule, so it stops between policies once the run's
+ *     deadline has passed - its time limit, or its lease lost - and leaves
+ *     the rest, still the stalest, to the next tick.
  *   - NEVER-SYNCED POLICIES GO FIRST. `lastSyncAt IS NULL` is the policy
  *     whose devices have NO monitors at all, and Postgres sorts NULLs LAST
  *     ascending — so a single ORDER BY would put the one policy that has
@@ -49,7 +49,7 @@ import ObjectID from "Common/Types/ObjectID";
  * callback so each test can exercise a complete sweep without creating a
  * BullMQ repeatable job.
  */
-type CronHandler = () => Promise<void>;
+type CronHandler = (deadline?: JobDeadline) => Promise<void>;
 
 const mockCapturedJobs: Record<string, CronHandler> = {};
 
@@ -121,10 +121,6 @@ const engine: { syncPolicy: jest.Mock; createRunContext: jest.Mock } =
 const semaphore: { lock: jest.Mock; release: jest.Mock } =
   Semaphore as unknown as { lock: jest.Mock; release: jest.Mock };
 
-const SWEEP_MUTEX: SemaphoreMutex = {
-  identifier: "network-alert-policy-sweep",
-} as unknown as SemaphoreMutex;
-
 const PROJECT_A_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
@@ -176,14 +172,12 @@ function policyPages(
     .mockResolvedValueOnce(answers[1]);
 }
 
-async function runSweep(): Promise<void> {
-  await mockCapturedJobs[JOB_NAME]!();
+async function runSweep(deadline?: JobDeadline): Promise<void> {
+  await mockCapturedJobs[JOB_NAME]!(deadline);
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
-  semaphore.lock.mockResolvedValue(SWEEP_MUTEX);
-  semaphore.release.mockResolvedValue(undefined);
   engine.createRunContext.mockImplementation(
     (projectId: ObjectID): PolicyRunContext => {
       return makeContext(projectId);
@@ -199,62 +193,156 @@ describe("the job is registered", () => {
   });
 });
 
-describe("the sweep lock", () => {
-  it("takes one sweep-wide lock and releases it", async () => {
-    await runSweep();
-
-    expect(semaphore.lock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        key: "NetworkAlertPolicy:ReconcilePolicies",
-        namespace: "Workers.Cron",
-        /*
-         * Never queue behind the in-flight sweep. The job re-runs every five
-         * minutes anyway, so skipping is the correct backpressure — waiting
-         * would just stack ticks on top of an overrunning one.
-         */
-        acquireAttemptsLimit: 1,
-      }),
-    );
-    expect(semaphore.release).toHaveBeenCalledWith(SWEEP_MUTEX);
-  });
-
+describe("one sweep at a time", () => {
   /*
-   * The lock timeout must OUTLIVE the job timeout, so an overrunning sweep
-   * keeps holding the lock rather than letting a second sweep in behind it.
-   * redis-semaphore refreshes a held lock, so this value only bounds how long
-   * a CRASHED worker's lock lingers.
+   * RunCron runs one copy of the job at a time across every replica
+   * (CronLock), so the job's own Redis mutex - from when RunCron had no
+   * overlap guard - is gone: two sweeps could only repeat work, the engine's
+   * per-device lock keeps them from corrupting each other's monitors.
    */
-  it("holds the lock for longer than the job's own timeout", async () => {
-    await runSweep();
+  it("takes no lock of its own: the run's lease covers it", async () => {
+    policyPages([
+      [
+        makePolicy({
+          id: "33333333-3333-4333-8333-333333333333",
+          projectId: PROJECT_A_ID,
+        }),
+      ],
+      [],
+    ]);
 
-    const lockTimeout: number = (
-      semaphore.lock.mock.calls[0]![0] as { lockTimeout: number }
-    ).lockTimeout;
+    await runSweep(JobDeadline.none());
 
-    expect(lockTimeout).toBe(5 * 60 * 1000);
-  });
-
-  it("does nothing at all when another sweep holds the lock", async () => {
-    semaphore.lock.mockRejectedValue(new Error("already held"));
-
-    await runSweep();
-
-    expect(policyService.findBy).not.toHaveBeenCalled();
-    expect(engine.syncPolicy).not.toHaveBeenCalled();
-    // Nothing was acquired, so nothing may be released.
+    expect(engine.syncPolicy).toHaveBeenCalledTimes(1);
+    expect(semaphore.lock).not.toHaveBeenCalled();
     expect(semaphore.release).not.toHaveBeenCalled();
   });
 
-  /*
-   * Released in `finally`, so a throw anywhere in the sweep frees the lock
-   * for the next tick instead of wedging the job until the lock times out.
-   */
-  it("releases the lock even when the sweep throws", async () => {
+  it("passes a failure to read the policies on, so the run is marked failed", async () => {
     policyService.findBy.mockRejectedValue(new Error("database is on fire"));
 
     await expect(runSweep()).rejects.toThrow("database is on fire");
 
-    expect(semaphore.release).toHaveBeenCalledWith(SWEEP_MUTEX);
+    expect(engine.syncPolicy).not.toHaveBeenCalled();
+  });
+});
+
+describe("a sweep stops at its deadline", () => {
+  function threePolicies(): void {
+    policyPages([
+      [
+        makePolicy({
+          id: "33333333-3333-4333-8333-333333333333",
+          projectId: PROJECT_A_ID,
+        }),
+        makePolicy({
+          id: "44444444-4444-4444-8444-444444444444",
+          projectId: PROJECT_A_ID,
+        }),
+      ],
+      [
+        makePolicy({
+          id: "55555555-5555-4555-8555-555555555555",
+          projectId: PROJECT_B_ID,
+        }),
+      ],
+    ]);
+  }
+
+  function syncedPolicyIds(): Array<string> {
+    return engine.syncPolicy.mock.calls.map((call: Array<unknown>) => {
+      return (call[0] as { policyId: ObjectID }).policyId.toString();
+    });
+  }
+
+  it("syncs every policy it selected while its deadline has not passed", async () => {
+    threePolicies();
+
+    await runSweep(new JobDeadline());
+
+    expect(engine.syncPolicy).toHaveBeenCalledTimes(3);
+  });
+
+  /*
+   * The time limit ran out after the first policy: the sweep stops before
+   * the next one, and the policies it did not reach are still the stalest,
+   * so they lead the next tick.
+   */
+  it("stops before the next policy once the deadline has passed, and leaves the rest", async () => {
+    threePolicies();
+
+    const deadline: JobDeadline = new JobDeadline();
+
+    engine.syncPolicy.mockImplementationOnce(async (): Promise<null> => {
+      deadline.end();
+      return null;
+    });
+
+    await runSweep(deadline);
+
+    expect(syncedPolicyIds()).toEqual(["33333333-3333-4333-8333-333333333333"]);
+  });
+
+  /*
+   * A run whose lease was lost has its deadline ended (CronLock): another
+   * run may hold the lock now, so this one stops at its next check.
+   */
+  it("stops the same way when the run's lease was lost", async () => {
+    threePolicies();
+
+    const deadline: JobDeadline = new JobDeadline();
+
+    engine.syncPolicy.mockImplementationOnce(async (): Promise<null> => {
+      deadline.end(
+        new Error(
+          "NetworkAlertPolicy:ReconcilePolicies stopped: its lock lapsed, so another run may have started.",
+        ),
+      );
+      return null;
+    });
+
+    await runSweep(deadline);
+
+    expect(engine.syncPolicy).toHaveBeenCalledTimes(1);
+  });
+
+  it("syncs nothing when its deadline passed before it started", async () => {
+    threePolicies();
+
+    const deadline: JobDeadline = new JobDeadline();
+    deadline.end();
+
+    await runSweep(deadline);
+
+    expect(engine.syncPolicy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The soft budget still applies: a sweep that has spent most of its time
+   * limit stops between policies, leaving the policy in flight room to
+   * finish before the limit.
+   */
+  it("stops once it has spent most of its time limit, even before the deadline", async () => {
+    threePolicies();
+
+    const start: number = Date.now();
+    const now: jest.SpyInstance = jest.spyOn(Date, "now");
+
+    now.mockReturnValue(start);
+
+    engine.syncPolicy.mockImplementationOnce(async (): Promise<null> => {
+      // Past four fifths of the four-minute time limit.
+      now.mockReturnValue(start + 3.5 * 60 * 1000);
+      return null;
+    });
+
+    try {
+      await runSweep(new JobDeadline());
+    } finally {
+      now.mockRestore();
+    }
+
+    expect(engine.syncPolicy).toHaveBeenCalledTimes(1);
   });
 });
 

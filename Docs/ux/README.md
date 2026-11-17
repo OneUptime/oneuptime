@@ -59,6 +59,13 @@ learned one can find their way around the next.
 - **A new project is told what is not set up, never that all is well.** With no monitors, Home says
   "No monitors yet" and opens the Monitors list. It does not say "Inoperational monitors 0 · All
   operational". Not enforced: use judgement.
+- **While a new project's quickstart shows, it is all of Home.** The question "What do you want to do
+  first?" and the steps its goals bring are the one thing a new person meets: a new project's Home was
+  a banner to create a monitor, five zeros, the Welcome card and two empty lists, all asking for the
+  same first click (#8897). Only what cannot wait shows above it: an open incident or anything else
+  that needs someone, and an unfinished server, to its admin. Hiding the checklist or finishing it
+  brings the rest of Home back, with the line that shows it again. Enforced by
+  [HomePage](../../packages/Common/Tests/App/Dashboard/HomePage.test.tsx).
 - **Do not ask for what is already done.** "Send your first logs" never sits above a page of logs, and
   there is one button for one job on a page, not the explanation's and the empty state's for the same
   setup. Not enforced: use judgement.
@@ -66,7 +73,9 @@ learned one can find their way around the next.
   monitor, who is told and a test page; three products would leave the person to find the chain. A
   guided setup draws its steps in `Components/GuidedSetup/GuidedSetupFrame`: each step saves real
   records, coming back opens the first step not done, and it ends with a summary read from the
-  records and what to do next (`/monitors/setup`, #6804; `/on-call-duty/setup`, #6805). Its journey gets a budget of its own, with
+  records and what to do next (`/monitors/setup`, #6804; `/on-call-duty/setup`, #6805). Beside its
+  steps it lists what the setup sets up, ticked as each step is done, and about how long it takes,
+  the minutes Home's checklist says beside its step (#8897). Its journey gets a budget of its own, with
   `"path": "guided"`. Enforced by
   [GuidedSetupFrame](../../packages/Common/Tests/App/Dashboard/GuidedSetupFrame.test.tsx).
 
@@ -106,6 +115,10 @@ and phone summary: change the suite in the same pull request as the menu.
   on the SSO page. Add a new settings card or switch to its page's settings list in
   `PageSearchIndex.ts`, or to `NOT_A_SETTING`. Enforced by
   [SettingsFoundByName](../../packages/App/Tests/Dashboard/SettingsFoundByName.test.ts).
+- **Search matches only words the page shows.** A key that names its meaning, such as `"Insights
+  (explorer analytics)"`, is searched as the word the Dashboard draws ("Insights"). Its note to
+  translators finds nothing, in any language. Enforced by
+  [PageSearchMeaningKeysAsEnglish](../../packages/App/Tests/Dashboard/PageSearchMeaningKeysAsEnglish.test.ts).
 
 ### A record's overview
 
@@ -368,6 +381,11 @@ work out, starts from a default for everything else, and folds what most people 
 - **On a narrow screen, columns fold under another column** the page names (`foldInto`): an
   incident's severity under its state. Enforced by
   [TableFoldIntoGuard](../../packages/App/Tests/Dashboard/TableFoldIntoGuard.test.ts).
+- **A phone's card keeps what the list is read for.** A phone draws each row as a card and leaves
+  out the columns marked `hideOnMobile`: labels, owners, a second date. Never the fact people open
+  the list for: an incident's card had no severity, beside an alert's that has one, and a maintenance
+  event's card never said when it starts (#9011). Enforced by
+  [PhoneCardsKeepTriageFactsGuard](../../packages/App/Tests/Dashboard/PhoneCardsKeepTriageFactsGuard.test.ts).
 - **A column sorts the whole list by what it shows.** A column that shows one related record sorts by
   it: a severity, a state or a monitor status by its place in the project's list, worst first
   descending, where its first click goes (as the dashboard's list widgets sort it); anything else by
@@ -450,6 +468,15 @@ work out, starts from a default for everything else, and folds what most people 
   [DashboardWidgetPreviewGuard](../../packages/Common/Tests/App/Dashboard/DashboardWidgetPreviewGuard.test.tsx).
 - **Confirm only what cannot be undone.** A switch that can be flipped back saves without asking.
   Not enforced: use judgement.
+- **An action that changes something says it worked, without blocking the page.** A save, a
+  create, a delete or a test that went out says so in a toast (`Toast.success`,
+  `Common/UI/Utils/Toast`), which goes by itself; a failure says so in an error toast or a dialog,
+  and stays until it is closed. The shared model components already do it: a card's Edit says
+  "Changes saved", a list says "Nightly Backup deleted". Before, a change said nothing, or opened a
+  dialog to click away: "Saved", "Runbook steps saved successfully.", Got it (#9120). A dialog with
+  one way out (a `ConfirmModal` without `onClose`) stays only for what the person must read or act
+  on: what failed, a value shown once, a run's report, details they opened. Enforced by
+  [SuccessDialogsGuard](../../packages/Common/Tests/UI/SuccessDialogsGuard.test.ts).
 - **Leaving unsaved work asks first.** While a page holds work it has not saved (a dashboard being
   edited), a step to another page waits for its answer, Keep Editing or Discard Changes: a link,
   the side menu, the breadcrumbs, a button, the project picker, the browser's Back and Forward.
@@ -461,6 +488,26 @@ work out, starts from a default for everything else, and folds what most people 
   [LinkLeaveGuard](../../packages/Common/Tests/UI/Components/LinkLeaveGuard.test.tsx),
   [AppLinkLeaveGuard](../../packages/Common/Tests/App/Dashboard/AppLinkLeaveGuard.test.tsx) and
   [ProjectPickerLeaveGuard](../../packages/Common/Tests/UI/Components/ProjectPickerLeaveGuard.test.tsx).
+
+### Help dialogs
+
+A list's help (?) and a product's "how it works" guide open one dialog, `HelpModal`
+(`Common/UI/Components/Help`): what the thing is in short, then its topics, each opened on its own,
+with its documentation one click away and "Was this clear?" under it (#8889). "How SLOs Work" was a
+page of markdown as wide as the screen, six headings and a rule between each, with nothing to say
+what was further down.
+
+- **A help document says what the thing is first, then its topics.** Its lead, one to three
+  sentences, is what everybody reads, and the dialog shows it as "In short"; each `##` heading is a
+  topic the dialog lists, and the one a person needs to act comes first. No heading repeats the
+  dialog's title, and nothing draws a line between the topics: the dialog sets them apart itself.
+  Write it in `HelpContent`'s shape, on the page or with a shared builder (`Utils/Help/ResourceRuleHelp`
+  writes every resource's label and owner rule help). Enforced by
+  [HelpDialogsGuard](../../packages/Common/Tests/App/Dashboard/HelpDialogsGuard.test.ts).
+- **Help says what the product does, checked against the code.** When a rule runs, what it changes,
+  what it never does, and the words the form shows ("Which Incidents", "More fields"): the help that
+  listed three log processors of five, or a severity no filter can match, sent people the wrong way.
+  Not enforced: use judgement.
 
 ## Cards and the look of a page
 
@@ -494,16 +541,15 @@ work out, starts from a default for everything else, and folds what most people 
   [MonitorSummaryViewsLayoutGuard](../../packages/App/Tests/Dashboard/MonitorSummaryViewsLayoutGuard.test.ts).
 - **Banners are for exceptions the person must act on,** never for the default state. Enforced by
   [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
-- **A sample project says what it is on every page.** It is the one bar a project shows on every
-  page, because there the project itself is the exception: nobody may take its made-up incidents
-  for their own (#6808). One dark bar at the top says "This is a sample project. Nothing here is
-  real, and nobody is notified.", with the ways out (back to their own project, Delete Sample
-  Project) and How OneUptime works, and it is drawn for a sample alone. Enforced by
-  [SampleProjectBar](../../packages/Common/Tests/App/Dashboard/SampleProjectBar.test.tsx) and
-  [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
 - **A button that cannot be pressed looks it,** the same way everywhere: faded, with the not-allowed
   cursor. Enforced by
   [HandDrawnButtonLockedLookGuard](../../packages/Common/Tests/UI/HandDrawnButtonLockedLookGuard.test.ts).
+- **A button that adds a row to a builder never looks like the form's action.** Add condition, Add
+  filter and Add row put one more line into what the person is building; the form's own action is
+  elsewhere. Draw them as outline buttons (`ButtonStyleType.OUTLINE`), never filled or tinted: a
+  rule's Applies to step drew Add condition in tinted indigo, the one coloured button on a screen
+  whose Next is not primary, and it read as the dialog's main action (#9116). Enforced by
+  [AddRowButtonsNotPrimaryGuard](../../packages/Common/Tests/UI/Components/AddRowButtonsNotPrimaryGuard.test.ts).
 - **Icons and logos are one-colour SVGs,** and an icon means one thing: a timeline is shown with the
   timeline's icon. Enforced by
   [ProviderLogosGuard](../../packages/Common/Tests/UI/Components/ProviderLogo/ProviderLogosGuard.test.ts)
@@ -703,11 +749,39 @@ work out, starts from a default for everything else, and folds what most people 
   or `Intl.RelativeTimeFormat` yourself. English OneUptime writes in words holds its number too
   ("5 hours ago", "1 min 47 secs", "10 days, 23 hours", #8669): code joins a figure to a
   duration's word with `NO_BREAK_SPACE` (`` `${count}${NO_BREAK_SPACE}minutes` ``), and English it
-  did not join itself, such as moment's, goes through `withDurationWordsHeld`. Enforced by
+  did not join itself, such as moment's, goes through `withDurationWordsHeld`. So does a sentence
+  built in code (#8695): "Rescan Interval must be at least 15 minutes.", "Every 6 hours", a guide's
+  "the last 10 minutes", and a word chosen by its count (`` `${n} ${n === 1 ? "hour" : "hours"}` ``).
+  A sentence looked up whole by its English keeps its plain spaces in the code, so the key still
+  matches, and the page holds the English it draws (`withDurationWordsHeld`). A duration's word
+  is a unit to the Translator too (#8770): wherever the English writes a number and a space before
+  one ("Every {{count}} minutes", "between 15 minutes and 14 days"), each language's wording holds
+  the figure to whatever word it names the unit with ("Alle 5 Minuten"), and so does a page's
+  English (a translator made with `drawsOnPage`, as the front ends' are). English that may become a
+  record's text - the server's, or a translator no page made - holds a unit's symbol only, so what
+  is stored still matches what reads it back by its English; a sentence that becomes a value - the
+  name a form fills in - is written with plain spaces (`withPlainSpaces`). English drawn without a
+  page's translator holds it too (#8811): a module's own English fallback that draws is a page's, an
+  English key drawn as written holds its figure (a page's `translateText`, `useTranslateValue`),
+  and so does an email's English - a mail client draws a no-break space as a browser does
+  (`getServerTranslator(language, { readByAPerson: true })`). Danish and Norwegian hold a count
+  written as an ordinal too ("Hvert 5. minut"). A helper handed the word
+  (`plural(count, "minute", "minutes")`, `pluralize(count, "day")`) holds what it writes on a page
+  (`withDurationWordsHeld`, #8823), and a unit's symbol a formatter writes beside a figure is held
+  however short it is: a disk's "12.5 ms", "ops/s", a transceiver's "V" and "mA" (#8803), an
+  amount of money ("20 USD") and a span's English duration ("12 ms", #8826); a CSV cell and a log
+  line keep their plain space. Enforced by
   [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts),
-  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts)
-  and
-  [NumbersKeepTheirUnitsInIntlGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInIntlGuard.test.ts).
+  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts),
+  [NumbersKeepTheirUnitsInIntlGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInIntlGuard.test.ts),
+  [DurationWordsHeldInSentences](../../packages/Common/Tests/App/DurationWordsHeldInSentences.test.ts)
+  (a sentence built in code, #8695),
+  [TranslatedDurationWordsHeld](../../packages/Common/Tests/App/TranslatedDurationWordsHeld.test.ts)
+  (a wording and a page's English, #8770),
+  [TranslationHoldsEnglishDurations](../../packages/Common/Tests/UI/Utils/TranslationHoldsEnglishDurations.test.tsx)
+  (an English key a page draws as written, #8811) and
+  [PageEnglishDurationsHeld](../../packages/App/Tests/Notification/PageEnglishDurationsHeld.test.ts)
+  (a module's own English fallback, and an email's English, #8811).
 - **A probe's message on a monitor's summary reads in the reader's language.** The probe stores why
   a check failed in English, and the summaries drew it as it came: "Request was tried 3 times and
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message
@@ -1088,7 +1162,8 @@ then `npm run i18n:validate` from the root.
 ## Asking people
 
 People who are lost leave quietly, so the product asks them, in five seconds, what was hard
-(#6832). Answers stay on the server, for its master admins (Admin Dashboard > Feedback).
+(#6832). Answers stay on the server, for its master admins (Admin Dashboard > Feedback), and what a
+person writes in Give Feedback also reaches whoever can answer it.
 
 - **Ask at most one question a week, once per question, and never while something is down.** A
   question OneUptime asks goes through `ProductFeedback.ask` (`Common/UI/Utils/ProductFeedback`),
@@ -1103,8 +1178,17 @@ People who are lost leave quietly, so the product asks them, in five seconds, wh
   not, so the product asks none. Enforced by
   [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
 - **An answer carries the page as a route with no ids, and the version, and nothing else.** No
-  person, no project, no address. Say where it goes where it is given: to the server's admins on a
-  self-hosted server, and to the OneUptime team on Cloud. Enforced by
+  person, no project, no address: the row kept names nobody. Say where it goes where it is given: to
+  the server's admins on a self-hosted server, and to the OneUptime team on Cloud. Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **Give Feedback is a message, and reaches someone who can answer it.** The person writes to a team
+  and wants a reply, so the server emails it with their name and email address, their project, the
+  page and the version, copying them, and a reply goes to them (#8893): to the OneUptime team
+  (support@oneuptime.com) on Cloud, and to the server's Admin Notification Email on a self-hosted
+  server, never to OneUptime. A self-hosted server with none emails nothing, and the answer names
+  nobody. The dialog says to whom and with what before anything is sent, names the page as its
+  breadcrumbs do ("SLOs", never the route it sends, "/dashboard/:projectId/slos"), and once sent says
+  only what the server did: "A copy is on its way to you@example.com". Enforced by
   [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
 - **Before each release, someone who has not seen the changes walks the core jobs as a newcomer**,
   and posts what made them hesitate, guess or go back on the epic #6802:

@@ -18,10 +18,10 @@ flowchart TB
     setting -->|"allt av"| nothing["Ingenting skickas"]
 ```
 
-- Varje rad är en händelse, och varje kolumn en kanal: E-post, SMS, Samtal, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost och Webhook. Slack, Microsoft Teams och Mattermost är bara kolumner när projektet har anslutit dem.
+- Varje rad är en händelse, och varje kolumn en kanal: E-post, SMS, Samtal, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost och Webhook. Slack, Microsoft Teams och Mattermost är bara kolumner när projektet har anslutit dem. En kanal som du inte har konfigurerat än är ingen kolumn: den står ovanför flikarna under **Kanaler som inte är konfigurerade än**, som en länk för att konfigurera den.
 - En kanal som är påslagen skickar till varje verifierad metod du har på den i det här projektet, inte bara till en.
-- En kanal som är påslagen utan någon verifierad metod bakom sig skickar ingenting. **Your setup checklist** säger det under **Staying informed**.
-- En uppdatering går till sakens ägare: personerna som är angivna som ägare, och medlemmarna i dess ägarteam. Har en sak inga ägare går den i stället till Projektägare. En händelse om att ha lagts till som ägare går bara till personen som lades till. Om OneUptime stannar medan det skickar en uppdatering till en saks ägare får de personer det ännu inte hade nått den när OneUptime är tillbaka, några minuter försenad, och ingen får den två gånger.
+- En kanal som är påslagen utan någon verifierad metod bakom sig skickar ingenting. Dess kolumn visar **Konfigurera** under namnet, och dess reglage kan bara stängas av. **Your setup checklist** säger det också, under **Staying informed**.
+- En uppdatering går till sakens ägare: personerna som är angivna som ägare, och medlemmarna i dess ägarteam. Har en sak inga ägare går den i stället till Projektägare. Den som jourlarmet för en ny incident, ett nytt larm eller en ny episod redan har nått får inget nytt besked om att den har skapats. En händelse om att ha lagts till som ägare går bara till personen som lades till. Om OneUptime stannar medan det skickar en uppdatering till en saks ägare får de personer det ännu inte hade nått den när OneUptime är tillbaka, några minuter försenad, och ingen får den två gånger.
 - Säkerhetsärenden har inga ägare. Ett nytt ärende går till alla som kan se projektets ärenden, från den prioritet som var och en av dem väljer, och ett tilldelat ärende till dem som det är tilldelat. Se [Säkerhetsärenden](/docs/telemetry/security-cases#aviseringar).
 - Varje e-postmeddelande till ägare slutar med en länk, "Manage notification preferences", tillbaka till den här sidan.
 
@@ -34,11 +34,11 @@ Gå till **Användarinställningar → Aviseringsinställningar**. Flikarna är 
 
 ### Hitta händelsen
 
-Varje flik har ett eller flera kort, som **Incidentepisoder** på fliken **Incidenter**. Varje rad är en händelse, med en rad text som säger när den skickas.
+Varje flik har ett eller flera kort, som **Incidentepisoder** på fliken **Incidenter**. Varje rad är en händelse, med en rad text som säger när den skickas. Ovanför korten säger fliken hur många av dess händelser du får höra om, och via vilka kanaler.
 
 ### Klicka på en kanal
 
-Klicka på en kanals cirkel för att slå på den, och igen för att stänga av den. En bock betyder påslagen. Ändringar sparas automatiskt.
+Klicka på en kanals reglage för att slå på den, och igen för att stänga av den. Ett korts första rad, **Alla händelser**, slår på eller stänger av en kanal för varje händelse på kortet. Varje ändring sparas direkt, och kortet visar **Sparad**.
 :::
 
 ## Vad som är påslaget för en ny medlem

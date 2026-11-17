@@ -4,6 +4,11 @@ import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
 import { canReadKubectlJobs } from "../../Utils/KubernetesAiAccessPermissions";
 import { getCommandJobsNoAccessState } from "../../../../Components/ResourceAiAgent/CommandJobsNoAccess";
 import {
+  getCommandJobsEmptyMessage,
+  readHiddenCommandCount,
+} from "../../../../Components/ResourceAiAgent/CommandJobsHidden";
+import CommandJobsHiddenNote from "../../../../Components/ResourceAiAgent/CommandJobsHiddenNote";
+import {
   getResourceCommandStatusLook,
   getResourceCommandStatusOptions,
   ResourceAiStatusLook,
@@ -79,8 +84,11 @@ import {
  * which the server computes (summaries only, never command output) behind
  * the same read gate as the cluster's AI status. The command history is the
  * RunnerJob table the old AI page showed, moved here unchanged, with the
- * same permission fallback. No KPI tiles: on most clusters they would read
- * zero.
+ * same permission fallback. It lists the commands the reader may read -
+ * another person's AI chat's, or one about a private incident or alert they
+ * don't see, is left out - and says how many it leaves out, from the logs
+ * route's count (CommandJobsHidden, #9155). No KPI tiles: on most clusters
+ * they would read zero.
  */
 
 export const AI_LOGS_PAGE_TITLE: string = translationKey("AI Logs");
@@ -176,11 +184,19 @@ export interface KubernetesAiLogsFix {
   incidentId: string | null;
   alertId: string | null;
   approvedAt: string | null;
+  // A fix that waits for its second approval: when the first was given.
+  firstApprovedAt: string | null;
 }
 
 export interface KubernetesAiLogs {
   investigations: Array<KubernetesAiLogsInvestigation>;
   fixes: Array<KubernetesAiLogsFix>;
+  /*
+   * How many of the cluster's kubectl commands the reader may not read,
+   * which the commands card says it leaves out (CommandJobsHidden); 0 when
+   * none.
+   */
+  hiddenCommandCount: number;
 }
 
 function isObject(value: unknown): value is JSONObject {
@@ -271,6 +287,7 @@ function parseFix(value: unknown): KubernetesAiLogsFix | null {
     incidentId: readString(value["incidentId"]),
     alertId: readString(value["alertId"]),
     approvedAt: readString(value["approvedAt"]),
+    firstApprovedAt: readString(value["firstApprovedAt"]),
   };
 }
 
@@ -317,6 +334,7 @@ export function parseKubernetesAiLogs(value: unknown): KubernetesAiLogs | null {
   return {
     investigations: parseList(value["investigations"], parseInvestigation),
     fixes: parseList(value["fixes"], parseFix),
+    hiddenCommandCount: readHiddenCommandCount(value["hiddenCommandCount"]),
   };
 }
 
@@ -376,7 +394,25 @@ export function getInvestigationStatusLook(status: string): StatusLook {
   );
 }
 
-export function getFixStatusLook(status: string): StatusLook {
+/*
+ * A fix that waits for approval, and was approved once already, waits for
+ * the second of the two approvals a riskier fix needs: it says so (#6422),
+ * as the incident's AI card does.
+ */
+const WAITING_FOR_SECOND_APPROVAL_LOOK: StatusLook = {
+  label: "Waiting for a second approval",
+  color: Yellow500,
+};
+
+export function getFixStatusLook(
+  status: string,
+  // When a fix that still waits was approved first (the server says so).
+  firstApprovedAt?: string | null | undefined,
+): StatusLook {
+  if (status === AutoRemediationSuggestionStatus.Suggested && firstApprovedAt) {
+    return WAITING_FOR_SECOND_APPROVAL_LOOK;
+  }
+
   return (
     FIX_STATUS_LOOKS[status as AutoRemediationSuggestionStatus] || {
       label: status,
@@ -602,7 +638,7 @@ function InvestigationRow(props: {
 function FixRow(props: { fix: KubernetesAiLogsFix }): ReactElement {
   const translator: Translator = useTranslator();
   const look: StatusLook | null = props.fix.status
-    ? getFixStatusLook(props.fix.status)
+    ? getFixStatusLook(props.fix.status, props.fix.firstApprovedAt)
     : null;
   const type: string | null = describeFixType(props.fix.suggestionType);
   const target: { route: Route; label: string } | null = props.fix.incidentId
@@ -764,6 +800,8 @@ const KubernetesClusterAILogs: FunctionComponent<
   const isEmpty: boolean = Boolean(
     logs && logs.investigations.length === 0 && logs.fixes.length === 0,
   );
+  // The commands the reader may not read, which the commands card leaves out.
+  const hiddenCommandCount: number = logs?.hiddenCommandCount || 0;
 
   let body: ReactElement;
 
@@ -923,7 +961,18 @@ const KubernetesClusterAILogs: FunctionComponent<
             exitCode: true,
             errorMessage: true,
           }}
-          noItemsMessage={KUBECTL_COMMANDS_EMPTY_MESSAGE}
+          noItemsMessage={getCommandJobsEmptyMessage({
+            hiddenCount: hiddenCommandCount,
+            emptyMessage: KUBECTL_COMMANDS_EMPTY_MESSAGE,
+          })}
+          topContent={
+            hiddenCommandCount > 0 ? (
+              <CommandJobsHiddenNote
+                count={hiddenCommandCount}
+                dataTestId="kubectl-jobs-hidden-note"
+              />
+            ) : undefined
+          }
           sortBy="createdAt"
           sortOrder={SortOrder.Descending}
           showRefreshButton={true}

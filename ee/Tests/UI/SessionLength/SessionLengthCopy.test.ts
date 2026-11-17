@@ -104,11 +104,13 @@ describe("a length's words in the reader's language", () => {
   }, "fa");
 
   test("writes its number as the language writes numbers, as the words with no number already do", () => {
-    expect(getChoiceText(getDurationLabel(12 * 60), persian)).toBe("۱۲ ساعت");
-    expect(getChoiceText(getDurationLabel(30 * 24 * 60), persian)).toBe(
-      "۳۰ روز",
+    expect(getChoiceText(getDurationLabel(12 * 60), persian)).toBe(
+      "۱۲\u00A0ساعت",
     );
-    expect(getChoiceText(getDurationLabel(60), persian)).toBe("۱ ساعت");
+    expect(getChoiceText(getDurationLabel(30 * 24 * 60), persian)).toBe(
+      "۳۰\u00A0روز",
+    );
+    expect(getChoiceText(getDurationLabel(60), persian)).toBe("۱\u00A0ساعت");
   });
 
   test("in English, as written", () => {

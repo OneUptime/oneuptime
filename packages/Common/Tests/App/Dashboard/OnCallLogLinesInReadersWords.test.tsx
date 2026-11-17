@@ -237,6 +237,7 @@ import {
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { withNumbersKeptWithUnits } from "../../../Types/NoBreakSpaces";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111118330";
 const LOG_ID: string = "22222222-0000-4000-8000-000000008330";
@@ -288,14 +289,21 @@ async function inLanguage(language: string): Promise<void> {
   setDateDisplayLanguage(language);
 }
 
-// The reader's sentence for `key`, its values filled in as written.
+/*
+ * The reader's sentence for `key`, its values filled in as written, set as
+ * the page's Translator sets it: a figure held to the duration's word after
+ * it (#8770).
+ */
 function worded(
   language: string,
   key: string,
   values: Record<string, string> = {},
 ): string {
-  let text: string =
-    language === "en" ? key : readDashboardLocale(language)[key]!;
+  let text: string = withNumbersKeptWithUnits(
+    language === "en" ? key : readDashboardLocale(language)[key]!,
+    key,
+    { durationWords: true },
+  );
 
   expect({ language, key, worded: Boolean(text) }).toEqual({
     language,
@@ -1470,12 +1478,16 @@ describe.each(LANGUAGES)(
       const isOne: boolean =
         new Intl.PluralRules(language).select(count) === "one";
       const key: string = isOne ? `${template.other}_one` : template.other;
-      let words: string =
+      // Set as the page's Translator sets it: a duration's figure held (#8770).
+      let words: string = withNumbersKeptWithUnits(
         language === "en"
           ? isOne
             ? template.one
             : template.other
-          : readDashboardLocale(language)[key]!;
+          : readDashboardLocale(language)[key]!,
+        isOne ? template.one : template.other,
+        { durationWords: true },
+      );
 
       if (language !== "en") {
         expect({ language, key, worded: words !== key }).toEqual({
@@ -2184,8 +2196,13 @@ describe.each(LANGUAGES)(
             ? LOG_NOTIFICATION_STUCK.other
             : readDashboardLocale(language)[LOG_NOTIFICATION_STUCK.other]!;
 
+        // As the page's Translator sets it: the figure held to its word (#8770).
         expect(text(line)).toBe(
-          words.split("{{count}}").join(translator.formatNumber(15)),
+          withNumbersKeptWithUnits(words, LOG_NOTIFICATION_STUCK.other, {
+            durationWords: true,
+          })
+            .split("{{count}}")
+            .join(translator.formatNumber(15)),
         );
         expectNoEnglish(line);
       });
@@ -2414,8 +2431,11 @@ describe.each(LANGUAGES)(
           ? LOG_CALL_ANSWERED_AND_LASTED.other
           : readDashboardLocale(language)[LOG_CALL_ANSWERED_AND_LASTED.other]!;
 
+      // As the page's Translator sets it: the figure held to its word (#8770).
       expect(text(line)).toBe(
-        words
+        withNumbersKeptWithUnits(words, LOG_CALL_ANSWERED_AND_LASTED.other, {
+          durationWords: true,
+        })
           .split("{{count}}")
           .join(dashboardTranslator(language).formatNumber(42)),
       );

@@ -15,10 +15,12 @@
  *
  * So background work gets bounded shares of the pool:
  *
- *   - Probe scheduling - the monitors, monitor tests and network devices a
- *     probe is handed, and the pending count its autoscaler reads - runs at
- *     most PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS requests at once (about
- *     one connection each), a fifth of the pool by default
+ *   - Probe scheduling - every request a probe makes for work (monitors,
+ *     monitor tests, network devices, discovery scans, diagnostics, packet
+ *     captures, VMware and OpenStack collections and checks, Data Security
+ *     and Data Observability), and the pending count its autoscaler reads -
+ *     runs at most PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS requests at once
+ *     (about one connection each), a fifth of the pool by default
  *     (Probe/ProbeSchedulingLimiter).
  *   - Queue jobs hold at most DATABASE_MAX_QUEUE_JOB_CONNECTIONS connections
  *     at once (Infrastructure/Postgres/QueueJobConnections). By default the

@@ -53,7 +53,7 @@
       "signIn": "Войти с ключом доступа",
       "inProgress": "Завершите или отмените вход с ключом доступа, прежде чем использовать пароль.",
       "helpTitle": "Ещё не пользовались ключами доступа?",
-      "help": "Ключ доступа позволяет входить по отпечатку пальца, распознаванию лица или PIN-коду устройства вместо пароля. Чтобы добавить его, войдите с паролем или через SSO, затем откройте Профиль пользователя → Безопасность → Passkeys.",
+      "help": "Ключ доступа позволяет входить по отпечатку пальца, распознаванию лица или PIN-коду устройства вместо пароля. Чтобы добавить его, войдите с паролем или через SSO, затем откройте Профиль пользователя → Безопасность → Ключи доступа.",
       "preparing": "Подготовка ключа доступа…",
       "waiting": "Проверьте устройство",
       "waitingDescription": "Следуйте указаниям браузера или менеджера паролей.",
@@ -68,6 +68,7 @@
     "signInWithSso": "Войти через SSO",
     "signInWithMicrosoft": "Войти через Microsoft",
     "emailSignInLink": "Отправить ссылку для входа на почту",
+    "moreWaysToSignIn": "Другие способы входа",
     "noAccountPrompt": "Нет учетной записи?",
     "registerLink": "Зарегистрироваться.",
     "twoFactor": {
@@ -175,10 +176,17 @@
   "resetPassword": {
     "title": "Сбросьте свой пароль",
     "subtitle": "Введите свой новый пароль, и мы его обновим.",
-    "successMessage": "Ваш пароль был обновлен. Пожалуйста, войдите.",
     "submitButton": "Сбросить пароль",
     "knowPasswordPrompt": "Знаете свой пароль?",
-    "loginLink": "Войти."
+    "loginLink": "Войти.",
+    "successTitle": "Ваш пароль сброшен",
+    "successDescription": "Войдите с новым паролем.",
+    "signInButton": "Войти",
+    "linkExpiredTitle": "Срок действия этой ссылки для сброса истёк",
+    "linkExpiredDescription": "Ссылки для сброса действуют один день. Запросите новую ссылку, и мы отправим её вам по электронной почте.",
+    "linkInvalidTitle": "Эта ссылка для сброса больше не работает",
+    "linkInvalidDescription": "Возможно, ею уже воспользовались или скопировали её не полностью. Запросите новую ссылку, и мы отправим её вам по электронной почте.",
+    "requestNewLinkButton": "Запросить новую ссылку"
   },
   "sso": {
     "title": "Вход через SSO",
@@ -255,7 +263,7 @@
     "complete": "Ключ доступа проверен. Вернитесь в приложение, чтобы завершить вход.",
     "returnToApp": "Вернуться в приложение",
     "cancel": "Отменить и вернуться в приложение",
-    "setup": "Создайте ключ доступа в веб-панели: Профиль пользователя → Безопасность → Passkeys."
+    "setup": "Создайте ключ доступа в веб-панели: Профиль пользователя → Безопасность → Ключи доступа."
   },
   "mcpAuthorize": {
     "title": "Подключение MCP-клиента",
@@ -562,6 +570,7 @@
   "What was sent is larger than the 50 MB OneUptime takes in one request.": "Отправленные данные больше 50 МБ, которые OneUptime принимает за один запрос.",
   "Try again with less at once, such as a smaller file.": "Повторите попытку, отправив меньше за раз, например файл меньшего размера.",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Если их отклонил прокси перед OneUptime, увеличьте ограничение этого прокси на размер запроса до 50 МБ — столько, сколько принимает сам OneUptime (в nginx это client_max_body_size 50M).",
+  "Dismiss": "Скрыть",
   "This form is not available. It may have been turned off, or the link may be out of date.": "Эта форма недоступна. Возможно, она отключена или ссылка устарела.",
   "This form can only be opened from an allowed network.": "Эту форму можно открыть только из разрешённой сети.",
   "Too many submissions from your network. Please wait a few minutes and try again.": "Слишком много отправок из вашей сети. Подождите несколько минут и повторите попытку.",
@@ -572,6 +581,7 @@
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "Эта форма не может создать инцидент, потому что у неё не задана серьёзность. Сообщите об этом команде, которая поделилась формой.",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "Сейчас ответы не принимаются. Повторите попытку через несколько минут.",
   "This form is receiving too many files right now. Please try again later.": "Сейчас эта форма получает слишком много файлов. Повторите попытку позже.",
+  "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "Сейчас файлы невозможно проверить на вирусы, поэтому они не приняты. Повторите попытку через несколько минут.",
   "A response can carry at most 10 files.": "В одном ответе может быть не больше 10 файлов.",
   "The files of a response can be at most 20 MB together.": "Файлы одного ответа вместе могут занимать не больше 20 МБ.",
   "Your response could not be submitted. Please try again in a few minutes.": "Не удалось отправить ваш ответ. Повторите попытку через несколько минут.",

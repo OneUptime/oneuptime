@@ -66,6 +66,7 @@ const PAGES: Readonly<Record<string, PageReading>> = {
   VMware: { way: "a setup guide's words" },
   Database: { way: "a setup guide's words" },
   Host: { way: "a setup guide's words" },
+  MessageQueue: { way: "a setup guide's words" },
   DataSecurity: {
     way: "locale keys",
     files: ["Pages/DataSecurity/Documentation.tsx"],
@@ -99,9 +100,10 @@ const PAGES: Readonly<Record<string, PageReading>> = {
 /*
  * The pages that still read English in some language: their setup guide's
  * markdown has no words in any other language yet. #8341. Only ever
- * shorter.
+ * shorter, and empty since the Queues guide (MessageQueue) has its words:
+ * a new product's page reads one of the three ways from its first day.
  */
-const STILL_IN_ENGLISH: ReadonlyArray<string> = ["MessageQueue"];
+const STILL_IN_ENGLISH: ReadonlyArray<string> = [];
 
 // Every product that has a Help > Documentation page.
 function productsWithADocumentationPage(): Array<string> {
@@ -210,18 +212,23 @@ describe("every product's Help > Documentation page", () => {
     ).toEqual([...guides].sort());
 
     for (const product of SETUP_GUIDE_DOCUMENTATION_PRODUCTS) {
-      const page: string = fs.readFileSync(
-        path.join(DASHBOARD_SOURCE, "Pages", product.name, "Documentation.tsx"),
-        "utf8",
+      const pageFile: string = path.join(
+        DASHBOARD_SOURCE,
+        "Pages",
+        product.name,
+        "Documentation.tsx",
       );
+      const page: string = fs.readFileSync(pageFile, "utf8");
+      // The files the page imports, by relative path ("./Utils/Card").
+      const imported: Array<string> = [
+        ...page.matchAll(/from\s+"(\.{1,2}\/[^"]+)"/g),
+      ].map((match: RegExpMatchArray): string => {
+        return path.resolve(path.dirname(pageFile), match[1] as string);
+      });
 
       expect({
         product: product.name,
-        drawsItsCard: page.includes(
-          path
-            .relative(DASHBOARD_SOURCE, product.cardFile)
-            .replace(/\.tsx$/, ""),
-        ),
+        drawsItsCard: imported.includes(product.cardFile.replace(/\.tsx$/, "")),
       }).toEqual({ product: product.name, drawsItsCard: true });
       expect(Object.keys(product.translations).length).toBe(
         DASHBOARD_LANGUAGES.length,

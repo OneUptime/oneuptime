@@ -20,6 +20,22 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { getShortProfileFunctionName } from "Common/Utils/Profiles/ProfileFunctionNames";
+import {
+  getUnnamedValue,
+  groupUnnamedFrames,
+} from "../../Utils/ProfileFlameTree";
+import {
+  FLAME_CLICK_TO_ZOOM,
+  FLAME_TRUNCATED,
+  FLAME_UNNAMED_DOCS_LINK,
+  FLAME_UNNAMED_EXPLAINED,
+  FLAME_UNNAMED_FRAME,
+  FLAME_UNNAMED_FRAMES,
+  FLAME_UNNAMED_SHARE,
+  PANEL_SELF_HINT,
+  PANEL_TOTAL_HINT,
+} from "./ProfileCopy";
 
 /**
  * Normalised flame graph node. Both the single-profile loader and the
@@ -36,6 +52,11 @@ export interface FlamegraphNode {
   selfValue: number;
   totalValue: number;
   children: Array<FlamegraphNode>;
+  /*
+   * Set on a frame that stands for code without symbols: how many unnamed
+   * frames (addresses) it groups (Utils/ProfileFlameTree).
+   */
+  unnamedFrameCount?: number | undefined;
 }
 
 /**
@@ -62,6 +83,7 @@ export interface ServerFlamegraphNode {
  */
 export function normaliseServerFlamegraphNode(
   node: ServerFlamegraphNode | null,
+  isRoot: boolean = true,
 ): FlamegraphNode {
   if (!node) {
     return {
@@ -75,15 +97,27 @@ export function normaliseServerFlamegraphNode(
       children: [],
     };
   }
+  /*
+   * Only the tree's top is "(root)": a frame below it with no name is code
+   * the profiler could not name, and is drawn as that.
+   */
   return {
-    name: node.functionName || "(root)",
+    name: node.functionName || (isRoot ? "(root)" : ""),
     fileName: node.fileName || "",
     lineNumber: node.lineNumber || 0,
     frameType: node.frameType || "",
-    category: ProfileUtil.getModuleCategory(node.fileName || ""),
+    category: isRoot
+      ? "unknown"
+      : ProfileUtil.getModuleCategory(
+          node.fileName || "",
+          node.functionName || "",
+          node.frameType || "",
+        ),
     selfValue: Number(node.selfValue || 0),
     totalValue: Number(node.totalValue || 0),
-    children: (node.children || []).map(normaliseServerFlamegraphNode),
+    children: (node.children || []).map((child: ServerFlamegraphNode) => {
+      return normaliseServerFlamegraphNode(child, false);
+    }),
   };
 }
 
@@ -140,12 +174,23 @@ type SearchMode = "highlight" | "stacks";
 const FRAME_HEIGHT: number = 22;
 
 /*
+ * From what share of the graph code without symbols earns a line under it:
+ * a sliver of addresses is normal (a libc call, a JIT stub), a tenth of the
+ * graph is a binary built without them.
+ */
+const UNNAMED_NOTE_MIN_SHARE: number = 10;
+
+// Where the docs say how to give code without symbols its names.
+export const FLAME_UNNAMED_DOCS_URL: string =
+  "/docs/telemetry/profiles#code-without-symbols";
+
+/*
  * Tooltip box dimensions used for edge-of-viewport flipping. The
  * tooltip is positioned imperatively (no React state on mousemove), so
  * these have to be known up front rather than measured per render.
  */
 const TOOLTIP_WIDTH: number = 340;
-const TOOLTIP_HEIGHT: number = 140;
+const TOOLTIP_HEIGHT: number = 200;
 
 /**
  * Pure rendering component for a flame graph. Handles zoom, search,
@@ -212,6 +257,20 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
    * memoised so zoom and tooltips operate on the pruned tree exactly
    * like they do on the full one. Null means "no pruning applies".
    */
+  /*
+   * Code without symbols grouped, one frame where there were hundreds of
+   * addresses: every value kept, so widths and the total do not move.
+   */
+  const groupedRoot: FlamegraphNode = useMemo(() => {
+    return groupUnnamedFrames(props.root);
+  }, [props.root]);
+
+  const unnamedShare: number = useMemo(() => {
+    return groupedRoot.totalValue > 0
+      ? (getUnnamedValue(groupedRoot) / groupedRoot.totalValue) * 100
+      : 0;
+  }, [groupedRoot]);
+
   const prunedRoot: FlamegraphNode | null = useMemo(() => {
     const q: string = search.trim().toLowerCase();
     if (searchMode !== "stacks" || !q) {
@@ -265,7 +324,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
       };
     };
 
-    const pruned: FlamegraphNode | null = walk(props.root);
+    const pruned: FlamegraphNode | null = walk(groupedRoot);
     if (pruned) {
       return pruned;
     }
@@ -275,10 +334,10 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
      * collapsing the graph area — the match counter in the toolbar
      * explains why it is empty.
      */
-    return { ...props.root, selfValue: 0, totalValue: 0, children: [] };
-  }, [search, searchMode, props.root]);
+    return { ...groupedRoot, selfValue: 0, totalValue: 0, children: [] };
+  }, [search, searchMode, groupedRoot]);
 
-  const displayRoot: FlamegraphNode = prunedRoot ?? props.root;
+  const displayRoot: FlamegraphNode = prunedRoot ?? groupedRoot;
 
   /*
    * A reload (refresh, time-range change) produces a new root object,
@@ -308,9 +367,9 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
         walk(c);
       }
     };
-    walk(props.root);
+    walk(groupedRoot);
     return max;
-  }, [props.root]);
+  }, [groupedRoot]);
 
   const searchMatchedValue: number = useMemo(() => {
     if (!search.trim()) {
@@ -356,9 +415,9 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
         walk(c);
       }
     };
-    walk(props.root);
+    walk(groupedRoot);
     return count;
-  }, [search, props.root]);
+  }, [search, groupedRoot]);
 
   useEffect(() => {
     const handler: (e: KeyboardEvent) => void = (e: KeyboardEvent): void => {
@@ -441,6 +500,27 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
   useLayoutEffect(() => {
     positionTooltip();
   }, [hoveredNode, positionTooltip]);
+
+  /*
+   * What a frame says: the short name a person reads code by ("Sum", not
+   * the module path before it - the tooltip has the full name), "Total" on
+   * the top frame, and code without symbols named as that.
+   */
+  const getFrameLabel: (node: FlamegraphNode, depth: number) => string =
+    useCallback(
+      (node: FlamegraphNode, depth: number): string => {
+        if (node.unnamedFrameCount) {
+          return translator.translateText(FLAME_UNNAMED_FRAME) || "";
+        }
+
+        if (depth === 0 && zoomStack.length === 0) {
+          return translator.translateText("Total") || "";
+        }
+
+        return getShortProfileFunctionName(node.name);
+      },
+      [translator, zoomStack.length],
+    );
 
   const handleClickNode: (node: FlamegraphNode) => void = useCallback(
     (node: FlamegraphNode): void => {
@@ -550,7 +630,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
             onMouseMove={handleFrameMouseMove}
             onMouseLeave={handleFrameMouseLeave}
           >
-            {showLabel ? node.name : ""}
+            {showLabel ? getFrameLabel(node, depth) : ""}
           </div>
           {children.map((child: FlamegraphNode) => {
             const childWidth: number =
@@ -573,6 +653,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
       handleFrameMouseEnter,
       handleFrameMouseMove,
       handleFrameMouseLeave,
+      getFrameLabel,
     ],
   );
 
@@ -620,14 +701,21 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
       ? (searchMatchedValue / activeRoot.totalValue) * 100
       : 0;
 
+  /*
+   * A hovered frame's share is of the whole graph, zoomed in or not: the
+   * share the functions list and the panel give the same function.
+   */
   const hoveredSelfPct: number =
-    hoveredNode && activeRoot.totalValue > 0
-      ? (hoveredNode.selfValue / activeRoot.totalValue) * 100
+    hoveredNode && displayRoot.totalValue > 0
+      ? (hoveredNode.selfValue / displayRoot.totalValue) * 100
       : 0;
   const hoveredTotalPct: number =
-    hoveredNode && activeRoot.totalValue > 0
-      ? (hoveredNode.totalValue / activeRoot.totalValue) * 100
+    hoveredNode && displayRoot.totalValue > 0
+      ? (hoveredNode.totalValue / displayRoot.totalValue) * 100
       : 0;
+  const hoveredShortName: string = hoveredNode
+    ? getShortProfileFunctionName(hoveredNode.name)
+    : "";
 
   if (!props.root || props.root.totalValue === 0) {
     return (
@@ -682,44 +770,54 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
               />
             </div>
 
-            <div
-              className="inline-flex items-center rounded-md border border-gray-300 bg-gray-50 p-0.5"
-              role="group"
-              aria-label={translator.translateText("Search display mode")}
-            >
-              <button
-                type="button"
-                title={translator.translateText(
-                  "Dim frames that do not match the search",
-                )}
-                onClick={() => {
-                  setSearchMode("highlight");
-                }}
-                className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                  searchMode === "highlight"
-                    ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
+            {/*
+             * How a search shows its matches is a choice only once there
+             * is a search: before that the two buttons asked a question
+             * nobody had yet.
+             */}
+            {search.trim() ? (
+              <div
+                className="inline-flex items-center rounded-md border border-gray-300 bg-gray-50 p-0.5"
+                role="group"
+                aria-label={translator.translateText("Search display mode")}
+                data-testid="flamegraph-search-mode"
               >
-                {translator.translateText("Highlight")}
-              </button>
-              <button
-                type="button"
-                title={translator.translateText(
-                  "Show only stacks that pass through a matching frame",
-                )}
-                onClick={() => {
-                  setSearchMode("stacks");
-                }}
-                className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                  searchMode === "stacks"
-                    ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                {translator.translateText("Stacks only")}
-              </button>
-            </div>
+                <button
+                  type="button"
+                  title={translator.translateText(
+                    "Dim frames that do not match the search",
+                  )}
+                  onClick={() => {
+                    setSearchMode("highlight");
+                  }}
+                  className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                    searchMode === "highlight"
+                      ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  {translator.translateText("Highlight")}
+                </button>
+                <button
+                  type="button"
+                  title={translator.translateText(
+                    "Show only stacks that pass through a matching frame",
+                  )}
+                  onClick={() => {
+                    setSearchMode("stacks");
+                  }}
+                  className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                    searchMode === "stacks"
+                      ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  {translator.translateText("Stacks only")}
+                </button>
+              </div>
+            ) : (
+              <></>
+            )}
 
             <label className="inline-flex items-center gap-1.5 text-xs text-gray-700 cursor-pointer px-2.5 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 select-none">
               <input
@@ -783,7 +881,14 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
               {translator.translateText("Legend:")}
             </span>
             {(
-              ["own", "vendor", "runtime", "native"] as Array<ModuleCategory>
+              [
+                "own",
+                "vendor",
+                "runtime",
+                "native",
+                // Code without symbols, named only when the graph has some.
+                ...(unnamedShare > 0 ? ["unknown"] : []),
+              ] as Array<ModuleCategory>
             ).map((key: ModuleCategory) => {
               const s: { bg: string } = ProfileUtil.getModuleFrameStyle(
                 key,
@@ -820,31 +925,33 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                   slots={{
                     name: (
                       <span className="font-mono text-gray-800">
-                        {activeRoot.name}
+                        {getFrameLabel(activeRoot, 1)}
                       </span>
                     ),
                   }}
                 />
               </span>
-              {props.onFocusFunction && activeRoot.name !== "(root)" && (
-                <button
-                  type="button"
-                  title={translator.translateTemplate(
-                    "Show callers and callees of {{name}}",
-                    { name: activeRoot.name },
-                  )}
-                  className="ml-1 inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-0.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                  onClick={() => {
-                    props.onFocusFunction?.({
-                      functionName: activeRoot.name,
-                      fileName: activeRoot.fileName,
-                    });
-                  }}
-                >
-                  <Icon icon={IconProp.ArrowUpDown} className="h-3 w-3" />
-                  {translator.translateText("Callers & callees")}
-                </button>
-              )}
+              {props.onFocusFunction &&
+                activeRoot.name !== "(root)" &&
+                !activeRoot.unnamedFrameCount && (
+                  <button
+                    type="button"
+                    title={translator.translateTemplate(
+                      "Show callers and callees of {{name}}",
+                      { name: activeRoot.name },
+                    )}
+                    className="ml-1 inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-0.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                    onClick={() => {
+                      props.onFocusFunction?.({
+                        functionName: activeRoot.name,
+                        fileName: activeRoot.fileName,
+                      });
+                    }}
+                  >
+                    <Icon icon={IconProp.ArrowUpDown} className="h-3 w-3" />
+                    {translator.translateText("Callers & callees")}
+                  </button>
+                )}
             </div>
           )}
         </>
@@ -877,20 +984,6 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
         </div>
       )}
 
-      {props.truncated && (
-        <div className="mb-2 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          <Icon
-            icon={IconProp.Alert}
-            className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-amber-500"
-          />
-          <span>
-            {translator.translateText(
-              "Data is truncated to the largest stacks — the sample limit was hit. Percentages are of the sampled subset, not the full window.",
-            )}
-          </span>
-        </div>
-      )}
-
       {/*
        * Frames are placed from the left (style.left), and their labels are
        * code - function names read left to right in every language. In a
@@ -912,7 +1005,8 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
          */}
         {props.onFocusFunction &&
           zoomStack.length > 0 &&
-          activeRoot.name !== "(root)" && (
+          activeRoot.name !== "(root)" &&
+          !activeRoot.unnamedFrameCount && (
             <button
               type="button"
               title={translator.translateTemplate(
@@ -932,69 +1026,148 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
           )}
       </div>
 
+      {/*
+       * What the graph cannot say by itself, in a quiet line under it: how
+       * much is code without symbols (and how to give it names), and that
+       * a window too busy for one graph shows its busiest stacks only.
+       * Neither is a fault to act on now, so neither is a banner.
+       */}
+      {!props.compact && unnamedShare >= UNNAMED_NOTE_MIN_SHARE ? (
+        <p
+          className="mt-2 text-xs text-gray-500"
+          data-testid="flamegraph-unnamed-note"
+        >
+          {translator.translateTemplate(FLAME_UNNAMED_SHARE, {
+            share: ProfileUtil.formatPercent(unnamedShare),
+          })}{" "}
+          <a
+            className="font-medium text-indigo-600 hover:underline"
+            href={FLAME_UNNAMED_DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {translator.translateText(FLAME_UNNAMED_DOCS_LINK)}
+          </a>
+        </p>
+      ) : (
+        <></>
+      )}
+
+      {props.truncated ? (
+        <p
+          className="mt-2 text-xs text-gray-500"
+          data-testid="flamegraph-truncated-note"
+        >
+          {translator.translateText(FLAME_TRUNCATED)}
+        </p>
+      ) : (
+        <></>
+      )}
+
       {hoveredNode && (
         <div
           ref={tooltipRef}
           className="fixed z-50 bg-gray-900 text-white text-xs rounded-md px-3 py-2.5 pointer-events-none shadow-xl ring-1 ring-black/20"
           style={{ width: `${TOOLTIP_WIDTH}px` }}
+          data-testid="flamegraph-tooltip"
         >
           <div className="font-semibold text-sm break-all">
-            {hoveredNode.name}
+            {hoveredNode.unnamedFrameCount
+              ? translator.translateText(FLAME_UNNAMED_FRAME)
+              : hoveredShortName}
           </div>
+          {/* The full name, when the frame shows a shorter one. */}
+          {!hoveredNode.unnamedFrameCount &&
+          hoveredShortName !== hoveredNode.name ? (
+            <div className="mt-0.5 break-all font-mono text-[11px] text-gray-300">
+              {hoveredNode.name}
+            </div>
+          ) : (
+            <></>
+          )}
           {hoveredNode.fileName && (
             <div className="text-gray-300 mt-0.5 break-all text-[11px]">
               {ProfileUtil.formatFileName(hoveredNode.fileName, 64)}
               {hoveredNode.lineNumber > 0 ? `:${hoveredNode.lineNumber}` : ""}
             </div>
           )}
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <div>
-              <div className="text-gray-400 text-[10px] uppercase tracking-wider">
-                {translator.translateText("self")}
-              </div>
-              <div className="font-mono">
-                {ProfileUtil.formatProfileValue(
-                  hoveredNode.selfValue,
-                  props.unit,
-                )}
-              </div>
-              <div className="text-gray-400 text-[10px]">
-                {translator.translateTemplate("{{percent}} of visible", {
-                  percent: ProfileUtil.formatPercent(hoveredSelfPct),
-                })}
-              </div>
+          {hoveredNode.unnamedFrameCount ? (
+            <div className="mt-1 text-[11px] leading-snug text-gray-300">
+              {translator.translateText(FLAME_UNNAMED_EXPLAINED)}{" "}
+              {translator.translatePlural(
+                FLAME_UNNAMED_FRAMES,
+                hoveredNode.unnamedFrameCount,
+              )}
             </div>
-            <div>
-              <div className="text-gray-400 text-[10px] uppercase tracking-wider">
-                {translator.translateText("total")}
-              </div>
-              <div className="font-mono">
-                {ProfileUtil.formatProfileValue(
-                  hoveredNode.totalValue,
-                  props.unit,
-                )}
-              </div>
-              <div className="text-gray-400 text-[10px]">
-                {translator.translateTemplate("{{percent}} of visible", {
-                  percent: ProfileUtil.formatPercent(hoveredTotalPct),
-                })}
-              </div>
+          ) : (
+            <></>
+          )}
+          {/*
+           * Self and total said with what they mean, so nobody has to know
+           * the words already: its own code, and with what it calls.
+           */}
+          <dl className="mt-2 space-y-1">
+            <div className="flex items-baseline gap-2">
+              <dt className="w-12 flex-none text-[10px] font-medium uppercase tracking-wider text-gray-400">
+                {translator.translateText("Self")}
+              </dt>
+              <dd className="font-mono">
+                {getValueOrQuietDash(ProfileUtil.formatPercent(hoveredSelfPct))}
+                <span className="text-gray-400">
+                  {" "}
+                  <InlineSeparator markOnly />{" "}
+                  {ProfileUtil.formatProfileValue(
+                    hoveredNode.selfValue,
+                    props.unit,
+                  )}
+                </span>
+              </dd>
+              <dd className="ml-auto text-[10px] text-gray-400">
+                {translator.translateText(PANEL_SELF_HINT)}
+              </dd>
             </div>
-          </div>
-          <div className="mt-2 text-[10px] text-gray-400">
-            {hoveredNode.children.length > 0
-              ? translator.translateTemplate(
-                  "{{category}} · click to zoom in",
-                  {
+            <div className="flex items-baseline gap-2">
+              <dt className="w-12 flex-none text-[10px] font-medium uppercase tracking-wider text-gray-400">
+                {translator.translateText("Total")}
+              </dt>
+              <dd className="font-mono">
+                {getValueOrQuietDash(
+                  ProfileUtil.formatPercent(hoveredTotalPct),
+                )}
+                <span className="text-gray-400">
+                  {" "}
+                  <InlineSeparator markOnly />{" "}
+                  {ProfileUtil.formatProfileValue(
+                    hoveredNode.totalValue,
+                    props.unit,
+                  )}
+                </span>
+              </dd>
+              <dd className="ml-auto text-[10px] text-gray-400">
+                {translator.translateText(PANEL_TOTAL_HINT)}
+              </dd>
+            </div>
+          </dl>
+          {/*
+           * Whose code it is, and that a click zooms in - left out for code
+           * without symbols with nothing under it: its heading said it all.
+           */}
+          {hoveredNode.unnamedFrameCount &&
+          hoveredNode.children.length === 0 ? (
+            <></>
+          ) : (
+            <div className="mt-2 text-[10px] text-gray-400">
+              {hoveredNode.children.length > 0
+                ? translator.translateTemplate(FLAME_CLICK_TO_ZOOM, {
                     category: translatableTerm(
                       ProfileUtil.getModuleCategoryLabel(hoveredNode.category),
                     ),
-                  },
-                )
-              : translator.translateText(
-                  ProfileUtil.getModuleCategoryLabel(hoveredNode.category),
-                )}
-          </div>
+                  })
+                : translator.translateText(
+                    ProfileUtil.getModuleCategoryLabel(hoveredNode.category),
+                  )}
+            </div>
+          )}
         </div>
       )}
     </div>

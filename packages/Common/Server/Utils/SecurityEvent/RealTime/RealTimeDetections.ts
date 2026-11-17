@@ -15,7 +15,7 @@ import SigmaRule from "../../../../Types/SecurityEvent/SigmaRule";
 import SigmaRuleSetParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import DetectionRuleService from "../../../Services/DetectionRuleService";
 import ProjectSigmaRules from "../Correlation/ProjectSigmaRules";
-import EventLoop from "../../EventLoop";
+import { EventLoopBudget } from "../../EventLoop";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { screenSecurityEventRow } from "./RealTimeEventScreen";
@@ -72,9 +72,6 @@ export const REAL_TIME_MAX_CANDIDATES_PER_WRITE: number = 5000;
 
 // Room around the events' own times for the confirming read.
 export const REAL_TIME_TIME_PADDING_MS: number = 1000;
-
-// Rows screened between turns of the event loop.
-const ROWS_PER_TURN: number = 500;
 
 export interface RealTimeRule {
   id: string;
@@ -262,14 +259,21 @@ export default class RealTimeDetections {
       }
 
       let jobs: number = 0;
-      let screened: number = 0;
+      /*
+       * The event loop is handed back by the time the screening took, not
+       * every so many rows: a row's screening grows with the rule's
+       * detection and the row's fields, so a count held the loop for as
+       * long as that many of the costliest took. One budget for the write,
+       * asked before each row of each rule (EventLoop.ts, #8925).
+       */
+      const eventLoopBudget: EventLoopBudget = new EventLoopBudget();
 
       for (const rule of rules) {
         const candidates: Array<RealTimeCandidate> = [];
 
         for (const row of data.rows) {
-          if (screened++ % ROWS_PER_TURN === ROWS_PER_TURN - 1) {
-            await EventLoop.yieldToEventLoop();
+          if (eventLoopBudget.isSpent()) {
+            await eventLoopBudget.handBack();
           }
 
           if (candidates.length >= REAL_TIME_MAX_CANDIDATES_PER_WRITE) {

@@ -44,6 +44,7 @@ import KubernetesClusterAILogs, {
   getInvestigationSummary,
   parseKubernetesAiLogs,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI/Logs";
+import { COMMAND_JOBS_NONE_YOU_CAN_SEE } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/CommandJobsHidden";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
@@ -498,6 +499,7 @@ describe("parseKubernetesAiLogs", () => {
         incidentId: INCIDENT_ID,
         alertId: null,
         approvedAt: null,
+        firstApprovedAt: null,
       },
       {
         id: SECOND_FIX_ID,
@@ -509,6 +511,7 @@ describe("parseKubernetesAiLogs", () => {
         incidentId: null,
         alertId: ALERT_ID,
         approvedAt: null,
+        firstApprovedAt: null,
       },
     ]);
   });
@@ -530,10 +533,12 @@ describe("parseKubernetesAiLogs", () => {
     ).toEqual({
       investigations: [expect.objectContaining({ aiRunId: RUN_ID })],
       fixes: [],
+      hiddenCommandCount: 0,
     });
     expect(parseKubernetesAiLogs({ fixes: [waitingFix()] })).toEqual({
       investigations: [],
       fixes: [expect.objectContaining({ id: FIX_ID })],
+      hiddenCommandCount: 0,
     });
   });
 
@@ -714,6 +719,44 @@ describe("status words", () => {
     expect(getFixStatusLook(AutoRemediationSuggestionStatus.Dismissed)).toEqual(
       { label: "Dismissed", color: Gray500 },
     );
+  });
+
+  /*
+   * A fix that waits for the second of the two approvals a riskier fix
+   * needs says what it waits for (#6422), not "Waiting for approval".
+   */
+  test("a fix approved once that still waits says it waits for a second approval", () => {
+    expect(
+      getFixStatusLook(
+        AutoRemediationSuggestionStatus.Suggested,
+        "2026-09-22T09:06:00.000Z",
+      ),
+    ).toEqual({ label: "Waiting for a second approval", color: Yellow500 });
+    // Negative controls: nobody approved it yet, or it no longer waits.
+    expect(
+      getFixStatusLook(AutoRemediationSuggestionStatus.Suggested, null),
+    ).toEqual({ label: "Waiting for approval", color: Yellow500 });
+    expect(
+      getFixStatusLook(
+        AutoRemediationSuggestionStatus.Approved,
+        "2026-09-22T09:06:00.000Z",
+      ).label,
+    ).toBe("Applied after approval");
+  });
+
+  test("reads when a fix that still waits was approved first", () => {
+    const parsed: KubernetesAiLogs | null = parseKubernetesAiLogs({
+      investigations: [],
+      fixes: [
+        {
+          id: FIX_ID,
+          status: AutoRemediationSuggestionStatus.Suggested,
+          firstApprovedAt: "2026-09-22T09:06:00.000Z",
+        },
+      ],
+    });
+
+    expect(parsed!.fixes[0]!.firstApprovedAt).toBe("2026-09-22T09:06:00.000Z");
   });
 
   test("a status a newer server added shows as it is, in a neutral pill", () => {
@@ -1067,6 +1110,29 @@ describe("AI Logs page", () => {
       within(row).getByText("No reason was recorded."),
     ).toBeInTheDocument();
     expect(within(row).queryByRole("link")).toBeNull();
+  });
+
+  test("a fix approved once that waits for its second approval says so", async () => {
+    serve(
+      ok({
+        investigations: [],
+        fixes: [
+          { ...waitingFix(), firstApprovedAt: "2026-09-22T09:06:00.000Z" },
+          { ...waitingFix(), id: SECOND_FIX_ID },
+        ],
+      }),
+    );
+    openLogsPage();
+    await findText("Fixes");
+
+    const rows: Array<HTMLElement> = fixRows();
+    expect(
+      within(rows[0]!).getByText("Waiting for a second approval"),
+    ).toBeInTheDocument();
+    // Nobody approved the other one yet.
+    expect(
+      within(rows[1]!).getByText("Waiting for approval"),
+    ).toBeInTheDocument();
   });
 
   test("shows no KPI tiles: the command counts the route returns are not rendered", async () => {
@@ -1643,6 +1709,71 @@ describe("AI Logs page", () => {
       expect(
         screen.getAllByText(KUBECTL_COMMANDS_CARD_TITLE).length,
       ).toBeGreaterThan(0);
+      // It leaves nothing out, and says nothing of it.
+      expect(
+        screen.queryByTestId("kubectl-jobs-hidden-note"),
+      ).not.toBeInTheDocument();
+    });
+
+    /*
+     * A job of an AI run is read only by those who may read the run, and a
+     * private incident's or alert's only by those who see it (#9155): the
+     * table lists what the reader may read, and says how many it leaves out.
+     */
+    test("says how many commands it leaves out, and why, over the ones it lists", async () => {
+      jobs = [makeJob("listed", { aiRunId: new ObjectID(RUN_ID) })];
+      serve(ok({ ...fullLogs(), hiddenCommandCount: 3 }));
+      openLogsPage();
+
+      expect(
+        await findText("kubectl get pods -n web-listed"),
+      ).toBeInTheDocument();
+
+      const note: HTMLElement = await findTestId("kubectl-jobs-hidden-note");
+
+      expect(note).toHaveTextContent(
+        "3 commands that ran here aren't listed: they were run for AI chats, incidents or alerts you can't open.",
+      );
+      // Only the number: no command it leaves out is named.
+      expect(note).not.toHaveTextContent("kubectl");
+    });
+
+    test("says it of one command as one", async () => {
+      serve(ok({ ...fullLogs(), hiddenCommandCount: 1 }));
+      openLogsPage();
+
+      expect(await findTestId("kubectl-jobs-hidden-note")).toHaveTextContent(
+        "1 command that ran here isn't listed: it was run for an AI chat, incident or alert you can't open.",
+      );
+    });
+
+    test("with every command left out, says there are none the reader can see, not that none ran", async () => {
+      serve(ok({ ...emptyLogs(), hiddenCommandCount: 2 }));
+      openLogsPage();
+
+      expect(
+        await findText(toHeadline(COMMAND_JOBS_NONE_YOU_CAN_SEE)),
+      ).toBeInTheDocument();
+      expect(await findTestId("kubectl-jobs-hidden-note")).toHaveTextContent(
+        "2 commands that ran here aren't listed",
+      );
+      expect(
+        screen.queryByText(toHeadline(KUBECTL_COMMANDS_EMPTY_MESSAGE)),
+      ).not.toBeInTheDocument();
+    });
+
+    test("reads how many commands the reader may not read, and anything else as none", () => {
+      expect(
+        parseKubernetesAiLogs({ ...fullLogs(), hiddenCommandCount: 5 })!
+          .hiddenCommandCount,
+      ).toBe(5);
+
+      for (const value of [undefined, null, 0, -2, 1.5, "3", Number.NaN]) {
+        expect(
+          parseKubernetesAiLogs({ ...fullLogs(), hiddenCommandCount: value })!
+            .hiddenCommandCount,
+        ).toBe(0);
+      }
     });
   });
 

@@ -37,14 +37,16 @@ import TooManyRequestsException from "Common/Types/Exception/TooManyRequestsExce
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject, ObjectType } from "Common/Types/JSON";
 import HashedString from "Common/Types/HashedString";
+import NewPasswordRule from "Common/Server/Utils/NewPasswordRule";
 import Name from "Common/Types/Name";
 import RequestOrigin from "Common/Types/RequestOrigin";
 import ObjectID from "Common/Types/ObjectID";
-import { getSignupPasswordValidationError } from "Common/Types/Password";
+import { getPasswordValidationError } from "Common/Types/Password";
 import {
   getAccountAlreadyExistsMessage,
   INCOMPLETE_RESET_LINK_MESSAGE,
   INCOMPLETE_VERIFICATION_LINK_MESSAGE,
+  RESET_LINK_MESSAGES,
   TWO_FACTOR_MESSAGES,
 } from "Common/Types/Accounts/SignInMessages";
 import MagicLink, {
@@ -93,6 +95,9 @@ import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 import JsonWebTokenPurpose from "Common/Types/JsonWebTokenPurpose";
 import SessionEndedException from "Common/Types/Exception/SessionEndedException";
+import { SignInFailureReason } from "Common/Types/AuditLog/AuditLogSignInFailure";
+import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
+import FailedSignInAuditLog from "Common/Server/Utils/AuditLog/FailedSignInAuditLog";
 import { SessionEndCause } from "Common/Types/UserSession/SessionEndCause";
 import {
   SecondFactor,
@@ -676,7 +681,7 @@ router.post(
           ? (suppliedPassword as JSONObject)["value"]
           : suppliedPassword;
       const passwordValidationError: string | null =
-        getSignupPasswordValidationError(password);
+        getPasswordValidationError(password);
 
       if (passwordValidationError) {
         throw new BadDataException(passwordValidationError);
@@ -2186,9 +2191,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException(
-            "Invalid link. Please go to forgot password page again and request a new link.",
-          ),
+          new BadDataException(RESET_LINK_MESSAGES.invalid),
         );
       }
 
@@ -2199,9 +2202,26 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException(
-            "Expired link. Please go to forgot password page again and request a new link.",
-          ),
+          new BadDataException(RESET_LINK_MESSAGES.expired),
+        );
+      }
+
+      /*
+       * The one password rule, as sign-up asks it (Types/Password). Asked
+       * after the link, so a person with a dead link is told to get a new one
+       * rather than to fix a password they cannot use yet. UserService asks
+       * again on the write, as it does for every new password; a reset used
+       * to store any password at all, undoing the rule sign-up set (#9123).
+       */
+      const passwordRefusal: string | null = NewPasswordRule.getRefusal(
+        user.password,
+      );
+
+      if (passwordRefusal) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(passwordRefusal),
         );
       }
 
@@ -3368,6 +3388,28 @@ const login: LoginFunction = async (options: {
       }
 
       /*
+       * A failed attempt on this account, for the audit log of every project
+       * its person is a member of (issue #6788). Recorded once this request
+       * has been answered, and nothing about it reaches the answer: an
+       * address nobody has is never recorded, so an answer that waited for
+       * the audit log would say the account exists (FailedSignInAuditLog).
+       */
+      const recordFailedSignIn: (reason: SignInFailureReason) => void = (
+        reason: SignInFailureReason,
+      ): void => {
+        FailedSignInAuditLog.record({
+          req: req,
+          userId: alreadySavedUser.id!,
+          reason: reason,
+          signIn: {
+            method: isMagicLinkSignIn
+              ? SignInMethod.SignInLink
+              : SignInMethod.Password,
+          },
+        });
+      };
+
+      /*
        * Verified once, against this user's own salt, and reused for the
        * final gate below. Re-verifying there would repeat the legacy-hash
        * upgrade write on every login of an un-upgraded account.
@@ -3386,6 +3428,8 @@ const login: LoginFunction = async (options: {
         }));
 
       if (!isPasswordValid) {
+        recordFailedSignIn(SignInFailureReason.WrongPassword);
+
         return Response.sendErrorResponse(
           req,
           res,
@@ -3406,6 +3450,8 @@ const login: LoginFunction = async (options: {
        * told to somebody who has already proved they own the account.
        */
       if (alreadySavedUser.isBlocked) {
+        recordFailedSignIn(SignInFailureReason.AccountBlocked);
+
         return Response.sendErrorResponse(
           req,
           res,
@@ -3421,7 +3467,19 @@ const login: LoginFunction = async (options: {
        * holder is told why; ahead of the address check, so nobody is mailed a
        * verification link for a sign-in that cannot happen.
        */
-      await SsoRequiredSignIn.assertNonSsoSignInAllowed(alreadySavedUser);
+      try {
+        await SsoRequiredSignIn.assertNonSsoSignInAllowed(alreadySavedUser);
+      } catch (err) {
+        // The rule refused it - not a rule that could not be read.
+        if (
+          err instanceof BadDataException &&
+          err.message === SSO_REQUIRED_SIGN_IN_MESSAGE
+        ) {
+          recordFailedSignIn(SignInFailureReason.SingleSignOnRequired);
+        }
+
+        throw err;
+      }
 
       /*
        * An unverified address gets no session, on any stage. This is the gate
@@ -3443,6 +3501,8 @@ const login: LoginFunction = async (options: {
        * verified when the link is spent instead (spendMagicLink).
        */
       if (!alreadySavedUser.isEmailVerified && !isMagicLinkSignIn) {
+        recordFailedSignIn(SignInFailureReason.EmailNotVerified);
+
         /*
          * The link is the same "please verify" email a sign-up sends, so it
          * is counted with them, per caller and per address
@@ -3610,6 +3670,10 @@ const login: LoginFunction = async (options: {
             });
 
           if (codeCheck.outcome !== TwoFactorCodeCheckOutcome.Allowed) {
+            if (codeCheck.outcome === TwoFactorCodeCheckOutcome.Waiting) {
+              recordFailedSignIn(SignInFailureReason.TooManyWrongCodes);
+            }
+
             return sendCodeNotChecked({
               req,
               res,
@@ -3656,6 +3720,9 @@ const login: LoginFunction = async (options: {
             }
           } finally {
             if (!isVerified) {
+              // Counted as a wrong code, whichever way it went wrong.
+              recordFailedSignIn(SignInFailureReason.WrongAuthenticatorCode);
+
               await tellOwnerAboutWrongCode({
                 req,
                 user: alreadySavedUser,
@@ -3683,10 +3750,19 @@ const login: LoginFunction = async (options: {
         } else if (verifyWebAuthn) {
           const credential: any = data["credential"];
 
-          await UserWebAuthnService.verifyAuthentication({
-            userId: alreadySavedUser.id!.toString(),
-            credential: credential,
-          });
+          try {
+            await UserWebAuthnService.verifyAuthentication({
+              userId: alreadySavedUser.id!.toString(),
+              credential: credential,
+            });
+          } catch (err) {
+            // The key's answer was refused - not a database that failed.
+            if (err instanceof BadDataException) {
+              recordFailedSignIn(SignInFailureReason.SecurityKeyNotAccepted);
+            }
+
+            throw err;
+          }
         } else if (verifyBackupCode) {
           /*
            * A single-use recovery code, standing in for an authenticator the
@@ -3765,6 +3841,10 @@ const login: LoginFunction = async (options: {
             });
 
           if (backupCodeCheck.outcome !== TwoFactorCodeCheckOutcome.Allowed) {
+            if (backupCodeCheck.outcome === TwoFactorCodeCheckOutcome.Waiting) {
+              recordFailedSignIn(SignInFailureReason.TooManyWrongCodes);
+            }
+
             return sendCodeNotChecked({
               req,
               res,
@@ -3803,6 +3883,8 @@ const login: LoginFunction = async (options: {
               });
           } finally {
             if (!isBackupCodeConsumed) {
+              recordFailedSignIn(SignInFailureReason.WrongBackupCode);
+
               await tellOwnerAboutWrongCode({
                 req,
                 user: alreadySavedUser,
@@ -3976,6 +4058,8 @@ const login: LoginFunction = async (options: {
           });
 
           if (!isEnrolmentCodeVerified) {
+            recordFailedSignIn(SignInFailureReason.WrongAuthenticatorCode);
+
             return Response.sendErrorResponse(
               req,
               res,

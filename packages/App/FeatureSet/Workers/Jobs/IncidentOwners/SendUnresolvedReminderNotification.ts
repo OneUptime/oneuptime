@@ -1,5 +1,8 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import OwnerReminderBacklog, {
+  DueReminder,
+} from "../../Utils/OwnerReminderBacklog";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
@@ -20,8 +23,8 @@ import UserNotificationSettingService from "Common/Server/Services/UserNotificat
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -38,6 +41,9 @@ import OwnerNotificationDeliveries, {
   OwnerNotificationDelivery,
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+import { NotificationRuleUpdateKind } from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
+
+const JOB_NAME: string = "IncidentOwner:SendUnresolvedReminderNotification";
 
 // What a reminder is made of, read for each incident.
 const INCIDENT_SELECT: Select<Incident> = {
@@ -65,13 +71,14 @@ const INCIDENT_SELECT: Select<Incident> = {
   incidentNumber: true,
   incidentNumberWithPrefix: true,
   enableReminders: true,
+  nextReminderNotificationAt: true,
   reminderNotificationSentCount: true,
 };
 
 RunCron(
-  "IncidentOwner:SendUnresolvedReminderNotification",
+  JOB_NAME,
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between moving the reminder on and the last owner (#8199) - told
@@ -111,34 +118,24 @@ RunCron(
       },
     });
 
-    // get all incidents where the next reminder notification is due.
-
-    const incidents: Array<Incident> = await IncidentService.findAllBy({
-      query: {
-        nextReminderNotificationAt: QueryHelper.lessThan(
-          OneUptimeDate.getCurrentDate(),
-        ),
-      },
-      props: {
-        isRoot: true,
-      },
-      skip: 0,
+    /*
+     * Every incident whose reminder is due, a page at a time, the longest due
+     * first, each moved on by one run alone, which tells of it; the run stops
+     * at its deadline and the next carries on (OwnerReminderBacklog, issue
+     * #9019).
+     */
+    await OwnerReminderBacklog.forEachDue<Incident>({
+      jobName: JOB_NAME,
+      service: IncidentService,
       select: INCIDENT_SELECT,
+      deadline: deadline,
+      remind: async (input: {
+        record: Incident;
+        reminder: DueReminder<Incident>;
+      }): Promise<void> => {
+        await sendReminderForIncident(input.record, input.reminder);
+      },
     });
-
-    for (const incident of incidents) {
-      try {
-        await sendReminderForIncident(incident);
-      } catch (error) {
-        logger.error(
-          `Error sending reminder for incident ${incident.id}: ${error}`,
-          {
-            projectId: incident.projectId?.toString(),
-            incidentId: incident.id?.toString(),
-          },
-        );
-      }
-    }
   },
 );
 
@@ -205,34 +202,22 @@ async function getReminderIntervalFor(
   return intervalInMinutes;
 }
 
-type SendReminderForIncidentFunction = (incident: Incident) => Promise<void>;
+type SendReminderForIncidentFunction = (
+  incident: Incident,
+  reminder: DueReminder<Incident>,
+) => Promise<void>;
 
 const sendReminderForIncident: SendReminderForIncidentFunction = async (
   incident: Incident,
+  reminder: DueReminder<Incident>,
 ): Promise<void> => {
-  const incidentId: ObjectID = incident.id!;
-
-  const stopReminders: () => Promise<void> = async (): Promise<void> => {
-    await IncidentService.updateOneById({
-      id: incidentId,
-      data: {
-        nextReminderNotificationAt: null,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-  };
-
   const intervalInMinutes: number | null =
     await getReminderIntervalFor(incident);
 
   if (intervalInMinutes === null) {
-    return await stopReminders();
+    await reminder.stop();
+    return;
   }
-
-  const reminderNumber: number =
-    (incident.reminderNotificationSentCount || 0) + 1;
 
   /*
    * Whom this reminder is to tell, written before the reminder is moved
@@ -241,26 +226,17 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
    */
   const delivery: OwnerNotificationDelivery = await planOwnersOfReminder({
     incident: incident,
-    reminderNumber: reminderNumber,
+    reminderNumber: reminder.number,
   });
 
   /*
-   * Advance the next reminder time BEFORE sending notifications so a
-   * failure mid-send does not cause duplicate reminders on the next run.
+   * Moved on before anybody is told, so a failure mid-send does not send
+   * the reminder again on the next run - and by one compare-and-set, so of
+   * two runs at once only the one that moved it tells of it.
    */
-  await IncidentService.updateOneById({
-    id: incidentId,
-    data: {
-      nextReminderNotificationAt: OneUptimeDate.addRemoveMinutes(
-        OneUptimeDate.getCurrentDate(),
-        intervalInMinutes,
-      ),
-      reminderNotificationSentCount: reminderNumber,
-    },
-    props: {
-      isRoot: true,
-    },
-  });
+  if (!(await reminder.send(intervalInMinutes))) {
+    return;
+  }
 
   await notifyOwnersOfReminder(incident, delivery);
 };
@@ -510,8 +486,14 @@ async function notifyOwnersOfReminder(
     feedInfoInMarkdown:
       mdText`🔔 **Reminder sent to owners of [Incident ${incidentNumberDisplayValue}](${incidentViewLink})**: This incident is still **${currentStateName}** and has been open for **${openDuration}**.`.toString(),
     moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
+    /*
+     * Posted to the incident's channels as a reminder, a box of its own on
+     * a rule's Updates step (issue #7938): named here, so no other owner
+     * notice is ever posted as one.
+     */
     workspaceNotification: {
       sendWorkspaceNotification: true,
+      updateKinds: [NotificationRuleUpdateKind.Reminders],
     },
   });
 

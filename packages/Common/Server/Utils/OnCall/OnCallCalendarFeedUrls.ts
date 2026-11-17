@@ -6,6 +6,7 @@ import CalendarSubscriptionLinks, {
   GOOGLE_CALENDAR_SUBSCRIBE_URL_PREFIX,
 } from "../../../Types/Calendar/CalendarSubscriptionLinks";
 import { OnCallCalendarFeedKind } from "../../../Types/OnCallDutyPolicy/OnCallCalendarFeedUtil";
+import HostAddressUtil from "../../../Utils/HostAddressUtil";
 
 /*
  * The subscription URLs of an on-call calendar feed, and the two deployment
@@ -210,7 +211,7 @@ export default class OnCallCalendarFeedUrls {
       return HOST_WARNING;
     }
 
-    const withoutPort: string = OnCallCalendarFeedUrls.stripPort(value);
+    const withoutPort: string = HostAddressUtil.stripPort(value);
 
     if (LOCAL_HOST_NAMES.includes(withoutPort.toLowerCase())) {
       return HOST_WARNING;
@@ -246,7 +247,18 @@ export default class OnCallCalendarFeedUrls {
       return null;
     }
 
-    const withoutPort: string = OnCallCalendarFeedUrls.stripPort(value);
+    /*
+     * The ingress's and the app's one rule for HOST without its port
+     * (HostAddressUtil.stripPort): a bracketed IPv6 address keeps its
+     * brackets, one without them keeps all its colons. Nothing is left of a
+     * HOST that is only a port (":8080"), and that names no host at all.
+     */
+    const withoutPort: string = HostAddressUtil.stripPort(value);
+
+    if (!withoutPort) {
+      return null;
+    }
+
     const name: string = withoutPort.toLowerCase();
 
     if (name.startsWith("[")) {
@@ -327,20 +339,5 @@ export default class OnCallCalendarFeedUrls {
     }
 
     return value;
-  }
-
-  private static stripPort(host: string): string {
-    // [::1]:443 -> [::1]
-    if (host.startsWith("[")) {
-      const closing: number = host.indexOf("]");
-      return closing === -1 ? host : host.slice(0, closing + 1);
-    }
-
-    // example.com:8443 -> example.com (one colon = host:port, not IPv6)
-    if (host.split(":").length === 2) {
-      return host.split(":")[0] || host;
-    }
-
-    return host;
   }
 }

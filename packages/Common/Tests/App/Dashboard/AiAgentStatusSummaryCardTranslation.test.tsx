@@ -286,6 +286,8 @@ describe("the Overview's AI agent card in Japanese", () => {
       fr: ["Investigation"],
       it: ["Offline"],
       nl: ["Offline"],
+      // Norwegian says Offline as it says Online (#8767).
+      no: ["Offline"],
       pt: ["Offline"],
       sv: ["Offline"],
     };

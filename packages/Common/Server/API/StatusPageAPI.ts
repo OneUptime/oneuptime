@@ -157,10 +157,16 @@ import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModel
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "../Services/StatusPageSubscriberNotificationTemplateService";
-import { canServeStatusPageCustomizations } from "../Utils/StatusPageCustomizationAccess";
+import {
+  canServeStatusPageCustomizations,
+  clearStatusPageCustomizationHosts,
+} from "../Utils/StatusPageCustomizationAccess";
 import FrozenMonitorResources, {
+  MONITOR_NOT_MONITORED_YET_SELECT,
   NOT_MONITORED_STATUS_COLOR,
   NOT_MONITORED_STATUS_NAME,
+  NOT_MONITORED_YET_STATUS_NAME,
+  StartingStatusIds,
 } from "../../Utils/StatusPage/FrozenMonitorResources";
 import { MONITORING_OFF_SELECT } from "../../Utils/Monitor/MonitoringOff";
 import IncidentStatusPageScope, {
@@ -169,9 +175,20 @@ import IncidentStatusPageScope, {
 import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
 import StatusPageOverviewCache, {
+  STATUS_PAGE_OVERVIEW_BASE_FORM,
+  SharedForm,
   StatusPageOverviewBase,
   StatusPageUptimeHistoryInputs,
 } from "../Utils/StatusPage/StatusPageOverviewCache";
+import StatusPageReadCache from "../Utils/StatusPage/StatusPageReadCache";
+import StatusPageImageCache, {
+  StatusPageImage,
+  StatusPageImageFile,
+  StatusPageImageName,
+} from "../Utils/StatusPage/StatusPageImageCache";
+import StatusPageAccessRulesUtil, {
+  StatusPageAccessRules,
+} from "../Utils/StatusPage/StatusPageAccessRules";
 import StatusPageSummaryUtil from "../../Types/StatusPage/StatusPageSummary";
 import StatusPageSummaryBuilder from "../../Utils/StatusPage/StatusPageSummaryBuilder";
 import { StatusPageSubscriberUnsubscribeSource } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
@@ -281,6 +298,88 @@ const SERVED_IMAGE_SELECT: {
   projectId: true,
 };
 
+// The relation each image a page serves is read through.
+type StatusPageImageRelation =
+  | "logoFile"
+  | "darkThemeLogoFile"
+  | "coverImageFile"
+  | "faviconFile";
+
+// How each image is read for serving: the file, and the page's project.
+const SERVED_IMAGE_SELECTS: Record<
+  StatusPageImageRelation,
+  Select<StatusPage>
+> = {
+  faviconFile: { projectId: true, faviconFile: SERVED_IMAGE_SELECT },
+  logoFile: { projectId: true, logoFile: SERVED_IMAGE_SELECT },
+  darkThemeLogoFile: {
+    projectId: true,
+    darkThemeLogoFile: SERVED_IMAGE_SELECT,
+  },
+  coverImageFile: { projectId: true, coverImageFile: SERVED_IMAGE_SELECT },
+};
+
+/*
+ * A list a status page's tab reads, as it is kept in Redis
+ * (StatusPageReadCache): JSON already, as it is sent.
+ */
+const STATUS_PAGE_LIST_FORM: SharedForm<JSONObject> = {
+  toJSON: (list: JSONObject): unknown => {
+    return list;
+  },
+  fromJSON: (json: unknown): JSONObject => {
+    if (!json || typeof json !== "object" || Array.isArray(json)) {
+      throw new BadDataException("Not a status page list");
+    }
+
+    return json as JSONObject;
+  },
+};
+
+/*
+ * What a page's settings or a list takes in memory: the bytes of the JSON it
+ * is sent as. Asked once per build, to keep the caches of them within their
+ * bytes (StatusPageReadCache).
+ */
+const jsonBytesOf: (value: JSONObject) => number = (
+  value: JSONObject,
+): number => {
+  return Buffer.byteLength(JSON.stringify(value), "utf8");
+};
+
+// The most one page's settings, or one list, is kept at: a bigger one is read every time.
+const MAX_KEPT_RESPONSE_BYTES: number = 4 * 1024 * 1024;
+
+/*
+ * An item opened by its id - from a subscriber's email, most often, as an
+ * incident is posted - is kept with its list, under the item's id. Only an
+ * item the page shows is kept: an id nobody has, or one the page does not
+ * show, is read every time, so it can never fill the cache.
+ */
+const itemVariantOf: (itemId: ObjectID | null) => string | undefined = (
+  itemId: ObjectID | null,
+): string | undefined => {
+  return itemId ? `item-${itemId.toString().toLowerCase()}` : undefined;
+};
+
+const keepItemsShown: (
+  itemId: ObjectID | null,
+  listKey: string,
+) => ((response: JSONObject) => boolean) | undefined = (
+  itemId: ObjectID | null,
+  listKey: string,
+): ((response: JSONObject) => boolean) | undefined => {
+  if (!itemId) {
+    return undefined;
+  }
+
+  return (response: JSONObject): boolean => {
+    const items: unknown = response[listKey];
+
+    return Array.isArray(items) && items.length > 0;
+  };
+};
+
 type KeepOwnStatusPageImagesFunction = (statusPage: StatusPage) => void;
 
 /*
@@ -325,7 +424,97 @@ export default class StatusPageAPI extends BaseAPI<
    */
   public static clearOverviewResponseCache(): void {
     StatusPageOverviewCache.clear();
+    StatusPageReadCache.clearAll();
+    StatusPageImageCache.clear();
+    clearStatusPageCustomizationHosts();
   }
+
+  /*
+   * How long what a page is set up as - its HTML's title and language
+   * (/seo), its settings (/master-page) - is kept, at most: as long as its
+   * overview, so nothing a visitor sees is older. Any change to the page's
+   * settings, links or single sign-on starts a new generation of its project
+   * (StatusPageOverviewCache), so it shows at once: this bounds only what no
+   * write of the page marks - a license that changes the "Powered by
+   * OneUptime" line, an image file deleted outright.
+   */
+  public static readonly SETTINGS_TTL_MS: number =
+    StatusPageOverviewCache.TTL_MS;
+
+  // What a page's HTML is rendered with (/seo): null for no such page.
+  private static seoCache: StatusPageReadCache<JSONObject | null> =
+    new StatusPageReadCache<JSONObject | null>({
+      kind: "seo",
+      ttlMs: StatusPageAPI.SETTINGS_TTL_MS,
+      maxEntries: 10_000,
+    });
+
+  /*
+   * A page's settings (/master-page): the same for every visitor on the same
+   * kind of host - its own domain, where its custom code is served with
+   * them, or OneUptime's, where it never is - so the two are kept apart.
+   * They carry the page's images, so they are bounded by their bytes too.
+   */
+  private static masterPageCache: StatusPageReadCache<JSONObject> =
+    new StatusPageReadCache<JSONObject>({
+      kind: "master-page",
+      ttlMs: StatusPageAPI.SETTINGS_TTL_MS,
+      maxEntries: 2_000,
+      maxBytes: 64 * 1024 * 1024,
+      maxValueBytes: MAX_KEPT_RESPONSE_BYTES,
+      sizeOf: jsonBytesOf,
+    });
+
+  /*
+   * The lists a page's tabs read, and each item of them opened by its id,
+   * kept as the overview is: for its TTL_MS, built once for every process
+   * while Redis answers, under the page's project generation - something
+   * taken off a page leaves them at once. Asked only after the reader's
+   * access is checked.
+   */
+  private static incidentListCache: StatusPageReadCache<JSONObject> =
+    new StatusPageReadCache<JSONObject>({
+      kind: "incidents",
+      ttlMs: StatusPageOverviewCache.TTL_MS,
+      maxEntries: 2_000,
+      maxBytes: 32 * 1024 * 1024,
+      maxValueBytes: MAX_KEPT_RESPONSE_BYTES,
+      sizeOf: jsonBytesOf,
+      shared: STATUS_PAGE_LIST_FORM,
+    });
+
+  private static episodeListCache: StatusPageReadCache<JSONObject> =
+    new StatusPageReadCache<JSONObject>({
+      kind: "episodes",
+      ttlMs: StatusPageOverviewCache.TTL_MS,
+      maxEntries: 2_000,
+      maxBytes: 32 * 1024 * 1024,
+      maxValueBytes: MAX_KEPT_RESPONSE_BYTES,
+      sizeOf: jsonBytesOf,
+      shared: STATUS_PAGE_LIST_FORM,
+    });
+
+  private static scheduledMaintenanceListCache: StatusPageReadCache<JSONObject> =
+    new StatusPageReadCache<JSONObject>({
+      kind: "scheduled-maintenance-events",
+      ttlMs: StatusPageOverviewCache.TTL_MS,
+      maxEntries: 2_000,
+      maxBytes: 32 * 1024 * 1024,
+      maxValueBytes: MAX_KEPT_RESPONSE_BYTES,
+      sizeOf: jsonBytesOf,
+      shared: STATUS_PAGE_LIST_FORM,
+    });
+
+  private static announcementListCache: StatusPageReadCache<JSONObject> =
+    new StatusPageReadCache<JSONObject>({
+      kind: "announcements",
+      ttlMs: StatusPageOverviewCache.TTL_MS,
+      maxEntries: 2_000,
+      maxBytes: 32 * 1024 * 1024,
+      maxValueBytes: MAX_KEPT_RESPONSE_BYTES,
+      sizeOf: jsonBytesOf,
+      shared: STATUS_PAGE_LIST_FORM,
+    });
 
   public constructor() {
     super(StatusPage, StatusPageService);
@@ -361,28 +550,23 @@ export default class StatusPageAPI extends BaseAPI<
           );
         }
 
-        const statusPage: StatusPage | null = await StatusPageService.findOneBy(
-          {
-            query: {
-              _id: statusPageId,
-            },
-            select: {
-              pageTitle: true,
-              pageDescription: true,
-              name: true,
-              defaultLanguage: true,
-              enableSearchEngineIndexing: true,
-              theme: true,
-              isArchived: true,
-            },
-            props: {
-              isRoot: true,
-            },
+        /*
+         * Every view of a page renders its HTML with this, so it is kept for
+         * every visitor (seoCache) - it is what the page shows anyone, its
+         * sign-in page included.
+         */
+        const seo: JSONObject | null = await StatusPageAPI.seoCache.getOrRead({
+          statusPageId: statusPageId,
+          readProjectId: (): Promise<ObjectID | null> => {
+            return StatusPageService.getProjectIdOfStatusPage(statusPageId);
           },
-        );
+          read: (): Promise<JSONObject | null> => {
+            return StatusPageAPI.readSeo(statusPageId);
+          },
+        });
 
         // An archived page is offline: it reads as a page that does not exist.
-        if (!statusPage || statusPage.isArchived) {
+        if (!seo) {
           return Response.sendErrorResponse(
             req,
             res,
@@ -390,62 +574,26 @@ export default class StatusPageAPI extends BaseAPI<
           );
         }
 
-        return Response.sendJsonObjectResponse(req, res, {
-          title: statusPage.pageTitle || statusPage.name,
-          description: statusPage.pageDescription,
-          _id: statusPage._id?.toString(),
-          defaultLanguage: statusPage.defaultLanguage || null,
-          /*
-           * Drives <meta name="robots"> and X-Robots-Tag on the rendered page.
-           * Normalised here rather than shipping the raw column, so the two
-           * frontend servers never have to decide what a missing value means.
-           */
-          [SEARCH_ENGINE_INDEXING_FLAG_NAME]: isSearchEngineIndexingEnabled(
-            statusPage.enableSearchEngineIndexing,
-          ),
-          /*
-           * Light, Dark or System, for the theme the page's HTML is sent
-           * with, so a dark page is dark before its first paint. Read here
-           * the way the app reads it, so the two servers that render the
-           * page never decide what an empty column means.
-           */
-          [STATUS_PAGE_THEME_COLUMN]: parseStatusPageTheme(statusPage.theme),
-        });
+        return Response.sendJsonObjectResponse(req, res, seo);
       },
     );
 
-    // favicon api.
+    /*
+     * The page's images: its favicon, logo, dark theme logo and cover image.
+     * Each is kept in memory and sent with its ETag and a Cache-Control the
+     * page's rules decide (serveStatusPageImage), so a browser that has it
+     * gets 304 and a view reads nothing for it.
+     */
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/favicon/:statusPageIdOrDomain`,
       async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          const statusPageId: ObjectID = await resolveStatusPageIdOrThrow(
-            req.params["statusPageIdOrDomain"] as string,
-          );
-
-          const statusPage: StatusPage | null =
-            await StatusPageService.findOneBy({
-              query: {
-                _id: statusPageId,
-                // An archived page serves none of its branding.
-                isArchived: false,
-              },
-              select: {
-                projectId: true,
-                faviconFile: SERVED_IMAGE_SELECT,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          // Only a file of the page's own project. See keepOwnStatusPageImages.
-          const favicon: File | undefined = FileOwnership.keepProjectFile(
-            statusPage?.faviconFile,
-            statusPage?.projectId,
-          );
-
-          if (!statusPage || !favicon) {
+        await this.serveStatusPageImage({
+          req: req,
+          res: res,
+          image: "favicon",
+          relation: "faviconFile",
+          notFoundMessage: "Status Page not found",
+          sendNone: (): void => {
             logger.debug(
               "Favicon file not found. Returning default favicon.",
               getLogAttributesFromRequest(req as any),
@@ -456,80 +604,21 @@ export default class StatusPageAPI extends BaseAPI<
               res,
               `/usr/src/Common/UI/Images/favicon/status-green.png`,
             );
-          }
-
-          logger.debug(
-            `Favicon file found. Sending file: ${favicon.name}`,
-            getLogAttributesFromRequest(req as any),
-          );
-
-          return Response.sendFileResponse(req, res, favicon);
-        } catch (error) {
-          if (error instanceof NotFoundException) {
-            return Response.sendErrorResponse(req, res, error);
-          }
-
-          logger.error(error, getLogAttributesFromRequest(req as any));
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException("Status Page not found"),
-          );
-        }
+          },
+        });
       },
     );
 
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/logo/:statusPageIdOrDomain`,
       async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          const statusPageId: ObjectID = await resolveStatusPageIdOrThrow(
-            req.params["statusPageIdOrDomain"] as string,
-          );
-
-          const statusPage: StatusPage | null =
-            await StatusPageService.findOneBy({
-              query: {
-                _id: statusPageId,
-                // An archived page serves none of its branding.
-                isArchived: false,
-              },
-              select: {
-                projectId: true,
-                logoFile: SERVED_IMAGE_SELECT,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          // Only a file of the page's own project. See keepOwnStatusPageImages.
-          const logo: File | undefined = FileOwnership.keepProjectFile(
-            statusPage?.logoFile,
-            statusPage?.projectId,
-          );
-
-          if (!logo) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotFoundException("Status Page logo not found"),
-            );
-          }
-
-          return Response.sendFileResponse(req, res, logo);
-        } catch (error) {
-          if (error instanceof NotFoundException) {
-            return Response.sendErrorResponse(req, res, error);
-          }
-
-          logger.error(error, getLogAttributesFromRequest(req as any));
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException("Status Page logo not found"),
-          );
-        }
+        await this.serveStatusPageImage({
+          req: req,
+          res: res,
+          image: "logo",
+          relation: "logoFile",
+          notFoundMessage: "Status Page logo not found",
+        });
       },
     );
 
@@ -542,108 +631,26 @@ export default class StatusPageAPI extends BaseAPI<
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/dark-theme-logo/:statusPageIdOrDomain`,
       async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          const statusPageId: ObjectID = await resolveStatusPageIdOrThrow(
-            req.params["statusPageIdOrDomain"] as string,
-          );
-
-          const statusPage: StatusPage | null =
-            await StatusPageService.findOneBy({
-              query: {
-                _id: statusPageId,
-                // An archived page serves none of its branding.
-                isArchived: false,
-              },
-              select: {
-                projectId: true,
-                darkThemeLogoFile: SERVED_IMAGE_SELECT,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          // Only a file of the page's own project. See keepOwnStatusPageImages.
-          const darkThemeLogo: File | undefined = FileOwnership.keepProjectFile(
-            statusPage?.darkThemeLogoFile,
-            statusPage?.projectId,
-          );
-
-          if (!darkThemeLogo) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotFoundException("Status Page dark theme logo not found"),
-            );
-          }
-
-          return Response.sendFileResponse(req, res, darkThemeLogo);
-        } catch (error) {
-          if (error instanceof NotFoundException) {
-            return Response.sendErrorResponse(req, res, error);
-          }
-
-          logger.error(error, getLogAttributesFromRequest(req as any));
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException("Status Page dark theme logo not found"),
-          );
-        }
+        await this.serveStatusPageImage({
+          req: req,
+          res: res,
+          image: "dark-theme-logo",
+          relation: "darkThemeLogoFile",
+          notFoundMessage: "Status Page dark theme logo not found",
+        });
       },
     );
 
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/cover-image/:statusPageIdOrDomain`,
       async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          const statusPageId: ObjectID = await resolveStatusPageIdOrThrow(
-            req.params["statusPageIdOrDomain"] as string,
-          );
-
-          const statusPage: StatusPage | null =
-            await StatusPageService.findOneBy({
-              query: {
-                _id: statusPageId,
-                // An archived page serves none of its branding.
-                isArchived: false,
-              },
-              select: {
-                projectId: true,
-                coverImageFile: SERVED_IMAGE_SELECT,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          // Only a file of the page's own project. See keepOwnStatusPageImages.
-          const coverImage: File | undefined = FileOwnership.keepProjectFile(
-            statusPage?.coverImageFile,
-            statusPage?.projectId,
-          );
-
-          if (!coverImage) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotFoundException("Status Page cover image not found"),
-            );
-          }
-
-          return Response.sendFileResponse(req, res, coverImage);
-        } catch (error) {
-          if (error instanceof NotFoundException) {
-            return Response.sendErrorResponse(req, res, error);
-          }
-
-          logger.error(error, getLogAttributesFromRequest(req as any));
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException("Status Page cover image not found"),
-          );
-        }
+        await this.serveStatusPageImage({
+          req: req,
+          res: res,
+          image: "cover-image",
+          relation: "coverImageFile",
+          notFoundMessage: "Status Page cover image not found",
+        });
       },
     );
 
@@ -778,6 +785,8 @@ export default class StatusPageAPI extends BaseAPI<
                     currentMonitorStatusId: true,
                     isArchived: true,
                     ...MONITORING_OFF_SELECT,
+                    // Nor may a status no check stands behind (#8899).
+                    ...MONITOR_NOT_MONITORED_YET_SELECT,
                   },
                   monitorGroupId: true,
                 },
@@ -834,19 +843,35 @@ export default class StatusPageAPI extends BaseAPI<
 
           /*
            * The resources the page draws as Not monitored: nothing checks
-           * them, so they color nothing - and a page of nothing else has no
-           * status to show but that.
+           * them, or nothing has yet, so they color nothing - and a page of
+           * nothing else has no status to show but that.
            */
+          const startingStatusIds: StartingStatusIds =
+            FrozenMonitorResources.getStartingStatusIds(monitorStatuses);
+
           const notMonitoredResourceIds: Array<string> =
             FrozenMonitorResources.getNotMonitoredResourceIds({
               statusPageResources,
               monitorGroupResources,
+              startingStatusIds,
             });
 
           const isNothingMonitored: boolean =
             FrozenMonitorResources.isEveryResourceNotMonitored(
               statusPageResources,
               notMonitoredResourceIds,
+            );
+
+          // Nothing on the page has been checked yet: it says so.
+          const isNothingMonitoredYet: boolean =
+            isNothingMonitored &&
+            FrozenMonitorResources.isEveryResourceNotMonitored(
+              statusPageResources,
+              FrozenMonitorResources.getNotMonitoredYetResourceIds({
+                statusPageResources,
+                monitorGroupResources,
+                startingStatusIds,
+              }),
             );
 
           // Calculate overall status
@@ -861,7 +886,9 @@ export default class StatusPageAPI extends BaseAPI<
           // Generate SVG badge
           const statusName: string = escapeXml(
             isNothingMonitored
-              ? NOT_MONITORED_STATUS_NAME
+              ? isNothingMonitoredYet
+                ? NOT_MONITORED_YET_STATUS_NAME
+                : NOT_MONITORED_STATUS_NAME
               : overallStatus?.name || "Unknown",
           );
           const statusColor: string = escapeXml(
@@ -1239,23 +1266,14 @@ export default class StatusPageAPI extends BaseAPI<
             throw new BadDataException("domain is required in request body");
           }
 
-          const domain: string = req.body["domain"] as string;
+          const domain: string = String(req.body["domain"]);
 
-          const statusPageDomain: StatusPageDomain | null =
-            await StatusPageDomainService.findOneBy({
-              query: {
-                fullDomain: domain,
-                domain: {
-                  isVerified: true,
-                } as any,
-              },
-              select: {
-                statusPageId: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
+          /*
+           * Through the cache every public route shares, so the app asking
+           * which page it is costs nothing once the page's HTML has asked.
+           */
+          const statusPageId: ObjectID | null =
+            await StatusPageService.resolveCustomDomainOrNull(domain);
 
           /*
            * The page arrives in the body here rather than in the path, so the
@@ -1264,16 +1282,15 @@ export default class StatusPageAPI extends BaseAPI<
            * status page has.
            */
           if (
-            !statusPageDomain ||
-            !statusPageDomain.statusPageId ||
+            !statusPageId ||
             (await BlockedProjectStatusPages.isStatusPageOfBlockedProject(
-              statusPageDomain.statusPageId,
+              statusPageId,
             ))
           ) {
             throw new BadDataException("No status page found with this domain");
           }
 
-          const objectId: ObjectID = statusPageDomain.statusPageId;
+          const objectId: ObjectID = statusPageId;
 
           return Response.sendJsonObjectResponse(req, res, {
             statusPageId: objectId.toString(),
@@ -1303,205 +1320,27 @@ export default class StatusPageAPI extends BaseAPI<
               statusPageId: objectId,
             });
 
-          const select: Select<StatusPage> = {
-            _id: true,
-            // Only to hold the page's images to its project; never sent.
-            projectId: true,
-            slug: true,
-            coverImageFileId: true,
-            logoFileId: true,
-            // The logo for the dark theme, shown where the page is dark.
-            darkThemeLogoFileId: true,
-            logoAltText: true,
-            coverImageAltText: true,
-            pageTitle: true,
-            pageDescription: true,
-            copyrightText: true,
-            hidePoweredByOneUptimeBranding: true,
-            enableEmailSubscribers: true,
-            enableSlackSubscribers: true,
-            enableMicrosoftTeamsSubscribers: true,
-            enableWebhookSubscribers: true,
-            enableSmsSubscribers: true,
-            isPublicStatusPage: true,
-            enableMasterPassword: true,
-            // Only to tell whether one is set; never sent (see below).
-            masterPassword: true,
-            allowSubscribersToChooseResources: true,
-            allowSubscribersToChooseEventTypes: true,
-            // Whether a reader subscribes with the address they sign in with.
-            limitSubscribersToPrivateUsers: true,
-            requireSsoForLogin: true,
-            // Whether private users may ask for a sign-in link (see below).
-            enableMagicLinkLogin: true,
-            coverImageFile: SERVED_IMAGE_SELECT,
-            faviconFile: SERVED_IMAGE_SELECT,
-            logoFile: SERVED_IMAGE_SELECT,
-            darkThemeLogoFile: SERVED_IMAGE_SELECT,
-            showIncidentsOnStatusPage: true,
-            showAnnouncementsOnStatusPage: true,
-            showScheduledMaintenanceEventsOnStatusPage: true,
-            showSubscriberPageOnStatusPage: true,
-            defaultLanguage: true,
-            enabledLanguages: true,
-            // Light, Dark or System: how the page looks to its visitors.
-            theme: true,
-            isArchived: true,
-          };
-
-          if (allowStatusPageCustomizations) {
-            select.customCSS = true;
-            select.customJavaScript = true;
-            select.headerHTML = true;
-            select.footerHTML = true;
-          }
-
-          const hasEnabledSSO: PositiveNumber =
-            await StatusPageSsoService.countBy({
-              query: {
-                isEnabled: true,
-                statusPageId: objectId,
+          /*
+           * The first thing the status page app loads, on every view: kept
+           * for every visitor (masterPageCache), with the page's custom code
+           * or without it as the host decides, never one for the other.
+           */
+          const response: JSONObject =
+            await StatusPageAPI.masterPageCache.getOrRead({
+              statusPageId: objectId,
+              variant: allowStatusPageCustomizations
+                ? "with-custom-code"
+                : "without-custom-code",
+              readProjectId: (): Promise<ObjectID | null> => {
+                return StatusPageService.getProjectIdOfStatusPage(objectId);
               },
-              props: {
-                isRoot: true,
+              read: (): Promise<JSONObject> => {
+                return StatusPageAPI.readMasterPage({
+                  statusPageId: objectId,
+                  allowStatusPageCustomizations: allowStatusPageCustomizations,
+                });
               },
             });
-
-          const item: StatusPage | null = await this.service.findOneById({
-            id: objectId,
-            select,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          /*
-           * The first thing the status page app loads. An archived page stops
-           * here with the same answer a missing one gets.
-           */
-          if (!item || item.isArchived) {
-            throw new BadDataException("Status Page not found");
-          }
-
-          // Not part of what the page renders.
-          delete item.isArchived;
-
-          // Only images of the page's own project, and no project id.
-          keepOwnStatusPageImages(item);
-
-          /*
-           * "Powered by OneUptime" goes only while the Enterprise feature
-           * that removes it is active (StatusPagePoweredBy): the Community
-           * Edition, and a self-hosted install whose license lapsed, show it
-           * on every page, whatever the page's switch says.
-           */
-          item.hidePoweredByOneUptimeBranding = isPoweredByOneUptimeHidden(
-            item.hidePoweredByOneUptimeBranding,
-          );
-
-          /*
-           * Whether the page asks visitors for the master password, by the
-           * rule the server enforces (Types/StatusPage/StatusPageAccess): not
-           * public, the switch on and a password set. The switch alone said
-           * yes on a private page with no password set, and the app sent
-           * every visitor - private users included - to a password prompt
-           * that could never let anyone in, while the server treated the
-           * page as a sign-in page.
-           */
-          /*
-           * Whether the sign-in page offers a sign-in link, by the rule the
-           * server enforces when one is asked for and when one is used
-           * (Types/StatusPage/StatusPageMagicLink): a page visitors sign in
-           * to, that does not require SSO, with the switch on. Read before
-           * enableMasterPassword is replaced below.
-           */
-          item.enableMagicLinkLogin = isStatusPageMagicLinkAvailable({
-            isPublicStatusPage: item.isPublicStatusPage,
-            enableMasterPassword: item.enableMasterPassword,
-            hasMasterPassword: Boolean(item.masterPassword),
-            requireSsoForLogin: item.requireSsoForLogin,
-            enableMagicLinkLogin: item.enableMagicLinkLogin,
-          });
-
-          item.enableMasterPassword = isStatusPageMasterPasswordRequired({
-            isPublicStatusPage: Boolean(item.isPublicStatusPage),
-            enableMasterPassword: item.enableMasterPassword,
-            hasMasterPassword: Boolean(item.masterPassword),
-          });
-
-          // The password's hash and salt never leave the server.
-          delete item.masterPassword;
-          delete item.masterPasswordSalt;
-
-          if (!allowStatusPageCustomizations) {
-            /*
-             * The conditional select above keeps these values out of the
-             * normal database result. Explicit redaction is the second half
-             * of the boundary: it prevents a future eager-load, hook, cache,
-             * or over-populated service result from serializing tenant code
-             * onto the authenticated application's origin.
-             */
-            delete item.customCSS;
-            delete item.customJavaScript;
-            delete item.headerHTML;
-            delete item.footerHTML;
-          }
-
-          const footerLinks: Array<StatusPageFooterLink> =
-            await StatusPageFooterLinkService.findBy({
-              query: {
-                statusPageId: objectId,
-              },
-              select: {
-                _id: true,
-                link: true,
-                title: true,
-                order: true,
-              },
-              sort: {
-                order: SortOrder.Ascending,
-              },
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-              props: {
-                isRoot: true,
-              },
-            });
-
-          const headerLinks: Array<StatusPageHeaderLink> =
-            await StatusPageHeaderLinkService.findBy({
-              query: {
-                statusPageId: objectId,
-              },
-              select: {
-                _id: true,
-                link: true,
-                title: true,
-                order: true,
-              },
-              sort: {
-                order: SortOrder.Ascending,
-              },
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-              props: {
-                isRoot: true,
-              },
-            });
-
-          const response: JSONObject = {
-            statusPage: BaseModel.toJSON(item, StatusPage),
-            footerLinks: BaseModel.toJSONArray(
-              footerLinks,
-              StatusPageFooterLink,
-            ),
-            headerLinks: BaseModel.toJSONArray(
-              headerLinks,
-              StatusPageHeaderLink,
-            ),
-            hasEnabledSSO: hasEnabledSSO.toNumber(),
-            allowStatusPageCustomizations,
-          };
 
           return Response.sendJsonObjectResponse(req, res, response);
         } catch (err) {
@@ -1862,8 +1701,9 @@ export default class StatusPageAPI extends BaseAPI<
             /*
              * False when nothing checks the resource right now - its
              * monitor's monitoring is off, or every monitor of its monitor
-             * group has it off - so the page draws it as Not monitored and
-             * its currentStatus is null (FrozenMonitorResources).
+             * group has it off - or nothing has checked it yet (#8899), so
+             * the page draws it as Not monitored (yet) and its currentStatus
+             * is null (FrozenMonitorResources).
              */
             isMonitored: boolean;
           };
@@ -2035,8 +1875,15 @@ export default class StatusPageAPI extends BaseAPI<
                           })
                         : null;
 
-                      // nothing recorded: fall back to the rows, as a monitor does.
-                      if (uptimePercent === null) {
+                      /*
+                       * Merged and nothing recorded - its monitors not
+                       * checked yet, or off the whole range - is no uptime
+                       * (null), never the 100% the rows read that time as
+                       * (issue #8960). Only a group the merge left out falls
+                       * back to its rows, as a monitor the aggregate has
+                       * nothing for does.
+                       */
+                      if (!merged) {
                         const resourceStatusTimelines: Array<MonitorStatusTimeline> =
                           StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
                             {
@@ -2590,6 +2437,9 @@ export default class StatusPageAPI extends BaseAPI<
             req,
           );
 
+          // What a page shows its readers: never kept by a shared cache.
+          Response.setNoCacheHeaders(res);
+
           return Response.sendJsonObjectResponse(req, res, response);
         } catch (err) {
           next(err);
@@ -2618,6 +2468,9 @@ export default class StatusPageAPI extends BaseAPI<
 
             req,
           );
+
+          // What a page shows its readers: never kept by a shared cache.
+          Response.setNoCacheHeaders(res);
 
           return Response.sendJsonObjectResponse(req, res, response);
         } catch (err) {
@@ -2648,6 +2501,9 @@ export default class StatusPageAPI extends BaseAPI<
             req,
           );
 
+          // What a page shows its readers: never kept by a shared cache.
+          Response.setNoCacheHeaders(res);
+
           return Response.sendJsonObjectResponse(req, res, response);
         } catch (err) {
           next(err);
@@ -2672,6 +2528,9 @@ export default class StatusPageAPI extends BaseAPI<
             null,
             req,
           );
+
+          // What a page shows its readers: never kept by a shared cache.
+          Response.setNoCacheHeaders(res);
 
           return Response.sendJsonObjectResponse(req, res, response);
         } catch (err) {
@@ -2700,6 +2559,9 @@ export default class StatusPageAPI extends BaseAPI<
             episodeId,
             req,
           );
+
+          // What a page shows its readers: never kept by a shared cache.
+          Response.setNoCacheHeaders(res);
 
           return Response.sendJsonObjectResponse(req, res, response);
         } catch (err) {
@@ -2764,9 +2626,23 @@ export default class StatusPageAPI extends BaseAPI<
       req: req,
     });
 
-    return await StatusPageAPI.readShownScheduledMaintenanceEvents({
+    // The list, or an event of it, after the reader's access is checked.
+    return await StatusPageAPI.scheduledMaintenanceListCache.getOrRead({
       statusPageId: statusPageId,
-      scheduledMaintenanceId: scheduledMaintenanceId,
+      variant: itemVariantOf(scheduledMaintenanceId),
+      readProjectId: (): Promise<ObjectID | null> => {
+        return StatusPageService.getProjectIdOfStatusPage(statusPageId);
+      },
+      read: (): Promise<JSONObject> => {
+        return StatusPageAPI.readShownScheduledMaintenanceEvents({
+          statusPageId: statusPageId,
+          scheduledMaintenanceId: scheduledMaintenanceId,
+        });
+      },
+      shouldKeep: keepItemsShown(
+        scheduledMaintenanceId,
+        "scheduledMaintenanceEvents",
+      ),
     });
   }
 
@@ -3183,6 +3059,30 @@ export default class StatusPageAPI extends BaseAPI<
       req: req,
     });
 
+    // The list, or an announcement of it, after the reader's access is checked.
+    return await StatusPageAPI.announcementListCache.getOrRead({
+      statusPageId: statusPageId,
+      variant: itemVariantOf(announcementId),
+      readProjectId: (): Promise<ObjectID | null> => {
+        return StatusPageService.getProjectIdOfStatusPage(statusPageId);
+      },
+      read: (): Promise<JSONObject> => {
+        return this.readShownAnnouncements(statusPageId, announcementId);
+      },
+      shouldKeep: keepItemsShown(announcementId, "announcements"),
+    });
+  }
+
+  /*
+   * The announcements a status page shows, as its Announcements tab reads
+   * them - or the one asked for. It does not ask who is reading: its caller
+   * checks first (getAnnouncements).
+   */
+  @CaptureSpan()
+  public async readShownAnnouncements(
+    statusPageId: ObjectID,
+    announcementId: ObjectID | null,
+  ): Promise<JSONObject> {
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
       query: {
         _id: statusPageId.toString(),
@@ -4753,6 +4653,30 @@ export default class StatusPageAPI extends BaseAPI<
       req: req,
     });
 
+    // The list, or an incident of it, after the reader's access is checked.
+    return await StatusPageAPI.incidentListCache.getOrRead({
+      statusPageId: statusPageId,
+      variant: itemVariantOf(incidentId),
+      readProjectId: (): Promise<ObjectID | null> => {
+        return StatusPageService.getProjectIdOfStatusPage(statusPageId);
+      },
+      read: (): Promise<JSONObject> => {
+        return this.readShownIncidents(statusPageId, incidentId);
+      },
+      shouldKeep: keepItemsShown(incidentId, "incidents"),
+    });
+  }
+
+  /*
+   * The incidents a status page shows, as its Incidents tab reads them - or
+   * the one asked for. It does not ask who is reading: its caller checks
+   * first (getIncidents).
+   */
+  @CaptureSpan()
+  public async readShownIncidents(
+    statusPageId: ObjectID,
+    incidentId: ObjectID | null,
+  ): Promise<JSONObject> {
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
       query: {
         _id: statusPageId.toString(),
@@ -5037,6 +4961,30 @@ export default class StatusPageAPI extends BaseAPI<
       req: req,
     });
 
+    // The list, or an episode of it, after the reader's access is checked.
+    return await StatusPageAPI.episodeListCache.getOrRead({
+      statusPageId: statusPageId,
+      variant: itemVariantOf(episodeId),
+      readProjectId: (): Promise<ObjectID | null> => {
+        return StatusPageService.getProjectIdOfStatusPage(statusPageId);
+      },
+      read: (): Promise<JSONObject> => {
+        return this.readShownEpisodes(statusPageId, episodeId);
+      },
+      shouldKeep: keepItemsShown(episodeId, "episodes"),
+    });
+  }
+
+  /*
+   * The episodes a status page shows, as its Incidents tab reads them - or
+   * the one asked for. It does not ask who is reading: its caller checks
+   * first (getEpisodes).
+   */
+  @CaptureSpan()
+  public async readShownEpisodes(
+    statusPageId: ObjectID,
+    episodeId: ObjectID | null,
+  ): Promise<JSONObject> {
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
       query: {
         _id: statusPageId.toString(),
@@ -5583,11 +5531,17 @@ export default class StatusPageAPI extends BaseAPI<
     uptimeDailyAggregate: UptimeDailyAggregate;
     monitorGroupCurrentStatuses: Dictionary<ObjectID>;
     /*
-     * The ids of the resources the page draws as Not monitored
+     * The ids of the resources the page draws as not monitored
      * (FrozenMonitorResources.getNotMonitoredResourceIds): a monitor whose
-     * monitoring is off, a monitor group whose monitors all have it off.
+     * monitoring is off or that nothing has checked yet, a monitor group
+     * whose monitors all are one or the other.
      */
     notMonitoredResourceIds: Array<string>;
+    /*
+     * Of those, the ones it words Not monitored yet: nothing has checked
+     * them yet (FrozenMonitorResources.getNotMonitoredYetResourceIds).
+     */
+    notMonitoredYetResourceIds: Array<string>;
     statusPageGroups: StatusPageGroup[];
     statusPage: StatusPage;
     monitorsOnStatusPage: ObjectID[];
@@ -5747,6 +5701,12 @@ export default class StatusPageAPI extends BaseAPI<
               currentMonitorStatusId: true,
               isArchived: true,
               ...MONITORING_OFF_SELECT,
+              /*
+               * And whether anything has checked it yet: one nothing has is
+               * drawn as Not monitored yet (FrozenMonitorResources, #8899).
+               * Read for that alone, and taken off before the page is sent.
+               */
+              ...MONITOR_NOT_MONITORED_YET_SELECT,
             },
             monitorGroupId: true,
             showUptimePercent: true,
@@ -5764,6 +5724,10 @@ export default class StatusPageAPI extends BaseAPI<
           },
         }),
       );
+
+    // The statuses a monitor can start in, which no check stands behind.
+    const startingStatusIds: StartingStatusIds =
+      FrozenMonitorResources.getStartingStatusIds(monitorStatuses);
 
     const monitorGroupIds: Array<ObjectID> = statusPageResources
       .map((resource: StatusPageResource) => {
@@ -5812,9 +5776,10 @@ export default class StatusPageAPI extends BaseAPI<
       );
 
     /*
-     * A group whose monitors all have monitoring off is left out: nothing
-     * checks it, so the status it is left at says nothing. The page draws
-     * it as Not monitored, with each monitor whose monitoring is off.
+     * A group whose monitors all have monitoring off, or are not monitored
+     * yet, is left out: nothing checks it, so the status it is left at says
+     * nothing. The page draws it as Not monitored (or Not monitored yet),
+     * with each monitor whose monitoring is off or that nothing has checked.
      */
     const monitorGroupStatuses: Dictionary<MonitorStatus> =
       FrozenMonitorResources.withoutNotMonitoredMonitorGroups({
@@ -5825,13 +5790,25 @@ export default class StatusPageAPI extends BaseAPI<
             monitorGroupResources: monitorGroupResourcesByGroupId,
           }),
         monitorGroupResources: monitorGroupResourcesByGroupId,
+        startingStatusIds: startingStatusIds,
       });
 
     const notMonitoredResourceIds: Array<string> =
       FrozenMonitorResources.getNotMonitoredResourceIds({
         statusPageResources: statusPageResources,
         monitorGroupResources: monitorGroupResourcesByGroupId,
+        startingStatusIds: startingStatusIds,
       });
+
+    const notMonitoredYetResourceIds: Array<string> =
+      FrozenMonitorResources.getNotMonitoredYetResourceIds({
+        statusPageResources: statusPageResources,
+        monitorGroupResources: monitorGroupResourcesByGroupId,
+        startingStatusIds: startingStatusIds,
+      });
+
+    // What told a monitor nothing has checked is not the page's to show.
+    FrozenMonitorResources.forgetNotMonitoredYetFields(statusPageResources);
 
     for (const monitorGroupId of monitorGroupIds) {
       // get current status of monitors in the group.
@@ -5930,6 +5907,7 @@ export default class StatusPageAPI extends BaseAPI<
       monitorStatuses,
       monitorGroupCurrentStatuses,
       notMonitoredResourceIds,
+      notMonitoredYetResourceIds,
       statusPageGroups: groups,
       monitorStatusTimelines,
       uptimeDailyAggregate,
@@ -6063,6 +6041,8 @@ export default class StatusPageAPI extends BaseAPI<
       build: async (): Promise<StatusPageOverviewBase> => {
         return await this.buildOverviewBase(statusPageId);
       },
+      // Built once for every process (StatusPageSharedReads).
+      shared: STATUS_PAGE_OVERVIEW_BASE_FORM,
     });
   }
 
@@ -6181,6 +6161,7 @@ export default class StatusPageAPI extends BaseAPI<
       monitorStatuses,
       monitorGroupCurrentStatuses,
       notMonitoredResourceIds,
+      notMonitoredYetResourceIds,
       statusPageResources,
       statusPage,
       monitorsOnStatusPage,
@@ -7155,9 +7136,12 @@ export default class StatusPageAPI extends BaseAPI<
       ),
       /*
        * The resources the page draws as Not monitored, in gray, in place of
-       * a status: nothing checks them right now (FrozenMonitorResources).
+       * a status: nothing checks them right now, or nothing has yet
+       * (FrozenMonitorResources).
        */
       notMonitoredResourceIds: notMonitoredResourceIds,
+      // Of those, the ones nothing has checked yet: Not monitored yet.
+      notMonitoredYetResourceIds: notMonitoredYetResourceIds,
       monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
       timelineIncidents:
         this.serializeIncidentsForStatusPage(timelineIncidents),
@@ -7940,6 +7924,379 @@ export default class StatusPageAPI extends BaseAPI<
 
     Response.setNoCacheHeaders(res);
     return Response.sendFileResponse(req, res, attachment);
+  }
+
+  /*
+   * What a page's HTML is rendered with (/seo): its title, description,
+   * language, whether search engines may index it and its theme. null for a
+   * page that does not exist or is archived.
+   */
+  public static async readSeo(
+    statusPageId: ObjectID,
+  ): Promise<JSONObject | null> {
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId,
+      },
+      select: {
+        pageTitle: true,
+        pageDescription: true,
+        name: true,
+        defaultLanguage: true,
+        enableSearchEngineIndexing: true,
+        theme: true,
+        isArchived: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // An archived page is offline: it reads as a page that does not exist.
+    if (!statusPage || statusPage.isArchived) {
+      return null;
+    }
+
+    return {
+      title: statusPage.pageTitle || statusPage.name,
+      description: statusPage.pageDescription,
+      _id: statusPage._id?.toString(),
+      defaultLanguage: statusPage.defaultLanguage || null,
+      /*
+       * Drives <meta name="robots"> and X-Robots-Tag on the rendered page.
+       * Normalised here rather than shipping the raw column, so the two
+       * frontend servers never have to decide what a missing value means.
+       */
+      [SEARCH_ENGINE_INDEXING_FLAG_NAME]: isSearchEngineIndexingEnabled(
+        statusPage.enableSearchEngineIndexing,
+      ),
+      /*
+       * Light, Dark or System, for the theme the page's HTML is sent with,
+       * so a dark page is dark before its first paint. Read here the way
+       * the app reads it, so the two servers that render the page never
+       * decide what an empty column means.
+       */
+      [STATUS_PAGE_THEME_COLUMN]: parseStatusPageTheme(statusPage.theme),
+    };
+  }
+
+  /*
+   * A page's settings as the status page app loads them (/master-page): the
+   * page's columns it draws, its images, its header and footer links and
+   * whether it signs in with single sign-on - its custom code only when
+   * allowStatusPageCustomizations, which the host decides. The same for
+   * every visitor of the page on that kind of host. Throws for no such page.
+   */
+  public static async readMasterPage(data: {
+    statusPageId: ObjectID;
+    allowStatusPageCustomizations: boolean;
+  }): Promise<JSONObject> {
+    const select: Select<StatusPage> = {
+      _id: true,
+      // Only to hold the page's images to its project; never sent.
+      projectId: true,
+      slug: true,
+      coverImageFileId: true,
+      logoFileId: true,
+      // The logo for the dark theme, shown where the page is dark.
+      darkThemeLogoFileId: true,
+      logoAltText: true,
+      coverImageAltText: true,
+      pageTitle: true,
+      pageDescription: true,
+      copyrightText: true,
+      hidePoweredByOneUptimeBranding: true,
+      enableEmailSubscribers: true,
+      enableSlackSubscribers: true,
+      enableMicrosoftTeamsSubscribers: true,
+      enableWebhookSubscribers: true,
+      enableSmsSubscribers: true,
+      isPublicStatusPage: true,
+      enableMasterPassword: true,
+      // Only to tell whether one is set; never sent (see below).
+      masterPassword: true,
+      allowSubscribersToChooseResources: true,
+      allowSubscribersToChooseEventTypes: true,
+      // Whether a reader subscribes with the address they sign in with.
+      limitSubscribersToPrivateUsers: true,
+      requireSsoForLogin: true,
+      // Whether private users may ask for a sign-in link (see below).
+      enableMagicLinkLogin: true,
+      coverImageFile: SERVED_IMAGE_SELECT,
+      faviconFile: SERVED_IMAGE_SELECT,
+      logoFile: SERVED_IMAGE_SELECT,
+      darkThemeLogoFile: SERVED_IMAGE_SELECT,
+      showIncidentsOnStatusPage: true,
+      showAnnouncementsOnStatusPage: true,
+      showScheduledMaintenanceEventsOnStatusPage: true,
+      showSubscriberPageOnStatusPage: true,
+      defaultLanguage: true,
+      enabledLanguages: true,
+      // Light, Dark or System: how the page looks to its visitors.
+      theme: true,
+      isArchived: true,
+    };
+
+    if (data.allowStatusPageCustomizations) {
+      select.customCSS = true;
+      select.customJavaScript = true;
+      select.headerHTML = true;
+      select.footerHTML = true;
+    }
+
+    const hasEnabledSSO: PositiveNumber = await StatusPageSsoService.countBy({
+      query: {
+        isEnabled: true,
+        statusPageId: data.statusPageId,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const item: StatusPage | null = await StatusPageService.findOneById({
+      id: data.statusPageId,
+      select,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    /*
+     * The first thing the status page app loads. An archived page stops
+     * here with the same answer a missing one gets.
+     */
+    if (!item || item.isArchived) {
+      throw new BadDataException("Status Page not found");
+    }
+
+    // Not part of what the page renders.
+    delete item.isArchived;
+
+    // Only images of the page's own project, and no project id.
+    keepOwnStatusPageImages(item);
+
+    /*
+     * "Powered by OneUptime" goes only while the Enterprise feature
+     * that removes it is active (StatusPagePoweredBy): the Community
+     * Edition, and a self-hosted install whose license lapsed, show it
+     * on every page, whatever the page's switch says.
+     */
+    item.hidePoweredByOneUptimeBranding = isPoweredByOneUptimeHidden(
+      item.hidePoweredByOneUptimeBranding,
+    );
+
+    /*
+     * Whether the page asks visitors for the master password, by the
+     * rule the server enforces (Types/StatusPage/StatusPageAccess): not
+     * public, the switch on and a password set. The switch alone said
+     * yes on a private page with no password set, and the app sent
+     * every visitor - private users included - to a password prompt
+     * that could never let anyone in, while the server treated the
+     * page as a sign-in page.
+     */
+    /*
+     * Whether the sign-in page offers a sign-in link, by the rule the
+     * server enforces when one is asked for and when one is used
+     * (Types/StatusPage/StatusPageMagicLink): a page visitors sign in
+     * to, that does not require SSO, with the switch on. Read before
+     * enableMasterPassword is replaced below.
+     */
+    item.enableMagicLinkLogin = isStatusPageMagicLinkAvailable({
+      isPublicStatusPage: item.isPublicStatusPage,
+      enableMasterPassword: item.enableMasterPassword,
+      hasMasterPassword: Boolean(item.masterPassword),
+      requireSsoForLogin: item.requireSsoForLogin,
+      enableMagicLinkLogin: item.enableMagicLinkLogin,
+    });
+
+    item.enableMasterPassword = isStatusPageMasterPasswordRequired({
+      isPublicStatusPage: Boolean(item.isPublicStatusPage),
+      enableMasterPassword: item.enableMasterPassword,
+      hasMasterPassword: Boolean(item.masterPassword),
+    });
+
+    // The password's hash and salt never leave the server.
+    delete item.masterPassword;
+    delete item.masterPasswordSalt;
+
+    if (!data.allowStatusPageCustomizations) {
+      /*
+       * The conditional select above keeps these values out of the
+       * normal database result. Explicit redaction is the second half
+       * of the boundary: it prevents a future eager-load, hook, cache,
+       * or over-populated service result from serializing tenant code
+       * onto the authenticated application's origin.
+       */
+      delete item.customCSS;
+      delete item.customJavaScript;
+      delete item.headerHTML;
+      delete item.footerHTML;
+    }
+
+    const footerLinks: Array<StatusPageFooterLink> =
+      await StatusPageFooterLinkService.findBy({
+        query: {
+          statusPageId: data.statusPageId,
+        },
+        select: {
+          _id: true,
+          link: true,
+          title: true,
+          order: true,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const headerLinks: Array<StatusPageHeaderLink> =
+      await StatusPageHeaderLinkService.findBy({
+        query: {
+          statusPageId: data.statusPageId,
+        },
+        select: {
+          _id: true,
+          link: true,
+          title: true,
+          order: true,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const response: JSONObject = {
+      statusPage: BaseModel.toJSON(item, StatusPage),
+      footerLinks: BaseModel.toJSONArray(footerLinks, StatusPageFooterLink),
+      headerLinks: BaseModel.toJSONArray(headerLinks, StatusPageHeaderLink),
+      hasEnabledSSO: hasEnabledSSO.toNumber(),
+      allowStatusPageCustomizations: data.allowStatusPageCustomizations,
+    };
+
+    return response;
+  }
+
+  /*
+   * One of a page's images (StatusPageImageCache): only a file of the
+   * page's own project (keepOwnStatusPageImages), none for an archived page.
+   */
+  public static async readStatusPageImage(
+    statusPageId: ObjectID,
+    relation: StatusPageImageRelation,
+  ): Promise<StatusPageImageFile | null> {
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: statusPageId,
+        // An archived page serves none of its branding.
+        isArchived: false,
+      },
+      select: SERVED_IMAGE_SELECTS[relation],
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // Only a file of the page's own project. See keepOwnStatusPageImages.
+    const file: File | undefined = FileOwnership.keepProjectFile(
+      statusPage?.[relation],
+      statusPage?.projectId,
+    );
+
+    if (!file || !file.file) {
+      return null;
+    }
+
+    return {
+      bytes: Buffer.from(file.file),
+      fileType: file.fileType || "",
+      name: file.name || "",
+    };
+  }
+
+  /*
+   * A page's image, from memory (StatusPageImageCache), with its ETag - 304
+   * for a browser that has it - and a Cache-Control decided on every request
+   * by the page's rules (StatusPageAccessRules): any cache may keep the
+   * image of a page that is for everyone; for any other page - private,
+   * behind a password, single sign-on or an allow list - only the visitor's
+   * own browser may. A page without the image answers as sendNone does, or
+   * 404 with notFoundMessage.
+   */
+  private async serveStatusPageImage(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    image: StatusPageImageName;
+    relation: StatusPageImageRelation;
+    notFoundMessage: string;
+    sendNone?: (() => void) | undefined;
+  }): Promise<void> {
+    const req: ExpressRequest = data.req;
+    const res: ExpressResponse = data.res;
+
+    try {
+      const statusPageId: ObjectID = await resolveStatusPageIdOrThrow(
+        req.params["statusPageIdOrDomain"] as string,
+      );
+
+      const image: StatusPageImage | null =
+        await StatusPageImageCache.getOrRead({
+          statusPageId: statusPageId,
+          image: data.image,
+          readProjectId: (): Promise<ObjectID | null> => {
+            return StatusPageService.getProjectIdOfStatusPage(statusPageId);
+          },
+          read: (): Promise<StatusPageImageFile | null> => {
+            return StatusPageAPI.readStatusPageImage(
+              statusPageId,
+              data.relation,
+            );
+          },
+        });
+
+      if (!image) {
+        if (data.sendNone) {
+          return data.sendNone();
+        }
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotFoundException(data.notFoundMessage),
+        );
+      }
+
+      const rules: StatusPageAccessRules | null =
+        await StatusPageService.getAccessRules(statusPageId);
+
+      return Response.sendCachedFileResponse(
+        req,
+        res,
+        image,
+        StatusPageAccessRulesUtil.getImageCacheControl(rules),
+      );
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        return Response.sendErrorResponse(req, res, error);
+      }
+
+      logger.error(error, getLogAttributesFromRequest(req as any));
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new NotFoundException(data.notFoundMessage),
+      );
+    }
   }
 
   public async checkHasReadAccess(data: {

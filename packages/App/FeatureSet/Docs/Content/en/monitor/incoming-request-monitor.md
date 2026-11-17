@@ -84,7 +84,7 @@ Send **GET** or **POST** requests to this URL. HEAD is accepted and treated as G
 > Anyone who knows this URL can mark the monitor healthy, so treat it as a secret. If it leaks, open the monitor's **Settings** page and click **Reset Incoming Request Secret Key**, then update every sender. The monitor's overview shows the latest request as its logs keep it: with secrets and personal data masked, and with no headers or body when **Keep request content** is off. Masking catches the names and patterns it knows, so do not send API keys or tokens to this endpoint.
 
 > [!IMPORTANT]
-> OneUptime replies `200` with an empty JSON object (`{}`) immediately and processes the request on a queue. That reply is written before any validation happens, so a `200` is **not** confirmation that the request was accepted — a wrong secret key, a deleted monitor, and a disabled monitor all return `200` too. Check the monitor's own timeline to confirm requests are landing. The one exception is a project that requires a secret on every request: a request without one is answered `401`.
+> OneUptime replies `200` with an empty JSON object (`{}`) immediately and processes the request on a queue. That reply is written before any validation happens, so a `200` is **not** confirmation that the request was accepted — a wrong secret key, a deleted monitor, and a disabled monitor all return `200` too. Check the monitor's own timeline to confirm requests are landing. A project that requires a secret on every request answers a request without one with `401`, and a service that checks the URL before it delivers gets the answer it expects: see [Services that check the URL first](#services-that-check-the-url-first).
 
 ### Sending a request body
 
@@ -94,7 +94,8 @@ If you want to address fields inside the body — `{{requestBody.status}}` in an
 | --- | --- |
 | `application/json` | The parsed JSON. |
 | `application/x-www-form-urlencoded` | The parsed form. Bracketed keys nest (`alerts[0][status]=firing`), and every value is a string. |
-| `text/plain` | The parsed JSON, when the text is a JSON object or array: Amazon SNS sends its messages this way. Any other text is an empty body. |
+| `text/plain` | The parsed JSON, when the text is a JSON object or array: Amazon SNS sends its messages this way. Any other text is the text itself, so `backup failed: error 42` takes the monitor offline under the default criteria. |
+| `application/cloudevents+json`, or another `+json` type | The parsed JSON: Azure Event Grid delivers CloudEvents this way. |
 | Anything else, or none | An empty body (`{}`), so no `requestBody` reference resolves, and a template leaves it as written. |
 
 Bodies up to 50 MB are accepted; a larger one is refused with a `413`. Do not compress the body with `Content-Encoding: gzip`: it is not stored as JSON, and paths into it will not resolve.
@@ -193,6 +194,8 @@ Invoke-RestMethod -Method Post `
 
 Anyone who has a monitor's URL can send it requests. A Project Owner or Project Admin can make every Incoming Request monitor in the project also require one of the project's own secrets, whoever set the monitor up: turn on **Require a secret on every request**. A request without one is refused with `401` and the reason, before it counts as a heartbeat, is kept as the monitor's latest request or reaches any criteria. A request with one goes on to the monitor's own criteria, as before.
 
+Project Owners and Project Admins manage the secrets and the switch, and so does a custom role with the Create, Read, Edit and Delete Incoming Request Secret permissions: Read shows the secrets' values, and Edit also turns the switch on and off.
+
 :::steps
 ### Create a secret
 
@@ -200,7 +203,7 @@ Go to **Monitors → Settings → Incoming Request Secrets** and create a secret
 
 ### Send it from every sender
 
-Send the secret in the `X-OneUptime-Secret` header, or as a bearer token in the `Authorization` header, whichever your sender can set.
+Send the secret in the `X-OneUptime-Secret` header, or as a bearer token in the `Authorization` header, whichever your sender can set. A sender that cannot set a header of its own can sign each request with the secret instead: see [Sign requests with the secret](#sign-requests-with-the-secret).
 
 ### Find the senders you missed
 
@@ -208,7 +211,7 @@ As soon as the project has a secret, OneUptime checks every request for one, wit
 
 ### Turn on the requirement
 
-Turn on **Require a secret on every request**. It cannot be turned on while the project has no secret, so no sender is refused by mistake.
+Turn on **Require a secret on every request**. It cannot be turned on while the project has no secret, so no sender is refused by mistake. Before it turns on, it names how many Incoming Request monitors got a request without a valid secret in the last 24 hours, if any: their senders are refused from then on.
 :::
 
 ```bash
@@ -222,8 +225,40 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 OneUptime never stores the secret: it takes the header off the request, and masks a bearer token that is one of the project's secrets, before it keeps anything.
 
+An address that sends one monitor more than 10 different wrong secrets in 15 minutes is refused with `429` for every secret it then sends, right or wrong, until the time its `Retry-After` header gives, at most 15 minutes. Senders at other addresses are not affected, and a sender that keeps sending one old secret keeps getting the `401` that says what is wrong.
+
 > [!TIP]
-> To replace a secret without refusing anyone, create a second one, move your senders to it, then delete the old one once its **Last Used** stops changing. Any of the project's secrets is accepted, and the last one cannot be deleted while the requirement is on.
+> To replace a secret without refusing anyone, create a second one, move your senders to it, then delete the old one once its **Last Used** stops changing. Any of the project's secrets is accepted unless it is limited to other monitors, and the last one that covers a monitor cannot be deleted while the requirement is on.
+
+### Sign requests with the secret
+
+A sender can sign each request with the secret instead of sending it, which is safer: nothing secret travels, and a request someone captured cannot be sent again later. Prefer it wherever a sender can sign. OneUptime checks these signatures, each an HMAC-SHA256 in hex with the secret as its key:
+
+| Sender | Header | What is signed |
+| --- | --- | --- |
+| Your own code | `X-OneUptime-Signature: t=<time>,v1=<signature>` | `<time>.<body>` |
+| GitHub webhooks | `X-Hub-Signature-256` | The body |
+| Slack | `X-Slack-Signature`, with `X-Slack-Request-Timestamp` | `v0:<time>:<body>` |
+| Stripe | `Stripe-Signature` | `<time>.<body>` |
+
+`<time>` is when the request was signed, in seconds since 1970. A signature more than 5 minutes from OneUptime's clock is refused, and so is a signed request sent a second time; GitHub's signature has no time, so OneUptime remembers each one for a day. For GitHub, give the webhook one of the project's secrets as its secret. Slack and Stripe make their own signing secret: create the project's secret with that value, under **More fields**.
+
+```bash
+body='{"status":"healthy"}'
+t=$(date +%s)
+sig=$(printf '%s.%s' "$t" "$body" | openssl dgst -sha256 -hmac "YOUR_PROJECT_SECRET" | sed 's/^.* //')
+
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Content-Type: application/json" \
+  -H "X-OneUptime-Signature: t=$t,v1=$sig" \
+  -d "$body"
+```
+
+A secret in the URL's query string is not accepted: proxies and access logs keep whole URLs, beside the monitor's own key. A probe's incoming request ingress passes a signed request's body on as it came, so its signature holds there too.
+
+### Limit a secret to some monitors
+
+A secret is accepted by every Incoming Request monitor of the project unless you limit it, as a project whose tenants each send their own secret does: under **More fields**, pick **Specific monitors** or **Monitors with labels**. Any other monitor refuses it with `401`, as it refuses a wrong secret, and **Requests Without a Secret** gives the reason as **Secret not for this monitor**. While the requirement is on, the project keeps at least one secret that covers a monitor.
 
 ## Criteria
 
@@ -383,9 +418,25 @@ The full payload is available alongside it, so an incident title of `{{alertname
 
 For a full Alertmanager configuration, see [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). For Grafana, see [Grafana](/docs/integrations/grafana).
 
+## Services that check the URL first
+
+Some services check a new endpoint before they deliver anything to it: they send it a request, and deliver only once it answers the way they expect. OneUptime answers these checks itself, so pasting the monitor's **Heartbeat URL** into the service is all it takes.
+
+| Service | The check | What OneUptime answers |
+| --- | --- | --- |
+| Azure Event Grid, Event Grid schema | A `SubscriptionValidationEvent` | Its `validationCode`, as `validationResponse` |
+| Azure Event Grid, CloudEvents schema | An `OPTIONS` request that names its origin | `WebHook-Allowed-Origin`, with that origin |
+| Slack Events API | A `url_verification` request | Its `challenge` |
+| Microsoft Graph change notifications | A `POST` with a `validationToken` | The token, as `text/plain` |
+| Okta event hooks | A `GET` with `X-Okta-Verification-Challenge` | The challenge, as `verification` |
+
+A check is answered only on a monitor's own URL, and only when the request counts: in a project that requires a secret on every request, a check that sends none is refused with `401`, as any request is, so the service must send the secret in a header. The answer holds what the service sent to be echoed, and nothing else of the request, and only when it has the form the service gives it.
+
+A check reaches the monitor as any request does, so its criteria evaluate it and it shows on the monitor's **Overview**; the CloudEvents check is answered and nothing more. A probe's incoming request ingress answers a check as it answers every request, with `{}`, so send these services to OneUptime's own URL.
+
 ## Subscribing to Amazon SNS or Azure Event Grid
 
-Amazon SNS and Azure Event Grid send nothing to a new endpoint until someone confirms the subscription, by opening a link the service sends to it. When that request arrives, the **Monitor Summary** card on the monitor's **Overview** shows what the service is waiting for, the topic, and one button that opens the link in a new tab.
+Amazon SNS sends nothing to a new endpoint until someone confirms the subscription, by opening a link it sends there. Azure Event Grid sends such a link too, for an endpoint that does not answer its check, and OneUptime answers it. When a link arrives that is still to be opened, the **Monitor Summary** card on the monitor's **Overview** shows what the service is waiting for, the topic, and one button that opens the link in a new tab.
 
 | Service | The request | Button | The link works for |
 | --- | --- | --- | --- |
@@ -411,11 +462,11 @@ If the card says the link can no longer be opened, select the subscription in th
 ### Azure Event Grid
 
 :::steps
-1. In the Azure portal, open the resource whose events you want and add an event subscription. Choose **Event Grid Schema** as its event schema, **Web Hook** as its endpoint type, and the monitor's **Heartbeat URL** as its endpoint.
-2. Within 10 minutes, open the monitor's **Overview** and click **Validate Subscription** in the **Monitor Summary** card.
+1. In the Azure portal, open the resource whose events you want and add an event subscription. Choose **Event Grid Schema** or **Cloud Event Schema v1.0** as its event schema, **Web Hook** as its endpoint type, and the monitor's **Heartbeat URL** as its endpoint.
+2. Create the event subscription. OneUptime answers Event Grid's check, so the subscription is validated as it is created, and its events start to arrive.
 :::
 
-Event Grid validates an endpoint that echoes a code back to it, or whose owner opens the link it sends. OneUptime answers every request with an empty `200`, so the link is the way. The link points at Event Grid on port 553, which a firewall in front of your browser must allow. If 10 minutes pass first, the event subscription fails: create it again.
+Event Grid validates an endpoint that echoes a code back to it, or whose owner opens the link it sends. OneUptime echoes the code, so the **Monitor Summary** card offers **Validate Subscription** only for a validation OneUptime did not answer: open it within 10 minutes. The link points at Event Grid on port 553, which a firewall in front of your browser must allow. If 10 minutes pass first, the event subscription fails: create it again.
 
 ## Best Practices
 
@@ -432,7 +483,11 @@ The `200` is sent before the request is validated, so it does not prove the requ
 :::
 
 :::details My sender gets a 401
-The project requires a secret on every request, and the request sent none, or one that is not the project's: the reply says which. Send one of the project's secrets in the `X-OneUptime-Secret` header or as a bearer token, as [Require a secret on every request](#require-a-secret-on-every-request) shows. A refused request never reaches the monitor.
+The project requires a secret on every request, and the request sent none, or one that is not the project's: the reply says which. Send one of the project's secrets in the `X-OneUptime-Secret` header or as a bearer token, as [Require a secret on every request](#require-a-secret-on-every-request) shows. A refused request never reaches the monitor. It gets `401` too with one of the project's secrets that is limited to other monitors, and for a signed request whose signature is more than 5 minutes old, was sent before, or was made with another secret or over a body that changed on the way.
+:::
+
+:::details My sender gets a 429
+Its address sent one monitor more than 10 different wrong secrets or signatures in 15 minutes, so every request it sends that monitor with a secret is refused until the time in its `Retry-After` header. A sender that signs with a wrong secret makes a new wrong signature every time, and gets here quickly: give it a secret the monitor accepts, as [Require a secret on every request](#require-a-secret-on-every-request) shows, and its requests are accepted once the time is up.
 :::
 
 :::details The monitor stopped getting requests after a secret was required
@@ -444,7 +499,11 @@ Only an **Incoming Request** criteria (**Not Recieved In Minutes**) can notice s
 :::
 
 :::details A Request Body filter never matches
-Send `Content-Type: application/json`, and write the value as compact JSON — `"status":"firing"`, with no space after the colon. Without a JSON or form content type, the body is not parsed: only JSON sent as `text/plain` is.
+Send `Content-Type: application/json`, and write the value as compact JSON — `"status":"firing"`, with no space after the colon. Without a JSON, form or `text/plain` content type, the body is empty, and a filter on it never matches.
+:::
+
+:::details A service says the URL did not answer its check
+Give the service the monitor's **Heartbeat URL**, on OneUptime itself rather than a probe. If the project requires a secret on every request, the check is refused with `401` unless the service sends the secret. Then have the service check the URL again: it is answered at once.
 :::
 
 :::details A Request Header filter never matches

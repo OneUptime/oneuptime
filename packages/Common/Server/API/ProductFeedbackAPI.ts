@@ -7,6 +7,9 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "../Utils/Express";
+import GiveFeedbackEmail, {
+  GiveFeedbackDelivery,
+} from "../Utils/GiveFeedbackEmail";
 import ProductFeedbackRateLimit from "../Utils/ProductFeedbackRateLimit";
 import Response from "../Utils/Response";
 import CommonAPI from "./CommonAPI";
@@ -17,6 +20,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import {
   FeedbackQuestionDecision,
+  GiveFeedbackReceipt,
   PRODUCT_FEEDBACK_ADMIN_LIST_ROUTE,
   PRODUCT_FEEDBACK_ADMIN_SUMMARY_ROUTE,
   PRODUCT_FEEDBACK_ASK_ROUTE,
@@ -46,8 +50,9 @@ import {
  * For a signed-in person (no session is a 401, so an expired one refreshes
  * and sends again):
  *
- *   GET  /product-feedback/settings  whether this server asks, and whether
- *                                    it asks me
+ *   GET  /product-feedback/settings  whether this server asks, whether it
+ *                                    asks me, and where Give feedback goes
+ *                                    (giveFeedbackGoesTo)
  *   POST /product-feedback/ask       { question }: may I ask this now?
  *                                    { ask, reason }. A yes is written down
  *                                    as asked. The project in `tenantid`,
@@ -55,7 +60,13 @@ import {
  *                                    checked for an open incident or alert.
  *   POST /product-feedback           an answer: { kind, topic, score,
  *                                    isPositive, details, page, version } -
- *                                    only these are read; { answerId }
+ *                                    only these are read; { answerId }.
+ *                                    Give feedback is also emailed to the
+ *                                    team that reads it, after the answer
+ *                                    (GiveFeedbackEmail), with who sent it
+ *                                    and the project in `tenantid` when
+ *                                    they are its member; the answer says
+ *                                    { isEmailed, copyTo }
  *   POST /product-feedback/details   { answerId, details }: the words written
  *                                    after a one-click answer; { added }
  *
@@ -192,6 +203,9 @@ router.get(
       return Response.sendJsonObjectResponse(req, res, {
         isOn: settings.isOn,
         isAskingMe: settings.isAskingMe,
+        ...(settings.giveFeedbackGoesTo
+          ? { giveFeedbackGoesTo: settings.giveFeedbackGoesTo }
+          : {}),
       });
     } catch (err) {
       next(err);
@@ -246,7 +260,7 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const { userId } = await readUserId(req);
+      const { userId, props } = await readUserId(req);
 
       const submission: ProductFeedbackSubmission | string =
         readProductFeedbackSubmission(readBody(req));
@@ -260,9 +274,41 @@ router.post(
       const answerId: ObjectID =
         await ProductFeedbackService.submit(submission);
 
-      return Response.sendJsonObjectResponse(req, res, {
+      if (submission.kind !== ProductFeedbackKind.General) {
+        return Response.sendJsonObjectResponse(req, res, {
+          answerId: answerId.toString(),
+        });
+      }
+
+      /*
+       * Give feedback is a message, emailed to the team that reads it once
+       * it is kept (GiveFeedbackEmail, #8893). What will be sent is decided
+       * first, so the dialog says only what is true; it is sent after the
+       * answer, so a slow or failing mail server never fails or slows
+       * giving feedback.
+       */
+      const delivery: GiveFeedbackDelivery | null =
+        await GiveFeedbackEmail.prepare({
+          userId: userId,
+          projectId: readMemberProjectId(props),
+          submission: submission,
+          nowMs: Date.now(),
+        });
+
+      const receipt: GiveFeedbackReceipt =
+        GiveFeedbackEmail.getReceipt(delivery);
+
+      Response.sendJsonObjectResponse(req, res, {
         answerId: answerId.toString(),
+        isEmailed: receipt.isEmailed,
+        copyTo: receipt.copyTo,
       });
+
+      if (delivery) {
+        void GiveFeedbackEmail.send(delivery);
+      }
+
+      return;
     } catch (err) {
       next(err);
     }

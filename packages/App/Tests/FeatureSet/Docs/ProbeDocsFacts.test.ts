@@ -1437,6 +1437,18 @@ describe("the Incoming Request Ingress page", () => {
     );
   });
 
+  /*
+   * OneUptime's own URL answers a service's check as the service expects
+   * (WebhookVerification, #8429); the probe answers every request with {}
+   * before it forwards, a check included, as the row says.
+   */
+  it("answers a service's check as any request, and says where to send such services", () => {
+    expect(ingress).not.toContain("WebhookVerification");
+    expect(forwardingRow("The answer")).toContain(
+      "So does a service's check of the URL, which OneUptime itself answers as the service expects: send Slack, Microsoft Graph, Okta and Azure Event Grid to OneUptime's own URL.",
+    );
+  });
+
   it("lists the headers it leaves out, and the one it adds", () => {
     const listed: (name: string) => Array<string> = (
       name: string,
@@ -1479,8 +1491,17 @@ describe("the Incoming Request Ingress page", () => {
     expect(ingress).toContain(
       'export const INGRESS_BODY_LIMIT: string = "50mb";',
     );
+    /*
+     * Every reader is held to that limit, the one that keeps a signed
+     * request's body as the bytes that came (so its signature holds through
+     * the probe) among them.
+     */
     expect(ingress).toMatch(
-      /app\.use\(ExpressJson\(\{ limit: INGRESS_BODY_LIMIT \}\)\);\s*app\.use\(ExpressUrlEncoded\(\{ extended: true, limit: INGRESS_BODY_LIMIT \}\)\);\s*app\.use\(PlainTextJsonBody\.getReader\(INGRESS_BODY_LIMIT\)\);\s*app\.use\(router\);/,
+      /app\.use\(\s*ExpressJson\(\{ limit: INGRESS_BODY_LIMIT, verify: keepSignedBodyBytes \}\),?\s*\);\s*app\.use\(\s*ExpressUrlEncoded\(\{\s*extended: true,\s*limit: INGRESS_BODY_LIMIT,\s*verify: keepSignedBodyBytes,?\s*\}\),?\s*\);\s*app\.use\(WebhookRequestBody\.getRawReader\(INGRESS_BODY_LIMIT\)\);\s*app\.use\(\s*WebhookRequestBody\.getSignedBodyReader\(INGRESS_BODY_LIMIT, isSignedRequest\),?\s*\);\s*app\.use\(router\);/,
+    );
+    // The text it reads as it came is forwarded as it came.
+    expect(ingress).toContain(
+      "if (Buffer.isBuffer(body)) {\n    return body;\n  }",
     );
     expect(appParsers).toMatch(
       /export const jsonBodyParserOptions: BodyParserOptions = \{\s*limit: "50mb",/,
@@ -1492,7 +1513,7 @@ describe("the Incoming Request Ingress page", () => {
       "const ingressApp: ExpressApplication = createIngressApp();",
     );
     expect(forwardingRow("The body")).toBe(
-      "JSON and form bodies of up to 50 MB, and JSON sent as plain text (as Amazon SNS sends it), as when you send to OneUptime directly. As there, any other body reaches the monitor empty.",
+      "JSON, form, plain-text and `+json` bodies of up to 50 MB, as when you send to OneUptime directly: a plain-text or `+json` body is passed on as it came, with its `Content-Type`. As there, any other body reaches the monitor empty.",
     );
   });
 

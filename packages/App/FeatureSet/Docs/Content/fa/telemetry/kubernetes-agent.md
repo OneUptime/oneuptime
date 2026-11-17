@@ -9,7 +9,7 @@
 - [نصب عامل](#نصب-عامل): چهار گام با Helm.
 - [نصب به‌صورت افزونه Amazon EKS](#نصب-بهصورت-افزونه-amazon-eks): از کنسول EKS، بدون Helm.
 - [OpenShift](#openshift): پیش‌تنظیم، محدودیت‌های زمینهٔ امنیتی که می‌سازد، و هشدارهای خود OpenShift.
-- [گزینه‌های پیکربندی](#گزینههای-پیکربندی): فیلترها، نمونه‌برداری، Control Plane، Service Mesh، هزینه‌ها و برچسب‌ها.
+- [گزینه‌های پیکربندی](#گزینههای-پیکربندی): فیلترها، نمونه‌برداری، صفحه کنترل، Service Mesh، هزینه‌ها و برچسب‌ها.
 - [عامل هوش مصنوعی Kubernetes](#عامل-هوش-مصنوعی-kubernetes): `kubectl` فقط‌خواندنی برای OneUptime AI، و اصلاح‌ها وقتی اجازه دهید.
 - [فرستادن داده کمتر](#کاهش-حجم-داده-گردآوریشده): اهرم‌ها، به ترتیب اثرشان.
 :::
@@ -501,9 +501,9 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 روی خوشه‌هایی که استخر گره Windows دارند، حالت `daemonset` فقط گره‌های Linux را پوشش می‌دهد، چون همه ایمیج‌های عامل فقط برای Linux‌اند. `--set logs.windowsPods.enabled=true` را بیفزایید تا دنبال‌کننده لاگ API کنار آن فقط برای پادهای روی گره‌های Windows اجرا شود: پادهای Linux دنبال کردن فایل روی خود گره را نگه می‌دارند و این دو هرگز یک خط را دو بار نمی‌فرستند. این کار به ایمیج `kubernetes-log-tailer` دست‌کم هم‌تازه با چارت نیاز دارد: ایمیج قدیمی‌تر این محدودیت را نادیده می‌گیرد و لاگ‌های Linux را دو بار می‌فرستد.
 
-### روشن کردن پایش Control Plane
+### روشن کردن پایش صفحه کنترل
 
-صفحهٔ **صفحه کنترل** خوشه نمودارهای etcd، سرور API، زمان‌بند و مدیر کنترلرها را می‌کشد. `controlPlane.enabled` را روشن کنید تا عامل، سرور API را همان‌جا که درون هر خوشه‌ای پاسخ می‌دهد، یعنی `https://kubernetes.default.svc:443/metrics`، با توکن حساب سرویس خودش بخواند:
+**صفحه کنترل** خوشه نمودارهای etcd، سرور API، زمان‌بند و مدیر کنترلرها را می‌کشد. `controlPlane.enabled` را روشن کنید تا عامل، سرور API را همان‌جا که درون هر خوشه‌ای پاسخ می‌دهد، یعنی `https://kubernetes.default.svc:443/metrics`، با توکن حساب سرویس خودش بخواند:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -515,7 +515,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 این نشانی پیش‌فرض چارت برای `controlPlane.apiServer.endpoints` است؛ اگر آن را خودتان هم تنظیم کنید، انتشاری که پیش‌فرض `localhost` یک چارت قدیمی‌تر را نگه داشته است هم جابه‌جا می‌شود.
 
-etcd، زمان‌بند و مدیر کنترلرها روی گره‌های control plane اجرا می‌شوند، و برداشت در پاد عامل اجرا می‌شود که شبکه میزبان ندارد: `localhost` آنجا خود همان پاد است. پس `controlPlane.etcd.endpoints`، `controlPlane.scheduler.endpoints` و `controlPlane.controllerManager.endpoints` تا وقتی نشانی هر گره را در آن‌ها فهرست نکنید خالی می‌مانند، و مؤلفه‌ای که نقطه پایانی ندارد برداشت نمی‌شود:
+etcd، زمان‌بند و مدیر کنترلرها روی گره‌های صفحه کنترل اجرا می‌شوند، و برداشت در پاد عامل اجرا می‌شود که شبکه میزبان ندارد: `localhost` آنجا خود همان پاد است. پس `controlPlane.etcd.endpoints`، `controlPlane.scheduler.endpoints` و `controlPlane.controllerManager.endpoints` تا وقتی نشانی هر گره را در آن‌ها فهرست نکنید خالی می‌مانند، و مؤلفه‌ای که نقطه پایانی ندارد برداشت نمی‌شود:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -529,8 +529,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 هر نقطه پایانی از راه HTTPS با توکن حساب سرویس برداشت می‌شود، مگر اینکه با `http://` شروع شود؛ آن‌وقت با HTTP ساده برداشت می‌شود. نقطه‌های پایانی یک مؤلفه یک طرح مشترک دارند. جایی که مؤلفه‌ای در نقطه‌های پایانی‌اش در دسترس نباشد، برداشتش در هر بازه شکست می‌خورد: کالکتور یک خطای برداشت در لاگ می‌نویسد و هدف را از کار افتاده گزارش می‌کند، و هیچ چیز دیگری تغییر نمی‌کند.
 
-- **زمان‌بند** (`10259`) و **مدیر کنترلرها** (`10257`) روی HTTPS پاسخ می‌دهند و توکن را می‌پذیرند، ولی kubeadm آن‌ها را روی گره‌های control plane به `127.0.0.1` می‌بندد: به یک `--bind-address` نیاز دارند که پاد عامل بتواند به آن برسد.
-- **etcd** متریک‌هایش را با HTTP ساده روی `2381` می‌دهد (`--listen-metrics-urls` در kubeadm، که تا وقتی نشانی گره را اضافه نکنید به `127.0.0.1` بسته است)، همان‌طور که در بالا آمد. پورت کلاینت آن، `2379`، روی HTTPS پاسخ می‌دهد و گواهی کلاینت می‌خواهد: یک گواهی را در یک Secret در فضای نام عامل، زیر کلیدهای `ca.crt`، `tls.crt` و `tls.key` بگذارید و نام آن را در `controlPlane.etcd.clientCertSecret` بیاورید. روی یک گره control plane در kubeadm، گواهی کلاینت health check کار را راه می‌اندازد:
+- **زمان‌بند** (`10259`) و **مدیر کنترلرها** (`10257`) روی HTTPS پاسخ می‌دهند و توکن را می‌پذیرند، ولی kubeadm آن‌ها را روی گره‌های صفحه کنترل به `127.0.0.1` می‌بندد: به یک `--bind-address` نیاز دارند که پاد عامل بتواند به آن برسد.
+- **etcd** متریک‌هایش را با HTTP ساده روی `2381` می‌دهد (`--listen-metrics-urls` در kubeadm، که تا وقتی نشانی گره را اضافه نکنید به `127.0.0.1` بسته است)، همان‌طور که در بالا آمد. پورت کلاینت آن، `2379`، روی HTTPS پاسخ می‌دهد و گواهی کلاینت می‌خواهد: یک گواهی را در یک Secret در فضای نام عامل، زیر کلیدهای `ca.crt`، `tls.crt` و `tls.key` بگذارید و نام آن را در `controlPlane.etcd.clientCertSecret` بیاورید. روی یک گره صفحه کنترل در kubeadm، گواهی کلاینت health check کار را راه می‌اندازد:
 
 ```bash
 kubectl -n oneuptime-agent create secret generic etcd-client-cert \
@@ -557,13 +557,13 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set controlPlane.etcd.clientCertSecret=etcd-client-cert
 ```
 
-این کپی چرخش آن گواهی توسط OpenShift را دنبال نمی‌کند، پس وقتی متریک‌های etcd متوقف شدند این فرمان‌ها را دوباره اجرا کنید. یک control plane میزبانی‌شده (ROSA با HCP، HyperShift) این مؤلفه‌ها را بیرون از خوشه اجرا می‌کند: عامل هیچ‌کدام را پیدا نمی‌کند و آن زبانه‌ها آنجا خالی می‌مانند.
+این کپی چرخش آن گواهی توسط OpenShift را دنبال نمی‌کند، پس وقتی متریک‌های etcd متوقف شدند این فرمان‌ها را دوباره اجرا کنید. یک صفحه کنترل میزبانی‌شده (ROSA با HCP، HyperShift) این مؤلفه‌ها را بیرون از خوشه اجرا می‌کند: عامل هیچ‌کدام را پیدا نمی‌کند و آن زبانه‌ها آنجا خالی می‌مانند.
 
-سرویس‌های مدیریت‌شده Kubernetes (EKS، GKE، AKS) etcd، زمان‌بند یا مدیر کنترلرها را در دسترس نمی‌گذارند، پس آن زبانه‌ها آنجا خالی می‌مانند. تا متریک‌های یک زبانه برسند، صفحه **Control Plane** به‌جای نمودارهایش نشان می‌دهد چه چیزی باید تنظیم شود، همراه با فرمانی برای کپی.
+سرویس‌های مدیریت‌شده Kubernetes (EKS، GKE، AKS) etcd، زمان‌بند یا مدیر کنترلرها را در دسترس نمی‌گذارند، پس آن زبانه‌ها آنجا خالی می‌مانند. تا متریک‌های یک زبانه برسند، **صفحه کنترل** به‌جای نمودارهایش نشان می‌دهد چه چیزی باید تنظیم شود، همراه با فرمانی برای کپی.
 
 ### روشن کردن متریک‌های CoreDNS
 
-زبانه **CoreDNS** در صفحهٔ **صفحه کنترل** نمودارهای پرس‌وجوهای DNS، تأخیر، حافظه نهان و ارسال را می‌کشد. گردآوری آن‌ها به‌طور پیش‌فرض خاموش است:
+زبانه **CoreDNS** در **صفحه کنترل** نمودارهای پرس‌وجوهای DNS، تأخیر، حافظه نهان و ارسال را می‌کشد. گردآوری آن‌ها به‌طور پیش‌فرض خاموش است:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -586,11 +586,11 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set serviceMesh.provider=istio
 ```
 
-برای Istio آمار Envoy هر sidecar از نوع `istio-proxy` (پورت `15090`) را می‌خواند؛ برای Linkerd، پورت مدیریت هر `linkerd-proxy` را. control plane هیچ‌کدام از meshها برداشت نمی‌شود: istiod (کارت **Pilot**) و مؤلفه‌های identity، destination و proxy-injector در Linkerd (کارت **Control Plane**) متریک‌هایشان را روی پورت‌های مدیریتی خودشان ارائه می‌کنند، پس آن کارت‌ها به‌جای نمودارهایشان همین را می‌گویند.
+برای Istio آمار Envoy هر sidecar از نوع `istio-proxy` (پورت `15090`) را می‌خواند؛ برای Linkerd، پورت مدیریت هر `linkerd-proxy` را. صفحه کنترل هیچ‌کدام از meshها برداشت نمی‌شود: istiod (کارت **Pilot**) و مؤلفه‌های identity، destination و proxy-injector در Linkerd (کارت **صفحه کنترل**) متریک‌هایشان را روی پورت‌های مدیریتی خودشان ارائه می‌کنند، پس آن کارت‌ها به‌جای نمودارهایشان همین را می‌گویند.
 
 ### متریک‌هایی که عامل گردآوری نمی‌کند
 
-برخی نمودارها متریک‌هایی را نشان می‌دهند که عامل برداشتی برایشان ندارد: **kube-proxy** در صفحهٔ **صفحه کنترل**؛ **Cilium** (با Hubble) در صفحه **Service Mesh**؛ و در زبانه‌های Istio و Linkerd، control plane خود meshها (**istiod**، و مؤلفه‌های identity، destination و proxy-injector در Linkerd). این نمودارها وقتی پر می‌شوند که آن متریک‌ها از راه دیگری به OneUptime برسند، برای نمونه از [OpenTelemetry Collector](/docs/telemetry/open-telemetry) خودتان که آن‌ها را برداشت می‌کند، با ویژگی منبع `k8s.cluster.name` که روی نام خوشه (`clusterName` عامل) تنظیم شده باشد. خوشه‌هایی که بدون kube-proxy اجرا می‌شوند اصلاً متریک kube-proxy ندارند.
+برخی نمودارها متریک‌هایی را نشان می‌دهند که عامل برداشتی برایشان ندارد: **kube-proxy** در **صفحه کنترل**؛ **Cilium** (با Hubble) در صفحه **Service Mesh**؛ و در زبانه‌های Istio و Linkerd، صفحه کنترل خود meshها (**istiod**، و مؤلفه‌های identity، destination و proxy-injector در Linkerd). این نمودارها وقتی پر می‌شوند که آن متریک‌ها از راه دیگری به OneUptime برسند، برای نمونه از [OpenTelemetry Collector](/docs/telemetry/open-telemetry) خودتان که آن‌ها را برداشت می‌کند، با ویژگی منبع `k8s.cluster.name` که روی نام خوشه (`clusterName` عامل) تنظیم شده باشد. خوشه‌هایی که بدون kube-proxy اجرا می‌شوند اصلاً متریک kube-proxy ندارند.
 
 ### روشن کردن مشاهده‌پذیری هزینه
 
@@ -661,7 +661,7 @@ eBPF فراخوانی‌های شبکه را می‌بیند، نه کد شما 
 
 هر فرایند زیر سرویسی گزارش می‌شود که نامش، به این ترتیب، از یک `OTEL_SERVICE_NAME` در کانتینرش، یک حاشیه‌نویسی پاد `resource.opentelemetry.io/service.name`، برچسب `app.kubernetes.io/instance` پادش، برچسب `app.kubernetes.io/name` آن، یا Deployment، StatefulSet یا DaemonSet آن گرفته می‌شود. Helm روی هر پاد از یک انتشار، از جمله پادهای زیرچارت‌هایش، `app.kubernetes.io/instance` را برابر نام انتشار قرار می‌دهد، پس همه مؤلفه‌های یک انتشار umbrella می‌توانند یک سرویس را مشترکاً داشته باشند. `ebpf.serviceNameLabels` را روی `["app.kubernetes.io/name", "app.kubernetes.io/instance"]` تنظیم کنید تا به‌جای آن بر پایه مؤلفه نام‌گذاری شوند؛ سرویس‌هایی که این برای آن‌ها اعمال می‌شود تغییر نام می‌دهند.
 
-روی یک OneUptime خودمیزبان، سرور را پیش از عامل به‌روز کنید: ردیاب eBPF که این چارت اجرا می‌کند (OBI v0.14)، سرویس‌های فراخوانده را نام‌گذاری می‌کند و اسپن‌های خود کارگزاران پیام را به شیوه‌هایی گزارش می‌کند که سرورهای قدیمی‌تر OneUptime نمی‌خوانند.
+روی یک OneUptime خودمیزبان، سرور را پیش از عامل به‌روز کنید: ردیاب eBPF که این چارت اجرا می‌کند (OBI v0.14)، سرویس‌های فراخوانده را نام‌گذاری می‌کند و اسپن‌های خود بروکرهای پیام را به شیوه‌هایی گزارش می‌کند که سرورهای قدیمی‌تر OneUptime نمی‌خوانند.
 
 نام‌ها از ترافیک می‌آیند. اسپن‌های HTTP وقتی OBI بتواند الگوی مسیر برنامه را بخواند از آن استفاده می‌کنند، و در غیر این صورت از الگویی ساخته‌شده از URL که بخش‌های شناسه‌مانندش با `*` جایگزین شده‌اند؛ برای نام‌گذاری خودتان `ebpf.routes.patterns` را تنظیم کنید. OBI الگوهای مسیر برنامه‌های Go (net/http، Gorilla mux، Gin)، Java (Spring، JAX-RS)، Node.js (Express، Fastify، Koa، NestJS، Next.js)، Python (Django، FastAPI، Flask)، Ruby (Rails)، .NET (مسیرهای attribute در ASP.NET Core) و PHP (Symfony، Laravel، Slim) را می‌خواند. نام‌های سطح برنامه مانند `OrderService.charge` فقط در کد وجود دارند و به یک OpenTelemetry SDK نیاز دارند.
 
@@ -865,7 +865,7 @@ kubectl delete namespace oneuptime-agent
 | ترِیس‌های eBPF و متریک‌های اسپن | یک ترِیس برای هر درخواست از هر فرایند ابزارگذاری‌شده | `sampling.traces.percentage`، `ebpf.enabled`، `ebpf.features.*`، `ebpf.autoTargetExe`، `ebpf.excludeExePaths` |
 | نقطه‌های داده متریک | بسامد برداشت عامل، ضرب در پادها و کانتینرها | `collectionInterval`، `hostMetrics.collectionInterval`، `cadvisor.scrapeInterval` |
 | کاردینالیتی متریک | شمار سری‌های متمایز (برای هر کانتینر، برای هر PVC، …) | `filters.metrics.exclude`، `namespaceFilters.rules` با دامنه `metrics`، `cadvisor.metricsAllowlist`، `kubeletstats.volumeMetrics` |
-| افزوده‌های اختیاری | پروفایل‌گیری، لاگ‌های ممیزی، control plane، متریک‌های میان‌زُنی | خاموش گذاشتنشان، همان‌طور که به‌طور پیش‌فرض هستند |
+| افزوده‌های اختیاری | پروفایل‌گیری، لاگ‌های ممیزی، صفحه کنترل، متریک‌های میان‌زُنی | خاموش گذاشتنشان، همان‌طور که به‌طور پیش‌فرض هستند |
 
 سه راه برای کم کردن حجم هست، و ارزش دارد بدانید کدام را به کار می‌برید:
 

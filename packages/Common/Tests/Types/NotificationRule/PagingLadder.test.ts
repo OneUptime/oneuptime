@@ -32,8 +32,10 @@ import {
   planPagingLadderSave,
   readPagingId,
   readPagingLadder,
+  readPagingLadderKeptCells,
   readPagingLadderSteps,
 } from "../../../Types/NotificationRule/PagingLadder";
+import BadDataException from "../../../Types/Exception/BadDataException";
 
 /*
  * The ladder (#6820) is read from a person's rule rows and written back as
@@ -1208,6 +1210,84 @@ describe("saving a ladder writes the rows the grid edited by hand would hold", (
     expect(plan.update).toEqual([]);
   });
 
+  test("a card kept by the save keeps its difference, and the ladder still changes everywhere else (#8890)", () => {
+    /*
+     * The issue's person: email and SMS at once everywhere, but no SMS on
+     * Critical incidents. They then add a call after five minutes to the
+     * ladder, keeping Critical incidents as they are.
+     */
+    const cells: Array<PagingLadderCell> = newProjectCells();
+    const critical: PagingLadderCell = cells[0]!;
+    const ladder: Array<PagingLadderStep> = [
+      step("userEmailId", EMAIL, 0),
+      step("userSmsId", SMS, 0),
+    ];
+    const rules: Array<PagingLadderRule> = [
+      ...gridEditedByHand(cells.slice(1), ladder),
+      ...gridEditedByHand([critical], [step("userEmailId", EMAIL, 0)]),
+    ];
+
+    const before: PagingLadderReading = readPagingLadder({
+      cells: cells,
+      rules: rules,
+    });
+    expect(before.differences).toHaveLength(1);
+
+    const newLadder: Array<PagingLadderStep> = [
+      ...ladder,
+      step("userCallId", CALL, 5),
+    ];
+
+    const plan: PagingLadderPlan = planPagingLadderSave({
+      cells: cells,
+      rules: rules,
+      steps: newLadder,
+      keepCellKeys: before.differences.map(
+        (difference: PagingLadderReading["differences"][number]): string => {
+          return getPagingLadderCellKey(difference.cell);
+        },
+      ),
+    });
+
+    // A call in every live card but the kept one; nothing deleted or changed.
+    expect(plan.delete).toEqual([]);
+    expect(plan.update).toEqual([]);
+    expect(plan.create).toHaveLength(cells.length - 1);
+    for (const created of plan.create) {
+      expect(
+        getPagingLadderCellKey({
+          ruleType: created.ruleType,
+          severityId: created.severityId,
+        }),
+      ).not.toBe(getPagingLadderCellKey(critical));
+    }
+
+    // Read back: the new ladder, and Critical incidents still the one card that differs.
+    const after: PagingLadderReading = readPagingLadder({
+      cells: cells,
+      rules: [
+        ...rules,
+        ...plan.create.map((created: PagingLadderRuleToCreate) => {
+          return {
+            ruleType: created.ruleType,
+            [created.severityColumn]: created.severityId,
+            [created.methodColumn]: created.methodId,
+            notifyAfterMinutes: created.notifyAfterMinutes,
+            repeatEveryMinutes: created.repeatEveryMinutes,
+          } as PagingLadderRule;
+        }),
+      ],
+    });
+    expect(after.steps).toEqual(normalizePagingLadderSteps(newLadder));
+    expect(
+      after.differences.map(
+        (difference: PagingLadderReading["differences"][number]): string => {
+          return getPagingLadderCellKey(difference.cell);
+        },
+      ),
+    ).toEqual([getPagingLadderCellKey(critical)]);
+  });
+
   test("rules without an id cannot be changed, so a plan never names them", () => {
     const cells: Array<PagingLadderCell> = newProjectCells().slice(0, 1);
     const unsaved: PagingLadderRule = {
@@ -1233,6 +1313,51 @@ describe("saving a ladder writes the rows the grid edited by hand would hold", (
         severityId: ALERT_LOW,
       }),
     ).toBe(`${NotificationRuleType.ON_CALL_EXECUTED_ALERT}|${ALERT_LOW}`);
+  });
+});
+
+describe("the cards a save keeps, as sent to the server (#8890)", () => {
+  test("none sent is none kept", () => {
+    expect(readPagingLadderKeptCells(undefined)).toEqual([]);
+    expect(readPagingLadderKeptCells(null)).toEqual([]);
+    expect(readPagingLadderKeptCells([])).toEqual([]);
+  });
+
+  test("each card is read as its cell key", () => {
+    expect(
+      readPagingLadderKeptCells([
+        {
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          severityId: CRITICAL,
+        },
+        {
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
+          severityId: { _type: "ObjectID", value: ALERT_LOW },
+        },
+      ]),
+    ).toEqual([
+      `${NotificationRuleType.ON_CALL_EXECUTED_INCIDENT}|${CRITICAL}`,
+      `${NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE}|${ALERT_LOW}`,
+    ]);
+  });
+
+  test("anything else is refused, saying what to do: a card read wrongly would be overwritten", () => {
+    for (const value of [
+      "Critical",
+      { ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT },
+      [null],
+      ["Critical"],
+      [{ ruleType: "On Call Shift Started", severityId: CRITICAL }],
+      [{ ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT }],
+    ]) {
+      expect(() => {
+        return readPagingLadderKeptCells(value);
+      }).toThrow(BadDataException);
+    }
+
+    expect(() => {
+      return readPagingLadderKeptCells("Critical");
+    }).toThrow(/^[A-Z].*\.$/);
   });
 });
 

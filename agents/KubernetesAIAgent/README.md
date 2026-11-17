@@ -29,7 +29,7 @@ All calls are HTTPS `POST`s to `<ONEUPTIME_URL>/kubernetes-ai-agent-ingest/*`:
 | `register` | Once at start (and again if OneUptime stops recognising the agent). Uses the chart's API key — the same telemetry ingestion key the collector uses. Returns the agent's own id and key. |
 | `heartbeat` | Every 30 seconds. Keeps the agent "connected" and reports what it may do (read-only or not, which namespaces, kubectl version). |
 | `claim-next-job` | Every 3 seconds. One job at a time. |
-| `job/<id>/heartbeat`, `job/<id>/result` | While a command runs, and to report its output. |
+| `job/<id>/heartbeat`, `job/<id>/result` | While a command runs, and to report its output. Once **Enable AI** is turned off for the project, the heartbeat says to stop: a command that has not started does not start, and one that is running is left to finish. |
 | `disconnect` | On shutdown, so the next pod can take over at once. |
 
 It needs the same OneUptime version as the chart, or newer. With an older server it logs `This OneUptime server does not have the Kubernetes AI agent API …` once and checks again every 5 minutes.
@@ -120,7 +120,7 @@ npm test            # compiles, then runs the node:test suites in Tests/
 npm run check-common
 ```
 
-`Common/` holds byte-identical copies of the kubectl policy files from `packages/Common` (and `KubectlArgvGuard.ts` is a copy of the Runner's). Never edit them here: change the source and run `npm run sync-common`. `packages/Common/Tests/Utils/AiRemediation/KubernetesAiAgentPolicyCopyParity.test.ts` fails when a copy drifts.
+`Common/` holds byte-identical copies of the kubectl policy files from `packages/Common`, and of `Utils/RetryAfter.ts`, which reads how long OneUptime asked the agent to wait the way every OneUptime client reads it (`KubectlArgvGuard.ts` is a copy of the Runner's). Never edit them here: change the source and run `npm run sync-common`. `packages/Common/Tests/Utils/AiRemediation/KubernetesAiAgentPolicyCopyParity.test.ts` fails when a copy drifts.
 
 ## Security context
 

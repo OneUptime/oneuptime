@@ -68,6 +68,7 @@
     "signInWithSso": "Iniciar sesión con SSO",
     "signInWithMicrosoft": "Iniciar sesión con Microsoft",
     "emailSignInLink": "Enviarme un enlace de inicio de sesión",
+    "moreWaysToSignIn": "Más formas de iniciar sesión",
     "noAccountPrompt": "¿No tiene una cuenta?",
     "registerLink": "Registrarse.",
     "twoFactor": {
@@ -175,10 +176,17 @@
   "resetPassword": {
     "title": "Restablezca su contraseña",
     "subtitle": "Ingrese su nueva contraseña y la actualizaremos.",
-    "successMessage": "Su contraseña ha sido actualizada. Por favor, inicie sesión.",
     "submitButton": "Restablecer contraseña",
     "knowPasswordPrompt": "¿Conoce su contraseña?",
-    "loginLink": "Iniciar sesión."
+    "loginLink": "Iniciar sesión.",
+    "successTitle": "Se ha restablecido tu contraseña",
+    "successDescription": "Inicia sesión con tu nueva contraseña.",
+    "signInButton": "Iniciar sesión",
+    "linkExpiredTitle": "Este enlace de restablecimiento ha caducado",
+    "linkExpiredDescription": "Los enlaces de restablecimiento sirven durante un día. Pide un enlace nuevo y te lo enviaremos por correo electrónico.",
+    "linkInvalidTitle": "Este enlace de restablecimiento ya no funciona",
+    "linkInvalidDescription": "Puede que ya se haya usado o que solo se haya copiado una parte. Pide un enlace nuevo y te lo enviaremos por correo electrónico.",
+    "requestNewLinkButton": "Pedir un enlace nuevo"
   },
   "sso": {
     "title": "Iniciar sesión con SSO",
@@ -562,6 +570,7 @@
   "What was sent is larger than the 50 MB OneUptime takes in one request.": "Lo que se envió supera los 50 MB que OneUptime acepta en una solicitud.",
   "Try again with less at once, such as a smaller file.": "Vuelva a intentarlo con menos a la vez, por ejemplo con un archivo más pequeño.",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Si un proxy delante de OneUptime lo rechazó, aumente el límite de tamaño de las solicitudes de ese proxy a 50 MB, lo mismo que acepta OneUptime (en nginx, client_max_body_size 50M).",
+  "Dismiss": "Descartar",
   "This form is not available. It may have been turned off, or the link may be out of date.": "Este formulario no está disponible. Es posible que se haya desactivado o que el enlace esté desactualizado.",
   "This form can only be opened from an allowed network.": "Este formulario solo se puede abrir desde una red permitida.",
   "Too many submissions from your network. Please wait a few minutes and try again.": "Se han enviado demasiados informes desde tu red. Espera unos minutos y vuelve a intentarlo.",
@@ -572,6 +581,7 @@
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "Este formulario no puede crear un incidente porque no tiene gravedad. Avisa al equipo que lo compartió.",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "No se pueden aceptar envíos en este momento. Vuelve a intentarlo en unos minutos.",
   "This form is receiving too many files right now. Please try again later.": "Este formulario está recibiendo demasiados archivos en este momento. Vuelve a intentarlo más tarde.",
+  "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "Ahora mismo no se pueden analizar los archivos en busca de virus, así que no se aceptaron. Vuelve a intentarlo en unos minutos.",
   "A response can carry at most 10 files.": "Una respuesta puede incluir como máximo 10 archivos.",
   "The files of a response can be at most 20 MB together.": "Los archivos de una respuesta pueden ocupar como máximo 20 MB en total.",
   "Your response could not be submitted. Please try again in a few minutes.": "No se ha podido enviar tu respuesta. Vuelve a intentarlo en unos minutos.",

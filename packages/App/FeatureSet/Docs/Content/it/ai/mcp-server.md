@@ -144,7 +144,7 @@ In **Accesso**, scegli **Visualizzatore** per un agente che legge soltanto, oppu
 
 ### Copia la chiave
 
-Fai clic su **Crea: Chiave API**: si apre la pagina della chiave. Copia la chiave da lì.
+Fai clic su **Crea: Chiave API**. OneUptime mostra la chiave una sola volta, nella finestra di dialogo **Copia la tua chiave API**: copiala prima di premere **Fatto**.
 :::
 
 Le chiavi API appartengono a un progetto: il server MCP prende il progetto dalla chiave, così gli strumenti di creazione non hanno mai bisogno di un argomento `projectId`.
@@ -360,6 +360,8 @@ Interroga sempre la telemetria con un intervallo di tempo. Un campo di query acc
 Gli operatori sono `EqualTo`, `NotEqual`, `IsNull`, `NotNull`, `EqualToOrNull`, `GreaterThan`, `LessThan`, `GreaterThanOrEqual`, `LessThanOrEqual`, `InBetween`, `Search` e `Includes`. I valori di ordinamento sono `"ASC"` o `"DESC"`.
 
 Gli strumenti `list_` e `count_` accettano qualsiasi campo, così l'elenco degli strumenti resta abbastanza piccolo perché un client lo carichi tutto in una volta. Per vedere i campi di una risorsa, cosa significa ciascuno e quali operatori accetta, un agente chiama `oneuptime_describe_resource` con la risorsa o uno dei suoi strumenti, come `Incident` o `list_incidents`.
+
+Gli altri strumenti `list_`, di incidenti, monitor e ogni altro tipo di record, ordinano come fa l'API: un campo prende una direzione, oppure `{ "direction": "DESC", "nulls": "LAST" }` per mettere in fondo i record senza un valore in esso, e una relazione con un record ordina per un campo del record che nomina, come in `{ "incidentSeverity": { "order": "ASC" } }`. `oneuptime_describe_resource` contrassegna ciascuna di queste relazioni con `sort` e nomina i campi per cui ordina sotto `sortBy`.
 
 ## Selezione dei campi e paginazione
 

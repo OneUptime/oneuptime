@@ -519,7 +519,7 @@ Un'ottica che manca da una porta abilitata compare subito come **Non rilevato** 
 
 Ogni lettura è anche una metrica del dispositivo, una serie per porta e corsia, nelle unità che mostra la pagina: `oneuptime.monitor.snmp.transceiver.temperature` (°C), `oneuptime.monitor.snmp.transceiver.voltage` (V), `oneuptime.monitor.snmp.transceiver.bias.current` (mA), `oneuptime.monitor.snmp.transceiver.tx.power` e `oneuptime.monitor.snmp.transceiver.rx.power` (dBm), con gli attributi `interfaceName`, `interfaceIndex` e `lane`. Una dashboard può tracciare la luce di un collegamento nell'arco di mesi, e un monitor di metriche può generare avvisi su di essa.
 
-Un'indagine di OneUptime AI su un incidente o un avviso di un monitor del dispositivo di rete parte dalle ottiche delle porte interessate: se sono ancora rilevate o no, ogni lettura rispetto alle soglie del dispositivo e la potenza ricevuta delle ultime settimane. L'AI può anche leggere le ottiche di qualsiasi dispositivo quando gliele chiedi.
+Un'indagine di OneUptime AI su un incidente o un avviso di un monitor del dispositivo di rete parte dalle ottiche delle porte interessate: se sono ancora rilevate o no, ogni lettura rispetto alle soglie del dispositivo e la potenza ricevuta delle ultime settimane. L'IA può anche leggere le ottiche di qualsiasi dispositivo quando gliele chiedi.
 
 ### Identità del dispositivo
 
@@ -1014,7 +1014,7 @@ Seleziona dei dispositivi, o tutti quelli che corrispondono alla ricerca, poi:
 
 I pulsanti di una riga fanno lo stesso per un solo dispositivo. Sulla mappa, l'indirizzo IP di un nodo è disegnato sotto il suo nome, e la ricerca trova un nodo anche per indirizzo IP o indirizzo MAC, comunque lo abbia scritto uno switch. Fai clic su un dispositivo rilevato sulla mappa e il suo pannello offre **Aggiungi al monitoraggio**, che lo aggiunge allo stesso modo, oltre a **Nascondi dalla mappa**.
 
-Un dispositivo non visto da 30 giorni viene rimosso dall'elenco e dalla mappa, a meno che non sia monitorato, classificato o aggiunto o modificato da qualcuno. La riga sotto l'elenco dice per quanto restano i dispositivi; i Proprietari del progetto e gli Amministratori del progetto cambiano questa durata in **Altre impostazioni → Dispositivi non visti → Rimuovi dopo**: 7, 14, 30, 60, 90, 180 o 365 giorni, oppure **Mai**. L'elenco viene controllato ogni ora, e nulla di ciò che uno switch o un controller ha visto viene rimosso finché non segnala nulla. Un dispositivo rimosso che viene visto di nuovo torna come nuovo, mostrato sulla mappa anche se prima era nascosto.
+Un dispositivo non visto da 30 giorni viene rimosso dall'elenco e dalla mappa, a meno che non sia monitorato, classificato o aggiunto o modificato da qualcuno. La riga sotto l'elenco dice per quanto restano i dispositivi; i Proprietari del progetto e gli Amministratori del progetto cambiano questa durata in **Altre impostazioni → Dispositivi non visti → Rimuovi dopo**: 7, 14, 30, 60, 90, 180 o 365 giorni, oppure **Mai**. L'elenco viene controllato ogni ora, e nulla di ciò che uno switch o un controller ha visto viene rimosso finché non segnala nulla. Un dispositivo rimosso che viene visto di nuovo torna come nuovo, mostrato sulla mappa anche se prima era nascosto. I dispositivi rimossi restano nel database per 30 giorni e poi vengono eliminati definitivamente, su ogni installazione, comprese quelle self-hosted.
 
 ### Scegliere il layout con cui si apre la mappa
 

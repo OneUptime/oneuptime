@@ -18,7 +18,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Only the **active** mgr returns metrics — standbys answer with an empty response — so scraping every mgr keeps metrics flowing when the active one fails over.":
     "Alleen de **actieve** mgr levert metrieken (standby's antwoorden met een leeg antwoord), dus door elke mgr uit te lezen blijven de metrieken binnenkomen als de actieve overschakelt.",
   "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:":
-    "Het script vraagt om je OneUptime-URL en je inname-sleutel, die allebei in stap 1 staan (kies daar een sleutel om ze hier ingevuld te krijgen), en daarna om:",
+    "Het script vraagt om je OneUptime-URL en je ingestiesleutel, die allebei in stap 1 staan (kies daar een sleutel om ze hier ingevuld te krijgen), en daarna om:",
   "- **Cluster name** — how the cluster appears in OneUptime. Give every cluster its own and keep it stable: a new name registers a new cluster.":
     "- **Clusternaam**: hoe het cluster in OneUptime verschijnt. Geef elk cluster een eigen naam en houd hem stabiel: een nieuwe naam registreert een nieuw cluster.",
   "- **Mgr endpoints** — every mgr from the previous step as comma-separated `host:port`, e.g. `ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283`. The script adds the square brackets.":
@@ -40,7 +40,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | Ja | De URL van je OneUptime-instantie (bijv. `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key — the one picked in step 1 |":
-    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | De telemetrie-inname-sleutel, die je in stap 1 hebt gekozen |",
+    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | De telemetrie-ingestiesleutel, die je in stap 1 hebt gekozen |",
   "| `CEPH_CLUSTER_NAME` | Yes | Cluster identifier shown in OneUptime. Stamped on every metric as the `ceph.cluster.name` resource attribute. Keep it stable — changing it registers a new cluster (default: `ceph`) |":
     "| `CEPH_CLUSTER_NAME` | Ja | De clusteraanduiding die OneUptime toont. Op elke metriek gezet als het resourceattribuut `ceph.cluster.name`. Houd hem stabiel: wijzigen registreert een nieuw cluster (standaard: `ceph`) |",
   "| `CEPH_MGR_ENDPOINTS` | Yes | Comma-separated `host:port` list of **all** mgr daemons, wrapped in square brackets, e.g. `[ceph-mon-1:9283,ceph-mon-2:9283]`. The install script adds the brackets for you |":
@@ -103,11 +103,11 @@ const TRANSLATION: SetupGuideTranslation = {
   "If you created the AI agent's Ceph client, remove it on an admin node: `ceph auth del client.oneuptime-ai`.":
     "Heb je de Ceph-client van de AI-agent aangemaakt, verwijder hem dan op een beheerknooppunt: `ceph auth del client.oneuptime-ai`.",
   "`troubleshoot.sh` checks the whole chain — container runtime, every mgr endpoint (including the active-vs-standby trap), cluster-name stamping, token shape, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key. That last check matters most: OneUptime's OTLP endpoints refuse a bad key with `401` or `422`, which the collector logs as a single `Exporting failed` line per batch that is easy to miss, so the script asks `GET /otlp/v1/validate` for a direct 200/401 verdict.":
-    "`troubleshoot.sh` controleert de hele keten (containerruntime, elk mgr-endpoint inclusief de valkuil actief tegenover standby, het zetten van de clusternaam, de vorm van het token, de eigen metrieken van de collector) en vraagt OneUptime rechtstreeks of het je inname-sleutel accepteert. Die laatste controle telt het zwaarst: de OTLP-endpoints van OneUptime weigeren een verkeerde sleutel met `401` of `422`, wat de collector per batch logt als één makkelijk te missen regel `Exporting failed`, dus het script vraagt `GET /otlp/v1/validate` om een direct oordeel 200/401.",
+    "`troubleshoot.sh` controleert de hele keten (containerruntime, elk mgr-endpoint inclusief de valkuil actief tegenover standby, het zetten van de clusternaam, de vorm van het token, de eigen metrieken van de collector) en vraagt OneUptime rechtstreeks of het je ingestiesleutel accepteert. Die laatste controle telt het zwaarst: de OTLP-endpoints van OneUptime weigeren een verkeerde sleutel met `401` of `422`, wat de collector per batch logt als één makkelijk te missen regel `Exporting failed`, dus het script vraagt `GET /otlp/v1/validate` om een direct oordeel 200/401.",
   "It ends with a verdict naming the most likely cause.":
     "Het eindigt met een oordeel dat de waarschijnlijkste oorzaak noemt.",
   "1. Check the collector logs: `docker logs oneuptime-ceph-agent` — look for export errors (`401` means a bad ingestion key, connection refused means a wrong `ONEUPTIME_URL`).":
-    "1. Controleer de logboeken van de collector: `docker logs oneuptime-ceph-agent`; zoek naar exportfouten (`401` betekent een verkeerde inname-sleutel, connection refused een verkeerde `ONEUPTIME_URL`).",
+    "1. Controleer de logboeken van de collector: `docker logs oneuptime-ceph-agent`; zoek naar exportfouten (`401` betekent een verkeerde ingestiesleutel, connection refused een verkeerde `ONEUPTIME_URL`).",
   "2. Verify a mgr endpoint serves metrics: `curl http://<active-mgr>:9283/metrics | head` — you should see `ceph_*` metric lines. If not, enable the module: `ceph mgr module enable prometheus`.":
     "2. Controleer of een mgr-endpoint metrieken levert: `curl http://<active-mgr>:9283/metrics | head`; je zou regels met `ceph_*`-metrieken moeten zien. Zo niet, zet de module aan: `ceph mgr module enable prometheus`.",
   "3. Make sure `CEPH_MGR_ENDPOINTS` is wrapped in square brackets — without them the collector treats the whole comma-separated string as a single (invalid) target.":
@@ -117,7 +117,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent logs for errors: `docker logs oneuptime-ceph-agent 2>&1 | grep -i error`":
     "2. Controleer de logboeken van de agent op fouten: `docker logs oneuptime-ceph-agent 2>&1 | grep -i error`",
   "3. Verify your OneUptime URL and ingestion key are correct.":
-    "3. Controleer of je OneUptime-URL en inname-sleutel kloppen.",
+    "3. Controleer of je OneUptime-URL en ingestiesleutel kloppen.",
   "4. Ensure the agent machine can reach the OneUptime instance over the network.":
     "4. Zorg dat de machine van de agent de OneUptime-instantie via het netwerk kan bereiken.",
   "You are probably scraping only the (previously) active mgr. List **every** mgr daemon in `CEPH_MGR_ENDPOINTS` — scrapes of standby mgrs are cheap and return empty responses.":
@@ -131,7 +131,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The cluster's identity comes from `CEPH_CLUSTER_NAME`, stamped on every metric as `ceph.cluster.name`. This cluster is **`ceph-1`**. Fix it in `.env` and apply it with `docker compose up -d` in `/opt/oneuptime-ceph-agent` — note that a new name registers a new cluster.":
     "De identiteit van het cluster komt uit `CEPH_CLUSTER_NAME`, op elke metriek gezet als `ceph.cluster.name`. Dit cluster is **`ceph-1`**. Corrigeer hem in `.env` en pas hem toe met `docker compose up -d` in `/opt/oneuptime-ceph-agent`; let op: een nieuwe naam registreert een nieuw cluster.",
   "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:":
-    "De opdracht bevat al je OneUptime-URL en inname-sleutel. Naar de rest vraagt het script:",
+    "De opdracht bevat al je OneUptime-URL en ingestiesleutel. Naar de rest vraagt het script:",
   "Download `docker-compose.yml` and `otel-collector-config.yaml` from this OneUptime into a new folder:":
     "Download `docker-compose.yml` en `otel-collector-config.yaml` van deze OneUptime naar een nieuwe map:",
   "Create a `.env` file next to them:": "Maak er een `.env`-bestand naast:",
@@ -141,7 +141,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- Zet **elke** mgr-daemon in `CEPH_MGR_ENDPOINTS`, kommagescheiden en tussen vierkante haken: zonder de haken leest de collector de hele lijst als één ongeldig doel.",
   "Start the agent:": "Start de agent:",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Kies in stap 1 een inname-sleutel om `<YOUR_API_KEY>` in te vullen.",
+    "Kies in stap 1 een ingestiesleutel om `<YOUR_API_KEY>` in te vullen.",
   "Docker Compose also starts **`oneuptime-ceph-ai-agent`**, the OneUptime AI agent. It waits for a Ceph client of its own — see **OneUptime AI agent** under Advanced, or delete its service from `docker-compose.yml` if you do not use OneUptime AI.":
     "Docker Compose start ook **`oneuptime-ceph-ai-agent`**, de OneUptime AI-agent. Hij wacht op een eigen Ceph-client; zie **OneUptime AI-agent** onder Geavanceerd, of verwijder zijn service uit `docker-compose.yml` als je OneUptime AI niet gebruikt.",
   "The agent reads these from the `.env` file next to `docker-compose.yml`. After changing one, apply it with `docker compose up -d` in the folder with `docker-compose.yml`.":

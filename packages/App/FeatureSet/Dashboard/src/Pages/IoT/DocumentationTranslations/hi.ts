@@ -16,7 +16,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Replace `building-a-sensors` and `sensor-001` with your fleet name and device id. Keep `iot.fleet.name` stable: changing it registers a brand-new fleet.":
     "`building-a-sensors` और `sensor-001` को अपने फ़्लीट के नाम और डिवाइस id से बदलें। `iot.fleet.name` को स्थिर रखें: इसे बदलने से एक बिलकुल नया फ़्लीट रजिस्टर होता है।",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "`<YOUR_API_KEY>` भरने के लिए चरण 1 में एक इन्जेशन कुंजी चुनें।",
+    "`<YOUR_API_KEY>` भरने के लिए चरण 1 में एक इंजेशन कुंजी चुनें।",
   "Emit your readings as metrics named after the `iot_*` conventions, and give every datapoint a `device.id` attribute — for example:":
     "अपनी रीडिंग को `iot_*` नियमों के अनुसार नाम वाले मेट्रिक्स के रूप में भेजें, और हर डेटापॉइंट को एक `device.id` एट्रिब्यूट दें, उदाहरण के लिए:",
   "| Metric | Value | Datapoint attribute |":
@@ -75,7 +75,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "1. Verify `iot.fleet.name` is set as a **resource** attribute (not a datapoint label), and that `service.name` is `iot/<fleet>`.":
     "1. जाँचें कि `iot.fleet.name` एक **रिसोर्स** एट्रिब्यूट के रूप में सेट है (डेटापॉइंट लेबल के रूप में नहीं), और `service.name` का मान `iot/<fleet>` है।",
   "2. Confirm the exporter endpoint is `<YOUR_ONEUPTIME_URL>/otlp` and the `x-oneuptime-token` header carries a valid ingestion key.":
-    "2. पुष्टि करें कि एक्सपोर्टर का एंडपॉइंट `<YOUR_ONEUPTIME_URL>/otlp` है और `x-oneuptime-token` हेडर में एक मान्य इन्जेशन कुंजी है।",
+    "2. पुष्टि करें कि एक्सपोर्टर का एंडपॉइंट `<YOUR_ONEUPTIME_URL>/otlp` है और `x-oneuptime-token` हेडर में एक मान्य इंजेशन कुंजी है।",
   "1. Make sure each datapoint carries a `device.id` label — devices are keyed on it.":
     "1. पक्का करें कि हर डेटापॉइंट पर `device.id` लेबल है: डिवाइस इसी के आधार पर पहचाने जाते हैं।",
   "2. Send `iot_device_info` (identity-only) for devices that have not yet reported readings so they still show up in the inventory.":
@@ -83,7 +83,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "3. Check that `device.id` values are stable across reports; a changing id creates duplicate device rows.":
     "3. जाँचें कि `device.id` के मान हर रिपोर्ट में एक जैसे रहें; बदलती id से डिवाइस की डुप्लिकेट पंक्तियाँ बनती हैं।",
   "`401` means the ingestion key is missing, wrong or expired; `422` means it has been disabled, or is a browser key, which cannot send device telemetry. Select a different key above (or create a new one) and update the `x-oneuptime-token` header your device or collector sends.":
-    "`401` का मतलब है कि इन्जेशन कुंजी नहीं है, ग़लत है या उसकी अवधि ख़त्म हो गई है; `422` का मतलब है कि उसे निष्क्रिय किया गया है, या वह ब्राउज़र कुंजी है, जो डिवाइस टेलीमेट्री नहीं भेज सकती। ऊपर कोई दूसरी कुंजी चुनें (या नई बनाएँ) और वह `x-oneuptime-token` हेडर अपडेट करें जिसे आपका डिवाइस या कलेक्टर भेजता है।",
+    "`401` का मतलब है कि इंजेशन कुंजी नहीं है, ग़लत है या उसकी अवधि ख़त्म हो गई है; `422` का मतलब है कि उसे निष्क्रिय किया गया है, या वह ब्राउज़र कुंजी है, जो डिवाइस टेलीमेट्री नहीं भेज सकती। ऊपर कोई दूसरी कुंजी चुनें (या नई बनाएँ) और वह `x-oneuptime-token` हेडर अपडेट करें जिसे आपका डिवाइस या कलेक्टर भेजता है।",
   "1. Use the exact `iot_*` metric names from **Metric conventions** under Advanced — other names are stored as generic metrics and do not populate the IoT charts.":
     "1. उन्नत में **मेट्रिक नियम** से `iot_*` मेट्रिक के सटीक नाम इस्तेमाल करें: दूसरे नाम सामान्य मेट्रिक्स के रूप में सहेजे जाते हैं और IoT चार्ट नहीं भरते।",
   "2. `iot_cpu_usage_ratio` is a `0`–`1` ratio; send the raw ratio and OneUptime renders it as a percentage.":
@@ -148,7 +148,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "OneUptime recognizes the following `iot_*` metric names. Over MQTT the topic names the device, so every reading is attributed to it. You only need to send the metrics that make sense for your device — missing ones are simply not charted.":
     "OneUptime इन `iot_*` मेट्रिक नामों को पहचानता है। MQTT पर टॉपिक डिवाइस का नाम बताता है, इसलिए हर रीडिंग उसी से जोड़ी जाती है। आपको सिर्फ़ वे मेट्रिक्स भेजने हैं जो आपके डिवाइस के लिए मायने रखते हैं: जो नहीं भेजे जाते, उनका चार्ट बस नहीं बनता।",
   "The project-wide ingestion key suits gateways that publish on behalf of many devices. For devices that connect directly, register each device under the fleet's **Device Registry** tab: it issues a per-device credential — the credential ID is the MQTT **username** and the secret is the **password**. The fleet appears with its first reading, so send one with the project-wide key first, as in step 2.":
-    "पूरे प्रोजेक्ट की इन्जेशन कुंजी उन गेटवे के लिए ठीक है जो कई डिवाइस की ओर से पब्लिश करते हैं। सीधे कनेक्ट होने वाले डिवाइस के लिए, हर डिवाइस को फ़्लीट के **डिवाइस रजिस्ट्री** टैब में रजिस्टर करें: यह हर डिवाइस के लिए एक क्रेडेंशियल जारी करता है; क्रेडेंशियल ID, MQTT **यूज़रनेम** है और सीक्रेट **पासवर्ड** है। फ़्लीट अपनी पहली रीडिंग के साथ दिखता है, इसलिए पहले पूरे प्रोजेक्ट की कुंजी से एक रीडिंग भेजें, जैसा चरण 2 में है।",
+    "पूरे प्रोजेक्ट की इंजेशन कुंजी उन गेटवे के लिए ठीक है जो कई डिवाइस की ओर से पब्लिश करते हैं। सीधे कनेक्ट होने वाले डिवाइस के लिए, हर डिवाइस को फ़्लीट के **डिवाइस रजिस्ट्री** टैब में रजिस्टर करें: यह हर डिवाइस के लिए एक क्रेडेंशियल जारी करता है; क्रेडेंशियल ID, MQTT **यूज़रनेम** है और सीक्रेट **पासवर्ड** है। फ़्लीट अपनी पहली रीडिंग के साथ दिखता है, इसलिए पहले पूरे प्रोजेक्ट की कुंजी से एक रीडिंग भेजें, जैसा चरण 2 में है।",
   "- **Topic isolation** — a device credential can only publish under its own `oneuptime/<fleet>/<device>/…` topics; anything else is dropped.":
     "- **टॉपिक अलगाव**: डिवाइस का क्रेडेंशियल सिर्फ़ उसके अपने `oneuptime/<fleet>/<device>/…` टॉपिक में पब्लिश कर सकता है; बाकी सब छोड़ दिया जाता है।",
   "- **Individual revocation** — disable or delete one device's credential without touching the rest of the fleet; a connected device is cut off within a few seconds.":
@@ -183,7 +183,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "OneUptime rejects bad credentials at CONNECT with return code 4. Check that:":
     "OneUptime ग़लत क्रेडेंशियल को CONNECT पर रिटर्न कोड 4 के साथ अस्वीकार करता है। जाँचें कि:",
   "- the password is a valid ingestion key — or, for a registered device, the credential's secret, with its credential ID as the username;":
-    "- पासवर्ड एक मान्य इन्जेशन कुंजी है, या रजिस्टर किए गए डिवाइस के लिए क्रेडेंशियल का सीक्रेट है, और यूज़रनेम उसका क्रेडेंशियल ID है;",
+    "- पासवर्ड एक मान्य इंजेशन कुंजी है, या रजिस्टर किए गए डिवाइस के लिए क्रेडेंशियल का सीक्रेट है, और यूज़रनेम उसका क्रेडेंशियल ID है;",
   "- the key is a server key (browser keys are refused over MQTT) and has not been disabled or expired.":
     "- कुंजी एक सर्वर कुंजी है (MQTT पर ब्राउज़र कुंजियाँ अस्वीकार की जाती हैं) और न तो निष्क्रिय है, न उसकी अवधि ख़त्म हुई है।",
   "1. The device id is the `<device>` segment of the topic — keep it stable across publishes; a changing id creates duplicate device rows.":

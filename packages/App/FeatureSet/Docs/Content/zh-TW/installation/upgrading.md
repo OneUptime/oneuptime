@@ -6,7 +6,7 @@
 - [如何升級](#如何升級): 適用於 Docker Compose 和 Kubernetes 的步驟。
 - [各版本的說明](#查找您的版本的說明): 每個主要版本需要您做什麼，一目了然。
 - [Community Edition 與 Enterprise Edition 映像檔](#community-edition-與-enterprise-edition-映像檔): 從 14 起應執行哪個映像檔。
-- [從 OneUptime 13 → 14 升級](#從-oneuptime-13-14-升級): 最新的主要版本。
+- [從 OneUptime 14 → 15 升級](#從-oneuptime-14-15-升級): 最新的主要版本。
 :::
 
 ## 如何升級
@@ -80,6 +80,7 @@ kubectl get pods -n <namespace>
 
 | 升級 | 您需要做什麼 |
 | --- | --- |
+| [14 → 15](#從-oneuptime-14-15-升級) | 如果您在管理員儀表板上查看主 API 金鑰，請先複製它。將 Terraform 提供者與伺服器一起升級，並從 API 讀取中移除 15 不再提供的憑證。位於代理伺服器之後時，讓代理伺服器能夠連線到您的身分提供者、行事曆、MCP 伺服器和備份儲存空間。檢查接收純文字的傳入請求監測器。 |
 | [13 → 14](#從-oneuptime-13-14-升級) | 選擇一個版本。設定了 `IS_ENTERPRISE_EDITION=true` 的 Docker Compose 安裝改用 `APP_TAG=enterprise-release`。在 Enterprise Edition 上啟用授權。重新儲存 IPv6 的 Ping、Port 和 SSL 監測器。AI 程式碼修正改由全域 Runner 執行：保持它開啟，在 Helm 上把 `runner.keda` 移到 `globalRunner.keda`。 |
 | [12 → 13](#從-oneuptime-12-13-升級) | 通常不需要做什麼：Redis 換成 Valkey，舊的設定名稱仍然有效。手動執行 Docker Compose？請加上 `--remove-orphans`。使用自己的快取？請閱讀 [如果您執行自己的快取](#如果您執行自己的快取)。 |
 | [11 → 12](#從-oneuptime-11-12-升級) | 將 Runbook Agent 重新部署為 Runner。使用 Docker Compose 時設定 `ONEUPTIME_RUNNER_KEY`。使用 Helm 時將 `aiAgent:` 重新命名為 `runner:`。重新授予 API 金鑰曾直接擁有的 Runner 權限。 |
@@ -122,6 +123,32 @@ Enterprise Edition 現在會檢查自己的授權：
 - 自行託管的安裝不再提供 `/api/enterprise-license/` 下的授權伺服器端點。只有 oneuptime.com 使用它們。
 - SCIM 端點在 Enterprise Edition 上保持完全相同的路徑，因此身分提供者的設定無需變更。在 Community Edition 上它們會傳回 `404`。在 Enterprise Edition 上，授權到期期間（試用期或寬限期之後）它們會拒絕請求，一旦啟用授權就會再次回應。
 - SSO 和 OIDC 端點（SAML 登入和 ACS URL、OIDC 重新導向 URI，以及全域 SSO 端點）保持完全相同的路徑，並且無論授權處於什麼狀態，兩個版本都會提供它們。
+
+## 從 OneUptime 14 → 15 升級
+
+OneUptime 15 讓它儲存的機密對讀取資料庫傾印或備份的人毫無用處，並讓私人事件、警示和片段只屬於擁有它們的人。主 API 金鑰和專案的 API 金鑰以雜湊值儲存，只在建立時顯示；專案為郵件、聊天應用程式、Webhook 和自訂網域儲存的憑證會被加密，並且無法再讀回。關於私人記錄的呼叫、Runbook 和修正從其擁有者那裡取得權限，工作流程也不再對私人記錄執行操作。請從 14 升級——如果您仍在 13，請先完成 13 → 14。
+
+升級會對您現有的金鑰進行雜湊，並加密您現有的憑證，因此使用它們的指令碼、整合和聊天應用程式無需任何變更即可繼續運作。
+
+### 您需要為 15 做什麼
+
+1. **如果您在管理員儀表板上查看主 API 金鑰，請在升級前複製它。** 從 15 起，該頁面不再顯示金鑰，而建立新金鑰會使舊金鑰失效。保存在密鑰管理工具中的金鑰無需任何操作。
+2. **如果您用 Terraform 或 OpenTofu 管理 OneUptime，請將提供者與伺服器一起升級**（`terraform init -upgrade`：提供者的版本跟隨 OneUptime 的版本）。14 的提供者會要求 15 不再提供的憑證，因此 `terraform plan` 會在每個 `oneuptime_smtp_config` 以及狀態頁面、儀表板和表單的網域上失敗，而且提供者會在下一次 refresh 時遺失它所建立的 API 金鑰的 `api_key`。
+3. **從您的 API 指令碼的讀取中移除 15 不再提供的憑證。** 如果讀取的 `select` 指定了專案 SMTP 設定的 `password`、`clientSecret`、`amazonSesSecretAccessKey`、`sendgridApiKey`、`mailgunApiKey`、`postmarkServerToken` 或 `resendApiKey`，或者自訂網域的 `customCertificateKey`，該讀取會被拒絕。API 金鑰只會在建立或重設它的請求中顯示。
+4. **如果伺服器透過代理伺服器連線到網際網路，請讓代理伺服器能夠連線到您的身分提供者、行事曆、MCP 伺服器和備份儲存空間。** OIDC 單一登入、外部行事曆、MCP 伺服器和備份現在會像伺服器透過 HTTP 進行的其他連線一樣，使用 `HTTPS_PROXY`、`HTTP_PROXY` 或 `ALL_PROXY` 中設定的代理伺服器。請把代理伺服器無法連線的主機，例如您自己網路上的 Keycloak、Exchange 伺服器或 MinIO，列在 `NO_PROXY` 中。請參閱 [其他對外連線](/docs/self-hosted/private-network-access#其他對外連線)。
+5. **檢查傳送端傳送純文字的傳入請求監測器的條件。** 15 會把不是 JSON 的 `text/plain` 請求內文讀作文字本身，而 14 把它讀作 `{}`，因此在預設條件下，只要文字包含 `error`，這樣的監測器就會變為離線並開啟一個事件：不只是 `backup failed: error 42`，`0 errors` 也會如此。工作流程的請求內文現在也是該文字。請參閱 [傳送請求內文](/docs/monitor/incoming-request-monitor#傳送請求內文)。
+6. **為擁有私人事件、警示和片段的團隊授予其成員呼叫和執行 Runbook 所用的權限，並把工作流程對私人記錄所做的事移到別處。** 關於私人記錄的呼叫、在其上執行 Runbook，以及處理 OneUptime AI 為它提出的修正，現在從擁有它的團隊和被指定為其擁有者的人員那裡取得權限，工作流程步驟也不再查看或變更私人記錄。請參閱 [15 中的其他變更](#15-中的其他變更)。
+
+### 15 中的其他變更
+
+這些變更會改變升級後 OneUptime 的行為。如果您使用主 API 金鑰、專案 API 金鑰或 Terraform，或者使用私人事件、警示和片段，請閱讀它們。
+
+:::details 閱讀 15 中的其他變更
+- **主 API 金鑰以雜湊值儲存，並且只在建立時顯示。** 此金鑰擁有所有專案的 root 存取權限，以前按原樣儲存，因此資料庫傾印或備份中包含一個可用的金鑰。現在只儲存它的雜湊值，升級會對你現有的金鑰進行雜湊：使用它的指令碼和整合無需任何變更即可繼續運作。 **管理員儀表板 > 設定 > API 金鑰** 不再顯示金鑰：它只說明是否已設定金鑰， **建立金鑰** 或 **重設金鑰** 會顯示一次新金鑰，請在那時複製。如果你是在該頁面上查看金鑰，而不是將其保存在密鑰管理工具中，請在升級前複製它：升級後， **重設金鑰** 會建立一個新金鑰，舊金鑰隨即失效。新金鑰立即生效， **已啟用** 可將其關閉。API 不再傳回 `masterApiKey`，並拒絕透過它寫入的金鑰。回復到較早的版本後，頁面會顯示金鑰的雜湊值，而它不是金鑰：請在那裡產生一個新金鑰。
+- **專案的 API 金鑰以雜湊值儲存，並且每個金鑰只在建立時顯示。** 金鑰以前按原樣儲存，因此資料庫傾印或備份中包含每個專案的可用金鑰。現在只儲存它的雜湊值，升級會對你現有的金鑰進行雜湊：使用這些金鑰登入的指令碼、整合和 Terraform 設定無需任何變更即可繼續運作。 **專案設定 → 進階 → API 金鑰** 會在新金鑰建立或重設時顯示一次，請在那時複製，並在原處顯示每個金鑰的結尾字元。API 不再讀回金鑰：建立的回應會傳回一次金鑰， `POST /api-key/:id/reset-key` 會建立一個新金鑰。如果你用 Terraform 或 OpenTofu 管理 API 金鑰，請將提供者與伺服器一起升級：它會把建立回應中的 `api_key` 保存在 state 中，而較早的提供者會在下一次 refresh 時將其清空；匯入的金鑰和 `oneuptime_api_key` 資料來源一樣，沒有金鑰值。升級期間仍在執行的較早版本的伺服器會在金鑰被雜湊後拒絕它們，直到它被取代。回復到較早的版本後，每個金鑰都會被取代為一個新金鑰，並顯示在它的頁面上：請把它交給使用舊金鑰的地方。
+- **針對私人記錄所做的操作也遵循其擁有者，工作流程不會對私人記錄執行操作。** 就私人事件、警示或片段呼叫人員（**執行待命策略**、**立即呼叫**，以及從 Slack、Microsoft Teams、Mattermost 或 OneUptime AI 呼叫）、啟動與之連結的 Runbook 或推進該執行，以及核准、試執行或駁回 OneUptime AI 為它提出的修正，現在與變更該記錄一樣，從擁有它的團隊、被指定為其擁有者的人員，或專案擁有者和專案管理員那裡取得權限。其他任何人都會被拒絕並告知原因，在記錄頁面上這些按鈕會被鎖定並說明原因。它的值班政策執行、Runbook 執行和修正，以及關於它的電子郵件、簡訊、電話、推播通知、WhatsApp、Telegram、Slack 和 Microsoft Teams 訊息、Webhook 和 AI 請求的記錄，現在只有可以讀取它的人才能讀取。工作流程步驟不再查看或變更私人記錄或其所屬內容，工作流程也不再因這樣的記錄而啟動。請為擁有私人記錄的團隊授予其成員應使用的呼叫和 Runbook 權限，並把工作流程對私人記錄所做的事交給某個人，或交給該記錄本身的值班規則和通知規則。請參閱[私人事件、警示和片段](/docs/permissions/index#私人事件警示和片段)。
+- **Runbook 執行和修正會隨其事件或警示一起刪除，其他記錄只向可以讀取私人記錄的人顯示它。** 現在刪除事件或警示時，無論以何種方式刪除，除了原本就會刪除的備註、值班政策執行和記錄之外，它的 Runbook 執行和 OneUptime AI 為它提出的修正也會被刪除。升級會刪除先前已經比其事件或警示保留得更久的 Runbook 執行和修正：既不指向事件也不指向警示的每個修正、這些修正啟動的執行，以及由 Runbook 規則或自動修復啟動、且不指向任何事件、警示或維護事件的執行。提及私人事件、警示或片段但不屬於它的記錄，例如 Data Security 問題、安全案件、表單提交或工作階段重播，現在只向可以讀取該記錄的人顯示它的標題和其他欄位。 Runner 為關於私人記錄的 Runbook 執行或修正所執行的命令及其輸出，現在只有可以讀取該記錄的人才能讀取，已刪除修正的命令只有專案擁有者和專案管理員可以讀取。 OneUptime AI 為聊天執行的命令，現在只有提問的人才能讀取；關於私人記錄的調查的命令，只有可以讀取該記錄的人才能讀取。 請參閱[私人事件、警示和片段](/docs/permissions/index#私人事件警示和片段)。
+:::
 
 ## 從 OneUptime 13 → 14 升級
 
@@ -276,7 +303,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **OneUptime 自身的服務只在請求標頭中傳送 `ONEUPTIME_SECRET`，而且只傳給接受它的路由。** 這些路由只從請求標頭 `clusterkey` 讀取它。URL 中帶有它的請求會被拒絕。OneUptime 中沒有任何地方呼叫的路由已被移除：佇列統計與失敗的工作（`GET .../queue/stats`、`GET .../queue/size`、`GET .../queue/failed`），以及待處理的監測器（`GET /monitor/pending-count/...`、`GET /monitor/pending-list/...`）。管理員儀表板中的支援套件會顯示佇列。你的指令碼若帶著 `ONEUPTIME_SECRET` 呼叫某個路由，現在要在 `clusterkey` 請求標頭中傳送它；如果曾把它放進 URL，請在應用程式與每個使用它的服務上更換 `ONEUPTIME_SECRET`。安裝自身的服務無須任何變更，滾動升級期間也是如此。
 - **PostgreSQL 只在伺服器本機上回應，新安裝從一開始就有自己的資料庫密碼。** `docker-compose.yml` 過去在伺服器的所有位址上發布 PostgreSQL 的連接埠 5400。現在它只發布在 `127.0.0.1` 上，`npm run backup` 和 `restore.sh` 仍像以前一樣在那裡連到它，開發環境也以同樣的方式發布它的 PostgreSQL、ClickHouse 和 Valkey 連接埠。另一台機器上原本連到連接埠 5400 的程式，現在需要一條 SSH 通道，或是依照 [備份與還原](/docs/installation/docker-compose#備份與還原) 所示發布的私有位址。在新安裝上，如果 `DATABASE_PASSWORD` 仍是 `config.example.env` 中的預留位置，`npm start` 會在 PostgreSQL 建立資料庫之前把它換成一個隨機值。資料庫已經存在的安裝會保留原本的密碼，只要它還是預留位置，`npm start` 就會發出警告：[變更資料庫密碼](/docs/installation/docker-compose#變更資料庫密碼) 說明了如何變更。如果你把 `docker-compose.yml` 中的連接埠那一行註解掉了，`git pull` 會停在這個檔案上：執行 `git checkout docker-compose.yml`，然後再 pull 一次。Helm 安裝沒有任何變化。
 - **隨附的 Runner 不再執行存放庫的命令，並且只持有它需要的內容。** Docker Compose（它的 `runner` 服務）與 Helm chart（`runner.enabled`）啟動的 Runner 為每個沒有自己 Runner 的專案處理 AI 程式碼修正。它不再執行程式碼存放庫的設定、建置與測試命令，它的程式碼代理程式也沒有執行命令的工具：修正會被寫好，拉取請求開啟時驗證顯示為略過，由你的存放庫自己的 CI 檢查這次變更。它啟動時也只帶有自己的 OneUptime URL、金鑰與遙測設定，而不是應用程式的整個環境；你透過 `runner.extraEnv` 或 Compose 覆寫檔給它的設定會保留。若要在拉取請求開啟之前建置並測試修正，請執行 [你自己的 Runner](/docs/ai/ai-agent#執行你自己的-runner)：它會像以前一樣驗證修正。你自己安裝的 Runner 不受影響。
-- **錯誤的雙重驗證碼按帳戶計算，無論來自哪裡。** 登入的密碼正確後，來自驗證器應用程式的每個錯誤驗證碼都會計入該帳戶，無論從哪個位址或網路輸入：連續 5 個之後，下一個驗證碼在檢查前需要等待，起初 1 分鐘，每輸錯一次等待時間加倍，最長 1 小時。備用碼有自己獨立的計數，因此應用程式的錯誤驗證碼永遠不會擋住備用碼，安全金鑰也永遠不會被擋住。等待開始時，帳戶擁有者會收到電子郵件，每天最多一次。驗證碼正確的登入、新密碼，或主管理員重設雙重驗證都會結束等待，錯誤驗證碼會在最後一個之後一天被遺忘。在 5 次以內輸對驗證碼的人不會察覺任何變化。請參閱 [您的帳戶](/docs/introduction/your-account)。
+- **錯誤的雙重驗證碼按帳戶計算，無論來自哪裡。** 登入的密碼正確後，來自驗證器應用程式的每個錯誤驗證碼都會計入該帳戶，無論從哪個位址或網路輸入：連續 5 個之後，下一個驗證碼在檢查前需要等待，起初 1 分鐘，每輸錯一次等待時間加倍，最長 1 小時。備用代碼有自己獨立的計數，因此應用程式的錯誤驗證碼永遠不會擋住備用代碼，安全金鑰也永遠不會被擋住。等待開始時，帳戶擁有者會收到電子郵件，每天最多一次。驗證碼正確的登入、新密碼，或主管理員重設雙重驗證都會結束等待，錯誤驗證碼會在最後一個之後一天被遺忘。在 5 次以內輸對驗證碼的人不會察覺任何變化。請參閱 [您的帳戶](/docs/introduction/your-account)。
 - **全域探測器和內建 Runner 不再使用儲存庫自帶的金鑰進行驗證。** 全域探測器執行安裝中每個專案的監測器，內建 Runner 為每個專案提供 AI 程式碼修正，因此它們出示的金鑰必須是安裝自己的，而絕不能是 OneUptime 儲存庫中公開的值。`REGISTER_PROBE_KEY`（用於註冊全域探測器）、全域探測器自身的金鑰（`GLOBAL_PROBE_1_KEY`、`GLOBAL_PROBE_2_KEY`）以及 Runner 的 `ONEUPTIME_RUNNER_KEY`，現在在未設定、為 `secret` 或為 `config.example.env` 中的佔位值（它們都包含 `please-change-this`）時都會被拒絕。`npm start` 和 `npm run update` 會在它們仍為佔位值時，在 `config.env` 中為每個設定一個隨機值，內建探測器會用新金鑰重新註冊，而不會失去它的監測器。Helm chart 已經為所有這些產生隨機值。如果你以其他方式啟動容器，或在其中一個金鑰仍為佔位值時執行全域探測器或叢集內 Runner，請按照 [產生隨機密鑰](/docs/installation/docker-compose#產生隨機密鑰) 所示將它設為一個較長的隨機值；在此之前，該探測器或 Runner 無法註冊。你自己安裝的、已經有自己金鑰的自訂探測器和 Runner，以及設定了自己金鑰的安裝，都不受影響。
 - **探測器、Runner、基礎設施代理程式與 OneUptime 自己的服務只在它們呼叫的伺服器上跟隨重新導向。** 帶有其中任何一個金鑰的請求，只跟隨到同一位址、或到從 `http` 改為 `https` 的同一位址的重新導向，不會跟隨到其他地方：重新導向到另一台伺服器會使請求失敗，錯誤中會寫明那台伺服器。如果你的 OneUptime 位址重新導向到另一個主機名稱，例如從舊網域重新導向到新網域，請把探測器與 Runner 的 `ONEUPTIME_URL`，以及基礎設施代理程式的 `--oneuptime-url`，設為它重新導向到的位址。直接回應的位址，或只是從 `http` 改為 `https` 的位址，不受影響。
 - **內建的 ClickHouse 和 Valkey 現在有各自的密碼。** 當 `CLICKHOUSE_PASSWORD` 或 `VALKEY_PASSWORD` 在 `config.env` 中仍是 `config.example.env` 的佔位值時，`npm start` 和 `npm run update` 現在會給它一個隨機值，既有的安裝也是如此。只有當 `CLICKHOUSE_HOST` 或 `VALKEY_HOST` 指向 Docker Compose 執行的 ClickHouse 或 Valkey 時才會這樣做：兩者每次啟動時都會讀取自己的密碼，因此同一次啟動會用新密碼重新建立它們，ClickHouse 會保留其資料。你自己用來登入其中任一者的工具需要 `config.env` 中的新值。你在別處執行的 ClickHouse 或快取的佔位值會保持原樣，`npm start` 會提示這一點。應用程式現在還會在啟動時發出警告：當 `REGISTER_PROBE_KEY` 未設定或是儲存庫自帶的值時，或者某個資料儲存區的密碼是這樣的值時。探測器、Runner 或 AI 代理的金鑰不能再設定為這樣的值，持有這種金鑰的你自己的 Runner 將無法連線，直到你在儀表板中重設其金鑰並把新金鑰交給該 Runner。使用 Helm 和 Altinity operator（`clickhouseOperator.altinity.enabled`）時，新安裝會為 operator 自己的 ClickHouse 使用者設定一個隨機密碼，而不是其 chart 為每個安裝自帶的密碼。既有的安裝會保留其密碼，`helm upgrade` 會說明如何變更。

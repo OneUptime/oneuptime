@@ -15,7 +15,10 @@ import KubernetesMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Com
 import OpenStackMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/OpenStackMonitor/OpenStackMetricPicker";
 import VMwareMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/VMwareMonitor/VMwareMetricPicker";
 import { LEFT_TO_RIGHT_ISOLATE } from "../../../Types/CodeInSentence";
-import { NO_BREAK_SPACE } from "../../../Types/NoBreakSpaces";
+import {
+  NO_BREAK_SPACE,
+  withDurationWordsHeld,
+} from "../../../Types/NoBreakSpaces";
 import { getAllKubernetesMetrics } from "../../../Types/Monitor/KubernetesMetricCatalog";
 import {
   getAllOpenStackMetrics,
@@ -420,7 +423,7 @@ describe.each(PICKERS)("the $name metric picker", (picker: PickerCase) => {
 
       expect(line.textContent).not.toContain("`");
       expect(line.textContent).toBe(
-        `${withoutBackticks(metric.description)} — Metric: ${metric.metricName}`,
+        `${withDurationWordsHeld(withoutBackticks(metric.description))} — Metric: ${metric.metricName}`,
       );
       expect(
         codesIn(line).map((code: HTMLElement): string => {

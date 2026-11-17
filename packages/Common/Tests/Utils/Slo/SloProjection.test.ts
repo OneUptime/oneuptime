@@ -810,7 +810,7 @@ describe("getSloAllowedDowntime", () => {
     });
 
     expect(allowed!.seconds).toBeCloseTo(2592, 6);
-    expect(allowed!.periodText).toBe("per rolling 30 days");
+    expect(allowed!.periodText).toBe("per rolling 30\u00A0days");
   });
 
   test("singular day, and the 30-day default", () => {
@@ -820,7 +820,7 @@ describe("getSloAllowedDowntime", () => {
         windowDays: 1,
         now: NOW,
       })!.periodText,
-    ).toBe("per rolling 1 day");
+    ).toBe("per rolling 1\u00A0day");
 
     expect(
       getSloAllowedDowntime({

@@ -874,11 +874,15 @@ describe("the record rule on every operation", () => {
           ]),
         );
 
-      expect(
-        ((query as unknown as { labels: Array<ObjectID> }).labels || []).map(
-          String,
-        ),
-      ).toEqual([productionLabelId.toString()]);
+      /*
+       * The incidents the label join table links to the label: a condition
+       * on the incident's own id, never a filter through its labels (#8113).
+       */
+      expect((query as unknown as { labels?: unknown }).labels).toBeUndefined();
+      expect(valuesOf(query._id)).toEqual([productionLabelId.toString()]);
+      expect(sqlOf(query._id, "incident._id")).toContain(
+        'incident._id IN (SELECT "IncidentLabel"."incidentId" FROM "IncidentLabel"',
+      );
     });
   });
 
@@ -1230,19 +1234,15 @@ describe("the record rule on every operation", () => {
         ]),
       );
 
+      expect(queryOf(queries, projectId)!._id).toBeUndefined();
+      // A condition on the incident's id, bound to the project's own label.
       expect(
-        (queryOf(queries, projectId) as unknown as { labels?: unknown }).labels,
+        (queryOf(queries, secondProjectId) as unknown as { labels?: unknown })
+          .labels,
       ).toBeUndefined();
-      // Serialized as the labels' ids.
-      expect(
-        valuesOf(
-          (
-            queryOf(queries, secondProjectId) as unknown as {
-              labels: { _id: unknown };
-            }
-          ).labels._id,
-        ),
-      ).toEqual([stagingLabelId.toString()]);
+      expect(valuesOf(queryOf(queries, secondProjectId)!._id)).toEqual([
+        stagingLabelId.toString(),
+      ]);
     });
 
     test("leaves out a project whose block refuses the read, and reads the others", async () => {

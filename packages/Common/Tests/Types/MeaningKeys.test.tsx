@@ -111,10 +111,11 @@ describe("the keys that name their meaning", () => {
     expect(new Set(MEANING_KEYS).size).toBe(MEANING_KEYS.length);
   });
 
-  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others and an explorer's Insights tab, beside the invoice's, the issue's and the import's", () => {
+  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others, an explorer's Insights tab, an SLO month's missed target and Notification Settings' phone call and push columns, beside the invoice's, the issue's and the import's", () => {
     expect([...MEANING_KEYS].sort()).toEqual(
       [
         "Array (storage array)",
+        "Call (phone call)",
         "Change (schema change)",
         "Created (import result)",
         "Deleted (invoice status)",
@@ -122,10 +123,13 @@ describe("the keys that name their meaning", () => {
         "Expired (threat indicator)",
         "From (range start)",
         "Insights (explorer analytics)",
+        "Missed (target)",
         "Not fetched yet (OAuth token)",
         "Not fetched yet (calendar feed)",
         "Open (invoice status)",
+        "Open (pull request)",
         "Open (status)",
+        "Push (push notification)",
         "Table (database object)",
         "Test (dbt test)",
         "Test (environment)",
@@ -149,6 +153,8 @@ describe("the keys that name their meaning", () => {
     expect(getWordOfMeaningKey("Table (database object)")).toBe("Table");
     expect(getWordOfMeaningKey(CHANGE)).toBe("Change");
     expect(getWordOfMeaningKey("Open (invoice status)")).toBe("Open");
+    // A Code task's open pull request, beside Merged and Closed.
+    expect(getWordOfMeaningKey("Open (pull request)")).toBe("Open");
     expect(getWordOfMeaningKey("Created (import result)")).toBe("Created");
     // #7535: the dbt Tests card's column of tests, the noun.
     expect(getWordOfMeaningKey("Test (dbt test)")).toBe("Test");
@@ -160,6 +166,8 @@ describe("the keys that name their meaning", () => {
     // #8201: a range's two ends, never a message's sender and recipient.
     expect(getWordOfMeaningKey("From (range start)")).toBe("From");
     expect(getWordOfMeaningKey("To (range end)")).toBe("To");
+    // #5476: a month that missed its SLO's target, never a missed SLA deadline.
+    expect(getWordOfMeaningKey("Missed (target)")).toBe("Missed");
     expect(getWordOfMeaningKey("To")).toBeUndefined();
     /*
      * #8659: a state a page words to agree with its other states, where the

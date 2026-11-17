@@ -14,7 +14,12 @@ import DockerHostService from "../../../Server/Services/DockerHostService";
 import DockerSwarmClusterService from "../../../Server/Services/DockerSwarmClusterService";
 import HostService from "../../../Server/Services/HostService";
 import CloudAccountService from "../../../Server/Services/CloudAccountService";
-import { getCloudCatalogProvider } from "../../../Utils/AiRemediation/Resource/CloudOperationCatalog";
+import {
+  CloudWritePath,
+  CloudWritePathProblem,
+  formatCloudWritePath,
+  getCloudCatalogProvider,
+} from "../../../Utils/AiRemediation/Resource/CloudOperationCatalog";
 import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import PodmanHostService from "../../../Server/Services/PodmanHostService";
@@ -941,6 +946,213 @@ describe("ResourceAiAccessAPI", () => {
         return kind.resourceType;
       }),
     ).toEqual([...ALL_AI_RESOURCE_TYPES]);
+  });
+
+  /*
+   * A cloud account's Test connection reads the first line of cloud
+   * whoami's output (CLOUD_WRITE_PATH_PREFIX): when the agent reads but its
+   * write role, identity or account cannot be used, every change would
+   * fail, and the test says so - ok (the commands worked), with the
+   * problem and what fixes it - instead of that the connection works. The
+   * line is taken out of what a person reads. An agent too old to write it
+   * reads as before, and no other resource's output is read for it.
+   */
+  describe("POST /test on a cloud account: whether its changes can run", () => {
+    const CLOUDS: Array<AiResourceType> = [
+      AiResourceType.AwsAccount,
+      AiResourceType.AzureSubscription,
+      AiResourceType.GoogleCloudProject,
+    ];
+    const WHOAMI_LINES: string = "Cloud: AWS\nAccount: 123456789012";
+    type WritePathMessage = (data: {
+      resourceType: AiResourceType;
+      problem: CloudWritePathProblem;
+      agentName: string;
+    }) => string;
+    let getAccessTestWritePathMessage: WritePathMessage;
+
+    // The module registers its routes as it loads: read it as the suite does.
+    beforeAll(async () => {
+      getAccessTestWritePathMessage = (
+        await import("../../../Server/API/ResourceAiAccessAPI")
+      ).getAccessTestWritePathMessage;
+    });
+
+    function answerWhoami(path: CloudWritePath | null): void {
+      runSpy.mockImplementation(async (data: unknown) => {
+        return outcome((data as { command: string }).command, {
+          output: path
+            ? `${formatCloudWritePath(path)}\n${WHOAMI_LINES}`
+            : WHOAMI_LINES,
+        });
+      });
+    }
+
+    describe.each(CLOUDS)("%s", (resourceType: AiResourceType) => {
+      const agentName: string =
+        AI_RESOURCE_TYPE_INFO[resourceType].agentDisplayName;
+
+      test.each<[CloudWritePathProblem]>([
+        ["cannot-sign-in"],
+        ["unreadable-setting"],
+        ["another-account"],
+      ])(
+        "changes that cannot run (%s): the reads worked, and the message says what stops the changes and what fixes them",
+        async (problem: CloudWritePathProblem) => {
+          answerWhoami({ state: "unusable", problem });
+
+          await callRoute(RESOURCE_AI_ACCESS_TEST_PATH, body(resourceType));
+
+          const response: JSONObject = lastResponse();
+
+          expect(response["ok"]).toBe(true);
+          expect(response["writePathProblem"]).toBe(problem);
+          expect(response["message"]).toBe(
+            getAccessTestWritePathMessage({ resourceType, problem, agentName }),
+          );
+          expect(String(response["message"])).toContain(
+            "Run its setup command again from Change on this page",
+          );
+          expect(String(response["message"])).not.toContain(
+            "OneUptime AI can run commands",
+          );
+        },
+      );
+
+      test.each<[CloudWritePath]>([
+        [{ state: "usable" }],
+        [{ state: "unset" }],
+      ])(
+        "changes that can run (%j): the connection works, as before",
+        async (path: CloudWritePath) => {
+          answerWhoami(path);
+
+          await callRoute(RESOURCE_AI_ACCESS_TEST_PATH, body(resourceType));
+
+          const response: JSONObject = lastResponse();
+
+          expect(response["ok"]).toBe(true);
+          expect(response["writePathProblem"]).toBeUndefined();
+          expect(response["message"]).toBe(
+            `OneUptime AI can run commands on "prod-1" through the ${agentName}.`,
+          );
+        },
+      );
+
+      test("an agent too old to say: the connection works, as before, and the output is as it wrote it", async () => {
+        answerWhoami(null);
+
+        await callRoute(RESOURCE_AI_ACCESS_TEST_PATH, body(resourceType));
+
+        const response: JSONObject = lastResponse();
+
+        expect(response["ok"]).toBe(true);
+        expect(Object.keys(response)).not.toContain("writePathProblem");
+        expect((response["results"] as Array<JSONObject>)[0]!["output"]).toBe(
+          WHOAMI_LINES,
+        );
+      });
+
+      test("the line is taken out of what a person reads; the rest of the output is kept", async () => {
+        answerWhoami({ state: "unusable", problem: "cannot-sign-in" });
+
+        await callRoute(RESOURCE_AI_ACCESS_TEST_PATH, body(resourceType));
+
+        expect(
+          (lastResponse()["results"] as Array<JSONObject>)[0]!["output"],
+        ).toBe(WHOAMI_LINES);
+      });
+
+      test("a whoami that failed is the connection not working, whatever its output's first line says", async () => {
+        runSpy.mockImplementation(async (data: unknown) => {
+          return outcome((data as { command: string }).command, {
+            succeeded: false,
+            exitCode: 1,
+            output: `${formatCloudWritePath({ state: "unusable", problem: "cannot-sign-in" })}\n${WHOAMI_LINES}`,
+          });
+        });
+
+        await callRoute(RESOURCE_AI_ACCESS_TEST_PATH, body(resourceType));
+
+        const response: JSONObject = lastResponse();
+
+        expect(response["ok"]).toBe(false);
+        expect(response["writePathProblem"]).toBeUndefined();
+        expect(response["message"]).toBe(
+          `The ${agentName} could not run the test commands successfully — see the command output below.`,
+        );
+      });
+
+      test("a line it cannot read says nothing: the connection works", async () => {
+        runSpy.mockImplementation(async (data: unknown) => {
+          return outcome((data as { command: string }).command, {
+            output: `oneuptime-write-path: {"state":"unusable","problem":"no-such-problem"}\n${WHOAMI_LINES}`,
+          });
+        });
+
+        await callRoute(RESOURCE_AI_ACCESS_TEST_PATH, body(resourceType));
+
+        expect(lastResponse()["ok"]).toBe(true);
+        expect(lastResponse()["writePathProblem"]).toBeUndefined();
+      });
+    });
+
+    test("only a cloud account's output is read for it: a Docker host's test reads as it always did", async () => {
+      runSpy.mockImplementation(async (data: unknown) => {
+        return outcome((data as { command: string }).command, {
+          output: `${formatCloudWritePath({ state: "unusable", problem: "cannot-sign-in" })}\nServer: Docker Engine`,
+        });
+      });
+
+      await callRoute(
+        RESOURCE_AI_ACCESS_TEST_PATH,
+        body(AiResourceType.DockerHost),
+      );
+
+      const response: JSONObject = lastResponse();
+
+      expect(response["ok"]).toBe(true);
+      expect(response["writePathProblem"]).toBeUndefined();
+      expect(
+        (response["results"] as Array<JSONObject>)[0]!["output"],
+      ).toContain("oneuptime-write-path:");
+    });
+
+    test("each cloud's message names its own write role, identity or account, and its own fix", () => {
+      const message: (
+        resourceType: AiResourceType,
+        problem: CloudWritePathProblem,
+      ) => string = (
+        resourceType: AiResourceType,
+        problem: CloudWritePathProblem,
+      ): string => {
+        return getAccessTestWritePathMessage({
+          resourceType,
+          problem,
+          agentName: "Cloud AI agent",
+        });
+      };
+
+      expect(message(AiResourceType.AwsAccount, "cannot-sign-in")).toBe(
+        "The Cloud AI agent reads this account, but every change will fail: it could not sign in as its write role. Run its setup command again from Change on this page: it makes the write role and lets the agent's own role assume it. The output below says what the cloud answered.",
+      );
+      expect(message(AiResourceType.AzureSubscription, "cannot-sign-in")).toBe(
+        "The Cloud AI agent reads this subscription, but every change will fail: it could not sign in as its write identity. Run its setup command again from Change on this page: it makes the write identity and attaches it where the agent runs. The output below says what the cloud answered.",
+      );
+      expect(message(AiResourceType.GoogleCloudProject, "cannot-sign-in")).toBe(
+        "The Cloud AI agent reads this project, but every change will fail: it could not sign in as its write service account. Run its setup command again from Change on this page: it makes the write service account and lets the agent's own service account ask for its token. A grant made a few minutes ago can still be on its way. The output below says what the cloud answered.",
+      );
+      expect(
+        message(AiResourceType.AzureSubscription, "unreadable-setting"),
+      ).toBe(
+        "The Cloud AI agent reads this subscription, but it makes no change: the write identity it is set up with is not one it can use. Run its setup command again from Change on this page, which sets it. The output below says what is wrong.",
+      );
+      expect(
+        message(AiResourceType.GoogleCloudProject, "another-account"),
+      ).toBe(
+        "The Cloud AI agent reads this project, but it makes no change: its write service account belongs to another project. Run its setup command again from Change on this page, in this project. The output below says which.",
+      );
+    });
   });
 
   describe("reading the request", () => {
@@ -2540,10 +2752,32 @@ describe("ResourceAiAccessAPI", () => {
         expect(spy.mock.calls.every(isCallerProps)).toBe(true);
       }
 
-      for (const spy of [jobFind, suggestionFind, countSpy]) {
+      for (const spy of [jobFind, suggestionFind]) {
         expect(spy).toHaveBeenCalled();
         expect(spy.mock.calls.every(isRootProps)).toBe(true);
       }
+
+      /*
+       * Every count as root, but the one count of the commands the page
+       * lists made as the caller too: how many they may not read.
+       */
+      const asCaller: Array<Array<unknown>> =
+        countSpy.mock.calls.filter(isCallerProps);
+
+      expect(asCaller).toHaveLength(1);
+      expect(
+        countSpy.mock.calls.every((call: Array<unknown>): boolean => {
+          return isRootProps(call) || isCallerProps(call);
+        }),
+      ).toBe(true);
+      expect(
+        (asCaller[0]![0] as { query: Record<string, unknown> }).query,
+      ).toEqual({
+        projectId: PROJECT_ID,
+        resourceType: kind.resourceType,
+        resourceId: RESOURCE_ID,
+        stepType: RunbookStepType.ResourceCommand,
+      });
     });
 
     test("an empty resource: empty lists and zero counts, and no AI run read", async () => {
@@ -2555,8 +2789,58 @@ describe("ResourceAiAccessAPI", () => {
         investigations: [],
         fixes: [],
         commandCounts: { investigation: 0, remediation: 0 },
+        hiddenCommandCount: 0,
       });
       expect(runFind).not.toHaveBeenCalled();
+    });
+
+    test("says how many of the resource's commands the caller may not read, and nothing more of them", async () => {
+      countSpy.mockImplementation(async (args: unknown) => {
+        const call: {
+          query: Record<string, unknown>;
+          props: DatabaseCommonInteractionProps;
+        } = args as {
+          query: Record<string, unknown>;
+          props: DatabaseCommonInteractionProps;
+        };
+
+        // The commands the page lists: 7 in all, 4 of them the caller's to read.
+        if (!call.query["createdAt"]) {
+          return new PositiveNumber(call.props.isRoot ? 7 : 4);
+        }
+
+        return new PositiveNumber(0);
+      });
+
+      await callRoute(RESOURCE_AI_ACCESS_LOGS_PATH, body(kind.resourceType));
+
+      expect(lastResponse()["hiddenCommandCount"]).toBe(3);
+      // Only the number: no job is read for it.
+      expect(jobFind.mock.calls.every(isRootProps)).toBe(true);
+    });
+
+    test("leaves the count out for a caller who may not read Runner jobs at all", async () => {
+      countSpy.mockImplementation(async (args: unknown) => {
+        if (!(args as { props: DatabaseCommonInteractionProps }).props.isRoot) {
+          throw new NotAuthorizedException(
+            "You do not have permissions to read Runner Jobs.",
+          );
+        }
+
+        return new PositiveNumber(5);
+      });
+
+      const result: RouteCallResult = await callRoute(
+        RESOURCE_AI_ACCESS_LOGS_PATH,
+        body(kind.resourceType),
+      );
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(lastResponse()).not.toHaveProperty("hiddenCommandCount");
+      expect(lastResponse()["commandCounts"]).toEqual({
+        investigation: 5,
+        remediation: 5,
+      });
     });
 
     test("investigations: runs that ran commands here UNION runs of linked incidents and alerts, deduplicated, newest first", async () => {
@@ -2908,6 +3192,45 @@ describe("ResourceAiAccessAPI", () => {
         name: true,
         email: true,
       });
+    });
+
+    /*
+     * A fix that waits for the second of two approvals says when the first
+     * was given, so the page says what it waits for (#6422); a fix that no
+     * longer waits does not.
+     */
+    test("fixes: one that waits for its second approval says when it was approved first; one that moved on does not", async () => {
+      const waiting: ObjectID = ObjectID.generate();
+      const dismissed: ObjectID = ObjectID.generate();
+      const firstApprovedAt: Date = new Date("2026-09-01T00:05:00.000Z");
+
+      suggestionFind.mockImplementation(async () => {
+        return [
+          suggestion(waiting, 2, { firstApprovedAt }),
+          suggestion(dismissed, 3, { status: "Dismissed", firstApprovedAt }),
+        ];
+      });
+
+      await callRoute(RESOURCE_AI_ACCESS_LOGS_PATH, body(kind.resourceType));
+
+      const logs: ResourceAiLogs = lastResponse() as unknown as ResourceAiLogs;
+      const firstApprovedAtOf: (id: ObjectID) => string | undefined = (
+        id: ObjectID,
+      ): string | undefined => {
+        return logs.fixes.find((fix: { id: string }) => {
+          return fix.id === id.toString();
+        })?.firstApprovedAt;
+      };
+
+      expect(firstApprovedAtOf(waiting)).toBe("2026-09-01T00:05:00.000Z");
+      expect(firstApprovedAtOf(dismissed)).toBeUndefined();
+      expect(
+        (
+          suggestionFind.mock.calls[0]![0] as {
+            select: Record<string, unknown>;
+          }
+        ).select["firstApprovedAt"],
+      ).toBe(true);
     });
 
     test("counts commands of the last 30 days by kind, leaving the connection tests out", async () => {

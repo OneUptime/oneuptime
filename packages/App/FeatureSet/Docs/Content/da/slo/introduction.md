@@ -12,7 +12,7 @@ Et service level objective (SLO) er et pålidelighedsmål for det, du driver, so
 
 ## Sådan fungerer det
 
-Et SLO måler én af to ting. Et SLO for monitoroppetid læser statustidslinjerne for de monitorer, der er knyttet til det: de samme data, som dine statussider viser. Et anmodnings-SLO tæller de anmodninger, dets tjenester besvarer, ud fra deres spor: se [SLO'er for anmodninger og latens](/docs/slo/request-slos). Resten af denne side beskriver SLO'er for monitoroppetid, og anmodnings-SLO'er fungerer på samme måde, medmindre andet er nævnt. Ud fra dem beregner OneUptime, hvor stor en del af compliancevinduet der var god tid, hvor meget af fejlbudgettet der er tilbage, og hvor hurtigt det bliver brugt. Tid, hvor en monitors overvågning er slået fra, udelades: intet tjekker monitoren i den tid, så den hverken bruger af fejlbudgettet eller tæller som god tid.
+Et SLO måler én af to ting. Et SLO for monitoroppetid læser statustidslinjerne for de monitorer, der er knyttet til det: de samme data, som dine statussider viser. Et anmodnings-SLO tæller de anmodninger, dets tjenester besvarer, ud fra deres spor: se [SLO'er for anmodninger og latens](/docs/slo/request-slos). Resten af denne side beskriver SLO'er for monitoroppetid, og anmodnings-SLO'er fungerer på samme måde, medmindre andet er nævnt. Ud fra dem beregner OneUptime, hvor stor en del af compliancevinduet der var god tid, hvor meget af fejlbudgettet der er tilbage, og hvor hurtigt det bliver brugt. Tid, hvor en monitors overvågning er slået fra, udelades: intet tjekker monitoren i den tid, så den hverken bruger af fejlbudgettet eller tæller som god tid. Det samme gælder tiden før en monitors første tjek: indtil noget har tjekket en monitor, er dens status kun den driftsklare, som hver monitor oprettes med, så et SLO måles fra dets monitorers første tjek, og et SLO, hvis monitorer intet har tjekket endnu, har intet at måle, før de bliver tjekket.
 
 ```mermaid title="Fra monitortjek til et SLO's status"
 flowchart TB
@@ -139,7 +139,7 @@ OneUptime giver hvert evalueret SLO en status:
 | **Sund** | Der er mere budget tilbage end risikotærsklen. |
 | **I risiko** | Det resterende budget er faldet til risikotærsklen eller derunder: 20 % som standard. |
 | **Budget opbrugt** | Budgettet er brugt helt op eller overskredet. |
-| **Forkert konfigureret** | SLO'et kan ikke måles: det har ingen monitorer, dets monitorer findes ikke længere eller har endnu ikke registreret nogen status i dets vindue, eller dets mål er uden for området. Et anmodnings-SLO er forkert konfigureret uden tjenester, uden en latensgrænse, eller før dets tjenester har besvaret en anmodning i dets vindue. |
+| **Forkert konfigureret** | SLO'et kan ikke måles: det har ingen monitorer, dets monitorer findes ikke længere, intet har tjekket dem endnu, eller de har endnu ikke registreret nogen status i dets vindue, eller dets mål er uden for området. Et anmodnings-SLO er forkert konfigureret uden tjenester, uden en latensgrænse, eller før dets tjenester har besvaret en anmodning i dets vindue. |
 | **Sat på pause** | Alle monitorer, det måler, er arkiveret eller har aktiv overvågning slået fra, manuelt, af en manuel hændelse eller af planlagt vedligeholdelse. Det fortsætter af sig selv, så snart en af dem bliver overvåget igen. |
 
 Et deaktiveret eller arkiveret SLO evalueres ikke, så dets status bliver, som den var; SLO-listen viser i stedet et mærke **Deaktiveret** eller **Arkiveret**. Et SLO's ejere får besked, når status skifter til **I risiko** eller **Budget opbrugt**: se [Fejlbudgetter](/docs/slo/error-budget).
@@ -161,6 +161,7 @@ Siden **SLOs** viser hvert SLO, der ikke er arkiveret, med status, SLI, resteren
 | --- | --- |
 | **Oversigt** | Status, nøgletallene, fejlbudgettets forbrug, seneste aktivitet, åbne advarsler og hændelser og forbrugsratereglerne. |
 | **Metrikker** | SLO'ets `oneuptime.slo.*`-metrikker, dets langsigtede fejlbudgethistorik og metrikkerne for de hændelser og advarsler, der påvirker det. Se [SLO-metrikker og -dashboards](/docs/slo/metrics). |
+| **Månedsrapport** | Hvordan SLO'et klarede sig i hver kalendermåned og over hele perioden. Se [Månedsrapporten](#månedsrapporten). |
 | **Hændelser** | De hændelser, dets forbrugsrateregler og dets fejlbudgetpolitik har erklæret. Mærket tæller de åbne. |
 | **Advarsler** | De advarsler, dets forbrugsrateregler og dets fejlbudgetpolitik har udløst. Mærket tæller de åbne. |
 | **Feed** | Hvad der er sket med SLO'et, som en tidslinje. Se [SLO-feed og auditlogs](/docs/slo/feed-and-audit-logs). |
@@ -195,6 +196,8 @@ Når noget forhindrer et SLO i at måle, fortæller et banner øverst på hver a
 
 Når SLO'et er i et niveau i sin fejlbudgetpolitik, viser **Oversigt** også det niveau, og hvad teamet har aftalt at gøre i det: se [Fejlbudgetpolitik](/docs/slo/error-budget-policy).
 
+Kortet **Bruges af** viser de forbrugsrateregler og de trin i fejlbudgetpolitikken, der virker på SLO'et, og de dashboards, der viser det. Når du arkiverer eller sletter SLO'et, siges de først: dets regler og trin forsvinder med det.
+
 ### Indstillinger
 
 Siden **Indstillinger** samler, hvordan et SLO måler, med ét kort til hver ting:
@@ -209,6 +212,31 @@ Siden **Indstillinger** samler, hvordan et SLO måler, med ét kort til hver tin
 | **Arkiver SLO** | **Arkiver** eller **Fjern fra arkivet**. | Se [Arkiver et SLO](#arkiver-et-slo). |
 
 Efter en ændring af, hvad det måler, målet, perioden eller beregningen af nedetid evaluerer OneUptime SLO'et igen ved næste kørsel.
+
+### Månedsrapporten
+
+**Månedsrapport** viser, hvordan SLO'et klarede sig i hver kalendermåned i de seneste **3 måneder**, **6 måneder**, **9 måneder** eller **12 måneder** eller i et kalenderår. Hver måned viser sin SLI, sin nedetid (for et anmodnings-SLO de mislykkede eller langsomme anmodninger, for et metrik-SLO de dårlige begivenheder), den andel af sit fejlbudget, den brugte, og sit resultat:
+
+| Resultat | Hvad det betyder |
+| --- | --- |
+| Opfyldt | Måneden er slut, og dens SLI nåede målet. |
+| Ikke nået | Måneden er slut og nåede ikke målet, eller måneden er stadig i gang og har allerede mere nedetid, end hele måneden tillader. |
+| På rette spor | Måneden er stadig i gang, og dens SLI indtil videre når målet. |
+| Under målet | Måneden er stadig i gang, og dens SLI indtil videre er under målet. |
+| Ingen data | Intet blev målt den måned. |
+
+Rækken **Total** måler hele perioden som én. Et SLO med flere monitorer får også en tabel **Efter monitor**: hver monitors egen SLI i hver måned, med den monitor, der kostede SLO'et mest, først. **Download CSV** gemmer rapporten som en fil til et regneark.
+
+Der gemmes intet ekstra til rapporten. Hver måned beregnes ud fra monitorernes statushistorik, når du åbner den, med SLO'ets monitorer, nedetidsstatusser og mål, som de er nu, så den rækker tilbage til før SLO'et blev oprettet. Et anmodnings-SLO's måneder kommer fra de anmodninger, OneUptime har talt for det, og et metrik-SLO's fra begivenhederne fra dets metrik, som gemmes i 400 dage. Månederne følger SLO'ets tidszone eller UTC, hvis det ikke har nogen.
+
+API'et svarer med den samme rapport:
+
+```bash
+curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/monthly-report?months=12" \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Bed med `months` om 1 til 24 måneder, der slutter med den aktuelle måned, eller om et kalenderår med `year`, for eksempel `year=2025`.
 
 ## Arkiver et SLO
 

@@ -1,5 +1,9 @@
-import { BaseSchema } from "../../../Utils/Schema/BaseSchema";
+import {
+  BaseSchema,
+  SORT_FIELD_ORDER_SCHEMA,
+} from "../../../Utils/Schema/BaseSchema";
 import Zod from "../../../Utils/Schema/Zod";
+import SortNulls from "../../../Types/BaseDatabase/SortNulls";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { JSONObject } from "../../../Types/JSON";
 import fs from "fs";
@@ -53,8 +57,10 @@ class TestSchema extends BaseSchema {
 
   public static sortSchema(data: {
     getSortableTypes: () => Array<any>;
-    getColumnsForSorting: () => Array<Column>;
+    getColumnsForSorting: () => Array<Column & { schema?: any }>;
     tableName?: string;
+    fieldOrderSchema?: any;
+    description?: string;
     disableOpenApiSchema?: boolean;
   }): any {
     return (this.generateSortSchema as (d: any) => any)({
@@ -62,6 +68,8 @@ class TestSchema extends BaseSchema {
       tableName: data.tableName,
       getSortableTypes: data.getSortableTypes,
       getColumnsForSorting: data.getColumnsForSorting,
+      fieldOrderSchema: data.fieldOrderSchema,
+      description: data.description,
       disableOpenApiSchema: data.disableOpenApiSchema,
     });
   }
@@ -285,6 +293,192 @@ describe("BaseSchema.generateSortSchema", () => {
     });
 
     expect(Object.keys(schema.shape)).toHaveLength(0);
+  });
+
+  /*
+   * A database record's sort (ModelSchema, #8840): each field takes
+   * SortFieldOrder, and a relation the schema of its related record's
+   * fields, whatever type its column has.
+   */
+  test("gives each field the order it is given, and a relation its own schema", () => {
+    const relation: any = Zod.object({
+      order: SORT_FIELD_ORDER_SCHEMA.optional(),
+    });
+
+    const schema: any = TestSchema.sortSchema({
+      getSortableTypes: () => {
+        return ["text", "date"];
+      },
+      getColumnsForSorting: () => {
+        return [
+          ...columns,
+          { key: "severity", type: "entity", schema: relation },
+          // A relation of many records, given no schema: left out.
+          { key: "labels", type: "entityarray" },
+        ];
+      },
+      fieldOrderSchema: SORT_FIELD_ORDER_SCHEMA,
+    });
+
+    expect(Object.keys(schema.shape)).toEqual([
+      "name",
+      "createdAt",
+      "severity",
+    ]);
+    expect(
+      schema.safeParse({
+        name: SortOrder.Ascending,
+        createdAt: { direction: SortOrder.Descending, nulls: SortNulls.Last },
+        severity: { order: SortOrder.Ascending },
+      }).success,
+    ).toBe(true);
+    expect(
+      schema.safeParse({ createdAt: { direction: SortOrder.Descending } })
+        .success,
+    ).toBe(true);
+    expect(schema.safeParse({ severity: SortOrder.Descending }).success).toBe(
+      false,
+    );
+    expect(
+      schema.safeParse({
+        createdAt: { direction: SortOrder.Descending, nulls: "NEVER" },
+      }).success,
+    ).toBe(false);
+    expect(schema.safeParse({ createdAt: { nulls: SortNulls.First } })).toEqual(
+      expect.objectContaining({ success: false }),
+    );
+  });
+
+  test("keeps ASC or DESC when it is given no other order: a telemetry sort's", () => {
+    const schema: any = TestSchema.sortSchema({
+      getSortableTypes: () => {
+        return ["date"];
+      },
+      getColumnsForSorting: () => {
+        return columns;
+      },
+    });
+
+    expect(
+      schema.safeParse({ createdAt: { direction: SortOrder.Descending } })
+        .success,
+    ).toBe(false);
+  });
+
+  test("says what it is given to say, else that only sortable fields are included", () => {
+    const described: (description?: string) => unknown = (
+      description?: string,
+    ): unknown => {
+      const registry: OpenAPIRegistry = new OpenAPIRegistry();
+
+      registry.register(
+        "Sort",
+        TestSchema.sortSchema({
+          getSortableTypes: () => {
+            return ["date"];
+          },
+          getColumnsForSorting: () => {
+            return columns;
+          },
+          tableName: "Thing",
+          ...(description ? { description } : {}),
+        }),
+      );
+
+      return (
+        new OpenApiGeneratorV3(registry.definitions).generateComponents()
+          .components?.schemas?.["Sort"] as JSONObject
+      )["description"];
+    };
+
+    expect(described()).toBe(
+      "Sort schema for Thing. Only sortable fields are included.",
+    );
+    expect(described("Sort things.")).toBe("Sort things.");
+  });
+});
+
+describe("SortFieldOrder, the order of a database record's field", () => {
+  test("is ASC or DESC, or { direction, nulls }", () => {
+    for (const order of [
+      SortOrder.Ascending,
+      SortOrder.Descending,
+      { direction: SortOrder.Ascending },
+      { direction: SortOrder.Descending, nulls: SortNulls.First },
+      { direction: SortOrder.Ascending, nulls: SortNulls.Last },
+    ]) {
+      expect([order, SORT_FIELD_ORDER_SCHEMA.safeParse(order).success]).toEqual(
+        [order, true],
+      );
+    }
+
+    for (const order of [
+      "asc",
+      "descending",
+      1,
+      null,
+      [SortOrder.Ascending],
+      { direction: "UP" },
+      { direction: SortOrder.Ascending, nulls: "last" },
+      { direction: SortOrder.Ascending, nulls: "NEVER" },
+      { nulls: SortNulls.Last },
+    ]) {
+      expect([order, SORT_FIELD_ORDER_SCHEMA.safeParse(order).success]).toEqual(
+        [order, false],
+      );
+    }
+  });
+
+  test("is published once, as SortFieldOrder, which names the forms it takes", () => {
+    const registry: OpenAPIRegistry = new OpenAPIRegistry();
+
+    registry.register(
+      "Sort",
+      TestSchema.sortSchema({
+        getSortableTypes: () => {
+          return ["text", "date"];
+        },
+        getColumnsForSorting: () => {
+          return [
+            { key: "name", type: "text" },
+            { key: "createdAt", type: "date" },
+          ];
+        },
+        fieldOrderSchema: SORT_FIELD_ORDER_SCHEMA,
+      }),
+    );
+
+    const schemas: JSONObject = (new OpenApiGeneratorV3(
+      registry.definitions,
+    ).generateComponents().components?.schemas || {}) as JSONObject;
+
+    expect(schemas["Sort"]).toMatchObject({
+      properties: {
+        name: { $ref: "#/components/schemas/SortFieldOrder" },
+        createdAt: { $ref: "#/components/schemas/SortFieldOrder" },
+      },
+      additionalProperties: false,
+    });
+    expect(schemas["SortFieldOrder"]).toEqual({
+      anyOf: [
+        { $ref: "#/components/schemas/SortOrder" },
+        {
+          type: "object",
+          properties: {
+            direction: { $ref: "#/components/schemas/SortOrder" },
+            nulls: {
+              type: "string",
+              enum: [SortNulls.First, SortNulls.Last],
+              description: expect.stringContaining("FIRST or LAST"),
+            },
+          },
+          required: ["direction"],
+          additionalProperties: false,
+        },
+      ],
+      description: expect.stringContaining('"nulls": "LAST"'),
+      example: { direction: SortOrder.Descending, nulls: SortNulls.Last },
+    });
   });
 });
 

@@ -12,7 +12,7 @@ Ein Service Level Objective (SLO) ist ein Zuverlässigkeitsziel für das, was Si
 
 ## So funktioniert es
 
-Ein SLO misst eines von zwei Dingen. Ein SLO der Monitor-Verfügbarkeit liest die Status-Zeitleisten der Monitore, die ihm zugeordnet sind: dieselben Daten, die Ihre Statusseiten zeigen. Ein Anfrage-SLO zählt die Anfragen, die seine Dienste beantworten, aus ihren Traces: siehe [Anfrage- und Latenz-SLOs](/docs/slo/request-slos). Der Rest dieser Seite beschreibt SLOs der Monitor-Verfügbarkeit, und Anfrage-SLOs funktionieren genauso, sofern nicht anders angegeben. Daraus berechnet OneUptime, welcher Anteil des Compliance-Zeitfensters gute Zeit war, wie viel Fehlerbudget übrig ist und wie schnell es verbraucht wird. Zeit, in der die Überwachung eines Monitors ausgeschaltet ist, bleibt außen vor: Nichts prüft den Monitor dann, also verbraucht diese Zeit weder Fehlerbudget, noch zählt sie als gute Zeit.
+Ein SLO misst eines von zwei Dingen. Ein SLO der Monitor-Verfügbarkeit liest die Status-Zeitleisten der Monitore, die ihm zugeordnet sind: dieselben Daten, die Ihre Statusseiten zeigen. Ein Anfrage-SLO zählt die Anfragen, die seine Dienste beantworten, aus ihren Traces: siehe [Anfrage- und Latenz-SLOs](/docs/slo/request-slos). Der Rest dieser Seite beschreibt SLOs der Monitor-Verfügbarkeit, und Anfrage-SLOs funktionieren genauso, sofern nicht anders angegeben. Daraus berechnet OneUptime, welcher Anteil des Compliance-Zeitfensters gute Zeit war, wie viel Fehlerbudget übrig ist und wie schnell es verbraucht wird. Zeit, in der die Überwachung eines Monitors ausgeschaltet ist, bleibt außen vor: Nichts prüft den Monitor dann, also verbraucht diese Zeit weder Fehlerbudget, noch zählt sie als gute Zeit. Ebenso die Zeit vor der ersten Prüfung eines Monitors: Bis etwas einen Monitor geprüft hat, ist sein Status nur der betriebsbereite, in dem jeder Monitor angelegt wird, daher wird ein SLO ab den ersten Prüfungen seiner Monitore gemessen, und ein SLO, dessen Monitore noch nicht geprüft wurden, hat nichts zu messen, bis sie geprüft werden.
 
 ```mermaid title="Von Monitorprüfungen zum Status eines SLO"
 flowchart TB
@@ -139,7 +139,7 @@ OneUptime gibt jedem ausgewerteten SLO einen Status:
 | **Fehlerfrei** | Es ist mehr als die Risikoschwelle des Budgets übrig. |
 | **Gefährdet** | Das verbleibende Budget ist auf die Risikoschwelle oder darunter gefallen: standardmäßig 20 %. |
 | **Budget ausgeschöpft** | Das Budget ist vollständig oder mehr als vollständig verbraucht. |
-| **Falsch konfiguriert** | Das SLO kann nicht gemessen werden: Es hat keine Monitore, seine Monitore existieren nicht mehr oder haben in seinem Zeitfenster noch keinen Status erfasst, oder sein Ziel liegt außerhalb des zulässigen Bereichs. Ein Anfrage-SLO ist falsch konfiguriert, wenn es keine Dienste oder keine Latenzschwelle hat, oder solange seine Dienste in seinem Zeitfenster noch keine Anfrage beantwortet haben. |
+| **Falsch konfiguriert** | Das SLO kann nicht gemessen werden: Es hat keine Monitore, seine Monitore existieren nicht mehr, wurden noch nicht geprüft, oder sie haben in seinem Zeitfenster noch keinen Status erfasst, oder sein Ziel liegt außerhalb des zulässigen Bereichs. Ein Anfrage-SLO ist falsch konfiguriert, wenn es keine Dienste oder keine Latenzschwelle hat, oder solange seine Dienste in seinem Zeitfenster noch keine Anfrage beantwortet haben. |
 | **Pausiert** | Jeder Monitor, den es misst, ist archiviert oder hat die aktive Überwachung abgeschaltet, von Hand, durch einen manuellen Vorfall oder durch geplante Wartung. Es läuft von selbst weiter, sobald einer davon wieder überwacht wird. |
 
 Ein abgeschaltetes oder archiviertes SLO wird nicht ausgewertet, sein Status bleibt also, wo er war; die SLO-Liste zeigt stattdessen eine Kennzeichnung **Deaktiviert** oder **Archiviert**. Die Eigentümer eines SLO werden benachrichtigt, wenn sich der Status zu **Gefährdet** oder **Budget ausgeschöpft** ändert: siehe [Fehlerbudgets](/docs/slo/error-budget).
@@ -161,6 +161,7 @@ Die Seite **SLOs** listet jedes nicht archivierte SLO mit Status, SLI, verbleibe
 | --- | --- |
 | **Übersicht** | Den Status, die wichtigsten Kennzahlen, das Fehlerbudget-Burn-down, die neueste Aktivität, offene Warnungen und Vorfälle sowie die Burn-Rate-Regeln. |
 | **Metriken** | Die `oneuptime.slo.*`-Metriken des SLO, seinen langfristigen Fehlerbudget-Verlauf und Metriken der Vorfälle und Warnungen, die es betreffen. Siehe [SLO-Metriken und -Dashboards](/docs/slo/metrics). |
+| **Monatsbericht** | Wie das SLO in jedem Kalendermonat und über den ganzen Zeitraum abgeschnitten hat. Siehe [Der Monatsbericht](#der-monatsbericht). |
 | **Vorfälle** | Die Vorfälle, die seine Burn-Rate-Regeln und seine Fehlerbudget-Richtlinie gemeldet haben. Das Badge zählt die offenen. |
 | **Warnungen** | Die Warnungen, die seine Burn-Rate-Regeln und seine Fehlerbudget-Richtlinie ausgelöst haben. Das Badge zählt die offenen. |
 | **Feed** | Was mit dem SLO passiert ist, als Zeitleiste. Siehe [SLO-Feed und Audit-Protokolle](/docs/slo/feed-and-audit-logs). |
@@ -195,6 +196,8 @@ Die **Übersicht** beantwortet „Sind wir im Budget?“, von oben nach unten:
 
 Ist das SLO in einer Stufe seiner Fehlerbudget-Richtlinie, zeigt die **Übersicht** auch diese Stufe und was das Team in ihr vereinbart hat: siehe [Fehlerbudget-Richtlinie](/docs/slo/error-budget-policy).
 
+Die Karte **Verwendet von** listet die Burn-Rate-Regeln und die Stufen der Fehlerbudget-Richtlinie, die auf das SLO wirken, und die Dashboards, die es zeigen. Wer das SLO archiviert oder löscht, sieht sie zuerst: Seine Regeln und Stufen werden mit ihm gelöscht.
+
 ### Einstellungen
 
 Die Seite **Einstellungen** enthält, wie ein SLO misst, je eine Karte:
@@ -209,6 +212,31 @@ Die Seite **Einstellungen** enthält, wie ein SLO misst, je eine Karte:
 | **SLO archivieren** | **Archivieren** oder **Aus dem Archiv holen**. | Siehe [Ein SLO archivieren](#ein-slo-archivieren). |
 
 Nach einer Änderung daran, was es misst, an Ziel, Zeitraum oder Berechnung der Ausfallzeit wertet OneUptime das SLO beim nächsten Lauf neu aus.
+
+### Der Monatsbericht
+
+Der **Monatsbericht** zeigt, wie das SLO in jedem Kalendermonat der letzten **3 Monate**, **6 Monate**, **9 Monate** oder **12 Monate** oder eines Kalenderjahres abgeschnitten hat. Jeder Monat zeigt sein SLI, seine Ausfallzeit (bei einem Anfrage-SLO die fehlgeschlagenen oder langsamen Anfragen, bei einem Metrik-SLO die fehlerhaften Ereignisse), den Anteil seines Fehlerbudgets, den er verbraucht hat, und sein Ergebnis:
+
+| Ergebnis | Bedeutung |
+| --- | --- |
+| Erreicht | Der Monat ist vorbei, und sein SLI hat das Ziel erreicht. |
+| Verfehlt | Der Monat ist vorbei und hat das Ziel verfehlt, oder der Monat läuft noch und hat schon mehr Ausfallzeit, als der ganze Monat erlaubt. |
+| Im Plan | Der Monat läuft noch, und sein bisheriges SLI erreicht das Ziel. |
+| Unter dem Ziel | Der Monat läuft noch, und sein bisheriges SLI liegt unter dem Ziel. |
+| Keine Daten | In diesem Monat wurde nichts gemessen. |
+
+Die Zeile **Gesamt** misst den ganzen Zeitraum als einen. Ein SLO mit mehreren Monitoren erhält außerdem eine Tabelle **Nach Monitor**: das eigene SLI jedes Monitors in jedem Monat, zuerst der Monitor, der das SLO am meisten gekostet hat. **CSV herunterladen** speichert den Bericht als Datei für eine Tabellenkalkulation.
+
+Für den Bericht wird nichts zusätzlich gespeichert. Jeder Monat wird beim Öffnen aus dem Statusverlauf der Monitore berechnet, mit den Monitoren, den Ausfallzeit-Status und dem Ziel des SLO, wie sie jetzt sind, und reicht so bis vor die Erstellung des SLO zurück. Die Monate eines Anfrage-SLO stammen aus den Anfragen, die OneUptime dafür gezählt hat, die eines Metrik-SLO aus den Ereignissen seiner Metrik; OneUptime bewahrt beide 400 Tage lang auf. Die Monate richten sich nach der Zeitzone des SLO oder nach UTC, wenn es keine hat.
+
+Die API antwortet mit demselben Bericht:
+
+```bash
+curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/monthly-report?months=12" \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Fragen Sie mit `months` 1 bis 24 Monate ab, die mit dem aktuellen Monat enden, oder mit `year` ein Kalenderjahr, etwa `year=2025`.
 
 ## Ein SLO archivieren
 

@@ -359,8 +359,20 @@ describe("IncidentTemplate.isScopedToStatusPages column", () => {
     };
   }
 
-  test("has the access control of the template's status pages", () => {
-    expect(access("isScopedToStatusPages")).toEqual(access("statusPages"));
+  /*
+   * Read and edited as the template's status pages are, as the service
+   * writes it into an edit of them. Nobody may create it: the service
+   * derives it on every create, so a value sent with one - the browser
+   * tests send false - is dropped before the hooks run (#8907).
+   */
+  test("is read and edited as the template's status pages are, and created by nobody", () => {
+    expect(access("isScopedToStatusPages").read).toEqual(
+      access("statusPages").read,
+    );
+    expect(access("isScopedToStatusPages").update).toEqual(
+      access("statusPages").update,
+    );
+    expect(access("isScopedToStatusPages").create).toEqual([]);
   });
 
   test("is computed, required, false by default and hidden from the API docs", () => {

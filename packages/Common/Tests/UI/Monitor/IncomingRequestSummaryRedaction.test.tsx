@@ -8,6 +8,7 @@ import { JSONObject } from "../../../Types/JSON";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorLogSummaryUtil from "../../../Utils/Monitor/MonitorLogSummaryUtil";
 import { MonitorSummaryInfoProps } from "../../../Utils/Monitor/MonitorSummarySnapshotUtil";
+import { Logger } from "../../../UI/Utils/Logger";
 
 /*
  * AN INCOMING REQUEST MONITOR'S OVERVIEW SHOWS THE LATEST REQUEST AS ITS
@@ -237,6 +238,27 @@ describe("the overview of a monitor that keeps its request content", () => {
     expect(
       screen.queryByTestId(INCOMING_REQUEST_CONTENT_NOT_SHOWN_TEST_ID),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * #8430: a text/plain body that holds no JSON is kept as its text. It is
+   * shown as the text it is - as JSON, the field could not parse it and
+   * logged so every time it was drawn.
+   */
+  test("a plain-text body folds out as the text it is, quietly", () => {
+    const logged: ReturnType<typeof jest.spyOn> = jest.spyOn(Logger, "error");
+
+    overview({ requestBody: "backup failed: error 42\non /dev/sdb" });
+
+    showMoreDetails();
+
+    expect(screen.getByText("Request Body")).toBeInTheDocument();
+    expect(document.body.textContent).toContain("backup failed: error 42");
+    expect(document.body.textContent).toContain("on /dev/sdb");
+    expect(document.body.textContent).not.toContain('"backup failed: error 42');
+    expect(logged).not.toHaveBeenCalled();
+
+    logged.mockRestore();
   });
 });
 

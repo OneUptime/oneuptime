@@ -1,6 +1,6 @@
 # Proxmox-monitor
 
-En Proxmox-monitor overvåker én Proxmox VE-klynge – nodene, VM-ene og LXC-containerne, lagringen, HA-tilstanden, dekningen av sikkerhetskopijobber og lagringsreplikeringen – og sier fra når en node blir frakoblet, en gjest stopper eller lagringen fylles opp. Den leser målingene `pve_*` som OneUptimes Proxmox-agent samler inn, så ingenting undersøkes utenfra.
+En Proxmox-monitor overvåker én Proxmox VE-klynge – nodene, VM-ene og LXC-containerne, lagringen, HA-tilstanden, dekningen av sikkerhetskopijobber og lagringsreplikeringen – og sier fra når en node blir offline, en gjest stopper eller lagringen fylles opp. Den leser målingene `pve_*` som OneUptimes Proxmox-agent samler inn, så ingenting undersøkes utenfra.
 
 :::cards
 - [Opprett monitoren](#opprett-en-proxmox-monitor): Seks trinn i dashbordet.
@@ -260,11 +260,11 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 
 | Rekkefølge | Kriterium | Samsvarer når | Deretter |
 | --- | --- | --- | --- |
-| 1 | Sjekk om _monitornavn_ er frakoblet | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Frakoblet** og erklærer hendelsen «_monitornavn_ er frakoblet», som løser seg selv når monitoren kommer seg. |
+| 1 | Sjekk om _monitornavn_ er offline | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Offline** og erklærer hendelsen «_monitornavn_ er offline», som løser seg selv når monitoren kommer seg. |
 | 2 | Sjekk om _monitornavn_ er tilkoblet | Den første spørringen har data | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren offline. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Feilsøking
 
@@ -281,7 +281,7 @@ Malen tar gjennomsnittet av `pve_cpu_usage_ratio` per `id`, så hver node kontro
 :::
 
 :::details Node Offline fortsetter å utløses for en node du har fjernet fra klyngen
-Med det innebygde pushet i Proxmox VE ser en node som er tatt ut av klyngen, lik ut som en som har gått ned: den sluttet å rapportere, så nodene som fortsatt lever, fortsetter å melde den nede. Åpne nodens side og klikk på **Fjern node** – noden forsvinner, og varselet løses. Ellers forblir den frakoblet i opptil 7 dager. Agenten har ikke dette problemet: den spør klyngen, som ikke lenger viser noden.
+Med det innebygde pushet i Proxmox VE ser en node som er tatt ut av klyngen, lik ut som en som har gått ned: den sluttet å rapportere, så nodene som fortsatt lever, fortsetter å melde den nede. Åpne nodens side og klikk på **Fjern node** – noden forsvinner, og varselet løses. Ellers forblir den offline i opptil 7 dager. Agenten har ikke dette problemet: den spør klyngen, som ikke lenger viser noden.
 :::
 
 :::details Sikkerhetskopi- eller replikeringsmålinger mangler

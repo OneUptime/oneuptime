@@ -4,6 +4,7 @@ import {
   readPage,
   scanPage,
 } from "./DocsContentSupport";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import StatusPageAPI from "Common/Server/API/StatusPageAPI";
 import GzipRequestBodyMiddleware from "Common/Server/Middleware/GzipRequestBody";
@@ -2236,13 +2237,18 @@ describe("the Syslog page", () => {
     );
   });
 
-  it("answers as soon as it has read the messages, and queues them after", async () => {
+  /*
+   * Read, queued, answered: the answer waits only for the queue to take the
+   * messages (issue #8021), so a 200 is never sent for messages the queue
+   * refused; parsing and storing come after the answer.
+   */
+  it("answers once it has read the messages and queued them, and parses and stores them after", async () => {
     const answer: SyslogIngestAnswer = await ingestSyslog({
       messages: [testMessage()],
     });
 
     expect(answer.passed).toBeUndefined();
-    expect(answer.calls).toEqual(["answered", "queued"]);
+    expect(answer.calls).toEqual(["queued", "answered"]);
     expect(englishPage(SYSLOG)).toContain(
       "OneUptime answers as soon as it has read the messages from the request, and parses and stores them a moment later.",
     );
@@ -3215,15 +3221,16 @@ describe("the Public API page", () => {
       PUBLIC_API,
       "| Endpoint | Keys in the response |",
     );
+    /*
+     * Each route checks who may read the page, then answers with what the
+     * page shows - kept for every reader (StatusPageReadCache) - as the
+     * page's maintenance calendar reads its events too.
+     */
     const METHOD_OF: Record<string, string> = {
-      Incidents: "getIncidents",
-      Episodes: "getEpisodes",
-      /*
-       * The route checks who may read the page, then answers with what the
-       * page shows, as the page's maintenance calendar reads it too.
-       */
+      Incidents: "readShownIncidents",
+      Episodes: "readShownEpisodes",
       "Maintenance events": "readShownScheduledMaintenanceEvents",
-      Announcements: "getAnnouncements",
+      Announcements: "readShownAnnouncements",
     };
 
     expect(
@@ -3370,8 +3377,61 @@ describe("the Public API page", () => {
       "Resources the page shows as **Not monitored**, listed in `notMonitoredResourceIds`, are left out of it.",
     );
     expect(page).toContain(
-      "| `notMonitoredResourceIds` | The IDs of the resources the page shows as **Not monitored**: a monitor whose monitoring is off, or a monitor group whose monitors all have it off. They decide no status, and such a group has no entry in `monitorGroupCurrentStatuses`. |",
+      "| `notMonitoredResourceIds` | The IDs of the resources the page shows as **Not monitored**: a monitor whose monitoring is off, or a monitor group whose monitors all have it off. It lists the resources in `notMonitoredYetResourceIds` too. They decide no status, and such a group has no entry in `monitorGroupCurrentStatuses`. |",
     );
+  });
+
+  /*
+   * Issue #8899: a monitor nothing has checked yet holds the operational
+   * status every monitor is created in. The overview lists it with what
+   * nothing checks - it decides no status - and apart, for the page to say
+   * Not monitored yet; so does a monitor group none of whose monitors has
+   * been checked yet.
+   */
+  it("lists the resources nothing has checked yet in notMonitoredYetResourceIds, and with what nothing checks (#8899)", () => {
+    expect(responseKeysOf("buildOverviewBase")).toEqual(
+      expect.arrayContaining([
+        "notMonitoredResourceIds",
+        "notMonitoredYetResourceIds",
+      ]),
+    );
+
+    const page: string = englishPage(PUBLIC_API);
+
+    expect(page).toContain(
+      "| `notMonitoredYetResourceIds` | The IDs of the resources the page shows as **Not monitored yet**: a monitor nothing has checked yet, still in the operational status every monitor starts in, or a monitor group none of whose monitors has been checked yet. |",
+    );
+    // Right under the list it is a part of.
+    expect(page).toContain(
+      "in `monitorGroupCurrentStatuses`. |\n| `notMonitoredYetResourceIds` |",
+    );
+
+    // Each language names it as that language's status page draws it.
+    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      const statusPageWords: Record<
+        string,
+        Record<string, unknown>
+      > = JSON.parse(
+        fs.readFileSync(
+          path.join(
+            __dirname,
+            `../../../FeatureSet/StatusPage/src/Locales/${language}.json`,
+          ),
+          "utf-8",
+        ),
+      ) as Record<string, Record<string, unknown>>;
+      const word: string = String(
+        (statusPageWords["overview"] || {})["notMonitoredYet"],
+      );
+      const translated: string = readPage(language, PUBLIC_API);
+
+      expect({
+        language,
+        word,
+        named: translated.split(`**${word}**`).length - 1,
+        listed: translated.includes("| `notMonitoredYetResourceIds` |"),
+      }).toEqual({ language, word, named: 2, listed: true });
+    }
   });
 
   it("says of each resource of the summary and the uptime response whether it is monitored (#6478)", () => {
@@ -3401,7 +3461,7 @@ describe("the Public API page", () => {
       "| `overallStatus` | The page's overall status, as its banner shows it: `name`, `color` and `isOperational`. `null` when every resource on the page is **Not monitored**. |",
     );
     expect(page).toContain(
-      "A resource's `currentStatus` is `null` when the page does not show it, and when `isMonitored` is `false`: nothing checks the resource, because its monitor's monitoring is off or every monitor of its monitor group has it off, so the page shows it as **Not monitored**.",
+      "A resource's `currentStatus` is `null` when the page does not show it, and when `isMonitored` is `false`: nothing checks the resource, because its monitor's monitoring is off or every monitor of its monitor group has it off, so the page shows it as **Not monitored**, or nothing has checked it yet, so the page shows it as **Not monitored yet**.",
     );
     expect(page).toContain(
       "| `isMonitored` | `false` when the page shows the resource as **Not monitored**, and for a group when every resource beneath it is. Its `currentStatus` is then `null`. |",

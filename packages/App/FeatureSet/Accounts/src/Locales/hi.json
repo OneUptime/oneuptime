@@ -53,7 +53,7 @@
       "signIn": "पासकी से साइन इन करें",
       "inProgress": "पासवर्ड का उपयोग करने से पहले पासकी से साइन इन पूरा करें या रद्द करें।",
       "helpTitle": "पासकी पहली बार इस्तेमाल कर रहे हैं?",
-      "help": "पासकी से आप पासवर्ड के बजाय अपनी उंगली के निशान, चेहरे या डिवाइस के PIN से साइन इन कर सकते हैं। पासकी जोड़ने के लिए अपने पासवर्ड या SSO से साइन इन करें, फिर उपयोगकर्ता प्रोफ़ाइल → सुरक्षा → Passkeys खोलें।",
+      "help": "पासकी से आप पासवर्ड के बजाय अपनी उंगली के निशान, चेहरे या डिवाइस के PIN से साइन इन कर सकते हैं। पासकी जोड़ने के लिए अपने पासवर्ड या SSO से साइन इन करें, फिर उपयोगकर्ता प्रोफ़ाइल → सुरक्षा → पासकी खोलें।",
       "preparing": "आपकी पासकी तैयार की जा रही है…",
       "waiting": "अपना डिवाइस देखें",
       "waitingDescription": "अपने ब्राउज़र या पासवर्ड मैनेजर के निर्देशों का पालन करें।",
@@ -68,8 +68,9 @@
     "signInWithSso": "SSO से साइन इन करें",
     "signInWithMicrosoft": "Microsoft से साइन इन करें",
     "emailSignInLink": "मुझे साइन-इन लिंक ईमेल करें",
+    "moreWaysToSignIn": "साइन इन करने के और तरीके",
     "noAccountPrompt": "खाता नहीं है?",
-    "registerLink": "पंजीकरण करें।",
+    "registerLink": "साइन अप करें।",
     "twoFactor": {
       "title": "दो-कारक प्रमाणीकरण",
       "subtitle": "दो-कारक प्रमाणीकरण विधि चुनें। आपको चयनित विधि से एक कोड दर्ज करने के लिए कहा जाएगा।",
@@ -175,10 +176,17 @@
   "resetPassword": {
     "title": "अपना पासवर्ड रीसेट करें",
     "subtitle": "कृपया अपना नया पासवर्ड दर्ज करें और हम इसे अपडेट कर देंगे।",
-    "successMessage": "आपका पासवर्ड अपडेट कर दिया गया है। कृपया लॉग इन करें।",
     "submitButton": "पासवर्ड रीसेट करें",
     "knowPasswordPrompt": "अपना पासवर्ड जानते हैं?",
-    "loginLink": "लॉग इन करें।"
+    "loginLink": "लॉग इन करें।",
+    "successTitle": "आपका पासवर्ड रीसेट हो गया है",
+    "successDescription": "अपने नए पासवर्ड से साइन इन करें।",
+    "signInButton": "साइन इन करें",
+    "linkExpiredTitle": "इस रीसेट लिंक की समय-सीमा खत्म हो गई है",
+    "linkExpiredDescription": "रीसेट लिंक एक दिन तक काम करते हैं। नया लिंक माँगें, हम उसे आपको ईमेल कर देंगे।",
+    "linkInvalidTitle": "यह रीसेट लिंक अब काम नहीं करता",
+    "linkInvalidDescription": "हो सकता है इसका पहले ही इस्तेमाल हो चुका हो, या इसका केवल एक हिस्सा कॉपी हुआ हो। नया लिंक माँगें, हम उसे आपको ईमेल कर देंगे।",
+    "requestNewLinkButton": "नया लिंक माँगें"
   },
   "sso": {
     "title": "SSO से लॉगिन",
@@ -186,7 +194,7 @@
     "submitButton": "SSO से लॉगिन",
     "signInWithPassword": "पासवर्ड से साइन इन करें",
     "noAccountPrompt": "खाता नहीं है?",
-    "registerLink": "पंजीकरण करें।",
+    "registerLink": "साइन अप करें।",
     "selectProjectTitle": "प्रोजेक्ट चुनें",
     "noConfigForEmail": "ईमेल के लिए कोई SSO कॉन्फ़िगरेशन नहीं मिला: {{email}}",
     "emailRequired": "इस क्रिया को करने के लिए ईमेल आवश्यक है",
@@ -255,7 +263,7 @@
     "complete": "आपकी पासकी सत्यापित हो गई है। साइन इन पूरा करने के लिए ऐप में वापस जाएँ।",
     "returnToApp": "ऐप में वापस जाएँ",
     "cancel": "रद्द करें और ऐप में वापस जाएँ",
-    "setup": "वेब डैशबोर्ड में उपयोगकर्ता प्रोफ़ाइल → सुरक्षा → Passkeys में पासकी बनाएँ।"
+    "setup": "वेब डैशबोर्ड में उपयोगकर्ता प्रोफ़ाइल → सुरक्षा → पासकी में पासकी बनाएँ।"
   },
   "mcpAuthorize": {
     "title": "MCP क्लाइंट कनेक्ट करें",
@@ -562,6 +570,7 @@
   "What was sent is larger than the 50 MB OneUptime takes in one request.": "जो भेजा गया, वह उस 50 MB से बड़ा है जितना OneUptime एक अनुरोध में स्वीकार करता है।",
   "Try again with less at once, such as a smaller file.": "एक बार में कम भेजकर फिर कोशिश करें, जैसे कोई छोटी फ़ाइल।",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "अगर OneUptime के आगे लगे किसी प्रॉक्सी ने इसे अस्वीकार किया, तो उस प्रॉक्सी की अनुरोध आकार सीमा बढ़ाकर 50 MB कर दें, जितना OneUptime ख़ुद स्वीकार करता है (nginx में, client_max_body_size 50M)।",
+  "Dismiss": "छिपाएं",
   "This form is not available. It may have been turned off, or the link may be out of date.": "यह फ़ॉर्म उपलब्ध नहीं है। हो सकता है इसे बंद कर दिया गया हो, या लिंक पुराना हो गया हो।",
   "This form can only be opened from an allowed network.": "यह फ़ॉर्म केवल अनुमत नेटवर्क से ही खोला जा सकता है।",
   "Too many submissions from your network. Please wait a few minutes and try again.": "आपके नेटवर्क से बहुत अधिक सबमिशन हुए हैं। कृपया कुछ मिनट प्रतीक्षा करें और फिर से कोशिश करें।",
@@ -572,6 +581,7 @@
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "इस फ़ॉर्म से घटना नहीं बनाई जा सकती क्योंकि इसमें कोई गंभीरता सेट नहीं है। कृपया उस टीम को बताएं जिसने इसे साझा किया है।",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "अभी सबमिशन स्वीकार नहीं किए जा सकते। कृपया कुछ मिनट बाद फिर से कोशिश करें।",
   "This form is receiving too many files right now. Please try again later.": "इस फ़ॉर्म को अभी बहुत अधिक फ़ाइलें मिल रही हैं। कृपया बाद में फिर से कोशिश करें।",
+  "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "अभी फ़ाइलों की वायरस जाँच नहीं हो पा रही है, इसलिए वे स्वीकार नहीं की गईं। कृपया कुछ मिनट बाद फिर से कोशिश करें।",
   "A response can carry at most 10 files.": "एक जवाब में अधिकतम 10 फ़ाइलें हो सकती हैं।",
   "The files of a response can be at most 20 MB together.": "एक जवाब की फ़ाइलें कुल मिलाकर अधिकतम 20 MB की हो सकती हैं।",
   "Your response could not be submitted. Please try again in a few minutes.": "आपका जवाब नहीं भेजा जा सका। कृपया कुछ मिनट बाद फिर से कोशिश करें।",

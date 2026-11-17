@@ -29,6 +29,7 @@ import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusService from "./MonitorStatusService";
+import MonitorType from "../../Types/Monitor/MonitorType";
 import ServerException from "../../Types/Exception/ServerException";
 import {
   MonitorGroupUptimeDaily,
@@ -64,6 +65,8 @@ import StateTimelineRowsKept from "../Utils/Database/StateTimelineRowsKept";
 import MonitorStatusEventDelete, {
   StatusEventDeleteDecision,
 } from "../../Utils/Monitor/MonitorStatusEventDelete";
+import StateChangeLogScreenshots from "../../Utils/Monitor/StateChangeLogScreenshots";
+import { FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME } from "../Utils/Monitor/UptimeHistoryMigration";
 
 /*
  * Thrown by onBeforeCreate when the incoming status is the same as the status of
@@ -82,6 +85,17 @@ export const MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE: string =
  */
 export const MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE: string =
   "Could not acquire the monitor status timeline lock for this monitor.";
+
+/*
+ * The data migration that puts Monitor.firstMeasuredAt right for a monitor's
+ * uptime history (issue #8960; App's
+ * BackfillMonitorFirstMeasuredAtForUptimeHistory). The uptime statements
+ * leave a monitor's time before its first check out only once its
+ * DataMigrations row is there (getMeasuredFromCte). Its name lives in
+ * Utils/Monitor/UptimeHistoryMigration, which an SLO reads it from too, and
+ * is exported here as well, where the migration and its tests import it.
+ */
+export { FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME };
 
 /*
  * THE STATUS EVENTS THAT ONLY MARK MONITORING TURNED OFF OR BACK ON.
@@ -137,6 +151,24 @@ export interface MergedDowntimeRow {
 }
 
 /*
+ * A row of getDailyUptimeAggregate's SQL: one monitor's day bucket and one
+ * of its statuses, with its seconds; or, with no status and isMonitoringOff,
+ * the day's time with monitoring off; or, with no status and no seconds, a
+ * day nothing of the monitor overlapped. Typed loosely because the pg
+ * driver hands some numeric types back as strings. isMonitoringOff is
+ * optional so rows shaped before it existed read as monitored.
+ */
+export interface UptimeDailyAggregateRow {
+  monitorId: string;
+  bucketStart: Date;
+  bucketEnd: Date;
+  daySeconds: string | number;
+  monitorStatusId: string | null;
+  seconds: string | number;
+  isMonitoringOff?: boolean | null | undefined;
+}
+
+/*
  * A row of getMonitorGroupDailyUptimeAggregate's SQL: one group's day
  * bucket, with the day's union of the group's periods ranked at or above
  * each level, from level 1 (every status: the coverage) up - or NULL for a
@@ -149,6 +181,13 @@ export interface MonitorGroupDailyUptimeRow {
   bucketEnd: Date | string;
   daySeconds: string | number;
   unions: Array<string | number | null> | null;
+  /*
+   * The day's union of every period of the group's monitors, those with
+   * monitoring off included: less unions[0], the time at least one monitor
+   * had monitoring off while none was checked. Optional so rows shaped
+   * before it existed read as monitored.
+   */
+  unionWithMonitoringOff?: string | number | null | undefined;
 }
 
 /*
@@ -226,18 +265,24 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    *    getRollingUptimeTotals and UptimeUtil.compareTimelinesChronologically
    *    do, so all three agree on the same rows.
    *
-   * 2. Periods are split into days ARITHMETICALLY (`generate_series` over the
-   *    days a period touches) and then hash-aggregated, rather than joined
-   *    against a bucket grid. Both give the same answer; the join does not
-   *    scale. Joining emitted one row per timeline row - 255,486 on the
-   *    reporting page - which then had to be sorted for the GroupAggregate
-   *    and spilled 26 MB to disk, ~4.7s. Splitting first aggregates 255k rows
-   *    into ~450 with no sort: ~1.5s.
+   * 2. Periods are split into days ARITHMETICALLY and then hash-aggregated,
+   *    rather than joined against a bucket grid. Both give the same answer;
+   *    the join does not scale. Joining emitted one row per timeline row -
+   *    255,486 on the reporting page - which then had to be sorted for the
+   *    GroupAggregate and spilled 26 MB to disk, ~4.7s. Splitting first
+   *    aggregates 255k rows into ~450 with no sort: ~1.5s.
    *
-   *    A period that lies inside one day yields exactly one segment, which is
-   *    the overwhelmingly common case - a flapping monitor's rows last well
-   *    under a second. Only a long-running period fans out, one segment per
-   *    day it spans.
+   *    The window's local midnights are worked out once, into one array
+   *    (the day grid, getDayGridCte), and each period finds its first and
+   *    last day in it with width_bucket, a binary search, as the monitor
+   *    group statement does (issue #6887). A period that lies inside one day
+   *    - the overwhelmingly common case, a flapping monitor's rows last well
+   *    under a second - is one segment, with no zone conversion. Only a
+   *    period that crosses midnight fans out, one segment per day it spans.
+   *    Each period used to convert its start and end to the zone and call a
+   *    generate_series of timestamps, which was most of the statement's time
+   *    on a flapping page: on 1.1M rows of three monitors flapping every 20
+   *    seconds it took about 3 s, and takes about 2 s this way.
    *
    * 3. Seconds are summed as `double precision` and NEVER rounded per group.
    *    Rounding each (monitor, day, status) sum to a bigint loses up to half a
@@ -248,13 +293,25 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    *
    * 4. Time with the monitor's monitoring turned off (`isMonitoringOff`,
    *    issue #6480) is no status: nothing checked the monitor, so its row
-   *    holds only what the last check saw. Such a row is dropped AFTER the
-   *    LEAD, never before it - filtered first, the open row before the switch
-   *    would run on across the time monitoring was off. It leaves that time
-   *    uncovered, so a day it fills reads as no data, and a day it fills in
-   *    part is measured over the rest. getMonitorGroupDailyUptimeAggregate,
-   *    getMergedDowntimeSeconds and getRollingUptimeTotals drop it the same
-   *    way.
+   *    holds only what the last check saw. Such a row is kept out of the
+   *    statuses AFTER the LEAD, never before it - filtered first, the open
+   *    row before the switch would run on across the time monitoring was
+   *    off. It leaves that time uncovered, so a day it fills has no status,
+   *    and a day it fills in part is measured over the rest; its seconds come
+   *    back apart, as the day's time with monitoring off (one row per day
+   *    with no status and is_off), so the bars say "monitoring off" for that
+   *    day instead of "no data" (issue #7112).
+   *    getMonitorGroupDailyUptimeAggregate does the same for a group;
+   *    getMergedDowntimeSeconds and getRollingUptimeTotals drop it.
+   *
+   * 5. Time before the monitor's first check is no status either (issue
+   *    #8960): every monitor is created in the operational status, which no
+   *    check stands behind until something has measured it
+   *    (Monitor.firstMeasuredAt). A period of a status a monitor can start
+   *    in, before that, is cut to start at the first check - all of it while
+   *    nothing has checked the monitor - after the LEAD, as the time with
+   *    monitoring off is. See getTimelineSourceCtes; every statement that
+   *    measures a monitor's time reads its rows through it.
    *
    * A trap that is worth recording even though this SQL no longer contains it:
    * PostgreSQL's LEAST/GREATEST IGNORE NULLs, returning the smallest or
@@ -288,27 +345,223 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       return empty;
     }
 
-    /*
-     * The overlap predicate is preserved verbatim from the row fetch this
-     * replaces: a row counts if it started on or before the window ends and
-     * either ended on or after the window started or is still open. The
-     * inclusive `>=` is deliberate - a row ending exactly at startDate still
-     * overlaps - and a strict `>` is NOT interchangeable.
-     */
-    const sql: string = `
+    const rows: Array<UptimeDailyAggregateRow> =
+      await this.getRepository().manager.query(
+        Service.getDailyUptimeAggregateSql(),
+        [
+          data.monitorIds.map((id: ObjectID) => {
+            return id.toString();
+          }),
+          data.startDate,
+          data.endDate,
+          data.timezone || "UTC",
+        ],
+      );
+
+    return Service.toUptimeDailyAggregate(rows, data.timezone || "UTC");
+  }
+
+  /*
+   * The statement getDailyUptimeAggregate runs. Public so its shape can be
+   * pinned without a database.
+   *
+   * Parameters: $1 uuid[] the monitors, $2 and $3 the window, $4 the zone.
+   *
+   * The rows, and where each one starts and ends, are getTimelineSourceCtes'
+   * (the overlap predicate is preserved verbatim from the row fetch this
+   * replaced: a row counts if it started on or before the window ends and
+   * either ended on or after the window started or is still open; the
+   * inclusive `>=` is deliberate - a row ending exactly at startDate still
+   * overlaps - and a strict `>` is NOT interchangeable). The days are the
+   * day grid's (getDayGridCte), which the monitor group statement cuts its
+   * days on too. Each period finds its first and last day in the grid with
+   * width_bucket; one inside a day is a single segment, one that crosses
+   * midnight is cut into a segment per day it touches.
+   *
+   * The days a period touches are a set-returning call in the select list
+   * (a ProjectSet, one value per day, no tuplestore per row), so the
+   * periods are read once and never written out. Splitting them in two
+   * branches of a UNION, as the monitor group statement does, made Postgres
+   * write every period to a temporary file first - about 100 MB for 1.1M
+   * rows - and ran slower whenever the disk was busy.
+   *
+   * Every monitor asked for comes back with a row for every day: a day
+   * nothing of it overlapped is one row with no status and no seconds, so a
+   * no-data day is never mistaken for a day spent up.
+   */
+  public static getDailyUptimeAggregateSql(): string {
+    return `
       WITH params AS (
         SELECT $2::timestamptz AS win_start,
                LEAST($3::timestamptz, now()) AS eff_end,
                $4::text AS tz
       ),
+      ${Service.getDayGridCte()},
       mons AS (
-        SELECT UNNEST($1::uuid[]) AS monitor_id
+        SELECT DISTINCT UNNEST($1::uuid[]) AS monitor_id
       ),
+      ${Service.getTimelineSourceCtes({ monitorIds: "$1::uuid[]" })},
+      periods AS (
+        SELECT src.monitor_id,
+               CASE WHEN src.is_off THEN NULL ELSE src.status_id END
+                 AS status_id,
+               src.is_off,
+               src.s,
+               src.e,
+               width_bucket(src.s, g.starts) AS first_day,
+               width_bucket(src.e - interval '1 microsecond', g.starts) AS last_day
+        FROM src
+        CROSS JOIN grid g
+        WHERE src.e > src.s
+      ),
+      split AS (
+        SELECT pr.monitor_id,
+               pr.status_id,
+               pr.is_off,
+               pr.s,
+               pr.e,
+               generate_series(pr.first_day, pr.last_day) AS day_index
+        FROM periods pr
+      ),
+      agg AS (
+        SELECT sp.monitor_id,
+               sp.day_index,
+               sp.status_id,
+               sp.is_off,
+               SUM(EXTRACT(EPOCH FROM (
+                 LEAST(sp.e, g.starts[sp.day_index + 1])
+                   - GREATEST(sp.s, g.starts[sp.day_index])
+               )))::double precision AS seconds
+        FROM split sp
+        CROSS JOIN grid g
+        WHERE LEAST(sp.e, g.starts[sp.day_index + 1])
+                > GREATEST(sp.s, g.starts[sp.day_index])
+        GROUP BY sp.monitor_id, sp.day_index, sp.status_id, sp.is_off
+      ),
+      ${Service.getDayBucketsCte()}
+      SELECT m.monitor_id AS "monitorId",
+             d.bucket_start AS "bucketStart",
+             d.bucket_end AS "bucketEnd",
+             EXTRACT(EPOCH FROM (d.bucket_end - d.bucket_start))::bigint
+               AS "daySeconds",
+             a.status_id AS "monitorStatusId",
+             COALESCE(a.seconds, 0)::double precision AS "seconds",
+             COALESCE(a.is_off, false) AS "isMonitoringOff"
+      FROM mons m
+      CROSS JOIN days d
+      LEFT JOIN agg a ON a.monitor_id = m.monitor_id
+                     AND a.day_index = d.day_index
+      WHERE d.bucket_end > d.bucket_start
+      ORDER BY m.monitor_id, d.bucket_start
+    `;
+  }
+
+  /*
+   * THE DAY GRID: the local midnights of every day of the window, in order,
+   * as one array (`grid.starts`), and one midnight past the last day, so
+   * starts[i] to starts[i + 1] is day i. Worked out once per statement, so a
+   * period finds its days with width_bucket instead of converting its own
+   * start and end to the zone. Reads params' win_start, eff_end and tz.
+   *
+   * A local midnight is a local calendar day converted to a UTC instant (`d
+   * AT TIME ZONE tz`), so a DST day is genuinely 23 or 25 hours, and a zone
+   * whose clocks change at midnight (America/Santiago) starts that day at
+   * the first instant it has. Every statement that cuts days cuts them on
+   * this grid, so a monitor group's bars line up with every monitor's.
+   */
+  public static getDayGridCte(): string {
+    return `grid AS (
+        SELECT array_agg((d AT TIME ZONE p.tz) ORDER BY d) AS starts
+        FROM params p,
+             generate_series(
+               date_trunc('day', p.win_start AT TIME ZONE p.tz),
+               date_trunc('day', p.eff_end AT TIME ZONE p.tz) + interval '1 day',
+               interval '1 day'
+             ) AS d
+      )`;
+  }
+
+  /*
+   * The window's day buckets on the day grid: day i runs from its midnight
+   * to the next, the first clipped to the window's start and the last to
+   * its end (never past now()), so a future day is never emitted. Followed
+   * by the statement's final SELECT.
+   */
+  public static getDayBucketsCte(): string {
+    return `days AS (
+        SELECT di AS day_index,
+               GREATEST(g.starts[di], p.win_start) AS bucket_start,
+               LEAST(g.starts[di + 1], p.eff_end) AS bucket_end
+        FROM grid g
+        CROSS JOIN params p,
+        LATERAL generate_series(1, array_length(g.starts, 1) - 1) AS di
+      )`;
+  }
+
+  /*
+   * THE ROWS EVERY STATEMENT THAT MEASURES A MONITOR'S TIME READS, AND WHERE
+   * EACH PERIOD STARTS AND ENDS: the `measured` and `src` CTEs of the day
+   * aggregate, the monitor group's days and the merged downtime, so the
+   * three agree on the same rows (getRollingUptimeTotals fans the same rows
+   * out per window, with the same rules). `monitorIds` is the parameter
+   * holding the monitors, a uuid[]; `params` must hold win_start and
+   * eff_end.
+   *
+   * Every row of the monitors that overlaps the window and is not deleted.
+   * An open row runs to the next row's start, `ORDER BY startsAt, endsAt
+   * NULLS LAST` (see getDailyUptimeAggregate), and every period is clipped
+   * to [win_start, eff_end]. One more cut is made after the LEAD, never
+   * before it (filtered first, an open row would run on across the time cut
+   * away):
+   *
+   * THE TIME BEFORE A MONITOR'S FIRST CHECK (issue #8960). Every monitor is
+   * created in its project's operational status, and nothing stands behind
+   * that status until something has measured the monitor - a probe's
+   * result, a heartbeat, an email, an agent report, an evaluation
+   * (Monitor.firstMeasuredAt). The Monitors list, the status page and the
+   * monitor's page say "Waiting for data" or "Not monitored yet" for it, so
+   * its bars and its uptime leave that time out: a day nothing had checked
+   * the monitor on is a day with no data, not a day it was up, and its
+   * uptime is measured from its first check. So a period that starts before
+   * the first check, in a status a monitor can start in (operational and
+   * not offline, MonitorFirstCheck.isStartingStatus), starts at the first
+   * check instead - and a monitor nothing has checked yet has no such time
+   * at all (its first check is `infinity`).
+   *
+   * A status something else set before the first check - an incident, a
+   * person, a maintenance event, the heartbeat check judging a heartbeat
+   * that never came - was recorded, and the monitor's row shows it as it
+   * is, so it counts as it always did. So does time with monitoring off,
+   * which is told apart as that (issue #7112). A manual monitor is never
+   * waiting for a check: its status is the one a person sets, from the
+   * start. A monitor that is not found reads as measured, as a read without
+   * the column does. A monitor measured before the column existed holds the
+   * time it was created (BackfillMonitorFirstMeasuredAt, and
+   * BackfillMonitorFirstMeasuredAtForUptimeHistory for one a result stamped
+   * during the upgrade, or one OneUptime measures without a trace), so its
+   * history reads as it always did - and until that has run, nothing is
+   * cut at all (getMeasuredFromCte).
+   *
+   * The status's flags are looked up only for a period that starts before
+   * the monitor's first check, which for a monitor that has been checked is
+   * its first period at most, so a flapping monitor's rows cost no lookup.
+   */
+  public static getTimelineSourceCtes(data: { monitorIds: string }): string {
+    return `${Service.getMeasuredFromCte({ monitorIds: data.monitorIds })},
       src AS (
         SELECT t."monitorId" AS monitor_id,
                t."monitorStatusId" AS status_id,
                t."isMonitoringOff" IS TRUE AS is_off,
-               GREATEST(t."startsAt", p.win_start) AS s,
+               GREATEST(
+                 t."startsAt",
+                 p.win_start,
+                 ${Service.getFirstCheckCutSql({
+                   startsAt: 't."startsAt"',
+                   isMonitoringOff: 't."isMonitoringOff" IS TRUE',
+                   monitorStatusId: 't."monitorStatusId"',
+                   measuredFrom: "mf.measured_from",
+                 })}
+               ) AS s,
                LEAST(
                  COALESCE(
                    t."endsAt",
@@ -322,99 +575,87 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
                ) AS e
         FROM "MonitorStatusTimeline" t
         CROSS JOIN params p
-        WHERE t."monitorId" = ANY($1::uuid[])
+        LEFT JOIN measured mf ON mf.monitor_id = t."monitorId"
+        WHERE t."monitorId" = ANY(${data.monitorIds})
           AND t."deletedAt" IS NULL
           AND t."startsAt" <= p.eff_end
           AND (t."endsAt" >= p.win_start OR t."endsAt" IS NULL)
-      ),
-      split AS (
-        SELECT src.monitor_id,
-               src.status_id,
-               (gs AT TIME ZONE p.tz) AS day_start,
-               GREATEST(src.s, (gs AT TIME ZONE p.tz)) AS seg_start,
-               LEAST(src.e, ((gs + interval '1 day') AT TIME ZONE p.tz))
-                 AS seg_end
-        FROM src
-        CROSS JOIN params p,
-        LATERAL generate_series(
-          date_trunc('day', src.s AT TIME ZONE p.tz),
-          date_trunc('day', (src.e - interval '1 microsecond') AT TIME ZONE p.tz),
-          interval '1 day'
-        ) AS gs
-        WHERE src.e > src.s
-          AND NOT src.is_off
-      ),
-      agg AS (
-        SELECT monitor_id,
-               day_start,
-               status_id,
-               SUM(EXTRACT(EPOCH FROM (seg_end - seg_start)))::double precision
-                 AS seconds
-        FROM split
-        WHERE seg_end > seg_start
-        GROUP BY monitor_id, day_start, status_id
-      ),
-      buckets AS (
-        SELECT (d AT TIME ZONE p.tz) AS day_start,
-               GREATEST((d AT TIME ZONE p.tz), p.win_start) AS bucket_start,
-               LEAST(((d + interval '1 day') AT TIME ZONE p.tz), p.eff_end)
-                 AS bucket_end
-        FROM params p,
-             generate_series(
-               date_trunc('day', p.win_start AT TIME ZONE p.tz),
-               date_trunc('day', p.eff_end AT TIME ZONE p.tz),
-               interval '1 day'
-             ) AS d
-      )
-      SELECT m.monitor_id AS "monitorId",
-             b.bucket_start AS "bucketStart",
-             b.bucket_end AS "bucketEnd",
-             EXTRACT(EPOCH FROM (b.bucket_end - b.bucket_start))::bigint
-               AS "daySeconds",
-             a.status_id AS "monitorStatusId",
-             COALESCE(a.seconds, 0)::double precision AS "seconds"
-      FROM mons m
-      CROSS JOIN buckets b
-      LEFT JOIN agg a ON a.monitor_id = m.monitor_id
-                     AND a.day_start = b.day_start
-      WHERE b.bucket_end > b.bucket_start
-      ORDER BY m.monitor_id, b.bucket_start
-    `;
+      )`;
+  }
 
-    const rows: Array<{
-      monitorId: string;
-      bucketStart: Date;
-      bucketEnd: Date;
-      daySeconds: string | number;
-      monitorStatusId: string | null;
-      seconds: string | number;
-    }> = await this.getRepository().manager.query(sql, [
-      data.monitorIds.map((id: ObjectID) => {
-        return id.toString();
-      }),
-      data.startDate,
-      data.endDate,
-      data.timezone || "UTC",
-    ]);
+  /*
+   * When each monitor's time starts to count (see getTimelineSourceCtes):
+   * its first check, `infinity` while nothing has checked it, and
+   * `-infinity` - from the start - for a manual monitor.
+   *
+   * And from the start for every monitor until the upgrade has put the
+   * column right for history: BackfillMonitorFirstMeasuredAtForUptimeHistory
+   * gives a monitor measured before the column existed the time it was
+   * created, where a result that came back during the upgrade had stamped
+   * it with the upgrade's time. Until its DataMigrations row is there, an
+   * install's monitors read as they always did (one lookup, made once per
+   * statement), so no history reads as no data while it is put right.
+   */
+  public static getMeasuredFromCte(data: { monitorIds: string }): string {
+    return `measured AS (
+        SELECT m."_id" AS monitor_id,
+               CASE
+                 WHEN m."monitorType" IS NULL
+                   OR m."monitorType" = '${MonitorType.Manual}'
+                   OR NOT EXISTS (
+                     SELECT 1
+                     FROM "DataMigrations" dm
+                     WHERE dm."name" = '${FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME}'
+                       AND dm."executed" = true
+                       AND dm."deletedAt" IS NULL
+                   )
+                   THEN '-infinity'::timestamptz
+                 ELSE COALESCE(m."firstMeasuredAt", 'infinity'::timestamptz)
+               END AS measured_from
+        FROM "Monitor" m
+        WHERE m."_id" = ANY(${data.monitorIds})
+      )`;
+  }
 
-    return Service.toUptimeDailyAggregate(rows, data.timezone || "UTC");
+  /*
+   * The instant a period may start at no earlier than, given when its
+   * monitor's time starts to count (see getTimelineSourceCtes):
+   * `-infinity` - no cut - for time with monitoring off, for a period that
+   * starts once the monitor has been checked, and for a status a monitor
+   * cannot start in; the first check otherwise. Passed to GREATEST with the
+   * period's start, never NULL: GREATEST ignores a NULL argument.
+   */
+  public static getFirstCheckCutSql(data: {
+    startsAt: string;
+    isMonitoringOff: string;
+    monitorStatusId: string;
+    measuredFrom: string;
+  }): string {
+    return `CASE
+                   WHEN ${data.isMonitoringOff}
+                     OR ${data.startsAt} >= COALESCE(${data.measuredFrom}, '-infinity'::timestamptz)
+                     THEN '-infinity'::timestamptz
+                   WHEN EXISTS (
+                     SELECT 1
+                     FROM "MonitorStatus" ms
+                     WHERE ms."_id" = ${data.monitorStatusId}
+                       AND ms."isOperationalState" IS TRUE
+                       AND ms."isOfflineState" IS NOT TRUE
+                   ) THEN ${data.measuredFrom}
+                   ELSE '-infinity'::timestamptz
+                 END`;
   }
 
   /*
    * Exported shape-only step, so the bucketing can be tested without a
    * database. One row per (monitor, day, status); a day with no coverage
    * comes back as a single row with a NULL status and zero seconds, which is
-   * what makes a no-data day distinguishable from a day spent up.
+   * what makes a no-data day distinguishable from a day spent up. A day's
+   * time with monitoring off is one more row, with no status and
+   * isMonitoringOff: it is the bucket's monitoringOffSeconds, never coverage.
    */
   public static toUptimeDailyAggregate(
-    rows: Array<{
-      monitorId: string;
-      bucketStart: Date;
-      bucketEnd: Date;
-      daySeconds: string | number;
-      monitorStatusId: string | null;
-      seconds: string | number;
-    }>,
+    rows: Array<UptimeDailyAggregateRow>,
     /*
      * The zone the SQL cut the day buckets in. It travels with the buckets
      * so a client draws its bars on the same day boundaries - see
@@ -451,6 +692,21 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       }
 
       const seconds: number = Number(row.seconds);
+
+      /*
+       * Time with monitoring off is no status and no coverage: it is told
+       * apart, so the day says monitoring was off rather than "no data".
+       * Left off the bucket while there is none, so a day monitoring was on
+       * reads as it always has.
+       */
+      if (row.isMonitoringOff === true) {
+        if (seconds > 0) {
+          bucket.monitoringOffSeconds =
+            (bucket.monitoringOffSeconds || 0) + seconds;
+        }
+
+        continue;
+      }
 
       /*
        * A NULL status is the LEFT JOIN's "nothing overlapped this day" row.
@@ -628,21 +884,32 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    * a name: those are all parameters.
    *
    * THE DAY GRID. The local midnights of the window's days are worked out
-   * once, as the aggregate's buckets CTE works them out, into one array, and
-   * each period finds its first and last day in it with width_bucket, a
-   * binary search. A period inside one day - nearly every row of a flapping
-   * monitor - is one segment, with no per-row zone conversion and no
-   * generate_series; only a period that crosses midnight is fanned out, one
-   * segment per day. Converting every row's start and end to the zone and
-   * calling generate_series for it, as the aggregate does, was most of the
-   * statement's time: 1.1M rows of three monitors flapping every 20 seconds
-   * took 4.0 s that way and take 1.9 s this way.
+   * once into one array (getDayGridCte, which the aggregate cuts its days on
+   * too), and each period finds its first and last day in it with
+   * width_bucket, a binary search. A period inside one day - nearly every
+   * row of a flapping monitor - is one segment, with no per-row zone
+   * conversion and no generate_series; only a period that crosses midnight
+   * is fanned out, one segment per day. Converting every row's start and end
+   * to the zone and calling generate_series for it, as the aggregate used
+   * to, was most of the statement's time: 1.1M rows of three monitors
+   * flapping every 20 seconds took 4.0 s that way and take 1.9 s this way.
+   *
+   * THE ROWS are getTimelineSourceCtes', as the aggregate's are: a member's
+   * time before its first check is no part of the group's (issue #8960).
    *
    * THE MERGE. One window pass over each group's day, in start order, keeps
    * a running MAX(end) per level - over the periods ranked at or above it,
    * by a FILTER - and each period adds to a level's union what reaches past
    * that level's running end. Counting each period once per level, in a
    * window per level, sorted twice as many rows and took a third longer.
+   *
+   * MONITORING OFF. A period that marks monitoring off (issue #6480) is
+   * ranked 0, below every status, whatever status it holds: no level counts
+   * it, so the statuses and the coverage leave that time out, as before.
+   * One more union, of every period, off included, comes back beside the
+   * levels (unionWithMonitoringOff): less level 1's, it is the time at least
+   * one monitor had monitoring off while none was checked - a day the bars
+   * say was not monitored (issue #7112), not a day with no data.
    */
   public static getMonitorGroupDailyUptimeAggregateSql(data: {
     levelCount: number;
@@ -652,9 +919,14 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     const reachedColumns: Array<string> = [];
     const unionColumns: Array<string> = [];
 
+    /*
+     * Level 1 is every period of a status (rank 1 and up); a period with
+     * monitoring off is ranked 0, so only the union of every period, off
+     * included (reached_all), counts it - the time with monitoring off is
+     * that union less level 1's.
+     */
     for (let level: number = 1; level <= levelCount; level++) {
-      const filter: string =
-        level === 1 ? "" : ` FILTER (WHERE status_rank >= ${level})`;
+      const filter: string = ` FILTER (WHERE status_rank >= ${level})`;
 
       reachedColumns.push(
         `MAX(seg_end)${filter} OVER earlier AS reached_${level}`,
@@ -670,15 +942,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
                LEAST($4::timestamptz, now()) AS eff_end,
                $5::text AS tz
       ),
-      grid AS (
-        SELECT array_agg((d AT TIME ZONE p.tz) ORDER BY d) AS starts
-        FROM params p,
-             generate_series(
-               date_trunc('day', p.win_start AT TIME ZONE p.tz),
-               date_trunc('day', p.eff_end AT TIME ZONE p.tz) + interval '1 day',
-               interval '1 day'
-             ) AS d
-      ),
+      ${Service.getDayGridCte()},
       members AS (
         SELECT DISTINCT m.group_key, m.monitor_id
         FROM UNNEST($1::int[], $2::uuid[]) AS m(group_key, monitor_id)
@@ -687,42 +951,21 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         SELECT r.status_id, r.status_rank::int AS status_rank
         FROM UNNEST($6::uuid[]) WITH ORDINALITY AS r(status_id, status_rank)
       ),
-      src AS (
-        SELECT t."monitorId" AS monitor_id,
-               t."monitorStatusId" AS status_id,
-               t."isMonitoringOff" IS TRUE AS is_off,
-               GREATEST(t."startsAt", p.win_start) AS s,
-               LEAST(
-                 COALESCE(
-                   t."endsAt",
-                   LEAD(t."startsAt") OVER (
-                     PARTITION BY t."monitorId"
-                     ORDER BY t."startsAt", t."endsAt" NULLS LAST
-                   ),
-                   p.eff_end
-                 ),
-                 p.eff_end
-               ) AS e
-        FROM "MonitorStatusTimeline" t
-        CROSS JOIN params p
-        WHERE t."monitorId" = ANY($2::uuid[])
-          AND t."deletedAt" IS NULL
-          AND t."startsAt" <= p.eff_end
-          AND (t."endsAt" >= p.win_start OR t."endsAt" IS NULL)
-      ),
+      ${Service.getTimelineSourceCtes({ monitorIds: "$2::uuid[]" })},
       periods AS (
         SELECT mb.group_key,
-               rk.status_rank,
+               CASE WHEN src.is_off THEN 0 ELSE rk.status_rank END
+                 AS status_rank,
                src.s,
                src.e,
                width_bucket(src.s, g.starts) AS first_day,
                width_bucket(src.e - interval '1 microsecond', g.starts) AS last_day
         FROM src
         JOIN members mb ON mb.monitor_id = src.monitor_id
-        JOIN ranks rk ON rk.status_id = src.status_id
+        LEFT JOIN ranks rk ON rk.status_id = src.status_id
         CROSS JOIN grid g
         WHERE src.e > src.s
-          AND NOT src.is_off
+          AND (src.is_off OR rk.status_rank IS NOT NULL)
       ),
       split AS (
         SELECT group_key,
@@ -749,6 +992,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
                status_rank,
                seg_start,
                seg_end,
+               MAX(seg_end) OVER earlier AS reached_all,
                ${reachedColumns.join(",\n               ")}
         FROM split
         WHERE seg_end > seg_start
@@ -763,24 +1007,20 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
                day_index,
                ARRAY[
                  ${unionColumns.join(",\n                 ")}
-               ]::double precision[] AS unions
+               ]::double precision[] AS unions,
+               COALESCE(SUM(GREATEST(EXTRACT(EPOCH FROM (seg_end - GREATEST(seg_start, COALESCE(reached_all, seg_start)))), 0)), 0)::double precision
+                 AS union_all
         FROM reach
         GROUP BY group_key, day_index
       ),
-      days AS (
-        SELECT di AS day_index,
-               GREATEST(g.starts[di], p.win_start) AS bucket_start,
-               LEAST(g.starts[di + 1], p.eff_end) AS bucket_end
-        FROM grid g
-        CROSS JOIN params p,
-        LATERAL generate_series(1, array_length(g.starts, 1) - 1) AS di
-      )
+      ${Service.getDayBucketsCte()}
       SELECT gk.group_key AS "groupKey",
              d.bucket_start AS "bucketStart",
              d.bucket_end AS "bucketEnd",
              EXTRACT(EPOCH FROM (d.bucket_end - d.bucket_start))::bigint
                AS "daySeconds",
-             u.unions AS "unions"
+             u.unions AS "unions",
+             u.union_all AS "unionWithMonitoringOff"
       FROM generate_series(1, $7::int) AS gk(group_key)
       CROSS JOIN days d
       LEFT JOIN day_unions u ON u.group_key = gk.group_key
@@ -801,7 +1041,8 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    * the same time can differ in their last bits: a difference below a
    * microsecond is no time at all, and one below zero is clamped away. Every
    * group asked for comes back, in the order asked, with a bucket for every
-   * day.
+   * day. The union of every period, monitoring off included, less U(1) is
+   * the bucket's monitoringOffSeconds, held to the same microsecond.
    */
   public static toMonitorGroupUptimeDailyAggregate(data: {
     rows: Array<MonitorGroupDailyUptimeRow>;
@@ -850,6 +1091,21 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         coveredSeconds: unionAt(1),
         statusDurations: [],
       };
+
+      /*
+       * Every monitor that was there had monitoring off: the group was not
+       * checked, so that time is no status, and the day says so.
+       */
+      const unionWithMonitoringOff: number = Number(row.unionWithMonitoringOff);
+      const monitoringOffSeconds: number = Number.isFinite(
+        unionWithMonitoringOff,
+      )
+        ? unionWithMonitoringOff - unionAt(1)
+        : 0;
+
+      if (monitoringOffSeconds >= MINIMUM_GROUP_STATUS_SECONDS) {
+        bucket.monitoringOffSeconds = monitoringOffSeconds;
+      }
 
       for (
         let level: number = 1;
@@ -910,10 +1166,13 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    *
    * WHAT IT COUNTS
    *
-   * The rows, and where each one ends, are exactly getDailyUptimeAggregate's
-   * src CTE: the same inclusive overlap predicate, deleted rows ignored,
-   * everything clipped to [startDate, LEAST(endDate, now())], and an open row
-   * capped at the next row's start, `ORDER BY startsAt, endsAt NULLS LAST`.
+   * The rows, and where each one starts and ends, are exactly
+   * getDailyUptimeAggregate's (getTimelineSourceCtes): the same inclusive
+   * overlap predicate, deleted rows ignored, everything clipped to
+   * [startDate, LEAST(endDate, now())], an open row capped at the next row's
+   * start, `ORDER BY startsAt, endsAt NULLS LAST`, and a monitor's time before
+   * its first check left out (issue #8960), so a monitor nothing has checked
+   * yet neither lifts nor lowers its group's uptime.
    * For a single monitor the two agree exactly, unless two of its own rows
    * overlap (deleting a row from the middle of a timeline used to leave
    * that, see getRollingUptimeTotals): the aggregate counts the overlap
@@ -974,28 +1233,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         SELECT $2::timestamptz AS win_start,
                LEAST($3::timestamptz, now()) AS eff_end
       ),
-      src AS (
-        SELECT t."monitorStatusId" AS status_id,
-               t."isMonitoringOff" IS TRUE AS is_off,
-               GREATEST(t."startsAt", p.win_start) AS s,
-               LEAST(
-                 COALESCE(
-                   t."endsAt",
-                   LEAD(t."startsAt") OVER (
-                     PARTITION BY t."monitorId"
-                     ORDER BY t."startsAt", t."endsAt" NULLS LAST
-                   ),
-                   p.eff_end
-                 ),
-                 p.eff_end
-               ) AS e
-        FROM "MonitorStatusTimeline" t
-        CROSS JOIN params p
-        WHERE t."monitorId" = ANY($1::uuid[])
-          AND t."deletedAt" IS NULL
-          AND t."startsAt" <= p.eff_end
-          AND (t."endsAt" >= p.win_start OR t."endsAt" IS NULL)
-      ),
+      ${Service.getTimelineSourceCtes({ monitorIds: "$1::uuid[]" })},
       periods AS (
         SELECT s,
                e,
@@ -1099,7 +1337,10 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    * into days and adding the days back up gives the same total, and a
    * rolling window has no day boundaries to report. A row that marks the
    * monitor's monitoring off is dropped after the LEAD, as the aggregate
-   * drops it, so a window with monitoring off is measured over the rest.
+   * drops it, so a window with monitoring off is measured over the rest. And
+   * a period before the monitor's first check is cut to start at it, after
+   * the LEAD, by the aggregate's rule (getFirstCheckCutSql, issue #8960), so
+   * a window nothing had checked the monitor in reads "No data".
    *
    * On an exact startsAt tie a closed row sorts before an open one. The
    * aggregate leaves ties in whatever order the plan produces; putting the
@@ -1175,6 +1416,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
                ) AS starts_from
         FROM widest wd
       ),
+      ${Service.getMeasuredFromCte({ monitorIds: "ARRAY[$1::uuid]" })},
       src_rows AS (
         SELECT t."monitorStatusId" AS status_id,
                t."isMonitoringOff" IS TRUE AS is_off,
@@ -1205,7 +1447,16 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         SELECT w.window_no,
                r.status_id,
                r.is_off,
-               GREATEST(r.starts_at, w.win_start) AS s,
+               GREATEST(
+                 r.starts_at,
+                 w.win_start,
+                 ${Service.getFirstCheckCutSql({
+                   startsAt: "r.starts_at",
+                   isMonitoringOff: "r.is_off",
+                   monitorStatusId: "r.status_id",
+                   measuredFrom: "mf.measured_from",
+                 })}
+               ) AS s,
                LEAST(
                  COALESCE(
                    r.ends_at,
@@ -1220,6 +1471,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         FROM src_rows r
         CROSS JOIN windows w
         CROSS JOIN params p
+        LEFT JOIN measured mf ON true
         WHERE r.ends_at >= w.win_start OR r.ends_at IS NULL
       ),
       agg AS (
@@ -1694,6 +1946,17 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     createBy: CreateBy<MonitorStatusTimeline>,
   ): Promise<OnCreate<MonitorStatusTimeline>> {
     await super.onBeforeCreate(createBy);
+
+    /*
+     * The check that caused the change, without a Synthetic monitor's
+     * screenshots: the log is read as JSON text, and they are megabytes a
+     * row. The monitor's own logs keep them. See StateChangeLogScreenshots.
+     */
+    if (createBy.data.statusChangeLog) {
+      createBy.data.statusChangeLog = StateChangeLogScreenshots.leaveOut(
+        createBy.data.statusChangeLog,
+      );
+    }
 
     /*
      * The monitor under either of its names (the two must agree, whoever

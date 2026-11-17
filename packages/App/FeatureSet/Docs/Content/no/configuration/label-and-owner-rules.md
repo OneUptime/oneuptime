@@ -107,6 +107,8 @@ Redigeringsskjemaet til en regel har de samme to trinnene og legger til bryteren
 
 En slik regel kan fortsatt gis nytt navn, slås av eller slettes, også via API-et og Terraform. Listen merker en regel som ikke legger til noe, med **Legger ikke til noe** ved siden av statusen, og det samme gjør regelens egen side. Rediger den for å velge hva den legger til, eller slett den.
 
+En regel der alle etikettene den samsvarer med, er slettet, slås av i stedet for å samsvare med alle ressurser, og listen merker den med **Begrenset til slettede poster** ved siden av statusen. Rediger den for å velge hva den samsvarer med, og slå den deretter på. Se [Når postene en regel er begrenset til, slettes](/docs/incidents/settings#når-postene-en-regel-er-begrenset-til-slettes).
+
 ## Når regler kjører
 
 Hver aktivert regel kjører når en ressurs opprettes, fra dashbordet eller via API-et, og hver regel som treffer, legger til det den legger til:

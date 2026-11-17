@@ -4,7 +4,6 @@ import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
 import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
-import OnCallDutyPolicyExecutionLogTimeline from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import UserOnCallLog from "../../../../Models/DatabaseModels/UserOnCallLog";
 import URL from "../../../../Types/API/URL";
 import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
@@ -45,6 +44,7 @@ import PassOnWorld, {
   POLICY_ID,
   PROJECT_ID,
   RUN_ID,
+  START,
   nextId,
 } from "./PassOnWorld";
 
@@ -149,17 +149,60 @@ export interface WorldFeedEntry {
   at: Date;
 }
 
+/*
+ * When the policy was last changed before the world's clock starts: set up
+ * the day before, and left alone since.
+ */
+export const POLICY_SET_UP_AT: Date = new Date(
+  START.getTime() - 24 * 60 * MINUTE_IN_MS,
+);
+
+// What changing a policy may change, in the world (changePolicy).
+export interface WorldPolicyChange {
+  name?: string | undefined;
+  acknowledgementTimeoutInMinutes?: number | null | undefined;
+  isArchived?: boolean | undefined;
+}
+
 export default class AcknowledgementTimeoutWorld extends PassOnWorld {
   // The policy as it is now: every read of a run reads it again.
   public policy: {
     name: string;
     acknowledgementTimeoutInMinutes: number | null;
     isArchived: boolean;
+    /*
+     * When it was last changed, as the database stamps every update of it
+     * (updatedAt): changePolicy moves it to the world's now.
+     */
+    updatedAt: Date;
   } = {
     name: "Payments",
     acknowledgementTimeoutInMinutes: 30,
     isArchived: false,
+    updatedAt: new Date(POLICY_SET_UP_AT),
   };
+
+  /*
+   * The policy is changed now - in the Dashboard, through the API or
+   * Terraform - as the database writes it: what changed, and its updatedAt
+   * stamped with the moment of the write, whatever column changed.
+   */
+  public changePolicy(change: WorldPolicyChange): void {
+    if (change.name !== undefined) {
+      this.policy.name = change.name;
+    }
+
+    if (change.acknowledgementTimeoutInMinutes !== undefined) {
+      this.policy.acknowledgementTimeoutInMinutes =
+        change.acknowledgementTimeoutInMinutes;
+    }
+
+    if (change.isArchived !== undefined) {
+      this.policy.isArchived = change.isArchived;
+    }
+
+    this.policy.updatedAt = new Date(this.clock);
+  }
 
   public states: Array<IncidentState> = [
     state(CREATED, 1, "Created", { created: true }),
@@ -214,6 +257,7 @@ export default class AcknowledgementTimeoutWorld extends PassOnWorld {
       (policy as unknown as Record<string, unknown>)[
         "acknowledgementTimeoutInMinutes"
       ] = this.policy.acknowledgementTimeoutInMinutes;
+      policy.updatedAt = new Date(this.policy.updatedAt);
       policy.repeatPolicyIfNoOneAcknowledges = this.repeatsAllowed > 0;
       policy.repeatPolicyIfNoOneAcknowledgesNoOfTimes = this.repeatsAllowed;
       return policy;
@@ -499,31 +543,8 @@ export default class AcknowledgementTimeoutWorld extends PassOnWorld {
             return matchesQuery(data.query, row as unknown as FakeRow);
           })
           .map((row: UserOnCallLog) => {
-            const log: UserOnCallLog = copy(row);
-            const run: OnCallDutyPolicyExecutionLog | undefined = this.findRun(
-              row.onCallDutyPolicyExecutionLogId,
-            );
-
-            if (run) {
-              log.onCallDutyPolicyExecutionLog = copy(run);
-            }
-
-            // And the run's line for them, as PassOnWorld reads it.
-            const step: OnCallDutyPolicyExecutionLogTimeline | undefined =
-              this.steps.find(
-                (candidate: OnCallDutyPolicyExecutionLogTimeline) => {
-                  return sameKey(
-                    candidate._id,
-                    row.onCallDutyPolicyExecutionLogTimelineId,
-                  );
-                },
-              );
-
-            if (step) {
-              log.onCallDutyPolicyExecutionLogTimeline = copy(step);
-            }
-
-            return log;
+            // With their run and the run's line for them (PassOnWorld).
+            return this.readLog(row);
           });
       },
     );

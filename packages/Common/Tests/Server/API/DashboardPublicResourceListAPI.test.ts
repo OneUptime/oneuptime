@@ -33,6 +33,7 @@ import {
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAnyOfGroups from "../../../Types/BaseDatabase/IncludesAnyOfGroups";
+import NotNull from "../../../Types/BaseDatabase/NotNull";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
@@ -1188,13 +1189,17 @@ describe("DashboardAPI public resource-list", () => {
         /*
          * Archived monitors are never published, and "operational" matches
          * only monitors that are checked: one whose monitoring is off keeps
-         * the status its last check saw (issue #6476).
+         * the status its last check saw (issue #6476). And only those that
+         * have been measured: one nothing has checked yet holds the
+         * operational status it was created in, and its row says Waiting
+         * for data (issue #8899).
          */
         expect(findBy["query"]).toEqual({
           projectId,
           isArchived: false,
           disableActiveMonitoring: false,
           currentMonitorStatus: { isOperationalState: true },
+          firstMeasuredAt: new NotNull(),
           monitorType: new Includes(["Ping"]),
           labels: new IncludesAnyOfGroups([[fixedLabelId], [secondLabelId]]),
         });
@@ -1203,14 +1208,31 @@ describe("DashboardAPI public resource-list", () => {
         /*
          * The status's place in the project's list is read too: a viewer
          * may sort the list worst first by it (issue #5082). And whether
-         * monitoring is off, which the page draws as Disabled (#6476).
+         * monitoring is off, which the page draws as Disabled (#6476), and
+         * everything else the Monitors table's row rule reads
+         * (MonitorRowStatus), so the page says Waiting for data, No results
+         * yet, Paused or a probe problem where the board does (#8899).
          */
         expect(findBy["select"]).toEqual({
           _id: true,
           name: true,
-          monitorType: true,
+          isArchived: true,
           disableActiveMonitoring: true,
-          currentMonitorStatus: { name: true, color: true, priority: true },
+          disableActiveMonitoringBecauseOfManualIncident: true,
+          disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+          isNoProbeEnabledOnThisMonitor: true,
+          isAllProbesDisconnectedFromThisMonitor: true,
+          monitorType: true,
+          firstMeasuredAt: true,
+          createdAt: true,
+          monitoringInterval: true,
+          currentMonitorStatus: {
+            name: true,
+            color: true,
+            isOperationalState: true,
+            isOfflineState: true,
+            priority: true,
+          },
         });
       });
 

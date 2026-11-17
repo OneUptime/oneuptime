@@ -1,5 +1,6 @@
 import LogPipelineService, { LoadedPipeline } from "./LogPipelineService";
 import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
+import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import { PatternWorkAllowance } from "Common/Utils/LinearRegExp/PatternWork";
 import LogDropFilterService, {
   LoadedLogDropFilter,
@@ -10,7 +11,6 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import SyslogAttribute, {
-  SYSLOG_STRUCTURED_ATTRIBUTE_PREFIX,
   SyslogDeviceMatchKind,
 } from "Common/Types/Syslog/SyslogAttribute";
 import SyslogMessage, {
@@ -28,8 +28,9 @@ import {
   SyslogHeaderFormat,
   getSyslogHeaderFormat,
   parseSyslogMessage,
-  sanitizeSyslogAttributeKey,
+  syslogStructuredDataAttributeKey,
 } from "Common/Utils/Syslog/SyslogMessageParser";
+import SyslogRawCopies from "Common/Utils/Syslog/SyslogRawCopies";
 import {
   DEFAULT_SYSLOG_FACILITY,
   DEFAULT_SYSLOG_SEVERITY,
@@ -203,7 +204,19 @@ export default class ProbeSyslogIngestService {
      */
     const matcherProbe: FlowProbe = probe || { id: probeId, projectId: null };
 
+    /*
+     * A probe's batch can hold thousands of messages, each read by its
+     * project's drop filters, scrub rules and pipelines, and the lookups
+     * between them are mostly answered from memory: the event loop is
+     * handed back by the time the work took (Common/Server/Utils/EventLoop.ts).
+     */
+    const eventLoopBudget: EventLoopBudget = new EventLoopBudget();
+
     for (const rawMessage of rawMessages) {
+      if (eventLoopBudget.isSpent()) {
+        await eventLoopBudget.handBack();
+      }
+
       try {
         const syslogMessage: SyslogMessage | null =
           ProbeSyslogIngestService.deserializeSyslogMessage(rawMessage);
@@ -646,11 +659,21 @@ export default class ProbeSyslogIngestService {
           return null;
         }
 
+        /*
+         * syslog.structured.raw is put together again from what the rules
+         * left of each parameter (Common/Utils/Syslog/SyslogRawCopies,
+         * #9039).
+         */
         if (processingContext.scrubRules.length > 0) {
-          logRow = LogScrubRuleService.scrubLog(
-            logRow,
-            processingContext.scrubRules,
-          );
+          logRow = SyslogRawCopies.scrubLog({
+            logRow: logRow,
+            scrub: (row: JSONObject): JSONObject => {
+              return LogScrubRuleService.scrubLog(
+                row,
+                processingContext.scrubRules,
+              );
+            },
+          });
         }
 
         if (processingContext.pipelines.length > 0) {
@@ -711,9 +734,7 @@ export default class ProbeSyslogIngestService {
 
     for (const [sdId, params] of Object.entries(read.structuredData || {})) {
       for (const [key, value] of Object.entries(params)) {
-        attributes[
-          `${SYSLOG_STRUCTURED_ATTRIBUTE_PREFIX}${sanitizeSyslogAttributeKey(sdId)}.${sanitizeSyslogAttributeKey(key)}`
-        ] = value;
+        attributes[syslogStructuredDataAttributeKey(sdId, key)] = value;
       }
     }
 

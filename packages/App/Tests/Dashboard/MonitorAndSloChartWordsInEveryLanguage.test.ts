@@ -20,7 +20,9 @@ import {
   dashboardTranslator,
   isWordedInDashboardLocale,
   readDashboardLocale,
+  readDashboardLocaleAsDrawn,
 } from "Common/Tests/Helpers/DashboardLocales";
+import { withPlainSpaces } from "Common/Types/NoBreakSpaces";
 import { buildMonitorMetricQueryConfig } from "../../FeatureSet/Dashboard/src/Components/Monitor/MonitorMetricQueryConfig";
 import {
   SLO_BURN_RATE_CHART_DESCRIPTION,
@@ -208,9 +210,10 @@ describe("every word these charts draw", () => {
         SLO_CURRENT_BURN_RATE_WINDOW_MINUTES,
       ),
     ).toBe(SloMetricTypeUtil.getDescription(SloMetricType.BurnRate));
-    expect(getSloMetricChartDescription(SloMetricType.BurnRate)).toBe(
-      SloMetricTypeUtil.getDescription(SloMetricType.BurnRate),
-    );
+    // The chart draws its window held (#8811); the catalog stores it as written.
+    expect(
+      withPlainSpaces(getSloMetricChartDescription(SloMetricType.BurnRate)),
+    ).toBe(SloMetricTypeUtil.getDescription(SloMetricType.BurnRate));
   });
 });
 
@@ -278,7 +281,9 @@ describe("a monitor's chart (buildMonitorMetricQueryConfig)", () => {
   test.each(["de", "fa", "ar", "ja"])(
     "hands every Server metric's title in %s",
     (language: string) => {
-      const words: Record<string, string> = readDashboardLocale(language);
+      // As the Translator draws them: each figure held to its unit (#8770).
+      const words: Record<string, string> =
+        readDashboardLocaleAsDrawn(language);
 
       for (const metric of MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(
         MonitorType.Server,
@@ -439,7 +444,7 @@ describe("the SLO Metrics page's charts", () => {
     })[0]!;
 
     expect(burn.metricAliasData?.description).toContain(
-      `${SLO_CURRENT_BURN_RATE_WINDOW_MINUTES} Minuten`,
+      `${SLO_CURRENT_BURN_RATE_WINDOW_MINUTES}\u00A0Minuten`,
     );
     expect(burn.metricAliasData?.description).not.toContain("minutes");
   });

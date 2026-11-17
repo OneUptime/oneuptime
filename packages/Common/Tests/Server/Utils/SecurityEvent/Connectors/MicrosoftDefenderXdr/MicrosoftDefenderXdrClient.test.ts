@@ -1,4 +1,5 @@
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import MicrosoftDefenderXdrClient, {
   MICROSOFT_DEFENDER_XDR_DEFAULT_PAGE_SIZE,
   MicrosoftDefenderXdrAlertCount,
@@ -578,6 +579,45 @@ describe("MicrosoftDefenderXdrClient", () => {
       );
       expect(error.message).toContain("retry after 10 seconds");
     });
+
+    // Issue #8928: what the header says, read as RFC 9110 writes it.
+    test.each([
+      ["Mon, 16 Nov 2026 10:00:25 GMT", "retry after 25 seconds"],
+      ["0", "retry after 0 seconds"],
+      ["soon", "Microsoft Graph throttled the request. The next poll"],
+      ["1.5", "Microsoft Graph throttled the request. The next poll"],
+    ])(
+      "says a Retry-After of %j as %j",
+      async (retryAfter: string, said: string) => {
+        const now: SpyInstance<typeof Date.now> = jest
+          .spyOn(Date, "now")
+          .mockReturnValue(Date.UTC(2026, 10, 16, 10, 0, 0));
+
+        try {
+          const harness: Harness = buildHarness({
+            alerts: [
+              (): DataSourceHttpResponse => {
+                return status(
+                  429,
+                  JSON.stringify({ error: { code: "TooManyRequests" } }),
+                  { "retry-after": retryAfter },
+                );
+              },
+            ],
+          });
+
+          const error: APIException = await expectRejection(
+            harness.client.listAlerts({ startTime: START, endTime: END }),
+          );
+
+          expect(error.message).toContain(said);
+          // The header's text is never quoted as a number of seconds.
+          expect(error.message).not.toMatch(/(soon|GMT|1\.5) seconds/);
+        } finally {
+          now.mockRestore();
+        }
+      },
+    );
 
     test("reports a 5xx as Graph's fault and keeps the body", async () => {
       const harness: Harness = buildHarness({

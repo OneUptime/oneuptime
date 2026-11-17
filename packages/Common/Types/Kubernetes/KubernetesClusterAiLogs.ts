@@ -77,6 +77,13 @@ export interface KubernetesClusterAiLogFix {
   rationale?: string | undefined;
   createdAt?: string | undefined;
   approvedAt?: string | undefined;
+  /*
+   * A fix that waits for approval, and was approved once already: when the
+   * first of the two approvals a riskier fix needs was given, so the page
+   * says it waits for a second (Project.requireTwoApprovalsForRiskierFixes).
+   * Absent on every other fix.
+   */
+  firstApprovedAt?: string | undefined;
   incidentId?: string | undefined;
   alertId?: string | undefined;
 }
@@ -94,4 +101,12 @@ export interface KubernetesClusterAiLogs {
     investigation: number;
     remediation: number;
   };
+  /*
+   * How many of the kubectl commands AI ran on the cluster the caller may
+   * not read, so the page's list of them says it leaves those out: another
+   * person's AI chat's, or one about a private incident or alert they don't
+   * see (RunnerJobService.countJobsHiddenFrom, #9155). Only the number.
+   * Absent for a caller who may not read Runner jobs at all.
+   */
+  hiddenCommandCount?: number | undefined;
 }

@@ -75,7 +75,7 @@ flowchart TB
 
 ## 模板变量
 
-除了每个监视器都有的变量外，探测器状态监控的事件和告警模板还可以使用以下变量：
+除了每个监视器都有的变量外，探测器状态监控的事件和警报模板还可以使用以下变量：
 
 | 变量 | 值 |
 | --- | --- |
@@ -101,5 +101,5 @@ flowchart TB
 :::cards
 - [自定义探测器](/docs/probe/custom-probe): 在您自己的网络中运行探测器。
 - [监视器条件和状态](/docs/monitor/criteria-and-statuses): 条件如何决定监视器的状态。
-- [事件和告警模板](/docs/monitor/incident-alert-templating): 编写监视器所声明事件的措辞。
+- [事件和警报模板](/docs/monitor/incident-alert-templating): 编写监视器所声明事件的措辞。
 :::

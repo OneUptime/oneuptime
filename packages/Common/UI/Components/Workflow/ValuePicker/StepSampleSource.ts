@@ -197,7 +197,9 @@ export const NOT_RUN_NOTE: string = translationKey(
   "{{step}} hasn't run yet. Its fields show up here after it does.",
 );
 
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 type NotRunNoteFunction = (
   step: NodeDataProp,

@@ -41,6 +41,10 @@
  *                     (found otherwise)
  *   - readiness=ready|notready|nocert   what the self-hosted server still
  *                     needs (ready otherwise; nothing is read on Cloud)
+ *   - usedBy=used     what the status page shows right now, on its Showing
+ *                     now card (#7438): two open incidents and one the
+ *                     member may not see, and maintenance coming up;
+ *                     nothing otherwise
  *
  * Every read is recorded on `window.__fixture` (listRequests, itemRequests,
  * apiGets), and every read it does not model on `window.__fixture.unmodelled`
@@ -110,6 +114,8 @@ const delay = Number(params.get("delay") || 30);
 const language = ["de", "ja", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
+// ?usedBy=used: what the status page shows right now (#7438).
+const usedByMode = params.get("usedBy") === "used" ? "used" : "none";
 
 window.__fixture = {
   itemRequests: [],
@@ -538,24 +544,88 @@ function readinessAnswer() {
 }
 
 /*
- * What refers to the record a page is about ("Used by", #6813): GET
- * /used-by/:recordKind/:recordId, answered as UsedByService answers for a
- * record nothing refers to - every relation of the kind, each empty - so
- * the page's Used by card says what to do next.
+ * What the status page shows right now, with ?usedBy=used (#7438), as
+ * UsedByService answers it: its open incidents, numbered, newest first -
+ * and one more the member may not see, counted, never named - and the
+ * maintenance coming up.
  */
-function usedByNothing(url) {
+const SHOWING_NOW = {
+  StatusPageOpenIncidents: {
+    hiddenCount: 1,
+    rows: [
+      {
+        id: "31300000-0000-4000-8000-000000000041",
+        name: "Checkout API returning errors",
+        number: "INC-41",
+      },
+      {
+        id: "31300000-0000-4000-8000-000000000040",
+        name: "Card payments slow in Europe",
+        number: "INC-40",
+      },
+    ],
+  },
+  StatusPageMaintenance: {
+    hiddenCount: 0,
+    rows: [
+      {
+        id: "31300000-0000-4000-8000-000000000007",
+        name: "Database upgrade",
+        number: "SM-7",
+      },
+    ],
+  },
+};
+
+// A relation nothing refers to the record by.
+const NOTHING_SHOWN = { hiddenCount: 0, rows: [] };
+
+/*
+ * What refers to the record a page is about ("Used by", #6813): GET
+ * /used-by/:recordKind/:recordId[/:relation], answered as UsedByService
+ * answers it. A record nothing refers to has every relation of its kind,
+ * each empty, so the page's Used by card says what to do next; with
+ * ?usedBy=used, the status page shows SHOWING_NOW.
+ */
+function usedByAnswer(url) {
   const parts = String(url).split("/used-by/")[1].split("?")[0].split("/");
+  const isShowing = usedByMode === "used" && parts[0] === "status-page";
+  const shown = (relation) => {
+    return (isShowing && SHOWING_NOW[relation]) || NOTHING_SHOWN;
+  };
+
+  // One relation's rows, a page at a time (See all).
+  if (parts[2]) {
+    const description = getUsedByRelations(parts[0]).find((each) => {
+      return each.relation === parts[2];
+    });
+    const found = shown(parts[2]);
+
+    return {
+      recordKind: parts[0],
+      recordId: parts[1],
+      relation: parts[2],
+      rowKind: description ? description.rowKind : "",
+      count: found.rows.length,
+      hiddenCount: found.hiddenCount,
+      pageStart: 0,
+      pageSize: 50,
+      rows: found.rows,
+    };
+  }
 
   return {
     recordKind: parts[0],
     recordId: parts[1],
     groups: getUsedByRelations(parts[0]).map((description) => {
+      const found = shown(description.relation);
+
       return {
         relation: description.relation,
         rowKind: description.rowKind,
-        count: 0,
-        hiddenCount: 0,
-        rows: [],
+        count: found.rows.length,
+        hiddenCount: found.hiddenCount,
+        rows: found.rows,
       };
     }),
   };
@@ -567,7 +637,18 @@ API.get = async (options) => {
   if (url.includes("/used-by/")) {
     window.__fixture.usedByGets = window.__fixture.usedByGets || [];
     window.__fixture.usedByGets.push(url);
-    return new HTTPResponse(200, usedByNothing(url), {});
+    return new HTTPResponse(200, usedByAnswer(url), {});
+  }
+  /*
+   * The status page's own setup health, the line at the top of its page
+   * (SetupHealthRecordFindings, #7297), kept apart too: GET
+   * /setup-health/record, answered as the server answers for a page with
+   * nothing to fix - no findings.
+   */
+  if (url.includes("/setup-health/record")) {
+    window.__fixture.setupHealthGets = window.__fixture.setupHealthGets || [];
+    window.__fixture.setupHealthGets.push(url);
+    return new HTTPResponse(200, { findings: [], checkedAt: CHECKED_AT }, {});
   }
   window.__fixture.apiGets.push(url);
   if (url.includes("/certificates/")) {

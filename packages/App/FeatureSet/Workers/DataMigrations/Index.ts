@@ -135,6 +135,8 @@ import RedactPersonalDataInProductAnalyticsPages from "./RedactPersonalDataInPro
 import ReadHashRoutesInProductAnalyticsEntryPages from "./ReadHashRoutesInProductAnalyticsEntryPages";
 import ScrubProductAnalyticsAddresses from "./ScrubProductAnalyticsAddresses";
 import ScrubSessionReplayAddresses from "./ScrubSessionReplayAddresses";
+import EncryptUploadedCertificateKeys from "./EncryptUploadedCertificateKeys";
+import EncryptLetsEncryptKeys from "./EncryptLetsEncryptKeys";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
@@ -177,7 +179,14 @@ import AddIsEntrySpanToSpanTable from "./AddIsEntrySpanToSpanTable";
 import RecordMonitoringOffOnStatusTimelines from "./RecordMonitoringOffOnStatusTimelines";
 import SettleOnCallNotificationsStuckBeforeUpgrade from "./SettleOnCallNotificationsStuckBeforeUpgrade";
 import EncryptGlobalConfigCredentials from "./EncryptGlobalConfigCredentials";
+import HashMasterApiKey from "./HashMasterApiKey";
+import HashProjectApiKeys from "./HashProjectApiKeys";
 import BackfillNetworkEndpointCoarseLastSeenAt from "./BackfillNetworkEndpointCoarseLastSeenAt";
+import ResolveWhatMonitorsTurnedOffWouldHaveResolved from "./ResolveWhatMonitorsTurnedOffWouldHaveResolved";
+import BackfillMonitorFirstMeasuredAt from "./BackfillMonitorFirstMeasuredAt";
+import BackfillMonitorFirstMeasuredAtForUptimeHistory from "./BackfillMonitorFirstMeasuredAtForUptimeHistory";
+import EncryptProjectCredentials from "./EncryptProjectCredentials";
+import SwitchOffRulesLimitedOnlyToDeletedRecords from "./SwitchOffRulesLimitedOnlyToDeletedRecords";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1085,6 +1094,28 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new EncryptGlobalConfigCredentials(),
   /*
+   * Hashes the server's master API key (GlobalConfig.masterApiKey, Admin
+   * Dashboard > Settings > API Key) that was stored as it was written,
+   * before the key was stored hashed (#7901), so every script that uses it
+   * keeps working. After the schema migration MasterApiKeyHashedColumn,
+   * which makes the column a varchar and keeps the key; idempotent; it
+   * writes only the server's settings row, so it sits above the runbook
+   * migrations that keep their places before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new HashMasterApiKey(),
+  /*
+   * Hashes the project API keys (ApiKey.apiKey, Project Settings > Advanced
+   * > API Keys) that were stored as they were written, before keys were
+   * stored hashed (#8902), with each key's hint, so every script and
+   * integration that uses one keeps working. After the schema migration
+   * ApiKeyHashedColumn, which makes the column a varchar and keeps the keys;
+   * paged, idempotent and safe twice at once; it writes only the ApiKey
+   * table, so it sits above the runbook migrations that keep their places
+   * before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new HashProjectApiKeys(),
+  /*
    * NetworkEndpoint.coarseLastSeenAt (#8092): lastSeenAt copied in for the
    * live endpoints that were seen, so the age-out of discovered devices,
    * which now finds its candidates by that column, finds the ones no walk
@@ -1171,6 +1202,86 @@ const DataMigrations: Array<DataMigrationBase> = [
    * the last slot AddAuditLogMcpClientColumns asserts for itself.
    */
   new ScrubSessionReplayAddresses(),
+  /*
+   * Turning a monitor's monitoring off resolves the incidents and alerts its
+   * own criteria opened with Auto resolve on (issue #6400), but only from on
+   * to off: a monitor turned off before that kept them open (issue #6479).
+   * They are resolved now, for each monitor not archived whose monitoring is
+   * off, except what a person has worked on (moved its state, written a note
+   * on it), which stays open for them; each says on its timeline that it was
+   * resolved when OneUptime was upgraded. Postgres only, paged and
+   * idempotent; after RecordMonitoringOffOnStatusTimelines, so the status a
+   * resolve gives a monitor back is held as time with monitoring off, and
+   * before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new ResolveWhatMonitorsTurnedOffWouldHaveResolved(),
+  /*
+   * The private keys of the certificates customers uploaded for their status
+   * page, dashboard and form domains, stored as plaintext before the column
+   * was kept encrypted at rest and write-only: each encrypted in place, in
+   * raw SQL, only while it still holds the value read. Idempotent; a key not
+   * encrypted yet still reads as itself meanwhile. Before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new EncryptUploadedCertificateKeys(),
+  /*
+   * The private keys of the free certificates ordered from Let's Encrypt
+   * (AcmeCertificate.certificateKey), stored as plaintext before they were
+   * kept encrypted at rest: each encrypted in place, in raw SQL, only while
+   * it still holds the value read. Paged and idempotent; nginx serves a key
+   * not encrypted yet as itself meanwhile. The keys the Greenlock store kept
+   * are not encrypted: a schema migration drops its tables first
+   * (DropGreenlockTables1809182470000). Before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new EncryptLetsEncryptKeys(),
+  /*
+   * A monitor nothing has checked yet reads Operational, the status every
+   * monitor is created in (issue #8899): Monitor.firstMeasuredAt now says
+   * whether anything has measured it, and the lists and status pages say it
+   * is waiting for its first check instead. Each monitor checked stamps it
+   * on its next result; this stamps, with its creation time, every monitor
+   * that left a trace of being measured before the column existed - a
+   * probe result, a heartbeat, an email, a server report, a queued
+   * evaluation, a status change - and every manual monitor. Postgres only,
+   * paged by id and idempotent; before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BackfillMonitorFirstMeasuredAt(),
+  /*
+   * A monitor's uptime bars and percentages leave out the time before its
+   * first check (issue #8960). A monitor measured before the column existed
+   * is given its creation where a result that came back during the upgrade
+   * stamped it with the upgrade's time, and a Probe Status or Network
+   * Device monitor - measured by OneUptime itself, with no trace the
+   * backfill reads - where it was measured; the uptime statements leave
+   * nothing out until this row is there. Postgres only, paged by id and
+   * idempotent; right after BackfillMonitorFirstMeasuredAt, whose finishing
+   * time it reads, and before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new BackfillMonitorFirstMeasuredAtForUptimeHistory(),
+  /*
+   * A project's credentials stored as written before their columns were
+   * kept encrypted at rest (#8989): its SMTP configs' passwords and OAuth
+   * client secrets, its Slack, Microsoft Teams and Mattermost bot tokens
+   * and its members' chat sign-in tokens, its code repositories' webhook
+   * secrets and its members' webhook signing secrets - each encrypted in
+   * place, in raw SQL, only while it still holds the value read. Paged and
+   * idempotent; a value not encrypted yet still reads as itself meanwhile.
+   * After RepairHashedStringEnvelopeSecrets, which unwraps the signing
+   * secrets a broken write wrapped, and before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new EncryptProjectCredentials(),
+  /*
+   * A rule whose list holds only soft-deleted records reads it as empty and
+   * matches every record (#9066): switched off and noted, as a delete now
+   * does. A rule emptied by a delete before this release left no trace and
+   * is not changed. Postgres only and idempotent; before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new SwitchOffRulesLimitedOnlyToDeletedRecords(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

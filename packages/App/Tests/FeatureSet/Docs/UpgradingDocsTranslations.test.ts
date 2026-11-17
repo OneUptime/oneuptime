@@ -50,8 +50,8 @@ import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
  *
  *   - The Dashboard, Persian included: a label, a menu path segment by
  *     segment, a "Mark as <state>" button filled from its template.
- *   - The Admin Dashboard: its breadcrumbs, its OneUptime Health page and the
- *     way to its Authentication settings, the edition label's "This
+ *   - The Admin Dashboard: its breadcrumbs, its OneUptime Health page, the
+ *     ways to its Authentication and API Key settings, the edition label's "This
  *     installation" card (worded as the Dashboard words it, #6470), and the
  *     names it draws in English in every language - the Health dashboards
  *     and the Query Console, which its own translated sentences keep in
@@ -289,14 +289,15 @@ const MARK_AS_TEMPLATE: string = "Mark as {{state}}";
 
 /*
  * The Admin Dashboard's words: its breadcrumb, its OneUptime Health page and
- * the way to its Authentication settings, by the key each is drawn with
- * ("Valkey" is drawn as it is).
+ * the ways to its Authentication and API Key settings, by the key each is
+ * drawn with ("Valkey" is drawn as it is).
  */
 const ADMIN_KEYS: Record<string, string> = {
   "Admin Dashboard": "breadcrumbs.adminDashboard",
   "OneUptime Health": "OneUptime Health",
   Settings: "navbar.settings",
   Authentication: "sideMenu.settingsAuthentication",
+  "API Key": "sideMenu.settingsApiKey",
 };
 
 // The page's bold paths through the Admin Dashboard.
@@ -304,6 +305,7 @@ const ADMIN_PATHS: Array<string> = [
   "Admin Dashboard → OneUptime Health → Valkey",
   "Admin Dashboard → OneUptime Health",
   "Admin Dashboard > Settings > Authentication",
+  "Admin Dashboard > Settings > API Key",
 ];
 
 /*
@@ -341,6 +343,13 @@ const PROSE_LEADS: Array<string> = [
   "An install with a license key",
   "An install with no license",
   "If you use SCIM or audit logging, activate a license before the trial ends.",
+  // What you need to do for 15.
+  "If you read the master API key from the Admin Dashboard, copy it before you upgrade.",
+  "If Terraform or OpenTofu manages OneUptime, upgrade the provider with the server",
+  "Take the credentials 15 no longer gives out of your API scripts' reads.",
+  "If the server reaches the internet through a proxy, let the proxy reach your identity provider, calendars, MCP servers and backup storage.",
+  "Check the criteria of Incoming Request monitors whose senders post plain text.",
+  "Give the teams that own private incidents, alerts and episodes the permissions their members page and run runbooks with, and move workflows off private records.",
   "Air-gapped installs",
   "Decide which edition this install runs.",
   "On Helm, set the edition in your values file:",
@@ -392,6 +401,8 @@ const PROSE_LEADS: Array<string> = [
   "Creating a project follows the SSO rules too, and changes that let people sign in reach every app server at once.",
   "Saving Require SSO for Login on again is checked as turning it on is.",
   "The sign-in page offers an emailed sign-in link, even with no working mail server.",
+  "The master API key is stored hashed, and shown only when it is made.",
+  "A project's API keys are stored hashed, and each is shown only when it is made.",
   "A record you may not read can no longer be changed or deleted, and a change by ID that reaches nothing says so.",
   "A record read through another one is created only under a record its creator may read.",
   "Owned",
@@ -445,6 +456,8 @@ const PROSE_LEADS: Array<string> = [
   "A team's permission limited to labels is limited to them again, whatever scope it is stored with.",
   "Deleting a label removes the permissions limited to it alone.",
   "A private incident, alert or episode is changed only through the teams that own it.",
+  "What is done about a private record follows its owners too, and workflows don't act on private records.",
+  "Runbook runs and fixes go with their incident or alert, and other records show a private one only to those who may read it.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",
@@ -1318,56 +1331,63 @@ describe.each(LANGUAGES)("the %s upgrade guide", (language: string) => {
   });
 
   /*
-   * Every note of "Other changes in 14", in the English order: the same
-   * code, the same pages linked and the same numbers, note by note, so no
-   * note is dropped, merged or cut short.
+   * Every note of "Other changes in 14" and of "Other changes in 15", in the
+   * English order: the same code, the same pages linked and the same
+   * numbers, note by note, so no note is dropped, merged or cut short.
    */
-  it("carries every note of the 13 → 14 changes, in order, with its code, links and numbers", () => {
-    const source: Array<string> = otherChangesItems("en");
-    const translated: Array<string> = otherChangesItems(language);
+  it.each([
+    [13, 14],
+    [14, 15],
+  ])(
+    "carries every note of the %i → %i changes, in order, with its code, links and numbers",
+    (_from: number, to: number) => {
+      const source: Array<string> = otherChangesItems("en", to);
+      const translated: Array<string> = otherChangesItems(language, to);
 
-    expect(translated.length).toBe(source.length);
+      expect(translated.length).toBe(source.length);
 
-    const problems: Array<string> = [];
+      const problems: Array<string> = [];
 
-    source.forEach((wrapped: string, index: number) => {
-      // A note wraps in English: a code span or a link may span two lines.
-      const note: string = unwrapped(wrapped);
-      const other: string = unwrapped(translated[index] || "");
-      const missingCode: Array<string> = missingFrom(
-        inlineCode(note),
-        inlineCode(other),
-      );
-      const extraCode: Array<string> = missingFrom(
-        inlineCode(other),
-        inlineCode(note),
-      );
-      const missingNumbers: Array<string> = missingFrom(
-        statedNumbers(note),
-        statedNumbers(other),
-      );
-
-      if (missingCode.length > 0 || extraCode.length > 0) {
-        problems.push(
-          `note ${index}: code missing ${JSON.stringify(missingCode)}, extra ${JSON.stringify(extraCode)}`,
+      source.forEach((wrapped: string, index: number) => {
+        // A note wraps in English: a code span or a link may span two lines.
+        const note: string = unwrapped(wrapped);
+        const other: string = unwrapped(translated[index] || "");
+        const missingCode: Array<string> = missingFrom(
+          inlineCode(note),
+          inlineCode(other),
         );
-      }
-
-      if (
-        JSON.stringify(linkedPages(note)) !== JSON.stringify(linkedPages(other))
-      ) {
-        problems.push(`note ${index}: links ${linkedPages(other).join(" ")}`);
-      }
-
-      if (missingNumbers.length > 0) {
-        problems.push(
-          `note ${index}: numbers missing ${JSON.stringify(missingNumbers)}`,
+        const extraCode: Array<string> = missingFrom(
+          inlineCode(other),
+          inlineCode(note),
         );
-      }
-    });
+        const missingNumbers: Array<string> = missingFrom(
+          statedNumbers(note),
+          statedNumbers(other),
+        );
 
-    expect(problems).toEqual([]);
-  });
+        if (missingCode.length > 0 || extraCode.length > 0) {
+          problems.push(
+            `note ${index}: code missing ${JSON.stringify(missingCode)}, extra ${JSON.stringify(extraCode)}`,
+          );
+        }
+
+        if (
+          JSON.stringify(linkedPages(note)) !==
+          JSON.stringify(linkedPages(other))
+        ) {
+          problems.push(`note ${index}: links ${linkedPages(other).join(" ")}`);
+        }
+
+        if (missingNumbers.length > 0) {
+          problems.push(
+            `note ${index}: numbers missing ${JSON.stringify(missingNumbers)}`,
+          );
+        }
+      });
+
+      expect(problems).toEqual([]);
+    },
+  );
 
   it("writes its cards with an ASCII ': ' after the link, to the English cards' pages", () => {
     const translated: Array<string> = cardLines(translatedPage(language));

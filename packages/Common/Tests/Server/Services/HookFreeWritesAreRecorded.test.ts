@@ -142,6 +142,19 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch TelemetryException":
       Why.Reported,
   },
+  // The monitors measured before firstMeasuredAt was kept, stamped (#8899).
+  "packages/App/FeatureSet/Workers/DataMigrations/BackfillMonitorFirstMeasuredAt.ts":
+    {
+      "(module) Monitor": Why.Migration,
+    },
+  /*
+   * And the ones a result stamped with the upgrade's time before that
+   * backfill finished, given their creation (#8960).
+   */
+  "packages/App/FeatureSet/Workers/DataMigrations/BackfillMonitorFirstMeasuredAtForUptimeHistory.ts":
+    {
+      "(module) Monitor": Why.Migration,
+    },
   "packages/App/FeatureSet/Workers/DataMigrations/BackfillNetworkSiteTypes.ts":
     {
       "BackfillNetworkSiteTypes.backfillProject NetworkSite": Why.Migration,
@@ -191,6 +204,16 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "stampTelemetryMonitorsScheduled Monitor": Why.Bookkeeping,
     },
+  /*
+   * The owner notification jobs' take: a state change marked as told
+   * (isOwnerNotified), by the run that tells its owners (issue #7974). And
+   * a reminder job's move: the next reminder that an incident, an alert or
+   * a maintenance event is still open, and how many went out (issue #9019).
+   */
+  "packages/App/FeatureSet/Workers/Utils/OwnerNotificationBacklog.ts": {
+    "OwnerNotificationBacklog.take *": Why.Bookkeeping,
+    "OwnerNotificationBacklog.move *": Why.Bookkeeping,
+  },
   "packages/Common/Server/API/DataObservabilityAPI.ts": {
     "(module) DataStore": Why.Recorded,
   },
@@ -314,9 +337,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
      * A poll's verdict (#7389): reachability, when the device last answered
      * and its interface counts, as each poll reports them, in the one
      * compare-and-set statement that keeps an older poll's verdict from
-     * standing over a newer one's. Every column it sets is one entries leave
-     * out (reported, or a last...At stamp); the scan cannot read a SET built
-     * from a list.
+     * standing over a newer one's - and, since #7393, the poll's rate
+     * baseline and its SNMP table and transceiver snapshots with it. Every
+     * column it sets is one entries leave out (reported, OneUptime's own, or
+     * a last...At stamp); the scan cannot read a SET built from a list.
      */
     "Service.writePollVerdict NetworkDevice": Why.Reported,
   },
@@ -506,6 +530,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/Monitor/IncomingRequestSecretActivity.ts": {
     "IncomingRequestSecretActivity.record Monitor": Why.Reported,
   },
+  /*
+   * When something first measured a monitor (#8899): stamped once in its
+   * life, by the first result accepted for it, or as a manual monitor is
+   * created. Nobody changed the monitor.
+   */
+  "packages/Common/Server/Utils/Monitor/MonitorFirstMeasured.ts": {
+    "MonitorFirstMeasured.stamp Monitor": Why.Bookkeeping,
+  },
   "packages/Common/Server/Utils/Monitor/MonitorResource.ts": {
     "MonitorResourceUtil.monitorResource Monitor": Why.Reported,
   },
@@ -568,16 +600,6 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Utils/Runbook/RunbookVariablesMove.ts": {
     "(module) Runbook": Why.Migration,
-  },
-  /*
-   * A sample project's records (#6808), filled by OneUptime as it makes the
-   * project and before it is handed to the person who asked: the sample
-   * service's description, and the creation times that make its history
-   * read as history.
-   */
-  "packages/Common/Server/Utils/SampleProject/SampleProjectSeeder.ts": {
-    "SampleProjectSeeder.backdate *": Why.Setup,
-    "SampleProjectSeeder.createServiceAndTelemetry Service": Why.Setup,
   },
   "packages/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarRefresher.ts":
     {

@@ -4,14 +4,11 @@ import {
   isInvitedSignUp,
   shouldAskForCompanyDetails,
 } from "../Utils/InvitedSignUp";
-import PasswordRequirements from "../Components/PasswordRequirements/PasswordRequirements";
 import VerifyEmailPending from "../Components/VerifyEmailPending/VerifyEmailPending";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import Email from "Common/Types/Email";
-import HashedString from "Common/Types/HashedString";
-import { getSignupPasswordValidationError } from "Common/Types/Password";
 import { JSONObject } from "Common/Types/JSON";
 import {
   UtmPropertyKeys,
@@ -28,6 +25,9 @@ import ModelForm, {
 } from "Common/UI/Components/Forms/ModelForm";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { getNewPasswordFields } from "Common/UI/Components/PasswordRequirements/NewPasswordFields";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/Types/Translator";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Link from "Common/UI/Components/Link/Link";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -37,6 +37,7 @@ import {
   DASHBOARD_URL,
   CAPTCHA_ENABLED,
   CAPTCHA_SITE_KEY,
+  DISABLE_INSTANCE_CHECK_IN,
   GoogleSignInClientId,
   MicrosoftSignInClientId,
 } from "Common/UI/Config";
@@ -56,26 +57,13 @@ import User from "Common/Models/DatabaseModels/User";
 import React, { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useAsyncEffect from "use-async-effect";
-import {
-  DisableInstanceCheckIn,
-  IsBillingEnabled,
-} from "Common/Server/EnvironmentConfig";
 import { SSO_REQUIRED_SIGN_UP_MESSAGE } from "Common/Types/SSO/SignInMethods";
 import LoginWithSsoPage from "./LoginWithSSO";
 import { SignInMethodsRead, useSignInMethods } from "../Utils/SignInMethods";
 
-/*
- * BasicForm wraps password values for submission. Keep validation and retry
- * feedback on their plaintext value after a request fails.
- */
-const getFormPasswordValue: (value: unknown) => unknown = (
-  value: unknown,
-): unknown => {
-  return value instanceof HashedString ? value.toString() : value;
-};
-
 const RegisterPage: () => JSX.Element = () => {
   const { t } = useTranslation();
+  const translator: Translator = useTranslator();
   const apiUrl: URL = SIGNUP_API_URL;
   const passwordRequirementsId: string = useId();
 
@@ -414,90 +402,31 @@ const RegisterPage: () => JSX.Element = () => {
     ]);
   }
 
-  formFields = formFields.concat([
-    {
-      field: {
-        password: true,
+  formFields = formFields.concat(
+    getNewPasswordFields<User>({
+      translator: translator,
+      requirementsId: passwordRequirementsId,
+      passwordTitle: t("common.password"),
+      confirmPasswordTitle: t("common.confirmPassword"),
+      passwordField: {
+        sectionTitle: t("Secure your account"),
+        spanFullRow: true,
+        dataTestId: "password",
       },
-      fieldType: FormFieldSchemaType.Password,
-      sectionTitle: t("Secure your account"),
-      spanFullRow: true,
-      errorMessageInFooter: true,
-      customValidation: (values: FormValues<User>): string | null => {
-        const message: string | null = getSignupPasswordValidationError(
-          getFormPasswordValue(values.password),
-        );
-
-        return message
-          ? t(message, {
-              defaultValue: message,
-              keySeparator: false,
-              nsSeparator: false,
-            })
-          : null;
+      confirmPasswordField: {
+        spanFullRow: true,
+        dataTestId: "confirmPassword",
       },
-      getFooterElement: (
-        values: FormValues<User>,
-        error?: string,
-      ): React.ReactElement => {
-        const password: unknown = getFormPasswordValue(values.password);
-        return (
-          <PasswordRequirements
-            id={passwordRequirementsId}
-            password={typeof password === "string" ? password : ""}
-            error={error}
-          />
-        );
-      },
-      ariaDescribedby: passwordRequirementsId,
-      // The new account's password: password managers suggest and save it.
-      autoComplete: "new-password",
-      isOwnCredential: true,
-      placeholder: t("common.password"),
-      isPlaceholderTranslated: true,
-      title: t("common.password"),
-      required: true,
-      dataTestId: "password",
-      disableSpellCheck: true,
-    },
-    {
-      field: {
-        confirmPassword: true,
-      } as any,
-      customValidation: (values: FormValues<User>): string | null => {
-        const confirmation: unknown = getFormPasswordValue(
-          (values as JSONObject)["confirmPassword"],
-        );
+    }) as Array<ModelField<User>>,
+  );
 
-        if (
-          !confirmation ||
-          confirmation === getFormPasswordValue(values.password)
-        ) {
-          return null;
-        }
-
-        return t("{{field}} should match {{matchField}}", {
-          field: t("common.confirmPassword"),
-          matchField: t("common.password"),
-        });
-      },
-      fieldType: FormFieldSchemaType.Password,
-      spanFullRow: true,
-      autoComplete: "new-password",
-      isOwnCredential: true,
-      placeholder: t("common.confirmPassword"),
-      isPlaceholderTranslated: true,
-      title: t("common.confirmPassword"),
-      overrideFieldKey: "confirmPassword",
-      required: true,
-      showEvenIfPermissionDoesNotExist: true,
-      dataTestId: "confirmPassword",
-      disableSpellCheck: true,
-    },
-  ]);
-
-  // With the daily check-in off, this install does not report to oneuptime.com.
-  if (!IsBillingEnabled && !DisableInstanceCheckIn) {
+  /*
+   * With the daily check-in off, this install does not report to
+   * oneuptime.com. Both are read from the page's own configuration
+   * (Common/UI/Config), not the server's, which would bring the server's
+   * whole configuration into the sign-up page.
+   */
+  if (!BILLING_ENABLED && !DISABLE_INSTANCE_CHECK_IN) {
     formFields = formFields.concat([
       {
         overrideField: {

@@ -1457,6 +1457,15 @@ export default class MetricMonitorCriteria {
     return lookup;
   }
 
+  /*
+   * What each variable of a formula was at one of the formula's data points.
+   * A query with no point there was read as 0 by the formula: the formula
+   * has a value at a time only where every variable has a point, or is a
+   * query counting what happened, which counted nothing there
+   * (MetricZeroFill) - so the root cause says it was 0, the value the
+   * formula was worked out with. A formula's value at a time is always
+   * there when a formula of it has one.
+   */
   private static resolveComponentValues(input: {
     timestamp: Date | string;
     components: Array<MetricComponent>;
@@ -1470,7 +1479,12 @@ export default class MetricMonitorCriteria {
       const value: number | undefined = series ? series.get(iso) : undefined;
       return {
         alias: component.alias,
-        value: typeof value === "number" ? value : null,
+        value:
+          typeof value === "number"
+            ? value
+            : series && !component.isFormula && !series.has(iso)
+              ? 0
+              : null,
       };
     });
   }

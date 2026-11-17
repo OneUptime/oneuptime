@@ -106,7 +106,9 @@ describe("SecurityEventsNoResults", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Show past 1 week" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show past 1\u00A0week" }),
+    );
 
     expect(onShowTimeRange).toHaveBeenCalledTimes(1);
     expect(onShowTimeRange).toHaveBeenCalledWith({

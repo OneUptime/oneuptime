@@ -1,6 +1,6 @@
 # Wie ich erreichbar bin
 
-Ihre Bereitschaftsregeln entscheiden, wie ein Alarm Sie erreicht: welche Ihrer Benachrichtigungsmethoden OneUptime versucht, und wie lange nach dem Beginn des Alarms. Jede Art von Alarm hat eigene Regeln, ein Satz pro Schweregrad, sodass ein kritischer Vorfall Sie sofort anrufen kann, während eine Warnung mit niedrigem Schweregrad auf eine E-Mail wartet. Sie legen sie unter **Benutzereinstellungen → Wie ich erreichbar bin** fest.
+Ihre Bereitschaftsregeln entscheiden, wie eine Warnung Sie erreicht: welche Ihrer Benachrichtigungsmethoden OneUptime versucht, und wie lange nach dem Beginn der Warnung. Jede Art von Warnung hat eigene Regeln, ein Satz pro Schweregrad, sodass ein kritischer Vorfall Sie sofort anrufen kann, während eine Warnung mit niedrigem Schweregrad auf eine E-Mail wartet. Sie legen sie unter **Benutzereinstellungen → Wie ich erreichbar bin** fest.
 
 > [!NOTE]
 > Diese Regeln gehören nur Ihnen. Die **Bereitschaftsregeln** unter **Vorfälle → Regeln** und **Warnungen → Regeln** sind etwas anderes: Sie entscheiden, welche Bereitschaftsrichtlinien ein neuer Vorfall oder eine neue Warnung ausführt.
@@ -15,7 +15,7 @@ Ihre Bereitschaftsregeln entscheiden, wie ein Alarm Sie erreicht: welche Ihrer B
 
 ## Wie ein Alarm Sie erreicht
 
-Eine Bereitschaftsrichtlinie alarmiert Sie, wenn eine ihrer Eskalationsregeln Sie nennt, ein Team, in dem Sie sind, oder einen Plan, in dem Sie gerade Bereitschaft haben. OneUptime arbeitet dann Ihre Regeln für diese Art von Alarm und seinen Schweregrad ab: Jede Regel löst über ihre eigene Methode aus, sobald ihre Wartezeit seit dem Beginn des Alarms vergangen ist. Den Vorfall oder die Warnung zu bestätigen, aus einer beliebigen Nachricht oder in OneUptime, stoppt jede Regel, die noch nicht ausgelöst hat.
+Eine Bereitschaftsrichtlinie alarmiert Sie, wenn eine ihrer Eskalationsregeln Sie nennt, ein Team, in dem Sie sind, oder einen Plan, in dem Sie gerade Bereitschaft haben. OneUptime arbeitet dann Ihre Regeln für diese Art von Warnung und seinen Schweregrad ab: Jede Regel löst über ihre eigene Methode aus, sobald ihre Wartezeit seit dem Beginn der Warnung vergangen ist. Den Vorfall oder die Warnung zu bestätigen, aus einer beliebigen Nachricht oder in OneUptime, stoppt jede Regel, die noch nicht ausgelöst hat.
 
 ```mermaid title="Ein kritischer Alarm, drei Regeln, bis Sie bestätigen"
 flowchart TB
@@ -29,7 +29,7 @@ Die meisten Nachrichten können den Alarm bestätigen: E-Mails, SMS und Nachrich
 
 ## Ein Ablauf für alles
 
-**Benutzereinstellungen → Wie ich erreichbar bin** öffnet sich mit Ihrem Ablauf: nummerierten Schritten, die jeder Alarm der Reihe nach versucht, für Vorfälle, Warnungen und Episoden jedes Schweregrads. Jeder Schritt ist ein Zeitpunkt, etwa sofort oder nach 5 Minuten, mit den verifizierten Methoden, die dann zusammen hinausgehen. Ein späterer Schritt geht nur hinaus, wenn bis dahin noch niemand den Alarm bestätigt hat.
+**Benutzereinstellungen → Wie ich erreichbar bin** öffnet sich mit Ihrem Ablauf: nummerierten Schritten, die jede Warnung der Reihe nach versucht, für Vorfälle, Warnungen und Episoden jedes Schweregrads. Jeder Schritt ist ein Zeitpunkt, etwa sofort oder nach 5 Minuten, mit den verifizierten Methoden, die dann zusammen hinausgehen. Ein späterer Schritt geht nur hinaus, wenn bis dahin noch niemand die Warnung bestätigt hat.
 
 :::steps
 ### Eine Möglichkeit hinzufügen, Sie zu erreichen
@@ -47,7 +47,7 @@ Klicken Sie auf **Änderungen speichern**, das erscheint, sobald sich etwas geä
 
 **Ihre Alarmierungen testen**, am Fuß der Seite, sendet Ihnen einen Testalarm durch sie.
 
-Verdient ein Schweregrad etwas anderes, öffnet **Für einige Schweregrade anders** unter den Schritten die unten beschriebenen Tabs und Karten. Eine Karte, die von Ihrem Ablauf abweicht, ist mit **Weicht vom Ablauf ab** markiert, und der Ablauf nennt, was jede stattdessen tut. Weichen Ihre Regeln schon ab, öffnet sich die Seite mit den Karten und mit **Einen Ablauf für alles verwenden**: Beim Speichern nennt es zuerst die Karten, die ihre Abweichung verlieren. Ein Schweregrad, den Ihr Projekt archiviert hat, behält seine eigenen Regeln.
+Verdient ein Schweregrad etwas anderes, öffnet **Für einige Schweregrade anders**, die Schaltfläche neben dem Titel, die unten beschriebenen Tabs und Karten. Eine Karte, die von Ihrem Ablauf abweicht, ist mit **Weicht vom Ablauf ab** markiert. Die Seite öffnet sich weiterhin mit Ihren Schritten und nennt darunter jede abweichende Karte und was sie stattdessen tut. **Änderungen speichern** lässt diese Karten, wie sie sind; **Diesen Ablauf für jeden Schweregrad verwenden** am Ende dieser Liste gibt auch ihnen Ihren Ablauf, nachdem es die Karten genannt hat, die ihre Abweichung verlieren. Ein Schweregrad, den Ihr Projekt archiviert hat, behält seine eigenen Regeln.
 
 Eine Bereitschaftsrichtlinie entscheidet, wer alarmiert wird und wann ihre nächste Stufe kommt. Wie Sie erreicht werden, ist dieser Ablauf, für jede Richtlinie, die Sie alarmiert.
 

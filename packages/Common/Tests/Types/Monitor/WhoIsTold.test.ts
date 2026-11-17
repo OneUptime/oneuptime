@@ -21,8 +21,12 @@ import {
   getWhoIsToldPersonReach,
   makeWhoIsToldBreak,
   redactWhoIsTold,
+  canWhoIsToldChannelSendNow,
+  getWhoIsToldOwnersAsTold,
+  isWhoIsToldPersonPagedAtOnce,
 } from "../../../Types/Monitor/WhoIsTold";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import { getWhoCanTurnOnSentence } from "../../../Utils/Project/NotificationChannels";
 import {
   OnCallTestPageNotPagedCode,
   OnCallTestPageReachedThroughCode,
@@ -1207,6 +1211,37 @@ describe("a break's sentence", () => {
     }
   });
 
+  /*
+   * A channel costs money, so its switch is billing: a Project Admin may
+   * not flip it. The sentence said "A Project Owner or Project Admin turns
+   * it on", and began "phone call is off" in lower case.
+   */
+  test("a channel switched off says who may turn it on, as the switch's own permissions say, and starts with a capital", () => {
+    const call: string = getWhoIsToldBreakMessage({
+      kind: WhoIsToldBreakKind.ChannelOff,
+      fix: WhoIsToldFix.ProjectNotificationSettings,
+      channel: OnCallPageChannel.Call,
+    });
+
+    expect(call).toBe(
+      `Phone call is off in this project, so pages that use it are not sent. ${getWhoCanTurnOnSentence("it")}`,
+    );
+    expect(call).not.toContain("Project Admin");
+    expect(
+      getWhoIsToldBreakMessage({
+        kind: WhoIsToldBreakKind.ChannelOff,
+        fix: WhoIsToldFix.ProjectNotificationSettings,
+        channel: OnCallPageChannel.SMS,
+      }),
+    ).toMatch(/^SMS is off in this project/);
+    expect(
+      getWhoIsToldBreakMessage({
+        kind: WhoIsToldBreakKind.ChannelOff,
+        fix: WhoIsToldFix.ProjectNotificationSettings,
+      }),
+    ).toMatch(/^A channel is off in this project/);
+  });
+
   test("the server's break names the channel it can't send by", () => {
     expect(
       getWhoIsToldBreakMessage({
@@ -1572,5 +1607,477 @@ describe("what the card's sentences are about", () => {
         return item.userId;
       }),
     ).toEqual([ANA]);
+  });
+});
+
+/*
+ * AN OWNER THE PAGE REACHES FIRST IS NOT EMAILED AS AN OWNER TOO (#8860).
+ *
+ * The owners' "created" email leaves out an owner the record's on-call page
+ * reached already (#7987). The card says so only where the job will in fact
+ * leave them out: someone a readable policy's first level pages at once, by
+ * a notification that goes out then - matched by user id, through a team
+ * too - and nobody else. A policy the reader may not read says nothing.
+ */
+describe("the owners a page reaches first, whom the Created email leaves out", () => {
+  const CARA: string = "6810cccc-0000-4000-8000-000000000003";
+
+  type Recipient = {
+    userId: string;
+    name: string;
+    isNamed: boolean;
+    teamNames: Array<string>;
+  };
+
+  const ANA_OWNER: Recipient = {
+    userId: ANA,
+    name: "Ana Lopez",
+    isNamed: true,
+    teamNames: [],
+  };
+  const BEN_OWNER: Recipient = {
+    userId: BEN,
+    name: "Ben Ito",
+    isNamed: true,
+    teamNames: [],
+  };
+
+  // Ana, paged at once by email through Primary, which pages at once.
+  function pagedAtOnce(
+    overrides: Partial<WhoIsToldPerson> = {},
+  ): WhoIsToldPerson {
+    return person({ channelsAtOnce: [OnCallPageChannel.Email], ...overrides });
+  }
+
+  function primary(overrides: Partial<WhoIsToldPolicy> = {}): WhoIsToldPolicy {
+    return policy({ pagesAtOnce: true, people: [pagedAtOnce()], ...overrides });
+  }
+
+  function ownersOf(data: {
+    userNames?: Array<string>;
+    teamNames?: Array<string>;
+    source?: WhoIsToldOwnersSource;
+    recipients?: Array<Recipient>;
+  }): WhoIsToldEvent["owners"] {
+    return {
+      source: data.source || WhoIsToldOwnersSource.Named,
+      userNames: data.userNames || ["Ana Lopez", "Ben Ito"],
+      teamNames: data.teamNames || [],
+      recipients: data.recipients || [ANA_OWNER, BEN_OWNER],
+    };
+  }
+
+  function told(data: {
+    owners?: WhoIsToldEvent["owners"];
+    policies?: Array<WhoIsToldPolicy>;
+    channels?: WhoIsToldChannels;
+  }): WhoIsToldEvent["owners"] {
+    return getWhoIsToldOwnersAsTold({
+      owners: data.owners || ownersOf({}),
+      policies: data.policies || [primary()],
+      channels: data.channels || channels(),
+    });
+  }
+
+  test("an owner the first level pages at once is left out of the email, by id, and named as paged", () => {
+    expect(told({})).toEqual({
+      source: WhoIsToldOwnersSource.Named,
+      userNames: ["Ben Ito"],
+      teamNames: [],
+      pagedOwners: [{ userId: ANA, name: "Ana Lopez" }],
+    });
+  });
+
+  test("the one-person project: its owner, on call, is paged and not emailed - the email reaches nobody", () => {
+    expect(
+      told({
+        owners: ownersOf({
+          source: WhoIsToldOwnersSource.ProjectOwners,
+          userNames: ["Ana Lopez"],
+          recipients: [ANA_OWNER],
+        }),
+      }),
+    ).toEqual({
+      source: WhoIsToldOwnersSource.ProjectOwners,
+      userNames: [],
+      teamNames: [],
+      pagedOwners: [{ userId: ANA, name: "Ana Lopez" }],
+    });
+  });
+
+  test("the email's recipients never leave the server", () => {
+    expect(told({}).recipients).toBeUndefined();
+    expect(
+      told({ policies: [primary({ pagesAtOnce: false })] }).recipients,
+    ).toBeUndefined();
+  });
+
+  test("matched by user id, never by name: somebody of an owner's name on call is no owner", () => {
+    const owners: WhoIsToldEvent["owners"] = told({
+      policies: [
+        primary({
+          people: [pagedAtOnce({ userId: CARA, name: "Ana Lopez" })],
+        }),
+      ],
+    });
+
+    expect(owners.userNames).toEqual(["Ana Lopez", "Ben Ito"]);
+    expect(owners.pagedOwners).toBeUndefined();
+  });
+
+  test.each<[string, Partial<WhoIsToldPolicy>, Partial<WhoIsToldPerson>]>([
+    [
+      "a policy held for working hours or for OneUptime AI",
+      { pagesAtOnce: false },
+      {},
+    ],
+    [
+      "a policy an older server says nothing of",
+      { pagesAtOnce: undefined },
+      {},
+    ],
+    [
+      "a person who cannot be reached (opted out, no rule and no fallback, no verified method)",
+      {},
+      {
+        isReachable: false,
+        problem: WhoIsToldPersonProblem.OptedOut,
+        channelsAtOnce: [],
+      },
+    ],
+    [
+      "a person the answer says can't be reached, whatever channels it lists",
+      {},
+      {
+        isReachable: false,
+        problem: WhoIsToldPersonProblem.NoVerifiedMethod,
+        channelsAtOnce: [OnCallPageChannel.Email],
+      },
+    ],
+    ["a person whose first notification waits", {}, { channelsAtOnce: [] }],
+    [
+      "a person an older server says nothing of",
+      {},
+      { channelsAtOnce: undefined },
+    ],
+  ])(
+    "%s: they are still emailed as an owner",
+    (
+      _name: string,
+      policyOverrides: Partial<WhoIsToldPolicy>,
+      personOverrides: Partial<WhoIsToldPerson>,
+    ) => {
+      const owners: WhoIsToldEvent["owners"] = told({
+        policies: [
+          primary({
+            ...policyOverrides,
+            people: [pagedAtOnce(personOverrides)],
+          }),
+        ],
+      });
+
+      expect(owners.userNames).toEqual(["Ana Lopez", "Ben Ito"]);
+      expect(owners.pagedOwners).toBeUndefined();
+    },
+  );
+
+  test("on a later level only, they are no first-level person: still emailed", () => {
+    expect(
+      told({ policies: [primary({ people: [], levelCount: 2 })] }).pagedOwners,
+    ).toBeUndefined();
+  });
+
+  test("a policy the reader may not read says nothing of whom it pages: they read as emailed, as before", () => {
+    const owners: WhoIsToldEvent["owners"] = told({
+      policies: [primary({ isHidden: true })],
+    });
+
+    expect(owners.userNames).toEqual(["Ana Lopez", "Ben Ito"]);
+    expect(owners.pagedOwners).toBeUndefined();
+  });
+
+  test("an owner through a team is left out; the team stays while it has a member the email still reaches", () => {
+    const owners: WhoIsToldEvent["owners"] = told({
+      owners: ownersOf({
+        userNames: [],
+        teamNames: ["Platform", "Checkout SRE"],
+        recipients: [
+          {
+            userId: ANA,
+            name: "Ana Lopez",
+            isNamed: false,
+            teamNames: ["Platform", "Checkout SRE"],
+          },
+          {
+            userId: BEN,
+            name: "Ben Ito",
+            isNamed: false,
+            teamNames: ["Checkout SRE"],
+          },
+        ],
+      }),
+    });
+
+    expect(owners.teamNames).toEqual(["Checkout SRE"]);
+    expect(owners.pagedOwners).toEqual([{ userId: ANA, name: "Ana Lopez" }]);
+  });
+
+  test("a team whose every member the page reaches first is emailed nobody through", () => {
+    const owners: WhoIsToldEvent["owners"] = told({
+      owners: ownersOf({
+        userNames: [],
+        teamNames: ["Platform"],
+        recipients: [
+          {
+            userId: ANA,
+            name: "Ana Lopez",
+            isNamed: false,
+            teamNames: ["Platform"],
+          },
+        ],
+      }),
+    });
+
+    expect(owners.teamNames).toEqual([]);
+    expect(owners.userNames).toEqual([]);
+  });
+
+  test("a team none of whose members is listed stays: nothing says otherwise", () => {
+    expect(
+      told({
+        owners: ownersOf({
+          userNames: ["Ana Lopez"],
+          teamNames: ["Platform"],
+          recipients: [ANA_OWNER],
+        }),
+      }).teamNames,
+    ).toEqual(["Platform"]);
+  });
+
+  test("an owner named and a member of a team: left out of both", () => {
+    const owners: WhoIsToldEvent["owners"] = told({
+      owners: ownersOf({
+        userNames: ["Ana Lopez"],
+        teamNames: ["Platform"],
+        recipients: [
+          {
+            userId: ANA,
+            name: "Ana Lopez",
+            isNamed: true,
+            teamNames: ["Platform"],
+          },
+          {
+            userId: BEN,
+            name: "Ben Ito",
+            isNamed: false,
+            teamNames: ["Platform"],
+          },
+        ],
+      }),
+    });
+
+    expect(owners.userNames).toEqual([]);
+    expect(owners.teamNames).toEqual(["Platform"]);
+    expect(owners.pagedOwners).toEqual([{ userId: ANA, name: "Ana Lopez" }]);
+  });
+
+  test("two owners of one name, one paged: the name stays for the other", () => {
+    const owners: WhoIsToldEvent["owners"] = told({
+      owners: ownersOf({
+        userNames: ["Ana Lopez"],
+        recipients: [ANA_OWNER, { ...ANA_OWNER, userId: CARA }],
+      }),
+    });
+
+    expect(owners.userNames).toEqual(["Ana Lopez"]);
+    expect(owners.pagedOwners).toEqual([{ userId: ANA, name: "Ana Lopez" }]);
+  });
+
+  test("any policy paging them at once is enough, and they are named once", () => {
+    const owners: WhoIsToldEvent["owners"] = told({
+      policies: [
+        primary({ pagesAtOnce: false }),
+        primary({ id: OTHER_POLICY_ID }),
+        primary(),
+      ],
+    });
+
+    expect(owners.pagedOwners).toEqual([{ userId: ANA, name: "Ana Lopez" }]);
+  });
+
+  test.each<[string, Partial<WhoIsToldChannels>, OnCallPageChannel]>([
+    [
+      "email a self-hosted server can't send yet",
+      { serverCanSendEmail: false },
+      OnCallPageChannel.Email,
+    ],
+    [
+      "SMS a self-hosted server can't send yet",
+      { serverCanSendSms: false },
+      OnCallPageChannel.SMS,
+    ],
+    [
+      "a call a self-hosted server can't make yet",
+      { serverCanCall: false },
+      OnCallPageChannel.Call,
+    ],
+    [
+      "SMS on OneUptime Cloud with no balance",
+      { isBillingEnabled: true, balanceInUSDCents: 0 },
+      OnCallPageChannel.SMS,
+    ],
+    [
+      "WhatsApp on OneUptime Cloud with no balance",
+      { isBillingEnabled: true, balanceInUSDCents: 0 },
+      OnCallPageChannel.WhatsApp,
+    ],
+    [
+      "SMS switched off in the project",
+      { isSmsOn: false },
+      OnCallPageChannel.SMS,
+    ],
+  ])(
+    "a first notification by %s fails: they are still emailed as an owner",
+    (
+      _name: string,
+      channelOverrides: Partial<WhoIsToldChannels>,
+      channel: OnCallPageChannel,
+    ) => {
+      expect(
+        told({
+          policies: [
+            primary({ people: [pagedAtOnce({ channelsAtOnce: [channel] })] }),
+          ],
+          channels: channels(channelOverrides),
+        }).pagedOwners,
+      ).toBeUndefined();
+    },
+  );
+
+  test("SMS and calls the project's own Twilio sends go out, and so do paid ones with balance or auto-recharge", () => {
+    const cases: Array<[Partial<WhoIsToldChannels>, OnCallPageChannel]> = [
+      [
+        { serverCanSendSms: false, hasOwnTwilioForSms: true },
+        OnCallPageChannel.SMS,
+      ],
+      [
+        { serverCanCall: false, hasOwnTwilioForCalls: true },
+        OnCallPageChannel.Call,
+      ],
+      [
+        { isBillingEnabled: true, balanceInUSDCents: 500 },
+        OnCallPageChannel.SMS,
+      ],
+      [
+        {
+          isBillingEnabled: true,
+          balanceInUSDCents: 0,
+          isAutoRechargeOn: true,
+        },
+        OnCallPageChannel.Call,
+      ],
+      [
+        { isBillingEnabled: true, balanceInUSDCents: 0 },
+        OnCallPageChannel.Push,
+      ],
+    ];
+
+    for (const [overrides, channel] of cases) {
+      expect(canWhoIsToldChannelSendNow(channel, channels(overrides))).toBe(
+        true,
+      );
+    }
+  });
+
+  test("one first notification that goes out is enough", () => {
+    expect(
+      told({
+        policies: [
+          primary({
+            people: [
+              pagedAtOnce({
+                channelsAtOnce: [OnCallPageChannel.SMS, OnCallPageChannel.Push],
+              }),
+            ],
+          }),
+        ],
+        channels: channels({ serverCanSendSms: false }),
+      }).pagedOwners,
+    ).toEqual([{ userId: ANA, name: "Ana Lopez" }]);
+  });
+
+  test("an older server's owners, with no recipients, are told as they were", () => {
+    const owners: WhoIsToldEvent["owners"] = {
+      source: WhoIsToldOwnersSource.Named,
+      userNames: ["Ana Lopez"],
+      teamNames: [],
+    };
+
+    expect(
+      getWhoIsToldOwnersAsTold({
+        owners: owners,
+        policies: [primary()],
+        channels: channels(),
+      }),
+    ).toEqual(owners);
+  });
+
+  test("whether a policy's first level pages a person at once", () => {
+    expect(
+      isWhoIsToldPersonPagedAtOnce({
+        policy: { isHidden: false, pagesAtOnce: true },
+        person: { isReachable: true, channelsAtOnce: [OnCallPageChannel.Push] },
+        channels: channels(),
+      }),
+    ).toBe(true);
+    expect(
+      isWhoIsToldPersonPagedAtOnce({
+        policy: { isHidden: true, pagesAtOnce: true },
+        person: { isReachable: true, channelsAtOnce: [OnCallPageChannel.Push] },
+        channels: channels(),
+      }),
+    ).toBe(false);
+  });
+
+  test("as the answer is handed to a reader: worked out from the policies they may read", () => {
+    const result: WhoIsToldResult = resultWith([
+      criteria({
+        events: [event({ owners: ownersOf({}), policies: [primary()] })],
+      }),
+    ]);
+
+    const asReadable: WhoIsToldResult = redactWhoIsTold({
+      result: result,
+      readablePolicyIds: new Set<string>([POLICY_ID]),
+      readableRuleIds: new Set<string>([RULE_ID]),
+      readableOwnerRuleIds: new Set<string>(),
+      readableStatusPageIds: new Set<string>(),
+    });
+    const asHidden: WhoIsToldResult = redactWhoIsTold({
+      result: result,
+      readablePolicyIds: new Set<string>(),
+      readableRuleIds: new Set<string>([RULE_ID]),
+      readableOwnerRuleIds: new Set<string>(),
+      readableStatusPageIds: new Set<string>(),
+    });
+
+    expect(asReadable.criteria[0]!.events[0]!.owners).toEqual({
+      source: WhoIsToldOwnersSource.Named,
+      userNames: ["Ben Ito"],
+      teamNames: [],
+      pagedOwners: [{ userId: ANA, name: "Ana Lopez" }],
+    });
+    expect(asHidden.criteria[0]!.events[0]!.owners).toEqual({
+      source: WhoIsToldOwnersSource.Named,
+      userNames: ["Ana Lopez", "Ben Ito"],
+      teamNames: [],
+    });
+    // A hidden policy says nothing of whether it pages at once either.
+    expect(
+      asHidden.criteria[0]!.events[0]!.policies[0]!.pagesAtOnce,
+    ).toBeUndefined();
+    // And nobody's recipients leave the server.
+    expect(JSON.stringify(asReadable)).not.toContain("recipients");
+    expect(JSON.stringify(asHidden)).not.toContain("recipients");
   });
 });

@@ -64,7 +64,7 @@ Klikk på **Test monitor** for å kjøre skriptet én gang fra en sonde, og sjek
 
 ### Gå gjennom kriteriene
 
-Monitoren starter med to kriterier: den er frakoblet og erklærer en hendelse når en kjøring mislykkes, og online når ingen gjør det. Endre dem, eller legg til dine egne — se [Kriterier](#kriterier) — og klikk deretter på **Neste**.
+Monitoren starter med to kriterier: den er offline og erklærer en hendelse når en kjøring mislykkes, og online når ingen gjør det. Endre dem, eller legg til dine egne — se [Kriterier](#kriterier) — og klikk deretter på **Neste**.
 
 ### Velg sonder, og opprett
 
@@ -155,6 +155,11 @@ return {
 ```
 
 En kjøring beholder opptil 20 skjermbilder, hvert på opptil 10 MB og 50 MB til sammen. Et skjermbilde kan også vises i hendelsen eller varselet som en mislykket kjøring åpner — på siden og i e-postene om den — ved å plassere det i monitorens beskrivelse for hendelser eller varsler. Se [Vis et skjermbilde](/docs/monitor/incident-alert-templating#vis-et-skjermbilde).
+
+En kontrolls skjermbilder lagres i monitorens egne logger, ikke i loggene til en hendelse eller et varsel eller i en monitors statusendringer: de tar vare på resten av kontrollen, og hver kjøring der skjermbildene ble utelatt, sier det (`areScreenshotsOmitted`). Skjermbilder som allerede er lagret der, slettes etter oppgraderingen av en jobb som kjører hver time, litt om gangen, til det ikke er noen igjen.
+
+> [!NOTE]
+> På en selvdriftet installasjon gjenbruker PostgreSQL plassen de slettede skjermbildene etterlater, men gir den ikke tilbake til disken. For å krympe databasen når de er slettet, kjører du `VACUUM FULL` på de største tabellene i et vedlikeholdsvindu, siden den låser hver tabell mens den skriver den på nytt, eller bruker `pg_repack`, som ikke gjør det.
 
 :::details Returnere skjermbilder (eldre metode)
 For bakoverkompatibilitet kan du også returnere skjermbilder fra skriptet som en del av returverdien. Skjermbilder som returneres slik, tas **bare** vare på når skriptet fullføres normalt — de går tapt hvis skriptet kaster en feil. Foretrekk sidekanalmønsteret ovenfor når du vil ha bevis på feil.

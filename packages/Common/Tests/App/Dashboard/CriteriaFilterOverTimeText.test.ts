@@ -61,7 +61,7 @@ const EXPRESSION: CriteriaFilter = {
 describe("the criteria list, for a filter judged from its match history", () => {
   test("a body filter says which checks it must match on, after what it checks", () => {
     expect(CriteriaFilterUtil.translateFilterToText(overTime(BODY))).toBe(
-      'Check if "Response Body" does not contain "App Title" on every check in the past 5 minutes',
+      'Check if "Response Body" does not contain "App Title" on every check in the past 5\u00A0minutes',
     );
   });
 
@@ -71,7 +71,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
         overTime(BODY, EvaluateOverTimeType.AnyValue, 15),
       ),
     ).toBe(
-      'Check if "Response Body" does not contain "App Title" on any check in the past 15 minutes',
+      'Check if "Response Body" does not contain "App Title" on any check in the past 15\u00A0minutes',
     );
   });
 
@@ -81,26 +81,26 @@ describe("the criteria list, for a filter judged from its match history", () => 
         overTime(BODY, EvaluateOverTimeType.Average),
       ),
     ).toBe(
-      'Check if "Response Body" does not contain "App Title" on every check in the past 5 minutes',
+      'Check if "Response Body" does not contain "App Title" on every check in the past 5\u00A0minutes',
     );
   });
 
   test("headers read the same way", () => {
     expect(CriteriaFilterUtil.translateFilterToText(overTime(HEADER))).toBe(
-      'Check if "Response Header" contains "x-maintenance" on every check in the past 5 minutes',
+      'Check if "Response Header" contains "x-maintenance" on every check in the past 5\u00A0minutes',
     );
     expect(
       CriteriaFilterUtil.translateFilterToText(
         overTime(HEADER_VALUE, undefined, 10),
       ),
     ).toBe(
-      'Check if "Response Header Value" contains "starting" on every check in the past 10 minutes',
+      'Check if "Response Header Value" contains "starting" on every check in the past 10\u00A0minutes',
     );
   });
 
   test("a JavaScript expression says its window before the full stop", () => {
     expect(CriteriaFilterUtil.translateFilterToText(overTime(EXPRESSION))).toBe(
-      "Check if JavaScript expression '{{responseBody.status}}' === 'starting' - evaluates to true on every check in the past 5 minutes.",
+      "Check if JavaScript expression '{{responseBody.status}}' === 'starting' - evaluates to true on every check in the past 5\u00A0minutes.",
     );
   });
 
@@ -114,7 +114,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
         }),
       ),
     ).toBe(
-      'Check if all values of "Is Request Timeout" in the past 5 minutes is true',
+      'Check if all values of "Is Request Timeout" in the past 5\u00A0minutes is true',
     );
   });
 
@@ -171,7 +171,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
         MonitorType.API,
       ),
     ).toBe(
-      "Check if JavaScript expression '{{responseBody.status}}' === 'starting' - evaluates to true on every check in the past 5 minutes.",
+      "Check if JavaScript expression '{{responseBody.status}}' === 'starting' - evaluates to true on every check in the past 5\u00A0minutes.",
     );
 
     expect(
@@ -180,7 +180,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
         MonitorType.Website,
       ),
     ).toBe(
-      'Check if "Response Body" does not contain "App Title" on every check in the past 5 minutes',
+      'Check if "Response Body" does not contain "App Title" on every check in the past 5\u00A0minutes',
     );
 
     for (const monitorType of [
@@ -210,7 +210,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
         ),
       ),
     ).toContain(
-      'average value of "Response Time (in ms)" in the past 5 minutes',
+      'average value of "Response Time (in ms)" in the past 5\u00A0minutes',
     );
   });
 });
@@ -256,7 +256,7 @@ describe("the criteria list quotes the text a comparison looks for", () => {
         MonitorType.Website,
       ),
     ).toBe(
-      'Check if "Response Body" contains "Application starting..." on every check in the past 15 minutes',
+      'Check if "Response Body" contains "Application starting..." on every check in the past 15\u00A0minutes',
     );
   });
 

@@ -19,8 +19,9 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import OnCallRulePolicyScope from "../Utils/Rules/OnCallRulePolicyScope";
-import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import RuleSetCache from "../Utils/Rules/RuleSetCache";
+import Select from "../Types/Database/Select";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
@@ -351,35 +352,37 @@ class AlertOnCallRuleEngineServiceClass {
     return await this.findEnabledRules(projectId);
   }
 
-  // The project's enabled alert on-call rules, with what matching them needs.
+  // What matching the project's alert on-call rules needs of each.
+  private readonly ruleSelect: Select<AlertOnCallRule> = {
+    _id: true,
+    name: true,
+    criteria: true,
+    monitors: { _id: true },
+    alertSeverities: { _id: true },
+    alertLabels: { _id: true },
+    monitorLabels: { _id: true },
+    alertTitlePattern: true,
+    alertDescriptionPattern: true,
+    monitorNamePattern: true,
+    monitorDescriptionPattern: true,
+    onCallDutyPolicies: { _id: true },
+    ...ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
+    ...ON_CALL_RULE_PAGE_AS_SELECT,
+  };
+
+  /*
+   * The project's enabled alert on-call rules, with what matching them
+   * needs: kept until any of the project's rules changes (RuleSetCache).
+   */
   private async findEnabledRules(
     projectId: ObjectID,
   ): Promise<Array<AlertOnCallRule>> {
-    const rules: Array<AlertOnCallRule> = await AlertOnCallRuleService.findBy({
-      query: {
+    const rules: Array<AlertOnCallRule> =
+      await RuleSetCache.findEnabledRules<AlertOnCallRule>({
+        service: AlertOnCallRuleService,
         projectId: projectId,
-        isEnabled: true,
-      },
-      props: { isRoot: true },
-      select: {
-        _id: true,
-        name: true,
-        criteria: true,
-        monitors: { _id: true },
-        alertSeverities: { _id: true },
-        alertLabels: { _id: true },
-        monitorLabels: { _id: true },
-        alertTitlePattern: true,
-        alertDescriptionPattern: true,
-        monitorNamePattern: true,
-        monitorDescriptionPattern: true,
-        onCallDutyPolicies: { _id: true },
-        ...ON_CALL_RULE_WHEN_TO_PAGE_SELECT,
-        ...ON_CALL_RULE_PAGE_AS_SELECT,
-      },
-      limit: MAX_RULES_EVALUATED_PER_PROJECT,
-      skip: 0,
-    });
+        select: this.ruleSelect,
+      });
 
     logIfRuleReadWasTruncated({
       ruleKind: "AlertOnCallRule",

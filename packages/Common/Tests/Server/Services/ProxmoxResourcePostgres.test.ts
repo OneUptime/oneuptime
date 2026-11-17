@@ -5680,9 +5680,10 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
    *
    * The security fix it pins: with a label-scoped edit grant the cluster
    * lookup is narrowed to the caller's permitted labels, and a cluster
-   * loaded through it comes back with those labels only - so a team block
+   * loaded through it came back with those labels only - so a team block
    * on another label of the cluster went unseen. The block check loads the
-   * cluster again as root, with every label.
+   * cluster again as root, with every label. Since #8113 the lookup itself
+   * loads every label the cluster carries, too.
    */
   describe("the remove-node route against real cluster and label rows", () => {
     const CLUSTER_NOT_FOUND_MESSAGE: string =
@@ -5887,7 +5888,7 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
         );
     });
 
-    test("a label-scoped lookup loads only the permitted labels, so the block check is given every label - and a block on another label of the cluster refuses the removal", async () => {
+    test("a label-scoped lookup loads every label of the cluster, and the block check is given every label - and a block on another label of the cluster refuses the removal", async () => {
       const clusterId: ObjectID = await insertCluster([permitted, blocked]);
       await seedNodes(clusterId);
       props = labelScopedProps();
@@ -5911,15 +5912,18 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
       }
 
       /*
-       * Why the fix: a lookup scoped to the caller's permitted labels loads
-       * a cluster with those labels only, so a block check given that row
-       * never sees the others - the route loads the cluster as root and
-       * checks every label instead.
+       * Why the fix: a lookup scoped to the caller's permitted labels loaded
+       * a cluster with those labels only - they were a filter through its
+       * labels relation - so a block check given that row never saw the
+       * others, and the route loads the cluster as root and checks every
+       * label instead. Since #8113 the permitted labels are a condition on
+       * the cluster's own id (AccessControlPermission.addLabelIdsToQuery):
+       * the lookup loads every label the cluster carries, as root does.
        */
       const unblockedId: ObjectID = await insertCluster([permitted, other]);
-      expect(labelIdsOf(await findThroughScope(unblockedId))).toEqual([
-        permitted.toString(),
-      ]);
+      expect(labelIdsOf(await findThroughScope(unblockedId))).toEqual(
+        [permitted.toString(), other.toString()].sort(),
+      );
 
       /*
        * Since #4526 the scoped lookup also applies the team's blocks itself

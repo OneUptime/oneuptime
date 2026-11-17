@@ -767,13 +767,17 @@ test.describe("probe checks", () => {
     // Four stat cells, in order, from the server's uptime summary.
     expect(await statCells(page)).toEqual([
       {
-        label: "Uptime · 24 hours",
+        label: `Uptime · ${withUnit(24, "hours")}`,
         value: "100%",
         description: "No downtime",
       },
-      { label: "Uptime · 7 days", value: "99.652%", description: "Down 35m" },
       {
-        label: "Uptime · 30 days",
+        label: `Uptime · ${withUnit(7, "days")}`,
+        value: "99.652%",
+        description: "Down 35m",
+      },
+      {
+        label: `Uptime · ${withUnit(30, "days")}`,
         value: "99.703%",
         description: "Down 2h 8m",
       },
@@ -1357,6 +1361,13 @@ test.describe("probe checks", () => {
     await expect(page.getByTestId("monitor-overview-explanation")).toHaveText(
       "3 probes check this every 5 minutes. The first result usually arrives within a few minutes.",
     );
+    /*
+     * Nothing has been checked, so no status was recorded: Operational is
+     * only the status it was created in (#7464).
+     */
+    await expect(page.getByTestId("monitor-overview-last-known")).toHaveCount(
+      0,
+    );
     // Bars for a monitor that never reported would all say "No data".
     await expect(statBar(page)).toHaveCount(0);
     await expect(card(page, "Uptime history")).toHaveCount(0);
@@ -1510,11 +1521,18 @@ test.describe("other monitor families", () => {
 
     expect(await factLabels(page)).toEqual([
       "Missing-request window",
-      "Last missing-request check",
+      "Missing-request check",
       "Owners",
     ]);
     expect(await factValue(page, "Missing-request window")).toBe(
-      "30 minutesFrom this monitor's criteria",
+      `${withUnit(30, "minutes")}From this monitor's criteria`,
+    );
+    /*
+     * Checked 40 seconds ago, on the sweep's schedule: the fact says the
+     * schedule, not a stamp written only every few minutes (#8123).
+     */
+    expect(await factValue(page, "Missing-request check")).toBe(
+      `Every ${withUnit(30, "seconds")}`,
     );
     await expect(page.getByTestId("monitor-overview-pulse")).toContainText(
       "Last request 7 minutes ago",
@@ -1597,9 +1615,13 @@ test.describe("other monitor families", () => {
     );
     expect(await factLabels(page)).toEqual([
       "Missing-email window",
-      "Last missing-email check",
+      "Missing-email check",
       "Owners",
     ]);
+    // Checked on the sweep's schedule, as an incoming request is (#8123).
+    expect(await factValue(page, "Missing-email check")).toBe(
+      `Every ${withUnit(30, "seconds")}`,
+    );
   });
 
   test("server awaiting", async ({ page }: { page: Page }) => {
@@ -1885,7 +1907,7 @@ test.describe("failures", () => {
       "The uptime history could not be computed.",
     );
     expect((await statCells(page))[0]).toEqual({
-      label: "Uptime · 24 hours",
+      label: `Uptime · ${withUnit(24, "hours")}`,
       value: "—",
       description: "Uptime is unavailable",
     });

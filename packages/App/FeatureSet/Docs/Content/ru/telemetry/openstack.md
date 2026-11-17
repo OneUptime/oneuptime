@@ -39,7 +39,7 @@ flowchart TB
 - Docker Engine 20.10 или новее с плагином Docker Compose v2 либо, чтобы работать без Docker, машина Linux (x86_64 или arm64) с systemd 235 или новее, glibc 2.34 или новее (RHEL 9, Ubuntu 22.04, Debian 12) и root.
 - Маршрут с этой машины до Keystone и до публичной конечной точки каждой службы.
 - Командная строка `openstack` под пользователем, который может создать приведённые ниже учётные данные.
-- Ключ приема. Создайте его в разделе **Настройки проекта → Телеметрия и APM → Ключи приема** и скопируйте его значение.
+- Ключ приёма. Создайте его в разделе **Настройки проекта → Телеметрия и APM → Ключи приёма** и скопируйте его значение.
 - Исходящий HTTPS с этой машины на URL вашего OneUptime.
 
 ### Где запускать агент
@@ -260,7 +260,7 @@ curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh
 bash install.sh
 ```
 
-Скрипт спрашивает URL вашего OneUptime, ключ приема, постоянное имя облака, URL аутентификации Keystone, названия регионов, учётные данные приложения (имя пользователя и пароль, если вы откажетесь от них) и файл частного центра сертификации, если у облака есть собственный. Ничего секретного не выводится на экран и не попадает в командную строку. Скрипт проверяет учётные данные в Keystone, прежде чем что-либо записать или запустить, устанавливает всё в `/opt/oneuptime-openstack-agent` или, если у вас нет прав на `/opt`, в `oneuptime-openstack-agent` в вашей домашней папке (нужна лишь группа `docker`), записывает `.env` и `clouds.yaml` с режимом `0600` и запускает агент через Docker Compose. Каждый ответ можно задать и переменной окружения, а повторный запуск скрипта использует их вместо повторных вопросов: так вы [обновляете агент](#обновление-агента).
+Скрипт спрашивает URL вашего OneUptime, ключ приёма, постоянное имя облака, URL аутентификации Keystone, названия регионов, учётные данные приложения (имя пользователя и пароль, если вы откажетесь от них) и файл частного центра сертификации, если у облака есть собственный. Ничего секретного не выводится на экран и не попадает в командную строку. Скрипт проверяет учётные данные в Keystone, прежде чем что-либо записать или запустить, устанавливает всё в `/opt/oneuptime-openstack-agent` или, если у вас нет прав на `/opt`, в `oneuptime-openstack-agent` в вашей домашней папке (нужна лишь группа `docker`), записывает `.env` и `clouds.yaml` с режимом `0600` и запускает агент через Docker Compose. Каждый ответ можно задать и переменной окружения, а повторный запуск скрипта использует их вместо повторных вопросов: так вы [обновляете агент](#обновление-агента).
 @tab Docker Compose
 Скачайте `docker-compose.yml` и `otel-collector-config.yaml` из вашего OneUptime в новую папку:
 
@@ -359,7 +359,7 @@ Everything is ready. Begin running and processing data.
 | Переменная | Обязательна | Описание |
 | --- | --- | --- |
 | `ONEUPTIME_URL` | Да | URL вашего OneUptime, например `https://oneuptime.com` или ваш собственный экземпляр. |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Да | Ключ приема из **Настройки проекта → Телеметрия и APM → Ключи приема**. |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Да | Ключ приёма из **Настройки проекта → Телеметрия и APM → Ключи приёма**. |
 | `OPENSTACK_CLOUD_NAME` | Да | Имя облака в OneUptime, которое ставится на каждую метрику как атрибут ресурса `openstack.cloud.name`. Держите его неизменным: после смены регистрируется новое облако. По умолчанию `openstack`. |
 | `OPENSTACK_AUTH_URL` | Встроенный экспортер | Ответ на вопрос скрипта установки: URL аутентификации Keystone. `/v3` добавляется, если его нет. |
 | `OPENSTACK_EXPORTER_CLOUDS` | Да | Регионы в квадратных скобках, например `[RegionOne,RegionTwo]`, каждый — имя записи в `clouds.yaml`. По умолчанию `[RegionOne]`. |
@@ -1016,7 +1016,7 @@ curl -fsSLO https://oneuptime.com/install/openstack-agent/install-logs.sh
 sudo bash install-logs.sh
 ```
 
-Без аргумента скрипт осматривает машину и спрашивает, если не может определить. Он спрашивает URL вашего OneUptime, ключ приема, имя облака, которое должно быть именем, под которым облако известно в OneUptime, и регион, который обслуживает эта машина. Каждый ответ можно задать и переменной окружения, поэтому запуск по всему парку ничего не спрашивает: `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `OPENSTACK_CLOUD_NAME`, `OPENSTACK_REGION_NAME`, `OPENSTACK_NODE_NAME` и `OPENSTACK_LOGS_PROFILE`. Повторный запуск — это обновление, и он сохраняет все ответы.
+Без аргумента скрипт осматривает машину и спрашивает, если не может определить. Он спрашивает URL вашего OneUptime, ключ приёма, имя облака, которое должно быть именем, под которым облако известно в OneUptime, и регион, который обслуживает эта машина. Каждый ответ можно задать и переменной окружения, поэтому запуск по всему парку ничего не спрашивает: `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `OPENSTACK_CLOUD_NAME`, `OPENSTACK_REGION_NAME`, `OPENSTACK_NODE_NAME` и `OPENSTACK_LOGS_PROFILE`. Повторный запуск — это обновление, и он сохраняет все ответы.
 
 | Переменная | Для чего она |
 | --- | --- |
@@ -1736,7 +1736,7 @@ crane copy oneuptime/resource-ai-agent:release registry.example.com/oneuptime/re
 ## Устранение неполадок
 
 :::details Сначала запустите диагностический скрипт
-Агент поставляется со скриптом [`troubleshoot.sh`](https://oneuptime.com/install/openstack-agent/troubleshoot.sh), который проверяет всю цепочку на сетевом пути, используемом агентом: контейнеры или службы, `clouds.yaml`, экспортер, DNS, TLS, Keystone, каждую службу в каталоге, имя облака и принимает ли OneUptime ключ приема. OneUptime отклоняет неверный ключ ошибкой `401` (`422` для отключённого ключа или ключа браузера), а коллектор отбрасывает каждый отклонённый пакет с единственной строкой журнала `Exporting failed`, которую легко пропустить.
+Агент поставляется со скриптом [`troubleshoot.sh`](https://oneuptime.com/install/openstack-agent/troubleshoot.sh), который проверяет всю цепочку на сетевом пути, используемом агентом: контейнеры или службы, `clouds.yaml`, экспортер, DNS, TLS, Keystone, каждую службу в каталоге, имя облака и принимает ли OneUptime ключ приёма. OneUptime отклоняет неверный ключ ошибкой `401` (`422` для отключённого ключа или ключа браузера), а коллектор отбрасывает каждый отклонённый пакет с единственной строкой журнала `Exporting failed`, которую легко пропустить.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/openstack-agent/troubleshoot.sh -o troubleshoot.sh
@@ -1747,7 +1747,7 @@ sudo bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneupt
 :::
 
 :::details В OneUptime не появляется ни одно облако
-1. Прочитайте журналы коллектора: `docker logs oneuptime-openstack-agent` или, без Docker, `journalctl -u oneuptime-openstack-agent`. `401` при экспорте означает неверный ключ приема, отказ в соединении — неверный `ONEUPTIME_URL`.
+1. Прочитайте журналы коллектора: `docker logs oneuptime-openstack-agent` или, без Docker, `journalctl -u oneuptime-openstack-agent`. `401` при экспорте означает неверный ключ приёма, отказ в соединении — неверный `ONEUPTIME_URL`.
 2. Проверьте, отвечает ли экспортер. Встроенный экспортер не публикует свой порт на хосте, поэтому спросите изнутри его сети: `docker run --rm --network container:oneuptime-openstack-exporter curlimages/curl -s "http://localhost:9180/probe?cloud=RegionOne&include_services=identity" | head` должен вывести строки `openstack_identity_*`.
 3. Дайте ему один интервал сбора: 2 минуты для compute, 5 для identity.
 :::
@@ -1793,7 +1793,7 @@ Neutron и Cinder отвечают любому, кроме администра
 :::
 
 :::details Журналы служб облака не приходят
-Прочитайте журнал коллектора: `docker logs oneuptime-openstack-logs` для профиля files или `journalctl -u oneuptime-openstack-logs` для профиля journal. `401` означает неверный ключ приема. Если строки приходят без облака, `OPENSTACK_CLOUD_NAME` не совпадает с именем облака в OneUptime: снова запустите `install-logs.sh` с правильным.
+Прочитайте журнал коллектора: `docker logs oneuptime-openstack-logs` для профиля files или `journalctl -u oneuptime-openstack-logs` для профиля journal. `401` означает неверный ключ приёма. Если строки приходят без облака, `OPENSTACK_CLOUD_NAME` не совпадает с именем облака в OneUptime: снова запустите `install-logs.sh` с правильным.
 :::
 
 :::details Строки приходят без уровня, запроса или службы

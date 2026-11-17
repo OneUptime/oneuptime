@@ -7,7 +7,7 @@ AWS 账户、Azure 订阅或 Google Cloud 项目无需代理即可接受调查�
 这些代理就是 **资源 AI 代理**。每个资源的仪表板页面都有一个 **人工智能** 部分，包含三个页面：
 
 - **洞察** ——OneUptime AI 在过去 30 天里对该资源的了解：反复出现的问题及其原因（附带 AI 的发现和建议的步骤）、导致其中大部分问题的资源部分、没有起作用或正在等待批准的修复、AI 自行修复的内容，以及在任何人被呼叫之前发现的风险，并以脚注说明 AI 自己在那里做了什么。它的工作方式与集群的页面相同，参见 [AI 在集群上了解到的情况](/docs/ai/ai-sre#ai-在集群上了解到的情况)。
-- **日志** ——OneUptime AI 在该资源上做过的所有事情，按从新到旧排列：每次调查及其事件或警报和摘要、它提出或运行的每项修复，以及它通过代理发送的每条命令。（此页面以前叫作“洞察”。）
+- **日志** ——OneUptime AI 在该资源上做过的所有事情，按从新到旧排列：每次调查及其事件或警报和摘要、它提出或运行的每项修复，以及它通过代理发送的每条命令。（此页面以前叫作“洞察”。）它列出你可以读取的命令：OneUptime AI 为他人的 AI 聊天、或为你无法读取的私密事件或警报运行的命令不会列出，页面会说明有多少条。
 - **AI 代理** ——代理是否已连接、AI 可以在该资源上做什么（调查，以及修复的运行方式）、需要关注的任何事项及其解决步骤，以及代理状态旁边 **⋯** 菜单中的 **测试连接** 和 **重置代理**。
 
 资源的 **概览** 末尾有一张 **AI 代理** 卡片，汇总 AI 代理页面的内容：代理是否已连接、调查是否开启、修复如何运行（**关闭**、**请求批准**、**自动** 或 **跳过批准**）以及需要关注的事项，并附有指向 AI 代理页面的链接，可在那里更改这些设置。
@@ -87,7 +87,7 @@ AI 代理页面上代理状态旁边 **⋯** 菜单中的 **测试连接** 会�
 
 在 Docker Swarm 的工作节点上，`docker node ls` 会失败：Docker Swarm AI 代理必须在管理节点上运行。在工作节点上启动的代理在其节点成为管理节点之前不会注册到集群，而 Docker Swarm 安装程序会在不是管理节点的节点上省略它。
 
-在云账户上，`cloud whoami` 会显示云 AI 代理所操作的账户和它登录所用的身份、它是否可以更改任何内容、它可以进行的更改，以及它要求的标签（如果有）。在 Azure 和 Google Cloud 上，它还会说明其更改以哪个身份运行，以及代理能否以该身份登录。
+在云账户上，`cloud whoami` 会显示云 AI 代理所操作的账户和它登录所用的身份、它是否可以更改任何内容、它可以进行的更改，以及它要求的标签（如果有）。在 Azure 和 Google Cloud 上，它还会说明其更改以哪个身份运行，以及代理能否以该身份登录。如果代理可以读取，但无法以其更改所用的标识登录，测试会以警告提示读取正常但更改会失败，并说明需要修复什么。
 
 ## 安装 AI 代理
 
@@ -154,7 +154,7 @@ AWS 账户、Azure 订阅或 Google Cloud 项目旁边没有可供代理依附�
 | 云 | 在何处运行 | 命令创建的内容 |
 | -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | AWS 账户 | AWS CloudShell | 一个 CloudFormation 堆栈 `oneuptime-ai-agent`，它运行一个 ECS Fargate 任务。其任务角色只能代入写入角色 `OneUptimeAiAgentWrite`，该角色持有已开启更改的权限。它连接时使用的密钥保存在 Secrets Manager 中，只有 ECS 会读取。 |
-| Azure 订阅 | Azure Cloud Shell | 资源组 `oneuptime-ai-agent` 中的一个 Container App `oneuptime-ai-agent`，其自身的托管标识只能读取。每项更改都以另一个用户分配的托管标识 `oneuptime-ai-agent-write` 运行；它在订阅上持有一个自定义角色，具有已开启更改的权限，并且只附加到代理的 Container App 上：代理为每项更改请求它的令牌。它连接时使用的密钥保存为 Container Apps 机密。 |
+| Azure 订阅 | Azure Cloud Shell | 资源组 `oneuptime-ai-agent` 中的一个 Container App `oneuptime-ai-agent`，其自身的托管标识只能读取。每项更改都以另一个用户分配的托管标识 `oneuptime-ai-agent-write` 运行；它在订阅上持有一个自定义角色，具有已开启更改的权限，并且只附加到代理的 Container App 上：代理为每项更改请求它的令牌。它连接时使用的密钥保存为 Container Apps 机密。在 **更多字段** 的 **代理的运行位置** 中，可以改为选择一台小型虚拟机，适用于无法使用 Container Apps 的订阅：运行 Ubuntu 的 `oneuptime-ai-agent`，规格为 `Standard_B1s`，位于安全组不允许任何入站流量的专用网络中。它自己的标识只读取，写入标识只附加到它，它每次启动时从只有该标识能读取的专用 Key Vault 中读取密钥。 |
 | Google Cloud 项目 | Google Cloud Shell | 一台运行 Container-Optimized OS 的 `e2-micro` 类型 Compute Engine 虚拟机 `oneuptime-ai-agent`，位于没有任何防火墙规则的专用网络中，因此任何东西都无法连接到它。它以服务账号 `oneuptime-ai-agent` 的身份运行，该服务账号只能读取。每项更改都以第二个服务账号 `oneuptime-ai-agent-write` 的身份运行，该账号在项目上持有一个自定义角色，具有已开启更改的权限；代理只为这一项更改请求它的令牌，有效期 15 分钟。它连接时使用的密钥保存在 Secret Manager 中，只有代理自己的服务账号可以读取，再次运行该命令会销毁密钥的旧版本。虚拟机每次启动时读取该密钥，从不将其保存在磁盘或元数据中。在 **更多字段** 的 **代理的运行位置** 中，可以改为选择始终分配 CPU 的 Cloud Run 服务，适用于不允许任何虚拟机拥有外部 IP 地址的项目。 |
 
 要在其他地方运行代理，请使用 **更多字段** 中列出的变量部署其镜像，并给它与命令相同的东西：
@@ -325,7 +325,7 @@ OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure
 - **关闭** ——AI 只进行调查。
 - **请求批准** ——在根本原因分析之后，OneUptime AI 会用读取命令进行诊断，并制定能解决该原因的最小计划，例如 `docker restart web`。计划会连同其理由、预期效果和回滚方案显示在事件或警报上；有人一键批准后，OneUptime 会严格运行这些命令。
 - **自动** ——安全的更改（**SafeWrite**）会自行运行；风险较高的更改（**RiskyWrite**）会被提出以供批准，除非资源的命令允许列表写明了它的确切形式。
-- **跳过批准** ——策略允许的每项更改，包括风险较高的更改，都会自行运行。始终需要人的更改仍会等待人。
+- **跳过批准** ——策略允许的每项更改，包括风险较高的更改，都会自行运行。始终需要人的更改仍会等待人。如果项目要求风险较高的修复由两人批准，风险较高的更改会改为提交给他们批准。
 
 修复运行后，OneUptime 会观察事件或警报的监视器。如果它们没有恢复，计划的回滚就会运行，OneUptime AI 会参考失败的尝试再制定一个计划——每个事件或警报最多两轮。在 **自动** 模式下，第二轮会请求批准；在 **跳过批准** 模式下，它同样会自行运行。无人值守的修复设有每个资源每小时三次的熔断：超过这个次数，或者在 OneUptime AI 的另一轮无人值守修复仍在更改或验证同一资源时，本轮会提出其计划以供批准，而不是直接运行。
 
@@ -342,7 +342,7 @@ OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure
 
 有些风险较高的更改在包括跳过批准在内的每种模式下都 **始终需要人**，任何允许列表条目都改变不了这一点——它们在下面的表格中有相应标注。
 
-项目还可以要求由两人批准包含风险较高变更的修复：请参阅 [风险较高的修复由两人批准](/docs/ai/ai-sre#风险较高的修复由两人批准)。
+项目还可以要求由两人批准包含风险较高变更的修复；这时，即使有允许列表或跳过批准，风险较高的更改也不会自行运行：请参阅 [风险较高的修复由两人批准](/docs/ai/ai-sre#风险较高的修复由两人批准)。
 
 ### Docker 和 Podman 主机上的修复
 
@@ -451,7 +451,7 @@ OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure
 | `stop-instance` | 始终需要人：EC2 实例 | 始终需要人：虚拟机、容器组 | 始终需要人：Compute Engine 虚拟机 |
 | `redrive-queue` | 始终需要人：SQS 队列 | — | — |
 
-**持久的修复。** 对于代码声明的更改，例如扩缩容、并发或回滚，步骤下方的 **向代码打开拉取请求** 可以让修复持久生效。OneUptime 会根据资源的标签和仓库中的文件，在连接到 Code 的仓库中查找代码，在打开任何内容之前先询问使用哪个仓库，然后在那里启动一个任务，在代码中做同样的更改，可以与实时更改并行，也可以代替它。之后，步骤会显示拉取请求的状态并附上链接；事件或告警的动态，以及它的 Slack 和 Microsoft Teams 频道，会说明是谁提出的请求，并在拉取请求打开后附上链接。
+**持久的修复。** 对于代码声明的更改，例如扩缩容、并发或回滚，步骤下方的 **向代码打开拉取请求** 可以让修复持久生效。OneUptime 会根据资源的标签和仓库中的文件，在连接到 Code 的仓库中查找代码，在打开任何内容之前先询问使用哪个仓库，然后在那里启动一个任务，在代码中做同样的更改，可以与实时更改并行，也可以代替它。之后，步骤会显示拉取请求的状态并附上链接；事件或警报的动态，以及它的 Slack 和 Microsoft Teams 频道，会说明是谁提出的请求，并在拉取请求打开后附上链接。
 
 `scale-out` 不会超出组的最大值，在平台未设置最大值时最多将数量翻倍；`scale-in` 从不会低于最小值，也不会降到零。`roll-back-service` 会回到之前运行的版本，或回到 `--to` 指定的版本；在 App Service 上，它会把部署槽位（`--slot`）交换回来。完整写出来，一项更改是这样的：`cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`。
 
@@ -583,7 +583,7 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 
 请使用您资源的容器名称：`oneuptime-docker-ai-agent`、`oneuptime-podman-ai-agent`（用 `podman` 代替 `docker`）、`oneuptime-docker-swarm-ai-agent`、`oneuptime-openstack-ai-agent`、`oneuptime-proxmox-ai-agent`、`oneuptime-vmware-ai-agent`、`oneuptime-ceph-ai-agent`、`oneuptime-host-ai-agent`。数据库代理的服务没有固定的容器名称，因此请在 `/opt/oneuptime-database-agent` 中使用 `docker compose logs --tail=100 oneuptime-database-ai-agent` 和 `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status`。主机 AI 代理使用主机的网络，因此 `curl -s http://127.0.0.1:3877/status` 可以直接在主机上运行。
 
-云 AI 代理运行在其云中，没有可以 `exec` 进入的容器：请在云平台的 Shell 中用 `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`、`az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` 或 `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"`（在 Cloud Run 上为 `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`） 读取其日志，并在账户的 **AI 代理** 页面上查看其状态，该页面也会显示同样的命令。
+云 AI 代理运行在其云中，没有可以 `exec` 进入的容器：请在云平台的 Shell 中用 `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`、`az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100`（在专用虚拟机上为 `az vm run-command invoke --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --command-id RunShellScript --scripts "docker logs --tail 100 oneuptime-ai-agent" --query "value[0].message" --output tsv`） 或 `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"`（在 Cloud Run 上为 `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`） 读取其日志，并在账户的 **AI 代理** 页面上查看其状态，该页面也会显示同样的命令。
 
 缺少某项设置不会让代理崩溃：它会保持运行且状态健康，在日志和 `/status` 中说明缺少什么，并且不做其他任何事，因此容器永远不会循环重启。
 

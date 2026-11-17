@@ -928,7 +928,7 @@ describe("the on-call cards, in the reader's language", () => {
           {
             label: "Regel 1 — Primary",
             value:
-              'Alarmiert Benutzer "Alice Smith", Bereitschaftsplan "Primary rotation", eskaliert dann nach 5 Minuten',
+              'Alarmiert Benutzer "Alice Smith", Bereitschaftsplan "Primary rotation", eskaliert dann nach 5\u00A0Minuten',
           },
           { label: "Regel 2", value: 'Alarmiert Team "SRE"' },
         ],

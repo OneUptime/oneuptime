@@ -15,6 +15,8 @@ import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
 import logger from "../Utils/Logger";
 import ContiguousOrder from "../Utils/Database/ContiguousOrder";
+import ScheduleLayerChanges from "../Utils/OnCall/ScheduleLayerChanges";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 /*
  * A layer user moved to another place by a non-root update: where it was,
@@ -83,6 +85,33 @@ export class Service extends ProjectReferencesService<Model> {
       );
       logger.error(err);
     }
+  }
+
+  /*
+   * After a layer user's row is written: who is on call is worked out and
+   * told now, or - for a write made through the API - once the schedule's
+   * layers have been quiet for a while, for the whole change at once
+   * (ScheduleLayerChanges, #7813).
+   */
+  private async tellLayerUserChange(data: {
+    scheduleId: ObjectID;
+    projectId: ObjectID | null | undefined;
+    userId: ObjectID | null | undefined;
+    props: DatabaseCommonInteractionProps | null | undefined;
+  }): Promise<void> {
+    await ScheduleLayerChanges.afterLayersWritten({
+      scheduleId: data.scheduleId,
+      props: data.props,
+      tellNow: async (): Promise<void> => {
+        await this.refreshScheduleRosterBestEffort(data.scheduleId);
+
+        await this.propagateLayerUserChange(
+          data.scheduleId,
+          data.projectId,
+          data.userId,
+        );
+      },
+    });
   }
 
   /**
@@ -224,15 +253,12 @@ export class Service extends ProjectReferencesService<Model> {
         });
 
         if (resource.onCallDutyPolicyScheduleId) {
-          await this.refreshScheduleRosterBestEffort(
-            resource.onCallDutyPolicyScheduleId,
-          );
-
-          await this.propagateLayerUserChange(
-            resource.onCallDutyPolicyScheduleId,
-            resource.projectId,
-            resource.userId,
-          );
+          await this.tellLayerUserChange({
+            scheduleId: resource.onCallDutyPolicyScheduleId,
+            projectId: resource.projectId,
+            userId: resource.userId,
+            props: deleteBy.props,
+          });
         }
       }
     }
@@ -285,7 +311,7 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
     const resource: Model | null = await this.findOneById({
@@ -329,15 +355,12 @@ export class Service extends ProjectReferencesService<Model> {
       return createdItem;
     }
 
-    await this.refreshScheduleRosterBestEffort(
-      resource.onCallDutyPolicyScheduleId,
-    );
-
-    await this.propagateLayerUserChange(
-      resource.onCallDutyPolicyScheduleId,
-      resource.projectId,
-      resource.userId,
-    );
+    await this.tellLayerUserChange({
+      scheduleId: resource.onCallDutyPolicyScheduleId,
+      projectId: resource.projectId,
+      userId: resource.userId,
+      props: onCreate?.createBy?.props,
+    });
 
     return createdItem;
   }
@@ -385,15 +408,12 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      await this.refreshScheduleRosterBestEffort(
-        resource.onCallDutyPolicyScheduleId,
-      );
-
-      await this.propagateLayerUserChange(
-        resource.onCallDutyPolicyScheduleId,
-        resource.projectId,
-        resource.userId,
-      );
+      await this.tellLayerUserChange({
+        scheduleId: resource.onCallDutyPolicyScheduleId,
+        projectId: resource.projectId,
+        userId: resource.userId,
+        props: onUpdate?.updateBy?.props,
+      });
     }
 
     return {

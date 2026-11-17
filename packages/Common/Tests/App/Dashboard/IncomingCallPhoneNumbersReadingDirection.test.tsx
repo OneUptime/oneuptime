@@ -23,6 +23,7 @@ import React from "react";
 import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
 import API from "../../../UI/Utils/API/API";
+import Toast, { ToastItem } from "../../../UI/Utils/Toast";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
@@ -136,6 +137,7 @@ afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
   document.documentElement.removeAttribute("dir");
+  Toast.dismissAll();
 });
 
 // The words of a key in a language, as the page shows them.
@@ -213,6 +215,18 @@ function confirmDescription(): string {
   return screen.getByTestId("confirm-modal-description").textContent || "";
 }
 
+/*
+ * What the card says once it is done: a toast (#9120), not a dialog to
+ * click away.
+ */
+function toastText(): string {
+  const toasts: ReadonlyArray<ToastItem> = Toast.getToasts();
+
+  expect(screen.queryByTestId("confirm-modal-description")).toBeNull();
+
+  return toasts[toasts.length - 1]?.title || "";
+}
+
 // Opens Add Phone Number > Use Existing Phone Number, with the account's numbers.
 async function openOwnedNumbers(language: string): Promise<HTMLElement> {
   await click(
@@ -274,7 +288,7 @@ describe.each(["fa", "ar"])("on a %s page", (language: string) => {
     await click(screen.getByTestId("modal-footer-submit-button"));
 
     expect(deleteSpy).toHaveBeenCalledTimes(1);
-    expect(confirmDescription()).toBe(
+    expect(toastText()).toBe(
       sentenceWith(
         language,
         "{{phoneNumber}} has been released back to Twilio.",
@@ -366,7 +380,7 @@ describe.each(["fa", "ar"])("on a %s page", (language: string) => {
 
       await click(screen.getByTestId("modal-footer-submit-button"));
 
-      expect(confirmDescription()).toBe(
+      expect(toastText()).toBe(
         sentenceWith(
           language,
           "Phone number {{phoneNumber}} has been assigned and configured for this policy.",
@@ -463,9 +477,7 @@ describe("on an English page", () => {
 
     await click(screen.getByTestId("modal-footer-submit-button"));
 
-    expect(confirmDescription()).toBe(
-      `${UK} has been released back to Twilio.`,
-    );
+    expect(toastText()).toBe(`${UK} has been released back to Twilio.`);
   });
 
   test("attaching a number says it as Twilio names it, with no mark", async () => {
@@ -489,7 +501,7 @@ describe("on an English page", () => {
 
     await click(screen.getByTestId("modal-footer-submit-button"));
 
-    expect(confirmDescription()).toBe(
+    expect(toastText()).toBe(
       `Phone number ${US} has been assigned and configured for this policy.`,
     );
   });

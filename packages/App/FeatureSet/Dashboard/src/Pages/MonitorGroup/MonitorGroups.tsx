@@ -1,4 +1,9 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import {
+  UsedByListActions,
+  getUsedByListActions,
+} from "../../Components/UsedBy/UsedByListActions";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import CurrentStatusElement from "../../Components/MonitorGroup/CurrentStatus";
 import PageComponentProps from "../PageComponentProps";
@@ -47,6 +52,13 @@ const MonitorGroupPage: FunctionComponent<
     showLabelsFacet: true,
   });
 
+  /*
+   * A row's Delete and the bulk Delete say what still uses the
+   * records first (#7435).
+   */
+  const usedBy: UsedByListActions<MonitorGroup> =
+    getUsedByListActions<MonitorGroup>(UsedByRecordKind.MonitorGroup);
+
   return (
     <>
       <ModelTable<MonitorGroup>
@@ -67,12 +79,14 @@ const MonitorGroupPage: FunctionComponent<
           tableId: "monitor-groups-table",
         }}
         isDeleteable={true}
+        getDeleteConfirmation={usedBy.getDeleteConfirmation}
         showViewIdButton={true}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
         bulkActions={{
           buttons: [...labelBulkActions, ...ownerBulkActions],
+          deleteConfirmationDetails: usedBy.deleteConfirmationDetails,
         }}
         cardProps={{
           title: "Monitor Groups",

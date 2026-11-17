@@ -758,7 +758,11 @@ export default class Dashboard extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * Deleting the logo's file keeps the dashboard, without its
+       * logo (issue #9069).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "delete",
     },
   )
@@ -923,7 +927,11 @@ export default class Dashboard extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "CASCADE",
+      /*
+       * Deleting the favicon's file keeps the dashboard, without its
+       * favicon (issue #9069).
+       */
+      onDelete: "SET NULL",
       orphanedRowAction: "delete",
     },
   )

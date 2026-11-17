@@ -2963,6 +2963,125 @@ export function withoutCloudDryRunVerdict(output: string): string {
   return end < 0 ? "" : output.slice(end + 1);
 }
 
+// ---- Whether the agent's changes can run, as `cloud whoami` finds ------------
+
+/*
+ * The line `cloud whoami` starts its output with: whether a change can run
+ * as the agent is set up - the write role (AWS), write identity (Azure) or
+ * write account (Google Cloud) each change signs in as. Test connection
+ * reads it, so a connection that reads but whose every change would fail
+ * says so (in amber, with what to fix) instead of that it works. Only the
+ * FIRST line is read, as for the replaced value: no later line, which may
+ * quote what the cloud answered, can stand in for it. An agent too old to
+ * write it says nothing, and its Test connection reads as it always did.
+ *
+ *   usable    the agent may sign in as its write role, identity or account
+ *   unset     it has none (an agent set up before, or run elsewhere
+ *             without one): its changes run as its own identity
+ *   unusable  every change fails, for one of three reasons:
+ *     cannot-sign-in      the cloud refused it the role, identity or token
+ *     unreadable-setting  its setting names no role, identity or account
+ *     another-account     it names one of another account, subscription
+ *                         or project than the one the agent serves
+ */
+export const CLOUD_WRITE_PATH_PREFIX: string = "oneuptime-write-path: ";
+
+export type CloudWritePathState = "usable" | "unset" | "unusable";
+
+export type CloudWritePathProblem =
+  | "cannot-sign-in"
+  | "unreadable-setting"
+  | "another-account";
+
+export interface CloudWritePath {
+  state: CloudWritePathState;
+  // Only for an unusable one: why every change fails.
+  problem?: CloudWritePathProblem | undefined;
+}
+
+const CLOUD_WRITE_PATH_STATES: ReadonlyArray<CloudWritePathState> = [
+  "usable",
+  "unset",
+  "unusable",
+];
+
+const CLOUD_WRITE_PATH_PROBLEMS: ReadonlyArray<CloudWritePathProblem> = [
+  "cannot-sign-in",
+  "unreadable-setting",
+  "another-account",
+];
+
+// The write-path line (the agent writes it).
+export function formatCloudWritePath(path: CloudWritePath): string {
+  return `${CLOUD_WRITE_PATH_PREFIX}${JSON.stringify(
+    path.state === "unusable"
+      ? { state: path.state, problem: path.problem || "cannot-sign-in" }
+      : { state: path.state },
+  )}`;
+}
+
+/*
+ * What `cloud whoami`'s output says of the write path, from its first line;
+ * null when it says nothing (an older agent, another command) or the line
+ * cannot be read. An unusable one always has a problem it knows. Reads with
+ * indexOf, never a regex over the output.
+ */
+export function readCloudWritePath(output: unknown): CloudWritePath | null {
+  if (
+    typeof output !== "string" ||
+    !output.startsWith(CLOUD_WRITE_PATH_PREFIX)
+  ) {
+    return null;
+  }
+
+  const end: number = output.indexOf("\n");
+  const line: string = output
+    .slice(CLOUD_WRITE_PATH_PREFIX.length, end < 0 ? output.length : end)
+    .trimEnd();
+
+  if (line.length > MAX_REPLACED_VALUE_LINE_LENGTH) {
+    return null;
+  }
+
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(line);
+  } catch {
+    return null;
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return null;
+  }
+
+  const state: unknown = (parsed as Record<string, unknown>)["state"];
+  const problem: unknown = (parsed as Record<string, unknown>)["problem"];
+
+  if (!CLOUD_WRITE_PATH_STATES.includes(state as CloudWritePathState)) {
+    return null;
+  }
+
+  if (state !== "unusable") {
+    return { state: state as CloudWritePathState };
+  }
+
+  return CLOUD_WRITE_PATH_PROBLEMS.includes(problem as CloudWritePathProblem)
+    ? { state: "unusable", problem: problem as CloudWritePathProblem }
+    : null;
+}
+
+// `cloud whoami`'s output without its write-path line, as a person reads it.
+export function withoutCloudWritePath(output: string): string {
+  if (!output.startsWith(CLOUD_WRITE_PATH_PREFIX)) {
+    return output;
+  }
+
+  const end: number = output.indexOf("\n");
+
+  return end < 0 ? "" : output.slice(end + 1);
+}
+
 export type CloudUndoResult =
   // The argv (program included) that puts the resource back.
   | { kind: "command"; argv: Array<string> }

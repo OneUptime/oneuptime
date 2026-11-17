@@ -24,15 +24,17 @@ import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
  * description once PER OWNER. The perf fix merges the severity relation into
  * the single alert fetch and hoists the markdown conversion to once per
  * timeline row. These tests pin:
- *   1. the query shape: exactly ONE findOneById per timeline row, whose
- *      select carries both the display fields and the severity relation,
+ *   1. the query shape: ONE read of a page's alerts (issue #7974 - it was one
+ *      per timeline row), whose select carries both the display fields and
+ *      the severity relation,
  *   2. exactly ONE Markdown.convertToHTML per row regardless of owner count,
  *   3. the notification payloads (vars, subject, SMS, call, push, feed) are
  *      byte-identical to the old two-query flow, including the severity name
  *      and the converted description,
- *   4. the skip/throw semantics are unchanged: a deleted alert is skipped, a
- *      missing severity relation still throws (no silent ?. downgrade), and
- *      rows without owners never reach the markdown conversion.
+ *   4. the skip/throw semantics: a deleted alert is taken without telling
+ *      anyone (it used to be left to be read again on every run), a missing
+ *      severity relation still throws (no silent ?. downgrade), and rows
+ *      without owners never reach the markdown conversion.
  *
  * The job registers itself via RunCron at import time and exports nothing, so
  * the Cron util is mocked to CAPTURE the handler (the same recorder the other
@@ -103,6 +105,7 @@ jest.mock("Common/Server/Services/AlertService", () => {
     __esModule: true,
     default: {
       findOneById: jest.fn(),
+      findBy: jest.fn(),
       findAllBy: jest.fn(),
       findOwners: jest.fn(),
       getAlertLinkInDashboard: jest.fn(),
@@ -115,7 +118,9 @@ jest.mock("Common/Server/Services/AlertStateTimelineService", () => {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
+      findBy: jest.fn(),
       updateOneById: jest.fn(),
+      compareAndSetColumnsByIdWithoutHooks: jest.fn(),
       findOneBy: jest.fn(),
     },
   };
@@ -174,6 +179,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import UserService from "Common/Server/Services/UserService";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { OwnerNotificationDeliveryStatus } from "Common/Types/Notification/OwnerNotificationDelivery";
 import {
   InMemoryOwnerNotificationDeliveries,
@@ -185,6 +191,7 @@ import "../../../../FeatureSet/Workers/Jobs/AlertOwners/SendStateChangeNotificat
 
 interface AlertServiceMock {
   findOneById: jest.Mock;
+  findBy: jest.Mock;
   findAllBy: jest.Mock;
   findOwners: jest.Mock;
   getAlertLinkInDashboard: jest.Mock;
@@ -192,7 +199,9 @@ interface AlertServiceMock {
 
 interface TimelineServiceMock {
   findAllBy: jest.Mock;
+  findBy: jest.Mock;
   updateOneById: jest.Mock;
+  compareAndSetColumnsByIdWithoutHooks: jest.Mock;
   findOneBy: jest.Mock;
 }
 
@@ -314,19 +323,22 @@ function makeUser(id: ObjectID, timezone?: Timezone | undefined): User {
 }
 
 /*
- * The job reads the alert's affected resources back through
- * AlertService.findAllBy, right after its own findOneById for the row; answer
- * those reads with the alert that findOneById just returned.
+ * The ids a read asks for: QueryHelper.any is spied to say them (beforeEach).
  */
-function answerRelationReadsWithFetchedAlert(): void {
-  alertService.findAllBy.mockImplementation(async () => {
-    const results: Array<{ value: unknown }> =
-      alertService.findOneById.mock.results;
-    const alert: unknown =
-      results.length > 0 ? await results[results.length - 1]!.value : null;
+function idsAskedFor(query: Record<string, unknown>): Array<string> {
+  return (query["_id"] as { __in?: Array<string> } | undefined)?.__in || [];
+}
 
-    return alert ? [alert] : [];
-  });
+/*
+ * The state changes the job's page read finds - those a test hands it -
+ * until the job takes each (OwnerNotificationBacklog): the read is a page,
+ * and the take a compare-and-set that only the first to make wins.
+ */
+let dueTimelines: Array<AlertStateTimeline> = [];
+const takenTimelineIds: Set<string> = new Set<string>();
+
+function due(timelines: Array<AlertStateTimeline>): void {
+  dueTimelines = timelines;
 }
 
 function stubAlerts(alerts: Array<Alert>): void {
@@ -336,22 +348,43 @@ function stubAlerts(alerts: Array<Alert>): void {
     alertsById[alert.id!.toString()] = alert;
   }
 
+  const byIdsAskedFor: (args: {
+    query: Record<string, unknown>;
+  }) => Promise<Array<Alert>> = (args: {
+    query: Record<string, unknown>;
+  }): Promise<Array<Alert>> => {
+    return Promise.resolve(
+      idsAskedFor(args.query)
+        .map((id: string): Alert | undefined => {
+          return alertsById[id];
+        })
+        .filter((each: Alert | undefined): each is Alert => {
+          return Boolean(each);
+        }),
+    );
+  };
+
+  // The page's alerts, in one read (the job's readAlertsOfPage)...
+  alertService.findBy.mockImplementation(byIdsAskedFor);
+
+  // ...one the page read did not find, on its own...
   alertService.findOneById.mockImplementation((args: { id: ObjectID }) => {
     return Promise.resolve(alertsById[args.id.toString()] || null);
   });
 
-  answerRelationReadsWithFetchedAlert();
+  // ...and its affected resources, a relation at a time (LinkedAffectedResources).
+  alertService.findAllBy.mockImplementation(byIdsAskedFor);
 }
 
-interface FindOneByIdArgs {
-  id: ObjectID;
+interface FindByArgs {
+  query: Record<string, unknown>;
   props: { isRoot: boolean };
   select: Record<string, unknown>;
 }
 
-function alertFetchCalls(): Array<FindOneByIdArgs> {
-  return alertService.findOneById.mock.calls.map((args: Array<unknown>) => {
-    return args[0] as FindOneByIdArgs;
+function alertPageReads(): Array<FindByArgs> {
+  return alertService.findBy.mock.calls.map((args: Array<unknown>) => {
+    return args[0] as FindByArgs;
   });
 }
 
@@ -383,10 +416,12 @@ function sendCalls(): Array<SendNotificationArgs> {
 interface UpdateCallArgs {
   id: ObjectID;
   data: Record<string, unknown>;
+  expectedData: Record<string, unknown>;
 }
 
+// The takes: one hook-free compare-and-set per state change.
 function timelineUpdateCalls(): Array<UpdateCallArgs> {
-  return timelineService.updateOneById.mock.calls.map(
+  return timelineService.compareAndSetColumnsByIdWithoutHooks.mock.calls.map(
     (args: Array<unknown>) => {
       return args[0] as UpdateCallArgs;
     },
@@ -444,6 +479,33 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
       return Promise.resolve(convertedHtmlOf(markdown));
     });
 
+    dueTimelines = [];
+    takenTimelineIds.clear();
+    jest
+      .spyOn(QueryHelper, "any")
+      .mockImplementation((values: Array<string | ObjectID | number>) => {
+        return {
+          __in: values.map((value: string | ObjectID | number): string => {
+            return value.toString();
+          }),
+        } as never;
+      });
+    timelineService.findBy.mockImplementation(async () => {
+      return dueTimelines.filter((timeline: AlertStateTimeline) => {
+        return !takenTimelineIds.has(timeline.id!.toString());
+      });
+    });
+    timelineService.compareAndSetColumnsByIdWithoutHooks.mockImplementation(
+      async (data: { id: ObjectID }): Promise<boolean> => {
+        if (takenTimelineIds.has(data.id.toString())) {
+          return false;
+        }
+
+        takenTimelineIds.add(data.id.toString());
+        return true;
+      },
+    );
+    alertService.findBy.mockResolvedValue([]);
     timelineService.findAllBy.mockResolvedValue([]);
     timelineService.updateOneById.mockResolvedValue(undefined);
     timelineService.findOneBy.mockResolvedValue(null);
@@ -461,10 +523,8 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
     );
   });
 
-  test("fetches the alert EXACTLY ONCE per timeline row, selecting the severity relation alongside the display fields", async () => {
-    timelineService.findAllBy.mockResolvedValue([
-      makeTimeline({ id: TIMELINE_1_ID, alertId: ALERT_1_ID }),
-    ]);
+  test("reads the page's alerts in ONE query - never once per row, nor again for the severity - selecting the severity relation alongside the display fields", async () => {
+    due([makeTimeline({ id: TIMELINE_1_ID, alertId: ALERT_1_ID })]);
     stubAlerts([
       makeAlert({
         id: ALERT_1_ID,
@@ -476,12 +536,16 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
 
     await runWorkerTick();
 
-    // THE removed regression: a second findOneById just for the severity name.
-    expect(alertService.findOneById).toHaveBeenCalledTimes(1);
+    /*
+     * THE removed regressions: a second read just for the severity name, and
+     * one read per state change - the page's alerts are read in one query.
+     */
+    expect(alertService.findBy).toHaveBeenCalledTimes(1);
+    expect(alertService.findOneById).not.toHaveBeenCalled();
 
-    const fetch: FindOneByIdArgs = alertFetchCalls()[0]!;
+    const fetch: FindByArgs = alertPageReads()[0]!;
 
-    expect(fetch.id.toString()).toBe(ALERT_1_ID.toString());
+    expect(idsAskedFor(fetch.query)).toEqual([ALERT_1_ID.toString()]);
     expect(fetch.props).toEqual({ isRoot: true });
 
     /*
@@ -515,7 +579,7 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
   });
 
   test("converts the description markdown ONCE PER ROW, not once per owner, across 3 owners and 2 rows", async () => {
-    timelineService.findAllBy.mockResolvedValue([
+    due([
       makeTimeline({ id: TIMELINE_1_ID, alertId: ALERT_1_ID }),
       makeTimeline({ id: TIMELINE_2_ID, alertId: ALERT_2_ID }),
     ]);
@@ -571,17 +635,20 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
       convertedHtmlOf("row two description"),
     ]);
 
-    // One merged alert fetch per row - never a severity re-fetch.
-    expect(alertService.findOneById).toHaveBeenCalledTimes(2);
+    // One read of the page's two alerts - never per row, nor a severity re-fetch.
+    expect(alertService.findBy).toHaveBeenCalledTimes(1);
+    expect(idsAskedFor(alertPageReads()[0]!.query)).toEqual([
+      ALERT_1_ID.toString(),
+      ALERT_2_ID.toString(),
+    ]);
+    expect(alertService.findOneById).not.toHaveBeenCalled();
   });
 
   test("sends byte-identical notification payloads to the old two-query flow, previous state included", async () => {
     const startsAt: Date = STATE_CHANGED_AT;
     const previousStartsAt: Date = new Date("2026-08-18T08:00:00.000Z");
 
-    timelineService.findAllBy.mockResolvedValue([
-      makeTimeline({ id: TIMELINE_1_ID, alertId: ALERT_1_ID, startsAt }),
-    ]);
+    due([makeTimeline({ id: TIMELINE_1_ID, alertId: ALERT_1_ID, startsAt })]);
     stubAlerts([
       makeAlert({
         id: ALERT_1_ID,
@@ -693,6 +760,9 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
     expect(updates).toHaveLength(1);
     expect(updates[0]!.id.toString()).toBe(TIMELINE_1_ID.toString());
     expect(updates[0]!.data).toEqual({ isOwnerNotified: true });
+    // Only if no other run took it first: one run alone tells its owners.
+    expect(updates[0]!.expectedData).toEqual({ isOwnerNotified: false });
+    expect(timelineService.updateOneById).not.toHaveBeenCalled();
 
     // One feed item: a sentence, and who was notified behind its details.
     expect(feedService.createAlertFeedItem).toHaveBeenCalledTimes(1);
@@ -716,8 +786,8 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
     );
   });
 
-  test("a row whose alert no longer exists is skipped exactly as before, without blocking later rows", async () => {
-    timelineService.findAllBy.mockResolvedValue([
+  test("a row whose alert no longer exists is taken without telling anyone - so no run reads it again - and does not block later rows", async () => {
+    due([
       makeTimeline({ id: TIMELINE_1_ID, alertId: ALERT_1_ID }),
       makeTimeline({ id: TIMELINE_2_ID, alertId: ALERT_2_ID }),
     ]);
@@ -733,14 +803,29 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
 
     await expect(runWorkerTick()).resolves.toBeUndefined();
 
-    // Still exactly one fetch per row - the null result costs no extra query.
-    expect(alertService.findOneById).toHaveBeenCalledTimes(2);
+    /*
+     * The page's read found the surviving alert; the deleted one is read on
+     * its own once, and found gone.
+     */
+    expect(alertService.findBy).toHaveBeenCalledTimes(1);
+    expect(alertService.findOneById).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        alertService.findOneById.mock.calls[0]![0] as { id: ObjectID }
+      ).id.toString(),
+    ).toBe(ALERT_1_ID.toString());
 
-    // The deleted row is skipped BEFORE the mark-notified write and the send.
+    /*
+     * Both rows are taken: the deleted one too, so it is not read again on
+     * every run for ever (it used to be left as it was). Nobody is told of it.
+     */
     const updates: Array<UpdateCallArgs> = timelineUpdateCalls();
 
-    expect(updates).toHaveLength(1);
-    expect(updates[0]!.id.toString()).toBe(TIMELINE_2_ID.toString());
+    expect(
+      updates.map((update: UpdateCallArgs): string => {
+        return update.id.toString();
+      }),
+    ).toEqual([TIMELINE_1_ID.toString(), TIMELINE_2_ID.toString()]);
 
     expect(markdownMock.convertToHTML).toHaveBeenCalledTimes(1);
     expect(notificationService.sendUserNotification).toHaveBeenCalledTimes(1);
@@ -749,9 +834,7 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
   });
 
   test("a missing severity relation still fails after the mark-notified write - never silently downgraded - and costs only that owner's notification", async () => {
-    timelineService.findAllBy.mockResolvedValue([
-      makeTimeline({ id: TIMELINE_1_ID, alertId: ALERT_1_ID }),
-    ]);
+    due([makeTimeline({ id: TIMELINE_1_ID, alertId: ALERT_1_ID })]);
     stubAlerts([makeAlert({ id: ALERT_1_ID, description: "no severity row" })]);
     alertService.findOwners.mockResolvedValue([makeUser(USER_1_ID)]);
 
@@ -762,7 +845,10 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
     await expect(runWorkerTick()).resolves.toBeUndefined();
 
     // Same as the old flow: the row was already marked notified...
-    expect(timelineService.updateOneById).toHaveBeenCalledTimes(1);
+    expect(
+      timelineService.compareAndSetColumnsByIdWithoutHooks,
+    ).toHaveBeenCalledTimes(1);
+    expect(timelineService.updateOneById).not.toHaveBeenCalled();
 
     // ...and no notification went out.
     expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
@@ -772,9 +858,7 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
   });
 
   test("a row with no owners at all is marked notified and skipped without converting markdown", async () => {
-    timelineService.findAllBy.mockResolvedValue([
-      makeTimeline({ id: TIMELINE_1_ID, alertId: ALERT_1_ID }),
-    ]);
+    due([makeTimeline({ id: TIMELINE_1_ID, alertId: ALERT_1_ID })]);
     stubAlerts([
       makeAlert({
         id: ALERT_1_ID,
@@ -788,7 +872,10 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
     await runWorkerTick();
 
     expect(projectService.getOwners).toHaveBeenCalledTimes(1);
-    expect(timelineService.updateOneById).toHaveBeenCalledTimes(1);
+    expect(
+      timelineService.compareAndSetColumnsByIdWithoutHooks,
+    ).toHaveBeenCalledTimes(1);
+    expect(timelineService.updateOneById).not.toHaveBeenCalled();
 
     // The hoisted conversion still sits behind the owners gate.
     expect(markdownMock.convertToHTML).not.toHaveBeenCalled();
@@ -797,9 +884,7 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
   });
 
   test("project-owner fallback still notifies without the isOwner flag", async () => {
-    timelineService.findAllBy.mockResolvedValue([
-      makeTimeline({ id: TIMELINE_1_ID, alertId: ALERT_1_ID }),
-    ]);
+    due([makeTimeline({ id: TIMELINE_1_ID, alertId: ALERT_1_ID })]);
     stubAlerts([
       makeAlert({
         id: ALERT_1_ID,
@@ -834,9 +919,7 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
    * rendered as nothing and a lone "{{" stopped the email being sent.
    */
   test("a title quoting template syntax reaches the subject as written, marked literal", async () => {
-    timelineService.findAllBy.mockResolvedValue([
-      makeTimeline({ id: TIMELINE_1_ID, alertId: ALERT_1_ID }),
-    ]);
+    due([makeTimeline({ id: TIMELINE_1_ID, alertId: ALERT_1_ID })]);
     const alert: Alert = makeAlert({
       id: ALERT_1_ID,
       description: "",

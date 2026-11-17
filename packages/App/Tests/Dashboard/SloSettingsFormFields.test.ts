@@ -305,7 +305,7 @@ describe("the Objective and Compliance Period cards", () => {
         windowType: SloWindowType.Rolling,
         windowDays: 0,
       }),
-    ).toEqual({ windowDays: "Window must be between 1 and 366 days." });
+    ).toEqual({ windowDays: "Window must be between 1 and 366\u00A0days." });
   });
 
   test("keep the Calendar Month backfill on the Settings form", () => {

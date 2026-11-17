@@ -50,7 +50,7 @@ Geblokkeerde doelen vallen in twee niveaus.
 
 Het cloudmetadata-eindpunt `169.254.169.254` zit niet voor niets in het verboden niveau. Op een cloud-VM geeft het de IAM-inloggegevens van de instantie aan alles wat vanaf de machine een HTTP-verzoek kan doen, dus geen algemene instelling zal het ooit openen.
 
-IPv6-schrijfwijzen die een IPv4-doel in zich dragen – IPv4-mapped (`::ffff:10.0.0.5`), NAT64, 6to4, Teredo – worden ingedeeld naar het IPv4-adres dat ze bereiken, dus ze kunnen niet worden gebruikt om een verboden adres langs een toestemming voor het privéniveau te smokkelen.
+IPv6-schrijfwijzen die een IPv4-doel in zich dragen – IPv4-mapped (`::ffff:10.0.0.5`), IPv4-compatible (`::10.0.0.5`), NAT64, 6to4, Teredo – worden ingedeeld naar het IPv4-adres dat ze bereiken, hoe ze ook geschreven zijn, dus ze kunnen niet worden gebruikt om een verboden adres langs een toestemming voor het privéniveau te smokkelen.
 
 ## Webhooks en workflows
 
@@ -142,6 +142,8 @@ Onder Docker Compose bevat `config.env` een regel `DATA_SOURCE_BLOCK_PRIVATE_ADD
 
 Staat ze aan, dan wordt een geweigerde hostnaam gemeld zonder te zeggen waarnaar hij werd omgezet, bijvoorbeeld _"LLM provider host ollama.internal could not be reached."_ Een naam die helemaal niet wordt omgezet, krijgt dezelfde melding, zodat projectleden met deze velden niet kunnen achterhalen welke interne namen bestaan. Een adres dat als IP is ingevoerd, wordt nog steeds samen met de reden genoemd, bijvoorbeeld _"LLM provider host 10.0.4.12 is not allowed: private network address."_ Met `LOG_LEVEL=DEBUG` logt de app het adres waarnaar elke geweigerde naam werd omgezet.
 
+Achter een uitgaande proxy gaan de verbindingen over HTTP daardoorheen, zoals webhooks: gegevensbronnen en verbindingen voor beveiligingsgebeurtenissen die over HTTP worden gelezen, threat-intelfeeds, LLM-providers, OAuth-token-URL's, single sign-on met OIDC, externe agenda's, MCP-servers, back-ups, de verificatie van eigen domeinen, HTTP-stappen in runbooks en de Grafana OnCall-import gebruiken de proxy uit `HTTPS_PROXY`, `HTTP_PROXY` of `ALL_PROXY`, of die nu met een adres of met een hostnaam is opgegeven. OneUptime controleert het adres nog steeds eerst en volgt nooit een omleiding, maar de proxy zoekt de naam op en maakt de verbinding, dus weiger link-local-bestemmingen op de proxy zelf, vooral `169.254.169.254`. Een host in `NO_PROXY` krijgt rechtstreeks verbinding, op het adres dat OneUptime heeft gecontroleerd: zet uw interne hosts daar. Database- en SMTP-verbindingen en Git-servers maken altijd rechtstreeks verbinding, zonder proxy.
+
 ## Sondes en monitors
 
 Vier monitortypen zijn betrokken: **API**, **Website**, **Externe statuspagina** en **Aangepaste JavaScript-code**. Op een standaardsonde kunnen ze openbare HTTP(S)-doelen bereiken, maar ze weigeren privéadresruimte. Monitors van het type API, Website en Externe statuspagina valideren en pinnen DNS-resultaten voor elke verbinding en valideren elke omleiding opnieuw; Aangepaste JavaScript-code past hetzelfde adresbeleid toe in de brug van zijn sandbox.
@@ -201,6 +203,8 @@ Dit openzetten verandert echt wat uw OneUptime-instantie kan worden gemaakt te b
 - **Wie een workflow of een monitor van het type API, Website, External Status Page of Custom JavaScript Code kan maken, of een abonnee aan een statuspagina kan toevoegen, kan alles bereiken wat u hebt toegestaan.** Behandel het lidmaatschap van die projecten daarnaar.
 - **De antwoordtekst komt terug.** Een API-component in een workflow geeft de status, headers en body terug in het workflowlog, dus een toegestane host is leesbaar, niet alleen beschrijfbaar.
 - **Omleidingen worden nooit gevolgd** bij webhookverzoeken, dus een toegestane openbare host kan de server niet met een tweede sprong naar een interne host doorsturen.
+- **OneUptime maakt verbinding met het adres dat het heeft gecontroleerd.** De hostnaam van een webhook wordt één keer opgezocht, wanneer de URL wordt gecontroleerd, en het verzoek gaat naar een adres dat die opzoeking heeft goedgekeurd; een naam die een moment later iets anders antwoordt (DNS-rebinding), krijgt de verbinding dus nooit. TLS controleert het certificaat nog steeds tegen de naam in de URL.
+- **Via een uitgaande proxy maakt de proxy de verbinding.** Als de API-server verstuurt via een proxy uit `HTTPS_PROXY`, `HTTP_PROXY` of `ALL_PROXY` (behalve voor de hosts in `NO_PROXY`), blijven webhooks daardoorheen gaan: OneUptime controleert het adres nog steeds eerst en volgt nooit een omleiding, maar de proxy zoekt de naam op en maakt de verbinding. Weiger privé- en link-local-bestemmingen op de proxy zelf, vooral `169.254.169.254`.
 - **Beperk waar mogelijk per sonde in plaats van voor de hele instantie.** Een sonde die binnen één netwerk is uitgerold, is een smallere toestemming dan het uitgaande verkeer van de API-server openzetten.
 
 ## Volgende stappen

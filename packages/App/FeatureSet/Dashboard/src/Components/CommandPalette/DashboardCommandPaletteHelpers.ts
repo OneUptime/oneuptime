@@ -29,6 +29,7 @@ import {
   getRecordNumber,
   getRecordNumberColumns,
 } from "Common/Utils/Project/RecordNumber";
+import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
 
 /*
  * Pure decision logic for the dashboard command palette. This module is
@@ -178,6 +179,15 @@ export interface PageSearchCommandDescriptor {
   title: string;
   // Its English title, when that is not the title: searched as the title.
   titleAliases: Array<string>;
+  /*
+   * The key its title is looked up by, as the index writes it: a page's or
+   * a setting's name, or an action's template, which titleValues fill once
+   * it is translated ("Import from {{tool}}", { tool: "PagerDuty" }). Ask
+   * AI's page catalog keeps them, so its Go to button and its chip draw
+   * the title in the reader's language (#8834).
+   */
+  titleKey: string;
+  titleValues?: Record<string, string> | undefined;
   // Other words for it ("pager", "2fa"), never shown.
   keywords: Array<string>;
   // Where it lives, in the reader's language: ["Project Settings", "Advanced"].
@@ -275,13 +285,27 @@ const isSameName: (a: string, b: string) => boolean = (
 };
 
 /*
- * The English behind a translated name, searched so English still finds the
- * page in any language. Nothing when the name shown is the English.
+ * A name of the index as English draws it, searched without being shown.
+ * The index names a page by its locale key, and a key that names its
+ * meaning is not its English: the explorers' tab is "Insights (explorer
+ * analytics)", which English draws as "Insights" (Common/Types/MeaningKeys).
+ * Searched as written, the note to translators found the tab for
+ * "analytics" in every language (#8830).
  */
-const englishUnlessShown: (shown: string, english: string) => Array<string> = (
+export const englishOfIndexName: (key: string) => string =
+  withMeaningKeyAsItsWord;
+
+/*
+ * The English behind a translated name, searched so English still finds the
+ * page in any language: the English the Dashboard draws for `key`. Nothing
+ * when the name shown is that English.
+ */
+const englishUnlessShown: (shown: string, key: string) => Array<string> = (
   shown: string,
-  english: string,
+  key: string,
 ): Array<string> => {
+  const english: string = englishOfIndexName(key);
+
   return isSameName(shown, english) ? [] : [english];
 };
 
@@ -388,11 +412,14 @@ export function buildPageSearchCommandDescriptors(
             : undefined;
 
         const breadcrumb: Array<string> = [areaTitle];
-        const breadcrumbKeywords: Array<string> = [area.title];
+        // Where it is in English, as the Dashboard draws it: searched, not shown.
+        const breadcrumbKeywords: Array<string> = [
+          englishOfIndexName(area.title),
+        ];
 
         if (sectionTitle) {
           breadcrumb.push(input.translate(sectionTitle));
-          breadcrumbKeywords.push(sectionTitle);
+          breadcrumbKeywords.push(englishOfIndexName(sectionTitle));
         }
 
         const isListedProduct: boolean = input.catalog.some(
@@ -417,6 +444,7 @@ export function buildPageSearchCommandDescriptors(
             id: pageCommandId,
             title,
             titleAliases: englishUnlessShown(title, page.title),
+            titleKey: page.title,
             keywords: page.keywords || [],
             breadcrumb,
             breadcrumbKeywords,
@@ -451,7 +479,7 @@ export function buildPageSearchCommandDescriptors(
             action.titleValues,
           );
           const englishActionTitle: string = fillPageSearchTitle(
-            action.title,
+            englishOfIndexName(action.title),
             action.titleValues,
           );
           // Its own query string, where it opens the page on itself.
@@ -464,9 +492,16 @@ export function buildPageSearchCommandDescriptors(
             id: slugifyPaletteCommandId("page-action", action.id),
             title: actionTitle,
             titleAliases: englishUnlessShown(actionTitle, englishActionTitle),
+            titleKey: action.title,
+            ...(action.titleValues
+              ? { titleValues: { ...action.titleValues } }
+              : {}),
             keywords: action.keywords || [],
             breadcrumb: onPageBreadcrumb,
-            breadcrumbKeywords: [...breadcrumbKeywords, page.title],
+            breadcrumbKeywords: [
+              ...breadcrumbKeywords,
+              englishOfIndexName(page.title),
+            ],
             icon: action.icon || page.icon || area.icon,
             iconColor: area.iconColor,
             /*
@@ -504,9 +539,13 @@ export function buildPageSearchCommandDescriptors(
             ),
             title: settingTitle,
             titleAliases: englishUnlessShown(settingTitle, setting.name),
+            titleKey: setting.name,
             keywords: [],
             breadcrumb: onPageBreadcrumb,
-            breadcrumbKeywords: [...breadcrumbKeywords, page.title],
+            breadcrumbKeywords: [
+              ...breadcrumbKeywords,
+              englishOfIndexName(page.title),
+            ],
             icon: page.icon || area.icon,
             iconColor: area.iconColor,
             // At its card, where it waits folded under More settings.

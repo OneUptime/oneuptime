@@ -51,7 +51,9 @@ import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
  * caller that looks the words up itself reads.
  */
 
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE, {
+  drawsOnPage: true,
+});
 
 // A fixed word or sentence in `translator`'s language.
 function translateLine(text: string, translator: Translator): string {

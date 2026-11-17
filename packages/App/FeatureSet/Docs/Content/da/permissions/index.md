@@ -103,6 +103,8 @@ Den rolle, du vælger, bliver teamets første tilladelse, for alle ressourcer i 
 
 Hvor du finder det: åbn et team under **Teams** for at komme til **Medlemmer** og **Tilladelser**; dets brugerdefinerede roller og **Bloker tilladelser** ligger under **Yderligere indstillinger** nederst på siden Tilladelser, hvis sammenklappede overskrift viser, hvor mange af hver teamet har.
 
+Et teams side har et kort **Bruges af**: de vagtpolitikker, hvis eskaleringsregler tilkalder teamet, og alt det, teamet ejer, fra monitorer og statussider til SLOs, dashboards, infrastruktur og hændelser. Når du sletter et team, på dets side eller fra listen, siges dette først: dets politikker holder op med at tilkalde dets medlemmer, og det ejer dem ikke længere. Det, du ikke må åbne, tælles, men nævnes ikke.
+
 ## Tilladelser
 
 En tilladelse er én evne. Der er to måder at give dem på, og begge ligger på teamets fane **Tilladelser**.
@@ -280,7 +282,7 @@ API-nøgler får tilladelser direkte, på selve nøglen, eller gennem de brugerd
 :::steps
 1. Åbn **Projektindstillinger > Avanceret > API-nøgler**, og klik på **Opret API-nøgle**. På OneUptime Cloud kræver API-nøgler Growth-planen.
 2. Skriv nøglens **Navn**, og vælg dens **Adgang**. Beskrivelsen og udløbsdatoen ligger under **Flere felter**; en nøgle udløber et år efter den dag, den oprettes, medmindre du vælger en anden dato, og den sammenklappede sektion siger det.
-3. Opret nøglen. Den åbner på sin side, hvor du kopierer den.
+3. Opret nøglen. OneUptime viser den én gang, i en dialog: kopiér den dér. Derefter åbner dens side.
 :::
 
 Den rolle, du vælger, bliver nøglens første tilladelse, så snart nøglen findes, præcis som hvis du havde tilføjet den på nøglens side. Du får kun tilbudt de roller, du selv har — en nøgle kan aldrig få mere, end den, der giver den, har — og den, der må oprette nøgler, men ikke ændre, hvad de må, bliver ikke spurgt.
@@ -340,7 +342,7 @@ Opløste tilladelser caches pr. bruger og projekt og opdateres, når teammedlems
 
 En hændelse, en advarsel eller en episode, der er markeret som privat, kan kun ses af dens ejere — de personer, der er angivet som dens ejere, og medlemmerne af dens ejerteams, der har accepteret deres invitation — og af Projektejere og Projektadministratorer.
 
-En sådan post ændres kun med tilladelserne fra de teams, der ejer den, og fra de personer, der er angivet som dens ejere. Den, der er angivet som ejer, handler på den med alle de tilladelser, vedkommende har. Alle andre handler kun på den med tilladelserne fra deres teams, der ejer den, hver med sit eget omfang og sine egne labels: et andet teams tilladelse når ingen privat post, som det team ikke ejer. Det gælder alt, hvad der gøres ved posten og det, der hører til den — at redigere den, ændre dens tilstand, dens noter, ejere, roller, labels, tilknyttede advarsler, episodemedlemmer og opkald, og at slette den — fra dashboardet, API'et, massehandlinger, Slack, Microsoft Teams eller OneUptime AI. Projektejere og Projektadministratorer ændrer enhver privat post, og det gør arbejdsgangstrin også, da de handler som Projektadministrator; en API-nøgle gør det kun med `ProjectOwner` eller `ProjectAdmin`.
+En sådan post ændres kun med tilladelserne fra de teams, der ejer den, og fra de personer, der er angivet som dens ejere. Den, der er angivet som ejer, handler på den med alle de tilladelser, vedkommende har. Alle andre handler kun på den med tilladelserne fra deres teams, der ejer den, hver med sit eget omfang og sine egne labels: et andet teams tilladelse når ingen privat post, som det team ikke ejer. Det gælder alt, hvad der gøres ved posten og det, der hører til den — at redigere den, ændre dens tilstand, dens noter, ejere, roller, labels, tilknyttede advarsler, episodemedlemmer og opkald, og at slette den — fra dashboardet, API'et, massehandlinger, Slack, Microsoft Teams eller OneUptime AI. Projektejere og Projektadministratorer ændrer enhver privat post, og en API-nøgle gør det kun med `ProjectOwner` eller `ProjectAdmin`.
 
 | En person i team 1 og team 2 | En privat hændelse, som team 2 ejer | En offentlig hændelse, som team 2 ejer |
 | --- | --- | --- |
@@ -349,6 +351,18 @@ En sådan post ændres kun med tilladelserne fra de teams, der ejer den, og fra 
 | Team 2 har også `IncidentMember` | Ændrer den via team 2 | Ændrer den via begge teams |
 
 Et team, der ejer private poster, men ikke har nogen tilladelser, et team, der kun bruges til at samle personer, lader sine medlemmer se dem og ændre ingen af dem. På en privat posts side er en ændring, som personens teams, der ejer den, ikke må foretage, låst og siger hvorfor. For at give lov til den skal du give et team, der ejer den, tilladelsen, gøre et team med tilladelsen til ejer eller gøre personen til ejer.
+
+Det, der gøres i forbindelse med en privat post, følger samme regel: at tilkalde nogen om den (**Udfør vagtpolitik**, **Tilkald nu** og tilkaldelse fra Slack, Microsoft Teams, Mattermost eller OneUptime AI), at starte en runbook for den eller føre den kørsel videre, og at godkende, prøvekøre eller afvise en rettelse, som OneUptime AI har foreslået for den. Hver af dem kræver sin egen tilladelse, f.eks. at tilkalde via vagtpolitikker eller at starte runbook-kørsler, og på en privat post låner kun de teams, der ejer den, den ud, ud over de personer, der er navngivet som dens ejere. Alle andre afvises med begrundelsen, og intet tilkaldes, køres eller ændres.
+
+Det, der gøres og sendes om en privat post, læses kun af dem, der må læse posten: dens kørsler af vagtpolitikker, dens runbook-kørsler, de rettelser, der er foreslået for den, og logfilerne over de e-mails, SMS'er, opkald, push-notifikationer, chatbeskeder, webhooks og AI-forespørgsler, OneUptime har sendt om den. De personer, der tilkaldes om den, ser stadig deres tilkaldelse.
+
+Når en privat post slettes, slettes alt dette med den, uanset hvordan den slettes: én ad gangen eller mange på én gang, fra dashboardet, API'et, Terraform eller MCP, ved opbevaringen af løste poster eller sammen med dens projekt. Runbook-kørsler og rettelser slettes med den hændelse eller advarsel, de er knyttet til, privat eller ej.
+
+De kommandoer, en Runner har kørt for en runbook-kørsel eller en rettelse, med det, de udskrev, læses kun af dem, der må læse kørslen eller rettelsen. De slettes med kørslen. Kommandoerne fra en slettet rettelse bevares som en registrering af, hvad der blev kørt på din infrastruktur, og kun Projektejere og Projektadministratorer læser dem. De kommandoer, OneUptime AI har kørt for sit eget arbejde, følger det arbejde. Dem fra en chat, i Spørg AI eller i en hændelses eller advarsels AI-samtale, læses kun af den person, der spurgte, ikke af Projektejere eller Projektadministratorer, og af ingen, når chatten er slettet. Dem fra en undersøgelse læses af dem, der må læse den hændelse eller advarsel, den undersøgte, og, når den post er slettet, kun af Projektejere og Projektadministratorer. En API-nøgle læser ingen chats kommandoer.
+
+En post, der nævner en privat post uden at være en del af den, såsom et Data Security-problem, en sikkerhedssag, en formularindsendelse, en sessionsoptagelse eller en offentlig advarsel eller hændelse i en privat episode, læses som før. Kun de, der må læse den private post, ser dens titel og øvrige felter der: for alle andre finder et filter på dem den ikke, og en liste, der nævner den, kan ikke sorteres efter dem.
+
+Arbejdsgange handler ikke på private poster. Trinene i en arbejdsgang handler som Projektadministrator, men låner aldrig dens adgang til at se private hændelser, advarsler og episoder: de finder ingen, ændrer ingen og føjer intet til en, og en arbejdsgang starter ikke på en eller på noget, der hører til en. Se [Hvad arbejdsgangstrin må gøre](/docs/workflows/configuration#hvad-arbejdsgangstrin-må-gøre).
 
 ### Regler, der tilhører teams
 

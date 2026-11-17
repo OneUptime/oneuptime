@@ -65,20 +65,20 @@ Eine Änderung dieser Einstellungen gilt innerhalb einer Minute.
 | Spalte | Was sie zeigt |
 | --- | --- |
 | **Wann** | Wie lange es her ist, mit Datum und Uhrzeit. |
-| **Aktion** | `Create`, `Update` oder `Delete`, `Download` für eine Paketmitschnitt-Datei, die jemand heruntergeladen hat, oder `Sign In`, `Sign Out`, `Session Timeout` oder `Session Revoked` für eine Sitzung. |
+| **Aktion** | `Create`, `Update` oder `Delete`, `Download` für eine Paketmitschnitt-Datei, die jemand heruntergeladen hat, oder `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` oder `Session Revoked` für eine Anmeldung oder eine Sitzung. |
 | **Ressource** | Der Name der Ressource, der sie öffnet, solange es sie gibt, und ihr Typ. |
 | **Akteur** | Wer die Änderung vorgenommen hat: eine Person, ein API-Schlüssel, ein Workflow oder `System` für eine Änderung, die OneUptime selbst vorgenommen hat. Kam die Änderung einer Person über einen MCP-Client, nennt der Eintrag ihn. |
-| **Änderungen** | Wie viele Felder sich geändert haben, oder bei einem Anlegen oder Löschen erfasst wurden. Bei einer Sitzung, wie sie angemeldet wurde oder warum sie endete. Klicken Sie darauf, um jedes Feld zu sehen. |
+| **Änderungen** | Wie viele Felder sich geändert haben, oder bei einem Anlegen oder Löschen erfasst wurden. Bei einer Anmeldung oder einer Sitzung, wie die Anmeldung erfolgte, warum sie fehlschlug oder warum die Sitzung endete. Klicken Sie darauf, um jedes Feld zu sehen. |
 
 Filtern Sie nach **Ressourcentyp**, **Ressourcenname**, **Aktion**, **Benutzer-E-Mail** oder **Zeit**. Eine Änderung listet nur die geänderten Felder, vorher und nachher, und ein Speichern, das nichts ändert, erzeugt keinen Eintrag.
 
 Eine Ressource ohne eigenen Namen wird nach dem benannt, was sie in OneUptime benennt: eine Ausnahme nach ihrem Typ und dem Anfang ihrer Meldung, wobei IDs, Adressen und alles, was wie ein Geheimnis aussieht, maskiert werden, ein Runbook-Lauf nach seinem Runbook, die Telefonnummer einer Richtlinie für eingehende Anrufe nach der Nummer und eine Vorlage oder eine Domain nach ihrem eigenen Namen.
 
-Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen haben auch eine eigene Seite **Audit-Protokolle**, in einem eingeklappten Abschnitt ihres Seitenmenüs wie **Erweitert**. Sie listet nur die Einträge dieser Ressource, mit denen dessen, was zu ihr gehört: Die Seite eines SLO zeigt auch seine Regeln und Owners.
+Monitore, Vorfälle, Warnungen, Statusseiten, SLOs und viele andere Ressourcen haben auch eine eigene Seite **Audit-Protokolle**, in einem eingeklappten Abschnitt ihres Seitenmenüs wie **Erweitert**. Sie listet nur die Einträge dieser Ressource, mit denen dessen, was zu ihr gehört: Die Seite eines SLO zeigt auch seine Regeln und Owners.
 
 ## Was erfasst wird
 
-Alles, was Personen in einem Projekt anlegen, ändern oder löschen, wird erfasst: Monitore, Vorfälle, Alarme, Statusseiten, Workflows und ihre Schritte, Warteschlangen, Dashboards, Bereitschaftsrichtlinien, Teams und wer darin ist, API-Schlüssel und jede Einstellung. **Ressourcentyp** sagt, worum es in einem Eintrag geht, zum Beispiel `Monitor`, `Workflow` oder `Queue`.
+Alles, was Personen in einem Projekt anlegen, ändern oder löschen, wird erfasst: Monitore, Vorfälle, Warnungen, Statusseiten, Workflows und ihre Schritte, Warteschlangen, Dashboards, Bereitschaftsrichtlinien, Teams und wer darin ist, API-Schlüssel und jede Einstellung. **Ressourcentyp** sagt, worum es in einem Eintrag geht, zum Beispiel `Monitor`, `Workflow` oder `Queue`.
 
 | Nicht erfasst | Warum |
 | --- | --- |
@@ -86,7 +86,7 @@ Alles, was Personen in einem Projekt anlegen, ändern oder löschen, wird erfass
 | Aufzeichnungen von Ausführungen | Jede ist bereits der Nachweis einer Workflow-Ausführung, einer Bereitschaftseskalation, eines Scans, eines Imports oder eines KI-Laufs. |
 | Was Agenten und Telemetrie melden | Gefundene Ressourcen, Messwerte und Nutzung ändern sich mit jeder Meldung, nicht weil jemand sie geändert hat. |
 | Aktivitätsfeeds | Ein Feed zeigt Änderungen, die das Audit-Protokoll bereits erfasst. |
-| Arbeitszustand von OneUptime | Sitzungen der Leser von Statusseiten, wartende Jobs und anderer Zustand, den OneUptime während seiner Arbeit hält. |
+| Arbeitszustand von OneUptime | Wartende Jobs und anderer Zustand, den OneUptime während seiner Arbeit hält. |
 | Die eigene Benachrichtigungseinrichtung einer Person | Die Adressen, Nummern und persönlichen Bereitschaftsregeln jeder Person gehören nur ihr. |
 | Die eigenen Präferenzen einer Person | Die Produkte, die jede Person in ihrer eigenen oberen Leiste fixiert, gehören nur ihr, und nur sie sieht sie. |
 
@@ -114,11 +114,16 @@ Jedes Mal, wenn sich ein Mitglied des Projekts bei OneUptime anmeldet, erfasst d
 | Aktion | Wann sie erfasst wird |
 | --- | --- |
 | `Sign In` | Jemand meldet sich an: mit einem Passwort oder einem Anmeldelink, einem Passkey, mit Google, Microsoft, Vercel oder Single Sign-On. |
+| `Sign-In Failed` | Jemand versucht, sich bei einem bestehenden Konto anzumelden, und scheitert: ein falsches Passwort, ein falscher Authenticator-Code, Backup-Code oder Sicherheitsschlüssel, ein gesperrtes oder nicht verifiziertes Konto oder ein Single Sign-On, das OneUptime abgelehnt hat. |
 | `Sign Out` | Die Person meldet sich ab. |
 | `Session Timeout` | OneUptime beendet die Sitzung, weil ihre Zeit abgelaufen ist: die Inaktivitätsdauer oder Sitzungsdauer, die ein Server-Admin festgelegt hat, oder 30 Tage ohne Nutzung. |
 | `Session Revoked` | OneUptime beendet die Sitzung, weil das Passwort geändert wurde, das Konto gesperrt wurde oder ein Server-Admin die Zwei-Faktor-Authentifizierung zurückgesetzt oder vorgeschrieben hat. |
 
 Die **Ressource** eines Eintrags ist die Sitzung, benannt nach dem Gerät, von dem aus sie angemeldet wurde, etwa `Chrome 130 on macOS`. Sein **Akteur** ist die Person, der die Sitzung gehört, sodass ein Filter nach **Benutzer-E-Mail** jede ihrer Anmeldungen und Sitzungen findet. Seine Details nennen, wie sich die Person angemeldet hat und mit welchem zweiten Faktor, die IP-Adresse und den Standort, und bei einer beendeten Sitzung, wann sie angemeldet wurde, wann sie zuletzt genutzt wurde und wann sie abgelaufen ist. Der eigene SSO-Anbieter eines Projekts wird nur im Audit-Protokoll dieses Projekts genannt.
+
+Ein `Sign-In Failed`-Eintrag betrifft den Versuch und ist nach dem Gerät benannt, von dem er kam. Sein **Akteur** ist das Konto, bei dem der Versuch unternommen wurde: Wer ihn unternommen hat, hat nicht nachgewiesen, diese Person zu sein. Seine Details nennen, warum er fehlschlug, wie die Anmeldung versucht wurde, die IP-Adresse und den Standort, nie das, was eingegeben wurde. Ein Versuch mit einer E-Mail-Adresse, zu der es kein Konto gibt, wird nicht erfasst, und das Erfassen eines Versuchs ändert weder, was die Anmeldeseite antwortet, noch wie schnell. Damit eine Flut von Versuchen das Audit-Protokoll nicht füllen kann, werden die ersten 10 fehlgeschlagenen Versuche bei einem Konto innerhalb einer Stunde einzeln erfasst. Die übrigen werden gezählt, und der nächste Eintrag des Kontos nennt, für wie viele Versuche er steht und wann der erste davon unternommen wurde.
+
+Die Leser einer privaten Statusseite werden ebenfalls erfasst, nur im Projekt der Statusseite: jede Anmeldung mit einem Passwort, einem Anmeldelink oder dem Single Sign-On der Statusseite, jede Abmeldung und jede Sitzung, die OneUptime beendet, weil das Passwort des Lesers geändert wurde oder die Statusseite die Art, wie sie angemeldet wurde, nicht mehr akzeptiert. Ihre Einträge stehen auch auf der eigenen Seite **Audit-Protokolle** der Statusseite. Ihr **Akteur** ist der Leser, mit seiner E-Mail-Adresse, und ihre **Ressource** ist die Sitzung des Lesers.
 
 Anmeldungen und Sitzungen werden erfasst, ob das Projekt Systemereignisse speichert oder nicht. Eine Sitzungsdauer oder 30 Tage ohne Nutzung werden innerhalb weniger Minuten nach ihrem Ablauf erfasst. Eine Inaktivitätsdauer im Browser oder in einer Version der mobilen App neuer als 1.6.0 wird innerhalb von 35 Minuten nach ihrem Ablauf erfasst, ob die Person zurückkommt oder nicht. In Version 1.6.0 und älter der mobilen App wird sie erfasst, sobald die App OneUptime das nächste Mal erreicht.
 

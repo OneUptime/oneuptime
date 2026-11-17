@@ -91,6 +91,11 @@ const GATEWAY_DOWN_STATUSES: ReadonlyArray<number> = [
   503, 520, 521, 522, 523, 524, 530,
 ];
 
+// Text with something in it: what a renewal's answer names its tokens with.
+function isUsableText(value: unknown): boolean {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 class BaseAPI extends API {
   /*
    * A refresh another tab finished this recently is one this tab can reuse:
@@ -367,6 +372,26 @@ class BaseAPI extends API {
     return URL.fromString(IDENTITY_URL.toString()).addRoute("/refresh-token");
   }
 
+  /*
+   * Whether a 200 to the renewal (getRefreshSessionUrl) is the server's
+   * answer to one: POST /identity/refresh-token answers with the session's
+   * new access token and refresh token (Identity/API/Authentication.ts)
+   * beside the cookies it sets. A client that renews elsewhere says what
+   * its server answers (the status page's API).
+   */
+  protected static isSessionRenewalAnswer(data: unknown): boolean {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      return false;
+    }
+
+    const answer: Record<string, unknown> = data as Record<string, unknown>;
+
+    return (
+      isUsableText(answer["accessToken"]) &&
+      isUsableText(answer["refreshToken"])
+    );
+  }
+
   // Names the session for the in-tab single flight, the cross-tab lock and the "recently refreshed" marker.
   protected static getSessionName(): string {
     return DASHBOARD_SESSION_NAME;
@@ -557,6 +582,26 @@ class BaseAPI extends API {
               retryOnlyOnRetryableErrors: true,
             },
           });
+
+        /*
+         * A 200 that is not the server's answer to a renewal (issue
+         * #8838): a proxy, a captive portal or an error page answering
+         * 200 renewed nothing - the server sets the session's cookies with
+         * the answer it writes, which says so - so it is a renewal that
+         * got no answer, as above: the request that needed it rejects
+         * instead of being replayed on cookies that did not change, and
+         * nothing is marked refreshed for the other tabs, nor noted as
+         * reported, nor the time without use it carried forgotten.
+         */
+        if (
+          result instanceof HTTPResponse &&
+          result.isSuccess() &&
+          !this.isSessionRenewalAnswer(result.data)
+        ) {
+          throw new APIException(
+            `Request failed to ${refreshUrl.toString()}. The answer was not a renewed session.`,
+          );
+        }
 
         const refreshed: boolean =
           result instanceof HTTPResponse && result.isSuccess();

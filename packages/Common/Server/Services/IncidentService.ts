@@ -662,6 +662,14 @@ export class Service extends ProjectReferencesService<Model> {
     return { findBy, carryForward: null };
   }
 
+  /*
+   * The read hook keeps a private incident to its owners, by its private
+   * switch (its owners are rows of their own). See DatabaseService.
+   */
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return ["isPrivate"];
+  }
+
   @CaptureSpan()
   public override async countBy(
     countBy: CountBy<Model>,
@@ -1968,9 +1976,10 @@ export class Service extends ProjectReferencesService<Model> {
    * the two columns that follow from them.
    *
    * isScopedToStatusPages is derived from the list, whatever the caller sent
-   * for it: the column is computed, which exempts it from the column check on
-   * create, so a client value would otherwise be stored as is - and a scoped
-   * flag with no pages hides the incident from every status page.
+   * for it. Nobody may create the column, so a person's value is dropped
+   * before the hooks run (#8907), but OneUptime's own creates and a server
+   * admin's are not asked - and a scoped flag with no pages hides the
+   * incident from every status page.
    *
    * statusPagesNotifiedOnCreation is the created-notification job's record of
    * the pages it told. A client must not be able to seed it and so keep pages
@@ -2795,8 +2804,7 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * The next incident number of this project, with the project's prefix
    * for it: the one way an incident is numbered. A create takes it in
-   * onBeforeCreate; the sample project, which writes its incidents without
-   * hooks, takes it here (RecordNumbersTakenInOnePlaceGuard).
+   * onBeforeCreate (RecordNumbersTakenInOnePlaceGuard).
    */
   @CaptureSpan()
   public async takeNextIncidentNumber(
@@ -6074,6 +6082,9 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
          * from the Custom Fields card, Slack, Microsoft Teams or the API -
          * each with its new value, so the feed and the incident's channels
          * hear of it. Writing back the bag the incident holds adds none.
+         * A box of its own on a rule's Updates step (issue #7937): an edit
+         * of the custom fields alone is CustomFields, and one that changed
+         * the title with them is an edit too.
          */
         const customFieldsMarkdown: MarkdownText =
           await this.getCustomFieldsFeedMarkdown({
@@ -6089,7 +6100,7 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         if (!customFieldsMarkdown.isEmpty()) {
           feedInfoInMarkdown += customFieldsMarkdown.toString();
           shouldAddIncidentFeed = true;
-          updateKinds.push(NotificationRuleUpdateKind.Edits);
+          updateKinds.push(NotificationRuleUpdateKind.CustomFields);
         }
 
         /*

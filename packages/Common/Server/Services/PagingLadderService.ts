@@ -45,6 +45,7 @@ import {
   getPagingLadderStepsProblem,
   planPagingLadderSave,
   readPagingId,
+  readPagingLadderKeptCells,
   readPagingLadderSteps,
 } from "../../Types/NotificationRule/PagingLadder";
 import ObjectID from "../../Types/ObjectID";
@@ -395,13 +396,16 @@ export class PagingLadderService extends BaseService {
 
   /*
    * Saves a ladder as this person's rules: every live card holds its steps
-   * and nothing else. `steps` is what the request sent, checked here.
+   * and nothing else, but the cards `keepCards` names, which keep their own
+   * rules (#8890). `steps` and `keepCards` are what the request sent,
+   * checked here.
    */
   @CaptureSpan()
   public async applyLadder(data: {
     projectId: ObjectID;
     targetUserId: ObjectID;
     steps: unknown;
+    keepCards?: unknown;
     props: DatabaseCommonInteractionProps;
   }): Promise<PagingLadderSaveResult> {
     const sentSteps: Array<unknown> = Array.isArray(data.steps)
@@ -413,6 +417,10 @@ export class PagingLadderService extends BaseService {
     if (problem) {
       throw new BadDataException(problem);
     }
+
+    const keepCellKeys: Array<string> = readPagingLadderKeptCells(
+      data.keepCards,
+    );
 
     this.assertMayChangeRulesOf({
       props: data.props,
@@ -453,6 +461,7 @@ export class PagingLadderService extends BaseService {
       cells: cells,
       rules: rules as unknown as Array<PagingLadderRule>,
       steps: steps,
+      keepCellKeys: keepCellKeys,
     });
 
     const rulesById: Map<string, UserNotificationRule> = new Map<

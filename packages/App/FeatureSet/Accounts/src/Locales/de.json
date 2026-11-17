@@ -68,6 +68,7 @@
     "signInWithSso": "Mit SSO anmelden",
     "signInWithMicrosoft": "Mit Microsoft anmelden",
     "emailSignInLink": "Anmeldelink per E-Mail senden",
+    "moreWaysToSignIn": "Weitere Anmeldemöglichkeiten",
     "noAccountPrompt": "Sie haben noch kein Konto?",
     "registerLink": "Registrieren.",
     "twoFactor": {
@@ -175,10 +176,17 @@
   "resetPassword": {
     "title": "Passwort zurücksetzen",
     "subtitle": "Bitte geben Sie Ihr neues Passwort ein, und wir werden es aktualisieren.",
-    "successMessage": "Ihr Passwort wurde aktualisiert. Bitte melden Sie sich an.",
     "submitButton": "Passwort zurücksetzen",
     "knowPasswordPrompt": "Kennen Sie Ihr Passwort?",
-    "loginLink": "Anmelden."
+    "loginLink": "Anmelden.",
+    "successTitle": "Ihr Passwort wurde zurückgesetzt",
+    "successDescription": "Melden Sie sich mit Ihrem neuen Passwort an.",
+    "signInButton": "Anmelden",
+    "linkExpiredTitle": "Dieser Link zum Zurücksetzen ist abgelaufen",
+    "linkExpiredDescription": "Links zum Zurücksetzen gelten einen Tag lang. Fordern Sie einen neuen Link an, und wir senden ihn Ihnen per E-Mail.",
+    "linkInvalidTitle": "Dieser Link zum Zurücksetzen funktioniert nicht mehr",
+    "linkInvalidDescription": "Er wurde vielleicht schon verwendet, oder er wurde nur teilweise kopiert. Fordern Sie einen neuen Link an, und wir senden ihn Ihnen per E-Mail.",
+    "requestNewLinkButton": "Neuen Link anfordern"
   },
   "sso": {
     "title": "Mit SSO anmelden",
@@ -562,6 +570,7 @@
   "What was sent is larger than the 50 MB OneUptime takes in one request.": "Was gesendet wurde, ist größer als die 50 MB, die OneUptime in einer Anfrage annimmt.",
   "Try again with less at once, such as a smaller file.": "Versuchen Sie es mit weniger auf einmal erneut, etwa mit einer kleineren Datei.",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Wenn ein Proxy vor OneUptime es abgelehnt hat, erhöhen Sie dessen Größenlimit für Anfragen auf 50 MB, so viel, wie OneUptime selbst annimmt (in nginx client_max_body_size 50M).",
+  "Dismiss": "Ausblenden",
   "This form is not available. It may have been turned off, or the link may be out of date.": "Dieses Formular ist nicht verfügbar. Möglicherweise wurde es deaktiviert, oder der Link ist nicht mehr aktuell.",
   "This form can only be opened from an allowed network.": "Dieses Formular kann nur aus einem zugelassenen Netzwerk geöffnet werden.",
   "Too many submissions from your network. Please wait a few minutes and try again.": "Zu viele Meldungen aus Ihrem Netzwerk. Bitte warten Sie einige Minuten und versuchen Sie es dann erneut.",
@@ -572,6 +581,7 @@
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "Über dieses Formular kann kein Vorfall erstellt werden, weil ihm kein Schweregrad zugewiesen ist. Bitte informieren Sie das Team, das es geteilt hat.",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "Einsendungen können derzeit nicht angenommen werden. Bitte versuchen Sie es in einigen Minuten erneut.",
   "This form is receiving too many files right now. Please try again later.": "Dieses Formular erhält gerade zu viele Dateien. Bitte versuchen Sie es später erneut.",
+  "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "Dateien können gerade nicht auf Viren geprüft werden, deshalb wurden sie nicht angenommen. Bitte versuchen Sie es in ein paar Minuten erneut.",
   "A response can carry at most 10 files.": "Eine Antwort kann höchstens 10 Dateien enthalten.",
   "The files of a response can be at most 20 MB together.": "Die Dateien einer Antwort dürfen zusammen höchstens 20 MB groß sein.",
   "Your response could not be submitted. Please try again in a few minutes.": "Ihre Antwort konnte nicht übermittelt werden. Bitte versuchen Sie es in einigen Minuten erneut.",

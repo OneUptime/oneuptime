@@ -124,6 +124,14 @@ import {
   SCRUB_MAX_NESTED_VALUES_PER_RECORD,
   SCRUB_MAX_VALUE_DEPTH,
 } from "Common/Utils/Telemetry/ScrubNestedValues";
+import { MAX_JSON_TEXTS_INSIDE_STRINGS } from "Common/Utils/Telemetry/ScrubJsonText";
+import SyslogAttribute from "Common/Types/Syslog/SyslogAttribute";
+import {
+  ParsedSyslogMessage,
+  parseSyslogMessage,
+  syslogStructuredDataAttributeKey,
+} from "Common/Utils/Syslog/SyslogMessageParser";
+import SyslogRawCopies from "Common/Utils/Syslog/SyslogRawCopies";
 import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 /*
  * `jest` deliberately NOT imported from @jest/globals: the `jest.Mock`
@@ -1496,8 +1504,18 @@ describe("Data Retention (telemetry/data-retention)", () => {
       `Leave empty for ${TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS} days.`,
     );
 
+    // The limit on resolved incidents and alerts, a card of its own (#6941).
+    const limits: string = readPackageFile(
+      "App/FeatureSet/AdminDashboard/src/Pages/Settings/DataRetention/ResolvedRecordRetentionLimitsCopy.ts",
+    );
+
     for (const label of ADMIN_DASHBOARD_LABELS[DATA_RETENTION] || []) {
-      expect(admin).toContain(`title: "${label}",`);
+      expect({
+        label,
+        isDrawn:
+          admin.includes(`title: "${label}",`) ||
+          limits.includes(`translationKey("${label}")`),
+      }).toEqual({ label, isDrawn: true });
       expect(adminDashboardLabel("en", label)).toBe(label);
     }
 
@@ -1512,6 +1530,8 @@ describe("Data Retention (telemetry/data-retention)", () => {
       "1 day unless changed",
       "30 days unless changed",
       `${TELEMETRY_USAGE_DEFAULT_RETENTION_IN_DAYS} days unless changed`,
+      // Every project starts at Never (Types/Retention/ResolvedRecordRetention).
+      "Until the project picks a length",
     ]);
   });
 
@@ -2281,7 +2301,73 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       events: "jane@example.com",
     });
     expect(page).toContain(
-      "or **Event Attributes Only**. The attributes of a span's links are scrubbed with the span's own attributes.",
+      "or **Event Attributes Only**. The attributes of a span's links are scrubbed with the span's own attributes, and **All (Name, Attributes & Events)** also scrubs a span's status message and its events' names.",
+    );
+  });
+
+  // Issue #6513: the texts no rule read before.
+  it("scrubs a span's status message and its events' names under All, and under no other choice", () => {
+    const after: (fields: string) => JSONObject = (
+      fields: string,
+    ): JSONObject => {
+      return TraceScrubRuleService.scrubSpan(
+        {
+          name: "GET /cart",
+          statusMessage: "card declined for jane@example.com",
+          attributes: {},
+          events: [{ name: "retry for jane@example.com", attributes: {} }],
+          links: [],
+        },
+        [traceScrubRule(TraceScrubPatternType.Email, fields)] as never,
+      );
+    };
+    const read: (row: JSONObject) => Array<unknown> = (
+      row: JSONObject,
+    ): Array<unknown> => {
+      return [row["statusMessage"], (row["events"] as JSONArray)[0]!["name"]];
+    };
+
+    expect({
+      all: read(after(TraceScrubField.All)),
+      name: read(after(TraceScrubField.Name)),
+      attributes: read(after(TraceScrubField.Attributes)),
+      events: read(after(TraceScrubField.Events)),
+    }).toEqual({
+      all: ["card declined for [REDACTED]", "retry for [REDACTED]"],
+      name: [
+        "card declined for jane@example.com",
+        "retry for jane@example.com",
+      ],
+      attributes: [
+        "card declined for jane@example.com",
+        "retry for jane@example.com",
+      ],
+      events: [
+        "card declined for jane@example.com",
+        "retry for jane@example.com",
+      ],
+    });
+  });
+
+  it("a Sensitive Attribute Keys rule reads keys, whatever its fields say: in attributes, and in a log's JSON body", () => {
+    const body: string = JSON.stringify({ user: "jane", password: "hunter2" });
+    const row: JSONObject = LogScrubRuleService.scrubLog(
+      { body: body, attributes: { api_key: "abc" } },
+      [
+        scrubRule(
+          LogScrubPatternType.SensitiveKeys,
+          LogScrubAction.Redact,
+          LogScrubField.Body,
+        ),
+      ] as never,
+    );
+
+    expect((row["attributes"] as JSONObject)["api_key"]).toBe("[REDACTED]");
+    expect(row["body"]).toBe(
+      JSON.stringify({ user: "jane", password: "[REDACTED]" }),
+    );
+    expect(page).toContain(
+      "A **Sensitive Attribute Keys** rule reads keys, so it always scrubs the values under them: in attributes, and in a log's JSON body.",
     );
   });
 
@@ -2382,10 +2468,13 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     );
   });
 
-  it("stores a log body sent as a map or a list as its JSON text, which a pattern rule scrubs", () => {
+  it("stores a log body sent as a map or a list as its JSON text, which a pattern rule scrubs and a keys rule reads", () => {
     const body: string = JSON.stringify({
       kvlistValue: {
-        values: [{ key: "user", value: { stringValue: "jane@example.com" } }],
+        values: [
+          { key: "user", value: { stringValue: "jane@example.com" } },
+          { key: "password", value: { stringValue: "hunter2" } },
+        ],
       },
     });
 
@@ -2395,8 +2484,112 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
         scrubRule(LogScrubPatternType.Email, LogScrubAction.Redact),
       ]),
     ).toBe(body.replace("jane@example.com", "[REDACTED]"));
+    // Issue #6513: the keys inside it, and those of a body written as JSON.
+    expect(
+      scrubbedBody(body, [
+        scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+      ]),
+    ).toBe(body.replace('"hunter2"', '"[REDACTED]"'));
+    expect(
+      scrubbedBody('{"user":"jane","password":"hunter2"}', [
+        scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+      ]),
+    ).toBe('{"user":"jane","password":"[REDACTED]"}');
     expect(page).toContain(
-      "A log body sent as a map or a list is stored as its JSON text, which a pattern rule scrubs like any other text.",
+      "A log body sent as a map or a list is stored as its JSON text, and a **Sensitive Attribute Keys** rule reads the keys inside it, as it does in a body written as JSON.",
+    );
+
+    /*
+     * Issue #8923: the body stays JSON. An address right after a line
+     * break - written `\n` in the JSON text - is found after it, not with
+     * the escape's letter; a card number at the start of a line is found
+     * at all; and a number a rule matches becomes a string.
+     */
+    const lines: string = JSON.stringify({
+      message: "line one\njane@example.com",
+      paid: "with\n4111 1111 1111 1111",
+      phone: 5551234567,
+    });
+
+    expect(
+      JSON.parse(
+        scrubbedBody(lines, [
+          scrubRule(LogScrubPatternType.Email, LogScrubAction.Redact),
+          scrubRule(LogScrubPatternType.CreditCard, LogScrubAction.Redact),
+          scrubRule(LogScrubPatternType.PhoneNumber, LogScrubAction.Redact),
+        ]),
+      ),
+    ).toEqual({
+      message: "line one\n[REDACTED]",
+      paid: "with\n[REDACTED]",
+      phone: "[REDACTED]",
+    });
+
+    // So does an attribute written as JSON.
+    const messages: string = JSON.stringify([
+      { role: "user", content: "mail me\njane@example.com" },
+    ]);
+
+    expect(
+      JSON.parse(
+        scrubbedAttributes(
+          { "gen_ai.input.messages": messages } as JSONObject,
+          LogScrubPatternType.Email,
+        )["gen_ai.input.messages"] as string,
+      ),
+    ).toEqual([{ role: "user", content: "mail me\n[REDACTED]" }]);
+    expect(page).toContain(
+      "A pattern rule keeps such a body JSON, and an attribute written as JSON too, such as an AI call's messages: it reads the text as your application wrote it, an escape such as `\\n` read as the line break it stands for, and replaces what it finds only inside its texts and numbers.",
+    );
+  });
+
+  // Issue #8924: a record's own session id, which its column keeps.
+  it("keeps the session.id that holds a record's session, and hides a login session", () => {
+    const row: JSONObject = LogScrubRuleService.scrubLog(
+      {
+        body: "",
+        sessionId: "5f2c9e1a7b3d4c6e8f0a1b2c3d4e5f60",
+        attributes: {
+          "resource.session.id": "5f2c9e1a7b3d4c6e8f0a1b2c3d4e5f60",
+          session_id: "login-1",
+          sessionid: "login-2",
+          "http.request.header.cookie": "theme=dark",
+        },
+      },
+      [
+        scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+      ] as never,
+    );
+
+    expect(row["attributes"]).toEqual({
+      "resource.session.id": "5f2c9e1a7b3d4c6e8f0a1b2c3d4e5f60",
+      session_id: "[REDACTED]",
+      sessionid: "[REDACTED]",
+      "http.request.header.cookie": "[REDACTED]",
+    });
+
+    // An AI call's conversation id the same way.
+    const span: JSONObject = TraceScrubRuleService.scrubSpan(
+      {
+        name: "chat",
+        llmConversationId: "chat-1",
+        attributes: { "langfuse.session.id": "chat-1" },
+        events: [],
+        links: [],
+      },
+      [
+        traceScrubRule(
+          TraceScrubPatternType.SensitiveKeys,
+          TraceScrubField.All,
+        ),
+      ] as never,
+    );
+
+    expect((span["attributes"] as JSONObject)["langfuse.session.id"]).toBe(
+      "chat-1",
+    );
+    expect(page).toContain(
+      "- **A record's session id is kept.** A **Sensitive Attribute Keys** rule hides a login session, such as a `session_id`, a `sessionid` or a cookie, but keeps `session.id` when it holds the session the log or span belongs to: the random id [Session Replay](/docs/telemetry/session-replay) files the record under, which the record keeps as its session either way. An AI call's conversation id is kept the same way. Don't send a login session's secret as `session.id`.",
     );
   });
 
@@ -2454,6 +2647,115 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     expect(page).toContain(
       `A value nested more than ${SCRUB_MAX_VALUE_DEPTH} levels deep, or one that would take a record past ${SCRUB_MAX_NESTED_VALUES_PER_RECORD.toLocaleString("en-US")} values inside its lists and maps, is read and stored as its JSON text. A pattern rule scrubs what it finds in that text, and a **Sensitive Attribute Keys** rule hides the whole value when a word such as \`password\` or \`token\` appears in it.`,
     );
+
+    // Issue #6513: in a log body, only the part past the bounds is text.
+    const body: string = JSON.stringify({
+      user: { password: "hunter2" },
+      deep: nested({ token: "t-1" }, SCRUB_MAX_VALUE_DEPTH + 1),
+      notes: nested("nothing to hide", SCRUB_MAX_VALUE_DEPTH + 1),
+    });
+
+    expect(
+      JSON.parse(
+        scrubbedBody(body, [
+          scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+        ]),
+      ),
+    ).toEqual({
+      user: { password: "[REDACTED]" },
+      deep: nested("[REDACTED]", SCRUB_MAX_VALUE_DEPTH - 1),
+      notes: nested("nothing to hide", SCRUB_MAX_VALUE_DEPTH + 1),
+    });
+    // Issue #8993: so in JSON held in a string, an attribute's.
+    expect(
+      JSON.parse(
+        scrubbedAttributes(
+          { "request.body": body } as JSONObject,
+          LogScrubPatternType.SensitiveKeys,
+        )["request.body"] as string,
+      ),
+    ).toEqual({
+      user: { password: "[REDACTED]" },
+      deep: nested("[REDACTED]", SCRUB_MAX_VALUE_DEPTH - 1),
+      notes: nested("nothing to hide", SCRUB_MAX_VALUE_DEPTH + 1),
+    });
+    expect(page).toContain(
+      "In a log body, and in JSON held in a string, only the part past these bounds is read as text: the rest is still read key by key.",
+    );
+  });
+
+  // Issue #8993: the keys of a JSON text held in a string.
+  it("reads JSON held in a string, as deep as the page says, and changes nothing but the hidden values", () => {
+    const requestBody: string =
+      '{ "user": "jane", "password": "hunter2", "id": 12345678901234567890 }';
+
+    expect(
+      scrubbedAttributes(
+        { "http.request.body": requestBody } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      )["http.request.body"],
+    ).toBe(requestBody.replace('"hunter2"', '"[REDACTED]"'));
+
+    // A Fluentd record's log line inside a log body.
+    const record: string = JSON.stringify({
+      log: '{"level":"info","password":"hunter2"}',
+      stream: "stdout",
+    });
+
+    expect(
+      scrubbedBody(record, [
+        scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+      ]),
+    ).toBe(record.replace('\\"hunter2\\"', '\\"[REDACTED]\\"'));
+
+    // As deep as the page says, and deeper read as text.
+    let chain: string = '{"password":"hunter2","user":"jane"}';
+
+    for (
+      let level: number = 0;
+      level < MAX_JSON_TEXTS_INSIDE_STRINGS;
+      level++
+    ) {
+      chain = JSON.stringify({ payload: chain });
+    }
+
+    let read: unknown = JSON.parse(
+      scrubbedAttributes(
+        { chain: chain } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      )["chain"] as string,
+    );
+
+    for (
+      let level: number = 0;
+      level < MAX_JSON_TEXTS_INSIDE_STRINGS;
+      level++
+    ) {
+      read = JSON.parse((read as Record<string, string>)["payload"]!);
+    }
+
+    expect(read).toEqual({ password: "[REDACTED]", user: "jane" });
+
+    const deeper: string = JSON.stringify({ payload: chain });
+
+    expect(
+      scrubbedAttributes(
+        { chain: deeper } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      )["chain"],
+    ).not.toContain("hunter2");
+
+    // A text that only looks like JSON is left as it is.
+    expect(
+      scrubbedAttributes(
+        { note: "{token}" } as JSONObject,
+        LogScrubPatternType.SensitiveKeys,
+      ),
+    ).toEqual({ note: "{token}" });
+
+    expect(page).toContain(
+      `- **JSON held in a string is read too.** A text that is JSON of its own, such as an attribute \`http.request.body\` holding \`{"password":"hunter2"}\`, or a Fluentd record's \`log\` line inside a log body, is read as JSON, up to ${MAX_JSON_TEXTS_INSIDE_STRINGS} levels of JSON one inside another, and deeper as text. A **Sensitive Attribute Keys** rule hides the values under the keys in it that look secret, and nothing else: its numbers, spaces and other texts stay as your application wrote them. A text that only looks like JSON, such as \`{token}\`, is left as it is.`,
+    );
   });
 
   it("scrubs exceptions with their records, and session replays with the log rules", () => {
@@ -2470,6 +2772,131 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     ).toContain("return await LogScrubRuleService.loadScrubRules(projectId);");
     expect(page).toContain(
       "**Session replays are scrubbed too.** Log scrub rules also run over session replay recordings, behind the masking the recorder does in the browser.",
+    );
+  });
+
+  // Issue #9039: a syslog line's raw copies.
+  it("puts a syslog line's raw copies together again from what the rules left of its parts", () => {
+    const httpIngest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/SyslogIngestService.ts",
+    );
+    const probeIngest: string = readPackageFile(
+      "App/FeatureSet/Telemetry/Services/ProbeSyslogIngestService.ts",
+    );
+
+    // Both ways keep the structured data; syslog posted over HTTP, the line.
+    expect(httpIngest).toContain("[SyslogAttribute.Raw]: parsed.raw,");
+    expect(httpIngest).toContain(
+      "attributes[SyslogAttribute.StructuredRaw] = parsed.structuredDataRaw;",
+    );
+    expect(probeIngest).toContain(
+      "attributes[SyslogAttribute.StructuredRaw] = read.structuredDataRaw;",
+    );
+    expect(probeIngest).not.toContain("SyslogAttribute.Raw]");
+
+    // Both scrub through SyslogRawCopies, before a pipeline reads the copies.
+    for (const source of [httpIngest, probeIngest]) {
+      const scrubbed: number = source.indexOf("SyslogRawCopies.scrubLog(");
+
+      expect(scrubbed).toBeGreaterThan(-1);
+      expect(scrubbed).toBeLessThan(
+        source.indexOf("LogPipelineService.processLog("),
+      );
+    }
+
+    // A line's row as syslog posted over HTTP builds it, after the rules.
+    const scrubbedRow: (
+      line: string,
+      rules: Array<{ rule: LogScrubRule; regex: ScrubRegExp }>,
+    ) => JSONObject = (
+      line: string,
+      rules: Array<{ rule: LogScrubRule; regex: ScrubRegExp }>,
+    ): JSONObject => {
+      const parsed: ParsedSyslogMessage = parseSyslogMessage(
+        line,
+      ) as ParsedSyslogMessage;
+      const attributes: JSONObject = {
+        [SyslogAttribute.Raw]: parsed.raw,
+        [SyslogAttribute.Hostname]: parsed.hostname!,
+        [SyslogAttribute.AppName]: parsed.appName!,
+        [SyslogAttribute.StructuredRaw]: parsed.structuredDataRaw!,
+      };
+
+      for (const [sdId, params] of Object.entries(
+        parsed.structuredData || {},
+      )) {
+        for (const [name, value] of Object.entries(params)) {
+          attributes[syslogStructuredDataAttributeKey(sdId, name)] = value;
+        }
+      }
+
+      return SyslogRawCopies.scrubLog({
+        logRow: { body: parsed.message, attributes: attributes },
+        line: parsed,
+        scrub: (row: JSONObject): JSONObject => {
+          return LogScrubRuleService.scrubLog(row, rules as never);
+        },
+      });
+    };
+    const header: string =
+      "<165>1 2026-11-16T10:11:12.003Z web-01 checkout - -";
+    const rules: Array<{ rule: LogScrubRule; regex: ScrubRegExp }> = [
+      scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+      scrubRule(
+        LogScrubPatternType.Email,
+        LogScrubAction.Redact,
+        LogScrubField.Body,
+      ),
+    ];
+
+    // What the keys rule hid in a parameter, and the Body Only rule in the message.
+    const secret: JSONObject = scrubbedRow(
+      `${header} [auth@1 password="hunter2"] mail from jane@example.com`,
+      rules,
+    );
+    const secretAttributes: JSONObject = secret["attributes"] as JSONObject;
+
+    expect(secretAttributes["syslog.structured.auth_1.password"]).toBe(
+      "[REDACTED]",
+    );
+    expect(secretAttributes[SyslogAttribute.StructuredRaw]).toBe(
+      '[auth@1 password="[REDACTED\\]"]',
+    );
+    expect(secretAttributes[SyslogAttribute.Raw]).toBe(
+      `${header} [auth@1 password="[REDACTED\\]"] mail from [REDACTED]`,
+    );
+
+    // Then read as the attributes they are: an Attributes Only rule's address.
+    const read: JSONObject = scrubbedRow(
+      `${header} [auth@1 password="hunter2"] mail from jane@example.com`,
+      [
+        scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Redact),
+        scrubRule(
+          LogScrubPatternType.Email,
+          LogScrubAction.Redact,
+          LogScrubField.Attributes,
+        ),
+      ],
+    );
+
+    expect(read["body"]).toBe("mail from jane@example.com");
+    expect((read["attributes"] as JSONObject)[SyslogAttribute.Raw]).toBe(
+      `${header} [auth@1 password="[REDACTED\\]"] mail from [REDACTED]`,
+    );
+
+    // Nothing for the rules to change: the copies as the line arrived.
+    const quiet: string = `${header} [meta seq="9" note="a \\"b\\" \\] c"] all quiet`;
+    const quietAttributes: JSONObject = scrubbedRow(quiet, rules)[
+      "attributes"
+    ] as JSONObject;
+
+    expect(quietAttributes[SyslogAttribute.Raw]).toBe(quiet);
+    expect(quietAttributes[SyslogAttribute.StructuredRaw]).toBe(
+      '[meta seq="9" note="a \\"b\\" \\] c"]',
+    );
+
+    expect(page).toContain(
+      "- **A syslog line's raw copies hide what the rules hid in its parts.** Syslog keeps an RFC 5424 line's structured data as it arrived in `syslog.structured.raw`, and syslog sent over HTTP keeps the whole line in `syslog.raw`. Each copy is put together again from what the rules left of the header's fields, each structured-data parameter and the message, and the rules then read it as they read any attribute. So a password a **Sensitive Attribute Keys** rule hides in `syslog.structured.auth_1.password`, or an address a **Body Only** rule hides in the message, is hidden in the copies too, written as RFC 5424 writes a value: `password=\"[REDACTED\\]\"`. A line the rules change nothing in keeps its copies as it arrived.",
     );
   });
 

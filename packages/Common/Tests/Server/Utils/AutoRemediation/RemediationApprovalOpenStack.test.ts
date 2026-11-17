@@ -41,6 +41,7 @@ import {
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
 import UserType from "../../../../Types/UserType";
 import { OpenStackChangeReach } from "../../../../Utils/AiRemediation/Resource/OpenStackChangeReach";
+import PrivateRecordWriteCheck from "../../../../Server/Utils/Permission/PrivateRecordWriteCheck";
 
 /*
  * A PERSON SAYS YES TO WHAT A REAL CLOUD PROPOSED.
@@ -156,6 +157,8 @@ function rowFor(
     resourceId: CLOUD_ID,
     ruleNameSnapshot: 'Workflow "Page and propose"',
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     suggestionType: AutoRemediationSuggestionType.CommandPlan,
     verificationWindowMinutes: 15,
     commandPlan: AiRemediationCommandPlanUtil.toJSON({
@@ -179,6 +182,15 @@ function rowFor(
     }),
   };
 }
+
+/*
+ * The fixes here are for incidents and alerts that are not private, or that
+ * the person reaches: what a fix's buttons ask of a private record's owning
+ * teams (#8913) is RemediationPrivateRecord's own suite.
+ */
+beforeEach(() => {
+  jest.spyOn(PrivateRecordWriteCheck, "reaches").mockResolvedValue(true);
+});
 
 describe("approving a fix a real cloud was asked about", () => {
   let row: Record<string, unknown>;

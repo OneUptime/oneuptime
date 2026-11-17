@@ -12,7 +12,7 @@ flowchart TB
 
 :::cards
 - [Din profil](#din-profil): Dit navn, din e-mail, din tidszone, dit sprog og dit billede.
-- [Log sikkert ind](#log-sikkert-ind): Din adgangskode, login-links, adgangsnøgler og totrinsgodkendelse.
+- [Log sikkert ind](#log-sikkert-ind): Din adgangskode, login-links, adgangsnøgler og tofaktorgodkendelse.
 - [Dine projekter](#dine-projekter): Skift projekt, opret et, og accepter invitationer.
 - [Brugerindstillinger](#det-hvert-projekt-gemmer-for-dig): Hvordan OneUptime kontakter dig i hvert projekt.
 :::
@@ -63,64 +63,66 @@ Fold **Sikkerhed** ud i sidemenuen i **Brugerprofil**. Afsnittet har tre sider.
 | Side | Hvad den bruges til |
 | --- | --- |
 | **Adgangskodeadministration** | Sæt en ny adgangskode. |
-| **Passkeys** | Log ind uden adgangskode, med dit fingeraftryk, dit ansigt, din skærmlås eller en sikkerhedsnøgle. |
-| **Two-factor authentication** | Bed om et andet trin efter din adgangskode eller et link sendt på e-mail: en kode fra en app eller en sikkerhedsnøgle. |
+| **Adgangsnøgler** | Log ind uden adgangskode, med dit fingeraftryk, dit ansigt, din skærmlås eller en sikkerhedsnøgle. |
+| **Tofaktorgodkendelse** | Bed om et andet trin efter din adgangskode eller et link sendt på e-mail: en kode fra en app eller en sikkerhedsnøgle. |
 
 ### Skift din adgangskode
 
 :::steps
 1. Åbn **Sikkerhed → Adgangskodeadministration**.
-2. Indtast den nye adgangskode i **Adgangskode** og igen i **Bekræft adgangskode**. Den skal være mindst 6 tegn lang.
+2. Indtast den nye adgangskode i **Ny adgangskode** og igen i **Bekræft adgangskode**. Den skal være mindst 15 tegn lang og må ikke være forudsigelig, som en almindelig adgangskode eller et gentaget mønster: nogle få ord, der ikke har noget med hinanden at gøre, fungerer godt. Tjeklisten under feltet krydser hvert punkt af, mens du skriver.
 3. Klik på **Opdater adgangskode**.
 :::
 
 En ny adgangskode logger alle enheder ud af din konto, og ethvert nulstillingslink eller login-link, der allerede er sendt, holder op med at virke.
 
+Alle sider, der angiver en adgangskode, kræver det samme: tilmelding, nulstillingslinket fra **Glemt adgangskode?**, denne side og en serveradministrators **Angiv adgangskode**. En adgangskode, du har angivet før denne regel, virker fortsat, indtil du ændrer den.
+
 ### Tilføj en adgangsnøgle
 
 :::steps
-1. Åbn **Sikkerhed → Passkeys**, og klik på **Add Passkey**.
-2. Giv den et navn, du kan genkende, for eksempel din enhed eller din adgangskodeadministrator, og klik på **Create Passkey**.
+1. Åbn **Sikkerhed → Adgangsnøgler**, og klik på **Tilføj adgangsnøgle**.
+2. Giv den et navn, du kan genkende, for eksempel din enhed eller din adgangskodeadministrator, og klik på **Opret adgangsnøgle**.
 3. Følg din browsers anvisning for at gemme adgangsnøglen.
 :::
 
-Næste gang vælger du **Log ind med en adgangsnøgle** på loginsiden.
+Næste gang vælger du **Flere måder at logge ind på** → **Log ind med en adgangsnøgle** på loginsiden.
 
 ### Log ind med et link sendt på e-mail
 
 Du kan logge ind med et link i stedet for din adgangskode. Der er intet at sætte op.
 
 :::steps
-1. Vælg **Send mig et login-link** på loginsiden.
+1. Vælg **Flere måder at logge ind på** → **Send mig et login-link** på loginsiden.
 2. Indtast din e-mailadresse, og klik på **Send mig et login-link**. Siden viser derefter **Tjek din e-mail**.
 3. Åbn linket i e-mailen, og klik på **Log ind**.
 :::
 
-Linket virker én gang, i 15 minutter, og et nyere link erstatter det. Du kan åbne det på en anden enhed, og så er du logget ind dér. Hvis du bruger totrinsgodkendelse, beder OneUptime stadig om dit andet trin.
+Linket virker én gang, i 15 minutter, og et nyere link erstatter det. Du kan åbne det på en anden enhed, og så er du logget ind dér. Hvis du bruger tofaktorgodkendelse, beder OneUptime stadig om dit andet trin.
 
 > [!NOTE]
 > Hovedadministratorer på en selvhostet installation kan slå login-links fra med **Lad folk logge ind med et link sendt på e-mail** under **Admin Dashboard > Indstillinger > Godkendelse**. Links, der allerede er sendt, holder så op med at virke. Så længe serveren kræver SSO, tilbyder loginsiden kun SSO.
 
-### Slå totrinsgodkendelse til
+### Slå tofaktorgodkendelse til
 
-Totrinsgodkendelse gælder, når du logger ind med din adgangskode eller et link sendt på e-mail. Tilføj først et andet trin, og slå den så til.
+Tofaktorgodkendelse gælder, når du logger ind med din adgangskode eller et link sendt på e-mail. Tilføj først et andet trin, og slå den så til.
 
 :::steps
 ### Tilføj en godkendelsesapp
 
-Åbn **Sikkerhed → Two-factor authentication**. Under **Authenticator apps** tilføjer du en app og giver den et navn. Scan QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, indtast den sekscifrede kode, den viser, og klik på **Verify and finish**. Vil du hellere bruge en USB- eller NFC-nøgle, tilføjer du den under **Security keys**.
+Åbn **Sikkerhed → Tofaktorgodkendelse**. Under **Godkendelsesapps** tilføjer du en app og giver den et navn. Scan QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, indtast den sekscifrede kode, den viser, og klik på **Bekræft og afslut**. Vil du hellere bruge en USB- eller NFC-nøgle, tilføjer du den under **Sikkerhedsnøgler**.
 
 ### Gem dine backupkoder
 
-Første gang du tilføjer en app, en nøgle eller en adgangsnøgle, viser OneUptime **Your backup codes**. Hver kode logger dig ind én gang, hvis du mister din app eller nøgle. Kopiér eller download dem, sæt flueben ved, at du har gemt dem, og klik på **Færdig**.
+Første gang du tilføjer en app, en nøgle eller en adgangsnøgle, viser OneUptime **Dine backupkoder**. Hver kode logger dig ind én gang, hvis du mister din app eller nøgle. Kopiér eller download dem, sæt flueben ved, at du har gemt dem, og klik på **Færdig**.
 
 ### Slå den til
 
-Øverst på siden klikker du på **Enable two-factor authentication** og bekræfter. Kortet viser nu **Aktiveret**. Fra dit næste login med adgangskode eller et link sendt på e-mail beder OneUptime om dit andet trin.
+Øverst på siden klikker du på **Aktivér tofaktorgodkendelse** og bekræfter. Kortet viser nu **Aktiveret**. Fra dit næste login med adgangskode eller et link sendt på e-mail beder OneUptime om dit andet trin.
 :::
 
 > [!TIP]
-> Er du ved at løbe tør for backupkoder? **Regenerate codes** på samme side giver dig et nyt sæt, og de gamle koder holder op med at virke med det samme.
+> Er du ved at løbe tør for backupkoder? **Generér nye koder** på samme side giver dig et nyt sæt, og de gamle koder holder op med at virke med det samme.
 
 ## Dine projekter
 
@@ -163,7 +165,7 @@ Logger du ind igen, sendes et nyt link: tjek også din spam-mappe. Kan du ikke l
 :::
 
 :::details Jeg har mistet min godkendelsesapp
-Ved det andet trin af login vælger du **Mistet adgangen til din autentifikator-app?** og indtaster en af dine backupkoder. Åbn derefter **Sikkerhed → Two-factor authentication**, og tilføj din nye app. Uden backupkoder beder du en administrator af din OneUptime-installation om at nulstille totrinsgodkendelsen på din konto.
+Ved det andet trin af login vælger du **Mistet adgangen til din autentifikator-app?** og indtaster en af dine backupkoder. Åbn derefter **Sikkerhed → Tofaktorgodkendelse**, og tilføj din nye app. Uden backupkoder beder du en administrator af din OneUptime-installation om at nulstille tofaktorgodkendelsen på din konto.
 :::
 
 :::details Login beder mig vente, før jeg prøver en ny kode

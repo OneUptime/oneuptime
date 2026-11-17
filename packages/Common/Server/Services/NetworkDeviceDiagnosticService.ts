@@ -1,4 +1,3 @@
-import { EntityManager } from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/NetworkDeviceDiagnostic";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
@@ -392,15 +391,21 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Atomically claims this probe's Pending diagnostics, oldest first, and
-   * marks them In Progress. FOR UPDATE SKIP LOCKED so concurrent replicas of
-   * the same probe never run the same diagnostic — the shape
-   * MonitorTestService.claimMonitorTestsForProbing uses.
+   * Claims this probe's Pending diagnostics, oldest first, and marks them In
+   * Progress, in one self-committing statement (OneUptime issue #7392): the
+   * rows are locked FOR NO KEY UPDATE SKIP LOCKED, so concurrent replicas of
+   * the same probe never run the same diagnostic, and moved to In Progress
+   * by the same statement, so the locks last only as long as it runs - the
+   * shape of NetworkDeviceService.claimDevicesForPolling. It was a
+   * transaction of a SELECT ... FOR UPDATE and an UPDATE of the ids: four
+   * round trips on every probe tick, even with nothing pending.
    *
    * Rows older than the claim window are left alone: whoever asked for them
    * has long since stopped waiting (the dashboard gives up after two
    * minutes), so running them would spend the probe's time on an answer
    * nobody reads. Retention deletes them later.
+   *
+   * The ids come back in claim order, the oldest first.
    */
   @CaptureSpan()
   public async claimPendingForProbe(data: {
@@ -412,54 +417,53 @@ export class Service extends ProjectReferencesService<Model> {
       -NETWORK_DEVICE_DIAGNOSTIC_CLAIM_WINDOW_IN_MINUTES,
     );
 
-    return await this.executeTransaction(
-      async (transactionalEntityManager: EntityManager) => {
-        const selectQuery: string = `
-          SELECT d."_id"
-          FROM "NetworkDeviceDiagnostic" d
-          WHERE d."probeId" = $1
-            AND d."status" = $4
-            AND d."createdAt" >= $3
-            AND d."deletedAt" IS NULL
-          ORDER BY d."createdAt" ASC
-          LIMIT $2
-          FOR UPDATE OF d SKIP LOCKED
-        `;
+    const claimQuery: string = `
+      WITH "pending" AS (
+        SELECT d."_id", d."createdAt"
+        FROM "NetworkDeviceDiagnostic" d
+        WHERE d."probeId" = $1
+          AND d."status" = $4
+          AND d."createdAt" >= $3
+          AND d."deletedAt" IS NULL
+        ORDER BY d."createdAt" ASC
+        LIMIT $2
+        FOR NO KEY UPDATE OF d SKIP LOCKED
+      ),
+      "claimed" AS (
+        UPDATE "NetworkDeviceDiagnostic" AS d
+        SET "status" = $5,
+            "startedAt" = now(),
+            "updatedAt" = now()
+        FROM "pending"
+        WHERE d."_id" = "pending"."_id"
+        RETURNING d."_id"
+      )
+      SELECT "pending"."_id"
+      FROM "pending"
+      INNER JOIN "claimed" ON "claimed"."_id" = "pending"."_id"
+      ORDER BY "pending"."createdAt" ASC
+    `;
 
-        const selectedRows: Array<{ _id: string }> =
-          await transactionalEntityManager.query(selectQuery, [
-            data.probeId.toString(),
-            data.limit,
-            claimWindowStart,
-            NetworkDeviceDiagnosticStatus.Pending,
-          ]);
-
-        if (!Array.isArray(selectedRows) || selectedRows.length === 0) {
-          return [];
-        }
-
-        const ids: Array<string> = selectedRows.map((row: { _id: string }) => {
-          return row._id;
-        });
-
-        const updateQuery: string = `
-          UPDATE "NetworkDeviceDiagnostic"
-          SET "status" = $2,
-              "startedAt" = now(),
-              "updatedAt" = now()
-          WHERE "_id" = ANY($1::uuid[])
-        `;
-
-        await transactionalEntityManager.query(updateQuery, [
-          ids,
-          NetworkDeviceDiagnosticStatus.InProgress,
-        ]);
-
-        return ids.map((id: string) => {
-          return new ObjectID(id);
-        });
-      },
+    /*
+     * A SELECT of the rows the UPDATE wrote: TypeORM hands a top-level
+     * UPDATE ... RETURNING back as [rows, rowCount] instead.
+     */
+    const claimedRows: unknown = await this.getRepository().manager.query(
+      claimQuery,
+      [
+        data.probeId.toString(),
+        data.limit,
+        claimWindowStart,
+        NetworkDeviceDiagnosticStatus.Pending,
+        NetworkDeviceDiagnosticStatus.InProgress,
+      ],
     );
+
+    return Array.isArray(claimedRows)
+      ? claimedRows.map((row: { _id: string }): ObjectID => {
+          return new ObjectID(row._id);
+        })
+      : [];
   }
 
   /*
@@ -476,6 +480,11 @@ export class Service extends ProjectReferencesService<Model> {
    * Returns whether a row was updated. False means the id is unknown, was
    * claimed by a different probe, or is already Completed; the ingest route
    * turns that into a 400 rather than a silent 200.
+   *
+   * The UPDATE is self-committing: its own WHERE is the guard (OneUptime
+   * issue #8870). It ran inside a transaction, which added a BEGIN and a
+   * COMMIT round trip to every report, and held the connection between
+   * them, for nothing to commit together.
    */
   @CaptureSpan()
   public async recordReport(data: {
@@ -494,53 +503,47 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    return await this.executeTransaction(
-      async (transactionalEntityManager: EntityManager) => {
-        const updateQuery: string = `
-          UPDATE "NetworkDeviceDiagnostic"
-          SET "status" = $3,
-              "statusMessage" = $4,
-              "pingResult" = $5::jsonb,
-              "traceRouteResult" = $6::jsonb,
-              "snmpWalkResult" = $8::jsonb,
-              "completedAt" = now(),
-              "updatedAt" = now()
-          WHERE "_id" = $1
-            AND "probeId" = $2
-            AND "deletedAt" IS NULL
-            AND "status" <> $7
-          RETURNING "_id"
-        `;
+    const updateQuery: string = `
+      UPDATE "NetworkDeviceDiagnostic"
+      SET "status" = $3,
+          "statusMessage" = $4,
+          "pingResult" = $5::jsonb,
+          "traceRouteResult" = $6::jsonb,
+          "snmpWalkResult" = $8::jsonb,
+          "completedAt" = now(),
+          "updatedAt" = now()
+      WHERE "_id" = $1
+        AND "probeId" = $2
+        AND "deletedAt" IS NULL
+        AND "status" <> $7
+      RETURNING "_id"
+    `;
 
-        const result: unknown = await transactionalEntityManager.query(
-          updateQuery,
-          [
-            report.networkDeviceDiagnosticId.toString(),
-            data.probeId.toString(),
-            report.status,
-            /*
-             * Raw SQL bypasses DatabaseService.checkMaxLengthOfFields, and
-             * Postgres rejects a value longer than the varchar column — which
-             * would leave the row In Progress forever. Cut the probe's text
-             * to the column's declared length instead.
-             */
-            report.statusMessage
-              ? report.statusMessage.substring(0, ColumnLength.LongText)
-              : null,
-            report.pingResult ? JSON.stringify(report.pingResult) : null,
-            report.traceRouteResult
-              ? JSON.stringify(report.traceRouteResult)
-              : null,
-            NetworkDeviceDiagnosticStatus.Completed,
-            report.snmpWalkResult
-              ? JSON.stringify(report.snmpWalkResult)
-              : null,
-          ],
-        );
-
-        return readAffectedRowCount(result) > 0;
-      },
+    const result: unknown = await this.getRepository().manager.query(
+      updateQuery,
+      [
+        report.networkDeviceDiagnosticId.toString(),
+        data.probeId.toString(),
+        report.status,
+        /*
+         * Raw SQL bypasses DatabaseService.checkMaxLengthOfFields, and
+         * Postgres rejects a value longer than the varchar column — which
+         * would leave the row In Progress forever. Cut the probe's text to
+         * the column's declared length instead.
+         */
+        report.statusMessage
+          ? report.statusMessage.substring(0, ColumnLength.LongText)
+          : null,
+        report.pingResult ? JSON.stringify(report.pingResult) : null,
+        report.traceRouteResult
+          ? JSON.stringify(report.traceRouteResult)
+          : null,
+        NetworkDeviceDiagnosticStatus.Completed,
+        report.snmpWalkResult ? JSON.stringify(report.snmpWalkResult) : null,
+      ],
     );
+
+    return readAffectedRowCount(result) > 0;
   }
 }
 

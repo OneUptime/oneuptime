@@ -47,6 +47,7 @@ import RunbookStepType from "../../Types/Runbook/RunbookStepType";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AutoRemediationSuggestion from "../../Models/DatabaseModels/AutoRemediationSuggestion";
+import { getWaitingFirstApprovedAt } from "../../Types/AutoRemediation/RemediationApprovals";
 import Incident from "../../Models/DatabaseModels/Incident";
 import KubernetesAiAgent from "../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
@@ -926,6 +927,12 @@ function mergeNewest<T extends BaseRow>(
  *   KUBERNETES_CLUSTER_AI_LOGS_COMMAND_WINDOW_IN_DAYS days. The AI agent
  *   page's connection tests have no AI run behind them and are not counted,
  *   the way the project's investigation brake leaves them out.
+ * - hiddenCommandCount: how many of the kubectl commands the page's list
+ *   reads - under the caller's props, through the Runner job API - the
+ *   caller may not read: another person's AI chat's, or one about a
+ *   private incident or alert they don't see (#9155). Counted as root and
+ *   as the caller, so only the number leaves. Absent for a caller who may
+ *   not read Runner jobs at all, whom the page tells so on its own.
  */
 export async function getClusterAiLogs(data: {
   projectId: ObjectID;
@@ -1040,15 +1047,27 @@ export async function getClusterAiLogs(data: {
     ).toNumber();
   };
 
-  const [investigationCommands, remediationCommands]: [number, number] =
-    await Promise.all([
-      countCommands({
-        origin: RunnerJobOrigin.AiInvestigation,
-        // Connection tests have no AI run; every investigation command does.
-        aiRunId: QueryHelper.notNull(),
-      }),
-      countCommands({ origin: RunnerJobOrigin.AiRemediation }),
-    ]);
+  const [investigationCommands, remediationCommands, hiddenCommandCount]: [
+    number,
+    number,
+    number | null,
+  ] = await Promise.all([
+    countCommands({
+      origin: RunnerJobOrigin.AiInvestigation,
+      // Connection tests have no AI run; every investigation command does.
+      aiRunId: QueryHelper.notNull(),
+    }),
+    countCommands({ origin: RunnerJobOrigin.AiRemediation }),
+    // What the page's list of kubectl commands reads, as the caller (see above).
+    RunnerJobService.countJobsHiddenFrom({
+      query: {
+        projectId,
+        kubernetesClusterId: clusterId,
+        stepType: RunbookStepType.Kubectl,
+      },
+      props,
+    }),
+  ]);
 
   return {
     clusterId: clusterId.toString(),
@@ -1058,6 +1077,7 @@ export async function getClusterAiLogs(data: {
       investigation: investigationCommands,
       remediation: remediationCommands,
     },
+    ...(hiddenCommandCount === null ? {} : { hiddenCommandCount }),
   };
 }
 
@@ -1332,6 +1352,8 @@ const LOG_FIX_SELECT: Record<string, boolean> = {
   suggestionType: true,
   createdAt: true,
   approvedAt: true,
+  // A fix that waits for its second approval says so (getWaitingFirstApprovedAt).
+  firstApprovedAt: true,
   incidentId: true,
   alertId: true,
 };
@@ -1417,6 +1439,7 @@ async function getLogFixes(data: {
           : undefined,
         createdAt: toIsoString(suggestion.createdAt),
         approvedAt: toIsoString(suggestion.approvedAt),
+        firstApprovedAt: toIsoString(getWaitingFirstApprovedAt(suggestion)),
         incidentId: suggestion.incidentId?.toString(),
         alertId: suggestion.alertId?.toString(),
       };

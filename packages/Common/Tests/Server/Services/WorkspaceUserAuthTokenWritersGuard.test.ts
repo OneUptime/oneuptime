@@ -26,6 +26,9 @@ import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
  *     Teams sign-in callback - each writing for the member and project of the
  *     state it spent (record.userId, record.projectId), never for ids the
  *     request carries;
+ *   - besides, only the writes listed in WRITES_THAT_CHANGE_NO_LINK touch
+ *     the table, each through the one call listed, and none changes which
+ *     member a chat account is: the encryption of the stored tokens in place;
  *   - no SQL anywhere else inserts or updates the table;
  *   - a chat account is looked for among its own chat's links only;
  *   - the scans see every use: the service and the model are imported
@@ -71,6 +74,26 @@ const REFRESH_CALL: RegExp =
 // Every write a DatabaseService offers, called on the link table's service.
 const OTHER_WRITE_CALL: RegExp =
   /\bWorkspaceUserAuthTokenService\s*\.\s*(create|createFromTemplate|updateOneBy|updateBy|updateOneById|updateOneByIdAndFetch|updateColumnsByIdWithoutHooks|updateColumnsByIdIfUnlockedWithoutHooks|getRepository)\s*\(/g;
+
+/*
+ * Writes on the service outside it that change no link, each with the one
+ * call it makes, whitespace taken out, and why. The data migration that
+ * encrypts the tokens stored before they were kept encrypted at rest
+ * (#8989) hands the table to EncryptColumnInPlace for authToken alone,
+ * which writes each token back encrypted, and only while the row still
+ * holds the token it read: no link's member, project or chat account
+ * changes.
+ */
+const WRITES_THAT_CHANGE_NO_LINK: Record<
+  string,
+  { call: string; why: string }
+> = {
+  "packages/App/FeatureSet/Workers/DataMigrations/EncryptProjectCredentials.ts":
+    {
+      call: '{kind:"workspaceaccountlink",repository:WorkspaceUserAuthTokenService.getRepository()asunknownasModelRepository,column:"authToken",}',
+      why: "Encrypts the token a member's sign-in stored, in place: the same token, encrypted, in the same link.",
+    },
+};
 
 // A row built to be saved, outside the service.
 const NEW_ROW: RegExp = /\bnew\s+WorkspaceUserAuthToken\s*\(/g;
@@ -325,7 +348,29 @@ describe("only a sign-in connects a chat account to a member", () => {
       },
     );
 
-    expect(placesOf(writes)).toEqual([]);
+    // A write that changes no link makes the one call listed, and no other.
+    for (const [file, allowed] of Object.entries(WRITES_THAT_CHANGE_NO_LINK)) {
+      const source: string = fs
+        .readFileSync(path.join(REPOSITORY_DIR, file), "utf8")
+        .replace(WHITESPACE, "");
+
+      expect({
+        file,
+        writes: writes.filter((write: Occurrence): boolean => {
+          return write.file === file;
+        }).length,
+        makesTheCallListed: source.includes(allowed.call),
+        saysWhy: allowed.why.length > 0,
+      }).toEqual({ file, writes: 1, makesTheCallListed: true, saysWhy: true });
+    }
+
+    expect(
+      placesOf(
+        writes.filter((write: Occurrence): boolean => {
+          return !WRITES_THAT_CHANGE_NO_LINK[write.file];
+        }),
+      ),
+    ).toEqual([]);
   });
 
   test("no link is built to be saved outside the service", () => {

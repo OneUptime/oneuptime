@@ -237,7 +237,8 @@ describe("every pull request checks the refs", () => {
 
   test("Ops Config Test runs on pull requests and on main", () => {
     expect(workflow.on).toHaveProperty("pull_request");
-    expect(workflow.on.push.branches).toEqual(["main"]);
+    // Main's run is the nightly one (PullRequestChecksNotOnPush.test.js).
+    expect(workflow.on.schedule).toHaveLength(1);
   });
 
   test("its action-refs job checks out the code, then runs the check on all of it", () => {

@@ -14,6 +14,7 @@ import fs from "fs";
 import path from "path";
 import React, { ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { withNumbersKeptWithUnits } from "../../../Types/NoBreakSpaces";
 
 /*
  * THE ADMIN DASHBOARD'S OWN PAGES, DRAWN IN THE READER'S LANGUAGE (#8227).
@@ -313,9 +314,15 @@ describe.each(LANGUAGES)(
       const days: string = new Intl.NumberFormat(
         language === "ar" ? "ar-u-nu-latn" : language,
       ).format(90);
-      const line: string = wordIn(
-        language,
-        "What people answered in the last {{days}} days. A guided setup's score runs from 1 (very hard) to 5 (very easy); the hardest setups come first.",
+      const key: string =
+        "What people answered in the last {{days}} days. A guided setup's score runs from 1 (very hard) to 5 (very easy); the hardest setups come first.";
+      // As the page draws it: the count held to its word (#8770).
+      const line: string = withNumbersKeptWithUnits(
+        wordIn(language, key),
+        key,
+        {
+          durationWords: true,
+        },
       ).replace("{{days}}", days);
 
       await waitFor(() => {

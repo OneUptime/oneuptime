@@ -40,6 +40,7 @@ import {
   expect,
   test,
 } from "@jest/globals";
+import PrivateRecordWriteCheck from "../../../Server/Utils/Permission/PrivateRecordWriteCheck";
 
 /*
  * Approving and dismissing a fix through the project's external MCP
@@ -226,6 +227,8 @@ function mcpFixRow(
     projectId: PROJECT_ID,
     incidentId: INCIDENT_ID,
     status: AutoRemediationSuggestionStatus.Suggested,
+    // The row's version, which every write moves on.
+    version: 1,
     suggestionType: AutoRemediationSuggestionType.McpToolCalls,
     mcpToolCallPlan: ExternalMcpToolCallPlanUtil.toJSON({ calls }),
     verificationWindowMinutes: 15,
@@ -241,6 +244,15 @@ function awsServer(): ExternalMcpServer {
   server.projectId = PROJECT_ID;
   return server;
 }
+
+/*
+ * The fixes here are for incidents and alerts that are not private, or that
+ * the person reaches: what a fix's buttons ask of a private record's owning
+ * teams (#8913) is RemediationPrivateRecord's own suite.
+ */
+beforeEach(() => {
+  jest.spyOn(PrivateRecordWriteCheck, "reaches").mockResolvedValue(true);
+});
 
 describe("approving and dismissing a fix through MCP servers", () => {
   let row: Record<string, unknown>;
@@ -361,7 +373,11 @@ describe("approving and dismissing a fix through MCP servers", () => {
   });
 
   test("a click that lost to someone else's makes nothing", async () => {
-    casSpy.mockResolvedValue(0 as never);
+    // Someone else's click claimed the fix first, as its write would leave it.
+    casSpy.mockImplementation(async (): Promise<number> => {
+      row["status"] = AutoRemediationSuggestionStatus.Approved;
+      return 0;
+    });
 
     const result: RouteCallResult = await callRoute(APPROVE_ROUTE);
 

@@ -2135,12 +2135,12 @@ describe.each([
         column.getExportValue!(
           rule({ investigates: true, onlyIfOpenAfterMinutes: 30 }),
         ),
-      ).toBe("If still open after 30 minutes · Asks before fixing");
+      ).toBe("If still open after 30\u00A0minutes · Asks before fixing");
       expect(
         column.getExportValue!(
           rule({ investigates: true, onlyIfOpenAfterMinutes: 1 }),
         ),
-      ).toBe("If still open after 1 minute · Asks before fixing");
+      ).toBe("If still open after 1\u00A0minute · Asks before fixing");
       expect(
         column.getExportValue!(rule({ investigates: true, fixes: false })),
       ).toBe("Right away · Doesn't fix");

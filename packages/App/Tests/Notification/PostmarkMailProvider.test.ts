@@ -8,7 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import {
+import HttpMailApi, {
   MailApiAnswer,
   MailApiSendException,
 } from "../../FeatureSet/Notification/Services/MailProviders/HttpMailApi";
@@ -272,6 +272,16 @@ describe("sending, to a stand-in for Postmark", () => {
   });
 
   test("throttled, it is tried again and goes", async () => {
+    // "0" waits a second, never at once (issue #8928): stubbed, and seen.
+    const slept: Array<number> = [];
+    jest
+      .spyOn(
+        HttpMailApi as unknown as { sleep: (ms: number) => Promise<void> },
+        "sleep",
+      )
+      .mockImplementation(async (ms: number): Promise<void> => {
+        slept.push(ms);
+      });
     postmark.answerNextWith({
       status: 429,
       body: { ErrorCode: 429, Message: "Rate limit exceeded" },
@@ -281,6 +291,7 @@ describe("sending, to a stand-in for Postmark", () => {
     await new PostmarkMailProvider().send(mail(), SERVER, {});
 
     expect(postmark.requests).toHaveLength(2);
+    expect(slept).toEqual([1000]);
   });
 
   test("a refusal is reported at once", async () => {

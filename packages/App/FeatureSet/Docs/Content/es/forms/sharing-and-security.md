@@ -66,9 +66,9 @@ Cuando el dominio funciona, la tarjeta **Enlace para compartir** lo muestra enci
 Haz clic en **Añadir dominio personalizado**. El cuadro de diálogo pide una sola cosa:
 
 - **Dominio**: la dirección completa que la gente abrirá, con el texto de ejemplo `report.example.com`. Un enlace pegado también funciona: solo se conserva su nombre de host. Para usar la raíz de un dominio, escribe el propio dominio.
-- **Más campos**: plegado. Ábrelo solo para usar un certificado propio: activa **Subir certificado personalizado** y pega el **Certificado** y su **Clave privada del certificado**.
+- **Más campos**: plegado. Ábrelo solo para usar un certificado propio: activa **Subir certificado personalizado** y pega el **Certificado** y su **Clave privada del certificado**. La clave se guarda cifrada y no se vuelve a mostrar. Un certificado y una clave que no se corresponden se rechazan, con el motivo bajo el campo que falla.
 
-Haz clic en **Continuar**. Si el proyecto ha verificado el dominio en el que está la dirección, en **Ajustes del proyecto** > **Avanzado** > **Dominios**, el dominio se añade y se abre su **Configuración de DNS**. Si no, OneUptime añade ese dominio al proyecto y la **Configuración de DNS** se abre también con su registro TXT, para que lo verifiques ahí mismo. El nombre de un dominio y su formulario quedan fijos en cuanto se añade, así que **Editar** solo cambia su certificado: para cambiar cualquiera de los dos, añade el nuevo dominio y elimina el antiguo.
+Haz clic en **Continuar**. Si el proyecto ha verificado el dominio en el que está la dirección, en **Ajustes del proyecto** > **Avanzado** > **Dominios**, el dominio se añade y se abre su **Configuración de DNS**. Si no, OneUptime añade ese dominio al proyecto y la **Configuración de DNS** se abre también con su registro TXT, para que lo verifiques ahí mismo. El nombre de un dominio y su formulario quedan fijos en cuanto se añade, así que **Editar** solo cambia su certificado: para cambiar cualquiera de los dos, añade el nuevo dominio y elimina el antiguo. En un dominio que sirve tu propio certificado, **Clave privada del certificado** aparece vacía en el diálogo **Editar**: déjala en blanco para conservar la clave guardada, que es todo lo que necesita un certificado renovado con la misma clave, o pega una clave nueva. En un dominio con el certificado gratuito, activar **Subir certificado personalizado** pide la clave.
 
 Un dominio muestra una sola página de estado, un solo panel o un solo formulario, así que se rechaza un nombre que ya tenga cualquiera de ellos, en cualquier proyecto: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
 
@@ -186,6 +186,10 @@ Cada variable también lee su nombre antiguo, con `INCIDENT_FORM_` delante en lu
 ### Captcha
 
 Cuando tu instancia de OneUptime tiene hCaptcha activado, el formulario muestra un captcha, y un envío que no lo ha superado se rechaza. No hay un ajuste por formulario. Una instalación autoalojada activa el captcha con `CAPTCHA_ENABLED`, `CAPTCHA_SITE_KEY` y `CAPTCHA_SECRET_KEY` — los mismos ajustes que protegen el registro. Sin él, los límites de frecuencia y la lista de IP permitidas soportan la carga.
+
+### Análisis de malware
+
+Una instalación autoalojada puede hacer que ClamAV analice en busca de malware cada archivo que envían las personas antes de guardarlo: los archivos de un formulario y los que las personas suben con la sesión iniciada o con una clave de API. Configura `CLAMAV_HOST` (y `CLAMAV_PORT`, `3310` de forma predeterminada) con un daemon de ClamAV. Con Docker Compose, `COMPOSE_PROFILES=clamav` y `CLAMAV_HOST=clamav` en `config.env` inician el ClamAV incluido con OneUptime; con Helm, activa `clamav.enabled`. Un archivo que ClamAV marca se rechaza, indicando cuál, y no se guarda nada del envío. Mientras ClamAV no responde, todos los archivos se rechazan con "Ahora mismo no se pueden analizar los archivos en busca de virus, así que no se aceptaron. Vuelve a intentarlo en unos minutos." (503), así que ningún archivo se guarda sin revisar. Sin `CLAMAV_HOST`, los archivos no se analizan, como hasta ahora.
 
 ## Solución de problemas
 

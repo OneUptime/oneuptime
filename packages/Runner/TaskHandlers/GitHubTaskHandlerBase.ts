@@ -51,11 +51,16 @@ export default abstract class GitHubTaskHandlerBase extends BaseTaskHandler {
   protected static readonly MAX_COMMENT_LENGTH: number = 2000;
   protected static readonly MAX_PROMPT_DIFF_LENGTH: number = 40000;
 
-  // Carry out one GitHub run against a cloned repository.
+  /*
+   * Carry out one GitHub run against a cloned repository. The token it was
+   * cloned with says whether OneUptime opens a pull request the run opens
+   * (RepositoryToken.opensPullRequestOnServer).
+   */
   protected abstract runTask(data: {
     context: TaskContext;
     details: GitHubTaskDetails;
     repositoryConfig: RepositoryConfig;
+    repositoryToken: RepositoryToken;
     cloneResult: CloneResult;
     repositoryManager: RepositoryManager;
     agent: CodeAgent;
@@ -165,6 +170,7 @@ export default abstract class GitHubTaskHandlerBase extends BaseTaskHandler {
         context,
         details,
         repositoryConfig,
+        repositoryToken: tokenData,
         cloneResult,
         repositoryManager,
         agent,

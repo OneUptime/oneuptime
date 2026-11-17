@@ -24,6 +24,13 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import ProjectUtil from "../../../UI/Utils/Project";
 import ResolvedRecordRetentionCard from "../../../../App/FeatureSet/Dashboard/src/Components/Retention/ResolvedRecordRetentionCard";
+import ResolvedRecordRetentionAPI from "../../../../App/FeatureSet/Dashboard/src/Components/Retention/ResolvedRecordRetentionAPI";
+import IncidentPostmortemStatus from "../../../Models/DatabaseModels/IncidentPostmortemStatus";
+import {
+  DueRecordsCountAnswer,
+  DueRecordsCountRequest,
+  ResolvedRecordRetentionLimitsAnswer,
+} from "../../../Types/Retention/ResolvedRecordRetentionAnswers";
 import ResolvedRecordRetentionCopy, {
   ALERT_RETENTION_COPY,
   INCIDENT_RETENTION_COPY,
@@ -36,6 +43,10 @@ import AlertRetentionSettings from "../../../../App/FeatureSet/Dashboard/src/Pag
 import IncidentRetentionSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentRetentionSettings";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import {
+  withNumbersKeptWithUnits,
+  withPlainSpaces,
+} from "../../../Types/NoBreakSpaces";
 
 /*
  * DATA RETENTION FOR RESOLVED INCIDENTS AND ALERTS, RENDERED (issue #6903).
@@ -58,6 +69,31 @@ import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
  *   - in the reader's language.
  */
 
+/*
+ * react-select blurs its input after a pick on a touch screen
+ * (blurInputOnSelect, decided once as it loads), and jsdom reads as one.
+ * These picks are a keyboard's on a desktop, where the input keeps the focus
+ * a question hands back when it closes: so react-select loads as a desktop
+ * browser loads it, and is otherwise itself.
+ */
+jest.mock("react-select", () => {
+  const createEvent: Document["createEvent"] = document.createEvent;
+
+  document.createEvent = ((type: string): Event => {
+    if (type === "TouchEvent") {
+      throw new Error("No touch screen here.");
+    }
+
+    return createEvent.call(document, type);
+  }) as Document["createEvent"];
+
+  try {
+    return jest.requireActual("react-select");
+  } finally {
+    document.createEvent = createEvent;
+  }
+});
+
 const PROJECT_ID: ObjectID = new ObjectID(
   "6a903000-2b4d-4e5f-8a9b-0c1d2e3f4a5b",
 );
@@ -77,13 +113,50 @@ function readLocale(code: string): Locale {
 
 const GERMAN: Locale = readLocale("de");
 
+// The project's postmortem statuses, as Incidents > Settings > Postmortem Statuses lists them.
+const NOT_STARTED_STATUS: string = "6945a000-0000-4000-8000-000000000001";
+const DRAFT_STATUS: string = "6945a000-0000-4000-8000-000000000002";
+const COMPLETED_STATUS: string = "6945a000-0000-4000-8000-000000000003";
+const PUBLISHED_STATUS: string = "6945a000-0000-4000-8000-000000000004";
+const NOT_NEEDED_STATUS: string = "6945a000-0000-4000-8000-000000000005";
+const ARCHIVED_STATUS: string = "6945a000-0000-4000-8000-000000000006";
+
+function status(
+  id: string,
+  name: string,
+  order: number,
+  flags: Record<string, boolean> = {},
+): Record<string, unknown> {
+  return {
+    _id: id,
+    name: name,
+    order: order,
+    color: "#10b981",
+    isNotStartedStatus: false,
+    isDraftStatus: false,
+    isCompletedStatus: false,
+    isArchived: false,
+    ...flags,
+  };
+}
+
 let getItemSpy: jest.SpyInstance;
 let updateSpy: jest.SpyInstance;
+let limitsSpy: jest.SpyInstance;
+let countSpy: jest.SpyInstance;
+let statusesSpy: jest.SpyInstance;
+// The server's maximum the card is told about.
+let limits: ResolvedRecordRetentionLimitsAnswer;
+// What a count answers: a number, or null for one that failed.
+let countAnswer: DueRecordsCountAnswer | null;
+// The project's postmortem statuses, as the list reads them.
+let postmortemStatuses: Array<Record<string, unknown>>;
 // What the project holds, as the card reads it; undefined for no value.
 let stored: {
   incidentRetentionInDays?: number | undefined;
   alertRetentionInDays?: number | undefined;
   keepIncidentsWithCompletedPostmortem?: boolean | undefined;
+  keepIncidentsInPostmortemStatusIds?: Array<string> | undefined;
 };
 
 function grant(permissions: Array<Permission>): void {
@@ -111,6 +184,11 @@ function storedProject(): Project {
   if (stored.keepIncidentsWithCompletedPostmortem !== undefined) {
     project.keepIncidentsWithCompletedPostmortem =
       stored.keepIncidentsWithCompletedPostmortem;
+  }
+
+  if (stored.keepIncidentsInPostmortemStatusIds !== undefined) {
+    project.keepIncidentsInPostmortemStatusIds =
+      stored.keepIncidentsInPostmortemStatusIds;
   }
 
   return project;
@@ -163,8 +241,11 @@ async function openPick(): Promise<void> {
 async function pick(optionText: string): Promise<void> {
   await openPick();
 
+  // An option's name holds a duration's figure to its word (#8770).
   const option: HTMLElement = await screen.findByRole("option", {
-    name: optionText,
+    name: (name: string): boolean => {
+      return withPlainSpaces(name) === optionText;
+    },
   });
 
   await act(async () => {
@@ -247,6 +328,46 @@ beforeEach(() => {
       Object.assign(stored, data.data);
       return undefined;
     }) as never);
+
+  limits = {};
+  limitsSpy = jest
+    .spyOn(ResolvedRecordRetentionAPI, "getLimits")
+    .mockImplementation(async () => {
+      return limits;
+    });
+  countAnswer = null;
+  countSpy = jest
+    .spyOn(ResolvedRecordRetentionAPI, "countDue")
+    .mockImplementation(async () => {
+      return countAnswer;
+    });
+  postmortemStatuses = [
+    status(NOT_STARTED_STATUS, "Not Started", 1, { isNotStartedStatus: true }),
+    status(DRAFT_STATUS, "Draft", 2, { isDraftStatus: true }),
+    status(COMPLETED_STATUS, "Completed", 3, { isCompletedStatus: true }),
+    status(PUBLISHED_STATUS, "Published", 4),
+    status(NOT_NEEDED_STATUS, "Not Needed", 5),
+    status(ARCHIVED_STATUS, "Shared", 6, { isArchived: true }),
+  ];
+  statusesSpy = jest
+    .spyOn(ModelAPI, "getList")
+    .mockImplementation((async (data: { modelType: unknown }) => {
+      if (data.modelType !== IncidentPostmortemStatus) {
+        throw new Error("Only postmortem statuses are listed here.");
+      }
+
+      return {
+        data: postmortemStatuses.map((row: Record<string, unknown>) => {
+          return IncidentPostmortemStatus.fromJSON(
+            row as JSONObject,
+            IncidentPostmortemStatus,
+          );
+        }),
+        count: postmortemStatuses.length,
+        skip: 0,
+        limit: postmortemStatuses.length,
+      };
+    }) as never);
 });
 
 afterEach(async () => {
@@ -266,6 +387,7 @@ describe("Resolved Incidents", () => {
         select: {
           incidentRetentionInDays: true,
           keepIncidentsWithCompletedPostmortem: true,
+          keepIncidentsInPostmortemStatusIds: true,
         },
       }),
     );
@@ -298,13 +420,13 @@ describe("Resolved Incidents", () => {
 
     expect(options).toEqual([
       "Never",
-      "30 days",
-      "60 days",
-      "90 days",
-      "180 days",
-      "1 year",
-      "2 years",
-      "3 years",
+      "30\u00A0days",
+      "60\u00A0days",
+      "90\u00A0days",
+      "180\u00A0days",
+      "1\u00A0year",
+      "2\u00A0years",
+      "3\u00A0years",
     ]);
   });
 
@@ -335,7 +457,7 @@ describe("Resolved Incidents", () => {
         ),
       ).toHaveTextContent("Saved");
     });
-    expect(picked()).toBe("90 days");
+    expect(picked()).toBe("90\u00A0days");
     expect(description()).toBe(
       "Checked every hour, counting from when each incident was resolved. Status pages stop showing deleted incidents, and they can't be brought back.",
     );
@@ -357,6 +479,30 @@ describe("Resolved Incidents", () => {
     expect(postmortemSwitch()).toBeNull();
   });
 
+  /*
+   * The question hands the keyboard back to the pick it left. Drawing the pick
+   * again by remounting it would leave the focus on nothing.
+   */
+  test("cancelled, the keyboard is back on the pick it left", async () => {
+    await renderCard();
+
+    await act(async () => {
+      thePick().focus();
+    });
+
+    expect(document.activeElement).toBe(thePick());
+
+    await pick("30 days");
+
+    expect(dialog()).not.toBeNull();
+
+    await pressInDialog("Cancel");
+
+    expect(dialog()).toBeNull();
+    expect(picked()).toBe("Never");
+    expect(document.activeElement).toBe(thePick());
+  });
+
   test("a length in whole years is said in years in the question too", async () => {
     await renderCard();
     await pick("2 years");
@@ -375,7 +521,7 @@ describe("Resolved Incidents", () => {
 
     await renderCard();
 
-    expect(picked()).toBe("1 year");
+    expect(picked()).toBe("1\u00A0year");
 
     await pick("30 days");
 
@@ -397,7 +543,7 @@ describe("Resolved Incidents", () => {
 
     expect(dialog()).toBeNull();
     expect(savedData()).toEqual({ incidentRetentionInDays: 1095 });
-    expect(picked()).toBe("3 years");
+    expect(picked()).toBe("3\u00A0years");
   });
 
   test("Never saves at once, and the postmortem switch goes with the length", async () => {
@@ -435,7 +581,7 @@ describe("Resolved Incidents", () => {
         ),
       ).toHaveTextContent("You may not change this project's settings.");
     });
-    expect(picked()).toBe("90 days");
+    expect(picked()).toBe("90\u00A0days");
   });
 
   test.each([
@@ -455,7 +601,7 @@ describe("Resolved Incidents", () => {
       ).getByRole("combobox", { hidden: true });
 
       expect(locked).toBeDisabled();
-      expect(picked()).toBe("90 days");
+      expect(picked()).toBe("90\u00A0days");
       expect(postmortemSwitch()).toHaveAttribute("aria-disabled", "true");
       expect(updateSpy).not.toHaveBeenCalled();
     },
@@ -478,7 +624,7 @@ describe("Resolved Incidents", () => {
     expect(postmortemSwitch()).toHaveAttribute("aria-checked", "true");
     expect(
       screen.getByText(
-        "An incident whose postmortem is completed stays, however long ago it was resolved.",
+        "An incident whose postmortem is in one of the statuses below stays, however long ago it was resolved.",
       ),
     ).toBeInTheDocument();
 
@@ -616,7 +762,7 @@ describe("Resolved Alerts", () => {
         select: { alertRetentionInDays: true },
       }),
     );
-    expect(picked()).toBe("60 days");
+    expect(picked()).toBe("60\u00A0days");
     expect(screen.getByText("Resolved Alerts")).toBeInTheDocument();
     expect(description()).toBe(
       "Checked every hour, counting from when each alert was resolved. Deleted alerts can't be brought back.",
@@ -668,13 +814,21 @@ describe("in the reader's language", () => {
 
     expect(options[0]).toBe(GERMAN["Never"]);
     expect(options[1]).toBe(
-      GERMAN["{{count}} days"]!.replace("{{count}}", "30"),
+      withNumbersKeptWithUnits(GERMAN["{{count}} days"]!, "{{count}} days", {
+        durationWords: true,
+      }).replace("{{count}}", "30"),
     );
     expect(options[5]).toBe(
-      GERMAN["{{count}} years_one"]!.replace("{{count}}", "1"),
+      withNumbersKeptWithUnits(
+        GERMAN["{{count}} years_one"]!,
+        "{{count}} years",
+        { durationWords: true },
+      ).replace("{{count}}", "1"),
     );
     expect(options[6]).toBe(
-      GERMAN["{{count}} years"]!.replace("{{count}}", "2"),
+      withNumbersKeptWithUnits(GERMAN["{{count}} years"]!, "{{count}} years", {
+        durationWords: true,
+      }).replace("{{count}}", "2"),
     );
 
     await act(async () => {
@@ -746,5 +900,591 @@ describe("the pages", () => {
 
     expect(view.container).toBeEmptyDOMElement();
     expect(getItemSpy).not.toHaveBeenCalled();
+  });
+});
+
+// The line a question says how many it deletes with.
+function countLine(): string {
+  return (
+    within(dialog()!).queryByTestId("resolved-record-retention-count")
+      ?.textContent || ""
+  );
+}
+
+function lastCountRequest(): Omit<DueRecordsCountRequest, "kind"> & {
+  kind?: unknown;
+} {
+  const calls: Array<Array<unknown>> = countSpy.mock.calls;
+  return calls[calls.length - 1]![1] as Omit<DueRecordsCountRequest, "kind">;
+}
+
+// The option the pick offers with this name, and whether it can be picked.
+async function option(name: string): Promise<HTMLElement> {
+  return await screen.findByRole("option", {
+    name: (optionName: string): boolean => {
+      return withPlainSpaces(optionName) === name;
+    },
+  });
+}
+
+/*
+ * THE SERVER'S MAXIMUM (issue #6941): the pick shows how long the project
+ * really keeps them, Never and the longer lengths are locked, and a line
+ * says the server's maximum.
+ */
+describe("under the server's maximum", () => {
+  test("Never shows the maximum, and a line says the server keeps them at most that long", async () => {
+    limits = { incidentMaximumInDays: 365 };
+
+    await renderCard();
+
+    expect(limitsSpy).toHaveBeenCalledWith(PROJECT_ID);
+    expect(withPlainSpaces(picked())).toBe("1 year");
+    expect(
+      withPlainSpaces(
+        screen.getByTestId("resolved-record-retention-server-maximum")
+          .textContent || "",
+      ),
+    ).toBe("Your server keeps resolved incidents for at most 1 year.");
+    // A length is in force, so what it means is said, and postmortems kept.
+    expect(description()).toBe(INCIDENT_RETENTION_COPY.onDescription);
+    expect(postmortemSwitch()).not.toBeNull();
+  });
+
+  test("Never and the longer lengths are locked; the maximum and shorter ones are open", async () => {
+    limits = { incidentMaximumInDays: 365 };
+
+    await renderCard();
+    await openPick();
+
+    for (const locked of ["Never", "2 years", "3 years"]) {
+      expect(await option(locked)).toHaveAttribute("aria-disabled", "true");
+    }
+
+    for (const open of ["30 days", "180 days", "1 year"]) {
+      expect(await option(open)).not.toHaveAttribute("aria-disabled", "true");
+    }
+  });
+
+  test("a project's longer length is shown as the maximum", async () => {
+    limits = { incidentMaximumInDays: 90 };
+    stored.incidentRetentionInDays = 730;
+
+    await renderCard();
+
+    expect(withPlainSpaces(picked())).toBe("90 days");
+  });
+
+  test("picking the maximum itself deletes nothing more, so it saves at once", async () => {
+    limits = { incidentMaximumInDays: 365 };
+
+    await renderCard();
+    await pick("1 year");
+
+    expect(dialog()).toBeNull();
+    await waitFor(() => {
+      expect(savedData()).toEqual({ incidentRetentionInDays: 365 });
+    });
+  });
+
+  test("a shorter length than the maximum deletes more, so it asks first", async () => {
+    limits = { incidentMaximumInDays: 365 };
+
+    await renderCard();
+    await pick("90 days");
+
+    expect(dialog()).toHaveTextContent("Delete old resolved incidents?");
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  test("the alerts card reads the alerts' maximum", async () => {
+    limits = { incidentMaximumInDays: 30, alertMaximumInDays: 180 };
+
+    await renderCard(ALERT_RETENTION_COPY);
+
+    expect(withPlainSpaces(picked())).toBe("180 days");
+    expect(
+      withPlainSpaces(
+        screen.getByTestId("resolved-record-retention-server-maximum")
+          .textContent || "",
+      ),
+    ).toBe("Your server keeps resolved alerts for at most 180 days.");
+  });
+
+  test("with no maximum, no line and nothing locked", async () => {
+    await renderCard();
+
+    expect(
+      screen.queryByTestId("resolved-record-retention-server-maximum"),
+    ).toBeNull();
+
+    await openPick();
+
+    for (const name of ["Never", "3 years"]) {
+      expect(await option(name)).not.toHaveAttribute("aria-disabled", "true");
+    }
+  });
+
+  test("a maximum that cannot be read locks nothing: the server holds the choices to it anyway", async () => {
+    limitsSpy.mockImplementation(async () => {
+      throw new Error("Server Error");
+    });
+
+    await renderCard();
+
+    expect(picked()).toBe("Never");
+    expect(
+      screen.queryByTestId("resolved-record-retention-server-maximum"),
+    ).toBeNull();
+    expect(screen.queryByText("Server Error")).toBeNull();
+  });
+});
+
+/*
+ * HOW MANY A CHANGE DELETES (issue #6943): every question before a delete
+ * says how many go now, counted by the server; a count that fails leaves
+ * the question as it was.
+ */
+describe("the question says how many it deletes", () => {
+  test("while the count is on its way, then the count", async () => {
+    let answer: (value: DueRecordsCountAnswer | null) => void = () => {};
+    countSpy.mockImplementation(() => {
+      return new Promise<DueRecordsCountAnswer | null>(
+        (resolve: (value: DueRecordsCountAnswer | null) => void) => {
+          answer = resolve;
+        },
+      );
+    });
+
+    await renderCard();
+    await pick("90 days");
+
+    expect(countLine()).toBe("Counting the incidents this deletes…");
+
+    await act(async () => {
+      answer({ count: 4512, isAtLeast: false });
+    });
+    await flush();
+
+    expect(withPlainSpaces(countLine())).toBe(
+      "This deletes 4,512 incidents now.",
+    );
+  });
+
+  test("the count is asked for the setting as it would be saved", async () => {
+    countAnswer = { count: 3, isAtLeast: false };
+    stored.keepIncidentsWithCompletedPostmortem = false;
+
+    await renderCard();
+    await pick("60 days");
+
+    expect(countSpy).toHaveBeenCalledWith(PROJECT_ID, {
+      kind: "Incident",
+      retentionInDays: 60,
+      keepIncidentsWithCompletedPostmortem: false,
+      keepIncidentsInPostmortemStatusIds: undefined,
+    });
+  });
+
+  test.each([
+    [{ count: 1, isAtLeast: false }, "This deletes 1 incident now."],
+    [{ count: 0, isAtLeast: false }, "Nothing is old enough to delete yet."],
+    [
+      { count: 10000, isAtLeast: true },
+      "This deletes more than 10,000 incidents now.",
+    ],
+  ])(
+    "a count of %p reads %p",
+    async (answer: DueRecordsCountAnswer, expected: string) => {
+      countAnswer = answer;
+
+      await renderCard();
+      await pick("90 days");
+
+      await waitFor(() => {
+        expect(withPlainSpaces(countLine())).toBe(expected);
+      });
+    },
+  );
+
+  test("a count that failed says nothing, and the question still deletes when confirmed", async () => {
+    countAnswer = null;
+
+    await renderCard();
+    await pick("90 days");
+    await flush();
+
+    expect(countLine()).toBe("");
+    expect(dialog()).toHaveTextContent("Delete old resolved incidents?");
+
+    await pressInDialog("Delete old incidents");
+
+    await waitFor(() => {
+      expect(savedData()).toEqual({ incidentRetentionInDays: 90 });
+    });
+  });
+
+  test("a change that deletes nothing more is not counted", async () => {
+    stored.incidentRetentionInDays = 90;
+
+    await renderCard();
+    countSpy.mockClear();
+    await pick("1 year");
+
+    expect(dialog()).toBeNull();
+
+    // Only the postmortem switch's own question is counted again, for the new length.
+    for (const call of countSpy.mock.calls) {
+      expect(call[1]).toEqual(
+        expect.objectContaining({
+          keepIncidentsWithCompletedPostmortem: false,
+        }),
+      );
+    }
+  });
+
+  test("alerts are counted as alerts, with nothing about postmortems", async () => {
+    countAnswer = { count: 3, isAtLeast: false };
+
+    await renderCard(ALERT_RETENTION_COPY);
+    await pick("30 days");
+
+    await waitFor(() => {
+      expect(countLine()).toBe("This deletes 3 alerts now.");
+    });
+    expect(lastCountRequest()).toEqual({
+      kind: "Alert",
+      retentionInDays: 30,
+    });
+  });
+
+  test("turning the postmortem switch off says how many that deletes", async () => {
+    stored.incidentRetentionInDays = 365;
+    countAnswer = { count: 12, isAtLeast: false };
+
+    await renderCard();
+
+    await waitFor(() => {
+      expect(countSpy).toHaveBeenCalledWith(PROJECT_ID, {
+        kind: "Incident",
+        retentionInDays: 365,
+        keepIncidentsWithCompletedPostmortem: false,
+        keepIncidentsInPostmortemStatusIds: undefined,
+      });
+    });
+    await flush();
+
+    await act(async () => {
+      fireEvent.click(postmortemSwitch()!);
+    });
+    await flush();
+
+    expect(dialog()).toHaveTextContent(
+      "Delete incidents with a completed postmortem too?",
+    );
+    expect(dialog()).toHaveTextContent("This deletes 12 incidents now.");
+  });
+
+  test("someone who may not change the switch is not counted for", async () => {
+    stored.incidentRetentionInDays = 365;
+    grant([Permission.ProjectMember]);
+
+    await renderCard();
+    await flush();
+
+    expect(countSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * WHICH POSTMORTEM STATUSES KEEP AN INCIDENT (issue #6945): Completed
+ * unless others are chosen; adding one saves at once, taking one out asks
+ * first with how many it deletes, and the last one stays.
+ */
+describe("the postmortem statuses that keep an incident", () => {
+  function statusesPick(): HTMLElement {
+    return within(
+      screen.getByTestId("resolved-record-retention-kept-statuses"),
+    ).getByRole("combobox");
+  }
+
+  // The chips of the statuses chosen, as react-select draws them.
+  function chosen(): Array<string> {
+    const box: HTMLElement = screen.getByTestId(
+      "resolved-record-retention-kept-statuses",
+    );
+
+    return Array.from(
+      box.querySelectorAll(
+        "[class*='multi-value__label'], [class*='multiValue'] > div:first-child",
+      ),
+    ).map((element: Element): string => {
+      return withoutIsolateMarks(element.textContent || "");
+    });
+  }
+
+  async function openStatuses(): Promise<void> {
+    await act(async () => {
+      fireEvent.focus(statusesPick());
+      fireEvent.keyDown(statusesPick(), { key: "ArrowDown", keyCode: 40 });
+    });
+  }
+
+  async function addStatus(name: string): Promise<void> {
+    await openStatuses();
+
+    await act(async () => {
+      fireEvent.click(await screen.findByRole("option", { name: name }));
+    });
+    await flush();
+    await flush();
+  }
+
+  async function removeStatus(name: string): Promise<void> {
+    const remove: HTMLElement = screen.getByRole("button", {
+      name: new RegExp(`Remove ${name}`, "i"),
+    });
+
+    await act(async () => {
+      fireEvent.click(remove);
+    });
+    await flush();
+    await flush();
+  }
+
+  test("with none chosen, the Completed status keeps them", async () => {
+    stored.incidentRetentionInDays = 365;
+
+    await renderCard();
+
+    expect(
+      screen.getByText("Postmortem statuses that keep an incident"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Add your own statuses that mean a postmortem is written, such as Published.",
+      ),
+    ).toBeInTheDocument();
+    expect(chosen()).toEqual(["Completed"]);
+    expect(statusesSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelType: IncidentPostmortemStatus,
+        query: { projectId: PROJECT_ID },
+      }),
+    );
+  });
+
+  test("the project's own choice is shown", async () => {
+    stored.incidentRetentionInDays = 365;
+    stored.keepIncidentsInPostmortemStatusIds = [
+      COMPLETED_STATUS,
+      PUBLISHED_STATUS,
+    ];
+
+    await renderCard();
+
+    expect(chosen()).toEqual(["Completed", "Published"]);
+  });
+
+  test("adding a status keeps more, so it saves at once", async () => {
+    stored.incidentRetentionInDays = 365;
+
+    await renderCard();
+    await addStatus("Published");
+
+    expect(dialog()).toBeNull();
+    await waitFor(() => {
+      expect(savedData()).toEqual({
+        keepIncidentsInPostmortemStatusIds: [
+          COMPLETED_STATUS,
+          PUBLISHED_STATUS,
+        ],
+      });
+    });
+  });
+
+  test("an archived status is never offered, and Not Needed is offered but not chosen", async () => {
+    stored.incidentRetentionInDays = 365;
+
+    await renderCard();
+    await openStatuses();
+
+    const names: Array<string> = (await screen.findAllByRole("option")).map(
+      (element: HTMLElement): string => {
+        return withoutIsolateMarks(element.textContent || "");
+      },
+    );
+
+    expect(names).not.toContain("Shared");
+    expect(names).toContain("Not Needed");
+    expect(chosen()).not.toContain("Not Needed");
+  });
+
+  test("taking a status out asks first, with how many it deletes, and saves when confirmed", async () => {
+    stored.incidentRetentionInDays = 365;
+    stored.keepIncidentsInPostmortemStatusIds = [
+      COMPLETED_STATUS,
+      PUBLISHED_STATUS,
+    ];
+    countAnswer = { count: 7, isAtLeast: false };
+
+    await renderCard();
+    countSpy.mockClear();
+    await removeStatus("Published");
+
+    expect(dialog()).toHaveTextContent(
+      "Delete incidents in this postmortem status too?",
+    );
+    expect(dialog()).toHaveTextContent(
+      "Old resolved incidents whose postmortem is in a status you take out are deleted within the hour. They can't be brought back.",
+    );
+    await waitFor(() => {
+      expect(countLine()).toBe("This deletes 7 incidents now.");
+    });
+    expect(lastCountRequest()).toEqual({
+      kind: "Incident",
+      retentionInDays: 365,
+      keepIncidentsWithCompletedPostmortem: true,
+      keepIncidentsInPostmortemStatusIds: [COMPLETED_STATUS],
+    });
+    expect(updateSpy).not.toHaveBeenCalled();
+
+    await pressInDialog("Delete them too");
+
+    await waitFor(() => {
+      expect(savedData()).toEqual({
+        keepIncidentsInPostmortemStatusIds: [COMPLETED_STATUS],
+      });
+    });
+  });
+
+  test("cancelled, nothing is saved and the status stays chosen", async () => {
+    stored.incidentRetentionInDays = 365;
+    stored.keepIncidentsInPostmortemStatusIds = [
+      COMPLETED_STATUS,
+      PUBLISHED_STATUS,
+    ];
+
+    await renderCard();
+    await removeStatus("Published");
+    await pressInDialog("Cancel");
+
+    expect(dialog()).toBeNull();
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(chosen()).toEqual(["Completed", "Published"]);
+  });
+
+  test("cancelled, the keyboard is back on the statuses it left", async () => {
+    stored.incidentRetentionInDays = 365;
+    stored.keepIncidentsInPostmortemStatusIds = [
+      COMPLETED_STATUS,
+      PUBLISHED_STATUS,
+    ];
+
+    await renderCard();
+
+    await act(async () => {
+      statusesPick().focus();
+    });
+
+    await removeStatus("Published");
+
+    expect(dialog()).not.toBeNull();
+
+    await pressInDialog("Cancel");
+
+    expect(dialog()).toBeNull();
+    expect(chosen()).toEqual(["Completed", "Published"]);
+    expect(document.activeElement).toBe(statusesPick());
+  });
+
+  test("the last status refused, the keyboard stays on the statuses", async () => {
+    stored.incidentRetentionInDays = 365;
+
+    await renderCard();
+
+    await act(async () => {
+      statusesPick().focus();
+    });
+
+    await removeStatus("Completed");
+
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(chosen()).toEqual(["Completed"]);
+    expect(document.activeElement).toBe(statusesPick());
+  });
+
+  // The second try says what the first said, and still puts it back.
+  test("the last status refused twice, it is still chosen", async () => {
+    stored.incidentRetentionInDays = 365;
+
+    await renderCard();
+    await removeStatus("Completed");
+    await removeStatus("Completed");
+
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(chosen()).toEqual(["Completed"]);
+    expect(
+      screen.getByTestId("resolved-record-retention-kept-statuses-problem"),
+    ).toHaveTextContent(
+      "Keep at least one status, or turn off keeping incidents with a completed postmortem.",
+    );
+  });
+
+  test("the last status cannot be taken out: it says to turn the switch off instead", async () => {
+    stored.incidentRetentionInDays = 365;
+
+    await renderCard();
+    await removeStatus("Completed");
+
+    expect(dialog()).toBeNull();
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(
+      screen.getByTestId("resolved-record-retention-kept-statuses-problem"),
+    ).toHaveTextContent(
+      "Keep at least one status, or turn off keeping incidents with a completed postmortem.",
+    );
+    expect(chosen()).toEqual(["Completed"]);
+  });
+
+  test("with the switch off, or no length picked, the statuses are not offered", async () => {
+    stored.incidentRetentionInDays = 365;
+    stored.keepIncidentsWithCompletedPostmortem = false;
+
+    await renderCard();
+
+    expect(
+      screen.queryByTestId("resolved-record-retention-kept-statuses"),
+    ).toBeNull();
+
+    cleanup();
+    stored.keepIncidentsWithCompletedPostmortem = true;
+    stored.incidentRetentionInDays = 0;
+
+    await renderCard();
+
+    expect(
+      screen.queryByTestId("resolved-record-retention-kept-statuses"),
+    ).toBeNull();
+  });
+
+  test("the alerts card reads no postmortem statuses", async () => {
+    await renderCard(ALERT_RETENTION_COPY);
+
+    expect(statusesSpy).not.toHaveBeenCalled();
+  });
+
+  test("statuses that cannot be read are not offered, and the rest of the card works", async () => {
+    stored.incidentRetentionInDays = 365;
+    statusesSpy.mockImplementation(async () => {
+      throw new Error("Server Error");
+    });
+
+    await renderCard();
+
+    expect(postmortemSwitch()).not.toBeNull();
+    expect(
+      screen.queryByTestId("resolved-record-retention-kept-statuses"),
+    ).toBeNull();
   });
 });

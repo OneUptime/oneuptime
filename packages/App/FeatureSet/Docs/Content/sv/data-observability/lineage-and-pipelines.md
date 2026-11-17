@@ -23,6 +23,21 @@ Där källan anger kolumner visar en tabells flik **Kolumner** varifrån varje k
 
 Välj på fliken **Härkomst** en av tabellens kolumner i **Följ en kolumn** för att markera varifrån den kommer och vart den går: uppåt i diagrammet till kolumnerna den byggs av, nedåt till kolumnerna som byggs av den, var och en namngiven på sin tabell, även där kolumnen bytte namn på vägen. En pil vars källor inte anger några kolumner kan föra den längre än det som är markerat, och diagrammet säger det.
 
+## Härkomstkarta
+
+**Dataobserverbarhet > Härkomstkarta** ritar varje dataflöde som ditt projekt har sett på en enda sida, så att du kan se vem som använder vilken data och vart den går, utan att först välja en tabell. Den visar:
+
+- **Tjänster** som skriver till och läser tabeller, från databasspann i dina spår: ett spann som anger sin tabell (`db.collection.name`, eller den äldre `db.sql.table`) och sin sats (`db.operation.name`), till exempel en `INSERT` eller en `SELECT`.
+- **Tabeller** som är byggda av andra tabeller, från alla källor ovan.
+- **Pipelines** som laddar en tabell från data som OneUptime inte bevakar, till exempel en Fivetran-synkning. En pipeline som flyttar data mellan två bevakade tabeller anges på pilen mellan dem.
+- **Instrumentpaneler** och reverse ETL-synkningar i dina BI-verktyg, som läser de tabeller de är byggda på.
+
+Varje pil är något som OneUptime har registrerat, aldrig en gissning. Korten ligger från vänster till höger i den riktning datan flödar, och visar hur de mår, som på en tabells diagram: rött för en sen tabell, ett öppet larm eller en misslyckad körning. En pil är blågrön där en tjänsts spår har sett den.
+
+Sök efter en tabell, tjänst, pipeline eller instrumentpanel för att behålla det som matchar och allt uppströms och nedströms om det. Välj ett kort för att markera hela dess härkomst, se vad det kommer från och vart det går, och öppna dess sida; **Visa bara dess härkomst** lämnar bara det kvar på kartan. Reglagen bredvid sökningen låter tjänster, pipelines eller instrumentpaneler vara avstängda. **Lista** visar varje pil som en rad, och är vad en telefon öppnar med.
+
+En karta ritar upp till 400 kort, de senast sedda flödena först; när ditt projekt har fler säger kartan det. Samma karta levereras av `POST /api/data-observability/lineage/map`, till alla som får läsa dataresurser, och deras API-nycklar.
+
 ## OpenLineage
 
 Skicka OpenLineage-händelser till OneUptime, oförändrade, med en [intagningsnyckel](/docs/telemetry/ingestion-keys) för telemetri:

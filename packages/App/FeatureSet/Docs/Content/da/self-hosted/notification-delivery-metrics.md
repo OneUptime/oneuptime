@@ -6,7 +6,7 @@ OneUptime registrerer, hvordan det går med de notifikationer, det sender: hvor 
 - [Slå dem til](#slå-dem-til): To indstillinger, og uden dem registreres intet.
 - [Metrikkerne](#metrikkerne): Syv metrikker, fra udløseren til telefonen.
 - [Sådan tages tid på et tilkald](#sådan-tages-tid-på-et-tilkald): Hvad tid til afsendelse og afsendelsesforsinkelse regnes fra.
-- [SLO'er at starte med](#sloer-at-starte-med): Fire mål, forespørgsel for forespørgsel.
+- [SLO'er at starte med](#sloer-at-starte-med): Fem mål, forespørgsel for forespørgsel.
 :::
 
 ## Sådan virker det
@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Angiv dem i `config.env`, og kør derefter `npm start`. `DISABLE_TELEMETRY_FOR_APP` er som standard `true`, og så sendes intet.
 :::
 
-OneUptime skal have både endpointet og headerne: uden en header sender det intet. Skriv hver header som `name=value`, og adskil flere med `;`. En værdi må gerne indeholde `=`. OneUptime tilføjer selv `/v1/metrics` til endpointet, og de samme indstillinger sender også dets egne traces og logs. Hver metrik dukker op, så snart OneUptime registrerer den første gang: `notification.send.count` med den første sendte besked.
+OneUptime skal have både endpointet og headerne: uden en header sender det intet. Skriv hver header som `name=value`, og adskil flere med `;` eller med `,` som i `OTEL_EXPORTER_OTLP_HEADERS`. En værdi må gerne indeholde `=`. Uden `;` læses en værdi sådan, som standarden skriver den, med et mellemrum som `%20`: afslut indstillingen med `;` for at sende den nøjagtigt, som den er skrevet. Headere sat i selve `OTEL_EXPORTER_OTLP_HEADERS`, eller i `OTEL_EXPORTER_OTLP_METRICS_HEADERS` kun for metrikker, tæller også: eksportøren sender dem ligeledes, og ved samme navn vinder OneUptimes egne. OneUptime tilføjer selv `/v1/metrics` til endpointet, og de samme indstillinger sender også dets egne traces og logs. Hver metrik dukker op, så snart OneUptime registrerer den første gang: `notification.send.count` med den første sendte besked.
 
 ### Send deltaer til et OneUptime-projekt
 
@@ -57,19 +57,15 @@ OneUptime sender tællere og histogrammer, som OpenTelemetry gør som standard: 
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-En tjenestes egen liste erstatter den for hele chartet: hvis du angiver `app.extraEnv` eller `worker.extraEnv`, så tilføj den også dér.
+Chartet giver værdien videre som `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` til hver tjeneste, der sender OneUptimes egen telemetri.
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-Opret den ved siden af `docker-compose.yml`, eller føj dette til den, du har, og kør derefter `npm start`.
+Angiv den i `config.env`, og kør derefter `npm start`.
 :::
 
 Det gælder for hver metrik, OneUptime sender om sig selv. En backend, der selv læser løbende totaler, som Prometheus, har ikke brug for nogen ændring.
@@ -155,7 +151,7 @@ Statusser kommer kun, hvor udbyderen kan melde dem:
 | --- | --- |
 | `monitor_data_received` | Da OneUptime modtog de data, der udløste monitoren: en indgående anmodning, en serveragents rapport, en indgående e-mail, en sondes kontrol, en SNMP-trap eller en forespørgsel til en netværksenhed. Det omfatter den tid, dataene ventede i køen på at blive vurderet. |
 | `record_created` | Da hændelsen, advarslen eller episoden blev oprettet: af en telemetrimonitor, en regel eller en person, og ved en kontrol for fravær, såsom et heartbeat, der stoppede. |
-| `page_started` | Da et tilkald startede senere: en person, en arbejdsgang eller en regel, der nu passer, startede det, eller det er et direkte tilkald. For et tilkald, som dets vagtregel eller OneUptime AI holdt tilbage, da pausen udløb, eller da det startede, hvis det var før. For et nyt tilkald, da timeouten efter bekræftelse udløb. En worker, der nåede frem til et af dem for sent, viser sig altså i tiden. |
+| `page_started` | Da et tilkald startede senere: en person, en arbejdsgang eller en regel, der nu passer, startede det, eller det er et direkte tilkald. For et tilkald, som dets vagtregel eller OneUptime AI holdt tilbage, da pausen udløb, eller da det startede, hvis det var før. For et nyt tilkald, da timeouten efter bekræftelse udløb, eller da dets politik sidst blev ændret, hvis det var senere: en timeout, der blev forkortet så meget, at den allerede var udløbet, måles fra ændringen. En worker, der nåede frem til et af dem for sent, viser sig altså i tiden. |
 
 For en indgående anmodning løber tiden fra den seneste anmodning, endpointet modtog, så den kan blive en smule for kort.
 
@@ -187,7 +183,7 @@ En percentil beregnes ud fra buckets og tegnes som midten af den bucket, den fal
 
 ## SLO'er at starte med
 
-Fire mål, som de fleste installationer kan love, hvert bygget af en eller to forespørgsler i metrikudforskeren i det projekt, der modtager metrikkerne. De læser et tidsrum præcist, når metrikkerne ankommer som deltaer: se [Send deltaer til et OneUptime-projekt](#send-deltaer-til-et-oneuptime-projekt).
+Fem mål, som de fleste installationer kan love, hvert bygget af en eller to forespørgsler i metrikudforskeren i det projekt, der modtager metrikkerne. De læser et tidsrum præcist, når metrikkerne ankommer som deltaer: se [Send deltaer til et OneUptime-projekt](#send-deltaer-til-et-oneuptime-projekt).
 
 ### Byg et i metrikudforskeren
 
@@ -210,7 +206,7 @@ Højst 1 % af de vagt-SMS'er, der sendes gennem installationens egen Twilio-kont
 | `a` | `notification.send.count` | **Sum** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Sum** | De samme, med `outcome = failure` |
 
-Formlen `$b / $a * 100` er den andel, der fejlede, og målet holder, så længe den bliver på eller under 1. Et trin uden fejl tegner intet punkt, da `b` ikke har noget. `outcome != not_sent` udelader det, projekternes egne indstillinger holdt tilbage, og `global` projekternes egne Twilio-konti. På en installation, der sender SMS gennem sin SMS- og opkaldsgateway, måler de samme forespørgsler gatewayen. For en anden kanal skal du ændre `sms`: `call`, `push` eller `email`.
+Formlen `$b / $a * 100` er den andel, der fejlede, og målet holder, så længe den bliver på eller under 1. Et trin uden fejl tegner 0, da `b` ikke talte noget i det. `outcome != not_sent` udelader det, projekternes egne indstillinger holdt tilbage, og `global` projekternes egne Twilio-konti. På en installation, der sender SMS gennem sin SMS- og opkaldsgateway, måler de samme forespørgsler gatewayen. For en anden kanal skal du ændre `sms`: `call`, `push` eller `email`.
 
 ### Tilkald går ud inden for 30 sekunder
 
@@ -220,7 +216,17 @@ Formlen `$b / $a * 100` er den andel, der fejlede, og målet holder, så længe 
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-Målet holder, så længe `a` bliver på eller under 30000. Tilkald, der startes senere, måles fra deres start eller fra det tidspunkt, de forfaldt, ikke fra en udløser, så de er udeladt. Gruppér efter `notification.page.start` for at se monitorernes kø (`monitor_data_received`) adskilt fra resten, eller efter `notification.channel` for at finde en langsom kanal.
+Målet holder, så længe `a` bliver på eller under 30000. Tilkald, der startes senere, måles fra deres start eller fra det tidspunkt, de forfaldt, ikke fra en udløser, så de er udeladt: det næste mål dækker dem. Gruppér efter `notification.page.start` for at se monitorernes kø (`monitor_data_received`) adskilt fra resten, eller efter `notification.channel` for at finde en langsom kanal.
+
+### Tilkald, der startes senere, går ud inden for 2 minutter
+
+95 % af de tilkald, der startes senere, når deres udbyder inden for 2 minutter efter forfaldstidspunktet: et tilkald, der blev holdt tilbage, et nyt tilkald og et tilkald, som en person, en arbejdsgang eller en regel startede.
+
+| Forespørgsel | Metrik | Aggregering | Betingelser |
+| --- | --- | --- | --- |
+| `a` | `notification.time_to_send` | **P95** | `notification.page.start = page_started` |
+
+Målet holder, så længe `a` bliver på eller under 120000. Et tilkald, der blev holdt tilbage, eller et nyt tilkald venter på næste kørsel af en worker, der kører én gang i minuttet, så op til et minut af tiden går med at vente på den, og en worker, der kom bagud, lægger mere til.
 
 ### Senere sendte notifikationer går ud inden for 90 sekunder
 

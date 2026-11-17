@@ -7,6 +7,7 @@ import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import UserService from "../../../Server/Services/UserService";
 import FindOneBy from "../../../Server/Types/Database/FindOneBy";
+import MasterApiKey from "../../../Server/Utils/MasterApiKey";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -18,6 +19,7 @@ import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import HashedString from "../../../Types/HashedString";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
@@ -235,6 +237,33 @@ describe("ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware", () => {
     });
 
     /*
+     * While the whole server requires SSO (#6116), an API key still works:
+     * it is no person signing in, but a credential a project's admin made,
+     * scoped to that project and to the permissions given to it, which the
+     * admin revokes on its own. So the server's Require SSO for Login is not
+     * even read for it.
+     */
+    test("should let the key in while the whole server requires SSO, without reading the rule", async () => {
+      mockResolvedApiKey();
+
+      const getRequireSsoForLogin: jest.SpyInstance = getJestSpyOn(
+        GlobalConfigService,
+        "getRequireSsoForLogin",
+      ).mockResolvedValue(true);
+
+      const req: Partial<ExpressRequest> = {
+        headers: { apikey: apiKeyValue.toString() },
+      };
+
+      await runMiddleware(req);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next.mock.calls[0]).toEqual([]);
+      expect((req as OneUptimeRequest).userType).toEqual(UserType.API);
+      expect(getRequireSsoForLogin).not.toHaveBeenCalled();
+    });
+
+    /*
      * The permissions attached to the request are looked up by the KEY's id,
      * and the rows found are what the request is allowed to do. Without this
      * the key would authenticate but carry no granted permission, which is the
@@ -449,12 +478,14 @@ describe("ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware", () => {
     );
 
     /*
-     * `ApiKey.apiKey` and `GlobalConfig.masterApiKey` are Postgres `uuid`
-     * columns. Passing a non-UUID string down to them raises 22P02 "invalid
-     * input syntax for type uuid" as a raw QueryFailedError, which is not a
-     * OneUptime Exception, so it escapes the error translator and answers 500
-     * to what is really a malformed request. The shape check must happen before
-     * any lookup — assert the lookups never even run.
+     * `ApiKey.apiKey` is a Postgres `uuid` column. Passing a non-UUID string
+     * down to it raises 22P02 "invalid input syntax for type uuid" as a raw
+     * QueryFailedError, which is not a OneUptime Exception, so it escapes the
+     * error translator and answers 500 to what is really a malformed request.
+     * And no master API key was ever anything but a uuid (its hash is stored
+     * now, #7901), so the master key's lookup has nothing to read for it
+     * either. The shape check must happen before any lookup — assert the
+     * lookups never even run.
      */
     test("should never hit the database for a non-UUID apikey header", async () => {
       const req: Partial<ExpressRequest> = {
@@ -555,21 +586,20 @@ describe("ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware", () => {
     type MockMasterKeyEnabledFunction = () => void;
 
     /*
-     * The master key is enabled, and the lookup answers ONLY for the key that
-     * was actually presented — which is exactly what the `masterApiKey: apiKey`
-     * term in the real query does.
+     * The master key is enabled, and the server's settings row holds its
+     * HASH (#7901), as the database does: the row is answered whatever key
+     * was presented, and only the key whose hash it holds may match it -
+     * which is exactly what isMasterApiKey's comparison decides.
      *
-     * A blanket "always return a row" stub would be a tautology dressed as a
-     * test: it would stay green if the query lost that term, or if the
-     * middleware stopped passing the caller's key to isMasterApiKey at all —
-     * i.e. if every well-formed key on an instance with the master key enabled
-     * were promoted to master admin. That is the worst regression this file
-     * could miss, so the fake has to be able to say no.
+     * A blanket "always accept" stub would be a tautology dressed as a test:
+     * it would stay green if the comparison were lost, or if the middleware
+     * stopped passing the caller's key to isMasterApiKey at all — i.e. if
+     * every well-formed key on an instance with the master key enabled were
+     * promoted to master admin. That is the worst regression this file could
+     * miss, so the fake has to be able to say no: it holds a hash, and the
+     * middleware has to compare.
      */
     const mockMasterKeyEnabled: MockMasterKeyEnabledFunction = (): void => {
-      const globalConfig: GlobalConfig = new GlobalConfig();
-      globalConfig._id = ObjectID.getZeroObjectID().toString();
-
       // findApiKey stays null: the master key is not a project API key row.
       spyGlobalConfigFindOneBy.mockImplementation(
         async (
@@ -580,18 +610,20 @@ describe("ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware", () => {
             unknown
           >;
 
-          const isScopedToPresentedKey: boolean =
-            String(query["masterApiKey"] ?? "") ===
-            masterApiKeyValue.toString();
-
-          const isScopedToEnabledMasterKey: boolean =
-            query["isMasterApiKeyEnabled"] === true;
-
-          if (isScopedToPresentedKey && isScopedToEnabledMasterKey) {
-            return globalConfig;
+          // The one settings row, read by its id - never by the key.
+          if (query["_id"] !== ObjectID.getZeroObjectID().toString()) {
+            return null;
           }
 
-          return null;
+          const globalConfig: GlobalConfig = new GlobalConfig();
+          globalConfig._id = ObjectID.getZeroObjectID().toString();
+          globalConfig.isMasterApiKeyEnabled = true;
+          globalConfig.masterApiKey = new HashedString(
+            MasterApiKey.hash(masterApiKeyValue),
+            true,
+          );
+
+          return globalConfig;
         },
       );
     };

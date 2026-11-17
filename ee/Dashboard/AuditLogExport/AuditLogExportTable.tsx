@@ -13,6 +13,7 @@ import {
   getAuditLogExportHealth,
   getAuditLogExportHealthColor,
 } from "./AuditLogExportForm";
+import { AuditLogExportEntriesLostLine } from "./AuditLogExportEntriesLost";
 import AuditLogExportFormModal from "./AuditLogExportFormModal";
 import { AuditLogExportTestModal } from "./AuditLogExportTest";
 import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
@@ -607,6 +608,22 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
                   ),
                 })}
               </p>
+            ) : (
+              <></>
+            )}
+            {/*
+              From when the entries waiting start to be deleted (#7186): for
+              an export that is failing and on, as the server reads it.
+            */}
+            {viewingError.id &&
+            viewingError.failingSince &&
+            viewingError.isEnabled !== false ? (
+              <AuditLogExportEntriesLostLine
+                key={viewingError.id.toString()}
+                route={copy.entriesLostAtRoute}
+                modelAPI={props.modelAPI}
+                exportId={viewingError.id.toString()}
+              />
             ) : (
               <></>
             )}

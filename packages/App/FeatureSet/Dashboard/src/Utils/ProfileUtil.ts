@@ -1,6 +1,10 @@
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
+  ProfileFrameOrigin,
+  getProfileFrameOrigin,
+} from "Common/Utils/Profiles/ProfileFrames";
+import {
   ProfileValueUnit,
   formatProfileValue as formatCommonProfileValue,
 } from "Common/Utils/Profiles/ProfileTypes";
@@ -38,6 +42,14 @@ export type ModuleCategory =
   | "runtime"
   | "native"
   | "unknown";
+
+const ORIGIN_TO_MODULE: Record<ProfileFrameOrigin, ModuleCategory> = {
+  [ProfileFrameOrigin.Own]: "own",
+  [ProfileFrameOrigin.Dependency]: "vendor",
+  [ProfileFrameOrigin.Runtime]: "runtime",
+  [ProfileFrameOrigin.Native]: "native",
+  [ProfileFrameOrigin.Unknown]: "unknown",
+};
 
 export default class ProfileUtil {
   /**
@@ -264,69 +276,21 @@ export default class ProfileUtil {
   }
 
   /**
-   * Classify a frame's source file into a module category.
-   *
-   * Rules (in priority order):
-   *   1. Empty / unknown file → "unknown"
-   *   2. Starts with "node:" or matches Node internals → "runtime"
-   *   3. Contains "node_modules" → "vendor"
-   *   4. Starts with /usr/lib, /usr/src/node, [kernel], or looks like a
-   *      shared library → "native" / "runtime"
-   *   5. Everything else (your project paths, relative paths) → "own"
-   *
-   * This heuristic is intentionally generous: when in doubt we prefer to
-   * classify a frame as "own" so the user sees their code highlighted.
+   * Whose code a frame runs, as the flame graphs colour it: the rule the
+   * function list, its panel and the headline use
+   * (Common/Utils/Profiles/ProfileFrames), so one frame is never "Your code"
+   * in the graph and "Library" in the list beside it. It reads the file,
+   * then the function's name and the frame's kind when there is no file:
+   * an eBPF profiler's kernel frame, a JVM frame with no path.
    */
-  public static getModuleCategory(fileName: string): ModuleCategory {
-    const f: string = (fileName || "").toLowerCase();
-
-    if (!f) {
-      return "unknown";
-    }
-
-    // Node.js internals
-    if (
-      f.startsWith("node:") ||
-      f.startsWith("internal/") ||
-      f.startsWith("node:internal")
-    ) {
-      return "runtime";
-    }
-
-    // Language runtimes (Go, Python, JVM, V8)
-    if (
-      f.startsWith("/usr/local/go/") ||
-      f.startsWith("/opt/python") ||
-      f.startsWith("runtime/") ||
-      f.startsWith("java/") ||
-      f.startsWith("jdk.") ||
-      f.startsWith("[v8") ||
-      f.startsWith("v8::")
-    ) {
-      return "runtime";
-    }
-
-    // Kernel / native
-    if (
-      f.startsWith("[kernel]") ||
-      f.startsWith("/lib/") ||
-      f.startsWith("/usr/lib/") ||
-      f.endsWith(".so") ||
-      f.includes(".so.")
-    ) {
-      return "native";
-    }
-
-    // Third-party dependencies
-    if (
-      f.includes("node_modules") ||
-      f.includes("site-packages") ||
-      f.includes("vendor/")
-    ) {
-      return "vendor";
-    }
-
-    return "own";
+  public static getModuleCategory(
+    fileName: string,
+    functionName?: string | undefined,
+    frameType?: string | undefined,
+  ): ModuleCategory {
+    return ORIGIN_TO_MODULE[
+      getProfileFrameOrigin(fileName, functionName, frameType)
+    ];
   }
 
   /**
@@ -441,8 +405,9 @@ export default class ProfileUtil {
         return translationKey("Runtime");
       case "native":
         return translationKey("System");
+      // A frame with no name and no file: code built without symbols.
       default:
-        return translationKey("Unknown");
+        return translationKey("No symbols");
     }
   }
 

@@ -462,6 +462,13 @@ describe("a stopped nova-compute, replayed from what real clouds' exporters said
     jest
       .spyOn(MonitorService, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined as never);
+    /*
+     * A monitor's first result stamps when it was first measured, a write
+     * that never waits for the row (MonitorFirstMeasured): taken here.
+     */
+    jest
+      .spyOn(MonitorService, "updateColumnsByIdIfUnlockedWithoutHooks")
+      .mockResolvedValue(true as never);
     jest.spyOn(MonitorProbeService, "findBy").mockResolvedValue([] as never);
     jest
       .spyOn(MonitorStatusService, "findOneBy")

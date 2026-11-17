@@ -35,11 +35,11 @@ Sie brauchen einen Telemetrie-Ingestion-Schlüssel vom Typ **Server**. Falls Sie
 
 Gehen Sie zu **Produkte → Projekteinstellungen**, öffnen Sie im Seitenmenü **Telemetrie & APM** und wählen Sie **Ingestion-Schlüssel**.
 
-![Die Liste „Ingestion-Schlüssel“, „Aufnahmeschlüssel erstellen“ ist markiert](screen:ingestion-keys)
+![Die Liste „Ingestion-Schlüssel“, „Ingestion-Schlüssel erstellen“ ist markiert](screen:ingestion-keys)
 
 ### Einen Schlüssel erstellen
 
-Klicken Sie auf **Aufnahmeschlüssel erstellen**. Im Dialog ist der Name des Schlüssels bereits ausgefüllt und **Server** gewählt – die Art Schlüssel, mit der eine Anwendung oder ein Collector sendet –; klicken Sie also auf **Aufnahmeschlüssel erstellen**, um ihn anzulegen, oder benennen Sie ihn vorher um.
+Klicken Sie auf **Ingestion-Schlüssel erstellen**. Im Dialog ist der Name des Schlüssels bereits ausgefüllt und **Server** gewählt – die Art Schlüssel, mit der eine Anwendung oder ein Collector sendet –; klicken Sie also auf **Ingestion-Schlüssel erstellen**, um ihn anzulegen, oder benennen Sie ihn vorher um.
 
 ### Das Geheimnis kopieren
 
@@ -289,7 +289,20 @@ Setzen Sie beim .NET-Profiler für eine Minute `DD_TRACE_DEBUG=1` in der Anwendu
 | --- | --- |
 | **Wohin die CPU-Zeit geht** | Alle Profile im Zeitfenster, zu einem Flame-Graph zusammengeführt. Je breiter ein Frame, desto größer sein Anteil. Klicken Sie auf einen Frame, um hineinzuzoomen. |
 | **Funktionen** | Die Funktionen, die am meisten beanspruchen, sortiert nach **Eigen** (die Zeit im eigenen Code der Funktion), **Gesamt** (mit allem, was sie aufruft) oder **Ihr Code** (Ihre eigenen Funktionen, jeweils mit dem Bibliotheks- und Laufzeitcode, den sie aufrufen: die Zeit, die eine Änderung an ihnen zurückgewinnen kann). |
-| **Profilierte Dienste** | Jeder profilierte Dienst, die ausgelastetsten zuerst. Kernel-Threads, die der eBPF-Profiler erfasst, werden ausgeblendet. |
+| **Profilierte Dienste** | Jeder profilierte Dienst, die ausgelastetsten zuerst, jeweils mit dem, wohin seine eigene Zeit geht: sein eigener Code, der am meisten beansprucht. Bei mehreren Diensten und keinem ausgewählten steht diese Karte zuerst. Kernel-Threads, die der eBPF-Profiler erfasst, werden ausgeblendet. |
+
+### Ein Flame-Graph lesen
+
+Ein Flame-Graph führt alle Profile im Zeitfenster zu einem Bild zusammen. Jeder Balken ist eine Funktion: Je breiter er ist, desto größer ist sein Anteil an der Zeit, und die Balken darunter sind die Funktionen, die sie aufruft. **So lesen Sie das** neben dem Titel des Graphen erklärt es direkt auf der Seite.
+
+- **Eigen** ist die Zeit im eigenen Code einer Funktion, **Gesamt** zählt alles hinzu, was sie aufruft. Ein breiter Balken mit wenig darunter erledigt die Arbeit selbst: Beginnen Sie dort.
+- Die Farben zeigen, wessen Code ein Balken ist: **Ihr Code** (orange), **Bibliothek** (blau), **Laufzeit** (grau), **System** (lila) und **Keine Symbole** (hellgrau). Die Liste neben dem Graphen verwendet dieselben Wörter.
+- Ein Balken zeigt den kurzen Namen einer Funktion, etwa `aggregate.(*Builder).Sum`. Fahren Sie mit der Maus darüber, um den vollständigen Namen, die Datei und die Anteile Eigen und Gesamt zu sehen.
+- Klicken Sie auf einen Balken, um hineinzuzoomen, und drücken Sie Esc, um wieder herauszuzoomen.
+
+### Code ohne Symbole
+
+Nativer Code, der ohne Symbole gebaut wurde, erreicht den Profiler nur als Adressen, etwa `0x270675`. Der Flame-Graph fasst sie zu einem Balken **Keine Symbole** unter der aufrufenden Funktion zusammen und gibt unter dem Graphen an, wie viel davon keine Symbole hat. Um diese Funktionen mit Namen zu sehen, behalten Sie die Symbole der Binärdatei: Entfernen Sie sie nicht (bei Go lassen Sie `-ldflags="-s -w"` weg; bei C, C++ und Rust bauen Sie mit Debug-Informationen), oder installieren Sie ihr Debug-Symbol-Paket dort, wo der Profiler läuft.
 
 ### Zwei Zeitfenster vergleichen
 

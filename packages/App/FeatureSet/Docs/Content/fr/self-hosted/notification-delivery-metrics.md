@@ -6,7 +6,7 @@ OneUptime enregistre le sort des notifications qu'il envoie : combien d'incident
 - [Les activer](#les-activer): Deux paramètres, et rien n'est enregistré sans eux.
 - [Les métriques](#les-métriques): Sept métriques, du déclencheur au téléphone.
 - [Comment une alerte est chronométrée](#comment-une-alerte-est-chronométrée): D'où partent le délai d'envoi et le retard d'envoi.
-- [Des SLO pour commencer](#des-slo-pour-commencer): Quatre objectifs, requête par requête.
+- [Des SLO pour commencer](#des-slo-pour-commencer): Cinq objectifs, requête par requête.
 :::
 
 ## Fonctionnement
@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Définissez-les dans `config.env`, puis lancez `npm start`. `DISABLE_TELEMETRY_FOR_APP` vaut `true` par défaut, et alors rien n'est envoyé.
 :::
 
-OneUptime a besoin à la fois du point de terminaison et des en-têtes : sans en-tête, il n'envoie rien. Écrivez chaque en-tête sous la forme `name=value`, et séparez-en plusieurs par `;`. Une valeur peut contenir `=`. OneUptime ajoute lui-même `/v1/metrics` au point de terminaison, et les mêmes paramètres envoient aussi ses propres traces et journaux. Chaque métrique apparaît dès que OneUptime l'enregistre pour la première fois : `notification.send.count` avec le premier message envoyé.
+OneUptime a besoin à la fois du point de terminaison et des en-têtes : sans en-tête, il n'envoie rien. Écrivez chaque en-tête sous la forme `name=value`, et séparez-en plusieurs par `;`, ou par `,` comme dans `OTEL_EXPORTER_OTLP_HEADERS`. Une valeur peut contenir `=`. Sans `;`, une valeur est lue telle que ce standard l'écrit, un espace s'écrivant `%20` : terminez le paramètre par `;` pour l'envoyer exactement telle qu'elle est écrite. Les en-têtes définis dans `OTEL_EXPORTER_OTLP_HEADERS` lui-même, ou dans `OTEL_EXPORTER_OTLP_METRICS_HEADERS` pour les seules métriques, comptent aussi : l'exportateur les envoie également, et à nom égal ceux de OneUptime l'emportent. OneUptime ajoute lui-même `/v1/metrics` au point de terminaison, et les mêmes paramètres envoient aussi ses propres traces et journaux. Chaque métrique apparaît dès que OneUptime l'enregistre pour la première fois : `notification.send.count` avec le premier message envoyé.
 
 ### Envoyer des deltas à un projet OneUptime
 
@@ -57,19 +57,15 @@ OneUptime envoie les compteurs et les histogrammes comme OpenTelemetry le fait p
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-La liste propre à un service remplace celle de tout le chart : si vous définissez `app.extraEnv` ou `worker.extraEnv`, ajoutez-la là aussi.
+Le chart transmet la valeur, sous le nom `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE`, à chaque service qui envoie la télémétrie de OneUptime lui-même.
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-Créez-le à côté de `docker-compose.yml`, ou ajoutez ceci à celui que vous avez, puis lancez `npm start`.
+Définissez-le dans `config.env`, puis lancez `npm start`.
 :::
 
 Cela s'applique à chaque métrique que OneUptime envoie sur lui-même. Un backend qui lit lui-même les totaux cumulés, comme Prometheus, n'a besoin d'aucun changement.
@@ -155,7 +151,7 @@ Les statuts n'arrivent que là où le fournisseur peut les signaler :
 | --- | --- |
 | `monitor_data_received` | Quand OneUptime a reçu les données qui ont déclenché le moniteur : une requête entrante, le rapport d'un agent serveur, un e-mail entrant, la vérification d'une sonde, un trap SNMP ou l'interrogation d'un équipement réseau. Elle inclut le temps que les données ont attendu dans la file avant d'être évaluées. |
 | `record_created` | Quand l'incident, l'alerte ou l'épisode a été créé : par un moniteur de télémétrie, une règle ou une personne, et pour une vérification d'absence, comme un heartbeat qui s'est arrêté. |
-| `page_started` | Quand une alerte a démarré plus tard : une personne, un flux de travail ou une règle qui correspond désormais l'a démarrée, ou c'est une alerte directe. Pour une alerte retenue par sa règle d'astreinte ou par OneUptime AI, quand sa suspension a pris fin, ou quand elle a démarré si c'était plus tôt. Pour une nouvelle alerte, quand le délai après prise en compte a expiré. Un worker arrivé en retard à l'une ou l'autre se voit donc dans le temps. |
+| `page_started` | Quand une alerte a démarré plus tard : une personne, un flux de travail ou une règle qui correspond désormais l'a démarrée, ou c'est une alerte directe. Pour une alerte retenue par sa règle d'astreinte ou par OneUptime AI, quand sa suspension a pris fin, ou quand elle a démarré si c'était plus tôt. Pour une nouvelle alerte, quand le délai après prise en compte a expiré, ou quand sa politique a été modifiée pour la dernière fois, si c'était plus tard : un délai raccourci au point d'avoir déjà expiré est chronométré depuis la modification. Un worker arrivé en retard à l'une ou l'autre se voit donc dans le temps. |
 
 Pour une requête entrante, la durée part de la dernière requête reçue par le point de terminaison, elle peut donc être un peu courte.
 
@@ -187,7 +183,7 @@ Un percentile est calculé à partir des compartiments, et tracé au milieu du c
 
 ## Des SLO pour commencer
 
-Quatre objectifs que la plupart des installations peuvent promettre, chacun construit à partir d'une ou deux requêtes dans l'explorateur de métriques du projet qui reçoit les métriques. Ils lisent une période exactement dès que les métriques arrivent sous forme de deltas : voir [Envoyer des deltas à un projet OneUptime](#envoyer-des-deltas-à-un-projet-oneuptime).
+Cinq objectifs que la plupart des installations peuvent promettre, chacun construit à partir d'une ou deux requêtes dans l'explorateur de métriques du projet qui reçoit les métriques. Ils lisent une période exactement dès que les métriques arrivent sous forme de deltas : voir [Envoyer des deltas à un projet OneUptime](#envoyer-des-deltas-à-un-projet-oneuptime).
 
 ### En construire un dans l'explorateur de métriques
 
@@ -210,7 +206,7 @@ Au plus 1 % des SMS d'astreinte envoyés par le propre compte Twilio de l'instal
 | `a` | `notification.send.count` | **Somme** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Somme** | Les mêmes, avec `outcome = failure` |
 
-La formule `$b / $a * 100` est la part qui a échoué, et l'objectif tient tant qu'elle reste inférieure ou égale à 1. Un pas sans échec ne trace aucun point, car `b` n'en a pas. `outcome != not_sent` exclut ce que les paramètres propres aux projets ont retenu, et `global` les propres comptes Twilio des projets. Sur une installation qui envoie ses SMS par sa passerelle SMS et appels, les mêmes requêtes mesurent la passerelle. Pour un autre canal, remplacez `sms` : `call`, `push` ou `email`.
+La formule `$b / $a * 100` est la part qui a échoué, et l'objectif tient tant qu'elle reste inférieure ou égale à 1. Un pas sans échec trace 0, car `b` n'y a rien compté. `outcome != not_sent` exclut ce que les paramètres propres aux projets ont retenu, et `global` les propres comptes Twilio des projets. Sur une installation qui envoie ses SMS par sa passerelle SMS et appels, les mêmes requêtes mesurent la passerelle. Pour un autre canal, remplacez `sms` : `call`, `push` ou `email`.
 
 ### Les alertes partent en moins de 30 secondes
 
@@ -220,7 +216,17 @@ La formule `$b / $a * 100` est la part qui a échoué, et l'objectif tient tant 
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-L'objectif tient tant que `a` reste inférieur ou égal à 30000. Les alertes démarrées plus tard sont chronométrées depuis leur démarrage ou leur échéance, pas depuis un déclencheur, elles sont donc exclues. Regroupez par `notification.page.start` pour voir la file des moniteurs (`monitor_data_received`) à part du reste, ou par `notification.channel` pour trouver un canal lent.
+L'objectif tient tant que `a` reste inférieur ou égal à 30000. Les alertes démarrées plus tard sont chronométrées depuis leur démarrage ou leur échéance, pas depuis un déclencheur, elles sont donc exclues : l'objectif suivant les couvre. Regroupez par `notification.page.start` pour voir la file des moniteurs (`monitor_data_received`) à part du reste, ou par `notification.channel` pour trouver un canal lent.
+
+### Les alertes démarrées plus tard partent en moins de 2 minutes
+
+95 % des alertes démarrées plus tard atteignent leur fournisseur dans les 2 minutes suivant leur échéance : une alerte retenue, une nouvelle alerte et une alerte qu'une personne, un flux de travail ou une règle a démarrée.
+
+| Requête | Métrique | Agrégation | Conditions |
+| --- | --- | --- | --- |
+| `a` | `notification.time_to_send` | **P95** | `notification.page.start = page_started` |
+
+L'objectif tient tant que `a` reste inférieur ou égal à 120000. Une alerte retenue ou une nouvelle alerte attend la prochaine exécution d'un worker qui tourne une fois par minute, donc jusqu'à une minute de son temps se passe à l'attendre, et un worker qui a pris du retard en ajoute davantage.
 
 ### Les notifications envoyées plus tard partent en moins de 90 secondes
 

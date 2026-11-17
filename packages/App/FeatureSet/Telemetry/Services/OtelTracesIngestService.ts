@@ -5,7 +5,7 @@ import {
   getScalarEntityKeyColumns,
 } from "Common/Server/Services/OpenTelemetryIngestService";
 import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
-import EventLoop from "Common/Server/Utils/EventLoop";
+import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
 import { normalizeObiReceivingSideMessagingSpanKind } from "../Utils/ObiReceivingSideMessagingSpan";
 import {
@@ -18,6 +18,7 @@ import {
 } from "../Utils/ObiSpanSemantics";
 import OneUptimeDate, { ExactUnixNano } from "Common/Types/Date";
 import { readDeploymentEnvironment } from "Common/Utils/Telemetry/DeploymentEnvironment";
+import { readSessionIdFromAttributes } from "Common/Utils/Telemetry/CorrelationIdAttributes";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import {
   IngestionStamp,
@@ -85,7 +86,9 @@ import ServiceType from "Common/Types/Telemetry/ServiceType";
 import TraceDropFilterService, {
   LoadedTraceDropFilter,
 } from "./TraceDropFilterService";
-import TraceScrubRuleService from "./TraceScrubRuleService";
+import TraceScrubRuleService, {
+  ExceptionContent,
+} from "./TraceScrubRuleService";
 import TracePipelineService, {
   LoadedTracePipeline,
 } from "./TracePipelineService";
@@ -467,13 +470,21 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         modelPriceOverrides = [];
       }
 
-      let resourceSpanCounter: number = 0;
+      /*
+       * The event loop is handed back by the time the work took, not every
+       * so many spans: a span's work grows with what it carries - up to
+       * 10,000 values inside its lists and maps, each read by every scrub
+       * rule - so 200 large spans held the loop for seconds. One budget for
+       * the batch, asked before each resource, scope and span
+       * (Common/Server/Utils/EventLoop.ts).
+       */
+      const eventLoopBudget: EventLoopBudget = new EventLoopBudget();
+
       for (const resourceSpan of resourceSpans) {
         try {
-          if (resourceSpanCounter % 25 === 0) {
-            await EventLoop.yieldToEventLoop();
+          if (eventLoopBudget.isSpent()) {
+            await eventLoopBudget.handBack();
           }
-          resourceSpanCounter++;
           const resourceAttributes_raw: JSONArray =
             ((resourceSpan["resource"] as JSONObject)?.[
               "attributes"
@@ -647,13 +658,11 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
             continue;
           }
 
-          let scopeSpanCounter: number = 0;
           for (const scopeSpan of scopeSpans) {
             try {
-              if (scopeSpanCounter % 50 === 0) {
-                await EventLoop.yieldToEventLoop();
+              if (eventLoopBudget.isSpent()) {
+                await eventLoopBudget.handBack();
               }
-              scopeSpanCounter++;
               const spans: JSONArray = scopeSpan["spans"] as JSONArray;
 
               if (!spans || !Array.isArray(spans)) {
@@ -682,13 +691,11 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                 scopeSpan["scope"],
               );
 
-              let spanCounter: number = 0;
               for (const span of spans) {
                 try {
-                  if (spanCounter % 200 === 0) {
-                    await EventLoop.yieldToEventLoop();
+                  if (eventLoopBudget.isSpent()) {
+                    await eventLoopBudget.handBack();
                   }
-                  spanCounter++;
 
                   /*
                    * One fresh attribute map per span (downstream scrub /
@@ -1455,16 +1462,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
     for (const rawException of data.rawExceptions) {
       try {
-        const scrubbed: {
-          message: string;
-          stackTrace: string;
-          attributes: JSONObject;
-        } =
+        const scrubbed: ExceptionContent =
           data.scrubRules.length > 0
             ? TraceScrubRuleService.scrubExceptionContent(
                 {
                   message: rawException.message,
                   stackTrace: rawException.stackTrace,
+                  exceptionType: rawException.exceptionType,
                   attributes: rawException.attributes,
                 },
                 data.scrubRules,
@@ -1473,7 +1477,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
         const message: string = scrubbed.message;
         const stackTrace: string = scrubbed.stackTrace;
-        const exceptionType: string = rawException.exceptionType;
+        /*
+         * The type as stored: scrubbed by the rules that scrub the span's
+         * events, as the event's exception.type on the Span row is. The
+         * fingerprints below read the type as it came (rawException), as
+         * they read the message and stack trace.
+         */
+        const exceptionType: string = scrubbed.exceptionType ?? "";
 
         /*
          * Fingerprint deliberately computed on the PRE-scrub content while
@@ -1494,7 +1504,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           primaryEntityId: spanContext.primaryEntityId,
           message: rawException.message,
           stackTrace: rawException.stackTrace,
-          exceptionType: exceptionType,
+          exceptionType: rawException.exceptionType,
         });
 
         /*
@@ -1507,7 +1517,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           primaryEntityId: spanContext.primaryEntityId,
           message: rawException.message,
           stackTrace: rawException.stackTrace,
-          exceptionType: exceptionType,
+          exceptionType: rawException.exceptionType,
         });
 
         // Extract release and environment from resource attributes
@@ -1641,59 +1651,6 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
   }
 
   /*
-   * Session replay correlation from attributes: the FALLBACK for a span
-   * whose trace state carries no recorder session member (see
-   * buildSpanEvaluationRow), such as a span from the page's own browser
-   * OpenTelemetry, or from a backend that sets the id itself.
-   * `session.id` reaches us in one of two shapes and we must accept both:
-   *
-   *   - as a span attribute, under the bare key "session.id";
-   *   - as a RESOURCE attribute, which TelemetryUtil.getAttributes
-   *     prefixes with "resource.", so it arrives as
-   *     "resource.session.id".
-   *
-   * Reading only the bare key would look correct in a unit test and fail
-   * in production, because a browser SDK sets session.id ONCE on the
-   * resource rather than on every span.
-   *
-   * Duplicated verbatim in OtelLogsIngestService: the two ingest services
-   * share no base for row building, and a Common helper would put an
-   * ingest-only concern in the shared telemetry utils. Logs have no
-   * trace-state path, because an OTLP log record carries no trace state.
-   */
-  private static readonly sessionIdAttributeKeys: ReadonlyArray<string> = [
-    "session.id",
-    "resource.session.id",
-  ];
-
-  private static getSessionIdFromAttributes(
-    attributes: Record<string, unknown> | undefined,
-  ): string {
-    if (!attributes) {
-      return "";
-    }
-
-    for (const key of this.sessionIdAttributeKeys) {
-      const value: unknown = attributes[key];
-
-      if (typeof value === "string" && value !== "") {
-        return value;
-      }
-
-      /*
-       * A numeric or boolean session id is nonsense but harmless to
-       * coerce; an array or object is not a usable join key, so it falls
-       * through to the next candidate key and ultimately to "".
-       */
-      if (typeof value === "number" || typeof value === "boolean") {
-        return String(value);
-      }
-    }
-
-    return "";
-  }
-
-  /*
    * The drop-filter-visible slice of a span row: every column of the full
    * row EXCEPT the three ingest-generated stamps (_id, createdAt,
    * retentionDate), in the full row's exact field order. The drop filter
@@ -1752,11 +1709,17 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
        * can keep stamping backend spans until its session ends, but the
        * tombstone lookup needs Redis and throws when Redis is down, and a
        * span batch must not fail for that.
+       *
+       * Without the member, the FALLBACK is the `session.id` attribute, or
+       * the resource's: a span from the page's own browser OpenTelemetry,
+       * or from a backend that sets the id itself
+       * (Common/Utils/Telemetry/CorrelationIdAttributes, shared with the
+       * logs ingest and the scrub rules, which keep it).
        */
       sessionId:
         data.sessionTraceState !== null
           ? data.sessionTraceState.sessionId
-          : this.getSessionIdFromAttributes(data.attributes),
+          : readSessionIdFromAttributes(data.attributes),
       parentSpanId: data.parentSpanId,
       traceState: data.traceState || "",
       attributes: data.attributes,

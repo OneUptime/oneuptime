@@ -145,7 +145,7 @@ describe("the timeout a step editor offers for a step on a global Runner", () =>
         "600",
         GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS,
       ),
-    ).toBe("Maximum is 300 seconds (5 minutes).");
+    ).toBe("Maximum is 300\u00A0seconds (5\u00A0minutes).");
     expect(
       willTimeoutBeClamped("600", GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS),
     ).toBe(true);

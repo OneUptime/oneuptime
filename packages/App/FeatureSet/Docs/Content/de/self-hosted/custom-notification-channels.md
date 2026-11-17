@@ -96,7 +96,7 @@ Jeder Alarm ist eine `POST`-Anfrage mit einem JSON-Body:
 | `title`, `message` | Fertig zum Anzeigen, so wie eine Push-Benachrichtigung sie zeigen würde |
 | `user` | Für wen der Alarm ist. Finden Sie das Konto in Ihrer App über `email` oder `id`. |
 | `team` | Das Team, über das die Person alarmiert wurde, oder `null`, wenn sie direkt alarmiert wurde |
-| `recordType`, `record` | Worum es im Alarm geht: ein `incident`, `alert`, `incidentEpisode` oder `alertEpisode` |
+| `recordType`, `record` | Worum es in der Warnung geht: ein `incident`, `alert`, `incidentEpisode` oder `alertEpisode` |
 | `onCallPolicy`, `escalationRule` | Die Richtlinie und die Stufe, die die Person alarmiert haben |
 | `isPageAgain` | `true`, wenn der Datensatz vor einer Weile bestätigt wurde und noch immer nicht behoben ist |
 | `isObserverPage` | `true`, wenn die Person als Beobachter alarmiert wird: Sie wird auf dem Laufenden gehalten, während andere reagieren. Bestätigt sie ihre Alarmierung, heißt das nur, dass sie sie gesehen hat |
@@ -129,7 +129,7 @@ Drückt die Person in Ihrer App eine Schaltfläche, sendet Ihr Dienst eine `POST
 
 | Aktion | Was sie bewirkt |
 | --- | --- |
-| `acknowledge` | Bestätigt den Alarm der Person und damit den Vorfall, die Warnung oder die Episode |
+| `acknowledge` | Bestätigt die Warnung der Person und damit den Vorfall, die Warnung oder die Episode |
 | `escalate` | Die Person kann ihn nicht übernehmen: alarmiert sofort die nächste Stufe der Bereitschaftsrichtlinie und hört auf, sie zu alarmieren |
 | `resolve` | Behebt den Vorfall, die Warnung oder die Episode, wenn die eigenen Berechtigungen der Person es erlauben |
 

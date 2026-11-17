@@ -1,6 +1,7 @@
 import MonitorsElement from "../Monitor/Monitors";
 import { MONITOR_SECRET_ACCESS_TITLES } from "../../Pages/Monitor/Settings/MonitorSecretAccessFormFields";
-import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
+import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorSecretAccess, {
   MonitorSecretAccessUtil,
 } from "Common/Types/Monitor/MonitorSecretAccess";
@@ -8,8 +9,24 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
+/*
+ * A secret limited to some monitors, by the rule MonitorSecretAccess keeps:
+ * a monitor secret, or an incoming request secret (issue #8501).
+ */
+export interface MonitorSecretAccessHolder {
+  monitorAccess?: MonitorSecretAccess | undefined;
+  monitors?: Array<Monitor> | undefined;
+  labels?: Array<Label> | undefined;
+}
+
 export interface ComponentProps {
-  secret: MonitorSecret;
+  secret: MonitorSecretAccessHolder;
+  /*
+   * The mode a row without a known one reads as: what its column defaults
+   * to. A monitor secret's is Specific Monitors, an incoming request
+   * secret's All Monitors.
+   */
+  defaultAccess?: MonitorSecretAccess | undefined;
 }
 
 /*
@@ -28,7 +45,7 @@ const MonitorSecretAccessElement: FunctionComponent<ComponentProps> = (
     props.secret.monitorAccess,
   )
     ? props.secret.monitorAccess
-    : MonitorSecretAccessUtil.DEFAULT_ACCESS;
+    : props.defaultAccess || MonitorSecretAccessUtil.DEFAULT_ACCESS;
 
   const title: string =
     translateString(MONITOR_SECRET_ACCESS_TITLES[access]) ||

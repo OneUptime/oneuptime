@@ -3,6 +3,8 @@ import AggregateBy from "../../../Server/Types/Database/AggregateBy";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import { CheckReadPermissionType } from "../../../Server/Types/Database/Permissions/ReadPermission";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
+import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
+import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
@@ -13,7 +15,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, jest } from "@jest/globals";
 import { FindOperator } from "typeorm";
 import fs from "fs";
 import path from "path";
@@ -646,20 +648,21 @@ describe("the contract aggregateBy's own comments claim", () => {
      * assertion here would have to bring the mock with it, into a suite whose
      * whole point is that it needs no database.
      *
-     * The nested shape did not leave with it. It belongs to the ALLOW half,
-     * which is the half that has always produced the join aggregateBy has to
-     * survive: AccessControlPermission.addAccessControlIdsToQuery puts the
-     * permitted label ids on the access-control column, and
-     * QueryUtil.serializeQuery turns an id array on an EntityArray column
-     * into `{ _id: <operator> }`.
+     * The ALLOW half went the same way with a database (#8113):
+     * AccessControlPermission.addLabelIdsToQuery writes the permitted labels
+     * as a flat `_id IN (SELECT ownerId FROM the junction table ...)` once
+     * the junction table can be named. Without it - no database, as here -
+     * the allow half still puts the permitted label ids on the access-control
+     * column, and QueryUtil.serializeQuery turns an id array on an
+     * EntityArray column into `{ _id: <operator> }`: the nested shape this
+     * test watches. The producer a database still has is the next test's.
      *
      * So this asks the pipeline rather than grepping whichever file happens
      * to spell it today: run the same call aggregateBy makes and look at what
-     * comes back. It goes red if the label-scoped read stops producing a
-     * relation-keyed condition — whether because the allow path moves to a
-     * flat `_id` predicate the way the block path did, because serializeQuery
-     * stops nesting the id filter under the relation, or because NetworkDevice
-     * loses its access-control relation.
+     * comes back. It goes red if the label-scoped read without a database
+     * stops producing a relation-keyed condition — because serializeQuery
+     * stops nesting the id filter under the relation, or because
+     * NetworkDevice loses its access-control relation.
      *
      * If that day comes, a red here is NOT permission to delete the
      * setFindOptions requirement above, and it is not permission to quietly
@@ -758,6 +761,69 @@ describe("the contract aggregateBy's own comments claim", () => {
     expect(boundIdsOf(nestedIdFilter as FindOperator<unknown>)).toEqual([
       permittedLabelId.toString(),
     ]);
+  });
+
+  it("still has a nested access-control condition with a database: a read through a labelled parent", async () => {
+    /*
+     * Where the label junction tables can be named - every read on a
+     * database - the label-scoped allow on the table itself is flat, like
+     * the block (#8113): no key on the access-control relation, only a
+     * condition on `_id`. A read of a record through a labelled parent
+     * (@CanAccessIfCanReadOn: an incident's internal notes) still narrows
+     * the parent RELATION itself, `{ incident: { labels: ids } }`: the
+     * relation-keyed condition aggregateBy has to survive on a database, and
+     * the one buildAggregateScope's de-duplicating subquery is for. When this
+     * goes flat too, follow the nested condition to wherever it is produced
+     * then - see the test above.
+     */
+    withLabelJoinTables();
+
+    try {
+      const projectId: ObjectID = ObjectID.generate();
+      const permittedLabelId: ObjectID = ObjectID.generate();
+
+      const device: CheckReadPermissionType<NetworkDevice> =
+        await ModelPermission.checkReadQueryPermission(
+          NetworkDevice,
+          { projectId: projectId },
+          null,
+          labelScopedReaderProps(projectId, permittedLabelId),
+        );
+
+      // The table's own labels: flat, a condition on the id alone.
+      expect((device.query as any)["labels"]).toBeUndefined();
+      expect((device.query as any)["_id"]).toBeInstanceOf(FindOperator);
+      expect(boundIdsOf((device.query as any)["_id"])).toEqual([
+        permittedLabelId.toString(),
+      ]);
+
+      const note: CheckReadPermissionType<IncidentInternalNote> =
+        await ModelPermission.checkReadQueryPermission(
+          IncidentInternalNote,
+          { projectId: projectId },
+          null,
+          labelScopedReaderProps(projectId, permittedLabelId),
+        );
+
+      expect(new IncidentInternalNote().canAccessIfCanReadOn).toBe("incident");
+
+      // The parent relation, nested: a filter on the RELATED row's labels.
+      const parentCondition: Record<string, unknown> = (note.query as any)[
+        "incident"
+      ];
+
+      expect(parentCondition).toBeTruthy();
+      expect(typeof parentCondition).toBe("object");
+      expect(
+        (parentCondition["labels"] as Array<ObjectID>).map(
+          (labelId: ObjectID): string => {
+            return labelId.toString();
+          },
+        ),
+      ).toEqual([permittedLabelId.toString()]);
+    } finally {
+      jest.restoreAllMocks();
+    }
   });
 
   it("runs the query through ModelPermission.checkReadQueryPermission, like findBy and countBy", () => {

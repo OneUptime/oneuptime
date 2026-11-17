@@ -80,7 +80,7 @@ Med to eller flere betingelser velger du **Samsvar med alle**, der hver må stem
 :::steps
 ### Velg varslene
 
-Klikk på **Opprett Alert On-Call Rule**. Under **Treff** samsvarer **Alle varsler**, som en ny regel starter på, med hvert nytt varsel. For å snevre inn regelen velger du **Bare varsler som oppfyller betingelsene** og legger til betingelsene et varsel må oppfylle.
+Klikk på **Opprett Vaktregel for varsler**. Under **Treff** samsvarer **Alle varsler**, som en ny regel starter på, med hvert nytt varsel. For å snevre inn regelen velger du **Bare varsler som oppfyller betingelsene** og legger til betingelsene et varsel må oppfylle.
 
 ### Velg policyene
 
@@ -171,7 +171,7 @@ Kortet **Neste nummer** under setter nummeret det neste varselet og den neste ep
 
 ### Dataoppbevaring
 
-**Varsler → Innstillinger → Dataoppbevaring** sletter varsler når de har vært løst lenge nok, slik [Dataoppbevaring](/docs/incidents/settings#dataoppbevaring) gjør for hendelser. Kortet **Løste varsler** spør om **Slett etter**, **Aldri** til du velger en periode, og ber om bekreftelse før mer slettes, med **Slett gamle varsler**. Et varsel blir værende så lenge det ikke er løst, så lenge det er i en episode som fortsatt er åpen eller ble løst for kortere tid siden, og så lenge en hendelse det er knyttet til, blir værende. Bare Prosjekteiere og Prosjektadministratorer kan endre den; i API-et er det prosjektets `alertRetentionInDays`.
+**Varsler → Innstillinger → Dataoppbevaring** sletter varsler når de har vært løst lenge nok, slik [Dataoppbevaring](/docs/incidents/settings#dataoppbevaring) gjør for hendelser. Kortet **Løste varsler** spør om **Slett etter**, **Aldri** til du velger en periode, og ber om bekreftelse før mer slettes, med **Slett gamle varsler**, og sier samtidig hvor mange varsler det sletter nå. Et varsel slettes med tidslinjen, notatene og filene som er lagt ved dem, med mindre noe annet fortsatt bruker en fil. Et varsel blir værende så lenge det ikke er løst, så lenge det er i en episode som fortsatt er åpen eller ble løst for kortere tid siden, og så lenge en hendelse det er knyttet til, blir værende. Bare Prosjekteiere og Prosjektadministratorer kan endre den; i API-et er det prosjektets `alertRetentionInDays`. På en selvdriftet server kan en hovedadministrator holde alle prosjekter til en grense og velge hva nye prosjekter starter med: se [En grense for hele serveren](/docs/incidents/settings#en-grense-for-hele-serveren).
 
 > [!NOTE]
 > På OneUptime Cloud krever notatmaler og egendefinerte felt planen **Growth** eller høyere.

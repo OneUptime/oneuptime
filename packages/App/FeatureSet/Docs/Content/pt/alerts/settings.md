@@ -80,7 +80,7 @@ Com duas ou mais condições, escolha **Corresponder a todas**, em que todas pre
 :::steps
 ### Escolher os alertas
 
-Clique em **Criar: Alert On-Call Rule**. Em **Corresponder**, **Todos os alertas**, onde uma regra nova começa, corresponde a todo alerta novo. Para restringi-la, escolha **Somente os alertas que atendem às condições** e adicione as condições que um alerta precisa atender.
+Clique em **Criar: Regra de plantão de alertas**. Em **Corresponder**, **Todos os alertas**, onde uma regra nova começa, corresponde a todo alerta novo. Para restringi-la, escolha **Somente os alertas que atendem às condições** e adicione as condições que um alerta precisa atender.
 
 ### Escolher as políticas
 
@@ -171,7 +171,7 @@ O cartão **Próximo número** abaixo define o número que o próximo alerta e o
 
 ### Retenção de dados
 
-**Alertas → Configurações → Retenção de dados** exclui os alertas depois que estão resolvidos há tempo suficiente, como [Retenção de dados](/docs/incidents/settings#retenção-de-dados) faz com os incidentes. O cartão **Alertas resolvidos** pergunta **Excluir após**, **Nunca** até você escolher um período, e pede confirmação antes de excluir mais, com **Excluir alertas antigos**. Um alerta fica enquanto não estiver resolvido, enquanto estiver em um episódio ainda aberto ou resolvido há menos tempo, e enquanto ficar um incidente ao qual está vinculado. Só Proprietários do projeto e Administradores do projeto podem alterá-la; na API, é `alertRetentionInDays` do projeto.
+**Alertas → Configurações → Retenção de dados** exclui os alertas depois que estão resolvidos há tempo suficiente, como [Retenção de dados](/docs/incidents/settings#retenção-de-dados) faz com os incidentes. O cartão **Alertas resolvidos** pergunta **Excluir após**, **Nunca** até você escolher um período, e pede confirmação antes de excluir mais, com **Excluir alertas antigos**, dizendo quantos alertas isso exclui agora. Um alerta é excluído com sua linha do tempo, suas notas e os arquivos anexados a elas, a menos que outra coisa ainda use um arquivo. Um alerta fica enquanto não estiver resolvido, enquanto estiver em um episódio ainda aberto ou resolvido há menos tempo, e enquanto ficar um incidente ao qual está vinculado. Só Proprietários do projeto e Administradores do projeto podem alterá-la; na API, é `alertRetentionInDays` do projeto. Em um servidor auto-hospedado, um administrador master pode sujeitar todos os projetos a um limite e escolher como os novos projetos começam: veja [Um limite para o servidor inteiro](/docs/incidents/settings#um-limite-para-o-servidor-inteiro).
 
 > [!NOTE]
 > No OneUptime Cloud, os modelos de notas e os campos personalizados exigem o plano **Growth** ou superior.

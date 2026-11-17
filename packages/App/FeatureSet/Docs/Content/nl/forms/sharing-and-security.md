@@ -66,9 +66,9 @@ Zodra het domein live is, toont de kaart **Deellink** het boven de link van het 
 Klik op **Aangepast domein toevoegen**. Het dialoogvenster vraagt om één ding:
 
 - **Domein**: het volledige adres dat mensen gaan openen, met de voorbeeldtekst `report.example.com`. Een geplakte link werkt ook: alleen de hostnaam ervan wordt bewaard. Om het hoofddomein te gebruiken, typ je gewoon het domein zelf.
-- **Meer velden**: ingeklapt. Open het alleen om een eigen certificaat te gebruiken: zet **Aangepast certificaat uploaden** aan en plak het **Certificaat** en de **Privésleutel van certificaat** ervan.
+- **Meer velden**: ingeklapt. Open het alleen om een eigen certificaat te gebruiken: zet **Aangepast certificaat uploaden** aan en plak het **Certificaat** en de **Privésleutel van certificaat** ervan. De sleutel wordt versleuteld opgeslagen en nooit meer getoond. Een certificaat en een sleutel die niet bij elkaar horen, worden geweigerd, met de reden onder het veld dat niet klopt.
 
-Klik op **Doorgaan**. Als het project het domein waarop het adres staat heeft geverifieerd, onder **Projectinstellingen** > **Geavanceerd** > **Domeinen**, wordt het domein toegevoegd en opent de **DNS-instelling** ervan. Zo niet, dan voegt OneUptime dat domein toe aan het project en opent de **DNS-instelling** ook met het TXT-record ervan, zodat je het meteen daar verifieert. De naam van een domein en zijn formulier liggen vast zodra het is toegevoegd, dus **Bewerken** wijzigt alleen het certificaat: om een van beide te wijzigen, voeg je het nieuwe domein toe en verwijder je het oude.
+Klik op **Doorgaan**. Als het project het domein waarop het adres staat heeft geverifieerd, onder **Projectinstellingen** > **Geavanceerd** > **Domeinen**, wordt het domein toegevoegd en opent de **DNS-instelling** ervan. Zo niet, dan voegt OneUptime dat domein toe aan het project en opent de **DNS-instelling** ook met het TXT-record ervan, zodat je het meteen daar verifieert. De naam van een domein en zijn formulier liggen vast zodra het is toegevoegd, dus **Bewerken** wijzigt alleen het certificaat: om een van beide te wijzigen, voeg je het nieuwe domein toe en verwijder je het oude. Bij een domein dat je eigen certificaat aanbiedt, is **Privésleutel van certificaat** leeg in het venster **Bewerken**: laat het leeg om de opgeslagen sleutel te behouden, wat genoeg is voor een certificaat dat met dezelfde sleutel is verlengd, of plak een nieuwe sleutel. Bij een domein met het gratis certificaat vraagt het aanzetten van **Aangepast certificaat uploaden** om de sleutel.
 
 Een domein toont één statuspagina, één dashboard of één formulier, dus een naam die een van die al heeft, in welk project ook, wordt geweigerd: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
 
@@ -186,6 +186,10 @@ Elke variabele leest ook haar oude naam, met `INCIDENT_FORM_` ervoor in plaats v
 ### Captcha
 
 Als je OneUptime-instantie hCaptcha aan heeft staan, toont het formulier een captcha, en een inzending die hem niet heeft doorstaan, wordt geweigerd. Er is geen instelling per formulier. Een zelf gehoste installatie zet captcha aan met `CAPTCHA_ENABLED`, `CAPTCHA_SITE_KEY` en `CAPTCHA_SECRET_KEY` — dezelfde instellingen die het registreren beschermen. Zonder captcha dragen de snelheidslimieten en de IP-toelatingslijst de last.
+
+### Malwarescan
+
+Een zelf gehoste installatie kan elk bestand dat mensen sturen met ClamAV op malware laten scannen voordat het wordt opgeslagen: de bestanden van een formulier, en de bestanden die mensen ingelogd of met een API-sleutel uploaden. Stel `CLAMAV_HOST` (en `CLAMAV_PORT`, standaard `3310`) in op een ClamAV-daemon. Met Docker Compose starten `COMPOSE_PROFILES=clamav` en `CLAMAV_HOST=clamav` in `config.env` de ClamAV die bij OneUptime hoort; met Helm zet u `clamav.enabled` aan. Een bestand dat ClamAV markeert, wordt geweigerd met de naam erbij, en van de inzending wordt niets opgeslagen. Zolang ClamAV niet antwoordt, wordt elk bestand geweigerd met "Bestanden kunnen op dit moment niet op virussen worden gecontroleerd, dus ze zijn niet aangenomen. Probeer het over een paar minuten opnieuw." (503), zodat geen bestand ongecontroleerd wordt opgeslagen. Zonder `CLAMAV_HOST` worden bestanden niet gescand, zoals voorheen.
 
 ## Problemen oplossen
 

@@ -139,7 +139,7 @@ Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Innkommende fore
 
 ### Erklær en hendelse for hvert problem
 
-I trinnet **Kriterier** åpner du det første kriteriet, det som markerer monitoren som frakoblet. Sett filteret til **Forespørselstekst**, **Inneholder**, `"status":"1"`. Dette kriteriet erklærer allerede en hendelse når filteret samsvarer. Fyll ut hendelsen:
+I trinnet **Kriterier** åpner du det første kriteriet, det som markerer monitoren som offline. Sett filteret til **Forespørselstekst**, **Inneholder**, `"status":"1"`. Dette kriteriet erklærer allerede en hendelse når filteret samsvarer. Fyll ut hendelsen:
 
 - **Hendelsestittel**: `Zabbix: {{requestBody.name}} on {{requestBody.host}}`.
 - **Alvorlighetsgrad**: alvorlighetsgraden Zabbix-problemer skal ha.

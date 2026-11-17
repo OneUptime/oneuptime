@@ -93,7 +93,7 @@ flowchart TB
 Öffnen Sie in der App **Settings** und schalten Sie unter **Notifications** den Schalter **Critical On-Call Alerts** ein.
 
 ### Kritische Hinweise erlauben
-Wenn iOS fragt, ob OneUptime On-Call kritische Hinweise senden darf, tippen Sie auf **Erlauben**. iOS fügt dann unter **Einstellungen → Mitteilungen → OneUptime On-Call** einen Schalter **Kritische Hinweise** für die App hinzu, mit dem Sie es sich später anders überlegen können. Die Zeile unter dem Schalter der App sagt, ob Alarme durchklingeln.
+Wenn iOS fragt, ob OneUptime On-Call kritische Hinweise senden darf, tippen Sie auf **Erlauben**. iOS fügt dann unter **Einstellungen → Mitteilungen → OneUptime On-Call** einen Schalter **Kritische Hinweise** für die App hinzu, mit dem Sie es sich später anders überlegen können. Die Zeile unter dem Schalter der App sagt, ob Warnungen durchklingeln.
 
 ### Einen Alarmton und seine Lautstärke wählen
 Tippen Sie unter dem Schalter auf **Alarm sound**. Neben dem eigenen Ton des Geräts für kritische Hinweise bietet die App Klaxon, Siren, Digital alarm, Smoke alarm und Rising alarm, der leise beginnt und immer lauter wird. Tippen Sie neben einem Ton auf Wiedergabe, um ihn anzuhören. Wählen Sie dann die Lautstärke, mit der ein Alarm spielt: 25 %, 50 %, 75 % oder 100 %, die Voreinstellung.
@@ -106,7 +106,7 @@ Nur Bereitschaftsalarme klingeln durch, und nur aus Bereitschaftsregeln, die auf
 
 ## Verhindern, dass Alarme zurückgehalten werden
 
-Ohne kritische Warnungen können ein Fokus oder eine Zusammenfassung Alarme zurückhalten:
+Ohne kritische Warnungen können ein Fokus oder eine Zusammenfassung Warnungen zurückhalten:
 
 - **Fokus.** Fügen Sie OneUptime On-Call unter **Einstellungen → Fokus** zu den Apps hinzu, die jeder Fokus erlaubt.
 - **Geplante Zusammenfassung.** Lassen Sie OneUptime On-Call unter **Einstellungen → Mitteilungen → Geplante Zusammenfassung** heraus: Eine Mitteilung in der Zusammenfassung wartet bis zu deren nächstem Zeitpunkt.

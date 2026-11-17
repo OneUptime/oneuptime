@@ -3,6 +3,7 @@ import {
   getFormSubmissionCreatedLink,
   getFormSubmissionSubmitter,
   FormSubmissionCreatedLink,
+  isFormSubmissionIncidentHidden,
 } from "./FormSubmissionPresentation";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -168,6 +169,14 @@ const FormSubmissionsTable: FunctionComponent<ComponentProps> = (
       title: FormsCopy.created,
       type: FieldType.Element,
       getElement: (item: FormSubmission): ReactElement => {
+        if (isFormSubmissionIncidentHidden(item)) {
+          return (
+            <span className="text-sm text-gray-500">
+              {tx(FormsCopy.createdPrivate)}
+            </span>
+          );
+        }
+
         const created: FormSubmissionCreatedLink | null =
           getFormSubmissionCreatedLink(item);
 
@@ -194,6 +203,10 @@ const FormSubmissionsTable: FunctionComponent<ComponentProps> = (
         );
       },
       getExportValue: (item: FormSubmission): string => {
+        if (isFormSubmissionIncidentHidden(item)) {
+          return FormsCopy.createdPrivate;
+        }
+
         const created: FormSubmissionCreatedLink | null =
           getFormSubmissionCreatedLink(item);
 

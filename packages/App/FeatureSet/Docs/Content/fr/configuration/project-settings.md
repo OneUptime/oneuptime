@@ -64,7 +64,7 @@ Un produit masqué n'est pas désactivé. Il passe sous **Plus de produits**, la
 
 Sur un serveur auto-hébergé, un administrateur principal peut aussi désactiver un produit pour tous les projets, sous **Paramètres → Produits** dans l'Admin Dashboard (voir [N'exécuter que ce dont vous avez besoin](/docs/installation/docker-compose#nexécuter-que-ce-dont-vous-avez-besoin)). Un tel produit n'a pas d'interrupteur ici : il affiche **Désactivé sur ce serveur**, avec qui peut l'activer.
 
-Un nouveau projet part de ce que son propriétaire a dit vouloir faire sur l'accueil : les essentiels, les paramètres et ce dont ces objectifs ont besoin sont affichés, et le reste est masqué. Un projet qui a passé la question, ou qui a été créé avant elle, affiche tous les produits. Dès que quelqu'un modifie la liste ici, les objectifs ne la modifient plus.
+Chaque produit est affiché jusqu'à ce que quelqu'un le masque ici. Aucun produit n'est masqué de lui-même : ce qu'un Propriétaire du projet ou Administrateur du projet a dit vouloir faire du projet sur l'accueil ne prépare que les premières étapes, et un produit pas encore configuré reste à sa place dans le menu.
 
 Chaque produit indique ce qu'il est pour ce projet : **Utilisée**, **Non configuré** ou, sur OneUptime Cloud, l'offre dont il a besoin. Quand un produit masqué commence à recevoir des données, l'accueil le signale aux Propriétaires du projet et aux Administrateurs du projet et propose **L'afficher** ou **Laisser masqué**.
 
@@ -91,6 +91,8 @@ Dans une liste, les étiquettes d'un enregistrement s'affichent les unes sous le
 ### Archiver une étiquette
 
 Pour retirer une étiquette, archivez-la depuis le menu **⋯** de sa ligne au lieu de la supprimer. Tout ce qui a l'étiquette la conserve, et vous pouvez toujours filtrer par celle-ci, mais personne ne peut plus l'ajouter à quoi que ce soit : chaque sélecteur d'étiquettes l'exclut, et l'API, Terraform et MCP la refusent. La boîte de dialogue liste les règles et permissions configurées pour utiliser l'étiquette, qui continuent à l'utiliser tant que vous ne les modifiez pas. Les étiquettes archivées sont listées à part, dans la section repliée **Étiquettes archivées**, où **Désarchiver** en remet une. **Supprimer** liste d'abord tout ce dont l'étiquette serait retirée, et propose **Archiver plutôt**.
+
+**Utilisé par**, dans le menu de la ligne d'une étiquette, compte les enregistrements de chaque type qui portent l'étiquette, et les ouvre une page à la fois. Les enregistrements que vous ne pouvez pas ouvrir sont comptés, pas nommés.
 
 ## Notifications
 

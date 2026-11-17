@@ -53,6 +53,8 @@ export const TELEMETRY_RECOMMENDED_TEMPLATE_IDS: ReadonlyArray<string> = [
 export const TELEMETRY_SETUP_COPY: {
   pageTitle: string;
   pageDescription: string;
+  sendOutcome: string;
+  alertOutcome: string;
   sendTitle: string;
   sendHelp: string;
   waitTitle: string;
@@ -86,6 +88,16 @@ export const TELEMETRY_SETUP_COPY: {
   pageTitle: translationKey("Send logs, metrics and traces, then get alerted"),
   pageDescription: translationKey(
     "Guided setup: send your app's first telemetry and get alerted on it, on this page.",
+  ),
+  /*
+   * What each step sets up, beside the steps (GuidedSetupFrame, #8897): the
+   * outcome the person is working towards, ticked as each step is done.
+   */
+  sendOutcome: translationKey(
+    "Your app sends its logs, metrics and traces to OneUptime.",
+  ),
+  alertOutcome: translationKey(
+    "Recommended monitors alert you when that data shows a problem.",
   ),
   sendTitle: translationKey("Send your first data"),
   sendHelp: translationKey(

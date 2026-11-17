@@ -391,7 +391,7 @@ Para un incidente limitado a páginas de estado concretas, la regla de un correo
 
 ## Informes por correo electrónico
 
-Una página de estado puede enviar por correo a sus suscriptores un informe según una programación: para cada recurso de la página, su tiempo de actividad, su tiempo de inactividad y sus incidentes durante un periodo. Se configura en la tarjeta **Informes por correo electrónico** en **Páginas de estado → tu página → Avanzado → Informes**.
+Una página de estado puede enviar por correo a sus suscriptores un informe según una programación: para cada recurso de la página, su tiempo de actividad, su tiempo de inactividad y sus incidentes durante un periodo. Un recurso para el que no se midió nada en ese tiempo, porque nada lo había comprobado todavía o su monitoreo estaba desactivado, no tiene tiempo de actividad ni de inactividad en el informe: ambos aparecen como un guion, con Aún no monitoreado o No monitoreado bajo su nombre como en la página de estado, y queda fuera del tiempo de actividad medio de su grupo y de la página. Se configura en la tarjeta **Informes por correo electrónico** en **Páginas de estado → tu página → Avanzado → Informes**.
 
 - **Enviar informes por correo electrónico** activa y desactiva los informes, y se guarda en cuanto lo cambias. No hay nada que rellenar en ningún caso.
 - **La primera vez que se activan los informes**, la página recibe una programación: un informe el día 1 de cada mes a las 09:00, a partir del siguiente día 1 del mes, cada uno sobre todo el mes natural anterior, así que el informe enviado el 1 de noviembre cubre octubre. Las 09:00 están en la zona horaria del informe, que es UTC salvo que la cambies.

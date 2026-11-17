@@ -36,6 +36,7 @@ import { CheckOn, FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import { MonitorStepLlmMonitorUtil } from "../../../Types/Monitor/MonitorStepLlmMonitor";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 import Route from "../../../Types/API/Route";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -135,8 +136,14 @@ describe("buildLlmMonitorPrefill", () => {
       expect(prefill["name"]).toBe(
         LLM_MONITOR_TEMPLATE_COPY[templateId].monitorName,
       );
+      /*
+       * Worded as the page words English (translateText): a duration's
+       * figure held to its word, "in 15 minutes" (#8811).
+       */
       expect(prefill["description"]).toBe(
-        LLM_MONITOR_TEMPLATE_COPY[templateId].monitorDescription,
+        withDurationWordsHeld(
+          LLM_MONITOR_TEMPLATE_COPY[templateId].monitorDescription,
+        ),
       );
       expect(
         MonitorSteps.getValidationError(stepsOf(prefill), MonitorType.Llm),
@@ -218,7 +225,9 @@ describe("buildLlmMonitorPrefill", () => {
       // An alert that resolves itself once the answers recover.
       expect(unhealthy?.data?.alerts[0]?.autoResolveAlert).toBe(true);
       expect(unhealthy?.data?.alerts[0]?.description).toBe(
-        LLM_MONITOR_TEMPLATE_COPY[templateId].alertDescription,
+        withDurationWordsHeld(
+          LLM_MONITOR_TEMPLATE_COPY[templateId].alertDescription,
+        ),
       );
     }
   });

@@ -63,35 +63,37 @@ Fäll ut **Säkerhet** i sidomenyn i **Användarprofil**. Avsnittet har tre sido
 | Sida | Vad den används till |
 | --- | --- |
 | **Lösenordshantering** | Ange ett nytt lösenord. |
-| **Passkeys** | Logga in utan lösenord, med ditt fingeravtryck, ditt ansikte, skärmlåset eller en säkerhetsnyckel. |
-| **Two-factor authentication** | Kräv ett andra steg efter lösenordet eller en länk via e-post: en kod från en app, eller en säkerhetsnyckel. |
+| **Passnycklar** | Logga in utan lösenord, med ditt fingeravtryck, ditt ansikte, skärmlåset eller en säkerhetsnyckel. |
+| **Tvåfaktorsautentisering** | Kräv ett andra steg efter lösenordet eller en länk via e-post: en kod från en app, eller en säkerhetsnyckel. |
 
 ### Byt lösenord
 
 :::steps
 1. Öppna **Säkerhet → Lösenordshantering**.
-2. Ange det nya lösenordet i **Lösenord** och igen i **Bekräfta lösenord**. Det måste vara minst 6 tecken långt.
+2. Ange det nya lösenordet i **Nytt lösenord** och igen i **Bekräfta lösenord**. Det måste vara minst 15 tecken långt och inte förutsägbart, som ett vanligt lösenord eller ett upprepat mönster: några ord som inte har med varandra att göra fungerar bra. Checklistan under fältet bockar av varje del medan du skriver.
 3. Klicka på **Uppdatera lösenord**.
 :::
 
 Ett nytt lösenord loggar ut alla enheter från ditt konto, och varje återställningslänk eller inloggningslänk som redan skickats slutar fungera.
 
+Alla sidor som anger ett lösenord kräver samma sak: registreringen, återställningslänken från **Glömt lösenord?**, den här sidan och en serveradministratörs **Ange lösenord**. Ett lösenord som du angav före den här regeln fortsätter att fungera tills du ändrar det.
+
 ### Lägg till en passnyckel
 
 :::steps
-1. Öppna **Säkerhet → Passkeys** och klicka på **Add Passkey**.
-2. Ge den ett namn som du känner igen, till exempel din enhet eller din lösenordshanterare, och klicka på **Create Passkey**.
+1. Öppna **Säkerhet → Passnycklar** och klicka på **Lägg till passnyckel**.
+2. Ge den ett namn som du känner igen, till exempel din enhet eller din lösenordshanterare, och klicka på **Skapa passnyckel**.
 3. Följ webbläsarens uppmaning för att spara passnyckeln.
 :::
 
-Nästa gång väljer du **Logga in med en passnyckel** på inloggningssidan.
+Nästa gång väljer du **Fler sätt att logga in** → **Logga in med en passnyckel** på inloggningssidan.
 
 ### Logga in med en länk via e-post
 
 Du kan logga in med en länk i stället för ditt lösenord. Det finns inget att ställa in.
 
 :::steps
-1. Välj **Skicka en inloggningslänk till mig** på inloggningssidan.
+1. Välj **Fler sätt att logga in** → **Skicka en inloggningslänk till mig** på inloggningssidan.
 2. Ange din e-postadress och klicka på **Skicka en inloggningslänk till mig**. Sidan visar sedan **Kolla din e-post**.
 3. Öppna länken i e-postmeddelandet och klicka på **Logga in**.
 :::
@@ -108,19 +110,19 @@ Tvåfaktorsautentisering gäller när du loggar in med ditt lösenord eller en l
 :::steps
 ### Lägg till en autentiseringsapp
 
-Öppna **Säkerhet → Two-factor authentication**. Under **Authenticator apps** lägger du till en app och ger den ett namn. Skanna QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, ange den sexsiffriga koden som den visar och klicka på **Verify and finish**. Vill du hellre använda en USB- eller NFC-nyckel lägger du till den under **Security keys**.
+Öppna **Säkerhet → Tvåfaktorsautentisering**. Under **Autentiseringsappar** lägger du till en app och ger den ett namn. Skanna QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, ange den sexsiffriga koden som den visar och klicka på **Verifiera och slutför**. Vill du hellre använda en USB- eller NFC-nyckel lägger du till den under **Säkerhetsnycklar**.
 
 ### Spara dina reservkoder
 
-Första gången du lägger till en app, en nyckel eller en passnyckel visar OneUptime **Your backup codes**. Varje kod loggar in dig en gång om du tappar bort din app eller nyckel. Kopiera eller ladda ned dem, kryssa i rutan som säger att du har sparat dem och klicka på **Klar**.
+Första gången du lägger till en app, en nyckel eller en passnyckel visar OneUptime **Dina reservkoder**. Varje kod loggar in dig en gång om du tappar bort din app eller nyckel. Kopiera eller ladda ned dem, kryssa i rutan som säger att du har sparat dem och klicka på **Klar**.
 
 ### Slå på den
 
-Klicka på **Enable two-factor authentication** högst upp på sidan och bekräfta. Kortet visar nu **Aktiverad**. Från din nästa inloggning med lösenord eller en länk via e-post ber OneUptime om ditt andra steg.
+Klicka på **Aktivera tvåfaktorsautentisering** högst upp på sidan och bekräfta. Kortet visar nu **Aktiverad**. Från din nästa inloggning med lösenord eller en länk via e-post ber OneUptime om ditt andra steg.
 :::
 
 > [!TIP]
-> Håller reservkoderna på att ta slut? **Regenerate codes** på samma sida ger dig en ny uppsättning, och de gamla koderna slutar fungera direkt.
+> Håller reservkoderna på att ta slut? **Generera nya koder** på samma sida ger dig en ny uppsättning, och de gamla koderna slutar fungera direkt.
 
 ## Dina projekt
 
@@ -163,7 +165,7 @@ Loggar du in igen skickas en ny länk: titta även i skräppostmappen. Kan du in
 :::
 
 :::details Jag har tappat bort min autentiseringsapp
-I inloggningens andra steg väljer du **Förlorat åtkomsten till din autentiseringsapp?** och anger en av dina reservkoder. Öppna sedan **Säkerhet → Two-factor authentication** och lägg till din nya app. Utan reservkoder ber du en administratör för din OneUptime-installation att återställa tvåfaktorsautentiseringen för ditt konto.
+I inloggningens andra steg väljer du **Förlorat åtkomsten till din autentiseringsapp?** och anger en av dina reservkoder. Öppna sedan **Säkerhet → Tvåfaktorsautentisering** och lägg till din nya app. Utan reservkoder ber du en administratör för din OneUptime-installation att återställa tvåfaktorsautentiseringen för ditt konto.
 :::
 
 :::details Inloggningen ber mig vänta innan jag provar en annan kod

@@ -95,7 +95,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "अगर आपको ये चाहिए, तो दूसरे टैब में से एक और एजेंट का अपना एक्सपोर्टर इस्तेमाल करें। आप बाद में अपना मन बदल सकते हैं: क्लाउड को जो भी पढ़े, उसका नाम वही रहता है।",
   "The script asks for:": "स्क्रिप्ट ये पूछती है:",
   "- **OneUptime URL and ingestion key**, both shown in step 1. Pick a key there to have them filled in here.":
-    "- **OneUptime URL और इन्जेशन कुंजी**, दोनों चरण 1 में दिखते हैं। उन्हें यहाँ भरवाने के लिए वहाँ एक कुंजी चुनें।",
+    "- **OneUptime URL और इंजेशन कुंजी**, दोनों चरण 1 में दिखते हैं। उन्हें यहाँ भरवाने के लिए वहाँ एक कुंजी चुनें।",
   "- **Cloud name**: how the cloud appears in OneUptime. Keep it stable: a new name registers a new cloud.":
     "- **क्लाउड का नाम**: OneUptime में क्लाउड कैसे दिखता है। इसे स्थिर रखें: नया नाम एक नया क्लाउड दर्ज करता है।",
   "- **Keystone auth URL**, such as `https://keystone.example.com:5000/v3`.":
@@ -263,7 +263,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | हाँ | आपके OneUptime इंस्टेंस का URL (जैसे `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key: the one picked in step 1 |":
-    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | हाँ | टेलीमेट्री इन्जेशन कुंजी: चरण 1 में चुनी गई कुंजी |",
+    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | हाँ | टेलीमेट्री इंजेशन कुंजी: चरण 1 में चुनी गई कुंजी |",
   "| `OPENSTACK_CLOUD_NAME` | Yes | The cloud's name in OneUptime, stamped on every metric as the `openstack.cloud.name` resource attribute. Keep it stable: changing it registers a new cloud |":
     "| `OPENSTACK_CLOUD_NAME` | हाँ | OneUptime में क्लाउड का नाम, हर मेट्रिक पर संसाधन एट्रिब्यूट `openstack.cloud.name` के रूप में लगाया जाता है। इसे स्थिर रखें: इसे बदलने से एक नया क्लाउड दर्ज होता है |",
   "| `OPENSTACK_EXPORTER_CLOUDS` | Yes | The `clouds.yaml` entries to read, one per region and named for the region, in square brackets: `[RegionOne,RegionTwo]` |":
@@ -380,7 +380,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Then delete `/opt/oneuptime-openstack-agent`, which holds the credential, and the application credential itself: `openstack application credential delete oneuptime-agent`.":
     "फिर `/opt/oneuptime-openstack-agent` हटाएँ, जिसमें क्रेडेंशियल है, और खुद एप्लिकेशन क्रेडेंशियल भी: `openstack application credential delete oneuptime-agent`।",
   "`troubleshoot.sh` checks the whole chain, from DNS and TLS to Keystone, each service in the catalog and your ingestion key, and says what this credential can read and what each gap costs.":
-    "`troubleshoot.sh` पूरी कड़ी जाँचता है, DNS और TLS से Keystone तक, कैटलॉग की हर सेवा और आपकी इन्जेशन कुंजी तक, और बताता है कि यह क्रेडेंशियल क्या पढ़ सकता है और हर कमी की क्या कीमत है।",
+    "`troubleshoot.sh` पूरी कड़ी जाँचता है, DNS और TLS से Keystone तक, कैटलॉग की हर सेवा और आपकी इंजेशन कुंजी तक, और बताता है कि यह क्रेडेंशियल क्या पढ़ सकता है और हर कमी की क्या कीमत है।",
   "It needs `sudo` to read `clouds.yaml`, or it skips the credential checks. It ends with a verdict naming the most likely cause.":
     "इसे `clouds.yaml` पढ़ने के लिए `sudo` चाहिए, वरना यह क्रेडेंशियल की जाँच छोड़ देता है। अंत में यह सबसे संभावित कारण बताने वाला निष्कर्ष देता है।",
   "1. Check that the agent is running (in `/opt/oneuptime-openstack-agent`): `docker compose ps`":
@@ -388,7 +388,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent logs for errors: `docker compose logs oneuptime-openstack-agent | grep -i error`":
     "2. एजेंट के लॉग में त्रुटियाँ जाँचें: `docker compose logs oneuptime-openstack-agent | grep -i error`",
   "3. Verify your OneUptime URL and ingestion key are correct.":
-    "3. पुष्टि करें कि आपका OneUptime URL और इन्जेशन कुंजी सही हैं।",
+    "3. पुष्टि करें कि आपका OneUptime URL और इंजेशन कुंजी सही हैं।",
   "4. Ensure the agent machine can reach the OneUptime instance over the network.":
     "4. पक्का करें कि एजेंट की मशीन नेटवर्क पर OneUptime इंस्टेंस तक पहुँच सकती है।",
   "A **Project view** credential can't read them, and neither can a role without the policy overrides: Nova, Neutron and Placement keep them for admins by default. Use **Full view**, or **Infrastructure only** with the files in `access/policy` merged into the file each service's `[oslo_policy] policy_file` names. `troubleshoot.sh` says which reads were refused.":
@@ -432,7 +432,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Both files hold secrets, so keep them to their owner. The exporter runs as uid 65532, and must be the one account that can read `clouds.yaml`. Then start the agent:":
     "दोनों फ़ाइलों में गोपनीय जानकारी है, इसलिए इन्हें केवल उनके मालिक तक रखें। एक्सपोर्टर uid 65532 के रूप में चलता है, और उसे ही अकेला खाता होना चाहिए जो `clouds.yaml` पढ़ सके। फिर एजेंट शुरू करें:",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "`<YOUR_API_KEY>` भरने के लिए चरण 1 में एक इन्जेशन कुंजी चुनें।",
+    "`<YOUR_API_KEY>` भरने के लिए चरण 1 में एक इंजेशन कुंजी चुनें।",
   "A cloud is one Keystone, however many regions it has, and one agent reads them all. Add one `clouds.yaml` entry per region, and list them all in `OPENSTACK_EXPORTER_CLOUDS`. Each entry must be named for its region: the collector stamps that name on the exporter's series as `openstack.region.name`, because the series do not say which region they are from. Every list in OneUptime then filters by region.":
     "एक क्लाउड एक Keystone है, उसके कितने भी क्षेत्र हों, और एक एजेंट उन सबको पढ़ता है। हर क्षेत्र के लिए एक `clouds.yaml` प्रविष्टि जोड़ें, और उन सबको `OPENSTACK_EXPORTER_CLOUDS` में सूचीबद्ध करें। हर प्रविष्टि का नाम उसके क्षेत्र पर होना चाहिए: कलेक्टर वह नाम एक्सपोर्टर की सीरीज़ पर `openstack.region.name` के रूप में लगाता है, क्योंकि सीरीज़ यह नहीं बतातीं कि वे किस क्षेत्र से हैं। तब OneUptime की हर सूची क्षेत्र के अनुसार फ़िल्टर होती है।",
   "The agent reads these from the `.env` file next to `docker-compose.yml`. After changing one, apply it with `docker compose up -d` in the folder with `docker-compose.yml`.":

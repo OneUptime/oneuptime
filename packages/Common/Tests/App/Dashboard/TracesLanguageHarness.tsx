@@ -181,15 +181,20 @@ export const translatorFor: (language: string) => Translator = (
 ): Translator => {
   const instance: i18n = instanceOf(language);
 
-  return createTranslator((text: string): string | undefined => {
-    const translated: unknown = instance.t(text, {
-      defaultValue: text,
-      keySeparator: false,
-      nsSeparator: false,
-    });
+  // A page's translator, as useTranslator is: English holds a duration's figure (#8770).
+  return createTranslator(
+    (text: string): string | undefined => {
+      const translated: unknown = instance.t(text, {
+        defaultValue: text,
+        keySeparator: false,
+        nsSeparator: false,
+      });
 
-    return typeof translated === "string" ? translated : text;
-  }, language);
+      return typeof translated === "string" ? translated : text;
+    },
+    language,
+    { drawsOnPage: true },
+  );
 };
 
 export const word: (language: string, english: string) => string = (

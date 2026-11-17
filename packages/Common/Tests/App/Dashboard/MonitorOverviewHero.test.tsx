@@ -460,7 +460,8 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     secondary: [],
     headline: "Every probe is turned off for this monitor",
     hasExplanation: true,
-    lastKnown: "Last recorded status: Operational",
+    // No probe has ever returned a result: no status was recorded (#7464).
+    lastKnown: undefined,
     cta: { text: "Manage probes", page: PageMap.MONITOR_VIEW_PROBES },
   },
   {
@@ -479,7 +480,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     secondary: [],
     headline: "No probes are attached to this monitor",
     hasExplanation: true,
-    lastKnown: "Last recorded status: Operational",
+    lastKnown: undefined,
     cta: { text: "Add a probe", page: PageMap.MONITOR_VIEW_PROBES },
   },
   {
@@ -550,7 +551,11 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     secondary: [],
     headline: "Waiting for the first check",
     hasExplanation: true,
-    lastKnown: "Last recorded status: Operational",
+    /*
+     * Nothing has been checked: Operational is only the status the monitor
+     * was created in, and "recorded" read as a check that came back (#7464).
+     */
+    lastKnown: undefined,
   },
   {
     name: "5 heartbeat waiting for its first request",
@@ -564,7 +569,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     secondary: [],
     headline: "Waiting for the first heartbeat",
     hasExplanation: true,
-    lastKnown: "Last recorded status: Operational",
+    lastKnown: undefined,
     cta: {
       text: "Setup instructions",
       page: PageMap.MONITOR_VIEW_DOCUMENTATION,
@@ -580,7 +585,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     secondary: [],
     headline: "Waiting for the agent to report",
     hasExplanation: true,
-    lastKnown: "Last recorded status: Operational",
+    lastKnown: undefined,
     cta: {
       text: "Setup instructions",
       page: PageMap.MONITOR_VIEW_DOCUMENTATION,
@@ -614,13 +619,13 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     /*
      * Nothing was ever measured, so the stored status is only the default
      * the monitor was created with: it is neither the badge nor the
-     * headline, just the last recorded status.
+     * headline, and no status was recorded (#7464).
      */
     badge: "No results yet",
     badgeTone: "warning",
     secondary: ["Checks overdue"],
     headline: "No check has completed yet",
-    lastKnown: "Last recorded status: Operational",
+    lastKnown: undefined,
     hasExplanation: true,
     cta: { text: "Check probes", page: PageMap.MONITOR_VIEW_PROBES },
   },
@@ -682,9 +687,10 @@ describe("MonitorOverviewHero run states", () => {
 
     if (testCase.hasExplanation) {
       expect(presentation.explanation).toBeTruthy();
+      // The page's text, its spaces folded as the matcher folds the element's.
       expect(
         screen.getByTestId("monitor-overview-explanation"),
-      ).toHaveTextContent(presentation.explanation!);
+      ).toHaveTextContent(presentation.explanation!.replace(/\u00A0/g, " "));
     } else {
       expect(screen.queryByTestId("monitor-overview-explanation")).toBeNull();
     }
@@ -1025,7 +1031,33 @@ describe("MonitorOverviewHero layout", () => {
     );
   });
 
-  test("a heartbeat's last check is a relative time, not text", () => {
+  test("a heartbeat's last check is a relative time, not text, once the sweeps are late", () => {
+    renderHero({
+      monitorType: MonitorType.IncomingRequest,
+      presentation: presentationFor(MonitorType.IncomingRequest, {
+        heartbeat: {
+          lastReceivedAt: secondsAgo(120),
+          lastCheckedAt: secondsAgo(20 * 60),
+          requestMethod: "POST",
+        },
+      }),
+    });
+
+    const fact: HTMLElement = screen.getByTestId(
+      "monitor-overview-fact-heartbeat-check",
+    );
+    expect(fact.querySelector("time")).toHaveAttribute(
+      "dateTime",
+      secondsAgo(20 * 60).toISOString(),
+    );
+  });
+
+  /*
+   * The sweep stamps its check only every five minutes (#8123): while the
+   * stamp is as recent as a running sweep leaves it, the fact says the
+   * schedule, not a stamp minutes old.
+   */
+  test("a heartbeat checked on its schedule says how often, not a stamp", () => {
     renderHero({
       monitorType: MonitorType.IncomingRequest,
       presentation: presentationFor(MonitorType.IncomingRequest),
@@ -1034,10 +1066,9 @@ describe("MonitorOverviewHero layout", () => {
     const fact: HTMLElement = screen.getByTestId(
       "monitor-overview-fact-heartbeat-check",
     );
-    expect(fact.querySelector("time")).toHaveAttribute(
-      "dateTime",
-      secondsAgo(30).toISOString(),
-    );
+    expect(fact).toHaveTextContent("Missing-request check");
+    expect(fact).toHaveTextContent("Every 30 seconds");
+    expect(fact.querySelector("time")).toBeNull();
   });
 
   describe("owners", () => {

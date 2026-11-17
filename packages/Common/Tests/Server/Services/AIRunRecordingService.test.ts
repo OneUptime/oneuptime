@@ -5,6 +5,10 @@ import AIRunRecordingService, {
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import Services from "../../../Server/Services/Index";
 import { toStorableJson } from "../../../Server/Utils/Database/PostgresStorableValue";
+import {
+  OLDER_ROWS_PURGE_BATCH_SIZE,
+  OLDER_ROWS_PURGE_TIME_BUDGET_MS,
+} from "../../../Server/Utils/Retention/OlderRowsPurge";
 import AIAgentRunLimitsHelper from "../../../Types/AI/AIAgentRunLimits";
 import {
   INVESTIGATION_RECORDING_RETENTION_IN_DAYS,
@@ -12,7 +16,6 @@ import {
   InvestigationRecording,
 } from "../../../Types/AI/InvestigationRecording";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import { EVERY_DAY } from "../../../Utils/CronTime";
 import { getJestSpyOn } from "../../Spy";
@@ -113,6 +116,8 @@ function jobHandler(): CronHandler {
   expect(registration![1]).toEqual({
     schedule: EVERY_DAY,
     runOnStartup: false,
+    // The purge's time budget, and ten minutes for the batches still owed.
+    timeoutInMS: OLDER_ROWS_PURGE_TIME_BUDGET_MS + 10 * 60 * 1000,
   });
 
   return registration![2] as CronHandler;
@@ -161,13 +166,13 @@ describe("AIRunRecordingService: retention", () => {
     const service: AIRunRecordingServiceClass =
       new AIRunRecordingServiceClass();
     const hardDeleteBy: jest.SpyInstance = getJestSpyOn(service, "hardDeleteBy")
-      .mockResolvedValueOnce(LIMIT_MAX)
+      .mockResolvedValueOnce(OLDER_ROWS_PURGE_BATCH_SIZE)
       .mockResolvedValueOnce(0);
     Services.push(service);
 
     await jobHandler()();
 
-    // A full batch is followed by another, until one comes back short.
+    // A batch is followed by another, until one removes nothing.
     expect(hardDeleteBy).toHaveBeenCalledTimes(2);
 
     const request: {
@@ -186,7 +191,8 @@ describe("AIRunRecordingService: retention", () => {
       new Date(NOW.getTime() - 30 * DAY_MS),
     );
     expect(request.props).toEqual({ isRoot: true });
-    expect(request.limit).toBe(LIMIT_MAX);
+    // 1,000 rows a statement, not LIMIT_MAX: a big DELETE held locks for long.
+    expect(request.limit).toBe(OLDER_ROWS_PURGE_BATCH_SIZE);
     expect(request.skip).toBe(0);
   });
 });

@@ -22,6 +22,7 @@ import {
 } from "../../../Server/Utils/Feed/FeedUpdateKinds";
 import ObjectID from "../../../Types/ObjectID";
 import { NotificationRuleUpdateKind } from "../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import {
   afterEach,
   beforeEach,
@@ -359,6 +360,38 @@ describe("an on-call policy's entry in its channels (#7549)", () => {
     const send: Send = await postEntry({});
 
     expect(send.feedInfoInMarkdown).toContain("escalation rule **First line**");
+  });
+
+  test("each workspace hears the line its writer wrote for it, its people as it knows them (#7967) - and the same updates", async () => {
+    mockFeed(OnCallDutyPolicyFeedService);
+    sends = [];
+
+    await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+      onCallDutyPolicyId: RECORD_ID,
+      projectId: PROJECT_ID,
+      onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.UserAdded,
+      feedInfoInMarkdown:
+        "👨🏻‍💻 Added **Ana** to the [On-Call Policy Payments](x) escalation rule **First line** with order **1**.",
+      chatInfoInMarkdown: "👨🏻‍💻 Added **Ana** to on-call policy [Payments](x).",
+      chatInfoByWorkspaceType: {
+        [WorkspaceType.Slack]:
+          "👨🏻‍💻 Added **@ana** to on-call policy [Payments](x).",
+      },
+      workspaceNotification: { sendWorkspaceNotification: true },
+    });
+
+    expect(sends).toHaveLength(1);
+    expect(sends[0]!.markdownByWorkspaceType).toEqual({
+      [WorkspaceType.Slack]:
+        "👨🏻‍💻 Added **@ana** to on-call policy [Payments](x).",
+    });
+    // Every other workspace: the short line, with OneUptime's names.
+    expect(sends[0]!.feedInfoInMarkdown).toBe(
+      "👨🏻‍💻 Added **Ana** to on-call policy [Payments](x).",
+    );
+    expect(sends[0]!.workspaceNotification.updateKinds).toEqual([
+      NotificationRuleUpdateKind.PolicyChanges,
+    ]);
   });
 });
 

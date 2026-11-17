@@ -1,10 +1,12 @@
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
-import { ApiComponentUtils } from "../API/Utils";
-import SSRFProtection from "../../../../Utils/SSRFProtection";
+import { API_COMPONENT_TARGET_VALIDATION } from "../API/Utils";
+import SafeWebhookRequest, {
+  WebhookAnswerTooLargeException,
+  WebhookTarget,
+} from "../../../../Utils/SafeWebhookRequest";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
-import URL from "../../../../../Types/API/URL";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import Exception from "../../../../../Types/Exception/Exception";
 import { JSONObject, JSONValue } from "../../../../../Types/JSON";
@@ -27,13 +29,21 @@ import ZabbixComponents, {
   readZabbixAnswer,
   readZabbixProblemUpdate,
 } from "../../../../../Types/Workflow/Components/Zabbix";
-import API from "../../../../../Utils/API";
+
+/*
+ * The most of an answer the step reads from Zabbix. It asks for one event's
+ * id, state and trigger, and then for that one event to be updated: Zabbix
+ * answers either in a few hundred bytes. A larger answer is not Zabbix's,
+ * and is not read (issue #8875).
+ */
+export const ZABBIX_MAX_RESPONSE_BYTES: number = 1024 * 1024;
 
 /*
  * Update Zabbix Problem (Types/Workflow/Components/Zabbix): reads the
  * problem, chooses what to send, sends it, and reads Zabbix's answer - one
  * request or two to Zabbix's JSON-RPC endpoint, each held to the address
- * rules of the API steps, with redirects off.
+ * rules of the API steps, with redirects off. The address is checked once,
+ * and both requests dial what that check approved (SafeWebhookRequest).
  */
 export default class ZabbixUpdateProblem extends ComponentCode {
   public constructor() {
@@ -82,19 +92,21 @@ export default class ZabbixUpdateProblem extends ComponentCode {
 
   /*
    * One JSON-RPC request: Zabbix's result, or why there is none - a request
-   * that got no answer, an HTTP error, or Zabbix saying no.
+   * that got no answer, an HTTP error, an answer too large to read, or
+   * Zabbix saying no.
    */
   private async call(data: {
-    url: URL;
+    target: WebhookTarget;
     token: string;
     tokenInBody: boolean;
     method: string;
     params: JSONObject;
   }): Promise<ZabbixAnswer> {
-    // Zabbix 6.0 reads the token from the body; 6.4 and later from the header.
-    const answer: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
-      {
-        url: data.url,
+    let answer: HTTPResponse<JSONObject> | HTTPErrorResponse;
+
+    try {
+      // Zabbix 6.0 reads the token from the body; 6.4 and later from the header.
+      answer = await SafeWebhookRequest.send<JSONObject>(data.target, {
         data: getZabbixRequestBody(
           data.method,
           data.params,
@@ -103,9 +115,16 @@ export default class ZabbixUpdateProblem extends ComponentCode {
         headers: data.tokenInBody
           ? {}
           : { Authorization: `Bearer ${data.token}` },
-        options: ApiComponentUtils.requestOptions,
-      },
-    );
+        maxContentLength: ZABBIX_MAX_RESPONSE_BYTES,
+      });
+    } catch (err: unknown) {
+      // Zabbix was reached: say what it answered, not that it could not be.
+      if (err instanceof WebhookAnswerTooLargeException) {
+        return { error: err.describe("Zabbix's answer") };
+      }
+
+      throw err;
+    }
 
     if (answer instanceof HTTPErrorResponse) {
       return {
@@ -189,26 +208,22 @@ export default class ZabbixUpdateProblem extends ComponentCode {
 
     /*
      * The address is held to the API steps' rules: checked as it was typed,
-     * before anything is sent (ApiComponentUtils.sanitizeArgs says why).
+     * before anything is sent (ApiComponentUtils.sanitizeArgs says why), and
+     * every request then dials an address the check approved.
      */
+    let target: WebhookTarget;
+
     try {
-      await SSRFProtection.validateWebhookTargetIsSafe(apiUrl, {
-        allowPrivateNetworkTargets: true,
-      });
+      target = await SafeWebhookRequest.resolveTarget(
+        apiUrl,
+        API_COMPONENT_TARGET_VALIDATION,
+      );
     } catch (err: unknown) {
       return fail(
         err instanceof Exception
           ? err.message
           : "Zabbix URL points to an address that is not allowed.",
       );
-    }
-
-    let url: URL;
-
-    try {
-      url = URL.fromString(apiUrl);
-    } catch {
-      return fail("Zabbix URL is not an address, so Zabbix was not updated.");
     }
 
     try {
@@ -233,7 +248,7 @@ export default class ZabbixUpdateProblem extends ComponentCode {
         summary = `Added the message to Zabbix problem ${eventIdText}.`;
       } else {
         const read: ZabbixAnswer = await this.call({
-          url: url,
+          target: target,
           token: token,
           tokenInBody: tokenInBody,
           method: "event.get",
@@ -280,7 +295,7 @@ export default class ZabbixUpdateProblem extends ComponentCode {
       }
 
       const sent: ZabbixAnswer = await this.call({
-        url: url,
+        target: target,
         token: token,
         tokenInBody: tokenInBody,
         method: "event.acknowledge",

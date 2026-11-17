@@ -1,4 +1,5 @@
 import { SpyInstance } from "jest-mock";
+import { getJestSpyOn } from "../../Spy";
 import "@testing-library/jest-dom";
 import {
   afterEach,
@@ -47,16 +48,25 @@ import arabic from "../../../../App/FeatureSet/Accounts/src/Locales/ar.json";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 import LoginWithSSOPage from "../../../../App/FeatureSet/Accounts/src/Pages/LoginWithSSO";
 import RegisterPage from "../../../../App/FeatureSet/Accounts/src/Pages/Register";
+import {
+  MORE_WAYS_TO_SIGN_IN_OPEN_KEY,
+  MORE_WAYS_TO_SIGN_IN_OPTIONS_ID,
+  MORE_WAYS_TO_SIGN_IN_TOGGLE_TEST_ID,
+} from "../../../../App/FeatureSet/Accounts/src/Components/MoreWaysToSignIn/MoreWaysToSignIn";
+import openMoreWaysToSignIn from "./OpenMoreWaysToSignIn";
 
 /*
  * The other ways to sign in, on the Accounts pages.
  *
- * Under the password form's Login - the page's one filled button - an "or"
- * divider, then the other ways in as normal buttons: full width, outlined,
- * as tall as Login, an icon before the words. "Sign in with SSO", "Continue
- * with Google" and "Sign in with Microsoft" where the server offers them, and
- * "Sign in with a passkey", last. They used to be centred text links (with a bordered Microsoft button
- * between them), which read as small print rather than as choices.
+ * Under the password form's Login - the page's one filled button - "Continue
+ * with Google" and "Sign in with Microsoft" where the server offers them,
+ * after an "or" divider; then one quiet line, "More ways to sign in", that
+ * opens "Sign in with SSO", "Email me a sign-in link" where the server takes
+ * them, and "Sign in with a passkey", last. Every other way in is a normal
+ * button: full width, outlined, as tall as Login, an icon before the words.
+ * All five used to stand open under the form, and people could not tell which
+ * was theirs (#9023); before that they were centred text links, which read as
+ * small print rather than as choices.
  *
  * The single sign-on page offers the way back the same way ("Sign in with
  * password" under "or"), and the sign-up page puts "Continue with Google"
@@ -153,13 +163,23 @@ const comesAfter: (later: Element, earlier: Element) => boolean = (
   );
 };
 
-const renderLogin: () => Promise<void> = async (): Promise<void> => {
+// The sign-in page, with "More ways to sign in" opened unless told not to.
+const renderLogin: (options?: {
+  folded?: boolean;
+}) => Promise<void> = async (options?: { folded?: boolean }): Promise<void> => {
   render(
     <MemoryRouter>
       <LoginPage />
     </MemoryRouter>,
   );
   await screen.findByTestId("email");
+  if (!options?.folded) {
+    openMoreWaysToSignIn();
+  }
+};
+
+const moreWaysToggle: () => HTMLElement = (): HTMLElement => {
+  return screen.getByTestId(MORE_WAYS_TO_SIGN_IN_TOGGLE_TEST_ID);
 };
 
 const renderSso: () => Promise<void> = async (): Promise<void> => {
@@ -244,6 +264,7 @@ const pendingPrompt: () => {
 describe("The other ways to sign in", () => {
   beforeEach(() => {
     posted = [];
+    window.localStorage.clear();
     microsoftClientIdForTest = null;
     googleClientIdForTest = null;
     WebAuthnTestUtil.install();
@@ -287,31 +308,31 @@ describe("The other ways to sign in", () => {
   afterEach(async () => {
     cleanup();
     jest.restoreAllMocks();
+    window.localStorage.clear();
     microsoftClientIdForTest = null;
     googleClientIdForTest = null;
     await i18n.changeLanguage("en");
   });
 
   describe("on the sign-in page", () => {
-    test("under Login: an 'or' divider, then Sign in with SSO and Sign in with a passkey, in that order", async () => {
+    test("under Login: More ways to sign in, then Sign in with SSO and Sign in with a passkey, in that order", async () => {
       await renderLogin();
 
       const signIn: HTMLElement = screen.getByTestId("Sign in");
-      const divider: HTMLElement = screen.getByTestId(
-        "sign-in-options-divider",
-      );
 
-      expect(divider).toHaveTextContent(/^or$/);
-      expect(comesAfter(divider, signIn)).toBe(true);
-      expect(comesAfter(ssoOption(), divider)).toBe(true);
+      // No "or" over a single quiet line: nothing else is offered here.
+      expect(
+        screen.queryByTestId("sign-in-options-divider"),
+      ).not.toBeInTheDocument();
+      expect(comesAfter(moreWaysToggle(), signIn)).toBe(true);
+      expect(comesAfter(ssoOption(), moreWaysToggle())).toBe(true);
       expect(comesAfter(passkeyOption(), ssoOption())).toBe(true);
       expect(ssoOption()).toHaveAccessibleName("Sign in with SSO");
       expect(passkeyOption()).toHaveAccessibleName("Sign in with a passkey");
-      // The divider is the only thing between Login and the first option.
-      expect(divider.nextElementSibling).toContainElement(ssoOption());
     });
 
     test("the divider is one word between two hairlines, the hairlines hidden from assistive technology", async () => {
+      googleClientIdForTest = "google-client-id";
       await renderLogin();
 
       const divider: HTMLElement = screen.getByTestId(
@@ -403,7 +424,7 @@ describe("The other ways to sign in", () => {
       expect(passkeyOption().className).not.toContain("hover:underline");
     });
 
-    test("the keyboard reaches them in the order they are drawn: after Login, single sign-on, then the passkey", async () => {
+    test("the keyboard reaches them in the order they are drawn: after Login, More ways to sign in, single sign-on, then the passkey", async () => {
       await renderLogin();
       const user: ReturnType<typeof userEvent.setup> = userEvent.setup({
         delay: null,
@@ -423,6 +444,7 @@ describe("The other ways to sign in", () => {
       }
 
       const login: number = reached.indexOf(screen.getByTestId("Sign in"));
+      const more: number = reached.indexOf(moreWaysToggle());
       const sso: number = reached.indexOf(ssoOption());
       const passkey: number = reached.indexOf(passkeyOption());
 
@@ -431,7 +453,8 @@ describe("The other ways to sign in", () => {
         login,
       );
       expect(login).toBeGreaterThanOrEqual(0);
-      expect(sso).toBe(login + 1);
+      expect(more).toBe(login + 1);
+      expect(sso).toBe(more + 1);
       expect(passkey).toBe(sso + 1);
     });
 
@@ -447,11 +470,19 @@ describe("The other ways to sign in", () => {
         microsoftClientIdForTest = "microsoft-client-id";
       });
 
-      test("it sits between single sign-on and the passkey, drawn like them", async () => {
+      test("it sits under Login after 'or', outside the fold, drawn like the options in it", async () => {
         await renderLogin();
 
-        expect(comesAfter(microsoftOption(), ssoOption())).toBe(true);
-        expect(comesAfter(passkeyOption(), microsoftOption())).toBe(true);
+        const divider: HTMLElement = screen.getByTestId(
+          "sign-in-options-divider",
+        );
+
+        expect(divider).toHaveTextContent(/^or$/);
+        expect(comesAfter(divider, screen.getByTestId("Sign in"))).toBe(true);
+        expect(comesAfter(microsoftOption(), divider)).toBe(true);
+        expect(comesAfter(moreWaysToggle(), microsoftOption())).toBe(true);
+        expect(comesAfter(ssoOption(), moreWaysToggle())).toBe(true);
+        expect(comesAfter(passkeyOption(), ssoOption())).toBe(true);
         expect(microsoftOption()).toHaveClass(...optionClasses("ready"));
         expect(classSet(microsoftOption())).toEqual(classSet(passkeyOption()));
         // No margin of its own: the list spaces its buttons.
@@ -497,17 +528,19 @@ describe("The other ways to sign in", () => {
         );
       });
 
-      test("the keyboard reaches it between single sign-on and the passkey", async () => {
+      test("the keyboard reaches it after Login, before More ways to sign in", async () => {
         await renderLogin();
         const user: ReturnType<typeof userEvent.setup> = userEvent.setup({
           delay: null,
         });
 
-        ssoOption().focus();
+        screen.getByTestId("Sign in").focus();
         await user.tab();
         expect(microsoftOption()).toHaveFocus();
         await user.tab();
-        expect(passkeyOption()).toHaveFocus();
+        expect(moreWaysToggle()).toHaveFocus();
+        await user.tab();
+        expect(ssoOption()).toHaveFocus();
       });
     });
 
@@ -526,12 +559,18 @@ describe("The other ways to sign in", () => {
         microsoftClientIdForTest = "microsoft-client-id";
       });
 
-      test("it sits after single sign-on and before Microsoft and the passkey, as large as they are", async () => {
+      test("it comes first after 'or', before Microsoft and the fold, as large as every other way in", async () => {
         await renderLogin();
 
-        expect(comesAfter(googleOption(), ssoOption())).toBe(true);
+        expect(
+          comesAfter(
+            googleOption(),
+            screen.getByTestId("sign-in-options-divider"),
+          ),
+        ).toBe(true);
         expect(comesAfter(microsoftOption(), googleOption())).toBe(true);
-        expect(comesAfter(passkeyOption(), microsoftOption())).toBe(true);
+        expect(comesAfter(moreWaysToggle(), microsoftOption())).toBe(true);
+        expect(comesAfter(passkeyOption(), ssoOption())).toBe(true);
         expect(otherWaysIn()).toHaveLength(4);
 
         // The same box, type and focus ring as every other way in...
@@ -620,19 +659,19 @@ describe("The other ways to sign in", () => {
         );
       });
 
-      test("the keyboard reaches it after single sign-on, then Microsoft", async () => {
+      test("the keyboard reaches it right after Login, then Microsoft, then More ways to sign in", async () => {
         await renderLogin();
         const user: ReturnType<typeof userEvent.setup> = userEvent.setup({
           delay: null,
         });
 
-        ssoOption().focus();
+        screen.getByTestId("Sign in").focus();
         await user.tab();
         expect(googleOption()).toHaveFocus();
         await user.tab();
         expect(microsoftOption()).toHaveFocus();
         await user.tab();
-        expect(passkeyOption()).toHaveFocus();
+        expect(moreWaysToggle()).toHaveFocus();
       });
 
       test("pressing it on the sign-in page is a sign-in, not the start of a sign-up", async () => {
@@ -649,13 +688,18 @@ describe("The other ways to sign in", () => {
         expect(posted).toEqual([]);
       });
 
-      test("without Microsoft, it is the one provider between single sign-on and the passkey", async () => {
+      test("without Microsoft, it is the one provider, between 'or' and the fold", async () => {
         microsoftClientIdForTest = null;
         await renderLogin();
 
         expect(screen.queryByTestId("microsoft-sign-in")).toBeNull();
-        expect(comesAfter(googleOption(), ssoOption())).toBe(true);
-        expect(comesAfter(passkeyOption(), googleOption())).toBe(true);
+        expect(
+          comesAfter(
+            googleOption(),
+            screen.getByTestId("sign-in-options-divider"),
+          ),
+        ).toBe(true);
+        expect(comesAfter(moreWaysToggle(), googleOption())).toBe(true);
         expect(otherWaysIn()).toHaveLength(3);
       });
     });
@@ -682,6 +726,7 @@ describe("The other ways to sign in", () => {
       expect(form).toContainElement(ssoOption());
       expect(form).toContainElement(googleOption());
       expect(form).toContainElement(microsoftOption());
+      expect(form).toContainElement(moreWaysToggle());
       expect(form).not.toContainElement(passkeyOption());
 
       await clickPasskey();
@@ -808,6 +853,9 @@ describe("The other ways to sign in", () => {
       expect(passkeyOption()).toHaveAccessibleName(
         "Mit einem Passkey anmelden",
       );
+      expect(moreWaysToggle()).toHaveAccessibleName(
+        "Weitere Anmeldemöglichkeiten",
+      );
       expect(german.common.or).toBe("oder");
     });
 
@@ -832,6 +880,9 @@ describe("The other ways to sign in", () => {
         "تسجيل الدخول باستخدام Microsoft",
       );
       expect(passkeyOption()).toHaveAccessibleName("تسجيل الدخول بمفتاح مرور");
+      expect(moreWaysToggle()).toHaveAccessibleName(
+        arabic.login.moreWaysToSignIn,
+      );
 
       // A label that ends in a Latin name is laid out by its first letter.
       for (const label of [
@@ -850,6 +901,7 @@ describe("The other ways to sign in", () => {
     });
 
     test("the footer's language switcher changes the divider and the options in place", async () => {
+      googleClientIdForTest = "google-client-id";
       await renderLogin();
       expect(ssoOption()).toHaveAccessibleName(english.login.signInWithSso);
 
@@ -859,6 +911,9 @@ describe("The other ways to sign in", () => {
 
       expect(ssoOption()).toHaveAccessibleName(german.login.signInWithSso);
       expect(passkeyOption()).toHaveAccessibleName(german.login.passkey.signIn);
+      expect(moreWaysToggle()).toHaveAccessibleName(
+        german.login.moreWaysToSignIn,
+      );
       expect(screen.getByTestId("sign-in-options-divider")).toHaveTextContent(
         german.common.or,
       );
@@ -930,6 +985,167 @@ describe("The other ways to sign in", () => {
       ).not.toBeInTheDocument();
       expect(screen.queryByTestId("sso-login")).not.toBeInTheDocument();
       expect(screen.queryByTestId("passkey-login")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId(MORE_WAYS_TO_SIGN_IN_TOGGLE_TEST_ID),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  /*
+   * "Too many options causes people to be confused" (#9023): single sign-on,
+   * a sign-in link and a passkey fold under one quiet line, so the card shows
+   * one clear way in. Google and Microsoft stay out of the fold.
+   */
+  describe("More ways to sign in", () => {
+    test("is folded on a first visit: the form, Login and one quiet line, nothing else", async () => {
+      await renderLogin({ folded: true });
+
+      expect(moreWaysToggle()).toHaveAccessibleName("More ways to sign in");
+      expect(moreWaysToggle().tagName).toBe("BUTTON");
+      expect(moreWaysToggle()).toHaveAttribute("type", "button");
+      expect(moreWaysToggle()).toHaveAttribute("aria-expanded", "false");
+      expect(moreWaysToggle()).toHaveAttribute(
+        "aria-controls",
+        MORE_WAYS_TO_SIGN_IN_OPTIONS_ID,
+      );
+      expect(comesAfter(moreWaysToggle(), screen.getByTestId("Sign in"))).toBe(
+        true,
+      );
+      expect(screen.queryByTestId("sso-login")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("passkey-login")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("magic-link-login")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("sign-in-options-divider"),
+      ).not.toBeInTheDocument();
+      // A quiet line, not one more outlined button.
+      expect(moreWaysToggle()).not.toHaveClass("border");
+      expect(moreWaysToggle()).not.toHaveClass("w-full");
+      expect(moreWaysToggle()).toHaveClass("text-sm");
+    });
+
+    test("opens to single sign-on and the passkey, and closes again", async () => {
+      await renderLogin({ folded: true });
+
+      fireEvent.click(moreWaysToggle());
+
+      expect(moreWaysToggle()).toHaveAttribute("aria-expanded", "true");
+      expect(
+        document.getElementById(MORE_WAYS_TO_SIGN_IN_OPTIONS_ID),
+      ).toContainElement(ssoOption());
+      expect(passkeyOption()).toBeInTheDocument();
+      expect(moreWaysToggle().querySelector("svg") as SVGElement).toHaveClass(
+        "-rotate-180",
+      );
+
+      fireEvent.click(moreWaysToggle());
+
+      expect(moreWaysToggle()).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByTestId("sso-login")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("passkey-login")).not.toBeInTheDocument();
+      expect(
+        moreWaysToggle().querySelector("svg") as SVGElement,
+      ).not.toHaveClass("-rotate-180");
+    });
+
+    test("Google and Microsoft stay in sight, after 'or', while the rest is folded", async () => {
+      googleClientIdForTest = "google-client-id";
+      microsoftClientIdForTest = "microsoft-client-id";
+      await renderLogin({ folded: true });
+
+      expect(googleOption()).toBeVisible();
+      expect(microsoftOption()).toBeVisible();
+      expect(screen.getByTestId("sign-in-options-divider")).toHaveTextContent(
+        /^or$/,
+      );
+      expect(comesAfter(moreWaysToggle(), microsoftOption())).toBe(true);
+      expect(screen.queryByTestId("sso-login")).not.toBeInTheDocument();
+      // Login stays the page's one filled button.
+      const filled: Array<HTMLElement> = [
+        ...screen.getAllByRole("button"),
+        ...screen.getAllByRole("link"),
+      ].filter((control: HTMLElement) => {
+        return FILLED_BUTTON_CLASS.test(control.className);
+      });
+      expect(filled).toEqual([screen.getByTestId("Sign in")]);
+    });
+
+    test("this browser remembers it was left open, and that it was closed", async () => {
+      await renderLogin({ folded: true });
+      fireEvent.click(moreWaysToggle());
+      expect(window.localStorage.getItem(MORE_WAYS_TO_SIGN_IN_OPEN_KEY)).toBe(
+        "true",
+      );
+      cleanup();
+
+      await renderLogin({ folded: true });
+      expect(moreWaysToggle()).toHaveAttribute("aria-expanded", "true");
+      expect(ssoOption()).toBeInTheDocument();
+
+      fireEvent.click(moreWaysToggle());
+      expect(
+        window.localStorage.getItem(MORE_WAYS_TO_SIGN_IN_OPEN_KEY),
+      ).toBeNull();
+      cleanup();
+
+      await renderLogin({ folded: true });
+      expect(moreWaysToggle()).toHaveAttribute("aria-expanded", "false");
+    });
+
+    test("storage that cannot be used leaves it folded, and it still opens", async () => {
+      // The fold's key cannot be read or written; the rest of the page's can.
+      const getItem: Storage["getItem"] = Storage.prototype.getItem;
+      const setItem: Storage["setItem"] = Storage.prototype.setItem;
+      getJestSpyOn(Storage.prototype, "getItem").mockImplementation(function (
+        this: Storage,
+        key: string,
+      ) {
+        if (key === MORE_WAYS_TO_SIGN_IN_OPEN_KEY) {
+          throw new Error("SecurityError");
+        }
+        return getItem.call(this, key);
+      });
+      getJestSpyOn(Storage.prototype, "setItem").mockImplementation(function (
+        this: Storage,
+        key: string,
+        value: string,
+      ) {
+        if (key === MORE_WAYS_TO_SIGN_IN_OPEN_KEY) {
+          throw new Error("QuotaExceededError");
+        }
+        return setItem.call(this, key, value);
+      });
+      await renderLogin({ folded: true });
+
+      expect(moreWaysToggle()).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(moreWaysToggle());
+      expect(moreWaysToggle()).toHaveAttribute("aria-expanded", "true");
+      expect(ssoOption()).toBeInTheDocument();
+    });
+
+    test("a passkey attempt that did not sign in keeps the fold open, with what it said", async () => {
+      Object.defineProperty(window, "PublicKeyCredential", {
+        configurable: true,
+        value: undefined,
+      });
+      await renderLogin();
+      await clickPasskey();
+
+      expect(moreWaysToggle()).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByTestId("passkey-notice")).toHaveTextContent(
+        english.login.passkey.unsupported,
+      );
+    });
+
+    test("in German and Arabic, its words are the page's language", async () => {
+      await i18n.changeLanguage("de");
+      await renderLogin({ folded: true });
+      expect(moreWaysToggle()).toHaveTextContent(german.login.moreWaysToSignIn);
+      cleanup();
+
+      await i18n.changeLanguage("ar");
+      await renderLogin({ folded: true });
+      expect(moreWaysToggle()).toHaveTextContent(arabic.login.moreWaysToSignIn);
+      expect(screen.queryByText(english.login.moreWaysToSignIn)).toBeNull();
     });
   });
 

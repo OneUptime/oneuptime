@@ -480,7 +480,7 @@ describe("a run tried more than once reads as its attempts", () => {
       "Searching logs · 3 rows",
       // Open when the attempt ended: it stopped with it, though the run runs on.
       "Thinking · did not finish",
-      "Did not finish: The LLM provider did not answer within 120 seconds. Trying again at 14:05.",
+      "Did not finish: The LLM provider did not answer within 120\u00A0seconds. Trying again at 14:05.",
     ]);
     // The one spinner is the second attempt's.
     expect(spinners(container)).toBe(1);
@@ -788,7 +788,7 @@ describe("a failed read promises another way only while its attempt can keep it"
     ).toEqual([
       "Starting investigation",
       "Analyzing traces · failed",
-      "Did not finish: The LLM provider did not answer within 120 seconds. Trying again.",
+      "Did not finish: The LLM provider did not answer within 120\u00A0seconds. Trying again.",
     ]);
   });
 
@@ -1263,14 +1263,14 @@ describe("the run's summary: when it started, how long it took, how many steps",
       parts.map((part: Element): string => {
         return part.textContent || "";
       }),
-    ).toEqual(["Started 14:00", "· took 6 minutes", "· 2 steps"]);
+    ).toEqual(["Started 14:00", "· took 6\u00A0minutes", "· 2 steps"]);
     for (const part of parts) {
       // Whole on a line, and still wrapping inside itself when wider.
       expect(part).toHaveClass("inline-block", "max-w-full");
     }
     // The parts are apart by spaces the line can break at.
     expect(summary().textContent).toBe(
-      "Started 14:00 · took 6 minutes · 2 steps",
+      "Started 14:00 · took 6\u00A0minutes · 2 steps",
     );
   });
 
@@ -1413,18 +1413,18 @@ describe("the run's summary: when it started, how long it took, how many steps",
 
 describe("describeElapsedTime", () => {
   test.each([
-    [0, "0 seconds"],
-    [-5000, "0 seconds"],
-    [1000, "1 second"],
-    [1400, "1 second"],
-    [59_000, "59 seconds"],
-    [60_000, "1 minute"],
-    [89_000, "1 minute"],
-    [90_000, "2 minutes"],
-    [6 * 60_000, "6 minutes"],
-    [59 * 60_000, "59 minutes"],
-    [60 * 60_000, "1 hour"],
-    [150 * 60_000, "3 hours"],
+    [0, "0\u00A0seconds"],
+    [-5000, "0\u00A0seconds"],
+    [1000, "1\u00A0second"],
+    [1400, "1\u00A0second"],
+    [59_000, "59\u00A0seconds"],
+    [60_000, "1\u00A0minute"],
+    [89_000, "1\u00A0minute"],
+    [90_000, "2\u00A0minutes"],
+    [6 * 60_000, "6\u00A0minutes"],
+    [59 * 60_000, "59\u00A0minutes"],
+    [60 * 60_000, "1\u00A0hour"],
+    [150 * 60_000, "3\u00A0hours"],
   ])("%d ms is %s", (milliseconds: number, words: string) => {
     expect(describeElapsedTime(milliseconds, getGlobalTranslator())).toBe(
       words,

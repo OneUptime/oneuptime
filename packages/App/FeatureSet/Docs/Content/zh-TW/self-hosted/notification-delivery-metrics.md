@@ -6,7 +6,7 @@ OneUptime 會記錄它傳送的通知情況如何：有多少事件和警示需�
 - [啟用它們](#啟用它們): 兩項設定，沒有它們就什麼都不會記錄。
 - [指標](#指標): 七個指標，從觸發到手機。
 - [呼叫如何計時](#呼叫如何計時): 傳送耗時與傳送延遲從何時開始計算。
-- [入門 SLO](#入門-slo): 四個目標，逐一說明每個查詢。
+- [入門 SLO](#入門-slo): 五個目標，逐一說明每個查詢。
 :::
 
 ## 運作方式
@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 在 `config.env` 中設定它們，然後執行 `npm start`。`DISABLE_TELEMETRY_FOR_APP` 預設為 `true`，此時不會傳送任何內容。
 :::
 
-OneUptime 需要同時設定端點和標頭：沒有標頭時它什麼都不傳送。每個標頭寫成 `name=value`，多個標頭之間以 `;` 分隔。值中可以包含 `=`。OneUptime 會自行在端點後加上 `/v1/metrics`，同樣的設定也會傳送它自己的追蹤和日誌。每個指標會在 OneUptime 第一次記錄它時出現：`notification.send.count` 會在傳送第一則訊息時出現。
+OneUptime 需要同時設定端點和標頭：沒有標頭時它什麼都不傳送。每個標頭寫成 `name=value`，多個標頭之間以 `;` 分隔，也可以像 `OTEL_EXPORTER_OTLP_HEADERS` 那樣以 `,` 分隔。值中可以包含 `=`。沒有 `;` 時，值會依該標準的寫法讀取，空格寫作 `%20`：若要依原樣傳送值，請在設定結尾加上 `;`。直接設定在 `OTEL_EXPORTER_OTLP_HEADERS` 中的標頭，或僅針對指標設定在 `OTEL_EXPORTER_OTLP_METRICS_HEADERS` 中的標頭，同樣有效：匯出器也會傳送它們，同名時以 OneUptime 本身的標頭為準。OneUptime 會自行在端點後加上 `/v1/metrics`，同樣的設定也會傳送它自己的追蹤和日誌。每個指標會在 OneUptime 第一次記錄它時出現：`notification.send.count` 會在傳送第一則訊息時出現。
 
 ### 向 OneUptime 專案傳送差量
 
@@ -57,19 +57,15 @@ OneUptime 依 OpenTelemetry 的預設方式傳送計數器和直方圖：每個�
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-服務自己的清單會取代整個 Chart 的清單：如果您設定了 `app.extraEnv` 或 `worker.extraEnv`，也要在那裡加上它。
+Chart 會把這個值以 `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` 的形式傳給每個傳送 OneUptime 本身遙測資料的服務。
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-在 `docker-compose.yml` 旁邊建立該檔案，或將這些內容加到您已有的檔案中，然後執行 `npm start`。
+在 `config.env` 中設定它，然後執行 `npm start`。
 :::
 
 這適用於 OneUptime 傳送的關於自身的每個指標。像 Prometheus 這樣自行讀取累計總數的後端不需要任何變更。
@@ -155,7 +151,7 @@ services:
 | --- | --- |
 | `monitor_data_received` | OneUptime 收到觸發監測器的資料之時：一個傳入請求、一份伺服器代理程式報告、一封傳入郵件、一次探測器檢查、一個 SNMP Trap 或一次網路裝置輪詢。其中包含資料在佇列中等待評估的時間。 |
 | `record_created` | 事件、警示或片段建立之時：由遙測監測器、規則或人員建立，以及針對缺席的檢查，例如停止的心跳。 |
-| `page_started` | 呼叫稍後開始之時：由人員、工作流程或現在相符的規則啟動，或是直接呼叫。對於被其待命規則或 OneUptime AI 暫緩的呼叫，是暫緩結束之時，如果它更早開始，則是開始之時。對於再次呼叫，是確認後逾時到期之時。因此，遲遲才處理其中任何一種的工作程序會反映在這段時間中。 |
+| `page_started` | 呼叫稍後開始之時：由人員、工作流程或現在相符的規則啟動，或是直接呼叫。對於被其待命規則或 OneUptime AI 暫緩的呼叫，是暫緩結束之時，如果它更早開始，則是開始之時。對於再次呼叫，是確認後逾時到期之時；如果其政策在此之後被修改，則是最後一次修改之時，因此縮短後本已到期的逾時從修改之時開始計時。因此，遲遲才處理其中任何一種的工作程序會反映在這段時間中。 |
 
 對於傳入請求，時間從端點收到的最新請求開始計算，因此讀數可能略短。
 
@@ -187,7 +183,7 @@ services:
 
 ## 入門 SLO
 
-四個大多數安裝都能承諾的目標，每個都由接收指標之專案的指標瀏覽器中的一到兩個查詢建立。當指標以差量形式送達時，它們能準確讀出一個時間範圍：請參閱[向 OneUptime 專案傳送差量](#向-oneuptime-專案傳送差量)。
+五個大多數安裝都能承諾的目標，每個都由接收指標之專案的指標瀏覽器中的一到兩個查詢建立。當指標以差量形式送達時，它們能準確讀出一個時間範圍：請參閱[向 OneUptime 專案傳送差量](#向-oneuptime-專案傳送差量)。
 
 ### 在指標瀏覽器中建立目標
 
@@ -210,7 +206,7 @@ services:
 | `a` | `notification.send.count` | **總和** | `notification.channel = sms`、`notification.on_call_page = true`、`notification.provider.config = global`、`outcome != not_sent` |
 | `b` | `notification.send.count` | **總和** | 相同條件，再加上 `outcome = failure` |
 
-公式 `$b / $a * 100` 是失敗的比例，只要它維持在 1 或以下，目標就算達成。沒有失敗的步長不會繪製資料點，因為 `b` 沒有資料點。`outcome != not_sent` 排除了被專案本身設定擋下的內容，`global` 排除了專案自己的 Twilio 帳戶。在透過自己的簡訊與電話閘道傳送簡訊的安裝中，同樣的查詢衡量的是該閘道。若是其他管道，請把 `sms` 改為 `call`、`push` 或 `email`。
+公式 `$b / $a * 100` 是失敗的比例，只要它維持在 1 或以下，目標就算達成。沒有失敗的步長會繪製 0，因為 `b` 在其中沒有計到任何次數。`outcome != not_sent` 排除了被專案本身設定擋下的內容，`global` 排除了專案自己的 Twilio 帳戶。在透過自己的簡訊與電話閘道傳送簡訊的安裝中，同樣的查詢衡量的是該閘道。若是其他管道，請把 `sms` 改為 `call`、`push` 或 `email`。
 
 ### 呼叫在 30 秒內發出
 
@@ -220,7 +216,17 @@ services:
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-只要 `a` 維持在 30000 或以下，目標就算達成。稍後開始的呼叫是從開始或到期之時而不是從觸發計時，因此不計入。依 `notification.page.start` 分組可以把監測器的佇列（`monitor_data_received`）與其餘部分分開檢視，依 `notification.channel` 分組可以找出較慢的管道。
+只要 `a` 維持在 30000 或以下，目標就算達成。稍後開始的呼叫是從開始或到期之時而不是從觸發計時，因此不計入，由下一個目標涵蓋。依 `notification.page.start` 分組可以把監測器的佇列（`monitor_data_received`）與其餘部分分開檢視，依 `notification.channel` 分組可以找出較慢的管道。
+
+### 稍後開始的呼叫在 2 分鐘內發出
+
+稍後開始的呼叫中，95% 在到期後 2 分鐘內送達其提供者：被暫緩的呼叫、再次呼叫，以及由人員、工作流程或規則啟動的呼叫。
+
+| 查詢 | 指標 | 彙總 | 條件 |
+| --- | --- | --- | --- |
+| `a` | `notification.time_to_send` | **P95** | `notification.page.start = page_started` |
+
+只要 `a` 維持在 120000 或以下，目標就算達成。被暫緩的呼叫或再次呼叫要等待每分鐘執行一次的工作程序的下一次執行，因此其時間中最多一分鐘是這段等待，落後的工作程序會讓它更長。
 
 ### 稍後傳送的通知在 90 秒內發出
 

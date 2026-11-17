@@ -101,7 +101,7 @@ Provideren genereres fra OneUptime-API-et i [OneUptimes hovedrepositorium](https
 ## Neste steg
 
 :::cards
-- [Selv-hostet oppsett](/docs/terraform/self-hosted): Versjonsintervallet for din egen OneUptime, og et speil for frakoblede maskiner.
+- [Selv-hostet oppsett](/docs/terraform/self-hosted): Versjonsintervallet for din egen OneUptime, og et speil for offline maskiner.
 - [OpenTofu](/docs/terraform/opentofu): Den samme provideren og konfigurasjonen, med `tofu`.
 - [Komplett guide](/docs/terraform/complete-guide): Autentisering, prosjektoppsett, datakilder, state og oppgraderinger.
 - [Feilsøking](/docs/terraform/troubleshooting): Vanlige feil og hvordan du retter dem.

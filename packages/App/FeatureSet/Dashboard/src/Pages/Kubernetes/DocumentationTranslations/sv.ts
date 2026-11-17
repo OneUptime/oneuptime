@@ -18,14 +18,14 @@ const TRANSLATION: SetupGuideTranslation = {
   "Replace `my-cluster` with a name for this cluster, such as `prod-us-east-1`. It is how the cluster appears in OneUptime, so keep it stable: a new name registers a new cluster.":
     "Ersätt `my-cluster` med ett namn på det här klustret, till exempel `prod-us-east-1`. Det är så klustret visas i OneUptime, så håll det stabilt: ett nytt namn registrerar ett nytt kluster.",
   "`--set aiAgent.enabled=true` turns **AI investigations** on, as the chart does by default: OneUptime AI investigates incidents and alerts on this cluster with read-only kubectl, through the Kubernetes AI agent.":
-    "`--set aiAgent.enabled=true` slår på **AI-utredningar**, som chartet gör som standard: OneUptime AI utreder incidenter och aviseringar på det här klustret med skrivskyddad kubectl, via Kubernetes-AI-agenten.",
+    "`--set aiAgent.enabled=true` slår på **AI-utredningar**, som chartet gör som standard: OneUptime AI utreder incidenter och larm på det här klustret med skrivskyddad kubectl, via Kubernetes-AI-agenten.",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Välj en ingestion-nyckel i steg 1 för att fylla i `<YOUR_API_KEY>`.",
+    "Välj en intagningsnyckel i steg 1 för att fylla i `<YOUR_API_KEY>`.",
   "You should see:": "Du bör se:",
   "The collector and the Kubernetes AI agent, plus one `-logs` and one `-ebpf` pod on every node. Once they are `Running`, the cluster appears automatically in the **Kubernetes** section — usually within a minute or two.":
     "Insamlaren och Kubernetes-AI-agenten, plus en `-logs`- och en `-ebpf`-pod på varje nod. När de är `Running` visas klustret automatiskt i avsnittet **Kubernetes**, oftast inom en eller ett par minuter.",
   "**Kubernetes AI agent (on by default, read-only).** The `kubernetes-agent-ai-agent` pod lets OneUptime AI investigate incidents and alerts on this cluster with read-only kubectl — `get`, `describe`, `logs`, `events`, `top` — using the same API key, and it can change nothing unless you give it write access later. Open the cluster and go to **AI → Agent** to see it. Don't want it? Install with `--set aiAgent.enabled=false` instead of `--set aiAgent.enabled=true`.":
-    "**Kubernetes-AI-agent (på som standard, skrivskyddad).** Podden `kubernetes-agent-ai-agent` låter OneUptime AI utreda incidenter och aviseringar på det här klustret med skrivskyddad kubectl (`get`, `describe`, `logs`, `events`, `top`) med samma API-nyckel, och den kan inte ändra något om du inte senare ger den skrivbehörighet. Öppna klustret och gå till **AI → Agent** för att se den. Vill du inte ha den? Installera med `--set aiAgent.enabled=false` i stället för `--set aiAgent.enabled=true`.",
+    "**Kubernetes-AI-agent (på som standard, skrivskyddad).** Podden `kubernetes-agent-ai-agent` låter OneUptime AI utreda incidenter och larm på det här klustret med skrivskyddad kubectl (`get`, `describe`, `logs`, `events`, `top`) med samma API-nyckel, och den kan inte ändra något om du inte senare ger den skrivbehörighet. Öppna klustret och gå till **AI → Agent** för att se den. Vill du inte ha den? Installera med `--set aiAgent.enabled=false` i stället för `--set aiAgent.enabled=true`.",
   "Namespace rules decide what the agent collects from each namespace. To collect pod logs and eBPF data only from `default`, `production` and `staging`:":
     "Namespace-regler avgör vad agenten samlar in från varje namespace. För att samla in poddloggar och eBPF-data bara från `default`, `production` och `staging`:",
   "To keep everything but stop the logs of noisy namespaces, exclude them from `podLogs` only:":
@@ -134,7 +134,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the collector's logs: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent`":
     "2. Kontrollera insamlarens loggar: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent`",
   "3. Verify the OneUptime URL and ingestion key in the install command are correct.":
-    "3. Bekräfta att OneUptime-URL:en och ingestion-nyckeln i installationskommandot är korrekta.",
+    "3. Bekräfta att OneUptime-URL:en och intagningsnyckeln i installationskommandot är korrekta.",
   "4. Make sure the cluster can reach your OneUptime instance over the network.":
     "4. Se till att klustret når din OneUptime-instans över nätverket.",
   "1. Check the AI agent's pod: `kubectl get pods -n oneuptime-agent -l component=ai-agent`":

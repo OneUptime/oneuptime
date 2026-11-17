@@ -80,7 +80,7 @@ Med två eller fler villkor väljer du **Matcha alla**, där vart och ett måste
 :::steps
 ### Välj larmen
 
-Klicka på **Skapa Alert On-Call Rule**. I **Matcha** matchar **Alla larm**, som en ny regel börjar på, varje nytt larm. För att snäva in regeln väljer du **Endast larm som uppfyller villkoren** och lägger till de villkor som ett larm måste uppfylla.
+Klicka på **Skapa Jourregel för larm**. I **Matcha** matchar **Alla larm**, som en ny regel börjar på, varje nytt larm. För att snäva in regeln väljer du **Endast larm som uppfyller villkoren** och lägger till de villkor som ett larm måste uppfylla.
 
 ### Välj policyerna
 
@@ -171,7 +171,7 @@ Kortet **Nästa nummer** under det anger numret som nästa larm och nästa episo
 
 ### Datalagring
 
-**Larm → Inställningar → Datalagring** tar bort larm när de har varit lösta tillräckligt länge, som [Datalagring](/docs/incidents/settings#datalagring) gör för incidenter. Kortet **Lösta larm** frågar efter **Ta bort efter**, **Aldrig** tills du väljer en tid, och ber om bekräftelse innan mer tas bort, med **Ta bort gamla larm**. Ett larm finns kvar så länge det inte är löst, så länge det ingår i en episod som fortfarande är öppen eller löstes för kortare tid sedan, och så länge en incident som det är länkat till finns kvar. Bara Projektägare och Projektadministratörer kan ändra den; i API:t är det projektets `alertRetentionInDays`.
+**Larm → Inställningar → Datalagring** tar bort larm när de har varit lösta tillräckligt länge, som [Datalagring](/docs/incidents/settings#datalagring) gör för incidenter. Kortet **Lösta larm** frågar efter **Ta bort efter**, **Aldrig** tills du väljer en tid, och ber om bekräftelse innan mer tas bort, med **Ta bort gamla larm**, och säger hur många larm det tar bort nu. Ett larm tas bort tillsammans med sin tidslinje, sina anteckningar och filerna som är bifogade till dem, om inte något annat fortfarande använder en fil. Ett larm finns kvar så länge det inte är löst, så länge det ingår i en episod som fortfarande är öppen eller löstes för kortare tid sedan, och så länge en incident som det är länkat till finns kvar. Bara Projektägare och Projektadministratörer kan ändra den; i API:t är det projektets `alertRetentionInDays`. På en självhostad server kan en huvudadministratör hålla alla projekt inom en gräns och välja var nya projekt börjar: se [En gräns för hela servern](/docs/incidents/settings#en-gräns-för-hela-servern).
 
 > [!NOTE]
 > På OneUptime Cloud kräver anteckningsmallar och anpassade fält planen **Growth** eller högre.

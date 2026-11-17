@@ -67,7 +67,7 @@ RunCron(
 
         if (!projectOwners || projectOwners.length === 0) {
           logger.info({
-            message: "No project owners found for past due subscription.",
+            message: "No Project Owners found for past due subscription.",
             projectId: project.id?.toString(),
           });
           continue;
@@ -107,7 +107,7 @@ RunCron(
       } catch (error) {
         logger.error({
           message:
-            "Error while sending email to project owner for past due subscription.",
+            "Error while sending email to a Project Owner for past due subscription.",
           error,
           projectId: project.id?.toString(),
         });

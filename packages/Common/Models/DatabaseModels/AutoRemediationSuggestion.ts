@@ -327,7 +327,8 @@ export default class AutoRemediationSuggestion extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Incident,
     title: "Incident",
-    description: "The incident this suggestion remediates.",
+    description:
+      "The incident this suggestion remediates. Deleting the incident deletes the suggestion.",
   })
   @ManyToOne(
     () => {
@@ -336,7 +337,7 @@ export default class AutoRemediationSuggestion extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "SET NULL",
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )
@@ -381,7 +382,8 @@ export default class AutoRemediationSuggestion extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Alert,
     title: "Alert",
-    description: "The alert this suggestion remediates.",
+    description:
+      "The alert this suggestion remediates. Deleting the alert deletes the suggestion.",
   })
   @ManyToOne(
     () => {
@@ -390,7 +392,7 @@ export default class AutoRemediationSuggestion extends BaseModel {
     {
       eager: false,
       nullable: true,
-      onDelete: "SET NULL",
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )
@@ -1003,6 +1005,38 @@ export default class AutoRemediationSuggestion extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public firstApprovedFrom?: AutoRemediationApprovalSource = undefined;
+
+  /*
+   * What the first of two approvals approved: the fix's fingerprint then
+   * (Types/AutoRemediation/RemediationPlanFingerprint). The second approval
+   * runs the fix only while it still runs exactly that - a first approval
+   * given to what the fix no longer runs counts for nothing, and the next
+   * press is the first approval of the fix as it is now. Empty for a fix
+   * nobody approved first, and for a first approval given before it was
+   * kept (which counts for nothing either).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "First Approved Plan Fingerprint",
+    description:
+      "The fingerprint of what the first of two approvals approved: a second approval runs the fix only while it still runs exactly that.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public firstApprovedPlanFingerprint?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

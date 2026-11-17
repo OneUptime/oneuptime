@@ -1,5 +1,8 @@
 import { mockRouter } from "./Helpers";
 import { PAGE_NOW_REFUSED_MESSAGE } from "../../../Server/API/AiFirstResponderAPI";
+import PrivateRecordWriteCheck from "../../../Server/Utils/Permission/PrivateRecordWriteCheck";
+import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import AlertService from "../../../Server/Services/AlertService";
@@ -191,7 +194,7 @@ describe("Page now for an incident", () => {
 
     expect(findIncident).toHaveBeenCalledWith({
       id: INCIDENT_ID,
-      select: { _id: true, projectId: true },
+      select: { _id: true, projectId: true, isPrivate: true },
       props: member,
     });
   });
@@ -241,7 +244,7 @@ describe("Page now for an alert", () => {
     expect(next).not.toHaveBeenCalled();
     expect(findAlert).toHaveBeenCalledWith({
       id: ALERT_ID,
-      select: { _id: true, projectId: true },
+      select: { _id: true, projectId: true, isPrivate: true },
       props: member,
     });
     expect(startHolds).toHaveBeenCalledWith({
@@ -376,6 +379,107 @@ describe("who may page now", () => {
     expect(mockRouter.match("post", PAGE_NOW_URI).middlewares).toContain(
       UserMiddleware.getUserMiddleware,
     );
+  });
+});
+
+/*
+ * PAGE NOW ABOUT A PRIVATE INCIDENT OR ALERT (#8913): the permission to page
+ * counts only through the teams that own the record, as a person named its
+ * owner, or as a Project Owner or Admin. Someone who sees the record - a
+ * member of a view-only team that owns it - but pages through another team
+ * is refused, saying why, and nobody is paged. Someone who does not see it
+ * at all is answered as missing, by the read, before this.
+ */
+describe("Page now about a private record", () => {
+  function privateIncident(): Incident {
+    const incident: Incident = incidentIn(PROJECT_ID);
+    incident.isPrivate = true;
+    return incident;
+  }
+
+  it("a public incident is paged about without asking its owners, and nothing more is read", async () => {
+    const findOneBy: SpyInstance<typeof IncidentService.findOneBy> = jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockResolvedValue(null);
+
+    const next: NextMock = await pageNow({
+      incidentId: INCIDENT_ID.toString(),
+    });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(startHolds).toHaveBeenCalledTimes(1);
+    // Read as not private by the person's own read: nothing more is asked.
+    expect(findOneBy).not.toHaveBeenCalled();
+  });
+
+  it("a private incident whose owning teams may not page is refused, saying why, and nobody is paged", async () => {
+    findIncident.mockResolvedValue(privateIncident());
+    const reaches: SpyInstance<typeof PrivateRecordWriteCheck.reaches> = jest
+      .spyOn(PrivateRecordWriteCheck, "reaches")
+      .mockResolvedValue(false);
+
+    const next: NextMock = await pageNow({
+      incidentId: INCIDENT_ID.toString(),
+    });
+
+    expect(refusal(next)).toEqual(expect.any(NotAuthorizedException));
+    expect((refusal(next) as Error).message).toBe(
+      "You do not have permission to page now. This incident is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this. Ask a Project Admin to give one of the teams that own it this permission, or to add you as an owner.",
+    );
+    expect(startHolds).not.toHaveBeenCalled();
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+
+    // Asked as a page about it: the execution log's create, by the person.
+    expect(reaches).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelType: OnCallDutyPolicyExecutionLog,
+        type: DatabaseRequestType.Create,
+        recordService: IncidentService,
+        recordId: INCIDENT_ID,
+        props: member,
+      }),
+    );
+  });
+
+  it("a private alert is refused the same way, naming the alert", async () => {
+    const alert: Alert = alertIn(PROJECT_ID);
+    alert.isPrivate = true;
+    findAlert.mockResolvedValue(alert);
+    jest.spyOn(PrivateRecordWriteCheck, "reaches").mockResolvedValue(false);
+
+    const next: NextMock = await pageNow({ alertId: ALERT_ID.toString() });
+
+    expect((refusal(next) as Error).message).toContain(
+      "You do not have permission to page now. This alert is private,",
+    );
+    expect(startHolds).not.toHaveBeenCalled();
+  });
+
+  it("a private incident its owning teams may page about is paged", async () => {
+    findIncident.mockResolvedValue(privateIncident());
+    jest.spyOn(PrivateRecordWriteCheck, "reaches").mockResolvedValue(true);
+
+    const next: NextMock = await pageNow({
+      incidentId: INCIDENT_ID.toString(),
+    });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(startHolds).toHaveBeenCalledTimes(1);
+  });
+
+  it("someone who may not page at all is told that, before the record's owners are asked", async () => {
+    callAs(personWith([{ permission: Permission.Viewer }]));
+    findIncident.mockResolvedValue(privateIncident());
+    const reaches: SpyInstance<typeof PrivateRecordWriteCheck.reaches> = jest
+      .spyOn(PrivateRecordWriteCheck, "reaches")
+      .mockResolvedValue(false);
+
+    const next: NextMock = await pageNow({
+      incidentId: INCIDENT_ID.toString(),
+    });
+
+    expect((refusal(next) as Error).message).toBe(PAGE_NOW_REFUSED_MESSAGE);
+    expect(reaches).not.toHaveBeenCalled();
   });
 });
 

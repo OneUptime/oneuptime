@@ -65,10 +65,10 @@ Uma mudança nessas configurações vale em até um minuto.
 | Coluna | O que mostra |
 | --- | --- |
 | **Quando** | Há quanto tempo, com a data e a hora. |
-| **Ação** | `Create`, `Update` ou `Delete`, `Download` para um arquivo de captura de pacotes que alguém baixou, ou `Sign In`, `Sign Out`, `Session Timeout` ou `Session Revoked` para uma sessão. |
+| **Ação** | `Create`, `Update` ou `Delete`, `Download` para um arquivo de captura de pacotes que alguém baixou, ou `Sign In`, `Sign-In Failed`, `Sign Out`, `Session Timeout` ou `Session Revoked` para um login ou uma sessão. |
 | **Recurso** | O nome do recurso, que o abre enquanto ele existe, e o tipo dele. |
 | **Ator** | Quem fez a mudança: uma pessoa, uma chave de API, um workflow ou `System` para uma mudança que o OneUptime fez por conta própria. A mudança de uma pessoa feita por um cliente MCP indica qual. |
-| **Alterações** | Quantos campos mudaram, ou foram capturados em uma criação ou exclusão. Para uma sessão, como foi feito o login ou por que ela terminou. Clique para ver cada campo. |
+| **Alterações** | Quantos campos mudaram, ou foram capturados em uma criação ou exclusão. Para um login ou uma sessão, como foi feito o login, por que ele falhou ou por que ela terminou. Clique para ver cada campo. |
 
 Filtre por **Tipo de recurso**, **Nome do recurso**, **Ação**, **E-mail do Usuário** ou **Hora**. Uma alteração lista só os campos que mudaram, antes e depois, e um salvamento que não muda nada não adiciona entrada.
 
@@ -86,7 +86,7 @@ Tudo o que as pessoas criam, alteram ou excluem em um projeto é registrado: mon
 | Registros de execuções | Cada um já é o registro de uma execução de fluxo de trabalho, um escalonamento de plantão, uma verificação, uma importação ou uma execução de IA. |
 | O que os agentes e a telemetria informam | Recursos descobertos, leituras e uso mudam a cada informe, não porque alguém os alterou. |
 | Feeds de atividade | Um feed mostra alterações que o registro de auditoria já registra. |
-| O estado de trabalho do OneUptime | Sessões dos leitores de páginas de status, tarefas na fila e outros estados que o OneUptime mantém enquanto trabalha. |
+| O estado de trabalho do OneUptime | Tarefas na fila e outros estados que o OneUptime mantém enquanto trabalha. |
 | A configuração de notificações própria de uma pessoa | Os endereços, números e regras de plantão pessoais de cada pessoa são só dela. |
 | As preferências próprias de uma pessoa | Os produtos que cada pessoa fixa na sua própria barra superior são só dela, e só ela os vê. |
 
@@ -114,11 +114,16 @@ Cada vez que um membro do projeto faz login no OneUptime, o registro de auditori
 | Ação | Quando é registrado |
 | --- | --- |
 | `Sign In` | Alguém faz login: com uma senha ou um link de acesso, uma chave de acesso, Google, Microsoft, Vercel ou login único. |
+| `Sign-In Failed` | Alguém tenta fazer login em uma conta existente e não consegue: uma senha, um código do autenticador, um código de backup ou uma chave de segurança incorretos, uma conta bloqueada ou não verificada, ou um login único que o OneUptime recusou. |
 | `Sign Out` | A pessoa faz logout. |
 | `Session Timeout` | O OneUptime encerra a sessão quando o tempo dela se esgota: o tempo de inatividade ou a duração da sessão definidos por um administrador do servidor, ou 30 dias sem uso. |
-| `Session Revoked` | O OneUptime encerra a sessão porque a senha mudou, a conta foi bloqueada, ou um administrador do servidor redefiniu ou passou a exigir a autenticação em dois fatores. |
+| `Session Revoked` | O OneUptime encerra a sessão porque a senha mudou, a conta foi bloqueada, ou um administrador do servidor redefiniu ou passou a exigir a autenticação de dois fatores. |
 
 O **Recurso** de uma entrada é a sessão, com o nome do dispositivo em que o login foi feito, como `Chrome 130 on macOS`. O **Ator** é a pessoa dona da sessão, então filtrar por **E-mail do Usuário** encontra todos os logins e sessões dela. Os detalhes da entrada dizem como a pessoa fez login e com qual segundo fator, o endereço IP e o local, e, para uma sessão que terminou, quando o login foi feito, quando ela foi usada pela última vez e quando expirou. O provedor de SSO próprio de um projeto só aparece no registro de auditoria desse projeto.
+
+Uma entrada `Sign-In Failed` é sobre a tentativa, com o nome do dispositivo de onde ela veio. O **Ator** é a conta em que a tentativa foi feita: quem a fez não provou ser essa pessoa. Os detalhes da entrada dizem por que ela falhou, como a pessoa tentou fazer login, o endereço IP e o local, nunca o que foi digitado. Uma tentativa com um endereço de e-mail que nenhuma conta tem não é registrada, e registrar uma tentativa não muda nem o que a página de login responde nem a rapidez com que responde. Para que uma enxurrada de tentativas não possa encher o registro de auditoria, as primeiras 10 tentativas com falha em uma conta em uma hora são registradas uma a uma. As demais são contadas, e a próxima entrada da conta diz quantas tentativas ela representa e quando a primeira delas foi feita.
+
+Os leitores de uma página de status privada também são registrados, só no projeto da página de status: cada login com uma senha, um link de acesso ou o login único da página de status, cada logout e cada sessão que o OneUptime encerra porque a senha do leitor mudou ou a página de status não aceita mais a forma como o login foi feito. As entradas deles também ficam na própria página **Registros de auditoria** da página de status. O **Ator** delas é o leitor, pelo endereço de e-mail dele, e o **Recurso** é a sessão do leitor.
 
 Os logins e as sessões são registrados quer o projeto armazene eventos do sistema ou não. Uma sessão encerrada pela duração da sessão ou por 30 dias sem uso é registrada poucos minutos depois de o tempo se esgotar. Uma sessão encerrada pelo tempo de inatividade no navegador, ou em uma versão do aplicativo móvel mais nova que a 1.6.0, é registrada até 35 minutos depois de o tempo se esgotar, volte a pessoa ou não. Na versão 1.6.0 e anteriores do aplicativo móvel, ela é registrada quando o aplicativo volta a acessar o OneUptime.
 

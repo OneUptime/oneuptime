@@ -301,7 +301,10 @@ const VALID_CERTIFICATE = {
   altNames: "DNS:oneuptime.example.com",
 };
 
-// Runs the doctor with stubs; { code, output, docker, network }.
+/*
+ * Runs the doctor with stubs; { code, output, docker, network, certificates },
+ * the last the "hostname:port" of each certificate it asked for.
+ */
 const runDoctor = async (options) => {
   const given = options || {};
   const directory = workspace(
@@ -309,6 +312,7 @@ const runDoctor = async (options) => {
   );
   const docker = fakeDocker(given.docker);
   const network = fakeNetwork(given.network);
+  const certificates = [];
   const lines = [];
 
   try {
@@ -321,7 +325,9 @@ const runDoctor = async (options) => {
       },
       runCommand: docker.runCommand,
       request: network.request,
-      certificate: () => {
+      certificate: (hostname, port) => {
+        certificates.push(`${hostname}:${port}`);
+
         return Promise.resolve(
           given.certificate === undefined
             ? VALID_CERTIFICATE
@@ -337,6 +343,7 @@ const runDoctor = async (options) => {
       output: lines.join("\n"),
       docker: docker,
       network: network,
+      certificates: certificates,
     };
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
@@ -389,6 +396,71 @@ describe("config.env", () => {
       "Let's Encrypt issues certificates for domain names only",
     );
     expect(messages.join("\n")).toContain("set HTTP_PROTOCOL=https too");
+  });
+
+  /*
+   * An IPv6 HOST goes in brackets (#8022): the doctor says what npm start
+   * stops on, as a thing to fix, with the line to write.
+   */
+  test("an IPv6 HOST without brackets is something to fix, with the line that brackets it", () => {
+    expect(
+      configFindings(
+        settingsOf(["HOST=2001:db8::1", "HTTP_PROTOCOL=http"]),
+        {},
+      ),
+    ).toEqual([
+      finding(
+        "fix",
+        "HOST in config.env is 2001:db8::1, an IPv6 address without the brackets a web address needs around one, so no browser can open OneUptime at it. Write HOST=[2001:db8::1].",
+      ),
+    ]);
+    expect(
+      configFindings(
+        settingsOf(["HOST=2001:db8::1:8080", "HTTP_PROTOCOL=http"]),
+        {},
+      )[0].message,
+    ).toContain(
+      "Write HOST=[2001:db8::1:8080], or HOST=[2001:db8::1]:8080 if 8080 is the port people open it on.",
+    );
+  });
+
+  /*
+   * A name that is not a domain name (#8877), which the app stops at as it
+   * starts: the doctor says what npm start stops on, as a thing to fix.
+   */
+  test("a HOST with a character no domain name has is something to fix, saying which", () => {
+    expect(
+      configFindings(
+        settingsOf(["HOST=oneuptime,example.com", "HTTP_PROTOCOL=http"]),
+        {},
+      ),
+    ).toEqual([
+      finding(
+        "fix",
+        'HOST in config.env is oneuptime,example.com, which is not a domain name: a domain name has the letters a to z, digits, hyphens and dots only, and "," is none of them.',
+      ),
+    ]);
+    expect(
+      configFindings(
+        settingsOf(["HOST=bücher.example:8443", "HTTP_PROTOCOL=https"]),
+        {},
+      )[0].message,
+    ).toContain("Write HOST=xn--bcher-kva.example:8443.");
+  });
+
+  test.each([
+    "[2001:db8::1]",
+    "[2001:db8::1]:8080",
+    "203.0.113.7",
+    "203.0.113.7:8080",
+    "oneuptime.example.com",
+    "oneuptime.example.com:8080",
+    "one_uptime.example.com",
+    "xn--bcher-kva.example:8080",
+  ])("HOST=%s, with a port or without, says nothing", (host) => {
+    expect(
+      configFindings(settingsOf([`HOST=${host}`, "HTTP_PROTOCOL=https"]), {}),
+    ).toEqual([]);
   });
 
   test("the ingress moved off port 80 while HOST has no port is named", () => {
@@ -962,6 +1034,30 @@ describe("the output", () => {
     );
     expect(publicUrlOf(settingsOf(["HOST="]))).toBe(null);
   });
+
+  test.each([
+    ["[2001:db8::1]", "https://[2001:db8::1]", "[2001:db8::1]", ""],
+    [
+      "[2001:db8::1]:8443",
+      "https://[2001:db8::1]:8443",
+      "[2001:db8::1]",
+      "8443",
+    ],
+    ["203.0.113.7:8443", "https://203.0.113.7:8443", "203.0.113.7", "8443"],
+    ["a.example.com", "https://a.example.com", "a.example.com", ""],
+  ])(
+    "HOST=%s is opened at %s, a web address on host %s, port %j",
+    (host, url, hostname, port) => {
+      const publicUrl = publicUrlOf(
+        settingsOf([`HOST=${host}`, "HTTP_PROTOCOL=https"]),
+      );
+      const parsed = new URL(publicUrl);
+
+      expect(publicUrl).toBe(url);
+      expect(parsed.hostname).toBe(hostname);
+      expect(parsed.port).toBe(port);
+    },
+  );
 });
 
 describe("npm run doctor", () => {
@@ -1088,6 +1184,121 @@ describe("npm run doctor", () => {
 
     expect(result.code).toBe(0);
     expect(result.output).toContain("Nothing to fix. 1 thing worth a look.");
+  });
+
+  /*
+   * An IPv6 HOST without brackets is no address (#8022): the doctor says how
+   * to write it and builds nothing from it - no http://2001:db8::1 to ask
+   * from outside, and no such link in a fix.
+   */
+  test("an IPv6 HOST without brackets is the thing to fix, and no address is built from it", async () => {
+    const answer = serverAnswer([EMAIL_NOT_SET_UP]);
+    const result = await runDoctor({
+      config: healthyConfig(["HOST=2001:db8::1", "PROVISION_SSL=false"]),
+      network: {
+        doctor: { status: 200, json: answer, body: JSON.stringify(answer) },
+      },
+    });
+
+    expect(result.code).toBe(1);
+    expect(result.output).toContain(
+      "  ✗ HOST in config.env is 2001:db8::1, an IPv6 address without the brackets a web address needs around one, so no browser can open OneUptime at it. Write HOST=[2001:db8::1].",
+    );
+    // The server is still asked, at the ingress on this server.
+    expect(
+      result.network.requests.map((entry) => {
+        return entry.url;
+      }),
+    ).toEqual([
+      `http://localhost${READY_PATH}`,
+      `http://localhost${DOCTOR_PATH}`,
+    ]);
+    expect(result.output).not.toContain("2001:db8::1/");
+    expect(result.output).toContain("Fix: Set it up at /admin/settings/smtp");
+    expect(result.certificates).toEqual([]);
+  });
+
+  test.each([
+    "<your-address>",
+    "http://oneuptime.example.com/",
+    "0.0.0.0",
+    "[oneuptime.example.com]",
+    // Not a domain name (#8877): the app stops at its start with either.
+    "oneuptime,example.com",
+    "one_uptime-.example.com:8443",
+  ])(
+    "HOST=%s, which npm start stops on, is never asked for from outside",
+    async (host) => {
+      const result = await runDoctor({
+        config: healthyConfig([`HOST=${host}`]),
+      });
+
+      expect(result.code).toBe(1);
+      expect(
+        result.network.requests.map((entry) => {
+          return entry.url;
+        }),
+      ).toEqual([
+        `http://localhost${READY_PATH}`,
+        `http://localhost${DOCTOR_PATH}`,
+      ]);
+      expect(result.certificates).toEqual([]);
+      expect(result.output).toContain(`  ✗ HOST in config.env is ${host}`);
+    },
+  );
+
+  test("an IPv6 HOST in brackets is asked for from outside at its own address, and its certificate is not asked for", async () => {
+    const result = await runDoctor({
+      config: healthyConfig([
+        "HOST=[2001:db8::1]:8443",
+        "HTTP_PROTOCOL=https",
+        "PROVISION_SSL=true",
+      ]),
+      argv: ["--all"],
+    });
+
+    expect(
+      result.network.requests.map((entry) => {
+        return entry.url;
+      }),
+    ).toEqual([
+      `http://localhost${READY_PATH}`,
+      `http://localhost${DOCTOR_PATH}`,
+      "https://[2001:db8::1]:8443/status-page-api/custom-domain-readiness/0123abcd.signature",
+    ]);
+    expect(result.output).toContain(
+      "✓ https://[2001:db8::1]:8443 reaches this OneUptime.",
+    );
+    /*
+     * Let's Encrypt certifies domain names only, which the configuration
+     * check says; asked of "[2001:db8::1]", the TLS connection went to the
+     * resolver with the brackets on and answered "the name does not resolve".
+     */
+    expect(result.certificates).toEqual([]);
+    expect(result.output).toContain(
+      "! PROVISION_SSL=true, but HOST is [2001:db8::1]:8443: Let's Encrypt issues certificates for domain names only.",
+    );
+    expect(result.output).not.toContain("does not answer over HTTPS");
+    expect(result.code).toBe(0);
+  });
+
+  test.each(["203.0.113.7", "203.0.113.7:8443", "[2001:db8::1]", "[::1]"])(
+    "HOST=%s, an IP address: no certificate is asked for",
+    async (host) => {
+      const result = await runDoctor({
+        config: healthyConfig([`HOST=${host}`, "PROVISION_SSL=true"]),
+      });
+
+      expect(result.certificates).toEqual([]);
+    },
+  );
+
+  test("a domain name's certificate is asked for on port 443 by its name", async () => {
+    const result = await runDoctor({
+      config: healthyConfig(["HOST=oneuptime.example.com:8443"]),
+    });
+
+    expect(result.certificates).toEqual(["oneuptime.example.com:443"]);
   });
 
   test("the cluster key goes to the ingress on this server, in the clusterkey header of a POST, and never to HOST", async () => {

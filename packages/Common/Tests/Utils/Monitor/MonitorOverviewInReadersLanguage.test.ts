@@ -961,8 +961,11 @@ const SAME_AS_ENGLISH: Record<string, ReadonlyArray<string>> = {
   Host: ["de", "es", "it", "pt", "nl"],
   Interfaces: ["fr", "es", "pt", "nl"],
   Manual: ["es", "pt"],
-  // OneUptime's own status name, which these languages write as English does.
-  Offline: ["de", "it", "pt", "nl", "da", "sv"],
+  /*
+   * OneUptime's own status name, which these languages write as English
+   * does - Norwegian too, on its same-as-English list since 33f88b3bd94.
+   */
+  Offline: ["de", "it", "pt", "nl", "da", "no", "sv"],
   Spans: ["de", "fr", "es", "pt", "nl", "da", "no", "sv"],
   Up: ["nl"],
   "{{count}} down": ["nl"],
@@ -1198,7 +1201,7 @@ describe("the monitor overview in German", () => {
     );
 
     expect(presentation.pulse.label).toBe("Zuletzt geprüft");
-    expect(presentation.pulse.cadenceText).toBe("Alle 5 Minuten");
+    expect(presentation.pulse.cadenceText).toBe("Alle 5\u00A0Minuten");
     expect(factOf(presentation, "latest-result")).toMatchObject({
       label: "Letztes Ergebnis",
       // "Up" is drawn as the German network pages and docs draw it.
@@ -1230,7 +1233,7 @@ describe("the monitor overview in German", () => {
     expect(duration).not.toBe("2h 5m");
     expect(duration).toContain("Min.");
     expect(presentation.explanation).toBe(
-      `Seit ${duration} kein Ergebnis, obwohl dieser Monitor alle 5 Minuten prüft. Eine Sonde ist möglicherweise überlastet oder offline.`,
+      `Seit ${duration} kein Ergebnis, obwohl dieser Monitor alle 5\u00A0Minuten prüft. Eine Sonde ist möglicherweise überlastet oder offline.`,
     );
     expect(presentation.secondaryBadges[0]?.text).toBe("Prüfungen überfällig");
   });
@@ -1247,7 +1250,7 @@ describe("the monitor overview in German", () => {
 
     expect(presentation.headline.text).toBe("Warten auf die erste Prüfung");
     expect(presentation.explanation).toBe(
-      "1 Sonde prüft dies alle 5 Minuten. Das erste Ergebnis kommt meist innerhalb weniger Minuten.",
+      "1 Sonde prüft dies alle 5\u00A0Minuten. Das erste Ergebnis kommt meist innerhalb weniger Minuten.",
     );
   });
 
@@ -1288,7 +1291,7 @@ describe("the monitor overview in German", () => {
       ),
     ).toMatchObject({
       label: "Zertifikat läuft ab",
-      value: "Läuft in 3 Stunden ab",
+      value: "Läuft in 3\u00A0Stunden ab",
     });
 
     expect(
@@ -1311,7 +1314,7 @@ describe("the monitor overview in German", () => {
       ),
     ).toMatchObject({
       label: "Domain läuft ab",
-      value: "Vor 2 Tagen abgelaufen",
+      value: "Vor 2\u00A0Tagen abgelaufen",
     });
   });
 
@@ -1645,7 +1648,7 @@ describe("a sentence the reader's language has not worded reads wholly in Englis
     );
 
     expect(presentation.explanation).toBe(
-      "No result for 2h 5m, but this monitor checks every 5 minutes. A probe may be overloaded or offline.",
+      "No result for 2h 5m, but this monitor checks every 5\u00A0minutes. A probe may be overloaded or offline.",
     );
     // The rest of the hero is still German.
     expect(presentation.secondaryBadges[0]?.text).toBe("Prüfungen überfällig");

@@ -12,7 +12,7 @@ flowchart TB
 
 :::cards
 - [Uw profiel](#uw-profiel): Uw naam, e-mailadres, tijdzone, taal en foto.
-- [Veilig inloggen](#veilig-inloggen): Uw wachtwoord, inloglinks, passkeys en tweestapsverificatie.
+- [Veilig inloggen](#veilig-inloggen): Uw wachtwoord, inloglinks, passkeys en tweefactorauthenticatie.
 - [Uw projecten](#uw-projecten): Van project wisselen, er een aanmaken en uitnodigingen accepteren.
 - [Gebruikersinstellingen](#wat-elk-project-voor-u-bewaart): Hoe OneUptime u in elk project bereikt.
 :::
@@ -64,63 +64,65 @@ Klap **Beveiliging** open in het zijmenu van **Gebruikersprofiel**. De sectie he
 | --- | --- |
 | **Wachtwoordbeheer** | Een nieuw wachtwoord instellen. |
 | **Passkeys** | Zonder wachtwoord inloggen, met uw vingerafdruk, gezicht, schermvergrendeling of een beveiligingssleutel. |
-| **Two-factor authentication** | Na uw wachtwoord of een gemailde link om een tweede stap vragen: een code uit een app, of een beveiligingssleutel. |
+| **Tweefactorauthenticatie** | Na uw wachtwoord of een gemailde link om een tweede stap vragen: een code uit een app, of een beveiligingssleutel. |
 
 ### Uw wachtwoord wijzigen
 
 :::steps
 1. Open **Beveiliging → Wachtwoordbeheer**.
-2. Voer het nieuwe wachtwoord in bij **Wachtwoord** en nogmaals bij **Wachtwoord bevestigen**. Het moet minstens 6 tekens lang zijn.
+2. Voer het nieuwe wachtwoord in bij **Nieuw wachtwoord** en nogmaals bij **Wachtwoord bevestigen**. Het moet minstens 15 tekens lang zijn en mag niet voorspelbaar zijn, zoals een veelgebruikt wachtwoord of een herhaald patroon: een paar woorden die niets met elkaar te maken hebben, werken goed. De checklist onder het veld vinkt elk onderdeel af terwijl u typt.
 3. Klik op **Wachtwoord bijwerken**.
 :::
 
 Een nieuw wachtwoord meldt elk apparaat af bij uw account, en elke al verzonden resetlink of inloglink werkt niet meer.
 
+Elke pagina waar u een wachtwoord instelt, vraagt hetzelfde: aanmelden, de resetlink van **Wachtwoord vergeten?**, deze pagina en **Wachtwoord instellen** van een serverbeheerder. Een wachtwoord dat u vóór deze regel hebt ingesteld, blijft werken tot u het wijzigt.
+
 ### Een passkey toevoegen
 
 :::steps
-1. Open **Beveiliging → Passkeys** en klik op **Add Passkey**.
-2. Geef hem een naam die u herkent, zoals uw apparaat of wachtwoordbeheerder, en klik op **Create Passkey**.
+1. Open **Beveiliging → Passkeys** en klik op **Passkey toevoegen**.
+2. Geef hem een naam die u herkent, zoals uw apparaat of wachtwoordbeheerder, en klik op **Passkey aanmaken**.
 3. Volg de melding van uw browser om de passkey op te slaan.
 :::
 
-Kies de volgende keer **Inloggen met een passkey** op de inlogpagina.
+Kies de volgende keer **Meer manieren om in te loggen** → **Inloggen met een passkey** op de inlogpagina.
 
 ### Inloggen met een gemailde link
 
 U kunt inloggen met een link in plaats van uw wachtwoord. U hoeft niets in te stellen.
 
 :::steps
-1. Kies op de inlogpagina **Stuur mij een inloglink**.
+1. Kies op de inlogpagina **Meer manieren om in te loggen** → **Stuur mij een inloglink**.
 2. Voer uw e-mailadres in en klik op **Stuur mij een inloglink**. De pagina toont dan **Controleer uw e-mail**.
 3. Open de link in de e-mail en klik op **Inloggen**.
 :::
 
-De link werkt één keer, gedurende 15 minuten, en een nieuwere link vervangt hem. U kunt hem op een ander apparaat openen, en u bent dan daar ingelogd. Als u tweestapsverificatie gebruikt, vraagt OneUptime nog steeds om uw tweede stap.
+De link werkt één keer, gedurende 15 minuten, en een nieuwere link vervangt hem. U kunt hem op een ander apparaat openen, en u bent dan daar ingelogd. Als u tweefactorauthenticatie gebruikt, vraagt OneUptime nog steeds om uw tweede stap.
 
 > [!NOTE]
 > Hoofdbeheerders van een zelf-gehoste installatie kunnen inloglinks uitschakelen met **Inloggen met een gemailde link toestaan**, onder **Admin Dashboard > Instellingen > Authenticatie**. Links die al zijn verstuurd, werken dan niet meer. Zolang de server SSO vereist, biedt de inlogpagina alleen SSO aan.
 
-### Tweestapsverificatie inschakelen
+### Tweefactorauthenticatie inschakelen
 
-Tweestapsverificatie geldt wanneer u met uw wachtwoord of een gemailde link inlogt. Voeg eerst een tweede stap toe, en schakel haar dan in.
+Tweefactorauthenticatie geldt wanneer u met uw wachtwoord of een gemailde link inlogt. Voeg eerst een tweede stap toe, en schakel haar dan in.
 
 :::steps
 ### Een authenticator-app toevoegen
 
-Open **Beveiliging → Two-factor authentication**. Voeg onder **Authenticator apps** een app toe en geef die een naam. Scan de QR-code met een app zoals 1Password, Google Authenticator of Microsoft Authenticator, voer de 6-cijferige code in die ze toont, en klik op **Verify and finish**. Wilt u liever een USB- of NFC-sleutel gebruiken, voeg die dan toe onder **Security keys**.
+Open **Beveiliging → Tweefactorauthenticatie**. Voeg onder **Authenticator-apps** een app toe en geef die een naam. Scan de QR-code met een app zoals 1Password, Google Authenticator of Microsoft Authenticator, voer de 6-cijferige code in die ze toont, en klik op **Verifiëren en afronden**. Wilt u liever een USB- of NFC-sleutel gebruiken, voeg die dan toe onder **Beveiligingssleutels**.
 
 ### Uw back-upcodes bewaren
 
-De eerste keer dat u een app, een sleutel of een passkey toevoegt, toont OneUptime **Your backup codes**. Elke code laat u één keer inloggen als u uw app of sleutel kwijtraakt. Kopieer of download ze, vink het vakje aan dat u ze hebt bewaard, en klik op **Klaar**.
+De eerste keer dat u een app, een sleutel of een passkey toevoegt, toont OneUptime **Uw back-upcodes**. Elke code laat u één keer inloggen als u uw app of sleutel kwijtraakt. Kopieer of download ze, vink het vakje aan dat u ze hebt bewaard, en klik op **Klaar**.
 
 ### Haar inschakelen
 
-Klik bovenaan de pagina op **Enable two-factor authentication** en bevestig. De kaart toont nu **Ingeschakeld**. Vanaf uw volgende aanmelding met wachtwoord of een gemailde link vraagt OneUptime om uw tweede stap.
+Klik bovenaan de pagina op **Tweefactorauthenticatie inschakelen** en bevestig. De kaart toont nu **Ingeschakeld**. Vanaf uw volgende aanmelding met wachtwoord of een gemailde link vraagt OneUptime om uw tweede stap.
 :::
 
 > [!TIP]
-> Raken uw back-upcodes op? **Regenerate codes** op dezelfde pagina geeft u een nieuwe set, en de oude codes werken meteen niet meer.
+> Raken uw back-upcodes op? **Codes opnieuw genereren** op dezelfde pagina geeft u een nieuwe set, en de oude codes werken meteen niet meer.
 
 ## Uw projecten
 
@@ -163,7 +165,7 @@ Opnieuw inloggen stuurt een nieuwe link: kijk ook in uw spammap. Kunt u niet inl
 :::
 
 :::details Ik ben mijn authenticator-app kwijt
-Kies bij de tweede stap van het inloggen **Geen toegang meer tot uw authenticator-app?** en voer een van uw back-upcodes in. Open daarna **Beveiliging → Two-factor authentication** en voeg uw nieuwe app toe. Zonder back-upcodes vraagt u een beheerder van uw OneUptime-installatie om de tweestapsverificatie van uw account te resetten.
+Kies bij de tweede stap van het inloggen **Geen toegang meer tot uw authenticator-app?** en voer een van uw back-upcodes in. Open daarna **Beveiliging → Tweefactorauthenticatie** en voeg uw nieuwe app toe. Zonder back-upcodes vraagt u een beheerder van uw OneUptime-installatie om de tweefactorauthenticatie van uw account te resetten.
 :::
 
 :::details Inloggen laat mij wachten voordat ik een andere code probeer

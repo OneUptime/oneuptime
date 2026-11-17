@@ -64,7 +64,7 @@ Et skjult produkt er ikke slået fra. Det flytter ned under **Flere produkter**,
 
 På en selv-hostet server kan en masteradministrator også slå et produkt fra for alle projekter under **Indstillinger → Produkter** i Admin Dashboard (se [Kør kun det, du har brug for](/docs/installation/docker-compose#kør-kun-det-du-har-brug-for)). Sådan et produkt har ingen kontakt her: Der står **Slået fra på denne server** sammen med, hvem der kan slå det til.
 
-Et nyt projekt starter med det, ejeren sagde på Hjem, at det skal bruges til: det grundlæggende, indstillingerne og det, de mål kræver, vises, og resten skjules. Et projekt, der sprang spørgsmålet over, eller som blev oprettet før det, viser alle produkter. Så snart nogen ændrer listen her, ændrer målene den ikke længere.
+Hvert produkt vises, indtil nogen skjuler det her. Intet produkt skjules af sig selv: det, en Projektejer eller Projektadministrator sagde på Hjem, at projektet skal bruges til, sætter kun de første trin op der, og et produkt, der ikke er sat op endnu, bliver på sin plads i menuen.
 
 Hvert produkt siger, hvad det er for dette projekt: **I brug**, **Ikke sat op** eller, i OneUptime Cloud, det abonnement, det kræver. Når et skjult produkt begynder at modtage data, siger Hjem det til Projektejere og Projektadministratorer og tilbyder **Vis det** eller **Hold skjult**.
 
@@ -91,6 +91,8 @@ I en liste vises en posts etiketter under hinanden; er der flere end fire, vises
 ### Arkiver en etiket
 
 For at udfase en etiket skal du arkivere den fra rækkens menu **⋯** i stedet for at slette den. Alt, der har etiketten, beholder den, og du kan stadig filtrere efter den, men ingen kan tilføje den til noget igen: Hver etiketvælger udelader den, og API'et, Terraform og MCP afviser den. Dialogen viser de regler og tilladelser, der er sat op til at bruge etiketten, og som bliver ved med at bruge den, indtil du ændrer dem. Arkiverede etiketter vises for sig, i den sammenfoldede sektion **Arkiverede etiketter**, hvor **Fjern fra arkivet** sætter en tilbage. **Slet** viser først alt, som etiketten ville blive fjernet fra, og tilbyder **Arkiver i stedet**.
+
+**Bruges af**, i menuen på en mærkats række, tæller posterne af hver slags, der har mærkaten, og åbner dem en side ad gangen. Poster, du ikke må åbne, tælles, men nævnes ikke.
 
 ## Notifikationer
 

@@ -392,7 +392,7 @@ describe("EditionLabel with the license details - an unlicensed installation's t
 
     await waitFor(() => {
       expect(pill()).toHaveAccessibleName(
-        "Enterprise Edition (Trial, 10 days left), Add license",
+        "Enterprise Edition (Trial, 10\u00A0days left), Add license",
       );
     });
   });
@@ -450,7 +450,7 @@ describe("EditionLabel with the license details - an unlicensed installation's t
 
     await waitFor(() => {
       expect(pill()).toHaveAccessibleName(
-        "Enterprise Edition (Trial, 1 day left), Add license",
+        "Enterprise Edition (Trial, 1\u00A0day left), Add license",
       );
     });
   });

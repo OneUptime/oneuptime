@@ -18,6 +18,11 @@ import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedEx
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import HashedString from "Common/Types/HashedString";
+import NewPasswordRule from "Common/Server/Utils/NewPasswordRule";
+import {
+  INCOMPLETE_RESET_LINK_MESSAGE,
+  RESET_LINK_MESSAGES,
+} from "Common/Types/Accounts/SignInMessages";
 import ObjectID from "Common/Types/ObjectID";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
@@ -62,13 +67,21 @@ import {
   STATUS_PAGE_MAGIC_LINK_INVALID_MESSAGE,
   STATUS_PAGE_MAGIC_LINK_LOGIN_ROUTE,
 } from "Common/Types/StatusPage/StatusPageMagicLink";
+import {
+  STATUS_PAGE_SESSION_REFRESH_TOKEN_EXPIRED_REASON,
+  STATUS_PAGE_SESSION_SIGNED_OUT_REASON,
+} from "Common/Types/AuditLog/AuditLogStatusPageSession";
+import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
 
 const router: ExpressRouter = Express.getRouter();
 
 const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 
-// Why a session a reader signed out of ended, as the session records it.
-const SIGNED_OUT_REASON: string = "User logged out";
+/*
+ * Why a session a reader signed out of ended, as the session records it -
+ * and as the audit log reads it, a Sign Out (issue #6790).
+ */
+const SIGNED_OUT_REASON: string = STATUS_PAGE_SESSION_SIGNED_OUT_REASON;
 
 type MasterPasswordAuthInput = {
   req: ExpressRequest;
@@ -173,6 +186,8 @@ type FinalizeStatusPageLoginInput = {
   req: ExpressRequest;
   res: ExpressResponse;
   user: StatusPagePrivateUser;
+  // How the reader signed in: the audit log says it (issue #6790).
+  signInMethod: SignInMethod;
 };
 
 const finalizeStatusPageLogin: (data: FinalizeStatusPageLoginInput) => Promise<{
@@ -184,7 +199,7 @@ const finalizeStatusPageLogin: (data: FinalizeStatusPageLoginInput) => Promise<{
   sessionMetadata: StatusPageSessionMetadata;
   accessToken: string;
 }> => {
-  const { req, res, user } = data;
+  const { req, res, user, signInMethod } = data;
 
   if (!user.projectId) {
     throw new BadDataException(
@@ -206,6 +221,8 @@ const finalizeStatusPageLogin: (data: FinalizeStatusPageLoginInput) => Promise<{
       ipAddress: getClientIp(req),
       userAgent: headerValueToString(req.headers["user-agent"]),
       ...extractDeviceInfo(req),
+      signIn: { method: signInMethod },
+      requestOrigin: RequestOriginUtil.fromRequest(req),
     });
 
   const accessToken: string = CookieUtil.setStatusPagePrivateUserCookie({
@@ -248,6 +265,7 @@ router.post(
             refreshToken,
             {
               reason: SIGNED_OUT_REASON,
+              requestOrigin: RequestOriginUtil.fromRequest(req),
             },
           )
         : false;
@@ -295,6 +313,7 @@ router.post(
             },
             {
               reason: SIGNED_OUT_REASON,
+              requestOrigin: RequestOriginUtil.fromRequest(req),
             },
           );
         }
@@ -495,7 +514,7 @@ router.post(
           statusPageId,
           revoke: {
             sessionId: session.id,
-            reason: "Refresh token expired",
+            reason: STATUS_PAGE_SESSION_REFRESH_TOKEN_EXPIRED_REASON,
           },
           message: "Session expired. Please login again.",
         });
@@ -802,7 +821,11 @@ router.post(
        * password would silently reset the matched account's password to `undefined`.
        */
       CredentialGuard.assertAllPresent([
-        { value: user.resetPasswordToken, label: "Reset password token" },
+        {
+          value: user.resetPasswordToken,
+          label: "Reset password token",
+          message: INCOMPLETE_RESET_LINK_MESSAGE,
+        },
         { value: user.password, label: "Password" },
       ]);
 
@@ -835,18 +858,14 @@ router.post(
         });
 
       if (!alreadySavedUser) {
-        throw new BadDataException(
-          "Invalid link. Please go to forgot password page again and request a new link.",
-        );
+        throw new BadDataException(RESET_LINK_MESSAGES.invalid);
       }
 
       if (
         alreadySavedUser &&
         OneUptimeDate.hasExpired(alreadySavedUser.resetPasswordExpires!)
       ) {
-        throw new BadDataException(
-          "Expired link. Please go to forgot password page again and request a new link.",
-        );
+        throw new BadDataException(RESET_LINK_MESSAGES.expired);
       }
 
       const statusPage: StatusPage | null = await StatusPageService.findOneById(
@@ -877,6 +896,15 @@ router.post(
           "Status Page supports authentication by SSO. You cannot use email and password for authentication.",
         );
       }
+
+      /*
+       * The one password rule (Types/Password), after the link and the page's
+       * single sign-on: a dead link is fixed by a new one, and a page that
+       * takes no password needs none. The write's hook asks again
+       * (StatusPagePrivateUserService); a reset used to store any password at
+       * all (#9123).
+       */
+      NewPasswordRule.assertMet(user.password);
 
       const statusPageName: string | undefined =
         statusPage.pageTitle || statusPage.name;
@@ -1219,6 +1247,7 @@ router.post(
         req,
         res,
         user,
+        signInMethod: SignInMethod.SignInLink,
       });
 
       // Who signed in - their id, address and page - and nothing else.
@@ -1329,6 +1358,7 @@ router.post(
           req,
           res,
           user: alreadySavedUser,
+          signInMethod: SignInMethod.Password,
         });
 
         const sanitizedUser: StatusPagePrivateUser | null =

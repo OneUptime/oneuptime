@@ -245,7 +245,7 @@ describe("before the Dashboard sets up i18next, the helpers answer in English", 
         }),
       )[0],
     ).toBe(
-      "Deploy: v2.31.0 landed 1 minute before the end of this window — deployments and config changes are the most common cause of behavior shifts.",
+      "Deploy: v2.31.0 landed 1\u00A0minute before the end of this window — deployments and config changes are the most common cause of behavior shifts.",
     );
   });
 
@@ -393,10 +393,10 @@ describe("in German, the page helpers and Utils translate whole sentences", () =
     );
 
     expect(one[0]).toBe(
-      "Deploy: v2.31.0 kam 1 Minute vor dem Ende dieses Zeitfensters — Deployments und Konfigurationsänderungen sind die häufigste Ursache für Verhaltensänderungen.",
+      "Deploy: v2.31.0 kam 1\u00A0Minute vor dem Ende dieses Zeitfensters — Deployments und Konfigurationsänderungen sind die häufigste Ursache für Verhaltensänderungen.",
     );
     expect(several[0]).toBe(
-      "Deploy: v2.31.0 kam 3 Minuten vor dem Ende dieses Zeitfensters — Deployments und Konfigurationsänderungen sind die häufigste Ursache für Verhaltensänderungen.",
+      "Deploy: v2.31.0 kam 3\u00A0Minuten vor dem Ende dieses Zeitfensters — Deployments und Konfigurationsänderungen sind die häufigste Ursache für Verhaltensänderungen.",
     );
     expect(several).toContain(
       "Incident: API down wurde in diesem Zeitfenster gemeldet — es könnte dieselbe Ursache haben.",
@@ -428,7 +428,7 @@ describe("in German, the page helpers and Utils translate whole sentences", () =
       });
 
     expect(scopes[0]?.description).toBe(
-      `Jedes Log aus dem Trace des letzten Auftretens, bis zu ${WINDOW_MINUTES} Minuten davor und danach.`,
+      `Jedes Log aus dem Trace des letzten Auftretens, bis zu ${WINDOW_MINUTES}\u00A0Minuten davor und danach.`,
     );
   });
 
@@ -485,7 +485,7 @@ describe("in German, the page helpers and Utils translate whole sentences", () =
     expect(sublabels).toEqual([
       "2 melden nicht",
       "1 Umgebung getrennt",
-      "in den letzten 24 Stunden",
+      "in den letzten 24\u00A0Stunden",
       "in den letzten 15\u00A0Min. gesehen",
     ]);
   });

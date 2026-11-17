@@ -23,6 +23,21 @@ Dove la fonte indica le colonne, la scheda **Colonne** di una tabella dice da do
 
 Nella scheda **Derivazione**, scegli una colonna della tabella in **Segui una colonna** per evidenziare da dove viene e dove va: risalendo il diagramma fino alle colonne da cui è costruita, scendendo fino alle colonne costruite a partire da essa, ciascuna indicata sulla sua tabella, anche dove è stata rinominata lungo il percorso. Una freccia le cui fonti non indicano colonne può portarla oltre ciò che è evidenziato, e il diagramma lo dice.
 
+## Mappa di derivazione
+
+**Osservabilità dei dati > Mappa di derivazione** disegna in una sola pagina ogni flusso di dati che il tuo progetto ha visto, così vedi chi usa quali dati e dove vanno senza dover prima scegliere una tabella. Mostra:
+
+- **Servizi** che scrivono e leggono tabelle, dagli span di database nelle tue tracce: uno span che indica la sua tabella (`db.collection.name`, o il più vecchio `db.sql.table`) e la sua istruzione (`db.operation.name`), come un `INSERT` o un `SELECT`.
+- **Tabelle** costruite a partire da altre tabelle, da tutte le fonti sopra.
+- **Pipeline** che caricano una tabella da dati che OneUptime non monitora, come una sincronizzazione di Fivetran. Una pipeline che sposta dati tra due tabelle monitorate è indicata sulla freccia tra loro.
+- **Dashboard** e sincronizzazioni di reverse ETL nei tuoi strumenti di BI, che leggono le tabelle su cui sono costruiti.
+
+Ogni freccia è qualcosa che OneUptime ha registrato, mai una supposizione. I riquadri sono disposti da sinistra a destra secondo il flusso dei dati e mostrano il loro stato come nel diagramma di una tabella: rosso per una tabella in ritardo, un avviso aperto o un'esecuzione non riuscita. Una freccia è turchese dove le tracce di un servizio l'hanno vista.
+
+Cerca una tabella, un servizio, una pipeline o una dashboard per mantenere ciò che corrisponde e tutto ciò che sta a monte e a valle. Seleziona un riquadro per evidenziare tutta la sua derivazione, vedere da dove viene e dove va, e aprirne la pagina; **Mostra solo la sua derivazione** lascia sulla mappa solo quello. Gli interruttori accanto alla ricerca escludono servizi, pipeline o dashboard. **Elenco** mostra ogni freccia come una riga, ed è ciò che apre un telefono.
+
+Una mappa disegna fino a 400 riquadri, a partire dai flussi visti più di recente; quando il tuo progetto ne ha di più, la mappa lo dice. La stessa mappa è servita da `POST /api/data-observability/lineage/map`, per chiunque possa leggere gli asset di dati, e le loro chiavi API.
+
 ## OpenLineage
 
 Invia gli eventi OpenLineage a OneUptime, senza modifiche, con una [chiave di acquisizione](/docs/telemetry/ingestion-keys) della telemetria:

@@ -7,9 +7,10 @@ import path from "path";
  * the way the suites that pin one of its notes need it.
  *
  * Every translation has the English page's shape: the same headings in the
- * same places, and the "Other changes in 14" list with the English notes in
- * the English order. So a note is found in a translation by where its
- * English note is - the n-th item of that list - and a section by where its
+ * same places, and each major version's "Other changes in" list ("Other
+ * changes in 14", "Other changes in 15") with the English notes in the
+ * English order. So a note is found in a translation by where its English
+ * note is - the n-th item of its version's list - and a section by where its
  * English heading is, never by words a translation words its own way.
  */
 
@@ -179,18 +180,29 @@ export function statedNumbers(text: string): Array<number> {
 }
 
 /*
- * The notes of the "Other changes in 14" list - the first collapsible block
- * of the page - one entry a top-level item, with its continuation lines,
- * nested items and paragraphs, in order.
+ * The notes of a major version's "Other changes in" list - the collapsible
+ * block under its "Other changes in 14" or "Other changes in 15" heading -
+ * one entry a top-level item, with its continuation lines, nested items and
+ * paragraphs, in order. A version's notes are the changes it brought: 14's
+ * list is what 13 -> 14 changed, 15's what 14 -> 15 did.
  */
-export function otherChangesItems(language: string): Array<string> {
+export function otherChangesItems(
+  language: string,
+  major: number = 14,
+): Array<string> {
   const lines: Array<string> = upgradingPage(language).split("\n");
-  const open: number = lines.findIndex((line: string): boolean => {
-    return DETAILS_OPEN.test(line);
+  const heading: UpgradingHeading = headingAtEnglishPlace(
+    language,
+    `Other changes in ${major}`,
+  );
+  const open: number = lines.findIndex((line: string, index: number) => {
+    return index > heading.line && DETAILS_OPEN.test(line);
   });
 
   if (open < 0) {
-    throw new Error(`The ${language} upgrade guide has no collapsible block`);
+    throw new Error(
+      `The ${language} upgrade guide has no collapsible block under "Other changes in ${major}"`,
+    );
   }
 
   const items: Array<Array<string>> = [];
@@ -214,14 +226,16 @@ export function otherChangesItems(language: string): Array<string> {
 }
 
 /*
- * The note of a language's "Other changes in 14" list in the place of the
- * English note that opens with this bold lead (its first words will do).
+ * The note of a language's "Other changes in" list of a major version (14
+ * unless named) in the place of the English note that opens with this bold
+ * lead (its first words will do).
  */
 export function otherChangesItemAtEnglishPlace(
   language: string,
   englishLead: string,
+  major: number = 14,
 ): string {
-  const index: number = otherChangesItems("en").findIndex(
+  const index: number = otherChangesItems("en", major).findIndex(
     (item: string): boolean => {
       return flattened(item).startsWith(`- **${englishLead}`);
     },
@@ -229,15 +243,15 @@ export function otherChangesItemAtEnglishPlace(
 
   if (index < 0) {
     throw new Error(
-      `The English "Other changes in 14" list has no note opening "${englishLead}"`,
+      `The English "Other changes in ${major}" list has no note opening "${englishLead}"`,
     );
   }
 
-  const item: string | undefined = otherChangesItems(language)[index];
+  const item: string | undefined = otherChangesItems(language, major)[index];
 
   if (item === undefined) {
     throw new Error(
-      `The ${language} "Other changes in 14" list has no note in the place of "${englishLead}"`,
+      `The ${language} "Other changes in ${major}" list has no note in the place of "${englishLead}"`,
     );
   }
 

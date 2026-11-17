@@ -3,9 +3,17 @@ import { sendPushConfigurationToRegisteredServiceWorker } from "./Components/Not
 import { i18nReady } from "./Utils/i18n";
 import reportSignUpFromSignIn from "./Utils/ReportSignUpFromSignIn";
 import "Common/UI/Styles/Theme.css";
+/*
+ * A monitor's steps and criteria, read back from JSON on every page here,
+ * from the first: they join JSON reading as their module loads, and a page
+ * that never reads a monitor - a sign-in page, a status page - leaves them
+ * out (Common/Types/Monitor/MonitorJsonTypes).
+ */
+import "Common/Types/Monitor/MonitorJsonTypes";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import UiAnalytics from "Common/UI/Utils/Analytics";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
+import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import NewVersionNavigation from "Common/UI/Components/NewVersion/NewVersionNavigation";
 import NewVersionNotice from "Common/UI/Components/NewVersion/NewVersionNotice";
 import NewVersion, {
@@ -163,6 +171,7 @@ i18nReady
           <App />
         </BrowserRouter>
         <NewVersionNotice />
+        <ToastRegion />
       </ErrorBoundary>,
     );
   });

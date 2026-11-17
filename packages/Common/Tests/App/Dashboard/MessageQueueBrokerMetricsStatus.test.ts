@@ -1342,7 +1342,7 @@ describe("the card's words", () => {
       `Reported only for periods with activity. It last arrived ${OneUptimeDate.fromNow(ago(DAY_MS), NOW)}.`,
     );
     expect(line(quiet, INCOMING)).toBe(
-      "Reported only for periods with activity, and there was none in the last 7 days.",
+      "Reported only for periods with activity, and there was none in the last 7\u00A0days.",
     );
     expect(line(quiet, SIZE)).toBe(
       `It stopped arriving ${OneUptimeDate.fromNow(ago(2 * DAY_MS), NOW)}, while the other metrics still arrive.`,
@@ -1450,7 +1450,7 @@ describe("the card's words", () => {
         persian,
       ),
     ).toBe(
-      "«Reported only for periods with activity, and there was none in the last ۷ days.»",
+      "«Reported only for periods with activity, and there was none in the last ۷\u00A0days.»",
     );
   });
 });

@@ -385,8 +385,13 @@ export default class ResourceAiAgentIngressAPI {
        * change not yet sent is never sent. The lease is still renewed, so
        * the agent reports what it did.
        */
-      const stop: string | null =
-        await ResourceAiAgentIngressAPI.getStopReasonOf({ jobId, agent });
+      const stop: string | null = await RunnerJobService.getStopReasonOfHeldJob(
+        {
+          jobId,
+          agentId: agent.id!,
+          projectId: agent.projectId,
+        },
+      );
 
       return Response.sendJsonObjectResponse(
         req,
@@ -462,42 +467,6 @@ export default class ResourceAiAgentIngressAPI {
     } catch (err) {
       next(err);
     }
-  }
-
-  /*
-   * Why the agent must stop the job it holds (AiCommandKillSwitch
-   * .getStopReason), or null. A job it no longer holds says nothing here:
-   * the heartbeat above already refused it.
-   */
-  public static async getStopReasonOf(data: {
-    jobId: ObjectID;
-    agent: ResourceAiAgent;
-  }): Promise<string | null> {
-    if (!data.agent.projectId) {
-      return null;
-    }
-
-    const job: RunnerJob | null = await RunnerJobService.findOneBy({
-      query: {
-        _id: data.jobId.toString(),
-        assignedAgentId: data.agent.id!,
-      },
-      select: {
-        origin: true,
-        aiRunId: true,
-        autoRemediationSuggestionId: true,
-      },
-      props: { isRoot: true },
-    });
-
-    if (!job) {
-      return null;
-    }
-
-    return await AiCommandKillSwitch.getStopReason({
-      job,
-      projectId: data.agent.projectId,
-    });
   }
 
   /*

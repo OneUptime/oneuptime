@@ -91,6 +91,10 @@ export { DEFAULT_ESCALATE_AFTER_IN_MINUTES };
 export const ON_CALL_SETUP_COPY: {
   pageTitle: string;
   pageDescription: string;
+  reachOutcome: string;
+  whoOutcome: string;
+  noAnswerOutcome: string;
+  testOutcome: string;
   reachTitle: string;
   reachHelp: string;
   emailRow: string;
@@ -170,6 +174,22 @@ export const ON_CALL_SETUP_COPY: {
   pageTitle: translationKey("Page the right person when something breaks"),
   pageDescription: translationKey(
     "Guided setup: how you are reached, who else is on call, what happens if nobody answers, and a test page, on this page.",
+  ),
+  /*
+   * What each step sets up, beside the steps (GuidedSetupFrame, #8897): the
+   * outcome the person is working towards, ticked as each step is done.
+   */
+  reachOutcome: translationKey(
+    "A page reaches you by every method you verified.",
+  ),
+  whoOutcome: translationKey(
+    "An on-call policy pages the right people for every new incident and alert.",
+  ),
+  noAnswerOutcome: translationKey(
+    "If nobody answers in time, the page goes further.",
+  ),
+  testOutcome: translationKey(
+    "A test page proves that the policy reaches people.",
   ),
   reachTitle: translationKey("How should we reach you?"),
   reachHelp: translationKey(

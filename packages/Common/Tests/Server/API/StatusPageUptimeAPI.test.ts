@@ -271,6 +271,7 @@ function mockPage(): void {
       uptimeDailyAggregate: uptimeDailyAggregate,
       monitorGroupCurrentStatuses: {},
       notMonitoredResourceIds: [],
+      notMonitoredYetResourceIds: [],
       statusPageGroups: [],
       statusPage: statusPage,
       monitorsOnStatusPage: [MONITOR, GROUP_MONITOR, UNRECORDED_MONITOR],
@@ -410,12 +411,19 @@ describe("POST /status-page-api/uptime/:statusPageId", () => {
     expect(request.endDate).toEqual(new Date(END_DATE));
   });
 
-  it("falls back to the rows for a monitor group with nothing recorded", async () => {
+  it("sends no uptime for a monitor group with nothing recorded, not the 100% its rows read (issue #8960)", async () => {
+    /*
+     * Merged and nothing recorded: its monitors not checked yet, or off the
+     * whole range. Its rows hold that time, which they read as up.
+     */
     mockMergedDowntime({ coveredSeconds: 0, downtimeSeconds: 0 });
 
     const uptimes: Record<string, number | null> = await uptimeByResourceName();
 
-    expect(uptimes["Edge"]).toBe(99.86);
+    expect(uptimes["Edge"]).toBeNull();
+    expect(uptimes["Edge again"]).toBeNull();
+    // A single monitor keeps its buckets' figure.
+    expect(uptimes["lp.chainflip.io"]).not.toBeNull();
   });
 
   it("still sends no uptime for a monitor group that hides it", async () => {

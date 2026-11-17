@@ -1179,14 +1179,85 @@ describe("OnCallPolicyRunMessage.buildRun - where the escalation is", () => {
     expect(built.nextRule).toEqual({ order: 3, name: "third" });
   });
 
-  test("by its order when the log has no rule id", () => {
+  /*
+   * A log with no rule id that recorded a place: the level it is on was
+   * deleted while it paged (ON DELETE SET NULL, issue #9036). The level now
+   * at that place is the one that moved up into it - next, not current.
+   */
+  test("a level deleted under the run is said to be deleted, and the level that moved up into its place is next", () => {
     const built: OnCallPolicyRun = build({
-      log: executionLog({ ruleOrder: 3 }),
+      log: executionLog({ ruleOrder: 2 }),
       timeline: [],
     });
 
-    expect(built.currentRule).toEqual({ order: 3, name: "third" });
+    expect(built.currentRule).toEqual({
+      order: 2,
+      name: undefined,
+      isDeleted: true,
+    });
+    expect(built.nextRule).toEqual({ order: 2, name: "second" });
+  });
+
+  test("a deleted level is named as its lines recorded it, the newest first", () => {
+    const deletedLine: (
+      name: string,
+    ) => OnCallDutyPolicyExecutionLogTimeline = (
+      name: string,
+    ): OnCallDutyPolicyExecutionLogTimeline => {
+      const line: OnCallDutyPolicyExecutionLogTimeline = step({
+        status: SENT,
+        ruleId: RULE_1,
+        userId: NITIN,
+        userName: "Nitin",
+      });
+      delete line.onCallDutyPolicyEscalationRuleId;
+      line.escalationRuleOrder = 3;
+      line.escalationRuleName = name;
+      return line;
+    };
+
+    const built: OnCallPolicyRun = build({
+      log: executionLog({ ruleOrder: 3 }),
+      timeline: [deletedLine("Databse"), deletedLine("Database")],
+      rules: [RULES[0]!, RULES[1]!],
+    });
+
+    expect(built.currentRule).toEqual({
+      order: 3,
+      name: "Database",
+      isDeleted: true,
+    });
+    // Nothing after the last level: the policy repeats, or paging stops.
     expect(built.nextRule).toBeUndefined();
+
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(built);
+
+    expect(markdown).toContain("**Level 3: Database (deleted)**");
+    expect(markdown).not.toContain("third");
+  });
+
+  test("a level deleted under the run says so in its message, and names the level now at its place as next", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({ ruleOrder: 2, executeNextInMinutes: 7 }),
+      timeline: [],
+    });
+
+    const markdown: string = OnCallPolicyRunMessageView.getMarkdown(built);
+
+    expect(markdown).toContain("**Level 2 (deleted)**");
+    expect(markdown).toContain("second (Level 2 of 3) is next.");
+  });
+
+  test("a level that is still there is never said to be deleted", () => {
+    const built: OnCallPolicyRun = build({
+      log: executionLog({ ruleId: RULE_2, ruleOrder: 2 }),
+      timeline: [],
+    });
+
+    expect(built.currentRule).toEqual({ order: 2, name: "second" });
+    expect(OnCallPolicyRunMessageView.getMarkdown(built)).not.toContain(
+      "(deleted)",
+    );
   });
 
   test("no rule has run yet: no current rule, no next rule", () => {

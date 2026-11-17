@@ -9,7 +9,7 @@ import AutoRemediationSuggestionService from "../../../../Server/Services/AutoRe
 import IncidentService from "../../../../Server/Services/IncidentService";
 import UserService from "../../../../Server/Services/UserService";
 import RemediationApproval from "../../../../Server/Utils/AutoRemediation/RemediationApproval";
-import { getRemediationPlanFingerprint } from "../../../../Server/Utils/AutoRemediation/RemediationPlanFingerprint";
+import { getRemediationPlanFingerprint } from "../../../../Types/AutoRemediation/RemediationPlanFingerprint";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import { WorkspaceAnswer } from "../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
 import WorkspaceRemediationActions, {
@@ -381,8 +381,9 @@ describe("the approval dialog", () => {
       "Scale the ECS service checkout-api out to 8 tasks",
     );
     expect(dialog?.markdown).toContain("Approving runs exactly what is shown");
+    // The fix, what it runs, and what its press does: the only approval it needs.
     expect(dialog?.value).toBe(
-      `${SUGGESTION_ID.toString()}:${getRemediationPlanFingerprint(row)}`,
+      `${SUGGESTION_ID.toString()}:${getRemediationPlanFingerprint(row)}:only`,
     );
 
     /*

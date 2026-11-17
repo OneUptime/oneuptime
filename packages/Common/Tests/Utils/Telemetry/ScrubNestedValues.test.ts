@@ -514,6 +514,73 @@ describe("an attribute map, as the services scrub one", () => {
       arrivedAsText: "reset your password here",
     });
   });
+
+  /*
+   * #8993: the services read the keys of a JSON text held in a string
+   * (Utils/Telemetry/ScrubJsonKeys.ts) through `readJsonText`, which is
+   * handed every text under no secret key that arrived as text - the
+   * value itself, or one inside a list or a map - and nothing else.
+   */
+  test("hideAttributeTextsUnderSensitiveKeys hands each text under no secret key to readJsonText, and keeps what it answers", () => {
+    const handed: Array<string> = [];
+    const readJsonText: (text: string) => string = (text: string): string => {
+      handed.push(text);
+      return text.startsWith("{") ? "read" : text;
+    };
+    const attributes: Record<string, unknown> = {
+      "http.request.body": '{"password":"p"}',
+      "db.password": '{"a":"b"}',
+      held: '[{"password":"p"}]',
+      kept: '{"token":"t"}',
+      list: ['{"token":"t"}', "plain", 7, { token: "under a key", note: "n" }],
+      count: 4,
+    };
+
+    ScrubNestedValuesUtil.hideAttributeTextsUnderSensitiveKeys(
+      attributes,
+      isSensitiveKey,
+      hide,
+      new Set<string>(["held"]),
+      new Set<string>(["kept"]),
+      readJsonText,
+    );
+
+    expect(handed).toEqual(['{"password":"p"}', '{"token":"t"}', "plain", "n"]);
+    expect(attributes).toEqual({
+      "http.request.body": "read",
+      // Under a secret key: hidden whole, never read.
+      "db.password": "[REDACTED]",
+      // Held as its JSON text: hidden whole when it names a secret.
+      held: "[REDACTED]",
+      // A record's own id, which its column keeps: never read.
+      kept: '{"token":"t"}',
+      list: ["read", "plain", 7, { token: "[REDACTED]", note: "n" }],
+      count: 4,
+    });
+  });
+
+  test("scrubTextsUnderSensitiveKeys hands readJsonText the texts under no secret key, a text on its own too", () => {
+    const readJsonText: (text: string) => string = (text: string): string => {
+      return `<${text}>`;
+    };
+
+    expect(
+      ScrubNestedValuesUtil.scrubTextsUnderSensitiveKeys(
+        { a: "x", password: "y", b: ["z", 1] },
+        isSensitiveKey,
+        hide,
+        readJsonText,
+      ),
+    ).toEqual({ a: "<x>", password: "[REDACTED]", b: ["<z>", 1] });
+    expect(
+      ScrubNestedValuesUtil.scrubTextsUnderSensitiveKeys(
+        "alone",
+        isSensitiveKey,
+        hide,
+        readJsonText,
+      ),
+    ).toBe("<alone>");
+  });
 });
 
 describe("holdOversizedValuesAsText bounds what the rules read value by value", () => {
@@ -853,5 +920,81 @@ describe("a hostile record is scrubbed in time in line with its size", () => {
     expect((run.result["list9"] as Array<string>)[999]).toBe("[SCRUBBED]");
     expect(typeof run.result["list10"]).toBe("string");
     expect(run.result["list999"]).not.toContain('"secret"');
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A STRUCTURED LOG BODY, AS A SENSITIVE ATTRIBUTE KEYS RULE READS IT (#6513).
+ *
+ * A log body sent as a map or a list is stored as its JSON text, which a
+ * keys rule never read: a password inside a key-value list body was stored
+ * as sent. readJsonListOrMap says whether a text is the JSON text of a list
+ * or a map; a keys rule then reads it where it is written, within the
+ * record's bounds (Utils/Telemetry/ScrubJsonKeys.ts, whose tests hold the
+ * rest, JSON texts held in strings included, #8993).
+ * ---------------------------------------------------------------------------
+ */
+
+// A body as OTLP sends a key-value list, stored as ingest stores it.
+function otlpMap(entries: Array<[string, unknown]>): Record<string, unknown> {
+  return {
+    kvlistValue: {
+      values: entries.map(([key, value]: [string, unknown]): unknown => {
+        return { key: key, value: value };
+      }),
+    },
+  };
+}
+
+describe("readJsonListOrMap reads a body that is the JSON text of a list or a map", () => {
+  test("the map or list a JSON text is, as JSON.parse reads it", () => {
+    const body: Record<string, unknown> = otlpMap([
+      ["password", { stringValue: "pw-1" }],
+    ]);
+
+    expect(
+      ScrubNestedValuesUtil.readJsonListOrMap(JSON.stringify(body)),
+    ).toEqual(body);
+    expect(ScrubNestedValuesUtil.readJsonListOrMap('["a", 1, null]')).toEqual([
+      "a",
+      1,
+      null,
+    ]);
+    expect(
+      ScrubNestedValuesUtil.readJsonListOrMap('\n  {"token": "t-1"}\n'),
+    ).toEqual({ token: "t-1" });
+    expect(ScrubNestedValuesUtil.readJsonListOrMap("{}")).toEqual({});
+  });
+
+  test("null for any other text: words, a JSON text, number, true or null, and broken JSON", () => {
+    for (const text of [
+      "",
+      "   ",
+      "password=hunter2",
+      '"a JSON text"',
+      "42",
+      "true",
+      "null",
+      '{"password": "unterminated',
+      "{not json}",
+      "[1, 2,]",
+      "{'single': 'quotes'}",
+    ]) {
+      expect([text, ScrubNestedValuesUtil.readJsonListOrMap(text)]).toEqual([
+        text,
+        null,
+      ]);
+    }
+  });
+
+  test("keeps a key JSON reads as __proto__ as a key of its own", () => {
+    const value: Record<string, unknown> =
+      ScrubNestedValuesUtil.readJsonListOrMap(
+        '{"__proto__": {"password": "pw"}}',
+      ) as Record<string, unknown>;
+
+    expect(Object.getPrototypeOf(value)).toBe(Object.prototype);
+    expect(Object.keys(value)).toEqual(["__proto__"]);
   });
 });

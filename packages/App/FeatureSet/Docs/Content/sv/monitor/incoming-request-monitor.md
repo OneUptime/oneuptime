@@ -84,7 +84,7 @@ Skicka **GET**- eller **POST**-förfrågningar till den här URL:en. HEAD godtas
 > Alla som känner till den här URL:en kan markera monitorn som frisk, så behandla den som en hemlighet. Om den läcker öppnar du monitorns sida **Inställningar** och klickar på **Återställ hemlig nyckel för inkommande begäran**, och sedan uppdaterar du varje avsändare. Monitorns översikt visar den senaste förfrågan så som dess loggar behåller den: med hemligheter och personuppgifter maskerade, och utan headers eller brödtext när **Behåll förfrågans innehåll** är avstängt. Maskeringen hittar bara de namn och mönster den känner till, så skicka inte API-nycklar eller token till den här slutpunkten.
 
 > [!IMPORTANT]
-> OneUptime svarar `200` med ett tomt JSON-objekt (`{}`) direkt och behandlar förfrågan via en kö. Svaret skrivs innan någon validering sker, så en `200` är **inte** en bekräftelse på att förfrågan godtogs — en felaktig hemlig nyckel, en borttagen monitor och en inaktiverad monitor returnerar också `200`. Kontrollera monitorns egen tidslinje för att bekräfta att förfrågningarna kommer fram. Det enda undantaget är ett projekt som kräver en hemlighet vid varje begäran: en begäran utan hemlighet besvaras med `401`.
+> OneUptime svarar `200` med ett tomt JSON-objekt (`{}`) direkt och behandlar förfrågan via en kö. Svaret skrivs innan någon validering sker, så en `200` är **inte** en bekräftelse på att förfrågan godtogs — en felaktig hemlig nyckel, en borttagen monitor och en inaktiverad monitor returnerar också `200`. Kontrollera monitorns egen tidslinje för att bekräfta att förfrågningarna kommer fram. Ett projekt som kräver en hemlighet vid varje begäran besvarar en begäran utan hemlighet med `401`, och en tjänst som kontrollerar URL:en innan den levererar något får det svar den väntar sig: se [Tjänster som kontrollerar URL:en först](#tjänster-som-kontrollerar-urlen-först).
 
 ### Skicka en förfrågningskropp
 
@@ -94,8 +94,9 @@ Om du vill använda fält i kroppen — `{{requestBody.status}}` i en incidentti
 | --- | --- |
 | `application/json` | Den tolkade JSON:en. |
 | `application/x-www-form-urlencoded` | Det tolkade formuläret. Nycklar inom hakparenteser nästlas (`alerts[0][status]=firing`), och alla värden är strängar. |
-| `text/plain` | Den tolkade JSON:en, när texten är ett JSON-objekt eller en JSON-matris: så skickar Amazon SNS sina meddelanden. All annan text blir en tom kropp. |
-| Allt annat, eller ingen | En tom kropp (`{}`), så varje hänvisning till `requestBody` blir ingenting. |
+| `text/plain` | Den tolkade JSON:en, när texten är ett JSON-objekt eller en JSON-matris: så skickar Amazon SNS sina meddelanden. All annan text är själva texten, så `backup failed: error 42` gör monitorn offline med standardkriterierna. |
+| `application/cloudevents+json`, eller en annan `+json`-typ | Den tolkade JSON:en: så levererar Azure Event Grid CloudEvents. |
+| Allt annat, eller ingen | En tom kropp (`{}`), så ingen hänvisning till `requestBody` löses upp, och en mall skriver ut den ordagrant. |
 
 Kroppar på upp till 50 MB godtas; en större avvisas med en `413`. Komprimera inte kroppen med `Content-Encoding: gzip`: då lagras den inte som JSON, och sökvägar in i den löses inte upp.
 
@@ -193,6 +194,8 @@ Invoke-RestMethod -Method Post `
 
 Alla som har en monitors URL kan skicka begäranden till den. En Projektägare eller Projektadministratör kan låta varje monitor för inkommande begäranden i projektet även kräva en av projektets egna hemligheter, oavsett vem som satte upp monitorn: slå på **Kräv en hemlighet vid varje begäran**. En begäran utan hemlighet avvisas med `401` och orsaken, innan den räknas som heartbeat, sparas som monitorns senaste begäran eller når några kriterier. En begäran med hemlighet går vidare till monitorns egna kriterier, som tidigare.
 
+Projektägare och Projektadministratörer hanterar hemligheterna och reglaget, och det gör även en anpassad roll med behörigheterna Create, Read, Edit och Delete Incoming Request Secret: Read visar hemligheternas värden, och Edit slår också på och av reglaget.
+
 :::steps
 ### Skapa en hemlighet
 
@@ -200,7 +203,7 @@ Gå till **Monitorer → Inställningar → Hemligheter för inkommande begäran
 
 ### Skicka den från varje avsändare
 
-Skicka hemligheten i headern `X-OneUptime-Secret`, eller som Bearer-token i headern `Authorization`, beroende på vad din avsändare kan ange.
+Skicka hemligheten i headern `X-OneUptime-Secret`, eller som Bearer-token i headern `Authorization`, beroende på vad din avsändare kan ange. En avsändare som inte själv kan ange en header kan i stället signera varje begäran med hemligheten: se [Signera begäranden med hemligheten](#signera-begäranden-med-hemligheten).
 
 ### Hitta avsändarna du har missat
 
@@ -208,7 +211,7 @@ Så snart projektet har en hemlighet kontrollerar OneUptime varje begäran, utan
 
 ### Slå på kravet
 
-Slå på **Kräv en hemlighet vid varje begäran**. Kravet går inte att slå på så länge projektet saknar hemlighet, så att ingen avsändare avvisas av misstag.
+Slå på **Kräv en hemlighet vid varje begäran**. Kravet går inte att slå på så länge projektet saknar hemlighet, så att ingen avsändare avvisas av misstag. Innan kravet slås på visas hur många monitorer för inkommande begäranden som har fått en begäran utan giltig hemlighet de senaste 24 timmarna, om några: deras avsändare avvisas från och med då.
 :::
 
 ```bash
@@ -222,8 +225,40 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 OneUptime sparar aldrig hemligheten: den tar bort headern från begäran och maskerar en Bearer-token som är en av projektets hemligheter innan den sparar något.
 
+En adress som skickar mer än 10 olika felaktiga hemligheter till en monitor på 15 minuter avvisas sedan med `429` för varje hemlighet den skickar, rätt eller fel, fram till den tid som dess header `Retry-After` anger, högst 15 minuter. Avsändare på andra adresser påverkas inte, och en avsändare som fortsätter att skicka en gammal hemlighet får fortsatt den `401` som säger vad som är fel.
+
 > [!TIP]
-> För att byta ut en hemlighet utan att avvisa någon skapar du en andra, flyttar dina avsändare till den och tar sedan bort den gamla när dess **Senast använd** slutar ändras. Alla projektets hemligheter godtas, och den sista kan inte tas bort medan kravet är på.
+> För att byta ut en hemlighet utan att avvisa någon skapar du en andra, flyttar dina avsändare till den och tar sedan bort den gamla när dess **Senast använd** slutar ändras. Alla projektets hemligheter godtas om de inte är begränsade till andra monitorer, och den sista som täcker en monitor kan inte tas bort medan kravet är på.
+
+### Signera begäranden med hemligheten
+
+En avsändare kan signera varje begäran med hemligheten i stället för att skicka den, vilket är säkrare: inget hemligt skickas, och en begäran som någon har fångat upp kan inte skickas igen senare. Föredra det överallt där en avsändare kan signera. OneUptime kontrollerar de här signaturerna, var och en en HMAC-SHA256 i hex med hemligheten som nyckel:
+
+| Avsändare | Header | Vad som signeras |
+| --- | --- | --- |
+| Din egen kod | `X-OneUptime-Signature: t=<time>,v1=<signature>` | `<time>.<body>` |
+| GitHub-webhooks | `X-Hub-Signature-256` | Bodyn |
+| Slack | `X-Slack-Signature`, med `X-Slack-Request-Timestamp` | `v0:<time>:<body>` |
+| Stripe | `Stripe-Signature` | `<time>.<body>` |
+
+`<time>` är tidpunkten då begäran signerades, i sekunder sedan 1970. En signatur som ligger mer än 5 minuter från OneUptimes klocka avvisas, och det gör även en signerad begäran som skickas en andra gång; GitHubs signatur har ingen tid, så OneUptime kommer ihåg var och en i ett dygn. För GitHub ger du webhooken en av projektets hemligheter som secret. Slack och Stripe skapar sin egen signeringshemlighet: skapa projektets hemlighet med det värdet, under **Fler fält**.
+
+```bash
+body='{"status":"healthy"}'
+t=$(date +%s)
+sig=$(printf '%s.%s' "$t" "$body" | openssl dgst -sha256 -hmac "YOUR_PROJECT_SECRET" | sed 's/^.* //')
+
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Content-Type: application/json" \
+  -H "X-OneUptime-Signature: t=$t,v1=$sig" \
+  -d "$body"
+```
+
+En hemlighet i URL:ens query string godtas inte: proxyer och åtkomstloggar sparar hela URL:er, bredvid monitorns egen nyckel. En sonds ingress för inkommande förfrågningar vidarebefordrar en signerad begärans body som den kom, så signaturen håller även den vägen.
+
+### Begränsa en hemlighet till vissa monitorer
+
+En hemlighet godtas av varje monitor för inkommande begäranden i projektet om du inte begränsar den, som ett projekt gör där varje hyresgäst skickar sin egen hemlighet: välj under **Fler fält** antingen **Specifika monitorer** eller **Monitorer med etiketter**. Alla andra monitorer avvisar den med `401`, som de avvisar en felaktig hemlighet, och **Begäranden utan hemlighet** anger orsaken som **Hemlighet inte för den här monitorn**. Så länge kravet är på behåller projektet minst en hemlighet som täcker en monitor.
 
 ## Övervakningskriterier
 
@@ -383,9 +418,25 @@ Hela nyttolasten finns tillgänglig vid sidan av, så både en incidenttitel `{{
 
 En fullständig Alertmanager-konfiguration finns under [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). För Grafana, se [Grafana](/docs/integrations/grafana).
 
+## Tjänster som kontrollerar URL:en först
+
+Vissa tjänster kontrollerar en ny slutpunkt innan de levererar något till den: de skickar den en förfrågan och levererar först när den svarar som de väntar sig. OneUptime besvarar själv dessa kontroller, så du behöver bara klistra in monitorns **Heartbeat URL** i tjänsten.
+
+| Tjänst | Kontrollen | Det OneUptime svarar |
+| --- | --- | --- |
+| Azure Event Grid, Event Grid-schema | En `SubscriptionValidationEvent` | Dess `validationCode`, som `validationResponse` |
+| Azure Event Grid, CloudEvents-schema | En `OPTIONS`-förfrågan som anger sitt ursprung | `WebHook-Allowed-Origin`, med det ursprunget |
+| Slack Events API | En `url_verification`-förfrågan | Dess `challenge` |
+| Ändringsaviseringar från Microsoft Graph | En `POST` med en `validationToken` | Token, som `text/plain` |
+| Event hooks från Okta | En `GET` med `X-Okta-Verification-Challenge` | Utmaningen, som `verification` |
+
+En kontroll besvaras bara på en monitors egen URL, och bara när förfrågan räknas: i ett projekt som kräver en hemlighet vid varje begäran avvisas en kontroll utan hemlighet med `401`, som varje förfrågan, så tjänsten måste skicka hemligheten i en header. Svaret innehåller det tjänsten skickade för att få tillbaka, och inget annat från förfrågan, och bara när det har den form tjänsten ger det.
+
+En kontroll når monitorn som varje förfrågan, så dess kriterier utvärderar den och den visas på monitorns **Översikt**; CloudEvents-kontrollen besvaras och inget mer. En sonds ingress för inkommande förfrågningar besvarar en kontroll som den besvarar varje förfrågan, med `{}`, så skicka de här tjänsterna till OneUptimes egen URL.
+
 ## Prenumerera på Amazon SNS eller Azure Event Grid
 
-Amazon SNS och Azure Event Grid skickar ingenting till en ny slutpunkt förrän någon bekräftar prenumerationen genom att öppna en länk som tjänsten skickar dit. När den förfrågan kommer visar kortet **Monitor-sammanfattning** på monitorns **Översikt** vad tjänsten väntar på, ämnet och en knapp som öppnar länken i en ny flik.
+Amazon SNS skickar ingenting till en ny slutpunkt förrän någon bekräftar prenumerationen genom att öppna en länk som SNS skickar dit. Azure Event Grid skickar också en sådan länk, till en slutpunkt som inte besvarar dess kontroll, och OneUptime besvarar den. När en länk kommer som ännu ska öppnas visar kortet **Monitor-sammanfattning** på monitorns **Översikt** vad tjänsten väntar på, ämnet och en knapp som öppnar länken i en ny flik.
 
 | Tjänst | Förfrågan | Knapp | Länken fungerar i |
 | --- | --- | --- | --- |
@@ -411,11 +462,11 @@ Om kortet säger att länken inte längre kan öppnas markerar du prenumeratione
 ### Azure Event Grid
 
 :::steps
-1. Öppna resursen vars händelser du vill ha i Azure-portalen och lägg till en händelseprenumeration. Välj **Event Grid Schema** som händelseschema, **Web Hook** som slutpunktstyp och monitorns **Heartbeat URL** som slutpunkt.
-2. Öppna monitorns **Översikt** inom 10 minuter och klicka på **Validera prenumeration** på kortet **Monitor-sammanfattning**.
+1. Öppna resursen vars händelser du vill ha i Azure-portalen och lägg till en händelseprenumeration. Välj **Event Grid Schema** eller **Cloud Event Schema v1.0** som händelseschema, **Web Hook** som slutpunktstyp och monitorns **Heartbeat URL** som slutpunkt.
+2. Skapa händelseprenumerationen. OneUptime besvarar Event Grids kontroll, så prenumerationen valideras när den skapas och dess händelser börjar komma.
 :::
 
-Event Grid validerar en slutpunkt som skickar tillbaka en kod till den, eller vars ägare öppnar länken den skickar. OneUptime svarar på varje förfrågan med en tom `200`, så det är länken som gäller. Länken pekar på Event Grid på port 553, som en brandvägg framför din webbläsare måste släppa igenom. Om 10 minuter hinner gå först misslyckas händelseprenumerationen: skapa den igen.
+Event Grid validerar en slutpunkt som skickar tillbaka en kod till den, eller vars ägare öppnar länken den skickar. OneUptime skickar tillbaka koden, så kortet **Monitor-sammanfattning** erbjuder **Validera prenumeration** bara för en validering som OneUptime inte besvarade: öppna den inom 10 minuter. Länken pekar på Event Grid på port 553, som en brandvägg framför din webbläsare måste släppa igenom. Om 10 minuter hinner gå först misslyckas händelseprenumerationen: skapa den igen.
 
 ## Bästa praxis
 
@@ -432,7 +483,11 @@ Event Grid validerar en slutpunkt som skickar tillbaka en kod till den, eller va
 :::
 
 :::details Min avsändare får 401
-Projektet kräver en hemlighet vid varje begäran, och begäran skickade ingen, eller en som inte är projektets: svaret säger vilket. Skicka en av projektets hemligheter i headern `X-OneUptime-Secret` eller som Bearer-token, som [Kräv en hemlighet vid varje begäran](#kräv-en-hemlighet-vid-varje-begäran) visar. En avvisad begäran når aldrig monitorn.
+Projektet kräver en hemlighet vid varje begäran, och begäran skickade ingen, eller en som inte är projektets: svaret säger vilket. Skicka en av projektets hemligheter i headern `X-OneUptime-Secret` eller som Bearer-token, som [Kräv en hemlighet vid varje begäran](#kräv-en-hemlighet-vid-varje-begäran) visar. En avvisad begäran når aldrig monitorn. Den får också `401` med en av projektets hemligheter som är begränsad till andra monitorer, och för en signerad begäran vars signatur är äldre än 5 minuter, har skickats förut, eller gjordes med en annan hemlighet eller över en body som ändrades på vägen.
+:::
+
+:::details Min avsändare får 429
+Dess adress skickade mer än 10 olika felaktiga hemligheter eller signaturer till en monitor på 15 minuter, så varje begäran med en hemlighet som den skickar till den monitorn avvisas fram till tiden i dess header `Retry-After`. En avsändare som signerar med en felaktig hemlighet gör en ny felaktig signatur varje gång och hamnar snabbt här: ge den en hemlighet som monitorn godtar, som [Kräv en hemlighet vid varje begäran](#kräv-en-hemlighet-vid-varje-begäran) visar, så godtas dess begäranden när tiden har gått ut.
 :::
 
 :::details Monitorn får inga begäranden längre sedan en hemlighet krävs
@@ -444,7 +499,11 @@ Bara ett kriterium med **Inkommande begäran** (**Inte mottaget inom (minuter)**
 :::
 
 :::details Ett filter på Begärandekropp matchar aldrig
-Skicka `Content-Type: application/json`, och skriv värdet som kompakt JSON — `"status":"firing"`, utan mellanslag efter kolonet. Utan en innehållstyp för JSON eller formulär tolkas kroppen inte: det gör bara JSON som skickas som `text/plain`.
+Skicka `Content-Type: application/json`, och skriv värdet som kompakt JSON — `"status":"firing"`, utan mellanslag efter kolonet. Utan en innehållstyp för JSON, formulär eller `text/plain` är kroppen tom, och ett filter på den matchar aldrig.
+:::
+
+:::details En tjänst säger att URL:en inte besvarade dess kontroll
+Ge tjänsten monitorns **Heartbeat URL**, på OneUptime självt och inte på en sond. Om projektet kräver en hemlighet vid varje begäran avvisas kontrollen med `401` om inte tjänsten skickar hemligheten. Låt sedan tjänsten kontrollera URL:en igen: den besvaras direkt.
 :::
 
 :::details Ett filter på Begärandehuvud matchar aldrig

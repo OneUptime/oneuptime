@@ -435,7 +435,7 @@ describe("a team's people, and a read still catching up", () => {
         summary!.count!,
         summary!.values,
       ),
-    ).toBe("12 of 40 members active in the last 7 days");
+    ).toBe("12 of 40 members active in the last 7\u00A0days");
   });
 
   /*
@@ -461,7 +461,7 @@ describe("a team's people, and a read still catching up", () => {
         english.count!,
         english.values,
       ),
-    ).toBe("1,031 of 1,248 members active in the last 7 days");
+    ).toBe("1,031 of 1,248 members active in the last 7\u00A0days");
 
     // The translator's formatter, as the list hands it over.
     const german: LlmConnectionSummary = getLlmConnectionPeopleSummary(
@@ -489,7 +489,7 @@ describe("a team's people, and a read still catching up", () => {
         summary!.count!,
         summary!.values,
       ),
-    ).toBe("1 of 1 member active in the last 7 days");
+    ).toBe("1 of 1 member active in the last 7\u00A0days");
   });
 
   test("the members alone when who was active could not be read", () => {

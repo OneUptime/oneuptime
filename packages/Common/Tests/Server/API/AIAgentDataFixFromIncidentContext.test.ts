@@ -17,6 +17,7 @@ import {
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../Types/AI/AIRunType";
 import CodeFixTaskContext from "../../../Types/AI/CodeFixTaskContext";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
@@ -78,6 +79,8 @@ function thrownError(): Error | undefined {
 describe("FixFromIncident task-details investigation snapshot", () => {
   let projectId: ObjectID;
   let taskId: ObjectID;
+  // The agent asking, which claimed the run and works on it.
+  let workerId: ObjectID;
 
   beforeAll(() => {
     mockRouter.routes.length = 0;
@@ -88,10 +91,11 @@ describe("FixFromIncident task-details investigation snapshot", () => {
     jest.clearAllMocks();
     projectId = ObjectID.generate();
     taskId = ObjectID.generate();
+    workerId = ObjectID.generate();
 
     jest.spyOn(CodeFixAgentAuth, "checkCredential").mockResolvedValue(
       credentialCheckProving({
-        id: ObjectID.generate(),
+        id: workerId,
         projectId,
         source: CodeFixAgentSource.AIAgent,
       }),
@@ -118,6 +122,8 @@ describe("FixFromIncident task-details investigation snapshot", () => {
       id: taskId,
       projectId,
       runType: AIRunType.CodeFix,
+      status: AIRunStatus.Running,
+      aiAgentId: workerId,
       codeFixTaskType: data.taskType || CodeFixTaskType.FixFromIncident,
       triggeredByIncidentId: data.incidentId,
       triggeredByAlertId: data.alertId,

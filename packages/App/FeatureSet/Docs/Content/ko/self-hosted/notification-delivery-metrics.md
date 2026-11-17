@@ -6,7 +6,7 @@ OneUptime은 자신이 보내는 알림이 어떻게 되었는지 기록합니�
 - [켜기](#켜기): 두 가지 설정이며, 이것이 없으면 아무것도 기록되지 않습니다.
 - [메트릭](#메트릭): 트리거부터 전화까지, 일곱 가지 메트릭.
 - [호출 시간을 재는 방법](#호출-시간을-재는-방법): 전송까지의 시간과 전송 지연이 무엇부터 세어지는지.
-- [시작용 SLO](#시작용-slo): 네 가지 목표를 쿼리별로.
+- [시작용 SLO](#시작용-slo): 다섯 가지 목표를 쿼리별로.
 :::
 
 ## 작동 방식
@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 이것들을 `config.env`에 설정한 다음 `npm start`를 실행하세요. `DISABLE_TELEMETRY_FOR_APP`는 기본값이 `true`이며, 그러면 아무것도 보내지 않습니다.
 :::
 
-OneUptime에는 엔드포인트와 헤더가 모두 필요합니다. 헤더가 없으면 아무것도 보내지 않습니다. 각 헤더는 `name=value` 형식으로 쓰고, 여러 헤더는 `;`로 구분하세요. 값에 `=`가 들어가도 됩니다. OneUptime은 엔드포인트에 `/v1/metrics`를 직접 덧붙이며, 같은 설정으로 자체 트레이스와 로그도 보냅니다. 각 메트릭은 OneUptime이 처음 기록하는 순간 나타납니다. `notification.send.count`는 첫 메시지를 보낼 때입니다.
+OneUptime에는 엔드포인트와 헤더가 모두 필요합니다. 헤더가 없으면 아무것도 보내지 않습니다. 각 헤더는 `name=value` 형식으로 쓰고, 여러 헤더는 `;`로 구분하거나 `OTEL_EXPORTER_OTLP_HEADERS`처럼 `,`로 구분하세요. 값에 `=`가 들어가도 됩니다. `;`가 없으면 값은 그 표준이 쓰는 방식대로 읽히며, 공백은 `%20`으로 씁니다. 값을 쓴 그대로 보내려면 설정 끝에 `;`를 붙이세요. `OTEL_EXPORTER_OTLP_HEADERS` 자체나, 메트릭에만 쓰는 `OTEL_EXPORTER_OTLP_METRICS_HEADERS`에 설정한 헤더도 인정됩니다. 내보내기가 그 헤더도 함께 보내며, 이름이 같으면 OneUptime 자체 헤더가 우선합니다. OneUptime은 엔드포인트에 `/v1/metrics`를 직접 덧붙이며, 같은 설정으로 자체 트레이스와 로그도 보냅니다. 각 메트릭은 OneUptime이 처음 기록하는 순간 나타납니다. `notification.send.count`는 첫 메시지를 보낼 때입니다.
 
 ### OneUptime 프로젝트로 델타 보내기
 
@@ -57,19 +57,15 @@ OneUptime은 OpenTelemetry의 기본 방식대로 카운터와 히스토그램�
 :::tabs
 @tab Kubernetes
 ```yaml
-extraEnv:
-  - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
-    value: delta
+openTelemetryExporter:
+  metricsTemporality: delta
 ```
-서비스 자체의 목록은 차트 전체의 목록을 대체합니다. `app.extraEnv`나 `worker.extraEnv`를 설정한다면 거기에도 추가하세요.
+차트는 이 값을 `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` 변수로 OneUptime 자체의 텔레메트리를 보내는 모든 서비스에 넘깁니다.
 @tab Docker Compose
-```yaml title="docker-compose.override.yml"
-services:
-  app:
-    environment:
-      OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
+```bash
+OPENTELEMETRY_EXPORTER_OTLP_METRICS_TEMPORALITY=delta
 ```
-이 파일을 `docker-compose.yml` 옆에 만들거나 이미 있는 파일에 이 내용을 추가한 다음 `npm start`를 실행하세요.
+이 값을 `config.env`에 설정한 다음 `npm start`를 실행하세요.
 :::
 
 이는 OneUptime이 자신에 대해 보내는 모든 메트릭에 적용됩니다. Prometheus처럼 누적 합계를 스스로 읽는 백엔드는 바꿀 것이 없습니다.
@@ -155,7 +151,7 @@ services:
 | --- | --- |
 | `monitor_data_received` | 모니터를 작동시킨 데이터를 OneUptime이 받은 때: 수신 요청, 서버 에이전트의 보고, 수신 이메일, 프로브의 검사, SNMP 트랩 또는 네트워크 장치 폴링. 데이터가 평가를 위해 큐에서 기다린 시간이 포함됩니다. |
 | `record_created` | 인시던트, 경고 또는 에피소드가 만들어진 때: 텔레메트리 모니터, 규칙 또는 사람이 만든 경우와, 멈춘 하트비트처럼 부재를 검사하는 경우. |
-| `page_started` | 호출이 나중에 시작된 때: 사람, 워크플로 또는 이제 일치하는 규칙이 시작한 경우, 또는 직접 호출. 온콜 규칙이나 OneUptime AI가 보류한 호출은 보류가 끝난 때, 그보다 먼저 시작했다면 시작된 때. 다시 호출은 인지 후 타임아웃이 끝난 때. 그래서 어느 쪽이든 늦게 처리한 워커가 이 시간에 드러납니다. |
+| `page_started` | 호출이 나중에 시작된 때: 사람, 워크플로 또는 이제 일치하는 규칙이 시작한 경우, 또는 직접 호출. 온콜 규칙이나 OneUptime AI가 보류한 호출은 보류가 끝난 때, 그보다 먼저 시작했다면 시작된 때. 다시 호출은 인지 후 타임아웃이 끝난 때, 또는 그보다 나중이면 정책이 마지막으로 바뀐 때. 이미 끝난 셈이 될 만큼 줄어든 타임아웃은 바꾼 때부터 잽니다. 그래서 어느 쪽이든 늦게 처리한 워커가 이 시간에 드러납니다. |
 
 수신 요청의 경우 시간은 엔드포인트가 받은 마지막 요청부터 흐르므로, 조금 짧게 나올 수 있습니다.
 
@@ -187,7 +183,7 @@ services:
 
 ## 시작용 SLO
 
-대부분의 설치가 약속할 수 있는 네 가지 목표이며, 각각 메트릭을 받는 프로젝트의 메트릭 탐색기에서 한두 개의 쿼리로 만듭니다. 메트릭이 델타로 도착하면 시간 범위를 정확히 읽습니다. [OneUptime 프로젝트로 델타 보내기](#oneuptime-프로젝트로-델타-보내기)를 참조하세요.
+대부분의 설치가 약속할 수 있는 다섯 가지 목표이며, 각각 메트릭을 받는 프로젝트의 메트릭 탐색기에서 한두 개의 쿼리로 만듭니다. 메트릭이 델타로 도착하면 시간 범위를 정확히 읽습니다. [OneUptime 프로젝트로 델타 보내기](#oneuptime-프로젝트로-델타-보내기)를 참조하세요.
 
 ### 메트릭 탐색기에서 만들기
 
@@ -210,7 +206,7 @@ services:
 | `a` | `notification.send.count` | **합계** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **합계** | 같은 조건에 `outcome = failure` 추가 |
 
-수식 `$b / $a * 100`은 실패한 비율이며, 그 값이 1 이하로 유지되는 동안 목표가 지켜집니다. 실패가 없는 단계는 `b`에 포인트가 없으므로 포인트를 그리지 않습니다. `outcome != not_sent`는 프로젝트 자체 설정이 막은 것을 제외하고, `global`은 프로젝트 자체의 Twilio 계정을 제외합니다. SMS를 자체 SMS 및 통화 게이트웨이로 보내는 설치에서는 같은 쿼리가 게이트웨이를 측정합니다. 다른 채널은 `sms`를 `call`, `push` 또는 `email`로 바꾸세요.
+수식 `$b / $a * 100`은 실패한 비율이며, 그 값이 1 이하로 유지되는 동안 목표가 지켜집니다. 실패가 없는 단계는 `b`가 그 안에서 아무것도 세지 않았으므로 0을 그립니다. `outcome != not_sent`는 프로젝트 자체 설정이 막은 것을 제외하고, `global`은 프로젝트 자체의 Twilio 계정을 제외합니다. SMS를 자체 SMS 및 통화 게이트웨이로 보내는 설치에서는 같은 쿼리가 게이트웨이를 측정합니다. 다른 채널은 `sms`를 `call`, `push` 또는 `email`로 바꾸세요.
 
 ### 호출이 30초 안에 나감
 
@@ -220,7 +216,17 @@ services:
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-`a`가 30000 이하로 유지되는 동안 목표가 지켜집니다. 나중에 시작된 호출은 트리거가 아니라 시작되거나 예정된 때부터 재므로 제외합니다. `notification.page.start`로 그룹화하면 모니터의 큐(`monitor_data_received`)를 나머지와 따로 볼 수 있고, `notification.channel`로 그룹화하면 느린 채널을 찾을 수 있습니다.
+`a`가 30000 이하로 유지되는 동안 목표가 지켜집니다. 나중에 시작된 호출은 트리거가 아니라 시작되거나 예정된 때부터 재므로 제외합니다. 이런 호출은 다음 목표가 다룹니다. `notification.page.start`로 그룹화하면 모니터의 큐(`monitor_data_received`)를 나머지와 따로 볼 수 있고, `notification.channel`로 그룹화하면 느린 채널을 찾을 수 있습니다.
+
+### 나중에 시작된 호출이 2분 안에 나감
+
+나중에 시작된 호출의 95%가 예정 시각 후 2분 안에 공급자에 도달합니다. 보류된 호출, 다시 호출, 그리고 사람, 워크플로 또는 규칙이 시작한 호출입니다.
+
+| 쿼리 | 메트릭 | 집계 | 조건 |
+| --- | --- | --- | --- |
+| `a` | `notification.time_to_send` | **P95** | `notification.page.start = page_started` |
+
+`a`가 120000 이하로 유지되는 동안 목표가 지켜집니다. 보류된 호출이나 다시 호출은 매분 실행되는 워커의 다음 실행을 기다리므로 그 시간 중 최대 일 분은 이 대기이며, 뒤처진 워커는 그보다 더 늘립니다.
 
 ### 나중에 보내는 알림이 90초 안에 나감
 

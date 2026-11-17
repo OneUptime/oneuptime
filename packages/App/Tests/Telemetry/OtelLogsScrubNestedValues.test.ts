@@ -66,7 +66,7 @@ import {
  *     the values under a secret key inside a list or a key-value list, a
  *     scope's {key, value} pairs included;
  *   - a body sent as a map or a list is stored as its JSON text, masked in
- *     place;
+ *     place, and the value under a secret key inside it hidden (#6513);
  *   - a value nested too deep, or past a record's allowance, is stored as
  *     the very JSON text the Log table stores for the list, masked as text.
  *
@@ -727,6 +727,8 @@ describe("log scrub rules over lists and nested values, on each OTLP route (#639
         "theme=dark",
         "pw-1",
         "pw-2",
+        // Under the `password` key of a map body (#6513).
+        "pw-3",
         "tok-1",
         "scope-key-1",
       ]) {
@@ -821,12 +823,36 @@ describe("log scrub rules over lists and nested values, on each OTLP route (#639
           .join(OTHER_EMAIL_MASKED);
       };
 
-      expect(mapBody).toContain(EMAIL);
-      rowWithBody(masked(mapBody));
-      rowWithBody(masked(listBody));
+      /*
+       * A Sensitive Attribute Keys rule reads the keys of a map body too
+       * (#6513): the value of its `password` pair is hidden, and the rest
+       * of the text is the very text ingest stores for the body.
+       */
+      const hidden: (bodyText: string) => string = (
+        bodyText: string,
+      ): string => {
+        const parsed: JSONObject = JSON.parse(bodyText) as JSONObject;
 
-      // Keys are read in attributes only: a body is text to the rules.
-      expect(masked(mapBody)).toContain("pw-3");
+        for (const pair of (parsed["kvlistValue"] as JSONObject)[
+          "values"
+        ] as Array<JSONObject>) {
+          if (pair["key"] === "password") {
+            const value: JSONObject = pair["value"] as JSONObject;
+
+            for (const kind of Object.keys(value)) {
+              value[kind] = "[REDACTED]";
+            }
+          }
+        }
+
+        return JSON.stringify(parsed);
+      };
+
+      expect(mapBody).toContain(EMAIL);
+      expect(mapBody).toContain("pw-3");
+      rowWithBody(hidden(masked(mapBody)));
+      rowWithBody(masked(listBody));
+      expect(hidden(masked(mapBody))).not.toContain("pw-3");
     },
   );
 
@@ -879,6 +905,269 @@ describe("log scrub rules over lists and nested values, on each OTLP route (#639
       expect(
         attributesOf(rowWithBody(`order placed by ${EMAIL}`))["matrix"],
       ).toEqual([[EMAIL], [[`deep ${OTHER_EMAIL}`]]]);
+    },
+  );
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * #8923: a body sent as a map is stored as its JSON text, and a pattern rule
+ * keeps it JSON - on each route - where an address right after a line break
+ * used to leave `\[REDACTED]`, and a card number at the start of a line was
+ * not found at all.
+ * ---------------------------------------------------------------------------
+ */
+function mapBodyRequest(): JSONObject {
+  return {
+    resourceLogs: [
+      {
+        resource: {
+          attributes: pairs([["service.name", text(SERVICE_NAME)]]),
+        },
+        scopeLogs: [
+          {
+            scope: { name: "checkout.logger" },
+            logRecords: [
+              {
+                timeUnixNano: "1794218400000000000",
+                severityNumber: 9,
+                body: keyValueList([
+                  ["message", text(`line one\n${EMAIL}`)],
+                  ["paid", text("paid with\n4111 1111 1111 1111")],
+                  ["retries", int("2")],
+                ]),
+                attributes: [],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+/*
+ * #8924: a browser log stamped with its recording's session id - on the
+ * resource, as the recorder tells the page's own OpenTelemetry to - stays
+ * filed under the recording on each route, under a Sensitive Attribute
+ * Keys rule: its sessionId, what the recording's Logs and a session's
+ * erasure find it by, and the attribute it was read from, which the rule
+ * keeps. A login session in a cookie beside it is hidden.
+ */
+const REPLAY_SESSION_ID: string = "5f2c9e1a7b3d4c6e8f0a1b2c3d4e5f60";
+
+function browserLogRequest(): JSONObject {
+  return {
+    resourceLogs: [
+      {
+        resource: {
+          attributes: pairs([
+            ["service.name", text(SERVICE_NAME)],
+            ["session.id", text(REPLAY_SESSION_ID)],
+          ]),
+        },
+        scopeLogs: [
+          {
+            scope: { name: "browser" },
+            logRecords: [
+              {
+                timeUnixNano: "1794218400000000000",
+                severityNumber: 9,
+                body: text("checkout clicked"),
+                attributes: pairs([
+                  [
+                    "http.request.header.cookie",
+                    list(text("sessionid=abc123")),
+                  ],
+                ]),
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+describe("a browser log stays filed under its recording on each OTLP route under a Sensitive Attribute Keys rule (#8924)", () => {
+  test.each(ROUTE_CASES)(
+    "%s: its session id is kept in its column and its attribute, and the cookie beside it hidden",
+    async (_label: string, routeIndex: number) => {
+      setupIngest([
+        compiledRule({
+          patternType: LogScrubPatternType.SensitiveKeys,
+          action: LogScrubAction.Redact,
+        }),
+      ]);
+
+      await ingestDecodedBody(
+        await ROUTES[routeIndex]!.decode(browserLogRequest()),
+      );
+
+      const row: JSONObject = rowWithBody("checkout clicked");
+      const attributes: JSONObject = attributesOf(row);
+
+      expect(row["sessionId"]).toBe(REPLAY_SESSION_ID);
+      expect(attributes["resource.session.id"]).toBe(REPLAY_SESSION_ID);
+      expect(attributes["http.request.header.cookie"]).toEqual(["[REDACTED]"]);
+    },
+  );
+});
+
+describe("a body sent as a map stays JSON on each OTLP route when a pattern rule scrubs it (#8923)", () => {
+  test.each(ROUTE_CASES)(
+    "%s: an address after a line break is redacted after it, and a card number at the start of a line is masked",
+    async (_label: string, routeIndex: number) => {
+      setupIngest([
+        compiledRule({
+          patternType: LogScrubPatternType.Email,
+          action: LogScrubAction.Redact,
+        }),
+        compiledRule({
+          patternType: LogScrubPatternType.CreditCard,
+          action: LogScrubAction.Mask,
+        }),
+      ]);
+
+      await ingestDecodedBody(
+        await ROUTES[routeIndex]!.decode(mapBodyRequest()),
+      );
+
+      expect(logRows).toHaveLength(1);
+
+      const body: string = logRows[0]!["body"] as string;
+
+      expect(body).not.toContain(EMAIL);
+      expect(body).not.toContain("4111 1111 1111 1111");
+
+      // The very JSON the route stores for the map, with the texts hidden.
+      expect(withoutKindNames(JSON.parse(body))).toEqual(
+        keyValueList([
+          ["message", text("line one\n[REDACTED]")],
+          ["paid", text("paid with\n****-****-****-1111")],
+          ["retries", int("2")],
+        ]),
+      );
+    },
+  );
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * #8993: a JSON text held in a string - an attribute an application wrote
+ * as JSON, one inside a list, and a string of a map body that is JSON of
+ * its own (a docker record's `log`, sent on by a collector) - is read key
+ * by key by a Sensitive Attribute Keys rule on each route. The secret under
+ * a key is hidden, the text is the very text sent otherwise - a number
+ * JSON.parse cannot keep, its spaces - and a JSON text with no secret key
+ * is stored as sent.
+ * ---------------------------------------------------------------------------
+ */
+const REQUEST_BODY: string =
+  '{ "username": "ada", "password": "hunter2", "id": 12345678901234567890 }';
+const REQUEST_BODY_HIDDEN: string =
+  '{ "username": "ada", "password": "[REDACTED]", "id": 12345678901234567890 }';
+const RESPONSE_BODY: string = '{ "event": "password_reset", "user": "ada" }';
+const DOCKER_LINE: string = '{"level":"info","token":"tok-77","msg":"paid"}\n';
+
+function jsonTextsRequest(): JSONObject {
+  return {
+    resourceLogs: [
+      {
+        resource: {
+          attributes: pairs([["service.name", text(SERVICE_NAME)]]),
+        },
+        scopeLogs: [
+          {
+            scope: { name: "checkout.logger" },
+            logRecords: [
+              {
+                timeUnixNano: "1794218400000000000",
+                severityNumber: 9,
+                body: text("login requested"),
+                attributes: pairs([
+                  ["http.request.body", text(REQUEST_BODY)],
+                  ["http.response.body", text(RESPONSE_BODY)],
+                  ["request.bodies", list(text(REQUEST_BODY), text("plain"))],
+                ]),
+              },
+              {
+                timeUnixNano: "1794218401000000000",
+                severityNumber: 9,
+                body: keyValueList([
+                  ["log", text(DOCKER_LINE)],
+                  ["stream", text("stdout")],
+                ]),
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+describe("a JSON text held in a string is read key by key on each OTLP route (#8993)", () => {
+  test.each(ROUTE_CASES)(
+    "%s: the secret inside an attribute's JSON text, and inside a map body's JSON line, is hidden; every other text is stored as sent",
+    async (_label: string, routeIndex: number) => {
+      setupIngest([
+        compiledRule({
+          patternType: LogScrubPatternType.SensitiveKeys,
+          action: LogScrubAction.Redact,
+        }),
+      ]);
+
+      await ingestDecodedBody(
+        await ROUTES[routeIndex]!.decode(jsonTextsRequest()),
+      );
+
+      expect(logRows).toHaveLength(2);
+
+      const attributes: JSONObject = attributesOf(
+        rowWithBody("login requested"),
+      );
+
+      expect(attributes["http.request.body"]).toBe(REQUEST_BODY_HIDDEN);
+      expect(attributes["http.response.body"]).toBe(RESPONSE_BODY);
+      expect(attributes["request.bodies"]).toEqual([
+        REQUEST_BODY_HIDDEN,
+        "plain",
+      ]);
+
+      const mapBody: string = logRows.find((row: JSONObject): boolean => {
+        return row["body"] !== "login requested";
+      })!["body"] as string;
+
+      expect(withoutKindNames(JSON.parse(mapBody))).toEqual(
+        keyValueList([
+          ["log", text(DOCKER_LINE.replace('"tok-77"', '"[REDACTED]"'))],
+          ["stream", text("stdout")],
+        ]),
+      );
+
+      const stored: string = JSON.stringify(logRows);
+
+      expect(stored).not.toContain("hunter2");
+      expect(stored).not.toContain("tok-77");
+    },
+  );
+
+  test.each(ROUTE_CASES)(
+    "%s: with no rule, the same texts are stored as sent",
+    async (_label: string, routeIndex: number) => {
+      setupIngest([]);
+
+      await ingestDecodedBody(
+        await ROUTES[routeIndex]!.decode(jsonTextsRequest()),
+      );
+
+      const attributes: JSONObject = attributesOf(
+        rowWithBody("login requested"),
+      );
+
+      expect(attributes["http.request.body"]).toBe(REQUEST_BODY);
+      expect(JSON.stringify(logRows)).toContain("tok-77");
     },
   );
 });

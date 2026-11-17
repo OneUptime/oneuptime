@@ -2586,7 +2586,12 @@ describe("NetworkInventoryUtil.updateFromWalk — only what changed is written",
     });
   });
 
-  test("the SNMP table and transceiver snapshots, per-poll readings, are written as they come", async () => {
+  /*
+   * Per-poll readings, written as they come - in the verdict's statement,
+   * not the hooked write (issue #7393): a device that changed nothing but
+   * them makes no hooked write at all.
+   */
+  test("the SNMP table and transceiver snapshots, per-poll readings, are written as they come, with the verdict", async () => {
     mockServices([], STORED);
 
     await NetworkInventoryUtil.updateFromWalk({
@@ -2598,8 +2603,10 @@ describe("NetworkInventoryUtil.updateFromWalk — only what changed is written",
       transceiverSnapshot: [],
     });
 
-    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
-    expect(deviceUpdateSpy.mock.calls[0][0].data).toEqual({
+    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+    expect(pollVerdictSpy).toHaveBeenCalledTimes(1);
+    expect(pollVerdictSpy.mock.calls[0][0].details).toEqual({
+      lastWalkLog: undefined,
       snmpTableSnapshot: [],
       transceiverSnapshot: [],
     });

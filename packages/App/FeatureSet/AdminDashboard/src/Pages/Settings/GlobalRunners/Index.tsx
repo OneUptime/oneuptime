@@ -14,13 +14,20 @@ import {
   RunnerCodeFixRefusal,
   getRunnerCodeFixRefusal,
 } from "Common/Types/Runner/RunnerCodeFixes";
+import {
+  GlobalRunnerSandboxShortfall,
+  getGlobalRunnerSandboxShortfalls,
+  parseGlobalRunnerSandboxReport,
+} from "Common/Types/Runner/GlobalRunnerSandbox";
 import { getGlobalRunnerDockerCommand } from "Common/Types/Runner/RunnerContainer";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import RunnerCodeFixesOffSetting from "Common/UI/Components/Runner/RunnerCodeFixesOffSetting";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
@@ -38,19 +45,81 @@ export const GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID: string =
   "global-runner-takes-no-code-fixes";
 
 /*
+ * The line under a global Runner's status when its JavaScript steps run as
+ * the Runner's own user, or share its network, and what to change (#8911,
+ * #8910). Drawn from what the Runner says on its heartbeat
+ * (Common/Types/Runner/GlobalRunnerSandbox).
+ */
+export const GLOBAL_RUNNER_SANDBOX_SHORTFALL_TEST_ID: string =
+  "global-runner-sandbox-shortfall";
+
+/*
+ * What each shortfall says under a global Runner's status: what the step
+ * gets and what to change, in whole sentences the Admin Dashboard's locale
+ * files hold (English keys, as the code-fix lines above have them). A step
+ * that runs as the Runner's own user says so and how to give it a user; one
+ * whose process shares the Runner's network says so and how to keep it off
+ * the network. Each follows the same words as the Runner's own log
+ * (SandboxIdentity's OWN_USER_REMEDY, SandboxNetwork's NO_NETWORK_REMEDY).
+ */
+export const GLOBAL_RUNNER_SANDBOX_COPY: Record<
+  GlobalRunnerSandboxShortfall,
+  string
+> = {
+  [GlobalRunnerSandboxShortfall.OwnUserNoPrivilege]:
+    "Runs JavaScript steps as its own user: let its container switch users (allowPrivilegeEscalation, SETUID and SETGID).",
+  [GlobalRunnerSandboxShortfall.OwnUserNotInNodeGroup]:
+    "Runs JavaScript steps as its own user: run its container as the image's own user, node.",
+  [GlobalRunnerSandboxShortfall.OwnUserNotInstalled]:
+    "Runs JavaScript steps as its own user: run the Runner image, not its sources.",
+  [GlobalRunnerSandboxShortfall.OwnUserCheckFailed]:
+    "Runs JavaScript steps as its own user: its sandbox check failed, and its log says why.",
+  [GlobalRunnerSandboxShortfall.SharedNetworkNoSeccomp]:
+    "JavaScript steps share its network: let its container use seccomp, as Docker's and Kubernetes' default profiles do.",
+  [GlobalRunnerSandboxShortfall.SharedNetworkNotInstalled]:
+    "JavaScript steps share its network: run the Runner image, not its sources.",
+  [GlobalRunnerSandboxShortfall.SharedNetworkCheckFailed]:
+    "JavaScript steps share its network: its network filter's check failed, and its log says why.",
+  [GlobalRunnerSandboxShortfall.NotInstalled]:
+    "Runs JavaScript steps as its own user and on its network: run the Runner image, not its sources.",
+};
+
+/*
  * Why a global Runner takes no AI code fixes, said as what makes it take
  * them, in whole sentences the locale files hold (English keys, as
  * Health's visitor addresses have them): the setting its host turned them
- * off with is the {{setting}} value, drawn as code.
+ * off with is the {{setting}} value, drawn as code. One turned off here
+ * (Runs AI Code Fixes, the row's own switch) says so plainly: that is a
+ * choice, not a fault.
  */
 export const GLOBAL_RUNNER_CODE_FIXES_COPY: {
   olderRelease: string;
   turnedOff: string;
+  turnedOffHere: string;
 } = {
   olderRelease: "Takes no AI code fixes: update it to this server's version.",
   turnedOff:
     "Takes no AI code fixes: remove {{setting}} from its host and restart it.",
+  turnedOffHere: "Takes no AI code fixes: they are turned off for this Runner.",
 };
+
+/*
+ * The switch a master admin keeps a global Runner off AI code fixes with
+ * (Runner.canRunCodeFixes): on by default, folded under More fields, as a
+ * project Runner's Runs Runbooks is. Off, the server grants it no code
+ * fixes and hands it no repository token, so it runs JavaScript steps only.
+ */
+export const GLOBAL_RUNNER_CODE_FIXES_SWITCH: {
+  title: string;
+  description: string;
+} = {
+  title: "Runs AI Code Fixes",
+  description:
+    "Lets it take OneUptime AI's code fixes, with a token for each repository. Off, it runs JavaScript steps only.",
+};
+
+const MORE_FIELDS: FormFieldCollapsibleSection<Runner> =
+  getAdvancedFormSection<Runner>();
 
 /*
  * The Status column wraps (Column.wrapContent): its line is a sentence, and
@@ -78,7 +147,11 @@ export const GLOBAL_RUNNER_STATUS_COLUMN_MAX_WIDTH_CLASS_NAME: string =
  * fixes - one of a release from before global Runners took them, or one
  * whose host turned them off - says so under its status, with what to do:
  * the repositories on the Global Runner say no global Runner online takes
- * them, and this is where the admin finds which one, and why.
+ * them, and this is where the admin finds which one, and why. Runs AI Code
+ * Fixes, under More fields, keeps one off them altogether, enforced by the
+ * server (its key then proves no code-fix identity): a multi-tenant install
+ * keeps repository tokens off the hosts that run every project's
+ * JavaScript with it.
  */
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -127,36 +200,102 @@ const Settings: FunctionComponent = (): ReactElement => {
    * How it is doing, and - for one that takes no AI code fixes, as it said
    * on its last heartbeat or as its release does - why, and what to do.
    */
-  const renderStatus: (item: Runner) => ReactElement = (
+  // Why a global Runner takes no AI code fixes, under its status; null when none.
+  const renderCodeFixLine: (item: Runner) => ReactElement | null = (
     item: Runner,
-  ): ReactElement => {
+  ): ReactElement | null => {
     const refusal: RunnerCodeFixRefusal | null = getRunnerCodeFixRefusal({
       isGlobalRunner: true,
+      canRunCodeFixes: item.canRunCodeFixes,
       takesCodeFixes: item.takesCodeFixes,
       agentVersion: item.agentVersion,
       lastAlive: item.lastAlive,
     });
 
     if (!refusal) {
+      return null;
+    }
+
+    // Turned off here on purpose: said in grey, as a fact, not a fault.
+    if (refusal === RunnerCodeFixRefusal.TurnedOffInOneUptime) {
+      return (
+        <p
+          className="mt-1 break-words text-xs leading-5 text-gray-500"
+          data-testid={GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID}
+        >
+          {translator.translateText(
+            GLOBAL_RUNNER_CODE_FIXES_COPY.turnedOffHere,
+          )}
+        </p>
+      );
+    }
+
+    return (
+      <p
+        className="mt-1 break-words text-xs leading-5 text-amber-700"
+        data-testid={GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID}
+      >
+        {refusal === RunnerCodeFixRefusal.OlderRelease ? (
+          translator.translateText(GLOBAL_RUNNER_CODE_FIXES_COPY.olderRelease)
+        ) : (
+          <TranslatedSentence
+            template={GLOBAL_RUNNER_CODE_FIXES_COPY.turnedOff}
+            slots={{ setting: <RunnerCodeFixesOffSetting /> }}
+          />
+        )}
+      </p>
+    );
+  };
+
+  /*
+   * How a global Runner keeps each project's JavaScript steps apart, under
+   * its status: when a step runs as the Runner's own user, or shares its
+   * network, one amber line each says so and what to change (#8911, #8910),
+   * from what the Runner says on its heartbeat. Nothing when each step gets a
+   * user of its own and no network, or for a Runner of a release that does
+   * not say.
+   */
+  const renderSandboxShortfalls: (item: Runner) => Array<ReactElement> = (
+    item: Runner,
+  ): Array<ReactElement> => {
+    const shortfalls: Array<GlobalRunnerSandboxShortfall> =
+      getGlobalRunnerSandboxShortfalls(
+        parseGlobalRunnerSandboxReport(item.hostInfo),
+      );
+
+    return shortfalls.map(
+      (
+        shortfall: GlobalRunnerSandboxShortfall,
+        index: number,
+      ): ReactElement => {
+        return (
+          <p
+            key={shortfall}
+            className="mt-1 break-words text-xs leading-5 text-amber-700"
+            data-testid={`${GLOBAL_RUNNER_SANDBOX_SHORTFALL_TEST_ID}-${index}`}
+          >
+            {translator.translateText(GLOBAL_RUNNER_SANDBOX_COPY[shortfall])}
+          </p>
+        );
+      },
+    );
+  };
+
+  const renderStatus: (item: Runner) => ReactElement = (
+    item: Runner,
+  ): ReactElement => {
+    const codeFixLine: ReactElement | null = renderCodeFixLine(item);
+    const sandboxLines: Array<ReactElement> = renderSandboxShortfalls(item);
+
+    if (!codeFixLine && sandboxLines.length === 0) {
       return renderLiveStatus(item);
     }
 
     return (
       <div>
         {renderLiveStatus(item)}
-        <p
-          className="mt-1 break-words text-xs leading-5 text-amber-700"
-          data-testid={GLOBAL_RUNNER_TAKES_NO_CODE_FIXES_TEST_ID}
-        >
-          {refusal === RunnerCodeFixRefusal.OlderRelease ? (
-            translator.translateText(GLOBAL_RUNNER_CODE_FIXES_COPY.olderRelease)
-          ) : (
-            <TranslatedSentence
-              template={GLOBAL_RUNNER_CODE_FIXES_COPY.turnedOff}
-              slots={{ setting: <RunnerCodeFixesOffSetting /> }}
-            />
-          )}
-        </p>
+        {codeFixLine}
+        {sandboxLines}
       </div>
     );
   };
@@ -245,13 +384,35 @@ const Settings: FunctionComponent = (): ReactElement => {
             // The column only said "Optional description for this agent".
             hideColumnDescription: true,
           },
+          {
+            field: {
+              canRunCodeFixes: true,
+            },
+            title: GLOBAL_RUNNER_CODE_FIXES_SWITCH.title,
+            description: GLOBAL_RUNNER_CODE_FIXES_SWITCH.description,
+            collapsibleSection: MORE_FIELDS,
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            // As the column: every global Runner takes them until turned off.
+            defaultValue: true,
+          },
         ]}
         selectMoreFields={{
           key: true,
           lastAlive: true,
-          // Whether it takes AI code fixes: what it said, or its release.
+          /*
+           * Whether it takes AI code fixes: turned off here, what it said,
+           * or its release.
+           */
+          canRunCodeFixes: true,
           takesCodeFixes: true,
           agentVersion: true,
+          /*
+           * How it keeps each project's JavaScript steps apart, as it said on
+           * its heartbeat (Common/Types/Runner/GlobalRunnerSandbox): whether a
+           * step gets a user of its own and no network, and why not.
+           */
+          hostInfo: true,
         }}
         actionButtons={[
           {

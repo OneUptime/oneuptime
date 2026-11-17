@@ -1,5 +1,6 @@
 import { buildNotificationSms } from "Common/Utils/Sms/NotificationSms";
 import RunCron from "../../Utils/Cron";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import { CallRequestMessage } from "Common/Types/Call/CallRequest";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
@@ -17,6 +18,7 @@ import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import Select from "Common/Server/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import { MarkdownText } from "Common/Utils/Markdown/FeedMarkdown";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import logger from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -31,7 +33,9 @@ import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import OwnerNotificationFeedText from "Common/Server/Utils/Notification/OwnerNotificationFeedText";
 import OwnerNotificationDeliveries, {
   OwnerNotificationDelivery,
+  OwnerNotificationOf,
 } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import OwnersReachedByAPage from "Common/Server/Utils/Notification/OwnersReachedByAPage";
 import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
 
 // What the "Incident Created" notification is made of, read for each incident.
@@ -67,7 +71,7 @@ const INCIDENT_SELECT: Select<Incident> = {
 RunCron(
   "IncidentOwner:SendCreatedResourceEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * The owners a run that stopped part way left untold - a worker killed
      * between the take and the last owner (#8199) - told first, exactly
@@ -106,6 +110,15 @@ RunCron(
       });
 
     for (const incident of incidents) {
+      /*
+       * The run's deadline passed - its time limit, or its lease lost,
+       * when another run may hold the lock: the incidents not reached are
+       * still due, and the next run reads them (issue #8862).
+       */
+      if (deadline.hasPassed()) {
+        break;
+      }
+
       /*
        * Whom it is to tell, written before the take: a worker stopped from
        * here on leaves them to be told by a later run, and one stopped
@@ -150,13 +163,21 @@ RunCron(
 
 /*
  * Whom the incident's "Incident Created" notification tells - its owners,
- * or the project's when it has none - written down before the incident is
- * taken (OwnerNotificationDeliveries.plan). A failure to read them tells
- * nobody, as it did when it came after the take.
+ * or the project's when it has none, but for those its on-call page reached
+ * already - written down before the incident is taken
+ * (OwnerNotificationDeliveries.plan). A failure to read them tells nobody,
+ * as it did when it came after the take.
  */
 async function planOwnersOfIncident(
   incident: Incident,
 ): Promise<OwnerNotificationDelivery> {
+  const notification: OwnerNotificationOf = {
+    kind: OwnerNotificationKind.IncidentCreated,
+    projectId: incident.projectId!,
+    resourceId: incident.id!,
+    eventId: incident.id!,
+  };
+
   let owners: Array<User> = [];
   let isProjectOwners: boolean = false;
 
@@ -177,22 +198,27 @@ async function planOwnersOfIncident(
   }
 
   return await OwnerNotificationDeliveries.plan({
-    notification: {
-      kind: OwnerNotificationKind.IncidentCreated,
-      projectId: incident.projectId!,
-      resourceId: incident.id!,
-      eventId: incident.id!,
-    },
+    notification: notification,
     owners: owners,
     isProjectOwners: isProjectOwners,
     writesFeedItem: true,
+    /*
+     * Not those the incident's on-call page reached already: someone who
+     * is on call and an owner is told of the incident once, not twice
+     * (#7987).
+     */
+    leaveOut: await OwnersReachedByAPage.findAmong({
+      notification: notification,
+      owners: owners,
+    }),
   });
 }
 
 /*
  * Tells the delivery's owners that the incident was created, each once
  * (OwnerNotificationDelivery.tell), and says in the incident's feed whom it
- * reached - those a stopped run told first among them.
+ * reached - those a stopped run told first among them - and whom it left
+ * out, as the incident's on-call page reached them already.
  */
 async function notifyOwnersOfIncident(
   incident: Incident,
@@ -413,6 +439,17 @@ async function notifyOwnersOfIncident(
   if (!delivery.isFeedItemToWrite) {
     return;
   }
+
+  // Whom it left out, named apart from those notified (OwnersReachedByAPage).
+  moreIncidentFeedInformationInMarkdown +=
+    OwnerNotificationFeedText.reachedByPageMarkdown(
+      delivery.leftOut.map((user: User): MarkdownText => {
+        return OwnerNotificationFeedText.nameAndEmail({
+          name: user.name?.toString(),
+          email: user.email?.toString(),
+        });
+      }),
+    );
 
   await IncidentFeedService.createIncidentFeedItem({
     incidentId: incident.id!,

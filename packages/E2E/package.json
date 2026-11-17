@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.3.0",
+  "version": "15.0.0",
   "description": "",
   "repository": {
     "type": "git",
@@ -44,6 +44,7 @@
     "test-event-notes-ui": "playwright test --config playwright.event-notes-ui.config.ts",
     "test-monitor-overview-ui": "playwright test --config playwright.monitor-overview-ui.config.ts",
     "test-home-overview-ui": "playwright test --config playwright.home-overview-ui.config.ts",
+    "test-give-feedback-ui": "playwright test --config playwright.give-feedback-ui.config.ts",
     "test-network-first-run-ui": "playwright test --config playwright.network-first-run-ui.config.ts",
     "test-meraki-traffic-ui": "playwright test --config playwright.meraki-traffic-ui.config.ts",
     "test-network-traffic-names-ui": "playwright test --config playwright.network-traffic-names-ui.config.ts",
@@ -138,6 +139,7 @@
     "test-host-pages-ui": "playwright test --config playwright.host-pages-ui.config.ts",
     "test-vmware-pages-ui": "playwright test --config playwright.vmware-pages-ui.config.ts",
     "test-product-onboarding-ui": "playwright test --config playwright.product-onboarding-ui.config.ts",
+    "test-security-page-ui": "playwright test --config playwright.security-page-ui.config.ts",
     "docs-screens": "playwright test --config playwright.docs-screens.config.ts",
     "docs-screens:check": "DOCS_SCREENS_MODE=check playwright test --config playwright.docs-screens.config.ts"
   },

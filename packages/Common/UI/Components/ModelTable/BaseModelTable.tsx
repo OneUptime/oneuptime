@@ -13,6 +13,12 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import Toast, {
+  CHANGES_SAVED,
+  getItemCreatedTemplate,
+  ITEM_DELETED,
+  ITEM_REMOVED,
+} from "../../Utils/Toast";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 
 import Query from "../../../Types/BaseDatabase/Query";
@@ -86,7 +92,9 @@ import ConfirmModal from "../Modal/ConfirmModal";
 import RecordIdModal from "../ObjectID/RecordIdModal";
 import { getRecordIdText, hasRecordId } from "../ObjectID/RecordIdText";
 import { getApiReferencePagePath } from "../../../Utils/ApiReferencePage";
-import Modal, { ModalWidth } from "../Modal/Modal";
+import { ModalWidth } from "../Modal/Modal";
+import HelpModal from "../Help/HelpModal";
+import { HelpContent } from "../Help/HelpContent";
 import DeleteConfirmationMessage from "../DeleteConfirmation/DeleteConfirmationMessage";
 import {
   getDeleteConsequence,
@@ -94,7 +102,6 @@ import {
 } from "../DeleteConfirmation/DeleteConsequences";
 import DeleteItemNames from "../DeleteConfirmation/DeleteItemNames";
 import { getRecordDisplayName } from "../../Utils/ModelDisplayName";
-import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import Icon from "../Icon/Icon";
 import Filter from "../ModelFilter/Filter";
 import { DropdownOption, DropdownOptionLabel } from "../Dropdown/Dropdown";
@@ -455,7 +462,17 @@ export interface BulkActionProps<T extends BaseModel | AnalyticsBaseModel> {
  */
 export interface DeleteConfirmation {
   title?: string | undefined;
-  description: string | ReactElement;
+  /*
+   * The dialog's words in place of the table's own question ("Are you
+   * sure you want to delete ...?" and what goes with it), which is said
+   * when this is left out.
+   */
+  description?: string | ReactElement | undefined;
+  /*
+   * Drawn under the question, whichever it is: what still uses the row,
+   * read before the dialog opens (a list's Used by, #7435).
+   */
+  details?: ReactElement | undefined;
   submitButtonText?: string | undefined;
   /*
    * A gentler way to the same end, offered in the dialog: "Archive instead"
@@ -492,13 +509,12 @@ export interface BaseTableProps<
    * Useful for in-table filter chips, alerts, etc.
    */
   topContent?: ReactElement | undefined;
-  helpContent?:
-    | {
-        title: string;
-        description?: string | undefined;
-        markdown: string;
-      }
-    | undefined;
+  /*
+   * The list's help (?): a title, a line under it and a markdown document
+   * of a lead and "##" topics, opened in the help dialog (HelpModal) from
+   * the card's header and from the empty list.
+   */
+  helpContent?: HelpContent | undefined;
   documentationLink?: Route | URL | undefined;
   videoLink?: Route | URL | undefined;
   showCreateForm?: undefined | boolean;
@@ -621,9 +637,23 @@ export interface BaseTableProps<
    * row moving would get in the way of what the page is for.
    */
   isLive?: boolean | undefined;
+  /*
+   * A list that reads several projects at once (fetchRequestOptions'
+   * isMultiTenantRequest - Active Incidents lists every project the person
+   * belongs to): the projects whose changes it hears, so a record changing
+   * in any of them reads the page again, not only one in the open project.
+   * Unset: the open project's (LiveRows.getLiveRowTenantIds).
+   */
+  liveProjectIds?: Array<ObjectID> | undefined;
   fetchRequestOptions?: RequestOptions | undefined;
   deleteRequestOptions?: RequestOptions | undefined;
   onItemDeleted?: ((item: TBaseModel) => void) | undefined;
+  /*
+   * A row created, edited or deleted from the list says so in the corner:
+   * "Nightly Backup deleted", "Changes saved" (Toast, #9120). Leave it out
+   * where the page says so itself, in its own words.
+   */
+  hideChangeToasts?: boolean | undefined;
   onBeforeEdit?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
   /*
    * Rows the reader may not change, though their permissions let them change
@@ -1046,6 +1076,35 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         : "";
 
     return givenName || getRecordDisplayName(item, { model: model });
+  };
+
+  type SayItemChangedFunction = (template: string, item: unknown) => void;
+
+  /*
+   * A row created or deleted says so in the corner, by its name, or by its
+   * kind where it has none: "Nightly Backup deleted", "Monitor created"
+   * (#9120). The row was gone, or there, with nothing to say it was the one
+   * the person meant.
+   */
+  const sayItemChanged: SayItemChangedFunction = (
+    template: string,
+    item: unknown,
+  ): void => {
+    if (props.hideChangeToasts) {
+      return;
+    }
+
+    const name: string = getItemLabel(item);
+
+    Toast.success(
+      translator.translateTemplate(template, {
+        itemName:
+          name ||
+          translatableTerm(
+            getDeleteLabel(props.singularName, model.singularName),
+          ),
+      }),
+    );
   };
 
   /*
@@ -2224,6 +2283,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       refreshSideMenuCounts();
 
       props.onItemDeleted?.(item);
+
+      /*
+       * A table with its own word for its delete (Remove, Unlink, Reject)
+       * takes the row away without deleting what it points at.
+       */
+      const hasOwnDeleteWord: boolean = Boolean(
+        props.bulkActions?.deleteVerb?.trim() ||
+          (props.deleteButtonText?.trim() &&
+            props.deleteButtonText.trim() !== "Delete"),
+      );
+
+      sayItemChanged(hasOwnDeleteWord ? ITEM_REMOVED : ITEM_DELETED, item);
 
       if (data.length === 1 && currentPageNumber > 1) {
         setCurrentPageNumber(currentPageNumber - 1);
@@ -3606,6 +3677,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         ? (props.modelType as { new (): BaseModel })
         : null,
     tenantId: ProjectUtil.getCurrentProjectId(),
+    // A list across projects hears each of them.
+    tenantIds: props.liveProjectIds,
     isEnabled: props.isLive !== false,
     isHeld: (): boolean => {
       return isLiveRowsHeld({
@@ -6385,6 +6458,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           onBeforeUpdate: props.onBeforeUpdate,
           onSuccess: async (item: TBaseModel): Promise<void> => {
             setShowModal(false);
+
+            // Said as the dialog closes, before the list reads again.
+            if (modalType === ModalType.Edit) {
+              if (!props.hideChangeToasts) {
+                Toast.success(
+                  translator.translateText(CHANGES_SAVED) || CHANGES_SAVED,
+                );
+              }
+            } else {
+              sayItemChanged(getItemCreatedTemplate(props.createVerb), item);
+            }
+
             setCurrentPageNumber(1);
             // Created or changed: the counts beside the list follow.
             refreshSideMenuCounts();
@@ -6442,21 +6527,33 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 dataTestId="delete-confirmation-loading"
               />
             ) : (
-              deleteConfirmation?.description || (
-                <DeleteConfirmationMessage
-                  kind="question"
-                  name={getItemLabel(currentDeleteableItem)}
-                  typeLabel={getDeleteLabel(
-                    props.singularName,
-                    model.singularName,
-                  )}
-                  /*
-                   * What goes with it, as the bulk Delete and the record's
-                   * own Delete page say it.
-                   */
-                  warning={getDeleteWarning(props.deleteConfirmationWarning)}
-                />
-              )
+              <>
+                {deleteConfirmation?.description || (
+                  <DeleteConfirmationMessage
+                    kind="question"
+                    name={getItemLabel(currentDeleteableItem)}
+                    typeLabel={getDeleteLabel(
+                      props.singularName,
+                      model.singularName,
+                    )}
+                    /*
+                     * What goes with it, as the bulk Delete and the record's
+                     * own Delete page say it.
+                     */
+                    warning={getDeleteWarning(props.deleteConfirmationWarning)}
+                  />
+                )}
+                {deleteConfirmation?.details ? (
+                  <div
+                    className="mt-3"
+                    data-testid="delete-confirmation-details"
+                  >
+                    {deleteConfirmation.details}
+                  </div>
+                ) : (
+                  <></>
+                )}
+              </>
             )
           }
           disableSubmitButton={isDeleteConfirmationLoading}
@@ -6554,19 +6651,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       )}
 
       {showHelpModal && props.helpContent && (
-        <Modal
+        <HelpModal
           title={props.helpContent.title}
           description={props.helpContent.description}
+          markdown={props.helpContent.markdown}
+          documentationLink={props.documentationLink}
           onClose={() => {
             setShowHelpModal(false);
           }}
-          modalWidth={ModalWidth.Large}
-          closeButtonText="Close"
-        >
-          <div className="p-2">
-            <MarkdownViewer text={props.helpContent.markdown} />
-          </div>
-        </Modal>
+        />
       )}
 
       {getColumnCustomizationModal()}

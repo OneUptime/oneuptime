@@ -14,6 +14,7 @@ import type Filter from "../ModelFilter/Filter";
 import type Column from "../ModelTable/Column";
 import type Columns from "../ModelTable/Columns";
 import FieldType from "../Types/FieldType";
+import type { HelpContent } from "../Help/HelpContent";
 import {
   getRuleCriteriaFieldName,
   getRuleCriteriaOperatorsForField,
@@ -22,7 +23,7 @@ import {
 import {
   getLegacyRuleCriteriaFields,
   RULE_CRITERIA_FIELD_NAME,
-} from "./RuleCriteriaModelForm";
+} from "./RuleCriteriaLegacyFields";
 import RuleCriteriaSummary, {
   getRuleCriteriaSummaryText,
 } from "./RuleCriteriaSummary";
@@ -38,11 +39,8 @@ export interface RuleCriteriaTableConfiguration<TEntity extends BaseModel> {
   helpContent?: RuleCriteriaTableHelpContent | undefined;
 }
 
-export interface RuleCriteriaTableHelpContent {
-  title: string;
-  description?: string | undefined;
-  markdown: string;
-}
+// A rule table's help is any list's help (HelpModal).
+export type RuleCriteriaTableHelpContent = HelpContent;
 
 /*
  * The help panel's "Match Criteria" section, written for the conditions the

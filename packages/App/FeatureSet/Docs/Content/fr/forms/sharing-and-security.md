@@ -66,9 +66,9 @@ Une fois le domaine en service, la carte **Lien de partage** le liste au-dessus 
 Cliquez sur **Ajouter un domaine personnalisé**. La boîte de dialogue ne demande qu'une chose :
 
 - **Domaine** : l'adresse complète que les gens ouvriront, avec le texte indicatif `report.example.com`. Un lien collé fonctionne aussi : seul son nom d'hôte est conservé. Pour utiliser la racine d'un domaine, saisissez le domaine lui-même.
-- **Plus de champs** : replié. Ne l'ouvrez que pour utiliser votre propre certificat : activez **Téléverser un certificat personnalisé**, puis collez le **Certificat** et sa **Clé privée du certificat**.
+- **Plus de champs** : replié. Ne l'ouvrez que pour utiliser votre propre certificat : activez **Téléverser un certificat personnalisé**, puis collez le **Certificat** et sa **Clé privée du certificat**. La clé est stockée chiffrée et n'est plus jamais affichée. Un certificat et une clé qui ne vont pas ensemble sont refusés, avec la raison sous le champ en cause.
 
-Cliquez sur **Continuer**. Si le projet a vérifié le domaine sur lequel se trouve l'adresse, sous **Paramètres du projet** > **Avancé** > **Domaines**, le domaine est ajouté et sa **Configuration DNS** s'ouvre. Sinon, OneUptime ajoute ce domaine au projet et la **Configuration DNS** s'ouvre avec aussi son enregistrement TXT, pour que vous le vérifiiez sur place. Le nom d'un domaine et son formulaire sont fixés dès qu'il est ajouté, donc **Modifier** ne change que son certificat : pour changer l'un ou l'autre, ajoutez le nouveau domaine et supprimez l'ancien.
+Cliquez sur **Continuer**. Si le projet a vérifié le domaine sur lequel se trouve l'adresse, sous **Paramètres du projet** > **Avancé** > **Domaines**, le domaine est ajouté et sa **Configuration DNS** s'ouvre. Sinon, OneUptime ajoute ce domaine au projet et la **Configuration DNS** s'ouvre avec aussi son enregistrement TXT, pour que vous le vérifiiez sur place. Le nom d'un domaine et son formulaire sont fixés dès qu'il est ajouté, donc **Modifier** ne change que son certificat : pour changer l'un ou l'autre, ajoutez le nouveau domaine et supprimez l'ancien. Sur un domaine qui sert votre propre certificat, **Clé privée du certificat** est vide dans la boîte de dialogue **Modifier** : laissez-la vide pour conserver la clé enregistrée, ce qui suffit à un certificat renouvelé avec la même clé, ou collez une nouvelle clé. Sur un domaine qui utilise le certificat gratuit, activer **Téléverser un certificat personnalisé** demande la clé.
 
 Un domaine affiche une seule page de statut, un seul tableau de bord ou un seul formulaire, donc un nom que l'un d'eux a déjà, dans n'importe quel projet, est refusé : "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
 
@@ -186,6 +186,10 @@ Chaque variable lit aussi son ancien nom, avec `INCIDENT_FORM_` devant au lieu d
 ### Captcha
 
 Quand votre instance OneUptime a activé hCaptcha, le formulaire affiche un captcha, et une soumission qui ne l'a pas réussi est refusée. Il n'y a pas de réglage par formulaire. Une installation auto-hébergée active le captcha avec `CAPTCHA_ENABLED`, `CAPTCHA_SITE_KEY` et `CAPTCHA_SECRET_KEY` — les mêmes paramètres qui protègent l'inscription. Sans lui, les limites de débit et la liste d'adresses IP autorisées portent la charge.
+
+### Analyse antivirus
+
+Une installation auto-hébergée peut faire analyser par ClamAV chaque fichier envoyé avant de le stocker : les fichiers d'un formulaire, et ceux que les personnes téléversent une fois connectées ou avec une clé d'API. Indiquez dans `CLAMAV_HOST` (et `CLAMAV_PORT`, `3310` par défaut) l'adresse d'un démon ClamAV. Avec Docker Compose, `COMPOSE_PROFILES=clamav` et `CLAMAV_HOST=clamav` dans `config.env` démarrent le ClamAV fourni avec OneUptime ; avec Helm, activez `clamav.enabled`. Un fichier signalé par ClamAV est refusé, avec son nom, et rien de l'envoi n'est stocké. Tant que ClamAV ne répond pas, chaque fichier est refusé avec "Les fichiers ne peuvent pas être analysés contre les virus pour le moment, ils n'ont donc pas été acceptés. Veuillez réessayer dans quelques minutes." (503), si bien qu'aucun fichier n'est stocké sans avoir été vérifié. Sans `CLAMAV_HOST`, les fichiers ne sont pas analysés, comme avant.
 
 ## Dépannage
 

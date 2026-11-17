@@ -1,6 +1,6 @@
 # Gateway IA (LiteLLM, Portkey)
 
-Un gateway IA sta tra le tue app e i provider di modelli, quindi ogni chiamata al modello passa da lì. Invia una volta l'OpenTelemetry del gateway a OneUptime, e ogni chiamata che c'è dietro arriva in [AI / LLM](/docs/telemetry/ai-llm-observability) con modello, token, costo e, a meno che tu non lo disattivi, il prompt e la risposta, senza strumentare ogni app.
+Un gateway IA sta tra le tue app e i provider di modelli, quindi ogni chiamata al modello passa da lì. Invia una volta l'OpenTelemetry del gateway a OneUptime, e ogni chiamata che c'è dietro arriva in [IA / LLM](/docs/telemetry/ai-llm-observability) con modello, token, costo e, a meno che tu non lo disattivi, il prompt e la risposta, senza strumentare ogni app.
 
 :::cards
 - [LiteLLM Proxy](#litellm-proxy): Export integrato, impostato con tre variabili.
@@ -31,7 +31,7 @@ OneUptime non ha un gateway suo: custodirebbe le tue chiavi dei provider e aggiu
 
 ## Prima di iniziare
 
-- Una chiave di ingestione: apri **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e fai clic su **Crea chiave di ingestione**.
+- Una chiave di acquisizione: apri **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e fai clic su **Crea chiave di acquisizione**.
 - Il tuo URL di base OTLP: `https://oneuptime.com/otlp`, oppure `https://YOUR-ONEUPTIME-HOST/otlp` se ospiti OneUptime tu stesso. OneUptime accetta OTLP su HTTP, in protobuf e in JSON.
 - La chiave viaggia nell'intestazione `x-oneuptime-token` di ogni richiesta di export.
 
@@ -272,7 +272,7 @@ OneUptime risponde `401` a una chiave mancante, sconosciuta o scaduta, e `422` a
 LiteLLM vuole il percorso completo, `https://oneuptime.com/otlp/v1/traces`. Portkey vuole l'URL di base, `https://oneuptime.com/otlp`, e aggiunge `/v1/traces` da sé.
 :::
 
-:::details Gli span arrivano, ma non in AI / LLM
+:::details Gli span arrivano, ma non in IA / LLM
 Filtra **Tracce** per il servizio del gateway (`litellm`, `portkey` o il tuo `OTEL_SERVICE_NAME`) per vederne gli span grezzi. Uno span conta come chiamata al modello solo quando porta attributi `gen_ai.*`: controlla che il callback sia `otel` e che la chiamata sia andata a un modello.
 :::
 

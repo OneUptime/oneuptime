@@ -1272,7 +1272,7 @@ describe("ReplayRail filtering", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Scope: within 30 seconds of the playhead",
+        name: "Scope: within 30\u00A0seconds of the playhead",
       }),
     );
 
@@ -2564,7 +2564,7 @@ describe("ReplayRail compact chrome", () => {
       name: "Scope: whole session",
     });
     const around: HTMLElement = screen.getByRole("button", {
-      name: "Scope: within 30 seconds of the playhead",
+      name: "Scope: within 30\u00A0seconds of the playhead",
     });
 
     expect(whole).toHaveAttribute("aria-pressed", "true");

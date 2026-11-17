@@ -101,6 +101,8 @@ flowchart TB
 
 API では、ユーザーオーバーライド（ `/api/on-call-duty-policy-user-override` ）を `routeAlertsToUserId` なしで作成すると、 `overrideUserId` の人が `startsAt` から `endsAt` までスキップされます。
 
+スケジュールの**概要**には**使用元**カードがあります。エスカレーションルールでオンコール中の人を呼び出すオンコールポリシーが、そのルールとともに表示されます。どのポリシーも呼び出さない場合はそう表示され、オンコールポリシーへのリンクが示されます。スケジュールをページまたは一覧から削除するときは、どのポリシーがこのスケジュールで呼び出すかが先に表示されます。開く権限のないポリシーは件数だけが示され、名前は表示されません。
+
 ## API または Terraform でスケジュールを作成する
 
 オンコールスケジュールは `/api/on-call-duty-policy-schedule` リソースです。そのレイヤーとレイヤー内の人は `/api/on-call-duty-schedule-layer` と `/api/on-call-duty-schedule-layer-user` リソースです。
@@ -108,6 +110,7 @@ API では、ユーザーオーバーライド（ `/api/on-call-duty-policy-user
 - `miscDataProps` に `firstLayerUsers` （交代する順に並べたユーザー ID のリスト）を含めてスケジュールを作成すると、ダッシュボードと同じく最初のレイヤーが作成されます。今からオンコールが始まり、24 時間体制の **Layer 1** です。 `firstLayerRotation` は 1 回の担当期間を `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}` のようなローテーションで指定します。省略すると 1 週間です。すべてのユーザーがプロジェクトのメンバーで、呼び出し元にレイヤーを作成する権限が必要です。そうでなければスケジュールは作成されません。
 - これらなしで作成したスケジュールには、従来どおりレイヤーがありません。Terraform のスケジュールリソースはこれらを送りません。
 - `rotation` なしで作成したレイヤーは、これまでどおり毎日引き継ぎます。
+- API または Terraform でスケジュールのレイヤーとレイヤー内の人を変更すると、1 つの変更として通知されます。誰がオンコールかは、レイヤーが 30 秒間変更されなかった時点で計算され、オンコールになる人、オンコールから外れる人、次の担当者には、書き込まれたレイヤーや人ごとではなく一度だけ通知されます。ページは、各変更が保存された時点から、レイヤーがオンコールにした人に届きます。
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \

@@ -26,7 +26,10 @@ import StatusPageReportPeriodUtil, {
 } from "../../../Utils/StatusPage/ReportPeriod";
 import StatusPageReportText, {
   StatusPageReportPeriodTexts,
+  StatusPageReportUptimeText,
 } from "../../../Utils/StatusPage/ReportText";
+import fs from "fs";
+import path from "path";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { describe, expect, test } from "@jest/globals";
 import { STATUS_PAGE_LANGUAGES } from "../../Helpers/TranslatedLanguages";
@@ -393,8 +396,8 @@ describe("StatusPageReportText.getPeriodTexts in English", () => {
 describe("StatusPageReportText.getPeriodTexts in a reader's language", () => {
   test("German names the period, and writes its dates, in German", () => {
     expect(textsIn("de", rolling(30))).toEqual({
-      periodName: "die letzten 30 Tage",
-      reportDates: "30 Tage (2. Juli 2026 – 1. Aug. 2026)",
+      periodName: "die letzten 30\u00A0Tage",
+      reportDates: "30\u00A0Tage (2. Juli 2026 – 1. Aug. 2026)",
     });
     expect(textsIn("de", rolling(1)).periodName).toBe("den letzten Tag");
     expect(textsIn("de", calendar(EventInterval.Month))).toEqual({
@@ -422,15 +425,21 @@ describe("StatusPageReportText.getPeriodTexts in a reader's language", () => {
    */
   test("Russian names a count of its 'one' form, and every other, by its count", () => {
     expect(textsIn("ru", rolling(1)).periodName).toBe("последние сутки");
-    expect(textsIn("ru", rolling(21)).periodName).toBe("последние 21 сутки");
-    expect(textsIn("ru", rolling(22)).periodName).toBe("последние 22 суток");
-    expect(textsIn("ru", rolling(30)).periodName).toBe("последние 30 суток");
+    expect(textsIn("ru", rolling(21)).periodName).toBe(
+      "последние 21\u00A0сутки",
+    );
+    expect(textsIn("ru", rolling(22)).periodName).toBe(
+      "последние 22\u00A0суток",
+    );
+    expect(textsIn("ru", rolling(30)).periodName).toBe(
+      "последние 30\u00A0суток",
+    );
   });
 
   test("Persian writes the period in its own digits", () => {
     const texts: StatusPageReportPeriodTexts = textsIn("fa", rolling(30));
 
-    expect(withoutIsolateMarks(texts.periodName)).toBe("۳۰ روز گذشته");
+    expect(withoutIsolateMarks(texts.periodName)).toBe("۳۰\u00A0روز گذشته");
     expect(withoutIsolateMarks(texts.reportDates)).not.toMatch(
       LATIN_DIGIT_REGEX,
     );
@@ -622,6 +631,149 @@ describe("StatusPageReportText.writeReportInLanguage", () => {
     expect(withoutSpaces(german.averageUptimePercent)).toBe("0%");
     expect(german.totalDowntimeInHoursAndMinutes).toBe("0\u00A0Minuten");
     expect(german.rows).toEqual([]);
+  });
+
+  /*
+   * Issue #9030: a resource nothing was measured for has no figures, a dash
+   * for its uptime and its downtime, and the status page's own words for
+   * it, "Not monitored yet" or "Not monitored" - in every language, as the
+   * page writes them (StatusPage/src/Locales overview.notMonitoredYet and
+   * overview.notMonitored).
+   */
+  describe("a resource nothing was measured for", () => {
+    const DASH: string = "—";
+
+    function reportWithUnmeasured(notMonitoredText: string): StatusPageReport {
+      const unmeasured: StatusPageReportResourceEntry = {
+        statusPageResource: new StatusPageResource(),
+        reportItem: {
+          resourceName: "New API",
+          totalIncidentCount: 0,
+          uptimePercent: null,
+          uptimePercentAsString: DASH,
+          downtimeInHoursAndMinutes: DASH,
+          notMonitoredText: notMonitoredText,
+        },
+      };
+
+      const structure: StatusPageReportStructure =
+        StatusPageReportTreeUtil.build({
+          entries: [
+            entry({
+              name: "Website",
+              uptime: 99.95,
+              minutes: 21,
+              incidents: 1,
+            }),
+            unmeasured,
+          ],
+          statusPageGroups: [],
+          groupMetricsByGroupId: {},
+        });
+
+      return {
+        ...englishReport(period),
+        totalResources: 2,
+        averageUptimePercent: "99.95%",
+        hasUptime: true,
+        resources: structure.resources,
+        groups: structure.groups,
+        ungroupedResources: structure.resourcesWithoutGroup,
+        rows: structure.rows,
+        hasGroups: false,
+      };
+    }
+
+    function statusPageWords(language: string): {
+      notMonitored: string;
+      notMonitoredYet: string;
+    } {
+      return (
+        JSON.parse(
+          fs.readFileSync(
+            path.resolve(
+              __dirname,
+              "../../../../App/FeatureSet/StatusPage/src/Locales",
+              `${language}.json`,
+            ),
+            "utf8",
+          ),
+        ) as { overview: { notMonitored: string; notMonitoredYet: string } }
+      ).overview;
+    }
+
+    test.each(STATUS_PAGE_LANGUAGES)(
+      "%s writes its words as the status page writes them, and keeps its dashes",
+      (language: string) => {
+        for (const [english, pageKey] of [
+          [StatusPageReportUptimeText.notMonitoredYet, "notMonitoredYet"],
+          [StatusPageReportUptimeText.notMonitored, "notMonitored"],
+        ] as Array<[string, "notMonitoredYet" | "notMonitored"]>) {
+          const written: StatusPageReport = reportIn(
+            language,
+            reportWithUnmeasured(english),
+            period,
+          );
+
+          const item: StatusPageReportItem = written.resources.find(
+            (resource: StatusPageReportItem): boolean => {
+              return resource.resourceName === "New API";
+            },
+          )!;
+
+          expect(item.notMonitoredText).toBe(
+            statusPageWords(language)[pageKey],
+          );
+          expect(item.notMonitoredText).not.toBe(english);
+          expect(item.uptimePercentAsString).toBe(DASH);
+          expect(item.downtimeInHoursAndMinutes).toBe(DASH);
+
+          // Its row says the same.
+          const row: StatusPageReportRow = written.rows.find(
+            (candidate: StatusPageReportRow): boolean => {
+              return candidate.name === "New API";
+            },
+          )!;
+
+          expect(row.notMonitoredText).toBe(item.notMonitoredText);
+          expect(row.uptimePercentAsString).toBe(DASH);
+
+          // A measured resource says nothing more.
+          expect(
+            written.rows.find((candidate: StatusPageReportRow): boolean => {
+              return candidate.name === "Website";
+            })!.notMonitoredText,
+          ).toBeUndefined();
+        }
+      },
+    );
+
+    test("a page nothing on which was measured keeps its dashes in every language", () => {
+      for (const language of STATUS_PAGE_LANGUAGES) {
+        const written: StatusPageReport = reportIn(
+          language,
+          {
+            ...reportWithUnmeasured(StatusPageReportUptimeText.notMonitoredYet),
+            averageUptimePercent: DASH,
+            hasUptime: false,
+            // As getReportByStatusPage builds it: no minutes to write.
+            totalDowntimeInHoursAndMinutes: DASH,
+            totalDowntimeInMinutes: undefined,
+          },
+          period,
+        );
+
+        expect([language, written.averageUptimePercent]).toEqual([
+          language,
+          DASH,
+        ]);
+        expect([language, written.totalDowntimeInHoursAndMinutes]).toEqual([
+          language,
+          DASH,
+        ]);
+        expect(written.hasUptime).toBe(false);
+      }
+    });
   });
 
   test("leaves English dates and durations to English once written", () => {

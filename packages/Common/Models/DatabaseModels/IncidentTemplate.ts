@@ -973,19 +973,14 @@ export default class IncidentTemplate extends BaseModel {
    *
    * IncidentTemplateService derives it from writes to statusPages and ignores
    * any value a client sends; it is never recomputed when join rows
-   * disappear. Computed, so a client cannot set it on create; its update
-   * access control matches statusPages because the service writes it into
-   * the caller's own update.
+   * disappear. So nobody may create it (#8907): a create's value is dropped
+   * before the hooks run (refused, to a caller who may not even read it),
+   * and the value the service writes is the create's own. Its update access
+   * control matches statusPages because the service writes it into the
+   * caller's own update.
    */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.CreateIncidentTemplate,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

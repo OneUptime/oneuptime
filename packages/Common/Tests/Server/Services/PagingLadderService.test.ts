@@ -257,10 +257,12 @@ const bobProps: (
 
 const save: (data: {
   steps: unknown;
+  keepCards?: unknown;
   target?: ObjectID;
   props?: DatabaseCommonInteractionProps;
 }) => Promise<PagingLadderSaveResult> = (data: {
   steps: unknown;
+  keepCards?: unknown;
   target?: ObjectID;
   props?: DatabaseCommonInteractionProps;
 }): Promise<PagingLadderSaveResult> => {
@@ -268,6 +270,7 @@ const save: (data: {
     projectId: PROJECT,
     targetUserId: data.target || ANA,
     steps: data.steps,
+    keepCards: data.keepCards,
     props: data.props || anaProps,
   });
 };
@@ -665,6 +668,106 @@ describe("saving your own ladder", () => {
       `userSmsId:${ANA_SMS}`,
       `userCallId:${ANA_CALL}`,
     ]);
+  });
+});
+
+describe("severities that keep their own rules (#8890)", () => {
+  const isOnCriticalIncidentCard: (row: {
+    ruleType?: unknown;
+    incidentSeverityId?: unknown;
+  }) => boolean = (row: {
+    ruleType?: unknown;
+    incidentSeverityId?: unknown;
+  }): boolean => {
+    return (
+      row.ruleType === NotificationRuleType.ON_CALL_EXECUTED_INCIDENT &&
+      readPagingId(row.incidentSeverityId) === CRITICAL
+    );
+  };
+
+  test("a kept card is neither written nor emptied; every other live card takes the ladder", async () => {
+    const keptRowIds: Set<string> = new Set<string>(
+      rules
+        .filter((row: UserNotificationRule): boolean => {
+          return isOnCriticalIncidentCard(row);
+        })
+        .map((row: UserNotificationRule): string => {
+          return readPagingId(row.id);
+        }),
+    );
+    expect(keptRowIds.size).toBe(3);
+
+    const result: PagingLadderSaveResult = await save({
+      steps: PUSH_SMS_CALL,
+      keepCards: [
+        {
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          severityId: CRITICAL,
+        },
+      ],
+    });
+
+    // Five live cards, not six.
+    expect(result).toEqual({
+      createdCount: 5,
+      updatedCount: 5,
+      deletedCount: 5,
+      unchangedCount: 5,
+    });
+
+    for (const row of createdRules()) {
+      expect(isOnCriticalIncidentCard(row)).toBe(false);
+    }
+
+    const touched: Array<string> = [
+      ...updateSpy.mock.calls,
+      ...deleteSpy.mock.calls,
+    ].map((call: Array<unknown>): string => {
+      return readPagingId((call[0] as { id: ObjectID }).id);
+    });
+
+    for (const id of touched) {
+      expect(keptRowIds.has(id)).toBe(false);
+    }
+
+    // Read back: one card differs, the one that kept its email, SMS and call at once.
+    const reading: ReturnType<typeof readPagingLadder> = readPagingLadder({
+      cells: cells(),
+      rules: rulesAfterSave(),
+    });
+
+    expect(reading.isOneLadder).toBe(false);
+    expect(reading.differences).toHaveLength(1);
+    expect(reading.differences[0]!.cell.ruleType).toBe(
+      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+    );
+    expect(reading.differences[0]!.cell.severityId).toBe(CRITICAL);
+  });
+
+  test("no kept cards is every card, as before", async () => {
+    const result: PagingLadderSaveResult = await save({
+      steps: PUSH_SMS_CALL,
+      keepCards: [],
+    });
+
+    expect(result.createdCount).toBe(6);
+  });
+
+  test("a kept card named badly is refused, and nothing is written: it would have been overwritten", async () => {
+    for (const keepCards of [
+      "Critical",
+      [{ ruleType: "Not a rule type", severityId: CRITICAL }],
+      [{ ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT }],
+      [null],
+    ]) {
+      await expect(
+        save({ steps: PUSH_SMS_CALL, keepCards: keepCards }),
+      ).rejects.toBeInstanceOf(BadDataException);
+    }
+
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(deleteSpy).not.toHaveBeenCalled();
   });
 });
 

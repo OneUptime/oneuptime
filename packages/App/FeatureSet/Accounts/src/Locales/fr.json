@@ -53,7 +53,7 @@
       "signIn": "Se connecter avec une clé d’accès",
       "inProgress": "Terminez ou annulez la connexion par clé d’accès avant d’utiliser votre mot de passe.",
       "helpTitle": "Vous découvrez les clés d’accès ?",
-      "help": "Une clé d’accès vous permet de vous connecter avec votre empreinte digitale, votre visage ou le code PIN de votre appareil, sans mot de passe. Pour en ajouter une, connectez-vous avec votre mot de passe ou le SSO, puis ouvrez Profil utilisateur → Sécurité → Passkeys.",
+      "help": "Une clé d’accès vous permet de vous connecter avec votre empreinte digitale, votre visage ou le code PIN de votre appareil, sans mot de passe. Pour en ajouter une, connectez-vous avec votre mot de passe ou le SSO, puis ouvrez Profil utilisateur → Sécurité → Clés d'accès.",
       "preparing": "Préparation de votre clé d’accès…",
       "waiting": "Consultez votre appareil",
       "waitingDescription": "Suivez les instructions de votre navigateur ou gestionnaire de mots de passe.",
@@ -68,8 +68,9 @@
     "signInWithSso": "Se connecter avec SSO",
     "signInWithMicrosoft": "Se connecter avec Microsoft",
     "emailSignInLink": "M'envoyer un lien de connexion",
+    "moreWaysToSignIn": "Autres moyens de se connecter",
     "noAccountPrompt": "Vous n'avez pas de compte ?",
-    "registerLink": "Inscription.",
+    "registerLink": "S'inscrire.",
     "twoFactor": {
       "title": "Authentification à deux facteurs",
       "subtitle": "Sélectionnez une méthode d'authentification à deux facteurs. Vous serez invité à saisir un code de la méthode sélectionnée.",
@@ -175,10 +176,17 @@
   "resetPassword": {
     "title": "Réinitialisez votre mot de passe",
     "subtitle": "Veuillez saisir votre nouveau mot de passe et nous le mettrons à jour.",
-    "successMessage": "Votre mot de passe a été mis à jour. Veuillez vous connecter.",
     "submitButton": "Réinitialiser le mot de passe",
     "knowPasswordPrompt": "Vous connaissez votre mot de passe ?",
-    "loginLink": "Connexion."
+    "loginLink": "Connexion.",
+    "successTitle": "Votre mot de passe a été réinitialisé",
+    "successDescription": "Connectez-vous avec votre nouveau mot de passe.",
+    "signInButton": "Se connecter",
+    "linkExpiredTitle": "Ce lien de réinitialisation a expiré",
+    "linkExpiredDescription": "Les liens de réinitialisation sont valables un jour. Demandez un nouveau lien et nous vous l’enverrons par e-mail.",
+    "linkInvalidTitle": "Ce lien de réinitialisation ne fonctionne plus",
+    "linkInvalidDescription": "Il a peut-être déjà été utilisé, ou n’a été copié qu’en partie. Demandez un nouveau lien et nous vous l’enverrons par e-mail.",
+    "requestNewLinkButton": "Demander un nouveau lien"
   },
   "sso": {
     "title": "Connexion avec SSO",
@@ -186,7 +194,7 @@
     "submitButton": "Connexion avec SSO",
     "signInWithPassword": "Se connecter avec un mot de passe",
     "noAccountPrompt": "Vous n'avez pas de compte ?",
-    "registerLink": "Inscription.",
+    "registerLink": "S'inscrire.",
     "selectProjectTitle": "Sélectionner un projet",
     "noConfigForEmail": "Aucune configuration SSO trouvée pour l'e-mail : {{email}}",
     "emailRequired": "L'e-mail est requis pour effectuer cette action",
@@ -255,7 +263,7 @@
     "complete": "Votre clé d’accès a été vérifiée. Revenez dans l’application pour terminer la connexion.",
     "returnToApp": "Revenir dans l’application",
     "cancel": "Annuler et revenir dans l’application",
-    "setup": "Créez une clé d’accès dans le tableau de bord web, sous Profil utilisateur → Sécurité → Passkeys."
+    "setup": "Créez une clé d’accès dans le tableau de bord web, sous Profil utilisateur → Sécurité → Clés d'accès."
   },
   "mcpAuthorize": {
     "title": "Connecter un client MCP",
@@ -562,6 +570,7 @@
   "What was sent is larger than the 50 MB OneUptime takes in one request.": "Ce qui a été envoyé dépasse les 50 Mo qu'accepte OneUptime en une requête.",
   "Try again with less at once, such as a smaller file.": "Réessayez avec moins de données à la fois, par exemple un fichier plus petit.",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Si un proxy placé devant OneUptime l'a refusé, relevez la limite de taille des requêtes de ce proxy à 50 Mo, autant que ce qu'accepte OneUptime lui-même (dans nginx, client_max_body_size 50M).",
+  "Dismiss": "Masquer",
   "This form is not available. It may have been turned off, or the link may be out of date.": "Ce formulaire n'est pas disponible. Il a peut-être été désactivé, ou le lien n'est plus à jour.",
   "This form can only be opened from an allowed network.": "Ce formulaire ne peut être ouvert que depuis un réseau autorisé.",
   "Too many submissions from your network. Please wait a few minutes and try again.": "Trop de signalements envoyés depuis votre réseau. Veuillez patienter quelques minutes, puis réessayer.",
@@ -572,6 +581,7 @@
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "Ce formulaire ne peut pas créer d'incident, car aucune gravité ne lui est associée. Veuillez prévenir l'équipe qui l'a partagé.",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "Les réponses ne peuvent pas être acceptées pour le moment. Veuillez réessayer dans quelques minutes.",
   "This form is receiving too many files right now. Please try again later.": "Ce formulaire reçoit trop de fichiers en ce moment. Veuillez réessayer plus tard.",
+  "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "Les fichiers ne peuvent pas être analysés contre les virus pour le moment, ils n'ont donc pas été acceptés. Veuillez réessayer dans quelques minutes.",
   "A response can carry at most 10 files.": "Une réponse peut contenir au maximum 10 fichiers.",
   "The files of a response can be at most 20 MB together.": "Les fichiers d'une réponse ne peuvent pas dépasser 20 Mo au total.",
   "Your response could not be submitted. Please try again in a few minutes.": "Votre réponse n'a pas pu être envoyée. Veuillez réessayer dans quelques minutes.",

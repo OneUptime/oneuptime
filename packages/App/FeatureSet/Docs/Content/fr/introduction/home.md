@@ -20,6 +20,8 @@ Ouvrez **Accueil** dans la barre du haut, ou appuyez sur `g` puis `h` depuis n'i
 5. **Votre projet**, ce qui compose le projet, et **Maintenance à venir** quand une maintenance est planifiée.
 6. **Explorer OneUptime**, tous les produits, une catégorie à la fois.
 
+Tant que la liste **Bienvenue sur OneUptime 👋** d'un nouveau projet s'affiche, elle occupe tout l'accueil : la première chose que vous voyez est ce qu'il faut faire en premier. Un incident ouvert, ou tout ce qui demande quelqu'un, s'affiche quand même au-dessus. Masquez la liste, ou terminez-la, et le reste de l'accueil revient.
+
 ### Rechercher et créer
 
 Le champ de recherche ouvre la recherche, comme `Mod` + `K` : tapez le nom de n'importe quelle page, d'un moniteur, d'un incident, d'une alerte, d'une page de statut ou d'une politique d'astreinte. Consultez la section [Rechercher](#rechercher-une-page-un-paramètre-ou-une-action). **Déclarer un incident** ouvre le formulaire de déclaration d'un incident. **Créer** propose **Créer un moniteur**, **Planifier une maintenance** et **Créer une annonce**. Chacun n'est affiché qu'aux personnes autorisées à l'utiliser.
@@ -36,7 +38,7 @@ La ligne du haut nomme ce qui est ouvert de plus urgent, dans une couleur assort
 | Des moniteurs fonctionnent et rien n'est ouvert | **Tous les systèmes sont opérationnels** |
 | Le projet n'a pas encore de moniteur | **Rien n'est encore surveillé** |
 
-À côté, l'accueil indique quand il a chargé le projet pour la dernière fois, et **Actualiser** le recharge. Quand vous revenez sur un onglet de l'accueil après une minute ou plus, il s'actualise tout seul.
+À côté, l'accueil indique quand il a chargé le projet pour la dernière fois, et **Actualiser** le recharge. L'accueil suit aussi ce qu'il compte au fil des changements : quand un incident, une alerte, un moniteur, un événement de maintenance ou un SLO est créé, modifié ou supprimé, la ligne, les nombres, **Attention requise** et **Maintenance à venir** se mettent à jour en quelques secondes, sans actualiser. Quand vous revenez sur un onglet de l'accueil après une minute ou plus, il s'actualise tout seul.
 
 Tant que rien n'est encore surveillé, la ligne se termine par le bouton **Créez votre premier moniteur**, qui ouvre la configuration guidée **Savoir quand mon site web ou mon API est en panne**. Seules les personnes autorisées à créer des moniteurs le voient.
 
@@ -56,7 +58,7 @@ Un nombre supérieur à zéro affiche **Attention requise**, ou **En cours** et 
 
 ### La liste de bienvenue
 
-La première fois qu'un Propriétaire du projet ou un Administrateur du projet ouvre l'accueil d'un nouveau projet, la carte demande **Que voulez-vous faire en premier ?** Cochez un ou plusieurs objectifs, par exemple **Savoir quand mon site web ou mon API est en panne** ou **Je regarde simplement**, puis cliquez sur **Continuer** : la liste contient alors les étapes dont ces objectifs ont besoin. **Ignorer** donne les quatre étapes que reçoit tout projet. Pour répondre à nouveau plus tard, cliquez sur **Modifier** dans la liste. Un projet qui utilise déjà des moniteurs, de la télémétrie ou l'astreinte n'est pas interrogé.
+La première fois qu'un Propriétaire du projet ou un Administrateur du projet ouvre l'accueil d'un nouveau projet, la carte le salue par son prénom et demande **Que voulez-vous faire en premier ?** Choisissez un ou plusieurs objectifs, par exemple **Savoir quand mon site web ou mon API est en panne**, puis cliquez sur **Continuer** : la liste contient alors les étapes dont ces objectifs ont besoin. Pendant que vous choisissez, elle indique combien d'étapes cela représente et combien de temps elles prennent environ. **Je regarde simplement** vous amène plutôt directement au reste de l'accueil, et laisse une ligne pour afficher de nouveau la liste. Pour répondre à nouveau plus tard, cliquez sur **Modifier** dans la liste. Un projet qui utilise déjà des moniteurs, de la télémétrie ou l'astreinte n'est pas interrogé.
 
 Chaque étape se coche d'elle-même quand la chose fonctionne, pas quand un enregistrement existe, et toutes les personnes qui configurent le projet voient la même liste, sur chaque appareil :
 
@@ -72,9 +74,13 @@ Chaque étape se coche d'elle-même quand la chose fonctionne, pas quand un enre
 
 L'étape à faire en premier est marquée **Étape suivante**. Avec l'offre Free d'OneUptime Cloud, qui comprend une personne, **Invitez votre équipe** indique qu'il faut l'offre Growth, et ouvre **Facturation**. Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, les administrateurs du serveur voient d'abord **Ce serveur ne peut pas encore envoyer d'e-mails** ; cela ouvre le tableau de bord admin.
 
+Chaque étape indique combien de temps elle prend environ, la liste indique le temps qu'il reste environ, et l'étape suivante a son propre bouton **Lancer**.
+
 Une configuration guidée fait tout le travail sur une seule page, étape par étape, et se termine par ce qu'elle a configuré et ce qu'il faut faire ensuite. Pour en rouvrir une plus tard, recherchez son nom.
 
-Sous les étapes, **Comment fonctionne OneUptime** montre les quatre produits essentiels dans l'ordre où un problème les traverse : **Moniteurs**, **Incidents et alertes**, **Astreinte** et **Pages de statut**. Cliquez sur l'un d'eux pour l'ouvrir. En dessous, il indique ce qui alimente cette boucle, la télémétrie et l'infrastructure, avec des liens vers [Concepts clés](/docs/introduction/core-concepts) et [Glossaire](/docs/introduction/glossary).
+À côté de ses étapes, une configuration guidée liste ce qu'elle met en place, coché au fur et à mesure, et indique combien de temps elle prend environ.
+
+Sous les étapes, une ligne ouvre **Comment fonctionne OneUptime** : tout ce que fait OneUptime, et comment l'ensemble s'articule.
 
 ```mermaid title="Quand la liste de bienvenue s'affiche"
 flowchart TB
@@ -89,13 +95,15 @@ flowchart TB
 
 La liste disparaît pour tout le monde une fois chaque étape terminée. Pour la masquer plus tôt, cliquez sur **Masquer** : elle n'est masquée que pour vous, sur chaque appareil, et une ligne reste avec **Afficher** et **Comment fonctionne OneUptime**. Les personnes invitées dans le projet comme membres ne voient pas la liste. **Comment fonctionne OneUptime** reste à un clic, dans n'importe quel projet : ouvrez-le depuis **Aide**, ou avec le bouton à côté de **Explorer OneUptime**.
 
+**Comment fonctionne OneUptime** s'ouvre sur **Comment tout s'articule** : les quatre étapes par lesquelles passe un problème, **Détecter**, **Réagir**, **Communiquer** et **Améliorer**, chacune avec les produits qui s'en chargent. Viennent ensuite les catégories du menu **Produits**, chacune avec ses produits et ce à quoi sert chacun : choisissez-en une, ou passez à la suivante avec les flèches du clavier ou **Suivant**. Cliquez sur un produit pour l'ouvrir. Les produits que votre projet masque n'y figurent pas.
+
 ### Attention requise
 
 **Attention requise** liste par leur nom ce que les nombres comptent : les incidents ouverts, les alertes ouvertes, les moniteurs non opérationnels, les SLO à risque et les maintenances en cours, les plus urgents d'abord. Chaque ligne affiche sa gravité ou son état, indique quand un incident ou une alerte a commencé et quand une maintenance se termine, et ouvre l'élément. Chaque type en montre jusqu'à cinq, avec **Tout afficher** pour le reste, qui ouvre la même liste que son nombre. Quand rien n'est ouvert, la section affiche **Rien ne nécessite votre attention**.
 
 ### Santé de la configuration
 
-Quand quelque chose dans la configuration du projet empêcherait de prévenir les bonnes personnes, **Attention requise** se termine par **Configuration** : le nombre de points à examiner. Cette ligne ouvre **Santé de la configuration**, qui commence par une ligne dans la couleur du constat le plus grave : combien de problèmes empêcheraient de prévenir les bonnes personnes, combien de points sont à corriger, ou **Rien à corriger**. En dessous, la page liste ce qui est mal configuré, le plus grave d'abord, sous **Les alertes n'arriveront pas**, **À corriger** et **Suggestions** : un moniteur qui n'alerte personne, une politique d'astreinte que rien ne déclenche, une personne qu'on ne peut pas alerter, les SMS désactivés, un planning d'astreinte où personne n'est de garde, une page de statut qui n'affiche aucun moniteur. Chaque constat dit en une phrase ce qui ne va pas, avec les noms de vos moniteurs, politiques et personnes en gras, les moniteurs ou politiques qu'il touche après **Concerne**, et juste en dessous le bouton qui ouvre sa correction. Les constats d'un moniteur sont les ruptures que nomme sa carte **Quand il tombe en panne**. Un constat que votre équipe laisse tel quel exprès peut être masqué avec une raison, pour tout le monde, puis restauré depuis **Ignoré**. La recherche trouve la page sous le nom **Santé de la configuration**, et Demander à l'IA répond à « Ma configuration est-elle correcte ? » à partir d'elle.
+Quand quelque chose dans la configuration du projet empêcherait de prévenir les bonnes personnes, **Attention requise** se termine par **Configuration** : le nombre de points à examiner. Cette ligne ouvre **Santé de la configuration**, qui commence par une ligne dans la couleur du constat le plus grave : combien de problèmes empêcheraient de prévenir les bonnes personnes, combien de points sont à corriger, ou **Rien à corriger**. En dessous, la page liste ce qui est mal configuré, le plus grave d'abord, sous **Les alertes n'arriveront pas**, **À corriger** et **Suggestions** : un moniteur qui n'alerte personne, une politique d'astreinte que rien ne déclenche, une personne qu'on ne peut pas alerter, les SMS désactivés, un planning d'astreinte où personne n'est de garde, une page de statut qui n'affiche aucun moniteur, un domaine personnalisé dont le certificat SSL n'a pas pu être émis, une clé d'ingestion avec laquelle aucune donnée n'est arrivée. Chaque constat dit en une phrase ce qui ne va pas, avec les noms de vos moniteurs, politiques et personnes en gras, les moniteurs ou politiques qu'il touche après **Concerne**, et juste en dessous le bouton qui ouvre sa correction. Deux se corrigent sur place, une fois qu'une boîte de dialogue a dit exactement ce qui va changer : **Activer les SMS** (ou les appels téléphoniques, WhatsApp ou Telegram), pour qui peut les activer, et **Créer une règle d'astreinte**, qui déclenche la politique d'astreinte que vous choisissez pour un moniteur qui n'alertait personne. Les constats d'un moniteur sont les ruptures que nomme sa carte **Quand il tombe en panne**, et une politique d'astreinte que rien ne déclenche, ou un domaine personnalisé qui n'ouvre pas sa page de statut, le dit aussi en haut de la page de la politique ou de la page de statut. Un constat que votre équipe laisse tel quel exprès peut être masqué avec une raison, pour tout le monde, puis restauré depuis **Ignoré**. La recherche trouve la page sous le nom **Santé de la configuration**, et Demander à l'IA répond à « Ma configuration est-elle correcte ? » à partir d'elle.
 
 ### Votre projet
 
@@ -137,7 +145,7 @@ Un mot souligné de pointillés, comme **Sondes** dans le formulaire d'un nouvea
 
 Au-dessus du titre de chaque page, un fil comme *Projet › Docker › Paramètres › Règles de propriétaire* indique où se trouve la page. Chaque étape avant la dernière ouvre sa page.
 
-- **Les listes se tiennent à jour d'elles-mêmes.** Quand un incident ou une alerte est créé, pris en compte ou résolu n'importe où, les listes d'incidents, d'alertes et d'épisodes l'affichent en quelques secondes, sans actualiser. Tant que vous êtes au milieu de quelque chose sur une liste, par exemple des lignes cochées ou une boîte de dialogue ouverte, elle attend et se met à jour quand vous avez terminé.
+- **Les listes se tiennent à jour d'elles-mêmes.** Quand un incident, une alerte, un moniteur ou un événement de maintenance est créé, modifié ou supprimé n'importe où, les listes d'incidents, d'alertes, d'épisodes, de moniteurs et d'événements de maintenance l'affichent en quelques secondes, sans actualiser, tout comme les nombres à côté d'elles dans les menus latéraux. Les nombres de la cloche, et les listes **Incidents actifs**, **Alertes actives**, **Épisodes d'incident actifs** et **Épisodes d'alerte actifs**, suivent tous les projets dont vous faites partie, pas seulement celui qui est ouvert. Tant que vous êtes au milieu de quelque chose sur une liste, par exemple des lignes cochées ou une boîte de dialogue ouverte, elle attend et se met à jour quand vous avez terminé.
 - **Sur un téléphone, les puces de filtre se replient** derrière **Filtre**, pour que la liste commence plus haut. Les puces que vous avez définies restent visibles, avec **Tout effacer**. Appuyez sur **Filtre** pour voir toutes les puces, et à nouveau pour les replier.
 - L'option **Colonnes** du menu **⋯** d'une liste choisit les colonnes que la liste affiche et leur ordre, et les garde pour vous dans ce navigateur. Un Propriétaire du projet ou un Administrateur du projet peut aussi y cocher **Afficher ces colonnes pour tout le monde dans ce projet** : quiconque n'a pas choisi ses propres colonnes pour cette liste les voit, et **Réinitialiser aux valeurs par défaut du projet** remet les vôtres sur celles-ci.
 - L'option **Lignes compactes**, dans le même menu, affiche les lignes de chaque liste moins hautes, si bien qu'une longue liste en montre environ un cinquième de plus. Ce choix est gardé dans ce navigateur.

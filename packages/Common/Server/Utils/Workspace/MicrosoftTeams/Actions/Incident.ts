@@ -67,6 +67,8 @@ import WorkspaceIncidentFromAlert, {
 } from "../../WorkspaceIncidentFromAlert";
 import MicrosoftTeamsAffectedResources from "../MicrosoftTeamsAffectedResources";
 import NewIncidentSubscriberNotificationDefaultReader from "../../../StatusPage/NewIncidentSubscriberNotificationDefaultReader";
+import { OnCallPageRecordType } from "../../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { getExecuteOnCallPolicyFormDescription } from "../../WorkspaceExecuteOnCallPolicyForm";
 
 // Incident.title is a LongText column.
 const MICROSOFT_TEAMS_INCIDENT_TITLE_MAX_LENGTH: number = ColumnLength.LongText;
@@ -1238,6 +1240,10 @@ export default class MicrosoftTeamsIncidentActions {
           style: "compact",
           choices: choices,
         },
+        // How long the policy pages, as the Dashboard's form says (#9006).
+        MicrosoftTeamsCardChoices.buildNoteElement(
+          getExecuteOnCallPolicyFormDescription(OnCallPageRecordType.Incident),
+        ),
       ],
       actions: [
         {

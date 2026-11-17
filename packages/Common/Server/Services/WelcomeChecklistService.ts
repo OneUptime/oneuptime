@@ -8,9 +8,7 @@ import OnCallReadinessService, {
 import ProjectMilestoneService, {
   ReachedMilestone,
 } from "./ProjectMilestoneService";
-import ProjectProductsService from "./ProjectProductsService";
 import ProjectService from "./ProjectService";
-import SampleProjectService from "./SampleProjectService";
 import StatusPageService from "./StatusPageService";
 import TeamMemberService from "./TeamMemberService";
 import ToolImportRunService from "./ToolImportRunService";
@@ -167,18 +165,6 @@ export default class WelcomeChecklistService {
     };
 
     /*
-     * A sample project (issue #6808) has no checklist: it was made set up,
-     * with made-up records, and nothing done in it is a step of anyone's
-     * own setup. Home shows no Welcome card there, and the goal question
-     * is never asked.
-     */
-    if (await ProjectService.isSampleProject(caller.projectId)) {
-      answer.canChooseGoals = false;
-      answer.isFinished = true;
-      return answer;
-    }
-
-    /*
      * An invited member gets no steps: the owner's checklist is not theirs.
      * Home draws their own first hour (#6807) - can OneUptime reach me,
      * when am I on call - from their personal checklist and their shifts,
@@ -242,12 +228,6 @@ export default class WelcomeChecklistService {
     });
 
     answer.canSendEmail = serverCanSendEmail;
-    /*
-     * Whether the card may offer a sample project (#6808): to someone who
-     * set the project up, on a server that lets them make projects.
-     */
-    answer.canExploreSampleProject =
-      isSetUpCaller && (await this.canExploreSampleProject(caller));
     answer.steps = checklist.steps;
     answer.doneCount = checklist.doneCount;
     answer.totalCount = checklist.totalCount;
@@ -281,27 +261,6 @@ export default class WelcomeChecklistService {
     });
 
     return answer;
-  }
-
-  /*
-   * Whether this server lets the caller make a sample project (#6808). The
-   * card offers none when that cannot be told: the offer is a help, and
-   * the route that makes one asks again.
-   */
-  private static async canExploreSampleProject(
-    caller: WelcomeChecklistCaller,
-  ): Promise<boolean> {
-    try {
-      return await SampleProjectService.canCreateFor({
-        isMasterAdmin: Boolean(caller.props.isMasterAdmin),
-      });
-    } catch (err) {
-      logger.debug(
-        `Could not tell whether a sample project may be made for project ${caller.projectId.toString()}; it is not offered.`,
-      );
-      logger.debug(err);
-      return false;
-    }
   }
 
   /*
@@ -343,15 +302,10 @@ export default class WelcomeChecklistService {
     );
 
     /*
-     * The products the goals need (#6814): Essentials and what the goals
-     * name are shown, the rest move under More products - unless a member
-     * already chose the project's products. Never throws.
+     * The goals set up Home's first steps, and nothing else: they never
+     * hide a product. Only a member hides one, on Project Settings >
+     * Products (ProjectProducts.ts).
      */
-    await ProjectProductsService.applyGoals({
-      projectId: caller.projectId,
-      goals: chosen,
-    });
-
     return chosen;
   }
 

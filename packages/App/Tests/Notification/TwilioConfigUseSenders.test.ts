@@ -438,6 +438,13 @@ describe("a config used for SMS only", () => {
           projectConfigUse: TwilioConfigUse.SmsOnly,
         }),
       );
+      // The call log says what most such projects need: a config for calls only, the default for calls (#6603).
+      expect(callLogs[0]!.statusMessage).toMatch(
+        /^This project's default Twilio config is used for SMS only, and no other Twilio account is set up to make phone calls\. /,
+      );
+      expect(callLogs[0]!.statusMessage).toContain(
+        "make a config used for calls only the project default for calls (Set as Project Default for Calls in its row's menu)",
+      );
     }
   });
 
@@ -516,6 +523,61 @@ describe("a config used for calls only", () => {
 
     expect(createMessage).not.toHaveBeenCalled();
     expect(smsLogs[0]!.status).toBe(SmsStatus.LowBalance);
+  });
+
+  test("the project's default, with no server account that sends SMS: its log suggests a config for SMS only as the default for SMS (#6603)", async () => {
+    serverAccount = serverAccountUsedFor(TwilioConfigUse.CallsOnly);
+
+    await expect(
+      SmsService.sendSms(new Phone(SG_RECIPIENT), "Incident created", {
+        projectId: PROJECT_ID,
+        customTwilioConfig: callsOnlyConfig(),
+      }),
+    ).rejects.toThrow(BadDataException);
+
+    expect(smsLogs[0]!.statusMessage).toMatch(
+      /^This project's default Twilio config is used for calls only, and no other Twilio account is set up to send SMS\. /,
+    );
+    expect(smsLogs[0]!.statusMessage).toContain(
+      "(Set as Project Default for SMS in its row's menu)",
+    );
+  });
+
+  /*
+   * A status page's subscriber SMS go through the page's own config
+   * (StatusPage.callSmsConfig), which can be one used for calls only - the
+   * page keeps the config it named when the config is changed. A project
+   * default would not change what the page sends, so its log names the
+   * page's config, and suggests no default (#6603).
+   */
+  test("a status page's own config, with no server account that sends SMS: its log names the page's config, and no project default", async () => {
+    serverAccount = serverAccountUsedFor(TwilioConfigUse.CallsOnly);
+
+    await expect(
+      SmsService.sendSms(new Phone(SG_RECIPIENT), "Incident created", {
+        projectId: PROJECT_ID,
+        customTwilioConfig: callsOnlyConfig(),
+        statusPageId: new ObjectID("4e000000-0000-4000-8000-0000000000f1"),
+      }),
+    ).rejects.toThrow(
+      getNoTwilioAccountMessage(TwilioMessageKind.SMS, {
+        projectConfigUse: TwilioConfigUse.CallsOnly,
+        isStatusPageConfig: true,
+      }),
+    );
+
+    expect(createMessage).not.toHaveBeenCalled();
+    expect(smsLogs[0]!.status).toBe(SmsStatus.Error);
+    expect(smsLogs[0]!.statusMessage).toBe(
+      getNoTwilioAccountMessage(TwilioMessageKind.SMS, {
+        projectConfigUse: TwilioConfigUse.CallsOnly,
+        isStatusPageConfig: true,
+      }),
+    );
+    expect(smsLogs[0]!.statusMessage).toMatch(
+      /^This status page's Twilio config is used for calls only, and no other Twilio account is set up to send SMS\. /,
+    );
+    expect(smsLogs[0]!.statusMessage).not.toMatch(/default/i);
   });
 });
 

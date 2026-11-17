@@ -49,7 +49,7 @@ Du ser alla körningar, startade av en regel eller inte, under **Runbooks → K�
 :::steps
 ### Öppna Runbook-regler
 
-I **Incidenter**, **Larm** eller **Schemalagt underhåll** öppnar du **Regler → Runbook-regler** och klickar på **Skapa Runbook Rule**.
+I **Incidenter**, **Larm** eller **Schemalagt underhåll** öppnar du **Regler → Runbook-regler** och klickar på **Skapa Runbook-regel**.
 
 ### Lägg till villkor
 
@@ -57,7 +57,7 @@ Under **Matcha** börjar **Gäller för** på varje ny händelse av det här sla
 
 ### Välj runbooks
 
-Under **Runbooks** väljer du ett eller flera **Runbooks att starta**. Regelns **Namn** följer dem, till exempel "Starta Database failover", tills du skriver ett eget, och en **Beskrivning** väntar under **Fler fält**. Klicka på **Skapa Runbook Rule**. Regeln är aktiv så snart den har skapats och visas i listan med statusen **Aktiverad**.
+Under **Runbooks** väljer du ett eller flera **Runbooks att starta**. Regelns **Namn** följer dem, till exempel "Starta Database failover", tills du skriver ett eget, och en **Beskrivning** väntar under **Fler fält**. Klicka på **Skapa Runbook-regel**. Regeln är aktiv så snart den har skapats och visas i listan med statusen **Aktiverad**.
 :::
 
 ## Hur en regel är uppbyggd
@@ -81,7 +81,7 @@ Varje villkor jämför en sak hos incidenten, larmet eller underhållshändelsen
 | **Incidentetiketter** / **Larmetiketter** / **Händelseetiketter** | Etiketterna på själva incidenten, larmet eller händelsen, inklusive dem som etikettregler lade till när den skapades. |
 | **Övervakningsetiketter** | Etiketterna på dess monitorer. Ge dina monitorer etiketten `production` eller `staging` för att köra ett runbook i bara en miljö. |
 | **Incidenttitel** / **Larmtitel** / **Händelsetitel** | Dess titel. |
-| **Incidentbeskrivning** / **Larmbeskrivning** | Dess beskrivning (för händelser heter kriteriet **Händelsebeskrivning**). |
+| **Incidentbeskrivning** / **Larmbeskrivning** / **Händelsebeskrivning** | Dess beskrivning (för händelser heter kriteriet **Händelsebeskrivning**). |
 | **Övervakningsnamn** / **Övervakningsbeskrivning** | Namnet eller beskrivningen på dess monitorer. |
 
 Välj en operator för varje villkor:

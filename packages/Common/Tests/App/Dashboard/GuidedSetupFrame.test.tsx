@@ -33,8 +33,11 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
 });
 
 import GuidedSetupFrame, {
+  GUIDED_SETUP_ASIDE_TEST_ID,
+  GUIDED_SETUP_COLUMNS_CLASS_NAME,
   GUIDED_SETUP_GUIDE_LINK_TEST_ID,
   GUIDED_SETUP_GUIDE_TEXT,
+  GUIDED_SETUP_OUTCOMES_TITLE,
   GuidedSetupFrameStep,
   SUMMARY_STEP_KEY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupFrame";
@@ -283,5 +286,178 @@ describe("the docs' guide to the same job (#6821)", () => {
 
     expect(screen.queryByTestId(GUIDED_SETUP_GUIDE_LINK_TEST_ID)).toBeNull();
     expect(screen.getByTestId("guided-setup-progress")).toBeInTheDocument();
+  });
+});
+
+/*
+ * "A narrow column of three steps that leaves two thirds of the screen
+ * empty" (#8897). Beside its steps, a setup says what it sets up - each
+ * step's outcome, marked as done, open now or still to come - and about how
+ * long it takes. The steps keep their width; a setup with nothing to say
+ * there keeps one column.
+ */
+describe("what the setup sets up, beside its steps", () => {
+  const withOutcomes: (
+    ...done: Array<boolean>
+  ) => Array<GuidedSetupFrameStep> = (
+    ...done: Array<boolean>
+  ): Array<GuidedSetupFrameStep> => {
+    return steps(...done).map(
+      (step: GuidedSetupFrameStep): GuidedSetupFrameStep => {
+        return { ...step, outcome: `${step.title} works.` };
+      },
+    );
+  };
+
+  const drawWith: (props: {
+    steps: Array<GuidedSetupFrameStep>;
+    openStepKey: string | null;
+    minutes?: number;
+  }) => React.ReactElement = (props: {
+    steps: Array<GuidedSetupFrameStep>;
+    openStepKey: string | null;
+    minutes?: number;
+  }): React.ReactElement => {
+    return (
+      <GuidedSetupFrame
+        setup="example_setup"
+        steps={props.steps}
+        openStepKey={props.openStepKey}
+        onOpenStep={() => {}}
+        summary={<p>All set</p>}
+        isFinished={false}
+        minutes={props.minutes}
+      />
+    );
+  };
+
+  test("lists every step's outcome, in the steps' order, under its heading", () => {
+    render(drawWith({ steps: withOutcomes(), openStepKey: "first" }));
+
+    const aside: HTMLElement = screen.getByTestId(GUIDED_SETUP_ASIDE_TEST_ID);
+
+    expect(GUIDED_SETUP_OUTCOMES_TITLE).toBe("What this sets up");
+    expect(aside.tagName).toBe("ASIDE");
+    expect(aside).toHaveAttribute("aria-label", "What this sets up");
+    expect(aside).toHaveTextContent("What this sets up");
+    expect(
+      Array.from(aside.querySelectorAll("li")).map(
+        (item: HTMLLIElement): string => {
+          return item.textContent || "";
+        },
+      ),
+    ).toEqual(["First step works.", "Second step works.", "Third step works."]);
+  });
+
+  test("marks each as done, open now, or still to come, as the steps are", () => {
+    render(
+      drawWith({
+        steps: withOutcomes(true, false, false),
+        openStepKey: "second",
+      }),
+    );
+
+    expect(screen.getByTestId("guided-setup-outcome-first")).toHaveAttribute(
+      "data-state",
+      "done",
+    );
+    expect(screen.getByTestId("guided-setup-outcome-second")).toHaveAttribute(
+      "data-state",
+      "open",
+    );
+    expect(screen.getByTestId("guided-setup-outcome-second")).toHaveAttribute(
+      "aria-current",
+      "step",
+    );
+    expect(screen.getByTestId("guided-setup-outcome-third")).toHaveAttribute(
+      "data-state",
+      "upcoming",
+    );
+    expect(
+      screen.getByTestId("guided-setup-outcome-third"),
+    ).not.toHaveAttribute("aria-current");
+  });
+
+  test("ticks off as the steps are done, and all of them once the summary shows", () => {
+    const { rerender } = render(
+      drawWith({ steps: withOutcomes(), openStepKey: "first" }),
+    );
+
+    expect(screen.getByTestId("guided-setup-outcome-first")).toHaveAttribute(
+      "data-state",
+      "open",
+    );
+
+    rerender(
+      drawWith({ steps: withOutcomes(true, true, true), openStepKey: null }),
+    );
+
+    for (const key of ["first", "second", "third"]) {
+      expect(screen.getByTestId(`guided-setup-outcome-${key}`)).toHaveAttribute(
+        "data-state",
+        "done",
+      );
+    }
+  });
+
+  test("says about how long the setup takes", () => {
+    render(
+      drawWith({ steps: withOutcomes(), openStepKey: "first", minutes: 3 }),
+    );
+
+    expect(screen.getByTestId("guided-setup-minutes")).toHaveTextContent(
+      /^About 3\sminutes$/,
+    );
+    // Its clock is an Icon, which draws a div: no paragraph holds one.
+    expect(
+      screen.getByTestId(GUIDED_SETUP_ASIDE_TEST_ID).querySelectorAll("p div"),
+    ).toHaveLength(0);
+  });
+
+  test("sits beside the steps from lg up, the steps as wide as they were", () => {
+    render(drawWith({ steps: withOutcomes(), openStepKey: "first" }));
+
+    const frame: HTMLElement = screen.getByTestId("guided-setup");
+    const columns: HTMLElement = frame.firstElementChild as HTMLElement;
+
+    expect(frame.className).toContain("max-w-6xl");
+    expect(columns.className).toBe(GUIDED_SETUP_COLUMNS_CLASS_NAME);
+    expect(GUIDED_SETUP_COLUMNS_CLASS_NAME).toContain("grid-cols-1");
+    // The steps keep max-w-3xl's 48rem; what it sets up is beside them.
+    expect(GUIDED_SETUP_COLUMNS_CLASS_NAME).toContain(
+      "lg:grid-cols-[minmax(0,48rem)_20rem]",
+    );
+    expect(columns.lastElementChild).toBe(
+      screen.getByTestId(GUIDED_SETUP_ASIDE_TEST_ID),
+    );
+    expect(columns.firstElementChild).toContainElement(
+      screen.getByTestId("guided-setup-progress"),
+    );
+  });
+
+  test("stays put while the steps scroll past, from lg up", () => {
+    render(drawWith({ steps: withOutcomes(), openStepKey: "first" }));
+
+    expect(screen.getByTestId(GUIDED_SETUP_ASIDE_TEST_ID).className).toContain(
+      "lg:sticky",
+    );
+  });
+
+  test("a setup with nothing to say there keeps one column, as wide as before", () => {
+    render(draw({ steps: steps(), openStepKey: "first" }));
+
+    expect(screen.queryByTestId(GUIDED_SETUP_ASIDE_TEST_ID)).toBeNull();
+    expect(screen.getByTestId("guided-setup").className).toContain("max-w-3xl");
+  });
+
+  test("a setup with only its minutes says them alone", () => {
+    render(drawWith({ steps: steps(), openStepKey: "first", minutes: 1 }));
+
+    expect(
+      screen.getByTestId(GUIDED_SETUP_ASIDE_TEST_ID).querySelector("li"),
+    ).toBeNull();
+    expect(screen.getByTestId("guided-setup-minutes")).toHaveTextContent(
+      /^About 1\sminute$/,
+    );
   });
 });

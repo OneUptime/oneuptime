@@ -35,7 +35,7 @@ Alle API-Anfragen werden mit einem API-Schlüssel authentifiziert. Ein Schlüsse
 
 ### Den Schlüssel kopieren
 
-Die Seite des Schlüssels öffnet sich. Kopieren Sie den **API-Schlüssel** aus der Karte **API-Schlüssel-Details** und halten Sie ihn aus Ihrem Code heraus:
+OneUptime zeigt den Schlüssel einmal an, im Dialog **Kopieren Sie Ihren API-Schlüssel**: Kopieren Sie ihn, bevor Sie auf **Fertig** klicken, denn keine Seite zeigt ihn wieder. Halten Sie ihn aus Ihrem Code heraus:
 
 ```bash
 export ONEUPTIME_API_KEY="your-api-key"
@@ -93,7 +93,9 @@ Ein Feld eines Datensatzes, den die Ressource nennt, wird unter seiner Beziehung
 
 Eine Ressource mit Eigentümern - ein Monitor, ein Vorfall, eine Bereitschaftsrichtlinie und jede andere mit Benutzer- und Team-Eigentümern - wird auch danach gefiltert, wem sie gehört, unter `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` findet die Datensätze, die einer oder mehreren dieser Personen und Teams gehören. `match` ist `AnyOf`, solange Sie nichts anderes setzen: `NoneOf` findet die Datensätze, die keinem von ihnen gehören, Datensätze ohne Eigentümer eingeschlossen, und `AnyOwner` und `NoOwner` finden die Datensätze mit irgendeinem Eigentümer oder ohne einen und nennen niemanden. Die Mitglieder eines Teams sind keine Eigentümer dessen, was dem Team gehört. Ein Filter nennt höchstens 1.000 Personen und Teams zusammen, eine Ressource ohne Eigentümer lehnt ihn mit einem `400` ab, und nach Eigentümern zu filtern, ohne sie lesen zu dürfen, wird mit einem `422` abgelehnt.
 
-`select` nennt die Felder, die zurückkommen sollen, und `_id` kommt immer zurück. `sort` ordnet sie, `ASC` oder `DESC`; ohne Sortierung kommen die neuesten zuerst. Eine Liste gibt 10 Datensätze zurück, solange Sie kein `limit` setzen, bis zu 10.000, und `skip` überspringt zuerst so viele: Erhöhen Sie `skip` immer weiter um `limit`, bis Sie `count` davon haben. Hängen Sie `?output-type=csv` an eine Listenanfrage an, um CSV statt JSON zu erhalten.
+`select` nennt die Felder, die zurückkommen sollen, und `_id` kommt immer zurück. `sort` ordnet sie, `ASC` oder `DESC`; ohne Sortierung kommen die neuesten zuerst. Eine Liste gibt 10 Datensätze zurück, solange Sie kein `limit` setzen, bis zu 10.000, und `skip` überspringt zuerst so viele: Erhöhen Sie `skip` immer weiter um `limit`, bis Sie `count` davon haben. Auf einer langen Liste kostet es Zeit, jeden Treffer zu zählen: Fügen Sie `countUpTo` hinzu, etwa `10000`, dann hört die Zählung dort auf, oder am Ende der Seite, wenn das weiter ist. Passen mehr Datensätze, ist `count` die Zahl, bei der sie aufgehört hat, und die Antwort enthält zusätzlich `"isCountCapped": true`: Mit `"countUpTo": 1` sagt das, ob nach der Seite weitere Datensätze folgen. Hängen Sie `?output-type=csv` an eine Listenanfrage an, um CSV statt JSON zu erhalten.
+
+Die Reihenfolge eines Felds kann auch sagen, wohin die Datensätze ohne Wert darin kommen: `{ "declaredAt": { "direction": "DESC", "nulls": "LAST" } }` stellt die neuesten an den Anfang und die ohne Wert ans Ende, und `FIRST` stellt sie an den Anfang. Eine Beziehung zu einem Datensatz sortiert nach einem Feld des Datensatzes, den sie nennt: `{ "incidentSeverity": { "order": "ASC" } }` listet Vorfälle in der Reihenfolge ihrer Schweregrade. Eine Beziehung, die nur eine Richtung bekommt, wie in `{ "incidentSeverity": "DESC" }`, wird mit einem `400` abgelehnt, der stattdessen ein Feld zum Sortieren nennt, und ebenso eine Beziehung zu vielen Datensätzen, etwa die `labels` eines Vorfalls: Jeder Vorfall hat eine Liste davon, und eine Liste hat keinen einzelnen Wert, nach dem sich Vorfälle ordnen ließen. Nach einem Feld zu sortieren erfordert ebenfalls die Berechtigung, es zu lesen, über eine Beziehung wie an der Ressource selbst: Eine Sortierung nach einem Feld, das Sie nicht lesen dürfen, wird mit einem `422` abgelehnt.
 
 Zum Beispiel die Monitore, deren Name „checkout“ enthält und die seit Anfang 2026 angelegt wurden, die neuesten zuerst:
 
@@ -339,7 +341,7 @@ Jede Ressource, jeder Endpunkt und jedes Feld steht in der [OneUptime-API-Refere
 ## Fehlerbehebung
 
 :::details Jede Anfrage antwortet mit 400 Invalid API Key
-Der Header `ApiKey` ist leer, ist kein Schlüssel oder nennt einen Schlüssel, der abgelaufen ist oder zurückgesetzt wurde. Kopieren Sie den Schlüssel erneut von seiner Seite unter **Projekteinstellungen → Erweitert → API-Schlüssel**, wo auch sein Datum unter **Läuft ab** steht.
+Der Header `ApiKey` ist leer, ist kein Schlüssel oder nennt einen Schlüssel, der abgelaufen ist oder zurückgesetzt wurde. Suchen Sie den Schlüssel unter **Projekteinstellungen → Erweitert → API-Schlüssel** daran, wie er endet, und prüfen Sie sein Datum unter **Läuft ab**. Ein Schlüssel, den Sie nicht mehr haben, kann nicht erneut angezeigt werden: Setzen Sie ihn auf seiner Seite zurück, um einen neuen zu erhalten.
 :::
 
 :::details Jede Anfrage antwortet mit 402 Payment Required

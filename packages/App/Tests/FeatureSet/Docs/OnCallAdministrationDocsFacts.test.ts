@@ -62,6 +62,16 @@ import {
   getOnCallPolicyStartedOnResolvedRecordMessage,
   isOnCallPolicyStartedByHand,
 } from "Common/Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
+import {
+  OnCallPageCoverKind,
+  getOnCallPageMergedLine,
+  getOnCallPageMergedMessage,
+  isOnCallPageACover,
+  isOnCallPageMergeable,
+} from "Common/Types/OnCallDutyPolicy/OnCallPageMerge";
+import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
+import { ON_CALL_DIRECT_PAGE_STATUSES_STILL_OUT } from "Common/Server/Services/OnCallDutyPolicyExecutionLogService";
+import { isOnCallPageLineReached } from "Common/Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import {
   DEFAULT_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES,
@@ -1452,6 +1462,7 @@ describe("when several policies page", () => {
   // Runs as the workers read them: who, or what, started each.
   const POLICY_ID: string = "a-policy";
   const PERSON_ID: string = "a-person";
+  const WORKFLOW_ID: string = "a-workflow";
   const startedByOneUptime: OnCallAcknowledgePageRun = {
     onCallDutyPolicyId: POLICY_ID,
   };
@@ -1497,7 +1508,12 @@ describe("when several policies page", () => {
     "UserOnCallLog/ExecutePendingExecutions.ts",
   ];
 
-  it("pages someone on call in two policies once by each, and someone a level names twice once", () => {
+  /*
+   * #7837: somebody two of a record's policies page is paged once - the
+   * second policy's page of them is merged into their open page from the
+   * first (OnCallPageMerge). OnCallConcurrentPaging (Common) runs it.
+   */
+  it("pages someone on call in two policies once, and someone a level names twice once", () => {
     const levels: string = readCommonSource(
       "Server/Services/OnCallDutyPolicyEscalationRuleService.ts",
     );
@@ -1505,17 +1521,153 @@ describe("when several policies page", () => {
       levels.indexOf("public async startRuleExecution("),
     );
 
-    // Each run of a level keeps whom it has paged, and pages each once.
+    // Each run of a level keeps whom it has paged, and pages each once...
     expect(levelRun).toContain("const uniqueUserIds: Array<ObjectID> = [];");
     expect(levelRun).toMatch(
-      /if \(!alreadyNotified\(pagedUserId\)\) \{\s*uniqueUserIds\.push\(pagedUserId\);\s*await startUserNotificationRuleExecution\(/,
+      /if \(!alreadyNotified\(pagedUserId\)\) \{\s*uniqueUserIds\.push\(pagedUserId\);/,
+    );
+    // ...and merges its page of somebody another policy is paging into that page.
+    expect(levelRun).toContain("await OnCallPageMerge.findCovers(");
+    expect(levelRun).toContain(
+      "OnCallDutyExecutionLogTimelineStatus.AlreadyPaged",
+    );
+    expect(getOnCallPageMergedMessage({ policyName: "Payments" })).toBe(
+      "Already paged about this by Payments, so not paged again.",
+    );
+
+    // The level waits for somebody merged, as for anybody it paged.
+    expect(
+      isOnCallPageLineReached(
+        OnCallDutyExecutionLogTimelineStatus.AlreadyPaged,
+      ),
+    ).toBe(true);
+
+    expect(severalPolicies()).toContain(
+      "Someone on call in two of them is paged once. When a policy's level reaches someone another policy is already paging about it, it does not page them again: its execution log shows them as **Already Paged**",
     );
     expect(severalPolicies()).toContain(
-      "Someone on call in two of them is paged by both, once by each: OneUptime does not merge the pages of different policies. Within one policy, someone a level names twice, in person and through a team or a schedule, is paged once.",
+      "The level still waits its minutes before the next level, as it does for anybody it paged. Answering that one page answers it for both policies. Within one policy, someone a level names twice, in person and through a team or a schedule, is paged once.",
     );
-    // So the way to page them once is one level of one policy.
     expect(troubleshooting()).toContain(
-      "They are on call in two of the policies the incident runs, and each policy pages its own people. Acknowledging the incident from either page stops both. To have them paged once, put both teams or schedules in one level of one policy.",
+      "Someone on call in two of the policies the incident runs is paged once, by the first policy to reach them, and so is someone a policy and a page from Slack, Microsoft Teams or a workflow both reach.",
+    );
+    expect(troubleshooting()).toContain(
+      "A person the second page did not page again shows **Already Paged** in its **View Timeline**.",
+    );
+  });
+
+  /*
+   * #8859: a page sent to people directly - from a chat, or by a
+   * workflow's paging block - stands for a policy's page of them, and a
+   * workflow's page of somebody another page is paging is merged into it.
+   */
+  it("pages someone a direct page and a policy both reach once", () => {
+    const personPage: OnCallAcknowledgePageRun = {
+      triggeredByUserId: PERSON_ID,
+    };
+    const workflowPage: OnCallAcknowledgePageRun = {
+      triggeredByWorkflowId: WORKFLOW_ID,
+    };
+
+    // A page sent from a chat stands for a policy's page, and is never merged.
+    expect(isOnCallPageACover(personPage)).toBe(true);
+    expect(isOnCallPageMergeable(personPage)).toBe(false);
+    // A workflow's page stands for one, and is merged into one.
+    expect(isOnCallPageACover(workflowPage)).toBe(true);
+    expect(isOnCallPageMergeable(workflowPage)).toBe(true);
+
+    // The line names who sent the page, or the workflow.
+    expect(
+      getOnCallPageMergedLine({
+        kind: OnCallPageCoverKind.PersonPage,
+        name: "Jane Doe",
+      }),
+    ).toBe(
+      "Already paged directly about this by Jane Doe, so not paged again.",
+    );
+    expect(
+      getOnCallPageMergedLine({
+        kind: OnCallPageCoverKind.WorkflowPage,
+        name: "Nightly Checks",
+      }),
+    ).toBe(
+      "Already paged about this through the workflow Nightly Checks, so not paged again.",
+    );
+
+    // A direct page reads covers too, and stays open while a page of it waits.
+    const levels: string = readCommonSource(
+      "Server/Services/OnCallDutyPolicyEscalationRuleService.ts",
+    );
+    const directPage: string = levels.slice(
+      levels.indexOf("public async startDirectPage("),
+      levels.indexOf("private static assertTriggerMatchesEventType("),
+    );
+    expect(directPage).toContain("await this.pageTargets(");
+    expect(
+      levels.slice(levels.indexOf("private async pageTargets(")),
+    ).not.toContain("const covers: Map<string, OnCallPageCover> = ruleId");
+    expect(ON_CALL_DIRECT_PAGE_STATUSES_STILL_OUT).toContain(
+      UserNotificationExecutionStatus.AlreadyPaged,
+    );
+
+    expect(severalPolicies()).toContain(
+      "- A page sent to people directly counts too. When a policy's level reaches someone a page from Slack or Microsoft Teams, or a workflow's paging block, is paging about it already, it does not page them again: its execution log names who sent that page, or the workflow. A workflow's paging block does not page again someone a policy or another page is paging already, either.",
+    );
+  });
+
+  it("merges only the pages of a policy that ends on the acknowledgement, and never an observer's page with a responder's", () => {
+    const anObserverPage: OnCallAcknowledgePageRun = {
+      onCallDutyPolicyId: POLICY_ID,
+      isObserverPage: true,
+    };
+
+    for (const run of [startedByOneUptime, startedByAWorkflow]) {
+      expect(isOnCallPageMergeable(run)).toBe(true);
+    }
+
+    // A page again, a page to observers, a page from a chat, a policy started by hand.
+    for (const page of pagesThatGoOn) {
+      expect({
+        page: page.name,
+        merged: isOnCallPageMergeable(page.run),
+      }).toEqual({ page: page.name, merged: false });
+    }
+
+    expect(isOnCallPageMergeable(aTestPage)).toBe(false);
+
+    /*
+     * What a page is merged into: a responder's page - a policy's, or one
+     * sent to people directly (#8859) - never an observer's.
+     */
+    expect(isOnCallPageACover(startedByHand)).toBe(true);
+    expect(isOnCallPageACover(anObserverPage)).toBe(false);
+    expect(isOnCallPageACover({ triggeredByUserId: PERSON_ID })).toBe(true);
+    expect(
+      isOnCallPageACover({
+        triggeredByUserId: PERSON_ID,
+        isObserverPage: true,
+      }),
+    ).toBe(false);
+
+    expect(severalPolicies()).toContain(
+      "A page again, a policy started by hand and a page someone sent from Slack or Microsoft Teams always page their people themselves, even someone another policy is paging. An observer's page and a responder's page are never merged.",
+    );
+  });
+
+  it("hands the page over when the one it stands on ends without an answer, and answers it with that one", () => {
+    const worker: string = readWorkerSource(
+      "UserOnCallLog/ExecutePendingExecutions.ts",
+    );
+
+    expect(worker).toContain("UserNotificationExecutionStatus.AlreadyPaged,");
+    expect(worker).toContain("await OnCallPageMerge.readMergedPage(");
+    expect(worker).toContain("getOnCallPageMergeTakenOverMessage(");
+    expect(
+      readCommonSource("Server/Services/UserOnCallLogTimelineService.ts"),
+    ).toContain("await this.answerMergedPages(page);");
+
+    expect(severalPolicies()).toContain(
+      "Nobody misses a page for being paged once. Their page can end without their answer: they escalate it from one of its messages, which escalates that page only, it cannot be sent, or it stops. Then the other policy, or the workflow's block, pages them itself within a minute, without sending again what reached them. **Escalate** on the incident's page or in the mobile app escalates both.",
     );
   });
 
@@ -1592,8 +1744,70 @@ describe("when several policies page", () => {
       "A policy started by hand is one started with **Execute On-Call Policy**, or by a page from Slack or Microsoft Teams that names it.",
     );
     expect(severalPolicies()).toContain(
-      "once the incident is acknowledged, its page offers them **Acknowledge again**. **Escalate** passes it to the next level. On an incident, alert or episode that is resolved, nothing is started, and you are told why.",
+      "once the incident is acknowledged, its page offers them **Acknowledge again**. **Escalate** passes it to the next level. On an incident, alert or episode that is resolved, nothing is started, and you are told why: the dashboard turns **Execute On-Call Policy** off and shows the reason.",
     );
+
+    /*
+     * Issue #7839: every record's feed turns Execute On-Call Policy off on a
+     * resolved record, with the reason, before any form is filled in.
+     */
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/ExecutePolicy/ExecuteOnCallPolicyWords.ts",
+      ),
+    ).toContain("if (data.standing === EventStanding.Resolved) {");
+
+    for (const feed of [
+      "Components/Incident/IncidentFeed.tsx",
+      "Components/Alert/AlertFeed.tsx",
+      "Components/IncidentEpisode/IncidentEpisodeFeed.tsx",
+      "Components/AlertEpisode/AlertEpisodeFeed.tsx",
+    ]) {
+      const source: string = readDashboardSource(feed);
+
+      expect({
+        feed,
+        locked: source.includes("getExecuteOnCallPolicyMenuLock({"),
+      }).toEqual({
+        feed,
+        locked: true,
+      });
+      expect({
+        feed,
+        disabled: source.includes("isDisabled={executePolicyLock.isDisabled}"),
+      }).toEqual({ feed, disabled: true });
+      // Archived policies page no one, so the form offers none.
+      expect({
+        feed,
+        liveOnly: source.includes("query: { isArchived: false },"),
+      }).toEqual({ feed, liveOnly: true });
+    }
+  });
+
+  /*
+   * The incident feed's own docs say what its Execute On-Call Policy does
+   * (#7839): it pages until somebody it paged answers, the incident
+   * acknowledged or not; it is turned off on a resolved incident; and the
+   * archived policies, which page nobody, are not offered.
+   */
+  it("says on the incident feed's page what Execute On-Call Policy does by where the incident stands", () => {
+    const feedPage: string = readPage("en", "incidents/notes-owners-and-feed");
+
+    expect(feedPage).toContain(
+      "- **Execute On-Call Policy** — page a policy on demand. It pages the policy's people until one of them answers or the incident is resolved, even when somebody acknowledged the incident already. It is turned off on a resolved incident, and archived policies, which page no one, are not offered.",
+    );
+
+    // Goes on until answered, whoever acknowledged: a policy started by hand.
+    expect(isOnCallPageEndedOnlyByAnAnswer(startedByHand)).toBe(true);
+
+    const incidentFeed: string = readDashboardSource(
+      "Components/Incident/IncidentFeed.tsx",
+    );
+
+    expect(incidentFeed).toContain(
+      "recordType: OnCallPageRecordType.Incident,",
+    );
+    expect(incidentFeed).toContain("query: { isArchived: false },");
   });
 
   /*
@@ -1624,7 +1838,7 @@ describe("when several policies page", () => {
     ).toContain("isOnCallPolicyStartedByHand(run)");
 
     expect(severalPolicies()).toContain(
-      "you are told why. Its notifications say who started which policy, and carry the message sent with a page from Slack or Microsoft Teams.",
+      "shows the reason. Its notifications say who started which policy, and carry the message sent with a page from Slack or Microsoft Teams.",
     );
   });
 });

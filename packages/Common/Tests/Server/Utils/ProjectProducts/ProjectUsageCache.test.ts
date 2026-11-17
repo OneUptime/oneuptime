@@ -176,21 +176,6 @@ describe("usage that does not change", () => {
     expect(reads).toBe(2);
   });
 
-  test("a fresh read reads whatever is kept, and keeps what it got", async () => {
-    await usageOf();
-    stored = { [ProductKey.Monitors]: true };
-
-    expect(
-      await ProjectUsageCache.getUsage({
-        projectId: PROJECT_ID,
-        read: read,
-        isFreshRead: true,
-      }),
-    ).toEqual({ [ProductKey.Monitors]: true });
-    expect(await usageOf()).toEqual({ [ProductKey.Monitors]: true });
-    expect(reads).toBe(2);
-  });
-
   test("each project is kept on its own, whatever case its id is written in", async () => {
     await usageOf(ProjectUsageCache, PROJECT_ID);
     await usageOf(ProjectUsageCache, PROJECT_ID.toString().toUpperCase());

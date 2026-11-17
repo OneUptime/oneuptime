@@ -31,6 +31,10 @@ import {
   getMeasurementSetupText,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Measurement/MeasurementSetup";
 import { getMeasurementsHelpMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Utils/Measurement/MeasurementHelp";
+import readHelpDocument, {
+  HelpDocument,
+  HelpSection,
+} from "../../../UI/Components/Help/HelpDocument";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AlertMeasurement from "../../../Models/DatabaseModels/AlertMeasurement";
 import AlertMeasurementValue from "../../../Models/DatabaseModels/AlertMeasurementValue";
@@ -879,14 +883,14 @@ describe("how a duration is written", () => {
         unit: MeasurementUnit.Seconds,
         translator: german,
       }),
-    ).toBe("1 Stunde, 5 Minuten");
+    ).toBe("1\u00A0Stunde, 5\u00A0Minuten");
     expect(
       formatEventMeasurementDuration({
         seconds: 5400,
         unit: MeasurementUnit.Hours,
         translator: german,
       }),
-    ).toBe("1,5 Stunden");
+    ).toBe("1,5\u00A0Stunden");
     expect(
       formatEventMeasurementDuration({
         seconds: 30,
@@ -1022,7 +1026,7 @@ describe("what a row says", () => {
         { state: EventMeasurementState.Running, startedAt: minutesAgo(12) },
         german,
       ).text,
-    ).toBe("Läuft bereits 12 Minuten");
+    ).toBe("Läuft bereits 12\u00A0Minuten");
     expect(
       display({ state: EventMeasurementState.NotReached }, german).text,
     ).toBe("Nicht erreicht");
@@ -1220,6 +1224,41 @@ describe("the words", () => {
     for (const value of Object.values(MEASUREMENT_VALUE_COPY)) {
       expect(text).toContain(value);
     }
+  });
+
+  /*
+   * The help dialog's shape (#8889): what a measurement is in short, then
+   * its topics, setting one up first. "Why a incident can have no number"
+   * read as written before: each domain names its record with its own
+   * article now.
+   */
+  test("the help reads as what a measurement is in short, then its topics, in good English", () => {
+    for (const domain of Object.values(MeasurementDomain)) {
+      const markdown: string = getMeasurementsHelpMarkdown(domain);
+      const document: HelpDocument = readHelpDocument(markdown);
+
+      expect(document.summary).toMatch(
+        /^A measurement times the gap between two moments of every /,
+      );
+      expect(
+        document.sections.map((section: HelpSection): string => {
+          return section.title;
+        }),
+      ).toEqual([
+        "Set Up a Measurement",
+        "The Moments You Can Pick",
+        "Where the Numbers Show Up",
+        "When There Is No Number",
+      ]);
+      expect(markdown).not.toMatch(/\b[Aa] (incident|alert)\b/);
+    }
+
+    // A maintenance event is never acknowledged: its example gap is its own.
+    expect(
+      readHelpDocument(
+        getMeasurementsHelpMarkdown(MeasurementDomain.ScheduledMaintenance),
+      ).summary,
+    ).not.toContain("acknowledges");
   });
 
   test("the help says where each event's numbers show, and that the switch is on", () => {

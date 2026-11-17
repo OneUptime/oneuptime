@@ -289,7 +289,20 @@ For the .NET profiler, set `DD_TRACE_DEBUG=1` on the application for a minute: i
 | --- | --- |
 | **Where the CPU time goes** | Every profile in the window, merged into one flame graph. The wider a frame, the bigger its share. Click a frame to zoom in. |
 | **Functions** | The functions that take the most, ranked by **Self** (time in the function's own code), **Total** (with everything it calls) or **Your code** (your own functions, each with the library and runtime code it calls: the time a change to them can win back). |
-| **Services being profiled** | Every profiled service, busiest first. Kernel threads the eBPF profiler samples are folded away. |
+| **Services being profiled** | Every profiled service, busiest first, each with where its own time goes: its own code that takes the most. With several services and none picked, this card comes first. Kernel threads the eBPF profiler samples are folded away. |
+
+### Reading a flame graph
+
+A flame graph merges every profile in the window into one picture. Each bar is a function: the wider it is, the bigger its share of the time, and the bars under it are the functions it calls. **How to read this**, beside the graph's title, explains it on the page.
+
+- **Self** is the time spent in a function's own code, and **Total** adds everything it calls. A wide bar with little under it does the work itself: start there.
+- The colours say whose code a bar is: **Your code** (orange), **Library** (blue), **Runtime** (grey), **System** (purple) and **No symbols** (light grey). The list beside the graph uses the same words.
+- A bar shows a function's short name, such as `aggregate.(*Builder).Sum`. Hover over it for the full name, its file, and its self and total shares.
+- Click a bar to zoom into it, and press Esc to zoom back out.
+
+### Code without symbols
+
+Native code built without symbols reaches the profiler as bare addresses, such as `0x270675`. The flame graph groups them into one **No symbols** bar under the function that called them, and says under the graph how much of it has no symbols. To see those functions by name, keep the binary's symbols: do not strip it (for Go, leave out `-ldflags="-s -w"`; for C, C++ and Rust, build with debug information), or install its debug-symbol package where the profiler runs.
 
 ### Compare two windows
 

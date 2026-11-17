@@ -959,7 +959,7 @@ describe("Status page /reset-password - token and password must be present", () 
     expect(privateUserUpdateOneById).not.toHaveBeenCalled();
     expect(result.nextError).toBeInstanceOf(BadDataException);
     expect((result.nextError as unknown as Exception).message).toBe(
-      "Reset password token is required.",
+      "This password reset link is incomplete. Open the link from the email again, or ask for a new one on the Forgot Password page.",
     );
   });
 
@@ -986,7 +986,7 @@ describe("Status page /reset-password - token and password must be present", () 
       data: {
         statusPageId: PUBLIC_STATUS_PAGE_ID,
         resetPasswordToken: "a-real-token",
-        password: { _type: "HashedString", value: "new-password" },
+        password: { _type: "HashedString", value: "violet river lantern" },
       },
     });
 
@@ -1113,7 +1113,7 @@ describe("Status page password emails show the logo only when the logo route ser
         data: {
           statusPageId: PUBLIC_STATUS_PAGE_ID,
           resetPasswordToken: "a-real-token",
-          password: { _type: "HashedString", value: "new-password" },
+          password: { _type: "HashedString", value: "violet river lantern" },
         },
       });
 

@@ -12,6 +12,7 @@ import {
 } from "./SloHealth";
 import SloUtil, { CalendarMonthWindow } from "./SloUtil";
 import { SLO_NOT_EVALUATED_TEXT } from "./SloWidgetFormat";
+import { NO_BREAK_SPACE } from "../../Types/NoBreakSpaces";
 
 /**
  * "Where is this error budget heading?" — the forward-looking numbers on the
@@ -122,7 +123,7 @@ const getRollingWindowDays: GetRollingWindowDaysFunction = (
 type PluralizeDaysFunction = (days: number) => string;
 
 const pluralizeDays: PluralizeDaysFunction = (days: number): string => {
-  return `${days} ${days === 1 ? "day" : "days"}`;
+  return `${days}${NO_BREAK_SPACE}${days === 1 ? "day" : "days"}`;
 };
 
 /**

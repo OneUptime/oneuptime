@@ -131,7 +131,7 @@ import {
   ProbeIngestJobData,
   TelemetryType,
 } from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
-import { isNonActionableIngestError } from "../../FeatureSet/Telemetry/Utils/NonActionableIngestError";
+import { isNonActionableIngestError } from "Common/Server/Utils/Monitor/NonActionableIngestError";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import Semaphore from "Common/Server/Infrastructure/Semaphore";
 import MonitorService from "Common/Server/Services/MonitorService";
@@ -323,7 +323,6 @@ beforeEach(() => {
       },
     );
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
-  jest.spyOn(ProjectService, "isSampleProject").mockResolvedValue(false);
 
   lock.mockResolvedValue(MUTEX as never);
   release.mockResolvedValue(undefined as never);

@@ -1,5 +1,7 @@
-import AlertStateUtil from "../../Utils/AlertState";
-import IncidentStateUtil from "../../Utils/IncidentState";
+import {
+  getLiveProjectIds,
+  getLiveProjectsKey,
+} from "../../Utils/LiveProjects";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 /*
@@ -13,12 +15,11 @@ import Logo from "./Logo";
 import ProjectPicker from "./ProjectPicker";
 import Upgrade from "./Upgrade";
 import UserProfile from "./UserProfile";
-import Includes from "Common/Types/BaseDatabase/Includes";
+import { listenToHeaderCountChanges } from "./HeaderLiveCounts";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
-import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Header from "Common/UI/Components/Header/Header";
 import { HeaderAlertType } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import {
@@ -29,26 +30,23 @@ import { APP_API_URL, BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/UI/Utils/User";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
-import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
-import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Project from "Common/Models/DatabaseModels/Project";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
+  useRef,
   useState,
   useCallback,
 } from "react";
 import { useTranslation } from "react-i18next";
-import Realtime from "Common/UI/Utils/Realtime";
 import CoalescedRefresh from "Common/UI/Utils/CoalescedRefresh";
 import ProjectUtil from "Common/UI/Utils/Project";
-import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import Alert from "Common/Models/DatabaseModels/Alert";
-import ObjectID from "Common/Types/ObjectID";
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
@@ -61,7 +59,7 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import URL from "Common/Types/API/URL";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import OnCallLookupFailedLine from "./OnCallLookupFailedLine";
 import CurrentOnCallPolicyModal from "../OnCallPolicy/CurrentOnCallPolicyModal";
 
 export interface ComponentProps {
@@ -86,6 +84,14 @@ export interface ComponentProps {
  * once; a burst of them - a bulk action's - once more five seconds later.
  */
 export const HEADER_COUNT_REFRESH_INTERVAL_IN_MS: number = 5000;
+
+// One coalesced read per count the bell shows (CoalescedRefresh).
+interface HeaderCountRefreshes {
+  incidents: CoalescedRefresh;
+  alerts: CoalescedRefresh;
+  alertEpisodes: CoalescedRefresh;
+  incidentEpisodes: CoalescedRefresh;
+}
 
 /*
  * The widths an entry of the header's right rail is drawn from (see the
@@ -160,31 +166,23 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       }
     }, []);
 
+  /*
+   * The episodes count what the page the bell opens lists - Active Alert
+   * Episodes, Active Incident Episodes: episodes nobody has acknowledged yet
+   * (in the state new ones start in), from every project the person belongs
+   * to, as the incidents and alerts counts do. They used to count every
+   * unresolved episode of the open project only, so the bell said "3 Active
+   * Alert Episodes" and the page it opened listed one.
+   */
   const fetchAlertEpisodesCount: PromiseVoidFunction =
     useCallback(async (): Promise<void> => {
       try {
-        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-        if (!projectId) {
-          setAlertEpisodesCount(0);
-          return;
-        }
-
-        const unresolvedAlertStates: Array<AlertState> =
-          await AlertStateUtil.getUnresolvedAlertStates(projectId);
-
-        if (unresolvedAlertStates.length === 0) {
-          setAlertEpisodesCount(0);
-          return;
-        }
-
         const count: number = await ModelAPI.count<AlertEpisode>({
           modelType: AlertEpisode,
           query: {
-            currentAlertStateId: new Includes(
-              unresolvedAlertStates.map((state: AlertState) => {
-                return state.id!;
-              }),
-            ),
+            currentAlertState: {
+              isCreatedState: true,
+            },
           },
           requestOptions: {
             isMultiTenantRequest: true,
@@ -199,28 +197,12 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
   const fetchIncidentEpisodesCount: PromiseVoidFunction =
     useCallback(async (): Promise<void> => {
       try {
-        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-        if (!projectId) {
-          setIncidentEpisodesCount(0);
-          return;
-        }
-
-        const unresolvedIncidentStates: Array<IncidentState> =
-          await IncidentStateUtil.getUnresolvedIncidentStates(projectId);
-
-        if (unresolvedIncidentStates.length === 0) {
-          setIncidentEpisodesCount(0);
-          return;
-        }
-
         const count: number = await ModelAPI.count<IncidentEpisode>({
           modelType: IncidentEpisode,
           query: {
-            currentIncidentStateId: new Includes(
-              unresolvedIncidentStates.map((state: IncidentState) => {
-                return state.id!;
-              }),
-            ),
+            currentIncidentState: {
+              isCreatedState: true,
+            },
           },
           requestOptions: {
             isMultiTenantRequest: true,
@@ -252,236 +234,38 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     }, []);
 
   /*
-   * Each count is read again when a record of its kind changes - at most
-   * once every HEADER_COUNT_REFRESH_INTERVAL_IN_MS (CoalescedRefresh). A
-   * bulk action that resolves thousands of alerts sends an event for every
-   * one, and each used to read the count again while the action ran.
+   * Each count is read again when a record of its kind changes, in any of
+   * the projects it counts (HeaderLiveCounts) - at most once every
+   * HEADER_COUNT_REFRESH_INTERVAL_IN_MS (CoalescedRefresh). A bulk action
+   * that resolves thousands of alerts sends an event for every one, and each
+   * used to read the count again while the action ran. One refresh per
+   * count for the header's whole life, shared by every project's changes:
+   * the projects heard can change, and a burst stays one read.
    */
-  const realtimeIncidentCountRefresh: (
-    refreshCount: CoalescedRefresh,
-  ) => VoidFunction = (refreshCount: CoalescedRefresh): VoidFunction => {
-    const stopListeningOnCreate: VoidFunction =
-      Realtime.listenToModelEvent<Incident>(
-        {
-          eventType: ModelEventType.Create,
-          modelType: Incident,
-          tenantId: ProjectUtil.getCurrentProjectId()!,
-        },
-        () => {
-          refreshCount.request();
-        },
-      );
-
-    const stopListeningOnUpdate: VoidFunction =
-      Realtime.listenToModelEvent<Incident>(
-        {
-          eventType: ModelEventType.Update,
-          modelType: Incident,
-          tenantId: ProjectUtil.getCurrentProjectId()!,
-        },
-        () => {
-          refreshCount.request();
-        },
-      );
-
-    const stopListeningOnDelete: VoidFunction =
-      Realtime.listenToModelEvent<Incident>(
-        {
-          eventType: ModelEventType.Delete,
-          modelType: Incident,
-          tenantId: ProjectUtil.getCurrentProjectId()!,
-        },
-        () => {
-          refreshCount.request();
-        },
-      );
-
-    const stopListening: VoidFunction = () => {
-      // on unmount.
-      stopListeningOnCreate();
-      stopListeningOnUpdate();
-      stopListeningOnDelete();
-    };
-
-    return stopListening;
-  };
-
-  const realtimeAlertCountRefresh: (
-    refreshCount: CoalescedRefresh,
-  ) => VoidFunction = (refreshCount: CoalescedRefresh): VoidFunction => {
-    const stopListeningOnCreate: VoidFunction =
-      Realtime.listenToModelEvent<Alert>(
-        {
-          eventType: ModelEventType.Create,
-          modelType: Alert,
-          tenantId: ProjectUtil.getCurrentProjectId()!,
-        },
-        () => {
-          refreshCount.request();
-        },
-      );
-
-    const stopListeningOnUpdate: VoidFunction =
-      Realtime.listenToModelEvent<Alert>(
-        {
-          eventType: ModelEventType.Update,
-          modelType: Alert,
-          tenantId: ProjectUtil.getCurrentProjectId()!,
-        },
-        () => {
-          refreshCount.request();
-        },
-      );
-
-    const stopListeningOnDelete: VoidFunction =
-      Realtime.listenToModelEvent<Alert>(
-        {
-          eventType: ModelEventType.Delete,
-          modelType: Alert,
-          tenantId: ProjectUtil.getCurrentProjectId()!,
-        },
-        () => {
-          refreshCount.request();
-        },
-      );
-
-    const stopListening: VoidFunction = () => {
-      // on unmount.
-      stopListeningOnCreate();
-      stopListeningOnUpdate();
-      stopListeningOnDelete();
-    };
-
-    return stopListening;
-  };
-
-  const realtimeAlertEpisodeCountRefresh: (
-    refreshCount: CoalescedRefresh,
-  ) => VoidFunction = (refreshCount: CoalescedRefresh): VoidFunction => {
-    const stopListeningOnCreate: VoidFunction =
-      Realtime.listenToModelEvent<AlertEpisode>(
-        {
-          eventType: ModelEventType.Create,
-          modelType: AlertEpisode,
-          tenantId: ProjectUtil.getCurrentProjectId()!,
-        },
-        () => {
-          refreshCount.request();
-        },
-      );
-
-    const stopListeningOnUpdate: VoidFunction =
-      Realtime.listenToModelEvent<AlertEpisode>(
-        {
-          eventType: ModelEventType.Update,
-          modelType: AlertEpisode,
-          tenantId: ProjectUtil.getCurrentProjectId()!,
-        },
-        () => {
-          refreshCount.request();
-        },
-      );
-
-    const stopListeningOnDelete: VoidFunction =
-      Realtime.listenToModelEvent<AlertEpisode>(
-        {
-          eventType: ModelEventType.Delete,
-          modelType: AlertEpisode,
-          tenantId: ProjectUtil.getCurrentProjectId()!,
-        },
-        () => {
-          refreshCount.request();
-        },
-      );
-
-    const stopListening: VoidFunction = () => {
-      // on unmount.
-      stopListeningOnCreate();
-      stopListeningOnUpdate();
-      stopListeningOnDelete();
-    };
-
-    return stopListening;
-  };
-
-  const realtimeIncidentEpisodeCountRefresh: (
-    refreshCount: CoalescedRefresh,
-  ) => VoidFunction = (refreshCount: CoalescedRefresh): VoidFunction => {
-    const stopListeningOnCreate: VoidFunction =
-      Realtime.listenToModelEvent<IncidentEpisode>(
-        {
-          eventType: ModelEventType.Create,
-          modelType: IncidentEpisode,
-          tenantId: ProjectUtil.getCurrentProjectId()!,
-        },
-        () => {
-          refreshCount.request();
-        },
-      );
-
-    const stopListeningOnUpdate: VoidFunction =
-      Realtime.listenToModelEvent<IncidentEpisode>(
-        {
-          eventType: ModelEventType.Update,
-          modelType: IncidentEpisode,
-          tenantId: ProjectUtil.getCurrentProjectId()!,
-        },
-        () => {
-          refreshCount.request();
-        },
-      );
-
-    const stopListeningOnDelete: VoidFunction =
-      Realtime.listenToModelEvent<IncidentEpisode>(
-        {
-          eventType: ModelEventType.Delete,
-          modelType: IncidentEpisode,
-          tenantId: ProjectUtil.getCurrentProjectId()!,
-        },
-        () => {
-          refreshCount.request();
-        },
-      );
-
-    const stopListening: VoidFunction = () => {
-      // on unmount.
-      stopListeningOnCreate();
-      stopListeningOnUpdate();
-      stopListeningOnDelete();
-    };
-
-    return stopListening;
-  };
+  const countRefreshesRef: MutableRefObject<HeaderCountRefreshes | null> =
+    useRef<HeaderCountRefreshes | null>(null);
 
   useEffect(() => {
-    const incidentCountRefresh: CoalescedRefresh = new CoalescedRefresh({
-      refresh: fetchIncidentsCount,
-      minIntervalInMs: HEADER_COUNT_REFRESH_INTERVAL_IN_MS,
-    });
-    const alertCountRefresh: CoalescedRefresh = new CoalescedRefresh({
-      refresh: fetchAlertsCount,
-      minIntervalInMs: HEADER_COUNT_REFRESH_INTERVAL_IN_MS,
-    });
-    const alertEpisodeCountRefresh: CoalescedRefresh = new CoalescedRefresh({
-      refresh: fetchAlertEpisodesCount,
-      minIntervalInMs: HEADER_COUNT_REFRESH_INTERVAL_IN_MS,
-    });
-    const incidentEpisodeCountRefresh: CoalescedRefresh = new CoalescedRefresh({
-      refresh: fetchIncidentEpisodesCount,
-      minIntervalInMs: HEADER_COUNT_REFRESH_INTERVAL_IN_MS,
-    });
+    const refreshes: HeaderCountRefreshes = {
+      incidents: new CoalescedRefresh({
+        refresh: fetchIncidentsCount,
+        minIntervalInMs: HEADER_COUNT_REFRESH_INTERVAL_IN_MS,
+      }),
+      alerts: new CoalescedRefresh({
+        refresh: fetchAlertsCount,
+        minIntervalInMs: HEADER_COUNT_REFRESH_INTERVAL_IN_MS,
+      }),
+      alertEpisodes: new CoalescedRefresh({
+        refresh: fetchAlertEpisodesCount,
+        minIntervalInMs: HEADER_COUNT_REFRESH_INTERVAL_IN_MS,
+      }),
+      incidentEpisodes: new CoalescedRefresh({
+        refresh: fetchIncidentEpisodesCount,
+        minIntervalInMs: HEADER_COUNT_REFRESH_INTERVAL_IN_MS,
+      }),
+    };
 
-    const realtimeIncidentStop: VoidFunction =
-      realtimeIncidentCountRefresh(incidentCountRefresh);
-
-    const realtimeAlertStop: VoidFunction =
-      realtimeAlertCountRefresh(alertCountRefresh);
-
-    const realtimeAlertEpisodeStop: VoidFunction =
-      realtimeAlertEpisodeCountRefresh(alertEpisodeCountRefresh);
-
-    const realtimeIncidentEpisodeStop: VoidFunction =
-      realtimeIncidentEpisodeCountRefresh(incidentEpisodeCountRefresh);
+    countRefreshesRef.current = refreshes;
 
     // Initial fetch of counts
     fetchIncidentsCount().catch(() => {
@@ -501,14 +285,11 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     });
 
     return () => {
-      realtimeIncidentStop();
-      realtimeAlertStop();
-      realtimeAlertEpisodeStop();
-      realtimeIncidentEpisodeStop();
-      incidentCountRefresh.stop();
-      alertCountRefresh.stop();
-      alertEpisodeCountRefresh.stop();
-      incidentEpisodeCountRefresh.stop();
+      countRefreshesRef.current = null;
+      refreshes.incidents.stop();
+      refreshes.alerts.stop();
+      refreshes.alertEpisodes.stop();
+      refreshes.incidentEpisodes.stop();
     };
   }, [
     fetchIncidentsCount,
@@ -517,6 +298,64 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     fetchIncidentEpisodesCount,
     fetchInvitationsCount,
   ]);
+
+  /*
+   * The projects whose changes the counts hear: every project the person
+   * belongs to, the open one first (Utils/LiveProjects). Read on every
+   * render, so the projects loading after the header - the first page of a
+   * session - and the project opened without a reload are heard; the rooms
+   * are joined again only when the projects themselves change.
+   */
+  const countProjectIds: Array<string> = getLiveProjectIds({
+    projects: props.projects,
+    currentProjectId: ProjectUtil.getCurrentProjectId(),
+  });
+
+  const countSubscriptionKey: string = getLiveProjectsKey(countProjectIds);
+
+  useEffect(() => {
+    if (countProjectIds.length === 0) {
+      return undefined;
+    }
+
+    // The header's refreshes as they are when a change is heard.
+    const stopListening: Array<() => void> = [
+      listenToHeaderCountChanges({
+        modelType: Incident,
+        projectIds: countProjectIds,
+        onChange: () => {
+          countRefreshesRef.current?.incidents.request();
+        },
+      }),
+      listenToHeaderCountChanges({
+        modelType: Alert,
+        projectIds: countProjectIds,
+        onChange: () => {
+          countRefreshesRef.current?.alerts.request();
+        },
+      }),
+      listenToHeaderCountChanges({
+        modelType: AlertEpisode,
+        projectIds: countProjectIds,
+        onChange: () => {
+          countRefreshesRef.current?.alertEpisodes.request();
+        },
+      }),
+      listenToHeaderCountChanges({
+        modelType: IncidentEpisode,
+        projectIds: countProjectIds,
+        onChange: () => {
+          countRefreshesRef.current?.incidentEpisodes.request();
+        },
+      }),
+    ];
+
+    return () => {
+      for (const stop of stopListening) {
+        stop();
+      }
+    };
+  }, [countSubscriptionKey]);
 
   const [
     currentOnCallDutyEscalationPolicyUser,
@@ -532,9 +371,18 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     setCurrentOnCallDutyEscalationPolicySchedule,
   ] = useState<Array<OnCallDutyPolicyEscalationRuleSchedule>>([]);
 
+  /*
+   * Why the policies the person is on duty for could not be read
+   * (API.getFriendlyMessage). Said quietly in the bell, with Try again: it
+   * was a dialog over whatever page they were on, for a lookup they never
+   * asked for (#9120).
+   */
   const [onCallDutyPolicyFetchError, setOnCallDutyPolicyFetchError] = useState<
     string | null
   >(null);
+
+  // Bumped by Try again: the lookup below runs again.
+  const [onCallLookupCount, setOnCallLookupCount] = useState<number>(0);
 
   const [currentOnCallPolicies, setCurrentOnCallPolicies] = useState<
     Array<OnCallDutyPolicy>
@@ -682,7 +530,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             return;
           }
 
-          setOnCallDutyPolicyFetchError(t("header.onCallPoliciesFetchError"));
+          setOnCallDutyPolicyFetchError(API.getFriendlyMessage(err));
         }
       };
 
@@ -694,7 +542,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       isCancelled = true;
     };
     // Cached and refreshed Project instances share one lookup for the same id.
-  }, [currentProjectId]);
+  }, [currentProjectId, onCallLookupCount]);
 
   const showAddCardButton: boolean = Boolean(
     BILLING_ENABLED &&
@@ -914,20 +762,6 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
   return (
     <>
-      {onCallDutyPolicyFetchError ? (
-        <ConfirmModal
-          description={onCallDutyPolicyFetchError}
-          title={t("header.errorTitleOnCallPolicies")}
-          isTitleTranslated={true}
-          onSubmit={() => {
-            setOnCallDutyPolicyFetchError(null);
-          }}
-          submitButtonText={t("common.close")}
-          submitButtonType={ButtonStyleType.NORMAL}
-        />
-      ) : (
-        <></>
-      )}
       <Header
         leftComponents={
           <>
@@ -997,6 +831,18 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             <NotificationBell
               items={buildNotificationItems()}
               onItemClick={handleNotificationItemClick}
+              notice={
+                onCallDutyPolicyFetchError ? (
+                  <OnCallLookupFailedLine
+                    error={onCallDutyPolicyFetchError}
+                    onTryAgain={() => {
+                      setOnCallLookupCount((count: number): number => {
+                        return count + 1;
+                      });
+                    }}
+                  />
+                ) : undefined
+              }
             />
             <div className={FROM_TABLET_WIDTH_CLASS_NAME}>
               <Help />

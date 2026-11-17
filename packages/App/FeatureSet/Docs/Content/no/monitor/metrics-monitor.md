@@ -97,7 +97,7 @@ Jo lengre vinduet er, desto bredere er hvert tidsintervall, så ett datapunkt st
 ## Slik evalueres den
 
 - **Hvert minutt.** En målingsmonitor sjekkes ikke av sonder, så den har ikke noe intervall å angi og ingen side **Sonder og intervall**.
-- **Først spørringer, så formler.** Hver spørring returnerer ett datapunkt per tidsintervall i tidsintervallet, med sin **Aggreger etter**. Formler regnes ut for hvert intervall fra spørringenes datapunkter.
+- **Først spørringer, så formler.** Hver spørring returnerer ett datapunkt per tidsintervall i tidsintervallet, med sin **Aggreger etter**. Formler regnes ut for hvert intervall fra spørringenes datapunkter. En spørring som teller det som skjedde, summen eller antallet av en teller eller et histogram, teller 0 i et intervall den ikke har noe datapunkt i, når intervallet har vært over i et minutt, så en feilandel er 0% der ingenting feilet. En måler, et gjennomsnitt eller en persentil uten datapunkt er ukjent, og formelen utelater det intervallet.
 - **Deretter regelens mål.** Regelen reduserer datapunktene for målingen sin til det den sammenligner med verdien sin, slik **Målt som** sier:
 
 | Målt som | I de egne kriteriene | Betingelsen sjekkes mot… |
@@ -152,11 +152,11 @@ En ny målingsmonitor som er opprettet via API-et eller Terraform uten kriterier
 
 | Kriterium | Betingelse | Virkning |
 | --- | --- | --- |
-| Check if … is offline | **Lik** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
+| Check if … is offline | **Lik** `0` | Setter monitoren som offline og erklærer en hendelse som løses automatisk |
 | Check if … is online | **Større enn** `0` | Setter monitoren som tilkoblet |
 
 > [!NOTE]
-> Frakoblet-kriteriet utløses av en rapportert verdi på 0, ikke av stillhet. For å bli varslet når en måling slutter å komme, setter du **Hvis ingen data** for den til **Utløser**.
+> Offline-kriteriet utløses av en rapportert verdi på 0, ikke av stillhet. For å bli varslet når en måling slutter å komme, setter du **Hvis ingen data** for den til **Utløser**.
 
 ## Gjennomgått eksempel: en kø som vokser
 

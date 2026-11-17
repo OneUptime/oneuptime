@@ -68,6 +68,7 @@
     "signInWithSso": "ورود با SSO",
     "signInWithMicrosoft": "ورود با Microsoft",
     "emailSignInLink": "ارسال لینک ورود به ایمیل من",
+    "moreWaysToSignIn": "روش‌های دیگر برای ورود",
     "noAccountPrompt": "حساب کاربری ندارید؟",
     "registerLink": "ثبت‌نام کنید.",
     "twoFactor": {
@@ -175,10 +176,17 @@
   "resetPassword": {
     "title": "بازنشانی رمز عبور",
     "subtitle": "لطفاً رمز عبور جدید خود را وارد کنید تا آن را به‌روزرسانی کنیم.",
-    "successMessage": "رمز عبور شما به‌روزرسانی شد. لطفاً وارد شوید.",
     "submitButton": "بازنشانی رمز عبور",
     "knowPasswordPrompt": "رمز عبور خود را می‌دانید؟",
-    "loginLink": "ورود."
+    "loginLink": "ورود.",
+    "successTitle": "گذرواژهٔ شما بازنشانی شد",
+    "successDescription": "با گذرواژهٔ جدیدتان وارد شوید.",
+    "signInButton": "ورود",
+    "linkExpiredTitle": "این پیوند بازنشانی منقضی شده است",
+    "linkExpiredDescription": "پیوندهای بازنشانی یک روز اعتبار دارند. پیوند جدیدی درخواست کنید تا آن را برایتان ایمیل کنیم.",
+    "linkInvalidTitle": "این پیوند بازنشانی دیگر کار نمی‌کند",
+    "linkInvalidDescription": "شاید قبلاً استفاده شده باشد، یا فقط بخشی از آن کپی شده باشد. پیوند جدیدی درخواست کنید تا آن را برایتان ایمیل کنیم.",
+    "requestNewLinkButton": "درخواست پیوند جدید"
   },
   "sso": {
     "title": "ورود با SSO",
@@ -562,6 +570,7 @@
   "What was sent is larger than the 50 MB OneUptime takes in one request.": "آنچه فرستاده شد بزرگ‌تر از ۵۰ مگابایتی است که OneUptime در یک درخواست می‌پذیرد.",
   "Try again with less at once, such as a smaller file.": "با مقدار کمتری در هر بار دوباره امتحان کنید، مثلاً با فایلی کوچک‌تر.",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "اگر پراکسی‌ای جلوی OneUptime آن را رد کرده است، سقف اندازهٔ درخواست آن پراکسی را به ۵۰ مگابایت برسانید، همان اندازه‌ای که خود OneUptime می‌پذیرد (در nginx، client_max_body_size 50M).",
+  "Dismiss": "پنهان کردن",
   "This form is not available. It may have been turned off, or the link may be out of date.": "این فرم در دسترس نیست. ممکن است غیرفعال شده باشد یا پیوند آن قدیمی باشد.",
   "This form can only be opened from an allowed network.": "این فرم فقط از یک شبکه مجاز باز می‌شود.",
   "Too many submissions from your network. Please wait a few minutes and try again.": "ارسال‌های بیش از حد از شبکه شما انجام شده است. لطفاً چند دقیقه صبر کنید و دوباره تلاش کنید.",
@@ -572,6 +581,7 @@
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "این فرم نمی‌تواند حادثه‌ای ایجاد کند، زیرا شدتی برای آن تعیین نشده است. لطفاً به تیمی که آن را به اشتراک گذاشته اطلاع دهید.",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "در حال حاضر امکان پذیرش ارسال‌ها وجود ندارد. لطفاً چند دقیقه دیگر دوباره تلاش کنید.",
   "This form is receiving too many files right now. Please try again later.": "این فرم در حال حاضر فایل‌های بیش از حدی دریافت می‌کند. لطفاً بعداً دوباره تلاش کنید.",
+  "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "در حال حاضر بررسی ویروس فایل‌ها ممکن نیست، به همین دلیل پذیرفته نشدند. لطفاً چند دقیقهٔ دیگر دوباره تلاش کنید.",
   "A response can carry at most 10 files.": "هر پاسخ حداکثر 10 فایل می‌تواند داشته باشد.",
   "The files of a response can be at most 20 MB together.": "مجموع حجم فایل‌های هر پاسخ حداکثر 20 MB می‌تواند باشد.",
   "Your response could not be submitted. Please try again in a few minutes.": "پاسخ شما ارسال نشد. لطفاً چند دقیقه دیگر دوباره تلاش کنید.",

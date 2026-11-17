@@ -1,11 +1,15 @@
 import ProjectMilestoneService from "./ProjectMilestoneService";
 import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import CreateBy from "../Types/Database/CreateBy";
+import CountBy from "../Types/Database/CountBy";
+import FindBy from "../Types/Database/FindBy";
 import {
   DatabaseTriggerType,
   OnCreate,
+  OnFind,
   OnUpdate,
 } from "../Types/Database/Hooks";
+import PrivateRecordReadFilter from "../Utils/Permission/PrivateRecordReadFilter";
 import ProjectReferencesService from "./ProjectReferencesService";
 import OnCallDutyPolicyEscalationRuleService, {
   OnCallPagingOutcome,
@@ -25,6 +29,7 @@ import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNo
 import QueryHelper from "../Types/Database/QueryHelper";
 import { ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import { hasOnCallRunStartedALevel } from "../../Types/OnCallDutyPolicy/OnCallRunLevel";
 import {
   ON_CALL_RUN_EXECUTION_STARTED_MESSAGE,
   ON_CALL_RUN_PAGING_STARTED_MESSAGE,
@@ -66,7 +71,7 @@ import {
   getOnCallPolicyRunPagingDueAt,
   getOnCallPolicyRunWaitingMessage,
 } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
-import { IsNull, Not, UpdateResult } from "typeorm";
+import { In, IsNull, Not, UpdateResult } from "typeorm";
 import OnCallRunFailure, {
   OnCallRunFailureKind,
 } from "../Utils/OnCall/OnCallRunFailure";
@@ -124,6 +129,21 @@ export interface OnCallDirectPageRun {
   outcome: OnCallPagingOutcome;
 }
 
+/*
+ * The statuses of a person's page that keep a direct page open
+ * (endDirectPageIfItsPagesAreOver): its notifications are still going out,
+ * or it is merged into the person's open page from another run and waits on
+ * it (OnCallPageMerge, #8859) - it takes the page over should that one end
+ * without their answer, so the direct page is not over while it waits.
+ */
+export const ON_CALL_DIRECT_PAGE_STATUSES_STILL_OUT: ReadonlyArray<UserNotificationExecutionStatus> =
+  [
+    UserNotificationExecutionStatus.Scheduled,
+    UserNotificationExecutionStatus.Started,
+    UserNotificationExecutionStatus.Executing,
+    UserNotificationExecutionStatus.AlreadyPaged,
+  ];
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
@@ -140,6 +160,44 @@ export class Service extends ProjectReferencesService<Model> {
    */
   protected override checksServerWrites(): boolean {
     return false;
+  }
+
+  /*
+   * A page about a private incident, alert or episode is read only by those
+   * who see that record (PrivateRecordReadFilter): its own columns say who
+   * was paged about it and what the person who paged wrote, and its
+   * relation reads the record itself. A page about no private record is
+   * read as before.
+   */
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = PrivateRecordReadFilter.apply(
+      findBy.query,
+      findBy.props,
+      Model,
+    );
+
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = PrivateRecordReadFilter.apply(
+      countBy.query,
+      countBy.props,
+      Model,
+    );
+
+    return await super.countBy(countBy);
+  }
+
+  // The read hook narrows by the records a page is about. See onBeforeFind.
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return PrivateRecordReadFilter.getNamedRecordColumnNames(Model);
   }
 
   /**
@@ -178,6 +236,46 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     return (result.affected || 0) > 0;
+  }
+
+  /*
+   * RECORDS AN ESCALATION RULE'S PLACE NOW ON THE RUNS STILL ON IT, as the
+   * rule is about to be deleted (issue #9036).
+   *
+   * Deleting the rule keeps those runs and clears it from them (ON DELETE
+   * SET NULL); each then goes on from the place it recorded - to the level
+   * that moves up into the deleted one's - once the wait it started is over
+   * (OnCallRunLevel). The place a run recorded when it reached the level is
+   * out of date if a level before it was added or deleted since, so it is
+   * written again from the rule as it is now. One statement, found by the
+   * rule's own index (lastExecutedEscalationRuleId) - never by the place,
+   * which no index holds (OnCallExecutionLogStepColumnReads); runs already
+   * over keep what they recorded, and the moment the claims compare
+   * (lastEscalationRuleExecutedAt) is left alone. Returns how many runs it
+   * wrote.
+   */
+  @CaptureSpan()
+  public async recordPlaceOfRunsOnRule(data: {
+    ruleId: ObjectID;
+    order: number;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository().update(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      {
+        lastExecutedEscalationRuleId: data.ruleId.toString(),
+        status: In([
+          OnCallDutyPolicyStatus.Executing,
+          OnCallDutyPolicyStatus.Started,
+          OnCallDutyPolicyStatus.Scheduled,
+        ]),
+      } as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      {
+        lastExecutedEscalationRuleOrder: data.order,
+      } as any,
+    );
+
+    return result.affected || 0;
   }
 
   /*
@@ -235,11 +333,22 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
+      /*
+       * The same level: the same rule - or the rule it was on then, deleted
+       * since, which clears it from the run (ON DELETE SET NULL, issue
+       * #9036). Nothing else clears it: moving on to another level names
+       * that level's rule.
+       */
+      const currentRuleId: string | null =
+        current?.lastExecutedEscalationRuleId?.toString() || null;
+      const claimedRuleId: string | null =
+        data.lastExecutedEscalationRuleId?.toString() || null;
+
       const isOnTheSameRuleAndPass: boolean = Boolean(
         current &&
           current.status === OnCallDutyPolicyStatus.Executing &&
-          (current.lastExecutedEscalationRuleId?.toString() || null) ===
-            (data.lastExecutedEscalationRuleId?.toString() || null) &&
+          (currentRuleId === claimedRuleId ||
+            (currentRuleId === null && claimedRuleId !== null)) &&
           (current.onCallPolicyExecutionRepeatCount ?? null) ===
             (data.onCallPolicyExecutionRepeatCount ?? null),
       );
@@ -1376,6 +1485,8 @@ export class Service extends ProjectReferencesService<Model> {
       select: {
         status: true,
         lastExecutedEscalationRuleId: true,
+        // Kept when the level's rule is deleted (OnCallRunLevel, #9036).
+        lastExecutedEscalationRuleOrder: true,
       },
       props: {
         isRoot: true,
@@ -1384,7 +1495,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (
       !run ||
-      run.lastExecutedEscalationRuleId ||
+      hasOnCallRunStartedALevel(run) ||
       (run.status !== OnCallDutyPolicyStatus.Scheduled &&
         run.status !== OnCallDutyPolicyStatus.Started)
     ) {
@@ -1563,7 +1674,10 @@ export class Service extends ProjectReferencesService<Model> {
    * sent everything they had to send (a call after ten minutes, a push that
    * repeats), with nobody acknowledging. Until then it stays open, so its
    * Slack and Microsoft Teams message goes on saying people are being paged
-   * while they are.
+   * while they are. A page of it merged into the person's open page from
+   * another run waits on that page, and keeps it open too
+   * (ON_CALL_DIRECT_PAGE_STATUSES_STILL_OUT): it pages them itself should
+   * that page end without their answer (#8859).
    *
    * It stays open for a while after paging started in any case
    * (ON_CALL_DIRECT_PAGE_ACKNOWLEDGE_WAIT_IN_MINUTES): somebody whose one
@@ -1598,11 +1712,7 @@ export class Service extends ProjectReferencesService<Model> {
     const pagesStillOut: PositiveNumber = await UserOnCallLogService.countBy({
       query: {
         onCallDutyPolicyExecutionLogId: executionLogId,
-        status: QueryHelper.any([
-          UserNotificationExecutionStatus.Scheduled,
-          UserNotificationExecutionStatus.Started,
-          UserNotificationExecutionStatus.Executing,
-        ]),
+        status: QueryHelper.any([...ON_CALL_DIRECT_PAGE_STATUSES_STILL_OUT]),
       },
       props: {
         isRoot: true,
@@ -2018,8 +2128,13 @@ export class Service extends ProjectReferencesService<Model> {
             {
               _id: data.executionLogId.toString(),
               status: fromStatus,
+              /*
+               * Its rule recorded: its place, which stays when the rule is
+               * deleted - then the run goes on from that place
+               * (OnCallRunLevel, issue #9036).
+               */
               ...(data.onlyFromItsRule
-                ? { lastExecutedEscalationRuleId: Not(IsNull()) }
+                ? { lastExecutedEscalationRuleOrder: Not(IsNull()) }
                 : {}),
             } as any,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -662,6 +662,115 @@ describe("the settings pages' test card", () => {
       "Test-E-Mail senden",
     );
   });
+
+  /*
+   * Issue #8844: the test button sat in the body under the status, 12px
+   * further in than the words above it, and the status was a bare grey line
+   * with nothing to say whether email works. The buttons are the card's
+   * actions, at the right of its title, and the status carries the Server
+   * setup row's icon.
+   */
+  test("its test buttons are the card's actions, on the title's line", () => {
+    render(
+      <MemoryRouter>
+        <ServerTestCard
+          check={ServerSetupCheckId.SmsAndCalls}
+          title={SERVER_TEST_CARD_COPY.callAndSmsTitle}
+          description={SERVER_TEST_CARD_COPY.callAndSmsDescription}
+          channels={[ServerSendingChannel.SMS, ServerSendingChannel.Call]}
+          checklist={checklistOf(UNTESTED)}
+        />
+      </MemoryRouter>,
+    );
+
+    const actions: HTMLElement = screen.getByTestId("card-header-actions");
+
+    expect(within(actions).getByTestId("server-test-sms")).toBeVisible();
+    expect(within(actions).getByTestId("server-test-call")).toBeVisible();
+    expect(
+      within(screen.getByTestId("card-header")).getByTestId("server-test-sms"),
+    ).toBeVisible();
+    expect(
+      within(
+        screen.getByTestId("server-test-card-sms-and-calls-status"),
+      ).queryByRole("button"),
+    ).toBeNull();
+  });
+
+  test("the status says at a glance where the channel stands", () => {
+    const DONE: ServerSetupChecklistAnswer =
+      ServerSetupChecklistUtil.parseAnswer({
+        checks: [
+          {
+            id: "email",
+            status: "done",
+            time: "2026-11-16T05:52:00.000Z",
+            sentThrough: "smtp.azurecomm.net",
+            tests: ["email"],
+          },
+        ],
+      })!;
+
+    const { unmount } = render(
+      <MemoryRouter>
+        <ServerTestCard
+          check={ServerSetupCheckId.Email}
+          title={SERVER_TEST_CARD_COPY.emailTitle}
+          description={SERVER_TEST_CARD_COPY.emailDescription}
+          channels={[ServerSendingChannel.Email]}
+          checklist={checklistOf(DONE)}
+        />
+      </MemoryRouter>,
+    );
+
+    const done: HTMLElement = screen.getByTestId("server-test-card-email-icon");
+    expect(done).toHaveTextContent("Done");
+    expect(done.className).toContain("text-green-600");
+    expect(
+      screen.getByTestId("server-test-card-email-status"),
+    ).toHaveTextContent("smtp.azurecomm.net accepted an email on");
+    unmount();
+
+    render(
+      <MemoryRouter>
+        <ServerTestCard
+          check={ServerSetupCheckId.SmsAndCalls}
+          title={SERVER_TEST_CARD_COPY.callAndSmsTitle}
+          description={SERVER_TEST_CARD_COPY.callAndSmsDescription}
+          channels={[ServerSendingChannel.SMS, ServerSendingChannel.Call]}
+          checklist={checklistOf(UNTESTED)}
+        />
+      </MemoryRouter>,
+    );
+
+    const failing: HTMLElement = screen.getByTestId(
+      "server-test-card-sms-and-calls-icon",
+    );
+    expect(failing).toHaveTextContent("Failing");
+    expect(failing.className).toContain("text-red-600");
+  });
+
+  test("before the checklist is read, the card is its title, sentence and button", () => {
+    render(
+      <MemoryRouter>
+        <ServerTestCard
+          check={ServerSetupCheckId.Email}
+          title={SERVER_TEST_CARD_COPY.emailTitle}
+          description={SERVER_TEST_CARD_COPY.emailDescription}
+          channels={[ServerSendingChannel.Email]}
+          checklist={checklistOf(null)}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByTestId("server-test-card-email-status")).toBeNull();
+    expect(screen.queryByTestId("server-test-card-email-icon")).toBeNull();
+    expect(
+      within(screen.getByTestId("card-header-actions")).getByTestId(
+        "server-test-email",
+      ),
+    ).toBeVisible();
+  });
 });
 
 describe("where the cards are drawn", () => {

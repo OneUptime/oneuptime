@@ -18,7 +18,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Only the **active** mgr returns metrics — standbys answer with an empty response — so scraping every mgr keeps metrics flowing when the active one fails over.":
     "Bara den **aktiva** mgr:en returnerar mätvärden (standby-noderna svarar med ett tomt svar), så när varje mgr skrapas fortsätter mätvärdena att komma när den aktiva byter.",
   "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:":
-    "Skriptet frågar efter din OneUptime-URL och din ingestion-nyckel, som båda visas i steg 1 (välj en nyckel där så fylls de i här), och sedan efter:",
+    "Skriptet frågar efter din OneUptime-URL och din intagningsnyckel, som båda visas i steg 1 (välj en nyckel där så fylls de i här), och sedan efter:",
   "- **Cluster name** — how the cluster appears in OneUptime. Give every cluster its own and keep it stable: a new name registers a new cluster.":
     "- **Klusternamn**: hur klustret visas i OneUptime. Ge varje kluster ett eget och håll det stabilt: ett nytt namn registrerar ett nytt kluster.",
   "- **Mgr endpoints** — every mgr from the previous step as comma-separated `host:port`, e.g. `ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283`. The script adds the square brackets.":
@@ -32,7 +32,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Docker Compose also runs **`oneuptime-ceph-ai-agent`**, the OneUptime AI agent. If the install script created its Ceph client it is already working; otherwise it waits for one — see **OneUptime AI agent** under Advanced.":
     "Docker Compose kör också **`oneuptime-ceph-ai-agent`**, OneUptime AI-agenten. Om installationsskriptet skapade dess Ceph-klient fungerar den redan; annars väntar den på en; se **OneUptime AI-agent** under Avancerad.",
   "**OneUptime AI agent (on by default, read-only).** AI investigations are on: once it has its Ceph client, it lets OneUptime AI investigate incidents and alerts on this cluster with read-only `ceph` commands, and changes nothing unless you allow fixes.":
-    "**OneUptime AI-agent (på som standard, skrivskyddad).** AI-utredningar är på: så snart den har sin Ceph-klient låter den OneUptime AI utreda incidenter och aviseringar på det här klustret med skrivskyddade `ceph`-kommandon, och den ändrar ingenting om du inte tillåter korrigeringar.",
+    "**OneUptime AI-agent (på som standard, skrivskyddad).** AI-utredningar är på: så snart den har sin Ceph-klient låter den OneUptime AI utreda incidenter och larm på det här klustret med skrivskyddade `ceph`-kommandon, och den ändrar ingenting om du inte tillåter korrigeringar.",
   "The install script writes these to `/opt/oneuptime-ceph-agent/.env`. After changing one, apply it with `docker compose up -d` in `/opt/oneuptime-ceph-agent`.":
     "Installationsskriptet skriver dessa till `/opt/oneuptime-ceph-agent/.env`. När du har ändrat en tillämpar du den med `docker compose up -d` i `/opt/oneuptime-ceph-agent`.",
   "| Variable | Required | Description |":
@@ -40,7 +40,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | Ja | URL:en till din OneUptime-instans (t.ex. `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key — the one picked in step 1 |":
-    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Telemetri-ingestion-nyckeln, den som valdes i steg 1 |",
+    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Telemetri-intagningsnyckeln, den som valdes i steg 1 |",
   "| `CEPH_CLUSTER_NAME` | Yes | Cluster identifier shown in OneUptime. Stamped on every metric as the `ceph.cluster.name` resource attribute. Keep it stable — changing it registers a new cluster (default: `ceph`) |":
     "| `CEPH_CLUSTER_NAME` | Ja | Klustrets identifierare, som visas i OneUptime. Sätts på varje mätvärde som resursattributet `ceph.cluster.name`. Håll den stabil: ändrar du den registreras ett nytt kluster (standard: `ceph`) |",
   "| `CEPH_MGR_ENDPOINTS` | Yes | Comma-separated `host:port` list of **all** mgr daemons, wrapped in square brackets, e.g. `[ceph-mon-1:9283,ceph-mon-2:9283]`. The install script adds the brackets for you |":
@@ -71,7 +71,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The cluster shows up tagged `team:storage` and `env:production`. Labels are matched case-insensitively, so an existing `Production` label is reused; labels added in the OneUptime UI are never removed by the agent.":
     "Klustret visas med etiketterna `team:storage` och `env:production`. Etiketter jämförs utan hänsyn till skiftläge, så en befintlig etikett `Production` återanvänds; etiketter som lagts till i OneUptimes gränssnitt tas aldrig bort av agenten.",
   "The agent ships everything the mgr prometheus module exports. OneUptime's Ceph pages, metric catalog and alert templates are built on:":
-    "Agenten skickar allt som mgr:ens prometheus-modul exporterar. OneUptimes Ceph-sidor, mätvärdeskatalog och aviseringsmallar bygger på:",
+    "Agenten skickar allt som mgr:ens prometheus-modul exporterar. OneUptimes Ceph-sidor, mätvärdeskatalog och larmmallar bygger på:",
   "| Category | Data |": "| Kategori | Data |",
   "| **Cluster Health** | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), monitor quorum, total and used raw capacity |":
     "| **Klusterhälsa** | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), monitorkvorum, total och använd råkapacitet |",
@@ -82,7 +82,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| **Placement Groups** | Active, degraded, and undersized PG counts |":
     "| **Placement Groups** | Antal aktiva, degraderade och underdimensionerade PG:er |",
   "`docker-compose.yml` also runs **`oneuptime-ceph-ai-agent`**. While OneUptime AI investigates an incident or alert on this cluster, it runs `ceph` commands through it — `ceph health detail`, `ceph osd tree`, `ceph pg dump_stuck`, `ceph crash ls`. It registers as the cluster named `CEPH_CLUSTER_NAME` and appears on the cluster's **AI → AI agent** page.":
-    "`docker-compose.yml` kör också **`oneuptime-ceph-ai-agent`**. Medan OneUptime AI utreder en incident eller avisering på det här klustret kör den `ceph`-kommandon genom den: `ceph health detail`, `ceph osd tree`, `ceph pg dump_stuck`, `ceph crash ls`. Den registrerar sig som klustret med namnet `CEPH_CLUSTER_NAME` och visas på klustrets sida **AI → AI-agent**.",
+    "`docker-compose.yml` kör också **`oneuptime-ceph-ai-agent`**. Medan OneUptime AI utreder en incident eller larm på det här klustret kör den `ceph`-kommandon genom den: `ceph health detail`, `ceph osd tree`, `ceph pg dump_stuck`, `ceph crash ls`. Den registrerar sig som klustret med namnet `CEPH_CLUSTER_NAME` och visas på klustrets sida **AI → AI-agent**.",
   "It connects as its own Ceph client, `client.oneuptime-ai`, with the cluster's minimal `ceph.conf` and that client's keyring in a `ceph/` folder next to `docker-compose.yml`. The install script offers to create them on a fresh install, when `ceph` works with admin rights on the machine you run it on. Otherwise, or to add them later, on a Ceph admin node:":
     "Den ansluter som sin egen Ceph-klient, `client.oneuptime-ai`, med klustrets minimala `ceph.conf` och den klientens nyckelring i en mapp `ceph/` bredvid `docker-compose.yml`. Installationsskriptet erbjuder att skapa dem vid en ny installation, när `ceph` fungerar med administratörsbehörighet på maskinen där du kör det. Annars, eller för att lägga till dem senare, på en Ceph-administrationsnod:",
   "If the agent runs on another machine, copy the two files into its `ceph/` folder the same way. **Never put the admin keyring there.**":
@@ -103,11 +103,11 @@ const TRANSLATION: SetupGuideTranslation = {
   "If you created the AI agent's Ceph client, remove it on an admin node: `ceph auth del client.oneuptime-ai`.":
     "Om du skapade AI-agentens Ceph-klient tar du bort den på en administrationsnod: `ceph auth del client.oneuptime-ai`.",
   "`troubleshoot.sh` checks the whole chain — container runtime, every mgr endpoint (including the active-vs-standby trap), cluster-name stamping, token shape, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key. That last check matters most: OneUptime's OTLP endpoints refuse a bad key with `401` or `422`, which the collector logs as a single `Exporting failed` line per batch that is easy to miss, so the script asks `GET /otlp/v1/validate` for a direct 200/401 verdict.":
-    "`troubleshoot.sh` kontrollerar hela kedjan (containerkörning, varje mgr-slutpunkt inklusive fällan med aktiv mot standby, stämplingen av klusternamnet, tokenens form, insamlarens egna mätvärden) och frågar OneUptime direkt om den godtar din ingestion-nyckel. Den sista kontrollen betyder mest: OneUptimes OTLP-slutpunkter avvisar en felaktig nyckel med `401` eller `422`, vilket insamlaren loggar som en enda `Exporting failed`-rad per batch som är lätt att missa, så skriptet frågar `GET /otlp/v1/validate` om ett direkt utslag 200/401.",
+    "`troubleshoot.sh` kontrollerar hela kedjan (containerkörning, varje mgr-slutpunkt inklusive fällan med aktiv mot standby, stämplingen av klusternamnet, tokenens form, insamlarens egna mätvärden) och frågar OneUptime direkt om den godtar din intagningsnyckel. Den sista kontrollen betyder mest: OneUptimes OTLP-slutpunkter avvisar en felaktig nyckel med `401` eller `422`, vilket insamlaren loggar som en enda `Exporting failed`-rad per batch som är lätt att missa, så skriptet frågar `GET /otlp/v1/validate` om ett direkt utslag 200/401.",
   "It ends with a verdict naming the most likely cause.":
     "Det avslutas med ett utslag som nämner den mest sannolika orsaken.",
   "1. Check the collector logs: `docker logs oneuptime-ceph-agent` — look for export errors (`401` means a bad ingestion key, connection refused means a wrong `ONEUPTIME_URL`).":
-    "1. Kontrollera insamlarens loggar: `docker logs oneuptime-ceph-agent`; leta efter exportfel (`401` betyder en felaktig ingestion-nyckel, connection refused betyder en felaktig `ONEUPTIME_URL`).",
+    "1. Kontrollera insamlarens loggar: `docker logs oneuptime-ceph-agent`; leta efter exportfel (`401` betyder en felaktig intagningsnyckel, connection refused betyder en felaktig `ONEUPTIME_URL`).",
   "2. Verify a mgr endpoint serves metrics: `curl http://<active-mgr>:9283/metrics | head` — you should see `ceph_*` metric lines. If not, enable the module: `ceph mgr module enable prometheus`.":
     "2. Bekräfta att en mgr-slutpunkt levererar mätvärden: `curl http://<active-mgr>:9283/metrics | head`; du bör se rader med `ceph_*`-mätvärden. Om inte, aktivera modulen: `ceph mgr module enable prometheus`.",
   "3. Make sure `CEPH_MGR_ENDPOINTS` is wrapped in square brackets — without them the collector treats the whole comma-separated string as a single (invalid) target.":
@@ -117,7 +117,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent logs for errors: `docker logs oneuptime-ceph-agent 2>&1 | grep -i error`":
     "2. Kontrollera agentens loggar efter fel: `docker logs oneuptime-ceph-agent 2>&1 | grep -i error`",
   "3. Verify your OneUptime URL and ingestion key are correct.":
-    "3. Bekräfta att din OneUptime-URL och ingestion-nyckel är korrekta.",
+    "3. Bekräfta att din OneUptime-URL och intagningsnyckel är korrekta.",
   "4. Ensure the agent machine can reach the OneUptime instance over the network.":
     "4. Se till att agentens maskin når OneUptime-instansen över nätverket.",
   "You are probably scraping only the (previously) active mgr. List **every** mgr daemon in `CEPH_MGR_ENDPOINTS` — scrapes of standby mgrs are cheap and return empty responses.":
@@ -131,7 +131,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The cluster's identity comes from `CEPH_CLUSTER_NAME`, stamped on every metric as `ceph.cluster.name`. This cluster is **`ceph-1`**. Fix it in `.env` and apply it with `docker compose up -d` in `/opt/oneuptime-ceph-agent` — note that a new name registers a new cluster.":
     "Klustrets identitet kommer från `CEPH_CLUSTER_NAME`, som sätts på varje mätvärde som `ceph.cluster.name`. Det här klustret är **`ceph-1`**. Rätta den i `.env` och tillämpa den med `docker compose up -d` i `/opt/oneuptime-ceph-agent`; observera att ett nytt namn registrerar ett nytt kluster.",
   "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:":
-    "Kommandot innehåller redan din OneUptime-URL och ingestion-nyckel. Resten frågar skriptet efter:",
+    "Kommandot innehåller redan din OneUptime-URL och intagningsnyckel. Resten frågar skriptet efter:",
   "Download `docker-compose.yml` and `otel-collector-config.yaml` from this OneUptime into a new folder:":
     "Ladda ned `docker-compose.yml` och `otel-collector-config.yaml` från den här OneUptime till en ny mapp:",
   "Create a `.env` file next to them:": "Skapa en `.env`-fil bredvid dem:",
@@ -141,7 +141,7 @@ const TRANSLATION: SetupGuideTranslation = {
     "- Lista **varje** mgr-daemon i `CEPH_MGR_ENDPOINTS`, kommaseparerade och inom hakparenteser: utan parenteserna läser insamlaren hela listan som ett enda ogiltigt mål.",
   "Start the agent:": "Starta agenten:",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Välj en ingestion-nyckel i steg 1 för att fylla i `<YOUR_API_KEY>`.",
+    "Välj en intagningsnyckel i steg 1 för att fylla i `<YOUR_API_KEY>`.",
   "Docker Compose also starts **`oneuptime-ceph-ai-agent`**, the OneUptime AI agent. It waits for a Ceph client of its own — see **OneUptime AI agent** under Advanced, or delete its service from `docker-compose.yml` if you do not use OneUptime AI.":
     "Docker Compose startar också **`oneuptime-ceph-ai-agent`**, OneUptime AI-agenten. Den väntar på en egen Ceph-klient; se **OneUptime AI-agent** under Avancerad, eller ta bort dess tjänst från `docker-compose.yml` om du inte använder OneUptime AI.",
   "The agent reads these from the `.env` file next to `docker-compose.yml`. After changing one, apply it with `docker compose up -d` in the folder with `docker-compose.yml`.":

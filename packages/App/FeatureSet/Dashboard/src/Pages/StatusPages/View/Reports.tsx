@@ -15,6 +15,8 @@ import URL from "Common/Types/API/URL";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import Email from "Common/Types/Email";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Toast from "Common/UI/Utils/Toast";
+import { translateText } from "Common/UI/Utils/TranslateTemplate";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/UI/Utils/API/API";
@@ -88,11 +90,18 @@ const StatusPageReports: FunctionComponent<
       if (response instanceof HTTPErrorResponse) {
         setError(API.getFriendlyMessage(response));
         setShowErrorModal(true);
+        setIsLoading(false);
         return;
       }
 
-      setError("Test email report sent successfully.");
-      setShowErrorModal(true);
+      /*
+       * Said in the corner: it was the error dialog, titled "Send Test
+       * Email Status", saying it worked (#9120).
+       */
+      Toast.success(
+        translateText("Test email report sent successfully.") ||
+          "Test email report sent successfully.",
+      );
     } catch (err) {
       setError(API.getFriendlyMessage(err));
       setShowErrorModal(true);
@@ -160,7 +169,7 @@ const StatusPageReports: FunctionComponent<
       {showErrorModal ? (
         <ConfirmModal
           description={error}
-          title={`Send Test Email Status`}
+          title={`Test email report not sent`}
           onSubmit={() => {
             setShowErrorModal(false);
             setError("");

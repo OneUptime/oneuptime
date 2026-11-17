@@ -1,17 +1,14 @@
 import ProductKey, { PRODUCT_KEYS } from "../../../Types/Product/ProductKey";
 import {
   ALWAYS_SHOWN_PRODUCTS,
-  ESSENTIAL_PRODUCTS,
   HIDEABLE_PRODUCTS,
-  PRODUCTS_OF_GOAL,
+  LEGACY_GOALS_CHOSEN_BY,
   ProductPlacement,
   ProjectProductSettings,
   ProjectProductsChosenBy,
   getHiddenProducts,
   getHiddenProductsWithData,
   getProductPlacement,
-  getProductsHiddenByGoals,
-  getProjectProductSettingsFromGoals,
   isHideableProduct,
   isProductHidden,
   parseProjectProductSettings,
@@ -19,14 +16,17 @@ import {
   withEveryProductShown,
   withProductShown,
 } from "../../../Types/Product/ProjectProducts";
-import ProjectGoal, {
-  PROJECT_GOALS,
-} from "../../../Types/WelcomeChecklist/ProjectGoal";
+import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
 
 /*
- * The products a project shows (#6814): what a project hides, what its goals
- * start it with, and where a product is drawn.
+ * The products a project shows (#6814): what a project hides, who may hide
+ * it, and where a product is drawn.
+ *
+ * Only a member hides a product, on Project Settings > Products. Nothing
+ * hides one by itself: not the project's goals, not a product that is not
+ * set up yet. A list an older version set from the goals reads as nothing
+ * chosen.
  */
 
 const NOW: Date = new Date("2026-11-12T10:00:00.000Z");
@@ -40,6 +40,35 @@ const member: (hidden: Array<ProductKey>) => ProjectProductSettings = (
     chosenBy: ProjectProductsChosenBy.Member,
     changedAt: NOW.toISOString(),
     changedByUserId: "user-1",
+  };
+};
+
+/*
+ * A list as the goals stored it before: "uptime" hid everything but the
+ * seven products a problem flows through and Settings.
+ */
+const KEPT_BY_UPTIME_GOAL: ReadonlyArray<ProductKey> = [
+  ProductKey.Monitors,
+  ProductKey.Incidents,
+  ProductKey.Alerts,
+  ProductKey.OnCall,
+  ProductKey.StatusPages,
+  ProductKey.ScheduledMaintenance,
+  ProductKey.Slos,
+];
+
+const storedByGoals: (extra?: JSONObject) => JSONObject = (
+  extra?: JSONObject,
+): JSONObject => {
+  return {
+    hidden: HIDEABLE_PRODUCTS.filter((product: ProductKey): boolean => {
+      return !KEPT_BY_UPTIME_GOAL.includes(product);
+    }),
+    keptHiddenWithData: [],
+    chosenBy: "goals",
+    changedAt: NOW.toISOString(),
+    changedByUserId: null,
+    ...extra,
   };
 };
 
@@ -57,23 +86,11 @@ describe("which products can be hidden", () => {
     }
   });
 
-  test("every other entry can be hidden, Essentials and Chat too", () => {
+  test("every other entry can be hidden, Monitors and Chat too", () => {
     expect(HIDEABLE_PRODUCTS).toHaveLength(PRODUCT_KEYS.length - 3);
     expect(HIDEABLE_PRODUCTS).toContain(ProductKey.Monitors);
     expect(HIDEABLE_PRODUCTS).toContain(ProductKey.AIChat);
     expect(HIDEABLE_PRODUCTS).toContain(ProductKey.Kubernetes);
-  });
-
-  test("Essentials are the seven products a problem flows through", () => {
-    expect(ESSENTIAL_PRODUCTS).toEqual([
-      ProductKey.Monitors,
-      ProductKey.Incidents,
-      ProductKey.Alerts,
-      ProductKey.OnCall,
-      ProductKey.StatusPages,
-      ProductKey.ScheduledMaintenance,
-      ProductKey.Slos,
-    ]);
   });
 });
 
@@ -120,13 +137,13 @@ describe("reading what a project stored", () => {
     expect(isProductHidden(settings, ProductKey.Logs)).toBe(false);
   });
 
-  test("a list from an unknown source reads as a member's", () => {
+  test("a list from an unknown source, or none, reads as a member's", () => {
     expect(
       parseProjectProductSettings({ hidden: [], chosenBy: "robot" })?.chosenBy,
     ).toBe(ProjectProductsChosenBy.Member);
-    expect(
-      parseProjectProductSettings({ hidden: [], chosenBy: "goals" })?.chosenBy,
-    ).toBe(ProjectProductsChosenBy.Goals);
+    expect(parseProjectProductSettings({ hidden: ["docker"] })?.chosenBy).toBe(
+      ProjectProductsChosenBy.Member,
+    );
     expect(parseProjectProductSettings({ hidden: [] })?.changedAt).toBeNull();
   });
 
@@ -147,203 +164,116 @@ describe("reading what a project stored", () => {
   });
 });
 
-describe("what a new project's goals hide", () => {
-  test("a project that never answered, skipped or is looking around hides nothing", () => {
-    expect(getProductsHiddenByGoals({ goals: null, inUse: [] })).toEqual([]);
-    expect(getProductsHiddenByGoals({ goals: [], inUse: [] })).toEqual([]);
-    expect(
-      getProductsHiddenByGoals({ goals: [ProjectGoal.Explore], inUse: [] }),
-    ).toEqual([]);
-    // Looking around wins over a narrower goal ticked beside it.
-    expect(
-      getProductsHiddenByGoals({
-        goals: [ProjectGoal.Uptime, ProjectGoal.Explore],
-        inUse: [],
-      }),
-    ).toEqual([]);
+/*
+ * The goals used to hide every product they did not name: a new project
+ * that answered "Know when my website or API is down" had 37 products moved
+ * under More products, all "Not set up", without anybody choosing it.
+ */
+describe("nothing hides a product by itself", () => {
+  test("a member is the only source of a project's list", () => {
+    expect(Object.values(ProjectProductsChosenBy)).toEqual([
+      ProjectProductsChosenBy.Member,
+    ]);
+    expect(ProjectProductsChosenBy.Member).toBe("member");
   });
 
-  test("uptime keeps Essentials and Settings, and hides the rest", () => {
-    const hidden: Array<ProductKey> = getProductsHiddenByGoals({
-      goals: [ProjectGoal.Uptime],
-      inUse: [],
-    });
-
-    for (const product of [...ESSENTIAL_PRODUCTS, ...ALWAYS_SHOWN_PRODUCTS]) {
-      expect(hidden).not.toContain(product);
-    }
-
-    expect(hidden).toContain(ProductKey.Logs);
-    expect(hidden).toContain(ProductKey.Kubernetes);
-    expect(hidden).toContain(ProductKey.AIChat);
-    expect(hidden).toHaveLength(
-      HIDEABLE_PRODUCTS.length - ESSENTIAL_PRODUCTS.length,
-    );
-    // In the menu's order.
-    expect(hidden).toEqual(
-      PRODUCT_KEYS.filter((product: ProductKey) => {
-        return hidden.includes(product);
-      }),
-    );
+  test("the mark a goals list was stored with is 'goals'", () => {
+    expect(LEGACY_GOALS_CHOSEN_BY).toBe("goals");
   });
 
-  test("each goal shows what it names", () => {
-    for (const goal of PROJECT_GOALS) {
-      const hidden: Array<ProductKey> = getProductsHiddenByGoals({
-        goals: [goal],
-        inUse: [],
-      });
+  test("a list the goals set reads as nothing chosen: every product shown", () => {
+    const settings: ProjectProductSettings | null =
+      parseProjectProductSettings(storedByGoals());
 
-      for (const product of PRODUCTS_OF_GOAL[goal]) {
-        expect([goal, product, hidden.includes(product)]).toEqual([
-          goal,
-          product,
-          false,
-        ]);
-      }
+    expect(settings).toBeNull();
+    expect(getHiddenProducts(settings)).toEqual([]);
+
+    for (const product of PRODUCT_KEYS) {
+      expect([product, isProductHidden(settings, product)]).toEqual([
+        product,
+        false,
+      ]);
+      expect([
+        product,
+        getProductPlacement({
+          product: product,
+          hidden: getHiddenProducts(settings),
+        }),
+      ]).toEqual([product, ProductPlacement.Listed]);
     }
   });
 
-  test("telemetry shows logs, metrics, traces, exceptions, services and dashboards", () => {
-    const hidden: Array<ProductKey> = getProductsHiddenByGoals({
-      goals: [ProjectGoal.Telemetry],
-      inUse: [],
-    });
-
-    for (const product of [
-      ProductKey.Logs,
-      ProductKey.Metrics,
-      ProductKey.Traces,
-      ProductKey.Exceptions,
-      ProductKey.Services,
-      ProductKey.Dashboards,
+  test("whatever the goals list holds, it hides nothing", () => {
+    for (const hidden of [
+      [],
+      ["logs"],
+      ["kubernetes", "docker", "logs"],
+      [...HIDEABLE_PRODUCTS],
+      [...PRODUCT_KEYS],
     ]) {
-      expect(hidden).not.toContain(product);
+      expect(
+        parseProjectProductSettings(
+          storedByGoals({ hidden: hidden, keptHiddenWithData: ["logs"] }),
+        ),
+      ).toBeNull();
     }
-
-    expect(hidden).toContain(ProductKey.Kubernetes);
-    expect(hidden).toContain(ProductKey.Profiles);
   });
 
-  test("infrastructure shows hosts, Kubernetes, Docker and cloud", () => {
-    const hidden: Array<ProductKey> = getProductsHiddenByGoals({
-      goals: [ProjectGoal.Infrastructure],
-      inUse: [],
-    });
-
-    for (const product of [
-      ProductKey.Hosts,
-      ProductKey.Kubernetes,
-      ProductKey.Docker,
-      ProductKey.Cloud,
-      ProductKey.Metrics,
-      ProductKey.Dashboards,
-    ]) {
-      expect(hidden).not.toContain(product);
-    }
-
-    expect(hidden).toContain(ProductKey.Logs);
-    expect(hidden).toContain(ProductKey.Proxmox);
-  });
-
-  test("goals add up", () => {
-    const hidden: Array<ProductKey> = getProductsHiddenByGoals({
-      goals: [ProjectGoal.Telemetry, ProjectGoal.Infrastructure],
-      inUse: [],
-    });
-
-    expect(hidden).not.toContain(ProductKey.Logs);
-    expect(hidden).not.toContain(ProductKey.Kubernetes);
-  });
-
-  test("a product the project already uses is never hidden", () => {
-    const hidden: Array<ProductKey> = getProductsHiddenByGoals({
-      goals: [ProjectGoal.Uptime],
-      inUse: [ProductKey.Proxmox, ProductKey.Logs],
-    });
-
-    expect(hidden).not.toContain(ProductKey.Proxmox);
-    expect(hidden).not.toContain(ProductKey.Logs);
-    expect(hidden).toContain(ProductKey.Ceph);
-  });
-
-  test("an unknown goal is ignored", () => {
+  test("a goals list Home asks nothing about, though its products have data", () => {
     expect(
-      getProductsHiddenByGoals({
-        goals: ["ufo" as ProjectGoal],
-        inUse: [],
+      getHiddenProductsWithData({
+        settings: parseProjectProductSettings(storedByGoals()),
+        inUse: [ProductKey.Logs, ProductKey.Kubernetes],
       }),
     ).toEqual([]);
   });
-});
 
-describe("the settings a project's goals give it", () => {
-  test("a project nobody chose for gets the goals' list, marked as theirs", () => {
+  test("a member's list is kept as the member left it", () => {
+    const settings: ProjectProductSettings | null = parseProjectProductSettings(
+      {
+        ...storedByGoals(),
+        chosenBy: "member",
+        changedByUserId: "user-1",
+      },
+    );
+
+    expect(settings?.hidden).toHaveLength(
+      HIDEABLE_PRODUCTS.length - KEPT_BY_UPTIME_GOAL.length,
+    );
+    expect(isProductHidden(settings, ProductKey.Logs)).toBe(true);
+    expect(isProductHidden(settings, ProductKey.Monitors)).toBe(false);
+  });
+
+  test("a member's first change to a goals list starts from every product shown", () => {
+    // Hiding one product hides that product only.
     expect(
-      getProjectProductSettingsFromGoals({
-        current: null,
-        goals: [ProjectGoal.Uptime],
-        inUse: [],
+      withProductShown({
+        current: parseProjectProductSettings(storedByGoals()),
+        product: ProductKey.Kubernetes,
+        isShown: false,
+        isInUse: false,
+        userId: "user-2",
         now: NOW,
       }),
     ).toEqual({
-      hidden: getProductsHiddenByGoals({
-        goals: [ProjectGoal.Uptime],
-        inUse: [],
-      }),
+      hidden: [ProductKey.Kubernetes],
       keptHiddenWithData: [],
-      chosenBy: ProjectProductsChosenBy.Goals,
+      chosenBy: ProjectProductsChosenBy.Member,
       changedAt: NOW.toISOString(),
-      changedByUserId: null,
+      changedByUserId: "user-2",
     });
-  });
 
-  test("goals that hide nothing still say the list is theirs", () => {
+    // Showing one leaves nothing hidden.
     expect(
-      getProjectProductSettingsFromGoals({
-        current: null,
-        goals: [],
-        inUse: [],
+      withProductShown({
+        current: parseProjectProductSettings(storedByGoals()),
+        product: ProductKey.Logs,
+        isShown: true,
+        isInUse: false,
+        userId: "user-2",
         now: NOW,
-      }),
-    ).toEqual({
-      hidden: [],
-      keptHiddenWithData: [],
-      chosenBy: ProjectProductsChosenBy.Goals,
-      changedAt: NOW.toISOString(),
-      changedByUserId: null,
-    });
-  });
-
-  test("changed goals choose again while the list is still the goals'", () => {
-    const fromUptime: ProjectProductSettings | null =
-      getProjectProductSettingsFromGoals({
-        current: null,
-        goals: [ProjectGoal.Uptime],
-        inUse: [],
-        now: NOW,
-      });
-
-    const fromTelemetry: ProjectProductSettings | null =
-      getProjectProductSettingsFromGoals({
-        current: fromUptime,
-        goals: [ProjectGoal.Telemetry],
-        inUse: [],
-        now: NOW,
-      });
-
-    expect(fromTelemetry?.hidden).not.toContain(ProductKey.Logs);
-  });
-
-  test("a list a member chose is never changed by the goals", () => {
-    expect(
-      getProjectProductSettingsFromGoals({
-        current: member([ProductKey.Kubernetes]),
-        goals: [ProjectGoal.Uptime],
-        inUse: [],
-        now: NOW,
-      }),
-    ).toBeNull();
+      }).hidden,
+    ).toEqual([]);
   });
 });
 
@@ -365,6 +295,19 @@ describe("a member shows or hides a product", () => {
       changedAt: NOW.toISOString(),
       changedByUserId: "user-2",
     });
+  });
+
+  test("hiding one product into a project that hides nothing hides only that one", () => {
+    expect(
+      withProductShown({
+        current: null,
+        product: ProductKey.Logs,
+        isShown: false,
+        isInUse: false,
+        userId: "user-2",
+        now: NOW,
+      }).hidden,
+    ).toEqual([ProductKey.Logs]);
   });
 
   test("hiding a product with data keeps it hidden on purpose", () => {
@@ -402,22 +345,17 @@ describe("a member shows or hides a product", () => {
     });
   });
 
-  test("a change to the goals' list makes it the member's", () => {
-    const fromGoals: ProjectProductSettings = {
-      ...member([ProductKey.Kubernetes]),
-      chosenBy: ProjectProductsChosenBy.Goals,
-    };
-
+  test("showing a product nobody hid changes nothing else", () => {
     expect(
       withProductShown({
-        current: fromGoals,
-        product: ProductKey.Kubernetes,
+        current: member([ProductKey.Kubernetes]),
+        product: ProductKey.Logs,
         isShown: true,
         isInUse: false,
         userId: "user-2",
         now: NOW,
-      }).chosenBy,
-    ).toBe(ProjectProductsChosenBy.Member);
+      }).hidden,
+    ).toEqual([ProductKey.Kubernetes]);
   });
 
   test("the products always shown stay shown", () => {
@@ -433,7 +371,7 @@ describe("a member shows or hides a product", () => {
     ).toEqual([]);
   });
 
-  test("Show Every Product hides nothing, and keeps the goals out", () => {
+  test("Show Every Product hides nothing, as the member's choice", () => {
     expect(withEveryProductShown({ userId: "user-3", now: NOW })).toEqual({
       hidden: [],
       keptHiddenWithData: [],
@@ -502,6 +440,15 @@ describe("where a product is drawn", () => {
         hidden: [ProductKey.Kubernetes],
       }),
     ).toBe(ProductPlacement.Listed);
+  });
+
+  test("with nothing hidden and nothing off, every product is listed", () => {
+    for (const product of PRODUCT_KEYS) {
+      expect([
+        product,
+        getProductPlacement({ product: product, hidden: [] }),
+      ]).toEqual([product, ProductPlacement.Listed]);
+    }
   });
 
   test("Project Settings is listed even if a stored list names it", () => {

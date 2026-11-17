@@ -84,7 +84,7 @@ Send **GET**- eller **POST**-anmodninger til denne URL. HEAD accepteres og behan
 > Alle, der kender denne URL, kan markere monitoren som sund, så behandl den som en hemmelighed. Hvis den slipper ud, skal du åbne monitorens side **Indstillinger** og klikke på **Nulstil hemmelig nøgle for indgående anmodning** og derefter opdatere hver afsender. Monitorens oversigt viser den seneste anmodning, som dens logge gemmer den: med hemmeligheder og personoplysninger maskeret og uden headere og brødtekst, når **Behold anmodningsindhold** er slået fra. Maskeringen fanger kun de navne og mønstre, den kender, så send ikke API-nøgler eller tokens til dette endpoint.
 
 > [!IMPORTANT]
-> OneUptime svarer straks `200` med et tomt JSON-objekt (`{}`) og behandler anmodningen via en kø. Svaret skrives, før nogen validering finder sted, så en `200` er **ikke** en bekræftelse på, at anmodningen blev accepteret — en forkert hemmelig nøgle, en slettet monitor og en deaktiveret monitor returnerer også `200`. Tjek monitorens egen tidslinje for at bekræfte, at anmodningerne lander. Den eneste undtagelse er et projekt, der kræver en hemmelighed ved hver anmodning: En anmodning uden en hemmelighed besvares med `401`.
+> OneUptime svarer straks `200` med et tomt JSON-objekt (`{}`) og behandler anmodningen via en kø. Svaret skrives, før nogen validering finder sted, så en `200` er **ikke** en bekræftelse på, at anmodningen blev accepteret — en forkert hemmelig nøgle, en slettet monitor og en deaktiveret monitor returnerer også `200`. Tjek monitorens egen tidslinje for at bekræfte, at anmodningerne lander. Et projekt, der kræver en hemmelighed ved hver anmodning, besvarer en anmodning uden en hemmelighed med `401`, og en tjeneste, der tjekker URL'en, før den leverer noget, får det svar, den forventer: se [Tjenester, der tjekker URL'en først](#tjenester-der-tjekker-urlen-først).
 
 ### Send en brødtekst i anmodningen
 
@@ -94,8 +94,9 @@ Hvis du vil bruge felter inde i brødteksten — `{{requestBody.status}}` i en h
 | --- | --- |
 | `application/json` | Den fortolkede JSON. |
 | `application/x-www-form-urlencoded` | Den fortolkede formular. Nøgler i firkantede parenteser indlejres (`alerts[0][status]=firing`), og alle værdier er strenge. |
-| `text/plain` | Den fortolkede JSON, når teksten er et JSON-objekt eller et JSON-array: sådan sender Amazon SNS sine beskeder. Al anden tekst bliver en tom brødtekst. |
-| Alt andet eller ingen | En tom brødtekst (`{}`), så enhver henvisning til `requestBody` ender som ingenting. |
+| `text/plain` | Den fortolkede JSON, når teksten er et JSON-objekt eller et JSON-array: sådan sender Amazon SNS sine beskeder. Al anden tekst er selve teksten, så `backup failed: error 42` sætter monitoren offline med standardkriterierne. |
+| `application/cloudevents+json` eller en anden `+json`-type | Den fortolkede JSON: sådan leverer Azure Event Grid CloudEvents. |
+| Alt andet eller ingen | En tom brødtekst (`{}`), så ingen henvisning til `requestBody` løses op, og en skabelon skriver den ordret. |
 
 Brødtekster på op til 50 MB accepteres; en større afvises med en `413`. Komprimér ikke brødteksten med `Content-Encoding: gzip`: så gemmes den ikke som JSON, og stier ind i den bliver ikke løst op.
 
@@ -193,6 +194,8 @@ Invoke-RestMethod -Method Post `
 
 Alle, der har en monitor URL, kan sende den anmodninger. En Projektejer eller Projektadministrator kan få alle monitorer af indgående anmodninger i projektet til også at kræve en af projektets egne hemmeligheder, uanset hvem der har sat monitoren op: slå **Kræv en hemmelighed ved hver anmodning** til. En anmodning uden en hemmelighed afvises med `401` og årsagen, før den tæller som heartbeat, gemmes som monitorens seneste anmodning eller når nogen kriterier. En anmodning med en hemmelighed går videre til monitorens egne kriterier som hidtil.
 
+Projektejere og Projektadministratorer administrerer hemmelighederne og kontakten, og det gør en brugerdefineret rolle med tilladelserne Create, Read, Edit og Delete Incoming Request Secret også: Read viser hemmelighedernes værdier, og Edit slår også kontakten til og fra.
+
 :::steps
 ### Opret en hemmelighed
 
@@ -200,7 +203,7 @@ Gå til **Monitorer → Indstillinger → Hemmeligheder til indgående anmodning
 
 ### Send den fra alle afsendere
 
-Send hemmeligheden i headeren `X-OneUptime-Secret` eller som Bearer-token i headeren `Authorization`, alt efter hvad din afsender kan sætte.
+Send hemmeligheden i headeren `X-OneUptime-Secret` eller som Bearer-token i headeren `Authorization`, alt efter hvad din afsender kan sætte. En afsender, der ikke selv kan sætte en header, kan i stedet signere hver anmodning med hemmeligheden: se [Signér anmodninger med hemmeligheden](#signér-anmodninger-med-hemmeligheden).
 
 ### Find de afsendere, du har glemt
 
@@ -208,7 +211,7 @@ Så snart projektet har en hemmelighed, tjekker OneUptime hver anmodning for en,
 
 ### Slå kravet til
 
-Slå **Kræv en hemmelighed ved hver anmodning** til. Kravet kan ikke slås til, mens projektet ingen hemmelighed har, så ingen afsender afvises ved en fejl.
+Slå **Kræv en hemmelighed ved hver anmodning** til. Kravet kan ikke slås til, mens projektet ingen hemmelighed har, så ingen afsender afvises ved en fejl. Før kravet slås til, oplyses det, hvor mange monitorer af indgående anmodninger der har fået en anmodning uden en gyldig hemmelighed inden for de seneste 24 timer, hvis der er nogen: Deres afsendere afvises fra da af.
 :::
 
 ```bash
@@ -222,8 +225,40 @@ curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
 
 OneUptime gemmer aldrig hemmeligheden: Den fjerner headeren fra anmodningen og maskerer et Bearer-token, der er en af projektets hemmeligheder, før den gemmer noget.
 
+En adresse, der sender en monitor mere end 10 forskellige forkerte hemmeligheder på 15 minutter, afvises derefter med `429` for hver hemmelighed, den sender, rigtig eller forkert, indtil det tidspunkt, dens header `Retry-After` angiver, højst 15 minutter. Afsendere på andre adresser påvirkes ikke, og en afsender, der bliver ved med at sende en gammel hemmelighed, får fortsat den `401`, der siger, hvad der er galt.
+
 > [!TIP]
-> For at udskifte en hemmelighed uden at afvise nogen skal du oprette en ny, flytte dine afsendere til den og slette den gamle, når dens **Sidst brugt** holder op med at ændre sig. Enhver af projektets hemmeligheder accepteres, og den sidste kan ikke slettes, mens kravet er slået til.
+> For at udskifte en hemmelighed uden at afvise nogen skal du oprette en ny, flytte dine afsendere til den og slette den gamle, når dens **Sidst brugt** holder op med at ændre sig. Enhver af projektets hemmeligheder accepteres, medmindre den er begrænset til andre monitorer, og den sidste, der dækker en monitor, kan ikke slettes, mens kravet er slået til.
+
+### Signér anmodninger med hemmeligheden
+
+En afsender kan signere hver anmodning med hemmeligheden i stedet for at sende den, og det er mere sikkert: Intet hemmeligt sendes, og en anmodning, som nogen har opsnappet, kan ikke sendes igen senere. Foretræk det overalt, hvor en afsender kan signere. OneUptime tjekker disse signaturer, hver en HMAC-SHA256 i hex med hemmeligheden som nøgle:
+
+| Afsender | Header | Hvad der signeres |
+| --- | --- | --- |
+| Din egen kode | `X-OneUptime-Signature: t=<time>,v1=<signature>` | `<time>.<body>` |
+| GitHub-webhooks | `X-Hub-Signature-256` | Body'en |
+| Slack | `X-Slack-Signature`, med `X-Slack-Request-Timestamp` | `v0:<time>:<body>` |
+| Stripe | `Stripe-Signature` | `<time>.<body>` |
+
+`<time>` er det tidspunkt, anmodningen blev signeret, i sekunder siden 1970. En signatur, der er mere end 5 minutter fra OneUptimes ur, afvises, og det samme gør en signeret anmodning, der sendes en gang til; GitHubs signatur har ingen tid, så OneUptime husker hver af dem i et døgn. Giv ved GitHub webhooken en af projektets hemmeligheder som dens secret. Slack og Stripe laver deres egen signeringshemmelighed: Opret projektets hemmelighed med den værdi under **Flere felter**.
+
+```bash
+body='{"status":"healthy"}'
+t=$(date +%s)
+sig=$(printf '%s.%s' "$t" "$body" | openssl dgst -sha256 -hmac "YOUR_PROJECT_SECRET" | sed 's/^.* //')
+
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Content-Type: application/json" \
+  -H "X-OneUptime-Signature: t=$t,v1=$sig" \
+  -d "$body"
+```
+
+En hemmelighed i URL'ens query string accepteres ikke: Proxyer og adgangslogs gemmer hele URL'er ved siden af monitorens egen nøgle. En sondes indgående anmodning ingress videresender en signeret anmodnings body, som den kom, så signaturen holder også den vej.
+
+### Begræns en hemmelighed til bestemte monitorer
+
+En hemmelighed accepteres af alle monitorer af indgående anmodninger i projektet, medmindre du begrænser den, som et projekt gør, hvis lejere hver sender deres egen hemmelighed: Vælg under **Flere felter** enten **Bestemte monitorer** eller **Monitorer med etiketter**. Alle andre monitorer afviser den med `401`, som de afviser en forkert hemmelighed, og **Anmodninger uden hemmelighed** angiver årsagen som **Hemmelighed ikke til denne monitor**. Så længe kravet er slået til, beholder projektet mindst én hemmelighed, der dækker en monitor.
 
 ## Overvågningskriterier
 
@@ -383,9 +418,25 @@ Hele payloaden er tilgængelig ved siden af, så både en hændelsestitel `{{ale
 
 En komplet Alertmanager-konfiguration finder du under [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). For Grafana, se [Grafana](/docs/integrations/grafana).
 
+## Tjenester, der tjekker URL'en først
+
+Nogle tjenester tjekker et nyt endpoint, før de leverer noget til det: De sender det en anmodning og leverer først, når det svarer, som de forventer. OneUptime besvarer selv disse tjek, så du skal kun indsætte monitorens **Heartbeat URL** i tjenesten.
+
+| Tjeneste | Tjekket | Det, OneUptime svarer |
+| --- | --- | --- |
+| Azure Event Grid, Event Grid-skema | En `SubscriptionValidationEvent` | Dens `validationCode`, som `validationResponse` |
+| Azure Event Grid, CloudEvents-skema | En `OPTIONS`-anmodning, der nævner sin oprindelse | `WebHook-Allowed-Origin`, med den oprindelse |
+| Slack Events API | En `url_verification`-anmodning | Dens `challenge` |
+| Ændringsnotifikationer fra Microsoft Graph | En `POST` med et `validationToken` | Tokenet, som `text/plain` |
+| Event hooks fra Okta | En `GET` med `X-Okta-Verification-Challenge` | Udfordringen, som `verification` |
+
+Et tjek besvares kun på en monitors egen URL, og kun når anmodningen tæller: I et projekt, der kræver en hemmelighed ved hver anmodning, afvises et tjek uden en hemmelighed med `401` som enhver anmodning, så tjenesten skal sende hemmeligheden i en header. Svaret indeholder det, tjenesten sendte for at få det tilbage, og intet andet fra anmodningen, og kun når det har den form, tjenesten giver det.
+
+Et tjek når monitoren som enhver anmodning, så dens kriterier vurderer det, og det vises på monitorens **Oversigt**; CloudEvents-tjekket besvares og intet andet. En sondes indgående anmodning ingress besvarer et tjek, som den besvarer enhver anmodning, med `{}`, så send disse tjenester til OneUptimes egen URL.
+
 ## Abonnement på Amazon SNS eller Azure Event Grid
 
-Amazon SNS og Azure Event Grid sender intet til et nyt endpoint, før nogen bekræfter abonnementet ved at åbne et link, som tjenesten sender til det. Når den anmodning kommer, viser kortet **Monitor-resumé** på monitorens **Oversigt**, hvad tjenesten venter på, emnet og én knap, der åbner linket i en ny fane.
+Amazon SNS sender intet til et nyt endpoint, før nogen bekræfter abonnementet ved at åbne et link, som SNS sender dertil. Azure Event Grid sender også sådan et link, til et endpoint, der ikke besvarer dens tjek, og OneUptime besvarer det. Når der kommer et link, som endnu skal åbnes, viser kortet **Monitor-resumé** på monitorens **Oversigt**, hvad tjenesten venter på, emnet og én knap, der åbner linket i en ny fane.
 
 | Tjeneste | Anmodningen | Knap | Linket virker i |
 | --- | --- | --- | --- |
@@ -411,11 +462,11 @@ Hvis kortet siger, at linket ikke længere kan åbnes, så markér abonnementet 
 ### Azure Event Grid
 
 :::steps
-1. Åbn i Azure-portalen den ressource, hvis hændelser du vil have, og tilføj et hændelsesabonnement. Vælg **Event Grid Schema** som hændelsesskema, **Web Hook** som endpointtype og monitorens **Heartbeat URL** som endpoint.
-2. Åbn inden for 10 minutter monitorens **Oversigt**, og klik på **Valider abonnement** i kortet **Monitor-resumé**.
+1. Åbn i Azure-portalen den ressource, hvis hændelser du vil have, og tilføj et hændelsesabonnement. Vælg **Event Grid Schema** eller **Cloud Event Schema v1.0** som hændelsesskema, **Web Hook** som endpointtype og monitorens **Heartbeat URL** som endpoint.
+2. Opret hændelsesabonnementet. OneUptime besvarer Event Grids tjek, så abonnementet valideres, mens det oprettes, og dets hændelser begynder at komme.
 :::
 
-Event Grid validerer et endpoint, der sender en kode tilbage til Event Grid, eller hvis ejer åbner det link, Event Grid sender. OneUptime besvarer hver anmodning med en tom `200`, så linket er vejen. Linket peger på Event Grid på port 553, som en firewall foran din browser skal tillade. Går der 10 minutter først, mislykkes hændelsesabonnementet: opret det igen.
+Event Grid validerer et endpoint, der sender en kode tilbage til Event Grid, eller hvis ejer åbner det link, Event Grid sender. OneUptime sender koden tilbage, så kortet **Monitor-resumé** tilbyder kun **Valider abonnement** for en validering, OneUptime ikke besvarede: Åbn det inden for 10 minutter. Linket peger på Event Grid på port 553, som en firewall foran din browser skal tillade. Går der 10 minutter først, mislykkes hændelsesabonnementet: opret det igen.
 
 ## Bedste praksis
 
@@ -432,7 +483,11 @@ Event Grid validerer et endpoint, der sender en kode tilbage til Event Grid, ell
 :::
 
 :::details Min afsender får en 401
-Projektet kræver en hemmelighed ved hver anmodning, og anmodningen sendte ingen eller en, der ikke er projektets: Svaret siger hvilken. Send en af projektets hemmeligheder i headeren `X-OneUptime-Secret` eller som Bearer-token, som [Kræv en hemmelighed ved hver anmodning](#kræv-en-hemmelighed-ved-hver-anmodning) viser. En afvist anmodning når aldrig frem til monitoren.
+Projektet kræver en hemmelighed ved hver anmodning, og anmodningen sendte ingen eller en, der ikke er projektets: Svaret siger hvilken. Send en af projektets hemmeligheder i headeren `X-OneUptime-Secret` eller som Bearer-token, som [Kræv en hemmelighed ved hver anmodning](#kræv-en-hemmelighed-ved-hver-anmodning) viser. En afvist anmodning når aldrig frem til monitoren. Den får også `401` med en af projektets hemmeligheder, der er begrænset til andre monitorer, og for en signeret anmodning, hvis signatur er mere end 5 minutter gammel, er sendt før, eller er lavet med en anden hemmelighed eller over en body, der ændrede sig undervejs.
+:::
+
+:::details Min afsender får en 429
+Dens adresse har sendt en monitor mere end 10 forskellige forkerte hemmeligheder eller signaturer på 15 minutter, så hver anmodning med en hemmelighed, den sender til den monitor, afvises indtil tidspunktet i dens header `Retry-After`. En afsender, der signerer med en forkert hemmelighed, laver en ny forkert signatur hver gang og havner hurtigt her: Giv den en hemmelighed, som monitoren accepterer, som [Kræv en hemmelighed ved hver anmodning](#kræv-en-hemmelighed-ved-hver-anmodning) viser, så accepteres dens anmodninger, når tiden er gået.
 :::
 
 :::details Monitoren får ikke længere anmodninger, efter at der kræves en hemmelighed
@@ -444,7 +499,11 @@ Kun et kriterium med **Indgående anmodning** (**Ikke modtaget inden for minutte
 :::
 
 :::details Et filter på Anmodningsbrødtekst matcher aldrig
-Send `Content-Type: application/json`, og skriv værdien som kompakt JSON — `"status":"firing"` uden mellemrum efter kolonet. Uden en indholdstype for JSON eller formularer fortolkes brødteksten ikke: kun JSON sendt som `text/plain` fortolkes alligevel.
+Send `Content-Type: application/json`, og skriv værdien som kompakt JSON — `"status":"firing"` uden mellemrum efter kolonet. Uden en indholdstype for JSON, formularer eller `text/plain` er brødteksten tom, og et filter på den matcher aldrig.
+:::
+
+:::details En tjeneste siger, at URL'en ikke besvarede dens tjek
+Giv tjenesten monitorens **Heartbeat URL**, på OneUptime selv og ikke på en sonde. Kræver projektet en hemmelighed ved hver anmodning, afvises tjekket med `401`, medmindre tjenesten sender hemmeligheden. Lad derefter tjenesten tjekke URL'en igen: Den besvares med det samme.
 :::
 
 :::details Et filter på Anmodningsheader matcher aldrig

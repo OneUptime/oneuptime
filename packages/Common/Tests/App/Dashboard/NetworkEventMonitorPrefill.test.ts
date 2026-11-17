@@ -36,6 +36,7 @@ import FilterCondition from "../../../Types/Filter/FilterCondition";
 import { CheckOn, FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 import Route from "../../../Types/API/Route";
 import ProjectUtil from "../../../UI/Utils/Project";
 
@@ -144,8 +145,14 @@ describe("a featured alert", () => {
       expect(prefill["name"]).toBe(
         NETWORK_EVENT_ALERT_TEMPLATE_COPY[id].monitorName,
       );
+      /*
+       * Worded as the page words English (translateText): a duration's
+       * figure held to its word, "in 5 minutes" (#8811).
+       */
       expect(prefill["description"]).toBe(
-        NETWORK_EVENT_ALERT_TEMPLATE_COPY[id].monitorDescription,
+        withDurationWordsHeld(
+          NETWORK_EVENT_ALERT_TEMPLATE_COPY[id].monitorDescription,
+        ),
       );
       expect(
         MonitorSteps.getValidationError(stepsOf(prefill), MonitorType.Logs),
@@ -216,7 +223,9 @@ describe("a featured alert", () => {
       expect(alerting?.data?.alerts).toHaveLength(1);
       expect(alerting?.data?.alerts?.[0]).toMatchObject({
         title: NETWORK_EVENT_ALERT_TEMPLATE_COPY[id].monitorName,
-        description: NETWORK_EVENT_ALERT_TEMPLATE_COPY[id].alertDescription,
+        description: withDurationWordsHeld(
+          NETWORK_EVENT_ALERT_TEMPLATE_COPY[id].alertDescription,
+        ),
         autoResolveAlert: true,
         onCallPolicyIds: [],
       });

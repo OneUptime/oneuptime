@@ -12,6 +12,7 @@ import { useScreenPadding } from "../hooks/useScreenPadding";
 import { useContentGutters } from "../layout/WindowLayout";
 import type { ContentGutters } from "../layout/windowLayout";
 import { useRefresh } from "../hooks/useRefresh";
+import { useNow } from "../hooks/useNow";
 import QueryErrorNotice from "../components/QueryErrorNotice";
 import {
   useMonitorDetail,
@@ -22,7 +23,16 @@ import {
 import { rgbToHex, withAlpha } from "../utils/color";
 import { formatDateTime, formatRelativeTime } from "../utils/date";
 import { formatElapsed, toTimestamp } from "../utils/duration";
+import {
+  getMonitorRowStatus,
+  type MonitorRowStatus,
+} from "../utils/monitorHealth";
 import { toPlainText } from "../utils/text";
+import {
+  getMonitorStatusColor,
+  getMonitorStatusGuidance,
+  type MonitorStatusGuidance,
+} from "../monitors/statusGuidance";
 import type { MonitorsStackParamList } from "../navigation/types";
 import type { MonitorStatusTimelineItem } from "../api/monitors";
 import AppText from "../components/AppText";
@@ -44,28 +54,17 @@ import EmptyState from "../components/EmptyState";
 
 type Props = NativeStackScreenProps<MonitorsStackParamList, "MonitorDetail">;
 
+/*
+ * A type's readable name, by its name as the server stores it: most are
+ * readable already ("SSL Certificate", "Incoming Request").
+ */
 function getMonitorTypeLabel(monitorType?: string): string {
   if (!monitorType) {
     return "Monitor";
   }
   const labels: Record<string, string> = {
-    Website: "Website",
-    API: "API",
-    Ping: "Ping",
-    IP: "IP",
-    Port: "Port",
-    DNS: "DNS",
-    SSLCertificate: "SSL Certificate",
-    Domain: "Domain",
-    Server: "Server",
-    IncomingRequest: "Incoming Request",
     Database: "Database Health",
-    SyntheticMonitor: "Synthetic Monitor",
-    CustomJavaScriptCode: "Custom JavaScript",
-    Logs: "Logs",
-    Metrics: "Metrics",
-    Traces: "Traces",
-    Manual: "Manual",
+    "Custom JavaScript Code": "Custom JavaScript",
   };
   return labels[monitorType] ?? monitorType;
 }
@@ -233,6 +232,8 @@ export default function MonitorDetailScreen({
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
   const gutters: ContentGutters = useContentGutters();
+  // When a first result turns overdue, the screen says so without a reload.
+  const now: number = useNow();
 
   const {
     data: monitor,
@@ -313,11 +314,25 @@ export default function MonitorDetailScreen({
     );
   }
 
-  const statusColor: string = monitor.currentMonitorStatus?.color
-    ? rgbToHex(monitor.currentMonitorStatus.color)
-    : theme.colors.textTertiary;
-
-  const isDisabled: boolean = monitor.disableActiveMonitoring === true;
+  /*
+   * What the web says of the monitor (utils/monitorHealth): its status, or
+   * why no check stands behind it - Disabled, Probes Not Enabled, Probes
+   * Disconnected, or for a monitor nothing has checked yet Paused, No
+   * results yet or Waiting for data - with a banner that says what next.
+   */
+  const rowStatus: MonitorRowStatus = getMonitorRowStatus(
+    monitor,
+    new Date(now),
+  );
+  const statusColor: string = getMonitorStatusColor(
+    theme.colors,
+    rowStatus,
+    monitor.currentMonitorStatus?.color,
+  );
+  const guidance: MonitorStatusGuidance | null = getMonitorStatusGuidance({
+    monitor,
+    rowStatus,
+  });
   const descriptionText: string = toPlainText(monitor.description);
 
   return (
@@ -343,16 +358,16 @@ export default function MonitorDetailScreen({
       <ResponseDetailHeader
         title={monitor.name}
         kind={getMonitorTypeLabel(monitor.monitorType)}
-        state={isDisabled ? "Disabled" : monitor.currentMonitorStatus?.name}
-        stateColor={isDisabled ? theme.colors.textTertiary : statusColor}
+        state={rowStatus.text}
+        stateColor={statusColor}
       />
-      {isDisabled ? (
+      {guidance ? (
         <Banner
-          testID="monitor-paused-banner"
-          tone="warning"
-          icon="pause-circle"
-          title="Monitoring is paused"
-          message="Active checks are disabled. The last recorded status may not reflect this service's current health."
+          testID={guidance.testID}
+          tone={guidance.tone}
+          icon={guidance.icon}
+          title={guidance.title}
+          message={guidance.message}
           style={{ marginBottom: spacing.xxl }}
         />
       ) : null}
@@ -416,14 +431,7 @@ export default function MonitorDetailScreen({
           label="Type"
           value={getMonitorTypeLabel(monitor.monitorType)}
         />
-        <ResponseInfoRow
-          label="Status"
-          value={
-            isDisabled
-              ? "Disabled"
-              : monitor.currentMonitorStatus?.name ?? "Unknown"
-          }
-        />
+        <ResponseInfoRow label="Status" value={rowStatus.text} />
         <ResponseInfoRow
           label="Created"
           value={formatDateTime(monitor.createdAt)}

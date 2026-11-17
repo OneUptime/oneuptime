@@ -77,7 +77,9 @@ const ALLOWED_HOOK_WRITES: Record<string, string> = {
   "NetworkDeviceService.ts#onBeforeDelete":
     CASCADE_REASON +
     " Every device's monitors are proved deletable by the caller before the first one goes.",
-  "OnCallDutyPolicyEscalationRuleService.ts#onBeforeDelete": CASCADE_REASON,
+  "OnCallDutyPolicyEscalationRuleService.ts#onBeforeDelete":
+    CASCADE_REASON +
+    " It also writes the rule's place now on the runs still paging on it, which the delete keeps (issue #9036): the place they go on from. A delete that then fails leaves them with the place they are on anyway.",
   "OnCallDutyPolicyEscalationRuleScheduleService.ts#onBeforeDelete":
     FEED_REASON,
   "OnCallDutyPolicyEscalationRuleTeamService.ts#onBeforeDelete": FEED_REASON,

@@ -18,19 +18,19 @@ const TRANSLATION: SetupGuideTranslation = {
   "Only the **active** mgr returns metrics — standbys answer with an empty response — so scraping every mgr keeps metrics flowing when the active one fails over.":
     "Solo il mgr **attivo** restituisce metriche (gli standby rispondono con una risposta vuota), quindi interrogare ogni mgr mantiene il flusso di metriche quando l'attivo passa a un altro.",
   "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:":
-    "Lo script chiede l'URL di OneUptime e la chiave di ingestione, entrambi mostrati nel passaggio 1 (scegli lì una chiave perché vengano compilati qui), e poi:",
+    "Lo script chiede l'URL di OneUptime e la chiave di acquisizione, entrambi mostrati nel passaggio 1 (scegli lì una chiave perché vengano compilati qui), e poi:",
   "- **Cluster name** — how the cluster appears in OneUptime. Give every cluster its own and keep it stable: a new name registers a new cluster.":
     "- **Nome del cluster**: come il cluster appare in OneUptime. Dai a ogni cluster il suo e mantienilo stabile: un nome nuovo registra un cluster nuovo.",
   "- **Mgr endpoints** — every mgr from the previous step as comma-separated `host:port`, e.g. `ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283`. The script adds the square brackets.":
     "- **Endpoint mgr**: ogni mgr del passaggio precedente come `host:port` separati da virgole, ad es. `ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283`. Lo script aggiunge le parentesi quadre.",
   "- **OneUptime AI agent** — whether it may apply fixes; answer **N** to keep it read-only. Where `ceph` works with admin rights, the script also offers to create the AI agent's own Ceph client.":
-    "- **Agente AI di OneUptime**: se può applicare correzioni; rispondi **N** per tenerlo in sola lettura. Dove `ceph` funziona con i diritti di amministratore, lo script offre anche di creare il client Ceph proprio dell'agente IA.",
+    "- **Agente IA di OneUptime**: se può applicare correzioni; rispondi **N** per tenerlo in sola lettura. Dove `ceph` funziona con i diritti di amministratore, lo script offre anche di creare il client Ceph proprio dell'agente IA.",
   "It installs to `/opt/oneuptime-ceph-agent`, writes a `0600` `.env` file and starts the agent with Docker Compose. Running the script again reuses everything in that `.env` instead of asking again, so it is also how you upgrade.":
     "Si installa in `/opt/oneuptime-ceph-agent`, scrive un file `.env` con `0600` e avvia l'agente con Docker Compose. Eseguire di nuovo lo script riusa tutto ciò che c'è in quel `.env` invece di chiedere di nuovo, ed è anche il modo di aggiornare.",
   "Look for `Everything is ready. Begin running and processing data.` in the logs. The cluster then appears automatically in the **Ceph** section, usually within a minute or so.":
     "Cerca `Everything is ready. Begin running and processing data.` nei log. Poi il cluster appare automaticamente nella sezione **Ceph**, di solito entro un minuto circa.",
   "Docker Compose also runs **`oneuptime-ceph-ai-agent`**, the OneUptime AI agent. If the install script created its Ceph client it is already working; otherwise it waits for one — see **OneUptime AI agent** under Advanced.":
-    "Docker Compose esegue anche **`oneuptime-ceph-ai-agent`**, l'agente IA di OneUptime. Se lo script di installazione ha creato il suo client Ceph, funziona già; altrimenti ne attende uno; vedi **Agente AI di OneUptime** in Avanzato.",
+    "Docker Compose esegue anche **`oneuptime-ceph-ai-agent`**, l'agente IA di OneUptime. Se lo script di installazione ha creato il suo client Ceph, funziona già; altrimenti ne attende uno; vedi **Agente IA di OneUptime** in Avanzato.",
   "**OneUptime AI agent (on by default, read-only).** AI investigations are on: once it has its Ceph client, it lets OneUptime AI investigate incidents and alerts on this cluster with read-only `ceph` commands, and changes nothing unless you allow fixes.":
     "**Agente IA di OneUptime (attivo per impostazione predefinita, in sola lettura).** Le indagini IA sono attive: quando ha il suo client Ceph, permette a OneUptime AI di indagare su incidenti e avvisi di questo cluster con comandi `ceph` in sola lettura, e non cambia nulla finché non consenti le correzioni.",
   "The install script writes these to `/opt/oneuptime-ceph-agent/.env`. After changing one, apply it with `docker compose up -d` in `/opt/oneuptime-ceph-agent`.":
@@ -40,13 +40,13 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | Sì | L'URL della tua istanza OneUptime (ad es. `<YOUR_ONEUPTIME_URL>`) |",
   "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key — the one picked in step 1 |":
-    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Sì | La chiave di ingestione della telemetria, quella scelta nel passaggio 1 |",
+    "| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Sì | La chiave di acquisizione della telemetria, quella scelta nel passaggio 1 |",
   "| `CEPH_CLUSTER_NAME` | Yes | Cluster identifier shown in OneUptime. Stamped on every metric as the `ceph.cluster.name` resource attribute. Keep it stable — changing it registers a new cluster (default: `ceph`) |":
     "| `CEPH_CLUSTER_NAME` | Sì | L'identificatore del cluster mostrato in OneUptime. Apposto su ogni metrica come attributo di risorsa `ceph.cluster.name`. Mantienilo stabile: cambiarlo registra un cluster nuovo (predefinito: `ceph`) |",
   "| `CEPH_MGR_ENDPOINTS` | Yes | Comma-separated `host:port` list of **all** mgr daemons, wrapped in square brackets, e.g. `[ceph-mon-1:9283,ceph-mon-2:9283]`. The install script adds the brackets for you |":
     "| `CEPH_MGR_ENDPOINTS` | Sì | Elenco `host:port` separato da virgole di **tutti** i daemon mgr, tra parentesi quadre, ad es. `[ceph-mon-1:9283,ceph-mon-2:9283]`. Lo script di installazione aggiunge le parentesi per te |",
   "The OneUptime AI agent's own settings are under **OneUptime AI agent**.":
-    "Le impostazioni proprie dell'agente IA di OneUptime sono in **Agente AI di OneUptime**.",
+    "Le impostazioni proprie dell'agente IA di OneUptime sono in **Agente IA di OneUptime**.",
   "- **All mgrs are scraped** (active and standbys), so metrics survive an active-mgr failover.":
     "- **Vengono interrogati tutti i mgr** (l'attivo e gli standby), così le metriche sopravvivono a un failover del mgr attivo.",
   "- **Every 30 seconds.** The mgr prometheus module caches a scrape for `mgr/prometheus/scrape_interval` (15 seconds by default) — never scrape more often than that, you would only re-read the cache.":
@@ -103,11 +103,11 @@ const TRANSLATION: SetupGuideTranslation = {
   "If you created the AI agent's Ceph client, remove it on an admin node: `ceph auth del client.oneuptime-ai`.":
     "Se hai creato il client Ceph dell'agente IA, rimuovilo su un nodo di amministrazione: `ceph auth del client.oneuptime-ai`.",
   "`troubleshoot.sh` checks the whole chain — container runtime, every mgr endpoint (including the active-vs-standby trap), cluster-name stamping, token shape, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key. That last check matters most: OneUptime's OTLP endpoints refuse a bad key with `401` or `422`, which the collector logs as a single `Exporting failed` line per batch that is easy to miss, so the script asks `GET /otlp/v1/validate` for a direct 200/401 verdict.":
-    "`troubleshoot.sh` controlla tutta la catena (runtime dei container, ogni endpoint mgr compresa la trappola attivo contro standby, l'apposizione del nome del cluster, la forma del token, le metriche proprie del collector) e chiede direttamente a OneUptime se accetta la tua chiave di ingestione. Quest'ultimo controllo è il più importante: gli endpoint OTLP di OneUptime rifiutano una chiave errata con `401` o `422`, che il collector registra come una sola riga `Exporting failed` per batch, facile da non notare, quindi lo script interroga `GET /otlp/v1/validate` per un verdetto diretto 200/401.",
+    "`troubleshoot.sh` controlla tutta la catena (runtime dei container, ogni endpoint mgr compresa la trappola attivo contro standby, l'apposizione del nome del cluster, la forma del token, le metriche proprie del collector) e chiede direttamente a OneUptime se accetta la tua chiave di acquisizione. Quest'ultimo controllo è il più importante: gli endpoint OTLP di OneUptime rifiutano una chiave errata con `401` o `422`, che il collector registra come una sola riga `Exporting failed` per batch, facile da non notare, quindi lo script interroga `GET /otlp/v1/validate` per un verdetto diretto 200/401.",
   "It ends with a verdict naming the most likely cause.":
     "Termina con un verdetto che nomina la causa più probabile.",
   "1. Check the collector logs: `docker logs oneuptime-ceph-agent` — look for export errors (`401` means a bad ingestion key, connection refused means a wrong `ONEUPTIME_URL`).":
-    "1. Controlla i log del collector: `docker logs oneuptime-ceph-agent`; cerca errori di esportazione (`401` significa una chiave di ingestione errata, connection refused significa un `ONEUPTIME_URL` errato).",
+    "1. Controlla i log del collector: `docker logs oneuptime-ceph-agent`; cerca errori di esportazione (`401` significa una chiave di acquisizione errata, connection refused significa un `ONEUPTIME_URL` errato).",
   "2. Verify a mgr endpoint serves metrics: `curl http://<active-mgr>:9283/metrics | head` — you should see `ceph_*` metric lines. If not, enable the module: `ceph mgr module enable prometheus`.":
     "2. Verifica che un endpoint mgr fornisca metriche: `curl http://<active-mgr>:9283/metrics | head`; dovresti vedere righe di metriche `ceph_*`. Altrimenti, abilita il modulo: `ceph mgr module enable prometheus`.",
   "3. Make sure `CEPH_MGR_ENDPOINTS` is wrapped in square brackets — without them the collector treats the whole comma-separated string as a single (invalid) target.":
@@ -117,7 +117,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "2. Check the agent logs for errors: `docker logs oneuptime-ceph-agent 2>&1 | grep -i error`":
     "2. Cerca errori nei log dell'agente: `docker logs oneuptime-ceph-agent 2>&1 | grep -i error`",
   "3. Verify your OneUptime URL and ingestion key are correct.":
-    "3. Verifica che l'URL di OneUptime e la chiave di ingestione siano corretti.",
+    "3. Verifica che l'URL di OneUptime e la chiave di acquisizione siano corretti.",
   "4. Ensure the agent machine can reach the OneUptime instance over the network.":
     "4. Assicurati che la macchina dell'agente possa raggiungere l'istanza OneUptime in rete.",
   "You are probably scraping only the (previously) active mgr. List **every** mgr daemon in `CEPH_MGR_ENDPOINTS` — scrapes of standby mgrs are cheap and return empty responses.":
@@ -131,7 +131,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The cluster's identity comes from `CEPH_CLUSTER_NAME`, stamped on every metric as `ceph.cluster.name`. This cluster is **`ceph-1`**. Fix it in `.env` and apply it with `docker compose up -d` in `/opt/oneuptime-ceph-agent` — note that a new name registers a new cluster.":
     "L'identità del cluster viene da `CEPH_CLUSTER_NAME`, apposto su ogni metrica come `ceph.cluster.name`. Questo cluster è **`ceph-1`**. Correggilo in `.env` e applicalo con `docker compose up -d` in `/opt/oneuptime-ceph-agent`; tieni presente che un nome nuovo registra un cluster nuovo.",
   "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:":
-    "Il comando contiene già l'URL di OneUptime e la chiave di ingestione. Il resto lo chiede lo script:",
+    "Il comando contiene già l'URL di OneUptime e la chiave di acquisizione. Il resto lo chiede lo script:",
   "Download `docker-compose.yml` and `otel-collector-config.yaml` from this OneUptime into a new folder:":
     "Scarica `docker-compose.yml` e `otel-collector-config.yaml` da questo OneUptime in una nuova cartella:",
   "Create a `.env` file next to them:": "Crea un file `.env` accanto a essi:",
@@ -141,9 +141,9 @@ const TRANSLATION: SetupGuideTranslation = {
     "- Elenca **ogni** daemon mgr in `CEPH_MGR_ENDPOINTS`, separati da virgole e tra parentesi quadre: senza le parentesi il collector legge l'intero elenco come un unico obiettivo non valido.",
   "Start the agent:": "Avvia l'agente:",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
-    "Scegli una chiave di ingestione nel passaggio 1 per compilare `<YOUR_API_KEY>`.",
+    "Scegli una chiave di acquisizione nel passaggio 1 per compilare `<YOUR_API_KEY>`.",
   "Docker Compose also starts **`oneuptime-ceph-ai-agent`**, the OneUptime AI agent. It waits for a Ceph client of its own — see **OneUptime AI agent** under Advanced, or delete its service from `docker-compose.yml` if you do not use OneUptime AI.":
-    "Docker Compose avvia anche **`oneuptime-ceph-ai-agent`**, l'agente IA di OneUptime. Attende un client Ceph tutto suo; vedi **Agente AI di OneUptime** in Avanzato, oppure elimina il suo servizio da `docker-compose.yml` se non usi OneUptime AI.",
+    "Docker Compose avvia anche **`oneuptime-ceph-ai-agent`**, l'agente IA di OneUptime. Attende un client Ceph tutto suo; vedi **Agente IA di OneUptime** in Avanzato, oppure elimina il suo servizio da `docker-compose.yml` se non usi OneUptime AI.",
   "The agent reads these from the `.env` file next to `docker-compose.yml`. After changing one, apply it with `docker compose up -d` in the folder with `docker-compose.yml`.":
     "L'agente le legge dal file `.env` accanto a `docker-compose.yml`. Dopo averne cambiata una, applicala con `docker compose up -d` nella cartella con `docker-compose.yml`.",
   "| `CEPH_MGR_ENDPOINTS` | Yes | Comma-separated `host:port` list of **all** mgr daemons, wrapped in square brackets, e.g. `[ceph-mon-1:9283,ceph-mon-2:9283]` |":

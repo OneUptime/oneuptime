@@ -19,6 +19,17 @@ const signupUrl: string = URL.fromString(BASE_URL.toString())
   .toString();
 const passphrase: string = "violet river lantern";
 
+/*
+ * The password checklist, which the page announces as a status. Every page
+ * also draws the toast region, a status of its own (#9166), so the checklist
+ * is the status that is the password requirements.
+ */
+const passwordStatus: (page: Page) => Locator = (page: Page): Locator => {
+  return page
+    .getByRole("status")
+    .and(page.getByTestId("password-requirements"));
+};
+
 const fillRegistration: (page: Page) => Promise<void> = async (
   page: Page,
 ): Promise<void> => {
@@ -48,15 +59,15 @@ test.describe("Signup password feedback", () => {
     await expect(password).toHaveAccessibleDescription(
       /Use at least 15 characters\..*0 \/ 15 characters minimum.*Special characters are optional\./,
     );
-    await expect(page.getByRole("status")).not.toContainText(
+    await expect(passwordStatus(page)).not.toContainText(
       "Password meets requirements",
     );
     await password.fill(passphrase);
-    await expect(page.getByRole("status")).toContainText(
+    await expect(passwordStatus(page)).toContainText(
       "Password meets requirements",
     );
     await password.clear();
-    await expect(page.getByRole("status")).toContainText(
+    await expect(passwordStatus(page)).toContainText(
       "Use at least 15 characters.",
     );
   });
@@ -76,22 +87,22 @@ test.describe("Signup password feedback", () => {
     await expect(progress).toHaveAttribute("aria-valuenow", "5");
     await password.pressSequentially(" lantern!");
     await expect(progress).toHaveAttribute("aria-valuenow", "14");
-    await expect(page.getByRole("status")).toContainText(
+    await expect(passwordStatus(page)).toContainText(
       "Special character included (optional)",
     );
-    await expect(page.getByRole("status")).not.toContainText(
+    await expect(passwordStatus(page)).not.toContainText(
       "Password meets requirements",
     );
     await password.pressSequentially("7");
     await expect(progress).toHaveAttribute("aria-valuenow", "15");
-    await expect(page.getByRole("status")).toContainText(
+    await expect(passwordStatus(page)).toContainText(
       "Password meets requirements",
     );
-    await expect(page.getByRole("status").getByRole("list")).toBeVisible();
+    await expect(passwordStatus(page).getByRole("list")).toBeVisible();
     await password.press("Backspace");
     await password.press("Backspace");
     await expect(progress).toHaveAttribute("aria-valuenow", "13");
-    await expect(page.getByRole("status")).toContainText(
+    await expect(passwordStatus(page)).toContainText(
       "Special characters are optional.",
     );
     await password.clear();
@@ -116,18 +127,18 @@ test.describe("Signup password feedback", () => {
     );
     await password.fill("🌲 river lantern");
     await expect(progress).toHaveAttribute("aria-valuenow", "15");
-    await expect(page.getByRole("status")).toContainText(
+    await expect(passwordStatus(page)).toContainText(
       "Password meets requirements",
     );
     await password.fill("Password123456789!");
     await expect(progress).toHaveAttribute("aria-valuenow", "15");
-    await expect(page.getByRole("status")).toContainText(
+    await expect(passwordStatus(page)).toContainText(
       "Incomplete: Avoid common or repeated patterns",
     );
-    await expect(page.getByRole("status")).toContainText(
+    await expect(passwordStatus(page)).toContainText(
       "Special character included (optional)",
     );
-    await expect(page.getByRole("status")).not.toContainText(
+    await expect(passwordStatus(page)).not.toContainText(
       "Password meets requirements",
     );
   });
@@ -234,14 +245,14 @@ test.describe("Signup password feedback", () => {
 
       for (const password of ["PasswordPassword", passphrase]) {
         await page.getByTestId("password").fill(password);
-        await page.getByRole("status").scrollIntoViewIfNeeded();
-        await expect(page.getByRole("status")).toContainText(
+        await passwordStatus(page).scrollIntoViewIfNeeded();
+        await expect(passwordStatus(page)).toContainText(
           password === passphrase
             ? "Password meets requirements"
             : "Choose a less predictable password.",
         );
         await expect(page.getByRole("progressbar")).toBeVisible();
-        await expect(page.getByRole("status").getByRole("list")).toBeVisible();
+        await expect(passwordStatus(page).getByRole("list")).toBeVisible();
         await expect(
           page.getByText("Special characters are optional. Try !, @, # or $."),
         ).toBeVisible();

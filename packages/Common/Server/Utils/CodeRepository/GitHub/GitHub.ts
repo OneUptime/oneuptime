@@ -125,6 +125,16 @@ export interface GitHubCommitResult {
   htmlUrl: string;
 }
 
+// A code fix's pull request OneUptime opened, or found open (openFixPullRequest).
+export interface GitHubOpenedFixPullRequest {
+  id: number;
+  number: number;
+  htmlUrl: string;
+  title: string;
+  // False when GitHub said one was open for the branch already, and this is it.
+  isNew: boolean;
+}
+
 // The commit a pull request merged as: a full or abbreviated SHA.
 const MERGE_COMMIT_SHA: RegExp = /^[0-9a-f]{7,64}$/i;
 
@@ -2266,6 +2276,177 @@ export default class GitHubUtil extends HostedCodeRepository {
       organizationName: data.organizationName,
       repositoryName: data.repositoryName,
     });
+  }
+
+  /*
+   * A code fix's pull request, opened by OneUptime itself rather than by the
+   * Runner that pushed its branch (issue #8916): with a token of the
+   * installation for that one repository that can open pull requests and
+   * nothing else, which never leaves the server. So the token a Runner is
+   * handed for the fix needs only to push.
+   *
+   * Ready for review, as a Runner opened it. When GitHub says one is open
+   * for the branch already (422: a Runner asked again after an answer it did
+   * not get), the open one is found and answered instead, so a fix opens
+   * one pull request however often it is asked.
+   */
+  @CaptureSpan()
+  public static async openFixPullRequest(data: {
+    installationId: string;
+    organizationName: string;
+    repositoryName: string;
+    baseBranchName: string;
+    headBranchName: string;
+    title: string;
+    body: string;
+  }): Promise<GitHubOpenedFixPullRequest> {
+    const tokenData: GitHubInstallationToken =
+      await GitHubUtil.getRepositoryAccessToken({
+        installationId: data.installationId,
+        organizationName: data.organizationName,
+        repositoryName: data.repositoryName,
+        permissions: { pull_requests: "write", metadata: "read" },
+      });
+
+    const headers: Headers = GitHubUtil.buildApiHeaders(tokenData.token);
+    const repositoryApiUrl: string = `https://api.github.com/repos/${encodeURIComponent(
+      data.organizationName,
+    )}/${encodeURIComponent(data.repositoryName)}`;
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
+      {
+        url: URL.fromString(`${repositoryApiUrl}/pulls`),
+        data: {
+          base: data.baseBranchName,
+          head: data.headBranchName,
+          title: data.title,
+          body: data.body,
+          draft: false,
+        },
+        headers: headers,
+        options: { sameServerRedirectsOnly: true },
+      },
+    );
+
+    if (!(result instanceof HTTPErrorResponse)) {
+      return GitHubUtil.readOpenedFixPullRequest({
+        pullRequest: result.data,
+        title: data.title,
+        isNew: true,
+      });
+    }
+
+    if (
+      result.statusCode === 422 &&
+      GitHubUtil.describeGitHubError(result)
+        .toLowerCase()
+        .includes("already exists")
+    ) {
+      const existing: HTTPErrorResponse | HTTPResponse<JSONArray> =
+        await API.get<JSONArray>({
+          url: URL.fromString(`${repositoryApiUrl}/pulls`),
+          headers: headers,
+          params: {
+            head: `${data.organizationName}:${data.headBranchName}`,
+            base: data.baseBranchName,
+            state: "open",
+          },
+          options: { sameServerRedirectsOnly: true },
+        });
+
+      if (
+        !(existing instanceof HTTPErrorResponse) &&
+        Array.isArray(existing.data) &&
+        existing.data.length > 0
+      ) {
+        return GitHubUtil.readOpenedFixPullRequest({
+          pullRequest: existing.data[0] as JSONObject,
+          title: data.title,
+          isNew: false,
+        });
+      }
+    }
+
+    throw new BadDataException(
+      `GitHub did not open the pull request. ${GitHubUtil.describeGitHubError(result)}`,
+    );
+  }
+
+  // A pull request GitHub answered with, as a fix records it.
+  private static readOpenedFixPullRequest(data: {
+    pullRequest: JSONObject;
+    title: string;
+    isNew: boolean;
+  }): GitHubOpenedFixPullRequest {
+    const number: number = Number(data.pullRequest["number"]);
+    const id: number = Number(data.pullRequest["id"]);
+    const htmlUrl: unknown = data.pullRequest["html_url"];
+
+    if (
+      !Number.isSafeInteger(number) ||
+      number <= 0 ||
+      typeof htmlUrl !== "string" ||
+      !htmlUrl
+    ) {
+      throw new BadDataException(
+        "GitHub answered with something that is not a pull request.",
+      );
+    }
+
+    return {
+      id: Number.isSafeInteger(id) && id > 0 ? id : number,
+      number,
+      htmlUrl,
+      title:
+        typeof data.pullRequest["title"] === "string" &&
+        data.pullRequest["title"]
+          ? (data.pullRequest["title"] as string)
+          : data.title,
+      isNew: data.isNew,
+    };
+  }
+
+  /*
+   * GitHub's words for a refused request in one line: its top-level
+   * `message` on a 422 is only ever "Validation Failed", and what a person
+   * can act on ("A pull request already exists for acme:fix", an unknown
+   * head) is in its `errors`.
+   */
+  public static describeGitHubError(response: HTTPErrorResponse): string {
+    const parts: Array<string> = [];
+    const errorData: JSONObject = (response.data as JSONObject) || {};
+    const message: unknown = errorData["message"] || response.message;
+
+    if (typeof message === "string" && message) {
+      parts.push(message);
+    }
+
+    const errors: unknown = errorData["errors"];
+
+    if (Array.isArray(errors)) {
+      const details: string = errors
+        .map((error: unknown): string => {
+          if (typeof error === "string") {
+            return error;
+          }
+
+          const errorObject: JSONObject = (error as JSONObject) || {};
+
+          return typeof errorObject["message"] === "string"
+            ? (errorObject["message"] as string)
+            : [errorObject["field"], errorObject["code"]]
+                .filter(Boolean)
+                .join(" ");
+        })
+        .filter(Boolean)
+        .join("; ");
+
+      if (details) {
+        parts.push(`(${details})`);
+      }
+    }
+
+    return parts.join(" ") || `GitHub answered HTTP ${response.statusCode}`;
   }
 
   /*

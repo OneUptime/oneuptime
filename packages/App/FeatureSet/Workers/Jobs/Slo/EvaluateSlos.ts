@@ -11,6 +11,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import MonitorPauseState, {
   MONITOR_PAUSE_FLAGS_SELECT,
 } from "Common/Utils/Monitor/MonitorPauseState";
+import MonitorFirstCheck from "Common/Utils/Monitor/MonitorFirstCheck";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -47,6 +48,7 @@ import {
 import Semaphore, {
   SemaphoreMutex,
 } from "Common/Server/Infrastructure/Semaphore";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import AlertService from "Common/Server/Services/AlertService";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import IncidentService from "Common/Server/Services/IncidentService";
@@ -193,28 +195,30 @@ const DEFAULT_ROLLING_WINDOW_DAYS: number = 30;
 const SWEEP_TIMEOUT_MINUTES: number = 10;
 
 /*
- * Redis mutex that serializes the whole sweep across every worker replica.
+ * One sweep at a time (issue #8103).
  *
  * The per-SLO cadence columns are NOT an overlap guard: getDueSlos() snapshots
  * the entire due set up front and each SLO is only stamped once the loop
  * reaches it, so a sweep that takes longer than the one-minute schedule (a few
  * hundred SLOs is enough) still has hundreds of unstamped SLOs in flight when
- * the next tick starts — and that next tick re-selects every one of them.
- * runJobWithTimeout is a Promise.race with no cancellation, and the worker
- * concurrency defaults to 100, so the overlapping sweeps really do run the same
- * SLOs side by side: duplicate owner notifications and duplicate burn-rate
- * alerts (both dedupes are read-then-write, so they interleave).
- *
- * An affected-row count on an `updateBy` cannot be used instead:
+ * the next tick starts — and that next tick re-selects every one of them. Two
+ * sweeps running the same SLOs side by side send duplicate owner notifications
+ * and duplicate burn-rate alerts (both dedupes are read-then-write, so they
+ * interleave). An affected-row count on an `updateBy` cannot be used instead:
  * DatabaseService._updateBy is a _findBy followed by a per-row
  * repository.save() and returns the SELECT count, so two interleaved sweeps
  * both see 1 and both proceed.
  *
- * The lock timeout deliberately outlives the job's own 10-minute timeout, so a
- * sweep that overruns (Promise.race does not stop the body) keeps holding the
- * lock rather than letting a second sweep in behind it. redis-semaphore's Mutex
- * auto-refreshes while it is held, so this value only bounds how long a CRASHED
- * worker's lock lingers before another replica may take over.
+ * RunCron runs one copy of this job at a time across every worker replica
+ * (CronLock), and the sweep stops between SLOs once its deadline has passed
+ * - its time limit, or its lease lost - leaving the SLOs it did not reach due
+ * for the next tick. This Redis mutex is kept beside the lease for what the
+ * lease cannot cover: the lease lapses half a minute past the time limit even
+ * while an evaluation of the run has not returned, and a second sweep beside
+ * it would send those duplicates. redis-semaphore refreshes a held mutex for
+ * as long as the run lasts, so the lock timeout - longer than the job's own
+ * 10-minute limit - only bounds how long a CRASHED worker's lock lingers
+ * before another replica may take over.
  */
 const SWEEP_LOCK_KEY: string = "Slo:EvaluateSlos";
 const SWEEP_LOCK_NAMESPACE: string = "Workers.Cron";
@@ -243,7 +247,7 @@ RunCron(
       SWEEP_TIMEOUT_MINUTES,
     ),
   },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * acquireAttemptsLimit: 1 — never queue behind the in-flight sweep. This
      * job re-runs every minute anyway, so waiting would only stack ticks up
@@ -274,7 +278,22 @@ RunCron(
       const dueSlos: Array<ServiceLevelObjective> =
         await ServiceLevelObjectiveService.getDueSlos();
 
+      let evaluated: number = 0;
+
       for (const slo of dueSlos) {
+        /*
+         * Between SLOs, never inside one: an evaluation in flight finishes,
+         * and the SLOs not reached are still due, so they lead the next tick.
+         */
+        if (deadline.hasPassed()) {
+          logger.debug(
+            `Slo:EvaluateSlos - the run's deadline has passed; stopping after ${evaluated} of ${dueSlos.length} due SLO(s). The rest are still due and lead the next tick.`,
+          );
+          break;
+        }
+
+        evaluated++;
+
         try {
           await evaluateSlo(slo);
         } catch (err) {
@@ -360,8 +379,8 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
   /*
    * Stamp the cadence columns FIRST so that even if this evaluation throws
    * below, the SLO is not retried on every one-minute tick. (Concurrency
-   * between two overlapping sweeps is handled by the sweep-wide Redis mutex,
-   * NOT by these columns — see SWEEP_LOCK_KEY above.)
+   * between two overlapping sweeps is handled by the run's lease and the
+   * sweep-wide Redis mutex, NOT by these columns — see SWEEP_LOCK_KEY above.)
    *
    * These two columns are pure worker bookkeeping: nothing user-facing reads
    * them and no workflow can meaningfully trigger on them, so they go through
@@ -571,6 +590,9 @@ async function measureMonitorSlo(data: {
     select: {
       _id: true,
       ...MONITOR_PAUSE_FLAGS_SELECT,
+      // Whether something has checked it yet, for the no-data guard's reason.
+      monitorType: true,
+      firstMeasuredAt: true,
     },
     skip: 0,
     limit: LIMIT_PER_PROJECT,
@@ -683,6 +705,11 @@ async function measureMonitorSlo(data: {
    * Benign edge: for a CalendarMonth window evaluated in the very first second
    * of a new month the elapsed window is 0 seconds long, so an SLO WITH data can
    * read as zero-data for a single tick and flip back on the next one.
+   *
+   * A monitor nothing has checked yet has no time either (issue #9031): its
+   * status is only the operational one every monitor is created in, which
+   * the timelines leave out until its first check (fetchPerMonitorTimelines).
+   * An SLO of such monitors says it waits for their first check.
    */
   if (sli.totalSeconds === 0) {
     logger.debug(
@@ -700,8 +727,7 @@ async function measureMonitorSlo(data: {
       status: SloStatus.Misconfigured,
       now: now,
       isSloStillEvaluated: checkSloStillEvaluated,
-      reason:
-        "The monitors attached to this SLO have not recorded any status in its window yet. It is measured automatically once they do.",
+      reason: getNoTimelineDataReason(monitors),
     });
     return null;
   }
@@ -2318,6 +2344,36 @@ async function setSloStatusIfChanged(
     now: transition?.now || OneUptimeDate.getCurrentDate(),
     reason: transition?.reason,
   });
+}
+
+/*
+ * Why a Monitor Uptime SLO measured no time in its window, for the feed: its
+ * monitors nothing has checked yet (issue #9031) - every one of them that is
+ * not paused - or monitors that recorded no status in it at all.
+ */
+const SLO_MONITORS_NOT_CHECKED_YET_REASON: string =
+  "Nothing has checked the monitors attached to this SLO yet, so it has no time to measure. It is measured automatically from their first check.";
+
+const SLO_NO_TIMELINE_DATA_REASON: string =
+  "The monitors attached to this SLO have not recorded any status in its window yet. It is measured automatically once they do.";
+
+function getNoTimelineDataReason(monitors: Array<Monitor>): string {
+  const monitorsNotPaused: Array<Monitor> = monitors.filter(
+    (monitor: Monitor): boolean => {
+      return !MonitorPauseState.isPaused(monitor);
+    },
+  );
+
+  if (
+    monitorsNotPaused.length > 0 &&
+    monitorsNotPaused.every((monitor: Monitor): boolean => {
+      return MonitorFirstCheck.isNeverMeasured(monitor);
+    })
+  ) {
+    return SLO_MONITORS_NOT_CHECKED_YET_REASON;
+  }
+
+  return SLO_NO_TIMELINE_DATA_REASON;
 }
 
 /*

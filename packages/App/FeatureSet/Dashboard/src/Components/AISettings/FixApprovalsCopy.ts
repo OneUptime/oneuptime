@@ -65,7 +65,7 @@ export const FixApprovalsCopy: {
    * message, with or without the switch.
    */
   switchDescription: translationKey(
-    "A fix with a riskier change, such as stopping something or scaling it to zero, runs only once two different people approve it.",
+    "Riskier fixes, such as stopping something or scaling it to zero, and every fix through an MCP server run only once two different people approve them.",
   ),
   foldedValue: translationKey("Two people"),
 };

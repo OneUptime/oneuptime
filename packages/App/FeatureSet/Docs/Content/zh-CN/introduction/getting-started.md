@@ -8,7 +8,7 @@ OneUptime 是一个开源的可观测性平台。它检查你的网站、API 和
 - [在网站或 API 宕机时收到通知](/docs/guides/website-down): 从全球各地的探测器检查它，并在它出故障时收到电子邮件或呼叫。
 - [通过电话、短信或推送接收呼叫，并逐级升级](/docs/guides/paging): 呼叫正在值班的人，无人响应时再呼叫下一个人。
 - [在你自己的域名上发布状态页面](/docs/guides/status-page): 在属于你自己的地址上，告诉客户正在发生什么。
-- [发送日志、指标和追踪](/docs/telemetry/open-telemetry): 使用 OpenTelemetry 发送应用的遥测数据，搜索它，并据此接收告警。
+- [发送日志、指标和追踪](/docs/telemetry/open-telemetry): 使用 OpenTelemetry 发送应用的遥测数据，搜索它，并据此接收警报。
 - [监控一台服务器](/docs/telemetry/hosts): 用一条命令添加主机，并关注它的 CPU、内存和磁盘。
 - [监控一个 Kubernetes 集群](/docs/telemetry/kubernetes-agent): 使用 Helm 安装代理，并关注每个节点和 Pod。
 - [让你的团队加入](/docs/permissions/index): 邀请成员，把他们编入团队，并决定谁能做什么。
@@ -54,7 +54,7 @@ OneUptime 是一个开源的可观测性平台。它检查你的网站、API 和
 | 正常运行时间监控 | 从全球各地检查可用性和响应时间。 | Pingdom、UptimeRobot |
 | 状态页面 | 向客户展示你的服务的当前状态和历史。 | Atlassian Statuspage |
 | 事件管理 | 从头到尾处理事件，包括备注、所有者和时间线。 | incident.io |
-| 值班与告警 | 安排值班班次，并持续升级直到有人响应。 | PagerDuty、Opsgenie |
+| 值班与警报 | 安排值班班次，并持续升级直到有人响应。 | PagerDuty、Opsgenie |
 | 日志管理 | 收集、搜索和可视化日志。 | Loggly |
 | 工作流 | 自动执行操作，并把 OneUptime 连接到你已在使用的工具。 | Zapier |
 | 应用性能监控 | 跟踪链路追踪、响应时间、吞吐量和错误率。 | New Relic、Datadog |
@@ -63,7 +63,7 @@ OneUptime 是一个开源的可观测性平台。它检查你的网站、API 和
 
 ## OneUptime 如何协同工作
 
-一切都从你要关注的对象开始。监视器按计划检查它，或读取它发送的遥测数据。当监视器的条件匹配时，OneUptime 会声明事件或创建告警，呼叫值班人员，并在你需要时把事件显示在状态页面上。
+一切都从你要关注的对象开始。监视器按计划检查它，或读取它发送的遥测数据。当监视器的条件匹配时，OneUptime 会声明事件或创建警报，呼叫值班人员，并在你需要时把事件显示在状态页面上。
 
 ```mermaid title="从一次失败的检查，到被呼叫的团队和更新的状态页面"
 flowchart TB
@@ -75,7 +75,7 @@ flowchart TB
 ```
 
 - **事件** 是影响用户的问题。它可以呼叫值班人员，并显示在你的状态页面上。
-- **告警** 是需要团队在用户察觉之前调查的问题。它同样可以呼叫值班人员，但从不显示在状态页面上。
+- **警报** 是需要团队在用户察觉之前调查的问题。它同样可以呼叫值班人员，但从不显示在状态页面上。
 
 [核心概念](/docs/introduction/core-concepts) 用几句话解释每个部分。
 
@@ -87,7 +87,7 @@ flowchart TB
 :::cards
 - [监视器](/docs/monitor/create-monitor): 从全球各地的探测器检查网站、API、端口、DNS、NTP 服务器、证书等。
 - [基础设施监视器](/docs/monitor/host-monitor): 监控服务器、Kubernetes、Docker、VMware、网络设备和存储。
-- [遥测监视器](/docs/monitor/logs-monitor): 根据你发送的日志、指标、追踪、异常和性能剖析发出告警。
+- [遥测监视器](/docs/monitor/logs-monitor): 根据你发送的日志、指标、追踪、异常和性能剖析发出警报。
 - [SLO](/docs/slo/introduction): 跟踪可靠性目标、错误预算和消耗速率。
 - [探测器](/docs/probe/custom-probe): 从你自己的网络内部运行检查。
 - [当 OneUptime 未接收到数据时](/docs/monitor/when-oneuptime-is-not-receiving): 为什么 OneUptime 一侧的数据缺口永远不会算作你的停机时间。
@@ -127,7 +127,7 @@ flowchart TB
 - [运行手册](/docs/runbooks/index): 把响应流程变成团队可以执行的步骤。
 - [表单](/docs/forms/index): 让任何人通过表单报告问题，表单会创建一个事件。
 - [工作流](/docs/workflows/index): 在 OneUptime 中发生某些事情时自动执行操作。
-- [AI](/docs/ai/ai-sre): 让 OneUptime AI 调查事件和告警，并向它询问你的系统。
+- [AI](/docs/ai/ai-sre): 让 OneUptime AI 调查事件和警报，并向它询问你的系统。
 :::
 :::
 

@@ -87,6 +87,21 @@ test.describe("Passkey account lifecycle", () => {
     });
   };
 
+  /*
+   * Opens "More ways to sign in", which folds single sign-on and the passkey
+   * on a first visit (#9023), unless this browser left it open.
+   */
+  const openMoreWaysToSignIn: (on: Page) => Promise<void> = async (
+    on: Page,
+  ): Promise<void> => {
+    const toggle: Locator = on.getByTestId("more-ways-to-sign-in");
+    await expect(toggle).toBeVisible();
+    if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+      await toggle.click();
+    }
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  };
+
   const signOut: () => Promise<void> = async (): Promise<void> => {
     /*
      * Leave the app before the session ends. An app page still open gets a
@@ -107,6 +122,7 @@ test.describe("Passkey account lifecycle", () => {
     });
     await context.clearCookies();
     await page.goto(loginUrl);
+    await openMoreWaysToSignIn(page);
     await expect(page.getByTestId("passkey-login")).toBeVisible();
   };
 
@@ -167,10 +183,10 @@ test.describe("Passkey account lifecycle", () => {
 
   /*
    * The sign-in page leads with the password form, and Login is its one
-   * filled button. Under it, an "or" divider and the other ways in as normal
-   * buttons, "Sign in with SSO" then "Sign in with a passkey": as wide and
-   * as tall as Login, lined up with it, white and outlined where it is
-   * filled. They used to be centred text links. The tinted passkey panel and
+   * filled button. Under it, one quiet line, "More ways to sign in" (#9023),
+   * and, opened, the other ways in as normal buttons, "Sign in with SSO"
+   * then "Sign in with a passkey": as wide and as tall as Login, lined up
+   * with it, white and outlined where it is filled. They used to be centred text links. The tinted passkey panel and
    * its divider over the form are long gone, and "New to passkeys?" waits
    * for an attempt that did not sign in.
    */
@@ -179,23 +195,21 @@ test.describe("Passkey account lifecycle", () => {
       const passkeyOption: Locator = page.getByTestId("passkey-login");
       const email: Box = await boxOf(page.getByTestId("email"));
       const signIn: Box = await boxOf(page.getByTestId("Sign in"));
-      const divider: Box = await boxOf(
-        page.getByTestId("sign-in-options-divider"),
-      );
+      const more: Box = await boxOf(page.getByTestId("more-ways-to-sign-in"));
       const sso: Box = await boxOf(ssoOption());
       const passkey: Box = await boxOf(passkeyOption);
 
       expect(email.y).toBeLessThan(signIn.y);
-      expect(signIn.y + signIn.height).toBeLessThanOrEqual(divider.y);
-      expect(divider.y + divider.height).toBeLessThanOrEqual(sso.y);
+      expect(signIn.y + signIn.height).toBeLessThanOrEqual(more.y);
+      expect(more.y + more.height).toBeLessThanOrEqual(sso.y);
       expect(sso.y + sso.height).toBeLessThanOrEqual(passkey.y);
       for (const option of [sso, passkey]) {
         expect(Math.abs(option.x - signIn.x)).toBeLessThanOrEqual(1);
         expect(Math.abs(option.width - signIn.width)).toBeLessThanOrEqual(1);
         expect(Math.abs(option.height - signIn.height)).toBeLessThanOrEqual(1);
       }
-      await expect(page.getByTestId("sign-in-options-divider")).toHaveText(
-        "or",
+      await expect(page.getByTestId("more-ways-to-sign-in")).toHaveText(
+        "More ways to sign in",
       );
 
       const outlined: Look = {
@@ -223,6 +237,7 @@ test.describe("Passkey account lifecycle", () => {
     };
 
   const signInWithPasskey: () => Promise<void> = async (): Promise<void> => {
+    await openMoreWaysToSignIn(page);
     await expect(page.locator('input[type="email"]')).toHaveValue("");
     await expect(page.locator('input[type="password"]')).toHaveValue("");
     const responsePromise: Promise<Response> = page.waitForResponse(
@@ -613,11 +628,20 @@ test.describe("Passkey account lifecycle", () => {
       await expect(page.getByTestId("Sign in")).toBeDisabled();
       await expect(passwordForm).toHaveCSS("opacity", "0.5");
       await expect(passwordForm).toHaveCSS("pointer-events", "none");
-      // The "or" divider and single sign-on pause with the form.
+      /*
+       * Single sign-on, under More ways to sign in, pauses with the form, and
+       * so does the "or" over Google and Microsoft, which the form draws only
+       * where this server offers one of them (#9023).
+       */
       await expect(ssoOption()).toHaveCSS("pointer-events", "none");
+      const providers: number = await passwordForm
+        .locator(
+          '[data-testid="google-sign-in"], [data-testid="microsoft-sign-in"]',
+        )
+        .count();
       await expect(
         passwordForm.getByTestId("sign-in-options-divider"),
-      ).toHaveCount(1);
+      ).toHaveCount(providers > 0 ? 1 : 0);
       await expect(page.getByTestId("passkey-option")).toHaveCSS(
         "opacity",
         "1",
@@ -681,6 +705,7 @@ test.describe("Passkey account lifecycle", () => {
         }
       });
       await other.goto(loginUrl);
+      await openMoreWaysToSignIn(other);
 
       const option: Locator = other.getByRole("button", {
         name: "Sign in with a passkey",

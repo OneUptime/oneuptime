@@ -441,6 +441,52 @@ describe("each receipt is counted once", () => {
     expect(summary.dropped).toBe(1);
     expect(deliveryCounterCalls).toEqual([]);
   });
+
+  test.each([
+    ["the push log", LOG_ID, undefined],
+    ["the page's row", undefined, TIMELINE_ID],
+  ])(
+    "not delivered, but %s could not be told: counted when read, read again later, and not counted again (issue #6874)",
+    async (
+      _name: string,
+      pushNotificationLogId: string | undefined,
+      userOnCallLogTimelineId: string | undefined,
+    ) => {
+      await keep([
+        pendingReceipt(1, {
+          pushNotificationLogId: pushNotificationLogId,
+          userOnCallLogTimelineId: userOnCallLogTimelineId,
+        }),
+      ]);
+      expoReceipts.set(receiptIdOf(1), refused("DeviceNotRegistered"));
+
+      jest
+        .spyOn(PushNotificationLogService, "updateOneBy")
+        .mockRejectedValueOnce(new Error("database unavailable"));
+      jest
+        .spyOn(UserOnCallLogTimelineService, "findOneById")
+        .mockRejectedValueOnce(new Error("database unavailable"));
+
+      const first: ExpoPushReceiptCheckSummary = await check();
+
+      expect(first.couldNotRecord).toBe(1);
+      expect(counted()).toHaveLength(1);
+
+      // Read again half an hour after the push, and again later: no more counts.
+      now = SENT_AT + 30 * MINUTE;
+      const second: ExpoPushReceiptCheckSummary = await check();
+
+      expect(second.notDelivered).toBe(1);
+      expect(second.couldNotRecord).toBe(0);
+
+      now += HOUR;
+      await check();
+
+      expect(counted()).toEqual([
+        delivery("expo", "undelivered", Boolean(userOnCallLogTimelineId)),
+      ]);
+    },
+  );
 });
 
 describe("what is counted, and what never is", () => {

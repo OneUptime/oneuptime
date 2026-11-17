@@ -66,9 +66,9 @@ När domänen är live listar kortet **Delningslänk** den ovanför formulärets
 Klicka på **Lägg till anpassad domän**. Dialogrutan frågar efter en enda sak:
 
 - **Domän**: hela adressen som folk ska öppna, med platshållaren `report.example.com`. En inklistrad länk fungerar också: bara dess värdnamn behålls. För att använda roten av en domän skriver du själva domänen.
-- **Fler fält**: hopfällt. Öppna det bara för att använda ett eget certifikat: slå på **Ladda upp anpassat certifikat** och klistra in **Certifikat** och dess **Privat certifikatnyckel**.
+- **Fler fält**: hopfällt. Öppna det bara för att använda ett eget certifikat: slå på **Ladda upp anpassat certifikat** och klistra in **Certifikat** och dess **Privat certifikatnyckel**. Nyckeln lagras krypterad och visas aldrig igen. Ett certifikat och en nyckel som inte hör ihop avvisas, med orsaken under fältet som är fel.
 
-Klicka på **Fortsätt**. Om projektet har verifierat domänen som adressen ligger på, under **Projektinställningar** > **Avancerad** > **Domäner**, läggs domänen till och dess **DNS-inställning** öppnas. Om inte lägger OneUptime till den domänen i projektet, och **DNS-inställning** öppnas även med dess TXT-post, så att du verifierar den direkt där. En domäns namn och dess formulär ligger fast när den har lagts till, så **Redigera** ändrar bara dess certifikat: för att ändra något av dem lägger du till den nya domänen och tar bort den gamla.
+Klicka på **Fortsätt**. Om projektet har verifierat domänen som adressen ligger på, under **Projektinställningar** > **Avancerad** > **Domäner**, läggs domänen till och dess **DNS-inställning** öppnas. Om inte lägger OneUptime till den domänen i projektet, och **DNS-inställning** öppnas även med dess TXT-post, så att du verifierar den direkt där. En domäns namn och dess formulär ligger fast när den har lagts till, så **Redigera** ändrar bara dess certifikat: för att ändra något av dem lägger du till den nya domänen och tar bort den gamla. På en domän som levererar ditt eget certifikat är **Privat certifikatnyckel** tomt i dialogrutan **Redigera**: lämna det tomt för att behålla den sparade nyckeln, vilket är allt ett certifikat som förnyats med samma nyckel behöver, eller klistra in en ny nyckel. På en domän med det kostnadsfria certifikatet ber **Ladda upp anpassat certifikat** om nyckeln när du slår på det.
 
 En domän visar en statussida, en instrumentpanel eller ett formulär, så ett namn som någon av dem redan har, i vilket projekt som helst, avvisas: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
 
@@ -186,6 +186,10 @@ Varje variabel läser också sitt gamla namn, med `INCIDENT_FORM_` framför i st
 ### Captcha
 
 När din OneUptime-instans har hCaptcha påslaget visar formuläret en captcha, och en inlämning som inte har klarat den avvisas. Det finns ingen inställning per formulär. En egenvärdad installation slår på captcha med `CAPTCHA_ENABLED`, `CAPTCHA_SITE_KEY` och `CAPTCHA_SECRET_KEY` — samma inställningar som skyddar registrering. Utan den bär frekvensgränserna och IP-tillåtelselistan belastningen.
+
+### Skanning efter skadlig kod
+
+En egenhostad installation kan låta ClamAV skanna varje fil som skickas efter skadlig kod innan den sparas: ett formulärs filer, och filer som personer laddar upp inloggade eller med en API-nyckel. Ange en ClamAV-daemon i `CLAMAV_HOST` (och `CLAMAV_PORT`, `3310` som standard). Med Docker Compose startar `COMPOSE_PROFILES=clamav` och `CLAMAV_HOST=clamav` i `config.env` den ClamAV som följer med OneUptime; med Helm slår du på `clamav.enabled`. En fil som ClamAV flaggar avvisas med filens namn, och inget av inskicket sparas. Så länge ClamAV inte svarar avvisas varje fil med "Filer kan inte kontrolleras för virus just nu, så de togs inte emot. Försök igen om några minuter." (503), så att ingen fil sparas okontrollerad. Utan `CLAMAV_HOST` skannas inte filer, som tidigare.
 
 ## Felsökning
 

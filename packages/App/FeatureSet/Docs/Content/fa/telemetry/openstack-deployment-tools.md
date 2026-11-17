@@ -243,7 +243,7 @@ openstack-ansible openstack.osa.nova
 
 ## OpenStack-Helm
 
-OpenStack-Helm chartهایی برای Prometheus، Alertmanager و exporterها ارائه می‌دهد، و اینکه در حال اجرا باشند با شماست. control plane آن در Kubernetes اجرا می‌شود، پس یک پراب APIها را می‌خواند و عامل Kubernetes podها را می‌بیند.
+OpenStack-Helm chartهایی برای Prometheus، Alertmanager و exporterها ارائه می‌دهد، و اینکه در حال اجرا باشند با شماست. صفحه کنترل آن در Kubernetes اجرا می‌شود، پس یک پراب APIها را می‌خواند و عامل Kubernetes podها را می‌بیند.
 
 ### آنچه در OpenStack-Helm فعال است را ارسال کنید
 
@@ -428,7 +428,7 @@ bash install.sh
 
 ## Red Hat OpenStack on OpenShift
 
-Telemetry Operator آن exporter مربوط به Prometheus در Ceilometer و یک monitoring stack با Alertmanager را روی OpenShift اجرا می‌کند. پریست OpenShift عامل Kubernetes control plane را پایش می‌کند، و exporter مربوط به Ceilometer می‌گوید نودهای compute چه می‌کنند.
+Telemetry Operator آن exporter مربوط به Prometheus در Ceilometer و یک monitoring stack با Alertmanager را روی OpenShift اجرا می‌کند. پریست OpenShift عامل Kubernetes صفحه کنترل را پایش می‌کند، و exporter مربوط به Ceilometer می‌گوید نودهای compute چه می‌کنند.
 
 ### آنچه در Red Hat OpenStack on OpenShift فعال است را ارسال کنید
 
@@ -452,9 +452,9 @@ spec:
           sendResolved: true
 ```
 
-### APIها و control plane را بخوانید
+### APIها و صفحه کنترل را بخوانید
 
-**OpenStack** > **همه ابرها** را باز کنید، روی **اتصال ابر** کلیک کنید، و آدرس Keystone، یک application credential و پرابی که باید استفاده شود را به آن بدهید. پراب فقط با HTTPS با ابر صحبت می‌کند. سپس **Kubernetes** > **مستندات** را روی کلاستری که control plane را اجرا می‌کند دنبال کنید، با انتخاب **Red Hat OpenShift**، که `preset=openshift` را تنظیم می‌کند.
+**OpenStack** > **همه ابرها** را باز کنید، روی **اتصال ابر** کلیک کنید، و آدرس Keystone، یک application credential و پرابی که باید استفاده شود را به آن بدهید. پراب فقط با HTTPS با ابر صحبت می‌کند. سپس **Kubernetes** > **مستندات** را روی کلاستری که صفحه کنترل را اجرا می‌کند دنبال کنید، با انتخاب **Red Hat OpenShift**، که `preset=openshift` را تنظیم می‌کند.
 
 برای اینکه لاگ‌های آن سرویس‌ها در صفحه **لاگ‌ها**ی این ابر هم باشند، با هر stack trace به‌صورت یک رکورد، ابر را در مقادیر عامل نام ببرید، همراه با namespaceهایی که سرویس‌هایش در آن اجرا می‌شوند:
 

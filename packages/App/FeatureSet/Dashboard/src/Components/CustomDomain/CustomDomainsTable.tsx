@@ -1,4 +1,5 @@
 import {
+  CUSTOM_DOMAINS_GUIDE_LINK_TEST_ID,
   CustomDomainCopy,
   CustomDomainInstallation,
   CustomDomainState,
@@ -14,6 +15,7 @@ import CustomDomainDnsSetupModal from "./CustomDomainDnsSetupModal";
 import AddCustomDomainModal from "./AddCustomDomainModal";
 import CustomDomainName from "./CustomDomainName";
 import CustomDomainStatus from "./CustomDomainStatus";
+import { getCustomDomainCertificateFields } from "./CustomDomainCertificateFields";
 import CustomDomainCertificates, {
   CustomDomainCertificate,
 } from "Common/Types/CustomDomain/CustomDomainCertificates";
@@ -29,8 +31,11 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import Icon from "Common/UI/Components/Icon/Icon";
+import {
+  LEARN_MORE_LINK_CLASS_NAME,
+  getLearnMoreUrl,
+} from "Common/UI/Components/Link/LearnMoreLink";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -42,6 +47,7 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import { PRODUCT_TEXT_CLASS_NAME } from "Common/UI/Utils/ProductText";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -71,7 +77,10 @@ import React, {
  *     Nobody leaves the page to verify a domain in Project Settings.
  *   - Editing a domain can change only its certificate, so Edit shows the
  *     certificate options at once: folded, they left an Edit dialog with
- *     nothing in it but a fold.
+ *     nothing in it but a fold. The private key is never shown again: a
+ *     domain moving to its own certificate is asked for it, and one that
+ *     serves its own already keeps it when it is left blank
+ *     (CustomDomainCertificateFields).
  *   - DNS Setup shows the record to add, and its Check now verifies it and
  *     orders the free certificate on the spot. Nothing asks for an order.
  *     Whenever a row offers it, it is the row's button: on a domain whose
@@ -83,6 +92,9 @@ import React, {
  *   - Check now and Reissue SSL change the domain, so they are for whoever
  *     may edit it, as the server holds it; anyone else sees them locked, with
  *     the permission they need.
+ *   - A kind with a step-by-step guide (status pages: Publish a Status
+ *     Page) links it after the card's description, at its first custom
+ *     domain step, beside View Documentation's reference page (#7021).
  */
 
 export interface ComponentProps {
@@ -250,6 +262,48 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
     [kind.parentColumn]: props.parentId,
   } as Query<CustomDomainModel>;
 
+  /*
+   * What the card is for, with the record to point a domain at - and, for a
+   * kind with a guide, the guide after it, in a new tab and in the reader's
+   * language. Without this kind's CNAME record there is nothing to set up
+   * here, and no guide either. Product words, as a card's own description
+   * is (PRODUCT_TEXT_CLASS_NAME); a div, as the link's icon is one.
+   */
+  const cardDescription: string | ReactElement = cnameRecord ? (
+    <div className={PRODUCT_TEXT_CLASS_NAME}>
+      {translator.translateTemplate(
+        installation.issuesFreeCertificates
+          ? kind.copy.cardDescription
+          : kind.copy.cardDescriptionWithoutFreeCertificates,
+        {
+          cnameRecord: cnameRecord,
+        },
+      )}
+      {kind.guideDocsPath ? (
+        <>
+          {" "}
+          <a
+            href={getLearnMoreUrl(kind.guideDocsPath, translator.language)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={LEARN_MORE_LINK_CLASS_NAME}
+            data-testid={CUSTOM_DOMAINS_GUIDE_LINK_TEST_ID}
+          >
+            {translator.translateText(CustomDomainCopy.guideLink)}
+            <Icon
+              icon={IconProp.ExternalLink}
+              className="h-3.5 w-3.5 flex-shrink-0"
+            />
+          </a>
+        </>
+      ) : (
+        <></>
+      )}
+    </div>
+  ) : (
+    CustomDomainCopy.cardDescriptionNotEnabled
+  );
+
   return (
     <Fragment>
       <ModelTable<CustomDomainModel>
@@ -267,16 +321,7 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
         documentationLink={Route.fromString(kind.docsPath)}
         cardProps={{
           title: "Custom Domains",
-          description: cnameRecord
-            ? translator.translateTemplate(
-                installation.issuesFreeCertificates
-                  ? kind.copy.cardDescription
-                  : kind.copy.cardDescriptionWithoutFreeCertificates,
-                {
-                  cnameRecord: cnameRecord,
-                },
-              )
-            : CustomDomainCopy.cardDescriptionNotEnabled,
+          description: cardDescription,
         }}
         refreshToggle={refreshToggle}
         onFetchSuccess={() => {
@@ -403,65 +448,15 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
           // Read by the reissue modal to show the cooldown before it is hit.
           certificateReissueRequestedAt: true,
         }}
-        formFields={[
-          /*
-           * Adding a domain is AddCustomDomainModal's: the table's form is
-           * Edit's alone.
-           */
-          /*
-           * The same options, on Edit: the certificate is all an edit can
-           * change - the name is fixed once the domain is added - so they
-           * are the dialog, not a fold in it.
-           */
-          {
-            field: {
-              isCustomCertificate: true,
-            },
-            title: "Upload Custom Certificate",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            defaultValue: false,
-            description:
-              "If you have a custom certificate, you can upload it here. If you do not have a certificate, we will order a free SSL certificate for you.",
-            doNotShowWhenCreating: true,
-          },
-          {
-            field: {
-              customCertificate: true,
-            },
-            title: "Certificate",
-            fieldType: FormFieldSchemaType.LongText,
-            required: (item: FormValues<CustomDomainModel>): boolean => {
-              return Boolean(item.isCustomCertificate);
-            },
-            placeholder:
-              "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
-            disableSpellCheck: true,
-            hideColumnDescription: true,
-            showIf: (item: FormValues<CustomDomainModel>): boolean => {
-              return Boolean(item.isCustomCertificate);
-            },
-            doNotShowWhenCreating: true,
-          },
-          {
-            field: {
-              customCertificateKey: true,
-            },
-            title: "Certificate Private Key",
-            fieldType: FormFieldSchemaType.LongText,
-            required: (item: FormValues<CustomDomainModel>): boolean => {
-              return Boolean(item.isCustomCertificate);
-            },
-            placeholder:
-              "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
-            disableSpellCheck: true,
-            hideColumnDescription: true,
-            showIf: (item: FormValues<CustomDomainModel>): boolean => {
-              return Boolean(item.isCustomCertificate);
-            },
-            doNotShowWhenCreating: true,
-          },
-        ]}
+        /*
+         * Adding a domain is AddCustomDomainModal's: the table's form is
+         * Edit's alone. The certificate is all an edit can change - the name
+         * is fixed once the domain is added - so its options are the dialog,
+         * not a fold in it. Its private key is asked for when the domain
+         * moves to its own certificate, and kept when it serves one already
+         * (CustomDomainCertificateFields).
+         */
+        formFields={getCustomDomainCertificateFields()}
         showRefreshButton={true}
         filters={[
           {

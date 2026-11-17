@@ -14,6 +14,7 @@ import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import { leadWithAuthorMarkdown } from "../../../Utils/Markdown/FeedLead";
 import WorkspaceMessagePayload, {
   WorkspacePayloadMarkdown,
+  WorkspacePayloadMention,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import logger, { LogAttributes } from "../Logger";
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
@@ -67,6 +68,14 @@ export default class WorkspaceUtil {
     markdownByWorkspaceType?:
       | Partial<Record<WorkspaceType, string>>
       | undefined;
+    /*
+     * The people a workspace's own line mentions on purpose, as it writes
+     * them (WorkspacePayloadMarkdown.mentions, issue #7968). Only with that
+     * workspace's own line: the shared one mentions nobody.
+     */
+    mentionsByWorkspaceType?:
+      | Partial<Record<WorkspaceType, Array<WorkspacePayloadMention>>>
+      | undefined;
   }): Promise<Array<MessageBlocksByWorkspaceType>> {
     const workspaceTypes: Array<WorkspaceType> = this.getAllWorkspaceTypes();
 
@@ -87,6 +96,13 @@ export default class WorkspaceUtil {
         authorMarkdown = this.getApiKeyStringForWorkspace(data.apiKeyName);
       }
 
+      const ownMarkdown: string | undefined =
+        data.markdownByWorkspaceType?.[workspaceType];
+      const mentions: Array<WorkspacePayloadMention> =
+        ownMarkdown !== undefined
+          ? data.mentionsByWorkspaceType?.[workspaceType] || []
+          : [];
+
       messageBlocksByWorkspaceType.push({
         workspaceType: workspaceType,
         messageBlocks: [
@@ -94,9 +110,9 @@ export default class WorkspaceUtil {
             _type: "WorkspacePayloadMarkdown",
             text: leadWithAuthorMarkdown({
               authorMarkdown: authorMarkdown,
-              markdown:
-                data.markdownByWorkspaceType?.[workspaceType] ?? data.markdown,
+              markdown: ownMarkdown ?? data.markdown,
             }),
+            ...(mentions.length > 0 ? { mentions: mentions } : {}),
           } as WorkspacePayloadMarkdown,
         ],
       });
@@ -311,20 +327,15 @@ export default class WorkspaceUtil {
     const responses: Array<WorkspaceSendMessageResponse> = [];
 
     /*
-     * A project a master admin blocked, and a sample project (issue #6808),
-     * post nothing as their bot (BlockedProjectNotifications): answered as
-     * a project with no workspace connected is, one empty answer per
-     * payload, which says why (notSentReason). Each channel a payload names
-     * is not sent, for the platform's operator (WorkspaceDeliveryMetrics).
+     * A project a master admin blocked posts nothing as its bot
+     * (BlockedProjectNotifications): answered as a project with no
+     * workspace connected is, one empty answer per payload, which says why
+     * (notSentReason). Each channel a payload names is not sent, for the
+     * platform's operator (WorkspaceDeliveryMetrics).
      */
-    const silencedReason: string | null =
-      await BlockedProjectNotifications.getSilencedReason({
-        channel: "Workspace message",
-        projectId: data.projectId,
-      });
-
-    if (silencedReason) {
-      const blockedReason: string = silencedReason;
+    if (await BlockedProjectNotifications.isBlocked(data.projectId)) {
+      const blockedReason: string =
+        BlockedProjectNotifications.getNotSentReason("Workspace message");
 
       logger.debug(blockedReason, workspaceLogAttributes);
 
@@ -509,18 +520,14 @@ export default class WorkspaceUtil {
     logger.debug(data, postLogAttributes);
 
     /*
-     * A project a master admin blocked, and a sample project (issue #6808),
-     * post nothing (BlockedProjectNotifications): each channel the message
-     * names is not sent (WorkspaceDeliveryMetrics).
+     * A project a master admin blocked posts nothing (BlockedProjectNotifications):
+     * each channel the message names is not sent (WorkspaceDeliveryMetrics).
      */
-    const silencedReason: string | null =
-      await BlockedProjectNotifications.getSilencedReason({
-        channel: "Workspace message",
-        projectId: data.projectId,
-      });
-
-    if (silencedReason) {
-      logger.debug(silencedReason, postLogAttributes);
+    if (await BlockedProjectNotifications.isBlocked(data.projectId)) {
+      logger.debug(
+        BlockedProjectNotifications.getNotSentReason("Workspace message"),
+        postLogAttributes,
+      );
 
       WorkspaceDeliveryMetrics.recordChannelPostsNotSent({
         workspaceType: data.workspaceType,

@@ -26,6 +26,8 @@ flowchart TB
     statuspage --> subscribers["Abonnenter"]
 ```
 
+Siden til hver post sier også hva som bruker den. Kortet **Brukes av** for en monitor viser statussidene som viser den, monitorgruppene den er i, SLO-ene som måler den, kommende vedlikehold som nevner den, monitorene som er avhengige av den, reglene og malene som nevner den, og arbeidsflytene og dashbordene som bruker den. Det du ikke kan åpne, telles, men navngis ikke. Når du sletter eller arkiverer en post, sies det samme først, på dens egne sider og i listene.
+
 ## Prosjekter og personer
 
 Et **prosjekt** inneholder alt: monitorer, hendelser, vaktpolicyer, statussider, telemetri og innstillinger. De fleste bedrifter trenger ett, og noen har ett per miljø eller forretningsområde. Ingenting du oppretter i ett prosjekt, er synlig i et annet.
@@ -42,7 +44,7 @@ Folk er med i et prosjekt gjennom **team**, og et teams tillatelser avgjør hva 
 
 En **monitor** sjekker én ting du kjører, og avgjør om den virker. De fleste monitorer sjekkes av **sonder**: maskiner som kjører sjekken etter en tidsplan, for eksempel ved å hente en side, kalle et API, pinge en vert eller spørre en database. OneUptime Cloud kjører sonder i flere regioner, en selvhostet installasjon kjører sine egne, og du kan legge til egendefinerte sonder i nettverket ditt. Andre monitorer leser i stedet det du sender: telemetrien fra appene dine, eller dataene en agent rapporterer fra serverne, Kubernetes-klyngene og resten av infrastrukturen din.
 
-En monitors **kriterier** avgjør hva hvert resultat betyr. De sjekkes i rekkefølge, og det første som treffer, kan endre monitorens status, erklære en hendelse, opprette et varsel eller alle tre. Hvert nytt prosjekt har tre monitorstatuser: **I drift**, **Redusert** og **Frakoblet**.
+En monitors **kriterier** avgjør hva hvert resultat betyr. De sjekkes i rekkefølge, og det første som treffer, kan endre monitorens status, erklære en hendelse, opprette et varsel eller alle tre. Hvert nytt prosjekt har tre monitorstatuser: **I drift**, **Redusert** og **Offline**.
 
 :::cards
 - [Opprett en monitor](/docs/monitor/create-monitor): Velg en type, si hva som skal sjekkes, og hvor ofte.

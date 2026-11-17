@@ -9,19 +9,21 @@ import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const addressNamesDocumentation: string = `
-### Where the names on the Traffic pages come from
+The Traffic pages show an address by its name when OneUptime knows one, with the address beside it. Name an address or a subnet here to say what it is.
 
-Network > Traffic shows an address by its name when OneUptime knows one, with the address beside it. The first of these that names an address wins:
+## Where a Name Comes From
+
+The first of these that names an address wins:
 
 1. **A name on this page** for that exact address.
-2. **Your inventory**: a network device polled at the address or listing it in its Other Addresses, then a host whose agent reports it, a cloud resource your cloud lists it for, a Kubernetes node or pod.
-3. **DNS**: the address's reverse DNS name, looked up by the probe that received the flows, on its own network. A name is used only when it points back to the address.
+2. **Your inventory**: a network device polled at the address or listing it in its Other Addresses, then a host whose agent reports it, a cloud resource your cloud lists it for, and a Kubernetes node or pod.
+3. **DNS**: the address's reverse DNS name, looked up by the probe that received the flows, on its own network. It is used only when it points back to the address.
 
 An address nothing names is shown as itself.
 
-### Subnets
+## Subnets
 
-Name a subnet, like \`10.18.167.0/24\` or \`2001:db8:1::/48\`, to say where its addresses are: "Mumbai office" shows beside every address in it that has traffic, and never hides a name one of them has. When subnets overlap, the narrowest one is shown.
+Name a subnet, such as \`10.18.167.0/24\` or \`2001:db8:1::/48\`, to say where its addresses are: "Mumbai office" shows beside every address in it that has traffic, and never hides a name one of them has. When subnets overlap, the narrowest one is shown.
 `;
 
 /*
@@ -50,9 +52,8 @@ const NetworkAddressNamesPage: FunctionComponent<
             "Names for IP addresses and subnets that your inventory and DNS do not name. The Traffic pages show an address by its name, with the address beside it.",
         }}
         helpContent={{
-          title: "Where traffic names come from",
-          description:
-            "The order names are picked in, and what a subnet's name does.",
+          title: "Where Traffic Names Come From",
+          description: "Name the addresses and subnets the Traffic pages show.",
           markdown: addressNamesDocumentation,
         }}
         noItemsMessage="No address names yet. Name an address here, or with Name this address on a Traffic page."

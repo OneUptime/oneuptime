@@ -62,8 +62,8 @@ Schichten einer Rotation, die gleichzeitig Bereitschaft haben, werden jeweils zu
 
 ## Was nicht übernommen wird
 
-- **Vorfälle, Alarme und ihr Verlauf.** OneUptime beginnt mit Ihrer Einrichtung, nicht mit Ihren vergangenen Vorfällen.
-- **Integrationen, Routing Keys und Alert Rules.** Richten Sie stattdessen Ihre Monitore und Alarmquellen auf OneUptime aus, wie unter [Den Wechsel abschließen](#den-wechsel-abschließen) beschrieben.
+- **Vorfälle, Warnungen und ihr Verlauf.** OneUptime beginnt mit Ihrer Einrichtung, nicht mit Ihren vergangenen Vorfällen.
+- **Integrationen, Routing Keys und Alert Rules.** Richten Sie stattdessen Ihre Monitore und Warnungsquellen auf OneUptime aus, wie unter [Den Wechsel abschließen](#den-wechsel-abschließen) beschrieben.
 - **Geplante Überschreibungen.** Legen Sie die Überschreibungen, die Sie noch brauchen, nach dem Import in OneUptime an.
 - **Die Paging Policy der einzelnen Personen.** Personen wählen in ihren eigenen **Benutzereinstellungen**, wie sie alarmiert werden, sobald sie ihre Einladung annehmen.
 - **Schritte, für die OneUptime keine genaue Entsprechung hat.** Ein Schritt, der einen Webhook aufruft oder an eine andere Eskalationsrichtlinie weiterleitet, wird weggelassen, ebenso ein Schritt, der eine E-Mail an eine Adresse sendet, die keiner der übernommenen Personen gehört. Ein Schritt, der alarmiert, wer als Nächstes oder zuvor Bereitschaft hat, alarmiert, wer jetzt Bereitschaft hat, und die Vorschau sagt, was sich ändert.
@@ -88,8 +88,8 @@ Eingeladene Personen nehmen ihre Einladung an und fügen dann eine Telefonnummer
 ### Ihre Vorfallnummern fortsetzen
 Wenn Ihr Team Vorfälle bei ihrer Nummer nennt, lassen Sie die Nummern von OneUptime nach Ihrer letzten in Splunk On-Call beginnen: Setzen Sie unter **Vorfälle** > **Einstellungen** > **Nummerierung** auf der Karte **Nächste Nummer** die **Nächste Vorfallnummer** auf die Nummer danach. Eine Nummer bezeichnet dann nie zwei verschiedene Vorfälle.
 
-### Alarme an OneUptime senden
-Richten Sie Ihre Monitore und die Tools, die Alarme auslösen, auf OneUptime aus, und alarmieren Sie sich zum Test einmal selbst.
+### Warnungen an OneUptime senden
+Richten Sie Ihre Monitore und die Tools, die Warnungen auslösen, auf OneUptime aus, und alarmieren Sie sich zum Test einmal selbst.
 
 ### Die Alarmierung in Splunk On-Call ausschalten
 Sobald OneUptime die richtigen Personen alarmiert, schalten Sie die Benachrichtigungen in Splunk On-Call aus, damit niemand doppelt alarmiert wird.

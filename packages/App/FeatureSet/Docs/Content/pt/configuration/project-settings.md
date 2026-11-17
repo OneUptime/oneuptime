@@ -64,7 +64,7 @@ Um produto oculto não é desativado. Ele vai para **Mais produtos**, a última 
 
 Em um servidor auto-hospedado, um administrador master também pode desativar um produto para todos os projetos, em **Configurações → Produtos** no Admin Dashboard (veja [Execute só o que você precisa](/docs/installation/docker-compose#execute-só-o-que-você-precisa)). Um produto assim não tem botão aqui: ele mostra **Desativado neste servidor**, com quem pode ativá-lo.
 
-Um projeto novo começa pelo que o proprietário disse no Início que veio fazer: os essenciais, as configurações e o que esses objetivos precisam são mostrados, e o resto fica oculto. Um projeto que pulou a pergunta, ou que foi criado antes dela, mostra todos os produtos. Depois que alguém altera a lista aqui, os objetivos não a alteram mais.
+Todos os produtos são mostrados até que alguém os oculte aqui. Nenhum produto é ocultado sozinho: o que um Proprietário do projeto ou Administrador do projeto disse no Início que o projeto veio fazer só prepara os primeiros passos ali, e um produto ainda não configurado continua no seu lugar no menu.
 
 Cada produto diz o que ele é para este projeto: **Em uso**, **Não configurado** ou, no OneUptime Cloud, o plano de que precisa. Quando um produto oculto começa a receber dados, o Início avisa os Proprietários do projeto e os Administradores do projeto e oferece **Mostrar** ou **Manter oculto**.
 
@@ -91,6 +91,8 @@ Em uma lista, os rótulos de um registro aparecem um abaixo do outro; quando há
 ### Arquivar um rótulo
 
 Para aposentar um rótulo, arquive-o pelo menu **⋯** da sua linha em vez de excluí-lo. Tudo o que tem o rótulo o mantém e você ainda pode filtrar por ele, mas ninguém pode adicioná-lo a mais nada: todo seletor de rótulos o deixa de fora, e a API, o Terraform e o MCP o recusam. A caixa de diálogo lista as regras e permissões configuradas para usar o rótulo, que continuam usando-o até que você as altere. Os rótulos arquivados são listados à parte, na seção recolhida **Rótulos arquivados**, onde **Desarquivar** devolve um. **Excluir** lista primeiro tudo de onde o rótulo seria removido e oferece **Arquivar em vez disso**.
+
+**Usado por**, no menu da linha de um rótulo, conta os registros de cada tipo que levam o rótulo e os abre uma página por vez. Os registros que você não pode abrir são contados, não nomeados.
 
 ## Notificações
 

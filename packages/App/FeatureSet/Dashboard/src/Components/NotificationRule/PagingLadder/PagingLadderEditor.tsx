@@ -14,6 +14,7 @@ import {
 } from "./PagingLadderMethods";
 import {
   CardName,
+  DifferencesList,
   MethodIcon,
   MethodLabel,
   UNKNOWN_METHOD_LABEL,
@@ -67,8 +68,14 @@ import React, {
  * Nothing is written until Save Changes, which shows with Discard Changes
  * only once there is something to save; leaving the page before then asks
  * first (useLeaveGuard). Save writes the ladder into every card of the
- * grid in one request (PagingLadderService). When some cards differ from
- * the ladder, Save first names them: they lose their difference.
+ * grid in one request (PagingLadderService).
+ *
+ * The steps stay the page for somebody whose cards differ too (#8890):
+ * the cards that differ are listed under the steps, and Save Changes
+ * leaves them as they are. Using the ladder for them as well is its own
+ * button at the end of that list, and names them before it saves.
+ * Different for Some Severities, the way to the grid of cards, is a button
+ * beside the title, not a link at the card's foot that people missed.
  */
 
 export interface ComponentProps {
@@ -85,7 +92,14 @@ export interface ComponentProps {
   severityColors: Record<string, string>;
   // For a member: their first name, for the words that name them.
   memberName?: string | undefined;
-  onSave: (steps: Array<PagingLadderStep>) => Promise<void>;
+  /*
+   * Saves the steps. `keepDifferences`: the cards that differ keep their
+   * own rules; false, they take the ladder too.
+   */
+  onSave: (
+    steps: Array<PagingLadderStep>,
+    keepDifferences: boolean,
+  ) => Promise<void>;
   /*
    * Opens the grid of cards, a tab per kind and a card per severity, for
    * somebody who wants some severities to page differently. Left out, the
@@ -146,6 +160,9 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [savedNote, setSavedNote] = useState<boolean>(false);
+  // Whether the last save left the cards that differ as they were.
+  const [savedKeptDifferences, setSavedKeptDifferences] =
+    useState<boolean>(false);
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
   // Different for Some Severities was pressed over changes not saved yet.
   const [isAskingToOpenGrid, setIsAskingToOpenGrid] = useState<boolean>(false);
@@ -158,9 +175,12 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
   }, [savedSignature]);
 
   const isDirty: boolean = getStepsSignature(draft) !== savedSignature;
-  // A ladder that already pages every card saves nothing; one that differs does.
-  const canSave: boolean =
-    draft.length > 0 && (isDirty || props.differences.length > 0) && !isSaving;
+  const hasDifferences: boolean = props.differences.length > 0;
+  // Save Changes keeps the cards that differ, so it saves only a change.
+  const canSave: boolean = draft.length > 0 && isDirty && !isSaving;
+  // Using the ladder for every severity replaces the differences, changed or not.
+  const canUseForEverySeverity: boolean =
+    draft.length > 0 && hasDifferences && !isSaving;
 
   // Changes not saved yet: a new version of the Dashboard does not reload under them...
   useUnsavedChanges(isDirty);
@@ -243,13 +263,16 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
     setDraft(normalizePagingLadderSteps(props.savedSteps));
   };
 
-  const save: () => Promise<void> = async (): Promise<void> => {
+  const save: (keepDifferences: boolean) => Promise<void> = async (
+    keepDifferences: boolean,
+  ): Promise<void> => {
     setIsConfirming(false);
     setIsSaving(true);
     setError("");
 
     try {
-      await props.onSave(normalizePagingLadderSteps(draft));
+      await props.onSave(normalizePagingLadderSteps(draft), keepDifferences);
+      setSavedKeptDifferences(keepDifferences);
       setSavedNote(true);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -258,13 +281,9 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
     setIsSaving(false);
   };
 
+  // Save Changes: the cards that differ, if any, keep their own rules.
   const onSaveClick: () => void = (): void => {
-    if (props.differences.length > 0) {
-      setIsConfirming(true);
-      return;
-    }
-
-    save().catch(() => {
+    save(hasDifferences).catch(() => {
       // save() reports its own failure.
     });
   };
@@ -556,7 +575,56 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
     </div>
   );
 
-  const isSaveOffered: boolean = isDirty || props.differences.length > 0;
+  /*
+   * The cards that differ, under the steps: what each does instead, that
+   * Save Changes leaves them so, and the one button that gives them the
+   * ladder too. It replaces what makes them different, so it names them
+   * first, and it comes last.
+   */
+  const differencesSection: ReactElement = (
+    <div
+      className="flex flex-col gap-2 border-t border-gray-100 pt-4"
+      data-testid="paging-ladder-differences-section"
+    >
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {translator.translateText(PAGING_LADDER_COPY.gridIntro)}
+      </p>
+      {props.isEditable ? (
+        <p
+          className="text-sm text-gray-500"
+          data-testid="paging-ladder-keeps-note"
+        >
+          {translator.translateText(PAGING_LADDER_COPY.keepsNote)}
+        </p>
+      ) : (
+        <></>
+      )}
+      <DifferencesList
+        differences={props.differences}
+        methods={props.methods}
+        severityColors={props.severityColors}
+      />
+      {props.isEditable ? (
+        <div>
+          <Button
+            title={PAGING_LADDER_COPY.useForEverySeverity}
+            buttonStyle={ButtonStyleType.NORMAL}
+            buttonSize={ButtonSize.Small}
+            icon={IconProp.List}
+            disabled={!canUseForEverySeverity}
+            dataTestId="paging-ladder-use-for-every-severity"
+            onClick={() => {
+              setIsConfirming(true);
+            }}
+          />
+        </div>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+
+  const isSaveOffered: boolean = isDirty;
 
   // Under the steps, once there is something to save, or it has just been saved.
   const saveBar: ReactElement =
@@ -573,7 +641,13 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
               data-testid="paging-ladder-saved"
             >
               <Icon icon={IconProp.Check} className="h-4 w-4 flex-shrink-0" />
-              <span>{translator.translateText(PAGING_LADDER_COPY.saved)}</span>
+              <span>
+                {translator.translateText(
+                  savedKeptDifferences
+                    ? PAGING_LADDER_COPY.savedKeepingDifferences
+                    : PAGING_LADDER_COPY.saved,
+                )}
+              </span>
             </p>
           ) : (
             <></>
@@ -590,16 +664,6 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
               <span>
                 {translator.translateText(PAGING_LADDER_COPY.unsaved)}
               </span>
-            </p>
-          ) : (
-            <></>
-          )}
-          {props.differences.length > 0 ? (
-            <p
-              className="text-sm text-amber-700"
-              data-testid="paging-ladder-replaces-note"
-            >
-              {translator.translateText(PAGING_LADDER_COPY.replacesNote)}
             </p>
           ) : (
             <></>
@@ -638,29 +702,38 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid="paging-ladder">
-      <Card title={props.title} description={props.description}>
+      <Card
+        title={props.title}
+        description={props.description}
+        buttons={
+          props.onOpenGrid
+            ? [
+                <Button
+                  key="open-grid"
+                  title={PAGING_LADDER_COPY.differentForSome}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  icon={IconProp.TableCells}
+                  dataTestId="paging-ladder-open-grid"
+                  onClick={openGrid}
+                />,
+              ]
+            : undefined
+        }
+      >
         <div className="flex flex-col gap-5">
           {draft.length === 0 ? empty : steps}
 
           {props.footer || <></>}
 
-          {props.onOpenGrid ? (
-            <div
-              className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500"
+          {hasDifferences ? (
+            differencesSection
+          ) : (
+            <p
+              className="text-sm text-gray-500"
               data-testid="paging-ladder-scope"
             >
-              <span>{translator.translateText(PAGING_LADDER_COPY.scope)}</span>
-              <Button
-                title={PAGING_LADDER_COPY.differentForSome}
-                buttonStyle={ButtonStyleType.LINK}
-                buttonSize={ButtonSize.ExtraSmall}
-                icon={IconProp.TableCells}
-                dataTestId="paging-ladder-open-grid"
-                onClick={openGrid}
-              />
-            </div>
-          ) : (
-            <></>
+              {translator.translateText(PAGING_LADDER_COPY.scope)}
+            </p>
           )}
 
           {error ? <ErrorMessage message={error} /> : <></>}
@@ -703,13 +776,13 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
               </ul>
             </div>
           }
-          submitButtonText={PAGING_LADDER_COPY.save}
+          submitButtonText={PAGING_LADDER_COPY.useForEverySeverity}
           isLoading={isSaving}
           onClose={() => {
             setIsConfirming(false);
           }}
           onSubmit={() => {
-            save().catch(() => {
+            save(false).catch(() => {
               // save() reports its own failure.
             });
           }}

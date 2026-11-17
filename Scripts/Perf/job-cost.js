@@ -10,13 +10,21 @@
 // rows): run it only against a stack of this kit's, seeded with seed.js.
 //
 // Usage: bash in-app.sh job-cost.js <runs> <out.json> [nameFilter]
+// nameFilter: the jobs whose names hold it (case-insensitive), or any of
+// several, comma-separated ("AIInsight,Incident"); ab-job.sh runs it so.
 "use strict";
 
 const fs = require("fs");
 
 const runs = Math.max(1, Number(process.argv[2] || "2"));
 const out = process.argv[3] || "job-cost.json";
-const filter = (process.argv[4] || "").toLowerCase();
+const filters = (process.argv[4] || "")
+  .toLowerCase()
+  .split(",")
+  .map((filter) => {
+    return filter.trim();
+  })
+  .filter(Boolean);
 
 const counters = { pg: 0, ch: 0, valkey: 0 };
 const pg = require("/usr/src/Common/node_modules/pg");
@@ -108,6 +116,18 @@ async function main() {
     }
   };
 
+  /*
+   * A run of a scheduled job takes the job's lock first and skips while
+   * another run holds it (CronLock) - the stack's App running the same job,
+   * say - and a skipped run would be measured as the job's cost. The lock
+   * is taken here for every run: the job's body is what is measured.
+   */
+  const CronLock =
+    require("/usr/src/app/FeatureSet/Workers/Utils/CronLock").default;
+  CronLock.take = async () => {
+    return { result: "Taken", release: async () => {} };
+  };
+
   // Registering is a side effect of loading the job modules.
   require("/usr/src/app/FeatureSet/Workers/Index");
   const EnterpriseLoader =
@@ -122,7 +142,12 @@ async function main() {
     require("/usr/src/app/FeatureSet/Workers/Utils/JobDictionary").default;
   const names = Object.keys(JobDictionary.dictionary)
     .filter((name) => {
-      return !filter || name.toLowerCase().includes(filter);
+      return (
+        filters.length === 0 ||
+        filters.some((filter) => {
+          return name.toLowerCase().includes(filter);
+        })
+      );
     })
     .sort();
   const results = [];

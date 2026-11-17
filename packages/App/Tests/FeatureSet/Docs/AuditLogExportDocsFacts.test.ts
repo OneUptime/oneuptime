@@ -847,6 +847,51 @@ describeWhenEnterprisePresent(
       );
     });
 
+    /*
+     * #7186: View Error says from when the entries waiting to be sent start
+     * to be deleted - the soonest date stamped on the entries the export
+     * has not sent, the one the "losing entries" email reads - or, once
+     * that moment has passed, since when they are being deleted: read
+     * against the moment the date was read, by the email's rule (#7185).
+     */
+    it("says what View Error shows of a failing export's deadline, as the dialog and its read do", () => {
+      const copy: string = readEe(
+        "Dashboard/AuditLogExport/AuditLogExportCopy.ts",
+      );
+      const line: string = readEe(
+        "Dashboard/AuditLogExport/AuditLogExportEntriesLost.tsx",
+      );
+      const api: string = readEe(
+        "Server/AuditLogExport/API/AuditLogExportAPI.ts",
+      );
+      const rule: string = readCommonSource(
+        "Types/AuditLog/Export/AuditLogExportEntriesLost.ts",
+      );
+      const notifications: string = readEe(
+        "Server/AuditLogExport/AuditLogExportNotifications.ts",
+      );
+      const fails: string = section(english(), WHEN_FAILS_HEADING);
+
+      expect(copy).toContain(
+        '"Entries waiting to be sent start to be deleted from about {{time}}."',
+      );
+      expect(copy).toContain(
+        '"Since about {{time}}, entries waiting to be sent are being deleted."',
+      );
+      expect(api).toContain(
+        "findSoonestRetentionDateForExport(\n            AuditLogExporter.unsentWindow(item, data.now),",
+      );
+      // The same rule as the email: at or before the moment read, to the millisecond.
+      expect(rule).toContain("<= new Date(data.now).getTime()");
+      expect(notifications).toContain(
+        "lostAt.getTime() <= new Date(data.now).getTime()",
+      );
+      expect(line).toContain("isAuditLogExportLosingEntries({");
+      expect(fails).toContain(
+        "Its row says **Failing**, and **View Error** shows what the destination answered, when it is tried next, and from when the entries waiting to be sent start to be deleted, or, once that moment has passed, since when they are being deleted.",
+      );
+    });
+
     it("says who is emailed about a failing export, and when, as the notifications send it", () => {
       const notifications: string = readEe(
         "Server/AuditLogExport/AuditLogExportNotifications.ts",

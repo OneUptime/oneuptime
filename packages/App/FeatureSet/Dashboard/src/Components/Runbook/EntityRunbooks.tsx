@@ -11,6 +11,9 @@ import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus"
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import RunbookPicker from "./RunbookPicker";
+import { getRunbookRunGate, getRunbookRunLockedReason } from "./RunbookRunGate";
+import { PermissionGateOptions } from "Common/UI/Utils/PermissionGate";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import React, {
   Fragment,
   FunctionComponent,
@@ -82,9 +85,24 @@ function StatusPill({
   );
 }
 
+// What Run Runbook starts: a run linked to the record.
+const PRIVATE_RECORD_RUN: RunbookExecution = new RunbookExecution();
+
 const EntityRunbooks: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * Run Runbook, as the server asks it: the permission to start runbook
+   * executions (RunbookRunGate) - on a private incident or alert, only
+   * through a team of the reader's that owns it (#8913, PrivateRecordScope).
+   * Locked saying why on a definite refusal; offered while the permission
+   * snapshot is on its way, and the server decides.
+   */
+  const privateRecordOptions: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(PRIVATE_RECORD_RUN);
+  const runLockedReason: string | undefined = getRunbookRunLockedReason(
+    getRunbookRunGate(privateRecordOptions),
+  );
   const [showPickerModal, setShowPickerModal] = useState<boolean>(false);
   const [refresher, setRefresher] = useState<boolean>(false);
   const [hasExecutions, setHasExecutions] = useState<boolean | null>(null);
@@ -157,7 +175,14 @@ const EntityRunbooks: FunctionComponent<ComponentProps> = (
               title: "Run Runbook",
               buttonStyle: ButtonStyleType.NORMAL,
               icon: IconProp.Play,
+              ...(runLockedReason
+                ? { disabled: true, tooltip: runLockedReason }
+                : {}),
               onClick: () => {
+                if (runLockedReason) {
+                  return;
+                }
+
                 setShowPickerModal(true);
               },
             },

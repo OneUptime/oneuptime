@@ -371,6 +371,7 @@ describe("the Action filter", () => {
       { label: "Delete", value: "Delete" },
       { label: "Download", value: "Download" },
       { label: "Sign In", value: "SignIn" },
+      { label: "Sign-In Failed", value: "SignInFailed" },
       { label: "Sign Out", value: "SignOut" },
       { label: "Session Timeout", value: "SessionTimeout" },
       { label: "Session Revoked", value: "SessionRevoked" },

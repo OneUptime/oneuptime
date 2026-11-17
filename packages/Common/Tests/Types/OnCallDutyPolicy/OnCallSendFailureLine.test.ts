@@ -327,7 +327,11 @@ describe("every line a builder writes reads back into what it says", () => {
           }),
           channel: channel,
         }),
-      ).toEqual({ isUsedUp: false, balance: "0.05 USD", cost: "1.20 USD" });
+      ).toEqual({
+        isUsedUp: false,
+        balance: "0.05\u00A0USD",
+        cost: "1.20\u00A0USD",
+      });
     }
 
     expect(

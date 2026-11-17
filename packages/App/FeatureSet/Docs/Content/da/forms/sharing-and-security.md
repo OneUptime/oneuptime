@@ -66,9 +66,9 @@ Når domænet er live, viser kortet **Delingslink** det over formularens link. B
 Klik på **Tilføj brugerdefineret domæne**. Dialogen beder om én ting:
 
 - **Domæne**: hele den adresse, folk skal åbne, med pladsholderen `report.example.com`. Et indsat link virker også: kun dets værtsnavn beholdes. For at bruge roden af et domæne skriver du selve domænet.
-- **Flere felter**: foldet sammen. Åbn det kun for at bruge dit eget certifikat: slå **Upload brugerdefineret certifikat** til, og indsæt **Certifikat** og dets **Privat certifikatnøgle**.
+- **Flere felter**: foldet sammen. Åbn det kun for at bruge dit eget certifikat: slå **Upload brugerdefineret certifikat** til, og indsæt **Certifikat** og dets **Privat certifikatnøgle**. Nøglen gemmes krypteret og vises aldrig igen. Et certifikat og en nøgle, der ikke hører sammen, afvises, med årsagen under det felt, der er forkert.
 
-Klik på **Fortsæt**. Hvis projektet har bekræftet det domæne, adressen ligger på, under **Projektindstillinger** > **Avanceret** > **Domæner**, tilføjes domænet, og dets **DNS-opsætning** åbner. Hvis ikke, tilføjer OneUptime det domæne til projektet, og **DNS-opsætning** åbner også med dets TXT-post, så du bekræfter det lige dér. Et domænes navn og dets formular ligger fast, når det er tilføjet, så **Rediger** ændrer kun dets certifikat: for at ændre et af dem skal du tilføje det nye domæne og slette det gamle.
+Klik på **Fortsæt**. Hvis projektet har bekræftet det domæne, adressen ligger på, under **Projektindstillinger** > **Avanceret** > **Domæner**, tilføjes domænet, og dets **DNS-opsætning** åbner. Hvis ikke, tilføjer OneUptime det domæne til projektet, og **DNS-opsætning** åbner også med dets TXT-post, så du bekræfter det lige dér. Et domænes navn og dets formular ligger fast, når det er tilføjet, så **Rediger** ændrer kun dets certifikat: for at ændre et af dem skal du tilføje det nye domæne og slette det gamle. På et domæne, der serverer dit eget certifikat, er **Privat certifikatnøgle** tom i dialogen **Rediger**: lad den stå tom for at beholde den gemte nøgle, hvilket er alt, hvad et certifikat fornyet med samme nøgle har brug for, eller indsæt en ny nøgle. På et domæne med det gratis certifikat beder **Upload brugerdefineret certifikat** om nøglen, når du slår det til.
 
 Et domæne viser én statusside, ét dashboard eller én formular, så et navn, som en af dem allerede har, i et hvilket som helst projekt, afvises: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
 
@@ -186,6 +186,10 @@ Hver variabel læser også sit gamle navn, med `INCIDENT_FORM_` foran i stedet f
 ### Captcha
 
 Når din OneUptime-instans har hCaptcha slået til, viser formularen en captcha, og en indsendelse, der ikke har bestået den, afvises. Der er ingen indstilling pr. formular. En selvhostet installation slår captcha til med `CAPTCHA_ENABLED`, `CAPTCHA_SITE_KEY` og `CAPTCHA_SECRET_KEY` — de samme indstillinger, der beskytter tilmelding. Uden den bærer hastighedsgrænserne og IP-tilladelseslisten belastningen.
+
+### Malwarescanning
+
+En selvhostet installation kan få ClamAV til at scanne hver fil, folk sender, for malware, før den gemmes: en formulars filer og de filer, folk uploader, mens de er logget ind eller med en API-nøgle. Sæt `CLAMAV_HOST` (og `CLAMAV_PORT`, `3310` som standard) til en ClamAV-dæmon. Med Docker Compose starter `COMPOSE_PROFILES=clamav` og `CLAMAV_HOST=clamav` i `config.env` den ClamAV, der følger med OneUptime; med Helm slår du `clamav.enabled` til. En fil, som ClamAV markerer, afvises med navnet på filen, og intet fra indsendelsen gemmes. Så længe ClamAV ikke svarer, afvises hver fil med "Filer kan ikke tjekkes for virus lige nu, så de blev ikke modtaget. Prøv igen om et par minutter." (503), så ingen fil gemmes uden at være tjekket. Uden `CLAMAV_HOST` scannes filer ikke, som før.
 
 ## Fejlfinding
 

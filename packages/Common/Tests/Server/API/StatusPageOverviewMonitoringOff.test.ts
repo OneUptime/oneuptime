@@ -16,6 +16,7 @@ import Color from "../../../Types/Color";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import { StatusPageSummary } from "../../../Types/StatusPage/StatusPageSummary";
 import StatusPageSummaryBuilder from "../../../Utils/StatusPage/StatusPageSummaryBuilder";
@@ -481,5 +482,153 @@ describe("buildOverviewBase: the overview a page draws", () => {
       ["Edge", true, "Operational"],
     ]);
     expect(summary.overallStatus?.name).toBe("Degraded");
+  });
+});
+
+/*
+ * Issue #8899: a monitor nothing has checked yet holds the operational
+ * status every monitor is created in. The overview lists it with what
+ * nothing checks - it decides no status - and apart, in
+ * notMonitoredYetResourceIds, for the page to word it Not monitored yet.
+ * What told it apart (when it was first measured, its type) is read for
+ * that alone, and not sent.
+ */
+describe("the overview and monitors nothing has checked yet", () => {
+  const R_NEW: string = id("d11");
+  const R_NEW_GROUP: string = id("d12");
+  const R_NEW_DEGRADED: string = id("d13");
+  const R_MANUAL: string = id("d14");
+  const G_ALL_NEW: string = id("c11");
+
+  function neverChecked(monitor: Monitor, type: MonitorType): Monitor {
+    (monitor as unknown as JSONObject)["firstMeasuredAt"] = null;
+    monitor.monitorType = type;
+    return monitor;
+  }
+
+  function newWorld(): World {
+    const brandNew: StatusPageResource = monitorResource(
+      R_NEW,
+      "Payments API",
+      { monitorId: id("a31"), status: OPERATIONAL },
+      1,
+    );
+    neverChecked(brandNew.monitor!, MonitorType.Website);
+
+    // An incident set it Degraded before its first check: shown as it is.
+    const degraded: StatusPageResource = monitorResource(
+      R_NEW_DEGRADED,
+      "Search",
+      { monitorId: id("a32"), status: DEGRADED },
+      2,
+    );
+    neverChecked(degraded.monitor!, MonitorType.Website);
+
+    const manual: StatusPageResource = monitorResource(
+      R_MANUAL,
+      "Office",
+      { monitorId: id("a33"), status: OPERATIONAL },
+      3,
+    );
+    neverChecked(manual.monitor!, MonitorType.Manual);
+
+    const groupMembers: Array<MonitorGroupResource> = [
+      member(G_ALL_NEW, { monitorId: id("a41"), status: OPERATIONAL }),
+      member(G_ALL_NEW, { monitorId: id("a42"), status: OPERATIONAL }),
+    ];
+
+    for (const row of groupMembers) {
+      neverChecked(row.monitor!, MonitorType.Ping);
+    }
+
+    return {
+      resources: [
+        brandNew,
+        degraded,
+        manual,
+        groupResource(R_NEW_GROUP, "Edge", G_ALL_NEW, 4),
+      ],
+      members: { [G_ALL_NEW]: groupMembers },
+    };
+  }
+
+  test("reads whether anything has checked each monitor, with the resources", async () => {
+    await readResources(newWorld());
+
+    const select: JSONObject = resourceReads[0]!["select"] as JSONObject;
+    expect((select["monitor"] as JSONObject)["firstMeasuredAt"]).toBe(true);
+    expect((select["monitor"] as JSONObject)["monitorType"]).toBe(true);
+  });
+
+  test("lists what nothing has checked yet as not monitored, and apart as not monitored yet", async () => {
+    const read: ResourcesAndTimelines = await readResources(newWorld());
+
+    expect(read.notMonitoredResourceIds).toEqual([R_NEW, R_NEW_GROUP]);
+    expect(read.notMonitoredYetResourceIds).toEqual([R_NEW, R_NEW_GROUP]);
+    // A group none of whose monitors has been checked gives no status.
+    expect(read.monitorGroupCurrentStatuses[G_ALL_NEW]).toBeUndefined();
+  });
+
+  test("sends them, a banner that leaves them out, and nothing of what told them apart", async () => {
+    const overview: JSONObject = await overviewOf(newWorld());
+
+    expect(overview["notMonitoredResourceIds"]).toEqual([R_NEW, R_NEW_GROUP]);
+    expect(overview["notMonitoredYetResourceIds"]).toEqual([
+      R_NEW,
+      R_NEW_GROUP,
+    ]);
+    // Search's Degraded, set before its first check, is the worst shown.
+    expect((overview["overallStatus"] as JSONObject)["name"]).toBe("Degraded");
+
+    for (const resource of overview[
+      "statusPageResources"
+    ] as Array<JSONObject>) {
+      const monitor: JSONObject | undefined = resource["monitor"] as
+        | JSONObject
+        | undefined;
+
+      expect(monitor?.["firstMeasuredAt"]).toBeUndefined();
+      expect(monitor?.["monitorType"]).toBeUndefined();
+    }
+  });
+
+  test("a page nothing on which has been checked yet has no overall status", async () => {
+    const world: World = newWorld();
+    world.resources = [world.resources[0]!, world.resources[3]!];
+
+    const overview: JSONObject = await overviewOf(world);
+
+    expect(overview["overallStatus"]).toBeNull();
+    expect(overview["notMonitoredYetResourceIds"]).toEqual([
+      R_NEW,
+      R_NEW_GROUP,
+    ]);
+  });
+
+  test("a page whose monitors have all been measured sends an empty list", async () => {
+    const overview: JSONObject = await overviewOf(departmentWorld());
+
+    expect(overview["notMonitoredYetResourceIds"]).toEqual([]);
+  });
+
+  test("the summary built from it says they are not monitored, with no status", async () => {
+    const summary: StatusPageSummary = StatusPageSummaryBuilder.fromOverview(
+      await overviewOf(newWorld()),
+    );
+
+    expect(
+      summary.resources.map((resource: StatusPageSummary["resources"][0]) => {
+        return [
+          resource.name,
+          resource.isMonitored,
+          resource.currentStatus?.name || null,
+        ];
+      }),
+    ).toEqual([
+      ["Payments API", false, null],
+      ["Search", true, "Degraded"],
+      ["Office", true, "Operational"],
+      ["Edge", false, null],
+    ]);
   });
 });

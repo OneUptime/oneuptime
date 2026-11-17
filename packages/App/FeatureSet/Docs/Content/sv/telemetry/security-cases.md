@@ -195,7 +195,7 @@ Tre inställningar till gör ärendena till ditt projekts egna, under **Produkte
 - **Anteckningsmallar**: färdig text för anteckningarna ditt team skriver i ärende efter ärende, till exempel en checklista för begränsning eller en överlämning till nästa skift. På ett ärendes **Privata anteckningar** lägger redigerarens meny **Mallar** in en i anteckningen, som du kan redigera innan den publiceras, och **Hantera mallar** öppnar listan.
 - **Numrering**: texten framför ärendenumren, `CASE-` i `CASE-42` om du inte väljer en egen, och numret som nästa ärende får. Byter du från ett annat verktyg? Börja efter dess sista ärendenummer, så att ett nummer aldrig betyder två ärenden. Ett nytt prefix eller en ny start gäller bara nya ärenden, och en start måste vara högre än det högsta numret hittills.
 
-En Säkerhetsadministratör hanterar de anpassade fälten och anteckningsmallarna, och en Säkerhetsmedlem fyller i ett ärendes fält; på OneUptime Cloud kräver de Growth-planen eller högre. Numreringen ställs in av en Projektägare eller Projektadministratör, precis som för incidenter och aviseringar.
+En Säkerhetsadministratör hanterar de anpassade fälten och anteckningsmallarna, och en Säkerhetsmedlem fyller i ett ärendes fält; på OneUptime Cloud kräver de Growth-planen eller högre. Numreringen ställs in av en Projektägare eller Projektadministratör, precis som för incidenter och larm.
 
 ## Aviseringar
 
@@ -245,6 +245,8 @@ För att posta i en kanal lägger du till en regel under **Produkter → Säkerh
 | Etiketter för säkerhetsärende | Ärendets etiketter |
 
 Varje avisering utom en uppgifts postas i kanalerna för varje regel som ärendet matchar just då. En regel där **Prioritet för säkerhetsärende** innehåller någon av **Kritisk** och **Hög** postar ärenden med High och Critical när de öppnas, och ett ärende med Medium när det stiger till High. Ett säkerhetsärende får aldrig en egen kanal.
+
+Steget **Uppdateringar** i en regel väljer vilka av dessa meddelanden den publicerar: **Nya ärenden och höjda prioriteter**, **Tilldelningar**, **Väntande godkännanden** och **Svarsmål**, en ruta var under **Välj uppdateringar**. **Bara viktiga uppdateringar** publicerar alla utom tilldelningarna, för en kanal som bara ska höra det någon måste agera på. En regel som sparades före steget, och en ny regel, publicerar alla meddelanden.
 
 ## Playbooks
 

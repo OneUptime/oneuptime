@@ -89,12 +89,14 @@ export default class OpenAPIUtil {
    * serves requests, because building it walks every model for about ten
    * seconds of CPU.
    *
-   * Kept gzipped because the document is large and asked for rarely: 33 MB
-   * of objects as generateOpenAPISpec keeps it, and its 16.5 MB of JSON is
-   * as much again as a string (it has characters past Latin-1, so V8 holds
-   * two bytes a character). Gzipped it is 0.6 MB, sent as it is to a client
-   * that accepts gzip (browsers, HTTP libraries, curl --compressed; nginx
-   * passes it on as it is) and gunzipped for one that does not.
+   * Kept gzipped because the document is large and asked for rarely: its
+   * JSON was 22.9 MB on 2026-11-16, twice that as a string (it has
+   * characters past Latin-1, so V8 holds two bytes a character), and more
+   * still as the objects generateOpenAPISpec keeps (33 MB when the JSON was
+   * 16.5 MB). Gzipped it was 1 MB, sent as it is to a client that accepts
+   * gzip (browsers, HTTP libraries, curl --compressed; nginx passes it on as
+   * it is) and gunzipped for one that does not. Tests/Server/Utils/
+   * OpenAPISpecBudget holds both sizes to a budget.
    */
   public static getOpenAPISpecResponse(): OpenAPISpecResponse {
     if (!OpenAPIUtil.specResponse) {
@@ -365,6 +367,13 @@ export default class OpenAPIUtil {
                   default: 0,
                   minimum: 0,
                 },
+                // BaseAPI.getCountUpTo; the cap is getList's countCap.
+                countUpTo: {
+                  type: "integer",
+                  description:
+                    "Count the matching items no further than this, or than the end of the page if that is further. When more match, count is where it stopped and isCountCapped is true. Leave it out to count every matching item.",
+                  minimum: 1,
+                },
               },
             },
           },
@@ -385,6 +394,11 @@ export default class OpenAPIUtil {
                     },
                   },
                   count: { type: "number" },
+                  isCountCapped: {
+                    type: "boolean",
+                    description:
+                      "True when the request set countUpTo and more items match than were counted: count is where the count stopped. Absent when count is exact.",
+                  },
                 },
               },
             },
@@ -463,14 +477,27 @@ export default class OpenAPIUtil {
 
     // Use schema names that are already registered
     const createSchemaName: string = `${tableName}CreateSchema`;
-    const readSchemaName: string = `${tableName}ReadSchema`;
+    /*
+     * A model with a column its create answers once (a project's API key)
+     * answers with that column too, in <Table>CreatedSchema: nothing else
+     * ever holds it (ModelSchema.getCreatedModelSchema).
+     */
+    const shownOnceColumns: Array<string> =
+      ModelSchema.getShownOnceColumns(modelType);
+    const readSchemaName: string =
+      shownOnceColumns.length > 0
+        ? `${tableName}CreatedSchema`
+        : `${tableName}ReadSchema`;
 
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}`,
       operationId: `create${tableName}`,
       summary: `Create ${singularModelName}`,
-      description: `Endpoint to create a new ${singularModelName}`,
+      description:
+        shownOnceColumns.length > 0
+          ? `Endpoint to create a new ${singularModelName}. Its answer is the only one that holds ${shownOnceColumns.join(", ")}: keep it from there. OneUptime keeps only its hash.`
+          : `Endpoint to create a new ${singularModelName}`,
       tags: [singularModelName],
       requestBody: {
         required: true,
@@ -820,6 +847,14 @@ export default class OpenAPIUtil {
         modelType,
       });
       registry.register(`${tableName}ReadSchema`, readSchema);
+    }
+
+    // And what a create answers, where it holds what it answers once.
+    if (canCreate && ModelSchema.getShownOnceColumns(modelType).length > 0) {
+      registry.register(
+        `${tableName}CreatedSchema`,
+        ModelSchema.getCreatedModelSchema({ modelType }),
+      );
     }
 
     if (canUpdate) {

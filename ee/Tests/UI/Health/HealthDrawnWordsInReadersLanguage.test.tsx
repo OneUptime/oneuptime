@@ -20,6 +20,7 @@ import path from "path";
 import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { withNumbersKeptWithUnits } from "Common/Types/NoBreakSpaces";
 
 /*
  * WHAT THE ENTERPRISE ADMIN PAGES DREW AS WRITTEN, IN THE READER'S LANGUAGE (#8599).
@@ -117,7 +118,10 @@ const sentenceIn: (
   key: string,
   values: Record<string, string>,
 ): string => {
-  let sentence: string = wordIn(language, key);
+  // As the page's Translator sets it: a duration's figure held (#8770).
+  let sentence: string = withNumbersKeptWithUnits(wordIn(language, key), key, {
+    durationWords: true,
+  });
 
   for (const [name, value] of Object.entries(values)) {
     sentence = sentence.split(`{{${name}}}`).join(value);

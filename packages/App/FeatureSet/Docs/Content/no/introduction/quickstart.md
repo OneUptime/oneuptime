@@ -26,7 +26,7 @@ I OneUptime ligger alt i et prosjekt: monitorene, hendelsene, vaktpolicyene, sta
 :::steps
 ### Start et nytt prosjekt
 
-Første gang du logger inn, viser OneUptime **Ingen prosjekter**. Klikk på **Opprett nytt prosjekt**. Har noen allerede invitert deg til et prosjekt, godtar du heller invitasjonen på samme side.
+Første gang du logger inn, viser OneUptime **Ingen prosjekter ennå**. Klikk på **Opprett prosjekt**. Har noen allerede invitert deg til et prosjekt, godtar du heller invitasjonen på samme side.
 
 ### Gi det et navn
 
@@ -50,7 +50,7 @@ Klikk på **Opprett din første monitor** i sjekklisten. Det åpner det veileded
 
 ![Steget «Hva skal vi sjekke?», med «Start sjekkingen» uthevet](screen:website-down-address)
 
-Under **Hva skal vi sjekke?** skriver du hele adressen til nettstedet ditt i **Adresse til nettsted eller API**, for eksempel `https://example.com`, og klikker på **Start sjekkingen**. Sondene sjekker det med en gang, og deretter hvert 5. minutt: Når nettstedet ikke svarer, eller svarer med en feil, går monitoren til **Frakoblet** og erklærer en hendelse. Klikk på **Fortsett**.
+Under **Hva skal vi sjekke?** skriver du hele adressen til nettstedet ditt i **Adresse til nettsted eller API**, for eksempel `https://example.com`, og klikker på **Start sjekkingen**. Sondene sjekker det med en gang, og deretter hvert 5. minutt: Når nettstedet ikke svarer, eller svarer med en feil, går monitoren til **Offline** og erklærer en hendelse. Klikk på **Fortsett**.
 
 På Free-planen i OneUptime Cloud faktureres monitorer etter bruk, så prosjektet trenger en betalingsmåte før det kan sjekke nettstedet ditt: uten en sier steget fra før **Start sjekkingen**, med **Legg til betalingsmetode** for å [legge til en](/docs/configuration/billing#betalingsmetoder).
 
@@ -98,7 +98,7 @@ Under **Send et testoppkall** klikker du på **Test denne policyen**, velger en 
 > [!NOTE]
 > SMS og telefonanrop er slått av i et nytt prosjekt. En Prosjekteier, en Faktureringsadministrator eller noen med Manage Billing slår dem på i kortet **Varslingskanaler** under **Prosjektinnstillinger → Varslinger → Varslingskanaler**.
 
-To vaktregler utløser policyen: én ved hver nye hendelse og én ved hvert nye varsel. For å se den første åpner du **Hendelser** fra menyen **Produkter**, folder ut **Regler** i sidemenyen og velger **Vaktregler**: Den treffer **Alle hendelser**. For å utløse policyen bare ved noen hendelser, for eksempel kritiske, redigerer du regelen der, eller klikker på **Opprett Incident On-Call Rule** for å legge til din egen.
+To vaktregler utløser policyen: én ved hver nye hendelse og én ved hvert nye varsel. For å se den første åpner du **Hendelser** fra menyen **Produkter**, folder ut **Regler** i sidemenyen og velger **Vaktregler**: Den treffer **Alle hendelser**. For å utløse policyen bare ved noen hendelser, for eksempel kritiske, redigerer du regelen der, eller klikker på **Opprett Vaktregel for hendelser** for å legge til din egen.
 
 For i stedet å bygge en policy felt for felt åpner du **Vakt** fra menyen **Produkter** og klikker på **Opprett Vaktpolicy**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vaktplaner](/docs/on-call/schedules) for flere nivåer, rotasjoner og hvor lenge hvert nivå venter.
 
@@ -165,7 +165,7 @@ Klikk på **Løs** på hendelsens side. Varslingen stopper, og hendelsen forsvin
 En statusside viser en hendelse når en av hendelsens monitorer er på siden. Sjekk at hendelsen har monitoren din blant de berørte ressursene, og at monitoren er på statussiden.
 :::
 
-:::details Monitoren sier frakoblet, men nettstedet mitt virker
+:::details Monitoren sier offline, men nettstedet mitt virker
 Åpne monitoren, og se hva sondene mottok. Se feilsøkingsdelen i [Nettsted-monitor](/docs/monitor/website-monitor).
 :::
 

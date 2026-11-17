@@ -70,11 +70,13 @@ Despliega **Seguridad** en el menú lateral de **Perfil de usuario**. Tiene tres
 
 :::steps
 1. Abre **Seguridad → Gestión de contraseñas**.
-2. Escribe la contraseña nueva en **Contraseña** y otra vez en **Confirmar contraseña**. Debe tener al menos 6 caracteres.
+2. Escribe la contraseña nueva en **Nueva contraseña** y otra vez en **Confirmar contraseña**. Debe tener al menos 15 caracteres y no ser predecible, como una contraseña común o un patrón repetido: unas cuantas palabras sin relación entre sí funcionan bien. La lista de comprobación bajo el campo marca cada requisito mientras escribes.
 3. Haz clic en **Actualizar contraseña**.
 :::
 
 Una contraseña nueva cierra la sesión de tu cuenta en todos los dispositivos, y cualquier enlace de restablecimiento o de inicio de sesión ya enviado deja de funcionar.
+
+Todas las páginas que definen una contraseña piden lo mismo: el registro, el enlace de restablecimiento de **¿Olvidó su contraseña?**, esta página y **Definir contraseña** de un administrador del servidor. Una contraseña que definiste antes de esta regla sigue funcionando hasta que la cambies.
 
 ### Añadir una llave de acceso
 
@@ -84,14 +86,14 @@ Una contraseña nueva cierra la sesión de tu cuenta en todos los dispositivos, 
 3. Sigue el aviso de tu navegador para guardar la llave de acceso.
 :::
 
-La próxima vez, elige **Iniciar sesión con una clave de acceso** en la página de inicio de sesión.
+La próxima vez, elige **Más formas de iniciar sesión** → **Iniciar sesión con una clave de acceso** en la página de inicio de sesión.
 
 ### Iniciar sesión con un enlace enviado por correo
 
 Puedes iniciar sesión con un enlace en lugar de tu contraseña. No hay nada que configurar.
 
 :::steps
-1. En la página de inicio de sesión, elige **Enviarme un enlace de inicio de sesión**.
+1. En la página de inicio de sesión, elige **Más formas de iniciar sesión** → **Enviarme un enlace de inicio de sesión**.
 2. Escribe tu dirección de correo electrónico y haz clic en **Enviarme un enlace de inicio de sesión**. La página muestra entonces **Revise su correo electrónico**.
 3. Abre el enlace del correo y haz clic en **Iniciar sesión**.
 :::

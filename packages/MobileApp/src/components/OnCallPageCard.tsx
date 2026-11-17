@@ -7,6 +7,11 @@ import { formatRelativeTime } from "../utils/date";
 import type { OnCallPageItem } from "../api/types";
 import { PASS_ON_TEXT } from "../oncall/passOn";
 import { OBSERVER_PAGE_TEXT } from "../oncall/observerPage";
+import {
+  MERGED_PAGE_TEXT,
+  getMergedPageLine,
+  isMergedPage,
+} from "../oncall/mergedPage";
 import AppText from "./AppText";
 import Card from "./Card";
 import IconBadge from "./IconBadge";
@@ -83,6 +88,12 @@ export function getPageSubject(page: OnCallPageItem): PageSubject {
  * had seen it - its record was not acknowledged by that - so it says Seen,
  * or Not seen yet, and never Acknowledged. Nothing is required of an
  * observer, so not seen yet is no warning.
+ *
+ * A page merged into another page of theirs about the same record
+ * (oncall/mergedPage.ts) sent nothing of its own: it says Already paged,
+ * calmly - the page it stands on is the one waiting for them, and
+ * answering that one answers it. Not acknowledged would read as a second
+ * page waiting (#8858).
  */
 export function getPageStatus(page: OnCallPageItem): {
   label: string;
@@ -114,6 +125,10 @@ export function getPageStatus(page: OnCallPageItem): {
     return { label: PASS_ON_TEXT.passedOnLabel, tone: "neutral" };
   }
 
+  if (isMergedPage(page)) {
+    return { label: MERGED_PAGE_TEXT.label, tone: "neutral" };
+  }
+
   return page.isObserverPage
     ? { label: OBSERVER_PAGE_TEXT.notSeenStatus, tone: "info" }
     : { label: "Not acknowledged", tone: "warning" };
@@ -130,6 +145,10 @@ export default function OnCallPageCard({
   const toneColor: string = getToneColors(theme, tone).text;
   const statusLabel: string = status.label;
   const isPressable: boolean = Boolean(onPress && subject.id);
+  // Which page of theirs to answer, for one merged into it (oncall/mergedPage.ts).
+  const mergedLine: string | null = isMergedPage(page)
+    ? getMergedPageLine(page.statusMessage)
+    : null;
 
   return (
     <Card
@@ -233,6 +252,26 @@ export default function OnCallPageCard({
                   : "On-call policy unavailable")}
             </AppText>
           </View>
+          {mergedLine ? (
+            <View
+              testID={`page-merged-${page._id}`}
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: spacing.xs + 2,
+              }}
+            >
+              <Ionicons
+                name="link-outline"
+                size={14}
+                color={theme.colors.textTertiary}
+                style={{ marginTop: 2 }}
+              />
+              <AppText variant="footnote" tone="secondary" style={{ flex: 1 }}>
+                {mergedLine}
+              </AppText>
+            </View>
+          ) : null}
         </View>
         {isPressable ? (
           <Ionicons

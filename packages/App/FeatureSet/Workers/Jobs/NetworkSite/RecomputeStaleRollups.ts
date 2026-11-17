@@ -8,6 +8,7 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Semaphore, {
   SemaphoreMutex,
 } from "Common/Server/Infrastructure/Semaphore";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 
 /*
@@ -32,20 +33,29 @@ const MAX_SITES_PER_RUN: number = 500;
 const SWEEP_TIMEOUT_MINUTES: number = 4;
 
 /*
- * Redis mutex that serializes the whole sweep across every worker replica —
- * the same arrangement, for the same reason, as the auto-import sweep next
- * door. RunCron has no overlap guard, and a sweep of 500 sites is several
- * queries per site: at any real estate size a run can outlive its five-minute
- * schedule, and the next tick then selects THE SAME 500 sites, because none
- * of them has had `lastRollupAt` stamped yet. Two runs recomputing the same
- * site race the timeline's close-open pair in
- * NetworkSiteService.recomputeRollupForSite and can leave two open rows for
- * one transition.
+ * How much of its time limit a sweep spends before it stops between sites,
+ * leaving the site in flight room to finish before the limit.
+ */
+const SOFT_BUDGET_SHARE: number = 0.8;
+
+/*
+ * One sweep at a time (issue #8103).
  *
- * The lock timeout outlives the job timeout so an overrunning sweep keeps
- * holding the lock rather than letting a second sweep in behind it;
- * redis-semaphore auto-refreshes a held lock, so the value only bounds how
- * long a CRASHED worker's lock lingers.
+ * RunCron runs one copy of this job at a time across every worker replica
+ * (CronLock), and the sweep stops between sites once its deadline has passed
+ * - its time limit, or its lease lost. A sweep of 500 sites is several
+ * queries per site, so that is what keeps a run inside its schedule.
+ *
+ * This Redis mutex is kept beside the lease for what the lease cannot cover.
+ * The lease lapses half a minute past the time limit even while an await of
+ * the run has not returned - a recompute stuck on a database lock - and the
+ * next tick then selects THE SAME sites, because none of them has had
+ * `lastRollupAt` stamped yet. Two runs recomputing the same site race the
+ * timeline's close-open pair in NetworkSiteService.recomputeRollupForSite and
+ * can leave two open rows for one transition, which no later run undoes.
+ * redis-semaphore refreshes a held lock for as long as the run lasts, so an
+ * overrunning sweep keeps the next one out; the timeout only bounds how long
+ * a CRASHED worker's lock lingers.
  */
 const SWEEP_LOCK_KEY: string = "NetworkSite:RecomputeStaleRollups";
 const SWEEP_LOCK_NAMESPACE: string = "Workers.Cron";
@@ -60,7 +70,7 @@ RunCron(
       SWEEP_TIMEOUT_MINUTES,
     ),
   },
-  async () => {
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     /*
      * acquireAttemptsLimit: 1 — never queue behind the in-flight sweep. The
      * job re-runs every five minutes anyway; skipping is the correct
@@ -156,15 +166,16 @@ RunCron(
 
       /*
        * The deadline is what keeps the sweep inside its schedule on an estate
-       * bigger than one run can cover. Stopping early is safe and self
-       * correcting: nothing has been half-written, and the sites left behind
-       * are still the oldest, so the next tick picks up exactly where this one
-       * stopped. Running past the schedule would instead hand the next tick
-       * the same 500 sites this one is still working through.
+       * bigger than one run can cover: the run's own, which passes at its
+       * time limit or when its lease is lost, and the soft budget before it.
+       * Stopping early is safe and self correcting: nothing has been
+       * half-written, and the sites left behind are still the oldest, so the
+       * next tick picks up exactly where this one stopped.
        */
-      const deadline: number =
+      const softBudgetEndsAt: number =
         Date.now() +
-        OneUptimeDate.convertMinutesToMilliseconds(SWEEP_TIMEOUT_MINUTES) * 0.8;
+        OneUptimeDate.convertMinutesToMilliseconds(SWEEP_TIMEOUT_MINUTES) *
+          SOFT_BUDGET_SHARE;
 
       let recomputed: number = 0;
 
@@ -173,9 +184,13 @@ RunCron(
           continue;
         }
 
-        if (Date.now() > deadline) {
+        if (deadline.hasPassed() || Date.now() > softBudgetEndsAt) {
           logger.debug(
-            `RecomputeStaleRollups: stopping after ${recomputed} of ${sitesToRecompute.length} site(s) — out of time for this sweep. The rest are still the oldest and lead the next one.`,
+            `RecomputeStaleRollups: stopping after ${recomputed} of ${sitesToRecompute.length} site(s) — ${
+              deadline.hasPassed()
+                ? "the run's deadline has passed"
+                : "out of time for this sweep"
+            }. The rest are still the oldest and lead the next one.`,
           );
           break;
         }

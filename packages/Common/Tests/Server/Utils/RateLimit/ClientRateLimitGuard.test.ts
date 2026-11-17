@@ -136,6 +136,8 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "forwards the feed reader's address with the feed's reads of the page, so the page's IP allowlist judges the reader",
   "packages/Common/Server/Utils/RequestOrigin/RequestOriginUtil.ts":
     "writes the address a security email's request came from into that email, beside roughly where and on which device; it counts nothing",
+  "packages/Common/Server/Utils/AuditLog/FailedSignInAuditLog.ts":
+    "keeps a failed sign-in's origin for the audit log entry it writes once the route has answered; what it counts is each account's attempts, keyed on the account, and the sign-in's are counted per client by IdentityRateLimit",
   "packages/Probe/Services/SyslogReceiver.ts":
     "records the address a syslog message arrived from",
   "packages/Probe/Utils/ProbeApiDiagnostics.ts":

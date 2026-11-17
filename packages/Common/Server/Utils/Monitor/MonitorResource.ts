@@ -66,6 +66,9 @@ import MonitorAutoResolveTemplates, {
   MonitorAutoResolveTemplateIds,
 } from "../../../Utils/Monitor/MonitorAutoResolveTemplates";
 import MonitorSummaryCapture from "./MonitorSummaryCapture";
+import MonitorResourceContextUtil, {
+  MonitorRecordResources,
+} from "./MonitorResourceContext";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
 import LatestIncomingRequest, {
   LatestIncomingRequestColumns,
@@ -106,6 +109,7 @@ import MonitorProbeLastResults, {
   MonitorProbesOfResult,
 } from "./MonitorProbeLastResults";
 import MonitorProbeResultOrder from "./MonitorProbeResultOrder";
+import MonitorFirstMeasured from "./MonitorFirstMeasured";
 import MonitorHeartbeatState, {
   HeartbeatKind,
   HeartbeatWrite,
@@ -502,6 +506,11 @@ export default class MonitorResourceUtil {
           },
           // A key resolved from a cache is checked against the monitor's own.
           ...(options?.secretKey ? { [options.secretKey.column]: true } : {}),
+          /*
+           * Whether anything has measured it yet: the first result that
+           * does stamps it (MonitorFirstMeasured, issue #8899).
+           */
+          ...MonitorFirstMeasured.SELECT,
         },
         props: {
           isRoot: true,
@@ -645,20 +654,6 @@ export default class MonitorResourceUtil {
         return response;
       }
 
-      /*
-       * Nor is a sample project's (issue #6808): its monitors show a made-up
-       * history, are handed to no probe and swept by no job, and a result
-       * that reaches one anyway - a heartbeat someone sends to its address -
-       * opens nothing and changes nothing.
-       */
-      if (await ProjectService.isSampleProject(monitor.projectId)) {
-        logger.debug(
-          `${dataToProcess.monitorId.toString()} Monitor's project is a sample project. Skipping.`,
-        );
-
-        return response;
-      }
-
       // What a heartbeat sweep compares with (MonitorHeartbeatState).
       const monitorStatusIdFound: ObjectID | undefined =
         monitor.currentMonitorStatusId;
@@ -672,6 +667,19 @@ export default class MonitorResourceUtil {
         await MonitorResourceUtil.keepServerReport({
           monitorId: monitor.id!,
           dataToProcess: dataToProcess as ServerMonitorResponse,
+        });
+      }
+
+      /*
+       * So is an incoming request's, by its monitor, for the monitor page:
+       * the row is written only every so often, and a reader of the monitor
+       * may not read the secret key the sweep keeps arrivals by
+       * (MonitorResourceUtil.keepIncomingRequestArrival, issue #8123).
+       */
+      if (monitor.monitorType === MonitorType.IncomingRequest) {
+        await MonitorResourceUtil.keepIncomingRequestArrival({
+          monitorId: monitor.id!,
+          dataToProcess: dataToProcess as IncomingMonitorRequest,
         });
       }
 
@@ -877,6 +885,20 @@ export default class MonitorResourceUtil {
           );
         }
       }
+
+      /*
+       * The result is the monitor's now: past every refusal, and stored
+       * under its own probe when a probe sent it. The first one that
+       * measured the monitor - not a heartbeat sweep's look at what has not
+       * arrived - says so on its row, once, so the lists and status pages
+       * stop saying it is waiting for its first check, and announces it, so
+       * a Monitors list left open follows even when the status stays as it
+       * was (MonitorFirstMeasured). It never fails the result.
+       */
+      await MonitorFirstMeasured.stampIfFirst({
+        monitor: monitor,
+        dataToProcess: dataToProcess,
+      });
 
       const serverMonitorResponse: ServerMonitorResponse | undefined =
         monitor.monitorType === MonitorType.Server &&
@@ -1773,6 +1795,17 @@ export default class MonitorResourceUtil {
           };
 
         /*
+         * What every incident and alert opened below is about beyond its
+         * series - the resources the monitor's config names and those it
+         * was linked to by hand - read the first time a record is really
+         * created, and once for all of them (issue #8118): an evaluation
+         * that opened an incident and an alert read the linked resources
+         * twice, once per creator. One that opens nothing reads neither.
+         */
+        const recordResources: MonitorRecordResources =
+          MonitorResourceContextUtil.forEvaluation({ monitor: monitor });
+
+        /*
          * Incoming-request grouping is event-driven: a webhook describes
          * only the keys in its payload, so absence from this tick is not
          * recovery. Skip the snapshot absence-resolve pass; grouped
@@ -1969,6 +2002,7 @@ export default class MonitorResourceUtil {
               evaluationSummary: evaluationSummary,
               getMonitorSummary: getMonitorSummary,
               getEvaluationDetails: getEvaluationDetails,
+              recordResources: recordResources,
               props: {
                 telemetryQuery: telemetryQuery,
               },
@@ -1995,6 +2029,7 @@ export default class MonitorResourceUtil {
             evaluationSummary: evaluationSummary,
             getMonitorSummary: getMonitorSummary,
             getEvaluationDetails: getEvaluationDetails,
+            recordResources: recordResources,
             props: {
               telemetryQuery: telemetryQuery,
             },
@@ -2297,6 +2332,30 @@ export default class MonitorResourceUtil {
     } finally {
       await releaseMutex();
     }
+  }
+
+  /*
+   * An incoming request that arrived (not the heartbeat sweep's look at the
+   * last one): its arrival is kept by its monitor, the latest of all, on
+   * every request. The monitor page reads it over the row's, which is
+   * written at most every so often (MonitorAPI.onBeforeSendRecords, issue
+   * #8123). Never throws.
+   */
+  public static async keepIncomingRequestArrival(input: {
+    monitorId: ObjectID;
+    dataToProcess: IncomingMonitorRequest;
+  }): Promise<void> {
+    if (
+      input.dataToProcess.onlyCheckForIncomingRequestReceivedAt ||
+      !input.dataToProcess.incomingRequestReceivedAt
+    ) {
+      return;
+    }
+
+    await MonitorHeartbeatState.recordIncomingRequest({
+      monitorId: input.monitorId,
+      receivedAt: input.dataToProcess.incomingRequestReceivedAt,
+    });
   }
 
   /*

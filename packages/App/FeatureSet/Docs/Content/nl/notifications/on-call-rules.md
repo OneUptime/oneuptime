@@ -47,7 +47,7 @@ Klik op **Wijzigingen opslaan**, dat verschijnt zodra er iets is veranderd. Dat 
 
 **Test uw oproepen**, onderaan de pagina, stuurt u een testoproep via deze regels.
 
-Verdient een ernstniveau iets anders, dan opent **Anders voor sommige ernstniveaus**, onder de stappen, de tabbladen en kaarten die hieronder staan beschreven. Een kaart die van uw reeks afwijkt, is gemarkeerd met **Wijkt af van de reeks**, en de reeks vermeldt wat elke kaart in plaats daarvan doet. Wijken uw regels al af, dan opent de pagina op de kaarten, met **Eén reeks voor alles gebruiken**: bij opslaan noemt die eerst de kaarten die hun afwijking verliezen. Een ernstniveau dat uw project heeft gearchiveerd, houdt zijn eigen regels.
+Verdient een ernstniveau iets anders, dan opent **Anders voor sommige ernstniveaus**, de knop naast de titel, de tabbladen en kaarten die hieronder staan beschreven. Een kaart die van uw reeks afwijkt, is gemarkeerd met **Wijkt af van de reeks**. De pagina opent nog steeds op uw stappen en vermeldt daaronder elke kaart die afwijkt en wat die in plaats daarvan doet. **Wijzigingen opslaan** laat die kaarten zoals ze zijn; **Deze reeks voor elk ernstniveau gebruiken**, aan het eind van die lijst, geeft ook hun uw reeks, nadat het de kaarten heeft genoemd die hun afwijking verliezen. Een ernstniveau dat uw project heeft gearchiveerd, houdt zijn eigen regels.
 
 Een dienstbeleid bepaalt wie wordt opgeroepen en wanneer het volgende niveau komt. Hoe u wordt bereikt, is deze reeks, voor elk beleid dat u oproept.
 
