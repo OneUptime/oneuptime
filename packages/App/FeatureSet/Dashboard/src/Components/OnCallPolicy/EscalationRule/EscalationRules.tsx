@@ -1640,17 +1640,22 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                      * once it has responders.
                      */}
                     {isEmpty ? (
-                      <span
-                        data-testid="escalation-rule-skipped-at-once"
-                        className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200"
-                      >
-                        <Icon
-                          icon={IconProp.Forward}
-                          className="h-3 w-3 text-gray-400"
-                          isMirroredRightToLeft={true}
-                        />
-                        {translator.translateText(SKIPPED_LEVEL_TIMING)}
-                      </span>
+                      /*
+                       * The twin of "Escalates after": the same Pill, its
+                       * Forward arrow pointing the way the words run on a
+                       * page read right to left.
+                       */
+                      <Pill
+                        dataTestId="escalation-rule-skipped-at-once"
+                        text={
+                          translator.translateText(SKIPPED_LEVEL_TIMING) ||
+                          SKIPPED_LEVEL_TIMING
+                        }
+                        isUserContent={true}
+                        tone={PillTone.Neutral}
+                        icon={IconProp.Forward}
+                        isIconMirroredRightToLeft={true}
+                      />
                     ) : (
                       <Pill
                         dataTestId="escalation-rule-escalates-after"
@@ -1742,14 +1747,23 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           className="flex flex-col items-center py-1"
         >
           <div className="h-3 w-px bg-gray-200" />
-          <div className="my-1 inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
-            <Icon
-              icon={IconProp.Forward}
-              className="h-3.5 w-3.5 text-gray-400"
-              isMirroredRightToLeft={true}
-            />
-            <span>{translator.translateText(PAGED_AT_ONCE_CONNECTOR)}</span>
-          </div>
+          {/*
+           * A Pill whose Forward arrow points the way the words run, and
+           * whose sentence wraps on a phone rather than end in "...".
+           */}
+          <Pill
+            className="my-1"
+            text={
+              translator.translateText(PAGED_AT_ONCE_CONNECTOR) ||
+              PAGED_AT_ONCE_CONNECTOR
+            }
+            isUserContent={true}
+            tone={PillTone.Neutral}
+            icon={IconProp.Forward}
+            isIconMirroredRightToLeft={true}
+            isWrapping={true}
+            isKeepingWordsWhole={true}
+          />
           <Icon icon={IconProp.ChevronDown} className="h-4 w-4 text-gray-300" />
         </div>
       );
