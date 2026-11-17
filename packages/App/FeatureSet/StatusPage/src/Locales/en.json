@@ -37,7 +37,7 @@
     "announcements": "Announcements",
     "scheduledEvents": "Scheduled Maintenance",
     "subscribe": "Subscribe",
-    "logout": "Log Out"
+    "signOut": "Sign Out"
   },
   "overview": {
     "uptimeSuffix": "% uptime",
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "Completed in the Last {{count}} Days",
   "Completed in the Last {{count}} Days_one": "Completed in the Last Day",
   "None is planned, and none took place in the last {{count}} days.": "None is planned, and none took place in the last {{count}} days.",
-  "None is planned, and none took place in the last {{count}} days._one": "None is planned, and none took place in the last day."
+  "None is planned, and none took place in the last {{count}} days._one": "None is planned, and none took place in the last day.",
+  "serverMessages": {
+    "signInToView": "You do not have access to this status page. Please sign in to view it.",
+    "sessionExpired": "Session expired. Please sign in again.",
+    "signedOut": "You are signed out. Please sign in again.",
+    "magicLinkTurnedOff": "Sign-in links are turned off for this status page. Please sign in with your email and password."
+  }
 }

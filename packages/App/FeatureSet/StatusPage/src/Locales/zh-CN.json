@@ -37,7 +37,7 @@
     "announcements": "公告",
     "scheduledEvents": "计划维护",
     "subscribe": "订阅",
-    "logout": "退出"
+    "signOut": "退出登录"
   },
   "overview": {
     "uptimeSuffix": "% 正常运行时间",
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "最近 {{count}} 天内已完成",
   "Completed in the Last {{count}} Days_one": "最近 1 天内已完成",
   "None is planned, and none took place in the last {{count}} days.": "没有计划中的维护，最近 {{count}} 天内也没有进行过维护。",
-  "None is planned, and none took place in the last {{count}} days._one": "没有计划中的维护，最近 1 天内也没有进行过维护。"
+  "None is planned, and none took place in the last {{count}} days._one": "没有计划中的维护，最近 1 天内也没有进行过维护。",
+  "serverMessages": {
+    "signInToView": "你无权访问此状态页面。请登录后查看。",
+    "sessionExpired": "会话已过期。请重新登录。",
+    "signedOut": "你已退出登录。请重新登录。",
+    "magicLinkTurnedOff": "此状态页面已关闭登录链接。请使用你的电子邮件和密码登录。"
+  }
 }

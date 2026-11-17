@@ -80,7 +80,7 @@ const OTHER_SESSION_ID: string = "7b7b7b7b-7b7b-47b7-87b7-7b7b7b7b7b7b";
 
 const TOKEN_LIFETIME_MS: number = 15 * MINUTE;
 
-const PLAIN_REFUSAL: string = "Session expired. Please login again.";
+const PLAIN_REFUSAL: string = "Session expired. Please sign in again.";
 
 let nowMs: number = T0;
 

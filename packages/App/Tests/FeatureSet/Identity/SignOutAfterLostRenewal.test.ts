@@ -534,7 +534,7 @@ describe("a renewal whose answer was lost, then a sign-out", () => {
       const answer: Answer = await renew(token);
 
       expect(answer.refused?.message).toBe(
-        "Session expired. Please login again.",
+        "Session expired. Please sign in again.",
       );
       expect(answer.refreshToken).toBeNull();
     }

@@ -1556,7 +1556,7 @@ router.post(
           req,
           res,
           new BadDataException(
-            "Invalid link. Please try to log in and we will resend you another link which you should be able to verify email with.",
+            "Invalid link. Please sign in and we will send you a new link to verify your email.",
           ),
         );
       }
@@ -1566,7 +1566,7 @@ router.post(
           req,
           res,
           new BadDataException(
-            "Link expired. Please try to log in and we will resend you another link which you should be able to verify email with.",
+            "Link expired. Please sign in and we will send you a new link to verify your email.",
           ),
         );
       }
@@ -1589,7 +1589,7 @@ router.post(
           req,
           res,
           new BadDataException(
-            "Invalid link. Please try to log in and we will resend you another link which you should be able to verify email with.",
+            "Invalid link. Please sign in and we will send you a new link to verify your email.",
           ),
         );
       }
@@ -2337,7 +2337,7 @@ const refuseEndedSession: (data: {
     data.res,
     endReason
       ? new SessionEndedException(endReason)
-      : new NotAuthenticatedException("Session expired. Please login again."),
+      : new NotAuthenticatedException("Session expired. Please sign in again."),
   );
 };
 
@@ -2360,7 +2360,7 @@ router.post(
           req,
           res,
           new NotAuthenticatedException(
-            "Refresh token missing. Please login again.",
+            "You are signed out. Please sign in again.",
           ),
         );
       }
@@ -2383,7 +2383,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new NotAuthenticatedException("Session expired. Please login again."),
+          new NotAuthenticatedException(
+            "Session expired. Please sign in again.",
+          ),
         );
       }
 
@@ -2395,7 +2397,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new NotAuthenticatedException("Session expired. Please login again."),
+          new NotAuthenticatedException(
+            "Session expired. Please sign in again.",
+          ),
         );
       }
 
@@ -3476,9 +3480,7 @@ const login: LoginFunction = async (options: {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException(
-            "Invalid login: Email or password does not match.",
-          ),
+          new BadDataException("Email or password does not match."),
         );
       }
 
@@ -4322,7 +4324,7 @@ const login: LoginFunction = async (options: {
     return Response.sendErrorResponse(
       req,
       res,
-      new BadDataException("Invalid login: Email or password does not match."),
+      new BadDataException("Email or password does not match."),
     );
   } catch (err) {
     // A verification link refused for its rate limits says when to come back.

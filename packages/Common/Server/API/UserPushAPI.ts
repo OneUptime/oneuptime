@@ -262,7 +262,7 @@ function getAuthenticatedUserId(req: ExpressRequest): ObjectID {
     .userAuthorization?.userId;
   if (!userId) {
     throw new NotAuthenticatedException(
-      "You must be logged in to perform this action.",
+      "You must be signed in to perform this action.",
     );
   }
   return userId;

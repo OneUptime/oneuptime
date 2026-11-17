@@ -73,7 +73,7 @@ const PROJECT_ID: string = "dddddddd-4444-4444-8444-444444444444";
 const SESSION_REFRESHED_AT_KEY: string = "session-refreshed-at:dashboard";
 
 const NOT_AUTHENTICATED_BODY: JSONObject = {
-  message: "Authentication required. Please log in to access this resource.",
+  message: "Authentication required. Please sign in to access this resource.",
 };
 
 const DASHBOARD_ROUTE: Route = new Route(`/dashboard/${PROJECT_ID}/on-call`);

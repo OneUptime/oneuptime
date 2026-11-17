@@ -978,9 +978,7 @@ describe("POST /login when an admin requires 2FA and nothing is set up", () => {
     }
 
     expect(violations).toEqual([]);
-    expect(refusalMessage(result)).toBe(
-      "Invalid login: Email or password does not match.",
-    );
+    expect(refusalMessage(result)).toBe("Email or password does not match.");
   });
 
   /*
@@ -1362,9 +1360,7 @@ describe("POST /verify-totp-enrolment", () => {
     expect(sessionViolations()).toEqual([]);
     expect(totpFindOneBy).not.toHaveBeenCalled();
     expect(totpUpdateOneById).not.toHaveBeenCalled();
-    expect(refusalMessage(result)).toBe(
-      "Invalid login: Email or password does not match.",
-    );
+    expect(refusalMessage(result)).toBe("Email or password does not match.");
   });
 
   /*

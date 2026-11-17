@@ -37,7 +37,7 @@
     "announcements": "公告",
     "scheduledEvents": "排定維護",
     "subscribe": "訂閱",
-    "logout": "登出"
+    "signOut": "登出"
   },
   "overview": {
     "uptimeSuffix": "% 正常運作時間",
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "最近 {{count}} 天內已完成",
   "Completed in the Last {{count}} Days_one": "最近 1 天內已完成",
   "None is planned, and none took place in the last {{count}} days.": "沒有排定的維護，最近 {{count}} 天內也沒有進行過維護。",
-  "None is planned, and none took place in the last {{count}} days._one": "沒有排定的維護，最近 1 天內也沒有進行過維護。"
+  "None is planned, and none took place in the last {{count}} days._one": "沒有排定的維護，最近 1 天內也沒有進行過維護。",
+  "serverMessages": {
+    "signInToView": "你沒有存取此狀態頁面的權限。請登入後查看。",
+    "sessionExpired": "工作階段已過期。請重新登入。",
+    "signedOut": "你已登出。請重新登入。",
+    "magicLinkTurnedOff": "此狀態頁面已關閉登入連結。請使用你的電子郵件和密碼登入。"
+  }
 }
