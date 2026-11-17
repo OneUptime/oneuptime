@@ -51,7 +51,7 @@ Geben Sie Ihre Mobilnummer mit Ländervorwahl in **Deine Telefonnummer** ein, et
 
 ![Der Schritt „Wer wird zuerst alarmiert?“, „Speichern und weiter“ ist markiert](screen:paging-who-else)
 
-Unter **Wer wird zuerst alarmiert?** stehen Sie bereits in **Zuerst alarmiert**. Klicken Sie auf **Teammitglieder hinzufügen**, um weitere Personen gleichzeitig mit Ihnen zu alarmieren. Für jemanden, der noch nicht im Projekt ist, klicken Sie auf **Per E-Mail einladen**, geben die Adresse ein und klicken auf **Einladung senden**. Klicken Sie dann auf **Speichern und weiter**; wer alarmiert wird, wenn niemand antwortet, folgt danach. Hat das Projekt noch keine Bereitschaftsrichtlinie, wird dabei die **Standard-Bereitschaftsrichtlinie** angelegt, die alle diese Personen bei jedem neuen Vorfall und jeder neuen Warnung alarmiert. Hat es schon eine, wählen Sie sie stattdessen unter **Bereitschaftsrichtlinie** und nehmen Personen unter **Zur ersten Eskalationsregel hinzufügen** auf. Ist jemand noch nicht erreichbar, bleibt der Schritt bei **Erreicht sie eine Alarmierung?** offen: Klicken Sie für diese Person auf **Einrichtungserinnerung senden** und dann auf **Weiter**.
+Unter **Wer wird zuerst alarmiert?** stehen Sie bereits in **Zuerst alarmiert**. Klicken Sie auf **Teammitglieder hinzufügen**, um weitere Personen gleichzeitig mit Ihnen zu alarmieren. Für jemanden, der noch nicht im Projekt ist, klicken Sie auf **Per E-Mail einladen**, geben die Adresse ein und klicken auf **Einladung senden**. Klicken Sie dann auf **Speichern und weiter**. Hat das Projekt noch keine Bereitschaftsrichtlinie, wird dabei die **Standard-Bereitschaftsrichtlinie** angelegt, die alle diese Personen bei jedem neuen Vorfall und jeder neuen Warnung alarmiert. Hat es schon eine, wählen Sie sie stattdessen unter **Bereitschaftsrichtlinie** und nehmen Personen unter **Zur ersten Eskalationsregel hinzufügen** auf. Ist jemand noch nicht erreichbar, bleibt der Schritt bei **Erreicht sie eine Alarmierung?** offen: Klicken Sie für diese Person auf **Einrichtungserinnerung senden** und dann auf **Weiter**.
 
 ### Festlegen, was passiert, wenn niemand antwortet
 
@@ -67,7 +67,7 @@ Klicken Sie unter **Test-Alarmierung senden** auf **Diese Richtlinie testen**. W
 
 ### Die Test-Alarmierung bestätigen
 
-Öffnen Sie den Link in der SMS oder der E-Mail und bestätigen Sie die Alarmierung dort, oder drücken Sie während des Anrufs die 1. Oder tippen Sie auf ihre Push-Benachrichtigung und bestätigen Sie sie in der App. Klicken Sie dann im Dialog auf **Fertig** und auf **Weiter**.
+Öffnen Sie den Link in der SMS oder der E-Mail und bestätigen Sie die Alarmierung dort, oder drücken Sie während des Anrufs die 1. In der App OneUptime On-Call können Sie sie in Versionen neuer als 1.6.0 auch über ihre Push-Benachrichtigung bestätigen. Klicken Sie dann im Dialog auf **Fertig** und auf **Weiter**.
 :::
 
 ## Prüfen, ob es funktioniert hat

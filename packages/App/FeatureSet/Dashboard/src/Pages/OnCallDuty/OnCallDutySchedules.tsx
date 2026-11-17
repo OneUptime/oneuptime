@@ -146,6 +146,11 @@ const OnCallDutyPage: FunctionComponent<
          */
         singularName="On-Call Schedule"
         pluralName="On-Call Schedules"
+        /*
+         * Search's Create On-Call Schedule opens this list with ?create=1, and the table
+         * opens its create form from it (#7035).
+         */
+        opensCreateFormFromAddress={true}
         topContent={filterBar}
         /*
          * Beside the empty list's Create, a link to bring the schedules over

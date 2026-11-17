@@ -35,6 +35,9 @@ import {
  * - A command on a page - a setting found by the name its card shows - is
  *   never listed before that page: it comes right after it when both match
  *   ("saml" opens SSO, then its SAML card).
+ * - A command found only by its whole name (foundOnlyByWholeName) is found
+ *   by nothing else: "incident.io" finds the import from incident.io, and
+ *   "incident" never does, so it opens Incidents.
  *
  * Plurals and typos are matched by Utils/WordMatch, which the workflow step
  * pickers use too.
@@ -292,6 +295,12 @@ interface PreparedCommand {
    */
   context: Array<PreparedText>;
   hasBreadcrumb: boolean;
+  /*
+   * The names a query has to hold whole for the command to be found at all
+   * (PaletteCommand.foundOnlyByWholeName), run together: "incidentio".
+   * Empty when any query may find it.
+   */
+  wholeNames: Array<string>;
 }
 
 /*
@@ -338,6 +347,11 @@ const prepareCommand: (command: PaletteCommand) => PreparedCommand = (
         : [command.category],
     ),
     hasBreadcrumb,
+    wholeNames: prepareTexts(command.foundOnlyByWholeName || []).map(
+      (name: PreparedText): string => {
+        return name.compact;
+      },
+    ),
   };
 
   preparedCommands.set(command, prepared);
@@ -545,6 +559,21 @@ const matchPreparedCommand: (data: {
   const title: PreparedText = data.prepared.title;
   const query: PreparedQuery = data.query;
   const tokens: Array<string> = query.words;
+
+  /*
+   * A command found only by its whole name (foundOnlyByWholeName): the
+   * query, run together, holds one of its names, or it is not found at all
+   * - "incident.io" and "import from incident io" find the import from
+   * incident.io, "incident" and "incidents" never do (#7034).
+   */
+  if (
+    data.prepared.wholeNames.length > 0 &&
+    !data.prepared.wholeNames.some((name: string): boolean => {
+      return query.compact.includes(name);
+    })
+  ) {
+    return null;
+  }
 
   const penalty: number = data.prepared.hasBreadcrumb
     ? getSharedTitlePenalty(data.sharedBy)

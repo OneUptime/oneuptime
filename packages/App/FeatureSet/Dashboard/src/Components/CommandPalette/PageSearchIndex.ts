@@ -120,6 +120,13 @@ export interface PageSearchAction {
    * (PALETTE_SEARCH_PENALTY).
    */
   isNamedForAnotherProduct?: boolean | undefined;
+  /*
+   * Found only by a query that holds one of these names whole: a tool whose
+   * name starts with a word OneUptime's own pages go by ("incident.io",
+   * Incidents) is offered for "incident.io" or "incidentio", never for
+   * "incident" (PaletteCommand.foundOnlyByWholeName, #7034).
+   */
+  foundOnlyByWholeName?: Array<string> | undefined;
 }
 
 /*
@@ -223,14 +230,18 @@ const customFields: (page: PageMap, cardTitle?: string) => PageSearchPage = (
  * "Import from PagerDuty": one action per tool on the importer's page, so
  * typing the name of the tool a team is leaving finds the way to bring it
  * over, and opens the importer on that tool's connect step (#6809). A
- * tool's other names find it too. A tool whose name starts like another
- * product's pages ("incident.io", Incidents) is left out: its action would
- * come before those pages for "incident settings" (ToolImportWiring holds
- * each one left out to that).
+ * tool's other names find it too.
+ *
+ * A tool whose name starts like the words of another product's pages
+ * ("incident.io", Incidents) is found only by its whole name: "incident.io",
+ * "incidentio" or "import from incident io" offer the import, and
+ * "incident", "incidents" or "incident settings" never do, so they still
+ * open Incidents and its pages first (#7034; ToolImportWiring holds each one
+ * listed here to that). Left out of Search altogether, as it was until then,
+ * typing "incident.io" found nothing to import it.
  */
-export const TOOL_IMPORT_SEARCH_LEAVES_OUT: ReadonlyArray<ToolImportSource> = [
-  ToolImportSource.IncidentIo,
-];
+export const TOOL_IMPORT_FOUND_ONLY_BY_WHOLE_NAME: ReadonlyArray<ToolImportSource> =
+  [ToolImportSource.IncidentIo];
 
 const TOOL_IMPORT_SEARCH_KEYWORDS: Partial<
   Record<ToolImportSource, Array<string>>
@@ -244,22 +255,35 @@ const TOOL_IMPORT_SEARCH_KEYWORDS: Partial<
 
 export const getToolImportSearchActions: () => Array<PageSearchAction> =
   (): Array<PageSearchAction> => {
-    return AllToolImportSources.filter((source: ToolImportSource): boolean => {
-      return !TOOL_IMPORT_SEARCH_LEAVES_OUT.includes(source);
-    }).map((source: ToolImportSource): PageSearchAction => {
-      return {
-        id: `import-from-${source.toLowerCase()}`,
-        title: "Import from {{tool}}",
-        titleValues: { tool: getToolImportSourceDefinition(source).title },
-        icon: IconProp.InboxArrowDown,
-        keywords: TOOL_IMPORT_SEARCH_KEYWORDS[source] || [],
-        isNamedForAnotherProduct: true,
-        queryString: getToolImportQueryString({
-          from: ToolImportEntryPoint.Search,
-          tool: source,
-        }),
-      };
-    });
+    return AllToolImportSources.map(
+      (source: ToolImportSource): PageSearchAction => {
+        const tool: string = getToolImportSourceDefinition(source).title;
+        const otherNames: Array<string> =
+          TOOL_IMPORT_SEARCH_KEYWORDS[source] || [];
+        const isFoundOnlyByWholeName: boolean =
+          TOOL_IMPORT_FOUND_ONLY_BY_WHOLE_NAME.includes(source);
+
+        return {
+          id: `import-from-${source.toLowerCase()}`,
+          title: "Import from {{tool}}",
+          titleValues: { tool: tool },
+          icon: IconProp.InboxArrowDown,
+          /*
+           * A tool found only by its whole name goes by it as one word too:
+           * "incidentio" is "incident.io" typed without its dot.
+           */
+          keywords: isFoundOnlyByWholeName ? [tool, ...otherNames] : otherNames,
+          isNamedForAnotherProduct: true,
+          ...(isFoundOnlyByWholeName
+            ? { foundOnlyByWholeName: [tool, ...otherNames] }
+            : {}),
+          queryString: getToolImportQueryString({
+            from: ToolImportEntryPoint.Search,
+            tool: source,
+          }),
+        };
+      },
+    );
   };
 
 const archived: PageFunction = (page: PageMap): PageSearchPage => {

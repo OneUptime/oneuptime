@@ -1,4 +1,4 @@
-import { readPage } from "./DocsContentSupport";
+import { readPage, TRANSLATED_LANGUAGES } from "./DocsContentSupport";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import {
@@ -111,6 +111,91 @@ const PROJECT: string = repoFile(
 
 const PAGING: string = readPage("en", "guides/paging");
 const STATUS_PAGE: string = readPage("en", "guides/status-page");
+
+/*
+ * One step of a guide's :::steps, from its heading to the next step or the
+ * container's end.
+ */
+function stepOf(markdown: string, heading: string): string {
+  const at: number = markdown.indexOf(`\n${heading}\n`);
+
+  if (at === -1) {
+    throw new Error(`No ${heading}`);
+  }
+
+  const rest: string = markdown.slice(at + heading.length + 2);
+  const ends: Array<number> = [rest.indexOf("\n### "), rest.indexOf("\n:::")]
+    .filter((end: number): boolean => {
+      return end !== -1;
+    })
+    .sort((a: number, b: number): number => {
+      return a - b;
+    });
+
+  return rest.slice(0, ends[0] ?? rest.length);
+}
+
+// The last step of a guide: the one its :::steps container closes after.
+function lastStepOf(markdown: string): string {
+  const steps: string = markdown.slice(
+    markdown.indexOf(":::steps"),
+    markdown.indexOf("\n:::\n", markdown.indexOf(":::steps")),
+  );
+
+  return steps.slice(steps.lastIndexOf("\n### "));
+}
+
+/*
+ * WHERE A TEST PAGE IS ACKNOWLEDGED FROM (#9401): the words "Acknowledge
+ * the test page" says it with for each channel the guide sets up, held to
+ * the product's own answer (canAcknowledgeOnCallTestPageBy) - push
+ * included, which the On-Call app answers since #7014. A channel the guide
+ * does not set up is null, so a new channel is decided on here.
+ */
+const TEST_PAGE_ACKNOWLEDGED_FROM: Readonly<
+  Record<OnCallPageChannel, string | null>
+> = {
+  [OnCallPageChannel.SMS]: "Open the link in the text message",
+  [OnCallPageChannel.Email]: "or the email and acknowledge the page there",
+  [OnCallPageChannel.Call]: "press 1 during the phone call",
+  [OnCallPageChannel.Push]:
+    "you can also acknowledge it from its push notification",
+  [OnCallPageChannel.WhatsApp]: null,
+  [OnCallPageChannel.Telegram]: null,
+  [OnCallPageChannel.Slack]: null,
+  [OnCallPageChannel.MicrosoftTeams]: null,
+  [OnCallPageChannel.Mattermost]: null,
+  [OnCallPageChannel.Webhook]: null,
+  [OnCallPageChannel.CustomChannel]: null,
+};
+
+/*
+ * The last store release of the On-Call app without Acknowledge test page
+ * under a test's push (#7014): packages/MobileApp/app.json carried it when
+ * the action was added.
+ */
+const LAST_APP_RELEASE_WITHOUT_TEST_PAGE_ACTION: string = "1.6.0";
+
+function versionNumber(version: string): number {
+  const match: RegExpMatchArray | null = version.match(/^(\d+)\.(\d+)\.(\d+)$/);
+
+  if (!match) {
+    throw new Error(`Not a version: ${version}`);
+  }
+
+  return (
+    Number(match[1]) * 1000000 + Number(match[2]) * 1000 + Number(match[3])
+  );
+}
+
+// The latest store release of the On-Call app (packages/MobileApp/RELEASING.md).
+function appVersion(): string {
+  return (
+    JSON.parse(repoFile("packages/MobileApp/app.json")) as {
+      expo: { version: string };
+    }
+  ).expo.version;
+}
 
 // The search entry for a page, from its "page:" line to the end of its keywords.
 function searchEntryOf(page: string): string {
@@ -273,22 +358,39 @@ describe("Get Paged by Phone, SMS or Push, against the product", () => {
     );
   });
 
-  /*
-   * The On-Call app acknowledges a test page from its push notification
-   * (#7014): the guide said it could not, after the app learnt to.
-   */
-  it("acknowledges a test page from a text, a call, an email or the app", () => {
-    for (const channel of [
-      OnCallPageChannel.SMS,
-      OnCallPageChannel.Call,
-      OnCallPageChannel.Email,
-      OnCallPageChannel.Push,
-    ]) {
-      expect({ channel, ok: canAcknowledgeOnCallTestPageBy(channel) }).toEqual({
+  it("says a test page is acknowledged from each channel it sets up exactly when the product acknowledges one from it, push included", () => {
+    const section: string = stepOf(PAGING, "### Acknowledge the test page");
+
+    for (const channel of Object.values(OnCallPageChannel)) {
+      const words: string | null = TEST_PAGE_ACKNOWLEDGED_FROM[channel];
+
+      if (words === null) {
+        continue;
+      }
+
+      expect({ channel, saysSo: section.includes(words) }).toEqual({
         channel,
-        ok: true,
+        saysSo: canAcknowledgeOnCallTestPageBy(channel),
       });
     }
+
+    // The channels the guide sets up: the app's push, a text, a call and email.
+    expect(
+      Object.values(OnCallPageChannel)
+        .filter((channel: OnCallPageChannel): boolean => {
+          return TEST_PAGE_ACKNOWLEDGED_FROM[channel] !== null;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        OnCallPageChannel.Call,
+        OnCallPageChannel.Email,
+        OnCallPageChannel.Push,
+        OnCallPageChannel.SMS,
+      ].sort(),
+    );
+    // What it said before #7014 made the push acknowledge a test (#9401).
+    expect(section).not.toContain("cannot acknowledge a test");
 
     const words: string = repoFile(
       "packages/Common/Types/OnCallDutyPolicy/OnCallTestPageWords.ts",
@@ -296,14 +398,53 @@ describe("Get Paged by Phone, SMS or Push, against the product", () => {
 
     expect(words).toContain('"To acknowledge this test page, press 1."');
     expect(words).toContain("Acknowledge: {{link}}");
+  });
+
+  /*
+   * The app draws Acknowledge test page under a test's push from the release
+   * after 1.6.0 (#7014), the release that registers its push category: the
+   * mobile FAQ names the action once app.json moves past 1.6.0
+   * (MobileDesktopDocsFacts), and On-Call Policies names the versions as
+   * "newer than 1.6.0" - true whatever number that release takes. The guide
+   * names them in the same words.
+   */
+  it("names the app's versions that acknowledge a test from its push as On-Call Policies does: newer than 1.6.0", () => {
+    const section: string = stepOf(PAGING, "### Acknowledge the test page");
+
     expect(
       repoFile("packages/MobileApp/src/notifications/categories.ts"),
-    ).toContain("ACKNOWLEDGE_TEST_PAGE_ACTION");
-    expect(PAGING).toContain("or press 1 during the phone call");
-    expect(PAGING).toContain(
-      "Or tap its push notification and acknowledge it in the app.",
+    ).toContain(
+      'export const ON_CALL_TEST_PAGE_CATEGORY: string = "ON_CALL_TEST_PAGE";',
     );
-    expect(PAGING).not.toContain("cannot acknowledge a test");
+    expect(repoFile("packages/MobileApp/src/oncall/testPage.ts")).toContain(
+      'acknowledgeButton: "Acknowledge test page",',
+    );
+    expect(section).toContain(
+      `In the OneUptime On-Call app, in versions newer than ${LAST_APP_RELEASE_WITHOUT_TEST_PAGE_ACTION}, you can also acknowledge it from its push notification.`,
+    );
+    expect(readPage("en", "on-call/policies")).toContain(
+      `or its push notification in the OneUptime On-Call app, in versions newer than ${LAST_APP_RELEASE_WITHOUT_TEST_PAGE_ACTION}.`,
+    );
+    // A release that shipped: the store's latest (app.json) is it or later.
+    expect(versionNumber(appVersion())).toBeGreaterThanOrEqual(
+      versionNumber(LAST_APP_RELEASE_WITHOUT_TEST_PAGE_ACTION),
+    );
+  });
+
+  it("says the same of the push in every language: its last step names the app and the version as the English writes them", () => {
+    expect(lastStepOf(PAGING)).toContain("### Acknowledge the test page");
+
+    for (const language of TRANSLATED_LANGUAGES) {
+      const step: string = lastStepOf(readPage(language, "guides/paging"));
+
+      expect({
+        language,
+        namesTheVersion: step.includes(
+          LAST_APP_RELEASE_WITHOUT_TEST_PAGE_ACTION,
+        ),
+        namesTheApp: step.includes("OneUptime On-Call"),
+      }).toEqual({ language, namesTheVersion: true, namesTheApp: true });
+    }
   });
 
   it("walks the escalation in a test 2 minutes apart, from the policy's own Test this policy", () => {

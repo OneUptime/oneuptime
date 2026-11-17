@@ -51,7 +51,7 @@ Skriv dit mobilnummer med landekode i **Dit telefonnummer**, for eksempel `+1555
 
 ![Trinnet »Hvem tilkaldes først?«, med »Gem og fortsæt« fremhævet](screen:paging-who-else)
 
-Under **Hvem tilkaldes først?** er du allerede med i **Tilkaldes først**. Klik på **Tilføj teammedlemmer** for at tilkalde andre samtidig med dig. For en person, der endnu ikke er i projektet, klikker du på **Inviter via e-mail**, skriver adressen og klikker på **Send invitationen**. Klik derefter på **Gem og fortsæt**; hvem der tilkaldes, hvis ingen svarer, kommer bagefter. I et projekt, der endnu ikke har en vagtpolitik, oprettes **Standardvagtpolitik**, som tilkalder dem ved hver ny hændelse og advarsel. I et projekt, der har en, vælger du den under **Vagtpolitik** og tilføjer i stedet personer under **Føj til den første eskaleringsregel**. Kan nogen ikke nås endnu, bliver trinnet stående på **Når en tilkaldelse dem?**: klik på **Send påmindelse om opsætning** for dem og derefter på **Fortsæt**.
+Under **Hvem tilkaldes først?** er du allerede med i **Tilkaldes først**. Klik på **Tilføj teammedlemmer** for at tilkalde andre samtidig med dig. For en person, der endnu ikke er i projektet, klikker du på **Inviter via e-mail**, skriver adressen og klikker på **Send invitationen**. Klik derefter på **Gem og fortsæt**. I et projekt, der endnu ikke har en vagtpolitik, oprettes **Standardvagtpolitik**, som tilkalder dem ved hver ny hændelse og advarsel. I et projekt, der har en, vælger du den under **Vagtpolitik** og tilføjer i stedet personer under **Føj til den første eskaleringsregel**. Kan nogen ikke nås endnu, bliver trinnet stående på **Når en tilkaldelse dem?**: klik på **Send påmindelse om opsætning** for dem og derefter på **Fortsæt**.
 
 ### Bestem, hvad der sker, hvis ingen svarer
 
@@ -67,7 +67,7 @@ Under **Send et testkald** klikker du på **Test denne politik**. Vælg en **Alv
 
 ### Kvittér for testkaldet
 
-Åbn linket i sms'en eller e-mailen, og kvittér for tilkaldet dér, eller tryk 1 under opkaldet. Eller tryk på push-notifikationen, og kvittér for tilkaldet i appen. Klik derefter på **Færdig** i dialogen og på **Fortsæt**.
+Åbn linket i sms'en eller e-mailen, og kvittér for tilkaldet dér, eller tryk 1 under opkaldet. I OneUptime On-Call-appen i versioner nyere end 1.6.0 kan du også kvittere for tilkaldet fra dets pushnotifikation. Klik derefter på **Færdig** i dialogen og på **Fortsæt**.
 :::
 
 ## Tjek, at det virker

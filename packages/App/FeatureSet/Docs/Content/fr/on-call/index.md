@@ -62,7 +62,7 @@ Ouvrez **Astreinte** depuis le menu **Produits** et allez dans **Plannings d'ast
 
 ### Créer une politique
 
-Allez dans **Politiques d'astreinte** et cliquez sur **Créer : Politique d'astreinte**. Sous **Qui est alerté en premier ?**, choisissez le planning. Il devient la première règle d'escalade de la politique, **Level 1**, qui attend 30 minutes une prise en compte.
+Allez dans **Politiques d'astreinte** et cliquez sur **Créer une politique d'astreinte**. Sous **Qui est alerté en premier ?**, choisissez le planning. Il devient la première règle d'escalade de la politique, **Level 1**, qui attend 30 minutes une prise en compte.
 
 ### Ajouter les niveaux suivants
 

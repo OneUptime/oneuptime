@@ -1,3 +1,4 @@
+import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyExecutionLogTimeline from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import User from "../../../Models/DatabaseModels/User";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
@@ -15,6 +16,7 @@ import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDuty
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import OnCallTestPageService, {
   ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE,
+  getAcknowledgement,
   getNotPagedMessage,
   getPreviewMethodsOfRule,
   getPreviewWarningCodes,
@@ -66,6 +68,7 @@ import {
   OnCallTestPageReachedThroughCode,
   OnCallTestPageRecordKind,
   OnCallTestPageResult,
+  OnCallTestPageResultSummary,
   OnCallTestPageStatus,
   OnCallTestPageStepStatus,
   OnCallTestPageWarningCode,
@@ -1833,6 +1836,200 @@ describe("what became of a test: the chain as it happened", () => {
     expect(result.statusMessageCode).toBeUndefined();
     // A line with no words of its own has no code either.
     expect(result.steps[0]!.statusMessageCode).toBeUndefined();
+  });
+});
+
+/*
+ * #9386: WHAT BECAME OF SEVERAL TESTS, IN SHORT - a fire drill's results on
+ * its monitor's card. Worked out as the full result works it out
+ * (getAcknowledgement): two reads however many tests, the runs handed in and
+ * only the messages they were acknowledged from.
+ */
+describe("what became of several tests, in short", () => {
+  const RUN_2: ObjectID = new ObjectID("7e5ae000-0000-4000-8000-000000000013");
+  const POLICY_2: ObjectID = new ObjectID(
+    "7e5ae000-0000-4000-8000-000000000012",
+  );
+
+  let readMessages: jest.SpyInstance;
+
+  function runOf(
+    id: ObjectID,
+    data: Partial<OnCallDutyPolicyExecutionLog> = {},
+  ): OnCallDutyPolicyExecutionLog {
+    return {
+      id: id,
+      status: OnCallDutyPolicyStatus.Executing,
+      createdAt: new Date("2026-11-11T09:00:00.000Z"),
+      onCallDutyPolicyId: POLICY,
+      onCallDutyPolicy: { name: "Primary" },
+      ...data,
+    } as unknown as OnCallDutyPolicyExecutionLog;
+  }
+
+  beforeEach(() => {
+    readMessages = jest
+      .spyOn(UserOnCallLogTimelineService, "findBy")
+      .mockResolvedValue([
+        {
+          id: new ObjectID("7e5ae000-0000-4000-8000-000000000501"),
+          userId: ANA,
+          onCallDutyPolicyExecutionLogId: RUN,
+          createdAt: new Date("2026-11-11T09:00:02.000Z"),
+          acknowledgedAt: new Date("2026-11-11T09:00:16.000Z"),
+          isAcknowledged: true,
+          userPushId: new ObjectID("7e5ae000-0000-4000-8000-000000000502"),
+        },
+      ] as never);
+  });
+
+  test("each test's state, and who acknowledged it, by what and how fast - in the order the runs are handed in", async () => {
+    const summaries: Array<OnCallTestPageResultSummary> =
+      await OnCallTestPageService.getResultSummaries({
+        projectId: PROJECT,
+        runs: [
+          runOf(RUN, {
+            status: OnCallDutyPolicyStatus.Completed,
+            acknowledgedAt: new Date("2026-11-11T09:00:16.000Z"),
+            acknowledgedByUserId: ANA,
+            acknowledgedByUser: { name: new Name("Ana Lopez") } as never,
+          }),
+          runOf(RUN_2, {
+            onCallDutyPolicyId: POLICY_2,
+            onCallDutyPolicy: { name: "Platform" } as never,
+          }),
+        ],
+      });
+
+    expect(summaries).toEqual([
+      {
+        executionLogId: RUN.toString(),
+        policyId: POLICY.toString(),
+        policyName: "Primary",
+        status: OnCallTestPageStatus.Acknowledged,
+        startedAt: "2026-11-11T09:00:00.000Z",
+        endsAt: "2026-11-11T09:15:00.000Z",
+        acknowledgedByName: "Ana Lopez",
+        acknowledgedChannel: OnCallPageChannel.Push,
+        acknowledgedAfterSeconds: 14,
+      },
+      {
+        executionLogId: RUN_2.toString(),
+        policyId: POLICY_2.toString(),
+        policyName: "Platform",
+        status: OnCallTestPageStatus.Paging,
+        startedAt: "2026-11-11T09:00:00.000Z",
+        endsAt: "2026-11-11T09:15:00.000Z",
+      },
+    ]);
+  });
+
+  test("reads only the messages acknowledged, of these runs and this project, once for all of them", async () => {
+    await OnCallTestPageService.getResultSummaries({
+      projectId: PROJECT,
+      runs: [runOf(RUN), runOf(RUN_2)],
+    });
+
+    expect(readMessages).toHaveBeenCalledTimes(1);
+
+    const query: Record<string, unknown> = (
+      readMessages.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    expect(query["projectId"]).toBe(PROJECT);
+    expect(query["isAcknowledged"]).toBe(true);
+    expect(JSON.stringify(query["onCallDutyPolicyExecutionLogId"])).toContain(
+      RUN_2.toString(),
+    );
+  });
+
+  test("no runs read nothing", async () => {
+    expect(
+      await OnCallTestPageService.getResultSummaries({
+        projectId: PROJECT,
+        runs: [],
+      }),
+    ).toEqual([]);
+    expect(readMessages).not.toHaveBeenCalled();
+  });
+
+  test("a message of another run is never taken for this run's answer", async () => {
+    const [summary]: Array<OnCallTestPageResultSummary> =
+      await OnCallTestPageService.getResultSummaries({
+        projectId: PROJECT,
+        runs: [
+          runOf(RUN_2, {
+            status: OnCallDutyPolicyStatus.Completed,
+            acknowledgedAt: new Date("2026-11-11T09:00:16.000Z"),
+            acknowledgedByUserId: ANA,
+            acknowledgedByUser: { name: new Name("Ana Lopez") } as never,
+          }),
+        ],
+      });
+
+    // Acknowledged, by whom - but no message of its own says by what.
+    expect(summary).toEqual(
+      expect.objectContaining({
+        status: OnCallTestPageStatus.Acknowledged,
+        acknowledgedByName: "Ana Lopez",
+      }),
+    );
+    expect(summary!.acknowledgedChannel).toBeUndefined();
+    expect(summary!.acknowledgedAfterSeconds).toBeUndefined();
+  });
+});
+
+describe("who acknowledged a test, by what and how fast", () => {
+  const sms: UserOnCallLogTimeline = {
+    userId: ANA,
+    isAcknowledged: true,
+    createdAt: new Date("2026-11-11T09:00:00.000Z"),
+    acknowledgedAt: new Date("2026-11-11T09:00:40.000Z"),
+    userSmsId: new ObjectID("7e5ae000-0000-4000-8000-000000000601"),
+  } as unknown as UserOnCallLogTimeline;
+
+  const call: UserOnCallLogTimeline = {
+    userId: ANA,
+    isAcknowledged: true,
+    createdAt: new Date("2026-11-11T09:00:05.000Z"),
+    acknowledgedAt: new Date("2026-11-11T09:00:20.000Z"),
+    userCallId: new ObjectID("7e5ae000-0000-4000-8000-000000000602"),
+  } as unknown as UserOnCallLogTimeline;
+
+  test("nothing while nobody has", () => {
+    expect(getAcknowledgement({ run: {}, deliveries: [sms] })).toEqual({});
+  });
+
+  test("the message they first acknowledged it from: its channel, and the time since it went out", () => {
+    expect(
+      getAcknowledgement({
+        run: {
+          acknowledgedAt: new Date("2026-11-11T09:00:20.000Z"),
+          acknowledgedByUserId: ANA,
+          acknowledgedByUser: { name: new Name("Ana Lopez") } as never,
+        },
+        deliveries: [sms, call],
+      }),
+    ).toEqual({
+      acknowledgedByName: "Ana Lopez",
+      acknowledgedChannel: OnCallPageChannel.Call,
+      acknowledgedAfterSeconds: 15,
+    });
+  });
+
+  test("by their email when they have no name; a message of somebody else's is not theirs", () => {
+    expect(
+      getAcknowledgement({
+        run: {
+          acknowledgedAt: new Date("2026-11-11T09:00:20.000Z"),
+          acknowledgedByUserId: BOB,
+          acknowledgedByUser: {
+            email: new Email("bob@example.com"),
+          } as never,
+        },
+        deliveries: [sms, call],
+      }),
+    ).toEqual({ acknowledgedByName: "bob@example.com" });
   });
 });
 

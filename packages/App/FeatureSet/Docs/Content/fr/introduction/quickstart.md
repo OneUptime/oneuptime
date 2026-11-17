@@ -100,7 +100,7 @@ Sous **Envoyer un appel de test**, cliquez sur **Tester cette politique**, chois
 
 Deux règles d'astreinte déclenchent la politique : une pour chaque nouvel incident et une pour chaque nouvelle alerte. Pour voir la première, ouvrez **Incidents** depuis le menu **Produits**, dépliez **Règles** dans le menu latéral et choisissez **Règles d'astreinte** : elle correspond à **Tous les incidents**. Pour ne déclencher la politique que pour certains incidents, comme les critiques, modifiez la règle à cet endroit, ou cliquez sur **Créer : Règle d'astreinte des incidents** pour ajouter la vôtre.
 
-Pour construire plutôt une politique champ par champ, ouvrez **Astreinte** depuis le menu **Produits** et cliquez sur **Créer : Politique d'astreinte**. Pour plus de niveaux, des rotations et le délai d'attente de chaque niveau, consultez [Règles d'escalade](/docs/on-call/escalation-rules) et [Plannings d'astreinte](/docs/on-call/schedules).
+Pour construire plutôt une politique champ par champ, ouvrez **Astreinte** depuis le menu **Produits** et cliquez sur **Créer une politique d'astreinte**. Pour plus de niveaux, des rotations et le délai d'attente de chaque niveau, consultez [Règles d'escalade](/docs/on-call/escalation-rules) et [Plannings d'astreinte](/docs/on-call/schedules).
 
 Pour chaque écran de la configuration, et quoi faire quand un appel n'arrive pas, suivez [Être alerté par appel, SMS ou push](/docs/guides/paging).
 

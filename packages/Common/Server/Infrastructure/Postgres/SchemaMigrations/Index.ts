@@ -1052,6 +1052,8 @@ import { WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182950000 } from 
 import { TwilioAuthTokenTextColumn1809182960000 } from "./1809182960000-TwilioAuthTokenTextColumn";
 import { WidenWorkspaceMessageIdColumns1809182970000 } from "./1809182970000-WidenWorkspaceMessageIdColumns";
 import { AddNetworkDeviceManufacturer1809182980000 } from "./1809182980000-AddNetworkDeviceManufacturer";
+import { AddOnCallFireDrillResults1809183100000 } from "./1809183100000-AddOnCallFireDrillResults";
+import { AddOnCallFireDrillResultsIndexAndKey1809183110000 } from "./1809183110000-AddOnCallFireDrillResultsIndexAndKey";
 
 export default [
   InitialMigration,
@@ -2108,4 +2110,6 @@ export default [
   TwilioAuthTokenTextColumn1809182960000,
   WidenWorkspaceMessageIdColumns1809182970000,
   AddNetworkDeviceManufacturer1809182980000,
+  AddOnCallFireDrillResults1809183100000,
+  AddOnCallFireDrillResultsIndexAndKey1809183110000,
 ];

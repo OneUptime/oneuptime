@@ -51,7 +51,7 @@ Skriv inn mobilnummeret ditt med landskode i **Telefonnummeret ditt**, for eksem
 
 ![Steget «Hvem tilkalles først?», med «Lagre og fortsett» uthevet](screen:paging-who-else)
 
-Under **Hvem tilkalles først?** er du allerede med i **Tilkalles først**. Klikk på **Legg til teammedlemmer** for å tilkalle andre samtidig med deg. For noen som ennå ikke er i prosjektet, klikker du på **Inviter via e-post**, skriver adressen og klikker på **Send invitasjon**. Klikk deretter på **Lagre og fortsett**; hvem som tilkalles hvis ingen svarer, kommer etterpå. I et prosjekt som ennå ikke har en vaktpolicy, opprettes **Standard vaktpolicy**, som tilkaller dem ved hver nye hendelse og hvert nye varsel. I et prosjekt som har en, velger du den under **Vaktpolicy** og legger i stedet til personer under **Legg til i den første eskaleringsregelen**. Kan noen ikke nås ennå, blir steget stående på **Når et tilkall dem?**: klikk på **Send påminnelse om oppsett** for dem, og deretter på **Fortsett**.
+Under **Hvem tilkalles først?** er du allerede med i **Tilkalles først**. Klikk på **Legg til teammedlemmer** for å tilkalle andre samtidig med deg. For noen som ennå ikke er i prosjektet, klikker du på **Inviter via e-post**, skriver adressen og klikker på **Send invitasjon**. Klikk deretter på **Lagre og fortsett**. I et prosjekt som ennå ikke har en vaktpolicy, opprettes **Standard vaktpolicy**, som tilkaller dem ved hver nye hendelse og hvert nye varsel. I et prosjekt som har en, velger du den under **Vaktpolicy** og legger i stedet til personer under **Legg til i den første eskaleringsregelen**. Kan noen ikke nås ennå, blir steget stående på **Når et tilkall dem?**: klikk på **Send påminnelse om oppsett** for dem, og deretter på **Fortsett**.
 
 ### Bestem hva som skjer hvis ingen svarer
 
@@ -67,7 +67,7 @@ Under **Send et testoppkall** klikker du på **Test denne policyen**. Velg en **
 
 ### Bekreft testoppkallet
 
-Åpne lenken i SMS-en eller e-posten, og bekreft tilkallingen der, eller trykk 1 under anropet. Eller trykk på push-varslingen, og bekreft tilkallingen i appen. Klikk deretter på **Ferdig** i dialogen, og på **Fortsett**.
+Åpne lenken i SMS-en eller e-posten, og bekreft tilkallingen der, eller trykk 1 under anropet. I OneUptime On-Call-appen, i versjoner nyere enn 1.6.0, kan du også bekrefte tilkallingen fra push-varslingen. Klikk deretter på **Ferdig** i dialogen, og på **Fortsett**.
 :::
 
 ## Sjekk at det virker

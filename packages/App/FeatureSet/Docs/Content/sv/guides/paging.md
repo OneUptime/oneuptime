@@ -51,7 +51,7 @@ Skriv ditt mobilnummer med landsnummer i **Ditt telefonnummer**, till exempel `+
 
 ![Steget ”Vem larmas först?”, med ”Spara och fortsätt” markerad](screen:paging-who-else)
 
-Under **Vem larmas först?** finns du redan i **Larmas först**. Klicka på **Lägg till teammedlemmar** för att larma andra samtidigt som dig. För någon som ännu inte finns i projektet klickar du på **Bjud in via e-post**, skriver adressen och klickar på **Skicka inbjudan**. Klicka sedan på **Spara och fortsätt**; vem som larmas om ingen svarar kommer därefter. I ett projekt som ännu inte har någon jourpolicy skapar steget **Standardjourpolicy**, som larmar dem vid varje ny incident och varje nytt larm. I ett projekt som redan har en väljer du den under **Jourpolicy** och lägger i stället till personer under **Lägg till i den första eskaleringsregeln**. Om någon inte kan nås än stannar steget öppet på **Når ett larm dem?**: klicka på **Skicka påminnelse om konfiguration** för dem och sedan på **Fortsätt**.
+Under **Vem larmas först?** finns du redan i **Larmas först**. Klicka på **Lägg till teammedlemmar** för att larma andra samtidigt som dig. För någon som ännu inte finns i projektet klickar du på **Bjud in via e-post**, skriver adressen och klickar på **Skicka inbjudan**. Klicka sedan på **Spara och fortsätt**. I ett projekt som ännu inte har någon jourpolicy skapar steget **Standardjourpolicy**, som larmar dem vid varje ny incident och varje nytt larm. I ett projekt som redan har en väljer du den under **Jourpolicy** och lägger i stället till personer under **Lägg till i den första eskaleringsregeln**. Om någon inte kan nås än stannar steget öppet på **Når ett larm dem?**: klicka på **Skicka påminnelse om konfiguration** för dem och sedan på **Fortsätt**.
 
 ### Bestäm vad som händer om ingen svarar
 
@@ -67,7 +67,7 @@ Under **Skicka ett testlarm** klickar du på **Testa den här policyn**. Välj e
 
 ### Bekräfta testlarmet
 
-Öppna länken i sms:et eller e-postmeddelandet och bekräfta larmet där, eller tryck på 1 under telefonsamtalet. Eller tryck på push-aviseringen och bekräfta larmet i appen. Klicka sedan på **Klar** i dialogrutan och därefter på **Fortsätt**.
+Öppna länken i sms:et eller e-postmeddelandet och bekräfta larmet där, eller tryck på 1 under telefonsamtalet. I OneUptime On-Call-appen, i versioner nyare än 1.6.0, kan du också bekräfta larmet från pushnotisen. Klicka sedan på **Klar** i dialogrutan och därefter på **Fortsätt**.
 :::
 
 ## Kontrollera att det fungerade

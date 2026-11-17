@@ -12,10 +12,10 @@ Una política de guardia decide a quién se avisa por un incidente o una alerta,
 ## Crear una política
 
 :::steps
-1. Ve a **Guardia → Políticas de guardia** y haz clic en **Crear Política de guardia**.
+1. Ve a **Guardia → Políticas de guardia** y haz clic en **Crear política de guardia**.
 2. Escribe un **Nombre**, por ejemplo «Pagos principal».
 3. En **¿A quién se avisa primero?**, haz clic en **Añadir destinatario** y elige las programaciones de guardia, los equipos y las personas a los que avisar primero.
-4. Haz clic en **Crear Política de guardia**. La política se abre en su página **Reglas de escalado**, con **Level 1** ya creado.
+4. Haz clic en **Crear política de guardia**. La política se abre en su página **Reglas de escalado**, con **Level 1** ya creado.
 :::
 
 **¿A quién se avisa primero?** es opcional y solo se pregunta a quien puede añadir reglas de escalado: si se deja vacío, la política no avisa a nadie hasta que tenga una regla. **Descripción** y **Etiquetas** esperan en **Más campos**. Para añadir los niveles siguientes, consulta [Reglas de escalado](/docs/on-call/escalation-rules).
@@ -109,9 +109,13 @@ Quien recibe el aviso reconoce la prueba desde cualquiera de sus mensajes: el en
 
 ### Hacer un simulacro en un monitor
 
-**Hacer un simulacro**, en la tarjeta **Cuando falla** de un monitor, ensaya uno de sus fallos: un incidente o una alerta que abre uno de sus criterios. Prueba cada política de guardia a la que avisaría ese fallo, cada una como la prueba **Probar esta política**, y no ocurre nada público: no se crea ningún incidente ni alerta, y no se informa a ninguna página de estado, suscriptor ni canal. Antes de enviar nada, el diálogo nombra el fallo, cada política y a quién avisa ahora esa política.
+**Hacer un simulacro**, en la tarjeta **Cuando falla** de un monitor, ensaya uno de sus fallos: un incidente o una alerta que abre uno de sus criterios, o el incidente que una regla de incidentes de alertas declara a partir de esa alerta. Prueba cada política de guardia a la que avisaría ese fallo, cada una como la prueba **Probar esta política**, y no ocurre nada público: no se crea ningún incidente ni alerta, y no se informa a ninguna página de estado, suscriptor ni canal. Antes de enviar nada, el diálogo nombra el fallo, cada política y a quién avisa ahora esa política. Para un incidente declarado, nombra también la regla y cuánto tiempo sigue abierta la alerta antes: el simulacro prueba las políticas del incidente al momento, sin esa espera.
+
+Un simulacro avisa al primer nivel de cada política. En **Más campos**, activa **Recorrer cada nivel de escalado** para avisar a los niveles de cada política por turno, con 2 minutos de separación como mucho, hasta que alguien lo reconozca: el diálogo muestra entonces cada nivel al que llega cada política y lo que cuesta el recorrido como mucho. Cuando no se puede llegar a nadie de los primeros niveles pero sí a un nivel posterior, la línea bajo la lista ofrece **Recorrer cada nivel de escalado** con un clic.
 
 **Iniciar simulacro** sigue desactivado mientras una de esas políticas sea una que no puedes probar, porque no puedes editarla, o mientras no se pueda llegar a nadie de los que avisan. Cada política de un simulacro cuenta como una prueba propia: una política probada en los últimos 5 minutos detiene todo el simulacro, y un simulacro de tres políticas ocupa tres de las 20 pruebas por hora del proyecto.
+
+Una vez cerrado el diálogo, **Último simulacro** en la tarjeta dice qué fallo ensayó el último simulacro del monitor, cuándo y quién lo inició, y cuántas de sus pruebas se reconocieron. **Mostrar detalles** muestra la prueba de cada política: si se reconoció, quién, por qué medio y con qué rapidez. Cada prueba queda en los registros de ejecución de su política, marcada como simulacro del monitor. Los resultados de un simulacro los ve quien puede leer el monitor y cada uno de esos registros de ejecución.
 
 ## Registros de ejecución
 

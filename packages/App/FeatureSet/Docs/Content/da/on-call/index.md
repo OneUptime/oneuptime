@@ -62,7 +62,7 @@ Politikker, eskaleringsregler, vagtplaner og tilsidesættelser hører til projek
 
 ### Opret en politik
 
-Gå til **Vagtpolitikker**, og klik på **Opret Vagtpolitik**. Vælg vagtplanen under **Hvem tilkaldes først?**. Den bliver politikkens første eskaleringsregel, **Level 1**, som venter 30 minutter på en kvittering.
+Gå til **Vagtpolitikker**, og klik på **Opret vagtpolitik**. Vælg vagtplanen under **Hvem tilkaldes først?**. Den bliver politikkens første eskaleringsregel, **Level 1**, som venter 30 minutter på en kvittering.
 
 ### Tilføj de næste niveauer
 

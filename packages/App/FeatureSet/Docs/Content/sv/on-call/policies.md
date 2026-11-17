@@ -12,10 +12,10 @@ En jourpolicy avgör vem som larmas om en incident eller ett larm, och vem som s
 ## Skapa en policy
 
 :::steps
-1. Gå till **Jour → Jourpolicyer** och klicka på **Skapa Jourpolicy**.
+1. Gå till **Jour → Jourpolicyer** och klicka på **Skapa jourpolicy**.
 2. Ange ett **Namn**, till exempel "Betalningar primär".
 3. Klicka på **Lägg till mottagare** under **Vem larmas först?** och välj de jourscheman, team och personer som ska larmas först.
-4. Klicka på **Skapa Jourpolicy**. Policyn öppnas på sin sida **Eskaleringsregler**, med **Level 1** på plats.
+4. Klicka på **Skapa jourpolicy**. Policyn öppnas på sin sida **Eskaleringsregler**, med **Level 1** på plats.
 :::
 
 **Vem larmas först?** är valfritt och visas bara för personer som får lägga till eskaleringsregler: lämnas det tomt larmar policyn ingen förrän den har en regel. **Beskrivning** och **Etiketter** väntar under **Fler fält**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) för att lägga till nästa nivåer.
@@ -109,9 +109,13 @@ Den som larmas bekräftar testet från vilket som helst av dess meddelanden: lä
 
 ### Håll en beredskapsövning för en monitor
 
-**Håll en beredskapsövning**, på kortet **När den går ner** för en monitor, övar ett av dess fel: en incident eller ett larm som ett av dess kriterier öppnar. Den testar varje jourpolicy som felet skulle larma, var och en som **Testa den här policyn** testar den, och inget offentligt händer: ingen incident eller inget larm skapas, och ingen statussida, prenumerant eller kanal får veta något. Innan något skickas namnger dialogen felet, varje policy och vem den policyn larmar just nu.
+**Håll en beredskapsövning**, på kortet **När den går ner** för en monitor, övar ett av dess fel: en incident eller ett larm som ett av dess kriterier öppnar, eller den incident som en incidentregel för larm skapar av ett sådant larm. Den testar varje jourpolicy som felet skulle larma, var och en som **Testa den här policyn** testar den, och inget offentligt händer: ingen incident eller inget larm skapas, och ingen statussida, prenumerant eller kanal får veta något. Innan något skickas namnger dialogen felet, varje policy och vem den policyn larmar just nu. För en skapad incident namnger den också regeln och hur länge larmet först står öppet: övningen testar incidentens policyer direkt, utan den väntetiden.
+
+En övning larmar varje policys första nivå. Under **Fler fält** kan du slå på **Gå igenom varje eskaleringsnivå** för att larma varje policys nivåer i tur och ordning, högst 2 minuter isär, tills någon bekräftar: dialogen visar då varje nivå som varje policy når, och vad genomgången som mest kostar. När ingen på de första nivåerna kan nås men en senare nivå kan, erbjuder raden under listan **Gå igenom varje eskaleringsnivå** med ett klick.
 
 **Starta beredskapsövning** förblir avstängd så länge en av de policyerna är en som du inte kan testa, eftersom du inte kan redigera den, eller så länge ingen som de larmar kan nås. Varje policy i en övning räknas som ett eget test: en policy som testats under de senaste 5 minuterna stoppar hela övningen, och en övning med tre policyer tar tre av projektets 20 test i timmen.
+
+När dialogen är stängd säger **Senaste beredskapsövning** på kortet vilket fel monitorns senaste övning övade, när och av vem den startades och hur många av dess test som bekräftades. **Visa detaljer** visar varje policys test: om det bekräftades, av vem, hur och hur snabbt. Varje test finns kvar i sin policys exekveringsloggar, märkt som en beredskapsövning för monitorn. En övnings resultat visas för den som kan läsa monitorn och var och en av de exekveringsloggarna.
 
 ## Exekveringsloggar
 

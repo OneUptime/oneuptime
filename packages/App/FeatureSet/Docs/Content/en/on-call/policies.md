@@ -109,9 +109,13 @@ Whoever is paged acknowledges the test from any of its messages: an email's, a t
 
 ### Run a fire drill on a monitor
 
-**Run Fire Drill**, on a monitor's **When this goes down** card, rehearses one of the monitor's failures: an incident or alert one of its criteria opens. It tests every on-call policy that failure would page, each as **Test this policy** tests it, and nothing public happens: no incident or alert is created, and no status page, subscriber or channel is told. Before anything is sent, the dialog names the failure, each policy and who that policy pages now.
+**Run Fire Drill**, on a monitor's **When this goes down** card, rehearses one of the monitor's failures: an incident or alert one of its criteria opens, or the incident an alert incident rule declares from such an alert. It tests every on-call policy that failure would page, each as **Test this policy** tests it, and nothing public happens: no incident or alert is created, and no status page, subscriber or channel is told. Before anything is sent, the dialog names the failure, each policy and who that policy pages now. For a declared incident, it names the rule too, and how long the alert stays open first: the drill tests the incident's policies at once, without that wait.
+
+A drill pages each policy's first level. Under **More fields**, turn on **Walk every escalation level** to page each policy's levels in turn, at most 2 minutes apart, until someone acknowledges it: the dialog then lists every level each policy reaches, and what the walk costs at most. When nobody on the first levels can be reached but a later level can, the line under the list offers **Walk every escalation level** in one click.
 
 **Start Fire Drill** stays off while one of those policies is one you can't test, because you can't edit it, or while nobody they page can be reached. Each policy of a drill counts as a test of its own: a policy tested in the last 5 minutes stops the whole drill, and a drill of three policies takes three of the project's 20 tests an hour.
+
+Once the dialog is closed, **Last fire drill** on the card says which failure the monitor's last drill rehearsed, when it was started and by whom, and how many of its tests were acknowledged. **Show details** lists each policy's test: whether it was acknowledged, by whom, by what and how fast. Each test stays in its policy's execution logs, marked as a fire drill of the monitor. A drill's results show to whoever can read the monitor and every one of those execution logs.
 
 ## Execution logs
 

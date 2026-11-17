@@ -83,6 +83,35 @@ jest.mock(
   },
 );
 
+/*
+ * Who the monitor tells, as the Who step's When this goes down reads it once
+ * the project pages people (#7055): answered here, as
+ * WebsiteDownGuidedSetup.test.tsx answers it, so no read leaves the test.
+ */
+const getWhoIsToldMock: MockFunction = getJestMockFunction();
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi",
+    ) as Record<string, unknown>;
+
+    return {
+      __esModule: true,
+      ...actual,
+      default: {
+        getForMonitor: (...args: Array<unknown>) => {
+          return getWhoIsToldMock(...args);
+        },
+        getForDraft: (...args: Array<unknown>) => {
+          return getWhoIsToldMock(...args);
+        },
+      },
+    };
+  },
+);
+
 const getResultMock: MockFunction = getJestMockFunction();
 
 jest.mock(
@@ -173,6 +202,7 @@ import {
   OnCallTestPageStatus,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import { WhoIsToldResult } from "../../../Types/Monitor/WhoIsTold";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
 import {
@@ -289,6 +319,27 @@ const acknowledged: OnCallTestPageResult = {
   steps: [],
 } as OnCallTestPageResult;
 
+// The monitor's When this goes down: what it says is not what this suite reads.
+const WHO_IS_TOLD: WhoIsToldResult = {
+  monitorId: MONITOR_ID,
+  monitorName: "acme.example",
+  checkedAt: "2026-11-11T10:00:00.000Z",
+  criteria: [],
+  channels: {
+    isBillingEnabled: false,
+    isSmsOn: true,
+    isCallOn: true,
+    isWhatsAppOn: true,
+    isTelegramOn: true,
+    hasOwnTwilioForSms: false,
+    hasOwnTwilioForCalls: false,
+    serverCanSendEmail: true,
+    serverCanSendSms: true,
+    serverCanCall: true,
+  },
+  breaks: [],
+};
+
 beforeAll(async () => {
   const resources: Record<string, { translation: Record<string, string> }> = {};
 
@@ -343,6 +394,7 @@ beforeEach(() => {
   api["ensureMonitorOwner"]!.mockResolvedValue(true);
   api["needsPaymentMethod"]!.mockResolvedValue(false);
   getResultMock.mockResolvedValue(acknowledged);
+  getWhoIsToldMock.mockResolvedValue(WHO_IS_TOLD);
 });
 
 afterEach(() => {
@@ -352,6 +404,7 @@ afterEach(() => {
     mock.mockReset();
   }
   getResultMock.mockReset();
+  getWhoIsToldMock.mockReset();
   window.localStorage.clear();
 });
 

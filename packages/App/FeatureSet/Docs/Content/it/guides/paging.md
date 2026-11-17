@@ -51,7 +51,7 @@ Digita il tuo numero di cellulare con il prefisso internazionale in **Il tuo num
 
 ![Il passaggio «Chi viene chiamato per primo?», con «Salva e continua» evidenziato](screen:paging-who-else)
 
-In **Chi viene chiamato per primo?** sei già in **Chiamati per primi**. Fai clic su **Aggiungi membri del team** per avvisare altre persone nello stesso momento in cui avvisi te. Per qualcuno che non è ancora nel progetto, fai clic su **Invita via email**, scrivi il suo indirizzo e fai clic su **Invia invito**. Poi fai clic su **Salva e continua**; chi viene chiamato se nessuno risponde viene dopo. In un progetto che non ha ancora una policy di reperibilità, questo crea la **Policy di reperibilità predefinita**, che avvisa queste persone per ogni nuovo incidente e ogni nuovo avviso. In un progetto che ne ha già una, sceglila in **Policy di reperibilità** e aggiungi invece le persone in **Aggiungi alla prima regola di escalation**. Se qualcuno non è ancora raggiungibile, il passaggio resta aperto su **Una chiamata li raggiunge?**: fai clic su **Invia promemoria di configurazione** per quella persona, poi su **Continua**.
+In **Chi viene chiamato per primo?** sei già in **Chiamati per primi**. Fai clic su **Aggiungi membri del team** per avvisare altre persone nello stesso momento in cui avvisi te. Per qualcuno che non è ancora nel progetto, fai clic su **Invita via email**, scrivi il suo indirizzo e fai clic su **Invia invito**. Poi fai clic su **Salva e continua**. In un progetto che non ha ancora una policy di reperibilità, questo crea la **Policy di reperibilità predefinita**, che avvisa queste persone per ogni nuovo incidente e ogni nuovo avviso. In un progetto che ne ha già una, sceglila in **Policy di reperibilità** e aggiungi invece le persone in **Aggiungi alla prima regola di escalation**. Se qualcuno non è ancora raggiungibile, il passaggio resta aperto su **Una chiamata li raggiunge?**: fai clic su **Invia promemoria di configurazione** per quella persona, poi su **Continua**.
 
 ### Decidere cosa succede se nessuno risponde
 
@@ -67,7 +67,7 @@ In **Invia una chiamata di test**, fai clic su **Testa questa policy**. Scegli u
 
 ### Riconoscere la chiamata di test
 
-Riconosci la chiamata di test dal link nell'SMS o nell'email, oppure premi 1 durante la telefonata. Oppure tocca la sua notifica push e riconoscila nell'app. Poi fai clic su **Fatto** nella finestra di dialogo, e su **Continua**.
+Riconosci la chiamata di test dal link nell'SMS o nell'email, oppure premi 1 durante la telefonata. Nell'app OneUptime On-Call, nelle versioni successive alla 1.6.0, puoi riconoscerla anche dalla sua notifica push. Poi fai clic su **Fatto** nella finestra di dialogo, e su **Continua**.
 :::
 
 ## Controllare che funzioni

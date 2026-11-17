@@ -718,7 +718,12 @@ jobs:
       # and severity, its first level, no incident or alert behind it - and
       # never an incident or an alert; a policy or severity that is not the
       # project's stops it before any run. The drill runs as the API runs it
-      # on copies of the migrated tables in an isolated schema.
+      # on copies of the migrated tables in an isolated schema. #9385,
+      # #9397, #9386: a walked drill, the incident an alert incident rule
+      # declares, and what a drill keeps on each run (the drill, the
+      # monitor, the failure), read back as the monitor's last drill under
+      # the real permission rules; AddOnCallFireDrillResults' columns, index
+      # and ON DELETE SET NULL key on the migrated table and on the copies.
       - name: Test a monitor's fire drill on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -3190,6 +3195,27 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/API/KubernetesClusterEditScopePostgres.test.ts
           --forceExit
+
+      # Clones the migrated user, project, team, team member, permission and
+      # custom role tables into an isolated schema and searches a project's
+      # people through POST /team-member/search-members (#7036), the real
+      # user middleware and the permission pipeline, as Cmd/Ctrl+K does: by
+      # part of a name and by an email, in the project's memberships only
+      # (someone in another project only is found by neither, with the
+      # answer an address nobody has gets), literally, a few at most; a
+      # member who may not see the project's people refused; emails neither
+      # searched nor answered where the Users page would not show them.
+      - name: Test Search's people on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROJECT_MEMBER_SEARCH_TESTS: "true"
+          PROJECT_MEMBER_SEARCH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROJECT_MEMBER_SEARCH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROJECT_MEMBER_SEARCH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/ProjectMemberSearchPostgres.test.ts --forceExit
 
       # Clones the migrated team, custom role, API key, monitor (owners,
       # status timeline, tests), status page (owners, announcements and

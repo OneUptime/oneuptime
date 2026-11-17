@@ -100,7 +100,7 @@ In **Invia una chiamata di test**, fai clic su **Testa questa policy**, scegli u
 
 Due regole di reperibilità attivano la policy: una per ogni nuovo incidente e una per ogni nuovo avviso. Per vedere la prima, apri **Incidenti** dal menu **Prodotti**, espandi **Regole** nel menu laterale e scegli **Regole di reperibilità**: corrisponde a **Tutti gli incidenti**. Per attivare la policy solo per alcuni incidenti, come quelli critici, modifica lì la regola, oppure fai clic su **Crea: Regola di reperibilità degli incidenti** per aggiungerne una tua.
 
-Per creare invece una policy campo per campo, apri **Reperibilità** dal menu **Prodotti** e fai clic su **Crea: Policy di reperibilità**. Per altri livelli, turni e quanto attende ogni livello, vedi [Regole di escalation](/docs/on-call/escalation-rules) e [Pianificazioni di reperibilità](/docs/on-call/schedules).
+Per creare invece una policy campo per campo, apri **Reperibilità** dal menu **Prodotti** e fai clic su **Crea policy di reperibilità**. Per altri livelli, turni e quanto attende ogni livello, vedi [Regole di escalation](/docs/on-call/escalation-rules) e [Pianificazioni di reperibilità](/docs/on-call/schedules).
 
 Per ogni schermata della configurazione, e cosa fare quando una chiamata non arriva, segui [Essere avvisati per chiamata, SMS o push](/docs/guides/paging).
 

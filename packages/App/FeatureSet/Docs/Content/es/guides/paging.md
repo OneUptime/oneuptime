@@ -51,7 +51,7 @@ Escribe tu número de móvil con el prefijo de país en **Tu número de teléfon
 
 ![El paso «¿A quién se avisa primero?», con «Guardar y continuar» resaltado](screen:paging-who-else)
 
-En **¿A quién se avisa primero?**, ya estás en **Avisados primero**. Haz clic en **Añadir miembros del equipo** para avisar a otras personas a la vez que a ti. Para alguien que aún no está en el proyecto, haz clic en **Invitar por correo**, escribe su dirección y haz clic en **Enviar invitación**. Después haz clic en **Guardar y continuar**; a quién se avisa si nadie responde viene a continuación. En un proyecto que aún no tiene ninguna política de guardia, esto crea la **Política de guardia predeterminada**, que avisa a todos con cada nuevo incidente y cada nueva alerta. En un proyecto que ya tiene una, elígela en **Política de guardia** y añade a las personas en **Añadir a la primera regla de escalado**. Si aún no se puede localizar a alguien, el paso se queda abierto en **¿Les llega un aviso?**: haz clic en **Enviar recordatorio de configuración** para esa persona y, después, en **Continuar**.
+En **¿A quién se avisa primero?**, ya estás en **Avisados primero**. Haz clic en **Añadir miembros del equipo** para avisar a otras personas a la vez que a ti. Para alguien que aún no está en el proyecto, haz clic en **Invitar por correo**, escribe su dirección y haz clic en **Enviar invitación**. Después haz clic en **Guardar y continuar**. En un proyecto que aún no tiene ninguna política de guardia, esto crea la **Política de guardia predeterminada**, que avisa a todos con cada nuevo incidente y cada nueva alerta. En un proyecto que ya tiene una, elígela en **Política de guardia** y añade a las personas en **Añadir a la primera regla de escalado**. Si aún no se puede localizar a alguien, el paso se queda abierto en **¿Les llega un aviso?**: haz clic en **Enviar recordatorio de configuración** para esa persona y, después, en **Continuar**.
 
 ### Decidir qué pasa si nadie responde
 
@@ -67,7 +67,7 @@ En **Enviar un aviso de prueba**, haz clic en **Probar esta política**. Elige u
 
 ### Reconocer el aviso de prueba
 
-Abre el enlace del SMS o del correo y reconoce ahí el aviso, o pulsa 1 durante la llamada. O toca su notificación push y reconócelo en la app. Después haz clic en **Hecho** en el cuadro de diálogo y en **Continuar**.
+Abre el enlace del SMS o del correo y reconoce ahí el aviso, o pulsa 1 durante la llamada. En la app OneUptime On-Call, en versiones posteriores a la 1.6.0, también puedes reconocerlo desde su notificación push. Después haz clic en **Hecho** en el cuadro de diálogo y en **Continuar**.
 :::
 
 ## Comprobar que ha funcionado

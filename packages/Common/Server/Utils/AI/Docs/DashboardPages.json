@@ -67,6 +67,92 @@
     "kind": "action"
   },
   {
+    "title": "Create Status Page",
+    "where": [
+      "Status Pages"
+    ],
+    "keywords": [
+      "new",
+      "add",
+      "new status page",
+      "public status page"
+    ],
+    "path": "/dashboard/:projectId/status-pages?create=1",
+    "kind": "action"
+  },
+  {
+    "title": "Create On-Call Policy",
+    "where": [
+      "On-Call"
+    ],
+    "keywords": [
+      "new",
+      "add",
+      "new on-call policy",
+      "escalation policy"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/policies?create=1",
+    "kind": "action"
+  },
+  {
+    "title": "Create On-Call Schedule",
+    "where": [
+      "On-Call"
+    ],
+    "keywords": [
+      "new",
+      "add",
+      "new on-call schedule",
+      "new rotation"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/schedules?create=1",
+    "kind": "action"
+  },
+  {
+    "title": "Create Dashboard",
+    "where": [
+      "Dashboards"
+    ],
+    "keywords": [
+      "new",
+      "add",
+      "new dashboard"
+    ],
+    "path": "/dashboard/:projectId/dashboards?create=1",
+    "kind": "action"
+  },
+  {
+    "title": "Create Workflow",
+    "where": [
+      "Workflows"
+    ],
+    "keywords": [
+      "new",
+      "add",
+      "new workflow",
+      "automation"
+    ],
+    "path": "/dashboard/:projectId/workflows?create=1",
+    "kind": "action"
+  },
+  {
+    "title": "Invite User",
+    "where": [
+      "Users"
+    ],
+    "keywords": [
+      "new",
+      "add",
+      "add user",
+      "invite member",
+      "add member",
+      "invite teammate",
+      "add teammate"
+    ],
+    "path": "/dashboard/:projectId/users?create=1",
+    "kind": "action"
+  },
+  {
     "title": "Project",
     "where": [
       "Project Settings",
@@ -843,6 +929,23 @@
       "Import from another tool"
     ],
     "path": "/dashboard/:projectId/settings/import?from=search&tool=PagerDuty",
+    "kind": "action"
+  },
+  {
+    "title": "Import from incident.io",
+    "titleKey": "Import from {{tool}}",
+    "titleValues": {
+      "tool": "incident.io"
+    },
+    "where": [
+      "Project Settings",
+      "Advanced",
+      "Import from another tool"
+    ],
+    "keywords": [
+      "incident.io"
+    ],
+    "path": "/dashboard/:projectId/settings/import?from=search&tool=IncidentIo",
     "kind": "action"
   },
   {

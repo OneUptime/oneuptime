@@ -17,6 +17,12 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
   monitorId: string;
+  /*
+   * Told when a drill is started, and when its dialog closes: the card's
+   * Last fire drill line reads the drill again then (#9386).
+   */
+  onStarted?: (() => void) | undefined;
+  onClosed?: (() => void) | undefined;
 }
 
 const FireDrillButton: FunctionComponent<ComponentProps> = (
@@ -39,8 +45,12 @@ const FireDrillButton: FunctionComponent<ComponentProps> = (
       {isOpen ? (
         <FireDrillModal
           monitorId={props.monitorId}
+          onStarted={() => {
+            props.onStarted?.();
+          }}
           onClose={() => {
             setIsOpen(false);
+            props.onClosed?.();
           }}
         />
       ) : (

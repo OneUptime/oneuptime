@@ -32,10 +32,10 @@ flowchart TB
 När du skapar en jourpolicy på sidan **Jourpolicyer** frågar formuläret efter dess **Namn** och **Vem larmas först?**. Frågan använder samma väljare som **Avisera**: jourscheman, team och personer, så många du behöver. De du väljer blir policyns första eskaleringsregel, **Level 1**, som väntar **30 minuter** på en bekräftelse innan nästa nivå larmas.
 
 :::steps
-1. Gå till **Jour** > **Jourpolicyer** och klicka på **Skapa Jourpolicy**.
+1. Gå till **Jour** > **Jourpolicyer** och klicka på **Skapa jourpolicy**.
 2. Ange ett **Namn**.
 3. Klicka på **Lägg till mottagare** under **Vem larmas först?** och välj de jourscheman, team och personer som ska larmas först.
-4. Klicka på **Skapa Jourpolicy**. Den nya policyn öppnas sedan på sin sida **Eskaleringsregler**, där du kan lägga till fler nivåer.
+4. Klicka på **Skapa jourpolicy**. Den nya policyn öppnas sedan på sin sida **Eskaleringsregler**, där du kan lägga till fler nivåer.
 :::
 
 **Vem larmas först?** är valfritt. Lämnar du det tomt börjar policyn utan eskaleringsregler: den larmar ingen förrän du lägger till en, och dess översikt säger det. Beskrivningen och etiketterna finns under **Fler fält**. Frågan ställs bara till dem som får lägga till eskaleringsregler.

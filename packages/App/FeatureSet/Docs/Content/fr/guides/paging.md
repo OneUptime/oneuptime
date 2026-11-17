@@ -51,7 +51,7 @@ Saisissez votre numéro de mobile avec son indicatif pays dans **Votre numéro d
 
 ![L'étape « Qui est alerté en premier ? », avec « Enregistrer et continuer » entouré](screen:paging-who-else)
 
-Sous **Qui est alerté en premier ?**, vous êtes déjà dans **Alertés en premier**. Cliquez sur **Ajouter des membres de l'équipe** pour alerter d'autres personnes en même temps que vous. Pour quelqu'un qui n'est pas encore dans le projet, cliquez sur **Inviter par e-mail**, saisissez son adresse et cliquez sur **Envoyer l'invitation**. Cliquez ensuite sur **Enregistrer et continuer** ; qui est alerté si personne ne répond vient après. Dans un projet qui n'a pas encore de politique d'astreinte, cela crée la **Politique d'astreinte par défaut**, qui alerte ces personnes pour chaque nouvel incident et chaque nouvelle alerte. Dans un projet qui en a une, choisissez-la sous **Politique d'astreinte**, et ajoutez plutôt les personnes sous **Ajouter à la première règle d'escalade**. Si quelqu'un ne peut pas encore être joint, l'étape reste ouverte sur **Une alerte les atteint-elle ?** : cliquez sur **Envoyer un rappel de configuration** pour cette personne, puis sur **Continuer**.
+Sous **Qui est alerté en premier ?**, vous êtes déjà dans **Alertés en premier**. Cliquez sur **Ajouter des membres de l'équipe** pour alerter d'autres personnes en même temps que vous. Pour quelqu'un qui n'est pas encore dans le projet, cliquez sur **Inviter par e-mail**, saisissez son adresse et cliquez sur **Envoyer l'invitation**. Cliquez ensuite sur **Enregistrer et continuer**. Dans un projet qui n'a pas encore de politique d'astreinte, cela crée la **Politique d'astreinte par défaut**, qui alerte ces personnes pour chaque nouvel incident et chaque nouvelle alerte. Dans un projet qui en a une, choisissez-la sous **Politique d'astreinte**, et ajoutez plutôt les personnes sous **Ajouter à la première règle d'escalade**. Si quelqu'un ne peut pas encore être joint, l'étape reste ouverte sur **Une alerte les atteint-elle ?** : cliquez sur **Envoyer un rappel de configuration** pour cette personne, puis sur **Continuer**.
 
 ### Décider de ce qui se passe si personne ne répond
 
@@ -67,7 +67,7 @@ Sous **Envoyer un appel de test**, cliquez sur **Tester cette politique**. Chois
 
 ### Prendre en compte l'appel de test
 
-Prenez l'appel de test en compte depuis le lien du SMS ou de l'e-mail, ou appuyez sur 1 pendant l'appel téléphonique. Ou touchez sa notification push et prenez-le en compte dans l'application. Cliquez ensuite sur **Terminé** dans la boîte de dialogue, puis sur **Continuer**.
+Prenez l'appel de test en compte depuis le lien du SMS ou de l'e-mail, ou appuyez sur 1 pendant l'appel téléphonique. Dans l'application OneUptime On-Call, dans les versions plus récentes que 1.6.0, vous pouvez aussi le prendre en compte depuis sa notification push. Cliquez ensuite sur **Terminé** dans la boîte de dialogue, puis sur **Continuer**.
 :::
 
 ## Vérifier que tout fonctionne

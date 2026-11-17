@@ -51,7 +51,7 @@ Typ uw mobiele nummer met landcode bij **Je telefoonnummer**, bijvoorbeeld `+155
 
 ![De stap "Wie wordt als eerste opgeroepen?", met "Opslaan en doorgaan" omcirkeld](screen:paging-who-else)
 
-Onder **Wie wordt als eerste opgeroepen?** staat u al bij **Eerst opgeroepen**. Klik op **Teamleden toevoegen** om tegelijk met u nog anderen op te roepen. Voor iemand die nog niet in het project zit, klikt u op **Uitnodigen per e-mail**, typt u het adres en klikt u op **Uitnodiging versturen**. Klik daarna op **Opslaan en doorgaan**; wie wordt opgeroepen als niemand antwoordt, komt daarna. Heeft het project nog geen bereikbaarheidsbeleid, dan wordt zo het **Standaard bereikbaarheidsbeleid** aangemaakt, dat al deze mensen oproept bij elk nieuw incident en elke nieuwe waarschuwing. Heeft het er al een, kies het dan onder **Bereikbaarheidsbeleid** en voeg in plaats daarvan mensen toe onder **Toevoegen aan de eerste escalatieregel**. Is iemand nog niet bereikbaar, dan blijft de stap open op **Bereikt een oproep hen?**: klik voor die persoon op **Herinnering voor instellingen sturen** en daarna op **Doorgaan**.
+Onder **Wie wordt als eerste opgeroepen?** staat u al bij **Eerst opgeroepen**. Klik op **Teamleden toevoegen** om tegelijk met u nog anderen op te roepen. Voor iemand die nog niet in het project zit, klikt u op **Uitnodigen per e-mail**, typt u het adres en klikt u op **Uitnodiging versturen**. Klik daarna op **Opslaan en doorgaan**. Heeft het project nog geen bereikbaarheidsbeleid, dan wordt zo het **Standaard bereikbaarheidsbeleid** aangemaakt, dat al deze mensen oproept bij elk nieuw incident en elke nieuwe waarschuwing. Heeft het er al een, kies het dan onder **Bereikbaarheidsbeleid** en voeg in plaats daarvan mensen toe onder **Toevoegen aan de eerste escalatieregel**. Is iemand nog niet bereikbaar, dan blijft de stap open op **Bereikt een oproep hen?**: klik voor die persoon op **Herinnering voor instellingen sturen** en daarna op **Doorgaan**.
 
 ### Bepalen wat er gebeurt als niemand antwoordt
 
@@ -67,7 +67,7 @@ Klik onder **Een testoproep sturen** op **Dit beleid testen**. Kies een **Ernst*
 
 ### De testoproep bevestigen
 
-Open de link in de sms of de e-mail en bevestig de oproep daar, of druk tijdens het telefoongesprek op 1. Of tik op de pushmelding en bevestig de oproep in de app. Klik daarna in het dialoogvenster op **Klaar** en op **Doorgaan**.
+Open de link in de sms of de e-mail en bevestig de oproep daar, of druk tijdens het telefoongesprek op 1. In de OneUptime On-Call-app kunt u de oproep in versies nieuwer dan 1.6.0 ook via de pushmelding bevestigen. Klik daarna in het dialoogvenster op **Klaar** en op **Doorgaan**.
 :::
 
 ## Controleren of het gelukt is

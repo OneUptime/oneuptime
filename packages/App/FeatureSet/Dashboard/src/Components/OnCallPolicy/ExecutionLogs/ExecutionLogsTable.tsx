@@ -51,6 +51,7 @@ import {
 } from "./OnCallLogLineWords";
 import ResultLine from "../../OnCallTestPage/ResultLine";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * The two columns that hold what people wrote wrap their text: "Policy
@@ -138,6 +139,19 @@ export const ON_CALL_LOGS_TEST_PAGE: string = translationKey(
 
 export const ON_CALL_LOGS_TEST_PAGE_MARK: string = translationKey("Test page");
 
+/*
+ * A test a monitor's fire drill started (#9386): it was part of a fire
+ * drill of that monitor, named and linked - or of one deleted since, whose
+ * reference cleared itself as the monitor went.
+ */
+export const ON_CALL_LOGS_FIRE_DRILL: string = translationKey(
+  "Fire drill of monitor {{monitor}}: no incident or alert",
+);
+
+export const ON_CALL_LOGS_FIRE_DRILL_MONITOR_DELETED: string = translationKey(
+  "Fire drill of a monitor that was deleted: no incident or alert",
+);
+
 export const ON_CALL_LOGS_PAGED_AS_OBSERVERS: string = translationKey(
   "Paged as observers: their answer only says they've seen it",
 );
@@ -166,6 +180,58 @@ export const POLICY_HAS_NOT_RUN_MESSAGE: string = translationKey(
 export const NOBODY_PAGED_YET_MESSAGE: string = translationKey(
   "Nobody has been paged so far.",
 );
+
+/*
+ * What started a fire drill's test (#9386), where a run's record would be:
+ * a fire drill of the monitor, whose name opens it - the drill's other
+ * tests are its other policies', and its card says how the last one went.
+ */
+export const FireDrillTrigger: FunctionComponent<{
+  run: Pick<
+    OnCallDutyPolicyExecutionLog,
+    "testPageFireDrillMonitorId" | "testPageFireDrillMonitor"
+  >;
+}> = (props: {
+  run: Pick<
+    OnCallDutyPolicyExecutionLog,
+    "testPageFireDrillMonitorId" | "testPageFireDrillMonitor"
+  >;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const monitorId: ObjectID | undefined = props.run.testPageFireDrillMonitorId;
+  const monitorName: string =
+    props.run.testPageFireDrillMonitor?.name?.toString() || "";
+
+  if (!monitorId) {
+    return (
+      <p data-testid="execution-log-fire-drill-trigger">
+        {translator.translateText(ON_CALL_LOGS_FIRE_DRILL_MONITOR_DELETED)}
+      </p>
+    );
+  }
+
+  return (
+    <p data-testid="execution-log-fire-drill-trigger">
+      <TranslatedSentence
+        template={ON_CALL_LOGS_FIRE_DRILL}
+        slots={{
+          monitor: (
+            <AppLink
+              className="hover:underline"
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITOR_VIEW] as Route,
+                { modelId: new ObjectID(monitorId.toString()) },
+              )}
+              dataTestId="execution-log-fire-drill-monitor"
+            >
+              <span>{monitorName || monitorId.toString()}</span>
+            </AppLink>
+          ),
+        }}
+      />
+    </p>
+  );
+};
 
 /*
  * A run's status, as a pill: green when it completed, amber while it pages
@@ -492,6 +558,10 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
           );
         }
 
+        if (isOnCallTestPage(item) && item.testPageFireDrillId) {
+          return <FireDrillTrigger run={item} />;
+        }
+
         if (isOnCallTestPage(item)) {
           return (
             <p data-testid="execution-log-test-page-trigger">
@@ -650,6 +720,12 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
           isObserverPage: true,
           // And a test page (OnCallTestPage), with no record behind it.
           userNotificationEventType: true,
+          // A fire drill's, with the monitor it rehearsed (#9386).
+          testPageFireDrillId: true,
+          testPageFireDrillMonitorId: true,
+          testPageFireDrillMonitor: {
+            name: true,
+          },
           // Read with every row: a row with none is a direct page.
           onCallDutyPolicyId: true,
           // What started a direct page: a workflow, or a person.

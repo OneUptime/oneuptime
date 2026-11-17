@@ -1,6 +1,7 @@
 import { ADMIN_EMAIL_SETTINGS_ROUTE } from "../../../Utils/ServerEmail";
 import RelativeTime from "../../EpisodeView/RelativeTime";
 import FireDrillButton from "../../OnCallTestPage/FireDrillButton";
+import LastFireDrill from "../../OnCallTestPage/LastFireDrill";
 import { hasOnCallFireDrill } from "Common/Types/OnCallDutyPolicy/OnCallFireDrill";
 import {
   getNotPagedLines,
@@ -876,6 +877,11 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
   const [isRechecking, setIsRechecking] = useState<boolean>(false);
   // A changed draft being read: the last answer stays, marked busy.
   const [isReadingDraft, setIsReadingDraft] = useState<boolean>(false);
+  /*
+   * Changes when a fire drill starts, its dialog closes or the card is
+   * checked again: the Last fire drill line reads the drill again (#9386).
+   */
+  const [fireDrillReads, setFireDrillReads] = useState<number>(0);
   const requestRef: React.MutableRefObject<number> = useRef<number>(0);
   // Whether a draft has been read: its first read waits for nothing.
   const hasReadDraftRef: React.MutableRefObject<boolean> =
@@ -990,8 +996,15 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
     };
   }, [load, draftKey]);
 
+  const readFireDrillAgain: () => void = (): void => {
+    setFireDrillReads((count: number): number => {
+      return count + 1;
+    });
+  };
+
   const recheck: () => Promise<void> = async (): Promise<void> => {
     setIsRechecking(true);
+    readFireDrillAgain();
     await load({ refresh: true, keepsAnswer: true });
     setIsRechecking(false);
   };
@@ -1277,11 +1290,33 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
         monitorIdText &&
         state.status === "loaded" &&
         hasOnCallFireDrill(state.result)
-          ? [<FireDrillButton key="fire-drill" monitorId={monitorIdText} />]
+          ? [
+              <FireDrillButton
+                key="fire-drill"
+                monitorId={monitorIdText}
+                onStarted={readFireDrillAgain}
+                onClosed={readFireDrillAgain}
+              />,
+            ]
           : undefined
       }
     >
-      <div data-testid="monitor-who-is-told-card">{getBody()}</div>
+      <div data-testid="monitor-who-is-told-card">
+        {getBody()}
+        {/*
+         * Its last fire drill (#9386), once the card's answer is in: at the
+         * card's end, so nothing above moves when it comes. Of a saved
+         * monitor only, as Run Fire Drill is.
+         */}
+        {!props.draft && monitorIdText && state.status === "loaded" ? (
+          <LastFireDrill
+            monitorId={monitorIdText}
+            refreshToken={`${props.refreshToken ?? ""}|${fireDrillReads}`}
+          />
+        ) : (
+          <></>
+        )}
+      </div>
     </Card>
   );
 };

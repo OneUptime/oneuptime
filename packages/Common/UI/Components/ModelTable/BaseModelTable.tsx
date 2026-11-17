@@ -28,6 +28,7 @@ import Select from "../../../Types/BaseDatabase/Select";
 import { Logger } from "../../Utils/Logger";
 import Navigation from "../../Utils/Navigation";
 import TableFilterUrlState from "../../Utils/TableFilterUrlState";
+import CreateFormAddress from "../../Utils/CreateFormAddress";
 import TableViewUrlState, {
   TableViewUrlStateData,
 } from "../../Utils/TableViewUrlState";
@@ -552,6 +553,16 @@ export interface BaseTableProps<
    * the reader's permissions alone.
    */
   createDisabledReason?: string | undefined;
+  /*
+   * The list a page is for opens its create form from the page's address,
+   * "?create=1" (Utils/CreateFormAddress, #7035): Search's Create Status
+   * Page, Create On-Call Policy and the rest. Only for someone its Create
+   * is open to; reloading keeps the form open, and closing it takes the ask
+   * off the address, so Back never opens it again. A page with more than
+   * one list sets it on the one its Create belongs to. Left out, the
+   * address opens nothing.
+   */
+  opensCreateFormFromAddress?: boolean | undefined;
   onCreateClick?: (() => void) | undefined;
   disablePagination?: undefined | boolean;
   formFields?: undefined | Array<ModelField<TBaseModel>>;
@@ -1595,6 +1606,48 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       setModalType(ModalType.Create);
     }
   }, [props.showCreateForm]);
+
+  /*
+   * "?create=1" (opensCreateFormFromAddress, #7035): the list's create form
+   * opens as its Create button opens it - its own dialog, or the page's
+   * (onCreateClick) - for whoever the button is open to. Asked while the
+   * permission snapshot is still on its way, it waits for it; refused, the
+   * list shows with Create locked, as anyone sees it. Read on every render,
+   * so a link to the list from the list itself opens the form too.
+   */
+  const isCreateFormAskedForByAddress: boolean =
+    Boolean(props.opensCreateFormFromAddress && props.isCreateable) &&
+    CreateFormAddress.isAskedFor();
+  const addressCreateGate: ActionGate | null = isCreateFormAskedForByAddress
+    ? getCreateGate()
+    : null;
+  const mayOpenCreateFormFromAddress: boolean = Boolean(
+    addressCreateGate?.show && !addressCreateGate.disabled,
+  );
+
+  useEffect(() => {
+    if (!mayOpenCreateFormFromAddress) {
+      return;
+    }
+
+    if (props.onCreateClick) {
+      props.onCreateClick();
+      return;
+    }
+
+    setModalType(ModalType.Create);
+    setShowModal(true);
+  }, [mayOpenCreateFormFromAddress]);
+
+  /*
+   * The create form closed, cancelled or saved: the address no longer asks
+   * for it, so Back to this list never opens it again (CreateFormAddress).
+   */
+  const takeCreateFormOffAddress: () => void = (): void => {
+    if (props.opensCreateFormFromAddress) {
+      CreateFormAddress.clear();
+    }
+  };
 
   useEffect(() => {
     if (props.onShowFormType) {
@@ -6444,6 +6497,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         props.callbacks.showCreateEditModal({
           onClose: () => {
             setShowModal(false);
+
+            if (modalType === ModalType.Create) {
+              takeCreateFormOffAddress();
+            }
           },
           modalType: modalType,
           editFormTitle:
@@ -6470,6 +6527,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           onBeforeUpdate: props.onBeforeUpdate,
           onSuccess: async (item: TBaseModel): Promise<void> => {
             setShowModal(false);
+
+            /*
+             * Before anything opens the new record's page: Back from it
+             * comes to the list, not to its create form.
+             */
+            if (modalType === ModalType.Create) {
+              takeCreateFormOffAddress();
+            }
 
             // Said as the dialog closes, before the list reads again.
             if (modalType === ModalType.Edit) {

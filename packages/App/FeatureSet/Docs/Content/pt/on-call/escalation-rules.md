@@ -32,10 +32,10 @@ flowchart TB
 Ao criar uma política de plantão na página **Políticas de plantão**, o formulário pede o **Nome** dela e **Quem é acionado primeiro?**. A pergunta usa o mesmo seletor de **Notificar**: agendamentos de plantão, equipes e pessoas, quantos forem necessários. Quem você escolher vira a primeira regra de escalonamento da política, **Level 1**, que espera **30 minutos** por uma confirmação antes de acionar o próximo nível.
 
 :::steps
-1. Vá em **Plantão** > **Políticas de plantão** e clique em **Criar: Política de plantão**.
+1. Vá em **Plantão** > **Políticas de plantão** e clique em **Criar política de plantão**.
 2. Digite um **Nome**.
 3. Em **Quem é acionado primeiro?**, clique em **Adicionar destinatário** e escolha os agendamentos de plantão, as equipes e as pessoas a acionar primeiro.
-4. Clique em **Criar: Política de plantão**. A nova política abre depois na página **Regras de escalonamento** dela, onde você pode adicionar mais níveis.
+4. Clique em **Criar política de plantão**. A nova política abre depois na página **Regras de escalonamento** dela, onde você pode adicionar mais níveis.
 :::
 
 **Quem é acionado primeiro?** é opcional. Se você deixar em branco, a política começa sem regras de escalonamento: não aciona ninguém até você adicionar uma, e a visão geral dela avisa isso. A descrição e os rótulos ficam em **Mais campos**. A pergunta só é feita a quem pode adicionar regras de escalonamento.

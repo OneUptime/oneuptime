@@ -51,7 +51,7 @@ Type your mobile number with its country code in **Your phone number**, such as 
 
 ![The step "Who is paged first?", with "Save and continue" ringed](screen:paging-who-else)
 
-Under **Who is paged first?**, you are already in **Paged first**. Click **Add teammates** to page others at the same time as you. For someone not in the project yet, click **Invite by email**, enter their address and click **Send invitation**. Then click **Save and continue**; who is paged if nobody answers comes next. In a project with no on-call policy yet, this creates **Default on-call policy**, which pages them for every new incident and alert. In a project that has one, pick it under **On-call policy**, and add people under **Add to the first escalation rule** instead. If someone cannot be reached yet, the step stays open on **Can a page reach them?**: click **Send setup reminder** for them, then **Continue**.
+Under **Who is paged first?**, you are already in **Paged first**. Click **Add teammates** to page others at the same time as you. For someone not in the project yet, click **Invite by email**, enter their address and click **Send invitation**. Then click **Save and continue**. In a project with no on-call policy yet, this creates **Default on-call policy**, which pages them for every new incident and alert. In a project that has one, pick it under **On-call policy**, and add people under **Add to the first escalation rule** instead. If someone cannot be reached yet, the step stays open on **Can a page reach them?**: click **Send setup reminder** for them, then **Continue**.
 
 ### Decide what happens if nobody answers
 
@@ -67,7 +67,7 @@ Under **Send a test page**, click **Test this policy**. Pick a **Severity** and 
 
 ### Acknowledge the test page
 
-Open the link in the text message or the email and acknowledge the page there, or press 1 during the phone call. Or tap its push notification and acknowledge it in the app. Then click **Done** in the dialog, and **Continue**.
+Open the link in the text message or the email and acknowledge the page there, or press 1 during the phone call. In the OneUptime On-Call app, in versions newer than 1.6.0, you can also acknowledge it from its push notification. Then click **Done** in the dialog, and **Continue**.
 :::
 
 ## Check that it worked

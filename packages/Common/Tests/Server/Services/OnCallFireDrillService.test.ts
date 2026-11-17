@@ -1,5 +1,9 @@
-import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
-import OnCallFireDrillService from "../../../Server/Services/OnCallFireDrillService";
+import OnCallDutyPolicyExecutionLogService, {
+  OnCallFireDrillOfRun,
+} from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
+import OnCallFireDrillService, {
+  getOnCallFireDrillFailureRecord,
+} from "../../../Server/Services/OnCallFireDrillService";
 import OnCallTestPageService, {
   ON_CALL_TEST_PAGE_POLICY_LIMIT_NAMESPACE,
   OnCallTestPageLimitKey,
@@ -14,12 +18,14 @@ import {
   WhoIsToldEvent,
   WhoIsToldPolicy,
   WhoIsToldResult,
+  redactWhoIsTold,
 } from "../../../Types/Monitor/WhoIsTold";
 import ObjectID from "../../../Types/ObjectID";
 import {
   ON_CALL_FIRE_DRILL_FAILURE_CHANGED_MESSAGE,
   ON_CALL_FIRE_DRILL_NOT_ALLOWED_MESSAGE,
   ON_CALL_FIRE_DRILL_NOTHING_TO_PAGE_MESSAGE,
+  OnCallFireDrillFailure,
   OnCallFireDrillPreview,
   OnCallFireDrillStarted,
   getOnCallFireDrillEventKey,
@@ -30,6 +36,7 @@ import {
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
   ON_CALL_TEST_PAGE_POLICY_INTERVAL_IN_SECONDS,
+  OnCallTestPageCost,
   OnCallTestPageKind,
   OnCallTestPagePreview,
   OnCallTestPagePreviewPerson,
@@ -362,7 +369,7 @@ describe("the preview", () => {
     expect(drill.eventKey).toBe(OFFLINE_KEY);
   });
 
-  test("names every policy the failure pages, with who its first level pages, read as its own test reads it - at the failure's kind and severity, and no walk", async () => {
+  test("names every policy the failure pages, with who its first level pages, read as its own test reads it - at the failure's kind and severity, its walk included (#9385)", async () => {
     const drill: OnCallFireDrillPreview =
       await OnCallFireDrillService.getPreview({
         projectId: PROJECT,
@@ -381,13 +388,13 @@ describe("the preview", () => {
       [PLATFORM, "Platform", true],
     ]);
     expect(readPreview).toHaveBeenCalledTimes(2);
+    // Exactly as Test this policy's preview: the walk is read as its own is.
     expect(readPreview).toHaveBeenCalledWith({
       projectId: PROJECT,
       callerUserId: ANA,
       recordKind: OnCallTestPageRecordKind.Incident,
       severityId: new ObjectID(CRITICAL),
       policyId: new ObjectID(PRIMARY),
-      readsWalk: false,
     });
     expect(drill.policies[1]!.preview!.people).toHaveLength(2);
   });
@@ -537,27 +544,48 @@ describe("the preview", () => {
   });
 });
 
-describe("starting a drill", () => {
-  async function start(
-    data: {
-      eventKey?: string;
-      assertMayTestPolicy?: (policyId: ObjectID) => Promise<void>;
-    } = {},
-  ): Promise<OnCallFireDrillStarted> {
-    return await OnCallFireDrillService.start({
-      projectId: PROJECT,
-      monitorId: MONITOR,
-      sentByUserId: ANA,
-      props: PROPS,
-      eventKey: data.eventKey || OFFLINE_KEY,
-      assertMayTestPolicy:
-        data.assertMayTestPolicy ||
-        (async (): Promise<void> => {
-          return undefined;
-        }),
-    });
-  }
+async function start(
+  data: {
+    eventKey?: string;
+    walksEscalation?: boolean | undefined;
+    assertMayTestPolicy?: (policyId: ObjectID) => Promise<void>;
+  } = {},
+): Promise<OnCallFireDrillStarted> {
+  return await OnCallFireDrillService.start({
+    projectId: PROJECT,
+    monitorId: MONITOR,
+    sentByUserId: ANA,
+    props: PROPS,
+    eventKey: data.eventKey || OFFLINE_KEY,
+    walksEscalation: data.walksEscalation,
+    assertMayTestPolicy:
+      data.assertMayTestPolicy ||
+      (async (): Promise<void> => {
+        return undefined;
+      }),
+  });
+}
 
+// What each policy's test of a drill was started with.
+function startedWith(): Array<{
+  onCallDutyPolicyId: ObjectID;
+  recordKind: OnCallTestPageRecordKind;
+  severityId: ObjectID;
+  walksEscalation: boolean;
+  fireDrill: OnCallFireDrillOfRun;
+}> {
+  return startPolicyTest.mock.calls.map((call: Array<unknown>) => {
+    return call[0] as {
+      onCallDutyPolicyId: ObjectID;
+      recordKind: OnCallTestPageRecordKind;
+      severityId: ObjectID;
+      walksEscalation: boolean;
+      fireDrill: OnCallFireDrillOfRun;
+    };
+  });
+}
+
+describe("starting a drill", () => {
   test("tests exactly the policies When this goes down says the failure pages: its first level each, at its kind and severity", async () => {
     const started: OnCallFireDrillStarted = await start();
 
@@ -586,8 +614,14 @@ describe("starting a drill", () => {
       severityId: new ObjectID(CRITICAL),
       walksEscalation: false,
       startedByUserId: ANA,
+      fireDrill: {
+        fireDrillId: new ObjectID(started.fireDrillId!),
+        monitorId: MONITOR,
+        failure: { criteriaName: "Offline" },
+      },
     });
     expect(started).toEqual({
+      fireDrillId: expect.any(String),
       runs: [
         {
           policyId: PRIMARY,
@@ -714,6 +748,531 @@ describe("starting a drill", () => {
       projectId: PROJECT,
       policyId: new ObjectID(PLATFORM),
     });
+  });
+});
+
+async function previewOf(
+  eventKey?: string | undefined,
+): Promise<OnCallFireDrillPreview> {
+  return await OnCallFireDrillService.getPreview({
+    projectId: PROJECT,
+    monitorId: MONITOR,
+    callerUserId: ANA,
+    props: PROPS,
+    eventKey: eventKey,
+    mayTestPolicy: mayTestEvery,
+  });
+}
+
+function keysOf(result: WhoIsToldResult): Array<string> {
+  return getOnCallFireDrillFailures(result).map(
+    (failure: OnCallFireDrillFailure): string => {
+      return failure.key;
+    },
+  );
+}
+
+/*
+ * #9385: WALKING EVERY ESCALATION LEVEL OF EACH POLICY. Off unless asked
+ * with true; each policy's test is then a walked one, as Test this policy's
+ * walk is - and still one test of each policy against the limits. Its
+ * preview reads each policy's walk as that policy's own test reads it, and
+ * prices the walk at most.
+ */
+describe("a drill that walks every escalation level (#9385)", () => {
+  function walked(
+    people: Array<OnCallTestPagePreviewPerson>,
+    later: Array<OnCallTestPagePreviewPerson>,
+  ): OnCallTestPagePreview {
+    return {
+      ...preview(people),
+      levelCount: 2,
+      walkLevels: [
+        {
+          order: 2,
+          startsAfterMinutes: 2,
+          people: later,
+          notPaged: [],
+          notPagedCodes: [],
+        },
+      ],
+      walkUnreachedLevelCount: 0,
+    };
+  }
+
+  test("each policy's test walks its levels when the drill is asked to", async () => {
+    await start({ walksEscalation: true });
+
+    expect(
+      startedWith().map(
+        (each: { onCallDutyPolicyId: ObjectID; walksEscalation: boolean }) => {
+          return [each.onCallDutyPolicyId.toString(), each.walksEscalation];
+        },
+      ),
+    ).toEqual([
+      [PRIMARY, true],
+      [PLATFORM, true],
+    ]);
+  });
+
+  test("off unless asked: each policy's first level only", async () => {
+    await start();
+
+    expect(
+      startedWith().map((each: { walksEscalation: boolean }) => {
+        return each.walksEscalation;
+      }),
+    ).toEqual([false, false]);
+  });
+
+  test("a walk is still one test of each policy: every window and the project's hour, claimed once before anything is sent", async () => {
+    await start({ walksEscalation: true });
+
+    expect(claimLimits).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        claimLimits.mock.calls[0]![0] as {
+          keys: Array<OnCallTestPageLimitKey>;
+        }
+      ).keys.map((key: OnCallTestPageLimitKey) => {
+        return key.id.toString();
+      }),
+    ).toEqual([PRIMARY, PLATFORM]);
+    expect(claimLimits.mock.invocationCallOrder[0]!).toBeLessThan(
+      startPolicyTest.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("a walk a policy's window refuses sends nothing to any policy", async () => {
+    claimLimits.mockRejectedValue(
+      new TooManyRequestsException(
+        getOnCallFireDrillPolicyTooSoonMessage({
+          policyName: "Primary",
+          waitInSeconds: 300,
+        }),
+      ) as never,
+    );
+
+    await expect(start({ walksEscalation: true })).rejects.toThrow(
+      "On-call policy Primary was tested a moment ago",
+    );
+    expect(startPolicyTest).not.toHaveBeenCalled();
+  });
+
+  test("the preview hands on each policy's walk, as its own test's preview reads it", async () => {
+    const primary: OnCallTestPagePreview = walked(
+      [person("Ana Lopez", OnCallPageChannel.SMS)],
+      [person("Cara Diaz", OnCallPageChannel.Call)],
+    );
+
+    readPreview.mockImplementation((async (data: { policyId: ObjectID }) => {
+      return data.policyId.toString() === PRIMARY
+        ? primary
+        : preview([person("Bob Stone", OnCallPageChannel.Call)]);
+    }) as never);
+
+    const drill: OnCallFireDrillPreview = await previewOf();
+
+    expect(drill.policies[0]!.preview!.walkLevels).toEqual(primary.walkLevels);
+    expect(drill.policies[0]!.preview!.levelCount).toBe(2);
+  });
+
+  test("prices the walk at most: every policy's first level and each level its walk reaches", async () => {
+    readPreview.mockImplementation((async (data: { policyId: ObjectID }) => {
+      return data.policyId.toString() === PRIMARY
+        ? walked(
+            [person("Ana Lopez", OnCallPageChannel.SMS)],
+            [person("Cara Diaz", OnCallPageChannel.Call)],
+          )
+        : preview([
+            person("Bob Stone", OnCallPageChannel.Call),
+            person("Ana Lopez", OnCallPageChannel.SMS),
+          ]);
+    }) as never);
+
+    const firstLevels: OnCallTestPageCost = {
+      isPaid: true,
+      smsCount: 2,
+      callCount: 1,
+      whatsAppCount: 0,
+      telegramCount: 0,
+    };
+    const walk: OnCallTestPageCost = { ...firstLevels, callCount: 2 };
+
+    readCosts.mockResolvedValue([firstLevels, walk] as never);
+
+    const drill: OnCallFireDrillPreview = await previewOf();
+    const peopleOfEach: Array<Array<OnCallTestPagePreviewPerson>> = (
+      readCosts.mock.calls[0]![0] as {
+        peopleOfEach: Array<Array<OnCallTestPagePreviewPerson>>;
+      }
+    ).peopleOfEach;
+
+    const names: (
+      people: Array<OnCallTestPagePreviewPerson>,
+    ) => Array<string> = (
+      people: Array<OnCallTestPagePreviewPerson>,
+    ): Array<string> => {
+      return people.map((each: OnCallTestPagePreviewPerson) => {
+        return each.userName;
+      });
+    };
+
+    // One read of the project's prices, for both.
+    expect(readCosts).toHaveBeenCalledTimes(1);
+    expect(peopleOfEach).toHaveLength(2);
+    expect(names(peopleOfEach[0]!)).toEqual([
+      "Ana Lopez",
+      "Bob Stone",
+      "Ana Lopez",
+    ]);
+    expect(names(peopleOfEach[1]!)).toEqual([
+      "Ana Lopez",
+      "Cara Diaz",
+      "Bob Stone",
+      "Ana Lopez",
+    ]);
+    expect(drill.cost).toEqual(firstLevels);
+    expect(drill.walkCost).toEqual(walk);
+  });
+});
+
+/*
+ * #9397: THE INCIDENT AN ALERT INCIDENT RULE DECLARES, a failure of its own.
+ * When this goes down shows it under the alert it is declared from
+ * (WhoIsToldEvent.declares); a drill offers it after that alert, at the
+ * incident's kind and severity, keyed apart from the alert - and never
+ * one the reader can't see.
+ */
+const DECLARED_SEVERITY: string = "7e5b2000-0000-4000-8000-0000000000d3";
+
+const DECLARED_KEY: string = getOnCallFireDrillEventKey({
+  criteriaId: "criteria-degraded",
+  recordKind: OnCallTestPageRecordKind.Incident,
+  templateId: "template-2",
+  index: 0,
+  isDeclared: true,
+});
+
+/*
+ * When this goes down where the Degraded criteria's first alert, which
+ * pages nobody itself, becomes after 30 minutes a Major incident that
+ * pages Primary.
+ */
+function withDeclaration(
+  data: {
+    rule?: string;
+    wait?: number;
+    incident?: Partial<WhoIsToldEvent>;
+    alert?: Partial<WhoIsToldEvent>;
+  } = {},
+): WhoIsToldResult {
+  const result: WhoIsToldResult = whoIsTold();
+  const alert: WhoIsToldEvent = result.criteria[1]!.events[0]!;
+
+  Object.assign(alert, data.alert || {});
+  alert.declares = {
+    rule: {
+      id: "alert-incident-rule-1",
+      name: data.rule ?? "Escalate slow alerts",
+    },
+    waitInMinutes: data.wait ?? 30,
+    incident: event({
+      kind: OnCallTestPageRecordKind.Incident,
+      id: "",
+      severityId: DECLARED_SEVERITY,
+      severityName: "Major",
+      title: "API is slow (declared)",
+      policies: [policy(PRIMARY, "Primary", { ruleIds: ["rule-2"] })],
+      ...data.incident,
+    }),
+  };
+
+  return result;
+}
+
+// The answer as a reader is told it, a private record theirs or not.
+function asReadBy(
+  result: WhoIsToldResult,
+  mayReadPrivate: boolean,
+): WhoIsToldResult {
+  return redactWhoIsTold({
+    result: result,
+    readablePolicyIds: new Set<string>([PRIMARY, PLATFORM, SECRET]),
+    readableRuleIds: new Set<string>(),
+    readableOwnerRuleIds: new Set<string>(),
+    readableStatusPageIds: new Set<string>(),
+    readableAlertIncidentRuleIds: new Set<string>(["alert-incident-rule-1"]),
+    canReadPrivateEvent: (): boolean => {
+      return mayReadPrivate;
+    },
+  });
+}
+
+describe("the incident an alert incident rule declares (#9397)", () => {
+  test("is a failure of its own, right after its alert, keyed apart from it", () => {
+    expect(keysOf(withDeclaration())).toEqual([
+      OFFLINE_KEY,
+      DECLARED_KEY,
+      SLOW_FOR_EVERYONE_KEY,
+    ]);
+    expect(DECLARED_KEY).toBe(
+      "criteria-degraded:Incident:template-2:0:declared",
+    );
+  });
+
+  test("its alert, when it pages a policy itself, is a failure too: the two never share a key", () => {
+    const keys: Array<string> = keysOf(
+      withDeclaration({ alert: { policies: [policy(PLATFORM, "Platform")] } }),
+    );
+
+    expect(keys).toEqual([
+      OFFLINE_KEY,
+      "criteria-degraded:Alert:template-2:0",
+      DECLARED_KEY,
+      SLOW_FOR_EVERYONE_KEY,
+    ]);
+    expect(new Set<string>(keys).size).toBe(keys.length);
+  });
+
+  test("is rehearsed at its own kind and severity - the rule's incident's, not its alert's", () => {
+    const failure: OnCallFireDrillFailure | undefined =
+      getOnCallFireDrillFailures(withDeclaration()).find(
+        (each: OnCallFireDrillFailure): boolean => {
+          return each.key === DECLARED_KEY;
+        },
+      );
+
+    expect(failure?.event.kind).toBe(OnCallTestPageRecordKind.Incident);
+    expect(failure?.event.severityId).toBe(DECLARED_SEVERITY);
+    expect(failure?.criteria.name).toBe("Degraded");
+    expect(failure?.declaration?.rule.name).toBe("Escalate slow alerts");
+    expect(failure?.declaration?.waitInMinutes).toBe(30);
+  });
+
+  test("gives a monitor a drill though nothing its criteria open pages anybody itself", () => {
+    const result: WhoIsToldResult = withDeclaration();
+    result.criteria[0]!.events[0]!.policies = [];
+    result.criteria[1]!.events[1]!.policies = [];
+
+    expect(hasOnCallFireDrill(result)).toBe(true);
+    expect(keysOf(result)).toEqual([DECLARED_KEY]);
+  });
+
+  test("a private one that is not the reader's - as the card hides it - is never offered", () => {
+    const hidden: WhoIsToldResult = asReadBy(
+      withDeclaration({
+        incident: {
+          isPrivate: true,
+          ownerIds: { userIds: [], teamIds: [] },
+        },
+      }),
+      false,
+    );
+
+    expect(hidden.criteria[1]!.events[0]!.declares!.incident.isHidden).toBe(
+      true,
+    );
+    expect(keysOf(hidden)).toEqual([OFFLINE_KEY, SLOW_FOR_EVERYONE_KEY]);
+  });
+
+  test("a private one the reader may read - an owner, a Project Admin - is offered", () => {
+    const shown: WhoIsToldResult = asReadBy(
+      withDeclaration({
+        incident: {
+          isPrivate: true,
+          ownerIds: { userIds: [ANA.toString()], teamIds: [] },
+        },
+      }),
+      true,
+    );
+
+    expect(keysOf(shown)).toContain(DECLARED_KEY);
+  });
+
+  test("a hidden one is never offered, whatever it says it pages", () => {
+    expect(
+      keysOf(withDeclaration({ incident: { isHidden: true } })),
+    ).not.toContain(DECLARED_KEY);
+  });
+
+  test("an alert the reader may not see says nothing of what it declares", () => {
+    expect(
+      keysOf(withDeclaration({ alert: { isHidden: true } })),
+    ).not.toContain(DECLARED_KEY);
+  });
+
+  test("one that pages nobody, or says no severity to test it at, is not offered", () => {
+    expect(
+      keysOf(withDeclaration({ incident: { policies: [] } })),
+    ).not.toContain(DECLARED_KEY);
+    expect(
+      keysOf(withDeclaration({ incident: { severityId: undefined } })),
+    ).not.toContain(DECLARED_KEY);
+  });
+
+  test("the preview names it with its rule and how long its alert stays open first, and reads its policies at its severity", async () => {
+    readWhoIsTold.mockResolvedValue(withDeclaration() as never);
+
+    const drill: OnCallFireDrillPreview = await previewOf(DECLARED_KEY);
+
+    expect(drill.eventKey).toBe(DECLARED_KEY);
+    expect(drill.events[1]).toEqual({
+      key: DECLARED_KEY,
+      criteriaName: "Degraded",
+      recordKind: OnCallTestPageRecordKind.Incident,
+      severityName: "Major",
+      title: "API is slow (declared)",
+      policyCount: 1,
+      declaredBy: { ruleName: "Escalate slow alerts", waitInMinutes: 30 },
+    });
+    // What a criteria opens itself is declared by no rule.
+    expect(drill.events[0]!.declaredBy).toBeUndefined();
+    expect(
+      drill.policies.map((each: OnCallFireDrillPreview["policies"][number]) => {
+        return each.policyId;
+      }),
+    ).toEqual([PRIMARY]);
+    expect(readPreview).toHaveBeenCalledWith({
+      projectId: PROJECT,
+      callerUserId: ANA,
+      recordKind: OnCallTestPageRecordKind.Incident,
+      severityId: new ObjectID(DECLARED_SEVERITY),
+      policyId: new ObjectID(PRIMARY),
+    });
+  });
+
+  test("a rule the reader may not read is named by nothing; one declared right away waits 0", async () => {
+    readWhoIsTold.mockResolvedValue(
+      withDeclaration({ rule: "", wait: 0 }) as never,
+    );
+
+    const drill: OnCallFireDrillPreview = await previewOf(DECLARED_KEY);
+
+    expect(drill.events[1]!.declaredBy).toEqual({
+      ruleName: "",
+      waitInMinutes: 0,
+    });
+  });
+
+  test("starting it tests the incident's policies at the incident's kind and severity, and keeps how long its alert waits", async () => {
+    readWhoIsTold.mockResolvedValue(withDeclaration() as never);
+    startPolicyTest.mockReset().mockResolvedValue(RUN_1 as never);
+
+    const started: OnCallFireDrillStarted = await start({
+      eventKey: DECLARED_KEY,
+    });
+
+    expect(startedWith()).toEqual([
+      {
+        projectId: PROJECT,
+        onCallDutyPolicyId: new ObjectID(PRIMARY),
+        recordKind: OnCallTestPageRecordKind.Incident,
+        severityId: new ObjectID(DECLARED_SEVERITY),
+        walksEscalation: false,
+        startedByUserId: ANA,
+        fireDrill: {
+          fireDrillId: new ObjectID(started.fireDrillId!),
+          monitorId: MONITOR,
+          failure: { criteriaName: "Degraded", declaredAfterMinutes: 30 },
+        },
+      },
+    ]);
+    expect(readSeverity).toHaveBeenCalledWith({
+      projectId: PROJECT,
+      recordKind: OnCallTestPageRecordKind.Incident,
+      severityId: new ObjectID(DECLARED_SEVERITY),
+    });
+  });
+
+  test("once the rule no longer declares it, starting it pages nothing", async () => {
+    await expect(start({ eventKey: DECLARED_KEY })).rejects.toThrow(
+      ON_CALL_FIRE_DRILL_FAILURE_CHANGED_MESSAGE,
+    );
+    expect(claimLimits).not.toHaveBeenCalled();
+    expect(startPolicyTest).not.toHaveBeenCalled();
+  });
+
+  test("nor can a private one hidden from the reader be started by its key", async () => {
+    readWhoIsTold.mockResolvedValue(
+      asReadBy(
+        withDeclaration({
+          incident: {
+            isPrivate: true,
+            ownerIds: { userIds: [], teamIds: [] },
+          },
+        }),
+        false,
+      ) as never,
+    );
+
+    await expect(start({ eventKey: DECLARED_KEY })).rejects.toThrow(
+      ON_CALL_FIRE_DRILL_FAILURE_CHANGED_MESSAGE,
+    );
+    expect(startPolicyTest).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * #9386: WHAT A DRILL KEEPS. Each policy's test it starts is kept with the
+ * drill - the same on every test it started - the monitor whose failure it
+ * rehearsed and that failure, so the monitor's card can say how its last
+ * drill went, and the run's row says it was part of one.
+ */
+describe("what a drill keeps (#9386)", () => {
+  test("every policy's test of one drill is kept with the same drill, the monitor and the failure", async () => {
+    const started: OnCallFireDrillStarted = await start();
+    const drills: Array<OnCallFireDrillOfRun> = startedWith().map(
+      (each: { fireDrill: OnCallFireDrillOfRun }) => {
+        return each.fireDrill;
+      },
+    );
+
+    expect(drills).toHaveLength(2);
+    expect(drills[0]).toEqual(drills[1]);
+    expect(drills[0]!.fireDrillId.toString()).toBe(started.fireDrillId);
+    expect(drills[0]!.monitorId).toEqual(MONITOR);
+    expect(drills[0]!.failure).toEqual({ criteriaName: "Offline" });
+  });
+
+  test("each drill is kept apart from the one before it", async () => {
+    startPolicyTest.mockReset().mockResolvedValue(RUN_1 as never);
+
+    const first: OnCallFireDrillStarted = await start();
+    const second: OnCallFireDrillStarted = await start();
+
+    expect(first.fireDrillId).toBeTruthy();
+    expect(second.fireDrillId).toBeTruthy();
+    expect(first.fireDrillId).not.toBe(second.fireDrillId);
+  });
+
+  test("a drill that is refused keeps nothing: no test is started", async () => {
+    claimLimits.mockRejectedValue(new TooManyRequestsException("no") as never);
+
+    await expect(start()).rejects.toThrow("no");
+    expect(startPolicyTest).not.toHaveBeenCalled();
+  });
+
+  test("of the failure: the criteria's name, and a declared incident's wait", () => {
+    const criteria: WhoIsToldResult["criteria"][number] =
+      whoIsTold().criteria[0]!;
+
+    expect(getOnCallFireDrillFailureRecord({ criteria: criteria })).toEqual({
+      criteriaName: "Offline",
+    });
+    expect(
+      getOnCallFireDrillFailureRecord({
+        criteria: criteria,
+        declaration: withDeclaration().criteria[1]!.events[0]!.declares,
+      }),
+    ).toEqual({ criteriaName: "Offline", declaredAfterMinutes: 30 });
+    expect(
+      getOnCallFireDrillFailureRecord({
+        criteria: criteria,
+        declaration: withDeclaration({ wait: 0 }).criteria[1]!.events[0]!
+          .declares,
+      }),
+    ).toEqual({ criteriaName: "Offline", declaredAfterMinutes: 0 });
   });
 });
 

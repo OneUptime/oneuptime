@@ -19,6 +19,7 @@ import {
   buildPageSearchCommandDescriptors,
   buildProjectSwitchDescriptors,
   canDeleteProject,
+  canSearchMembers,
   canSearchRecordsOf,
   computeCreateActionGates,
   getEntitySearchResultTitle,
@@ -36,6 +37,8 @@ import {
   PaletteActionId,
   PaletteEntitySearchSpec,
   PaletteGlossaryEntry,
+  PaletteListCreateAction,
+  PALETTE_LIST_CREATE_ACTIONS,
   PaletteGlossaryTermDescriptor,
   PaletteNavigationCatalogEntry,
   PaletteNavigationCommandDescriptor,
@@ -102,8 +105,11 @@ import KeyboardKey from "Common/UI/Components/KeyboardShortcut/KeyboardKey";
 import { ADMIN_DASHBOARD_URL, BILLING_ENABLED } from "Common/UI/Config";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import { DocsSearchHit, searchDocs } from "Common/UI/Utils/DocsSearch";
+import ProjectMemberSearch from "Common/UI/Utils/ProjectMemberSearch";
+import { ProjectMemberSearchMatch } from "Common/Types/Team/ProjectMemberSearch";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import LeaveGuard from "Common/UI/Utils/LeaveGuard";
+import { CREATE_FORM_QUERY_STRING } from "Common/Types/CreateFormAddress";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ThemeUtil, {
@@ -149,6 +155,9 @@ import { isDashboardRecordingConfigured } from "../../Utils/DashboardRecording/D
  * event, and feeds the generic Common CommandPalette with:
  *  - every product from the shared NavBar catalog (useDashboardNavigationItems),
  *  - quick actions (create flows, theme, Ask AI, global pages, logout),
+ *    and, while searching, the lists' create forms (#7035: Create Status
+ *    Page, Create On-Call Policy, Create On-Call Schedule, Create
+ *    Dashboard, Create Workflow, Invite User),
  *  - every page the menus link to and the actions done on them (API Keys,
  *    On-Call Schedules, Delete Project...), from PageSearchIndex.ts. These
  *    are offered while searching only, each with the breadcrumb of where it
@@ -157,6 +166,8 @@ import { isDashboardRecordingConfigured } from "../../Utils/DashboardRecording/D
  *    on-call policies, and (#6816) services, hosts, on-call schedules,
  *    scheduled maintenance, dashboards, workflows, runbooks and teams - each
  *    kind only where the person may read it,
+ *  - the project's people, by name or email (#7036), each opening their page
+ *    under Users - only for someone who may see them there,
  *  - the person's other projects ("Switch to Acme Staging"),
  *  - How OneUptime works, the Glossary and its terms (#6936),
  *  - "Ask AI: ..." for a question nothing else answers.
@@ -299,6 +310,54 @@ function createEntitySearchProvider<
         // Per-provider isolation: a failed search shows nothing, never an error.
         return [];
       }
+    },
+  };
+}
+
+/*
+ * Search's Users group (#7036): the project's people whose name or email
+ * holds what was typed, as the server finds them for this reader
+ * (ProjectMemberSearch), each opening their page under Users. A person reads
+ * as the Users page shows them: their name, and their email under it - or
+ * their email alone while they have no name. A search that fails or is
+ * refused shows nothing, never an error.
+ */
+export function createMemberSearchProvider(data: {
+  sectionTitle: string;
+  onNavigate: () => void;
+}): PaletteSearchProvider {
+  return {
+    id: "members",
+    title: data.sectionTitle,
+    search: async (searchText: string): Promise<Array<PaletteSearchResult>> => {
+      let members: Array<ProjectMemberSearchMatch> = [];
+
+      try {
+        members = await ProjectMemberSearch.search(searchText);
+      } catch {
+        return [];
+      }
+
+      return members.map(
+        (member: ProjectMemberSearchMatch): PaletteSearchResult => {
+          return {
+            id: `members-${member.userId}`,
+            title: member.name || member.email || "",
+            description: member.name && member.email ? member.email : undefined,
+            icon: IconProp.User,
+            iconColor: "blue",
+            onSelect: () => {
+              data.onNavigate();
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.USER_VIEW] as Route,
+                  { modelId: new ObjectID(member.userId) },
+                ),
+              );
+            },
+          };
+        },
+      );
     },
   };
 }
@@ -567,6 +626,29 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
   );
 
   /*
+   * Open a list's create form (#7035): the list's page with ?create=1
+   * (CreateFormAddress), which opens the form as its Create button does.
+   * Chosen on that list already, the address is replaced rather than added
+   * to, so Back still leaves the list once the form is closed.
+   */
+  const navigateToListCreateForm: (pageMap: PageMap) => void = useCallback(
+    (pageMap: PageMap): void => {
+      const populated: Route = RouteUtil.populateRouteParams(
+        RouteMap[pageMap] as Route,
+      );
+      if (!isRoutePathNavigable(populated.toString())) {
+        return;
+      }
+      closePalette();
+      Navigation.navigate(
+        new Route(`${populated.toString()}${CREATE_FORM_QUERY_STRING}`),
+        { replace: Navigation.isOnThisPage(populated) },
+      );
+    },
+    [closePalette],
+  );
+
+  /*
    * Everything below is only needed while the palette is open; keeping the
    * closed-state render this cheap matters because the host is mounted on
    * every page.
@@ -688,7 +770,36 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
       "Account",
     );
 
+    /*
+     * The lists' create forms (#7035), titled as each list's own Create
+     * button is, and found by that title in English too. Offered while
+     * searching only: the list Search opens on stays as it was.
+     */
+    const listCreateCommands: Partial<Record<PaletteActionId, PaletteCommand>> =
+      {};
+
+    for (const action of PALETTE_LIST_CREATE_ACTIONS) {
+      const listAction: PaletteListCreateAction = action;
+      const title: string =
+        translator.translateText(listAction.title) || listAction.title;
+
+      listCreateCommands[listAction.id] = {
+        id: listAction.id,
+        title: title,
+        titleAliases: title === listAction.title ? [] : [listAction.title],
+        icon: listAction.icon,
+        iconColor: listAction.iconColor,
+        category: actionsCategory,
+        keywords: listAction.keywords,
+        isSearchOnly: true,
+        onSelect: () => {
+          navigateToListCreateForm(listAction.page);
+        },
+      };
+    }
+
     const actionCommandsById: Record<PaletteActionId, PaletteCommand> = {
+      ...(listCreateCommands as Record<PaletteActionId, PaletteCommand>),
       "action-declare-incident": {
         id: "action-declare-incident",
         title: t("commandPalette.actions.declareIncident", "Declare Incident"),
@@ -1124,6 +1235,24 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
           onNavigate: closePalette,
         });
       });
+
+      /*
+       * --- the project's people (#7036), after the kinds of record ------
+       * Only for someone who may see them on the Users page; the server
+       * holds anyone else to a refusal too.
+       */
+      if (
+        !offProducts.includes(ProductKey.Users) &&
+        canSearchMembers({ held: heldPermissions, isMasterAdmin })
+      ) {
+        searchProviders = [
+          ...(searchProviders || []),
+          createMemberSearchProvider({
+            sectionTitle: translator.translateText("Users") || "Users",
+            onNavigate: closePalette,
+          }),
+        ];
+      }
 
       /*
        * --- a record's pages (#9204): "status page sso" ------------------

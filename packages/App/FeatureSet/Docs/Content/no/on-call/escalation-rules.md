@@ -32,10 +32,10 @@ flowchart TB
 Når du oppretter en vaktpolicy på siden **Vaktpolicyer**, spør skjemaet om **Navn** og **Hvem varsles først?**. Spørsmålet bruker samme velger som **Varsle**: vaktplaner, team og personer, så mange du trenger. De du velger, blir den første eskaleringsregelen i policyen, **Level 1**, som venter **30 minutter** på en bekreftelse før neste nivå varsles.
 
 :::steps
-1. Gå til **Vakt** > **Vaktpolicyer**, og klikk på **Opprett Vaktpolicy**.
+1. Gå til **Vakt** > **Vaktpolicyer**, og klikk på **Opprett vaktpolicy**.
 2. Skriv inn et **Navn**.
 3. Klikk på **Legg til mottaker** under **Hvem varsles først?**, og velg vaktplanene, teamene og personene som skal varsles først.
-4. Klikk på **Opprett Vaktpolicy**. Den nye policyen åpnes deretter på siden **Eskaleringsregler**, der du kan legge til flere nivåer.
+4. Klikk på **Opprett vaktpolicy**. Den nye policyen åpnes deretter på siden **Eskaleringsregler**, der du kan legge til flere nivåer.
 :::
 
 **Hvem varsles først?** er valgfritt. Lar du det stå tomt, starter policyen uten eskaleringsregler: den varsler ingen før du legger til en, og oversikten sier det. Beskrivelsen og etikettene ligger under **Flere felt**. Spørsmålet stilles bare til dem som kan legge til eskaleringsregler.

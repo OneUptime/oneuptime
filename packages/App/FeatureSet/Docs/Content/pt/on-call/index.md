@@ -62,7 +62,7 @@ Abra **Plantão** pelo menu **Produtos** e vá para **Agendamentos de plantão**
 
 ### Criar uma política
 
-Vá para **Políticas de plantão** e clique em **Criar: Política de plantão**. Em **Quem é acionado primeiro?**, escolha o agendamento. Ele vira a primeira regra de escalonamento da política, **Level 1**, que espera 30 minutos por uma confirmação.
+Vá para **Políticas de plantão** e clique em **Criar política de plantão**. Em **Quem é acionado primeiro?**, escolha o agendamento. Ele vira a primeira regra de escalonamento da política, **Level 1**, que espera 30 minutos por uma confirmação.
 
 ### Adicionar os próximos níveis
 

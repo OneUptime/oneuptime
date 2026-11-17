@@ -109,9 +109,13 @@ Wie wordt opgeroepen, bevestigt de test via elk van zijn berichten: de link in e
 
 ### Een alarmoefening houden voor een monitor
 
-**Alarmoefening houden**, op de kaart **Als dit uitvalt** van een monitor, oefent een van zijn storingen: een incident of waarschuwing die een van zijn criteria opent. Ze test elk bereikbaarheidsbeleid dat die storing zou oproepen, elk zoals **Dit beleid testen** het test, en er gebeurt niets openbaars: er wordt geen incident of waarschuwing gemaakt, en geen statuspagina, abonnee of kanaal krijgt bericht. Voordat er iets wordt verstuurd, noemt het dialoogvenster de storing, elk beleid en wie dat beleid nu oproept.
+**Alarmoefening houden**, op de kaart **Als dit uitvalt** van een monitor, oefent een van zijn storingen: een incident of waarschuwing die een van zijn criteria opent, of het incident dat een incidentregel voor waarschuwingen van zo'n waarschuwing maakt. Ze test elk bereikbaarheidsbeleid dat die storing zou oproepen, elk zoals **Dit beleid testen** het test, en er gebeurt niets openbaars: er wordt geen incident of waarschuwing gemaakt, en geen statuspagina, abonnee of kanaal krijgt bericht. Voordat er iets wordt verstuurd, noemt het dialoogvenster de storing, elk beleid en wie dat beleid nu oproept. Bij zo'n incident noemt het ook de regel en hoelang de waarschuwing eerst open blijft: de oefening test de beleidsregels van het incident meteen, zonder die wachttijd.
+
+Een oefening roept het eerste niveau van elk beleid op. Zet onder **Meer velden** de optie **Elk escalatieniveau doorlopen** aan om de niveaus van elk beleid om de beurt op te roepen, hoogstens 2 minuten na elkaar, tot iemand bevestigt: het dialoogvenster toont dan elk niveau dat elk beleid bereikt, en wat het doorlopen hoogstens kost. Als niemand op de eerste niveaus bereikbaar is maar een later niveau wel, biedt de regel onder de lijst **Elk escalatieniveau doorlopen** met één klik aan.
 
 **Alarmoefening starten** blijft uit zolang een van die beleidsregels er een is die u niet kunt testen, omdat u het niet kunt bewerken, of zolang niemand die ze oproepen kan worden bereikt. Elk beleid van een oefening telt als een eigen test: een beleid dat in de laatste 5 minuten is getest, houdt de hele oefening tegen, en een oefening van drie beleidsregels neemt drie van de 20 tests per uur van het project.
+
+Zodra het dialoogvenster dicht is, zegt **Laatste alarmoefening** op de kaart welke storing de laatste oefening van de monitor heeft geoefend, wanneer en door wie ze is gestart, en hoeveel van haar tests zijn bevestigd. **Details tonen** toont de test van elk beleid: of hij is bevestigd, door wie, waarmee en hoe snel. Elke test blijft in de uitvoeringslogboeken van zijn beleid, gemarkeerd als alarmoefening van de monitor. De resultaten van een oefening zijn te zien voor wie de monitor en elk van die uitvoeringslogboeken kan lezen.
 
 ## Uitvoeringslogboeken
 

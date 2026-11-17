@@ -32,10 +32,10 @@ flowchart TB
 Cuando creas una política de guardia en la página **Políticas de guardia**, el formulario pide su **Nombre** y **¿A quién se avisa primero?**. La pregunta usa el mismo selector que **Notificar**: programaciones de guardia, equipos y personas, tantos como necesites. Quienes elijas forman la primera regla de escalado de la política, **Level 1**, que espera **30 minutos** a que alguien reconozca el aviso antes de avisar al siguiente nivel.
 
 :::steps
-1. Ve a **Guardia** > **Políticas de guardia** y haz clic en **Crear Política de guardia**.
+1. Ve a **Guardia** > **Políticas de guardia** y haz clic en **Crear política de guardia**.
 2. Escribe un **Nombre**.
 3. En **¿A quién se avisa primero?**, haz clic en **Añadir destinatario** y elige las programaciones de guardia, los equipos y las personas a los que avisar primero.
-4. Haz clic en **Crear Política de guardia**. La nueva política se abre después en su página **Reglas de escalado**, donde puedes añadir más niveles.
+4. Haz clic en **Crear política de guardia**. La nueva política se abre después en su página **Reglas de escalado**, donde puedes añadir más niveles.
 :::
 
 **¿A quién se avisa primero?** es opcional. Si lo dejas vacío, la política empieza sin reglas de escalado: no avisa a nadie hasta que añadas una, y su vista general lo indica. La descripción y las etiquetas esperan en **Más campos**. La pregunta solo se hace a quienes pueden añadir reglas de escalado.

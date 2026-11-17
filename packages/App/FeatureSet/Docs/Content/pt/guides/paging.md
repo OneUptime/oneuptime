@@ -51,7 +51,7 @@ Digite seu número de celular com o código do país em **Seu número de telefon
 
 ![O passo "Quem é acionado primeiro?", com "Salvar e continuar" destacado](screen:paging-who-else)
 
-Em **Quem é acionado primeiro?**, você já está em **Acionados primeiro**. Clique em **Adicionar membros da equipe** para acionar outras pessoas ao mesmo tempo que você. Para alguém que ainda não está no projeto, clique em **Convidar por e-mail**, digite o endereço e clique em **Enviar convite**. Depois clique em **Salvar e continuar**; quem é acionado se ninguém responder vem em seguida. Num projeto que ainda não tem nenhuma política de plantão, isso cria a **Política de plantão padrão**, que aciona todos vocês a cada novo incidente e a cada novo alerta. Num projeto que já tem uma, escolha-a em **Política de plantão** e adicione as pessoas em **Adicionar à primeira regra de escalonamento**. Se ainda não for possível contatar alguém, o passo fica aberto em **Um acionamento chega até eles?**: clique em **Enviar lembrete de configuração** para essa pessoa e depois em **Continuar**.
+Em **Quem é acionado primeiro?**, você já está em **Acionados primeiro**. Clique em **Adicionar membros da equipe** para acionar outras pessoas ao mesmo tempo que você. Para alguém que ainda não está no projeto, clique em **Convidar por e-mail**, digite o endereço e clique em **Enviar convite**. Depois clique em **Salvar e continuar**. Num projeto que ainda não tem nenhuma política de plantão, isso cria a **Política de plantão padrão**, que aciona todos vocês a cada novo incidente e a cada novo alerta. Num projeto que já tem uma, escolha-a em **Política de plantão** e adicione as pessoas em **Adicionar à primeira regra de escalonamento**. Se ainda não for possível contatar alguém, o passo fica aberto em **Um acionamento chega até eles?**: clique em **Enviar lembrete de configuração** para essa pessoa e depois em **Continuar**.
 
 ### Decidir o que acontece se ninguém responder
 
@@ -67,7 +67,7 @@ Em **Enviar uma chamada de teste**, clique em **Testar esta política**. Escolha
 
 ### Confirmar o acionamento de teste
 
-Abra o link do SMS ou do e-mail e confirme o acionamento ali, ou pressione 1 durante a ligação. Ou toque na notificação push e confirme o acionamento no app. Depois clique em **Concluído** na caixa de diálogo e em **Continuar**.
+Abra o link do SMS ou do e-mail e confirme o acionamento ali, ou pressione 1 durante a ligação. No app OneUptime On-Call, nas versões mais novas que a 1.6.0, você também pode confirmá-lo pela notificação push. Depois clique em **Concluído** na caixa de diálogo e em **Continuar**.
 :::
 
 ## Verificar se funcionou

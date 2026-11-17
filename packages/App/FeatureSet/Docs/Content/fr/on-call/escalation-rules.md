@@ -32,10 +32,10 @@ flowchart TB
 Lorsque vous créez une politique d'astreinte sur la page **Politiques d'astreinte**, le formulaire demande son **Nom** et **Qui est alerté en premier ?**. La question utilise le même sélecteur que **Notifier** : plannings d'astreinte, équipes et personnes, autant qu'il en faut. Les personnes choisies forment la première règle d'escalade de la politique, **Level 1**, qui attend **30 minutes** un accusé de réception avant d'alerter le niveau suivant.
 
 :::steps
-1. Allez dans **Astreinte** > **Politiques d'astreinte** et cliquez sur **Créer : Politique d'astreinte**.
+1. Allez dans **Astreinte** > **Politiques d'astreinte** et cliquez sur **Créer une politique d'astreinte**.
 2. Saisissez un **Nom**.
 3. Sous **Qui est alerté en premier ?**, cliquez sur **Ajouter un intervenant** et choisissez les plannings d'astreinte, les équipes et les personnes à alerter en premier.
-4. Cliquez sur **Créer : Politique d'astreinte**. La nouvelle politique s'ouvre ensuite sur sa page **Règles d'escalade**, où vous pouvez ajouter d'autres niveaux.
+4. Cliquez sur **Créer une politique d'astreinte**. La nouvelle politique s'ouvre ensuite sur sa page **Règles d'escalade**, où vous pouvez ajouter d'autres niveaux.
 :::
 
 **Qui est alerté en premier ?** est facultatif. Si vous le laissez vide, la politique démarre sans règles d'escalade : elle n'alerte personne tant que vous n'en ajoutez pas, et sa vue d'ensemble le signale. La description et les étiquettes se trouvent sous **Plus de champs**. La question n'est posée qu'aux personnes autorisées à ajouter des règles d'escalade.

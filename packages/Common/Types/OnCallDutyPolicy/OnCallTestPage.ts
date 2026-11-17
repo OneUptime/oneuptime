@@ -769,6 +769,25 @@ export interface OnCallTestPageResult {
 }
 
 /*
+ * WHAT BECAME OF A TEST, IN SHORT (#9386): where it stands, and who
+ * acknowledged it, by what and how fast - each policy's test of a fire
+ * drill, on its monitor's card - without each message's line. Worked out
+ * as the full result works it out (OnCallTestPageService.getAcknowledgement).
+ */
+export type OnCallTestPageResultSummary = Pick<
+  OnCallTestPageResult,
+  | "executionLogId"
+  | "policyId"
+  | "policyName"
+  | "status"
+  | "startedAt"
+  | "endsAt"
+  | "acknowledgedByName"
+  | "acknowledgedChannel"
+  | "acknowledgedAfterSeconds"
+>;
+
+/*
  * Whether a result is final: a test that was acknowledged, ended or failed
  * changes no more, so whoever shows it stops asking.
  */
