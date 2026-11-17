@@ -36,25 +36,21 @@ A drop filter throws away logs you do not need, or keeps only a sample of them, 
 - The **Dropped** column counts what each filter has dropped, so you can see what it does.
 - A filter changes the logs that arrive after you save it, within about a minute.
 
-## Filter Queries
+## Build a Filter
 
-| Operator | Example | Matches |
-|----------|---------|---------|
-| \`=\` | \`severityText = 'Debug'\` | Exactly this value |
-| \`!=\` | \`severityText != 'Error'\` | Anything but this value |
-| \`IN\` | \`severityText IN ('Debug', 'Trace')\` | Any value in the list |
-| \`LIKE\` | \`body LIKE 'healthcheck'\` | Text that contains this, in any case (\`%\` stands for any text) |
-| \`AND\`, \`OR\` | \`severityText = 'Debug' AND attributes.source = 'loadbalancer'\` | Both, or either, of two conditions |
+A filter picks logs with conditions, and each condition is a **Field**, an **Operator** and a **Value**: **Severity** · equals · **Debug**.
 
-- **Fields:** \`severityText\`, \`body\`, \`primaryEntityId\` and \`attributes.<key>\`.
-- **Severities:** \`Unspecified\`, \`Trace\`, \`Debug\`, \`Information\`, \`Warning\`, \`Error\` and \`Fatal\`. It is \`Information\`, not \`INFO\`, and \`Warning\`, not \`WARN\`.
-- \`=\`, \`!=\` and \`IN\` are case-sensitive: \`'Debug'\` matches, \`'DEBUG'\` does not. Only \`LIKE\` ignores case.
+- **Fields:** **Severity**, **Log Body** and **Service ID**, or any attribute with **Custom Attribute...**.
+- **Operators:** **equals** and **does not equal** match the exact value, with its upper and lower case: \`Debug\` matches, \`DEBUG\` does not. **contains** finds the text anywhere, in any case. **is one of** takes a list of values separated by commas.
+- With more than one condition, pick **All conditions** or **Any condition**.
+
+**Severity** offers the severities a log is stored with: **Fatal**, **Error**, **Warning**, **Information**, **Debug**, **Trace** and **Unspecified**.
 
 ## Examples
 
-- **Drop every debug log**: \`severityText = 'Debug'\`, with **Drop**.
-- **Keep a few health checks**: \`body LIKE 'healthcheck' AND severityText = 'Information'\`, with **Sample** at 5%: enough to spot a trend, without the noise.
-- **Drop the internal load balancer's logs**: \`attributes.source = 'internal-lb'\`, with **Drop**.
+- **Drop every debug log**: **Severity** · equals · **Debug**, with **Drop**.
+- **Keep a few health checks**: **Log Body** · contains · \`healthcheck\` and **Severity** · equals · **Information**, under **All conditions**, with **Sample** at 5%: enough to spot a trend, without the noise.
+- **Drop the internal load balancer's logs**: the custom attribute \`source\` · equals · \`internal-lb\`, with **Drop**.
 
 ## Tips
 

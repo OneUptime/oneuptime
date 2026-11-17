@@ -557,6 +557,12 @@ what was further down.
   what it never does, and the words the form shows ("Which Incidents", "More fields"): the help that
   listed three log processors of five, or a severity no filter can match, sent people the wrong way.
   Not enforced: use judgement.
+- **Help about a form describes the form, never a syntax it cannot take.** Logs and Traces pick
+  records with a filter builder of dropdowns, and their help taught a query language nobody could
+  type there (`kind = 'SPAN_KIND_CLIENT' AND statusCode != 2`, status codes `0`, `1` and `2`). It
+  now writes a condition as the builder draws it, "**Span Name** · contains · `healthcheck`", with
+  a value the builder lists by its label (**Error**, not `2`) (#9133). Enforced by
+  [TelemetryFilterHelpGuard](../../packages/App/Tests/Dashboard/TelemetryFilterHelpGuard.test.ts).
 
 ## Cards and the look of a page
 
