@@ -356,7 +356,7 @@ describePostgres(
       };
     }
 
-    interface Record {
+    interface SeededRecord {
       id: ObjectID;
       kind: "Incident" | "Alert";
     }
@@ -370,7 +370,7 @@ describePostgres(
     async function seedRecord(data: {
       kind: "Incident" | "Alert";
       isPrivate: boolean;
-    }): Promise<Record> {
+    }): Promise<SeededRecord> {
       const id: ObjectID = ObjectID.generate();
       const isAlert: boolean = data.kind === "Alert";
       const ownerKey: string = isAlert ? "alertId" : "incidentId";
@@ -515,7 +515,7 @@ describePostgres(
     }
 
     async function whoWasTold(
-      record: Record,
+      record: SeededRecord,
       props: DatabaseCommonInteractionProps,
     ): Promise<WhoWasToldResult> {
       return record.kind === "Alert"
@@ -532,7 +532,10 @@ describePostgres(
     }
 
     // The whole answer, as one who may read everything about the record reads it.
-    function expectWholeChain(result: WhoWasToldResult, record: Record): void {
+    function expectWholeChain(
+      result: WhoWasToldResult,
+      record: SeededRecord,
+    ): void {
       expect(result.hiddenNotificationCount).toBe(0);
       expect(result.hiddenRunCount).toBe(0);
       expect(result.runs).toHaveLength(1);
@@ -631,7 +634,7 @@ describePostgres(
     for (const kind of ["Incident", "Alert"] as const) {
       describe(`a private ${kind.toLowerCase()}`, () => {
         test("is read whole by the owning team's member, its named owner, a Project Admin and a Project Owner", async () => {
-          const record: Record = await seedRecord({
+          const record: SeededRecord = await seedRecord({
             kind: kind,
             isPrivate: true,
           });
@@ -647,7 +650,7 @@ describePostgres(
         });
 
         test("is not found by another member, a pending invitee, the person paged, an API key or a workflow step - and nothing of it is read", async () => {
-          const record: Record = await seedRecord({
+          const record: SeededRecord = await seedRecord({
             kind: kind,
             isPrivate: true,
           });
@@ -668,7 +671,7 @@ describePostgres(
 
       describe(`a public ${kind.toLowerCase()}`, () => {
         test("is read whole by any member who may read its logs", async () => {
-          const record: Record = await seedRecord({
+          const record: SeededRecord = await seedRecord({
             kind: kind,
             isPrivate: false,
           });
@@ -679,7 +682,7 @@ describePostgres(
         });
 
         test("a member who may read it but not its logs or runs is told how many, and nothing else of them", async () => {
-          const record: Record = await seedRecord({
+          const record: SeededRecord = await seedRecord({
             kind: kind,
             isPrivate: false,
           });
