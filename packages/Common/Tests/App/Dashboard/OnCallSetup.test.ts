@@ -1045,6 +1045,28 @@ describe("the order a page reaches each person (#7154)", () => {
     },
   );
 
+  /*
+   * Seen in the Persian summary at 390px (#7152): a person's channels, when
+   * no order was read, were joined with a Latin comma between Persian words.
+   */
+  test("a person's channels are joined with the reader's comma", () => {
+    const table: Record<string, string> = readLocale("fa");
+    const persian: Translator = createTranslator(
+      (key: string): string | undefined => {
+        return table[key];
+      },
+      "fa",
+    );
+    const text: string = describeResponder(persian, ana);
+
+    expect(text).toContain(`${table["Email"]}، ${table["SMS"]}`);
+    expect(text).not.toContain(", ");
+    // English keeps its own.
+    expect(describeResponder(english, ana)).toBe(
+      "Ana Lopez (Email, SMS, Phone call)",
+    );
+  });
+
   test("its words are keys of en.json, translated in every language with their placeholders", () => {
     const words: Array<string> = [
       REACH_AT_ONCE,

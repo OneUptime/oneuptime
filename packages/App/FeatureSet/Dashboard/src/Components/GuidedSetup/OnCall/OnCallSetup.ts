@@ -30,6 +30,7 @@ import { formatProjectBalanceAmount } from "Common/Utils/Project/ProjectBalance"
 import { getChannelName } from "../../Monitor/Overview/WhoIsToldWords";
 import { CHANNEL_NAMES } from "../../OnCallTestPage/OnCallTestPageWords";
 import { formatNameList } from "../../AiAccess/AiAccessModes";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 
 /*
  * GUIDED SETUP: PAGE THE RIGHT PERSON, AND ESCALATE (issue #6805).
@@ -1108,15 +1109,16 @@ export const describeResponder: (
 
   const order: string = steps ? describeReachOrder(translator, steps) : "";
 
+  // The channels' names, joined with the reader's comma ("، " in Persian).
   return translator.translateTemplate("{{name}} ({{channels}})", {
     name: person.name,
     channels:
       order ||
-      person.channels
-        .map((channel: string): string => {
+      joinList(
+        person.channels.map((channel: string): string => {
           return getChannelName(channel as OnCallPageChannel, translator);
-        })
-        .join(", "),
+        }),
+      ),
   });
 };
 
