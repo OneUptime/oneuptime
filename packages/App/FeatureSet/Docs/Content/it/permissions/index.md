@@ -368,7 +368,7 @@ Ciò che OneUptime AI ha conservato, o a cui una risposta ha aggiunto in seguito
 
 - La revisione di produzione di una pull request mostra, conta e nomina solo gli incidenti che puoi leggere ora. I punti di OneUptime AI sugli altri vengono omessi. Il commento già pubblicato sulla pull request resta com'era.
 - Una pull request che OneUptime AI apre da una chat contiene anche gli incidenti e gli avvisi che la chat ha aperto uno per uno, e quelli di un elenco di cui la pull request cita il titolo.
-- La correzione di un'eccezione, la pull request di correzione di un'indagine, la correzione delle prestazioni di una traccia e la pull request verso il codice di una correzione dicono che un'attività è nascosta quando contiene un incidente o un avviso privato che non puoi aprire. Non ne mostrano né l'avanzamento né la pull request.
+- La correzione di un'eccezione, la pull request di correzione di un'indagine, la correzione delle prestazioni di una traccia, la pull request verso il codice di una correzione e la correzione in corso di un insight IA o di una funzione in Profili dicono che un'attività è nascosta quando contiene un incidente o un avviso privato che non puoi aprire. Non ne mostrano né l'avanzamento né la pull request.
 
 Un record che nomina un record privato senza farne parte, come un problema di Data Security, un caso di sicurezza, un invio di modulo, una registrazione di sessione, o un avviso o un incidente pubblico in un episodio privato, viene letto come prima. Solo chi può leggere il record privato vi vede il titolo e gli altri campi: per chiunque altro un filtro su di essi non lo trova, e un elenco che lo nomina non può essere ordinato in base a essi.
 

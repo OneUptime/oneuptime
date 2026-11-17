@@ -368,7 +368,7 @@ Arbejde, som OneUptime AI har gemt, eller som et svar senere har tilføjet en pr
 
 - En pull requests produktionsgennemgang viser, tæller og nævner kun de hændelser, du må læse nu. OneUptime AI's punkter om de andre udelades. Kommentaren, der allerede står på pull requesten, forbliver, som den var.
 - En pull request, som OneUptime AI åbner fra en chat, indeholder også de hændelser og advarsler, som chatten åbnede én for én, og dem fra en liste, hvis titel pull requesten citerer.
-- En undtagelses rettelse, en undersøgelses rettelses-pull request, et traces ydeevnerettelse og en rettelses pull request til koden siger, at en opgave er skjult, når den indeholder en privat hændelse eller advarsel, du ikke kan åbne. De viser hverken dens fremskridt eller dens pull request.
+- En undtagelses rettelse, en undersøgelses rettelses-pull request, et traces ydeevnerettelse, en rettelses pull request til koden og den rettelse, der er i gang for en AI-indsigt eller for en funktion i Profiler, siger, at en opgave er skjult, når den indeholder en privat hændelse eller advarsel, du ikke kan åbne. De viser hverken dens fremskridt eller dens pull request.
 
 En post, der nævner en privat post uden at være en del af den, såsom et Data Security-problem, en sikkerhedssag, en formularindsendelse, en sessionsoptagelse eller en offentlig advarsel eller hændelse i en privat episode, læses som før. Kun de, der må læse den private post, ser dens titel og øvrige felter der: for alle andre finder et filter på dem den ikke, og en liste, der nævner den, kan ikke sorteres efter dem.
 

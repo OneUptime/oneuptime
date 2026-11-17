@@ -368,7 +368,7 @@ Det som OneUptime AI har sparat, eller som ett svar senare lade till en privat p
 
 - En pull requests produktionsgranskning visar, räknar och nämner bara de incidenter du får läsa nu. OneUptime AI:s punkter om de andra utelämnas. Kommentaren som redan finns på pull requesten står kvar som den var.
 - En pull request som OneUptime AI öppnar från en chatt innehåller också de incidenter och larm som chatten öppnade en i taget, och de från en lista vars titel pull requesten citerar.
-- Ett undantags korrigering, en undersöknings korrigerings-pull request, en traces prestandakorrigering och en korrigerings pull request till koden säger att en uppgift är dold när den innehåller en privat incident eller ett privat larm som du inte kan öppna. De visar varken dess förlopp eller dess pull request.
+- Ett undantags korrigering, en undersöknings korrigerings-pull request, en traces prestandakorrigering, en korrigerings pull request till koden och den korrigering som pågår för en AI-insikt eller en funktion i Profiler säger att en uppgift är dold när den innehåller en privat incident eller ett privat larm som du inte kan öppna. De visar varken dess förlopp eller dess pull request.
 
 En post som nämner en privat post utan att vara en del av den, till exempel ett Data Security-problem, ett säkerhetsärende, en formulärinsändning, en sessionsinspelning eller ett offentligt larm eller en offentlig incident i en privat episod, läses som tidigare. Bara de som får läsa den privata posten ser dess titel och övriga fält där: för alla andra hittar ett filter på dem den inte, och en lista som nämner den kan inte sorteras efter dem.
 

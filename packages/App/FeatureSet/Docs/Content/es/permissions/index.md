@@ -368,7 +368,7 @@ Lo que OneUptime AI guardó, o aquello a lo que una respuesta añadió después 
 
 - La revisión de producción de una pull request muestra, cuenta y nombra solo los incidentes que puedes leer ahora. Los puntos de OneUptime AI sobre los demás se omiten. El comentario ya publicado en la pull request se queda como estaba.
 - Una pull request que OneUptime AI abre desde un chat también contiene los incidentes y las alertas que el chat abrió uno por uno, y los de una lista cuyo título cita la pull request.
-- La corrección de una excepción, la pull request de corrección de una investigación, la corrección de rendimiento de una traza y la pull request al código de una corrección dicen que una tarea está oculta cuando contiene un incidente o una alerta privados que no puedes abrir. No muestran ni su progreso ni su pull request.
+- La corrección de una excepción, la pull request de corrección de una investigación, la corrección de rendimiento de una traza, la pull request al código de una corrección y la corrección en curso de un insight de IA o de una función en Perfiles dicen que una tarea está oculta cuando contiene un incidente o una alerta privados que no puedes abrir. No muestran ni su progreso ni su pull request.
 
 Un registro que nombra uno privado sin formar parte de él, como un problema de Data Security, un caso de seguridad, un envío de formulario, una grabación de sesión, o una alerta o un incidente públicos en un episodio privado, se lee como antes. Solo quienes pueden leer el registro privado ven allí su título y sus demás campos: para cualquier otra persona, un filtro por ellos no lo encuentra, y una lista que lo nombra no se puede ordenar por ellos.
 

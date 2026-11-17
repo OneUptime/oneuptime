@@ -368,7 +368,7 @@ Det OneUptime AI har lagret, eller som et svar senere la til en privat post i, f
 
 - Produksjonsgjennomgangen av en pull request viser, teller og nevner bare hendelsene du får lese nå. OneUptime AIs punkter om de andre utelates. Kommentaren som allerede er lagt inn på pull requesten, blir stående som den var.
 - En pull request OneUptime AI åpner fra en chat, inneholder også hendelsene og varslene chatten åpnet én etter én, og de fra en liste der pull requesten siterer tittelen.
-- Rettingen av et unntak, rettings-pull requesten til en undersøkelse, ytelsesrettingen av en trace og pull requesten til koden for en retting sier at en oppgave er skjult når den inneholder en privat hendelse eller et privat varsel du ikke kan åpne. De viser verken fremdriften eller pull requesten dens.
+- Rettingen av et unntak, rettings-pull requesten til en undersøkelse, ytelsesrettingen av en trace, pull requesten til koden for en retting og rettingen som pågår for en AI-innsikt eller en funksjon i Profiler, sier at en oppgave er skjult når den inneholder en privat hendelse eller et privat varsel du ikke kan åpne. De viser verken fremdriften eller pull requesten dens.
 
 En post som nevner en privat post uten å være en del av den, for eksempel et Data Security-problem, en sikkerhetssak, en skjemainnsending, et øktopptak eller et offentlig varsel eller en offentlig hendelse i en privat episode, leses som før. Bare de som får lese den private posten, ser tittelen og de andre feltene der: for alle andre finner et filter på dem den ikke, og en liste som nevner den, kan ikke sorteres etter dem.
 

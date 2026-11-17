@@ -368,7 +368,7 @@ Work OneUptime AI stored, or that a reply added a private record to later, follo
 
 - A pull request's production review lists, counts and names only the incidents you may read now. OneUptime AI's points about the others are left out. The comment already posted on the pull request stays as it was.
 - A pull request OneUptime AI opens from a chat also carries the incidents and alerts the chat opened one by one, and those from a list whose title the pull request quotes.
-- An exception's fix, an investigation's fix pull request, a trace's performance fix and a fix's pull request to the code say a task is hidden when it carries a private incident or alert you can't open. They show neither its progress nor its pull request.
+- An exception's fix, an investigation's fix pull request, a trace's performance fix, a fix's pull request to the code, and the fix under way for an AI insight or for a function in Profiles say a task is hidden when it carries a private incident or alert you can't open. They show neither its progress nor its pull request.
 
 A record that names a private one without being part of it, such as a Data Security issue, a security case, a form submission, a session replay, or a public alert or incident in a private episode, is read as before. Only those who may read the private record see its title and other fields there: for anyone else, a filter by them doesn't find it, and a list naming it can't be sorted by them.
 

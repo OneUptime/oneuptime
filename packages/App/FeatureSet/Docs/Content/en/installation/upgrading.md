@@ -343,7 +343,8 @@ and episodes.
   pull request OneUptime AI opens from a chat also carries the private
   incidents and alerts the chat opened one by one or quoted from a list. An
   exception's fix, an investigation's fix pull request, a trace's performance
-  fix and a fix's pull request to the code now say a task is hidden when it
+  fix, a fix's pull request to the code, and the fix under way for an AI
+  insight or for a function in Profiles now say a task is hidden when it
   carries a private record you can't open, instead of showing its progress
   and pull request. See
   [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
