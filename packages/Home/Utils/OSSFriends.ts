@@ -216,6 +216,14 @@ const OSSFriends: OSSFriend[] = [
     websiteUrl: URL.fromString("https://traefik.io"),
     category: "Infrastructure & DevOps",
   },
+  {
+    name: "BackupDrill",
+    description:
+      "Open-source CLI that backs up a Supabase project to your own S3, R2 or B2 bucket, then restores the snapshot into a throwaway Postgres to check it actually restores.",
+    repositoryUrl: URL.fromString("https://github.com/backupdrill/cli"),
+    websiteUrl: URL.fromString("https://backupdrill.com"),
+    category: "Infrastructure & DevOps",
+  },
 
   // Security
   {
