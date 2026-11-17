@@ -109,6 +109,8 @@ import Tabs from "Common/UI/Components/Tabs/Tabs";
 import NotificationBell from "Common/UI/Components/HeaderAlert/NotificationBell/NotificationBell";
 import { HeaderAlertType } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import Steps from "Common/UI/Components/Forms/Steps/Steps";
+import TableRow from "Common/UI/Components/Table/TableRow";
+import TrafficConversationDiagram from "../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/TrafficConversationDiagram";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FilterViewer from "Common/UI/Components/Filters/FilterViewer";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
@@ -1263,6 +1265,37 @@ const ATTRIBUTE_FILTERS = [
 ];
 
 /*
+ * #9222 and #9223: a table cell whose column explains its value
+ * (tooltipText), and a network diagram's bands and addresses.
+ */
+const QUOTA_COLUMNS = [
+  { key: "name", title: "Name", type: FieldType.Text },
+  {
+    key: "quota",
+    title: "Quota",
+    type: FieldType.Number,
+    tooltipText: () => {
+      return "Counted since the first of the month.";
+    },
+  },
+];
+
+const CONVERSATIONS = [
+  {
+    sourceIp: "10.0.0.5",
+    destinationIp: "10.0.0.9",
+    octets: 9000000,
+    packets: 9000,
+  },
+  {
+    sourceIp: "10.0.0.7",
+    destinationIp: "8.8.8.8",
+    octets: 3000000,
+    packets: 3000,
+  },
+];
+
+/*
  * A stepped edit dialog whose steps are all filled in, as Admin Dashboard >
  * Settings > Email > Edit SMTP Config is: Next on the first step, the save
  * on the last only, and the step list able to open any step (#9245).
@@ -1396,6 +1429,31 @@ function Keyboard() {
           }}
           showFilterModal={false}
           pluralLabel="Logs"
+        />
+      </Card>
+      <Card title="Usage" description="A cell whose column explains it.">
+        <table data-testid="keyboard-table">
+          <tbody>
+            <TableRow
+              item={{ _id: "1", name: "Ingest", quota: 42 }}
+              columns={QUOTA_COLUMNS}
+              isMobile={false}
+            />
+          </tbody>
+        </table>
+      </Card>
+      <Card title="Conversations" description="Who talks to whom.">
+        <TrafficConversationDiagram
+          conversations={CONVERSATIONS}
+          onSelectConversation={(source, destination) => {
+            say(`conversation:${source}>${destination}`);
+          }}
+          onSelectSource={(address) => {
+            say(`source:${address}`);
+          }}
+          onSelectDestination={(address) => {
+            say(`destination:${address}`);
+          }}
         />
       </Card>
       <ol data-testid="keyboard-log">

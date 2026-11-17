@@ -70,6 +70,7 @@ import {
   METRIC_STALE_MS,
 } from "../Utils/IoTDeviceUtils";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import Link from "Common/UI/Components/Link/Link";
 import {
   TemplateValues,
   translationKey,
@@ -134,6 +135,38 @@ const DEFAULT_TIME_RANGE: RangeStartAndEndDateTime = {
 const REFRESH_STORAGE_KEY: string = "iot-overview-auto-refresh-interval";
 
 const ATTENTION_TITLE: string = translationKey("Devices needing attention");
+
+const AT_RISK_DEVICE_LINE_CLASS_NAME: string =
+  "flex items-start gap-3 px-5 py-3.5 transition-colors";
+
+/*
+ * A line of the attention list: a link to the device's page when the device
+ * has an ID to open it by, so Tab reaches it and Enter opens it, and plain
+ * text when it has none (#9222).
+ */
+const AtRiskDeviceLine: FunctionComponent<{
+  to: Route | undefined;
+  children: ReactElement | Array<ReactElement>;
+}> = (props: {
+  to: Route | undefined;
+  children: ReactElement | Array<ReactElement>;
+}): ReactElement => {
+  if (!props.to) {
+    return (
+      <div className={AT_RISK_DEVICE_LINE_CLASS_NAME}>{props.children}</div>
+    );
+  }
+
+  return (
+    <Link
+      to={props.to}
+      dataTestId="iot-at-risk-device-link"
+      className={`${AT_RISK_DEVICE_LINE_CLASS_NAME} hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500`}
+    >
+      {props.children}
+    </Link>
+  );
+};
 
 const IoTFleetOverview: FunctionComponent<
   PageComponentProps
@@ -531,20 +564,16 @@ const IoTFleetOverview: FunctionComponent<
   const onlinePct: number | null =
     totalDevices > 0 ? (onlineDevices / totalDevices) * 100 : null;
 
-  const navigateToDevice: (externalId: string) => void = (
+  // A device's own page, which its line in the attention list links to.
+  const getDeviceRoute: (externalId: string) => Route = (
     externalId: string,
-  ): void => {
-    if (!externalId) {
-      return;
-    }
-    Navigation.navigate(
-      RouteUtil.populateRouteParams(
-        RouteMap[PageMap.IOT_FLEET_VIEW_DEVICE_DETAIL] as Route,
-        {
-          modelId: modelId,
-          subModelId: routeParamFromExternalId(externalId),
-        },
-      ),
+  ): Route => {
+    return RouteUtil.populateRouteParams(
+      RouteMap[PageMap.IOT_FLEET_VIEW_DEVICE_DETAIL] as Route,
+      {
+        modelId: modelId,
+        subModelId: routeParamFromExternalId(externalId),
+      },
     );
   };
 
@@ -842,14 +871,13 @@ const IoTFleetOverview: FunctionComponent<
                 ? "bg-red-50 text-red-700 border-red-200"
                 : "bg-amber-50 text-amber-700 border-amber-200";
               return (
-                <div
+                <AtRiskDeviceLine
                   key={`at-risk-${index}`}
-                  onClick={() => {
-                    navigateToDevice(item.externalId);
-                  }}
-                  className={`flex items-start gap-3 px-5 py-3.5 transition-colors ${
-                    item.externalId ? "hover:bg-gray-50 cursor-pointer" : ""
-                  }`}
+                  to={
+                    item.externalId
+                      ? getDeviceRoute(item.externalId)
+                      : undefined
+                  }
                 >
                   <div
                     className={`flex-shrink-0 mt-0.5 w-6 h-6 rounded-full ${iconBgClass} flex items-center justify-center`}
@@ -882,7 +910,7 @@ const IoTFleetOverview: FunctionComponent<
                       {item.externalId}
                     </p>
                   </div>
-                </div>
+                </AtRiskDeviceLine>
               );
             },
           )}

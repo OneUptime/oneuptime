@@ -452,6 +452,40 @@ describe("a click on any row narrows the whole page", () => {
     expect(lastRequest().filters).toEqual({});
   });
 
+  test("the diagram works from the keyboard: each band and address is a named button Enter and Space press (#9222)", async () => {
+    await renderView(DEVICE_SCOPE);
+
+    const band: HTMLElement = screen.getAllByTestId(
+      "traffic-conversation-band",
+    )[1]!;
+    expect(band).toHaveAttribute("role", "button");
+    expect(band).toHaveAttribute("tabindex", "0");
+    expect(band).toHaveAccessibleName(/^10\.0\.0\.5 to 10\.0\.0\.9: /);
+    // Not a picture: a picture would hide its buttons from a screen reader.
+    expect(band.closest("svg")).not.toHaveAttribute("role", "img");
+
+    band.focus();
+    fireEvent.keyDown(band, { key: "Enter" });
+    await flush();
+    expect(lastRequest().filters).toEqual({
+      sourceIp: "10.0.0.5",
+      destinationIp: "10.0.0.9",
+    });
+
+    const destination: HTMLElement = screen.getAllByTestId(
+      "traffic-conversation-destination",
+    )[1]!;
+    expect(destination).toHaveAttribute("role", "button");
+    expect(destination).toHaveAccessibleName(/^8\.8\.8\.8 received /);
+    fireEvent.keyDown(destination, { key: " " });
+    await flush();
+    // Filters add up, as they do for a click.
+    expect(lastRequest().filters).toEqual({
+      sourceIp: "10.0.0.5",
+      destinationIp: "8.8.8.8",
+    });
+  });
+
   test("an address in the diagram narrows to everything it sent, or received", async () => {
     await renderView(DEVICE_SCOPE);
 
