@@ -16,6 +16,11 @@
  *   - ingestion-keys   four ingestion keys, a Server key and three
  *               Browser keys in use, switched off and never used: the
  *               Ingestion Keys list the telemetry docs show (#7579)
+ *   - teammate-monitor   Ada's monitor of https://acme-commerce.example,
+ *               which the website guided setup finds before it makes one
+ *               for a teammate (#7254)
+ *   - status-page   a status page, "Acme status", that shows nothing yet:
+ *               the website guided setup's step 4 offers it (#7053)
  *
  * Also here: the API routes the journeys' pages call beyond ModelAPI, and
  * what the server does after a create that a journey's next page shows.
@@ -50,6 +55,11 @@ import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
+import {
+  GUIDED_SETUP_MONITORING_INTERVAL,
+  buildWebsiteMonitor,
+  parseWebsiteAddress,
+} from "Common/Utils/GuidedSetup/WebsiteMonitorRecords";
 import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
 import Color from "Common/Types/Color";
 import Email from "Common/Types/Email";
@@ -73,6 +83,10 @@ export const ADA_ID = "40000000-0000-4000-8000-000000000001";
 export const GRACE_ID = "40000000-0000-4000-8000-000000000002";
 export const MONITOR_ID = "50000000-0000-4000-8000-000000000001";
 export const SERVICE_ID = "50000000-0000-4000-8000-000000000002";
+export const TEAMMATE_MONITOR_ID = "50000000-0000-4000-8000-000000000003";
+export const STATUS_PAGE_ID = "50000000-0000-4000-8000-000000000004";
+// The address ?seed=teammate-monitor's monitor checks.
+export const TEAMMATE_MONITOR_ADDRESS = "https://acme-commerce.example";
 // The test page a guided setup sends (#6804): its run, acknowledged at once.
 export const TEST_PAGE_LOG_ID = "80000000-0000-4000-8000-000000006804";
 
@@ -349,6 +363,48 @@ export function seedNewProject(options) {
     });
   }
 
+  /*
+   * A monitor Ada made for the shop's address, as Create Monitor or the
+   * website guided setup makes it: what a teammate who opens the setup for
+   * the same address is told about before anything is made (#7254).
+   */
+  if (options.seeds.includes("teammate-monitor")) {
+    const built = buildWebsiteMonitor({
+      address: parseWebsiteAddress(TEAMMATE_MONITOR_ADDRESS),
+      isApi: false,
+      seeds: {
+        operationalStatusId: new ObjectID(statuses[0]._id),
+        offlineStatusId: new ObjectID(statuses[2]._id),
+        incidentSeverityId: new ObjectID(store.table(IncidentSeverity)[0]._id),
+        alertSeverityId: new ObjectID(store.table(AlertSeverity)[0]._id),
+      },
+      monitoringInterval: GUIDED_SETUP_MONITORING_INTERVAL,
+    });
+    store.insert(Monitor, {
+      _id: TEAMMATE_MONITOR_ID,
+      name: "Acme storefront",
+      monitorType: MonitorType.Website,
+      monitorSteps: built.monitorSteps,
+      currentMonitorStatusId: new ObjectID(statuses[0]._id),
+      currentMonitorStatus: statuses[0],
+      createdByUserId: new ObjectID(ADA_ID),
+      isAllProbesDisconnectedFromThisMonitor: false,
+      isNoProbeEnabledOnThisMonitor: false,
+      disableActiveMonitoring: false,
+      labels: [],
+    });
+  }
+
+  // A status page made earlier, showing nothing yet.
+  if (options.seeds.includes("status-page")) {
+    store.insert(StatusPage, {
+      _id: STATUS_PAGE_ID,
+      name: "Acme status",
+      isArchived: false,
+      createdByUserId: new ObjectID(ADA_ID),
+    });
+  }
+
   if (options.seeds.includes("ingestion-keys")) {
     for (const key of INGESTION_KEYS) {
       store.insert(TelemetryIngestionKey, {
@@ -363,7 +419,17 @@ export function seedNewProject(options) {
   // What this tab wrote before it last reloaded (Store.js).
   store.restore();
 
-  return { store, projectId, statuses, ada, grace };
+  return {
+    store,
+    projectId,
+    statuses,
+    ada,
+    grace,
+    // ?email=off: the server cannot send email yet.
+    canSendEmail: options.canSendEmail !== false,
+    // ?test=unanswered: a test page keeps paging, acknowledged by nobody.
+    isTestPageAnswered: options.isTestPageAnswered !== false,
+  };
 }
 
 /*
@@ -762,7 +828,7 @@ export function dashboardRoutes(project) {
         reached: [],
         hasRuleThatPagesSomeone: false,
         hasFinishedImport: false,
-        serverCanSendEmail: true,
+        serverCanSendEmail: project.canSendEmail,
       },
       plan: { isFreePlan: false },
       readerIsServerAdmin: false,
@@ -775,7 +841,7 @@ export function dashboardRoutes(project) {
       canChooseGoals: true,
       isHiddenForMe: false,
       isFinished: false,
-      canSendEmail: true,
+      canSendEmail: project.canSendEmail,
       steps: checklist.steps,
       doneCount: checklist.doneCount,
       totalCount: checklist.totalCount,
@@ -999,6 +1065,8 @@ export function dashboardRoutes(project) {
         return ok({
           disableUserProjectCreation: false,
           disablePushNotifications: false,
+          // ?email=off: a server whose admin has not set email up yet.
+          ...(project.canSendEmail ? {} : { canSendEmail: false }),
         });
       },
     ],
@@ -1087,6 +1155,45 @@ export function dashboardRoutes(project) {
       "GET",
       /\/on-call-test-page\/result\/[0-9a-f-]+$/,
       () => {
+        /*
+         * ?test=unanswered: the email went out and nobody acknowledged it,
+         * so the test is still paging (the setup's "I did not get it").
+         */
+        if (!project.isTestPageAnswered) {
+          return ok({
+            executionLogId: TEST_PAGE_LOG_ID,
+            kind: "Self",
+            recordKind: "Incident",
+            severityName: "Critical",
+            walksEscalation: false,
+            status: "Paging",
+            statusMessage: "Paging Ada Lovelace.",
+            startedAt: store.NOW.toISOString(),
+            endsAt: new Date(
+              store.NOW.getTime() + 30 * 60 * 1000,
+            ).toISOString(),
+            steps: [
+              {
+                id: "81000000-0000-4000-8000-000000006804",
+                userId: ADA_ID,
+                userName: "Ada Lovelace",
+                status: "Paged",
+                statusMessage: "Paged.",
+                deliveries: [
+                  {
+                    id: "82000000-0000-4000-8000-000000006804",
+                    channel: "Email",
+                    address: "ada@acme-commerce.example",
+                    status: "Sent",
+                    statusMessage: "Email sent.",
+                    canAcknowledge: true,
+                    sentAt: store.NOW.toISOString(),
+                  },
+                ],
+              },
+            ],
+          });
+        }
         return ok({
           executionLogId: TEST_PAGE_LOG_ID,
           kind: "Self",
