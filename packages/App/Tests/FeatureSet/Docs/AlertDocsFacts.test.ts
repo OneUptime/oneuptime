@@ -612,7 +612,9 @@ describe("the alert page's menu table is the alert's own menu", () => {
       "Developer",
       "Advanced",
     ]);
-    expect(alertViewMenu()[1]!.items.at(-1)).toBe("Private Notes");
+    const investigation: Array<string> = alertViewMenu()[1]!.items;
+
+    expect(investigation[investigation.length - 1]).toBe("Private Notes");
   });
 
   it("has a row per section with its pages, in the menu's order", () => {
