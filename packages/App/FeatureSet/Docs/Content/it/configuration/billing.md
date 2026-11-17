@@ -172,7 +172,13 @@ Su OneUptime Cloud, queste impostazioni di amministrazione richiedono un piano. 
 
 ## Disdire il piano
 
-Per smettere di pagare un progetto, eliminalo: la fatturazione si ferma quando viene eliminato. Vedi [Eliminare il progetto](/docs/configuration/project-settings#eliminare-il-progetto). Un progetto acquistato tramite un rivenditore si disdice con il rivenditore, e uno acquistato tramite un marketplace cloud sul marketplace.
+Per non pagare più le postazioni, passa il progetto al piano gratuito. Nella scheda **Annulla piano**, fai clic su **Passa al piano gratuito**: OneUptime dice cosa smette di funzionare con il piano gratuito, e cambia il piano del progetto quando fai di nuovo clic su **Passa al piano gratuito**. Come ogni cambio di piano, serve un Proprietario del progetto o **Manage Billing**, e un metodo di pagamento.
+
+- **Non viene eliminato nulla.** I tuoi monitor, incidenti, pagine di stato e la loro cronologia restano. Le funzionalità che il piano gratuito non include smettono di funzionare, e tornano a funzionare quando torni a un piano che le include.
+- **L'utilizzo viene ancora fatturato.** Il pagamento a consumo continua con il piano gratuito: la telemetria che inviano i tuoi servizi, e ogni monitor che non è un monitor manuale. Smetti di inviare telemetria ed elimina i monitor che non ti servono più per fermare anche questi addebiti.
+- **Domande sulla tua fattura?** Fai clic su **Contatta l'assistenza** nella stessa scheda per scrivere a support@oneuptime.com.
+
+Eliminare il progetto ferma ogni fatturazione, e rimuove per sempre tutto ciò che contiene: vedi [Eliminare il progetto](/docs/configuration/project-settings#eliminare-il-progetto). Un progetto acquistato tramite un rivenditore si disdice con il rivenditore, e uno acquistato tramite un marketplace cloud sul marketplace.
 
 ## Risoluzione dei problemi
 

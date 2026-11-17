@@ -172,7 +172,13 @@ I OneUptime Cloud kræver disse administrationsindstillinger en plan. En side, h
 
 ## Opsig planen
 
-For at holde op med at betale for et projekt sletter du det: faktureringen stopper, når det er slettet. Se [Slet projektet](/docs/configuration/project-settings#slet-projektet). Et projekt købt via en forhandler opsiges hos forhandleren, og et købt via en cloud-markedsplads på markedspladsen.
+For at holde op med at betale for pladser flytter du projektet til gratisplanen. Klik på **Skift til gratisplanen** på kortet **Opsig plan**: OneUptime fortæller, hvad gratisplanen stopper, og flytter projektet, når du klikker på **Skift til gratisplanen** igen. Det kræver en Projektejer eller **Manage Billing** og en betalingsmetode, som enhver planændring gør.
+
+- **Intet slettes.** Dine overvågninger, hændelser, statussider og deres historik bliver. Funktioner, som gratisplanen ikke omfatter, holder op med at virke og virker igen, når du skifter tilbage til en plan, der omfatter dem.
+- **Forbrug faktureres stadig.** Betaling efter forbrug fortsætter på gratisplanen: den telemetri, dine tjenester sender, og hver overvågning, der ikke er en manuel overvågning. Stop med at sende telemetri, og slet de overvågninger, du ikke længere har brug for, for også at stoppe de gebyrer.
+- **Spørgsmål til din regning?** Klik på **Kontakt support** på samme kort for at skrive til support@oneuptime.com.
+
+Når du sletter projektet, stopper al fakturering, og alt i det fjernes for altid: se [Slet projektet](/docs/configuration/project-settings#slet-projektet). Et projekt købt via en forhandler opsiges hos forhandleren, og et købt via en cloud-markedsplads på markedspladsen.
 
 ## Fejlfinding
 
