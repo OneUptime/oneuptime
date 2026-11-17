@@ -90,6 +90,7 @@ type RenderTableOptions = {
   urlStateKey?: string | undefined;
   userPreferencesKey?: string | undefined;
   disableUrlState?: boolean | undefined;
+  renamedFilterKeys?: Record<string, string> | undefined;
   sortBy?: keyof Monitor | undefined;
   sortOrder?: SortOrder | undefined;
   query?: Query<Monitor> | undefined;
@@ -173,6 +174,9 @@ describe("BaseModelTable URL state", () => {
       searchableFields: ["name"] as Array<keyof Monitor>,
       ...(options.urlStateKey ? { urlStateKey: options.urlStateKey } : {}),
       ...(options.disableUrlState ? { disableUrlState: true } : {}),
+      ...(options.renamedFilterKeys
+        ? { renamedFilterKeys: options.renamedFilterKeys }
+        : {}),
       ...(options.sortBy ? { sortBy: options.sortBy } : {}),
       ...(options.sortOrder ? { sortOrder: options.sortOrder } : {}),
       ...(options.query ? { query: options.query } : {}),
@@ -220,6 +224,48 @@ describe("BaseModelTable URL state", () => {
       expect((calls[0]?.query["name"] as Search<string>).toString()).toBe(
         "api",
       );
+    });
+
+    /*
+     * A link made when the table keyed a filter by another field still
+     * filters by what it said (#9363: the device lists' Vendor filter moved
+     * from `vendor` to `manufacturer`), from the first fetch.
+     */
+    test("a filter the table has renamed is read under its new key", async () => {
+      TableFilterUrlState.write("monitors-table", "filter", {
+        title: new Search("api"),
+      });
+
+      renderTable({ renamedFilterKeys: { title: "name" } });
+
+      await waitFor(() => {
+        expect(calls.length).toBeGreaterThan(0);
+      });
+
+      expect(calls[0]?.query["name"]).toBeInstanceOf(Search);
+      expect((calls[0]?.query["name"] as Search<string>).toString()).toBe(
+        "api",
+      );
+      expect(
+        (calls[0]?.query as Record<string, unknown>)["title"],
+      ).toBeUndefined();
+    });
+
+    test("without the rename, the old key is dropped as any key the table does not offer", async () => {
+      TableFilterUrlState.write("monitors-table", "filter", {
+        title: new Search("api"),
+      });
+
+      renderTable();
+
+      await waitFor(() => {
+        expect(calls.length).toBeGreaterThan(0);
+      });
+
+      expect(
+        (calls[0]?.query as Record<string, unknown>)["title"],
+      ).toBeUndefined();
+      expect(calls[0]?.query["name"]).toBeUndefined();
     });
 
     test("an unfiltered table fetches without a filter", async () => {

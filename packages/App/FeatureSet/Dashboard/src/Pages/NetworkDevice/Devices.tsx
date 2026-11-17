@@ -1116,6 +1116,12 @@ const NetworkDevices: FunctionComponent<
          */
         searchableFields={["name", "description", "dnsName"]}
         /*
+         * The Vendor filter read `vendor` before it read the maker the
+         * server keeps (issue #9363): a link or a bookmark made then still
+         * filters by Vendor.
+         */
+        renamedFilterKeys={{ vendor: "manufacturer" }}
+        /*
          * Only what the chips cannot express — free text.
          *
          * Status, Last Seen, Interfaces, Site, Probe and Labels have all moved to
@@ -1140,8 +1146,15 @@ const NetworkDevices: FunctionComponent<
             type: FieldType.Text,
           },
           {
+            /*
+             * The maker the Vendor / Model column shows (issue #9363), which
+             * the server keeps on each device: the vendor saved on it or read
+             * by its poll, or else what its SNMP identity, its controller or
+             * the Discovered Devices list names. The `vendor` column alone
+             * missed every device whose maker came from anywhere else.
+             */
             field: {
-              vendor: true,
+              manufacturer: true,
             },
             title: "Vendor",
             type: FieldType.Text,
@@ -1726,8 +1739,16 @@ const NetworkDevices: FunctionComponent<
             hideOnMobile: true,
           },
           {
+            /*
+             * Sorted by the maker it shows (issue #9363): the server keeps
+             * on each device the maker its asset facts name, which is what
+             * the cell draws below and what the Vendor filter matches. Keyed
+             * by the `vendor` column, the header put every device whose
+             * maker came from discovery, its controller or its sysDescr
+             * where a device with none goes.
+             */
             field: {
-              vendor: true,
+              manufacturer: true,
             },
             title: "Vendor / Model",
             type: FieldType.Element,
@@ -2088,6 +2109,12 @@ const NetworkDevices: FunctionComponent<
           ...DEVICE_BOUND_MONITOR_SELECT,
           interfacesDown: true,
           sysName: true,
+          /*
+           * What the Vendor / Model cell reads its maker and model from,
+           * through the asset facts. The column itself is keyed by the maker
+           * the server keeps (manufacturer), which it sorts by.
+           */
+          vendor: true,
           deviceModel: true,
           /*
            * What "Shorten Names to Hostname" plans its confirmation from and
