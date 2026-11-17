@@ -288,6 +288,7 @@ const ProjectInvoices: FunctionComponent = (): ReactElement => {
             text={
               statusKey ? t(statusKey) : t("pages.projectInvoices.statusOther")
             }
+            isUserContent={true}
             color={STATUS_COLORS[invoice.status] || Gray500}
           />
         );
