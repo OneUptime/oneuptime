@@ -23,6 +23,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * THE LAYERS AS THE API READS THEM, TO SAVE (issue #9038).
@@ -102,13 +103,9 @@ const LAYER_USERS: Array<OnCallDutyPolicyScheduleLayerUser> = [
   }),
 ];
 
-let findSchedule: jest.SpiedFunction<
-  typeof OnCallDutyPolicyScheduleService.findOneBy
->;
-let findLayers: jest.SpiedFunction<
-  typeof OnCallDutyPolicyScheduleLayerService.findBy
->;
-let findLayerUsers: jest.SpiedFunction<
+let findSchedule: SpyInstance<typeof OnCallDutyPolicyScheduleService.findOneBy>;
+let findLayers: SpyInstance<typeof OnCallDutyPolicyScheduleLayerService.findBy>;
+let findLayerUsers: SpyInstance<
   typeof OnCallDutyPolicyScheduleLayerUserService.findBy
 >;
 

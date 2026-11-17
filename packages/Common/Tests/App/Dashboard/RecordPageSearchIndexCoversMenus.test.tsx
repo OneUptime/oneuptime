@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -606,7 +607,7 @@ describe("on a record's page, Search finds its other pages by their names", () =
   });
 
   test("choosing one opens that page of this record", () => {
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation((): void => {});
 
