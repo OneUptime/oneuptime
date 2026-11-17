@@ -1140,6 +1140,13 @@ const NetworkDevices: FunctionComponent<
             type: FieldType.Text,
           },
           {
+            /*
+             * The maker the Vendor / Model column shows, not only the saved
+             * column: the server answers this filter with the same asset
+             * facts the cell reads, so a maker from the device's sysDescr or
+             * from the Discovered Devices list is found too (issue #9363,
+             * NetworkDeviceVendorFilter).
+             */
             field: {
               vendor: true,
             },
