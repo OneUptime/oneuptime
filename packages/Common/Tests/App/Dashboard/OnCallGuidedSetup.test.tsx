@@ -55,6 +55,8 @@ const API_NAMES: Array<string> = [
   "loadReachOrders",
   "getBrowserPushProblem",
   "registerThisBrowser",
+  "mayInviteByEmail",
+  "inviteByEmail",
 ];
 
 for (const name of API_NAMES) {
@@ -87,6 +89,8 @@ jest.mock(
       "loadReachOrders",
       "getBrowserPushProblem",
       "registerThisBrowser",
+      "mayInviteByEmail",
+      "inviteByEmail",
     ]) {
       calls[name] = (...args: Array<unknown>): unknown => {
         return api[name]!(...args);
@@ -435,6 +439,36 @@ jest.mock(
   },
 );
 
+// The link a master admin hands over: it reads the invitation from the server.
+jest.mock("../../../UI/Components/InvitationLink/InvitationLinkModal", () => {
+  return {
+    __esModule: true,
+    // Its words (INVITATION_LINK_COPY) are the module's own.
+    ...(jest.requireActual(
+      "../../../UI/Components/InvitationLink/InvitationLinkModal",
+    ) as Record<string, unknown>),
+    default: (props: {
+      teamMemberId: { toString: () => string };
+      onClose: () => void;
+    }) => {
+      return (
+        <div
+          data-testid="invitation-link-dialog"
+          data-team-member={props.teamMemberId.toString()}
+        >
+          <button
+            type="button"
+            data-testid="invitation-link-done"
+            onClick={props.onClose}
+          >
+            Done
+          </button>
+        </div>
+      );
+    },
+  };
+});
+
 // A code is drawn by a library loaded later: here, what it would encode.
 jest.mock("../../../UI/Components/QR/QR", () => {
   return {
@@ -719,6 +753,12 @@ beforeEach(() => {
     alreadyRegistered: false,
   });
   pushTurnedOff = false;
+  // Someone who may invite to the members team, and an invitation that goes.
+  api["mayInviteByEmail"]!.mockReturnValue(true);
+  api["inviteByEmail"]!.mockResolvedValue({
+    teamMemberId: "tm-cara",
+    userId: "user-cara",
+  });
   getResultMock.mockResolvedValue(result(OnCallTestPageStatus.Acknowledged));
 });
 
@@ -1531,6 +1571,205 @@ describe("who else is on call", () => {
  * OnCallSetupApi.loadPolicyChoices from a fake server that answers a list
  * as the real one does: only the records its query matches.
  */
+/*
+ * ISSUE #7150: someone not in the project yet had to be invited from Users
+ * first, then picked. "Invite by email" invites them from the step - the
+ * Users page's Invite User, through the server's own checks - and adds them
+ * to who is paged first, saved with the rest.
+ */
+describe("invite by email (#7150)", () => {
+  const CARA: {
+    userId: string;
+    name: string;
+    isReachable: boolean;
+    channels: Array<string>;
+  } = {
+    userId: "user-cara",
+    name: "cara@acme.example",
+    isReachable: false,
+    channels: [],
+  };
+
+  const reachDone: () => Promise<void> = async (): Promise<void> => {
+    keepRun({ reachConfirmed: true });
+    await renderSetup();
+  };
+
+  const invite: (email: string) => Promise<void> = async (
+    email: string,
+  ): Promise<void> => {
+    await press("on-call-setup-invite-open");
+    fireEvent.change(screen.getByTestId("on-call-setup-invite-email"), {
+      target: { value: email },
+    });
+    await press("on-call-setup-invite-send");
+  };
+
+  test("invites the address and adds them to who is paged first, saved with the rest", async () => {
+    await reachDone();
+    await invite("cara@acme.example");
+
+    expect(api["inviteByEmail"]).toHaveBeenCalledWith("cara@acme.example");
+    expect(screen.getByTestId("on-call-setup-people-picked")).toHaveTextContent(
+      JSON.stringify({ user: [USER_ID, "user-cara"] }),
+    );
+    expect(screen.getByTestId("on-call-setup-invited")).toHaveTextContent(
+      "cara@acme.example is invited and added here.",
+    );
+    // The form closes; another can be invited.
+    expect(screen.queryByTestId("on-call-setup-invite")).toBeNull();
+    expect(screen.getByTestId("on-call-setup-invite-open")).toBeInTheDocument();
+
+    api["loadPolicyReadiness"]!.mockResolvedValue([ANA, CARA]);
+    await press("on-call-setup-who-save");
+
+    expect(api["createPolicy"]).toHaveBeenCalledWith(
+      expect.objectContaining({ userIds: [USER_ID, "user-cara"] }),
+    );
+    // Not reachable until they accept and set up a way: a reminder for them.
+    expect(stepState("who_else")).toBe("open");
+    expect(
+      screen.getByTestId("on-call-setup-responder-user-cara"),
+    ).toHaveTextContent("cara@acme.example (not reachable yet)");
+    expect(
+      screen.getByTestId("on-call-setup-send-reminder-user-cara"),
+    ).toBeInTheDocument();
+  });
+
+  test("a project with policies: the invitee joins its first escalation rule", async () => {
+    api["loadPolicyChoices"]!.mockResolvedValue({
+      policies: [{ id: POLICY_ID, name: "Default on-call policy" }],
+      mayCreatePolicy: true,
+      mayAddRules: true,
+      mayEditLevels: true,
+    });
+    await reachDone();
+    await invite("cara@acme.example");
+    await press("on-call-setup-who-save");
+
+    expect(api["addToFirstLevel"]).toHaveBeenCalledWith(
+      expect.objectContaining({ userIds: ["user-cara"] }),
+    );
+  });
+
+  test("an address that is not one is refused before anything is sent", async () => {
+    await reachDone();
+    await invite("cara at acme");
+
+    expect(api["inviteByEmail"]).not.toHaveBeenCalled();
+    expect(screen.getByTestId("on-call-setup-invite")).toHaveTextContent(
+      "Enter an email address, such as ana@example.com.",
+    );
+  });
+
+  test("the plan's seat limit refuses in the server's words, and nobody is added", async () => {
+    api["inviteByEmail"]!.mockRejectedValue(
+      new Error(
+        "This project has used all 5 of its seats. Remove someone from the project, or ask a Project Owner to add seats.",
+      ),
+    );
+    await reachDone();
+    await invite("cara@acme.example");
+
+    expect(screen.getByTestId("on-call-setup-invite-error")).toHaveTextContent(
+      "This project has used all 5 of its seats.",
+    );
+    expect(screen.getByTestId("on-call-setup-people-picked")).toHaveTextContent(
+      JSON.stringify({ user: [USER_ID] }),
+    );
+    expect(screen.queryByTestId("on-call-setup-invited")).toBeNull();
+  });
+
+  test("someone who may not invite is not offered it", async () => {
+    api["mayInviteByEmail"]!.mockReturnValue(false);
+    await reachDone();
+
+    expect(screen.queryByTestId("on-call-setup-invite-open")).toBeNull();
+  });
+
+  test("never asks whether the address has an account: one field, the same words for any address", async () => {
+    await reachDone();
+    await press("on-call-setup-invite-open");
+
+    const form: HTMLElement = screen.getByTestId("on-call-setup-invite");
+
+    // The address alone: no name asked of a person without an account.
+    expect(form.querySelectorAll("input")).toHaveLength(1);
+    expect(
+      screen.getByTestId("on-call-setup-invite-description"),
+    ).toHaveTextContent(
+      "We email them an invitation to this project and add them here.",
+    );
+
+    fireEvent.change(screen.getByTestId("on-call-setup-invite-email"), {
+      target: { value: "cara@acme.example" },
+    });
+    await press("on-call-setup-invite-send");
+
+    // One call, the address alone, whatever the server finds for it.
+    expect(api["inviteByEmail"]).toHaveBeenCalledTimes(1);
+    expect(api["inviteByEmail"]!.mock.calls[0]).toEqual(["cara@acme.example"]);
+  });
+
+  test("a server that cannot send email says so before anything is sent", async () => {
+    canSendEmail = false;
+    await reachDone();
+    await press("on-call-setup-invite-open");
+
+    expect(
+      screen.getByTestId("on-call-setup-invite-description"),
+    ).toHaveTextContent(
+      "This server cannot send email yet, so they get no invitation email. The invitation is still created: ask your server's admin to set up email.",
+    );
+
+    fireEvent.change(screen.getByTestId("on-call-setup-invite-email"), {
+      target: { value: "cara@acme.example" },
+    });
+    await press("on-call-setup-invite-send");
+
+    // Anyone but a master admin gets no link to hand over.
+    expect(screen.queryByTestId("invitation-link-dialog")).toBeNull();
+    expect(screen.getByTestId("on-call-setup-invited")).toBeInTheDocument();
+  });
+
+  test("on a server that cannot send email, a master admin is handed the invitation's link", async () => {
+    canSendEmail = false;
+    jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
+    await reachDone();
+    await press("on-call-setup-invite-open");
+
+    expect(
+      screen.getByTestId("on-call-setup-invite-description"),
+    ).toHaveTextContent("you get a link to send them yourself");
+
+    fireEvent.change(screen.getByTestId("on-call-setup-invite-email"), {
+      target: { value: "cara@acme.example" },
+    });
+    await press("on-call-setup-invite-send");
+
+    expect(screen.getByTestId("invitation-link-dialog")).toHaveAttribute(
+      "data-team-member",
+      "tm-cara",
+    );
+
+    await press("invitation-link-done");
+
+    expect(screen.queryByTestId("invitation-link-dialog")).toBeNull();
+  });
+
+  test("Cancel closes the form and sends nothing", async () => {
+    await reachDone();
+    await press("on-call-setup-invite-open");
+    fireEvent.change(screen.getByTestId("on-call-setup-invite-email"), {
+      target: { value: "cara@acme.example" },
+    });
+    await press("on-call-setup-invite-cancel");
+
+    expect(screen.queryByTestId("on-call-setup-invite")).toBeNull();
+    expect(api["inviteByEmail"]).not.toHaveBeenCalled();
+  });
+});
+
 describe("archived on-call policies (#8234)", () => {
   const LIVE_ID: string = "60000000-0000-4000-8000-000000000011";
   const ARCHIVED_ID: string = "60000000-0000-4000-8000-000000000012";

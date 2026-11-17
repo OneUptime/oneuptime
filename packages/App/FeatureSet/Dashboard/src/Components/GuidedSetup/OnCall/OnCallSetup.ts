@@ -133,6 +133,14 @@ export const ON_CALL_SETUP_COPY: {
   saveButton: string;
   whoTitle: string;
   whoNextHint: string;
+  inviteByEmail: string;
+  inviteEmailLabel: string;
+  inviteDescription: string;
+  inviteSend: string;
+  inviteCancel: string;
+  inviteEmailError: string;
+  invited: string;
+  inviteNoTeam: string;
   whoCreateHelp: string;
   whoExistingHelp: string;
   whoPolicyLabel: string;
@@ -264,6 +272,25 @@ export const ON_CALL_SETUP_COPY: {
   whoTitle: translationKey("Who is paged first?"),
   whoNextHint: translationKey(
     "Everyone here is paged at the same time. Someone to page only if nobody answers comes in the next step.",
+  ),
+  /*
+   * Someone not in the project yet, invited from the step (#7150): the
+   * Users page's Invite User, by address, on the team it starts on. Nothing
+   * said depends on whether the address has an account.
+   */
+  inviteByEmail: translationKey("Invite by email"),
+  inviteEmailLabel: translationKey("Their email address"),
+  inviteDescription: translationKey(
+    "We email them an invitation to this project and add them here. A page reaches them once they accept and set up how they are reached.",
+  ),
+  inviteSend: translationKey("Send invitation"),
+  inviteCancel: translationKey("Cancel"),
+  inviteEmailError: translationKey(
+    "Enter an email address, such as ana@example.com.",
+  ),
+  invited: translationKey("{{email}} is invited and added here."),
+  inviteNoTeam: translationKey(
+    "No team could be picked for them here. Invite them from Users, where you choose their team.",
   ),
   whoCreateHelp: translationKey(
     'This makes the on-call policy "{{policy}}". It pages these people first, for every new incident and alert in this project.',

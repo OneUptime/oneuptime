@@ -98,12 +98,16 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
+  SERVER_EMAIL_COPY,
   ServerEmail,
   cannotSendEmail,
   getAdminServerSetupUrl,
   useServerEmail,
 } from "../../../Utils/ServerEmail";
 import Route from "Common/Types/API/Route";
+import Email from "Common/Types/Email";
+import ObjectID from "Common/Types/ObjectID";
+import InvitationLinkModal from "Common/UI/Components/InvitationLink/InvitationLinkModal";
 import {
   WELCOME_STEP_MINUTES,
   WelcomeStep,
@@ -304,6 +308,21 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
    */
   const [policyGone, setPolicyGone] = useState<SetupPolicyGone | null>(null);
   const [reminders, setReminders] = useState<SetupReminderStatuses>({});
+  /*
+   * Someone not in the project yet, invited by email from the step (#7150):
+   * the form, what is typed, what went wrong, who was invited, and - on a
+   * server that cannot send email - the invitation whose link a master
+   * admin hands over.
+   */
+  const [isInviteOpen, setIsInviteOpen] = useState<boolean>(false);
+  const [inviteEmail, setInviteEmail] = useState<string>("");
+  const [inviteFieldError, setInviteFieldError] = useState<string>("");
+  const [inviteServerError, setInviteServerError] = useState<string>("");
+  const [isInviting, setIsInviting] = useState<boolean>(false);
+  const [invitedEmails, setInvitedEmails] = useState<Array<string>>([]);
+  const [invitationLinkFor, setInvitationLinkFor] = useState<string | null>(
+    null,
+  );
 
   // Step 3.
   const maySecondLevel: boolean = maySecondEscalationLevel();
@@ -1553,6 +1572,163 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     );
   };
 
+  /*
+   * INVITE BY EMAIL (#7150): someone not in the project yet, invited the way
+   * the Users page invites (OnCallSetupApi.inviteByEmail) and added to whom
+   * the step pages first, to save with the rest. Offered only to whoever
+   * may invite to the project's members team. The server keeps every check
+   * it keeps there - the plan's seats, who may invite, a server that cannot
+   * send email - and says why in its words when it refuses. Whether the
+   * address has an account is never asked, and nothing said depends on it.
+   */
+  const mayInvite: boolean = OnCallSetupApi.mayInviteByEmail();
+
+  const sendInvitation: () => Promise<void> = async (): Promise<void> => {
+    const email: string = inviteEmail.trim();
+
+    setInviteServerError("");
+
+    if (!Email.isValid(email)) {
+      setInviteFieldError(
+        translator.translateText(ON_CALL_SETUP_COPY.inviteEmailError) || "",
+      );
+      return;
+    }
+
+    setInviteFieldError("");
+    setIsInviting(true);
+
+    try {
+      const invited: { teamMemberId: string; userId: string } =
+        await OnCallSetupApi.inviteByEmail(email);
+
+      setPeople((previous: PeoplePickerValue): PeoplePickerValue => {
+        const userIds: Array<string> = pickedIds(
+          previous,
+          PeoplePickerKind.User,
+        ).filter((id: string): boolean => {
+          return id !== invited.userId;
+        });
+
+        return {
+          ...previous,
+          [PeoplePickerKind.User]: [...userIds, invited.userId],
+        };
+      });
+      setPeopleError("");
+      setInvitedEmails((previous: Array<string>): Array<string> => {
+        return [
+          ...previous.filter((entry: string): boolean => {
+            return entry !== email;
+          }),
+          email,
+        ];
+      });
+      setInviteEmail("");
+      setIsInviteOpen(false);
+
+      // No email went out: a master admin is handed the link it would carry.
+      if (cannotSendEmail(serverEmail) && serverEmail.isMasterAdmin) {
+        setInvitationLinkFor(invited.teamMemberId);
+      }
+    } catch (err) {
+      setInviteServerError(API.getFriendlyMessage(err));
+    }
+
+    setIsInviting(false);
+  };
+
+  const inviteForm: ReactElement = !mayInvite ? (
+    <></>
+  ) : isInviteOpen ? (
+    <form
+      className="mt-3 space-y-2 rounded-lg border border-gray-200 p-3"
+      data-testid="on-call-setup-invite"
+      onSubmit={(event: React.FormEvent) => {
+        event.preventDefault();
+        void sendInvitation();
+      }}
+    >
+      <label
+        htmlFor="on-call-setup-invite-email"
+        className="block text-sm font-medium text-gray-700"
+      >
+        {translator.translateText(ON_CALL_SETUP_COPY.inviteEmailLabel)}
+      </label>
+      <Input
+        id="on-call-setup-invite-email"
+        value={inviteEmail}
+        placeholder="teammate@company.com"
+        inputMode="email"
+        readsLeftToRight={true}
+        autoComplete="email"
+        disableSpellCheck={true}
+        onChange={(value: string) => {
+          setInviteEmail(value);
+          setInviteFieldError("");
+          setInviteServerError("");
+        }}
+        error={inviteFieldError || undefined}
+        dataTestId="on-call-setup-invite-email"
+      />
+      <p
+        className="text-sm text-gray-500"
+        data-testid="on-call-setup-invite-description"
+      >
+        {translator.translateText(
+          cannotSendEmail(serverEmail)
+            ? serverEmail.isMasterAdmin
+              ? SERVER_EMAIL_COPY.inviteEmailDescriptionForAdmin
+              : SERVER_EMAIL_COPY.inviteEmailDescription
+            : ON_CALL_SETUP_COPY.inviteDescription,
+        )}
+      </p>
+      {inviteServerError ? (
+        <p
+          role="alert"
+          className="text-sm text-red-600"
+          data-testid="on-call-setup-invite-error"
+        >
+          <ErrorInSentence message={inviteServerError} showWhereToLook={true} />
+        </p>
+      ) : (
+        <></>
+      )}
+      <div className={ACTIONS_CLASS_NAME}>
+        <Button
+          title={ON_CALL_SETUP_COPY.inviteSend}
+          type={ButtonType.Submit}
+          buttonStyle={ButtonStyleType.NORMAL}
+          isLoading={isInviting}
+          dataTestId="on-call-setup-invite-send"
+        />
+        <Button
+          title={ON_CALL_SETUP_COPY.inviteCancel}
+          buttonStyle={ButtonStyleType.LINK}
+          dataTestId="on-call-setup-invite-cancel"
+          onClick={() => {
+            setIsInviteOpen(false);
+            setInviteEmail("");
+            setInviteFieldError("");
+            setInviteServerError("");
+          }}
+        />
+      </div>
+    </form>
+  ) : (
+    <div className="mt-2">
+      <Button
+        title={ON_CALL_SETUP_COPY.inviteByEmail}
+        icon={IconProp.Email}
+        buttonStyle={ButtonStyleType.LINK}
+        dataTestId="on-call-setup-invite-open"
+        onClick={() => {
+          setIsInviteOpen(true);
+        }}
+      />
+    </div>
+  );
+
   const policyChoiceOptions: Array<DropdownOption> = policies.map(
     (entry: { id: string; name: string }): DropdownOption => {
       return { value: entry.id, label: entry.name, isUserContent: true };
@@ -1756,6 +1932,32 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             >
               {translator.translateText(ON_CALL_SETUP_COPY.whoNextHint)}
             </p>
+            {invitedEmails.map((email: string) => {
+              return (
+                <p
+                  key={email}
+                  className="mt-2 text-sm text-gray-700"
+                  data-testid="on-call-setup-invited"
+                >
+                  {translator.translateTemplate(
+                    ON_CALL_SETUP_COPY.invited,
+                    { email: email },
+                    { setsValuesApart: true },
+                  )}
+                </p>
+              );
+            })}
+            {inviteForm}
+            {invitationLinkFor ? (
+              <InvitationLinkModal
+                teamMemberId={new ObjectID(invitationLinkFor)}
+                onClose={() => {
+                  setInvitationLinkFor(null);
+                }}
+              />
+            ) : (
+              <></>
+            )}
           </div>
         ) : (
           <></>
@@ -2429,6 +2631,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             setNextPeople({});
             setShowNotReceivedHelp(false);
             setPeople({ [PeoplePickerKind.User]: userId ? [userId] : [] });
+            // Whoever was invited is in the project now, to pick like anyone.
+            setInvitedEmails([]);
+            setIsInviteOpen(false);
+            setInviteEmail("");
+            setInviteFieldError("");
+            setInviteServerError("");
             setOpenStepKey(OnCallSetupStep.WhoElse);
             // The project has a policy now: the choice is asked afresh.
             OnCallSetupApi.loadPolicyChoices()

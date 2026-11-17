@@ -57,7 +57,13 @@ import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels
 import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import Project from "Common/Models/DatabaseModels/Project";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import UserCall from "Common/Models/DatabaseModels/UserCall";
+import {
+  InviteTeam,
+  canSignedInUserInviteToEveryTeam,
+  findDefaultInviteTeam,
+} from "../../../Utils/DefaultInviteTeam";
 import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -898,6 +904,72 @@ export default class OnCallSetupApi {
     return parseReadinessPage(response.data).summary.users.map(
       toResponderReach,
     );
+  }
+
+  /*
+   * Whether this person may invite someone from the setup (#7150): invite
+   * people to the project (TeamMember's create - a Project Owner, a Project
+   * Admin or someone with Invite New Members) and hand on the members team,
+   * which the server allows only to whoever could grant every one of its
+   * permissions. Someone who may invite only to the teams they own is not
+   * offered it: the setup picks no team, and Users lets them pick theirs.
+   */
+  public static mayInviteByEmail(): boolean {
+    return (
+      PermissionGate.check(new TeamMember(), ModelAction.Create).isAllowed &&
+      canSignedInUserInviteToEveryTeam()
+    );
+  }
+
+  /*
+   * "Invite by email" (#7150): the Users page's Invite User, on the team
+   * it starts on (the project's members team, findDefaultInviteTeam), by
+   * address only. The server applies every check it applies there: who may
+   * invite to the team, the plan's seats and people, SCIM, how often one
+   * address may be mailed, and it emails the invitation - or, on a server
+   * that cannot send email, creates it all the same. Nothing here asks
+   * whether the address has an account, and nothing said after depends on
+   * it. Returns the invitation and the person it is for, to page.
+   */
+  public static async inviteByEmail(
+    email: string,
+  ): Promise<{ teamMemberId: string; userId: string }> {
+    const projectId: ObjectID = currentProjectId();
+    const team: InviteTeam | null = await findDefaultInviteTeam({
+      projectId: projectId,
+    });
+
+    if (!team) {
+      throw new Error(ON_CALL_SETUP_COPY.inviteNoTeam);
+    }
+
+    const member: TeamMember = new TeamMember();
+    member.projectId = projectId;
+    member.teamId = new ObjectID(team.id);
+
+    const response: unknown = await ModelAPI.create<TeamMember>({
+      model: member,
+      modelType: TeamMember,
+      miscDataProps: { email: email },
+    });
+
+    const data:
+      | {
+          id?: { toString: () => string } | undefined;
+          userId?: { toString: () => string } | undefined;
+          user?: { id?: { toString: () => string } | undefined } | undefined;
+        }
+      | undefined = (response as { data?: Record<string, never> } | undefined)
+      ?.data;
+    const teamMemberId: string = data?.id?.toString() || "";
+    const userId: string =
+      data?.userId?.toString() || data?.user?.id?.toString() || "";
+
+    if (!teamMemberId || !userId) {
+      throw new Error("The invitation was created, but it can't be shown.");
+    }
+
+    return { teamMemberId: teamMemberId, userId: userId };
   }
 
   /*
