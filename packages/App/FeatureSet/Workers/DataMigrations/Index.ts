@@ -191,6 +191,7 @@ import SwitchOffRulesLimitedOnlyToDeletedRecords from "./SwitchOffRulesLimitedOn
 import EncryptWebhookAddresses from "./EncryptWebhookAddresses";
 import EncryptSnmpCredentials from "./EncryptSnmpCredentials";
 import MaskWebhookAddressesInLogs from "./MaskWebhookAddressesInLogs";
+import RestoreCutMicrosoftTeamsChatIds from "./RestoreCutMicrosoftTeamsChatIds";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1331,6 +1332,18 @@ const DataMigrations: Array<DataMigrationBase> = [
    * asserts for itself.
    */
   new HashPresentedKeysForLookup(),
+  /*
+   * The Microsoft Teams chat ids kept cut to 100 characters (#9284) are put
+   * back whole, from the chats each project's connection lists: the place
+   * of a page asked for in a personal chat, so the updates of an alert paged
+   * from one before the upgrade reach it, and the Notification Logs' channel
+   * ids, so they are found again. Runs after the schema migration that
+   * widened the columns (WidenWorkspaceMessageIdColumns1809182960000), as
+   * every data migration runs after the schema ones. Postgres only and
+   * idempotent; before the last slot AddAuditLogMcpClientColumns asserts for
+   * itself.
+   */
+  new RestoreCutMicrosoftTeamsChatIds(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
