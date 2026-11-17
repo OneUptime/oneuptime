@@ -1,9 +1,15 @@
 import ProjectReferencesService from "./ProjectReferencesService";
+import CreateBy from "../Types/Database/CreateBy";
+import { OnCreate } from "../Types/Database/Hooks";
+import QueryHelper from "../Types/Database/QueryHelper";
 import MonitorTest from "../../Models/DatabaseModels/MonitorTest";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
+import PositiveNumber from "../../Types/PositiveNumber";
 import { MonitorStepProbeResponse } from "../../Models/DatabaseModels/MonitorProbe";
 import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
+import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
+import MonitorStepLimit from "../../Types/Monitor/MonitorStepLimit";
 
 /*
  * A result for a test the reporting probe was not handed (or one that is
@@ -14,12 +20,85 @@ import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 export const MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE: string =
   ExceptionMessages.MonitorTestNotHandedToProbe;
 
+/*
+ * How many "Test monitor" runs a project may ask for in a window. A person
+ * testing monitors runs a few a minute at most - three is the most any
+ * project on OneUptime Cloud ran in a minute - so this holds back only a
+ * project that runs them as a load test of the probes.
+ */
+export const MAX_MONITOR_TESTS_PER_PROJECT_IN_WINDOW: number = 30;
+export const MONITOR_TEST_WINDOW_IN_MINUTES: number = 10;
+
 export class Service extends ProjectReferencesService<MonitorTest> {
   private static readonly STALE_TEST_CLAIM_TIMEOUT_IN_MINUTES: number = 10;
 
   public constructor() {
     super(MonitorTest);
     this.hardDeleteItemsOlderThanInDays("createdAt", 2); // this is temporary data. Clear it after 2 days.
+  }
+
+  /*
+   * A "Test monitor" run is work for a probe, bounded twice. Through the API,
+   * one free project ran 1,238 tests of up to 5,000 steps each in an hour:
+   * the probe reports every step, and their 6.2 million reports held up
+   * every project's probe results for hours.
+   *
+   * A test with more steps than any monitor may have (MonitorStepLimit) is
+   * refused before anything else is checked: it reads nothing.
+   */
+  protected override async checkCreateBeforeReferences(
+    createBy: CreateBy<MonitorTest>,
+  ): Promise<void> {
+    MonitorStepLimit.assertWithinLimit(createBy.data.monitorSteps);
+  }
+
+  /*
+   * And a project that has already asked for
+   * MAX_MONITOR_TESTS_PER_PROJECT_IN_WINDOW tests in the last
+   * MONITOR_TEST_WINDOW_IN_MINUTES minutes is refused another - counted
+   * after the base hook has checked the test's references, as a lookup of
+   * the service's own must be (ProjectReferencesService).
+   */
+  protected override async onBeforeCreate(
+    createBy: CreateBy<MonitorTest>,
+  ): Promise<OnCreate<MonitorTest>> {
+    await super.onBeforeCreate(createBy);
+
+    await this.refuseTestPastProjectLimit(createBy);
+
+    return { createBy: createBy, carryForward: undefined };
+  }
+
+  private async refuseTestPastProjectLimit(
+    createBy: CreateBy<MonitorTest>,
+  ): Promise<void> {
+    const projectId: ObjectID | undefined =
+      createBy.props.tenantId || createBy.data.projectId;
+
+    if (!projectId) {
+      return;
+    }
+
+    const recentTests: PositiveNumber = await this.countBy({
+      query: {
+        projectId: projectId,
+        createdAt: QueryHelper.greaterThanEqualTo(
+          OneUptimeDate.addRemoveMinutes(
+            OneUptimeDate.getCurrentDate(),
+            -MONITOR_TEST_WINDOW_IN_MINUTES,
+          ),
+        ),
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (recentTests.toNumber() >= MAX_MONITOR_TESTS_PER_PROJECT_IN_WINDOW) {
+      throw new TooManyRequestsException(
+        `This project has run ${MAX_MONITOR_TESTS_PER_PROJECT_IN_WINDOW} monitor tests in the last ${MONITOR_TEST_WINDOW_IN_MINUTES} minutes, the most it may. Try again in a few minutes.`,
+      );
+    }
   }
 
   /**

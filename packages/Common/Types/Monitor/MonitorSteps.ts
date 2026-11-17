@@ -6,6 +6,7 @@ import { joinSerializableObjectDictionary } from "../JoinedSerializableObjects";
 import ObjectID from "../ObjectID";
 import { Translator } from "../Translator";
 import MonitorStep from "./MonitorStep";
+import MonitorStepLimit from "./MonitorStepLimit";
 import MonitorType from "./MonitorType";
 import { FindOperator } from "typeorm";
 
@@ -158,6 +159,12 @@ export default class MonitorSteps extends DatabaseProperty {
 
     if (value.data.monitorStepsInstanceArray.length === 0) {
       return "Monitor Steps is required";
+    }
+
+    const tooManySteps: string | null = MonitorStepLimit.getLimitError(value);
+
+    if (tooManySteps) {
+      return tooManySteps;
     }
 
     if (!value.data.defaultMonitorStatusId) {
