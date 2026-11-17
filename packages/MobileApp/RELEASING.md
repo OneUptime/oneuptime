@@ -475,11 +475,11 @@ Before the release, with a rule that pages a policy you are on as observers:
 
 The same release registers a third category, `ON_CALL_TEST_PAGE`, with one
 action: **Acknowledge test page**. The server names it on the push of a test
-page (Test this policy, Send test page on a person, a monitor's fire drill),
-and nowhere else: a real page's push never carries it, and the app never
-answers a real page with it. It opens the app on the Test page screen - after
-the phone is unlocked and after the app's own biometric lock - and
-acknowledges the test there through
+page (Test this policy, Send test page or Send me a test page, a monitor's
+fire drill), and nowhere else: a real page's push never carries it, and the
+app never answers a real page with it. It opens the app on the Test page
+screen - after the phone is unlocked and after the app's own biometric lock -
+and acknowledges the test there through
 `POST /api/on-call-test-page/acknowledge/<message id>`, the same rule and the
 same timeline line as the link in the test's email or text: the policy's
 execution log says the test was acknowledged by push notification and after
