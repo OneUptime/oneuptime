@@ -142,8 +142,8 @@
     "users": {
       "title": "Users",
       "cardTitle": "Users",
-      "cardDescription": "Here is a list of users in OneUptime.",
-      "noItems": "No users found.",
+      "listDescription": "Everyone with an account on this server. Open a user to manage their projects, sign-in and admin access.",
+      "emptyMessage": "No users yet.",
       "bulkAddToProject": "Add to Project",
       "bulkAddToProjectTitle": "Add Users to Project",
       "bulkAddToProjectDescription": "Pick a project and one of its teams. The {{userCount}} selected user(s) are invited to that team.",
@@ -204,7 +204,6 @@
     "userView": {
       "title": "User",
       "cardTitle": "User",
-      "cardDescription": "User details",
       "editButton": "Edit User",
       "masterAdminCardTitle": "Master Admin Access",
       "masterAdminCardDescription": "Grant or revoke master admin access for this user. Master admins can manage every project and workspace.",
@@ -305,13 +304,12 @@
     "projects": {
       "title": "Projects",
       "cardTitle": "Projects",
-      "cardDescription": "Here is a list of projects in OneUptime.",
-      "noItems": "No projects found."
+      "listDescription": "Every project on this server. Open one to manage its users, teams and settings.",
+      "emptyMessage": "No projects yet."
     },
     "projectView": {
       "title": "Project",
       "cardTitle": "Project",
-      "cardDescription": "Project details",
       "editButton": "Edit Project",
       "dataResidencyCardTitle": "Data Residency",
       "dataResidencyCardDescription": "Where this project's data is hosted. Once set, it is shown to the project's users in their Project Settings.",
@@ -453,8 +451,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "Users",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "People who belong to this project. Their team decides what each of them can do.",
+      "emptyMessage": "No users in this project yet.",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "Invite User",
       "inviteUserTitle": "Invite New User",
@@ -473,13 +471,12 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Teams",
-      "cardDescription": "Here is a list of all the teams in this project.",
-      "noItems": "No teams found in this project."
+      "listDescription": "Teams decide what their members can do in this project. Create one to give a group of people the same access.",
+      "emptyMessage": "No teams in this project yet."
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "Team Details",
-      "cardDescription": "Details about this team.",
       "editButton": "Edit Team",
       "membersCardTitle": "Team Members",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
@@ -626,13 +623,13 @@
       },
       "probes": {
         "bannerTitle": "Need help with setting up Global Probes?",
-        "bannerDescription": "Here is a guide which will help you get set up",
+        "bannerGuide": "Follow the guide to run a probe on your own server and connect it here.",
         "cardTitle": "Global Probes",
         "cardDescription": "Global Probes help you monitor external resources from different locations around the world.",
-        "noItems": "No probes found.",
+        "emptyMessage": "No global probes yet.",
         "showIdKey": "Show ID and Key",
         "keyModalTitle": "Probe Key",
-        "keyModalDescription": "Here is your probe key. Please keep this a secret.",
+        "keyModalSecret": "Your probe connects to OneUptime with this ID and key. Keep the key secret.",
         "probeIdLabel": "Probe ID:",
         "probeKeyLabel": "Probe Key:"
       },
