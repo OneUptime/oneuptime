@@ -2,7 +2,6 @@ import { DocsVocabulary } from "./DocsSearchWords";
 import { AIDocsSection } from "Common/Server/Utils/AI/Docs/AIDocsLibrary";
 import OldestKeyMap from "Common/Utils/OldestKeyMap";
 import zlib from "zlib";
-import OldestKeyMap from "Common/Utils/OldestKeyMap";
 
 /*
  * A DOCS LANGUAGE'S INDEX, LAID OUT TO HOLD LITTLE (issue #8818).

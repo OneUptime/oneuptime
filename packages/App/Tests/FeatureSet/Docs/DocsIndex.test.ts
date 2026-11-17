@@ -17,7 +17,6 @@ import {
 import { MadePage, madePageInput, makeDocsIndex } from "./DocsSearchHelpers";
 import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
-import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 
 /*
  * A DOCS LANGUAGE'S INDEX, LAID OUT TO HOLD LITTLE (issue #8818).
