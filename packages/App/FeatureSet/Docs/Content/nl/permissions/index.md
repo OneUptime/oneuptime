@@ -364,6 +364,12 @@ Het werk van OneUptime AI in de code volgt ook een privé-incident of -waarschuw
 
 Ook het werk dat een privé-incident of -waarschuwing alleen bevat, volgt het record: een Code-taak die iemand vroeg met het record als context of waaraan een antwoord het toevoegde, de taak van een actiepunt uit een postmortem en een pull request die OneUptime AI opende vanuit het AI-gesprek van het record of vanuit AI vragen erover. Elk ervan wordt alleen gelezen door wie elk record mag lezen dat het bevat, en zodra een daarvan is verwijderd, alleen door Projecteigenaren en Projectbeheerders. Het verzoek voor een actiepunt van een privé-incident noemt het incident alleen bij zijn nummer en vraagt OneUptime AI het buiten de pull request te houden.
 
+Wat OneUptime AI heeft bewaard, of waaraan een antwoord later een privérecord toevoegde, volgt het record zoals het nu is:
+
+- De productiebeoordeling van een pull request toont, telt en noemt alleen de incidenten die u nu mag lezen. De punten van OneUptime AI over de andere worden weggelaten. De opmerking die al op de pull request staat, blijft zoals hij was.
+- Een pull request die OneUptime AI vanuit een chat opent, bevat ook de incidenten en waarschuwingen die de chat een voor een opende, en die uit een lijst waarvan de pull request de titel citeert.
+- De fix van een exception, de fix-pull request van een onderzoek, de prestatiefix van een trace en de pull request naar de code van een fix zeggen dat een taak verborgen is wanneer die een privé-incident of -waarschuwing bevat die u niet kunt openen. Ze tonen noch de voortgang noch de pull request ervan.
+
 Een record dat een privérecord noemt zonder er deel van uit te maken, zoals een Data Security-probleem, een beveiligingszaak, een formulierinzending, een sessie-opname, of een openbare waarschuwing of een openbaar incident in een privé-episode, wordt gelezen zoals voorheen. Alleen wie het privérecord mag lezen, ziet daar de titel en de andere velden ervan: voor ieder ander vindt een filter erop het niet, en een lijst die het noemt, kan er niet op worden gesorteerd.
 
 Workflows handelen niet op privérecords. De stappen van een workflow handelen als Projectbeheerder, maar krijgen nooit diens zicht op privé-incidenten, -waarschuwingen en -episodes geleend: ze vinden er geen, wijzigen er geen en voegen er niets aan toe, en een workflow start niet op zo'n record of op iets dat erbij hoort. Zie [Wat workflowstappen mogen](/docs/workflows/configuration#wat-workflowstappen-mogen).
