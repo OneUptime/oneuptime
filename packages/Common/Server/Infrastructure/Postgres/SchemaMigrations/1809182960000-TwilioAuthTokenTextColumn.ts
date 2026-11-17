@@ -6,7 +6,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * place.
  *
  * A project's Twilio auth token is stored encrypted, and a ciphertext is
- * about 40% longer than the token it holds: a token of 360 to 500
+ * about 40% longer than the token it holds: a token of 352 to 500
  * characters fitted its type's 500 characters as written, which
  * DatabaseService checks before it encrypts it, but not the varchar(500)
  * column as stored, and Postgres refused the write in an error that named

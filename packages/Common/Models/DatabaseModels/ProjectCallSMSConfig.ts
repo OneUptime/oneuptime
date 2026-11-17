@@ -553,7 +553,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
    * written is still held to its type's 500 characters, by DatabaseService
    * before it encrypts it (assertFitsBeforeEncrypted), with a message that
    * names the field; a varchar(500) refused the ciphertext of a token of
-   * 360 to 500 characters in an error that named none.
+   * 352 to 500 characters in an error that named none.
    */
   @Column({
     type: ColumnType.VeryLongText,
