@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "Esqueceu a senha",
       "description": "Se você esqueceu sua senha para {{statusPageName}}, digite seu e-mail e o link de redefinição de senha será enviado a você.",
-      "success": "Enviamos o link de redefinição de senha para seu e-mail. Não se esqueça de verificar a pasta de spam.",
+      "success": "Se este endereço de e-mail puder entrar em {{statusPageName}}, enviamos a ele um link de redefinição de senha. Não se esqueça de verificar a pasta de spam.",
       "sendLink": "Enviar link de redefinição de senha",
       "rememberPassword": "Lembrou da sua senha?"
     },

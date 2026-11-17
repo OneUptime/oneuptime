@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "Wachtwoord vergeten",
       "description": "Als u uw wachtwoord voor {{statusPageName}} bent vergeten, voer dan uw e-mailadres in en de link om uw wachtwoord opnieuw in te stellen wordt naar u verzonden.",
-      "success": "We hebben u per e-mail de link voor het opnieuw instellen van het wachtwoord toegezonden. Vergeet niet uw spammap te controleren.",
+      "success": "Als dit e-mailadres kan inloggen bij {{statusPageName}}, hebben we het een link gemaild om het wachtwoord opnieuw in te stellen. Vergeet niet uw spammap te controleren.",
       "sendLink": "Link voor wachtwoordherstel verzenden",
       "rememberPassword": "Herinnert u zich uw wachtwoord?"
     },

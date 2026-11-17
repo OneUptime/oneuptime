@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "Glemt passord",
       "description": "Hvis du har glemt passordet ditt for {{statusPageName}}, skriv inn e-posten din, så sender vi deg en lenke for å tilbakestille passordet.",
-      "success": "Vi har sendt deg lenken for tilbakestilling av passord på e-post. Husk å sjekke søppelpostmappen.",
+      "success": "Hvis denne e-postadressen kan logge på {{statusPageName}}, har vi sendt den en lenke for tilbakestilling av passord. Husk å sjekke søppelpostmappen.",
       "sendLink": "Send lenke for tilbakestilling av passord",
       "rememberPassword": "Husker du passordet ditt?"
     },

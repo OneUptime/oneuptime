@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "忘記密碼",
       "description": "如果您忘記了 {{statusPageName}} 的密碼，請輸入您的電子郵件，我們將向您傳送密碼重設連結。",
-      "success": "我們已透過電子郵件向您傳送密碼重設連結。請別忘了檢查垃圾郵件資料夾。",
+      "success": "如果此電子郵件地址可以登入 {{statusPageName}}，我們已向其傳送密碼重設連結。請別忘了檢查垃圾郵件資料夾。",
       "sendLink": "傳送密碼重設連結",
       "rememberPassword": "記得您的密碼嗎？"
     },

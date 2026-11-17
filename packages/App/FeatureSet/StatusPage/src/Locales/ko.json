@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "비밀번호 분실",
       "description": "{{statusPageName}}의 비밀번호를 잊으셨다면 이메일을 입력해주세요. 비밀번호 재설정 링크를 보내드립니다.",
-      "success": "비밀번호 재설정 링크를 이메일로 보내드렸습니다. 스팸 폴더도 확인해주세요.",
+      "success": "이 이메일 주소로 {{statusPageName}}에 로그인할 수 있다면 비밀번호 재설정 링크를 이메일로 보내드렸습니다. 스팸 폴더도 확인해주세요.",
       "sendLink": "비밀번호 재설정 링크 보내기",
       "rememberPassword": "비밀번호가 기억나셨나요?"
     },

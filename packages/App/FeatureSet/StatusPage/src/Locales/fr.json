@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "Mot de passe oublié",
       "description": "Si vous avez oublié votre mot de passe pour {{statusPageName}}, veuillez saisir votre e-mail et le lien de réinitialisation du mot de passe vous sera envoyé.",
-      "success": "Nous vous avons envoyé par e-mail le lien de réinitialisation du mot de passe. N'oubliez pas de vérifier votre dossier spam.",
+      "success": "Si cette adresse e-mail peut se connecter à {{statusPageName}}, nous lui avons envoyé un lien de réinitialisation du mot de passe. N'oubliez pas de vérifier votre dossier spam.",
       "sendLink": "Envoyer le lien de réinitialisation du mot de passe",
       "rememberPassword": "Vous vous souvenez de votre mot de passe ?"
     },

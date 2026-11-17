@@ -634,6 +634,26 @@ router.post(
   },
 );
 
+/*
+ * POST /status-page/forgot-password -- email a private user of a status page
+ * a link to choose a password.
+ *
+ * The answer is the same for every address: success, whether or not the
+ * address is a private user of the page, so asking says nothing about who
+ * may sign in to a private status page (#9274). It used to answer "No user
+ * is registered with ...". For the same reason the request is counted per
+ * caller and per address (PublicMessageRateLimit) before the address is
+ * looked up, so the sixth request in an hour is refused for every address
+ * alike, not only for the page's private users.
+ *
+ * Only a private user of the page is mailed: the reset link, for a day, which
+ * also sets a first password for one who has none yet (an invitation that was
+ * never used). An address that is not a private user gets nothing. The email
+ * is not awaited, so the answer does not wait on the mail server either way.
+ *
+ * What is refused before the count is a fact about the page, not the
+ * address: an unknown page, or one that signs its readers in by SSO only.
+ */
 router.post(
   "/forgot-password",
   async (
@@ -699,6 +719,20 @@ router.post(
         statusPage.id!,
       );
 
+      /*
+       * Each request may email the address a reset link, so it is counted
+       * first, per caller and per address (PublicMessageRateLimit), and
+       * refused when either has had enough - before the token is replaced,
+       * so the link in the latest email still works. Counted before the
+       * address is looked up, whether or not it is a private user of the
+       * page, so a refusal says nothing about that either.
+       */
+      await PublicMessageRateLimit.assertMaySend({
+        req: req,
+        kind: PublicMessageKind.StatusPagePasswordReset,
+        contacts: [PublicMessageRateLimit.forEmail(user.email!)],
+      });
+
       const alreadySavedUser: StatusPagePrivateUser | null =
         await StatusPagePrivateUserService.findOneBy({
           query: {
@@ -716,18 +750,6 @@ router.post(
         });
 
       if (alreadySavedUser) {
-        /*
-         * Each request emails the address a reset link, so it is counted
-         * first, per caller and per address (PublicMessageRateLimit), and
-         * refused when either has had enough - before the token is replaced,
-         * so the link in the latest email still works.
-         */
-        await PublicMessageRateLimit.assertMaySend({
-          req: req,
-          kind: PublicMessageKind.StatusPagePasswordReset,
-          contacts: [PublicMessageRateLimit.forEmail(user.email!)],
-        });
-
         // A bearer secret: from the CSPRNG, never ObjectID's non-crypto fallback.
         const token: string = crypto.randomUUID();
         const hashedToken: string = await HashedString.hashValue(
@@ -786,13 +808,9 @@ router.post(
         ).catch((err: Error) => {
           logger.error(err, getLogAttributesFromRequest(req as RequestLike));
         });
-
-        return Response.sendEmptySuccessResponse(req, res);
       }
 
-      throw new BadDataException(
-        `No user is registered with ${user.email?.toString()}`,
-      );
+      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       // A reset refused for its rate limits says when to come back.
       PublicMessageRateLimit.setRetryAfterFor(res, err);
