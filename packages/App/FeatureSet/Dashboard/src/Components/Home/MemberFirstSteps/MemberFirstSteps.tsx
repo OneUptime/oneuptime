@@ -20,13 +20,7 @@ import SendTestPageModal from "../../OnCallTestPage/SendTestPageModal";
 import useSetupChecklist, {
   SetupChecklistState,
 } from "../../UserSettings/SetupChecklist/useSetupChecklist";
-import {
-  APP_STORE_NAME,
-  GOOGLE_PLAY_NAME,
-  MOBILE_APP_ANDROID_URL,
-  MOBILE_APP_IOS_URL,
-} from "../../../Utils/MobileAppStoreLinks";
-import { getMobileAppServerUrl } from "../../../Utils/MobileAppServerUrl";
+import MobileAppCodes from "../../NotificationMethods/MobileAppCodes";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import Route from "Common/Types/API/Route";
@@ -45,8 +39,6 @@ import Button, {
 import Card from "Common/UI/Components/Card/Card";
 import { FeedClock, getFeedClock } from "Common/UI/Components/Feed/FeedTime";
 import Icon from "Common/UI/Components/Icon/Icon";
-import QRCode from "Common/UI/Components/QR/QR";
-import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProductEvents from "Common/UI/Utils/ProductEvents";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -385,32 +377,6 @@ const MemberFirstStepsCard: FunctionComponent<CardProps> = (
     );
   };
 
-  const storeCode: (data: {
-    name: string;
-    url: string;
-  }) => ReactElement = (data: { name: string; url: string }): ReactElement => {
-    return (
-      <div className="flex flex-col items-center gap-2">
-        {/*
-         * A code is for a phone held up to a big screen, not for a phone.
-         * max-sm:hidden, not a bare hidden: a foreign .hidden rule would
-         * hide the code at every width.
-         */}
-        <div className="max-sm:hidden sm:block">
-          <QRCode text={data.url} alt={data.name} />
-        </div>
-        <a
-          href={data.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm font-semibold text-indigo-600 underline decoration-indigo-300 underline-offset-2 hover:text-indigo-500"
-        >
-          {data.name}
-        </a>
-      </div>
-    );
-  };
-
   return (
     <Card
       className={props.className}
@@ -439,34 +405,11 @@ const MemberFirstStepsCard: FunctionComponent<CardProps> = (
           {steps.tiles.map(drawTile)}
         </div>
         {isMobileAppOpen ? (
-          <div
-            data-testid="member-first-steps-mobile-app-panel"
-            className="mt-3 flex flex-col gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4 sm:flex-row sm:items-center"
-          >
-            <div className="flex flex-shrink-0 justify-center gap-6">
-              {storeCode({ name: APP_STORE_NAME, url: MOBILE_APP_IOS_URL })}
-              {storeCode({
-                name: GOOGLE_PLAY_NAME,
-                url: MOBILE_APP_ANDROID_URL,
-              })}
-            </div>
-            <p className="min-w-0 text-sm leading-6 text-gray-700">
-              <TranslatedSentence
-                template={MEMBER_FIRST_STEPS_COPY.mobileAppInstall}
-                slots={{
-                  serverUrl: (
-                    <code
-                      className="break-all rounded bg-white px-1 py-0.5 font-mono text-[0.8125rem] font-medium text-gray-900"
-                      data-testid="member-first-steps-server-url"
-                      dir="ltr"
-                    >
-                      {getMobileAppServerUrl()}
-                    </code>
-                  ),
-                }}
-              />
-            </p>
-          </div>
+          <MobileAppCodes
+            dataTestId="member-first-steps-mobile-app-panel"
+            serverUrlDataTestId="member-first-steps-server-url"
+            className="mt-3"
+          />
         ) : (
           <></>
         )}

@@ -10,6 +10,16 @@ import {
 } from "./OnCallSetup";
 import OnCallTestPageApi from "../../OnCallTestPage/OnCallTestPageApi";
 import {
+  BrowserPushProblem,
+  getDefaultDeviceName,
+  readBrowserIdentity,
+} from "../../NotificationMethods/BrowserPushRegistration";
+import {
+  RegisteredBrowser,
+  getProblemBeforeAsking,
+  registerThisBrowserForPush,
+} from "../../NotificationMethods/RegisterThisBrowser";
+import {
   OnCallTestPageSeverityOption,
   loadSeverityOptions,
 } from "../../OnCallTestPage/OnCallTestPageSeverities";
@@ -888,6 +898,30 @@ export default class OnCallSetupApi {
     return parseReadinessPage(response.data).summary.users.map(
       toResponderReach,
     );
+  }
+
+  /*
+   * What stops this browser getting push notifications, known before
+   * anything is asked of the person (#7149): a server without push keys,
+   * an insecure page, a browser without push, an iPhone that has not added
+   * OneUptime to its Home Screen. Null when "Use this browser" may ask.
+   */
+  public static getBrowserPushProblem(): BrowserPushProblem | null {
+    return getProblemBeforeAsking();
+  }
+
+  /*
+   * "Use this browser" (#7149): registers this browser for push the way
+   * Notification Methods' Register Device does (registerThisBrowserForPush),
+   * named as that dialog names it to start with ("Chrome on Windows"). Call
+   * it straight from the click: the browser's permission prompt is asked
+   * first. Throws a BrowserPushError for what the person can fix.
+   */
+  public static async registerThisBrowser(): Promise<RegisteredBrowser> {
+    return await registerThisBrowserForPush({
+      projectId: currentProjectId().toString(),
+      deviceName: getDefaultDeviceName(readBrowserIdentity(window.navigator)),
+    });
   }
 
   // "Send setup reminder", as On-Call Readiness sends it.

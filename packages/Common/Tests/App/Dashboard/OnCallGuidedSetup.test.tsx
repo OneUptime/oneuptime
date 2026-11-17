@@ -16,6 +16,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
@@ -52,6 +53,8 @@ const API_NAMES: Array<string> = [
   "loadPolicyReadiness",
   "sendSetupReminders",
   "loadReachOrders",
+  "getBrowserPushProblem",
+  "registerThisBrowser",
 ];
 
 for (const name of API_NAMES) {
@@ -82,6 +85,8 @@ jest.mock(
       "loadPolicyReadiness",
       "sendSetupReminders",
       "loadReachOrders",
+      "getBrowserPushProblem",
+      "registerThisBrowser",
     ]) {
       calls[name] = (...args: Array<unknown>): unknown => {
         return api[name]!(...args);
@@ -415,6 +420,30 @@ jest.mock(
 
 let canSendEmail: boolean | null = true;
 let sendingStatus: unknown = null;
+let pushTurnedOff: boolean = false;
+
+// Whether the server turned push off (GlobalConfig), as each test says.
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Utils/PushNotificationsTurnedOff",
+  () => {
+    return {
+      __esModule: true,
+      usePushNotificationsTurnedOff: (): boolean => {
+        return pushTurnedOff;
+      },
+    };
+  },
+);
+
+// A code is drawn by a library loaded later: here, what it would encode.
+jest.mock("../../../UI/Components/QR/QR", () => {
+  return {
+    __esModule: true,
+    default: (props: { text: string }) => {
+      return <span data-testid="qr-code" data-text={props.text} />;
+    },
+  };
+});
 
 jest.mock("../../../UI/Utils/ServerSending", () => {
   return {
@@ -442,6 +471,15 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
 });
 
 import OnCallGuidedSetup from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallGuidedSetup";
+import {
+  BrowserPushError,
+  BrowserPushProblem,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/BrowserPushRegistration";
+import {
+  MOBILE_APP_ANDROID_URL,
+  MOBILE_APP_IOS_URL,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/MobileAppStoreLinks";
+import Toast from "../../../UI/Utils/Toast";
 import { getGuidedSetupRunKey } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupProgress";
 import {
   ON_CALL_SETUP_COPY,
@@ -674,6 +712,13 @@ beforeEach(() => {
   });
   // Not read: the summary names how each person is reached.
   api["loadReachOrders"]!.mockResolvedValue(null);
+  // A browser that can take push, registered at the first ask.
+  api["getBrowserPushProblem"]!.mockReturnValue(null);
+  api["registerThisBrowser"]!.mockResolvedValue({
+    deviceId: "device-1",
+    alreadyRegistered: false,
+  });
+  pushTurnedOff = false;
   getResultMock.mockResolvedValue(result(OnCallTestPageStatus.Acknowledged));
 });
 
@@ -742,7 +787,7 @@ describe("a brand-new project", () => {
 });
 
 describe("how should we reach you", () => {
-  test("shows the verified email, and push not set up yet with where to set it up", async () => {
+  test("shows the verified email, and push not set up yet, set up right here", async () => {
     await renderSetup();
 
     expect(
@@ -751,10 +796,157 @@ describe("how should we reach you", () => {
     expect(
       screen.getByTestId("on-call-setup-reach-push-value"),
     ).toHaveTextContent("Not set up.");
-    expect(screen.getByTestId("on-call-setup-push-link")).toHaveAttribute(
-      "href",
-      expect.stringContaining("notification-methods"),
+    expect(screen.getByTestId("on-call-setup-push-options")).toHaveTextContent(
+      "Get pages on your phone with the OneUptime On-Call app, or in this browser.",
     );
+    expect(
+      screen.getByTestId("on-call-setup-use-this-browser"),
+    ).toHaveTextContent("Use this browser");
+    expect(screen.getByTestId("on-call-setup-get-the-app")).toHaveTextContent(
+      "Get the app",
+    );
+    // Not a trip to Notification Methods any more.
+    expect(screen.queryByTestId("on-call-setup-push-link")).toBeNull();
+  });
+
+  /*
+   * ISSUE #7149: push only linked to User Settings > Notification Methods.
+   * This browser is registered in the step, from the click, the way
+   * Notification Methods registers one; the app is a code to scan.
+   */
+  test("Use this browser registers it from the click, then reads again what reaches you (#7149)", async () => {
+    await renderSetup();
+
+    // Nothing is asked of the browser until the person clicks.
+    expect(api["registerThisBrowser"]).not.toHaveBeenCalled();
+
+    api["loadMyReach"]!.mockResolvedValue({
+      isReachable: true,
+      methods: [
+        EMAIL,
+        {
+          methodType: "Push",
+          maskedIdentifier: "Chrome on Windows",
+          isVerified: true,
+        },
+      ],
+    });
+    await press("on-call-setup-use-this-browser");
+
+    expect(api["registerThisBrowser"]).toHaveBeenCalledTimes(1);
+    expect(api["loadMyReach"]).toHaveBeenLastCalledWith(true);
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("on-call-setup-reach-push-value"),
+      ).toHaveTextContent("Chrome on Windows");
+    });
+    // Set up: nothing more to offer on the row.
+    expect(screen.queryByTestId("on-call-setup-use-this-browser")).toBeNull();
+    expect(
+      Toast.getToasts().some((toast: { title: string }) => {
+        return toast.title === "Browser Registered";
+      }),
+    ).toBe(true);
+    Toast.dismissAll();
+  });
+
+  test("a browser that blocks push says what to do, plainly, and nothing is kept (#7149)", async () => {
+    api["registerThisBrowser"]!.mockRejectedValue(
+      new BrowserPushError(BrowserPushProblem.PermissionBlocked),
+    );
+    await renderSetup();
+    await press("on-call-setup-use-this-browser");
+
+    expect(
+      screen.getByTestId("on-call-setup-browser-push-error"),
+    ).toHaveTextContent(
+      "Notifications are blocked for OneUptime in this browser. Click the icon at the left of the address bar, allow notifications for this site, and then register this browser again.",
+    );
+    expect(
+      screen.getByTestId("on-call-setup-reach-push-value"),
+    ).toHaveTextContent("Not set up.");
+    // The person may try again.
+    expect(
+      screen.getByTestId("on-call-setup-use-this-browser"),
+    ).toBeInTheDocument();
+  });
+
+  test("a server refusal is said in its words (#7149)", async () => {
+    api["registerThisBrowser"]!.mockRejectedValue(
+      new Error("Push notifications are turned off for this project."),
+    );
+    await renderSetup();
+    await press("on-call-setup-use-this-browser");
+
+    expect(
+      screen.getByTestId("on-call-setup-browser-push-error"),
+    ).toHaveTextContent("Push notifications are turned off for this project.");
+  });
+
+  test("a server with no push keys says so in place of Use this browser; the app is still offered (#7149)", async () => {
+    api["getBrowserPushProblem"]!.mockReturnValue(
+      BrowserPushProblem.NotConfigured,
+    );
+    await renderSetup();
+
+    expect(screen.queryByTestId("on-call-setup-use-this-browser")).toBeNull();
+    expect(
+      screen.getByTestId("on-call-setup-browser-push-problem"),
+    ).toHaveTextContent(
+      "Push notifications are not set up on this OneUptime server. An administrator needs to set the VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY environment variables.",
+    );
+    expect(screen.getByTestId("on-call-setup-get-the-app")).toBeInTheDocument();
+  });
+
+  test("a server that turned push off says so, with neither button (#7149)", async () => {
+    pushTurnedOff = true;
+    await renderSetup();
+
+    expect(
+      screen.getByTestId("on-call-setup-push-turned-off"),
+    ).toHaveTextContent("Push notifications are turned off on this server.");
+    expect(screen.queryByTestId("on-call-setup-use-this-browser")).toBeNull();
+    expect(screen.queryByTestId("on-call-setup-get-the-app")).toBeNull();
+  });
+
+  test("Get the app opens a code for each store and the address to sign in to, then Recheck (#7149)", async () => {
+    await renderSetup();
+
+    const button: HTMLElement = screen.getByTestId("on-call-setup-get-the-app");
+
+    expect(button).toHaveAttribute("aria-expanded", "false");
+
+    await press("on-call-setup-get-the-app");
+
+    expect(button).toHaveAttribute("aria-expanded", "true");
+
+    const codes: HTMLElement = screen.getByTestId("on-call-setup-app-codes");
+
+    expect(
+      within(codes)
+        .getAllByTestId("qr-code")
+        .map((code: HTMLElement): string | null => {
+          return code.getAttribute("data-text");
+        }),
+    ).toEqual([MOBILE_APP_IOS_URL, MOBILE_APP_ANDROID_URL]);
+    expect(
+      within(codes).getByTestId("on-call-setup-app-server-url"),
+    ).toHaveTextContent(/^https?:\/\//);
+    expect(
+      screen.getByText(
+        "Once the app is signed in on your phone, click Recheck.",
+      ),
+    ).toBeInTheDocument();
+
+    // Recheck reads what reaches the person again.
+    api["loadMyReach"]!.mockClear();
+    await press("on-call-setup-reach-recheck");
+
+    expect(api["loadMyReach"]).toHaveBeenCalledWith(true);
+
+    await press("on-call-setup-get-the-app");
+
+    expect(screen.queryByTestId("on-call-setup-app-codes")).toBeNull();
   });
 
   test("Cloud, channels off: an owner turns SMS and calls on there, after reading the balance", async () => {

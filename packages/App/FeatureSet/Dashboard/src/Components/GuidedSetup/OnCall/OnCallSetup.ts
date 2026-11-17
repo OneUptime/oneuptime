@@ -114,7 +114,10 @@ export const ON_CALL_SETUP_COPY: {
   phoneNone: string;
   pushNone: string;
   pushHelp: string;
-  pushLink: string;
+  useThisBrowser: string;
+  getTheApp: string;
+  appRecheckHint: string;
+  browserRegistered: string;
   phoneLabel: string;
   sendSmsCode: string;
   phoneError: string;
@@ -212,10 +215,21 @@ export const ON_CALL_SETUP_COPY: {
   emailNone: translationKey("No verified email address."),
   phoneNone: translationKey("No phone number yet."),
   pushNone: translationKey("Not set up."),
+  /*
+   * Push is set up in the step itself (#7149): this browser, registered from
+   * the person's click, or the app, from a code to scan. It linked to
+   * Notification Methods before.
+   */
   pushHelp: translationKey(
-    "Get the OneUptime app, or turn on notifications in this browser, from your notification methods.",
+    "Get pages on your phone with the OneUptime On-Call app, or in this browser.",
   ),
-  pushLink: translationKey("Set up the app or this browser"),
+  useThisBrowser: translationKey("Use this browser"),
+  getTheApp: translationKey("Get the app"),
+  appRecheckHint: translationKey(
+    "Once the app is signed in on your phone, click Recheck.",
+  ),
+  // As Notification Methods says it once a browser is registered.
+  browserRegistered: translationKey("Browser Registered"),
   phoneLabel: translationKey("Your phone number"),
   sendSmsCode: translationKey("Text me a code"),
   phoneError: translationKey(

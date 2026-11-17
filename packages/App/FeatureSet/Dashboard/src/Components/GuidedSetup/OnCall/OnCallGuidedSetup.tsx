@@ -68,6 +68,15 @@ import {
 import VerificationCodeModal from "../../NotificationMethods/VerificationCodeModal";
 import { VerificationCodeChannel } from "../../NotificationMethods/VerificationCodeChannels";
 import {
+  BROWSER_PUSH_PROBLEM_MESSAGES,
+  BrowserPushError,
+  BrowserPushProblem,
+} from "../../NotificationMethods/BrowserPushRegistration";
+import MobileAppCodes from "../../NotificationMethods/MobileAppCodes";
+import { PUSH_NOTIFICATIONS_TURNED_OFF_NOTICE } from "../../NotificationMethods/PushNotificationsTurnedOff";
+import { usePushNotificationsTurnedOff } from "../../../Utils/PushNotificationsTurnedOff";
+import Toast from "Common/UI/Utils/Toast";
+import {
   SetupReminderStatus,
   SetupReminderStatuses,
 } from "../../OnCallPolicy/EscalationRule/EscalationRuleReadiness";
@@ -258,6 +267,19 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     phone: string;
   } | null>(null);
   const [reachError, setReachError] = useState<string>("");
+  /*
+   * The app or this browser, set up in the step (#7149): whether the server
+   * turned push off, this browser being registered, what stopped it, and
+   * whether the app's codes are open.
+   */
+  const isPushTurnedOff: boolean = usePushNotificationsTurnedOff() === true;
+  const [isRegisteringBrowser, setIsRegisteringBrowser] =
+    useState<boolean>(false);
+  const [browserPushError, setBrowserPushError] = useState<{
+    problem: BrowserPushProblem | null;
+    message: string;
+  } | null>(null);
+  const [isAppCodesOpen, setIsAppCodesOpen] = useState<boolean>(false);
   const [showRecharge, setShowRecharge] = useState<boolean>(false);
   const [isRecharging, setIsRecharging] = useState<boolean>(false);
   const [rechargeError, setRechargeError] = useState<string>("");
@@ -923,6 +945,134 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       <></>
     );
 
+  /*
+   * "Use this browser" (#7149): registered straight from the click - the
+   * browser's permission prompt only opens for a page the person just used
+   * - the way Notification Methods registers one. Then whether a page
+   * reaches the person is read again, and the row lists the browser.
+   */
+  const registerThisBrowser: () => Promise<void> = async (): Promise<void> => {
+    setBrowserPushError(null);
+    setIsRegisteringBrowser(true);
+
+    try {
+      await OnCallSetupApi.registerThisBrowser();
+      Toast.success(
+        translator.translateText(ON_CALL_SETUP_COPY.browserRegistered) ||
+          ON_CALL_SETUP_COPY.browserRegistered,
+      );
+      await readReach(true);
+    } catch (err) {
+      setBrowserPushError(
+        err instanceof BrowserPushError
+          ? { problem: err.problem, message: "" }
+          : { problem: null, message: API.getFriendlyMessage(err) },
+      );
+    }
+
+    setIsRegisteringBrowser(false);
+  };
+
+  /*
+   * What stops this browser before anything is asked: a server without
+   * push keys, an insecure page, a browser without push (#7149). It is said
+   * in place of "Use this browser"; the app still reaches the person.
+   */
+  const browserPushProblem: BrowserPushProblem | null =
+    OnCallSetupApi.getBrowserPushProblem();
+
+  const pushOptions: ReactElement = (
+    <div className="space-y-2" data-testid="on-call-setup-push-options">
+      {isPushTurnedOff ? (
+        <p
+          className="text-sm text-amber-700"
+          data-testid="on-call-setup-push-turned-off"
+        >
+          {translator.translateText(PUSH_NOTIFICATIONS_TURNED_OFF_NOTICE)}
+        </p>
+      ) : (
+        <>
+          <p className="text-sm text-gray-500">
+            {translator.translateText(ON_CALL_SETUP_COPY.pushHelp)}
+          </p>
+          {browserPushProblem ? (
+            <p
+              className="text-sm text-amber-700"
+              data-testid="on-call-setup-browser-push-problem"
+              data-problem={browserPushProblem}
+            >
+              {translator.translateText(
+                BROWSER_PUSH_PROBLEM_MESSAGES[browserPushProblem],
+              )}
+            </p>
+          ) : (
+            <></>
+          )}
+          <div className={ACTIONS_CLASS_NAME}>
+            {browserPushProblem ? (
+              <></>
+            ) : (
+              <Button
+                title={ON_CALL_SETUP_COPY.useThisBrowser}
+                icon={IconProp.Bell}
+                buttonStyle={ButtonStyleType.NORMAL}
+                isLoading={isRegisteringBrowser}
+                dataTestId="on-call-setup-use-this-browser"
+                onClick={() => {
+                  void registerThisBrowser();
+                }}
+              />
+            )}
+            <Button
+              title={ON_CALL_SETUP_COPY.getTheApp}
+              icon={IconProp.DevicePhoneMobile}
+              buttonStyle={ButtonStyleType.NORMAL}
+              ariaExpanded={isAppCodesOpen}
+              ariaControls="on-call-setup-app-codes"
+              dataTestId="on-call-setup-get-the-app"
+              onClick={() => {
+                setIsAppCodesOpen(!isAppCodesOpen);
+              }}
+            />
+          </div>
+          {browserPushError ? (
+            <p
+              role="alert"
+              className="text-sm text-red-600"
+              data-testid="on-call-setup-browser-push-error"
+            >
+              {browserPushError.problem ? (
+                translator.translateText(
+                  BROWSER_PUSH_PROBLEM_MESSAGES[browserPushError.problem],
+                )
+              ) : (
+                <ErrorInSentence
+                  message={browserPushError.message}
+                  showWhereToLook={true}
+                />
+              )}
+            </p>
+          ) : (
+            <></>
+          )}
+          {isAppCodesOpen ? (
+            <div id="on-call-setup-app-codes" className="space-y-2">
+              <MobileAppCodes
+                dataTestId="on-call-setup-app-codes"
+                serverUrlDataTestId="on-call-setup-app-server-url"
+              />
+              <p className="text-sm text-gray-500">
+                {translator.translateText(ON_CALL_SETUP_COPY.appRecheckHint)}
+              </p>
+            </div>
+          ) : (
+            <></>
+          )}
+        </>
+      )}
+    </div>
+  );
+
   const reachRow: (data: {
     key: string;
     title: string;
@@ -1016,21 +1166,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             pushes.length > 0
               ? describeMethods(pushes)
               : translator.translateText(ON_CALL_SETUP_COPY.pushNone) || "",
-          children:
-            pushes.length > 0 ? undefined : (
-              <>
-                <p className="text-sm text-gray-500">
-                  {translator.translateText(ON_CALL_SETUP_COPY.pushHelp)}
-                </p>
-                <AppLink
-                  to={routeOf(PageMap.USER_SETTINGS_NOTIFICATION_METHODS)}
-                  className={linkClassName}
-                  dataTestId="on-call-setup-push-link"
-                >
-                  {translator.translateText(ON_CALL_SETUP_COPY.pushLink) || ""}
-                </AppLink>
-              </>
-            ),
+          children: pushes.length > 0 ? undefined : pushOptions,
         })}
       </dl>
       {reachError ? (
