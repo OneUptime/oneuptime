@@ -70,7 +70,7 @@ Hvert møde oprettes som den konto, du logger ind med, og som er vært for det. 
 
 En forbindelse, der er lavet ved at logge ind, har stadig de indstillinger, der bestemmer, hvem der venter: **Who can join** for Google Meet og **Who skips the lobby** for Microsoft Teams. Ændr dem med **Rediger** i forbindelsens række.
 
-En Zoom-forbindelse, der blev logget ind, før OneUptime læste transskriptioner af opkald, starter opkald som før, men kan ikke læse deres transskriptioner, før den logges ind igen: **Reconnect** på dens række beder Zoom om tilladelserne til transskriptioner.
+En Zoom-forbindelse, der blev logget ind, før OneUptime læste transskriptioner af opkald, kan ikke læse dem. Når OneUptimes Zoom-app er opdateret til at læse dem, holder Zoom op med at acceptere en sådan forbindelses login 90 dage senere, og den holder op med at starte opkald. Fra da af beder OneUptime dig om at logge den ind igen: **Reconnect** på dens række beder Zoom om tilladelserne til transskriptioner.
 
 En Microsoft Teams-forbindelse, der blev logget ind, mens **Optag og transskribér hændelsesopkald** var slået fra, starter opkald som før, uden optagelse. Når indstillingen er slået til, beder **Reconnect** på dens række også Microsoft om tilladelserne til kalender og transskriptioner.
 

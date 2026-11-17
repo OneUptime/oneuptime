@@ -178,6 +178,7 @@ const SOURCES: Record<string, string> = {
   videoCallMessages: "Common/Server/Utils/VideoCall/VideoCallMessages.ts",
   videoCallTokenStore:
     "Common/Server/Utils/VideoCall/OAuth/VideoCallOAuthTokenStore.ts",
+  zoomTranscriptReconnectNotice: `${DASHBOARD}/Components/VideoCall/ZoomTranscriptReconnectNotice.tsx`,
   videoCallKeepAliveJob:
     "App/FeatureSet/Workers/Jobs/VideoCall/KeepVideoCallSignInsAlive.ts",
   incidentPage: `${DASHBOARD}/Pages/Incidents/View/Index.tsx`,
@@ -2344,6 +2345,30 @@ describe("Video Calls, against the Dashboard and the worker", () => {
     );
     expect(markdown).toContain(
       "Every day the worker refreshes the sign-ins that are due, so it needs the same values as the app.",
+    );
+  });
+
+  /*
+   * Zoom expires a sign-in made before an app update that added scopes 90
+   * days after the update (#9269): the docs never say such a connection
+   * "starts calls as before" again, and say the 90 days the Video Calls
+   * page's notice says.
+   */
+  it("says a Zoom sign-in made before transcripts stops starting calls 90 days after the app's update, as the Video Calls page does", () => {
+    const markdown: string = englishPage(VIDEO_CALLS);
+    const oneClick: string = section(markdown, 2, "Connect in one click");
+
+    expect(readSource("zoomTranscriptReconnectNotice")).toContain(
+      "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.",
+    );
+    expect(oneClick).toContain(
+      "Once OneUptime's Zoom app is updated to read them, Zoom stops accepting such a connection's sign-in 90 days later, and it stops starting calls.",
+    );
+    expect(oneClick).toContain(
+      "From then on, OneUptime asks you to sign it in again: **Reconnect** on its row asks Zoom for the transcript permissions.",
+    );
+    expect(oneClick).not.toMatch(
+      /A Zoom connection[^.\n]*starts calls as before/,
     );
   });
 

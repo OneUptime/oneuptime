@@ -56536,5 +56536,13 @@
   "Use On-Call Policy instead": "대신 “온콜 정책” 사용",
   "Drop one CSV file at a time.": "CSV 파일은 한 번에 하나씩 놓으세요.",
   "Drop the CSV file to upload it": "CSV 파일을 놓아 업로드하세요",
-  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}}은(는) CSV 파일이 아닙니다. .csv로 끝나는 파일을 선택하거나 끌어다 놓으세요."
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}}은(는) CSV 파일이 아닙니다. .csv로 끝나는 파일을 선택하거나 끌어다 놓으세요.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "OneUptime의 Zoom 앱이 업데이트되고 90일이 지나면 Zoom이 이 연결들의 로그인을 더 이상 받아들이지 않으며, 이 연결들은 통화를 시작하지 못합니다.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "OneUptime의 Zoom 앱이 업데이트되고 90일이 지나면 Zoom이 이 연결의 로그인을 더 이상 받아들이지 않으며, 이 연결은 통화를 시작하지 못합니다.",
+  "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "연결마다 \"Reconnect\"를 클릭한 다음, Zoom이 요청하면 OneUptime이 녹화와 녹취록을 읽도록 허용하세요.",
+  "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.": "\"Reconnect\"를 클릭한 다음, Zoom이 요청하면 OneUptime이 녹화와 녹취록을 읽도록 허용하세요.",
+  "Reconnect these Zoom connections to keep starting calls": "통화를 계속 시작하려면 이 Zoom 연결들을 다시 연결하세요",
+  "Reconnect {{name}} to keep starting calls": "통화를 계속 시작하려면 {{name}}을(를) 다시 연결하세요",
+  "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "이 Zoom 연결들은 OneUptime이 통화 녹취록을 읽을 수 있기 전에 로그인했기 때문에 녹취록을 읽을 수 없습니다.",
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "이 Zoom 연결은 OneUptime이 통화 녹취록을 읽을 수 있기 전에 로그인했기 때문에 녹취록을 읽을 수 없습니다."
 }

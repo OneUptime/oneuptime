@@ -56536,5 +56536,13 @@
   "Use On-Call Policy instead": "Use On-Call Policy instead",
   "Drop one CSV file at a time.": "Drop one CSV file at a time.",
   "Drop the CSV file to upload it": "Drop the CSV file to upload it",
-  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv."
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.",
+  "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.",
+  "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.": "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.",
+  "Reconnect these Zoom connections to keep starting calls": "Reconnect these Zoom connections to keep starting calls",
+  "Reconnect {{name}} to keep starting calls": "Reconnect {{name}} to keep starting calls",
+  "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.",
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them."
 }

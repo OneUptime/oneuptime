@@ -56536,5 +56536,13 @@
   "Use On-Call Policy instead": "Bruk «Vaktpolicy» i stedet",
   "Drop one CSV file at a time.": "Slipp én CSV-fil om gangen.",
   "Drop the CSV file to upload it": "Slipp CSV-filen for å laste den opp",
-  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} er ikke en CSV-fil. Velg eller slipp en fil som slutter på .csv."
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} er ikke en CSV-fil. Velg eller slipp en fil som slutter på .csv.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "90 dager etter oppdateringen av OneUptimes Zoom-app slutter Zoom å godta innloggingene deres, og tilkoblingene slutter å starte samtaler.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "90 dager etter oppdateringen av OneUptimes Zoom-app slutter Zoom å godta innloggingen til denne tilkoblingen, og tilkoblingen slutter å starte samtaler.",
+  "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "Klikk på \"Reconnect\" for hver tilkobling, og la deretter OneUptime lese opptak og transkripsjoner når Zoom spør.",
+  "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.": "Klikk på \"Reconnect\", og la deretter OneUptime lese opptak og transkripsjoner når Zoom spør.",
+  "Reconnect these Zoom connections to keep starting calls": "Koble til disse Zoom-tilkoblingene på nytt for å fortsette å starte samtaler",
+  "Reconnect {{name}} to keep starting calls": "Koble til {{name}} på nytt for å fortsette å starte samtaler",
+  "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "Disse Zoom-tilkoblingene ble logget inn før OneUptime kunne lese samtaletranskripsjoner, så de kan ikke lese dem.",
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "Denne Zoom-tilkoblingen ble logget inn før OneUptime kunne lese samtaletranskripsjoner, så den kan ikke lese dem."
 }

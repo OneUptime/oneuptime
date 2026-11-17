@@ -1,10 +1,14 @@
 import VideoCallConnectionAPI, {
   TEST_MEETING_REQUEST,
+  ZOOM_TRANSCRIPT_RECONNECT_PATH,
 } from "../../../Server/API/VideoCallConnectionAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import VideoCallConnection from "../../../Models/DatabaseModels/VideoCallConnection";
 import VideoCallConnectionService from "../../../Server/Services/VideoCallConnectionService";
 import VideoCallMeetingFactory from "../../../Server/Utils/VideoCall/VideoCallMeetingFactory";
+import ZoomTranscriptReconnect from "../../../Server/Utils/VideoCall/OAuth/ZoomTranscriptReconnect";
+import fs from "fs";
+import path from "path";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import Response from "../../../Server/Utils/Response";
 import {
@@ -31,6 +35,7 @@ type Handler = (
   next: NextFunction,
 ) => Promise<void>;
 const recordedRoutes: Array<{ uri: string; handlers: Array<Handler> }> = [];
+const recordedGetRoutes: Array<{ uri: string; handlers: Array<Handler> }> = [];
 jest.mock("../../../Server/Utils/Express", () => {
   return {
     getRouter: () => {
@@ -38,7 +43,9 @@ jest.mock("../../../Server/Utils/Express", () => {
         post: (uri: string, ...handlers: Array<Handler>): void => {
           recordedRoutes.push({ uri, handlers });
         },
-        get: jest.fn(),
+        get: (uri: string, ...handlers: Array<Handler>): void => {
+          recordedGetRoutes.push({ uri, handlers });
+        },
         put: jest.fn(),
         delete: jest.fn(),
       };
@@ -329,5 +336,126 @@ describe("who may test", () => {
 
     expect(next).toHaveBeenCalledWith(expect.any(Error));
     expect(VideoCallConnectionService.findOneBy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * GET /video-call-connection/zoom-transcript-reconnect: the project's Zoom
+ * connections the Video Calls page asks to reconnect for call transcripts
+ * (#9269). The server decides (ZoomTranscriptReconnect); the route checks
+ * who may know, and sends each connection's name and account, never its
+ * sign-in.
+ */
+describe("the Zoom connections to reconnect", () => {
+  const ROUTE: string = `/video-call-connection${ZOOM_TRANSCRIPT_RECONNECT_PATH}`;
+
+  function reconnectHandler(): Handler {
+    const found: { uri: string; handlers: Array<Handler> } | undefined =
+      recordedGetRoutes.find((item: { uri: string }) => {
+        return item.uri === ROUTE;
+      });
+
+    expect(found).toBeDefined();
+
+    return found!.handlers.slice(-1)[0]!;
+  }
+
+  beforeEach(() => {
+    jest
+      .spyOn(ZoomTranscriptReconnect, "getConnectionsToReconnect")
+      .mockResolvedValue([
+        {
+          id: CONNECTION,
+          name: "Zoom",
+          connectedAccount: "incidents@acme.com",
+        },
+      ]);
+  });
+
+  test("is the route the Dashboard asks, behind the signed-in user", () => {
+    const found: { uri: string; handlers: Array<Handler> } | undefined =
+      recordedGetRoutes.find((item: { uri: string }) => {
+        return item.uri === ROUTE;
+      });
+
+    expect(found!.handlers.slice(0, 2)).toEqual([
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+    ]);
+    expect(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/VideoCallApi.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain(`"${ROUTE}"`);
+  });
+
+  test("answers with each connection's id, name and account for the caller's project, and nothing of its sign-in", async () => {
+    const req: ExpressRequest = {} as ExpressRequest;
+
+    await reconnectHandler()(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(
+      ZoomTranscriptReconnect.getConnectionsToReconnect,
+    ).toHaveBeenCalledWith(PROJECT);
+    expect(Response.sendJsonObjectResponse).toHaveBeenCalledWith(req, res, {
+      connections: [
+        {
+          _id: CONNECTION.toString(),
+          name: "Zoom",
+          connectedAccount: "incidents@acme.com",
+        },
+      ],
+    });
+  });
+
+  test.each([
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.SettingsAdmin,
+    Permission.SettingsMember,
+    Permission.SettingsViewer,
+    Permission.ReadVideoCallConnection,
+  ])(
+    "answers %s, who may read how connections are set up",
+    async (permission: Permission) => {
+      setPermission(permission);
+
+      await reconnectHandler()({} as ExpressRequest, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(Response.sendJsonObjectResponse).toHaveBeenCalled();
+    },
+  );
+
+  test.each([
+    Permission.ProjectMember,
+    Permission.Viewer,
+    Permission.IncidentMember,
+  ])("refuses %s before reading anything", async (permission: Permission) => {
+    setPermission(permission);
+
+    await reconnectHandler()({} as ExpressRequest, res, next);
+
+    expect(next).toHaveBeenCalledWith(expect.any(Error));
+    expect(
+      ZoomTranscriptReconnect.getConnectionsToReconnect,
+    ).not.toHaveBeenCalled();
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+
+  test("refuses a request with no project", async () => {
+    props.tenantId = undefined;
+
+    await reconnectHandler()({} as ExpressRequest, res, next);
+
+    expect(next).toHaveBeenCalledWith(expect.any(Error));
+    expect(
+      ZoomTranscriptReconnect.getConnectionsToReconnect,
+    ).not.toHaveBeenCalled();
   });
 });
