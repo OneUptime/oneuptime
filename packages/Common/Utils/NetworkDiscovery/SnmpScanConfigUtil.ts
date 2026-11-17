@@ -766,10 +766,11 @@ export class SnmpScanConfigUtil {
    * have been given under the old single-config UI, and because the list is
    * ordered by the operator's own preference.
    *
-   * Every key is always present, with null for "unset": these values are also
-   * what the probe-claim endpoint compares its optimistic-concurrency
-   * `expectedData` against, and a key omitted for being empty would read as
-   * "unchanged" instead of "cleared".
+   * Every key is always present, with null for "unset": the values that are
+   * not credentials are also what the probe-claim endpoint compares its
+   * optimistic-concurrency `expectedData` against (the credentials, kept
+   * encrypted, are held by the row's version), and a key omitted for being
+   * empty would read as "unchanged" instead of "cleared".
    */
   public static getMirroredLegacyColumns(
     configs: Array<DiscoveryScanSnmpConfig>,
