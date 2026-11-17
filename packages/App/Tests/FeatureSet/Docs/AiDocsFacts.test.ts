@@ -1457,8 +1457,9 @@ describe("Code", () => {
     expect(ask).toContain(
       `and there you can tick the requests that failed or were stopped and try them all again with ${bold("Retry selected")}.`,
     );
-    expect(dashboardSource("Components/Code/CodeTaskList.tsx")).toContain(
-      'translator.translateText("Retry selected")',
+    // The shared Button translates its title (302656298df).
+    expect(dashboardSource("Components/Code/CodeTaskList.tsx")).toMatch(
+      /<Button\s+title="Retry selected"/,
     );
     expect(dashboardSource("Pages/Code/Repository/Tasks.tsx")).toContain(
       "canRetry={repository.canAsk && !repository.blocker}",

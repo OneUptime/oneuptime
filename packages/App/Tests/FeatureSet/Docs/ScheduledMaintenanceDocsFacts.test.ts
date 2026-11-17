@@ -53,6 +53,7 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/CreateFromRecord/CreateFromRecord";
 import { getTemplateNextEventAt } from "../../../FeatureSet/Dashboard/src/Utils/ScheduledMaintenanceTemplateSchedule";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import { getStatusPageHistoryInDays } from "Common/Utils/StatusPage/HistoryWindow";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import ScheduledMaintenanceInternalNote from "Common/Models/DatabaseModels/ScheduledMaintenanceInternalNote";
@@ -1093,9 +1094,12 @@ describe("the overview's troubleshooting", () => {
   });
 
   it("drops an event from a status page after the page's history window, 14 days unless changed", () => {
+    // The server reads the window through one helper (#9182), unset is 14.
     expect(readCommonSource("Server/API/StatusPageAPI.ts")).toContain(
-      "statusPage.showScheduledEventHistoryInDays || 14,",
+      "getStatusPageHistoryInDays(\n      statusPage.showScheduledEventHistoryInDays,",
     );
+    expect(getStatusPageHistoryInDays(undefined)).toBe(14);
+    expect(getStatusPageHistoryInDays(null)).toBe(14);
     expect(
       new StatusPage().getTableColumnMetadata("showScheduledEventHistoryInDays")
         .defaultValue,
