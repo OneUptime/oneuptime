@@ -414,12 +414,12 @@ export default function SettingsScreen(): React.JSX.Element {
 
   const confirmLogout: () => void = (): void => {
     Alert.alert(
-      "Log out of OneUptime?",
+      "Sign out of OneUptime?",
       "You will need to sign in again to access your workspace.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Log Out",
+          text: "Sign Out",
           style: "destructive",
           onPress: () => {
             void logout();
@@ -590,12 +590,12 @@ export default function SettingsScreen(): React.JSX.Element {
   const security: React.JSX.Element | null = biometric.isAvailable ? (
     <ListGroup title="Security" testID="settings-section-security">
       <ListItem
-        title="Biometrics Login"
+        title="Biometric Unlock"
         subtitle="Require biometrics to unlock the app"
         icon="finger-print-outline"
         trailing={
           <Switch
-            accessibilityLabel="Biometrics Login"
+            accessibilityLabel="Biometric Unlock"
             accessibilityHint="Require your fingerprint, face, or device passcode when opening OneUptime."
             value={biometric.isEnabled}
             onValueChange={handleBiometricToggle}
@@ -623,7 +623,7 @@ export default function SettingsScreen(): React.JSX.Element {
   const account: React.JSX.Element = (
     <ListGroup title="Account" testID="settings-section-account">
       <ListItem
-        title="Log Out"
+        title="Sign Out"
         subtitle="Sign out of this device."
         icon="log-out-outline"
         onPress={confirmLogout}

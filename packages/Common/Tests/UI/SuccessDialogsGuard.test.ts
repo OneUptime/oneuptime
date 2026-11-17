@@ -330,9 +330,14 @@ const NOTICES: Record<string, NoticeEntry> = {
     why: WHY.details,
   },
   // The SCIM URLs, what failed, and the new bearer token.
-  "ee/Dashboard/Identity/Pages/Settings/SCIM.tsx": { count: 3, why: WHY.copy },
+  /*
+   * The SCIM URLs to copy into the identity provider, and why a reset
+   * failed. A new bearer token is shown once by ShownOnceSecretModal
+   * (#9012), not by a dialog of the page's own.
+   */
+  "ee/Dashboard/Identity/Pages/Settings/SCIM.tsx": { count: 2, why: WHY.copy },
   "ee/Dashboard/Identity/Pages/StatusPages/SCIM.tsx": {
-    count: 3,
+    count: 2,
     why: WHY.copy,
   },
 };

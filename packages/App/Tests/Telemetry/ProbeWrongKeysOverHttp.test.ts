@@ -134,7 +134,8 @@ function probeTable(query: JSONObject): JSONObject | null {
     return null;
   }
 
-  return { _id: id };
+  // The probe, with its key as a read decrypts it (#9012).
+  return { _id: id, key: PROBES[id]! };
 }
 
 interface RunningApp {
@@ -172,7 +173,7 @@ beforeAll(async () => {
         return null;
       }
 
-      const probe: AnyModule = { _id: row["_id"] };
+      const probe: AnyModule = { _id: row["_id"], key: row["key"] };
       probe.id = new ObjectIDModule.default(row["_id"] as string);
       return probe;
     });

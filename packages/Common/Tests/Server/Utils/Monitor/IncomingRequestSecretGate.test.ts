@@ -117,7 +117,8 @@ let policy: IncomingRequestSecretPolicyValue;
 let getMonitor: SpyInstance<typeof MonitorSecretKeyCache.getMonitor>;
 let setMonitor: SpyInstance<typeof MonitorSecretKeyCache.setMonitor>;
 let isTrackedSpy: SpyInstance<typeof IncomingRequestReceivedAtStore.isTracked>;
-let findOneBy: SpyInstance<typeof MonitorService.findOneBy>;
+// The monitor's lookup by its key: by the key's hash, as it is kept encrypted (#9012).
+let findOneBy: SpyInstance<typeof MonitorService.findOneByPresentedKey>;
 let getPolicy: SpyInstance<typeof IncomingRequestSecretPolicy.getPolicy>;
 let recordUse: SpyInstance<typeof IncomingRequestSecretPolicy.recordUse>;
 let recordActivity: SpyInstance<typeof IncomingRequestSecretActivity.record>;
@@ -159,7 +160,7 @@ beforeEach(() => {
     });
 
   findOneBy = jest
-    .spyOn(MonitorService, "findOneBy")
+    .spyOn(MonitorService, "findOneByPresentedKey")
     .mockImplementation(async () => {
       return lookedUpMonitor;
     });
@@ -286,13 +287,8 @@ describe("decideAtEdge", () => {
 
     expect(findOneBy).toHaveBeenCalledTimes(1);
     expect(findOneBy.mock.calls[0]![0].props).toEqual({ isRoot: true });
-    expect(
-      (
-        findOneBy.mock.calls[0]![0].query as {
-          incomingRequestSecretKey: ObjectID;
-        }
-      ).incomingRequestSecretKey.toString(),
-    ).toBe(SECRET_KEY);
+    expect(findOneBy.mock.calls[0]![0].column).toBe("incomingRequestSecretKey");
+    expect(String(findOneBy.mock.calls[0]![0].presentedKey)).toBe(SECRET_KEY);
 
     expect(setMonitor).toHaveBeenCalledTimes(1);
     expect(setMonitor.mock.calls[0]![0].monitor.projectId.toString()).toBe(

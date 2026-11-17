@@ -37,7 +37,7 @@
     "announcements": "Meddelanden",
     "scheduledEvents": "Schemalagt underhåll",
     "subscribe": "Prenumerera",
-    "logout": "Logga ut"
+    "signOut": "Logga ut"
   },
   "overview": {
     "uptimeSuffix": "% drifttid",
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "Slutfört under de senaste {{count}} dagarna",
   "Completed in the Last {{count}} Days_one": "Slutfört under det senaste dygnet",
   "None is planned, and none took place in the last {{count}} days.": "Inget är planerat, och inget har ägt rum under de senaste {{count}} dagarna.",
-  "None is planned, and none took place in the last {{count}} days._one": "Inget är planerat, och inget har ägt rum under det senaste dygnet."
+  "None is planned, and none took place in the last {{count}} days._one": "Inget är planerat, och inget har ägt rum under det senaste dygnet.",
+  "serverMessages": {
+    "signInToView": "Du har inte åtkomst till den här statussidan. Logga in för att visa den.",
+    "sessionExpired": "Sessionen har gått ut. Logga in igen.",
+    "signedOut": "Du är utloggad. Logga in igen.",
+    "magicLinkTurnedOff": "Inloggningslänkar är avstängda för den här statussidan. Logga in med din e-postadress och ditt lösenord."
+  }
 }

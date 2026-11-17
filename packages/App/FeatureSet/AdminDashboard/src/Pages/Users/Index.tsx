@@ -451,9 +451,9 @@ const Users: FunctionComponent = (): ReactElement => {
           isViewable={true}
           cardProps={{
             title: t("pages.users.cardTitle"),
-            description: t("pages.users.cardDescription"),
+            description: t("pages.users.listDescription"),
           }}
-          noItemsMessage={t("pages.users.noItems")}
+          noItemsMessage={t("pages.users.emptyMessage")}
           searchableFields={["name", "email"]}
           bulkActions={{
             buttons: [

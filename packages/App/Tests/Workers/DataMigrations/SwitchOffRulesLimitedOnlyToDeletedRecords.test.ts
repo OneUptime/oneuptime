@@ -74,7 +74,11 @@ describe("SwitchOffRulesLimitedOnlyToDeletedRecords", () => {
       }),
     ).toHaveLength(1);
     expect(names[names.length - 1]).toBe("AddAuditLogMcpClientColumns");
-    expect(names.indexOf(MIGRATION_NAME)).toBe(names.length - 2);
+    // Before the last slot; a migration added since may sit between them.
+    expect(names.indexOf(MIGRATION_NAME)).toBeLessThan(names.length - 1);
+    expect(names.indexOf(MIGRATION_NAME)).toBeGreaterThan(
+      names.indexOf("EncryptProjectCredentials"),
+    );
   });
 
   test("runs the repair once, and says how many rules it switched off", async () => {

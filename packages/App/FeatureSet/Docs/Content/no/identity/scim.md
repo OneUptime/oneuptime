@@ -41,7 +41,7 @@ Med prosjekt-SCIM styrer identitetsleverandører teammedlemmene i OneUptime-pros
 
 ### Sette opp prosjekt-SCIM
 
-Bare en Prosjekteier kan legge til eller endre SCIM-tilkoblingen til et prosjekt, eller se eller tilbakestille bearer-tokenet: via SCIM kan identitetsleverandøren din legge personer til i hvilket som helst team i prosjektet.
+Bare en Prosjekteier kan legge til eller endre SCIM-tilkoblingen til et prosjekt, eller tilbakestille bearer-tokenet: via SCIM kan identitetsleverandøren din legge personer til i hvilket som helst team i prosjektet. Ingen kan lese et bearer-token igjen, heller ikke en Prosjekteier: OneUptime lagrer bare en hash av det.
 :::steps
 1. **Gå til prosjektinnstillingene**
 
@@ -52,16 +52,16 @@ Bare en Prosjekteier kan legge til eller endre SCIM-tilkoblingen til et prosjekt
 
    - Skriv inn et **Navn**. **Standardteam** starter med medlemsteamet i prosjektet: nye brukere legges til i disse teamene
    - Under **Flere felt** er **Automatisk klargjøring av brukere** (legg til brukere når de tildeles i IdP-en din) og **Automatisk avvikling av brukere** (fjern brukere når tildelingen deres fjernes i IdP-en din) slått på, og **Aktiver push-grupper** er slått av. Endre dem der hvis du trenger det
-   - Lagre. Dialogen med **SCIM-basis-URL** og **Bearer-token** for IdP-konfigurasjonen din åpnes med en gang
+   - Lagre. OneUptime viser tilkoblingens **Bearer-token** én gang: kopier det før du klikker på **Ferdig**, for OneUptime lagrer bare en hash av det, og ingen side viser det igjen. Deretter åpnes dialogen med **SCIM-basis-URL** for IdP-konfigurasjonen din
 
 3. **Konfigurer identitetsleverandøren din**
 
    - Bruk **SCIM-basis-URL** fra dialogen. På OneUptime Cloud er den `https://oneuptime.com/identity/scim/v2/<scim-id>`; en selvhostet installasjon viser sin egen vert
-   - Sett opp autentisering med bearer-token med **Bearer-token** fra dialogen. Ber identitetsleverandøren din om OAuth 2.0-klientlegitimasjon i stedet, bruker du [OAuth 2.0-klientlegitimasjonen](#oauth-20-klientlegitimasjon) fra samme dialog
+   - Sett opp autentisering med bearer-token med **Bearer-token** du kopierte. Ber identitetsleverandøren din om OAuth 2.0-klientlegitimasjon i stedet, bruker du [OAuth 2.0-klientlegitimasjonen](#oauth-20-klientlegitimasjon) fra dialogen med **SCIM-basis-URL**
    - Tilordne brukerattributtene (e-post er påkrevd). [Sett opp identitetsleverandøren din](#sett-opp-identitetsleverandøren-din) har detaljene for Microsoft Entra ID og Okta
 :::
 
-For å se URL-ene igjen velger du **Vis SCIM-URL-er** i raden for tilkoblingen. **Tilbakestill bærertoken** erstatter tokenet; oppdater identitetsleverandøren din med det nye.
+For å se URL-ene igjen velger du **Vis SCIM-URL-er** i raden for tilkoblingen. Bearer-tokenet vises ikke igjen: hvis du ikke har det lenger, eller det har lekket, lager **Tilbakestill bærertoken** et nytt, som vises én gang på samme måte, og det gamle slutter å virke med en gang. Oppdater identitetsleverandøren din med det nye.
 
 ### Slik klargjøres en prosjektbruker
 
@@ -105,16 +105,16 @@ Med SCIM for statussider klargjør identitetsleverandører private brukere av st
 2. **Konfigurer SCIM-innstillingene**
 
    - Skriv inn et **Navn**. Under **Flere felt** er **Automatisk klargjøring av brukere** (legg til private brukere når de tildeles i IdP-en din) og **Automatisk avvikling av brukere** (slett private brukere når tildelingen deres fjernes i IdP-en din) slått på. Endre dem der hvis du trenger det
-   - Lagre. Dialogen med **SCIM-basis-URL** og **Bearer-token** for IdP-konfigurasjonen din åpnes med en gang
+   - Lagre. OneUptime viser tilkoblingens **Bearer-token** én gang: kopier det før du klikker på **Ferdig**, for OneUptime lagrer bare en hash av det, og ingen side viser det igjen. Deretter åpnes dialogen med **SCIM-basis-URL** for IdP-konfigurasjonen din
 
 3. **Konfigurer identitetsleverandøren din**
 
    - Bruk **SCIM-basis-URL** fra dialogen. På OneUptime Cloud er den `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>`
-   - Sett opp autentisering med bearer-token med tokenet som vises, eller bruk [OAuth 2.0-klientlegitimasjonen](#oauth-20-klientlegitimasjon) fra samme dialog
+   - Sett opp autentisering med bearer-token med **Bearer-token** du kopierte, eller bruk [OAuth 2.0-klientlegitimasjonen](#oauth-20-klientlegitimasjon) fra dialogen med **SCIM-basis-URL**
    - Tilordne brukerattributtene (e-post er påkrevd)
 :::
 
-For å se URL-ene igjen velger du **Vis SCIM-endepunkt-URL-er** i raden for tilkoblingen.
+For å se URL-ene igjen velger du **Vis SCIM-endepunkt-URL-er** i raden for tilkoblingen. Hvis du ikke har bearer-tokenet lenger, lager **Tilbakestill bærertoken** et nytt, som vises én gang.
 
 SCIM for statussider støtter bare brukere. Grupper og klargjøring av grupper støttes ikke.
 
@@ -159,7 +159,7 @@ OneUptime-appen i Microsoft Entra-applikasjonsgalleriet er beregnet på single s
    - **Automatisk klargjøring av brukere** og **Automatisk avvikling av brukere**: slått på, under **Flere felt**
    - **Aktiver push-grupper**: under **Flere felt**; slå det på hvis du vil styre teammedlemskap via grupper i Entra ID
 6. Lagre konfigurasjonen
-7. Kopier **SCIM-basis-URL** og **Bearer-token** fra dialogen som åpnes — du trenger dem i Entra ID
+7. Kopier **Bearer-token** som OneUptime viser én gang, og deretter **SCIM-basis-URL** fra dialogen som åpnes etterpå — du trenger dem i Entra ID
 
 #### Opprett en bedriftsapplikasjon i Entra ID
 
@@ -237,7 +237,7 @@ Finnes OneUptime i Okta Integration Network, legger du til appen derfra på OneU
    - **Automatisk klargjøring av brukere** og **Automatisk avvikling av brukere**: slått på, under **Flere felt**
    - **Aktiver push-grupper**: under **Flere felt**; slå det på hvis du vil styre teammedlemskap via grupper i Okta
 6. Lagre konfigurasjonen
-7. Kopier **SCIM-basis-URL** og **Bearer-token** fra dialogen som åpnes — du trenger dem i Okta
+7. Kopier **Bearer-token** som OneUptime viser én gang, og deretter **SCIM-basis-URL** fra dialogen som åpnes etterpå — du trenger dem i Okta
 
 #### Opprett eller åpne Okta-applikasjonen
 
@@ -394,7 +394,7 @@ På OneUptime Cloud fungerer SCIM-klargjøring bare fullt ut så lenge prosjekte
 
 Ingenting slettes. Oppgrader til **Scale**, så fungerer tilkoblingene fullt ut igjen slik de er, med det samme bearer-tokenet og ingenting å sette opp på nytt i identitetsleverandøren din; en planendring trer i kraft innen ett minutt. Identitetsleverandører fortsetter å kalle etter sin egen tidsplan: Okta viser avvisningene blant klargjøringsfeilene sine, og Entra ID viser dem i klargjøringsloggene sine og kan sette en jobb som stadig mislykkes i karantene, noe som senker synkroniseringene — også fjerninger — til omtrent én om dagen. Start klargjøringen på nytt der etter oppgraderingen, slik at personene som er lagt til i mellomtiden, blir klargjort.
 
-Under **Scale** viser **Prosjektinnstillinger** > **Sikkerhet** > **SCIM** og siden **SCIM** for en statusside tilkoblingene under planens oppgraderingstilbud (**SCIM-tilkoblinger som fortsatt er satt opp**) og sier at de bare fjerner personer. Slett en tilkobling for å fjerne den. Å legge til en tilkobling, endre en eller erstatte bearer-tokenet krever **Scale**. Listen viser ikke bearer-tokener, og bare Prosjekteiere kan lese et token, på alle planer.
+Under **Scale** viser **Prosjektinnstillinger** > **Sikkerhet** > **SCIM** og siden **SCIM** for en statusside tilkoblingene under planens oppgraderingstilbud (**SCIM-tilkoblinger som fortsatt er satt opp**) og sier at de bare fjerner personer. Slett en tilkobling for å fjerne den. Å legge til en tilkobling, endre en eller erstatte bearer-tokenet krever **Scale**. Listen viser ikke bearer-tokener: OneUptime lagrer bare en hash av hvert, på alle planer.
 
 ## Feilsøking
 
@@ -435,6 +435,10 @@ Fjerning kan bes om med en DELETE-forespørsel eller ved å sette `active` til `
 
 :::details Kan jeg bruke SCIM uten SSO?
 Ja, SCIM og SSO er uavhengige funksjoner. Du kan bruke SCIM til å klargjøre brukere og la dem logge inn med OneUptime-passordet sitt eller en annen autentiseringsmetode.
+:::
+
+:::details Hvor kan jeg se bearer-tokenet til en tilkobling igjen?
+Ingen steder: OneUptime lagrer bare en hash av det, så verken dashbordet eller API-et kan vise det igjen, verken til en Prosjekteier eller noen andre. Det vises én gang, når tilkoblingen legges til eller tokenet tilbakestilles. Hvis du ikke har det lenger, velger du **Tilbakestill bærertoken**: det nye tokenet vises én gang, og det gamle slutter å virke med en gang, så gi identitetsleverandøren din det nye. Via API-et inneholder svaret på opprettelsen tokenet én gang, en skriving av `bearerToken` erstatter det, og ingen lesing returnerer det.
 :::
 
 :::details Hvordan håndterer jeg brukere som allerede finnes i OneUptime?

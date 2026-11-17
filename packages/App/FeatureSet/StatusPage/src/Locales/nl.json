@@ -37,7 +37,7 @@
     "announcements": "Aankondigingen",
     "scheduledEvents": "Gepland onderhoud",
     "subscribe": "Abonneren",
-    "logout": "Uitloggen"
+    "signOut": "Afmelden"
   },
   "overview": {
     "uptimeSuffix": "% uptime",
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "Voltooid in de afgelopen {{count}} dagen",
   "Completed in the Last {{count}} Days_one": "Voltooid in de afgelopen dag",
   "None is planned, and none took place in the last {{count}} days.": "Er is niets gepland, en er vond niets plaats in de afgelopen {{count}} dagen.",
-  "None is planned, and none took place in the last {{count}} days._one": "Er is niets gepland, en er vond niets plaats in de afgelopen dag."
+  "None is planned, and none took place in the last {{count}} days._one": "Er is niets gepland, en er vond niets plaats in de afgelopen dag.",
+  "serverMessages": {
+    "signInToView": "Je hebt geen toegang tot deze statuspagina. Meld je aan om hem te bekijken.",
+    "sessionExpired": "Sessie verlopen. Meld je opnieuw aan.",
+    "signedOut": "Je bent afgemeld. Meld je opnieuw aan.",
+    "magicLinkTurnedOff": "Aanmeldlinks staan uit voor deze statuspagina. Meld je aan met je e-mailadres en wachtwoord."
+  }
 }

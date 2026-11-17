@@ -64,7 +64,7 @@
     "apiKey": "API-nyckel",
     "more": "Mer",
     "sendEmail": "Skicka e-post",
-    "logout": "Logga ut",
+    "signOut": "Logga ut",
     "telemetryUsage": "Telemetrianvändning",
     "ingestionBudgets": "Intagningsbudgetar",
     "products": "Produkter"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "Lämna admin",
-    "logOut": "Logga ut"
+    "signOut": "Logga ut"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -142,8 +142,8 @@
     "users": {
       "title": "Användare",
       "cardTitle": "Användare",
-      "cardDescription": "Här är en lista över användare i OneUptime.",
-      "noItems": "Inga användare hittades.",
+      "listDescription": "Alla med ett konto på den här servern. Öppna en användare för att hantera deras projekt, inloggning och administratörsåtkomst.",
+      "emptyMessage": "Inga användare ännu.",
       "bulkAddToProject": "Lägg till i projekt",
       "bulkAddToProjectTitle": "Lägg till användare i projekt",
       "bulkAddToProjectDescription": "Välj ett projekt och ett av dess team. De {{userCount}} valda användarna bjuds in till teamet.",
@@ -204,7 +204,6 @@
     "userView": {
       "title": "Användare",
       "cardTitle": "Användare",
-      "cardDescription": "Användardetaljer",
       "editButton": "Redigera användare",
       "masterAdminCardTitle": "Master-admin-åtkomst",
       "masterAdminCardDescription": "Bevilja eller återkalla master-admin-åtkomst för denna användare. Master-admins kan hantera alla projekt och arbetsytor.",
@@ -305,13 +304,12 @@
     "projects": {
       "title": "Projekt",
       "cardTitle": "Projekt",
-      "cardDescription": "Här är en lista över projekt i OneUptime.",
-      "noItems": "Inga projekt hittades."
+      "listDescription": "Alla projekt på den här servern. Öppna ett för att hantera dess användare, team och inställningar.",
+      "emptyMessage": "Inga projekt ännu."
     },
     "projectView": {
       "title": "Projekt",
       "cardTitle": "Projekt",
-      "cardDescription": "Projektdetaljer",
       "editButton": "Redigera projekt",
       "dataResidencyCardTitle": "Datalagringsplats",
       "dataResidencyCardDescription": "Var det här projektets data lagras. När den är angiven visas den för projektets användare i deras projektinställningar.",
@@ -453,8 +451,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "Användare",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "Personer som hör till det här projektet. Deras team avgör vad var och en kan göra.",
+      "emptyMessage": "Inga användare i det här projektet ännu.",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "Bjud in användare",
       "inviteUserTitle": "Bjud in ny användare",
@@ -473,19 +471,18 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Team",
-      "cardDescription": "Här är en lista över alla team i det här projektet.",
-      "noItems": "No teams found in this project."
+      "listDescription": "Team avgör vad deras medlemmar kan göra i det här projektet. Skapa ett för att ge en grupp personer samma åtkomst.",
+      "emptyMessage": "Inga team i det här projektet ännu."
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "Teamdetaljer",
-      "cardDescription": "Details about this team.",
       "editButton": "Redigera team",
       "membersCardTitle": "Team Medlemmar",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "Logga ut"
     },
     "sendEmail": {
@@ -626,13 +623,13 @@
       },
       "probes": {
         "bannerTitle": "Behöver du hjälp med att konfigurera globala sonder?",
-        "bannerDescription": "Här är en guide som hjälper dig att komma igång",
+        "bannerGuide": "Följ guiden för att köra en sond på din egen server och ansluta den här.",
         "cardTitle": "Globala sonder",
         "cardDescription": "Globala sonder hjälper dig att övervaka externa resurser från olika platser runt om i världen.",
-        "noItems": "Inga sonder hittades.",
+        "emptyMessage": "Inga globala sonder ännu.",
         "showIdKey": "Visa ID och nyckel",
         "keyModalTitle": "Sondnyckel",
-        "keyModalDescription": "Här är din sondnyckel. Håll den hemlig.",
+        "keyModalSecret": "Din sond ansluter till OneUptime med detta ID och denna nyckel. Håll nyckeln hemlig.",
         "probeIdLabel": "Sond-ID:",
         "probeKeyLabel": "Sondnyckel:"
       },
@@ -727,7 +724,6 @@
   "Projects": "Projekt",
   "Project": "Projekt",
   "User": "Användare",
-  "Logout": "Logga ut",
   "Save": "Spara",
   "Cancel": "Avbryt",
   "Submit": "Skicka",

@@ -64,7 +64,7 @@
     "apiKey": "API-ключ",
     "more": "Ещё",
     "sendEmail": "Отправить email",
-    "logout": "Выйти",
+    "signOut": "Выйти",
     "telemetryUsage": "Использование телеметрии",
     "ingestionBudgets": "Бюджеты приема",
     "products": "Продукты"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "Выйти из админа",
-    "logOut": "Выйти"
+    "signOut": "Выйти"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -142,8 +142,8 @@
     "users": {
       "title": "Пользователи",
       "cardTitle": "Пользователи",
-      "cardDescription": "Вот список пользователей в OneUptime.",
-      "noItems": "Пользователи не найдены.",
+      "listDescription": "Все, у кого есть учётная запись на этом сервере. Откройте пользователя, чтобы управлять его проектами, входом и правами администратора.",
+      "emptyMessage": "Пользователей пока нет.",
       "bulkAddToProject": "Добавить в проект",
       "bulkAddToProjectTitle": "Добавить пользователей в проект",
       "bulkAddToProjectDescription": "Выберите проект и одну из его команд. Выбранные пользователи ({{userCount}}) будут приглашены в эту команду.",
@@ -204,7 +204,6 @@
     "userView": {
       "title": "Пользователь",
       "cardTitle": "Пользователь",
-      "cardDescription": "Сведения о пользователе",
       "editButton": "Изменить пользователя",
       "masterAdminCardTitle": "Доступ главного администратора",
       "masterAdminCardDescription": "Предоставьте или отзовите доступ главного администратора для этого пользователя. Главные администраторы могут управлять каждым проектом и рабочим пространством.",
@@ -305,13 +304,12 @@
     "projects": {
       "title": "Проекты",
       "cardTitle": "Проекты",
-      "cardDescription": "Вот список проектов в OneUptime.",
-      "noItems": "Проекты не найдены."
+      "listDescription": "Все проекты на этом сервере. Откройте проект, чтобы управлять его пользователями, командами и настройками.",
+      "emptyMessage": "Проектов пока нет."
     },
     "projectView": {
       "title": "Проект",
       "cardTitle": "Проект",
-      "cardDescription": "Сведения о проекте",
       "editButton": "Изменить проект",
       "dataResidencyCardTitle": "Размещение данных",
       "dataResidencyCardDescription": "Где размещаются данные этого проекта. После настройки отображается пользователям проекта в настройках проекта.",
@@ -453,8 +451,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "Пользователи",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "Люди, которые состоят в этом проекте. Что может делать каждый из них, определяет его команда.",
+      "emptyMessage": "В этом проекте пока нет пользователей.",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "Пригласить пользователя",
       "inviteUserTitle": "Пригласить нового пользователя",
@@ -473,19 +471,18 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Команды",
-      "cardDescription": "Список всех команд в этом проекте.",
-      "noItems": "No teams found in this project."
+      "listDescription": "Команды определяют, что их участники могут делать в этом проекте. Создайте команду, чтобы дать группе людей одинаковый доступ.",
+      "emptyMessage": "В этом проекте пока нет команд."
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "Детали команды",
-      "cardDescription": "Details about this team.",
       "editButton": "Редактировать команду",
       "membersCardTitle": "Команда Участники",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "Выйти"
     },
     "sendEmail": {
@@ -626,13 +623,13 @@
       },
       "probes": {
         "bannerTitle": "Нужна помощь с настройкой глобальных зондов?",
-        "bannerDescription": "Вот руководство, которое поможет вам настроить",
+        "bannerGuide": "Следуйте руководству, чтобы запустить зонд на своём сервере и подключить его здесь.",
         "cardTitle": "Глобальные зонды",
         "cardDescription": "Глобальные зонды помогают вам отслеживать внешние ресурсы из разных мест по всему миру.",
-        "noItems": "Зонды не найдены.",
+        "emptyMessage": "Глобальных зондов пока нет.",
         "showIdKey": "Показать ID и ключ",
         "keyModalTitle": "Ключ зонда",
-        "keyModalDescription": "Вот ваш ключ зонда. Пожалуйста, держите его в секрете.",
+        "keyModalSecret": "Ваш зонд подключается к OneUptime с этим ID и ключом. Храните ключ в секрете.",
         "probeIdLabel": "ID зонда:",
         "probeKeyLabel": "Ключ зонда:"
       },
@@ -727,7 +724,6 @@
   "Projects": "Проекты",
   "Project": "Проект",
   "User": "Пользователь",
-  "Logout": "Выход",
   "Save": "Сохранить",
   "Cancel": "Отмена",
   "Submit": "Отправить",

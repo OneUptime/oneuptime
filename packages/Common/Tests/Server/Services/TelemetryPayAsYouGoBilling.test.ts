@@ -288,7 +288,7 @@ describe("telemetry key creation and enablement payment admission", () => {
 describe("existing key payment admission", () => {
   test("rejects existing enabled keys before returning their policy or project", async () => {
     const existingKey: TelemetryIngestionKey = key();
-    jest.spyOn(service, "findOneBy").mockResolvedValue(existingKey);
+    jest.spyOn(service, "findOneByPresentedKey").mockResolvedValue(existingKey);
     await expect(
       service.getPolicyFromSecretKey(existingKey.secretKey!.toString()),
     ).rejects.toBeInstanceOf(PaymentRequiredException);
@@ -299,7 +299,7 @@ describe("existing key payment admission", () => {
 
   test("checks cached keys again so removing payment setup cannot leave an admitted key indefinitely", async () => {
     const existingKey: TelemetryIngestionKey = key();
-    jest.spyOn(service, "findOneBy").mockResolvedValue(existingKey);
+    jest.spyOn(service, "findOneByPresentedKey").mockResolvedValue(existingKey);
     jest
       .spyOn(PayAsYouGoBillingService, "canUsePayAsYouGo")
       .mockResolvedValue(true);
@@ -312,13 +312,13 @@ describe("existing key payment admission", () => {
     await expect(
       service.getPolicyFromSecretKey(existingKey.secretKey!.toString()),
     ).rejects.toBeInstanceOf(PaymentRequiredException);
-    expect(service.findOneBy).toHaveBeenCalledTimes(1);
+    expect(service.findOneByPresentedKey).toHaveBeenCalledTimes(1);
     expect(PayAsYouGoBillingService.canUsePayAsYouGo).toHaveBeenCalledTimes(2);
   });
 
   test("starts accepting an existing key after payment setup succeeds", async () => {
     const existingKey: TelemetryIngestionKey = key();
-    jest.spyOn(service, "findOneBy").mockResolvedValue(existingKey);
+    jest.spyOn(service, "findOneByPresentedKey").mockResolvedValue(existingKey);
     await expect(
       service.getPolicyFromSecretKey(existingKey.secretKey!.toString()),
     ).rejects.toBeInstanceOf(PaymentRequiredException);
@@ -328,14 +328,16 @@ describe("existing key payment admission", () => {
     await expect(
       service.getPolicyFromSecretKey(existingKey.secretKey!.toString()),
     ).resolves.toMatchObject({ projectId });
-    expect(service.findOneBy).toHaveBeenCalledTimes(1);
+    expect(service.findOneByPresentedKey).toHaveBeenCalledTimes(1);
   });
 
   test.each([{ isEnabled: false }, { expiresAt: new Date(0) }])(
     "retains diagnostic policy resolution for unusable keys %j",
     async (state: Partial<TelemetryIngestionKey>) => {
       const existingKey: TelemetryIngestionKey = Object.assign(key(), state);
-      jest.spyOn(service, "findOneBy").mockResolvedValue(existingKey);
+      jest
+        .spyOn(service, "findOneByPresentedKey")
+        .mockResolvedValue(existingKey);
       await expect(
         service.getPolicyFromSecretKey(existingKey.secretKey!.toString()),
       ).resolves.toMatchObject({ projectId });
@@ -344,7 +346,7 @@ describe("existing key payment admission", () => {
   );
 
   test("does not consult billing when no key resolves", async () => {
-    jest.spyOn(service, "findOneBy").mockResolvedValue(null);
+    jest.spyOn(service, "findOneByPresentedKey").mockResolvedValue(null);
     await expect(
       service.getPolicyFromSecretKey(ObjectID.generate().toString()),
     ).resolves.toBeNull();

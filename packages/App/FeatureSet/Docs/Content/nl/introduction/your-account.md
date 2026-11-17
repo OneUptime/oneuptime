@@ -26,7 +26,7 @@ Klik op uw foto rechtsboven in het dashboard.
 | **Profiel** | Opent **Gebruikersprofiel**: uw naam, e-mailadres, tijdzone, taal, foto en de beveiliging van uw aanmelding. |
 | **Beheerdersinstellingen** | Opent het Admin Dashboard. Alleen hoofdbeheerders van een zelf-gehoste installatie zien dit. |
 | **Thema** | Stelt het thema van het dashboard in: **Licht**, **Donker** of **Systeem**, dat licht of donker is zoals uw apparaat is ingesteld. |
-| **Uitloggen** | Meldt u af. |
+| **Afmelden** | Meldt u af. |
 
 **Gebruikersprofiel** heeft een eigen zijmenu. **Basis** bevat **Overzicht** en **Profielfoto**. **Beveiliging** en **Gevarenzone** zijn ingeklapt: klik op de titel van een sectie om die te openen.
 

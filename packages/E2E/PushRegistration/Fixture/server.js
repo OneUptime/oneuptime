@@ -293,7 +293,7 @@ function refreshSession(request, response) {
       }),
     );
 
-    return [401, { message: "Session expired. Please login again." }];
+    return [401, { message: "Session expired. Please sign in again." }];
   }
 
   state.sessionRefreshes.push({ status: 200 });

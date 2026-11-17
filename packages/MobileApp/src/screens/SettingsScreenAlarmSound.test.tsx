@@ -164,7 +164,7 @@ describe("the Alarm sound row", () => {
     await render(<SettingsScreen />);
 
     await waitFor(() => {
-      expect(screen.getByText("Log Out")).toBeTruthy();
+      expect(screen.getByText("Sign Out")).toBeTruthy();
     });
     expect(screen.queryByTestId("settings-row-alarm-sound")).toBeNull();
   });

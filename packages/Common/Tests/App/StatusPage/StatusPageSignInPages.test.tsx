@@ -366,7 +366,7 @@ describe("one name for signing in, in every status page language", () => {
       expect([old, OTHER_WORD_FOR_SIGNING_IN.test(old)]).toEqual([old, true]);
     }
 
-    for (const fine of ["Sign in", "Log Out", "Blogging"]) {
+    for (const fine of ["Sign in", "Sign Out", "Blogging"]) {
       expect([fine, OTHER_WORD_FOR_SIGNING_IN.test(fine)]).toEqual([
         fine,
         false,

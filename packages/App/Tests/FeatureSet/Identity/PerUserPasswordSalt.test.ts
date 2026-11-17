@@ -499,7 +499,7 @@ describe("POST /login — verifying against a per-user salt", () => {
     expect(sendEntityResponse).not.toHaveBeenCalled();
     expect(sendErrorResponse).toHaveBeenCalled();
     expect((sendErrorResponse.mock.calls[0]![2] as Exception).message).toBe(
-      "Invalid login: Email or password does not match.",
+      "Email or password does not match.",
     );
   });
 

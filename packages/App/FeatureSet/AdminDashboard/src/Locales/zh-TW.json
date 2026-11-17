@@ -64,7 +64,7 @@
     "apiKey": "API 金鑰",
     "more": "更多",
     "sendEmail": "傳送電子郵件",
-    "logout": "登出",
+    "signOut": "登出",
     "telemetryUsage": "遙測使用量",
     "ingestionBudgets": "擷取預算",
     "products": "產品"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "退出管理員",
-    "logOut": "登出"
+    "signOut": "登出"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -142,8 +142,8 @@
     "users": {
       "title": "使用者",
       "cardTitle": "使用者",
-      "cardDescription": "這是 OneUptime 中的使用者清單。",
-      "noItems": "找不到使用者。",
+      "listDescription": "在此伺服器上擁有帳戶的所有人。開啟一位使用者即可管理其專案、登入與管理員權限。",
+      "emptyMessage": "尚無使用者。",
       "bulkAddToProject": "加入專案",
       "bulkAddToProjectTitle": "將使用者加入專案",
       "bulkAddToProjectDescription": "選擇一個專案及其中一個團隊。所選的 {{userCount}} 位使用者會被邀請加入該團隊。",
@@ -204,7 +204,6 @@
     "userView": {
       "title": "使用者",
       "cardTitle": "使用者",
-      "cardDescription": "使用者詳細資料",
       "editButton": "編輯使用者",
       "masterAdminCardTitle": "主要管理員存取",
       "masterAdminCardDescription": "為此使用者授予或撤銷主要管理員存取權限。主要管理員可以管理每個專案和工作區。",
@@ -305,13 +304,12 @@
     "projects": {
       "title": "專案",
       "cardTitle": "專案",
-      "cardDescription": "這是 OneUptime 中的專案清單。",
-      "noItems": "找不到專案。"
+      "listDescription": "此伺服器上的所有專案。開啟一個專案即可管理其使用者、團隊與設定。",
+      "emptyMessage": "尚無專案。"
     },
     "projectView": {
       "title": "專案",
       "cardTitle": "專案",
-      "cardDescription": "專案詳細資料",
       "editButton": "編輯專案",
       "dataResidencyCardTitle": "資料駐留",
       "dataResidencyCardDescription": "此專案資料的託管位置。設定後，專案使用者可在專案設定中看到。",
@@ -453,8 +451,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "使用者",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "屬於此專案的人員。每個人能做什麼由其所屬團隊決定。",
+      "emptyMessage": "此專案中尚無使用者。",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "邀請使用者",
       "inviteUserTitle": "邀請新使用者",
@@ -473,19 +471,18 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "團隊",
-      "cardDescription": "以下是此專案中所有團隊的清單。",
-      "noItems": "No teams found in this project."
+      "listDescription": "團隊決定其成員在此專案中能做什麼。建立一個團隊，即可為一群人授予相同的權限。",
+      "emptyMessage": "此專案中尚無團隊。"
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "團隊詳細資料",
-      "cardDescription": "Details about this team.",
       "editButton": "編輯團隊",
       "membersCardTitle": "團隊 成員",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "登出"
     },
     "sendEmail": {
@@ -626,13 +623,13 @@
       },
       "probes": {
         "bannerTitle": "需要協助設定全域探測器嗎?",
-        "bannerDescription": "這裡有一個指南可以協助您設定",
+        "bannerGuide": "依照指南在您自己的伺服器上執行探測器，並在此處連接。",
         "cardTitle": "全域探測器",
         "cardDescription": "全域探測器可協助您從世界各地的不同位置監控外部資源。",
-        "noItems": "找不到探測器。",
+        "emptyMessage": "尚無全域探測器。",
         "showIdKey": "顯示 ID 和金鑰",
         "keyModalTitle": "探測器金鑰",
-        "keyModalDescription": "這是您的探測器金鑰。請保密。",
+        "keyModalSecret": "您的探測器使用此 ID 與金鑰連線到 OneUptime。請妥善保管金鑰。",
         "probeIdLabel": "探測器 ID:",
         "probeKeyLabel": "探測器金鑰:"
       },
@@ -727,7 +724,6 @@
   "Projects": "專案",
   "Project": "專案",
   "User": "使用者",
-  "Logout": "登出",
   "Save": "儲存",
   "Cancel": "取消",
   "Submit": "提交",

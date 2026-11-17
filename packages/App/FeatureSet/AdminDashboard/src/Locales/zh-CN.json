@@ -64,7 +64,7 @@
     "apiKey": "API 密钥",
     "more": "更多",
     "sendEmail": "发送电子邮件",
-    "logout": "注销",
+    "signOut": "退出登录",
     "telemetryUsage": "遥测用量",
     "ingestionBudgets": "摄取预算",
     "products": "产品"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "退出管理员",
-    "logOut": "注销"
+    "signOut": "退出登录"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -142,8 +142,8 @@
     "users": {
       "title": "用户",
       "cardTitle": "用户",
-      "cardDescription": "这是 OneUptime 中的用户列表。",
-      "noItems": "未找到用户。",
+      "listDescription": "在此服务器上拥有账户的所有人。打开一个用户即可管理其项目、登录和管理员权限。",
+      "emptyMessage": "还没有用户。",
       "bulkAddToProject": "添加到项目",
       "bulkAddToProjectTitle": "将用户添加到项目",
       "bulkAddToProjectDescription": "选择一个项目及其中一个团队。所选的 {{userCount}} 位用户会被邀请加入该团队。",
@@ -204,7 +204,6 @@
     "userView": {
       "title": "用户",
       "cardTitle": "用户",
-      "cardDescription": "用户详细信息",
       "editButton": "编辑用户",
       "masterAdminCardTitle": "主管理员访问",
       "masterAdminCardDescription": "为此用户授予或撤销主管理员访问权限。主管理员可以管理每个项目和工作区。",
@@ -305,13 +304,12 @@
     "projects": {
       "title": "项目",
       "cardTitle": "项目",
-      "cardDescription": "这是 OneUptime 中的项目列表。",
-      "noItems": "未找到项目。"
+      "listDescription": "此服务器上的所有项目。打开一个项目即可管理其用户、团队和设置。",
+      "emptyMessage": "还没有项目。"
     },
     "projectView": {
       "title": "项目",
       "cardTitle": "项目",
-      "cardDescription": "项目详细信息",
       "editButton": "编辑项目",
       "dataResidencyCardTitle": "数据驻留",
       "dataResidencyCardDescription": "此项目数据的托管位置。设置后，项目用户可在项目设置中看到。",
@@ -453,8 +451,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "用户",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "属于此项目的人员。每个人能做什么由其所在团队决定。",
+      "emptyMessage": "此项目中还没有用户。",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "邀请用户",
       "inviteUserTitle": "邀请新用户",
@@ -473,20 +471,19 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "团队",
-      "cardDescription": "以下是该项目所有团队的列表。",
-      "noItems": "No teams found in this project."
+      "listDescription": "团队决定其成员在此项目中能做什么。创建一个团队，即可为一组人员授予相同的权限。",
+      "emptyMessage": "此项目中还没有团队。"
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "团队详情",
-      "cardDescription": "Details about this team.",
       "editButton": "编辑团队",
       "membersCardTitle": "团队 成员",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
-      "title": "注销"
+    "signOut": {
+      "title": "退出登录"
     },
     "sendEmail": {
       "title": "发送公告电子邮件",
@@ -626,13 +623,13 @@
       },
       "probes": {
         "bannerTitle": "需要帮助设置全局探测器吗?",
-        "bannerDescription": "这里有一个指南可以帮助您设置",
+        "bannerGuide": "按照指南在你自己的服务器上运行探测器，并在此处连接。",
         "cardTitle": "全局探测器",
         "cardDescription": "全局探测器可帮助您从世界各地的不同位置监控外部资源。",
-        "noItems": "未找到探测器。",
+        "emptyMessage": "还没有全局探测器。",
         "showIdKey": "显示 ID 和密钥",
         "keyModalTitle": "探测器密钥",
-        "keyModalDescription": "这是您的探测器密钥。请保密。",
+        "keyModalSecret": "你的探测器使用此 ID 和密钥连接到 OneUptime。请妥善保管密钥。",
         "probeIdLabel": "探测器 ID:",
         "probeKeyLabel": "探测器密钥:"
       },
@@ -727,7 +724,6 @@
   "Projects": "项目",
   "Project": "项目",
   "User": "用户",
-  "Logout": "注销",
   "Save": "保存",
   "Cancel": "取消",
   "Submit": "提交",

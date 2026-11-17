@@ -64,7 +64,7 @@
     "apiKey": "API-sleutel",
     "more": "Meer",
     "sendEmail": "E-mail verzenden",
-    "logout": "Uitloggen",
+    "signOut": "Afmelden",
     "telemetryUsage": "Telemetriegebruik",
     "ingestionBudgets": "Ingestiebudgetten",
     "products": "Producten"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "Admin verlaten",
-    "logOut": "Uitloggen"
+    "signOut": "Afmelden"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -142,8 +142,8 @@
     "users": {
       "title": "Gebruikers",
       "cardTitle": "Gebruikers",
-      "cardDescription": "Hier is een lijst met gebruikers in OneUptime.",
-      "noItems": "Geen gebruikers gevonden.",
+      "listDescription": "Iedereen met een account op deze server. Open een gebruiker om diens projecten, aanmelding en beheerderstoegang te beheren.",
+      "emptyMessage": "Nog geen gebruikers.",
       "bulkAddToProject": "Aan project toevoegen",
       "bulkAddToProjectTitle": "Gebruikers aan project toevoegen",
       "bulkAddToProjectDescription": "Kies een project en een van de teams. De {{userCount}} geselecteerde gebruiker(s) worden voor dat team uitgenodigd.",
@@ -204,7 +204,6 @@
     "userView": {
       "title": "Gebruiker",
       "cardTitle": "Gebruiker",
-      "cardDescription": "Gebruikersgegevens",
       "editButton": "Gebruiker bewerken",
       "masterAdminCardTitle": "Master-admin-toegang",
       "masterAdminCardDescription": "Master-admin-toegang verlenen of intrekken voor deze gebruiker. Master-admins kunnen elk project en elke werkruimte beheren.",
@@ -305,13 +304,12 @@
     "projects": {
       "title": "Projecten",
       "cardTitle": "Projecten",
-      "cardDescription": "Hier is een lijst met projecten in OneUptime.",
-      "noItems": "Geen projecten gevonden."
+      "listDescription": "Alle projecten op deze server. Open er een om de gebruikers, teams en instellingen te beheren.",
+      "emptyMessage": "Nog geen projecten."
     },
     "projectView": {
       "title": "Project",
       "cardTitle": "Project",
-      "cardDescription": "Projectgegevens",
       "editButton": "Project bewerken",
       "dataResidencyCardTitle": "Gegevenslocatie",
       "dataResidencyCardDescription": "Waar de gegevens van dit project worden gehost. Zodra dit is ingesteld, wordt het aan de gebruikers van het project getoond in hun projectinstellingen.",
@@ -453,8 +451,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "Gebruikers",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "Mensen die bij dit project horen. Hun team bepaalt wat ieder van hen mag doen.",
+      "emptyMessage": "Nog geen gebruikers in dit project.",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "Gebruiker uitnodigen",
       "inviteUserTitle": "Nieuwe gebruiker uitnodigen",
@@ -473,20 +471,19 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Teams",
-      "cardDescription": "Hier is een lijst van alle teams in dit project.",
-      "noItems": "No teams found in this project."
+      "listDescription": "Teams bepalen wat hun leden in dit project mogen doen. Maak er een om een groep mensen dezelfde toegang te geven.",
+      "emptyMessage": "Nog geen teams in dit project."
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "Teamdetails",
-      "cardDescription": "Details about this team.",
       "editButton": "Team bewerken",
       "membersCardTitle": "Team Leden",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
-      "title": "Uitloggen"
+    "signOut": {
+      "title": "Afmelden"
     },
     "sendEmail": {
       "title": "Aankondigings-e-mail verzenden",
@@ -626,13 +623,13 @@
       },
       "probes": {
         "bannerTitle": "Hulp nodig bij het instellen van globale sondes?",
-        "bannerDescription": "Hier is een handleiding die u helpt bij het instellen",
+        "bannerGuide": "Volg de handleiding om een sonde op je eigen server te draaien en hem hier te verbinden.",
         "cardTitle": "Globale sondes",
         "cardDescription": "Globale sondes helpen u externe bronnen te monitoren vanuit verschillende locaties over de hele wereld.",
-        "noItems": "Geen sondes gevonden.",
+        "emptyMessage": "Nog geen globale sondes.",
         "showIdKey": "ID en sleutel tonen",
         "keyModalTitle": "Sondesleutel",
-        "keyModalDescription": "Hier is uw sondesleutel. Houd deze geheim.",
+        "keyModalSecret": "Je sonde maakt verbinding met OneUptime met deze ID en sleutel. Houd de sleutel geheim.",
         "probeIdLabel": "Sonde-ID:",
         "probeKeyLabel": "Sondesleutel:"
       },
@@ -727,7 +724,6 @@
   "Projects": "Projecten",
   "Project": "Project",
   "User": "Gebruiker",
-  "Logout": "Uitloggen",
   "Save": "Opslaan",
   "Cancel": "Annuleren",
   "Submit": "Verzenden",

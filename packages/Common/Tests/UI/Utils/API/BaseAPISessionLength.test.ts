@@ -72,7 +72,7 @@ const INCIDENT_PAGE: string = `/dashboard/${PROJECT_ID}/incidents/view/42?tab=ti
 const LOGIN_ROUTE: string = "/accounts/login";
 
 const NOT_AUTHENTICATED_BODY: JSONObject = {
-  message: "Authentication required. Please log in to access this resource.",
+  message: "Authentication required. Please sign in to access this resource.",
 };
 
 let server: FakeAxiosServer;

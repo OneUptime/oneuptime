@@ -72,6 +72,10 @@ import {
   STATUS_PAGE_SESSION_SIGNED_OUT_REASON,
 } from "Common/Types/AuditLog/AuditLogStatusPageSession";
 import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
+import {
+  STATUS_PAGE_SESSION_EXPIRED_MESSAGE,
+  STATUS_PAGE_SIGNED_OUT_MESSAGE,
+} from "Common/Types/StatusPage/StatusPageSignInMessages";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -349,7 +353,7 @@ router.post(
       }
 
       if (typeof loginCode !== "string" || !ObjectID.isValidUUID(loginCode)) {
-        throw new BadDataException("A valid login code is required.");
+        throw new BadDataException("A valid sign-in code is required.");
       }
 
       const statusPageId: ObjectID = new ObjectID(statusPageIdParam);
@@ -369,7 +373,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Login code is invalid or expired."),
+          new BadDataException("Sign-in code is invalid or expired."),
         );
       }
 
@@ -401,7 +405,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Login code is invalid or expired."),
+          new BadDataException("Sign-in code is invalid or expired."),
         );
       }
 
@@ -423,7 +427,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Login code is invalid or expired."),
+          new BadDataException("Sign-in code is invalid or expired."),
         );
       }
 
@@ -468,7 +472,7 @@ router.post(
           req,
           res,
           statusPageId,
-          message: "Refresh token missing. Please login again.",
+          message: STATUS_PAGE_SIGNED_OUT_MESSAGE,
         });
       }
 
@@ -487,7 +491,7 @@ router.post(
           req,
           res,
           statusPageId,
-          message: "Session expired. Please login again.",
+          message: STATUS_PAGE_SESSION_EXPIRED_MESSAGE,
         });
       }
 
@@ -500,7 +504,7 @@ router.post(
             sessionId: session.id,
             reason: "Status page mismatch",
           },
-          message: "Session expired. Please login again.",
+          message: STATUS_PAGE_SESSION_EXPIRED_MESSAGE,
         });
       }
 
@@ -516,7 +520,7 @@ router.post(
             sessionId: session.id,
             reason: STATUS_PAGE_SESSION_REFRESH_TOKEN_EXPIRED_REASON,
           },
-          message: "Session expired. Please login again.",
+          message: STATUS_PAGE_SESSION_EXPIRED_MESSAGE,
         });
       }
 
@@ -529,7 +533,7 @@ router.post(
             sessionId: session.id,
             reason: "Session missing user",
           },
-          message: "Session expired. Please login again.",
+          message: STATUS_PAGE_SESSION_EXPIRED_MESSAGE,
         });
       }
 
@@ -579,7 +583,7 @@ router.post(
             sessionId: session.id,
             reason: SIGN_IN_NO_LONGER_ACCEPTED_REASON,
           },
-          message: "Session expired. Please login again.",
+          message: STATUS_PAGE_SESSION_EXPIRED_MESSAGE,
         });
       }
 
@@ -599,7 +603,7 @@ router.post(
           req,
           res,
           statusPageId,
-          message: "Session expired. Please login again.",
+          message: STATUS_PAGE_SESSION_EXPIRED_MESSAGE,
         });
       }
 
@@ -1393,9 +1397,7 @@ router.post(
           },
         );
       }
-      throw new BadDataException(
-        "Invalid login: Email or password does not match.",
-      );
+      throw new BadDataException("Email or password does not match.");
     } catch (err) {
       return next(err);
     }

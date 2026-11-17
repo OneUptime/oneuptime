@@ -60,13 +60,14 @@ Change AGENTS.md only in a pull request of its own, never alongside other work. 
 
 ## Read the guide before you touch these
 
-Apps, listings and consoles outside this repository (Slack, Microsoft Teams, GitHub, the marketplaces, Google Cloud) don't change when code merges. Each guide says what to change by hand and in which order, how to test it end to end, and which steps only a maintainer may do.
+Apps, listings and consoles outside this repository (Slack, Microsoft Teams, GitHub, Zoom, the marketplaces, Google Cloud) don't change when code merges. Each guide says what to change by hand and in which order, how to test it end to end, and which steps only a maintainer may do.
 
 - **Releases**: [RELEASING.md](RELEASING.md). While a release is in flight, `Scripts/Release/PrioritizeReleaseRuns.sh` cancels every other workflow run.
 - **Mobile app builds and store releases**: [packages/MobileApp/RELEASING.md](packages/MobileApp/RELEASING.md).
 - **Slack app** (`packages/Common/Server/Utils/Workspace/Slack/app-manifest.json`, or the scopes and events the code relies on): [Slack guide](packages/Common/Server/Utils/Workspace/Slack/RELEASING.md).
 - **Microsoft Teams app** (`MicrosoftTeamsAPI.getTeamsAppManifest()`, or the Microsoft Graph permissions the code relies on): [Microsoft Teams guide](packages/Common/Server/Utils/Workspace/MicrosoftTeams/RELEASING.md).
 - **GitHub Apps** (a permission, webhook event, callback or route the code needs from them, or their GitHub Marketplace listing): [GitHub App guide](packages/Common/Server/Utils/CodeRepository/GitHub/RELEASING.md).
+- **Zoom app**, OneUptime Meetings (a scope, redirect URL or event one-click Connect for Zoom needs from it, the `ZOOM_APP_*` settings, or its Zoom App Marketplace listing and review): [Zoom app guide](packages/Common/Server/Utils/VideoCall/RELEASING.md).
 - **OneUptime Cloud on AWS Marketplace and Microsoft Marketplace** (`ee/Server/CloudMarketplace`, `packages/Common/Server/Utils/Marketplace`, Sign in with Microsoft in `packages/Common/Server/Utils/MicrosoftSignIn`, usage prices, seller portals): [cloud marketplace guide](packages/Common/Server/Utils/Marketplace/RELEASING.md). OneUptime Cloud is not on Google Cloud Marketplace, which lists only SaaS hosted on Google Cloud.
 - **Vercel Marketplace** (`ee/Server/CloudMarketplace/Vercel`, `ee/Server/CloudMarketplace/API`, the Telemetry log drain, Vercel's Integration Console): [Vercel Marketplace guide](packages/Common/Server/Utils/Marketplace/VERCEL_RELEASING.md).
 - **Self-hosted OneUptime Enterprise on AWS, Microsoft and Google Cloud marketplaces** (`ee/Server/Marketplace`, `ee/Server/License`, `HelmChart/Marketplace`, the `enterpriseMarketplace` chart values, `.github/workflows/marketplace-release.yml`): [self-hosted marketplace guide](packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md).

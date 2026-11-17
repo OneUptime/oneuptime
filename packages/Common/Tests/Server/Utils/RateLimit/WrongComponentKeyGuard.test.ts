@@ -114,12 +114,13 @@ const KEY_CHECKS: Array<KeyCheck> = [
     file: AI_AGENT_API,
     from: "/alive`",
     to: "next(err);",
+    // Its key kept encrypted (#9012): read by id, compared in constant time.
     compared:
-      "await AIAgentService.findOneBy({ query: { _id: aiAgentId.toString(), key: aiAgentKey,",
+      'await AIAgentService.findOneByPresentedKey({ column: "key", presentedKey: aiAgentKey, query: { _id: aiAgentId.toString(), },',
     inOrder: [
       "const refusedBeforeLookup: WrongKeyRefusal | null = await WrongComponentKeyLimit.checkBeforeLookup({ req: req, kind: ComponentKeyKind.Agent, componentId: aiAgentId.toString(), });",
       "if (refusedBeforeLookup) { return WrongComponentKeyLimit.answerRefusal(req, res, ComponentKeyKind.Agent, refusedBeforeLookup); }",
-      "const aiAgent: AIAgent | null = await AIAgentService.findOneBy({ query: { _id: aiAgentId.toString(), key: aiAgentKey, },",
+      'const aiAgent: AIAgent | null = await AIAgentService.findOneByPresentedKey({ column: "key", presentedKey: aiAgentKey, query: { _id: aiAgentId.toString(), },',
       "await WrongComponentKeyLimit.checkComponentKey({ req: req, kind: ComponentKeyKind.Agent, componentId: aiAgentId.toString(), presentedKey: aiAgentKey, isKeyRight: Boolean(aiAgent),",
       "return await AIAgentService.hasAIAgentWithId(aiAgentId);",
       "if (refusal) { return WrongComponentKeyLimit.answerRefusal(req, res, ComponentKeyKind.Agent, refusal); }",

@@ -64,7 +64,7 @@
     "apiKey": "Clave API",
     "more": "Más",
     "sendEmail": "Enviar correo",
-    "logout": "Cerrar sesión",
+    "signOut": "Cerrar sesión",
     "telemetryUsage": "Uso de telemetría",
     "ingestionBudgets": "Presupuestos de ingesta",
     "products": "Productos"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "Salir del admin",
-    "logOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -142,8 +142,8 @@
     "users": {
       "title": "Usuarios",
       "cardTitle": "Usuarios",
-      "cardDescription": "Aquí hay una lista de usuarios en OneUptime.",
-      "noItems": "No se encontraron usuarios.",
+      "listDescription": "Todas las personas con una cuenta en este servidor. Abre un usuario para gestionar sus proyectos, su inicio de sesión y su acceso de administrador.",
+      "emptyMessage": "Aún no hay usuarios.",
       "bulkAddToProject": "Añadir al proyecto",
       "bulkAddToProjectTitle": "Añadir usuarios al proyecto",
       "bulkAddToProjectDescription": "Elija un proyecto y uno de sus equipos. Los {{userCount}} usuarios seleccionados se invitan a ese equipo.",
@@ -204,7 +204,6 @@
     "userView": {
       "title": "Usuario",
       "cardTitle": "Usuario",
-      "cardDescription": "Detalles del usuario",
       "editButton": "Editar usuario",
       "masterAdminCardTitle": "Acceso de administrador maestro",
       "masterAdminCardDescription": "Otorgar o revocar el acceso de administrador maestro para este usuario. Los administradores maestros pueden gestionar todos los proyectos y espacios de trabajo.",
@@ -305,13 +304,12 @@
     "projects": {
       "title": "Proyectos",
       "cardTitle": "Proyectos",
-      "cardDescription": "Aquí hay una lista de proyectos en OneUptime.",
-      "noItems": "No se encontraron proyectos."
+      "listDescription": "Todos los proyectos de este servidor. Abre uno para gestionar sus usuarios, equipos y configuración.",
+      "emptyMessage": "Aún no hay proyectos."
     },
     "projectView": {
       "title": "Proyecto",
       "cardTitle": "Proyecto",
-      "cardDescription": "Detalles del proyecto",
       "editButton": "Editar proyecto",
       "dataResidencyCardTitle": "Residencia de datos",
       "dataResidencyCardDescription": "Dónde se alojan los datos de este proyecto. Una vez establecida, se muestra a los usuarios del proyecto en la Configuración del proyecto.",
@@ -453,8 +451,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "Usuarios",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "Las personas que pertenecen a este proyecto. Su equipo decide lo que cada una puede hacer.",
+      "emptyMessage": "Aún no hay usuarios en este proyecto.",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "Invitar usuario",
       "inviteUserTitle": "Invitar a un nuevo usuario",
@@ -473,19 +471,18 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Equipos",
-      "cardDescription": "Aquí tienes una lista de todos los equipos de este proyecto.",
-      "noItems": "No teams found in this project."
+      "listDescription": "Los equipos deciden lo que sus miembros pueden hacer en este proyecto. Crea uno para dar el mismo acceso a un grupo de personas.",
+      "emptyMessage": "Aún no hay equipos en este proyecto."
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "Detalles del equipo",
-      "cardDescription": "Details about this team.",
       "editButton": "Editar equipo",
       "membersCardTitle": "Equipo Miembros",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "Cerrar sesión"
     },
     "sendEmail": {
@@ -626,13 +623,13 @@
       },
       "probes": {
         "bannerTitle": "¿Necesita ayuda para configurar las sondas globales?",
-        "bannerDescription": "Aquí hay una guía que le ayudará a configurarlas",
+        "bannerGuide": "Sigue la guía para ejecutar una sonda en tu propio servidor y conectarla aquí.",
         "cardTitle": "Sondas globales",
         "cardDescription": "Las sondas globales le ayudan a monitorear recursos externos desde diferentes ubicaciones del mundo.",
-        "noItems": "No se encontraron sondas.",
+        "emptyMessage": "Aún no hay sondas globales.",
         "showIdKey": "Mostrar ID y clave",
         "keyModalTitle": "Clave de la sonda",
-        "keyModalDescription": "Aquí está su clave de sonda. Por favor, manténgala en secreto.",
+        "keyModalSecret": "Tu sonda se conecta a OneUptime con este ID y esta clave. Mantén la clave en secreto.",
         "probeIdLabel": "ID de la sonda:",
         "probeKeyLabel": "Clave de la sonda:"
       },
@@ -727,7 +724,6 @@
   "Projects": "Proyectos",
   "Project": "Proyecto",
   "User": "Usuario",
-  "Logout": "Cerrar sesión",
   "Save": "Guardar",
   "Cancel": "Cancelar",
   "Submit": "Enviar",

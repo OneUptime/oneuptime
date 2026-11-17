@@ -265,7 +265,7 @@ const STATUS_PAGE_APP: Record<string, Array<StatusPageAppLabel>> = {
     { english: "Announcements", key: "nav.announcements" },
     { english: "Scheduled Maintenance", key: "nav.scheduledEvents" },
     { english: "Subscribe", key: "nav.subscribe" },
-    { english: "Log Out", key: "nav.logout" },
+    { english: "Sign Out", key: "nav.signOut" },
     { english: "Active Incidents", key: "overview.activeIncidents" },
     {
       english: "Scheduled Maintenance",

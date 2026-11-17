@@ -982,9 +982,7 @@ describe("POST /login to an address not verified yet", () => {
         "a wrong guess",
       );
 
-      expect(answer.error?.message).toBe(
-        "Invalid login: Email or password does not match.",
-      );
+      expect(answer.error?.message).toBe("Email or password does not match.");
     }
 
     expect(sendVerificationEmail).not.toHaveBeenCalled();
