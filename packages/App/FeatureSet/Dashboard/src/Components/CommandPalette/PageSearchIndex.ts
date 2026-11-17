@@ -43,7 +43,9 @@ import ToolImportSource, {
  * and PageSearchIndexCoversRoutes fails when a page in RouteMap is neither
  * here nor listed there as one that must not be offered (with the reason).
  * The Developer pages are not written out: they are added to every area
- * from DeveloperDocsPages.ts, the list their menus are drawn from.
+ * from DeveloperDocsPages.ts, the list their menus are drawn from. The
+ * pages of one record (a status page's Single Sign-On, a monitor's
+ * Criteria) are in RecordPageSearchIndex.ts (#9204).
  *
  * Titles and section names are English, as the menus write them; Search
  * translates them when it shows them. Keywords are other words people type
@@ -4530,7 +4532,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
 ];
 
 // Other words for the Developer pages, which share their titles everywhere.
-const DEVELOPER_PAGE_KEYWORDS: Readonly<
+export const DEVELOPER_PAGE_KEYWORDS: Readonly<
   Record<DeveloperDocsPageType, Array<string>>
 > = {
   [DeveloperDocsPageType.Terraform]: [
