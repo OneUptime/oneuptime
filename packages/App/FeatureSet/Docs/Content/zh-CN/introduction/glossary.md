@@ -302,6 +302,12 @@ OneUptime 的 SIEM：来自你的日志、安全工具以及你发送的其他�
 
 参见 [追踪浏览器](/docs/telemetry/traces-explorer)。
 
+### 跨度
+
+请求中的一个步骤：服务应答的请求、它对另一个服务的调用或一次数据库查询，带有开始时间、耗时以及是否失败。跨度嵌套在启动它的跨度之内，一个请求的所有跨度组成它的追踪。
+
+参见 [追踪浏览器](/docs/telemetry/traces-explorer#追踪和-span)。
+
 ### 性能剖析
 
 你的应用如何逐个函数地消耗 CPU 时间和内存，由向 OneUptime 的 Pyroscope 兼容 API 推送数据的性能分析器发送。

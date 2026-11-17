@@ -300,6 +300,7 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
                 chosenValue={config.chosenValue}
                 description={config.description}
                 valueDescriptionMap={config.valueDescriptionMap}
+                titleGlossaryTerm={config.titleGlossaryTerm}
                 onClearValue={(facetKey: string, value: string) => {
                   for (const chip of getFacetChipsToClear(
                     selections,

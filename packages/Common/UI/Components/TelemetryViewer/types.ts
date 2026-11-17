@@ -1,5 +1,6 @@
 import { LockedFilterDetail } from "../../../Types/Telemetry/LockedFilterDetail";
 import IconProp from "../../../Types/Icon/IconProp";
+import GlossaryTerm from "../../../Types/Docs/GlossaryTerm";
 
 /*
  * Generic types for the TelemetryViewer shell. Shared by logs, traces,
@@ -111,6 +112,12 @@ export interface FacetConfig {
    * and to a screen reader as the row's description.
    */
   valueDescriptionMap?: Record<string, string> | undefined;
+  /*
+   * The Glossary term the facet's title is the first use of in its
+   * explorer: the traces explorer's Span Type marks "span" (#9133). The
+   * title is drawn as a defined term (FacetSectionHeader).
+   */
+  titleGlossaryTerm?: GlossaryTerm | undefined;
 }
 
 export interface SearchHelpRow {

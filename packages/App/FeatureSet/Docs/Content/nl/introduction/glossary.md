@@ -302,6 +302,12 @@ Het pad van één verzoek door uw services, stap voor stap. Elke stap is een spa
 
 Zie [Traceverkenner](/docs/telemetry/traces-explorer).
 
+### Span
+
+Eén stap van een verzoek: het verzoek dat een service beantwoordt, een aanroep naar een andere service of een databasequery, met wanneer die begon, hoe lang die duurde en of die mislukte. Spans liggen binnen de span die ze startte, en de spans van één verzoek vormen samen de trace.
+
+Zie [Traceverkenner](/docs/telemetry/traces-explorer#traces-en-spans).
+
 ### Profielen
 
 Hoe uw applicatie CPU-tijd en geheugen besteedt, functie voor functie, verstuurd door een profiler die naar de Pyroscope-compatibele API van OneUptime pusht.

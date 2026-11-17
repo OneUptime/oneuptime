@@ -128,17 +128,35 @@ async function open(
   });
 }
 
-// The button that folds the Span Type section.
+/*
+ * The button that folds the Span Type section. Its title is the Glossary's
+ * Span, a button of its own beside it (#9133), so the title names it.
+ */
 function spanTypeHeader(page: Page): Locator {
-  return page
-    .locator("button[aria-expanded]")
-    .filter({ hasText: /^Span Type/ })
-    .first();
+  return page.locator("button[aria-expanded][aria-label='Span Type']").first();
+}
+
+// The Span Type's title: the defined word beside the fold button.
+function spanTypeTitle(page: Page): Locator {
+  return spanTypeSection(page).getByTestId("facet-section-defined-title");
 }
 
 // The Span Type section: the header's row's parent.
 function spanTypeSection(page: Page): Locator {
   return spanTypeHeader(page).locator("xpath=../..");
+}
+
+/*
+ * From the fold button, Tab reaches the title first - the Glossary's Span, a
+ * word with its definition (#9133) - then its definition's Read more, and
+ * then the (i). Tab past Read more puts the definition away.
+ */
+async function tabPastTheTitle(page: Page): Promise<void> {
+  await page.keyboard.press("Tab");
+  await expect(spanTypeTitle(page).getByTestId("defined-term")).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByTestId("defined-term-read-more")).toBeFocused();
+  await page.keyboard.press("Tab");
 }
 
 function helpButton(page: Page): Locator {
@@ -269,7 +287,8 @@ test.describe("Traces explorer: what each Span Type option is", () => {
     await open(page, { width: 1440 });
 
     const section: Locator = spanTypeSection(page);
-    const header: Box = await boxOf(spanTypeHeader(page));
+    // The header's row: the title is beside the fold button, not in it.
+    const header: Box = await boxOf(spanTypeHeader(page).locator("xpath=.."));
     const firstOption: Box = await boxOf(
       section.getByRole("radio", { name: "Entry spans", exact: true }),
     );
@@ -306,9 +325,7 @@ test.describe("Traces explorer: what each Span Type option is", () => {
     await expect(info).toBeVisible();
 
     // Right after the title, on the header's row.
-    const title: Box = await boxOf(
-      spanTypeHeader(page).getByText("Span Type", { exact: true }),
-    );
+    const title: Box = await boxOf(spanTypeTitle(page));
     const infoBox: Box = await boxOf(info);
     expect(infoBox.x).toBeGreaterThanOrEqual(title.x + title.width);
     expect(infoBox.x - (title.x + title.width)).toBeLessThan(16);
@@ -371,7 +388,7 @@ test.describe("Traces explorer: what each Span Type option is", () => {
     await open(page, { width: 1440 });
 
     await spanTypeHeader(page).focus();
-    await page.keyboard.press("Tab");
+    await tabPastTheTitle(page);
 
     await expect(helpButton(page)).toBeFocused();
     const help: Locator = tooltipSaying(page, "Where a trace starts.");
@@ -471,6 +488,54 @@ test.describe("Traces explorer: what each Span Type option is", () => {
   });
 });
 
+test.describe("Traces explorer: the Span Type's title says what a span is", () => {
+  /*
+   * About 180 strings in Traces say "span", and nothing said what one is
+   * (#9133). The Span Type, where the explorer first says it, draws its
+   * title as the Glossary's Span: a press shows the definition and its Read
+   * more, and folds nothing.
+   */
+  for (const theme of [undefined, "dark"] as const) {
+    test(`a press on the title shows its definition and keeps the section open${theme ? " (dark)" : ""}`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, { width: 1440, ...(theme ? { theme } : {}) });
+
+      const word: Locator = spanTypeTitle(page).getByTestId("defined-term");
+      await expect(word).toBeVisible();
+      // Small capitals, as every other facet's title.
+      expect(
+        await word.evaluate((element: Element): string => {
+          return getComputedStyle(element).textTransform;
+        }),
+      ).toBe("uppercase");
+
+      await word.click();
+
+      await expect(page.getByTestId("defined-term-read-more")).toBeVisible();
+      // The definition is drawn after the title, not in its small capitals.
+      await expect(
+        spanTypeTitle(page).getByTestId("defined-term-read-more"),
+      ).toHaveCount(0);
+      expect(
+        await page
+          .getByTestId("defined-term-read-more")
+          .evaluate((element: Element): string => {
+            return getComputedStyle(element).textTransform;
+          }),
+      ).toBe("none");
+      await expect(spanTypeHeader(page)).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+
+      await screenshot(page, `span-type-defined-title${theme ? "-dark" : ""}`);
+    });
+  }
+});
+
 test.describe("Traces explorer: Escape puts what the Span Type says away", () => {
   test("pointed at, the (i)'s help goes on Escape and stays away while the pointer rests there; pointing at it again brings it back", async ({
     page,
@@ -510,7 +575,7 @@ test.describe("Traces explorer: Escape puts what the Span Type says away", () =>
     await open(page, { width: 1440 });
 
     await spanTypeHeader(page).focus();
-    await page.keyboard.press("Tab");
+    await tabPastTheTitle(page);
     await expect(helpButton(page)).toBeFocused();
     await expect(tooltipSaying(page, "Where a trace starts.")).toBeVisible();
 
