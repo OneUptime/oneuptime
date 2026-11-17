@@ -1,6 +1,4 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import CheckoutForm, {
   getSetupIntentPaymentMethodId,
@@ -34,6 +32,9 @@ import {
 import PlanCutoffNote from "../../Components/Billing/PlanCutoffNote";
 import usePlanCutoffCounts from "../../Components/Billing/UsePlanCutoffCounts";
 import ChangePlanBillingNote from "../../Components/Billing/ChangePlanBillingNote";
+import CancelPlanCard, {
+  CancelPlanCopy,
+} from "../../Components/Billing/CancelPlanCard";
 import { getChangePlanError } from "../../Components/Billing/ChangePlanBilling";
 import { Green } from "Common/Types/BrandColors";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
@@ -72,11 +73,13 @@ import {
 } from "Common/Types/Analytics/RevenueEvent";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import Toast from "Common/UI/Utils/Toast";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import Project from "Common/Models/DatabaseModels/Project";
 import {
   getAddPaymentMethodGate,
   getBillingActionLockedReason,
+  getChangePlanGate,
   getSetDefaultPaymentMethodGate,
 } from "../../Components/Billing/BillingActionGates";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
@@ -144,6 +147,10 @@ const Settings: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
 
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
+
+  // Flipped to make the Current Plan card read the project again.
+  const [planDetailsRefresher, setPlanDetailsRefresher] =
+    useState<boolean>(false);
 
   /*
    * When the project's trial ends (or ended). The plan picker speaks only of
@@ -697,6 +704,58 @@ const Settings: FunctionComponent<ComponentProps> = (
     return sentences.length > 0 ? joinSentences(sentences) : null;
   };
 
+  // What a move to the Free plan stops, for Cancel Plan's question.
+  const getFreePlanStopNote: () => string | null = (): string | null => {
+    const freePlan: SubscriptionPlan | undefined =
+      SubscriptionPlan.getSubscriptionPlans(getAllEnvVars()).find(
+        (plan: SubscriptionPlan) => {
+          return plan.getName() === PlanType.Free;
+        },
+      );
+
+    return freePlan ? getPlanCutoffNote(freePlan) : null;
+  };
+
+  /*
+   * Cancel Plan's Switch to Free Plan: the same plan change Change Plan
+   * makes, then the Current Plan card reads the project again.
+   */
+  const switchToPlan: (planId: string) => Promise<void> = async (
+    planId: string,
+  ): Promise<void> => {
+    if (!changePlanApiUrl) {
+      return;
+    }
+
+    try {
+      const response: HTTPResponse<JSONObject> = await BaseAPI.put<JSONObject>({
+        url: changePlanApiUrl,
+        data: {
+          data: {
+            paymentProviderPlanId: planId,
+          },
+        },
+        headers: ModelAPI.getCommonHeaders(),
+      });
+
+      if (response.isFailure()) {
+        throw response;
+      }
+    } catch (err) {
+      throw new Error(BaseAPI.getFriendlyMessage(err));
+    }
+
+    setPlanDetailsRefresher((value: boolean) => {
+      return !value;
+    });
+    Toast.success(
+      translator.translateText(CancelPlanCopy.switched) ||
+        CancelPlanCopy.switched,
+    );
+
+    await capturePlanChangeEvents();
+  };
+
   return (
     <Fragment>
       {isLoading ? <PageLoader isVisible={true} /> : <></>}
@@ -756,6 +815,7 @@ const Settings: FunctionComponent<ComponentProps> = (
           {!reseller && (
             <CardModelDetail<Project>
               name="Plan Details"
+              refresher={planDetailsRefresher}
               cardProps={{
                 title: "Current Plan",
                 description:
@@ -1505,23 +1565,19 @@ const Settings: FunctionComponent<ComponentProps> = (
           )}
 
           {!reseller && !billingMarketplace && (
-            <Card
-              title={`Cancel Plan`}
-              description={`If you would like to cancel the plan, you need to delete the project.`}
-              buttons={[
-                {
-                  title: `Delete Project`,
-                  buttonStyle: ButtonStyleType.DANGER,
-                  onClick: () => {
-                    Navigation.navigate(
-                      RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS_DANGERZONE] as Route,
-                      ),
-                    );
-                  },
-                  icon: IconProp.Close,
-                },
-              ]}
+            <CancelPlanCard
+              plans={SubscriptionPlan.getSubscriptionPlans(getAllEnvVars())}
+              currentPlanId={currentPlanId}
+              freePlanStopNote={getFreePlanStopNote()}
+              lockedReason={getBillingActionLockedReason(getChangePlanGate())}
+              onBeforeSwitch={() => {
+                if (paymentMethodsCount === 0) {
+                  setShowNoPaymentMethodModal(true);
+                  return false;
+                }
+                return true;
+              }}
+              onSwitch={switchToPlan}
             />
           )}
 

@@ -56457,5 +56457,20 @@
   "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.": "Мониторы, которые не проверяет ни один включённый зонд: все их зонды отключены или у них нет ни одного. Включите зонд на мониторе или добавьте новый, чтобы проверки возобновились.",
   "Monitors with No Probe Enabled": "Мониторы без включённых зондов",
   "No Probe Enabled": "Нет включённых зондов",
-  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "Нет мониторов без включённого зонда. У каждого монитора, который проверяют зонды, включён хотя бы один."
+  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "Нет мониторов без включённого зонда. У каждого монитора, который проверяют зонды, включён хотя бы один.",
+  "Contact support to cancel this plan. We will help you move the project to a plan that fits, or close it.": "Чтобы отменить этот план, обратитесь в поддержку. Мы поможем перевести проект на подходящий план или закрыть его.",
+  "Contact the company you bought your plan from to add {{product}} to it.": "Чтобы добавить {{product}}, обратитесь в компанию, у которой вы купили план.",
+  "Contact {{reseller}} at {{contact}} to add {{product}} to your plan.": "Чтобы добавить {{product}} в ваш план, обратитесь в {{reseller}}: {{contact}}.",
+  "Contact {{reseller}}, the company you bought your plan from, to add {{product}} to it.": "Чтобы добавить {{product}}, обратитесь в {{reseller}} — компанию, у которой вы купили план.",
+  "Features the Free plan does not include stop working, and nothing is deleted. They work again when you change back to a plan that includes them.": "Функции, которых нет в бесплатном плане, перестают работать, и ничего не удаляется. Они снова заработают, когда вы вернётесь на план, который их включает.",
+  "Questions about your bill, or want to stop using OneUptime? Contact support and we will help.": "Есть вопросы о счёте или хотите перестать пользоваться OneUptime? Обратитесь в поддержку, и мы поможем.",
+  "Switch to Free Plan": "Перейти на бесплатный план",
+  "Switch to the Free plan to stop paying for seats. Your monitors, incidents, status pages and their history stay as they are.": "Перейдите на бесплатный план, чтобы больше не платить за места. Ваши мониторы, инциденты, страницы статуса и их история останутся как есть.",
+  "Switch to the Free plan?": "Перейти на бесплатный план?",
+  "The project stops paying for seats from now on. Features the Free plan does not include stop working, and nothing is deleted.": "С этого момента проект больше не платит за места. Функции, которых нет в бесплатном плане, перестают работать, и ничего не удаляется.",
+  "This project is now on the Free plan.": "Теперь этот проект на бесплатном плане.",
+  "This project is on the Free plan, so it pays nothing for seats.": "Этот проект на бесплатном плане, поэтому он ничего не платит за места.",
+  "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "На бесплатном плане использование по-прежнему оплачивается по факту: данные, которые отправляют ваши сервисы, и каждый монитор, кроме ручных.",
+  "You do not have permission to change the plan.": "У вас нет разрешения на смену плана.",
+  "Your plan does not include {{product}}": "Ваш план не включает {{product}}"
 }

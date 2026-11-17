@@ -56457,5 +56457,20 @@
   "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.": "Moniteurs qu'aucune sonde activée ne vérifie : leurs sondes sont toutes désactivées, ou ils n'en ont aucune. Activez une sonde sur le moniteur, ou ajoutez-en une, pour relancer les vérifications.",
   "Monitors with No Probe Enabled": "Moniteurs sans sonde activée",
   "No Probe Enabled": "Aucune sonde activée",
-  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "Aucun moniteur sans sonde activée. Chaque moniteur vérifié par des sondes en a au moins une activée."
+  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "Aucun moniteur sans sonde activée. Chaque moniteur vérifié par des sondes en a au moins une activée.",
+  "Contact support to cancel this plan. We will help you move the project to a plan that fits, or close it.": "Contactez le support pour résilier ce forfait. Nous vous aiderons à passer le projet à un forfait adapté, ou à le fermer.",
+  "Contact the company you bought your plan from to add {{product}} to it.": "Contactez l'entreprise auprès de laquelle vous avez acheté votre forfait pour y ajouter {{product}}.",
+  "Contact {{reseller}} at {{contact}} to add {{product}} to your plan.": "Contactez {{reseller}} à {{contact}} pour ajouter {{product}} à votre forfait.",
+  "Contact {{reseller}}, the company you bought your plan from, to add {{product}} to it.": "Contactez {{reseller}}, l'entreprise auprès de laquelle vous avez acheté votre forfait, pour y ajouter {{product}}.",
+  "Features the Free plan does not include stop working, and nothing is deleted. They work again when you change back to a plan that includes them.": "Les fonctionnalités que le forfait gratuit n'inclut pas cessent de fonctionner, et rien n'est supprimé. Elles fonctionnent à nouveau lorsque vous revenez à un forfait qui les inclut.",
+  "Questions about your bill, or want to stop using OneUptime? Contact support and we will help.": "Des questions sur votre facture, ou vous souhaitez cesser d'utiliser OneUptime ? Contactez le support, nous vous aiderons.",
+  "Switch to Free Plan": "Passer au forfait gratuit",
+  "Switch to the Free plan to stop paying for seats. Your monitors, incidents, status pages and their history stay as they are.": "Passez au forfait gratuit pour ne plus payer de sièges. Vos moniteurs, incidents, pages de statut et leur historique restent tels quels.",
+  "Switch to the Free plan?": "Passer au forfait gratuit ?",
+  "The project stops paying for seats from now on. Features the Free plan does not include stop working, and nothing is deleted.": "Le projet cesse de payer des sièges dès maintenant. Les fonctionnalités que le forfait gratuit n'inclut pas cessent de fonctionner, et rien n'est supprimé.",
+  "This project is now on the Free plan.": "Ce projet est maintenant sur le forfait gratuit.",
+  "This project is on the Free plan, so it pays nothing for seats.": "Ce projet est sur le forfait gratuit, il ne paie donc rien pour les sièges.",
+  "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "L'utilisation reste facturée à l'usage sur le forfait gratuit : les données envoyées par vos services, et chaque moniteur qui n'est pas un moniteur manuel.",
+  "You do not have permission to change the plan.": "Vous n'avez pas l'autorisation de changer de forfait.",
+  "Your plan does not include {{product}}": "Votre forfait n'inclut pas {{product}}"
 }

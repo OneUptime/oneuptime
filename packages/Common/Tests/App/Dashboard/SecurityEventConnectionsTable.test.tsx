@@ -200,8 +200,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const CONNECTION_ID: string = "22222222-2222-4222-8222-222222222222";
 const GOOGLE_ID: string = "33333333-3333-4333-8333-333333333333";
 const NOW: number = new Date("2026-09-10T12:00:00Z").getTime();
-const RESELLER_MESSAGE: string =
-  "Looks like you have bought this plan from a reseller. It did not include telemetry features in your plan. Telemetry features are disabled for this project.";
+const RESELLER_MESSAGE: string = "Your plan does not include security events";
 const EMPTY_STATE_ID: string = "security-event-connections-empty-state";
 const NO_CREATE_REASON: string =
   "You do not have permission to create connections.";

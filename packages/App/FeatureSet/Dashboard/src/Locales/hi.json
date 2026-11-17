@@ -56457,5 +56457,20 @@
   "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.": "वे मॉनिटर जिनकी जाँच कोई सक्षम प्रोब नहीं करता: उनके सभी प्रोब अक्षम हैं, या उनके पास कोई प्रोब नहीं है। जाँच फिर से शुरू करने के लिए मॉनिटर पर कोई प्रोब सक्षम करें, या एक जोड़ें।",
   "Monitors with No Probe Enabled": "बिना सक्षम प्रोब वाले मॉनिटर",
   "No Probe Enabled": "कोई प्रोब सक्षम नहीं",
-  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "बिना सक्षम प्रोब वाला कोई मॉनिटर नहीं है। प्रोब जिन मॉनिटरों की जाँच करते हैं, उनमें से हर एक में कम से कम एक प्रोब सक्षम है।"
+  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "बिना सक्षम प्रोब वाला कोई मॉनिटर नहीं है। प्रोब जिन मॉनिटरों की जाँच करते हैं, उनमें से हर एक में कम से कम एक प्रोब सक्षम है।",
+  "Contact support to cancel this plan. We will help you move the project to a plan that fits, or close it.": "इस योजना को रद्द करने के लिए सहायता टीम से संपर्क करें। हम प्रोजेक्ट को किसी उपयुक्त योजना पर ले जाने या उसे बंद करने में आपकी मदद करेंगे।",
+  "Contact the company you bought your plan from to add {{product}} to it.": "{{product}} जोड़ने के लिए उस कंपनी से संपर्क करें जिससे आपने अपनी योजना खरीदी थी।",
+  "Contact {{reseller}} at {{contact}} to add {{product}} to your plan.": "अपनी योजना में {{product}} जोड़ने के लिए {{contact}} पर {{reseller}} से संपर्क करें।",
+  "Contact {{reseller}}, the company you bought your plan from, to add {{product}} to it.": "{{product}} जोड़ने के लिए {{reseller}} से संपर्क करें, वह कंपनी जिससे आपने अपनी योजना खरीदी थी।",
+  "Features the Free plan does not include stop working, and nothing is deleted. They work again when you change back to a plan that includes them.": "जो सुविधाएँ मुफ़्त योजना में शामिल नहीं हैं, वे काम करना बंद कर देती हैं, और कुछ भी हटाया नहीं जाता। जब आप उन्हें शामिल करने वाली योजना पर वापस जाते हैं, तो वे फिर से काम करने लगती हैं।",
+  "Questions about your bill, or want to stop using OneUptime? Contact support and we will help.": "अपने बिल के बारे में सवाल हैं, या OneUptime का उपयोग बंद करना चाहते हैं? सहायता टीम से संपर्क करें, हम मदद करेंगे।",
+  "Switch to Free Plan": "मुफ़्त योजना पर जाएँ",
+  "Switch to the Free plan to stop paying for seats. Your monitors, incidents, status pages and their history stay as they are.": "सीटों के लिए भुगतान बंद करने के लिए मुफ़्त योजना पर जाएँ। आपके मॉनिटर, घटनाएँ, स्टेटस पेज और उनका इतिहास जैसे हैं वैसे ही रहेंगे।",
+  "Switch to the Free plan?": "मुफ़्त योजना पर जाएँ?",
+  "The project stops paying for seats from now on. Features the Free plan does not include stop working, and nothing is deleted.": "प्रोजेक्ट अब से सीटों के लिए भुगतान नहीं करेगा। जो सुविधाएँ मुफ़्त योजना में शामिल नहीं हैं, वे काम करना बंद कर देती हैं, और कुछ भी हटाया नहीं जाता।",
+  "This project is now on the Free plan.": "यह प्रोजेक्ट अब मुफ़्त योजना पर है।",
+  "This project is on the Free plan, so it pays nothing for seats.": "यह प्रोजेक्ट मुफ़्त योजना पर है, इसलिए यह सीटों के लिए कुछ भी भुगतान नहीं करता।",
+  "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "मुफ़्त योजना पर भी उपयोग का बिल उपयोग के अनुसार बनता है: आपकी सेवाओं द्वारा भेजा गया डेटा, और हर वह मॉनिटर जो मैनुअल मॉनिटर नहीं है।",
+  "You do not have permission to change the plan.": "आपको योजना बदलने की अनुमति नहीं है।",
+  "Your plan does not include {{product}}": "आपकी योजना में {{product}} शामिल नहीं है"
 }

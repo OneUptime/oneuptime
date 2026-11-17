@@ -56457,5 +56457,20 @@
   "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.": "مراقبات لا يفحصها أي مسبار مفعّل: مسابيرها كلها معطّلة، أو ليس لها أي مسبار. فعّل مسبارًا على المراقبة، أو أضف واحدًا، لتبدأ الفحوصات من جديد.",
   "Monitors with No Probe Enabled": "المراقبات التي ليس لها مسبار مفعّل",
   "No Probe Enabled": "لا يوجد مسبار مفعّل",
-  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "لا توجد مراقبات بلا مسبار مفعّل. لكل مراقبة تفحصها المسابير مسبار واحد مفعّل على الأقل."
+  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "لا توجد مراقبات بلا مسبار مفعّل. لكل مراقبة تفحصها المسابير مسبار واحد مفعّل على الأقل.",
+  "Contact support to cancel this plan. We will help you move the project to a plan that fits, or close it.": "تواصل مع الدعم لإلغاء هذه الخطة. سنساعدك على نقل المشروع إلى خطة تناسبك، أو على إغلاقه.",
+  "Contact the company you bought your plan from to add {{product}} to it.": "تواصل مع الشركة التي اشتريت منها خطتك لإضافة {{product}} إليها.",
+  "Contact {{reseller}} at {{contact}} to add {{product}} to your plan.": "تواصل مع {{reseller}} على {{contact}} لإضافة {{product}} إلى خطتك.",
+  "Contact {{reseller}}, the company you bought your plan from, to add {{product}} to it.": "تواصل مع {{reseller}}، الشركة التي اشتريت منها خطتك، لإضافة {{product}} إليها.",
+  "Features the Free plan does not include stop working, and nothing is deleted. They work again when you change back to a plan that includes them.": "تتوقف الميزات التي لا تتضمنها الخطة المجانية عن العمل، ولا يُحذف أي شيء. وتعود للعمل عندما تنتقل مجددًا إلى خطة تتضمنها.",
+  "Questions about your bill, or want to stop using OneUptime? Contact support and we will help.": "لديك أسئلة عن فاتورتك، أو تريد التوقف عن استخدام OneUptime؟ تواصل مع الدعم وسنساعدك.",
+  "Switch to Free Plan": "الانتقال إلى الخطة المجانية",
+  "Switch to the Free plan to stop paying for seats. Your monitors, incidents, status pages and their history stay as they are.": "انتقل إلى الخطة المجانية للتوقف عن الدفع مقابل المقاعد. تبقى أجهزة المراقبة والحوادث وصفحات الحالة وسجلها كما هي.",
+  "Switch to the Free plan?": "الانتقال إلى الخطة المجانية؟",
+  "The project stops paying for seats from now on. Features the Free plan does not include stop working, and nothing is deleted.": "يتوقف المشروع عن الدفع مقابل المقاعد بدءًا من الآن. تتوقف الميزات التي لا تتضمنها الخطة المجانية عن العمل، ولا يُحذف أي شيء.",
+  "This project is now on the Free plan.": "أصبح هذا المشروع على الخطة المجانية.",
+  "This project is on the Free plan, so it pays nothing for seats.": "هذا المشروع على الخطة المجانية، لذا لا يدفع شيئًا مقابل المقاعد.",
+  "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "يستمر احتساب الاستخدام حسب الاستهلاك على الخطة المجانية: البيانات التي ترسلها خدماتك، وكل جهاز مراقبة ليس جهاز مراقبة يدويًا.",
+  "You do not have permission to change the plan.": "لا تملك إذن تغيير الخطة.",
+  "Your plan does not include {{product}}": "خطتك لا تتضمن {{product}}"
 }
