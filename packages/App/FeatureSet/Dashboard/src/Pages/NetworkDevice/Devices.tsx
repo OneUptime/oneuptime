@@ -1750,6 +1750,11 @@ const NetworkDevices: FunctionComponent<
             field: {
               manufacturer: true,
             },
+            /*
+             * The identity it had while keyed by `vendor`, so whoever hid or
+             * moved it with Customize Columns keeps it hidden or moved.
+             */
+            id: "vendor",
             title: "Vendor / Model",
             type: FieldType.Element,
             hideOnMobile: true,

@@ -82,6 +82,7 @@ type CapturedFilter = {
 };
 
 type CapturedColumn = {
+  id?: string | undefined;
   field?: Record<string, unknown> | undefined;
   title?: string | undefined;
   type?: string | undefined;
@@ -193,6 +194,7 @@ import {
   getStoredNetworkDeviceManufacturer,
 } from "../../../Utils/NetworkDevice/NetworkDeviceStoredManufacturer";
 import { getColumnSortKey } from "../../../UI/Components/ModelTable/ColumnSort";
+import { getColumnBaseId } from "../../../UI/Components/ModelTable/ColumnPreference";
 import buildQueryFromFilterData, {
   renameFilterDataKeys,
   sanitizeFilterData,
@@ -379,6 +381,8 @@ describe("the lists that filter network devices by Vendor", () => {
       expect(column.field).toEqual({ manufacturer: true });
       expect(column.disableSort).not.toBe(true);
       expect(getColumnSortKey(column as never)).toBe("manufacturer");
+      // Hidden or moved with Customize Columns before, it stays so.
+      expect(getColumnBaseId(column as never)).toBe("vendor");
     });
 
     test("its cell still draws the device's asset facts: a maker from discovery only, and a saved one over it", async () => {
@@ -465,5 +469,6 @@ describe("the lists that filter network devices by Vendor", () => {
     expect(column.field).toEqual({ manufacturer: true });
     expect(column.type).toBe(FieldType.Text);
     expect(getColumnSortKey(column as never)).toBe("manufacturer");
+    expect(getColumnBaseId(column as never)).toBe("vendor");
   });
 });

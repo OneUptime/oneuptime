@@ -323,6 +323,8 @@ const NetworkSiteDevices: FunctionComponent<
             field: {
               manufacturer: true,
             },
+            // Its identity as it was, for the viewer's Customize Columns choices.
+            id: "vendor",
             title: "Vendor",
             type: FieldType.Text,
             hideOnMobile: true,
