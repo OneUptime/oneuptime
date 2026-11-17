@@ -276,6 +276,11 @@ async function enterEditMode(): Promise<void> {
   expect(isEditing()).toBe(true);
 }
 
+// The editing toolbar's Cancel: a button, named by its words.
+function toolbarCancel(): HTMLElement {
+  return screen.getByRole("button", { name: "Cancel" });
+}
+
 async function addTextWidget(): Promise<void> {
   await act(async () => {
     fireEvent.click(screen.getByTitle("Add Widget"));
@@ -382,7 +387,7 @@ describe("a dashboard opened for editing and left as it was", () => {
     await enterEditMode();
 
     await act(async () => {
-      fireEvent.click(screen.getByTitle("Cancel"));
+      fireEvent.click(toolbarCancel());
     });
     await settle();
 
@@ -537,7 +542,7 @@ describe("a dashboard with an unsaved widget", () => {
     await addTextWidget();
 
     await act(async () => {
-      fireEvent.click(screen.getByTitle("Cancel"));
+      fireEvent.click(toolbarCancel());
     });
 
     const dialog: HTMLElement = screen.getByRole("dialog", {
@@ -611,7 +616,7 @@ describe("after Save Changes or Discard Changes", () => {
     await addTextWidget();
 
     await act(async () => {
-      fireEvent.click(screen.getByTitle("Cancel"));
+      fireEvent.click(toolbarCancel());
     });
     await act(async () => {
       fireEvent.click(screen.getByText("Discard Changes"));
