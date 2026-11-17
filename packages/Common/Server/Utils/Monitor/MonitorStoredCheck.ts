@@ -118,9 +118,7 @@ export default class MonitorStoredCheck {
       [EVIDENCE_TRUNCATED_FIELD]: true,
     };
 
-    if (
-      Buffer.byteLength(JSON.stringify(result), "utf8") <= maxSizeInBytes
-    ) {
+    if (Buffer.byteLength(JSON.stringify(result), "utf8") <= maxSizeInBytes) {
       return result;
     }
 
@@ -221,9 +219,7 @@ export default class MonitorStoredCheck {
       index = new Map<string, JSONObject>();
 
       for (const item of input.list) {
-        const entryFingerprint: unknown = MonitorStoredCheck.isPlainObject(
-          item,
-        )
+        const entryFingerprint: unknown = MonitorStoredCheck.isPlainObject(item)
           ? (item as JSONObject)["fingerprint"]
           : undefined;
 

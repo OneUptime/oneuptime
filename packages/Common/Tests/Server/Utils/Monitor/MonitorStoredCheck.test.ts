@@ -35,6 +35,9 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * STORED_CHECK_MAX_SIZE_IN_BYTES.
  */
 
+// A read of a list entry, by its index.
+const ENTRY_INDEX: RegExp = new RegExp("^[0-9]+$");
+
 function bytes(value: unknown): number {
   return Buffer.byteLength(JSON.stringify(value), "utf8");
 }
@@ -104,13 +107,7 @@ describe("a record about one series of a grouped metric monitor", () => {
       seriesFingerprint: fingerprintOf(1),
     });
 
-    expect(log["metricResultArrivals"]).toEqual([
-      null,
-      null,
-      null,
-      null,
-      null,
-    ]);
+    expect(log["metricResultArrivals"]).toEqual([null, null, null, null, null]);
   });
 
   test("says which series it kept and how many the evaluation looked at", () => {
@@ -188,8 +185,9 @@ describe("a record about one series of a grouped metric monitor", () => {
 
   test("redacts only what it keeps: never the series it dropped", () => {
     const fleet: GroupedMetricCheck = groupedMetricCheck({ seriesCount: 300 });
-    const redactText: jest.SpiedFunction<typeof MonitorEvidenceRedaction.redactText> =
-      jest.spyOn(MonitorEvidenceRedaction, "redactText");
+    const redactText: jest.SpiedFunction<
+      typeof MonitorEvidenceRedaction.redactText
+    > = jest.spyOn(MonitorEvidenceRedaction, "redactText");
 
     stored({ check: fleet.check, seriesFingerprint: fingerprintOf(5) });
     const scopedCalls: number = redactText.mock.calls.length;
@@ -211,7 +209,7 @@ describe("a record about one series of a grouped metric monitor", () => {
     // Count reads of the list's entries.
     const counted: Array<unknown> = new Proxy(breakdown, {
       get(target: Array<unknown>, key: string | symbol): unknown {
-        if (typeof key === "string" && /^\d+$/.test(key)) {
+        if (typeof key === "string" && ENTRY_INDEX.test(key)) {
           reads++;
         }
 
@@ -357,8 +355,9 @@ describe("the size limit", () => {
     const fleet: GroupedMetricCheck = groupedMetricCheck({
       seriesCount: 5000,
     });
-    const redactText: jest.SpiedFunction<typeof MonitorEvidenceRedaction.redactText> =
-      jest.spyOn(MonitorEvidenceRedaction, "redactText");
+    const redactText: jest.SpiedFunction<
+      typeof MonitorEvidenceRedaction.redactText
+    > = jest.spyOn(MonitorEvidenceRedaction, "redactText");
 
     const log: JSONObject = stored({ check: fleet.check });
 

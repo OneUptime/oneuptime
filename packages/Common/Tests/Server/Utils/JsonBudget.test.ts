@@ -30,7 +30,7 @@ describe("JsonBudget.measure", () => {
       {
         a: [1, 2, { b: "c", d: [null, true] }],
         e: { f: "g" },
-        "key with \"quotes\"": 1,
+        'key with "quotes"': 1,
       },
     ],
     ["a date", { at: new Date("2026-11-17T10:00:00.000Z") }],
@@ -150,11 +150,9 @@ describe("JsonBudget.fit", () => {
       _type: "ObjectID",
       value: "x".repeat(500),
     };
-    const result: JsonBudgetResult = JsonBudget.fit(
-      { id: typed, n: 1 },
-      200,
-      { cutStrings: true },
-    );
+    const result: JsonBudgetResult = JsonBudget.fit({ id: typed, n: 1 }, 200, {
+      cutStrings: true,
+    });
 
     expect(result.value).toEqual({ n: 1 });
   });

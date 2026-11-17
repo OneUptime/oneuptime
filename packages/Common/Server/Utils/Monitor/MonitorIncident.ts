@@ -1510,14 +1510,12 @@ export default class MonitorIncident {
        * Redacted, storable and bounded, as createdStateLog above: the
        * resolving series only, when the incident is about one.
        */
-      incidentStateTimeline.stateChangeLog = MonitorStoredCheck.toStoredCheck(
-        {
-          dataToProcess: input.dataToProcess as DataToProcess,
-          keepResponseContent: input.keepResponseContent !== false,
-          monitorStep: input.monitorStep,
-          seriesFingerprint: input.openIncident.seriesFingerprint,
-        },
-      );
+      incidentStateTimeline.stateChangeLog = MonitorStoredCheck.toStoredCheck({
+        dataToProcess: input.dataToProcess as DataToProcess,
+        keepResponseContent: input.keepResponseContent !== false,
+        monitorStep: input.monitorStep,
+        seriesFingerprint: input.openIncident.seriesFingerprint,
+      });
     }
 
     try {

@@ -101,10 +101,7 @@ export default class JsonBudget {
     const toJSON: unknown = (value as { toJSON?: unknown }).toJSON;
 
     if (typeof toJSON === "function") {
-      return JsonBudget.measure(
-        (toJSON as () => unknown).call(value),
-        limit,
-      );
+      return JsonBudget.measure((toJSON as () => unknown).call(value), limit);
     }
 
     const source: Record<string, unknown> = value as Record<string, unknown>;
@@ -301,7 +298,8 @@ export default class JsonBudget {
     while (length > 0) {
       // Never half of a character written as two.
       const last: number = value.charCodeAt(length - 1);
-      const end: number = last >= 0xd800 && last <= 0xdbff ? length - 1 : length;
+      const end: number =
+        last >= 0xd800 && last <= 0xdbff ? length - 1 : length;
       const head: string = value.slice(0, end);
       const size: number = Buffer.byteLength(JSON.stringify(head), "utf8");
 
@@ -310,10 +308,7 @@ export default class JsonBudget {
       }
 
       // Escapes and wide characters: shrink by what it is over, at least one.
-      length = Math.min(
-        end - 1,
-        Math.floor((end * budget) / size),
-      );
+      length = Math.min(end - 1, Math.floor((end * budget) / size));
     }
 
     return "";

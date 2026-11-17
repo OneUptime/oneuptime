@@ -31,10 +31,6 @@ export const EVIDENCE_TRUNCATED_FIELD: string = "isEvidenceTruncated";
  */
 export const EVIDENCE_SCOPE_FIELD: string = "evidenceScope";
 
-// What View Logs says above a check that was cut.
-export const EVIDENCE_TRUNCATED_NOTE: string =
-  "This check was too large to keep in full, so it was trimmed.";
-
 export interface StoredCheckEvidenceScope {
   seriesFingerprint: string;
   // How many series the evaluation looked at.

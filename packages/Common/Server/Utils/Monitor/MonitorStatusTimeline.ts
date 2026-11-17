@@ -183,14 +183,13 @@ export default class MonitorStatusTimelineUtil {
        * (MonitorStoredCheck): a grouped monitor's evaluation can hold
        * thousands of series.
        */
-      monitorStatusTimeline.statusChangeLog =
-        MonitorStoredCheck.toStoredCheck({
-          dataToProcess: input.dataToProcess,
-          keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
-            input.monitor,
-          ),
-          monitorStep: input.monitorStep,
-        });
+      monitorStatusTimeline.statusChangeLog = MonitorStoredCheck.toStoredCheck({
+        dataToProcess: input.dataToProcess,
+        keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+          input.monitor,
+        ),
+        monitorStep: input.monitorStep,
+      });
       monitorStatusTimeline.rootCause = input.rootCause;
 
       try {
