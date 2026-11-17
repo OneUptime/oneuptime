@@ -444,10 +444,58 @@ export const WALK_EVERY_LEVEL: string = translationKey(
   "Walk every escalation level",
 );
 
+/*
+ * A MONITOR'S FIRE DRILL (#7012): one test of each on-call policy the
+ * failure picked pages, said plainly before it starts - that it is a test,
+ * which policies it pages and who each pages - and each policy's result
+ * after.
+ */
+export const FIRE_DRILL_WORDS: Readonly<{
+  button: string;
+  title: string;
+  description: string;
+  whatFails: string;
+  start: string;
+  policyYouCantSee: string;
+  cantTestPolicy: string;
+  reachesNobody: string;
+  started: string;
+}> = {
+  button: translationKey("Run Fire Drill"),
+  title: translationKey("Fire Drill"),
+  description: translationKey(
+    "Pages the people this monitor's failure would page, as a test. Every message says TEST. No incident or alert is created, nothing shows on a status page, and no subscriber or channel is told.",
+  ),
+  whatFails: translationKey("What fails"),
+  start: translationKey("Start Fire Drill"),
+  policyYouCantSee: translationKey("An on-call policy you can't see"),
+  cantTestPolicy: translationKey(
+    "You can't test this policy, so who it pages is not shown.",
+  ),
+  reachesNobody: translationKey(
+    "This fire drill would send nothing yet: nobody these policies page can receive it right now. Each line above says why.",
+  ),
+  started: translationKey(
+    "Started. Each policy's messages are below as they go out. Each test ends when someone acknowledges it, or after {{minutes}} minutes.",
+  ),
+};
+
+/*
+ * Why a fire drill can't start: a policy of it the reader may not test. It
+ * tests every policy, or none - a drill that skipped one would say all is
+ * well.
+ */
+export const FIRE_DRILL_CANT_TEST: PluralTemplate = {
+  one: "You can't start this fire drill: it tests every policy this failure pages, and you can't test {{count}} of them. Ask a Project Admin, or the policy's owners.",
+  other:
+    "You can't start this fire drill: it tests every policy this failure pages, and you can't test {{count}} of them. Ask a Project Admin, or the policies' owners.",
+};
+
 // What a test costs, in a sentence: the first level's, or a walk's at most.
 export const COST_SENTENCES: Readonly<{
   firstLevel: { withAmount: string; withoutAmount: string };
   walk: { withAmount: string; withoutAmount: string };
+  fireDrill: { withAmount: string; withoutAmount: string };
 }> = {
   firstLevel: {
     withAmount: translationKey(
@@ -463,6 +511,15 @@ export const COST_SENTENCES: Readonly<{
     ),
     withoutAmount: translationKey(
       "If nobody acknowledges it, walking every level sends up to {{items}}, paid from this project's SMS and call balance.",
+    ),
+  },
+  // A fire drill's: every policy's first level together.
+  fireDrill: {
+    withAmount: translationKey(
+      "This fire drill sends {{items}}, paid from this project's SMS and call balance: about {{amount}}.",
+    ),
+    withoutAmount: translationKey(
+      "This fire drill sends {{items}}, paid from this project's SMS and call balance.",
     ),
   },
 };

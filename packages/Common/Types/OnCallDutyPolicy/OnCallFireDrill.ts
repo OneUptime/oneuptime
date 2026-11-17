@@ -1,4 +1,9 @@
 import {
+  WhoIsToldCriteria,
+  WhoIsToldEvent,
+  WhoIsToldResult,
+} from "../Monitor/WhoIsTold";
+import {
   OnCallTestPageCost,
   OnCallTestPagePreview,
   OnCallTestPageRecordKind,
@@ -112,6 +117,50 @@ export function getOnCallFireDrillEventKey(data: {
     data.templateId || "",
     String(data.index),
   ].join(":");
+}
+
+// A failure of the monitor that pages at least one policy, as "When this goes down" reads it.
+export interface OnCallFireDrillFailure {
+  key: string;
+  criteria: WhoIsToldCriteria;
+  event: WhoIsToldEvent;
+}
+
+/*
+ * The failures of a "When this goes down" answer a drill can rehearse: each
+ * incident or alert a criteria opens that pages a policy, keyed as the
+ * drill asks for it (getOnCallFireDrillEventKey).
+ */
+export function getOnCallFireDrillFailures(
+  result: WhoIsToldResult,
+): Array<OnCallFireDrillFailure> {
+  const failures: Array<OnCallFireDrillFailure> = [];
+
+  for (const criteria of result.criteria) {
+    criteria.events.forEach((event: WhoIsToldEvent, index: number): void => {
+      if (event.policies.length === 0 || !event.severityId) {
+        return;
+      }
+
+      failures.push({
+        key: getOnCallFireDrillEventKey({
+          criteriaId: criteria.id,
+          recordKind: event.kind,
+          templateId: event.id,
+          index: index,
+        }),
+        criteria: criteria,
+        event: event,
+      });
+    });
+  }
+
+  return failures;
+}
+
+// Whether a monitor has a failure a drill can rehearse: one that pages a policy.
+export function hasOnCallFireDrill(result: WhoIsToldResult): boolean {
+  return getOnCallFireDrillFailures(result).length > 0;
 }
 
 /*

@@ -3,6 +3,10 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
+  OnCallFireDrillPreview,
+  OnCallFireDrillRun,
+} from "Common/Types/OnCallDutyPolicy/OnCallFireDrill";
+import {
   OnCallTestPagePreview,
   OnCallTestPageRecordKind,
   OnCallTestPageResult,
@@ -132,6 +136,62 @@ export default class OnCallTestPageApi {
     }
 
     return executionLogId;
+  }
+
+  /*
+   * A MONITOR'S FIRE DRILL (#7012): the monitor's failures, and for the one
+   * picked (or the first), each policy it pages and who - before anything
+   * is sent.
+   */
+  public static async fireDrillPreview(data: {
+    monitorId: string;
+    eventKey?: string | undefined;
+  }): Promise<OnCallFireDrillPreview> {
+    const body: JSONObject = toBody(
+      await API.post<JSONObject>({
+        url: getUrl("/fire-drill/preview"),
+        data: {
+          monitorId: data.monitorId,
+          ...(data.eventKey ? { eventKey: data.eventKey } : {}),
+        },
+        headers: { ...ModelAPI.getCommonHeaders() },
+      }),
+    );
+
+    return body as unknown as OnCallFireDrillPreview;
+  }
+
+  /*
+   * Starts the drill of a failure: the server pages the policies it pages
+   * now. Returns each policy's test, to read its result by.
+   */
+  public static async startFireDrill(data: {
+    monitorId: string;
+    eventKey: string;
+  }): Promise<Array<OnCallFireDrillRun>> {
+    const body: JSONObject = toBody(
+      await API.post<JSONObject>({
+        url: getUrl("/fire-drill/start"),
+        data: { monitorId: data.monitorId, eventKey: data.eventKey },
+        headers: { ...ModelAPI.getCommonHeaders() },
+      }),
+    );
+
+    const runs: Array<OnCallFireDrillRun> = Array.isArray(body["runs"])
+      ? (body["runs"] as unknown as Array<OnCallFireDrillRun>).filter(
+          (run: OnCallFireDrillRun): boolean => {
+            return Boolean(run && run.executionLogId);
+          },
+        )
+      : [];
+
+    if (runs.length === 0) {
+      throw new OnCallTestPageApiError(
+        "The fire drill was started, but its results can't be shown.",
+      );
+    }
+
+    return runs;
   }
 
   public static async getResult(

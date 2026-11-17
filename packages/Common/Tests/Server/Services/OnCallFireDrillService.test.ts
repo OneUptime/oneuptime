@@ -1,7 +1,5 @@
 import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
-import OnCallFireDrillService, {
-  getOnCallFireDrillFailures,
-} from "../../../Server/Services/OnCallFireDrillService";
+import OnCallFireDrillService from "../../../Server/Services/OnCallFireDrillService";
 import OnCallTestPageService, {
   ON_CALL_TEST_PAGE_POLICY_LIMIT_NAMESPACE,
   OnCallTestPageLimitKey,
@@ -25,7 +23,9 @@ import {
   OnCallFireDrillPreview,
   OnCallFireDrillStarted,
   getOnCallFireDrillEventKey,
+  getOnCallFireDrillFailures,
   getOnCallFireDrillPolicyTooSoonMessage,
+  hasOnCallFireDrill,
 } from "../../../Types/OnCallDutyPolicy/OnCallFireDrill";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
@@ -293,6 +293,20 @@ describe("the failures a drill can rehearse", () => {
         return failure.key;
       }),
     ).toEqual([SLOW_FOR_EVERYONE_KEY]);
+  });
+
+  test("a monitor has a drill when one of its failures pages a policy, and none when none does", () => {
+    expect(hasOnCallFireDrill(whoIsTold())).toBe(true);
+
+    const result: WhoIsToldResult = whoIsTold();
+
+    for (const criteria of result.criteria) {
+      for (const each of criteria.events) {
+        each.policies = [];
+      }
+    }
+
+    expect(hasOnCallFireDrill(result)).toBe(false);
   });
 
   test("a failure is told apart by its criteria, its kind, its template and its place", () => {

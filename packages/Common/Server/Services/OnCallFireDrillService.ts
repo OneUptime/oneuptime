@@ -10,7 +10,6 @@ import WhoIsToldService from "./WhoIsToldService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import {
-  WhoIsToldCriteria,
   WhoIsToldEvent,
   WhoIsToldPolicy,
   WhoIsToldResult,
@@ -20,11 +19,12 @@ import {
   ON_CALL_FIRE_DRILL_FAILURE_CHANGED_MESSAGE,
   ON_CALL_FIRE_DRILL_NOTHING_TO_PAGE_MESSAGE,
   OnCallFireDrillEvent,
+  OnCallFireDrillFailure,
   OnCallFireDrillPolicy,
   OnCallFireDrillPreview,
   OnCallFireDrillRun,
   OnCallFireDrillStarted,
-  getOnCallFireDrillEventKey,
+  getOnCallFireDrillFailures,
   getOnCallFireDrillPolicyTooSoonMessage,
 } from "../../Types/OnCallDutyPolicy/OnCallFireDrill";
 import {
@@ -57,13 +57,6 @@ import {
  * often is limited by the same windows, claimed for every policy at once
  * (OnCallTestPageService.claimLimitsOfEach).
  */
-
-// A failure of the monitor that pages at least one policy, as "When this goes down" reads it.
-export interface OnCallFireDrillFailure {
-  key: string;
-  criteria: WhoIsToldCriteria;
-  event: WhoIsToldEvent;
-}
 
 // Whether the caller may test a policy, as its own test asks (the API's).
 export type MayTestPolicy = (policyId: ObjectID) => Promise<boolean>;
@@ -297,38 +290,6 @@ export class OnCallFireDrillService extends BaseService {
 
     return { runs: runs };
   }
-}
-
-/*
- * The failures of a "When this goes down" answer a drill can rehearse: each
- * incident or alert a criteria opens that pages a policy, keyed as the
- * drill asks for it (getOnCallFireDrillEventKey).
- */
-export function getOnCallFireDrillFailures(
-  result: WhoIsToldResult,
-): Array<OnCallFireDrillFailure> {
-  const failures: Array<OnCallFireDrillFailure> = [];
-
-  for (const criteria of result.criteria) {
-    criteria.events.forEach((event: WhoIsToldEvent, index: number): void => {
-      if (event.policies.length === 0 || !event.severityId) {
-        return;
-      }
-
-      failures.push({
-        key: getOnCallFireDrillEventKey({
-          criteriaId: criteria.id,
-          recordKind: event.kind,
-          templateId: event.id,
-          index: index,
-        }),
-        criteria: criteria,
-        event: event,
-      });
-    });
-  }
-
-  return failures;
 }
 
 // A failure, as the dialog offers it.

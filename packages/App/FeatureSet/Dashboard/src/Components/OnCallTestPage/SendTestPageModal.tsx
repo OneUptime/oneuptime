@@ -309,22 +309,32 @@ export function getTestPageCostItems(
 /*
  * What a test costs, in a sentence, or empty when it costs nothing: the
  * first level's, or - for a test that walks every level - the most the
- * walk costs, nobody acknowledging it (#7016). It lists only what the
- * project's balance pays for (#7263), as it says. The list and the amount
- * are written in the sentence's language: the reader's, or English's while
- * the reader's has no wording of the sentence.
+ * walk costs, nobody acknowledging it (#7016), or a fire drill's, every
+ * policy's first level together (#7012). It lists only what the project's
+ * balance pays for (#7263), as it says. The list and the amount are written
+ * in the sentence's language: the reader's, or English's while the
+ * reader's has no wording of the sentence.
  */
 export function describeTestPageCost(
   translator: Translator,
   cost: OnCallTestPageCost,
-  options?: { isWalk?: boolean | undefined } | undefined,
+  options?:
+    | {
+        isWalk?: boolean | undefined;
+        isFireDrill?: boolean | undefined;
+      }
+    | undefined,
 ): string {
   if (!cost.isPaid || !getTestPageCostItems(translator, cost)) {
     return "";
   }
 
   const sentences: { withAmount: string; withoutAmount: string } =
-    options?.isWalk ? COST_SENTENCES.walk : COST_SENTENCES.firstLevel;
+    options?.isFireDrill
+      ? COST_SENTENCES.fireDrill
+      : options?.isWalk
+        ? COST_SENTENCES.walk
+        : COST_SENTENCES.firstLevel;
 
   const items: ComposedValue = composedValue((sentence: Translator): string => {
     return getTestPageCostItems(sentence, cost);
@@ -715,8 +725,9 @@ const PreviewPerson: FunctionComponent<{
  * One level: each person it pages, with how the test reaches them - and,
  * as a row of its own under them, each target of it that reaches nobody,
  * and why, so it is never read as one more line about the person above.
+ * A fire drill draws each of its policies' first level with it (#7012).
  */
-const PreviewLevel: FunctionComponent<{
+export const PreviewLevel: FunctionComponent<{
   level: PreviewLevelWords;
   showNames: boolean;
   dataTestId?: string | undefined;
