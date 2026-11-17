@@ -8,9 +8,11 @@ import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import {
   getPillColors,
   getPillDotStyle,
+  getPillHollowDotStyle,
   getPillToneStyle,
   PillColors,
 } from "./PillColors";
+import { getPillToneColor, PillTone } from "./PillTone";
 import useTranslateValue from "../../Utils/Translation";
 import { getLineDirection } from "../../Utils/LineDirection";
 import { ReadingDirection } from "../../../Types/ReadingDirection";
@@ -37,7 +39,15 @@ export interface ComponentProps {
    * the project's own as written (isRecordNameAsWritten).
    */
   isUserContent?: boolean | undefined;
-  color: Color;
+  /*
+   * What the chip says about how something is doing (PillTone): Success,
+   * Warning, Danger, Info, Neutral, or Paused for a state someone chose to
+   * switch off. A status chip names its tone; a colour someone picked (a
+   * label's, a state's, a severity's) is passed as `color` instead, which
+   * wins. Neither: Neutral.
+   */
+  tone?: PillTone | undefined;
+  color?: Color | undefined;
   size?: PillSize | undefined;
   style?: CSSProperties;
   isMinimal?: boolean | undefined;
@@ -75,6 +85,15 @@ export interface ComponentProps {
    * "приостановле / но" (#6891).
    */
   isKeepingWordsWhole?: boolean | undefined;
+  /*
+   * No dot: a tag or a count that is not a state ("Beta", "3 rules"), where
+   * a dot would say "this is live". An icon still shows.
+   */
+  isDotHidden?: boolean | undefined;
+  // Where it sits in its row (a margin, flex-shrink-0), never its look.
+  className?: string | undefined;
+  // What a test or a page finds it by; "pill" when left out.
+  dataTestId?: string | undefined;
 }
 
 /*
@@ -125,7 +144,12 @@ export const WHOLE_WORDS_PILL_TEXT_CLASS_NAME: string =
 const Pill: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const colors: PillColors = getPillColors(props.color || Gray500);
+  const tone: PillTone | undefined = props.color
+    ? undefined
+    : props.tone || PillTone.Neutral;
+  const colors: PillColors = getPillColors(
+    props.color || (tone ? getPillToneColor(tone) : Gray500),
+  );
   const { translateString, language } = useTranslateValue();
   const text: string = props.isUserContent
     ? props.text
@@ -144,8 +168,9 @@ const Pill: FunctionComponent<ComponentProps> = (
   const getPillElement: GetReactElementFunction = (): ReactElement => {
     return (
       <span
-        data-testid="pill"
+        data-testid={props.dataTestId || "pill"}
         data-ou-pill={props.isMinimal ? undefined : ""}
+        data-tone={tone}
         /*
          * Its words end in "..." where its box ends, so a table that would
          * run past its card may narrow it (TableLayout's
@@ -156,7 +181,7 @@ const Pill: FunctionComponent<ComponentProps> = (
           props.isWrapping ? WRAPPING_PILL_CLASS_NAME : PILL_CLASS_NAME
         } ${
           props.isMinimal ? "text-gray-700 ring-1 ring-inset ring-gray-200" : ""
-        }`}
+        }${props.className ? ` ${props.className}` : ""}`}
         style={{
           fontSize: props.size ? props.size.toString() : PillSize.Normal,
           // A minimal pill is a neutral outline: its classes colour it.
@@ -197,6 +222,20 @@ const Pill: FunctionComponent<ComponentProps> = (
               style={getPillDotStyle(colors)}
             ></span>
           </span>
+        ) : props.isDotHidden ? (
+          <></>
+        ) : tone === PillTone.Paused ? (
+          // A light that is off: a ring, nothing inside (PillTone.Paused).
+          <span
+            data-testid="pill-dot"
+            data-hollow="true"
+            data-ou-pill-hollow-dot=""
+            className={`${PILL_DOT_CLASS_NAME}${
+              props.isWrapping ? ` ${WRAPPING_PILL_DOT_CLASS_NAME}` : ""
+            }`}
+            style={getPillHollowDotStyle(colors)}
+            aria-hidden="true"
+          ></span>
         ) : (
           <span
             data-testid="pill-dot"
