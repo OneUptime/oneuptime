@@ -595,12 +595,11 @@ describe("SloRequestCounting.readRangeSums", () => {
   });
 
   test("a range that holds no time is zero, and is left out of the query", async () => {
-    const query: jest.SpiedFunction<typeof SloHistoryService.executeQuery> =
-      jest
-        .spyOn(SloHistoryService, "executeQuery")
-        .mockResolvedValue(
-          resultOf([{ good0: 7, total0: 8, good1: 3, total1: 4 }]) as never,
-        );
+    const query: SpyInstance<typeof SloHistoryService.executeQuery> = jest
+      .spyOn(SloHistoryService, "executeQuery")
+      .mockResolvedValue(
+        resultOf([{ good0: 7, total0: 8, good1: 3, total1: 4 }]) as never,
+      );
 
     const sums: Array<SloRequestCounts> =
       await SloRequestCounting.readRangeSums({
@@ -622,7 +621,7 @@ describe("SloRequestCounting.readRangeSums", () => {
   });
 
   test("reads nothing when no range holds any time", async () => {
-    const query: jest.SpiedFunction<typeof SloHistoryService.executeQuery> =
+    const query: SpyInstance<typeof SloHistoryService.executeQuery> =
       jest.spyOn(SloHistoryService, "executeQuery");
 
     expect(

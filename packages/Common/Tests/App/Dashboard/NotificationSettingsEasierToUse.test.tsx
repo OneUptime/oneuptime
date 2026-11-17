@@ -9,6 +9,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import {
   act,
   cleanup,
@@ -95,9 +96,22 @@ const INCIDENTS_CARD: Array<NotificationSettingEventType> = [
 ];
 
 let rows: Array<UserNotificationSetting>;
-let getList: jest.SpiedFunction<typeof ModelAPI.getList>;
-let updateById: jest.SpiedFunction<typeof ModelAPI.updateById>;
-let create: jest.SpiedFunction<typeof ModelAPI.create>;
+// Spies on ModelAPI, without the type parameter a spy's type cannot carry.
+let getList: SpyInstance<
+  (
+    ...args: Parameters<typeof ModelAPI.getList>
+  ) => ReturnType<typeof ModelAPI.getList>
+>;
+let updateById: SpyInstance<
+  (
+    ...args: Parameters<typeof ModelAPI.updateById>
+  ) => ReturnType<typeof ModelAPI.updateById>
+>;
+let create: SpyInstance<
+  (
+    ...args: Parameters<typeof ModelAPI.create>
+  ) => ReturnType<typeof ModelAPI.create>
+>;
 let readiness: StubbedNotificationChannelReadiness;
 let nextId: number;
 

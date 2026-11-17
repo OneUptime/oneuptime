@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite
@@ -283,7 +284,9 @@ describe("the create's one answer", () => {
     expect(json["apiKey"]).toEqual({ _type: "HashedString", value: made });
     expect(getKeyShownOnCreate(json["apiKey"])).toBe(made);
     expect(
-      getKeyShownOnCreate(ApiKey.fromJSON(json, ApiKey).getValue("apiKey")),
+      getKeyShownOnCreate(
+        (ApiKey.fromJSON(json, ApiKey) as ApiKey).getValue("apiKey"),
+      ),
     ).toBe(made);
     expect(JSON.stringify(json)).not.toContain(HashedApiKey.hash(made));
   });
@@ -477,7 +480,9 @@ describe("resetApiKey", () => {
     expect(call.props).toBe(MEMBER_PROPS);
     expect(Object.keys(call.data).sort()).toEqual(["apiKey", "apiKeyHint"]);
     expect((call.data.apiKey as HashedString).isValueHashed()).toBe(true);
-    expect(call.data.apiKey!.toString()).toBe(HashedApiKey.hash(made.apiKey));
+    expect((call.data.apiKey as HashedString).toString()).toBe(
+      HashedApiKey.hash(made.apiKey),
+    );
     expect(call.data.apiKeyHint).toBe(made.apiKeyHint);
   });
 
@@ -553,7 +558,7 @@ describe("resetApiKey", () => {
 
 describe("findApiKey, through the upgrade", () => {
   let findOneBySpy: SpyInstance;
-  let querySpy: jest.Mock<(...args: Array<unknown>) => Promise<unknown>>;
+  let querySpy: Mock<(...args: Array<unknown>) => Promise<unknown>>;
   let storedAsWritten: Array<unknown>;
   let now: number;
 

@@ -47,6 +47,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A TERRAFORM APPLY THAT CHANGES A SCHEDULE'S TURN ORDER IS TOLD ONCE
@@ -626,10 +627,10 @@ describe("a change written row by row through the API is told once", () => {
     await movedTo(KIM, 1, API_KEY);
 
     // While the Workers tell the first change, the apply writes another row.
-    const refresh: jest.SpiedFunction<
+    const refresh: SpyInstance<
       typeof OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule
     > =
-      OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule as unknown as jest.SpiedFunction<
+      OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule as unknown as SpyInstance<
         typeof OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule
       >;
     const realRefresh: (scheduleId: ObjectID) => Promise<unknown> =

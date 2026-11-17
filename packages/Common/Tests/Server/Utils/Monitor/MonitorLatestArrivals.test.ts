@@ -25,6 +25,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * THE LATEST HEARTBEAT A READER OF A MONITOR SEES (issue #8123).
@@ -41,7 +42,7 @@ const REPORTED_AT: Date = new Date("2026-11-16T12:00:00.000Z");
 const WRITTEN_AT: Date = new Date("2026-11-16T11:58:30.000Z");
 
 let redis: Map<string, string>;
-let getStrings: jest.SpiedFunction<typeof GlobalCache.getStrings>;
+let getStrings: SpyInstance<typeof GlobalCache.getStrings>;
 let redisFails: boolean;
 
 function monitor(n: number, values: Partial<Monitor> = {}): Monitor {
@@ -178,12 +179,12 @@ describe("an incoming request monitor's last request", () => {
         incomingRequestReceivedAt: WRITTEN_AT.toISOString(),
         requestMethod: "POST",
         requestBody: { status: "ok" },
-      } as unknown as Monitor["incomingMonitorRequest"],
+      } as unknown as NonNullable<Monitor["incomingMonitorRequest"]>,
     });
     const asDate: Monitor = monitor(12, {
       incomingMonitorRequest: {
         incomingRequestReceivedAt: WRITTEN_AT,
-      } as unknown as Monitor["incomingMonitorRequest"],
+      } as unknown as NonNullable<Monitor["incomingMonitorRequest"]>,
     });
     const asEnvelope: Monitor = monitor(13, {
       incomingMonitorRequest: {
@@ -191,7 +192,7 @@ describe("an incoming request monitor's last request", () => {
           _type: "DateTime",
           value: WRITTEN_AT.toISOString(),
         },
-      } as unknown as Monitor["incomingMonitorRequest"],
+      } as unknown as NonNullable<Monitor["incomingMonitorRequest"]>,
     });
 
     for (const row of [asText, asDate, asEnvelope]) {
@@ -226,7 +227,7 @@ describe("an incoming request monitor's last request", () => {
     const row: Monitor = monitor(14, {
       incomingMonitorRequest: {
         incomingRequestReceivedAt: REPORTED_AT.toISOString(),
-      } as unknown as Monitor["incomingMonitorRequest"],
+      } as unknown as NonNullable<Monitor["incomingMonitorRequest"]>,
     });
     await MonitorHeartbeatState.recordIncomingRequest({
       monitorId: row.id!,
@@ -260,7 +261,7 @@ describe("an incoming request monitor's last request", () => {
       serverMonitorRequestReceivedAt: WRITTEN_AT,
       incomingMonitorRequest: {
         incomingRequestReceivedAt: WRITTEN_AT.toISOString(),
-      } as unknown as Monitor["incomingMonitorRequest"],
+      } as unknown as NonNullable<Monitor["incomingMonitorRequest"]>,
     });
     await MonitorHeartbeatState.recordIncomingRequest({
       monitorId: row.id!,
@@ -287,7 +288,7 @@ describe("what it costs, and what it does without Redis", () => {
         serverMonitorRequestReceivedAt: WRITTEN_AT,
         incomingMonitorRequest: {
           incomingRequestReceivedAt: WRITTEN_AT.toISOString(),
-        } as unknown as Monitor["incomingMonitorRequest"],
+        } as unknown as NonNullable<Monitor["incomingMonitorRequest"]>,
       });
     });
 
@@ -309,7 +310,7 @@ describe("what it costs, and what it does without Redis", () => {
       serverMonitorRequestReceivedAt: WRITTEN_AT,
       incomingMonitorRequest: {
         incomingRequestReceivedAt: WRITTEN_AT.toISOString(),
-      } as unknown as Monitor["incomingMonitorRequest"],
+      } as unknown as NonNullable<Monitor["incomingMonitorRequest"]>,
     });
     redisFails = true;
 

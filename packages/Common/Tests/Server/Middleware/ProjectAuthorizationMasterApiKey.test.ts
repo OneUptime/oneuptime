@@ -14,6 +14,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * ProjectMiddleware.isMasterApiKey AGAINST A STORED HASH (#7901).
@@ -41,7 +42,7 @@ type FindOneByFunction = (
   findOneBy: FindOneBy<GlobalConfig>,
 ) => Promise<GlobalConfig | null>;
 
-let findOneBy: jest.SpiedFunction<FindOneByFunction>;
+let findOneBy: SpyInstance<FindOneByFunction>;
 
 // The server's settings row, as the database holds it.
 function storeRow(
@@ -79,7 +80,7 @@ beforeEach(() => {
   findOneBy = getJestSpyOn(
     GlobalConfigService,
     "findOneBy",
-  ) as unknown as jest.SpiedFunction<FindOneByFunction>;
+  ) as unknown as SpyInstance<FindOneByFunction>;
   storeRow(null);
 });
 

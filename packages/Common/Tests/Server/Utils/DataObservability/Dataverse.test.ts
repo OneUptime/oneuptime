@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import * as mssql from "mssql";
 import DataverseApi, {
   DATAVERSE_CORE_TABLES,
@@ -834,7 +835,7 @@ describe("DataverseApi", () => {
   ])(
     "a 429's Retry-After of %j is a wait of %j seconds",
     async (retryAfter: string, seconds: number | null) => {
-      const now: jest.SpiedFunction<typeof Date.now> = jest
+      const now: SpyInstance<typeof Date.now> = jest
         .spyOn(Date, "now")
         .mockReturnValue(Date.UTC(2026, 10, 16, 10, 0, 0));
 

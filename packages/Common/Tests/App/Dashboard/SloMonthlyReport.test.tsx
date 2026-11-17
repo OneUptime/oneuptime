@@ -11,6 +11,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import {
   cleanup,
   fireEvent,
@@ -28,8 +29,7 @@ import { MemoryRouter } from "react-router-dom";
 
 type DownloadFileMock = (...args: Array<unknown>) => unknown;
 
-const mockDownloadFile: jest.Mock<DownloadFileMock> =
-  jest.fn<DownloadFileMock>();
+const mockDownloadFile: Mock<DownloadFileMock> = jest.fn<DownloadFileMock>();
 
 jest.mock("../../../UI/Utils/DownloadFile", () => {
   return {
@@ -177,7 +177,10 @@ const MONITOR_REPORT: SloMonthlyReport = buildSloMonthlyReport({
   now: MEASURED_AT,
 });
 
-let apiGet: jest.SpiedFunction<typeof API.get>;
+// A spy on API.get, without the type parameter a spy's type cannot carry.
+let apiGet: SpyInstance<
+  (...args: Parameters<typeof API.get>) => ReturnType<typeof API.get>
+>;
 
 function answer(report: SloMonthlyReport): HTTPResponse<JSONObject> {
   return new HTTPResponse<JSONObject>(

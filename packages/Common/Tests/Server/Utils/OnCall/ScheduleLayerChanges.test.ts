@@ -16,6 +16,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * A CHANGE TO A SCHEDULE'S LAYERS MADE THROUGH THE API IS TOLD ONCE (#7813)
@@ -51,17 +52,17 @@ const API_KEY: DatabaseCommonInteractionProps = {
   apiKeyId: new ObjectID("0d781300-0000-4000-8000-0000000000cc"),
 };
 
-let holds: jest.SpiedFunction<
+let holds: SpyInstance<
   typeof OnCallDutyPolicyScheduleService.updateColumnsByIdWithoutHooks
 >;
-let letGo: jest.SpiedFunction<
+let letGo: SpyInstance<
   typeof OnCallDutyPolicyScheduleService.compareAndSetColumnsByIdWithoutHooks
 >;
-let dueRead: jest.SpiedFunction<typeof OnCallDutyPolicyScheduleService.findBy>;
-let refresh: jest.SpiedFunction<
+let dueRead: SpyInstance<typeof OnCallDutyPolicyScheduleService.findBy>;
+let refresh: SpyInstance<
   typeof OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule
 >;
-let propagate: jest.SpiedFunction<
+let propagate: SpyInstance<
   typeof OnCallDutyPolicyScheduleService.propagateShiftConfigChange
 >;
 let errors: Array<string>;
@@ -175,7 +176,7 @@ describe("which writes wait for their change to be quiet", () => {
 
 describe("after a row of the layers is written", () => {
   test("in the Dashboard: told at once, nothing held", async () => {
-    const tellNow: jest.Mock = jest.fn(async () => {
+    const tellNow: Mock<() => Promise<void>> = jest.fn(async () => {
       order.push("told now");
     });
 
@@ -190,7 +191,7 @@ describe("after a row of the layers is written", () => {
   });
 
   test("through the API: nothing told, the change held for the quiet period from now", async () => {
-    const tellNow: jest.Mock = jest.fn(async () => {
+    const tellNow: Mock<() => Promise<void>> = jest.fn(async () => {
       return undefined;
     });
 
@@ -249,7 +250,7 @@ describe("after a row of the layers is written", () => {
   test("a hold that cannot be written: told at once, as before, and logged", async () => {
     holds.mockRejectedValue(new Error("connection terminated"));
 
-    const tellNow: jest.Mock = jest.fn(async () => {
+    const tellNow: Mock<() => Promise<void>> = jest.fn(async () => {
       return undefined;
     });
 
