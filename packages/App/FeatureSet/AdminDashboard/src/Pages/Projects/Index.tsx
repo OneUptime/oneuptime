@@ -227,10 +227,10 @@ const Projects: FunctionComponent = (): ReactElement => {
         isViewable={true}
         cardProps={{
           title: t("pages.projects.cardTitle"),
-          description: t("pages.projects.cardDescription"),
+          description: t("pages.projects.listDescription"),
         }}
         showViewIdButton={true}
-        noItemsMessage={t("pages.projects.noItems")}
+        noItemsMessage={t("pages.projects.emptyMessage")}
         searchableFields={["name"]}
         bulkActions={{
           buttons: [

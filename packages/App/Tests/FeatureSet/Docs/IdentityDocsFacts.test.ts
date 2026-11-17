@@ -133,6 +133,7 @@ const EE_SOURCES: Record<string, string> = {
     "ee/Dashboard/Identity/Components/SCIMLogs/ProjectSCIMLogsTable.tsx",
   statusPageScimLogs:
     "ee/Dashboard/Identity/Components/SCIMLogs/StatusPageSCIMLogsTable.tsx",
+  scimBearerTokenCopy: "ee/Dashboard/Identity/ScimBearerTokenCopy.ts",
 };
 
 // A role's level: the last word of its title.
@@ -149,9 +150,15 @@ const SSO_TEST_LINK: RegExp =
 const GLOBAL_QUESTIONS_FOLDED: RegExp =
   /withGlobalAccessSwitches\s*\?\s*\[\s*getSsoProviderSignUpChoiceField<TEntity>\(\{[^}]*collapsibleSection: advancedSection,\s*\}\),\s*getSsoProviderSignUpColumnField<TEntity>\(\{[^}]*\}\),\s*getSsoProviderReachChoiceField<TEntity>\(\{[^}]*collapsibleSection: advancedSection,\s*\}\),\s*getSsoProviderReachColumnField<TEntity>\(/;
 
-// A SCIM page opens the dialog with its URLs once a connection is created.
-const SCIM_DIALOG_ON_CREATE: RegExp =
-  /onCreateSuccess=\{[\s\S]{0,200}?modalType === ModalType\.Create[\s\S]{0,120}?setShowSCIMUrlId\(item\.id\.toString\(\)\)/;
+/*
+ * A SCIM page shows a new connection's bearer token once, as the create
+ * answered it (#9012: no read holds it), and opens the dialog with its URLs
+ * once the token is copied.
+ */
+const SCIM_TOKEN_ON_CREATE: RegExp =
+  /onCreateSuccess=\{[\s\S]{0,200}?modalType === ModalType\.Create[\s\S]{0,200}?getBearerTokenShownOnCreate\(\s*item\.bearerToken,?\s*\)[\s\S]{0,200}?setShownOnceToken\(token\)/;
+const SCIM_DIALOG_AFTER_TOKEN: RegExp =
+  /<ShownOnceSecretModal[\s\S]{0,800}?onDone=\{[\s\S]{0,400}?setShowSCIMUrlId\(created\.id\.toString\(\)\)/;
 
 function readSource(key: string): string {
   return fs.readFileSync(path.join(REPO_DIR, SOURCES[key]!), "utf8");
@@ -1313,19 +1320,25 @@ describe("the Global SSO guide", () => {
 });
 
 describe("the SCIM guide", () => {
-  it("says only a project owner adds or changes a connection, or sees its bearer token", () => {
+  it("says only a project owner adds or changes a connection, or resets its bearer token, and nobody reads one back", () => {
     const scim: ProjectSCIM = new ProjectSCIM();
 
     expect(titlesOf(scim.getCreatePermissions())).toEqual(["Project Owner"]);
     expect(titlesOf(scim.getUpdatePermissions())).toEqual(["Project Owner"]);
-    expect(titlesOf(readPermissionsOf(scim, "bearerToken"))).toEqual([
-      "Project Owner",
-    ]);
+    // Kept as its hash (#9012): no one reads it, a project owner included.
+    expect(titlesOf(readPermissionsOf(scim, "bearerToken"))).toEqual([]);
+    expect(
+      titlesOf(readPermissionsOf(new StatusPageSCIM(), "bearerToken")),
+    ).toEqual([]);
+    expect(getTableColumn(scim, "bearerToken")?.presentedKey).toBe(true);
     expect(titlesOf(updatePermissionsOf(scim, "bearerToken"))).toEqual([
       "Project Owner",
     ]);
     expect(english(SCIM)).toContain(
-      "Only a Project Owner can add or change a project's SCIM connection, or see or reset its bearer token",
+      "Only a Project Owner can add or change a project's SCIM connection, or reset its bearer token",
+    );
+    expect(english(SCIM)).toContain(
+      "Nobody can read a bearer token back, a Project Owner included: OneUptime keeps only its hash.",
     );
   });
 
@@ -1386,11 +1399,14 @@ describe("the SCIM guide", () => {
     );
   });
 
-  it("says saving a connection opens the dialog with its URL and token, and names the row's buttons and the Logs tab", () => {
+  it("says saving a connection shows its token once, then the dialog with its URL, and names the row's buttons and the Logs tab", () => {
     const page: string = english(SCIM);
 
     expect(page).toContain(
-      "Save. The dialog with the **SCIM Base URL** and **Bearer Token** for your IdP configuration opens straight away",
+      "Save. OneUptime shows the connection's **Bearer Token** once: copy it before you click **Done**, since OneUptime keeps only its hash and no page shows it again. The dialog with the **SCIM Base URL** for your IdP configuration opens next",
+    );
+    expect(page).toContain(
+      "The bearer token is not shown again: if you no longer have it, or it has leaked, **Reset Bearer Token** makes a new one, shown once the same way, and the old one stops working at once.",
     );
 
     for (const label of [
@@ -1413,11 +1429,17 @@ describe("the SCIM guide", () => {
     for (const key of ["projectScimPage", "statusPageScimPage"]) {
       expect({
         key,
-        opens: SCIM_DIALOG_ON_CREATE.test(readEe(key)),
+        token: SCIM_TOKEN_ON_CREATE.test(readEe(key)),
+        opens: SCIM_DIALOG_AFTER_TOKEN.test(readEe(key)),
         logs: readEe(key).includes('name: "Logs"'),
         reset: readEe(key).includes('title: "Reset Bearer Token"'),
-      }).toEqual({ key, opens: true, logs: true, reset: true });
+      }).toEqual({ key, token: true, opens: true, logs: true, reset: true });
     }
+
+    // The dialog that shows the token once closes with Done, as the page says.
+    expect(readEe("scimBearerTokenCopy")).toContain(
+      'done: translationKey("Done")',
+    );
 
     expect(readEe("projectScimPage")).toContain('title: "View SCIM URLs"');
     expect(readEe("statusPageScimPage")).toContain(

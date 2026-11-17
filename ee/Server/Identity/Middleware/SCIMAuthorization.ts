@@ -29,6 +29,11 @@ import {
   OneUptimeRequest,
 } from "Common/Server/Utils/Express";
 import ObjectID from "Common/Types/ObjectID";
+import HashedString from "Common/Types/HashedString";
+import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Query from "Common/Server/Types/Database/Query";
+import Select from "Common/Server/Types/Database/Select";
+import PresentedKey from "Common/Server/Utils/PresentedKey/PresentedKey";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
 import { PlanCutoffCredential } from "Common/Types/Billing/PlanCutoffCredentials";
@@ -149,9 +154,11 @@ export default class SCIMMiddleware {
        * and the secret it was issued with: the connection is found by id
        * alone, and held to that secret still being one of its own. A
        * connection's own bearer token is matched in the query itself, as
-       * it always was. A token shaped like an access token that is not one
-       * is tried as a bearer token, so no bearer token is ever refused for
-       * its shape.
+       * it always was - by the hash it is kept as (#9012), or, for a token
+       * stored as written before and not hashed yet, as written
+       * (findConnection). A token shaped like an access token that is not
+       * one is tried as a bearer token, so no bearer token is ever refused
+       * for its shape.
        */
       const accessToken: ScimAccessTokenClaims | null = readScimAccessToken({
         token: bearerToken,
@@ -162,13 +169,11 @@ export default class SCIMMiddleware {
         !accessToken || accessToken.connectionType === "project"
           ? SCIMMiddleware.withLiveSecret(
               accessToken,
-              await ProjectSCIMService.findOneBy({
-                query: accessToken
-                  ? { _id: new ObjectID(scimId) }
-                  : {
-                      _id: new ObjectID(scimId),
-                      bearerToken: bearerToken,
-                    },
+              await SCIMMiddleware.findConnection<ProjectSCIM>({
+                service: ProjectSCIMService,
+                scimId: scimId,
+                accessToken: accessToken,
+                bearerToken: bearerToken,
                 select: {
                   _id: true,
                   projectId: true,
@@ -180,9 +185,6 @@ export default class SCIMMiddleware {
                     name: true,
                   },
                   ...(accessToken ? CLIENT_SECRETS_SELECT : {}),
-                },
-                props: {
-                  isRoot: true,
                 },
               }),
             )
@@ -240,13 +242,11 @@ export default class SCIMMiddleware {
         !accessToken || accessToken.connectionType === "status-page"
           ? SCIMMiddleware.withLiveSecret(
               accessToken,
-              await StatusPageSCIMService.findOneBy({
-                query: accessToken
-                  ? { _id: new ObjectID(scimId) }
-                  : {
-                      _id: new ObjectID(scimId),
-                      bearerToken: bearerToken,
-                    },
+              await SCIMMiddleware.findConnection<StatusPageSCIM>({
+                service: StatusPageSCIMService,
+                scimId: scimId,
+                accessToken: accessToken,
+                bearerToken: bearerToken,
                 select: {
                   _id: true,
                   projectId: true,
@@ -254,9 +254,6 @@ export default class SCIMMiddleware {
                   autoProvisionUsers: true,
                   autoDeprovisionUsers: true,
                   ...(accessToken ? CLIENT_SECRETS_SELECT : {}),
-                },
-                props: {
-                  isRoot: true,
                 },
               }),
             )
@@ -337,6 +334,68 @@ export default class SCIMMiddleware {
        */
       return sendScimError(req, res, err);
     }
+  }
+
+  /*
+   * The connection a request names: by its id, held to the bearer token the
+   * request presents in the query itself, so a wrong token matches no row.
+   * A token is kept only as its hash (#9012: PresentedKey.toStoredHash), so
+   * the connection is looked up by the hash of the token presented - and,
+   * for a token stored as written before it was kept hashed and not hashed
+   * yet, by the token as written, while any may be stored so
+   * (DatabaseService.mayHoldPresentedKeysAsWritten). Never by a value
+   * shaped like a stored hash: a hash read from a backup is not a token. A
+   * request with an OAuth 2.0 access token is found by id alone, and held to
+   * its secret (withLiveSecret).
+   */
+  public static async findConnection<
+    T extends ProjectSCIM | StatusPageSCIM,
+  >(data: {
+    service: {
+      findOneBy: (findBy: {
+        query: Query<T>;
+        select: Select<T>;
+        props: DatabaseCommonInteractionProps;
+      }) => Promise<T | null>;
+      mayHoldPresentedKeysAsWritten: () => Promise<boolean>;
+    };
+    scimId: string;
+    accessToken: ScimAccessTokenClaims | null;
+    bearerToken: string;
+    select: Select<T>;
+  }): Promise<T | null> {
+    const find: (query: Query<T>) => Promise<T | null> = async (
+      query: Query<T>,
+    ): Promise<T | null> => {
+      return await data.service.findOneBy({
+        query: { ...query, _id: new ObjectID(data.scimId) } as Query<T>,
+        select: data.select,
+        props: {
+          isRoot: true,
+        },
+      });
+    };
+
+    if (data.accessToken) {
+      return await find({} as Query<T>);
+    }
+
+    const byHash: T | null = await find({
+      bearerToken: new HashedString(
+        PresentedKey.toStoredHash(data.bearerToken),
+        true,
+      ),
+    } as Query<T>);
+
+    if (
+      byHash ||
+      PresentedKey.isStoredHash(data.bearerToken) ||
+      !(await data.service.mayHoldPresentedKeysAsWritten())
+    ) {
+      return byHash;
+    }
+
+    return await find({ bearerToken: data.bearerToken } as Query<T>);
   }
 
   /*

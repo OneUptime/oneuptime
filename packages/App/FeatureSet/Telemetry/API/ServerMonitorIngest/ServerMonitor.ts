@@ -2,7 +2,6 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { JSONObject } from "Common/Types/JSON";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import ObjectID from "Common/Types/ObjectID";
 import MonitorService from "Common/Server/Services/MonitorService";
 import Express, {
   ExpressRequest,
@@ -34,21 +33,24 @@ router.get(
         throw new BadDataException("Invalid Secret Key");
       }
 
-      const monitor: Monitor | null = await MonitorService.findOneBy({
-        query: {
-          serverMonitorSecretKey: new ObjectID(monitorSecretKeyAsString),
-          monitorType: MonitorType.Server,
-          project: {
-            ...ProjectService.getActiveProjectStatusQuery(),
+      // Found by the key's lookup hash: the key is kept encrypted (#9012).
+      const monitor: Monitor | null =
+        await MonitorService.findOneByPresentedKey({
+          column: "serverMonitorSecretKey",
+          presentedKey: monitorSecretKeyAsString,
+          query: {
+            monitorType: MonitorType.Server,
+            project: {
+              ...ProjectService.getActiveProjectStatusQuery(),
+            },
           },
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+          select: {
+            _id: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
       if (!monitor) {
         throw new BadDataException(ExceptionMessages.MonitorNotFound);

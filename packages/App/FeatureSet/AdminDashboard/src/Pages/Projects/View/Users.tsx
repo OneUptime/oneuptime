@@ -190,7 +190,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
           }}
           cardProps={{
             title: t("pages.projectUsers.cardTitle"),
-            description: t("pages.projectUsers.cardDescription"),
+            description: t("pages.projectUsers.listDescription"),
             buttons: [
               {
                 title: t("pages.projectUsers.inviteUser"),
@@ -210,7 +210,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
           noItemsMessage={
             isFilterApplied
               ? t("pages.projectUsers.noItemsFiltered")
-              : t("pages.projectUsers.noItems")
+              : t("pages.projectUsers.emptyMessage")
           }
           query={{
             projectId: projectId,

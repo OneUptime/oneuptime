@@ -144,21 +144,24 @@ export default class WebhookTrigger extends TriggerCode {
       throw new BadDataException("Secret key is required to trigger workflow.");
     }
 
-    // Look up the workflow by webhook secret key.
-    const workflow: Workflow | null = await WorkflowService.findOneBy({
-      query: {
-        webhookSecretKey: secretKey,
-      },
-      select: {
-        _id: true,
-        triggerId: true,
-        isEnabled: true,
-        isArchived: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    /*
+     * Look up the workflow by webhook secret key: by its lookup hash, as the
+     * key is kept encrypted (#9012).
+     */
+    const workflow: Workflow | null =
+      await WorkflowService.findOneByPresentedKey({
+        column: "webhookSecretKey",
+        presentedKey: secretKey,
+        select: {
+          _id: true,
+          triggerId: true,
+          isEnabled: true,
+          isArchived: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
     if (!workflow || !workflow._id) {
       throw new BadDataException(

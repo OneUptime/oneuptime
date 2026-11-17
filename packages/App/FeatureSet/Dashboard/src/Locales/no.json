@@ -56515,5 +56515,13 @@
   "This check was too large to keep in full, so it was trimmed.": "Denne kontrollen var for stor til å lagres i sin helhet, så den ble forkortet.",
   "No email has gone out through this server's email settings since {{time}}.": "Ingen e-post har gått ut via e-postinnstillingene til denne serveren siden {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Ingen e-post har gått ut via e-postinnstillingene til denne serveren siden {{time}}. E-postserveren svarte: {{reason}}",
-  "See email logs": "Se e-postlogger"
+  "See email logs": "Se e-postlogger",
+  "Copy Your Bearer Token": "Kopier bærertokenet ditt",
+  "Incoming Email Secret Key Hash": "Hash av den hemmelige nøkkelen for innkommende e-post",
+  "Incoming Request Secret Key Hash": "Hash av den hemmelige nøkkelen for innkommende forespørsler",
+  "Ingestion Key Hash": "Hash av inntaksnøkkelen",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Lim det inn hos identitetsleverandøren din nå, eller oppbevar det et trygt sted. Det vises bare denne ene gangen: OneUptime lagrer bare en hash av det.",
+  "Server Monitor Secret Key Hash": "Hash av servermonitorens hemmelige nøkkel",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bærertokenet vises bare én gang, når tilkoblingen legges til eller når tokenet tilbakestilles. Hvis du ikke har det lenger, bruker du «Tilbakestill bærertoken» for å lage et nytt.",
+  "Webhook Secret Key Hash": "Hash av den hemmelige webhook-nøkkelen"
 }

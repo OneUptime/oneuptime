@@ -56515,5 +56515,13 @@
   "This check was too large to keep in full, so it was trimmed.": "Cette vérification était trop volumineuse pour être conservée en entier : elle a donc été raccourcie.",
   "No email has gone out through this server's email settings since {{time}}.": "Aucun e-mail n'est parti via les paramètres e-mail de ce serveur depuis le {{time}}.",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Aucun e-mail n'est parti via les paramètres e-mail de ce serveur depuis le {{time}}. Le serveur de messagerie a répondu : {{reason}}",
-  "See email logs": "Voir les journaux des e-mails"
+  "See email logs": "Voir les journaux des e-mails",
+  "Copy Your Bearer Token": "Copiez votre jeton Bearer",
+  "Incoming Email Secret Key Hash": "Hash de la clé secrète des e-mails entrants",
+  "Incoming Request Secret Key Hash": "Hash de la clé secrète de la requête entrante",
+  "Ingestion Key Hash": "Hash de la clé d'ingestion",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Collez-le dès maintenant dans votre fournisseur d'identité, ou conservez-le en lieu sûr. Il n'est affiché que cette fois : OneUptime n'en conserve qu'un hachage.",
+  "Server Monitor Secret Key Hash": "Hash de la clé secrète du moniteur de serveur",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Le jeton Bearer n'est affiché qu'une seule fois, lorsque la connexion est ajoutée ou que son jeton est réinitialisé. Si vous ne l'avez plus, utilisez « Réinitialiser le jeton Bearer » pour en créer un nouveau.",
+  "Webhook Secret Key Hash": "Hash de la clé secrète du webhook"
 }

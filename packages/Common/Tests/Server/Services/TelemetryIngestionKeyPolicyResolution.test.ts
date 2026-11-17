@@ -97,6 +97,27 @@ jest.mock("../../../Server/Services/DatabaseService", () => {
       );
     }
 
+    /*
+     * A key looked up by its secret: here by its value, through the test's
+     * findOneBy, as the real lookup finds it by the secret's lookup hash
+     * (DatabaseService.findOneByPresentedKey, #9012).
+     */
+    public async findOneByPresentedKey(data: {
+      column: string;
+      presentedKey: unknown;
+      query?: Record<string, unknown>;
+      select: unknown;
+      props: unknown;
+    }): Promise<unknown> {
+      return await (
+        this as unknown as { findOneBy: (findBy: unknown) => Promise<unknown> }
+      ).findOneBy({
+        query: { ...(data.query || {}), [data.column]: data.presentedKey },
+        select: data.select,
+        props: data.props,
+      });
+    }
+
     public async updateColumnsByIdWithoutHooks(): Promise<unknown> {
       throw new Error(
         "updateColumnsByIdWithoutHooks stub was not replaced - the test must install its own implementation.",

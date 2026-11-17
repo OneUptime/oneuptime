@@ -581,9 +581,11 @@ export default class IncomingRequestSecretGate {
       return null;
     }
 
-    const monitor: Monitor | null = await MonitorService.findOneBy({
+    // Found by the key's lookup hash: the key is kept encrypted (#9012).
+    const monitor: Monitor | null = await MonitorService.findOneByPresentedKey({
+      column: "incomingRequestSecretKey",
+      presentedKey: secretKey,
       query: {
-        incomingRequestSecretKey: new ObjectID(secretKey),
         monitorType: MonitorType.IncomingRequest,
       },
       select: {

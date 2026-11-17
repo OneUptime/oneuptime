@@ -1,4 +1,5 @@
 import { mockRouter } from "./Helpers";
+import Encryption from "../../../Server/Utils/Encryption";
 import {
   afterEach,
   beforeAll,
@@ -142,11 +143,23 @@ function confirmationUrlOf(row: StoredRow): string {
   return `${STATUS_PAGE_URL}/confirm-subscription/${String(row["_id"])}?verification-token=${String(row["subscriptionConfirmationToken"])}`;
 }
 
-function unsubscribeUrlOf(row: StoredRow): string {
+/*
+ * The unsubscribe token a row holds, as a read gives it: kept encrypted
+ * (#9012), and decrypted on every read - a row stored before reads as itself.
+ */
+async function tokenOf(row: StoredRow): Promise<string> {
+  const stored: string = String(row["unsubscribeToken"]);
+
+  return Encryption.looksEncrypted(stored)
+    ? await Encryption.decrypt(stored)
+    : stored;
+}
+
+async function unsubscribeUrlOf(row: StoredRow): Promise<string> {
   return StatusPageSubscriberUnsubscribe.buildLink({
     statusPageUrl: STATUS_PAGE_URL,
     subscriberId: String(row["_id"]),
-    unsubscribeToken: String(row["unsubscribeToken"]),
+    unsubscribeToken: await tokenOf(row),
   }).toString();
 }
 
@@ -400,7 +413,7 @@ describe("opening the link", () => {
       to: PHONE,
       message: getYouHaveSubscribedTextMessage({
         statusPageName: "Acme Status",
-        unsubscribeUrl: unsubscribeUrlOf(row),
+        unsubscribeUrl: await unsubscribeUrlOf(row),
       }),
     });
   });
@@ -798,7 +811,7 @@ describe("a number the team adds", () => {
         to: PHONE,
         message: getYouHaveSubscribedTextMessage({
           statusPageName: "Acme Status",
-          unsubscribeUrl: unsubscribeUrlOf(row),
+          unsubscribeUrl: await unsubscribeUrlOf(row),
         }),
       },
     ]);

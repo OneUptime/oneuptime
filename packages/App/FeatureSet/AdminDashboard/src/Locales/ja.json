@@ -142,8 +142,8 @@
     "users": {
       "title": "ユーザー",
       "cardTitle": "ユーザー",
-      "cardDescription": "OneUptime内のユーザー一覧です。",
-      "noItems": "ユーザーが見つかりません。",
+      "listDescription": "このサーバーにアカウントを持つすべての人です。ユーザーを開くと、そのプロジェクト、サインイン、管理者アクセスを管理できます。",
+      "emptyMessage": "ユーザーはまだいません。",
       "bulkAddToProject": "プロジェクトに追加",
       "bulkAddToProjectTitle": "ユーザーをプロジェクトに追加",
       "bulkAddToProjectDescription": "プロジェクトとそのチームの 1 つを選択してください。選択した {{userCount}} 人のユーザーがそのチームに招待されます。",
@@ -204,7 +204,6 @@
     "userView": {
       "title": "ユーザー",
       "cardTitle": "ユーザー",
-      "cardDescription": "ユーザー詳細",
       "editButton": "ユーザーを編集",
       "masterAdminCardTitle": "マスター管理者アクセス",
       "masterAdminCardDescription": "このユーザーにマスター管理者アクセスを付与または取り消します。マスター管理者はすべてのプロジェクトとワークスペースを管理できます。",
@@ -305,13 +304,12 @@
     "projects": {
       "title": "プロジェクト",
       "cardTitle": "プロジェクト",
-      "cardDescription": "OneUptime内のプロジェクト一覧です。",
-      "noItems": "プロジェクトが見つかりません。"
+      "listDescription": "このサーバー上のすべてのプロジェクトです。プロジェクトを開くと、そのユーザー、チーム、設定を管理できます。",
+      "emptyMessage": "プロジェクトはまだありません。"
     },
     "projectView": {
       "title": "プロジェクト",
       "cardTitle": "プロジェクト",
-      "cardDescription": "プロジェクト詳細",
       "editButton": "プロジェクトを編集",
       "dataResidencyCardTitle": "データレジデンシー",
       "dataResidencyCardDescription": "このプロジェクトのデータがホストされている場所です。設定すると、プロジェクト設定でプロジェクトのユーザーに表示されます。",
@@ -453,8 +451,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "ユーザー",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "このプロジェクトに属する人です。各自ができることは、所属するチームによって決まります。",
+      "emptyMessage": "このプロジェクトにはまだユーザーがいません。",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "ユーザーを招待",
       "inviteUserTitle": "新しいユーザーを招待",
@@ -473,13 +471,12 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "チーム",
-      "cardDescription": "このプロジェクトのすべてのチームの一覧です。",
-      "noItems": "No teams found in this project."
+      "listDescription": "チームは、メンバーがこのプロジェクトでできることを決めます。複数の人に同じアクセス権を与えるには、チームを作成してください。",
+      "emptyMessage": "このプロジェクトにはまだチームがありません。"
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "チームの詳細",
-      "cardDescription": "Details about this team.",
       "editButton": "チームを編集",
       "membersCardTitle": "チーム メンバー",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
@@ -626,13 +623,13 @@
       },
       "probes": {
         "bannerTitle": "グローバルプローブの設定にサポートが必要ですか？",
-        "bannerDescription": "セットアップに役立つガイドがあります",
+        "bannerGuide": "ガイドに従って自分のサーバーでプローブを実行し、ここに接続してください。",
         "cardTitle": "グローバルプローブ",
         "cardDescription": "グローバルプローブは世界中のさまざまな場所から外部リソースを監視するのに役立ちます。",
-        "noItems": "プローブが見つかりません。",
+        "emptyMessage": "グローバルプローブはまだありません。",
         "showIdKey": "IDとキーを表示",
         "keyModalTitle": "プローブキー",
-        "keyModalDescription": "こちらがあなたのプローブキーです。秘密にしておいてください。",
+        "keyModalSecret": "プローブはこの ID とキーで OneUptime に接続します。キーは秘密にしてください。",
         "probeIdLabel": "プローブID：",
         "probeKeyLabel": "プローブキー："
       },

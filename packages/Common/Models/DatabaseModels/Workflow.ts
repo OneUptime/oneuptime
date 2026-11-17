@@ -21,6 +21,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
+import HashedString from "../../Types/HashedString";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import {
@@ -835,6 +836,9 @@ export default class Workflow extends BaseModel {
   })
   @TableColumn({
     secret: true,
+    encrypted: true,
+    presentedKey: true,
+    lookupHashColumn: "webhookSecretKeyHash",
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.LongText,
@@ -847,6 +851,36 @@ export default class Workflow extends BaseModel {
     nullable: true,
   })
   public webhookSecretKey?: string = undefined;
+
+  /*
+   * The lookup hash of webhookSecretKey, the key in the
+   * Webhook trigger's URL (#9012).
+   * The key is kept encrypted, which no query can find by its value, so
+   * a request that presents it is matched by this hash
+   * (DatabaseService.findOneByPresentedKey), then held to the key itself.
+   * OneUptime writes it with every write of the key.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.HashedString,
+    computed: true,
+    hideColumnInDocumentation: true,
+    title: "Webhook Secret Key Hash",
+    description:
+      "The lookup hash of webhookSecretKey, which a request that presents the key finds this record by. OneUptime writes it with every write of the key; nobody reads or writes it through the API.",
+  })
+  @Column({
+    type: ColumnType.HashedString,
+    length: ColumnLength.HashedString,
+    nullable: true,
+    transformer: HashedString.getDatabaseTransformer(),
+  })
+  public webhookSecretKeyHash?: HashedString = undefined;
 
   @ColumnAccessControl({
     /*
@@ -882,6 +916,9 @@ export default class Workflow extends BaseModel {
   })
   @TableColumn({
     secret: true,
+    encrypted: true,
+    presentedKey: true,
+    lookupHashColumn: "incomingEmailSecretKeyHash",
     isDefaultValueColumn: false,
     required: false,
     unique: true,
@@ -892,12 +929,42 @@ export default class Workflow extends BaseModel {
     example: "7c9e6679-7425-40de-944b-e07fc1f90ae7",
   })
   @Column({
-    type: ColumnType.ObjectID,
+    type: ColumnType.VeryLongText,
     nullable: true,
     unique: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public incomingEmailSecretKey?: ObjectID = undefined;
+
+  /*
+   * The lookup hash of incomingEmailSecretKey, the key in
+   * the Incoming Email trigger's address (#9012).
+   * The key is kept encrypted, which no query can find by its value, so
+   * a request that presents it is matched by this hash
+   * (DatabaseService.findOneByPresentedKey), then held to the key itself.
+   * OneUptime writes it with every write of the key.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @Index({ unique: true })
+  @TableColumn({
+    type: TableColumnType.HashedString,
+    computed: true,
+    hideColumnInDocumentation: true,
+    title: "Incoming Email Secret Key Hash",
+    description:
+      "The lookup hash of incomingEmailSecretKey, which a request that presents the key finds this record by. OneUptime writes it with every write of the key; nobody reads or writes it through the API.",
+  })
+  @Column({
+    type: ColumnType.HashedString,
+    length: ColumnLength.HashedString,
+    nullable: true,
+    transformer: HashedString.getDatabaseTransformer(),
+  })
+  public incomingEmailSecretKeyHash?: HashedString = undefined;
 
   /*
    * The signing secret of a trigger whose sender signs its requests: the

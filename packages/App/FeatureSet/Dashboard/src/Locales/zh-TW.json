@@ -56515,5 +56515,13 @@
   "This check was too large to keep in full, so it was trimmed.": "此檢查過大，無法完整保存，因此已被截斷。",
   "No email has gone out through this server's email settings since {{time}}.": "自 {{time}} 起，沒有任何郵件透過此伺服器的郵件設定寄出。",
   "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "自 {{time}} 起，沒有任何郵件透過此伺服器的郵件設定寄出。郵件伺服器回應：{{reason}}",
-  "See email logs": "查看郵件記錄"
+  "See email logs": "查看郵件記錄",
+  "Copy Your Bearer Token": "複製你的 Bearer Token",
+  "Incoming Email Secret Key Hash": "傳入電子郵件密鑰雜湊",
+  "Incoming Request Secret Key Hash": "傳入請求密鑰雜湊",
+  "Ingestion Key Hash": "擷取金鑰雜湊",
+  "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "請立即將其貼到你的身分提供者中，或保存在安全的地方。它只會顯示這一次：OneUptime 只保存它的雜湊值。",
+  "Server Monitor Secret Key Hash": "伺服器監控密鑰雜湊",
+  "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer Token 只會在新增連線或重設其權杖時顯示一次。如果你已不再持有它，請使用「重設 Bearer Token」建立新的權杖。",
+  "Webhook Secret Key Hash": "Webhook 密鑰雜湊"
 }
