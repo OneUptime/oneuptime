@@ -56657,5 +56657,13 @@
   "{{field}} is none of {{count}} selected people or teams_one": "{{field}} is none of {{count}} selected person or team",
   "Is any of": "Is any of",
   "Is none of": "Is none of",
-  "{{page}} (through {{groups}})": "{{page}} (through {{groups}})"
+  "{{page}} (through {{groups}})": "{{page}} (through {{groups}})",
+  "A team of another project is named as an owner in the criteria of {{monitor}}, so nobody is emailed through it.": "A team of another project is named as an owner in the criteria of {{monitor}}, so nobody is emailed through it.",
+  "A team of another project owns the network device {{monitor}} watches, so nobody is emailed through it.": "A team of another project owns the network device {{monitor}} watches, so nobody is emailed through it.",
+  "An owner of the network device {{monitor}} watches isn't a member of this project, so isn't emailed.": "An owner of the network device {{monitor}} watches isn't a member of this project, so isn't emailed.",
+  "It's owned by {{owners}}, so a rule you can't see matches.": "It's owned by {{owners}}, so a rule you can't see matches.",
+  "It's owned by {{owners}}, so {{rule}} matches.": "It's owned by {{owners}}, so {{rule}} matches.",
+  "Owner rule {{rule}} adds a team of another project as an owner, so nobody is emailed through it.": "Owner rule {{rule}} adds a team of another project as an owner, so nobody is emailed through it.",
+  "Owner rule {{rule}} adds someone who isn't a member of this project as an owner, so they aren't emailed.": "Owner rule {{rule}} adds someone who isn't a member of this project as an owner, so they aren't emailed.",
+  "Someone named as an owner in the criteria of {{monitor}} isn't a member of this project, so isn't emailed.": "Someone named as an owner in the criteria of {{monitor}} isn't a member of this project, so isn't emailed."
 }

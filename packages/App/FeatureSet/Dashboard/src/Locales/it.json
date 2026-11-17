@@ -56657,5 +56657,13 @@
   "{{field}} is none of {{count}} selected people or teams_one": "{{field}} non è {{count}} persona o team selezionato",
   "Is any of": "È uno tra",
   "Is none of": "Non è nessuno tra",
-  "{{page}} (through {{groups}})": "{{page}} (tramite {{groups}})"
+  "{{page}} (through {{groups}})": "{{page}} (tramite {{groups}})",
+  "A team of another project is named as an owner in the criteria of {{monitor}}, so nobody is emailed through it.": "Un team di un altro progetto è indicato come proprietario nei criteri di {{monitor}}, quindi nessuno riceve email tramite esso.",
+  "A team of another project owns the network device {{monitor}} watches, so nobody is emailed through it.": "Un team di un altro progetto è proprietario del dispositivo di rete che {{monitor}} controlla, quindi nessuno riceve email tramite esso.",
+  "An owner of the network device {{monitor}} watches isn't a member of this project, so isn't emailed.": "Un proprietario del dispositivo di rete che {{monitor}} controlla non è membro di questo progetto, quindi non riceve email.",
+  "It's owned by {{owners}}, so a rule you can't see matches.": "Proprietari: {{owners}}, quindi corrisponde una regola che non puoi vedere.",
+  "It's owned by {{owners}}, so {{rule}} matches.": "Proprietari: {{owners}}, quindi {{rule}} corrisponde.",
+  "Owner rule {{rule}} adds a team of another project as an owner, so nobody is emailed through it.": "La regola del proprietario {{rule}} aggiunge come proprietario un team di un altro progetto, quindi nessuno riceve email tramite esso.",
+  "Owner rule {{rule}} adds someone who isn't a member of this project as an owner, so they aren't emailed.": "La regola del proprietario {{rule}} aggiunge come proprietario una persona che non è membro di questo progetto, quindi non riceve email.",
+  "Someone named as an owner in the criteria of {{monitor}} isn't a member of this project, so isn't emailed.": "Una persona indicata come proprietario nei criteri di {{monitor}} non è membro di questo progetto, quindi non riceve email."
 }

@@ -56657,5 +56657,13 @@
   "{{field}} is none of {{count}} selected people or teams_one": "{{field}} が選択した {{count}} 人のユーザーまたはチームのいずれでもない",
   "Is any of": "次のいずれか",
   "Is none of": "次のいずれでもない",
-  "{{page}} (through {{groups}})": "{{page}}（{{groups}} 経由）"
+  "{{page}} (through {{groups}})": "{{page}}（{{groups}} 経由）",
+  "A team of another project is named as an owner in the criteria of {{monitor}}, so nobody is emailed through it.": "{{monitor}} の条件で別のプロジェクトのチームが所有者に指定されているため、そのチームを通じては誰にもメールが届きません。",
+  "A team of another project owns the network device {{monitor}} watches, so nobody is emailed through it.": "{{monitor}} が監視するネットワークデバイスを別のプロジェクトのチームが所有しているため、そのチームを通じては誰にもメールが届きません。",
+  "An owner of the network device {{monitor}} watches isn't a member of this project, so isn't emailed.": "{{monitor}} が監視するネットワークデバイスの所有者がこのプロジェクトのメンバーではないため、メールは届きません。",
+  "It's owned by {{owners}}, so a rule you can't see matches.": "所有者が {{owners}} のため、閲覧できないルールが一致します。",
+  "It's owned by {{owners}}, so {{rule}} matches.": "所有者が {{owners}} のため、{{rule}} が一致します。",
+  "Owner rule {{rule}} adds a team of another project as an owner, so nobody is emailed through it.": "所有者ルール {{rule}} が別のプロジェクトのチームを所有者に追加するため、そのチームを通じては誰にもメールが届きません。",
+  "Owner rule {{rule}} adds someone who isn't a member of this project as an owner, so they aren't emailed.": "所有者ルール {{rule}} がこのプロジェクトのメンバーではない人を所有者に追加するため、その人にはメールが届きません。",
+  "Someone named as an owner in the criteria of {{monitor}} isn't a member of this project, so isn't emailed.": "{{monitor}} の条件で所有者に指定された人がこのプロジェクトのメンバーではないため、メールは届きません。"
 }

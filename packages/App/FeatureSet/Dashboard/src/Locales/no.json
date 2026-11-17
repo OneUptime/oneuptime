@@ -56657,5 +56657,13 @@
   "{{field}} is none of {{count}} selected people or teams_one": "{{field}} er ikke {{count}} valgt person eller team",
   "Is any of": "Er en av",
   "Is none of": "Er ingen av",
-  "{{page}} (through {{groups}})": "{{page}} (via {{groups}})"
+  "{{page}} (through {{groups}})": "{{page}} (via {{groups}})",
+  "A team of another project is named as an owner in the criteria of {{monitor}}, so nobody is emailed through it.": "Et team fra et annet prosjekt er oppgitt som eier i kriteriene for {{monitor}}, så ingen får e-post gjennom det.",
+  "A team of another project owns the network device {{monitor}} watches, so nobody is emailed through it.": "Et team fra et annet prosjekt eier nettverksenheten som {{monitor}} overvåker, så ingen får e-post gjennom det.",
+  "An owner of the network device {{monitor}} watches isn't a member of this project, so isn't emailed.": "En eier av nettverksenheten som {{monitor}} overvåker, er ikke medlem av dette prosjektet og får derfor ikke e-post.",
+  "It's owned by {{owners}}, so a rule you can't see matches.": "Eiere: {{owners}}, så en regel du ikke kan se, samsvarer.",
+  "It's owned by {{owners}}, so {{rule}} matches.": "Eiere: {{owners}}, så {{rule}} samsvarer.",
+  "Owner rule {{rule}} adds a team of another project as an owner, so nobody is emailed through it.": "Eierregelen {{rule}} legger til et team fra et annet prosjekt som eier, så ingen får e-post gjennom det.",
+  "Owner rule {{rule}} adds someone who isn't a member of this project as an owner, so they aren't emailed.": "Eierregelen {{rule}} legger til en person som ikke er medlem av dette prosjektet, som eier, så vedkommende får ikke e-post.",
+  "Someone named as an owner in the criteria of {{monitor}} isn't a member of this project, so isn't emailed.": "En person som er oppgitt som eier i kriteriene for {{monitor}}, er ikke medlem av dette prosjektet og får derfor ikke e-post."
 }

@@ -56657,5 +56657,13 @@
   "{{field}} is none of {{count}} selected people or teams_one": "{{field}} não é {{count}} pessoa ou equipe selecionada",
   "Is any of": "É um de",
   "Is none of": "Não é nenhum de",
-  "{{page}} (through {{groups}})": "{{page}} (por meio de {{groups}})"
+  "{{page}} (through {{groups}})": "{{page}} (por meio de {{groups}})",
+  "A team of another project is named as an owner in the criteria of {{monitor}}, so nobody is emailed through it.": "Uma equipe de outro projeto está indicada como proprietária nos critérios de {{monitor}}, então ninguém recebe e-mail por meio dela.",
+  "A team of another project owns the network device {{monitor}} watches, so nobody is emailed through it.": "Uma equipe de outro projeto é proprietária do dispositivo de rede que {{monitor}} observa, então ninguém recebe e-mail por meio dela.",
+  "An owner of the network device {{monitor}} watches isn't a member of this project, so isn't emailed.": "Um proprietário do dispositivo de rede que {{monitor}} observa não é membro deste projeto, então não recebe e-mail.",
+  "It's owned by {{owners}}, so a rule you can't see matches.": "Proprietários: {{owners}}, então corresponde uma regra que você não pode ver.",
+  "It's owned by {{owners}}, so {{rule}} matches.": "Proprietários: {{owners}}, então {{rule}} corresponde.",
+  "Owner rule {{rule}} adds a team of another project as an owner, so nobody is emailed through it.": "A regra de proprietário {{rule}} adiciona como proprietária uma equipe de outro projeto, então ninguém recebe e-mail por meio dela.",
+  "Owner rule {{rule}} adds someone who isn't a member of this project as an owner, so they aren't emailed.": "A regra de proprietário {{rule}} adiciona como proprietária uma pessoa que não é membro deste projeto, então ela não recebe e-mail.",
+  "Someone named as an owner in the criteria of {{monitor}} isn't a member of this project, so isn't emailed.": "Uma pessoa indicada como proprietária nos critérios de {{monitor}} não é membro deste projeto, então não recebe e-mail."
 }

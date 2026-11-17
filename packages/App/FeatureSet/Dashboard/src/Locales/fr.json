@@ -56657,5 +56657,13 @@
   "{{field}} is none of {{count}} selected people or teams_one": "{{field}} n'est pas la personne ou l'équipe sélectionnée ({{count}})",
   "Is any of": "Est l'un de",
   "Is none of": "N'est aucun de",
-  "{{page}} (through {{groups}})": "{{page}} (via {{groups}})"
+  "{{page}} (through {{groups}})": "{{page}} (via {{groups}})",
+  "A team of another project is named as an owner in the criteria of {{monitor}}, so nobody is emailed through it.": "Une équipe d'un autre projet est désignée comme propriétaire dans les critères de {{monitor}} : personne n'est donc prévenu par e-mail à travers elle.",
+  "A team of another project owns the network device {{monitor}} watches, so nobody is emailed through it.": "Une équipe d'un autre projet est propriétaire de l'équipement réseau que surveille {{monitor}} : personne n'est donc prévenu par e-mail à travers elle.",
+  "An owner of the network device {{monitor}} watches isn't a member of this project, so isn't emailed.": "Un propriétaire de l'équipement réseau que surveille {{monitor}} n'est pas membre de ce projet : il ne reçoit donc pas d'e-mail.",
+  "It's owned by {{owners}}, so a rule you can't see matches.": "Propriétaires : {{owners}}, donc une règle que vous ne pouvez pas voir correspond.",
+  "It's owned by {{owners}}, so {{rule}} matches.": "Propriétaires : {{owners}}, donc {{rule}} correspond.",
+  "Owner rule {{rule}} adds a team of another project as an owner, so nobody is emailed through it.": "La règle de propriétaire {{rule}} ajoute comme propriétaire une équipe d'un autre projet : personne n'est donc prévenu par e-mail à travers elle.",
+  "Owner rule {{rule}} adds someone who isn't a member of this project as an owner, so they aren't emailed.": "La règle de propriétaire {{rule}} ajoute comme propriétaire une personne qui n'est pas membre de ce projet : elle ne reçoit donc pas d'e-mail.",
+  "Someone named as an owner in the criteria of {{monitor}} isn't a member of this project, so isn't emailed.": "Une personne désignée comme propriétaire dans les critères de {{monitor}} n'est pas membre de ce projet : elle ne reçoit donc pas d'e-mail."
 }
