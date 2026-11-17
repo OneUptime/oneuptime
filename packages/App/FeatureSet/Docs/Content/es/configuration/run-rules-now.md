@@ -35,7 +35,7 @@ Las reglas de una red piden lo mismo cuando las ejecutas sobre los dispositivos 
 :::steps
 ### Abrir la lista de reglas
 
-Abre la página de reglas, por ejemplo **Monitores → Ajustes → Reglas de etiquetas**.
+Abre la página de reglas, por ejemplo **Monitores → Reglas → Reglas de etiquetas**.
 
 ### Seleccionar Ejecutar ahora
 

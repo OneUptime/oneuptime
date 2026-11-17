@@ -301,7 +301,7 @@ const ALL_CLEAR_PAGES: Array<AllClearPage> = [
   },
   {
     file: "Pages/Monitor/ProbeDisabled.tsx",
-    says: "No monitors with disabled probes.",
+    says: "No monitors without an enabled probe.",
   },
   {
     file: "Pages/Monitor/DisabledMonitors.tsx",

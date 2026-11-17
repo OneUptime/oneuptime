@@ -33,7 +33,7 @@ import NotOperationalMonitorQuery from "../Monitor/NotOperationalMonitorQuery";
  * a disabled SLO the same way (Utils/Slo/SloListWidgetFormat).
  *
  * A row says what the Monitors table's row says, from the one rule both
- * read (Utils/Monitor/MonitorRowStatus): Disabled, Probes Not Enabled or
+ * read (Utils/Monitor/MonitorRowStatus): Disabled, No Probe Enabled or
  * Probes Disconnected where nothing checks the monitor, and Waiting for
  * data, No results yet or Paused where nothing has checked it yet and it
  * is still in the operational status it was created in (issue #8899).

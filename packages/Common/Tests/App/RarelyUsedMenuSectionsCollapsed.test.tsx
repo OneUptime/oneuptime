@@ -209,7 +209,10 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
   "Incidents",
   "Incoming Calls",
   "Monitors",
-  "More",
+  /*
+   * "More" left this list with the Status Pages menu's, the one menu that
+   * had it: its Announcements moved up beside All Status Pages (#9126).
+   */
   /*
    * "Scheduled Events" left this list with Home's side menu, the one menu
    * that had it: Home is one page with no side menu (#6857).

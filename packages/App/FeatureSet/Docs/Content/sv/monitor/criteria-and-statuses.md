@@ -148,7 +148,7 @@ Listan är en ordning. Där monitorer visas tillsammans vinner den status som st
 
 | Var | Vad statusen avgör |
 | --- | --- |
-| Listan **Monitorer** | Varje monitors aktuella status. **Ej operativ** listar monitorerna med vilken status som helst utom den fungerande, med en röd siffra bredvid. Monitorer med avstängd övervakning är utelämnade: ingenting kontrollerar dem, och **Inaktiverad** listar dem. |
+| Listan **Monitorer** | Varje monitors aktuella status. **Ej operativ** listar monitorerna med vilken status som helst utom den fungerande, med en röd siffra bredvid. Monitorer med avstängd övervakning är utelämnade: ingenting kontrollerar dem, och **Inaktiverad** listar dem. **Inaktiverad** ligger under **Alla monitorer** i sidomenyn, med en grå siffra: att stänga av övervakningen är ett val, inte ett fel. Bredvid **Ej operativ**, under **Uppmärksamhet krävs**, listar **Sonder frånkopplade** monitorerna vars aktiverade sonder alla är frånkopplade, och **Ingen sond aktiverad** monitorerna som ingen aktiverad sond kontrollerar: deras sonder är alla inaktiverade, eller så har de inga. |
 | Statussidor | Färgen på varje rad och dess tillgänglighet: bara statusarna i sidans **Räknas som driftstopp** räknas mot den. En ny statussida börjar med alla statusar utom den fungerande. Se [Välj vad sidan visar](/docs/status-pages/index#välja-vad-som-visas-på-sidan). |
 | Monitorgrupper | Gruppens status: den värsta bland dess monitorer. Se [Monitorgrupper](/docs/monitor/monitor-groups). |
 | SLO:er | Det driftstopp ett SLO räknar, utifrån dess egen lista över statusar. Se [Vilka statusar som räknas som driftstopp](/docs/slo/introduction#vilka-statusar-som-räknas-som-driftstopp). |

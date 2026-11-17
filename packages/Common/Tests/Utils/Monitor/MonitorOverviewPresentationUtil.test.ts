@@ -996,7 +996,7 @@ describe("MonitorOverviewPresentationUtil hero", () => {
     expect(maintenance.callToAction).toBeUndefined();
   });
 
-  it('paused with no probe enabled keeps a "Probes Not Enabled" secondary badge', () => {
+  it('paused with no probe enabled keeps a "No Probe Enabled" secondary badge', () => {
     const presentation: MonitorOverviewPresentation = build(
       running(MonitorType.API, {
         pause: {
@@ -1010,7 +1010,7 @@ describe("MonitorOverviewPresentationUtil hero", () => {
 
     expect(presentation.badge.text).toBe("Disabled");
     expect(presentation.secondaryBadges).toEqual([
-      { text: "Probes Not Enabled", tone: "danger" },
+      { text: "No Probe Enabled", tone: "danger" },
     ]);
 
     expect(
@@ -1071,7 +1071,7 @@ describe("MonitorOverviewPresentationUtil hero", () => {
 
     const three: MonitorOverviewPresentation = switchedOff(3);
 
-    expect(three.badge).toEqual({ text: "Probes Not Enabled", tone: "danger" });
+    expect(three.badge).toEqual({ text: "No Probe Enabled", tone: "danger" });
     expect(three.tone).toBe("danger");
     expect(three.headline.text).toBe(
       "Every probe is turned off for this monitor",
