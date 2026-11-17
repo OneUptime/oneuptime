@@ -113,6 +113,8 @@ const LABEL_ONLY_KEYS: Readonly<Record<string, string>> = {
     "A metric's title, on a database's and an OpenStack cloud's pages, and before the words a chart adds to it (\"{{metric}} (per second)\").",
   "Container App":
     "The first words of every sentence that says what a cloud change does to one, in every language that words those sentences (\"{{kind}} {{name}}: reiniciar\"). The catalog's label of the same words is a product's name, drawn as written (CloudResourceTypeNamesGuard).",
+  "BI tool":
+    'Where the Lineage Map\'s list saw an arrow, in the line under it: the whole line under a dashboard\'s arrow, as "Pipeline run" and "Query history" start the others.',
 };
 
 // A call that draws a key as a label: the file it is in, and what it reads.
