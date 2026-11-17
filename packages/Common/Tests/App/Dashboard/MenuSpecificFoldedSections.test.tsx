@@ -642,10 +642,26 @@ describe("other resource pages that fold a section of their own", () => {
       { title: "Subscribers", expanded: false },
       { title: "Branding", expanded: false },
       { title: "Security", expanded: false },
-      { title: "AI", expanded: false },
       { title: "Developer", expanded: false },
       { title: "Advanced", expanded: false },
     ]);
+  });
+
+  /*
+   * MCP had an "AI" section of its own, for that one entry; it leads
+   * Advanced now (#9216).
+   */
+  test("a status page's MCP page opens Advanced, where it sits first", async () => {
+    goTo(viewRoute(PageMap.STATUS_PAGE_VIEW_MCP));
+    await renderMenu(<StatusPageSideMenu modelId={new ObjectID(MODEL_ID)} />);
+
+    expect(isExpanded("Advanced")).toBe(true);
+    expect(activeLinkTitles()).toEqual(["MCP"]);
+    expect(linksIn("Advanced")[0]).toEqual({
+      title: "MCP",
+      href: viewRoute(PageMap.STATUS_PAGE_VIEW_MCP),
+    });
+    expect(isExpanded("Branding")).toBe(false);
   });
 
   test("a status page's subscriber list opens Subscribers", async () => {
@@ -668,6 +684,8 @@ describe("other resource pages that fold a section of their own", () => {
   /*
    * An alert's menu has an incident's sections, and they fold the same
    * way: what the alert is and who works on it stay open, its logs fold.
+   * Private Notes sits in Investigation, not in a "Notes" section of its
+   * own (#9216).
    */
   test("an alert: its sections fold as an incident's do", async () => {
     goTo(viewRoute(PageMap.ALERT_VIEW));
@@ -678,10 +696,23 @@ describe("other resource pages that fold a section of their own", () => {
       { title: "Investigation", expanded: true },
       { title: "Team", expanded: true },
       { title: "Notifications", expanded: false },
-      { title: "Notes", expanded: true },
       { title: "Developer", expanded: false },
       { title: "Advanced", expanded: false },
     ]);
+  });
+
+  test("an alert's Private Notes page is under Investigation, last", async () => {
+    goTo(viewRoute(PageMap.ALERT_VIEW_INTERNAL_NOTE));
+    await renderMenu(<AlertViewSideMenu modelId={new ObjectID(MODEL_ID)} />);
+
+    expect(isExpanded("Investigation")).toBe(true);
+    expect(activeLinkTitles()).toEqual(["Private Notes"]);
+    const investigation: Array<MenuLink> = linksIn("Investigation");
+
+    expect(investigation[investigation.length - 1]).toEqual({
+      title: "Private Notes",
+      href: viewRoute(PageMap.ALERT_VIEW_INTERNAL_NOTE),
+    });
   });
 
   test("an alert's On-Call Executions page is under Team, as an incident's is", async () => {
