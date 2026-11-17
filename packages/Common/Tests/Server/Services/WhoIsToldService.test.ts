@@ -62,6 +62,10 @@ import NetworkDeviceOwnerUserService, {
   NetworkDeviceOwners,
 } from "../../../Server/Services/NetworkDeviceOwnerUserService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
+import OnCallDutyPolicyEscalationRuleScheduleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleScheduleService";
+import OnCallDutyPolicyEscalationRuleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
+import OnCallDutyPolicyEscalationRuleTeamService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleTeamService";
+import OnCallDutyPolicyEscalationRuleUserService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleUserService";
 import OnCallReadinessService, {
   ReadinessStatus,
   UserReadiness,
@@ -4289,10 +4293,85 @@ describe("WhoIsToldService", () => {
   });
 
   /*
-   * THE RULES A NEW RECORD'S CREATE RUNS, IN ITS ORDER (#7212, #7213,
-   * #7216): privacy, owners, labels, on-call - and, for an alert, its
-   * alert incident rules last. Each by the engine's own read-only plan.
+   * A POLICY WHOSE FIRST ESCALATION RULE IS NOT AT PLACE 1 (#9369): rules
+   * written through the API or by Terraform keep the place they are given.
+   * A run starts at the lowest place, and so does the card: it names who
+   * that rule reaches, never "has no escalation rules".
    */
+  describe("a policy whose only escalation rule is at place 2", () => {
+    const RULE_AT_TWO: string = "68101111-0000-4000-8000-0000000000e9";
+
+    beforeEach(() => {
+      // Read as the test page reads a level, not stood in for.
+      jest.spyOn(OnCallTestPageService, "readFirstLevel").mockRestore();
+
+      jest
+        .spyOn(OnCallDutyPolicyEscalationRuleService, "findBy")
+        .mockImplementation((async (args: {
+          query: { onCallDutyPolicyId?: ObjectID };
+        }) => {
+          return args.query.onCallDutyPolicyId?.toString() === PRIMARY
+            ? [
+                {
+                  id: new ObjectID(RULE_AT_TWO),
+                  order: 2,
+                  escalateAfterInMinutes: 30,
+                },
+              ]
+            : [];
+        }) as never);
+      jest
+        .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "findBy")
+        .mockResolvedValue([] as never);
+      jest
+        .spyOn(OnCallDutyPolicyEscalationRuleScheduleService, "findBy")
+        .mockResolvedValue([] as never);
+      jest
+        .spyOn(OnCallDutyPolicyEscalationRuleUserService, "findBy")
+        .mockImplementation((async (args: {
+          query: { onCallDutyPolicyEscalationRuleId?: ObjectID };
+        }) => {
+          return args.query.onCallDutyPolicyEscalationRuleId?.toString() ===
+            RULE_AT_TWO
+            ? [{ userId: new ObjectID(ANA) }]
+            : [];
+        }) as never);
+      jest
+        .spyOn(OnCallDutyPolicyEscalationRuleService, "getAwayOverride")
+        .mockResolvedValue(null as never);
+      jest
+        .spyOn(ProjectMembership, "getMemberUserIds")
+        .mockResolvedValue(new Set<string>([ANA]) as never);
+      jest
+        .spyOn(ProjectMembership, "isMember")
+        .mockResolvedValue(true as never);
+      jest.spyOn(UserService, "findOneById").mockImplementation((async (args: {
+        id: ObjectID;
+      }) => {
+        return withId(
+          user(PEOPLE[args.id.toString()] || "", "ana@example.com"),
+          args.id.toString(),
+        );
+      }) as never);
+    });
+
+    test("the card names who that rule reaches, and no break says the policy has none", async () => {
+      const result: WhoIsToldResult = await resolve();
+      const policy: WhoIsToldPolicy = firstEvent(result).policies[0]!;
+
+      expect(policy.levelCount).toBe(1);
+      expect(
+        policy.people.map((person: WhoIsToldPerson): string => {
+          return person.name;
+        }),
+      ).toEqual(["Ana Lopez"]);
+      expect(kinds(result)).not.toContain(WhoIsToldBreakKind.PolicyHasNoLevels);
+      expect(kinds(result)).not.toContain(
+        WhoIsToldBreakKind.PolicyReachesNobody,
+      );
+    });
+  });
+
   /*
    * A MONITOR NOT SAVED YET (#7055): Create Monitor's criteria, and a saved
    * monitor's criteria being edited, are worked out by the same resolver -
@@ -4575,6 +4654,11 @@ describe("WhoIsToldService", () => {
       ).toBe(false);
     });
   });
+  /*
+   * THE RULES A NEW RECORD'S CREATE RUNS, IN ITS ORDER (#7212, #7213,
+   * #7216): privacy, owners, labels, on-call - and, for an alert, its
+   * alert incident rules last. Each by the engine's own read-only plan.
+   */
   describe("the rules a new record's create runs", () => {
     const CHECKOUT_LABEL: string = "68101111-0000-4000-8000-000000000043";
     const OTHER_LABEL: string = "68101111-0000-4000-8000-000000000044";
