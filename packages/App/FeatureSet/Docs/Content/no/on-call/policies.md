@@ -107,9 +107,13 @@ Den som kalles opp, bekrefter testen fra hvilken som helst av meldingene sine: l
 
 ### Hold en beredskapsøvelse for en monitor
 
-**Hold en beredskapsøvelse**, på kortet **Når den går ned** for en monitor, øver på en av feilene dens: en hendelse eller et varsel som et av kriteriene åpner. Den tester hver vaktpolicy som den feilen ville kalt opp, hver slik **Test denne policyen** tester den, og ingenting offentlig skjer: ingen hendelse eller varsel opprettes, og ingen statusside, abonnent eller kanal får beskjed. Før noe sendes, nevner dialogen feilen, hver policy og hvem den policyen kaller opp nå.
+**Hold en beredskapsøvelse**, på kortet **Når den går ned** for en monitor, øver på en av feilene dens: en hendelse eller et varsel som et av kriteriene åpner, eller hendelsen som en hendelsesregel for varsler oppretter fra et slikt varsel. Den tester hver vaktpolicy som den feilen ville kalt opp, hver slik **Test denne policyen** tester den, og ingenting offentlig skjer: ingen hendelse eller varsel opprettes, og ingen statusside, abonnent eller kanal får beskjed. Før noe sendes, nevner dialogen feilen, hver policy og hvem den policyen kaller opp nå. For en opprettet hendelse nevner den også regelen og hvor lenge varselet først står åpent: øvelsen tester hendelsens policyer med en gang, uten den ventetiden.
+
+En øvelse kaller opp hver policys første nivå. Under **Flere felt** kan du slå på **Gå gjennom hvert eskaleringsnivå** for å kalle opp hver policys nivåer etter tur, høyst 2 minutter fra hverandre, til noen bekrefter: dialogen viser da hvert nivå hver policy når, og hva gjennomgangen høyst koster. Når ingen på de første nivåene kan nås, men et senere nivå kan, tilbyr linjen under listen **Gå gjennom hvert eskaleringsnivå** med ett klikk.
 
 **Start beredskapsøvelse** forblir slått av så lenge en av de policyene er en du ikke kan teste, fordi du ikke kan redigere den, eller så lenge ingen de kaller opp, kan nås. Hver policy i en øvelse teller som en egen test: en policy som er testet de siste 5 minuttene, stopper hele øvelsen, og en øvelse med tre policyer bruker tre av prosjektets 20 tester i timen.
+
+Når dialogen er lukket, sier **Siste beredskapsøvelse** på kortet hvilken feil monitorens siste øvelse øvde på, når og av hvem den ble startet, og hvor mange av testene som ble bekreftet. **Vis detaljer** viser hver policys test: om den ble bekreftet, av hvem, hvordan og hvor raskt. Hver test blir værende i policyens utførelseslogger, merket som en beredskapsøvelse for monitoren. Resultatene av en øvelse vises for den som kan lese monitoren og hver av disse utførelsesloggene.
 
 ## Utførelseslogger
 

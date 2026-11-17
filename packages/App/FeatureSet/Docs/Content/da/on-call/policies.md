@@ -107,9 +107,13 @@ Den, der kaldes, kvitterer for testen fra enhver af dens beskeder: linket i en e
 
 ### Hold en beredskabsøvelse for en monitor
 
-**Hold en beredskabsøvelse**, på kortet **Når den går ned** for en monitor, øver en af dens fejl: en hændelse eller advarsel, som et af dens kriterier åbner. Den tester hver vagtpolitik, som den fejl ville kalde, hver som **Test denne politik** tester den, og intet offentligt sker: der oprettes ingen hændelse eller advarsel, og ingen statusside, abonnent eller kanal får besked. Før noget sendes, nævner dialogen fejlen, hver politik og hvem den politik kalder nu.
+**Hold en beredskabsøvelse**, på kortet **Når den går ned** for en monitor, øver en af dens fejl: en hændelse eller advarsel, som et af dens kriterier åbner, eller den hændelse, som en hændelsesregel for advarsler opretter ud fra sådan en advarsel. Den tester hver vagtpolitik, som den fejl ville kalde, hver som **Test denne politik** tester den, og intet offentligt sker: der oprettes ingen hændelse eller advarsel, og ingen statusside, abonnent eller kanal får besked. Før noget sendes, nævner dialogen fejlen, hver politik og hvem den politik kalder nu. For en oprettet hændelse nævner den også reglen, og hvor længe advarslen først står åben: øvelsen tester hændelsens politikker med det samme, uden den ventetid.
+
+En øvelse kalder hver politiks første niveau. Under **Flere felter** kan du slå **Gå gennem hvert eskaleringsniveau** til for at kalde hver politiks niveauer efter tur, højst 2 minutter fra hinanden, indtil nogen kvitterer: dialogen viser så hvert niveau, hver politik når, og hvad gennemgangen højst koster. Når ingen på de første niveauer kan nås, men et senere niveau kan, tilbyder linjen under listen **Gå gennem hvert eskaleringsniveau** med ét klik.
 
 **Start beredskabsøvelse** forbliver slået fra, så længe en af de politikker er en, du ikke kan teste, fordi du ikke kan redigere den, eller så længe ingen, de kalder, kan nås. Hver politik i en øvelse tæller som sin egen test: en politik, der er testet inden for de sidste 5 minutter, stopper hele øvelsen, og en øvelse med tre politikker bruger tre af projektets 20 test i timen.
+
+Når dialogen er lukket, siger **Seneste beredskabsøvelse** på kortet, hvilken fejl monitorens seneste øvelse øvede, hvornår og af hvem den blev startet, og hvor mange af dens test der blev kvitteret for. **Vis detaljer** viser hver politiks test: om der blev kvitteret for den, af hvem, hvordan og hvor hurtigt. Hver test bliver i sin politiks udførelseslogs, markeret som en beredskabsøvelse for monitoren. En øvelses resultater vises for den, der kan læse monitoren og hver af de udførelseslogs.
 
 ## Udførelseslogs
 
