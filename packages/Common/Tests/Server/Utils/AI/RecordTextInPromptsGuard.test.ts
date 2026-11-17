@@ -133,6 +133,12 @@ const ALLOWED: Array<AllowedField> = [
     };
   }),
   {
+    file: "packages/Common/Server/Utils/AI/Chat/ChatCarriedRecords.ts",
+    expression: "data.description",
+    reason:
+      "A chat's pull request description, read only for the records it quotes (CarriedRecords.quotedFromLists); never sent to a model.",
+  },
+  {
     file: "packages/Common/Server/Utils/AI/SRE/IncidentInvestigationRunner.ts",
     expression: "contextData.incident.rootCause",
     reason:
