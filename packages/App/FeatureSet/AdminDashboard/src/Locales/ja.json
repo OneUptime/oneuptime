@@ -64,7 +64,7 @@
     "apiKey": "APIキー",
     "more": "その他",
     "sendEmail": "メール送信",
-    "logout": "ログアウト",
+    "signOut": "サインアウト",
     "telemetryUsage": "テレメトリ使用量",
     "ingestionBudgets": "取り込み予算",
     "products": "製品"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "管理者を終了",
-    "logOut": "ログアウト"
+    "signOut": "サインアウト"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -482,8 +482,8 @@
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
-      "title": "ログアウト"
+    "signOut": {
+      "title": "サインアウト"
     },
     "sendEmail": {
       "title": "お知らせメールを送信",
@@ -724,7 +724,6 @@
   "Projects": "プロジェクト",
   "Project": "プロジェクト",
   "User": "ユーザー",
-  "Logout": "ログアウト",
   "Save": "保存",
   "Cancel": "キャンセル",
   "Submit": "送信",

@@ -121,12 +121,12 @@ OneUptime envoie les alertes d'astreinte en priorité haute, qu'Android livre m�
 
 ## Verrouiller l'application
 
-Activez **Biometrics Login** sous **Settings** dans l'application, et elle vous demande votre empreinte, votre visage ou le verrouillage d'écran du téléphone à chaque démarrage. L'interrupteur apparaît une fois qu'un déverrouillage par empreinte ou par visage est configuré sur le téléphone. **Appearance**, sur le même écran, choisit l'apparence claire ou sombre, ou suit le téléphone.
+Activez **Biometric Unlock** sous **Settings** dans l'application, et elle vous demande votre empreinte, votre visage ou le verrouillage d'écran du téléphone à chaque démarrage. L'interrupteur apparaît une fois qu'un déverrouillage par empreinte ou par visage est configuré sur le téléphone. **Appearance**, sur le même écran, choisit l'apparence claire ou sombre, ou suit le téléphone.
 
 ## Mettre à jour, se déconnecter ou désinstaller
 
 - **Mettre à jour.** Google Play met l'application à jour. Pour l'APK, installez le plus récent par-dessus. La version de l'application figure en bas de son écran **Settings**.
-- **Se déconnecter.** **Settings → Log Out** vous déconnecte et retire le téléphone de vos appareils push dans chaque projet, avec ses règles d'astreinte. Si vous vous reconnectez, il revient avec les règles par défaut.
+- **Se déconnecter.** **Settings → Sign Out** vous déconnecte et retire le téléphone de vos appareils push dans chaque projet, avec ses règles d'astreinte. Si vous vous reconnectez, il revient avec les règles par défaut.
 - **Désinstaller.** Supprimez l'application comme toute autre. Si vous étiez encore connecté, le téléphone reste dans votre liste jusqu'à ce qu'un push vers lui échoue : OneUptime le marque alors **Ne reçoit pas de notifications**. Supprimez cette entrée avec **Supprimer** : si vous réinstallez l'application et vous connectez, le téléphone est ajouté comme nouvelle entrée, avec les règles par défaut.
 
 ## Dépannage
@@ -151,7 +151,7 @@ Ouvrez **Settings** dans l'application : la ligne sous **Critical On-Call Alerts
 OneUptime On-Call est déjà sur le téléphone depuis une autre source, comme Google Play, et Android n'installe pas l'une par-dessus l'autre. Désinstallez-la, installez l'APK et reconnectez-vous.
 :::
 
-:::details Pas d'interrupteur Biometrics Login
+:::details Pas d'interrupteur Biometric Unlock
 L'interrupteur apparaît une fois qu'un déverrouillage par empreinte ou par visage est configuré dans les paramètres d'Android.
 :::
 

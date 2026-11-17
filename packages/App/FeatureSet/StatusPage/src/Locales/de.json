@@ -37,7 +37,7 @@
     "announcements": "Ankündigungen",
     "scheduledEvents": "Geplante Wartung",
     "subscribe": "Abonnieren",
-    "logout": "Abmelden"
+    "signOut": "Abmelden"
   },
   "overview": {
     "uptimeSuffix": "% Verfügbarkeit",
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "In den letzten {{count}} Tagen abgeschlossen",
   "Completed in the Last {{count}} Days_one": "Innerhalb des letzten Tages abgeschlossen",
   "None is planned, and none took place in the last {{count}} days.": "Es ist keine geplant, und in den letzten {{count}} Tagen fand keine statt.",
-  "None is planned, and none took place in the last {{count}} days._one": "Es ist keine geplant, und innerhalb des letzten Tages fand keine statt."
+  "None is planned, and none took place in the last {{count}} days._one": "Es ist keine geplant, und innerhalb des letzten Tages fand keine statt.",
+  "serverMessages": {
+    "signInToView": "Sie haben keinen Zugriff auf diese Statusseite. Bitte melden Sie sich an, um sie anzuzeigen.",
+    "sessionExpired": "Sitzung abgelaufen. Bitte melden Sie sich erneut an.",
+    "signedOut": "Sie sind abgemeldet. Bitte melden Sie sich erneut an.",
+    "magicLinkTurnedOff": "Anmeldelinks sind für diese Statusseite deaktiviert. Bitte melden Sie sich mit Ihrer E-Mail-Adresse und Ihrem Passwort an."
+  }
 }

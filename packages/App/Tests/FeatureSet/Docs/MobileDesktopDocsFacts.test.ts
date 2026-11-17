@@ -644,7 +644,7 @@ describe("the phone in the dashboard", () => {
 
     for (const page of MOBILE_PAGES) {
       expect(englishPage(page)).toContain(
-        "**Settings → Log Out** signs you out and removes the",
+        "**Settings → Sign Out** signs you out and removes the",
       );
       expect(englishPage(page)).toContain(
         "from your push devices in every project, together with its steps in How to Reach Me. Signing in again adds it back with the default steps.",
@@ -988,7 +988,7 @@ describe("a phone that has to register again", () => {
 });
 
 describe("what the mobile app keeps and shows", () => {
-  it("keeps the sign-in in its own storage, as the README says, and Log Out deletes it", () => {
+  it("keeps the sign-in in its own storage, as the README says, and Sign Out deletes it", () => {
     const keychain: string = mobile("src/storage/keychain.ts");
     const logout: string = flat(mobile("src/api/auth.ts"));
 
@@ -1003,7 +1003,7 @@ describe("what the mobile app keeps and shows", () => {
       /export async function logout\(\): Promise<void> \{.*?`\$\{serverUrl\}\/identity\/logout`/,
     );
     expect(detailsBlock(FAQ, "Is my sign-in safe on the phone?")).toContain(
-      "Your sign-in is kept in the app's own storage on the phone, and **Log Out** deletes it and signs the session out on the server.",
+      "Your sign-in is kept in the app's own storage on the phone, and **Sign Out** deletes it and signs the session out on the server.",
     );
   });
 
@@ -1103,13 +1103,13 @@ describe("what the mobile app keeps and shows", () => {
     );
   });
 
-  it("shows Biometrics Login once the phone has biometrics set up, and Appearance beside it", () => {
+  it("shows Biometric Unlock once the phone has biometrics set up, and Appearance beside it", () => {
     const settings: string = flat(mobile("src/screens/SettingsScreen.tsx"));
     const biometric: string = flat(mobile("src/hooks/useBiometric.ts"));
 
     // Its own group, in the one scroll or below a tabletop fold.
     expect(settings).toMatch(
-      /biometric\.isAvailable \? \( <ListGroup title="Security"[^>]{0,200}> <ListItem title="Biometrics Login"/,
+      /biometric\.isAvailable \? \( <ListGroup title="Security"[^>]{0,200}> <ListItem title="Biometric Unlock"/,
     );
     expect(settings.split("{security}").length - 1).toBe(2);
     expect(biometric).toContain(

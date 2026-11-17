@@ -124,7 +124,7 @@ De openbare pagina is een eigen applicatie, met een kleine set routes:
 - `/rss`: de feed.
 - `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` en `/master-password`: alleen relevant op een privépagina.
 
-De navigatiebalk bovenaan toont altijd **Overzicht**; de rest verschijnt alleen wanneer het aan staat. **Incidenten**, **Aankondigingen** en **Gepland onderhoud** hebben elk hun eigen schakelaar nodig; **Abonneren** heeft zowel **Abonneepagina weergeven** als minstens één ingeschakeld abonnementskanaal nodig. Een privépagina heeft ook een item **Uitloggen**.
+De navigatiebalk bovenaan toont altijd **Overzicht**; de rest verschijnt alleen wanneer het aan staat. **Incidenten**, **Aankondigingen** en **Gepland onderhoud** hebben elk hun eigen schakelaar nodig; **Abonneren** heeft zowel **Abonneepagina weergeven** als minstens één ingeschakeld abonnementskanaal nodig. Een privépagina heeft ook een item **Afmelden**.
 
 Eén incident, episode, aankondiging of geplande gebeurtenis opent alleen als de pagina die zou tonen, ongeacht de geschiedenisperiode: een privé-incident of -episode, een die verborgen is op statuspagina's, een geplande gebeurtenis die verborgen is op statuspagina's of een aankondiging die voor later is gepland, wordt ook via de link niet gevonden.
 

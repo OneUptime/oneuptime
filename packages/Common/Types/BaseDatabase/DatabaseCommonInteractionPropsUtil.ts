@@ -12,7 +12,7 @@ export enum PermissionType {
 
 export default class DatabaseCommonInteractionPropsUtil {
   public static readonly AUTHENTICATION_REQUIRED_MESSAGE: string =
-    "Authentication required. Please log in to access this resource.";
+    "Authentication required. Please sign in to access this resource.";
 
   public static readonly READ_ONLY_CREDENTIAL_MESSAGE: string =
     "This MCP client was connected with read-only access, so it cannot make changes. Connect it again and allow read and write access.";

@@ -64,7 +64,7 @@
     "apiKey": "API-nyckel",
     "more": "Mer",
     "sendEmail": "Skicka e-post",
-    "logout": "Logga ut",
+    "signOut": "Logga ut",
     "telemetryUsage": "Telemetrianvändning",
     "ingestionBudgets": "Intagningsbudgetar",
     "products": "Produkter"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "Lämna admin",
-    "logOut": "Logga ut"
+    "signOut": "Logga ut"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -482,7 +482,7 @@
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "Logga ut"
     },
     "sendEmail": {
@@ -724,7 +724,6 @@
   "Projects": "Projekt",
   "Project": "Projekt",
   "User": "Användare",
-  "Logout": "Logga ut",
   "Save": "Spara",
   "Cancel": "Avbryt",
   "Submit": "Skicka",

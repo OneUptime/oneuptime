@@ -64,7 +64,7 @@
     "apiKey": "API Key",
     "more": "More",
     "sendEmail": "Send Email",
-    "logout": "Logout",
+    "signOut": "Sign Out",
     "telemetryUsage": "Telemetry Usage",
     "ingestionBudgets": "Ingestion Budgets",
     "products": "Products"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "Exit Admin",
-    "logOut": "Log out"
+    "signOut": "Sign Out"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -482,8 +482,8 @@
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
-      "title": "Logout"
+    "signOut": {
+      "title": "Sign Out"
     },
     "sendEmail": {
       "title": "Send Announcement Email",
@@ -724,7 +724,6 @@
   "Projects": "Projects",
   "Project": "Project",
   "User": "User",
-  "Logout": "Logout",
   "Save": "Save",
   "Cancel": "Cancel",
   "Submit": "Submit",

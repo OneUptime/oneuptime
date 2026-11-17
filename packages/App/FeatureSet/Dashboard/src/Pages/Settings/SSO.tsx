@@ -357,7 +357,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
             icon: IconProp.User,
             title: "Auto team assignment",
             subtitle:
-              "Map signed-in users into the right teams the moment they log in.",
+              "Map signed-in users into the right teams the moment they sign in.",
           },
           {
             icon: IconProp.ClipboardDocumentList,

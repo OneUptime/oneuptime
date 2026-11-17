@@ -543,9 +543,7 @@ describe("POST /login — a blocked user", () => {
     await invoke("/login", credentials({}, "a wrong password"));
 
     expect(sendErrorResponse).toHaveBeenCalledTimes(1);
-    expect(sentError()?.message).toBe(
-      "Invalid login: Email or password does not match.",
-    );
+    expect(sentError()?.message).toBe("Email or password does not match.");
     expect(createSession).not.toHaveBeenCalled();
   });
 

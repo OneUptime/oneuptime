@@ -31,7 +31,7 @@ export default function SettingsStackNavigator(): React.JSX.Element {
       <Stack.Screen
         name="SSOProviderSelect"
         component={SSOProviderSelectScreen}
-        options={{ title: "SSO Login" }}
+        options={{ title: "Sign In with SSO" }}
       />
       <Stack.Screen
         name="OnCallCalendarFeed"

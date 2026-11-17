@@ -3700,10 +3700,10 @@ describe("Your Account", () => {
       },
     );
 
-    expect(keys).toEqual(["label", "profile", "adminSettings", "logOut"]);
+    expect(keys).toEqual(["label", "profile", "adminSettings", "signOut"]);
 
     /*
-     * The theme is one row between Admin Settings and Log out, which draws
+     * The theme is one row between Admin Settings and Sign Out, which draws
      * its own words (Common's ThemeChoiceRow): "Theme", and Light, Dark and
      * System, in that order.
      */
@@ -3713,7 +3713,7 @@ describe("Your Account", () => {
     expect(themeRow).toBeGreaterThan(
       menu.indexOf('t("userProfile.adminSettings")'),
     );
-    expect(themeRow).toBeLessThan(menu.indexOf('t("userProfile.logOut")'));
+    expect(themeRow).toBeLessThan(menu.indexOf('t("userProfile.signOut")'));
 
     const row: string = oneLine(
       readSource(
@@ -3746,7 +3746,7 @@ describe("Your Account", () => {
       english.userProfile["profile"] as string,
       english.userProfile["adminSettings"] as string,
       "Theme",
-      english.userProfile["logOut"] as string,
+      english.userProfile["signOut"] as string,
     ]);
 
     expect(menu).toContain(

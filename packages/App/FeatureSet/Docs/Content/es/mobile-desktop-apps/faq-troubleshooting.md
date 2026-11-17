@@ -36,7 +36,7 @@ Sí. Cada teléfono o tableta es un dispositivo push propio, con sus propias reg
 - **Monitors**: todos los monitores, filtrados por estado, con sus detalles.
 - **Inbox**: incidentes y alertas, y los episodios que los agrupan. Abra uno para usar **Acknowledge**, **Resolve** o **Add Note**. Si su rol le permite ver los casos de seguridad del proyecto, **Security** lista los abiertos: abra uno para usar **Approve** o **Reject** en un paso de playbook que espera aprobación, hacerse cargo del caso con **Assign to me** o usar **Close case**.
 - **On-Call**: si está de guardia y hasta cuándo, quién más lo está, los avisos que le enviaron, y **Cover for me**, que pasa sus avisos a un compañero durante un tiempo.
-- **Settings**: sus proyectos y el inicio de sesión único, la apariencia, las alertas críticas y el sonido de alarma, **Biometrics Login**, su feed de calendario de guardias y **Log Out**.
+- **Settings**: sus proyectos y el inicio de sesión único, la apariencia, las alertas críticas y el sonido de alarma, **Biometric Unlock**, su feed de calendario de guardias y **Sign Out**.
 
 Todo lo demás está en el panel.
 :::
@@ -46,7 +46,7 @@ No. Toque la notificación: la aplicación abre el incidente, la alerta, el epis
 :::
 
 :::details ¿Mi inicio de sesión está seguro en el teléfono?
-La aplicación habla con su OneUptime solo por HTTPS. Su inicio de sesión se guarda en el almacenamiento propio de la aplicación en el teléfono, y **Log Out** lo borra y también cierra la sesión en el servidor. Active **Biometrics Login** para que la aplicación pida su cara, su huella o su código cada vez que se inicie.
+La aplicación habla con su OneUptime solo por HTTPS. Su inicio de sesión se guarda en el almacenamiento propio de la aplicación en el teléfono, y **Sign Out** lo borra y también cierra la sesión en el servidor. Active **Biometric Unlock** para que la aplicación pida su cara, su huella o su código cada vez que se inicie.
 :::
 
 :::details ¿La aplicación funciona sin conexión?

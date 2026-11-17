@@ -31,10 +31,10 @@ const Logout: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Page
-      title={"Logout"}
+      title={"Sign Out"}
       breadcrumbLinks={[
         {
-          title: "Logout",
+          title: "Sign Out",
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.LOGOUT] as Route),
         },
       ]}

@@ -36,7 +36,7 @@ Yes. Each phone or tablet is a push device of its own, with its own steps in How
 - **Monitors**: every monitor, filtered by health, with its details.
 - **Inbox**: incidents and alerts, and the episodes that group them. Open one to **Acknowledge**, **Resolve** or **Add Note**. If your role lets you see the project's security cases, **Security** lists the open ones: open one to **Approve** or **Reject** a playbook step waiting for approval, take it on with **Assign to me**, or **Close case**.
 - **On-Call**: whether you are on call and until when, who else is, the pages sent to you, and **Cover for me**, which hands your pages to a teammate for a while.
-- **Settings**: your projects and single sign-on, appearance, critical alerts and the alarm sound, **Biometrics Login**, your on-call calendar feed, and **Log Out**.
+- **Settings**: your projects and single sign-on, appearance, critical alerts and the alarm sound, **Biometric Unlock**, your on-call calendar feed, and **Sign Out**.
 
 Everything else is in the dashboard.
 :::
@@ -46,7 +46,7 @@ No. Tap the notification: the app opens the incident, alert, episode or security
 :::
 
 :::details Is my sign-in safe on the phone?
-The app talks to your OneUptime over HTTPS only. Your sign-in is kept in the app's own storage on the phone, and **Log Out** deletes it and signs the session out on the server. Turn on **Biometrics Login** to have the app ask for your face, fingerprint or passcode each time it starts.
+The app talks to your OneUptime over HTTPS only. Your sign-in is kept in the app's own storage on the phone, and **Sign Out** deletes it and signs the session out on the server. Turn on **Biometric Unlock** to have the app ask for your face, fingerprint or passcode each time it starts.
 :::
 
 :::details Does the app work offline?

@@ -36,7 +36,7 @@ Ja. Varje telefon eller surfplatta är en egen push-enhet, med egna jourregler o
 - **Monitors**: alla monitorer, filtrerade efter hälsa, med sina detaljer.
 - **Inbox**: incidenter och larm, och episoderna som grupperar dem. Öppna en för att använda **Acknowledge**, **Resolve** eller **Add Note**. Låter din roll dig se projektets säkerhetsärenden visar **Security** de öppna: öppna ett för att använda **Approve** eller **Reject** på ett playbook-steg som väntar på godkännande, ta ärendet med **Assign to me** eller använda **Close case**.
 - **On-Call**: om du har jour och till när, vem mer som har det, larmen som skickats till dig, och **Cover for me**, som lämnar över dina larm till en kollega en stund.
-- **Settings**: dina projekt och enkel inloggning, utseendet, kritiska larm och larmljudet, **Biometrics Login**, ditt jourkalenderflöde och **Log Out**.
+- **Settings**: dina projekt och enkel inloggning, utseendet, kritiska larm och larmljudet, **Biometric Unlock**, ditt jourkalenderflöde och **Sign Out**.
 
 Allt annat finns i instrumentpanelen.
 :::
@@ -46,7 +46,7 @@ Nej. Tryck på aviseringen: appen öppnar incidenten, larmet, episoden eller sä
 :::
 
 :::details Är min inloggning säker på telefonen?
-Appen pratar med ditt OneUptime bara över HTTPS. Din inloggning sparas i appens egen lagring på telefonen, och **Log Out** raderar den och loggar också ut sessionen på servern. Slå på **Biometrics Login** så att appen frågar efter ditt ansikte, ditt fingeravtryck eller din lösenkod varje gång den startar.
+Appen pratar med ditt OneUptime bara över HTTPS. Din inloggning sparas i appens egen lagring på telefonen, och **Sign Out** raderar den och loggar också ut sessionen på servern. Slå på **Biometric Unlock** så att appen frågar efter ditt ansikte, ditt fingeravtryck eller din lösenkod varje gång den startar.
 :::
 
 :::details Fungerar appen offline?

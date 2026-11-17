@@ -221,7 +221,7 @@ test("makes account identity distinct from grouped project and server settings",
 test("both device security and urgent alert toggles have accessible names on each platform", async () => {
   await render(<SettingsScreen />);
   await fireEvent(
-    screen.getByLabelText("Biometrics Login"),
+    screen.getByLabelText("Biometric Unlock"),
     "valueChange",
     true,
   );
@@ -242,7 +242,7 @@ test("an accidental logout tap requires a clear confirmation", async () => {
     });
   try {
     await render(<SettingsScreen />);
-    await fireEvent.press(screen.getByRole("button", { name: "Log Out" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Sign Out" }));
     expect(mockLogout).not.toHaveBeenCalled();
     const buttons: Array<AlertButton> | undefined = alert.mock.calls[0]?.[2];
     expect(
@@ -252,7 +252,7 @@ test("an accidental logout tap requires a clear confirmation", async () => {
     ).toBe("cancel");
     buttons
       ?.find((button: AlertButton) => {
-        return button.text === "Log Out";
+        return button.text === "Sign Out";
       })
       ?.onPress?.();
     expect(mockLogout).toHaveBeenCalledTimes(1);
@@ -403,7 +403,7 @@ describe("Settings groups", () => {
     await render(<SettingsScreen />);
 
     expect(headers()).not.toContain("Security");
-    expect(screen.queryByLabelText("Biometrics Login")).toBeNull();
+    expect(screen.queryByLabelText("Biometric Unlock")).toBeNull();
     expect(screen.queryByTestId("settings-section-security")).toBeNull();
   });
 
@@ -495,11 +495,11 @@ describe("Logging out", () => {
     const account: ReturnType<typeof within> = within(
       screen.getByTestId("settings-section-account"),
     );
-    expect(account.getByText("Log Out")).toHaveStyle({
+    expect(account.getByText("Sign Out")).toHaveStyle({
       color: lightColors.actionDestructive,
     });
     expect(
-      account.getByRole("button", { name: "Log Out" }).props.accessibilityHint,
+      account.getByRole("button", { name: "Sign Out" }).props.accessibilityHint,
     ).toBe("Sign out of this device.");
   });
 
@@ -511,17 +511,17 @@ describe("Logging out", () => {
       });
     try {
       await render(<SettingsScreen />);
-      await fireEvent.press(screen.getByRole("button", { name: "Log Out" }));
+      await fireEvent.press(screen.getByRole("button", { name: "Sign Out" }));
 
       expect(alert).toHaveBeenCalledTimes(1);
-      expect(alert.mock.calls[0]?.[0]).toBe("Log out of OneUptime?");
+      expect(alert.mock.calls[0]?.[0]).toBe("Sign out of OneUptime?");
       expect(alert.mock.calls[0]?.[1]).toBe(
         "You will need to sign in again to access your workspace.",
       );
       const buttons: Array<AlertButton> = alert.mock.calls[0]?.[2];
       expect(
         buttons.find((button: AlertButton) => {
-          return button.text === "Log Out";
+          return button.text === "Sign Out";
         })?.style,
       ).toBe("destructive");
     } finally {
@@ -537,7 +537,7 @@ describe("Logging out", () => {
       });
     try {
       await render(<SettingsScreen />);
-      await fireEvent.press(screen.getByRole("button", { name: "Log Out" }));
+      await fireEvent.press(screen.getByRole("button", { name: "Sign Out" }));
 
       const buttons: Array<AlertButton> = alert.mock.calls[0]?.[2];
       buttons
@@ -557,7 +557,7 @@ describe("Switches", () => {
   test("take their off colours from the light palette", async () => {
     await render(<SettingsScreen />);
 
-    expect(switchColors(screen.getByLabelText("Biometrics Login"))).toEqual({
+    expect(switchColors(screen.getByLabelText("Biometric Unlock"))).toEqual({
       thumb: lightColors.backgroundElevated,
       trackOff: lightColors.borderDefault,
       trackOn: lightColors.actionPrimary,
@@ -569,7 +569,7 @@ describe("Switches", () => {
     mockCriticalAlerts.isEnabled = true;
     await render(<SettingsScreen />);
 
-    expect(switchColors(screen.getByLabelText("Biometrics Login")).thumb).toBe(
+    expect(switchColors(screen.getByLabelText("Biometric Unlock")).thumb).toBe(
       lightColors.textInverse,
     );
     expect(
@@ -581,7 +581,7 @@ describe("Switches", () => {
     mockSystemScheme = "dark";
     await renderInTheme();
 
-    expect(switchColors(screen.getByLabelText("Biometrics Login"))).toEqual({
+    expect(switchColors(screen.getByLabelText("Biometric Unlock"))).toEqual({
       thumb: darkColors.textSecondary,
       trackOff: darkColors.borderDefault,
       trackOn: darkColors.actionPrimary,
@@ -592,14 +592,14 @@ describe("Switches", () => {
     await render(<SettingsScreen />);
 
     await fireEvent(
-      screen.getByLabelText("Biometrics Login"),
+      screen.getByLabelText("Biometric Unlock"),
       "valueChange",
       true,
     );
     expect(mockSelectionFeedback).toHaveBeenCalledTimes(1);
 
     await fireEvent(
-      screen.getByLabelText("Biometrics Login"),
+      screen.getByLabelText("Biometric Unlock"),
       "valueChange",
       false,
     );
@@ -951,7 +951,7 @@ describe("Settings half open on a table", () => {
     );
     expect(mockNavigate).toHaveBeenCalledWith("ProjectsList");
     await fireEvent(
-      screen.getByLabelText("Biometrics Login"),
+      screen.getByLabelText("Biometric Unlock"),
       "valueChange",
       true,
     );

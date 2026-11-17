@@ -64,7 +64,7 @@
     "apiKey": "API-Schlüssel",
     "more": "Mehr",
     "sendEmail": "E-Mail senden",
-    "logout": "Abmelden",
+    "signOut": "Abmelden",
     "telemetryUsage": "Telemetrie-Nutzung",
     "ingestionBudgets": "Ingestion-Budgets",
     "products": "Produkte"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "Admin verlassen",
-    "logOut": "Abmelden"
+    "signOut": "Abmelden"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -482,7 +482,7 @@
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "Abmelden"
     },
     "sendEmail": {
@@ -724,7 +724,6 @@
   "Projects": "Projekte",
   "Project": "Projekt",
   "User": "Benutzer",
-  "Logout": "Abmelden",
   "Save": "Speichern",
   "Cancel": "Abbrechen",
   "Submit": "Senden",

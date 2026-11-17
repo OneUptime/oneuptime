@@ -964,7 +964,7 @@ describe("hook refusals an anonymous caller used to get are now 401s", () => {
       getRepository = stubRepositoryToFailLoudly(ProjectService);
     });
 
-    it("answers an anonymous caller 401, where the hook used to answer 422 'User should be logged in to create the project.'", async () => {
+    it("answers an anonymous caller 401, where the hook used to answer 422 'You must be signed in to create a project.'", async () => {
       await expectNotAuthenticated(
         ProjectService.create({ data: makeProject(), props: {} }),
         DatabaseRequestType.Create,

@@ -64,7 +64,7 @@
     "apiKey": "API-ключ",
     "more": "Ещё",
     "sendEmail": "Отправить email",
-    "logout": "Выйти",
+    "signOut": "Выйти",
     "telemetryUsage": "Использование телеметрии",
     "ingestionBudgets": "Бюджеты приема",
     "products": "Продукты"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "Выйти из админа",
-    "logOut": "Выйти"
+    "signOut": "Выйти"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -482,7 +482,7 @@
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "Выйти"
     },
     "sendEmail": {
@@ -724,7 +724,6 @@
   "Projects": "Проекты",
   "Project": "Проект",
   "User": "Пользователь",
-  "Logout": "Выход",
   "Save": "Сохранить",
   "Cancel": "Отмена",
   "Submit": "Отправить",

@@ -274,7 +274,7 @@ describe("StatusPageRssFeed.readShownLists", () => {
         401,
         {
           message:
-            "You do not have access to this status page. Please login to view the status page.",
+            "You do not have access to this status page. Please sign in to view it.",
         },
         {},
       ) as never,
