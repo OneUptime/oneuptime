@@ -453,7 +453,7 @@ describe("release.yml", () => {
 
 /*
  * What the boot probe relies on. It runs inside the image as
- *   node <npm start's flags> --require ts-node/register -e <probe>
+ *   node <npm start's flags> --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js -e <probe>
  * from /usr/src/app, so these are checked against packages/App as it is.
  */
 describe("check_app_image_edition.sh's boot probe", () => {
@@ -573,13 +573,17 @@ describe("check_app_image_edition.sh's boot probe", () => {
       cgroups: { procSelfCgroup: "0::/", files: { "memory.max": "max" } },
     });
 
+    const precompiledSourceMaps =
+      "--require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js";
+
     expect(start).toContain("--no-node-snapshot");
-    expect(start).toContain("--require ts-node/register");
+    expect(start).toContain(`${precompiledSourceMaps} Index.js`);
     expect(nodeOptions).toBe("--max-old-space-size=8096");
     expect(check).toContain(
-      `--no-node-snapshot ${nodeOptions} --require ts-node/register`,
+      `--no-node-snapshot ${nodeOptions} ${precompiledSourceMaps}`,
     );
-    expect(check).toContain("-e TS_NODE_TRANSPILE_ONLY=1");
+    expect(check).not.toContain("ts-node/register");
+    expect(check).not.toContain("TS_NODE_TRANSPILE_ONLY");
   });
 
   test("runs with billing off and without a network, so it never needs a database", () => {

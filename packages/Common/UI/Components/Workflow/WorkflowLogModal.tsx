@@ -215,6 +215,7 @@ const WorkflowLogModal: FunctionComponent<ComponentProps> = (
         )}
 
         <Tabs
+          label="Workflow Logs"
           tabs={tabs}
           initialTabName={props.initialTabName}
           onTabChange={() => {

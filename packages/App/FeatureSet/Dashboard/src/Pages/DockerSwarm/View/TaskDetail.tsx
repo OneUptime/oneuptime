@@ -184,7 +184,7 @@ const DockerSwarmClusterTaskDetail: FunctionComponent<
         nodeExternalId={nodeExternalId}
         now={part.readAt}
       />
-      <ResourcePartTabs tabs={tabs} />
+      <ResourcePartTabs label="Task" tabs={tabs} />
     </div>
   );
 };

@@ -427,7 +427,7 @@ const CephClusterPoolDetail: FunctionComponent<
         clusterRoute={routes.clusterRoute}
         now={part.readAt}
       />
-      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+      <Tabs label="Pool" tabs={tabs} wrap={true} onTabChange={() => {}} />
     </div>
   );
 };

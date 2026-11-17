@@ -597,6 +597,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
        * the edge of the screen.
        */}
       <Tabs
+        label="Node"
         key={tabsKey}
         tabs={tabs}
         initialTabName={initialTabName}

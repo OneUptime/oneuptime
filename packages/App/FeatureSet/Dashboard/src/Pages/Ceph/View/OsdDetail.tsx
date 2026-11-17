@@ -203,7 +203,7 @@ const CephClusterOsdDetail: FunctionComponent<
         clusterRoute={routes.clusterRoute}
         now={part.readAt}
       />
-      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+      <Tabs label="OSD" tabs={tabs} wrap={true} onTabChange={() => {}} />
     </div>
   );
 };

@@ -430,7 +430,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
         routes={routes}
         namespace={namespaceParam}
       />
-      <Tabs tabs={tabs} onTabChange={() => {}} />
+      <Tabs label="Job" tabs={tabs} onTabChange={() => {}} />
     </Fragment>
   );
 };

@@ -9,12 +9,18 @@ change can be measured the same way. Memory has a section of its own below.
 
 ## What the stack is like
 
-- The App and the Probe run natively, the way their images run them:
-  `NODE_ENV=production`, ts-node in transpile-only mode, from
-  `/usr/src/app` and `/usr/src/Common` (a private mount namespace maps those
-  paths onto this checkout's packages, so CPU profiles name files as
-  production profiles do). Settings are `config.example.env`'s with logs at
-  `ERROR`, as it ships them.
+- The App and the Probe run natively from this checkout's TypeScript:
+  `NODE_ENV=production`, ts-node in transpile-only mode with Common's
+  transpiler, from `/usr/src/app` and `/usr/src/Common` (a private mount
+  namespace maps those paths onto this checkout's packages, so CPU profiles
+  name files as production profiles do). Settings are `config.example.env`'s
+  with logs at `ERROR`, as it ships them. That is how the images ran before
+  they ran the JavaScript their build compiles
+  (`packages/Common/Server/Utils/TsNode/Precompile.js`): the same code, with
+  TypeScript and ts-node in the process and every module compiled at start.
+  To measure a server as its image runs it now, run the image:
+  `app-image.sh` for the App (below), or a server's container with
+  `heap-snapshot.js` over its inspector.
 - Postgres 15, Valkey 9.1 and ClickHouse 26.7 run in containers of their
   own, with the settings and the ClickHouse drop-ins `docker-compose.base.yml`
   mounts.
@@ -244,18 +250,23 @@ bash app-image.sh stop
 
 `image/App.Dockerfile` is the production stage of `packages/App/Dockerfile.tpl`
 without the frontends' production builds (the Dashboard's bundle is copied
-in from this checkout) and without the build-time type check.
+in from this checkout), the build-time type check and the prune: it compiles
+the App's and Common's TypeScript as the image does and runs `Index.js`.
+`build` builds each side with its own commit's `image/App.Dockerfile`, so
+a change to how the image runs the App is measured against the image before
+it.
 
 The other servers - the Probe, the Runner, the ingress sidecar
-(`packages/Nginx`) - one at a time, natively as their images run them, the
-live heap a while after start (`npm ci` in the package first; the env file
-gives the settings, `app.env` for the sidecar, `probe.env` for the Probe):
+(`packages/Nginx`) - one at a time, natively from their TypeScript, the live
+heap a while after start (`npm ci` in the package first; the env file gives
+the settings, `app.env` for the sidecar, `probe.env` for the Probe):
 
 ```sh
 bash server-heap.sh Nginx development 45 /tmp/oneuptime-perf/app.env
                                           # ts-node's own compile: inline source maps
 bash server-heap.sh Nginx production 45 /tmp/oneuptime-perf/app.env
-                                          # Common's transpiler, as the image runs it
+                                          # Common's transpiler, as images ran before
+                                          # they ran compiled JavaScript
 ```
 
 `Tests/Ops/PerfKit.test.js` keeps the kit runnable without a stack: every

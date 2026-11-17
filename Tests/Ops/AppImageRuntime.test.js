@@ -26,6 +26,9 @@
  *   - the external calendar's worker thread, the one code a walk from the
  *     App's entry does not reach (it alone loads ical.js), expands a
  *     calendar;
+ *   - the running App loaded only JavaScript: no TypeScript module, and
+ *     neither ts-node nor TypeScript's compiler (asked over its inspector:
+ *     Utils/LoadedModules.js);
  *   - and nothing in its log says a module could not be found.
  *
  * Needs Docker, the image tagged oneuptime/app:<APP_IMAGE_TAG>, and the
@@ -37,7 +40,9 @@
  *   RUN_APP_IMAGE_RUNTIME_TESTS=1 APP_IMAGE_TAG=<tag> npx jest AppImageRuntime
  *
  * The project has a name of its own, publishes PostgreSQL on a free loopback
- * port, and is removed with its volumes.
+ * port, and is removed with its volumes. OPS_RUNTIME_NAME_PREFIX (default
+ * oneuptime-ops) starts its name, and so the names of its containers,
+ * network and volumes, for a machine where others run Docker too.
  */
 
 const crypto = require("crypto");
@@ -48,12 +53,14 @@ const path = require("path");
 const yaml = require("js-yaml");
 const { spawnSync } = require("child_process");
 const { REPO_ROOT } = require("./Utils/ComposePorts");
+const LoadedModules = require("./Utils/LoadedModules");
 const ReplacePlaceholderSecrets = require("../../Scripts/Install/ReplacePlaceholderSecrets");
 
 const RUN = process.env.RUN_APP_IMAGE_RUNTIME_TESTS === "1";
 // The tag the Build workflow gives the image it built, and runs this with.
 const CI_TAG = "ci-runtime";
 const TAG = process.env.APP_IMAGE_TAG || CI_TAG;
+const NAME_PREFIX = process.env.OPS_RUNTIME_NAME_PREFIX || "oneuptime-ops";
 const describeRuntime = RUN ? describe : describe.skip;
 
 const PLACEHOLDER = "please-change-this-to-random-value";
@@ -69,10 +76,12 @@ jest.setTimeout(BOOT_TIMEOUT_MS + 5 * 60 * 1000);
 /*
  * Expands a one-event calendar through ExternalCalendarExpansion, which runs
  * ExternalCalendarExpansionWorker.cjs in a worker thread, and prints what it
- * found. Run in the App's container with node and ts-node, as the App runs.
+ * found. Run in the App's container as the App runs: node with the
+ * stack-trace support its start script requires first, on the JavaScript the
+ * build compiled.
  */
 const CALENDAR_CHECK = [
-  'const Expansion = require("/usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansion.ts").default;',
+  'const Expansion = require("/usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansion").default;',
   "const now = new Date();",
   "const stamp = (date) => date.toISOString().split('-').join('').split(':').join('').split('.')[0] + 'Z';",
   "const start = new Date(now.getTime() + 86400000);",
@@ -164,7 +173,7 @@ function sleep(milliseconds) {
 const STATUS_MARKER = "\nSTATUS:";
 
 describeRuntime("the App image, as Docker Compose starts it", () => {
-  const project = `oneuptime-ops-app-${process.pid}-${crypto
+  const project = `${NAME_PREFIX}-app-${process.pid}-${crypto
     .randomBytes(3)
     .toString("hex")}`;
   let directory;
@@ -440,12 +449,10 @@ describeRuntime("the App image, as Docker Compose starts it", () => {
     const run = compose([
       "exec",
       "-T",
-      "-e",
-      "TS_NODE_TRANSPILE_ONLY=1",
       "app",
       "node",
       "--require",
-      "ts-node/register",
+      "Common/Server/Utils/TsNode/PrecompiledSourceMaps.js",
       "-e",
       CALENDAR_CHECK,
     ]);
@@ -464,6 +471,24 @@ describeRuntime("the App image, as Docker Compose starts it", () => {
         return event.title;
       }),
     ).toEqual(["Database upgrade"]);
+  });
+
+  test("the running App loaded only JavaScript: no TypeScript, ts-node or TypeScript's compiler", () => {
+    const run = compose([
+      "exec",
+      "-T",
+      "app",
+      "node",
+      "-e",
+      LoadedModules.CHECK_SCRIPT,
+    ]);
+    const { report, problem } = LoadedModules.parseReport(run.output);
+
+    expect({ problem }).toEqual({ problem: null });
+    // Every module of its import graph, so the check is not vacuous.
+    expect(report.modules).toBeGreaterThan(3000);
+    expect(report.typeScript).toEqual([]);
+    expect(report.tooling).toEqual([]);
   });
 
   test("its log names no missing module", () => {

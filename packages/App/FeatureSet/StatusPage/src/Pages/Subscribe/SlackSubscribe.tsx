@@ -302,6 +302,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
                   description={t("subscribe.slack.description")}
                 >
                   <Tabs
+                    label={t("subscribe.slack.title")}
                     tabs={[
                       {
                         name: t("subscribe.newSubscription"),

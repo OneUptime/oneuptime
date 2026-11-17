@@ -429,6 +429,7 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
   return (
     <Fragment>
       <Tabs
+        label="Notification Templates"
         tabs={[
           {
             name: "Email",

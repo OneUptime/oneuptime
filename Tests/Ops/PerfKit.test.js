@@ -531,21 +531,56 @@ describe("the kit's App image", () => {
     );
   });
 
-  test("runs as the Community stage does: its user, edition, transpile-only flag and command", () => {
+  test("runs as the Community stage does: its user, edition and command", () => {
     expect(communityStart).toBeGreaterThan(0);
 
     const runtime = communityLines.filter((line) => {
       return (
         line.startsWith("USER ") ||
-        line.startsWith("ENV TS_NODE_TRANSPILE_ONLY=") ||
         line.startsWith("ENV IS_ENTERPRISE_EDITION=") ||
         line.startsWith("CMD ")
       );
     });
 
-    expect(runtime).toHaveLength(4);
+    expect(runtime).toHaveLength(3);
     for (const line of runtime) {
       expect(kitLines).toContain(line);
     }
+    expect(kitDockerfile).not.toContain("TS_NODE_");
+    expect(kitDockerfile).not.toContain("ts-node");
+  });
+
+  test("compiles Common and the App to JavaScript as the image's build does, before the command runs it", () => {
+    const precompile = appDockerfile
+      .split("\n")
+      .map((line) => {
+        return line.trim();
+      })
+      .filter((line) => {
+        return line.includes("Common/Server/Utils/TsNode/Precompile.js");
+      });
+    // The Community Edition's: the App and Common (the Enterprise one adds ee/).
+    const communityCompile = precompile.find((line) => {
+      return line.endsWith("--root /usr/src/app --root /usr/src/Common");
+    });
+
+    expect(communityCompile).toBeDefined();
+    expect(kitLines).toContain(communityCompile);
+    expect(kitLines.indexOf(communityCompile)).toBeGreaterThan(
+      kitLines.indexOf("COPY --chown=1000:1000 packages/App /usr/src/app"),
+    );
+    expect(kitLines.indexOf(communityCompile)).toBeLessThan(
+      kitLines.findIndex((line) => {
+        return line.startsWith("CMD ");
+      }),
+    );
+  });
+
+  test("builds the A/B's base with the base commit's own image, where it has one", () => {
+    const appImage = fs.readFileSync(path.join(KIT, "app-image.sh"), "utf8");
+
+    expect(appImage).toContain(
+      'git -C "$REPO" show "$commit:Scripts/Perf/image/App.Dockerfile"',
+    );
   });
 });

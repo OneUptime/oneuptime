@@ -1011,6 +1011,67 @@ describe("Pagination", () => {
       }
     });
 
+    /*
+     * #9136: 28px (24px compact) was all a thumb had. Under a coarse
+     * pointer every control is 44px tall, and an arrow or a page number at
+     * least as wide, in both skins.
+     */
+    it.each([
+      ["default", DefaultPaginationSize],
+      ["compact", CompactPaginationSize],
+    ])(
+      "gives a finger 44px targets on the %s skin",
+      (_name: string, size: PaginationSize) => {
+        for (const classNames of [
+          size.heightClassName,
+          size.squareClassName,
+          size.pageClassName,
+          size.selectClassName,
+        ]) {
+          expect(classNames.split(" ")).toContain(
+            "[@media(pointer:coarse)]:h-11",
+          );
+        }
+
+        expect(size.squareClassName.split(" ")).toContain(
+          "[@media(pointer:coarse)]:w-11",
+        );
+        expect(size.pageClassName.split(" ")).toContain(
+          "[@media(pointer:coarse)]:min-w-11",
+        );
+      },
+    );
+
+    it("draws the arrows, pages and the rows select at the touch size, live or locked", () => {
+      for (const isLoading of [false, true]) {
+        const { unmount } = render(
+          <Pagination
+            currentPageNumber={1}
+            totalItemsCount={240}
+            itemsOnPage={10}
+            onNavigateToPage={() => {}}
+            isLoading={isLoading}
+            isError={false}
+            singularLabel="monitor"
+            pluralLabel="monitors"
+          />,
+        );
+
+        for (const testId of [
+          "pagination-previous-button",
+          "pagination-next-button",
+          "pagination-page-2",
+          "pagination-items-on-page-select",
+        ]) {
+          expect(screen.getByTestId(testId)).toHaveClass(
+            "[@media(pointer:coarse)]:h-11",
+          );
+        }
+
+        unmount();
+      }
+    });
+
     it("lines the default bar's text up with a table's first column and its card's text", () => {
       /*
        * The table's footer reaches the card's edges, as its rows do

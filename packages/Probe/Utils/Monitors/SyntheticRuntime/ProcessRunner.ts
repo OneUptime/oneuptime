@@ -18,6 +18,28 @@ import {
   isWorkerResultEnvelope,
 } from "./WorkerProtocol";
 
+/*
+ * What every image's start command requires before its JavaScript: stack
+ * traces through the source maps the build wrote (Foo.js.map beside each
+ * Foo.js it compiled), and a refusal to load TypeScript.
+ */
+export const PRECOMPILED_SOURCE_MAPS: string = require.resolve(
+  "Common/Server/Utils/TsNode/PrecompiledSourceMaps.js",
+);
+
+/*
+ * True for JavaScript an image's build compiled from TypeScript
+ * (Common/Server/Utils/TsNode/Precompile.js writes its map beside it).
+ */
+export const isPrecompiled: (entryPath: string) => boolean = (
+  entryPath: string,
+): boolean => {
+  return (
+    path.extname(entryPath) === ".js" &&
+    fs.existsSync(`${path.resolve(entryPath)}.map`)
+  );
+};
+
 const MINIMUM_SANDBOX_IDENTITY: number = 20_000;
 const MAXIMUM_SANDBOX_IDENTITY: number = 60_000;
 const DEFAULT_MAX_OUTPUT_BYTES: number = 64 * 1024;
@@ -1248,6 +1270,13 @@ export default class ProcessRunner {
     // eslint-disable-next-line wrap-regex -- Parentheses conflict with Prettier.
     if (/\.tsx?$/i.test(this.options.workerEntryPath)) {
       childExecArgv.push("--require", "ts-node/register/transpile-only");
+    } else if (isPrecompiled(this.options.workerEntryPath)) {
+      /*
+       * A worker the image compiled when it was built: the stack-trace
+       * support the probe's own start command requires first, so a worker's
+       * stack traces name its TypeScript as the probe's do.
+       */
+      childExecArgv.push("--require", PRECOMPILED_SOURCE_MAPS);
     }
 
     childExecArgv.push("--no-node-snapshot");

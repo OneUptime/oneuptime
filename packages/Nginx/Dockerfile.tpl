@@ -113,13 +113,22 @@ RUN npm ci --no-audit --no-fund
 COPY ./packages/Nginx /usr/src/app
 # Type-check the sidecar (and the part of Common it imports).
 RUN npm run compile
+# Compile the sidecar's TypeScript and Common's to JavaScript, each file beside
+# its TypeScript, as ts-node compiled them when the image ran it: the sidecar
+# runs JavaScript, and loads neither TypeScript nor ts-node. See
+# App/Dockerfile.tpl.
+RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common
 
-# Leave in /usr/src only what the sidecar runs: the packages its imports reach
-# (see the script's header), without Common's and the sidecar's tests or the
-# type-check's output (ts-node runs Index.ts). npm's download cache stays behind
-# in this stage.
+# Leave in /usr/src only what the sidecar runs: the packages its imports and
+# the stack-trace support its start script requires reach (see the script's
+# header), the sidecar without its development packages (ts-node and
+# TypeScript: it runs the JavaScript compiled above, and the check after the
+# prune holds it to that), and without Common's and the sidecar's tests or the
+# type-check's output. npm's download cache stays behind in this stage.
 COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js
-RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --package /usr/src/Common \
+RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --entry /usr/src/Common/Server/Utils/TsNode/PrecompiledSourceMaps.js --package /usr/src/Common \
+    && npm prune --omit=dev --offline --no-audit --no-fund \
+    && node -e "for (const name of ['ts-node', 'typescript']) for (const from of ['/usr/src/app', '/usr/src/Common']) { let found = ''; try { found = require.resolve(name, { paths: [from] }); } catch {} if (found) throw new Error(found + ' is still installed, and the image runs JavaScript'); }" \
     && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests \
     && chmod +x /usr/src/app/run.sh
 
@@ -152,9 +161,7 @@ ENV APP_VERSION=${APP_VERSION}
 ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
 LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.version="${APP_VERSION}"
-# The full TypeScript type-check already ran at build time (`npm run compile`
-# above). Without this, ts-node/register redoes it on every container start,
-# delaying the cert/domain sidecar. See App/Dockerfile.tpl for the rationale.
-ENV TS_NODE_TRANSPILE_ONLY=1
 
+# nginx, and the sidecar through package.json's start script, which runs the
+# JavaScript compiled in the build stage.
 CMD ./run.sh

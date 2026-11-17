@@ -2,13 +2,11 @@
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import React, { FunctionComponent, ReactElement } from "react";
 
-export interface ComponentProps {
-  onClick: () => void;
-}
-
-const Logo: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
-): ReactElement => {
+/*
+ * The logo is a picture, not a control: it was handed a click that did
+ * nothing, which made it look pressable to a mouse and to nothing else.
+ */
+const Logo: FunctionComponent = (): ReactElement => {
   return (
     <div className="relative z-10 flex px-2 lg:px-0">
       <div className="flex flex-shrink-0 items-center">
@@ -20,11 +18,6 @@ const Logo: FunctionComponent<ComponentProps> = (
         <ProductLogo
           className="block h-8 w-auto max-w-[12rem] object-contain"
           nameClassName="block max-w-[12rem] truncate text-lg font-semibold leading-8 tracking-tight text-gray-900"
-          onClick={() => {
-            if (props.onClick) {
-              props.onClick();
-            }
-          }}
         />
       </div>
     </div>

@@ -164,6 +164,7 @@ const NotificationMethodTabs: FunctionComponent = (): ReactElement => {
 
   return (
     <Tabs
+      label="Notification Methods"
       tabs={tabs}
       initialTabName={
         requestedTab ? NOTIFICATION_METHODS_TAB_NAMES[requestedTab] : undefined
