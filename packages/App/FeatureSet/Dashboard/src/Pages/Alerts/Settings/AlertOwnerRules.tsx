@@ -389,6 +389,7 @@ const AlertOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   return (
     <Fragment>
       <Tabs
+        label="Alert Owner Rules"
         tabs={[
           {
             name: "Alert Rules",

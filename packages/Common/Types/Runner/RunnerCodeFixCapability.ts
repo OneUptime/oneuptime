@@ -33,7 +33,27 @@ enum RunnerCodeFixCapability {
    * did, with a token that can.
    */
   ServerOpensPullRequests = "serverOpensPullRequests",
+
+  /*
+   * The Runner keeps a private incident or alert out of what it writes on
+   * the code host (#9165). For a fix about one - the task details say
+   * subjectIsPrivate - its pull request's title, description and commit
+   * message name neither the record nor quote the investigation's analysis,
+   * and its code agent is asked to describe the code change alone: the
+   * repository's readers are not the record's. A Runner older than this
+   * writes the record's title and the analysis into them, so it is never
+   * handed such a fix's details (/ai-agent-data/get-instrumentation-task-
+   * details refuses it, saying to update the Runner).
+   */
+  KeepsPrivateRecordsOutOfPullRequests = "keepsPrivateRecordsOutOfPullRequests",
 }
+
+/*
+ * The field of a subject fix's task details (an incident's or alert's) that
+ * says the record is private, for a Runner that keeps it out of the pull
+ * request (KeepsPrivateRecordsOutOfPullRequests).
+ */
+export const SUBJECT_IS_PRIVATE_FIELD: string = "subjectIsPrivate";
 
 // The request body field a Runner declares its code-fix capabilities in.
 export const RUNNER_CODE_FIX_CAPABILITIES_FIELD: string = "codeFixCapabilities";

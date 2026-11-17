@@ -325,7 +325,8 @@ describe("Insights, Control Plane and Service Mesh: one zoom for every card", ()
 
       // Control Plane and Service Mesh build their cards into the tabs...
       if (isTabbed) {
-        expectCode(scoped, "<Tabs tabs={tabs}");
+        expectCode(scoped, "tabs={tabs}");
+        expect(tight(scoped)).toMatch(/<Tabs label="[^"]+" tabs={tabs}/);
       }
 
       /*

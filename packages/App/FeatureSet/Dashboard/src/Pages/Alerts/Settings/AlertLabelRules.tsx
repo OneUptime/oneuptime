@@ -383,6 +383,7 @@ const AlertLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   return (
     <Fragment>
       <Tabs
+        label="Alert Label Rules"
         tabs={[
           {
             name: "Alert Rules",

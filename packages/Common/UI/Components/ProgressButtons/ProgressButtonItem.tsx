@@ -23,19 +23,27 @@ const ProgressButtonItem: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { translateString } = useTranslateValue();
   const translatedTitle: string = translateString(props.title) ?? props.title;
+  /*
+   * A step still to do is a button, so a keyboard reaches and presses it:
+   * the click was on the `li` alone (#9136). A completed step does nothing.
+   */
+  const ItemTag: "button" | "div" = props.isCompletedStep ? "div" : "button";
+
   return (
-    <li
-      className="relative md:flex md:flex-1 "
-      id={props.id}
-      key={props.id}
-      onClick={() => {
-        if (!props.isCompletedStep) {
-          return props.onClick();
-        }
-      }}
-    >
-      <div
-        className={`group flex w-full items-center ${props.isCompletedStep ? "" : "hover:bg-gray-50 cursor-pointer"}`}
+    <li className="relative md:flex md:flex-1 " id={props.id} key={props.id}>
+      <ItemTag
+        {...(props.isCompletedStep
+          ? {}
+          : {
+              type: "button" as const,
+              "aria-current": props.isCurrentStep
+                ? ("step" as const)
+                : undefined,
+              onClick: () => {
+                props.onClick();
+              },
+            })}
+        className={`group flex w-full items-center text-start ${props.isCompletedStep ? "" : "hover:bg-gray-50 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"}`}
       >
         <span className="flex items-center px-6 py-4 text-sm font-medium">
           {props.isCompletedStep && (
@@ -81,7 +89,7 @@ const ProgressButtonItem: FunctionComponent<ComponentProps> = (
             {translatedTitle}
           </span>
         </span>
-      </div>
+      </ItemTag>
 
       {!props.isLastStep && (
         <div

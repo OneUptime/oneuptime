@@ -10,6 +10,7 @@ import {
   DeclaredCodeChangeState,
   DeclaredCodeOwnerCandidateJSON,
   DeclaredCodeOwnerReason,
+  DeclaredCodePrivateRecord,
   getLastingCloudChange,
   readDeclaredCode,
 } from "Common/Utils/AiRemediation/DeclaredCodeChange";
@@ -258,6 +259,38 @@ export const DECLARED_CODE_DIALOG_CONNECT: string = translationKey(
 export const DECLARED_CODE_DIALOG_MAY_NOT_ASK: string = translationKey(
   "You may not ask AI to work in it.",
 );
+/*
+ * Who reads the pull request, said before it is opened (#9165): everyone
+ * with access to the repository, whoever may read the fix - and, for a fix
+ * of a private record, that the pull request leaves the record out.
+ */
+export const DECLARED_CODE_DIALOG_WHO_SEES: string = translationKey(
+  "Everyone with access to the repository can see this pull request, with the change and its description.",
+);
+export const DECLARED_CODE_DIALOG_WHO_SEES_PRIVATE_INCIDENT: string =
+  translationKey(
+    "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.",
+  );
+export const DECLARED_CODE_DIALOG_WHO_SEES_PRIVATE_ALERT: string =
+  translationKey(
+    "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.",
+  );
+
+// The sentence for a fix of a private record of that kind, or of no private one.
+export function getDeclaredCodeWhoSeesNote(
+  privateRecord: DeclaredCodePrivateRecord | null | undefined,
+): string {
+  if (privateRecord === "incident") {
+    return DECLARED_CODE_DIALOG_WHO_SEES_PRIVATE_INCIDENT;
+  }
+
+  if (privateRecord === "alert") {
+    return DECLARED_CODE_DIALOG_WHO_SEES_PRIVATE_ALERT;
+  }
+
+  return DECLARED_CODE_DIALOG_WHO_SEES;
+}
+
 export const DECLARED_CODE_DIALOG_WAITING_NOTE: string = translationKey(
   "The live change still waits for approval: approve it too to fix the problem now, or dismiss it and let the next apply make the change once the pull request is merged.",
 );

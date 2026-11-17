@@ -73,6 +73,8 @@ Um nachzufassen, schreiben Sie in das Feld unten, das sichtbar bleibt, während 
 
 Wer ein Repository lesen darf, liest seine Aufgaben. Die KI bitten, antworten und eine Aufgabe stoppen erfordern die Berechtigung, das Repository zu bearbeiten, ebenso das Ansehen des Diffs einer Änderung: Alle anderen sehen, welche Dateien sich geändert haben. Die Aufgaben, die OneUptime selbst startet (unten), stehen ebenfalls in ihrem Repository, als Unterhaltungen, in denen Sie antworten können.
 
+Eine Aufgabe zu einem privaten Vorfall oder einer privaten Warnung, die aus seiner Untersuchung oder aus einer seiner Korrekturen gestartet wurde, lesen samt ihren Antworten und ihrem Pull Request nur die, die den Datensatz lesen dürfen, und, sobald der Datensatz gelöscht ist, nur Projektinhaber und Projektadministratoren. Für alle anderen lassen die Listen, Filter, Suchen und Zählungen des Repositorys sie weg. Siehe [Private Vorfälle, Warnungen und Episoden](/docs/permissions/index#private-vorfälle-warnungen-und-episoden).
+
 ## Wie ein Korrekturlauf abläuft
 
 ```mermaid title="Vom Klick zum Pull Request"
@@ -325,6 +327,8 @@ Alles andere entspricht der Schaltfläche:
 - Er zählt zum täglichen Limit für Korrekturaufgaben dieses Signals (**Tägliches Limit für KI-Korrekturaufgaben bei Vorfällen** oder **Tägliches Limit für KI-Korrekturaufgaben bei Warnungen**, unter **Weitere Einstellungen** auf seiner KI-Einstellungsseite) und zur Obergrenze offener Pull Requests des Repositorys, wenn eines davon gesetzt ist. Ungesetzt begrenzt keines davon etwas.
 - Jeder Auslöser sucht zuerst nach einer Korrekturaufgabe, die für denselben Vorfall oder dieselbe Warnung bereits eingereiht ist oder läuft, sodass ein automatischer Auslöser und ein Klick normalerweise zu einer Aufgabe werden, nicht zu zwei Pull Requests. Die Prüfung ist ein Lesen vor dem Schreiben, keine Sperre, sodass zwei Auslöser im selben Moment trotzdem beide durchkommen können.
 - Der Lauf stammt vom System, wird niemandem zugeschrieben, und nichts wird von selbst gemergt.
+
+Bei einem privaten Vorfall oder einer privaten Warnung braucht **Korrektur-Pull-Request öffnen**, was das Genehmigen der Korrekturen des Datensatzes braucht, über die Teams, denen er gehört, und ist für alle anderen gesperrt und sagt, warum. Jeder mit Zugriff auf das Repository liest den Pull Request, daher sagen sein Titel, sein Commit und seine Beschreibung, was die Änderung tut, und nichts über den Datensatz, und der Code-Agent wird gebeten, den Datensatz aus seiner Zusammenfassung und aus den Kommentaren, die er schreibt, herauszuhalten. Ein Runner von vor dieser Änderung erhält eine solche Korrektur nicht, und die Aufgabe schlägt mit dem Hinweis fehl, den Runner zu aktualisieren.
 
 ## Wenn eine Korrektur fehlschlägt
 

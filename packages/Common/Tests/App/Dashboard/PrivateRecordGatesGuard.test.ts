@@ -403,6 +403,62 @@ describe("every gate on a change of a private record or a part of one", () => {
     expect(runbooks).toContain("getRunbookRunGate(privateRecordOptions)");
   });
 
+  /*
+   * Opening a pull request from a private record (#9106, #9165): Open fix
+   * pull request on the AI card, and Open a pull request to the code - with
+   * its Try again - under a fix's step. The server holds both to what
+   * approving one of the record's fixes takes (assertReachesFixSubject), so
+   * each asks the gate a fix's buttons ask, with the scope a runbook run
+   * takes on the record's page - and nothing else offers them.
+   */
+  test("a private record's pull request buttons ask with the scope of a runbook run", () => {
+    for (const file of [
+      "Components/AutoRemediation/RemediationCodeFix.tsx",
+      "Components/AutoRemediation/DeclaredCodeChangeLine.tsx",
+    ]) {
+      const code: string = read(file).replace(/\s+/g, " ");
+
+      expect({ file, has: code }).toEqual({
+        file,
+        has: expect.stringContaining(
+          "const PRIVATE_RECORD_FIX_RUN: RunbookExecution = new RunbookExecution();",
+        ),
+      });
+      expect(code).toContain(
+        "getFixPullRequestGate(usePrivateRecordGateOptions(PRIVATE_RECORD_FIX_RUN))",
+      );
+    }
+
+    // Open fix pull request is drawn only where no lock stands in its place.
+    expect(
+      read("Components/AutoRemediation/RemediationCodeFix.tsx").replace(
+        /\s+/g,
+        " ",
+      ),
+    ).toContain(
+      "} else if (suggestion.offer === SuggestionOffer.Act && lockReason) {",
+    );
+
+    // Open a pull request to the code, and its Try again, likewise.
+    const line: string = read(
+      "Components/AutoRemediation/DeclaredCodeChangeLine.tsx",
+    ).replace(/\s+/g, " ");
+
+    expect(line).toContain("if (!change && lockReason) {");
+    expect(line).toContain(
+      "change.state === DeclaredCodeChangeState.Failed && !lockReason ?",
+    );
+
+    // The gate is the fix's own list, its sentence the pull request's.
+    const gate: string = read(
+      "Components/AutoRemediation/RemediationFixActGate.ts",
+    ).replace(/\s+/g, " ");
+
+    expect(gate).toContain(
+      "return PermissionGate.checkPermissions(RUNBOOK_RUN_PERMISSIONS, { ...privateRecordOptions, sentence: REMEDIATION_FIX_PULL_REQUEST_WHO_MAY_OPEN, });",
+    );
+  });
+
   test("reads both models of a gate named by a conditional", () => {
     const gates: Array<Gate> = gatesIn(
       "Example.tsx",

@@ -417,7 +417,7 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
         hosts={[]}
         now={now}
       />
-      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+      <Tabs label="Datastore" tabs={tabs} wrap={true} onTabChange={() => {}} />
     </div>
   );
 };

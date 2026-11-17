@@ -207,6 +207,7 @@ const McpServerCard: FunctionComponent<ComponentProps> = (
            * Cursor is never scrolled out of sight.
            */}
           <Tabs
+            label="Clients"
             tabs={tabs}
             wrap={true}
             onTabChange={() => {

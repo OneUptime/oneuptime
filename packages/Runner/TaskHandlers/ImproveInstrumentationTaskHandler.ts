@@ -24,6 +24,16 @@ export default class ImproveInstrumentationTaskHandler extends SubjectPullReques
   protected readonly noRepositoryMessage: string =
     "Could not resolve a repository for this instrumentation task. Connect the right repository in Code.";
 
+  // About a private incident or alert: the kind of change, never the record (#9165).
+  protected override readonly privateSubjectTitle: string =
+    "chore(observability): add telemetry an AI investigation lacked";
+  protected override readonly privateSubjectHeading: string =
+    "Observability Improvement";
+  protected override readonly privateSubjectWhy: string =
+    "OneUptime AI investigated a problem in production and could not find its cause: the telemetry from this code was not enough. This change adds the missing logs, spans and metrics.";
+  protected override readonly privateSubjectReviewNote: string =
+    "> **Instrumentation only** - this PR must not change business logic. Review it before merging; nothing is merged automatically.";
+
   // Build the prompt for the code agent
   protected buildPrompt(
     details: SubjectTaskDetails,

@@ -181,20 +181,10 @@ const LegendItem: React.FunctionComponent<LegendItemProps> = ({
   activeLegend,
 }: LegendItemProps): React.ReactElement => {
   const hasOnValueChange: boolean = Boolean(onClick);
-  return (
-    <li
-      className={cx(
-        // base
-        "group inline-flex flex-nowrap items-center gap-1.5 rounded-sm px-2 py-1 whitespace-nowrap transition",
-        hasOnValueChange
-          ? "cursor-pointer hover:bg-gray-100"
-          : "cursor-default",
-      )}
-      onClick={(e: React.MouseEvent) => {
-        e.stopPropagation();
-        onClick?.(name, color as string);
-      }}
-    >
+  const itemClassName: string =
+    "group inline-flex flex-nowrap items-center gap-1.5 rounded-sm px-2 py-1 whitespace-nowrap transition";
+  const content: React.ReactElement = (
+    <>
       <span
         className={cx(
           "size-2 shrink-0 rounded-xs",
@@ -208,10 +198,10 @@ const LegendItem: React.FunctionComponent<LegendItemProps> = ({
         }
         aria-hidden={true}
       />
-      <p
+      <span
         className={cx(
           // base
-          "truncate text-xs whitespace-nowrap",
+          "block truncate text-xs whitespace-nowrap",
           // text color
           "text-gray-700",
           hasOnValueChange && "group-hover:text-gray-900",
@@ -219,7 +209,35 @@ const LegendItem: React.FunctionComponent<LegendItemProps> = ({
         )}
       >
         {name}
-      </p>
+      </span>
+    </>
+  );
+
+  /*
+   * A legend item that picks its series is a button, pressed in while its
+   * series is the one shown: the click was on the `li` alone, so a keyboard
+   * could not pick a series (#9136).
+   */
+  return (
+    <li className="inline-flex">
+      {hasOnValueChange ? (
+        <button
+          type="button"
+          aria-pressed={activeLegend === name}
+          className={cx(
+            itemClassName,
+            "cursor-pointer hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500",
+          )}
+          onClick={(e: React.MouseEvent) => {
+            e.stopPropagation();
+            onClick?.(name, color as string);
+          }}
+        >
+          {content}
+        </button>
+      ) : (
+        <span className={cx(itemClassName, "cursor-default")}>{content}</span>
+      )}
     </li>
   );
 };

@@ -245,7 +245,7 @@ const KubernetesClusterHPADetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return <Tabs label="HPA" tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default KubernetesClusterHPADetail;

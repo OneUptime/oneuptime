@@ -1,4 +1,6 @@
 import { FIX_PRODUCTION_REPORT_SELECT } from "../CodeFix/FixProductionReportUtil";
+import AIRunOutputReadFilter from "../AIRunOutputReadFilter";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import AIAgentTaskPullRequestService from "../../../Services/AIAgentTaskPullRequestService";
 import AIRunService from "../../../Services/AIRunService";
 import UserService from "../../../Services/UserService";
@@ -25,8 +27,10 @@ import PositiveNumber from "../../../../Types/PositiveNumber";
  * A task is its first code-fix run, and each reply is a later run whose
  * codeTaskId names that first run (see Types/AI/CodeTask). Everything here
  * reads as root, pinned to the project and to code-fix runs: the Code API
- * has already decided the caller may read the task (CodeTaskAccess), and a
- * task id of another project, or of a chat run, reads as no task at all.
+ * has already decided the caller may read the task (CodeTaskAccess, and
+ * findTask with its reader for a task about a private incident or alert),
+ * and a task id of another project, or of a chat run, reads as no task at
+ * all.
  */
 
 // What a turn needs to be shown, in a list or a conversation.
@@ -96,19 +100,33 @@ export const CODE_TASK_PULL_REQUEST_SELECT: Select<AIAgentTaskPullRequest> = {
 };
 
 export default class CodeTaskThread {
-  // The task (its first run) - null when it is not a code task of the project.
+  /*
+   * The task (its first run) - null when it is not a code task of the
+   * project, or, with `readableBy`, when that reader may not read it: a task
+   * about a private incident or alert they do not see - the fix pull
+   * request of its investigation, a Code task asked from one of its fixes -
+   * or about one that is gone, unless they see every private record
+   * (AIRunOutputReadFilter, #9165).
+   */
   @CaptureSpan()
   public static async findTask(data: {
     projectId: ObjectID;
     taskId: ObjectID;
     select?: Select<AIRun> | undefined;
+    readableBy?: DatabaseCommonInteractionProps | undefined;
   }): Promise<AIRun | null> {
+    const readable: <T>(query: T) => T = <T>(query: T): T => {
+      return data.readableBy
+        ? AIRunOutputReadFilter.applyToRunRow(query, data.readableBy)
+        : query;
+    };
+
     const run: AIRun | null = await AIRunService.findOneBy({
-      query: {
+      query: readable({
         _id: data.taskId.toString(),
         projectId: data.projectId,
         runType: AIRunType.CodeFix,
-      },
+      }),
       select: data.select || CODE_TASK_TURN_SELECT,
       props: { isRoot: true },
     });
@@ -127,12 +145,12 @@ export default class CodeTaskThread {
      * only: a first run has no codeTaskId of its own.
      */
     return await AIRunService.findOneBy({
-      query: {
+      query: readable({
         _id: run.codeTaskId.toString(),
         projectId: data.projectId,
         runType: AIRunType.CodeFix,
         codeTaskId: QueryHelper.isNull(),
-      },
+      }),
       select: data.select || CODE_TASK_TURN_SELECT,
       props: { isRoot: true },
     });

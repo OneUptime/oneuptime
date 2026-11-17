@@ -113,6 +113,7 @@ const IssueRemediation: FunctionComponent<ComponentProps> = (
 
   return (
     <Tabs
+      label="Remediation"
       tabs={tabs}
       wrap={true}
       onTabChange={() => {

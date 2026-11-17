@@ -194,6 +194,7 @@ const OnCallRulesTabs: FunctionComponent<ComponentProps> = (
         />
       </div>
       <Tabs
+        label="On-Call Rules"
         tabs={tabs}
         initialTabName={getOnCallRuleKindDefinition(requestedKind).tabName}
         onTabChange={(tab: Tab): void => {

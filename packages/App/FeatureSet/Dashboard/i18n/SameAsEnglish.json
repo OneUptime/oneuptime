@@ -217,6 +217,7 @@
   "VLAN {{id}}",
   "VMID",
   "VMware",
+  "VPA",
   "VPAs",
   "WARN",
   "Web Vitals",

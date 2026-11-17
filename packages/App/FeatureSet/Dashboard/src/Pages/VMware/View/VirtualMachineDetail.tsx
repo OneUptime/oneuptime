@@ -547,7 +547,12 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
         clusterRoute={clusterRoute}
         now={now}
       />
-      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+      <Tabs
+        label="Virtual Machine"
+        tabs={tabs}
+        wrap={true}
+        onTabChange={() => {}}
+      />
     </div>
   );
 };

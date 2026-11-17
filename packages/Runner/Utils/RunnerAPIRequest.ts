@@ -18,11 +18,18 @@ import RunnerCodeFixCapability, {
  * branch and does nothing more - on GitLab, one OneUptime makes for the run
  * alone, instead of the connection's own token.
  *
+ * "keepsPrivateRecordsOutOfPullRequests": for a fix about a private incident
+ * or alert (SubjectTaskDetails.subjectIsPrivate), this Runner writes a pull
+ * request, a commit and a code agent's summary that name neither the record
+ * nor quote the investigation's analysis (SubjectPullRequestTaskHandler,
+ * #9165), so it can be handed such a fix.
+ *
  * Add to this list only when the code that honours the new capability ships
  * in the same build.
  */
 export const RUNNER_CODE_FIX_CAPABILITIES: Array<RunnerCodeFixCapability> = [
   RunnerCodeFixCapability.ServerOpensPullRequests,
+  RunnerCodeFixCapability.KeepsPrivateRecordsOutOfPullRequests,
 ];
 
 /*

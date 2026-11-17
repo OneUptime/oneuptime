@@ -56507,5 +56507,10 @@
   "Set Up Before Sharing Publicly": "Sett opp før offentlig deling",
   "The public link's title, description, logos, theme and favicon.": "Tittel, beskrivelse, logoer, tema og favicon for den offentlige lenken.",
   "Your own domains for the public link.": "Dine egne domener for den offentlige lenken.",
-  "Paging & Calls": "Tilkallinger og anrop"
+  "Paging & Calls": "Tilkallinger og anrop",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "Alle med tilgang til kodelageret kan se denne pull requesten, med endringen og beskrivelsen av den.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Alle med tilgang til kodelageret kan se denne pull requesten, med endringen og beskrivelsen av den. Dette private varselet nevnes ikke i den.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Alle med tilgang til kodelageret kan se denne pull requesten, med endringen og beskrivelsen av den. Denne private hendelsen nevnes ikke i den.",
+  "Only someone who may approve fixes can open this pull request.": "Bare den som kan godkjenne rettinger, kan åpne denne pull requesten.",
+  "VPA": "VPA"
 }

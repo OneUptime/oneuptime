@@ -56507,5 +56507,10 @@
   "Set Up Before Sharing Publicly": "公開分享前先行設定",
   "The public link's title, description, logos, theme and favicon.": "公開連結的標題、說明、標誌、主題和網站圖示。",
   "Your own domains for the public link.": "用於公開連結的自有網域。",
-  "Paging & Calls": "呼叫與來電"
+  "Paging & Calls": "呼叫與來電",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "所有有權存取儲存庫的人都可以看到此提取要求，包括變更及其描述。",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "所有有權存取儲存庫的人都可以看到此提取要求，包括變更及其描述。其中不會提及此私人警示。",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "所有有權存取儲存庫的人都可以看到此提取要求，包括變更及其描述。其中不會提及此私人事件。",
+  "Only someone who may approve fixes can open this pull request.": "只有可以核准修正的人才能開啟此提取要求。",
+  "VPA": "VPA"
 }

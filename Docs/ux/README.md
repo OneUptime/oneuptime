@@ -285,6 +285,16 @@ work out, starts from a default for everything else, and folds what most people 
   [DragOrderedListsGuard](../../packages/App/Tests/Dashboard/DragOrderedListsGuard.test.ts).
 - **No control inside another control,** such as a button inside a link. Enforced by
   [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts).
+- **Nothing is pressed with a mouse alone.** Anything that does something on a click is a
+  `<button type="button">` or a link, which Tab reaches, Enter and Space press, and which shows the
+  focus ring. A `div` or `li` with only a click is out of a keyboard's reach and is read as text:
+  a keyboard could open the header's notification bell but choose nothing in it, and could not go
+  back to a finished step of a form (#9136). Enforced by
+  [ClickOnlyControlsGuard](../../packages/Common/Tests/UI/Components/ClickOnlyControlsGuard.test.ts).
+- **A finger can hit it.** Under a finger (`[@media(pointer:coarse)]:min-h-11`) a control is at
+  least 44px across, or 24px with room around it: the list's page buttons were 28px, 24px in a
+  compact list, with nothing larger for touch (#9136). A mouse keeps the compact size. Not enforced:
+  use judgement.
 - **One button.** An action is the shared `Button` (`Common/UI/Components/Button`), never a
   `<button>` drawn by hand in the primary colours: 34 of them each had their own size and corners,
   and their focus ring, locked look and phone layout had drifted from the shared one (#9128). Every

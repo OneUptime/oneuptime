@@ -78,6 +78,7 @@ const IncidentsTeamsPage: FunctionComponent<
     >
       <WorkspaceConnectionGate workspaceType={WorkspaceType.MicrosoftTeams}>
         <Tabs
+          label="Microsoft Teams"
           tabs={tabs}
           onTabChange={() => {
             // Tab changed

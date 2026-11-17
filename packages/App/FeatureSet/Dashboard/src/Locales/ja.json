@@ -56507,5 +56507,10 @@
   "Set Up Before Sharing Publicly": "公開共有の前に設定",
   "The public link's title, description, logos, theme and favicon.": "公開リンクのタイトル、説明、ロゴ、テーマ、ファビコン。",
   "Your own domains for the public link.": "公開リンク用の独自ドメイン。",
-  "Paging & Calls": "呼び出しと着信"
+  "Paging & Calls": "呼び出しと着信",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "リポジトリにアクセスできるすべてのユーザーが、このプルリクエストの変更内容と説明を閲覧できます。",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "リポジトリにアクセスできるすべてのユーザーが、このプルリクエストの変更内容と説明を閲覧できます。この非公開アラートについては記載されません。",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "リポジトリにアクセスできるすべてのユーザーが、このプルリクエストの変更内容と説明を閲覧できます。この非公開インシデントについては記載されません。",
+  "Only someone who may approve fixes can open this pull request.": "このプルリクエストを作成できるのは、修正を承認できるユーザーだけです。",
+  "VPA": "VPA"
 }

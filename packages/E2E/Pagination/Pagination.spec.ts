@@ -493,3 +493,85 @@ test.describe("on a phone", () => {
     await expectNoSidewaysScroll(page);
   });
 });
+
+type SizeOfFunction = (
+  control: Locator,
+) => Promise<{ width: number; height: number }>;
+
+const sizeOf: SizeOfFunction = async (
+  control: Locator,
+): Promise<{ width: number; height: number }> => {
+  const box: { width: number; height: number } | null =
+    await control.boundingBox();
+
+  expect(box).not.toBeNull();
+
+  return { width: box!.width, height: box!.height };
+};
+
+/*
+ * #9136: the bar's controls were 28px (24px compact) under a thumb too. A
+ * touch screen is a coarse pointer, and there every control is 44px tall
+ * and the arrows 44px wide, WCAG 2.2's comfortable target. A mouse keeps
+ * the compact bar (the desktop tests above).
+ */
+test.describe("under a finger", () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+
+  test("the arrows, the page indicator and the rows select are 44px targets", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const footer: Locator = await open(page, "total=1000&page=3");
+
+    expect(
+      await page.evaluate(() => {
+        return window.matchMedia("(pointer: coarse)").matches;
+      }),
+    ).toBe(true);
+
+    for (const control of [
+      footer.getByRole("button", { name: "Go to previous page" }),
+      footer.getByRole("button", { name: "Go to next page" }),
+    ]) {
+      const size: { width: number; height: number } = await sizeOf(control);
+
+      expect(size.height).toBeGreaterThanOrEqual(44);
+      expect(size.width).toBeGreaterThanOrEqual(44);
+    }
+
+    for (const control of [
+      footer.getByTestId("pagination-current-page-indicator"),
+      footer.getByTestId("pagination-items-on-page-select"),
+    ]) {
+      expect((await sizeOf(control)).height).toBeGreaterThanOrEqual(44);
+    }
+
+    // A tap on the next arrow still turns the page.
+    await footer.getByRole("button", { name: "Go to next page" }).tap();
+    await expect(page.getByTestId("navigations")).toHaveText("4/10");
+
+    // The bigger bar still fits a phone.
+    await expectNoSidewaysScroll(page);
+  });
+});
+
+test.describe("with a mouse", () => {
+  test("the bar keeps its compact 28px controls", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const footer: Locator = await open(page, "total=23");
+
+    expect(
+      (await sizeOf(footer.getByRole("button", { name: "Go to next page" })))
+        .height,
+    ).toBe(28);
+  });
+});

@@ -73,6 +73,8 @@ Para continuar, escreva na caixa embaixo, que fica à vista enquanto a conversa 
 
 Quem pode ler um repositório lê as tarefas dele. Pedir à IA, responder e parar uma tarefa exigem permissão para editar o repositório, assim como ver o diff de uma alteração: os demais veem quais arquivos mudaram. As tarefas que o OneUptime inicia por conta própria (abaixo) também ficam no repositório delas, como conversas em que você pode responder.
 
+Uma tarefa sobre um incidente ou alerta privado, iniciada a partir da investigação dele ou de uma das correções dele, só é lida, com as respostas e o pull request dela, por quem pode ler o registro e, depois que o registro é excluído, só pelos Proprietários do projeto e Administradores do projeto. Para os demais, as listas, filtros, buscas e contagens do repositório a deixam de fora. Veja [Incidentes, alertas e episódios privados](/docs/permissions/index#incidentes-alertas-e-episódios-privados).
+
 ## Como funciona uma execução de correção
 
 ```mermaid title="De um clique a um pull request"
@@ -325,6 +327,8 @@ Todo o resto é igual ao botão:
 - Ele conta para o limite diário de tarefas de correção daquele sinal (**Limite diário de tarefas de correção com IA para incidentes** ou **Limite diário de tarefas de correção com IA para alertas**, em **Mais configurações** na página de configurações de IA dele) e para o teto de pull requests abertos do repositório, quando algum deles está definido. Sem definição, nenhum deles limita nada.
 - Cada gatilho procura primeiro uma tarefa de correção já na fila ou em execução para o mesmo incidente ou alerta, então um gatilho automático e um clique normalmente viram uma única tarefa, não dois pull requests. A verificação é uma leitura antes da escrita, não um bloqueio, então dois gatilhos no mesmo instante ainda podem passar os dois.
 - A execução é escrita pelo sistema, não é atribuída a ninguém, e nada é mesclado sozinho.
+
+Em um incidente ou alerta privado, **Abrir pull request de correção** exige o mesmo que aprovar as correções do registro, por meio das equipes que são donas dele, e fica bloqueado para qualquer outra pessoa, dizendo por quê. Todos com acesso ao repositório leem o pull request, então o título, o commit e a descrição dele dizem o que a alteração faz e nada sobre o registro, e o agente de código é instruído a deixar o registro fora do resumo e dos comentários que escreve. Um Runner anterior a esta mudança não recebe uma correção assim, e a tarefa falha dizendo para atualizar o Runner.
 
 ## Quando uma correção falha
 
