@@ -387,20 +387,32 @@ describe("Workflow step card: where nothing is said", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("clicking the card still reaches a click handler handed to it", () => {
-    const onClick: MockFunction = getJestMockFunction();
-    renderCard(
-      makeData({
-        onClick: onClick as unknown as NonNullable<
-          WorkflowNodeRenderData["onClick"]
-        >,
-        issueSummary: summary({ missingSettingMessages: MISSING }),
-      }),
+  /*
+   * react-flow draws each step in a focusable button that a click, Enter and
+   * Space press through the canvas (Workflow.test). A card that heard clicks
+   * of its own was a second, mouse-only way in (#9223).
+   */
+  test("the card hears no click or key of its own: the step's button around it does", () => {
+    const outside: MockFunction = getJestMockFunction();
+    const { container } = render(
+      <div onClick={outside as unknown as () => void}>
+        <WorkflowNode
+          data={makeData({
+            issueSummary: summary({ missingSettingMessages: MISSING }),
+          })}
+          selected={false}
+        />
+      </div>,
     );
 
     fireEvent.click(screen.getByTestId("workflow-node-setup-hint"));
 
-    expect(onClick).toHaveBeenCalledTimes(1);
+    // The click goes on to the step's button, untouched.
+    expect(outside).toHaveBeenCalledTimes(1);
+    for (const element of Array.from(container.querySelectorAll("*"))) {
+      expect(element.getAttribute("tabindex")).toBeNull();
+      expect(element.getAttribute("role")).not.toBe("button");
+    }
   });
 });
 
