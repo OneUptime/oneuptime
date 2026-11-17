@@ -72,6 +72,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     builtFrom: "secret values, each escaped with escapeRegExp to match itself",
   },
   {
+    file: "packages/Common/Server/Infrastructure/Postgres/OnlineDdl.ts",
+    count: 1,
+    builtFrom:
+      "the event its two callers name, DELETE or UPDATE, and the actions REFERENTIAL_ACTION lists, to read what a foreign key a migration adds does on a delete and on an update",
+  },
+  {
     file: "packages/Common/Server/Infrastructure/Postgres/QueryPropertyNames.ts",
     count: 1,
     builtFrom:
