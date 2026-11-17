@@ -9,6 +9,7 @@ import {
   AI_READ_CARD_LINES,
   AI_READ_CARD_NOT_CHECKED_YET_LINES,
   AIActionCardWords,
+  AIActionTableCell,
   AIActionTableWords,
   describeAIActionCardWords,
   describeAIActionTableCell,
@@ -432,9 +433,9 @@ describe("query_monitors lists a monitor nothing has checked yet as such", () =>
     expect(isKnownAIActionTableWords(words)).toBe(true);
 
     const german: Array<string> = (words.cells || []).map(
-      (cells: JSONObject | Record<string, unknown>): string => {
+      (cells: Record<string, AIActionTableCell>): string => {
         return describeAIActionTableCell(
-          (cells as Record<string, never>)["currentStatus"],
+          cells["currentStatus"]!,
           dashboardTranslator("de"),
         );
       },
