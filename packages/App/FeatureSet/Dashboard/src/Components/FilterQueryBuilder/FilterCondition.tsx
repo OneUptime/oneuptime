@@ -13,6 +13,11 @@ import {
   FilterFieldDefinition,
   FilterFieldValueOption,
 } from "./Types";
+import {
+  getValueForOperator,
+  joinListValue,
+  splitListValue,
+} from "./FilterQueryParser";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   translatableTerm,
@@ -38,6 +43,66 @@ const operatorOptions: Array<DropdownOption> = [
   { value: "LIKE", label: "contains", description: "Substring match" },
   { value: "IN", label: "is one of", description: "Comma-separated values" },
 ];
+
+/*
+ * The operators a field offers. A field picked from a dropdown (Status, Span
+ * Kind, Severity, the yes/no fields) holds one of a few stored values, so
+ * "contains" means nothing there and is left out - unless the condition
+ * already uses it, as a filter saved before this did, which still shows
+ * what it is (#9214).
+ */
+export function getOperatorOptionsForField(
+  field: FilterFieldDefinition | undefined,
+  currentOperator: string,
+): Array<DropdownOption> {
+  if (field?.valueType !== "dropdown" || currentOperator === "LIKE") {
+    return operatorOptions;
+  }
+
+  return operatorOptions.filter((option: DropdownOption): boolean => {
+    return option.value !== "LIKE";
+  });
+}
+
+/*
+ * A dropdown field's values as the pickers offer them: each by its label
+ * (Error, Client), storing its code (2, SPAN_KIND_CLIENT).
+ */
+export function getValueDropdownOptions(
+  field: FilterFieldDefinition,
+): Array<DropdownOption> {
+  return (field.valueOptions || []).map(
+    (o: FilterFieldValueOption): DropdownOption => {
+      const option: DropdownOption = {
+        value: o.value,
+        label: o.label,
+      };
+      if (o.description) {
+        option.description = o.description;
+      }
+      return option;
+    },
+  );
+}
+
+/*
+ * The picks an "is one of" condition shows for its stored list ("0, 2"):
+ * each code's option, so it reads Unset, Error. A value no option has (one
+ * typed into the old text box, "INFO") stays, drawn as written, so saving
+ * the filter again never drops it without anyone seeing.
+ */
+export function getPickedListOptions(
+  value: string,
+  options: Array<DropdownOption>,
+): Array<DropdownOption> {
+  return splitListValue(value).map((code: string): DropdownOption => {
+    return (
+      options.find((option: DropdownOption): boolean => {
+        return option.value === code;
+      }) || { value: code, label: code, isUserContent: true }
+    );
+  });
+}
 
 const FilterConditionElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -89,8 +154,14 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
         return opt.value === condition.field;
       });
 
+  const fieldOperatorOptions: Array<DropdownOption> =
+    getOperatorOptionsForField(
+      isAttributeField ? undefined : fieldDefinition,
+      condition.operator,
+    );
+
   const selectedOperatorOption: DropdownOption | undefined =
-    operatorOptions.find((opt: DropdownOption) => {
+    fieldOperatorOptions.find((opt: DropdownOption) => {
       return opt.value === condition.operator;
     });
 
@@ -132,24 +203,63 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
       );
     }
 
+    /*
+     * The field's own placeholder is English, for Dropdown to look up; the
+     * sentence around its label is worded here (#7682).
+     */
+    const valuePlaceholder: string =
+      fieldDefinition.valuePlaceholder ||
+      translator.translateTemplate("Select {{field}}...", {
+        field: translatableTerm(fieldDefinition.label, {
+          inSentence: true,
+        }),
+      });
+
+    /*
+     * "Is one of" on a dropdown field picks several of the same labels the
+     * single pickers offer (Unset, Error) and stores their codes ("0, 2"),
+     * where it was a text box that wanted the codes typed in (#9214).
+     */
+    if (
+      fieldDefinition.valueType === "dropdown" &&
+      fieldDefinition.valueOptions &&
+      condition.operator === "IN"
+    ) {
+      const valueDropdownOptions: Array<DropdownOption> =
+        getValueDropdownOptions(fieldDefinition);
+
+      return (
+        <div data-testid="filter-condition-value-list">
+          <Dropdown
+            isMultiSelect={true}
+            options={valueDropdownOptions}
+            value={getPickedListOptions(condition.value, valueDropdownOptions)}
+            placeholder={valuePlaceholder}
+            isPlaceholderTranslated={!fieldDefinition.valuePlaceholder}
+            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              const picked: Array<string> = (
+                Array.isArray(value) ? value : value ? [value] : []
+              ).map((item: DropdownValue): string => {
+                return item.toString();
+              });
+
+              props.onChange({
+                ...condition,
+                value: joinListValue(picked),
+              });
+            }}
+          />
+        </div>
+      );
+    }
+
     if (
       fieldDefinition.valueType === "dropdown" &&
       fieldDefinition.valueOptions &&
       (condition.operator === "=" || condition.operator === "!=")
     ) {
       const valueDropdownOptions: Array<DropdownOption> =
-        fieldDefinition.valueOptions.map(
-          (o: FilterFieldValueOption): DropdownOption => {
-            const option: DropdownOption = {
-              value: o.value,
-              label: o.label,
-            };
-            if (o.description) {
-              option.description = o.description;
-            }
-            return option;
-          },
-        );
+        getValueDropdownOptions(fieldDefinition);
       return (
         <Dropdown
           options={valueDropdownOptions}
@@ -160,18 +270,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
                 })
               : undefined
           }
-          /*
-           * The field's own placeholder is English, for Dropdown to look up;
-           * the sentence around its label is worded here (#7682).
-           */
-          placeholder={
-            fieldDefinition.valuePlaceholder ||
-            translator.translateTemplate("Select {{field}}...", {
-              field: translatableTerm(fieldDefinition.label, {
-                inSentence: true,
-              }),
-            })
-          }
+          placeholder={valuePlaceholder}
           isPlaceholderTranslated={!fieldDefinition.valuePlaceholder}
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
             props.onChange({
@@ -322,9 +421,22 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
                       value: "",
                     });
                   } else {
+                    const field: string = value?.toString() || "";
+                    const nextField: FilterFieldDefinition | undefined =
+                      config.fields.find(
+                        (f: FilterFieldDefinition): boolean => {
+                          return f.key === field;
+                        },
+                      );
                     props.onChange({
                       ...condition,
-                      field: value?.toString() || "",
+                      field: field,
+                      // "Contains" is not offered on a dropdown field.
+                      operator:
+                        nextField?.valueType === "dropdown" &&
+                        condition.operator === "LIKE"
+                          ? "="
+                          : condition.operator,
                       value: "",
                     });
                   }
@@ -358,15 +470,21 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
                 {translator.translateText("Operator")}
               </label>
               <Dropdown
-                options={operatorOptions}
+                options={fieldOperatorOptions}
                 value={selectedOperatorOption}
                 placeholder="Select..."
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {
+                  const operator: string = value?.toString() || "=";
                   props.onChange({
                     ...condition,
-                    operator: value?.toString() || "=",
+                    operator: operator,
+                    value: getValueForOperator(
+                      condition.value,
+                      operator,
+                      isAttributeField ? undefined : fieldDefinition,
+                    ),
                   });
                 }}
               />

@@ -129,3 +129,51 @@ export function buildFilterQuery(
 
   return parts.join(` ${connector} `);
 }
+
+/*
+ * AN "IS ONE OF" CONDITION'S VALUES (#9214).
+ *
+ * Its value is the list as one string, "0, 2", the way parseFilterQuery reads
+ * it out of `statusCode IN ('0', '2')` and buildFilterQuery writes it back.
+ * These turn it into the values themselves and back, so a field the builder
+ * offers as a dropdown can offer "is one of" as a pick of the same labels
+ * (Unset, Error) and still store the codes.
+ */
+export function splitListValue(value: string): Array<string> {
+  const values: Array<string> = [];
+
+  for (const part of (value || "").split(",")) {
+    const trimmed: string = part.trim();
+
+    if (trimmed && !values.includes(trimmed)) {
+      values.push(trimmed);
+    }
+  }
+
+  return values;
+}
+
+export function joinListValue(values: Array<string>): string {
+  return splitListValue(values.join(",")).join(", ");
+}
+
+/*
+ * The value a condition keeps when its operator changes. "Is one of" holds a
+ * list, while "equals" and "does not equal" on a dropdown field pick one
+ * value, so a list keeps only its first value there, rather than show an
+ * empty dropdown over a value no option has.
+ */
+export function getValueForOperator(
+  value: string,
+  operator: string,
+  field: FilterFieldDefinition | undefined,
+): string {
+  if (
+    field?.valueType === "dropdown" &&
+    (operator === "=" || operator === "!=")
+  ) {
+    return splitListValue(value)[0] || "";
+  }
+
+  return value;
+}
