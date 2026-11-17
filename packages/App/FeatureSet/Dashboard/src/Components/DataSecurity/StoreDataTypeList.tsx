@@ -84,6 +84,12 @@ const StoreDataTypeList: FunctionComponent<ComponentProps> = (
           <Pill
             key={name}
             text={name}
+            /*
+             * A data type's name is OneUptime's own (the catalogue's), not
+             * one a project gave, so it is read in the reader's language,
+             * as the hidden ones in the hover title are.
+             */
+            isUserContent={false}
             tone={PillTone.Neutral}
             isDotHidden={true}
           />
