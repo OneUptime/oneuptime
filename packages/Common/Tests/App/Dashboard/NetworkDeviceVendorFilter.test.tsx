@@ -339,10 +339,15 @@ describe("the lists that filter network devices by Vendor", () => {
         ) => ReactElement,
       );
 
+      // What typing "Sunnovo" into the Vendor chip writes, under its own key.
+      const chipKey: string = Object.keys(
+        vendorFilterOf(props).field || {},
+      )[0]!;
       const query: Query<NetworkDevice> = buildQueryFromFilterData({
-        filterData: {
-          manufacturer: new Search("Sunnovo"),
-        } as never,
+        filterData: sanitizeFilterData({
+          filterData: { [chipKey]: new Search("Sunnovo") } as never,
+          filters: props.filters as never,
+        }),
         filters: props.filters as never,
       }) as Query<NetworkDevice>;
 
