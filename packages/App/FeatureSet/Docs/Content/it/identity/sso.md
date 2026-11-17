@@ -325,7 +325,7 @@ Aggiungere un provider, modificarne uno o riattivarlo richiede **Scale**. Chi pu
 
 Finché il progetto richiede ancora l'SSO, anche la sua pagina **SSO** mostra **Richiedi l'SSO per l'accesso**: disattivalo prima di disattivare l'ultimo provider. Fino ad allora l'ultimo provider con cui le persone possono accedere non può essere disattivato né eliminato, così nessuno resta escluso dal progetto.
 
-Le pagine **SSO** e **OIDC** di una pagina di stato elencano allo stesso modo i suoi provider. Finché la pagina di stato richiede ancora l'SSO, entrambe le pagine mostrano anche **Richiedi l'SSO per l'accesso**: disattivalo prima di disattivare i suoi provider, altrimenti i suoi utenti privati non potranno più accedere.
+La pagina **Single Sign-On** di una pagina di stato elenca allo stesso modo i suoi provider, nelle sue schede **SAML** e **OIDC**. Finché la pagina di stato richiede ancora l'SSO, entrambe le schede mostrano anche **Richiedi l'SSO per l'accesso**: disattivalo prima di disattivare i suoi provider, altrimenti i suoi utenti privati non potranno più accedere.
 
 ## Risoluzione dei problemi
 

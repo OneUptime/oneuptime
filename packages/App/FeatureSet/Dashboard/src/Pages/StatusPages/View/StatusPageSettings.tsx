@@ -22,7 +22,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 
 /*
- * Advanced -> Advanced Settings: what the status page shows, then the things
+ * Advanced -> Settings: what the status page shows, then the things
  * done to the page as a whole - export and archive - as on a monitor's, a
  * workflow's, a dashboard's or an on-call policy's Settings page.
  *

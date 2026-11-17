@@ -8,7 +8,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The "Powered by OneUptime" line at the foot of a status page, on Advanced
- * -> Advanced Settings under "What your status page shows": one switch,
+ * -> Settings under "What your status page shows": one switch,
  * on = visitors see the line. The column stores the opposite
  * (StatusPage.hidePoweredByOneUptimeBranding), so the switch is inverted.
  *

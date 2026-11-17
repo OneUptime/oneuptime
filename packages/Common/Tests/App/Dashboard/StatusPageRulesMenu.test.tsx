@@ -153,7 +153,7 @@ describe("a status page's Rules section: where it is and what it holds", () => {
     await renderMenuAt(viewRoute(PageMap.STATUS_PAGE_VIEW));
 
     expect(sectionTitlesInOrder()).toEqual([
-      "Basic",
+      "Overview",
       "Resources",
       "Rules",
       "Subscribers",
@@ -270,7 +270,7 @@ describe("a status page's Rules section: folded by default", () => {
       sectionBody("Rules").id,
     );
     // What the page shows stays open beside it.
-    expect(isExpanded("Basic")).toBe(true);
+    expect(isExpanded("Overview")).toBe(true);
     expect(isExpanded("Resources")).toBe(true);
   });
 
@@ -313,7 +313,7 @@ describe("a status page's Rules section: folded by default", () => {
       page: PageMap.STATUS_PAGE_VIEW_BRANDING,
     },
     {
-      entry: "Advanced Settings",
+      entry: "Settings",
       section: "Advanced",
       page: PageMap.STATUS_PAGE_VIEW_SETTINGS,
     },

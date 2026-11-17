@@ -178,11 +178,10 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
     auditPage: PageMap.STATUS_PAGE_VIEW_AUDIT_LOGS,
     auditSection: "Advanced",
     sections: [
-      "Basic",
+      "Overview",
       "Resources",
       "Rules",
       "Subscribers",
-      "Notification Logs",
       "Branding",
       "Security",
       "AI",
@@ -197,7 +196,7 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
         page: PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS,
       },
       {
-        title: "Advanced Settings",
+        title: "Settings",
         page: PageMap.STATUS_PAGE_VIEW_SETTINGS,
       },
       {

@@ -74,7 +74,7 @@ Añade el monitor compartido a cada página como recurso (consulta [Recursos y g
 
 ### Activar Mostrar solo incidentes limitados a esta página
 
-Actívalo en cada una de esas páginas. Está en la tarjeta **Lo que muestra tu página de estado** de **Páginas de estado → tu página → Avanzado → Ajustes avanzados**, debajo de **Mostrar incidentes**, y se guarda en cuanto lo cambias. A partir de entonces, nada llega a la página de una sede salvo que alguien la elija.
+Actívalo en cada una de esas páginas. Está en la tarjeta **Lo que muestra tu página de estado** de **Páginas de estado → tu página → Avanzado → Ajustes**, debajo de **Mostrar incidentes**, y se guarda en cuanto lo cambias. A partir de entonces, nada llega a la página de una sede salvo que alguien la elija.
 
 ### Añadir los suscriptores de cada audiencia
 

@@ -934,17 +934,21 @@ describe("the SSO guide", () => {
     );
   });
 
-  it("finds SSO, OIDC and SCIM under Security on a status page, and SSO and SCIM in a project's settings", () => {
+  it("finds Single Sign-On and SCIM under Security on a status page, and SSO and SCIM in a project's settings", () => {
     const status: string = readSource("statusPageSideMenu");
     const statusSecurity: string = status.slice(
       status.indexOf('<SideMenuSection title="Security">'),
     );
-    const sso: number = statusSecurity.indexOf('title: "SSO"');
-    const oidc: number = statusSecurity.indexOf('title: "OIDC"');
+    /*
+     * A status page's SAML and OIDC providers are one Single Sign-On page,
+     * a tab each (#9130), where they were two entries, SSO and OIDC.
+     */
+    const sso: number = statusSecurity.indexOf('title: "Single Sign-On"');
     const scim: number = statusSecurity.indexOf('title: "SCIM"');
 
     expect(status).toContain('<SideMenuSection title="Security">');
-    expect(sso >= 0 && sso < oidc && oidc < scim).toBe(true);
+    expect(sso >= 0 && sso < scim).toBe(true);
+    expect(statusSecurity.slice(0, scim)).not.toContain('title: "OIDC"');
 
     /*
      * A project's OpenID Connect providers are on its SSO page, under the

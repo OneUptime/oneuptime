@@ -50,7 +50,8 @@ export const getStatusPageCreateFormFields: () => Array<
       field: {
         description: true,
       },
-      title: "Description",
+      title: "Internal Description",
+      description: StatusPageOverviewCopy.descriptionHelp,
       fieldType: FormFieldSchemaType.LongText,
       required: false,
       placeholder: StatusPageOverviewCopy.descriptionPlaceholder,
@@ -89,7 +90,8 @@ export const getStatusPageDetailsFormFields: () => Array<
       field: {
         description: true,
       },
-      title: "Description",
+      title: "Internal Description",
+      description: StatusPageOverviewCopy.descriptionHelp,
       fieldType: FormFieldSchemaType.LongText,
       required: false,
       placeholder: StatusPageOverviewCopy.descriptionPlaceholder,
