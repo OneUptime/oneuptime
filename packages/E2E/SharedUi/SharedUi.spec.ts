@@ -2161,17 +2161,17 @@ test.describe("a rule's conditions at every width", () => {
         const entry: Locator = page.getByTestId(`rules-${name}`);
         const [row] = await readConditions(page, name);
         const add: Locator = entry.getByTestId("rule-criteria-add");
-        const box: { x: number; width: number } | null = await add.boundingBox();
-        const look: { background: string; border: string } =
-          await add.evaluate(
-            (element: Element): { background: string; border: string } => {
-              const style: CSSStyleDeclaration = getComputedStyle(element);
-              return {
-                background: style.backgroundColor,
-                border: style.borderTopColor,
-              };
-            },
-          );
+        const box: { x: number; width: number } | null =
+          await add.boundingBox();
+        const look: { background: string; border: string } = await add.evaluate(
+          (element: Element): { background: string; border: string } => {
+            const style: CSSStyleDeclaration = getComputedStyle(element);
+            return {
+              background: style.backgroundColor,
+              border: style.borderTopColor,
+            };
+          },
+        );
 
         expect(box).not.toBeNull();
         // A white fill and a grey edge: not the tinted indigo it was.
@@ -2179,9 +2179,7 @@ test.describe("a rule's conditions at every width", () => {
         expect([name, look.border]).not.toEqual([name, "rgba(0, 0, 0, 0)"]);
 
         const start: number =
-          lang === "fa"
-            ? Math.round(box!.x + box!.width)
-            : Math.round(box!.x);
+          lang === "fa" ? Math.round(box!.x + box!.width) : Math.round(box!.x);
         const pickersStart: number =
           lang === "fa" ? row!.field.right : row!.field.left;
 

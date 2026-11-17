@@ -1032,9 +1032,10 @@ test.describe("SLOs", () => {
       )
       .toContain("months=3");
 
-    await expect(
-      page.getByRole("radio", { name: "3 months" }),
-    ).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByRole("radio", { name: "3 months" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
   });
 
   test("should save an edit made from the overview details card", async () => {
