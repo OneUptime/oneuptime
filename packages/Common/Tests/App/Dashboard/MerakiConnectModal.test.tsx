@@ -17,6 +17,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import { chooseDropdownOption } from "../../DropdownPicks";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -211,9 +212,10 @@ describe("the key", () => {
         "folded-section-header",
       ),
     );
-    fireEvent.change(screen.getByTestId("meraki-region"), {
-      target: { value: "canada" },
-    });
+    chooseDropdownOption(
+      within(screen.getByTestId("meraki-region")).getByRole("combobox"),
+      /dashboard\.meraki\.ca\b/,
+    );
     await enterKeyAndGoOn(`  ${API_KEY}  `);
 
     expect(testBodies()).toEqual([
@@ -383,9 +385,10 @@ describe("the organization", () => {
     fireEvent.change(screen.getByTestId("meraki-connection-name"), {
       target: { value: "Stores (EMEA)" },
     });
-    fireEvent.change(screen.getByTestId("meraki-read-interval"), {
-      target: { value: "15" },
-    });
+    chooseDropdownOption(
+      within(screen.getByTestId("meraki-read-interval")).getByRole("combobox"),
+      /15/,
+    );
 
     fireEvent.click(connectButton());
     await flush();
@@ -504,9 +507,10 @@ describe("when the key does not work", () => {
         "folded-section-header",
       ),
     );
-    fireEvent.change(screen.getByTestId("meraki-region"), {
-      target: { value: "canada" },
-    });
+    chooseDropdownOption(
+      within(screen.getByTestId("meraki-region")).getByRole("combobox"),
+      /dashboard\.meraki\.ca\b/,
+    );
     await enterKeyAndGoOn();
 
     expect(screen.getByTestId("meraki-test-result")).toHaveTextContent(

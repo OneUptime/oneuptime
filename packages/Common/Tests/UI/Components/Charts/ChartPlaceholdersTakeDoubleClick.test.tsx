@@ -19,6 +19,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import * as React from "react";
+import { chooseDropdownOption } from "../../../DropdownPicks";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 
 /*
@@ -271,15 +272,12 @@ function errorsThrownBy(gesture: () => void): Array<unknown> {
   return errors;
 }
 
-/*
- * What stands in for a chart while it loads: the chart's skeleton
- * (ChartSkeleton, #9220), or the shared bar where a chart still draws one.
- */
-const CHART_LOADER_TEST_ID: RegExp = /^(?:chart-skeleton|component-loader)$/;
+// What stands in for a chart while it loads: the chart's skeleton (#9220).
+const CHART_LOADER_TEST_ID: string = "chart-skeleton";
 
 /*
  * The loader's box: what stands where the chart will be while it loads,
- * around the spinner.
+ * around the skeleton.
  */
 function loaderBox(): HTMLElement {
   const box: HTMLElement | null =
@@ -1457,11 +1455,19 @@ async function waitForTimeseries(view: AnalyticsViewUnderTest): Promise<void> {
   });
 }
 
+// The names the "Chart" control lists each chart by.
+const CHART_NAMES: Record<string, string> = {
+  timeseries: "Timeseries",
+  toplist: "Top List",
+  table: "Table",
+};
+
 // The reader picks another chart in the view's "Chart" control.
 function switchChartTo(chartType: string): void {
-  fireEvent.change(screen.getByDisplayValue("Timeseries"), {
-    target: { value: chartType },
-  });
+  chooseDropdownOption(
+    screen.getByRole("combobox", { name: "Chart" }),
+    CHART_NAMES[chartType]!,
+  );
 }
 
 const NOT_TIME_CHARTS: Array<[string, string]> = [

@@ -34,6 +34,8 @@ import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
 import Icon from "../../../UI/Components/Icon/Icon";
 import { announceModelSwitchSaved } from "../../../UI/Components/ModelSwitch/ModelSwitchEvents";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import { SLO_MONITOR_FIRST_CHECK_SELECT } from "../../../Utils/Slo/SloMonitorsFirstCheck";
 import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
@@ -69,7 +71,28 @@ const WAITING_TITLE: string = "Waiting for SLO evaluation";
 const WAITING_BODY: string =
   "Monitors are attached. OneUptime evaluates this SLO every few minutes. Results will appear once monitor status data is available and the next evaluation completes.";
 
+const FIRST_CHECK_TITLE: string = "Waiting for the first check";
+const FIRST_CHECK_BODY: string =
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.";
+
 type SloFields = Record<string, unknown>;
+
+// A monitor as the banner reads it: whether something has checked it yet.
+function makeCheckedMonitor(
+  id: string,
+  fields: {
+    firstMeasuredAt: Date | null;
+    disableActiveMonitoring?: boolean;
+  },
+): Monitor {
+  const monitor: Monitor = makeMonitor(id);
+  monitor.monitorType = MonitorType.Website;
+  monitor.isArchived = false;
+  monitor.disableActiveMonitoring = fields.disableActiveMonitoring ?? false;
+  (monitor as unknown as { firstMeasuredAt: Date | null }).firstMeasuredAt =
+    fields.firstMeasuredAt;
+  return monitor;
+}
 
 function makeMonitor(id: string): Monitor {
   const monitor: Monitor = new Monitor();
@@ -178,7 +201,7 @@ describe("SloNoticeBanner", () => {
           sliType: true,
           targetPercentage: true,
           lastEvaluatedAt: true,
-          monitors: { _id: true },
+          monitors: { _id: true, ...SLO_MONITOR_FIRST_CHECK_SELECT },
         }),
       }),
     );
@@ -364,6 +387,96 @@ describe("SloNoticeBanner", () => {
     expect(screen.getByText(WAITING_TITLE)).toBeInTheDocument();
     expect(screen.getByText(WAITING_BODY)).toBeInTheDocument();
     expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  /*
+   * #9089: an SLO whose monitors nothing has checked yet is set up right; it
+   * waits for their first check, and says so instead of "check that the
+   * monitors are being checked".
+   */
+  test("says a Misconfigured SLO whose monitors nothing has checked yet waits for their first check", async () => {
+    serveSlo({
+      sloStatus: SloStatus.Misconfigured,
+      monitors: [
+        makeCheckedMonitor("44444444-0000-4000-8000-000000000001", {
+          firstMeasuredAt: null,
+        }),
+        makeCheckedMonitor("44444444-0000-4000-8000-000000000002", {
+          firstMeasuredAt: null,
+        }),
+      ],
+    });
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    const banner: HTMLElement = await findBanner();
+
+    expect(banner).toHaveAttribute("role", "status");
+    expect(banner).not.toHaveClass("bg-amber-50", "border-amber-200");
+    expect(screen.getByText(FIRST_CHECK_TITLE)).toBeInTheDocument();
+    expect(screen.getByText(FIRST_CHECK_BODY)).toBeInTheDocument();
+    expect(screen.queryByText(WAITING_TITLE)).toBeNull();
+    expect(screen.queryByText(/Misconfigured/)).toBeNull();
+    expect(screen.getByRole("link", { name: "View monitors" })).toHaveAttribute(
+      "href",
+      MONITORS_PATH,
+    );
+  });
+
+  test("leaves a paused monitor out: its first check is not what the SLO waits for", async () => {
+    serveSlo({
+      sloStatus: SloStatus.Misconfigured,
+      monitors: [
+        makeCheckedMonitor("44444444-0000-4000-8000-000000000001", {
+          firstMeasuredAt: new Date("2026-09-01T00:00:00Z"),
+          disableActiveMonitoring: true,
+        }),
+        makeCheckedMonitor("44444444-0000-4000-8000-000000000002", {
+          firstMeasuredAt: null,
+        }),
+      ],
+    });
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    await findBanner();
+
+    expect(screen.getByText(FIRST_CHECK_TITLE)).toBeInTheDocument();
+  });
+
+  test("keeps Waiting for SLO evaluation once any monitor not paused has been checked", async () => {
+    serveSlo({
+      sloStatus: SloStatus.Misconfigured,
+      monitors: [
+        makeCheckedMonitor("44444444-0000-4000-8000-000000000001", {
+          firstMeasuredAt: new Date("2026-09-01T00:00:00Z"),
+        }),
+        makeCheckedMonitor("44444444-0000-4000-8000-000000000002", {
+          firstMeasuredAt: null,
+        }),
+      ],
+    });
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    await findBanner();
+
+    expect(screen.getByText(WAITING_TITLE)).toBeInTheDocument();
+    expect(screen.queryByText(FIRST_CHECK_TITLE)).toBeNull();
+  });
+
+  test("says nothing about a first check once the SLO is measuring", async () => {
+    const getItem: ReturnType<typeof jest.spyOn> = serveSlo({
+      monitors: [
+        makeCheckedMonitor("44444444-0000-4000-8000-000000000001", {
+          firstMeasuredAt: null,
+        }),
+      ],
+    });
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    await expectNoBanner(getItem);
   });
 
   test("still warns when attached monitors cannot make an unsupported SLI type evaluable", async () => {

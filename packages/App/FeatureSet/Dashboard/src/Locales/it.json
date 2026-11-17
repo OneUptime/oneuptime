@@ -56572,5 +56572,18 @@
   "What fails": "Cosa si guasta",
   "You can't start this fire drill: it tests every policy this failure pages, and you can't test {{count}} of them. Ask a Project Admin, or the policies' owners.": "Non puoi avviare questa esercitazione: verifica ogni policy che questo guasto chiama, e {{count}} di queste non puoi testarle. Chiedi a un amministratore del progetto o ai proprietari delle policy.",
   "You can't start this fire drill: it tests every policy this failure pages, and you can't test {{count}} of them. Ask a Project Admin, or the policies' owners._one": "Non puoi avviare questa esercitazione: verifica ogni policy che questo guasto chiama, e {{count}} di queste non puoi testarle. Chiedi a un amministratore del progetto o ai proprietari della policy.",
-  "You can't test this policy, so who it pages is not shown.": "Non puoi testare questa policy, quindi non viene mostrato chi chiama."
+  "You can't test this policy, so who it pages is not shown.": "Non puoi testare questa policy, quindi non viene mostrato chi chiama.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "Messaggi di Slack, Microsoft Teams e Mattermost inviati per questo progetto.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "Messaggi di Slack, Microsoft Teams e Mattermost inviati per questo elemento ({{itemName}}).",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "Questo test crea anche un vero canale nel team di Microsoft Teams della regola, ad esempio {{channel}}, visibile a tutti i membri del team. Eliminalo in Microsoft Teams quando hai finito.",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "Questo test crea anche un vero canale {{workspace}}, ad esempio {{channel}}, e ti invita. Archivialo in {{workspace}} quando hai finito.",
+  "{{team}} (typed name)": "{{team}} (nome digitato)",
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Nessuno ha ancora controllato i monitor di questo SLO. Viene misurato a partire dal loro primo controllo.",
+  "Discovered device {{name}}": "Dispositivo rilevato {{name}}",
+  "The Discovered Devices list": "L'elenco dei dispositivi rilevati",
+  "Every filter must match. Clear one, or clear them all.": "Ogni filtro deve corrispondere. Rimuovine uno, o rimuovili tutti.",
+  "Filter discovered devices": "Filtra i dispositivi rilevati",
+  "Network controller": "Controller di rete",
+  "No discovered device matches this search and these filters.": "Nessun dispositivo rilevato corrisponde a questa ricerca e a questi filtri.",
+  "Switch or router": "Switch o router"
 }

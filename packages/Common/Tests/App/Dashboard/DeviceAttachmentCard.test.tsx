@@ -161,9 +161,7 @@ async function renderCard(): Promise<HTMLElement> {
   const content: HTMLElement = screen.getByTestId("device-attachment-card");
 
   await waitFor(() => {
-    expect(
-      content.querySelector('[data-testid="component-loader"]'),
-    ).toBeNull();
+    expect(content.querySelector('[data-testid="detail-skeleton"]')).toBeNull();
     expect(
       content.querySelector('[data-testid="device-attachment-empty"]') ||
         content.querySelector('[data-testid="device-attachment-port"]') ||

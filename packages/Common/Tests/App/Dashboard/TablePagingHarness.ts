@@ -1,5 +1,9 @@
 import { fireEvent, screen, within } from "@testing-library/react";
 import { settle } from "./HostTooltipHarness";
+import {
+  chooseDropdownOption,
+  getShownDropdownValue,
+} from "../../DropdownPicks";
 
 /*
  * Helpers for the render tests of lists that page client-side
@@ -48,12 +52,23 @@ export function columnTexts(
   );
 }
 
-export function pageSizeSelect(
+/*
+ * The rows-per-page picker: the shared Dropdown's combobox (#9310), inside
+ * the box "pagination-items-on-page-select" names (hidden: a locked
+ * react-select is left out of jsdom's accessibility tree, though its
+ * combobox is still there, disabled).
+ */
+export function pageSizeSelect(root: HTMLElement = document.body): HTMLElement {
+  return within(
+    within(root).getByTestId("pagination-items-on-page-select"),
+  ).getByRole("combobox", { hidden: true });
+}
+
+// The page size the picker shows.
+export function pageSizeShown(
   root: HTMLElement = document.body,
-): HTMLSelectElement {
-  return within(root).getByTestId(
-    "pagination-items-on-page-select",
-  ) as HTMLSelectElement;
+): string | null {
+  return getShownDropdownValue(pageSizeSelect(root));
 }
 
 export function nextButton(root: HTMLElement = document.body): HTMLElement {
@@ -69,7 +84,7 @@ export async function choosePageSize(
   size: number,
   root: HTMLElement = document.body,
 ): Promise<void> {
-  fireEvent.change(pageSizeSelect(root), { target: { value: String(size) } });
+  chooseDropdownOption(pageSizeSelect(root), String(size));
   await settle();
 }
 

@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
 import { describe, expect, it, jest } from "@jest/globals";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import Table from "../../../UI/Components/Table/Table";
 import LocalTable from "../../../UI/Components/Table/LocalTable";
@@ -11,6 +11,41 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import LogsPagination from "../../../UI/Components/LogsViewer/components/LogsPagination";
 import TelemetryPagination from "../../../UI/Components/TelemetryViewer/components/TelemetryPagination";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
+import {
+  chooseDropdownOption,
+  closeDropdown,
+  openDropdown,
+} from "../../DropdownPicks";
+
+/*
+ * The rows-per-page picker is the shared Dropdown (#9310): its combobox,
+ * inside the box "pagination-items-on-page-select" names (hidden: a locked
+ * react-select is left out of jsdom's accessibility tree, though its
+ * combobox is still there, disabled), and the page sizes its menu lists.
+ */
+const rowsPerPage: (container?: HTMLElement) => HTMLElement = (
+  container?: HTMLElement,
+): HTMLElement => {
+  return within(
+    within(container || document.body).getByTestId(
+      "pagination-items-on-page-select",
+    ),
+  ).getByRole("combobox", { hidden: true });
+};
+
+const listRowsPerPage: (container?: HTMLElement) => Array<string> = (
+  container?: HTMLElement,
+): Array<string> => {
+  openDropdown(rowsPerPage(container));
+  const names: Array<string> = screen
+    .getAllByRole("option")
+    .map((option: HTMLElement): string => {
+      return option.textContent || "";
+    });
+  closeDropdown(rowsPerPage(container));
+
+  return names;
+};
 
 /*
  * The pagination control is shared, so what is worth testing at this level is
@@ -107,9 +142,7 @@ describe("Pagination in a Table", () => {
   it("changes the page size from the table footer", () => {
     const onNavigateToPage: MockFunction = renderTable();
 
-    fireEvent.change(screen.getByTestId("pagination-items-on-page-select"), {
-      target: { value: "25" },
-    });
+    chooseDropdownOption(rowsPerPage(), "25");
 
     expect(onNavigateToPage).toHaveBeenCalledWith(1, 25);
   });
@@ -122,15 +155,7 @@ describe("Pagination in a Table", () => {
     });
 
     expect(screen.getByTestId("custom-table-pagination")).toBeInTheDocument();
-    expect(
-      Array.from(
-        screen
-          .getByTestId("pagination-items-on-page-select")
-          .querySelectorAll("option"),
-      ).map((option: Element): string | null => {
-        return option.getAttribute("value");
-      }),
-    ).toEqual(["20", "50", "100"]);
+    expect(listRowsPerPage()).toEqual(["20", "50", "100"]);
   });
 
   it("jumps straight to a page from the table footer", () => {
@@ -183,8 +208,12 @@ describe("Pagination in a Table", () => {
       "h-7",
       "w-7",
     );
+    // The rows picker is the compact Dropdown, 28px, in its 80px box.
     expect(screen.getByTestId("pagination-items-on-page-select")).toHaveClass(
-      "h-7",
+      "w-20",
+    );
+    expect(rowsPerPage().closest(".ou-select__control")).toHaveClass(
+      "!min-h-[28px]",
     );
   });
 
@@ -314,9 +343,7 @@ describe("Pagination in a LocalTable", () => {
       />,
     );
 
-    fireEvent.change(screen.getByTestId("pagination-items-on-page-select"), {
-      target: { value: "25" },
-    });
+    chooseDropdownOption(rowsPerPage(), "25");
 
     expect(screen.getByText("Row 25")).toBeInTheDocument();
     expect(screen.getByTestId("pagination-summary")).toHaveTextContent(
@@ -368,17 +395,7 @@ describe("LogsPagination", () => {
   it("offers only the page sizes the viewer supports", () => {
     renderLogsPagination();
 
-    const options: Array<HTMLOptionElement> = Array.from(
-      screen
-        .getByTestId("pagination-items-on-page-select")
-        .querySelectorAll("option"),
-    );
-
-    expect(
-      options.map((option: HTMLOptionElement) => {
-        return option.value;
-      }),
-    ).toEqual(["50", "100", "250"]);
+    expect(listRowsPerPage()).toEqual(["50", "100", "250"]);
   });
 
   it("jumps to a page", () => {
@@ -411,9 +428,7 @@ describe("LogsPagination", () => {
       currentPage: 5,
     });
 
-    fireEvent.change(screen.getByTestId("pagination-items-on-page-select"), {
-      target: { value: "250" },
-    });
+    chooseDropdownOption(rowsPerPage(), "250");
 
     expect(onPageSizeChange).toHaveBeenCalledWith(250);
     expect(onPageChange).toHaveBeenCalledWith(1);
@@ -423,9 +438,7 @@ describe("LogsPagination", () => {
     renderLogsPagination({ isDisabled: true });
 
     expect(screen.getByTestId("pagination-next-button")).toBeDisabled();
-    expect(
-      screen.getByTestId("pagination-items-on-page-select"),
-    ).toBeDisabled();
+    expect(rowsPerPage()).toBeDisabled();
   });
 
   it("draws the compact bar under the denser logs view", () => {
@@ -439,8 +452,9 @@ describe("LogsPagination", () => {
       "h-6",
       "w-6",
     );
-    expect(screen.getByTestId("pagination-items-on-page-select")).toHaveClass(
-      "h-6",
+    // The rows picker keeps the compact Dropdown's 28px in either skin.
+    expect(rowsPerPage().closest(".ou-select__control")).toHaveClass(
+      "!min-h-[28px]",
     );
   });
 });

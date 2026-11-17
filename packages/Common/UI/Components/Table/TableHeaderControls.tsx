@@ -121,13 +121,16 @@ export const TABLE_HEADER_MAIN_AND_MORE_CLASS_NAME: string =
   "flex items-center gap-3 max-md:[&>button]:w-auto max-md:[&>*>button]:w-auto";
 
 /*
- * Every control in the row is one height: 42px on a phone and 38px from md
- * up, the height of a card's buttons (Button's normal size) and of the ⋯
+ * Every control in the row is one height: 38px at every width, the height
+ * of a card's buttons (Button's normal size) and of the ⋯
  * (CARD_MORE_MENU_TRIGGER_CLASS_NAME). A picker drawn beside them - a time
  * range - takes this box so it does not sit a size smaller than its
- * neighbours.
+ * neighbours. It was 42px on a phone, the height a button stood there in
+ * its larger words, until every button became one frame in text-sm
+ * (#9128): a phone's search and ⋯ then stood 4px taller than the Create
+ * beside them.
  */
-export const TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME: string = "py-2.5 md:py-2";
+export const TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME: string = "py-2";
 
 /*
  * The "/" key hint in a table's search, folded and opened. Its own line is

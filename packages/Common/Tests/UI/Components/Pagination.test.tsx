@@ -19,6 +19,14 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
+import { DROPDOWN_COMPACT_CONTROL_HEIGHT_CLASS_NAME } from "../../../UI/Components/Dropdown/Dropdown";
+import {
+  chooseDropdownOption,
+  closeDropdown,
+  getDropdownContainer,
+  getShownDropdownValue,
+  openDropdown,
+} from "../../DropdownPicks";
 import {
   LAPTOP_WIDTH_IN_PX,
   PHONE_WIDTH_IN_PX,
@@ -81,6 +89,48 @@ const slotTexts: SlotTextsFunction = (): Array<string> => {
   ).map((slot: Element): string => {
     return slot.textContent || "";
   });
+};
+
+/*
+ * The rows-per-page picker is the shared Dropdown (#9310): its combobox,
+ * inside the box the test id names, and the control drawn around it.
+ */
+const rowsPerPage: () => HTMLElement = (): HTMLElement => {
+  /*
+   * hidden: a locked react-select is left out of the accessibility tree
+   * jsdom computes, though its combobox is still there, disabled.
+   */
+  return within(
+    screen.getByTestId("pagination-items-on-page-select"),
+  ).getByRole("combobox", { hidden: true });
+};
+
+const rowsPerPageControl: () => Element = (): Element => {
+  return getDropdownContainer(rowsPerPage()).querySelector(
+    ".ou-select__control",
+  )!;
+};
+
+// The page sizes the open menu lists, in order.
+const listRowsPerPage: () => Array<string> = (): Array<string> => {
+  openDropdown(rowsPerPage());
+  const names: Array<string> = screen
+    .getAllByRole("option")
+    .map((option: HTMLElement): string => {
+      return option.textContent || "";
+    });
+  closeDropdown(rowsPerPage());
+
+  return names;
+};
+
+// What a focused control is: a button's own test id, or the picker's box.
+const focusedTestId: () => string | null = (): string | null => {
+  return (
+    (document.activeElement as HTMLElement | null)
+      ?.closest("[data-testid]")
+      ?.getAttribute("data-testid") || null
+  );
 };
 
 type HeightInPxFunction = (classNames: string) => number;
@@ -368,34 +418,20 @@ describe("Pagination", () => {
     it("is visible on the page rather than behind a menu", () => {
       renderPagination();
 
-      expect(screen.getByLabelText("Rows per page")).toBeInTheDocument();
-      expect(screen.getByTestId("pagination-items-on-page-select")).toHaveValue(
-        "10",
-      );
+      expect(screen.getByLabelText("Rows per page")).toBe(rowsPerPage());
+      expect(getShownDropdownValue(rowsPerPage())).toBe("10");
     });
 
     it("offers the standard page sizes", () => {
       renderPagination();
 
-      const options: Array<HTMLOptionElement> = Array.from(
-        screen
-          .getByTestId("pagination-items-on-page-select")
-          .querySelectorAll("option"),
-      );
-
-      expect(
-        options.map((option: HTMLOptionElement) => {
-          return option.value;
-        }),
-      ).toEqual(["10", "20", "25", "50", "100"]);
+      expect(listRowsPerPage()).toEqual(["10", "20", "25", "50", "100"]);
     });
 
     it("changes the page size", () => {
       const onNavigateToPage: MockFunction = renderPagination();
 
-      fireEvent.change(screen.getByTestId("pagination-items-on-page-select"), {
-        target: { value: "50" },
-      });
+      chooseDropdownOption(rowsPerPage(), "50");
 
       expect(onNavigateToPage).toHaveBeenCalledWith(1, 50);
     });
@@ -410,9 +446,7 @@ describe("Pagination", () => {
         currentPageNumber: 20,
       });
 
-      fireEvent.change(screen.getByTestId("pagination-items-on-page-select"), {
-        target: { value: "100" },
-      });
+      chooseDropdownOption(rowsPerPage(), "100");
 
       expect(onNavigateToPage).toHaveBeenCalledWith(1, 100);
     });
@@ -420,9 +454,7 @@ describe("Pagination", () => {
     it("does nothing when the size is unchanged", () => {
       const onNavigateToPage: MockFunction = renderPagination();
 
-      fireEvent.change(screen.getByTestId("pagination-items-on-page-select"), {
-        target: { value: "10" },
-      });
+      chooseDropdownOption(rowsPerPage(), "10");
 
       expect(onNavigateToPage).not.toHaveBeenCalled();
     });
@@ -435,33 +467,19 @@ describe("Pagination", () => {
     it("shows a page size that came from a link", () => {
       renderPagination({ itemsOnPage: 37 });
 
-      expect(screen.getByTestId("pagination-items-on-page-select")).toHaveValue(
-        "37",
-      );
+      expect(getShownDropdownValue(rowsPerPage())).toBe("37");
     });
 
     it("honours a caller's own page sizes", () => {
       renderPagination({ itemsOnPage: 50, itemsOnPageOptions: [50, 250] });
 
-      const options: Array<HTMLOptionElement> = Array.from(
-        screen
-          .getByTestId("pagination-items-on-page-select")
-          .querySelectorAll("option"),
-      );
-
-      expect(
-        options.map((option: HTMLOptionElement) => {
-          return option.value;
-        }),
-      ).toEqual(["50", "250"]);
+      expect(listRowsPerPage()).toEqual(["50", "250"]);
     });
 
     it("is frozen while loading", () => {
       renderPagination({ isLoading: true });
 
-      expect(
-        screen.getByTestId("pagination-items-on-page-select"),
-      ).toBeDisabled();
+      expect(rowsPerPage()).toBeDisabled();
     });
   });
 
@@ -833,9 +851,7 @@ describe("Pagination", () => {
     it("still offers the page size inline", () => {
       const onNavigateToPage: MockFunction = renderPagination(hasMoreProps);
 
-      fireEvent.change(screen.getByTestId("pagination-items-on-page-select"), {
-        target: { value: "25" },
-      });
+      chooseDropdownOption(rowsPerPage(), "25");
 
       expect(onNavigateToPage).toHaveBeenCalledWith(1, 25);
     });
@@ -898,10 +914,19 @@ describe("Pagination", () => {
         "pagination-page-12",
         "pagination-ellipsis-start",
         "pagination-ellipsis-end",
-        "pagination-items-on-page-select",
         "pagination-current-page-indicator",
       ]) {
         expect(screen.getByTestId(testId)).toHaveClass("h-7");
+      }
+
+      // The rows picker is the compact Dropdown: 28px too.
+      expect(DROPDOWN_COMPACT_CONTROL_HEIGHT_CLASS_NAME.split(" ")).toContain(
+        "!min-h-[28px]",
+      );
+      for (const name of DROPDOWN_COMPACT_CONTROL_HEIGHT_CLASS_NAME.split(
+        " ",
+      )) {
+        expect(rowsPerPageControl()).toHaveClass(name);
       }
     });
 
@@ -927,9 +952,11 @@ describe("Pagination", () => {
 
       expect(screen.getByTestId("pagination-summary")).toHaveClass("text-xs");
       expect(screen.getByText("Rows per page")).toHaveClass("text-xs");
-      expect(screen.getByTestId("pagination-items-on-page-select")).toHaveClass(
-        "text-xs",
-      );
+      expect(
+        getDropdownContainer(rowsPerPage()).querySelector(
+          ".ou-select__single-value",
+        ),
+      ).toHaveClass("text-xs");
       expect(screen.getByTestId("pagination-page-12")).toHaveClass("text-xs");
       expect(
         screen.getByTestId("pagination-current-page-indicator"),
@@ -953,12 +980,17 @@ describe("Pagination", () => {
         "pagination-next-button",
         "pagination-page-12",
         "pagination-ellipsis-end",
-        "pagination-items-on-page-select",
         "pagination-current-page-indicator",
       ]) {
         expect(screen.getByTestId(testId)).toHaveClass("h-6");
         expect(screen.getByTestId(testId)).not.toHaveClass("h-7");
       }
+
+      /*
+       * The rows picker is the shared compact Dropdown, 28px in either skin:
+       * the one picker size of a bar of small controls.
+       */
+      expect(rowsPerPageControl()).toHaveClass("!min-h-[28px]");
     });
 
     it("pads the compact bar less than the default one", () => {
@@ -1000,7 +1032,9 @@ describe("Pagination", () => {
         expect(heightInPx(size.heightClassName)).toBe(expectedPx);
         expect(heightInPx(size.squareClassName)).toBe(expectedPx);
         expect(heightInPx(size.pageClassName)).toBe(expectedPx);
-        expect(heightInPx(size.selectClassName)).toBe(expectedPx);
+        // The rows picker's box sets its width; the Dropdown its height.
+        expect(Number.isNaN(heightInPx(size.selectClassName))).toBe(true);
+        expect(size.selectClassName.split(" ")).toContain("w-20");
       },
     );
 
@@ -1026,12 +1060,16 @@ describe("Pagination", () => {
           size.heightClassName,
           size.squareClassName,
           size.pageClassName,
-          size.selectClassName,
         ]) {
           expect(classNames.split(" ")).toContain(
             "[@media(pointer:coarse)]:h-11",
           );
         }
+
+        // The rows picker: the compact Dropdown's 44px under a finger.
+        expect(DROPDOWN_COMPACT_CONTROL_HEIGHT_CLASS_NAME.split(" ")).toContain(
+          "[@media(pointer:coarse)]:!min-h-11",
+        );
 
         expect(size.squareClassName.split(" ")).toContain(
           "[@media(pointer:coarse)]:w-11",
@@ -1061,12 +1099,15 @@ describe("Pagination", () => {
           "pagination-previous-button",
           "pagination-next-button",
           "pagination-page-2",
-          "pagination-items-on-page-select",
         ]) {
           expect(screen.getByTestId(testId)).toHaveClass(
             "[@media(pointer:coarse)]:h-11",
           );
         }
+
+        expect(rowsPerPageControl()).toHaveClass(
+          "[@media(pointer:coarse)]:!min-h-11",
+        );
 
         unmount();
       }
@@ -1201,20 +1242,26 @@ describe("Pagination", () => {
         );
       }
 
-      expect(screen.getByTestId("pagination-items-on-page-select")).toHaveClass(
-        "focus:ring-1",
-        "focus:ring-indigo-500",
-      );
+      // The picker draws the shared Dropdown's ring when it has the focus.
+      fireEvent.focus(rowsPerPage());
+      expect(rowsPerPageControl()).toHaveClass("!ring-2", "!border-indigo-400");
     });
 
-    it("keeps the select's chevron out of the way of the pointer", () => {
+    it("draws the picker's own chevron inside its control, and no hand-drawn one beside it", () => {
       renderPagination();
 
-      const chevron: Element = screen
-        .getByTestId("pagination-items-on-page-select")
-        .parentElement!.querySelector("svg")!;
-
-      expect(chevron.closest(".pointer-events-none")).not.toBeNull();
+      expect(
+        rowsPerPageControl().querySelector(".ou-select__dropdown-indicator"),
+      ).not.toBeNull();
+      expect(
+        Array.from(
+          screen
+            .getByTestId("pagination-items-on-page-select")
+            .querySelectorAll("svg"),
+        ).every((svg: SVGSVGElement): boolean => {
+          return rowsPerPageControl().contains(svg);
+        }),
+      ).toBe(true);
     });
   });
 
@@ -1348,47 +1395,21 @@ describe("Pagination", () => {
       }
     });
 
-    it("fades the select while loading instead of painting it a light grey", () => {
+    it("locks the picker while loading with the shared Dropdown's locked look", () => {
       renderPagination({ isLoading: true });
 
-      const select: HTMLElement = screen.getByTestId(
-        "pagination-items-on-page-select",
-      );
-
-      expect(select).toBeDisabled();
-      expect(select).toHaveClass(
-        "disabled:opacity-50",
-        "disabled:cursor-not-allowed",
-      );
-      expect(
-        classTokens(select).filter((token: string): boolean => {
-          return token.startsWith("disabled:bg-");
-        }),
-      ).toEqual([]);
+      expect(rowsPerPage()).toBeDisabled();
+      // One fill: the locked grey every locked field has, never white too.
+      expect(rowsPerPageControl()).toHaveClass("!bg-gray-100");
+      expect(rowsPerPageControl()).not.toHaveClass("!bg-white");
     });
 
-    it("lights the select's border on hover only while it can be used", () => {
-      const { unmount } = render(
-        <Pagination {...baseProps} onNavigateToPage={jest.fn()} />,
-      );
+    it("lights the picker's border on hover while it can be used", () => {
+      renderPagination();
 
-      expect(screen.getByTestId("pagination-items-on-page-select")).toHaveClass(
-        "hover:border-gray-400",
-      );
-
-      unmount();
-
-      render(
-        <Pagination
-          {...baseProps}
-          onNavigateToPage={jest.fn()}
-          isError={true}
-        />,
-      );
-
-      expect(
-        screen.getByTestId("pagination-items-on-page-select"),
-      ).not.toHaveClass("hover:border-gray-400");
+      expect(rowsPerPage()).not.toBeDisabled();
+      expect(rowsPerPageControl()).toHaveClass("hover:!border-indigo-300");
+      expect(rowsPerPageControl()).toHaveClass("!cursor-pointer");
     });
   });
 
@@ -1797,7 +1818,7 @@ describe("Pagination", () => {
       renderPagination();
 
       expect(screen.getByRole("combobox", { name: "Rows per page" })).toBe(
-        screen.getByTestId("pagination-items-on-page-select"),
+        rowsPerPage(),
       );
     });
 
@@ -1839,11 +1860,7 @@ describe("Pagination", () => {
 
       for (let step: number = 0; step < 12; step++) {
         await user.tab();
-        reached.push(
-          (document.activeElement as HTMLElement | null)?.getAttribute(
-            "data-testid",
-          ) || null,
-        );
+        reached.push(focusedTestId());
       }
 
       expect(reached).not.toContain("pagination-previous-button");
@@ -1867,10 +1884,7 @@ describe("Pagination", () => {
 
       for (let step: number = 0; step < 9; step++) {
         await user.tab();
-        reached.push(
-          (document.activeElement as HTMLElement).getAttribute("data-testid") ||
-            "",
-        );
+        reached.push(focusedTestId() || "");
       }
 
       /*
@@ -1936,10 +1950,11 @@ describe("Pagination", () => {
 
       const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
 
-      await user.selectOptions(
-        screen.getByTestId("pagination-items-on-page-select"),
-        "25",
-      );
+      // Tab to the picker, open it, type the size and press Enter.
+      rowsPerPage().focus();
+      await user.keyboard("{ArrowDown}");
+      await user.keyboard("25");
+      await user.keyboard("{Enter}");
 
       expect(onNavigateToPage).toHaveBeenCalledWith(1, 25);
     });

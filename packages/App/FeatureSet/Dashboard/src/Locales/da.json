@@ -56572,5 +56572,18 @@
   "What fails": "Hvad der fejler",
   "You can't start this fire drill: it tests every policy this failure pages, and you can't test {{count}} of them. Ask a Project Admin, or the policies' owners.": "Du kan ikke starte denne beredskabsøvelse: den tester hver politik, som denne fejl kalder, og {{count}} af dem kan du ikke teste. Spørg en projektadministrator eller politikkernes ejere.",
   "You can't start this fire drill: it tests every policy this failure pages, and you can't test {{count}} of them. Ask a Project Admin, or the policies' owners._one": "Du kan ikke starte denne beredskabsøvelse: den tester hver politik, som denne fejl kalder, og {{count}} af dem kan du ikke teste. Spørg en projektadministrator eller politikkens ejere.",
-  "You can't test this policy, so who it pages is not shown.": "Du kan ikke teste denne politik, så det vises ikke, hvem den kalder."
+  "You can't test this policy, so who it pages is not shown.": "Du kan ikke teste denne politik, så det vises ikke, hvem den kalder.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "Slack-, Microsoft Teams- og Mattermost-beskeder sendt for dette projekt.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "Slack-, Microsoft Teams- og Mattermost-beskeder sendt for dette element ({{itemName}}).",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "Denne test opretter også en rigtig kanal i reglens Microsoft Teams-team, f.eks. {{channel}}, som alle i teamet kan se. Slet den i Microsoft Teams, når du er færdig.",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "Denne test opretter også en rigtig {{workspace}}-kanal, f.eks. {{channel}}, og inviterer dig til den. Arkiver den i {{workspace}}, når du er færdig.",
+  "{{team}} (typed name)": "{{team}} (indtastet navn)",
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Intet har tjekket monitorerne for denne SLO endnu. Den måles fra deres første tjek.",
+  "Discovered device {{name}}": "Opdaget enhed {{name}}",
+  "The Discovered Devices list": "Listen over opdagede enheder",
+  "Every filter must match. Clear one, or clear them all.": "Alle filtre skal passe. Ryd ét, eller ryd dem alle.",
+  "Filter discovered devices": "Filtrer opdagede enheder",
+  "Network controller": "Netværkscontroller",
+  "No discovered device matches this search and these filters.": "Ingen opdaget enhed matcher denne søgning og disse filtre.",
+  "Switch or router": "Switch eller router"
 }

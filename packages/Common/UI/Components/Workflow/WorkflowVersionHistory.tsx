@@ -1,4 +1,5 @@
 import WorkflowVersionPreview from "./WorkflowVersionPreview";
+import TableSkeleton from "../Skeleton/TableSkeleton";
 import {
   WORKFLOW_VERSIONS_PER_PAGE,
   WorkflowVersionCopy,
@@ -12,7 +13,6 @@ import {
   getWorkflowVersionSavedBy,
 } from "./WorkflowVersionPresentation";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import {
   FeedClock,
@@ -391,7 +391,7 @@ const WorkflowVersionHistory: FunctionComponent<ComponentProps> = (
 
   const getList: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <TableSkeleton rows={4} hasHeader={false} />;
     }
 
     if (error && versions.length === 0) {

@@ -1,9 +1,9 @@
 import ServerSetupChecklist from "../../Components/ServerSetup/ServerSetupChecklist";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Page from "Common/UI/Components/Page/Page";
 import {
   useServerSetupChecklist,
@@ -48,7 +48,7 @@ const SetupPage: FunctionComponent = (): ReactElement => {
       ]}
     >
       {checklist.isLoading ? (
-        <PageLoader isVisible={true} />
+        <CardListSkeleton count={4} lines={1} />
       ) : checklist.answer ? (
         <ServerSetupChecklist
           answer={checklist.answer}

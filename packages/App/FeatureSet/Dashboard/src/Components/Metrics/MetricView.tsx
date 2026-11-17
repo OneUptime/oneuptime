@@ -1073,7 +1073,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
   };
 
   if (isPageLoading) {
-    return <PageSkeleton />;
+    return <PageSkeleton shape="chart" />;
   }
 
   if (pageError) {

@@ -16,6 +16,7 @@ import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import React from "react";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import { formStepButton } from "../../Helpers/FormStepButton";
+import { STEP_ROW_CLASS_NAME } from "../../../UI/Components/Forms/Steps/Step";
 
 /*
  * A stepped BasicFormModal walks with a plain Next and offers the dialog's
@@ -504,5 +505,14 @@ describe("BasicFormModal with steps, by pointer and by keyboard", () => {
       ]),
     );
     expect(button.className.split(/\s+/)).not.toContain("w-full");
+    /*
+     * And the row is a flow root, so the button's -my-1 stays inside it:
+     * the row keeps the height of its words and the list does not move as
+     * its steps turn into buttons. As a plain `li` it grew to the button's
+     * 28px, two finished steps 4px further apart than two ahead
+     * (CreateMonitor.spec.ts measures the rows in Chromium).
+     */
+    expect(row).toHaveClass(STEP_ROW_CLASS_NAME);
+    expect(STEP_ROW_CLASS_NAME).toBe("flow-root");
   });
 });

@@ -7,14 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
+import {
+  chooseDropdownOption,
+  clearDropdown,
+  getShownDropdownValue,
+} from "../../DropdownPicks";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -349,14 +348,35 @@ const renderView: () => void = (): void => {
 
 type ChooseFunction = (caption: string, value: string) => void;
 
-// Picks an option of the query-builder control with this caption (the select is named by it).
+// The names the query builder lists these values by, in English.
+const CHOICE_NAMES: Record<string, string> = {
+  toplist: "Top List",
+  table: "Table",
+  name: "Span Name",
+  statusCode: "Status",
+  p90Duration: "P90 Response Time",
+  p99Duration: "P99 Response Time",
+};
+
+/*
+ * Picks a value in the query-builder control with this caption (the picker
+ * is named by it). "" is a picker's empty choice, its placeholder: clearing
+ * picks it.
+ */
 const choose: ChooseFunction = (caption: string, value: string): void => {
-  const select: HTMLSelectElement = screen.getByRole("combobox", {
+  const combobox: HTMLElement = screen.getByRole("combobox", {
     name: caption,
-  }) as HTMLSelectElement;
-  fireEvent.change(select, { target: { value } });
-  // An option the control does not offer would silently pick "".
-  expect(select.value).toBe(value);
+  });
+
+  if (value === "") {
+    clearDropdown(combobox);
+    expect(getShownDropdownValue(combobox)).toBeNull();
+    return;
+  }
+
+  chooseDropdownOption(combobox, CHOICE_NAMES[value]!);
+  // A choice the control does not offer would not be shown.
+  expect(getShownDropdownValue(combobox)).toBe(CHOICE_NAMES[value]);
 };
 
 const lastRequest: () => AnalyticsRequestData = (): AnalyticsRequestData => {

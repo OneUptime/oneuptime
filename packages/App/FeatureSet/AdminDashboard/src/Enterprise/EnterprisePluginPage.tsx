@@ -1,8 +1,8 @@
 import EnterpriseFeatureUpgrade, {
   ComponentProps as EnterpriseFeatureUpgradeProps,
 } from "../Components/EnterpriseEdition/EnterpriseFeatureUpgrade";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { EnterprisePluginComponent } from "./EnterprisePlugins";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { IS_ENTERPRISE_EDITION } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement, Suspense } from "react";
 
@@ -76,7 +76,7 @@ const EnterprisePluginPage: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <Suspense fallback={props.loadingElement || <ComponentLoader />}>
+    <Suspense fallback={props.loadingElement || <PageSkeleton />}>
       <Plugin />
     </Suspense>
   );

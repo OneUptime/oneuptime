@@ -17,6 +17,11 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import {
+  chooseDropdownOption,
+  getDropdownContainer,
+  listDropdownOptions,
+} from "../../DropdownPicks";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -151,10 +156,10 @@ const renderView: (options?: {
   );
 };
 
-const spanTypeSelect: () => HTMLSelectElement = (): HTMLSelectElement => {
+const spanTypeSelect: () => HTMLElement = (): HTMLElement => {
   return screen.getByRole("combobox", {
     name: "Span Type",
-  }) as HTMLSelectElement;
+  });
 };
 
 const helpButton: () => HTMLElement = (): HTMLElement => {
@@ -194,15 +199,15 @@ describe("the analytics view's Span Type", () => {
     });
     await settle();
 
+    // Neither the picker nor the box around it carries the paragraph.
     expect(spanTypeSelect()).not.toHaveAttribute("title");
+    expect(getDropdownContainer(spanTypeSelect())).not.toHaveAttribute("title");
     expect(screen.queryByTitle(OLD_HELP)).toBeNull();
-    expect(
-      Array.from(spanTypeSelect().options).map(
-        (option: HTMLOptionElement): string => {
-          return option.textContent || "";
-        },
-      ),
-    ).toEqual(["Entry spans", "Root spans", "All spans"]);
+    expect(await listDropdownOptions(spanTypeSelect())).toEqual([
+      "Entry spans",
+      "Root spans",
+      "All spans",
+    ]);
   });
 
   test("has the sidebar's (i) between its caption and its select, described by each choice", async () => {
@@ -276,7 +281,7 @@ describe("the analytics view's Span Type", () => {
     fireEvent.click(helpButton());
     expect(onSpanTypeChange).not.toHaveBeenCalled();
 
-    fireEvent.change(spanTypeSelect(), { target: { value: "all" } });
+    chooseDropdownOption(spanTypeSelect(), "All spans");
     expect(onSpanTypeChange.mock.calls).toEqual([[TraceSpanType.All]]);
   });
 
@@ -289,8 +294,8 @@ describe("the analytics view's Span Type", () => {
       screen.queryByRole("button", { name: "About Span Type" }),
     ).toBeNull();
     /*
-     * The other controls keep their caption right before their select, which
-     * sits in a box of its own with its chevron.
+     * The other controls keep their caption right before their picker, which
+     * sits in a box of its own.
      */
     expect(screen.getByText("Chart").nextElementSibling).toContainElement(
       screen.getByRole("combobox", { name: "Chart" }),

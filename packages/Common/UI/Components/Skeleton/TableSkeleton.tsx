@@ -42,7 +42,7 @@ export interface ComponentProps extends BarsProps {
 const getCellClassName: (columnIndex: number) => string = (
   columnIndex: number,
 ): string => {
-  return `min-w-0 flex-1 items-center${columnIndex >= 2 ? " hidden sm:flex" : " flex"}`;
+  return `min-w-0 flex-1 items-center${columnIndex >= 2 ? " flex max-sm:hidden" : " flex"}`;
 };
 
 export const TableSkeletonBars: FunctionComponent<BarsProps> = (

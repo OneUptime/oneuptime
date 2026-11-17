@@ -10,6 +10,7 @@ import {
   getPresetTestId,
   getServerProductSwitchTestId,
 } from "./ServerProductsCopy";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import {
   fetchServerProducts,
   postServerProductSwitched,
@@ -40,7 +41,6 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -117,7 +117,7 @@ const ServerProductsSettings: FunctionComponent = (): ReactElement => {
             />
           </Card>
         ) : (
-          <PageLoader isVisible={true} />
+          <PageSkeleton />
         )}
       </div>
     );

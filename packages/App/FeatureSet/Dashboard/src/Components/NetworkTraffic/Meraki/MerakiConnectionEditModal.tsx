@@ -1,10 +1,6 @@
 import { runNetworkControllerTest } from "../NetworkTrafficUsageApi";
 import MerakiTestResultPanel from "./MerakiTestResultPanel";
-import {
-  MerakiTemplate,
-  drawMerakiTemplate,
-  getMerakiIntervalOptions,
-} from "./MerakiWords";
+import MerakiReadIntervalPicker from "./MerakiReadIntervalPicker";
 import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkControllerConnection";
 import { JSONObject } from "Common/Types/JSON";
 import {
@@ -186,28 +182,12 @@ const MerakiConnectionEditModal: FunctionComponent<ComponentProps> = (
           >
             {translator.translateText("Read uplink usage")}
           </label>
-          <select
-            id="meraki-edit-interval"
-            value={String(interval)}
-            onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-              setReadInterval(Number(event.target.value));
-            }}
-            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            data-testid="meraki-edit-interval"
-          >
-            {getMerakiIntervalOptions().map(
-              (option: {
-                value: number;
-                words: MerakiTemplate;
-              }): ReactElement => {
-                return (
-                  <option key={option.value} value={option.value}>
-                    {drawMerakiTemplate(translator, option.words)}
-                  </option>
-                );
-              },
-            )}
-          </select>
+          <MerakiReadIntervalPicker
+            inputId="meraki-edit-interval"
+            dataTestId="meraki-edit-interval"
+            value={interval}
+            onChange={setReadInterval}
+          />
         </div>
         <div>
           <label

@@ -60,7 +60,13 @@ import {
   WorkflowTemplateCollection,
   WorkflowTemplatePickerView,
   getWorkflowTemplatePickerViews,
+  getWorkflowTemplatePickerViewInfo,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Workflow/WorkflowTemplatePickerUtil";
+import {
+  closeDropdown,
+  getShownDropdownValue,
+  openDropdown,
+} from "../../DropdownPicks";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import WorkflowVariable from "../../../Models/DatabaseModels/WorkflowVariable";
 import ObjectID from "../../../Types/ObjectID";
@@ -295,14 +301,75 @@ const VARIABLE_INPUT_TEST_ID_PREFIX: string = "workflow-variable-";
 type GetSelectFunction = () => HTMLElement;
 
 const getCategorySelect: GetSelectFunction = (): HTMLElement => {
-  return screen.getByTestId("workflow-template-view-select");
+  return getCategoryCombobox();
+};
+
+/*
+ * The category picker is the shared Dropdown (#9310): its combobox is the
+ * input inside the box with the picker's test id, and its menu is drawn over
+ * the page - apart from the template list's own options.
+ */
+const getCategoryCombobox: () => HTMLElement = (): HTMLElement => {
+  return within(screen.getByTestId("workflow-template-view-select")).getByRole(
+    "combobox",
+  );
+};
+
+const getCategoryMenuOptions: () => Array<HTMLElement> =
+  (): Array<HTMLElement> => {
+    openDropdown(getCategoryCombobox());
+    const menu: HTMLElement | null = document.querySelector(".ou-select__menu");
+
+    if (!menu) {
+      throw new Error("The category picker's menu did not open");
+    }
+
+    return within(menu).getAllByRole("option");
+  };
+
+// The categories the picker offers, by name, in order.
+const listCategoryNames: () => Array<string> = (): Array<string> => {
+  const names: Array<string> = getCategoryMenuOptions().map(
+    (option: HTMLElement): string => {
+      return option.textContent || "";
+    },
+  );
+  closeDropdown(getCategoryCombobox());
+
+  return names;
+};
+
+// Picks a view by its place in the list, in any language.
+const pickCategory: (view: string) => void = (view: string): void => {
+  const index: number = getWorkflowTemplatePickerViews().findIndex(
+    (info: { view: string }): boolean => {
+      return info.view === view;
+    },
+  );
+  const option: HTMLElement | undefined = getCategoryMenuOptions()[index];
+
+  if (!option) {
+    throw new Error(`The category picker offers no ${view}`);
+  }
+
+  fireEvent.click(option);
+};
+
+// The name of the view the picker shows.
+const shownCategory: () => string | null = (): string | null => {
+  return getShownDropdownValue(getCategoryCombobox());
+};
+
+const categoryLabel: (view: string) => string = (view: string): string => {
+  return getWorkflowTemplatePickerViewInfo(view as WorkflowTemplatePickerView)
+    .label;
 };
 
 type ShowViewFunction = (view: WorkflowTemplatePickerView) => void;
 
 /** Choose a category (or a collection) in the picker's category select. */
 const showView: ShowViewFunction = (view: WorkflowTemplatePickerView): void => {
-  fireEvent.change(getCategorySelect(), { target: { value: String(view) } });
+  pickCategory(String(view));
 };
 
 type HighlightTemplateFunction = (templateId: string) => WorkflowTemplate;
@@ -854,8 +921,8 @@ describe("CreateWorkflowModal's Start from step", () => {
     expect(
       screen.queryByTestId("workflow-template-details"),
     ).not.toBeInTheDocument();
-    expect(getCategorySelect()).toHaveValue(
-      WorkflowTemplateCollection.Recommended,
+    expect(shownCategory()).toBe(
+      categoryLabel(WorkflowTemplateCollection.Recommended),
     );
   });
 
@@ -1033,7 +1100,9 @@ describe("CreateWorkflowModal's Start from step", () => {
 
     expectActiveStep("Start from");
     expect(screen.getByTestId("workflow-template-search")).toHaveValue("slack");
-    expect(getCategorySelect()).toHaveValue(WorkflowTemplateCategory.Monitors);
+    expect(shownCategory()).toBe(
+      categoryLabel(WorkflowTemplateCategory.Monitors),
+    );
     expect(activeOptionId()).toBe("monitor-offline-only-slack");
     expect(
       within(
@@ -1136,13 +1205,7 @@ describe("CreateWorkflowModal's Start from step", () => {
   test("the category select offers every view, by name, and lists what it says", () => {
     renderModal();
 
-    expect(
-      Array.from((getCategorySelect() as HTMLSelectElement).options).map(
-        (option: HTMLOptionElement): string => {
-          return option.textContent || "";
-        },
-      ),
-    ).toEqual(
+    expect(listCategoryNames()).toEqual(
       getWorkflowTemplatePickerViews().map(
         (info: { label: string }): string => {
           return info.label;
@@ -1450,13 +1513,7 @@ describe("CreateWorkflowModal in German", () => {
       de("Search templates…"),
     );
     expect(getCategorySelect()).toHaveAccessibleName(de("Template categories"));
-    expect(
-      Array.from((getCategorySelect() as HTMLSelectElement).options).map(
-        (option: HTMLOptionElement): string => {
-          return option.textContent || "";
-        },
-      ),
-    ).toEqual(
+    expect(listCategoryNames()).toEqual(
       getWorkflowTemplatePickerViews().map(
         (info: { label: string }): string => {
           return german[info.label] || info.label;
@@ -1801,11 +1858,8 @@ describe("CreateWorkflowModal Jira templates", () => {
     }
 
     // Offered by name alone: the select carries no counts.
-    expect(getCategorySelect()).toHaveValue(WorkflowTemplateCategory.Jira);
-    expect(
-      (getCategorySelect() as HTMLSelectElement).selectedOptions[0]
-        ?.textContent,
-    ).toBe("Jira");
+    expect(shownCategory()).toBe(categoryLabel(WorkflowTemplateCategory.Jira));
+    expect(shownCategory()).toBe("Jira");
   });
 
   /*
@@ -1816,16 +1870,23 @@ describe("CreateWorkflowModal Jira templates", () => {
   test("the categories follow the declared order, between Recommended and All templates, Jira included", () => {
     renderModal();
 
-    const select: HTMLSelectElement = screen.getByRole("combobox", {
+    const select: HTMLElement = screen.getByRole("combobox", {
       name: "Template categories",
-    }) as HTMLSelectElement;
+    });
 
     expect(select).toBe(getCategorySelect());
-    expect(
-      Array.from(select.options).map((option: HTMLOptionElement): string => {
-        return option.value;
+    // The views the picker offers, in its order (the menu shows their names).
+    const offeredViews: Array<string> = getWorkflowTemplatePickerViews().map(
+      (info: { view: string }): string => {
+        return info.view;
+      },
+    );
+    expect(listCategoryNames()).toEqual(
+      offeredViews.map((view: string): string => {
+        return categoryLabel(view);
       }),
-    ).toEqual([
+    );
+    expect(offeredViews).toEqual([
       WorkflowTemplateCollection.Recommended,
       ...WorkflowTemplateCategories.filter(
         (category: WorkflowTemplateCategory) => {
@@ -1834,11 +1895,7 @@ describe("CreateWorkflowModal Jira templates", () => {
       ),
       WorkflowTemplateCollection.All,
     ]);
-    expect(
-      Array.from(select.options).map((option: HTMLOptionElement): string => {
-        return option.value;
-      }),
-    ).toContain(WorkflowTemplateCategory.Jira);
+    expect(offeredViews).toContain(WorkflowTemplateCategory.Jira);
   });
 
   test("All templates lists the Jira templates under Jira, in the same order", () => {
@@ -1866,11 +1923,11 @@ describe("CreateWorkflowModal Jira templates", () => {
       expect({
         query: query,
         results: optionIdsIn(getListbox()),
-        searching: (getCategorySelect() as HTMLSelectElement).value,
+        searching: shownCategory(),
       }).toEqual({
         query: query,
         results: JIRA_TEMPLATE_IDS,
-        searching: WorkflowTemplateCollection.All,
+        searching: categoryLabel(WorkflowTemplateCollection.All),
       });
     }
   });

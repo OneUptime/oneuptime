@@ -56537,7 +56537,7 @@
   "Use On-Call Policy instead": "به‌جای آن از «سیاست آنکال» استفاده کنید",
   "Drop one CSV file at a time.": "هر بار فقط یک فایل CSV رها کنید.",
   "Drop the CSV file to upload it": "فایل CSV را رها کنید تا بارگذاری شود",
-  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} فایل CSV نیست. فایلی را که با ‎.csv تمام می‌شود انتخاب یا رها کنید.",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} فایل CSV نیست. فایلی را که با .csv تمام می‌شود انتخاب یا رها کنید.",
   "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "۹۰ روز پس از آنکه OneUptime اپلیکیشن Zoom خود را به‌روز کرد، Zoom دیگر ورود آن‌ها را نمی‌پذیرد و این اتصال‌ها دیگر تماسی آغاز نمی‌کنند.",
   "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "۹۰ روز پس از آنکه OneUptime اپلیکیشن Zoom خود را به‌روز کرد، Zoom دیگر ورود این اتصال را نمی‌پذیرد و این اتصال دیگر تماسی آغاز نمی‌کند.",
   "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "برای هر اتصال روی «اتصال دوباره» کلیک کنید، سپس وقتی Zoom پرسید، به OneUptime اجازه دهید ضبط‌ها و رونوشت‌ها را بخواند.",
@@ -56572,5 +56572,18 @@
   "What fails": "چه چیزی از کار می‌افتد",
   "You can't start this fire drill: it tests every policy this failure pages, and you can't test {{count}} of them. Ask a Project Admin, or the policies' owners.": "نمی‌توانید این مانور را شروع کنید: این مانور همهٔ سیاست‌هایی را که این خرابی فرا می‌خواند می‌آزماید و {{count}} مورد از آن‌ها را نمی‌توانید بیازمایید. از یک مدیر پروژه یا مالکان سیاست‌ها بخواهید.",
   "You can't start this fire drill: it tests every policy this failure pages, and you can't test {{count}} of them. Ask a Project Admin, or the policies' owners._one": "نمی‌توانید این مانور را شروع کنید: این مانور همهٔ سیاست‌هایی را که این خرابی فرا می‌خواند می‌آزماید و {{count}} مورد از آن‌ها را نمی‌توانید بیازمایید. از یک مدیر پروژه یا مالکان سیاست بخواهید.",
-  "You can't test this policy, so who it pages is not shown.": "نمی‌توانید این سیاست را بیازمایید، پس نشان داده نمی‌شود چه کسی را فرا می‌خواند."
+  "You can't test this policy, so who it pages is not shown.": "نمی‌توانید این سیاست را بیازمایید، پس نشان داده نمی‌شود چه کسی را فرا می‌خواند.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "پیام‌های Slack، Microsoft Teams و Mattermost ارسال‌شده برای این پروژه.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "پیام‌های Slack، Microsoft Teams و Mattermost ارسال‌شده برای این {{itemName}}.",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "این آزمایش یک کانال واقعی هم در تیم Microsoft Teams قاعده می‌سازد، مانند {{channel}}، که همهٔ اعضای تیم آن را می‌بینند. وقتی کارتان تمام شد، آن را در Microsoft Teams حذف کنید.",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "این آزمایش یک کانال واقعی {{workspace}} هم می‌سازد، مانند {{channel}}، و شما را به آن دعوت می‌کند. وقتی کارتان تمام شد، آن را در {{workspace}} بایگانی کنید.",
+  "{{team}} (typed name)": "{{team}} (نام تایپ‌شده)",
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "هنوز هیچ چیزی مانیتورهای این SLO را بررسی نکرده است. اندازه‌گیری آن از نخستین بررسی آن‌ها آغاز می‌شود.",
+  "Discovered device {{name}}": "دستگاه کشف‌شده {{name}}",
+  "The Discovered Devices list": "فهرست دستگاه‌های کشف‌شده",
+  "Every filter must match. Clear one, or clear them all.": "همهٔ فیلترها باید مطابقت داشته باشند. یکی یا همه را پاک کنید.",
+  "Filter discovered devices": "فیلتر دستگاه‌های کشف‌شده",
+  "Network controller": "کنترلر شبکه",
+  "No discovered device matches this search and these filters.": "هیچ دستگاه کشف‌شده‌ای با این جستجو و این فیلترها مطابقت ندارد.",
+  "Switch or router": "سوئیچ یا روتر"
 }

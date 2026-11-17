@@ -158,7 +158,10 @@ async function measureHeader(page: Page): Promise<HeaderLayout> {
         hero.querySelector(`[data-testid='${pickerTestId}']`),
         hero.querySelector(`[data-testid='${resetTestId}']`),
         hero.querySelector("button[title='Refresh now']"),
-        hero.querySelector("select"),
+        // The Auto-refresh picker: the shared Dropdown's box around its text box.
+        hero
+          .querySelector("input[aria-label='Auto-refresh']")
+          ?.closest(".ou-select__control") || null,
       ].filter((element: Element | null): element is Element => {
         return element !== null;
       });

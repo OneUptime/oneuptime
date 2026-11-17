@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import TableSkeleton from "../../Skeleton/TableSkeleton";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import {
@@ -21,7 +22,6 @@ import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
 import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
 import Dictionary from "../../../../Types/Dictionary";
-import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import { getSeverityColor } from "./severityColors";
 import LogSeverity from "../../../../Types/Log/LogSeverity";
 import { TelemetryEntityNameMap } from "../../../Utils/Telemetry/TelemetryEntityNames";
@@ -437,7 +437,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
 
       {props.isLoading && Object.keys(props.facetData).length === 0 && (
         <div className="flex flex-1 items-center justify-center py-8">
-          <ComponentLoader />
+          <TableSkeleton rows={6} columns={1} hasHeader={false} />
         </div>
       )}
 

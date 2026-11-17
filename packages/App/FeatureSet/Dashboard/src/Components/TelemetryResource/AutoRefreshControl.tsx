@@ -14,6 +14,15 @@ import {
 import { formatAutoRefreshInterval } from "Common/Types/Dashboard/DashboardAutoRefresh";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 
@@ -165,6 +174,27 @@ const AutoRefreshControl: FunctionComponent<AutoRefreshControlProps> = (
     AutoRefreshInterval.FIFTEEN_MINUTES,
   ];
 
+  /*
+   * The interval in the sentence's language: "Every 30s", "Alle 30 Sek.",
+   * "هر ۳۰ ثانیه" - never English's "30s" in a Persian sentence.
+   */
+  const intervalOptions: Array<DropdownOption> = intervals.map(
+    (interval: AutoRefreshInterval): DropdownOption => {
+      return getTranslatedDropdownOption(
+        interval,
+        interval === AutoRefreshInterval.OFF
+          ? translator.translateText("Off") || "Off"
+          : translator.translateTemplate("Every {{interval}}", {
+              interval: composedValue((sentence: Translator): string => {
+                return (
+                  formatAutoRefreshInterval(interval, sentence.language) || ""
+                );
+              }),
+            }),
+      );
+    },
+  );
+
   const durationMs: number | null = getAutoRefreshIntervalInMs(
     props.autoRefreshInterval,
   );
@@ -194,8 +224,10 @@ const AutoRefreshControl: FunctionComponent<AutoRefreshControlProps> = (
           {translator.translateText("Refresh")}
         </span>
       </button>
-      <label className="flex items-center gap-1.5 text-xs text-gray-500">
-        <span className="max-sm:hidden sm:inline">{autoRefreshLabel}</span>
+      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+        <span className="max-sm:hidden sm:inline" aria-hidden="true">
+          {autoRefreshLabel}
+        </span>
         {durationMs !== null ? (
           <CountdownCircle
             durationMs={durationMs}
@@ -209,43 +241,26 @@ const AutoRefreshControl: FunctionComponent<AutoRefreshControlProps> = (
          * Named on its own too: on a phone the words beside it are hidden,
          * and hidden words name nothing.
          */}
-        <select
-          aria-label={autoRefreshLabel}
-          value={props.autoRefreshInterval}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
-            props.onAutoRefreshIntervalChange(
-              e.target.value as AutoRefreshInterval,
-            );
+        <Dropdown
+          className="relative w-36 overflow-visible"
+          isCompact={true}
+          // English: the picker says it in the reader's language.
+          ariaLabel="Auto-refresh"
+          options={intervalOptions}
+          value={findDropdownOption(intervalOptions, props.autoRefreshInterval)}
+          // An interval is always chosen, "Off" among them.
+          isClearable={false}
+          onChange={(
+            next: DropdownValue | Array<DropdownValue> | null,
+          ): void => {
+            const picked: string | null = readPickedDropdownValue(next);
+
+            if (picked !== null && picked !== props.autoRefreshInterval) {
+              props.onAutoRefreshIntervalChange(picked as AutoRefreshInterval);
+            }
           }}
-          className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-        >
-          {intervals.map((interval: AutoRefreshInterval): ReactElement => {
-            /*
-             * The interval in the sentence's language: "Every 30s", "Alle
-             * 30 Sek.", "هر ۳۰ ثانیه" - never English's "30s" in a Persian
-             * sentence.
-             */
-            return (
-              <option key={interval} value={interval}>
-                {interval === AutoRefreshInterval.OFF
-                  ? translator.translateText("Off")
-                  : translator.translateTemplate("Every {{interval}}", {
-                      interval: composedValue(
-                        (sentence: Translator): string => {
-                          return (
-                            formatAutoRefreshInterval(
-                              interval,
-                              sentence.language,
-                            ) || ""
-                          );
-                        },
-                      ),
-                    })}
-              </option>
-            );
-          })}
-        </select>
-      </label>
+        />
+      </div>
     </div>
   );
 };

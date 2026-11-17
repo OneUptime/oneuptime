@@ -56572,5 +56572,18 @@
   "What fails": "故障内容",
   "You can't start this fire drill: it tests every policy this failure pages, and you can't test {{count}} of them. Ask a Project Admin, or the policies' owners.": "无法开始此故障演练：它会测试此故障呼叫的每个策略，而其中有 {{count}} 个你无法测试。请联系项目管理员或策略的所有者。",
   "You can't start this fire drill: it tests every policy this failure pages, and you can't test {{count}} of them. Ask a Project Admin, or the policies' owners._one": "无法开始此故障演练：它会测试此故障呼叫的每个策略，而其中有 {{count}} 个你无法测试。请联系项目管理员或策略的所有者。",
-  "You can't test this policy, so who it pages is not shown.": "你无法测试此策略，因此不显示它会呼叫谁。"
+  "You can't test this policy, so who it pages is not shown.": "你无法测试此策略，因此不显示它会呼叫谁。",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "为此项目发送的 Slack、Microsoft Teams 和 Mattermost 消息。",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "为此 {{itemName}} 发送的 Slack、Microsoft Teams 和 Mattermost 消息。",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "此测试还会在规则的 Microsoft Teams 团队中创建一个真实频道（例如 {{channel}}），团队中的所有人都能看到它。完成后，请在 Microsoft Teams 中将其删除。",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "此测试还会创建一个真实的 {{workspace}} 频道（例如 {{channel}}），并邀请您加入。完成后，请在 {{workspace}} 中将其归档。",
+  "{{team}} (typed name)": "{{team}}（手动输入的名称）",
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "此 SLO 的监视器尚未被检查过。它从这些监视器的首次检查开始计量。",
+  "Discovered device {{name}}": "已发现的设备 {{name}}",
+  "The Discovered Devices list": "已发现的设备列表",
+  "Every filter must match. Clear one, or clear them all.": "必须满足所有筛选条件。请清除其中一个，或全部清除。",
+  "Filter discovered devices": "筛选已发现的设备",
+  "Network controller": "网络控制器",
+  "No discovered device matches this search and these filters.": "没有已发现的设备符合此搜索和这些筛选条件。",
+  "Switch or router": "交换机或路由器"
 }

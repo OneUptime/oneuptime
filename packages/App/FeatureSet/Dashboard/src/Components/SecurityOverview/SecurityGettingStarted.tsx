@@ -61,6 +61,15 @@ export const SETUP_TEST_FAILED_TITLE: string = translationKey(
   "The test attack could not be sent",
 );
 
+/*
+ * On a phone the card's buttons stack under its words, each the card's
+ * width, as a dialog's footer stacks its own (ModalFooter); from sm up each
+ * is its own width, side by side. The row stretches them: a Button has no
+ * width of its own (BOXED_BUTTON_CLASS_NAME, #9128), and a locked one with a
+ * reason takes the width onto the wrapper it sits in.
+ */
+export const GET_STARTED_ACTION_CLASS_NAME: string = "max-sm:w-full";
+
 export interface ComponentProps {
   status: SecuritySetupStatus;
   // Called after something changed, so the page reads its figures again.
@@ -326,6 +335,7 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
                   title="Done"
                   icon={IconProp.Check}
                   buttonStyle={ButtonStyleType.PRIMARY}
+                  className={GET_STARTED_ACTION_CLASS_NAME}
                   dataTestId="security-getting-started-done"
                   onClick={props.onDone}
                 />
@@ -347,6 +357,7 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
                         ? undefined
                         : turnOnGate.disabledReason
                     }
+                    className={GET_STARTED_ACTION_CLASS_NAME}
                     dataTestId="security-turn-on-try-again"
                     onClick={() => {
                       void turnOnRecommended();
@@ -370,6 +381,7 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
                         ? undefined
                         : turnOnGate.disabledReason
                     }
+                    className={GET_STARTED_ACTION_CLASS_NAME}
                     dataTestId="security-turn-on-recommended"
                     onClick={() => {
                       void turnOnRecommended();
@@ -390,6 +402,7 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
                         ? undefined
                         : turnOnGate.disabledReason
                     }
+                    className={GET_STARTED_ACTION_CLASS_NAME}
                     dataTestId="security-turn-on-try-again"
                     onClick={() => {
                       void turnOnRecommended();
@@ -405,6 +418,7 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
                       ? ButtonStyleType.NORMAL
                       : ButtonStyleType.PRIMARY
                   }
+                  className={GET_STARTED_ACTION_CLASS_NAME}
                 />
               </>
             )}

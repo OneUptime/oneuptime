@@ -18,7 +18,7 @@ import {
   nextButton,
   nextPage,
   numberedNames,
-  pageSizeSelect,
+  pageSizeShown,
   pagingSummary,
 } from "./TablePagingHarness";
 
@@ -370,7 +370,7 @@ describe.each(TABLES)("paging through $title", (table: CostTable) => {
 
     expect(visibleNames()).toEqual(table.names.slice(25));
     expect(pagingSummary(root())).toBe(`Showing 26-30 of 30 ${table.noun}`);
-    expect(pageSizeSelect(root())).toHaveValue("25");
+    expect(pageSizeShown(root())).toBe("25");
     expect(nextButton(root())).toBeDisabled();
   });
 
@@ -378,7 +378,7 @@ describe.each(TABLES)("paging through $title", (table: CostTable) => {
     await table.renderPage();
     await choosePageSize(50, root());
 
-    expect(pageSizeSelect(root())).toHaveValue("50");
+    expect(pageSizeShown(root())).toBe("50");
     // All thirty on one page, not the 25 the table opened with.
     expect(visibleNames()).toEqual(table.names);
     expect(pagingSummary(root())).toBe(`Showing 1-30 of 30 ${table.noun}`);
@@ -417,7 +417,7 @@ describe.each(TABLES)("paging through $title", (table: CostTable) => {
     await clickCardRefresh(root());
 
     expect(table.fetch).toHaveBeenCalledTimes(2);
-    expect(pageSizeSelect(root())).toHaveValue("10");
+    expect(pageSizeShown(root())).toBe("10");
     expect(visibleNames()).toEqual(table.names.slice(0, 10));
     expect(pagingSummary(root())).toBe(`Showing 1-10 of 30 ${table.noun}`);
   });
@@ -431,11 +431,11 @@ describe("the cluster Costs page's tables", () => {
     expect(columnTexts("kubernetes-namespace-costs-table")).toEqual(NAMESPACES);
 
     // The other two still show the 25 they opened with.
-    expect(pageSizeSelect(card("Spend by Workload"))).toHaveValue("25");
+    expect(pageSizeShown(card("Spend by Workload"))).toBe("25");
     expect(columnTexts("kubernetes-workload-costs-table")).toEqual(
       WORKLOADS.slice(0, 25),
     );
-    expect(pageSizeSelect(card("Right-Sizing"))).toHaveValue("25");
+    expect(pageSizeShown(card("Right-Sizing"))).toBe("25");
     expect(columnTexts("kubernetes-right-sizing-table")).toEqual(
       CONTAINERS.slice(0, 25),
     );

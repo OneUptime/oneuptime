@@ -320,7 +320,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   });
 
   if (firstRecordWatch.isLoading) {
-    return <PageSkeleton />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (firstRecordWatch.error) {

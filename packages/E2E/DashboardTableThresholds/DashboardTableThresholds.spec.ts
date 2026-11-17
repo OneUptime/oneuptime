@@ -455,7 +455,10 @@ const enterEditMode: (
     page.getByRole("button", { name: word("More dashboard options") }),
   );
   await press(page.getByRole("menuitem", { name: word("Edit Dashboard") }));
-  await expect(page.getByTitle(word("Save Changes"))).toBeVisible();
+  // The editing toolbar's Save Changes: a button, named by its words.
+  await expect(
+    page.getByRole("button", { name: word("Save Changes"), exact: true }),
+  ).toBeVisible();
 };
 
 // A click on a widget's title while editing opens its settings.

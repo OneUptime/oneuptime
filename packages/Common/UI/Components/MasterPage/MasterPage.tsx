@@ -1,5 +1,5 @@
 import PageError from "../Error/PageError";
-import PageLoader from "../Loader/PageLoader";
+import PageSkeleton from "../Page/PageSkeleton";
 import OfflineScreen from "../Offline/OfflineScreen";
 import TopSection from "../TopSection/TopSection";
 import { Translator } from "../../Utils/TranslateTemplate";
@@ -153,7 +153,7 @@ const MasterPage: FunctionComponent<ComponentProps> = (
       <React.Fragment>
         {offlineScreen}
         <div ref={pageRef} style={getPageStyle(offline.isOffline)}>
-          <PageLoader isVisible={true} />
+          <PageSkeleton />
         </div>
       </React.Fragment>
     );

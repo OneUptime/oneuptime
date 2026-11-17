@@ -60,7 +60,14 @@ import {
   DashboardPickerTemplate,
   getDashboardPickerTemplate,
   getDashboardPickerTemplates,
+  DASHBOARD_TEMPLATE_PICKER_RULES,
+  DashboardTemplatePickerView,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Dashboard/DashboardTemplatePickerUtil";
+import {
+  closeDropdown,
+  getShownDropdownValue,
+  openDropdown,
+} from "../../DropdownPicks";
 import { TemplateCollection } from "../../../../App/FeatureSet/Dashboard/src/Utils/TemplatePicker/TemplatePickerUtil";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import {
@@ -200,9 +207,69 @@ const queryCreate: QueryFunction = (): HTMLElement | null => {
 type ShowViewFunction = (view: string) => void;
 
 const showView: ShowViewFunction = (view: string): void => {
-  fireEvent.change(screen.getByTestId("dashboard-template-view-select"), {
-    target: { value: view },
-  });
+  pickCategory(view);
+};
+
+/*
+ * The category picker is the shared Dropdown (#9310): its combobox is the
+ * input inside the box with the picker's test id, and its menu is drawn over
+ * the page - apart from the template list's own options.
+ */
+const getCategoryCombobox: () => HTMLElement = (): HTMLElement => {
+  return within(screen.getByTestId("dashboard-template-view-select")).getByRole(
+    "combobox",
+  );
+};
+
+const getCategoryMenuOptions: () => Array<HTMLElement> =
+  (): Array<HTMLElement> => {
+    openDropdown(getCategoryCombobox());
+    const menu: HTMLElement | null = document.querySelector(".ou-select__menu");
+
+    if (!menu) {
+      throw new Error("The category picker's menu did not open");
+    }
+
+    return within(menu).getAllByRole("option");
+  };
+
+// The categories the picker offers, by name, in order.
+const listCategoryNames: () => Array<string> = (): Array<string> => {
+  const names: Array<string> = getCategoryMenuOptions().map(
+    (option: HTMLElement): string => {
+      return option.textContent || "";
+    },
+  );
+  closeDropdown(getCategoryCombobox());
+
+  return names;
+};
+
+// Picks a view by its place in the list, in any language.
+const pickCategory: (view: string) => void = (view: string): void => {
+  const index: number = DASHBOARD_TEMPLATE_PICKER_RULES.getViews().findIndex(
+    (info: { view: string }): boolean => {
+      return info.view === view;
+    },
+  );
+  const option: HTMLElement | undefined = getCategoryMenuOptions()[index];
+
+  if (!option) {
+    throw new Error(`The category picker offers no ${view}`);
+  }
+
+  fireEvent.click(option);
+};
+
+// The name of the view the picker shows.
+const shownCategory: () => string | null = (): string | null => {
+  return getShownDropdownValue(getCategoryCombobox());
+};
+
+const categoryLabel: (view: string) => string = (view: string): string => {
+  return DASHBOARD_TEMPLATE_PICKER_RULES.getViewInfo(
+    view as DashboardTemplatePickerView,
+  ).label;
 };
 
 type PickFunction = (type: DashboardTemplateType) => void;
@@ -491,8 +558,8 @@ describe("Back", () => {
     fireEvent.click(screen.getByTestId("dashboard-wizard-back"));
 
     expect(currentStep()).toBe("pick-template");
-    expect(screen.getByTestId("dashboard-template-view-select")).toHaveValue(
-      DashboardTemplateCategory.Infrastructure,
+    expect(shownCategory()).toBe(
+      categoryLabel(DashboardTemplateCategory.Infrastructure),
     );
     expect(
       screen.getByTestId(dashboardTemplateOptionDomId("Ceph")),
@@ -1081,17 +1148,7 @@ describe("Create a dashboard in German", () => {
     expect(
       screen.getByRole("heading", { name: de("Or start from a template") }),
     ).toBeInTheDocument();
-    expect(
-      Array.from(
-        (
-          screen.getByTestId(
-            "dashboard-template-view-select",
-          ) as HTMLSelectElement
-        ).options,
-      ).map((option: HTMLOptionElement): string => {
-        return option.textContent || "";
-      }),
-    ).toEqual([
+    expect(listCategoryNames()).toEqual([
       de("Recommended"),
       de("Monitoring & APM"),
       de("Incident Response"),

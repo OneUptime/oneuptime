@@ -1,4 +1,5 @@
 import EnterpriseSettingLicenseNotice from "../EnterpriseSettings/EnterpriseSettingLicenseNotice";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import {
   EnterpriseLicenseMode,
   LicensedFeature,
@@ -14,7 +15,6 @@ import {
 } from "Common/Types/StatusPage/PrivateUserSessionLength";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -279,7 +279,7 @@ const StatusPageSessionLengthCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={2} columns={1} />;
     }
 
     if (error) {

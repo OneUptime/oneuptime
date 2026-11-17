@@ -986,8 +986,13 @@ test.describe("on every screen", () => {
 
     /*
      * A Manual step that has started: when it started is with its words, so
-     * the buttons come last - read, then act.
+     * the buttons come last - read, then act. Mark complete and Skip are
+     * narrower than Approve and run and Skip: since f8d33e2202e drew every
+     * button's words at text-sm at every width (they were text-base below
+     * md), the two fit beside the step's words' 16rem on a tablet 700px
+     * wide. On one 660px wide they do not, and wrap under the words.
      */
+    await page.setViewportSize({ width: 660, height: 900 });
     await openRun(page, "wait=manual");
 
     const manualCard: Locator = waitingCard(

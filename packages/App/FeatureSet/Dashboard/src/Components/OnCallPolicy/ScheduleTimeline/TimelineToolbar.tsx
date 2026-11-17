@@ -11,6 +11,16 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import { TimelineViewMode } from "Common/Types/OnCallDutyPolicy/ScheduleTimelineLayout";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getNamedDropdownOption,
+  getTranslatedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
@@ -436,6 +446,21 @@ export const FilterBar: FunctionComponent<FilterBarProps> = (
     return team.isCurrentUserMember;
   });
 
+  // "My teams" first, when the reader is on one, then each team by its name.
+  const teamOptions: Array<DropdownOption> = [
+    ...(hasMyTeams
+      ? [
+          getTranslatedDropdownOption(
+            MY_TEAMS,
+            translator.translateText("My teams") || "My teams",
+          ),
+        ]
+      : []),
+    ...props.teams.map((team: TimelineTeam): DropdownOption => {
+      return getNamedDropdownOption(team.id, team.name);
+    }),
+  ];
+
   const showTeamControls: boolean =
     !props.isTeamLocked && props.teams.length > 0;
 
@@ -467,46 +492,30 @@ export const FilterBar: FunctionComponent<FilterBarProps> = (
       </label>
 
       {showTeamControls && (
-        <label className="relative block w-full md:w-56">
-          <span className="sr-only">
-            {translator.translateText("Filter by team")}
-          </span>
-          <Icon
-            icon={IconProp.UserGroup}
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-          />
-          <select
-            data-testid="timeline-team-filter"
-            value={props.filters.team}
-            onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-              props.onFiltersChange({
-                ...props.filters,
-                team: event.target.value,
-              });
+        <div className="w-full md:w-56" data-testid="timeline-team-filter">
+          <Dropdown
+            className="relative w-full overflow-visible"
+            ariaLabel={translator.translateText("Filter by team")}
+            isAriaLabelTranslated={true}
+            // Every team is the placeholder; clearing the filter returns to it.
+            placeholder={translator.translateText("All teams")}
+            isPlaceholderTranslated={true}
+            options={teamOptions}
+            value={findDropdownOption(teamOptions, props.filters.team)}
+            onChange={(
+              next: DropdownValue | Array<DropdownValue> | null,
+            ): void => {
+              const team: string = readPickedDropdownValue(next) ?? ALL_TEAMS;
+
+              if (team !== props.filters.team) {
+                props.onFiltersChange({
+                  ...props.filters,
+                  team: team,
+                });
+              }
             }}
-            className="block h-9 w-full appearance-none rounded-lg border border-gray-200 bg-white pl-9 pr-8 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          >
-            <option value={ALL_TEAMS}>
-              {translator.translateText("All teams")}
-            </option>
-            {hasMyTeams && (
-              <option value={MY_TEAMS}>
-                {translator.translateText("My teams")}
-              </option>
-            )}
-            {props.teams.map((team: TimelineTeam) => {
-              return (
-                <option key={team.id} value={team.id}>
-                  {team.name}
-                </option>
-              );
-            })}
-          </select>
-          <Icon
-            icon={IconProp.ChevronDown}
-            className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
           />
-        </label>
+        </div>
       )}
 
       <div className="flex flex-wrap items-center gap-2">

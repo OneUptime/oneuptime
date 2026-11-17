@@ -1,6 +1,6 @@
 import { ButtonStyleType } from "../Button/Button";
+import DetailListSkeleton from "../Skeleton/DetailListSkeleton";
 import ButtonType from "../Button/ButtonTypes";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import BasicForm, {
   BaseComponentProps as BasicFormComponentProps,
   BasicFormHandle,
@@ -128,7 +128,7 @@ const BasicFormModal: <T extends GenericObject>(
       <OpenFormSectionsContext.Provider
         value={openFormSections.reportSectionOpen}
       >
-        {isLoading && <ComponentLoader />}
+        {isLoading && <DetailListSkeleton fields={3} columns={1} />}
 
         {/*
          * props.error is drawn once, by the Modal (it is among the props
