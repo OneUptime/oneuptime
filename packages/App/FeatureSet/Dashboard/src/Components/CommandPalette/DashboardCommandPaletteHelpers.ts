@@ -221,6 +221,11 @@ export interface PageSearchCommandDescriptor {
    * (PALETTE_ANOTHER_PRODUCT_SEARCH_PENALTY).
    */
   isNamedForAnotherProduct?: boolean | undefined;
+  /*
+   * Found only by a query that holds one of these names whole: "Import from
+   * incident.io" by "incident.io", never by "incident" (#7034).
+   */
+  foundOnlyByWholeName?: Array<string> | undefined;
 }
 
 export interface BuildPageSearchCommandsInput {
@@ -543,6 +548,10 @@ export function buildPageSearchCommandDescriptors(
             ...(action.isNamedForAnotherProduct
               ? { isNamedForAnotherProduct: true }
               : {}),
+            ...(action.foundOnlyByWholeName &&
+            action.foundOnlyByWholeName.length > 0
+              ? { foundOnlyByWholeName: [...action.foundOnlyByWholeName] }
+              : {}),
           });
         }
 
@@ -594,16 +603,19 @@ export function buildPageSearchCommandDescriptors(
 /*
  * How a result of the page index ranks against the rest, as Search reads
  * it: between equally good matches a page before a setting on a page, and
- * a setting never before the page it is on. The palette and the tests that
- * search the index both read it here.
+ * a setting never before the page it is on; and what a query has to hold
+ * for it to be found at all. The palette and the tests that search the
+ * index both read it here.
  */
 export interface PageSearchCommandRanking {
   searchPriority: number;
   onPageCommandId?: string | undefined;
   searchPenalty?: number | undefined;
+  foundOnlyByWholeName?: Array<string> | undefined;
 }
 
-export const getPageSearchCommandRanking: (
+// Where a result of the page index ranks, between equally good matches.
+const getPageSearchCommandPlace: (
   descriptor: PageSearchCommandDescriptor,
 ) => PageSearchCommandRanking = (
   descriptor: PageSearchCommandDescriptor,
@@ -624,6 +636,20 @@ export const getPageSearchCommandRanking: (
     searchPriority: PALETTE_SEARCH_PRIORITY.setting,
     onPageCommandId: descriptor.onPageId,
   };
+};
+
+export const getPageSearchCommandRanking: (
+  descriptor: PageSearchCommandDescriptor,
+) => PageSearchCommandRanking = (
+  descriptor: PageSearchCommandDescriptor,
+): PageSearchCommandRanking => {
+  const ranking: PageSearchCommandRanking =
+    getPageSearchCommandPlace(descriptor);
+
+  // "Import from incident.io" is found only by its whole name (#7034).
+  return descriptor.foundOnlyByWholeName
+    ? { ...ranking, foundOnlyByWholeName: descriptor.foundOnlyByWholeName }
+    : ranking;
 };
 
 export interface PageSearchIndexEntry {

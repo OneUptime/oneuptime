@@ -846,6 +846,23 @@
     "kind": "action"
   },
   {
+    "title": "Import from incident.io",
+    "titleKey": "Import from {{tool}}",
+    "titleValues": {
+      "tool": "incident.io"
+    },
+    "where": [
+      "Project Settings",
+      "Advanced",
+      "Import from another tool"
+    ],
+    "keywords": [
+      "incident.io"
+    ],
+    "path": "/dashboard/:projectId/settings/import?from=search&tool=IncidentIo",
+    "kind": "action"
+  },
+  {
     "title": "Import from Splunk On-Call",
     "titleKey": "Import from {{tool}}",
     "titleValues": {

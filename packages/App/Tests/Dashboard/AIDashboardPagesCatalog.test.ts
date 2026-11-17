@@ -378,6 +378,36 @@ describe("Ask AI's catalog of the Dashboard's pages", () => {
       expect(found[0]?.path.split("?")[0]).toBe(expectation.path);
     }
   });
+
+  /*
+   * Search offers the import from incident.io by its whole name (#7034), so
+   * Ask AI can send someone there too. Incidents' own words still find
+   * Incidents' pages: the import is never the page asked for by them.
+   */
+  test("finds the import from incident.io by the tool's name, and Incidents' pages by Incidents' words", () => {
+    for (const query of ["Import from incident.io", "incident.io"]) {
+      expect(
+        DashboardPageFinder.find({
+          query,
+          limit: 1,
+          isBillingEnabled: true,
+        })[0]?.path,
+      ).toBe(
+        "/dashboard/:projectId/settings/import?from=search&tool=IncidentIo",
+      );
+    }
+
+    for (const query of ["incidents", "incident", "Incidents"]) {
+      expect({
+        query,
+        first: DashboardPageFinder.find({
+          query,
+          limit: 1,
+          isBillingEnabled: true,
+        })[0]?.title,
+      }).toEqual({ query, first: expect.not.stringMatching(/^Import from/) });
+    }
+  });
 });
 
 /*
