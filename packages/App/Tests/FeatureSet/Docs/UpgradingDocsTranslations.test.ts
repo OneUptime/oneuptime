@@ -350,6 +350,7 @@ const PROSE_LEADS: Array<string> = [
   "If the server reaches the internet through a proxy, let the proxy reach your identity provider, calendars, MCP servers and backup storage.",
   "Check the criteria of Incoming Request monitors whose senders post plain text.",
   "Give the teams that own private incidents, alerts and episodes the permissions their members page and run runbooks with, and move workflows off private records.",
+  "Replace every server of 14 soon.",
   // What you need to do for 16, beside the Terraform step it shares with 15.
   "Take the credentials 16 no longer gives out of your API scripts' reads.",
   "Update your Runners with the server.",
@@ -467,6 +468,7 @@ const PROSE_LEADS: Array<string> = [
   "Code work that carries a private incident or alert follows its owners too.",
   "Production reviews, pull requests from chats and the fix panels follow private records too.",
   "Webhook addresses and SNMP credentials are stored encrypted, and logs keep a webhook's address by its host.",
+  "Webhook addresses and SNMP credentials are encrypted a day after the upgrade, so a server of the earlier release keeps using them while it rolls out.",
   "A new on-call rule made through the API or with Terraform starts on Key updates only.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",

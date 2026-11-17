@@ -81,7 +81,7 @@ Then check your version again, as in the first step. If you have not reached you
 | Upgrade | What you must do |
 | --- | --- |
 | [15 → 16](#upgrading-from-oneuptime-15-16) | Upgrade the Terraform provider with the server, and take the SCIM bearer tokens, webhook addresses and SNMP credentials 16 no longer gives out of API reads. Update your Runners. Replace every server of 15 soon, and roll back only within a day. |
-| [14 → 15](#upgrading-from-oneuptime-14-15) | Copy the master API key first if you read it from the Admin Dashboard. Upgrade the Terraform provider with the server, and take the credentials 15 no longer gives out of API reads. Behind a proxy, let it reach your identity provider, calendars, MCP servers and backup storage. Check Incoming Request monitors that receive plain text. |
+| [14 → 15](#upgrading-from-oneuptime-14-15) | Copy the master API key first if you read it from the Admin Dashboard. Upgrade the Terraform provider with the server, and take the credentials 15 no longer gives out of API reads. Behind a proxy, let it reach your identity provider, calendars, MCP servers and backup storage. Check Incoming Request monitors that receive plain text. Replace every server of 14 soon. |
 | [13 → 14](#upgrading-from-oneuptime-13-14) | Pick an edition. Docker Compose installs that set `IS_ENTERPRISE_EDITION=true` move to `APP_TAG=enterprise-release`. Activate a license on the Enterprise Edition. Re-save IPv6 Ping, Port and SSL monitors. AI code fixes move to the global Runner: keep it on, and on Helm move `runner.keda` to `globalRunner.keda`. |
 | [12 → 13](#upgrading-from-oneuptime-12-13) | Usually nothing: Redis becomes Valkey, and the old setting names keep working. Running Docker Compose by hand? Add `--remove-orphans`. Using a cache of your own? Read [If you run your own cache](#if-you-run-your-own-cache). |
 | [11 → 12](#upgrading-from-oneuptime-11-12) | Redeploy Runbook Agents as Runners. On Docker Compose, set `ONEUPTIME_RUNNER_KEY`. On Helm, rename `aiAgent:` to `runner:`. Re-grant Runner permissions that API keys held directly. |
@@ -194,9 +194,11 @@ and shown only when they are made. Webhook addresses and SNMP credentials are
 encrypted too, and webhook logs keep only an address's host. Upgrade from 15 —
 if you are still on 14, do 14 → 15 first.
 
-The upgrade encrypts and hashes the keys, addresses and credentials you have,
-so the probes, agents, devices, scripts, webhooks and identity providers that
-use them keep working, with nothing to set up again.
+The upgrade keeps the keys, addresses and credentials you have as they are, so
+a server of 15 still running while it rolls out keeps using them, and a day
+later Workers encrypt or hash them in place. The probes, agents, devices,
+scripts, webhooks and identity providers that use them keep working, with
+nothing to set up again.
 
 ### What you need to do for 16
 
@@ -215,11 +217,13 @@ use them keep working, with nothing to set up again.
    refused a fix pull request about a private incident or alert.
 4. **Replace every server of 15 soon, and roll back only within a day.** A
    server of 15 still running during the upgrade refuses the keys made or
-   reset on 16, and reads an encrypted webhook address or SNMP credential as
-   a broken one, so its sends and polls fail until it is replaced. A day
-   after the upgrade, Workers encrypt or hash the keys stored before: rolled
-   back after that, 15 cannot read them, so reset each key and give the new
-   one to whatever used the old one. See
+   reset on 16, and reads a webhook address or SNMP credential saved on 16 as
+   a broken one, so the sends and polls that use them fail until it is
+   replaced. A day after the upgrade, Workers encrypt or hash the keys,
+   addresses and credentials stored before: rolled back after that, 15 cannot
+   read them, so reset each key, give the new one to whatever used the old
+   one, and enter the webhook addresses and SNMP credentials again, or
+   restore the backup you took before the upgrade. See
    [Other changes in 16](#other-changes-in-16).
 
 ### Other changes in 16
@@ -295,15 +299,32 @@ alerts.
   Microsoft Teams and webhook subscriptions, of webhook notification methods,
   of OpenStack project notices and of custom notification channels, a
   channel's signing secret, and the SNMP credentials of network devices and
-  discovery scans are stored encrypted. The upgrade encrypts the ones you
-  have, and every notification, poll, sweep and import goes on using them as
-  written. A project's webhook logs keep only an address's scheme and host
-  (`https://hooks.slack.com/•••`), the logs from before the upgrade included,
-  and an on-call log names the webhook a page was sent to rather than its
-  address. A server of the earlier release still running during the upgrade
-  reads an encrypted address or credential as a broken one, so its sends and
-  polls fail until it is replaced, and what it saves meanwhile is stored as
-  written until it is next saved.
+  discovery scans are stored encrypted. The ones you have are encrypted a day
+  after the upgrade, as the next note says, and every notification, poll,
+  sweep and import goes on using them as written. A project's webhook logs
+  keep only an address's scheme and host (`https://hooks.slack.com/•••`), the
+  logs from before the upgrade included, and an on-call log names the webhook
+  a page was sent to rather than its address.
+- **Webhook addresses and SNMP credentials are encrypted a day after the
+  upgrade, so a server of the earlier release keeps using them while it rolls
+  out.** The upgrade leaves the ones you have as they were written: a server
+  of the earlier release still running while it rolls out (on Kubernetes the
+  old pods serve while the migrations run) keeps sending notifications and
+  webhooks with them and polling devices. A day later, Workers encrypt each
+  one in place, those that server saved meanwhile included, and keep only the
+  host of a webhook address it logged. An address or credential saved during
+  that day is stored encrypted at once, and a server of the earlier release
+  cannot use it until it is replaced. Workers also encrypt the credentials
+  and certificate keys that a server of 14 saved as written while the upgrade
+  to 15 rolled out. A network device whose SNMP v3 credentials were only in
+  its legacy `snmpV3Auth` object is walked again, not only pinged: the
+  upgrade moves them into the device's v3 fields, where its settings show
+  them. A project's Twilio auth token can be up to 500 characters long
+  again: one longer than about 350 was refused. Rolled back within that day,
+  the earlier release reads every address and credential stored before the
+  upgrade. Rolled back after it, it cannot read the webhook addresses and
+  SNMP credentials: restore the backup you took before the upgrade, or enter
+  each one again.
 - **A new on-call rule made through the API or with Terraform starts on Key
   updates only.** A Slack, Microsoft Teams or Mattermost notification rule for
   on-call policies started on who is on call now and when nobody is only when
@@ -372,6 +393,17 @@ change.
    permission from the teams that own it and the people named as its owners,
    and workflow steps no longer see or change a private record. See
    [Other changes in 15](#other-changes-in-15).
+7. **Replace every server of 14 soon.** The upgrade to 15 encrypts, in place,
+   the credentials a project saved for mail, chat apps and webhooks, and
+   custom domains' certificate keys (from a 14 release before 14.1, the
+   server's own mail, SMS and call credentials too, and from one before
+   14.0.56 a project's Twilio auth token). A server of 14 still running
+   meanwhile reads them as broken values, so the email, SMS, calls, chat
+   messages and webhooks it sends fail, and a custom domain it serves can
+   lose its HTTPS, until it is replaced: on Kubernetes the old pods serve
+   until the new ones are ready, and with `migrate.hook: true` through every
+   migration as well. Rolled back to 14, the server cannot read them: restore
+   the backup you took before the upgrade, or enter them again.
 
 ### Other changes in 15
 
