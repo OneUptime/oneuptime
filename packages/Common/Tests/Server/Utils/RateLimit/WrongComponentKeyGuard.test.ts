@@ -60,6 +60,9 @@ const WRONG_COMPONENT_KEY_LIMIT: string =
   "packages/Common/Server/Utils/RateLimit/WrongComponentKeyLimit.ts";
 const WRONG_CLUSTER_KEY_LIMIT: string =
   "packages/Common/Server/Utils/RateLimit/WrongClusterKeyLimit.ts";
+// A monitor's incoming request secrets: a limit of its own (issue #8499).
+const WRONG_INCOMING_REQUEST_SECRET_LIMIT: string =
+  "packages/Common/Server/Utils/RateLimit/WrongIncomingRequestSecretLimit.ts";
 
 /*
  * Each check, and what it must do, in order: the snippets of its code
@@ -213,7 +216,8 @@ const LOOKS_UP_THE_KEY: Array<string> = [
 // Every code-fix route, by file: each authenticates through authenticate.
 const CODE_FIX_ROUTE_FILES: Record<string, number> = {
   "packages/Common/Server/API/AIAgentTaskAPI.ts": 3,
-  "packages/Common/Server/API/AIAgentDataAPI.ts": 6,
+  // What a fix reads and records, and the pull request OneUptime opens for it.
+  "packages/Common/Server/API/AIAgentDataAPI.ts": 7,
   "packages/Common/Server/API/AIAgentTaskLogAPI.ts": 1,
   "packages/Common/Server/API/AIAgentGitHubAPI.ts": 1,
   // A request from Code: the words, the context and the branch it works on.
@@ -482,7 +486,11 @@ describe("nothing else checks a component's key, or asks the limit", () => {
 
   test("only the limits' own modules build a WrongKeyLimit, each under a prefix of its own", () => {
     expect(productFilesWhoseCodeMatches(/\bnew WrongKeyLimit\(/)).toEqual(
-      [WRONG_CLUSTER_KEY_LIMIT, WRONG_COMPONENT_KEY_LIMIT].sort(),
+      [
+        WRONG_CLUSTER_KEY_LIMIT,
+        WRONG_COMPONENT_KEY_LIMIT,
+        WRONG_INCOMING_REQUEST_SECRET_LIMIT,
+      ].sort(),
     );
 
     const prefixes: Array<string> = [];
@@ -491,6 +499,7 @@ describe("nothing else checks a component's key, or asks the limit", () => {
     for (const relativePath of [
       WRONG_CLUSTER_KEY_LIMIT,
       WRONG_COMPONENT_KEY_LIMIT,
+      WRONG_INCOMING_REQUEST_SECRET_LIMIT,
     ]) {
       for (const match of codeOf(relativePath).matchAll(KEY_PREFIX)) {
         prefixes.push(match[1]!);
@@ -501,6 +510,7 @@ describe("nothing else checks a component's key, or asks the limit", () => {
       [
         "agent-key:wrong-keys:",
         "cluster-key:wrong-keys:",
+        "incoming-request-secret:wrong-secrets:",
         "probe-key:wrong-keys:",
         "probe-registration-key:wrong-keys:",
       ].sort(),
