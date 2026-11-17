@@ -683,6 +683,85 @@ describe("ClientMetadata", () => {
       expect(error.description).toContain("token_endpoint_auth_method");
     });
 
+    /*
+     * token_endpoint_auth_methods_supported lists every method the client
+     * can use, and it uses one the server offers. ChatGPT names
+     * "private_key_jwt" in the single field and lists "none" beside it.
+     */
+    it.each([
+      ["private_key_jwt", ["none", "private_key_jwt"]],
+      ["private_key_jwt", ["private_key_jwt", "none"]],
+      ["client_secret_basic", ["client_secret_basic", "none"]],
+      ["none", ["none"]],
+      [undefined, ["none"]],
+    ])(
+      "is a public client when it prefers %s but lists %j",
+      (preferred: string | undefined, supported: Array<string>) => {
+        expect(
+          parse(
+            documentWith({
+              token_endpoint_auth_method: preferred,
+              token_endpoint_auth_methods_supported: supported,
+            }),
+          ).tokenEndpointAuthMethod,
+        ).toBe(McpOAuthClientAuthMethod.None);
+      },
+    );
+
+    it.each([
+      ["a list without none", ["private_key_jwt"]],
+      ["an empty list", []],
+      ["a string rather than a list", "none"],
+      ["an upper-case NONE", ["NONE"]],
+      ["none inside another value", [["none"]]],
+    ])(
+      "refuses a document that prefers private_key_jwt and gives %s",
+      (_name: string, supported: unknown) => {
+        const error: McpOAuthError = captureError(() => {
+          return parse(
+            documentWith({
+              token_endpoint_auth_method: "private_key_jwt",
+              token_endpoint_auth_methods_supported: supported,
+            }),
+          );
+        });
+
+        expect(error.code).toBe(McpOAuthErrorCode.InvalidClientMetadata);
+        expect(error.description).toContain("token_endpoint_auth_method");
+      },
+    );
+
+    it("refuses a document that asks for a secret and lists no other way", () => {
+      const error: McpOAuthError = captureError(() => {
+        return parse(
+          documentWith({
+            token_endpoint_auth_method: "client_secret_basic",
+            token_endpoint_auth_methods_supported: ["client_secret_basic"],
+          }),
+        );
+      });
+
+      expect(error.code).toBe(McpOAuthErrorCode.InvalidClientMetadata);
+      expect(error.description).toBe(
+        'A client identified by a metadata document must use token_endpoint_auth_method "none".',
+      );
+    });
+
+    it("still refuses a secret, whatever methods the document lists", () => {
+      const error: McpOAuthError = captureError(() => {
+        return parse(
+          documentWith({
+            client_secret: "s3cret",
+            token_endpoint_auth_methods_supported: ["none"],
+          }),
+        );
+      });
+
+      expect(error.description).toBe(
+        "A client metadata document must not contain a client secret.",
+      );
+    });
+
     it("holds the document's redirect URIs to the registration rules", () => {
       const missing: McpOAuthError = captureError(() => {
         return parse(documentWith({ redirect_uris: undefined }));
@@ -758,7 +837,14 @@ describe("ClientMetadata", () => {
     it.each(REAL_WORLD_CLIENTS)(
       "reads $name as a public client",
       (fixture: RealWorldClientFixture) => {
-        expect(fixture.document["token_endpoint_auth_method"]).toBe("none");
+        // Each says it can use "none": in the one field, or in its list.
+        const supported: unknown =
+          fixture.document["token_endpoint_auth_methods_supported"];
+
+        expect(
+          fixture.document["token_endpoint_auth_method"] === "none" ||
+            (Array.isArray(supported) && supported.includes("none")),
+        ).toBe(true);
         expect(
           ClientMetadata.parseMetadataDocument({
             clientId: fixture.clientId,
