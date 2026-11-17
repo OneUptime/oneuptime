@@ -36,7 +36,7 @@ import { getChannelName } from "../../Monitor/Overview/WhoIsToldWords";
  *      one code, and the app. Each says what stops it on this project and
  *      this server, and the fix is in the step: an owner turns SMS and
  *      calls on there, anyone else is told who can.
- *   2. Who else is on call? A project with no policy gets "Default on-call
+ *   2. Who is paged first? A project with no policy gets "Default on-call
  *      policy", paging the people picked, with the two on-call rules that
  *      run it for every new incident and alert (#5359). A project with
  *      policies starts from one of them: the people picked join its first
@@ -119,6 +119,7 @@ export const ON_CALL_SETUP_COPY: {
   continueButton: string;
   saveButton: string;
   whoTitle: string;
+  whoNextHint: string;
   whoCreateHelp: string;
   whoExistingHelp: string;
   whoPolicyLabel: string;
@@ -230,7 +231,16 @@ export const ON_CALL_SETUP_COPY: {
   ),
   continueButton: WEBSITE_DOWN_COPY.continueButton,
   saveButton: WEBSITE_DOWN_COPY.whoSave,
-  whoTitle: translationKey("Who else is on call?"),
+  /*
+   * Who the policy's first escalation rule pages, at once. It was "Who else
+   * is on call?", which read as the place to add the teammate to page when
+   * nobody answers: a newcomer added them here, and both were paged at the
+   * same moment (#7372). That teammate is the next step's.
+   */
+  whoTitle: translationKey("Who is paged first?"),
+  whoNextHint: translationKey(
+    "Everyone here is paged at the same time. Someone to page only if nobody answers comes in the next step.",
+  ),
   whoCreateHelp: translationKey(
     'This makes the on-call policy "{{policy}}". It pages these people first, for every new incident and alert in this project.',
   ),
@@ -256,7 +266,7 @@ export const ON_CALL_SETUP_COPY: {
   policyMadeElsewhere: WEBSITE_DOWN_COPY.policyMadeElsewhere,
   /*
    * Said when the run's policy was deleted - in another tab, or by a
-   * teammate - so "Who else is on call?" opened again on making or picking
+   * teammate - so "Who is paged first?" opened again on making or picking
    * one (#7516), and when the page opens on a run whose policy is gone.
    */
   policyDeleted: translationKey(
@@ -349,7 +359,7 @@ export enum OnCallRunValue {
  * What the run keeps of its policy and of the steps built on it. When the
  * policy is gone - found so when the page opens, or deleted in another tab
  * or by a teammate while it is open (#7516) - they are forgotten together,
- * so the setup starts again at "Who else is on call?". Who is reached stays
+ * so the setup starts again at "Who is paged first?". Who is reached stays
  * confirmed: it is the person's, not the policy's.
  */
 export const RUN_VALUES_OF_THE_POLICY: ReadonlyArray<OnCallRunValue> = [

@@ -440,7 +440,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   /*
    * Whether the run's policy is still there and in service, read just
    * before a step that needs it moves on (#7516, #8432). Gone or archived:
-   * the run forgets it, and "Who else is on call?" opens again, saying
+   * the run forgets it, and "Who is paged first?" opens again, saying
    * which. Unreadable: the step says why, and stays.
    */
   const isPolicyStillThere: (policyId: string) => Promise<boolean> = async (
@@ -1094,7 +1094,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   );
 
   /*
-   * STEP 2: WHO ELSE IS ON CALL?
+   * STEP 2: WHO IS PAGED FIRST?
    */
   const policies: Array<{ id: string; name: string }> = choices?.policies || [];
   const isExistingMode: boolean = !policy && policies.length > 0;
@@ -1579,6 +1579,17 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
               ariaLabelledby="on-call-setup-people-label"
               dataTestId="on-call-setup-people"
             />
+            {/*
+             * Everyone picked here is paged at once: whoever should be
+             * paged only when nobody answers belongs to the next step
+             * (#7372).
+             */}
+            <p
+              className="mt-2 text-sm text-gray-500"
+              data-testid="on-call-setup-who-next-hint"
+            >
+              {translator.translateText(ON_CALL_SETUP_COPY.whoNextHint)}
+            </p>
           </div>
         ) : (
           <></>
@@ -1607,7 +1618,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   /*
    * Saves what happens when nobody answers - once the policy is read again,
    * just before: deleted since, in another tab or by a teammate, the run
-   * forgets it and "Who else is on call?" opens again, with nothing written
+   * forgets it and "Who is paged first?" opens again, with nothing written
    * to a policy that is gone and the step never left with a button that
    * does nothing (#7516).
    */
@@ -1928,7 +1939,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
    * summary, read from the records - once the policy is read again: deleted
    * (#7516) or archived (#8432) since, in another tab or by a teammate,
    * there is nothing true to sum up - the summary would say it pages people
-   * - and "Who else is on call?" opens again instead. Unreadable, the step
+   * - and "Who is paged first?" opens again instead. Unreadable, the step
    * says why and stays.
    */
   const finishTest: (skipped: boolean) => Promise<void> = async (

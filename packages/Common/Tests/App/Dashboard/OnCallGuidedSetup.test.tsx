@@ -718,7 +718,7 @@ describe("a brand-new project", () => {
     expect(stepState("who_else")).toBe("upcoming");
     expect(stepState("no_answer")).toBe("upcoming");
     expect(stepState("test")).toBe("upcoming");
-    expect(screen.getByText("Who else is on call?")).toBeInTheDocument();
+    expect(screen.getByText("Who is paged first?")).toBeInTheDocument();
     expect(screen.getByText("What if nobody answers?")).toBeInTheDocument();
     expect(screen.getByText("Send a test page")).toBeInTheDocument();
     expect(api["createPolicy"]).not.toHaveBeenCalled();
@@ -1061,6 +1061,41 @@ describe("who else is on call", () => {
     keepRun({ reachConfirmed: true });
     await renderSetup();
   };
+
+  /*
+   * ISSUE #7372: step 2 was "Who else is on call?", which read as the place
+   * to add the teammate to page when nobody answers: a newcomer added them
+   * here, and both were paged at the same moment. It asks who is paged
+   * first, says everyone picked is paged at once, and sends whoever should
+   * be paged only if nobody answers to the next step.
+   */
+  test("asks who is paged first, and sends someone to page if nobody answers to the next step (#7372)", async () => {
+    await reachDone();
+
+    const step: HTMLElement = screen.getByTestId("guided-setup-step-who_else");
+
+    expect(step).toHaveTextContent("Who is paged first?");
+    expect(step).not.toHaveTextContent("Who else is on call?");
+    expect(screen.getByTestId("on-call-setup-who-next-hint")).toHaveTextContent(
+      "Everyone here is paged at the same time. Someone to page only if nobody answers comes in the next step.",
+    );
+    // The next step is where someone is paged after a wait.
+    expect(screen.getByText("What if nobody answers?")).toBeInTheDocument();
+  });
+
+  test("a project with policies says the same under the first escalation rule (#7372)", async () => {
+    api["loadPolicyChoices"]!.mockResolvedValue({
+      policies: [{ id: POLICY_ID, name: "Default on-call policy" }],
+      mayCreatePolicy: true,
+      mayAddRules: true,
+      mayEditLevels: true,
+    });
+    await reachDone();
+
+    expect(screen.getByTestId("on-call-setup-who-next-hint")).toHaveTextContent(
+      "Everyone here is paged at the same time.",
+    );
+  });
 
   test("a new project: one policy, you first, with its catch-all rules", async () => {
     await reachDone();
