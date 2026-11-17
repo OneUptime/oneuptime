@@ -545,6 +545,87 @@ describe("SloHealth", () => {
         },
       );
 
+      // #9089: set up right, only waiting for its monitors' first check.
+      it("says an SLO whose monitors nothing has checked yet waits for their first check", () => {
+        const notice: SloNotice | null = getSloNotice({
+          ...MEASURING,
+          sloStatus: SloStatus.Misconfigured,
+          monitorCount: 2,
+          isWaitingForFirstCheck: true,
+        });
+
+        expect(notice).toEqual({
+          type: SloNoticeType.Info,
+          title: "Waiting for the first check",
+          body: "Nothing has checked this SLO's monitors yet. It is measured from their first check.",
+          action: {
+            label: "View monitors",
+            target: SloNoticeActionTarget.Monitors,
+          },
+        });
+      });
+
+      it.each([false, null, undefined])(
+        "keeps Waiting for SLO evaluation when isWaitingForFirstCheck is %s",
+        (isWaitingForFirstCheck: boolean | null | undefined) => {
+          expect(
+            getSloNotice({
+              ...MEASURING,
+              sloStatus: SloStatus.Misconfigured,
+              isWaitingForFirstCheck,
+            })?.title,
+          ).toBe("Waiting for SLO evaluation");
+        },
+      );
+
+      it("names a real setup problem before the first check", () => {
+        expect(
+          getSloNotice({
+            ...MEASURING,
+            sloStatus: SloStatus.Misconfigured,
+            targetPercentage: 100,
+            isWaitingForFirstCheck: true,
+          })?.title,
+        ).toBe("The target is out of range");
+        expect(
+          getSloNotice({
+            ...MEASURING,
+            sloStatus: SloStatus.Misconfigured,
+            monitorCount: 0,
+            isWaitingForFirstCheck: true,
+          })?.title,
+        ).toBe("No monitors attached");
+      });
+
+      it("says nothing of a first check for an SLO that is Paused or measuring", () => {
+        expect(
+          getSloNotice({
+            ...MEASURING,
+            sloStatus: SloStatus.Paused,
+            isWaitingForFirstCheck: true,
+          })?.title,
+        ).toBe("Measurement is paused");
+        expect(
+          getSloNotice({
+            ...MEASURING,
+            sloStatus: SloStatus.Healthy,
+            isWaitingForFirstCheck: true,
+          }),
+        ).toBeNull();
+      });
+
+      it("leaves a request SLO's waiting notice alone", () => {
+        expect(
+          getSloNotice({
+            ...MEASURING,
+            sliType: SliType.RequestSuccess,
+            serviceCount: 1,
+            sloStatus: SloStatus.Misconfigured,
+            isWaitingForFirstCheck: true,
+          })?.title,
+        ).toBe("Waiting for requests");
+      });
+
       it("still warns about an unsupported SLI with monitors attached", () => {
         const notice: SloNotice | null = getSloNotice({
           ...MEASURING,
@@ -891,6 +972,11 @@ describe("SloHealth notices are translation keys", () => {
       sloStatus: SloStatus.Misconfigured,
     }),
     getSloNotice({ ...BASE, sloStatus: SloStatus.Misconfigured }),
+    getSloNotice({
+      ...BASE,
+      sloStatus: SloStatus.Misconfigured,
+      isWaitingForFirstCheck: true,
+    }),
     getSloNotice({ ...BASE, sloStatus: SloStatus.Paused }),
     getSloNotice({ ...BASE, lastEvaluatedAt: null }),
     // A Metric SLO's own (#8445).
@@ -930,6 +1016,7 @@ describe("SloHealth notices are translation keys", () => {
       "The target is out of range",
       "Waiting for requests",
       "Waiting for SLO evaluation",
+      "Waiting for the first check",
       "Measurement is paused",
       "Not evaluated yet",
       "No services chosen",

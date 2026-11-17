@@ -56558,5 +56558,6 @@
   "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "이 {{itemName}}에 대해 보낸 Slack, Microsoft Teams, Mattermost 메시지입니다.",
   "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "이 테스트는 규칙의 Microsoft Teams 팀에 {{channel}} 같은 실제 채널도 만들며, 팀의 모든 사람이 이 채널을 볼 수 있습니다. 완료되면 Microsoft Teams에서 채널을 삭제하세요.",
   "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "이 테스트는 {{channel}} 같은 실제 {{workspace}} 채널도 만들고, 테스트한 사용자를 그 채널에 초대합니다. 완료되면 {{workspace}}에서 채널을 보관하세요.",
-  "{{team}} (typed name)": "{{team}} (입력한 이름)"
+  "{{team}} (typed name)": "{{team}} (입력한 이름)",
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "이 SLO의 모니터를 아직 아무것도 확인하지 않았습니다. 첫 확인부터 측정됩니다."
 }

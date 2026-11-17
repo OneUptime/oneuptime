@@ -56558,5 +56558,6 @@
   "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "Nachrichten an Slack, Microsoft Teams und Mattermost für diesen Eintrag ({{itemName}}).",
   "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "Dieser Test erstellt außerdem einen echten Kanal im Microsoft Teams-Team der Regel, etwa {{channel}}, den alle im Team sehen. Löschen Sie ihn in Microsoft Teams, wenn Sie fertig sind.",
   "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "Dieser Test erstellt außerdem einen echten {{workspace}}-Kanal, etwa {{channel}}, und lädt Sie dorthin ein. Archivieren Sie ihn in {{workspace}}, wenn Sie fertig sind.",
-  "{{team}} (typed name)": "{{team}} (eingegebener Name)"
+  "{{team}} (typed name)": "{{team}} (eingegebener Name)",
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Die Monitore dieses SLO wurden noch nicht geprüft. Es wird ab ihrer ersten Prüfung gemessen."
 }
