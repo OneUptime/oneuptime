@@ -39,7 +39,10 @@ import {
   getRuleCriteriaOwnerFieldsForModel,
   isRuleCriteriaOwnerField,
 } from "../../../Types/Rules/RuleCriteriaFieldRegistry";
-import { matchesRuleCriteriaOwnerFilter } from "../../../Utils/Rules/RuleCriteriaOwnerMatch";
+import {
+  getOwnersMeetingRuleCriteriaOwnerFilter,
+  matchesRuleCriteriaOwnerFilter,
+} from "../../../Utils/Rules/RuleCriteriaOwnerMatch";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import {
   afterEach,
@@ -203,6 +206,107 @@ describe("matchesRuleCriteriaOwnerFilter", () => {
         ownerIds: [JANE],
       }),
     ).toBe(false);
+  });
+});
+
+/*
+ * WHICH OWNERS MAKE AN OWNER CONDITION HOLD (#9407): what "When this goes
+ * down" names under a rule its owners make match.
+ */
+describe("getOwnersMeetingRuleCriteriaOwnerFilter", () => {
+  test("is any of: the picks that are owners, in the order picked, each once", () => {
+    expect(
+      getOwnersMeetingRuleCriteriaOwnerFilter({
+        filter: ownerFilter([JANE, PLATFORM_TEAM, OMAR, JANE]),
+        ownerIds: [OMAR, JANE.toUpperCase(), DATABASE_TEAM],
+      }),
+    ).toEqual([JANE, OMAR]);
+  });
+
+  test("is all of, when every pick is an owner: every pick", () => {
+    expect(
+      getOwnersMeetingRuleCriteriaOwnerFilter({
+        filter: ownerFilter([JANE, OMAR], RuleCriteriaOperator.HasAllOf),
+        ownerIds: [OMAR, JANE],
+      }),
+    ).toEqual([JANE, OMAR]);
+    expect(
+      getOwnersMeetingRuleCriteriaOwnerFilter({
+        filter: ownerFilter([JANE, OMAR], RuleCriteriaOperator.HasAllOf),
+        ownerIds: [OMAR],
+      }),
+    ).toEqual([]);
+  });
+
+  test("is none of names nobody: no owner makes it hold", () => {
+    expect(
+      getOwnersMeetingRuleCriteriaOwnerFilter({
+        filter: ownerFilter([JANE], RuleCriteriaOperator.HasNoneOf),
+        ownerIds: [OMAR],
+      }),
+    ).toEqual([]);
+  });
+
+  test("a condition the owners do not meet, or another operator, names nobody", () => {
+    expect(
+      getOwnersMeetingRuleCriteriaOwnerFilter({
+        filter: ownerFilter([JANE]),
+        ownerIds: [OMAR],
+      }),
+    ).toEqual([]);
+    expect(
+      getOwnersMeetingRuleCriteriaOwnerFilter({
+        filter: {
+          field: "alertOwners",
+          operator: RuleCriteriaOperator.Contains,
+          value: JANE,
+        },
+        ownerIds: [JANE],
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("the owners that make an alert on-call rule match (getOwnersMakingRuleMatch, #9407)", () => {
+  test("each owner a rule's Alert Owner conditions pick, each once; other conditions name nobody", () => {
+    expect(
+      AlertOnCallRuleEngineService.getOwnersMakingRuleMatch({
+        rule: rule({
+          name: "Platform and Jane",
+          policyId: POLICY_PLATFORM,
+          criteria: criteria([
+            severityFilter([HIGH_SEVERITY]),
+            ownerFilter([PLATFORM_TEAM, JANE]),
+            ownerFilter([JANE, OMAR]),
+          ]),
+        }),
+        ownerIds: [JANE, PLATFORM_TEAM, DATABASE_TEAM],
+      }),
+    ).toEqual([PLATFORM_TEAM, JANE]);
+  });
+
+  test("a rule whose owner condition is is none of, or that has none, names nobody", () => {
+    expect(
+      AlertOnCallRuleEngineService.getOwnersMakingRuleMatch({
+        rule: rule({
+          name: "Not Platform's",
+          policyId: POLICY_PLATFORM,
+          criteria: criteria([
+            ownerFilter([PLATFORM_TEAM], RuleCriteriaOperator.HasNoneOf),
+          ]),
+        }),
+        ownerIds: [JANE],
+      }),
+    ).toEqual([]);
+
+    const withoutCriteria: AlertOnCallRule = new AlertOnCallRule();
+
+    expect(
+      AlertOnCallRuleEngineService.getOwnersMakingRuleMatch({
+        rule: withoutCriteria,
+        ownerIds: [JANE],
+      }),
+    ).toEqual([]);
   });
 });
 
@@ -428,6 +532,88 @@ describe("an alert on-call rule with an Alert Owner condition", () => {
       await AlertOnCallRuleEngineService.getMatchingRules(unsaved),
     ).toEqual([]);
     expect(ownerReads).not.toHaveBeenCalled();
+  });
+
+  /*
+   * When this goes down asks about an alert a monitor would open, held in
+   * memory, with the owners its create will give it (#9407).
+   */
+  describe("the owners of an alert not saved yet, handed in", () => {
+    beforeEach(() => {
+      stubRules([
+        rule({
+          name: "Owned by Platform",
+          policyId: POLICY_PLATFORM,
+          criteria: criteria([ownerFilter([PLATFORM_TEAM])]),
+        }),
+        rule({
+          name: "Not owned by Platform",
+          policyId: POLICY_DATABASE,
+          criteria: criteria([
+            ownerFilter([PLATFORM_TEAM], RuleCriteriaOperator.HasNoneOf),
+          ]),
+        }),
+      ]);
+    });
+
+    function unsaved(): Alert {
+      const item: Alert = new Alert();
+      item.projectId = PROJECT_ID;
+      return item;
+    }
+
+    test("is any of matches the owners handed in, and nothing is read", async () => {
+      expect(
+        namesOf(
+          await AlertOnCallRuleEngineService.getMatchingRules(
+            unsaved(),
+            undefined,
+            { ownerIds: [JANE, PLATFORM_TEAM] },
+          ),
+        ),
+      ).toEqual(["Owned by Platform"]);
+      expect(ownerReads).not.toHaveBeenCalled();
+    });
+
+    test("is none of does not match when an owner handed in is picked", async () => {
+      expect(
+        namesOf(
+          await AlertOnCallRuleEngineService.getMatchingRules(
+            unsaved(),
+            undefined,
+            { ownerIds: [PLATFORM_TEAM.toUpperCase()] },
+          ),
+        ),
+      ).toEqual(["Owned by Platform"]);
+    });
+
+    test("no owners handed in: is none of holds, is any of does not", async () => {
+      expect(
+        namesOf(
+          await AlertOnCallRuleEngineService.getMatchingRules(
+            unsaved(),
+            undefined,
+            { ownerIds: [] },
+          ),
+        ),
+      ).toEqual(["Not owned by Platform"]);
+      expect(ownerReads).not.toHaveBeenCalled();
+    });
+
+    test("for a saved alert, the owners handed in are read instead of its rows", async () => {
+      owners = [];
+
+      expect(
+        namesOf(
+          await AlertOnCallRuleEngineService.getMatchingRules(
+            alert(),
+            undefined,
+            { ownerIds: [PLATFORM_TEAM] },
+          ),
+        ),
+      ).toEqual(["Owned by Platform"]);
+      expect(ownerReads).not.toHaveBeenCalled();
+    });
   });
 
   describe("combined with other conditions", () => {
