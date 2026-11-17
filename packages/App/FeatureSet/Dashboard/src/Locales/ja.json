@@ -18886,7 +18886,7 @@
   "ns": "ns",
   "null": "null",
   "object storage daemons": "オブジェクトストレージデーモン",
-  "of": "/",
+  "of": "対象",
   "of ESXi host memory": "ESXi ホストのメモリに対する割合",
   "of limit or host memory": "上限またはホストのメモリに対する割合",
   "of node memory": "ノードのメモリに対する割合",
