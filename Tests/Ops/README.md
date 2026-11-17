@@ -1717,26 +1717,28 @@ the suite last, either way; and a job limit that holds every step's.
 ### `DashboardOfflineUiBudget.test.js`
 
 Every Dashboard Offline UI group fits its run step with room for a slow runner.
-A runner has taken 1.45 times the minutes of another, suite for suite, and the
-run step stops at 35 minutes, so a group is planned at 22 minutes on a runner
-of median speed. Planned by hand from each group's comment, the groups drifted:
-on 2026-11-02's six finished App Test runs group 14's suites took 30.5 minutes
-at median speed (32.3 on its slowest run), group 13's 26.1, and four more
-groups' between 23.4 and 25. `DashboardOfflineUiMinutes.json` holds each
-suite's minutes - each part's, `<suite> <i>/<n>`, for a suite run in halves
-or thirds - the median over the runs it names, and the suite holds every suite
-a group runs to having its minutes there (and nothing there that no group
-runs), every group's suites to summing to at most 22, naming a group past it
-with its sum, its suites and the groups with the most room, and the run step's
-limit to 22 x 1.45. A new suite's minutes
-come from a local run (CI=1, its bundle built, nothing else running) until App
-Test's runs measure it. Since 2026-11-16 a group runs two suites at a time
-(`RunUiSuites.test.js`), so a group's log no longer runs from one `▶ npm run`
-to the next: re-measure from each group's step summary, which lists every
-suite's minutes from its start to its end, taken beside another suite. The
-budget still holds a group's sum of one-at-a-time minutes, which two at a time
-stays far inside; planning the groups by what two lanes take waits for those
-measurements.
+The run step runs a group's suites two at a time (`RunUiSuites.test.js`): the
+slowest first, each lane starting the next suite as soon as it is free, never
+beside one that shares its port, fixture server or output directory. A runner
+has taken 1.45 times the minutes of another, suite for suite, and the run step
+stops at 35 minutes, so a group is planned at 22 minutes on a runner of median
+speed. `DashboardOfflineUiMinutes.json` holds each suite's minutes beside
+another suite - each part's, `<suite> <i>/<n>`, for a suite run in parts -
+measured from App Test's runs as its `about` says (a suite takes about 1.26
+times its minutes alone beside another). The suite holds every suite a group
+runs to having its minutes there (and nothing there that no group runs); every
+group's suites, started as the script starts them (its own `slowestFirst` and
+`nextToStart`, with what each config holds read by its `resourcesBySuite`), to
+ending within 22, naming a group past it with its minutes, its suites and the
+groups with the most room; and the run step's limit to 22 x 1.45. A suite that
+ends a group alone runs faster than its minutes there, so a group ends a little
+before its planned minutes, never after. A new suite's minutes come from a
+local run (CI=1, its bundle built, nothing else running), times 1.26, until App
+Test's runs measure it. Planned by hand from each group's comment, the groups
+had drifted: on 2026-11-02's six finished App Test runs group 14's suites took
+30.5 minutes at median speed (32.3 on its slowest run). Until 2026-11-17 the
+suite held a group's sum of one-at-a-time minutes to 22, over 22 groups; held
+to what two lanes take, the same suites fit in twelve.
 
 ### `RunUiSuites.test.js`
 
@@ -1760,17 +1762,23 @@ two at a time, after installing Common (whose esbuild reads the configs), with
 
 ### `DashboardOfflineUiShards.test.js`
 
-App Test runs Event Overview, the Workflow Builder suite, Model Tables and
-Monitor Overview in halves, and the OpenStack pages in thirds, one part per
-Dashboard Offline UI group: a group's matrix sets `<suite>_shard` ("1/2",
-"2/2", or "1/3" to "3/3"), the job's env hands it to the suite's config as a
-variable of its own (`EVENT_OVERVIEW_SHARD`, `WORKFLOW_BUILDER_SHARD`,
-`MODEL_TABLES_SHARD`, `MONITOR_OVERVIEW_SHARD`, `OPENSTACK_PAGES_SHARD`), and
-the config passes it to Playwright's `shard`. The suite holds every part to
-running once, in a group that runs that suite and sets its key, with one count
-of parts; the env to naming the config's own variable, empty where a group sets
-none (the whole suite, as before); and each config to sharding by that variable
-with Playwright's own shard, never lists of its own.
+App Test runs Event Overview and the OpenStack pages in thirds, and the
+Workflow Builder suite, Model Tables, Monitor Overview and Security Operations
+in halves, one part per Dashboard Offline UI group: a group's matrix sets
+`<suite>_shard` ("1/2", "2/2", or "1/3" to "3/3"), the job's env hands it to the
+suite's config as a variable of its own (`EVENT_OVERVIEW_SHARD`,
+`WORKFLOW_BUILDER_SHARD`, `MODEL_TABLES_SHARD`, `MONITOR_OVERVIEW_SHARD`,
+`OPENSTACK_PAGES_SHARD`, `SECURITY_OPERATIONS_SHARD`), and the config passes it
+to Playwright's `shard`. The suite holds every part to running once, in a group
+that runs that suite and sets its key, with one count of parts; the env to
+naming the config's own variable, empty where a group sets none (the whole
+suite, as before); and each config to sharding by that variable. It reads each
+part's config as Playwright does, in a process of its own with the group's
+value (a config reads the environment when it is loaded), and holds it to the
+whole suite's config but for Playwright's `shard` and `fullyParallel`: a config
+never picks a part's tests by lists of its own, so the parts add up to the
+suite. Security Operations' `testIgnore`, the specs its two sibling suites
+run, is the same in every part.
 
 ### `E2EFixtureRouters.test.js`
 
