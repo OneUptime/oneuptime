@@ -6,15 +6,17 @@ import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
- * Scheduled Maintenance > Calendar > Maintenance Calendar, end to end in a
+ * Scheduled Maintenance > Overview > Maintenance Calendar, end to end in a
  * browser, on the real pages against the fixture's in-page API (Fixture.js).
  *
  * The maintainer's asks: "We currently do not have calendar views and
  * calendar feeds for scheduling events", then "calendar view as separate
  * page in side menu with its own side menu section called Calendar", with
  * calendars from outside the project overlaid on it (issue #5084) and set up
- * on a Calendar Settings page. What only a browser shows is pinned here: the
- * calendar's own page in the side menu's Calendar section, All Maintenance Events the
+ * on a Calendar Settings page. That section, whose heading said nothing the
+ * page's name did not, later joined Overview (c76af29cbe3). What only a
+ * browser shows is pinned here: the calendar's own page in the side menu's
+ * Overview, All Maintenance Events the
  * list alone, a reader whose browser had left the old List | Calendar switch
  * on Calendar taken there once; the external calendars drawn beside the
  * events - lighter, dashed, opening nothing - with a toggle each, a hidden one
@@ -191,6 +193,27 @@ function sideMenu(page: Page): Locator {
   return page.getByTestId("fixture-side-menu");
 }
 
+// A side menu section's toggle, by its heading's words (CSS draws them in capitals).
+function sideMenuSection(page: Page, title: string): Locator {
+  return sideMenu(page).locator(
+    `xpath=.//h6[normalize-space(.)='${title}']/ancestor::button[1]`,
+  );
+}
+
+// The rows a side menu section's toggle shows and hides.
+async function sideMenuSectionRows(
+  page: Page,
+  title: string,
+): Promise<Locator> {
+  const rowsId: string | null = await sideMenuSection(page, title).getAttribute(
+    "aria-controls",
+  );
+
+  expect(rowsId, `the ${title} toggle names the rows it shows`).toBeTruthy();
+
+  return sideMenu(page).locator(`[id="${rowsId}"]`);
+}
+
 function toggles(page: Page): Locator {
   return page.getByTestId("scheduled-maintenance-calendar-external");
 }
@@ -299,7 +322,12 @@ function channels(color: string): Array<number> {
 }
 
 test.describe("the calendar's own page", () => {
-  test("the side menu's Calendar section holds it, open, and marks it as the page the reader is on", async ({
+  /*
+   * The calendar had a section of its own, "Calendar", whose heading said
+   * nothing its one page's name did not; it joined Overview, beside All
+   * Maintenance Events, its route unchanged (c76af29cbe3).
+   */
+  test("the side menu's Overview holds it, open, and marks it as the page the reader is on", async ({
     page,
   }: {
     page: Page;
@@ -317,15 +345,24 @@ test.describe("the calendar's own page", () => {
       ),
     ).toBeVisible();
 
-    const item: Locator = sideMenu(page).getByRole("link", {
+    const overview: Locator = await sideMenuSectionRows(page, "Overview");
+    const item: Locator = overview.getByRole("link", {
       name: "Maintenance Calendar",
     });
 
+    await expect(sideMenuSection(page, "Overview")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
     await expect(item).toBeVisible();
     await expect(item).toHaveClass(ACTIVE_ITEM_PATTERN);
     await expect(
-      sideMenu(page).getByText("Calendar", { exact: true }),
+      overview.getByRole("link", { name: "All Maintenance Events" }),
     ).toBeVisible();
+    // No section of its own any more.
+    await expect(
+      sideMenu(page).getByText("Calendar", { exact: true }),
+    ).toHaveCount(0);
 
     // Calendar Settings waits in the folded Settings.
     await expect(
