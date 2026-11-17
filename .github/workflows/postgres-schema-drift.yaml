@@ -4144,6 +4144,30 @@ jobs:
           Tests/Workers/DataMigrations/EncryptWebhookAddressesAndSnmpCredentialsPostgres.test.ts
           --forceExit
 
+      # Microsoft Teams chat ids through the upgrade that keeps them whole
+      # (#9284): on the tables as they were (every id of a message's place a
+      # varchar(100)), with each personal chat kept cut to its first 100
+      # characters, the schema migration widens the columns in place - every
+      # value kept, no row rewritten, the channelId index kept as it is -
+      # and RestoreCutMicrosoftTeamsChatIds puts each project's chats back
+      # whole, touching no Slack row, no other project's row and no name; a
+      # second run changes nothing, two at once come to the same, and down()
+      # narrows back without cutting an id. Clones the migrated
+      # WorkspaceProjectAuthToken, WorkspaceLiveMessage and
+      # WorkspaceNotificationLog tables into an isolated schema.
+      - name: Test Microsoft Teams chat ids' upgrade to whole on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_TEAMS_CHAT_IDS_TESTS: "true"
+          TEAMS_CHAT_IDS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TEAMS_CHAT_IDS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TEAMS_CHAT_IDS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/RestoreCutMicrosoftTeamsChatIdsPostgres.test.ts
+          --forceExit
+
       # The keys presented to OneUptime through the upgrade that protects them
       # (#9012): on the tables as they were (the uuid keys uuids, the tokens
       # varchar(100)s), with every key stored as written, the schema

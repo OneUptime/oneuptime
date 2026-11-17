@@ -51,6 +51,8 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import ProjectMembership from "../TeamMember/ProjectMembership";
 import OnCallPolicyRunMessage from "./LiveMessages/OnCallPolicyRunMessage";
 import { WHAT_TO_DO_WHEN_NOBODY_WAS_REACHED } from "./LiveMessages/OnCallPolicyRunMessageView";
+import WorkspaceLiveMessages from "./LiveMessages/WorkspaceLiveMessages";
+import WorkspaceStoredValue from "./WorkspaceStoredValue";
 import { WorkspaceAnswer } from "./WorkspaceActionAnswers";
 import WorkspaceActionAuthorization from "./WorkspaceActionAuthorization";
 import WorkspaceCommands, { WorkspaceCommandName } from "./WorkspaceCommands";
@@ -1697,6 +1699,10 @@ export default class WorkspacePage {
    * channel: every run of the alert is shown there too
    * (OnCallPolicyRunMessage). A place that cannot be kept only means the
    * page is not followed there - it is never a reason not to page.
+   *
+   * The place is kept as the workspace names it, whole: a Microsoft Teams
+   * personal chat's id is 130 characters and more, and cut to fit it named
+   * no chat, so every post of the run there failed (issue #9284).
    */
   private static async keepPlace(data: {
     projectId: ObjectID;
@@ -1710,6 +1716,16 @@ export default class WorkspacePage {
         : WorkspaceLiveMessagePageRecordType.Alert,
       data.result.record.id,
     );
+
+    if (
+      !WorkspaceLiveMessages.canKeepPlace({
+        projectId: data.projectId,
+        channelId: data.place.channelId,
+        teamId: data.place.teamId,
+      })
+    ) {
+      return;
+    }
 
     try {
       const kept: Array<WorkspaceLiveMessage> =
@@ -1728,14 +1744,18 @@ export default class WorkspacePage {
       place.workspaceType = data.place.workspaceType;
       place.messageKey = messageKey;
       place.destinationType = data.place.destinationType;
-      place.channelId = data.place.channelId.substring(0, 100);
+      place.channelId = data.place.channelId;
 
-      if (data.place.channelName) {
-        place.channelName = data.place.channelName.substring(0, 100);
+      const channelName: string | undefined = WorkspaceStoredValue.channelName(
+        data.place.channelName,
+      );
+
+      if (channelName) {
+        place.channelName = channelName;
       }
 
       if (data.place.teamId) {
-        place.teamId = data.place.teamId.substring(0, 100);
+        place.teamId = data.place.teamId;
       }
 
       // A place, not a message: it has no id of its own.
