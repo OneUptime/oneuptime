@@ -47,6 +47,7 @@ import OwnerRulePlanBuilder, {
   OwnerRuleInheritSource,
   OwnerRulePlan,
   OwnerRulePlanEntry,
+  withPendingOwners,
 } from "../Utils/Rules/OwnerRulePlan";
 import CreatorTeams from "../Utils/Rules/CreatorTeams";
 import InheritedOwners from "../Utils/Rules/InheritedOwners";
@@ -262,9 +263,11 @@ class IncidentOwnerRuleEngineServiceClass
     allowOwnerNotification: boolean;
     /*
      * Shared by many matchings; a reader of a monitor not saved yet hands
-     * it in seeded with that monitor (WhoIsToldService.resolveDraft).
+     * it in seeded with that monitor (WhoIsToldService.getForDraft).
      */
     monitorCache?: MonitorRuleCriteriaCache | undefined;
+    // The owners a resource will have once it is created (withPendingOwners).
+    pendingOwners?: Map<OwnerRuleInheritSource, OwnerIdSets> | undefined;
   }): Promise<OwnerRulePlan<IncidentOwnerRule>> {
     const { incident, rules } = data;
 
@@ -302,7 +305,14 @@ class IncidentOwnerRuleEngineServiceClass
     }
 
     return builder.build(
-      await this.readInheritedOwners(incident, builder.getSourcesToInherit()),
+      withPendingOwners({
+        read: await this.readInheritedOwners(
+          incident,
+          builder.getSourcesToInherit(),
+        ),
+        pending: data.pendingOwners,
+        sources: builder.getSourcesToInherit(),
+      }),
     );
   }
 

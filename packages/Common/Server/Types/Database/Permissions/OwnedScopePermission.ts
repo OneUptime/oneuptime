@@ -1156,6 +1156,18 @@ export default class OwnedScopePermission {
   }
 
   /*
+   * Whether what this caller creates names them its owner
+   * (DatabaseService.autoOwnerOnCreate): a person - not OneUptime, a server
+   * admin, or a caller with no user, such as an API key or a probe. Also
+   * what "When this goes down" says a new monitor's creator is (#7055).
+   */
+  public static isCreatorMadeOwner(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    return !props.isRoot && !props.isMasterAdmin && Boolean(props.userId);
+  }
+
+  /*
    * The records the caller or one of `teamIds` owns, by id: of the model
    * itself, or - for a model that takes its owners from a parent
    * (@OwnedThrough, or an owner table: getOwnedThrough) - of that parent. In

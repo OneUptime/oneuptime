@@ -98,12 +98,14 @@ import UserTelegramService from "../../../Server/Services/UserTelegramService";
 import UserWebhookService from "../../../Server/Services/UserWebhookService";
 import UserWhatsAppService from "../../../Server/Services/UserWhatsAppService";
 import WhoIsToldService, {
+  WhoIsToldDraft,
   canServerSendBy,
   getFallbackRuleChannels,
   getMonitorCriteria,
   getMonitorCriteriaInstances,
   pickSeverity,
 } from "../../../Server/Services/WhoIsToldService";
+import OwnedScopePermission from "../../../Server/Types/Database/Permissions/OwnedScopePermission";
 import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import OneUptimeDate from "../../../Types/Date";
 import Timezone from "../../../Types/Timezone";
@@ -4291,6 +4293,288 @@ describe("WhoIsToldService", () => {
    * #7216): privacy, owners, labels, on-call - and, for an alert, its
    * alert incident rules last. Each by the engine's own read-only plan.
    */
+  /*
+   * A MONITOR NOT SAVED YET (#7055): Create Monitor's criteria, and a saved
+   * monitor's criteria being edited, are worked out by the same resolver -
+   * the same rules, the same engines - on the monitor held in memory.
+   */
+  describe("a monitor not saved yet (#7055)", () => {
+    // Dan, a Project Member: he may create monitors.
+    function creator(): DatabaseCommonInteractionProps {
+      return {
+        tenantId: PROJECT_ID,
+        userId: new ObjectID(DAN),
+        userType: UserType.User,
+        userTenantAccessPermission: {
+          [PROJECT_ID.toString()]: {
+            _type: "UserTenantAccessPermission",
+            projectId: PROJECT_ID,
+            permissions: [
+              {
+                _type: "UserPermission",
+                permission: Permission.ProjectMember,
+                labelIds: [],
+                isBlockPermission: false,
+              } as UserPermission,
+            ],
+          },
+        } as never,
+      };
+    }
+
+    function draftOf(overrides: Partial<WhoIsToldDraft> = {}): WhoIsToldDraft {
+      return {
+        name: "Payments API",
+        description: "",
+        monitorType: MonitorType.Website,
+        monitorSteps: opensIncidents(
+          incidentTemplate({ title: "{{monitorName}} is down" }),
+        ),
+        labelIds: [],
+        ...overrides,
+      };
+    }
+
+    async function forDraft(
+      data: {
+        props?: DatabaseCommonInteractionProps;
+        draft?: WhoIsToldDraft;
+      } = {},
+    ): Promise<WhoIsToldResult> {
+      return await WhoIsToldService.getForDraft({
+        projectId: PROJECT_ID,
+        props: data.props || creator(),
+        draft: data.draft || draftOf(),
+      });
+    }
+
+    test("a new monitor is worked out from the form, and names no saved monitor", async () => {
+      const result: WhoIsToldResult = await forDraft();
+
+      expect(result.monitorId).toBe("");
+      expect(result.monitorName).toBe("Payments API");
+      expect(firstEvent(result).title).toBe("Payments API is down");
+      expect(firstEvent(result).policies[0]!.name).toBe("Primary");
+      expect(firstEvent(result).rules).toEqual([
+        { id: RULE, name: "Every incident" },
+      ]);
+      // Nothing saved was read for it.
+      expect(MonitorService.findOneBy).not.toHaveBeenCalled();
+    });
+
+    test("a new monitor is on no status page yet", async () => {
+      const result: WhoIsToldResult = await forDraft();
+
+      expect(firstEvent(result).statusPages).toEqual([]);
+      expect(StatusPageResourceService.findAllBy).not.toHaveBeenCalled();
+    });
+
+    test("whoever creates it owns it, so its status changes email them", async () => {
+      const result: WhoIsToldResult = await forDraft();
+
+      expect(result.criteria[0]!.statusOwners).toEqual({
+        source: WhoIsToldOwnersSource.MonitorOwners,
+        userNames: ["Dan Okafor"],
+        teamNames: [],
+      });
+      expect(MonitorService.findOwners).not.toHaveBeenCalled();
+    });
+
+    test("an owner rule that inherits the monitor's owners adds its creator, as it will once they own it", async () => {
+      world.incidentOwnerRules = [
+        incidentOwnerRule({
+          id: OWNER_RULE,
+          name: "Monitor owners",
+          inheritOwnersFromMonitors: true,
+        }),
+      ];
+
+      const event: WhoIsToldEvent = firstEvent(await forDraft());
+
+      expect(withoutRecipients(event.owners)).toEqual({
+        source: WhoIsToldOwnersSource.OwnerRules,
+        userNames: ["Dan Okafor"],
+        teamNames: [],
+      });
+      expect(event.ownerRules).toEqual([
+        { id: OWNER_RULE, name: "Monitor owners" },
+      ]);
+    });
+
+    test("an alert's owner rule that inherits the monitor's owners adds its creator too", async () => {
+      world.alertOwnerRules = [
+        alertOwnerRule({
+          id: ALERT_OWNER_RULE,
+          name: "Alert monitor owners",
+          inheritOwnersFromMonitors: true,
+        }),
+      ];
+
+      const event: WhoIsToldEvent = firstEvent(
+        await forDraft({
+          draft: draftOf({ monitorSteps: opensAlerts(alertTemplate()) }),
+        }),
+      );
+
+      expect(event.kind).toBe(OnCallTestPageRecordKind.Alert);
+      expect(withoutRecipients(event.owners)).toEqual({
+        source: WhoIsToldOwnersSource.OwnerRules,
+        userNames: ["Dan Okafor"],
+        teamNames: [],
+      });
+    });
+
+    test("an API key or a server admin owns nothing it creates: the project's owners are emailed", async () => {
+      world.incidentOwnerRules = [
+        incidentOwnerRule({
+          id: OWNER_RULE,
+          name: "Monitor owners",
+          inheritOwnersFromMonitors: true,
+        }),
+      ];
+
+      const apiKey: DatabaseCommonInteractionProps = {
+        ...creator(),
+        userId: undefined,
+        userType: UserType.API,
+      };
+      const serverAdmin: DatabaseCommonInteractionProps = {
+        ...creator(),
+        userType: UserType.MasterAdmin,
+        isMasterAdmin: true,
+      };
+
+      for (const props of [apiKey, serverAdmin]) {
+        const result: WhoIsToldResult = await forDraft({ props: props });
+
+        expect(result.criteria[0]!.statusOwners).toEqual({
+          source: WhoIsToldOwnersSource.ProjectOwners,
+          userNames: ["Owner One"],
+          teamNames: [],
+        });
+        expect(withoutRecipients(firstEvent(result).owners)).toMatchObject({
+          source: WhoIsToldOwnersSource.ProjectOwners,
+        });
+        expect(firstEvent(result).ownerRules).toEqual([]);
+      }
+    });
+
+    test("a rule's monitor name and monitor label filters are matched against the form", async () => {
+      world.incidentOwnerRules = [
+        incidentOwnerRule({
+          id: OWNER_RULE,
+          name: "Payments monitors",
+          userIds: [BEN],
+          monitorNamePattern: "Payments",
+        }),
+        incidentOwnerRule({
+          id: OTHER_OWNER_RULE,
+          name: "Labelled monitors",
+          userIds: [CARA],
+          monitorLabelIds: [MONITOR_LABEL],
+        }),
+      ];
+
+      // The saved monitor is "Checkout API", with no labels: the draft's own are read.
+      let event: WhoIsToldEvent = firstEvent(await forDraft());
+
+      expect(event.ownerRules).toEqual([
+        { id: OWNER_RULE, name: "Payments monitors" },
+      ]);
+
+      event = firstEvent(
+        await forDraft({
+          draft: draftOf({
+            name: "Checkout API",
+            labelIds: [new ObjectID(MONITOR_LABEL)],
+          }),
+        }),
+      );
+
+      expect(event.ownerRules).toEqual([
+        { id: OTHER_OWNER_RULE, name: "Labelled monitors" },
+      ]);
+      expect(withoutRecipients(event.owners)).toEqual({
+        source: WhoIsToldOwnersSource.OwnerRules,
+        userNames: ["Cara Diaz"],
+        teamNames: [],
+      });
+    });
+
+    test("seeing who a new monitor tells takes what creating one takes", async () => {
+      await expect(forDraft({ props: CALLER })).rejects.toThrow(
+        "Seeing who a new monitor tells takes a role that can create monitors, such as Project Member.",
+      );
+      await expect(forDraft({ props: CALLER })).rejects.toBeInstanceOf(
+        NotAuthorizedException,
+      );
+    });
+
+    test("a saved monitor's criteria being edited: the steps being edited, with its own name and status pages", async () => {
+      const result: WhoIsToldResult = await forDraft({
+        props: CALLER,
+        draft: draftOf({
+          monitorId: MONITOR_ID,
+          name: "Not this name",
+          monitorSteps: opensIncidents(
+            incidentTemplate({ title: "{{monitorName}} has stopped" }),
+          ),
+        }),
+      });
+
+      expect(result.monitorId).toBe(MONITOR_ID.toString());
+      expect(result.monitorName).toBe("Checkout API");
+      expect(firstEvent(result).title).toBe("Checkout API has stopped");
+      expect(firstEvent(result).statusPages).toEqual([
+        { id: STATUS_PAGE, name: "Public status", groups: [] },
+      ]);
+      // A saved monitor's owners are read, not its editor.
+      expect(result.criteria[0]!.statusOwners).toEqual({
+        source: WhoIsToldOwnersSource.ProjectOwners,
+        userNames: ["Owner One"],
+        teamNames: [],
+      });
+    });
+
+    test("somebody who may not read the saved monitor is told it is not found", async () => {
+      world.callerReadsMonitor = false;
+
+      await expect(
+        forDraft({
+          props: CALLER,
+          draft: draftOf({ monitorId: MONITOR_ID }),
+        }),
+      ).rejects.toThrow("Monitor not found.");
+    });
+
+    test("a new monitor's creator owns it as DatabaseService makes them its owner", () => {
+      // autoOwnerOnCreate makes an operational resource's creator its owner.
+      expect(
+        (new Monitor() as unknown as { isOperationalResource?: boolean })
+          .isOperationalResource,
+      ).toBe(true);
+      expect(OwnedScopePermission.hasOwnerTables(Monitor)).toBe(true);
+
+      // A person, and nobody else.
+      expect(OwnedScopePermission.isCreatorMadeOwner(creator())).toBe(true);
+      expect(
+        OwnedScopePermission.isCreatorMadeOwner({ ...creator(), isRoot: true }),
+      ).toBe(false);
+      expect(
+        OwnedScopePermission.isCreatorMadeOwner({
+          ...creator(),
+          isMasterAdmin: true,
+        }),
+      ).toBe(false);
+      expect(
+        OwnedScopePermission.isCreatorMadeOwner({
+          ...creator(),
+          userId: undefined,
+          userType: UserType.API,
+        }),
+      ).toBe(false);
+    });
+  });
   describe("the rules a new record's create runs", () => {
     const CHECKOUT_LABEL: string = "68101111-0000-4000-8000-000000000043";
     const OTHER_LABEL: string = "68101111-0000-4000-8000-000000000044";

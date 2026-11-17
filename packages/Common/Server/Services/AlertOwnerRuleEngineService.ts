@@ -46,6 +46,7 @@ import OwnerRulePlanBuilder, {
   OwnerRuleInheritSource,
   OwnerRulePlan,
   OwnerRulePlanEntry,
+  withPendingOwners,
 } from "../Utils/Rules/OwnerRulePlan";
 import CreatorTeams from "../Utils/Rules/CreatorTeams";
 import InheritedOwners from "../Utils/Rules/InheritedOwners";
@@ -253,9 +254,11 @@ class AlertOwnerRuleEngineServiceClass
     allowOwnerNotification: boolean;
     /*
      * Shared by many matchings; a reader of a monitor not saved yet hands
-     * it in seeded with that monitor (WhoIsToldService.resolveDraft).
+     * it in seeded with that monitor (WhoIsToldService.getForDraft).
      */
     monitorCache?: MonitorRuleCriteriaCache | undefined;
+    // The owners a resource will have once it is created (withPendingOwners).
+    pendingOwners?: Map<OwnerRuleInheritSource, OwnerIdSets> | undefined;
   }): Promise<OwnerRulePlan<AlertOwnerRule>> {
     const { alert, rules } = data;
 
@@ -293,17 +296,23 @@ class AlertOwnerRuleEngineServiceClass
     }
 
     return builder.build(
-      await InheritedOwners.read({
+      withPendingOwners({
+        read: await InheritedOwners.read({
+          sources: builder.getSourcesToInherit(),
+          resources: {
+            // An alert has one monitor.
+            monitorIds: alert.monitorId ? [alert.monitorId] : [],
+            hostIds: InheritedOwners.idsOf(alert.hosts),
+            kubernetesClusterIds: InheritedOwners.idsOf(
+              alert.kubernetesClusters,
+            ),
+            dockerHostIds: InheritedOwners.idsOf(alert.dockerHosts),
+            podmanHostIds: InheritedOwners.idsOf(alert.podmanHosts),
+            serviceIds: InheritedOwners.idsOf(alert.services),
+          },
+        }),
+        pending: data.pendingOwners,
         sources: builder.getSourcesToInherit(),
-        resources: {
-          // An alert has one monitor.
-          monitorIds: alert.monitorId ? [alert.monitorId] : [],
-          hostIds: InheritedOwners.idsOf(alert.hosts),
-          kubernetesClusterIds: InheritedOwners.idsOf(alert.kubernetesClusters),
-          dockerHostIds: InheritedOwners.idsOf(alert.dockerHosts),
-          podmanHostIds: InheritedOwners.idsOf(alert.podmanHosts),
-          serviceIds: InheritedOwners.idsOf(alert.services),
-        },
       }),
     );
   }

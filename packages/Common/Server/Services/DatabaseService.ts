@@ -7534,7 +7534,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      * System/root creates don't get an owner; non-user callers (API keys,
      * Probes) have no userId either, and nobody owns what they make.
      */
-    if (props.isRoot || props.isMasterAdmin || !props.userId) {
+    if (!OwnedScopePermission.isCreatorMadeOwner(props)) {
       return;
     }
 

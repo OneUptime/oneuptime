@@ -12,6 +12,7 @@ import SeriesResourceLinker, {
 } from "../Utils/Monitor/SeriesResourceLinker";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import OwnerRulePlanBuilder, {
+  OwnerIdSets,
   OwnerRuleInheritSource,
   OwnerRulePlan,
   OwnerRulePlanEntry,
@@ -116,6 +117,10 @@ import { CriteriaIncident } from "../../Types/Monitor/CriteriaIncident";
 import MonitorCriteriaInstance from "../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import MonitorType from "../../Types/Monitor/MonitorType";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import CallerPermission from "../Utils/Permission/CallerPermission";
+import OwnedScopePermission from "../Types/Database/Permissions/OwnedScopePermission";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import {
   WHO_IS_TOLD_CACHE_TTL_IN_MS,
@@ -301,6 +306,12 @@ interface ResolveContext extends ProjectContext {
    * shared cache for breaks only, else one of this resolve's own.
    */
   monitorCache: MonitorRuleCriteriaCache;
+  /*
+   * A monitor not created yet (getForDraft): who creates it, and so owns it
+   * as it is created (DatabaseService.autoOwnerOnCreate) - null for a saved
+   * monitor, or a creator who is no person. It is on no status page yet.
+   */
+  newMonitorCreatorId: string | null;
   // What a title can say before a check (buildStorageMapBeforeCheck).
   storageMap: JSONObject;
   // What an incident or alert from the monitor is about, read when needed.
@@ -352,6 +363,20 @@ interface FirstLevel {
   notPaged: Array<string>;
   notPagedCodes: Array<OnCallTestPageNotPaged>;
   levelCount: number;
+}
+
+/*
+ * A monitor someone is setting up (#7055): on Create Monitor, the form's
+ * name, type, labels and steps; editing a saved monitor's criteria, its id
+ * and the steps being edited.
+ */
+export interface WhoIsToldDraft {
+  monitorId?: ObjectID | undefined;
+  name: string;
+  description?: string | undefined;
+  monitorType: MonitorType;
+  monitorSteps: MonitorSteps;
+  labelIds: Array<ObjectID>;
 }
 
 // One criteria of a monitor, and the step it is checked in.
@@ -792,6 +817,130 @@ export class WhoIsToldService {
       props: data.props,
       result: result,
     });
+  }
+
+  /*
+   * WHO A MONITOR NOT SAVED YET WOULD TELL (#7055): the answer for the
+   * criteria someone is choosing - on Create Monitor, or editing a saved
+   * monitor's criteria - worked out by the same resolver as a saved
+   * monitor's, on the monitor held in memory, and handed to them as they
+   * may see it. Nothing is read from a cache or kept.
+   *
+   * A new monitor takes the name, type, labels and steps of the form; it
+   * is on no status page yet, and whoever creates it owns it as it is
+   * created (DatabaseService.autoOwnerOnCreate): its status changes email
+   * them, and an owner rule that inherits the monitor's owners adds them.
+   * Previewing it takes what creating it takes. A saved monitor's criteria
+   * take its own name, labels and status pages, and the steps being edited;
+   * previewing them takes reading it.
+   */
+  @CaptureSpan()
+  public static async getForDraft(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    draft: WhoIsToldDraft;
+  }): Promise<WhoIsToldResult> {
+    const monitor: Monitor = await this.getDraftMonitor(data);
+    const isNew: boolean = !data.draft.monitorId;
+
+    const project: ProjectContext = await this.readProjectContext({
+      projectId: data.projectId,
+      matching: null,
+      isForBreaksOnly: false,
+    });
+
+    const result: WhoIsToldResult = await this.resolveMonitor({
+      project: project,
+      monitor: monitor,
+      newMonitor: isNew
+        ? {
+            // As DatabaseService.autoOwnerOnCreate makes them its owner.
+            creatorUserId:
+              OwnedScopePermission.isCreatorMadeOwner(data.props) &&
+              OwnedScopePermission.hasOwnerTables(Monitor)
+                ? data.props.userId!.toString()
+                : null,
+          }
+        : undefined,
+    });
+
+    return await this.getForCaller({
+      projectId: data.projectId,
+      props: data.props,
+      result: { ...result, monitorId: isNew ? "" : result.monitorId },
+    });
+  }
+
+  /*
+   * The monitor a draft describes, held in memory: a saved one read as the
+   * resolver reads it (the caller must be able to read it), its steps those
+   * of the draft; or a new one, for a caller who may create a monitor, with
+   * an id of its own that names no saved monitor.
+   */
+  private static async getDraftMonitor(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    draft: WhoIsToldDraft;
+  }): Promise<Monitor> {
+    if (data.draft.monitorId) {
+      const readable: Monitor | null = await MonitorService.findOneBy({
+        query: {
+          _id: data.draft.monitorId.toString(),
+          projectId: data.projectId,
+        },
+        select: { _id: true },
+        props: data.props,
+      });
+
+      const saved: Monitor | null = readable
+        ? await MonitorService.findOneBy({
+            query: {
+              _id: data.draft.monitorId.toString(),
+              projectId: data.projectId,
+            },
+            select: WHO_IS_TOLD_MONITOR_SELECT,
+            props: { isRoot: true },
+          })
+        : null;
+
+      if (!saved) {
+        throw new BadDataException("Monitor not found.");
+      }
+
+      saved.monitorSteps = data.draft.monitorSteps;
+
+      return saved;
+    }
+
+    // As CreatePermission.checkCreatePermissions lets them create one.
+    if (
+      !data.props.isRoot &&
+      !data.props.isMasterAdmin &&
+      !CallerPermission.holdsModelPermission(
+        data.props,
+        { model: new Monitor(), operation: "create" },
+        { projectId: data.projectId },
+      )
+    ) {
+      throw new NotAuthorizedException(
+        "Seeing who a new monitor tells takes a role that can create monitors, such as Project Member.",
+      );
+    }
+
+    const monitor: Monitor = new Monitor();
+    monitor.id = ObjectID.generate();
+    monitor.projectId = data.projectId;
+    monitor.name = data.draft.name;
+    monitor.description = data.draft.description || "";
+    monitor.monitorType = data.draft.monitorType;
+    monitor.monitorSteps = data.draft.monitorSteps;
+    monitor.labels = uniqueIds(data.draft.labelIds).map((id: string): Label => {
+      const label: Label = new Label();
+      label._id = id;
+      return label;
+    });
+
+    return monitor;
   }
 
   /*
@@ -1417,6 +1566,8 @@ export class WhoIsToldService {
   private static async resolveMonitor(data: {
     project: ProjectContext;
     monitor: Monitor;
+    // A monitor not created yet, and who creates it (getForDraft).
+    newMonitor?: { creatorUserId: string | null } | undefined;
   }): Promise<WhoIsToldResult> {
     const monitorId: string = idText(data.monitor.id);
 
@@ -1433,14 +1584,16 @@ export class WhoIsToldService {
       ...data.project,
       monitor: data.monitor,
       monitorCache: monitorCache,
+      newMonitorCreatorId: data.newMonitor?.creatorUserId || null,
       storageMap: MonitorTemplateUtil.buildStorageMapBeforeCheck({
         monitor: data.monitor,
       }),
       resources: null,
       deviceOwners: new Map<string, NetworkDeviceOwners>(),
       monitorOwnerNames: null,
+      // A monitor not created yet is on no status page.
       statusPages:
-        data.project.isForBreaksOnly || !monitorId
+        data.project.isForBreaksOnly || !monitorId || data.newMonitor
           ? []
           : await this.readStatusPages({
               projectId: data.project.projectId,
@@ -1665,6 +1818,7 @@ export class WhoIsToldService {
         rules: context.incidentOwnerRules,
         allowOwnerNotification: true,
         monitorCache: context.monitorCache,
+        pendingOwners: this.getPendingOwners(context),
       });
     }
 
@@ -1782,6 +1936,7 @@ export class WhoIsToldService {
         rules: context.alertOwnerRules,
         allowOwnerNotification: true,
         monitorCache: context.monitorCache,
+        pendingOwners: this.getPendingOwners(context),
       });
     }
 
@@ -2114,6 +2269,29 @@ export class WhoIsToldService {
           return toWhoIsToldRule(entry.rule);
         }),
     };
+  }
+
+  /*
+   * The owners the monitor will have once it is created (getForDraft): its
+   * creator, whom an owner rule that inherits the monitor's owners adds as
+   * it would once they own it. None for a saved monitor.
+   */
+  private static getPendingOwners(
+    context: ResolveContext,
+  ): Map<OwnerRuleInheritSource, OwnerIdSets> | undefined {
+    if (!context.newMonitorCreatorId) {
+      return undefined;
+    }
+
+    return new Map<OwnerRuleInheritSource, OwnerIdSets>([
+      [
+        "monitors",
+        {
+          userIds: new Set<string>([context.newMonitorCreatorId]),
+          teamIds: new Set<string>(),
+        },
+      ],
+    ]);
   }
 
   // An event, with what its record's own rules say of it.
@@ -3165,14 +3343,20 @@ export class WhoIsToldService {
     return owners;
   }
 
-  // Who a status change emails: the monitor's owners, or the project's.
+  /*
+   * Who a status change emails: the monitor's owners, or the project's. A
+   * monitor not created yet is owned by whoever creates it.
+   */
   private static async getMonitorOwners(
     context: ResolveContext,
   ): Promise<WhoIsToldOwners> {
     if (context.monitorOwnerNames === null) {
-      context.monitorOwnerNames = this.namesOf(
-        await MonitorService.findOwners(context.monitor.id!),
-      );
+      context.monitorOwnerNames = context.newMonitorCreatorId
+        ? await this.readUserNames({
+            context: context,
+            userIds: [context.newMonitorCreatorId],
+          })
+        : this.namesOf(await MonitorService.findOwners(context.monitor.id!));
     }
 
     if (context.monitorOwnerNames.length > 0) {
