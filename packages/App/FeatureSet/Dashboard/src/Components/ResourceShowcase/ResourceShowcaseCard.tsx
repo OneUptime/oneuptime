@@ -566,10 +566,9 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
 
             {(props.addButton || props.docsRoute || props.guideRoute) && (
               /*
-               * Button keeps a dialog footer's margin (md:ml-3): here the
-               * button starts the row, level with the steps above it.
+               * The button starts the row, level with the steps above it.
                */
-              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
                 {props.addButton && (
                   <Button
                     title={props.addButton.title}

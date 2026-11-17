@@ -91,12 +91,10 @@ type TaskDialog =
 
 /*
  * The line that adds a task: the text box and Add Task under it on a phone,
- * side by side from md up - where the button stops filling its row - with
- * the button's own dialog-footer margin (md:ml-3) taken off, so the gap
- * between them is the row's.
+ * side by side from md up, and the gap between them is the row's.
  */
 export const SECURITY_CASE_TASK_ADD_FORM_CLASS_NAME: string =
-  "mt-1 flex flex-col gap-2 border-t border-gray-100 pt-4 md:flex-row md:items-center [&>button]:md:ml-0 [&>*>button]:md:ml-0";
+  "mt-1 flex flex-col gap-2 border-t border-gray-100 pt-4 md:flex-row md:items-center";
 
 /*
  * Where who has a task is drawn, by the list's own width - beside a side

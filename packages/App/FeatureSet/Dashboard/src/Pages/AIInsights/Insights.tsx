@@ -632,11 +632,9 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
           footer={
             /*
              * The page's one way on, drawn as a button: the OUTLINE style
-             * has no border, so it read as a line of text. The wrapper
-             * takes off the dialog-footer margin Button carries from md,
-             * which set it off centre.
+             * once had no border, so it read as a line of text.
              */
-            <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+            <div>
               <Button
                 title={scope ? "Go to AI Settings" : "Go to Insights Settings"}
                 icon={IconProp.Settings}

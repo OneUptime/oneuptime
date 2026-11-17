@@ -2008,7 +2008,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                           buttonStyle={ButtonStyleType.NORMAL}
                           onClick={handleRetryFetch}
                           isLoading={isConfigLoading}
-                          className="!mt-0 md:!ml-0"
+                          className="!mt-0"
                         />
                       </div>
                     </div>

@@ -187,7 +187,7 @@ const MonitorCloudLinkSuggestions: FunctionComponent<ComponentProps> = (
                  * Button keeps a dialog footer's left margin from md up; here
                  * it starts where the text above it does.
                  */}
-                <div className="mt-2 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+                <div className="mt-2">
                   <Button
                     title="Link resource"
                     icon={IconProp.Link}

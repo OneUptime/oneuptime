@@ -1115,7 +1115,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
               <></>
             )}
           </div>
-          <div className="flex flex-none items-center [&>button]:w-auto">
+          <div className="flex flex-none items-center">
             <Button
               title="Clear"
               buttonStyle={ButtonStyleType.NORMAL}

@@ -215,8 +215,7 @@ const TelemetryRulePreview: FunctionComponent<ComponentProps> = (
             errorPlaceholder="reason"
           />
         </span>
-        {/* md:-ml-3 takes back the Button's own md:ml-3. */}
-        <div className="md:-ml-3">
+        <div>
           <Button
             title="Try again"
             buttonSize={ButtonSize.Small}
@@ -405,8 +404,8 @@ const TelemetryRulePreview: FunctionComponent<ComponentProps> = (
               },
             )}
           </p>
-          {/* The wrapper takes off the Button's own dialog-footer margin. */}
-          <div className="flex-none [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+          {/* The wrapper keeps the button its own size beside the words. */}
+          <div className="flex-none">
             <Button
               title={translator.translateTemplate("Use {{value}}", {
                 value: translator.formatNumber(suggestion),

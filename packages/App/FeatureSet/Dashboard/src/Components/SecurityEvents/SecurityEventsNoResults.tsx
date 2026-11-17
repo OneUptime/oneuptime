@@ -119,7 +119,6 @@ const SecurityEventsNoResults: FunctionComponent<ComponentProps> = (
               title={getShowTimeRangeButtonTitle(coveringRange)}
               icon={IconProp.Clock}
               buttonStyle={ButtonStyleType.NORMAL}
-              className="md:!ml-0"
               dataTestId={`${SECURITY_EVENTS_NO_RESULTS_ID}-show-range`}
               onClick={() => {
                 props.onShowTimeRange?.(coveringRange);

@@ -101,7 +101,7 @@ const PostmortemEmptyState: FunctionComponent<ComponentProps> = (
        * footer - here the gap spaces them.
        */}
       <div
-        className="flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap [&>div>button]:ml-0 [&>div>button]:md:ml-0 [&>div>*>button]:ml-0 [&>div>*>button]:md:ml-0"
+        className="flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap"
         data-testid="postmortem-empty-state-actions"
       >
         {actions.map((action: EmptyStateAction): ReactElement => {

@@ -588,7 +588,6 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Edit}
                 buttonStyle={ButtonStyleType.NORMAL}
                 buttonSize={ButtonSize.Small}
-                className="!ml-0"
                 disabled={isSaving}
                 dataTestId={`form-template-edit-${template.id}`}
                 onClick={() => {
@@ -601,7 +600,6 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
                 icon={IconProp.DocumentDuplicate}
                 buttonStyle={ButtonStyleType.NORMAL}
                 buttonSize={ButtonSize.Small}
-                className="!ml-0"
                 disabled={isFull || isSaving}
                 tooltip={isFull ? FormsCopy.templatesFull : undefined}
                 dataTestId={`form-template-duplicate-${template.id}`}
@@ -634,7 +632,6 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Trash}
                 buttonStyle={ButtonStyleType.DANGER_OUTLINE}
                 buttonSize={ButtonSize.Small}
-                className="!ml-0"
                 disabled={isSaving}
                 dataTestId={`form-template-delete-${template.id}`}
                 onClick={() => {

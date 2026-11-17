@@ -104,7 +104,7 @@ const InvestigationWaiting: FunctionComponent<ComponentProps> = (
            * does. Its side-by-side margin would only indent it here, and its
            * phone-sized text would wrap the label.
            */}
-          <div className="flex-shrink-0 [&>button]:ml-0 [&>button]:text-sm [&>button]:md:ml-0">
+          <div className="flex-shrink-0 [&>button]:text-sm">
             <Button
               {...(props.startNowButtonId
                 ? { id: props.startNowButtonId }

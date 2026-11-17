@@ -45,7 +45,6 @@ import {
   CLOUD_STREAM_DIALOG_TEST_ID,
   CLOUD_STREAM_FIELD_BOX_CLASS_NAME,
   CLOUD_STREAM_INPUT_CLASS_NAME,
-  CLOUD_STREAM_STEP_BUTTON_CLASS_NAME,
   CloudStreamCopyRow,
   CloudStreamLiveStep,
   CloudStreamNotice,
@@ -253,7 +252,6 @@ const CloudStreamGcpDialog: FunctionComponent<ComponentProps> = (
           }
           icon={IconProp.Key}
           buttonStyle={ButtonStyleType.PRIMARY}
-          className={CLOUD_STREAM_STEP_BUTTON_CLASS_NAME}
           isLoading={isMakingKey}
           dataTestId={cloudStreamPart("make-key")}
           onClick={() => {

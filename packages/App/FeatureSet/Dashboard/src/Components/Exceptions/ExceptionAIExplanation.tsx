@@ -336,7 +336,7 @@ const ExceptionAIExplanation: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+        <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4">
           <Button
             title="Fix with AI"
             icon={IconProp.Sparkles}

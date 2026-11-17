@@ -145,7 +145,7 @@ const OWNER_PICKER: PeoplePickerFieldConfig = {
  * it on a phone, side by side from md up, as a case's tasks add one.
  */
 const ADD_FORM_CLASS_NAME: string =
-  "mt-1 flex flex-col gap-2 border-t border-gray-100 pt-4 md:flex-row md:items-center [&>button]:md:ml-0 [&>*>button]:md:ml-0";
+  "mt-1 flex flex-col gap-2 border-t border-gray-100 pt-4 md:flex-row md:items-center";
 
 function nameOf(user: { name?: unknown; email?: unknown } | undefined): string {
   return user?.name?.toString() || user?.email?.toString() || "";

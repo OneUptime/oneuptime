@@ -679,7 +679,7 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
    * in a wrapping row with a gap, so the margin goes.
    */
   const getAndAddButtons: ReactElement = props.canManage ? (
-    <div className="flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:md:ml-0">
+    <div className="flex flex-wrap items-center gap-2">
       {view.canGetFromProvider ? (
         <Button
           title={getFromProviderTitle}
@@ -902,7 +902,7 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
         {readingLine()}
         <div
           data-testid="call-transcript-actions"
-          className="pt-0.5 [&>button]:ml-0 [&>button]:md:ml-0"
+          className="pt-0.5"
         >
           <Button
             title="View transcript"

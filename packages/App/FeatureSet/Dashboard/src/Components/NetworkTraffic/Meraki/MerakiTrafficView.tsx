@@ -1060,7 +1060,7 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
                       : MERAKI_VIEW_HELP.conversations,
                   )}
                 </p>
-                <div className="flex-shrink-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+                <div className="flex-shrink-0">
                   {props.hasFlows ? (
                     <Button
                       title="Show conversations"

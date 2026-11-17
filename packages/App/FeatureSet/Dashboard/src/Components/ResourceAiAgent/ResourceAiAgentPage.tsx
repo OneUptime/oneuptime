@@ -1688,7 +1688,6 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
             />
           ) : command === "install" && cloudProvider ? (
             <div
-              className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0"
               data-testid="ai-agent-cloud-setup"
             >
               <Button

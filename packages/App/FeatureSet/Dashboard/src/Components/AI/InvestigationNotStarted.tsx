@@ -513,7 +513,6 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
             isLoading={props.isRefreshing}
             disabled={props.isRefreshing}
             onClick={props.onRefresh}
-            className="!ml-0"
           />
         </div>
       ) : null}

@@ -1429,15 +1429,7 @@ const Layers: FunctionComponent<ComponentProps> = (
           rightElement={layersLearnMore}
         >
           <EmptyState
-            footer={
-              /*
-               * Button keeps a dialog footer's left margin (md:ml-3), which
-               * would push it off the centre here, so its wrapper clears it.
-               */
-              <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
-                {addLayerButton()}
-              </div>
-            }
+            footer={<div>{addLayerButton()}</div>}
             id="no-layers"
             title={"Build your on-call rotation"}
             description={"Add a layer to say who is on call, and when."}

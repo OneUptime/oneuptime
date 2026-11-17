@@ -107,7 +107,7 @@ const HostCollectorDefaultsCard: FunctionComponent<ComponentProps> = (
                       dataTestId={`host-collector-default-hosts-${osType}`}
                     />
                   </span>
-                  <div className="[&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+                  <div>
                     <Button
                       title="View config"
                       icon={IconProp.Code}

@@ -446,11 +446,9 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
             footer={
               /*
                * The way on, as the section's Insights page offers it: what
-               * OneUptime AI does on its own is chosen in AI Settings. The
-               * wrapper takes off the dialog-footer margin Button carries
-               * from md, which set it off centre.
+               * OneUptime AI does on its own is chosen in AI Settings.
                */
-              <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+              <div>
                 <Button
                   title="Go to AI Settings"
                   icon={IconProp.Settings}

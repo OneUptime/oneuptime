@@ -335,10 +335,10 @@ export const MerakiDeviceLinkState: FunctionComponent<LinkStateProps> = (
         {translator.translateText(UNLINKED_DEVICE_BODY)}
       </p>
       {/*
-       * Button keeps a dialog footer's md:ml-3: cleared here, so the button
-       * stands centred under the sentence, as the guides' calls to action do.
+       * The button stands centred under the sentence, as the guides' calls
+       * to action do.
        */}
-      <div className="mt-4 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+      <div className="mt-4">
         {gate.isAllowed ? (
           <Button
             title={LINK_APPLIANCE_ACTION}

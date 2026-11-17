@@ -990,12 +990,6 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
                 icon={IconProp.Add}
                 buttonSize={ButtonSize.Small}
                 buttonStyle={ButtonStyleType.NORMAL}
-                /*
-                 * Flush with the cases above, not a modal footer's gap in from
-                 * them. Once the step holds all it can it is plainly off, with
-                 * Button's disabled look.
-                 */
-                className="md:!ml-0"
                 dataTestId={SWITCH_TEST_IDS.addCase}
                 disabled={isFull}
                 onClick={add}

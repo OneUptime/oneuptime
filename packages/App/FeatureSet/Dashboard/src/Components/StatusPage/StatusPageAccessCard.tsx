@@ -626,7 +626,7 @@ const StatusPageAccessCard: FunctionComponent<ComponentProps> = (
 
           if (access === StatusPageAccess.Password && isCurrent) {
             details = (
-              <div className="[&_button]:ml-0 [&_button]:md:ml-0">
+              <div>
                 <Button
                   title={StatusPageAccessCopy.changePassword}
                   buttonStyle={ButtonStyleType.NORMAL}

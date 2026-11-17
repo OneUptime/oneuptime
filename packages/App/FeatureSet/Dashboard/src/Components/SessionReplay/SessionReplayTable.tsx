@@ -2918,10 +2918,11 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               </p>
               <p className="mt-1 text-sm text-red-700">{errorCopy.detail}</p>
               {/*
-               * Button's own left margin (md:ml-3, a dialog footer's) put
-               * Retry 12px right of the words above it.
+               * Retry starts level with the words above it: Button's own
+               * left margin (md:ml-3, a dialog footer's) used to put it
+               * 12px right of them.
                */}
-              <div className="mt-3 flex flex-wrap gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+              <div className="mt-3 flex flex-wrap gap-2">
                 <Button
                   title="Retry"
                   icon={IconProp.Refresh}

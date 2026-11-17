@@ -1338,7 +1338,7 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
             </div>
           )}
 
-          <div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row sm:items-center [&_button]:ml-0">
+          <div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row sm:items-center">
             <div
               className="w-full sm:w-44"
               data-testid="security-events-correlate-time-range"
@@ -1558,7 +1558,7 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
         description="No security events matched this filter in the selected time range."
         footer={
           actions.length > 0 ? (
-            <div className="flex flex-wrap items-center justify-center gap-2 [&_button]:ml-0">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               {actions}
             </div>
           ) : undefined
@@ -1722,7 +1722,7 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
           )}
         </div>
         {hasResults && (
-          <div className="flex items-center gap-2 [&_button]:ml-0">
+          <div className="flex items-center gap-2">
             <Button
               dataTestId="correlate-fit-view"
               title="Fit to screen"

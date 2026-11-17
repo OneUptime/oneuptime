@@ -42,7 +42,6 @@ import {
   CLOUD_STREAM_DIALOG_TEST_ID,
   CLOUD_STREAM_FIELD_BOX_CLASS_NAME,
   CLOUD_STREAM_INPUT_CLASS_NAME,
-  CLOUD_STREAM_STEP_BUTTON_CLASS_NAME,
   CloudStreamCopyRow,
   CloudStreamLiveStep,
   CloudStreamNotice,
@@ -280,7 +279,6 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
           title={readHost ? "Read them there" : "Turn on reading"}
           icon={IconProp.Play}
           buttonStyle={ButtonStyleType.PRIMARY}
-          className={CLOUD_STREAM_STEP_BUTTON_CLASS_NAME}
           isLoading={isStarting}
           disabled={!setup.hostSubscriptionId}
           tooltip={startLockedReason}
