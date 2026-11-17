@@ -56472,5 +56472,6 @@
   "This project is on the Free plan, so it pays nothing for seats.": "هذا المشروع على الخطة المجانية، لذا لا يدفع شيئًا مقابل المقاعد.",
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "يستمر احتساب الاستخدام حسب الاستهلاك على الخطة المجانية: البيانات التي ترسلها خدماتك، وكل جهاز مراقبة ليس جهاز مراقبة يدويًا.",
   "You do not have permission to change the plan.": "لا تملك إذن تغيير الخطة.",
-  "Your plan does not include {{product}}": "خطتك لا تتضمن {{product}}"
+  "Your plan does not include {{product}}": "خطتك لا تتضمن {{product}}",
+  "Pick what the new step does. You can change its settings once it is added.": "اختر ما تفعله الخطوة الجديدة. يمكنك تغيير إعداداتها بعد إضافتها."
 }

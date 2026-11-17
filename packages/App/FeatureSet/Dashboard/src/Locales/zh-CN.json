@@ -56472,5 +56472,6 @@
   "This project is on the Free plan, so it pays nothing for seats.": "此项目使用免费套餐，因此无需为席位付费。",
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "在免费套餐下，用量仍按使用量计费：你的服务发送的数据，以及每个非手动监控。",
   "You do not have permission to change the plan.": "你没有更改套餐的权限。",
-  "Your plan does not include {{product}}": "你的套餐不包含{{product}}"
+  "Your plan does not include {{product}}": "你的套餐不包含{{product}}",
+  "Pick what the new step does. You can change its settings once it is added.": "选择新步骤要做什么。添加后可以更改它的设置。"
 }

@@ -657,6 +657,9 @@ describe("a runbook with an unsaved change", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Add Step" }));
     });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("runbook-step-type-Manual"));
+    });
     expect(stepTitles()).toHaveLength(4);
 
     await clickSideMenuMonitors();

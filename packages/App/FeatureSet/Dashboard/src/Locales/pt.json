@@ -56472,5 +56472,6 @@
   "This project is on the Free plan, so it pays nothing for seats.": "Este projeto está no plano gratuito, por isso não paga nada por assentos.",
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "No plano gratuito, a utilização continua a ser faturada conforme o uso: os dados que os seus serviços enviam e cada monitor que não seja um monitor manual.",
   "You do not have permission to change the plan.": "Não tem permissão para alterar o plano.",
-  "Your plan does not include {{product}}": "O seu plano não inclui {{product}}"
+  "Your plan does not include {{product}}": "O seu plano não inclui {{product}}",
+  "Pick what the new step does. You can change its settings once it is added.": "Escolha o que o novo passo faz. Pode alterar as definições depois de o adicionar."
 }

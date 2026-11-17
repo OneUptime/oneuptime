@@ -56472,5 +56472,6 @@
   "This project is on the Free plan, so it pays nothing for seats.": "このプロジェクトは無料プランのため、シートの料金はかかりません。",
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "無料プランでも、利用量は従量課金されます。サービスが送信するデータと、手動モニター以外のすべてのモニターです。",
   "You do not have permission to change the plan.": "プランを変更する権限がありません。",
-  "Your plan does not include {{product}}": "ご利用のプランには{{product}}が含まれていません"
+  "Your plan does not include {{product}}": "ご利用のプランには{{product}}が含まれていません",
+  "Pick what the new step does. You can change its settings once it is added.": "新しいステップの種類を選んでください。設定は追加した後で変更できます。"
 }

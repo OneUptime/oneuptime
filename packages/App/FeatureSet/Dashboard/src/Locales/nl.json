@@ -56472,5 +56472,6 @@
   "This project is on the Free plan, so it pays nothing for seats.": "Dit project heeft het gratis abonnement en betaalt dus niets voor plaatsen.",
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "Gebruik wordt ook met het gratis abonnement naar verbruik gefactureerd: de gegevens die je services sturen, en elke monitor die geen handmatige monitor is.",
   "You do not have permission to change the plan.": "Je hebt geen toestemming om het abonnement te wijzigen.",
-  "Your plan does not include {{product}}": "Je abonnement bevat geen {{product}}"
+  "Your plan does not include {{product}}": "Je abonnement bevat geen {{product}}",
+  "Pick what the new step does. You can change its settings once it is added.": "Kies wat de nieuwe stap doet. Je kunt de instellingen wijzigen zodra hij is toegevoegd."
 }
