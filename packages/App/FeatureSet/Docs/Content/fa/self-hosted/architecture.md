@@ -58,6 +58,7 @@ flowchart TB
 | PostgreSQL | `postgres` | `postgresql`، یا `postgresOperator.cnpg` | پروژه‌ها، مانیتورها، حادثه‌ها، کاربران و هر تنظیم و وضعیت دیگر. |
 | ClickHouse | `clickhouse` | `clickhouse`، یا `clickhouseOperator.altinity` | لاگ‌ها، متریک‌ها، ردها، استثناها، پروفایل‌ها و لاگ‌های مانیتور. |
 | Valkey | `valkey` | `valkey` | کش، صف‌های کار و وضعیت کوتاه‌مدت، مانند رسیدهای پوش در انتظار. |
+| ClamAV | `clamav` | `clamav` (به‌طور پیش‌فرض خاموش) | فایل‌هایی را که افراد می‌فرستند پیش از ذخیره برای بدافزار بررسی می‌کند. فقط وقتی اجرا می‌شود که آن را روشن کنید: `COMPOSE_PROFILES=clamav` با Docker Compose، `clamav.enabled` با Helm. |
 
 همهٔ نقش‌های برنامه یک ایمیج‌اند: Docker Compose آن‌ها را در یک کانتینر `app` اجرا می‌کند، و چارت Helm می‌تواند worker و telemetry writer را به‌صورت استقرارهای جداگانه اجرا کند. برای تعیین اندازهٔ هر لایه، [اندازه‌گذاری و برنامه‌ریزی ظرفیت](/docs/installation/sizing) را ببینید.
 
