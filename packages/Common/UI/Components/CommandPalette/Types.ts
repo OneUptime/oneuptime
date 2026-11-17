@@ -69,6 +69,16 @@ export interface PaletteCommand {
    * "pagerduty", which no page holds, opens the import.
    */
   searchPenalty?: number | undefined;
+  /**
+   * Found only by a query that holds one of these names whole - case,
+   * spaces and punctuation aside - for a command named for something whose
+   * name starts with a word OneUptime's own pages go by: "Import from
+   * incident.io" is found by "incident.io", "incidentio" or "import from
+   * incident io", and never by "incident" or "incidents", which open
+   * Incidents (#7034). A name with no letter or digit in it is left out;
+   * left out or empty, the command is found as any other.
+   */
+  foundOnlyByWholeName?: Array<string> | undefined;
   /** Optional shortcut hint rendered as keycaps on the row. */
   shortcut?: Array<KeyboardShortcutKey> | undefined;
   onSelect: () => void;

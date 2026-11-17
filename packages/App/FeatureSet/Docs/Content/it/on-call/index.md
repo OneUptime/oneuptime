@@ -62,7 +62,7 @@ Aprite **Reperibilità** dal menu **Prodotti** e andate in **Pianificazioni di r
 
 ### Creare una policy
 
-Andate in **Policy di reperibilità** e fate clic su **Crea: Policy di reperibilità**. In **Chi viene avvisato per primo?** scegliete la pianificazione. Diventa la prima regola di escalation della policy, **Level 1**, che attende 30 minuti un riconoscimento.
+Andate in **Policy di reperibilità** e fate clic su **Crea policy di reperibilità**. In **Chi viene avvisato per primo?** scegliete la pianificazione. Diventa la prima regola di escalation della policy, **Level 1**, che attende 30 minuti un riconoscimento.
 
 ### Aggiungere i livelli successivi
 

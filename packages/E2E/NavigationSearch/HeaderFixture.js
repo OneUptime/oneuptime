@@ -4,14 +4,17 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
 import TopSection from "Common/UI/Components/TopSection/TopSection";
 import API from "Common/UI/Utils/API/API";
 import GlobalConfigUtil from "Common/UI/Utils/GlobalConfig";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
 import UserUtil from "Common/UI/Utils/User";
+import DashboardCommandPalette from "../../App/FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPalette";
 import DashboardHeader from "../../App/FeatureSet/Dashboard/src/Components/Header/Header";
 import HowOneUptimeWorksDialog from "../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorksDialog";
 import DashboardNavbar from "../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
@@ -22,10 +25,17 @@ import EventName from "../../App/FeatureSet/Dashboard/src/Utils/EventName";
  * (Components/Header/Header) and nav bar (Components/NavBar/NavBar), stacked
  * in Common's TopSection as the Dashboard's MasterPage stacks them - in a
  * project named "Acme Commerce Production" with 2 active incidents and 3
- * active alerts. The page's reading language is ?lang= (en, de or ar: the
- * Arabic page reads right to left) and ?theme=dark draws it dark, with the
+ * active alerts. The page's reading language is ?lang= (en, de, ar or fa:
+ * the Arabic and Persian pages read right to left) and ?theme=dark draws it
+ * dark, with the
  * Dashboard's own fonts, tailwind.config and Theme.css (server.js).
  * ?projects=many lists six more projects in the picker (MORE_PROJECTS).
+ * ?palette=true mounts the Dashboard's Search (Cmd/Ctrl+K) beside them, as
+ * App.tsx does, so the header's Search, the phone menu's and the keys open
+ * it (PaletteOnPhonesAndDesktops.spec.ts): its Glossary, its docs search
+ * and the project's people are answered here, Ask AI's and a new tab's
+ * openings are counted, and ?as=admin (a Project Admin, the default) or
+ * ?as=reader (who reads services and nothing else) is who is searching.
  *
  * The header's reads are answered here, with nothing sent: the counts, the
  * current on-call lookup, the global config and the live updates. What its
@@ -41,8 +51,8 @@ const query = new URLSearchParams(window.location.search);
 
 export const isHeaderMode = query.get("header") === "true";
 
-// The languages the header is drawn in here: one long, one right to left.
-const HEADER_LANGUAGES = ["en", "de", "ar"];
+// The languages the header is drawn in here: one long, two right to left.
+const HEADER_LANGUAGES = ["en", "de", "ar", "fa"];
 
 export const headerLanguage =
   isHeaderMode && HEADER_LANGUAGES.includes(query.get("lang"))
@@ -65,6 +75,157 @@ export const MORE_PROJECTS = [
 
 const listsMoreProjects = isHeaderMode && query.get("projects") === "many";
 
+// ?palette=true: the Dashboard's Search, mounted beside the header.
+export const mountsPalette = isHeaderMode && query.get("palette") === "true";
+
+// Who is searching: a Project Admin, or someone who reads services alone.
+const searchesAsReader = mountsPalette && query.get("as") === "reader";
+
+/*
+ * The project's people, as POST /team-member/search-members answers a
+ * reader who may see them (Types/Team/ProjectMemberSearch): by name or
+ * email, a few at most.
+ */
+export const PROJECT_PEOPLE = [
+  {
+    userId: "00000000-0000-4000-8000-0000000000a1",
+    name: "Ada Lovelace",
+    email: "ada@acme.test",
+  },
+  {
+    userId: "00000000-0000-4000-8000-0000000000b1",
+    name: "Bob Builder",
+    email: "bob@acme.test",
+  },
+  {
+    userId: "00000000-0000-4000-8000-0000000000e1",
+    name: "",
+    email: "eve.invited@acme.test",
+  },
+];
+
+/*
+ * The Glossary the docs serve (/docs/glossary/<lang>.json), a few of its
+ * real terms in each language the page is drawn in: Probe and Escalation
+ * Rule, as introduction/glossary.md names them.
+ */
+const GLOSSARY = {
+  en: [
+    ["probe", "Probe", ["Monitoring location"]],
+    ["escalation-rule", "Escalation Rule", []],
+  ],
+  de: [
+    ["probe", "Sonde", []],
+    ["escalation-rule", "Eskalationsregel", []],
+  ],
+  ar: [
+    ["probe", "المسبار", []],
+    ["escalation-rule", "قاعدة التصعيد", []],
+  ],
+  fa: [
+    ["probe", "پراب", []],
+    ["escalation-rule", "قاعده تشدید", []],
+  ],
+};
+
+function json(data) {
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+// The reads Search makes of its own, answered in the page with nothing sent.
+function installPaletteFixture(counted) {
+  counted.opened = [];
+  counted.askAiRequests = [];
+  counted.memberSearches = [];
+
+  GlobalEvents.addEventListener(EventName.AI_CHAT_TOGGLE, (event) => {
+    if (event && event.detail) {
+      counted.askAiRequests.push(event.detail);
+    }
+  });
+
+  // A page Search opens in a new tab: a term on the Glossary page, the docs.
+  window.open = (url) => {
+    counted.opened.push(String(url));
+    return null;
+  };
+
+  window.fetch = async (input) => {
+    const url = String(input && input.url ? input.url : input);
+    counted.requests.push(`fetch ${url}`);
+    const glossaryLanguage = /\/glossary\/([a-zA-Z-]+)\.json/.exec(url);
+
+    if (glossaryLanguage) {
+      const language = GLOSSARY[glossaryLanguage[1]]
+        ? glossaryLanguage[1]
+        : "en";
+      return json({
+        lang: language,
+        entries: GLOSSARY[language].map(([id, term, alsoCalled]) => {
+          return {
+            id: id,
+            term: term,
+            definition: `${term}: what the Glossary says it is.`,
+            alsoCalled: alsoCalled,
+          };
+        }),
+      });
+    }
+
+    // The docs search: nothing, so a question is offered to Ask AI.
+    if (url.includes("/search/")) {
+      return json({ results: [] });
+    }
+
+    return new Response("{}", { status: 404 });
+  };
+
+  API.post = async (options) => {
+    const url = options.url.toString();
+    counted.requests.push(`POST ${url}`);
+
+    if (url.endsWith("/team-member/search-members")) {
+      const text = String((options.data && options.data.text) || "")
+        .trim()
+        .toLowerCase();
+      counted.memberSearches.push(text);
+
+      return new HTTPResponse(
+        200,
+        {
+          members: PROJECT_PEOPLE.filter((person) => {
+            return (
+              person.name.toLowerCase().includes(text) ||
+              person.email.toLowerCase().includes(text)
+            );
+          }),
+        },
+        {},
+      );
+    }
+
+    // Product events and anything else: taken, with nothing to say.
+    return new HTTPResponse(200, {}, {});
+  };
+
+  /*
+   * Who is searching, as the permission snapshot says: a Project Admin may
+   * create everything Search offers and see the project's people; a reader
+   * of services may do neither.
+   */
+  PermissionUtil.getAllPermissions = () => {
+    return searchesAsReader
+      ? [Permission.ReadService]
+      : [Permission.ProjectAdmin];
+  };
+  PermissionUtil.getProjectPermissions = () => {
+    return null;
+  };
+}
+
 function makeProject(id = PROJECT_ID, name = PROJECT_NAME) {
   const project = new Project();
   project.id = new ObjectID(id);
@@ -81,6 +242,10 @@ export function installHeaderFixture() {
     requests: [],
   };
   window.__headerFixture = counted;
+
+  if (mountsPalette) {
+    installPaletteFixture(counted);
+  }
 
   GlobalEvents.addEventListener(EventName.COMMAND_PALETTE_TOGGLE, () => {
     counted.paletteToggles += 1;
@@ -191,9 +356,24 @@ export function HeaderFixture(props) {
         />
       </div>
       <HowOneUptimeWorksDialog />
+      {mountsPalette ? (
+        <DashboardCommandPalette
+          projects={moreProjects || [project]}
+          onProjectSelected={setProject}
+        />
+      ) : (
+        <></>
+      )}
       <main className="grow px-4 py-6 sm:px-8">
         <p data-testid="current-route" className="text-sm text-gray-500">
           {props.pathname}
+        </p>
+        {/* The query wraps anywhere: a phone's line is narrower than it. */}
+        <p
+          data-testid="current-search"
+          className="break-all text-sm text-gray-500"
+        >
+          {props.search || ""}
         </p>
       </main>
     </div>

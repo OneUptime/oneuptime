@@ -22,6 +22,8 @@ import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import { useUserEmailRegistrationStatus } from "Common/UI/Utils/UserEmailRegistrationStatus";
 import { JSONObject } from "Common/Types/JSON";
 import Navigation from "Common/UI/Utils/Navigation";
+import CreateFormAddress from "Common/UI/Utils/CreateFormAddress";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -87,6 +89,8 @@ const Users: FunctionComponent<PageComponentProps> = (
     React.useState<boolean>(false);
   const [isPushGroupsManaged, setIsPushGroupsManaged] =
     React.useState<boolean>(false);
+  // Whether the SCIM read above has answered, so Invite User knows which to open.
+  const [hasCheckedScim, setHasCheckedScim] = React.useState<boolean>(false);
 
   /*
    * Whether the server can send the invitation email (Utils/ServerEmail):
@@ -271,6 +275,7 @@ const Users: FunctionComponent<PageComponentProps> = (
   React.useEffect(() => {
     const checkScim: () => Promise<void> = async () => {
       if (!props.currentProject || !props.currentProject._id) {
+        setHasCheckedScim(true);
         return;
       }
       try {
@@ -284,10 +289,38 @@ const Users: FunctionComponent<PageComponentProps> = (
         setIsPushGroupsManaged(scimCount > 0);
       } catch {
         // ignore
+      } finally {
+        setHasCheckedScim(true);
       }
     };
     checkScim();
   }, [props.currentProject]);
+
+  /*
+   * Search's Invite User opens this page with ?create=1 (#7035): the invite
+   * opens as Invite User opens it - or, while SCIM manages who is in the
+   * project, the note that says so - for whoever may invite. Someone who
+   * may not sees the list, as anyone does. Reloading opens it again, and
+   * closing it takes the ask off the address (CreateFormAddress).
+   */
+  const isInviteAskedForByAddress: boolean = CreateFormAddress.isAskedFor();
+  const mayInvite: boolean = PermissionGate.check(
+    new TeamMember(),
+    ModelAction.Create,
+  ).isAllowed;
+
+  React.useEffect(() => {
+    if (!isInviteAskedForByAddress || !mayInvite || !hasCheckedScim) {
+      return;
+    }
+
+    if (isPushGroupsManaged) {
+      setShowScimErrorModal(true);
+      return;
+    }
+
+    void openInviteUserModal();
+  }, [isInviteAskedForByAddress, mayInvite, hasCheckedScim]);
 
   return (
     <Fragment>
@@ -552,10 +585,15 @@ const Users: FunctionComponent<PageComponentProps> = (
           title="Invite New User"
           onClose={() => {
             setShowInviteUserModal(false);
+            // Opened by ?create=1: Back to the list never opens it again.
+            CreateFormAddress.clear();
           }}
           submitButtonText="Invite"
           initialValues={inviteInitialValues}
           onSuccess={(teamMember: TeamMember | null) => {
+            // Before the person's page opens: Back comes to the list.
+            CreateFormAddress.clear();
+
             if (teamMember) {
               UiAnalytics.captureRevenueEvent(
                 RevenueEventName.TeammateInvited,
@@ -678,6 +716,7 @@ const Users: FunctionComponent<PageComponentProps> = (
           description="Your identity provider manages team membership. Turn off Push Groups in Project Settings > Security > SCIM to invite people here."
           onSubmit={() => {
             setShowScimErrorModal(false);
+            CreateFormAddress.clear();
           }}
           submitButtonText="Close"
         />

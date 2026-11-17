@@ -62,7 +62,7 @@ Abre **Guardia** desde el menú **Productos** y ve a **Programaciones de guardia
 
 ### Crear una política
 
-Ve a **Políticas de guardia** y haz clic en **Crear Política de guardia**. En **¿A quién se avisa primero?**, elige la programación. Se convierte en la primera regla de escalado de la política, **Level 1**, que espera 30 minutos a que alguien reconozca.
+Ve a **Políticas de guardia** y haz clic en **Crear política de guardia**. En **¿A quién se avisa primero?**, elige la programación. Se convierte en la primera regla de escalado de la política, **Level 1**, que espera 30 minutos a que alguien reconozca.
 
 ### Añadir los niveles siguientes
 

@@ -28,7 +28,8 @@ import {
 } from "./HeaderFixture";
 
 /*
- * The header page reads ?lang= its own way (HeaderFixture.js: en, de or ar).
+ * The header page reads ?lang= its own way (HeaderFixture.js: en, de, ar or
+ * fa).
  * Every other page is English, or the Dashboard's German (?lang=de) or
  * Arabic (?lang=ar, read from right to left). Read once: links navigate
  * without the query.
@@ -54,6 +55,10 @@ const LOCALE_LOADERS = {
   },
   ar: () => {
     return import("../../App/FeatureSet/Dashboard/src/Locales/ar.json");
+  },
+  // Persian, right to left, for the header's page (?header=true&lang=fa).
+  fa: () => {
+    return import("../../App/FeatureSet/Dashboard/src/Locales/fa.json");
   },
 };
 
@@ -109,7 +114,9 @@ function Fixture() {
 
   // The header and nav bar of every page: ?header=true (HeaderFixture.js).
   if (isHeaderMode) {
-    return <HeaderFixture pathname={location.pathname} />;
+    return (
+      <HeaderFixture pathname={location.pathname} search={location.search} />
+    );
   }
 
   if (showProducts) {

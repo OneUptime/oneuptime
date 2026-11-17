@@ -62,7 +62,7 @@ Policyer, eskaleringsregler, vaktplaner og overstyringer hører til prosjektet, 
 
 ### Opprett en policy
 
-Gå til **Vaktpolicyer**, og klikk på **Opprett Vaktpolicy**. Velg vaktplanen under **Hvem varsles først?**. Den blir den første eskaleringsregelen i policyen, **Level 1**, som venter 30 minutter på en bekreftelse.
+Gå til **Vaktpolicyer**, og klikk på **Opprett vaktpolicy**. Velg vaktplanen under **Hvem varsles først?**. Den blir den første eskaleringsregelen i policyen, **Level 1**, som venter 30 minutter på en bekreftelse.
 
 ### Legg til de neste nivåene
 

@@ -100,7 +100,7 @@ Under **Send et testkald** klikker du på **Test denne politik**, vælger en **A
 
 To vagtregler udløser politikken: en ved hver ny hændelse og en ved hver ny advarsel. For at se den første åbner du **Hændelser** fra menuen **Produkter**, folder **Regler** ud i sidemenuen og vælger **Vagtregler**: Den matcher **Alle hændelser**. For kun at udløse politikken ved nogle hændelser, for eksempel kritiske, redigerer du reglen der, eller klikker på **Opret Vagtregel for hændelser** for at tilføje din egen.
 
-Vil du i stedet bygge en politik felt for felt, så åbn **Vagt** fra menuen **Produkter**, og klik på **Opret Vagtpolitik**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vagtplaner](/docs/on-call/schedules) for flere niveauer, rotationer og hvor længe hvert niveau venter.
+Vil du i stedet bygge en politik felt for felt, så åbn **Vagt** fra menuen **Produkter**, og klik på **Opret vagtpolitik**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vagtplaner](/docs/on-call/schedules) for flere niveauer, rotationer og hvor længe hvert niveau venter.
 
 Vil du se hvert skærmbillede i opsætningen, og hvad du gør, når et kald ikke kommer frem, så følg [Bliv tilkaldt via opkald, SMS eller push](/docs/guides/paging).
 

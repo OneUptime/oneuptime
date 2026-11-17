@@ -12,10 +12,10 @@ En jourpolicy avgör vem som larmas om en incident eller ett larm, och vem som s
 ## Skapa en policy
 
 :::steps
-1. Gå till **Jour → Jourpolicyer** och klicka på **Skapa Jourpolicy**.
+1. Gå till **Jour → Jourpolicyer** och klicka på **Skapa jourpolicy**.
 2. Ange ett **Namn**, till exempel "Betalningar primär".
 3. Klicka på **Lägg till mottagare** under **Vem larmas först?** och välj de jourscheman, team och personer som ska larmas först.
-4. Klicka på **Skapa Jourpolicy**. Policyn öppnas på sin sida **Eskaleringsregler**, med **Level 1** på plats.
+4. Klicka på **Skapa jourpolicy**. Policyn öppnas på sin sida **Eskaleringsregler**, med **Level 1** på plats.
 :::
 
 **Vem larmas först?** är valfritt och visas bara för personer som får lägga till eskaleringsregler: lämnas det tomt larmar policyn ingen förrän den har en regel. **Beskrivning** och **Etiketter** väntar under **Fler fält**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) för att lägga till nästa nivåer.

@@ -12,10 +12,10 @@ En vaktpolicy avgjør hvem som tilkalles om en hendelse eller et varsel, og hvem
 ## Opprett en policy
 
 :::steps
-1. Gå til **Vakt → Vaktpolicyer**, og klikk på **Opprett Vaktpolicy**.
+1. Gå til **Vakt → Vaktpolicyer**, og klikk på **Opprett vaktpolicy**.
 2. Skriv inn et **Navn**, for eksempel "Betalinger primær".
 3. Klikk på **Legg til mottaker** under **Hvem varsles først?**, og velg vaktplanene, teamene og personene som skal tilkalles først.
-4. Klikk på **Opprett Vaktpolicy**. Policyen åpner på siden **Eskaleringsregler**, med **Level 1** på plass.
+4. Klikk på **Opprett vaktpolicy**. Policyen åpner på siden **Eskaleringsregler**, med **Level 1** på plass.
 :::
 
 **Hvem varsles først?** er valgfritt og vises bare for folk som kan legge til eskaleringsregler: står det tomt, tilkaller policyen ingen før den har en regel. **Beskrivelse** og **Etiketter** venter under **Flere felt**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) for å legge til de neste nivåene.
