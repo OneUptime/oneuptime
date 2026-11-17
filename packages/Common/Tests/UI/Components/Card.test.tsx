@@ -81,7 +81,7 @@ describe("Card", () => {
     const buttons: CardButtonSchema[] = [
       {
         title: "btn 1",
-        buttonStyle: ButtonStyleType.SUCCESS,
+        buttonStyle: ButtonStyleType.PRIMARY,
         onClick: jest.fn(),
         icon: IconProp.Success,
         className: "btn-1-class",

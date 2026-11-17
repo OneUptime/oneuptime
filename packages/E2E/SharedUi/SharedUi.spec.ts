@@ -48,15 +48,11 @@ const OUTLINE_STYLES: Array<string> = [
 
 const ALL_STYLES: Array<string> = [
   "PRIMARY",
-  "SECONDARY",
   "OUTLINE",
   "NORMAL",
   "DANGER",
   "DANGER_OUTLINE",
-  "SUCCESS",
   "SUCCESS_OUTLINE",
-  "WARNING",
-  "WARNING_OUTLINE",
   "ICON_LIGHT",
   "LINK",
   "SECONDARY_LINK",
@@ -67,13 +63,7 @@ const ALL_STYLES: Array<string> = [
 ];
 
 // The styles that draw a fill of their own.
-const FILLED_STYLES: Array<string> = [
-  "PRIMARY",
-  "SECONDARY",
-  "DANGER",
-  "SUCCESS",
-  "WARNING",
-];
+const FILLED_STYLES: Array<string> = ["PRIMARY", "DANGER"];
 
 // Tailwind 3.4's colours, as the browser reports them.
 const GRAY_50: string = "rgb(249, 250, 251)";
