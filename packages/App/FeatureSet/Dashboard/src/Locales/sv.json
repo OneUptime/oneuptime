@@ -56559,5 +56559,7 @@
   "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "Testet skapar också en riktig kanal i regelns Microsoft Teams-team, till exempel {{channel}}, som alla i teamet kan se. Ta bort den i Microsoft Teams när du är klar.",
   "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "Testet skapar också en riktig {{workspace}}-kanal, till exempel {{channel}}, och bjuder in dig till den. Arkivera den i {{workspace}} när du är klar.",
   "{{team}} (typed name)": "{{team}} (inskrivet namn)",
-  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Inget har kontrollerat monitorerna för denna SLO ännu. Den mäts från deras första kontroll."
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Inget har kontrollerat monitorerna för denna SLO ännu. Den mäts från deras första kontroll.",
+  "Discovered device {{name}}": "Upptäckt enhet {{name}}",
+  "The Discovered Devices list": "Listan över upptäckta enheter"
 }
