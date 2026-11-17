@@ -302,6 +302,12 @@ Veien én forespørsel tar gjennom tjenestene dine, trinn for trinn. Hvert trinn
 
 Se [Sporutforsker](/docs/telemetry/traces-explorer).
 
+### Span
+
+Ett steg i en forespørsel: forespørselen en tjeneste besvarer, et kall den gjør til en annen tjeneste eller en databasespørring, med når det startet, hvor lenge det varte og om det feilet. Spans ligger inne i spanet som startet dem, og spansene til én forespørsel utgjør sporet.
+
+Se [Sporutforsker](/docs/telemetry/traces-explorer#spor-og-spans).
+
 ### Profiler
 
 Hvordan applikasjonen din bruker CPU-tid og minne, funksjon for funksjon, samlet inn av en profiler som sender til det Pyroscope-kompatible API-et til OneUptime.

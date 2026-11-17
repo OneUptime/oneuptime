@@ -302,6 +302,12 @@ El recorrido de una solicitud a través de tus servicios, paso a paso. Cada paso
 
 Consulta [Explorador de trazas](/docs/telemetry/traces-explorer).
 
+### Span
+
+Un paso de una solicitud: la solicitud que atiende un servicio, una llamada que hace a otro servicio o una consulta a la base de datos, con cuándo empezó, cuánto tardó y si falló. Los spans se anidan dentro del span que los inició, y los spans de una solicitud forman su traza.
+
+Consulta [Explorador de trazas](/docs/telemetry/traces-explorer#trazas-y-spans).
+
 ### Perfiles
 
 Cómo gasta tu aplicación el tiempo de CPU y la memoria, función por función, enviado por un perfilador que envía los datos a la API compatible con Pyroscope de OneUptime.

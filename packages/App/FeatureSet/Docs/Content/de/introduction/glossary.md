@@ -302,6 +302,12 @@ Der Weg einer Anfrage durch Ihre Dienste, Schritt für Schritt. Jeder Schritt is
 
 Siehe [Trace-Explorer](/docs/telemetry/traces-explorer).
 
+### Span
+
+Ein Schritt einer Anfrage: die Anfrage, die ein Dienst beantwortet, ein Aufruf an einen anderen Dienst oder eine Datenbankabfrage, mit Startzeit, Dauer und der Angabe, ob er fehlgeschlagen ist. Spans liegen in dem Span, der sie gestartet hat, und die Spans einer Anfrage bilden ihren Trace.
+
+Siehe [Trace-Explorer](/docs/telemetry/traces-explorer#traces-und-spans).
+
 ### Profile
 
 Wie Ihre Anwendung CPU-Zeit und Speicher verbraucht, Funktion für Funktion, gesendet von einem Profiler, der an die Pyroscope-kompatible API von OneUptime liefert.
