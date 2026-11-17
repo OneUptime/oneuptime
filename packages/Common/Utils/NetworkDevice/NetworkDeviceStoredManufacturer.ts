@@ -1,4 +1,5 @@
 import {
+  NETWORK_DEVICE_MANUFACTURER_INPUT_COLUMNS,
   NetworkDeviceAssetSource,
   getNetworkDeviceManufacturer,
 } from "./NetworkDeviceAssetFacts";
@@ -39,8 +40,9 @@ import {
  */
 
 /*
- * The device's columns the maker is worked out from. A write to any of them
- * can change it, so the service works it out again after one.
+ * The device's columns the maker is worked out from, declared beside the
+ * function that works it out (NetworkDeviceAssetFacts). A write to any of
+ * them can change it, so the service works it out again after one.
  *
  *   vendor, sysDescr, sysObjectId  what the device's poll read, or a
  *                                  person saved.
@@ -49,8 +51,7 @@ import {
  *   discoveredDetails              what discovery, the device's controller
  *                                  and the Discovered Devices list say.
  */
-export const NETWORK_DEVICE_MANUFACTURER_INPUT_COLUMNS: ReadonlyArray<string> =
-  ["vendor", "sysDescr", "sysObjectId", "lastSnmpSeenAt", "discoveredDetails"];
+export { NETWORK_DEVICE_MANUFACTURER_INPUT_COLUMNS };
 
 /*
  * The keys of its discovered details the maker reads: the SNMP identity a
@@ -95,8 +96,11 @@ export function getStoredNetworkDeviceManufacturer(
 export function isNetworkDeviceManufacturerInputWrite(
   columns: Iterable<string>,
 ): boolean {
+  const inputs: ReadonlyArray<string> =
+    NETWORK_DEVICE_MANUFACTURER_INPUT_COLUMNS as ReadonlyArray<string>;
+
   for (const column of columns) {
-    if (NETWORK_DEVICE_MANUFACTURER_INPUT_COLUMNS.includes(column)) {
+    if (inputs.includes(column)) {
       return true;
     }
   }
