@@ -846,7 +846,9 @@ Trim each field to its marketplace's limit. Logos and screenshots: as in
 captions, approved by a maintainer).
 
 **Name:** OneUptime Enterprise. Never call it "self-hosted" (the maintainer's
-rule): say where it runs instead, as the copy below does.
+rule): say where it runs instead, as the copy below does. The live Microsoft
+listing keeps "OneUptime Enterprise (self-hosted)", the maintainer's choice on
+17 November 2026.
 
 **Search summary (≤ 100 characters):**
 
@@ -1306,6 +1308,7 @@ rejection, go-live and price change.
 | 2026-11-17 | Google      | Tax Category: all five questions answered No, so the plan is complete                               | Maintainer |
 | 2026-11-17 | Google      | Decided: the product is OneUptime Enterprise, never "self-hosted"; the listing renamed              | Maintainer |
 | 2026-11-17 | Google      | Product details and pricing reviews submitted, with the maintainer's go-ahead                       | Agent      |
+| 2026-11-17 | Microsoft   | The live listing keeps "OneUptime Enterprise (self-hosted)": the maintainer's choice                | Maintainer |
 | 2026-11-17 | AWS         | Bank account verification in review: the bank statement is uploaded                                 | Maintainer |
 | 2026-11-17 | AWS         | Case 00966062 escalated: remove the placeholder version, or name the broken URL                     | Agent      |
 
