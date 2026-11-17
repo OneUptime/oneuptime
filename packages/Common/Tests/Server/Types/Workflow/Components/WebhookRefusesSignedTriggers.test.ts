@@ -112,21 +112,36 @@ beforeEach(async () => {
   started = [];
   triggerId = ComponentID.Webhook;
 
-  jest.spyOn(WorkflowService, "findOneBy").mockImplementation((async (findBy: {
-    select: Record<string, boolean>;
-  }): Promise<Workflow> => {
-    // The trigger is read with the workflow, to tell which it is.
-    expect(findBy.select["triggerId"]).toBe(true);
+  /*
+   * The workflow found by the key in the URL - by the key's lookup hash, as
+   * the key is kept encrypted (#9012: WorkflowService.findOneByPresentedKey).
+   */
+  jest
+    .spyOn(WorkflowService, "findOneByPresentedKey")
+    .mockImplementation((async (findBy: {
+      column: string;
+      presentedKey: string;
+      select: Record<string, boolean>;
+    }): Promise<Workflow | null> => {
+      // The trigger is read with the workflow, to tell which it is.
+      expect(findBy.select["triggerId"]).toBe(true);
 
-    const workflow: Workflow = new Workflow();
-    workflow._id = WORKFLOW_ID;
+      if (
+        findBy.column !== "webhookSecretKey" ||
+        findBy.presentedKey !== "a-secret-key"
+      ) {
+        return null;
+      }
 
-    if (triggerId) {
-      workflow.triggerId = triggerId;
-    }
+      const workflow: Workflow = new Workflow();
+      workflow._id = WORKFLOW_ID;
 
-    return workflow;
-  }) as never);
+      if (triggerId) {
+        workflow.triggerId = triggerId;
+      }
+
+      return workflow;
+    }) as never);
 
   const props: InitProps = {
     router: fakeRouter(),

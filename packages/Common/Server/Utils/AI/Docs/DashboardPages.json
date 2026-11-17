@@ -1095,7 +1095,9 @@
       "identity provider",
       "oidc",
       "openid connect",
-      "oauth"
+      "oauth",
+      "require sso for login",
+      "force sso for login"
     ],
     "path": "/dashboard/:projectId/settings/sso",
     "kind": "page"

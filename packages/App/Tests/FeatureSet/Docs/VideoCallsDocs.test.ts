@@ -516,14 +516,23 @@ describe("Video Calls docs - connecting in one click", () => {
     );
   });
 
-  test("asks a Zoom sign-in for the transcript permissions, and says an older one reconnects", () => {
+  test("asks a Zoom sign-in for the transcript permissions, and says an older one reconnects before Zoom stops accepting it", () => {
     const section: string = sectionOf(readPage(), "connect-in-one-click");
 
     expect(section).toContain(ZOOM_OAUTH_RECORDING_FILES_SCOPE);
     expect(section).toContain(ZOOM_OAUTH_MEETING_TRANSCRIPT_SCOPE);
     expect(section).toContain(
-      "A Zoom connection signed in before OneUptime read call transcripts starts calls as before",
+      "A Zoom connection signed in before OneUptime read call transcripts cannot read them.",
     );
+    /*
+     * Zoom keeps accepting a sign-in made before an update that added scopes
+     * for 90 days after the update, and no longer (#9269): such a connection
+     * does not start calls "as before" for good.
+     */
+    expect(section).toContain(
+      "Zoom stops accepting such a connection's sign-in 90 days later, and it stops starting calls.",
+    );
+    expect(section).not.toContain("starts calls as before, but cannot read");
   });
 
   test("a self-hosted server: every redirect URI the server builds, every variable it reads", () => {

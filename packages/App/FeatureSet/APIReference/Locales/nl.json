@@ -300,6 +300,26 @@
       "masterAdminOnlyTitle": "Alleen Master Admin API",
       "masterAdminOnlyBody": "Deze API is alleen toegankelijk via een Master API-token. U kunt er een aanmaken in het Admin Dashboard. Voeg het token toe aan de <code>ApiKey</code>-header om het verzoek te doen."
     },
+    "modelEndpoints": {
+      "scheduleLayersReadHeading": "Lagen lezen",
+      "scheduleLayersReadIntro": "Dit endpoint geeft de lagen van het schema en de mensen daarin terug, zoals ze zijn opgeslagen: elke laag die het schema houdt, de hoogste prioriteit eerst, elk met haar mensen in de volgorde van hun beurten, en de versie waarop ze staan, als basedOnVersion. Het is een opslag die niets verandert: wijzig hem en stuur hem naar Lagen opslaan.",
+      "scheduleLayersReadRequestTitle": "Verzoek om lagen te lezen",
+      "scheduleIdDescription": "ID van het bereikbaarheidsschema",
+      "scheduleLayersSaveHeading": "Lagen opslaan",
+      "scheduleLayersSaveIntro": "Dit endpoint slaat in één keer op wie er beurten heeft in de lagen van het schema, en de prioriteit van de lagen, in één transactie: alles wordt opgeslagen of niets. Wie er bereikbaar is, wordt daarna één keer bepaald, en iedereen voor wie er iets verandert, hoort het één keer. Het valt onder dezelfde rechten en controles als de endpoints van lagen en hun mensen. De eigen instellingen van een laag, zoals haar naam en rotatie, horen er niet bij.",
+      "scheduleLayersSaveRequestTitle": "Verzoek om lagen op te slaan",
+      "basedOnVersionDescription": "De versie van de lagen waarop je wijzigingen zijn gemaakt, zoals Lagen lezen die teruggeeft.",
+      "layersDescription": "Elke laag die het schema houdt, de hoogste prioriteit eerst, elk als { layerId, users }. users zijn de mensen die er beurten in hebben, in de volgorde van hun beurten: wie al in de laag zit als { layerUserId, userId }, wie erbij komt als { userId }. Wie in zijn laag ontbreekt, wordt eruit gehaald.",
+      "deletedLayerIdsDescription": "De lagen die worden verwijderd, met de mensen daarin. Een schema houdt ten minste één laag.",
+      "refusalsHeading": "Weigeringen",
+      "scheduleLayersConflict": "409 Conflict: de lagen zijn gewijzigd nadat de versie die je stuurde was gelezen, dus er wordt niets opgeslagen. Lees de lagen opnieuw en maak je wijziging op wat er nu staat.",
+      "scheduleLayersBadRequest": "400 Bad Request: de opslag noemt niet elke laag van het schema één keer, in layers of deletedLayerIds, noemt een laag of de rij van een persoon die niet van het schema is, of verwijdert elke laag.",
+      "userOverrideEndNowHeading": "Nu beëindigen",
+      "userOverrideEndNowIntro": "Dit endpoint beëindigt een lopende overschrijving volgens de klok van de server: haar einde wordt nu, en vanaf dan zijn de oproepen weer van de afwezige persoon. Het vraagt hetzelfde recht als een update en geeft het nieuwe endsAt van de overschrijving terug.",
+      "userOverrideEndNowRequestTitle": "Verzoek om nu te beëindigen",
+      "userOverrideIdDescription": "ID van de gebruikersoverschrijving",
+      "userOverrideEndNowRefused": "400 Bad Request: de overschrijving is nog niet begonnen (verwijder haar in plaats daarvan), is al afgelopen of eindigt hoe dan ook binnen de minuut."
+    },
     "dataType": {
       "enumBadge": "Enum",
       "dataTypeBadge": "Gegevenstype",

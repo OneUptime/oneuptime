@@ -6,6 +6,7 @@ Enquanto alguém está ausente, uma substituição de usuário envia os acioname
 - [Como uma substituição muda um acionamento](#como-uma-substituição-muda-um-acionamento): Quem é acionado no lugar, e quando.
 - [Adicionar uma substituição](#adicionar-uma-substituição): Quem está ausente, quem cobre, a partir de quando e até quando.
 - [Editar uma substituição](#editar-uma-substituição): Mudar quem cobre, ou quando ela começa e termina.
+- [Encerrar uma substituição antes](#encerrar-uma-substituição-antes): Trazer alguém de volta antes de a substituição terminar.
 - [Todas as políticas, ou uma](#todas-as-políticas-ou-uma): Onde adicionar uma substituição, e qual vale.
 - [Outras formas de adicionar uma](#outras-formas-de-adicionar-uma): A partir de um agendamento e dos seus próximos turnos.
 :::
@@ -56,10 +57,16 @@ Cada substituição é uma linha: **Ausente**, **Coberto por**, **Começa** e **
 Clique em **Editar** na linha de uma substituição, em qualquer uma das páginas **Substituições de usuário** ou na lista de substituições de usuário da página **Camadas** de um agendamento. O formulário abre com a substituição como foi salva: altere-a e clique em **Salvar alterações**.
 
 - **Quem cobre?** pode mudar até a substituição terminar. Volte para **Próxima pessoa da rotação** para pular a pessoa em vez disso.
-- **Começa** pode ser movido até a substituição começar, e depois fica como está. **Termina** pode ser movido até a substituição terminar: defina-o para agora para encerrar a substituição antes. Nenhum dos dois pode ser movido para o passado.
+- **Começa** pode ser movido até a substituição começar, e depois fica como está. **Termina** pode ser movido até a substituição terminar: para encerrá-la agora, use **Encerrar agora**. Nenhum dos dois pode ser movido para o passado.
 - **Quem está ausente?** não pode mudar. Para outra pessoa, adicione uma nova substituição.
 
-Uma substituição que já terminou não pode ser alterada: o **Editar** dela fica bloqueado e diz por quê.
+Uma substituição que já terminou não pode ser alterada: o **Editar** dela fica bloqueado e diz por quê. O aplicativo móvel do OneUptime edita substituições com as mesmas regras.
+
+## Encerrar uma substituição antes
+
+Para trazer alguém de volta antes de a substituição terminar, clique em **Encerrar agora**: no menu da linha da substituição, em qualquer uma das páginas **Substituições de usuário**, ao lado dela na lista de substituições de usuário da página **Camadas** de um agendamento, ou abaixo de **Termina** no formulário de edição dela. Ele pergunta antes e diz o que acontece com o tempo restante: quem cobre deixa de cobrir a pessoa, ou a pessoa deixa de ser pulada, e a partir daí os acionamentos voltam a ser dela. A substituição então termina na hora.
+
+**Encerrar agora** só é oferecido enquanto uma substituição está em andamento: uma que ainda não começou não tem o que encerrar, então exclua-a. O aplicativo móvel encerra da mesma forma uma substituição em andamento.
 
 ## Todas as políticas, ou uma
 
@@ -68,11 +75,11 @@ Uma substituição que já terminou não pode ser alterada: o **Editar** dela fi
 | **Plantão → Avançado → Substituições de usuário** | **Substituições de usuário globais** | Todas as políticas de plantão do projeto |
 | **Substituições de usuário** de uma política | **Substituições de usuário da política de plantão** | Só essa política |
 
-Duas substituições da mesma pessoa não podem se sobrepor na mesma política, nem quando as duas são globais. O formulário avisa assim que os horários são escolhidos, com **Editar essa substituição** para alterar aquela em vez disso. Uma pode terminar quando a próxima começa.
+Duas substituições da mesma pessoa não podem se sobrepor na mesma política, nem quando as duas são globais. O formulário, e **Pular até…** nas camadas de um agendamento, avisam ao lado dos horários assim que eles são escolhidos, com **Editar essa substituição** para alterar aquela em vez disso. Uma pode terminar quando a próxima começa.
 
 A substituição da própria política pode se sobrepor a uma global da mesma pessoa: nessa política, vale a dela enquanto as duas se aplicam, e o formulário avisa. Um acionamento enviado sem política, de um workflow ou do chat, segue só as substituições globais.
 
-As substituições que já se sobrepunham antes desta regra ficam como estão. As duas recebem a marca **Sobreposição**, que diz qual vale: a que indica quem cobre antes de um pulo, depois a que começa primeiro, depois a que foi adicionada primeiro.
+As substituições que já se sobrepunham antes desta regra ficam como estão. As duas recebem a marca **Sobreposição**, que diz qual vale: a que indica quem cobre antes de um pulo, depois a que começa primeiro, depois a que foi adicionada primeiro. Qualquer uma das duas ainda pode ser encurtada, ou encerrada com **Encerrar agora**: só uma alteração que acrescenta tempo está sujeita à regra.
 
 ## Outras formas de adicionar uma
 
@@ -85,7 +92,7 @@ Quando alguém sai do projeto, cada substituição que nomeia essa pessoa e que 
 
 **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de plantão** e **Membro de plantão** podem adicionar, editar e excluir substituições; **Visualizador** e **Visualizador de plantão** podem vê-las. Em uma função personalizada, as permissões são **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** e **Read On-Call Policy User Override**. Na **Linha do tempo de plantões**, só quem pode ler substituições vê de quem é o turno coberto.
 
-Uma substituição em uma política segue o escopo da política. Dê a uma equipe **Membro de plantão** limitado às políticas que ela possui, ou ao seu rótulo, e seus membros adicionam, editam e excluem substituições só nessas políticas. Uma substituição global se aplica a todas as políticas, inclusive às de outra equipe, então adicioná-la, editá-la ou excluí-la exige a permissão de substituições no projeto inteiro. Com uma mais restrita, **Adicionar: Substituição de usuário**, **Editar** e **Excluir** em **Plantão → Avançado → Substituições de usuário** ficam bloqueados e dizem por quê. **Pular até…** nas camadas de um agendamento e **Obter cobertura** nos seus próximos turnos, que adicionam substituições globais, oferecem em vez disso as políticas em que você pode adicionar substituições, com uma substituição por política, assim como a cobertura do app para celular; onde você não pode em nenhuma, ficam bloqueados e dizem por quê. A equipe adiciona suas substituições na página **Substituições de usuário** de cada política. O mesmo vale para a API: uma substituição sem `onCallDutyPolicyId` é recusada para uma permissão limitada a rótulos ou a políticas próprias.
+Uma substituição em uma política segue o escopo da política. Dê a uma equipe **Membro de plantão** limitado às políticas que ela possui, ou ao seu rótulo, e seus membros adicionam, editam e excluem substituições só nessas políticas. Uma substituição global se aplica a todas as políticas, inclusive às de outra equipe, então adicioná-la, editá-la ou excluí-la exige a permissão de substituições no projeto inteiro. Com uma mais restrita, **Adicionar: Substituição de usuário**, **Editar**, **Encerrar agora** e **Excluir** em **Plantão → Avançado → Substituições de usuário** ficam bloqueados e dizem por quê. **Pular até…** nas camadas de um agendamento e **Obter cobertura** nos seus próximos turnos, que adicionam substituições globais, oferecem em vez disso as políticas em que você pode adicionar substituições, com uma substituição por política, assim como a cobertura do app para celular; onde você não pode em nenhuma, ficam bloqueados e dizem por quê. A equipe adiciona suas substituições na página **Substituições de usuário** de cada política. O mesmo vale para a API: uma substituição sem `onCallDutyPolicyId` é recusada para uma permissão limitada a rótulos ou a políticas próprias.
 
 No OneUptime Cloud, as substituições de usuário precisam do plano **Growth**.
 
@@ -118,6 +125,8 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-user-override \
 Uma substituição em que a pessoa ausente e quem cobre são a mesma pessoa é recusada, assim como uma que termina antes de começar. O mesmo vale para uma que se sobrepõe a outra substituição da mesma pessoa na mesma política, ou quando as duas são globais: a recusa nomeia aquela com que ela se sobrepõe.
 
 Para alterar uma substituição, envie `PUT /api/on-call-duty-policy-user-override/<override-id>` com os campos a mudar em `data`: `routeAlertsToUserId` (`null` para pular a pessoa em vez disso), `startsAt` e `endsAt`. `overrideUserId` e `onCallDutyPolicyId` não podem mudar. Uma substituição que já terminou não pode ser alterada, nem o início de uma que já começou, e um horário alterado não pode ser movido para o passado.
+
+Para encerrar uma substituição em andamento, envie `POST /api/on-call-duty-policy-user-override/<override-id>/end-now`. Ela termina pelo relógio do servidor, e a resposta traz o novo `endsAt` dela. Uma que ainda não começou, ou que já terminou, é recusada.
 
 ## Solução de problemas
 

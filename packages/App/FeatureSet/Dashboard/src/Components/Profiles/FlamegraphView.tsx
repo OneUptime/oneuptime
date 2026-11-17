@@ -611,10 +611,13 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
 
       return (
         <React.Fragment key={`${node.name}-${depth}-${offsetFraction}`}>
-          <div
-            className={`absolute border ${style.border} ${style.bg} ${style.text} ${
+          <button
+            type="button"
+            data-testid="flamegraph-frame"
+            aria-label={node.name}
+            className={`absolute block border ${style.border} ${style.bg} ${style.text} ${
               dimmed ? "opacity-25" : "opacity-100"
-            } cursor-pointer overflow-hidden text-xs font-medium leading-[22px] px-1.5 truncate hover:brightness-110 transition-[opacity] duration-100`}
+            } cursor-pointer overflow-hidden text-left text-xs font-medium leading-[22px] px-1.5 truncate hover:brightness-110 transition-[opacity] duration-100 focus:outline-none focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500`}
             style={{
               left: `${offsetFraction * 100}%`,
               width: `${widthFraction * 100}%`,
@@ -631,7 +634,7 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
             onMouseLeave={handleFrameMouseLeave}
           >
             {showLabel ? getFrameLabel(node, depth) : ""}
-          </div>
+          </button>
           {children.map((child: FlamegraphNode) => {
             const childWidth: number =
               node.totalValue > 0

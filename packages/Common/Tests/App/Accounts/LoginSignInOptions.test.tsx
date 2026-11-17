@@ -581,8 +581,7 @@ describe("The other ways to sign in", () => {
           "border",
           "px-3",
           "py-2",
-          "text-base",
-          "md:text-sm",
+          "text-sm",
           "font-medium",
           "focus-visible:ring-2",
         ];

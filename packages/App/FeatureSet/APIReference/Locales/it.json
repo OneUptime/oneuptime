@@ -300,6 +300,26 @@
       "masterAdminOnlyTitle": "API Solo per Master Admin",
       "masterAdminOnlyBody": "Questa API è accessibile solo tramite un Master API Token. Puoi crearne uno nella Dashboard di amministrazione. Aggiungi il token all'intestazione <code>ApiKey</code> per effettuare la richiesta."
     },
+    "modelEndpoints": {
+      "scheduleLayersReadHeading": "Leggi livelli",
+      "scheduleLayersReadIntro": "Questo endpoint restituisce i livelli della pianificazione e le persone che vi appartengono, così come sono salvati: ogni livello che la pianificazione mantiene, quello con la priorità più alta per primo, ciascuno con le sue persone nell'ordine dei turni, e la versione a cui sono, come basedOnVersion. È un salvataggio che non cambia nulla: modificalo e invialo a Salva livelli.",
+      "scheduleLayersReadRequestTitle": "Richiesta di lettura dei livelli",
+      "scheduleIdDescription": "ID della pianificazione di reperibilità",
+      "scheduleLayersSaveHeading": "Salva livelli",
+      "scheduleLayersSaveIntro": "Questo endpoint salva in un colpo solo chi fa i turni nei livelli della pianificazione, e la priorità dei livelli, in un'unica transazione: viene salvato tutto o niente. Chi è reperibile viene poi calcolato una volta sola, e ogni persona per cui cambia qualcosa lo viene a sapere una volta sola. È soggetto agli stessi permessi e controlli degli endpoint dei livelli e delle loro persone. Le impostazioni proprie di un livello, come il nome e la rotazione, non ne fanno parte.",
+      "scheduleLayersSaveRequestTitle": "Richiesta di salvataggio dei livelli",
+      "basedOnVersionDescription": "La versione dei livelli su cui sono state fatte le tue modifiche, così come la restituisce Leggi livelli.",
+      "layersDescription": "Ogni livello che la pianificazione mantiene, quello con la priorità più alta per primo, ciascuno come { layerId, users }. users sono le persone che vi fanno i turni, nell'ordine dei turni: chi è già nel livello come { layerUserId, userId }, chi viene aggiunto come { userId }. Chi manca dal proprio livello ne viene tolto.",
+      "deletedLayerIdsDescription": "I livelli da eliminare, con le persone che vi appartengono. Una pianificazione mantiene almeno un livello.",
+      "refusalsHeading": "Rifiuti",
+      "scheduleLayersConflict": "409 Conflict: i livelli sono cambiati dopo la lettura della versione che hai inviato, quindi non viene salvato nulla. Rileggi i livelli e applica la tua modifica a ciò che c'è adesso.",
+      "scheduleLayersBadRequest": "400 Bad Request: il salvataggio non indica ogni livello della pianificazione una volta, in layers o deletedLayerIds, indica un livello o la riga di una persona che non è della pianificazione, oppure elimina tutti i livelli.",
+      "userOverrideEndNowHeading": "Termina ora",
+      "userOverrideEndNowIntro": "Questo endpoint termina una sostituzione in corso, secondo l'orologio del server: la sua fine diventa adesso, e da quel momento gli avvisi tornano alla persona assente. Richiede lo stesso permesso di un aggiornamento e restituisce il nuovo endsAt della sostituzione.",
+      "userOverrideEndNowRequestTitle": "Richiesta Termina ora",
+      "userOverrideIdDescription": "ID della sostituzione utente",
+      "userOverrideEndNowRefused": "400 Bad Request: la sostituzione non è ancora iniziata (eliminala invece), è già terminata o termina comunque entro il minuto."
+    },
     "dataType": {
       "enumBadge": "Enum",
       "dataTypeBadge": "Tipo di Dato",

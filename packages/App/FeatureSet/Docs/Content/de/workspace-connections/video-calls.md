@@ -70,7 +70,7 @@ Jedes Meeting wird als das Konto angelegt, mit dem Sie sich anmelden, und dieses
 
 Eine per Anmeldung hergestellte Verbindung hat weiterhin die Einstellungen, die entscheiden, wer wartet: **Who can join** für Google Meet und **Who skips the lobby** für Microsoft Teams. Ändern Sie sie mit **Bearbeiten** in der Zeile der Verbindung.
 
-Eine Zoom-Verbindung, die angemeldet wurde, bevor OneUptime Anruf-Transkripte las, startet Anrufe wie bisher, kann deren Transkripte aber erst lesen, wenn sie neu angemeldet wird: **Reconnect** in ihrer Zeile fragt Zoom nach den Berechtigungen für Transkripte.
+Eine Zoom-Verbindung, die angemeldet wurde, bevor OneUptime Anruf-Transkripte las, kann sie nicht lesen. Sobald die Zoom-App von OneUptime aktualisiert ist, um sie zu lesen, akzeptiert Zoom die Anmeldung einer solchen Verbindung 90 Tage später nicht mehr, und sie startet keine Anrufe mehr. Ab dann bittet OneUptime Sie, sie neu anzumelden: **Reconnect** in ihrer Zeile fragt Zoom nach den Berechtigungen für Transkripte.
 
 Eine Microsoft-Teams-Verbindung, die angemeldet wurde, während **Anrufe zu Vorfällen aufzeichnen und transkribieren** ausgeschaltet war, startet Anrufe wie bisher, ohne Aufzeichnung. Sobald die Einstellung eingeschaltet ist, fragt **Reconnect** in ihrer Zeile Microsoft auch nach den Berechtigungen für Kalender und Transkripte.
 

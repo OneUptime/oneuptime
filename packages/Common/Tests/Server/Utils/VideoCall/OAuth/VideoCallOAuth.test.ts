@@ -114,11 +114,13 @@ describe("VideoCallOAuthUtil secrets", () => {
       accessToken: "a",
       accessTokenExpiresAt: "2026-10-09T13:00:00.000Z",
       tokensRefreshedAt: "2026-10-09T12:00:00.000Z",
+      // A sign-in records when the account signed in (ZoomTranscriptReconnect).
+      signedInAt: "2026-10-09T12:00:00.000Z",
       externalUserId: "u-1",
     });
   });
 
-  test("a refresh keeps who signed in and the API host from before", () => {
+  test("a refresh keeps who signed in, when, and the API host from before", () => {
     const secrets: VideoCallOAuthSecrets = VideoCallOAuthUtil.toSecrets({
       tokens: {
         accessToken: "a2",
@@ -131,6 +133,7 @@ describe("VideoCallOAuthUtil secrets", () => {
         externalUserId: "u-1",
         externalAccountId: "acct",
         scope: "meeting:write:meeting",
+        signedInAt: "2026-09-01T08:00:00.000Z",
       },
       now: NOW,
     });
@@ -140,12 +143,40 @@ describe("VideoCallOAuthUtil secrets", () => {
     expect(secrets.externalUserId).toBe("u-1");
     expect(secrets.externalAccountId).toBe("acct");
     expect(secrets.scope).toBe("meeting:write:meeting");
+    expect(secrets.signedInAt).toBe("2026-09-01T08:00:00.000Z");
+    expect(secrets.tokensRefreshedAt).toBe("2026-10-09T12:00:00.000Z");
+  });
+
+  test("a refresh of a sign-in stored before OneUptime recorded when says no time", () => {
+    const secrets: VideoCallOAuthSecrets = VideoCallOAuthUtil.toSecrets({
+      tokens: {
+        accessToken: "a2",
+        refreshToken: "r2",
+        accessTokenExpiresAt: new Date("2026-10-09T13:00:00.000Z"),
+      },
+      previous: { refreshToken: "r1", scope: "meeting:write:meeting" },
+      now: NOW,
+    });
+
+    expect(secrets).not.toHaveProperty("signedInAt");
   });
 
   test("reads stored secrets, and nothing without a refresh token", () => {
     expect(
       VideoCallOAuthUtil.readSecrets({ refreshToken: "r", accessToken: "a" }),
     ).toEqual(expect.objectContaining({ refreshToken: "r", accessToken: "a" }));
+    expect(
+      VideoCallOAuthUtil.readSecrets({
+        refreshToken: "r",
+        scope: "meeting:write:meeting user:read:user",
+        signedInAt: "2026-09-01T08:00:00.000Z",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        scope: "meeting:write:meeting user:read:user",
+        signedInAt: "2026-09-01T08:00:00.000Z",
+      }),
+    );
     expect(VideoCallOAuthUtil.readSecrets({})).toBe(null);
     expect(VideoCallOAuthUtil.readSecrets({ refreshToken: "" })).toBe(null);
     expect(VideoCallOAuthUtil.readSecrets(null)).toBe(null);

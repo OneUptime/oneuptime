@@ -280,6 +280,16 @@ work out, starts from a default for everything else, and folds what most people 
 
 - **One switch.** Every yes or no is the shared `Toggle` (`Common/UI/Components/Toggle`). Enforced by
   [ToggleUsageGuard](../../packages/Common/Tests/UI/Components/ToggleUsageGuard.test.ts).
+- **One picker.** A choice from a list is the shared `Dropdown` (`Common/UI/Components/Dropdown`),
+  never a raw `<select>`. Some forty raw selects each had their own size, border, focus ring and
+  dark look: small grey boxes on the topology maps, another size in RUM User Flows, borderless
+  text in every footer. No two pickers on a page matched (#9194, #9294). A value that must always
+  be set has no clear control (`isClearable={false}`). A choice that can be empty, such as "All
+  devices" or "None", is the placeholder, and clearing the picker picks it. A `<label htmlFor>`
+  names the picker through `inputId`. The `DropdownChoices` helpers build a fixed list's options.
+  The pickers not moved yet are listed, with the reason, in the guard, and #9310 tracks them.
+  Enforced by
+  [RawSelectGuard](../../packages/Common/Tests/UI/Components/RawSelectGuard.test.ts).
 - **One color picker:** named swatches first, a custom color for an exact code. Enforced by
   [OneColorPickerGuard](../../packages/Common/Tests/UI/Components/ColorPicker/OneColorPickerGuard.test.ts).
 - **One Owners field,** not an owner-teams dropdown beside an owner-users one. Enforced by

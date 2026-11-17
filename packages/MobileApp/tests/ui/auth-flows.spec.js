@@ -102,7 +102,7 @@ test("SSO offers organization sign-in and groups email-discovered providers by p
   await capture(page, "sso-provider-selection", testInfo);
   await page.getByRole("button", { name: "Use a different email", exact: true }).click();
   await expect(page.getByLabel("Email", { exact: true }).filter({ visible: true })).toHaveValue("alex@example.test");
-  await page.getByRole("button", { name: "Back to Login", exact: true }).click();
+  await page.getByRole("button", { name: "Back to Sign In", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Welcome back", exact: true })).toBeVisible();
 });
 

@@ -300,6 +300,26 @@
       "masterAdminOnlyTitle": "仅限主管理员 API",
       "masterAdminOnlyBody": "此 API 只能通过主 API 令牌访问。您可以在管理员仪表板上创建一个。请将令牌添加到 <code>ApiKey</code> 标头以发起请求。"
     },
+    "modelEndpoints": {
+      "scheduleLayersReadHeading": "读取层",
+      "scheduleLayersReadIntro": "此端点按保存时的样子返回计划的各层及其中的人员：按优先级从高到低列出计划保留的每一层，每层按轮值顺序列出其中的人员，并在 basedOnVersion 中给出它们当前的版本。这是一次不做任何更改的保存：修改后发送给“保存层”。",
+      "scheduleLayersReadRequestTitle": "读取层请求",
+      "scheduleIdDescription": "值班计划的 ID",
+      "scheduleLayersSaveHeading": "保存层",
+      "scheduleLayersSaveIntro": "此端点一次性保存谁在计划的各层中轮值以及各层的优先级，并在一个事务中完成：要么全部保存，要么完全不保存。随后只计算一次谁在值班，受更改影响的每个人只会收到一次通知。它遵循与层和层用户端点相同的权限和检查。层自身的设置（例如名称和轮换）不包含在内。",
+      "scheduleLayersSaveRequestTitle": "保存层请求",
+      "basedOnVersionDescription": "您所做更改所基于的层版本，即“读取层”返回的版本。",
+      "layersDescription": "计划保留的每一层，按优先级从高到低排列，每层写作 { layerId, users }。users 是在该层中轮值的人员，按轮值顺序排列：已在该层中的人写作 { layerUserId, userId }，新加入的人写作 { userId }。在自己所在层中被省略的人会被移出该层。",
+      "deletedLayerIdsDescription": "要删除的层，连同其中的人员。计划至少保留一层。",
+      "refusalsHeading": "拒绝",
+      "scheduleLayersConflict": "409 Conflict：在您发送的版本被读取之后，各层已被更改，因此不会保存任何内容。请重新读取各层，并在现有内容的基础上进行更改。",
+      "scheduleLayersBadRequest": "400 Bad Request：保存没有在 layers 或 deletedLayerIds 中把计划的每一层恰好列出一次，列出了不属于该计划的层或人员行，或者删除了所有层。",
+      "userOverrideEndNowHeading": "立即结束",
+      "userOverrideEndNowIntro": "此端点按服务器的时钟结束进行中的覆盖：其结束时间变为现在，从那时起呼叫重新归不在岗的人所有。它需要与更新相同的权限，并返回覆盖新的 endsAt。",
+      "userOverrideEndNowRequestTitle": "立即结束请求",
+      "userOverrideIdDescription": "用户覆盖的 ID",
+      "userOverrideEndNowRefused": "400 Bad Request：覆盖尚未开始（请改为删除它）、已经结束，或者无论如何都会在一分钟内结束。"
+    },
     "dataType": {
       "enumBadge": "枚举",
       "dataTypeBadge": "数据类型",

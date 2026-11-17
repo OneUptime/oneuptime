@@ -16,11 +16,9 @@ import {
   serializeFacetDateRange,
   toFacetDate,
 } from "./FacetDateRange";
-import {
-  FILTER_CHIP_OPERATOR_SELECT_CLASSES,
-  FILTER_CHIP_POPOVER_CLASSES,
-} from "./FilterChipStyles";
+import { FILTER_CHIP_POPOVER_CLASSES } from "./FilterChipStyles";
 import FilterChipButton from "./FilterChipButton";
+import FilterChipOperatorPicker from "./FilterChipOperatorPicker";
 import useChipPopoverShift from "./useChipPopoverShift";
 import {
   translatableTerm,
@@ -195,29 +193,12 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
           role="dialog"
         >
           {supportedOperators.length > 1 && (
-            <div className="flex items-center gap-1.5 border-b border-gray-100 px-2 py-1.5 text-xs text-gray-500">
-              <span className="shrink-0">
-                {translator.translateTerm(props.label, { inSentence: true })}
-              </span>
-              <select
-                value={operator}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                  changeOperator(e.target.value as FilterOperator);
-                }}
-                className={FILTER_CHIP_OPERATOR_SELECT_CLASSES}
-                aria-label={translator.translateTemplate("{{label}} operator", {
-                  label: translatableTerm(props.label),
-                })}
-              >
-                {supportedOperators.map((op: FilterOperator) => {
-                  return (
-                    <option key={op} value={op}>
-                      {translator.translateText(FILTER_OPERATOR_LABELS[op])}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
+            <FilterChipOperatorPicker
+              label={props.label}
+              operator={operator}
+              operators={supportedOperators}
+              onChange={changeOperator}
+            />
           )}
 
           {valueless ? (
