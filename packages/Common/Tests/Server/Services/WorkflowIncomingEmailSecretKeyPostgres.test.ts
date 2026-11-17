@@ -5,6 +5,8 @@ import WorkflowService from "../../../Server/Services/WorkflowService";
 import { ExecuteWorkflowType } from "../../../Server/Types/Workflow/TriggerCode";
 import IncomingEmailWorkflowTrigger from "../../../Server/Types/Workflow/Components/IncomingEmail";
 import logger from "../../../Server/Utils/Logger";
+import PresentedKey from "../../../Server/Utils/PresentedKey/PresentedKey";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import ObjectID from "../../../Types/ObjectID";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import { IncomingEmailTriggerDeliveryStatus } from "../../../Types/Workflow/IncomingEmailTrigger";
@@ -16,13 +18,15 @@ import { DataSource } from "typeorm";
  * says which workflow an email is for.
  *
  *   - WorkflowService.ensureIncomingEmailSecretKey is a single-statement
- *     compare-and-set on "no key yet" (IS NOT DISTINCT FROM NULL on a uuid
- *     column): it writes once, never replaces a key, and of two racing saves
- *     exactly one wins.
- *   - The column is unique, so no workflow can take another's address - in
- *     its own project or another one.
+ *     compare-and-set on "no key yet" (IS NOT DISTINCT FROM NULL): it writes
+ *     once, never replaces a key, and of two racing saves exactly one wins.
+ *     The key it writes is kept encrypted, with its lookup hash beside it
+ *     (#9012).
+ *   - The lookup hash is unique, so no workflow can take another's address -
+ *     in its own project or another one.
  *   - The trigger finds the workflow by the key through the real ObjectID
- *     transformer, and starts the run of that workflow only.
+ *     transformer - by its lookup hash, or as written while a key may still
+ *     be stored so - and starts the run of that workflow only.
  *
  * The unit suites fake the database, so only a real driver shows these.
  *
@@ -141,6 +145,26 @@ describePostgres("a workflow's incoming email secret key, in Postgres", () => {
     return rows[0]?.incomingEmailSecretKey || null;
   }
 
+  // The key's lookup hash, as stored: what an email's key is looked up by.
+  async function keyHashOf(id: ObjectID): Promise<string | null> {
+    const rows: Array<{ incomingEmailSecretKeyHash: string | null }> =
+      await database.query(
+        `SELECT "incomingEmailSecretKeyHash" FROM "${schema}"."Workflow" WHERE "_id" = $1`,
+        [id.toString()],
+      );
+    return rows[0]?.incomingEmailSecretKeyHash || null;
+  }
+
+  // The key as the server reads it back, decrypted.
+  async function readKeyOf(id: ObjectID): Promise<string | null> {
+    const workflow: Workflow | null = await WorkflowService.findOneById({
+      id: id,
+      select: { incomingEmailSecretKey: true },
+      props: { isRoot: true },
+    });
+    return workflow?.incomingEmailSecretKey?.toString() || null;
+  }
+
   test("a workflow without a key gets one, and says so", async () => {
     const id: ObjectID = await insertWorkflow({
       projectId: ObjectID.generate(),
@@ -151,10 +175,16 @@ describePostgres("a workflow's incoming email secret key, in Postgres", () => {
       WorkflowService.ensureIncomingEmailSecretKey(id),
     ).resolves.toBe(true);
 
-    const key: string | null = await keyOf(id);
+    const stored: string | null = await keyOf(id);
+    const key: string | null = await readKeyOf(id);
 
-    expect(key).not.toBeNull();
+    // Kept encrypted (#9012): the row holds no uuid, the server reads one.
+    expect(stored).not.toBeNull();
+    expect(stored).not.toBe(key);
     expect(ObjectID.isValidUUID(key!)).toBe(true);
+    expect(await keyHashOf(id)).toBe(
+      PresentedKey.hash(key, TableColumnType.ObjectID),
+    );
   });
 
   test("a workflow that has a key keeps it, and nothing is written", async () => {
@@ -192,11 +222,27 @@ describePostgres("a workflow's incoming email secret key, in Postgres", () => {
 
   test("no workflow can take another's key, in any project", async () => {
     const key: ObjectID = ObjectID.generate();
-    await insertWorkflow({ projectId: ObjectID.generate(), key: key });
+    const owner: ObjectID = await insertWorkflow({
+      projectId: ObjectID.generate(),
+      key: null,
+    });
     const other: ObjectID = await insertWorkflow({
       projectId: ObjectID.generate(),
       key: null,
     });
+
+    /*
+     * The owner's key written as OneUptime writes one: encrypted, which
+     * differs on every write, so its unique lookup hash keeps it the
+     * owner's (#9012).
+     */
+    await WorkflowService.updateColumnsByIdWithoutHooks({
+      id: owner,
+      data: { incomingEmailSecretKey: key } as never,
+    });
+    expect(await keyHashOf(owner)).toBe(
+      PresentedKey.hash(key, TableColumnType.ObjectID),
+    );
 
     await expect(
       WorkflowService.updateColumnsByIdWithoutHooks({
