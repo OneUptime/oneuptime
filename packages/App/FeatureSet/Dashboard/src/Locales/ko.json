@@ -245,7 +245,8 @@
       "incidents": "인시던트",
       "monitors": "모니터",
       "onCallPolicies": "온콜 정책",
-      "statusPages": "상태 페이지"
+      "statusPages": "상태 페이지",
+      "recordPages": "레코드 페이지"
     }
   },
   "keyboardShortcuts": {

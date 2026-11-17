@@ -245,7 +245,8 @@
       "incidents": "事件",
       "monitors": "监视器",
       "onCallPolicies": "值班策略",
-      "statusPages": "状态页面"
+      "statusPages": "状态页面",
+      "recordPages": "记录的页面"
     }
   },
   "keyboardShortcuts": {

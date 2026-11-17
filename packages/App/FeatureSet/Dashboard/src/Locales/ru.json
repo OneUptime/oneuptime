@@ -245,7 +245,8 @@
       "incidents": "Инциденты",
       "monitors": "Мониторы",
       "onCallPolicies": "Политики дежурств",
-      "statusPages": "Страницы статуса"
+      "statusPages": "Страницы статуса",
+      "recordPages": "Страницы записей"
     }
   },
   "keyboardShortcuts": {

@@ -245,7 +245,8 @@
       "incidents": "Incidenti",
       "monitors": "Monitor",
       "onCallPolicies": "Policy di reperibilità",
-      "statusPages": "Pagine di stato"
+      "statusPages": "Pagine di stato",
+      "recordPages": "Pagine dei record"
     }
   },
   "keyboardShortcuts": {

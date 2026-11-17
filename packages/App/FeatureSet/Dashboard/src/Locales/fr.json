@@ -245,7 +245,8 @@
       "incidents": "Incidents",
       "monitors": "Moniteurs",
       "onCallPolicies": "Politiques d'astreinte",
-      "statusPages": "Pages de statut"
+      "statusPages": "Pages de statut",
+      "recordPages": "Pages des enregistrements"
     }
   },
   "keyboardShortcuts": {

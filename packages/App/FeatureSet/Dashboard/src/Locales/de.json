@@ -245,7 +245,8 @@
       "incidents": "Vorfälle",
       "monitors": "Monitore",
       "onCallPolicies": "Bereitschaftsrichtlinien",
-      "statusPages": "Statusseiten"
+      "statusPages": "Statusseiten",
+      "recordPages": "Seiten von Datensätzen"
     }
   },
   "keyboardShortcuts": {
