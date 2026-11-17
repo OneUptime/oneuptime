@@ -260,6 +260,11 @@ class IncidentOwnerRuleEngineServiceClass
     incident: Incident;
     rules: Array<IncidentOwnerRule>;
     allowOwnerNotification: boolean;
+    /*
+     * Shared by many matchings; a reader of a monitor not saved yet hands
+     * it in seeded with that monitor (WhoIsToldService.resolveDraft).
+     */
+    monitorCache?: MonitorRuleCriteriaCache | undefined;
   }): Promise<OwnerRulePlan<IncidentOwnerRule>> {
     const { incident, rules } = data;
 
@@ -271,8 +276,15 @@ class IncidentOwnerRuleEngineServiceClass
       creatorUserId: incident.createdByUserId,
     });
 
+    const monitorCache: MonitorRuleCriteriaCache =
+      data.monitorCache || new MonitorRuleCriteriaCache();
+
     for (const rule of rules) {
-      const matches: boolean = await this.doesIncidentMatchRule(incident, rule);
+      const matches: boolean = await this.doesIncidentMatchRule(
+        incident,
+        rule,
+        monitorCache,
+      );
 
       if (!matches) {
         continue;
@@ -597,10 +609,8 @@ class IncidentOwnerRuleEngineServiceClass
   private async doesIncidentMatchRule(
     incident: Incident,
     rule: IncidentOwnerRule,
+    monitorCache: MonitorRuleCriteriaCache = new MonitorRuleCriteriaCache(),
   ): Promise<boolean> {
-    const monitorCache: MonitorRuleCriteriaCache =
-      new MonitorRuleCriteriaCache();
-
     return await RuleCriteriaMatcher.matchesWithLegacy({
       rule,
       legacyFields: [

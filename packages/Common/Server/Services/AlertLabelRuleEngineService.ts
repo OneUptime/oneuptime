@@ -1,26 +1,22 @@
 import RuleAddedLabels from "../Utils/Rules/RuleAddedLabels";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertLabelRule from "../../Models/DatabaseModels/AlertLabelRule";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
-import DockerHost from "../../Models/DatabaseModels/DockerHost";
-import Host from "../../Models/DatabaseModels/Host";
-import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
-import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
-import Service from "../../Models/DatabaseModels/Service";
 import AlertFeedService from "./AlertFeedService";
 import AlertLabelRuleService from "./AlertLabelRuleService";
 import AlertService from "./AlertService";
-import DockerHostService from "./DockerHostService";
-import PodmanHostService from "./PodmanHostService";
-import HostService from "./HostService";
-import KubernetesClusterService from "./KubernetesClusterService";
 import LabelService from "./LabelService";
-import MonitorService from "./MonitorService";
-import ServiceService from "./ServiceService";
+import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
+import LabelRulePlanBuilder, {
+  LabelInheritableResources,
+  LabelRulePlan,
+  doLabelRulesInheritFromResources,
+  getLabelResourceIds,
+  getNoLabelRulePlan,
+} from "../Utils/Rules/LabelRulePlan";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
@@ -107,19 +103,9 @@ class AlertLabelRuleEngineServiceClass
     }
 
     try {
-      // Kept until any of the project's rules changes (RuleSetCache).
-      const rules: Array<AlertLabelRule> =
-        await RuleSetCache.findEnabledRules<AlertLabelRule>({
-          service: AlertLabelRuleService,
-          projectId: alert.projectId,
-          select: this.ruleSelect,
-        });
-
-      logIfRuleReadWasTruncated({
-        ruleKind: "AlertLabelRule",
-        projectId: alert.projectId,
-        rulesRead: rules.length,
-      });
+      const rules: Array<AlertLabelRule> = await this.getEnabledRules(
+        alert.projectId,
+      );
 
       if (rules.length === 0) {
         return;
@@ -132,6 +118,129 @@ class AlertLabelRuleEngineServiceClass
         alertId: alert.id?.toString(),
       } as LogAttributes);
     }
+  }
+
+  /*
+   * The project's enabled rules, as every evaluation of a new alert reads
+   * them - the create and "When this goes down" alike. Kept until any of
+   * the project's rules changes (RuleSetCache).
+   */
+  @CaptureSpan()
+  public async getEnabledRules(
+    projectId: ObjectID,
+  ): Promise<Array<AlertLabelRule>> {
+    const rules: Array<AlertLabelRule> =
+      await RuleSetCache.findEnabledRules<AlertLabelRule>({
+        service: AlertLabelRuleService,
+        projectId: projectId,
+        select: this.ruleSelect,
+      });
+
+    logIfRuleReadWasTruncated({
+      ruleKind: "AlertLabelRule",
+      projectId: projectId,
+      rulesRead: rules.length,
+    });
+
+    return rules;
+  }
+
+  /*
+   * Which of `rules` match the alert, and the labels they add
+   * (LabelRulePlan) - read, never written. The create and a run carry it
+   * out (applyRules), and "When this goes down" (WhoIsToldService) reads it
+   * for the alert a monitor's criteria would open, held in memory (#7212).
+   * Every rule is matched on the alert as it is handed. The hosts,
+   * clusters, Docker and Podman hosts and services a rule inherits from are
+   * read as the alert is stored, unless `resources` hands them in - an alert
+   * not saved yet has none stored. Null only when the stored alert is gone.
+   */
+  @RuleEvaluation()
+  public async planRules(data: {
+    alert: Alert;
+    rules: Array<AlertLabelRule>;
+    monitorCache?: MonitorRuleCriteriaCache | undefined;
+    resources?: LabelInheritableResources | undefined;
+  }): Promise<LabelRulePlan<AlertLabelRule> | null> {
+    const { alert } = data;
+
+    if (!alert.projectId || data.rules.length === 0) {
+      return getNoLabelRulePlan<AlertLabelRule>();
+    }
+
+    const monitorCache: MonitorRuleCriteriaCache =
+      data.monitorCache || new MonitorRuleCriteriaCache();
+    const matchedRules: Array<AlertLabelRule> = [];
+
+    for (const rule of data.rules) {
+      if (await this.doesAlertMatchRule(alert, rule, monitorCache)) {
+        matchedRules.push(rule);
+      }
+    }
+
+    const monitorIds: Array<ObjectID> = alert.monitorId
+      ? [alert.monitorId]
+      : [];
+
+    let resources: LabelInheritableResources | null = data.resources || null;
+
+    if (
+      !resources &&
+      matchedRules.length > 0 &&
+      doLabelRulesInheritFromResources(matchedRules)
+    ) {
+      const stored: Alert | null = alert.id
+        ? await AlertService.findOneById({
+            id: alert.id,
+            select: {
+              hosts: { _id: true },
+              kubernetesClusters: { _id: true },
+              dockerHosts: { _id: true },
+              podmanHosts: { _id: true },
+              services: { _id: true },
+            },
+            props: { isRoot: true },
+          })
+        : null;
+
+      // The alert is gone, so there is nothing left to label.
+      if (!stored) {
+        return null;
+      }
+
+      resources = {
+        monitorIds: monitorIds,
+        hostIds: getLabelResourceIds(stored.hosts),
+        kubernetesClusterIds: getLabelResourceIds(stored.kubernetesClusters),
+        dockerHostIds: getLabelResourceIds(stored.dockerHosts),
+        podmanHostIds: getLabelResourceIds(stored.podmanHosts),
+        serviceIds: getLabelResourceIds(stored.services),
+      };
+    }
+
+    return await LabelRulePlanBuilder.build({
+      projectId: alert.projectId,
+      matchedRules: matchedRules,
+      monitorIds: monitorIds,
+      getResources: async (): Promise<LabelInheritableResources> => {
+        return (
+          resources || {
+            monitorIds: monitorIds,
+            hostIds: [],
+            kubernetesClusterIds: [],
+            dockerHostIds: [],
+            podmanHostIds: [],
+            serviceIds: [],
+          }
+        );
+      },
+      monitorCache: monitorCache,
+      description: "labels of alert label rules",
+      logAttributes: {
+        projectId: alert.projectId.toString(),
+        alertId: alert.id?.toString(),
+      } as LogAttributes,
+    });
   }
 
   /*
@@ -158,7 +267,7 @@ class AlertLabelRuleEngineServiceClass
     }
   }
 
-  @RuleEvaluation()
+  // Carries the plan out (planRules): the one place an alert label rule writes.
   private async applyRules(data: {
     alert: Alert;
     rules: Array<AlertLabelRule>;
@@ -171,188 +280,27 @@ class AlertLabelRuleEngineServiceClass
       return RuleApplicationResultUtil.noMatch();
     }
 
-    const labelIdsToAdd: Set<string> = new Set();
-    let inheritFromMonitors: boolean = false;
-    let inheritFromHosts: boolean = false;
-    let inheritFromKubernetesClusters: boolean = false;
-    let inheritFromDockerHosts: boolean = false;
-    let inheritFromPodmanHosts: boolean = false;
-    let inheritFromServices: boolean = false;
-    const matchedRules: Array<AlertLabelRule> = [];
+    const plan: LabelRulePlan<AlertLabelRule> | null = await this.planRules({
+      alert: alert,
+      rules: rules,
+    });
 
-    for (const rule of rules) {
-      const matches: boolean = await this.doesAlertMatchRule(alert, rule);
-      if (!matches) {
-        continue;
-      }
-      matchedRules.push(rule);
-      for (const label of rule.labelsToAdd || []) {
-        if (label.id) {
-          labelIdsToAdd.add(label.id.toString());
-        }
-      }
-      if (rule.inheritLabelsFromMonitors) {
-        inheritFromMonitors = true;
-      }
-      if (rule.inheritLabelsFromHosts) {
-        inheritFromHosts = true;
-      }
-      if (rule.inheritLabelsFromKubernetesClusters) {
-        inheritFromKubernetesClusters = true;
-      }
-      if (rule.inheritLabelsFromDockerHosts) {
-        inheritFromDockerHosts = true;
-      }
-      if (rule.inheritLabelsFromPodmanHosts) {
-        inheritFromPodmanHosts = true;
-      }
-      if (rule.inheritLabelsFromServices) {
-        inheritFromServices = true;
-      }
+    // The alert is gone, so there is nothing left to label.
+    if (!plan) {
+      return RuleApplicationResultUtil.noMatch();
     }
+
+    const matchedRules: Array<AlertLabelRule> = plan.matchedRules;
 
     if (matchedRules.length === 0) {
       return RuleApplicationResultUtil.noMatch();
     }
 
-    const needsRelatedResources: boolean =
-      inheritFromHosts ||
-      inheritFromKubernetesClusters ||
-      inheritFromDockerHosts ||
-      inheritFromPodmanHosts ||
-      inheritFromServices;
-
-    let alertWithResources: Alert | null = null;
-    if (needsRelatedResources) {
-      alertWithResources = await AlertService.findOneById({
-        id: alert.id,
-        select: {
-          hosts: { _id: true },
-          kubernetesClusters: { _id: true },
-          dockerHosts: { _id: true },
-          podmanHosts: { _id: true },
-          services: { _id: true },
-        },
-        props: { isRoot: true },
-      });
-
-      // The alert is gone, so there is nothing left to label.
-      if (!alertWithResources) {
-        return RuleApplicationResultUtil.noMatch();
-      }
-    }
-
-    if (inheritFromMonitors && alert.monitorId) {
-      const monitor: Monitor | null = await MonitorService.findOneById({
-        id: alert.monitorId,
-        select: { labels: { _id: true } },
-        props: { isRoot: true },
-      });
-      for (const label of monitor?.labels || []) {
-        if (label.id) {
-          labelIdsToAdd.add(label.id.toString());
-        }
-      }
-    }
-
-    if (inheritFromHosts && alertWithResources?.hosts?.length) {
-      for (const alertHost of alertWithResources.hosts) {
-        if (!alertHost.id) {
-          continue;
-        }
-        const host: Host | null = await HostService.findOneById({
-          id: alertHost.id,
-          select: { labels: { _id: true } },
-          props: { isRoot: true },
-        });
-        for (const label of host?.labels || []) {
-          if (label.id) {
-            labelIdsToAdd.add(label.id.toString());
-          }
-        }
-      }
-    }
-
-    if (
-      inheritFromKubernetesClusters &&
-      alertWithResources?.kubernetesClusters?.length
-    ) {
-      for (const alertCluster of alertWithResources.kubernetesClusters) {
-        if (!alertCluster.id) {
-          continue;
-        }
-        const cluster: KubernetesCluster | null =
-          await KubernetesClusterService.findOneById({
-            id: alertCluster.id,
-            select: { labels: { _id: true } },
-            props: { isRoot: true },
-          });
-        for (const label of cluster?.labels || []) {
-          if (label.id) {
-            labelIdsToAdd.add(label.id.toString());
-          }
-        }
-      }
-    }
-
-    if (inheritFromDockerHosts && alertWithResources?.dockerHosts?.length) {
-      for (const alertDockerHost of alertWithResources.dockerHosts) {
-        if (!alertDockerHost.id) {
-          continue;
-        }
-        const dockerHost: DockerHost | null =
-          await DockerHostService.findOneById({
-            id: alertDockerHost.id,
-            select: { labels: { _id: true } },
-            props: { isRoot: true },
-          });
-        for (const label of dockerHost?.labels || []) {
-          if (label.id) {
-            labelIdsToAdd.add(label.id.toString());
-          }
-        }
-      }
-    }
-
-    if (inheritFromPodmanHosts && alertWithResources?.podmanHosts?.length) {
-      for (const alertPodmanHost of alertWithResources.podmanHosts) {
-        if (!alertPodmanHost.id) {
-          continue;
-        }
-        const podmanHost: PodmanHost | null =
-          await PodmanHostService.findOneById({
-            id: alertPodmanHost.id,
-            select: { labels: { _id: true } },
-            props: { isRoot: true },
-          });
-        for (const label of podmanHost?.labels || []) {
-          if (label.id) {
-            labelIdsToAdd.add(label.id.toString());
-          }
-        }
-      }
-    }
-
-    if (inheritFromServices && alertWithResources?.services?.length) {
-      for (const alertService of alertWithResources.services) {
-        if (!alertService.id) {
-          continue;
-        }
-        const service: Service | null = await ServiceService.findOneById({
-          id: alertService.id,
-          select: { labels: { _id: true } },
-          props: { isRoot: true },
-        });
-        for (const label of service?.labels || []) {
-          if (label.id) {
-            labelIdsToAdd.add(label.id.toString());
-          }
-        }
-      }
-    }
-
-    // Matched, but the rules add nothing (e.g. inherited from an unlabelled monitor).
-    if (labelIdsToAdd.size === 0) {
+    /*
+     * Matched, but the rules add nothing: inherited from an unlabelled
+     * monitor, or only another project's labels.
+     */
+    if (plan.labelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
 
@@ -377,27 +325,13 @@ class AlertLabelRuleEngineServiceClass
         }),
     );
 
-    /*
-     * Only the project's own labels. The rules' lists are checked when a
-     * rule is saved, but a rule saved before that can still name another
-     * project's label, and the labels are attached here as root.
-     */
-    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
-      projectId: alert.projectId,
-      ids: Array.from(labelIdsToAdd).filter((id: string) => {
-        return !existingLabelIds.has(id);
-      }),
-      modelType: Label,
-      description: "labels of alert label rules",
-      logAttributes: {
-        projectId: alert.projectId.toString(),
-        alertId: alert.id.toString(),
-      } as LogAttributes,
+    const newLabelIds: Array<string> = plan.labelIds.filter((id: string) => {
+      return !existingLabelIds.has(id);
     });
+
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
-
     await RuleAddedLabels.add({
       service: AlertService,
       resourceId: alert.id,
@@ -520,6 +454,7 @@ class AlertLabelRuleEngineServiceClass
   private async doesAlertMatchRule(
     alert: Alert,
     rule: AlertLabelRule,
+    monitorCache: MonitorRuleCriteriaCache = new MonitorRuleCriteriaCache(),
   ): Promise<boolean> {
     return await RuleCriteriaMatcher.matchesWithLegacy({
       rule,
@@ -537,7 +472,11 @@ class AlertLabelRuleEngineServiceClass
       matchesLegacyRule: async (
         legacyRule: AlertLabelRule,
       ): Promise<boolean> => {
-        return await this.doesAlertMatchLegacyRule(alert, legacyRule);
+        return await this.doesAlertMatchLegacyRule(
+          alert,
+          legacyRule,
+          monitorCache,
+        );
       },
     });
   }
@@ -545,6 +484,7 @@ class AlertLabelRuleEngineServiceClass
   private async doesAlertMatchLegacyRule(
     alert: Alert,
     rule: AlertLabelRule,
+    monitorCache: MonitorRuleCriteriaCache,
   ): Promise<boolean> {
     if (rule.monitors && rule.monitors.length > 0) {
       if (!alert.monitorId) {
@@ -601,15 +541,10 @@ class AlertLabelRuleEngineServiceClass
       if (!alert.monitorId) {
         return false;
       }
-      const monitor: Monitor | null = await MonitorService.findOneById({
-        id: alert.monitorId,
-        select: {
-          name: true,
-          description: true,
-          labels: { _id: true },
-        },
-        props: { isRoot: true },
-      });
+      // Its name, description and labels (MonitorRuleCriteriaCache.getMonitor).
+      const monitor: Monitor | null = await monitorCache.getMonitor(
+        alert.monitorId,
+      );
       if (!monitor) {
         return false;
       }
