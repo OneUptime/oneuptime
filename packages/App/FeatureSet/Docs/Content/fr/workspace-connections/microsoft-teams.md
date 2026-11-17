@@ -133,7 +133,7 @@ Payments renvoie à la politique dans OneUptime. Une personne est nommée par so
 
 ## Tester une règle
 
-**Tester la règle** sur la ligne d'une règle publie un message de test pour cette règle dans les canaux qu'elle nomme, pour que vous le voyiez arriver. Si la règle crée un canal pour chaque événement, le test en crée un aussi et y invite les personnes de la règle.
+**Tester la règle** sur la ligne d'une règle publie un message de test pour cette règle dans les canaux qu'elle nomme, pour que vous le voyiez arriver. **Notification de test envoyée** dit où regarder quand le test est parti, et **Échec du test** dit pourquoi quand il ne l'est pas. Si la règle crée un canal pour chaque événement, le test en crée aussi un vrai, dans l'équipe de la règle, nommé avec le préfixe de la règle et cinq lettres au hasard, par exemple `prod-abcde`, visible par toute l'équipe : la boîte de dialogue le dit avant que le test ne s'exécute. Le canal reste après le test ; supprimez-le dans Microsoft Teams une fois terminé.
 
 Comme **Envoyer le test** à côté d'un canal dans **Paramètres du projet** > **Espace de travail** > **Microsoft Teams**, il demande l'autorisation de créer des règles de notification : **Propriétaire du projet**, **Administrateur du projet**, **Membre du projet**, **Administrateur des paramètres**, **Membre des paramètres**, ou **Create Workspace Notification Rule** et **Read Workspace Notification Rule** dans un rôle personnalisé. Pour quelqu'un qui peut seulement voir les règles, comme un **Lecteur**, **Tester la règle** est verrouillé, et son info-bulle dit ce qu'il faut ; l'API refuse son test avec "You do not have permission to send test notifications in this project." Sur OneUptime Cloud, tester une règle demande le plan **Growth**, comme en ajouter une.
 
@@ -145,7 +145,11 @@ L'onglet **Résumé** de **Incidents** > **Espace de travail** > **Microsoft Tea
 
 Un résumé part à l'heure de son **Fuseau horaire**, qui commence sur le vôtre. Il y garde son heure toute l'année : un résumé réglé sur 09:00 à Berlin part toujours à 09:00 à Berlin après le changement d'heure, et les dates de son message sont aussi celles de Berlin. Par l'API, envoyez `timezone` sous la forme d'un nom de fuseau horaire IANA, par exemple `Europe/Berlin`. Un résumé créé sans fuseau prend celui du profil de la personne qui l'a créé, ou UTC lorsqu'une clé d'API le crée.
 
-Le formulaire d'un résumé a quatre étapes : **Informations de base** (son nom, les canaux et leur **Nom de l'équipe**), **Planification**, **Contenu** (**Quoi inclure**) et **Filtres** (quels incidents ou alertes il compte).
+Le formulaire d'un résumé a quatre étapes : **Informations de base** (son nom, les canaux et leur **Équipe**), **Planification**, **Contenu** (**Quoi inclure**) et **Filtres** (quels incidents ou alertes il compte).
+
+**Équipe** liste les équipes de votre connexion Microsoft Teams, et s'affiche quand il y en a plus d'une ; avec une seule équipe, le résumé y est publié. Un résumé enregistré avec un nom d'équipe saisi le garde, affiché tel qu'il a été saisi, jusqu'à ce que vous choisissiez une équipe. Quand les équipes ne peuvent pas être listées, le formulaire demande le **Nom de l'équipe** en texte, comparé au nom de l'équipe sans tenir compte de la casse ; un nom que deux équipes partagent est refusé.
+
+**Envoyer un test maintenant** sur la ligne d'un résumé le publie aussitôt. **Résumé envoyé** dit que chaque canal l'a reçu ; **Échec du test** dit combien de canaux ne l'ont pas reçu, et liste chacun sous son motif, par exemple un canal introuvable. Les canaux qui ont reçu le test le gardent. Le résultat de chaque canal, d'un test ou d'un envoi planifié, est une ligne de l'onglet **Espace de travail** de **Paramètres du projet** > **Notifications** > **Journaux de notification** : **Succès**, ou **Erreur** avec la raison sous **Motif**. **Dernier envoi** n'avance que si au moins un canal a reçu le résumé.
 
 ## Règles de notification sous le plan Growth
 

@@ -133,7 +133,7 @@ Payments verlinkt die Richtlinie in OneUptime. Eine Person wird mit ihrem Micros
 
 ## Eine Regel testen
 
-**Regel testen** in der Zeile einer Regel postet eine Testnachricht für diese Regel in die Kanäle, die sie nennt, damit Sie sie ankommen sehen. Legt die Regel für jedes Ereignis einen Kanal an, legt auch der Test einen an und lädt die Personen der Regel ein.
+**Regel testen** in der Zeile einer Regel postet eine Testnachricht für diese Regel in die Kanäle, die sie nennt, damit Sie sie ankommen sehen. **Testbenachrichtigung gesendet** sagt, wo Sie nachsehen, wenn der Test hinausging, und **Test fehlgeschlagen** sagt, warum, wenn nicht. Legt die Regel für jedes Ereignis einen Kanal an, legt auch der Test einen echten an, im Team der Regel, benannt nach dem Präfix der Regel und fünf zufälligen Buchstaben, etwa `prod-abcde`, den alle im Team sehen: Das sagt der Dialog, bevor der Test läuft. Der Kanal bleibt nach dem Test bestehen; löschen Sie ihn in Microsoft Teams, wenn Sie fertig sind.
 
 Wie **Test senden** neben einem Kanal unter **Projekteinstellungen** > **Arbeitsbereich** > **Microsoft Teams** braucht er die Berechtigung, Benachrichtigungsregeln anzulegen: **Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Einstellungs-Administrator**, **Einstellungs-Mitglied** oder **Create Workspace Notification Rule** und **Read Workspace Notification Rule** in einer benutzerdefinierten Rolle. Für jemanden, der die Regeln nur sehen kann, etwa ein **Betrachter**, ist **Regel testen** gesperrt, und sein Tooltip sagt, was es braucht; die API lehnt seinen Test mit "You do not have permission to send test notifications in this project." ab. In OneUptime Cloud braucht das Testen einer Regel den Tarif **Growth**, wie das Anlegen einer.
 
@@ -145,7 +145,11 @@ Die Registerkarte **Zusammenfassung** von **Vorfälle** > **Arbeitsbereich** > *
 
 Eine Zusammenfassung geht nach der Uhr ihrer **Zeitzone** raus, die mit Ihrer beginnt. Sie behält dort das ganze Jahr ihre Tageszeit: Eine für 09:00 in Berlin eingestellte geht auch nach der Umstellung auf Sommer- oder Winterzeit um 09:00 in Berlin raus, und die Daten in ihrer Nachricht sind ebenfalls die Berliner. Senden Sie über die API `timezone` als IANA-Zeitzonennamen, etwa `Europe/Berlin`. Eine ohne Zeitzone erstellte Zusammenfassung übernimmt die Zeitzone aus dem Profil ihrer erstellenden Person, oder UTC, wenn ein API-Schlüssel sie erstellt.
 
-Das Formular einer Zusammenfassung hat vier Schritte: **Grundinformationen** (ihr Name, die Kanäle und deren **Teamname**), **Zeitplan**, **Inhalt** (**Was einzuschließen ist**) und **Filter** (welche Vorfälle oder Warnungen sie zählt).
+Das Formular einer Zusammenfassung hat vier Schritte: **Grundinformationen** (ihr Name, die Kanäle und deren **Team**), **Zeitplan**, **Inhalt** (**Was einzuschließen ist**) und **Filter** (welche Vorfälle oder Warnungen sie zählt).
+
+**Team** listet die Teams Ihrer Microsoft Teams-Verbindung und erscheint, wenn es mehr als eines gibt; mit einem Team postet die Zusammenfassung in diesem. Eine mit einem eingegebenen Teamnamen gespeicherte Zusammenfassung behält ihn, so angezeigt, wie er eingegeben wurde, bis Sie ein Team wählen. Lassen sich die Teams nicht auflisten, fragt das Formular nach dem **Teamname** als Text, abgeglichen mit dem Namen des Teams ohne Rücksicht auf Groß- und Kleinschreibung; ein Name, den zwei Teams teilen, wird abgelehnt.
+
+**Test jetzt senden** in der Zeile einer Zusammenfassung postet sie sofort. **Zusammenfassung gesendet** sagt, dass jeder Kanal sie bekommen hat; **Test fehlgeschlagen** sagt, wie viele Kanäle nicht, und listet jeden unter seinem Grund auf, etwa einen Kanal, der nicht gefunden wurde. Die Kanäle, die den Test bekommen haben, behalten ihn. Das Ergebnis jedes Kanals, eines Tests wie eines geplanten Versands, ist eine Zeile auf der Registerkarte **Arbeitsbereich** unter **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungsprotokolle**: **Erfolg**, oder **Fehler** mit dem Warum unter **Grund**. **Zuletzt gesendet** rückt nur vor, wenn mindestens ein Kanal die Zusammenfassung bekommen hat.
 
 ## Benachrichtigungsregeln unterhalb des Growth-Tarifs
 

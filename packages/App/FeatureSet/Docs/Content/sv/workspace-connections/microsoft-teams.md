@@ -133,7 +133,7 @@ Payments länkar till policyn i OneUptime. En person nämns med sitt Microsoft T
 
 ## Testa en regel
 
-**Testa regel** på en regels rad publicerar ett testmeddelande för den regeln i de kanaler den anger, så att du ser att det kommer fram. Om regeln skapar en kanal för varje händelse skapar testet också en och bjuder in regelns personer till den.
+**Testa regel** på en regels rad publicerar ett testmeddelande för den regeln i de kanaler den anger, så att du ser att det kommer fram. **Testavisering skickad** säger var du ska titta när testet gick ut, och **Testet misslyckades** säger varför när det inte gjorde det. Om regeln skapar en kanal för varje händelse skapar testet också en riktig, i regelns team, namngiven med regelns prefix och fem slumpmässiga bokstäver, till exempel `prod-abcde`, som alla i teamet kan se: dialogrutan säger det innan testet körs. Kanalen finns kvar efter testet; ta bort den i Microsoft Teams när du är klar.
 
 Precis som **Skicka test** bredvid en kanal i **Projektinställningar** > **Arbetsyta** > **Microsoft Teams** kräver den behörighet att skapa aviseringsregler: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Inställningsadministratör**, **Inställningsmedlem**, eller **Create Workspace Notification Rule** och **Read Workspace Notification Rule** i en anpassad roll. För den som bara får se reglerna, som en **Tittare**, är **Testa regel** låst, och dess verktygstips anger vad som krävs; API:et avvisar personens test med "You do not have permission to send test notifications in this project." På OneUptime Cloud kräver det **Growth**-planen att testa en regel, precis som att lägga till en.
 
@@ -145,7 +145,11 @@ Fliken **Sammanfattning** i **Incidenter** > **Arbetsyta** > **Microsoft Teams**
 
 En sammanfattning skickas enligt klockan i sin **Tidszon**, som utgår från din. Den behåller sin tid på dagen där hela året: en som är inställd på 09:00 i Berlin skickas fortfarande kl. 09:00 i Berlin efter övergången till sommartid, och datumen i dess meddelande är också Berlins. Via API:et skickar du `timezone` som ett IANA-tidszonsnamn, som `Europe/Berlin`. En sammanfattning som skapas utan tidszon tar tidszonen från profilen för den som skapade den, eller UTC när en API-nyckel skapar den.
 
-Formuläret för en sammanfattning har fyra steg: **Grundläggande information** (namnet, kanalerna och deras **Teamnamn**), **Schema**, **Innehåll** (**Vad som ska inkluderas**) och **Filter** (vilka incidenter eller larm den räknar).
+Formuläret för en sammanfattning har fyra steg: **Grundläggande information** (namnet, kanalerna och deras **Team**), **Schema**, **Innehåll** (**Vad som ska inkluderas**) och **Filter** (vilka incidenter eller larm den räknar).
+
+**Team** listar teamen i din Microsoft Teams-anslutning och visas när det finns fler än ett; med ett team publicerar sammanfattningen i det. En sammanfattning som sparats med ett inskrivet teamnamn behåller det, visat som det skrevs, tills du väljer ett team. När teamen inte kan listas ber formuläret om **Teamnamn** som text, jämfört med teamets namn oavsett versaler och gemener; ett namn som två team delar avvisas.
+
+**Skicka test nu** på en sammanfattnings rad publicerar den direkt. **Sammanfattning skickad** säger att varje kanal fick den; **Testet misslyckades** säger hur många kanaler som inte gjorde det, och listar var och en under sin orsak, till exempel en kanal som inte hittades. Kanalerna som fick testet behåller det. Varje kanals resultat, av ett test eller ett schemalagt utskick, är en rad på fliken **Arbetsyta** under **Projektinställningar** > **Aviseringar** > **Aviseringsloggar**: **Framgång**, eller **Fel** med varför under **Orsak**. **Senast skickad** flyttas bara när minst en kanal fick sammanfattningen.
 
 ## Aviseringsregler under Growth-planen
 

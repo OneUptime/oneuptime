@@ -166,7 +166,7 @@ Die OneUptime-App fügt sie hinzu, so wie sie die Personen des Kanals einer Rege
 
 ## Eine Regel testen
 
-**Regel testen** in der Zeile einer Regel postet eine Testnachricht für diese Regel in die Kanäle, die sie nennt, damit Sie sie ankommen sehen. Legt die Regel für jedes Ereignis einen Kanal an, legt auch der Test einen an und lädt die Personen der Regel ein.
+**Regel testen** in der Zeile einer Regel postet eine Testnachricht für diese Regel in die Kanäle, die sie nennt, damit Sie sie ankommen sehen. **Testbenachrichtigung gesendet** sagt, wo Sie nachsehen, wenn der Test hinausging, und **Test fehlgeschlagen** sagt, warum, wenn nicht. Legt die Regel für jedes Ereignis einen Kanal an, legt auch der Test einen echten an, benannt nach dem Präfix der Regel und fünf zufälligen Buchstaben, etwa `prod-abcde`, und lädt Sie ein: Das sagt der Dialog, bevor der Test läuft. Der Kanal bleibt nach dem Test bestehen; archivieren Sie ihn in Slack, wenn Sie fertig sind.
 
 Wie **Test senden** neben einem Kanal unter **Projekteinstellungen** > **Arbeitsbereich** > **Slack** braucht er die Berechtigung, Benachrichtigungsregeln anzulegen: **Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Einstellungs-Administrator**, **Einstellungs-Mitglied** oder **Create Workspace Notification Rule** und **Read Workspace Notification Rule** in einer benutzerdefinierten Rolle. Für jemanden, der die Regeln nur sehen kann, etwa ein **Betrachter**, ist **Regel testen** gesperrt, und sein Tooltip sagt, was es braucht; die API lehnt seinen Test mit "You do not have permission to send test notifications in this project." ab. In OneUptime Cloud braucht das Testen einer Regel den Tarif **Growth**, wie das Anlegen einer.
 
@@ -179,6 +179,8 @@ Die Registerkarte **Zusammenfassung** von **Vorfälle** > **Arbeitsbereich** > *
 Eine Zusammenfassung geht nach der Uhr ihrer **Zeitzone** raus, die mit Ihrer beginnt. Sie behält dort das ganze Jahr ihre Tageszeit: Eine für 09:00 in Berlin eingestellte geht auch nach der Umstellung auf Sommer- oder Winterzeit um 09:00 in Berlin raus, und die Daten in ihrer Nachricht sind ebenfalls die Berliner. Senden Sie über die API `timezone` als IANA-Zeitzonennamen, etwa `Europe/Berlin`. Eine ohne Zeitzone erstellte Zusammenfassung übernimmt die Zeitzone aus dem Profil ihrer erstellenden Person, oder UTC, wenn ein API-Schlüssel sie erstellt.
 
 Das Formular einer Zusammenfassung hat vier Schritte: **Grundinformationen** (ihr Name und die Kanäle), **Zeitplan**, **Inhalt** (**Was einzuschließen ist**) und **Filter** (welche Vorfälle oder Warnungen sie zählt).
+
+**Test jetzt senden** in der Zeile einer Zusammenfassung postet sie sofort. **Zusammenfassung gesendet** sagt, dass jeder Kanal sie bekommen hat; **Test fehlgeschlagen** sagt, wie viele Kanäle nicht, und listet jeden unter seinem Grund auf, etwa einen Kanal, der nicht gefunden wurde. Die Kanäle, die den Test bekommen haben, behalten ihn. Das Ergebnis jedes Kanals, eines Tests wie eines geplanten Versands, ist eine Zeile auf der Registerkarte **Arbeitsbereich** unter **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungsprotokolle**: **Erfolg**, oder **Fehler** mit dem Warum unter **Grund**. **Zuletzt gesendet** rückt nur vor, wenn mindestens ein Kanal die Zusammenfassung bekommen hat.
 
 ## Benachrichtigungsregeln unterhalb des Growth-Tarifs
 
@@ -361,7 +363,7 @@ Was OneUptime davon behält — den Namen des Arbeitsbereichs, seine Kanäle, di
 ## Fehlerbehebung
 
 :::details Eine Regel postet nichts
-Prüfen Sie die Bedingungen der Regel mit **Regel testen**: Kommt der Test an, haben die Bedingungen der Regel nicht auf das Ereignis gepasst. Kommt er nicht an, zeigt die Slack-Seite, warum. Laden Sie die OneUptime-App bei einem privaten Kanal zuerst in Slack in den Kanal ein. Jede Nachricht, die OneUptime postet, und jede, die Slack abgelehnt hat, steht unter **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungsprotokolle** auf der Registerkarte **Arbeitsbereich**.
+Prüfen Sie die Bedingungen der Regel mit **Regel testen**: Kommt der Test an, haben die Bedingungen der Regel nicht auf das Ereignis gepasst. Kommt er nicht an, sagt **Test fehlgeschlagen**, warum. Laden Sie die OneUptime-App bei einem privaten Kanal zuerst in Slack in den Kanal ein. Jede Nachricht, die OneUptime postet, und jede, die Slack abgelehnt hat, steht unter **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungsprotokolle** auf der Registerkarte **Arbeitsbereich**. Bei einer Nachricht, die Slack abgelehnt hat, sagt **Grund**, warum, und was zu tun ist.
 :::
 
 :::details Jemand fehlt im Kanal einer Regel

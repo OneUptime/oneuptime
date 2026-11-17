@@ -133,7 +133,7 @@ Payments enlaza a la política en OneUptime. A una persona se la nombra por su n
 
 ## Probar una regla
 
-**Probar regla** en la fila de una regla publica un mensaje de prueba de esa regla en los canales que nombra, para que lo veas llegar. Si la regla crea un canal para cada evento, la prueba también crea uno e invita a las personas de la regla.
+**Probar regla** en la fila de una regla publica un mensaje de prueba de esa regla en los canales que nombra, para que lo veas llegar. **Notificación de prueba enviada** dice dónde mirar cuando la prueba salió, y **La prueba falló** dice por qué cuando no. Si la regla crea un canal para cada evento, la prueba también crea uno real, en el equipo de la regla, con el prefijo de la regla y cinco letras al azar, como `prod-abcde`, que todos en el equipo pueden ver: el diálogo lo dice antes de que se ejecute la prueba. El canal se queda después de la prueba; elimínalo en Microsoft Teams cuando termines.
 
 Como **Enviar prueba** junto a un canal en **Ajustes del proyecto** > **Espacio de trabajo** > **Microsoft Teams**, necesita permiso para crear reglas de notificación: **Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Administrador de ajustes**, **Miembro de ajustes**, o **Create Workspace Notification Rule** y **Read Workspace Notification Rule** en un rol personalizado. Para alguien que solo puede ver las reglas, como un **Visor**, **Probar regla** está bloqueado, y su descripción emergente dice lo que hace falta; la API rechaza su prueba con "You do not have permission to send test notifications in this project." En OneUptime Cloud, probar una regla requiere el plan **Growth**, igual que añadir una.
 
@@ -145,7 +145,11 @@ La pestaña **Resumen** de **Incidentes** > **Espacio de trabajo** > **Microsoft
 
 Un resumen sale según el reloj de su **Zona horaria**, que empieza en la tuya. Mantiene allí su hora del día todo el año: uno configurado para las 09:00 en Berlín sigue saliendo a las 09:00 en Berlín después del cambio de horario de verano, y las fechas de su mensaje también son las de Berlín. Mediante la API, envía `timezone` como nombre de zona horaria IANA, como `Europe/Berlin`. Un resumen creado sin zona horaria toma la del perfil de quien lo creó, o UTC cuando lo crea una clave de API.
 
-El formulario de un resumen tiene cuatro pasos: **Información básica** (su nombre, los canales y su **Nombre del equipo**), **Programación**, **Contenido** (**Qué incluir**) y **Filtros** (qué incidentes o alertas cuenta).
+El formulario de un resumen tiene cuatro pasos: **Información básica** (su nombre, los canales y su **Equipo**), **Programación**, **Contenido** (**Qué incluir**) y **Filtros** (qué incidentes o alertas cuenta).
+
+**Equipo** lista los equipos de tu conexión de Microsoft Teams, y aparece cuando hay más de uno; con un solo equipo, el resumen se publica en él. Un resumen guardado con un nombre de equipo escrito lo conserva, mostrado tal como se escribió, hasta que eliges un equipo. Cuando no se pueden listar los equipos, el formulario pide el **Nombre del equipo** como texto, comparado con el nombre del equipo sin distinguir mayúsculas; un nombre que comparten dos equipos se rechaza.
+
+**Enviar prueba ahora** en la fila de un resumen lo publica al momento. **Resumen enviado** dice que todos los canales lo recibieron; **La prueba falló** dice cuántos canales no, y lista cada uno bajo su motivo, como un canal que no se encontró. Los canales que recibieron la prueba la conservan. El resultado de cada canal, de una prueba o de un envío programado, es una fila en la pestaña **Espacio de trabajo** de **Ajustes del proyecto** > **Notificaciones** > **Registros de notificación**: **Éxito**, o **Error** con el porqué en **Motivo**. **Último envío** solo avanza cuando al menos un canal recibió el resumen.
 
 ## Reglas de notificación por debajo del plan Growth
 

@@ -166,7 +166,7 @@ L'app di OneUptime li aggiunge, come aggiunge le persone del canale di una regol
 
 ## Provare una regola
 
-**Testa la regola** nella riga di una regola pubblica un messaggio di prova di quella regola nei canali che indica, così puoi vederlo arrivare. Se la regola crea un canale per ogni evento, anche la prova ne crea uno e vi invita le persone della regola.
+**Testa la regola** nella riga di una regola pubblica un messaggio di prova di quella regola nei canali che indica, così puoi vederlo arrivare. **Notifica di test inviata** dice dove guardare quando il test è partito, e **Test non riuscito** dice perché quando non è partito. Se la regola crea un canale per ogni evento, anche il test ne crea uno vero, con il prefisso della regola e cinque lettere a caso, ad esempio `prod-abcde`, e ti invita: la finestra lo dice prima che il test parta. Il canale resta dopo il test; archivialo in Slack quando hai finito.
 
 Come **Invia prova** accanto a un canale in **Impostazioni del progetto** > **Area di lavoro** > **Slack**, richiede il permesso di creare regole di notifica: **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore delle impostazioni**, **Membro delle impostazioni**, oppure **Create Workspace Notification Rule** e **Read Workspace Notification Rule** in un ruolo personalizzato. Per chi può solo vedere le regole, come un **Visualizzatore**, **Testa la regola** è bloccato, e il suo suggerimento dice cosa serve; l'API rifiuta la sua prova con "You do not have permission to send test notifications in this project." Su OneUptime Cloud, provare una regola richiede il piano **Growth**, come aggiungerne una.
 
@@ -179,6 +179,8 @@ La scheda **Riepilogo** di **Incidenti** > **Area di lavoro** > **Slack** (e di 
 Un riepilogo esce secondo l'orologio del suo **Fuso orario**, che parte dal tuo. Lì mantiene la sua ora del giorno tutto l'anno: uno impostato per le 09:00 a Berlino esce ancora alle 09:00 a Berlino dopo il cambio dell'ora legale, e anche le date del suo messaggio sono quelle di Berlino. Tramite l'API, invia `timezone` come nome di fuso orario IANA, come `Europe/Berlin`. Un riepilogo creato senza fuso orario prende quello del profilo di chi l'ha creato, oppure UTC quando lo crea una chiave API.
 
 Il modulo di un riepilogo ha quattro passaggi: **Informazioni di base** (il nome e i canali), **Pianificazione**, **Contenuto** (**Cosa includere**) e **Filtri** (quali incidenti o avvisi conta).
+
+**Invia prova ora** sulla riga di un riepilogo lo pubblica subito. **Riepilogo inviato** dice che ogni canale l'ha ricevuto; **Test non riuscito** dice quanti canali no, ed elenca ciascuno sotto il suo motivo, ad esempio un canale non trovato. I canali che hanno ricevuto il test lo tengono. Il risultato di ogni canale, di un test o di un invio programmato, è una riga nella scheda **Area di lavoro** di **Impostazioni del progetto** > **Notifiche** > **Log di notifica**: **Successo**, o **Errore** con il perché sotto **Motivo**. **Ultimo invio** avanza solo quando almeno un canale ha ricevuto il riepilogo.
 
 ## Regole di notifica sotto il piano Growth
 
@@ -361,7 +363,7 @@ Ciò che OneUptime ne conserva — il nome dell'area di lavoro, i suoi canali, g
 ## Risoluzione dei problemi
 
 :::details Una regola non pubblica nulla
-Controlla le condizioni della regola con **Testa la regola**: se la prova arriva, le condizioni della regola non corrispondevano all'evento. Se non arriva, la pagina Slack dice perché. Per un canale privato, invita prima l'app di OneUptime in Slack. Ogni messaggio che OneUptime pubblica, e ognuno che Slack ha rifiutato, è elencato in **Impostazioni del progetto** > **Notifiche** > **Log di notifica**, nella scheda **Area di lavoro**.
+Controlla le condizioni della regola con **Testa la regola**: se la prova arriva, le condizioni della regola non corrispondevano all'evento. Se non arriva, **Test non riuscito** dice perché. Per un canale privato, invita prima l'app di OneUptime in Slack. Ogni messaggio che OneUptime pubblica, e ognuno che Slack ha rifiutato, è elencato in **Impostazioni del progetto** > **Notifiche** > **Log di notifica**, nella scheda **Area di lavoro**. Per un messaggio che Slack ha rifiutato, **Motivo** dice perché e cosa fare.
 :::
 
 :::details Manca qualcuno nel canale di una regola

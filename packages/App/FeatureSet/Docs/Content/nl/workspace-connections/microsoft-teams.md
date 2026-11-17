@@ -133,7 +133,7 @@ Payments linkt naar het beleid in OneUptime. Iemand wordt bij zijn Microsoft Tea
 
 ## Een regel testen
 
-**Regel testen** in de rij van een regel plaatst een testbericht voor die regel in de kanalen die hij noemt, zodat je het ziet aankomen. Als de regel voor elke gebeurtenis een kanaal aanmaakt, maakt de test er ook een aan en nodigt de mensen van de regel uit.
+**Regel testen** in de rij van een regel plaatst een testbericht voor die regel in de kanalen die hij noemt, zodat je het ziet aankomen. **Testmelding verzonden** zegt waar je kijkt als de test verstuurd is, en **Test mislukt** zegt waarom als dat niet zo is. Maakt de regel voor elke gebeurtenis een kanaal aan, dan maakt de test er ook een echt aan, in het team van de regel, genoemd naar het voorvoegsel van de regel en vijf willekeurige letters, zoals `prod-abcde`, dat iedereen in het team ziet: het dialoogvenster zegt dat voordat de test loopt. Het kanaal blijft na de test bestaan; verwijder het in Microsoft Teams als je klaar bent.
 
 Net als **Test verzenden** naast een kanaal in **Projectinstellingen** > **Werkruimte** > **Microsoft Teams** vereist het rechten om meldingsregels aan te maken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Instellingenbeheerder**, **Instellingenlid**, of **Create Workspace Notification Rule** en **Read Workspace Notification Rule** in een aangepaste rol. Voor iemand die de regels alleen mag bekijken, zoals een **Kijker**, is **Regel testen** vergrendeld, en de tooltip zegt wat er nodig is; de API weigert diens test met "You do not have permission to send test notifications in this project." Op OneUptime Cloud vereist het testen van een regel het **Growth**-abonnement, net als het toevoegen ervan.
 
@@ -145,7 +145,11 @@ Het tabblad **Samenvatting** van **Incidenten** > **Werkruimte** > **Microsoft T
 
 Een samenvatting gaat uit volgens de klok van zijn **Tijdzone**, die begint met de jouwe. Hij houdt daar het hele jaar zijn tijdstip: een die op 09:00 in Berlijn is ingesteld, gaat na de overgang naar zomertijd nog steeds om 09:00 in Berlijn uit, en de datums in zijn bericht zijn ook die van Berlijn. Stuur via de API `timezone` mee als IANA-tijdzonenaam, zoals `Europe/Berlin`. Een samenvatting die zonder tijdzone wordt aangemaakt, neemt de tijdzone uit het profiel van wie hem aanmaakte, of UTC als een API-sleutel hem aanmaakt.
 
-Het formulier van een samenvatting heeft vier stappen: **Basisinformatie** (de naam, de kanalen en hun **Teamnaam**), **Schema**, **Inhoud** (**Wat op te nemen**) en **Filters** (welke incidenten of waarschuwingen hij telt).
+Het formulier van een samenvatting heeft vier stappen: **Basisinformatie** (de naam, de kanalen en hun **Team**), **Schema**, **Inhoud** (**Wat op te nemen**) en **Filters** (welke incidenten of waarschuwingen hij telt).
+
+**Team** toont de teams van je Microsoft Teams-verbinding, en verschijnt als er meer dan één is; met één team plaatst de samenvatting in dat team. Een samenvatting die met een getypte teamnaam is opgeslagen, houdt die, getoond zoals getypt, tot je een team kiest. Als de teams niet op te halen zijn, vraagt het formulier de **Teamnaam** als tekst, vergeleken met de naam van het team zonder op hoofdletters te letten; een naam die twee teams delen, wordt geweigerd.
+
+**Test nu verzenden** in de rij van een samenvatting plaatst die meteen. **Samenvatting verzonden** zegt dat elk kanaal hem kreeg; **Test mislukt** zegt hoeveel kanalen niet, en zet elk onder de reden, zoals een kanaal dat niet gevonden werd. De kanalen die de test kregen, houden hem. Het resultaat van elk kanaal, van een test of een geplande verzending, is een rij op het tabblad **Werkruimte** van **Projectinstellingen** > **Meldingen** > **Meldingslogboeken**: **Succes**, of **Fout** met het waarom onder **Reden**. **Laatst verzonden** schuift alleen op als ten minste één kanaal de samenvatting kreeg.
 
 ## Meldingsregels onder het Growth-abonnement
 

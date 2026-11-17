@@ -166,7 +166,7 @@ OneUptime-appen lägger till dem, på samma sätt som den lägger till personern
 
 ## Testa en regel
 
-**Testa regel** på en regels rad publicerar ett testmeddelande för den regeln i de kanaler den anger, så att du ser att det kommer fram. Om regeln skapar en kanal för varje händelse skapar testet också en och bjuder in regelns personer till den.
+**Testa regel** på en regels rad publicerar ett testmeddelande för den regeln i de kanaler den anger, så att du ser att det kommer fram. **Testavisering skickad** säger var du ska titta när testet gick ut, och **Testet misslyckades** säger varför när det inte gjorde det. Om regeln skapar en kanal för varje händelse skapar testet också en riktig, namngiven med regelns prefix och fem slumpmässiga bokstäver, till exempel `prod-abcde`, och bjuder in dig till den: dialogrutan säger det innan testet körs. Kanalen finns kvar efter testet; arkivera den i Slack när du är klar.
 
 Precis som **Skicka test** bredvid en kanal i **Projektinställningar** > **Arbetsyta** > **Slack** kräver den behörighet att skapa aviseringsregler: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Inställningsadministratör**, **Inställningsmedlem**, eller **Create Workspace Notification Rule** och **Read Workspace Notification Rule** i en anpassad roll. För den som bara får se reglerna, som en **Tittare**, är **Testa regel** låst, och dess verktygstips anger vad som krävs; API:et avvisar personens test med "You do not have permission to send test notifications in this project." På OneUptime Cloud kräver det **Growth**-planen att testa en regel, precis som att lägga till en.
 
@@ -179,6 +179,8 @@ Fliken **Sammanfattning** i **Incidenter** > **Arbetsyta** > **Slack** (och i **
 En sammanfattning skickas enligt klockan i sin **Tidszon**, som utgår från din. Den behåller sin tid på dagen där hela året: en som är inställd på 09:00 i Berlin skickas fortfarande kl. 09:00 i Berlin efter övergången till sommartid, och datumen i dess meddelande är också Berlins. Via API:et skickar du `timezone` som ett IANA-tidszonsnamn, som `Europe/Berlin`. En sammanfattning som skapas utan tidszon tar tidszonen från profilen för den som skapade den, eller UTC när en API-nyckel skapar den.
 
 Formuläret för en sammanfattning har fyra steg: **Grundläggande information** (namnet och kanalerna), **Schema**, **Innehåll** (**Vad som ska inkluderas**) och **Filter** (vilka incidenter eller larm den räknar).
+
+**Skicka test nu** på en sammanfattnings rad publicerar den direkt. **Sammanfattning skickad** säger att varje kanal fick den; **Testet misslyckades** säger hur många kanaler som inte gjorde det, och listar var och en under sin orsak, till exempel en kanal som inte hittades. Kanalerna som fick testet behåller det. Varje kanals resultat, av ett test eller ett schemalagt utskick, är en rad på fliken **Arbetsyta** under **Projektinställningar** > **Aviseringar** > **Aviseringsloggar**: **Framgång**, eller **Fel** med varför under **Orsak**. **Senast skickad** flyttas bara när minst en kanal fick sammanfattningen.
 
 ## Aviseringsregler under Growth-planen
 
@@ -361,7 +363,7 @@ Det OneUptime sparar av detta — arbetsytans namn, dess kanaler, de Slack-konto
 ## Felsökning
 
 :::details En regel publicerar ingenting
-Kontrollera regelns villkor med **Testa regel**: om testet kommer fram matchade inte regelns villkor händelsen. Om det inte gör det visar Slack-sidan varför. För en privat kanal måste du först bjuda in OneUptime-appen till den i Slack. Varje meddelande som OneUptime publicerar, och varje meddelande som Slack avvisade, visas i **Projektinställningar** > **Aviseringar** > **Aviseringsloggar**, på fliken **Arbetsyta**.
+Kontrollera regelns villkor med **Testa regel**: om testet kommer fram matchade inte regelns villkor händelsen. Om det inte gör det säger **Testet misslyckades** varför. För en privat kanal måste du först bjuda in OneUptime-appen till den i Slack. Varje meddelande som OneUptime publicerar, och varje meddelande som Slack avvisade, visas i **Projektinställningar** > **Aviseringar** > **Aviseringsloggar**, på fliken **Arbetsyta**. För ett meddelande som Slack avvisade säger **Orsak** varför och vad du kan göra.
 :::
 
 :::details Någon saknas i en regels kanal

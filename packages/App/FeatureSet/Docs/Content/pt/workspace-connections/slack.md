@@ -166,7 +166,7 @@ O app do OneUptime as adiciona, como adiciona as pessoas do canal de uma regra. 
 
 ## Testar uma regra
 
-**Testar regra** na linha de uma regra publica uma mensagem de teste dessa regra nos canais que ela indica, para você vê-la chegar. Se a regra cria um canal para cada evento, o teste também cria um e convida para ele as pessoas da regra.
+**Testar regra** na linha de uma regra publica uma mensagem de teste dessa regra nos canais que ela indica, para você vê-la chegar. **Notificação de teste enviada** diz onde olhar quando o teste saiu, e **Teste com falha** diz por quê quando não saiu. Se a regra cria um canal para cada evento, o teste também cria um de verdade, com o prefixo da regra e cinco letras aleatórias, como `prod-abcde`, e convida você para ele: a caixa de diálogo avisa antes de o teste rodar. O canal fica depois do teste; arquive-o no Slack quando terminar.
 
 Como **Enviar teste** ao lado de um canal em **Configurações do projeto** > **Espaço de trabalho** > **Slack**, ele requer permissão para criar regras de notificação: **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de configurações**, **Membro de configurações**, ou **Create Workspace Notification Rule** e **Read Workspace Notification Rule** em uma função personalizada. Para quem só pode ver as regras, como um **Visualizador**, **Testar regra** fica bloqueado, e a sua dica diz o que é preciso; a API recusa o teste dessa pessoa com "You do not have permission to send test notifications in this project." No OneUptime Cloud, testar uma regra requer o plano **Growth**, assim como adicionar uma.
 
@@ -179,6 +179,8 @@ A aba **Resumo** de **Incidentes** > **Espaço de trabalho** > **Slack** (e de *
 Um resumo sai pelo relógio do seu **Fuso horário**, que começa com o seu. Ele mantém ali o seu horário do dia o ano todo: um definido para 09:00 em Berlim continua saindo às 09:00 em Berlim depois da mudança para o horário de verão, e as datas da sua mensagem também são as de Berlim. Pela API, envie `timezone` como um nome de fuso horário IANA, como `Europe/Berlin`. Um resumo criado sem fuso horário usa o do perfil de quem o criou, ou UTC quando uma chave de API o cria.
 
 O formulário de um resumo tem quatro etapas: **Informações básicas** (o nome e os canais), **Agendamento**, **Conteúdo** (**O que incluir**) e **Filtros** (quais incidentes ou alertas ele conta).
+
+**Enviar teste agora** na linha de um resumo o publica na hora. **Resumo enviado** diz que todos os canais o receberam; **Teste com falha** diz quantos canais não receberam, e lista cada um sob o motivo, como um canal que não foi encontrado. Os canais que receberam o teste ficam com ele. O resultado de cada canal, de um teste ou de um envio agendado, é uma linha na aba **Espaço de trabalho** de **Configurações do projeto** > **Notificações** > **Logs de notificação**: **Sucesso**, ou **Erro** com o porquê em **Motivo**. **Último Envio** só avança quando pelo menos um canal recebeu o resumo.
 
 ## Regras de notificação abaixo do plano Growth
 
@@ -361,7 +363,7 @@ O que o OneUptime guarda disso — o nome do espaço de trabalho, os canais dele
 ## Solução de problemas
 
 :::details Uma regra não publica nada
-Verifique as condições da regra com **Testar regra**: se o teste chegar, as condições da regra não corresponderam ao evento. Se não chegar, a página do Slack diz por quê. Para um canal privado, convide antes o app do OneUptime para ele no Slack. Cada mensagem que o OneUptime publica, e cada uma que o Slack recusou, está listada em **Configurações do projeto** > **Notificações** > **Logs de notificação**, na aba **Espaço de trabalho**.
+Verifique as condições da regra com **Testar regra**: se o teste chegar, as condições da regra não corresponderam ao evento. Se não chegar, **Teste com falha** diz por quê. Para um canal privado, convide antes o app do OneUptime para ele no Slack. Cada mensagem que o OneUptime publica, e cada uma que o Slack recusou, está listada em **Configurações do projeto** > **Notificações** > **Logs de notificação**, na aba **Espaço de trabalho**. Para uma mensagem que o Slack recusou, **Motivo** diz por quê e o que fazer.
 :::
 
 :::details Falta alguém no canal de uma regra
