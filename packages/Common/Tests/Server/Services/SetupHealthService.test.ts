@@ -1203,14 +1203,16 @@ describe("SetupHealthService", () => {
     // Every responder's verified methods come from the project's Readiness.
     expect(thousand["OnCallReadinessService.getReadinessForUsers"]).toBe(0);
     /*
-     * The privacy rules, once (#9370); with no private record, no owner
-     * rule nor anybody's membership.
+     * The privacy rules, once (#9370), and the owner rules, once (#9407,
+     * #9371): every record's owners are worked out. Naming nobody, the
+     * project reads nobody's membership.
      */
     expect(thousand["IncidentPrivacyRuleEngineService.getEnabledRules"]).toBe(
       1,
     );
     expect(thousand["AlertPrivacyRuleEngineService.getEnabledRules"]).toBe(1);
-    expect(thousand["IncidentOwnerRuleEngineService.getEnabledRules"]).toBe(0);
+    expect(thousand["IncidentOwnerRuleEngineService.getEnabledRules"]).toBe(1);
+    expect(thousand["AlertOwnerRuleEngineService.getEnabledRules"]).toBe(1);
     expect(thousand["TeamMemberService.getProjectMemberUserIds"]).toBe(0);
 
     const total: number = Object.values(thousand).reduce(
@@ -1220,7 +1222,8 @@ describe("SetupHealthService", () => {
       0,
     );
 
-    expect(total).toBeLessThan(42);
+    // The owner rules of incidents and alerts are two of them (#9407).
+    expect(total).toBeLessThan(44);
   });
 
   test("a person sees only findings about records they may read", async () => {
@@ -2027,13 +2030,13 @@ describe("SetupHealthService", () => {
         name: "Primary",
       });
       expect(affected(finding)).toHaveLength(world.monitorCount + 1);
-      // The privacy rules are read once; with nothing private, no owner rule is.
+      // The privacy rules and the owner rules are read once for the project.
       expect(
         reads["IncidentPrivacyRuleEngineService.getEnabledRules"]!.mock.calls,
       ).toHaveLength(1);
       expect(
         reads["IncidentOwnerRuleEngineService.getEnabledRules"]!.mock.calls,
-      ).toHaveLength(0);
+      ).toHaveLength(1);
     });
 
     test("a reader who could not read the private incidents is told nothing they alone raise", async () => {

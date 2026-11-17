@@ -886,8 +886,17 @@ describe("the monitors' chains, as findings", () => {
       });
 
       expect(told.chains[0]!.breaks).toEqual([]);
-      // The chains themselves are whole: what a private record's criteria names is still run.
-      expect(told.chains[0]!.criteria).toBe(all.chains[0]!.criteria);
+      /*
+       * The chains themselves are whole: what a private record's criteria
+       * names is still run. The record is only marked hidden, so none of
+       * its owners is listed for them (#9371).
+       */
+      const hidden: WhoIsToldEvent = told.chains[0]!.criteria[0]!.events[0]!;
+      const whole: WhoIsToldEvent = all.chains[0]!.criteria[0]!.events[0]!;
+
+      expect(hidden).toEqual({ ...whole, isHidden: true });
+      expect(hidden.policies).toBe(whole.policies);
+      expect(whole.isHidden).toBeUndefined();
     });
 
     test("a policy's break a public incident raises too affects that incident's monitor alone", () => {
