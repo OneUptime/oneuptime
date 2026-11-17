@@ -98,7 +98,7 @@ describe("MetricView's own Reset zoom (Components/Metrics/MetricView.tsx)", () =
   test("with the query builder shown, it ends the Charts heading row, keeping that row's height and none of its capitals", () => {
     const headingRow: string = between(
       code,
-      '<div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400"> <span>{translator.translateText("Charts")}</span>',
+      '<div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500"> <span>{translator.translateText("Charts")}</span>',
       "{metricResultsError && (",
     );
 
@@ -202,10 +202,10 @@ describe("the bucket inspector (Components/Metrics/MetricCharts.tsx)", () => {
       'className="fixed z-50 w-[300px] select-none rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none"',
     );
     expect(inspector).toContain(
-      '<p className="mt-0.5 select-text text-[11px] tabular-nums text-gray-500">',
+      '<p className="mt-0.5 select-text text-xs tabular-nums text-gray-500">',
     );
     expect(inspector).toContain(
-      '<span className="min-w-0 flex-1 select-text truncate text-xs text-gray-700"> <span className="mr-1.5 select-none tabular-nums text-gray-400"> {index + 1}. </span> {entry.name} </span>',
+      '<span className="min-w-0 flex-1 select-text truncate text-xs text-gray-700"> <span className="mr-1.5 select-none tabular-nums text-gray-500"> {index + 1}. </span> {entry.name} </span>',
     );
     expect(inspector).toContain(
       '<span className="shrink-0 select-text text-xs font-medium tabular-nums text-gray-900"> {bucketInspector.formatValue(entry.value)} </span>',
@@ -237,7 +237,7 @@ describe("the trend card (Components/TelemetryResource/ChartCard.tsx)", () => {
     const emptyBox: string = between(code, "if (!hasData) {", "const xAxis");
 
     expect(emptyBox).toContain(
-      'className={`flex h-44 items-center justify-center rounded-md bg-gray-50 text-sm text-gray-400${ emptyStateReset ? " select-none" : "" }`}',
+      'className={`flex h-44 items-center justify-center rounded-md bg-gray-50 text-sm text-gray-500${ emptyStateReset ? " select-none" : "" }`}',
     );
     expect(emptyBox).toContain("onDoubleClick={emptyStateReset}");
   });
