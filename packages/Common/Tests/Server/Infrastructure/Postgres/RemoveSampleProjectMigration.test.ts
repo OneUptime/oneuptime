@@ -7,6 +7,7 @@ import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaM
 import Project from "../../../../Models/DatabaseModels/Project";
 import User from "../../../../Models/DatabaseModels/User";
 import { getTableColumn } from "../../../../Types/Database/TableColumn";
+import logger from "../../../../Server/Utils/Logger";
 import {
   DefaultNamingStrategy,
   MigrationInterface,
@@ -18,15 +19,21 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * The sample project is removed (it was added by AddSampleProject and
  * AddSampleProjectUserIndex, issue #6808), by one migration:
  *
- *   - every sample project is deleted while Project.isSampleProject still
- *     finds it, and with it everything in it, its made-up people included
- *     (User.sampleProjectId, ON DELETE CASCADE): with the code that kept a
- *     sample quiet gone, one left behind would notify, probe and bill;
- *   - a made-up person whose sample is somehow already gone is deleted too;
+ *   - every made-up person (User.sampleProjectId) is deleted, then every
+ *     sample project (Project.isSampleProject) and everything in it, while
+ *     those columns still find them: with the code that kept a sample quiet
+ *     gone, one left behind would notify, probe and bill, and its people
+ *     would be counted users;
+ *   - one row a statement, each within OnlineDdl's long limits: deleting a
+ *     "User" row makes Postgres scan every column that references "User",
+ *     about 12 s a person on OneUptime Cloud, and the one statement that
+ *     deleted every sample (and, by cascade, every person) there ran out of
+ *     the 30 s statement timeout at every attempt - the release's migrate
+ *     Job failed and its pods never started;
  *   - then the foreign key, the index (online: "User" is written by every
  *     sign-in) and both columns go, as the models no longer have them.
  *
- * Statements are recorded against a fake QueryRunner, the online step by
+ * Statements are recorded against a fake QueryRunner, the online steps by
  * stubbing OnlineDdl; the schema drift check runs them on Postgres against
  * the models. The names are TypeORM's, worked out here as it works them out.
  */
@@ -40,8 +47,32 @@ const FOREIGN_KEY_NAME: string = naming.foreignKeyName(
   ["_id"],
 );
 
-const DELETE_SAMPLE_PROJECTS: string = `DELETE FROM "Project" WHERE "isSampleProject" = true`;
-const DELETE_SAMPLE_PEOPLE: string = `DELETE FROM "User" WHERE "sampleProjectId" IS NOT NULL`;
+const SELECT_PEOPLE: string = `SELECT "_id" FROM "User" WHERE "sampleProjectId" IS NOT NULL ORDER BY "_id"`;
+const SELECT_SAMPLES: string = `SELECT "_id" FROM "Project" WHERE "isSampleProject" = true ORDER BY "_id"`;
+const DELETE_PERSON: string = `DELETE FROM "User" WHERE "_id" = $1 AND "sampleProjectId" IS NOT NULL`;
+const DELETE_SAMPLE: string = `DELETE FROM "Project" WHERE "_id" = $1 AND "isSampleProject" = true`;
+
+// Made-up people and sample projects, as the selects above answer them.
+const PEOPLE: Array<string> = [
+  "11111111-0000-4000-8000-000000000001",
+  "11111111-0000-4000-8000-000000000002",
+  "11111111-0000-4000-8000-000000000003",
+];
+const SAMPLES: Array<string> = [
+  "22222222-0000-4000-8000-000000000001",
+  "22222222-0000-4000-8000-000000000002",
+];
+
+function longDelete(statement: string, id: string): string {
+  return `OnlineDdl.runLongStatement: ${statement} ${JSON.stringify([id])}`;
+}
+
+const DROPS: Array<string> = [
+  `ALTER TABLE "User" DROP CONSTRAINT IF EXISTS "${FOREIGN_KEY_NAME}"`,
+  `OnlineDdl.dropIndex: DROP INDEX "public"."${INDEX_NAME}"`,
+  `ALTER TABLE "User" DROP COLUMN IF EXISTS "sampleProjectId"`,
+  `ALTER TABLE "Project" DROP COLUMN IF EXISTS "isSampleProject"`,
+];
 
 // Every statement, in the order it ran; an online one names its step.
 type Recorded = Array<string>;
@@ -51,6 +82,9 @@ async function record(data: {
   direction: "up" | "down";
   // The columns the database still has, as hasColumn answers.
   columns?: Array<string>;
+  // The made-up people and samples the database still has.
+  people?: Array<string>;
+  samples?: Array<string>;
 }): Promise<Recorded> {
   const recorded: Recorded = [];
 
@@ -63,6 +97,17 @@ async function record(data: {
     }) as never);
   }
 
+  jest.spyOn(OnlineDdl, "runLongStatement").mockImplementation((async (
+    _runner: QueryRunner,
+    sql: string,
+    parameters: Array<unknown> = [],
+  ): Promise<number> => {
+    recorded.push(
+      `OnlineDdl.runLongStatement: ${sql} ${JSON.stringify(parameters)}`,
+    );
+    return 1;
+  }) as never);
+
   const columns: Array<string> = data.columns || [
     "Project.isSampleProject",
     "User.sampleProjectId",
@@ -70,8 +115,22 @@ async function record(data: {
 
   const runner: QueryRunner = {
     isTransactionActive: false,
-    query: async (sql: string): Promise<void> => {
+    query: async (sql: string): Promise<unknown> => {
       recorded.push(sql);
+
+      if (sql === SELECT_PEOPLE) {
+        return (data.people || []).map((id: string) => {
+          return { _id: id };
+        });
+      }
+
+      if (sql === SELECT_SAMPLES) {
+        return (data.samples || []).map((id: string) => {
+          return { _id: id };
+        });
+      }
+
+      return undefined;
     },
     hasColumn: async (table: string, column: string): Promise<boolean> => {
       return columns.includes(`${table}.${column}`);
@@ -96,64 +155,258 @@ describe("RemoveSampleProject1809180800000", () => {
     expect(new RemoveSampleProject1809180800000().transaction).toBe(false);
   });
 
-  test("deletes the sample projects and their people, then drops the key, the index and both columns", async () => {
+  test("deletes each made-up person, then each sample, one statement each, then drops the key, the index and both columns", async () => {
     const recorded: Recorded = await record({
       migration: new RemoveSampleProject1809180800000(),
       direction: "up",
+      people: PEOPLE,
+      samples: SAMPLES,
     });
 
     expect(recorded).toEqual([
-      DELETE_SAMPLE_PROJECTS,
-      DELETE_SAMPLE_PEOPLE,
-      `ALTER TABLE "User" DROP CONSTRAINT IF EXISTS "${FOREIGN_KEY_NAME}"`,
-      `OnlineDdl.dropIndex: DROP INDEX "public"."${INDEX_NAME}"`,
-      `ALTER TABLE "User" DROP COLUMN IF EXISTS "sampleProjectId"`,
-      `ALTER TABLE "Project" DROP COLUMN IF EXISTS "isSampleProject"`,
+      SELECT_PEOPLE,
+      SELECT_SAMPLES,
+      ...PEOPLE.map((id: string) => {
+        return longDelete(DELETE_PERSON, id);
+      }),
+      ...SAMPLES.map((id: string) => {
+        return longDelete(DELETE_SAMPLE, id);
+      }),
+      ...DROPS,
     ]);
   });
 
-  test("deletes the samples while the foreign key that takes their people with them is still there", async () => {
+  test("no delete runs under the pool's 30 s statement timeout: every one is a long statement of OnlineDdl's", async () => {
+    const recorded: Recorded = await record({
+      migration: new RemoveSampleProject1809180800000(),
+      direction: "up",
+      people: PEOPLE,
+      samples: SAMPLES,
+    });
+
+    const deletes: Array<string> = recorded.filter(
+      (statement: string): boolean => {
+        return statement.includes("DELETE");
+      },
+    );
+
+    expect(deletes).toHaveLength(PEOPLE.length + SAMPLES.length);
+
+    for (const statement of deletes) {
+      expect(statement.startsWith("OnlineDdl.runLongStatement: ")).toBe(true);
+    }
+  });
+
+  test("each statement deletes one row, by its id, and only while it is still a sample's", async () => {
+    const recorded: Recorded = await record({
+      migration: new RemoveSampleProject1809180800000(),
+      direction: "up",
+      people: PEOPLE,
+      samples: SAMPLES,
+    });
+
+    const prefix: string = "OnlineDdl.runLongStatement: ";
+    const deletes: Array<{ sql: string; parameters: Array<unknown> }> = recorded
+      .filter((statement: string): boolean => {
+        return statement.startsWith(prefix);
+      })
+      .map((statement: string) => {
+        const parametersAt: number = statement.lastIndexOf(" [");
+
+        return {
+          sql: statement.slice(prefix.length, parametersAt),
+          parameters: JSON.parse(
+            statement.slice(parametersAt + 1),
+          ) as Array<unknown>,
+        };
+      });
+
+    expect(deletes).toEqual([
+      ...PEOPLE.map((id: string) => {
+        return { sql: DELETE_PERSON, parameters: [id] };
+      }),
+      ...SAMPLES.map((id: string) => {
+        return { sql: DELETE_SAMPLE, parameters: [id] };
+      }),
+    ]);
+
+    // Still a sample's: a re-run, or a reused id, deletes nobody real.
+    expect(DELETE_PERSON).toContain(`AND "sampleProjectId" IS NOT NULL`);
+    expect(DELETE_SAMPLE).toContain(`AND "isSampleProject" = true`);
+  });
+
+  test("deletes the people before their samples, so no statement takes a sample's people with it", async () => {
+    const recorded: Recorded = await record({
+      migration: new RemoveSampleProject1809180800000(),
+      direction: "up",
+      people: PEOPLE,
+      samples: SAMPLES,
+    });
+
+    const lastPerson: number = recorded.lastIndexOf(
+      longDelete(DELETE_PERSON, PEOPLE[PEOPLE.length - 1]!),
+    );
+    const firstSample: number = recorded.indexOf(
+      longDelete(DELETE_SAMPLE, SAMPLES[0]!),
+    );
+
+    expect(lastPerson).toBeGreaterThanOrEqual(0);
+    expect(lastPerson).toBeLessThan(firstSample);
+  });
+
+  test("deletes the samples while the foreign key and the columns that find them are still there", async () => {
+    const recorded: Recorded = await record({
+      migration: new RemoveSampleProject1809180800000(),
+      direction: "up",
+      people: PEOPLE,
+      samples: SAMPLES,
+    });
+
+    const lastDelete: number = recorded.lastIndexOf(
+      longDelete(DELETE_SAMPLE, SAMPLES[SAMPLES.length - 1]!),
+    );
+
+    for (const drop of DROPS) {
+      expect(recorded.indexOf(drop)).toBeGreaterThan(lastDelete);
+    }
+
+    expect(recorded.indexOf(SELECT_PEOPLE)).toBeLessThan(
+      recorded.indexOf(DROPS[2]!),
+    );
+    expect(recorded.indexOf(SELECT_SAMPLES)).toBeLessThan(
+      recorded.indexOf(DROPS[3]!),
+    );
+  });
+
+  test("with no sample and no made-up person left, it deletes nothing and only drops", async () => {
     const recorded: Recorded = await record({
       migration: new RemoveSampleProject1809180800000(),
       direction: "up",
     });
 
-    const foreignKeyDropped: number = recorded.findIndex(
-      (statement: string): boolean => {
-        return statement.includes("DROP CONSTRAINT");
-      },
-    );
+    expect(recorded).toEqual([SELECT_PEOPLE, SELECT_SAMPLES, ...DROPS]);
+  });
 
-    expect(recorded.indexOf(DELETE_SAMPLE_PROJECTS)).toBeGreaterThanOrEqual(0);
-    expect(recorded.indexOf(DELETE_SAMPLE_PROJECTS)).toBeLessThan(
-      foreignKeyDropped,
-    );
-    expect(recorded.indexOf(DELETE_SAMPLE_PEOPLE)).toBeLessThan(
-      foreignKeyDropped,
+  test("says how many it is removing, since a large install takes minutes", async () => {
+    const info: jest.SpiedFunction<typeof logger.info> = jest
+      .spyOn(logger, "info")
+      .mockImplementation((() => {
+        return undefined;
+      }) as never);
+
+    await record({
+      migration: new RemoveSampleProject1809180800000(),
+      direction: "up",
+      people: PEOPLE,
+      samples: SAMPLES,
+    });
+
+    expect(info).toHaveBeenCalledTimes(1);
+    expect(String(info.mock.calls[0]![0])).toContain(
+      "Removing 2 sample project(s) and 3 made-up person(s), one statement each",
     );
   });
 
-  test("run again after a stop part way, it deletes only by the columns still there and fails on nothing gone", async () => {
-    // Stopped after User.sampleProjectId went: the samples are already gone.
+  test("a failed delete stops the run there, before any column goes, so the next run can still find what is left", async () => {
+    jest.spyOn(OnlineDdl, "dropIndex").mockResolvedValue(undefined as never);
+
+    const recorded: Recorded = [];
+
+    jest.spyOn(OnlineDdl, "runLongStatement").mockImplementation((async (
+      _runner: QueryRunner,
+      sql: string,
+      parameters: Array<unknown> = [],
+    ): Promise<number> => {
+      recorded.push(`${sql} ${JSON.stringify(parameters)}`);
+
+      if (parameters[0] === PEOPLE[1]) {
+        throw new Error("canceling statement due to statement timeout");
+      }
+
+      return 1;
+    }) as never);
+
+    const runner: QueryRunner = {
+      isTransactionActive: false,
+      query: async (sql: string): Promise<unknown> => {
+        recorded.push(sql);
+
+        if (sql === SELECT_PEOPLE) {
+          return PEOPLE.map((id: string) => {
+            return { _id: id };
+          });
+        }
+
+        if (sql === SELECT_SAMPLES) {
+          return SAMPLES.map((id: string) => {
+            return { _id: id };
+          });
+        }
+
+        return undefined;
+      },
+      hasColumn: async (): Promise<boolean> => {
+        return true;
+      },
+    } as unknown as QueryRunner;
+
+    await expect(
+      new RemoveSampleProject1809180800000().up(runner),
+    ).rejects.toThrow("canceling statement due to statement timeout");
+
+    expect(
+      recorded.filter((statement: string): boolean => {
+        return statement.includes("DROP");
+      }),
+    ).toEqual([]);
+    expect(recorded).not.toContain(
+      `${DELETE_SAMPLE} ${JSON.stringify([SAMPLES[0]])}`,
+    );
+  });
+
+  test("run again after a stop part way, it deletes only what the columns still there find, and fails on nothing gone", async () => {
+    // Stopped part way through the people: the rest are still found.
+    const partWay: Recorded = await record({
+      migration: new RemoveSampleProject1809180800000(),
+      direction: "up",
+      people: [PEOPLE[2]!],
+      samples: SAMPLES,
+    });
+
+    expect(
+      partWay.filter((statement: string): boolean => {
+        return statement.includes("DELETE");
+      }),
+    ).toEqual([
+      longDelete(DELETE_PERSON, PEOPLE[2]!),
+      ...SAMPLES.map((id: string) => {
+        return longDelete(DELETE_SAMPLE, id);
+      }),
+    ]);
+
+    // Stopped after User.sampleProjectId went: nobody is looked for.
     const afterUserColumn: Recorded = await record({
       migration: new RemoveSampleProject1809180800000(),
       direction: "up",
       columns: ["Project.isSampleProject"],
+      people: PEOPLE,
     });
 
-    expect(afterUserColumn).not.toContain(DELETE_SAMPLE_PEOPLE);
-    expect(afterUserColumn[0]).toBe(DELETE_SAMPLE_PROJECTS);
+    expect(afterUserColumn).not.toContain(SELECT_PEOPLE);
+    expect(afterUserColumn[0]).toBe(SELECT_SAMPLES);
 
     // Stopped after both columns went, before the run was recorded.
     const afterBoth: Recorded = await record({
       migration: new RemoveSampleProject1809180800000(),
       direction: "up",
       columns: [],
+      people: PEOPLE,
+      samples: SAMPLES,
     });
 
     expect(
       afterBoth.filter((statement: string): boolean => {
-        return statement.startsWith("DELETE");
+        return statement.startsWith("SELECT") || statement.includes("DELETE");
       }),
     ).toEqual([]);
 

@@ -239,7 +239,11 @@ interface IndexRow {
  * query config; TypeORM's QueryRunner.query cannot pass one.
  */
 interface PostgresClient {
-  query(config: { text: string; query_timeout: number }): Promise<unknown>;
+  query(config: {
+    text: string;
+    values?: Array<unknown>;
+    query_timeout: number;
+  }): Promise<unknown>;
 }
 
 export default class OnlineDdl {
@@ -344,6 +348,39 @@ export default class OnlineDdl {
     }
 
     await queryRunner.query(`DROP INDEX IF EXISTS ${quotedName}`);
+  }
+
+  /*
+   * Runs one statement that may take long but blocks none of the app's reads
+   * or writes, within `limits`, and answers how many rows it changed. For a
+   * DELETE whose foreign keys Postgres can only check by scanning: deleting
+   * a "User" row makes it look for the user in every column that references
+   * "User" - over a thousand, most of them without an index - one sequential
+   * scan each, which takes seconds per user on a large install and is far
+   * past DATABASE_STATEMENT_TIMEOUT_MS (30 s) for a handful of users at once.
+   *
+   * The statement commits as it ends, so it holds its locks only while it
+   * runs: it needs `transaction = false`, and refuses to run inside one.
+   */
+  public static async runLongStatement(
+    queryRunner: QueryRunner,
+    statement: string,
+    parameters: Array<unknown> = [],
+    limits: OnlineDdlLimits = ONLINE_DDL_LIMITS,
+  ): Promise<number> {
+    this.assertNoTransaction(queryRunner, statement);
+
+    const result: unknown = await this.runWithLimits(
+      queryRunner,
+      statement,
+      limits,
+      parameters,
+    );
+
+    const rowCount: unknown = (result as { rowCount?: unknown } | null)
+      ?.rowCount;
+
+    return typeof rowCount === "number" ? rowCount : 0;
   }
 
   /*
@@ -591,7 +628,7 @@ export default class OnlineDdl {
   ): void {
     if (queryRunner.isTransactionActive) {
       throw new Error(
-        `OnlineDdl cannot run inside a transaction (${statement}): an online index build cannot run in one at all, and a validation in the same transaction as the statement before it scans the table under that statement's lock. Give the migration \`public transaction: boolean = false;\`.`,
+        `OnlineDdl cannot run inside a transaction (${statement}): a migration keeps every lock it took until it commits, an online index build cannot run in one at all, and a validation in the same transaction as the statement before it scans the table under that statement's lock. Give the migration \`public transaction: boolean = false;\`.`,
       );
     }
   }
@@ -741,13 +778,15 @@ export default class OnlineDdl {
 
   /*
    * Runs one long, non-blocking statement within `limits`, then gives the
-   * connection its own settings back - it returns to the pool.
+   * connection its own settings back - it returns to the pool. Answers what
+   * node-postgres answered for it.
    */
   private static async runWithLimits(
     queryRunner: QueryRunner,
     statement: string,
     limits: OnlineDdlLimits,
-  ): Promise<void> {
+    parameters: Array<unknown> = [],
+  ): Promise<unknown> {
     await queryRunner.query(
       `SET statement_timeout = ${limits.statementTimeoutInMs}`,
     );
@@ -758,8 +797,9 @@ export default class OnlineDdl {
       const client: PostgresClient =
         (await queryRunner.connect()) as PostgresClient;
 
-      await client.query({
+      return await client.query({
         text: statement,
+        ...(parameters.length > 0 ? { values: parameters } : {}),
         query_timeout:
           limits.statementTimeoutInMs + limits.clientTimeoutMarginInMs,
       });
