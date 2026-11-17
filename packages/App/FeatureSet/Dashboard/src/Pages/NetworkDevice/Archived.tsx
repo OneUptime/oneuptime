@@ -109,6 +109,8 @@ const NetworkDeviceArchivedPage: FunctionComponent<
           );
         }}
         searchableFields={["name", "description"]}
+        // A link made when the Vendor filter read `vendor` still filters (#9363).
+        renamedFilterKeys={{ vendor: "manufacturer" }}
         /*
          * The same filters as the Devices list's (issue #9304), beside the
          * Owner and Labels chips above, so archived devices are found the
@@ -130,8 +132,14 @@ const NetworkDeviceArchivedPage: FunctionComponent<
             type: FieldType.Text,
           },
           {
+            /*
+             * The maker the Devices list shows for a device (issue #9363),
+             * which the server keeps on it: the vendor saved on it or read by
+             * its poll, or else what its SNMP identity, its controller or the
+             * Discovered Devices list names.
+             */
             field: {
-              vendor: true,
+              manufacturer: true,
             },
             title: "Vendor",
             type: FieldType.Text,

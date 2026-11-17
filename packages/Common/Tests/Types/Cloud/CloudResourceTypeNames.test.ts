@@ -82,10 +82,11 @@ describe("the types only ever named", () => {
       // AWS's are listed (#9375), so they go by the catalog's labels.
       [CloudProvider.AWS, "AWS::EC2::Subnet", "VPC Subnet"],
       [CloudProvider.AWS, "AWS::EC2::SecurityGroup", "Security Group"],
+      // Azure's are listed too (#9375), by the catalog's labels.
       [
         CloudProvider.Azure,
         "Microsoft.Network/virtualNetworks/subnets",
-        "Subnet",
+        "Virtual Network Subnet",
       ],
       [
         CloudProvider.Azure,

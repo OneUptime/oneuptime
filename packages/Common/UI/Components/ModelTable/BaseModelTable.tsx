@@ -32,6 +32,7 @@ import TableViewUrlState, {
   TableViewUrlStateData,
 } from "../../Utils/TableViewUrlState";
 import buildQueryFromFilterData, {
+  renameFilterDataKeys,
   sanitizeFilterData,
 } from "./FilterDataToQuery";
 import PermissionGate, {
@@ -772,6 +773,13 @@ export interface BaseTableProps<
    * than once on one route and the two instances must keep separate state.
    */
   urlStateKey?: string | undefined;
+
+  /**
+   * Filters this table used to key by another field, by the key it filters
+   * by now ({ vendor: "manufacturer" }): a link or a bookmark made before
+   * still filters by what it said, read under the new key (renameFilterDataKeys).
+   */
+  renamedFilterKeys?: Readonly<Record<string, string>> | undefined;
 
   /**
    * Opt out of mirroring this table's filters into the URL. Use for tables
@@ -1672,11 +1680,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     /*
      * Anything on the URL is user-editable, so keep only the fields this table
-     * actually offers a filter for before it reaches the outgoing query.
+     * actually offers a filter for before it reaches the outgoing query - a
+     * filter the table has since renamed read under its new key first.
      */
     const sanitized: FilterData<TBaseModel> | null = restoredFilter
       ? sanitizeFilterData<TBaseModel>({
-          filterData: restoredFilter as unknown as FilterData<TBaseModel>,
+          filterData: renameFilterDataKeys<TBaseModel>({
+            filterData: restoredFilter as unknown as FilterData<TBaseModel>,
+            renamedKeys: props.renamedFilterKeys,
+          }),
           filters: props.filters,
         })
       : null;
