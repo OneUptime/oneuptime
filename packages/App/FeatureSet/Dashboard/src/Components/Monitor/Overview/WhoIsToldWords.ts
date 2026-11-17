@@ -562,6 +562,11 @@ export function getFixLink(data: {
 export const ADMIN_DASHBOARD_FIX_WORDS: string =
   FIX_WORDS[WhoIsToldFix.ServerSettings];
 
+// The words of the link that puts a fix's break right, in English (the docs name them).
+export function getFixWords(fix: WhoIsToldFix): string {
+  return FIX_WORDS[fix];
+}
+
 // "Ana Lopez and Ben Ito", in the sentence's language.
 function nameList(
   names: ReadonlyArray<string>,
