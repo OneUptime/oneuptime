@@ -2174,7 +2174,7 @@ describe("Jira", () => {
     }
 
     expect(page).toContain(
-      "The API token is saved as a secret: it is redacted from **Logs → Runs**, and only ever goes into the `Authorization` header of the Jira calls.",
+      "The API token is saved as a secret: it is redacted from **Runs**, and only ever goes into the `Authorization` header of the Jira calls.",
     );
   });
 
