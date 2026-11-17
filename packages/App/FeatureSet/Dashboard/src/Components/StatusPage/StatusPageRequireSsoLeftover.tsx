@@ -23,8 +23,8 @@ import React, {
  * A status page a Scale trial left requiring SSO still requires it: its
  * private users can sign in with SSO or OIDC only. Turning its providers
  * off without letting people back in with their passwords would leave
- * nobody able to sign in, so while it requires SSO its "Require SSO for
- * Login" switch is drawn here too, to turn off. Once it is off, the card
+ * nobody able to sign in, so while it requires SSO its "Require SSO to
+ * Sign In" switch is drawn here too, to turn off. Once it is off, the card
  * says how people sign in now instead of offering the switch again:
  * requiring SSO is what the plan sells.
  *

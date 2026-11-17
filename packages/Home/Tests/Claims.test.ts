@@ -29,7 +29,7 @@ const EXPECTED_STATUS_KEYS: Array<ClaimStatusKey> = [
 
 /*
  * Single sign-on is part of the Community Edition: SAML and OIDC single
- * sign-on, global SSO, and "Require SSO for login" are Apache 2.0 and need no
+ * sign-on, global SSO, and "Require SSO to sign in" are Apache 2.0 and need no
  * license. The Enterprise Edition adds SCIM, audit logs, team compliance, and
  * the instance health dashboards. OneUptime Cloud still puts SSO on the Scale
  * plan, which is a plan, not an edition.

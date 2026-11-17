@@ -339,7 +339,7 @@ const SEARCH_ACTIONS: ReadonlyArray<string> = [
  * what a reader types (SearchDocs checks each finds its page first).
  */
 const SEARCH_SETTINGS: ReadonlyArray<[string, string]> = [
-  ["Require SSO for Login", "SSO"],
+  ["Require SSO to Sign In", "SSO"],
   ["Custom SMTP Configs", "Notification Channels"],
 ];
 

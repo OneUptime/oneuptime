@@ -23,8 +23,8 @@ import OneUptimeDate from "Common/Types/Date";
 
 /*
  * The last OneUptime release where single sign-on stops with the license.
- * From 14.0.0 up to this release, single sign-on stops (and "Require SSO for
- * login" is no longer enforced) when the grace period ends; later releases
+ * From 14.0.0 up to this release, single sign-on stops (and "Require SSO to
+ * sign in" is no longer enforced) when the grace period ends; later releases
  * ship SAML and OIDC single sign-on in the Community Edition, so a lapse
  * leaves it alone. Releases before 14 never checked the license while
  * running, so "and earlier" can only over-warn them.

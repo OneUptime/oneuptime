@@ -65,7 +65,7 @@ export const REQUIRE_SSO_COPY: {
   cardTitle: "Require SSO",
   cardDescription:
     "Before you require SSO, sign in with a provider using Test Sign-in in its row.",
-  switchTitle: "Require SSO for Login",
+  switchTitle: "Require SSO to Sign In",
   switchOnDescription:
     "The sign-in page offers only SSO. Everyone except master admins must sign in with SSO to open any project.",
   switchOffDescription: "People can sign in with a password, a passkey or SSO.",

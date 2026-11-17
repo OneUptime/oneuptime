@@ -94,7 +94,7 @@ if (
 /*
  * A SIGN-IN RULE THAT CANNOT BE READ IS NOT A RULE THAT IS OFF, OVER HTTP.
  *
- * Require SSO for Login is a rule of the whole server (Admin Dashboard >
+ * Require SSO to Sign In is a rule of the whole server (Admin Dashboard >
  * Settings > Authentication) and of each project (Project Settings > SSO).
  * Every request in a project asks it (UserMiddleware) whether the person's
  * session must also carry an SSO sign-in. The rules are kept for a minute on

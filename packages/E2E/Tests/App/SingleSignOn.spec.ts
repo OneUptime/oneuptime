@@ -39,7 +39,7 @@ import Faker from "Common/Utils/Faker";
  * decides whether it works.
  *
  * SAML and OIDC sign-in - for projects, for the whole instance and for
- * status pages - and "Require SSO for login" are part of the Community
+ * status pages - and "Require SSO to sign in" are part of the Community
  * Edition. This spec is in the default ./Tests tree, which runs against the
  * Community stack (test-e2e-test-self-hosted) and the SaaS stack
  * (test-e2e-test-saas), so both prove it here; the self-hosted Enterprise
@@ -192,7 +192,7 @@ test.describe("Single sign-on is configured and used end to end (billing off)", 
     });
   });
 
-  test("Require SSO for login can be switched on, and is enforced", async (): Promise<void> => {
+  test("Require SSO to sign in can be switched on, and is enforced", async (): Promise<void> => {
     /*
      * A second project, because switching the requirement on locks this
      * password-signed-in owner out of the project it is switched on for.

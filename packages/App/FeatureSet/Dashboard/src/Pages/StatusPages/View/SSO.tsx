@@ -42,7 +42,7 @@ interface SamlConfigDialogTarget {
 
 /*
  * Status page > SSO: SAML sign-on for private status page users, the link to
- * test it, and "Require SSO for Login" for the status page (a switch that
+ * test it, and "Require SSO to Sign In" for the status page (a switch that
  * saves when flipped: StatusPageRequireSsoCard).
  *
  * Adding one asks for what the identity provider gives - its sign-on URL,
@@ -200,7 +200,7 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
         )}
 
         {/*
-         * "Require SSO for Login": one switch that saves when flipped, and
+         * "Require SSO to Sign In": one switch that saves when flipped, and
          * asks first before it turns off signing in with a password.
          */}
         <StatusPageRequireSsoCard statusPageId={modelId} />
@@ -258,7 +258,7 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
 /*
  * Every edition includes single sign-on. OneUptime Cloud sells it on the
  * Scale plan, so there a project below Scale sees the plan upsell instead,
- * with what a Scale trial left under it: "Require SSO for Login" while the
+ * with what a Scale trial left under it: "Require SSO to Sign In" while the
  * status page still requires SSO, and the SAML providers it still has,
  * which keep signing people in until they are turned off or deleted
  * (StatusPageSamlProvidersLeftover).

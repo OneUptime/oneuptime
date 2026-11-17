@@ -56,7 +56,7 @@ import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 
 /*
  * Single sign-on - SAML and OIDC for projects, status pages and the whole
- * instance, and "Require SSO for login" - is part of the Community Edition.
+ * instance, and "Require SSO to sign in" - is part of the Community Edition.
  * This suite proves it end to end at the model and permission level, in
  * EVERY deployment state:
  *

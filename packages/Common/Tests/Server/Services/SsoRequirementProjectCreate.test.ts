@@ -81,7 +81,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * follows a create, the server's sign-in rules and the global providers
  * held in memory below. A new project has no SSO provider of its own yet:
  *
- *   - created with Require SSO for Login on, or naming a provider to
+ *   - created with Require SSO to Sign In on, or naming a provider to
  *     require, it is held to the rule an update is held to, and refused in
  *     the same words while no global provider signs people in to every
  *     project - whoever creates it;
@@ -325,7 +325,7 @@ beforeEach(() => {
     getJestSpyOn(ProjectService, seeder).mockImplementation(seed as never);
   }
 
-  // The server's Require SSO for Login, as the Admin Dashboard sets it.
+  // The server's Require SSO to Sign In, as the Admin Dashboard sets it.
   getJestSpyOn(GlobalConfigService, "findOneBy").mockImplementation(
     (async () => {
       events.push("read:server-rule");
@@ -432,7 +432,7 @@ const everyProject: (id: ObjectID) => GlobalProvider = (
   return { id, restrictToAttachedProjects: false, attachedTo: [] };
 };
 
-describe("a project created with Require SSO for Login on", () => {
+describe("a project created with Require SSO to Sign In on", () => {
   test.each(["masterAdmin", "root"] as Array<Creator>)(
     "by %s, is refused while no provider would sign anyone in to it, in the words an update is refused in, and nothing is written",
     async (creator: Creator) => {

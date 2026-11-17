@@ -40,7 +40,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
         {/*
          * Single sign-on, on one page: the SAML and OpenID Connect
-         * providers and Require SSO for Login. They were "Global SSO" and
+         * providers and Require SSO to Sign In. They were "Global SSO" and
          * "Global OIDC" in a folded section also called Authentication, and
          * the switch was on the Authentication page.
          */}

@@ -203,7 +203,7 @@ export interface PageSearchCommandDescriptor {
   // A thing done on a page ("Delete Project") rather than the page itself.
   isAction: boolean;
   /*
-   * A setting on a page ("Require SSO for Login" on SSO), named as its card
+   * A setting on a page ("Require SSO to Sign In" on SSO), named as its card
    * or switch names it, rather than the page itself.
    */
   isSetting: boolean;
@@ -477,7 +477,7 @@ export function buildPageSearchCommandDescriptors(
 
         /*
          * An action, or a setting, names the page it is on: Delete Project
-         * is under "Project Settings > Danger Zone", Require SSO for Login
+         * is under "Project Settings > Danger Zone", Require SSO to Sign In
          * under "Project Settings > Security > SSO".
          */
         const onPageBreadcrumb: Array<string> = isSameName(

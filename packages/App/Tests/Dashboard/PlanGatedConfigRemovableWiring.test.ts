@@ -19,7 +19,7 @@ import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
  *     EnterprisePluginPage's belowPlan): the providers and connections the
  *     project still has, which keep signing people in and provisioning them
  *     (IdentityPlanLeftovers). A status page that still requires SSO gets
- *     its "Require SSO for Login" switch there too.
+ *     its "Require SSO to Sign In" switch there too.
  *   - Settings > API Keys, On-Call Duty > Schedules and every product's
  *     Slack and Microsoft Teams page, below Growth: a plan note
  *     (PlanLeftoverPage) with the keys, schedules, rules and summaries the
@@ -192,7 +192,7 @@ describe("the Scale pages draw what is left under their upsell", () => {
    * One switch for the page, above both kinds of provider: turning the last
    * provider of either kind off while SSO is required leaves no way in.
    */
-  test("Settings > SSO keeps the project's Require SSO for Login leftover too, once, above both kinds of provider", () => {
+  test("Settings > SSO keeps the project's Require SSO to Sign In leftover too, once, above both kinds of provider", () => {
     const page: string = readDashboard("Pages/Settings/SSO.tsx");
 
     expect(page).toContain(
@@ -237,7 +237,7 @@ describe("the Scale pages draw what is left under their upsell", () => {
     },
   );
 
-  test("a status page's SAML and OIDC leftovers start with its Require SSO for Login switch", () => {
+  test("a status page's SAML and OIDC leftovers start with its Require SSO to Sign In switch", () => {
     const source: string = readDashboard(
       "Components/Billing/IdentityPlanLeftovers.tsx",
     );
@@ -254,7 +254,7 @@ describe("the Scale pages draw what is left under their upsell", () => {
    * The project's OIDC providers are on Settings > SSO, under the switch
    * the page draws once: their leftover draws no second one.
    */
-  test("the project's OIDC leftovers leave Require SSO for Login to the page they are on", () => {
+  test("the project's OIDC leftovers leave Require SSO to Sign In to the page they are on", () => {
     const source: string = readDashboard(
       "Components/Billing/IdentityPlanLeftovers.tsx",
     );

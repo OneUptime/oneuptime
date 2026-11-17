@@ -35,7 +35,7 @@ import { DataSource } from "typeorm";
  * A PROJECT IS CREATED WITH A WAY IN, AGAINST POSTGRES
  * (SsoRequirementChanges.beforeProjectCreate, from ProjectService.create).
  *
- * The check reads the server's Require SSO for Login from GlobalConfig and
+ * The check reads the server's Require SSO to Sign In from GlobalConfig and
  * the global SAML and OIDC providers that are on - with, for the ones
  * restricted to the projects they are attached to, their attachments - and
  * here those are real rows in the migrated tables, read by the real
@@ -45,7 +45,7 @@ import { DataSource } from "typeorm";
  *     global provider that is on signs people in to every project; refused
  *     otherwise, in words that name a server admin, and no project row is
  *     written. A master admin is not held to the server's rule;
- *   - created with Require SSO for Login on, it needs the same, whoever
+ *   - created with Require SSO to Sign In on, it needs the same, whoever
  *     creates it, and is refused in the words an update is refused in;
  *   - with neither rule, the create goes through without reading a
  *     provider.
@@ -130,7 +130,7 @@ describePostgres("a project created with a way in, on Postgres", () => {
     });
   };
 
-  // The server's Require SSO for Login, as the Admin Dashboard saves it.
+  // The server's Require SSO to Sign In, as the Admin Dashboard saves it.
   const setServerRule: (requireSsoForLogin: boolean) => Promise<void> = async (
     requireSsoForLogin: boolean,
   ): Promise<void> => {
@@ -207,7 +207,7 @@ describePostgres("a project created with a way in, on Postgres", () => {
   };
 
   /*
-   * Creates a project as `creator`: the new row's Require SSO for Login, or
+   * Creates a project as `creator`: the new row's Require SSO to Sign In, or
    * the words the create was refused in - in which case no row was written.
    */
   const create: (
@@ -444,7 +444,7 @@ describePostgres("a project created with a way in, on Postgres", () => {
     });
   });
 
-  describe("created with Require SSO for Login on", () => {
+  describe("created with Require SSO to Sign In on", () => {
     beforeEach(async () => {
       await setServerRule(false);
     });
