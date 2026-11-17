@@ -3210,6 +3210,28 @@ describe("Home Page & Shortcuts", () => {
     expect(section).toContain("**When this goes down** card");
     expect(pageWords).toContain('dismissed: translationKey("Dismissed"),');
     expect(section).toContain("restored from **Dismissed**");
+
+    /*
+     * An owner the card says no Created email reaches is a finding too
+     * (#9371), with the card's own fix pages.
+     */
+    expect(
+      oneLine(
+        fs.readFileSync(
+          path.join(
+            __dirname,
+            "../../../../Common/Types/SetupHealth/SetupHealth.ts",
+          ),
+          "utf8",
+        ),
+      ),
+    ).toContain('OwnerNotEmailed = "owner_not_emailed"');
+    expect(pageWords).toContain(
+      "[SetupHealthFix.TeamMembers]: OWNER_FIX_WORDS.team,",
+    );
+    expect(section).toContain(
+      "Each owner the card says no Created email reaches is a finding too, worth fixing, with the same page to put it right.",
+    );
   });
 
   it("names Your project's resources in the card's order, and when Upcoming maintenance shows", () => {

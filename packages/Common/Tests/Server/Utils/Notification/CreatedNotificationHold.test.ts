@@ -322,3 +322,212 @@ describe("the records the Created job read", () => {
     expect(CreatedNotificationHold.oncePerRecord([])).toEqual([]);
   });
 });
+
+/*
+ * WHO IS STILL ADDING OWNERS (#9407): an alert's on-call rules with an
+ * Alert Owner condition wait for the owners its create and its caller add,
+ * a moment and no longer.
+ */
+describe("who is still adding owners to a create", () => {
+  const OUTSIDE_THE_CHAIN: Array<OwnersAddedBy> = [
+    OwnersAddedBy.Create,
+    OwnersAddedBy.Caller,
+  ];
+
+  // Whether a promise has settled by now, and with what.
+  async function settledWith(
+    promise: Promise<boolean>,
+  ): Promise<boolean | "pending"> {
+    let value: boolean | "pending" = "pending";
+
+    promise.then((areIn: boolean) => {
+      value = areIn;
+    });
+
+    for (let i: number = 0; i < 5; i++) {
+      await Promise.resolve();
+    }
+
+    return value;
+  }
+
+  test("is whoever said they add owners and has not said they are in", async () => {
+    const create: CreateBy<Incident> = monitorCreate(newRelease());
+
+    expect(
+      CreatedNotificationHold.isAddingOwners(create, OUTSIDE_THE_CHAIN),
+    ).toBe(true);
+
+    await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Create);
+
+    // The caller still is.
+    expect(
+      CreatedNotificationHold.isAddingOwners(create, OUTSIDE_THE_CHAIN),
+    ).toBe(true);
+    expect(
+      CreatedNotificationHold.isAddingOwners(create, [OwnersAddedBy.Create]),
+    ).toBe(false);
+
+    await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Caller);
+
+    // Only the chain is left, which is not asked about.
+    expect(
+      CreatedNotificationHold.isAddingOwners(create, OUTSIDE_THE_CHAIN),
+    ).toBe(false);
+    expect(
+      CreatedNotificationHold.isAddingOwners(create, [OwnersAddedBy.Chain]),
+    ).toBe(true);
+  });
+
+  test("is nobody for a create never seen, held or not", () => {
+    const create: CreateBy<Incident> = newCreate();
+
+    expect(
+      CreatedNotificationHold.isAddingOwners(create, OUTSIDE_THE_CHAIN),
+    ).toBe(false);
+
+    // Saying it adds owners makes it one, held or not.
+    CreatedNotificationHold.willAddOwners(create, OwnersAddedBy.Caller);
+
+    expect(
+      CreatedNotificationHold.isAddingOwners(create, OUTSIDE_THE_CHAIN),
+    ).toBe(true);
+  });
+
+  test("is waited for until the last of them says its owners are in", async () => {
+    const release: ReturnType<typeof newRelease> = newRelease();
+    const create: CreateBy<Incident> = monitorCreate(release);
+
+    const waiting: Promise<boolean> = CreatedNotificationHold.whenOwnersAreIn(
+      create,
+      OUTSIDE_THE_CHAIN,
+      60 * 1000,
+    );
+
+    expect(await settledWith(waiting)).toBe("pending");
+
+    await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Caller);
+
+    expect(await settledWith(waiting)).toBe("pending");
+
+    await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Create);
+
+    expect(await settledWith(waiting)).toBe(true);
+
+    // The wait is no reason to release it: the chain has not said its owners are in.
+    expect(release).not.toHaveBeenCalled();
+  });
+
+  test("settles at once when none of them is still adding owners", async () => {
+    const create: CreateBy<Incident> = monitorCreate(newRelease());
+
+    await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Create);
+    await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Caller);
+
+    // The chain still adding owners holds nobody up who did not ask for it.
+    expect(
+      await settledWith(
+        CreatedNotificationHold.whenOwnersAreIn(
+          create,
+          OUTSIDE_THE_CHAIN,
+          60 * 1000,
+        ),
+      ),
+    ).toBe(true);
+
+    expect(
+      await settledWith(
+        CreatedNotificationHold.whenOwnersAreIn(
+          newCreate(),
+          OUTSIDE_THE_CHAIN,
+          60 * 1000,
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  test("settles once the time is up, saying they are not in, and is let go of", async () => {
+    jest.useFakeTimers();
+
+    try {
+      const create: CreateBy<Incident> = monitorCreate(newRelease());
+
+      const waiting: Promise<boolean> = CreatedNotificationHold.whenOwnersAreIn(
+        create,
+        OUTSIDE_THE_CHAIN,
+        10 * 1000,
+      );
+
+      jest.advanceTimersByTime(9999);
+      expect(await settledWith(waiting)).toBe("pending");
+
+      jest.advanceTimersByTime(1);
+      expect(await settledWith(waiting)).toBe(false);
+
+      // Their owners coming in later changes nothing for it, and throws nothing.
+      await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Create);
+      await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Caller);
+
+      expect(await waiting).toBe(false);
+      expect(jest.getTimerCount()).toBe(0);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test("leaves no timer behind once their owners are in", async () => {
+    jest.useFakeTimers();
+
+    try {
+      const create: CreateBy<Incident> = monitorCreate(newRelease());
+
+      const waiting: Promise<boolean> = CreatedNotificationHold.whenOwnersAreIn(
+        create,
+        OUTSIDE_THE_CHAIN,
+        10 * 1000,
+      );
+
+      expect(jest.getTimerCount()).toBe(1);
+
+      await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Create);
+      await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Caller);
+
+      expect(await waiting).toBe(true);
+      expect(jest.getTimerCount()).toBe(0);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test("tells every create's waiters apart, and each of them", async () => {
+    const first: CreateBy<Incident> = monitorCreate(newRelease());
+    const second: CreateBy<Incident> = monitorCreate(newRelease());
+
+    const firstWaits: Array<Promise<boolean>> = [1, 2].map(() => {
+      return CreatedNotificationHold.whenOwnersAreIn(
+        first,
+        OUTSIDE_THE_CHAIN,
+        60 * 1000,
+      );
+    });
+    const secondWaits: Promise<boolean> =
+      CreatedNotificationHold.whenOwnersAreIn(
+        second,
+        OUTSIDE_THE_CHAIN,
+        60 * 1000,
+      );
+
+    await CreatedNotificationHold.ownersAreIn(first, OwnersAddedBy.Create);
+    await CreatedNotificationHold.ownersAreIn(first, OwnersAddedBy.Caller);
+
+    expect(await settledWith(firstWaits[0]!)).toBe(true);
+    expect(await settledWith(firstWaits[1]!)).toBe(true);
+    expect(await settledWith(secondWaits)).toBe("pending");
+
+    await CreatedNotificationHold.ownersAreIn(second, OwnersAddedBy.Create);
+    await CreatedNotificationHold.ownersAreIn(second, OwnersAddedBy.Caller);
+
+    expect(await settledWith(secondWaits)).toBe(true);
+    expect(errors).not.toHaveBeenCalled();
+  });
+});

@@ -736,6 +736,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/OnCallFireDrillPostgres.test.ts --forceExit
 
+      # #9407, #9371: When this goes down and Setup health work out who owns
+      # what each monitor opens - the project's teams and who is in them,
+      # every network device's owners, every monitor's own owners - in one
+      # read of each for the whole project. On copies of the migrated owner
+      # tables: an alert's owners are the rows its create would write, an
+      # Alert Owner rule matches them as the real engine matches a saved
+      # alert's rows, who isn't reached is said, another project's device
+      # owner is never read, and the statements do not grow with the monitors.
+      - name: Test who owns what a monitor opens, on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WHO_IS_TOLD_OWNERS_TESTS: "true"
+          WHO_IS_TOLD_OWNERS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WHO_IS_TOLD_OWNERS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WHO_IS_TOLD_OWNERS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/WhoIsToldOwnersPostgres.test.ts --forceExit
+
       # #9036, #9069: deleting an escalation rule, a schedule, a team or a
       # person keeps the on-call runs, their timelines and the pages that
       # name it (ON DELETE SET NULL), and deleting a picture's file keeps
