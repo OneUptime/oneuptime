@@ -18,8 +18,9 @@ import path from "path";
  *   - named by the path itself, beside its context;
  *   - by the key a fix names its record by (#9165), when the work is a fix;
  *   - none: it carries no incident or alert, and says why;
- *   - for a pull request record, the run that opened it, or the subject of
- *     the chat that did.
+ *   - for a pull request record, the run that opened it, or - the chat that
+ *     did - its subject, what it opened one by one and what the pull request
+ *     quotes of its lists (#9242).
  *
  * A file that starts writing such work and is not listed fails "is listed":
  * list it with how it carries what it holds. A listed file that no longer
@@ -52,8 +53,12 @@ type Classification =
   | { kind: "carriesNoRecord"; why: string }
   // A pull request record of a run, read through that run.
   | { kind: "namesItsRun"; mustContain: Array<string> }
-  // A pull request record a chat opened: it carries the chat's subject.
-  | { kind: "carriesItsChatsSubject"; mustContain: Array<string> };
+  /*
+   * A pull request record a chat opened: it carries the chat's subject,
+   * what the chat opened one by one, and what the pull request quotes of
+   * its lists (ChatCarriedRecords.ofPullRequest, #9242).
+   */
+  | { kind: "carriesWhatItsChatRead"; mustContain: Array<string> };
 
 const WRITERS: Record<string, Classification> = {
   "packages/Common/Server/Utils/AI/CodeTask/CodeTaskRuns.ts": {
@@ -139,9 +144,9 @@ const WRITERS: Record<string, Classification> = {
     mustContain: ["pullRequest.aiRunId = data.aiRunId;"],
   },
   "packages/Common/Server/Utils/AI/Toolbox/CodeWriteTools.ts": {
-    kind: "carriesItsChatsSubject",
+    kind: "carriesWhatItsChatRead",
     mustContain: [
-      "const carried: CarriedRecordIds = await ChatCarriedRecords.ofChat({ conversationId: ctx.conversationId, pageContext: ctx.pageContext, });",
+      "const carried: CarriedRecordIds = await ChatCarriedRecords.ofPullRequest({ conversationId: ctx.conversationId, pageContext: ctx.pageContext, title, description, });",
       "CarriedRecords.writeTo(record, carried);",
     ],
   },

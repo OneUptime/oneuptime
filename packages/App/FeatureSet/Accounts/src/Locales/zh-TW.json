@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "忘記密碼",
     "subtitle": "請輸入您的電子郵件，密碼重設連結將寄送給您。",
-    "successMessage": "我們已透過電子郵件向您寄送密碼重設連結。請別忘了檢查垃圾郵件資料夾。",
+    "successMessage": "如果有帳戶使用此電子郵件地址，我們已向其寄送用於設定密碼的連結。請別忘了檢查垃圾郵件資料夾。",
     "submitButton": "傳送密碼重設連結",
     "rememberPasswordPrompt": "記得您的密碼？",
     "loginLink": "登入。",
@@ -187,6 +187,17 @@
     "linkInvalidTitle": "此重設連結已失效",
     "linkInvalidDescription": "它可能已被使用過，或只複製了一部分。請申請新連結，我們會以電子郵件寄給您。",
     "requestNewLinkButton": "申請新連結"
+  },
+  "setPassword": {
+    "title": "設定密碼",
+    "subtitle": "設定一個密碼，完成帳戶設定。",
+    "submitButton": "設定密碼",
+    "successTitle": "密碼已設定",
+    "successDescription": "請使用新密碼登入。",
+    "linkExpiredTitle": "此連結已過期",
+    "linkExpiredDescription": "設定密碼的連結有效期為 {{days}} 天。請申請新連結，我們會以電子郵件寄給您。",
+    "linkInvalidTitle": "此連結已失效",
+    "linkInvalidDescription": "它可能已被使用，或只複製了一部分。如果您已設定密碼，請登入。否則，請申請新連結，我們會以電子郵件寄給您。"
   },
   "sso": {
     "title": "使用 SSO 登入",

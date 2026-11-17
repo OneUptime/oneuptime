@@ -73,7 +73,10 @@ import React, {
  * waits for the reader, Try again once it failed. Nothing is drawn under any
  * other step. On a private incident's or alert's page, a reader whose teams
  * that own it may not approve its fixes finds the button, and Try again,
- * locked, saying why, as Approve & Run is (#9106).
+ * locked, saying why, as Approve & Run is (#9106). A pull request whose task
+ * a reply carried a private incident or alert into, which the reader may
+ * not open, is said to be there, behind a lock, and nothing more: the
+ * task's own page answers it as not found (DeclaredCodeChangeState.Hidden).
  */
 
 export const DECLARED_CODE_LINE_TEST_ID: string = "declared-code-change";
@@ -81,6 +84,7 @@ export const DECLARED_CODE_LINE_TEST_ID: string = "declared-code-change";
 const LINK_CLASS_NAME: string =
   "inline-flex items-center gap-1 rounded text-xs font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
+// The hidden state draws a lock of its own, beside these.
 const MARK_ICONS: Readonly<
   Record<Exclude<DeclaredCodeChangeTone, "live">, IconProp>
 > = {
@@ -287,6 +291,41 @@ const DeclaredCodeChangeLine: FunctionComponent<ComponentProps> = (
           <></>
         )}
         {dialog}
+      </div>
+    );
+  }
+
+  /*
+   * The step's pull request is in a task a reply carried a private incident
+   * or alert into, which the reader may not open: it is there - no second
+   * one is offered - and the line says why nothing of it shows, with no
+   * link its own page would answer as not found.
+   */
+  if (change.state === DeclaredCodeChangeState.Hidden) {
+    return (
+      <div
+        className="mt-2 flex items-start gap-2"
+        data-testid={DECLARED_CODE_LINE_TEST_ID}
+        data-state={change.state}
+      >
+        <span
+          aria-hidden="true"
+          data-testid={`${DECLARED_CODE_LINE_TEST_ID}-mark`}
+          data-tone={DECLARED_CODE_STATE_TONES[change.state]}
+          className={`mt-0.5 flex h-4 w-4 flex-none items-center justify-center rounded-full ${
+            REMEDIATION_FIX_STEP_MARK_CLASS_NAMES[
+              DECLARED_CODE_STATE_TONES[change.state]
+            ]
+          }`}
+        >
+          <Icon icon={IconProp.Lock} className="h-2.5 w-2.5" />
+        </span>
+        <p
+          className="min-w-0 flex-1 break-words text-xs leading-5 text-gray-700"
+          data-testid={`${DECLARED_CODE_LINE_TEST_ID}-text`}
+        >
+          {translator.translateText(DECLARED_CODE_STATE_WORDS[change.state])}
+        </p>
       </div>
     );
   }

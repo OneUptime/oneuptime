@@ -35,8 +35,12 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *    every status page together, then refused - leaving the link of the
  *    latest email working;
  *  - thirty from one caller in a quarter of an hour;
- *  - an address that is not a private user of the page, and a page that
- *    signs its readers in by SSO, are answered as before and not counted;
+ *  - that every address is answered alike, and counted alike, whether or
+ *    not it is a private user of the page - and that only a private user is
+ *    sent anything, a reset link even when they have no password yet
+ *    (#9274);
+ *  - a page that signs its readers in by SSO is answered as before and not
+ *    counted;
  *  - while the counter cannot be reached, the reset email goes out as it
  *    always did.
  * ---------------------------------------------------------------------------
@@ -114,6 +118,8 @@ jest.mock("Common/Server/Services/StatusPageService", () => {
  * one address can be a reader of several pages.
  */
 const readers: Set<string> = new Set<string>();
+// The readers, of the same keys, who have not chosen a password yet.
+const readersWithoutPassword: Set<string> = new Set<string>();
 const readerUpdateOneBy: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Services/StatusPagePrivateUserService", () => {
@@ -132,7 +138,9 @@ jest.mock("Common/Server/Services/StatusPagePrivateUserService", () => {
             ? {
                 _id: "54000000-0000-4000-8000-0000000000aa",
                 id: new ObjectID("54000000-0000-4000-8000-0000000000aa"),
-                password: "$scrypt$stored-hash",
+                password: readersWithoutPassword.has(key)
+                  ? undefined
+                  : "$scrypt$stored-hash",
                 email: {
                   toString: (): string => {
                     return String(data.query.email);
@@ -369,6 +377,7 @@ beforeEach(() => {
   isRedisConnected = true;
   requireSsoForLogin = false;
   readers.clear();
+  readersWithoutPassword.clear();
   addReader(READER_EMAIL);
 
   testIndex++;
@@ -447,14 +456,93 @@ describe("POST /status-page/forgot-password", () => {
     expectRefused(refusals[0], RESET_FROM_NETWORK);
   });
 
-  it("an address that is not a reader of the page is answered as before, and counts against nobody", async () => {
+  it("an address that is not a reader of the page is answered as a reader is, and sent nothing", async () => {
     const answer: Answer = await forgotPassword("stranger@example.com", CALLER);
 
-    expect(answer.error?.code).toBe(ExceptionCode.BadDataException);
-    expect(answer.error?.message).toBe(
-      "No user is registered with stranger@example.com",
+    // It used to say "No user is registered with stranger@example.com".
+    expect(answer.error).toBeNull();
+    expect(sendMail).not.toHaveBeenCalled();
+    expect(readerUpdateOneBy).not.toHaveBeenCalled();
+  });
+
+  it("a reader and an address that is not one get the very same answer", async () => {
+    await forgotPassword(READER_EMAIL, CALLER);
+    await forgotPassword("stranger@example.com", "198.51.100.9");
+
+    const response: jest.Mock = jest.requireMock<{
+      default: { sendEmptySuccessResponse: jest.Mock };
+    }>("Common/Server/Utils/Response").default.sendEmptySuccessResponse;
+
+    expect(response).toHaveBeenCalledTimes(2);
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    expect((sendMail.mock.calls[0]![0] as { toEmail: unknown }).toEmail).toBe(
+      READER_EMAIL,
     );
-    expect(redisClient.keys()).toEqual([]);
+  });
+
+  it("an address that is not a reader is counted as a reader is, so its sixth request in the hour is refused alike", async () => {
+    const forStranger: { accepted: number; refusals: Array<Answer> } =
+      await acceptedOf(6, () => {
+        return forgotPassword("stranger@example.com", CALLER);
+      });
+    const forReader: { accepted: number; refusals: Array<Answer> } =
+      await acceptedOf(6, () => {
+        return forgotPassword(READER_EMAIL, "198.51.100.9");
+      });
+
+    // Before #9274 only the reader was ever refused, which told who was one.
+    expect(forStranger.accepted).toBe(5);
+    expect(forReader.accepted).toBe(5);
+    expectRefused(forStranger.refusals[0], RESET_FOR_ADDRESS);
+    expectRefused(forReader.refusals[0], RESET_FOR_ADDRESS);
+    expect(forStranger.refusals[0]?.error?.message).toBe(
+      forReader.refusals[0]?.error?.message,
+    );
+    expect(sendMail).toHaveBeenCalledTimes(5);
+  });
+
+  it("one caller asking about address after address that are not readers: thirty, then refused as for readers", async () => {
+    const { accepted, refusals } = await acceptedOf(40, (index: number) => {
+      return forgotPassword(`stranger${index}@example.com`, CALLER);
+    });
+
+    expect(accepted).toBe(30);
+    expectRefused(refusals[0], RESET_FROM_NETWORK);
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  it("a reader of another page only is sent nothing from this one", async () => {
+    addReader("elsewhere@example.com", pageIdOf(1));
+
+    const answer: Answer = await forgotPassword(
+      "elsewhere@example.com",
+      CALLER,
+    );
+
+    expect(answer.error).toBeNull();
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  it("a reader who has no password yet is sent the link to choose one", async () => {
+    addReader("invited@example.com");
+    readersWithoutPassword.add(`${PAGE_ID}:invited@example.com`);
+
+    const answer: Answer = await forgotPassword("invited@example.com", CALLER);
+
+    expect(answer.error).toBeNull();
+    expect(readerUpdateOneBy).toHaveBeenCalledTimes(1);
+    expect(sendMail).toHaveBeenCalledTimes(1);
+
+    const message: { toEmail: unknown; vars: Record<string, string> } = sendMail
+      .mock.calls[0]![0] as {
+      toEmail: unknown;
+      vars: Record<string, string>;
+    };
+
+    expect(message.toEmail).toBe("invited@example.com");
+    expect(message.vars["tokenVerifyUrl"]).toMatch(
+      /^https:\/\/status\.example\.com\/reset-password\/[0-9a-f-]{36}$/,
+    );
   });
 
   it("a page that signs its readers in by SSO is answered as before, and counts against nobody", async () => {

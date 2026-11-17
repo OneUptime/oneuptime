@@ -64,7 +64,7 @@
     "apiKey": "Clé API",
     "more": "Plus",
     "sendEmail": "Envoyer un e-mail",
-    "logout": "Déconnexion",
+    "signOut": "Se déconnecter",
     "telemetryUsage": "Utilisation de la télémétrie",
     "ingestionBudgets": "Budgets d'ingestion",
     "products": "Produits"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "Quitter l'admin",
-    "logOut": "Se déconnecter"
+    "signOut": "Se déconnecter"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -142,8 +142,8 @@
     "users": {
       "title": "Utilisateurs",
       "cardTitle": "Utilisateurs",
-      "cardDescription": "Voici la liste des utilisateurs dans OneUptime.",
-      "noItems": "Aucun utilisateur trouvé.",
+      "listDescription": "Toutes les personnes ayant un compte sur ce serveur. Ouvrez un utilisateur pour gérer ses projets, sa connexion et son accès administrateur.",
+      "emptyMessage": "Aucun utilisateur pour l'instant.",
       "bulkAddToProject": "Ajouter à un projet",
       "bulkAddToProjectTitle": "Ajouter les utilisateurs à un projet",
       "bulkAddToProjectDescription": "Choisissez un projet et l'une de ses équipes. Les {{userCount}} utilisateur(s) sélectionné(s) sont invités dans cette équipe.",
@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "Les {{userCount}} utilisateur(s) sélectionné(s) seront déconnectés de toutes leurs sessions actives et devront configurer une application d'authentification à leur prochaine connexion. Vous y compris, si vous en faites partie.",
       "bulkDoNotRequireTwoFactorAuth": "Ne pas exiger l'authentification à deux facteurs",
       "bulkDoNotRequireTwoFactorAuthTitle": "Cesser d'exiger l'authentification à deux facteurs pour {{userCount}} utilisateur(s)",
-      "bulkDoNotRequireTwoFactorAuthDescription": "Les {{userCount}} utilisateur(s) sélectionné(s) pourront se connecter avec leur seul mot de passe. Ce qu'ils ont déjà configuré est conservé mais ne leur sera plus demandé."
+      "bulkDoNotRequireTwoFactorAuthDescription": "Les {{userCount}} utilisateur(s) sélectionné(s) pourront se connecter avec leur seul mot de passe. Ce qu'ils ont déjà configuré est conservé mais ne leur sera plus demandé.",
+      "createdAndEmailed": "{{name}} a été créé. Un lien pour définir son mot de passe a été envoyé à {{email}}.",
+      "createdWithPassword": "{{name}} a été créé. Transmettez-lui le mot de passe choisi de manière sécurisée.",
+      "setPasswordLinkTitle": "Envoyer un lien pour définir le mot de passe",
+      "setPasswordLinkDescription": "Copiez ce lien et envoyez-le vous-même à {{email}}, par un moyen que seule cette personne peut lire. Il fonctionne une fois, pendant {{days}} jours.",
+      "setPasswordLinkOrSetIt": "Ou définissez vous-même un mot de passe sur sa page Authentification."
     },
     "enterpriseLicenses": {
       "title": "Licences Enterprise",
@@ -199,7 +204,6 @@
     "userView": {
       "title": "Utilisateur",
       "cardTitle": "Utilisateur",
-      "cardDescription": "Détails de l'utilisateur",
       "editButton": "Modifier l'utilisateur",
       "masterAdminCardTitle": "Accès administrateur maître",
       "masterAdminCardDescription": "Accorder ou révoquer l'accès administrateur maître pour cet utilisateur. Les administrateurs maîtres peuvent gérer chaque projet et espace de travail.",
@@ -300,13 +304,12 @@
     "projects": {
       "title": "Projets",
       "cardTitle": "Projets",
-      "cardDescription": "Voici la liste des projets dans OneUptime.",
-      "noItems": "Aucun projet trouvé."
+      "listDescription": "Tous les projets de ce serveur. Ouvrez-en un pour gérer ses utilisateurs, ses équipes et ses paramètres.",
+      "emptyMessage": "Aucun projet pour l'instant."
     },
     "projectView": {
       "title": "Projet",
       "cardTitle": "Projet",
-      "cardDescription": "Détails du projet",
       "editButton": "Modifier le projet",
       "dataResidencyCardTitle": "Résidence des données",
       "dataResidencyCardDescription": "L'endroit où les données de ce projet sont hébergées. Une fois définie, elle est affichée aux utilisateurs du projet dans les paramètres du projet.",
@@ -448,8 +451,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "Utilisateurs",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "Les personnes qui font partie de ce projet. Leur équipe détermine ce que chacune peut faire.",
+      "emptyMessage": "Aucun utilisateur dans ce projet pour l'instant.",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "Inviter un utilisateur",
       "inviteUserTitle": "Inviter un nouvel utilisateur",
@@ -468,20 +471,19 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Équipes",
-      "cardDescription": "Voici la liste de toutes les équipes dans ce projet.",
-      "noItems": "No teams found in this project."
+      "listDescription": "Les équipes déterminent ce que leurs membres peuvent faire dans ce projet. Créez-en une pour donner le même accès à un groupe de personnes.",
+      "emptyMessage": "Aucune équipe dans ce projet pour l'instant."
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "Détails de l'équipe",
-      "cardDescription": "Details about this team.",
       "editButton": "Modifier l'équipe",
       "membersCardTitle": "Équipe Membres",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
-      "title": "Déconnexion"
+    "signOut": {
+      "title": "Se déconnecter"
     },
     "sendEmail": {
       "title": "Envoyer un e-mail d'annonce",
@@ -621,13 +623,13 @@
       },
       "probes": {
         "bannerTitle": "Besoin d'aide pour configurer les sondes globales ?",
-        "bannerDescription": "Voici un guide qui vous aidera à la configuration",
+        "bannerGuide": "Suivez le guide pour exécuter une sonde sur votre propre serveur et la connecter ici.",
         "cardTitle": "Sondes globales",
         "cardDescription": "Les sondes globales vous aident à surveiller les ressources externes depuis différents endroits dans le monde.",
-        "noItems": "Aucune sonde trouvée.",
+        "emptyMessage": "Aucune sonde globale pour l'instant.",
         "showIdKey": "Afficher l'ID et la clé",
         "keyModalTitle": "Clé de la sonde",
-        "keyModalDescription": "Voici votre clé de sonde. Veuillez la garder secrète.",
+        "keyModalSecret": "Votre sonde se connecte à OneUptime avec cet ID et cette clé. Gardez la clé secrète.",
         "probeIdLabel": "ID de la sonde :",
         "probeKeyLabel": "Clé de la sonde :"
       },
@@ -722,7 +724,6 @@
   "Projects": "Projets",
   "Project": "Projet",
   "User": "Utilisateur",
-  "Logout": "Déconnexion",
   "Save": "Enregistrer",
   "Cancel": "Annuler",
   "Submit": "Soumettre",
@@ -4169,5 +4170,13 @@
   "See email logs": "Voir les journaux des e-mails",
   "Addresses the mail server refused": "Adresses refusées par le serveur de messagerie",
   "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Les autres e-mails sont partis : seules ces adresses sont concernées. Corrigez l'adresse ou faites-la accepter par votre fournisseur de messagerie : un bac à sable Amazon SES n'envoie qu'aux adresses qu'il a vérifiées.",
-  "Last refused {{time}}": "Dernier refus le {{time}}"
+  "Last refused {{time}}": "Dernier refus le {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} a été créé, mais l'e-mail contenant le lien pour définir son mot de passe n'a pas été envoyé. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "Le lien à envoyer vous-même n'a pas pu être créé non plus. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime lui envoie par e-mail un lien pour définir son propre mot de passe.",
+  "They sign in with the password you set. Share it with them securely.": "Cette personne se connecte avec le mot de passe que vous définissez. Transmettez-le-lui de manière sécurisée.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Ce serveur ne peut pas encore envoyer d'e-mails. Définissez son mot de passe ici, ou laissez vide pour obtenir un lien à lui envoyer vous-même.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "Ce serveur ne peut pas encore envoyer d'e-mails. Configurez l'e-mail dans Paramètres > E-mails.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Ce serveur ne peut pas encore envoyer d'e-mails, aucun lien de réinitialisation du mot de passe n'a donc été envoyé. Configurez l'e-mail dans Paramètres > E-mails, ou définissez vous-même son mot de passe.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Cet utilisateur a déjà un mot de passe : il n'y a donc pas de lien de définition du mot de passe à copier. Envoyez-lui plutôt un lien de réinitialisation depuis sa page Authentification."
 }

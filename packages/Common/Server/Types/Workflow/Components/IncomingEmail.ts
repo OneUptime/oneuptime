@@ -144,21 +144,22 @@ export default class IncomingEmailWorkflowTrigger extends TriggerCode {
       throw new BadDataException("The email to deliver is missing.");
     }
 
-    const workflow: Workflow | null = await WorkflowService.findOneBy({
-      query: {
-        incomingEmailSecretKey: new ObjectID(secretKey),
-      },
-      select: {
-        _id: true,
-        projectId: true,
-        triggerId: true,
-        isEnabled: true,
-        isArchived: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    // Found by the key's lookup hash: the key is kept encrypted (#9012).
+    const workflow: Workflow | null =
+      await WorkflowService.findOneByPresentedKey({
+        column: "incomingEmailSecretKey",
+        presentedKey: secretKey,
+        select: {
+          _id: true,
+          projectId: true,
+          triggerId: true,
+          isEnabled: true,
+          isArchived: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
     if (!workflow || !workflow._id) {
       logger.debug(

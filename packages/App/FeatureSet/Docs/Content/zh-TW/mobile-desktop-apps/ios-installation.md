@@ -114,12 +114,12 @@ flowchart TB
 
 ## 鎖定應用程式
 
-在應用程式的 **Settings** 下開啟 **Biometrics Login**，應用程式每次啟動時都會要求 Face ID、Touch ID 或你的密碼。裝置設定了 Face ID 或 Touch ID 後，這個開關才會出現。同一畫面上的 **Appearance** 用於選擇淺色或深色外觀，或跟隨裝置設定。
+在應用程式的 **Settings** 下開啟 **Biometric Unlock**，應用程式每次啟動時都會要求 Face ID、Touch ID 或你的密碼。裝置設定了 Face ID 或 Touch ID 後，這個開關才會出現。同一畫面上的 **Appearance** 用於選擇淺色或深色外觀，或跟隨裝置設定。
 
 ## 更新、登出或刪除應用程式
 
 - **更新。** App Store 會更新應用程式；你也可以在 App Store 的帳戶頁面中手動更新。應用程式的版本顯示在其 **Settings** 畫面底部。
-- **登出。** **Settings → Log Out** 會讓你登出，並從每個專案的推播裝置中移除這台裝置及其待命規則。再次登入會以預設規則重新新增它。
+- **登出。** **Settings → Sign Out** 會讓你登出，並從每個專案的推播裝置中移除這台裝置及其待命規則。再次登入會以預設規則重新新增它。
 - **刪除。** 按住應用程式圖示，然後點一下 **移除 App** 和 **刪除 App**。如果你當時仍處於登入狀態，這台裝置會一直留在你的清單中，直到傳送到它的推播失敗：OneUptime 隨後會將其標記為 **未收到通知**。重新安裝應用程式並登入後，通常會帶回同一個條目及其規則；如果你不再使用這台裝置，請用 **刪除** 刪除該條目。
 
 ## 疑難排解
@@ -144,7 +144,7 @@ flowchart TB
 開啟應用程式的 **Settings**：**Critical On-Call Alerts** 下方的那一行會說明缺少什麼。檢查 **設定 → 通知 → OneUptime On-Call** 下的 **重要警示** 是否開啟，以及應用程式 **Alarm sound** 畫面上的音量是否設得太低。
 :::
 
-:::details 沒有 Biometrics Login 開關
+:::details 沒有 Biometric Unlock 開關
 在 **設定 → Face ID 與密碼** 或 **設定 → Touch ID 與密碼** 下設定 Face ID 或 Touch ID 後，這個開關就會出現。
 :::
 

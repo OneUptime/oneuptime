@@ -363,8 +363,7 @@ import "../../../FeatureSet/Identity/API/Authentication";
 const PASSWORD: string = "correct horse battery staple";
 const TOTP_ID: ObjectID = new ObjectID("77777777-7777-4777-8777-777777777777");
 
-const INVALID_LOGIN_MESSAGE: string =
-  "Invalid login: Email or password does not match.";
+const INVALID_LOGIN_MESSAGE: string = "Email or password does not match.";
 
 /*
  * This run's own networks, in the documentation ranges: random, so two runs

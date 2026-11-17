@@ -7,7 +7,8 @@ import SsoProviderTeamGrant, {
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/ProjectSCIM";
-import ObjectID from "../../Types/ObjectID";
+import HashedString from "../../Types/HashedString";
+import PresentedKey from "../Utils/PresentedKey/PresentedKey";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -32,9 +33,14 @@ export class Service extends DatabaseService<Model> {
       props: createBy.props,
     });
 
-    if (!createBy.data.bearerToken) {
-      // Generate a secure bearer token if not provided
-      createBy.data.bearerToken = ObjectID.generate().toString();
+    /*
+     * A connection made without a token gets one: 256 random bits. It is
+     * kept only as its hash (#9012), and the create's answer holds it once,
+     * as written (DatabaseService.restorePresentedKeys) - the one time the
+     * Dashboard can show it.
+     */
+    if (!createBy.data.bearerToken || !createBy.data.bearerToken.toString()) {
+      createBy.data.bearerToken = new HashedString(PresentedKey.generate());
     }
 
     return {

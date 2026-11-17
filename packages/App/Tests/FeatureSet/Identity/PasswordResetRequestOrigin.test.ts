@@ -459,13 +459,14 @@ describe("POST /forgot-password", () => {
     expect(resetEmail().vars["requestedAt"]).toContain("UTC");
   });
 
-  it("an address with no account is sent nothing, as before", async () => {
+  it("an address with no account is sent nothing, and answered as one with an account is (#9260)", async () => {
     account = null;
 
     await forgotPassword({ "x-forwarded-for": "203.0.113.7" });
 
     expect(sentMails()).toHaveLength(0);
-    expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+    expect(sendErrorResponse).not.toHaveBeenCalled();
+    expect(sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
   });
 });
 

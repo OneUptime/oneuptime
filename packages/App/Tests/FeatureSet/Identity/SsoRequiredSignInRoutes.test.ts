@@ -575,7 +575,7 @@ describe("POST /login while the server requires SSO", () => {
     );
 
     expect(answeredError(result)?.message).toBe(
-      "Invalid login: Email or password does not match.",
+      "Email or password does not match.",
     );
     expect(getRequireSsoForLogin).not.toHaveBeenCalled();
     expectNoSession();

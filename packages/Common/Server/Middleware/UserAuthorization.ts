@@ -1216,7 +1216,7 @@ export default class UserMiddleware {
 
   // Same wording as CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE.
   public static readonly AUTHENTICATION_REQUIRED_MESSAGE: string =
-    "Authentication required. Please log in to access this resource.";
+    "Authentication required. Please sign in to access this resource.";
 
   /*
    * The request-level twin of CommonAPI.isAnonymous: getUserMiddleware found

@@ -14,6 +14,10 @@ import path from "path";
  * done row's name: then a done row neither skips a migration nor stands for
  * one. Both are pinned here, against the real runner, with its list and its
  * reads replaced as in MigrationRunnerConcurrency.test.ts.
+ *
+ * Monitor:TrimOversizedStoredChecks (OversizedStoredChecks, issue #9232)
+ * records its tables the same way, as TrimOversizedStoredChecks:<table>,
+ * and is pinned with it.
  */
 
 /*
@@ -90,14 +94,24 @@ const StoredLogScreenshots: {
   DONE_MARKER_PREFIX: string;
   getDoneMarkerName: (table: string) => string;
 } = require("Common/Server/Utils/Retention/StoredLogScreenshots");
+const OversizedStoredChecks: {
+  OVERSIZED_CHECK_TABLES: ReadonlyArray<string>;
+  DONE_MARKER_PREFIX: string;
+  getDoneMarkerName: (table: string) => string;
+} = require("Common/Server/Utils/Retention/OversizedStoredChecks");
 /* eslint-enable @typescript-eslint/no-require-imports */
 /* eslint-enable @typescript-eslint/no-var-requires */
 
-const DONE_MARKERS: Array<string> = StoredLogScreenshots.STORED_LOG_TABLES.map(
-  (table: string): string => {
+const DONE_MARKERS: Array<string> = [
+  ...StoredLogScreenshots.STORED_LOG_TABLES.map((table: string): string => {
     return StoredLogScreenshots.getDoneMarkerName(table);
-  },
-);
+  }),
+  ...OversizedStoredChecks.OVERSIZED_CHECK_TABLES.map(
+    (table: string): string => {
+      return OversizedStoredChecks.getDoneMarkerName(table);
+    },
+  ),
+];
 
 const DATA_MIGRATIONS_DIR: string = path.resolve(
   __dirname,
@@ -161,6 +175,9 @@ describe("a table's done row in DataMigrations", () => {
     expect(StoredLogScreenshots.DONE_MARKER_PREFIX).toBe(
       "ClearStoredLogScreenshots:",
     );
+    expect(OversizedStoredChecks.DONE_MARKER_PREFIX).toBe(
+      "TrimOversizedStoredChecks:",
+    );
 
     const sources: Array<string> = fs
       .readdirSync(DATA_MIGRATIONS_DIR)
@@ -175,6 +192,7 @@ describe("a table's done row in DataMigrations", () => {
 
     for (const source of sources) {
       expect(source).not.toContain("ClearStoredLogScreenshots");
+      expect(source).not.toContain("TrimOversizedStoredChecks");
     }
   });
 });

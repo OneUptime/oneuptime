@@ -310,6 +310,14 @@ export interface ProductionReviewDataImpactJSON {
 
 export interface ProductionReviewPointJSON {
   text: string;
+  /*
+   * The incidents the point rests on, by id: the facts it names that are
+   * incidents (I1, I2). A point is read only by those who may read every
+   * one of them (ProductionReviewUtil.keepReadableIncidents, #9241). Empty
+   * for a point resting on none; unset on a point written before they were
+   * recorded, which is read by whether its text names a hidden incident.
+   */
+  incidentIds?: Array<string> | undefined;
 }
 
 export interface ProductionReviewPullRequestJSON {
@@ -489,6 +497,9 @@ export const PULL_REQUEST_NUMBER_MARKS: ReadonlyArray<string> = [
 export const PRODUCTION_REVIEW_COMMENT_MARKER: string =
   "<!-- oneuptime-production-review -->";
 
+// One character of a word or a number, in any script: a letter, a digit, "_".
+const WORD_CHARACTER: RegExp = new RegExp("[\\p{L}\\p{N}_]", "u");
+
 export class ProductionReviewUtil {
   // A stored choice, read: unset or unknown is the default.
   public static readContent(
@@ -574,6 +585,158 @@ export class ProductionReviewUtil {
         return incident.isOpen || Boolean(incident.mentions);
       },
     );
+  }
+
+  /*
+   * A REVIEW AS ITS READER MAY READ IT (#9241).
+   *
+   * A review is worked out once, and kept on its task's outcome: an
+   * incident on it was no private one then (ProductionReviewFindings reads
+   * none), but it can be made private - or deleted - afterwards, and the
+   * review is read from what was kept. So whoever reads a review reads only
+   * the incidents they may read now (`isReadable`, by id; the server asks
+   * the incidents themselves as the reader, ProductionReviewReadFilter):
+   *
+   *   - every other incident leaves the list, with its label, severity,
+   *     state, the changed code its root cause names and its link;
+   *   - the counts drop by the ones that left: in all, and open;
+   *   - a point of OneUptime AI's read that rests on one of them goes too:
+   *     it names the incident, and what its root cause says. A point kept
+   *     before the incidents it rests on were recorded goes when its text
+   *     names a hidden incident's label.
+   *
+   * The comment on the pull request is left as it was posted: it was the
+   * code host's, written while the incident was not private. The same
+   * report when nothing is hidden; a copy otherwise.
+   */
+  public static keepReadableIncidents(
+    report: ProductionReviewReport,
+    isReadable: (incidentId: string) => boolean,
+  ): ProductionReviewReport {
+    const items: Array<ProductionReviewIncidentJSON> = Array.isArray(
+      report.incidents?.items,
+    )
+      ? report.incidents.items
+      : [];
+
+    const hidden: Array<ProductionReviewIncidentJSON> = items.filter(
+      (incident: ProductionReviewIncidentJSON): boolean => {
+        return !isReadable(
+          (incident.incidentId || "").toString().toLowerCase(),
+        );
+      },
+    );
+
+    if (hidden.length === 0) {
+      return report;
+    }
+
+    const hiddenIds: Set<string> = new Set<string>(
+      hidden.map((incident: ProductionReviewIncidentJSON): string => {
+        return (incident.incidentId || "").toString().toLowerCase();
+      }),
+    );
+
+    const hiddenOpen: number = hidden.filter(
+      (incident: ProductionReviewIncidentJSON): boolean => {
+        return incident.isOpen;
+      },
+    ).length;
+
+    const points: Array<ProductionReviewPointJSON> = (
+      report.points || []
+    ).filter((point: ProductionReviewPointJSON): boolean => {
+      return !ProductionReviewUtil.restsOnAny(point, hidden, hiddenIds);
+    });
+
+    return {
+      ...report,
+      incidents: {
+        total: Math.max(0, (report.incidents.total || 0) - hidden.length),
+        open: Math.max(0, (report.incidents.open || 0) - hiddenOpen),
+        items: items.filter((incident: ProductionReviewIncidentJSON) => {
+          return !hiddenIds.has(
+            (incident.incidentId || "").toString().toLowerCase(),
+          );
+        }),
+      },
+      points,
+    };
+  }
+
+  // The ids of the incidents a review lists, lower-cased, each once.
+  public static getIncidentIds(
+    report: ProductionReviewReport | null | undefined,
+  ): Array<string> {
+    const ids: Array<string> = [];
+
+    for (const incident of Array.isArray(report?.incidents?.items)
+      ? report!.incidents.items
+      : []) {
+      const id: string = (incident?.incidentId || "").toString().toLowerCase();
+
+      if (id && !ids.includes(id)) {
+        ids.push(id);
+      }
+    }
+
+    return ids;
+  }
+
+  /*
+   * Whether a point rests on one of `hidden`: by the incidents it records,
+   * or - a point kept before they were recorded - by its text naming one's
+   * label as a whole word ("INC-45", "#45", never "#450"). A label without
+   * a digit ("Incident") names no one incident.
+   */
+  private static restsOnAny(
+    point: ProductionReviewPointJSON,
+    hidden: Array<ProductionReviewIncidentJSON>,
+    hiddenIds: Set<string>,
+  ): boolean {
+    if (Array.isArray(point.incidentIds)) {
+      return point.incidentIds.some((id: string): boolean => {
+        return hiddenIds.has((id || "").toString().toLowerCase());
+      });
+    }
+
+    const text: string = (point.text || "").toLowerCase();
+
+    return hidden.some((incident: ProductionReviewIncidentJSON): boolean => {
+      const label: string = (incident.label || "").trim().toLowerCase();
+
+      if (
+        !label ||
+        !Array.from(label).some((character: string): boolean => {
+          return character >= "0" && character <= "9";
+        })
+      ) {
+        return false;
+      }
+
+      let from: number = text.indexOf(label);
+
+      while (from !== -1) {
+        const before: string = from > 0 ? text.charAt(from - 1) : "";
+        const after: string = text.charAt(from + label.length);
+
+        if (
+          !ProductionReviewUtil.isWordCharacter(before) &&
+          !ProductionReviewUtil.isWordCharacter(after)
+        ) {
+          return true;
+        }
+
+        from = text.indexOf(label, from + 1);
+      }
+
+      return false;
+    });
+  }
+
+  // A letter or a digit of any script, or "_": part of a word, or a number.
+  private static isWordCharacter(character: string): boolean {
+    return character !== "" && WORD_CHARACTER.test(character);
   }
 
   public static summarize(

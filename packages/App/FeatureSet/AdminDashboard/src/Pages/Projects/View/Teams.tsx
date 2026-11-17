@@ -82,9 +82,9 @@ const ProjectTeams: FunctionComponent = (): ReactElement => {
           }}
           cardProps={{
             title: t("pages.projectTeams.cardTitle"),
-            description: t("pages.projectTeams.cardDescription"),
+            description: t("pages.projectTeams.listDescription"),
           }}
-          noItemsMessage={t("pages.projectTeams.noItems")}
+          noItemsMessage={t("pages.projectTeams.emptyMessage")}
           showViewIdButton={true}
           formFields={[
             {

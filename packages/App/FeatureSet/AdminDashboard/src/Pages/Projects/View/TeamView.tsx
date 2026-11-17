@@ -125,7 +125,6 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
           modelAPI={AdminModelAPI}
           cardProps={{
             title: t("pages.projectTeamView.cardTitle"),
-            description: t("pages.projectTeamView.cardDescription"),
           }}
           isEditable={true}
           editButtonText={t("pages.projectTeamView.editButton")}

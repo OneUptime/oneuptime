@@ -48,6 +48,16 @@ export interface TableColumnMetadata {
   hashSaltColumn?: string;
   encrypted?: boolean;
   /*
+   * For an encrypted JSON column (`encrypted: true`): the fields kept
+   * encrypted, in its object or in each object of its list - a discovery
+   * scan's SNMP credential sets keep their community strings and v3 keys
+   * encrypted, and their names, versions and ports as written. A field that
+   * is not text, or is empty, is left as it is, and so is a value of any
+   * other shape. Without it, every top-level value of the column's object
+   * is encrypted.
+   */
+  encryptedFields?: Array<string>;
+  /*
    * The value lets whoever has it in: a key, a token, a passphrase, a
    * private key, a webhook address. Hashed and encrypted text columns are
    * secrets already; this marks the ones stored as they are, which a
@@ -71,6 +81,29 @@ export interface TableColumnMetadata {
    * it in state from that answer instead of reading it back.
    */
   shownOnce?: boolean;
+  /*
+   * A key or a token presented TO OneUptime, which the people who may read
+   * it see again (#9012): a probe's key in its `docker run` command, a
+   * monitor's secret key in its heartbeat URL, a badge's token. It is kept
+   * encrypted at rest (it is `encrypted: true` too), so a backup or a
+   * database dump holds no working key, and OneUptime checks a key a
+   * request presents against it in constant time
+   * (Server/Utils/PresentedKey/PresentedKey.matches). The create that makes
+   * the record answers it as it was written, never as it is stored. Kept as
+   * written before #9012; the PresentedKeys:ProtectAtRest job encrypts the
+   * values stored before, a day after the upgrade.
+   */
+  presentedKey?: boolean;
+  /*
+   * A presented key that a request names its record by, alone - a monitor's
+   * heartbeat URL, a telemetry ingestion key: the column beside it that
+   * holds its lookup hash (PresentedKey.hash). A ciphertext differs on every
+   * write, so no query can find the key itself; DatabaseService writes this
+   * hash with every write of the key, and the record is found by it
+   * (DatabaseService.findOneByPresentedKey). The hash column is OneUptime's:
+   * nobody reads or writes it through the API.
+   */
+  lookupHashColumn?: string;
   manyToOneRelationColumn?: string;
   type: TableColumnType;
   canReadOnRelationQuery?: boolean;

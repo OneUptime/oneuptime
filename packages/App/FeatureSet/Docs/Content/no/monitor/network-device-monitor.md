@@ -136,7 +136,7 @@ La den være foldet sammen, så blir enheten bare pinget: den sammenfoldede seks
 | SNMP v3 Privacy Key | Passordfrasen for personvern (kryptering). | Med personvern |
 :::
 
-Påloggingsinformasjon som er skrevet på enheten, vinner over en påloggingsprofil som er valgt ved siden av, og enhetens lokasjon kan også ha en standardprofil. Påloggingsinformasjon i en profil er kryptert i hvile. Påloggingsinformasjon som er skrevet på en enhet, er beskyttet av de samme lesetillatelsene, men er ikke kryptert i hvile: enda en grunn til å holde delt påloggingsinformasjon i en profil.
+Påloggingsinformasjon som er skrevet på enheten, vinner over en påloggingsprofil som er valgt ved siden av, og enhetens lokasjon kan også ha en standardprofil. Påloggingsinformasjon i en profil er kryptert i hvile. Påloggingsinformasjon som er skrevet på en enhet, er også kryptert i hvile og beskyttet av de samme lesetillatelsene.
 
 ## Endre mange enheter samtidig
 

@@ -522,8 +522,12 @@ work out, starts from a default for everything else, and folds what most people 
   search or filter that hides every row is told apart by the table itself. A list that only ever
   shows the answer to a query the reader set (the traces explorer) is listed in the guard with its
   reason. A monitor's Logs says when its first check runs and links to Probes & Interval; its SLOs
-  offer Create with the monitor already attached. Enforced by
-  [EmptyListsSayYetGuard](../../packages/App/Tests/Dashboard/EmptyListsSayYetGuard.test.ts).
+  offer Create with the monitor already attached. The Admin Dashboard's lists read their sentence
+  from a locale key, so the guard there looks each key up ("No projects found." sat in its locale
+  until #9044). Enforced by
+  [EmptyListsSayYetGuard](../../packages/App/Tests/Dashboard/EmptyListsSayYetGuard.test.ts)
+  and
+  [AdminEmptyListsSayYetGuard](../../packages/App/Tests/AdminDashboard/AdminEmptyListsSayYetGuard.test.ts).
 - **A search or filter that finds nothing never offers Create.** It says nothing matched. Not
   enforced: use judgement.
 - **An empty state says each thing once.** An embedded logs list's empty state has one line from the
@@ -704,6 +708,15 @@ what was further down.
   ([`introduction/glossary.md`](../../packages/App/FeatureSet/Docs/Content/en/introduction/glossary.md))
   and the name the menu uses. A renamed thing is still found by its old name in Search. Not enforced:
   use judgement.
+- **Signing in is "Sign in" and signing out is "Sign out", never "log in", "login" or "log out".**
+  One flow once said "Log Out" in the status page's nav, "Log out" and "Sign Out" in the Dashboard,
+  and "Please login again" from the server (#9212). Now it is **Sign Out** in every menu, and
+  "Session expired. Please sign in again." A database's or another system's "login" (a credential),
+  "logged in this window" (written to a log) and another product's own label stay, each listed with its
+  reason. Enforced by
+  [SignInWordsGuard](../../packages/Common/Tests/App/SignInWordsGuard.test.ts), which reads every
+  front end's English locale, the server's sign-in messages, the mobile app's labels and the bold
+  labels in the English docs.
 - **A retired name does not come back.** When one thing had several names, #6817 kept one and retired
   the rest ([`RetiredNames`](../../packages/Common/Types/Docs/RetiredNames.ts)): "On-Call Duty" is
   On-Call, a person's "on-call rules" are How to Reach Me, the project's "Notification Settings" are
@@ -745,7 +758,10 @@ what was further down.
 - **A button says what it does, with its object.** "Create Monitor", not "Submit" or "OK". "Create"
   makes something that stands on its own (Create Monitor, Create Status Page); "Add" puts something
   into the record you are on (Add Monitors to Group, Add Subscriber). Not enforced: use judgement.
-- **A card's description says what the card or list is for,** not "Here is a list of…". Enforced by
+- **A card's description says what the card or list is for,** not "Here is a list of…". A details
+  card whose title says it all ("Project", "Team Details") has no description, not "Project
+  details" or "Details about this team.". The guard reads the Admin Dashboard's English locale too,
+  where its pages keep their words. Enforced by
   [CardDescriptionBoilerplateGuard](../../packages/App/Tests/Dashboard/CardDescriptionBoilerplateGuard.test.ts).
 - **Name the thing, not "it".** "Page this policy for every new incident", not "Page it", where "it"
   could be the person just added. Not enforced: use judgement.
@@ -1334,8 +1350,10 @@ person writes in Give Feedback also reaches whoever can answer it.
 
 - **Look at it as a newcomer would.** At 1280 and 390 pixels wide (and at 1024 and 768 beside the side
   menu), in light and dark, in German (a long language) and Persian (right to left), as a brand-new
-  project and as a busy one. Put before and after screenshots in the pull request. Not enforced: use
-  judgement.
+  project and as a busy one. Put before and after screenshots in the pull request's description with
+  [Scripts/PR/PublishScreenshots.js](../../Scripts/PR/PublishScreenshots.js), which puts them on the
+  `pr-assets` branch and prints the Markdown to paste; committed to your branch, they would be in
+  every CI job's checkout. Not enforced: use judgement.
 - **Run the guards that read what you changed.** Find them by your files' names in the test folders.
   When you change a menu, run its product's `*SideMenu*` suite; when you change a shared component, run
   every suite that renders it. Not enforced: use judgement.

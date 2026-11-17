@@ -86,19 +86,22 @@ export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
             );
           }
 
-          const aiAgent: AIAgent | null = await AIAgentService.findOneBy({
-            query: {
-              _id: aiAgentId.toString(),
-              key: aiAgentKey,
-            },
-            select: {
-              _id: true,
-              projectId: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+          // Its key is kept encrypted (#9012): read by id, compared in constant time.
+          const aiAgent: AIAgent | null =
+            await AIAgentService.findOneByPresentedKey({
+              column: "key",
+              presentedKey: aiAgentKey,
+              query: {
+                _id: aiAgentId.toString(),
+              },
+              select: {
+                _id: true,
+                projectId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
 
           /*
            * Too many different wrong keys for this agent from this client:

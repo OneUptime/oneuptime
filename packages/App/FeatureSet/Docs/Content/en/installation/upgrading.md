@@ -189,9 +189,12 @@ dump or a backup, and keeps private incidents, alerts and episodes to the
 people who own them. The master API key and a project's API keys are stored
 hashed and shown only when they are made, and the credentials a project saves
 for mail, chat apps, webhooks and custom domains are encrypted and can no
-longer be read back. Paging, runbooks and fixes about a private record take
-their permission from its owners, and workflows no longer act on private
-records. Upgrade from 14 — if you are still on 13, do 13 → 14 first.
+longer be read back. The keys and tokens that probes, agents, collectors,
+devices, webhooks and identity providers present to OneUptime are encrypted
+too, and SCIM bearer tokens are stored hashed and shown only when they are
+made, with nothing to set up again. Paging, runbooks and fixes about a private
+record take their permission from its owners, and workflows no longer act on
+private records. Upgrade from 14 — if you are still on 13, do 13 → 14 first.
 
 The upgrade hashes the keys and encrypts the credentials you have, so the
 scripts, integrations and chat apps that use them keep working, with no
@@ -206,15 +209,21 @@ change.
 2. **If Terraform or OpenTofu manages OneUptime, upgrade the provider with the
    server** (`terraform init -upgrade`: the provider's versions follow
    OneUptime's). A provider of 14 asks 15 for credentials it no longer gives
-   out, so `terraform plan` fails on every `oneuptime_smtp_config` and on
-   status page, dashboard and form domains, and the provider loses the
-   `api_key` of the API keys it created at its next refresh.
+   out, so `terraform plan` fails on every `oneuptime_smtp_config` or
+   `oneuptime_status_page_scim` and on status page, dashboard and form
+   domains, and the provider loses the `api_key` of the API keys it created
+   at its next refresh.
 3. **Take the credentials 15 no longer gives out of your API scripts' reads.**
    A read whose `select` names a project SMTP config's `password`,
    `clientSecret`, `amazonSesSecretAccessKey`, `sendgridApiKey`,
-   `mailgunApiKey`, `postmarkServerToken` or `resendApiKey`, or a custom
-   domain's `customCertificateKey`, is refused. An API key is shown only by
-   the request that creates or resets it.
+   `mailgunApiKey`, `postmarkServerToken` or `resendApiKey`, a custom
+   domain's `customCertificateKey`, or a SCIM connection's `bearerToken`, is
+   refused. An API key is shown only by the request that creates or resets
+   it, and a SCIM bearer token only by the request that creates its
+   connection.
+   A notification rule's read of its webhook's `webhookUrl` through
+   `userWebhook` is refused too, as is a read of a network device's legacy
+   `snmpV3Auth` by a key with only Viewer or Settings Viewer.
 4. **If the server reaches the internet through a proxy, let the proxy reach
    your identity provider, calendars, MCP servers and backup storage.** OIDC
    single sign-on, external calendars, MCP servers and backups now use the
@@ -274,6 +283,26 @@ and episodes.
   during the upgrade refuses the keys once they are hashed, until it is
   replaced. Rolled back to an earlier release, each key is replaced by a
   new one, shown on its page: give it to whatever used the old one.
+- **The keys presented to OneUptime are encrypted, and SCIM bearer tokens are stored hashed and shown only when they are made.**
+  A probe's, a Runner's and an AI agent's key, telemetry ingestion keys, IoT
+  device secrets, a monitor's secret keys, workflow and runbook webhook keys,
+  a workflow's email key, status page embed tokens, data product badge
+  tokens and subscribers' unsubscribe tokens were stored as they were
+  written, so a database dump or a backup held every one. Now each is stored
+  encrypted, and the pages that show one show it as before. A SCIM bearer
+  token is stored as its hash: adding a connection, or
+  **Reset Bearer Token**, shows it once, to copy then, and the API answers
+  it only to the create and refuses a read whose `select` names
+  `bearerToken`. Nothing that uses a key needs setting up again: probes,
+  agents, collectors, devices, scripts, webhooks, badges and identity
+  providers keep working with the key they have. The upgrade keeps every key
+  as it was and adds the hash it is looked up by, so servers of the earlier
+  release still running during the upgrade keep checking keys; a day later,
+  Workers encrypt or hash the keys stored before, in place. A key made or
+  reset during that day is stored protected at once, and a server of the
+  earlier release refuses it until it is replaced. Rolled back after that
+  day, the earlier release cannot read the protected keys: reset each one,
+  and give the new one to whatever used the old one.
 - **What is done about a private record follows its owners too, and workflows
   don't act on private records.** Paging about a private incident, alert or
   episode (**Execute On-Call Policy**, **Page now**, and paging from Slack,
@@ -337,6 +366,34 @@ and episodes.
   is read as before. The request for a private incident's action item now
   names the incident only by its number. See
   [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
+- **Production reviews, pull requests from chats and the fix panels follow
+  private records too.** A production review stored before an incident on it
+  was made private now lists that incident only to those who may read it. A
+  pull request OneUptime AI opens from a chat also carries the private
+  incidents and alerts the chat opened one by one or quoted from a list. An
+  exception's fix, an investigation's fix pull request, a trace's performance
+  fix, a fix's pull request to the code, and the fix under way for an AI
+  insight or for a function in Profiles now say a task is hidden when it
+  carries a private record you can't open, instead of showing its progress
+  and pull request. See
+  [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
+- **Webhook addresses and SNMP credentials are stored encrypted, and logs
+  keep a webhook's address by its host.** A Slack, Microsoft Teams or Discord
+  webhook carries its secret in its address, and an SNMP community string or
+  v3 key opens the device it belongs to, so a database dump or a backup held
+  them ready to use. Now the addresses of status page subscribers' Slack,
+  Microsoft Teams and webhook subscriptions, of webhook notification methods,
+  of OpenStack project notices and of custom notification channels, a
+  channel's signing secret, and the SNMP credentials of network devices and
+  discovery scans are stored encrypted. The upgrade encrypts the ones you
+  have, and every notification, poll, sweep and import goes on using them as
+  written. A project's webhook logs keep only an address's scheme and host
+  (`https://hooks.slack.com/•••`), the logs from before the upgrade included,
+  and an on-call log names the webhook a page was sent to rather than its
+  address. A server of the earlier release still running during the upgrade
+  reads an encrypted address or credential as a broken one, so its sends and
+  polls fail until it is replaced, and what it saves meanwhile is stored as
+  written until it is next saved.
 :::
 
 ## Upgrading from OneUptime 13 → 14

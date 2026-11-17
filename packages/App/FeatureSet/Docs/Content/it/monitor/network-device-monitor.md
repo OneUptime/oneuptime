@@ -136,7 +136,7 @@ Lascialo chiuso e il dispositivo riceve solo il ping: la sezione chiusa lo dice 
 | SNMP v3 Privacy Key | La passphrase di privacy (cifratura). | Con privacy |
 :::
 
-Le credenziali digitate sul dispositivo prevalgono su un profilo di credenziali scelto accanto a esse, e anche il sito del dispositivo può avere un profilo predefinito. Le credenziali di un profilo sono cifrate a riposo. Le credenziali digitate su un dispositivo sono protette dagli stessi permessi di lettura ma non sono cifrate a riposo: un motivo in più per tenere le credenziali condivise in un profilo.
+Le credenziali digitate sul dispositivo prevalgono su un profilo di credenziali scelto accanto a esse, e anche il sito del dispositivo può avere un profilo predefinito. Le credenziali di un profilo sono cifrate a riposo. Anche le credenziali digitate su un dispositivo sono cifrate a riposo, e sono protette dagli stessi permessi di lettura.
 
 ## Modificare molti dispositivi insieme
 

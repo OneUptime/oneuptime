@@ -3,6 +3,8 @@ import ProjectService from "../../../../../Server/Services/ProjectService";
 import CodeFixStartGate from "../../../../../Server/Utils/AI/CodeFix/CodeFixStartGate";
 import FixRunBudget from "../../../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import CodeTaskRuns from "../../../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
+import CodeTaskThread from "../../../../../Server/Utils/AI/CodeTask/CodeTaskThread";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import FixFromIncidentTaskTrigger from "../../../../../Server/Utils/AI/SRE/FixFromIncidentTaskTrigger";
 import RemediationRulePullRequests from "../../../../../Server/Utils/AI/SRE/RemediationRulePullRequests";
 import SubjectCodeFixRun from "../../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
@@ -23,6 +25,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import { FinishedFixOutcome } from "../../../../../Utils/Suggestions/CodeFixSuggestion";
 import {
   AutomaticCodeFixBlocker,
+  HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION,
   InvestigationCodeFixSuggestion,
   NO_INVESTIGATION_CODE_FIX_SUGGESTION,
 } from "../../../../../Utils/Suggestions/InvestigationCodeFixSuggestion";
@@ -103,6 +106,8 @@ interface Setup {
   investigation?: AIRun | null;
   activeFix?: AIRun | null;
   finishedFix?: AIRun | null;
+  // The fix's task carries a private record the reader may not open.
+  isFixHidden?: boolean;
   latestTurn?: AIRun;
   // Any connected repository; the rules' own allowance below.
   hasRepository?: boolean;
@@ -112,9 +117,16 @@ interface Setup {
   isWithinBudget?: boolean;
 }
 
+// Who reads the record's page: a member, who may read its fix unless a test says.
+const READER: DatabaseCommonInteractionProps = {
+  userId: USER_ID,
+  tenantId: PROJECT_ID,
+};
+
 interface Spies {
   project: SpyInstance<typeof ProjectService.findOneById>;
   runs: SpyInstance<typeof AIRunService.findOneBy>;
+  hiddenFrom: SpyInstance<typeof CodeTaskThread.findTasksHiddenFrom>;
   latestTurn: SpyInstance<typeof CodeTaskRuns.getLatestTurn>;
   hasRepository: SpyInstance<typeof SubjectCodeFixRun.hasConnectedRepository>;
   gate: SpyInstance<typeof CodeFixStartGate.check>;
@@ -147,6 +159,13 @@ function install(setup: Setup = {}): Spies {
           ? setup.activeFix || null
           : setup.finishedFix || null;
       }) as never),
+    hiddenFrom: jest
+      .spyOn(CodeTaskThread, "findTasksHiddenFrom")
+      .mockResolvedValue(
+        new Set<string>(
+          setup.isFixHidden ? [FIX_ID.toString().toLowerCase()] : [],
+        ),
+      ),
     latestTurn: jest
       .spyOn(CodeTaskRuns, "getLatestTurn")
       .mockResolvedValue(
@@ -191,6 +210,7 @@ async function suggestionFor(
   return await FixFromIncidentTaskTrigger.getSuggestionForSubject({
     projectId: PROJECT_ID,
     ...subject,
+    reader: READER,
   });
 }
 
@@ -340,6 +360,57 @@ describe("a fix pull request that exists", () => {
     const suggestion: InvestigationCodeFixSuggestion = await suggestionFor();
     expect(suggestion.offer).toBe(SuggestionOffer.InProgress);
     expect(suggestion.aiRunId).toBe(FIX_ID.toString());
+  });
+});
+
+/*
+ * A fix whose task a reply carried a private incident or alert into, which
+ * the reader may not open, read as its task's own page reads it: it is
+ * there - no second one is offered - and nothing of how it stands, who
+ * asked for it, or where it is.
+ */
+describe("a fix pull request in a task hidden from the reader", () => {
+  test.each([
+    ["being written", { activeFix: fixRun() }],
+    [
+      "done",
+      {
+        finishedFix: fixRun({
+          status: AIRunStatus.Completed,
+          userId: USER_ID,
+        }),
+      },
+    ],
+  ])("one %s: there, and nothing of it", async (_name: string, fix: Setup) => {
+    const spies: Spies = install({ ...fix, isFixHidden: true });
+
+    const suggestion: InvestigationCodeFixSuggestion = await suggestionFor();
+
+    expect(suggestion).toEqual(HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION);
+    expect(suggestion).toEqual({
+      offer: SuggestionOffer.Done,
+      fixOutcome: FinishedFixOutcome.Hidden,
+      blocker: null,
+      aiRunId: null,
+      isAutomatic: false,
+      automaticBlocker: null,
+    });
+    // Asked of the fix, as the reader; nothing else is read for it.
+    expect(spies.hiddenFrom).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      taskIds: [FIX_ID],
+      reader: READER,
+    });
+    expect(spies.latestTurn).not.toHaveBeenCalled();
+    expect(spies.gate).not.toHaveBeenCalled();
+    expect(spies.rules).not.toHaveBeenCalled();
+  });
+
+  test("no fix yet: the reader's sight of a task is never asked", async () => {
+    const spies: Spies = install({ activeFix: null, finishedFix: null });
+
+    expect((await suggestionFor()).offer).toBe(SuggestionOffer.Act);
+    expect(spies.hiddenFrom).not.toHaveBeenCalled();
   });
 });
 

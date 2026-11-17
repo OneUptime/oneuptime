@@ -36,7 +36,7 @@ Ja. Elke telefoon of tablet is een eigen pushapparaat, met eigen bereikbaarheids
 - **Monitors**: alle monitors, gefilterd op gezondheid, met hun details.
 - **Inbox**: incidenten en waarschuwingen, en de episodes die ze groeperen. Open er een om **Acknowledge**, **Resolve** of **Add Note** te gebruiken. Laat uw rol u de beveiligingszaken van het project zien, dan toont **Security** de open zaken: open er een om **Approve** of **Reject** te gebruiken voor een playbookstap die op goedkeuring wacht, de zaak op te pakken met **Assign to me** of **Close case** te gebruiken.
 - **On-Call**: of u dienst hebt en tot wanneer, wie nog meer, de oproepen die naar u gingen, en **Cover for me**, dat uw oproepen een tijdje aan een collega overdraagt.
-- **Settings**: uw projecten en single sign-on, het uiterlijk, kritieke meldingen en het alarmgeluid, **Biometrics Login**, uw agendafeed voor diensten, en **Log Out**.
+- **Settings**: uw projecten en single sign-on, het uiterlijk, kritieke meldingen en het alarmgeluid, **Biometric Unlock**, uw agendafeed voor diensten, en **Sign Out**.
 
 Al het andere vindt u in het dashboard.
 :::
@@ -46,7 +46,7 @@ Nee. Tik op de melding: de app opent het incident, de waarschuwing, de episode o
 :::
 
 :::details Is mijn aanmelding veilig op de telefoon?
-De app praat met uw OneUptime alleen via HTTPS. Uw aanmelding wordt bewaard in de eigen opslag van de app op de telefoon, en **Log Out** wist haar en meldt de sessie ook op de server af. Schakel **Biometrics Login** in om de app bij elke start om uw gezicht, vingerafdruk of toegangscode te laten vragen.
+De app praat met uw OneUptime alleen via HTTPS. Uw aanmelding wordt bewaard in de eigen opslag van de app op de telefoon, en **Sign Out** wist haar en meldt de sessie ook op de server af. Schakel **Biometric Unlock** in om de app bij elke start om uw gezicht, vingerafdruk of toegangscode te laten vragen.
 :::
 
 :::details Werkt de app offline?

@@ -176,6 +176,8 @@ describe("the sensitive-URL-token partial", () => {
 
     const expectedRoutes: Array<string> = [
       "reset-password",
+      // A new account's first password: /accounts/set-password/<token> (#9139).
+      "set-password",
       "verify-email",
       // A status page subscriber's unsubscribe link: .../unsubscribe/<id>-<token>.
       "unsubscribe",

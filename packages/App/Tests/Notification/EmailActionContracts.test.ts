@@ -306,6 +306,8 @@ const SINGLE_ACTION_CONTRACTS: Array<
   ],
   ["EmailChanged", "tokenVerifyUrl", "Verify Email", "tokenVerifyUrl"],
   ["ForgotPassword", "tokenVerifyUrl", "Reset Password", "tokenVerifyUrl"],
+  // The first password of an account a master admin created (#9139).
+  ["SetPassword", "tokenVerifyUrl", "Set Your Password", "tokenVerifyUrl"],
   /*
    * "Your password was changed": the way out for somebody who did not
    * change it is a reset, sent to the address on the account.

@@ -745,13 +745,18 @@ export default class StatusPageAPI extends BaseAPI<
             return res.status(400).send("Token is required");
           }
 
-          // Fetch status page with security token
+          /*
+           * Fetch status page with security token: the page by its id, and
+           * the token compared with its own in constant time - it is kept
+           * encrypted (#9012).
+           */
           const statusPage: StatusPage | null =
-            await StatusPageService.findOneBy({
+            await StatusPageService.findOneByPresentedKey({
+              column: "embeddedOverallStatusToken",
+              presentedKey: token,
               query: {
                 _id: statusPageId,
                 enableEmbeddedOverallStatus: true,
-                embeddedOverallStatusToken: token,
                 // An archived page has no status to show, embedded or not.
                 isArchived: false,
               },
@@ -4192,9 +4197,10 @@ export default class StatusPageAPI extends BaseAPI<
       statusPageSubscriber.subscriberPhone = phone;
     }
 
+    // A webhook's address is its credential: the log says one was set, never which.
     if (slackIncomingWebhookUrl) {
       logger.debug(
-        `Setting subscriber slack: ${slackIncomingWebhookUrl}`,
+        "Setting subscriber Slack incoming webhook.",
         getLogAttributesFromRequest(req as any),
       );
       statusPageSubscriber.slackIncomingWebhookUrl = URL.fromString(
@@ -4212,7 +4218,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (microsoftTeamsIncomingWebhookUrl) {
       logger.debug(
-        `Setting subscriber Microsoft Teams webhook: ${microsoftTeamsIncomingWebhookUrl}`,
+        "Setting subscriber Microsoft Teams incoming webhook.",
         getLogAttributesFromRequest(req as any),
       );
       statusPageSubscriber.microsoftTeamsIncomingWebhookUrl = URL.fromString(
@@ -4231,7 +4237,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (subscriberWebhookUrl) {
       logger.debug(
-        `Setting subscriber webhook URL: ${subscriberWebhookUrl}`,
+        "Setting subscriber webhook.",
         getLogAttributesFromRequest(req as any),
       );
       statusPageSubscriber.subscriberWebhook =

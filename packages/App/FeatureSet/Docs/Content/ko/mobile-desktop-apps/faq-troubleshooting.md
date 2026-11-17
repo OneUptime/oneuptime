@@ -36,7 +36,7 @@ iOS 또는 iPadOS 16.4 이상의 iPhone과 iPad, 그리고 Android 7.0 이상의
 - **Monitors**: 모든 모니터. 상태로 필터링할 수 있고 세부 정보도 볼 수 있습니다.
 - **Inbox**: 인시던트와 경고, 그리고 이들을 묶는 에피소드. 하나를 열어 **Acknowledge**, **Resolve** 또는 **Add Note**를 사용합니다. 역할상 프로젝트의 보안 케이스를 볼 수 있다면 **Security**에 열린 케이스가 나열됩니다. 하나를 열어 승인을 기다리는 플레이북 단계에 **Approve** 또는 **Reject**를 사용하거나, **Assign to me**로 케이스를 맡거나, **Close case**를 사용합니다.
 - **On-Call**: 내가 온콜 중인지와 언제까지인지, 그 밖에 누가 온콜인지, 나에게 보낸 호출, 그리고 잠시 동안 내 호출을 팀원에게 넘기는 **Cover for me**.
-- **Settings**: 프로젝트와 싱글 사인온, 모양, 중요 알림과 알람 소리, **Biometrics Login**, 온콜 캘린더 피드, **Log Out**.
+- **Settings**: 프로젝트와 싱글 사인온, 모양, 중요 알림과 알람 소리, **Biometric Unlock**, 온콜 캘린더 피드, **Sign Out**.
 
 그 밖의 모든 것은 대시보드에 있습니다.
 :::
@@ -46,7 +46,7 @@ iOS 또는 iPadOS 16.4 이상의 iPhone과 iPad, 그리고 Android 7.0 이상의
 :::
 
 :::details 휴대폰의 로그인은 안전한가요?
-앱은 사용 중인 OneUptime과 HTTPS로만 통신합니다. 로그인 정보는 휴대폰에 있는 앱 자체 저장소에 보관되며, **Log Out**은 이를 삭제하고 서버의 세션도 로그아웃합니다. **Biometrics Login**을 켜면 앱이 시작될 때마다 얼굴, 지문 또는 암호를 요구합니다.
+앱은 사용 중인 OneUptime과 HTTPS로만 통신합니다. 로그인 정보는 휴대폰에 있는 앱 자체 저장소에 보관되며, **Sign Out**은 이를 삭제하고 서버의 세션도 로그아웃합니다. **Biometric Unlock**을 켜면 앱이 시작될 때마다 얼굴, 지문 또는 암호를 요구합니다.
 :::
 
 :::details 앱이 오프라인에서도 작동하나요?

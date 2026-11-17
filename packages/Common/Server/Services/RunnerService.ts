@@ -875,10 +875,15 @@ export class Service extends ProjectReferencesService<Model> {
       return null;
     }
 
-    return this.findOneBy({
+    /*
+     * The key is kept encrypted (#9012): the Runner is read by its id, and
+     * its key compared with the one presented, in constant time.
+     */
+    return this.findOneByPresentedKey({
+      column: "key",
+      presentedKey: data.agentKey,
       query: {
         _id: data.agentId.toString(),
-        key: data.agentKey,
       },
       select: {
         _id: true,

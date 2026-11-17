@@ -170,6 +170,8 @@ router.post(
             snmpV3AuthKey: true,
             snmpV3PrivProtocol: true,
             snmpV3PrivKey: true,
+            // What the claim's guard holds the credentials to: see below.
+            version: true,
           },
           sort: {
             createdAt: SortOrder.Ascending,
@@ -256,25 +258,31 @@ router.post(
              * the row In Progress against it.
              */
             isSnmpEnabled: scan.isSnmpEnabled ?? null,
-            /*
-             * Compared as JSON. `IS NOT DISTINCT FROM` on a jsonb column is a
-             * value comparison, and the value handed to the probe is the value
-             * read out of this same column moments ago, so it round-trips
-             * exactly — a re-save that did not change the credentials does not
-             * fail the guard.
-             */
-            snmpConfigs: scan.snmpConfigs ?? null,
             snmpVersion: scan.snmpVersion ?? null,
-            snmpCommunityString: scan.snmpCommunityString ?? null,
             snmpPort: scan.snmpPort ?? null,
             snmpV3SecurityLevel: scan.snmpV3SecurityLevel ?? null,
             snmpV3Username: scan.snmpV3Username ?? null,
             snmpV3AuthProtocol: scan.snmpV3AuthProtocol ?? null,
-            snmpV3AuthKey: scan.snmpV3AuthKey ?? null,
             snmpV3PrivProtocol: scan.snmpV3PrivProtocol ?? null,
-            snmpV3PrivKey: scan.snmpV3PrivKey ?? null,
+            /*
+             * The credentials themselves - the list, the community string
+             * and the v3 keys - are kept encrypted at rest (#9014), salted
+             * afresh on every write: the values handed to the probe, read
+             * decrypted, never match what the row holds, and the claim would
+             * never land. They are held by the row's version instead, which
+             * every write through the service moves on - an edit of the
+             * credentials, or of anything else, in between fails the claim
+             * as a changed credential always did; a rename in that one
+             * round trip now costs a poll too. The data migration that
+             * encrypts them in place moves no version, and changes no
+             * credential.
+             */
+            version: scan.version ?? null,
           } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
         });
+
+        // Read for the guard alone: the probe is handed what it was before.
+        scan.version = undefined as unknown as number;
       }
 
       return Response.sendEntityArrayResponse(

@@ -53,7 +53,6 @@ const Users: FunctionComponent = (): ReactElement => {
           modelAPI={AdminModelAPI}
           cardProps={{
             title: t("pages.userView.cardTitle"),
-            description: t("pages.userView.cardDescription"),
           }}
           isEditable={true}
           editButtonText={t("pages.userView.editButton")}

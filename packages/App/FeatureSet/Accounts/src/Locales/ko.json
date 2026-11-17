@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "비밀번호 잊음",
     "subtitle": "이메일을 입력하시면 비밀번호 재설정 링크가 발송됩니다.",
-    "successMessage": "비밀번호 재설정 링크를 이메일로 보냈습니다. 스팸 폴더도 확인해 주세요.",
+    "successMessage": "이 이메일 주소를 사용하는 계정이 있다면 비밀번호를 정할 수 있는 링크를 이메일로 보냈습니다. 스팸 폴더도 확인해 주세요.",
     "submitButton": "비밀번호 재설정 링크 보내기",
     "rememberPasswordPrompt": "비밀번호를 기억하시나요?",
     "loginLink": "로그인.",
@@ -187,6 +187,17 @@
     "linkInvalidTitle": "이 재설정 링크는 더 이상 작동하지 않습니다",
     "linkInvalidDescription": "이미 사용되었거나 일부만 복사되었을 수 있습니다. 새 링크를 요청하시면 이메일로 보내 드립니다.",
     "requestNewLinkButton": "새 링크 요청"
+  },
+  "setPassword": {
+    "title": "비밀번호 설정",
+    "subtitle": "비밀번호를 정해 계정 설정을 마치세요.",
+    "submitButton": "비밀번호 설정",
+    "successTitle": "비밀번호가 설정되었습니다",
+    "successDescription": "새 비밀번호로 로그인하세요.",
+    "linkExpiredTitle": "이 링크는 만료되었습니다",
+    "linkExpiredDescription": "비밀번호 설정 링크는 {{days}}일 동안 유효합니다. 새 링크를 요청하시면 이메일로 보내 드립니다.",
+    "linkInvalidTitle": "이 링크는 더 이상 작동하지 않습니다",
+    "linkInvalidDescription": "이미 사용되었거나 일부만 복사되었을 수 있습니다. 비밀번호를 이미 설정했다면 로그인하세요. 그렇지 않다면 새 링크를 요청하시면 이메일로 보내 드립니다."
   },
   "sso": {
     "title": "SSO로 로그인",

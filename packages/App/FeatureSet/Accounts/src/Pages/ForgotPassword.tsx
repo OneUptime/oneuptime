@@ -18,8 +18,12 @@ export const FORGOT_PASSWORD_CANNOT_EMAIL_TEST_ID: string =
   "forgot-password-cannot-email";
 
 /*
- * "Forgot your password": an email address, then "we have emailed you the
- * link". A server that cannot send email yet - a fresh self-hosted one, until
+ * "Forgot your password": an email address, then "if an account uses this
+ * address, we have emailed it a link". The API answers every address the
+ * same - an account with a password is sent a reset link, one with none yet
+ * a set-password link, and an address with no account nothing (#9260) - so
+ * the page says the same to all of them, and says nothing about which
+ * addresses have an account. A server that cannot send email yet - a fresh self-hosted one, until
  * its admin sets email up - says so before anyone types, and who can let
  * them in instead (GET /global-config/vars' canSendEmail). That is a fact
  * about the server, the same for everyone who opens the page, so it says

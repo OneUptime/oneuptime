@@ -557,7 +557,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         setError(
           <div>
             {translator.translateText(
-              "Looks like you are not logged in. Please login to continue.",
+              "You are signed out. Please sign in to continue.",
             )}
           </div>,
         );

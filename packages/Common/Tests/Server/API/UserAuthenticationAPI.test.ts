@@ -663,3 +663,93 @@ describe("POST /user/:userId/send-password-reset-link", () => {
     expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * POST /user/:userId/set-password-link: Create User's way out when the email
+ * with a link to set a password was not sent (#9139). It hands the link to the
+ * master admin to send themselves, so it is a credential in a response body:
+ * session-only, and refused by the service for an account with a password.
+ */
+describe("POST /user/:userId/set-password-link", () => {
+  const SET_PASSWORD_LINK_ROUTE: string = "/user/:userId/set-password-link";
+  const LINK: string =
+    "https://oneuptime.example.com/accounts/set-password/6f1c7e4a-2b3d-4c5e-8f90-a1b2c3d4e5f6";
+
+  let linkSpy: jest.SpyInstance;
+
+  beforeAll(() => {
+    mockRouter.routes.length = 0;
+    new UserAPI();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    linkSpy = jest.spyOn(UserService, "getSetPasswordLink").mockResolvedValue({
+      link: LINK,
+      email: new Email("new.person@example.com"),
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the route is registered", () => {
+    expect(() => {
+      return mockRouter.match("POST", SET_PASSWORD_LINK_ROUTE);
+    }).not.toThrow();
+  });
+
+  test("only a master admin's session can reach it, never the master API key", () => {
+    expect(mockRouter.match("POST", SET_PASSWORD_LINK_ROUTE).middleware).toBe(
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+    );
+  });
+
+  test("makes the link for the user in the path, and answers with it and the address", async () => {
+    await callRoute({
+      method: "POST",
+      route: SET_PASSWORD_LINK_ROUTE,
+      params: { userId: USER_ID },
+    });
+
+    expect(linkSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (linkSpy.mock.calls[0]![0] as { userId: ObjectID }).userId.toString(),
+    ).toBe(USER_ID);
+    expect(sentJsonObject()).toEqual({
+      link: LINK,
+      email: "new.person@example.com",
+    });
+  });
+
+  test("rejects a user id that is not a uuid without making a link", async () => {
+    const result: RouteCallResult = await callRoute({
+      method: "POST",
+      route: SET_PASSWORD_LINK_ROUTE,
+      params: { userId: "not-a-user" },
+    });
+
+    expect(linkSpy).not.toHaveBeenCalled();
+    expect(result.nextCallCount).toBe(1);
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+
+  test("passes the service's refusal on, and answers no link", async () => {
+    const refusal: BadDataException = new BadDataException(
+      "This user already has a password, so there is no set-password link to copy.",
+    );
+
+    linkSpy.mockRejectedValue(refusal);
+
+    const result: RouteCallResult = await callRoute({
+      method: "POST",
+      route: SET_PASSWORD_LINK_ROUTE,
+      params: { userId: USER_ID },
+    });
+
+    expect(result.thrownToNext).toBe(refusal);
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+});

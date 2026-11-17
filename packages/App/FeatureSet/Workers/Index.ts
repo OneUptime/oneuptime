@@ -2,6 +2,8 @@
 import "./Jobs/Announcement/SendNotificationToSubscribers";
 // Hard Delete
 import "./Jobs/HardDelete/HardDeleteItemsInDatabase";
+// The keys presented to OneUptime that were stored as written: protected in place (#9012).
+import "./Jobs/PresentedKeys/ProtectAtRest";
 // Incidents
 import "./Jobs/Incident/SendNotificationToSubscribers";
 import "./Jobs/Incident/SendPostmortemNotificationToSubscribers";
@@ -31,6 +33,7 @@ import "./Jobs/TelemetryException/SendAssignedNotification";
 // Monitor Jobs.
 import "./Jobs/Monitor/KeepCurrentStateConsistent";
 import "./Jobs/Monitor/ClearStoredLogScreenshots";
+import "./Jobs/Monitor/TrimOversizedStoredChecks";
 
 // Alert Owners
 import "./Jobs/AlertOwners/SendCreatedResourceNotification";

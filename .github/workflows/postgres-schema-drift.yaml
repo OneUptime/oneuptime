@@ -369,7 +369,10 @@ jobs:
       # #6942): a log with screenshots loses only them, every other row is
       # not written at all - not even its updatedAt - a second walk writes
       # nothing, a run keeps to its limits, and a table done is never read
-      # again.
+      # again. A log without screenshots - a grouped monitor's 35 MB check
+      # from before #9189 - is looked through in Postgres and never read
+      # into Node (#9253); reads and writes keep to their statement and lock
+      # timeouts.
       - name: Test clearing stored log screenshots on migrated Postgres
         if: matrix.shard == 1
         working-directory: packages/Common
@@ -381,6 +384,24 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Retention/StoredLogScreenshotsPostgres.test.ts
+          --forceExit
+
+      # Trimming the oversized checks grouped monitors kept before #9189
+      # (issue #9232): each record keeps its own series, trimmed in SQL one
+      # row a statement, within its statement and lock timeouts; a check too
+      # big to trim keeps the markers alone; other rows are not written; a
+      # second walk writes nothing, and a table done is never read again.
+      - name: Test trimming oversized stored checks on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OVERSIZED_STORED_CHECKS_TESTS: "true"
+          OVERSIZED_STORED_CHECKS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OVERSIZED_STORED_CHECKS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OVERSIZED_STORED_CHECKS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Retention/OversizedStoredChecksPostgres.test.ts
           --forceExit
 
       # Deleting for good the rows soft deleted more than 30 days ago (issue
@@ -4086,6 +4107,60 @@ jobs:
           Tests/Workers/DataMigrations/EncryptProjectCredentialsPostgres.test.ts
           --forceExit
 
+      # Webhook addresses and SNMP credentials through the upgrade that
+      # encrypts them (#9013, #9014): on the tables as they were (a webhook
+      # notification method's address a varchar(500), a community string a
+      # varchar(100)), with every address and credential stored as written,
+      # the schema migration widens them in place, EncryptWebhookAddresses
+      # and EncryptSnmpCredentials leave only ciphertext - in a scan's
+      # credential sets, each entry's secret fields alone - and
+      # MaskWebhookAddressesInLogs keeps the logs' addresses by their host;
+      # every value reads as written through the services before, between
+      # and after; a second run changes nothing, two at once encrypt each
+      # value once, and a save afterwards is stored encrypted. Clones the
+      # migrated StatusPageSubscriber, UserWebhook, OpenStackProjectNotice,
+      # CustomNotificationChannel, NetworkDevice, NetworkDeviceDiscoveryScan,
+      # WebhookLog and UserOnCallLogTimeline tables into an isolated schema.
+      - name: Test webhook addresses' and SNMP credentials' upgrade to encrypted on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_WEBHOOK_SNMP_CREDENTIALS_TESTS: "true"
+          WEBHOOK_SNMP_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WEBHOOK_SNMP_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WEBHOOK_SNMP_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/EncryptWebhookAddressesAndSnmpCredentialsPostgres.test.ts
+          --forceExit
+
+      # The keys presented to OneUptime through the upgrade that protects them
+      # (#9012): on the tables as they were (the uuid keys uuids, the tokens
+      # varchar(100)s), with every key stored as written, the schema
+      # migrations keep each key, HashPresentedKeysForLookup writes the lookup
+      # hashes and changes no key, and the PresentedKeys:ProtectAtRest job
+      # keeps them up to date within the day after and encrypts (a SCIM
+      # token: hashes) every key a day after; a server of the release before
+      # (which compares a key as written) and one of this release find every
+      # key until then, this release with the key as written after, a wrong
+      # key never, and no key goes into a query once protected; two passes
+      # at once protect each key once, a key saved afterwards is stored
+      # protected, and a rollback restores the old types. Clones the 13
+      # migrated tables with a presented key, and DataMigrations, into an
+      # isolated schema.
+      - name: Test presented keys' upgrade to encrypted or hashed on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_PRESENTED_KEYS_TESTS: "true"
+          PRESENTED_KEYS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PRESENTED_KEYS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PRESENTED_KEYS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/PresentedKeysAtRestPostgres.test.ts
+          --forceExit
+
       # Exceptions: the exception group upsert's ON CONFLICT branch, which is
       # all of regression detection - an occurrence after the resolve
       # reopens it as Regressed, a late one from before does not, and one
@@ -4505,6 +4580,27 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest
           Tests/Server/TeamCompliance/TeamComplianceStatusPostgres.test.ts
+          --selectProjects server --runInBand --forceExit
+
+      # SCIM bearer tokens through the upgrade that hashes them (#9012), as
+      # the SCIM middleware itself looks one up: on copies of the migrated
+      # ProjectSCIM, StatusPageSCIM and DataMigrations tables, a token stored
+      # as written finds its connection within the day before the
+      # PresentedKeys:ProtectAtRest job runs, and by its hash alone after
+      # the job hashed it in place; a wrong token, another connection's, or
+      # the hash presented as a token never does, and no token goes into a
+      # query once hashed.
+      - name: Test SCIM bearer tokens' upgrade to a hash on migrated Postgres (Enterprise)
+        if: matrix.shard == 3
+        working-directory: ee
+        env:
+          RUN_POSTGRES_SCIM_TOKEN_AT_REST_TESTS: "true"
+          SCIM_TOKEN_AT_REST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SCIM_TOKEN_AT_REST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SCIM_TOKEN_AT_REST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest
+          Tests/Server/Identity/SCIMBearerTokensAtRestPostgres.test.ts
           --selectProjects server --runInBand --forceExit
 
       # The audit log exporter (Enterprise) on copies of the migrated Project,

@@ -307,6 +307,7 @@ describe("the complete built-in email design", () => {
 describe("email actions", () => {
   test.each([
     [EmailTemplateType.ForgotPassword, "tokenVerifyUrl", "Reset Password"],
+    [EmailTemplateType.SetPassword, "tokenVerifyUrl", "Set Your Password"],
     [
       EmailTemplateType.CompleteRegistration,
       "registrationLink",

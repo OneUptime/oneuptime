@@ -25,6 +25,7 @@ import {
   WorkflowStepTraceEntry,
 } from "../../../../Types/Workflow/StepTrace";
 import WorkflowStatus from "../../../../Types/Workflow/WorkflowStatus";
+import { PillTone } from "../../../../UI/Components/Pill/PillTone";
 import "@testing-library/jest-dom";
 import {
   RenderResult,
@@ -436,7 +437,7 @@ describe("WorkflowLogModal", () => {
 
   describe("the steps tab's count", () => {
     const badge: () => HTMLElement = (): HTMLElement => {
-      return stepsTab().querySelector("span") as HTMLElement;
+      return within(stepsTab()).getByTestId("tab-count");
     };
 
     /*
@@ -455,7 +456,7 @@ describe("WorkflowLogModal", () => {
         />,
       );
 
-      expect(badge()).toHaveClass("bg-red-500");
+      expect(badge()).toHaveAttribute("data-tone", PillTone.Danger);
     });
 
     test("is red when the run stopped for a reason of its own", () => {
@@ -467,7 +468,7 @@ describe("WorkflowLogModal", () => {
         />,
       );
 
-      expect(badge()).toHaveClass("bg-red-500");
+      expect(badge()).toHaveAttribute("data-tone", PillTone.Danger);
     });
 
     test("is amber when a step has a warning and nothing failed", () => {
@@ -481,7 +482,7 @@ describe("WorkflowLogModal", () => {
         />,
       );
 
-      expect(badge()).toHaveClass("bg-yellow-500");
+      expect(badge()).toHaveAttribute("data-tone", PillTone.Warning);
     });
 
     test("keeps its usual colour for a clean run", () => {
@@ -493,7 +494,7 @@ describe("WorkflowLogModal", () => {
         />,
       );
 
-      expect(badge()).toHaveClass("bg-indigo-500");
+      expect(badge()).toHaveAttribute("data-tone", PillTone.Info);
     });
 
     test("counts only real steps", () => {

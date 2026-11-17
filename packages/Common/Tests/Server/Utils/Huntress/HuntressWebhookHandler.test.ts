@@ -98,7 +98,8 @@ let runs: Array<ExecuteWorkflowType>;
 let runFailure: Error | null;
 let updateFailure: Error | null;
 let lookups: Array<{
-  query: JSONObject;
+  column: string;
+  presentedKey: string;
   select: JSONObject;
   props: JSONObject;
 }>;
@@ -193,15 +194,24 @@ beforeEach(() => {
   cacheConnected = true;
   cacheFailure = null;
 
-  jest.spyOn(WorkflowService, "findOneBy").mockImplementation((async (findBy: {
-    query: JSONObject;
-    select: JSONObject;
-    props: JSONObject;
-  }): Promise<Workflow | null> => {
-    lookups.push(findBy);
+  /*
+   * The workflow found by its webhook key - by the key's lookup hash, as the
+   * key is kept encrypted (#9012: WorkflowService.findOneByPresentedKey).
+   */
+  jest
+    .spyOn(WorkflowService, "findOneByPresentedKey")
+    .mockImplementation((async (findBy: {
+      column: string;
+      presentedKey: string;
+      select: JSONObject;
+      props: JSONObject;
+    }): Promise<Workflow | null> => {
+      lookups.push(findBy);
 
-    return workflows.get(String(findBy.query["webhookSecretKey"])) || null;
-  }) as never);
+      return findBy.column === "webhookSecretKey"
+        ? workflows.get(String(findBy.presentedKey)) || null
+        : null;
+    }) as never);
 
   jest
     .spyOn(WorkflowService, "updateColumnsByIdWithoutHooks")
@@ -289,7 +299,8 @@ describe("the address", () => {
     await deliver(reportBody());
 
     expect(lookups).toHaveLength(1);
-    expect(lookups[0]!.query).toEqual({ webhookSecretKey: SECRET_KEY });
+    expect(lookups[0]!.column).toBe("webhookSecretKey");
+    expect(lookups[0]!.presentedKey).toBe(SECRET_KEY);
     expect(lookups[0]!.props).toEqual({ isRoot: true });
 
     for (const column of [

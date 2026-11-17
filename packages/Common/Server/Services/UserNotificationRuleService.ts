@@ -34,6 +34,7 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
 import UserService from "./UserService";
 import CustomChannelActionToken from "../Utils/OnCall/CustomChannelActionToken";
+import { getSendingWebhookMessage } from "../Utils/OnCall/OnCallNotificationStatus";
 import {
   CUSTOM_CHANNEL_METHOD_LABEL,
   CustomChannelPerson,
@@ -2834,7 +2835,9 @@ export class Service extends ProjectReferencesService<Model> {
       }): Promise<void> => {
         deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
-        logTimelineItem.statusMessage = `Sending webhook to ${webhookUrl}.`;
+        logTimelineItem.statusMessage = getSendingWebhookMessage(
+          notificationRuleItem.userWebhook?.name,
+        );
         logTimelineItem.userWebhookId = userWebhookId;
 
         const updatedLog: UserOnCallLogTimeline =

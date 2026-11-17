@@ -39,6 +39,8 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { IsBillingEnabled, isShippedSecretValue } from "../EnvironmentConfig";
 import ShippedKeyTakeover from "../Utils/ShippedKeyTakeover";
+import PresentedKey from "../Utils/PresentedKey/PresentedKey";
+import TableColumnType from "../../Types/Database/TableColumnType";
 import ComponentKeyWrite from "../Utils/ComponentKeyWrite";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
@@ -214,11 +216,16 @@ export class Service extends ProjectReferencesService<Model> {
       } as LogAttributes);
     }
 
-    // Cache miss, mismatch (e.g. key rotated), or cache failure: ask the DB.
-    const probe: Model | null = await this.findOneBy({
+    /*
+     * Cache miss, mismatch (e.g. key rotated), or cache failure: ask the DB.
+     * The key is kept encrypted (#9012), so the probe is read by its id and
+     * its key compared with the one presented, in constant time.
+     */
+    const probe: Model | null = await this.findOneByPresentedKey({
+      column: "key",
+      presentedKey: data.probeKey,
       query: {
         _id: data.probeId.toString(),
-        key: data.probeKey,
       },
       select: {
         _id: true,
@@ -277,6 +284,52 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return true;
+  }
+
+  /*
+   * The global probe that holds this key, or null: what a global probe's
+   * registration finds itself by (Telemetry/API/ProbeIngest/Register). A
+   * probe's key is kept encrypted (#9012), which no query can find by its
+   * value, so each global probe's key is compared with the one presented,
+   * in constant time - an installation has a handful of global probes.
+   */
+  @CaptureSpan()
+  public async findGlobalProbeByKey(probeKey: string): Promise<Model | null> {
+    const globalProbes: Array<Model> = await this.findBy({
+      query: {
+        isGlobalProbe: true,
+      },
+      select: {
+        _id: true,
+        key: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    let found: Model | null = null;
+
+    // Every key compared, the first one that matches kept: no early exit.
+    for (const globalProbe of globalProbes) {
+      const isMatch: boolean = PresentedKey.matches({
+        presented: probeKey,
+        stored: globalProbe.key,
+        columnType: TableColumnType.ShortText,
+      });
+
+      if (isMatch && !found) {
+        found = globalProbe;
+      }
+    }
+
+    if (found) {
+      delete found.key;
+    }
+
+    return found;
   }
 
   /*

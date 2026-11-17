@@ -224,6 +224,8 @@ export const TELEMETRY_AI_FIX_TEST_IDS: {
   repository: string;
   progress: string;
   taskLink: string;
+  // A fix on its way in a task the person may not read.
+  hidden: string;
   connect: string;
   error: string;
 } = {
@@ -233,6 +235,7 @@ export const TELEMETRY_AI_FIX_TEST_IDS: {
   repository: "telemetry-ai-fix-repository",
   progress: "telemetry-ai-fix-progress",
   taskLink: "telemetry-ai-fix-task-link",
+  hidden: "telemetry-ai-fix-hidden",
   connect: "telemetry-ai-fix-connect",
   error: "telemetry-ai-fix-error",
 };

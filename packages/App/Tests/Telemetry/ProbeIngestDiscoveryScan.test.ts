@@ -286,6 +286,7 @@ describe("POST /probe/discovery-scan/list", () => {
       },
     ];
     scan.snmpConfigs = snmpConfigs;
+    scan.version = 7;
 
     scanService.findBy.mockResolvedValue([scan] as never);
     scanService.updateColumnsByIdWithoutHooks.mockResolvedValue(
@@ -299,6 +300,13 @@ describe("POST /probe/discovery-scan/list", () => {
     const expected: JSONObject = expectPlainUpdateData(
       updateArgs["expectedData"],
     );
+
+    // The version is read with the scan, to hold the claim to.
+    expect(
+      (scanService.findBy.mock.calls[0]![0] as { select: JSONObject }).select[
+        "version"
+      ],
+    ).toBe(true);
 
     /*
      * Status and probe first: those are what a re-queue and a probe
@@ -322,25 +330,33 @@ describe("POST /probe/discovery-scan/list", () => {
     expect(expected["isSnmpEnabled"]).toBe(true);
 
     /*
-     * The credential list, and the WHOLE list — every entry, every field.
-     * This is the setting the sweep is now mostly made of: the probe tries
-     * these in order against each host and stops at the first that answers.
-     * Asserting only the first entry (or only its id) would leave the guard
-     * blind to an edit that swapped out every other credential set, and the
-     * probe would then sweep, and stamp its hosts with ids from, a list the
-     * row no longer holds.
+     * The credentials - the WHOLE list, every entry and field, the community
+     * string and the v3 keys - are held by the row's version. They are kept
+     * encrypted at rest (#9014), salted afresh on every write, so the values
+     * handed to the probe, read decrypted, never equal what the row holds:
+     * expected as read, the claim would never land. Every write through the
+     * service moves the version on, and so does the rebuild of the list
+     * after an edit (moveVersionOn), so an edit that swapped out any
+     * credential set in between voids the claim, as it did when the guard
+     * compared the list itself.
      */
-    expect(expected["snmpConfigs"]).toEqual(snmpConfigs);
+    expect(expected["version"]).toBe(7);
+
+    for (const credential of [
+      "snmpConfigs",
+      "snmpCommunityString",
+      "snmpV3AuthKey",
+      "snmpV3PrivKey",
+    ]) {
+      expect(Object.keys(expected)).not.toContain(credential);
+    }
 
     expect(expected["snmpVersion"]).toBe("V3");
-    expect(expected["snmpCommunityString"]).toBe("public");
     expect(expected["snmpPort"]).toBe(161);
     expect(expected["snmpV3SecurityLevel"]).toBe("authPriv");
     expect(expected["snmpV3Username"]).toBe("netops");
     expect(expected["snmpV3AuthProtocol"]).toBe("sha");
-    expect(expected["snmpV3AuthKey"]).toBe("auth-secret");
     expect(expected["snmpV3PrivProtocol"]).toBe("aes");
-    expect(expected["snmpV3PrivKey"]).toBe("priv-secret");
 
     /*
      * And NOT the name. A rename changes nothing about the sweep, and voiding
@@ -378,29 +394,21 @@ describe("POST /probe/discovery-scan/list", () => {
       updateArgs["expectedData"],
     );
 
+    /*
+     * The credentials themselves - the list, unset on this fixture as on a
+     * scan created before the column existed, and the v3 keys - are kept
+     * encrypted (#9014) and held by the version instead: an operator saving
+     * a four-credential list between the SELECT and the UPDATE moves it on,
+     * and the claim does not stand.
+     */
+    expect(Object.keys(expected)).toContain("version");
+
     for (const column of [
-      /*
-       * The credential LIST is unset on this fixture — a scan created before
-       * the column existed, or one written by an API caller that only knows
-       * the flattened fields — and it has to be expected as NULL just like a
-       * missing v3 key.
-       *
-       * Omitting it would be the worse half of the bug this test exists for.
-       * `IS NOT DISTINCT FROM` is generated per key, so a key that is not
-       * there is not "must still be empty", it is "do not care": an operator
-       * saving a four-credential list between the SELECT and the UPDATE would
-       * leave the claim standing, and this probe would sweep the subnet with
-       * the single flattened credential set it was handed while the row said
-       * it was being swept with four.
-       */
-      "snmpConfigs",
       "snmpPort",
       "snmpV3SecurityLevel",
       "snmpV3Username",
       "snmpV3AuthProtocol",
-      "snmpV3AuthKey",
       "snmpV3PrivProtocol",
-      "snmpV3PrivKey",
     ]) {
       expect(Object.keys(expected)).toContain(column);
       expect({ column: column, value: expected[column] }).toEqual({
@@ -457,21 +465,23 @@ describe("POST /probe/discovery-scan/list", () => {
       updateArgs["expectedData"],
     );
 
+    /*
+     * The credentials kept encrypted (#9014) - the list, the community
+     * string, the v3 keys - by the version, every write of them moving it
+     * on.
+     */
     expect(Object.keys(expected).sort()).toEqual([
       "cidr",
       "isSnmpEnabled",
       "probeId",
-      "snmpCommunityString",
-      "snmpConfigs",
       "snmpPort",
-      "snmpV3AuthKey",
       "snmpV3AuthProtocol",
-      "snmpV3PrivKey",
       "snmpV3PrivProtocol",
       "snmpV3SecurityLevel",
       "snmpV3Username",
       "snmpVersion",
       "status",
+      "version",
     ]);
   });
 
@@ -488,7 +498,7 @@ describe("POST /probe/discovery-scan/list", () => {
    * ICMP alone and the row would say, for the whole sweep, that it was being
    * SNMP-swept with the credentials the operator had just entered.
    */
-  test("claiming an ICMP-only scan guards both the method being off and the credential list being empty", async () => {
+  test("claiming an ICMP-only scan guards the method being off, and the credential list by the version", async () => {
     const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan(
       ObjectID.generate(),
     );
@@ -516,8 +526,9 @@ describe("POST /probe/discovery-scan/list", () => {
     expect(Object.keys(expected)).toContain("isSnmpEnabled");
     expect(expected["isSnmpEnabled"]).toBe(false);
 
-    expect(Object.keys(expected)).toContain("snmpConfigs");
-    expect(expected["snmpConfigs"]).toBeNull();
+    // The credential list, kept encrypted, by the version every edit moves on.
+    expect(Object.keys(expected)).toContain("version");
+    expect(Object.keys(expected)).not.toContain("snmpConfigs");
   });
 
   /*
@@ -526,7 +537,7 @@ describe("POST /probe/discovery-scan/list", () => {
    * NULL, exactly like an unset credential: the claim must say "and these were
    * still empty when I read them", not "I did not look".
    */
-  test("a scan carrying neither the method nor a credential list guards both as null", async () => {
+  test("a scan carrying neither the method nor a credential list guards the method as null, and the list by the version", async () => {
     const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan(
       ObjectID.generate(),
     );
@@ -550,13 +561,12 @@ describe("POST /probe/discovery-scan/list", () => {
       updateArgs["expectedData"],
     );
 
-    for (const column of ["isSnmpEnabled", "snmpConfigs"]) {
-      expect(Object.keys(expected)).toContain(column);
-      expect({ column: column, value: expected[column] }).toEqual({
-        column: column,
-        value: null,
-      });
-    }
+    expect(Object.keys(expected)).toContain("isSnmpEnabled");
+    expect(expected["isSnmpEnabled"]).toBeNull();
+
+    // The credential list, kept encrypted, by the version every edit moves on.
+    expect(Object.keys(expected)).toContain("version");
+    expect(Object.keys(expected)).not.toContain("snmpConfigs");
   });
 
   test("hands out the probe's pending scans and marks each In Progress with plain column data", async () => {
@@ -877,6 +887,8 @@ describe("POST /probe/discovery-scan/list", () => {
       "snmpV3SecurityLevel",
       "snmpV3Username",
       "snmpVersion",
+      // Not for the probe: what the claim holds the encrypted credentials to.
+      "version",
     ]);
 
     // Every one of them asked for, not merely mentioned.

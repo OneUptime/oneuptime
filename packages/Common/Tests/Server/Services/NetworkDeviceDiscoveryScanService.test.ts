@@ -505,6 +505,8 @@ const OTHER_PROBE_ID: ObjectID = new ObjectID(
 interface ReconcileWrite {
   id: string;
   data: Record<string, unknown>;
+  // Whether the write moved the row's version on (DiscoveryScan's claim holds to it).
+  moveVersionOn?: boolean | undefined;
 }
 
 interface StoredScanOverrides {
@@ -701,15 +703,21 @@ beforeEach(() => {
         updateColumnsByIdWithoutHooks: (input: {
           id: ObjectID;
           data: Record<string, unknown>;
+          moveVersionOn?: boolean | undefined;
         }) => Promise<void>;
       },
       "updateColumnsByIdWithoutHooks",
     )
     .mockImplementation(
-      async (input: { id: ObjectID; data: Record<string, unknown> }) => {
+      async (input: {
+        id: ObjectID;
+        data: Record<string, unknown>;
+        moveVersionOn?: boolean | undefined;
+      }) => {
         reconcileWrites.push({
           id: input.id.toString(),
           data: input.data,
+          moveVersionOn: input.moveVersionOn,
         });
       },
     );
@@ -1530,6 +1538,12 @@ describe("NetworkDeviceDiscoveryScanService: when the next run is due", () => {
      */
     for (const write of writes) {
       expect(Object.keys(write.data)).toEqual(["snmpConfigs"]);
+      /*
+       * And it moves the version on: a probe's claim holds itself to the
+       * version it read, the list being kept encrypted (#9014), so a claim
+       * read between the save and this rebuild must not stand.
+       */
+      expect(write.moveVersionOn).toBe(true);
     }
   });
 
@@ -1558,6 +1572,8 @@ describe("NetworkDeviceDiscoveryScanService: when the next run is due", () => {
     expect(writes).toHaveLength(1);
     expect(writes[0]!.data["status"]).toBe("Pending");
     expect(writes[0]!.data["nextScanAt"]).toBeNull();
+    // No credential list rebuilt: the version is the save's own.
+    expect(writes[0]!.moveVersionOn).toBe(false);
   });
 });
 

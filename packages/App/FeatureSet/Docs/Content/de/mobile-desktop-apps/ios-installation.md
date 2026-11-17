@@ -114,12 +114,12 @@ Ohne kritische Warnungen können ein Fokus oder eine Zusammenfassung Warnungen z
 
 ## Die App sperren
 
-Schalten Sie in der App unter **Settings** den Schalter **Biometrics Login** ein, und die App fragt bei jedem Start nach Face ID, Touch ID oder Ihrem Code. Der Schalter erscheint, sobald auf dem Gerät Face ID oder Touch ID eingerichtet ist. **Appearance** auf demselben Bildschirm wählt das helle oder das dunkle Aussehen, oder folgt dem Gerät.
+Schalten Sie in der App unter **Settings** den Schalter **Biometric Unlock** ein, und die App fragt bei jedem Start nach Face ID, Touch ID oder Ihrem Code. Der Schalter erscheint, sobald auf dem Gerät Face ID oder Touch ID eingerichtet ist. **Appearance** auf demselben Bildschirm wählt das helle oder das dunkle Aussehen, oder folgt dem Gerät.
 
 ## Aktualisieren, abmelden oder die App löschen
 
 - **Aktualisieren.** Der App Store aktualisiert die App; Sie können sie auch über Ihren Account im App Store aktualisieren. Die Version der App steht unten auf ihrem Bildschirm **Settings**.
-- **Abmelden.** **Settings → Log Out** meldet Sie ab und entfernt das Gerät in jedem Projekt aus Ihren Push-Geräten, zusammen mit seinen Bereitschaftsregeln. Melden Sie sich wieder an, kommt es mit den Standardregeln zurück.
+- **Abmelden.** **Settings → Sign Out** meldet Sie ab und entfernt das Gerät in jedem Projekt aus Ihren Push-Geräten, zusammen mit seinen Bereitschaftsregeln. Melden Sie sich wieder an, kommt es mit den Standardregeln zurück.
 - **Löschen.** Halten Sie das Symbol der App gedrückt und tippen Sie auf **App entfernen** und dann auf **App löschen**. Waren Sie noch angemeldet, bleibt das Gerät in Ihrer Liste, bis ein Push an es fehlschlägt: OneUptime markiert es dann mit **Keine Benachrichtigungen**. Installieren Sie die App erneut und melden sich an, kommt dieser Eintrag meist mit seinen Regeln zurück; brauchen Sie das Gerät nicht mehr, löschen Sie den Eintrag mit **Löschen**.
 
 ## Fehlerbehebung
@@ -144,7 +144,7 @@ Schalten Sie zuerst in der App **Critical On-Call Alerts** ein: iOS fügt seinen
 Öffnen Sie in der App **Settings**: Die Zeile unter **Critical On-Call Alerts** sagt, was fehlt. Prüfen Sie, dass **Kritische Hinweise** unter **Einstellungen → Mitteilungen → OneUptime On-Call** eingeschaltet ist und die Lautstärke auf dem Bildschirm **Alarm sound** der App nicht niedrig steht.
 :::
 
-:::details Kein Schalter Biometrics Login
+:::details Kein Schalter Biometric Unlock
 Der Schalter erscheint, sobald Face ID oder Touch ID unter **Einstellungen → Face ID & Code** oder **Einstellungen → Touch ID & Code** eingerichtet ist.
 :::
 

@@ -64,7 +64,7 @@
     "apiKey": "API-nøkkel",
     "more": "Mer",
     "sendEmail": "Send e-post",
-    "logout": "Logg ut",
+    "signOut": "Logg ut",
     "telemetryUsage": "Telemetriforbruk",
     "ingestionBudgets": "Inntaksbudsjetter",
     "products": "Produkter"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "Avslutt admin",
-    "logOut": "Logg ut"
+    "signOut": "Logg ut"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -142,8 +142,8 @@
     "users": {
       "title": "Brukere",
       "cardTitle": "Brukere",
-      "cardDescription": "Her er en liste over brukere i OneUptime.",
-      "noItems": "Ingen brukere funnet.",
+      "listDescription": "Alle med en konto på denne serveren. Åpne en bruker for å administrere prosjektene, påloggingen og administratortilgangen deres.",
+      "emptyMessage": "Ingen brukere ennå.",
       "bulkAddToProject": "Legg til i prosjekt",
       "bulkAddToProjectTitle": "Legg brukere til i prosjekt",
       "bulkAddToProjectDescription": "Velg et prosjekt og et av teamene. De {{userCount}} valgte brukerne inviteres til det teamet.",
@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "{{userCount}} valgte bruker(e) blir logget ut av alle aktive økter og må sette opp en autentiseringsapp neste gang de logger inn. Dette gjelder også deg, hvis du er en av dem.",
       "bulkDoNotRequireTwoFactorAuth": "Ikke krev tofaktorautentisering",
       "bulkDoNotRequireTwoFactorAuthTitle": "Slutt å kreve tofaktorautentisering for {{userCount}} bruker(e)",
-      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} valgte bruker(e) kan logge inn med passordet alene. Alt de allerede har satt opp, beholdes, men det blir ikke lenger spurt om det."
+      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} valgte bruker(e) kan logge inn med passordet alene. Alt de allerede har satt opp, beholdes, men det blir ikke lenger spurt om det.",
+      "createdAndEmailed": "{{name}} er opprettet. En lenke for å angi passordet ble sendt til {{email}}.",
+      "createdWithPassword": "{{name}} er opprettet. Del passordet du anga, på en sikker måte.",
+      "setPasswordLinkTitle": "Send en lenke for å angi passordet",
+      "setPasswordLinkDescription": "Kopier denne lenken og send den selv til {{email}}, et sted bare vedkommende kan lese den. Den virker én gang, i {{days}} dager.",
+      "setPasswordLinkOrSetIt": "Eller angi et passord for vedkommende selv på siden Autentisering."
     },
     "enterpriseLicenses": {
       "title": "Enterprise-lisenser",
@@ -199,7 +204,6 @@
     "userView": {
       "title": "Bruker",
       "cardTitle": "Bruker",
-      "cardDescription": "Brukerdetaljer",
       "editButton": "Rediger bruker",
       "masterAdminCardTitle": "Master-admin-tilgang",
       "masterAdminCardDescription": "Tildel eller tilbakekall master-admin-tilgang for denne brukeren. Master-admins kan administrere alle prosjekter og arbeidsområder.",
@@ -300,13 +304,12 @@
     "projects": {
       "title": "Prosjekter",
       "cardTitle": "Prosjekter",
-      "cardDescription": "Her er en liste over prosjekter i OneUptime.",
-      "noItems": "Ingen prosjekter funnet."
+      "listDescription": "Alle prosjekter på denne serveren. Åpne ett for å administrere brukerne, teamene og innstillingene.",
+      "emptyMessage": "Ingen prosjekter ennå."
     },
     "projectView": {
       "title": "Prosjekt",
       "cardTitle": "Prosjekt",
-      "cardDescription": "Prosjektdetaljer",
       "editButton": "Rediger prosjekt",
       "dataResidencyCardTitle": "Datalagring",
       "dataResidencyCardDescription": "Hvor dataene for dette prosjektet driftes. Når det er angitt, vises det for prosjektets brukere i prosjektinnstillingene.",
@@ -448,8 +451,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "Brukere",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "Personer som hører til dette prosjektet. Teamet deres bestemmer hva hver av dem kan gjøre.",
+      "emptyMessage": "Ingen brukere i dette prosjektet ennå.",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "Inviter bruker",
       "inviteUserTitle": "Inviter ny bruker",
@@ -468,19 +471,18 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Team",
-      "cardDescription": "Her er en liste over alle teamene i dette prosjektet.",
-      "noItems": "No teams found in this project."
+      "listDescription": "Team bestemmer hva medlemmene kan gjøre i dette prosjektet. Opprett et for å gi en gruppe personer samme tilgang.",
+      "emptyMessage": "Ingen team i dette prosjektet ennå."
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "Teamdetaljer",
-      "cardDescription": "Details about this team.",
       "editButton": "Rediger team",
       "membersCardTitle": "Team Medlemmer",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "Logg ut"
     },
     "sendEmail": {
@@ -621,13 +623,13 @@
       },
       "probes": {
         "bannerTitle": "Trenger du hjelp med å sette opp globale sonder?",
-        "bannerDescription": "Her er en veiledning som hjelper deg med å komme i gang",
+        "bannerGuide": "Følg veiledningen for å kjøre en sonde på din egen server og koble den til her.",
         "cardTitle": "Globale sonder",
         "cardDescription": "Globale sonder hjelper deg med å overvåke eksterne ressurser fra forskjellige steder rundt om i verden.",
-        "noItems": "Ingen sonder funnet.",
+        "emptyMessage": "Ingen globale sonder ennå.",
         "showIdKey": "Vis ID og nøkkel",
         "keyModalTitle": "Sondenøkkel",
-        "keyModalDescription": "Her er sondenøkkelen din. Hold den hemmelig.",
+        "keyModalSecret": "Sonden din kobler til OneUptime med denne ID-en og nøkkelen. Hold nøkkelen hemmelig.",
         "probeIdLabel": "Sonde-ID:",
         "probeKeyLabel": "Sondenøkkel:"
       },
@@ -722,7 +724,6 @@
   "Projects": "Prosjekter",
   "Project": "Prosjekt",
   "User": "Bruker",
-  "Logout": "Logg ut",
   "Save": "Lagre",
   "Cancel": "Avbryt",
   "Submit": "Send inn",
@@ -4169,5 +4170,13 @@
   "See email logs": "Se e-postlogger",
   "Addresses the mail server refused": "Adresser e-postserveren avviste",
   "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Andre e-poster gikk ut, så bare disse adressene er berørt. Rett adressen, eller få e-postleverandøren din til å godta den: en Amazon SES-sandkasse sender bare til adresser den har bekreftet.",
-  "Last refused {{time}}": "Sist avvist {{time}}"
+  "Last refused {{time}}": "Sist avvist {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} er opprettet, men e-posten med en lenke for å angi passordet ble ikke sendt. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "Lenken du kan sende selv, kunne heller ikke lages. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime sender vedkommende en e-post med en lenke for å angi sitt eget passord.",
+  "They sign in with the password you set. Share it with them securely.": "Vedkommende logger på med passordet du angir. Del det på en sikker måte.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Denne serveren kan ikke sende e-post ennå. Angi passordet her, eller la feltet stå tomt for å få en lenke du kan sende selv.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "Denne serveren kan ikke sende e-post ennå. Sett opp e-post under Innstillinger > E-poster.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Denne serveren kan ikke sende e-post ennå, så ingen lenke for tilbakestilling av passord ble sendt. Sett opp e-post under Innstillinger > E-poster, eller angi passordet selv.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Denne brukeren har allerede et passord, så det finnes ingen lenke for å angi passord å kopiere. Send heller en lenke for tilbakestilling fra brukerens side Autentisering."
 }

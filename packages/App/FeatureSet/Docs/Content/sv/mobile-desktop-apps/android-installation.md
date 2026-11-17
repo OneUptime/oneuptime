@@ -121,12 +121,12 @@ OneUptime skickar jourlarm med hög prioritet, som Android levererar även till 
 
 ## Lås appen
 
-Slå på **Biometrics Login** under **Settings** i appen, så frågar appen efter ditt fingeravtryck, ditt ansikte eller telefonens skärmlås varje gång den startar. Reglaget visas när telefonen har upplåsning med fingeravtryck eller ansikte konfigurerad. **Appearance** på samma skärm väljer ljust eller mörkt utseende, eller följer telefonen.
+Slå på **Biometric Unlock** under **Settings** i appen, så frågar appen efter ditt fingeravtryck, ditt ansikte eller telefonens skärmlås varje gång den startar. Reglaget visas när telefonen har upplåsning med fingeravtryck eller ansikte konfigurerad. **Appearance** på samma skärm väljer ljust eller mörkt utseende, eller följer telefonen.
 
 ## Uppdatera, logga ut eller avinstallera
 
 - **Uppdatera.** Google Play uppdaterar appen. För APK-filen installerar du den senaste ovanpå. Appens version står längst ner på dess skärm **Settings**.
-- **Logga ut.** **Settings → Log Out** loggar ut dig och tar bort telefonen från dina push-enheter i alla projekt, tillsammans med dess jourregler. Loggar du in igen kommer den tillbaka med standardreglerna.
+- **Logga ut.** **Settings → Sign Out** loggar ut dig och tar bort telefonen från dina push-enheter i alla projekt, tillsammans med dess jourregler. Loggar du in igen kommer den tillbaka med standardreglerna.
 - **Avinstallera.** Ta bort appen som vilken annan app som helst. Var du fortfarande inloggad ligger telefonen kvar i din lista tills en push till den misslyckas: OneUptime markerar den då som **Tar inte emot aviseringar**. Ta bort den posten med **Ta bort**: installerar du appen igen och loggar in läggs telefonen till som en ny post med standardreglerna.
 
 ## Felsökning
@@ -151,7 +151,7 @@ Appen nådde inte `https://<your-oneuptime>/api/status`. Kontrollera adressen, i
 OneUptime On-Call finns redan på telefonen från en annan källa, som Google Play, och Android installerar inte den ena ovanpå den andra. Avinstallera den, installera APK-filen och logga in igen.
 :::
 
-:::details Inget reglage för Biometrics Login
+:::details Inget reglage för Biometric Unlock
 Reglaget visas när upplåsning med fingeravtryck eller ansikte är konfigurerad i Androids inställningar.
 :::
 

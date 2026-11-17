@@ -122,7 +122,7 @@ describe("Status Page authentication handoff", () => {
 
   it("treats an invalid callback as bad input without logging out a valid session", () => {
     expect(authenticationApi).toContain(
-      'new BadDataException("Login code is invalid or expired.")',
+      'new BadDataException("Sign-in code is invalid or expired.")',
     );
     expect(masterPage).not.toContain("PageMap.LOGOUT");
     expect(masterPage).not.toContain("PageMap.PREVIEW_LOGOUT");

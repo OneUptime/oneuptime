@@ -169,11 +169,13 @@ describe.each(SERVERS)("packages/$name", (server) => {
     (script, entry) => {
       const text = scripts[script];
 
+      // Read as text, not built into a pattern: the path holds dots and slashes.
       expect(text).toMatch(
-        new RegExp(
-          `&& exec node (--no-node-snapshot )?--require ${PRECOMPILED_SOURCE_MAPS.replace(/[./]/g, "\\$&")} ${entry}\\.js$`,
-        ),
+        /&& exec node (--no-node-snapshot )?--require \S+ \S+\.js$/,
       );
+      expect(
+        text.endsWith(` --require ${PRECOMPILED_SOURCE_MAPS} ${entry}.js`),
+      ).toBe(true);
       expect(text).not.toMatch(/ts-node|\.tsx?\b/);
       expect(
         fs.existsSync(

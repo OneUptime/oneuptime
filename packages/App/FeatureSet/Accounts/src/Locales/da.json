@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "Glemt adgangskode",
     "subtitle": "Indtast venligst din e-mail, og linket til nulstilling af adgangskode vil blive sendt til dig.",
-    "successMessage": "Vi har sendt linket til nulstilling af adgangskode til din e-mail. Glem ikke at tjekke spam.",
+    "successMessage": "Hvis en konto bruger denne e-mailadresse, har vi sendt den et link til at vælge en adgangskode. Glem ikke at tjekke spam.",
     "submitButton": "Send link til nulstilling",
     "rememberPasswordPrompt": "Husker du din adgangskode?",
     "loginLink": "Log ind.",
@@ -187,6 +187,17 @@
     "linkInvalidTitle": "Dette nulstillingslink virker ikke længere",
     "linkInvalidDescription": "Det er måske allerede brugt, eller kun en del af det blev kopieret. Bed om et nyt link, så sender vi det til dig på e-mail.",
     "requestNewLinkButton": "Bed om et nyt link"
+  },
+  "setPassword": {
+    "title": "Angiv din adgangskode",
+    "subtitle": "Vælg en adgangskode for at gøre din konto færdig.",
+    "submitButton": "Angiv adgangskode",
+    "successTitle": "Din adgangskode er angivet",
+    "successDescription": "Log ind med din nye adgangskode.",
+    "linkExpiredTitle": "Dette link er udløbet",
+    "linkExpiredDescription": "Links til at angive en adgangskode virker i {{days}} dage. Bed om et nyt link, så sender vi det til dig på e-mail.",
+    "linkInvalidTitle": "Dette link virker ikke længere",
+    "linkInvalidDescription": "Det er måske allerede brugt, eller kun en del af det blev kopieret. Har du angivet din adgangskode, så log ind. Hvis ikke, så bed om et nyt link, så sender vi det til dig på e-mail."
   },
   "sso": {
     "title": "Log ind med SSO",

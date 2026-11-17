@@ -87,7 +87,13 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
       title={t("accounts.forgotPassword.title")}
       subtitle={
         isSuccess
-          ? t("accounts.forgotPassword.success")
+          ? /*
+             * The same answer for every address, as the server gives
+             * (#9274): it must not say whether this one may sign in.
+             */
+            t("accounts.forgotPassword.success", {
+              statusPageName: props.statusPageName || t("common.statusPage"),
+            })
           : t("accounts.forgotPassword.description", {
               statusPageName: props.statusPageName || t("common.statusPage"),
             })

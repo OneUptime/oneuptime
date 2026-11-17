@@ -8,6 +8,7 @@ import CodeFixStartGate, {
   CodeFixStart,
 } from "../../../Server/Utils/AI/CodeFix/CodeFixStartGate";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
+import CodeTaskThread from "../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import { CODE_TASK_PLAN_REQUIRED_MESSAGE } from "../../../Server/Utils/AI/CodeTask/CodeTaskGate";
 import { CodeTaskBlockerType } from "../../../Types/AI/CodeTask";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
@@ -169,6 +170,10 @@ beforeEach(() => {
   jest
     .spyOn(ServiceService, "findOneById")
     .mockResolvedValue({ name: "checkout-service" } as unknown as Service);
+  // The member may read the fix's task, unless a test says otherwise.
+  jest
+    .spyOn(CodeTaskThread, "findTasksHiddenFrom")
+    .mockResolvedValue(new Set<string>());
 });
 
 afterEach(() => {
@@ -327,6 +332,53 @@ describe("POST /ai-investigation/performance-fix-suggestion", () => {
     expect(parseTracePerformanceFixSuggestion(call.json).offer).toBe(
       SuggestionOffer.Done,
     );
+  });
+
+  /*
+   * A fix whose task a reply carried a private incident or alert into,
+   * which the person may not open: the trace says it is there, and nothing
+   * of how it stands or where it is - the run is asked about for this
+   * person, in the project they asked in.
+   */
+  test("a fix in a task hidden from the reader: Done, Hidden, with no run", async () => {
+    jest
+      .spyOn(SpanService, "findBy")
+      .mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
+    jest.spyOn(FixPerformanceTaskTrigger, "findFinishedFix").mockResolvedValue({
+      aiRunId: "70000000-0000-4000-8000-000000000010",
+      outcome: FinishedFixOutcome.Fixed,
+    });
+    const hiddenFrom: jest.SpyInstance = jest
+      .spyOn(CodeTaskThread, "findTasksHiddenFrom")
+      .mockResolvedValue(
+        new Set<string>(["70000000-0000-4000-8000-000000000010"]),
+      );
+
+    const call: Call = await post(SUGGESTION_ROUTE, { traceId: TRACE_ID });
+
+    expect(call.thrown).toBeUndefined();
+    expect(call.json).toEqual(
+      expect.objectContaining({
+        offer: "Done",
+        fixOutcome: "Hidden",
+        aiRunId: null,
+      }),
+    );
+    expect(JSON.stringify(call.json)).not.toContain(
+      "70000000-0000-4000-8000-000000000010",
+    );
+    expect(parseTracePerformanceFixSuggestion(call.json)).toEqual(
+      expect.objectContaining({
+        offer: SuggestionOffer.Done,
+        fixOutcome: FinishedFixOutcome.Hidden,
+        aiRunId: null,
+      }),
+    );
+
+    const asked: { reader: DatabaseCommonInteractionProps } = hiddenFrom.mock
+      .calls[0]![0] as never;
+    expect(asked.reader.userId).toEqual(USER_ID);
+    expect(asked.reader.isRoot).toBeUndefined();
   });
 
   test("Code's gate says the plan does not include AI in Code: SetUp, with the blocker as the page draws it", async () => {

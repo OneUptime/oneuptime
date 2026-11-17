@@ -98,23 +98,24 @@ describe("ProbeService auth cache: one entry per probe, whatever the id's case",
     cacheEntries.clear();
     currentKey = OLD_KEY;
 
-    // Postgres compares a uuid whatever its case, and the key exactly.
+    /*
+     * Postgres compares a uuid whatever its case. The probe is read by its
+     * id, with its key - decrypted (#9012) - which the key presented is
+     * compared with, exactly.
+     */
     findOneBySpy = jest
       .spyOn(ProbeService, "findOneBy")
       .mockImplementation(async (input: unknown): Promise<Probe | null> => {
-        const query: { _id: string; key: string } = (
-          input as { query: { _id: string; key: string } }
-        ).query;
+        const query: { _id: string } = (input as { query: { _id: string } })
+          .query;
 
-        if (
-          query._id.toLowerCase() !== STORED_PROBE_ID ||
-          query.key !== currentKey
-        ) {
+        if (query._id.toLowerCase() !== STORED_PROBE_ID) {
           return null;
         }
 
         const probe: Probe = new Probe();
         probe.id = new ObjectID(STORED_PROBE_ID);
+        probe.key = currentKey;
         return probe;
       });
   });

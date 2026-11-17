@@ -125,8 +125,9 @@ const LOGIN_CODE: string = "9c4fab7d-5e6a-4f8b-bc23-d4e5f6a7b8c9";
 
 const INVALID_RESET_LINK_MESSAGE: string =
   "This password reset link has already been used or is not valid. Ask for a new link.";
-const SESSION_ENDED_MESSAGE: string = "Session expired. Please login again.";
-const LOGIN_CODE_REFUSED_MESSAGE: string = "Login code is invalid or expired.";
+const SESSION_ENDED_MESSAGE: string = "Session expired. Please sign in again.";
+const LOGIN_CODE_REFUSED_MESSAGE: string =
+  "Sign-in code is invalid or expired.";
 
 jest.mock("Common/Server/Services/StatusPageService", () => {
   return {

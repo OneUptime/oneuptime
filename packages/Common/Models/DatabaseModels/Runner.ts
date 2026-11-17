@@ -311,6 +311,8 @@ export default class Runner extends BaseModel {
   })
   @TableColumn({
     secret: true,
+    encrypted: true,
+    presentedKey: true,
     required: false,
     unique: true,
     type: TableColumnType.ShortText,

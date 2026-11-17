@@ -37,7 +37,7 @@
     "announcements": "Meddelanden",
     "scheduledEvents": "Schemalagt underhåll",
     "subscribe": "Prenumerera",
-    "logout": "Logga ut"
+    "signOut": "Logga ut"
   },
   "overview": {
     "uptimeSuffix": "% drifttid",
@@ -327,7 +327,7 @@
     "forgotPassword": {
       "title": "Glömt lösenord",
       "description": "Om du har glömt ditt lösenord för {{statusPageName}}, ange din e-postadress så skickar vi dig länken för återställning av lösenordet.",
-      "success": "Vi har skickat dig länken för återställning av lösenordet via e-post. Glöm inte att kontrollera skräppostmappen.",
+      "success": "Om den här e-postadressen kan logga in på {{statusPageName}} har vi skickat en länk för återställning av lösenordet till den. Glöm inte att kontrollera skräppostmappen.",
       "sendLink": "Skicka länk för återställning av lösenord",
       "rememberPassword": "Kommer du ihåg ditt lösenord?"
     },
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "Slutfört under de senaste {{count}} dagarna",
   "Completed in the Last {{count}} Days_one": "Slutfört under det senaste dygnet",
   "None is planned, and none took place in the last {{count}} days.": "Inget är planerat, och inget har ägt rum under de senaste {{count}} dagarna.",
-  "None is planned, and none took place in the last {{count}} days._one": "Inget är planerat, och inget har ägt rum under det senaste dygnet."
+  "None is planned, and none took place in the last {{count}} days._one": "Inget är planerat, och inget har ägt rum under det senaste dygnet.",
+  "serverMessages": {
+    "signInToView": "Du har inte åtkomst till den här statussidan. Logga in för att visa den.",
+    "sessionExpired": "Sessionen har gått ut. Logga in igen.",
+    "signedOut": "Du är utloggad. Logga in igen.",
+    "magicLinkTurnedOff": "Inloggningslänkar är avstängda för den här statussidan. Logga in med din e-postadress och ditt lösenord."
+  }
 }

@@ -1,6 +1,7 @@
 import useTranslateValue from "../../Utils/Translation";
 import { PRODUCT_TEXT_CLASS_NAME } from "../../Utils/ProductText";
 import React, { FunctionComponent, ReactElement } from "react";
+import { PillTone } from "../Pill/PillTone";
 
 export enum TabType {
   Error = "error",
@@ -8,6 +9,15 @@ export enum TabType {
   Info = "info",
   Success = "success",
 }
+
+// The tone each kind of tab's count is drawn in: red, amber, blue, green.
+export const TAB_COUNT_TONES: Readonly<Record<TabType, PillTone>> =
+  Object.freeze({
+    [TabType.Error]: PillTone.Danger,
+    [TabType.Warning]: PillTone.Warning,
+    [TabType.Info]: PillTone.Info,
+    [TabType.Success]: PillTone.Success,
+  });
 
 export enum TabsVariant {
   // Tinted pills: the shared look of a page's or a card's tabs.
@@ -125,6 +135,16 @@ const TabElement: FunctionComponent<ComponentProps> = (
 
         {props.tab.countBadge && props.tab.countBadge > 0 ? (
           <span
+            data-testid="tab-count"
+            /*
+             * What the count's colour means (PillTone), so a test reads the
+             * tone, never the classes that paint it (#9255).
+             */
+            data-tone={
+              props.tab.tabType
+                ? TAB_COUNT_TONES[props.tab.tabType]
+                : PillTone.Neutral
+            }
             className={`${
               props.tab.tabType === TabType.Error
                 ? "bg-red-500"

@@ -136,7 +136,7 @@ Laat het ingeklapt en het apparaat wordt alleen gepingd: de ingeklapte sectie ze
 | SNMP v3 Privacy Key | De wachtwoordzin voor privacy (versleuteling). | Met privacy |
 :::
 
-Inloggegevens die op het apparaat zijn getypt, gaan voor een inloggegevensprofiel dat ernaast is gekozen, en de locatie van het apparaat kan ook een standaardprofiel hebben. Inloggegevens in een profiel worden versleuteld opgeslagen. Inloggegevens die op een apparaat zijn getypt, worden door dezelfde leesrechten beschermd maar niet versleuteld opgeslagen: nog een reden om gedeelde inloggegevens in een profiel te bewaren.
+Inloggegevens die op het apparaat zijn getypt, gaan voor een inloggegevensprofiel dat ernaast is gekozen, en de locatie van het apparaat kan ook een standaardprofiel hebben. Inloggegevens in een profiel worden versleuteld opgeslagen. Inloggegevens die op een apparaat zijn getypt, worden ook versleuteld opgeslagen en door dezelfde leesrechten beschermd.
 
 ## Veel apparaten tegelijk wijzigen
 

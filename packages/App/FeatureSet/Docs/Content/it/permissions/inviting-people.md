@@ -118,7 +118,7 @@ Rimuovere qualcuno lo toglie da ogni team del progetto. Perde subito l'accesso, 
 
 - **Single sign-on.** Chi accede per la prima volta con il provider di identità del progetto entra nei team indicati dal provider. Vedi [Ruoli e team per gli utenti SSO](/docs/identity/sso#ruoli-e-team-degli-utenti-sso).
 - **SCIM.** Il tuo provider di identità crea le persone e le aggiunge ai team predefiniti della connessione. Vedi [SCIM](/docs/identity/scim#come-avviene-il-provisioning-di-un-utente-di-progetto).
-- **L'Admin Dashboard.** In un'installazione self-hosted, un amministratore principale può aggiungere qualcuno a un progetto e accettare l'invito per lui. Vedi [Utenti, team e autorizzazioni](/docs/permissions/index#utenti).
+- **L'Admin Dashboard.** In un'installazione self-hosted, un amministratore principale può aggiungere qualcuno a un progetto e accettare l'invito per lui. Vedi [Utenti, team e autorizzazioni](/docs/permissions/index#utenti). Un amministratore principale può anche creare l'account di qualcuno in **Utenti** con **Crea: Utente**: inserisce un nome e un'email, e OneUptime invia a quell'indirizzo un link per scegliere una password, valido una volta, per 7 giorni. Per impostare lui stesso la password, apre **Altri campi**. Se l'email non viene inviata, gli viene mostrato il link da inviare di persona.
 
 ## Risoluzione dei problemi
 

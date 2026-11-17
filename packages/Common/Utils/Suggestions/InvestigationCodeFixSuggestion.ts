@@ -39,7 +39,8 @@ import SuggestionOffer, { parseSuggestionOffer } from "./SuggestionOffer";
  *     in Code), and whether OneUptime AI or a person asked for it;
  *   - Done: it did its work - its pull request is open for review, it read
  *     the code and found nothing to change, or it waits for an answer in
- *     Code;
+ *     Code - or it is there, in a task the reader may not read
+ *     (FinishedFixOutcome.Hidden), and nothing more is said of it;
  *   - SetUp: no repository is connected, or Code's own gate stands in the
  *     way (the plan, AI credits or an LLM provider, the day's limit, a
  *     Runner online) - the one step to take;
@@ -125,6 +126,22 @@ export const NO_INVESTIGATION_CODE_FIX_SUGGESTION: InvestigationCodeFixSuggestio
   {
     offer: SuggestionOffer.None,
     fixOutcome: null,
+    blocker: null,
+    aiRunId: null,
+    isAutomatic: false,
+    automaticBlocker: null,
+  };
+
+/*
+ * The fix pull request is there, in a task the reader may not read: a reply
+ * carried a private incident or alert into it that they do not see
+ * (FinishedFixOutcome.Hidden). Nothing of it: not whether it works still or
+ * is done, not who asked for it, and no task to link to.
+ */
+export const HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION: InvestigationCodeFixSuggestion =
+  {
+    offer: SuggestionOffer.Done,
+    fixOutcome: FinishedFixOutcome.Hidden,
     blocker: null,
     aiRunId: null,
     isAutomatic: false,
@@ -235,7 +252,9 @@ export function investigationCodeFixSuggestionToJSON(
 /*
  * Reads the suggestion off the wire. Anything this build cannot draw - an
  * offer it does not know, an InProgress or Done without its task - reads as
- * None, so an unknown answer never draws an action or a dead link.
+ * None, so an unknown answer never draws an action or a dead link. A fix
+ * hidden from the reader reads as hidden, with no task whatever the wire
+ * says.
  */
 export function parseInvestigationCodeFixSuggestion(
   value: unknown,
@@ -254,6 +273,13 @@ export function parseInvestigationCodeFixSuggestion(
 
   if (offer === SuggestionOffer.None) {
     return NO_INVESTIGATION_CODE_FIX_SUGGESTION;
+  }
+
+  if (
+    offer === SuggestionOffer.Done &&
+    parseFinishedFixOutcome(record["fixOutcome"]) === FinishedFixOutcome.Hidden
+  ) {
+    return HIDDEN_INVESTIGATION_CODE_FIX_SUGGESTION;
   }
 
   if (

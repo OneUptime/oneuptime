@@ -118,7 +118,7 @@ Remover alguém tira a pessoa de todas as equipes do projeto. Ela perde o acesso
 
 - **Login único.** Quem entra pela primeira vez com o provedor de identidade do projeto passa a fazer parte das equipes que o provedor indica. Veja [Funções e equipes para usuários de SSO](/docs/identity/sso#funções-e-equipes-dos-usuários-de-sso).
 - **SCIM.** Seu provedor de identidade cria as pessoas e as adiciona às equipes padrão da conexão. Veja [SCIM](/docs/identity/scim#como-um-usuário-de-projeto-é-provisionado).
-- **O Admin Dashboard.** Em uma instalação auto-hospedada, um administrador mestre pode adicionar alguém a um projeto e aceitar o convite por essa pessoa. Veja [Usuários, equipes e permissões](/docs/permissions/index#usuários).
+- **O Admin Dashboard.** Em uma instalação auto-hospedada, um administrador mestre pode adicionar alguém a um projeto e aceitar o convite por essa pessoa. Veja [Usuários, equipes e permissões](/docs/permissions/index#usuários). Um administrador mestre também pode criar a conta de alguém em **Usuários** com **Criar: Usuário**: ele informa um nome e um e-mail, e o OneUptime envia para esse endereço um link para escolher uma senha, que funciona uma vez, por 7 dias. Para definir a senha ele mesmo, ele abre **Mais campos**. Se o e-mail não for enviado, o link é mostrado para que ele mesmo o envie.
 
 ## Solução de problemas
 

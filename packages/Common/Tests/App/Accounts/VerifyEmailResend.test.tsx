@@ -77,9 +77,9 @@ const INVALID_REQUEST: string =
 
 // What /verify-email says about a link it turns down.
 const LINK_EXPIRED: string =
-  "Link expired. Please try to log in and we will resend you another link which you should be able to verify email with.";
+  "Link expired. Please sign in and we will send you a new link to verify your email.";
 const LINK_INVALID: string =
-  "Invalid link. Please try to log in and we will resend you another link which you should be able to verify email with.";
+  "Invalid link. Please sign in and we will send you a new link to verify your email.";
 
 /*
  * Console noise that has nothing to do with this page, and is ignored for

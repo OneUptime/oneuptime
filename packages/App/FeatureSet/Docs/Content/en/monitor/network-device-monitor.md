@@ -136,7 +136,7 @@ Leave it folded and the device is pinged only: the folded section says so in one
 | SNMP v3 Privacy Key | The privacy (encryption) passphrase. | With privacy |
 :::
 
-Credentials typed on the device win over a credential profile picked beside them, and the device's site can carry a default profile as well. Credentials on a profile are encrypted at rest. Credentials typed onto a device are guarded by the same read permissions but are not encrypted at rest: one more reason to keep shared credentials on a profile.
+Credentials typed on the device win over a credential profile picked beside them, and the device's site can carry a default profile as well. Credentials on a profile are encrypted at rest. Credentials typed onto a device are encrypted at rest too, and guarded by the same read permissions.
 
 ## Changing Many Devices at Once
 

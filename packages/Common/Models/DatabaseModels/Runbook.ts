@@ -864,6 +864,8 @@ export default class Runbook extends BaseModel {
   })
   @TableColumn({
     secret: true,
+    encrypted: true,
+    presentedKey: true,
     type: TableColumnType.ShortText,
     title: "Webhook Secret Key",
     description:
@@ -871,8 +873,7 @@ export default class Runbook extends BaseModel {
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
   })
   public webhookSecretKey?: string = undefined;
 }

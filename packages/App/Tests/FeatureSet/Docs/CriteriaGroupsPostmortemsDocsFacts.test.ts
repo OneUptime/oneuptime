@@ -2232,7 +2232,7 @@ describe("where a monitor's status counts", () => {
       "Disabled",
     );
     expect(disabled).toContain("disableActiveMonitoring: true,");
-    expect(disabled).toContain("badgeType: BadgeType.NEUTRAL,");
+    expect(disabled).toContain("badgeType: BadgeType.PAUSED,");
     expect(rows[0]).toContain(
       "Monitors with monitoring turned off are left out: nothing checks them, and **Disabled** lists them.",
     );

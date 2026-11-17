@@ -114,12 +114,12 @@ Uden kritiske advarsler kan et Fokus eller en opsummering holde alarmer tilbage:
 
 ## Lås appen
 
-Slå **Biometrics Login** til under **Settings** i appen, så spørger appen om Face ID, Touch ID eller din kode, hver gang den starter. Kontakten vises, når Face ID eller Touch ID er sat op på enheden. **Appearance** på samme skærm vælger det lyse eller mørke udseende, eller følger enheden.
+Slå **Biometric Unlock** til under **Settings** i appen, så spørger appen om Face ID, Touch ID eller din kode, hver gang den starter. Kontakten vises, når Face ID eller Touch ID er sat op på enheden. **Appearance** på samme skærm vælger det lyse eller mørke udseende, eller følger enheden.
 
 ## Opdater, log ud eller slet appen
 
 - **Opdater.** App Store opdaterer appen; du kan også opdatere den fra din konto i App Store. Appens version står nederst på dens skærm **Settings**.
-- **Log ud.** **Settings → Log Out** logger dig ud og fjerner enheden fra dine push-enheder i alle projekter, sammen med dens vagtregler. Logger du ind igen, kommer den tilbage med standardreglerne.
+- **Log ud.** **Settings → Sign Out** logger dig ud og fjerner enheden fra dine push-enheder i alle projekter, sammen med dens vagtregler. Logger du ind igen, kommer den tilbage med standardreglerne.
 - **Slet.** Hold fingeren på appens symbol, og tryk på **Fjern app** og derefter **Slet app**. Var du stadig logget ind, bliver enheden på din liste, indtil et push til den mislykkes: OneUptime markerer den så som **Modtager ikke notifikationer**. Installerer du appen igen og logger ind, kommer den post som regel tilbage med sine regler; bruger du ikke enheden mere, så slet posten med **Slet**.
 
 ## Fejlfinding
@@ -144,7 +144,7 @@ Slå først **Critical On-Call Alerts** til i appen: iOS tilføjer først sin ko
 Åbn **Settings** i appen: linjen under **Critical On-Call Alerts** siger, hvad der mangler. Tjek, at **Kritiske advarsler** er slået til under **Indstillinger → Notifikationer → OneUptime On-Call**, og at lydstyrken på appens skærm **Alarm sound** ikke står lavt.
 :::
 
-:::details Ingen kontakt til Biometrics Login
+:::details Ingen kontakt til Biometric Unlock
 Kontakten vises, når Face ID eller Touch ID er sat op under **Indstillinger → Face ID & kode** eller **Indstillinger → Touch ID & kode**.
 :::
 
