@@ -140,6 +140,8 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 OneUptime leest elk abonnement dat de app kan lezen, maximaal 50, tenzij je er enkele vermeldt onder **Abonnementen**. Het geheim van de app werkt niet meer na de verloopdatum: vanaf 30 dagen ervoor waarschuwt elke leesbeurt ervoor. Voer de opdracht opnieuw uit en plak wat die toont om haar een nieuw geheim te geven.
 
+In elk abonnement toont OneUptime de resources van elk type waarvan het metrische gegevens leest, met hun tags, regio's en resourcegroepen, en daarnaast de subnetten van elk virtueel netwerk en elke netwerkbeveiligingsgroep met haar regels. Het legt ook vast hoe ze samenhangen: het subnet en virtuele netwerk waarin elke virtuele machine, netwerkinterface en schaalset draait en de netwerkbeveiligingsgroepen die hem beschermen, op zijn interfaces en op zijn subnet, waarheen elke load balancer en application gateway verkeer stuurt, en het netwerk en de node-schaalsets van elk AKS-cluster. **Monitoring Reader** leest dat allemaal, dus er hoeft niets meer te worden toegekend.
+
 ## Google Cloud
 
 :::steps

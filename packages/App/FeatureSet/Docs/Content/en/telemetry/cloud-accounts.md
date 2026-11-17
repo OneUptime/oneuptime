@@ -140,6 +140,8 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 OneUptime reads every subscription the app can read, up to 50, unless you list some under **Subscriptions**. The app's secret stops working on the date it expires: from 30 days before, each read warns about it. Run the command again and paste what it prints to give it a new one.
 
+In each subscription, OneUptime lists the resources of every type it reads metrics of, with their tags, regions and resource groups, and also each virtual network's subnets and every network security group, with its rules. It also records how they connect: the subnet and virtual network each virtual machine, interface and scale set runs in and the network security groups that guard it, on its interfaces and on its subnet, what each load balancer and application gateway sends traffic to, and the network and node scale sets of each AKS cluster. **Monitoring Reader** reads all of it, so there is nothing more to grant.
+
 ## Google Cloud
 
 :::steps
