@@ -56614,5 +56614,7 @@
   "{{count}} notifications sent_one": "{{count}} avisering skickad",
   "{{count}} on-call policy runs aren't listed: you can't see their policies.": "{{count}} körningar av jourpolicyer visas inte: du kan inte se deras policyer.",
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} körning av en jourpolicy visas inte: du kan inte se dess policy.",
-  "{{name}} acknowledged it {{time}} after the first page.": "{{name}} bekräftade det {{time}} efter den första utlarmningen."
+  "{{name}} acknowledged it {{time}} after the first page.": "{{name}} bekräftade det {{time}} efter den första utlarmningen.",
+  "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "Monitorer som OneUptime rekommenderar för den här funktionen, utifrån de anrop som dess OpenTelemetry rapporterar. Välj dem du vill ha och skapa dem i ett steg.",
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "Den här funktionen har inte rapporterat sitt faas.name än, och varje rekommenderad monitor läser funktionens spans utifrån det, så ingen erbjuds förrän den gör det."
 }

@@ -56614,5 +56614,7 @@
   "{{count}} notifications sent_one": "{{count}} уведомление отправлено",
   "{{count}} on-call policy runs aren't listed: you can't see their policies.": "Выполнений политик дежурства не показано: {{count}}. Вы не видите их политики.",
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} выполнение политики дежурства не показано: вы не видите его политику.",
-  "{{name}} acknowledged it {{time}} after the first page.": "{{name}} подтвердил через {{time}} после первого вызова."
+  "{{name}} acknowledged it {{time}} after the first page.": "{{name}} подтвердил через {{time}} после первого вызова.",
+  "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "Мониторы, которые OneUptime рекомендует для этой функции на основе вызовов, о которых сообщает её OpenTelemetry. Выберите нужные и создайте их за один шаг.",
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "Эта функция ещё не сообщила свой faas.name, а каждый рекомендуемый монитор читает спаны функции по нему, поэтому ни один не предлагается, пока она его не сообщит."
 }

@@ -56,6 +56,7 @@ import { getAllDataObservabilityAlertTemplates } from "../../../../Types/Monitor
 import { getAllDataPipelineAlertTemplates } from "../../../../Types/Monitor/DataPipelineAlertTemplates";
 import { getAllCloudAlertTemplates } from "../../../../Types/Monitor/CloudAlertTemplates";
 import { getAllCloudAppAlertTemplates } from "../../../../Types/Monitor/CloudAppAlertTemplates";
+import { getAllServerlessAlertTemplates } from "../../../../Types/Monitor/ServerlessAlertTemplates";
 
 /*
  * Resource types whose recommendation set is EMPTY without context, on
@@ -83,6 +84,12 @@ const RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET: Array<MonitorRecommendationRes
      * (getCloudAppAlertTemplatesFor).
      */
     MonitorRecommendationResourceType.CloudApp,
+    /*
+     * A serverless function's templates read its spans by its faas.name:
+     * with no context there is none, and a monitor filtered on nothing
+     * would read every function (getServerlessAlertTemplatesFor).
+     */
+    MonitorRecommendationResourceType.ServerlessFunction,
   ];
 
 /*
@@ -321,6 +328,15 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
     // Zero: see RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET.
     contextFreeTemplateCount: 0,
     identifierFieldName: "cloudAppId",
+  },
+  {
+    resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+    // A count of its error spans is a Traces monitor.
+    monitorTypes: [MonitorType.Traces],
+    templateCount: getAllServerlessAlertTemplates().length,
+    // Zero: see RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET.
+    contextFreeTemplateCount: 0,
+    identifierFieldName: "serverlessFunctionId",
   },
 ];
 

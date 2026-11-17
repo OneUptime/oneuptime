@@ -56614,5 +56614,7 @@
   "{{count}} notifications sent_one": "{{count}} اعلان ارسال شد",
   "{{count}} on-call policy runs aren't listed: you can't see their policies.": "{{count}} اجرای سیاست آنکال در فهرست نیست: نمی‌توانید سیاست‌های آن‌ها را ببینید.",
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} اجرای سیاست آنکال در فهرست نیست: نمی‌توانید سیاست آن را ببینید.",
-  "{{name}} acknowledged it {{time}} after the first page.": "{{name}} پس از {{time}} از نخستین فراخوانی آن را تأیید کرد."
+  "{{name}} acknowledged it {{time}} after the first page.": "{{name}} پس از {{time}} از نخستین فراخوانی آن را تأیید کرد.",
+  "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "مانیتورهایی که OneUptime برای این تابع توصیه می‌کند، بر اساس فراخوانی‌هایی که OpenTelemetry آن گزارش می‌دهد. موارد دلخواه را انتخاب کنید و در یک گام بسازید.",
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "این تابع هنوز faas.name خود را گزارش نکرده است و هر مانیتور توصیه‌شده spanهای تابع را با آن می‌خواند، پس تا زمانی که گزارش نکند هیچ مانیتوری پیشنهاد نمی‌شود."
 }

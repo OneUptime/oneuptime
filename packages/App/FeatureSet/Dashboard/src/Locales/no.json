@@ -56614,5 +56614,7 @@
   "{{count}} notifications sent_one": "{{count}} varsling sendt",
   "{{count}} on-call policy runs aren't listed: you can't see their policies.": "{{count}} kjøringer av vaktpolicyer vises ikke: du kan ikke se policyene deres.",
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} kjøring av en vaktpolicy vises ikke: du kan ikke se policyen.",
-  "{{name}} acknowledged it {{time}} after the first page.": "{{name}} bekreftet den {{time}} etter den første tilkallingen."
+  "{{name}} acknowledged it {{time}} after the first page.": "{{name}} bekreftet den {{time}} etter den første tilkallingen.",
+  "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "Monitorer OneUptime anbefaler for denne funksjonen, ut fra kallene som OpenTelemetry-en dens rapporterer. Velg dem du vil ha, og opprett dem i ett trinn.",
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "Denne funksjonen har ikke rapportert sitt faas.name ennå, og hver anbefalte monitor leser funksjonens spans ut fra det, så ingen tilbys før den gjør det."
 }

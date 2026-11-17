@@ -56614,5 +56614,7 @@
   "{{count}} notifications sent_one": "{{count}} 件の通知を送信",
   "{{count}} on-call policy runs aren't listed: you can't see their policies.": "{{count}} 件のオンコールポリシーの実行は一覧に表示されていません。そのポリシーを表示できません。",
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} 件のオンコールポリシーの実行は一覧に表示されていません。そのポリシーを表示できません。",
-  "{{name}} acknowledged it {{time}} after the first page.": "{{name}} さんが最初の呼び出しの {{time}} 後に確認しました。"
+  "{{name}} acknowledged it {{time}} after the first page.": "{{name}} さんが最初の呼び出しの {{time}} 後に確認しました。",
+  "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "この関数の OpenTelemetry が報告する呼び出しに基づいて、OneUptime がこの関数に推奨するモニター。必要なものを選び、1 ステップで作成できます。",
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "この関数はまだ faas.name を報告していません。推奨モニターはすべてこの値で関数のスパンを読み取るため、報告されるまでモニターは提案されません。"
 }

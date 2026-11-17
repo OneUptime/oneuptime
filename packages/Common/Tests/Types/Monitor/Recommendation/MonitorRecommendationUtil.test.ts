@@ -101,6 +101,8 @@ const ALL_RECOMMENDATIONS: Array<MonitorRecommendation> =
 const FILTER_SCOPED_RESOURCE_TYPES: Set<MonitorRecommendationResourceType> =
   new Set<MonitorRecommendationResourceType>([
     MonitorRecommendationResourceType.CloudApp,
+    // A serverless function's spans carry its faas.name, not its row's id.
+    MonitorRecommendationResourceType.ServerlessFunction,
   ]);
 
 // One representative recommendation per resource type, for the focused tests.

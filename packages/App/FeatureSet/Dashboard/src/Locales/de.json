@@ -56614,5 +56614,7 @@
   "{{count}} notifications sent_one": "{{count}} Benachrichtigung gesendet",
   "{{count}} on-call policy runs aren't listed: you can't see their policies.": "{{count}} Ausführungen von Bereitschaftsrichtlinien werden nicht aufgeführt: Sie können ihre Richtlinien nicht sehen.",
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} Ausführung einer Bereitschaftsrichtlinie wird nicht aufgeführt: Sie können ihre Richtlinie nicht sehen.",
-  "{{name}} acknowledged it {{time}} after the first page.": "{{name}} hat {{time}} nach der ersten Alarmierung bestätigt."
+  "{{name}} acknowledged it {{time}} after the first page.": "{{name}} hat {{time}} nach der ersten Alarmierung bestätigt.",
+  "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "Monitore, die OneUptime für diese Funktion empfiehlt, auf Grundlage der Aufrufe, die ihr OpenTelemetry meldet. Wählen Sie die gewünschten aus und erstellen Sie sie in einem Schritt.",
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "Diese Funktion hat ihren faas.name noch nicht gemeldet, und jeder empfohlene Monitor liest die Spans der Funktion darüber. Daher wird keiner angeboten, bis sie ihn meldet."
 }

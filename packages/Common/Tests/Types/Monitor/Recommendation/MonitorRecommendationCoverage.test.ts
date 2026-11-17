@@ -7,6 +7,7 @@ import MonitorRecommendationUtil, {
 import {
   MonitorRecommendation,
   MonitorRecommendationArgs,
+  MonitorRecommendationContext,
   MonitorRecommendationNotificationMode,
   MonitorRecommendationNotificationSettings,
   MonitorRecommendationResourceType,
@@ -513,7 +514,7 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
      * both a covered and an uncovered answer are exercised for all eight
      * resource types.
      */
-    expect(RESOURCE_TYPE_DEFINITIONS.length).toBe(18);
+    expect(RESOURCE_TYPE_DEFINITIONS.length).toBe(19);
 
     for (const definition of RESOURCE_TYPE_DEFINITIONS) {
       const recommendations: Array<MonitorRecommendation> =
@@ -798,7 +799,58 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
       Array<string>
     >();
 
-    for (const recommendation of MonitorRecommendationCatalog.getAllRecommendations()) {
+    /*
+     * The resource types scoped by a telemetry filter are built with one:
+     * without it, an app's and a function's error-span monitors are the same
+     * monitor over every span of the project - which is why neither is ever
+     * offered without one (getCloudAppAlertTemplatesFor,
+     * getServerlessAlertTemplatesFor).
+     */
+    const scopedContexts: Map<
+      MonitorRecommendationResourceType,
+      MonitorRecommendationContext
+    > = new Map<
+      MonitorRecommendationResourceType,
+      MonitorRecommendationContext
+    >([
+      [
+        MonitorRecommendationResourceType.CloudApp,
+        {
+          cloudAppTelemetryFilters: {
+            "resource.cloud.platform": "aws_ecs",
+            "resource.aws.ecs.task.family": "checkout",
+          },
+        },
+      ],
+      [
+        MonitorRecommendationResourceType.ServerlessFunction,
+        {
+          serverlessFunctionTelemetryFilters: {
+            "resource.faas.name": "checkout",
+          },
+        },
+      ],
+    ]);
+
+    const recommendations: Array<MonitorRecommendation> =
+      MonitorRecommendationCatalog.getAllRecommendations().filter(
+        (recommendation: MonitorRecommendation): boolean => {
+          return !scopedContexts.has(recommendation.resourceType);
+        },
+      );
+
+    for (const [resourceType, context] of scopedContexts) {
+      const scoped: Array<MonitorRecommendation> =
+        MonitorRecommendationCatalog.getRecommendations(resourceType, context);
+
+      expect(scoped.length).toBe(
+        MonitorRecommendationCatalog.getAllPossibleRecommendations(resourceType)
+          .length,
+      );
+      recommendations.push(...scoped);
+    }
+
+    for (const recommendation of recommendations) {
       const fingerprint: string = getSerializedFingerprint(
         recommendation,
         args,

@@ -661,6 +661,7 @@ export const ServerlessRoutePath: Dictionary<string> = {
   [PageMap.SERVERLESS_FUNCTION_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES]: `${RouteParams.ModelID}/instances`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.SERVERLESS_FUNCTION_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.SERVERLESS_FUNCTION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -6524,6 +6525,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/serverless/${
       ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.SERVERLESS_FUNCTION_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/serverless/${
+      ServerlessRoutePath[PageMap.SERVERLESS_FUNCTION_VIEW_RECOMMENDATIONS]
     }`,
   ),
 

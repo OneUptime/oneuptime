@@ -188,6 +188,7 @@ Appena la funzione invia uno span, un log o una metrica, compare in **Funzioni s
 - **Invocazioni**, **tasso di errore** e **durata p95**, calcolati dalle tue tracce su un intervallo di tempo a tua scelta, con grafici di tendenza.
 - **Istanze**: un elenco in tempo reale dei valori di `faas.instance` che la funzione riporta.
 - Pagine **Log**, **Tracce** e **Metriche** complete, limitate a questa funzione.
+- **Raccomandazioni**: monitor pronti per le invocazioni non riuscite e i picchi di errori della funzione, letti dai suoi span tramite il suo `faas.name`. Scegli quelli che vuoi e creali in un solo passaggio.
 
 Una funzione mostra **Riceve dati** finché arriva la sua telemetria, e **Nessuna invocazione recente** dopo 15 minuti senza telemetria, il che è normale tra un'esecuzione e l'altra: una funzione invia telemetria solo mentre è in esecuzione. Una funzione aggiunta tramite l'API mostra **In attesa di dati** finché non arriva la sua prima telemetria.
 

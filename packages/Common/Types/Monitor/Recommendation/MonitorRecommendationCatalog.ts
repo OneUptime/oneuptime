@@ -108,6 +108,11 @@ import {
   getAllCloudAppAlertTemplates,
   getCloudAppAlertTemplatesFor,
 } from "../CloudAppAlertTemplates";
+import {
+  ServerlessAlertTemplate,
+  getAllServerlessAlertTemplates,
+  getServerlessAlertTemplatesFor,
+} from "../ServerlessAlertTemplates";
 
 /*
  * A resource type's entry in the registry.
@@ -141,7 +146,8 @@ export interface MonitorRecommendationResourceTypeDefinition {
     | "dataStoreId"
     | "dataPipelineId"
     | "cloudResourceId"
-    | "cloudAppId";
+    | "cloudAppId"
+    | "serverlessFunctionId";
   icon: IconProp;
   /*
    * What to recommend for ONE resource of this type.
@@ -975,6 +981,51 @@ function getAllCloudAppRecommendations(): Array<MonitorRecommendation> {
   );
 }
 
+/*
+ * The serverless function adapter, like the app's: each monitor is scoped
+ * by the function's faas.name, captured from the context, and a function
+ * without one is offered nothing.
+ */
+function normalizeServerlessTemplate(
+  template: ServerlessAlertTemplate,
+  context?: MonitorRecommendationContext | undefined,
+): MonitorRecommendation {
+  return normalize({
+    resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+    monitorType: template.monitorType,
+    template: template,
+    getMonitorStep: (args: MonitorRecommendationArgs) => {
+      return template.getMonitorStep({
+        serverlessFunctionId: args.resourceIdentifier,
+        telemetryFilters: context?.serverlessFunctionTelemetryFilters || {},
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+      });
+    },
+  });
+}
+
+function getServerlessRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  return getServerlessAlertTemplatesFor({
+    telemetryFilters: context?.serverlessFunctionTelemetryFilters,
+  }).map((template: ServerlessAlertTemplate) => {
+    return normalizeServerlessTemplate(template, context);
+  });
+}
+
+function getAllServerlessRecommendations(): Array<MonitorRecommendation> {
+  return getAllServerlessAlertTemplates().map(
+    (template: ServerlessAlertTemplate) => {
+      return normalizeServerlessTemplate(template);
+    },
+  );
+}
+
 const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefinition> =
   [
     {
@@ -1139,6 +1190,15 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       icon: IconProp.Cube,
       getRecommendations: getCloudAppRecommendations,
       getAllPossibleRecommendations: getAllCloudAppRecommendations,
+    },
+    {
+      resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+      monitorTypes: [MonitorType.Traces],
+      resourceLabel: "Serverless Function",
+      identifierFieldName: "serverlessFunctionId",
+      icon: IconProp.Bolt,
+      getRecommendations: getServerlessRecommendations,
+      getAllPossibleRecommendations: getAllServerlessRecommendations,
     },
   ];
 

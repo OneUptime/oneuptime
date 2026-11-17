@@ -17,9 +17,14 @@ import DataStore from "Common/Models/DatabaseModels/DataStore";
 import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CloudApp from "Common/Models/DatabaseModels/CloudApp";
+import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { getCloudAppTelemetryFilters } from "../../Pages/AppPlatforms/Utils/CloudApps";
 import { isCloudAppTelemetryScoped } from "Common/Types/Monitor/CloudAppAlertTemplates";
+import {
+  getServerlessFunctionTelemetryFilters,
+  isServerlessFunctionTelemetryScoped,
+} from "Common/Types/Monitor/ServerlessAlertTemplates";
 import MonitorRecommendationCreateUtil from "./MonitorRecommendationCreateUtil";
 import {
   CloudAlertTemplate,
@@ -292,6 +297,37 @@ export function describeCloudAppRecommendationContext(
     : translateTemplate(
         "This app's name is too long to filter its telemetry by, so no monitor can watch it alone. Its environment's telemetry is in the environment's tabs.",
       );
+}
+
+/*
+ * What a serverless function's row says that decides its recommendations:
+ * its faas.name, the filter its own Traces tab reads its spans by.
+ */
+export function readServerlessFunctionRecommendationContext(
+  record: Record<string, unknown>,
+): MonitorRecommendationContext {
+  return {
+    serverlessFunctionTelemetryFilters: getServerlessFunctionTelemetryFilters(
+      record["functionIdentifier"],
+    ),
+  };
+}
+
+// Why a function is offered nothing, or undefined when it is offered them all.
+export function describeServerlessFunctionRecommendationContext(
+  context: MonitorRecommendationContext,
+): string | undefined {
+  if (
+    isServerlessFunctionTelemetryScoped(
+      context.serverlessFunctionTelemetryFilters,
+    )
+  ) {
+    return undefined;
+  }
+
+  return translateTemplate(
+    "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.",
+  );
 }
 
 // Whether a cloud resource is an RDS DB instance: the one type with a connection limit.
@@ -1245,6 +1281,30 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
         monitor: data.monitor,
         cloudResourceId: new ObjectID(data.context.cloudAppEnvironmentId),
       });
+    },
+  },
+  /*
+   * A serverless function: its telemetry is selected by its faas.name (the
+   * row's functionIdentifier), as its Traces tab selects it, so `_id` is
+   * the identifier and the faas.name is context - a function renamed in
+   * OneUptime keeps its monitors.
+   */
+  {
+    resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+    modelType: ServerlessFunction,
+    identifierFieldName: "_id",
+    displayNameFieldName: "name",
+    contextFieldNames: ["functionIdentifier"],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      return readServerlessFunctionRecommendationContext(
+        model as unknown as Record<string, unknown>,
+      );
+    },
+    describeContext: describeServerlessFunctionRecommendationContext,
+    getCardDescription: (): string | undefined => {
+      return translateTemplate(
+        "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.",
+      );
     },
   },
 ];
