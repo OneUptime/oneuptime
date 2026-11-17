@@ -93,6 +93,14 @@ export const TRACE_FIX_PERFORMANCE_REPOSITORY_TEST_ID: string =
   "trace-fix-performance-repository";
 
 /*
+ * The fix button spans the strip on a phone, its label on one line: beside
+ * the clock it would break in two. A Button has no width of its own
+ * (#9128), so the strip gives it its own; from sm up it is as wide as its
+ * words, lined up with them.
+ */
+export const TRACE_FIX_PERFORMANCE_BUTTON_CLASS_NAME: string = "max-sm:w-full";
+
+/*
  * "Fix performance with AI", only on a trace worth fixing, saying what it
  * found: the slow pattern in plain words, what it costs, and the one next
  * step - the fix, a quiet link to connect a repository, what else stops
@@ -368,6 +376,7 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
         isLoading={props.isCreating}
         tooltip={FIX_PERFORMANCE_BUTTON_TOOLTIP}
         dataTestId="trace-fix-performance"
+        className={TRACE_FIX_PERFORMANCE_BUTTON_CLASS_NAME}
         onClick={() => {
           props.onFix();
         }}
