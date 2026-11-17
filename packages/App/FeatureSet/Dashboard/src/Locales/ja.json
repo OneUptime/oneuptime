@@ -56558,5 +56558,6 @@
   "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "この {{itemName}} について送信された Slack、Microsoft Teams、Mattermost のメッセージ。",
   "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "このテストでは、ルールの Microsoft Teams チームに {{channel}} のような実際のチャネルも作成され、チームの全員に表示されます。終わったら Microsoft Teams で削除してください。",
   "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "このテストでは、{{channel}} のような実際の {{workspace}} チャネルも作成され、テストを実行したユーザーが招待されます。終わったら {{workspace}} でアーカイブしてください。",
-  "{{team}} (typed name)": "{{team}}（入力された名前）"
+  "{{team}} (typed name)": "{{team}}（入力された名前）",
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "この SLO のモニターはまだ一度もチェックされていません。最初のチェックから測定されます。"
 }

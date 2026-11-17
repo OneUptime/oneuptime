@@ -56558,5 +56558,6 @@
   "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "Slack-, Microsoft Teams- og Mattermost-beskeder sendt for dette element ({{itemName}}).",
   "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "Denne test opretter også en rigtig kanal i reglens Microsoft Teams-team, f.eks. {{channel}}, som alle i teamet kan se. Slet den i Microsoft Teams, når du er færdig.",
   "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "Denne test opretter også en rigtig {{workspace}}-kanal, f.eks. {{channel}}, og inviterer dig til den. Arkiver den i {{workspace}}, når du er færdig.",
-  "{{team}} (typed name)": "{{team}} (indtastet navn)"
+  "{{team}} (typed name)": "{{team}} (indtastet navn)",
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Intet har tjekket monitorerne for denne SLO endnu. Den måles fra deres første tjek."
 }
