@@ -275,20 +275,22 @@
       "Activer les SMS et les appels",
       "Application mobile ou navigateur",
       "Non configuré.",
-      "Installez l'application OneUptime ou activez les notifications dans ce navigateur, depuis vos moyens de notification.",
-      "Configurer l'application ou ce navigateur",
+      "Recevez les alertes sur votre téléphone avec l'application OneUptime On-Call, ou dans ce navigateur.",
+      "Utiliser ce navigateur",
+      "Obtenir l'application",
       "Continuer",
       "Revérifier"
     ],
     "outline": [
       "button: Ajouter du solde",
       "button: Activer les SMS et les appels",
-      "link: Configurer l'application ou ce navigateur",
+      "button: Utiliser ce navigateur",
+      "button: Obtenir l'application",
       "button: Continuer",
       "button: Revérifier"
     ],
     "width": 768,
-    "height": 652
+    "height": 678
   },
   "paging-phone": {
     "text": [
@@ -304,8 +306,9 @@
       "M'envoyer un code par SMS",
       "Application mobile ou navigateur",
       "Non configuré.",
-      "Installez l'application OneUptime ou activez les notifications dans ce navigateur, depuis vos moyens de notification.",
-      "Configurer l'application ou ce navigateur",
+      "Recevez les alertes sur votre téléphone avec l'application OneUptime On-Call, ou dans ce navigateur.",
+      "Utiliser ce navigateur",
+      "Obtenir l'application",
       "Continuer",
       "Revérifier",
       "placeholder: +15551234567"
@@ -313,31 +316,35 @@
     "outline": [
       "field text: +15551234567",
       "button: M'envoyer un code par SMS",
-      "link: Configurer l'application ou ce navigateur",
+      "button: Utiliser ce navigateur",
+      "button: Obtenir l'application",
       "button: Continuer",
       "button: Revérifier"
     ],
     "width": 768,
-    "height": 584
+    "height": 610
   },
   "paging-who-else": {
     "text": [
       "2",
-      "Qui d'autre est d'astreinte ?",
+      "Qui est alerté en premier ?",
       "Cela crée la politique d'astreinte « Politique d'astreinte par défaut ». Elle alerte d'abord ces personnes, pour chaque nouvel incident et chaque nouvelle alerte de ce projet.",
       "Alertés en premier",
       "Ajouter des membres de l'équipe",
       "AL",
       "Ada Lovelace",
+      "Tout le monde ici est alerté en même temps. Les personnes à alerter seulement si personne ne répond se choisissent à l'étape suivante.",
+      "Inviter par e-mail",
       "Enregistrer et continuer"
     ],
     "outline": [
       "button: Ajouter des membres de l'équipe",
       "button: Retirer Ada Lovelace",
+      "button: Inviter par e-mail",
       "button: Enregistrer et continuer"
     ],
     "width": 768,
-    "height": 246
+    "height": 342
   },
   "paging-no-answer": {
     "text": [
@@ -389,7 +396,7 @@
     "text": [
       "L'alerte est configurée",
       "Qui est alerté",
-      "Chaque nouvel incident ou nouvelle alerte exécute « Politique d'astreinte par défaut », qui alerte Ada Lovelace (E-mail, SMS, Appel téléphonique).",
+      "Chaque nouvel incident ou nouvelle alerte exécute « Politique d'astreinte par défaut », qui alerte Ada Lovelace (e-mail, SMS et appel téléphonique immédiatement).",
       "Si personne ne répond",
       "Si personne n'acquitte dans les 30 minutes, Grace Hopper est alerté.",
       "Testé",
@@ -413,7 +420,7 @@
       "button: Configurer une autre politique"
     ],
     "width": 768,
-    "height": 482
+    "height": 502
   },
   "status-page-pick": {
     "text": [

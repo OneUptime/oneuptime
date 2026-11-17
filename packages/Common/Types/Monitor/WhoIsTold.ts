@@ -338,6 +338,16 @@ export interface WhoIsToldEvent {
    * match a label one adds. Left out when they change nothing that pages.
    */
   labelRules?: Array<WhoIsToldRule> | undefined;
+  /*
+   * THE OWNERS THAT MAKE AN ON-CALL RULE MATCH (#9407): an alert on-call
+   * rule with an Alert Owner condition ("is any of Payments") matches on who
+   * owns the alert - the people and teams its criteria names, the network
+   * device's owners and whom its owner rules add, all in before its on-call
+   * rules run. Each of `rules` whose condition picks one of its owners, with
+   * those owners by name. Left out when no rule does, and from an older
+   * server's answer.
+   */
+  ownerMatches?: Array<WhoIsToldOwnerMatch> | undefined;
   // An alert an alert incident rule turns into an incident (#7216).
   declares?: WhoIsToldDeclaration | undefined;
   /*
@@ -354,6 +364,16 @@ export interface WhoIsToldEvent {
    * private. Taken out before the answer leaves the server (redactWhoIsTold).
    */
   ownerIds?: WhoIsToldOwnerIds | undefined;
+}
+
+/*
+ * An on-call rule its owners make match (#9407): the rule, as the event's
+ * `rules` names it (its name there, as the reader may read it), and the
+ * owners its Alert Owner condition picks, by name.
+ */
+export interface WhoIsToldOwnerMatch {
+  ruleId: string;
+  ownerNames: Array<string>;
 }
 
 // Who will own a record, by id (resolver only).
@@ -858,9 +878,8 @@ function getChannelsInUse(
  *
  * An owner no Created email reaches (WhoIsToldOwners.notReached, #7572) is
  * no break: the email still goes out, to the owners it reaches or to the
- * Project Owners, so nothing stops who is told - and Setup health, which
- * lists every break this finds, reads no owners but a private record's
- * (who may read it, #9370). The card says it with who is emailed.
+ * Project Owners, so nothing stops who is told. The card says it with who
+ * is emailed, and Setup health lists it as worth fixing (#9371).
  */
 export function getWhoIsToldBreaks(data: {
   criteria: ReadonlyArray<WhoIsToldCriteria>;

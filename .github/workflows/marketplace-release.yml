@@ -687,8 +687,13 @@ jobs:
           else
             echo "shipped=false" >>"$GITHUB_OUTPUT"
           fi
+      # For the images mirror-images.sh builds rather than copies (PostgreSQL), and the deployer.
+      - name: Set up Docker Buildx
+        if: steps.shipped.outputs.shipped == 'false'
+        uses: docker/setup-buildx-action@v3
       # mirror-images.sh annotates each image with the listing's service and tags it with the
-      # release's track too, as Google requires.
+      # release's track too, as Google requires; PostgreSQL it builds without gosu, which
+      # Google's vulnerability scan refuses (build.py, GOOGLE_CLOUD_BUILT_IMAGES).
       - name: Copy the images
         if: steps.shipped.outputs.shipped == 'false'
         env:
@@ -697,9 +702,6 @@ jobs:
           set -uo pipefail
           source ./Scripts/GHA/retry.sh
           retry_with_backoff "Copying the Google Cloud images" bash HelmChart/Marketplace/mirror-images.sh "$OUT/images.json"
-      - name: Set up Docker Buildx
-        if: steps.shipped.outputs.shipped == 'false'
-        uses: docker/setup-buildx-action@v3
       - name: Build and push the deployer
         id: deployer
         if: steps.shipped.outputs.shipped == 'false'

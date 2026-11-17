@@ -33,7 +33,19 @@ import {
   VerificationCodeChannelDefinition,
   VerificationCodeCopy,
 } from "./VerificationCodeChannels";
+import {
+  NotificationLogsTab,
+  getNotificationLogsTabQueryString,
+} from "../NotificationLogs/NotificationLogsTabQuery";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import EmailLog from "Common/Models/DatabaseModels/EmailLog";
+import SmsLog from "Common/Models/DatabaseModels/SmsLog";
+import WhatsAppLog from "Common/Models/DatabaseModels/WhatsAppLog";
+import Route from "Common/Types/API/Route";
 import { phoneNumberInLine } from "Common/Types/PhoneNumberDirection";
+import Link from "Common/UI/Components/Link/Link";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 
 /*
  * THE ONE PLACE A PERSON VERIFIES A NUMBER OR AN ADDRESS.
@@ -78,9 +90,52 @@ export const VERIFICATION_CODE_STATUS_TEST_ID: string =
 export const VERIFICATION_CODE_RESEND_TEST_ID: string =
   "verification-code-resend";
 
+export const VERIFICATION_CODE_NOT_ARRIVED_TEST_ID: string =
+  "verification-code-not-arrived";
+export const VERIFICATION_CODE_OPEN_LOGS_TEST_ID: string =
+  "verification-code-open-logs";
+
 const CODE_LENGTH: number = 6;
 
 type ApiResponse = HTTPResponse<JSONObject> | HTTPErrorResponse;
+
+/*
+ * Whether the signed-in person may read the log a channel's codes are kept
+ * in, as its Notification Logs tab reads it. The person verifying a number
+ * is often an invited member (#7374): one who may read it is linked
+ * straight to the tab, and one who may not is told who can look, instead
+ * of a path into Project Settings that leads them nowhere.
+ */
+export const mayReadChannelLogs: (
+  tab: NotificationLogsTab | null,
+) => boolean = (tab: NotificationLogsTab | null): boolean => {
+  if (tab === NotificationLogsTab.Email) {
+    return PermissionGate.check(new EmailLog(), ModelAction.Read).isAllowed;
+  }
+
+  if (tab === NotificationLogsTab.SMS) {
+    return PermissionGate.check(new SmsLog(), ModelAction.Read).isAllowed;
+  }
+
+  if (tab === NotificationLogsTab.WhatsApp) {
+    return PermissionGate.check(new WhatsAppLog(), ModelAction.Read).isAllowed;
+  }
+
+  return false;
+};
+
+// Project Settings > Notification Logs, on the channel's tab.
+export const getChannelLogsRoute: (tab: NotificationLogsTab) => Route = (
+  tab: NotificationLogsTab,
+): Route => {
+  const logs: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SETTINGS_NOTIFICATION_LOGS] as Route,
+  );
+
+  return new Route(
+    `${logs.toString()}${getNotificationLogsTabQueryString(tab)}`,
+  );
+};
 
 const formatTime: (date: Date) => string = (date: Date): string => {
   return OneUptimeDate.getLocalTimeString(date, {
@@ -95,6 +150,9 @@ const VerificationCodeModal: FunctionComponent<ComponentProps> = (
   const definition: VerificationCodeChannelDefinition =
     getVerificationCodeChannel(props.channel);
   const codeInputId: string = useId();
+
+  // Whether the hint may link to where the code's message is logged (#7374).
+  const mayReadLogs: boolean = mayReadChannelLogs(definition.logsTab);
 
   /*
    * Where the code goes, as the dialog's sentences name it: a phone number
@@ -529,9 +587,33 @@ const VerificationCodeModal: FunctionComponent<ComponentProps> = (
             </div>
             {getResendLine() || <></>}
             {hasActiveCode ? (
-              <p className="mt-2 text-xs text-gray-500">
-                {translator.translateText(definition.notArrivedHint)}
-              </p>
+              <div
+                className="mt-2 space-y-1"
+                data-testid={VERIFICATION_CODE_NOT_ARRIVED_TEST_ID}
+              >
+                <p className="text-xs text-gray-500">
+                  {translator.translateText(
+                    mayReadLogs
+                      ? definition.notArrivedHint
+                      : definition.notArrivedHintWithoutLogs,
+                  )}
+                </p>
+                {mayReadLogs && definition.logsTab ? (
+                  // A tab of its own: the code is typed here once it comes.
+                  <Link
+                    to={getChannelLogsRoute(definition.logsTab)}
+                    openInNewTab={true}
+                    className="text-xs font-medium text-indigo-600 underline-offset-2 hover:text-indigo-500 hover:underline"
+                    dataTestId={VERIFICATION_CODE_OPEN_LOGS_TEST_ID}
+                  >
+                    {translator.translateText(
+                      VerificationCodeCopy.openNotificationLogs,
+                    )}
+                  </Link>
+                ) : (
+                  <></>
+                )}
+              </div>
             ) : (
               <></>
             )}

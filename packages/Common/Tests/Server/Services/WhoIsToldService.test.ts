@@ -149,6 +149,11 @@ import {
 } from "../../../Types/Monitor/WhoIsTold";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaOperator,
+} from "../../../Types/Rules/RuleCriteria";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import IncidentPrivacyRuleEngineService from "../../../Server/Services/IncidentPrivacyRuleEngineService";
 import AlertIncidentRuleEngineService from "../../../Server/Services/AlertIncidentRuleEngineService";
@@ -218,6 +223,7 @@ const CARA: string = "68101111-0000-4000-8000-0000000000d3";
 const DAN: string = "68101111-0000-4000-8000-0000000000d4";
 const PLATFORM_TEAM: string = "68101111-0000-4000-8000-000000000071";
 const SRE_TEAM: string = "68101111-0000-4000-8000-000000000072";
+const PAYMENTS_TEAM: string = "68101111-0000-4000-8000-000000000073";
 const ELSEWHERE_TEAM: string = "68101111-0000-4000-8000-000000000079";
 const OWNER_RULE: string = "68101111-0000-4000-8000-000000000061";
 const OTHER_OWNER_RULE: string = "68101111-0000-4000-8000-000000000062";
@@ -255,6 +261,7 @@ const PEOPLE: Record<string, string> = {
 const TEAMS: Record<string, string> = {
   [PLATFORM_TEAM]: "Platform",
   [SRE_TEAM]: "Checkout SRE",
+  [PAYMENTS_TEAM]: "Payments",
 };
 // A team of another project.
 const ELSEWHERE_TEAMS: Record<string, string> = {
@@ -3117,8 +3124,9 @@ describe("WhoIsToldService", () => {
       expect(kinds(results[1]!)).toContain(WhoIsToldBreakKind.NobodyPaged);
     });
 
-    test("only the breaks' worth is read: owners go unnamed and no status page is listed", async () => {
+    test("only what Setup health needs is read: owners as ids, unnamed, and no status page", async () => {
       stubRuleReads();
+      jest.spyOn(NetworkDeviceOwnerUserService, "getDeviceOwnersForDevices");
 
       const [result]: Array<WhoIsToldResult> =
         await WhoIsToldService.resolveProject({
@@ -3133,16 +3141,23 @@ describe("WhoIsToldService", () => {
       });
       expect(firstEvent(result!).ownerRules).toEqual([]);
       /*
-       * No owner rule, network device, project membership or status page is
-       * read for breaks only.
+       * The owner rules are read once for the project (#9407, #9371); a
+       * project whose monitors watch no device and name nobody reads no
+       * device's owners and nobody's membership. No name, Project Owner or
+       * status page is read for Setup health.
        */
-      expect(IncidentOwnerRuleService.findBy).not.toHaveBeenCalled();
-      expect(AlertOwnerRuleService.findBy).not.toHaveBeenCalled();
+      expect(IncidentOwnerRuleService.findBy).toHaveBeenCalledTimes(1);
+      expect(AlertOwnerRuleService.findBy).toHaveBeenCalledTimes(1);
       expect(TeamMemberService.findBy).not.toHaveBeenCalled();
       expect(TeamMemberService.getProjectMemberUserIds).not.toHaveBeenCalled();
       expect(
         NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor,
       ).not.toHaveBeenCalled();
+      expect(
+        NetworkDeviceOwnerUserService.getDeviceOwnersForDevices,
+      ).not.toHaveBeenCalled();
+      expect(UserService.findBy).not.toHaveBeenCalled();
+      expect(ProjectService.getOwners).not.toHaveBeenCalled();
       expect(StatusPageResourceService.findAllBy).not.toHaveBeenCalled();
       expect(firstEvent(result!).statusPages).toEqual([]);
       expect(
@@ -3154,7 +3169,7 @@ describe("WhoIsToldService", () => {
       ).toBeUndefined();
     });
 
-    test("owners the criteria names are said to be named, without reading them", async () => {
+    test("owners the criteria names are worked out for every monitor from one read of each kind, unnamed", async () => {
       stubRuleReads();
       world.monitorSteps = stepsOf([
         offlineCriteria({
@@ -3164,25 +3179,52 @@ describe("WhoIsToldService", () => {
               title: "Down",
               description: "",
               incidentSeverityId: new ObjectID(CRITICAL),
-              ownerTeamIds: [ObjectID.generate()],
+              ownerTeamIds: [new ObjectID(PLATFORM_TEAM)],
+              ownerUserIds: [new ObjectID(CARA)],
             },
           ],
         }),
       ]);
 
-      const [result]: Array<WhoIsToldResult> =
+      const monitors: Array<Monitor> = [];
+
+      for (let index: number = 0; index < 20; index++) {
+        monitors.push(
+          projectMonitor(
+            `68101111-0000-4000-8000-${(2000 + index)
+              .toString()
+              .padStart(12, "0")}`,
+            `Monitor ${index}`,
+          ),
+        );
+      }
+
+      const results: Array<WhoIsToldResult> =
         await WhoIsToldService.resolveProject({
           projectId: PROJECT_ID,
-          monitors: [projectMonitor(MONITOR_ID.toString(), "Checkout API")],
+          monitors: monitors,
         });
 
-      expect(firstEvent(result!).owners.source).toBe(
-        WhoIsToldOwnersSource.Named,
+      for (const result of results) {
+        expect(firstEvent(result).owners).toEqual({
+          source: WhoIsToldOwnersSource.Named,
+          userNames: [],
+          teamNames: [],
+        });
+        expect(firstEvent(result).ownerIds).toEqual({
+          userIds: [CARA],
+          teamIds: [PLATFORM_TEAM],
+        });
+      }
+
+      // Whether the team is the project's, has anybody in it, and who is a member: once each.
+      expect(TeamService.findBy).toHaveBeenCalledTimes(1);
+      expect(TeamMemberService.findBy).toHaveBeenCalledTimes(1);
+      expect(TeamMemberService.getProjectMemberUserIds).toHaveBeenCalledTimes(
+        1,
       );
-      expect(TeamService.findBy).not.toHaveBeenCalled();
-      // Nor whether the team has anybody in the project (#7211).
-      expect(TeamMemberService.findBy).not.toHaveBeenCalled();
-      expect(TeamMemberService.getProjectMemberUserIds).not.toHaveBeenCalled();
+      // Nobody's name is read: Setup health names nobody it reaches.
+      expect(UserService.findBy).not.toHaveBeenCalled();
     });
 
     test("the project's Readiness gives every responder's verified methods up front", async () => {
@@ -3303,7 +3345,7 @@ describe("WhoIsToldService", () => {
         world.levels[PRIMARY] = { targets: [], notPaged: [], levelCount: 0 };
       });
 
-      test("its owners are worked out, as the card works them out; a public record's are not", async () => {
+      test("its owners are worked out, as the card works them out - and a public record's too (#9407)", async () => {
         world.projectMemberIds = [...world.projectMemberIds, ME];
         world.monitorSteps = opensIncidents(
           incidentTemplate({ isPrivate: true, ownerUserIds: ids([ME]) }),
@@ -3318,8 +3360,9 @@ describe("WhoIsToldService", () => {
           incidentTemplate({ ownerUserIds: ids([ME]) }),
         );
 
+        // An alert on-call rule may match on them, and Setup health lists who isn't emailed.
         expect(firstEvent(await projectChain()).ownerIds).toEqual({
-          userIds: [],
+          userIds: [ME],
           teamIds: [],
         });
       });
@@ -3395,10 +3438,10 @@ describe("WhoIsToldService", () => {
           WhoIsToldBreakKind.PolicyHasNoLevels,
         );
         expect(await listedFor(CALLER)).toEqual(await onTheCardOf(CALLER));
-        // With nothing private, no owner rule is read for the project.
+        // The owner rules are read once for the project, private record or not.
         (IncidentOwnerRuleService.findBy as unknown as jest.Mock).mockClear();
         await projectChain();
-        expect(IncidentOwnerRuleService.findBy).not.toHaveBeenCalled();
+        expect(IncidentOwnerRuleService.findBy).toHaveBeenCalledTimes(1);
       });
     });
   });
@@ -5777,6 +5820,517 @@ describe("WhoIsToldService", () => {
           },
         ]);
         expect(JSON.stringify(result)).not.toContain("Checkout monitors");
+      });
+    });
+  });
+
+  /*
+   * AN ALERT ON-CALL RULE THAT MATCHES WHO OWNS THE ALERT (#9407).
+   *
+   * The engine's own matching (getMatchingRules) is run here, on the rules
+   * the project's rows hold: "Alert Owner is any of Payments" and "is none
+   * of Payments". The alert the criteria would open is held in memory, with
+   * no owner rows; its real create gives it the owners its criteria names,
+   * the network device's owners and whom its owner rules add before its
+   * on-call rules run, so the card matches on those. Every test here failed
+   * before #9407: the alert was matched as if nobody owned it.
+   */
+  describe("an Alert Owner rule matches who owns the alert (#9407)", () => {
+    const PAYMENTS_RULE: string = "68101111-0000-4000-8000-0000000000c7";
+
+    function ownerCondition(data: {
+      operator: RuleCriteriaOperator;
+      ownerIds: Array<string>;
+      name?: string;
+    }): AlertOnCallRule {
+      const item: AlertOnCallRule = withId(
+        new AlertOnCallRule(),
+        PAYMENTS_RULE,
+      );
+      item.name =
+        data.name ||
+        (data.operator === RuleCriteriaOperator.HasNoneOf
+          ? "Not Payments' alerts"
+          : "Payments' alerts");
+      item.projectId = PROJECT_ID;
+      item.criteria = {
+        schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            field: "alertOwners",
+            operator: data.operator,
+            value: data.ownerIds,
+          },
+        ],
+      };
+      item.onCallDutyPolicies = [withId(new OnCallDutyPolicy(), PRIMARY)];
+      return item;
+    }
+
+    /*
+     * The engine matches for real, on these rules: what the project's rows
+     * hold, and what a caller may read of them.
+     */
+    function rulesAre(
+      rules: Array<AlertOnCallRule>,
+      callerReads: Array<string> = [PAYMENTS_RULE],
+    ): void {
+      if (jest.isMockFunction(AlertOnCallRuleEngineService.getMatchingRules)) {
+        jest
+          .mocked(AlertOnCallRuleEngineService.getMatchingRules)
+          .mockRestore();
+      }
+
+      world.alertRuleCount = rules.length;
+      world.incidentRuleCount = 0;
+      world.incidentRules = [];
+
+      jest
+        .spyOn(AlertOnCallRuleService, "findBy")
+        .mockImplementation((async (args: {
+          query: unknown;
+          props: DatabaseCommonInteractionProps;
+        }) => {
+          if (args.props.isRoot) {
+            return rules;
+          }
+
+          return readable(
+            args.query,
+            callerReads,
+            (): AlertOnCallRule => {
+              return new AlertOnCallRule();
+            },
+            "alert on-call rules",
+          );
+        }) as never);
+    }
+
+    function opensAlertOwnedBy(
+      owners: { userIds?: Array<string>; teamIds?: Array<string> },
+      overrides: Record<string, unknown> = {},
+    ): MonitorSteps {
+      return opensAlerts(
+        alertTemplate({
+          ownerUserIds: ids(owners.userIds || []),
+          ownerTeamIds: ids(owners.teamIds || []),
+          ...overrides,
+        }),
+      );
+    }
+
+    function pagesPrimary(event: WhoIsToldEvent): boolean {
+      return event.policies.some((policy: WhoIsToldPolicy): boolean => {
+        return policy.id === PRIMARY;
+      });
+    }
+
+    beforeEach(() => {
+      world.teamMemberIds[PAYMENTS_TEAM] = [DAN];
+    });
+
+    test('a monitor whose criteria names Payments as the owner: "Alert Owner is any of Payments" pages Payments\' policy', async () => {
+      world.monitorSteps = opensAlertOwnedBy({ teamIds: [PAYMENTS_TEAM] });
+      rulesAre([
+        ownerCondition({
+          operator: RuleCriteriaOperator.HasAnyOf,
+          ownerIds: [PAYMENTS_TEAM],
+        }),
+      ]);
+
+      const result: WhoIsToldResult = await resolve();
+      const event: WhoIsToldEvent = firstEvent(result);
+
+      expect(event.rules).toEqual([
+        { id: PAYMENTS_RULE, name: "Payments' alerts" },
+      ]);
+      expect(pagesPrimary(event)).toBe(true);
+      expect(kinds(result)).not.toContain(WhoIsToldBreakKind.NobodyPaged);
+      // Which owner made it match, as a label rule's label is said (#7212).
+      expect(event.ownerMatches).toEqual([
+        { ruleId: PAYMENTS_RULE, ownerNames: ["Payments"] },
+      ]);
+    });
+
+    test('"Alert Owner is none of Payments" is said not to match, and nobody is paged', async () => {
+      world.monitorSteps = opensAlertOwnedBy({ teamIds: [PAYMENTS_TEAM] });
+      rulesAre([
+        ownerCondition({
+          operator: RuleCriteriaOperator.HasNoneOf,
+          ownerIds: [PAYMENTS_TEAM],
+        }),
+      ]);
+
+      const result: WhoIsToldResult = await resolve();
+      const event: WhoIsToldEvent = firstEvent(result);
+
+      expect(event.rules).toEqual([]);
+      expect(event.policies).toEqual([]);
+      expect(event.ownerMatches).toBeUndefined();
+      expect(kinds(result)).toContain(WhoIsToldBreakKind.NobodyPaged);
+    });
+
+    test("an owner an alert owner rule adds makes the rule match, and is none of not", async () => {
+      world.monitorSteps = opensAlertOwnedBy({});
+      world.alertOwnerRules = [
+        alertOwnerRule({
+          id: ALERT_OWNER_RULE,
+          name: "Payments routes",
+          teamIds: [PAYMENTS_TEAM],
+        }),
+      ];
+      rulesAre([
+        ownerCondition({
+          operator: RuleCriteriaOperator.HasAnyOf,
+          ownerIds: [PAYMENTS_TEAM],
+        }),
+      ]);
+
+      const anyOf: WhoIsToldEvent = firstEvent(await resolve());
+
+      expect(
+        anyOf.rules.map((rule: { id: string }) => {
+          return rule.id;
+        }),
+      ).toEqual([PAYMENTS_RULE]);
+      expect(anyOf.ownerRules).toEqual([
+        { id: ALERT_OWNER_RULE, name: "Payments routes" },
+      ]);
+      expect(anyOf.ownerMatches).toEqual([
+        { ruleId: PAYMENTS_RULE, ownerNames: ["Payments"] },
+      ]);
+
+      rulesAre([
+        ownerCondition({
+          operator: RuleCriteriaOperator.HasNoneOf,
+          ownerIds: [PAYMENTS_TEAM],
+        }),
+      ]);
+
+      expect(firstEvent(await resolve()).rules).toEqual([]);
+    });
+
+    test("the network device's owners make the rule match, and is none of not", async () => {
+      world.monitorSteps = opensAlertOwnedBy({});
+      world.deviceOwners = {
+        ownerUserIds: [],
+        ownerTeamIds: ids([PAYMENTS_TEAM]),
+      };
+      rulesAre([
+        ownerCondition({
+          operator: RuleCriteriaOperator.HasAnyOf,
+          ownerIds: [PAYMENTS_TEAM],
+        }),
+      ]);
+
+      expect(pagesPrimary(firstEvent(await resolve()))).toBe(true);
+
+      rulesAre([
+        ownerCondition({
+          operator: RuleCriteriaOperator.HasNoneOf,
+          ownerIds: [PAYMENTS_TEAM],
+        }),
+      ]);
+
+      expect(pagesPrimary(firstEvent(await resolve()))).toBe(false);
+    });
+
+    test("a person the criteria names owns the alert, by name", async () => {
+      world.monitorSteps = opensAlertOwnedBy({ userIds: [ANA] });
+      rulesAre([
+        ownerCondition({
+          operator: RuleCriteriaOperator.HasAnyOf,
+          ownerIds: [BEN, ANA],
+        }),
+      ]);
+
+      expect(firstEvent(await resolve()).ownerMatches).toEqual([
+        { ruleId: PAYMENTS_RULE, ownerNames: ["Ana Lopez"] },
+      ]);
+    });
+
+    test("somebody named who isn't a member of the project owns nothing: is any of doesn't match, is none of does", async () => {
+      world.projectMemberIds = [ANA, BEN];
+      world.monitorSteps = opensAlertOwnedBy({ userIds: [CARA] });
+      rulesAre([
+        ownerCondition({
+          operator: RuleCriteriaOperator.HasAnyOf,
+          ownerIds: [CARA],
+        }),
+      ]);
+
+      expect(firstEvent(await resolve()).rules).toEqual([]);
+
+      rulesAre([
+        ownerCondition({
+          operator: RuleCriteriaOperator.HasNoneOf,
+          ownerIds: [CARA],
+        }),
+      ]);
+
+      expect(pagesPrimary(firstEvent(await resolve()))).toBe(true);
+    });
+
+    test("a team of another project owns nothing: no owner row is written for it", async () => {
+      world.monitorSteps = opensAlertOwnedBy({ teamIds: [ELSEWHERE_TEAM] });
+      rulesAre([
+        ownerCondition({
+          operator: RuleCriteriaOperator.HasAnyOf,
+          ownerIds: [ELSEWHERE_TEAM],
+        }),
+      ]);
+
+      expect(firstEvent(await resolve()).rules).toEqual([]);
+    });
+
+    test("a team of the project with nobody in it still owns the alert, though nobody is emailed through it", async () => {
+      world.teamMemberIds[PAYMENTS_TEAM] = [];
+      world.monitorSteps = opensAlertOwnedBy({ teamIds: [PAYMENTS_TEAM] });
+      rulesAre([
+        ownerCondition({
+          operator: RuleCriteriaOperator.HasAnyOf,
+          ownerIds: [PAYMENTS_TEAM],
+        }),
+      ]);
+
+      const event: WhoIsToldEvent = firstEvent(await resolve());
+
+      expect(pagesPrimary(event)).toBe(true);
+      expect(event.ownerMatches).toEqual([
+        { ruleId: PAYMENTS_RULE, ownerNames: ["Payments"] },
+      ]);
+      expect(event.owners.notReached).toEqual([
+        {
+          kind: WhoIsToldOwnerKind.Team,
+          id: PAYMENTS_TEAM,
+          name: "Payments",
+          problem: WhoIsToldOwnerProblem.TeamHasNobodyInProject,
+          addedBy: WhoIsToldOwnerAddedBy.Criteria,
+        },
+      ]);
+    });
+
+    test("an incident's on-call rules have no owner condition: nothing changes for them", async () => {
+      world.monitorSteps = opensIncidents(
+        incidentTemplate({ ownerTeamIds: ids([PAYMENTS_TEAM]) }),
+      );
+
+      const event: WhoIsToldEvent = firstEvent(await resolve());
+
+      expect(event.kind).toBe(OnCallTestPageRecordKind.Incident);
+      expect(event.ownerMatches).toBeUndefined();
+    });
+
+    test("a rule the reader may not read keeps its place without its name; which owner made it match is still said", async () => {
+      world.monitorSteps = opensAlertOwnedBy({ teamIds: [PAYMENTS_TEAM] });
+      rulesAre(
+        [
+          ownerCondition({
+            operator: RuleCriteriaOperator.HasAnyOf,
+            ownerIds: [PAYMENTS_TEAM],
+          }),
+        ],
+        [],
+      );
+
+      const event: WhoIsToldEvent = firstEvent(
+        await WhoIsToldService.getForMonitor({
+          projectId: PROJECT_ID,
+          monitorId: MONITOR_ID,
+          props: CALLER,
+        }),
+      );
+
+      expect(event.rules).toEqual([{ id: PAYMENTS_RULE, name: "" }]);
+      expect(event.ownerMatches).toEqual([
+        { ruleId: PAYMENTS_RULE, ownerNames: ["Payments"] },
+      ]);
+    });
+
+    test("a private alert the reader can't see says nothing of its owners, nor which made a rule match", async () => {
+      world.monitorSteps = opensAlertOwnedBy(
+        { teamIds: [PAYMENTS_TEAM] },
+        { isPrivate: true },
+      );
+      rulesAre([
+        ownerCondition({
+          operator: RuleCriteriaOperator.HasAnyOf,
+          ownerIds: [PAYMENTS_TEAM],
+        }),
+      ]);
+
+      const result: WhoIsToldResult = await WhoIsToldService.getForMonitor({
+        projectId: PROJECT_ID,
+        monitorId: MONITOR_ID,
+        props: CALLER,
+      });
+      const event: WhoIsToldEvent = firstEvent(result);
+
+      expect(event.isHidden).toBe(true);
+      expect(event.ownerMatches).toBeUndefined();
+      expect(event.rules).toEqual([]);
+      expect(JSON.stringify(result)).not.toContain("Payments");
+      expect(JSON.stringify(result)).not.toContain(PAYMENTS_TEAM);
+    });
+
+    test("a monitor being created is matched on the owners its form names", async () => {
+      jest
+        .spyOn(MonitorService, "checkCallerMayCreate")
+        .mockResolvedValue(undefined as never);
+      rulesAre([
+        ownerCondition({
+          operator: RuleCriteriaOperator.HasAnyOf,
+          ownerIds: [PAYMENTS_TEAM],
+        }),
+      ]);
+
+      const result: WhoIsToldResult = await WhoIsToldService.getForDraft({
+        projectId: PROJECT_ID,
+        props: { ...CALLER, isRoot: true },
+        draft: {
+          name: "Payments API",
+          description: "",
+          monitorType: MonitorType.Website,
+          monitorSteps: opensAlertOwnedBy({ teamIds: [PAYMENTS_TEAM] }),
+          labelIds: [],
+        },
+      });
+
+      expect(pagesPrimary(firstEvent(result))).toBe(true);
+    });
+
+    /*
+     * SETUP HEALTH (resolveProject) works the owners out for every monitor
+     * from one read of each kind, and lists the breaks the cards do.
+     */
+    describe("for the whole project at once", () => {
+      function projectMonitor(
+        id: string,
+        steps: MonitorSteps,
+        name: string = "Checkout API",
+      ): Monitor {
+        const monitor: Monitor = withId(new Monitor(), id);
+        monitor.name = name;
+        monitor.monitorType = MonitorType.Website;
+        monitor.projectId = PROJECT_ID;
+        monitor.monitorSteps = steps;
+        monitor.labels = [];
+        return monitor;
+      }
+
+      function monitorIdOf(index: number): string {
+        return `68101111-0000-4000-8000-${(3000 + index)
+          .toString()
+          .padStart(12, "0")}`;
+      }
+
+      async function resolveAll(
+        monitors: Array<Monitor>,
+        rules: Array<AlertOnCallRule>,
+      ): Promise<Array<WhoIsToldResult>> {
+        rulesAre(rules);
+        jest
+          .spyOn(AlertOnCallRuleEngineService, "readEnabledRules")
+          .mockResolvedValue(rules as never);
+        jest
+          .spyOn(IncidentOnCallRuleEngineService, "readEnabledRules")
+          .mockResolvedValue([] as never);
+
+        return await WhoIsToldService.resolveProject({
+          projectId: PROJECT_ID,
+          monitors: monitors,
+        });
+      }
+
+      test("owner-condition breaks are the cards': Payments' alerts page, the others page nobody", async () => {
+        const results: Array<WhoIsToldResult> = await resolveAll(
+          [
+            projectMonitor(
+              monitorIdOf(0),
+              opensAlertOwnedBy({ teamIds: [PAYMENTS_TEAM] }),
+            ),
+            projectMonitor(monitorIdOf(1), opensAlertOwnedBy({})),
+          ],
+          [
+            ownerCondition({
+              operator: RuleCriteriaOperator.HasAnyOf,
+              ownerIds: [PAYMENTS_TEAM],
+            }),
+          ],
+        );
+
+        expect(kinds(results[0]!)).not.toContain(
+          WhoIsToldBreakKind.NobodyPaged,
+        );
+        expect(kinds(results[1]!)).toContain(WhoIsToldBreakKind.NobodyPaged);
+        // Setup health names nobody it reaches.
+        expect(firstEvent(results[0]!).ownerMatches).toBeUndefined();
+      });
+
+      test("is none of Payments: Payments' alerts page nobody, the others do", async () => {
+        const results: Array<WhoIsToldResult> = await resolveAll(
+          [
+            projectMonitor(
+              monitorIdOf(0),
+              opensAlertOwnedBy({ teamIds: [PAYMENTS_TEAM] }),
+            ),
+            projectMonitor(monitorIdOf(1), opensAlertOwnedBy({})),
+          ],
+          [
+            ownerCondition({
+              operator: RuleCriteriaOperator.HasNoneOf,
+              ownerIds: [PAYMENTS_TEAM],
+            }),
+          ],
+        );
+
+        expect(kinds(results[0]!)).toContain(WhoIsToldBreakKind.NobodyPaged);
+        expect(kinds(results[1]!)).not.toContain(
+          WhoIsToldBreakKind.NobodyPaged,
+        );
+      });
+
+      test("whoever forty monitors name is read once for all of them, and no monitor reads its own", async () => {
+        const monitors: Array<Monitor> = [];
+
+        for (let index: number = 0; index < 40; index++) {
+          monitors.push(
+            projectMonitor(
+              monitorIdOf(index),
+              opensAlertOwnedBy({
+                teamIds: [index % 2 === 0 ? PAYMENTS_TEAM : PLATFORM_TEAM],
+                userIds: [ANA],
+              }),
+            ),
+          );
+        }
+
+        world.alertOwnerRules = [
+          alertOwnerRule({
+            id: ALERT_OWNER_RULE,
+            name: "Payments routes",
+            userIds: [BEN],
+          }),
+        ];
+
+        await resolveAll(monitors, [
+          ownerCondition({
+            operator: RuleCriteriaOperator.HasAnyOf,
+            ownerIds: [PAYMENTS_TEAM],
+          }),
+        ]);
+
+        expect(TeamService.findBy).toHaveBeenCalledTimes(1);
+        expect(TeamMemberService.findBy).toHaveBeenCalledTimes(1);
+        expect(TeamMemberService.getProjectMemberUserIds).toHaveBeenCalledTimes(
+          1,
+        );
+        expect(AlertOwnerRuleService.findBy).toHaveBeenCalledTimes(1);
+        expect(
+          NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor,
+        ).not.toHaveBeenCalled();
+        expect(UserService.findBy).not.toHaveBeenCalled();
       });
     });
   });

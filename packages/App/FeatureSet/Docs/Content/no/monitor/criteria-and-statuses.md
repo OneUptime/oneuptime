@@ -97,7 +97,7 @@ For å se hvordan en kontroll ble vurdert, åpner du monitorens **Oversikt**: ko
 
 **Når den går ned** forteller i noen få setninger hva som skjer når monitoren svikter, og hvem som får beskjed: statusen den setter, hendelsen eller varselet den åpner, hvem som får e-post, og hvem den tilkaller, med navn. Alt som ville hindre noen i å få beskjed, står på sin egen linje, med en lenke til siden der det rettes. Du finner det i en monitors **Oversikt**, under kriteriene på siden **Kriterier**, i kriterietrinnet i **Opprett monitor** for monitoren du setter opp, og i det veiledede oppsettet for nettsteder.
 
-Det finner kjeden slik en ekte hendelse eller et ekte varsel gjør: med prosjektets eierregler, personvernregler, etikettregler og vaktregler, hendelsesregelen for varsler som gjør et varsel til en hendelse, og hvem den første eskaleringsregelen i hver vaktpolicy når akkurat nå. En plassholder i tittelen som bare en kontroll fyller ut, vises slik den er skrevet. **Vis kjeden** åpner den rad for rad:
+Det finner kjeden slik en ekte hendelse eller et ekte varsel gjør: med prosjektets eierregler, personvernregler, etikettregler og vaktregler, hendelsesregelen for varsler som gjør et varsel til en hendelse, og hvem den første eskaleringsregelen i hver vaktpolicy når akkurat nå. En vaktregel som spør hvem som eier et varsel (**Eier av varsel**), sammenlignes med eierne varselet får: personene og teamene kriteriene oppgir, eierne av nettverksenheten monitoren overvåker, og dem eierregler legger til. En plassholder i tittelen som bare en kontroll fyller ut, vises slik den er skrevet. **Vis kjeden** åpner den rad for rad:
 
 | Rad | Hva den sier |
 | --- | --- |
@@ -107,7 +107,7 @@ Det finner kjeden slik en ekte hendelse eller et ekte varsel gjør: med prosjekt
 | **Eierregler** | Eierreglene som legger til eiere. |
 | **Privat** | Hvorfor den er privat: en personvernregel eller kriteriene. En privat hendelse vises ikke på noen statusside og gir ingen abonnenter beskjed, og bare eierne, Prosjekteierne og Prosjektadministratorene kan se den. |
 | **Etikettregler** | Etikettreglene der etikettene endrer hvilke vaktregler som tilkaller. |
-| **Vaktregler** | Vaktreglene som samsvarer med den. |
+| **Vaktregler** | Vaktreglene som samsvarer med den. For en regel som sammenligner hvem som eier et varsel, står det hvilken eier som får den til å samsvare. |
 | **Vaktpolicy** | Hver policy disse reglene kjører: hvem den første eskaleringsregelen når akkurat nå og hvordan, og hvem den ikke når, og hvorfor. |
 | **Statussider** | Statussidene som viser den, hver med monitorgruppen siden viser monitoren gjennom. |
 | **Hendelsesregel** | For et varsel: hendelsesregelen for varsler som oppretter en hendelse fra det, straks eller når varselet har vært åpent en stund, og den hendelsen, beskrevet som enhver hendelse. |
@@ -128,7 +128,7 @@ Det finner kjeden slik en ekte hendelse eller et ekte varsel gjør: med prosjekt
 
 Et varsel som en hendelsesregel for varsler gjør om til en hendelse som tilkaller noen, er ikke et brudd: Da kontrolleres hendelsens egne policyer i stedet.
 
-Eiere som ikke får e-post, står etter bruddene, hver med årsaken og stedet der de er oppgitt: noen som ikke er medlem av prosjektet, et team der ingen er medlem (**Åpne team**), eller et team fra et annet prosjekt, oppgitt i kriteriene (**Åpne kriterier**), på nettverksenheten monitoren overvåker (**Åpne nettverksenhet**) eller av en eierregel (**Åpne eierregler**). E-posten sendes likevel, til eierne den når eller til Prosjekteierne, så de er ikke brudd.
+Eiere som ikke får e-post, står etter bruddene, hver med årsaken og stedet der de er oppgitt: noen som ikke er medlem av prosjektet, et team der ingen er medlem (**Åpne team**), eller et team fra et annet prosjekt, oppgitt i kriteriene (**Åpne kriterier**), på nettverksenheten monitoren overvåker (**Åpne nettverksenhet**) eller av en eierregel (**Åpne eierregler**). E-posten sendes likevel, til eierne den når eller til Prosjekteierne, så de er ikke brudd. Oppsettets helse viser dem også, som noe som er verdt å rette.
 
 ### Kontroller på nytt, og hva du kan se
 

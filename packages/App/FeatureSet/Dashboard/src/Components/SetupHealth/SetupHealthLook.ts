@@ -109,6 +109,8 @@ export const CHECK_ICONS: Readonly<Record<SetupHealthCheck, IconProp>> = {
   [SetupHealthCheck.ChannelOff]: IconProp.BellSlash,
   [SetupHealthCheck.NoBalance]: IconProp.Billing,
   [SetupHealthCheck.ServerCannotSend]: IconProp.Email,
+  // An owner the Created email never reaches (#9371): who is emailed.
+  [SetupHealthCheck.OwnerNotEmailed]: IconProp.Email,
   [SetupHealthCheck.PolicyNotRun]: IconProp.Call,
   [SetupHealthCheck.ScheduleHasNobodyOnCall]: IconProp.Calendar,
   [SetupHealthCheck.LowBalance]: IconProp.Billing,
@@ -169,4 +171,7 @@ export const RECORD_ICONS: Readonly<Record<SetupHealthRecordKind, IconProp>> = {
   [SetupHealthRecordKind.StatusPageDomain]: IconProp.Link,
   [SetupHealthRecordKind.TelemetryIngestionKey]: IconProp.Key,
   [SetupHealthRecordKind.Project]: IconProp.Folder,
+  [SetupHealthRecordKind.Team]: IconProp.Team,
+  [SetupHealthRecordKind.IncidentOwnerRule]: IconProp.User,
+  [SetupHealthRecordKind.AlertOwnerRule]: IconProp.User,
 };

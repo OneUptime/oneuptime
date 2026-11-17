@@ -103,9 +103,11 @@ const PROJECT_FREE_ALLOWLIST: Array<ProjectFreeAllowlistEntry> = [
   {
     /*
      * Only this route: the file's other requests register a browser in one
-     * project and are swept like any other.
+     * project and are swept like any other. The one way a browser is
+     * registered, for Push.tsx's Register Device and the on-call setup's
+     * "Use this browser" (#7149).
      */
-    file: "Components/NotificationMethods/Push.tsx",
+    file: "Components/NotificationMethods/RegisterThisBrowser.ts",
     routes: ["/user-push/subscription-change"],
     reason:
       "A browser's renewed push subscription belongs to the signed-in user's browser, not to one project: the route takes the user from the session and moves every device they registered with the old subscription - one per project they are a member of - onto the new one.",

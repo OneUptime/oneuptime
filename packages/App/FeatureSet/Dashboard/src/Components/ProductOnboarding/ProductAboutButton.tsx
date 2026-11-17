@@ -13,6 +13,7 @@ import {
   ProductOnboarding,
 } from "./ProductOnboarding";
 import { getProductOnboarding } from "./ProductOnboardings";
+import { getProductGuidedSetupButton } from "./ProductShowcase";
 import {
   PRODUCT_TITLE_BUTTON_CLASS_NAME,
   PRODUCT_TITLE_ICON_BUTTON_CLASS_NAME,
@@ -86,6 +87,17 @@ const ProductAboutButton: FunctionComponent<ComponentProps> = (
           <div data-testid={PRODUCT_ABOUT_DIALOG_TEST_ID}>
             <ResourceShowcaseCard
               showcase={onboarding.showcase}
+              /*
+               * No Create here: an explanation, not a second way to make
+               * one. A product's guided setup is offered, as on its empty
+               * list (#7148): the way to its job, step by step.
+               */
+              setupButton={getProductGuidedSetupButton({
+                onboarding: onboarding,
+                beforeOpen: (): void => {
+                  setIsOpen(false);
+                },
+              })}
               docsRoute={onboarding.docsRoute}
               guideRoute={onboarding.guideRoute}
               isBare={true}

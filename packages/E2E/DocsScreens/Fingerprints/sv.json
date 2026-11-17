@@ -275,20 +275,22 @@
       "Slå på sms och samtal",
       "Mobilapp eller webbläsare",
       "Inte konfigurerat.",
-      "Skaffa OneUptime-appen eller slå på aviseringar i den här webbläsaren, från dina aviseringsmetoder.",
-      "Konfigurera appen eller den här webbläsaren",
+      "Få larm i telefonen med appen OneUptime On-Call, eller i den här webbläsaren.",
+      "Använd den här webbläsaren",
+      "Skaffa appen",
       "Fortsätt",
       "Kontrollera igen"
     ],
     "outline": [
       "button: Fyll på saldo",
       "button: Slå på sms och samtal",
-      "link: Konfigurera appen eller den här webbläsaren",
+      "button: Använd den här webbläsaren",
+      "button: Skaffa appen",
       "button: Fortsätt",
       "button: Kontrollera igen"
     ],
     "width": 768,
-    "height": 632
+    "height": 658
   },
   "paging-phone": {
     "text": [
@@ -304,8 +306,9 @@
       "Skicka en kod till mig via sms",
       "Mobilapp eller webbläsare",
       "Inte konfigurerat.",
-      "Skaffa OneUptime-appen eller slå på aviseringar i den här webbläsaren, från dina aviseringsmetoder.",
-      "Konfigurera appen eller den här webbläsaren",
+      "Få larm i telefonen med appen OneUptime On-Call, eller i den här webbläsaren.",
+      "Använd den här webbläsaren",
+      "Skaffa appen",
       "Fortsätt",
       "Kontrollera igen",
       "placeholder: +15551234567"
@@ -313,31 +316,35 @@
     "outline": [
       "field text: +15551234567",
       "button: Skicka en kod till mig via sms",
-      "link: Konfigurera appen eller den här webbläsaren",
+      "button: Använd den här webbläsaren",
+      "button: Skaffa appen",
       "button: Fortsätt",
       "button: Kontrollera igen"
     ],
     "width": 768,
-    "height": 564
+    "height": 590
   },
   "paging-who-else": {
     "text": [
       "2",
-      "Vem mer har jour?",
+      "Vem larmas först?",
       "Detta skapar jourpolicyn ”Standardjourpolicy”. Den larmar först de här personerna, vid varje ny incident och varje nytt larm i det här projektet.",
       "Larmas först",
       "Lägg till teammedlemmar",
       "AL",
       "Ada Lovelace",
+      "Alla här larmas samtidigt. Vem som bara ska larmas om ingen svarar väljer du i nästa steg.",
+      "Bjud in via e-post",
       "Spara och fortsätt"
     ],
     "outline": [
       "button: Lägg till teammedlemmar",
       "button: Ta bort Ada Lovelace",
+      "button: Bjud in via e-post",
       "button: Spara och fortsätt"
     ],
     "width": 768,
-    "height": 246
+    "height": 322
   },
   "paging-no-answer": {
     "text": [
@@ -389,7 +396,7 @@
     "text": [
       "Larmningen är konfigurerad",
       "Vem som larmas",
-      "Varje ny incident och varje nytt larm kör ”Standardjourpolicy”, som larmar Ada Lovelace (E-post, SMS, Telefonsamtal).",
+      "Varje ny incident och varje nytt larm kör ”Standardjourpolicy”, som larmar Ada Lovelace (e-post, SMS och telefonsamtal direkt).",
       "Om ingen svarar",
       "Om ingen kvitterar inom 30 minuter larmas Grace Hopper.",
       "Testat",

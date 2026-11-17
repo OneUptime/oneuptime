@@ -13,7 +13,7 @@ flowchart TB
 
 - Ett projekt som du äger: att slå på sms och samtal kräver projektets ägare, och en jourpolicy kräver ägaren eller en administratör.
 - Din mobiltelefon.
-- De teammedlemmar som du vill ska larmas, tillagda som medlemmar i projektet: [Bjud in personer](/docs/permissions/inviting-people) visar hur.
+- De teammedlemmar som du vill ska larmas: konfigurationen kan bjuda in dem via e-post, eller se [Bjud in personer](/docs/permissions/inviting-people).
 
 :::tabs
 @tab OneUptime Cloud
@@ -29,11 +29,11 @@ Din server måste kunna skicka e-post, sms och samtal. Serverns huvudadministrat
 
 ![Hem frågar ”Vad vill du göra först?”, med ”Larma rätt person när något går sönder” ikryssat](screen:home-goal-paging)
 
-På projektets sida **Hem** klickar du på **Konfigurera en jourpolicy** i checklistan **Välkommen till OneUptime 👋**. I ett nytt projekt börjar startsidan med frågan **Vad vill du göra först?**: kryssa i **Larma rätt person när något går sönder** och klicka på **Fortsätt**. Om steget saknas eller redan är klart trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `get paged` och väljer **Larma rätt person när något går sönder**.
+På projektets sida **Hem** klickar du på **Konfigurera en jourpolicy** i checklistan **Välkommen till OneUptime 👋**. I ett nytt projekt börjar startsidan med frågan **Vad vill du göra först?**: kryssa i **Larma rätt person när något går sönder** och klicka på **Fortsätt**. Om steget saknas eller redan är klart trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `get paged` och väljer **Larma rätt person när något går sönder**. I **Jour** öppnar **Guidad installation** den också.
 
 ### Installera appen på din telefon
 
-Installera OneUptime On-Call från App Store eller Google Play och logga in: appen registrerar din telefon för push-aviseringar. Tillbaka i konfigurationen klickar du på **Kontrollera igen**: **Mobilapp eller webbläsare** under **Hur ska vi nå dig?** visar nu din telefon.
+Under **Hur ska vi nå dig?** klickar du på **Skaffa appen**, skannar koden med telefonen, installerar appen och loggar in. Tillbaka i konfigurationen klickar du på **Kontrollera igen**: **Mobilapp eller webbläsare** visar nu din telefon. **Använd den här webbläsaren** larmar även den här webbläsaren.
 
 ### Slå på sms och samtal
 
@@ -47,11 +47,11 @@ Nya projekt börjar med sms och telefonsamtal avstängda. Om du äger projektet 
 
 Skriv ditt mobilnummer med landsnummer i **Ditt telefonnummer**, till exempel `+15551234567`, och klicka på **Skicka en kod till mig via sms**. Ange koden från sms:et och klicka på **Verifiera**: samma nummer rings också upp vid larm. Klicka på **Fortsätt**. Vill du bara larmas via appen och e-post, hoppar du över numret och klickar direkt på **Fortsätt**.
 
-### Välj vilka fler som larmas
+### Välj vem som larmas först
 
-![Steget ”Vem mer har jour?”, med ”Spara och fortsätt” markerad](screen:paging-who-else)
+![Steget ”Vem larmas först?”, med ”Spara och fortsätt” markerad](screen:paging-who-else)
 
-Under **Vem mer har jour?** finns du redan i **Larmas först**. Klicka på **Lägg till teammedlemmar** för att larma andra tillsammans med dig, och klicka sedan på **Spara och fortsätt**. I ett projekt som ännu inte har någon jourpolicy skapar steget **Standardjourpolicy**, som larmar dem vid varje ny incident och varje nytt larm. I ett projekt som redan har en väljer du den under **Jourpolicy** och lägger i stället till personer under **Lägg till i den första eskaleringsregeln**. Om någon inte kan nås än stannar steget öppet på **Når ett larm dem?**: klicka på **Skicka påminnelse om konfiguration** för dem och sedan på **Fortsätt**.
+Under **Vem larmas först?** finns du redan i **Larmas först**. Klicka på **Lägg till teammedlemmar** för att larma andra samtidigt som dig. För någon som ännu inte finns i projektet klickar du på **Bjud in via e-post**, skriver adressen och klickar på **Skicka inbjudan**. Klicka sedan på **Spara och fortsätt**. I ett projekt som ännu inte har någon jourpolicy skapar steget **Standardjourpolicy**, som larmar dem vid varje ny incident och varje nytt larm. I ett projekt som redan har en väljer du den under **Jourpolicy** och lägger i stället till personer under **Lägg till i den första eskaleringsregeln**. Om någon inte kan nås än stannar steget öppet på **Når ett larm dem?**: klicka på **Skicka påminnelse om konfiguration** för dem och sedan på **Fortsätt**.
 
 ### Bestäm vad som händer om ingen svarar
 
@@ -75,7 +75,7 @@ Under **Skicka ett testlarm** klickar du på **Testa den här policyn**. Välj e
 ![Sammanfattningen ”Larmningen är konfigurerad”: ”Vem som larmas”, ”Om ingen svarar” och ”Testat”](screen:paging-summary)
 
 - Teststeget visar vem som bekräftade larmet, hur och hur snabbt.
-- Konfigurationen avslutas med sammanfattningen **Larmningen är konfigurerad**, som bygger på det som faktiskt har sparats: **Vem som larmas**, **Om ingen svarar** och **Testat**. Ett problem med själva policyn, till exempel någon som den inte kan nå, listas under **Kräver uppmärksamhet**.
+- Konfigurationen avslutas med sammanfattningen **Larmningen är konfigurerad**, som bygger på det som faktiskt har sparats: **Vem som larmas**, **Om ingen svarar** och **Testat**. **Vem som larmas** visar i tur och ordning hur varje person nås. Ett problem med själva policyn, till exempel någon som den inte kan nå, listas under **Kräver uppmärksamhet**.
 - På sidan **Hem** markerar checklistan **Konfigurera en jourpolicy** som klar. Om det var det sista steget försvinner checklistan.
 
 Om policyn larmar någon annan kan du också följa eskaleringen: klicka på **Öppna jourpolicyn** i sammanfattningen och sedan på **Testa den här policyn**. Slå på **Gå igenom varje eskaleringsnivå**, skicka testet och bekräfta inte det första larmet: nästa person larmas upp till 2 minuter senare.

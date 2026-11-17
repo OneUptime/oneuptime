@@ -188,7 +188,7 @@ Den kanalen är avstängd i det här projektet. Kortet berättar vem som kan sl�
 :::
 
 :::details Koden kom aldrig fram
-E-post kan ta några minuter och hamnar ibland i skräpposten; SMS kan ta en minut. Vänta en minut och klicka sedan på **Skicka en ny kod** i dialogen. **Projektinställningar → Aviseringar → Aviseringsloggar** visar vad som hände med meddelandet.
+E-post kan ta några minuter och hamnar ibland i skräpposten; SMS kan ta en minut. Vänta en minut och klicka sedan på **Skicka en ny kod** i dialogen. **Projektinställningar → Aviseringar → Aviseringsloggar** visar vad som hände med meddelandet. Den som får läsa loggarna får **Öppna Aviseringsloggar** under koden, som öppnar meddelandets flik; alla andra uppmanas att fråga en Projektägare eller Projektadministratör.
 :::
 
 :::details Det går inte att lägga till mitt Slack-konto

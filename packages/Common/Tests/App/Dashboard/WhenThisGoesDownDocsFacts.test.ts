@@ -240,6 +240,42 @@ describe("Show the chain's rows are the card's", () => {
   });
 });
 
+/*
+ * AN ALERT OWNER RULE (#9407): the card matches an alert's on-call rules on
+ * the owners the alert will have, and says under On-call rules which owner
+ * made one match; the docs say both, and that Setup health lists the owners
+ * who aren't emailed (#9371).
+ */
+describe("the docs say what the card says of an alert's owners", () => {
+  test("Alert Owner rules are matched on the owners the alert will have, and the row says which owner made one match", () => {
+    const text: string = section();
+    const card: string = readDashboard(
+      "Components",
+      "Monitor",
+      "Overview",
+      "MonitorWhoIsToldCard.tsx",
+    );
+
+    expect(text).toContain(
+      "An alert's on-call rule that asks who owns it (**Alert Owner**) is matched on the owners the alert will have: the people and teams its criteria names, the owners of the network device the monitor watches, and whom owner rules add.",
+    );
+    expect(text).toContain(
+      "| **On-call rules** | The on-call rules that match it. A rule that matches who owns an alert says which owner made it match. |",
+    );
+    // The card draws that line under the On-call rules row.
+    expect(card).toContain('dataTestId="who-is-told-owner-match"');
+    expect(
+      card.indexOf('dataTestId="who-is-told-owner-match"'),
+    ).toBeGreaterThan(card.indexOf('testId="who-is-told-rules"'));
+  });
+
+  test("the owners who aren't emailed are listed by Setup Health too", () => {
+    expect(
+      between(section(), "Owners who aren't emailed", RECHECK_HEADING),
+    ).toContain("Setup Health lists them too, as worth fixing.");
+  });
+});
+
 describe("the places the docs say the card is", () => {
   test("a monitor's Overview and Criteria page, Create Monitor's criteria and the website guided setup", () => {
     const text: string = section();

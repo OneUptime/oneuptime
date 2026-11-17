@@ -88,6 +88,7 @@ import logger from "../../../Server/Utils/Logger";
 import MonitorAlert from "../../../Server/Utils/Monitor/MonitorAlert";
 import MonitorIncident from "../../../Server/Utils/Monitor/MonitorIncident";
 import MonitorResourceContextUtil from "../../../Server/Utils/Monitor/MonitorResourceContext";
+import AlertOnCallRulesOnOwnerChange from "../../../Server/Utils/Alert/AlertOnCallRulesOnOwnerChange";
 import CreatedNotificationHold, {
   OwnersAddedBy,
 } from "../../../Server/Utils/Notification/CreatedNotificationHold";
@@ -1040,6 +1041,10 @@ function stubCreateHooks(): void {
   jest
     .spyOn(AlertOnCallRuleEngineService, "applyRulesToAlert")
     .mockResolvedValue(undefined as never);
+  // No rule asks who owns an alert: its on-call rules wait for nobody (see the end of this file).
+  jest
+    .spyOn(AlertOnCallRuleEngineService, "hasRulesWithOwnerCondition")
+    .mockResolvedValue(false as never);
   jest
     .spyOn(RunbookRuleEngineService, "applyRulesToAlert")
     .mockResolvedValue(undefined as never);
@@ -2507,5 +2512,178 @@ describe("an incident whose create's caller never says its owners are in", () =>
 
     // The owner rule's owners, whom its chain added.
     expect(notified("incident")).toEqual([CARA, DAN]);
+  });
+});
+
+/*
+ * AN ALERT'S ON-CALL RULES SEE ITS OWNERS TOO (#9407). A rule with an Alert
+ * Owner condition ("Alert Owner is any of Payments") is matched on the
+ * alert's owner rows as its create chain runs its on-call rules. The
+ * criteria's and the device's owners are written by the monitor once the
+ * create has returned, the creator's as it returns, and nothing ordered the
+ * chain after them: "is any of" missed them, and "is none of" paged. In a
+ * project with such a rule, the chain's on-call rules wait for them - a
+ * moment at most - and in one without, they run at once, as before.
+ */
+describe("an alert's on-call rules, as the alert is created", () => {
+  // The alert's owners, as each run of its on-call rules read them.
+  let ownersSeen: Array<Array<string>>;
+  // The project has a rule with an Alert Owner condition.
+  let asksWhoOwns: boolean;
+
+  const CREATOR_PROPS: DatabaseCommonInteractionProps = {
+    tenantId: PROJECT_ID,
+    userId: new ObjectID(ADA),
+    userTenantAccessPermission: {
+      [PROJECT_ID.toString()]: {
+        _type: "UserTenantAccessPermission",
+        projectId: PROJECT_ID,
+        permissions: [
+          {
+            _type: "UserPermission",
+            permission: Permission.ProjectMember,
+            labelIds: [],
+            isBlockPermission: false,
+          },
+        ],
+      } as UserTenantAccessPermission,
+    },
+  };
+
+  function sorted(ids: Array<string>): Array<string> {
+    return [...ids].sort();
+  }
+
+  beforeEach(() => {
+    ownersSeen = [];
+    asksWhoOwns = true;
+
+    jest
+      .spyOn(AlertOnCallRuleEngineService, "hasRulesWithOwnerCondition")
+      .mockImplementation((async (): Promise<boolean> => {
+        return asksWhoOwns;
+      }) as never);
+
+    // What the rules would match an Alert Owner condition on: the alert's owner rows, now.
+    jest
+      .spyOn(AlertOnCallRuleEngineService, "applyRulesToAlert")
+      .mockImplementation((async (alert: Alert): Promise<undefined> => {
+        ownersSeen.push(
+          sorted(
+            ownerRows
+              .filter((row: OwnerRow): boolean => {
+                return row.recordId === idOf(alert.id);
+              })
+              .map((row: OwnerRow): string => {
+                return row.userId || row.teamId || "";
+              }),
+          ),
+        );
+        return undefined;
+      }) as never);
+  });
+
+  test("wait for the criteria's and the device's owners, which the monitor adds once the create has returned", async () => {
+    gates.monitor = new Gate(false);
+
+    const opening: Promise<unknown> = openFromMonitor("alert");
+
+    // The chain has run its owner rules; the monitor has not added its owners yet.
+    await waitUntil((): boolean => {
+      return gates.monitor.reached && ownerRulesRan.includes("alert");
+    });
+    await settle();
+
+    expect(ownersSeen).toEqual([]);
+
+    gates.monitor.open();
+    await opening;
+    await waitUntil((): boolean => {
+      return ownersSeen.length > 0;
+    });
+
+    // Every owner: the criteria's Ana, the device's Ben, the owner rule's Cara and Platform.
+    expect(ownersSeen).toEqual([sorted([ANA, BEN, CARA, PLATFORM_TEAM])]);
+    expect(errorsLogged()).toEqual([]);
+  });
+
+  test("run at once in a project with no rule that asks who owns an alert", async () => {
+    asksWhoOwns = false;
+    gates.monitor = new Gate(false);
+
+    const opening: Promise<unknown> = openFromMonitor("alert");
+
+    await waitUntil((): boolean => {
+      return ownersSeen.length > 0;
+    });
+
+    // Nothing asks about the monitor's owners: only the owner rule's are in.
+    expect(ownersSeen).toEqual([sorted([CARA, PLATFORM_TEAM])]);
+
+    gates.monitor.open();
+    await opening;
+
+    expect(ownersSeen).toHaveLength(1);
+  });
+
+  test("wait for the person who created it on the dashboard, made its owner as the create returns", async () => {
+    owners = NOBODY;
+    gates.creator = new Gate(false);
+
+    const creating: Promise<BaseModel> = serviceOf("alert").create({
+      data: newRecordOf("alert"),
+      props: CREATOR_PROPS,
+    });
+
+    await waitUntil((): boolean => {
+      return gates.creator.reached && ownerRulesRan.includes("alert");
+    });
+    await settle();
+
+    expect(ownersSeen).toEqual([]);
+
+    gates.creator.open();
+    await creating;
+    await waitUntil((): boolean => {
+      return ownersSeen.length > 0;
+    });
+
+    expect(ownersSeen).toEqual([[ADA]]);
+  });
+
+  test("wait a moment at most for a monitor that never says its owners are in", async () => {
+    const target: { OWNERS_WAITED_FOR_AT_MOST_MS: number } =
+      AlertOnCallRulesOnOwnerChange as unknown as {
+        OWNERS_WAITED_FOR_AT_MOST_MS: number;
+      };
+    const was: number = target.OWNERS_WAITED_FOR_AT_MOST_MS;
+    const warnings: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(logger, "warn")
+      .mockImplementation((() => {
+        // read below
+      }) as never);
+
+    target.OWNERS_WAITED_FOR_AT_MOST_MS = 20;
+
+    try {
+      monitorNeverFinishes("alert");
+
+      // Never settles: the monitor's code stopped at its first step.
+      void openFromMonitor("alert");
+
+      await waitUntil((): boolean => {
+        return ownersSeen.length > 0;
+      });
+
+      // The rules ran without the monitor's owners, and said why.
+      expect(ownersSeen).toEqual([sorted([CARA, PLATFORM_TEAM])]);
+      expect(
+        warnings.mock.calls.some((call: Array<unknown>): boolean => {
+          return String(call[0]).includes("were not all in after 20 ms");
+        }),
+      ).toBe(true);
+    } finally {
+      target.OWNERS_WAITED_FOR_AT_MOST_MS = was;
+    }
   });
 });

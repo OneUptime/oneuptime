@@ -275,20 +275,22 @@
       "Activar SMS y llamadas",
       "App móvil o navegador",
       "Sin configurar.",
-      "Consigue la app de OneUptime o activa las notificaciones en este navegador desde tus métodos de notificación.",
-      "Configurar la app o este navegador",
+      "Recibe los avisos en tu teléfono con la app OneUptime On-Call, o en este navegador.",
+      "Usar este navegador",
+      "Obtener la app",
       "Continuar",
       "Volver a comprobar"
     ],
     "outline": [
       "button: Añadir saldo",
       "button: Activar SMS y llamadas",
-      "link: Configurar la app o este navegador",
+      "button: Usar este navegador",
+      "button: Obtener la app",
       "button: Continuar",
       "button: Volver a comprobar"
     ],
     "width": 768,
-    "height": 632
+    "height": 658
   },
   "paging-phone": {
     "text": [
@@ -304,8 +306,9 @@
       "Envíame un código por SMS",
       "App móvil o navegador",
       "Sin configurar.",
-      "Consigue la app de OneUptime o activa las notificaciones en este navegador desde tus métodos de notificación.",
-      "Configurar la app o este navegador",
+      "Recibe los avisos en tu teléfono con la app OneUptime On-Call, o en este navegador.",
+      "Usar este navegador",
+      "Obtener la app",
       "Continuar",
       "Volver a comprobar",
       "placeholder: +15551234567"
@@ -313,31 +316,35 @@
     "outline": [
       "field text: +15551234567",
       "button: Envíame un código por SMS",
-      "link: Configurar la app o este navegador",
+      "button: Usar este navegador",
+      "button: Obtener la app",
       "button: Continuar",
       "button: Volver a comprobar"
     ],
     "width": 768,
-    "height": 564
+    "height": 590
   },
   "paging-who-else": {
     "text": [
       "2",
-      "¿Quién más está de guardia?",
+      "¿A quién se avisa primero?",
       "Esto crea la política de guardia «Política de guardia predeterminada». Avisa primero a estas personas, por cada incidente y alerta nueva de este proyecto.",
       "Avisados primero",
       "Añadir miembros del equipo",
       "AL",
       "Ada Lovelace",
+      "Aquí se avisa a todos a la vez. A quién avisar solo si nadie responde se elige en el siguiente paso.",
+      "Invitar por correo",
       "Guardar y continuar"
     ],
     "outline": [
       "button: Añadir miembros del equipo",
       "button: Quitar Ada Lovelace",
+      "button: Invitar por correo",
       "button: Guardar y continuar"
     ],
     "width": 768,
-    "height": 246
+    "height": 322
   },
   "paging-no-answer": {
     "text": [
@@ -389,7 +396,7 @@
     "text": [
       "Los avisos están configurados",
       "A quién se avisa",
-      "Cada incidente o alerta nueva ejecuta «Política de guardia predeterminada», que avisa a Ada Lovelace (Correo electrónico, SMS, Llamada telefónica).",
+      "Cada incidente o alerta nueva ejecuta «Política de guardia predeterminada», que avisa a Ada Lovelace (correo electrónico, SMS y llamada telefónica de inmediato).",
       "Si nadie responde",
       "Si nadie lo confirma en 30 minutos, se avisa a Grace Hopper.",
       "Probado",
@@ -413,7 +420,7 @@
       "button: Configurar otra política"
     ],
     "width": 768,
-    "height": 482
+    "height": 502
   },
   "status-page-pick": {
     "text": [

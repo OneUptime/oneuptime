@@ -1,9 +1,13 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Route from "Common/Types/API/Route";
+import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ResourceShowcaseCard, {
   ShowcaseAddButton,
+  ShowcaseSetupButton,
 } from "../ResourceShowcase/ResourceShowcaseCard";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { OnboardedProductKey, ProductOnboarding } from "./ProductOnboarding";
 import { getProductOnboarding } from "./ProductOnboardings";
 
@@ -53,6 +57,35 @@ export function getUnlockedButton(
   return button && !button.disabled ? button : undefined;
 }
 
+/*
+ * The product's guided setup as the explanation's button (#7148): for
+ * whoever may create what the setup makes, as Create is offered. It opens
+ * the setup's page; `beforeOpen` closes what it is drawn in (a dialog).
+ */
+export function getProductGuidedSetupButton(data: {
+  onboarding: ProductOnboarding;
+  beforeOpen?: (() => void) | undefined;
+}): ShowcaseSetupButton | undefined {
+  const setup: ProductOnboarding["guidedSetup"] = data.onboarding.guidedSetup;
+
+  if (
+    !setup ||
+    !PermissionGate.check(new setup.modelType(), ModelAction.Create).isAllowed
+  ) {
+    return undefined;
+  }
+
+  return {
+    title: setup.buttonTitle,
+    onClick: (): void => {
+      data.beforeOpen?.();
+      Navigation.navigate(
+        RouteUtil.populateRouteParams(RouteMap[setup.page] as Route),
+      );
+    },
+  };
+}
+
 const ProductShowcase: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -63,6 +96,7 @@ const ProductShowcase: FunctionComponent<ComponentProps> = (
       <ResourceShowcaseCard
         showcase={onboarding.showcase}
         addButton={props.startButton}
+        setupButton={getProductGuidedSetupButton({ onboarding: onboarding })}
         docsRoute={onboarding.docsRoute}
         guideRoute={onboarding.guideRoute}
         hidesSteps={props.hidesSteps}

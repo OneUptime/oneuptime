@@ -188,7 +188,7 @@ Den kanal er slået fra i dette projekt. Kortet fortæller, hvem der kan slå de
 :::
 
 :::details Koden kom aldrig
-E-mails kan tage et par minutter og havner nogle gange i spam; sms'er kan tage et minut. Vent et minut, og klik så på **Send en ny kode** i dialogen. **Projektindstillinger → Notifikationer → Notifikationslogs** viser, hvad der skete med beskeden.
+E-mails kan tage et par minutter og havner nogle gange i spam; sms'er kan tage et minut. Vent et minut, og klik så på **Send en ny kode** i dialogen. **Projektindstillinger → Notifikationer → Notifikationslogs** viser, hvad der skete med beskeden. Den, der må læse de logs, får **Åbn Notifikationslogs** under koden, som åbner beskedens fane; alle andre bliver bedt om at spørge en Projektejer eller Projektadministrator.
 :::
 
 :::details Det mislykkes at tilføje min Slack-konto

@@ -1019,8 +1019,15 @@ describe("Quickstart", () => {
     expect(setupWord(QUICKSTART_SETUP_COPIES.onCall, "whoAddToLevel")).toBe(
       "Add to the first escalation rule",
     );
+    /*
+     * Everyone this step adds is paged at once, with you (#7372); someone
+     * not in the project yet is invited from the step (#7150).
+     */
+    expect(setupWord(QUICKSTART_SETUP_COPIES.onCall, "inviteByEmail")).toBe(
+      "Invite by email",
+    );
     expect(QUICKSTART).toContain(
-      `keep **${GUIDED_SETUP_POLICY_NAME}** under **On-call policy**. To page teammates with you, add them under **Add to the first escalation rule**. Click **Save and continue**.`,
+      `keep **${GUIDED_SETUP_POLICY_NAME}** under **On-call policy**. To page teammates at the same time as you, add them under **Add to the first escalation rule**, or invite them with **Invite by email**. Click **Save and continue**.`,
     );
   });
 
@@ -1143,6 +1150,10 @@ describe("Quickstart", () => {
     expect(reach).toContain("your sign-in email is listed already");
     expect(reach).toContain(
       "install the OneUptime On-Call app from the App Store or Google Play, sign in, and click **Recheck**",
+    );
+    // Push is set up in the step itself (#7149): the app's codes, or this browser.
+    expect(reach).toContain(
+      `**${setupWord(QUICKSTART_SETUP_COPIES.onCall, "getTheApp")}** shows a code to scan for each store, and **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "useThisBrowser")}** has this browser paged too.`,
     );
     expect(reach).toContain(
       `click **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "turnOnSmsAndCalls")}**, type your number in **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "phoneLabel")}** and click **${setupWord(QUICKSTART_SETUP_COPIES.onCall, "sendSmsCode")}**: on OneUptime Cloud, texts and calls are paid from the project's balance, so the step asks you to add some first.`,
@@ -3199,6 +3210,28 @@ describe("Home Page & Shortcuts", () => {
     expect(section).toContain("**When this goes down** card");
     expect(pageWords).toContain('dismissed: translationKey("Dismissed"),');
     expect(section).toContain("restored from **Dismissed**");
+
+    /*
+     * An owner the card says no Created email reaches is a finding too
+     * (#9371), with the card's own fix pages.
+     */
+    expect(
+      oneLine(
+        fs.readFileSync(
+          path.join(
+            __dirname,
+            "../../../../Common/Types/SetupHealth/SetupHealth.ts",
+          ),
+          "utf8",
+        ),
+      ),
+    ).toContain('OwnerNotEmailed = "owner_not_emailed"');
+    expect(pageWords).toContain(
+      "[SetupHealthFix.TeamMembers]: OWNER_FIX_WORDS.team,",
+    );
+    expect(section).toContain(
+      "Each owner the card says no Created email reaches is a finding too, worth fixing, with the same page to put it right.",
+    );
   });
 
   it("names Your project's resources in the card's order, and when Upcoming maintenance shows", () => {

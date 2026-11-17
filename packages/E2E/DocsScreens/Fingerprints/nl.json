@@ -275,20 +275,22 @@
       "Sms en oproepen aanzetten",
       "Mobiele app of browser",
       "Niet ingericht.",
-      "Download de OneUptime-app of zet meldingen in deze browser aan, via je meldingsmethoden.",
-      "De app of deze browser inrichten",
+      "Ontvang oproepen op je telefoon met de OneUptime On-Call-app, of in deze browser.",
+      "Deze browser gebruiken",
+      "Download de app",
       "Doorgaan",
       "Opnieuw controleren"
     ],
     "outline": [
       "button: Tegoed toevoegen",
       "button: Sms en oproepen aanzetten",
-      "link: De app of deze browser inrichten",
+      "button: Deze browser gebruiken",
+      "button: Download de app",
       "button: Doorgaan",
       "button: Opnieuw controleren"
     ],
     "width": 768,
-    "height": 652
+    "height": 678
   },
   "paging-phone": {
     "text": [
@@ -304,8 +306,9 @@
       "Stuur me een code per sms",
       "Mobiele app of browser",
       "Niet ingericht.",
-      "Download de OneUptime-app of zet meldingen in deze browser aan, via je meldingsmethoden.",
-      "De app of deze browser inrichten",
+      "Ontvang oproepen op je telefoon met de OneUptime On-Call-app, of in deze browser.",
+      "Deze browser gebruiken",
+      "Download de app",
       "Doorgaan",
       "Opnieuw controleren",
       "placeholder: +15551234567"
@@ -313,31 +316,35 @@
     "outline": [
       "field text: +15551234567",
       "button: Stuur me een code per sms",
-      "link: De app of deze browser inrichten",
+      "button: Deze browser gebruiken",
+      "button: Download de app",
       "button: Doorgaan",
       "button: Opnieuw controleren"
     ],
     "width": 768,
-    "height": 584
+    "height": 610
   },
   "paging-who-else": {
     "text": [
       "2",
-      "Wie is er nog meer bereikbaar?",
+      "Wie wordt als eerste opgeroepen?",
       "Hiermee wordt het bereikbaarheidsbeleid \"Standaard bereikbaarheidsbeleid\" aangemaakt. Het roept eerst deze mensen op, bij elk nieuw incident en elke nieuwe waarschuwing in dit project.",
       "Eerst opgeroepen",
       "Teamleden toevoegen",
       "AL",
       "Ada Lovelace",
+      "Iedereen hier wordt tegelijk opgeroepen. Wie je alleen oproept als niemand antwoordt, kies je in de volgende stap.",
+      "Uitnodigen per e-mail",
       "Opslaan en doorgaan"
     ],
     "outline": [
       "button: Teamleden toevoegen",
       "button: Ada Lovelace verwijderen",
+      "button: Uitnodigen per e-mail",
       "button: Opslaan en doorgaan"
     ],
     "width": 768,
-    "height": 246
+    "height": 342
   },
   "paging-no-answer": {
     "text": [
@@ -389,7 +396,7 @@
     "text": [
       "Oproepen zijn ingericht",
       "Wie wordt opgeroepen",
-      "Elk nieuw incident en elke nieuwe waarschuwing voert \"Standaard bereikbaarheidsbeleid\" uit, dat Ada Lovelace (E-mail, SMS, Telefoonoproep) oproept.",
+      "Elk nieuw incident en elke nieuwe waarschuwing voert \"Standaard bereikbaarheidsbeleid\" uit, dat Ada Lovelace (e-mail, SMS en telefoonoproep meteen) oproept.",
       "Als niemand antwoordt",
       "Als niemand binnen 30 minuten bevestigt, wordt Grace Hopper opgeroepen.",
       "Getest",

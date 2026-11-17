@@ -35,8 +35,19 @@ const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
 // Every key this change added, by where it is drawn.
 const NEW_STRINGS: Array<string> = [
-  // The dialog.
-  "Who gets paged at this level, and how long to wait for an acknowledgement before escalating.",
+  /*
+   * The dialog, saying which level it adds or edits (#7373), so the rule,
+   * its level and the card's "Level 2" read as one thing.
+   */
+  "Adds level {{number}} of this policy: who is paged, and when.",
+  "Level {{number}} of this policy: who is paged, and how long to wait for an acknowledgement before the next level.",
+  /*
+   * A new rule after the first asks when it is paged, saved as the wait of
+   * the level before it (#7373), and says so when that save fails.
+   */
+  "Paged after (in minutes)",
+  "How long {{level}} waits for someone to acknowledge before this level is paged. Saved as the wait of {{level}}.",
+  "The rule was added, but the wait of {{level}} was not changed",
   // Its Notify field and picker.
   "On-call schedules page whoever is on call. Teams page every member.",
   "Add responder",
@@ -66,6 +77,8 @@ const RETIRED_STRINGS: Array<string> = [
   "How long to wait for an acknowledgement before escalating to the next rule.",
   "Escalation rules determine who to contact, and when, once an incident is triggered.",
   "Update the rule's details and change who it notifies.",
+  // The dialog's line before it named its level (#7373).
+  "Who gets paged at this level, and how long to wait for an acknowledgement before escalating.",
 ];
 
 const SENTENCE_ENDINGS: Array<string> = [".", "。", "।"];

@@ -80,11 +80,11 @@ Premi `Ctrl+K` (`Cmd+K` su un Mac), digita `get paged` e scegli **Avvisare la pe
 
 ![Il passaggio «Come dobbiamo raggiungerti?», con «Attiva SMS e chiamate» evidenziato](screen:paging-reach-you)
 
-In **Come dobbiamo raggiungerti?**, la tua e-mail di accesso è già elencata. Per le notifiche push, installa l'app OneUptime On-Call dall'App Store o da Google Play, accedi e fai clic su **Ricontrolla**. Per ricevere anche SMS e chiamate, fai clic su **Attiva SMS e chiamate**, inserisci il tuo numero in **Il tuo numero di telefono** e fai clic su **Inviami un codice via SMS**: su OneUptime Cloud, SMS e chiamate si pagano con il credito del progetto, quindi il passaggio ti chiede prima di aggiungerne. Fai clic su **Continua**.
+In **Come dobbiamo raggiungerti?**, la tua e-mail di accesso è già elencata. Per le notifiche push, installa l'app OneUptime On-Call dall'App Store o da Google Play, accedi e fai clic su **Ricontrolla**. **Scarica l'app** mostra un codice da inquadrare per ogni store, e **Usa questo browser** fa chiamare anche questo browser. Per ricevere anche SMS e chiamate, fai clic su **Attiva SMS e chiamate**, inserisci il tuo numero in **Il tuo numero di telefono** e fai clic su **Inviami un codice via SMS**: su OneUptime Cloud, SMS e chiamate si pagano con il credito del progetto, quindi il passaggio ti chiede prima di aggiungerne. Fai clic su **Continua**.
 
-### Scegliere chi altro viene chiamato
+### Scegliere chi viene chiamato per primo
 
-In **Chi altro è reperibile?**, lascia la **Policy di reperibilità predefinita** in **Policy di reperibilità**. Per chiamare membri del team insieme a te, aggiungili in **Aggiungi alla prima regola di escalation**. Fai clic su **Salva e continua**.
+In **Chi viene chiamato per primo?**, lascia la **Policy di reperibilità predefinita** in **Policy di reperibilità**. Per chiamare membri del team insieme a te, nello stesso momento, aggiungili in **Aggiungi alla prima regola di escalation**, oppure invitali con **Invita via email**. Fai clic su **Salva e continua**.
 
 ### Decidere cosa succede se nessuno risponde
 
