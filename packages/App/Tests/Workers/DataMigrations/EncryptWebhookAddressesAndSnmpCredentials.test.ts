@@ -20,6 +20,7 @@ import EncryptSnmpCredentials from "../../../FeatureSet/Workers/DataMigrations/E
 import EncryptWebhookAddresses from "../../../FeatureSet/Workers/DataMigrations/EncryptWebhookAddresses";
 import MaskWebhookAddressesInLogs from "../../../FeatureSet/Workers/DataMigrations/MaskWebhookAddressesInLogs";
 import { ColumnToEncrypt } from "../../../FeatureSet/Workers/Utils/EncryptColumnInPlace";
+import { encryptInPlaceADayLater } from "./Fixtures/CredentialsAtRestPass";
 import fs from "fs";
 import path from "path";
 import {
@@ -33,25 +34,30 @@ import {
 
 /*
  * THE DATA MIGRATIONS BEHIND #9013 AND #9014, with the repositories stubbed
- * so the real migrate() runs without Postgres (on Postgres:
- * EncryptWebhookAddressesAndSnmpCredentialsPostgres):
+ * so the real migrate() and the CredentialsAtRest:EncryptInPlace job's real
+ * pass run without Postgres (on Postgres:
+ * EncryptWebhookAddressesAndSnmpCredentialsPostgres,
+ * CredentialsAtRestPostgres):
  *
- *   - EncryptWebhookAddresses encrypts the webhook addresses stored as
+ *   - EncryptWebhookAddresses names the webhook addresses stored as
  *     written - status page subscribers' Slack, Microsoft Teams and webhook
  *     addresses, webhook notification methods', OpenStack notices' and the
  *     copy each keeps of its previewed recipient, custom channels'
  *     addresses and signing secrets;
- *   - EncryptSnmpCredentials encrypts network devices' and discovery scans'
+ *   - EncryptSnmpCredentials names network devices' and discovery scans'
  *     SNMP credentials, all eight columns, the JSON ones field by field in
  *     their own shape;
  *   - MaskWebhookAddressesInLogs masks the addresses the webhook log and
  *     the on-call log kept.
  *
- * Each is registered once, before the last slot; each encrypts exactly the
- * columns its models declare encrypted; each write is held to the value
- * read; a second run rewrites nothing; a table that cannot be read, or a
- * row that cannot be written, costs the others nothing; and no log line
- * carries a value.
+ * The first two change nothing at the upgrade (#9266), so a server of the
+ * release before posts to every address and polls every device as it did;
+ * a day later the job's pass encrypts each value still stored as written.
+ * Each is registered once, before the last slot; the pass encrypts exactly
+ * the columns its models declare encrypted; each write is held to the
+ * value read; a second pass rewrites nothing; a table that cannot be read,
+ * or a row that cannot be written, costs the others nothing; and no log
+ * line carries a value.
  */
 
 const DATA_MIGRATIONS_DIR: string = path.resolve(
@@ -456,6 +462,18 @@ describe("registering them", () => {
     );
   });
 
+  test("the upgrade's runs of the two that encrypt change nothing: a server of the release before reads every address and credential as written", async () => {
+    const { calls } = stubTables({
+      ...webhookTablesAsWritten(),
+      ...snmpTablesAsWritten(),
+    });
+
+    await new EncryptWebhookAddresses().migrate();
+    await new EncryptSnmpCredentials().migrate();
+
+    expect(calls).toEqual([]);
+  });
+
   test("rollback changes nothing", async () => {
     const { calls } = stubTables({});
 
@@ -512,7 +530,7 @@ describe("EncryptWebhookAddresses", () => {
   test("encrypts each address as written, held to the value read, and each decrypts back to it", async () => {
     const { calls, stubs } = stubTables(webhookTablesAsWritten());
 
-    await new EncryptWebhookAddresses().migrate();
+    await encryptInPlaceADayLater("EncryptWebhookAddresses");
 
     const updates: Array<QueryCall> = updateCalls(calls);
 
@@ -577,11 +595,11 @@ describe("EncryptWebhookAddresses", () => {
       },
     });
 
-    await new EncryptWebhookAddresses().migrate();
+    await encryptInPlaceADayLater("EncryptWebhookAddresses");
     const first: number = updateCalls(calls).length;
 
     calls.length = 0;
-    await new EncryptWebhookAddresses().migrate();
+    await encryptInPlaceADayLater("EncryptWebhookAddresses");
 
     expect(first).toBe(5);
     expect(updateCalls(calls)).toEqual([]);
@@ -595,7 +613,7 @@ describe("EncryptWebhookAddresses", () => {
 
     const { stubs } = stubTables(tables);
 
-    await new EncryptWebhookAddresses().migrate();
+    await encryptInPlaceADayLater("EncryptWebhookAddresses");
 
     expect(stubs.UserWebhook.rows[0]!["webhookUrl"]).toBe(METHOD_HOOK);
     expect(
@@ -668,7 +686,7 @@ describe("EncryptSnmpCredentials", () => {
   test("encrypts the text columns whole, and the secret fields inside each JSON entry, keeping the rest as written", async () => {
     const { calls, stubs } = stubTables(snmpTablesAsWritten());
 
-    await new EncryptSnmpCredentials().migrate();
+    await encryptInPlaceADayLater("EncryptSnmpCredentials");
 
     const devices: Array<StoredRow> = stubs.NetworkDevice.rows;
 
@@ -732,7 +750,7 @@ describe("EncryptSnmpCredentials", () => {
       },
     });
 
-    await new EncryptSnmpCredentials().migrate();
+    await encryptInPlaceADayLater("EncryptSnmpCredentials");
 
     const configs: Array<JSONObject> = stubs.NetworkDeviceDiscoveryScan
       .rows[0]!["snmpConfigs"] as Array<JSONObject>;
@@ -743,7 +761,7 @@ describe("EncryptSnmpCredentials", () => {
     ).toBe(true);
 
     calls.length = 0;
-    await new EncryptSnmpCredentials().migrate();
+    await encryptInPlaceADayLater("EncryptSnmpCredentials");
 
     expect(updateCalls(calls)).toEqual([]);
   });
@@ -754,7 +772,7 @@ describe("EncryptSnmpCredentials", () => {
 
     const { stubs } = stubTables(tables);
 
-    await new EncryptSnmpCredentials().migrate();
+    await encryptInPlaceADayLater("EncryptSnmpCredentials");
 
     expect(
       Encryption.looksEncrypted(

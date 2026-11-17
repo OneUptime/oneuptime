@@ -4,6 +4,8 @@ import "./Jobs/Announcement/SendNotificationToSubscribers";
 import "./Jobs/HardDelete/HardDeleteItemsInDatabase";
 // The keys presented to OneUptime that were stored as written: protected in place (#9012).
 import "./Jobs/PresentedKeys/ProtectAtRest";
+// The credentials the upgrade left as written: encrypted in place a day later (#9266).
+import "./Jobs/CredentialsAtRest/EncryptInPlace";
 // Incidents
 import "./Jobs/Incident/SendNotificationToSubscribers";
 import "./Jobs/Incident/SendPostmortemNotificationToSubscribers";
