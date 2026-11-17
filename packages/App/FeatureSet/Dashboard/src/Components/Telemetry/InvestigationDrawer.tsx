@@ -26,6 +26,15 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  findDropdownOption,
+  getNamedDropdownOption,
+  readPickedDropdownValue,
+} from "Common/UI/Components/Dropdown/DropdownChoices";
 import IconProp from "Common/Types/Icon/IconProp";
 import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
 import { HistogramBucket } from "Common/UI/Components/LogsViewer/types";
@@ -548,6 +557,18 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
   const [recentIncidents, setRecentIncidents] =
     useState<Array<Incident> | null>(null);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string>("");
+  // The incidents a note can be pinned to: a number and a title, as named.
+  const incidentOptions: Array<DropdownOption> = (recentIncidents || []).map(
+    (incident: Incident): DropdownOption => {
+      return getNamedDropdownOption(
+        incident.id?.toString() || "",
+        `${
+          incident.incidentNumberWithPrefix ||
+          `#${incident.incidentNumber || "?"}`
+        } — ${incident.title}`,
+      );
+    },
+  );
   const [isSavingNote, setIsSavingNote] = useState<boolean>(false);
   /*
    * Saving the note either closes the picker (success) or leaves it open
@@ -801,29 +822,33 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                       >
                         {translator.translateText("Pin to")}
                       </label>
-                      <select
-                        id="investigation-incident-picker"
-                        value={selectedIncidentId}
-                        onChange={(
-                          event: React.ChangeEvent<HTMLSelectElement>,
-                        ): void => {
-                          setSelectedIncidentId(event.target.value);
-                        }}
-                        className="min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                      <div
+                        className="min-w-0 flex-1"
+                        data-testid="investigation-incident-picker"
                       >
-                        {recentIncidents.map((incident: Incident) => {
-                          return (
-                            <option
-                              key={incident.id?.toString()}
-                              value={incident.id?.toString()}
-                            >
-                              {incident.incidentNumberWithPrefix ||
-                                `#${incident.incidentNumber || "?"}`}{" "}
-                              — {incident.title}
-                            </option>
-                          );
-                        })}
-                      </select>
+                        <Dropdown
+                          inputId="investigation-incident-picker"
+                          className="relative w-full overflow-visible"
+                          isCompact={true}
+                          options={incidentOptions}
+                          value={findDropdownOption(
+                            incidentOptions,
+                            selectedIncidentId,
+                          )}
+                          // A note is pinned to one incident.
+                          isClearable={false}
+                          onChange={(
+                            next: DropdownValue | Array<DropdownValue> | null,
+                          ): void => {
+                            const picked: string | null =
+                              readPickedDropdownValue(next);
+
+                            if (picked !== null) {
+                              setSelectedIncidentId(picked);
+                            }
+                          }}
+                        />
+                      </div>
                       <Button
                         title={isSavingNote ? "Saving…" : "Save note"}
                         buttonStyle={ButtonStyleType.PRIMARY}
