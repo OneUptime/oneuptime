@@ -694,11 +694,16 @@ test.describe("what really uses a severity", () => {
     await rules.waitForLoadState();
     expect(new URL(rules.url()).pathname).toBe(ON_CALL_RULES_ROUTE);
     /*
-     * The page the link names. This person's incident episode cards page
-     * nothing, unlike their incident cards, so it opens on the cards, one
-     * per severity, rather than on one ladder (#6820).
+     * The page the link names, on the steps: it always opens there, and
+     * lists under them the cards that differ - this person's incident
+     * episode cards page nothing, unlike their incident cards (#8890). The
+     * cards, one per severity, are a press away.
      */
-    await expect(rules.getByTestId("how-to-reach-me")).toBeVisible();
+    await expect(rules.getByTestId("how-to-reach-me")).toHaveAttribute(
+      "data-view",
+      "ladder",
+    );
+    await rules.getByTestId("paging-ladder-open-grid").click();
     await expect(
       rules.getByTestId("on-call-rules-severity-title").first(),
     ).toBeVisible();
@@ -954,6 +959,8 @@ test.describe("an archived severity on the How to Reach Me page", () => {
     page: Page;
   }) => {
     await page.goto(ON_CALL_RULES_ROUTE);
+    // The page opens on the steps; the cards are a press away (#8890).
+    await page.getByTestId("paging-ladder-open-grid").click();
 
     const titles: Locator = page.getByTestId("on-call-rules-severity-title");
 
@@ -1186,6 +1193,8 @@ for (const language of LANGUAGES) {
           await page.goto(
             `${ON_CALL_RULES_ROUTE}?lang=${language.lang}${theme === "dark" ? "&theme=dark" : ""}`,
           );
+          // The page opens on the steps; the cards are a press away (#8890).
+          await page.getByTestId("paging-ladder-open-grid").click();
 
           const archivedTitle: Locator = page
             .getByTestId("on-call-rules-severity-title")
