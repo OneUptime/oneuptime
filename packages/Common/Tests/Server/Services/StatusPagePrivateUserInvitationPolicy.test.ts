@@ -31,7 +31,7 @@ import {
 } from "@jest/globals";
 
 /*
- * A status page's "Require SSO for login" is part of the Community Edition
+ * A status page's "Require SSO to sign in" is part of the Community Edition
  * and holds in every edition and license state: SCIM and admin-created
  * private users of a page that only allows SSO never get a password-reset
  * credential, whether ee/ is loaded or not and whatever the license says.

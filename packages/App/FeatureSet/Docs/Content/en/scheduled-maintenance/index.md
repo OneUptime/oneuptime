@@ -54,17 +54,16 @@ Open **Scheduled Maintenance** from the **Products** menu in the top bar. The li
 
 | Section       | What you do there                                                                                                                    |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Overview**  | **All Maintenance Events** and **Ongoing Maintenance Events**, whose badge counts the events in progress right now.                                          |
-| **Calendar**  | **Maintenance Calendar**: every event on a month, a week or a day, beside the calendars from outside the project you add.            |
+| **Overview**  | **All Maintenance Events**, **Ongoing Maintenance Events**, whose badge counts the events in progress right now, and **Maintenance Calendar**: every event on a month, a week or a day, beside the calendars from outside the project you add. |
 | **Workspace** | **Slack**, **Microsoft Teams** and **Mattermost**, whichever the project has connected, or **Connect a workspace** when it has none. |
 | **Rules**     | **Owner Rules**, **Runbook Rules**, **Label Rules**, **Reminder Rules**.                                                             |
 | **Settings**  | **Maintenance State**, **Maintenance Templates**, **Note Templates**, **Public Note Approval**, **Custom Fields**, **Measurements**, **Calendar Settings**, **Numbering**. |
 
-**Overview** and **Calendar** are open; **Workspace**, **Rules**, **Settings** and **Developer** start folded, and a section opens by itself when you are on one of its pages. **Developer** holds **Terraform**, **API**, **CLI** and **AI Assistants**, for managing maintenance from code. Everything about maintenance lives here, not in **Project Settings**.
+**Overview** is open; **Workspace**, **Rules**, **Settings** and **Developer** start folded, and a section opens by itself when you are on one of its pages. **Developer** holds **Terraform**, **API**, **CLI** and **AI Assistants**, for managing maintenance from code. Everything about maintenance lives here, not in **Project Settings**.
 
 The list shows **Scheduled Maintenance Number**, **Title**, **Current State**, **Affected Resources**, **Shown on Status Page**, **Starts At**, **Duration**, **Ends At**, **Labels** and **Owners**. Select events to act on several at once: **Mark as {{state}}**, **Change State**, **Assign to Me**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels** or **Delete**. Each event's **⋯** menu, at the end of its row, does the same for that event alone: the **Mark as {{state}}** moves while the event can make them, **Change State**, **Assign to Me** until you own it, and **Add Owner**.
 
-**Maintenance Calendar**, in the **Calendar** section, shows the same events on a month, a week or a day, and can show calendars from outside the project beside them. See [Maintenance Calendar](/docs/scheduled-maintenance/calendar).
+**Maintenance Calendar**, in the **Overview** section, shows the same events on a month, a week or a day, and can show calendars from outside the project beside them. See [Maintenance Calendar](/docs/scheduled-maintenance/calendar).
 
 ## What an event affects
 
@@ -83,14 +82,13 @@ Open an event from the list to see its pages. Its side menu holds:
 
 | Side menu section | Pages                                                                                         |
 | ----------------- | --------------------------------------------------------------------------------------------- |
-| **Overview** | **Overview**, **State Timeline**, **Description**, **Runbooks** |
-| **Team** | **Owners** |
+| **Overview** | **Overview**, **State Timeline**, **Description**, **Runbooks**, **Owners** |
 | **Notifications**          | **Notification Logs** and **AI Logs**: every message sent about the event, and what AI did for it |
 | **Notes**         | **Private Notes** and **Public Notes**                                                         |
 | **Developer**     | **Terraform**, **API**, **CLI** and **AI Assistants**: the event managed from code            |
 | **Advanced**      | **Custom Fields**, **Settings**, **Audit Logs**, **Delete Maintenance Event**                 |
 
-**Overview**, **Team** and **Notes** are open; the other sections start folded until you click them.
+**Overview** and **Notes** are open; the other sections start folded until you click them.
 
 - **Overview** — the header shows the event's number, title and state, how long until it starts or how long it has run, who owns it, the status pages it shows on and who created it, and the buttons that move it on. Under it, **Starts**, **Ends** and **Duration** show the planned window in your time zone. The **Scheduled Maintenance Feed** records everything that happened to the event, beside the **Maintenance Details** and **Affected Resources** cards, and the **Measurements** and **Custom Fields** cards when your project has any.
 - **State Timeline** — every state the event has been in, when, and for how long. See [Maintenance States](/docs/scheduled-maintenance/states#the-state-timeline).

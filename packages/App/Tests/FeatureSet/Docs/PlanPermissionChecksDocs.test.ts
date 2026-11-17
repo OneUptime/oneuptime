@@ -17,7 +17,7 @@ import { writtenPermissionTitle } from "./DocsRoleNames";
  *  - Test Rule on a Slack or Microsoft Teams notification rule needs the
  *    permission a channel's Send Test needs (create notification rules) and,
  *    on OneUptime Cloud, the Growth plan;
- *  - a status page's Require SSO for Login needs Scale to turn on, and turns
+ *  - a status page's Require SSO to Sign In needs Scale to turn on, and turns
  *    off on every plan;
  *  - a state change of an alert or an episode sent with a private note needs
  *    the note's own permission, or it is refused whole.
@@ -173,7 +173,7 @@ describe("Test Rule, in the Slack and Microsoft Teams guides", () => {
   );
 });
 
-describe("Require SSO for Login on a status page, in the status pages guide", () => {
+describe("Require SSO to Sign In on a status page, in the status pages guide", () => {
   test("the plan the guide names is the column's own", () => {
     expect(
       new StatusPage().getColumnBillingAccessControl("requireSsoForLogin"),

@@ -135,14 +135,13 @@ Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fy
 | Seksjon i sidemenyen | Sider                                                                                                       |
 | -------------------- | ----------------------------------------------------------------------------------------------------------- |
 | **Oversikt** | **Oversikt** og **Tilstandstidslinje** |
-| **Undersøkelse** | **Beskrivelse**, **Rotårsak**, **Utbedring**, **Runbooks**, **Tilknyttede hendelser** |
+| **Undersøkelse** | **Beskrivelse**, **Rotårsak**, **Utbedring**, **Runbooks**, **Tilknyttede hendelser**, **Private notater** |
 | **Team** | **Vaktutførelser** og **Eiere**: hvem som ble tilkalt for varselet, og hvem som eier det |
 | **Varslinger**           | **Varslingslogger** og **AI-logger**: hver melding som er sendt om varselet, og alt AI har gjort for det      |
-| **Notater**    | **Private notater**                                                                                         |
 | **Utvikler**         | **Terraform**, **API**, **CLI** og **AI-assistenter**: varselet styrt fra kode                              |
 | **Avansert** | **Egendefinerte felt**, **Innstillinger**, **Revisjonslogger**, **Slett varsel** |
 
-**Oversikt**, **Undersøkelse**, **Team** og **Notater** er åpne; de andre seksjonene er sammenfoldet til du klikker på dem.
+**Oversikt**, **Undersøkelse** og **Team** er åpne; de andre seksjonene er sammenfoldet til du klikker på dem.
 
 - **Oversikt** — toppen nevner varselets **Eiere**, team først, ved siden av monitoren og episoden. Ruten **Opprettet** viser når og av hva varselet ble opprettet, to andre hvor lang tid det tok å bekrefte og løse det; hvor lenge det har vart, står først i toppen. Kortet **Hva som skjedde** står øverst på siden — varselets beskrivelse og **Rotårsak** — deretter kortet **OneUptime AI** med **Spør OneUptime AI** nederst, og **Varselsfeed** registrerer alt som skjedde med varselet. Når en monitor har opprettet varselet, nevner **Evalueringsdetaljer** under rotårsaken filtrene som samsvarte, og hva hvert fant, og **Vis detaljer** legger til et utdrag av svaret og selve kontrollen. Se [Hva en hendelse eller et varsel tar vare på av kontrollen](/docs/monitor/criteria-and-statuses#hva-en-hendelse-eller-et-varsel-tar-vare-på-av-kontrollen). Når en målingsmonitor har opprettet varselet, viser telemetrikortet målingene monitoren overvåket rundt starten av varselet, med verdien monitoren sammenlignet dem med tegnet som en linje og varselets egne øyeblikk merket: velg et annet tidsrom, dra over et diagram for å zoome inn, eller bytt og legg til målinger rett der, og de andre fanene følger det samme tidsrommet. Når en logg-, spor- eller unntaksmonitor har opprettet det, viser kortet det monitorens spørring fant i vinduet den evaluerte: velg et annet tidsrom rundt varselet, eller ditt eget, og alle fanene følger; dra over volumdiagrammet for å zoome inn, og **Tilbakestill** går tilbake til det monitoren så. Ved siden av står kortet **Berørte ressurser**, kortet **Varseldetaljer** og varselets målinger.
 - **Tilstandstidslinje** — hver tilstand varselet har vært i, når og hvor lenge. Se [Tilstandstidslinjen](/docs/alerts/states-and-severities#tilstandstidslinjen).

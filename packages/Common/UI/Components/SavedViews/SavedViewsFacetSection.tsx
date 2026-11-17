@@ -228,7 +228,7 @@ const SavedViewsFacetSection: FunctionComponent<SavedViewsFacetSectionProps> = (
           })}
 
           {visible.views.length === 0 && (
-            <p className="px-1 py-2 text-[11px] text-gray-500">
+            <p className="px-1 py-2 text-xs text-gray-500">
               {translator.translateText(
                 visible.isSearching
                   ? "No matches found"

@@ -200,7 +200,7 @@ curl -X POST "<url>" \
 
 Mit der Vorlage wird ein Vorfall eröffnet, mit dem Titel `Datadog: High CPU`, und die gewählten Bereitschaftsrichtlinien werden alarmiert. Mit dem Monitor wird ein Vorfall eröffnet, mit dem Titel `[Triggered] High CPU`. Senden Sie dieselbe Anfrage mit `transition` auf `Recovered`, und der Vorfall wird behoben.
 
-Testen Sie dann aus Datadog: Öffnen Sie einen Monitor, der den Webhook nennt, klicken Sie auf **Test Notifications** und senden Sie seine Benachrichtigung **Alert**. Um zu sehen, ob sie angekommen ist, öffnen Sie **Protokolle → Ausführungen** des Workflows oder die Zeitleiste des OneUptime-Monitors.
+Testen Sie dann aus Datadog: Öffnen Sie einen Monitor, der den Webhook nennt, klicken Sie auf **Test Notifications** und senden Sie seine Benachrichtigung **Alert**. Um zu sehen, ob sie angekommen ist, öffnen Sie **Ausführungen** des Workflows oder die Zeitleiste des OneUptime-Monitors.
 
 ## Fehlerbehebung
 
@@ -211,7 +211,7 @@ Testen Sie dann aus Datadog: Öffnen Sie einen Monitor, der den Webhook nennt, k
 :::
 
 :::details Der Workflow läuft, eröffnet aber nichts
-Öffnen Sie die Ausführung unter **Protokolle → Ausführungen**. Der Eintrag `read-event-1` unter **Schritte** sagt, warum er **Nein** genommen hat.
+Öffnen Sie die Ausführung unter **Ausführungen**. Der Eintrag `read-event-1` unter **Schritte** sagt, warum er **Nein** genommen hat.
 
 - `Datadog named no alert cycle key`: Fügen Sie `"alert_cycle_key": "$ALERT_CYCLE_KEY"` zur Nutzlast des Webhooks in Datadog hinzu.
 - `Datadog named no transition`: Fügen Sie `"transition": "$ALERT_TRANSITION"` zur Nutzlast des Webhooks in Datadog hinzu.
@@ -225,14 +225,14 @@ Testen Sie dann aus Datadog: Öffnen Sie einen Monitor, der den Webhook nennt, k
 
 :::details Vorfälle werden eröffnet, aber nie behoben
 - Der Datadog-Monitor muss den Webhook auch über seine Erholungen benachrichtigen. Eine Nachricht, die den Webhook nur für Warnungen nennt, innerhalb einer Bedingung, sendet keine Erholung.
-- Mit der Vorlage öffnen Sie die Ausführung der Erholung unter **Protokolle → Ausführungen**: Ihr letzter Schritt sagt, warum. Der `alert_cycle_key` der Erholung muss der der Warnung sein, lassen Sie also `$ALERT_CYCLE_KEY` in der Nutzlast so, wie es ist.
+- Mit der Vorlage öffnen Sie die Ausführung der Erholung unter **Ausführungen**: Ihr letzter Schritt sagt, warum. Der `alert_cycle_key` der Erholung muss der der Warnung sein, lassen Sie also `$ALERT_CYCLE_KEY` in der Nutzlast so, wie es ist.
 - Mit dem Monitor braucht der Vorfall des Kriteriums **Vorfall automatisch beheben** unter **Weitere Felder**.
 - **Wert, der „wiederhergestellt“ bedeutet** muss genau `Recovered` sein. Der Vergleich unterscheidet Groß- und Kleinschreibung.
 - Der `alert_key` der Erholung muss der der Warnung sein: Lassen Sie `$ALERT_ID $ALERT_SCOPE` so, wie es in der Nutzlast steht.
 :::
 
 :::details Ein Feld zeigt den Namen einer Variablen oder nichts
-Datadog füllt nur die Variablen aus, die zum Ereignis passen. Senden Sie eine Testbenachrichtigung und sehen Sie dann nach, was angekommen ist: in der Zeitleiste des Monitors oder bei einem Workflow unter **Protokolle → Ausführungen**.
+Datadog füllt nur die Variablen aus, die zum Ereignis passen. Senden Sie eine Testbenachrichtigung und sehen Sie dann nach, was angekommen ist: in der Zeitleiste des Monitors oder bei einem Workflow unter **Ausführungen**.
 :::
 
 :::details Alle Warnungen eines Monitors landen in einem Vorfall

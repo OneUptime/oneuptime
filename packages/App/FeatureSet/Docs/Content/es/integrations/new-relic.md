@@ -151,7 +151,7 @@ curl -X POST "<url>" \
 
 Se abre un incidente titulado `New Relic: High CPU on checkout-service`, y se avisa a las políticas de guardia que elegiste. Envía la misma solicitud con `isAcknowledged` en `true` y el incidente se reconoce. Envíala con `state` en `CLOSED` y el incidente se resuelve.
 
-Luego prueba desde New Relic: abre el mensaje del webhook del flujo de trabajo y haz clic en **Send test notification**. Para ver que llegó, abre **Registros → Ejecuciones** del flujo de trabajo de OneUptime.
+Luego prueba desde New Relic: abre el mensaje del webhook del flujo de trabajo y haz clic en **Send test notification**. Para ver que llegó, abre **Ejecuciones** del flujo de trabajo de OneUptime.
 
 ## Solución de problemas
 
@@ -162,7 +162,7 @@ Luego prueba desde New Relic: abre el mensaje del webhook del flujo de trabajo y
 :::
 
 :::details El flujo de trabajo se ejecuta, pero no abre nada
-Abre la ejecución en **Registros → Ejecuciones**. La entrada `read-event-1` de sus **Pasos** dice por qué tomó **No**.
+Abre la ejecución en **Ejecuciones**. La entrada `read-event-1` de sus **Pasos** dice por qué tomó **No**.
 
 - `New Relic named no issue ID`: deja la línea `"id": {{ json issueId }},` en la carga útil.
 - `is in no state`: deja la línea `"state": {{ json state }},` en la carga útil.
@@ -175,7 +175,7 @@ Abre la ejecución en **Registros → Ejecuciones**. La entrada `read-event-1` d
 
 :::details Los incidentes se abren pero nunca se resuelven
 - El flujo de trabajo de New Relic debe tener **Closed** activado en **Notify when**.
-- Abre la ejecución del cierre en **Registros → Ejecuciones**: su último paso dice por qué. El `id` del cierre debe ser el de la incidencia, así que deja `"id": {{ json issueId }},` tal como está en la carga útil.
+- Abre la ejecución del cierre en **Ejecuciones**: su último paso dice por qué. El `id` del cierre debe ser el de la incidencia, así que deja `"id": {{ json issueId }},` tal como está en la carga útil.
 :::
 
 :::details Se avisa a la guardia por demasiadas incidencias

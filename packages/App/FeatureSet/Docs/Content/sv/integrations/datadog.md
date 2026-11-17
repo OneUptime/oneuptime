@@ -200,7 +200,7 @@ curl -X POST "<url>" \
 
 Med mallen öppnas en incident med titeln `Datadog: High CPU`, och de jourpolicyer du valde larmas. Med monitorn öppnas en incident med titeln `[Triggered] High CPU`. Skicka samma begäran med `transition` inställd på `Recovered`, så löses incidenten.
 
-Testa sedan från Datadog: öppna en monitor som nämner webhooken, klicka på **Test Notifications** och skicka dess avisering **Alert**. För att se att den kom fram öppnar du arbetsflödets **Loggar → Körningar**, eller OneUptime-monitorns tidslinje.
+Testa sedan från Datadog: öppna en monitor som nämner webhooken, klicka på **Test Notifications** och skicka dess avisering **Alert**. För att se att den kom fram öppnar du arbetsflödets **Körningar**, eller OneUptime-monitorns tidslinje.
 
 ## Felsökning
 
@@ -211,7 +211,7 @@ Testa sedan från Datadog: öppna en monitor som nämner webhooken, klicka på *
 :::
 
 :::details Arbetsflödet körs, men öppnar ingenting
-Öppna körningen i **Loggar → Körningar**. Posten `read-event-1` under dess **Steg** säger varför den tog **Nej**.
+Öppna körningen i **Körningar**. Posten `read-event-1` under dess **Steg** säger varför den tog **Nej**.
 
 - `Datadog named no alert cycle key`: lägg till `"alert_cycle_key": "$ALERT_CYCLE_KEY"` i webhookens nyttolast i Datadog.
 - `Datadog named no transition`: lägg till `"transition": "$ALERT_TRANSITION"` i webhookens nyttolast i Datadog.
@@ -225,14 +225,14 @@ Testa sedan från Datadog: öppna en monitor som nämner webhooken, klicka på *
 
 :::details Incidenter skapas men löses aldrig
 - Datadog-monitorn måste också avisera webhooken om sina återhämtningar. Ett meddelande som nämner webhooken bara för larm, inuti ett villkor, skickar ingen återhämtning.
-- Med mallen: öppna återhämtningens körning i **Loggar → Körningar**: dess sista steg säger varför. Återhämtningens `alert_cycle_key` måste vara larmets, så behåll `$ALERT_CYCLE_KEY` som den är i nyttolasten.
+- Med mallen: öppna återhämtningens körning i **Körningar**: dess sista steg säger varför. Återhämtningens `alert_cycle_key` måste vara larmets, så behåll `$ALERT_CYCLE_KEY` som den är i nyttolasten.
 - Med monitorn behöver kriteriets incident **Lös incident automatiskt**, under **Fler fält**.
 - **Value that means recovered** måste vara exakt `Recovered`. Jämförelsen är skiftlägeskänslig.
 - Återhämtningens `alert_key` måste vara larmets: behåll `$ALERT_ID $ALERT_SCOPE` som det står i nyttolasten.
 :::
 
 :::details Ett fält visar namnet på en variabel, eller ingenting
-Datadog fyller bara i de variabler som gäller för händelsen. Skicka en testavisering och titta sedan på vad som kom fram: i monitorns tidslinje, eller för ett arbetsflöde i **Loggar → Körningar**.
+Datadog fyller bara i de variabler som gäller för händelsen. Skicka en testavisering och titta sedan på vad som kom fram: i monitorns tidslinje, eller för ett arbetsflöde i **Körningar**.
 :::
 
 :::details Alla larm från en monitor slås ihop till en incident

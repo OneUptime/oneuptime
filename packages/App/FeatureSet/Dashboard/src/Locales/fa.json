@@ -2625,7 +2625,6 @@
   "For devices without the Google Play Store.": "برای دستگاه‌هایی که Google Play Store ندارند.",
   "For OAuth, this should be the email address you want to send from.": "برای OAuth، این باید آدرس ایمیلی باشد که می‌خواهید از آن ارسال کنید.",
   "For the last (in minutes)": "در (دقیقه) گذشته",
-  "Force SSO for Login": "اجباری کردن SSO برای ورود",
   "Formula": "فرمول",
   "Forward Errors": "خطاهای ارجاع",
   "Forward Requests": "درخواست‌های ارجاع‌شده",
@@ -15041,7 +15040,7 @@
   "Requests, errors and latency, and one row per replica.": "درخواست‌ها، خطاها و تأخیر، و یک ردیف برای هر رونوشت.",
   "Requests, errors and latency, one row per task, and CPU and memory from the sidecar.": "درخواست‌ها، خطاها و تأخیر، یک ردیف برای هر تسک، و CPU و حافظه از کانتینر جانبی.",
   "Require SSO": "الزامی کردن SSO",
-  "Require SSO for Login": "الزامی کردن SSO برای ورود",
+  "Require SSO to Sign In": "الزامی کردن SSO برای ورود",
   "Require SSO with specific provider": "الزام SSO با ارائه‌دهنده مشخص",
   "Require a phone call for critical incidents or a push for your most severe alerts - you pick the severities and the channel.": "برای حوادث بحرانی تماس تلفنی یا برای شدیدترین هشدارهایتان اعلان پوش را الزامی کنید - شدت‌ها و کانال را خودتان انتخاب می‌کنید.",
   "Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.": "برای OpenAI، Azure OpenAI، Anthropic، Groq و Mistral الزامی است. برای Ollama و سرورهای سازگار با OpenAI (مثلاً vLLM) که احراز هویت نمی‌خواهند اختیاری است.",
@@ -20897,7 +20896,7 @@
   "Running query": "اجرای پرس‌وجو",
   "Running {{tool}}": "اجرای {{tool}}",
   "Runtime — {{platform}}": "محیط اجرا — {{platform}}",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "ورود یکپارچهٔ SAML و OIDC (SSO) برای پروژه‌ها، صفحه‌های وضعیت و کل نمونه، از جمله «الزامی کردن SSO برای ورود».",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "ورود یکپارچهٔ SAML و OIDC (SSO) برای پروژه‌ها، صفحه‌های وضعیت و کل نمونه، از جمله «الزامی کردن SSO برای ورود».",
   "SCIM provisioning is off and your identity provider's SCIM requests are refused. Audit logging is not recording. Enterprise configuration is read-only and the enterprise admin dashboards are locked. Everything resumes, without a restart, as soon as a valid license is added, and core monitoring is never affected.": "تأمین SCIM خاموش است و درخواست‌های SCIM ارائه‌دهندهٔ هویت شما رد می‌شوند. ثبت ممیزی چیزی ثبت نمی‌کند. پیکربندی سازمانی فقط‌خواندنی است و داشبوردهای مدیریت سازمانی قفل‌اند. همه‌چیز، بدون راه‌اندازی دوباره، به‌محض افزودن یک پروانهٔ معتبر از سر گرفته می‌شود و پایش اصلی هرگز تحت تأثیر قرار نمی‌گیرد.",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "تأمین SCIM متوقف می‌شود، ثبت ممیزی دیگر چیزی ثبت نمی‌کند، پیکربندی سازمانی فقط‌خواندنی می‌شود و داشبوردهای مدیریت سازمانی قفل می‌شوند. همه‌چیز به‌محض فعال شدن یک پروانه از سر گرفته می‌شود و پایش اصلی هرگز تحت تأثیر قرار نمی‌گیرد.",
   "SLOs are linked automatically when their burn rate rules fire.": "SLOها وقتی قواعد نرخ مصرفشان فعال شود خودکار پیوند می‌خورند.",
@@ -56476,7 +56475,7 @@
   "Only your team sees this. Visitors read the intro text, set on Branding.": "فقط تیم شما این را می‌بیند. بازدیدکنندگان متن معرفی را می‌خوانند که در برندینگ تنظیم می‌شود.",
   "Private users and sign-in links.": "کاربران خصوصی و لینک‌های ورود.",
   "Ready for when the page is private, so nobody is locked out when it changes.": "آماده برای زمانی که صفحه خصوصی شود، تا هنگام تغییر کسی پشت در نماند.",
-  "SAML and OIDC providers, and Require SSO for Login.": "ارائه‌دهندگان SAML و OIDC، و الزامی کردن SSO برای ورود.",
+  "SAML and OIDC providers, and Require SSO to Sign In.": "ارائه‌دهندگان SAML و OIDC، و الزامی کردن SSO برای ورود.",
   "SCIM connections that add and remove private users.": "اتصال‌های SCIM که کاربران خصوصی را اضافه و حذف می‌کنند.",
   "Search Engine Description": "توضیحات موتور جستجو",
   "Set Up Before Making It Private": "پیش از خصوصی کردن راه‌اندازی کنید",
@@ -56525,5 +56524,7 @@
   "Server Monitor Secret Key Hash": "هش کلید محرمانه مانیتور سرور",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "توکن Bearer فقط یک بار نمایش داده می‌شود: هنگام افزودن اتصال یا بازنشانی توکن آن. اگر دیگر آن را ندارید، با «بازنشانی توکن Bearer» یک توکن تازه بسازید.",
   "Webhook Secret Key Hash": "هش کلید محرمانه وب‌هوک",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "یک حادثه یا هشدار خصوصی که نمی‌توانید باز کنید به این وظیفه اضافه شده است، بنابراین پیشرفت و Pull Request آن پنهان است."
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "یک حادثه یا هشدار خصوصی که نمی‌توانید باز کنید به این وظیفه اضافه شده است، بنابراین پیشرفت و Pull Request آن پنهان است.",
+  "OneUptime is added to your Zoom account": "OneUptime به حساب Zoom شما اضافه شد",
+  "{{connectZoom}} to start this project's calls in Zoom.": "برای شروع تماس‌های این پروژه در Zoom، {{connectZoom}}."
 }

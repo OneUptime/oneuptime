@@ -21,7 +21,7 @@ flowchart TB
 
 ## La page du calendrier
 
-Ouvrez **Maintenance planifiée → Calendrier de maintenance**, dans la section **Calendrier** du menu latéral. **Tous les événements de maintenance** montre les mêmes événements sous forme de liste.
+Ouvrez **Maintenance planifiée → Calendrier de maintenance**, dans la section **Vue d'ensemble** du menu latéral. **Tous les événements de maintenance** montre les mêmes événements sous forme de liste.
 
 - Le calendrier s'ouvre sur le mois en cours, avec aujourd'hui mis en évidence. **Mois**, **Semaine** et **Jour** changent ce qu'il montre ; naviguez avec les flèches et revenez avec **Aujourd'hui**. Les heures sont dans votre propre fuseau horaire.
 - Chaque événement est un bloc de la couleur de son état, et les couleurs des états sont nommées sous le calendrier. Cliquez sur un événement pour l'ouvrir.

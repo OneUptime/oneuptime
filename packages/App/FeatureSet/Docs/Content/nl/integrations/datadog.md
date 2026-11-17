@@ -200,7 +200,7 @@ curl -X POST "<url>" \
 
 Met het sjabloon opent een incident, met de titel `Datadog: High CPU`, en het bereikbaarheidsbeleid dat je hebt gekozen wordt opgeroepen. Met de monitor opent een incident, met de titel `[Triggered] High CPU`. Stuur hetzelfde verzoek met `transition` op `Recovered`, en het incident wordt opgelost.
 
-Test daarna vanuit Datadog: open een monitor die de webhook noemt, klik op **Test Notifications** en stuur de melding **Alert**. Om te zien dat ze is aangekomen, open je **Logboeken → Uitvoeringen** van de workflow, of de tijdlijn van de OneUptime-monitor.
+Test daarna vanuit Datadog: open een monitor die de webhook noemt, klik op **Test Notifications** en stuur de melding **Alert**. Om te zien dat ze is aangekomen, open je **Uitvoeringen** van de workflow, of de tijdlijn van de OneUptime-monitor.
 
 ## Problemen oplossen
 
@@ -211,7 +211,7 @@ Test daarna vanuit Datadog: open een monitor die de webhook noemt, klik op **Tes
 :::
 
 :::details De workflow draait, maar opent niets
-Open de uitvoering in **Logboeken → Uitvoeringen**. De vermelding `read-event-1` in de **Stappen** ervan zegt waarom hij **Nee** nam.
+Open de uitvoering in **Uitvoeringen**. De vermelding `read-event-1` in de **Stappen** ervan zegt waarom hij **Nee** nam.
 
 - `Datadog named no alert cycle key`: voeg `"alert_cycle_key": "$ALERT_CYCLE_KEY"` toe aan de payload van de webhook in Datadog.
 - `Datadog named no transition`: voeg `"transition": "$ALERT_TRANSITION"` toe aan de payload van de webhook in Datadog.
@@ -225,14 +225,14 @@ Open de uitvoering in **Logboeken → Uitvoeringen**. De vermelding `read-event-
 
 :::details Incidenten gaan open maar worden nooit opgelost
 - De Datadog-monitor moet de webhook ook van zijn herstel op de hoogte brengen. Een bericht dat de webhook alleen voor waarschuwingen noemt, binnen een voorwaarde, stuurt geen herstel.
-- Open met het sjabloon de uitvoering van het herstel in **Logboeken → Uitvoeringen**: de laatste stap zegt waarom. De `alert_cycle_key` van het herstel moet die van de waarschuwing zijn, dus laat `$ALERT_CYCLE_KEY` in de payload zoals het is.
+- Open met het sjabloon de uitvoering van het herstel in **Uitvoeringen**: de laatste stap zegt waarom. De `alert_cycle_key` van het herstel moet die van de waarschuwing zijn, dus laat `$ALERT_CYCLE_KEY` in de payload zoals het is.
 - Bij de monitor heeft het incident van het criterium **Incident automatisch oplossen** nodig, onder **Meer velden**.
 - **Value that means recovered** moet precies `Recovered` zijn. De vergelijking is hoofdlettergevoelig.
 - De `alert_key` van het herstel moet die van de waarschuwing zijn: laat `$ALERT_ID $ALERT_SCOPE` staan zoals in de payload.
 :::
 
 :::details Een veld toont de naam van een variabele, of niets
-Datadog vult alleen de variabelen in die op de gebeurtenis van toepassing zijn. Stuur een testmelding en kijk wat er is aangekomen: in de tijdlijn van de monitor, of voor een workflow in **Logboeken → Uitvoeringen**.
+Datadog vult alleen de variabelen in die op de gebeurtenis van toepassing zijn. Stuur een testmelding en kijk wat er is aangekomen: in de tijdlijn van de monitor, of voor een workflow in **Uitvoeringen**.
 :::
 
 :::details Elke waarschuwing van een monitor valt samen in één incident

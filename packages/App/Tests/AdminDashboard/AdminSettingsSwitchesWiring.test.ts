@@ -7,7 +7,7 @@ import { ADMIN_DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLangua
 /*
  * The admin dashboard's one-switch settings save the moment they are
  * flipped: Settings > Authentication's Sign Up and Project Creation,
- * Settings > Single Sign-On's Require SSO for Login (it was on
+ * Settings > Single Sign-On's Require SSO to Sign In (it was on
  * Authentication, between the two), a user's Master Admin and a project's
  * Customer Support Access. Each was a card whose Edit dialog held the one switch; each is
  * the shared ModelSwitchCard now, saving through AdminModelAPI (the client
@@ -167,7 +167,7 @@ describe("Settings > Authentication", () => {
 });
 
 describe("Settings > Single Sign-On", () => {
-  test("Require SSO for Login is one switch card on the GlobalConfig row, through the admin API", () => {
+  test("Require SSO to Sign In is one switch card on the GlobalConfig row, through the admin API", () => {
     expect(
       SINGLE_SIGN_ON.split("<ModelSwitchCard<GlobalConfig>").length - 1,
     ).toBe(1);

@@ -169,7 +169,7 @@ Um auf mehrere Auslöser zu reagieren, beginnen Sie alle ihre Titel gleich, oder
 ## Den Schutzschalter testen
 
 :::steps
-1. Lösen Sie ihn von Hand aus. Öffnen Sie **Warnungen**, klicken Sie auf **Warnung erstellen** und erstellen Sie eine mit dem Titel `LLM budget exceeded: test`. Die Ausführung erscheint unter **Arbeitsabläufe → Protokolle → Ausführungen**, und Ihr Endpunkt erhält den Aufruf.
+1. Lösen Sie ihn von Hand aus. Öffnen Sie **Warnungen**, klicken Sie auf **Warnung erstellen** und erstellen Sie eine mit dem Titel `LLM budget exceeded: test`. Die Ausführung erscheint unter **Arbeitsabläufe → Ausführungen**, und Ihr Endpunkt erhält den Aufruf.
 2. Lösen Sie ihn echt aus. Erstellen Sie ein Budget mit einem winzigen Limit, etwa `0.01` USD, auf dem Dienst eines Testagenten, richten Sie einen Budget-Monitor darauf und lassen Sie den Agenten laufen: Der Prozentsatz überschreitet 100, die Warnung öffnet sich, der Workflow läuft und der Schutzschalter löst aus. Für die Schleifenwarnung geben Sie einem Testagenten ein Tool, das immer fehlschlägt.
 3. Lösen Sie ihn zweimal aus. Erstellen Sie dieselbe Warnung noch einmal: Ihr Endpunkt muss das zweite Auslösen hinnehmen, ohne etwas zu ändern.
 :::
@@ -201,7 +201,7 @@ Der **Zeitbereich** des Monitors ist kürzer als die 15 Minuten zwischen zwei Pu
 :::
 
 :::details Die Anfrage erreicht Ihren Endpunkt nie
-Öffnen Sie die Ausführung unter **Arbeitsabläufe → Protokolle → Ausführungen** und darin den Schritt **API-Aufruf POST (JSON)**: Er sagt, warum die Anfrage fehlgeschlagen ist. Bei OneUptime Cloud muss der Endpunkt aus dem Internet erreichbar sein; eine selbst betriebene Installation lehnt private Netzwerkadressen ab, außer ein Administrator erlaubt sie.
+Öffnen Sie die Ausführung unter **Arbeitsabläufe → Ausführungen** und darin den Schritt **API-Aufruf POST (JSON)**: Er sagt, warum die Anfrage fehlgeschlagen ist. Bei OneUptime Cloud muss der Endpunkt aus dem Internet erreichbar sein; eine selbst betriebene Installation lehnt private Netzwerkadressen ab, außer ein Administrator erlaubt sie.
 :::
 
 ## Nächste Schritte

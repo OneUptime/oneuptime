@@ -151,7 +151,7 @@ curl -X POST "<url>" \
 
 Um incidente abre, com o título `New Relic: High CPU on checkout-service`, e as políticas de plantão que você escolheu são chamadas. Envie a mesma requisição com `isAcknowledged` em `true`, e o incidente é confirmado. Envie-a com `state` em `CLOSED`, e o incidente é resolvido.
 
-Depois teste a partir do New Relic: abra a mensagem do webhook do workflow e clique em **Send test notification**. Para ver que ela chegou, abra **Registros → Execuções** do workflow do OneUptime.
+Depois teste a partir do New Relic: abra a mensagem do webhook do workflow e clique em **Send test notification**. Para ver que ela chegou, abra **Execuções** do workflow do OneUptime.
 
 ## Solução de problemas
 
@@ -162,7 +162,7 @@ Depois teste a partir do New Relic: abra a mensagem do webhook do workflow e cli
 :::
 
 :::details O workflow roda, mas não abre nada
-Abra a execução em **Registros → Execuções**. A entrada `read-event-1` em **Etapas** diz por que ela seguiu por **Não**.
+Abra a execução em **Execuções**. A entrada `read-event-1` em **Etapas** diz por que ela seguiu por **Não**.
 
 - `New Relic named no issue ID`: mantenha a linha `"id": {{ json issueId }},` no payload.
 - `is in no state`: mantenha a linha `"state": {{ json state }},` no payload.
@@ -175,7 +175,7 @@ Abra a execução em **Registros → Execuções**. A entrada `read-event-1` em 
 
 :::details Os incidentes abrem mas nunca são resolvidos
 - O workflow no New Relic deve manter **Closed** ativado em **Notify when**.
-- Abra a execução do fechamento em **Registros → Execuções**: a última etapa dela diz por quê. O `id` do fechamento deve ser o do problema, então mantenha `"id": {{ json issueId }},` como está no payload.
+- Abra a execução do fechamento em **Execuções**: a última etapa dela diz por quê. O `id` do fechamento deve ser o do problema, então mantenha `"id": {{ json issueId }},` como está no payload.
 :::
 
 :::details O plantão é chamado por problemas demais

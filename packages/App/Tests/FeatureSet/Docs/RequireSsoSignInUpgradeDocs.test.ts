@@ -41,7 +41,7 @@ import {
  *   - the page a project that requires SSO sends people to lists the global
  *     providers that reach it (GET /identity/project-sign-in-methods);
  *   - the Admin Dashboard's Global SSO and Global OIDC lists are one Single
- *     Sign-On page, with Require SSO for Login under the providers, and the
+ *     Sign-On page, with Require SSO to Sign In under the providers, and the
  *     old list addresses open it.
  */
 
@@ -123,10 +123,10 @@ describe("the English upgrade note on requiring SSO for the whole server", () =>
 
   it("says what the sign-in pages offer, what the server refuses, where master admins sign in, and where the settings went", () => {
     for (const claim of [
-      "With Require SSO for Login on for the whole server, the sign-in, single sign-on and sign-up pages show a button for each global SSO provider that is on, and no password, passkey, Microsoft sign-in or sign-up.",
+      "With Require SSO to Sign In on for the whole server, the sign-in, single sign-on and sign-up pages show a button for each global SSO provider that is on, and no password, passkey, Microsoft sign-in or sign-up.",
       "The server refuses those too, a script that signs in with a password included, and only a master admin's password or passkey still signs them in, at `/accounts/admin-login`.",
       "Someone signed in with a password signs in with SSO to open a project, on a page that now also offers the global providers that sign people in to it.",
-      "In the Admin Dashboard, the Global SSO and Global OIDC lists are one Single Sign-On page under Settings, with Require SSO for Login under the providers, and their old addresses open it.",
+      "In the Admin Dashboard, the Global SSO and Global OIDC lists are one Single Sign-On page under Settings, with Require SSO to Sign In under the providers, and their old addresses open it.",
     ]) {
       expect({ claim, said: ENGLISH_NOTE.includes(claim) }).toEqual({
         claim,
@@ -262,7 +262,7 @@ describe("every translation carries the note", () => {
         `(/docs/${GLOBAL_SSO_PAGE}#${sectionAnchor(language)})`,
       );
       // The setting keeps its English name, as the other SSO notes write it.
-      expect(note).toContain("Require SSO for Login");
+      expect(note).toContain("Require SSO to Sign In");
 
       // A translated lead, not the English words.
       expect(note.startsWith(`- ${NOTE_LEAD}`)).toBe(false);

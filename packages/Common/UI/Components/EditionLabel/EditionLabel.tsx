@@ -1092,7 +1092,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         "Full OneUptime platform with incident response, status pages, and workflow automation.",
       ),
       translationKey(
-        'SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including "Require SSO for login".',
+        'SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including "Require SSO to sign in".',
       ),
       translationKey(
         "Community support, documentation, and tutorials to help teams get started quickly.",
@@ -1274,10 +1274,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
   const pillCtaTextClassName: string =
     pillTone === "alerted"
-      ? "whitespace-nowrap text-[11px] text-red-500 group-hover:text-red-600"
+      ? "whitespace-nowrap text-xs text-red-500 group-hover:text-red-600"
       : pillTone === "warning"
-        ? "whitespace-nowrap text-[11px] text-amber-600 group-hover:text-amber-700"
-        : "whitespace-nowrap text-[11px] text-indigo-500 group-hover:text-indigo-600";
+        ? "whitespace-nowrap text-xs text-amber-600 group-hover:text-amber-700"
+        : "whitespace-nowrap text-xs text-indigo-500 group-hover:text-indigo-600";
 
   /*
    * A published security advisory affects the version this installation

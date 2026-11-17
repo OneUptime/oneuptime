@@ -52,7 +52,7 @@ const StatusPagePrivateOnlyCopy: {
       "Private users and sign-in links.",
     ),
     [StatusPagePrivateOnlyPage.SingleSignOn]: translationKey(
-      "SAML and OIDC providers, and Require SSO for Login.",
+      "SAML and OIDC providers, and Require SSO to Sign In.",
     ),
     [StatusPagePrivateOnlyPage.Scim]: translationKey(
       "SCIM connections that add and remove private users.",

@@ -321,14 +321,14 @@ interface TelegramWebhookSecretTokenLoad {
 
 export class Service extends DatabaseService<Model> {
   /*
-   * Caches the instance-wide "Require SSO for Login" flag. This is read on the
+   * Caches the instance-wide "Require SSO to Sign In" flag. This is read on the
    * authenticated request path (per project), so it must not hit Postgres every
    * time. Refreshed at most once per 60s and invalidated on update below.
    */
   private requireSsoForLoginCache: InMemoryTTLCache<boolean> =
     new InMemoryTTLCache(10_000);
   /*
-   * The one read of the server's Require SSO for Login in flight, if any:
+   * The one read of the server's Require SSO to Sign In in flight, if any:
    * when the minute runs out - or the rule is forgotten, and every page's
    * live updates are asked again at once - every request that asks shares
    * it, rather than each reading the row. A read is kept only while it is
@@ -718,8 +718,8 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Drops this server's cached instance-wide sign-in rules - Require SSO for
-   * Login, and what it knows of the global SSO and OIDC providers (whether
+   * Drops this server's cached instance-wide sign-in rules - Require SSO to
+   * Sign In, and what it knows of the global SSO and OIDC providers (whether
    * each is on, and the projects it signs people in to) - so the next
    * request reads them again. Called when they change, here or on another
    * server (RealtimeAccessChanges).
@@ -729,7 +729,7 @@ export class Service extends DatabaseService<Model> {
     clearGlobalSsoAuthorizationCaches();
   }
 
-  // Drops this server's copy of Require SSO for Login, and the read in flight.
+  // Drops this server's copy of Require SSO to Sign In, and the read in flight.
   private forgetRequireSsoForLogin(): void {
     this.requireSsoForLoginCache.clear();
     this.requireSsoForLoginLookup = null;
@@ -1954,7 +1954,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Writing the server's Require SSO for Login on - turning it on, or saving
+   * Writing the server's Require SSO to Sign In on - turning it on, or saving
    * it on again - needs an SSO provider that signs people in to every
    * project that does not require SSO itself (Utils/SsoRequirementChanges):
    * checked once the caller has passed every permission check, under the

@@ -269,7 +269,7 @@ Die Tools für öffentliche Statusseiten nehmen die ID einer Statusseite (eine U
 }
 ```
 
-Die Owner einer Statusseite können den MCP-Zugriff für diese Seite ausschalten: Öffnen Sie auf der Statusseite **MCP** im Abschnitt **KI** ihres Seitenmenüs und schalten Sie **MCP-Server aktivieren** aus. Der Schalter speichert, sobald er umgelegt wird. Der MCP-Zugriff ist standardmäßig eingeschaltet. Solange er ausgeschaltet ist, geben die vier Tools `get_public_status_page_*` für diese Statusseite einen Fehler zurück; die Website der Statusseite, ihr RSS-Feed und ihre öffentliche JSON-API sind nicht betroffen, und die Statusseiten-Tools, die eine Anmeldung brauchen (`get_status_page`, `list_status_pages` und so weiter), funktionieren weiter für das eigene Projekt der Seite.
+Die Owner einer Statusseite können den MCP-Zugriff für diese Seite ausschalten: Öffnen Sie auf der Statusseite **MCP** im Abschnitt **Erweitert** ihres Seitenmenüs und schalten Sie **MCP-Server aktivieren** aus. Der Schalter speichert, sobald er umgelegt wird. Der MCP-Zugriff ist standardmäßig eingeschaltet. Solange er ausgeschaltet ist, geben die vier Tools `get_public_status_page_*` für diese Statusseite einen Fehler zurück; die Website der Statusseite, ihr RSS-Feed und ihre öffentliche JSON-API sind nicht betroffen, und die Statusseiten-Tools, die eine Anmeldung brauchen (`get_status_page`, `list_status_pages` und so weiter), funktionieren weiter für das eigene Projekt der Seite.
 
 ### Anmelden (OAuth 2.1)
 

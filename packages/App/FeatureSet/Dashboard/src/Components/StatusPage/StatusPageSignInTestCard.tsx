@@ -12,7 +12,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * Test Sign-In, under a status page's SSO or OIDC providers: the page's
- * sign-in link, to try a provider before Require SSO for Login is turned
+ * sign-in link, to try a provider before Require SSO to Sign In is turned
  * on. Drawn only while the page has a provider to try.
  */
 

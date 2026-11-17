@@ -3,7 +3,7 @@
 Mit Global SSO richtet ein **Instanzadministrator** (Master-Admin) von OneUptime einen SAML-2.0- oder OpenID-Connect-Identitätsanbieter (OIDC) **einmal** auf Instanzebene ein und verbindet ihn mit beliebigen Projekten auf dem Server. Statt dass jeder Projektinhaber einen eigenen Identitätsanbieter konfiguriert, richtet ein Master-Admin einen ein, der die ganze Instanz bedient.
 
 > [!NOTE]
-> Global SSO, einschließlich des instanzweiten Schalters "Require SSO for Login", ist Teil jeder OneUptime-Edition: Jede selbst gehostete Instanz hat es, auch die Community Edition, und es braucht keine Lizenz. Es gehört zur Instanzverwaltung und gilt daher nicht für OneUptime Cloud. Was jede Edition enthält, sehen Sie unter [Enterprise Edition](/docs/self-hosted/enterprise).
+> Global SSO, einschließlich des instanzweiten Schalters "Require SSO to Sign In", ist Teil jeder OneUptime-Edition: Jede selbst gehostete Instanz hat es, auch die Community Edition, und es braucht keine Lizenz. Es gehört zur Instanzverwaltung und gilt daher nicht für OneUptime Cloud. Was jede Edition enthält, sehen Sie unter [Enterprise Edition](/docs/self-hosted/enterprise).
 
 :::cards
 - [Einen Anbieter einrichten](#global-sso-einrichten): Anlegen, Ihrem Identitätsanbieter die URLs von OneUptime geben und testen.

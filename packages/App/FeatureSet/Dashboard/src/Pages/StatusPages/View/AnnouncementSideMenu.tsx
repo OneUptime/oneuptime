@@ -28,12 +28,9 @@ const AnnouncementSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
-      </SideMenuSection>
-
-      <SideMenuSection title="Advanced">
         {/*
-         * Who was told about the announcement. It was a section of its own,
-         * under a heading of its own name (#9134).
+         * Who was told about the announcement, beside it. Basic held only
+         * Overview while this was folded in Advanced (#9216).
          */}
         <SideMenuItem
           link={{
@@ -45,6 +42,9 @@ const AnnouncementSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Bell}
         />
+      </SideMenuSection>
+
+      <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
             title: "Delete Announcement",

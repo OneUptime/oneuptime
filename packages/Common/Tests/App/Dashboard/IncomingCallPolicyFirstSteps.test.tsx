@@ -232,24 +232,23 @@ async function settle(): Promise<void> {
 }
 
 describe("a policy's side menu", () => {
-  test("reads like an on-call policy's: Basic, Logs, Developer, Advanced", async () => {
+  /*
+   * Call Logs sits in Basic, right after Escalation Rules. It had a Logs
+   * section of its own, holding nothing else, until #9216.
+   */
+  test("reads Basic, Developer, Advanced, with Call Logs in Basic and no Logs section", async () => {
     await renderMenu(
       <MemoryRouter>
         <IncomingCallPolicySideMenu modelId={new ObjectID(POLICY_ID)} />
       </MemoryRouter>,
     );
 
-    expect(sectionTitlesInOrder()).toEqual([
-      "Basic",
-      "Logs",
-      "Developer",
-      "Advanced",
-    ]);
+    expect(sectionTitlesInOrder()).toEqual(["Basic", "Developer", "Advanced"]);
     expect(
       linksIn("Basic").map((link: { title: string }): string => {
         return link.title;
       }),
-    ).toEqual(["Overview", "Escalation Rules", "Owners"]);
+    ).toEqual(["Overview", "Escalation Rules", "Call Logs", "Owners"]);
     expect(
       linksIn("Advanced").map((link: { title: string }): string => {
         return link.title;

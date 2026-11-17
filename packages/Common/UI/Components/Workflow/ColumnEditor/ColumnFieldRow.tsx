@@ -151,7 +151,7 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
               The type is dropped when it would only repeat the field's own name -
               a column called "Color" does not need "Color" printed under it.
             */}
-            <span className="mt-1 flex items-center gap-1.5 text-[11px] text-gray-500">
+            <span className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
               {/* What it is called on the wire says nothing of a custom field. */}
               {customFieldName !== null ? (
                 <span className="truncate rounded bg-gray-100 px-1.5 py-0.5">
@@ -201,7 +201,7 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
         />
 
         {props.row.valueMode === ColumnValueMode.Raw && (
-          <p className="mt-1 text-[11px] text-amber-600">
+          <p className="mt-1 text-xs text-amber-600">
             {/* What editing it would do is no news on a view. */}
             {translator.translateText(
               isViewOnly
@@ -227,7 +227,7 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
 
         {isDeletedCustomField && (
           <p
-            className="mt-1 text-[11px] text-amber-600"
+            className="mt-1 text-xs text-amber-600"
             data-testid="model-column-no-such-custom-field"
           >
             {translator.translateText(CustomFieldRowCopy.noSuchField)}
@@ -235,7 +235,7 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
         )}
 
         {props.column?.isTenantColumn && (
-          <p className="mt-1 text-[11px] text-gray-500">
+          <p className="mt-1 text-xs text-gray-500">
             {translator.translateText(
               "The workflow sets this itself and ignores what you type here.",
             )}
@@ -251,7 +251,7 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
           !props.column.isTenantColumn &&
           isSystemColumn(props.column) && (
             <p
-              className="mt-1 text-[11px] text-gray-500"
+              className="mt-1 text-xs text-gray-500"
               data-testid={`model-column-system-note-${props.row.columnId}`}
             >
               {translator.translateText(

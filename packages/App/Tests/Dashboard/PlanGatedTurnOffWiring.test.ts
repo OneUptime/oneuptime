@@ -16,7 +16,7 @@ import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
  *   - a choice that leaves a paid one - making a public dashboard private,
  *     a private status page public - needs no plan, and its dialog says what
  *     coming back takes (ChoiceRows' CHOICE_PLAN_LEFTOVER_COPY);
- *   - "Require SSO for Login" stays reachable under the Scale upsell while a
+ *   - "Require SSO to Sign In" stays reachable under the Scale upsell while a
  *     project still requires SSO, and locks once off (turning it on again
  *     needs Scale);
  *   - a retention override a trial left set is shown, with a Remove button,

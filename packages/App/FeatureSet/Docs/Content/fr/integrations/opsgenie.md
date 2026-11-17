@@ -149,7 +149,7 @@ Opsgenie répond `202` avant de traiter la requête, donc une requête qu'il ref
 :::
 
 :::details Le flux de travail ne s'exécute jamais
-Vérifiez qu'il est activé : **Activé**, en haut de son **Constructeur**. Ouvrez ensuite **Journaux → Exécutions** : une exécution qui a pris le côté **Non** du bloc **Si / Sinon** est une mise à jour qui n'était pas une résolution.
+Vérifiez qu'il est activé : **Activé**, en haut de son **Constructeur**. Ouvrez ensuite **Exécutions** : une exécution qui a pris le côté **Non** du bloc **Si / Sinon** est une mise à jour qui n'était pas une résolution.
 :::
 
 ## Étapes suivantes

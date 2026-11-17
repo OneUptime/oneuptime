@@ -923,7 +923,7 @@ describe("ModelSwitchRow lets a paid feature be switched off on any plan", () =>
       rowFor<Project>({
         modelType: Project,
         column: "requireSsoForLogin",
-        title: "Require SSO for Login",
+        title: "Require SSO to Sign In",
         initialValue: true,
         getConfirmation: (
           isTurningOn: boolean,
@@ -985,7 +985,7 @@ describe("ModelSwitchRow lets a paid feature be switched off on any plan", () =>
     return rowFor<Project>({
       modelType: Project,
       column: "requireSsoForLogin",
-      title: "Require SSO for Login",
+      title: "Require SSO to Sign In",
       ...props,
     });
   }
@@ -1063,7 +1063,7 @@ describe("ModelSwitchRow lets a paid feature be switched off on any plan", () =>
       rowFor<Project>({
         modelType: Project,
         column: "requireSsoForLogin",
-        title: "Require SSO for Login",
+        title: "Require SSO to Sign In",
         initialValue: true,
       }),
     );

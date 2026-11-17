@@ -480,7 +480,7 @@ to `output/playwright/auto-remediation-rules-ui/` at the repository root.
 ## Single sign-on on every stack
 
 Single sign-on — SAML and OIDC sign-in for projects, for the whole instance
-and for status pages, and "Require SSO for login" — is core: every edition
+and for status pages, and "Require SSO to sign in" — is core: every edition
 serves it, and no licence decides whether it works. So it is asserted the same
 way on every stack:
 
@@ -491,8 +491,8 @@ way on every stack:
   every stack — never a 404, never a 402/403. With billing off it also
   configures a SAML provider as a brand new project owner, checks that both
   sign-in listings offer it and that its start route redirects to the identity
-  provider with the right ACS URL and Entity ID, and switches "Require SSO for
-  login" on and sees it enforced (a 406 for a password session). With billing
+  provider with the right ACS URL and Entity ID, and switches "Require SSO to
+  sign in" on and sees it enforced (a 406 for a password session). With billing
   on that half skips: OneUptime Cloud sells SSO configuration on the Scale
   plan. It is API only, never a page navigation.
 - `Enterprise/Licensed/IdentityRoutesThroughNginx.spec.ts` sends the same
@@ -652,7 +652,7 @@ handoff: the notices are decided by the installation's licence, not by anything
 a project holds, so it registers a throwaway project and deletes it again.
 `Lapsed/SsoUnaffectedByLapse.spec.ts` does not use it either: it signs its own
 owner up over the API, because the SAML provider it enables and the project it
-locks behind "Require SSO for login" must not change what the other lapsed
+locks behind "Require SSO to sign in" must not change what the other lapsed
 specs do with the handoff project.
 
 That suite addresses the row **both ways**: by the id the create response

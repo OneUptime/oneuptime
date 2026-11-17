@@ -151,7 +151,7 @@ curl -X POST "<url>" \
 
 En incident öppnas med titeln `New Relic: High CPU on checkout-service`, och de jourpolicyer du valde larmas. Skicka samma begäran med `isAcknowledged` inställd på `true`, så bekräftas incidenten. Skicka den med `state` inställd på `CLOSED`, så löses incidenten.
 
-Testa sedan från New Relic: öppna arbetsflödets webhook-meddelande och klicka på **Send test notification**. För att se att det kom fram öppnar du OneUptime-arbetsflödets **Loggar → Körningar**.
+Testa sedan från New Relic: öppna arbetsflödets webhook-meddelande och klicka på **Send test notification**. För att se att det kom fram öppnar du OneUptime-arbetsflödets **Körningar**.
 
 ## Felsökning
 
@@ -162,7 +162,7 @@ Testa sedan från New Relic: öppna arbetsflödets webhook-meddelande och klicka
 :::
 
 :::details Arbetsflödet körs, men öppnar ingenting
-Öppna körningen i **Loggar → Körningar**. Posten `read-event-1` under dess **Steg** säger varför den tog **Nej**.
+Öppna körningen i **Körningar**. Posten `read-event-1` under dess **Steg** säger varför den tog **Nej**.
 
 - `New Relic named no issue ID`: behåll raden `"id": {{ json issueId }},` i nyttolasten.
 - `is in no state`: behåll raden `"state": {{ json state }},` i nyttolasten.
@@ -175,7 +175,7 @@ Testa sedan från New Relic: öppna arbetsflödets webhook-meddelande och klicka
 
 :::details Incidenter skapas men löses aldrig
 - Arbetsflödet i New Relic måste ha **Closed** påslaget under **Notify when**.
-- Öppna stängningens körning i **Loggar → Körningar**: dess sista steg säger varför. Stängningens `id` måste vara ärendets, så behåll `"id": {{ json issueId }},` som den är i nyttolasten.
+- Öppna stängningens körning i **Körningar**: dess sista steg säger varför. Stängningens `id` måste vara ärendets, så behåll `"id": {{ json issueId }},` som den är i nyttolasten.
 :::
 
 :::details Jouren larmas för för många ärenden

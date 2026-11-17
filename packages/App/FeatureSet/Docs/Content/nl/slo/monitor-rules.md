@@ -1,6 +1,6 @@
 # Monitoren en monitorregels
 
-Een SLO meet de beschikbaarheid van de monitoren die eraan gekoppeld zijn. Koppel ze met de hand, laat monitorregels elke overeenkomende monitor koppelen, of doe allebei. Deze pagina behandelt de pagina **Monitoren** van een SLO, onder **Configuratie** in zijn zijmenu, en zijn pagina **Monitorregels**, onder **Regels**.
+Een SLO meet de beschikbaarheid van de monitoren die eraan gekoppeld zijn. Koppel ze met de hand, laat monitorregels elke overeenkomende monitor koppelen, of doe allebei. Deze pagina behandelt de pagina **Monitoren** van een SLO, onder **Overzicht** in zijn zijmenu, en zijn pagina **Monitorregels**, onder **Regels**.
 
 :::cards
 - [Monitoren met de hand kiezen](#monitoren-met-de-hand-koppelen): Het beste voor een kleine, vaste set.

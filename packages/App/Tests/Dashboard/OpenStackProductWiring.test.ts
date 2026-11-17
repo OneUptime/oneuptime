@@ -526,8 +526,8 @@ describe("the side menus have no dead links", () => {
       "Basic",
       "AI",
       "Control Plane",
+      // Bare Metal is a page in Compute, not a section of one entry (#9216).
       "Compute",
-      "Bare Metal",
       "Network",
       "Storage",
       "Orchestration",

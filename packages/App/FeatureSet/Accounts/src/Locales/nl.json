@@ -464,7 +464,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Gelicentieerd via uw cloudmarketplace-abonnement: elke gebruiker wordt per uur gefactureerd.",
   "License, version, seat usage, and the instances covered by this key.": "Licentie, versie, plaatsgebruik en de instanties die deze sleutel dekt.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "Het volledige OneUptime-platform met incidentrespons, statuspagina's en workflowautomatisering.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "SAML- en OIDC-single sign-on (SSO) voor projecten, statuspagina's en de hele instantie, inclusief \"SSO vereisen voor inloggen\".",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "SAML- en OIDC-single sign-on (SSO) voor projecten, statuspagina's en de hele instantie, inclusief \"SSO vereisen om aan te melden\".",
   "Community support, documentation, and tutorials to help teams get started quickly.": "Communityondersteuning, documentatie en tutorials waarmee teams snel aan de slag kunnen.",
   "Regular updates, bug fixes, and open-source extensibility.": "Regelmatige updates, bugfixes en opensource-uitbreidbaarheid.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Integraties met populaire DevOps-tools via connectors die de community onderhoudt.",

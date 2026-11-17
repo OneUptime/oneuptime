@@ -293,6 +293,31 @@ describe("docs search, on the real docs", () => {
     BUILD_TIMEOUT_MS,
   );
 
+  /*
+   * Require SSO to Sign In was Require SSO for Login (#9278). The docs say
+   * sign in now, so the old name still finds the pages about the switch.
+   */
+  test(
+    "English: Require SSO to Sign In's old name still finds its pages",
+    async () => {
+      for (const query of [
+        "require sso for login",
+        "Require SSO for Login",
+        "require sso to sign in",
+      ]) {
+        expect({
+          query,
+          found: urls(await search("en", query))
+            .slice(0, 3)
+            .some((url: string): boolean => {
+              return url.startsWith("/docs/en/identity/");
+            }),
+        }).toEqual({ query, found: true });
+      }
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
   test(
     "German: a typo, a reader's word and a phrase from the middle of a page",
     async () => {

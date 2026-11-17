@@ -2,6 +2,8 @@ import FileModel from "Common/Models/DatabaseModels/File";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import ErrorMessageText from "Common/UI/Components/ErrorMessage/ErrorMessageText";
 import FilePicker from "Common/UI/Components/FilePicker/FilePicker";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -648,55 +650,36 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
             data-testid="note-composer-buttons"
           >
             {props.onCancel && (
-              <button
-                type="button"
-                onClick={props.onCancel}
+              <Button
+                title={tx("Cancel")}
+                isTitleTranslated={true}
+                buttonStyle={ButtonStyleType.NORMAL}
                 disabled={props.isSubmitting}
-                className={`inline-flex h-9 items-center rounded-md px-3 text-sm font-medium text-gray-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
-                  {
-                    isLocked: props.isSubmitting,
-                    hoverClassName: "hover:bg-gray-100",
-                  },
-                )}`}
-              >
-                {tx("Cancel")}
-              </button>
+                onClick={props.onCancel}
+              />
             )}
-            <button
-              type="submit"
-              data-testid="note-submit"
+            {/*
+             * An empty note cannot be posted, and the button looks it the
+             * way every locked button does, saying why. While the note
+             * posts it is busy, not locked, so it keeps its look beside its
+             * spinner. Its keys are said in a chip after its words, hidden
+             * on a phone; the form listens for them.
+             */}
+            <Button
+              type={ButtonType.Submit}
+              title={tx(props.submitLabel || props.copy.submitLabel)}
+              isTitleTranslated={true}
+              buttonStyle={ButtonStyleType.PRIMARY}
+              shortcutHint={submitShortcut}
               disabled={isSubmitDisabled}
-              title={
+              isLoading={props.isSubmitting}
+              tooltip={
                 isBlank
                   ? tx("Write something first")
                   : `${tx(props.submitLabel || props.copy.submitLabel)} (${submitShortcut})`
               }
-              /*
-               * An empty note cannot be posted, and the button looks it the
-               * way every locked button does (getHandDrawnButtonStateClassName):
-               * a paler fill of its own was a bright block in the dark theme.
-               * While the note posts it is busy, not locked, so it keeps its
-               * look beside its spinner.
-               */
-              className={`inline-flex h-9 items-center gap-2 rounded-md bg-indigo-600 px-3.5 text-sm font-semibold text-white shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${getHandDrawnButtonStateClassName(
-                {
-                  isLocked: isBlank,
-                  isBusy: props.isSubmitting,
-                  hoverClassName: "hover:bg-indigo-700",
-                },
-              )}`}
-            >
-              {props.isSubmitting && (
-                <Icon
-                  icon={IconProp.Spinner}
-                  className="h-4 w-4 animate-spin"
-                />
-              )}
-              <span>{tx(props.submitLabel || props.copy.submitLabel)}</span>
-              <kbd className="max-sm:hidden rounded bg-white/15 px-1.5 py-0.5 font-sans text-[11px] font-medium text-indigo-50 sm:inline">
-                {submitShortcut}
-              </kbd>
-            </button>
+              dataTestId="note-submit"
+            />
           </div>
         )}
       </div>

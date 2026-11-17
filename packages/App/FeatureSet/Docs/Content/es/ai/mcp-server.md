@@ -269,7 +269,7 @@ Las herramientas de páginas de estado públicas reciben el ID de una página de
 }
 ```
 
-Los propietarios de una página de estado pueden desactivar el acceso MCP para esa página: en la página de estado, abre **MCP** en la sección **IA** de su menú lateral y desactiva **Habilitar servidor MCP**. El interruptor se guarda en cuanto lo cambias. El acceso MCP está activado por defecto. Mientras está desactivado, las cuatro herramientas `get_public_status_page_*` devuelven un error para esa página de estado; el sitio web de la página de estado, su feed RSS y su API JSON pública no se ven afectados, y las herramientas de páginas de estado que necesitan inicio de sesión (`get_status_page`, `list_status_pages`, etc.) siguen funcionando para el propio proyecto de la página.
+Los propietarios de una página de estado pueden desactivar el acceso MCP para esa página: en la página de estado, abre **MCP** en la sección **Avanzado** de su menú lateral y desactiva **Habilitar servidor MCP**. El interruptor se guarda en cuanto lo cambias. El acceso MCP está activado por defecto. Mientras está desactivado, las cuatro herramientas `get_public_status_page_*` devuelven un error para esa página de estado; el sitio web de la página de estado, su feed RSS y su API JSON pública no se ven afectados, y las herramientas de páginas de estado que necesitan inicio de sesión (`get_status_page`, `list_status_pages`, etc.) siguen funcionando para el propio proyecto de la página.
 
 ### Iniciar sesión (OAuth 2.1)
 

@@ -155,14 +155,8 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
     },
     auditPage: PageMap.SLO_VIEW_AUDIT_LOGS,
     auditSection: "Management",
-    sections: [
-      "Overview",
-      "Activity",
-      "Configuration",
-      "Rules",
-      "Developer",
-      "Management",
-    ],
+    // No Configuration section since #9216: Monitors sits in Overview.
+    sections: ["Overview", "Activity", "Rules", "Developer", "Management"],
     auditSectionLinks: [
       { title: "Owners", page: PageMap.SLO_VIEW_OWNERS },
       { title: "Settings", page: PageMap.SLO_VIEW_SETTINGS },
@@ -184,11 +178,12 @@ const RESOURCE_CASES: Array<ResourceAuditMenuCase> = [
       "Subscribers",
       "Branding",
       "Security",
-      "AI",
       "Developer",
       "Advanced",
     ],
+    // No AI section since #9216: MCP leads Advanced.
     auditSectionLinks: [
+      { title: "MCP", page: PageMap.STATUS_PAGE_VIEW_MCP },
       { title: "Embedded Status", page: PageMap.STATUS_PAGE_VIEW_EMBEDDED },
       { title: "Reports", page: PageMap.STATUS_PAGE_VIEW_REPORTS },
       {
@@ -320,19 +315,21 @@ describe.each(RESOURCE_CASES)(
 );
 
 /*
- * SLO performance and activity precede configuration and the rules: the
- * Monthly Report beside Metrics, as both are read rather than set up. Charts
+ * SLO performance and activity precede the rules: the monitors it measures
+ * right after its Overview (they had a Configuration section of their own,
+ * for that one entry, until #9216), and the Monthly Report beside Metrics,
+ * as both are read rather than set up. Charts
  * remains absent: its history lives in Metrics, and its route only survives
  * for bookmarks.
  */
 const SLO_SECTION_LINKS: Array<ExpectedLink> = [
   { title: "Overview", page: PageMap.SLO_VIEW },
+  { title: "Monitors", page: PageMap.SLO_VIEW_MONITORS },
   { title: "Metrics", page: PageMap.SLO_VIEW_METRICS },
   { title: "Monthly Report", page: PageMap.SLO_VIEW_MONTHLY_REPORT },
   { title: "Incidents", page: PageMap.SLO_VIEW_INCIDENTS },
   { title: "Alerts", page: PageMap.SLO_VIEW_ALERTS },
   { title: "Feed", page: PageMap.SLO_VIEW_FEED },
-  { title: "Monitors", page: PageMap.SLO_VIEW_MONITORS },
   { title: "Monitor Rules", page: PageMap.SLO_VIEW_MONITOR_RULES },
   { title: "Burn Rate Rules", page: PageMap.SLO_VIEW_BURN_RATE_RULES },
   { title: "Error Budget Policy", page: PageMap.SLO_VIEW_ERROR_BUDGET_POLICY },
@@ -353,7 +350,6 @@ describe("SLO resource menu", () => {
     expect([
       ...linksIn("Overview"),
       ...linksIn("Activity"),
-      ...linksIn("Configuration"),
       ...linksIn("Rules"),
     ]).toEqual(
       SLO_SECTION_LINKS.map((link: ExpectedLink): MenuLink => {

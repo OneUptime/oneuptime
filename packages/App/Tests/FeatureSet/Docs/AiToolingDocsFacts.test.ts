@@ -910,15 +910,21 @@ describe("the AI Agent Circuit Breakers page", () => {
     expect(page).toContain("type it again with **Update Content**");
   });
 
-  it("finds a run under Workflows → Logs → Runs", () => {
+  // Runs joined the menu's first section when its one-entry Logs section went (#9216).
+  it("finds a run under Workflows → Runs", () => {
     const menu: string = source("workflowSideMenu");
-    const logs: string = menu.slice(menu.indexOf('title: "Logs",'));
-
-    expect(logs.slice(0, 400)).toContain('title: "Runs",');
-    expect(page).toContain("The run appears under **Workflows → Logs → Runs**");
-    expect(page).toContain(
-      "Open the run under **Workflows → Logs → Runs** and the **API Post (JSON)** step",
+    const first: string = menu.slice(
+      menu.indexOf('title: "Workflows",'),
+      menu.indexOf('title: "Settings",'),
     );
+
+    expect(first).toContain('title: "Runs",');
+    expect(menu).not.toContain('title: "Logs",');
+    expect(page).toContain("The run appears under **Workflows → Runs**");
+    expect(page).toContain(
+      "Open the run under **Workflows → Runs** and the **API Post (JSON)** step",
+    );
+    expect(page).not.toContain("**Workflows → Logs → Runs**");
   });
 
   it("opens alerts by hand with the Alerts product's own Create Alert", () => {

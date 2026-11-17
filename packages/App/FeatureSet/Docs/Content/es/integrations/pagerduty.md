@@ -146,7 +146,7 @@ Ambos eventos deben llevar exactamente la misma `dedup_key`. Comprueba que los d
 :::
 
 :::details El flujo de trabajo nunca se ejecuta
-Comprueba que está activado: **Habilitado**, en la parte superior de su **Constructor**. Después abre **Registros → Ejecuciones**: una ejecución que tomó el lado **No** del bloque **Si / Si no** es una actualización que no era una resolución.
+Comprueba que está activado: **Habilitado**, en la parte superior de su **Constructor**. Después abre **Ejecuciones**: una ejecución que tomó el lado **No** del bloque **Si / Si no** es una actualización que no era una resolución.
 :::
 
 :::details PagerDuty muestra una referencia en lugar de un valor

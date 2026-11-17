@@ -2625,7 +2625,6 @@
   "For devices without the Google Play Store.": "Pour les appareils sans le Google Play Store.",
   "For OAuth, this should be the email address you want to send from.": "Pour OAuth, il doit s'agir de l'adresse e-mail à partir de laquelle vous souhaitez envoyer.",
   "For the last (in minutes)": "Pour les dernières (en minutes)",
-  "Force SSO for Login": "Forcer le SSO pour la connexion",
   "Formula": "Formule",
   "Forward Errors": "Erreurs de transfert",
   "Forward Requests": "Requêtes de transfert",
@@ -15041,7 +15040,7 @@
   "Requests, errors and latency, and one row per replica.": "Requêtes, erreurs et latence, et une ligne par réplica.",
   "Requests, errors and latency, one row per task, and CPU and memory from the sidecar.": "Requêtes, erreurs et latence, une ligne par tâche, et le CPU et la mémoire fournis par le sidecar.",
   "Require SSO": "Exiger le SSO",
-  "Require SSO for Login": "Exiger le SSO pour la connexion",
+  "Require SSO to Sign In": "Exiger le SSO pour la connexion",
   "Require SSO with specific provider": "Require SSO with specific provider",
   "Require a phone call for critical incidents or a push for your most severe alerts - you pick the severities and the channel.": "Require a phone call for critical incidents or a push for your most severe alerts - you pick the severities and the channel.",
   "Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.": "Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.",
@@ -20897,7 +20896,7 @@
   "Running query": "Exécution de la requête",
   "Running {{tool}}": "Exécution de {{tool}}",
   "Runtime — {{platform}}": "Runtime — {{platform}}",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "Authentification unique (SSO) SAML et OIDC pour les projets, les pages de statut et toute l'instance, y compris « Exiger le SSO pour la connexion ».",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "Authentification unique (SSO) SAML et OIDC pour les projets, les pages de statut et toute l'instance, y compris « Exiger le SSO pour la connexion ».",
   "SCIM provisioning is off and your identity provider's SCIM requests are refused. Audit logging is not recording. Enterprise configuration is read-only and the enterprise admin dashboards are locked. Everything resumes, without a restart, as soon as a valid license is added, and core monitoring is never affected.": "Le provisionnement SCIM est désactivé et les requêtes SCIM de votre fournisseur d'identité sont refusées. La journalisation d'audit n'enregistre rien. La configuration enterprise est en lecture seule et les tableaux de bord d'administration enterprise sont verrouillés. Tout reprend, sans redémarrage, dès qu'une licence valide est ajoutée, et la supervision de base n'est jamais affectée.",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Le provisionnement SCIM s'arrête, la journalisation d'audit n'enregistre plus rien, la configuration enterprise passe en lecture seule et les tableaux de bord d'administration enterprise sont verrouillés. Tout reprend dès qu'une licence est activée, et la supervision de base n'est jamais affectée.",
   "SLOs are linked automatically when their burn rate rules fire.": "Les SLO sont liés automatiquement quand leurs règles de taux de consommation se déclenchent.",
@@ -56476,7 +56475,7 @@
   "Only your team sees this. Visitors read the intro text, set on Branding.": "Seule votre équipe voit ceci. Les visiteurs lisent le texte d'introduction, défini dans Image de marque.",
   "Private users and sign-in links.": "Utilisateurs privés et liens de connexion.",
   "Ready for when the page is private, so nobody is locked out when it changes.": "Prêt pour le moment où la page sera privée, afin que personne ne soit bloqué à ce moment-là.",
-  "SAML and OIDC providers, and Require SSO for Login.": "Fournisseurs SAML et OIDC, et Exiger le SSO pour la connexion.",
+  "SAML and OIDC providers, and Require SSO to Sign In.": "Fournisseurs SAML et OIDC, et Exiger le SSO pour la connexion.",
   "SCIM connections that add and remove private users.": "Connexions SCIM qui ajoutent et retirent des utilisateurs privés.",
   "Search Engine Description": "Description pour les moteurs de recherche",
   "Set Up Before Making It Private": "Configurer avant de la rendre privée",
@@ -56525,5 +56524,7 @@
   "Server Monitor Secret Key Hash": "Hash de la clé secrète du moniteur de serveur",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Le jeton Bearer n'est affiché qu'une seule fois, lorsque la connexion est ajoutée ou que son jeton est réinitialisé. Si vous ne l'avez plus, utilisez « Réinitialiser le jeton Bearer » pour en créer un nouveau.",
   "Webhook Secret Key Hash": "Hash de la clé secrète du webhook",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Un incident ou une alerte privés que vous ne pouvez pas ouvrir a été ajouté à cette tâche, donc sa progression et sa pull request sont masquées."
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Un incident ou une alerte privés que vous ne pouvez pas ouvrir a été ajouté à cette tâche, donc sa progression et sa pull request sont masquées.",
+  "OneUptime is added to your Zoom account": "OneUptime est ajouté à votre compte Zoom",
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}} pour démarrer les appels de ce projet dans Zoom."
 }

@@ -2625,7 +2625,6 @@
   "For devices without the Google Play Store.": "Google Play Store가 없는 기기용입니다.",
   "For OAuth, this should be the email address you want to send from.": "OAuth의 경우, 이는 보내는 데 사용할 이메일 주소여야 합니다.",
   "For the last (in minutes)": "지난 시간 동안(분)",
-  "Force SSO for Login": "로그인에 SSO 강제 적용",
   "Formula": "수식",
   "Forward Errors": "전달 오류",
   "Forward Requests": "요청 전달",
@@ -15041,7 +15040,7 @@
   "Requests, errors and latency, and one row per replica.": "요청, 오류, 지연 시간, 그리고 레플리카마다 한 행.",
   "Requests, errors and latency, one row per task, and CPU and memory from the sidecar.": "요청, 오류, 지연 시간, 작업마다 한 행, 그리고 사이드카가 보낸 CPU와 메모리.",
   "Require SSO": "SSO 필수로 설정",
-  "Require SSO for Login": "로그인에 SSO 필수",
+  "Require SSO to Sign In": "로그인에 SSO 필수",
   "Require SSO with specific provider": "Require SSO with specific provider",
   "Require a phone call for critical incidents or a push for your most severe alerts - you pick the severities and the channel.": "Require a phone call for critical incidents or a push for your most severe alerts - you pick the severities and the channel.",
   "Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.": "Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. Optional for Ollama and OpenAI-compatible servers (e.g. vLLM) that don't require authentication.",
@@ -20897,7 +20896,7 @@
   "Running query": "쿼리 실행 중",
   "Running {{tool}}": "{{tool}} 실행 중",
   "Runtime — {{platform}}": "Runtime — {{platform}}",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "프로젝트, 상태 페이지, 인스턴스 전체를 위한 SAML 및 OIDC Single Sign-On(SSO), \"로그인에 SSO 필수\" 포함.",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "프로젝트, 상태 페이지, 인스턴스 전체를 위한 SAML 및 OIDC Single Sign-On(SSO), \"로그인에 SSO 필수\" 포함.",
   "SCIM provisioning is off and your identity provider's SCIM requests are refused. Audit logging is not recording. Enterprise configuration is read-only and the enterprise admin dashboards are locked. Everything resumes, without a restart, as soon as a valid license is added, and core monitoring is never affected.": "SCIM 프로비저닝이 꺼져 있으며 ID 공급자의 SCIM 요청은 거부됩니다. 감사 로깅이 기록하지 않습니다. 엔터프라이즈 구성은 읽기 전용이고 엔터프라이즈 관리자 대시보드는 잠겨 있습니다. 유효한 라이선스가 추가되는 즉시 재시작 없이 모두 다시 시작되며, 핵심 모니터링은 전혀 영향을 받지 않습니다.",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "SCIM 프로비저닝이 멈추고, 감사 로깅이 기록을 멈추며, 엔터프라이즈 구성은 읽기 전용이 되고, 엔터프라이즈 관리자 대시보드는 잠깁니다. 라이선스가 활성화되는 즉시 모두 다시 시작되며, 핵심 모니터링은 전혀 영향을 받지 않습니다.",
   "SLOs are linked automatically when their burn rate rules fire.": "SLO는 소진율 규칙이 실행되면 자동으로 연결됩니다.",
@@ -56476,7 +56475,7 @@
   "Only your team sees this. Visitors read the intro text, set on Branding.": "팀만 볼 수 있습니다. 방문자는 브랜딩에서 설정하는 소개 문구를 읽습니다.",
   "Private users and sign-in links.": "비공개 사용자 및 로그인 링크.",
   "Ready for when the page is private, so nobody is locked out when it changes.": "페이지가 비공개로 바뀌었을 때 아무도 접근이 막히지 않도록 미리 준비해 둡니다.",
-  "SAML and OIDC providers, and Require SSO for Login.": "SAML 및 OIDC 공급자, 로그인에 SSO 필수.",
+  "SAML and OIDC providers, and Require SSO to Sign In.": "SAML 및 OIDC 공급자, 로그인에 SSO 필수.",
   "SCIM connections that add and remove private users.": "비공개 사용자를 추가하고 제거하는 SCIM 연결.",
   "Search Engine Description": "검색 엔진 설명",
   "Set Up Before Making It Private": "비공개로 전환하기 전에 설정",
@@ -56525,5 +56524,7 @@
   "Server Monitor Secret Key Hash": "서버 모니터 시크릿 키 해시",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer 토큰은 연결을 추가하거나 토큰을 재설정할 때 한 번만 표시됩니다. 더 이상 가지고 있지 않다면 \"Bearer 토큰 재설정\"으로 새 토큰을 만드세요.",
   "Webhook Secret Key Hash": "Webhook 비밀 키 해시",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "열 수 없는 비공개 인시던트 또는 경고가 이 작업에 추가되어 진행 상황과 풀 리퀘스트가 숨겨져 있습니다."
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "열 수 없는 비공개 인시던트 또는 경고가 이 작업에 추가되어 진행 상황과 풀 리퀘스트가 숨겨져 있습니다.",
+  "OneUptime is added to your Zoom account": "OneUptime이 Zoom 계정에 추가되었습니다",
+  "{{connectZoom}} to start this project's calls in Zoom.": "{{connectZoom}}을 눌러 이 프로젝트의 통화를 Zoom에서 시작하세요."
 }

@@ -176,7 +176,7 @@ let people: People;
 let users: InMemoryTable;
 let globalConfigs: InMemoryTable;
 
-// Whether the server's own Require SSO for Login is on.
+// Whether the server's own Require SSO to Sign In is on.
 let serverRequiresSso: boolean = false;
 
 interface Reached {

@@ -464,7 +464,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "پروانه از راه اشتراک مارکت‌پلیس ابری شما: هزینهٔ هر کاربر ساعتی محاسبه می‌شود.",
   "License, version, seat usage, and the instances covered by this key.": "پروانه، نسخه، مصرف صندلی‌ها و نمونه‌هایی که این کلید پوشش می‌دهد.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "سکوی کامل OneUptime با پاسخ به رخداد، صفحه‌های وضعیت و خودکارسازی گردش کار.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "ورود یکپارچهٔ SAML و OIDC (SSO) برای پروژه‌ها، صفحه‌های وضعیت و کل نمونه، از جمله «الزامی کردن SSO برای ورود».",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "ورود یکپارچهٔ SAML و OIDC (SSO) برای پروژه‌ها، صفحه‌های وضعیت و کل نمونه، از جمله «الزامی کردن SSO برای ورود».",
   "Community support, documentation, and tutorials to help teams get started quickly.": "پشتیبانی انجمن، مستندات و آموزش‌هایی که به تیم‌ها کمک می‌کنند سریع شروع کنند.",
   "Regular updates, bug fixes, and open-source extensibility.": "به‌روزرسانی‌های منظم، رفع اشکال‌ها و گسترش‌پذیری متن‌باز.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "یکپارچه‌سازی با ابزارهای پرکاربرد DevOps از راه رابط‌هایی که انجمن نگه‌داری می‌کند.",

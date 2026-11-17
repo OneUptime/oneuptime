@@ -119,7 +119,7 @@ För ett larmverktyg börjar du med en [monitor för inkommande förfrågningar]
 2. Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **Webhook**. Klicka på utlösaren och sedan på **Kopiera URL**.
 3. Skicka det andra verktygets webhook till den URL:en som en `POST` med `Content-Type: application/json`.
 4. Lägg till blocken som agerar på den. De läser begäran med referenser som `{{local.components.webhook-1.returnValues.request-body.status}}`: ett **Om / Annars**-block för att kontrollera ett fält och sedan **Skapa Incident (en post)** för att deklarera en incident.
-5. Slå på **Aktiverad** högst upp i **Byggare**, skicka ett test från det andra verktyget och öppna **Loggar → Körningar** för att se vad som kom in.
+5. Slå på **Aktiverad** högst upp i **Byggare**, skicka ett test från det andra verktyget och öppna **Körningar** för att se vad som kom in.
 :::
 
 URL:en är den enda autentiseringsuppgiften, så behandla den som ett lösenord. Se [Webhook](/docs/workflows/triggers#webhook).

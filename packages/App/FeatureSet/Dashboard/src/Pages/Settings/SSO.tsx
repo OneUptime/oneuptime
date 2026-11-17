@@ -51,7 +51,7 @@ interface SamlConfigDialogTarget {
  * Settings > SSO: everything single sign-on, on one page - the project's
  * SAML providers, its OpenID Connect providers (Components/Sso/
  * ProjectOidcProviders, which had a page of their own), the link to test
- * them, and "Require SSO for Login", which a sign-in through either kind
+ * them, and "Require SSO to Sign In", which a sign-in through either kind
  * meets.
  *
  * Adding one asks for what the identity provider gives - its sign-on URL,
@@ -227,7 +227,7 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
         {/*
          * The project's OpenID Connect providers, which had a page of their
          * own (Settings > OIDC): one place for single sign-on, under one
-         * test link and the one Require SSO for Login switch, which counts
+         * test link and the one Require SSO to Sign In switch, which counts
          * an OIDC sign-in exactly as a SAML one.
          */}
         <ProjectOidcProviders
@@ -321,7 +321,7 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
 /*
  * Every edition includes single sign-on. OneUptime Cloud sells it on the
  * Scale plan, so there a project below Scale sees the plan upsell instead -
- * with "Require SSO for Login" under it while a Scale trial (or a move down
+ * with "Require SSO to Sign In" under it while a Scale trial (or a move down
  * from Scale) left the project requiring SSO, so it can always be turned
  * off (RequireSsoForLoginLeftover), and the SAML and OIDC providers the
  * project still has, which keep signing people in until they are turned

@@ -70,7 +70,7 @@ Die Wörter, die in ganz OneUptime verwendet werden, stehen im [Glossar](/docs/i
 
 - **Arbeitsabläufe** – Ihre Liste der Workflows. Legen Sie einen neuen an oder öffnen Sie einen bestehenden.
 - **Globale Variablen** – Werte, die alle Ihre Workflows gemeinsam nutzen.
-- **Protokolle → Ausführungen** – der Ausführungsverlauf aller Workflows Ihres Projekts.
+- **Ausführungen** – der Ausführungsverlauf aller Workflows Ihres Projekts.
 - **Einstellungen → Beschriftungsregeln** und **Eigentümerregeln** – neue Workflows automatisch beschriften und ihre Eigentümer zuweisen.
 - **Erweitert → Archiviert** – Workflows, die Sie archiviert haben. Sie laufen nie und fehlen in der Liste; heben Sie die Archivierung hier auf. Siehe [Einen Workflow archivieren](/docs/workflows/configuration#einen-workflow-archivieren).
 - **Entwickler** – wie Sie Workflows mit Terraform, der API oder einem KI-Assistenten verwalten.
@@ -80,7 +80,7 @@ Die Wörter, die in ganz OneUptime verwendet werden, stehen im [Glossar](/docs/i
 - **Übersicht** – Name, Beschreibung, Beschriftungen und den Schalter **Aktiviert**.
 - **Editor** – die Arbeitsfläche, auf der Sie den Workflow gestalten, mit dem Schalter **Aktiviert** oben.
 - **Arbeitsablaufvariablen** – Werte, die nur für diesen einen Workflow gelten.
-- **Protokolle → Ausführungen** – jede Ausführung dieses Workflows, mit Details.
+- **Ausführungen** – jede Ausführung dieses Workflows, mit Details.
 - **Entwickler** – wie Sie diesen Workflow mit Terraform, der API oder einem KI-Assistenten verwalten.
 - **Einstellungen** – duplizieren, exportieren und archivieren.
 - **Eigentümer** – die Personen und Teams, die für den Workflow verantwortlich sind.

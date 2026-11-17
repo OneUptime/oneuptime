@@ -77,10 +77,7 @@ const ALL_STYLES: Array<[string, ButtonStyleType]> = Object.keys(
 // The filled styles, whose disabled look was a paler fill of their own.
 const FILLED_STYLES: Array<[string, ButtonStyleType]> = [
   ["PRIMARY", ButtonStyleType.PRIMARY],
-  ["SECONDARY", ButtonStyleType.SECONDARY],
   ["DANGER", ButtonStyleType.DANGER],
-  ["SUCCESS", ButtonStyleType.SUCCESS],
-  ["WARNING", ButtonStyleType.WARNING],
 ];
 
 // The classes no stylesheet in the repository defines.

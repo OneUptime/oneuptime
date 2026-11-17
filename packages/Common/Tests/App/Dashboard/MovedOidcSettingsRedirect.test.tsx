@@ -30,7 +30,7 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
 /*
  * Project Settings > Security > OIDC folded into SSO: the project's OpenID
  * Connect providers are on the SSO page now, under its SAML providers, with
- * the one test link and the one Require SSO for Login switch. The old
+ * the one test link and the one Require SSO to Sign In switch. The old
  * address (…/settings/oidc) is bookmarked and linked from wikis, so it
  * forwards to the SSO page. This mounts the REAL Settings route group (every
  * Settings page replaced by a marker, the SSO page by a probe that reports

@@ -1158,7 +1158,7 @@ export const RetiredEditionClaims: Array<RetiredClaim> = [
   {
     /*
      * Single sign-on filed under the Enterprise Edition. SAML and OIDC single
-     * sign-on, global SSO, and "Require SSO for login" are part of the Apache
+     * sign-on, global SSO, and "Require SSO to sign in" are part of the Apache
      * 2.0 Community Edition and need no license; the Enterprise Edition adds
      * SCIM, audit logs, team compliance, custom roles, IP allowlists, and the
      * instance health dashboards.
@@ -1180,7 +1180,7 @@ export const RetiredEditionClaims: Array<RetiredClaim> = [
     example:
       "the Enterprise Edition adds SSO, SCIM, audit logs, team compliance, and instance health dashboards",
     reason:
-      'SAML and OIDC single sign-on, global SSO, and "Require SSO for login" are part of the Apache 2.0 Community Edition and need no license. The Enterprise Edition adds SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards. On OneUptime Cloud, SSO is on the Scale plan: a plan, not an edition.',
+      'SAML and OIDC single sign-on, global SSO, and "Require SSO to sign in" are part of the Apache 2.0 Community Edition and need no license. The Enterprise Edition adds SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards. On OneUptime Cloud, SSO is on the Scale plan: a plan, not an edition.',
     replacement:
       "SAML and OIDC single sign-on are part of the Apache 2.0 Community Edition; the Enterprise Edition adds SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards.",
     claimId: "deployment-enterprise-edition",

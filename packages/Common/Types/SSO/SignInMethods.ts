@@ -7,8 +7,8 @@ import SsoProviderType from "./SsoProviderType";
  *
  * GET /identity/sign-in-methods (App/FeatureSet/Identity/API/SignInMethods.ts)
  * answers the Accounts pages: whether the whole server requires single
- * sign-on (Admin Dashboard > Settings > Single Sign-On > Require SSO for
- * Login, GlobalConfig.requireSsoForLogin), the instance-wide SSO providers
+ * sign-on (Admin Dashboard > Settings > Single Sign-On > Require SSO to
+ * Sign In, GlobalConfig.requireSsoForLogin), the instance-wide SSO providers
  * that are on, and - only while SSO is required - whether any project has a
  * provider of its own that is on.
  *

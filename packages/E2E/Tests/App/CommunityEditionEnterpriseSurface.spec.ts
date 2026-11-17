@@ -52,7 +52,7 @@ import Faker from "Common/Utils/Faker";
  * no enterprise suite ever runs.
  *
  * Single sign-on is not part of that surface: SAML and OIDC sign-in and
- * "Require SSO for login" are core, and the Community Edition serves them
+ * "Require SSO to sign in" are core, and the Community Edition serves them
  * like every other stack. Tests/App/SingleSignOn.spec.ts, which runs on this
  * same stack, proves that half - its routes, and a provider configured and
  * used end to end.

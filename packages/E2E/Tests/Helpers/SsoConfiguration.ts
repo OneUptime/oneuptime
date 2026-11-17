@@ -50,7 +50,7 @@ export const SSO_AUTHORIZATION_REQUIRED_MESSAGE: string =
   "SSO Authorization Required";
 
 /*
- * What switching "Require SSO for login" on answers, with a 400, while no SSO
+ * What switching "Require SSO to sign in" on answers, with a 400, while no SSO
  * provider can sign anyone in to the project - copied from
  * NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE in
  * Common/Server/Utils/SsoRequirementChanges.ts. Requiring SSO then would lock
@@ -546,7 +546,7 @@ type ExpectRequireSsoEnforcedFunction = (data: {
 }) => Promise<void>;
 
 /*
- * "Require SSO for login" can be switched on, and is then ENFORCED.
+ * "Require SSO to sign in" can be switched on, and is then ENFORCED.
  *
  * Not on a project no SSO provider can sign anyone in to: that switch is
  * refused with a 400 and NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE, because it would
@@ -586,7 +586,7 @@ export const expectRequireSsoForLoginEnforced: ExpectRequireSsoEnforcedFunction 
 
     expect(
       withoutProvider.status,
-      `"Require SSO for login" must be refused ${data.where} while no SSO ` +
+      `"Require SSO to sign in" must be refused ${data.where} while no SSO ` +
         `provider can sign anyone in to the project. ${withoutProviderFound}`,
     ).toBe(400);
 
@@ -624,13 +624,13 @@ export const expectRequireSsoForLoginEnforced: ExpectRequireSsoEnforcedFunction 
 
     expect(
       switchedOn.status,
-      `"Require SSO for login" could not be switched on ${data.where}: a 402 here ` +
+      `"Require SSO to sign in" could not be switched on ${data.where}: a 402 here ` +
         `means the requirement was treated as a licensed feature. ${switchedOnFound}`,
     ).not.toBe(402);
 
     expect(
       switchedOn.status,
-      `Switching "Require SSO for login" on must be accepted ${data.where}. ${switchedOnFound}`,
+      `Switching "Require SSO to sign in" on must be accepted ${data.where}. ${switchedOnFound}`,
     ).toBe(200);
 
     const refused: ApiOutcome = await readProject({

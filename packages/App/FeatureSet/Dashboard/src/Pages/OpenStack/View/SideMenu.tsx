@@ -325,13 +325,15 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
-      </SideMenuSection>
-
-      {runs(OpenStackServiceType.BareMetal) ? (
-        <SideMenuSection title="Bare Metal">
+        {/*
+         * Ironic's bare metal nodes, with the other machines the cloud runs
+         * on. They had a Bare Metal section of their own, for this one entry
+         * (#9216).
+         */}
+        {runs(OpenStackServiceType.BareMetal) ? (
           <SideMenuItem
             link={{
-              title: "Nodes",
+              title: "Bare Metal",
               to: RouteUtil.populateRouteParams(
                 RouteMap[
                   PageMap.OPENSTACK_CLOUD_VIEW_BARE_METAL_NODES
@@ -342,10 +344,10 @@ const OpenStackCloudSideMenu: FunctionComponent<ComponentProps> = (
             icon={IconProp.Server}
             badge={counts.bareMetalNodes}
           />
-        </SideMenuSection>
-      ) : (
-        <></>
-      )}
+        ) : (
+          <></>
+        )}
+      </SideMenuSection>
 
       <SideMenuSection title="Network">
         <SideMenuItem

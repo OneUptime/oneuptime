@@ -1070,6 +1070,11 @@ describe("the hints the charts show", () => {
         container
           .querySelectorAll("span.text-xs.text-gray-500:not(.font-medium)")
           .forEach((span: Element) => {
+            // A legend's series name, beside its colour swatch, is no hint.
+            if (span.previousElementSibling?.classList.contains("rounded-sm")) {
+              return;
+            }
+
             collect(span.textContent);
           });
         cleanup();
