@@ -1,3 +1,7 @@
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -4015,17 +4019,13 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                 >
                   {translator.translateText("Close")}
                 </button>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                <Button
+                  title="Investigate this moment"
+                  icon={IconProp.MagnifyingGlassPlus}
+                  buttonStyle={ButtonStyleType.PRIMARY}
+                  buttonSize={ButtonSize.Small}
                   onClick={investigateBucket}
-                >
-                  <Icon
-                    icon={IconProp.MagnifyingGlassPlus}
-                    className="h-3.5 w-3.5"
-                  />
-                  {translator.translateText("Investigate this moment")}
-                </button>
+                />
               </div>
             </div>,
             document.body,

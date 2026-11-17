@@ -1,3 +1,4 @@
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, {
   FunctionComponent,
@@ -187,18 +188,16 @@ const ResourceTopologyPage: FunctionComponent<ComponentProps> = (
           <ErrorMessage
             message={error || tx("Could not load the topology.", translator)}
             action={
-              <button
-                type="button"
-                data-testid="resource-topology-retry"
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              <Button
+                title="Try again"
+                dataTestId="resource-topology-retry"
+                buttonStyle={ButtonStyleType.PRIMARY}
                 onClick={() => {
                   load(false).catch(() => {
                     // load reports its own errors
                   });
                 }}
-              >
-                {tx("Try again", translator)}
-              </button>
+              />
             }
           />
         </div>
