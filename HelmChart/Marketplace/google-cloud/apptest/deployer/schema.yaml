@@ -1,7 +1,5 @@
-# The tester runs in the app's own image (it has Node), so no extra image ships.
-properties:
-  testerImage:
-    type: string
-    default: $REGISTRY:$TAG
-    x-google-property:
-      type: IMAGE
+# What a verification run (mpdev verify, and Google's review) adds to
+# schema.yaml: nothing. The tester runs in the app's own image, which the
+# deployer passes already (image.overrides.app), and the deployer hands Helm
+# every property as a value, which the chart's schema would refuse.
+properties: {}

@@ -211,9 +211,9 @@ Everything lives in [HelmChart/Marketplace](../../../../../HelmChart/Marketplace
 | `build.py`                 | Builds one edition: `python3 HelmChart/Marketplace/build.py --marketplace aws\|azure\|google-cloud --version X.Y.Z --out DIR`                                                                                  |
 | `images.json`              | The images every edition ships, with the third-party versions pinned                                                                                                                                           |
 | `editions.json`            | Each marketplace's registry and its own settings                                                                                                                                                               |
-| `mirror-images.sh`         | Copies an edition's images into its marketplace's registry (`crane`; `--dry-run` shows the plan)                                                                                                               |
+| `mirror-images.sh`         | Copies an edition's images into its marketplace's registry (`crane`; `--dry-run` shows the plan), and builds PostgreSQL without gosu for Google (Docker Buildx)                                                |
 | `azure/`                   | The CNAB manifest, the Azure portal's create experience and the ARM template                                                                                                                                   |
-| `google-cloud/`            | The deployer's Dockerfile, `schema.yaml`, the `Application` resource and the tester                                                                                                                            |
+| `google-cloud/`            | The deployer's Dockerfile, `schema.yaml`, the `Application` resource, the tester, and PostgreSQL's Dockerfile (without gosu)                                                                                   |
 | `aws/delivery-option.json` | The Helm delivery option every AWS version gets: title, description, usage instructions, override parameters                                                                                                   |
 | `automation/`              | The release automation the workflow runs (`release_plan.py`, `aws_catalog.py`, `partner_center.py`, `google_cloud_release.py`) and the one-time CI setup (`ci_setup.py`), with their unit tests                |
 | `aws-eks-addon/`           | The Kubernetes agent's EKS add-on: its delivery option, its images and the configuration schema buyers set (see [The Kubernetes agent as an Amazon EKS add-on](#the-kubernetes-agent-as-an-amazon-eks-add-on)) |
@@ -360,12 +360,16 @@ case 77153319) and sent its onboarding email the same day. Producer Portal
 has been on since 17 November 2026, a few hours after we answered the Partner
 Support Desk case that asked for the project info form and the roles (step
 1). **Where it stands** (17 November 2026): the product exists (step 5); its
-pricing (step 6) and listing (step 7) are saved as drafts, with nothing
-submitted; and `editions.json` marks the edition ready, so the Marketplace
-Release workflow pushes its images and deployer. **Left**: the payments
-profile and the tax questions (maintainer), the first version on the
-Container images page once it is pushed (step 8), and submitting each review
-(the maintainer's go-ahead). Google's Marketplace Operations team supports the
+pricing (step 6) and listing (step 7) are under Google's review, submitted
+that afternoon with the maintainer's go-ahead; the payments profile is done;
+and `editions.json` marks the edition ready, so the Marketplace Release
+workflow pushed 15.0.0's images and deployer that evening, and release
+`15.0` is saved on the Container images page (step 8). Google's validation
+of it failed: the deployer refused the edition, and the scan the PostgreSQL
+image (step 8 says why); the edition was fixed the same day. **Left**:
+pushing 15.0.0 again and Google's validation of it, that page's review once
+the validation passes (step 8), then **Publish** once all three reviews are
+approved (each the maintainer's go-ahead). Google's Marketplace Operations team supports the
 onboarding for 60 days from its reminder of 9 November (until about 8 January
 2027); help after that is not guaranteed. Everything lives in the
 `oneuptime-marketplace` project, never in `oneuptime-k8s`. This is OneUptime's
@@ -408,11 +412,13 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
      reminders and was to close by itself on 17 November; a closed case can
      be reopened within 72 hours. Answered that morning, Google turned
      Producer Portal on before noon and sent the next steps on the same case.
-   - **Payments profile** (maintainer only: bank and tax details; not done
-     yet) on Producer Portal's **Payments** page: the region and currency
-     first, then the legal entity, tax and bank details, with more than one
-     billing admin. Nothing can be published without it, and a US profile
-     adds a **Tax withholding** tab to Pricing.
+   - **Payments profile** (maintainer only: bank and tax details; done on 17
+     November 2026) on Producer Portal's **Payments** page: the region and
+     currency first, then the legal entity, tax and bank details, with more
+     than one billing admin. Nothing can be published without it. Google
+     accepted the W-9 the same day, and the **Overview** page marks the
+     account verified and the profile complete; the bank account's own
+     verification takes two or three days.
    - **Agreements**: the Marketplace Vendor Agreement, accepted on 30 October
      2026, as Producer Portal's **Settings** (organization `hackerbay.io`)
      and Partner Hub both say. On 17 November the **Overview** page still
@@ -433,11 +439,12 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
    meant to ask the Partner Engineer (17 November 2026): it offers the
    classic type ("Kubernetes App") to new products, and its Container images
    page takes a deployer in **Artifact Registry `us-docker.pkg.dev`**, the
-   repository in the path. **Still to ask**: whether customer-tenant
-   consumption tracking (the `goog-partner-solution` label) applies to it -
-   Google's requirements ask it of every product deployed into customers'
-   projects, but describe it for Kubernetes only on the Terraform type's
-   pages.
+   repository in the path. Customer-tenant consumption tracking applies to it
+   too: Producer Portal's **Overview** lists the product's label,
+   `goog-partner-solution=isol_plb32_001kf00001id1wxiar_kitw4d6nq4zmkxjfloixzbcne5jodjnp`.
+   **Still to ask**: how a deployer-based app applies it - Google's
+   requirements ask it of every product deployed into customers' projects,
+   but describe it for Kubernetes only on the Terraform type's pages.
 3. **Access for Google**: the roles of step 1 (Editor includes the
    `roles/viewer` an older version of this guide asked for), and whatever
    else Producer Portal's technical integration page asks for.
@@ -457,16 +464,18 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
    every other image beneath it, and the deployer at `.../deployer`.
 
 5. **Create the product** (done on 17 November 2026) in Producer Portal:
-   **Add product > Kubernetes App**, product name "OneUptime Enterprise
-   (self-hosted)", product ID `oneuptime-enterprise` (it names the service and
-   cannot change; buyers do not see it). Its service name is
+   **Add product > Kubernetes App**, product name "OneUptime Enterprise" (the
+   maintainer's rule: never "self-hosted"), product ID `oneuptime-enterprise`
+   (it names the service and cannot change; buyers do not see it). Its service
+   name is
    `oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog`, as
    `editions.json` has it (`google-cloud.serviceName`), and the listing's
    address is
    `https://console.cloud.google.com/marketplace/product/oneuptime-marketplace/oneuptime-enterprise`.
-6. **Pricing** (saved on 17 November 2026 with the maintainer's go-ahead, not
-   submitted): plan ID `enterprise`, "OneUptime Enterprise", usage-based, one
-   metric: ID `users`, display name "Users", reporting and display unit
+6. **Pricing** (submitted for review on 17 November 2026 with the
+   maintainer's go-ahead): plan ID `enterprise`, "OneUptime Enterprise",
+   usage-based, one metric: ID `users`, display name "Users", reporting and
+   display unit
    **hour**, whole numbers, **USD 0.10** per hour. No free trial. OneUptime
    reports each hour's users as a whole number of user-hours, so the unit is
    the hour; a `count` would bill the same and read worse on the listing.
@@ -475,19 +484,23 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
    `DELTA`, `INT64`, unit `h` (`gcloud endpoints configs describe`).
    - **Features**: a pricing description, like the listing's.
    - **Tax Category** (maintainer): Google saves the answers only once every
-     question shown has one. "Is this product primarily downloaded or
-     installed on a local device?": No, the maintainer's answer. "Will users
-     have the right to exercise any material copyright, trademark, or other
-     intangible property rights in order to utilize this product/SKU?": not
-     answered yet.
+     question shown has one. It asked five, and the maintainer answered No to
+     each: is the product primarily downloaded or installed on a local
+     device; will users have the right to exercise any material copyright,
+     trademark or other intangible property rights to use it; does it
+     primarily aggregate and classify data; does it provide network security,
+     a firewall or cloud data storage; does it primarily provide data mining
+     and database analysis. No Tax withholding tab appeared.
    - **Terms & Policies**: EULA `https://oneuptime.com/legal/terms`, the
      maintainer's choice, as on Microsoft. Google's policy: plans are billed
      for one day at least.
-   - **Submit** (maintainer): Google reviews it in up to four business days.
-     An approved plan cannot change, and a change to the price model waits
-     30 days after a review.
-7. **Listing** (saved on 17 November 2026, not submitted): the copy in
-   [Listing content](#listing-content-paste-ready), one line per paragraph
+   - **Submit** (maintainer): the button shows only after **Next** on the
+     **Terms & Policies** tab, and a dialog asks again. As that dialog says,
+     pricing cannot change once submitted, the review takes up to 14 days,
+     and a published price waits 30 days for an update.
+7. **Listing** (submitted for review on 17 November 2026 with the
+   maintainer's go-ahead; Google's page says the review takes 2.5 days): the
+   copy in [Listing content](#listing-content-paste-ready), one line per paragraph
    and per bullet (the portal keeps line breaks); "link to more product info"
    `/docs/en/self-hosted/enterprise`; categories Monitoring and DevOps, as on
    Microsoft; documentation links to `/docs/en/installation/cloud-marketplaces`
@@ -499,15 +512,41 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
    render `packages/Common/Server/Static/Brand/oneuptime-logo.svg` centered on
    a transparent 512x512 page with Chrome's headless mode
    (`--headless=new --default-background-color=00000000 --window-size=512,512 --screenshot`).
-   The maintainer uploads it; on 17 November the field showed no file after a
-   reload, so check **Full preview** before submitting.
-8. **Container images**: the deployer's path,
+   The maintainer uploaded it on 17 November. The field shows no file after a
+   reload, but **Full preview** shows the logo; a black background would
+   break the rule. **Submit** is at the bottom of the **Product metadata**
+   tab, and changing a field while the review runs cancels it.
+8. **Container images** (the first release saved on 17 November 2026): the
+   deployer's path,
    `us-docker.pkg.dev/oneuptime-marketplace/oneuptime/oneuptime-enterprise/deployer`.
    Producer Portal reads the releases from it, so it answers "Image not
-   found" until the first push; then pick the release and its track. Its
-   review takes two weeks or more: submit it as early as you can, with the
+   found" until the first push (a malformed path gets a format error
+   instead). **Specify Releases** then lists each track the deployer is
+   tagged with, and its digest: pick the track as the **Display Tag**, fill
+   in the release as [Listing content](#listing-content-paste-ready) has it,
+   choose the **Default Release**, and **Save and Validate**. Google's
+   validation extracts the app's schema, then runs a test deployment and
+   scans the images for vulnerabilities, in up to 2 hours. Its review takes
+   two weeks or more: submit it as early as you can once the validation
+   passes (**Submit**, on the same page; the maintainer's go-ahead), with the
    [user guide](../../../../../HelmChart/Marketplace/google-cloud/README.md)
    in the public repository.
+
+   A failed validation's **View details** has Google's report: what the
+   scan found, image by image, and which test failed, but not the deployer's
+   logs. The deployer is open source
+   ([marketplace-k8s-app-tools](https://github.com/GoogleCloudPlatform/marketplace-k8s-app-tools),
+   `deployer_helm`): it hands Helm every property of `schema.yaml` as a
+   value, the app's name and namespace among them; it refuses an
+   `Application` without the `marketplace.cloud.google.com/deploy-info`
+   annotation; and in a verification run it lays the tester's files over
+   the chart's. The first validation (17 November 2026) failed on all three,
+   and its scan on `gosu` in the official PostgreSQL image (built with Go
+   1.24.6, as every `gosu` release is). The edition now passes the two
+   values, carries the annotation, ships the tester as a template alone, in
+   the app's image, and builds PostgreSQL without `gosu`
+   (`GOOGLE_CLOUD_BUILT_IMAGES` in `build.py`); the chart suite's
+   marketplace checks hold it to all four.
 
 ### The release workflow: one-time setup
 
@@ -738,19 +777,21 @@ OUT="$(mktemp -d)/oneuptime-google-cloud"
 python3 HelmChart/Marketplace/build.py --marketplace google-cloud --version "$VERSION" --out "$OUT"
 
 gcloud auth print-access-token | crane auth login us-docker.pkg.dev -u oauth2accesstoken --password-stdin
+gcloud auth configure-docker us-docker.pkg.dev
 HelmChart/Marketplace/mirror-images.sh "$OUT/images.json"
 ```
 
 The mirror annotates every image with the listing's service
 (`com.googleapis.cloudmarketplace.product.service.name=services/<service name>`,
 which Google requires) and tags it with the track (`major.minor`) as well.
-Then the deployer, with Docker buildx (`--provenance=false` keeps build
-attestations out of the pushed image):
+PostgreSQL it builds rather than copies, with Docker buildx: the official
+image with Alpine's `su-exec` in place of `gosu`, which Google's scan refuses
+(`google-cloud/postgres.Dockerfile`). Then the deployer, with Docker buildx
+too (`--provenance=false` keeps build attestations out of the pushed image):
 
 ```bash
 REGISTRY=us-docker.pkg.dev/oneuptime-marketplace/oneuptime/oneuptime-enterprise
 SERVICE=oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog   # editions.json, google-cloud.serviceName
-gcloud auth configure-docker us-docker.pkg.dev
 docker buildx build --platform linux/amd64 --provenance=false \
   --build-arg REGISTRY="$REGISTRY" --build-arg TAG="$VERSION" \
   --annotation "manifest:com.googleapis.cloudmarketplace.product.service.name=services/$SERVICE" \
@@ -776,8 +817,9 @@ the first start migrates the database), runs the tester (it opens
 `mpdev` gives the deployment a reporting secret that is not real, so such an
 installation logs that it cannot report and stays unlicensed: expected.
 
-In Producer Portal, add the version (the deployer image and its track),
-then **Submit for review** (maintainer).
+In Producer Portal, add the version on the **Container images** page (the
+deployer image and its track; step 8 of the setup lists the fields), then
+**Submit** it for review (maintainer).
 
 ## Checking an installation
 
@@ -833,7 +875,10 @@ Trim each field to its marketplace's limit. Logos and screenshots: as in
 `packages/Home/Static/img/OneUptimePNG/`; 1280x720 PNG screenshots with
 captions, approved by a maintainer).
 
-**Name:** OneUptime Enterprise (self-hosted)
+**Name:** OneUptime Enterprise. Never call it "self-hosted" (the maintainer's
+rule): say where it runs instead, as the copy below does. The live Microsoft
+listing keeps "OneUptime Enterprise (self-hosted)", the maintainer's choice on
+17 November 2026.
 
 **Search summary (≤ 100 characters):**
 
@@ -844,7 +889,7 @@ OneUptime Enterprise in your own Kubernetes cluster: monitoring, status pages, o
 **Short description (plain text, one line):**
 
 ```text
-Self-hosted OneUptime Enterprise: uptime monitoring, status pages, on-call, incident management, logs, traces and metrics in your own Kubernetes cluster, billed per user by the hour through this marketplace.
+OneUptime Enterprise in your own Kubernetes cluster: uptime monitoring, status pages, on-call, incident management, logs, traces and metrics, billed per user by the hour through this marketplace.
 ```
 
 **Highlights (AWS asks for three):**
@@ -858,8 +903,8 @@ Built on OpenTelemetry, with an open-source (Apache 2.0) core.
 **Description:**
 
 ```text
-OneUptime Enterprise, self-hosted in your own Kubernetes cluster: one platform
-for the whole incident lifecycle, with your data in your own cloud account.
+OneUptime Enterprise in your own Kubernetes cluster: one platform for the
+whole incident lifecycle, with your data in your own cloud account.
 
 - Uptime monitoring: websites, APIs, ping, ports, SSL certificates, DNS and
   synthetic browser checks.
@@ -940,6 +985,18 @@ the docs.
 
 - Installing from AWS Marketplace: https://oneuptime.com/docs/en/installation/cloud-marketplaces
 - Enterprise Edition: https://oneuptime.com/docs/en/self-hosted/enterprise
+
+**Release (Google's Container images page):** the **Version title** is the
+track, as Producer Portal fills it in (`15.0`): the track's images take each
+patch version, so it stays right. The description (at most 128 characters,
+with the track's number) and the command-line deployment links:
+
+```text
+The 15.0 releases of OneUptime Enterprise. What each one changes: https://github.com/OneUptime/oneuptime/releases
+```
+
+- Public git repo URL: https://github.com/OneUptime/oneuptime.git
+- Deploy documentation URL: https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Marketplace/google-cloud/README.md
 
 **Refund policy (draft; the maintainer decides):**
 
@@ -1180,7 +1237,18 @@ cost a review round.
   GKE cluster. Its image path,
   `marketplace.gcr.io/oneuptime-marketplace/oneuptime-enterprise`, follows the
   listing's address as Google's docs describe; confirm it once Google
-  publishes the first version (`TODO(identifiers)`).
+  publishes the first version (`TODO(identifiers)`). Google's validation
+  copied the images to
+  `gcr.io/cloud-launcher-images-prd/oneuptime-marketplace/oneuptime/oneuptime-enterprise/...`,
+  with our repository's name, so the published path may have `/oneuptime`
+  in it too.
+- **The Google Cloud app's deploy-info IDs are inferred.** The `Application`
+  names partner `oneuptime-marketplace` and product `oneuptime-enterprise`
+  (`google-cloud/application.yaml`): the project and product of the
+  listing's service, the path Google copied our images under. Producer
+  Portal shows no partner ID to a project; the deployer only checks that
+  both are there. Confirm them with the Partner Engineer if Google's review
+  objects.
 - **Google Cloud deployments have no upgrade path from the console yet.**
   Google pins a deployment to the image digests it installed and never
   updates it; a new version only becomes the default for new deployments,
@@ -1289,6 +1357,15 @@ rejection, go-live and price change.
 | 2026-11-17 | Google      | Listing and `enterprise` plan saved as drafts: `users` per hour at USD 0.10; nothing submitted      | Agent      |
 | 2026-11-17 | Google      | EULA: OneUptime's terms, as on Microsoft. Tax: one of two answers, so not saved yet                 | Maintainer |
 | 2026-11-17 | Google      | editions.json marks the Google edition ready; the app's user guide written                          | Agent      |
+| 2026-11-17 | Google      | Payments profile done: W-9 accepted; the bank account's verification takes 2 to 3 days              | Maintainer |
+| 2026-11-17 | Google      | Tax Category: all five questions answered No, so the plan is complete                               | Maintainer |
+| 2026-11-17 | Google      | Decided: the product is OneUptime Enterprise, never "self-hosted"; the listing renamed              | Maintainer |
+| 2026-11-17 | Google      | Product details and pricing reviews submitted, with the maintainer's go-ahead                       | Agent      |
+| 2026-11-17 | Google      | 15.0.0's images and deployer pushed by the release workflow, run by hand                            | Agent      |
+| 2026-11-17 | Google      | Release `15.0` saved on the Container images page; Google's validation running                      | Agent      |
+| 2026-11-17 | Google      | Validation of `15.0` failed: the deployer job on all three test clusters; gosu in PostgreSQL        | Google     |
+| 2026-11-17 | Google      | Edition fixed: deployer values, deploy-info, the tester's image; PostgreSQL built without gosu      | Agent      |
+| 2026-11-17 | Microsoft   | The live listing keeps "OneUptime Enterprise (self-hosted)": the maintainer's choice                | Maintainer |
 | 2026-11-17 | AWS         | Bank account verification in review: the bank statement is uploaded                                 | Maintainer |
 | 2026-11-17 | AWS         | Case 00966062 escalated: remove the placeholder version, or name the broken URL                     | Agent      |
 
@@ -1316,4 +1393,6 @@ rejection, go-live and price change.
   seconds and reload to check: a page left right after saving can lose it.
   The plan's structure saves only once the listing is saved, the tax answers
   only once every question shown has one, and the browser cannot upload
-  files: the maintainer uploads the logo.
+  files: the maintainer uploads the logo. Each review's **Submit** sits at
+  the end of its section (Pricing's only after **Next** on its last tab), and
+  editing a section under review cancels its review.
