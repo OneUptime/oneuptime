@@ -830,12 +830,16 @@ test.describe("the Session Replay tables fit their cards", () => {
 
     await page.keyboard.press("Escape");
     await page.setViewportSize({ width: 390, height: 844 });
+    /*
+     * 38px, as at 1280: a header's controls are its buttons' height on a
+     * phone too, as a button is text-sm there (#9128).
+     */
     await expectOneHeight(
       [
         toolbar.getByTestId("telemetry-time-range-picker-button"),
         toolbar.getByTestId("session-users-more"),
       ],
-      42,
+      38,
     );
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "session-replay-users-header-390");
