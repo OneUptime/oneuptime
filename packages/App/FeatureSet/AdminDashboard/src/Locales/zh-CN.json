@@ -2144,8 +2144,6 @@
   "Check email settings": "检查电子邮件设置",
   "Email is failing": "电子邮件发送失败",
   "Email is not set up": "未设置电子邮件",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "自 {{time}} 起电子邮件一直发送失败，因此邀请和事件邮件无法送达。",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "自 {{time}} 起电子邮件一直发送失败，因此邀请和事件邮件无法送达。邮件服务器返回：{{reason}}",
   "Invitations, password resets and incident emails are not sent.": "邀请、密码重置和事件邮件都不会发送。",
   "Monitors that run on global probes are not being checked.": "在全局探测器上运行的监视器没有被检查。",
   "No global probe is reporting": "没有全局探测器在报告",
@@ -4165,5 +4163,11 @@
   "OneUptime switched this rule off when they were deleted.": "这些记录被删除时，OneUptime 已停用此规则。",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "若按原样启用，此规则将完全不受这些列表限制。请编辑它以选择其适用范围，然后再启用。",
   "{{names}} and {{count}} more": "{{names}} 等另外 {{count}} 个",
-  "{{names}} and {{count}} more_one": "{{names}} 等另外 {{count}} 个"
+  "{{names}} and {{count}} more_one": "{{names}} 等另外 {{count}} 个",
+  "No email has gone out through this server's email settings since {{time}}.": "自 {{time}} 起，没有任何邮件通过此服务器的邮件设置发出。",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "自 {{time}} 起，没有任何邮件通过此服务器的邮件设置发出。邮件服务器返回：{{reason}}",
+  "See email logs": "查看邮件日志",
+  "Addresses the mail server refused": "邮件服务器拒收的地址",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "其他邮件已发出，因此只有这些地址受影响。请更正地址，或让您的邮件服务商接受它：Amazon SES 沙盒只会发送到已验证的地址。",
+  "Last refused {{time}}": "最近一次拒收：{{time}}"
 }

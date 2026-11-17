@@ -2144,8 +2144,6 @@
   "Check email settings": "E-Mail-Einstellungen prüfen",
   "Email is failing": "E-Mail-Versand schlägt fehl",
   "Email is not set up": "E-Mail ist nicht eingerichtet",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "Seit {{time}} schlägt der E-Mail-Versand fehl, daher kommen Einladungen und Vorfall-E-Mails nicht an.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "Seit {{time}} schlägt der E-Mail-Versand fehl, daher kommen Einladungen und Vorfall-E-Mails nicht an. Der Mailserver meldete: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "Einladungen, Links zum Zurücksetzen des Passworts und Vorfall-E-Mails werden nicht gesendet.",
   "Monitors that run on global probes are not being checked.": "Monitore, die auf globalen Sonden laufen, werden nicht geprüft.",
   "No global probe is reporting": "Keine globale Sonde meldet sich",
@@ -4165,5 +4163,11 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime hat diese Regel deaktiviert, als sie gelöscht wurden.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Unverändert aktiviert, wäre die Regel durch diese Listen gar nicht mehr eingeschränkt. Bearbeiten Sie sie, um festzulegen, wofür sie gilt, und aktivieren Sie sie dann.",
   "{{names}} and {{count}} more": "{{names}} und {{count}} weitere",
-  "{{names}} and {{count}} more_one": "{{names}} und {{count}} weitere"
+  "{{names}} and {{count}} more_one": "{{names}} und {{count}} weitere",
+  "No email has gone out through this server's email settings since {{time}}.": "Seit {{time}} wurde keine E-Mail über die E-Mail-Einstellungen dieses Servers versendet.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Seit {{time}} wurde keine E-Mail über die E-Mail-Einstellungen dieses Servers versendet. Der Mailserver meldete: {{reason}}",
+  "See email logs": "E-Mail-Protokolle ansehen",
+  "Addresses the mail server refused": "Vom Mailserver abgelehnte Adressen",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Andere E-Mails wurden versendet, betroffen sind also nur diese Adressen. Korrigieren Sie die Adresse oder lassen Sie sie von Ihrem Mail-Anbieter zulassen: Eine Amazon-SES-Sandbox sendet nur an Adressen, die sie verifiziert hat.",
+  "Last refused {{time}}": "Zuletzt abgelehnt am {{time}}"
 }

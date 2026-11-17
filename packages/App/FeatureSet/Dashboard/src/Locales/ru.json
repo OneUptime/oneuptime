@@ -50160,8 +50160,6 @@
   "Either {{name}} has an A record, or your DNS provider proxies or flattens it (Cloudflare's orange cloud does), which hides the CNAME record. Replace the A record with a CNAME record whose value is {{expectedValue}}, or set the name to DNS only.": "Либо у {{name}} есть A-запись, либо ваш DNS-провайдер проксирует это имя или применяет к нему flattening (так делает оранжевое облако Cloudflare), из-за чего CNAME-запись не видна. Замените A-запись CNAME-записью со значением {{expectedValue}} или переключите имя в режим «только DNS».",
   "Email is failing": "Отправка почты не работает",
   "Email is not set up": "Почта не настроена",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "С {{time}} письма не отправляются, поэтому приглашения и письма об инцидентах не доходят.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "С {{time}} письма не отправляются, поэтому приглашения и письма об инцидентах не доходят. Почтовый сервер ответил: {{reason}}",
   "Enter the address people will open, such as status.example.com: letters, digits, dots and hyphens only.": "Введите адрес, который будут открывать люди, например status.example.com: только буквы, цифры, точки и дефисы.",
   "Found": "Найдена",
   "Invitations, password resets and incident emails are not sent.": "Приглашения, письма для сброса пароля и письма об инцидентах не отправляются.",
@@ -56513,5 +56511,8 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Этот pull request с изменением и его описанием видят все, у кого есть доступ к репозиторию. Этот приватный инцидент в нём не упоминается.",
   "Only someone who may approve fixes can open this pull request.": "Открыть этот pull request может только тот, у кого есть право одобрять исправления.",
   "VPA": "VPA",
-  "This check was too large to keep in full, so it was trimmed.": "Эта проверка была слишком большой, чтобы сохранить её полностью, поэтому она сокращена."
+  "This check was too large to keep in full, so it was trimmed.": "Эта проверка была слишком большой, чтобы сохранить её полностью, поэтому она сокращена.",
+  "No email has gone out through this server's email settings since {{time}}.": "С {{time}} через настройки почты этого сервера не отправлено ни одного письма.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "С {{time}} через настройки почты этого сервера не отправлено ни одного письма. Почтовый сервер ответил: {{reason}}",
+  "See email logs": "Журнал писем"
 }

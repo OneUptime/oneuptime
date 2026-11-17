@@ -148,6 +148,13 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         globalProbesLink={URL.fromString(
           ADMIN_DASHBOARD_URL.toString(),
         ).addRoute(ADMIN_GLOBAL_PROBES_ROUTE)}
+        emailLogsLink={
+          props.selectedProject?.id
+            ? RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SETTINGS_NOTIFICATION_LOGS] as Route,
+              )
+            : undefined
+        }
         openLinksInNewTab={true}
       />
       {BILLING_ENABLED &&
