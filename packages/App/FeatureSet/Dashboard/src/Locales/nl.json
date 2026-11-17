@@ -56507,5 +56507,9 @@
   "Set Up Before Sharing Publicly": "Instellen voordat u openbaar deelt",
   "The public link's title, description, logos, theme and favicon.": "De titel, beschrijving, logo's, thema en favicon van de openbare link.",
   "Your own domains for the public link.": "Uw eigen domeinen voor de openbare link.",
-  "Paging & Calls": "Oproepen en gesprekken"
+  "Paging & Calls": "Oproepen en gesprekken",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "Iedereen met toegang tot de repository kan deze pull request zien, met de wijziging en de beschrijving ervan.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Iedereen met toegang tot de repository kan deze pull request zien, met de wijziging en de beschrijving ervan. Deze waarschuwing is privé en wordt er niet in genoemd.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Iedereen met toegang tot de repository kan deze pull request zien, met de wijziging en de beschrijving ervan. Dit incident is privé en wordt er niet in genoemd.",
+  "Only someone who may approve fixes can open this pull request.": "Alleen wie oplossingen mag goedkeuren, kan deze pull request openen."
 }

@@ -280,6 +280,12 @@ export async function findAccessibleSuggestion(
 export const APPROVE_FIX_ACTION: string = "approve this fix";
 export const DRY_RUN_FIX_ACTION: string = "dry-run this fix";
 export const DISMISS_FIX_ACTION: string = "dismiss this fix";
+// A step's change made in the code that declares its resource (#9106).
+export const OPEN_FIX_PULL_REQUEST_ACTION: string =
+  "open a pull request for this fix";
+// The fix in the code an investigation recommends (#9165).
+export const OPEN_CODE_FIX_PULL_REQUEST_ACTION: string =
+  "open a fix pull request";
 
 /*
  * A FIX FOR A PRIVATE INCIDENT OR ALERT IS ACTED ON ONLY THROUGH ITS OWNERS
@@ -294,6 +300,17 @@ export const DISMISS_FIX_ACTION: string = "dismiss this fix";
  * is written. The person reads the fix first (findAccessibleSuggestion,
  * through the record's privacy), so a record they do not see is answered
  * as missing before this. A Slack or Microsoft Teams press comes here too.
+ *
+ * Opening a pull request from a private record is held the same way: for a
+ * step of one of its fixes, in the code that declares the step's resource
+ * (DeclaredCodeChanges, #9106), and for the fix in the code its
+ * investigation recommends (Open fix pull request, #9165). Either takes
+ * what OneUptime AI worked out for the record into a repository whose
+ * readers are not the record's, so it is an action about the record, not
+ * on the repository alone: a member of a team that owns it and may only
+ * view it is refused, whatever another team of theirs may do in Code. The
+ * record is `suggestion`'s - a fix's - or, for the fix an investigation
+ * recommends, the incident or alert itself.
  */
 export async function assertReachesFixSubject(data: {
   props: DatabaseCommonInteractionProps;

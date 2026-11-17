@@ -36,25 +36,28 @@ describe("RunnerAPIRequest.getDefaultRequestBody", () => {
   /*
    * #8916: this build asks OneUptime to open a fix's pull request when the
    * token's answer says so, so a server of this release hands it a token
-   * that only pushes. Declared on every code-fix request - the claim, the
-   * queue count, the token - as a probe declares its capabilities.
+   * that only pushes. #9165: it keeps a private incident or alert out of
+   * what it writes on the code host, so a server of this release hands it
+   * such a fix. Declared on every code-fix request - the claim, the queue
+   * count, the token, a fix's details - as a probe declares its
+   * capabilities.
    */
-  test("declares that it has OneUptime open its pull requests", () => {
+  test("declares that it has OneUptime open its pull requests, and keeps private records out of them", () => {
     const body: JSONObject = RunnerAPIRequest.getDefaultRequestBody();
+    const declared: Array<RunnerCodeFixCapability> = [
+      RunnerCodeFixCapability.ServerOpensPullRequests,
+      RunnerCodeFixCapability.KeepsPrivateRecordsOutOfPullRequests,
+    ];
 
-    expect(body[RUNNER_CODE_FIX_CAPABILITIES_FIELD]).toEqual([
-      RunnerCodeFixCapability.ServerOpensPullRequests,
-    ]);
-    expect(RUNNER_CODE_FIX_CAPABILITIES).toEqual([
-      RunnerCodeFixCapability.ServerOpensPullRequests,
-    ]);
+    expect(body[RUNNER_CODE_FIX_CAPABILITIES_FIELD]).toEqual(declared);
+    expect(RUNNER_CODE_FIX_CAPABILITIES).toEqual(declared);
     // A copy each time: a caller cannot change what later requests declare.
     (body[RUNNER_CODE_FIX_CAPABILITIES_FIELD] as Array<string>).push("x");
     expect(
       RunnerAPIRequest.getDefaultRequestBody()[
         RUNNER_CODE_FIX_CAPABILITIES_FIELD
       ],
-    ).toEqual([RunnerCodeFixCapability.ServerOpensPullRequests]);
+    ).toEqual(declared);
   });
 
   test("sends the Runner key as aiAgentKey", () => {

@@ -56507,5 +56507,9 @@
   "Set Up Before Sharing Publicly": "सार्वजनिक रूप से साझा करने से पहले सेट अप करें",
   "The public link's title, description, logos, theme and favicon.": "सार्वजनिक लिंक का शीर्षक, विवरण, लोगो, थीम और फ़ेविकॉन।",
   "Your own domains for the public link.": "सार्वजनिक लिंक के लिए आपके अपने डोमेन।",
-  "Paging & Calls": "पेजिंग और कॉल"
+  "Paging & Calls": "पेजिंग और कॉल",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "रिपॉजिटरी तक पहुंच रखने वाला हर व्यक्ति यह पुल रिक्वेस्ट, उसके बदलाव और विवरण के साथ, देख सकता है।",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "रिपॉजिटरी तक पहुंच रखने वाला हर व्यक्ति यह पुल रिक्वेस्ट, उसके बदलाव और विवरण के साथ, देख सकता है। इसमें इस निजी अलर्ट का उल्लेख नहीं होता।",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "रिपॉजिटरी तक पहुंच रखने वाला हर व्यक्ति यह पुल रिक्वेस्ट, उसके बदलाव और विवरण के साथ, देख सकता है। इसमें इस निजी घटना का उल्लेख नहीं होता।",
+  "Only someone who may approve fixes can open this pull request.": "यह पुल रिक्वेस्ट केवल वही व्यक्ति खोल सकता है जिसे सुधार स्वीकृत करने की अनुमति हो।"
 }

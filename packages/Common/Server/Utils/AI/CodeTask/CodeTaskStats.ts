@@ -1,5 +1,7 @@
 import AIRunService from "../../../Services/AIRunService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import AIRunOutputReadFilter from "../AIRunOutputReadFilter";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
@@ -16,7 +18,10 @@ import ObjectID from "../../../../Types/ObjectID";
  *
  * Three grouped reads for every repository on the page at once, as root and
  * pinned to the project - the caller was allowed to read these repositories
- * before their ids got here. Every value is a bound parameter.
+ * before their ids got here - and to what the reader may read of them: a
+ * task about a private incident or alert they do not see, and its pull
+ * requests, count for none of theirs (AIRunOutputReadFilter, #9165). Every
+ * value is a bound parameter.
  *
  * A pull request's production review is not one of a repository's tasks
  * here: it is OneUptime's, it has its own page, and a review in progress is
@@ -40,6 +45,8 @@ export default class CodeTaskStats {
   public static async getRepositoryStats(data: {
     projectId: ObjectID;
     repositoryIds: Array<ObjectID>;
+    // Who the page is for: what they may not read counts for nothing.
+    reader: DatabaseCommonInteractionProps;
   }): Promise<Map<string, CodeRepositoryTaskStatsJSON>> {
     const stats: Map<string, CodeRepositoryTaskStatsJSON> = new Map<
       string,
@@ -75,6 +82,50 @@ export default class CodeTaskStats {
 
     const projectId: string = data.projectId.toString();
 
+    // The reader's rule on a statement's runs: "AND ...", or nothing.
+    const readableRuns: (parameters: Array<unknown>) => string = (
+      parameters: Array<unknown>,
+    ): string => {
+      const readable: string | null = AIRunOutputReadFilter.getRunAboutSql({
+        alias: "AIRun",
+        props: data.reader,
+        parameters,
+      });
+
+      return readable ? ` AND ${readable}` : "";
+    };
+
+    const runParameters: Array<unknown> = [
+      projectId,
+      repositoryIds,
+      WORKING_STATUSES,
+      AIRunType.CodeFix,
+      NOT_TASKS,
+    ];
+    const runsReadable: string = readableRuns(runParameters);
+
+    const waitingParameters: Array<unknown> = [
+      projectId,
+      repositoryIds,
+      AIRunType.CodeFix,
+      AIRunStatus.Completed,
+      NOT_TASKS,
+    ];
+    const waitingReadable: string = readableRuns(waitingParameters);
+
+    const pullRequestParameters: Array<unknown> = [
+      projectId,
+      repositoryIds,
+      PullRequestState.Open,
+    ];
+    // A pull request is the reader's when the run that opened it is.
+    const pullRequestReadable: string | null =
+      AIRunOutputReadFilter.getReadableRunsSql({
+        key: `"AIAgentTaskPullRequest"."aiRunId"`,
+        props: data.reader,
+        parameters: pullRequestParameters,
+      });
+
     const [runRows, waitingRows, pullRequestRows]: [
       QueryRows,
       QueryRows,
@@ -88,15 +139,9 @@ export default class CodeTaskStats {
         FROM "AIRun"
         WHERE "projectId" = $1 AND "runType" = $4 AND "deletedAt" IS NULL
           AND "codeRepositoryId" = ANY($2::uuid[])
-          AND ("codeFixTaskType" IS NULL OR "codeFixTaskType" <> ALL($5::text[]))
+          AND ("codeFixTaskType" IS NULL OR "codeFixTaskType" <> ALL($5::text[]))${runsReadable}
         GROUP BY "codeRepositoryId"`,
-        [
-          projectId,
-          repositoryIds,
-          WORKING_STATUSES,
-          AIRunType.CodeFix,
-          NOT_TASKS,
-        ],
+        runParameters,
       ),
       /*
        * A task waits for its person when its LATEST turn ended asking them
@@ -111,27 +156,23 @@ export default class CodeTaskStats {
           FROM "AIRun"
           WHERE "projectId" = $1 AND "runType" = $3 AND "deletedAt" IS NULL
             AND "codeRepositoryId" = ANY($2::uuid[])
-            AND ("codeFixTaskType" IS NULL OR "codeFixTaskType" <> ALL($5::text[]))
+            AND ("codeFixTaskType" IS NULL OR "codeFixTaskType" <> ALL($5::text[]))${waitingReadable}
           ORDER BY COALESCE("codeTaskId", "_id"), "createdAt" DESC
         ) AS "latest"
         WHERE "latest"."status" = $4 AND "latest"."needsUserInput" = true
         GROUP BY "latest"."codeRepositoryId"`,
-        [
-          projectId,
-          repositoryIds,
-          AIRunType.CodeFix,
-          AIRunStatus.Completed,
-          NOT_TASKS,
-        ],
+        waitingParameters,
       ),
       query(
         `SELECT "codeRepositoryId", COUNT(*)::int AS "openPullRequests"
         FROM "AIAgentTaskPullRequest"
         WHERE "projectId" = $1 AND "deletedAt" IS NULL
           AND "pullRequestState" = $3
-          AND "codeRepositoryId" = ANY($2::uuid[])
+          AND "codeRepositoryId" = ANY($2::uuid[])${
+            pullRequestReadable ? ` AND ${pullRequestReadable}` : ""
+          }
         GROUP BY "codeRepositoryId"`,
-        [projectId, repositoryIds, PullRequestState.Open],
+        pullRequestParameters,
       ),
     ]);
 
@@ -179,19 +220,27 @@ export default class CodeTaskStats {
     return stats;
   }
 
-  // How many tasks have no repository (Code lists them as Other tasks).
+  /*
+   * How many tasks have no repository (Code lists them as Other tasks) that
+   * the reader may read: none about a private incident or alert they do not
+   * see.
+   */
   @CaptureSpan()
-  public static async countTasksWithoutRepository(
-    projectId: ObjectID,
-  ): Promise<number> {
+  public static async countTasksWithoutRepository(data: {
+    projectId: ObjectID;
+    reader: DatabaseCommonInteractionProps;
+  }): Promise<number> {
     return (
       await AIRunService.countBy({
-        query: {
-          projectId: projectId,
-          runType: AIRunType.CodeFix,
-          codeTaskId: QueryHelper.isNull(),
-          codeRepositoryId: QueryHelper.isNull(),
-        },
+        query: AIRunOutputReadFilter.applyToRunRow(
+          {
+            projectId: data.projectId,
+            runType: AIRunType.CodeFix,
+            codeTaskId: QueryHelper.isNull(),
+            codeRepositoryId: QueryHelper.isNull(),
+          },
+          data.reader,
+        ),
         props: { isRoot: true },
       })
     ).toNumber();

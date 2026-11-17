@@ -42,6 +42,9 @@ import {
   NextFunction,
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
+import PrivateRecordWriteCheck from "../../../Server/Utils/Permission/PrivateRecordWriteCheck";
+import { OPEN_CODE_FIX_PULL_REQUEST_ACTION } from "../../../Server/Utils/AutoRemediation/RemediationApproval";
+import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
 import Alert from "../../../Models/DatabaseModels/Alert";
@@ -2013,6 +2016,11 @@ describe("AIInvestigationAPI run-scoped actions", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    /*
+     * The incidents and alerts here are not private, or the person reaches
+     * them; the refusal is asked of its own below.
+     */
+    jest.spyOn(PrivateRecordWriteCheck, "reaches").mockResolvedValue(true);
     jest
       .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
       .mockResolvedValue(props);
@@ -2114,6 +2122,82 @@ describe("AIInvestigationAPI run-scoped actions", () => {
       userId: USER_ID,
     });
     expect(sentPayload()).toEqual({ aiRunId: fixRunId.toString() });
+  });
+
+  /*
+   * On a private incident or alert, opening its fix pull request takes what
+   * approving one of its fixes takes, through a team that owns it (#9165):
+   * asked of the record the person read, with the action in the refusal.
+   */
+  it.each([
+    ["incident", INCIDENT_ID, "Incident"],
+    ["alert", ALERT_ID, "Alert"],
+  ])(
+    "asks whether the person's permission reaches the %s, before anything starts",
+    async (subjectType: string, subjectId: ObjectID, tableName: string) => {
+      const reaches: SpyInstance<typeof PrivateRecordWriteCheck.reaches> = jest
+        .spyOn(PrivateRecordWriteCheck, "reaches")
+        .mockResolvedValue(true);
+
+      const next: ReturnType<typeof jest.fn> = jest.fn();
+
+      await mockRouter
+        .match("post", "/ai-investigation/create-fix-task")
+        .handlerFunction(
+          requestFor({
+            subjectType,
+            subjectId: subjectId.toString(),
+            aiRunId: investigationRunId.toString(),
+          }),
+          response(),
+          next as unknown as NextFunction,
+        );
+
+      expect(next).not.toHaveBeenCalled();
+
+      const asked: {
+        modelType: { name: string };
+        type: DatabaseRequestType;
+        recordService: { modelType: { new (): { tableName?: string } } };
+        recordId: ObjectID;
+        props: unknown;
+      } = reaches.mock.calls[0]![0] as never;
+
+      // What approving a fix asks: a runbook run about the record.
+      expect(asked.modelType.name).toBe("RunbookExecution");
+      expect(asked.type).toBe(DatabaseRequestType.Create);
+      expect(new asked.recordService.modelType().tableName).toBe(tableName);
+      expect(asked.recordId.toString()).toBe(subjectId.toString());
+      expect(asked.props).toBe(props);
+    },
+  );
+
+  it("refuses a person the private record's owners do not let, saying why, and starts nothing", async () => {
+    jest.spyOn(PrivateRecordWriteCheck, "reaches").mockResolvedValue(false);
+
+    const next: ReturnType<typeof jest.fn> = jest.fn();
+
+    await mockRouter
+      .match("post", "/ai-investigation/create-fix-task")
+      .handlerFunction(
+        requestFor({
+          subjectType: "incident",
+          subjectId: INCIDENT_ID.toString(),
+          aiRunId: investigationRunId.toString(),
+        }),
+        response(),
+        next as unknown as NextFunction,
+      );
+
+    const refusal: unknown = next.mock.calls[0]![0];
+
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect((refusal as Error).message).toBe(
+      `You do not have permission to ${OPEN_CODE_FIX_PULL_REQUEST_ACTION}. This incident is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this. Ask a Project Admin to give one of the teams that own it this permission, or to add you as an owner.`,
+    );
+    expect(
+      FixFromIncidentTaskTrigger.createFixTaskFromInvestigation,
+    ).not.toHaveBeenCalled();
   });
 });
 

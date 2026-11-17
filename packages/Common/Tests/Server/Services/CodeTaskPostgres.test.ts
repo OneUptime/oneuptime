@@ -394,6 +394,8 @@ describePostgres("Code's SQL on a migrated Postgres", () => {
         await CodeTaskStats.getRepositoryStats({
           projectId: new ObjectID(PROJECT_A),
           repositoryIds: [new ObjectID(repository), new ObjectID(quiet)],
+          // OneUptime itself (CodeFixRunReadPostgres holds a person's).
+          reader: { isRoot: true },
         });
 
       expect(stats.get(repository)).toEqual({

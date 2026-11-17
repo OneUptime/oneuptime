@@ -56507,5 +56507,9 @@
   "Set Up Before Sharing Publicly": "Set Up Before Sharing Publicly",
   "The public link's title, description, logos, theme and favicon.": "The public link's title, description, logos, theme and favicon.",
   "Your own domains for the public link.": "Your own domains for the public link.",
-  "Paging & Calls": "Paging & Calls"
+  "Paging & Calls": "Paging & Calls",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "Everyone with access to the repository can see this pull request, with the change and its description.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.",
+  "Only someone who may approve fixes can open this pull request.": "Only someone who may approve fixes can open this pull request."
 }

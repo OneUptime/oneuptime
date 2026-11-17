@@ -42,7 +42,11 @@ import CodeTaskGate from "../AI/CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../AI/CodeTask/CodeTaskRuns";
 import logger from "../Logger";
 import CallerPermission from "../Permission/CallerPermission";
+import PrivateRecordWriteCheck from "../Permission/PrivateRecordWriteCheck";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import DatabaseService from "../../Services/DatabaseService";
+import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 /*
  * A POSTMORTEM'S ACTION ITEM BECOMES A PULL REQUEST OR A TEST (issue #6801).
@@ -67,6 +71,13 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  *   - one task at a time: while the item's task is queued or running, a
  *     second is refused - the first is the one to follow, or stop, in Code.
  */
+
+/*
+ * What "You do not have permission to ..." says when a private incident's
+ * owners do not let the person ask for an action item's pull request.
+ */
+export const ASK_FOR_ACTION_ITEM_PULL_REQUEST_ACTION: string =
+  "ask for this action item's pull request";
 
 // The run statuses of a task still working on its turn.
 const ACTIVE_RUN_STATUSES: ReadonlyArray<AIRunStatus> = [
@@ -128,6 +139,23 @@ export default class PostmortemActionItemCodeTasks {
         "Asking OneUptime AI to write an action item's pull request takes permission to edit the action item. Ask a Project Admin for the Edit Postmortem Action Item permission.",
       );
     }
+
+    /*
+     * A private incident's action item is changed only through the
+     * incident's owners, as every part of a private record is
+     * (PrivateRecordPermission): the permission above counts only through
+     * a team that owns it, or for a person named as its owner. The task is
+     * written onto the item as OneUptime below, so it is asked here.
+     */
+    await PrivateRecordWriteCheck.assertReaches({
+      modelType: IncidentPostmortemActionItem,
+      type: DatabaseRequestType.Update,
+      recordService:
+        IncidentService as unknown as DatabaseService<DatabaseBaseModel>,
+      recordId: actionItem.incidentId,
+      props: data.props,
+      action: ASK_FOR_ACTION_ITEM_PULL_REQUEST_ACTION,
+    });
 
     if (PostmortemActionItemStatusUtil.isClosed(actionItem.status)) {
       throw new BadDataException(

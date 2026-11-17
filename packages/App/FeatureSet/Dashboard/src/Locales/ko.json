@@ -56507,5 +56507,9 @@
   "Set Up Before Sharing Publicly": "공개 공유 전에 설정",
   "The public link's title, description, logos, theme and favicon.": "공개 링크의 제목, 설명, 로고, 테마, 파비콘.",
   "Your own domains for the public link.": "공개 링크용 자체 도메인.",
-  "Paging & Calls": "호출 및 수신 통화"
+  "Paging & Calls": "호출 및 수신 통화",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "저장소에 접근할 수 있는 모든 사람이 이 풀 리퀘스트의 변경 내용과 설명을 볼 수 있습니다.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "저장소에 접근할 수 있는 모든 사람이 이 풀 리퀘스트의 변경 내용과 설명을 볼 수 있습니다. 이 비공개 경고는 언급되지 않습니다.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "저장소에 접근할 수 있는 모든 사람이 이 풀 리퀘스트의 변경 내용과 설명을 볼 수 있습니다. 이 비공개 인시던트는 언급되지 않습니다.",
+  "Only someone who may approve fixes can open this pull request.": "수정을 승인할 수 있는 사람만 이 풀 리퀘스트를 열 수 있습니다."
 }

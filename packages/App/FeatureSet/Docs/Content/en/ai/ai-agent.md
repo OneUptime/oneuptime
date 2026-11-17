@@ -73,6 +73,8 @@ To follow up, write in the box at the bottom, which stays in view as the convers
 
 Anyone who can read a repository reads its tasks. Asking AI, replying and stopping a task take permission to edit the repository, and so does seeing a change's diff: everyone else sees which files changed. The tasks OneUptime starts on its own (below) are in their repository too, as conversations you can reply in.
 
+A task about a private incident or alert, one started from its investigation or from one of its fixes, is read with its replies and its pull request only by those who may read the record, and, once the record is deleted, only by Project Owners and Project Admins. For everyone else, the repository's lists, filters, searches and counts leave it out. See [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
+
 ## How a fix run works
 
 ```mermaid title="From a click to a pull request"
@@ -325,6 +327,8 @@ Everything else matches the button:
 - It counts toward that signal's daily fix-task limit (**Daily Incident AI Fix Task Limit** or **Daily Alert AI Fix Task Limit**, under **More settings** on its AI settings page) and toward the repository's cap on open pull requests, when either is set. Unset, neither limits anything.
 - Every trigger first looks for a fix task already queued or running for the same incident or alert, so an automatic trigger and a click normally become one task, not two pull requests. The check is a read before the write, not a lock, so two triggers at the very same moment can still both get through.
 - The run is written by the system, not credited to anyone, and nothing merges on its own.
+
+On a private incident or alert, **Open fix pull request** takes what approving the record's fixes takes, through the teams that own it, and is locked for anyone else, saying why. Everyone with access to the repository reads the pull request, so its title, its commit and its description say what the change does and nothing of the record, and the code agent is asked to leave the record out of its summary and of the comments it writes. A Runner from before this change is refused such a fix, and the task fails saying to update the Runner.
 
 ## When a fix fails
 

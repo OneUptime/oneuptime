@@ -18,7 +18,13 @@ import {
   readDeclaredCodeChanges,
 } from "./DeclaredCodeChangeWords";
 import { REMEDIATION_FIX_STEP_MARK_CLASS_NAMES } from "./RemediationFixStepList";
+import {
+  getFixPullRequestGate,
+  getRemediationFixWhoMayAct,
+} from "./RemediationFixActGate";
+import RemediationFixLock from "./RemediationFixLock";
 import PageMap from "../../Utils/PageMap";
+import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -44,6 +50,7 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -64,7 +71,9 @@ import React, {
  * and what to do: View progress while it is written (read again every few
  * seconds), View pull request once it is open, Answer in Code while it
  * waits for the reader, Try again once it failed. Nothing is drawn under any
- * other step.
+ * other step. On a private incident's or alert's page, a reader whose teams
+ * that own it may not approve its fixes finds the button, and Try again,
+ * locked, saying why, as Approve & Run is (#9106).
  */
 
 export const DECLARED_CODE_LINE_TEST_ID: string = "declared-code-change";
@@ -118,6 +127,13 @@ const DeclaredCodeChangeMark: FunctionComponent<{
   );
 };
 
+/*
+ * What opening the pull request is held to on a private incident or alert:
+ * what approving the fix takes - a runbook run - through the teams that
+ * own the record (#9106, RemediationFixActGate).
+ */
+const PRIVATE_RECORD_FIX_RUN: RunbookExecution = new RunbookExecution();
+
 const DeclaredCodeChangeLine: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -126,6 +142,13 @@ const DeclaredCodeChangeLine: FunctionComponent<ComponentProps> = (
   const [change, setChange] = useState<DeclaredCodeChangeJSON | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   const [readToken, setReadToken] = useState<number>(0);
+  /*
+   * On a private record's page, why the reader may not open the pull
+   * request, when they may not: in place of the button, and of Try again.
+   */
+  const lockReason: string | undefined = getRemediationFixWhoMayAct(
+    getFixPullRequestGate(usePrivateRecordGateOptions(PRIVATE_RECORD_FIX_RUN)),
+  );
 
   // Where the step's pull request stands, read as the line opens and again while it is written.
   useEffect(() => {
@@ -217,6 +240,21 @@ const DeclaredCodeChangeLine: FunctionComponent<ComponentProps> = (
   ) : (
     <></>
   );
+
+  if (!change && lockReason) {
+    return (
+      <div
+        className="mt-2"
+        data-testid={DECLARED_CODE_LINE_TEST_ID}
+        data-state="locked"
+      >
+        <RemediationFixLock
+          reason={lockReason}
+          testId={`${DECLARED_CODE_LINE_TEST_ID}-locked`}
+        />
+      </div>
+    );
+  }
 
   if (!change) {
     return (
@@ -329,7 +367,7 @@ const DeclaredCodeChangeLine: FunctionComponent<ComponentProps> = (
           >
             <>{translator.translateText(taskLinkWords)}</>
           </Link>
-          {change.state === DeclaredCodeChangeState.Failed ? (
+          {change.state === DeclaredCodeChangeState.Failed && !lockReason ? (
             <button
               type="button"
               className={LINK_CLASS_NAME}
@@ -342,6 +380,14 @@ const DeclaredCodeChangeLine: FunctionComponent<ComponentProps> = (
             <></>
           )}
         </div>
+        {change.state === DeclaredCodeChangeState.Failed && lockReason ? (
+          <RemediationFixLock
+            reason={lockReason}
+            testId={`${DECLARED_CODE_LINE_TEST_ID}-locked`}
+          />
+        ) : (
+          <></>
+        )}
       </div>
       {dialog}
     </div>

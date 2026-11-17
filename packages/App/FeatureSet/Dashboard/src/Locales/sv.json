@@ -56507,5 +56507,9 @@
   "Set Up Before Sharing Publicly": "Konfigurera innan offentlig delning",
   "The public link's title, description, logos, theme and favicon.": "Den offentliga länkens titel, beskrivning, logotyper, tema och favicon.",
   "Your own domains for the public link.": "Dina egna domäner för den offentliga länken.",
-  "Paging & Calls": "Jourlarm och samtal"
+  "Paging & Calls": "Jourlarm och samtal",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "Alla med åtkomst till arkivet kan se den här pull requesten, med ändringen och dess beskrivning.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Alla med åtkomst till arkivet kan se den här pull requesten, med ändringen och dess beskrivning. Det här privata larmet nämns inte i den.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Alla med åtkomst till arkivet kan se den här pull requesten, med ändringen och dess beskrivning. Den här privata incidenten nämns inte i den.",
+  "Only someone who may approve fixes can open this pull request.": "Bara den som får godkänna åtgärder kan öppna den här pull requesten."
 }

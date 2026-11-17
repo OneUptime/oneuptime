@@ -73,6 +73,8 @@ För att följa upp skriver du i rutan längst ned, som syns medan konversatione
 
 Den som kan läsa ett repositorium läser dess uppgifter. Att be AI om något, svara och stoppa en uppgift kräver behörighet att redigera repositoriet, och det gör även att se en ändrings diff: alla andra ser vilka filer som har ändrats. Uppgifterna som OneUptime startar på egen hand (nedan) finns också i sitt repositorium, som konversationer du kan svara i.
 
+En uppgift om en privat incident eller ett privat larm, startad från dess utredning eller från en av dess rättningar, läses med sina svar och sin pull request bara av dem som får läsa posten, och när posten har tagits bort, bara av Projektägare och Projektadministratörer. För alla andra utelämnar repositoriets listor, filter, sökningar och antal den. Se [Privata incidenter, larm och episoder](/docs/permissions/index#privata-incidenter-larm-och-episoder).
+
 ## Så går en åtgärdskörning till
 
 ```mermaid title="Från ett klick till en pull request"
@@ -325,6 +327,8 @@ Allt annat är som med knappen:
 - Den räknas mot signalens dagliga gräns för åtgärdsuppgifter (**Daglig gräns för AI-åtgärdsuppgifter för incidenter** eller **Daglig gräns för AI-åtgärdsuppgifter för larm**, under **Fler inställningar** på dess AI-inställningssida) och mot repositoriets tak för öppna pull requests, när något av dem är satt. Osatta begränsar ingen av dem något.
 - Varje utlösare letar först efter en åtgärdsuppgift som redan står i kö eller körs för samma incident eller larm, så en automatisk utlösare och ett klick blir normalt en uppgift, inte två pull requests. Kontrollen är en läsning före skrivningen, inte ett lås, så två utlösare i exakt samma ögonblick kan fortfarande båda komma igenom.
 - Körningen skrivs av systemet, tillskrivs ingen, och inget mergas av sig självt.
+
+På en privat incident eller ett privat larm kräver **Öppna pull request med rättning** detsamma som att godkänna postens rättningar, genom de team som äger den, och är låst för alla andra och talar om varför. Alla med åtkomst till repositoriet läser pull requesten, så dess titel, commit och beskrivning säger vad ändringen gör och ingenting om posten, och kodagenten ombeds hålla posten utanför sin sammanfattning och de kommentarer den skriver. En Runner från före den här ändringen får inte en sådan rättning, och uppgiften misslyckas med beskedet att uppdatera Runnern.
 
 ## När en åtgärd misslyckas
 

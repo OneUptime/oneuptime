@@ -56507,5 +56507,9 @@
   "Set Up Before Sharing Publicly": "公开共享前先行设置",
   "The public link's title, description, logos, theme and favicon.": "公开链接的标题、描述、徽标、主题和网站图标。",
   "Your own domains for the public link.": "用于公开链接的自有域名。",
-  "Paging & Calls": "呼叫与来电"
+  "Paging & Calls": "呼叫与来电",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "所有有权访问存储库的人都可以看到此拉取请求，包括更改及其描述。",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "所有有权访问存储库的人都可以看到此拉取请求，包括更改及其描述。其中不会提及此私密警报。",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "所有有权访问存储库的人都可以看到此拉取请求，包括更改及其描述。其中不会提及此私密事件。",
+  "Only someone who may approve fixes can open this pull request.": "只有可以批准修复的人才能打开此拉取请求。"
 }
