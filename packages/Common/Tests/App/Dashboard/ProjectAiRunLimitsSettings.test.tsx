@@ -747,11 +747,10 @@ describe("the Limits per run card", () => {
       target: { value: "0" },
     });
 
-    const timeStep: HTMLElement = within(progress(dialog))
-      .getAllByRole("listitem")
-      .find((item: HTMLElement): boolean => {
-        return item.textContent === TIME_STEP_TITLE;
-      })!;
+    // A step the list opens is a button, the keyboard's as much as a mouse's.
+    const timeStep: HTMLElement = within(progress(dialog)).getByRole("button", {
+      name: TIME_STEP_TITLE,
+    });
 
     await act(async (): Promise<void> => {
       fireEvent.click(timeStep);
