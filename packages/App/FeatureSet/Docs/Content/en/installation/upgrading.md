@@ -196,9 +196,9 @@ made, with nothing to set up again. Paging, runbooks and fixes about a private
 record take their permission from its owners, and workflows no longer act on
 private records. Upgrade from 14 — if you are still on 13, do 13 → 14 first.
 
-The upgrade hashes the keys and encrypts the credentials you have, so the
-scripts, integrations and chat apps that use them keep working, with no
-change.
+The upgrade hashes the keys you have, and encrypts the credentials you have a
+day later, once no server of 14 can still be running, so the scripts,
+integrations and chat apps that use them keep working, with no change.
 
 ### What you need to do for 15
 
@@ -385,15 +385,39 @@ and episodes.
   Microsoft Teams and webhook subscriptions, of webhook notification methods,
   of OpenStack project notices and of custom notification channels, a
   channel's signing secret, and the SNMP credentials of network devices and
-  discovery scans are stored encrypted. The upgrade encrypts the ones you
-  have, and every notification, poll, sweep and import goes on using them as
-  written. A project's webhook logs keep only an address's scheme and host
-  (`https://hooks.slack.com/•••`), the logs from before the upgrade included,
-  and an on-call log names the webhook a page was sent to rather than its
-  address. A server of the earlier release still running during the upgrade
-  reads an encrypted address or credential as a broken one, so its sends and
-  polls fail until it is replaced, and what it saves meanwhile is stored as
-  written until it is next saved.
+  discovery scans are stored encrypted. The ones you have are encrypted a day
+  after the upgrade, as the next note says, and every notification, poll,
+  sweep and import goes on using them as written. A project's webhook logs
+  keep only an address's scheme and host (`https://hooks.slack.com/•••`), the
+  logs from before the upgrade included, and an on-call log names the webhook
+  a page was sent to rather than its address.
+- **The credentials you have are encrypted a day after the upgrade, so a
+  server of the earlier release keeps sending with them while it rolls out.**
+  A project's SMTP passwords and OAuth client secrets, its Slack, Microsoft
+  Teams and Mattermost tokens and its members' chat sign-in tokens, its code
+  repositories' webhook secrets and its webhooks' signing secrets, the
+  webhook addresses and SNMP credentials above, and the private keys of
+  custom domains' certificates are stored encrypted from 15 on. So, on an
+  install still on a 14 release before 14.1, are the server's own mail, SMS,
+  call, WhatsApp, Telegram and license credentials, and before 14.0.56 a
+  project's Twilio auth token. The upgrade leaves the ones you have as they
+  were written: a server of the earlier release still running while it rolls
+  out (on Kubernetes the old pods serve while the migrations run) keeps
+  sending email, SMS, calls, chat messages and webhooks with them, polling
+  devices and serving custom domains. A day later, Workers encrypt each one
+  in place, those that server saved meanwhile included, and keep only the
+  host of a webhook address it logged. A credential saved during that day is
+  stored encrypted at once, and a server of the earlier release cannot use it
+  until it is replaced. A network device whose SNMP v3 credentials were only
+  in its legacy `snmpV3Auth` object is walked again, not only pinged: the
+  upgrade moves them into the device's v3 fields, where its settings show
+  them. A project's Twilio auth token can still be up to 500 characters
+  long. Rolled back within that day, the earlier release reads every
+  credential stored before the upgrade. Rolled back after it, the earlier
+  release cannot read the credentials it did not encrypt itself: restore the
+  backup you took before the upgrade, or enter each one again, connect
+  Slack, Microsoft Teams and Mattermost again, and upload each custom
+  domain's own certificate again or reissue its free one.
 :::
 
 ## Upgrading from OneUptime 13 → 14
