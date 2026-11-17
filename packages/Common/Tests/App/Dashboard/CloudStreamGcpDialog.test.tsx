@@ -58,9 +58,7 @@ jest.mock("../../../UI/Config", () => {
 
 import * as UIConfig from "../../../UI/Config";
 import CloudStreamGcpDialog from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamGcpDialog";
-import {
-  CLOUD_STREAM_DIALOG_TEST_ID,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamParts";
+import { CLOUD_STREAM_DIALOG_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudStreamParts";
 import {
   CLOUD_STREAM_POLL_MS,
   readCloudStreamKeyMade,

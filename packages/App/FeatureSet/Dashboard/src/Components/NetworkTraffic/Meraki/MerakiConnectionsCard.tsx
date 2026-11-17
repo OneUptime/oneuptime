@@ -1437,9 +1437,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                       })}
                       {deviceAdd}
                     </div>
-                    <div
-                      className="flex flex-shrink-0 items-center gap-2 sm:justify-end"
-                    >
+                    <div className="flex flex-shrink-0 items-center gap-2 sm:justify-end">
                       {primary}
                       {menuItems.length > 0 ? (
                         <MoreMenu

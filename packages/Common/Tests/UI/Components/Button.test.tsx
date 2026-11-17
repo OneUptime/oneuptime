@@ -158,7 +158,6 @@ describe("Button", () => {
     },
   );
 
-
   test("it should be enabled", () => {
     render(<Button dataTestId="test-id" disabled={false} />);
     const testId: HTMLElement = screen.getByTestId("test-id");

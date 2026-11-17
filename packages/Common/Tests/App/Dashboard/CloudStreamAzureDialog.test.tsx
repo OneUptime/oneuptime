@@ -554,7 +554,9 @@ describe("the dialog", () => {
     expect(postSpy).not.toHaveBeenCalled();
 
     // The step's own button starts where its words start, not a footer's margin in.
-    expect(part("start-reading").className).not.toMatch(/(^|\s)(md:)?!?m[ls]-/u);
+    expect(part("start-reading").className).not.toMatch(
+      /(^|\s)(md:)?!?m[ls]-/u,
+    );
     expect(steps[0]).toHaveTextContent(
       "Every minute, OneUptime reads the event hubs the command makes, signed in as the connection's app. Turn reading on first: until they are there, it waits for them.",
     );

@@ -164,8 +164,8 @@ export function findHandMadePrimaryButtons(
           found.push({
             file: file,
             line:
-              source.getLineAndCharacterOfPosition(node.getStart(source))
-                .line + 1,
+              source.getLineAndCharacterOfPosition(node.getStart(source)).line +
+              1,
           });
         }
       }

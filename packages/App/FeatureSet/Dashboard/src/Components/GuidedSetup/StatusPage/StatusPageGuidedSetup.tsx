@@ -98,8 +98,7 @@ export const getStatusPagePublicUrl: (statusPageId: string) => string = (
  * A row of the step's actions, lined up with the words above: the row's gap
  * spaces them (a Button has no margin of its own).
  */
-const ACTIONS_CLASS_NAME: string =
-  "flex flex-wrap items-center gap-3";
+const ACTIONS_CLASS_NAME: string = "flex flex-wrap items-center gap-3";
 
 const linkClassName: string =
   "text-sm font-medium text-indigo-600 hover:text-indigo-800 underline-offset-2 hover:underline";

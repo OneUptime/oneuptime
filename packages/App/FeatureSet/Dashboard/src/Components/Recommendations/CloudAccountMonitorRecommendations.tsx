@@ -112,7 +112,6 @@ const WIDE_ROW: string =
 const WIDE_RESOURCE_ROW: string =
   "[@container(min-width:30rem)]:flex-row [@container(min-width:30rem)]:items-center [@container(min-width:30rem)]:justify-between";
 
-
 // How many of the resources a reason names are listed by name.
 export const NOT_LISTED_NAMES_SHOWN: number = 8;
 

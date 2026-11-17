@@ -900,10 +900,7 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
           )}
         </div>
         {readingLine()}
-        <div
-          data-testid="call-transcript-actions"
-          className="pt-0.5"
-        >
+        <div data-testid="call-transcript-actions" className="pt-0.5">
           <Button
             title="View transcript"
             buttonStyle={ButtonStyleType.NORMAL}

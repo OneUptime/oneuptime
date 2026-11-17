@@ -108,7 +108,6 @@ import React, {
 
 export const SECURITY_CASE_AI_CARD_ID: string = "security-case-ai-card";
 
-
 // How often the card asks while a triage is on its way.
 export const SECURITY_CASE_AI_POLL_INTERVAL_MS: number = 3000;
 // The latest steps the card lists while a triage runs.

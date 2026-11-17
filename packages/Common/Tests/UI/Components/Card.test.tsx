@@ -674,9 +674,9 @@ describe("Card header layout", () => {
 
         // Neither a normal nor an outline button carries a margin (#9128).
         for (const title of ["Edit", "Refresh"]) {
-          expect(screen.getByText(title).closest("button")?.className).not.toMatch(
-            /(^|\s)(md:)?!?m[ls]-/u,
-          );
+          expect(
+            screen.getByText(title).closest("button")?.className,
+          ).not.toMatch(/(^|\s)(md:)?!?m[ls]-/u);
         }
         expect(classOf(actions())).toContain("gap-x-3");
       });
