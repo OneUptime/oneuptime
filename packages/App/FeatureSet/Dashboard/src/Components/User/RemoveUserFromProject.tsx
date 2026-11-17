@@ -1,11 +1,11 @@
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import User from "Common/Models/DatabaseModels/User";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import API from "Common/UI/Utils/API/API";
@@ -118,7 +118,7 @@ const RemoveUserFromProject: (props: ComponentProps) => ReactElement = (
   if (!memberships) {
     return (
       <Card title={CARD_TITLE}>
-        <ComponentLoader />
+        <TableSkeleton rows={3} />
       </Card>
     );
   }

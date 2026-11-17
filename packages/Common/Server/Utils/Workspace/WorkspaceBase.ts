@@ -148,6 +148,19 @@ export default class WorkspaceBase {
   }
 
   /*
+   * What a person reads of a post, a channel or an invite the workspace
+   * refused: in a Notification Logs row, Test Rule's Test Failed, a
+   * summary's channel. Each workspace says its own refusals in OneUptime's
+   * words, with its own answer after them for support
+   * (Common/Utils/Workspace/WorkspaceRefusal): "The Slack channel is
+   * archived. Unarchive it in Slack, or pick another channel. Slack said:
+   * is_archived." Anything else reads as getSendErrorMessage reads it.
+   */
+  public static describeError(err: unknown): string {
+    return WorkspaceBase.getSendErrorMessage(err);
+  }
+
+  /*
    * Edits a message the bot posted, in place: it keeps its place in the
    * channel and nobody is notified again (Slack chat.update, Microsoft Teams
    * updateActivity). Throws what the workspace answered when it refuses.
@@ -513,6 +526,14 @@ export default class WorkspaceBase {
           blocks.push(
             this.getDropdownBlock({
               payloadDropdownBlock: block as WorkspaceDropdownBlock,
+            }),
+          );
+          break;
+        // A box to tick: Declare Incident's Notify Status Page Subscribers.
+        case "WorkspaceCheckboxBlock":
+          blocks.push(
+            this.getCheckboxBlock({
+              payloadCheckboxBlock: block as WorkspaceCheckboxBlock,
             }),
           );
           break;

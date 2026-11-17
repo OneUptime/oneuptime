@@ -20,6 +20,7 @@ import { JSONObject } from "../../../../../Types/JSON";
 import { SLACK_ID_PATTERN } from "../../../../../Types/Workspace/ConnectCallback";
 import API from "../../../../../Utils/API";
 import { seededRandom, SeededRandom } from "../../../../Helpers/SeededRandom";
+import WorkspaceRefusal from "../../../../../Utils/Workspace/WorkspaceRefusal";
 
 /*
  * WHICH WORKSPACE "BACK TO SLACK" OPENS A CHANNEL OF AN ORGANIZATION IN
@@ -875,31 +876,33 @@ describe("askWorkspaceIdsOfChannel: conversations.info, once", () => {
         answer: async (): Promise<HTTPResponse<JSONObject>> => {
           return refused("team_access_not_granted");
         },
-        message: "Error from Slack team_access_not_granted",
+        message: WorkspaceRefusal.describeSlackRefusal(
+          "team_access_not_granted",
+        ),
       },
       {
         answer: async (): Promise<HTTPResponse<JSONObject>> => {
           return new HTTPResponse<JSONObject>(200, { ok: false }, {});
         },
-        message: "Error from Slack unknown_error",
+        message: WorkspaceRefusal.describeSlackRefusal("unknown_error"),
       },
       {
         answer: async (): Promise<HTTPErrorResponse> => {
           return new HTTPErrorResponse(502, {}, {});
         },
-        message: "Error from Slack http_502",
+        message: WorkspaceRefusal.describeSlackRefusal("http_502"),
       },
       {
         answer: async (): Promise<HTTPResponse<JSONObject>> => {
           throw new Error(`timeout; headers: Bearer ${ORG_TOKEN}`);
         },
-        message: "Error from Slack no_answer",
+        message: WorkspaceRefusal.describeSlackRefusal("no_answer"),
       },
       {
         answer: (): Promise<HTTPResponse<JSONObject>> => {
           return neverAnswered();
         },
-        message: "Error from Slack no_answer",
+        message: WorkspaceRefusal.describeSlackRefusal("no_answer"),
       },
     ];
 

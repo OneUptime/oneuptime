@@ -5,7 +5,7 @@ import SideMenu from "./SideMenu";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -160,7 +160,7 @@ const MonitorViewLayout: FunctionComponent = (): ReactElement => {
    * id already shows the loader rather than the previous monitor's pages.
    */
   if (!loaded || loaded.modelId !== modelIdString) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (loaded.error) {

@@ -7,8 +7,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import ChartGroup, {
@@ -687,7 +687,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
 
                 {!loaded ? (
                   isLoading ? (
-                    <ComponentLoader />
+                    <DetailListSkeleton fields={3} columns={1} />
                   ) : error ? (
                     <ErrorMessage message={error} />
                   ) : (

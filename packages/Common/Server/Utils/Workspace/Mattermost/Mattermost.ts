@@ -32,6 +32,8 @@ import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import { fitTextToLength } from "../../../../Utils/MessageFit";
 import WorkspaceChannelName from "../../../../Utils/Workspace/WorkspaceChannelName";
+import WorkspaceRefusal from "../../../../Utils/Workspace/WorkspaceRefusal";
+import ProductBrandingText from "../../ProductBrandingText";
 import { AppApiClientUrl } from "../../../EnvironmentConfig";
 import logger, { LogAttributes } from "../../Logger";
 import SafeWebhookRequest, {
@@ -381,13 +383,27 @@ export default class MattermostUtil extends WorkspaceBase {
     const errorId: string =
       typeof body["id"] === "string" ? (body["id"] as string) : "";
 
-    const message: string =
+    const said: string =
       (typeof body["message"] === "string" && (body["message"] as string)) ||
       response.message ||
-      `Mattermost answered with HTTP status ${response.statusCode}.`;
+      "";
 
+    /*
+     * OneUptime's words for the refusal, then what Mattermost said
+     * (WorkspaceRefusal): "OneUptime's bot is not allowed to do this in
+     * Mattermost. … Mattermost said: You do not have the appropriate
+     * permissions." It read "Error from Mattermost: …", Mattermost's
+     * words alone, which say what went wrong for Mattermost, not what to
+     * change.
+     */
     return new MattermostRequestError({
-      message: `Error from Mattermost: ${message}`,
+      message: ProductBrandingText.brandText(
+        WorkspaceRefusal.describeMattermostRefusal({
+          statusCode: response.statusCode,
+          errorId: errorId,
+          message: said,
+        }),
+      ),
       statusCode: response.statusCode,
       errorId: errorId,
     });
@@ -2899,8 +2915,9 @@ export default class MattermostUtil extends WorkspaceBase {
     return MattermostUtil.elementPiece({
       ...MattermostUtil.getElementBase(block),
       type: "bool",
+      // Written beside the box: its own words, or the field's name.
       placeholder: MattermostUtil.cutPlainText(
-        block.label,
+        block.optionLabel || block.label,
         MattermostUtil.DIALOG_TEXT_MAX_LENGTH,
       ),
       default: block.initialValue ? "true" : "false",

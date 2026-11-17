@@ -1,4 +1,5 @@
 import PageComponentProps from "../../Pages/PageComponentProps";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SetupGuideMarkdown from "../SetupGuide/SetupGuideMarkdown";
@@ -69,7 +70,6 @@ import {
 } from "Common/Utils/DeveloperDocs/TerraformSchema";
 import { TerraformImportTarget } from "Common/Utils/DeveloperDocs/TerraformConfig";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -805,7 +805,7 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
   }, [id, props.page, props.scope, modelType]);
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <PageSkeleton />;
   }
 
   if (error) {

@@ -281,7 +281,7 @@ describe("the Workspace Apps tab", () => {
   test("on a first visit the page waits for the answer rather than adding or dropping a tab under the reader", async () => {
     await renderTabs();
 
-    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
     expect(tabNames()).toEqual([]);
   });
 

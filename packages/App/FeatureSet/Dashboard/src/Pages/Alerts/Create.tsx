@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -60,7 +61,6 @@ import FetchAlertState from "../../Components/AlertState/FetchAlertState";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { JSONObject } from "Common/Types/JSON";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import {
   CreatedRecordKind,
   pickRecordToCreateFrom,
@@ -148,7 +148,9 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
         className="mb-10"
       >
         <div>
-          {recordToCreateFrom.isLoading && <PageLoader isVisible={true} />}
+          {recordToCreateFrom.isLoading && (
+            <DetailListSkeleton fields={4} columns={1} />
+          )}
           {!recordToCreateFrom.isLoading && (
             <ModelForm<Alert>
               modelType={Alert}

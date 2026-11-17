@@ -108,8 +108,61 @@ export interface ActionProgressLoaders {
   reason: string;
 }
 
-export const ACTION_PROGRESS_LOADERS: Record<string, ActionProgressLoaders> =
-  {};
+export const ACTION_PROGRESS_LOADERS: Record<string, ActionProgressLoaders> = {
+  "packages/App/FeatureSet/AdminDashboard/src/Pages/Logout/Logout.tsx": {
+    loaders: 1,
+    reason:
+      "The administrator is being signed out: the page has no content to shape, it leaves as soon as the session ends.",
+  },
+  "packages/App/FeatureSet/AdminDashboard/src/Pages/Init/Init.tsx": {
+    loaders: 1,
+    reason:
+      "The admin dashboard is deciding which page to open and sends the browser there: no content of its own is ever drawn.",
+  },
+  "packages/App/FeatureSet/Accounts/src/Pages/VerifyEmail.tsx": {
+    loaders: 1,
+    reason:
+      "The address is being verified with the link's token; the page then says whether it worked, a message with no shape to draw ahead.",
+  },
+  "packages/App/FeatureSet/Accounts/src/Pages/Login.tsx": {
+    loaders: 1,
+    reason:
+      "Under 'Authenticating with your security key': the browser is waiting for the person to touch their key.",
+  },
+  "packages/Common/UI/Components/LogsViewer/components/LogsTable.tsx": {
+    loaders: 1,
+    reason:
+      "A new search over rows already on screen: drawn over them, it says the rows are being replaced, not what they will be. The first load draws the table's rows.",
+  },
+  "packages/App/FeatureSet/Dashboard/src/Pages/Logout/Logout.tsx": {
+    loaders: 1,
+    reason:
+      "The person is being signed out: the page has no content to shape, it leaves as soon as the session ends.",
+  },
+  "packages/App/FeatureSet/Dashboard/src/Pages/Init/Init.tsx": {
+    loaders: 1,
+    reason:
+      "The Dashboard is choosing which project to open and sends the browser there: no content of its own is ever drawn.",
+  },
+  "packages/App/FeatureSet/Dashboard/src/Pages/ConnectReturn/ConnectReturn.tsx":
+    {
+      loaders: 1,
+      reason:
+        "A connection the person started with a provider is being finished, and the browser passed on to its page: no content is drawn here.",
+    },
+  "packages/App/FeatureSet/Dashboard/src/Components/CallSMS/PhoneNumberPurchase.tsx":
+    {
+      loaders: 1,
+      reason:
+        "A phone number search, purchase or release the person started is running; the owned numbers' list draws its rows' skeleton.",
+    },
+  "packages/App/FeatureSet/Dashboard/src/Components/Metrics/PromQL/PromQLQueryView.tsx":
+    {
+      loaders: 1,
+      reason:
+        "A PromQL query the person pressed Run on is running: its result's shape (a chart, a table, a number) is not known until it ends.",
+    },
+};
 
 const HAND_DRAWN_LOADERS_BASELINE_FILE: string = path.join(
   __dirname,
@@ -298,7 +351,7 @@ describe("LoadingStatesGuard: every screen", () => {
 
       if (now > before) {
         grew.push(
-          `${file}: draws ${now} PageLoader or ComponentLoader, ${before} before. Draw the skeleton of what loads (PageSkeleton, TableSkeleton, DetailListSkeleton, ChartSkeleton, StatTilesSkeleton, CardListSkeleton, InlineValueSkeleton), or, for an action in progress, list the file in ACTION_PROGRESS_LOADERS with the reason.`,
+          `${file}: draws ${now} PageLoader or ComponentLoader, ${before} before. Draw the skeleton of what loads (PageSkeleton, TableSkeleton, DetailListSkeleton, ChartSkeleton, StatTilesSkeleton, CardListSkeleton, InlineValueSkeleton, AuthPageSkeleton), or, for an action in progress, list the file in ACTION_PROGRESS_LOADERS with the reason.`,
         );
       } else if (now < before) {
         shrank.push(`${file}: ${now}, down from ${before}`);
@@ -314,6 +367,12 @@ describe("LoadingStatesGuard: every screen", () => {
         `Fewer hand-drawn loaders; lower the baseline (UPDATE_HAND_DRAWN_LOADERS_BASELINE=true):\n${shrank.join("\n")}`,
       );
     }
+  });
+
+  test("no hand-drawn loader is left: the baseline is empty (#9220)", () => {
+    expect(
+      JSON.parse(fs.readFileSync(HAND_DRAWN_LOADERS_BASELINE_FILE, "utf8")),
+    ).toEqual({});
   });
 
   test("every file listed as an action's progress still draws its loaders, with a reason", () => {

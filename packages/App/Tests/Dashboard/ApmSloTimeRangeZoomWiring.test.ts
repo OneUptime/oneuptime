@@ -297,7 +297,7 @@ describe("Error Budget History (Components/Slo/SloHistoryCharts.tsx)", () => {
     );
 
     expect(getChart).toContain(
-      "if (isLoading && options.points.length === 0) { return withSloChartZoomHint(false, <ComponentLoader />); }",
+      "if (isLoading && options.points.length === 0) { return withSloChartZoomHint(false, <ChartSkeleton />); }",
     );
     expect(getChart).toContain(
       "return withSloChartZoomHint( zoom.isZoomed, <div",
@@ -429,7 +429,7 @@ describe("SLO overview burn-down (Components/Slo/SloBudgetBurnDownCard.tsx)", ()
       "return withSloChartZoomHint( false, <ErrorMessage message={series.error} onRefreshClick={series.retry} />, );",
     );
     expect(getBody).toContain(
-      "return withSloChartZoomHint(false, <ComponentLoader />);",
+      "return withSloChartZoomHint(false, <ChartSkeleton />);",
     );
     // The zoomed empty state takes the double-click; the unzoomed one nothing.
     expect(getBody).toContain(

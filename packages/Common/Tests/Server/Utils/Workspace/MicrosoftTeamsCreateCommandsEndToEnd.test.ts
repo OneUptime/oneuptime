@@ -268,6 +268,11 @@ import {
   ExpressRequest,
   ExpressResponse,
 } from "../../../../Server/Utils/Express";
+import {
+  NO_STATUS_PAGE_SUBSCRIBERS_LINE,
+  stubSubscriberAudience,
+  subscriberAudienceOf,
+} from "./WorkspaceSubscriberAudienceTestHelpers";
 import logger, { LogAttributes } from "../../../../Server/Utils/Logger";
 import {
   Activity,
@@ -1602,6 +1607,8 @@ beforeEach(() => {
   stubSenderCheck(projectId);
   stubDashboardUrl();
   keepConnectRequestsInMemory();
+  // A declared incident's monitors are on no status page.
+  stubSubscriberAudience(subscriberAudienceOf({ hasMonitors: true }));
 
   loggedErrors = [];
   loggedErrorCalls = [];
@@ -3415,9 +3422,12 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
     return (firstCall?.[0] as { data: Incident }).data;
   }
 
-  // What the user reads once the incident exists.
+  /*
+   * What the user reads once the incident exists: with whether status page
+   * subscribers will be told - the form's monitors are on no status page.
+   */
   function incidentCreatedConfirmation(): string {
-    return `✅ Incident created successfully. [View incident](${dashboardLink(`/incidents/${CREATED_INCIDENT_ID.toString()}`)})`;
+    return `✅ Incident created successfully. [View incident](${dashboardLink(`/incidents/${CREATED_INCIDENT_ID.toString()}`)})\n\n${NO_STATUS_PAGE_SUBSCRIBERS_LINE}`;
   }
 
   test("the confirmation is posted, then the form is deleted; the incident has what the form offered and the user chose", async () => {

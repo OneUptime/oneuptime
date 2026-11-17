@@ -3,6 +3,7 @@ import {
   MARKETPLACE_PURCHASE_DETAILS_API_URL,
   MARKETPLACE_PURCHASE_DISMISS_API_URL,
 } from "../Utils/ApiPaths";
+import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import MarketplacePurchaseUtil from "../Utils/MarketplacePurchase";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -16,7 +17,6 @@ import {
 import MarketplaceSubscriptionStatus from "Common/Types/Marketplace/MarketplaceSubscriptionStatus";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import { DASHBOARD_URL } from "Common/UI/Config";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
@@ -235,7 +235,7 @@ const MarketplacePurchase: () => JSX.Element = () => {
   };
 
   if (state.kind === "loading") {
-    return <PageLoader isVisible={true} />;
+    return <AuthPageSkeleton fields={2} />;
   }
 
   if (state.kind === "redirecting") {

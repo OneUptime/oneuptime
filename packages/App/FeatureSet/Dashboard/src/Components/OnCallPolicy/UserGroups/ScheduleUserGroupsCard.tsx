@@ -1,4 +1,5 @@
 import ConnectUserGroupModal from "./ConnectUserGroupModal";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import UserGroupRow from "./UserGroupRow";
 import UserGroupsAPI from "./UserGroupsAPI";
 import {
@@ -22,7 +23,6 @@ import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
@@ -237,7 +237,7 @@ export const WorkspaceUserGroupsCard: FunctionComponent<WorkspaceCardProps> = (
   let body: ReactElement;
 
   if (props.isLoading) {
-    body = <ComponentLoader />;
+    body = <TableSkeleton rows={3} />;
   } else if (props.error) {
     body = (
       <Alert

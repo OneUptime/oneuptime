@@ -8,7 +8,7 @@ import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const ScheduledMaintenancesPage: FunctionComponent<
@@ -27,7 +27,7 @@ const ScheduledMaintenancesPage: FunctionComponent<
   }
 
   if (!inProgressStateIds) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   return (

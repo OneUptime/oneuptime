@@ -19,8 +19,8 @@
  */
 
 import CodeEditor from "../CodeEditor/CodeEditor";
+import TableSkeleton from "../Skeleton/TableSkeleton";
 import FieldError from "../Forms/Fields/FieldError";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import {
   DictionaryEntryValue,
   getOperatorOption,
@@ -578,7 +578,7 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
   }, [isLoadingColumns, columns]);
 
   if (isLoadingColumns || rows === null) {
-    return <ComponentLoader />;
+    return <TableSkeleton rows={4} columns={3} />;
   }
 
   const isLockedToJson: boolean = !compatibility.compatible;

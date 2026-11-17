@@ -1,4 +1,5 @@
 import OneUptimeDate from "../../../Types/Date";
+import DetailListSkeleton from "../Skeleton/DetailListSkeleton";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   readTelemetryIngestionBudgetStatus,
@@ -14,7 +15,6 @@ import useTranslator from "../../Utils/UseTranslator";
 import Alert, { AlertType } from "../Alerts/Alert";
 import { ButtonStyleType } from "../Button/Button";
 import Card from "../Card/Card";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Pill from "../Pill/Pill";
 import { getTableHeaderButtons } from "../Table/TableHeaderControls";
@@ -511,7 +511,7 @@ const TelemetryIngestionBudgetStatusCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading && !status) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={3} />;
     }
 
     if (error) {

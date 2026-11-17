@@ -1,4 +1,5 @@
 import PageComponentProps from "../../Pages/PageComponentProps";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import { APPROVED_BY_LABEL } from "../Runbook/RunbookExecutionWaitCopy";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -60,7 +61,6 @@ import TableEmptyState from "Common/UI/Components/Table/TableEmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -434,7 +434,7 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
   if (isLoading) {
     body = (
       <div data-testid="ai-logs-loading">
-        <PageLoader isVisible={true} />
+        <TableSkeleton />
       </div>
     );
   } else if (!logs) {

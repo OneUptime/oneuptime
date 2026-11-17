@@ -18,6 +18,7 @@ import ResolvedRecordRetentionLimitsCopy, {
   toMaximumInDays,
   toStoredLength,
 } from "./ResolvedRecordRetentionLimitsCopy";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import { countProjectsReached } from "./ResolvedRecordRetentionLimitsApi";
 import AdminModelAPI from "../../../Utils/ModelAPI";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
@@ -31,7 +32,6 @@ import {
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -465,7 +465,7 @@ const ResolvedRecordRetentionLimitsCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={3} columns={1} />;
     }
 
     if (error) {

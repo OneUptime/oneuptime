@@ -860,7 +860,7 @@ describe("Zooming Into a Time Range docs: what a click does", () => {
       `${DASHBOARD_SRC}/Components/Exceptions/ExceptionOccurrenceTrend.tsx`,
     ]) {
       const code: string = readCode(placeholderHost);
-      const loader: number = code.indexOf("<ComponentLoader />");
+      const loader: number = code.indexOf("<ChartSkeleton");
 
       /*
        * The loader's own box, the markup just before it, takes the

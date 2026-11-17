@@ -1,4 +1,5 @@
 import FormBrandingSection from "../Branding/FormBrandingSection";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import {
   FORM_BRANDING_SELECT,
   FormBrandingValues,
@@ -56,7 +57,6 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState, {
   EmptyStateSize,
 } from "Common/UI/Components/EmptyState/EmptyState";
@@ -425,7 +425,7 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
         title={FormsCopy.builderTitle}
         description={FormsCopy.builderDescription}
       >
-        <ComponentLoader />
+        <CardListSkeleton count={3} lines={2} />
       </Card>
     );
   }

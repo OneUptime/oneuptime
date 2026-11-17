@@ -56553,5 +56553,11 @@
   "This override ends within the minute, so there is nothing left to end.": "Эта замена заканчивается в течение минуты, так что завершать уже нечего.",
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Эта замена ещё не началась, так что завершать нечего. Чтобы отменить её, удалите её.",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "Пропуск заканчивается сейчас, а не {{until}}. После этого {{away}} снова дежурит в свою очередь в ротации.",
-  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} перестаёт заменять {{away}} сейчас, а не {{until}}. После этого оповещения снова получает {{away}}."
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} перестаёт заменять {{away}} сейчас, а не {{until}}. После этого оповещения снова получает {{away}}.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "Сообщения в Slack, Microsoft Teams и Mattermost, отправленные для этого проекта.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "Сообщения в Slack, Microsoft Teams и Mattermost по этому элементу ({{itemName}}).",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "Этот тест также создаёт настоящий канал в команде Microsoft Teams этого правила, например {{channel}}, который видят все участники команды. Когда закончите, удалите его в Microsoft Teams.",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "Этот тест также создаёт настоящий канал {{workspace}}, например {{channel}}, и приглашает вас в него. Когда закончите, архивируйте его в {{workspace}}.",
+  "{{team}} (typed name)": "{{team}} (введённое название)",
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Мониторы этого SLO ещё ни разу не проверялись. Измерение начнётся с их первой проверки."
 }

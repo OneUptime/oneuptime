@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import {
   DESCRIPTION_FIELD_TITLE,
   EXPIRES_FIELD_DESCRIPTION,
@@ -79,7 +80,6 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -254,7 +254,7 @@ const SecurityWatchlistViewPage: FunctionComponent<
   usePageBreadcrumbLinks(watchlist?.name ? breadcrumbs : null);
 
   if (!isLoaded) {
-    return <ComponentLoader />;
+    return <PageSkeleton shape="table" />;
   }
 
   if (error || !watchlist) {

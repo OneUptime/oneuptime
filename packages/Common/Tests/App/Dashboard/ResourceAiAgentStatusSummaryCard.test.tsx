@@ -427,7 +427,7 @@ describe.each(ALL_AI_RESOURCE_TYPES)(
       expect(
         screen.queryByTestId(`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection`),
       ).not.toBeInTheDocument();
-      expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+      expect(screen.getByTestId("detail-skeleton")).toBeInTheDocument();
       const request: JSONObject = postSpy.mock.calls[1]![0] as JSONObject;
       expect(request["data"]).toEqual({
         resourceType: type,
@@ -442,7 +442,7 @@ describe.each(ALL_AI_RESOURCE_TYPES)(
       renderCard();
       await settle();
 
-      expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+      expect(screen.getByTestId("detail-skeleton")).toBeInTheDocument();
       expect(
         screen.queryByTestId(`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-unavailable`),
       ).not.toBeInTheDocument();

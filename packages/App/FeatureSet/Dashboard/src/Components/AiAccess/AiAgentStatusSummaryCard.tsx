@@ -3,6 +3,7 @@ import {
   AI_ACCESS_INVESTIGATION_ROW_TITLE,
   AiAccessBadge,
 } from "./AiAccessModes";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import { AiAccessRow, AiAccessRows } from "./AiAccessRow";
 import {
   AI_AGENT_CONNECTION_ROW_TITLE,
@@ -16,7 +17,6 @@ import {
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -121,7 +121,7 @@ const AiAgentStatusSummaryCard: FunctionComponent<ComponentProps> = (
 
   const renderBody: () => ReactElement = (): ReactElement => {
     if (props.isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={3} />;
     }
 
     const summary: AiAgentStatusSummary | null = props.summary;

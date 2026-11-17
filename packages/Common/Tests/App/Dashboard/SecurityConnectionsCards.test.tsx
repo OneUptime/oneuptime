@@ -1834,7 +1834,7 @@ describe("In your logs and traces, under Connected Signals", () => {
     expect(searching).toHaveTextContent("Searching your logs and traces…");
     // Said once to a screen reader, and not a page's loader band.
     expect(searching).toHaveAttribute("role", "status");
-    expect(screen.queryByTestId("component-loader")).toBeNull();
+    expect(screen.queryByTestId("card-list-skeleton")).toBeNull();
     // Under the records, a rule between, as the answer will be.
     expect(searching.parentElement!.className).toBe(
       TELEMETRY_SECTION_CLASS_NAME,

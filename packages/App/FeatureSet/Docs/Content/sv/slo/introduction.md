@@ -285,6 +285,7 @@ En banner högst upp på SLO:ets sidor talar om vad som hindrar det från att m�
 | --- | --- | --- |
 | **Inga monitorer kopplade** | SLO:et har inga monitorer, så det finns inget att mäta. | Koppla monitorer eller skapa en monitorregel. |
 | **Väntar på SLO-utvärdering** | Monitorer är kopplade, men den senaste utvärderingen hade inga statusdata från dem. | Kontrollera att monitorerna kontrolleras. Siffrorna visas efter nästa utvärdering med data. |
+| **Väntar på första kontrollen** | Monitorer är kopplade, men inget har kontrollerat dem ännu: en monitor som skapades för en minut sedan, eller en egenhostad sond som inte är ansluten. | Inget: SLO:et mäts från deras första kontroll. Kommer den inte, öppna monitorerna för att se varför. |
 | **Mätningen är pausad** | Alla monitorer som det mäter är arkiverade eller har aktiv övervakning avstängd. | Slå på övervakningen igen för minst en monitor, eller vänta tills underhållet är klart. |
 | **Målet ligger utanför det tillåtna intervallet** | Målet är inte större än 0 och mindre än 100. | Ange ett mål som 99,9 under **Inställningar** → **Mål**. |
 | **Denna SLO är inaktiverad** | Utvärderingen är avstängd. | Klicka på **Slå på utvärdering**. |

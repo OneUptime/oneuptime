@@ -5,6 +5,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import URL from "Common/Types/API/URL";
@@ -15,7 +17,6 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
@@ -922,7 +923,7 @@ function InstallationTestBody(props: BodyProps): ReactElement {
 
   return (
     <div data-testid="install-test" data-state={health.diagnosis.state}>
-      {health.isLoading && <ComponentLoader />}
+      {health.isLoading && <DetailListSkeleton fields={3} columns={1} />}
 
       {!health.isLoading && health.status === null && health.error && (
         <div
@@ -1173,7 +1174,7 @@ const InstallationTestPanel: FunctionComponent<ComponentProps> = (
       </div>
 
       <div className="px-5 py-4">
-        {isLoadingApplications && <ComponentLoader />}
+        {isLoadingApplications && <TableSkeleton rows={3} hasHeader={false} />}
 
         {!isLoadingApplications && applicationsError && (
           <div

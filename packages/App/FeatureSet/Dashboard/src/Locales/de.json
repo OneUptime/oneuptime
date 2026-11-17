@@ -56553,5 +56553,11 @@
   "This override ends within the minute, so there is nothing left to end.": "Diese Vertretung endet innerhalb der Minute, es gibt also nichts mehr zu beenden.",
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Diese Vertretung hat noch nicht begonnen, es gibt also nichts zu beenden. Um sie abzusagen, löschen Sie sie.",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "Das Überspringen endet jetzt statt am {{until}}. Danach übernimmt {{away}} die eigenen Schichten in der Rotation wieder.",
-  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "Die Vertretung von {{away}} durch {{cover}} endet jetzt statt am {{until}}. Danach gehen Warnungen wieder an {{away}}."
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "Die Vertretung von {{away}} durch {{cover}} endet jetzt statt am {{until}}. Danach gehen Warnungen wieder an {{away}}.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "An Slack, Microsoft Teams und Mattermost gesendete Nachrichten für dieses Projekt.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "Nachrichten an Slack, Microsoft Teams und Mattermost für diesen Eintrag ({{itemName}}).",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "Dieser Test erstellt außerdem einen echten Kanal im Microsoft Teams-Team der Regel, etwa {{channel}}, den alle im Team sehen. Löschen Sie ihn in Microsoft Teams, wenn Sie fertig sind.",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "Dieser Test erstellt außerdem einen echten {{workspace}}-Kanal, etwa {{channel}}, und lädt Sie dorthin ein. Archivieren Sie ihn in {{workspace}}, wenn Sie fertig sind.",
+  "{{team}} (typed name)": "{{team}} (eingegebener Name)",
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "Die Monitore dieses SLO wurden noch nicht geprüft. Es wird ab ihrer ersten Prüfung gemessen."
 }

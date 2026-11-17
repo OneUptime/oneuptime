@@ -1,4 +1,5 @@
 import FormMappingCard from "../../../Components/FormBuilder/OnSubmit/FormMappingCard";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import FormTargetCard from "../../../Components/FormBuilder/OnSubmit/FormTargetCard";
 import FormsCopy from "../../../Components/FormBuilder/FormsCopy";
 import PageComponentProps from "../../PageComponentProps";
@@ -8,7 +9,6 @@ import FormTargetType, {
 } from "Common/Types/Form/FormTargetType";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -79,7 +79,7 @@ const FormOnSubmit: FunctionComponent<
         description={FormsCopy.targetCardDescription}
       >
         {isLoading ? (
-          <ComponentLoader />
+          <DetailListSkeleton />
         ) : (
           <ErrorMessage message={error || FormsCopy.formNotFound} />
         )}

@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import useAsyncEffect from "use-async-effect";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Route from "Common/Types/API/Route";
@@ -29,7 +30,6 @@ import {
   useBulkActionProgress,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -464,7 +464,7 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
   );
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <CardListSkeleton />;
   }
 
   /*

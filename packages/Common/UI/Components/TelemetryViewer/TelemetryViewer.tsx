@@ -1,4 +1,5 @@
 import { getHandDrawnLookClassName } from "../Button/ButtonStates";
+import TableSkeleton from "../Skeleton/TableSkeleton";
 import React, {
   MutableRefObject,
   ReactElement,
@@ -55,7 +56,6 @@ import TelemetryResultTotal from "./components/TelemetryResultTotal";
 import ResultTotalUtil, {
   ResultTotal,
 } from "../../Utils/Telemetry/ResultTotal";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Icon from "../Icon/Icon";
 import TelemetryLoadErrorMessage from "./components/TelemetryLoadErrorMessage";
 import TelemetryLoadErrorUtil, {
@@ -918,7 +918,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             <div className="min-h-0 flex-1 overflow-y-auto">
               {props.isLoading && props.items.length === 0 ? (
                 <div className="flex h-48 items-center justify-center">
-                  <ComponentLoader />
+                  <TableSkeleton rows={4} hasHeader={false} />
                 </div>
               ) : props.items.length === 0 ? (
                 props.emptyContent !== undefined ? (

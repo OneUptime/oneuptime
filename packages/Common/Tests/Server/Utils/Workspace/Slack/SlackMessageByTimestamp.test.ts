@@ -4,6 +4,7 @@ import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../../../Types/JSON";
 import API from "../../../../../Utils/API";
+import WorkspaceRefusal from "../../../../../Utils/Workspace/WorkspaceRefusal";
 
 /*
  * Reading the message someone reacted to. conversations.history only holds
@@ -202,7 +203,7 @@ describe("SlackUtil.getMessageDetailsByTimestamp", () => {
         channelId: CHANNEL_ID,
         messageTs: PARENT_TS,
       }),
-    ).rejects.toThrow("Error from Slack not_in_channel");
+    ).rejects.toThrow(WorkspaceRefusal.describeSlackRefusal("not_in_channel"));
   });
 
   test("an HTTP error is thrown", async () => {

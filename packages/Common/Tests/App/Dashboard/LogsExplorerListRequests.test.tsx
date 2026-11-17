@@ -1139,10 +1139,9 @@ describe("a saved view that applies on load is waited for", () => {
 
     await openAt(`?savedView=${SAVED_VIEW_ID}&range=Past%201%20Day&page=2`);
 
-    // The list's loader, with room for the rows; no empty state under it.
+    // The rows' skeleton, as tall as rows; no empty state under it.
     const table: HTMLElement = screen.getByTestId(LOGS_TABLE_TEST_ID);
-    expect(table).toHaveClass("min-h-48");
-    expect(within(table).getByTestId("component-loader")).toBeInTheDocument();
+    expect(within(table).getByTestId("table-skeleton")).toBeInTheDocument();
     expect(screen.queryByText("No logs found")).toBeNull();
     expect(footerSummary()).toBe("Loading...");
     // The page the link named is the page the footer is on.
@@ -1156,7 +1155,11 @@ describe("a saved view that applies on load is waited for", () => {
     await settle();
 
     expect(listCalls()).toHaveLength(1);
-    expect(screen.getByTestId(LOGS_TABLE_TEST_ID)).not.toHaveClass("min-h-48");
+    expect(
+      within(screen.getByTestId(LOGS_TABLE_TEST_ID)).queryByTestId(
+        "table-skeleton",
+      ),
+    ).toBeNull();
     expect(footerSummary()).toMatch(/^Showing 101-200/);
   });
 

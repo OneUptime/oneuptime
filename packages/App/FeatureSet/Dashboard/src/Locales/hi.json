@@ -56553,5 +56553,11 @@
   "This override ends within the minute, so there is nothing left to end.": "यह ओवरराइड इसी मिनट में समाप्त हो रहा है, इसलिए समाप्त करने को कुछ नहीं बचा है।",
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "यह ओवरराइड अभी शुरू नहीं हुआ है, इसलिए समाप्त करने को कुछ नहीं है। इसे रद्द करने के लिए इसे हटाएँ।",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "छोड़ना {{until}} के बजाय अभी समाप्त होता है। उसके बाद {{away}} रोटेशन में फिर से अपनी बारी लेते हैं।",
-  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} {{until}} के बजाय अभी {{away}} को कवर करना बंद करते हैं। उसके बाद अलर्ट फिर से {{away}} को जाते हैं।"
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} {{until}} के बजाय अभी {{away}} को कवर करना बंद करते हैं। उसके बाद अलर्ट फिर से {{away}} को जाते हैं।",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "इस प्रोजेक्ट के लिए भेजे गए Slack, Microsoft Teams और Mattermost संदेश।",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "इस {{itemName}} के लिए भेजे गए Slack, Microsoft Teams और Mattermost संदेश।",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "यह परीक्षण नियम की Microsoft Teams टीम में एक असली चैनल भी बनाता है, जैसे {{channel}}, जिसे टीम का हर सदस्य देख सकता है। काम पूरा होने पर उसे Microsoft Teams में हटा दें।",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "यह परीक्षण एक असली {{workspace}} चैनल भी बनाता है, जैसे {{channel}}, और आपको उसमें आमंत्रित करता है। काम पूरा होने पर उसे {{workspace}} में संग्रहीत करें।",
+  "{{team}} (typed name)": "{{team}} (टाइप किया गया नाम)",
+  "Nothing has checked this SLO's monitors yet. It is measured from their first check.": "इस SLO के मॉनिटर की अभी तक कोई जाँच नहीं हुई है। इसे उनकी पहली जाँच से मापा जाता है।"
 }

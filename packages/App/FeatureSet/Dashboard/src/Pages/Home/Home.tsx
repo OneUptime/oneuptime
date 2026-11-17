@@ -30,7 +30,7 @@ import RouteMap from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import UiAnalytics from "Common/UI/Utils/Analytics";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -223,7 +223,7 @@ const Home: FunctionComponent<ComponentProps> = (
   }, [props.projects]);
 
   if (!currentProjectId || !currentProjectIdString) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   const refresh: () => void = (): void => {

@@ -182,12 +182,6 @@ const DELIBERATE_PADDINGS: ReadonlyArray<DeliberatePadding> = [
     to: `className="py-12"`,
   },
   {
-    file: `${DASHBOARD_SOURCE}/Components/ResourceTopology/ResourceTopologyPage.tsx`,
-    rule: "a loading state centred by its text",
-    from: `className="py-12 text-center"`,
-    to: `className="py-12"`,
-  },
-  {
     file: `${DASHBOARD_SOURCE}/Components/Topology/NetworkTopologyExplorer.tsx`,
     rule: "a loading state centred by a flex column",
     from: `"flex flex-col items-center justify-center gap-3 py-20"`,

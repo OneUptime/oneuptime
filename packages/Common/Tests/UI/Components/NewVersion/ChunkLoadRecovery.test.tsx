@@ -388,7 +388,7 @@ describe("a page whose code did not download (the app's ErrorBoundary)", () => {
     });
 
     expect(stepOf()).toBe(ChunkLoadRecoveryStep.Reloading);
-    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
     expect(screen.queryByTestId("chunk-load-recovery-title")).toBeNull();
   });
 

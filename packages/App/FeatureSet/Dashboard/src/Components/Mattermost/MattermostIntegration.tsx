@@ -20,7 +20,7 @@ import UserUtil from "Common/UI/Utils/User";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import API from "Common/UI/Utils/API/API";
 import Exception from "Common/Types/Exception/Exception";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import WorkspaceProjectAuthToken, {
@@ -568,7 +568,7 @@ const MattermostIntegration: FunctionComponent<ComponentProps> = (
   };
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {

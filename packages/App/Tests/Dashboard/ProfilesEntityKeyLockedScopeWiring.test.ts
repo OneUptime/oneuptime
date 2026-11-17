@@ -189,7 +189,7 @@ const LOCKED_CHIP_MAP: string = blockAfter(
   ")",
 );
 
-const EARLY_RETURN: string = "if (isPageLoading) { return <PageLoader";
+const EARLY_RETURN: string = "if (isPageLoading) { return <PageSkeleton";
 
 describe("ProfileTable accepts the Inventory page's display map", () => {
   const props: string = blockAfter(

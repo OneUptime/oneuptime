@@ -146,6 +146,7 @@ import MicrosoftTeamsProjectChoice, {
 import { WorkspaceProjectChoiceTaken } from "../WorkspaceProjectChoiceStore";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import WorkspaceChannelNotFound from "../WorkspaceChannelNotFound";
+import MicrosoftTeamsRefusal from "./MicrosoftTeamsRefusal";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
 import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
 import { cutToLength } from "../../../../Utils/Markdown/OverLongText";
@@ -2043,7 +2044,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             workspaceType: WorkspaceType.MicrosoftTeams,
             teamId: data.workspaceMessagePayload.teamId,
           },
-          error: WorkspaceBase.getSendErrorMessage(err),
+          error: this.describeError(err),
         });
       }
     }
@@ -2125,7 +2126,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         logger.error(e);
         workspaceMessageResponse.errors!.push({
           channel: channel,
-          error: WorkspaceBase.getSendErrorMessage(e),
+          error: this.describeError(e),
         });
       }
     }
@@ -2186,7 +2187,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           logger.error(e);
           workspaceMessageResponse.errors!.push({
             channel: chatAsChannel,
-            error: WorkspaceBase.getSendErrorMessage(e),
+            error: this.describeError(e),
           });
         }
       }
@@ -2899,6 +2900,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         await context.updateActivity(update);
       },
     );
+  }
+
+  /*
+   * What a person reads of a Microsoft Teams call that failed: OneUptime's
+   * own sentence when OneUptime refused it (the app not installed in the
+   * team, a shared channel), else Microsoft's refusal in OneUptime's words,
+   * with Microsoft's status, code and words after them
+   * (MicrosoftTeamsRefusal).
+   */
+  public static override describeError(error: unknown): string {
+    return MicrosoftTeamsRefusal.describe(error);
   }
 
   /*

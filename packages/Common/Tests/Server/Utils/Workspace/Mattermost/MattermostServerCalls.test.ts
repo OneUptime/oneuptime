@@ -22,6 +22,7 @@ import BadDataException from "../../../../../Types/Exception/BadDataException";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import { WorkspaceMessageBlock } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import SlackActionType from "../../../../../Server/Utils/Workspace/Slack/Actions/ActionTypes";
+import WorkspaceRefusal from "../../../../../Utils/Workspace/WorkspaceRefusal";
 
 /*
  * Every call OneUptime makes to a Mattermost server, as the bot: the path,
@@ -278,8 +279,13 @@ describe("MattermostUtil: calls to the Mattermost server", () => {
       expect((error as MattermostRequestError).errorId).toBe(
         "api.context.session_expired.app_error",
       );
+      // OneUptime's words, then Mattermost's (#7119).
       expect((error as Error).message).toBe(
-        "Error from Mattermost: Invalid or expired session, please login again.",
+        WorkspaceRefusal.describeMattermostRefusal({
+          statusCode: 401,
+          errorId: "api.context.session_expired.app_error",
+          message: "Invalid or expired session, please login again.",
+        }),
       );
     });
 

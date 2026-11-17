@@ -370,7 +370,7 @@ describe("Monitor view layout - the monitor's type", () => {
     renderLayout();
 
     // Before the type is known there is nothing correct to show.
-    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
     expect(screen.queryByTestId("monitor-side-menu")).toBeNull();
     expect(screen.queryByTestId("monitor-page")).toBeNull();
 
@@ -418,7 +418,7 @@ describe("Monitor view layout - the monitor's type", () => {
     openMonitorB();
 
     // At once, before B's type is back: nothing of monitor A is left.
-    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
     expect(screen.queryByTestId("monitor-side-menu")).toBeNull();
     expect(screen.queryByText(/Checkout API/)).toBeNull();
     expect(screen.queryByTestId("monitor-page")).toBeNull();
@@ -474,7 +474,7 @@ describe("Monitor view layout - the monitor's type", () => {
     await flush();
 
     expect(screen.getByText(NO_TYPE_MESSAGE)).toBeInTheDocument();
-    expect(screen.queryByTestId("bar-loader")).toBeNull();
+    expect(screen.queryByTestId("page-skeleton")).toBeNull();
     expect(screen.queryByTestId("monitor-side-menu")).toBeNull();
     expect(screen.queryByTestId("monitor-page")).toBeNull();
 
@@ -489,7 +489,7 @@ describe("Monitor view layout - the monitor's type", () => {
     fireEvent.click(screen.getByTestId("refresh-button"));
 
     // The retry shows the loader rather than the stale error.
-    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
     expect(screen.queryByText(NO_TYPE_MESSAGE)).toBeNull();
 
     await flush();
@@ -532,7 +532,7 @@ describe("Monitor view layout - the monitor's type", () => {
       screen.getByText(ExceptionMessages.MonitorNotFound),
     ).toBeInTheDocument();
     expect(screen.getByTestId("refresh-button")).toBeInTheDocument();
-    expect(screen.queryByTestId("bar-loader")).toBeNull();
+    expect(screen.queryByTestId("page-skeleton")).toBeNull();
   });
 
   test("an error for one monitor does not stick to the next", async () => {

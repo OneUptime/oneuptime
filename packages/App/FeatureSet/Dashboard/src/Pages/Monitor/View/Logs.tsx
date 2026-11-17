@@ -1,4 +1,5 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -11,7 +12,6 @@ import MonitorType, {
 import ObjectID from "Common/Types/ObjectID";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -296,7 +296,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const getPageContent: GetReactElementFunction = (): ReactElement => {
     if (!monitorType || isLoading) {
-      return <ComponentLoader />;
+      return <PageSkeleton shape="table" />;
     }
 
     if (error) {

@@ -1,4 +1,5 @@
 import { SEND_MAGIC_LINK_API_URL } from "../Utils/ApiPaths";
+import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import { SignInMethodsRead, useSignInMethods } from "../Utils/SignInMethods";
 import Route from "Common/Types/API/Route";
 import { MAGIC_LINK_EXPIRY_MINUTES } from "Common/Types/Accounts/MagicLink";
@@ -13,7 +14,6 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Link from "Common/UI/Components/Link/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import {
   CAPTCHA_ENABLED,
@@ -95,7 +95,7 @@ const MagicLinkPage: () => JSX.Element = () => {
   }, [isMagicLinkLoginUnavailable]);
 
   if (signInMethodsRead.isReading || isMagicLinkLoginUnavailable) {
-    return <PageLoader isVisible={true} />;
+    return <AuthPageSkeleton fields={1} />;
   }
 
   let fields: Array<ModelField<User>> = [

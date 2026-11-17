@@ -287,7 +287,7 @@ describe("addressable telemetry pages", () => {
     );
 
     expect(shell).toContain("useInventoryItem(modelId)");
-    expect(shell).toContain("<ComponentLoader");
+    expect(shell).toContain("<PageSkeleton");
     expect(shell).toContain("<ErrorMessage");
     expect(shell).toContain("item?.entityKey");
   });
@@ -387,7 +387,7 @@ describe("the settings page", () => {
       expect(guardIndex).toBeLessThan(firstControlIndex);
     }
 
-    expect(settings).toContain("<ComponentLoader");
+    expect(settings).toContain("<PageSkeleton");
     expect(settings).toContain("<ErrorMessage message={error}");
     expect(settings).toContain("This inventory item could not be found.");
   });
@@ -459,7 +459,7 @@ describe("the delete page", () => {
   });
 
   test("renders explicit loading, failure and not-found states", () => {
-    expect(remove).toContain("<ComponentLoader");
+    expect(remove).toContain("<PageSkeleton");
     expect(remove).toContain("<ErrorMessage message={error}");
     expect(remove).toContain("This inventory item could not be found.");
   });

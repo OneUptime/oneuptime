@@ -923,7 +923,7 @@ describe("the Funnel widget", () => {
     expect(
       screen.getAllByTestId(`${FUNNEL_WIDGET_TEST_ID}-chart-step`),
     ).toHaveLength(2);
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("chart-skeleton")).not.toBeInTheDocument();
 
     const renamed: RumProductAnalyticsSavedView = savedFunnel();
 
@@ -966,7 +966,7 @@ describe("the Funnel widget", () => {
       />,
     );
 
-    expect(await screen.findByTestId("component-loader")).toBeInTheDocument();
+    expect(await screen.findByTestId("chart-skeleton")).toBeInTheDocument();
     expect(screen.queryByText("Pricing to purchase")).not.toBeInTheDocument();
     expect(
       screen.queryByTestId(`${FUNNEL_WIDGET_TEST_ID}-open`),

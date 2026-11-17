@@ -130,14 +130,18 @@ describe("the column it makes", () => {
       "Notify Status Page Subscribers of New Incidents by Default",
     );
     /*
-     * It says what it moves, that incidents declared where nothing asks
+     * It says what it moves - the box on every Declare form, the Dashboard's
+     * and the chats' (#7917) - that incidents declared where nothing asks
      * about subscribers follow it, what it leaves alone, and that it starts
      * on.
      */
     expect(metadata.description).toContain("Notify Status Page Subscribers");
+    expect(metadata.description).toContain(
+      "declares an incident in the dashboard, Slack or Microsoft Teams",
+    );
     expect(metadata.description).toContain("starts unticked");
     expect(metadata.description).toContain(
-      "Incidents declared from Slack or Microsoft Teams, or by OneUptime AI, follow it too",
+      "Incidents declared by OneUptime AI, where nothing asks, follow it too",
     );
     expect(metadata.description).toContain(
       "Incidents created by monitors, the API and workflows are not affected",

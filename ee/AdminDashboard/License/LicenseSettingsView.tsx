@@ -1,6 +1,7 @@
 import LicenseActivationForm, {
   ActivationInputMode,
 } from "./LicenseActivationForm";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import LicenseDetails from "./LicenseDetails";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
@@ -37,7 +38,6 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedLine, {
   getIsolatedLine,
 } from "Common/UI/Components/IsolatedText/IsolatedLine";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -341,7 +341,7 @@ const LicenseSettingsView: FunctionComponent = (): ReactElement => {
   };
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (!payload || !license) {

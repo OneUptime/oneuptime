@@ -608,16 +608,17 @@ work out, starts from a default for everything else, and folds what most people 
   shared skeleton of its content: `PageSkeleton` for a page's content area (`shape="table"` or
   `"chart"` when the page opens with one), `TableSkeleton` for rows, `DetailListSkeleton` for names
   and values, `ChartSkeleton` for a chart (at the chart's height), `StatTilesSkeleton` for a row
-  of figures (in the tiles' own grid), `CardListSkeleton` for a list of cards and
-  `InlineValueSkeleton` for a value inside a field (a row of pills, a name). Each is a busy
+  of figures (in the tiles' own grid), `CardListSkeleton` for a list of cards,
+  `InlineValueSkeleton` for a value inside a field (a row of pills, a name) and
+  `AuthPageSkeleton` for a sign-in page's column and card. Each is a busy
   status named "Loading" that pulses only without reduced motion. `PageLoader` and
   `ComponentLoader` drew one grey bar whatever the card would show, so a card that loaded into rows
   or a chart still grew when they arrived (#9220). A spinner that shows an action in progress (a
-  test being run, a record being saved) is not content loading, and is listed in the guard with
-  its reason. Enforced by
+  key being touched, a query being run, a session ending) is not content loading: it keeps its
+  loader and is listed in the guard with how many it draws and why. Every other `PageLoader` and
+  `ComponentLoader` is gone. Enforced by
   [LoadingStatesGuard](../../packages/Common/Tests/UI/Components/Loader/LoadingStatesGuard.test.ts),
-  which counts the files that still draw a bar (`HandDrawnLoadersBaseline.json`): the count only
-  goes down.
+  whose baseline of hand-drawn loaders (`HandDrawnLoadersBaseline.json`) is empty: a new one fails.
 
 ## Dialogs and confirmations
 

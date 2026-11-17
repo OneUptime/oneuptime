@@ -285,6 +285,7 @@ Un banner in cima alle pagine dello SLO dice cosa gli impedisce di misurare:
 | --- | --- | --- |
 | **Nessun monitor collegato** | Lo SLO non ha monitor, quindi non c'è niente da misurare. | Collega dei monitor o crea una regola dei monitor. |
 | **In attesa della valutazione dello SLO** | Ci sono monitor collegati, ma l'ultima valutazione non aveva dati di stato da loro. | Controlla che i monitor vengano verificati. I numeri compaiono dopo la prossima valutazione con dati. |
+| **In attesa del primo controllo** | Ci sono monitor collegati, ma nessuno li ha ancora controllati: un monitor creato un minuto fa, o una sonda self-hosted non connessa. | Niente: lo SLO viene misurato a partire dal loro primo controllo. Se non arriva, apri i monitor per vedere perché. |
 | **La misurazione è in pausa** | Ogni monitor che misura è archiviato o ha il monitoraggio attivo disattivato. | Riattiva il monitoraggio di almeno un monitor, oppure aspetta la fine della manutenzione. |
 | **L'obiettivo è fuori intervallo** | L'obiettivo non è maggiore di 0 e minore di 100. | Imposta un obiettivo come 99,9 in **Impostazioni** → **Obiettivo**. |
 | **Questo SLO è disabilitato** | La valutazione è disattivata. | Fai clic su **Attiva la valutazione**. |

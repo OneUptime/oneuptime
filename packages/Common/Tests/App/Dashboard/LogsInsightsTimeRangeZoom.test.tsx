@@ -777,7 +777,7 @@ describe("a superseded correlation never paints over the window the page is on",
   }
 
   function drawerLoader(): HTMLElement | null {
-    return within(drawer()!).queryByTestId("component-loader");
+    return within(drawer()!).queryByTestId("page-skeleton");
   }
 
   function drawerCount(pattern: RegExp): HTMLElement | null {

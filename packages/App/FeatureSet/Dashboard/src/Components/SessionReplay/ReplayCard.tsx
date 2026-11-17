@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import {
   composedValue,
   formatList,
@@ -34,7 +35,6 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import AppLink from "../AppLink/AppLink";
 import {
   ReplayCardMoment,
@@ -532,7 +532,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
   if (isLoading) {
     return (
       <div className={`mb-5 ${props.className || ""}`}>
-        <ComponentLoader />
+        <ChartSkeleton hasLegend={false} />
       </div>
     );
   }

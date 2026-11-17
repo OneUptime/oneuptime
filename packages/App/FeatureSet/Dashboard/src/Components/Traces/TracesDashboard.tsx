@@ -1,4 +1,5 @@
 import { getNumberLocale } from "Common/Types/DateLanguage";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import {
   formatDurationInUnit,
   formatMilliseconds,
@@ -29,7 +30,6 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { CARD_ROW_COLUMN_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -864,7 +864,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
       <Fragment>
         {headerBar}
         <div className="rounded-xl border border-gray-200 bg-white p-12">
-          <ComponentLoader />
+          <ChartSkeleton />
         </div>
       </Fragment>
     );

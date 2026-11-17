@@ -1,11 +1,11 @@
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import Route from "Common/Types/API/Route";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
@@ -273,7 +273,7 @@ const SpanPodExceptions: FunctionComponent<ComponentProps> = (
     if (isLoading || readKey !== shownReadKey) {
       return (
         <div className="flex h-16 items-center justify-center">
-          <ComponentLoader />
+          <TableSkeleton rows={2} hasHeader={false} />
         </div>
       );
     }

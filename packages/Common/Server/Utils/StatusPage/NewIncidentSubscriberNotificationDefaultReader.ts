@@ -10,14 +10,16 @@ import logger from "../Logger";
  * Common/Types/StatusPage/NewIncidentSubscriberNotificationDefault).
  *
  * The switch on Incidents -> Settings -> Subscriber Notifications says how
- * the "Notify Status Page Subscribers" box starts on Declare New Incident.
- * People also declare incidents where no box asks: Slack's and Microsoft
- * Teams' Declare Incident forms, and OneUptime AI when someone asks it to
- * (the create_incident tool, which the person approves). There, what the box
- * would have started at is the answer, so an incident declared there follows
- * the switch too: off, it is declared without notifying - the team that
- * turned it off tells subscribers when it is ready, with a public note - and
- * on, it is declared as it always was.
+ * the "Notify Status Page Subscribers" box starts on Declare New Incident,
+ * and on Slack's and Microsoft Teams' Declare Incident forms, which start
+ * their box from isTickedByDefault (WorkspaceIncidentSubscriberNotification,
+ * #7917). People also declare incidents where no box asks: OneUptime AI when
+ * someone asks it to (the create_incident tool, which the person approves),
+ * and a chat form that did not ask - one opened before the chats asked. There,
+ * what the box would have started at is the answer, so an incident declared
+ * there follows the switch too: off, it is declared without notifying - the
+ * team that turned it off tells subscribers when it is ready, with a public
+ * note - and on, it is declared as it always was.
  *
  * Incidents nobody declares by hand - a monitor's, a workflow's, the API's,
  * a public form's, a security playbook's - keep what they send or their own

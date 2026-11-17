@@ -548,7 +548,7 @@ describe("Send Test Now on a summary says what the test came to", () => {
   });
 
   test("every channel, for one reason - a Microsoft Teams team not found: the reason once, no names the red line has counted", async () => {
-    const teamNotFound: string = `The Microsoft Teams team "Enginering" was not found. Please enter the team's name, as Microsoft Teams shows it, in the summary's Team Name.`;
+    const teamNotFound: string = `The Microsoft Teams team "Enginering" was not found. Edit the summary and pick its team from the list.`;
 
     testAnswer = notPostedAnswer(
       [
