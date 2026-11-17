@@ -261,6 +261,25 @@ work out, starts from a default for everything else, and folds what most people 
   [DragOrderedListsGuard](../../packages/App/Tests/Dashboard/DragOrderedListsGuard.test.ts).
 - **No control inside another control,** such as a button inside a link. Enforced by
   [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts).
+- **One button.** An action is the shared `Button` (`Common/UI/Components/Button`), never a
+  `<button>` drawn by hand in the primary colours: 34 of them each had their own size and corners,
+  and their focus ring, locked look and phone layout had drifted from the shared one (#9128). Every
+  style is drawn in one frame, the same height, padding, words and alignment, and carries no width
+  or margin of its own: the box that holds the buttons spaces them with a gap, and a dialog's
+  footer stacks them across a phone. A style used to decide that instead, so two buttons that
+  looked alike filled a phone's width or did not, and a card's two test buttons took a line each
+  on a 390px phone (#9100). Enforced by
+  [HandMadePrimaryButtonGuard](../../packages/Common/Tests/UI/HandMadePrimaryButtonGuard.test.ts).
+- **Each button style has one job.** Not enforced: use judgement.
+
+  | Style | Use it for |
+  | --- | --- |
+  | `PRIMARY` | The one thing the screen or dialog exists to do. At most one in view. |
+  | `NORMAL` | A plain action the person came for. A table row or header keeps it in view when its other actions fold into More. |
+  | `OUTLINE` | The same plain button, for a lesser action: one a table folds into More first, or one that adds a row to a builder. |
+  | `DANGER`, `DANGER_OUTLINE` | Deleting or anything that cannot be undone: filled in its confirmation, outlined beside other actions. |
+  | `LINK`, `SECONDARY_LINK` | An action inside a sentence, or a quiet one such as Show more. |
+  | `ICON` | An icon with no box, named by its aria label. |
 
 ### Folds
 
