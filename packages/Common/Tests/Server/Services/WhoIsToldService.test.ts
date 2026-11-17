@@ -22,6 +22,7 @@ import IncidentLabelRuleService from "../../../Server/Services/IncidentLabelRule
 import IncidentPrivacyRuleService from "../../../Server/Services/IncidentPrivacyRuleService";
 import MonitorGroupService from "../../../Server/Services/MonitorGroupService";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
+import Alert from "../../../Models/DatabaseModels/Alert";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentOnCallRule from "../../../Models/DatabaseModels/IncidentOnCallRule";
 import IncidentOwnerRule from "../../../Models/DatabaseModels/IncidentOwnerRule";
@@ -129,12 +130,21 @@ import {
   WhoIsToldBreakKind,
   WhoIsToldEvent,
   WhoIsToldFix,
+  WhoIsToldOwnerAddedBy,
+  WhoIsToldOwnerKind,
+  WhoIsToldOwnerProblem,
   WhoIsToldOwnersSource,
   WhoIsToldPerson,
   WhoIsToldPersonProblem,
+  WhoIsToldPolicy,
   WhoIsToldResult,
   WhoIsToldServerChannel,
 } from "../../../Types/Monitor/WhoIsTold";
+import Permission, { UserPermission } from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
+import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import IncidentPrivacyRuleEngineService from "../../../Server/Services/IncidentPrivacyRuleEngineService";
+import AlertIncidentRuleEngineService from "../../../Server/Services/AlertIncidentRuleEngineService";
 import ObjectID from "../../../Types/ObjectID";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
@@ -607,6 +617,12 @@ interface World {
   callerLabelRules: Array<string> | "refused";
   callerAlertIncidentRules: Array<string> | "refused";
   callerMonitorGroups: Array<string> | "refused";
+  /*
+   * The caller's own team rows (#7213): the teams whose invitation they
+   * accepted, and those they were invited to and have not.
+   */
+  callerAcceptedTeamIds: Array<string>;
+  callerPendingTeamIds: Array<string>;
 }
 
 function serverStatus(
@@ -756,6 +772,8 @@ function defaultWorld(): World {
     callerLabelRules: [],
     callerAlertIncidentRules: [],
     callerMonitorGroups: [],
+    callerAcceptedTeamIds: [],
+    callerPendingTeamIds: [],
   };
 }
 
@@ -1301,8 +1319,46 @@ function stubWorld(): void {
 
   // The member rows of teams, read as one project's: another's has none here.
   jest.spyOn(TeamMemberService, "findBy").mockImplementation((async (args: {
-    query: { projectId?: ObjectID };
+    query: {
+      projectId?: ObjectID;
+      userId?: ObjectID;
+      hasAcceptedInvitation?: boolean;
+    };
   }) => {
+    /*
+     * The caller's own rows, for who may read a private record (#7213):
+     * only those they accepted, as the read asks.
+     */
+    if (args.query.userId) {
+      const rows: Array<[string, boolean]> = [
+        ...world.callerAcceptedTeamIds.map(
+          (teamId: string): [string, boolean] => {
+            return [teamId, true];
+          },
+        ),
+        ...world.callerPendingTeamIds.map(
+          (teamId: string): [string, boolean] => {
+            return [teamId, false];
+          },
+        ),
+      ];
+
+      return rows
+        .filter(([teamId, isAccepted]: [string, boolean]): boolean => {
+          return (
+            idsAt(args.query, "teamId").includes(teamId) &&
+            (args.query.hasAcceptedInvitation !== true || isAccepted)
+          );
+        })
+        .map(([teamId, isAccepted]: [string, boolean]): TeamMember => {
+          const row: TeamMember = new TeamMember();
+          row.teamId = new ObjectID(teamId);
+          row.userId = args.query.userId!;
+          row.hasAcceptedInvitation = isAccepted;
+          return row;
+        });
+    }
+
     if (args.query.projectId?.toString() !== PROJECT_ID.toString()) {
       return [];
     }
@@ -4226,6 +4282,894 @@ describe("WhoIsToldService", () => {
         source: WhoIsToldOwnersSource.MonitorOwners,
         userNames: ["Ana Lopez"],
         teamNames: [],
+      });
+    });
+  });
+
+  /*
+   * THE RULES A NEW RECORD'S CREATE RUNS, IN ITS ORDER (#7212, #7213,
+   * #7216): privacy, owners, labels, on-call - and, for an alert, its
+   * alert incident rules last. Each by the engine's own read-only plan.
+   */
+  describe("the rules a new record's create runs", () => {
+    const CHECKOUT_LABEL: string = "68101111-0000-4000-8000-000000000043";
+    const OTHER_LABEL: string = "68101111-0000-4000-8000-000000000044";
+    const LABEL_RULE: string = "68101111-0000-4000-8000-000000000065";
+    const OTHER_LABEL_RULE: string = "68101111-0000-4000-8000-000000000066";
+    const PRIVACY_RULE: string = "68101111-0000-4000-8000-000000000067";
+    const INCIDENT_RULE: string = "68101111-0000-4000-8000-000000000068";
+    const BROAD_INCIDENT_RULE: string = "68101111-0000-4000-8000-000000000069";
+
+    function labelRule(facts: {
+      id: string;
+      name: string;
+      titlePattern?: string;
+      incidentLabelIds?: Array<string>;
+      labelIds?: Array<string>;
+      inheritsFromMonitors?: boolean;
+    }): IncidentLabelRule {
+      const item: IncidentLabelRule = withId(new IncidentLabelRule(), facts.id);
+      item.name = facts.name;
+      item.projectId = PROJECT_ID;
+
+      if (facts.titlePattern) {
+        item.incidentTitlePattern = facts.titlePattern;
+      }
+
+      item.incidentLabels = (facts.incidentLabelIds || []).map(
+        (id: string): Label => {
+          return withId(new Label(), id);
+        },
+      );
+      item.labelsToAdd = (facts.labelIds || []).map((id: string): Label => {
+        return withId(new Label(), id);
+      });
+      item.inheritLabelsFromMonitors = facts.inheritsFromMonitors === true;
+      return item;
+    }
+
+    function alertLabelRule(facts: {
+      id: string;
+      name: string;
+      titlePattern?: string;
+      labelIds: Array<string>;
+    }): AlertLabelRule {
+      const item: AlertLabelRule = withId(new AlertLabelRule(), facts.id);
+      item.name = facts.name;
+      item.projectId = PROJECT_ID;
+
+      if (facts.titlePattern) {
+        item.alertTitlePattern = facts.titlePattern;
+      }
+
+      item.labelsToAdd = facts.labelIds.map((id: string): Label => {
+        return withId(new Label(), id);
+      });
+      return item;
+    }
+
+    function privacyRule(facts: {
+      id: string;
+      name: string;
+      titlePattern: string;
+    }): IncidentPrivacyRule {
+      const item: IncidentPrivacyRule = withId(
+        new IncidentPrivacyRule(),
+        facts.id,
+      );
+      item.name = facts.name;
+      item.projectId = PROJECT_ID;
+      item.incidentTitlePattern = facts.titlePattern;
+      return item;
+    }
+
+    function alertIncidentRule(facts: {
+      id: string;
+      name: string;
+      titlePattern?: string;
+      waitInMinutes?: number;
+      showsOnStatusPages?: boolean;
+    }): AlertIncidentRule {
+      const item: AlertIncidentRule = withId(new AlertIncidentRule(), facts.id);
+      item.name = facts.name;
+      item.projectId = PROJECT_ID;
+      item.incidentSeverityId = new ObjectID(CRITICAL);
+      item.declareAfterInMinutes = facts.waitInMinutes || 0;
+
+      if (facts.titlePattern) {
+        item.alertTitlePattern = facts.titlePattern;
+      }
+
+      if (facts.showsOnStatusPages === false) {
+        item.showIncidentOnStatusPage = false;
+      }
+
+      return item;
+    }
+
+    // The incident on-call rules match an incident with this label only.
+    function rulesPageOnlyFor(labelId: string): void {
+      jest
+        .spyOn(IncidentOnCallRuleEngineService, "getMatchingRules")
+        .mockImplementation((async (incident: Incident) => {
+          onCallTitles.push(incident.title || "");
+
+          return (incident.labels || []).some((label: Label): boolean => {
+            return (label._id || label.id?.toString()) === labelId;
+          })
+            ? world.incidentRules
+            : [];
+        }) as never);
+    }
+
+    beforeEach(() => {
+      // Every label the rules name is the project's.
+      jest
+        .spyOn(ProjectScopedReferenceValidator, "keepIdsInProject")
+        .mockImplementation((async (data: { ids: Array<string> }) => {
+          return data.ids;
+        }) as never);
+    });
+
+    describe("label rules run before on-call rules (#7212)", () => {
+      test("a label rule's label makes an on-call rule match: the card pages, and names the label rule", async () => {
+        rulesPageOnlyFor(CHECKOUT_LABEL);
+        world.incidentLabelRules = [
+          labelRule({
+            id: LABEL_RULE,
+            name: "Checkout labels",
+            titlePattern: "Checkout",
+            labelIds: [CHECKOUT_LABEL],
+          }),
+        ];
+
+        const result: WhoIsToldResult = await resolve();
+        const event: WhoIsToldEvent = firstEvent(result);
+
+        expect(event.rules).toEqual([{ id: RULE, name: "Every incident" }]);
+        expect(
+          event.policies.map((policy: WhoIsToldPolicy): string => {
+            return policy.id;
+          }),
+        ).toEqual([PRIMARY]);
+        expect(event.labelRules).toEqual([
+          { id: LABEL_RULE, name: "Checkout labels" },
+        ]);
+        expect(kinds(result)).not.toContain(WhoIsToldBreakKind.NobodyPaged);
+      });
+
+      test("without the label rule, nobody is paged, as for a real incident", async () => {
+        rulesPageOnlyFor(CHECKOUT_LABEL);
+
+        const result: WhoIsToldResult = await resolve();
+
+        expect(firstEvent(result).rules).toEqual([]);
+        expect(firstEvent(result).labelRules).toBeUndefined();
+        expect(kinds(result)).toContain(WhoIsToldBreakKind.NobodyPaged);
+      });
+
+      test("a label rule whose label changes nothing that pages is not named", async () => {
+        world.incidentLabelRules = [
+          labelRule({
+            id: LABEL_RULE,
+            name: "Checkout labels",
+            labelIds: [OTHER_LABEL],
+          }),
+        ];
+
+        const event: WhoIsToldEvent = firstEvent(await resolve());
+
+        expect(event.rules).toEqual([{ id: RULE, name: "Every incident" }]);
+        expect(event.labelRules).toBeUndefined();
+      });
+
+      test("a label rule that matches only the template as written adds nothing", async () => {
+        rulesPageOnlyFor(CHECKOUT_LABEL);
+        world.monitorSteps = opensIncidents(
+          incidentTemplate({ title: "{{monitorName}} is down" }),
+        );
+        world.incidentLabelRules = [
+          labelRule({
+            id: LABEL_RULE,
+            name: "Template",
+            titlePattern: "\\{\\{monitorName\\}\\}",
+            labelIds: [CHECKOUT_LABEL],
+          }),
+        ];
+
+        expect(firstEvent(await resolve()).rules).toEqual([]);
+      });
+
+      test("the labels a rule inherits from the monitor count too", async () => {
+        rulesPageOnlyFor(MONITOR_LABEL);
+        world.monitorLabelIds = [MONITOR_LABEL];
+        world.incidentLabelRules = [
+          labelRule({
+            id: LABEL_RULE,
+            name: "Monitor's labels",
+            inheritsFromMonitors: true,
+          }),
+        ];
+
+        const event: WhoIsToldEvent = firstEvent(await resolve());
+
+        expect(event.rules).toEqual([{ id: RULE, name: "Every incident" }]);
+        expect(event.labelRules).toEqual([
+          { id: LABEL_RULE, name: "Monitor's labels" },
+        ]);
+      });
+
+      test("every label rule is matched on the incident as it opens: one rule's label never makes another match", async () => {
+        rulesPageOnlyFor(OTHER_LABEL);
+        world.incidentLabelRules = [
+          labelRule({
+            id: LABEL_RULE,
+            name: "First",
+            labelIds: [CHECKOUT_LABEL],
+          }),
+          labelRule({
+            id: OTHER_LABEL_RULE,
+            name: "Second",
+            incidentLabelIds: [CHECKOUT_LABEL],
+            labelIds: [OTHER_LABEL],
+          }),
+        ];
+
+        expect(firstEvent(await resolve()).rules).toEqual([]);
+      });
+
+      test("a label of another project is never added", async () => {
+        rulesPageOnlyFor(CHECKOUT_LABEL);
+        jest
+          .spyOn(ProjectScopedReferenceValidator, "keepIdsInProject")
+          .mockResolvedValue([] as never);
+        world.incidentLabelRules = [
+          labelRule({
+            id: LABEL_RULE,
+            name: "Checkout labels",
+            labelIds: [CHECKOUT_LABEL],
+          }),
+        ];
+
+        expect(firstEvent(await resolve()).rules).toEqual([]);
+      });
+
+      test("an alert's label rules run before its on-call rules too", async () => {
+        world.monitorSteps = opensAlerts(alertTemplate());
+        world.alertRules = [rule(RULE, "Every alert", [PRIMARY])];
+        world.alertRuleCount = 1;
+        world.alertLabelRules = [
+          alertLabelRule({
+            id: LABEL_RULE,
+            name: "Checkout labels",
+            titlePattern: "Checkout",
+            labelIds: [CHECKOUT_LABEL],
+          }),
+        ];
+        jest
+          .spyOn(AlertOnCallRuleEngineService, "getMatchingRules")
+          .mockImplementation((async (alert: Alert) => {
+            return (alert.labels || []).some((label: Label): boolean => {
+              return (label._id || label.id?.toString()) === CHECKOUT_LABEL;
+            })
+              ? world.alertRules
+              : [];
+          }) as never);
+
+        const event: WhoIsToldEvent = firstEvent(await resolve());
+
+        expect(event.kind).toBe(OnCallTestPageRecordKind.Alert);
+        expect(event.rules).toEqual([{ id: RULE, name: "Every alert" }]);
+        expect(event.labelRules).toEqual([
+          { id: LABEL_RULE, name: "Checkout labels" },
+        ]);
+      });
+
+      test("a label rule the caller may not read keeps its place without its name", async () => {
+        rulesPageOnlyFor(CHECKOUT_LABEL);
+        world.incidentLabelRules = [
+          labelRule({
+            id: LABEL_RULE,
+            name: "Checkout labels",
+            labelIds: [CHECKOUT_LABEL],
+          }),
+        ];
+        world.callerLabelRules = "refused";
+
+        const result: WhoIsToldResult = await WhoIsToldService.getForMonitor({
+          projectId: PROJECT_ID,
+          monitorId: MONITOR_ID,
+          props: CALLER,
+        });
+
+        expect(firstEvent(result).labelRules).toEqual([
+          { id: LABEL_RULE, name: "" },
+        ]);
+        expect(JSON.stringify(result)).not.toContain("Checkout labels");
+      });
+    });
+
+    describe("privacy rules (#7213)", () => {
+      test("a privacy rule that matches the title the incident gets makes it private: it shows on no status page, and the rule is named", async () => {
+        world.incidentPrivacyRules = [
+          privacyRule({
+            id: PRIVACY_RULE,
+            name: "Checkout is private",
+            titlePattern: "Checkout",
+          }),
+        ];
+
+        const event: WhoIsToldEvent = firstEvent(await resolve());
+
+        expect(event.isPrivate).toBe(true);
+        expect(event.privacyRules).toEqual([
+          { id: PRIVACY_RULE, name: "Checkout is private" },
+        ]);
+        expect(event.statusPages).toEqual([]);
+        expect(event.isPrivateOffStatusPages).toBe(true);
+        // A private incident still pages, and still emails its owners.
+        expect(event.policies).toHaveLength(1);
+        expect(event.owners.source).toBe(WhoIsToldOwnersSource.ProjectOwners);
+      });
+
+      test("a privacy rule that does not match leaves the incident public, on its pages", async () => {
+        world.incidentPrivacyRules = [
+          privacyRule({
+            id: PRIVACY_RULE,
+            name: "Billing is private",
+            titlePattern: "^Billing",
+          }),
+        ];
+
+        const event: WhoIsToldEvent = firstEvent(await resolve());
+
+        expect(event.isPrivate).toBeUndefined();
+        expect(event.statusPages).toHaveLength(1);
+      });
+
+      test("a rule that matches only the template as written does not count", async () => {
+        world.monitorSteps = opensIncidents(
+          incidentTemplate({ title: "{{monitorName}} is down" }),
+        );
+        world.incidentPrivacyRules = [
+          privacyRule({
+            id: PRIVACY_RULE,
+            name: "Template",
+            titlePattern: "\\{\\{monitorName\\}\\}",
+          }),
+        ];
+
+        const event: WhoIsToldEvent = firstEvent(await resolve());
+
+        expect(event.title).toBe("Checkout API is down");
+        expect(event.isPrivate).toBeUndefined();
+        expect(event.statusPages).toHaveLength(1);
+      });
+
+      test("a criteria that makes the incident private asks no privacy rule, as its create asks none", async () => {
+        world.monitorSteps = opensIncidents(
+          incidentTemplate({ isPrivate: true }),
+        );
+        world.incidentPrivacyRules = [
+          privacyRule({
+            id: PRIVACY_RULE,
+            name: "Checkout is private",
+            titlePattern: "Checkout",
+          }),
+        ];
+        const plan: SpyInstance<
+          typeof IncidentPrivacyRuleEngineService.planRules
+        > = jest.spyOn(IncidentPrivacyRuleEngineService, "planRules");
+
+        const event: WhoIsToldEvent = firstEvent(await resolve());
+
+        expect(event.isPrivate).toBe(true);
+        expect(event.privacyRules).toEqual([]);
+        expect(event.statusPages).toEqual([]);
+        expect(plan).not.toHaveBeenCalled();
+      });
+
+      test("an alert privacy rule makes the alert private", async () => {
+        world.monitorSteps = opensAlerts(alertTemplate());
+        world.alertPrivacyRules = [
+          withId(new AlertPrivacyRule(), PRIVACY_RULE),
+        ];
+        world.alertPrivacyRules[0]!.name = "Every alert is private";
+        world.alertPrivacyRules[0]!.projectId = PROJECT_ID;
+
+        const event: WhoIsToldEvent = firstEvent(await resolve());
+
+        expect(event.isPrivate).toBe(true);
+        expect(event.privacyRules).toEqual([
+          { id: PRIVACY_RULE, name: "Every alert is private" },
+        ]);
+      });
+    });
+
+    /*
+     * WHAT A READER IS TOLD OF A PRIVATE RECORD (#7213): only what they
+     * could read once it exists, by the private-record rule.
+     */
+    describe("a private record, as one reader may see it", () => {
+      const ME: string = CALLER.userId!.toString();
+
+      function asAdmin(): DatabaseCommonInteractionProps {
+        return {
+          ...CALLER,
+          userType: UserType.User,
+          userTenantAccessPermission: {
+            [PROJECT_ID.toString()]: {
+              _type: "UserTenantAccessPermission",
+              projectId: PROJECT_ID,
+              permissions: [
+                {
+                  _type: "UserPermission",
+                  permission: Permission.ProjectAdmin,
+                  labelIds: [],
+                  isBlockPermission: false,
+                } as UserPermission,
+              ],
+            },
+          } as never,
+        };
+      }
+
+      async function as(
+        props: DatabaseCommonInteractionProps,
+      ): Promise<WhoIsToldResult> {
+        return await WhoIsToldService.getForMonitor({
+          projectId: PROJECT_ID,
+          monitorId: MONITOR_ID,
+          props: props,
+        });
+      }
+
+      beforeEach(() => {
+        world.monitorSteps = opensIncidents(
+          incidentTemplate({ isPrivate: true }),
+        );
+      });
+
+      test("a reader who is none of its owners is told it opens, private, and nothing of whom it tells", async () => {
+        world.incidentRules = [];
+        world.incidentRuleCount = 0;
+
+        const result: WhoIsToldResult = await as(CALLER);
+        const event: WhoIsToldEvent = firstEvent(result);
+
+        expect(event).toEqual({
+          kind: OnCallTestPageRecordKind.Incident,
+          title: "",
+          severityName: "Critical",
+          owners: {
+            source: WhoIsToldOwnersSource.Named,
+            userNames: [],
+            teamNames: [],
+          },
+          ownerRules: [],
+          rules: [],
+          policies: [],
+          statusPages: [],
+          isPrivate: true,
+          privacyRules: [],
+          isHidden: true,
+        });
+        // What it would page, or not, is no break of theirs.
+        expect(kinds(result)).not.toContain(WhoIsToldBreakKind.NobodyPaged);
+        /*
+         * Nothing of the incident: not its title, nor who it would page. The
+         * status change is no part of it: its own owners are still said.
+         */
+        const json: string = JSON.stringify(result);
+        expect(json).not.toContain("Checkout API is down");
+        expect(json).not.toContain("Ana Lopez");
+        expect(json).not.toContain("ownerIds");
+        expect(json).not.toContain("facts");
+        expect(result.criteria[0]!.statusOwners?.userNames).toEqual([
+          "Owner One",
+        ]);
+      });
+
+      test("its own policies and people stay out of a reader's answer, breaks and all", async () => {
+        world.levels[PRIMARY] = {
+          targets: [],
+          notPaged: [],
+          levelCount: 0,
+        };
+
+        const result: WhoIsToldResult = await as(CALLER);
+
+        expect(firstEvent(result).policies).toEqual([]);
+        expect(kinds(result)).not.toContain(
+          WhoIsToldBreakKind.PolicyHasNoLevels,
+        );
+        expect(JSON.stringify(result)).not.toContain("Primary");
+        // The resolver itself still sees the break: it is a reader's that goes.
+        expect(kinds(await resolve())).toContain(
+          WhoIsToldBreakKind.PolicyHasNoLevels,
+        );
+      });
+
+      test("one of its owners reads it whole", async () => {
+        world.projectMemberIds = [...world.projectMemberIds, ME];
+        world.monitorSteps = opensIncidents(
+          incidentTemplate({ isPrivate: true, ownerUserIds: ids([ME]) }),
+        );
+
+        const event: WhoIsToldEvent = firstEvent(await as(CALLER));
+
+        expect(event.isHidden).toBeUndefined();
+        expect(event.isPrivate).toBe(true);
+        expect(event.title).toBe("Checkout API is down");
+        expect(event.policies).toHaveLength(1);
+        expect(JSON.stringify(event)).not.toContain("ownerIds");
+      });
+
+      test("an accepted member of a team of its owners reads it; one in another team does not", async () => {
+        world.monitorSteps = opensIncidents(
+          incidentTemplate({
+            isPrivate: true,
+            ownerTeamIds: ids([PLATFORM_TEAM]),
+          }),
+        );
+
+        world.callerAcceptedTeamIds = [SRE_TEAM];
+        expect(firstEvent(await as(CALLER)).isHidden).toBe(true);
+
+        // An invitation to the owner team not accepted yet reads nothing either.
+        world.callerPendingTeamIds = [PLATFORM_TEAM];
+        WhoIsToldService.clearCache();
+        expect(firstEvent(await as(CALLER)).isHidden).toBe(true);
+
+        world.callerAcceptedTeamIds = [PLATFORM_TEAM];
+        WhoIsToldService.clearCache();
+        expect(firstEvent(await as(CALLER)).isHidden).toBeUndefined();
+      });
+
+      test("a Project Admin reads it whole", async () => {
+        const event: WhoIsToldEvent = firstEvent(await as(asAdmin()));
+
+        expect(event.isHidden).toBeUndefined();
+        expect(event.policies).toHaveLength(1);
+      });
+
+      test("a public incident is everyone's to read, whoever owns it", async () => {
+        world.monitorSteps = opensIncidents(incidentTemplate());
+
+        expect(firstEvent(await as(CALLER)).isHidden).toBeUndefined();
+      });
+
+      test("a privacy rule the reader may not read keeps its place without its name", async () => {
+        world.monitorSteps = opensIncidents(incidentTemplate());
+        world.incidentPrivacyRules = [
+          privacyRule({
+            id: PRIVACY_RULE,
+            name: "Checkout is private",
+            titlePattern: "Checkout",
+          }),
+        ];
+        world.callerPrivacyRules = "refused";
+
+        const result: WhoIsToldResult = await as(CALLER);
+
+        expect(firstEvent(result).isHidden).toBe(true);
+        expect(firstEvent(result).privacyRules).toEqual([
+          { id: PRIVACY_RULE, name: "" },
+        ]);
+        expect(JSON.stringify(result)).not.toContain("Checkout is private");
+
+        world.callerPrivacyRules = [PRIVACY_RULE];
+        WhoIsToldService.clearCache();
+
+        expect(firstEvent(await as(CALLER)).privacyRules).toEqual([
+          { id: PRIVACY_RULE, name: "Checkout is private" },
+        ]);
+      });
+    });
+
+    describe("alert incident rules (#7216)", () => {
+      beforeEach(() => {
+        world.monitorSteps = opensAlerts(alertTemplate());
+        world.alertRules = [];
+        world.alertRuleCount = 0;
+      });
+
+      function declared(result: WhoIsToldResult): WhoIsToldEvent {
+        const declaration: WhoIsToldEvent["declares"] =
+          firstEvent(result).declares;
+
+        expect(declaration).toBeDefined();
+
+        return declaration!.incident;
+      }
+
+      test("an alert a rule turns into an incident right away: the card follows the incident, and the alert's nobody-paged break goes", async () => {
+        world.alertIncidentRules = [
+          alertIncidentRule({ id: INCIDENT_RULE, name: "Database alerts" }),
+        ];
+
+        const result: WhoIsToldResult = await resolve();
+        const alert: WhoIsToldEvent = firstEvent(result);
+
+        expect(alert.kind).toBe(OnCallTestPageRecordKind.Alert);
+        expect(alert.policies).toEqual([]);
+        expect(alert.declares).toMatchObject({
+          rule: { id: INCIDENT_RULE, name: "Database alerts" },
+          waitInMinutes: 0,
+        });
+
+        const incident: WhoIsToldEvent = declared(result);
+
+        expect(incident.kind).toBe(OnCallTestPageRecordKind.Incident);
+        expect(incident.title).toBe("Checkout API is down");
+        expect(incident.severityName).toBe("Critical");
+        expect(incident.rules).toEqual([{ id: RULE, name: "Every incident" }]);
+        expect(incident.policies).toHaveLength(1);
+        // The incident shows on the monitor's status pages, as a new incident does.
+        expect(incident.statusPages).toHaveLength(1);
+        // Declaring copies no on-call policy of the alert's, and no owner but a private alert's.
+        expect(incident.owners.source).toBe(
+          WhoIsToldOwnersSource.ProjectOwners,
+        );
+        expect(kinds(result)).not.toContain(
+          WhoIsToldBreakKind.OnlyIncidentsHaveRules,
+        );
+        expect(kinds(result)).not.toContain(WhoIsToldBreakKind.NobodyPaged);
+      });
+
+      test("a rule that waits says how long the alert must stay open", async () => {
+        world.alertIncidentRules = [
+          alertIncidentRule({
+            id: INCIDENT_RULE,
+            name: "Still open",
+            waitInMinutes: 30,
+          }),
+        ];
+
+        expect(firstEvent(await resolve()).declares?.waitInMinutes).toBe(30);
+      });
+
+      test("the first rule that matches decides", async () => {
+        world.alertIncidentRules = [
+          alertIncidentRule({
+            id: INCIDENT_RULE,
+            name: "Billing alerts",
+            titlePattern: "^Billing",
+          }),
+          alertIncidentRule({
+            id: BROAD_INCIDENT_RULE,
+            name: "Every alert",
+            waitInMinutes: 15,
+          }),
+        ];
+
+        expect(firstEvent(await resolve()).declares).toMatchObject({
+          rule: { id: BROAD_INCIDENT_RULE, name: "Every alert" },
+          waitInMinutes: 15,
+        });
+      });
+
+      test("no rule matches: the alert stays an alert, and only incidents having rules is still its break", async () => {
+        world.alertIncidentRules = [
+          alertIncidentRule({
+            id: INCIDENT_RULE,
+            name: "Billing alerts",
+            titlePattern: "^Billing",
+          }),
+        ];
+
+        const result: WhoIsToldResult = await resolve();
+
+        expect(firstEvent(result).declares).toBeUndefined();
+        expect(kinds(result)).toContain(
+          WhoIsToldBreakKind.OnlyIncidentsHaveRules,
+        );
+      });
+
+      test("an incident that pages nobody leaves the alert's break as it was", async () => {
+        world.alertIncidentRules = [
+          alertIncidentRule({ id: INCIDENT_RULE, name: "Database alerts" }),
+        ];
+        world.incidentRules = [];
+
+        const result: WhoIsToldResult = await resolve();
+
+        expect(declared(result).policies).toEqual([]);
+        expect(kinds(result)).toEqual([
+          WhoIsToldBreakKind.OnlyIncidentsHaveRules,
+        ]);
+      });
+
+      test("a rule that keeps the incident off status pages: it shows on none", async () => {
+        world.alertIncidentRules = [
+          alertIncidentRule({
+            id: INCIDENT_RULE,
+            name: "Quiet",
+            showsOnStatusPages: false,
+          }),
+        ];
+
+        expect(declared(await resolve()).statusPages).toEqual([]);
+      });
+
+      test("a private alert's incident is private, and takes the alert's owners as its own", async () => {
+        world.monitorSteps = opensAlerts(
+          alertTemplate({ isPrivate: true, ownerUserIds: ids([ANA]) }),
+        );
+        world.alertIncidentRules = [
+          alertIncidentRule({ id: INCIDENT_RULE, name: "Database alerts" }),
+        ];
+
+        const incident: WhoIsToldEvent = declared(await resolve());
+
+        expect(incident.isPrivate).toBe(true);
+        expect(incident.statusPages).toEqual([]);
+        expect(withoutRecipients(incident.owners)).toEqual({
+          source: WhoIsToldOwnersSource.Named,
+          userNames: ["Ana Lopez"],
+          teamNames: [],
+        });
+        // The alert's owners are said on the alert: not again on its incident.
+        expect(incident.owners.notReached).toBeUndefined();
+      });
+
+      test("an alert incident rule the caller may not read keeps its place without its name", async () => {
+        world.alertIncidentRules = [
+          alertIncidentRule({ id: INCIDENT_RULE, name: "Database alerts" }),
+        ];
+        world.callerAlertIncidentRules = "refused";
+
+        const result: WhoIsToldResult = await WhoIsToldService.getForMonitor({
+          projectId: PROJECT_ID,
+          monitorId: MONITOR_ID,
+          props: CALLER,
+        });
+
+        expect(firstEvent(result).declares?.rule).toEqual({
+          id: INCIDENT_RULE,
+          name: "",
+        });
+        expect(JSON.stringify(result)).not.toContain("Database alerts");
+      });
+
+      test("a project with no alert incident rule reads none, and declares nothing", async () => {
+        const plan: SpyInstance<
+          typeof AlertIncidentRuleEngineService.planDeclaration
+        > = jest.spyOn(AlertIncidentRuleEngineService, "planDeclaration");
+
+        expect(firstEvent(await resolve()).declares).toBeUndefined();
+        expect(plan).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("owners no Created email reaches (#7572)", () => {
+      test("each is kept with why and what named it: a person who left, a team with nobody in it, another project's team, a device's owner, a rule's", async () => {
+        world.projectMemberIds = [ANA, BEN];
+        world.monitorSteps = opensIncidents(
+          incidentTemplate({
+            ownerUserIds: ids([ANA, CARA]),
+            ownerTeamIds: ids([SRE_TEAM, ELSEWHERE_TEAM]),
+          }),
+        );
+        world.deviceOwners = {
+          ownerUserIds: ids([DAN]),
+          ownerTeamIds: [],
+        };
+        world.incidentOwnerRules = [
+          incidentOwnerRule({
+            id: OWNER_RULE,
+            name: "Checkout monitors",
+            userIds: [CARA],
+          }),
+        ];
+
+        const owners: WhoIsToldEvent["owners"] = firstEvent(
+          await resolve(),
+        ).owners;
+
+        expect(owners.userNames).toEqual(["Ana Lopez"]);
+        expect(owners.notReached).toEqual([
+          {
+            kind: WhoIsToldOwnerKind.User,
+            id: CARA,
+            name: "",
+            problem: WhoIsToldOwnerProblem.NotInProject,
+            addedBy: WhoIsToldOwnerAddedBy.Criteria,
+          },
+          {
+            kind: WhoIsToldOwnerKind.Team,
+            id: SRE_TEAM,
+            name: "Checkout SRE",
+            problem: WhoIsToldOwnerProblem.TeamHasNobodyInProject,
+            addedBy: WhoIsToldOwnerAddedBy.Criteria,
+          },
+          {
+            kind: WhoIsToldOwnerKind.Team,
+            id: ELSEWHERE_TEAM,
+            // Another project's team is never named.
+            name: "",
+            problem: WhoIsToldOwnerProblem.TeamOfAnotherProject,
+            addedBy: WhoIsToldOwnerAddedBy.Criteria,
+          },
+          {
+            kind: WhoIsToldOwnerKind.User,
+            id: DAN,
+            name: "",
+            problem: WhoIsToldOwnerProblem.NotInProject,
+            addedBy: WhoIsToldOwnerAddedBy.NetworkDevice,
+          },
+          {
+            kind: WhoIsToldOwnerKind.User,
+            id: CARA,
+            name: "",
+            problem: WhoIsToldOwnerProblem.NotInProject,
+            addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+            rule: { id: OWNER_RULE, name: "Checkout monitors" },
+          },
+        ]);
+        // A person who is not a member is never named, anywhere.
+        expect(JSON.stringify(owners)).not.toContain("Cara Diaz");
+        expect(JSON.stringify(owners)).not.toContain("Dan Okafor");
+      });
+
+      test("everyone it names reached: nothing is said", async () => {
+        world.monitorSteps = opensIncidents(
+          incidentTemplate({ ownerUserIds: ids([ANA]) }),
+        );
+
+        expect(firstEvent(await resolve()).owners.notReached).toBeUndefined();
+      });
+
+      test("nobody it names reached: the Project Owners are emailed, and who was left out is still said", async () => {
+        world.projectMemberIds = [ANA];
+        world.monitorSteps = opensIncidents(
+          incidentTemplate({ ownerUserIds: ids([CARA]) }),
+        );
+
+        const owners: WhoIsToldEvent["owners"] = firstEvent(
+          await resolve(),
+        ).owners;
+
+        expect(owners.source).toBe(WhoIsToldOwnersSource.ProjectOwners);
+        expect(owners.notReached).toEqual([
+          {
+            kind: WhoIsToldOwnerKind.User,
+            id: CARA,
+            name: "",
+            problem: WhoIsToldOwnerProblem.NotInProject,
+            addedBy: WhoIsToldOwnerAddedBy.Criteria,
+          },
+        ]);
+      });
+
+      test("an owner rule the caller may not read keeps its place without its name", async () => {
+        world.projectMemberIds = [ANA];
+        world.incidentOwnerRules = [
+          incidentOwnerRule({
+            id: OWNER_RULE,
+            name: "Checkout monitors",
+            userIds: [CARA],
+          }),
+        ];
+        world.callerIncidentOwnerRules = "refused";
+
+        const result: WhoIsToldResult = await WhoIsToldService.getForMonitor({
+          projectId: PROJECT_ID,
+          monitorId: MONITOR_ID,
+          props: CALLER,
+        });
+
+        expect(firstEvent(result).owners.notReached).toEqual([
+          {
+            kind: WhoIsToldOwnerKind.User,
+            id: CARA,
+            name: "",
+            problem: WhoIsToldOwnerProblem.NotInProject,
+            addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+            rule: { id: OWNER_RULE, name: "" },
+          },
+        ]);
+        expect(JSON.stringify(result)).not.toContain("Checkout monitors");
       });
     });
   });
