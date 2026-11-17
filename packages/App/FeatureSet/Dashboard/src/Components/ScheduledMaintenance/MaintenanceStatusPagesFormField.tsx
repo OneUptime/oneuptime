@@ -7,6 +7,7 @@ import {
   getStatusPageSuggestionsFooter,
 } from "../StatusPage/StatusPageSuggestions";
 import { getIdsFromFormValue } from "../Incident/IncidentStatusPageScopeForm";
+import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
@@ -51,9 +52,12 @@ export interface MaintenanceStatusPagesFormFieldOptions {
   monitorsOf?: StatusPageSuggestionsFooterOptions["monitorsOf"];
 }
 
-export const getMaintenanceStatusPagesFormField: <TEntity>(
+// A form field of a model, as ModelForm takes one.
+export const getMaintenanceStatusPagesFormField: <
+  TEntity extends DatabaseBaseModel,
+>(
   options: MaintenanceStatusPagesFormFieldOptions,
-) => ModelField<TEntity> = <TEntity,>(
+) => ModelField<TEntity> = <TEntity extends DatabaseBaseModel>(
   options: MaintenanceStatusPagesFormFieldOptions,
 ): ModelField<TEntity> => {
   /*
