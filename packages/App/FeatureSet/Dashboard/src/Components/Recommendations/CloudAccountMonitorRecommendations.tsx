@@ -984,7 +984,6 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
           icon={IconProp.Cloud}
           title="No resources in this account yet"
           description="Recommendations appear once a cloud connection lists the account's resources and reads their metrics."
-          paddingClassName="py-12"
         />
       );
     }
@@ -996,7 +995,6 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
           icon={IconProp.Sparkles}
           title="No recommendations for this account's resources yet"
           description="The list below says why for each resource. You can still create monitors by hand."
-          paddingClassName="py-12"
         />
       );
     }
@@ -1020,7 +1018,6 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
             },
             counts.total,
           )}
-          paddingClassName="py-12"
         />
       );
     }
@@ -1031,7 +1028,6 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
         icon={IconProp.Search}
         title="No recommendations match these filters"
         description="Try a different search term, or switch the severity and status filters back to show everything."
-        paddingClassName="py-12"
       />
     );
   };

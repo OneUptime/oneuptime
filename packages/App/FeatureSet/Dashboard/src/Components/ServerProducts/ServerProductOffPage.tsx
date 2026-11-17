@@ -17,7 +17,7 @@ import { getProductTitle } from "Common/Types/Product/ProductCatalog";
 import ProductKey from "Common/Types/Product/ProductKey";
 import { ServerProductOffReason } from "Common/Types/Product/ServerProducts";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, { EmptyStateSize } from "Common/UI/Components/EmptyState/EmptyState";
 import { MoreMenuItem } from "Common/UI/Components/Navbar/NavBar";
 import Page from "Common/UI/Components/Page/Page";
 import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
@@ -163,7 +163,7 @@ const ServerProductOffPage: FunctionComponent<ComponentProps> = (
           icon={IconProp.Power}
           title={title}
           description={description}
-          paddingClassName="pt-24 pb-24"
+          size={EmptyStateSize.Page}
           footer={
             <div className="flex max-w-xl flex-col items-center gap-4">
               {/*

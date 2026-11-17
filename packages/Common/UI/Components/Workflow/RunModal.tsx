@@ -1,5 +1,5 @@
 import { ButtonStyleType } from "../Button/Button";
-import EmptyState from "../EmptyState/EmptyState";
+import EmptyState, { EmptyStateSize } from "../EmptyState/EmptyState";
 import ConfirmModal from "../Modal/ConfirmModal";
 import SideOver from "../SideOver/SideOver";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
@@ -374,7 +374,7 @@ const RunModal: FunctionComponent<ComponentProps> = (
                   ? RunModalCopy.noTriggerDescription
                   : RunModalCopy.noTriggerViewOnlyDescription
               }
-              paddingClassName="pt-10 pb-6"
+              size={EmptyStateSize.Inline}
             />
           </div>
         )}

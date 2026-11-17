@@ -15,7 +15,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, { EmptyStateSize } from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
@@ -440,7 +440,7 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
             id="telemetry-ai-logs-empty-state"
             icon={IconProp.QueueList}
             showSolidBackground={true}
-            paddingClassName="py-16 md:py-24"
+            size={EmptyStateSize.Page}
             title={copy.logsEmptyTitle}
             description={copy.logsEmptyDescription}
             footer={

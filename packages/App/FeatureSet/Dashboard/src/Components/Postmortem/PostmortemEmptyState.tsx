@@ -1,6 +1,6 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, { EmptyStateSize } from "Common/UI/Components/EmptyState/EmptyState";
 import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -149,7 +149,7 @@ const PostmortemEmptyState: FunctionComponent<ComponentProps> = (
         icon={IconProp.DocumentText}
         title={POSTMORTEM_EMPTY_TITLE}
         description={POSTMORTEM_EMPTY_DESCRIPTION}
-        paddingClassName="py-8"
+        size={EmptyStateSize.Inline}
         footer={footer}
       />
     </div>

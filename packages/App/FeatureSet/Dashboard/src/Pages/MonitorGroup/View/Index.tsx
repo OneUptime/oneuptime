@@ -30,7 +30,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, { EmptyStateSize } from "Common/UI/Components/EmptyState/EmptyState";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -518,7 +518,7 @@ const MonitorGroupView: FunctionComponent<
             icon={IconProp.AltGlobe}
             title={MonitorGroupMonitorsCopy.emptyTitle}
             description={MonitorGroupMonitorsCopy.emptyDescription}
-            paddingClassName="py-8"
+            size={EmptyStateSize.Inline}
             footer={
               /*
                * Only for whoever may put a monitor in a group: the page Add

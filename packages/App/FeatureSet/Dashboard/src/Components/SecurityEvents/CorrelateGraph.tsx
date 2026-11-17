@@ -1451,7 +1451,6 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
         <EmptyState
           id="security-events-correlate-empty"
           icon={IconProp.Share}
-          paddingClassName="px-4 py-12"
           title="Correlate security events"
           description="Search for a host, user, or IP address, or switch to Conditions to combine fields with AND or OR."
           footer={
@@ -1553,7 +1552,6 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
       <EmptyState
         id="security-events-correlate-no-results"
         icon={IconProp.Search}
-        paddingClassName="px-4 py-12"
         title="No events found"
         description="No security events matched this filter in the selected time range."
         footer={

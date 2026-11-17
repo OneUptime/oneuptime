@@ -1,4 +1,7 @@
-import EmptyState from "../../../../UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EMPTY_STATE_PADDING_CLASS_NAMES,
+  EmptyStateSize,
+} from "../../../../UI/Components/EmptyState/EmptyState";
 import Button, {
   ButtonStyleType,
 } from "../../../../UI/Components/Button/Button";
@@ -236,34 +239,61 @@ describe("EmptyState", () => {
     expect(clicks).toEqual(["create"]);
   });
 
-  describe("padding", () => {
-    test("keeps the tall full-page padding by default", () => {
+  describe("size", () => {
+    const renderSized: (size?: EmptyStateSize) => Element = (
+      size?: EmptyStateSize,
+    ): Element => {
       const { container } = render(
         <EmptyState
           id="empty-state"
           icon={IconProp.User}
           title="Title"
           description="Description"
+          size={size}
         />,
       );
+      return container.firstElementChild as Element;
+    };
 
-      expect(container.firstElementChild).toHaveClass("pt-52", "pb-52");
+    test("takes a card's room by default, not a whole page's 416px (#9135)", () => {
+      const element: Element = renderSized();
+
+      expect(element).toHaveAttribute("data-size", EmptyStateSize.Card);
+      expect(element).toHaveClass("px-4", "py-12", "sm:py-16", "w-full");
+      expect(element).not.toHaveClass("pt-52");
+      expect(element).not.toHaveClass("pb-52");
     });
 
-    test("uses the caller's padding instead of the default", () => {
-      const { container } = render(
-        <EmptyState
-          id="empty-state"
-          icon={IconProp.User}
-          title="Title"
-          description="Description"
-          paddingClassName="py-4"
-        />,
-      );
+    test.each([
+      [EmptyStateSize.Inline, ["px-4", "py-6"]],
+      [EmptyStateSize.Card, ["px-4", "py-12", "sm:py-16"]],
+      [EmptyStateSize.Page, ["px-4", "py-16", "sm:py-24"]],
+    ])("draws the %s preset's padding", (size: EmptyStateSize, classes: Array<string>) => {
+      const element: Element = renderSized(size);
 
-      expect(container.firstElementChild).toHaveClass("py-4");
-      expect(container.firstElementChild).not.toHaveClass("pt-52");
-      expect(container.firstElementChild).not.toHaveClass("pb-52");
+      expect(element).toHaveAttribute("data-size", size);
+      expect(element).toHaveClass(...classes);
+      expect(element.className).toContain(EMPTY_STATE_PADDING_CLASS_NAMES[size]);
+    });
+
+    test("each preset is roomier than the one before it, and none reaches the old 13rem", () => {
+      const topPadding: (size: EmptyStateSize) => number = (
+        size: EmptyStateSize,
+      ): number => {
+        const match: RegExpMatchArray | null =
+          EMPTY_STATE_PADDING_CLASS_NAMES[size].match(/(?:^| )py-(\d+)/);
+        return Number(match?.[1]);
+      };
+
+      expect(topPadding(EmptyStateSize.Inline)).toBeLessThan(
+        topPadding(EmptyStateSize.Card),
+      );
+      expect(topPadding(EmptyStateSize.Card)).toBeLessThan(
+        topPadding(EmptyStateSize.Page),
+      );
+      for (const size of Object.values(EmptyStateSize)) {
+        expect(EMPTY_STATE_PADDING_CLASS_NAMES[size]).not.toMatch(/-52\b/);
+      }
     });
   });
 

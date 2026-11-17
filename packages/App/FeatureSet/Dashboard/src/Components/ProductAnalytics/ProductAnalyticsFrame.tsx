@@ -172,7 +172,6 @@ export const ProductAnalyticsNothingYet: FunctionComponent<{
       id="product-analytics-nothing-yet"
       icon={IconProp.PresentationChartLine}
       title="No sessions counted yet"
-      paddingClassName="py-16"
       description={
         <span>
           {translator.translateText(

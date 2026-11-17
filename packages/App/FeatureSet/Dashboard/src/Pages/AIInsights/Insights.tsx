@@ -24,7 +24,7 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, { EmptyStateSize } from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
@@ -623,7 +623,7 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
            * The whole page on a first run: tall on a laptop, not a screen
            * and a half of white on a phone.
            */
-          paddingClassName="py-20 md:pt-52 md:pb-52"
+          size={EmptyStateSize.Page}
           title={scope?.emptyTitle || "No insights yet"}
           description={
             scope?.emptyDescription ||

@@ -28,8 +28,8 @@ export interface ComponentProps {
 /*
  * The empty and all-clear states inside the SLO overview's cards.
  *
- * EmptyState is sized for a whole page (13rem of padding), which inside a
- * sidebar card pushes everything below it off screen, and it has no way to
+ * EmptyState was once sized for a whole page (13rem of padding), which in a
+ * sidebar card pushed everything below it off screen, and it has no way to
  * say "all clear" as distinct from "nothing here". This is the compact,
  * in-card version: an icon, one line of what is true, one of what to do,
  * and the actions that do it.

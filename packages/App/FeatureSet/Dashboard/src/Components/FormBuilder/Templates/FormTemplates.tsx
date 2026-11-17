@@ -56,7 +56,7 @@ import Button, {
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, { EmptyStateSize } from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import Field, {
@@ -700,7 +700,7 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
                 icon={IconProp.DocumentDuplicate}
                 title="Templates"
                 description={FormsCopy.templatesEmpty}
-                paddingClassName="py-10"
+                size={EmptyStateSize.Inline}
               />
             </div>
           ) : (

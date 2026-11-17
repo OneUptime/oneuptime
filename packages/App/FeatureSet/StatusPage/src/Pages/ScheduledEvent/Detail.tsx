@@ -592,7 +592,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
       )}
       {!scheduledMaintenanceEvent ? (
         <EmptyState
-          paddingClassName="py-12 sm:py-16"
           id="scheduled-event-empty-state"
           title={t("scheduledEvents.singular")}
           description={t("scheduledEvents.notFound")}

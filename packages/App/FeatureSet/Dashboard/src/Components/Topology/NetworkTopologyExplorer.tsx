@@ -972,7 +972,6 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
         {visibleSites.length === 0 ? (
           <EmptyState
             id="topology-hierarchy-empty"
-            paddingClassName="py-16"
             icon={IconProp.FlowDiagram}
             title={
               normalizedSearch || healthFilterMode !== "all"

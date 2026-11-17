@@ -4,7 +4,7 @@ import OneUptimeDate from "Common/Types/Date";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, { EmptyStateSize } from "Common/UI/Components/EmptyState/EmptyState";
 import { getTimeRangeLabel } from "Common/UI/Components/Date/TimeRangePickerDropdown";
 import {
   translatableTerm,
@@ -14,13 +14,6 @@ import { getTimeRangeCovering } from "./SecurityEventsTimeRange";
 
 export const SECURITY_EVENTS_NO_RESULTS_ID: string =
   "security-events-no-results";
-
-/*
- * Compact table padding. The list card has no padding of its own, so on a
- * phone the text sits flush against its border without a side gutter; from md
- * up the spacing is as it was.
- */
-const PADDING_CLASS_NAME: string = "px-4 py-4 md:px-0";
 
 export interface ComponentProps {
   /*
@@ -75,7 +68,7 @@ const SecurityEventsNoResults: FunctionComponent<ComponentProps> = (
       <EmptyState
         id={SECURITY_EVENTS_NO_RESULTS_ID}
         icon={IconProp.Filter}
-        paddingClassName={PADDING_CLASS_NAME}
+        size={EmptyStateSize.Inline}
         title="No security events match these filters"
         description="Events have arrived in this time range, but none of them match the filters applied to the table. Clear or loosen a filter to see them."
       />
@@ -87,7 +80,7 @@ const SecurityEventsNoResults: FunctionComponent<ComponentProps> = (
       <EmptyState
         id={SECURITY_EVENTS_NO_RESULTS_ID}
         icon={IconProp.Search}
-        paddingClassName={PADDING_CLASS_NAME}
+        size={EmptyStateSize.Inline}
         title="No security events in this time range"
         description="Try a wider time range, or clear the filters applied to the table."
       />
@@ -103,7 +96,7 @@ const SecurityEventsNoResults: FunctionComponent<ComponentProps> = (
     <EmptyState
       id={SECURITY_EVENTS_NO_RESULTS_ID}
       icon={IconProp.Clock}
-      paddingClassName={PADDING_CLASS_NAME}
+      size={EmptyStateSize.Inline}
       title="No security events in this time range"
       description={translateTemplate(
         "The most recent security event arrived {{time}} ({{date}}).",

@@ -100,7 +100,6 @@ const ResellerPlanNotice: FunctionComponent<ComponentProps> = (
     <EmptyState
       id="reseller-plan-notice"
       icon={IconProp.Info}
-      paddingClassName="py-16"
       showSolidBackground={true}
       title={
         <>
