@@ -349,7 +349,7 @@ export default class ScheduleLayersSnapshot {
         }
       }
 
-      if (isCut && entries.size === 1) {
+      if (isCut && entries.size === 1 && entries.has(lastKeptId)) {
         /*
          * One schedule is more than the cap on its own: no statement reads
          * all of it. It is worked out from the rows the cap holds, as it
