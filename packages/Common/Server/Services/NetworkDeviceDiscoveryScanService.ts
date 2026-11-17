@@ -782,6 +782,14 @@ export class Service extends ProjectReferencesService<Model> {
         id: itemId,
         // Cast: the model's JSON column makes DeepPartial recursion blow up.
         data: reconcile as unknown as QueryDeepPartialEntity<Model>,
+        /*
+         * A rebuilt credential list moves the version on: a probe's claim
+         * holds itself to the version it read, the list being kept
+         * encrypted (DiscoveryScan's claim), so a claim read between the
+         * edit and this rebuild is voided, as it was when the claim
+         * compared the list itself.
+         */
+        moveVersionOn: reconcile["snmpConfigs"] !== undefined,
       });
     }
 

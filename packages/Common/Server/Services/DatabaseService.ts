@@ -12320,6 +12320,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
      * heartbeat.
      */
     skipUpdateDateColumn?: boolean;
+    /*
+     * Move the row's optimistic-lock `version` on, as a write through the
+     * service does, in the same statement (`"version" = "version" + 1`). For
+     * a hook-free write that changes what another writer holds its own write
+     * to by the version: a discovery scan's credential list, rebuilt after
+     * an edit, which the probe's claim holds to the version it read because
+     * the list is kept encrypted and cannot be compared as it was read.
+     */
+    moveVersionOn?: boolean;
   }): Promise<void> {
     const statement: ColumnsByIdUpdateStatement | null =
       this.buildColumnsByIdUpdateStatement(
@@ -12434,6 +12443,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       id: ObjectID;
       expectedData?: PartialEntity<TBaseModel> | undefined;
       skipUpdateDateColumn?: boolean | undefined;
+      moveVersionOn?: boolean | undefined;
     },
     values: ObjectLiteral,
     methodName: string,
@@ -12490,6 +12500,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
     }
 
+    // Nor version, which a write that asks for it moves on as save() does.
+    if (input.moveVersionOn && metadata.versionColumn) {
+      const versionColumn: string = metadata.versionColumn.databaseName;
+
+      setClauses.push(`"${versionColumn}" = "${versionColumn}" + 1`);
+    }
+
     const primaryColumnName: string =
       metadata.primaryColumns[0]?.databaseName || "_id";
     params.push(input.id.toString());
@@ -12513,6 +12530,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       if (typeof value === "function") {
         throw new BadDataException(
           `${methodName}: SQL-expression expected values are not supported (column "${propertyName}"); pass a literal value.`,
+        );
+      }
+
+      /*
+       * An encrypted column is stored salted afresh on every write, so the
+       * value a read handed back - decrypted - never equals what the row
+       * holds: a guard on it would refuse every write, quietly. Hold such a
+       * write to the row's version instead, which every write through the
+       * service moves on. Expecting it unset is a guard like any other.
+       */
+      if (
+        value !== null &&
+        value !== undefined &&
+        this.model.getEncryptedColumns().columns.includes(propertyName)
+      ) {
+        throw new BadDataException(
+          `${methodName}: "${propertyName}" is kept encrypted at rest and cannot be expected; hold the write to "version" instead.`,
         );
       }
 

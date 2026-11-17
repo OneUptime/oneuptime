@@ -438,6 +438,70 @@ describe("a hook-free write", () => {
     expect(await Encryption.decrypt(stored)).toBe("t".repeat(500));
   });
 
+  test("refuses to hold a write to an encrypted column's value, which never matches its salted ciphertext, but holds it to the column being unset", async () => {
+    const service: DatabaseService<NetworkDeviceDiscoveryScan> =
+      new DatabaseService<NetworkDeviceDiscoveryScan>(
+        NetworkDeviceDiscoveryScan,
+      );
+    const captured: Array<CapturedQuery> = [];
+
+    jest
+      .spyOn(service, "getRepository")
+      .mockReturnValue(
+        fakeRepository(new NetworkDeviceDiscoveryScan(), captured) as never,
+      );
+
+    await expect(
+      service.updateColumnsByIdWithoutHooks({
+        id: new ObjectID(SCAN_ID),
+        data: { status: "In Progress" } as never,
+        expectedData: { snmpCommunityString: "s3cr3t-community" } as never,
+      }),
+    ).rejects.toThrow(
+      'updateColumnsByIdWithoutHooks: "snmpCommunityString" is kept encrypted at rest and cannot be expected; hold the write to "version" instead.',
+    );
+    expect(captured).toHaveLength(0);
+
+    await service.updateColumnsByIdWithoutHooks({
+      id: new ObjectID(SCAN_ID),
+      data: { status: "In Progress" } as never,
+      expectedData: { snmpConfigs: null, version: 4 } as never,
+    });
+
+    expect(captured).toHaveLength(1);
+    expect(captured[0]!.params).toEqual(
+      expect.arrayContaining(["In Progress", null, 4]),
+    );
+  });
+
+  test("moves the row's version on when asked, in the same statement", async () => {
+    const service: DatabaseService<NetworkDeviceDiscoveryScan> =
+      new DatabaseService<NetworkDeviceDiscoveryScan>(
+        NetworkDeviceDiscoveryScan,
+      );
+    const captured: Array<CapturedQuery> = [];
+    const repository: Record<string, Record<string, unknown>> = fakeRepository(
+      new NetworkDeviceDiscoveryScan(),
+      captured,
+    ) as Record<string, Record<string, unknown>>;
+    repository["metadata"]!["versionColumn"] = { databaseName: "version" };
+
+    jest.spyOn(service, "getRepository").mockReturnValue(repository as never);
+
+    await service.updateColumnsByIdWithoutHooks({
+      id: new ObjectID(SCAN_ID),
+      data: { status: "Pending" } as never,
+      moveVersionOn: true,
+    });
+    await service.updateColumnsByIdWithoutHooks({
+      id: new ObjectID(SCAN_ID),
+      data: { status: "Pending" } as never,
+    });
+
+    expect(captured[0]!.sql).toContain(`"version" = "version" + 1`);
+    expect(captured[1]!.sql).not.toContain(`"version"`);
+  });
+
   test("compare-and-set and the unlocked write encrypt it too", async () => {
     const service: DatabaseService<NetworkDeviceDiscoveryScan> =
       new DatabaseService<NetworkDeviceDiscoveryScan>(
