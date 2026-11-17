@@ -33,6 +33,10 @@ jest.mock("Common/Server/Services/MonitorService", () => {
     __esModule: true,
     default: {
       findOneBy: jest.fn(),
+      // The key's lookup, by its value, through findOneBy above (#9012).
+      findOneByPresentedKey: jest.requireActual<{
+        default: unknown;
+      }>("./Helpers/PresentedKeyByValue").default,
       updateColumnsByIdWithoutHooks: jest.fn(() => {
         return Promise.resolve();
       }),

@@ -48,6 +48,10 @@ jest.mock("Common/Server/Services/MonitorService", () => {
     default: {
       // The ingest jobs' own read of the monitor, by its secret key.
       findOneBy: jest.fn(),
+      // The key's lookup, by its value, through findOneBy above (#9012).
+      findOneByPresentedKey: jest.requireActual<{
+        default: unknown;
+      }>("./Helpers/PresentedKeyByValue").default,
       // MonitorResource's read, the one a result is refused on.
       findOneById: jest.fn(),
       getEnabledMonitorQuery: jest.fn(() => {

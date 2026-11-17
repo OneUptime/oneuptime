@@ -32,6 +32,9 @@ export enum PresentedKeyProtection {
 export interface PresentedKeyTarget {
   // What a row is, for the log: "monitor".
   kind: string;
+  // The table, as its model names it: "Monitor".
+  tableName: string;
+  // Read when the target is used, so a list of targets needs no database.
   repository: ModelRepository;
   // The column, as the table names it: "incomingRequestSecretKey".
   column: string;
@@ -55,6 +58,12 @@ export interface PresentedKeysPass {
 }
 
 type StoredRow = Record<string, unknown>;
+
+// The service of a table with a presented key: its model, and its repository.
+interface KeyService {
+  getModel: () => { tableName?: string | undefined };
+  getRepository: () => unknown;
+}
 
 // A key OneUptime keeps only as its hash (PresentedKey.toStoredHash), in SQL.
 const STORED_HASH_SQL_PATTERN: string = "^sha256\\$[0-9a-f]{64}$";
@@ -97,133 +106,126 @@ export default class PresentedKeysInPlace {
 
   // Every column whose keys are protected, in the order they are.
   public static getTargets(): Array<PresentedKeyTarget> {
-    const repositoryOf: (service: {
-      getRepository: () => unknown;
-    }) => ModelRepository = (service: {
-      getRepository: () => unknown;
-    }): ModelRepository => {
-      return service.getRepository() as ModelRepository;
+    // A target of a service's table, its repository read when it is used.
+    const targetOf: (
+      service: KeyService,
+      target: Omit<PresentedKeyTarget, "repository" | "tableName">,
+    ) => PresentedKeyTarget = (
+      service: KeyService,
+      target: Omit<PresentedKeyTarget, "repository" | "tableName">,
+    ): PresentedKeyTarget => {
+      return {
+        ...target,
+        tableName: service.getModel().tableName || "",
+        get repository(): ModelRepository {
+          return service.getRepository() as ModelRepository;
+        },
+      };
     };
 
     return [
-      {
+      targetOf(ProbeService, {
         kind: "probe",
-        repository: repositoryOf(ProbeService),
         column: "key",
         protection: PresentedKeyProtection.Encrypt,
         columnType: TableColumnType.ShortText,
-      },
-      {
+      }),
+      targetOf(RunnerService, {
         kind: "Runner",
-        repository: repositoryOf(RunnerService),
         column: "key",
         protection: PresentedKeyProtection.Encrypt,
         columnType: TableColumnType.ShortText,
-      },
-      {
+      }),
+      targetOf(AIAgentService, {
         kind: "AI agent",
-        repository: repositoryOf(AIAgentService),
         column: "key",
         protection: PresentedKeyProtection.Encrypt,
         columnType: TableColumnType.ShortText,
-      },
-      {
+      }),
+      targetOf(TelemetryIngestionKeyService, {
         kind: "telemetry ingestion key",
-        repository: repositoryOf(TelemetryIngestionKeyService),
         column: "secretKey",
         protection: PresentedKeyProtection.Encrypt,
         lookupHashColumn: "secretKeyHash",
         columnType: TableColumnType.ObjectID,
-      },
-      {
+      }),
+      targetOf(IoTDeviceCredentialService, {
         kind: "IoT device credential",
-        repository: repositoryOf(IoTDeviceCredentialService),
         column: "secretKey",
         protection: PresentedKeyProtection.Encrypt,
         columnType: TableColumnType.ObjectID,
-      },
-      {
+      }),
+      targetOf(MonitorService, {
         kind: "monitor",
-        repository: repositoryOf(MonitorService),
         column: "serverMonitorSecretKey",
         protection: PresentedKeyProtection.Encrypt,
         lookupHashColumn: "serverMonitorSecretKeyHash",
         columnType: TableColumnType.ObjectID,
-      },
-      {
+      }),
+      targetOf(MonitorService, {
         kind: "monitor",
-        repository: repositoryOf(MonitorService),
         column: "incomingRequestSecretKey",
         protection: PresentedKeyProtection.Encrypt,
         lookupHashColumn: "incomingRequestSecretKeyHash",
         columnType: TableColumnType.ObjectID,
-      },
-      {
+      }),
+      targetOf(MonitorService, {
         kind: "monitor",
-        repository: repositoryOf(MonitorService),
         column: "incomingEmailSecretKey",
         protection: PresentedKeyProtection.Encrypt,
         lookupHashColumn: "incomingEmailSecretKeyHash",
         columnType: TableColumnType.ObjectID,
-      },
-      {
+      }),
+      targetOf(WorkflowService, {
         kind: "workflow",
-        repository: repositoryOf(WorkflowService),
         column: "webhookSecretKey",
         protection: PresentedKeyProtection.Encrypt,
         lookupHashColumn: "webhookSecretKeyHash",
         columnType: TableColumnType.LongText,
-      },
-      {
+      }),
+      targetOf(WorkflowService, {
         kind: "workflow",
-        repository: repositoryOf(WorkflowService),
         column: "incomingEmailSecretKey",
         protection: PresentedKeyProtection.Encrypt,
         lookupHashColumn: "incomingEmailSecretKeyHash",
         columnType: TableColumnType.ObjectID,
-      },
-      {
+      }),
+      targetOf(RunbookService, {
         kind: "runbook",
-        repository: repositoryOf(RunbookService),
         column: "webhookSecretKey",
         protection: PresentedKeyProtection.Encrypt,
         columnType: TableColumnType.ShortText,
-      },
-      {
+      }),
+      targetOf(StatusPageService, {
         kind: "status page",
-        repository: repositoryOf(StatusPageService),
         column: "embeddedOverallStatusToken",
         protection: PresentedKeyProtection.Encrypt,
         columnType: TableColumnType.ShortText,
-      },
-      {
+      }),
+      targetOf(DataProductService, {
         kind: "data product",
-        repository: repositoryOf(DataProductService),
         column: "badgeToken",
         protection: PresentedKeyProtection.Encrypt,
         columnType: TableColumnType.ShortText,
-      },
-      {
+      }),
+      targetOf(StatusPageSubscriberService, {
         kind: "status page subscriber",
-        repository: repositoryOf(StatusPageSubscriberService),
         column: "unsubscribeToken",
         protection: PresentedKeyProtection.Encrypt,
         columnType: TableColumnType.ShortText,
-      },
-      {
+      }),
+      targetOf(ProjectSCIMService, {
         kind: "project SCIM connection",
-        repository: repositoryOf(ProjectSCIMService),
         column: "bearerToken",
         protection: PresentedKeyProtection.Hash,
         columnType: TableColumnType.HashedString,
-      },
-      {
+      }),
+      targetOf(StatusPageSCIMService, {
         kind: "status page SCIM connection",
-        repository: repositoryOf(StatusPageSCIMService),
         column: "bearerToken",
         protection: PresentedKeyProtection.Hash,
         columnType: TableColumnType.HashedString,
-      },
+      }),
     ];
   }
 
