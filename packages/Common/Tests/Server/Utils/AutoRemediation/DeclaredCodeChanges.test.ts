@@ -337,7 +337,7 @@ describe("DeclaredCodeChanges", () => {
   // A fix of the alert, rather than of the incident.
   function alertsSuggestion(): AutoRemediationSuggestion {
     const row: AutoRemediationSuggestion = suggestion([step()]);
-    row.incidentId = undefined;
+    delete row.incidentId;
     row.alertId = ALERT_ID;
     return row;
   }

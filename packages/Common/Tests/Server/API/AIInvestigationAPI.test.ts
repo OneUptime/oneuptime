@@ -2135,7 +2135,7 @@ describe("AIInvestigationAPI run-scoped actions", () => {
   ])(
     "asks whether the person's permission reaches the %s, before anything starts",
     async (subjectType: string, subjectId: ObjectID, tableName: string) => {
-      const reaches: SpyInstance = jest
+      const reaches: SpyInstance<typeof PrivateRecordWriteCheck.reaches> = jest
         .spyOn(PrivateRecordWriteCheck, "reaches")
         .mockResolvedValue(true);
 
