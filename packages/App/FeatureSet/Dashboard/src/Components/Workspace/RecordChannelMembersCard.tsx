@@ -1,4 +1,5 @@
 import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -18,7 +19,6 @@ import {
 } from "Common/Types/Workspace/WorkspaceChannelMembers";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import Link from "Common/UI/Components/Link/Link";
@@ -793,7 +793,7 @@ const RecordChannelMembersCard: FunctionComponent<ComponentProps> = (
   let body: ReactElement;
 
   if (members.isLoading) {
-    body = <ComponentLoader />;
+    body = <TableSkeleton rows={3} columns={2} hasHeader={false} />;
   } else if (members.error || !members.answer) {
     // Said the way the card says what a channel cannot do: quietly, in a box.
     body = (

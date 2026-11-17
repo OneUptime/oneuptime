@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import MonitorStepProbeStatusMonitor, {
   MonitorStepProbeStatusMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepProbeStatusMonitor";
@@ -14,7 +15,6 @@ import Dropdown, {
   DropdownOptionGroup,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import { BILLING_ENABLED } from "Common/UI/Config";
@@ -152,7 +152,7 @@ const ProbeStatusMonitorStepForm: FunctionComponent<ComponentProps> = (
     }
 
     if (!probes) {
-      return <ComponentLoader />;
+      return <CardListSkeleton count={3} lines={0} />;
     }
 
     const groups: Array<ProbeStatusProbeOptionGroup> =

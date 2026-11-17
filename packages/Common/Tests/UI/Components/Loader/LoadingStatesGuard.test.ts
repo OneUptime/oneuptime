@@ -108,8 +108,36 @@ export interface ActionProgressLoaders {
   reason: string;
 }
 
-export const ACTION_PROGRESS_LOADERS: Record<string, ActionProgressLoaders> =
-  {};
+export const ACTION_PROGRESS_LOADERS: Record<string, ActionProgressLoaders> = {
+  "packages/App/FeatureSet/Dashboard/src/Pages/Logout/Logout.tsx": {
+    loaders: 1,
+    reason:
+      "The person is being signed out: the page has no content to shape, it leaves as soon as the session ends.",
+  },
+  "packages/App/FeatureSet/Dashboard/src/Pages/Init/Init.tsx": {
+    loaders: 1,
+    reason:
+      "The Dashboard is choosing which project to open and sends the browser there: no content of its own is ever drawn.",
+  },
+  "packages/App/FeatureSet/Dashboard/src/Pages/ConnectReturn/ConnectReturn.tsx":
+    {
+      loaders: 1,
+      reason:
+        "A connection the person started with a provider is being finished, and the browser passed on to its page: no content is drawn here.",
+    },
+  "packages/App/FeatureSet/Dashboard/src/Components/CallSMS/PhoneNumberPurchase.tsx":
+    {
+      loaders: 1,
+      reason:
+        "A phone number search, purchase or release the person started is running; the owned numbers' list draws its rows' skeleton.",
+    },
+  "packages/App/FeatureSet/Dashboard/src/Components/Metrics/PromQL/PromQLQueryView.tsx":
+    {
+      loaders: 1,
+      reason:
+        "A PromQL query the person pressed Run on is running: its result's shape (a chart, a table, a number) is not known until it ends.",
+    },
+};
 
 const HAND_DRAWN_LOADERS_BASELINE_FILE: string = path.join(
   __dirname,

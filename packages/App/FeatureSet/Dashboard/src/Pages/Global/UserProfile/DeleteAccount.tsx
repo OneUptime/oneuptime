@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -7,7 +8,6 @@ import Card from "Common/UI/Components/Card/Card";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import UserUtil from "Common/UI/Utils/User";
@@ -129,7 +129,7 @@ const DeleteAccount: FunctionComponent<
         className="mb-5"
       />
 
-      {isLoading && <ComponentLoader />}
+      {isLoading && <DetailListSkeleton fields={2} columns={1} />}
 
       {error && <ErrorMessage message={error} />}
 

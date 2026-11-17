@@ -280,7 +280,7 @@ describe("Email rollup card on User Settings > Email Preferences", () => {
       const card: string = cardCode();
 
       expect(card).toContain('<Card title="Email Rollup"');
-      expect(card).toContain("<ComponentLoader />");
+      expect(card).toContain("<DetailListSkeleton fields={3} columns={1} />");
       expect(card).toContain("<ErrorMessage message={error}");
       expect(card).toContain("onRefreshClick={");
       expect(card).toContain("setError(API.getFriendlyMessage(err))");

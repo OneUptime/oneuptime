@@ -1,4 +1,5 @@
 import CalendarFeedAPI from "./CalendarFeedAPI";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import {
   FEED_BODY_GRID_CLASS_NAME,
   FEED_PANEL_BUTTON_CLASS_NAME,
@@ -46,7 +47,6 @@ import {
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Link from "Common/UI/Components/Link/Link";
@@ -359,7 +359,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
     let body: ReactElement;
 
     if (isLoading) {
-      body = <ComponentLoader />;
+      body = <DetailListSkeleton fields={2} columns={1} />;
     } else if (isUnsupported) {
       body = (
         <div
@@ -502,7 +502,7 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
   let body: ReactElement;
 
   if (isLoading) {
-    body = <ComponentLoader />;
+    body = <DetailListSkeleton fields={2} columns={1} />;
   } else if (isUnsupported) {
     body = (
       <Alert

@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import React, {
@@ -39,7 +40,6 @@ import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -1034,7 +1034,7 @@ const CodeTaskLogPage: FunctionComponent<
       <div className="space-y-5">
         {header}
         {notOfTask}
-        <PageLoader isVisible={true} />
+        <TableSkeleton />
       </div>
     );
   }

@@ -1,4 +1,5 @@
 import { loadFormCustomFields } from "../FormBuilderData";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import FormsCopy from "../FormsCopy";
 import {
   FormMappingLine,
@@ -31,7 +32,6 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
@@ -334,7 +334,7 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={3} columns={1} />;
     }
 
     if (loadError || !reference) {

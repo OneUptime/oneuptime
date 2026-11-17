@@ -46,7 +46,7 @@ import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import Input from "Common/UI/Components/Input/Input";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { BILLING_ENABLED, STATUS_PAGE_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -236,7 +236,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
   }, [store]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (loadError) {

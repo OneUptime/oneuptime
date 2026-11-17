@@ -1,7 +1,7 @@
 import Project from "Common/Models/DatabaseModels/Project";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ModelSwitchRow from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
 import { BILLING_ENABLED } from "Common/UI/Config";
@@ -117,7 +117,7 @@ const ProjectNotificationChannelsCard: FunctionComponent = (): ReactElement => {
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={3} columns={1} />;
     }
 
     if (error || !enabled || !projectId) {

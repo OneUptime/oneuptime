@@ -153,15 +153,13 @@ jest.mock("../../../UI/Utils/API/API", () => {
  */
 let pageLoaderRenderCount: number = 0;
 
-jest.mock("../../../UI/Components/Loader/PageLoader", () => {
+jest.mock("../../../UI/Components/Page/PageSkeleton", () => {
   return {
     __esModule: true,
-    default: (props: { isVisible: boolean }): ReactElement | null => {
-      if (props.isVisible) {
-        pageLoaderRenderCount++;
-      }
+    default: (): ReactElement => {
+      pageLoaderRenderCount++;
 
-      return props.isVisible ? <div data-testid="page-loader" /> : null;
+      return <div data-testid="page-skeleton" />;
     },
   };
 });
@@ -727,7 +725,7 @@ function expectOAuthPageShown(): void {
     screen.getByTestId(`detail:${OAUTH_SETTINGS_CARD}`),
   ).toBeInTheDocument();
   expect(screen.getByTestId("model-delete")).toBeInTheDocument();
-  expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("page-skeleton")).not.toBeInTheDocument();
   expect(screen.queryByTestId("refresh-button")).not.toBeInTheDocument();
 }
 
@@ -866,7 +864,7 @@ describe("loading the variable", () => {
 
     renderView();
 
-    expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
     expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
     expect(capturedDetails[DETAILS_CARD]).toBeUndefined();
 
@@ -876,7 +874,7 @@ describe("loading the variable", () => {
 
     await waitForPage();
 
-    expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("page-skeleton")).not.toBeInTheDocument();
     expect(screen.getByTestId(`detail:${DETAILS_CARD}`)).toBeInTheDocument();
   });
 
@@ -891,7 +889,7 @@ describe("loading the variable", () => {
     renderView();
 
     expect(await screen.findByText(NOT_FOUND_MESSAGE)).toBeInTheDocument();
-    expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("page-skeleton")).not.toBeInTheDocument();
     // Nothing to edit or delete.
     expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
     expect(capturedDetails[DETAILS_CARD]).toBeUndefined();
@@ -907,7 +905,7 @@ describe("loading the variable", () => {
     renderView();
 
     expect(await screen.findByText(NOT_FOUND_MESSAGE)).toBeInTheDocument();
-    expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("page-skeleton")).not.toBeInTheDocument();
     expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
     expect(capturedDetails[DETAILS_CARD]).toBeUndefined();
   });
@@ -959,7 +957,7 @@ describe("loading the variable", () => {
       await screen.findByText("The API is unreachable."),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("page-skeleton")).not.toBeInTheDocument();
   });
 
   test("Refresh? on the error reads the variable again", async () => {
@@ -996,7 +994,7 @@ describe("loading the variable", () => {
       fireEvent.click(screen.getByTestId("refresh-button"));
     });
 
-    expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
     expect(
       screen.queryByText("The API is unreachable."),
     ).not.toBeInTheDocument();
@@ -1043,7 +1041,7 @@ describe("loading the variable", () => {
     });
 
     expect(await screen.findByText("Still unreachable.")).toBeInTheDocument();
-    expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("page-skeleton")).not.toBeInTheDocument();
     expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
   });
 
@@ -1091,7 +1089,7 @@ describe("a slow read never overwrites a newer one", () => {
     expect(screen.getByTestId("card:Content")).toBeInTheDocument();
     expect(screen.queryByTestId("card:Access Token")).not.toBeInTheDocument();
     expect(capturedDetails[OAUTH_SETTINGS_CARD]).toBeUndefined();
-    expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("page-skeleton")).not.toBeInTheDocument();
 
     // The variable the page acts on is the one it read for OTHER.
     fireEvent.click(screen.getByTestId("card-button:Update Content"));
@@ -1142,7 +1140,7 @@ describe("a slow read never overwrites a newer one", () => {
     });
 
     // Still waiting for the variable the page is on.
-    expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
     expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
 
     await act(async () => {
@@ -1663,7 +1661,7 @@ describe("a static variable", () => {
       detail(DETAILS_CARD).onSaveSuccess?.(staticVariable());
     });
 
-    expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("page-skeleton")).not.toBeInTheDocument();
     expect(screen.getByTestId(`detail:${DETAILS_CARD}`)).toBeInTheDocument();
 
     await act(async () => {
@@ -2209,7 +2207,7 @@ describe("Refresh now", () => {
         "invalid_client",
       );
     });
-    expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("page-skeleton")).not.toBeInTheDocument();
   });
 
   test("reads the variable again after a failure too", async () => {
@@ -2657,7 +2655,7 @@ describe("the page wrappers", () => {
 
   // The other variable's page, whole, and nothing of the previous one's.
   function expectOtherStaticVariableShown(): void {
-    expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("page-skeleton")).not.toBeInTheDocument();
     expect(screen.getByTestId("card:Content")).toBeInTheDocument();
     expect(screen.queryByTestId("card:Access Token")).not.toBeInTheDocument();
     expect(screen.queryByTestId("token-status")).not.toBeInTheDocument();
@@ -2728,7 +2726,7 @@ describe("the page wrappers", () => {
 
     await waitForReads(2);
     expect(getItemCall(1).id.toString()).toBe(OTHER_VARIABLE_ID.toString());
-    expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
     expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
 
     return { refresh, otherRead, previousFollowUpRead };
@@ -2853,7 +2851,7 @@ describe("the page wrappers", () => {
 
         await waitForReads(2);
         expect(getItemCall(1).id.toString()).toBe(OTHER_VARIABLE_ID.toString());
-        expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+        expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
         expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
 
         await act(async () => {
@@ -2911,7 +2909,7 @@ describe("the page wrappers", () => {
 
         await waitForReads(3);
         expect(getItemCall(2).id.toString()).toBe(OTHER_VARIABLE_ID.toString());
-        expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+        expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
 
         await act(async () => {
           otherRead.resolve(otherStaticVariable());
@@ -2963,7 +2961,7 @@ describe("the page wrappers", () => {
         });
 
         // Still waiting for the variable the page is on.
-        expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+        expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
         expect(
           screen.queryByTestId("token-refresh-modal"),
         ).not.toBeInTheDocument();
@@ -3148,7 +3146,7 @@ describe("the page wrappers", () => {
 
         await waitForReads(2);
         expect(getItemCall(1).id.toString()).toBe(OTHER_VARIABLE_ID.toString());
-        expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+        expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
         expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
 
         await act(async () => {
@@ -3184,7 +3182,7 @@ describe("the page wrappers", () => {
 
         await waitForReads(2);
         expect(getItemCall(1).id.toString()).toBe(VARIABLE_ID.toString());
-        expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+        expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
         expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
 
         await act(async () => {
@@ -3239,7 +3237,7 @@ describe("the page wrappers", () => {
           );
         });
 
-        expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+        expect(screen.getByTestId("page-skeleton")).toBeInTheDocument();
 
         await act(async () => {
           race.otherRead.resolve(

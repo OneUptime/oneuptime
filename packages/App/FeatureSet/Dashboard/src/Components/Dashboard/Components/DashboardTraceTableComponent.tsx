@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import DashboardTraceTableComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTraceTableComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import API from "Common/UI/Utils/API/API";
@@ -15,7 +16,6 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import { APP_API_URL } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import WidgetPlaceholder from "./WidgetPlaceholder";
@@ -456,7 +456,7 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
          */}
         {isLoading && (rows.length === 0 || Boolean(error)) && (
           <div className="flex h-full items-center justify-center">
-            <ComponentLoader />
+            <TableSkeleton rows={5} />
           </div>
         )}
         {!isLoading &&

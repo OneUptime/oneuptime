@@ -1,4 +1,5 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import MonitoringIntervalCard from "../../../Components/Monitor/MonitoringIntervalCard";
 import ProbeAgreementCard from "../../../Components/Monitor/ProbeAgreementCard";
 import ProbesAndIntervalCopy, {
@@ -16,7 +17,6 @@ import MonitorType, {
 } from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -369,7 +369,7 @@ const MonitorProbes: FunctionComponent<
     }
 
     if (isLoading || !monitor || !monitorType) {
-      return <ComponentLoader />;
+      return <PageSkeleton shape="table" />;
     }
 
     if (!MonitorTypeHelper.isProbableMonitor(monitorType)) {

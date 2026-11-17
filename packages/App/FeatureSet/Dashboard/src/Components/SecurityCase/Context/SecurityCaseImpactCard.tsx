@@ -1,4 +1,5 @@
 import AppLink from "../../AppLink/AppLink";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import { formatNameList } from "../../AiAccess/AiAccessModes";
 import { formatTrafficBytes } from "../../NetworkTraffic/NetworkTrafficFormat";
 import {
@@ -93,7 +94,6 @@ import {
   summarizeImpact,
 } from "Common/Utils/SecurityCase/SecurityCaseImpactFacts";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
@@ -596,7 +596,7 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
       </div>
     );
   } else if (!impact) {
-    body = <ComponentLoader />;
+    body = <DetailListSkeleton fields={4} />;
   } else if (
     impact.records.length === 0 &&
     impact.internet.evidence.length === 0 &&

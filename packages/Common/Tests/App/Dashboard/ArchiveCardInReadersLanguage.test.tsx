@@ -329,7 +329,7 @@ async function renderCard(
   );
 
   await waitFor(() => {
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("detail-skeleton")).not.toBeInTheDocument();
   });
 }
 

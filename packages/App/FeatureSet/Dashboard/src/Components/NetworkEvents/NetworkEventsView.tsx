@@ -1,4 +1,5 @@
 import NetworkEventAlertsModal from "./NetworkEventAlertsModal";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import { getNetworkEventTitle } from "./NetworkEventCopy";
 import NetworkEventDetails from "./NetworkEventDetails";
 import NetworkEventSourcesCard from "./NetworkEventSourcesCard";
@@ -46,7 +47,6 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import Dropdown, {
   DropdownOption,
@@ -642,7 +642,7 @@ const NetworkEventsView: FunctionComponent<ComponentProps> = (
          */
         headerLayout="stacked"
       >
-        {!hasLoaded && isLoading ? <ComponentLoader /> : <></>}
+        {!hasLoaded && isLoading ? <TableSkeleton /> : <></>}
 
         {/*
          * The first read failed: what failed, the server's reason and a way

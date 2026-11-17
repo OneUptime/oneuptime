@@ -590,7 +590,7 @@ describe.each(WIDGETS)("the $name widget's hint", (widget: WidgetUnderTest) => {
         expect(apiPostMock).toHaveBeenCalledTimes(1);
       });
 
-      expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+      expect(screen.getByTestId("chart-skeleton")).toBeInTheDocument();
       expect(hint()).toBeNull();
     });
   });

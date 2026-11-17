@@ -21,7 +21,7 @@ import {
 import { usePushNotificationsTurnedOff } from "../../Utils/PushNotificationsTurnedOff";
 import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -120,7 +120,7 @@ const NotificationMethodTabs: FunctionComponent = (): ReactElement => {
   const isPushTurnedOff: boolean | null = usePushNotificationsTurnedOff();
 
   if (!offered || !customChannels.channels || isPushTurnedOff === null) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   const workspaceAppsTab: Tab | null = getWorkspaceAppsTab(offered);

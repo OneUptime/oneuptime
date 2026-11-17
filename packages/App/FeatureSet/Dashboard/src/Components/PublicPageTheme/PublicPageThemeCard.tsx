@@ -1,4 +1,5 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import Select from "Common/Types/BaseDatabase/Select";
 import PublicPageTheme from "Common/Types/Theme/PublicPageTheme";
@@ -7,7 +8,6 @@ import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface
 import ChoiceRows, {
   ChoiceRowOption,
 } from "Common/UI/Components/ChoiceRows/ChoiceRows";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SaveStatus from "Common/UI/Components/SaveStatus/SaveStatus";
 import useSaveOnChange, {
@@ -223,7 +223,7 @@ const PublicPageThemeCard: <TBaseModel extends BaseModel>(
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
-      return <ComponentLoader />;
+      return <DetailListSkeleton fields={4} />;
     }
 
     if (error || !loaded) {

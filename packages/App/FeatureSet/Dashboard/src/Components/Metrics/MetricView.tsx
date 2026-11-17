@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import MetricQueryConfig from "./MetricQueryConfig";
 import MetricGraphConfig from "./MetricFormulaConfig";
 import Button, {
@@ -23,9 +24,8 @@ import Card from "Common/UI/Components/Card/Card";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import API from "Common/UI/Utils/API/API";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricUtil from "./Utils/Metrics";
@@ -1073,7 +1073,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
   };
 
   if (isPageLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (pageError) {
@@ -1449,7 +1449,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
          */}
         {isMetricResultsLoading &&
           !hasFetchedResultsOnce &&
-          !metricResultsError && <ComponentLoader />}
+          !metricResultsError && <ChartSkeleton />}
 
         {/*
          * Full-size error only before the FIRST successful fetch. Once

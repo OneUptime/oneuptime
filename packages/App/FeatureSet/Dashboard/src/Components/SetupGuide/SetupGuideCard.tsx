@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -39,7 +40,6 @@ import {
   getReadingDirection,
   ReadingDirection,
 } from "Common/Types/ReadingDirection";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import {
   SetupGuideTranslations,
   translateSetupGuideContent,
@@ -419,7 +419,7 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
 
   // The reader's words are on their way: a moment, not a flash of English.
   const body: ReactElement = guideTranslation.isLoading ? (
-    <ComponentLoader />
+    <DetailListSkeleton fields={3} columns={1} />
   ) : (
     <>
       {options.length > 1 && (

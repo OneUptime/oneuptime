@@ -1,4 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -21,7 +22,6 @@ import Dropdown, {
 import IconProp from "Common/Types/Icon/IconProp";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ObjectID from "Common/Types/ObjectID";
@@ -1048,7 +1048,7 @@ const NotificationSettingsBody: FunctionComponent = (): ReactElement => {
               }}
             />
           ) : (
-            <ComponentLoader />
+            <DetailListSkeleton fields={3} columns={1} />
           )}
         </Card>
       );

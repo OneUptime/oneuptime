@@ -1,4 +1,5 @@
 import { NotificationMethodChoice } from "./OnCallRulesTable";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import OnCallRulesTabs, { OnCallRulesPerson } from "./OnCallRulesTabs";
 import {
   PagingLadderData,
@@ -50,7 +51,7 @@ import Button, {
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProductEvents from "Common/UI/Utils/ProductEvents";
@@ -245,7 +246,7 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
     }
 
     if (!data || !reading) {
-      return <PageLoader isVisible={true} />;
+      return <PageSkeleton />;
     }
   }
 
@@ -461,7 +462,7 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
             ]}
           >
             {!reading ? (
-              loadFailure || <PageLoader isVisible={true} />
+              loadFailure || <CardListSkeleton count={3} lines={1} />
             ) : (
               <div
                 className="flex flex-col gap-3"

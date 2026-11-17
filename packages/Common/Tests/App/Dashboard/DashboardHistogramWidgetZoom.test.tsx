@@ -871,7 +871,7 @@ describe("Trace Chart widget: drag-to-zoom retimes the board", () => {
     await waitFor(() => {
       expect(postsTo("/telemetry/traces/analytics").length).toBe(1);
     });
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("chart-skeleton")).toBeInTheDocument();
     expect(screen.queryByTestId("bar-chart")).toBeNull();
   });
 
@@ -904,7 +904,7 @@ describe("Trace Chart widget: drag-to-zoom retimes the board", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+      expect(screen.getByTestId("chart-skeleton")).toBeInTheDocument();
     });
     expect(screen.queryByTestId("bar-chart")).toBeNull();
     expect(screen.queryByText("analytics unavailable")).toBeNull();
