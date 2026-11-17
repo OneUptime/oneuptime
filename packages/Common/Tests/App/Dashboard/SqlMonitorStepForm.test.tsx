@@ -166,10 +166,15 @@ describe("SqlMonitorStepForm - Host and Port", () => {
       .getByPlaceholderText("db.internal")
       .closest(".grid") as HTMLElement;
 
-    // Each cell: its label, then its box - no line of help between.
+    /*
+     * Each cell: its label, then its box - no line of help between, so the
+     * only words in the cell are its label's.
+     */
     for (const cell of Array.from(row.children)) {
-      expect(cell.querySelectorAll("label")).toHaveLength(1);
-      expect(cell.querySelectorAll(".text-gray-500")).toHaveLength(0);
+      const labels: NodeListOf<HTMLLabelElement> =
+        cell.querySelectorAll("label");
+      expect(labels).toHaveLength(1);
+      expect(cell.textContent).toBe(labels[0]!.textContent);
     }
     expect(view.container.textContent).not.toContain(
       "A host the probe can reach",
