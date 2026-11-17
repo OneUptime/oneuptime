@@ -238,9 +238,10 @@ const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
 function subscribersTab(
   channel: StatusPageSubscriberChannel,
 ): (props: PageComponentProps) => ReactElement {
-  const SubscribersTab: React.FunctionComponent<PageComponentProps> = (
-    props: PageComponentProps,
-  ): ReactElement => {
+  // A page as the cases take it, named for React's warnings.
+  const SubscribersTab: ((props: PageComponentProps) => ReactElement) & {
+    displayName?: string;
+  } = (props: PageComponentProps): ReactElement => {
     window.history.replaceState(
       null,
       "",

@@ -89,6 +89,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     builtFrom: "the container names DOCS_CONTAINER_NAMES lists",
   },
   {
+    file: "packages/Common/Server/Utils/AI/AIRunOutputReadFilter.ts",
+    count: 1,
+    builtFrom:
+      "the names of the SQL parameters it and PrivateRecordReadFilter make up, a prefix and ten random letters (Text.generateRandomText), to write them as positional parameters",
+  },
+  {
     file: "packages/Common/Server/Utils/AnalyticsDatabase/Statement.ts",
     count: 1,
     builtFrom: "a count of spaces",

@@ -225,7 +225,7 @@ describe("the provider asking to slow down", () => {
 
 describe("reading an error", () => {
   test("nodemailer's code, reply code and command, and its response", () => {
-    const error: Error & Record<string, unknown> = Object.assign(
+    const error: Error = Object.assign(
       new Error("Message failed: 554 Message rejected"),
       {
         code: "EMESSAGE",
@@ -249,7 +249,7 @@ describe("reading an error", () => {
   });
 
   test("a response already in the message is not said twice", () => {
-    const error: Error & Record<string, unknown> = Object.assign(
+    const error: Error = Object.assign(
       new Error("Invalid login: 535 Authentication failed"),
       { response: "535 Authentication failed" },
     );
