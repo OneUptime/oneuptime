@@ -150,7 +150,7 @@ describe("the shared hook module hands each bulk-action hook what it needs", () 
      */
     expect(HOOK_CODE).toContain(
       squash(
-        'useBulkArchiveActions<ServiceLevelObjective>({ modelType: ServiceLevelObjective, singularName: "SLO", pluralName: "SLOs", archiveConfirmMessage: SLO_BULK_ARCHIVE_CONFIRM_MESSAGE, unarchiveConfirmMessage: SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE, })',
+        'useBulkArchiveActions<ServiceLevelObjective>({ modelType: ServiceLevelObjective, singularName: "SLO", pluralName: "SLOs", archiveConfirmMessage: SLO_BULK_ARCHIVE_CONFIRM_MESSAGE, unarchiveConfirmMessage: SLO_BULK_UNARCHIVE_CONFIRM_MESSAGE, archiveConfirmDetails: usedBy.archiveConfirmDetails, getArchiveConfirmationDetails: usedBy.getArchiveConfirmationDetails, })',
       ),
     );
 
@@ -411,7 +411,7 @@ const CONSUMER_CASES: Array<ConsumerCase> = [
     SLOS_PAGE,
     "../../Components/Slo/useSloBulkActions",
     "const { bulkActions, archiveBulkActions, recommendedRulesBulkActions, rowActions, archiveRowActions, modals, }: SloBulkActionsResult = useSloBulkActions();",
-    "bulkActions={{ buttons: [ ...bulkActions, ...recommendedRulesBulkActions, ...archiveBulkActions, ], }}",
+    "bulkActions={{ buttons: [ ...bulkActions, ...recommendedRulesBulkActions, ...archiveBulkActions, ], deleteConfirmationDetails: usedBy.deleteConfirmationDetails, }}",
     "actionButtons={[...rowActions, ...archiveRowActions]}",
   ],
   [
