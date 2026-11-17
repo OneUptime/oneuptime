@@ -36,9 +36,10 @@ import { ValueTransformer } from "typeorm";
  * turn order (by order, then id); a layer with nobody in it is read too.
  *
  * Many schedules are read SCHEDULES_PER_STATEMENT at a time, and a
- * statement reads at most MAX_ROWS rows. A schedule is never split between
- * two statements: when a statement stops at its cap, the schedule it was
- * reading when it stopped is read again, from the start, by the next one.
+ * statement keeps at most MAX_ROWS rows (it reads one more, to know whether
+ * there was more). A schedule is never split between two statements: when
+ * a statement stops at its cap part way through a schedule, that schedule
+ * is read again, from the start, by the next one.
  */
 
 // A row the statement read, as the driver hands it over.
@@ -181,13 +182,14 @@ export default class ScheduleLayersSnapshot {
   // The most schedules one statement reads.
   public static readonly SCHEDULES_PER_STATEMENT: number = 200;
 
+  // The statement for these schedules, reading at most `limit` rows.
   public static getStatement(data: {
     scheduleIds: Array<string>;
-    maxRows: number;
+    limit: number;
   }): ScheduleLayersSnapshotStatement {
     return {
       sql: SNAPSHOT_SQL,
-      parameters: [data.scheduleIds, data.maxRows],
+      parameters: [data.scheduleIds, data.limit],
     };
   }
 
@@ -232,8 +234,10 @@ export default class ScheduleLayersSnapshot {
       }
 
       // A layer comes on a row of each of its people: kept once.
-      if (!layersRead.has(keyOf(layerId))) {
-        layersRead.add(keyOf(layerId));
+      const layerKey: string = `${keyOf(scheduleId)}:${keyOf(layerId)}`;
+
+      if (!layersRead.has(layerKey)) {
+        layersRead.add(layerKey);
         entry.layers.push(
           ScheduleLayersSnapshot.toLayer(row, scheduleId, layerId),
         );
@@ -297,10 +301,12 @@ export default class ScheduleLayersSnapshot {
 
     while (waiting.length > 0) {
       const asked: Array<string> = waiting.slice(0, schedulesPerStatement);
+
+      // One row past the cap: whether there was more to read than it holds.
       const statement: ScheduleLayersSnapshotStatement =
         ScheduleLayersSnapshot.getStatement({
           scheduleIds: asked,
-          maxRows: maxRows,
+          limit: maxRows + 1,
         });
 
       const result: unknown = await data.query(
@@ -310,48 +316,54 @@ export default class ScheduleLayersSnapshot {
       const rows: Array<SnapshotRow> = Array.isArray(result)
         ? (result as Array<SnapshotRow>)
         : [];
+      const kept: Array<SnapshotRow> = rows.slice(0, maxRows);
       const entries: Map<string, ScheduleLayersSnapshotEntry> =
-        ScheduleLayersSnapshot.fromRows(rows);
+        ScheduleLayersSnapshot.fromRows(kept);
 
-      if (rows.length < maxRows) {
+      if (rows.length <= maxRows || entries.size === 0) {
         // Read to its end: every schedule asked for that exists, whole.
         for (const [scheduleId, entry] of entries) {
           read.set(scheduleId, entry);
         }
 
-        waiting = waiting.slice(asked.length);
+        waiting = waiting.filter((scheduleId: string): boolean => {
+          return !asked.includes(scheduleId);
+        });
         continue;
       }
 
       /*
-       * Stopped at its cap: the schedule it was reading when it stopped may
-       * be cut short, and those after it were not reached. The schedules
-       * before it were read whole.
+       * More than the cap: the schedule of the last row kept is cut short
+       * when the row past the cap is its too, and the schedules after it
+       * were not reached. Every schedule before it was read whole.
        */
-      const lastScheduleId: string = keyOf(
-        readText(rows[rows.length - 1]!, "schedule_id"),
+      const lastKeptId: string = keyOf(
+        readText(kept[kept.length - 1]!, "schedule_id"),
       );
+      const isCut: boolean =
+        keyOf(readText(rows[maxRows]!, "schedule_id")) === lastKeptId;
 
-      if (entries.size === 1) {
-        /*
-         * One schedule filled the cap on its own: no statement reads more
-         * of it. It is worked out from what was read, as it was when its
-         * layers and their people were each read up to their own cap.
-         */
-        logger.error(
-          `The layers of on-call schedule ${lastScheduleId} and the people in them are more than ${maxRows} rows; who is on call in it is worked out from the first ${maxRows}.`,
-        );
-
-        read.set(lastScheduleId, entries.get(lastScheduleId)!);
-      } else {
-        for (const [scheduleId, entry] of entries) {
-          if (scheduleId !== lastScheduleId) {
-            read.set(scheduleId, entry);
-          }
+      for (const [scheduleId, entry] of entries) {
+        if (!isCut || scheduleId !== lastKeptId) {
+          read.set(scheduleId, entry);
         }
       }
 
-      // The rest - the one it stopped in first - read again by the next statement.
+      if (isCut && entries.size === 1) {
+        /*
+         * One schedule is more than the cap on its own: no statement reads
+         * all of it. It is worked out from the rows the cap holds, as it
+         * was when its layers and their people were each read up to a cap
+         * of their own.
+         */
+        logger.error(
+          `The layers of on-call schedule ${lastKeptId} and the people in them are more than ${maxRows} rows; who is on call in it is worked out from the first ${maxRows}.`,
+        );
+
+        read.set(lastKeptId, entries.get(lastKeptId)!);
+      }
+
+      // The rest - the one cut short first - read again by the next statement.
       waiting = waiting.filter((scheduleId: string): boolean => {
         return !read.has(scheduleId);
       });

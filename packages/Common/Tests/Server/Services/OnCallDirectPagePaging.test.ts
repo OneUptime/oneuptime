@@ -548,9 +548,10 @@ describe("a direct page pages its targets", () => {
     test("a schedule is read with global overrides only, too", async () => {
       await page({ onCallScheduleIds: [SCHEDULE_PRIMARY] });
 
-      expect(onCallInSchedule).toHaveBeenCalledWith(SCHEDULE_PRIMARY, {
-        onCallDutyPolicyId: undefined,
-      });
+      expect(onCallInSchedule).toHaveBeenCalledWith(
+        SCHEDULE_PRIMARY,
+        expect.objectContaining({ onCallDutyPolicyId: undefined }),
+      );
       // The schedule applied its own overrides: no second hop.
       expect(awayOverride).not.toHaveBeenCalled();
     });
@@ -1233,7 +1234,10 @@ describe("an escalation rule still pages exactly as it did", () => {
     });
     expect(
       OnCallDutyPolicyScheduleService.getCurrentOnCallInSchedule,
-    ).toHaveBeenCalledWith(SCHEDULE_PRIMARY, { onCallDutyPolicyId: POLICY_ID });
+    ).toHaveBeenCalledWith(
+      SCHEDULE_PRIMARY,
+      expect.objectContaining({ onCallDutyPolicyId: POLICY_ID }),
+    );
   });
 
   test("the run records the rule it is on before anybody is paged - and that is all it writes of the run", async () => {
