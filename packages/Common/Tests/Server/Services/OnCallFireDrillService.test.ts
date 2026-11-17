@@ -804,12 +804,11 @@ describe("a drill that walks every escalation level (#9385)", () => {
     await start({ walksEscalation: true });
 
     expect(
-      startedWith().map((each: { onCallDutyPolicyId: ObjectID }) => {
-        return [
-          each.onCallDutyPolicyId.toString(),
-          (each as { walksEscalation: boolean }).walksEscalation,
-        ];
-      }),
+      startedWith().map(
+        (each: { onCallDutyPolicyId: ObjectID; walksEscalation: boolean }) => {
+          return [each.onCallDutyPolicyId.toString(), each.walksEscalation];
+        },
+      ),
     ).toEqual([
       [PRIMARY, true],
       [PLATFORM, true],

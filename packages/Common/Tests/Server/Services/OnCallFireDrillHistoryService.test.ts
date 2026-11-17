@@ -217,7 +217,7 @@ describe("what the monitor's last drill says", () => {
     ];
     expect((await lastDrill())?.startedByName).toBe("ana@example.com");
 
-    tests = [run(RUN_1, PRIMARY, { createdByUser: undefined })];
+    tests = [Object.assign(run(RUN_1, PRIMARY), { createdByUser: undefined })];
     expect((await lastDrill())?.startedByName).toBe("");
   });
 
