@@ -350,6 +350,10 @@ const PROSE_LEADS: Array<string> = [
   "If the server reaches the internet through a proxy, let the proxy reach your identity provider, calendars, MCP servers and backup storage.",
   "Check the criteria of Incoming Request monitors whose senders post plain text.",
   "Give the teams that own private incidents, alerts and episodes the permissions their members page and run runbooks with, and move workflows off private records.",
+  // What you need to do for 16, beside the Terraform step it shares with 15.
+  "Take the credentials 16 no longer gives out of your API scripts' reads.",
+  "Update your Runners with the server.",
+  "Replace every server of 15 soon, and roll back only within a day.",
   "Air-gapped installs",
   "Decide which edition this install runs.",
   "On Helm, set the edition in your values file:",
