@@ -442,6 +442,13 @@ describe("who a test reaches (#7529)", () => {
     expect(isPersonReachedByTest(beforeCodes)).toBe(true);
   });
 
+  test("opted out is read from the person, not only from its line: one from before the codes is sent nothing too", () => {
+    const beforeCodes: OnCallTestPagePreviewPerson = optedOut("Ana");
+    delete beforeCodes.warningCodes;
+
+    expect(isPersonReachedByTest(beforeCodes)).toBe(false);
+  });
+
   test("a level reaches anybody only through somebody it may send something", () => {
     expect(
       doesLevelReachAnybody({ people: [optedOut("A"), noFallback("B")] }),
