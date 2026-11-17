@@ -6,9 +6,11 @@ import os from "os";
 import path from "path";
 import { PassThrough } from "stream";
 import ProcessRunner, {
+  PRECOMPILED_SOURCE_MAPS,
   ProcessRunResult,
   ProcessRunnerOptions,
   SyntheticProcessRunnerError,
+  isPrecompiled,
 } from "../../../../Utils/Monitors/SyntheticRuntime/ProcessRunner";
 import {
   MAX_ERROR_INTERNAL_DETAIL_LENGTH,
@@ -1339,6 +1341,99 @@ describe("SyntheticRuntime ProcessRunner", () => {
     expect(temporaryHome).toBeDefined();
     expect(fs.existsSync(temporaryHome as string)).toBe(false);
     expect(runner.activeCount).toBe(0);
+  });
+
+  /*
+   * In the probe's image the worker is the JavaScript the build compiled
+   * (SyntheticMonitorWorker.js, its map beside it), and node gets the
+   * stack-trace support the probe's own start command requires first.
+   */
+  describe("a worker the image compiled", () => {
+    async function execArgvFor(
+      workerEntryPath: string,
+    ): Promise<Array<string>> {
+      jest.spyOn(process, "getuid").mockReturnValue(501);
+      const child: FakeChildProcess = new FakeChildProcess(41_051);
+      const forkSpy: jest.Mock = getForkMock().mockImplementation(() => {
+        return asChildProcess(child);
+      });
+      child.onSend = (): void => {
+        global.setImmediate(() => {
+          emitSuccess(child, { value: "complete" });
+          emitExit(child, null);
+        });
+      };
+
+      const runner: ProcessRunner = new ProcessRunner({
+        workerEntryPath,
+        concurrencyLimit: 1,
+        environment: { PATH: "/safe/path" },
+        maxOldSpaceSizeInMb: 128,
+      });
+      await runner.run<TestConfig, TestResult>({
+        payload: { monitorId: "monitor-1" },
+        timeoutInMs: 1000,
+        validateResult: isTestResult,
+      });
+
+      return forkOptionsAt(forkSpy, 0).execArgv as Array<string>;
+    }
+
+    function worker(files: Array<string>): string {
+      const directory: string = fs.mkdtempSync(
+        path.join(os.tmpdir(), "oneuptime-compiled-worker-"),
+      );
+      for (const file of files) {
+        fs.writeFileSync(path.join(directory, file), "");
+      }
+      return path.join(directory, "SyntheticMonitorWorker.js");
+    }
+
+    test("is started with the stack-trace support for compiled JavaScript", async () => {
+      const entry: string = worker([
+        "SyntheticMonitorWorker.js",
+        "SyntheticMonitorWorker.js.map",
+      ]);
+
+      expect(isPrecompiled(entry)).toBe(true);
+      expect(await execArgvFor(entry)).toEqual([
+        "--require",
+        PRECOMPILED_SOURCE_MAPS,
+        "--no-node-snapshot",
+        "--max-old-space-size=128",
+      ]);
+      expect(PRECOMPILED_SOURCE_MAPS).toBe(
+        path.resolve(
+          __dirname,
+          "../../../../../Common/Server/Utils/TsNode/PrecompiledSourceMaps.js",
+        ),
+      );
+    });
+
+    test("(control) JavaScript the build did not compile is started as it is", async () => {
+      const entry: string = worker(["SyntheticMonitorWorker.js"]);
+
+      expect(isPrecompiled(entry)).toBe(false);
+      expect(await execArgvFor(entry)).toEqual([
+        "--no-node-snapshot",
+        "--max-old-space-size=128",
+      ]);
+    });
+
+    test("the probe's own worker is one: compiled where the probe is", () => {
+      const source: string = fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../Utils/Monitors/MonitorTypes/SyntheticMonitor.ts",
+        ),
+        "utf8",
+      );
+
+      // SyntheticMonitorWorker.js beside SyntheticMonitor.js in the image.
+      expect(source).toContain(
+        "`SyntheticMonitorWorker${path.extname(__filename)}`",
+      );
+    });
   });
 
   test("maps credential-bearing proxy URLs without leaking unrelated environment credentials", async () => {

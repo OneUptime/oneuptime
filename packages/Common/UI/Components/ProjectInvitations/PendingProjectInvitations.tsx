@@ -6,6 +6,8 @@ import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Icon, { SizeProp } from "../Icon/Icon";
 import ConfirmModal from "../Modal/ConfirmModal";
+import Pill from "../Pill/Pill";
+import { PillTone } from "../Pill/PillTone";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import TeamMembersByProject, {
   UserProjectMembership,
@@ -270,12 +272,13 @@ const PendingProjectInvitations: FunctionComponent<ComponentProps> = (
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   {teamNames.map((teamName: string) => {
                     return (
-                      <span
+                      <Pill
                         key={teamName}
-                        className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200"
-                      >
-                        {teamName}
-                      </span>
+                        text={teamName}
+                        isUserContent={true}
+                        tone={PillTone.Neutral}
+                        isDotHidden={true}
+                      />
                     );
                   })}
                 </div>
@@ -292,7 +295,7 @@ const PendingProjectInvitations: FunctionComponent<ComponentProps> = (
                 </p>
               )}
               {invitation.joinedAt ? (
-                <p className="mt-1.5 text-xs text-gray-400">
+                <p className="mt-1.5 text-xs text-gray-500">
                   {translator.translateTemplate("Invited {{time}}", {
                     time: OneUptimeDate.fromNow(invitation.joinedAt),
                   })}

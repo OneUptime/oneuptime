@@ -8,7 +8,7 @@ side menu):
   whose Rules section holds Monitor Rules, right below Resources;
 - an SLO's menu (`Pages/Slo/View/SideMenu.tsx`), whose Rules section holds
   Monitor Rules, Burn Rate Rules and Error Budget Policy, right below
-  Configuration.
+  Activity.
 
 Both sections start folded ("Create a new section for rules and have monitor
 rules there. The section should be collapsed by default", the maintainer). The
@@ -29,9 +29,10 @@ What it checks, in Chromium, that jsdom cannot (the jest suites
 `StatusPageRulesMenu`, `SloViewSideMenu` and `RulesMenuSections` in
 packages/Common read the classes a folded section carries):
 
-- on a status page's Overview the sections read Basic, Resources, Rules,
-  Subscribers and the rest; Rules is drawn folded between the resources entry
-  and Subscribers, and Monitor Rules is out of sight;
+- on a status page's Overview the sections read Overview, Resources, Rules,
+  Subscribers and the rest (its MCP under Advanced, with no section "AI" of
+  its own); Rules is drawn folded between the resources entry and
+  Subscribers, and Monitor Rules is out of sight;
 - a folded Rules is out of the keyboard's way (Tab goes from its title to the
   next section's), opens from a click and from Enter or Space, and its row is
   the next stop on the way to Monitor Rules;
@@ -40,10 +41,11 @@ packages/Common read the classes a folded section carries):
   folded again on a fresh visit;
 - with monitor groups on (`?groups=1`) the resources entry reads Resources and
   Rules still holds Monitor Rules;
-- on an SLO's Overview, Configuration, Rules and Management are folded; Rules
-  holds Monitor Rules, then Burn Rate Rules, then Error Budget Policy, and
-  Burn Rate Rules (or one monitor rule's page) opens it while Configuration
-  stays folded;
+- on an SLO's Overview its Monitors are in sight under Overview (with no
+  section "Configuration" of their own), and Rules, Developer and Management
+  are folded, out of the keyboard's way; Rules holds Monitor Rules, then Burn
+  Rate Rules, then Error Budget Policy, and Burn Rate Rules (or one monitor
+  rule's page) opens it while Developer and Management stay folded;
 - an SLO's Monitors page with nothing attached keeps Rules folded, and its
   empty list offers Create a monitor rule beside Add Monitors (the next Tab
   stop), which opens Monitor Rules with Rules open; while rules are enabled,

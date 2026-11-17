@@ -553,7 +553,7 @@ const CustomFieldsPageBase: (
             : props.description || CUSTOM_FIELDS_DESCRIPTION,
           buttons: mappedFieldButtons,
         }}
-        noItemsMessage={"No custom fields found."}
+        noItemsMessage={"No custom fields yet."}
         viewPageRoute={Navigation.getCurrentRoute()}
         {...(canMapValues
           ? {

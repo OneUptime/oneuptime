@@ -62,9 +62,8 @@
     "dataRetention": "Data Retention",
     "globalLlmProviders": "Global LLM Providers",
     "apiKey": "API Key",
-    "more": "More",
     "sendEmail": "Send Email",
-    "logout": "Logout",
+    "signOut": "Sign Out",
     "telemetryUsage": "Telemetry Usage",
     "ingestionBudgets": "Ingestion Budgets",
     "products": "Products"
@@ -81,7 +80,7 @@
   },
   "userProfile": {
     "exitAdmin": "Exit Admin",
-    "logOut": "Log out"
+    "signOut": "Sign Out"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -108,14 +107,14 @@
     "billing": "Billing",
     "subscription": "Subscription",
     "invoices": "Invoices",
-    "support": "Support",
     "customerSupportAccess": "Customer Support Access",
     "advanced": "Advanced",
     "overview": "Overview",
     "projects": "Projects",
     "settings": "Settings",
     "authentication": "Authentication",
-    "delete": "Delete",
+    "deleteProject": "Delete Project",
+    "deleteUser": "Delete User",
     "settingsAuthentication": "Authentication",
     "settingsSso": "Single Sign-On",
     "settingsNotifications": "Notifications",
@@ -123,20 +122,16 @@
     "settingsCallSms": "Call and SMS",
     "settingsWhatsapp": "WhatsApp",
     "settingsTelegram": "Telegram",
-    "settingsMonitoring": "Monitoring",
+    "settingsPushNotifications": "Push Notifications",
+    "settingsSharedWithProjects": "Shared with All Projects",
     "settingsGlobalProbes": "Global Probes",
-    "settingsRunbooks": "Runbooks",
     "settingsGlobalRunners": "Global Runners",
+    "settingsServer": "Server",
     "settingsDataRetention": "Data Retention",
-    "settingsAi": "AI",
     "settingsGlobalLlmProviders": "Global LLM Providers",
-    "settingsApiIntegrations": "API and Integrations",
     "settingsApiKey": "API Key",
-    "moreCommunication": "Communication",
-    "moreSendEmail": "Send Email",
     "telemetryUsage": "Telemetry Usage",
     "ingestionBudgets": "Ingestion Budgets",
-    "settingsTelemetry": "Telemetry",
     "settingsIngestionBudgets": "Ingestion Budgets",
     "settingsProducts": "Products"
   },
@@ -144,8 +139,8 @@
     "users": {
       "title": "Users",
       "cardTitle": "Users",
-      "cardDescription": "Here is a list of users in OneUptime.",
-      "noItems": "No users found.",
+      "listDescription": "Everyone with an account on this server. Open a user to manage their projects, sign-in and admin access.",
+      "emptyMessage": "No users yet.",
       "bulkAddToProject": "Add to Project",
       "bulkAddToProjectTitle": "Add Users to Project",
       "bulkAddToProjectDescription": "Pick a project and one of its teams. The {{userCount}} selected user(s) are invited to that team.",
@@ -165,7 +160,12 @@
       "bulkRequireTwoFactorAuthDescription": "{{userCount}} selected user(s) will be signed out of every active session and must set up an authenticator app the next time they sign in. This includes you, if you are one of them.",
       "bulkDoNotRequireTwoFactorAuth": "Do Not Require Two Factor Auth",
       "bulkDoNotRequireTwoFactorAuthTitle": "Stop Requiring Two Factor Auth for {{userCount}} User(s)",
-      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} selected user(s) will be able to sign in with their password alone. Anything they have already set up is kept but no longer asked for."
+      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} selected user(s) will be able to sign in with their password alone. Anything they have already set up is kept but no longer asked for.",
+      "createdAndEmailed": "{{name}} created. A link to set their password was emailed to {{email}}.",
+      "createdWithPassword": "{{name}} created. Share the password you set with them securely.",
+      "setPasswordLinkTitle": "Send Them a Link to Set Their Password",
+      "setPasswordLinkDescription": "Copy this link and send it to {{email}} yourself, somewhere only they can read it. It works once, for {{days}} days.",
+      "setPasswordLinkOrSetIt": "Or set a password for them yourself on their Authentication page."
     },
     "enterpriseLicenses": {
       "title": "Enterprise Licenses",
@@ -201,7 +201,6 @@
     "userView": {
       "title": "User",
       "cardTitle": "User",
-      "cardDescription": "User details",
       "editButton": "Edit User",
       "masterAdminCardTitle": "Master Admin Access",
       "masterAdminCardDescription": "Grant or revoke master admin access for this user. Master admins can manage every project and workspace.",
@@ -302,13 +301,12 @@
     "projects": {
       "title": "Projects",
       "cardTitle": "Projects",
-      "cardDescription": "Here is a list of projects in OneUptime.",
-      "noItems": "No projects found."
+      "listDescription": "Every project on this server. Open one to manage its users, teams and settings.",
+      "emptyMessage": "No projects yet."
     },
     "projectView": {
       "title": "Project",
       "cardTitle": "Project",
-      "cardDescription": "Project details",
       "editButton": "Edit Project",
       "dataResidencyCardTitle": "Data Residency",
       "dataResidencyCardDescription": "Where this project's data is hosted. Once set, it is shown to the project's users in their Project Settings.",
@@ -450,8 +448,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "Users",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "People who belong to this project. Their team decides what each of them can do.",
+      "emptyMessage": "No users in this project yet.",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "Invite User",
       "inviteUserTitle": "Invite New User",
@@ -470,20 +468,19 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Teams",
-      "cardDescription": "Here is a list of all the teams in this project.",
-      "noItems": "No teams found in this project."
+      "listDescription": "Teams decide what their members can do in this project. Create one to give a group of people the same access.",
+      "emptyMessage": "No teams in this project yet."
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "Team Details",
-      "cardDescription": "Details about this team.",
       "editButton": "Edit Team",
       "membersCardTitle": "Team Members",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
-      "title": "Logout"
+    "signOut": {
+      "title": "Sign Out"
     },
     "sendEmail": {
       "title": "Send Announcement Email",
@@ -623,13 +620,13 @@
       },
       "probes": {
         "bannerTitle": "Need help with setting up Global Probes?",
-        "bannerDescription": "Here is a guide which will help you get set up",
+        "bannerGuide": "Follow the guide to run a probe on your own server and connect it here.",
         "cardTitle": "Global Probes",
         "cardDescription": "Global Probes help you monitor external resources from different locations around the world.",
-        "noItems": "No probes found.",
+        "emptyMessage": "No global probes yet.",
         "showIdKey": "Show ID and Key",
         "keyModalTitle": "Probe Key",
-        "keyModalDescription": "Here is your probe key. Please keep this a secret.",
+        "keyModalSecret": "Your probe connects to OneUptime with this ID and key. Keep the key secret.",
         "probeIdLabel": "Probe ID:",
         "probeKeyLabel": "Probe Key:"
       },
@@ -724,7 +721,6 @@
   "Projects": "Projects",
   "Project": "Project",
   "User": "User",
-  "Logout": "Logout",
   "Save": "Save",
   "Cancel": "Cancel",
   "Submit": "Submit",
@@ -981,7 +977,7 @@
   "No OIDC providers yet.": "No OIDC providers yet.",
   "Require SSO": "Require SSO",
   "Before you require SSO, sign in with a provider using Test Sign-in in its row.": "Before you require SSO, sign in with a provider using Test Sign-in in its row.",
-  "Require SSO for Login": "Require SSO for Login",
+  "Require SSO to Sign In": "Require SSO to Sign In",
   "The sign-in page offers only SSO. Everyone except master admins must sign in with SSO to open any project.": "The sign-in page offers only SSO. Everyone except master admins must sign in with SSO to open any project.",
   "People can sign in with a password, a passkey or SSO.": "People can sign in with a password, a passkey or SSO.",
   "Master admins can always sign in with their password here, even while SSO is required. Keep this address.": "Master admins can always sign in with their password here, even while SSO is required. Keep this address.",
@@ -2146,8 +2142,6 @@
   "Check email settings": "Check email settings",
   "Email is failing": "Email is failing",
   "Email is not set up": "Email is not set up",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "Invitations, password resets and incident emails are not sent.",
   "Monitors that run on global probes are not being checked.": "Monitors that run on global probes are not being checked.",
   "No global probe is reporting": "No global probe is reporting",
@@ -2206,7 +2200,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Licensed through your cloud marketplace subscription: every user is billed by the hour.",
   "License, version, seat usage, and the instances covered by this key.": "License, version, seat usage, and the instances covered by this key.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "Full OneUptime platform with incident response, status pages, and workflow automation.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".",
   "Community support, documentation, and tutorials to help teams get started quickly.": "Community support, documentation, and tutorials to help teams get started quickly.",
   "Regular updates, bug fixes, and open-source extensibility.": "Regular updates, bug fixes, and open-source extensibility.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Integrations with popular DevOps tools through community-maintained connectors.",
@@ -4167,5 +4161,19 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime switched this rule off when they were deleted.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.",
   "{{names}} and {{count}} more": "{{names}} and {{count}} more",
-  "{{names}} and {{count}} more_one": "{{names}} and {{count}} more"
+  "{{names}} and {{count}} more_one": "{{names}} and {{count}} more",
+  "No email has gone out through this server's email settings since {{time}}.": "No email has gone out through this server's email settings since {{time}}.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}",
+  "See email logs": "See email logs",
+  "Addresses the mail server refused": "Addresses the mail server refused",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.",
+  "Last refused {{time}}": "Last refused {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} was created, but the email with a link to set their password was not sent. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "The link to send them yourself was not made either. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime emails them a link to set their own password.",
+  "They sign in with the password you set. Share it with them securely.": "They sign in with the password you set. Share it with them securely.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "This server cannot send email yet. Set up email under Settings > Emails.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead."
 }

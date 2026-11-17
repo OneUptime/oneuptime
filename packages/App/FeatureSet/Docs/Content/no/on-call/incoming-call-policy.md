@@ -154,7 +154,7 @@ For å frigi et nummer klikker du på **Frigi nummer** ved siden av det og bekre
 En regel ringer en person på nummeret personen har verifisert for innkommende anrop i dette prosjektet, og hopper over alle som ikke har et. Hver person legger til sitt eget:
 
 :::steps
-1. Åpne **Brukerinnstillinger** > **Policy for innkommende anrop** > **Innkommende telefonnumre**. **Policy for innkommende anrop** er en del av sidemenyen som starter sammenslått.
+1. Åpne **Brukerinnstillinger** > **Tilkallinger og anrop** > **Innkommende telefonnumre**. **Tilkallinger og anrop** er en del av sidemenyen som starter sammenslått.
 2. Klikk på **Legg til Telefonnummer for innkommende anropsruting** i kortet **Telefonnumre for innkommende anropsruting**, og skriv inn nummeret med landskode, for eksempel `+15551234567`.
 3. Skriv inn den 6-sifrede koden OneUptime sender til nummeret på SMS under **Verifiseringskode**, og klikk på **Verifiser**. **Send en ny kode** sender en ny.
 :::
@@ -183,7 +183,7 @@ Twilio leser meldingene opp med en tekst-til-tale-stemme, så skriv dem slik du 
 
 ## Anropslogger
 
-Hvert anrop står på policyens side **Anropslogger**, under **Logger** i sidemenyen: **Oppringer**, **Oppringt nummer**, **Status**, hvem som svarte (**Besvart av**), **Varighet**, og når det startet (**Startet den**). Klikk på **Vis tidslinje** ved et anrop for å se **Anropstidslinje**: hver person som ble ringt, på hvilket nummer, og hvordan hvert forsøk endte.
+Hvert anrop står på policyens side **Anropslogger**, under **Grunnleggende** i sidemenyen: **Oppringer**, **Oppringt nummer**, **Status**, hvem som svarte (**Besvart av**), **Varighet**, og når det startet (**Startet den**). Klikk på **Vis tidslinje** ved et anrop for å se **Anropstidslinje**: hver person som ble ringt, på hvilket nummer, og hvordan hvert forsøk endte.
 
 | Status | Hva som skjedde |
 | --- | --- |
@@ -260,7 +260,7 @@ En regel som opprettes gjennom API-et uten `escalateAfterSeconds`, ringer i 20 s
 :::
 
 :::details Anropet besvares, men ingen ringes
-Anropsloggen sier **Mislyktes**. Sjekk at **Besvar anrop** er slått på under policyens **Innstillinger**, at vaktplanen i hver regel har noen på vakt akkurat nå, og at personene reglene ringer, har et verifisert nummer under **Brukerinnstillinger** > **Policy for innkommende anrop** > **Innkommende telefonnumre**, i dette prosjektet. Regler ringer bare medlemmer av prosjektet.
+Anropsloggen sier **Mislyktes**. Sjekk at **Besvar anrop** er slått på under policyens **Innstillinger**, at vaktplanen i hver regel har noen på vakt akkurat nå, og at personene reglene ringer, har et verifisert nummer under **Brukerinnstillinger** > **Tilkallinger og anrop** > **Innkommende telefonnumre**, i dette prosjektet. Regler ringer bare medlemmer av prosjektet.
 :::
 
 :::details Anrop havner i talepostkassen

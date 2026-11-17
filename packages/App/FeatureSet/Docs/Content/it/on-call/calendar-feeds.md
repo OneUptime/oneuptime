@@ -32,7 +32,7 @@ Le assegnazioni fisse — un utente o un team nominato direttamente in una regol
 
 | Link | Chi lo crea | Che cosa contiene | Dove |
 | --- | --- | --- | --- |
-| **Feed personale** | Ogni utente, uno per progetto | I tuoi turni su tutte le pianificazioni di quel progetto, più i turni in cui sostituisci qualcuno (facoltativo) | **Impostazioni utente** > **Calendario** > **Feed calendario** |
+| **Feed personale** | Ogni utente, uno per progetto | I tuoi turni su tutte le pianificazioni di quel progetto, più i turni in cui sostituisci qualcuno (facoltativo) | **Impostazioni utente** > **Profilo e calendario** > **Feed calendario** |
 | **Feed della pianificazione** | Chiunque possa modificare la pianificazione; chiunque possa leggerla può copiare il link | I turni di tutti su una pianificazione, con eventi facoltativi per i buchi di copertura | La pagina della pianificazione, scheda **Sottoscrivi questo calendario turni** |
 | **Feed del progetto** | Chiunque possa modificare le pianificazioni di reperibilità; chiunque possa leggerle può copiare il link | I turni di tutti su tutte le pianificazioni del progetto, con eventi facoltativi per i buchi di copertura | **Reperibilità** > **Feed calendario** |
 
@@ -54,7 +54,7 @@ I feed personali sono per progetto: un secondo progetto ha un secondo link e un 
 :::steps
 ### Apri il tuo feed calendario
 
-Apri **Impostazioni utente** > **Calendario** > **Feed calendario** nel progetto di cui vuoi i turni. **Calendario** è una sezione del menu laterale che parte chiusa.
+Apri **Impostazioni utente** > **Profilo e calendario** > **Feed calendario** nel progetto di cui vuoi i turni. **Profilo e calendario** è una sezione del menu laterale che parte chiusa.
 
 ### Genera il link
 
@@ -184,7 +184,7 @@ Gli URL dei feed non reindirizzano mai. Rispondono `200` con qualsiasi schema ar
 Le app di calendario non consegnano gli allarmi dei feed sottoscritti (Google li scarta, Apple li rimuove per impostazione predefinita, Outlook li appiattisce), quindi OneUptime invia i propri.
 
 :::steps
-1. Apri **Impostazioni utente** > **Calendario** > **Feed calendario**.
+1. Apri **Impostazioni utente** > **Profilo e calendario** > **Feed calendario**.
 2. Nella scheda **Ricordamelo prima dei turni** scegli gli anticipi: **1 settimana**, **1 giorno**, **1 ora**, **15 min** oppure, con **Personalizzato**, un valore personalizzato tra 15 minuti e 14 giorni. Puoi sceglierne diversi insieme.
 3. Scegli come ti raggiungono i promemoria in **Prima dell'inizio del mio turno di reperibilità** in **Impostazioni utente** > **Impostazioni notifiche** (scheda Reperibilità). Email e push sono attivi per impostazione predefinita.
 :::

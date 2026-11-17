@@ -40,7 +40,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
         {/*
          * Single sign-on, on one page: the SAML and OpenID Connect
-         * providers and Require SSO for Login. They were "Global SSO" and
+         * providers and Require SSO to Sign In. They were "Global SSO" and
          * "Global OIDC" in a folded section also called Authentication, and
          * the switch was on the Authentication page.
          */}
@@ -126,7 +126,8 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
         <SideMenuItem
           link={{
-            title: "Push Notifications",
+            title: t("sideMenu.settingsPushNotifications"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_PUSH_NOTIFICATIONS] as Route,
             ),
@@ -140,8 +141,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         )}
       </SideMenuSection>
 
+      {/*
+       * What the server lends every project: the probes that check its
+       * monitors, the runners that run its runbooks and code fixes, and the
+       * LLM providers its AI falls back to. Each was a section of its own
+       * with one page ("Monitoring", "Runbooks", "AI"), and the menu was
+       * mostly headings (#9134).
+       */}
       <SideMenuSection
-        title={t("sideMenu.settingsMonitoring")}
+        title={t("sideMenu.settingsSharedWithProjects")}
         isTitleTranslated={true}
         defaultCollapsed={true}
       >
@@ -155,12 +163,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Signal}
         />
-      </SideMenuSection>
-      <SideMenuSection
-        title={t("sideMenu.settingsRunbooks")}
-        isTitleTranslated={true}
-        defaultCollapsed={true}
-      >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsGlobalRunners"),
@@ -171,9 +173,27 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Terminal}
         />
+        <SideMenuItem
+          link={{
+            title: t("sideMenu.settingsGlobalLlmProviders"),
+            isTitleTranslated: true,
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,
+            ),
+          }}
+          icon={IconProp.Brain}
+        />
       </SideMenuSection>
+
+      {/*
+       * The server's own limits and key: how long resolved incidents and
+       * alerts are kept, the daily budget and rate every project gets for
+       * each telemetry signal, and the master API key. "Data Retention" was
+       * a section holding only Data Retention, and "Telemetry" and "API and
+       * Integrations" held one page each (#9134).
+       */}
       <SideMenuSection
-        title={t("sideMenu.settingsDataRetention")}
+        title={t("sideMenu.settingsServer")}
         isTitleTranslated={true}
         defaultCollapsed={true}
       >
@@ -187,17 +207,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Database}
         />
-      </SideMenuSection>
-      {/*
-       * The daily budget and rate every project gets for each telemetry
-       * signal, and when the budget day resets. Folded like its neighbours:
-       * set once, revisited rarely.
-       */}
-      <SideMenuSection
-        title={t("sideMenu.settingsTelemetry")}
-        isTitleTranslated={true}
-        defaultCollapsed={true}
-      >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsIngestionBudgets"),
@@ -208,28 +217,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Gauge}
         />
-      </SideMenuSection>
-      <SideMenuSection
-        title={t("sideMenu.settingsAi")}
-        isTitleTranslated={true}
-        defaultCollapsed={true}
-      >
-        <SideMenuItem
-          link={{
-            title: t("sideMenu.settingsGlobalLlmProviders"),
-            isTitleTranslated: true,
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,
-            ),
-          }}
-          icon={IconProp.Brain}
-        />
-      </SideMenuSection>
-      <SideMenuSection
-        title={t("sideMenu.settingsApiIntegrations")}
-        isTitleTranslated={true}
-        defaultCollapsed={true}
-      >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsApiKey"),

@@ -70,7 +70,7 @@ Abre **Productos** en la barra superior y elige **Flujos de trabajo**, en **Pane
 
 - **Flujos de trabajo** — tu lista de flujos de trabajo. Crea uno nuevo o abre uno existente.
 - **Variables globales** — valores compartidos por todos tus flujos de trabajo.
-- **Registros → Ejecuciones** — el historial de ejecuciones de todos los flujos de trabajo de tu proyecto.
+- **Ejecuciones** — el historial de ejecuciones de todos los flujos de trabajo de tu proyecto.
 - **Ajustes → Reglas de etiquetas** y **Reglas del propietario** — etiqueta los flujos de trabajo nuevos y asigna sus propietarios automáticamente.
 - **Avanzado → Archivado** — los flujos de trabajo que archivaste. Nunca se ejecutan y no aparecen en la lista; desarchívalos desde aquí. Consulta [Archivar un flujo de trabajo](/docs/workflows/configuration#archivar-un-flujo-de-trabajo).
 - **Desarrolladores** — cómo gestionar los flujos de trabajo con Terraform, la API o un asistente de IA.
@@ -80,12 +80,12 @@ Abre un flujo de trabajo concreto y su propio menú contiene:
 - **Vista general** — nombre, descripción, etiquetas y el interruptor **Habilitado**.
 - **Constructor** — el lienzo donde diseñas el flujo de trabajo, con el interruptor **Habilitado** arriba.
 - **Variables del flujo de trabajo** — valores limitados a este único flujo de trabajo.
-- **Registros → Ejecuciones** — cada ejecución de este flujo de trabajo, con sus detalles.
-- **Propietarios** — las personas y los equipos responsables del flujo de trabajo.
+- **Ejecuciones** — cada ejecución de este flujo de trabajo, con sus detalles.
 - **Desarrolladores** — cómo gestionar este flujo de trabajo con Terraform, la API o un asistente de IA.
 - **Ajustes** — duplicar, exportar y archivar.
+- **Propietarios** — las personas y los equipos responsables del flujo de trabajo.
 
-**Ajustes** está en la sección **Avanzado** del menú, junto con **Registros de auditoría** y **Eliminar flujo de trabajo**. **Avanzado** y **Desarrolladores** empiezan contraídas, en este menú y en todos los demás, para que las páginas que usas a diario aparezcan primero. Haz clic en el nombre de una sección para mostrar sus páginas. Se abre sola cuando estás en una de ellas.
+**Ajustes** y **Propietarios** están en la sección **Avanzado** del menú, junto con **Registros de auditoría** y **Eliminar flujo de trabajo**. **Avanzado** y **Desarrolladores** empiezan contraídas, en este menú y en todos los demás, para que las páginas que usas a diario aparezcan primero. Haz clic en el nombre de una sección para mostrar sus páginas. Se abre sola cuando estás en una de ellas.
 
 ## Construye tu primer flujo de trabajo
 

@@ -80,7 +80,7 @@ Förfrågningar från alla andra IP-adresser avvisas med en sida med **Access De
 
 ## Anpassade domäner
 
-Från början visas en offentlig instrumentpanel på sin offentliga länk, på OneUptimes egen adress. För att lägga den på din egen underdomän, till exempel `dashboard.acme.com`, öppnar du **Varumärke → Anpassade domäner** i instrumentpanelens sidomeny. Det fungerar precis som en statussidas sida **Anpassade domäner**.
+Från början visas en offentlig instrumentpanel på sin offentliga länk, på OneUptimes egen adress. För att lägga den på din egen underdomän, till exempel `dashboard.acme.com`, öppnar du **Offentlig länk → Anpassade domäner** i instrumentpanelens sidomeny. Det fungerar precis som en statussidas sida **Anpassade domäner**.
 
 Kortet heter **Anpassade domäner** och säger vad du ska göra: peka varje domäns CNAME-post mot din installations CNAME-post för instrumentpaneler, så utfärdar OneUptime domänens SSL-certifikat och förnyar det åt dig. Tabellen har två kolumner, **Domän** och **Status**.
 

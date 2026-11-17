@@ -14,7 +14,9 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import Skeleton from "Common/UI/Components/Skeleton/Skeleton";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -3079,7 +3081,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
           icon={emptyCopy.icon}
           title={emptyCopy.title}
           description={emptyCopy.description}
-          paddingClassName="pt-24 pb-24"
+          size={EmptyStateSize.Page}
           footer={
             <div className="flex flex-wrap items-center justify-center gap-2">
               <Button

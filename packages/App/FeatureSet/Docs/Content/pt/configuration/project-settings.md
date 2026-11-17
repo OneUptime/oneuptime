@@ -40,7 +40,7 @@ flowchart LR
 | **Segurança** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Cobrança e faturas** | **Cobrança**, **Faturas** | [Cobrança e uso](/docs/configuration/billing) |
 | **Registros de auditoria** | **Registros de auditoria**, **Configurações**, **Exportar** | [Registros de auditoria](/docs/configuration/audit-logs), [Exportação do registro de auditoria](/docs/configuration/audit-log-export) |
-| **Zona de perigo** | **Zona de perigo** | [Excluir o projeto](#excluir-o-projeto) |
+| **Zona de perigo** | **Excluir projeto** | [Excluir o projeto](#excluir-o-projeto) |
 
 **Cobrança e faturas** e **Créditos de IA** só existem no OneUptime Cloud: uma instalação auto-hospedada não tem cobrança.
 
@@ -99,7 +99,7 @@ Para aposentar um rótulo, arquive-o pelo menu **⋯** da sua linha em vez de ex
 **Configurações do projeto → Notificações** reúne como o projeto envia notificações:
 
 - **Canais de notificação**: o cartão **Canais de notificação** ativa ou desativa SMS, chamadas telefônicas, WhatsApp e Telegram para o projeto. Os quatro começam desativados. Quem os ativa é um Proprietário do projeto, um **Administrador de cobrança** ou alguém com **Manage Billing**. A página também reúne, recolhidos em **Mais configurações**, os servidores de e-mail próprios do projeto, em **Configurações SMTP Personalizadas** (veja [SMTP](/docs/emails/smtp)), e a conta Twilio própria dele (veja [Integração do Twilio](/docs/self-hosted/twilio-integration)). No OneUptime Cloud, ela mostra o saldo que paga essas mensagens: veja [Saldos pré-pagos](/docs/configuration/billing#saldos-pré-pagos).
-- **Logs de notificação**: cada notificação que o projeto enviou, com uma aba por canal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Chamada**, **Push** e **Espaço de trabalho**.
+- **Logs de notificação**: cada notificação que o projeto enviou, com uma aba por canal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Chamada**, **Push** e **Espaço de trabalho**. A aba **Webhook** guarda de cada endereço apenas o esquema e o host: o resto é o segredo do webhook.
 - **Aplicativos móveis**: onde obter os aplicativos para iOS e Android. Veja [Visão geral dos aplicativos](/docs/mobile-desktop-apps/index).
 
 ## Sinalizadores de recursos
@@ -113,7 +113,7 @@ Excluir um projeto exclui tudo o que há nele, para todos os membros: monitores,
 :::steps
 ### Abrir a zona de perigo
 
-Acesse **Configurações do projeto → Zona de perigo**.
+Acesse **Configurações do projeto → Zona de perigo → Excluir projeto**.
 
 ### Clicar em Excluir: Projeto
 

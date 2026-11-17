@@ -95,7 +95,7 @@ describe("where the dashboards sign out", () => {
       .on(HTTPMethod.POST, REFRESH_URL, [
         {
           status: 401,
-          data: { message: "Session expired. Please login again." },
+          data: { message: "Session expired. Please sign in again." },
         },
       ])
       .on(HTTPMethod.POST, SIGN_OUT_COOKIE_ADDRESS, [

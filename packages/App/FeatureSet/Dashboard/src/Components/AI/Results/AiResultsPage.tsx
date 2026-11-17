@@ -135,7 +135,6 @@ const AiResultsPage: FunctionComponent = (): ReactElement => {
           title={AI_RESULTS_NOT_READABLE_TITLE}
           description={AI_RESULTS_NOT_READABLE_DESCRIPTION}
           showSolidBackground={true}
-          paddingClassName="py-12"
         />
       </div>
     );
@@ -148,7 +147,6 @@ const AiResultsPage: FunctionComponent = (): ReactElement => {
           title={AI_RESULTS_EMPTY_TITLE}
           description={AI_RESULTS_EMPTY_DESCRIPTION}
           showSolidBackground={true}
-          paddingClassName="py-12"
         />
       </div>
     );

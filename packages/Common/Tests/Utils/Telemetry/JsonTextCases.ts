@@ -19,10 +19,12 @@
  * compares what both read is not the scrubber agreeing with itself.
  */
 
-// The suites' one seeded generator (Tests/Helpers/SeededRandom): the same cases every run.
-export { seededRandom } from "../../Helpers/SeededRandom";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
-export type Random = () => number;
+// The suites' one seeded generator (mulberry32): the same cases every run.
+export type Random = SeededRandom;
+
+export { seededRandom };
 
 export function pick<T>(random: Random, items: ReadonlyArray<T>): T {
   return items[Math.floor(random() * items.length)]!;

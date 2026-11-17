@@ -241,9 +241,12 @@ describe("the Markdown editor's toolbar in the dark theme", () => {
         // The switch, on.
         "bg-indigo-100",
         "text-indigo-700",
-        // The menu's dividers and keys.
+        /*
+         * The menu's dividers and keys: the keys in the gray that can be
+         * read, gray-500 (gray-400 was 2.5:1 on white).
+         */
         "border-gray-100",
-        "text-gray-400",
+        "text-gray-500",
       ]),
     );
     expect(colorTokens(MENU_ITEM_MARK_RANGES)).toEqual(

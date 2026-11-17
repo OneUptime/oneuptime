@@ -15,9 +15,11 @@ bundles quietly fell back to the Community UI or whose ee/ no longer loads.
 
 Image metadata (docker image inspect):
   - labels com.oneuptime.edition and org.opencontainers.image.licenses
-  - USER node, TS_NODE_TRANSPILE_ONLY=1, and a CMD that runs npm start's
-    command through sh, which execs node: npm would stay behind as a second
-    Node.js process, and OBI's Node.js agent can land in it instead of the app
+  - USER node, and a CMD that runs npm start's command through sh, which
+    execs node: npm would stay behind as a second Node.js process, and OBI's
+    Node.js agent can land in it instead of the app. node runs Index.js, the
+    JavaScript the build compiled, after the stack-trace support, and nothing
+    loads ts-node
   - IS_ENTERPRISE_EDITION=true|false (informational)
   - ONEUPTIME_EDITION=enterprise on the Enterprise image (the loader's marker
     that ee/ must load) and unset on the Community image
@@ -36,15 +38,18 @@ Image contents (docker run as root, so every directory can be searched):
               titled "OneUptime Enterprise License", or ee's TrustedLicenseKeys
               module); the Dashboard and Admin Dashboard bundles do not contain
               the Enterprise UI sentinels
-  enterprise  /usr/src/ee/Server/Index.ts and /usr/src/ee/LICENSE are there,
+  enterprise  /usr/src/ee/Server/Index.ts, the Index.js the build compiled
+              from it, and /usr/src/ee/LICENSE are there,
               and no Enterprise Edition file is outside /usr/src/ee; ee's
               node_modules links Common and App to /usr/src/Common and
               /usr/src/app; its dev dependencies are pruned; no tests or key
               material shipped; both bundles contain their sentinel
 
 Boot probe (docker run as the image's own user, no network, no database):
-  Runs the real Enterprise loader (/usr/src/app/Utils/EnterpriseLoader.ts)
-  with node and ts-node, the way `npm start` does, and reads what it did.
+  Runs the real Enterprise loader (/usr/src/app/Utils/EnterpriseLoader.js,
+  the JavaScript the build compiled) with node's flags and the stack-trace
+  support `npm start` requires first, the way `npm start` does, and reads
+  what it did.
   community   the loader finds no ee/ (outcome "not-found")
   enterprise  the loader loads ee/ (outcome "loaded"); ee resolves the same
               EnterpriseEdition module core does, and only one is loaded; when
@@ -141,8 +146,10 @@ checks = [
     ("CMD execs node itself, without npm",
      len(cmd) == 3 and cmd[:2] == ["sh", "-c"]
      and "exec node " in cmd[2] and "npm" not in cmd[2]),
-    ("boots transpile-only (TS_NODE_TRANSPILE_ONLY=1)",
-     env.get("TS_NODE_TRANSPILE_ONLY") == "1"),
+    ("runs the JavaScript the build compiled (Index.js), not ts-node",
+     len(cmd) == 3
+     and cmd[2].endswith(" --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js Index.js")
+     and "ts-node" not in cmd[2]),
     ("IS_ENTERPRISE_EDITION is " + ("true" if edition == "enterprise" else "false"),
      env.get("IS_ENTERPRISE_EDITION") == ("true" if edition == "enterprise" else "false")),
 ]
@@ -240,6 +247,7 @@ check "/usr/src/NOTICE says ee/ is under the OneUptime Enterprise License" state
 if [ "$EDITION" = "enterprise" ]; then
 	OUTSIDE_EE="$(printf '%s\n' "$ENTERPRISE_FILES" | grep -v -e '^/usr/src/ee/' -e '^$')"
 	check "ee/ is at /usr/src/ee" test -f "$EE/Server/Index.ts"
+	check "ee/ is compiled to JavaScript" test -f "$EE/Server/Index.js"
 	check "/usr/src/ee/LICENSE is the OneUptime Enterprise License" is_enterprise_license "$EE/LICENSE"
 	check "no Enterprise Edition file outside /usr/src/ee" test -z "$OUTSIDE_EE"
 	list_files "$OUTSIDE_EE"
@@ -337,16 +345,17 @@ Promise.resolve()
   .catch(fail);
 JS
 
-# node's flags are npm start's. Its heap is the one npm start gives a container
-# without a memory limit, as this one has none (8096 MB; with a limit, three
-# quarters of it: Tests/Ops/NodeImageHeapLimit.test.js).
+# node's flags are npm start's, and so is what it requires first: the
+# stack-trace support for the JavaScript the build compiled, which refuses to
+# load TypeScript. Its heap is the one npm start gives a container without a
+# memory limit, as this one has none (8096 MB; with a limit, three quarters of
+# it: Tests/Ops/NodeImageHeapLimit.test.js).
 PROBE_COMMAND=(
 	docker run --rm --network none -w /usr/src/app
 	-e BILLING_ENABLED=false
-	-e TS_NODE_TRANSPILE_ONLY=1
 	-e "EE_PROBE_TIMEOUT_MS=$(( PROBE_TIMEOUT_SECONDS * 1000 ))"
 	--entrypoint node "$IMAGE"
-	--no-node-snapshot --max-old-space-size=8096 --require ts-node/register
+	--no-node-snapshot --max-old-space-size=8096 --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js
 	-e "$BOOT_PROBE"
 )
 # The probe's own watchdog normally ends it; this is the backstop for a node

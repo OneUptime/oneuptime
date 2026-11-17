@@ -62,9 +62,8 @@
     "dataRetention": "الاحتفاظ بالبيانات",
     "globalLlmProviders": "موفّرو LLM العامّون",
     "apiKey": "مفتاح API",
-    "more": "المزيد",
     "sendEmail": "إرسال بريد إلكتروني",
-    "logout": "تسجيل الخروج",
+    "signOut": "تسجيل الخروج",
     "telemetryUsage": "استخدام القياس عن بُعد",
     "ingestionBudgets": "ميزانيات الاستيعاب",
     "products": "المنتجات"
@@ -81,7 +80,7 @@
   },
   "userProfile": {
     "exitAdmin": "الخروج من وضع المسؤول",
-    "logOut": "تسجيل الخروج"
+    "signOut": "تسجيل الخروج"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -108,14 +107,14 @@
     "billing": "الفوترة",
     "subscription": "الاشتراك",
     "invoices": "الفواتير",
-    "support": "الدعم",
     "customerSupportAccess": "وصول دعم العملاء",
     "advanced": "متقدم",
     "overview": "نظرة عامة",
     "projects": "المشاريع",
     "settings": "الإعدادات",
     "authentication": "المصادقة",
-    "delete": "حذف",
+    "deleteProject": "حذف المشروع",
+    "deleteUser": "حذف المستخدم",
     "settingsAuthentication": "المصادقة",
     "settingsSso": "تسجيل الدخول الموحد",
     "settingsNotifications": "الإشعارات",
@@ -123,20 +122,16 @@
     "settingsCallSms": "المكالمات والرسائل النصية",
     "settingsWhatsapp": "WhatsApp",
     "settingsTelegram": "Telegram",
-    "settingsMonitoring": "المراقبة",
+    "settingsPushNotifications": "الإشعارات الفورية",
+    "settingsSharedWithProjects": "مشتركة مع كل المشاريع",
     "settingsGlobalProbes": "المسابر العامة",
-    "settingsRunbooks": "أدلة التشغيل",
     "settingsGlobalRunners": "المشغّلات العامة",
+    "settingsServer": "الخادم",
     "settingsDataRetention": "الاحتفاظ بالبيانات",
-    "settingsAi": "الذكاء الاصطناعي",
     "settingsGlobalLlmProviders": "موفّرو LLM العامّون",
-    "settingsApiIntegrations": "API والتكاملات",
     "settingsApiKey": "مفتاح API",
-    "moreCommunication": "التواصل",
-    "moreSendEmail": "إرسال بريد إلكتروني",
     "telemetryUsage": "استخدام القياس عن بُعد",
     "ingestionBudgets": "ميزانيات الاستيعاب",
-    "settingsTelemetry": "القياس عن بُعد",
     "settingsIngestionBudgets": "ميزانيات الاستيعاب",
     "settingsProducts": "المنتجات"
   },
@@ -144,8 +139,8 @@
     "users": {
       "title": "المستخدمون",
       "cardTitle": "المستخدمون",
-      "cardDescription": "إليك قائمة بالمستخدمين في OneUptime.",
-      "noItems": "لم يُعثر على أي مستخدمين.",
+      "listDescription": "كل من لديه حساب على هذا الخادم. افتح مستخدمًا لإدارة مشاريعه وتسجيل دخوله وصلاحيات المسؤول.",
+      "emptyMessage": "لا يوجد مستخدمون بعد.",
       "bulkAddToProject": "إضافة إلى المشروع",
       "bulkAddToProjectTitle": "إضافة المستخدمين إلى المشروع",
       "bulkAddToProjectDescription": "اختر مشروعًا وأحد فرقه. يُدعى المستخدمون المحددون ({{userCount}}) إلى ذلك الفريق.",
@@ -165,7 +160,12 @@
       "bulkRequireTwoFactorAuthDescription": "سيُسجَّل خروج المستخدمين المحددين ({{userCount}}) من كل جلسة نشطة، وعليهم إعداد تطبيق مصادقة عند تسجيل الدخول التالي. يشمل ذلك أنت، إن كنت منهم.",
       "bulkDoNotRequireTwoFactorAuth": "عدم اشتراط المصادقة الثنائية",
       "bulkDoNotRequireTwoFactorAuthTitle": "إيقاف اشتراط المصادقة الثنائية للمستخدمين ({{userCount}})",
-      "bulkDoNotRequireTwoFactorAuthDescription": "سيتمكن المستخدمون المحددون ({{userCount}}) من تسجيل الدخول بكلمة المرور وحدها. يُحتفظ بكل ما أعدّوه مسبقًا لكن لن يُطلب بعد الآن."
+      "bulkDoNotRequireTwoFactorAuthDescription": "سيتمكن المستخدمون المحددون ({{userCount}}) من تسجيل الدخول بكلمة المرور وحدها. يُحتفظ بكل ما أعدّوه مسبقًا لكن لن يُطلب بعد الآن.",
+      "createdAndEmailed": "تم إنشاء {{name}}. أُرسل رابط لتعيين كلمة المرور إلى {{email}}.",
+      "createdWithPassword": "تم إنشاء {{name}}. شارك كلمة المرور التي عيّنتها معه بطريقة آمنة.",
+      "setPasswordLinkTitle": "أرسل رابطًا لتعيين كلمة المرور",
+      "setPasswordLinkDescription": "انسخ هذا الرابط وأرسله بنفسك إلى {{email}}، في مكان لا يقرؤه سواه. يعمل مرة واحدة، لمدة {{days}} أيام.",
+      "setPasswordLinkOrSetIt": "أو عيّن له كلمة مرور بنفسك من صفحة المصادقة الخاصة به."
     },
     "enterpriseLicenses": {
       "title": "تراخيص المؤسسات",
@@ -201,7 +201,6 @@
     "userView": {
       "title": "المستخدم",
       "cardTitle": "المستخدم",
-      "cardDescription": "تفاصيل المستخدم",
       "editButton": "تعديل المستخدم",
       "masterAdminCardTitle": "وصول المسؤول الرئيسي",
       "masterAdminCardDescription": "امنح هذا المستخدم وصول المسؤول الرئيسي أو اسحبه منه. يمكن للمسؤولين الرئيسيين إدارة كل مشروع وكل مساحة عمل.",
@@ -302,13 +301,12 @@
     "projects": {
       "title": "المشاريع",
       "cardTitle": "المشاريع",
-      "cardDescription": "إليك قائمة بالمشاريع في OneUptime.",
-      "noItems": "لم يُعثر على أي مشاريع."
+      "listDescription": "كل مشروع على هذا الخادم. افتح مشروعًا لإدارة مستخدميه وفرقه وإعداداته.",
+      "emptyMessage": "لا توجد مشاريع بعد."
     },
     "projectView": {
       "title": "المشروع",
       "cardTitle": "المشروع",
-      "cardDescription": "تفاصيل المشروع",
       "editButton": "تعديل المشروع",
       "dataResidencyCardTitle": "موقع البيانات",
       "dataResidencyCardDescription": "المكان الذي تُستضاف فيه بيانات هذا المشروع. بعد تعيينه، يظهر لمستخدمي المشروع في إعدادات المشروع.",
@@ -450,8 +448,8 @@
     "projectUsers": {
       "title": "مستخدمو المشروع",
       "cardTitle": "المستخدمون",
-      "cardDescription": "إليك قائمة بجميع المستخدمين في هذا المشروع.",
-      "noItems": "لم يُعثر على أي مستخدمين في هذا المشروع.",
+      "listDescription": "الأشخاص المنتمون إلى هذا المشروع. يحدد فريق كل منهم ما يمكنه فعله.",
+      "emptyMessage": "لا يوجد مستخدمون في هذا المشروع بعد.",
       "noItemsFiltered": "لا يوجد مستخدمون يطابقون عامل التصفية.",
       "inviteUser": "دعوة مستخدم",
       "inviteUserTitle": "دعوة مستخدم جديد",
@@ -470,19 +468,18 @@
     "projectTeams": {
       "title": "فرق المشروع",
       "cardTitle": "الفرق",
-      "cardDescription": "إليك قائمة بجميع الفرق في هذا المشروع.",
-      "noItems": "لم يُعثر على أي فرق في هذا المشروع."
+      "listDescription": "تحدد الفرق ما يمكن لأعضائها فعله في هذا المشروع. أنشئ فريقًا لمنح مجموعة من الأشخاص الصلاحيات نفسها.",
+      "emptyMessage": "لا توجد فرق في هذا المشروع بعد."
     },
     "projectTeamView": {
       "title": "فريق المشروع",
       "cardTitle": "تفاصيل الفريق",
-      "cardDescription": "تفاصيل عن هذا الفريق.",
       "editButton": "تعديل الفريق",
       "membersCardTitle": "أعضاء الفريق",
       "membersCardDescription": "أدر أعضاء هذا الفريق. ادعُ مستخدمين جددًا عبر البريد الإلكتروني.",
       "membersNoItems": "ليس هناك أعضاء في هذا الفريق بعد."
     },
-    "logout": {
+    "signOut": {
       "title": "تسجيل الخروج"
     },
     "sendEmail": {
@@ -623,13 +620,13 @@
       },
       "probes": {
         "bannerTitle": "تحتاج إلى مساعدة في إعداد المسابر العامة؟",
-        "bannerDescription": "إليك دليلًا يساعدك على الإعداد",
+        "bannerGuide": "اتبع الدليل لتشغيل مسبار على خادمك الخاص وربطه هنا.",
         "cardTitle": "المسابر العامة",
         "cardDescription": "تساعدك المسابر العامة على مراقبة الموارد الخارجية من مواقع مختلفة حول العالم.",
-        "noItems": "لم يُعثر على أي مسابر.",
+        "emptyMessage": "لا توجد مسابير عامة بعد.",
         "showIdKey": "عرض المعرّف والمفتاح",
         "keyModalTitle": "مفتاح المسبار",
-        "keyModalDescription": "إليك مفتاح المسبار. يُرجى إبقاؤه سرًا.",
+        "keyModalSecret": "يتصل المسبار بـ OneUptime بهذا المعرّف والمفتاح. احتفظ بالمفتاح سرًا.",
         "probeIdLabel": "معرّف المسبار:",
         "probeKeyLabel": "مفتاح المسبار:"
       },
@@ -724,7 +721,6 @@
   "Projects": "المشاريع",
   "Project": "المشروع",
   "User": "المستخدم",
-  "Logout": "تسجيل الخروج",
   "Save": "حفظ",
   "Cancel": "إلغاء",
   "Submit": "إرسال",
@@ -981,7 +977,7 @@
   "No OIDC providers yet.": "ليس هناك موفّرو OIDC بعد.",
   "Require SSO": "اشتراط SSO",
   "Before you require SSO, sign in with a provider using Test Sign-in in its row.": "قبل أن تشترط SSO، سجّل الدخول بأحد الموفّرين عبر «اختبار تسجيل الدخول» في صفه.",
-  "Require SSO for Login": "اشتراط SSO لتسجيل الدخول",
+  "Require SSO to Sign In": "اشتراط SSO لتسجيل الدخول",
   "The sign-in page offers only SSO. Everyone except master admins must sign in with SSO to open any project.": "تعرض صفحة تسجيل الدخول SSO فقط. على الجميع عدا المسؤولين الرئيسيين تسجيل الدخول عبر SSO لفتح أي مشروع.",
   "People can sign in with a password, a passkey or SSO.": "يمكن للأشخاص تسجيل الدخول بكلمة مرور أو مفتاح مرور أو SSO.",
   "Master admins can always sign in with their password here, even while SSO is required. Keep this address.": "يمكن للمسؤولين الرئيسيين دائمًا تسجيل الدخول بكلمة المرور هنا، حتى عندما يكون SSO مشترطًا. احتفظ بهذا العنوان.",
@@ -2146,8 +2142,6 @@
   "Check email settings": "تحقق من إعدادات البريد الإلكتروني",
   "Email is failing": "يتعذر إرسال البريد الإلكتروني",
   "Email is not set up": "البريد الإلكتروني غير مُعدّ",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "يتعذر إرسال الرسائل منذ {{time}}، لذا لا تصل الدعوات ورسائل الحوادث.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "يتعذر إرسال الرسائل منذ {{time}}، لذا لا تصل الدعوات ورسائل الحوادث. ردّ خادم البريد: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "لا تُرسَل الدعوات ولا رسائل إعادة تعيين كلمة المرور ولا رسائل الحوادث.",
   "Monitors that run on global probes are not being checked.": "لا يجري فحص المراقبات التي تعمل على المسابير العامة.",
   "No global probe is reporting": "لا يرسل أي مسبار عام تقاريره",
@@ -2206,7 +2200,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "مرخّص عبر اشتراكك في سوق السحابة: يُفوتَر كل مستخدم بالساعة.",
   "License, version, seat usage, and the instances covered by this key.": "الترخيص والإصدار واستخدام المقاعد والنسخ التي يغطيها هذا المفتاح.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "منصة OneUptime الكاملة مع الاستجابة للحوادث وصفحات الحالة وأتمتة سير العمل.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "تسجيل الدخول الموحّد (SSO) عبر SAML وOIDC للمشاريع وصفحات الحالة والنسخة بأكملها، بما في ذلك «اشتراط SSO لتسجيل الدخول».",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "تسجيل الدخول الموحّد (SSO) عبر SAML وOIDC للمشاريع وصفحات الحالة والنسخة بأكملها، بما في ذلك «اشتراط SSO لتسجيل الدخول».",
   "Community support, documentation, and tutorials to help teams get started quickly.": "دعم المجتمع والوثائق والبرامج التعليمية لمساعدة الفرق على البدء بسرعة.",
   "Regular updates, bug fixes, and open-source extensibility.": "تحديثات منتظمة وإصلاحات للأخطاء وقابلية توسعة مفتوحة المصدر.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "تكاملات مع أدوات DevOps الشائعة من خلال موصلات يصونها المجتمع.",
@@ -4167,5 +4161,19 @@
   "OneUptime switched this rule off when they were deleted.": "عطّل OneUptime هذه القاعدة عند حذف تلك السجلات.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "لو فُعّلت كما هي، فلن تقيّدها هذه القوائم أبدًا. عدّلها لاختيار ما تنطبق عليه، ثم فعّلها.",
   "{{names}} and {{count}} more": "{{names}} و{{count}} غيرها",
-  "{{names}} and {{count}} more_one": "{{names}} و{{count}} غيرها"
+  "{{names}} and {{count}} more_one": "{{names}} و{{count}} غيرها",
+  "No email has gone out through this server's email settings since {{time}}.": "لم يُرسَل أي بريد إلكتروني عبر إعدادات البريد في هذا الخادم منذ {{time}}.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "لم يُرسَل أي بريد إلكتروني عبر إعدادات البريد في هذا الخادم منذ {{time}}. ردّ خادم البريد: {{reason}}",
+  "See email logs": "عرض سجلات البريد",
+  "Addresses the mail server refused": "العناوين التي رفضها خادم البريد",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "أُرسلت الرسائل الأخرى، لذا تتأثر هذه العناوين فقط. صحّح العنوان أو اجعل مزوّد البريد يقبله: لا ترسل بيئة Amazon SES التجريبية إلا إلى العناوين التي تحقّقت منها.",
+  "Last refused {{time}}": "آخر رفض: {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "تم إنشاء {{name}}، لكن البريد الذي يحمل رابط تعيين كلمة المرور لم يُرسل. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "تعذّر أيضًا إنشاء الرابط لترسله بنفسك. {{error}}",
+  "OneUptime emails them a link to set their own password.": "يرسل OneUptime إليه بالبريد رابطًا ليعيّن كلمة المرور بنفسه.",
+  "They sign in with the password you set. Share it with them securely.": "سيسجّل الدخول بكلمة المرور التي تعيّنها. شاركها معه بطريقة آمنة.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "لا يستطيع هذا الخادم إرسال البريد بعد. عيّن كلمة المرور هنا، أو اتركها فارغة لتحصل على رابط ترسله بنفسك.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "لا يستطيع هذا الخادم إرسال البريد بعد. أعِدّ البريد من الإعدادات > رسائل البريد الإلكتروني.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "لا يستطيع هذا الخادم إرسال البريد بعد، لذا لم يُرسل رابط إعادة تعيين كلمة المرور. أعِدّ البريد من الإعدادات > رسائل البريد الإلكتروني، أو عيّن كلمة المرور بنفسك.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "لدى هذا المستخدم كلمة مرور بالفعل، لذا لا يوجد رابط لتعيين كلمة المرور لنسخه. أرسل له بدلًا من ذلك رابط إعادة تعيين من صفحة المصادقة الخاصة به."
 }

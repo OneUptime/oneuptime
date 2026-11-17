@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "Password dimenticata",
     "subtitle": "Inserisci la tua e-mail e ti verrà inviato il link per il reset della password.",
-    "successMessage": "Ti abbiamo inviato il link per il reset della password tramite e-mail. Non dimenticare di controllare la cartella spam.",
+    "successMessage": "Se un account usa questo indirizzo e-mail, gli abbiamo inviato un link per scegliere una password. Non dimenticare di controllare la cartella spam.",
     "submitButton": "Invia link per il reset",
     "rememberPasswordPrompt": "Ricordi la tua password?",
     "loginLink": "Accedi.",
@@ -187,6 +187,17 @@
     "linkInvalidTitle": "Questo link di reimpostazione non funziona più",
     "linkInvalidDescription": "Potrebbe essere già stato usato, oppure ne è stata copiata solo una parte. Richiedi un nuovo link e te lo invieremo via email.",
     "requestNewLinkButton": "Richiedi un nuovo link"
+  },
+  "setPassword": {
+    "title": "Imposta la tua password",
+    "subtitle": "Scegli una password per completare la configurazione del tuo account.",
+    "submitButton": "Imposta password",
+    "successTitle": "La tua password è impostata",
+    "successDescription": "Accedi con la tua nuova password.",
+    "linkExpiredTitle": "Questo link è scaduto",
+    "linkExpiredDescription": "I link per impostare una password sono validi per {{days}} giorni. Richiedi un nuovo link e te lo invieremo via email.",
+    "linkInvalidTitle": "Questo link non funziona più",
+    "linkInvalidDescription": "Potrebbe essere già stato usato, oppure ne è stata copiata solo una parte. Se hai già impostato la password, accedi. Altrimenti richiedi un nuovo link e te lo invieremo via email."
   },
   "sso": {
     "title": "Accedi con SSO",
@@ -453,7 +464,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Licenza tramite il tuo abbonamento al marketplace cloud: ogni utente viene fatturato a ore.",
   "License, version, seat usage, and the instances covered by this key.": "Licenza, versione, utilizzo delle postazioni e istanze coperte da questa chiave.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "La piattaforma OneUptime completa, con gestione degli incidenti, pagine di stato e automazione dei flussi di lavoro.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "Single sign-on (SSO) SAML e OIDC per i progetti, le pagine di stato e l'intera istanza, incluso \"Richiedi l'SSO per l'accesso\".",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "Single sign-on (SSO) SAML e OIDC per i progetti, le pagine di stato e l'intera istanza, incluso \"Richiedi l'SSO per l'accesso\".",
   "Community support, documentation, and tutorials to help teams get started quickly.": "Supporto della community, documentazione e tutorial per aiutare i team a iniziare rapidamente.",
   "Regular updates, bug fixes, and open-source extensibility.": "Aggiornamenti regolari, correzioni di bug ed estensibilità open source.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Integrazioni con i più diffusi strumenti DevOps tramite connettori mantenuti dalla community.",

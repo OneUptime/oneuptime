@@ -1,4 +1,6 @@
 import MonitorService from "../../Services/MonitorService";
+import TableColumnType from "../../../Types/Database/TableColumnType";
+import PresentedKey from "../PresentedKey/PresentedKey";
 import ProjectService from "../../Services/ProjectService";
 import MonitorStatusTimelineService, {
   MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE,
@@ -70,6 +72,7 @@ import MonitorResourceContextUtil, {
   MonitorRecordResources,
 } from "./MonitorResourceContext";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
+import MonitorStoredCheck from "./MonitorStoredCheck";
 import LatestIncomingRequest, {
   LatestIncomingRequestColumns,
 } from "./LatestIncomingRequest";
@@ -540,11 +543,17 @@ export default class MonitorResourceUtil {
        */
       if (
         options?.secretKey &&
-        (
-          (monitor as unknown as Record<string, unknown>)[
-            options.secretKey.column
-          ]?.toString() || ""
-        ).toLowerCase() !== options.secretKey.value.trim().toLowerCase()
+        !PresentedKey.matches({
+          presented: options.secretKey.value,
+          stored:
+            (
+              (monitor as unknown as Record<string, unknown>)[
+                options.secretKey.column
+              ] as ObjectID | string | undefined
+            )?.toString() || null,
+          // An ObjectID column's key, whatever the case of its hex digits.
+          columnType: TableColumnType.ObjectID,
+        })
       ) {
         logger.debug(
           `${dataToProcess.monitorId.toString()} - The secret key this result came in with is no longer the monitor's.`,
@@ -2189,9 +2198,12 @@ export default class MonitorResourceUtil {
             monitorSteps.data.defaultMonitorStatusId!;
           monitorStatusTimeline.projectId = monitor.projectId!;
           monitorStatusTimeline.isOwnerNotified = true; // no need to notify owner as this is default status.
-          // Cut as the monitor's logs are: everyone who reads the monitor reads it.
+          /*
+           * Cut as the monitor's logs are: everyone who reads the monitor
+           * reads it. And bounded (MonitorStoredCheck).
+           */
           monitorStatusTimeline.statusChangeLog =
-            MonitorRecordEvidence.toStoredCheck({
+            MonitorStoredCheck.toStoredCheck({
               dataToProcess: dataToProcess,
               keepResponseContent:
                 MonitorRecordEvidence.keepsResponseContent(monitor),

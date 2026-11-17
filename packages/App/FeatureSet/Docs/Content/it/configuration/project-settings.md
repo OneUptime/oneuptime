@@ -40,7 +40,7 @@ flowchart LR
 | **Sicurezza** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fatturazione e fatture** | **Fatturazione**, **Fatture** | [Fatturazione e utilizzo](/docs/configuration/billing) |
 | **Log di audit** | **Log di audit**, **Impostazioni**, **Esporta** | [Log di audit](/docs/configuration/audit-logs), [Esportazione del log di audit](/docs/configuration/audit-log-export) |
-| **Zona pericolosa** | **Zona pericolosa** | [Eliminare il progetto](#eliminare-il-progetto) |
+| **Zona pericolosa** | **Elimina progetto** | [Eliminare il progetto](#eliminare-il-progetto) |
 
 **Fatturazione e fatture** e **Crediti IA** esistono solo su OneUptime Cloud: un'installazione self-hosted non ha fatturazione.
 
@@ -99,7 +99,7 @@ Per ritirare un'etichetta, archiviala dal menu **⋯** della sua riga invece di 
 **Impostazioni del progetto → Notifiche** raccoglie il modo in cui il progetto invia le notifiche:
 
 - **Canali di notifica**: la scheda **Canali di notifica** attiva o disattiva SMS, chiamate telefoniche, WhatsApp e Telegram per il progetto. Tutti e quattro partono disattivati. Li attiva un Proprietario del progetto, un **Amministratore della fatturazione** o chi ha **Manage Billing**. La pagina contiene anche, chiusi in **Altre impostazioni**, i server di posta del progetto, in **Configurazioni SMTP personalizzate** (vedi [SMTP](/docs/emails/smtp)), e il suo account Twilio (vedi [Integrazione Twilio](/docs/self-hosted/twilio-integration)). Su OneUptime Cloud contiene il saldo con cui si pagano questi messaggi: vedi [Saldi prepagati](/docs/configuration/billing#saldi-prepagati).
-- **Log di notifica**: ogni notifica inviata dal progetto, con una scheda per canale: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Chiamata**, **Push** e **Area di lavoro**.
+- **Log di notifica**: ogni notifica inviata dal progetto, con una scheda per canale: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Chiamata**, **Push** e **Area di lavoro**. La scheda **Webhook** conserva di ogni indirizzo solo lo schema e l'host: il resto è il segreto del webhook.
 - **App mobili**: dove trovare le app per iOS e Android. Vedi [Panoramica delle app](/docs/mobile-desktop-apps/index).
 
 ## Flag delle funzionalità
@@ -113,7 +113,7 @@ Eliminare un progetto elimina tutto ciò che contiene, per ogni membro: monitor,
 :::steps
 ### Aprire la zona pericolosa
 
-Vai a **Impostazioni del progetto → Zona pericolosa**.
+Vai a **Impostazioni del progetto → Zona pericolosa → Elimina progetto**.
 
 ### Fare clic su Elimina: Progetto
 

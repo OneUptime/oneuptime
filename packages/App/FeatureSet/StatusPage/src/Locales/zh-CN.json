@@ -37,8 +37,7 @@
     "announcements": "公告",
     "scheduledEvents": "计划维护",
     "subscribe": "订阅",
-    "login": "登录",
-    "logout": "退出"
+    "signOut": "退出登录"
   },
   "overview": {
     "uptimeSuffix": "% 正常运行时间",
@@ -49,8 +48,6 @@
     "noResourcesInGroup": "此组中未添加任何资源。",
     "activeIncidents": "活动事件",
     "scheduledMaintenanceEvents": "计划维护",
-    "allClearTitle": "一切正常",
-    "allClearDescription": "此状态页尚未添加任何资源。请从控制面板添加一些资源。",
     "allResourcesAre": "所有资源{{status}}",
     "allMonitoredResourcesAre": "所有受监控的资源{{status}}",
     "someResourcesAre": "部分资源{{status}}",
@@ -58,7 +55,10 @@
     "noResourcesAreMonitored": "当前没有受监控的资源",
     "noResourcesAreMonitoredYet": "尚无受监控的资源",
     "oneSubGroup": "1 个分组",
-    "subGroupCount": "{{total}} 个分组"
+    "subGroupCount": "{{total}} 个分组",
+    "noResourcesTitle": "暂无可显示的内容",
+    "noResourcesDescription": "此页面尚未显示任何服务。",
+    "noResourcesPreviewDescription": "在你添加资源之前，访问者看到的就是这条提示。请在仪表板的“资源”中为此状态页添加监视器或分组。"
   },
   "eventItem": {
     "affectedResources": "受影响的资源",
@@ -115,30 +115,23 @@
     "title": "事件",
     "singular": "事件",
     "active": "活动事件",
-    "resolved": "已解决事件",
-    "none": "无事件",
-    "noneDescription": "此状态页未发布任何事件。",
+    "noneDescription": "当事件影响此页面上的服务时，会在这里发布。",
     "postmortem": "事件事后分析",
     "declaredAt": "声明于 ",
     "declaredAtTime": "声明于 {{time}}",
     "report": "事件报告",
-    "notFound": "在此状态页上未找到此事件。"
-  },
-  "episodes": {
-    "report": "事件片段报告",
-    "none": "无事件片段",
-    "notFound": "在此状态页上未找到事件片段。"
+    "notFound": "请检查链接，或打开此页面的“事件”标签。",
+    "notFoundTitle": "未找到事件"
   },
   "announcements": {
     "title": "公告",
     "singular": "公告",
     "active": "活动公告",
-    "past": "过往公告",
-    "none": "无公告",
-    "noneDescription": "此页面尚未发布任何公告。",
+    "noneDescription": "当此页面上的服务有新消息时，会在这里发布。",
     "announcedAt": "公告于 ",
     "announcedAtTime": "公告于 {{time}}",
-    "notFound": "在此状态页上未找到此公告。"
+    "notFound": "请检查链接，或打开此页面的“公告”标签。",
+    "notFoundTitle": "未找到公告"
   },
   "scheduledEvents": {
     "title": "计划维护",
@@ -146,9 +139,7 @@
     "scheduledMaintenance": "计划维护",
     "ongoing": "进行中的维护",
     "upcoming": "即将进行的维护",
-    "completed": "已完成的维护",
-    "none": "暂无计划维护",
-    "noneDescription": "此状态页尚未发布计划维护。",
+    "none": "没有计划中的维护",
     "scheduledAt": "计划于 ",
     "scheduledAtTime": "计划于 {{time}}",
     "report": "维护事件报告",
@@ -314,29 +305,29 @@
       "password": "密码",
       "newPassword": "新密码",
       "confirmPassword": "确认密码",
-      "login": "登录"
+      "signInLink": "登录。"
     },
     "login": {
       "welcomeBack": "欢迎回来！",
-      "loginPrompt": "请登录以查看 {{statusPageName}}",
+      "signInPrompt": "请登录以查看 {{statusPageName}}。",
       "forgotPassword": "忘记密码？",
       "submit": "登录",
       "or": "或",
-      "logInWithSso": "通过 SSO 登录",
+      "signInWithSso": "通过 SSO 登录",
       "emailSignInLink": "通过电子邮件发送登录链接"
     },
     "sso": {
       "title": "通过 SSO 登录",
-      "loginPrompt": "请登录以查看 {{statusPageName}}",
+      "signInPrompt": "请登录以查看 {{statusPageName}}。",
       "noProviders": "未配置或启用 SSO 提供商",
       "notAvailable": "此状态页不支持单点登录（SSO）。请改用您的电子邮件和密码登录。",
-      "backToLogin": "返回登录",
-      "logInWithPassword": "使用密码登录"
+      "backToSignIn": "返回登录",
+      "signInWithPassword": "使用密码登录"
     },
     "forgotPassword": {
       "title": "忘记密码",
       "description": "如果您忘记了 {{statusPageName}} 的密码，请输入您的电子邮件，我们将向您发送密码重置链接。",
-      "success": "我们已通过电子邮件向您发送密码重置链接。请不要忘记检查垃圾邮件文件夹。",
+      "success": "如果此电子邮件地址可以登录 {{statusPageName}}，我们已向其发送密码重置链接。请不要忘记检查垃圾邮件文件夹。",
       "sendLink": "发送密码重置链接",
       "rememberPassword": "记得您的密码吗？"
     },
@@ -347,7 +338,7 @@
       "knowPassword": "知道您的密码？",
       "successTitle": "您的密码已重置",
       "successDescription": "请使用新密码登录。",
-      "loginButton": "登录",
+      "signInButton": "登录",
       "linkExpiredTitle": "此重置链接已过期",
       "linkExpiredDescription": "重置链接的有效期为一天。请申请新链接，我们会通过电子邮件发送给您。",
       "linkInvalidTitle": "此重置链接已失效",
@@ -507,5 +498,23 @@
   "Incomplete:": "未满足：",
   "Special character included (optional)": "已包含特殊字符（可选）",
   "Special characters are optional. Try !, @, # or $.": "特殊字符为可选项。可以尝试 !、@、# 或 $。",
-  "Dismiss": "隐藏"
+  "Dismiss": "隐藏",
+  "Resolved in the Last {{count}} Days": "最近 {{count}} 天内已解决",
+  "Resolved in the Last {{count}} Days_one": "最近 1 天内已解决",
+  "No incidents in the last {{count}} days": "最近 {{count}} 天内没有事件",
+  "No incidents in the last {{count}} days_one": "最近 1 天内没有事件",
+  "Ended in the Last {{count}} Days": "最近 {{count}} 天内已结束",
+  "Ended in the Last {{count}} Days_one": "最近 1 天内已结束",
+  "No announcements in the last {{count}} days": "最近 {{count}} 天内没有公告",
+  "No announcements in the last {{count}} days_one": "最近 1 天内没有公告",
+  "Completed in the Last {{count}} Days": "最近 {{count}} 天内已完成",
+  "Completed in the Last {{count}} Days_one": "最近 1 天内已完成",
+  "None is planned, and none took place in the last {{count}} days.": "没有计划中的维护，最近 {{count}} 天内也没有进行过维护。",
+  "None is planned, and none took place in the last {{count}} days._one": "没有计划中的维护，最近 1 天内也没有进行过维护。",
+  "serverMessages": {
+    "signInToView": "你无权访问此状态页面。请登录后查看。",
+    "sessionExpired": "会话已过期。请重新登录。",
+    "signedOut": "你已退出登录。请重新登录。",
+    "magicLinkTurnedOff": "此状态页面已关闭登录链接。请使用你的电子邮件和密码登录。"
+  }
 }

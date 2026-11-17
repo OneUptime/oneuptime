@@ -34,12 +34,16 @@ export const SIGN_IN_OPTION_STATES: ReadonlyArray<SignInOptionState> = [
 
 /*
  * The box, the type and the keyboard focus ring, the same in every state.
- * Shared with Button's PRIMARY: px-3 py-2, text-base under md and text-sm
- * from md, font-medium, rounded-md and a one-pixel border. Its one child is
- * the label (SIGN_IN_OPTION_LABEL_CLASS), centred.
+ * Shared with Button's PRIMARY (BOXED_BUTTON_CLASS_NAME at ButtonSize.Normal):
+ * px-3 py-2, text-sm at every width, font-medium, rounded-md and a one-pixel
+ * border, so an option is 38px tall like the filled button above it on a
+ * phone as on a laptop. The filled button's words were text-base below md
+ * until every button style became one frame (#9128); kept here, they made
+ * each option 4px taller than it on a phone. Its one child is the label
+ * (SIGN_IN_OPTION_LABEL_CLASS), centred.
  */
 export const SIGN_IN_OPTION_LAYOUT_CLASS: string =
-  "flex w-full items-center justify-center rounded-md border px-3 py-2 text-center text-base font-medium md:text-sm transition-colors duration-150 ease-out motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+  "flex w-full items-center justify-center rounded-md border px-3 py-2 text-center text-sm font-medium transition-colors duration-150 ease-out motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 export const SIGN_IN_OPTION_LOOK_CLASS: Readonly<
   Record<SignInOptionState, string>

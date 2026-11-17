@@ -25,9 +25,9 @@ Etiketter og ejere er det, du filtrerer og grupperer ressourcer efter, de afgør
 
 ## Hvor du finder reglerne
 
-Hvert produkt med etiketter og ejere har begge slags under sine **Indstillinger** (for hændelser, alarmer, planlagt vedligeholdelse og Datasikkerhed under **Regler**): monitorer, hændelser og hændelsesepisoder, alarmer og alarmepisoder, vedligeholdelseshændelser, statussider, tjenester, værter, Kubernetes-klynger, Docker-værter, Docker Swarm-klynger, Podman-værter, Proxmox-klynger, OpenStack-skyer, VMware vCentre, Ceph-klynger, storage-arrays, databaser, datalagre, tabeller, køer, IoT-flåder, serverless-funktioner, cloud-ressourcer, RUM-applikationer, dashboards, vagtpolitikker, vagtplaner, politikker for indgående opkald, arbejdsgange, runbooks, netværksenheder og SLO'er.
+Hvert produkt med etiketter og ejere har begge slags under sine **Indstillinger** (for monitorer, statussider, hændelser, alarmer, planlagt vedligeholdelse og Datasikkerhed under **Regler**): monitorer, hændelser og hændelsesepisoder, alarmer og alarmepisoder, vedligeholdelseshændelser, statussider, tjenester, værter, Kubernetes-klynger, Docker-værter, Docker Swarm-klynger, Podman-værter, Proxmox-klynger, OpenStack-skyer, VMware vCentre, Ceph-klynger, storage-arrays, databaser, datalagre, tabeller, køer, IoT-flåder, serverless-funktioner, cloud-ressourcer, RUM-applikationer, dashboards, vagtpolitikker, vagtplaner, politikker for indgående opkald, arbejdsgange, runbooks, netværksenheder og SLO'er.
 
-Etiketregler for monitorer ligger for eksempel under **Monitorer → Indstillinger → Etiketregler**, og etiketregler for hændelser under **Hændelser → Regler → Etiketregler**. **Indstillinger** og **Regler** er foldet sammen i sidemenuen fra start: klik på sektionens titel for at åbne den. Siderne for hændelser og alarmer har en fane **Hændelsesregler** (eller **Advarselsregler**) og en fane **Episoderegler**.
+Etiketregler for monitorer ligger for eksempel under **Monitorer → Regler → Etiketregler**, og etiketregler for SLO'er under **SLOs → Indstillinger → Etiketregler**. **Indstillinger** og **Regler** er foldet sammen i sidemenuen fra start: klik på sektionens titel for at åbne den. Siderne for hændelser og alarmer har en fane **Hændelsesregler** (eller **Advarselsregler**) og en fane **Episoderegler**.
 
 ## Opret en regel
 
@@ -57,7 +57,7 @@ I trinnet **Etiketter** vælger du **Etiketter at tilføje**. I en ejerregel hed
 I det sidste trin klikker du igen på knappen, der er opkaldt efter reglen, for eksempel **Opret Monitor Label Rule**. Reglen starter som aktiveret, og listen viser den med et grønt mærke **Aktiveret**.
 :::
 
-En ny regel skal tilføje noget: mindst én etiket (eller ejer) eller, i en regel for hændelser, alarmer eller planlagt vedligeholdelse, noget den nedarver (se nedenfor). For at sætte en regel på pause uden at slette den slår du **Aktiveret** fra i dens redigeringsformular; listen viser så et rødt mærke **Deaktiveret**. På en ejerregel for hændelser eller advarsler er et team under **Opretterens team** også nok.
+En ny regel skal tilføje noget: mindst én etiket (eller ejer) eller, i en regel for hændelser, alarmer eller planlagt vedligeholdelse, noget den nedarver (se nedenfor). For at sætte en regel på pause uden at slette den slår du **Aktiveret** fra i dens redigeringsformular; listen viser så et gråt mærke **Deaktiveret**. På en ejerregel for hændelser eller advarsler er et team under **Opretterens team** også nok.
 
 ### Uanset hvordan reglen oprettes
 

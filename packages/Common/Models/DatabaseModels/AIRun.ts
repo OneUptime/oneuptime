@@ -1223,6 +1223,67 @@ export default class AIRun extends BaseModel {
   public codeTaskId?: ObjectID = undefined;
 
   /*
+   * The incidents and alerts a Code task carries without being a fix of one
+   * (#9186): a person added them as context to a request or a reply, or the
+   * task was asked from a postmortem action item and carries its incident.
+   * A task carries what every one of its turns carries, so a reply that adds
+   * one adds it to its task too (AIRunService). A list of ids each, a task
+   * can carry several. Read by AIRunOutputReadFilter: a task carrying a
+   * private incident or alert - every turn of it, and its pull request - is
+   * read only by those who may read every one of them; one carrying a record
+   * that is gone, only by Project Owners and Project Admins. Not
+   * triggeredByIncidentId and triggeredByAlertId, which the fix-task
+   * triggers, the daily fix-task limit and the AI logs read as a fix of the
+   * record. Written by OneUptime only.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Carried Incident IDs",
+    description:
+      "IDs of the incidents this code task carries without being a fix of one: added as context to its request or a reply, or the incident of the postmortem action item it was asked from.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public carriedIncidentIds?: Array<string> = undefined;
+
+  // The alert counterpart of carriedIncidentIds.
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Carried Alert IDs",
+    description:
+      "IDs of the alerts this code task carries without being a fix of one: added as context to its request or a reply.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public carriedAlertIds?: Array<string> = undefined;
+
+  /*
    * A request's title: the first line of what the person asked (CodeTask
    * Title). Server-only like taskContext (empty read ACL): it is their words,
    * and who may read a repository's tasks is decided by the repository -

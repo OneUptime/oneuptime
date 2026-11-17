@@ -75,6 +75,11 @@ interface DetailPage {
 
 const DETAIL_PAGES: ReadonlyArray<DetailPage> = [
   { title: "Overview", section: "Overview", path: SLO_PATH },
+  /*
+   * The monitors the SLO measures, right after its overview. They had a
+   * Configuration section of their own, holding nothing else, until #9216.
+   */
+  { title: "Monitors", section: "Overview", path: `${SLO_PATH}/monitors` },
   { title: "Metrics", section: "Overview", path: `${SLO_PATH}/metrics` },
   {
     title: "Monthly Report",
@@ -84,11 +89,6 @@ const DETAIL_PAGES: ReadonlyArray<DetailPage> = [
   { title: "Incidents", section: "Activity", path: `${SLO_PATH}/incidents` },
   { title: "Alerts", section: "Activity", path: `${SLO_PATH}/alerts` },
   { title: "Feed", section: "Activity", path: `${SLO_PATH}/feed` },
-  {
-    title: "Monitors",
-    section: "Configuration",
-    path: `${SLO_PATH}/monitors`,
-  },
   {
     title: "Monitor Rules",
     section: "Rules",
@@ -140,13 +140,12 @@ describe("SLO detail side menu", () => {
     cleanup();
   });
 
-  test("places performance and activity before configuration, rules and management", async () => {
+  test("places performance and activity before rules and management, with no Configuration section (#9216)", async () => {
     await renderSloMenu();
 
     expect(sectionTitlesInOrder()).toEqual([
       "Overview",
       "Activity",
-      "Configuration",
       "Rules",
       "Developer",
       "Management",
@@ -154,15 +153,14 @@ describe("SLO detail side menu", () => {
   });
 
   /*
-   * Overview and Activity are what an SLO's page is opened for. Its
-   * configuration, its rules and its management pages are set up once and
+   * Overview and Activity are what an SLO's page is opened for. Its rules
+   * and its management pages are set up once and
    * visited rarely, so they fold down to their titles, like every rarely
    * used section, and open by themselves on their own pages (below).
    */
   test.each([
     ["Overview", true],
     ["Activity", true],
-    ["Configuration", false],
     ["Rules", false],
     ["Management", false],
   ])(
@@ -305,7 +303,8 @@ function rowIconPaths(title: string): Array<string> {
  * once and then run by themselves, so they have a section of their own,
  * Rules, folded down to its title until opened - as a status page's Monitor
  * Rules do (StatusPageRulesMenu.test.tsx) - apart from the monitors
- * themselves, which stay under Configuration.
+ * themselves, which sit in Overview, right after the Overview page (they had
+ * a Configuration section of their own until #9216).
  */
 describe("the SLO's Rules section", () => {
   beforeEach(() => {
@@ -317,13 +316,15 @@ describe("the SLO's Rules section", () => {
     cleanup();
   });
 
-  test("sits right after Configuration, which keeps only the monitors", async () => {
+  test("sits right after Activity, while the monitors sit in Overview, right after Overview", async () => {
     await renderSloMenu();
 
     const titles: Array<string> = sectionTitlesInOrder();
 
-    expect(titles.indexOf("Rules")).toBe(titles.indexOf("Configuration") + 1);
-    expect(linksIn("Configuration")).toEqual([
+    expect(titles.indexOf("Rules")).toBe(titles.indexOf("Activity") + 1);
+    expect(titles).not.toContain("Configuration");
+    expect(linksIn("Overview").slice(0, 2)).toEqual([
+      { title: "Overview", href: SLO_PATH },
       { title: "Monitors", href: `${SLO_PATH}/monitors` },
     ]);
     expect(linksIn("Rules")).toEqual([
@@ -397,7 +398,7 @@ describe("the SLO's Rules section", () => {
     expect(sectionBody("Rules")).not.toHaveClass("invisible");
     expect(sectionBody("Rules")).toHaveClass("opacity-100");
     expect(sectionBody("Rules").className).not.toContain("max-h-");
-    expect(isExpanded("Configuration")).toBe(false);
+    expect(isExpanded("Developer")).toBe(false);
     expect(isExpanded("Management")).toBe(false);
     expect(isExpanded("Overview")).toBe(true);
 
@@ -412,7 +413,7 @@ describe("the SLO's Rules section", () => {
     { title: "Burn Rate Rules", path: `${SLO_PATH}/burn-rate-rules` },
     { title: "Error Budget Policy", path: `${SLO_PATH}/error-budget-policy` },
   ])(
-    "$title opens Rules by itself, and leaves Configuration folded",
+    "$title opens Rules by itself, and leaves Developer and Management folded",
     async (page: { title: string; path: string }) => {
       goTo(page.path);
       await renderSloMenu();
@@ -420,7 +421,7 @@ describe("the SLO's Rules section", () => {
       expect(isExpanded("Rules")).toBe(true);
       expect(sectionBody("Rules")).not.toHaveClass("invisible");
       expect(activeLinkTitles()).toEqual([page.title]);
-      expect(isExpanded("Configuration")).toBe(false);
+      expect(isExpanded("Developer")).toBe(false);
       expect(isExpanded("Management")).toBe(false);
     },
   );
@@ -435,15 +436,15 @@ describe("the SLO's Rules section", () => {
 
     expect(isExpanded("Rules")).toBe(true);
     expect(sectionBody("Rules")).not.toHaveClass("invisible");
-    expect(isExpanded("Configuration")).toBe(false);
+    expect(isExpanded("Developer")).toBe(false);
     expect(isExpanded("Management")).toBe(false);
   });
 
-  test("stays folded on the Monitors page, which opens Configuration", async () => {
+  test("stays folded on the Monitors page, which sits in the open Overview", async () => {
     goTo(`${SLO_PATH}/monitors`);
     await renderSloMenu();
 
-    expect(isExpanded("Configuration")).toBe(true);
+    expect(isExpanded("Overview")).toBe(true);
     expect(activeLinkTitles()).toEqual(["Monitors"]);
     expect(isExpanded("Rules")).toBe(false);
   });
@@ -473,7 +474,7 @@ describe("the SLO's Rules section", () => {
 /*
  * A request SLO measures the requests its services serve, so it has no
  * monitors to list and no monitor rules to attach them: the menu leaves
- * out Configuration (Monitors) and Monitor Rules, and keeps every other
+ * out Monitors (in Overview) and Monitor Rules, and keeps every other
  * page where it was. Until the layout has read what the SLO measures,
  * every page is listed.
  */
@@ -523,7 +524,10 @@ describe("the side menu of a request SLO", () => {
         <SloViewSideMenu modelId={new ObjectID(SLO_ID)} sliType={sliType} />,
       );
 
-      expect(sectionTitlesInOrder()).toContain("Configuration");
+      expect(linksIn("Overview")[1]).toEqual({
+        title: "Monitors",
+        href: `${SLO_PATH}/monitors`,
+      });
       expect(titlesInMenu()).toContain("Monitors");
       expect(titlesInMenu()).toContain("Monitor Rules");
     },

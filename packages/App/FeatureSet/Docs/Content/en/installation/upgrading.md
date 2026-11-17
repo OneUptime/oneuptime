@@ -6,7 +6,7 @@ Upgrade a self-hosted OneUptime — Docker Compose, or Kubernetes with Helm — 
 - [How to upgrade](#how-to-upgrade): The procedure, for Docker Compose and Kubernetes.
 - [Notes for each version](#find-the-notes-for-your-version): What each major version asks of you, at a glance.
 - [Community and Enterprise Edition images](#community-and-enterprise-edition-images): Which image to run from 14 on.
-- [Upgrading from OneUptime 14 → 15](#upgrading-from-oneuptime-14-15): The newest major version.
+- [Upgrading from OneUptime 15 → 16](#upgrading-from-oneuptime-15-16): The newest major version.
 :::
 
 ## How to upgrade
@@ -80,6 +80,7 @@ Then check your version again, as in the first step. If you have not reached you
 
 | Upgrade | What you must do |
 | --- | --- |
+| [15 → 16](#upgrading-from-oneuptime-15-16) | Upgrade the Terraform provider with the server, and take the SCIM bearer tokens, webhook addresses and SNMP credentials 16 no longer gives out of API reads. Update your Runners. Replace every server of 15 soon, and roll back only within a day. |
 | [14 → 15](#upgrading-from-oneuptime-14-15) | Copy the master API key first if you read it from the Admin Dashboard. Upgrade the Terraform provider with the server, and take the credentials 15 no longer gives out of API reads. Behind a proxy, let it reach your identity provider, calendars, MCP servers and backup storage. Check Incoming Request monitors that receive plain text. |
 | [13 → 14](#upgrading-from-oneuptime-13-14) | Pick an edition. Docker Compose installs that set `IS_ENTERPRISE_EDITION=true` move to `APP_TAG=enterprise-release`. Activate a license on the Enterprise Edition. Re-save IPv6 Ping, Port and SSL monitors. AI code fixes move to the global Runner: keep it on, and on Helm move `runner.keda` to `globalRunner.keda`. |
 | [12 → 13](#upgrading-from-oneuptime-12-13) | Usually nothing: Redis becomes Valkey, and the old setting names keep working. Running Docker Compose by hand? Add `--remove-orphans`. Using a cache of your own? Read [If you run your own cache](#if-you-run-your-own-cache). |
@@ -93,7 +94,7 @@ Then check your version again, as in the first step. If you have not reached you
 
 OneUptime now ships the app as two images. The **Community Edition** is open
 source under the Apache License 2.0 and includes SAML and OIDC single sign-on,
-global SSO and "Require SSO for login". The **Enterprise Edition** adds the
+global SSO and "Require SSO to sign in". The **Enterprise Edition** adds the
 enterprise modules from the repository's `ee/` directory: SCIM, team
 compliance, audit logs and the enterprise Health dashboards in the Admin
 Dashboard. Before this change both editions ran the same code, and
@@ -181,6 +182,129 @@ settings that used to show an upgrade prompt.
 - The SSO and OIDC endpoints (SAML sign-in and ACS URLs, OIDC redirect URIs,
   and the global SSO endpoints) keep their exact paths and are served by both
   editions in every license state.
+
+## Upgrading from OneUptime 15 → 16
+
+OneUptime 16 keeps more of the secrets it stores useless to whoever reads a
+database dump or a backup, and keeps OneUptime AI's code work about a private
+incident or alert to the people who may read the record. The keys and tokens
+that probes, agents, collectors, devices, webhooks and identity providers
+present to OneUptime are encrypted, and SCIM bearer tokens are stored hashed
+and shown only when they are made. Webhook addresses and SNMP credentials are
+encrypted too, and webhook logs keep only an address's host. Upgrade from 15 —
+if you are still on 14, do 14 → 15 first.
+
+The upgrade encrypts and hashes the keys, addresses and credentials you have,
+so the probes, agents, devices, scripts, webhooks and identity providers that
+use them keep working, with nothing to set up again.
+
+### What you need to do for 16
+
+1. **If Terraform or OpenTofu manages OneUptime, upgrade the provider with the
+   server** (`terraform init -upgrade`: the provider's versions follow
+   OneUptime's). A provider of 15 asks 16 for a SCIM connection's bearer
+   token, which 16 no longer gives out, so `terraform plan` fails on every
+   `oneuptime_status_page_scim`.
+2. **Take the credentials 16 no longer gives out of your API scripts' reads.**
+   A read whose `select` names a SCIM connection's `bearerToken` is refused:
+   a SCIM bearer token is shown only by the request that creates its
+   connection. A notification rule's read of its webhook's `webhookUrl`
+   through `userWebhook` is refused too, as is a read of a network device's
+   legacy `snmpV3Auth` by a key with only Viewer or Settings Viewer.
+3. **Update your Runners with the server.** A Runner from before 16 is
+   refused a fix pull request about a private incident or alert.
+4. **Replace every server of 15 soon, and roll back only within a day.** A
+   server of 15 still running during the upgrade refuses the keys made or
+   reset on 16, and reads an encrypted webhook address or SNMP credential as
+   a broken one, so its sends and polls fail until it is replaced. A day
+   after the upgrade, Workers encrypt or hash the keys stored before: rolled
+   back after that, 15 cannot read them, so reset each key and give the new
+   one to whatever used the old one. See
+   [Other changes in 16](#other-changes-in-16).
+
+### Other changes in 16
+
+These change how OneUptime behaves after the upgrade. Read them if you use
+SCIM, webhooks, SNMP, or OneUptime AI's code work on private incidents and
+alerts.
+
+:::details Read the other changes in 16
+- **The keys presented to OneUptime are encrypted, and SCIM bearer tokens are stored hashed and shown only when they are made.**
+  A probe's, a Runner's and an AI agent's key, telemetry ingestion keys, IoT
+  device secrets, a monitor's secret keys, workflow and runbook webhook keys,
+  a workflow's email key, status page embed tokens, data product badge
+  tokens and subscribers' unsubscribe tokens were stored as they were
+  written, so a database dump or a backup held every one. Now each is stored
+  encrypted, and the pages that show one show it as before. A SCIM bearer
+  token is stored as its hash: adding a connection, or
+  **Reset Bearer Token**, shows it once, to copy then, and the API answers
+  it only to the create and refuses a read whose `select` names
+  `bearerToken`. Nothing that uses a key needs setting up again: probes,
+  agents, collectors, devices, scripts, webhooks, badges and identity
+  providers keep working with the key they have. The upgrade keeps every key
+  as it was and adds the hash it is looked up by, so servers of the earlier
+  release still running during the upgrade keep checking keys; a day later,
+  Workers encrypt or hash the keys stored before, in place. A key made or
+  reset during that day is stored protected at once, and a server of the
+  earlier release refuses it until it is replaced. Rolled back after that
+  day, the earlier release cannot read the protected keys: reset each one,
+  and give the new one to whatever used the old one.
+- **OneUptime AI's code work about a private incident or alert follows its
+  owners too.** The Code tasks started from a private incident's or alert's
+  investigation or from one of its fixes, their replies and their pull
+  requests were listed to everyone who could read the repository's tasks.
+  They are now read only by those who may read the record, in Code's lists,
+  filters, searches and counts too, and once the record is deleted only by
+  Project Owners and Project Admins. Opening a pull request from a private
+  record, with **Open fix pull request** or
+  **Open a pull request to the code** or for a postmortem's action item, now
+  takes what approving its fixes takes, through the teams that own it, and
+  on the record's page those buttons are locked saying why. A fix pull
+  request about a private record no longer quotes the record's title or the
+  investigation's analysis, since everyone with access to the repository
+  reads it, and a Runner from before this release is refused such a fix:
+  update your Runners. See
+  [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
+- **Code work that carries a private incident or alert follows its owners
+  too.** A Code task asked with a private incident or alert as context, one a
+  reply added one to, a postmortem action item's task, and a pull request
+  OneUptime AI opened from a private record's AI conversation or from Ask AI
+  asked about one were read by everyone who could read the repository's
+  tasks and pull requests. They are now read only by those who may read
+  every record they carry. The upgrade links the tasks and pull requests that
+  exist, from what they kept, except a pull request opened from Ask AI, which
+  is read as before. The request for a private incident's action item now
+  names the incident only by its number. See
+  [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
+- **Production reviews, pull requests from chats and the fix panels follow
+  private records too.** A production review stored before an incident on it
+  was made private now lists that incident only to those who may read it. A
+  pull request OneUptime AI opens from a chat also carries the private
+  incidents and alerts the chat opened one by one or quoted from a list. An
+  exception's fix, an investigation's fix pull request, a trace's performance
+  fix, a fix's pull request to the code, and the fix under way for an AI
+  insight or for a function in Profiles now say a task is hidden when it
+  carries a private record you can't open, instead of showing its progress
+  and pull request. See
+  [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
+- **Webhook addresses and SNMP credentials are stored encrypted, and logs
+  keep a webhook's address by its host.** A Slack, Microsoft Teams or Discord
+  webhook carries its secret in its address, and an SNMP community string or
+  v3 key opens the device it belongs to, so a database dump or a backup held
+  them ready to use. Now the addresses of status page subscribers' Slack,
+  Microsoft Teams and webhook subscriptions, of webhook notification methods,
+  of OpenStack project notices and of custom notification channels, a
+  channel's signing secret, and the SNMP credentials of network devices and
+  discovery scans are stored encrypted. The upgrade encrypts the ones you
+  have, and every notification, poll, sweep and import goes on using them as
+  written. A project's webhook logs keep only an address's scheme and host
+  (`https://hooks.slack.com/•••`), the logs from before the upgrade included,
+  and an on-call log names the webhook a page was sent to rather than its
+  address. A server of the earlier release still running during the upgrade
+  reads an encrypted address or credential as a broken one, so its sends and
+  polls fail until it is replaced, and what it saves meanwhile is stored as
+  written until it is next saved.
+:::
 
 ## Upgrading from OneUptime 14 → 15
 
@@ -317,7 +441,7 @@ and episodes.
 OneUptime 14 splits the app into two editions, and the image you pull decides
 which one you run. The **Community Edition** (Apache-2.0, the `release` and
 `<version>` tags) includes SAML SSO, OpenID Connect, global SSO and "Require
-SSO for login". It does not contain the repository's `ee/` directory, so SCIM
+SSO to sign in". It does not contain the repository's `ee/` directory, so SCIM
 provisioning, team compliance settings, audit logs, the Admin **Health**
 dashboards and the Admin **Query Console** are not in that image at all. The
 **Enterprise Edition** (the `enterprise-release` and `enterprise-<version>`
@@ -330,7 +454,7 @@ on each deployment path, and what the license does. This section is the upgrade
 itself. Upgrade from 13 — if you are still on 12, do 12 → 13 first.
 
 Nothing is deleted on either edition. Single sign-on works the same on both:
-your SSO and OIDC configuration and your "Require SSO for login" settings carry
+your SSO and OIDC configuration and your "Require SSO to sign in" settings carry
 over as they are. Your SCIM configuration and the audit logs recorded so far
 stay in the database. The Community Edition simply does not serve them, and
 switching editions needs no migration in either direction.
@@ -367,8 +491,8 @@ switching editions needs no migration in either direction.
 5. **If this install will run the Community Edition while your identity
    provider deprovisions users through SCIM, review who has access before you
    upgrade.** SCIM deprovisioning stops, so the people you remove at your
-   identity provider keep their OneUptime accounts, and unless "Require SSO for
-   login" applies to them, anyone who can still reach such an account's mailbox
+   identity provider keep their OneUptime accounts, and unless "Require SSO to
+   sign in" applies to them, anyone who can still reach such an account's mailbox
    can set a password with "Forgot password" and sign in. Remove those users
    first:
    [Switching from Enterprise to Community](/docs/self-hosted/enterprise#switching-from-enterprise-to-community).
@@ -416,7 +540,7 @@ either direction.
   needs — and the Admin Health dashboards and Query Console are locked.
 - **Nothing is deleted, and core monitoring is never affected.** Monitors,
   alerts, incidents, on-call, status pages and telemetry are outside the
-  license, and so is sign-in: SSO and OIDC sign-in, "Require SSO for login" and
+  license, and so is sign-in: SSO and OIDC sign-in, "Require SSO to sign in" and
   password sign-in for every user, master admins included, work the same in
   every license state. Activating a license restores SCIM provisioning and
   audit logging with the configuration you already have, without a restart.
@@ -871,19 +995,19 @@ working mail server.
   as turned off at the upgrade. A new certificate or client secret keeps
   everyone signed in. While a project requires SSO, its last provider, and
   the provider it requires, cannot be turned off or deleted until Require
-  SSO for Login is turned off; when the whole server requires SSO, a
+  SSO to Sign In is turned off; when the whole server requires SSO, a
   project's last provider cannot be turned off or deleted until another one
   is on. See
   [SSO](/docs/identity/sso#turning-a-provider-off-or-deleting-it).
 - **Global and status page SSO providers end their sign-ins the same way,
-  and turning on Require SSO for Login needs a provider.** Turning a
+  and turning on Require SSO to Sign In needs a provider.** Turning a
   global SAML or OIDC provider off, or deleting it, ends the sign-ins it
   gave, as a project's provider does, and turning it on again does not
   bring them back; a global provider already off when you upgrade counts as
   turned off at the upgrade. A change to a global provider or to its
   attached projects that would leave a project that requires SSO - itself
   or because the whole server does - with no provider to sign in with is
-  refused, naming the projects. Turning on Require SSO for Login, for a
+  refused, naming the projects. Turning on Require SSO to Sign In, for a
   project or for the whole server, is refused while no provider would sign
   people in there; the message says what to set up first. Turning a status
   page's SSO or OIDC provider off, or deleting it, signs out the private
@@ -894,14 +1018,14 @@ working mail server.
   and [Status Pages](/docs/status-pages/index#sso-and-oidc).
 - **Creating a project follows the SSO rules too, and changes that let
   people sign in reach every app server at once.** While the whole server
-  requires SSO for login, creating a project needs a global SSO provider
+  requires SSO to sign in, creating a project needs a global SSO provider
   that is on and signs people in to every project, since a new project has
   no provider of its own yet; without one, creating a project is refused,
   and the message asks a server admin to turn one on. Master admins can
-  still create projects. A project created with Require SSO for Login
+  still create projects. A project created with Require SSO to Sign In
   already on needs the same. Turning a provider or a global provider's
   attachment on, lifting a global provider's restriction to its attached
-  projects, and turning Require SSO for Login off, for a project or for the
+  projects, and turning Require SSO to Sign In off, for a project or for the
   whole server, now reach every app server at once, as changes that end
   sign-ins already did, rather than when another server's cached answer
   runs out a minute later. Only when two changes to the same setting are
@@ -909,8 +1033,8 @@ working mail server.
   minute to follow. See
   [SSO](/docs/identity/sso#requiring-sso-for-your-project) and
   [Global SSO](/docs/identity/global-sso#enforcing-sso).
-- **Saving Require SSO for Login on again is checked as turning it on is.**
-  A save that sends Require SSO for Login on - for a project or for the
+- **Saving Require SSO to Sign In on again is checked as turning it on is.**
+  A save that sends Require SSO to Sign In on - for a project or for the
   whole server - or names the provider a project requires is now checked
   even when the setting has that value already, as the API, Terraform and
   other tools that send every setting with each save do. While no provider
@@ -1794,7 +1918,7 @@ working mail server.
   **Global Runner**. See
   [Pick the repository's Runner](/docs/ai/ai-agent#pick-the-repositorys-runner).
 - **While the whole server requires SSO, the sign-in pages offer only SSO,
-  and its global providers have one page.** With Require SSO for Login on
+  and its global providers have one page.** With Require SSO to Sign In on
   for the whole server, the sign-in, single sign-on and sign-up pages show a
   button for each global SSO provider that is on, and no password, passkey,
   Microsoft sign-in or sign-up. The server refuses those too, a script
@@ -1803,7 +1927,7 @@ working mail server.
   Someone signed in with a password signs in with SSO to open a project, on
   a page that now also offers the global providers that sign people in to
   it. In the Admin Dashboard, the Global SSO and Global OIDC lists are one
-  Single Sign-On page under Settings, with Require SSO for Login under the
+  Single Sign-On page under Settings, with Require SSO to Sign In under the
   providers, and their old addresses open it. See
   [Global SSO](/docs/identity/global-sso#enforcing-sso).
 - **A permission scoped to Owned reaches what its own team owns.** A team's

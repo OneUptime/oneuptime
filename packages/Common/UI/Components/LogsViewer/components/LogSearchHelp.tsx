@@ -89,7 +89,7 @@ const LogSearchHelp: FunctionComponent<LogSearchHelpProps> = (
   return (
     <div className="absolute left-0 top-full z-50 mt-1 w-[36rem] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
       <div className="border-b border-gray-100 px-3 py-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
           {translator.translateText("Search syntax")}
         </span>
       </div>
@@ -119,7 +119,7 @@ const LogSearchHelp: FunctionComponent<LogSearchHelpProps> = (
                   </span>
                 </td>
                 <td className="whitespace-nowrap py-1.5 pl-2 pr-3 text-right">
-                  <code className="font-mono text-[11px] text-gray-400">
+                  <code className="font-mono text-[11px] text-gray-500">
                     {row.example}
                   </code>
                 </td>
@@ -135,16 +135,16 @@ const LogSearchHelp: FunctionComponent<LogSearchHelpProps> = (
             template="Press {{key}} to search · Filters combine with AND · {{example}} · Use {{escape}} for a literal asterisk"
             slots={{
               key: (
-                <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px]">
+                <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-xs">
                   Enter
                 </kbd>
               ),
               example: (
-                <code className="font-mono text-[10px] text-gray-500">
+                <code className="font-mono text-xs text-gray-500">
                   severity:error service:api &quot;timeout&quot;
                 </code>
               ),
-              escape: <code className="font-mono text-[10px]">\*</code>,
+              escape: <code className="font-mono text-xs">\*</code>,
             }}
           />
         </span>

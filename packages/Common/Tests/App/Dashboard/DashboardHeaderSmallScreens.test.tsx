@@ -296,7 +296,7 @@ describe("dashboard header on small screens", () => {
       screen.getByRole("button", { name: "Light" }),
       screen.getByRole("button", { name: "Dark" }),
       screen.getByRole("button", { name: "System" }),
-      screen.getByRole("link", { name: "Log out" }),
+      screen.getByRole("link", { name: "Sign Out" }),
     ];
 
     for (const entry of entries) {
@@ -311,7 +311,7 @@ describe("dashboard header on small screens", () => {
 
     fireEvent.click(getButton(/User Profile/));
 
-    expect(screen.getByRole("link", { name: "Log out" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Sign Out" })).toHaveAttribute(
       "href",
       "/dashboard/logout",
     );

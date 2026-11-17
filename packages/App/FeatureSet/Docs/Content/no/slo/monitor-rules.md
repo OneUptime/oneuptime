@@ -1,6 +1,6 @@
 # Monitorer og monitorregler
 
-Et SLO måler tilgjengeligheten til monitorene som er knyttet til det. Knytt dem til for hånd, la monitorregler knytte til hver monitor som samsvarer, eller gjør begge deler. Denne siden handler om siden **Monitorer** til et SLO, under **Konfigurasjon** i sidemenyen, og siden **Monitorregler**, under **Regler**.
+Et SLO måler tilgjengeligheten til monitorene som er knyttet til det. Knytt dem til for hånd, la monitorregler knytte til hver monitor som samsvarer, eller gjør begge deler. Denne siden handler om siden **Monitorer** til et SLO, under **Oversikt** i sidemenyen, og siden **Monitorregler**, under **Regler**.
 
 :::cards
 - [Velg monitorer for hånd](#knytt-til-monitorer-for-hånd): Best for et lite, fast sett.
@@ -46,7 +46,7 @@ Siden **Monitorer** viser for hver monitor:
 
 | Kolonne | Hva den viser |
 | --- | --- |
-| **Gjeldende status** | Gjeldende status for monitoren, eller **Arkivert**, **Deaktivert**, **Sonder ikke aktivert**, **Sonder frakoblet** eller **Ukjent** når den ikke sjekkes eller ennå ikke har rapportert noe. |
+| **Gjeldende status** | Gjeldende status for monitoren, eller **Arkivert**, **Deaktivert**, **Ingen sonde aktivert**, **Sonder frakoblet** eller **Ukjent** når den ikke sjekkes eller ennå ikke har rapportert noe. |
 | **Kilde** | **Regel** hvis en av monitorreglene til SLO-et knyttet den til, **Manuell** hvis noen knyttet den til for hånd. |
 | **Etiketter** | Etikettene til monitoren. |
 

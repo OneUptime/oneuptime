@@ -19,7 +19,7 @@ flowchart TB
 ```
 
 > [!NOTE]
-> **L'authentification unique est présente dans chaque édition.** La connexion SAML et OIDC aux projets et aux pages de statut, le SSO global et « Require SSO for login » font partie de la Community Edition, et aucun état de licence ne les désactive.
+> **L'authentification unique est présente dans chaque édition.** La connexion SAML et OIDC aux projets et aux pages de statut, le SSO global et « Require SSO to sign in » font partie de la Community Edition, et aucun état de licence ne les désactive.
 
 Cette page décrit ce que comprend chaque édition, comment exécuter l'Enterprise Edition, comment fonctionnent les licences et ce qui se passe lorsque vous changez d'édition.
 
@@ -57,7 +57,7 @@ Cette page décrit ce que comprend chaque édition, comment exécuter l'Enterpri
 | État des migrations, bundle de support et sondes globales dans le tableau de bord admin | Oui | Oui | Sans objet |
 | Gestion de la licence Enterprise, des sièges et des instances | Non | Oui | Sans objet |
 
-L'authentification unique comprend « Require SSO for login » pour les projets, les pages de statut privées et toute l'instance, dans les deux éditions.
+L'authentification unique comprend « Require SSO to sign in » pour les projets, les pages de statut privées et toute l'instance, dans les deux éditions.
 
 Chaque édition dispose de la rétention de télémétrie par défaut du projet, dans **Paramètres du projet > Télémétrie & APM > Rétention des données**. Les remplacements de rétention sont ce que l'Enterprise Edition ajoute par-dessus.
 
@@ -166,7 +166,7 @@ Rien d'autre n'est envoyé. Aucune donnée de supervision, de télémétrie, de 
 
 ### Quand une licence expire ou manque
 
-Chaque fonction Enterprise fonctionne pendant l'essai de 14 jours, et pendant 30 jours après l'expiration d'une licence (le délai de grâce). Le libellé d'édition avertit avant la fin de l'un comme de l'autre. Ensuite, **SCIM, la journalisation d'audit et les remplacements de rétention s'arrêtent** jusqu'à l'activation d'une licence, comme sur la Community Edition, et la configuration Enterprise passe en lecture seule. L'authentification unique n'est pas une fonction Enterprise : la connexion SAML et OIDC, le SSO global et « Require SSO for login » fonctionnent de la même façon dans tous les états de licence.
+Chaque fonction Enterprise fonctionne pendant l'essai de 14 jours, et pendant 30 jours après l'expiration d'une licence (le délai de grâce). Le libellé d'édition avertit avant la fin de l'un comme de l'autre. Ensuite, **SCIM, la journalisation d'audit et les remplacements de rétention s'arrêtent** jusqu'à l'activation d'une licence, comme sur la Community Edition, et la configuration Enterprise passe en lecture seule. L'authentification unique n'est pas une fonction Enterprise : la connexion SAML et OIDC, le SSO global et « Require SSO to sign in » fonctionnent de la même façon dans tous les états de licence.
 
 ```mermaid title="Comment une licence passe d'un état à l'autre"
 stateDiagram-v2
@@ -200,7 +200,7 @@ Ce qui s'arrête lorsqu'une licence expire :
 
 Ce qui ne s'arrête **pas** :
 
-- **L'authentification unique.** La connexion SAML et OIDC aux projets, aux pages de statut privées, à toute l'instance (SSO global) et aux applications mobiles, ainsi que « Require SSO for login », font partie de chaque édition. Une licence expirée n'y change rien, et la configuration de l'authentification unique reste modifiable.
+- **L'authentification unique.** La connexion SAML et OIDC aux projets, aux pages de statut privées, à toute l'instance (SSO global) et aux applications mobiles, ainsi que « Require SSO to sign in », font partie de chaque édition. Une licence expirée n'y change rien, et la configuration de l'authentification unique reste modifiable.
 - **La supervision de base n'est jamais affectée** : moniteurs, alertes, incidents, astreinte, pages de statut et télémétrie continuent tous de fonctionner.
 - **Les administrateurs principaux peuvent toujours se connecter avec leur mot de passe.**
 - **Les rôles personnalisés, les listes d'autorisation IP et les contrôles d'accès des pages de statut continuent de s'appliquer.** Vous pouvez les supprimer, mais pas les créer ni les modifier.
@@ -210,11 +210,11 @@ Ce qui ne s'arrête **pas** :
 **Tout reprend dès qu'une licence est activée**, sans redémarrage : le provisionnement SCIM, la journalisation d'audit et les remplacements de rétention reviennent avec la configuration que vous avez. OneUptime ne les désactive que lorsqu'il sait que la licence a expiré. Tant qu'il ne peut pas lire l'état de la licence, par exemple un instant pendant le démarrage du serveur, SCIM, la journalisation d'audit et les remplacements de rétention restent actifs.
 
 > [!WARNING]
-> **Si votre fournisseur d'identité déprovisionne des utilisateurs par SCIM, activez une licence avant la fin de l'essai ou du délai de grâce.** Après cela, SCIM ne déprovisionne plus les personnes que vous retirez chez votre fournisseur d'identité : leurs comptes OneUptime restent, et à moins que « Require SSO for login » ne s'applique à elles, quiconque peut encore accéder à la boîte de réception d'un tel compte peut définir un mot de passe et se connecter. Si vous laissez la licence expirer, supprimez vous-même ces utilisateurs dans OneUptime.
+> **Si votre fournisseur d'identité déprovisionne des utilisateurs par SCIM, activez une licence avant la fin de l'essai ou du délai de grâce.** Après cela, SCIM ne déprovisionne plus les personnes que vous retirez chez votre fournisseur d'identité : leurs comptes OneUptime restent, et à moins que « Require SSO to sign in » ne s'applique à elles, quiconque peut encore accéder à la boîte de réception d'un tel compte peut définir un mot de passe et se connecter. Si vous laissez la licence expirer, supprimez vous-même ces utilisateurs dans OneUptime.
 
 ## Passer d'Enterprise à Community
 
-Votre configuration reste dans la base de données. Revenir à l'image Enterprise rétablit tout comme avant, tant que l'installation a une licence valide ou se trouve encore dans son essai ou son délai de grâce. L'authentification unique ne change pas : la connexion SAML et OIDC, le SSO global et « Require SSO for login » fonctionnent de la même façon sur les deux images. Sur l'image Community :
+Votre configuration reste dans la base de données. Revenir à l'image Enterprise rétablit tout comme avant, tant que l'installation a une licence valide ou se trouve encore dans son essai ou son délai de grâce. L'authentification unique ne change pas : la connexion SAML et OIDC, le SSO global et « Require SSO to sign in » fonctionnent de la même façon sur les deux images. Sur l'image Community :
 
 - **SCIM s'arrête.** Ses endpoints de provisionnement n'existent plus, donc les appels SCIM pilotés par l'IdP échouent. Cela inclut le déprovisionnement SCIM.
 - **Les verrous d'équipe SCIM sont levés**, de sorte que les équipes qui étaient gérées par des groupes push SCIM peuvent être modifiées à la main. Au démarrage, le serveur journalise les projets dont les verrous d'équipe SCIM ont été levés.
@@ -227,7 +227,7 @@ Votre configuration reste dans la base de données. Revenir à l'image Enterpris
 - **Les tableaux de bord Health Enterprise, la Query Console et les alertes de santé PostgreSQL et Valkey s'arrêtent.** La surveillance de la capacité et la purge ClickHouse, l'état des migrations et le bundle de support continuent de fonctionner.
 
 > [!CAUTION]
-> **Avant de passer à l'image Community une installation dont le fournisseur d'identité déprovisionne des utilisateurs par SCIM, vérifiez qui a accès.** Sans SCIM, les personnes que vous retirez chez votre fournisseur d'identité gardent leurs comptes OneUptime, et à moins que « Require SSO for login » ne s'applique à elles, quiconque peut encore accéder à la boîte de réception d'un tel compte peut définir un mot de passe et se connecter. Supprimez d'abord ces utilisateurs.
+> **Avant de passer à l'image Community une installation dont le fournisseur d'identité déprovisionne des utilisateurs par SCIM, vérifiez qui a accès.** Sans SCIM, les personnes que vous retirez chez votre fournisseur d'identité gardent leurs comptes OneUptime, et à moins que « Require SSO to sign in » ne s'applique à elles, quiconque peut encore accéder à la boîte de réception d'un tel compte peut définir un mot de passe et se connecter. Supprimez d'abord ces utilisateurs.
 
 ## Dépannage
 

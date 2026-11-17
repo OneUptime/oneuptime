@@ -153,7 +153,7 @@ const NOW_ACCURATE_SSO_COPY: Array<string> = [
   "SSO enforcement is never tied to the license.",
   "Members can still sign in.",
   "Single sign-on keeps working either way.",
-  'Single sign-on keeps working when the license lapses: SAML and OIDC sign-in, global SSO and "Require SSO for login" are part of every edition.',
+  'Single sign-on keeps working when the license lapses: SAML and OIDC sign-in, global SSO and "Require SSO to sign in" are part of every edition.',
   "SSO, OIDC and global SSO keep running after the trial and the grace period, because they are part of the Community Edition.",
   "Single sign-on never stops with the license.",
 ];
@@ -255,7 +255,7 @@ const RETIRED_SSO_CLAIMS: Array<RetiredSsoClaim> = [
  */
 const FORMERLY_PUBLISHED_SSO_CLAIMS: Array<string> = [
   "After that, **SSO, OIDC, SCIM and audit logging stop** until a license is activated, the same as on the Community Edition.",
-  'After the trial, SSO and OIDC sign-in stop, "Require SSO for login" is no longer enforced (users sign in with their password), SCIM provisioning stops and audit logging stops recording.',
+  'After the trial, SSO and OIDC sign-in stop, "Require SSO to sign in" is no longer enforced (users sign in with their password), SCIM provisioning stops and audit logging stops recording.',
   "> **Edition:** SSO is part of the OneUptime Enterprise Edition.",
   'Without a valid license (after the 14-day trial, or 30 days after a license expires), global SSO sign-in stops and instance-wide "Require SSO" is not enforced until a license is activated.',
   'After the trial (or 30 days after a license expires), until a license is activated, SSO, OIDC, SCIM and audit logging stop: SSO sign-in is refused and "Require SSO" is no longer enforced (users sign in with their password), your identity provider\'s SCIM requests are refused, and audit logging stops recording.',
@@ -274,14 +274,14 @@ const FORMERLY_PUBLISHED_SSO_CLAIMS: Array<string> = [
  * to what does stop. None may be flagged.
  */
 const ACCURATE_SSO_COPY: Array<string> = [
-  '> **Edition:** SSO, including "Require SSO for login", is part of every OneUptime edition: self-hosted installations get it in the Community Edition, with no license needed.',
+  '> **Edition:** SSO, including "Require SSO to sign in", is part of every OneUptime edition: self-hosted installations get it in the Community Edition, with no license needed.',
   "On OneUptime Cloud it is available on the **Scale** plan and above.",
-  'Single sign-on is not an enterprise feature: SAML and OIDC sign-in, global SSO and "Require SSO for login" work the same in every license state.',
+  'Single sign-on is not an enterprise feature: SAML and OIDC sign-in, global SSO and "Require SSO to sign in" work the same in every license state.',
   "After that, **SCIM and audit logging stop** until a license is activated, the same as on the Community Edition, and enterprise configuration becomes read-only.",
   "On a self-hosted installation, SSO and OIDC are part of every edition, and SCIM needs the [Enterprise Edition](/docs/self-hosted/enterprise).",
   "The **Enterprise Edition** adds the enterprise modules from the repository's `ee/` directory: SCIM, team compliance, audit logs and the enterprise Health dashboards in the Admin Dashboard.",
   "They add the enterprise features (SCIM, audit logs, team compliance, instance health dashboards), licensed under the OneUptime Enterprise License.",
-  'Single sign-on (SAML, OIDC and "Require SSO for login") is part of both editions and does not depend on the license.',
+  'Single sign-on (SAML, OIDC and "Require SSO to sign in") is part of both editions and does not depend on the license.',
   "OneUptime Cloud runs the Enterprise Edition, and your plan still decides which features you get: SSO, OIDC, SCIM and team compliance on the Scale plan and above, and audit logs on the Enterprise plan.",
   "The SSO and OIDC endpoints (SAML sign-in and ACS URLs, OIDC redirect URIs, and the global SSO endpoints) keep their exact paths and are served by both editions in every license state.",
   // Not about the license: a status page with no provider says so.

@@ -540,6 +540,33 @@ describe("what each offer draws", () => {
     expect(screen.queryByTestId("trace-fix-performance")).toBeNull();
   });
 
+  /*
+   * The fix is in a task a reply carried a private incident or alert into,
+   * which the reader may not open: the strip says it is there, behind a
+   * lock, and why nothing of it shows - never the fix again, and no link.
+   */
+  test("Done in a task hidden from the reader: there, behind a lock, and nothing of it", () => {
+    const { onFix } = renderStrip({
+      suggestion: { ...done(FinishedFixOutcome.Hidden), aiRunId: null },
+    });
+
+    const line: HTMLElement = screen.getByTestId(
+      TRACE_FIX_PERFORMANCE_DONE_TEST_IDS.done,
+    );
+    expect(line).toHaveAttribute("data-outcome", FinishedFixOutcome.Hidden);
+    expect(line).toHaveTextContent(
+      "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.",
+    );
+    expect(FINISHED_FIX_MARKS[FinishedFixOutcome.Hidden].className).toBe(
+      "text-gray-400",
+    );
+    expect(
+      screen.queryByTestId(TRACE_FIX_PERFORMANCE_DONE_TEST_IDS.link),
+    ).toBeNull();
+    expect(screen.queryByTestId("trace-fix-performance")).toBeNull();
+    expect(onFix).not.toHaveBeenCalled();
+  });
+
   test("Done that does not say how it came out draws no line, and never the fix", () => {
     renderStrip({
       suggestion: { ...done(FinishedFixOutcome.Fixed), fixOutcome: null },
@@ -698,6 +725,31 @@ describe("what each offer draws", () => {
       "flex-col",
       "lg:flex-row",
     );
+  });
+
+  /*
+   * A Button has no width of its own (#9128): the strip gives its fix
+   * button a phone's width, which the offline browser suite measures - it
+   * was as wide as its words there, at the strip's edge. While the click
+   * is on its way, the wrapper that says why takes the same width.
+   */
+  test("on a phone the strip stretches its fix button, busy or not", () => {
+    renderStrip({ suggestion: suggestion(SuggestionOffer.Act) });
+    expect(screen.getByTestId("trace-fix-performance")).toHaveClass(
+      "max-sm:w-full",
+    );
+    cleanup();
+
+    renderStrip({
+      suggestion: suggestion(SuggestionOffer.Act),
+      isCreating: true,
+    });
+    expect(screen.getByTestId("trace-fix-performance")).toHaveClass(
+      "max-sm:w-full",
+    );
+    expect(
+      screen.getByTestId("trace-fix-performance-disabled-wrapper"),
+    ).toHaveClass("max-sm:w-full");
   });
 
   test("the query shows on up to two lines, and whole on hover", () => {

@@ -70,7 +70,7 @@ Se [Ordliste](/docs/introduction/glossary) for ordene som brukes på tvers av On
 
 - **Arbeidsflyter** — listen over arbeidsflytene dine. Opprett en ny, eller åpne en eksisterende.
 - **Globale variabler** — verdier som alle arbeidsflytene dine deler.
-- **Logger → Kjøringer** — kjøringshistorikken for alle arbeidsflytene i prosjektet ditt.
+- **Kjøringer** — kjøringshistorikken for alle arbeidsflytene i prosjektet ditt.
 - **Innstillinger → Etikettregler** og **Eierregler** — sett etiketter på nye arbeidsflyter og tildel eierne deres automatisk.
 - **Avansert → Arkivert** — arbeidsflyter du har arkivert. De kjører aldri og er utelatt fra listen; fjern dem fra arkivet herfra. Se [Arkivere en arbeidsflyt](/docs/workflows/configuration#å-arkivere-en-arbeidsflyt).
 - **Utvikler** — hvordan du administrerer arbeidsflyter med Terraform, API-et eller en AI-assistent.
@@ -80,12 +80,12 @@ Se [Ordliste](/docs/introduction/glossary) for ordene som brukes på tvers av On
 - **Oversikt** — navn, beskrivelse, etiketter og bryteren **Aktivert**.
 - **Bygger** — lerretet der du designer arbeidsflyten, med bryteren **Aktivert** øverst.
 - **Arbeidsflytvariabler** — verdier som bare gjelder denne ene arbeidsflyten.
-- **Logger → Kjøringer** — hver kjøring av denne arbeidsflyten, med detaljer.
-- **Eiere** — personene og teamene som er ansvarlige for arbeidsflyten.
+- **Kjøringer** — hver kjøring av denne arbeidsflyten, med detaljer.
 - **Utvikler** — hvordan du administrerer denne arbeidsflyten med Terraform, API-et eller en AI-assistent.
 - **Innstillinger** — dupliser, eksporter og arkiver.
+- **Eiere** — personene og teamene som er ansvarlige for arbeidsflyten.
 
-**Innstillinger** ligger i menyens del **Avansert** sammen med **Revisjonslogger** og **Slett arbeidsflyt**. **Avansert** og **Utvikler** starter sammenfoldet, i denne menyen og i alle andre, slik at sidene du bruker hver dag, kommer først. Klikk på navnet til en del for å vise sidene i den. Den folder seg ut av seg selv når du er på en av dem.
+**Innstillinger** og **Eiere** ligger i menyens del **Avansert** sammen med **Revisjonslogger** og **Slett arbeidsflyt**. **Avansert** og **Utvikler** starter sammenfoldet, i denne menyen og i alle andre, slik at sidene du bruker hver dag, kommer først. Klikk på navnet til en del for å vise sidene i den. Den folder seg ut av seg selv når du er på en av dem.
 
 ## Bygg din første arbeidsflyt
 

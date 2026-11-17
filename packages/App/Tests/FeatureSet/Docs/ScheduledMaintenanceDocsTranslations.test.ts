@@ -9,7 +9,6 @@ import {
   DIAGRAM_KINDS,
   GETTING_STARTED_CARD_AFTER,
   KEPT_AS_WRITTEN,
-  LABELS_KEYED_WITH_A_SPACE,
   MAINTENANCE_CALENDAR,
   MAINTENANCE_OVERVIEW,
   MAINTENANCE_STATES,
@@ -193,19 +192,6 @@ function accountedFor(page: string, span: string): boolean {
 }
 
 /*
- * Whether a bold word is a label the Dashboard keys with a trailing space
- * ("Show event on these status pages "), which a page writes without it.
- */
-function isLabelKeyedWithASpace(span: string): boolean {
-  return LABELS_KEYED_WITH_A_SPACE.includes(span) && isActionLabel(`${span} `);
-}
-
-// How this language's Dashboard draws such a label: its key's wording, trimmed.
-function drawnLabelKeyedWithASpace(language: string, english: string): string {
-  return drawnActionLabel(language, `${english} `).trim();
-}
-
-/*
  * The Dashboard labels a page names that drawnActionLabel draws: every bold
  * label but the ones a list keeps, or translates freely.
  */
@@ -233,16 +219,6 @@ function englishBoldDrawings(
     ...dashboardLabels(page).map((label: string): [string, string] => {
       return [`**${label}**`, `**${writtenActionLabel(language, label)}**`];
     }),
-    ...boldLabels(englishPage(page))
-      .filter((label: string): boolean => {
-        return isLabelKeyedWithASpace(label);
-      })
-      .map((label: string): [string, string] => {
-        return [
-          `**${label}**`,
-          `**${drawnLabelKeyedWithASpace(language, label)}**`,
-        ];
-      }),
     ...dashboardPaths(page).map((segments: Array<string>): [string, string] => {
       return [drawnPath("en", segments), drawnPath(language, segments)];
     }),
@@ -520,11 +496,7 @@ describe("the lists this test keeps", () => {
     for (const page of PAGE_NAMES) {
       const unlisted: Array<string> = [
         ...boldLabels(englishPage(page)).filter((span: string): boolean => {
-          return (
-            !isActionLabel(span) &&
-            !isLabelKeyedWithASpace(span) &&
-            !accountedFor(page, span)
-          );
+          return !isActionLabel(span) && !accountedFor(page, span);
         }),
         ...dashboardPaths(page)
           .map((segments: Array<string>): string => {
@@ -583,19 +555,6 @@ describe("the lists this test keeps", () => {
           return isActionLabel(span);
         }),
       }).toEqual({ page, labels: [] });
-    }
-  });
-
-  it("name as keyed with a space only labels the Dashboard keys that way, and that are not keys without it", () => {
-    for (const label of LABELS_KEYED_WITH_A_SPACE) {
-      expect({ label, spaced: isActionLabel(`${label} `) }).toEqual({
-        label,
-        spaced: true,
-      });
-      expect({ label, bare: isActionLabel(label) }).toEqual({
-        label,
-        bare: false,
-      });
     }
   });
 });
@@ -1113,14 +1072,17 @@ describe("the helpers, on these pages' shapes", () => {
     ).toContain("Scheduled Maintenance → Rules → Reminder Rules");
   });
 
-  it("draw a label keyed with a trailing space as its key's wording, trimmed", () => {
-    const drawn: string = drawnLabelKeyedWithASpace(
-      "de",
+  /*
+   * The status page picker's label was keyed with a trailing space, and the
+   * pages named it through a lookup of their own; since #9131 it is keyed as
+   * written, like every other label.
+   */
+  it("draw the status page picker's label as its own key", () => {
+    expect(isActionLabel("Show event on these status pages")).toBe(true);
+    expect(isActionLabel("Show event on these status pages ")).toBe(false);
+    expect(drawnActionLabel("de", "Show event on these status pages")).not.toBe(
       "Show event on these status pages",
     );
-
-    expect(drawn).not.toBe("Show event on these status pages");
-    expect(drawn).toBe(drawn.trim());
     expect(
       englishBoldDrawings("de", CREATING_EVENTS).map(
         (drawing: [string, string]): string => {

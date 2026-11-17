@@ -18,7 +18,10 @@ import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
  * view layouts (RulesMenuSection/Fixture): a status page keeps its Monitor
  * Rules in a Rules section right below Resources, an SLO its Monitor Rules,
  * Burn Rate Rules and Error Budget Policy in a Rules section right below
- * Configuration, and both sections start folded.
+ * Activity, and both sections start folded. A section that held one page
+ * joined a neighbour (c76af29cbe3, #9216): a status page's MCP is under
+ * Advanced, not a section "AI" of its own, and an SLO's Monitors sit under
+ * Overview, not a section "Configuration" of their own.
  *
  * jsdom applies no CSS, so the jest suites (StatusPageRulesMenu,
  * SloViewSideMenu and RulesMenuSections in packages/Common) can only read the
@@ -42,14 +45,12 @@ const STATUS_PAGE_PATH: string = `/dashboard/${PROJECT_ID}/status-pages/${STATUS
 const SLO_PATH: string = `/dashboard/${PROJECT_ID}/slos/${SLO_ID}`;
 
 const STATUS_PAGE_SECTIONS: ReadonlyArray<string> = [
-  "Basic",
+  "Overview",
   "Resources",
   "Rules",
   "Subscribers",
-  "Notification Logs",
   "Branding",
   "Security",
-  "AI",
   "Developer",
   "Advanced",
 ];
@@ -57,7 +58,6 @@ const STATUS_PAGE_SECTIONS: ReadonlyArray<string> = [
 const SLO_SECTIONS: ReadonlyArray<string> = [
   "Overview",
   "Activity",
-  "Configuration",
   "Rules",
   "Developer",
   "Management",
@@ -246,7 +246,7 @@ test.describe("a status page's side menu", () => {
     const menu: Locator = desktopMenu(page);
 
     expect(await sectionTitles(menu)).toEqual(STATUS_PAGE_SECTIONS);
-    await expectOpen(menu, "Basic");
+    await expectOpen(menu, "Overview");
     await expectOpen(menu, "Resources");
     await expectFolded(menu, "Rules");
 
@@ -441,7 +441,7 @@ test.describe("a status page's side menu", () => {
 });
 
 test.describe("an SLO's side menu", () => {
-  test("on the Overview, Configuration, Rules and Management are folded; Rules holds both rules pages and the error budget policy", async ({
+  test("on the Overview, the Monitors are in sight under Overview, and Rules, Developer and Management are folded; Rules holds both rules pages and the error budget policy", async ({
     page,
   }: {
     page: Page;
@@ -460,11 +460,18 @@ test.describe("an SLO's side menu", () => {
     await expectOpen(menu, "Overview");
     await expectOpen(menu, "Activity");
 
-    for (const title of ["Configuration", "Rules", "Developer", "Management"]) {
+    for (const title of ["Rules", "Developer", "Management"]) {
       await expectFolded(menu, title);
     }
 
-    await expect(monitors).toBeHidden();
+    // The monitors the SLO measures sit beside its overview, in sight.
+    await expect(
+      (await sectionBody(menu, "Overview")).locator(
+        `a[href='${SLO_PATH}/monitors']`,
+      ),
+    ).toHaveCount(1);
+    await expect(monitors).toBeVisible();
+    await expect(monitors).toHaveText("Monitors");
     await expect(monitorRules).toBeHidden();
     await expect(burnRateRules).toBeHidden();
     await expect(errorBudgetPolicy).toBeHidden();
@@ -489,14 +496,15 @@ test.describe("an SLO's side menu", () => {
       "Error Budget Policy",
     ]);
 
-    // The monitors stay under Configuration, which is still folded.
-    await expectFolded(menu, "Configuration");
-    await expect(monitors).toBeHidden();
+    // Opening Rules opens nothing else, and the monitors stay in sight.
+    await expectFolded(menu, "Developer");
+    await expectFolded(menu, "Management");
+    await expect(monitors).toBeVisible();
 
     await screenshot(page, "slo-overview-rules-open");
   });
 
-  test("Burn Rate Rules opens Rules by itself and leaves Configuration folded; one monitor rule's page opens it too", async ({
+  test("Burn Rate Rules opens Rules by itself and leaves Developer and Management folded; one monitor rule's page opens it too", async ({
     page,
   }: {
     page: Page;
@@ -507,9 +515,9 @@ test.describe("an SLO's side menu", () => {
 
     await expectOpen(menu, "Rules");
     expect(await isMarked(burnRateRules)).toBe(true);
-    await expectFolded(menu, "Configuration");
+    await expectFolded(menu, "Developer");
     await expectFolded(menu, "Management");
-    await expect(link(menu, `${SLO_PATH}/monitors`)).toBeHidden();
+    await expect(link(menu, `${SLO_PATH}/settings`)).toBeHidden();
 
     await screenshot(page, "slo-burn-rate-rules");
 
@@ -518,7 +526,7 @@ test.describe("an SLO's side menu", () => {
     await expectStandIn(page, "One of the Monitor Rules");
     await expectOpen(menu, "Rules");
     await expect(link(menu, `${SLO_PATH}/monitor-rules`)).toBeVisible();
-    await expectFolded(menu, "Configuration");
+    await expectFolded(menu, "Management");
   });
 
   /*
@@ -543,7 +551,8 @@ test.describe("an SLO's side menu", () => {
     );
 
     // The page keeps its own section open; Rules stays folded.
-    await expectOpen(menu, "Configuration");
+    await expectOpen(menu, "Overview");
+    expect(await isMarked(link(menu, `${SLO_PATH}/monitors`))).toBe(true);
     await expectFolded(menu, "Rules");
     await expect(monitorRules).toBeHidden();
 
@@ -601,7 +610,7 @@ test.describe("an SLO's side menu", () => {
     expect(await isMarked(link(menu, `${SLO_PATH}/monitor-rules`))).toBe(true);
   });
 
-  test("folded sections are out of the keyboard's way: Tab walks Configuration, Rules, Developer", async ({
+  test("folded sections are out of the keyboard's way: Tab walks Rules, Developer, Management", async ({
     page,
   }: {
     page: Page;
@@ -609,12 +618,12 @@ test.describe("an SLO's side menu", () => {
     await open(page, SLO_PATH);
     const menu: Locator = desktopMenu(page);
 
-    await sectionToggle(menu, "Configuration").focus();
-    await page.keyboard.press("Tab");
-    await expect(sectionToggle(menu, "Rules")).toBeFocused();
-
+    await sectionToggle(menu, "Rules").focus();
     await page.keyboard.press("Tab");
     await expect(sectionToggle(menu, "Developer")).toBeFocused();
+
+    await page.keyboard.press("Tab");
+    await expect(sectionToggle(menu, "Management")).toBeFocused();
   });
 });
 
@@ -674,7 +683,7 @@ test.describe("on a phone", () => {
 
     const menu: Locator = phoneMenu(page);
     await expectOpen(menu, "Rules");
-    await expectFolded(menu, "Configuration");
+    await expectFolded(menu, "Management");
   });
 });
 

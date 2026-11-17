@@ -192,7 +192,7 @@ export function getGlobalChangeRefusalMessage(
     sentences.push(
       `${capitalize(describeStrandedProjects(required))} ${
         required.count === 1 ? "requires" : "require"
-      } sign-in with this SSO provider. Require another provider there, or turn off Require SSO for Login, first, so people can still sign in.`,
+      } sign-in with this SSO provider. Require another provider there, or turn off Require SSO to Sign In, first, so people can still sign in.`,
     );
   }
 
@@ -210,7 +210,7 @@ export function getGlobalChangeRefusalMessage(
       })
         ? `This change would leave ${projects} with no SSO provider people can sign in with, and ${
             isOne ? "it requires" : "they require"
-          } SSO. Turn on another SSO provider for ${them} first, or turn off Require SSO for Login there.`
+          } SSO. Turn on another SSO provider for ${them} first, or turn off Require SSO to Sign In there.`
         : `This server requires SSO for everyone, and this change would leave ${projects} with no SSO provider people can sign in with. Turn on another SSO provider for ${them} first.`,
     );
   }

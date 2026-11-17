@@ -1,4 +1,6 @@
 import ActionItemCodeTaskModal from "./ActionItemCodeTaskModal";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import PostmortemActionItemsApi from "./PostmortemActionItemsApi";
 import {
   MORE_UNTRACKED_ACTION_ITEMS,
@@ -145,7 +147,7 @@ const OWNER_PICKER: PeoplePickerFieldConfig = {
  * it on a phone, side by side from md up, as a case's tasks add one.
  */
 const ADD_FORM_CLASS_NAME: string =
-  "mt-1 flex flex-col gap-2 border-t border-gray-100 pt-4 md:flex-row md:items-center [&>button]:md:ml-0 [&>*>button]:md:ml-0";
+  "mt-1 flex flex-col gap-2 border-t border-gray-100 pt-4 md:flex-row md:items-center";
 
 function nameOf(user: { name?: unknown; email?: unknown } | undefined): string {
   return user?.name?.toString() || user?.email?.toString() || "";
@@ -938,9 +940,10 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
           )}
           <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
             {isWontDo ? (
-              <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                {translator.translateText(POSTMORTEM_ACTION_ITEMS_COPY.wontDo)}
-              </span>
+              <Pill
+                text={POSTMORTEM_ACTION_ITEMS_COPY.wontDo}
+                tone={PillTone.Paused}
+              />
             ) : (
               <></>
             )}

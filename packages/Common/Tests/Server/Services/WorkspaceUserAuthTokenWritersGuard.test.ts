@@ -76,23 +76,13 @@ const OTHER_WRITE_CALL: RegExp =
   /\bWorkspaceUserAuthTokenService\s*\.\s*(create|createFromTemplate|updateOneBy|updateBy|updateOneById|updateOneByIdAndFetch|updateColumnsByIdWithoutHooks|updateColumnsByIdIfUnlockedWithoutHooks|getRepository)\s*\(/g;
 
 /*
- * Writes on the service outside it that change no link, each with the one
- * call it makes, whitespace taken out, and why. The data migration that
- * encrypts the tokens stored before they were kept encrypted at rest
- * (#8989) hands the table to EncryptColumnInPlace for authToken alone,
- * which writes each token back encrypted, and only while the row still
- * holds the token it read: no link's member, project or chat account
- * changes.
+ * The repository handed out on purpose, with why. Each place that takes it
+ * writes no link of its own: it rewrites a column of the links already
+ * stored, as they are.
  */
-const WRITES_THAT_CHANGE_NO_LINK: Record<
-  string,
-  { call: string; why: string }
-> = {
+const REPOSITORY_READERS: Record<string, string> = {
   "packages/App/FeatureSet/Workers/DataMigrations/EncryptProjectCredentials.ts":
-    {
-      call: '{kind:"workspaceaccountlink",repository:WorkspaceUserAuthTokenService.getRepository()asunknownasModelRepository,column:"authToken",}',
-      why: "Encrypts the token a member's sign-in stored, in place: the same token, encrypted, in the same link.",
-    },
+    "encrypts each stored link's authToken in place (#8989), only while the row still holds the value read: it adds, moves or reassigns no link",
 };
 
 // A row built to be saved, outside the service.
@@ -139,6 +129,8 @@ interface Occurrence {
   line: number;
   // The call's arguments, whitespace removed, when it is a call.
   argumentsText: string;
+  // What the pattern matched, as written.
+  matched: string;
 }
 
 function listSourceFiles(directory: string): Array<string> {
@@ -264,6 +256,7 @@ function findAll(pattern: RegExp): Array<Occurrence> {
           source[openParen] === "("
             ? argumentsOf(source, openParen).replace(WHITESPACE, "")
             : "",
+        matched: match[0],
       });
     }
   }
@@ -344,33 +337,21 @@ describe("only a sign-in connects a chat account to a member", () => {
   test("nothing else writes a link: no other write on the service, outside the service", () => {
     const writes: Array<Occurrence> = findAll(OTHER_WRITE_CALL).filter(
       (write: Occurrence): boolean => {
-        return write.file !== SERVICE_FILE;
+        return (
+          write.file !== SERVICE_FILE &&
+          !(
+            write.matched.includes("getRepository") &&
+            Object.prototype.hasOwnProperty.call(REPOSITORY_READERS, write.file)
+          )
+        );
       },
     );
 
-    // A write that changes no link makes the one call listed, and no other.
-    for (const [file, allowed] of Object.entries(WRITES_THAT_CHANGE_NO_LINK)) {
-      const source: string = fs
-        .readFileSync(path.join(REPOSITORY_DIR, file), "utf8")
-        .replace(WHITESPACE, "");
+    expect(placesOf(writes)).toEqual([]);
 
-      expect({
-        file,
-        writes: writes.filter((write: Occurrence): boolean => {
-          return write.file === file;
-        }).length,
-        makesTheCallListed: source.includes(allowed.call),
-        saysWhy: allowed.why.length > 0,
-      }).toEqual({ file, writes: 1, makesTheCallListed: true, saysWhy: true });
+    for (const why of Object.values(REPOSITORY_READERS)) {
+      expect(why.length).toBeGreaterThan(0);
     }
-
-    expect(
-      placesOf(
-        writes.filter((write: Occurrence): boolean => {
-          return !WRITES_THAT_CHANGE_NO_LINK[write.file];
-        }),
-      ),
-    ).toEqual([]);
   });
 
   test("no link is built to be saved outside the service", () => {

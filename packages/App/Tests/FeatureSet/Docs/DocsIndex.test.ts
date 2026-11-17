@@ -496,7 +496,7 @@ describe("DocsTermReader", () => {
  * of every part, whether it is there or not.
  */
 describe("the index, against Maps and Sets of the same pages", () => {
-  // The suites' seeded generator, so the pages are the same each run.
+  // A seeded generator, so the pages are the same each run.
   const random: SeededRandom = seededRandom(8818);
   const WORDS: Array<string> = Array.from(
     { length: 400 },

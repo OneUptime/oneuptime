@@ -14,7 +14,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
+import { SpyInstance } from "jest-mock";
 
 /*
  * ProjectMiddleware.isMasterApiKey AGAINST A STORED HASH (#7901).

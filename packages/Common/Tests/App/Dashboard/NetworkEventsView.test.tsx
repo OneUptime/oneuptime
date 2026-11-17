@@ -2498,9 +2498,15 @@ describe("an event, opened", () => {
 
     const panel: HTMLElement = await open("device.reboot");
 
-    expect(
-      within(panel).getByTestId("network-event-details-add-device"),
-    ).toHaveClass("max-md:w-auto", "max-md:text-sm", "md:ml-0");
+    const addDevice: HTMLElement = within(panel).getByTestId(
+      "network-event-details-add-device",
+    );
+
+    // A Button is its words' width at every width, with no margin (#9128).
+    expect(addDevice).toHaveClass("text-sm");
+    expect(addDevice.className).not.toMatch(
+      /(^|\s)(?:[a-z]+:)?!?(?:m[ls]-|w-full)/u,
+    );
   });
 
   test("a tunnel's far end is its peer address, not a routing neighbor", async () => {

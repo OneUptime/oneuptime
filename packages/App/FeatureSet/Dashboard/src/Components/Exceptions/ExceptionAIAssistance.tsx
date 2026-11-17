@@ -550,10 +550,13 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
-    // In the sentence's own language (exceptionTimeValue).
-    const startedAgo: ComposedValue | undefined = exceptionTimeValue(
-      task.createdAt,
-    );
+    /*
+     * In the sentence's own language (exceptionTimeValue). Nothing of when a
+     * task hidden from the reader started.
+     */
+    const startedAgo: ComposedValue | undefined = task.isHidden
+      ? undefined
+      : exceptionTimeValue(task.createdAt);
 
     return (
       <>
@@ -564,8 +567,20 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
               : "bg-gray-50 text-gray-700"
           }`}
           data-testid="exception-ai-task-message"
+          data-hidden={task.isHidden ? "true" : undefined}
         >
-          {state.message && <p>{state.message}</p>}
+          {state.message && task.isHidden ? (
+            <p className="flex items-start gap-2">
+              <Icon
+                icon={IconProp.Lock}
+                className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+              />
+              <span>{translator.translateText(state.message)}</span>
+            </p>
+          ) : (
+            <></>
+          )}
+          {state.message && !task.isHidden && <p>{state.message}</p>}
           {startedAgo && (
             <p
               className={`text-xs ${
@@ -610,7 +625,7 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
     const { taskType, presentation, task, state } = data;
 
     return (
-      <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+      <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2">
         {state.canViewTask && task && (
           <Button
             title="View task"

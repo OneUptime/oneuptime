@@ -47,7 +47,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { SecurityWatchlistSource } from "Common/Types/SecurityEvent/SecurityWatchlist";
 import { WatchlistReader } from "Common/Types/SecurityEvent/SecurityWatchlistFilter";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import ResellerPlanNotice from "../../Components/Billing/ResellerPlanNotice";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -142,7 +142,10 @@ const SecurityWatchlistsPage: FunctionComponent<PageComponentProps> = (
   // Same reseller-telemetry gate as every other Security Events page.
   if (props.currentProject?.reseller?.enableTelemetryFeatures === false) {
     return (
-      <ErrorMessage message="Looks like you have bought this plan from a reseller. It did not include telemetry features in your plan. Telemetry features are disabled for this project." />
+      <ResellerPlanNotice
+        project={props.currentProject}
+        product="Security Events"
+      />
     );
   }
 

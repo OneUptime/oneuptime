@@ -70,7 +70,7 @@ Abra **Produtos** na barra superior e escolha **Fluxos de trabalho**, em **Pain�
 
 - **Fluxos de trabalho** — a sua lista de workflows. Crie um novo ou abra um existente.
 - **Variáveis globais** — valores compartilhados por todos os seus workflows.
-- **Registros → Execuções** — o histórico de execuções de todos os workflows do projeto.
+- **Execuções** — o histórico de execuções de todos os workflows do projeto.
 - **Configurações → Regras de Rótulos** e **Regras de proprietário** — rotule os novos workflows e atribua os proprietários deles automaticamente.
 - **Avançado → Arquivado** — os workflows que você arquivou. Eles nunca rodam e ficam fora da lista; desarquive-os por aqui. Veja [Arquivar um workflow](/docs/workflows/configuration#arquivar-um-workflow).
 - **Desenvolvedores** — como gerenciar os workflows com Terraform, a API ou um assistente de IA.
@@ -80,12 +80,12 @@ Abra um workflow específico e o menu dele tem:
 - **Visão geral** — nome, descrição, rótulos e a chave **Habilitado**.
 - **Construtor** — o canvas onde você projeta o workflow, com a chave **Habilitado** no topo.
 - **Variáveis do fluxo** — valores que valem só para esse workflow.
-- **Registros → Execuções** — cada execução desse workflow, com detalhes.
-- **Proprietários** — as pessoas e equipes responsáveis pelo workflow.
+- **Execuções** — cada execução desse workflow, com detalhes.
 - **Desenvolvedores** — como gerenciar esse workflow com Terraform, a API ou um assistente de IA.
 - **Configurações** — duplicar, exportar e arquivar.
+- **Proprietários** — as pessoas e equipes responsáveis pelo workflow.
 
-**Configurações** fica na seção **Avançado** do menu, junto com **Registros de auditoria** e **Excluir fluxo de trabalho**. **Avançado** e **Desenvolvedores** começam recolhidas, neste menu e em todos os outros, para que as páginas que você usa todo dia venham primeiro. Clique no nome de uma seção para mostrar as páginas dela. Ela se abre sozinha sempre que você está em uma delas.
+**Configurações** e **Proprietários** ficam na seção **Avançado** do menu, junto com **Registros de auditoria** e **Excluir fluxo de trabalho**. **Avançado** e **Desenvolvedores** começam recolhidas, neste menu e em todos os outros, para que as páginas que você usa todo dia venham primeiro. Clique no nome de uma seção para mostrar as páginas dela. Ela se abre sozinha sempre que você está em uma delas.
 
 ## Monte o seu primeiro workflow
 

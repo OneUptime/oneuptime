@@ -46,6 +46,10 @@ import {
   aiActionTerm,
 } from "../../../../Types/AI/AIActionWords";
 import { readRepositoryFile, resolveTargetRepository } from "./CodeTools";
+import ChatCarriedRecords from "../Chat/ChatCarriedRecords";
+import CarriedRecords, {
+  CarriedRecordIds,
+} from "../../../../Types/AI/CarriedRecords";
 import PromptText from "../../../../Utils/AI/PromptText";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
 import {
@@ -883,6 +887,21 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
     await assertMayChangeRepository({ ctx, repository });
 
     /*
+     * What the pull request's record carries: the chat's subject (#9186),
+     * whose words its title and description are written from, the incidents
+     * and alerts the chat opened one by one, and those of its lists the
+     * pull request quotes (#9242). Read before anything is written to the
+     * host, so a chat that cannot be read stops the pull request rather than
+     * leave it open and unrecorded.
+     */
+    const carried: CarriedRecordIds = await ChatCarriedRecords.ofPullRequest({
+      conversationId: ctx.conversationId,
+      pageContext: ctx.pageContext,
+      title,
+      description,
+    });
+
+    /*
      * The same per-repository open-PR cap the autonomous fix agent obeys. Chat
      * PRs are recorded as AIAgentTaskPullRequest rows below, so they count
      * against it too — otherwise chat would be an uncapped way to flood a
@@ -1026,6 +1045,13 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
     if (ctx.props.userId) {
       record.createdByUserId = ctx.props.userId;
     }
+
+    /*
+     * A chat about a private incident or alert, or one that opened or
+     * quotes one: its pull request is read only by those who may read the
+     * record (AIRunOutputReadFilter, #9186, #9242).
+     */
+    CarriedRecords.writeTo(record, carried);
 
     await AIAgentTaskPullRequestService.create({
       data: record,

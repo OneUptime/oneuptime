@@ -73,6 +73,10 @@ Para continuar, escreva na caixa embaixo, que fica à vista enquanto a conversa 
 
 Quem pode ler um repositório lê as tarefas dele. Pedir à IA, responder e parar uma tarefa exigem permissão para editar o repositório, assim como ver o diff de uma alteração: os demais veem quais arquivos mudaram. As tarefas que o OneUptime inicia por conta própria (abaixo) também ficam no repositório delas, como conversas em que você pode responder.
 
+Uma tarefa sobre um incidente ou alerta privado, iniciada a partir da investigação dele ou de uma das correções dele, só é lida, com as respostas e o pull request dela, por quem pode ler o registro e, depois que o registro é excluído, só pelos Proprietários do projeto e Administradores do projeto. Para os demais, as listas, filtros, buscas e contagens do repositório a deixam de fora. Veja [Incidentes, alertas e episódios privados](/docs/permissions/index#incidentes-alertas-e-episódios-privados).
+
+O mesmo vale para uma tarefa que contém um incidente ou alerta privado: uma pedida com ele como contexto, uma à qual uma resposta o adicionou e a tarefa de uma ação de acompanhamento de um post-mortem. Uma tarefa que contém vários só é lida por quem pode ler todos eles. A caixa de diálogo que adiciona um incidente ou alerta a um pedido diz isso.
+
 ## Como funciona uma execução de correção
 
 ```mermaid title="De um clique a um pull request"
@@ -168,6 +172,7 @@ Funciona em repositórios do GitHub, GitLab, Forgejo e Gitea. O GitHub avisa o O
 Quando a produção diz algo, a OneUptime AI lê isso ao lado do diff e acrescenta **O que observar**: alguns pontos curtos, cada um apoiado nos fatos. Ela lê com o provedor de LLM padrão do projeto, a menos que **Provedor LLM da revisão de produção**, em **Mais configurações** na página **Configurações** do repositório, escolha outro provedor do projeto ou um global. Ela só roda enquanto a IA está ativada no projeto, no máximo 10 vezes por dia para um pull request e 100 para um repositório, e é medida como toda chamada de IA; os fatos são lidos sempre, sem ela. Quando a produção não mostra nada sobre a alteração, o OneUptime não publica nenhum comentário.
 
 - **Apenas agregados.** O comentário contém contagens, durações e nomes de código: nunca a mensagem de uma exceção, uma linha de log, o título de um incidente ou dados pessoais.
+- **Incidentes privados.** Uma revisão nunca nomeia um incidente privado. Se um incidente de uma revisão se tornar privado depois, o Code o deixa fora da revisão para quem não pode lê-lo, com as contagens e os pontos da OneUptime AI sobre ele. O comentário no pull request fica como foi publicado.
 - **Repositórios públicos recebem um link.** Qualquer pessoa pode ler os pull requests de um repositório público, então ali o comentário só aponta para a revisão no OneUptime, que só os membros do projeto podem abrir. **Comentário da revisão de produção**, em **Mais configurações** na página **Configurações** do repositório, pode publicar **Apenas um link para a revisão** em todos, ou **A revisão, mesmo em um repositório público**.
 - **Colaboradores externos não podem iniciar uma.** Um pull request só é revisado sozinho quando o autor, e quem fez push nele, podem escrever no repositório; no GitLab, Forgejo e Gitea, só o de um branch do próprio repositório. O de qualquer outra pessoa - um colaborador externo, um fork, um bot - é revisado quando alguém com acesso de escrita pede: **Revisar um pull request**, na página **Revisões de produção** do repositório, recebe o número dele, e no GitHub um comentário `@oneuptime production review` nele faz o mesmo. **Revisar novamente**, na página de uma revisão, pede de novo.
 - **O token comenta.** No GitLab, Forgejo e Gitea o comentário é publicado com o token de acesso do repositório, como a conta dele. Um token do Forgejo ou Gitea precisa, para isso, de acesso de escrita às issues. Quando o servidor recusa o comentário - um token sem esse acesso, ou uma discussão bloqueada -, a revisão fica só em Código, e a página dela diz isso.
@@ -325,6 +330,8 @@ Todo o resto é igual ao botão:
 - Ele conta para o limite diário de tarefas de correção daquele sinal (**Limite diário de tarefas de correção com IA para incidentes** ou **Limite diário de tarefas de correção com IA para alertas**, em **Mais configurações** na página de configurações de IA dele) e para o teto de pull requests abertos do repositório, quando algum deles está definido. Sem definição, nenhum deles limita nada.
 - Cada gatilho procura primeiro uma tarefa de correção já na fila ou em execução para o mesmo incidente ou alerta, então um gatilho automático e um clique normalmente viram uma única tarefa, não dois pull requests. A verificação é uma leitura antes da escrita, não um bloqueio, então dois gatilhos no mesmo instante ainda podem passar os dois.
 - A execução é escrita pelo sistema, não é atribuída a ninguém, e nada é mesclado sozinho.
+
+Em um incidente ou alerta privado, **Abrir pull request de correção** exige o mesmo que aprovar as correções do registro, por meio das equipes que são donas dele, e fica bloqueado para qualquer outra pessoa, dizendo por quê. Todos com acesso ao repositório leem o pull request, então o título, o commit e a descrição dele dizem o que a alteração faz e nada sobre o registro, e o agente de código é instruído a deixar o registro fora do resumo e dos comentários que escreve. Um Runner anterior a esta mudança não recebe uma correção assim, e a tarefa falha dizendo para atualizar o Runner.
 
 ## Quando uma correção falha
 

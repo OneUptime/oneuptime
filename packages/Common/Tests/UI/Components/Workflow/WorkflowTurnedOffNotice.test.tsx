@@ -284,13 +284,20 @@ describe("the notice's layout on narrow screens", () => {
     const holder: HTMLElement = screen.getByTestId("workflow-turn-on-button")
       .parentElement as HTMLElement;
 
-    // The icon is h-8 w-8 and gap-3 follows it: 32px, plus the button's 12px.
+    // The icon is h-8 w-8 and gap-3 follows it: 32px and 12px, the holder's 44px.
     expect(classesOf(holder)).toEqual(
-      expect.arrayContaining(["shrink-0", "md:pl-8", "lg:pl-0"]),
+      expect.arrayContaining(["shrink-0", "md:pl-11", "lg:pl-0"]),
     );
-    expect(classesOf(screen.getByTestId("workflow-turn-on-button"))).toContain(
-      "md:ml-3",
-    );
+    // The button has no margin of its own to add to it (#9128).
+    expect(
+      classesOf(screen.getByTestId("workflow-turn-on-button")).filter(
+        (name: string): boolean => {
+          const startMargin: RegExp = /(^|:)!?-?m[ls]-/u;
+
+          return startMargin.test(name);
+        },
+      ),
+    ).toEqual([]);
     expect(
       classesOf(
         screen

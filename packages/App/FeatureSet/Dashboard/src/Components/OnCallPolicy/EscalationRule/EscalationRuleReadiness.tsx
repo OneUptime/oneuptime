@@ -12,6 +12,8 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -1273,22 +1275,17 @@ const getReminderRow: (params: {
    * nothing else here means one was.
    */
   if (params.status.state === "sent") {
-    /*
-     * A span rather than a paragraph, because Icon renders a <div>: an HTML
-     * parser closes an open <p> the moment it meets one, which leaves the icon
-     * and the sentence as siblings OUTSIDE the green pill anywhere this markup
-     * is parsed from a string rather than built by React.
-     */
     return (
-      <span
-        data-testid="setup-reminder-sent"
-        className="mt-2.5 inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"
-      >
-        <Icon icon={IconProp.CheckCircle} className="h-3.5 w-3.5" />
-        {translator.translateTemplate("Setup reminder sent to {{name}}.", {
+      <Pill
+        dataTestId="setup-reminder-sent"
+        text={translator.translateTemplate("Setup reminder sent to {{name}}.", {
           name: name,
         })}
-      </span>
+        isUserContent={true}
+        tone={PillTone.Success}
+        icon={IconProp.CheckCircle}
+        className="mt-2.5"
+      />
     );
   }
 

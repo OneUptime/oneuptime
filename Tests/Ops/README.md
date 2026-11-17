@@ -56,14 +56,20 @@ Test" workflow provides both:
   `AppImageRuntime.test.js`, which starts `oneuptime/app:<tag>` from
   `docker-compose.yml` with its PostgreSQL, ClickHouse and Valkey (a project of
   its own, removed with its volumes) and has it serve its frontends, the docs,
-  the API reference, an install script and an API flow. The Build workflow's
-  App job tags the Community image it built `oneuptime/app:ci-runtime` and runs
-  it so, and the suite checks that it does.
+  the API reference, an install script and an API flow, and asks the running
+  App over its inspector what it loaded: only JavaScript, no ts-node and no
+  TypeScript (`Utils/LoadedModules.js`). The Build workflow's App job tags the
+  Community image it built `oneuptime/app:ci-runtime` and runs it so, and the
+  suite checks that it does.
 - **docker, and the Runner image.** `RUN_RUNNER_IMAGE_RUNTIME_TESTS=1` with
   `RUNNER_IMAGE=<tag>` turns on `RunnerImageRuntime.test.js`, which starts
-  the built Runner image against a stand-in OneUptime server and has it run a
-  JavaScript and a Bash step. The Build workflow's Runner job builds the image
-  as `oneuptime-runner:ci` and runs it so, and the suite checks that it does.
+  the built Runner image against a stand-in OneUptime server, has it run a
+  JavaScript and a Bash step, and asks it what it loaded, as the App suite
+  does. The Build workflow's Runner job builds the image as
+  `oneuptime-runner:ci` and runs it so, and the suite checks that it does.
+  On a machine where others run Docker too, `OPS_RUNTIME_NAME_PREFIX` starts
+  the names of what both suites create (default `oneuptime-ops` for the App's
+  project, `oneuptime` for the Runner's container).
 - **docker, for the Node.js images' heap.** `NodeImageHeapLimit.test.js` runs
   every service's start script up to node under sh, bash and (where it is
   installed) BusyBox, against cgroup files it writes for each case. With
@@ -1368,6 +1374,24 @@ exactly as it was, with no staging directory behind. With
 all four vulnerable packages) and uses the result for a real install, and runs
 the script inside `node:26-alpine3.24` through the real `.dockerignore`.
 
+### `ImagesRunJavaScript.test.js`
+
+Every server image (the App in both editions, Home, the ingress sidecar, the
+Probe, the Runner and the test server) runs the JavaScript its build compiled
+(`packages/Common/Server/Utils/TsNode/Precompile.js`), and no process of it
+loads TypeScript or ts-node. From the files that make each image: its start
+script (and the App's migrate script) execs node on the entry's `.js`, with
+`PrecompiledSourceMaps.js` first; nothing its production build runs or sets
+starts ts-node or sets a `TS_NODE_` variable; its build compiles the package
+and Common after the type-check, where its `/usr/src` comes from; the images
+that prune (App, Runner, ingress) prune ts-node and TypeScript and fail when
+either is still there (the check runs here on trees with and without them);
+ts-node is a development package of every server; the Enterprise image
+compiles `ee/` with the App's tsconfig; the Iron Bank images, the Helm chart,
+docker-compose and the release workflows' edition check start them that way.
+It also runs `Utils/LoadedModules.js`'s inspector check, which the App's and
+the Runner's runtime suites run inside their images, on local processes.
+
 ### `ContainerImageHardening.test.js`
 
 What keeps the images free of the rest of what scanners reported, for every
@@ -1717,26 +1741,28 @@ the suite last, either way; and a job limit that holds every step's.
 ### `DashboardOfflineUiBudget.test.js`
 
 Every Dashboard Offline UI group fits its run step with room for a slow runner.
-A runner has taken 1.45 times the minutes of another, suite for suite, and the
-run step stops at 35 minutes, so a group is planned at 22 minutes on a runner
-of median speed. Planned by hand from each group's comment, the groups drifted:
-on 2026-11-02's six finished App Test runs group 14's suites took 30.5 minutes
-at median speed (32.3 on its slowest run), group 13's 26.1, and four more
-groups' between 23.4 and 25. `DashboardOfflineUiMinutes.json` holds each
-suite's minutes - each part's, `<suite> <i>/<n>`, for a suite run in halves
-or thirds - the median over the runs it names, and the suite holds every suite
-a group runs to having its minutes there (and nothing there that no group
-runs), every group's suites to summing to at most 22, naming a group past it
-with its sum, its suites and the groups with the most room, and the run step's
-limit to 22 x 1.45. A new suite's minutes
-come from a local run (CI=1, its bundle built, nothing else running) until App
-Test's runs measure it. Since 2026-11-16 a group runs two suites at a time
-(`RunUiSuites.test.js`), so a group's log no longer runs from one `▶ npm run`
-to the next: re-measure from each group's step summary, which lists every
-suite's minutes from its start to its end, taken beside another suite. The
-budget still holds a group's sum of one-at-a-time minutes, which two at a time
-stays far inside; planning the groups by what two lanes take waits for those
-measurements.
+The run step runs a group's suites two at a time (`RunUiSuites.test.js`): the
+slowest first, each lane starting the next suite as soon as it is free, never
+beside one that shares its port, fixture server or output directory. A runner
+has taken 1.45 times the minutes of another, suite for suite, and the run step
+stops at 35 minutes, so a group is planned at 22 minutes on a runner of median
+speed. `DashboardOfflineUiMinutes.json` holds each suite's minutes beside
+another suite - each part's, `<suite> <i>/<n>`, for a suite run in parts -
+measured from App Test's runs as its `about` says (a suite takes about 1.26
+times its minutes alone beside another). The suite holds every suite a group
+runs to having its minutes there (and nothing there that no group runs); every
+group's suites, started as the script starts them (its own `slowestFirst` and
+`nextToStart`, with what each config holds read by its `resourcesBySuite`), to
+ending within 22, naming a group past it with its minutes, its suites and the
+groups with the most room; and the run step's limit to 22 x 1.45. A suite that
+ends a group alone runs faster than its minutes there, so a group ends a little
+before its planned minutes, never after. A new suite's minutes come from a
+local run (CI=1, its bundle built, nothing else running), times 1.26, until App
+Test's runs measure it. Planned by hand from each group's comment, the groups
+had drifted: on 2026-11-02's six finished App Test runs group 14's suites took
+30.5 minutes at median speed (32.3 on its slowest run). Until 2026-11-17 the
+suite held a group's sum of one-at-a-time minutes to 22, over 22 groups; held
+to what two lanes take, the same suites fit in twelve.
 
 ### `RunUiSuites.test.js`
 
@@ -1760,17 +1786,23 @@ two at a time, after installing Common (whose esbuild reads the configs), with
 
 ### `DashboardOfflineUiShards.test.js`
 
-App Test runs Event Overview, the Workflow Builder suite, Model Tables and
-Monitor Overview in halves, and the OpenStack pages in thirds, one part per
-Dashboard Offline UI group: a group's matrix sets `<suite>_shard` ("1/2",
-"2/2", or "1/3" to "3/3"), the job's env hands it to the suite's config as a
-variable of its own (`EVENT_OVERVIEW_SHARD`, `WORKFLOW_BUILDER_SHARD`,
-`MODEL_TABLES_SHARD`, `MONITOR_OVERVIEW_SHARD`, `OPENSTACK_PAGES_SHARD`), and
-the config passes it to Playwright's `shard`. The suite holds every part to
-running once, in a group that runs that suite and sets its key, with one count
-of parts; the env to naming the config's own variable, empty where a group sets
-none (the whole suite, as before); and each config to sharding by that variable
-with Playwright's own shard, never lists of its own.
+App Test runs Event Overview and the OpenStack pages in thirds, and the
+Workflow Builder suite, Model Tables, Monitor Overview and Security Operations
+in halves, one part per Dashboard Offline UI group: a group's matrix sets
+`<suite>_shard` ("1/2", "2/2", or "1/3" to "3/3"), the job's env hands it to the
+suite's config as a variable of its own (`EVENT_OVERVIEW_SHARD`,
+`WORKFLOW_BUILDER_SHARD`, `MODEL_TABLES_SHARD`, `MONITOR_OVERVIEW_SHARD`,
+`OPENSTACK_PAGES_SHARD`, `SECURITY_OPERATIONS_SHARD`), and the config passes it
+to Playwright's `shard`. The suite holds every part to running once, in a group
+that runs that suite and sets its key, with one count of parts; the env to
+naming the config's own variable, empty where a group sets none (the whole
+suite, as before); and each config to sharding by that variable. It reads each
+part's config as Playwright does, in a process of its own with the group's
+value (a config reads the environment when it is loaded), and holds it to the
+whole suite's config but for Playwright's `shard` and `fullyParallel`: a config
+never picks a part's tests by lists of its own, so the parts add up to the
+suite. Security Operations' `testIgnore`, the specs its two sibling suites
+run, is the same in every part.
 
 ### `E2EFixtureRouters.test.js`
 

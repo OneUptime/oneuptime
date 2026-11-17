@@ -56,7 +56,9 @@ import Button, {
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import Field, {
@@ -65,6 +67,8 @@ import Field, {
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import {
@@ -448,12 +452,12 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
               {template.name}
             </span>
             {template.isDefault ? (
-              <span
-                className="inline-flex items-center rounded-md bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200"
-                data-testid={`form-template-default-${template.id}`}
-              >
-                {tx("Default")}
-              </span>
+              <Pill
+                dataTestId={`form-template-default-${template.id}`}
+                text="Default"
+                tone={PillTone.Info}
+                isDotHidden={true}
+              />
             ) : (
               <></>
             )}
@@ -588,7 +592,6 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Edit}
                 buttonStyle={ButtonStyleType.NORMAL}
                 buttonSize={ButtonSize.Small}
-                className="!ml-0"
                 disabled={isSaving}
                 dataTestId={`form-template-edit-${template.id}`}
                 onClick={() => {
@@ -601,7 +604,6 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
                 icon={IconProp.DocumentDuplicate}
                 buttonStyle={ButtonStyleType.NORMAL}
                 buttonSize={ButtonSize.Small}
-                className="!ml-0"
                 disabled={isFull || isSaving}
                 tooltip={isFull ? FormsCopy.templatesFull : undefined}
                 dataTestId={`form-template-duplicate-${template.id}`}
@@ -634,7 +636,6 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Trash}
                 buttonStyle={ButtonStyleType.DANGER_OUTLINE}
                 buttonSize={ButtonSize.Small}
-                className="!ml-0"
                 disabled={isSaving}
                 dataTestId={`form-template-delete-${template.id}`}
                 onClick={() => {
@@ -703,7 +704,7 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
                 icon={IconProp.DocumentDuplicate}
                 title="Templates"
                 description={FormsCopy.templatesEmpty}
-                paddingClassName="py-10"
+                size={EmptyStateSize.Inline}
               />
             </div>
           ) : (

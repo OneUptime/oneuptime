@@ -1,4 +1,6 @@
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Span, { SpanLink } from "Common/Models/AnalyticsModels/Span";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -648,7 +650,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                 {log.body?.toString() || ""}
               </span>
               {time && (
-                <span className="flex-none text-gray-400">
+                <span className="flex-none text-gray-500">
                   {OneUptimeDate.getLocalTimeString(time, {
                     includeSeconds: true,
                   })}
@@ -852,7 +854,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                     {event.attributes.length > 0 && (
                       <div className="mt-2 border-t border-gray-100 pt-2">
                         <div className="mb-1.5 flex items-center justify-between gap-2">
-                          <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                             {translator.translateText("Event attributes")}
                           </span>
                           <CopyAttributesAsJSONButton
@@ -1012,7 +1014,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                   {linkAttributes.length > 0 && (
                     <div className="mt-2 border-t border-gray-100 pt-2">
                       <div className="mb-1.5 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                           {translator.translateText("Link attributes")}
                         </span>
                         <CopyAttributesAsJSONButton
@@ -1114,32 +1116,25 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
               {span.name || translator.translateText("(unnamed span)")}
             </h3>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              <span
-                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${
-                  span.isError
-                    ? "bg-red-50 text-red-700 ring-red-600/20"
-                    : "bg-gray-50 text-gray-600 ring-gray-500/15"
-                }`}
-                data-testid="span-panel-status"
-              >
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${span.isError ? "bg-red-500" : "bg-emerald-500"}`}
-                  aria-hidden="true"
-                />
-                {translator.translateText(span.isError ? "Error" : "No error")}
-              </span>
+              <Pill
+                text={span.isError ? "Error" : "No error"}
+                tone={span.isError ? PillTone.Danger : PillTone.Success}
+                dataTestId="span-panel-status"
+              />
               {props.isOnCriticalPath && (
                 <span className="inline-flex items-center rounded-full bg-gray-900 px-2 py-0.5 text-[11px] font-medium text-white">
                   {translator.translateText("On critical path")}
                 </span>
               )}
               {exceptionEventCount > 0 && (
-                <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
-                  {translator.translatePlural(
+                <Pill
+                  text={translator.translatePlural(
                     EXCEPTION_COUNT,
                     exceptionEventCount,
                   )}
-                </span>
+                  isUserContent={true}
+                  tone={PillTone.Danger}
+                />
               )}
             </div>
           </div>
@@ -1363,7 +1358,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                     {translator.translateText(tab.label)}
                     {tab.count !== null && (
                       <span
-                        className={`rounded-full px-1.5 text-[10px] tabular-nums ${isActive ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-600"}`}
+                        className={`rounded-full px-1.5 text-xs tabular-nums ${isActive ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-600"}`}
                       >
                         {tab.count.toLocaleString(getReaderNumberLocale())}
                       </span>

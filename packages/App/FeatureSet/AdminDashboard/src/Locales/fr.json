@@ -62,9 +62,8 @@
     "dataRetention": "Rétention des données",
     "globalLlmProviders": "Fournisseurs LLM globaux",
     "apiKey": "Clé API",
-    "more": "Plus",
     "sendEmail": "Envoyer un e-mail",
-    "logout": "Déconnexion",
+    "signOut": "Se déconnecter",
     "telemetryUsage": "Utilisation de la télémétrie",
     "ingestionBudgets": "Budgets d'ingestion",
     "products": "Produits"
@@ -81,7 +80,7 @@
   },
   "userProfile": {
     "exitAdmin": "Quitter l'admin",
-    "logOut": "Se déconnecter"
+    "signOut": "Se déconnecter"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -108,14 +107,14 @@
     "billing": "Facturation",
     "subscription": "Abonnement",
     "invoices": "Factures",
-    "support": "Assistance",
     "customerSupportAccess": "Accès du support client",
     "advanced": "Avancé",
     "overview": "Vue d'ensemble",
     "projects": "Projets",
     "settings": "Paramètres",
     "authentication": "Authentification",
-    "delete": "Supprimer",
+    "deleteProject": "Supprimer le projet",
+    "deleteUser": "Supprimer l'utilisateur",
     "settingsAuthentication": "Authentification",
     "settingsSso": "Authentification unique",
     "settingsNotifications": "Notifications",
@@ -123,20 +122,16 @@
     "settingsCallSms": "Appel et SMS",
     "settingsWhatsapp": "WhatsApp",
     "settingsTelegram": "Telegram",
-    "settingsMonitoring": "Surveillance",
+    "settingsPushNotifications": "Notifications push",
+    "settingsSharedWithProjects": "Partagé avec tous les projets",
     "settingsGlobalProbes": "Sondes globales",
-    "settingsRunbooks": "Runbooks",
     "settingsGlobalRunners": "Agents Runbook globaux",
+    "settingsServer": "Serveur",
     "settingsDataRetention": "Rétention des données",
-    "settingsAi": "IA",
     "settingsGlobalLlmProviders": "Fournisseurs LLM globaux",
-    "settingsApiIntegrations": "API et intégrations",
     "settingsApiKey": "Clé API",
-    "moreCommunication": "Communication",
-    "moreSendEmail": "Envoyer un e-mail",
     "telemetryUsage": "Utilisation de la télémétrie",
     "ingestionBudgets": "Budgets d'ingestion",
-    "settingsTelemetry": "Télémétrie",
     "settingsIngestionBudgets": "Budgets d'ingestion",
     "settingsProducts": "Produits"
   },
@@ -144,8 +139,8 @@
     "users": {
       "title": "Utilisateurs",
       "cardTitle": "Utilisateurs",
-      "cardDescription": "Voici la liste des utilisateurs dans OneUptime.",
-      "noItems": "Aucun utilisateur trouvé.",
+      "listDescription": "Toutes les personnes ayant un compte sur ce serveur. Ouvrez un utilisateur pour gérer ses projets, sa connexion et son accès administrateur.",
+      "emptyMessage": "Aucun utilisateur pour l'instant.",
       "bulkAddToProject": "Ajouter à un projet",
       "bulkAddToProjectTitle": "Ajouter les utilisateurs à un projet",
       "bulkAddToProjectDescription": "Choisissez un projet et l'une de ses équipes. Les {{userCount}} utilisateur(s) sélectionné(s) sont invités dans cette équipe.",
@@ -165,7 +160,12 @@
       "bulkRequireTwoFactorAuthDescription": "Les {{userCount}} utilisateur(s) sélectionné(s) seront déconnectés de toutes leurs sessions actives et devront configurer une application d'authentification à leur prochaine connexion. Vous y compris, si vous en faites partie.",
       "bulkDoNotRequireTwoFactorAuth": "Ne pas exiger l'authentification à deux facteurs",
       "bulkDoNotRequireTwoFactorAuthTitle": "Cesser d'exiger l'authentification à deux facteurs pour {{userCount}} utilisateur(s)",
-      "bulkDoNotRequireTwoFactorAuthDescription": "Les {{userCount}} utilisateur(s) sélectionné(s) pourront se connecter avec leur seul mot de passe. Ce qu'ils ont déjà configuré est conservé mais ne leur sera plus demandé."
+      "bulkDoNotRequireTwoFactorAuthDescription": "Les {{userCount}} utilisateur(s) sélectionné(s) pourront se connecter avec leur seul mot de passe. Ce qu'ils ont déjà configuré est conservé mais ne leur sera plus demandé.",
+      "createdAndEmailed": "{{name}} a été créé. Un lien pour définir son mot de passe a été envoyé à {{email}}.",
+      "createdWithPassword": "{{name}} a été créé. Transmettez-lui le mot de passe choisi de manière sécurisée.",
+      "setPasswordLinkTitle": "Envoyer un lien pour définir le mot de passe",
+      "setPasswordLinkDescription": "Copiez ce lien et envoyez-le vous-même à {{email}}, par un moyen que seule cette personne peut lire. Il fonctionne une fois, pendant {{days}} jours.",
+      "setPasswordLinkOrSetIt": "Ou définissez vous-même un mot de passe sur sa page Authentification."
     },
     "enterpriseLicenses": {
       "title": "Licences Enterprise",
@@ -201,7 +201,6 @@
     "userView": {
       "title": "Utilisateur",
       "cardTitle": "Utilisateur",
-      "cardDescription": "Détails de l'utilisateur",
       "editButton": "Modifier l'utilisateur",
       "masterAdminCardTitle": "Accès administrateur maître",
       "masterAdminCardDescription": "Accorder ou révoquer l'accès administrateur maître pour cet utilisateur. Les administrateurs maîtres peuvent gérer chaque projet et espace de travail.",
@@ -302,13 +301,12 @@
     "projects": {
       "title": "Projets",
       "cardTitle": "Projets",
-      "cardDescription": "Voici la liste des projets dans OneUptime.",
-      "noItems": "Aucun projet trouvé."
+      "listDescription": "Tous les projets de ce serveur. Ouvrez-en un pour gérer ses utilisateurs, ses équipes et ses paramètres.",
+      "emptyMessage": "Aucun projet pour l'instant."
     },
     "projectView": {
       "title": "Projet",
       "cardTitle": "Projet",
-      "cardDescription": "Détails du projet",
       "editButton": "Modifier le projet",
       "dataResidencyCardTitle": "Résidence des données",
       "dataResidencyCardDescription": "L'endroit où les données de ce projet sont hébergées. Une fois définie, elle est affichée aux utilisateurs du projet dans les paramètres du projet.",
@@ -450,8 +448,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "Utilisateurs",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "Les personnes qui font partie de ce projet. Leur équipe détermine ce que chacune peut faire.",
+      "emptyMessage": "Aucun utilisateur dans ce projet pour l'instant.",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "Inviter un utilisateur",
       "inviteUserTitle": "Inviter un nouvel utilisateur",
@@ -470,20 +468,19 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Équipes",
-      "cardDescription": "Voici la liste de toutes les équipes dans ce projet.",
-      "noItems": "No teams found in this project."
+      "listDescription": "Les équipes déterminent ce que leurs membres peuvent faire dans ce projet. Créez-en une pour donner le même accès à un groupe de personnes.",
+      "emptyMessage": "Aucune équipe dans ce projet pour l'instant."
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "Détails de l'équipe",
-      "cardDescription": "Details about this team.",
       "editButton": "Modifier l'équipe",
       "membersCardTitle": "Équipe Membres",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
-      "title": "Déconnexion"
+    "signOut": {
+      "title": "Se déconnecter"
     },
     "sendEmail": {
       "title": "Envoyer un e-mail d'annonce",
@@ -623,13 +620,13 @@
       },
       "probes": {
         "bannerTitle": "Besoin d'aide pour configurer les sondes globales ?",
-        "bannerDescription": "Voici un guide qui vous aidera à la configuration",
+        "bannerGuide": "Suivez le guide pour exécuter une sonde sur votre propre serveur et la connecter ici.",
         "cardTitle": "Sondes globales",
         "cardDescription": "Les sondes globales vous aident à surveiller les ressources externes depuis différents endroits dans le monde.",
-        "noItems": "Aucune sonde trouvée.",
+        "emptyMessage": "Aucune sonde globale pour l'instant.",
         "showIdKey": "Afficher l'ID et la clé",
         "keyModalTitle": "Clé de la sonde",
-        "keyModalDescription": "Voici votre clé de sonde. Veuillez la garder secrète.",
+        "keyModalSecret": "Votre sonde se connecte à OneUptime avec cet ID et cette clé. Gardez la clé secrète.",
         "probeIdLabel": "ID de la sonde :",
         "probeKeyLabel": "Clé de la sonde :"
       },
@@ -724,7 +721,6 @@
   "Projects": "Projets",
   "Project": "Projet",
   "User": "Utilisateur",
-  "Logout": "Déconnexion",
   "Save": "Enregistrer",
   "Cancel": "Annuler",
   "Submit": "Soumettre",
@@ -981,7 +977,7 @@
   "No OIDC providers yet.": "Aucun fournisseur OIDC pour l'instant.",
   "Require SSO": "Exiger le SSO",
   "Before you require SSO, sign in with a provider using Test Sign-in in its row.": "Avant d'exiger le SSO, connectez-vous avec un fournisseur via Tester la connexion dans sa ligne.",
-  "Require SSO for Login": "Exiger le SSO pour la connexion",
+  "Require SSO to Sign In": "Exiger le SSO pour la connexion",
   "The sign-in page offers only SSO. Everyone except master admins must sign in with SSO to open any project.": "La page de connexion ne propose que le SSO. Tout le monde, sauf les administrateurs principaux, doit se connecter avec le SSO pour ouvrir un projet.",
   "People can sign in with a password, a passkey or SSO.": "Les personnes peuvent se connecter avec un mot de passe, une clé d'accès ou le SSO.",
   "Master admins can always sign in with their password here, even while SSO is required. Keep this address.": "Les administrateurs principaux peuvent toujours se connecter ici avec leur mot de passe, même quand le SSO est exigé. Conservez cette adresse.",
@@ -2146,8 +2142,6 @@
   "Check email settings": "Vérifier les paramètres e-mail",
   "Email is failing": "L'envoi d'e-mails échoue",
   "Email is not set up": "L'e-mail n'est pas configuré",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "L'envoi d'e-mails échoue depuis le {{time}} : les invitations et les e-mails d'incident n'arrivent pas.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "L'envoi d'e-mails échoue depuis le {{time}} : les invitations et les e-mails d'incident n'arrivent pas. Le serveur de messagerie a répondu : {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "Les invitations, les réinitialisations de mot de passe et les e-mails d'incident ne sont pas envoyés.",
   "Monitors that run on global probes are not being checked.": "Les moniteurs qui s'exécutent sur des sondes globales ne sont pas vérifiés.",
   "No global probe is reporting": "Aucune sonde globale ne répond",
@@ -2206,7 +2200,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Licence obtenue via votre abonnement à la place de marché cloud : chaque utilisateur est facturé à l'heure.",
   "License, version, seat usage, and the instances covered by this key.": "Licence, version, utilisation des sièges et instances couvertes par cette clé.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "La plateforme OneUptime complète avec la réponse aux incidents, les pages de statut et l'automatisation des flux de travail.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "Authentification unique (SSO) SAML et OIDC pour les projets, les pages de statut et toute l'instance, y compris « Exiger le SSO pour la connexion ».",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "Authentification unique (SSO) SAML et OIDC pour les projets, les pages de statut et toute l'instance, y compris « Exiger le SSO pour la connexion ».",
   "Community support, documentation, and tutorials to help teams get started quickly.": "Support communautaire, documentation et tutoriels pour aider les équipes à démarrer rapidement.",
   "Regular updates, bug fixes, and open-source extensibility.": "Mises à jour régulières, corrections de bugs et extensibilité open source.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Intégrations avec les outils DevOps populaires grâce à des connecteurs maintenus par la communauté.",
@@ -4167,5 +4161,19 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime a désactivé cette règle lors de leur suppression.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Réactivée en l'état, la règle ne serait plus du tout limitée par ces listes. Modifiez-la pour choisir ce à quoi elle s'applique, puis réactivez-la.",
   "{{names}} and {{count}} more": "{{names}} et {{count}} autres",
-  "{{names}} and {{count}} more_one": "{{names}} et {{count}} autre"
+  "{{names}} and {{count}} more_one": "{{names}} et {{count}} autre",
+  "No email has gone out through this server's email settings since {{time}}.": "Aucun e-mail n'est parti via les paramètres e-mail de ce serveur depuis le {{time}}.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Aucun e-mail n'est parti via les paramètres e-mail de ce serveur depuis le {{time}}. Le serveur de messagerie a répondu : {{reason}}",
+  "See email logs": "Voir les journaux des e-mails",
+  "Addresses the mail server refused": "Adresses refusées par le serveur de messagerie",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Les autres e-mails sont partis : seules ces adresses sont concernées. Corrigez l'adresse ou faites-la accepter par votre fournisseur de messagerie : un bac à sable Amazon SES n'envoie qu'aux adresses qu'il a vérifiées.",
+  "Last refused {{time}}": "Dernier refus le {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} a été créé, mais l'e-mail contenant le lien pour définir son mot de passe n'a pas été envoyé. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "Le lien à envoyer vous-même n'a pas pu être créé non plus. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime lui envoie par e-mail un lien pour définir son propre mot de passe.",
+  "They sign in with the password you set. Share it with them securely.": "Cette personne se connecte avec le mot de passe que vous définissez. Transmettez-le-lui de manière sécurisée.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Ce serveur ne peut pas encore envoyer d'e-mails. Définissez son mot de passe ici, ou laissez vide pour obtenir un lien à lui envoyer vous-même.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "Ce serveur ne peut pas encore envoyer d'e-mails. Configurez l'e-mail dans Paramètres > E-mails.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Ce serveur ne peut pas encore envoyer d'e-mails, aucun lien de réinitialisation du mot de passe n'a donc été envoyé. Configurez l'e-mail dans Paramètres > E-mails, ou définissez vous-même son mot de passe.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Cet utilisateur a déjà un mot de passe : il n'y a donc pas de lien de définition du mot de passe à copier. Envoyez-lui plutôt un lien de réinitialisation depuis sa page Authentification."
 }

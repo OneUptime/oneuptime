@@ -107,9 +107,9 @@ describe("the English status pages guide", () => {
     );
   });
 
-  it("describes Require SSO for Login as a switch that asks first", () => {
+  it("describes Require SSO to Sign In as a switch that asks first", () => {
     expect(section).toContain(
-      "the **SSO Settings** card holds the **Require SSO for Login** switch (`requireSsoForLogin`, off by default), which saves the moment you flip it.",
+      "the **SSO Settings** card holds the **Require SSO to Sign In** switch (`requireSsoForLogin`, off by default), which saves the moment you flip it.",
     );
     expect(section).toContain(
       "from then on private users can't sign in with an email and password",
@@ -144,7 +144,7 @@ describe("the English status pages guide", () => {
       });
 
     expect(row).toContain(
-      "**Access** (who can see the page), **Private Users**, **SSO**, **OIDC**, **SCIM**.",
+      "**Access** (who can see the page), **Private Users**, **Single Sign-On** (a tab each for SAML and OIDC), **SCIM**.",
     );
   });
 

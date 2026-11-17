@@ -45,10 +45,8 @@ De er atskilt med vilje. Å slå på alle kanaler i **Varslingsinnstillinger** t
 | --- | --- |
 | **Kom i gang** | **Oppsettsjekkliste**: hva som gjenstår å sette opp, i den rekkefølgen som teller |
 | **Varsler og varslinger** | **Varslingsmetoder**, **Slik når man meg**, **Varslingsinnstillinger** og **E-postinnstillinger**, der du bestemmer hvor mange e-poster oppdateringene dine blir til |
-| **Vaktlogger** | **Vaktlogger**: hver gang du ble tilkalt i dette prosjektet, og hva som ble sendt |
-| **Policy for innkommende anrop** | **Innkommende telefonnumre**: nummeret en policy for innkommende anrop ringer deg på |
-| **Kalender** | **Kalenderfeed**: vaktene dine i kalenderappen din, og påminnelser før de starter |
-| **Profil** | **Egendefinerte felt**: opplysninger prosjektet ditt ber medlemmene om |
+| **Tilkallinger og anrop** | **Vaktlogger**: hver gang du ble tilkalt i dette prosjektet, og hva som ble sendt; **Innkommende telefonnumre**: nummeret en policy for innkommende anrop ringer deg på |
+| **Profil og kalender** | **Kalenderfeed**: vaktene dine i kalenderappen din, og påminnelser før de starter; **Egendefinerte felt**: opplysninger prosjektet ditt ber medlemmene om |
 | **Arbeidsområde** | **Slack**, **Microsoft Teams** og **Mattermost**: din egen konto, i hvert arbeidsområde prosjektet har koblet til |
 
 **Kom i gang** og **Varsler og varslinger** er åpne; de andre seksjonene starter sammenslått, og en seksjon åpner seg selv når du er på en av sidene dens. **Arbeidsområde** vises bare når prosjektet har koblet til Slack, Microsoft Teams eller Mattermost.
@@ -112,7 +110,7 @@ Det som endres, er OneUptimes egne ord: emnelinjer, overskrifter, knapper og set
 ## Feilsøking
 
 :::details Jeg hadde vakt, men ingenting nådde meg
-Åpne **Brukerinnstillinger → Vaktlogger**. Ingen rad for hendelsen betyr at vaktpolicyen dens aldri tilkalte deg: sjekk eskaleringsreglene dens, og hvem som hadde vakt. For en rad med status **Feil** forteller **Vis statusmelding** hvorfor, for eksempel en kanal prosjektet har slått av. Sjekk deretter at metodene dine er verifisert, og at **Your setup checklist** ikke har noe utestående under **So we can reach you**.
+Åpne **Brukerinnstillinger → Tilkallinger og anrop → Vaktlogger**. Ingen rad for hendelsen betyr at vaktpolicyen dens aldri tilkalte deg: sjekk eskaleringsreglene dens, og hvem som hadde vakt. For en rad med status **Feil** forteller **Vis statusmelding** hvorfor, for eksempel en kanal prosjektet har slått av. Sjekk deretter at metodene dine er verifisert, og at **Your setup checklist** ikke har noe utestående under **So we can reach you**.
 :::
 
 :::details Jeg får e-poster om ting jeg aldri har bedt om

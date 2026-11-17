@@ -3,7 +3,7 @@
 單一登入（SSO）讓專案中的人員透過組織的身分提供者（IdP），使用 SAML 2.0 或 OpenID Connect 登入 OneUptime。您可以在同一個地方管理存取權限、密碼和多重要素驗證，也可以要求專案中的所有人都使用 SSO。
 
 > [!NOTE]
-> **版本：** SSO（包括「Require SSO for login」）屬於 OneUptime 的所有版本：自行託管的安裝在 Community Edition 中即可使用，不需要授權。在 OneUptime Cloud 上，**Scale** 及以上方案可用。各版本包含哪些功能，請參閱 [企業版](/docs/self-hosted/enterprise)。
+> **版本：** SSO（包括「Require SSO to sign in」）屬於 OneUptime 的所有版本：自行託管的安裝在 Community Edition 中即可使用，不需要授權。在 OneUptime Cloud 上，**Scale** 及以上方案可用。各版本包含哪些功能，請參閱 [企業版](/docs/self-hosted/enterprise)。
 
 :::cards
 - [設定 SAML 提供者](#設定-sso): 在 OneUptime 中建立它，並把兩個 URL 交給您的 IdP。
@@ -325,7 +325,7 @@ OneUptime 不會對應身分提供者中的角色或群組。一個人能做什�
 
 當專案仍要求使用 SSO 時，其 **SSO** 頁面還會顯示 **登入時要求使用 SSO**：請在關閉最後一個提供者之前先關閉它。在此之前，人們可以用來登入的最後一個提供者無法被關閉或刪除，因此不會有人被鎖在專案之外。
 
-狀態頁面的 **SSO** 和 **OIDC** 頁面會以同樣的方式列出狀態頁面自己的提供者。當狀態頁面仍要求使用 SSO 時，這兩個頁面也會顯示 **登入時要求使用 SSO**：請在關閉其提供者之前先關閉它，否則其私人使用者將完全無法登入。
+狀態頁面的 **單一登入** 頁面會以同樣的方式，在其 **SAML** 和 **OIDC** 分頁上列出狀態頁面自己的提供者。當狀態頁面仍要求使用 SSO 時，這兩個分頁也會顯示 **登入時要求使用 SSO**：請在關閉其提供者之前先關閉它，否則其私人使用者將完全無法登入。
 
 ## 疑難排解
 

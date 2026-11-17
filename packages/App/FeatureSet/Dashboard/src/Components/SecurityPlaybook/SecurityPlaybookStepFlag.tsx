@@ -1,7 +1,6 @@
 import IconProp from "Common/Types/Icon/IconProp";
-import Icon from "Common/UI/Components/Icon/Icon";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -21,16 +20,14 @@ export interface ComponentProps {
 const SecurityPlaybookStepFlag: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
-
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600"
-      data-testid={props.dataTestId}
-    >
-      <Icon icon={props.icon} className="h-3 w-3 flex-shrink-0" />
-      {props.isTranslated ? props.text : translator.translateText(props.text)}
-    </span>
+    <Pill
+      text={props.text}
+      isUserContent={props.isTranslated}
+      tone={PillTone.Neutral}
+      icon={props.icon}
+      dataTestId={props.dataTestId}
+    />
   );
 };
 

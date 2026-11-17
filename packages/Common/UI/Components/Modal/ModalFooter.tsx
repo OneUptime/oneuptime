@@ -18,6 +18,14 @@ export interface ComponentProps {
   secondaryButton?: ModalSecondaryButton | undefined;
 }
 
+/*
+ * The footer lays its buttons out, not the buttons: a column as wide as the
+ * dialog on a phone, a row with an 8px gap from sm up. A Button has no width
+ * or margin of its own (BOXED_BUTTON_CLASS_NAME, #9128); a locked one with a
+ * reason takes the phone's width onto the wrapper it sits in.
+ */
+export const MODAL_FOOTER_BUTTON_CLASS_NAME: string = "max-sm:w-full";
+
 const ModalFooter: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -44,7 +52,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
       data-testid="modal-footer"
     >
       {props.leftFooterElement ? (
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center [&>div]:w-full [&>div]:flex-col [&_button]:!w-full sm:[&>div]:w-auto sm:[&>div]:flex-row sm:[&_button]:!ml-0 sm:[&_button]:!w-auto">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center [&>div]:w-full [&>div]:flex-col max-sm:[&_button]:w-full sm:[&>div]:w-auto sm:[&>div]:flex-row">
           {props.leftFooterElement}
         </div>
       ) : (
@@ -66,7 +74,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
               props.onClose?.();
             }}
             dataTestId="modal-footer-close-button"
-            className="sm:!w-auto md:!ml-0"
+            className={MODAL_FOOTER_BUTTON_CLASS_NAME}
           />
         ) : (
           <></>
@@ -90,7 +98,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
              * A Next that cannot be pressed yet (nothing chosen) is dimmed,
              * with the not-allowed cursor: Button's own disabled look.
              */
-            className="sm:!w-auto md:!ml-0"
+            className={MODAL_FOOTER_BUTTON_CLASS_NAME}
           />
         ) : (
           <></>
@@ -114,7 +122,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
                 : ButtonType.Button
             }
             dataTestId="modal-footer-submit-button"
-            className="sm:!w-auto md:!ml-0"
+            className={MODAL_FOOTER_BUTTON_CLASS_NAME}
           />
         ) : (
           <></>

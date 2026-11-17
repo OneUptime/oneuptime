@@ -966,7 +966,7 @@ const TelemetryCompanionSignalTabs: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="mb-5">
-      <Tabs tabs={tabs} onTabChange={handleTabChange} />
+      <Tabs label="Signals" tabs={tabs} onTabChange={handleTabChange} />
     </div>
   );
 };

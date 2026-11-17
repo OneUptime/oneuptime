@@ -106,19 +106,10 @@ const LegendItem: ({
   activeLegend,
 }: LegendItemProps) => {
   const hasOnValueChange: boolean = Boolean(onClick);
-  return (
-    <li
-      className={cx(
-        "group inline-flex flex-nowrap items-center gap-1.5 whitespace-nowrap rounded px-2 py-1 transition",
-        hasOnValueChange
-          ? "cursor-pointer hover:bg-gray-100"
-          : "cursor-default",
-      )}
-      onClick={(e: React.MouseEvent<HTMLLIElement, MouseEvent>) => {
-        e.stopPropagation();
-        onClick?.(name, color);
-      }}
-    >
+  const itemClassName: string =
+    "group inline-flex flex-nowrap items-center gap-1.5 whitespace-nowrap rounded px-2 py-1 transition";
+  const content: React.JSX.Element = (
+    <>
       <span
         className={cx(
           "h-[3px] w-3.5 shrink-0 rounded-full",
@@ -132,16 +123,44 @@ const LegendItem: ({
         }
         aria-hidden={true}
       />
-      <p
+      <span
         className={cx(
-          "truncate whitespace-nowrap text-xs",
+          "block truncate whitespace-nowrap text-xs",
           "text-gray-700",
           hasOnValueChange && "group-hover:text-gray-900",
           activeLegend && activeLegend !== name ? "opacity-40" : "opacity-100",
         )}
       >
         {name}
-      </p>
+      </span>
+    </>
+  );
+
+  /*
+   * A legend item that picks its series is a button, pressed in while its
+   * series is the one shown: the click was on the `li` alone, so a keyboard
+   * could not pick a series (#9136).
+   */
+  return (
+    <li className="inline-flex">
+      {hasOnValueChange ? (
+        <button
+          type="button"
+          aria-pressed={activeLegend === name}
+          className={cx(
+            itemClassName,
+            "cursor-pointer hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500",
+          )}
+          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+            e.stopPropagation();
+            onClick?.(name, color);
+          }}
+        >
+          {content}
+        </button>
+      ) : (
+        <span className={cx(itemClassName, "cursor-default")}>{content}</span>
+      )}
     </li>
   );
 };
@@ -579,7 +598,7 @@ const ChartTooltip: ({
             },
           )}
           {overflowCount > 0 ? (
-            <p className={cx("pt-1 text-xs", "text-gray-400")}>
+            <p className={cx("pt-1 text-xs", "text-gray-500")}>
               {translator.translatePlural(
                 {
                   one: "+{{count}} more series — highest values shown",

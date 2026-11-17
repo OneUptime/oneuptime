@@ -383,9 +383,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
       {announcement && parsedData ? <EventItem {...parsedData} /> : <></>}
       {!announcement ? (
         <EmptyState
-          paddingClassName="py-12 sm:py-16"
           id="announcement-empty-state"
-          title={t("announcements.none")}
+          title={t("announcements.notFoundTitle")}
           description={t("announcements.notFound")}
           icon={IconProp.Announcement}
         />

@@ -32,7 +32,7 @@ Standing assignments — a user or team named directly on an escalation policy r
 
 | Link | Who creates it | What it contains | Where |
 | --- | --- | --- | --- |
-| **Personal feed** | Each user, one per project | Your shifts on every schedule in that project, plus the shifts where you cover for someone (optional) | **User Settings** > **Calendar** > **Calendar Feed** |
+| **Personal feed** | Each user, one per project | Your shifts on every schedule in that project, plus the shifts where you cover for someone (optional) | **User Settings** > **Profile & Calendar** > **Calendar Feed** |
 | **Schedule feed** | Anyone who can edit the schedule; anyone who can read it may copy the link | Everyone's shifts on one schedule, with optional coverage-gap events | The schedule's page, card **Subscribe to this schedule** |
 | **Project feed** | Anyone who can edit on-call schedules; anyone who can read them may copy the link | Everyone's shifts on every schedule in the project, with optional coverage-gap events | **On-Call** > **Calendar Feeds** |
 
@@ -54,7 +54,7 @@ Personal feeds are per project: a second project gets a second link and a second
 :::steps
 ### Open your calendar feed
 
-Open **User Settings** > **Calendar** > **Calendar Feed** in the project whose shifts you want. **Calendar** is a section of the side menu that starts folded.
+Open **User Settings** > **Profile & Calendar** > **Calendar Feed** in the project whose shifts you want. **Profile & Calendar** is a section of the side menu that starts folded.
 
 ### Generate the link
 
@@ -184,7 +184,7 @@ Feed URLs never redirect. They answer `200` on whichever scheme reaches OneUptim
 Calendar apps do not deliver alarms from subscribed feeds — Google drops them, Apple strips them by default, Outlook flattens them — so OneUptime sends its own.
 
 :::steps
-1. Open **User Settings** > **Calendar** > **Calendar Feed**.
+1. Open **User Settings** > **Profile & Calendar** > **Calendar Feed**.
 2. On the **Remind me before shifts** card, pick lead times: **1 week**, **1 day**, **1 hour**, **15 min** or, with **Custom**, a custom value between 15 minutes and 14 days. You can pick several at once.
 3. Choose how reminders reach you under **Before my on-call shift starts** on **User Settings** > **Notification Settings** (On-Call tab). Email and push are on by default.
 :::

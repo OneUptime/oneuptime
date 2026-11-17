@@ -53,7 +53,8 @@ const PROBE_PLACEHOLDER: string = "probe-1-please-change-this-to-random-value";
 type AnyModule = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 interface ProbeStub {
-  findOneBy: jest.Mock;
+  // The global probe that holds a key: its key is kept encrypted (#9012).
+  findGlobalProbeByKey: jest.Mock;
   findBy: jest.Mock;
   updateOneById: jest.Mock;
   create: jest.Mock;
@@ -87,7 +88,7 @@ async function startRoute(
   jest.resetModules();
 
   const probe: ProbeStub = {
-    findOneBy: jest.fn(),
+    findGlobalProbeByKey: jest.fn(),
     findBy: jest.fn(),
     updateOneById: jest.fn(),
     create: jest.fn(),
@@ -100,7 +101,7 @@ async function startRoute(
       "Common/Server/Services/ProbeService",
     );
     const probeService: AnyModule = probeServiceModule.default;
-    probeService.findOneBy = probe.findOneBy;
+    probeService.findGlobalProbeByKey = probe.findGlobalProbeByKey;
     probeService.findBy = probe.findBy;
     probeService.updateOneById = probe.updateOneById;
     probeService.create = probe.create;
@@ -229,7 +230,7 @@ describe.each([
       expect(result.body["message"]).toContain(
         "Global probe registration is turned off",
       );
-      expect(running.probe.findOneBy).not.toHaveBeenCalled();
+      expect(running.probe.findGlobalProbeByKey).not.toHaveBeenCalled();
       expect(running.probe.findBy).not.toHaveBeenCalled();
       expect(running.probe.create).not.toHaveBeenCalled();
       expect(running.probe.updateOneById).not.toHaveBeenCalled();
@@ -263,7 +264,7 @@ describe("an installation whose operator set REGISTER_PROBE_KEY", () => {
 
       expect(result.status).toBe(400);
       expect(result.body["message"]).toContain("Invalid or missing");
-      expect(running!.probe.findOneBy).not.toHaveBeenCalled();
+      expect(running!.probe.findGlobalProbeByKey).not.toHaveBeenCalled();
     },
   );
 
@@ -284,13 +285,13 @@ describe("an installation whose operator set REGISTER_PROBE_KEY", () => {
       expect(result.body["message"]).toContain(
         "value the OneUptime repository ships",
       );
-      expect(running!.probe.findOneBy).not.toHaveBeenCalled();
+      expect(running!.probe.findGlobalProbeByKey).not.toHaveBeenCalled();
     },
   );
 
   test("registers a new global probe when the key matches none", async () => {
     const newId: ObjectID = ObjectID.generate();
-    running!.probe.findOneBy.mockResolvedValue(null as never);
+    running!.probe.findGlobalProbeByKey.mockResolvedValue(null as never);
     running!.probe.findBy.mockResolvedValue([] as never);
     running!.probe.create.mockImplementation(async (data: JSONObject) => {
       const created: JSONObject = (data as { data: JSONObject }).data;
@@ -321,7 +322,7 @@ describe("an installation whose operator set REGISTER_PROBE_KEY", () => {
 
   test("updates the probe whose key matches, without minting a second", async () => {
     const existingId: ObjectID = ObjectID.generate();
-    running!.probe.findOneBy.mockResolvedValue({
+    running!.probe.findGlobalProbeByKey.mockResolvedValue({
       _id: existingId,
       id: existingId,
     } as never);
@@ -366,7 +367,7 @@ describe("an installation whose operator set REGISTER_PROBE_KEY", () => {
         return ObjectID.generate();
       });
 
-      running!.probe.findOneBy.mockResolvedValue(null as never);
+      running!.probe.findGlobalProbeByKey.mockResolvedValue(null as never);
       running!.probe.findBy.mockResolvedValue(
         rows.map(
           (each: { key: string | null; lastAlive?: Date }, index: number) => {
@@ -536,7 +537,7 @@ describe("an installation whose operator set REGISTER_PROBE_KEY", () => {
 
       expect(result.status).toBe(400);
       expect(result.body["message"]).toContain("Invalid or missing");
-      expect(running!.probe.findOneBy).not.toHaveBeenCalled();
+      expect(running!.probe.findGlobalProbeByKey).not.toHaveBeenCalled();
     },
   );
 
@@ -555,7 +556,7 @@ describe("an installation whose operator set REGISTER_PROBE_KEY", () => {
       });
 
       expect(result.status).toBe(400);
-      expect(running!.probe.findOneBy).not.toHaveBeenCalled();
+      expect(running!.probe.findGlobalProbeByKey).not.toHaveBeenCalled();
       expect(running!.probe.create).not.toHaveBeenCalled();
     },
   );

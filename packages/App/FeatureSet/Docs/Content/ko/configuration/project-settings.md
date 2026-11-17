@@ -40,7 +40,7 @@ flowchart LR
 | **보안** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **결제 및 청구서** | **결제**, **청구서** | [결제 및 사용량](/docs/configuration/billing) |
 | **감사 로그** | **감사 로그**, **설정**, **내보내기** | [감사 로그](/docs/configuration/audit-logs), [감사 로그 내보내기](/docs/configuration/audit-log-export) |
-| **위험 영역** | **위험 영역** | [프로젝트 삭제](#프로젝트-삭제) |
+| **위험 영역** | **프로젝트 삭제** | [프로젝트 삭제](#프로젝트-삭제) |
 
 **결제 및 청구서**와 **AI 크레딧**은 OneUptime Cloud에만 있습니다. 자체 호스팅 설치에는 결제가 없습니다.
 
@@ -99,7 +99,7 @@ OneUptime Cloud에서 레이블을 만들고 변경하려면 Growth 요금제가
 **프로젝트 설정 → 알림**에서는 프로젝트가 알림을 보내는 방식을 정합니다.
 
 - **알림 채널**: **알림 채널** 카드에서 프로젝트의 SMS, 전화, WhatsApp, Telegram을 켜거나 끕니다. 처음에는 모두 꺼져 있습니다. 프로젝트 소유자, **결제 관리자**, 또는 **Manage Billing** 권한이 있는 사람이 켭니다. 이 페이지의 **추가 설정**에는 **사용자 지정 SMTP 구성**에 있는 프로젝트 자체 메일 서버([SMTP](/docs/emails/smtp) 참조)와 프로젝트 자체 Twilio 계정([Twilio 통합](/docs/self-hosted/twilio-integration) 참조)도 있습니다. OneUptime Cloud에서는 이 메시지들의 비용을 내는 잔액도 여기 있습니다. [선불 잔액](/docs/configuration/billing#선불-잔액)을 참조하세요.
-- **알림 로그**: 프로젝트가 보낸 모든 알림. 채널마다 탭이 있습니다: **이메일**, **SMS**, **WhatsApp**, **Telegram**, **웹훅**, **호출**, **푸시**, **워크스페이스**.
+- **알림 로그**: 프로젝트가 보낸 모든 알림. 채널마다 탭이 있습니다: **이메일**, **SMS**, **WhatsApp**, **Telegram**, **웹훅**, **호출**, **푸시**, **워크스페이스**. **웹훅** 탭은 각 주소의 스킴과 호스트만 남깁니다. 나머지는 웹훅의 시크릿입니다.
 - **모바일 앱**: iOS 및 Android 앱을 받는 곳. [앱 개요](/docs/mobile-desktop-apps/index)를 참조하세요.
 
 ## 기능 플래그
@@ -113,7 +113,7 @@ OneUptime Cloud에서 레이블을 만들고 변경하려면 Growth 요금제가
 :::steps
 ### 위험 영역 열기
 
-**프로젝트 설정 → 위험 영역**으로 이동합니다.
+**프로젝트 설정 → 위험 영역 → 프로젝트 삭제**로 이동합니다.
 
 ### 삭제 버튼 클릭
 

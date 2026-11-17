@@ -25,9 +25,9 @@ Les étiquettes et les propriétaires servent à filtrer et à regrouper les res
 
 ## Où trouver les règles
 
-Chaque produit doté d'étiquettes et de propriétaires a les deux, dans ses **Paramètres** (pour les incidents, les alertes, la maintenance planifiée et Sécurité des données, dans **Règles**) : moniteurs, incidents et épisodes d'incident, alertes et épisodes d'alerte, événements de maintenance, pages de statut, services, hôtes, clusters Kubernetes, hôtes Docker, clusters Docker Swarm, hôtes Podman, clusters Proxmox, clouds OpenStack, vCenter VMware, clusters Ceph, baies de stockage, bases de données, magasins de données, tables, files d'attente, flottes IoT, fonctions serverless, ressources cloud, applications RUM, tableaux de bord, politiques d'astreinte, plannings d'astreinte, politiques d'appels entrants, flux de travail, runbooks, équipements réseau et SLO.
+Chaque produit doté d'étiquettes et de propriétaires a les deux, dans ses **Paramètres** (pour les moniteurs, les pages de statut, les incidents, les alertes, la maintenance planifiée et Sécurité des données, dans **Règles**) : moniteurs, incidents et épisodes d'incident, alertes et épisodes d'alerte, événements de maintenance, pages de statut, services, hôtes, clusters Kubernetes, hôtes Docker, clusters Docker Swarm, hôtes Podman, clusters Proxmox, clouds OpenStack, vCenter VMware, clusters Ceph, baies de stockage, bases de données, magasins de données, tables, files d'attente, flottes IoT, fonctions serverless, ressources cloud, applications RUM, tableaux de bord, politiques d'astreinte, plannings d'astreinte, politiques d'appels entrants, flux de travail, runbooks, équipements réseau et SLO.
 
-Par exemple, les règles d'étiquettes des moniteurs se trouvent dans **Moniteurs → Paramètres → Règles d'étiquettes**, et celles des incidents dans **Incidents → Règles → Règles d'étiquettes**. **Paramètres** et **Règles** sont repliés au départ dans le menu latéral : cliquez sur le titre de la section pour l'ouvrir. Les pages des incidents et des alertes ont un onglet **Règles d'incident** (ou **Règles d'alerte**) et un onglet **Règles d'épisode**.
+Par exemple, les règles d'étiquettes des moniteurs se trouvent dans **Moniteurs → Règles → Règles d'étiquettes**, et celles des SLO dans **SLO → Paramètres → Règles d'étiquettes**. **Paramètres** et **Règles** sont repliés au départ dans le menu latéral : cliquez sur le titre de la section pour l'ouvrir. Les pages des incidents et des alertes ont un onglet **Règles d'incident** (ou **Règles d'alerte**) et un onglet **Règles d'épisode**.
 
 ## Créer une règle
 
@@ -57,7 +57,7 @@ Le **Nom** est rempli d'après vos choix (_Ajouter Production_, _Ajouter Platfor
 À la dernière étape, cliquez de nouveau sur le bouton qui porte le nom de la règle, par exemple **Créer : Règle d'étiquettes des moniteurs**. La règle démarre activée, et la liste l'affiche avec une pastille verte **Activé**.
 :::
 
-Une nouvelle règle doit ajouter quelque chose : au moins une étiquette (ou un propriétaire) ou, pour une règle d'incident, d'alerte ou de maintenance planifiée, quelque chose dont elle hérite (voir plus bas). Pour mettre une règle en pause sans la supprimer, désactivez **Activé** dans son formulaire de modification ; la liste affiche alors une pastille rouge **Désactivé**. Sur une règle de propriétaires d'incident ou d'alerte, une équipe sous **Équipe du créateur** suffit aussi.
+Une nouvelle règle doit ajouter quelque chose : au moins une étiquette (ou un propriétaire) ou, pour une règle d'incident, d'alerte ou de maintenance planifiée, quelque chose dont elle hérite (voir plus bas). Pour mettre une règle en pause sans la supprimer, désactivez **Activé** dans son formulaire de modification ; la liste affiche alors une pastille grise **Désactivé**. Sur une règle de propriétaires d'incident ou d'alerte, une équipe sous **Équipe du créateur** suffit aussi.
 
 ### Quelle que soit la façon dont la règle est créée
 

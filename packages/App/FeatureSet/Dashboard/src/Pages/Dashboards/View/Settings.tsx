@@ -12,7 +12,11 @@ import DuplicateModel from "Common/UI/Components/DuplicateModel/DuplicateModel";
 import ExportModelCard from "Common/UI/Components/ImportExport/ExportModelCard";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 
-const DashboardDelete: FunctionComponent<
+/*
+ * Dashboards -> a dashboard -> Advanced -> Settings: duplicate, export and
+ * archive the dashboard. Deleting it is on its own page (Delete.tsx).
+ */
+const DashboardSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -72,4 +76,4 @@ const DashboardDelete: FunctionComponent<
   );
 };
 
-export default DashboardDelete;
+export default DashboardSettings;

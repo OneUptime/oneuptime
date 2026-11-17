@@ -15,6 +15,8 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
@@ -976,14 +978,11 @@ const ExecutionView: FunctionComponent<
                                     { number: idx + 1 },
                                   )}
                                 </span>
-                                <span className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-700">
-                                  <Icon
-                                    icon={STEP_TYPE_ICON[stepExec.step.type]}
-                                    size={SizeProp.Smaller}
-                                    className="text-gray-500"
-                                  />
-                                  {STEP_TYPE_LABEL[stepExec.step.type]}
-                                </span>
+                                <Pill
+                                  text={STEP_TYPE_LABEL[stepExec.step.type]}
+                                  tone={PillTone.Neutral}
+                                  icon={STEP_TYPE_ICON[stepExec.step.type]}
+                                />
                                 <StatusBadge visual={stepVisual} />
                               </div>
                               <h3 className="text-sm font-semibold text-gray-900">
@@ -1128,7 +1127,11 @@ const ExecutionView: FunctionComponent<
                              * Skip sits centred under it - so however long
                              * their words are in the reader's language, they
                              * stay inside the card. A later step's lone Skip
-                             * keeps to the card's right edge.
+                             * keeps to the card's right edge. This row
+                             * stretches them, as a dialog's footer does
+                             * (ModalFooter): a Button has no width of its
+                             * own (BOXED_BUTTON_CLASS_NAME, #9128), and its
+                             * words are the card's own size at every width.
                              */}
                             <div
                               className="ml-auto flex flex-wrap items-center justify-end gap-2 empty:hidden max-sm:w-full"
@@ -1140,14 +1143,8 @@ const ExecutionView: FunctionComponent<
                                   buttonStyle={ButtonStyleType.PRIMARY}
                                   buttonSize={ButtonSize.Small}
                                   icon={IconProp.Check}
-                                  /*
-                                   * Full width on a phone (Button's own),
-                                   * its own width beside the step - in the
-                                   * card's own text size, not a dialog
-                                   * footer's larger one, so a long label
-                                   * stays on one line.
-                                   */
-                                  className="sm:w-auto max-sm:text-sm"
+                                  // Full width on a phone, its own beside the step.
+                                  className="max-sm:w-full"
                                   onClick={() => {
                                     void completeStep(stepExec.step.id);
                                   }}
@@ -1161,9 +1158,7 @@ const ExecutionView: FunctionComponent<
                                   buttonSize={ButtonSize.Small}
                                   icon={IconProp.ChevronRight}
                                   className={
-                                    canComplete
-                                      ? "max-sm:ml-0 max-sm:w-full max-sm:justify-center max-sm:text-sm"
-                                      : "max-sm:text-sm"
+                                    canComplete ? "max-sm:w-full" : undefined
                                   }
                                   onClick={() => {
                                     void skipStep(stepExec.step.id);

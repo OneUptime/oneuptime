@@ -60,7 +60,7 @@ const WRONG_COMPONENT_KEY_LIMIT: string =
   "packages/Common/Server/Utils/RateLimit/WrongComponentKeyLimit.ts";
 const WRONG_CLUSTER_KEY_LIMIT: string =
   "packages/Common/Server/Utils/RateLimit/WrongClusterKeyLimit.ts";
-// A monitor's incoming request secrets: a limit of its own (issue #8499).
+// Wrong incoming request secrets, counted under a prefix of their own.
 const WRONG_INCOMING_REQUEST_SECRET_LIMIT: string =
   "packages/Common/Server/Utils/RateLimit/WrongIncomingRequestSecretLimit.ts";
 
@@ -114,12 +114,13 @@ const KEY_CHECKS: Array<KeyCheck> = [
     file: AI_AGENT_API,
     from: "/alive`",
     to: "next(err);",
+    // Its key kept encrypted (#9012): read by id, compared in constant time.
     compared:
-      "await AIAgentService.findOneBy({ query: { _id: aiAgentId.toString(), key: aiAgentKey,",
+      'await AIAgentService.findOneByPresentedKey({ column: "key", presentedKey: aiAgentKey, query: { _id: aiAgentId.toString(), },',
     inOrder: [
       "const refusedBeforeLookup: WrongKeyRefusal | null = await WrongComponentKeyLimit.checkBeforeLookup({ req: req, kind: ComponentKeyKind.Agent, componentId: aiAgentId.toString(), });",
       "if (refusedBeforeLookup) { return WrongComponentKeyLimit.answerRefusal(req, res, ComponentKeyKind.Agent, refusedBeforeLookup); }",
-      "const aiAgent: AIAgent | null = await AIAgentService.findOneBy({ query: { _id: aiAgentId.toString(), key: aiAgentKey, },",
+      'const aiAgent: AIAgent | null = await AIAgentService.findOneByPresentedKey({ column: "key", presentedKey: aiAgentKey, query: { _id: aiAgentId.toString(), },',
       "await WrongComponentKeyLimit.checkComponentKey({ req: req, kind: ComponentKeyKind.Agent, componentId: aiAgentId.toString(), presentedKey: aiAgentKey, isKeyRight: Boolean(aiAgent),",
       "return await AIAgentService.hasAIAgentWithId(aiAgentId);",
       "if (refusal) { return WrongComponentKeyLimit.answerRefusal(req, res, ComponentKeyKind.Agent, refusal); }",
@@ -216,7 +217,7 @@ const LOOKS_UP_THE_KEY: Array<string> = [
 // Every code-fix route, by file: each authenticates through authenticate.
 const CODE_FIX_ROUTE_FILES: Record<string, number> = {
   "packages/Common/Server/API/AIAgentTaskAPI.ts": 3,
-  // What a fix reads and records, and the pull request OneUptime opens for it.
+  // Includes opening a fix's pull request (/ai-agent-data/open-pull-request).
   "packages/Common/Server/API/AIAgentDataAPI.ts": 7,
   "packages/Common/Server/API/AIAgentTaskLogAPI.ts": 1,
   "packages/Common/Server/API/AIAgentGitHubAPI.ts": 1,

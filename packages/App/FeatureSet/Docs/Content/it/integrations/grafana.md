@@ -166,7 +166,7 @@ Hai raggruppato per un'etichetta che è uguale per tutti gli avvisi di una notif
 :::
 
 :::details L'incidente mostra un riferimento invece di un valore
-Un riferimento a un campo che la notifica non ha viene lasciato com'è scritto, parentesi graffe comprese. Confronta il nome del campo con ciò che ha inviato Grafana: per un flusso di lavoro, apri l'esecuzione in **Log → Esecuzioni** e confrontala con ciò che ha ricevuto il trigger.
+Un riferimento a un campo che la notifica non ha viene lasciato com'è scritto, parentesi graffe comprese. Confronta il nome del campo con ciò che ha inviato Grafana: per un flusso di lavoro, apri l'esecuzione in **Esecuzioni** e confrontala con ciò che ha ricevuto il trigger.
 :::
 
 La guida di [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#risoluzione-dei-problemi) copre altri casi, e valgono anche per le notifiche di Grafana.

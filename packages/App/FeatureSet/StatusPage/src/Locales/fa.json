@@ -37,8 +37,7 @@
     "announcements": "اطلاعیه‌ها",
     "scheduledEvents": "تعمیر و نگهداری زمان‌بندی‌شده",
     "subscribe": "عضویت",
-    "login": "ورود",
-    "logout": "خروج"
+    "signOut": "خروج از حساب"
   },
   "overview": {
     "uptimeSuffix": "٪ زمان کارکرد",
@@ -49,8 +48,6 @@
     "noResourcesInGroup": "هیچ منبعی به این گروه اضافه نشده است.",
     "activeIncidents": "حوادث فعال",
     "scheduledMaintenanceEvents": "تعمیر و نگهداری زمان‌بندی‌شده",
-    "allClearTitle": "همه چیز عالی به نظر می‌رسد",
-    "allClearDescription": "هنوز هیچ منبعی به این صفحه وضعیت اضافه نشده است. لطفاً از داشبورد چند منبع اضافه کنید.",
     "allResourcesAre": "همه منابع {{status}} هستند",
     "allMonitoredResourcesAre": "همه منابع پایش‌شده {{status}} هستند",
     "someResourcesAre": "برخی از منابع {{status}} هستند",
@@ -58,7 +55,10 @@
     "noResourcesAreMonitored": "در حال حاضر هیچ منبعی پایش نمی‌شود",
     "noResourcesAreMonitoredYet": "هنوز هیچ منبعی پایش نشده است",
     "oneSubGroup": "۱ گروه",
-    "subGroupCount": "{{total}} گروه"
+    "subGroupCount": "{{total}} گروه",
+    "noResourcesTitle": "هنوز چیزی برای نمایش نیست",
+    "noResourcesDescription": "این صفحه هنوز هیچ سرویسی را نشان نمی‌دهد.",
+    "noResourcesPreviewDescription": "تا وقتی منابع را اضافه نکنید، بازدیدکنندگان همین را می‌بینند. در داشبورد، در بخش منابع، مانیتورها یا گروه‌هایی به این صفحه وضعیت اضافه کنید."
   },
   "eventItem": {
     "affectedResources": "منابع تحت تأثیر",
@@ -115,30 +115,23 @@
     "title": "حوادث",
     "singular": "حادثه",
     "active": "حوادث فعال",
-    "resolved": "حوادث برطرف‌شده",
-    "none": "بدون حادثه",
-    "noneDescription": "هیچ حادثه‌ای در این صفحه وضعیت ثبت نشده است.",
+    "noneDescription": "وقتی حادثه‌ای بر سرویس‌های این صفحه اثر بگذارد، اینجا منتشر می‌شود.",
     "postmortem": "گزارش تحلیل حادثه",
     "declaredAt": "اعلام‌شده در ",
     "declaredAtTime": "اعلام‌شده در {{time}}",
     "report": "گزارش حادثه",
-    "notFound": "حادثه در این صفحه وضعیت یافت نشد."
-  },
-  "episodes": {
-    "report": "گزارش رویداد",
-    "none": "بدون رویداد",
-    "notFound": "رویداد در این صفحه وضعیت یافت نشد."
+    "notFound": "پیوند را بررسی کنید، یا زبانه حوادث این صفحه را باز کنید.",
+    "notFoundTitle": "حادثه پیدا نشد"
   },
   "announcements": {
     "title": "اطلاعیه‌ها",
     "singular": "اطلاعیه",
     "active": "اطلاعیه‌های فعال",
-    "past": "اطلاعیه‌های گذشته",
-    "none": "بدون اطلاعیه",
-    "noneDescription": "تاکنون هیچ اطلاعیه‌ای در این صفحه منتشر نشده است.",
+    "noneDescription": "وقتی خبری درباره سرویس‌های این صفحه باشد، اینجا منتشر می‌شود.",
     "announcedAt": "اعلام‌شده در ",
     "announcedAtTime": "اعلام‌شده در {{time}}",
-    "notFound": "اطلاعیه در این صفحه وضعیت یافت نشد."
+    "notFound": "پیوند را بررسی کنید، یا زبانه اطلاعیه‌های این صفحه را باز کنید.",
+    "notFoundTitle": "اطلاعیه پیدا نشد"
   },
   "scheduledEvents": {
     "title": "تعمیر و نگهداری زمان‌بندی‌شده",
@@ -146,9 +139,7 @@
     "scheduledMaintenance": "تعمیر و نگهداری زمان‌بندی‌شده",
     "ongoing": "تعمیر و نگهداری در جریان",
     "upcoming": "تعمیر و نگهداری پیش رو",
-    "completed": "تعمیر و نگهداری تکمیل‌شده",
-    "none": "تعمیر و نگهداری زمان‌بندی‌شده‌ای نیست",
-    "noneDescription": "هیچ تعمیر و نگهداری زمان‌بندی‌شده‌ای برای این صفحه وضعیت منتشر نشده است.",
+    "none": "هیچ تعمیر و نگهداری‌ای برنامه‌ریزی نشده است",
     "scheduledAt": "زمان‌بندی‌شده در ",
     "scheduledAtTime": "زمان‌بندی‌شده در {{time}}",
     "report": "گزارش رویداد تعمیر و نگهداری",
@@ -314,29 +305,29 @@
       "password": "رمز عبور",
       "newPassword": "رمز عبور جدید",
       "confirmPassword": "تأیید رمز عبور",
-      "login": "ورود"
+      "signInLink": "ورود."
     },
     "login": {
       "welcomeBack": "خوش برگشتید!",
-      "loginPrompt": "برای مشاهده {{statusPageName}} لطفاً وارد شوید",
+      "signInPrompt": "برای مشاهده {{statusPageName}} لطفاً وارد شوید.",
       "forgotPassword": "رمز عبور را فراموش کرده‌اید؟",
       "submit": "ورود",
       "or": "یا",
-      "logInWithSso": "ورود با SSO",
+      "signInWithSso": "ورود با SSO",
       "emailSignInLink": "ارسال لینک ورود به ایمیل من"
     },
     "sso": {
       "title": "ورود با SSO",
-      "loginPrompt": "برای مشاهده {{statusPageName}} لطفاً وارد شوید",
+      "signInPrompt": "برای مشاهده {{statusPageName}} لطفاً وارد شوید.",
       "noProviders": "هیچ ارائه‌دهنده SSO پیکربندی یا فعال نشده است",
       "notAvailable": "ورود یکپارچه (SSO) برای این صفحه وضعیت در دسترس نیست. به جای آن با ایمیل و رمز عبور خود وارد شوید.",
-      "backToLogin": "بازگشت به صفحه ورود",
-      "logInWithPassword": "ورود با رمز عبور"
+      "backToSignIn": "بازگشت به صفحه ورود",
+      "signInWithPassword": "ورود با رمز عبور"
     },
     "forgotPassword": {
       "title": "فراموشی رمز عبور",
       "description": "اگر رمز عبور خود را برای {{statusPageName}} فراموش کرده‌اید، لطفاً ایمیل خود را وارد کنید تا لینک بازنشانی رمز عبور برای شما ارسال شود.",
-      "success": "لینک بازنشانی رمز عبور برای شما ایمیل شد. لطفاً پوشه اسپم را نیز بررسی کنید.",
+      "success": "اگر این نشانی ایمیل بتواند به {{statusPageName}} وارد شود، پیوند بازنشانی رمز عبور را به آن ایمیل کرده‌ایم. لطفاً پوشه اسپم را نیز بررسی کنید.",
       "sendLink": "ارسال لینک بازنشانی رمز عبور",
       "rememberPassword": "رمز عبور خود را به یاد دارید؟"
     },
@@ -347,7 +338,7 @@
       "knowPassword": "رمز عبور خود را می‌دانید؟",
       "successTitle": "گذرواژهٔ شما بازنشانی شد",
       "successDescription": "با گذرواژهٔ جدیدتان وارد شوید.",
-      "loginButton": "ورود",
+      "signInButton": "ورود",
       "linkExpiredTitle": "این پیوند بازنشانی منقضی شده است",
       "linkExpiredDescription": "پیوندهای بازنشانی یک روز اعتبار دارند. پیوند جدیدی درخواست کنید تا آن را برایتان ایمیل کنیم.",
       "linkInvalidTitle": "این پیوند بازنشانی دیگر کار نمی‌کند",
@@ -507,5 +498,23 @@
   "Incomplete:": "رعایت نشده:",
   "Special character included (optional)": "نویسهٔ ویژه دارد (اختیاری)",
   "Special characters are optional. Try !, @, # or $.": "نویسه‌های ویژه اختیاری هستند. از !، @، # یا $ استفاده کنید.",
-  "Dismiss": "پنهان کردن"
+  "Dismiss": "پنهان کردن",
+  "Resolved in the Last {{count}} Days": "برطرف‌شده در {{count}} روز گذشته",
+  "Resolved in the Last {{count}} Days_one": "برطرف‌شده در یک روز گذشته",
+  "No incidents in the last {{count}} days": "در {{count}} روز گذشته حادثه‌ای نبوده است",
+  "No incidents in the last {{count}} days_one": "در یک روز گذشته حادثه‌ای نبوده است",
+  "Ended in the Last {{count}} Days": "پایان‌یافته در {{count}} روز گذشته",
+  "Ended in the Last {{count}} Days_one": "پایان‌یافته در یک روز گذشته",
+  "No announcements in the last {{count}} days": "در {{count}} روز گذشته اطلاعیه‌ای نبوده است",
+  "No announcements in the last {{count}} days_one": "در یک روز گذشته اطلاعیه‌ای نبوده است",
+  "Completed in the Last {{count}} Days": "تکمیل‌شده در {{count}} روز گذشته",
+  "Completed in the Last {{count}} Days_one": "تکمیل‌شده در یک روز گذشته",
+  "None is planned, and none took place in the last {{count}} days.": "هیچ موردی برنامه‌ریزی نشده و در {{count}} روز گذشته هم موردی انجام نشده است.",
+  "None is planned, and none took place in the last {{count}} days._one": "هیچ موردی برنامه‌ریزی نشده و در یک روز گذشته هم موردی انجام نشده است.",
+  "serverMessages": {
+    "signInToView": "به این صفحهٔ وضعیت دسترسی ندارید. برای دیدن آن وارد شوید.",
+    "sessionExpired": "نشست منقضی شده است. لطفاً دوباره وارد شوید.",
+    "signedOut": "از حساب خارج شده‌اید. لطفاً دوباره وارد شوید.",
+    "magicLinkTurnedOff": "پیوندهای ورود برای این صفحهٔ وضعیت خاموش است. لطفاً با ایمیل و گذرواژهٔ خود وارد شوید."
+  }
 }

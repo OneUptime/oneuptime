@@ -1575,8 +1575,16 @@ function getSessionReplayCells(
       )}
     </div>,
     <div key="3">
+      {/*
+       * The badges sit side by side while the column has room, and under
+       * one another where it has none - three to the column at a laptop's
+       * 1280px. Under one another they are 4px apart, as a table row's
+       * labels are (Labels' TABLE_LABELS_CLASS_NAME): three Pills 6px apart
+       * made the row 105px, past the three short lines and a badge a row
+       * of this list is held to.
+       */}
       {badges.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">{badges}</div>
+        <div className="flex flex-wrap gap-x-1.5 gap-y-1">{badges}</div>
       ) : row.isFinalized ? (
         <span className="text-sm text-gray-500">
           {translateLine("Clean", translator)}
@@ -2918,10 +2926,11 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               </p>
               <p className="mt-1 text-sm text-red-700">{errorCopy.detail}</p>
               {/*
-               * Button's own left margin (md:ml-3, a dialog footer's) put
-               * Retry 12px right of the words above it.
+               * Retry starts level with the words above it: Button's own
+               * left margin (md:ml-3, a dialog footer's) used to put it
+               * 12px right of them.
                */}
-              <div className="mt-3 flex flex-wrap gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+              <div className="mt-3 flex flex-wrap gap-2">
                 <Button
                   title="Retry"
                   icon={IconProp.Refresh}

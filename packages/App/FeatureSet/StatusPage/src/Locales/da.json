@@ -37,8 +37,7 @@
     "announcements": "Meddelelser",
     "scheduledEvents": "Planlagt vedligeholdelse",
     "subscribe": "Abonner",
-    "login": "Log ind",
-    "logout": "Log ud"
+    "signOut": "Log ud"
   },
   "overview": {
     "uptimeSuffix": "% oppetid",
@@ -49,8 +48,6 @@
     "noResourcesInGroup": "Der er ikke tilføjet nogen ressourcer til denne gruppe.",
     "activeIncidents": "Aktive hændelser",
     "scheduledMaintenanceEvents": "Planlagt vedligeholdelse",
-    "allClearTitle": "Alt ser godt ud",
-    "allClearDescription": "Der er endnu ikke tilføjet nogen ressourcer til denne statusside. Tilføj venligst ressourcer fra kontrolpanelet.",
     "allResourcesAre": "Alle ressourcer er {{status}}",
     "allMonitoredResourcesAre": "Alle overvågede ressourcer er {{status}}",
     "someResourcesAre": "Nogle ressourcer er {{status}}",
@@ -58,7 +55,10 @@
     "noResourcesAreMonitored": "Ingen ressourcer overvåges lige nu",
     "noResourcesAreMonitoredYet": "Ingen ressourcer er overvåget endnu",
     "oneSubGroup": "1 gruppe",
-    "subGroupCount": "{{total}} grupper"
+    "subGroupCount": "{{total}} grupper",
+    "noResourcesTitle": "Intet at vise endnu",
+    "noResourcesDescription": "Denne side viser endnu ingen tjenester.",
+    "noResourcesPreviewDescription": "Besøgende ser denne besked, indtil du tilføjer ressourcer. Tilføj monitorer eller grupper til denne statusside under Ressourcer i Dashboard."
   },
   "eventItem": {
     "affectedResources": "Berørte ressourcer",
@@ -115,30 +115,23 @@
     "title": "Hændelser",
     "singular": "Hændelse",
     "active": "Aktive hændelser",
-    "resolved": "Løste hændelser",
-    "none": "Ingen hændelser",
-    "noneDescription": "Der er ikke rapporteret nogen hændelser på denne statusside.",
+    "noneDescription": "Når en hændelse påvirker tjenesterne på denne side, bliver den slået op her.",
     "postmortem": "Hændelsesanalyse",
     "declaredAt": "Rapporteret den ",
     "declaredAtTime": "Rapporteret den {{time}}",
     "report": "Hændelsesrapport",
-    "notFound": "Hændelsen blev ikke fundet på denne statusside."
-  },
-  "episodes": {
-    "report": "Episoderapport",
-    "none": "Ingen episode",
-    "notFound": "Episoden blev ikke fundet på denne statusside."
+    "notFound": "Tjek linket, eller åbn fanen Hændelser på denne side.",
+    "notFoundTitle": "Hændelsen blev ikke fundet"
   },
   "announcements": {
     "title": "Meddelelser",
     "singular": "Meddelelse",
     "active": "Aktive meddelelser",
-    "past": "Tidligere meddelelser",
-    "none": "Ingen meddelelser",
-    "noneDescription": "Der er ikke offentliggjort nogen meddelelser på denne side endnu.",
+    "noneDescription": "Når der er nyt om tjenesterne på denne side, bliver det slået op her.",
     "announcedAt": "Annonceret den ",
     "announcedAtTime": "Annonceret den {{time}}",
-    "notFound": "Meddelelsen blev ikke fundet på denne statusside."
+    "notFound": "Tjek linket, eller åbn fanen Meddelelser på denne side.",
+    "notFoundTitle": "Meddelelsen blev ikke fundet"
   },
   "scheduledEvents": {
     "title": "Planlagt vedligeholdelse",
@@ -146,9 +139,7 @@
     "scheduledMaintenance": "Planlagt vedligeholdelse",
     "ongoing": "Igangværende vedligeholdelse",
     "upcoming": "Kommende vedligeholdelse",
-    "completed": "Afsluttet vedligeholdelse",
     "none": "Ingen planlagt vedligeholdelse",
-    "noneDescription": "Der er ikke offentliggjort nogen planlagt vedligeholdelse for denne statusside.",
     "scheduledAt": "Planlagt til ",
     "scheduledAtTime": "Planlagt til {{time}}",
     "report": "Rapport over vedligeholdelseshændelse",
@@ -314,29 +305,29 @@
       "password": "Adgangskode",
       "newPassword": "Ny adgangskode",
       "confirmPassword": "Bekræft adgangskode",
-      "login": "Log ind"
+      "signInLink": "Log ind."
     },
     "login": {
       "welcomeBack": "Velkommen tilbage!",
-      "loginPrompt": "Log venligst ind for at se {{statusPageName}}",
+      "signInPrompt": "Log venligst ind for at se {{statusPageName}}.",
       "forgotPassword": "Glemt adgangskode?",
       "submit": "Log ind",
       "or": "eller",
-      "logInWithSso": "Log ind med SSO",
+      "signInWithSso": "Log ind med SSO",
       "emailSignInLink": "Send mig et login-link"
     },
     "sso": {
       "title": "Log ind med SSO",
-      "loginPrompt": "Log venligst ind for at se {{statusPageName}}",
+      "signInPrompt": "Log venligst ind for at se {{statusPageName}}.",
       "noProviders": "Ingen SSO-udbydere konfigureret eller aktiveret",
       "notAvailable": "Single sign-on (SSO) er ikke tilgængelig for denne statusside. Log i stedet ind med din e-mail og adgangskode.",
-      "backToLogin": "Tilbage til log ind",
-      "logInWithPassword": "Log ind med adgangskode"
+      "backToSignIn": "Tilbage til log ind",
+      "signInWithPassword": "Log ind med adgangskode"
     },
     "forgotPassword": {
       "title": "Glemt adgangskode",
       "description": "Hvis du har glemt din adgangskode til {{statusPageName}}, så indtast din e-mail, og vi sender dig et link til nulstilling af adgangskoden.",
-      "success": "Vi har sendt dig linket til nulstilling af adgangskoden på e-mail. Husk at tjekke din spam-mappe.",
+      "success": "Hvis denne e-mailadresse kan logge ind på {{statusPageName}}, har vi sendt den et link til nulstilling af adgangskoden. Husk at tjekke din spam-mappe.",
       "sendLink": "Send link til nulstilling af adgangskode",
       "rememberPassword": "Kan du huske din adgangskode?"
     },
@@ -347,7 +338,7 @@
       "knowPassword": "Kender du din adgangskode?",
       "successTitle": "Din adgangskode er nulstillet",
       "successDescription": "Log ind med din nye adgangskode.",
-      "loginButton": "Log ind",
+      "signInButton": "Log ind",
       "linkExpiredTitle": "Dette nulstillingslink er udløbet",
       "linkExpiredDescription": "Nulstillingslinks virker i én dag. Bed om et nyt link, så sender vi det til dig på e-mail.",
       "linkInvalidTitle": "Dette nulstillingslink virker ikke længere",
@@ -373,7 +364,7 @@
     },
     "masterPassword": {
       "prompt": "Indtast adgangskoden for at se denne statusside.",
-      "passwordRequired": "adgangskode er påkrævet.",
+      "passwordRequired": "Adgangskode er påkrævet.",
       "passwordLabel": "Adgangskode",
       "submit": "Lås statusside op"
     },
@@ -507,5 +498,23 @@
   "Incomplete:": "Ikke opfyldt:",
   "Special character included (optional)": "Specialtegn inkluderet (valgfrit)",
   "Special characters are optional. Try !, @, # or $.": "Specialtegn er valgfrie. Prøv !, @, # eller $.",
-  "Dismiss": "Skjul"
+  "Dismiss": "Skjul",
+  "Resolved in the Last {{count}} Days": "Løst inden for de seneste {{count}} dage",
+  "Resolved in the Last {{count}} Days_one": "Løst inden for det seneste døgn",
+  "No incidents in the last {{count}} days": "Ingen hændelser inden for de seneste {{count}} dage",
+  "No incidents in the last {{count}} days_one": "Ingen hændelser inden for det seneste døgn",
+  "Ended in the Last {{count}} Days": "Afsluttet inden for de seneste {{count}} dage",
+  "Ended in the Last {{count}} Days_one": "Afsluttet inden for det seneste døgn",
+  "No announcements in the last {{count}} days": "Ingen meddelelser inden for de seneste {{count}} dage",
+  "No announcements in the last {{count}} days_one": "Ingen meddelelser inden for det seneste døgn",
+  "Completed in the Last {{count}} Days": "Gennemført inden for de seneste {{count}} dage",
+  "Completed in the Last {{count}} Days_one": "Gennemført inden for det seneste døgn",
+  "None is planned, and none took place in the last {{count}} days.": "Der er ingen planlagt, og der har ikke været nogen inden for de seneste {{count}} dage.",
+  "None is planned, and none took place in the last {{count}} days._one": "Der er ingen planlagt, og der har ikke været nogen inden for det seneste døgn.",
+  "serverMessages": {
+    "signInToView": "Du har ikke adgang til denne statusside. Log ind for at se den.",
+    "sessionExpired": "Sessionen er udløbet. Log ind igen.",
+    "signedOut": "Du er logget ud. Log ind igen.",
+    "magicLinkTurnedOff": "Links til at logge ind er slået fra for denne statusside. Log ind med din e-mail og adgangskode."
+  }
 }

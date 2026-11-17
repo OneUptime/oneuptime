@@ -86,8 +86,8 @@ license, or one holding a license whose expiry was never recorded, runs as a
 license expires), until a license is activated, SCIM and audit logging stop:
 your identity provider's SCIM requests are refused and audit logging stops
 recording. Enterprise configuration becomes read-only and the enterprise admin
-dashboards are locked too. Single sign-on (SAML, OIDC and "Require SSO for
-login") is part of both editions and does not depend on the license.
+dashboards are locked too. Single sign-on (SAML, OIDC and "Require SSO to
+sign in") is part of both editions and does not depend on the license.
 Everything resumes, without a restart, as soon as a license is activated, and
 core monitoring is never affected.
 

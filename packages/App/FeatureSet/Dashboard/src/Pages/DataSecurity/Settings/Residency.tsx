@@ -1,3 +1,4 @@
+import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import PageComponentProps from "../../PageComponentProps";
 import {
   getWordListElement,
@@ -6,7 +7,6 @@ import {
 } from "../../../Components/DataSecurity/WordListField";
 import DataSecurityResidencyRule from "Common/Models/DatabaseModels/DataSecurityResidencyRule";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Green, Red } from "Common/Types/BrandColors";
 import DataCategory, {
   ALL_DATA_CATEGORIES,
   DATA_CATEGORY_DESCRIPTION,
@@ -20,7 +20,6 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { Countries, CountryOption } from "Common/UI/Utils/Countries";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -452,11 +451,7 @@ const DataSecurityResidency: FunctionComponent<
             title: "Status",
             type: FieldType.Boolean,
             getElement: (item: DataSecurityResidencyRule): ReactElement => {
-              return item.isEnabled ? (
-                <Pill color={Green} text="Enabled" />
-              ) : (
-                <Pill color={Red} text="Disabled" />
-              );
+              return <EnabledPill isEnabled={item.isEnabled} />;
             },
           },
         ]}

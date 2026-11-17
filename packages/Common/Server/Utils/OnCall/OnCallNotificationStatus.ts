@@ -94,6 +94,22 @@ export const ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE: string =
   "This page could not be acknowledged just now. Please acknowledge it from the dashboard. Good bye.";
 
 /*
+ * What a page's webhook notification says while it is sent: "Sending
+ * webhook to My Slack." - the webhook by the name its owner gave it, never
+ * by its address. The address is the webhook's credential (Slack, Microsoft
+ * Teams and Discord carry their secret in it), kept encrypted at rest
+ * (#9013) and read by its owner alone, while the on-call log is read by
+ * the project's administrators too.
+ */
+export function getSendingWebhookMessage(
+  webhookName: string | null | undefined,
+): string {
+  const name: string = (webhookName || "").trim();
+
+  return name ? `Sending webhook to ${name}.` : "Sending webhook.";
+}
+
+/*
  * What the person's acknowledgement from this notification moves on from:
  * whatever its send or its provider wrote - Sending, Sent, an Error, a call
  * Not Answered - and an escalation from it. Taking a page after all, once

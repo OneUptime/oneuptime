@@ -80,7 +80,7 @@ Verzoeken vanaf elk ander IP worden geweigerd met een pagina **Access Denied** d
 
 ## Aangepaste domeinen
 
-Standaard wordt een openbaar dashboard aangeboden op zijn openbare link, op het eigen adres van OneUptime. Om het te hosten op een eigen subdomein zoals `dashboard.acme.com`, open je **Huisstijl → Aangepaste domeinen** in het zijmenu van het dashboard. Het werkt precies zoals de pagina **Aangepaste domeinen** van een statuspagina.
+Standaard wordt een openbaar dashboard aangeboden op zijn openbare link, op het eigen adres van OneUptime. Om het te hosten op een eigen subdomein zoals `dashboard.acme.com`, open je **Openbare link → Aangepaste domeinen** in het zijmenu van het dashboard. Het werkt precies zoals de pagina **Aangepaste domeinen** van een statuspagina.
 
 De kaart heet **Aangepaste domeinen** en zegt wat je moet doen: laat het CNAME-record van elk domein wijzen naar het dashboard-CNAME-record van je installatie, en OneUptime geeft het SSL-certificaat van het domein uit en verlengt het voor je. De tabel heeft twee kolommen, **Domein** en **Status**.
 

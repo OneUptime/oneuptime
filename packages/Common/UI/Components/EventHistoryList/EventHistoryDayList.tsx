@@ -47,7 +47,7 @@ const EventHistoryDayList: FunctionComponent<ComponentProps> = (
       }}
     >
       <div
-        className="text-gray-400 mt-2 text-sm"
+        className="text-gray-500 mt-2 text-sm"
         style={{
           padding: "20px",
           paddingInlineStart: "10px",

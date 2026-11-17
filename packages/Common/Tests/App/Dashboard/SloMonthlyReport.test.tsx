@@ -177,12 +177,7 @@ const MONITOR_REPORT: SloMonthlyReport = buildSloMonthlyReport({
   now: MEASURED_AT,
 });
 
-// What jest.spyOn makes of a generic method: the method at its constraint.
-type MethodOf<Method extends (...args: Array<never>) => unknown> = (
-  ...args: Parameters<Method>
-) => ReturnType<Method>;
-
-let apiGet: SpyInstance<MethodOf<typeof API.get>>;
+let apiGet: SpyInstance<typeof API.get>;
 
 function answer(report: SloMonthlyReport): HTTPResponse<JSONObject> {
   return new HTTPResponse<JSONObject>(
@@ -270,7 +265,7 @@ beforeEach(async () => {
     value: 1600,
   });
   mockDownloadFile.mockReset();
-  apiGet = jest.spyOn(API, "get");
+  apiGet = jest.spyOn(API, "get") as unknown as SpyInstance<typeof API.get>;
 });
 
 afterEach(() => {

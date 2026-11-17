@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "पासवर्ड भूल गए",
     "subtitle": "कृपया अपना ईमेल दर्ज करें और पासवर्ड रीसेट लिंक आपको भेजा जाएगा।",
-    "successMessage": "हमने आपको पासवर्ड रीसेट लिंक ईमेल किया है। स्पैम जांचना न भूलें।",
+    "successMessage": "अगर कोई खाता इस ईमेल पते का उपयोग करता है, तो हमने उसे पासवर्ड चुनने का लिंक ईमेल कर दिया है। स्पैम जांचना न भूलें।",
     "submitButton": "पासवर्ड रीसेट लिंक भेजें",
     "rememberPasswordPrompt": "अपना पासवर्ड याद है?",
     "loginLink": "लॉग इन करें।",
@@ -187,6 +187,17 @@
     "linkInvalidTitle": "यह रीसेट लिंक अब काम नहीं करता",
     "linkInvalidDescription": "हो सकता है इसका पहले ही इस्तेमाल हो चुका हो, या इसका केवल एक हिस्सा कॉपी हुआ हो। नया लिंक माँगें, हम उसे आपको ईमेल कर देंगे।",
     "requestNewLinkButton": "नया लिंक माँगें"
+  },
+  "setPassword": {
+    "title": "अपना पासवर्ड सेट करें",
+    "subtitle": "अपने खाते का सेटअप पूरा करने के लिए एक पासवर्ड चुनें।",
+    "submitButton": "पासवर्ड सेट करें",
+    "successTitle": "आपका पासवर्ड सेट हो गया है",
+    "successDescription": "अपने नए पासवर्ड से साइन इन करें।",
+    "linkExpiredTitle": "इस लिंक की अवधि समाप्त हो गई है",
+    "linkExpiredDescription": "पासवर्ड सेट करने के लिंक {{days}} दिन तक काम करते हैं। नया लिंक माँगें, हम उसे आपको ईमेल कर देंगे।",
+    "linkInvalidTitle": "यह लिंक अब काम नहीं करता",
+    "linkInvalidDescription": "हो सकता है इसका उपयोग पहले ही हो चुका हो, या इसका केवल एक हिस्सा कॉपी हुआ हो। अगर आपने अपना पासवर्ड सेट कर लिया है, तो साइन इन करें। अगर नहीं, तो नया लिंक माँगें, हम उसे आपको ईमेल कर देंगे।"
   },
   "sso": {
     "title": "SSO से लॉगिन",
@@ -453,7 +464,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "आपकी क्लाउड मार्केटप्लेस सदस्यता के ज़रिए लाइसेंस: हर उपयोगकर्ता का बिल घंटे के हिसाब से बनता है।",
   "License, version, seat usage, and the instances covered by this key.": "लाइसेंस, संस्करण, सीट उपयोग, और इस कुंजी के दायरे में आने वाले इंस्टेंस।",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "घटना प्रतिक्रिया, स्थिति पृष्ठ और वर्कफ़्लो ऑटोमेशन के साथ पूरा OneUptime प्लेटफ़ॉर्म।",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "परियोजनाओं, स्थिति पृष्ठ और पूरे इंस्टेंस के लिए SAML और OIDC सिंगल साइन-ऑन (SSO), \"लॉगिन के लिए SSO अनिवार्य करें\" सहित।",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "परियोजनाओं, स्थिति पृष्ठ और पूरे इंस्टेंस के लिए SAML और OIDC सिंगल साइन-ऑन (SSO), \"साइन इन के लिए SSO अनिवार्य करें\" सहित।",
   "Community support, documentation, and tutorials to help teams get started quickly.": "कम्युनिटी सपोर्ट, दस्तावेज़ और ट्यूटोरियल, ताकि टीमें जल्दी शुरुआत कर सकें।",
   "Regular updates, bug fixes, and open-source extensibility.": "नियमित अपडेट, बग फ़िक्स और ओपन-सोर्स विस्तार क्षमता।",
   "Integrations with popular DevOps tools through community-maintained connectors.": "कम्युनिटी द्वारा बनाए रखे गए कनेक्टरों के ज़रिए लोकप्रिय DevOps टूल के साथ इंटीग्रेशन।",

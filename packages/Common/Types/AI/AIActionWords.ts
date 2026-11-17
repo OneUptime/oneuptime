@@ -1025,7 +1025,7 @@ export const AI_READ_CARD_LINES: {
   waitingForData: translationKey("Waiting for data"),
   noResultsYet: translationKey("No results yet"),
   paused: translationKey("Paused"),
-  probesNotEnabled: translationKey("Probes Not Enabled"),
+  probesNotEnabled: translationKey("No Probe Enabled"),
   probesDisconnected: translationKey("Probes Disconnected"),
 };
 

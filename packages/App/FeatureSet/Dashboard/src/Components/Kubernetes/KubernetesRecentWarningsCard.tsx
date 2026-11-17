@@ -19,6 +19,8 @@ import {
 } from "Common/UI/Components/Feed/FeedTime";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -75,14 +77,15 @@ const WarningLine: FunctionComponent<{
             {warning.reason}
           </span>
           {warning.count > 1 ? (
-            <span
-              className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-100 px-1.5 text-xs font-semibold text-amber-700"
-              data-testid="kubernetes-recent-warning-count"
-            >
-              {translator.translateTemplate("{{count}} times", {
+            <Pill
+              dataTestId="kubernetes-recent-warning-count"
+              text={translator.translateTemplate("{{count}} times", {
                 count: translator.formatNumber(warning.count),
               })}
-            </span>
+              isUserContent={true}
+              tone={PillTone.Warning}
+              isDotHidden={true}
+            />
           ) : (
             <></>
           )}

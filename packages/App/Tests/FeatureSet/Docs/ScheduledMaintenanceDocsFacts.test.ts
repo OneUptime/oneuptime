@@ -53,6 +53,7 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/CreateFromRecord/CreateFromRecord";
 import { getTemplateNextEventAt } from "../../../FeatureSet/Dashboard/src/Utils/ScheduledMaintenanceTemplateSchedule";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import { getStatusPageHistoryInDays } from "Common/Utils/StatusPage/HistoryWindow";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import ScheduledMaintenanceInternalNote from "Common/Models/DatabaseModels/ScheduledMaintenanceInternalNote";
@@ -415,6 +416,9 @@ const LIST_TABLE: string = readDashboardSource(
 const CREATE_PAGE: string = readDashboardSource(
   "Pages/ScheduledMaintenanceEvents/Create.tsx",
 );
+const STATUS_PAGES_FIELD_COPY: string = readDashboardSource(
+  "Components/ScheduledMaintenance/MaintenanceStatusPagesCopy.ts",
+);
 const FORM_MODULE: string = readDashboardSource(
   "Components/ScheduledMaintenance/ScheduledMaintenanceForm.ts",
 );
@@ -566,8 +570,8 @@ describe("the Scheduled Maintenance menu, as the overview draws it", () => {
         return menuSection.title;
       }),
     ).toEqual([
+      // Maintenance Calendar joined Overview from a one-entry Calendar (#9216).
       "Overview",
-      "Calendar",
       "Workspace",
       "Rules",
       "Settings",
@@ -575,7 +579,7 @@ describe("the Scheduled Maintenance menu, as the overview draws it", () => {
     ]);
   });
 
-  it("says Overview and Calendar are open and the rest start folded, and what Developer holds", () => {
+  it("says Overview is open and the rest start folded, and what Developer holds", () => {
     const menu: Array<MenuSection> = maintenanceMenu();
     const open: Array<string> = openSections(menu, MAINTENANCE_MENU_SOURCE);
     const folded: Array<string> = menu
@@ -586,9 +590,10 @@ describe("the Scheduled Maintenance menu, as the overview draws it", () => {
         return !open.includes(title);
       });
 
-    expect(open).toEqual(["Overview", "Calendar"]);
+    // The Calendar section went in #9216; its page is in Overview.
+    expect(open).toEqual(["Overview"]);
     expect(where).toContain(
-      `${listed(open)} are open; ${listed(folded)} start folded, and a section opens by itself when you are on one of its pages.`,
+      `${listed(open)} is open; ${listed(folded)} start folded, and a section opens by itself when you are on one of its pages.`,
     );
     expect(where).toContain(
       `**Developer** holds ${listed(developerSection().items)}, for managing maintenance from code.`,
@@ -606,7 +611,7 @@ describe("the Scheduled Maintenance menu, as the overview draws it", () => {
       readDashboardSource("Pages/ScheduledMaintenanceEvents/Ongoing.tsx"),
     ).toContain("useInProgressScheduledMaintenanceStateIds()");
     expect(where).toContain(
-      "**All Maintenance Events** and **Ongoing Maintenance Events**, whose badge counts the events in progress right now.",
+      "**All Maintenance Events**, **Ongoing Maintenance Events**, whose badge counts the events in progress right now, and **Maintenance Calendar**",
     );
   });
 
@@ -729,15 +734,17 @@ describe("an event's own menu, as the overview draws it", () => {
     expect(menuTable(pages)).toEqual(eventMenu());
   });
 
-  it("says Overview, Team and Notes are open and the rest start folded", () => {
-    // The incident page's sections, as an incident's and an alert's menus have them.
+  it("says Overview and Notes are open and the rest start folded", () => {
+    /*
+     * The incident page's sections, as an incident's and an alert's menus
+     * have them. Owners joined Overview from a one-entry Team section (#9216).
+     */
     expect(openSections(eventMenu(), EVENT_MENU_SOURCE)).toEqual([
       "Overview",
-      "Team",
       "Notes",
     ]);
     expect(pages).toContain(
-      "**Overview**, **Team** and **Notes** are open; the other sections start folded until you click them.",
+      "**Overview** and **Notes** are open; the other sections start folded until you click them.",
     );
   });
 
@@ -1090,9 +1097,12 @@ describe("the overview's troubleshooting", () => {
   });
 
   it("drops an event from a status page after the page's history window, 14 days unless changed", () => {
+    // The server reads the window through one helper (#9182), unset is 14.
     expect(readCommonSource("Server/API/StatusPageAPI.ts")).toContain(
-      "statusPage.showScheduledEventHistoryInDays || 14,",
+      "getStatusPageHistoryInDays(\n      statusPage.showScheduledEventHistoryInDays,",
     );
+    expect(getStatusPageHistoryInDays(undefined)).toBe(14);
+    expect(getStatusPageHistoryInDays(null)).toBe(14);
     expect(
       new StatusPage().getTableColumnMetadata("showScheduledEventHistoryInDays")
         .defaultValue,
@@ -2099,6 +2109,18 @@ describe("the create form", () => {
           ),
         );
         expect(step).toBe("Maintenance Details");
+        continue;
+      }
+
+      // Defined once, for Create, the event's Edit and the templates (#9131).
+      if (field === "Show event on these status pages") {
+        expect(CREATE_PAGE).toMatch(
+          /getMaintenanceStatusPagesFormField<ScheduledMaintenance>\(\{\s*stepId: "resources-affected",/,
+        );
+        expect(STATUS_PAGES_FIELD_COPY).toContain(
+          'pickerTitle: translationKey("Show event on these status pages")',
+        );
+        expect(step).toBe("Resources Affected");
         continue;
       }
 
@@ -3352,10 +3374,15 @@ describe("the rules a new event passes through", () => {
     expect(ruleRun).toContain(
       'ScheduledMaintenanceOwnerRule = "ScheduledMaintenanceOwnerRule",',
     );
-    expect(OWNER_RULES_PAGE).toContain('<Pill color={Green} text="Enabled" />');
-    expect(OWNER_RULES_PAGE).toContain('<Pill color={Red} text="Disabled" />');
+    expect(OWNER_RULES_PAGE).toContain(
+      "<EnabledPill isEnabled={item.isEnabled} />",
+    );
+    // A rule switched off is grey (the Paused tone), not red: #9184.
+    expect(readCommonSource("UI/Components/Pill/EnabledPill.tsx")).toMatch(
+      /text="Disabled"\s+tone=\{PillTone\.Paused\}/,
+    );
     expect(passes).toContain(
-      "A new rule starts enabled; switch **Enabled** off on its edit form to pause it, and the list shows a green **Enabled** or red **Disabled** for each rule.",
+      "A new rule starts enabled; switch **Enabled** off on its edit form to pause it, and the list shows a green **Enabled** or grey **Disabled** for each rule.",
     );
   });
 });
@@ -4176,9 +4203,9 @@ describe("the readers", () => {
       "resources-affected",
     );
     expect(stepOf(fieldObject(CREATE_PAGE, "Title"))).toBe("event");
-    expect(
-      fieldObject(CREATE_PAGE, "Show event on these status pages"),
-    ).toContain('title: "Show event on these status pages ",');
+    expect(STATUS_PAGES_FIELD_COPY).toContain(
+      'pickerTitle: translationKey("Show event on these status pages")',
+    );
   });
 
   it("read the seeded states with their colours", () => {

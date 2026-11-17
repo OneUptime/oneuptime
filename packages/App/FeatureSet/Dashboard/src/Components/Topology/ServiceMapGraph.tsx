@@ -1,3 +1,7 @@
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, {
   FunctionComponent,
@@ -1669,13 +1673,12 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                     }}
                   >
                     <span>{t("The map is out of view.")}</span>
-                    <button
-                      type="button"
-                      className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    <Button
+                      title="Fit to screen"
+                      buttonStyle={ButtonStyleType.PRIMARY}
+                      buttonSize={ButtonSize.Small}
                       onClick={fitToScreen}
-                    >
-                      {t("Fit to screen")}
-                    </button>
+                    />
                   </div>
                 </div>
               )}
@@ -1991,13 +1994,12 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
               )}
             </p>
             {(searchText.trim() || effectiveFocusKey || attentionOnly) && (
-              <button
-                type="button"
-                className="mt-5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+              <Button
+                title="Clear filters"
+                buttonStyle={ButtonStyleType.PRIMARY}
+                className="mt-5"
                 onClick={resetFilters}
-              >
-                {t("Clear filters")}
-              </button>
+              />
             )}
           </div>
         ) : view === "list" ? (

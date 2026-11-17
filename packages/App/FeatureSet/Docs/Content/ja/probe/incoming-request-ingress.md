@@ -163,7 +163,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | 応答 | 空の JSON オブジェクト (`{}`) 付きの `200` を、リクエストを転送する前に返します。OneUptime と同じく、その後に何が起きても返すので、間違ったシークレットキーでも受け取ります。 サービスによる URL の確認にも同じ応答を返します。OneUptime 自身はこの確認にサービスが期待するとおりに応答するので、Slack、Microsoft Graph、Okta、Azure Event Grid は OneUptime 自身の URL に送ってください。 |
 | メソッド | `POST` は `POST` として転送します。 `GET` と `HEAD` は `GET` として転送します。ほかのメソッドにはプローブが `404` を返します。 |
 | ヘッダー | ホップバイホップのヘッダー (`Host`、 `Connection`、 `Content-Length`、 `Transfer-Encoding`、 `Keep-Alive`、 `Proxy-Authenticate`、 `Proxy-Authorization`、 `TE`、 `Trailer`、 `Upgrade`) と `Content-Encoding` を除くすべて (プローブはボディを非圧縮で転送します)。プローブは `OneUptime-Probe-Id` を追加します。 |
-| ボディ | 最大 50 MB の JSON、フォーム、プレーンテキスト、 `+json` のボディ。OneUptime に直接送る場合と同じです。プレーンテキストや `+json` のボディは、届いたままの形で、その `Content-Type` とともに渡されます。直接送る場合と同様に、それ以外のボディは空としてモニターに届きます。 |
+| ボディ | 最大 50 MB の JSON、フォーム、プレーンテキスト、 `+json` のボディ。OneUptime に直接送る場合と同じです。プレーンテキストや `+json` のボディは、届いたままの形で、その `Content-Type` とともに渡されます。直接送る場合と同様に、それ以外のボディは空としてモニターに届きます。 署名付きリクエストのボディは、種類にかかわらず 1 バイトも変えずに渡されるため、OneUptime が署名を確認しても一致します。 |
 | 再試行 | 転送に失敗すると、プローブは最大 `PROBE_INGRESS_FORWARD_RETRY_LIMIT` 回再試行し、2 秒、4 秒、8 秒と待ちますが、15 秒を超えることはありません。その後、失敗をログに出してリクエストを破棄します。 |
 | プロキシ | `HTTP_PROXY_URL` または `HTTPS_PROXY_URL` が設定されていると、転送はプローブのプロキシを経由します。 |
 | 転送先 | `ONEUPTIME_URL` に `/incoming-request-ingest/incoming-request/<secret-key>` を続けたもの。 |

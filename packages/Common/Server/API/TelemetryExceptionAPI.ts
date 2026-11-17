@@ -11,6 +11,7 @@ import TelemetryExceptionService, {
 } from "../Services/TelemetryExceptionService";
 import { AIFixReadiness } from "../../Types/AI/AIFixReadiness";
 import AIRunService from "../Services/AIRunService";
+import CodeTaskThread from "../Utils/AI/CodeTask/CodeTaskThread";
 import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import FixProductionCheck, {
   FixProductionCheckHelper,
@@ -827,11 +828,12 @@ export default class TelemetryExceptionAPI extends BaseAPI<
         id: telemetryExceptionId,
         select: {
           _id: true,
+          projectId: true,
         },
         props,
       });
 
-    if (!telemetryException) {
+    if (!telemetryException || !telemetryException.projectId) {
       throw new BadDataException(
         "Telemetry Exception not found (or you do not have access to it).",
       );
@@ -861,14 +863,47 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     }
 
     /*
+     * A task a reply carried a private incident or alert into, which the
+     * caller does not see, is read as the task's own page reads it: not at
+     * all (CodeTaskThread.findTasksHiddenFrom). The panel learns its type -
+     * the exception's fix is there - and nothing of how it stands: no
+     * state, no words, no time, no pull request and no link.
+     */
+    const hiddenRunIds: Set<string> = await CodeTaskThread.findTasksHiddenFrom({
+      projectId: telemetryException.projectId,
+      taskIds: runs.map((run: AIRun): ObjectID => {
+        return run.id!;
+      }),
+      reader: props,
+    });
+
+    const isHidden: (run: AIRun) => boolean = (run: AIRun): boolean => {
+      return hiddenRunIds.has((run.id?.toString() || "").toLowerCase());
+    };
+
+    /*
      * Whether each run's merged fix fixed the exception in production
      * (FixProductionVerifier), read as root like the runs themselves: the
      * caller may read the exception, and these are its runs' pull requests.
      */
     const productionByRunId: Map<string, JSONObject> =
-      await this.readFixProduction(runs);
+      await this.readFixProduction(
+        runs.filter((run: AIRun): boolean => {
+          return !isHidden(run);
+        }),
+      );
 
     const toTaskJson: (run: AIRun) => JSONObject = (run: AIRun): JSONObject => {
+      if (isHidden(run)) {
+        return {
+          // Normalized by the service: legacy null rows read as FixException.
+          taskType: CodeFixTaskTypeHelper.fromDatabaseValue(
+            run.codeFixTaskType,
+          ),
+          isHidden: true,
+        };
+      }
+
       const status: AIRunStatus = run.status || AIRunStatus.Queued;
       const production: JSONObject | undefined = productionByRunId.get(
         run.id?.toString() || "",
@@ -893,7 +928,10 @@ export default class TelemetryExceptionAPI extends BaseAPI<
       latestRunOverall.status || AIRunStatus.Queued;
 
     return Response.sendJsonObjectResponse(req, res, {
-      hasActiveTask: !AIRunStatusHelper.isTerminalStatus(latestStatus),
+      // Of a task hidden from the caller, not even whether it is working.
+      hasActiveTask:
+        !isHidden(latestRunOverall) &&
+        !AIRunStatusHelper.isTerminalStatus(latestStatus),
       aiAgentTask: toTaskJson(latestRunOverall),
       aiAgentTasks: runs.map(toTaskJson),
     });

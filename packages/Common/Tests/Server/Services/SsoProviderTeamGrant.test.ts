@@ -1780,8 +1780,10 @@ describe(SCIM.label, () => {
 
 /*
  * The bearer token is what the identity provider adds people to teams with,
- * and the Groups endpoints reach every team, so reading it takes the access
- * saving the connection takes: Project Owner.
+ * and the Groups endpoints reach every team. It is kept only as its hash
+ * now (#9012), shown once when it is made, so nobody reads it back - a
+ * Project Owner included; setting it still takes the access saving the
+ * connection takes.
  */
 describe("a SCIM connection's bearer token", () => {
   function canSelectToken(caller: Caller): boolean {
@@ -1801,9 +1803,15 @@ describe("a SCIM connection's bearer token", () => {
     }
   }
 
-  test("is readable by a Project Owner only", () => {
+  test("is readable by nobody: it is kept as its hash, and shown once", () => {
     expect(
       new ProjectSCIM().getColumnAccessControlFor("bearerToken")?.read,
+    ).toEqual([]);
+  });
+
+  test("is still written only by a Project Owner", () => {
+    expect(
+      new ProjectSCIM().getColumnAccessControlFor("bearerToken")?.update,
     ).toEqual([Permission.ProjectOwner]);
   });
 
@@ -1813,26 +1821,8 @@ describe("a SCIM connection's bearer token", () => {
     }).map((caller: Caller): [string, Caller] => {
       return [caller.name, caller];
     }),
-  )("selected by %s", (_name: string, caller: Caller) => {
-    /*
-     * Held by an allow row, and not taken away by a block with no labels:
-     * the column is read by the rule its table is.
-     */
-    const holdsProjectOwner: boolean =
-      (caller.rows || []).some((row: UserPermission): boolean => {
-        return (
-          row.permission === Permission.ProjectOwner && !row.isBlockPermission
-        );
-      }) &&
-      !(caller.rows || []).some((row: UserPermission): boolean => {
-        return (
-          row.permission === Permission.ProjectOwner &&
-          Boolean(row.isBlockPermission) &&
-          (row.labelIds || []).length === 0
-        );
-      });
-
-    expect(canSelectToken(caller)).toBe(holdsProjectOwner);
+  )("selected by %s: refused", (_name: string, caller: Caller) => {
+    expect(canSelectToken(caller)).toBe(false);
   });
 
   test("the rest of a connection stays readable by everyone who could read it", () => {

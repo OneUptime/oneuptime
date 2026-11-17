@@ -17,6 +17,7 @@ import {
   getCcAddresses,
   getReplyToAddress,
 } from "Common/Types/Email/EmailRecipients";
+import EmailSendFailure from "Common/Types/Email/EmailSendFailure";
 import EmailServer from "Common/Types/Email/EmailServer";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import AwsDefaultCredentialChain, {
@@ -409,6 +410,23 @@ export default class AmazonSesMailProvider implements MailProvider {
    * ones. What to change names what the config signs in with - an access
    * key, or the server's IAM role.
    */
+  /*
+   * Whether an "Email address is not verified" names identities, none of
+   * them the sender: only the recipients are not verified.
+   */
+  public static isOnlyRecipientsUnverified(
+    message: string,
+    fromEmail: string,
+  ): boolean {
+    const identities: Array<string> =
+      EmailSendFailure.getUnverifiedIdentities(message);
+    const sender: string = fromEmail.trim().toLowerCase();
+
+    return (
+      identities.length > 0 && Boolean(sender) && !identities.includes(sender)
+    );
+  }
+
   public static explainError(
     answer: MailApiAnswer,
     options: {
@@ -468,6 +486,18 @@ export default class AmazonSesMailProvider implements MailProvider {
       meaning = usesServerIamRole
         ? `This server's IAM role credentials expired before Amazon SES read them (${status}). New ones are fetched for the next try.`
         : `The access key has expired (${status}). Use a long-lived IAM access key.`;
+    } else if (
+      words.includes("not verified") &&
+      AmazonSesMailProvider.isOnlyRecipientsUnverified(
+        error.message,
+        options.fromEmail,
+      )
+    ) {
+      /*
+       * The sender is verified; a recipient is not, which an account in
+       * the SES sandbox needs (#9217): only email to that address fails.
+       */
+      meaning = `Amazon SES has not verified the recipient ${EmailSendFailure.getUnverifiedIdentities(error.message).join(", ")} in ${options.region} (${status}). While the account is in the SES sandbox, it sends only to verified addresses: verify this one, or request production access.`;
     } else if (words.includes("not verified")) {
       meaning = `Amazon SES needs a verified identity in ${options.region} for ${options.fromEmail} (${status}). Verify the address or its domain in that Region; while the account is in the SES sandbox, verify each recipient too, or request production access.`;
     } else if (error.code === "MailFromDomainNotVerifiedException") {

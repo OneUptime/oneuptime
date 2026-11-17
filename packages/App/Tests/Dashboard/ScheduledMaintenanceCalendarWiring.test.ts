@@ -127,16 +127,20 @@ describe("which pages draw the calendar", () => {
 });
 
 describe("the side menu", () => {
-  test("has a Calendar section of its own, right after Overview and open, holding the Maintenance Calendar", () => {
+  test("holds the Maintenance Calendar in Overview, which is open, after the event lists", () => {
     const overview: number = SIDE_MENU.indexOf('title: "Overview"');
-    const calendar: number = SIDE_MENU.indexOf('title: "Calendar"');
+    const ongoing: number = SIDE_MENU.indexOf(
+      'title: "Ongoing Maintenance Events"',
+    );
     const workspace: number = SIDE_MENU.indexOf("workspaceSection ?");
 
+    // It had a Calendar section of its own, for this one entry (#9216).
+    expect(SIDE_MENU).not.toContain('title: "Calendar",');
     expect(overview).toBeGreaterThan(-1);
-    expect(calendar).toBeGreaterThan(overview);
-    expect(workspace).toBeGreaterThan(calendar);
+    expect(ongoing).toBeGreaterThan(overview);
+    expect(workspace).toBeGreaterThan(ongoing);
 
-    const section: string = SIDE_MENU.slice(calendar, workspace);
+    const section: string = SIDE_MENU.slice(ongoing, workspace);
 
     expect(section).toContain('title: "Maintenance Calendar"');
     expect(section).toContain(

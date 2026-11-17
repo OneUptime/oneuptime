@@ -209,7 +209,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
 
           {/* Kind — only when meaningful */}
           {kindLabel && (
-            <span className="max-md:hidden flex-shrink-0 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 md:inline-block">
+            <span className="max-md:hidden flex-shrink-0 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider text-gray-500 md:inline-block">
               {kindLabel}
             </span>
           )}
@@ -217,7 +217,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
           {/* Error pill */}
           {isError && (
             <span
-              className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${status.pillClassName}`}
+              className={`flex-shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wider ${status.pillClassName}`}
             >
               {plainStatusName}
             </span>
@@ -246,7 +246,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
           {/* Time */}
           {startTimeDate && (
             <div
-              className="max-md:hidden w-24 whitespace-nowrap text-right text-xs text-gray-400 md:block"
+              className="max-md:hidden w-24 whitespace-nowrap text-right text-xs text-gray-500 md:block"
               title={`${formatAbsoluteTime(startTimeDate)} — ${startTimeDate.toISOString()}`}
             >
               {formatRelativeTime(startTimeDate, translator)}
@@ -279,10 +279,10 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
       </div>
 
       {/* Sub-row: trace id + status message (error only) */}
-      <div className="flex items-center gap-3 px-5 pb-2.5 pl-[3.25rem] text-[11px] text-gray-400">
+      <div className="flex items-center gap-3 px-5 pb-2.5 pl-[3.25rem] text-[11px] text-gray-500">
         {shortTraceId && (
           <span
-            className="font-mono tracking-tight text-gray-400 transition-colors group-hover:text-gray-500"
+            className="font-mono tracking-tight text-gray-500 transition-colors group-hover:text-gray-700"
             title={translator.translateTemplate("trace {{traceId}}", {
               traceId: traceIdStr,
             })}

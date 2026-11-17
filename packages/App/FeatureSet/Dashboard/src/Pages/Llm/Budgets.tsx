@@ -1,11 +1,12 @@
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import PageComponentProps from "../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import ResellerPlanNotice from "../../Components/Billing/ResellerPlanNotice";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green } from "Common/Types/BrandColors";
 import LlmCostBudget from "Common/Models/DatabaseModels/LlmCostBudget";
 import Service from "Common/Models/DatabaseModels/Service";
 import LlmBudgetSpendSource from "Common/Types/LlmObservability/LlmBudgetSpendSource";
@@ -25,7 +26,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
 
   if (disableTelemetryForThisProject) {
     return (
-      <ErrorMessage message="Looks like you have bought this plan from a reseller. It did not include telemetry features in your plan. Telemetry features are disabled for this project." />
+      <ResellerPlanNotice project={props.currentProject} product="AI / LLM" />
     );
   }
 
@@ -52,7 +53,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
         description:
           "Daily USD budgets for LLM spend. Spend is published as metrics every 15 minutes: alert on them from a Metrics monitor with a 30-minute rolling window.",
       }}
-      noItemsMessage={"No LLM cost budgets found."}
+      noItemsMessage={"No LLM cost budgets yet."}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Budget", id: "budget" },
@@ -297,7 +298,7 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
             if (item.isEnabled) {
               return <Pill color={Green} text="Enabled" />;
             }
-            return <Pill color={Red} text="Disabled" />;
+            return <Pill tone={PillTone.Paused} text="Disabled" />;
           },
         },
       ]}

@@ -19,7 +19,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 
 /*
- * "Require SSO for Login" on a status page's SSO page: one switch that
+ * "Require SSO to Sign In" on a status page's SSO page: one switch that
  * saves the moment it is flipped (StatusPageRequireSsoCard, on the shared
  * ModelSwitchCard). It was the "SSO Settings" card whose Edit dialog held
  * one switch, "Force SSO for Login", with "Please test SSO before you you
@@ -127,7 +127,7 @@ function sent(): Array<{ modelType: unknown; id: string; data: JSONObject }> {
   });
 }
 
-describe("Require SSO for Login, on a status page", () => {
+describe("Require SSO to Sign In, on a status page", () => {
   test("is the SSO Settings card's one switch, reading the status page's own column", async () => {
     await renderCard();
 

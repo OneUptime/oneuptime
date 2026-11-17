@@ -88,7 +88,13 @@ export type MonitorOverviewTone =
   | "warning"
   | "danger"
   | "info"
-  | "neutral";
+  | "neutral"
+  /*
+   * Someone chose to switch it off: Disabled, Archived, Paused by an
+   * incident or for maintenance. Grey, like neutral, but drawn as a light
+   * that is off (PillTone.Paused), never as a fault (#9255).
+   */
+  | "paused";
 
 export type MonitorOverviewLinkKey =
   | "settings"
@@ -1398,7 +1404,7 @@ export default class MonitorOverviewPresentationUtil {
          */
         if (context.isNoProbeEnabled) {
           secondaryBadges.push({
-            text: t.translateTemplate("Probes Not Enabled"),
+            text: t.translateTemplate("No Probe Enabled"),
             tone: "danger",
           });
         } else if (context.isAllProbesDisconnected) {
@@ -1416,7 +1422,7 @@ export default class MonitorOverviewPresentationUtil {
         if (input.pause.isArchived) {
           return {
             tone: "neutral",
-            badge: { text: t.translateTemplate("Archived"), tone: "neutral" },
+            badge: { text: t.translateTemplate("Archived"), tone: "paused" },
             secondaryBadges: secondaryBadges,
             headline: {
               text: t.translateTemplate(
@@ -1439,7 +1445,7 @@ export default class MonitorOverviewPresentationUtil {
         if (input.pause.isDisabled) {
           return {
             tone: "neutral",
-            badge: { text: t.translateTemplate("Disabled"), tone: "neutral" },
+            badge: { text: t.translateTemplate("Disabled"), tone: "paused" },
             secondaryBadges: secondaryBadges,
             headline: { text: t.translateTemplate("Monitoring is turned off") },
             explanation: t.translateTemplate(PAUSED_EXPLANATION.disabled),
@@ -1454,7 +1460,7 @@ export default class MonitorOverviewPresentationUtil {
         if (input.pause.byManualIncident) {
           return {
             tone: "neutral",
-            badge: { text: t.translateTemplate("Paused"), tone: "neutral" },
+            badge: { text: t.translateTemplate("Paused"), tone: "paused" },
             secondaryBadges: secondaryBadges,
             headline: {
               text: t.translateTemplate("Monitoring is paused by an incident"),
@@ -1470,7 +1476,7 @@ export default class MonitorOverviewPresentationUtil {
 
         return {
           tone: "neutral",
-          badge: { text: t.translateTemplate("Paused"), tone: "neutral" },
+          badge: { text: t.translateTemplate("Paused"), tone: "paused" },
           secondaryBadges: secondaryBadges,
           headline: {
             text: t.translateTemplate(
@@ -1660,7 +1666,7 @@ export default class MonitorOverviewPresentationUtil {
     }
 
     const badge: MonitorOverviewBadge = {
-      text: t.translateTemplate("Probes Not Enabled"),
+      text: t.translateTemplate("No Probe Enabled"),
       tone: "danger",
     };
     const manageProbes: MonitorOverviewCallToAction = {

@@ -239,7 +239,7 @@ describe("Side menus", () => {
     );
   });
 
-  test("a team's menu has an On-Call section with its schedules", () => {
+  test("a team's menu has its schedules in Overview, beside its details", () => {
     const menu: string = readDashboardCode(
       "Pages",
       "Teams",
@@ -247,9 +247,17 @@ describe("Side menus", () => {
       "SideMenu.tsx",
     );
 
-    expect(menu).toContain(
+    const code: string = menu;
+    const overview: number = code.indexOf(compact('title: "Overview"'));
+    const members: number = code.indexOf(compact('title: "Members & Access"'));
+
+    // It had an On-Call section of its own, for this one entry (#9216).
+    expect(code).not.toContain(compact('title: "On-Call", items'));
+    expect(overview).toBeGreaterThan(-1);
+    expect(members).toBeGreaterThan(overview);
+    expect(code.slice(overview, members)).toContain(
       compact(
-        '{ title: "On-Call", items: [ { link: { title: "On-Call Schedules", to: RouteUtil.populateRouteParams( RouteMap[PageMap.TEAM_VIEW_ON_CALL_SCHEDULES] as Route, { modelId: props.modelId }, ), }, icon: IconProp.Calendar, }, ], }',
+        '{ link: { title: "On-Call Schedules", to: RouteUtil.populateRouteParams( RouteMap[PageMap.TEAM_VIEW_ON_CALL_SCHEDULES] as Route, { modelId: props.modelId }, ), }, icon: IconProp.Calendar, }',
       ),
     );
   });

@@ -185,22 +185,37 @@ describe("the dashboard's page", () => {
 });
 
 describe("the pages that show no dashboard", () => {
+  /*
+   * Both draw the shared ErrorPage (since e3d9780253b, which translated them
+   * and gave them a next step), so the ground and the code's colour are its.
+   */
+  const errorPage: string = readCode("Components", "ErrorPage.tsx");
+
   test.each([
-    ["not found", ["Pages", "NotFound", "NotFound.tsx"]],
-    ["Access Denied", ["Pages", "Forbidden", "Forbidden.tsx"]],
+    ["not found", ["Pages", "NotFound", "NotFound.tsx"], "404"],
+    ["Access Denied", ["Pages", "Forbidden", "Forbidden.tsx"], "403"],
   ])(
-    "%s is drawn on the page's own ground, with its code in a colour the dark theme remaps",
-    (_page: string, parts: Array<string>) => {
+    "%s is the shared error page, with its own code",
+    (_page: string, parts: Array<string>, code: string) => {
       const page: string = readCode(...parts);
 
+      expect(page).toContain(
+        'import ErrorPage from "../../Components/ErrorPage";',
+      );
+      expect(page).toContain(`<ErrorPage code="${code}"`);
       expect(page).not.toMatch(/\bbg-(white|gray-50)\b/);
-      expect(page).toContain("style={{ color: ERROR_CODE_COLOR }}");
       expect(page).not.toContain("text-gray-300");
     },
   );
 
+  test("the error page is drawn on the page's own ground, with its code in a colour the dark theme remaps", () => {
+    expect(errorPage).not.toMatch(/\bbg-(white|gray-50)\b/);
+    expect(errorPage).toContain("style={{ color: ERROR_CODE_COLOR }}");
+    expect(errorPage).not.toContain("text-gray-300");
+  });
+
   test("the code's colour is a theme colour: the light page's grey, a dark slate on the dark one", () => {
-    expect(readCode("Pages", "NotFound", "NotFound.tsx")).toContain(
+    expect(errorPage).toContain(
       'export const ERROR_CODE_COLOR: string = "var(--ou-border-strong, #d1d5db)";',
     );
   });

@@ -293,7 +293,7 @@ For at sende nogle problemer til hændelsesskabelonen og andre til advarselsskab
 ## Test det
 
 1. Åbn **Alerts → Media types** i Zabbix, og klik på **Test** ved siden af `OneUptime`. Udfyld den URL, du kopierede, og eksempelværdier som `event_id` `12345`, `event_name` `Test problem`, `host` `web-1`, `event_nseverity` `4` og `event_value` `1`. Klik på **Test**: Zabbix viser scriptets svar, `OK`, eller den fejl, det kastede.
-2. Åbn arbejdsgangens **Protokoller → Kørsler** i OneUptime, og tjek kørslen, eller åbn monitoren, og kontrollér, at der blev oprettet en hændelse.
+2. Åbn arbejdsgangens **Kørsler** i OneUptime, og tjek kørslen, eller åbn monitoren, og kontrollér, at der blev oprettet en hændelse.
 3. Test igen med `event_value` `0` og samme `event_id`. Hændelsen bliver løst.
 
 Lad derefter en rigtig trigger udløses, f.eks. ved at sænke en tærskel et øjeblik, og se problemet komme ind. For at prøve en opdatering skal du bekræfte problemet i Zabbix med en besked: hændelsen får en privat note og bliver bekræftet.
@@ -320,12 +320,12 @@ Zabbix sender sin alvorlighed som tekst: `Not classified`, `Information`, `Warni
 
 :::details Hændelser oprettes, men løses aldrig
 - Handlingen skal have **Recovery operations**, ellers sender Zabbix aldrig gendannelsen.
-- Med skabelonen åbner du arbejdsgangens **Protokoller → Kørsler** og gendannelsens kørsel: dens sidste trin siger hvorfor. En gendannelse for et problem, der ikke oprettede nogen hændelse, ændrer intet.
+- Med skabelonen åbner du arbejdsgangens **Kørsler** og gendannelsens kørsel: dens sidste trin siger hvorfor. En gendannelse for et problem, der ikke oprettede nogen hændelse, ændrer intet.
 - Med monitoren skal kriteriets hændelse have **Løs hændelse automatisk** under **Flere felter**. **Field that signals recovery** skal være `requestBody.status`, og **Value that means recovered** præcis `0`.
 :::
 
 :::details Zabbix-problemet bliver ikke bekræftet eller lukket
-Åbn tilstandsskabelonens kørsel i **Protokoller → Kørsler**: dens sidste trin siger, hvad Zabbix svarede.
+Åbn tilstandsskabelonens kørsel i **Kørsler**: dens sidste trin siger, hvad Zabbix svarede.
 
 - `Not authorized`: API-tokenet er forkert, udløbet eller deaktiveret, eller Zabbix er ældre end 6.4 (se [På Zabbix 6.0](#på-zabbix-60)).
 - `Cannot close problem: trigger does not allow manual closing`: slå **Allow manual close** til på triggeren. Skabelonen bekræfter allerede sådanne problemer i stedet for at lukke dem.
@@ -334,7 +334,7 @@ Zabbix sender sin alvorlighed som tekst: `Not classified`, `Information`, `Warni
 :::
 
 :::details Hændelsen viser en reference i stedet for en værdi
-En reference til et felt, som anmodningen ikke har, bliver stående, som den er skrevet, krøllede parenteser og det hele, i stedet for at blive tømt. Kontrollér, at Zabbix sender `Content-Type: application/json`, og at de feltnavne, du bruger (`name`, `host`, `severity`, `status`, `event_id`), passer til scriptets payload. Ved en arbejdsgang åbner du kørslen i **Protokoller → Kørsler** og sammenligner med det, triggeren modtog. Se [Faldgruber](/docs/workflows/variables#fælder).
+En reference til et felt, som anmodningen ikke har, bliver stående, som den er skrevet, krøllede parenteser og det hele, i stedet for at blive tømt. Kontrollér, at Zabbix sender `Content-Type: application/json`, og at de feltnavne, du bruger (`name`, `host`, `severity`, `status`, `event_id`), passer til scriptets payload. Ved en arbejdsgang åbner du kørslen i **Kørsler** og sammenligner med det, triggeren modtog. Se [Faldgruber](/docs/workflows/variables#fælder).
 :::
 
 :::details Hvert problem kommer to gange

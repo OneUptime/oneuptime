@@ -314,7 +314,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      <Tabs tabs={tabItems} onTabChange={handleTabChange} />
+      <Tabs label="Spans" tabs={tabItems} onTabChange={handleTabChange} />
 
       <div className="rounded">
         <AnalyticsModelTable<Span>

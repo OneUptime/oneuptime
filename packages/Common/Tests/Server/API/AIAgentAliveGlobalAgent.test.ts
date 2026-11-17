@@ -72,17 +72,21 @@ const responseUtil: {
 let storedAgent: AIAgent | null;
 let updateLastAlive: jest.SpyInstance;
 let checkComponentKey: jest.SpyInstance;
-let findOneBy: jest.SpyInstance;
+let findOneByPresentedKey: jest.SpyInstance;
+// The pair the last heartbeat sent.
+let sent: JSONObject;
 
 async function heartbeat(): Promise<void> {
   const next: NextFunction = jest.fn() as unknown as NextFunction;
 
+  sent = {
+    aiAgentId: ObjectID.generate().toString(),
+    aiAgentKey: ObjectID.generate().toString(),
+  };
+
   await mockRouter.match("post", ALIVE_ROUTE).handlerFunction(
     {
-      body: {
-        aiAgentId: ObjectID.generate().toString(),
-        aiAgentKey: ObjectID.generate().toString(),
-      } as JSONObject,
+      body: sent,
       headers: {},
     } as unknown as ExpressRequest,
     {} as ExpressResponse,
@@ -105,8 +109,13 @@ beforeEach(() => {
   jest.clearAllMocks();
   storedAgent = null;
 
-  findOneBy = jest
-    .spyOn(AIAgentService, "findOneBy")
+  /*
+   * The agent the pair names. Its key is kept encrypted (#9012), so the
+   * route reads the agent its id names and holds it to the key presented
+   * (findOneByPresentedKey): the stored agent is the one whose key it is.
+   */
+  findOneByPresentedKey = jest
+    .spyOn(AIAgentService, "findOneByPresentedKey")
     .mockImplementation(async () => {
       return storedAgent as never;
     });
@@ -179,8 +188,17 @@ describe("POST /ai-agent/alive", () => {
   test("the agent is read with its project, which says whether it is a global one", async () => {
     await heartbeat();
 
-    const read: { select: JSONObject } = findOneBy.mock.calls[0]![0] as never;
+    const read: {
+      column: string;
+      presentedKey: unknown;
+      query: JSONObject;
+      select: JSONObject;
+    } = findOneByPresentedKey.mock.calls[0]![0] as never;
 
     expect(read.select["projectId"]).toBe(true);
+    // The agent the id names, held to the key presented.
+    expect(read.query).toEqual({ _id: sent["aiAgentId"] });
+    expect(read.column).toBe("key");
+    expect(read.presentedKey).toBe(sent["aiAgentKey"]);
   });
 });

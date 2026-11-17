@@ -2046,7 +2046,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
         return (
           <div
             data-testid="remediation-fix-actions"
-            className={`${className} flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:w-auto [&>button]:md:ml-0`}
+            className={`${className} flex flex-wrap items-center gap-2`}
           >
             {isRoundTryAgainShown ? (
               <AiRunTryAgainButton
@@ -2666,7 +2666,7 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
           data-testid="remediation-try-again"
           className="flex flex-wrap items-center gap-x-4 gap-y-2"
         >
-          <div className="flex-none [&>button]:ml-0 [&>button]:md:ml-0">
+          <div className="flex-none">
             <Button
               id={tryAgainButtonId}
               title={REMEDIATION_TRY_AGAIN_BUTTON}

@@ -79,22 +79,87 @@ export const SECONDARY_LINK_TEXT_CLASS_NAME: string = "text-sm text-gray-600";
 export const SECONDARY_LINK_HOVER_CLASS_NAME: string = "hover:text-gray-900";
 
 /*
- * OUTLINE: the plain bordered button. NORMAL's border, fill, text, shadow,
- * hover and focus ring, sized to its label at every width - NORMAL is as
- * wide as a phone's screen and keeps a dialog footer's margin (md:ml-3),
- * which a button in a row of controls, a card or a notice does not want.
- * It used to be two class names no stylesheet defines (a Bootstrap
- * secondary outline button's, and a pale hover wash's) on a block-level
- * flex box: some 200 buttons across the product - a network
- * device's Ping and Traceroute among them - had no border, no hover and no
- * focus ring, and read as stray words. The HOVER_* outline styles are the
- * same button whose hover tints it with what it does.
+ * The frame every button with a box is drawn in, whatever its colour:
+ * the same border width, corners, words, weight, shadow, alignment and
+ * focus ring, at every width, so two buttons side by side are the same
+ * height (their padding is the size's: ButtonSize). A button carries no
+ * margin and no width of its own: the gap between buttons and a phone's
+ * full-width row come from the box that holds them - a dialog's footer
+ * (ModalFooter), a card header's actions, a form's footer, or a row with
+ * `gap-3` (#9128).
+ *
+ * The filled buttons and the red, green and yellow outlined ones used to
+ * take the whole width of their row below md, in larger words, and step
+ * 12px in from md up (`w-full md:w-auto md:ml-3`), while OUTLINE, which
+ * looked the same as NORMAL, did neither: whether a button filled a phone's
+ * row or sat 12px in depended on which of two alike styles a page picked.
+ * 118 places took the margin back with `ml-0`, and boxes pulled their
+ * buttons left with `md:-ml-3`; on a 390px phone the Test SMS and calls
+ * card put Send test SMS and Make test call on a line each (#9100).
  */
-export const OUTLINE_BUTTON_CLASS_NAME: string =
-  "inline-flex justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:text-sm";
+export const BOXED_BUTTON_CLASS_NAME: string =
+  "inline-flex items-center justify-center rounded-md border text-sm font-medium shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2";
+
+export type BoxedButtonStyleType =
+  | ButtonStyleType.PRIMARY
+  | ButtonStyleType.SECONDARY
+  | ButtonStyleType.OUTLINE
+  | ButtonStyleType.NORMAL
+  | ButtonStyleType.DANGER
+  | ButtonStyleType.DANGER_OUTLINE
+  | ButtonStyleType.SUCCESS
+  | ButtonStyleType.SUCCESS_OUTLINE
+  | ButtonStyleType.WARNING
+  | ButtonStyleType.WARNING_OUTLINE
+  | ButtonStyleType.HOVER_DANGER_OUTLINE
+  | ButtonStyleType.HOVER_SUCCESS_OUTLINE
+  | ButtonStyleType.HOVER_PRIMARY_OUTLINE;
+
+// The plain button's colours: NORMAL, OUTLINE and the HOVER_* outlines.
+const PLAIN_BUTTON_LOOK_CLASS_NAME: string =
+  "border-gray-300 bg-white text-gray-700 focus-visible:ring-indigo-500";
+
+// What fills each boxed style's frame: border, fill, words and focus ring.
+export const BOXED_BUTTON_LOOK_CLASS_NAMES: Record<
+  BoxedButtonStyleType,
+  string
+> = {
+  [ButtonStyleType.PRIMARY]:
+    "border-transparent bg-indigo-600 text-white focus-visible:ring-indigo-500",
+  [ButtonStyleType.SECONDARY]:
+    "border-transparent bg-indigo-100 text-indigo-700 focus-visible:ring-indigo-500",
+  [ButtonStyleType.OUTLINE]: PLAIN_BUTTON_LOOK_CLASS_NAME,
+  [ButtonStyleType.NORMAL]: PLAIN_BUTTON_LOOK_CLASS_NAME,
+  [ButtonStyleType.DANGER]:
+    "border-transparent bg-red-600 text-white focus-visible:ring-red-500",
+  [ButtonStyleType.DANGER_OUTLINE]:
+    "border-red-700 bg-white text-red-700 focus-visible:ring-red-500",
+  [ButtonStyleType.SUCCESS]:
+    "border-transparent bg-green-600 text-white focus-visible:ring-green-500",
+  [ButtonStyleType.SUCCESS_OUTLINE]:
+    "border-green-700 bg-white text-green-700 focus-visible:ring-green-500",
+  [ButtonStyleType.WARNING]:
+    "border-transparent bg-yellow-600 text-white focus-visible:ring-yellow-500",
+  [ButtonStyleType.WARNING_OUTLINE]:
+    "border-yellow-700 bg-white text-yellow-700 focus-visible:ring-yellow-500",
+  [ButtonStyleType.HOVER_DANGER_OUTLINE]: PLAIN_BUTTON_LOOK_CLASS_NAME,
+  [ButtonStyleType.HOVER_SUCCESS_OUTLINE]: PLAIN_BUTTON_LOOK_CLASS_NAME,
+  [ButtonStyleType.HOVER_PRIMARY_OUTLINE]: PLAIN_BUTTON_LOOK_CLASS_NAME,
+};
+
+/*
+ * OUTLINE: the plain bordered button - and NORMAL, which draws exactly the
+ * same button. The two differ only in what they tell a table: NORMAL is an
+ * action the person came for, which a table row or header keeps in view
+ * while OUTLINE's fold into its More menu first (SplitActionButtons,
+ * TableHeaderControls). The HOVER_* outline styles are the same button
+ * whose hover tints it with what it does.
+ */
+export const OUTLINE_BUTTON_CLASS_NAME: string = `${BOXED_BUTTON_CLASS_NAME} ${PLAIN_BUTTON_LOOK_CLASS_NAME}`;
 
 export type OutlineButtonStyleType =
   | ButtonStyleType.OUTLINE
+  | ButtonStyleType.NORMAL
   | ButtonStyleType.HOVER_DANGER_OUTLINE
   | ButtonStyleType.HOVER_SUCCESS_OUTLINE
   | ButtonStyleType.HOVER_PRIMARY_OUTLINE;
@@ -106,9 +171,21 @@ export const isOutlineButtonStyle: (
 ): style is OutlineButtonStyleType => {
   return (
     style === ButtonStyleType.OUTLINE ||
+    style === ButtonStyleType.NORMAL ||
     style === ButtonStyleType.HOVER_DANGER_OUTLINE ||
     style === ButtonStyleType.HOVER_SUCCESS_OUTLINE ||
     style === ButtonStyleType.HOVER_PRIMARY_OUTLINE
+  );
+};
+
+export const isBoxedButtonStyle: (
+  style: ButtonStyleType,
+) => style is BoxedButtonStyleType = (
+  style: ButtonStyleType,
+): style is BoxedButtonStyleType => {
+  return Object.prototype.hasOwnProperty.call(
+    BOXED_BUTTON_LOOK_CLASS_NAMES,
+    style,
   );
 };
 
@@ -117,6 +194,7 @@ export const OUTLINE_BUTTON_HOVER_CLASS_NAMES: Record<
   string
 > = {
   [ButtonStyleType.OUTLINE]: "hover:bg-gray-50",
+  [ButtonStyleType.NORMAL]: "hover:bg-gray-50",
   [ButtonStyleType.HOVER_DANGER_OUTLINE]: "hover:bg-red-50 hover:text-red-700",
   [ButtonStyleType.HOVER_SUCCESS_OUTLINE]:
     "hover:bg-green-50 hover:text-green-700",
@@ -124,11 +202,27 @@ export const OUTLINE_BUTTON_HOVER_CLASS_NAMES: Record<
     "hover:bg-indigo-50 hover:text-indigo-700",
 };
 
+// Each boxed style's hover, left off while it is locked or busy.
+export const BOXED_BUTTON_HOVER_CLASS_NAMES: Record<
+  BoxedButtonStyleType,
+  string
+> = {
+  ...OUTLINE_BUTTON_HOVER_CLASS_NAMES,
+  [ButtonStyleType.PRIMARY]: "hover:bg-indigo-700",
+  [ButtonStyleType.SECONDARY]: "hover:bg-indigo-200",
+  [ButtonStyleType.DANGER]: "hover:bg-red-700",
+  [ButtonStyleType.DANGER_OUTLINE]: "hover:bg-red-50",
+  [ButtonStyleType.SUCCESS]: "hover:bg-green-700",
+  [ButtonStyleType.SUCCESS_OUTLINE]: "hover:bg-green-50",
+  [ButtonStyleType.WARNING]: "hover:bg-yellow-700",
+  [ButtonStyleType.WARNING_OUTLINE]: "hover:bg-yellow-50",
+};
+
 /*
- * An outline button with an icon and no words - a phone's menu toggle, a
- * row's trash can - is a square around its icon: the padding of the size's
- * height on every side. With a label's sideways padding it was a wide box
- * whose icon sat off its middle.
+ * A boxed button with an icon and no words - a phone's menu toggle, a
+ * row's trash can, a composer's Send - is a square around its icon: the
+ * padding of the size's height on every side. With a label's sideways
+ * padding it was a wide box whose icon sat off its middle.
  */
 export const ICON_ONLY_OUTLINE_BUTTON_SIZE_CLASS_NAMES: Record<
   ButtonSize,
@@ -183,50 +277,7 @@ export interface ComponentProps {
     | "false"
     | undefined;
   ariaControls?: string | undefined;
-  /*
-   * Below md the filled and the red, green and yellow outlined buttons take
-   * the whole width of their row, in larger words, and step 12px in from md
-   * up: a form's or a dialog's footer, where the buttons stack on a phone.
-   * A button that sits in a row beside a label - a card header's Remove -
-   * passes false, and keeps its own size at every width
-   * (keepButtonOwnSizeAtEveryWidth).
-   */
-  isFullWidthOnPhone?: boolean | undefined;
 }
-
-/*
- * The footer's layout taken off a button's classes: the whole row's width
- * below md and the 12px step in from md up, and the larger words below md.
- * What is left is the button as md and up draws it, at every width. On a
- * 390px phone the Data Source widgets' query card's Remove ran from the
- * "Query" label to the card's edge, touching the label, and looked like the
- * card's main action (issue #7331).
- */
-const FOOTER_LAYOUT_CLASS_NAMES: ReadonlySet<string> = new Set<string>([
-  "w-full",
-  "md:w-auto",
-  "md:ml-3",
-  "md:mt-0",
-  "text-base",
-  "md:text-sm",
-]);
-
-export const keepButtonOwnSizeAtEveryWidth: (className: string) => string = (
-  className: string,
-): string => {
-  const kept: Array<string> = className
-    .split(" ")
-    .filter((name: string): boolean => {
-      return name.length > 0 && !FOOTER_LAYOUT_CLASS_NAMES.has(name);
-    });
-  const hadLargerWordsOnPhone: boolean = className
-    .split(" ")
-    .some((name: string): boolean => {
-      return name === "text-base" || name === "md:text-sm";
-    });
-
-  return (hadLargerWordsOnPhone ? [...kept, "text-sm"] : kept).join(" ");
-};
 
 const Button: FunctionComponent<ComponentProps> = ({
   title,
@@ -250,7 +301,6 @@ const Button: FunctionComponent<ComponentProps> = ({
   ariaExpanded,
   ariaHaspopup,
   ariaControls,
-  isFullWidthOnPhone = true,
 }: ComponentProps): ReactElement => {
   const { translateString } = useTranslateValue();
   // Looked up once: English here, a title in the reader's words as given.
@@ -374,9 +424,7 @@ const Button: FunctionComponent<ComponentProps> = ({
    * action should have. The browser still draws it for anyone moving through
    * the page with the keyboard, which is who it is for.
    */
-  let buttonStyleCssClass: string = `inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm ${
-    isInert ? "" : "hover:bg-gray-50"
-  } focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
+  let buttonStyleCssClass: string = "";
 
   // Words after the icon: the title, which an ICON button never draws.
   const hasWords: boolean =
@@ -403,6 +451,26 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
   } else {
     iconClassName += ` m-1`;
+  }
+
+  /*
+   * Every boxed style is the one frame with its own colours
+   * (BOXED_BUTTON_CLASS_NAME): no width and no margin of its own.
+   */
+  if (isBoxedButtonStyle(buttonStyle)) {
+    buttonStyleCssClass = `${BOXED_BUTTON_CLASS_NAME} ${BOXED_BUTTON_LOOK_CLASS_NAMES[buttonStyle]}`;
+
+    if (!isInert) {
+      buttonStyleCssClass += ` ${BOXED_BUTTON_HOVER_CLASS_NAMES[buttonStyle]}`;
+    }
+  }
+
+  if (buttonStyle === ButtonStyleType.PRIMARY) {
+    loadingIconClassName += ` text-indigo-100`;
+  }
+
+  if (buttonStyle === ButtonStyleType.SECONDARY) {
+    loadingIconClassName += ` text-indigo-500`;
   }
 
   /*
@@ -436,36 +504,6 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
   }
 
-  /*
-   * A Delete that cannot be pressed yet - its dialog is still checking what
-   * it would change - looks it (BUTTON_DISABLED_CLASS_NAME).
-   */
-  if (buttonStyle === ButtonStyleType.DANGER) {
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 ${
-      isInert ? "" : "hover:bg-red-700"
-    } text-base font-medium text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
-  }
-
-  if (buttonStyle === ButtonStyleType.DANGER_OUTLINE) {
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-red-700 bg-white text-base font-medium text-red-700 shadow-sm ${
-      isInert ? "" : "hover:bg-red-50"
-    } focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
-  }
-
-  if (buttonStyle === ButtonStyleType.PRIMARY) {
-    loadingIconClassName += ` text-indigo-100`;
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 ${
-      isInert ? "" : "hover:bg-indigo-700"
-    } text-base font-medium text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
-  }
-
-  if (buttonStyle === ButtonStyleType.SECONDARY) {
-    loadingIconClassName += ` text-indigo-500`;
-    buttonStyleCssClass = `inline-flex rounded-md border border-transparent bg-indigo-100 ${
-      isInert ? "" : "hover:bg-indigo-200"
-    } text-sm font-medium text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
-  }
-
   if (buttonStyle === ButtonStyleType.ICON_LIGHT) {
     buttonStyleCssClass = `rounded-md bg-white text-gray-400 ${
       isInert ? "" : "hover:text-gray-500"
@@ -478,48 +516,15 @@ const Button: FunctionComponent<ComponentProps> = ({
     }  focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
   }
 
-  if (isOutlineButtonStyle(buttonStyle)) {
-    buttonStyleCssClass = isInert
-      ? OUTLINE_BUTTON_CLASS_NAME
-      : `${OUTLINE_BUTTON_CLASS_NAME} ${OUTLINE_BUTTON_HOVER_CLASS_NAMES[buttonStyle]}`;
-  }
-
-  if (buttonStyle === ButtonStyleType.SUCCESS) {
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-green-600 text-base font-medium text-white shadow-sm ${
-      isInert ? "" : "hover:bg-green-700"
-    }  focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
-  }
-
-  if (buttonStyle === ButtonStyleType.SUCCESS_OUTLINE) {
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-green-700 bg-white text-base font-medium text-green-700 shadow-sm ${
-      isInert ? "" : "hover:bg-green-50"
-    }  focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
-  }
-
-  if (buttonStyle === ButtonStyleType.WARNING) {
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-yellow-600 text-base font-medium text-white shadow-sm  ${
-      isInert ? "" : "hover:bg-yellow-700"
-    }  focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
-  }
-
-  if (buttonStyle === ButtonStyleType.WARNING_OUTLINE) {
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm ${
-      isInert ? "" : "hover:bg-yellow-50"
-    }   focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
-  }
-
-  // In a row beside a label: its own size, at every width.
-  if (!isFullWidthOnPhone) {
-    buttonStyleCssClass = keepButtonOwnSizeAtEveryWidth(buttonStyleCssClass);
-  }
-
   // Locked: faded as a whole, whatever the style. Busy is not locked.
   if (isLocked) {
     buttonStyleCssClass += ` ${BUTTON_DISABLED_CLASS_NAME}`;
   }
 
-  // Center the icon against both desktop and taller mobile label lines.
-  buttonStyleCssClass += ` items-center`;
+  // Center the icon on the words' line (the boxed frame already does).
+  if (!isBoxedButtonStyle(buttonStyle)) {
+    buttonStyleCssClass += ` items-center`;
+  }
 
   /*
    * The one shared point every variant funnels through: hover/focus colour
@@ -528,16 +533,16 @@ const Button: FunctionComponent<ComponentProps> = ({
    */
   buttonStyleCssClass += ` transition-colors duration-150 ease-out`;
 
-  // An outline button that is only its icon is a square round it.
-  const isIconOnlyOutline: boolean =
-    isOutlineButtonStyle(buttonStyle) &&
+  // A boxed button that is only its icon is a square round it.
+  const isIconOnlyBox: boolean =
+    isBoxedButtonStyle(buttonStyle) &&
     !hasWords &&
     !shortcutKey &&
     Boolean(icon || isLoading);
 
   buttonStyleCssClass +=
     ` ` +
-    (isIconOnlyOutline
+    (isIconOnlyBox
       ? ICON_ONLY_OUTLINE_BUTTON_SIZE_CLASS_NAMES[buttonSize]
       : buttonSize);
 
@@ -625,7 +630,7 @@ const Button: FunctionComponent<ComponentProps> = ({
 
         {shortcutKey && (
           <div className="ms-2">
-            <kbd className="inline-flex items-center rounded border border-gray-200 px-2 font-sans text-sm font-medium text-gray-400">
+            <kbd className="inline-flex items-center rounded border border-gray-200 px-2 font-sans text-sm font-medium text-gray-500">
               {shortcutKey}
             </kbd>
           </div>

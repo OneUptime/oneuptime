@@ -118,6 +118,8 @@ import {
   getFormSteps,
   getTemplateFormFields,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates";
+import MaintenanceStatusPagesCopy from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/MaintenanceStatusPagesCopy";
+import { MAINTENANCE_STATUS_PAGES_NOT_SHOWN_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/MaintenanceStatusPagesFormField";
 import StatusPageSuggestions, {
   RecordStatusPageSuggestions,
   RecordStatusPageSuggestionsProps,
@@ -444,6 +446,168 @@ describe("Create Maintenance Event suggests the status pages that show the affec
 
     expect(postMock).not.toHaveBeenCalled();
     expect(screen.queryByTestId("status-page-suggestions-line")).toBeNull();
+  });
+});
+
+/*
+ * An event shows only on the status pages it names - an incident, left
+ * empty, shows on every page that lists its monitors. The two pickers looked
+ * alike and meant opposite things (#9131), so the event's says what empty
+ * means where it is used: in the field, and on the review, which warns and
+ * offers the same one-click picks.
+ */
+describe("Create Maintenance Event says what an empty status page picker means", () => {
+  test("the empty picker reads 'Not shown on any status page', and its help says an incident works the other way", async () => {
+    templateIdInUrl = TEMPLATE_ID;
+
+    await renderPage();
+    await goToResourcesAffected();
+    const picker: HTMLElement = within(form()).getByRole("combobox", {
+      name: /^Show event on these status pages/,
+    });
+
+    expect(picker).toHaveAttribute(
+      "placeholder",
+      MaintenanceStatusPagesCopy.pickerPlaceholder,
+    );
+    expect(picker).toHaveAccessibleDescription(
+      expect.stringContaining(
+        MaintenanceStatusPagesCopy.pickerDescription,
+      ) as unknown as string,
+    );
+    expect(MaintenanceStatusPagesCopy.pickerDescription).toContain(
+      "Unlike an incident",
+    );
+  });
+
+  test("the review warns that the event will not appear on any status page, and one click there adds the suggested page", async () => {
+    templateIdInUrl = TEMPLATE_ID;
+
+    await renderPage();
+    await goToResourcesAffected();
+    // The suggestion has been asked for before Next is clicked.
+    await screen.findByRole("button", { name: "Add Acme Public Status" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    await waitFor(() => {
+      expect(currentStepTitle()).toBe("Summary");
+    });
+
+    const warning: HTMLElement = await screen.findByTestId(
+      MAINTENANCE_STATUS_PAGES_NOT_SHOWN_TEST_ID,
+    );
+
+    expect(warning).toHaveTextContent(
+      "This event will not appear on any status page.",
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Add Acme Public Status" }),
+    );
+
+    // Fixed where it was read: the warning goes, and the page is listed.
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId(MAINTENANCE_STATUS_PAGES_NOT_SHOWN_TEST_ID),
+      ).toBeNull();
+    });
+    expect(await screen.findByText("Acme Public Status")).toBeInTheDocument();
+
+    fireEvent.click(createButton());
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(statusPageIdsOf(createdModel())).toEqual([STATUS_PAGE_ID]);
+  });
+
+  test("with a page picked, the review lists it and warns nothing", async () => {
+    templateIdInUrl = TEMPLATE_ID;
+
+    await renderPage();
+    await goToResourcesAffected();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Add Acme Public Status" }),
+    );
+    await screen.findByRole("button", { name: "Remove Acme Public Status" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    await waitFor(() => {
+      expect(currentStepTitle()).toBe("Summary");
+    });
+
+    expect(await screen.findByText("Acme Public Status")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(MAINTENANCE_STATUS_PAGES_NOT_SHOWN_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("with no monitor affected, the review still warns, with nothing to suggest", async () => {
+    await renderPage();
+
+    fireEvent.change(within(form()).getByRole("textbox", { name: "Title" }), {
+      target: { value: "Database upgrade" },
+    });
+    await act(async () => {});
+
+    await goToResourcesAffected();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    await waitFor(() => {
+      expect(currentStepTitle()).toBe("Summary");
+    });
+
+    expect(
+      await screen.findByTestId(MAINTENANCE_STATUS_PAGES_NOT_SHOWN_TEST_ID),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("status-page-suggestions-line")).toBeNull();
+  });
+});
+
+describe("the event's forms and its templates' share one status page field", () => {
+  type TemplateField = ModelField<ScheduledMaintenanceTemplate>;
+
+  function statusPagesFieldOf(fields: Array<TemplateField>): TemplateField {
+    return fields.find((candidate: TemplateField): boolean => {
+      return Object.keys(candidate.field || {})[0] === "statusPages";
+    })!;
+  }
+
+  test("the template's field speaks of its events, and its review warns about them", () => {
+    const field: TemplateField = statusPagesFieldOf(
+      getTemplateFormFields({ isViewPage: false }),
+    );
+
+    expect(field.title).toBe(MaintenanceStatusPagesCopy.pickerTitle);
+    expect(field.description).toBe(
+      MaintenanceStatusPagesCopy.templatePickerDescription,
+    );
+    expect(field.placeholder).toBe(
+      MaintenanceStatusPagesCopy.pickerPlaceholder,
+    );
+
+    render(
+      <MemoryRouter>
+        {field.getSummaryElement!({ statusPages: [] as never })}
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByTestId(MAINTENANCE_STATUS_PAGES_NOT_SHOWN_TEST_ID),
+    ).toHaveTextContent(
+      "Events from this template will not appear on any status page.",
+    );
+  });
+
+  test("the label is written without the trailing space it had", () => {
+    expect(MaintenanceStatusPagesCopy.pickerTitle).toBe(
+      MaintenanceStatusPagesCopy.pickerTitle.trim(),
+    );
   });
 });
 

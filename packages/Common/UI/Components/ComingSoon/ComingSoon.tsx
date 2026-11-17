@@ -1,4 +1,4 @@
-import EmptyState from "../EmptyState/EmptyState";
+import EmptyState, { EmptyStateSize } from "../EmptyState/EmptyState";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -12,6 +12,7 @@ const ComingSoon: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <EmptyState
+      size={EmptyStateSize.Page}
       id="coming-soon"
       icon={IconProp.CursorArrowRays}
       title={props.title || "Coming soon!"}

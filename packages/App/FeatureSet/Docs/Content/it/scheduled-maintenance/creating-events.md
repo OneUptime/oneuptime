@@ -50,7 +50,7 @@ Scegliete le pagine di stato in **Mostra evento su queste pagine di stato**. **N
 Fate clic su **Avanti** per vedere il riepilogo, controllatelo, poi fate clic su **Crea evento di manutenzione**. Si apre la pagina dell'evento.
 :::
 
-Non viene inviato nulla finché non scegliete una pagina di stato: un evento mostrato su nessuna pagina di stato non avvisa nessun iscritto.
+Non viene inviato nulla finché non scegliete una pagina di stato: un evento mostrato su nessuna pagina di stato non avvisa nessun iscritto. A differenza di un incidente, un evento non raggiunge mai da solo le pagine di stato che elencano i suoi monitor: senza alcuna scelta, il campo dice «Non mostrato su nessuna pagina di stato» e la revisione avvisa «Questo evento non comparirà su nessuna pagina di stato.» con le pagine suggerite a un clic.
 
 ## I campi del modulo
 

@@ -11,8 +11,9 @@ import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import TracePipeline from "Common/Models/DatabaseModels/TracePipeline";
@@ -110,9 +111,7 @@ const TracePipelineView: FunctionComponent<PageComponentProps> = (
                     <Pill color={Green} text="Enabled" icon={IconProp.Check} />
                   );
                 }
-                return (
-                  <Pill color={Red} text="Disabled" icon={IconProp.Close} />
-                );
+                return <Pill tone={PillTone.Paused} text="Disabled" />;
               },
             },
           ],

@@ -231,7 +231,7 @@ const TopErrorsPanel: FunctionComponent<ComponentProps> = (
                             )}
                           </span>
                           {span && (
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-gray-500">
                               {span}
                             </span>
                           )}
@@ -242,7 +242,7 @@ const TopErrorsPanel: FunctionComponent<ComponentProps> = (
                         </p>
 
                         <p
-                          className="mt-1 break-words font-mono text-xs text-gray-400"
+                          className="mt-1 break-words font-mono text-xs text-gray-500"
                           title={row.pattern}
                         >
                           {truncateErrorPattern(row.pattern, 160)}

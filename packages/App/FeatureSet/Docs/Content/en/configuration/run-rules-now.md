@@ -35,7 +35,7 @@ A network's rules ask the same when you run them on the devices you already have
 :::steps
 ### Open the rule list
 
-Open the rules page, for example **Monitors → Settings → Label Rules**.
+Open the rules page, for example **Monitors → Rules → Label Rules**.
 
 ### Select Run Now
 

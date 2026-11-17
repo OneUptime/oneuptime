@@ -74,7 +74,7 @@ Legg til den delte monitoren på hver side som en ressurs (se [Statusside – re
 
 ### Slå på Vis bare hendelser som er begrenset til denne siden
 
-Slå den på på hver av de sidene. Den står på kortet **Hva statussiden din viser** under **Statussider → siden din → Avansert → Avanserte innstillinger**, under **Vis hendelser**, og lagres i det øyeblikket du slår den om. Fra da av når ingenting en lokasjonsside med mindre noen velger den.
+Slå den på på hver av de sidene. Den står på kortet **Hva statussiden din viser** under **Statussider → siden din → Avansert → Innstillinger**, under **Vis hendelser**, og lagres i det øyeblikket du slår den om. Fra da av når ingenting en lokasjonsside med mindre noen velger den.
 
 ### Legg til hver målgruppes abonnenter
 

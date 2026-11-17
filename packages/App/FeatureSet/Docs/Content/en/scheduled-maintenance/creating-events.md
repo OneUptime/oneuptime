@@ -50,7 +50,7 @@ Pick the status pages under **Show event on these status pages**. **Subscriber N
 Click **Next** to see the review, check it, then click **Create Maintenance Event**. The event's own page opens.
 :::
 
-Nothing is sent until you pick a status page: an event shown on no status page tells no subscriber.
+Nothing is sent until you pick a status page: an event shown on no status page tells no subscriber. Unlike an incident, an event never reaches the status pages that list its monitors by itself: with none picked, the field reads "Not shown on any status page", and the review warns "This event will not appear on any status page." with the suggested pages one click away.
 
 ## The form's fields
 

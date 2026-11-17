@@ -1013,17 +1013,18 @@ describe("One Status Page per Audience docs", () => {
       expectMenuPath({
         menu: "Pages/StatusPages/View/SideMenu.tsx",
         section: "Advanced",
-        title: "Advanced Settings",
+        title: "Settings",
       });
       expectMenuPath({
         menu: "Pages/StatusPages/View/SideMenu.tsx",
         section: "Rules",
         title: "Monitor Rules",
       });
+      // One page with a tab per channel since #9125.
       expectMenuPath({
         menu: "Pages/StatusPages/View/SideMenu.tsx",
         section: "Subscribers",
-        title: "Email Subscribers",
+        title: "Subscribers",
       });
 
       for (const language of ALL_LANGUAGES) {
@@ -1047,18 +1048,18 @@ describe("One Status Page per Audience docs", () => {
           language: language,
           // The status page's own name is the reader's word for "your page".
           found: new RegExp(
-            `\\*\\*${draw("Status Pages")}${arrow}[^*→←\\n]+${arrow}${draw("Advanced")}${arrow}${draw("Advanced Settings")}\\*\\*`,
+            `\\*\\*${draw("Status Pages")}${arrow}[^*→←\\n]+${arrow}${draw("Advanced")}${arrow}${draw("Settings")}\\*\\*`,
           ).test(guide),
         }).toEqual({ language: language, found: true });
       }
     });
 
     /*
-     * Advanced Settings is one "What your status page shows" card now, with
+     * Settings (Advanced Settings until #9130) is one "What your status page shows" card now, with
      * no Edit button: the scoped-only switch is in its incidents row, under
      * Show Incidents, and saves as it is flipped.
      */
-    it("finds the scoped-only switch in the What your status page shows card of Advanced Settings, under Show Incidents", () => {
+    it("finds the scoped-only switch in the What your status page shows card of Settings, under Show Incidents", () => {
       expect(
         readDashboardSource("Pages/StatusPages/View/StatusPageSettings.tsx"),
       ).toContain("<StatusPageDisplaySettingsCard statusPageId={modelId} />");
@@ -1129,9 +1130,15 @@ describe("One Status Page per Audience docs", () => {
     });
 
     it("names Add in Bulk, on Email Subscribers, as the subscriber list shows it", () => {
+      // The email tab's list, titled Email Subscribers (#9125).
       expect(
-        readDashboardSource("Pages/StatusPages/View/EmailSubscribers.tsx"),
+        readDashboardSource(
+          "Components/StatusPage/StatusPageSubscriberList.tsx",
+        ),
       ).toMatch(/title:\s*"Add in Bulk"/);
+      expect(
+        readDashboardSource("Components/StatusPage/SubscriberListChannels.ts"),
+      ).toContain('cardTitle: "Email Subscribers"');
 
       for (const language of ALL_LANGUAGES) {
         const names: Set<string> = boldText(readPage(GUIDE_PAGE, language));

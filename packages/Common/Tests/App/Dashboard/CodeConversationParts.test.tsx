@@ -2336,12 +2336,20 @@ describe("a repository's row in the Repositories table", () => {
     expect(
       within(row).getByTestId("code-repository-waiting"),
     ).toHaveTextContent("1 waiting for you");
-    // A chip never breaks inside itself.
+    // Each is the shared Pill, its words on one line.
+    expect(within(row).getByTestId("code-repository-working")).toHaveAttribute(
+      "data-tone",
+      "info",
+    );
+    expect(within(row).getByTestId("code-repository-waiting")).toHaveAttribute(
+      "data-tone",
+      "warning",
+    );
     for (const chip of [
       within(row).getByTestId("code-repository-working"),
       within(row).getByTestId("code-repository-waiting"),
     ]) {
-      expect(chip.className).toContain("whitespace-nowrap");
+      expect(within(chip).getByTestId("pill-text")).toHaveClass("truncate");
     }
     expect(row.querySelector("time")).toHaveTextContent("5 minutes ago");
   });

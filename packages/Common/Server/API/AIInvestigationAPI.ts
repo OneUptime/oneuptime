@@ -36,6 +36,10 @@ import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
 import ServiceService from "../Services/ServiceService";
 import FixFromIncidentTaskTrigger from "../Utils/AI/SRE/FixFromIncidentTaskTrigger";
+import {
+  assertReachesFixSubject,
+  OPEN_CODE_FIX_PULL_REQUEST_ACTION,
+} from "../Utils/AutoRemediation/RemediationApproval";
 import FixPerformanceTaskTrigger, {
   PerformanceTraceSpans,
 } from "../Utils/AI/SRE/FixPerformanceTaskTrigger";
@@ -1459,8 +1463,10 @@ router.post(
  * investigation completes on an incident/alert, the user can ask the agent
  * to open a fix pull request from the posted analysis. The subject is
  * access-checked under the USER's permissions first (same idiom as the read
- * routes above); the trigger's gates (completed investigation, GitHub-App
- * repository, per-subject dedupe) fail early with a clear message.
+ * routes above); on a private one, the fix is asked only through the
+ * record's owners, as approving one of its fixes is (#9165); the trigger's
+ * gates (completed investigation, GitHub-App repository, per-subject
+ * dedupe) fail early with a clear message.
  * Body: { subjectType: "incident" | "alert", subjectId,
  * aiRunId (or its investigationRunId alias) }. The run id rejects stale
  * clicks instead of silently switching to a newer analysis. Response:
@@ -1531,6 +1537,20 @@ router.post(
 
         projectId = alert.projectId;
       }
+
+      /*
+       * On a private incident or alert, opening the fix pull request is an
+       * action about the record (#9165): it takes what approving one of its
+       * fixes takes, through a team that owns it - as Approve & Run does.
+       */
+      await assertReachesFixSubject({
+        props,
+        suggestion:
+          subjectType === "incident"
+            ? { incidentId: subjectId }
+            : { alertId: subjectId },
+        action: OPEN_CODE_FIX_PULL_REQUEST_ACTION,
+      });
 
       const run: AIRun =
         await FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
@@ -1606,12 +1626,18 @@ router.post(
         viewerProps,
       });
 
+      /*
+       * The fix itself as its task's page reads it, for this reader: one a
+       * reply carried a private record into that they do not see is there,
+       * and nothing more (CodeTaskThread.findTasksHiddenFrom).
+       */
       const suggestion: InvestigationCodeFixSuggestion =
         await FixFromIncidentTaskTrigger.getSuggestionForSubject({
           projectId: tenantId,
           ...(subjectType === "incident"
             ? { incidentId: subjectId }
             : { alertId: subjectId }),
+          reader: viewerProps,
         });
 
       Response.sendJsonObjectResponse(
@@ -1675,6 +1701,8 @@ router.post(
               props,
             });
           },
+          // The fix as its task's page reads it, for this reader.
+          reader: props,
         });
 
       Response.sendJsonObjectResponse(

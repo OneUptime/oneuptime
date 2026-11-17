@@ -365,15 +365,10 @@ describe("a channel's name", () => {
   });
 });
 
-// What jest.spyOn makes of a generic method: the method at its constraint.
-type MethodOf<Method extends (...args: Array<never>) => unknown> = (
-  ...args: Parameters<Method>
-) => ReturnType<Method>;
-
 describe("the reads the answer is made from", () => {
   let counts: Map<string, number | Error>;
-  let countSpy: SpyInstance<MethodOf<typeof ModelAPI.count>>;
-  let getItemSpy: SpyInstance<MethodOf<typeof ModelAPI.getItem>>;
+  let countSpy: SpyInstance<typeof ModelAPI.count>;
+  let getItemSpy: SpyInstance<typeof ModelAPI.getItem>;
   let fetchVarsSpy: SpyInstance<typeof GlobalConfigUtil.fetchVars>;
 
   const MODELS: Array<[NotificationChannelKey, { new (): unknown }]> = [
@@ -417,7 +412,7 @@ describe("the reads the answer is made from", () => {
         project.enableWhatsAppNotifications = true;
         project.enableTelegramNotifications = false;
         return project;
-      }) as never);
+      }) as never) as unknown as SpyInstance<typeof ModelAPI.getItem>;
     fetchVarsSpy = jest.spyOn(GlobalConfigUtil, "fetchVars").mockResolvedValue({
       disableUserProjectCreation: false,
       disablePushNotifications: true,

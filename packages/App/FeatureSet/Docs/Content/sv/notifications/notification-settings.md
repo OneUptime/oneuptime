@@ -64,7 +64,7 @@ Fliken **Jour** handlar om dig, inte om det du äger:
 
 - **Du går på jour**, **Du är näst på tur i jouren** och **Du går av jour** följer dina turer i jourschemana du är med i.
 - **Tillagd i jourpolicy** och **Borttagen från jourpolicy** berättar när en jourpolicy börjar eller slutar nämna dig.
-- **Innan mitt jourpass börjar** skickar påminnelser vid de tider du väljer under **Användarinställningar → Kalender → Kalenderflöde**, och **Mitt kommande jourpass tilldelas någon annan** berättar när någon annan täcker ett jourpass som du har påmints om. Se [Kalenderflöden](/docs/on-call/calendar-feeds#påminnelser-och-meddelanden-om-ny-tilldelning).
+- **Innan mitt jourpass börjar** skickar påminnelser vid de tider du väljer under **Användarinställningar → Profil och kalender → Kalenderflöde**, och **Mitt kommande jourpass tilldelas någon annan** berättar när någon annan täcker ett jourpass som du har påmints om. Se [Kalenderflöden](/docs/on-call/calendar-feeds#påminnelser-och-meddelanden-om-ny-tilldelning).
 - **Missat samtal**, på kortet **Inkommande samtalspolicyer**, berättar för ägarna av en policy för inkommande samtal att någon som ringde inte nådde någon. Se [Policy för inkommande samtal](/docs/on-call/incoming-call-policy#missade-samtal).
 
 ## Säkerhetsärenden

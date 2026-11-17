@@ -541,7 +541,7 @@ describe("a row says Disabled for a monitor whose monitoring is off", () => {
    * checks said its frozen status, while the Monitors table said Probes Not
    * Enabled. The row says what the page and the table say.
    */
-  test("a monitor nothing has checked yet says Waiting for data, in gray; one no probe checks, Probes Not Enabled", async () => {
+  test("a monitor nothing has checked yet says Waiting for data, in gray; one no probe checks, No Probe Enabled", async () => {
     const waiting: Monitor = monitor({
       name: "brand-new",
       status: "Operational",
@@ -582,7 +582,7 @@ describe("a row says Disabled for a monitor whose monitoring is off", () => {
     expect(statusCellOf("brand-new")).not.toHaveTextContent("Operational");
     expect(dotColorOf("brand-new")).toBe(toRgb(Gray500.toString()));
 
-    expect(statusCellOf("probeless")).toHaveTextContent("Probes Not Enabled");
+    expect(statusCellOf("probeless")).toHaveTextContent("No Probe Enabled");
     expect(dotColorOf("probeless")).toBe(toRgb(Red500.toString()));
 
     expect(statusCellOf("checked")).toHaveTextContent("Operational");

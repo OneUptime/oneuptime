@@ -52,6 +52,7 @@ import {
   CONNECT_CONNECTED_QUERY_PARAM,
   ConnectCallbackError,
   ConnectProvider,
+  ConnectProviderNotice,
 } from "../../Types/Workspace/ConnectCallback";
 
 /*
@@ -76,7 +77,10 @@ import {
  *
  * Zoom also sends events here: someone removing the app from their Zoom
  * account (ZoomOAuthEvents), after which the account's sign-in is deleted
- * from every connection that held it.
+ * from every connection that held it. And it sends a sign-in it started
+ * itself, from the Zoom App Marketplace, to the Zoom callback with no state
+ * of ours: that connects nothing, and the Video Calls page offers Connect
+ * (isSignInZoomStarted).
  *
  * A Microsoft Teams sign-in for a project that records and transcribes its
  * incident calls asks Microsoft for more (MicrosoftTeamsMeetingsOAuthApp):
@@ -204,6 +208,19 @@ export default class VideoCallOAuthAPI {
     }
   }
 
+  /*
+   * Whether a request to the Zoom callback is a sign-in Zoom started: a
+   * code, and no state parameter at all and no error (the callback's
+   * isProviderRedirect says why).
+   */
+  public static isSignInZoomStarted(req: ExpressRequest): boolean {
+    return (
+      req.query["state"] === undefined &&
+      req.query["error"] === undefined &&
+      Boolean(req.query["code"])
+    );
+  }
+
   // A start's state payload, saying whether the sign-in asks for the recording permissions.
   public static getStartPayload(data: {
     start: VideoCallConnectStart;
@@ -267,6 +284,26 @@ export default class VideoCallOAuthAPI {
       "/video-call-oauth/zoom/callback",
       ConnectCallback.route({
         provider: ConnectProvider.Zoom,
+        /*
+         * A sign-in Zoom started rather than OneUptime - from the
+         * authorization link the Zoom App Marketplace gives, such as the
+         * one its reviewers test an app with - comes back with a code but
+         * no state of ours. Nothing in it says which project the sign-in is
+         * for, so nothing is connected and its code is left unused: the
+         * Video Calls page says OneUptime is added to the Zoom account and
+         * offers Connect, which signs in again with a state of ours.
+         *
+         * Zoom sends such a sign-in with no state parameter at all. One
+         * that is there but empty, or anything else, is a state of ours
+         * that went wrong, and is refused as one; so is an error Zoom sent
+         * back, which has nothing to connect.
+         */
+        isProviderRedirect: (req: ExpressRequest): boolean => {
+          return VideoCallOAuthAPI.isSignInZoomStarted(req);
+        },
+        noticeOfProviderRedirect: (): ConnectProviderNotice => {
+          return ConnectProviderNotice.ZoomAdded;
+        },
         spendState: (
           req: ExpressRequest,
         ): Promise<WorkspaceOAuthStateRecord | null> => {

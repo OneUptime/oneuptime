@@ -131,13 +131,54 @@ function componentServiceNames(sourceFile: ts.SourceFile): Set<string> {
 }
 
 /*
- * The key a call's query matches the row by, as written (`data.agentKey`,
- * or `key` for a shorthand), or null when its query names no key.
+ * The key a call matches the row by, as written (`data.agentKey`, or `key`
+ * for a shorthand), or null when it names no key: a query that names the
+ * key; a lookup of the key kept encrypted (#9012) - findOneByPresentedKey
+ * with column "key", by the key it is handed; or a global probe's lookup by
+ * its key (ProbeService.findGlobalProbeByKey).
  */
 function keyMatchedBy(call: ts.CallExpression): string | null {
   const argument: ts.Expression | undefined = call.arguments[0];
 
+  if (
+    argument &&
+    ts.isPropertyAccessExpression(call.expression) &&
+    call.expression.name.text === "findGlobalProbeByKey"
+  ) {
+    return argument.getText();
+  }
+
   if (!argument || !ts.isObjectLiteralExpression(argument)) {
+    return null;
+  }
+
+  if (
+    ts.isPropertyAccessExpression(call.expression) &&
+    call.expression.name.text === "findOneByPresentedKey"
+  ) {
+    const column: ts.ObjectLiteralElementLike | undefined = propertyNamed(
+      argument,
+      "column",
+    );
+    const presentedKey: ts.ObjectLiteralElementLike | undefined = propertyNamed(
+      argument,
+      "presentedKey",
+    );
+
+    if (
+      column &&
+      ts.isPropertyAssignment(column) &&
+      ts.isStringLiteral(column.initializer) &&
+      column.initializer.text === "key" &&
+      presentedKey
+    ) {
+      return ts.isPropertyAssignment(presentedKey)
+        ? presentedKey.initializer.getText()
+        : ts.isShorthandPropertyAssignment(presentedKey)
+          ? presentedKey.name.text
+          : presentedKey.getText();
+    }
+
     return null;
   }
 
@@ -509,6 +550,61 @@ describe("how the guard reads a lookup", () => {
         refusesShippedKeyFirst: false,
       },
     ]);
+  });
+
+  /*
+   * A key kept encrypted (#9012) is found on the row named, by the key it
+   * is handed: findOneByPresentedKey with column "key" is a lookup by key.
+   */
+  test("a lookup of the key kept encrypted is a lookup by key too, with or without its check", () => {
+    expect(
+      readOne(
+        "async function find(id: string, agentKey: string) {\n" +
+          '  return RunnerService.findOneByPresentedKey({ column: "key", presentedKey: agentKey, query: { _id: id } });\n' +
+          "}\n",
+      ),
+    ).toEqual([
+      {
+        file: "packages/App/FeatureSet/Example.ts",
+        line: 3,
+        call: "RunnerService.findOneByPresentedKey",
+        key: "agentKey",
+        refusesShippedKeyFirst: false,
+      },
+    ]);
+
+    expect(
+      readOne(
+        "async function find(id: string, agentKey: string) {\n" +
+          "  if (isShippedSecretValue(agentKey)) { return null; }\n" +
+          '  return RunnerService.findOneByPresentedKey({ column: "key", presentedKey: agentKey, query: { _id: id } });\n' +
+          "}\n",
+      ).map((lookup: KeyLookup): boolean => {
+        return lookup.refusesShippedKeyFirst;
+      }),
+    ).toEqual([true]);
+  });
+
+  test("a lookup of another presented key is none, and a global probe's by its key is one", () => {
+    expect(
+      readOne(
+        "async function find(id: string, token: string) {\n" +
+          '  return RunnerService.findOneByPresentedKey({ column: "name", presentedKey: token, query: { _id: id } });\n' +
+          "}\n",
+      ),
+    ).toEqual([]);
+
+    expect(
+      findKeyLookups(
+        "packages/App/FeatureSet/Example.ts",
+        'import ProbeService from "Common/Server/Services/ProbeService";\n' +
+          "async function find(probeKey: string) {\n" +
+          "  return ProbeService.findGlobalProbeByKey(probeKey);\n" +
+          "}\n",
+      ).map((lookup: KeyLookup): string => {
+        return lookup.key;
+      }),
+    ).toEqual(["probeKey"]);
   });
 
   test("a shipped check before the query refuses one; one after it does not", () => {

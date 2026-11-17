@@ -217,6 +217,13 @@ const LINK_BUTTON_CLASS_NAME: string =
   "rounded-md font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 /*
+ * View transcript runs the row's width on a phone, as Join call does above
+ * it, and is as wide as its words from sm up. A Button has no width of its
+ * own (#9128), so the block gives it this one.
+ */
+export const CALL_TRANSCRIPT_VIEW_BUTTON_CLASS_NAME: string = "max-sm:w-full";
+
+/*
  * Where OneUptime AI's reading stands, as one sentence beside its mark: the
  * sentence's one action closes it, in the sentence's own line, so the
  * action sits with the words and never under the mark.
@@ -679,7 +686,7 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
    * in a wrapping row with a gap, so the margin goes.
    */
   const getAndAddButtons: ReactElement = props.canManage ? (
-    <div className="flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:md:ml-0">
+    <div className="flex flex-wrap items-center gap-2">
       {view.canGetFromProvider ? (
         <Button
           title={getFromProviderTitle}
@@ -900,15 +907,13 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
           )}
         </div>
         {readingLine()}
-        <div
-          data-testid="call-transcript-actions"
-          className="pt-0.5 [&>button]:ml-0 [&>button]:md:ml-0"
-        >
+        <div data-testid="call-transcript-actions" className="pt-0.5">
           <Button
             title="View transcript"
             buttonStyle={ButtonStyleType.NORMAL}
             buttonSize={ButtonSize.Small}
             dataTestId="call-transcript-view"
+            className={CALL_TRANSCRIPT_VIEW_BUTTON_CLASS_NAME}
             onClick={() => {
               setIsViewing(true);
             }}

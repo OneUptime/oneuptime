@@ -28,5 +28,13 @@
   "Copied!": "تم النسخ!",
   "Copy failed": "فشل النسخ",
   "Hide": "إخفاء",
-  "Dismiss": "إخفاء"
+  "Dismiss": "إخفاء",
+  "Dashboard Not Found": "لم يتم العثور على لوحة المعلومات",
+  "This dashboard does not exist, or it is no longer shared.": "لوحة المعلومات هذه غير موجودة، أو لم تعد مُشارَكة.",
+  "Check the address, or ask the person who shared it with you for a new link.": "تحقّق من العنوان، أو اطلب رابطًا جديدًا من الشخص الذي شاركه معك.",
+  "Access Denied": "تم رفض الوصول",
+  "This dashboard opens only from the IP addresses its owner allows, and yours is not one of them.": "لا تُفتح لوحة المعلومات هذه إلا من عناوين IP التي يسمح بها مالكها، وعنوانك ليس منها.",
+  "Ask the dashboard's owner for access, or open it from a network they allow.": "اطلب الوصول من مالك لوحة المعلومات، أو افتحها من شبكة يسمح بها.",
+  "Show more": "إظهار المزيد",
+  "Show less": "إظهار أقل"
 }

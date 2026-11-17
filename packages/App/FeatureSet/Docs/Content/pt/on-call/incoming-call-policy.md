@@ -154,7 +154,7 @@ Para liberar um número, clique em **Liberar número** ao lado dele e confirme c
 Uma regra faz tocar uma pessoa no número que ela verificou para chamadas recebidas neste projeto, e pula quem não tem nenhum. Cada pessoa adiciona o seu:
 
 :::steps
-1. Abra **Configurações do usuário** > **Política de chamadas recebidas** > **Números de telefone recebidos**. **Política de chamadas recebidas** é uma seção do menu lateral que começa recolhida.
+1. Abra **Configurações do usuário** > **Acionamentos e chamadas** > **Números de telefone recebidos**. **Acionamentos e chamadas** é uma seção do menu lateral que começa recolhida.
 2. No cartão **Números de telefone para roteamento de chamadas recebidas**, clique em **Adicionar: Número de telefone para roteamento de chamadas recebidas** e digite o número com o código do país, por exemplo `+15551234567`.
 3. Digite o código de 6 dígitos que o OneUptime envia por SMS para o número em **Código de verificação** e clique em **Verificar**. **Enviar um novo código** envia outro.
 :::
@@ -183,7 +183,7 @@ O Twilio lê as mensagens com uma voz sintetizada, então escreva-as do jeito qu
 
 ## Registros de chamadas
 
-Toda chamada aparece na página **Registros de chamadas** da política, em **Registros** no menu lateral dela: o **Chamador**, o **Número chamado**, o **Status** dela, quem atendeu (**Atendida por**), a **Duração** e quando ela começou (**Iniciado em**). Clique em **Ver linha do tempo** em uma chamada para ver a **Linha do tempo da chamada**: cada pessoa que tocou, em qual número e como cada tentativa terminou.
+Toda chamada aparece na página **Registros de chamadas** da política, em **Básico** no menu lateral dela: o **Chamador**, o **Número chamado**, o **Status** dela, quem atendeu (**Atendida por**), a **Duração** e quando ela começou (**Iniciado em**). Clique em **Ver linha do tempo** em uma chamada para ver a **Linha do tempo da chamada**: cada pessoa que tocou, em qual número e como cada tentativa terminou.
 
 | Status | O que aconteceu |
 | --- | --- |
@@ -260,7 +260,7 @@ Uma regra criada pela API sem `escalateAfterSeconds` toca por 20 segundos, assim
 :::
 
 :::details A chamada é atendida, mas ninguém toca
-O registro de chamadas mostra **Falhou**. Confira se **Atender chamadas** está ligado nas **Configurações** da política, se o agendamento de plantão de cada regra tem alguém de plantão agora e se as pessoas que as regras fazem tocar têm um número verificado em **Configurações do usuário** > **Política de chamadas recebidas** > **Números de telefone recebidos**, neste projeto. As regras só fazem tocar membros do projeto.
+O registro de chamadas mostra **Falhou**. Confira se **Atender chamadas** está ligado nas **Configurações** da política, se o agendamento de plantão de cada regra tem alguém de plantão agora e se as pessoas que as regras fazem tocar têm um número verificado em **Configurações do usuário** > **Acionamentos e chamadas** > **Números de telefone recebidos**, neste projeto. As regras só fazem tocar membros do projeto.
 :::
 
 :::details As chamadas acabam na caixa postal

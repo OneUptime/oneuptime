@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "Passwort vergessen",
     "subtitle": "Bitte geben Sie Ihre E-Mail-Adresse ein, und der Link zum Zurücksetzen des Passworts wird an Sie gesendet.",
-    "successMessage": "Wir haben Ihnen den Link zum Zurücksetzen des Passworts per E-Mail gesendet. Vergessen Sie nicht, den Spam-Ordner zu überprüfen.",
+    "successMessage": "Wenn ein Konto diese E-Mail-Adresse verwendet, haben wir ihm einen Link zum Wählen eines Passworts gesendet. Vergessen Sie nicht, den Spam-Ordner zu überprüfen.",
     "submitButton": "Link zum Zurücksetzen senden",
     "rememberPasswordPrompt": "Erinnern Sie sich an Ihr Passwort?",
     "loginLink": "Anmelden.",
@@ -187,6 +187,17 @@
     "linkInvalidTitle": "Dieser Link zum Zurücksetzen funktioniert nicht mehr",
     "linkInvalidDescription": "Er wurde vielleicht schon verwendet, oder er wurde nur teilweise kopiert. Fordern Sie einen neuen Link an, und wir senden ihn Ihnen per E-Mail.",
     "requestNewLinkButton": "Neuen Link anfordern"
+  },
+  "setPassword": {
+    "title": "Passwort festlegen",
+    "subtitle": "Wählen Sie ein Passwort, um die Einrichtung Ihres Kontos abzuschließen.",
+    "submitButton": "Passwort festlegen",
+    "successTitle": "Ihr Passwort ist festgelegt",
+    "successDescription": "Melden Sie sich mit Ihrem neuen Passwort an.",
+    "linkExpiredTitle": "Dieser Link ist abgelaufen",
+    "linkExpiredDescription": "Links zum Festlegen eines Passworts gelten {{days}} Tage lang. Fordern Sie einen neuen Link an, und wir senden ihn Ihnen per E-Mail.",
+    "linkInvalidTitle": "Dieser Link funktioniert nicht mehr",
+    "linkInvalidDescription": "Er wurde vielleicht schon verwendet, oder er wurde nur teilweise kopiert. Wenn Sie Ihr Passwort bereits festgelegt haben, melden Sie sich an. Wenn nicht, fordern Sie einen neuen Link an, und wir senden ihn Ihnen per E-Mail."
   },
   "sso": {
     "title": "Mit SSO anmelden",
@@ -453,7 +464,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Lizenziert über Ihr Cloud-Marketplace-Abonnement: Jeder Benutzer wird stundenweise abgerechnet.",
   "License, version, seat usage, and the instances covered by this key.": "Lizenz, Version, Platznutzung und die Instanzen, die dieser Schlüssel abdeckt.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "Die vollständige OneUptime-Plattform mit Incident-Response, Statusseiten und Workflow-Automatisierung.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "SAML- und OIDC-Single-Sign-On (SSO) für Projekte, Statusseiten und die gesamte Instanz, einschließlich „SSO für die Anmeldung erzwingen“.",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "SAML- und OIDC-Single-Sign-On (SSO) für Projekte, Statusseiten und die gesamte Instanz, einschließlich „SSO für die Anmeldung erzwingen“.",
   "Community support, documentation, and tutorials to help teams get started quickly.": "Community-Support, Dokumentation und Tutorials, damit Teams schnell loslegen können.",
   "Regular updates, bug fixes, and open-source extensibility.": "Regelmäßige Updates, Fehlerbehebungen und Open-Source-Erweiterbarkeit.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Integrationen mit beliebten DevOps-Tools über von der Community gepflegte Konnektoren.",

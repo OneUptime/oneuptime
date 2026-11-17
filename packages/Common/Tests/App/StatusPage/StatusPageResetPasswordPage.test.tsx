@@ -205,7 +205,7 @@ describe("the form asks the one password rule", () => {
 });
 
 describe("the reset ends in one button that leads on", () => {
-  test("a reset ends in Log In", async () => {
+  test("a reset ends in Sign In", async () => {
     createOrUpdateMock.mockResolvedValue({ data: {} } as never);
 
     await renderPage();
@@ -218,7 +218,7 @@ describe("the reset ends in one button that leads on", () => {
       words.successTitle,
     );
 
-    fireEvent.click(screen.getByTestId("reset-password-log-in"));
+    fireEvent.click(screen.getByTestId("reset-password-sign-in"));
 
     expect(navigatedTo()).toEqual(["/login"]);
   });

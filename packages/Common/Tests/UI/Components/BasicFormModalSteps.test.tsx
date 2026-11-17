@@ -11,8 +11,12 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import React from "react";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { formStepButton } from "../../Helpers/FormStepButton";
+import { STEP_ROW_CLASS_NAME } from "../../../UI/Components/Forms/Steps/Step";
 
 /*
  * A stepped BasicFormModal walks with a plain Next and offers the dialog's
@@ -301,5 +305,214 @@ describe("BasicFormModal with steps that can all be opened", () => {
     // Back on the first step: Next, not the save.
     expect(submitButton()).not.toBeInTheDocument();
     expect(nextButton()).toBeInTheDocument();
+  });
+});
+
+/*
+ * #9245: after the steps became buttons (#9231), the Admin Dashboard's
+ * Edit SMTP Config tests could not reach Save Changes - they clicked the
+ * step's row, which no longer opens it. The product was fine: a person
+ * presses the step's button, which fills the row. These walk a stepped
+ * dialog the ways a person does - the pointer and the keyboard - so a
+ * dialog that really loses its Next, its step buttons or its save fails
+ * here, whatever any one page's test does.
+ */
+describe("BasicFormModal with steps, by pointer and by keyboard", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  function setupUser(): UserEvent {
+    return userEvent.setup({ delay: null });
+  }
+
+  function stepRows(): Array<HTMLElement> {
+    return within(progress()).getAllByRole("listitem");
+  }
+
+  test("the pointer: Next walks on, a finished step's button goes back, the save submits", async () => {
+    const user: UserEvent = setupUser();
+    const onSubmit: MockFunction = getJestMockFunction();
+    renderModal({ onSubmit, withSteps: true });
+
+    await user.type(
+      await screen.findByRole("textbox", { name: "State" }),
+      "Resolved",
+    );
+    await user.click(nextButton()!);
+
+    await screen.findByRole("textbox", { name: /^Note/ });
+    await waitFor(() => {
+      expect(submitButton()).toBeInTheDocument();
+    });
+
+    // The finished step is a button, named by its title; the open one is not.
+    expect(
+      within(progress()).getByRole("button", { name: "State" }),
+    ).toBeVisible();
+    expect(
+      within(progress()).queryByRole("button", { name: "Note" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(formStepButton(stepRows()[0]!));
+    expect(await screen.findByRole("textbox", { name: "State" })).toHaveValue(
+      "Resolved",
+    );
+    await waitFor(() => {
+      expect(nextButton()).toBeInTheDocument();
+    });
+
+    await user.click(nextButton()!);
+    await screen.findByRole("textbox", { name: /^Note/ });
+    await waitFor(() => {
+      expect(submitButton()).toBeInTheDocument();
+    });
+    await user.click(submitButton()!);
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+    expect(onSubmit.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({ state: "Resolved" }),
+    );
+  });
+
+  test("the keyboard: Next, a step and the save each take the focus and are pressed with Enter or Space", async () => {
+    const user: UserEvent = setupUser();
+    const onSubmit: MockFunction = getJestMockFunction();
+    renderModal({ onSubmit, withSteps: true });
+
+    await user.type(
+      await screen.findByRole("textbox", { name: "State" }),
+      "Resolved",
+    );
+
+    // Next takes the focus and Enter presses it.
+    await waitFor(() => {
+      expect(nextButton()).toBeInTheDocument();
+    });
+    nextButton()!.focus();
+    expect(nextButton()).toHaveFocus();
+    await user.keyboard("{Enter}");
+
+    await screen.findByRole("textbox", { name: /^Note/ });
+
+    // The finished step takes the focus and Space opens it.
+    const back: HTMLElement = formStepButton(stepRows()[0]!);
+    back.focus();
+    expect(back).toHaveFocus();
+    await user.keyboard(" ");
+    expect(await screen.findByRole("textbox", { name: "State" })).toHaveValue(
+      "Resolved",
+    );
+
+    await waitFor(() => {
+      expect(nextButton()).toBeInTheDocument();
+    });
+    nextButton()!.focus();
+    await user.keyboard(" ");
+    await screen.findByRole("textbox", { name: /^Note/ });
+
+    await waitFor(() => {
+      expect(submitButton()).toBeInTheDocument();
+    });
+    submitButton()!.focus();
+    expect(submitButton()).toHaveFocus();
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  test("on a form whose steps are all filled in, the last step's button opens the save, by pointer and by keyboard", async () => {
+    for (const how of ["pointer", "keyboard"]) {
+      const user: UserEvent = setupUser();
+      const onSubmit: MockFunction = getJestMockFunction();
+      renderModal({
+        onSubmit,
+        withSteps: true,
+        initialValues: { state: "Open", note: "Kept" },
+        allowAnyStepNavigation: true,
+      });
+
+      await screen.findByRole("textbox", { name: "State" });
+      await waitFor(() => {
+        expect(nextButton()).toBeInTheDocument();
+      });
+      expect(submitButton()).not.toBeInTheDocument();
+
+      const last: HTMLElement = formStepButton(
+        stepRows()[stepRows().length - 1]!,
+      );
+      expect(last).toHaveAccessibleName("Note");
+
+      if (how === "pointer") {
+        await user.click(last);
+      } else {
+        last.focus();
+        await user.keyboard("{Enter}");
+      }
+
+      await screen.findByRole("textbox", { name: /^Note/ });
+      await waitFor(() => {
+        expect(submitButton()).toBeInTheDocument();
+      });
+
+      if (how === "pointer") {
+        await user.click(submitButton()!);
+      } else {
+        submitButton()!.focus();
+        await user.keyboard("{Enter}");
+      }
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledTimes(1);
+      });
+      expect(onSubmit.mock.calls[0]?.[0]).toEqual(
+        expect.objectContaining({ state: "Open", note: "Kept" }),
+      );
+
+      cleanup();
+    }
+  });
+
+  test("the step's row holds nothing but its button, so a click anywhere on the row is the button's", async () => {
+    renderModal({
+      onSubmit: getJestMockFunction(),
+      withSteps: true,
+      initialValues: { state: "Open", note: "Kept" },
+      allowAnyStepNavigation: true,
+    });
+
+    await screen.findByRole("textbox", { name: "State" });
+
+    const row: HTMLElement = stepRows()[1]!;
+    const button: HTMLElement = formStepButton(row);
+
+    expect(row.children).toHaveLength(1);
+    expect(row.firstElementChild).toBe(button);
+    /*
+     * 4px past the row on each side, so the row's far end is the button's
+     * too (at w-full, -mx-1 left the last 4px dead), and on a touch screen
+     * 44px tall. SharedUi.spec.ts clicks those ends in Chromium.
+     */
+    expect(button.className.split(/\s+/)).toEqual(
+      expect.arrayContaining([
+        "-mx-1",
+        "w-[calc(100%+0.5rem)]",
+        "[@media(pointer:coarse)]:min-h-11",
+      ]),
+    );
+    expect(button.className.split(/\s+/)).not.toContain("w-full");
+    /*
+     * And the row is a flow root, so the button's -my-1 stays inside it:
+     * the row keeps the height of its words and the list does not move as
+     * its steps turn into buttons. As a plain `li` it grew to the button's
+     * 28px, two finished steps 4px further apart than two ahead
+     * (CreateMonitor.spec.ts measures the rows in Chromium).
+     */
+    expect(row).toHaveClass(STEP_ROW_CLASS_NAME);
+    expect(STEP_ROW_CLASS_NAME).toBe("flow-root");
   });
 });

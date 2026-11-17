@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/app",
-  "version": "15.0.0",
+  "version": "16.0.0",
   "description": "",
   "repository": {
     "type": "git",
@@ -29,8 +29,8 @@
     "watch-frontend:status-page": "bash ./scripts/frontend-run.sh FeatureSet/StatusPage dev-build --watch",
     "watch-frontend:public-dashboard": "bash ./scripts/frontend-run.sh FeatureSet/PublicDashboard dev-build --watch",
     "dev:api": "npx nodemon",
-    "start": "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts",
-    "migrate": "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap --max-http-header-size=8388608${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Migrate.ts",
+    "start": "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js Index.js",
+    "migrate": "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap --max-http-header-size=8388608${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js Migrate.js",
     "compile": "export NODE_OPTIONS=\"--max-old-space-size=8192${NODE_OPTIONS:+ $NODE_OPTIONS}\" && tsc && node scripts/compile-tests.js",
     "compile-tests": "node scripts/compile-tests.js",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
@@ -55,7 +55,6 @@
     "nodemailer": "^10.0.3",
     "openid-client": "^5.7.1",
     "protobufjs": "^7.5.4",
-    "ts-node": "^10.9.1",
     "twilio": "^4.20.0",
     "ws": "^8.21.0",
     "xml-crypto": "^6.1.2"
@@ -72,6 +71,7 @@
     "postcss": "^8.5.32",
     "tailwindcss": "3.4.5",
     "ts-jest": "^28.0.8",
+    "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
   "overrides": {

@@ -15,6 +15,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
+import HashedString from "../../Types/HashedString";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import TelemetryIngestionKeyType from "../../Types/Telemetry/TelemetryIngestionKeyType";
@@ -337,6 +338,9 @@ export default class TelemetryIngestionKey extends BaseModel {
   @Index()
   @TableColumn({
     secret: true,
+    encrypted: true,
+    presentedKey: true,
+    lookupHashColumn: "secretKeyHash",
     type: TableColumnType.ObjectID,
     isDefaultValueColumn: false,
     computed: true,
@@ -345,11 +349,41 @@ export default class TelemetryIngestionKey extends BaseModel {
     example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
   })
   @Column({
-    type: ColumnType.ObjectID,
+    type: ColumnType.VeryLongText,
     nullable: false,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public secretKey?: ObjectID = undefined;
+
+  /*
+   * The lookup hash of secretKey, the ingestion key
+   * telemetry is sent with (#9012).
+   * The key is kept encrypted, which no query can find by its value, so
+   * a request that presents it is matched by this hash
+   * (DatabaseService.findOneByPresentedKey), then held to the key itself.
+   * OneUptime writes it with every write of the key.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.HashedString,
+    computed: true,
+    hideColumnInDocumentation: true,
+    title: "Ingestion Key Hash",
+    description:
+      "The lookup hash of secretKey, which a request that presents the key finds this record by. OneUptime writes it with every write of the key; nobody reads or writes it through the API.",
+  })
+  @Column({
+    type: ColumnType.HashedString,
+    length: ColumnLength.HashedString,
+    nullable: true,
+    transformer: HashedString.getDatabaseTransformer(),
+  })
+  public secretKeyHash?: HashedString = undefined;
 
   /*
    * Deliberately IMMUTABLE: create and read, but `update: []`.

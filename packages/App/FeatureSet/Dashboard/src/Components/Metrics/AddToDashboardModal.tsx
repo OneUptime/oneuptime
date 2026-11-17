@@ -283,7 +283,7 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
       titleField="name"
       descriptionField="description"
       isSearchEnabled={true}
-      noItemsMessage="No dashboards found. Create a dashboard first."
+      noItemsMessage="No dashboards yet. Create a dashboard first, then add this chart to it."
       query={
         {
           projectId: ProjectUtil.getCurrentProjectId() as ObjectID,

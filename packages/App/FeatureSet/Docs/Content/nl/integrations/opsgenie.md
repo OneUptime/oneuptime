@@ -149,7 +149,7 @@ Opsgenie antwoordt `202` voordat het verzoek is verwerkt, dus een verzoek dat he
 :::
 
 :::details De workflow draait nooit
-Controleer of hij aan staat: **Ingeschakeld**, bovenaan zijn **Bouwer**. Open daarna **Logboeken → Uitvoeringen**: een uitvoering die de **Nee**-kant van het **Als / Anders**-blok nam, is een update die geen oplossing was.
+Controleer of hij aan staat: **Ingeschakeld**, bovenaan zijn **Bouwer**. Open daarna **Uitvoeringen**: een uitvoering die de **Nee**-kant van het **Als / Anders**-blok nam, is een update die geen oplossing was.
 :::
 
 ## Volgende stappen

@@ -64,7 +64,7 @@ La pestaña **Guardia** trata de ti, no de los registros que son tuyos:
 
 - **Entras en la guardia**, **Eres el siguiente en la guardia** y **Sales de la guardia** siguen tus turnos en los calendarios de guardia en los que estás.
 - **Añadido a la política de guardia** y **Eliminado de la política de guardia** te dicen cuándo una política de guardia empieza o deja de nombrarte.
-- **Antes de que empiece mi turno de guardia** envía recordatorios en los momentos que eliges en **Ajustes de usuario → Calendario → Feed de calendario**, y **Mi próximo turno de guardia se reasigna** te dice cuándo otra persona cubre un turno del que recibiste un recordatorio. Consulta [Feeds de calendario](/docs/on-call/calendar-feeds#recordatorios-y-avisos-de-reasignación).
+- **Antes de que empiece mi turno de guardia** envía recordatorios en los momentos que eliges en **Ajustes de usuario → Perfil y calendario → Feed de calendario**, y **Mi próximo turno de guardia se reasigna** te dice cuándo otra persona cubre un turno del que recibiste un recordatorio. Consulta [Feeds de calendario](/docs/on-call/calendar-feeds#recordatorios-y-avisos-de-reasignación).
 - **Llamada perdida**, en la tarjeta **Políticas de llamadas entrantes**, avisa a los propietarios de una política de llamadas entrantes de que una persona que llamó no contactó con nadie. Consulta [Política de llamadas entrantes](/docs/on-call/incoming-call-policy#llamadas-perdidas).
 
 ## Casos de seguridad

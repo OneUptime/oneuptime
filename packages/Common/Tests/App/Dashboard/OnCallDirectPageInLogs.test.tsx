@@ -90,9 +90,16 @@ jest.mock(
 jest.mock("../../../UI/Components/Pill/Pill", () => {
   return {
     __esModule: true,
-    default: (props: { text: string; tooltip?: string }): ReactElement => {
+    default: (props: {
+      text: string;
+      tooltip?: string;
+      dataTestId?: string;
+    }): ReactElement => {
       return (
-        <span data-testid="pill" data-tooltip={props.tooltip || ""}>
+        <span
+          data-testid={props.dataTestId || "pill"}
+          data-tooltip={props.tooltip || ""}
+        >
           {props.text}
         </span>
       );

@@ -620,7 +620,17 @@ export default interface Field<TEntity> {
     | ((values: FormValues<TEntity>) => ReactElement | undefined)
     | undefined;
 
-  getSummaryElement?: (item: FormValues<TEntity>) => ReactElement | undefined;
+  /*
+   * The field's row on the review step (FormSummary). Like a footer, it is
+   * handed what it can do to its field (FieldFooterProps): a review that
+   * warns about the value can offer its one-click fix right there - "This
+   * event will not appear on any status page", with the pages that list its
+   * monitors to add. Drawn outside a form, it is handed nothing.
+   */
+  getSummaryElement?: (
+    item: FormValues<TEntity>,
+    footer?: FieldFooterProps,
+  ) => ReactElement | undefined;
 
   /*
    * Listed on the review step (FormSummary) whatever it holds, even while it

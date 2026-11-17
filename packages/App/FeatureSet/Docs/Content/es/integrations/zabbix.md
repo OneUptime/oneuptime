@@ -293,7 +293,7 @@ Para enviar unos problemas a la plantilla de incidentes y otros a la de alertas,
 ## Probarlo
 
 1. En Zabbix, abre **Alerts → Media types** y haz clic en **Test** junto a `OneUptime`. Introduce la URL que copiaste y valores de ejemplo como `event_id` `12345`, `event_name` `Test problem`, `host` `web-1`, `event_nseverity` `4` y `event_value` `1`. Haz clic en **Test**: Zabbix muestra la respuesta del script, `OK`, o el error que lanzó.
-2. En OneUptime, abre **Registros → Ejecuciones** del flujo de trabajo y revisa la ejecución, o abre el monitor y comprueba que se abrió un incidente.
+2. En OneUptime, abre **Ejecuciones** del flujo de trabajo y revisa la ejecución, o abre el monitor y comprueba que se abrió un incidente.
 3. Prueba otra vez con `event_value` `0` y el mismo `event_id`. El incidente se resuelve.
 
 Después deja que se dispare un disparador real, por ejemplo bajando un umbral un momento, y observa cómo llega el problema. Para probar una actualización, reconoce el problema en Zabbix con un mensaje: el incidente recibe una nota privada y queda reconocido.
@@ -320,12 +320,12 @@ Abre el tipo de medio y usa **Test**: Zabbix muestra el resultado del script o e
 
 :::details Los incidentes se abren pero nunca se resuelven
 - La acción necesita **Recovery operations**, o Zabbix nunca envía la recuperación.
-- Con la plantilla, abre **Registros → Ejecuciones** del flujo de trabajo y la ejecución de la recuperación: su último paso dice por qué. Una recuperación de un problema que no abrió ningún incidente no cambia nada.
+- Con la plantilla, abre **Ejecuciones** del flujo de trabajo y la ejecución de la recuperación: su último paso dice por qué. Una recuperación de un problema que no abrió ningún incidente no cambia nada.
 - Con el monitor, el incidente del criterio necesita **Resolver incidente automáticamente**, en **Más campos**. **Campo que indica la recuperación** debe ser `requestBody.status`, y **Valor que significa recuperado** exactamente `0`.
 :::
 
 :::details Zabbix no se reconoce ni se cierra
-Abre la ejecución de la plantilla de estado en **Registros → Ejecuciones**: su último paso dice qué respondió Zabbix.
+Abre la ejecución de la plantilla de estado en **Ejecuciones**: su último paso dice qué respondió Zabbix.
 
 - `Not authorized`: el token de API es incorrecto, caducó o está desactivado, o Zabbix es anterior a 6.4 (consulta [En Zabbix 6.0](#en-zabbix-60)).
 - `Cannot close problem: trigger does not allow manual closing`: activa **Allow manual close** en el disparador. La plantilla ya reconoce esos problemas en lugar de cerrarlos.
@@ -334,7 +334,7 @@ Abre la ejecución de la plantilla de estado en **Registros → Ejecuciones**: s
 :::
 
 :::details El incidente muestra una referencia en lugar de un valor
-Una referencia a un campo que la solicitud no tiene se deja tal como está escrita, llaves incluidas, en lugar de vaciarse. Comprueba que Zabbix envía `Content-Type: application/json` y que los nombres de campo que usas (`name`, `host`, `severity`, `status`, `event_id`) coinciden con la carga útil del script. Para un flujo de trabajo, abre la ejecución en **Registros → Ejecuciones** y compárala con lo que recibió el disparador. Consulta [Trampas](/docs/workflows/variables#trampas-habituales).
+Una referencia a un campo que la solicitud no tiene se deja tal como está escrita, llaves incluidas, en lugar de vaciarse. Comprueba que Zabbix envía `Content-Type: application/json` y que los nombres de campo que usas (`name`, `host`, `severity`, `status`, `event_id`) coinciden con la carga útil del script. Para un flujo de trabajo, abre la ejecución en **Ejecuciones** y compárala con lo que recibió el disparador. Consulta [Trampas](/docs/workflows/variables#trampas-habituales).
 :::
 
 :::details Cada problema llega dos veces

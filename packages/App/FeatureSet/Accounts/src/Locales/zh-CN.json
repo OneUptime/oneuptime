@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "忘记密码",
     "subtitle": "请输入您的电子邮件，密码重置链接将发送给您。",
-    "successMessage": "我们已通过电子邮件向您发送了密码重置链接。请不要忘记检查垃圾邮件文件夹。",
+    "successMessage": "如果有账户使用此电子邮件地址，我们已向其发送用于设置密码的链接。请不要忘记检查垃圾邮件文件夹。",
     "submitButton": "发送密码重置链接",
     "rememberPasswordPrompt": "记得您的密码？",
     "loginLink": "登录。",
@@ -187,6 +187,17 @@
     "linkInvalidTitle": "此重置链接已失效",
     "linkInvalidDescription": "它可能已被使用，或只复制了一部分。请申请新链接，我们会通过电子邮件发送给您。",
     "requestNewLinkButton": "申请新链接"
+  },
+  "setPassword": {
+    "title": "设置密码",
+    "subtitle": "设置一个密码，完成账户设置。",
+    "submitButton": "设置密码",
+    "successTitle": "密码已设置",
+    "successDescription": "请使用新密码登录。",
+    "linkExpiredTitle": "此链接已过期",
+    "linkExpiredDescription": "设置密码的链接有效期为 {{days}} 天。请申请新链接，我们会通过电子邮件发送给您。",
+    "linkInvalidTitle": "此链接已失效",
+    "linkInvalidDescription": "它可能已被使用，或只复制了一部分。如果您已设置密码，请登录。否则，请申请新链接，我们会通过电子邮件发送给您。"
   },
   "sso": {
     "title": "使用 SSO 登录",
@@ -453,7 +464,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "通过你的云市场订阅获得许可：每位用户按小时计费。",
   "License, version, seat usage, and the instances covered by this key.": "许可证、版本、席位用量以及此密钥涵盖的实例。",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "完整的 OneUptime 平台，包含事件响应、状态页面和工作流自动化。",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "适用于项目、状态页面和整个实例的 SAML 和 OIDC 单点登录（SSO），包括“登录时要求使用 SSO”。",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "适用于项目、状态页面和整个实例的 SAML 和 OIDC 单点登录（SSO），包括“登录时要求使用 SSO”。",
   "Community support, documentation, and tutorials to help teams get started quickly.": "社区支持、文档和教程，帮助团队快速上手。",
   "Regular updates, bug fixes, and open-source extensibility.": "定期更新、错误修复和开源可扩展性。",
   "Integrations with popular DevOps tools through community-maintained connectors.": "通过社区维护的连接器与常用 DevOps 工具集成。",

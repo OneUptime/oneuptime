@@ -542,7 +542,16 @@ export interface DeclaredCodeOwnerJSON {
   // Where the code keeps the value, when the guide knows: "aws_ecs_service.desired_count".
   target: DeclaredCodeTarget | null;
   candidates: Array<DeclaredCodeOwnerCandidateJSON>;
+  /*
+   * The kind of private record the fix is for, when it is for one: the
+   * pull request then leaves that record out, and the dialog says so
+   * (#9165). Absent for a public record, and from an older server.
+   */
+  privateRecord?: DeclaredCodePrivateRecord | undefined;
 }
+
+// The kinds of private record a fix with a declared code change is for.
+export type DeclaredCodePrivateRecord = "incident" | "alert";
 
 // ---- What a requested code change is now ---------------------------------------
 
@@ -560,10 +569,17 @@ export enum DeclaredCodeChangeState {
   Ended = "ended",
   // It failed or was stopped.
   Failed = "failed",
+  /*
+   * It is there, in a task the reader may not read: a reply carried a
+   * private incident or alert into it that they do not see. Nothing of how
+   * it stands: no task, repository or pull request is sent with it.
+   */
+  Hidden = "hidden",
 }
 
 export interface DeclaredCodeChangeJSON {
   sequence: number;
+  // The step's task in Code; empty for one hidden from the reader.
   taskId: string;
   repositoryName: string;
   state: DeclaredCodeChangeState;

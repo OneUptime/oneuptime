@@ -1527,7 +1527,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                       <div className="w-full border-t border-gray-200"></div>
                     </div>
                     <div className="relative flex justify-start">
-                      <span className="bg-white pr-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                      <span className="bg-white pr-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
                         {translator.translateText(group.label)}
                       </span>
                     </div>

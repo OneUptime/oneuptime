@@ -306,8 +306,7 @@ async function backgroundOf(locator: Locator): Promise<string> {
   });
 }
 
-// Tailwind's gray-600, red-700 and amber-700, as computed colours.
-const GREY_600: string = "rgb(75, 85, 99)";
+// Tailwind's red-700 and amber-700, as computed colours.
 const RED_700: string = "rgb(185, 28, 28)";
 const AMBER_700: string = "rgb(180, 83, 9)";
 // Tailwind's red-500, amber-500 and emerald-500: a tile's bar.
@@ -999,15 +998,18 @@ test.describe("an ESXi host's page", () => {
     await expect(page.getByTestId("vmware-host-busiest-vms")).toBeVisible();
     /*
      * ci-runner-01 waits 14.2% of the time for a CPU: amber, as Needs
-     * attention's "CPU ready 14%" just above it (the badge was red); its
-     * 64.1% CPU green, as the Virtual Machines tab draws it.
+     * attention's "CPU ready 14%" just above it (the badge was red) - the
+     * shared Pill in its Warning tone since 88536f777a1, which works its
+     * words' amber out from the tone (an amber-700 class drew the hand-made
+     * chip before); its 64.1% CPU green, as the Virtual Machines tab draws
+     * it.
      */
     const runner: Locator = page
       .getByTestId("vmware-host-busy-vm")
       .filter({ hasText: "ci-runner-01" });
-    expect(
-      await colourOf(runner.getByTestId("vmware-host-busy-vm-cpu-ready")),
-    ).toBe(AMBER_700);
+    await expect(
+      runner.getByTestId("vmware-host-busy-vm-cpu-ready"),
+    ).toHaveAttribute("data-tone", "warning");
     expect(
       await backgroundOf(runner.getByTestId("vmware-host-busy-vm-cpu-bar")),
     ).toBe("rgb(34, 197, 94)");
@@ -1027,15 +1029,17 @@ test.describe("an ESXi host's page", () => {
     await expect(page.getByTestId("vmware-host-alerts-turn-on")).toHaveText(
       "Turn on 6 alerts",
     );
-    // Not set up reads grey, never six amber warnings.
-    expect(
-      await colourOf(
-        page
-          .getByTestId("vmware-host-alerts-item")
-          .first()
-          .getByText("Not set up"),
-      ),
-    ).toBe(GREY_600);
+    /*
+     * Not set up reads grey, never six amber warnings: the shared Pill in
+     * its Neutral tone since 88536f777a1, which works its words' grey out
+     * from the tone (a gray-600 class drew the hand-made chip before).
+     */
+    const notSetUp: Locator = page
+      .getByTestId("vmware-host-alerts-item")
+      .first()
+      .getByTestId("pill");
+    await expect(notSetUp).toHaveText("Not set up");
+    await expect(notSetUp).toHaveAttribute("data-tone", "neutral");
     await page.getByTestId("vmware-host-alerts-turn-on").click();
 
     const selected: Array<string> = await selectedRecommendations(page);

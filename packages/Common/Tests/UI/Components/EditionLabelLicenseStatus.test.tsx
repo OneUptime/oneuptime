@@ -721,7 +721,7 @@ describe("EditionLabel - the Community Edition", () => {
 
   /*
    * SAML and OIDC single sign-on, for projects, status pages and the whole
-   * instance, and "Require SSO for login" are Community Edition features;
+   * instance, and "Require SSO to sign in" are Community Edition features;
    * the Enterprise column does not claim them.
    */
   it("lists single sign-on among the Community Edition's features, not the Enterprise Edition's", async () => {
@@ -745,7 +745,7 @@ describe("EditionLabel - the Community Edition", () => {
       });
 
     expect(communityFeatures).toContain(
-      'SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including "Require SSO for login".',
+      'SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including "Require SSO to sign in".',
     );
     expect(singleSignOnMentions(enterpriseColumn.textContent)).toEqual([]);
   });

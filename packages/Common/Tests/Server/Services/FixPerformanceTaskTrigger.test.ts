@@ -10,6 +10,7 @@ import CodeFixStartGate, {
   CodeFixStart,
 } from "../../../Server/Utils/AI/CodeFix/CodeFixStartGate";
 import CodeTaskRuns from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
+import CodeTaskThread from "../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import { CODE_TASK_PLAN_REQUIRED_MESSAGE } from "../../../Server/Utils/AI/CodeTask/CodeTaskGate";
 import {
   CodeTaskBlocker,
@@ -113,6 +114,12 @@ function noFinishedFix(): void {
 const projectId: ObjectID = ObjectID.generate();
 const traceId: string = "abc123trace";
 const userId: ObjectID = ObjectID.generate();
+
+// Who reads the trace page: a member, who may read the fix's task unless a test says.
+const READER: DatabaseCommonInteractionProps = {
+  userId: userId,
+  tenantId: projectId,
+};
 
 function fakeRun(taskContext?: CodeFixTaskContext): AIRun {
   return {
@@ -788,8 +795,97 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
     });
   }
 
+  // The reader may read the fix's task, unless a test says otherwise.
+  let hiddenFrom: jest.SpyInstance;
+
+  beforeEach(() => {
+    hiddenFrom = jest
+      .spyOn(CodeTaskThread, "findTasksHiddenFrom")
+      .mockResolvedValue(new Set<string>());
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  /*
+   * A fix whose task a reply carried a private incident or alert into,
+   * which the reader may not open, read as its task's own page reads it:
+   * it is there - Done, Hidden, no second fix offered - and nothing of how
+   * it stands, nor where it is.
+   */
+  test.each([
+    ["on its way", true],
+    ["done", false],
+  ])(
+    "a fix %s in a task hidden from the reader: there, with no state and no link",
+    async (_name: string, isActive: boolean) => {
+      aiSwitch(true);
+      const fix: AIRun = fakeRun({ traceId });
+      jest
+        .spyOn(SubjectCodeFixRun, "findNonTerminalPerformanceFixRunForTrace")
+        .mockResolvedValue(isActive ? fix : null);
+      jest
+        .spyOn(FixPerformanceTaskTrigger, "findFinishedFix")
+        .mockResolvedValue(
+          isActive
+            ? null
+            : {
+                aiRunId: fix.id!.toString(),
+                outcome: FinishedFixOutcome.Fixed,
+              },
+        );
+      hiddenFrom.mockResolvedValue(
+        new Set<string>([fix.id!.toString().toLowerCase()]),
+      );
+      const repository: jest.SpyInstance = jest.spyOn(
+        SubjectCodeFixRun,
+        "hasConnectedRepository",
+      );
+
+      const suggestion: TracePerformanceFixSuggestion =
+        await FixPerformanceTaskTrigger.getSuggestionForTrace({
+          reader: READER,
+          projectId,
+          traceId,
+          loadTrace: loadOf(SLOW_CHECKOUT_WITH_N_PLUS_ONE.spans),
+        });
+
+      expect(suggestion.offer).toBe(SuggestionOffer.Done);
+      expect(suggestion.fixOutcome).toBe(FinishedFixOutcome.Hidden);
+      expect(suggestion.aiRunId).toBeNull();
+      expect(suggestion.repositories).toEqual([]);
+      expect(suggestion.finding).not.toBeNull();
+      expect(JSON.stringify(suggestion)).not.toContain(fix.id!.toString());
+      expect(repository).not.toHaveBeenCalled();
+      expect(hiddenFrom).toHaveBeenCalledWith({
+        projectId,
+        taskIds: [fix.id!.toString()],
+        reader: READER,
+      });
+    },
+  );
+
+  test("no fix: the reader's sight of a task is never asked", async () => {
+    aiSwitch(true);
+    jest
+      .spyOn(SubjectCodeFixRun, "findNonTerminalPerformanceFixRunForTrace")
+      .mockResolvedValue(null);
+    jest
+      .spyOn(FixPerformanceTaskTrigger, "findFinishedFix")
+      .mockResolvedValue(null);
+    jest
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
+      .mockResolvedValue(false);
+
+    await FixPerformanceTaskTrigger.getSuggestionForTrace({
+      reader: READER,
+      projectId,
+      traceId,
+      loadTrace: loadOf(SLOW_CHECKOUT_WITH_N_PLUS_ONE.spans),
+    });
+
+    expect(hiddenFrom).not.toHaveBeenCalled();
   });
 
   test("AI off: nothing, and the spans are never read", async () => {
@@ -802,6 +898,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
 
     const suggestion: TracePerformanceFixSuggestion =
       await FixPerformanceTaskTrigger.getSuggestionForTrace({
+        reader: READER,
         projectId,
         traceId,
         loadTrace,
@@ -823,6 +920,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
     expect(
       (
         await FixPerformanceTaskTrigger.getSuggestionForTrace({
+          reader: READER,
           projectId,
           traceId: "",
           loadTrace,
@@ -839,6 +937,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
     expect(
       (
         await FixPerformanceTaskTrigger.getSuggestionForTrace({
+          reader: READER,
           projectId,
           traceId,
           loadTrace: loadOf([]),
@@ -868,6 +967,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
 
       const suggestion: TracePerformanceFixSuggestion =
         await FixPerformanceTaskTrigger.getSuggestionForTrace({
+          reader: READER,
           projectId,
           traceId,
           loadTrace: loadOf(trace.spans),
@@ -892,6 +992,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
 
     const suggestion: TracePerformanceFixSuggestion =
       await FixPerformanceTaskTrigger.getSuggestionForTrace({
+        reader: READER,
         projectId,
         traceId,
         loadTrace: loadOf(SLOW_CHECKOUT_WITH_N_PLUS_ONE.spans),
@@ -922,6 +1023,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
 
     const suggestion: TracePerformanceFixSuggestion =
       await FixPerformanceTaskTrigger.getSuggestionForTrace({
+        reader: READER,
         projectId,
         traceId,
         loadTrace: loadOf(SLOW_CHECKOUT_WITH_N_PLUS_ONE.spans),
@@ -971,6 +1073,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
 
       const suggestion: TracePerformanceFixSuggestion =
         await FixPerformanceTaskTrigger.getSuggestionForTrace({
+          reader: READER,
           projectId,
           traceId,
           loadTrace: loadOf(SLOW_CHECKOUT_WITH_N_PLUS_ONE.spans),
@@ -1001,6 +1104,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
       .mockResolvedValue("checkout");
 
     await FixPerformanceTaskTrigger.getSuggestionForTrace({
+      reader: READER,
       projectId,
       traceId,
       loadTrace: async (): Promise<PerformanceTraceSpans> => {
@@ -1052,6 +1156,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
 
       const suggestion: TracePerformanceFixSuggestion =
         await FixPerformanceTaskTrigger.getSuggestionForTrace({
+          reader: READER,
           projectId,
           traceId,
           loadTrace: loadOf(SLOW_CHECKOUT_WITH_N_PLUS_ONE.spans),
@@ -1083,6 +1188,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
 
     const suggestion: TracePerformanceFixSuggestion =
       await FixPerformanceTaskTrigger.getSuggestionForTrace({
+        reader: READER,
         projectId,
         traceId,
         loadTrace: loadOf(SLOW_CHECKOUT_WITH_N_PLUS_ONE.spans),
@@ -1106,6 +1212,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
 
     const suggestion: TracePerformanceFixSuggestion =
       await FixPerformanceTaskTrigger.getSuggestionForTrace({
+        reader: READER,
         projectId,
         traceId,
         loadTrace: loadOf(SLOW_CHECKOUT_WITH_N_PLUS_ONE.spans),
@@ -1129,6 +1236,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
 
     const suggestion: TracePerformanceFixSuggestion =
       await FixPerformanceTaskTrigger.getSuggestionForTrace({
+        reader: READER,
         projectId,
         traceId,
         loadTrace: loadOf(SLOW_CHECKOUT_WITH_N_PLUS_ONE.spans),
@@ -1150,6 +1258,12 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
  * offers Act if and only if creating the task succeeds.
  */
 describe("the server agrees with the page", () => {
+  beforeEach(() => {
+    jest
+      .spyOn(CodeTaskThread, "findTasksHiddenFrom")
+      .mockResolvedValue(new Set<string>());
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -1223,6 +1337,7 @@ describe("the server agrees with the page", () => {
 
       const suggestion: TracePerformanceFixSuggestion =
         await FixPerformanceTaskTrigger.getSuggestionForTrace({
+          reader: READER,
           projectId,
           traceId,
           loadTrace: async (): Promise<PerformanceTraceSpans> => {
@@ -1498,6 +1613,7 @@ describe("a repository to pick for a fix no repository was found for", () => {
   describe("what the trace page offers", () => {
     async function suggest(): Promise<TracePerformanceFixSuggestion> {
       return FixPerformanceTaskTrigger.getSuggestionForTrace({
+        reader: READER,
         projectId,
         traceId,
         loadTrace: loadOf(SLOW_CHECKOUT_WITH_N_PLUS_ONE.spans),

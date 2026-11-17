@@ -27,6 +27,7 @@ import {
 } from "App/Tests/FeatureSet/Identity/SsoRouteProbes";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import ProjectSCIMService from "Common/Server/Services/ProjectSCIMService";
+import PresentedKey from "Common/Server/Utils/PresentedKey/PresentedKey";
 import ProjectService, {
   CurrentPlan,
 } from "Common/Server/Services/ProjectService";
@@ -380,7 +381,11 @@ const lookupMatches: (findBy: unknown, id: string) => boolean = (
     findBy as { query: Record<string, unknown> }
   ).query;
 
-  return String(query["_id"]) === id && query["bearerToken"] === TOKEN;
+  // The token is kept as its hash (#9012), and looked up by it.
+  return (
+    String(query["_id"]) === id &&
+    String(query["bearerToken"]) === PresentedKey.toStoredHash(TOKEN)
+  );
 };
 
 beforeAll(async () => {
@@ -432,6 +437,14 @@ beforeEach(() => {
         lookupMatches(findBy, STATUS_PAGE_SCIM_ID) ? statusPageConfig() : null
       ) as never;
     });
+
+  // Every bearer token is kept as its hash (#9012).
+  jest
+    .spyOn(ProjectSCIMService, "mayHoldPresentedKeysAsWritten")
+    .mockResolvedValue(false);
+  jest
+    .spyOn(StatusPageSCIMService, "mayHoldPresentedKeysAsWritten")
+    .mockResolvedValue(false);
 
   getCurrentPlan = jest
     .spyOn(ProjectService, "getCurrentPlan")

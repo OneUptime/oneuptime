@@ -17,6 +17,9 @@ import CodeFixTaskContext, {
   InvestigationCodeFixTaskContext,
 } from "../../Types/AI/CodeFixTaskContext";
 import { CodeTaskChanges, CodeTaskOutcome } from "../../Types/AI/CodeTask";
+import CarriedRecords, {
+  CarriedRecordIds,
+} from "../../Types/AI/CarriedRecords";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CountBy from "../Types/Database/CountBy";
@@ -27,6 +30,7 @@ import DatabaseService from "./DatabaseService";
 import ProjectService from "./ProjectService";
 import Model from "../../Models/DatabaseModels/AIRun";
 import { applyAIRunPrivacyFilter } from "../Utils/AI/AIRunPrivacyFilter";
+import { AI_RUN_ABOUT_KEYS } from "../Utils/AI/AIRunOutputReadFilter";
 import GlobalRunnerRepositoryTokens from "../Utils/Runner/GlobalRunnerRepositoryTokens";
 import CodeFixClaimQuery, {
   CodeFixClaimQueryFacts,
@@ -714,6 +718,8 @@ export class Service extends DatabaseService<Model> {
     const projectId: ObjectID | undefined =
       createBy.data.projectId || createBy.props.tenantId || undefined;
 
+    await this.carryWhatTheTurnCarries(createBy.data);
+
     if (
       createBy.data.runType === AIRunType.CodeFix &&
       projectId &&
@@ -732,6 +738,95 @@ export class Service extends DatabaseService<Model> {
     return { createBy, carryForward: null };
   }
 
+  /*
+   * WHAT A TURN CARRIES, AND ITS TASK WITH IT (#9186).
+   *
+   * A turn of a Code task carries the incidents and alerts its request names
+   * as context, beside any its caller said it carries (a postmortem action
+   * item's incident): written on the run as it is created, so no moment has
+   * it without them. A task carries what every one of its turns carries - a
+   * task is one conversation, and every turn shows what was added to it -
+   * so a reply's are added to its task first: the task, its other turns and
+   * its pull request are then read only by those who may read them
+   * (AIRunOutputReadFilter). Added, never replaced, in one statement, so two
+   * replies at once lose nothing; an id the task carries already is not
+   * added again.
+   */
+  private async carryWhatTheTurnCarries(run: Model): Promise<void> {
+    const carried: CarriedRecordIds = CarriedRecords.merge(
+      CarriedRecords.ofRow(run),
+      CarriedRecords.ofTaskContext(run.taskContext),
+    );
+
+    CarriedRecords.writeTo(run, carried);
+
+    if (!run.codeTaskId || CarriedRecords.isNone(carried)) {
+      return;
+    }
+
+    const task: Model | null = await this.findOneById({
+      id: run.codeTaskId,
+      select: {
+        _id: true,
+        carriedIncidentIds: true,
+        carriedAlertIds: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!task) {
+      // A reply to no task is refused by its caller; it carries its own.
+      return;
+    }
+
+    await this.addCarriedRecords({
+      runId: run.codeTaskId,
+      records: CarriedRecords.without(carried, CarriedRecords.ofRow(task)),
+    });
+  }
+
+  /*
+   * Adds records to what a run carries (#9186): appended to its lists in one
+   * UPDATE, so a write beside it loses nothing. A record listed twice is
+   * read as once.
+   */
+  @CaptureSpan()
+  public async addCarriedRecords(data: {
+    runId: ObjectID;
+    records: CarriedRecordIds;
+  }): Promise<void> {
+    if (CarriedRecords.isNone(data.records)) {
+      return;
+    }
+
+    const set: Record<string, () => string> = {};
+    const parameters: Record<string, string> = {};
+
+    if (data.records.incidentIds.length > 0) {
+      set["carriedIncidentIds"] = (): string => {
+        return `COALESCE("carriedIncidentIds", CAST('[]' AS jsonb)) || CAST(:carriedIncidentIds AS jsonb)`;
+      };
+      parameters["carriedIncidentIds"] = JSON.stringify(
+        data.records.incidentIds,
+      );
+    }
+
+    if (data.records.alertIds.length > 0) {
+      set["carriedAlertIds"] = (): string => {
+        return `COALESCE("carriedAlertIds", CAST('[]' AS jsonb)) || CAST(:carriedAlertIds AS jsonb)`;
+      };
+      parameters["carriedAlertIds"] = JSON.stringify(data.records.alertIds);
+    }
+
+    await this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set(set as QueryDeepPartialEntity<Model>)
+      .where('"_id" = :id', { id: data.runId.toString() })
+      .setParameters(parameters)
+      .execute();
+  }
+
   protected override async onBeforeFind(
     findBy: FindBy<Model>,
   ): Promise<OnFind<Model>> {
@@ -741,11 +836,13 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * The read hook keeps a chat or investigation run to who started it: a
-   * condition on the run's type that reads its user (AIRunPrivacyFilter).
-   * See DatabaseService.
+   * condition on the run's type that reads its user (AIRunPrivacyFilter);
+   * and a run about a private incident or alert - by its own keys, its fix,
+   * or the task it is a turn of - to those who see that record
+   * (AIRunOutputReadFilter.applyToRunRow, #9165). See DatabaseService.
    */
   public override getColumnsReadHooksNarrowBy(): Array<string> {
-    return ["runType", "userId"];
+    return ["runType", "userId", ...AI_RUN_ABOUT_KEYS];
   }
 
   /*

@@ -1208,17 +1208,26 @@ describe("the Slack and Microsoft Teams pages go by their side menus' names", ()
 });
 
 describe("the status page side menu names Microsoft Teams in full", () => {
-  test("its subscriber list is Microsoft Teams Subscribers, the title its own page gives it", () => {
+  /*
+   * Its subscriber lists are one Subscribers page since #9125, with a tab
+   * per channel: the tab and the list on it name Microsoft Teams in full.
+   */
+  test("its subscriber list is Microsoft Teams Subscribers, on the Microsoft Teams tab", () => {
     const menu: string = readDashboardSource(
       "Pages/StatusPages/View/SideMenu.tsx",
     );
-    const page: string = readDashboardSource(
-      "Pages/StatusPages/View/MicrosoftTeamsSubscribers.tsx",
+    const channels: string = readDashboardSource(
+      "Components/StatusPage/SubscriberListChannels.ts",
+    );
+    const tabs: string = readDashboardSource(
+      "Components/StatusPage/SubscriberChannelsCopy.ts",
     );
 
-    expect(menu).toContain('title: "Microsoft Teams Subscribers"');
+    expect(menu).toContain('title: "Subscribers"');
     expect(menu).not.toContain("MS Teams");
-    expect(page).toContain('title: "Microsoft Teams Subscribers"');
+    expect(channels).toContain('cardTitle: "Microsoft Teams Subscribers"');
+    expect(channels).not.toContain("MS Teams");
+    expect(tabs).toContain('title: translationKey("Microsoft Teams")');
   });
 
   test("every language draws it with the product's whole name", () => {

@@ -593,7 +593,7 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 :::
 
 :::details ingress का पोर्ट बदलने के बाद साथ आने वाला प्रोब डिस्कनेक्टेड दिखाता है
-Admin Dashboard प्रोब को **सेटिंग्स > निगरानी > वैश्विक प्रोब** के तहत दिखाता है। यह OneUptime तक `GLOBAL_PROBE_1_ONEUPTIME_URL` पर पहुँचता है, जो डिफ़ॉल्ट रूप से `http://localhost` (पोर्ट 80) है। जब तक यह `localhost` की ओर इशारा करता है, `npm start` इसे ingress के पोर्ट पर ले जाता है। अगर आपने इसे किसी दूसरे पते पर सेट किया है, या OneUptime को Docker CLI से शुरू किया है, तो इसे ingress के नए पोर्ट पर सेट करें, उदाहरण के लिए `http://localhost:8080`, और OneUptime को फिर से शुरू करें।
+Admin Dashboard प्रोब को **सेटिंग्स > सभी प्रोजेक्ट के साथ साझा > वैश्विक प्रोब** के तहत दिखाता है। यह OneUptime तक `GLOBAL_PROBE_1_ONEUPTIME_URL` पर पहुँचता है, जो डिफ़ॉल्ट रूप से `http://localhost` (पोर्ट 80) है। जब तक यह `localhost` की ओर इशारा करता है, `npm start` इसे ingress के पोर्ट पर ले जाता है। अगर आपने इसे किसी दूसरे पते पर सेट किया है, या OneUptime को Docker CLI से शुरू किया है, तो इसे ingress के नए पोर्ट पर सेट करें, उदाहरण के लिए `http://localhost:8080`, और OneUptime को फिर से शुरू करें।
 :::
 
 ## अगले कदम

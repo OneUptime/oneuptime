@@ -203,7 +203,7 @@ const AttributeList: FunctionComponent<AttributeListProps> = (
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
           {translator.translateText("Attributes")}
         </span>
         <CopyAttributesAsJSONButton
@@ -386,7 +386,7 @@ const TimelineRow: FunctionComponent<TimelineRowProps> = (
                 <bdi>{formatTime(group.firstTime)}</bdi>
                 {group.count > 1 &&
                   group.firstTime.getTime() !== group.lastTime.getTime() && (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {" "}
                       <DirectionArrow /> <bdi>{formatTime(group.lastTime)}</bdi>
                     </span>

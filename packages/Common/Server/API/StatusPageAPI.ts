@@ -218,6 +218,10 @@ import {
   getReaderLanguageFromAcceptLanguage,
 } from "../../Types/ReaderLanguage";
 import { Translator } from "../../Types/Translator";
+import {
+  getStatusPageHistoryInDays,
+  HISTORY_IN_DAYS_RESPONSE_KEY,
+} from "../../Utils/StatusPage/HistoryWindow";
 
 /*
  * A manage-subscription request is unauthenticated, and one Slack or Microsoft
@@ -741,13 +745,18 @@ export default class StatusPageAPI extends BaseAPI<
             return res.status(400).send("Token is required");
           }
 
-          // Fetch status page with security token
+          /*
+           * Fetch status page with security token: the page by its id, and
+           * the token compared with its own in constant time - it is kept
+           * encrypted (#9012).
+           */
           const statusPage: StatusPage | null =
-            await StatusPageService.findOneBy({
+            await StatusPageService.findOneByPresentedKey({
+              column: "embeddedOverallStatusToken",
+              presentedKey: token,
               query: {
                 _id: statusPageId,
                 enableEmbeddedOverallStatus: true,
-                embeddedOverallStatusToken: token,
                 // An archived page has no status to show, embedded or not.
                 isArchived: false,
               },
@@ -2701,9 +2710,11 @@ export default class StatusPageAPI extends BaseAPI<
 
     // check if status page has active scheduled events.
     const today: Date = OneUptimeDate.getCurrentDate();
-    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
-      statusPage.showScheduledEventHistoryInDays || 14,
+    // The window the page names too (Common/Utils/StatusPage/HistoryWindow).
+    const historyInDays: number = getStatusPageHistoryInDays(
+      statusPage.showScheduledEventHistoryInDays,
     );
+    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(historyInDays);
 
     /*
      * Only events the page shows (StatusPageVisibilityQuery): one asked for
@@ -3022,6 +3033,7 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     const response: JSONObject = {
+      [HISTORY_IN_DAYS_RESPONSE_KEY]: historyInDays,
       scheduledMaintenanceEventsPublicNotes: BaseModel.toJSONArray(
         scheduledMaintenanceEventsPublicNotes,
         ScheduledMaintenancePublicNote,
@@ -3111,9 +3123,11 @@ export default class StatusPageAPI extends BaseAPI<
     // check if status page has active announcement.
 
     const today: Date = OneUptimeDate.getCurrentDate();
-    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
-      statusPage.showAnnouncementHistoryInDays || 14,
+    // The window the page names too (Common/Utils/StatusPage/HistoryWindow).
+    const historyInDays: number = getStatusPageHistoryInDays(
+      statusPage.showAnnouncementHistoryInDays,
     );
+    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(historyInDays);
 
     /*
      * Only announcements the page shows (StatusPageVisibilityQuery): one
@@ -3253,6 +3267,7 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     const response: JSONObject = {
+      [HISTORY_IN_DAYS_RESPONSE_KEY]: historyInDays,
       announcements: BaseModel.toJSONArray(
         announcements,
         StatusPageAnnouncement,
@@ -4182,9 +4197,10 @@ export default class StatusPageAPI extends BaseAPI<
       statusPageSubscriber.subscriberPhone = phone;
     }
 
+    // A webhook's address is its credential: the log says one was set, never which.
     if (slackIncomingWebhookUrl) {
       logger.debug(
-        `Setting subscriber slack: ${slackIncomingWebhookUrl}`,
+        "Setting subscriber Slack incoming webhook.",
         getLogAttributesFromRequest(req as any),
       );
       statusPageSubscriber.slackIncomingWebhookUrl = URL.fromString(
@@ -4202,7 +4218,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (microsoftTeamsIncomingWebhookUrl) {
       logger.debug(
-        `Setting subscriber Microsoft Teams webhook: ${microsoftTeamsIncomingWebhookUrl}`,
+        "Setting subscriber Microsoft Teams incoming webhook.",
         getLogAttributesFromRequest(req as any),
       );
       statusPageSubscriber.microsoftTeamsIncomingWebhookUrl = URL.fromString(
@@ -4221,7 +4237,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (subscriberWebhookUrl) {
       logger.debug(
-        `Setting subscriber webhook URL: ${subscriberWebhookUrl}`,
+        "Setting subscriber webhook.",
         getLogAttributesFromRequest(req as any),
       );
       statusPageSubscriber.subscriberWebhook =
@@ -4720,9 +4736,11 @@ export default class StatusPageAPI extends BaseAPI<
 
     const today: Date = OneUptimeDate.getCurrentDate();
 
-    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
-      statusPage.showIncidentHistoryInDays || 14,
+    // The window the page names too (Common/Utils/StatusPage/HistoryWindow).
+    const historyInDays: number = getStatusPageHistoryInDays(
+      statusPage.showIncidentHistoryInDays,
     );
+    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(historyInDays);
 
     /*
      * Only incidents the page shows: IncidentStatusPageScope keeps every
@@ -4930,6 +4948,7 @@ export default class StatusPageAPI extends BaseAPI<
       await this.getIncidentStatesForStatusPage(statusPage.projectId!);
 
     const response: JSONObject = {
+      [HISTORY_IN_DAYS_RESPONSE_KEY]: historyInDays,
       incidentPublicNotes: BaseModel.toJSONArray(
         incidentPublicNotes,
         IncidentPublicNote,
@@ -5028,9 +5047,11 @@ export default class StatusPageAPI extends BaseAPI<
 
     const today: Date = OneUptimeDate.getCurrentDate();
 
-    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
-      statusPage.showEpisodeHistoryInDays || 14,
+    // The window the page names too (Common/Utils/StatusPage/HistoryWindow).
+    const historyInDays: number = getStatusPageHistoryInDays(
+      statusPage.showEpisodeHistoryInDays,
     );
+    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(historyInDays);
 
     /*
      * Get incidents that have monitors on this status page
@@ -5485,6 +5506,7 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     const response: JSONObject = {
+      [HISTORY_IN_DAYS_RESPONSE_KEY]: historyInDays,
       episodePublicNotes: BaseModel.toJSONArray(
         episodePublicNotes,
         IncidentEpisodePublicNote,

@@ -74,6 +74,7 @@ const COMMON_UI: string = "packages/Common/UI/Components";
 
 const SOURCES: Record<string, string> = {
   monitorSideMenu: `${DASHBOARD}/Pages/Monitor/SideMenu.tsx`,
+  sloSideMenu: `${DASHBOARD}/Pages/Slo/SideMenu.tsx`,
   incidentSideMenu: `${DASHBOARD}/Pages/Incidents/SideMenu.tsx`,
   incidentLabelRules: `${DASHBOARD}/Pages/Incidents/Settings/IncidentLabelRules.tsx`,
   alertLabelRules: `${DASHBOARD}/Pages/Alerts/Settings/AlertLabelRules.tsx`,
@@ -427,27 +428,34 @@ function labelRuleTables(): Array<LabelRuleTableUse> {
 describe("Label and Owner Rules, against the Dashboard", () => {
   const page: string = english(RULES);
 
-  it("finds a product's rules under its Settings, and an incident's under Rules, both folded at first", () => {
+  /*
+   * Monitors moved their rules from Settings to a Rules section of their
+   * own (707b31213c2), as Incidents and Alerts file them; SLOs keep theirs
+   * under Settings.
+   */
+  it("finds a product's rules under its Settings, and a monitor's and an incident's under Rules, all folded at first", () => {
+    const slos: MenuSection = sectionOf(
+      objectMenuSections(readSource("sloSideMenu")),
+      "Settings",
+    );
     const monitors: MenuSection = sectionOf(
       objectMenuSections(readSource("monitorSideMenu")),
-      "Settings",
+      "Rules",
     );
     const incidents: MenuSection = sectionOf(
       objectMenuSections(readSource("incidentSideMenu")),
       "Rules",
     );
 
-    expect(monitors.items).toEqual(
-      expect.arrayContaining(["Label Rules", "Owner Rules"]),
-    );
-    expect(incidents.items).toEqual(
-      expect.arrayContaining(["Label Rules", "Owner Rules"]),
-    );
-    expect(startsFolded(monitors)).toBe(true);
-    expect(startsFolded(incidents)).toBe(true);
+    for (const section of [slos, monitors, incidents]) {
+      expect(section.items).toEqual(
+        expect.arrayContaining(["Label Rules", "Owner Rules"]),
+      );
+      expect(startsFolded(section)).toBe(true);
+    }
 
-    expect(page).toContain("**Monitors → Settings → Label Rules**");
-    expect(page).toContain("**Incidents → Rules → Label Rules**");
+    expect(page).toContain("**SLOs → Settings → Label Rules**");
+    expect(page).toContain("**Monitors → Rules → Label Rules**");
     expect(page).toContain(
       "**Settings** and **Rules** start folded in the side menu",
     );
@@ -617,8 +625,10 @@ describe("Label and Owner Rules, against the Dashboard", () => {
 
     const list: string = readSource("monitorLabelRules");
 
-    expect(list).toContain('<Pill color={Green} text="Enabled" />');
-    expect(list).toContain('<Pill color={Red} text="Disabled" />');
+    expect(list).toContain(
+      'import EnabledPill from "Common/UI/Components/Pill/EnabledPill";',
+    );
+    expect(list).toContain("<EnabledPill isEnabled={item.isEnabled} />");
 
     expect(page).toContain(
       `**${MORE_FIELDS_SECTION_TITLE}** holds the optional **Description** and, on an owner rule, **Notify Owners**, which is on by default`,
@@ -626,7 +636,7 @@ describe("Label and Owner Rules, against the Dashboard", () => {
     expect(page).toContain(
       "The rule starts enabled, and the list shows it with a green **Enabled** pill.",
     );
-    expect(page).toContain("the list then shows a red **Disabled** pill");
+    expect(page).toContain("the list then shows a grey **Disabled** pill");
   });
 
   it("names the inherit switches as the form draws them, an alert's one monitor singular", () => {

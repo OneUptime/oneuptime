@@ -104,19 +104,18 @@ export const SUGGESTED_CHECK_ROW_CLASS_NAME: string =
 
 /*
  * The row's buttons, at the start of their line under the words: a NORMAL
- * button keeps a dialog footer's margin from md up (Button's md:ml-3), and
- * Add stood 12px in from the words above it. The * covers a button a
- * tooltip wraps.
+ * button used to keep a dialog footer's margin from md up (md:ml-3), and
+ * Add stood 12px in from the words above it.
  *
  * Each button's words stay on one line (whitespace-nowrap). Below md, Add
- * is as wide as the row (a NORMAL button's w-full) and Dismiss is as wide
- * as its words, so the two shrank together and Dismiss gave up most of
- * its width: on a phone, Japanese broke it mid-word ("非表 / 示"), and
- * Persian's two words stacked in a button half as wide as they are. Add
- * gives the room now, down to its own words.
+ * used to be as wide as the row (a NORMAL button's w-full) and Dismiss as
+ * wide as its words, so the two shrank together and Dismiss gave up most
+ * of its width: on a phone, Japanese broke it mid-word ("非表 / 示"), and
+ * Persian's two words stacked in a button half as wide as they are. Each
+ * is now as wide as its own words.
  */
 export const SUGGESTED_CHECK_BUTTONS_CLASS_NAME: string =
-  "flex shrink-0 gap-2 whitespace-nowrap [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+  "flex shrink-0 gap-2 whitespace-nowrap";
 
 // The most other tables of the store read to find what a reference points at.
 const MAX_OTHER_TABLES: number = 1000;

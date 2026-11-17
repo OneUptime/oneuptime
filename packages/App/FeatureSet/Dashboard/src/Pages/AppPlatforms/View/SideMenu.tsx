@@ -228,21 +228,6 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Settings">
-        <SideMenuItem
-          link={{
-            title: "Settings",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS
-              ] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Settings}
-        />
-      </SideMenuSection>
-
       {getDeveloperSideMenuSection({
         modelType: CloudResource,
         scope: DeveloperDocsScope.View,
@@ -260,6 +245,23 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Team}
+        />
+        {/*
+         * Settings sits with the other pages that change the record. It
+         * was the only entry of a Settings section, under a heading of
+         * its own name (#9134).
+         */}
+        <SideMenuItem
+          link={{
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Settings}
         />
         <SideMenuItem
           link={{

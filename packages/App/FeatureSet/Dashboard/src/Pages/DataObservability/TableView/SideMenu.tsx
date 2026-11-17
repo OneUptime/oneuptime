@@ -83,7 +83,12 @@ const TableViewSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Settings">
+      <SideMenuSection title="Advanced">
+        {/*
+         * Settings sits with the other pages that change the record. It
+         * was the only entry of a Settings section, under a heading of
+         * its own name (#9134).
+         */}
         <SideMenuItem
           link={{
             title: "Settings",
@@ -91,9 +96,6 @@ const TableViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Settings}
         />
-      </SideMenuSection>
-
-      <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
             title: "Audit Logs",

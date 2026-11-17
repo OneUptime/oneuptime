@@ -749,7 +749,7 @@ describe("Security Events > Rule Exceptions", () => {
 
     expect(captured).toBeNull();
     expect(
-      screen.getByText(/did not include telemetry features/),
+      screen.getByText("Your plan does not include security events"),
     ).toBeInTheDocument();
   });
 });

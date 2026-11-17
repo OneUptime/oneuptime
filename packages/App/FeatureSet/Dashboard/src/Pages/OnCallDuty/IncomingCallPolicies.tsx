@@ -30,8 +30,9 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green } from "Common/Types/BrandColors";
 import Icon from "Common/UI/Components/Icon/Icon";
 import PhoneNumberText from "Common/UI/Components/PhoneNumber/PhoneNumberText";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -458,7 +459,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
               if (item.isEnabled) {
                 return <Pill text="Enabled" color={Green} />;
               }
-              return <Pill text="Disabled" color={Red} />;
+              return <Pill text="Disabled" tone={PillTone.Paused} />;
             },
           },
           {

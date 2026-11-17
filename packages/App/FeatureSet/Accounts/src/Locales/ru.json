@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "Забыли пароль",
     "subtitle": "Введите свою электронную почту, и ссылка для сброса пароля будет отправлена вам.",
-    "successMessage": "Мы отправили вам ссылку для сброса пароля по электронной почте. Не забудьте проверить папку спам.",
+    "successMessage": "Если этот адрес электронной почты использует какая-либо учётная запись, мы отправили на него ссылку для выбора пароля. Не забудьте проверить папку спам.",
     "submitButton": "Отправить ссылку для сброса",
     "rememberPasswordPrompt": "Помните свой пароль?",
     "loginLink": "Войти.",
@@ -187,6 +187,17 @@
     "linkInvalidTitle": "Эта ссылка для сброса больше не работает",
     "linkInvalidDescription": "Возможно, ею уже воспользовались или скопировали её не полностью. Запросите новую ссылку, и мы отправим её вам по электронной почте.",
     "requestNewLinkButton": "Запросить новую ссылку"
+  },
+  "setPassword": {
+    "title": "Задайте пароль",
+    "subtitle": "Выберите пароль, чтобы завершить настройку учётной записи.",
+    "submitButton": "Задать пароль",
+    "successTitle": "Пароль задан",
+    "successDescription": "Войдите с новым паролем.",
+    "linkExpiredTitle": "Срок действия этой ссылки истёк",
+    "linkExpiredDescription": "Ссылки для задания пароля действуют {{days}} дней. Запросите новую ссылку, и мы отправим её вам по электронной почте.",
+    "linkInvalidTitle": "Эта ссылка больше не работает",
+    "linkInvalidDescription": "Возможно, ею уже воспользовались или скопировали только её часть. Если вы уже задали пароль, войдите. Если нет, запросите новую ссылку, и мы отправим её вам по электронной почте."
   },
   "sso": {
     "title": "Вход через SSO",
@@ -453,7 +464,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Лицензия по вашей подписке в облачном маркетплейсе: каждый пользователь оплачивается почасово.",
   "License, version, seat usage, and the instances covered by this key.": "Лицензия, версия, использование мест и экземпляры, на которые распространяется этот ключ.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "Полная платформа OneUptime с реагированием на инциденты, страницами статуса и автоматизацией рабочих процессов.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "Единый вход (SSO) по SAML и OIDC для проектов, страниц статуса и всего экземпляра, включая «Требовать SSO для входа».",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "Единый вход (SSO) по SAML и OIDC для проектов, страниц статуса и всего экземпляра, включая «Требовать SSO для входа».",
   "Community support, documentation, and tutorials to help teams get started quickly.": "Поддержка сообщества, документация и руководства, которые помогают командам быстро начать работу.",
   "Regular updates, bug fixes, and open-source extensibility.": "Регулярные обновления, исправления ошибок и расширяемость открытого исходного кода.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Интеграции с популярными инструментами DevOps через коннекторы, которые поддерживает сообщество.",

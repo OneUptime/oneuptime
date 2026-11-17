@@ -5,6 +5,9 @@ import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Link from "Common/UI/Components/Link/Link";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
+import AuthPage, {
+  AUTH_PAGE_LINK_CLASS,
+} from "Common/UI/Components/AuthPage/AuthPage";
 import User from "Common/Models/DatabaseModels/User";
 import { useServerCanSendEmail } from "Common/UI/Utils/ServerSending";
 import CannotEmailNotice from "../Components/CannotEmailNotice/CannotEmailNotice";
@@ -15,8 +18,12 @@ export const FORGOT_PASSWORD_CANNOT_EMAIL_TEST_ID: string =
   "forgot-password-cannot-email";
 
 /*
- * "Forgot your password": an email address, then "we have emailed you the
- * link". A server that cannot send email yet - a fresh self-hosted one, until
+ * "Forgot your password": an email address, then "if an account uses this
+ * address, we have emailed it a link". The API answers every address the
+ * same - an account with a password is sent a reset link, one with none yet
+ * a set-password link, and an address with no account nothing (#9260) - so
+ * the page says the same to all of them, and says nothing about which
+ * addresses have an account. A server that cannot send email yet - a fresh self-hosted one, until
  * its admin sets email up - says so before anyone types, and who can let
  * them in instead (GET /global-config/vars' canSendEmail). That is a fact
  * about the server, the same for everyone who opens the page, so it says
@@ -33,86 +40,68 @@ const ForgotPassword: () => JSX.Element = () => {
   const cannotEmail: boolean = canSendEmail === false;
 
   return (
-    <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md mx-auto">
-        <ProductLogo />
-        <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
-          {t("forgotPassword.title")}
-        </h2>
-
-        {!isSuccess && !cannotEmail && (
-          <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
-            {t("forgotPassword.subtitle")}
-          </p>
-        )}
-
-        {isSuccess && (
-          <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
-            {t("forgotPassword.successMessage")}
-          </p>
-        )}
-      </div>
-
-      <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto">
-        {cannotEmail && (
+    <AuthPage
+      logo={<ProductLogo />}
+      title={t("forgotPassword.title")}
+      subtitle={
+        isSuccess
+          ? t("forgotPassword.successMessage")
+          : cannotEmail
+            ? undefined
+            : t("forgotPassword.subtitle")
+      }
+      beforeCard={
+        cannotEmail ? (
           <CannotEmailNotice
             testId={FORGOT_PASSWORD_CANNOT_EMAIL_TEST_ID}
             text={t("forgotPassword.cannotEmail")}
           />
-        )}
-
-        {!isSuccess && !cannotEmail && (
-          <div
-            className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10"
-            data-testid="forgot-password-card"
+        ) : undefined
+      }
+      hasCard={!isSuccess && !cannotEmail}
+      cardTestId="forgot-password-card"
+      /*
+       * The one way back to sign in, under the card as on the register
+       * and SSO pages. The card used to have a second one, "Return to
+       * Sign in.", a line above this "Sign in.".
+       */
+      footerTestId="forgot-password-sign-in"
+      footer={
+        <>
+          {t("forgotPassword.rememberPasswordPrompt")}{" "}
+          <Link
+            to={new Route("/accounts/login")}
+            className={AUTH_PAGE_LINK_CLASS}
           >
-            <ModelForm<User>
-              modelType={User}
-              name="Forgot Password"
-              id="login-form"
-              createOrUpdateApiUrl={apiUrl}
-              fields={[
-                {
-                  field: {
-                    email: true,
-                  },
-                  title: t("common.email"),
-                  fieldType: FormFieldSchemaType.Email,
-                  required: true,
-                  disableSpellCheck: true,
-                },
-              ]}
-              onSuccess={() => {
-                setIsSuccess(true);
-              }}
-              submitButtonText={t("forgotPassword.submitButton")}
-              formType={FormType.Create}
-              maxPrimaryButtonWidth={true}
-            />
-          </div>
-        )}
-
-        {/*
-         * The one way back to sign in, under the card as on the register
-         * and SSO pages. The card used to have a second one, "Return to
-         * Sign in.", a line above this "Sign in.".
-         */}
-        <div
-          className="mt-4 sm:mt-5 text-center"
-          data-testid="forgot-password-sign-in"
-        >
-          <p className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
-            {t("forgotPassword.rememberPasswordPrompt")}{" "}
-            <Link
-              to={new Route("/accounts/login")}
-              className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
-            >
-              {t("forgotPassword.loginLink")}
-            </Link>
-          </p>
-        </div>
-      </div>
-    </div>
+            {t("forgotPassword.loginLink")}
+          </Link>
+        </>
+      }
+    >
+      <ModelForm<User>
+        modelType={User}
+        name="Forgot Password"
+        id="login-form"
+        createOrUpdateApiUrl={apiUrl}
+        fields={[
+          {
+            field: {
+              email: true,
+            },
+            title: t("common.email"),
+            fieldType: FormFieldSchemaType.Email,
+            required: true,
+            disableSpellCheck: true,
+          },
+        ]}
+        onSuccess={() => {
+          setIsSuccess(true);
+        }}
+        submitButtonText={t("forgotPassword.submitButton")}
+        formType={FormType.Create}
+        maxPrimaryButtonWidth={true}
+      />
+    </AuthPage>
   );
 };
 

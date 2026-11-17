@@ -2,10 +2,12 @@ import { describe, expect, test } from "@jest/globals";
 import {
   assignOwnValues,
   copyOwnValues,
+  mergeOwnValues,
   readOwnValue,
   writeOwnValue,
 } from "../../Utils/LookupTable";
 import { INHERITED_PROPERTY_NAMES } from "../Helpers/InheritedNames";
+import { seededRandom } from "../Helpers/SeededRandom";
 
 /*
  * Copying and merging a record keyed by what a sender wrote (issue #8025).
@@ -214,5 +216,121 @@ describe("assignOwnValues", () => {
     const assigned: Record<string, unknown> = Object.assign({}, ...sources);
 
     expect(ownEntries(merged)).toEqual(ownEntries(assigned));
+  });
+});
+
+/*
+ * mergeOwnValues is assignOwnValues({}, ...) by object spread - what every
+ * ingested record's attribute map is built with (#6086) - and must give the
+ * very same object: the same own keys in the same order, the same values,
+ * __proto__ kept as a key, Object.prototype as the prototype.
+ */
+describe("mergeOwnValues", () => {
+  // Keys for maps drawn from the shared seeded generator (seededRandom).
+  const KEYS: Array<string> = [
+    ...INHERITED_PROPERTY_NAMES,
+    "service.name",
+    "http.route",
+    "scope.name",
+    "0",
+    "7",
+    "42",
+    "-1",
+    "1.5",
+    "",
+    "日本",
+  ];
+
+  const VALUES: Array<unknown> = [
+    "text",
+    "",
+    0,
+    -1.5,
+    true,
+    null,
+    ["a", 1],
+    { nested: "map" },
+    { polluted: "yes" },
+  ];
+
+  function randomRecord(random: () => number): Record<string, unknown> {
+    const record: Record<string, unknown> = {};
+    const count: number = Math.floor(random() * 8);
+
+    for (let i: number = 0; i < count; i++) {
+      writeOwnValue(
+        record,
+        KEYS[Math.floor(random() * KEYS.length)]!,
+        VALUES[Math.floor(random() * VALUES.length)],
+      );
+    }
+
+    return record;
+  }
+
+  test("gives assignOwnValues({}, ...)'s object for 5,000 random triples of records", () => {
+    const random: () => number = seededRandom(6086);
+
+    for (let i: number = 0; i < 5000; i++) {
+      const first: Record<string, unknown> | null =
+        random() < 0.1 ? null : randomRecord(random);
+      const second: Record<string, unknown> | undefined =
+        random() < 0.1 ? undefined : randomRecord(random);
+      const third: Record<string, unknown> = randomRecord(random);
+
+      const merged: Record<string, unknown> = mergeOwnValues<unknown>(
+        first,
+        second,
+        third,
+      );
+      const assigned: Record<string, unknown> = assignOwnValues<unknown>(
+        {},
+        first,
+        second,
+        third,
+      );
+
+      expect(ownEntries(merged)).toEqual(ownEntries(assigned));
+      expect(JSON.stringify(merged)).toBe(JSON.stringify(assigned));
+      expect(Object.getPrototypeOf(merged)).toBe(Object.prototype);
+    }
+  });
+
+  test("keeps every inherited name as the merge's own key, __proto__ included, the later value winning", () => {
+    const merged: Record<string, string> = mergeOwnValues<string>(
+      { "service.name": "checkout" },
+      everyInheritedName(),
+      JSON.parse('{"__proto__":"from the scope"}'),
+    );
+
+    expect(Object.keys(merged)).toEqual([
+      "service.name",
+      ...INHERITED_PROPERTY_NAMES,
+    ]);
+    expect(readOwnValue(merged, "__proto__")).toBe("from the scope");
+    expect(Object.getPrototypeOf(merged)).toBe(Object.prototype);
+  });
+
+  test("never takes an object under __proto__ as the merge's prototype", () => {
+    const merged: Record<string, unknown> = mergeOwnValues<unknown>(
+      JSON.parse('{"__proto__":{"polluted":"yes"},"team":"payments"}'),
+    );
+
+    expect(Object.getPrototypeOf(merged)).toBe(Object.prototype);
+    expect(merged["polluted"]).toBeUndefined();
+    expect(Object.keys(merged)).toEqual(["__proto__", "team"]);
+  });
+
+  test("is a new object: changing it leaves every record as it was", () => {
+    const first: Record<string, string> = { a: "1" };
+    const merged: Record<string, string> = mergeOwnValues<string>(first);
+
+    merged["a"] = "changed";
+    merged["b"] = "added";
+
+    expect(first).toEqual({ a: "1" });
+    expect(mergeOwnValues<string>(first)).not.toBe(
+      mergeOwnValues<string>(first),
+    );
   });
 });

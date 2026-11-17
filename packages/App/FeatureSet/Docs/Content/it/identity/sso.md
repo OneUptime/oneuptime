@@ -3,7 +3,7 @@
 Il single sign-on (SSO) permette alle persone del tuo progetto di accedere a OneUptime con il provider di identità (IdP) della tua organizzazione, tramite SAML 2.0 o OpenID Connect. Gestisci accessi, password e autenticazione a più fattori in un unico posto, e puoi richiedere l'SSO a tutti nel progetto.
 
 > [!NOTE]
-> **Edizione:** l'SSO, incluso "Require SSO for login", fa parte di ogni edizione di OneUptime: le installazioni self-hosted lo hanno nella Community Edition, senza licenza. Su OneUptime Cloud è disponibile dal piano **Scale** in su. Consulta [Edizione Enterprise](/docs/self-hosted/enterprise) per vedere cosa include ogni edizione.
+> **Edizione:** l'SSO, incluso "Require SSO to sign in", fa parte di ogni edizione di OneUptime: le installazioni self-hosted lo hanno nella Community Edition, senza licenza. Su OneUptime Cloud è disponibile dal piano **Scale** in su. Consulta [Edizione Enterprise](/docs/self-hosted/enterprise) per vedere cosa include ogni edizione.
 
 :::cards
 - [Configurare un provider SAML](#configurare-lsso): Crearlo in OneUptime e dare due URL al tuo IdP.
@@ -325,7 +325,7 @@ Aggiungere un provider, modificarne uno o riattivarlo richiede **Scale**. Chi pu
 
 Finché il progetto richiede ancora l'SSO, anche la sua pagina **SSO** mostra **Richiedi l'SSO per l'accesso**: disattivalo prima di disattivare l'ultimo provider. Fino ad allora l'ultimo provider con cui le persone possono accedere non può essere disattivato né eliminato, così nessuno resta escluso dal progetto.
 
-Le pagine **SSO** e **OIDC** di una pagina di stato elencano allo stesso modo i suoi provider. Finché la pagina di stato richiede ancora l'SSO, entrambe le pagine mostrano anche **Richiedi l'SSO per l'accesso**: disattivalo prima di disattivare i suoi provider, altrimenti i suoi utenti privati non potranno più accedere.
+La pagina **Single Sign-On** di una pagina di stato elenca allo stesso modo i suoi provider, nelle sue schede **SAML** e **OIDC**. Finché la pagina di stato richiede ancora l'SSO, entrambe le schede mostrano anche **Richiedi l'SSO per l'accesso**: disattivalo prima di disattivare i suoi provider, altrimenti i suoi utenti privati non potranno più accedere.
 
 ## Risoluzione dei problemi
 

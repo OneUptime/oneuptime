@@ -413,13 +413,24 @@ const openPublic: (page: Page) => Promise<void> = async (
   await expect(monitorsTable(page).locator("tbody tr").first()).toBeVisible();
 };
 
+/*
+ * The editing toolbar's Save Changes and Cancel: buttons, named by their
+ * words.
+ */
+const toolbarButton: (
+  page: Page,
+  name: "Save Changes" | "Cancel",
+) => Locator = (page: Page, name: "Save Changes" | "Cancel"): Locator => {
+  return page.getByRole("button", { name, exact: true });
+};
+
 // The toolbar's "More dashboard options" menu, then its "Edit Dashboard".
 const enterEditMode: (page: Page) => Promise<void> = async (
   page: Page,
 ): Promise<void> => {
   await press(page.getByRole("button", { name: "More dashboard options" }));
   await press(page.getByRole("menuitem", { name: "Edit Dashboard" }));
-  await expect(page.getByTitle("Save Changes")).toBeVisible();
+  await expect(toolbarButton(page, "Save Changes")).toBeVisible();
 };
 
 /*
@@ -1521,7 +1532,7 @@ test.describe("the order everyone sees", () => {
 
     await press(modal.getByRole("button", { name: "Done" }));
     await expect(modal).toHaveCount(0);
-    await press(page.getByRole("button", { name: "Save Changes" }));
+    await press(toolbarButton(page, "Save Changes"));
 
     await expect
       .poll(async (): Promise<number> => {
@@ -1684,8 +1695,8 @@ test.describe("leaving a dashboard being edited (#7173)", () => {
 
     // Nothing changed: the toolbar's Cancel stops editing without a question.
     await enterEditMode(page);
-    await press(page.getByTitle("Cancel", { exact: true }));
-    await expect(page.getByTitle("Save Changes")).toHaveCount(0);
+    await press(toolbarButton(page, "Cancel"));
+    await expect(toolbarButton(page, "Save Changes")).toHaveCount(0);
     await expect(page.getByRole("dialog")).toHaveCount(0);
 
     // Nothing changed: the side menu leaves at once.
@@ -1719,12 +1730,12 @@ test.describe("leaving a dashboard being edited (#7173)", () => {
     // Keep Editing: the board as it was, still being edited.
     await press(dialog.getByRole("button", { name: "Keep Editing" }));
     await expect(dialog).toHaveCount(0);
-    await expect(page.getByTitle("Save Changes")).toBeVisible();
+    await expect(toolbarButton(page, "Save Changes")).toBeVisible();
     await expect(addedTextWidget(page)).toBeVisible();
     await expect(page).toHaveURL(APP_PATH);
 
     // The toolbar's Cancel asks in the same voice; Keep Editing stays.
-    await press(page.getByTitle("Cancel", { exact: true }));
+    await press(toolbarButton(page, "Cancel"));
 
     const cancelDialog: Locator = page.getByRole("dialog", {
       name: CANCEL_TITLE,
@@ -1735,7 +1746,7 @@ test.describe("leaving a dashboard being edited (#7173)", () => {
     await shoot(page, testInfo, "cancel-unsaved-dialog", cancelDialog);
     await press(cancelDialog.getByRole("button", { name: "Keep Editing" }));
     await expect(cancelDialog).toHaveCount(0);
-    await expect(page.getByTitle("Save Changes")).toBeVisible();
+    await expect(toolbarButton(page, "Save Changes")).toBeVisible();
     await expect(addedTextWidget(page)).toBeVisible();
 
     // The browser's Back asks too, and the board stays where it is.
@@ -1781,16 +1792,16 @@ test.describe("leaving a dashboard being edited (#7173)", () => {
         return raised;
       })
       .toEqual(["beforeunload"]);
-    await expect(page.getByTitle("Save Changes")).toBeVisible();
+    await expect(toolbarButton(page, "Save Changes")).toBeVisible();
     await expect(addedTextWidget(page)).toBeVisible();
 
-    await press(page.getByRole("button", { name: "Save Changes" }));
+    await press(toolbarButton(page, "Save Changes"));
     await expect
       .poll(async (): Promise<number> => {
         return ((await record(page)).saves || []).length;
       })
       .toBe(1);
-    await expect(page.getByTitle("Save Changes")).toHaveCount(0);
+    await expect(toolbarButton(page, "Save Changes")).toHaveCount(0);
 
     /*
      * Saved: a reload asks nothing, and opens the board as saved. Were it to

@@ -325,7 +325,7 @@ export interface NestedEntry {
 }
 
 /*
- * Adds nested keys read with t("commandPalette.actions.logOut", "Log out")
+ * Adds nested keys read with t("commandPalette.actions.signOut", "Sign Out")
  * that en.json lacks, holding the English the call gives. Existing entries
  * are never changed. A new key inside an existing object goes after the
  * existing key that sorts immediately before it; a new top-level object goes

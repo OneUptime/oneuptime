@@ -37,8 +37,7 @@
     "announcements": "घोषणाएँ",
     "scheduledEvents": "अनुसूचित रखरखाव",
     "subscribe": "सदस्यता लें",
-    "login": "लॉग इन करें",
-    "logout": "लॉग आउट करें"
+    "signOut": "साइन आउट करें"
   },
   "overview": {
     "uptimeSuffix": "% अपटाइम",
@@ -49,8 +48,6 @@
     "noResourcesInGroup": "इस समूह में कोई संसाधन नहीं जोड़ा गया है।",
     "activeIncidents": "सक्रिय घटनाएँ",
     "scheduledMaintenanceEvents": "अनुसूचित रखरखाव",
-    "allClearTitle": "सब कुछ ठीक दिख रहा है",
-    "allClearDescription": "इस स्थिति पृष्ठ में अभी तक कोई संसाधन नहीं जोड़ा गया है। कृपया डैशबोर्ड से कुछ संसाधन जोड़ें।",
     "allResourcesAre": "सभी संसाधन {{status}} हैं",
     "allMonitoredResourcesAre": "जिन संसाधनों की निगरानी हो रही है, वे सभी {{status}} हैं",
     "someResourcesAre": "कुछ संसाधन {{status}} हैं",
@@ -58,7 +55,10 @@
     "noResourcesAreMonitored": "अभी किसी भी संसाधन की निगरानी नहीं हो रही है",
     "noResourcesAreMonitoredYet": "अभी तक किसी भी संसाधन की निगरानी नहीं हुई है",
     "oneSubGroup": "1 समूह",
-    "subGroupCount": "{{total}} समूह"
+    "subGroupCount": "{{total}} समूह",
+    "noResourcesTitle": "अभी दिखाने के लिए कुछ नहीं है",
+    "noResourcesDescription": "यह पृष्ठ अभी कोई सेवा नहीं दिखा रहा है।",
+    "noResourcesPreviewDescription": "जब तक आप संसाधन नहीं जोड़ते, आगंतुकों को यही दिखता है। डैशबोर्ड में संसाधन के अंतर्गत इस स्थिति पृष्ठ में मॉनिटर या समूह जोड़ें।"
   },
   "eventItem": {
     "affectedResources": "प्रभावित संसाधन",
@@ -115,30 +115,23 @@
     "title": "घटनाएँ",
     "singular": "घटना",
     "active": "सक्रिय घटनाएँ",
-    "resolved": "हल की गई घटनाएँ",
-    "none": "कोई घटना नहीं",
-    "noneDescription": "इस स्थिति पृष्ठ पर कोई घटना पोस्ट नहीं की गई है।",
+    "noneDescription": "जब कोई घटना इस पृष्ठ की सेवाओं को प्रभावित करती है, तो वह यहाँ प्रकाशित होती है।",
     "postmortem": "घटना की समीक्षा",
     "declaredAt": "घोषित किया गया: ",
     "declaredAtTime": "{{time}} को घोषित किया गया",
     "report": "घटना रिपोर्ट",
-    "notFound": "इस स्थिति पृष्ठ पर घटना नहीं मिली।"
-  },
-  "episodes": {
-    "report": "एपिसोड रिपोर्ट",
-    "none": "कोई एपिसोड नहीं",
-    "notFound": "इस स्थिति पृष्ठ पर एपिसोड नहीं मिला।"
+    "notFound": "लिंक जाँचें, या इस पृष्ठ का घटनाएँ टैब खोलें।",
+    "notFoundTitle": "घटना नहीं मिली"
   },
   "announcements": {
     "title": "घोषणाएँ",
     "singular": "घोषणा",
     "active": "सक्रिय घोषणाएँ",
-    "past": "पिछली घोषणाएँ",
-    "none": "कोई घोषणा नहीं",
-    "noneDescription": "इस पृष्ठ पर अभी तक कोई घोषणा पोस्ट नहीं की गई है।",
+    "noneDescription": "जब इस पृष्ठ की सेवाओं के बारे में कोई खबर होती है, तो वह यहाँ प्रकाशित होती है।",
     "announcedAt": "घोषित किया गया: ",
     "announcedAtTime": "{{time}} को घोषित किया गया",
-    "notFound": "इस स्थिति पृष्ठ पर घोषणा नहीं मिली।"
+    "notFound": "लिंक जाँचें, या इस पृष्ठ का घोषणाएँ टैब खोलें।",
+    "notFoundTitle": "घोषणा नहीं मिली"
   },
   "scheduledEvents": {
     "title": "अनुसूचित रखरखाव",
@@ -146,9 +139,7 @@
     "scheduledMaintenance": "अनुसूचित रखरखाव",
     "ongoing": "चल रहा रखरखाव",
     "upcoming": "आगामी रखरखाव",
-    "completed": "पूरा हुआ रखरखाव",
-    "none": "कोई अनुसूचित रखरखाव नहीं",
-    "noneDescription": "इस स्थिति पृष्ठ पर कोई अनुसूचित रखरखाव प्रकाशित नहीं हुआ है।",
+    "none": "कोई रखरखाव नियोजित नहीं",
     "scheduledAt": "निर्धारित समय: ",
     "scheduledAtTime": "{{time}} के लिए निर्धारित",
     "report": "रखरखाव इवेंट रिपोर्ट",
@@ -314,29 +305,29 @@
       "password": "पासवर्ड",
       "newPassword": "नया पासवर्ड",
       "confirmPassword": "पासवर्ड की पुष्टि करें",
-      "login": "लॉग इन करें"
+      "signInLink": "लॉग इन करें।"
     },
     "login": {
       "welcomeBack": "वापस स्वागत है!",
-      "loginPrompt": "{{statusPageName}} देखने के लिए कृपया लॉग इन करें",
+      "signInPrompt": "{{statusPageName}} देखने के लिए कृपया लॉग इन करें।",
       "forgotPassword": "पासवर्ड भूल गए?",
       "submit": "लॉग इन करें",
       "or": "या",
-      "logInWithSso": "SSO से लॉग इन करें",
+      "signInWithSso": "SSO से लॉग इन करें",
       "emailSignInLink": "मुझे लॉग-इन लिंक ईमेल करें"
     },
     "sso": {
       "title": "SSO से लॉग इन करें",
-      "loginPrompt": "{{statusPageName}} देखने के लिए कृपया लॉग इन करें",
+      "signInPrompt": "{{statusPageName}} देखने के लिए कृपया लॉग इन करें।",
       "noProviders": "कोई SSO प्रदाता कॉन्फ़िगर या सक्षम नहीं है",
       "notAvailable": "इस स्थिति पृष्ठ के लिए सिंगल साइन-ऑन (SSO) उपलब्ध नहीं है। इसके बजाय अपने ईमेल और पासवर्ड से लॉग इन करें।",
-      "backToLogin": "लॉग इन पर वापस जाएं",
-      "logInWithPassword": "पासवर्ड से लॉग इन करें"
+      "backToSignIn": "लॉग इन पर वापस जाएं",
+      "signInWithPassword": "पासवर्ड से लॉग इन करें"
     },
     "forgotPassword": {
       "title": "पासवर्ड भूल गए",
       "description": "यदि आप {{statusPageName}} के लिए अपना पासवर्ड भूल गए हैं, तो कृपया अपना ईमेल दर्ज करें और पासवर्ड रीसेट लिंक आपको भेज दिया जाएगा।",
-      "success": "हमने आपको पासवर्ड रीसेट लिंक ईमेल कर दिया है। कृपया स्पैम देखना न भूलें।",
+      "success": "अगर यह ईमेल पता {{statusPageName}} में लॉग इन कर सकता है, तो हमने उसे पासवर्ड रीसेट लिंक ईमेल कर दिया है। कृपया स्पैम देखना न भूलें।",
       "sendLink": "पासवर्ड रीसेट लिंक भेजें",
       "rememberPassword": "अपना पासवर्ड याद है?"
     },
@@ -347,7 +338,7 @@
       "knowPassword": "अपना पासवर्ड जानते हैं?",
       "successTitle": "आपका पासवर्ड रीसेट हो गया है",
       "successDescription": "अपने नए पासवर्ड से लॉग इन करें।",
-      "loginButton": "लॉग इन करें",
+      "signInButton": "लॉग इन करें",
       "linkExpiredTitle": "इस रीसेट लिंक की समय-सीमा खत्म हो गई है",
       "linkExpiredDescription": "रीसेट लिंक एक दिन तक काम करते हैं। नया लिंक माँगें, हम उसे आपको ईमेल कर देंगे।",
       "linkInvalidTitle": "यह रीसेट लिंक अब काम नहीं करता",
@@ -507,5 +498,23 @@
   "Incomplete:": "पूरी नहीं हुई:",
   "Special character included (optional)": "विशेष चिह्न शामिल है (वैकल्पिक)",
   "Special characters are optional. Try !, @, # or $.": "विशेष चिह्न वैकल्पिक हैं। !, @, # या $ आज़माएँ।",
-  "Dismiss": "छिपाएं"
+  "Dismiss": "छिपाएं",
+  "Resolved in the Last {{count}} Days": "पिछले {{count}} दिनों में हल हुई",
+  "Resolved in the Last {{count}} Days_one": "पिछले एक दिन में हल हुई",
+  "No incidents in the last {{count}} days": "पिछले {{count}} दिनों में कोई घटना नहीं",
+  "No incidents in the last {{count}} days_one": "पिछले एक दिन में कोई घटना नहीं",
+  "Ended in the Last {{count}} Days": "पिछले {{count}} दिनों में समाप्त",
+  "Ended in the Last {{count}} Days_one": "पिछले एक दिन में समाप्त",
+  "No announcements in the last {{count}} days": "पिछले {{count}} दिनों में कोई घोषणा नहीं",
+  "No announcements in the last {{count}} days_one": "पिछले एक दिन में कोई घोषणा नहीं",
+  "Completed in the Last {{count}} Days": "पिछले {{count}} दिनों में पूरा हुआ",
+  "Completed in the Last {{count}} Days_one": "पिछले एक दिन में पूरा हुआ",
+  "None is planned, and none took place in the last {{count}} days.": "कोई रखरखाव नियोजित नहीं है, और पिछले {{count}} दिनों में भी कोई नहीं हुआ।",
+  "None is planned, and none took place in the last {{count}} days._one": "कोई रखरखाव नियोजित नहीं है, और पिछले एक दिन में भी कोई नहीं हुआ।",
+  "serverMessages": {
+    "signInToView": "आपके पास इस स्थिति पृष्ठ की पहुँच नहीं है। इसे देखने के लिए कृपया साइन इन करें।",
+    "sessionExpired": "सत्र समाप्त हो गया। कृपया फिर से साइन इन करें।",
+    "signedOut": "आप साइन आउट हो चुके हैं। कृपया फिर से साइन इन करें।",
+    "magicLinkTurnedOff": "इस स्थिति पृष्ठ के लिए साइन-इन लिंक बंद हैं। कृपया अपने ईमेल और पासवर्ड से साइन इन करें।"
+  }
 }

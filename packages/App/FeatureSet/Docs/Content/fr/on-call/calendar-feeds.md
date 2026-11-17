@@ -32,7 +32,7 @@ Les affectations permanentes — un utilisateur ou une équipe nommé directemen
 
 | Lien | Qui le crée | Ce qu'il contient | Où |
 | --- | --- | --- | --- |
-| **Flux personnel** | Chaque utilisateur, un par projet | Vos permanences sur tous les plannings de ce projet, plus celles où vous remplacez quelqu'un (facultatif) | **Paramètres utilisateur** > **Calendrier** > **Flux de calendrier** |
+| **Flux personnel** | Chaque utilisateur, un par projet | Vos permanences sur tous les plannings de ce projet, plus celles où vous remplacez quelqu'un (facultatif) | **Paramètres utilisateur** > **Profil et calendrier** > **Flux de calendrier** |
 | **Flux de planning** | Quiconque peut modifier le planning ; quiconque peut le lire peut copier le lien | Les permanences de tous sur un planning, avec des événements de trous de couverture en option | La page du planning, carte **S'abonner à ce planning** |
 | **Flux de projet** | Quiconque peut modifier les plannings d'astreinte ; quiconque peut les lire peut copier le lien | Les permanences de tous sur tous les plannings du projet, avec des événements de trous de couverture en option | **Astreinte** > **Flux de calendrier** |
 
@@ -54,7 +54,7 @@ Les flux personnels sont propres à chaque projet : un deuxième projet donne un
 :::steps
 ### Ouvrir votre flux de calendrier
 
-Ouvrez **Paramètres utilisateur** > **Calendrier** > **Flux de calendrier** dans le projet dont vous voulez les permanences. **Calendrier** est une section du menu latéral qui commence repliée.
+Ouvrez **Paramètres utilisateur** > **Profil et calendrier** > **Flux de calendrier** dans le projet dont vous voulez les permanences. **Profil et calendrier** est une section du menu latéral qui commence repliée.
 
 ### Générer le lien
 
@@ -184,7 +184,7 @@ Les URL de flux ne redirigent jamais. Elles répondent `200` quel que soit le sc
 Les applications de calendrier ne délivrent pas les alarmes des flux abonnés — Google les supprime, Apple les retire par défaut, Outlook les aplatit — ; OneUptime envoie donc les siennes.
 
 :::steps
-1. Ouvrez **Paramètres utilisateur** > **Calendrier** > **Flux de calendrier**.
+1. Ouvrez **Paramètres utilisateur** > **Profil et calendrier** > **Flux de calendrier**.
 2. Sur la carte **Me rappeler avant les permanences**, choisissez des délais : **1 semaine**, **1 jour**, **1 heure**, **15 min** ou, avec **Personnalisé**, une valeur personnalisée entre 15 minutes et 14 jours. Vous pouvez en choisir plusieurs à la fois.
 3. Choisissez comment les rappels vous parviennent sous **Avant le début de ma permanence d'astreinte** dans **Paramètres utilisateur** > **Paramètres de notification** (onglet Astreinte). L'e-mail et le push sont activés par défaut.
 :::

@@ -270,7 +270,12 @@ describe.each([
       expect(screen.getByText("Acme")).toHaveClass("truncate");
     });
 
-    test("the name is clickable, as the logo is", () => {
+    /*
+     * The Dashboard's logo is a link home, its name too. The Admin
+     * Dashboard's was handed a click that did nothing, which a mouse could
+     * press and a keyboard could not reach (#9136): it is a picture there.
+     */
+    test("the name goes where the logo goes", () => {
       setBranding(ACME_NAME_ONLY);
 
       let clicks: number = 0;
@@ -281,7 +286,14 @@ describe.each([
 
       screen.getByText("Acme").click();
 
-      expect(clicks).toBe(1);
+      if (Logo === DashboardLogo) {
+        expect(clicks).toBe(1);
+        expect(screen.getByRole("link")).toHaveTextContent("Acme");
+      } else {
+        expect(clicks).toBe(0);
+        expect(screen.queryByRole("link")).not.toBeInTheDocument();
+        expect(screen.queryByRole("button")).not.toBeInTheDocument();
+      }
     });
 
     test("a logo is held to the header's height and to a width that leaves it its buttons", () => {

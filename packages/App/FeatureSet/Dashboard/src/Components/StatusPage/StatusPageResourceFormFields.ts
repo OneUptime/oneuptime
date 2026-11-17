@@ -237,11 +237,11 @@ export const getStatusPageResourceAdvancedFields: (
       required: false,
       defaultValue: false,
       /*
-       * The days are set under Uptime History on Advanced Settings: there
+       * The days are set under Uptime History on Settings: there
        * is no page called Status Page Settings, which is what it said.
        */
       description:
-        "Shows its uptime beside it, over the days set under Uptime History on Advanced Settings.",
+        "Shows its uptime beside it, over the days set under Uptime History on Settings.",
       collapsibleSection: advancedSection,
     },
     {
@@ -266,7 +266,7 @@ export const getStatusPageResourceAdvancedFields: (
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       description:
-        "A bar for each day, over the days set under Uptime History on Advanced Settings.",
+        "A bar for each day, over the days set under Uptime History on Settings.",
       defaultValue: true,
       collapsibleSection: advancedSection,
     },

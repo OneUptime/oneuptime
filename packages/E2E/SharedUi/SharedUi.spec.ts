@@ -2442,3 +2442,560 @@ describePageLanguages({
     return `${ROUTE}?section=buttons${language === "en" ? "" : `&lang=${language}`}`;
   },
 });
+
+/*
+ * #9136: with the keyboard alone, a person can choose a tab, open an item
+ * in the header's notification bell and go back to a finished step of a
+ * form - each was a div or li with only a click - and a screen reader
+ * names each tab panel by its tab. Under a finger, the tabs and steps are
+ * 44px targets and attribute chips wrap on a 390px phone.
+ */
+async function openKeyboard(page: Page, query: string = ""): Promise<void> {
+  await open(page, `section=keyboard${query}`);
+  await expect(page.getByTestId("section-keyboard")).toBeVisible();
+}
+
+// Presses Tab until `target` has the focus, at most `limit` times.
+async function tabTo(
+  page: Page,
+  target: Locator,
+  limit: number = 40,
+): Promise<void> {
+  for (let presses: number = 0; presses < limit; presses++) {
+    if (
+      await target.evaluate((element: Element): boolean => {
+        return element === document.activeElement;
+      })
+    ) {
+      return;
+    }
+
+    await page.keyboard.press("Tab");
+  }
+
+  await expect(target).toBeFocused();
+}
+
+async function focusRingOf(control: Locator): Promise<string> {
+  return await control.evaluate((element: Element): string => {
+    return window.getComputedStyle(element).getPropertyValue("box-shadow");
+  });
+}
+
+test.describe("keyboard only", () => {
+  test("tabs: each panel is named by its tab, the arrow keys choose, and two rows share no id", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const rules: Locator = page.getByRole("tablist", {
+      name: "Incident On-Call Rules",
+    });
+    const methods: Locator = page.getByRole("tablist", {
+      name: "Notification Methods",
+    });
+
+    await expect(rules).toBeVisible();
+    await expect(methods).toBeVisible();
+
+    // A name with a space still names its panel.
+    await expect(
+      page.getByRole("tabpanel", { name: "Incident Rules" }),
+    ).toHaveText("Rules for incidents.");
+
+    const first: Locator = rules.getByRole("tab", { name: "Incident Rules" });
+
+    await tabTo(page, first);
+    expect(await focusRingOf(first)).not.toBe("none");
+
+    await page.keyboard.press("ArrowRight");
+    await expect(
+      rules.getByRole("tab", { name: "Episode Rules" }),
+    ).toBeFocused();
+    await expect(
+      page.getByRole("tabpanel", { name: "Episode Rules" }),
+    ).toHaveText("Rules for episodes.");
+
+    // Tab leaves the row for its panel, not for the next tab.
+    await page.keyboard.press("Tab");
+    await expect(
+      page.getByRole("tabpanel", { name: "Episode Rules" }),
+    ).toBeFocused();
+
+    const ids: Array<string> = await page
+      .getByTestId("section-keyboard")
+      .evaluate((section: Element): Array<string> => {
+        return Array.from(section.querySelectorAll("[id]")).map(
+          (element: Element): string => {
+            return element.id;
+          },
+        );
+      });
+
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const id of ids) {
+      expect(id).not.toMatch(/\s/);
+    }
+  });
+
+  test("the notification bell: Tab reaches an item, Enter opens it, Escape closes the panel", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const bell: Locator = page.getByRole("button", {
+      name: "View notifications",
+    });
+
+    await tabTo(page, bell);
+    await page.keyboard.press("Enter");
+
+    const item: Locator = page.getByRole("button", {
+      name: "2 Active Incidents",
+    });
+
+    await page.keyboard.press("Tab");
+    await expect(item).toBeFocused();
+    expect(await focusRingOf(item)).not.toBe("none");
+
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("keyboard-log")).toHaveText(
+      "bell:active-incidents",
+    );
+    await expect(item).toBeHidden();
+
+    // Open again, and leave with Escape: the focus is back on the bell.
+    await bell.focus();
+    await page.keyboard.press("Space");
+    await page.keyboard.press("Tab");
+    await expect(item).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(item).toBeHidden();
+    await expect(bell).toBeFocused();
+  });
+
+  test("a form's steps: a finished step is reached with Tab and opened with Enter or Space", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const finished: Locator = page.getByRole("button", {
+      name: "Monitor Info",
+    });
+
+    // The step being filled in and the one ahead are not buttons.
+    await expect(
+      page.getByRole("button", { name: "Criteria", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Notifications", exact: true }),
+    ).toHaveCount(0);
+
+    await tabTo(page, finished);
+    expect(await focusRingOf(finished)).not.toBe("none");
+
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("keyboard-log")).toHaveText(
+      "step:monitor-info",
+    );
+    await expect(page.getByText("Monitor Info")).toHaveAttribute(
+      "class",
+      /text-indigo-600/,
+    );
+  });
+});
+
+test.describe("on a 390px touch phone", () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+
+  for (const theme of ["light", "dark"]) {
+    test(`tabs and steps are 44px targets and the chips wrap, ${theme}`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openKeyboard(page, theme === "dark" ? "&theme=dark" : "");
+
+      for (const target of [
+        page.getByRole("tab", { name: "Incident Rules" }),
+        page.getByRole("tab", { name: "SMS" }),
+        page.getByRole("button", { name: "Monitor Info" }),
+      ]) {
+        const box: { height: number } | null = await target.boundingBox();
+
+        expect(box).not.toBeNull();
+        expect(box!.height).toBeGreaterThanOrEqual(44);
+      }
+
+      const chips: Locator = page.getByTestId("filter-attribute-chips");
+      const row: { x: number; width: number } | null =
+        await chips.boundingBox();
+      const viewportWidth: number = 390;
+
+      expect(row).not.toBeNull();
+
+      // Every chip is on the screen, the row on more than one line.
+      const tops: Array<number> = [];
+
+      for (const chip of await chips
+        .getByTestId("filter-attribute-chip")
+        .all()) {
+        const box: { x: number; y: number; width: number } | null =
+          await chip.boundingBox();
+
+        expect(box).not.toBeNull();
+        expect(box!.x).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(viewportWidth);
+        tops.push(Math.round(box!.y));
+      }
+
+      expect(new Set(tops).size).toBeGreaterThan(1);
+      await expect(chips).toContainText(
+        "checkout-7d9f8b6c5d-abcde-with-a-long-suffix",
+      );
+
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, `keyboard-and-touch-390-${theme}`);
+    });
+  }
+});
+
+/*
+ * #9245: a stepped edit dialog (Admin Dashboard > Settings > Email > Edit
+ * SMTP Config is one) offers Next on its first step and its save on the
+ * last, and its step list opens any step. The steps became buttons in
+ * #9231; this walks the real BasicFormModal by pointer, by finger and by
+ * keyboard so a dialog that loses its Next, its steps or its save fails.
+ */
+async function openMailServerDialog(page: Page): Promise<Locator> {
+  await openKeyboard(page);
+  await page.getByRole("button", { name: "Edit SMTP Config" }).click();
+
+  const dialog: Locator = page.getByRole("dialog");
+
+  await expect(dialog.getByPlaceholder("smtp.server.com")).toHaveValue(
+    "smtp.example.com",
+  );
+
+  return dialog;
+}
+
+function nextButtonOf(dialog: Locator): Locator {
+  return dialog.getByTestId("modal-footer-next-button");
+}
+
+function saveButtonOf(dialog: Locator): Locator {
+  return dialog.getByTestId("modal-footer-submit-button");
+}
+
+// The control is whole on the screen: not under the fold or off its side.
+async function expectOnScreen(page: Page, control: Locator): Promise<void> {
+  await control.scrollIntoViewIfNeeded();
+
+  const box: { x: number; y: number; width: number; height: number } | null =
+    await control.boundingBox();
+  const viewport: { width: number; height: number } | null =
+    page.viewportSize();
+
+  expect(box).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.y).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(viewport!.height);
+}
+
+test.describe("a stepped dialog's Next, steps and save, at 1280 pixels", () => {
+  test("the pointer: Next, a step's row anywhere on it, and Save Changes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openMailServerDialog(page);
+    const progress: Locator = dialog.getByRole("navigation", {
+      name: "Progress",
+    });
+
+    await expect(saveButtonOf(dialog)).toHaveCount(0);
+    await expectOnScreen(page, nextButtonOf(dialog));
+    await nextButtonOf(dialog).click();
+
+    await expect(dialog.getByPlaceholder("Company, Inc.")).toHaveValue(
+      "Example Status",
+    );
+    await expect(nextButtonOf(dialog)).toHaveCount(0);
+    await expectOnScreen(page, saveButtonOf(dialog));
+
+    /*
+     * Back to Server by a click near the far corner of its row, not its
+     * words: the button fills the row, so no part of it is dead.
+     */
+    const serverRow: Locator = progress
+      .getByRole("listitem")
+      .filter({ hasText: "Server" });
+    const row: { x: number; y: number; width: number; height: number } | null =
+      await serverRow.boundingBox();
+
+    expect(row).not.toBeNull();
+
+    // Each corner of the row is the button's, the far end too (#9245).
+    expect(
+      await serverRow.evaluate((item: Element): Array<boolean> => {
+        const box: DOMRect = item.getBoundingClientRect();
+        const button: Element | null = item.querySelector("button");
+
+        return [
+          [box.left + 1, box.top + 1],
+          [box.right - 1, box.top + 1],
+          [box.left + 1, box.bottom - 1],
+          [box.right - 1, box.bottom - 1],
+        ].map(([x, y]: Array<number>): boolean => {
+          const hit: Element | null = document.elementFromPoint(x!, y!);
+
+          return Boolean(button && hit && button.contains(hit));
+        });
+      }),
+    ).toEqual([true, true, true, true]);
+
+    await page.mouse.click(row!.x + row!.width - 2, row!.y + row!.height - 2);
+    await expect(dialog.getByPlaceholder("smtp.server.com")).toBeVisible();
+    await expect(saveButtonOf(dialog)).toHaveCount(0);
+
+    // The step list opens the last step directly; Save Changes is there.
+    await progress.getByRole("button", { name: "Sender" }).click();
+    await expectOnScreen(page, saveButtonOf(dialog));
+    await expect(saveButtonOf(dialog)).toHaveText("Save Changes");
+    await saveButtonOf(dialog).click();
+
+    await expect(page.getByTestId("keyboard-log")).toHaveText(
+      "saved:smtp.example.com|Example Status",
+    );
+    await expect(dialog).toHaveCount(0);
+  });
+
+  test("the keyboard: Tab reaches Next, a step and Save Changes, Enter and Space press them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openMailServerDialog(page);
+    const progress: Locator = dialog.getByRole("navigation", {
+      name: "Progress",
+    });
+
+    await tabTo(page, nextButtonOf(dialog));
+    expect(await focusRingOf(nextButtonOf(dialog))).not.toBe("none");
+    await page.keyboard.press("Enter");
+    await expect(dialog.getByPlaceholder("Company, Inc.")).toBeVisible();
+
+    const server: Locator = progress.getByRole("button", { name: "Server" });
+
+    await tabTo(page, server);
+    expect(await focusRingOf(server)).not.toBe("none");
+    await page.keyboard.press("Space");
+    await expect(dialog.getByPlaceholder("smtp.server.com")).toBeVisible();
+
+    const sender: Locator = progress.getByRole("button", { name: "Sender" });
+
+    await tabTo(page, sender);
+    await page.keyboard.press("Enter");
+    await expect(dialog.getByPlaceholder("Company, Inc.")).toBeVisible();
+
+    await tabTo(page, saveButtonOf(dialog));
+    expect(await focusRingOf(saveButtonOf(dialog))).not.toBe("none");
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByTestId("keyboard-log")).toHaveText(
+      "saved:smtp.example.com|Example Status",
+    );
+  });
+});
+
+test.describe("a stepped dialog's Next and save, on a 390px touch phone", () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+
+  for (const theme of ["light", "dark"]) {
+    test(`a finger: Next, then Save Changes, both on the screen, ${theme}`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openKeyboard(page, theme === "dark" ? "&theme=dark" : "");
+      await page.getByRole("button", { name: "Edit SMTP Config" }).tap();
+
+      const dialog: Locator = page.getByRole("dialog");
+
+      await expect(dialog.getByPlaceholder("smtp.server.com")).toBeVisible();
+      // The step list is folded away on a phone: a count says where you are.
+      await expect(dialog.getByText("Step 1 of 2")).toBeVisible();
+      await expect(saveButtonOf(dialog)).toHaveCount(0);
+
+      await expectOnScreen(page, nextButtonOf(dialog));
+      await screenshot(page, `stepped-dialog-390-first-step-${theme}`, {
+        fullPage: false,
+      });
+      await nextButtonOf(dialog).tap();
+
+      await expect(dialog.getByText("Step 2 of 2")).toBeVisible();
+      await expect(dialog.getByPlaceholder("Company, Inc.")).toBeVisible();
+      await expectOnScreen(page, saveButtonOf(dialog));
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, `stepped-dialog-390-last-step-${theme}`, {
+        fullPage: false,
+      });
+      await saveButtonOf(dialog).tap();
+
+      await expect(page.getByTestId("keyboard-log")).toHaveText(
+        "saved:smtp.example.com|Example Status",
+      );
+    });
+  }
+
+  test("the keyboard: Next and Save Changes are reached with Tab and pressed with Enter", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openMailServerDialog(page);
+
+    await tabTo(page, nextButtonOf(dialog));
+    await page.keyboard.press("Enter");
+    await expect(dialog.getByPlaceholder("Company, Inc.")).toBeVisible();
+
+    await tabTo(page, saveButtonOf(dialog));
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByTestId("keyboard-log")).toHaveText(
+      "saved:smtp.example.com|Example Status",
+    );
+  });
+});
+
+/*
+ * Empty and loading states (#9135). An empty card's message used to start
+ * 208px under the card's title (EmptyState's 13rem), a quarter of a phone's
+ * screen; a card loading drew a bar 208px down (PageLoader) or between 4rem
+ * margins in a paler grey (ComponentLoader), and a page's content area a bar
+ * 208px down an empty area. Now an empty card is a card's height, a loading
+ * card is about as tall as an empty one, every bar is the same grey, and a
+ * page loads as a card-shaped skeleton where its first card goes.
+ */
+test.describe("empty and loading states keep the page still", () => {
+  interface Box {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }
+
+  async function boxOf(locator: Locator): Promise<Box> {
+    const box: Box | null = await locator.boundingBox();
+
+    if (!box) {
+      throw new Error("Not drawn");
+    }
+
+    return box;
+  }
+
+  for (const theme of ["light", "dark"]) {
+    for (const width of [1280, 390]) {
+      test(`at ${width} pixels, ${theme}`, async ({ page }: { page: Page }) => {
+        await page.setViewportSize({ width: width, height: 900 });
+        await open(
+          page,
+          `section=states${theme === "dark" ? "&theme=dark" : ""}`,
+        );
+
+        // An empty card's message starts near its title, not 208px under it.
+        const emptyCard: Locator = page.getByTestId("state-empty-card");
+        const title: Box = await boxOf(
+          emptyCard.getByRole("heading", { name: "Probes", exact: true }),
+        );
+        const message: Locator = emptyCard.getByRole("heading", {
+          name: "No probes yet",
+        });
+        expect(
+          (await boxOf(message)).y - (title.y + title.height),
+        ).toBeLessThan(200);
+
+        /*
+         * A card that loads is about as tall as the same card empty, with
+         * either bar, so nothing under it moves when "No probes yet" arrives.
+         */
+        const emptyHeight: number = (await boxOf(emptyCard)).height;
+        for (const loading of [
+          "state-loading-card",
+          "state-page-loader-card",
+        ]) {
+          const loadingHeight: number = (await boxOf(page.getByTestId(loading)))
+            .height;
+          expect(Math.abs(loadingHeight - emptyHeight)).toBeLessThan(48);
+        }
+
+        // Every bar is the same grey.
+        const barColours: Array<string> = await page
+          .getByTestId("bar-loader")
+          .evaluateAll((bars: Array<Element>): Array<string> => {
+            return bars.map((bar: Element): string => {
+              const fill: Element | null = bar.querySelector("span");
+              return fill
+                ? window.getComputedStyle(fill).backgroundColor
+                : "none";
+            });
+          });
+        expect(barColours.length).toBeGreaterThanOrEqual(2);
+        expect(new Set(barColours).size).toBe(1);
+
+        // An inline state is shorter than a card's, a page's taller.
+        const cardState: number = (
+          await boxOf(page.locator("#state-empty-card-state"))
+        ).height;
+        expect(
+          (await boxOf(page.locator("#state-empty-inline-state"))).height,
+        ).toBeLessThan(cardState);
+        expect(
+          (await boxOf(page.locator("#state-empty-page-state"))).height,
+        ).toBeGreaterThan(cardState);
+
+        /*
+         * A page that loads draws a card-shaped skeleton right under its
+         * header, where its first card goes, and no bar.
+         */
+        const pageLoading: Locator = page.getByTestId("state-page-loading");
+        const skeleton: Locator = pageLoading.getByTestId("page-skeleton");
+        await expect(skeleton).toBeVisible();
+        await expect(pageLoading.getByTestId("bar-loader")).toHaveCount(0);
+        const header: Box = await boxOf(
+          pageLoading.getByRole("heading", { name: "Monitor", exact: true }),
+        );
+        expect(
+          (await boxOf(skeleton)).y - (header.y + header.height),
+        ).toBeLessThan(80);
+
+        // The skeleton's card is filled as a real card is, in this theme.
+        const skeletonFill: Rgba = await paintedBackground(
+          skeleton.locator("> div").first().locator("div").first(),
+        );
+        const cardFill: Rgba = await paintedBackground(message);
+        expect(contrast(skeletonFill, cardFill)).toBeLessThan(1.2);
+
+        await expectNoSidewaysScroll(page);
+        await screenshot(page, `states-${width}-${theme}`);
+      });
+    }
+  }
+});

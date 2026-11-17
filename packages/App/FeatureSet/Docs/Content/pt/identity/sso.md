@@ -3,7 +3,7 @@
 O single sign-on (SSO) permite que as pessoas do seu projeto façam login no OneUptime com o provedor de identidade (IdP) da sua organização, via SAML 2.0 ou OpenID Connect. Você gerencia acesso, senhas e autenticação multifator em um só lugar, e pode exigir SSO de todos no projeto.
 
 > [!NOTE]
-> **Edição:** o SSO, incluindo "Require SSO for login", faz parte de todas as edições do OneUptime: as instalações auto-hospedadas o têm na Community Edition, sem precisar de licença. No OneUptime Cloud, ele está disponível a partir do plano **Scale**. Consulte [Edição Enterprise](/docs/self-hosted/enterprise) para ver o que cada edição inclui.
+> **Edição:** o SSO, incluindo "Require SSO to sign in", faz parte de todas as edições do OneUptime: as instalações auto-hospedadas o têm na Community Edition, sem precisar de licença. No OneUptime Cloud, ele está disponível a partir do plano **Scale**. Consulte [Edição Enterprise](/docs/self-hosted/enterprise) para ver o que cada edição inclui.
 
 :::cards
 - [Configurar um provedor SAML](#configurar-o-sso): Criá-lo no OneUptime e dar duas URLs ao seu IdP.
@@ -267,26 +267,26 @@ As equipes de um provedor decidem o que as pessoas que fazem login com ele podem
 
 ## Exigir SSO no seu projeto
 
-Configurar um provedor não impede ninguém de fazer login com senha. Para que o SSO seja a única forma de entrar no projeto, use o interruptor **Exigir SSO para login** em **Configurações do projeto** > **Segurança** > **SSO**, abaixo dos seus provedores:
+Configurar um provedor não impede ninguém de fazer login com senha. Para que o SSO seja a única forma de entrar no projeto, use o interruptor **Exigir SSO para entrar** em **Configurações do projeto** > **Segurança** > **SSO**, abaixo dos seus provedores:
 
 :::steps
 1. Teste primeiro o seu provedor com o link do cartão **Test Single Sign On (SSO)**.
-2. Ative **Exigir SSO para login**. O OneUptime pede confirmação antes de salvar: a partir daí, todos no projeto, inclusive você, precisam fazer login com SSO para abri-lo, e quem fez login com senha fica sem acesso ao projeto até fazer login com SSO.
+2. Ative **Exigir SSO para entrar**. O OneUptime pede confirmação antes de salvar: a partir daí, todos no projeto, inclusive você, precisam fazer login com SSO para abri-lo, e quem fez login com senha fica sem acesso ao projeto até fazer login com SSO.
 3. Clique em **Exigir SSO** para confirmar. O interruptor salva na hora; não há um botão de salvar separado.
 :::
 
-Ativar **Exigir SSO para login** exige um provedor que faça o login das pessoas no projeto: um dos provedores SAML ou OIDC dele que esteja ligado, ou um provedor global ligado que faça login no projeto. Sem nenhum, o OneUptime recusa e pede que você primeiro ative um provedor para o projeto e o teste. Se você escolher um provedor que o projeto exige, ele precisa ser um desses, e o mesmo é pedido quando você exige outro provedor depois.
+Ativar **Exigir SSO para entrar** exige um provedor que faça o login das pessoas no projeto: um dos provedores SAML ou OIDC dele que esteja ligado, ou um provedor global ligado que faça login no projeto. Sem nenhum, o OneUptime recusa e pede que você primeiro ative um provedor para o projeto e o teste. Se você escolher um provedor que o projeto exige, ele precisa ser um desses, e o mesmo é pedido quando você exige outro provedor depois.
 
-Um salvamento que envia **Exigir SSO para login** ligado quando ele já está ligado, ou que indica o provedor que o projeto já exige, é verificado da mesma forma — a API, o Terraform e outras ferramentas costumam enviar todas as configurações a cada salvamento. Assim, enquanto o projeto não tiver nenhum provedor que faça login, ou se o provedor exigido tiver sido desligado desde então, esse salvamento é recusado com as mesmas palavras, não importa o que mais ele altere: primeiro ligue um provedor, exija outro ou desligue **Exigir SSO para login**.
+Um salvamento que envia **Exigir SSO para entrar** ligado quando ele já está ligado, ou que indica o provedor que o projeto já exige, é verificado da mesma forma — a API, o Terraform e outras ferramentas costumam enviar todas as configurações a cada salvamento. Assim, enquanto o projeto não tiver nenhum provedor que faça login, ou se o provedor exigido tiver sido desligado desde então, esse salvamento é recusado com as mesmas palavras, não importa o que mais ele altere: primeiro ligue um provedor, exija outro ou desligue **Exigir SSO para entrar**.
 
-Um projeto novo segue a mesma regra. Ele ainda não tem provedor próprio, então criá-lo com **Exigir SSO para login** já ligado — só um administrador mestre pode — exige um provedor global ligado que faça login em todos os projetos, e sem ele a criação é recusada com as mesmas palavras. Crie o projeto, configure e teste o provedor dele e depois ligue o interruptor.
+Um projeto novo segue a mesma regra. Ele ainda não tem provedor próprio, então criá-lo com **Exigir SSO para entrar** já ligado — só um administrador mestre pode — exige um provedor global ligado que faça login em todos os projetos, e sem ele a criação é recusada com as mesmas palavras. Crie o projeto, configure e teste o provedor dele e depois ligue o interruptor.
 
-Enquanto o servidor inteiro exigir SSO (**Admin** > **Configurações** > **Login único** > **Exigir SSO para login**), criar qualquer projeto também exige um provedor global assim; caso contrário, ninguém, nem quem o criou, conseguiria abrir o projeto. Sem ele, a criação de um projeto é recusada, e a mensagem pede que um administrador do servidor ligue um. Administradores mestres continuam podendo criar projetos.
+Enquanto o servidor inteiro exigir SSO (**Admin** > **Configurações** > **Login único** > **Exigir SSO para entrar**), criar qualquer projeto também exige um provedor global assim; caso contrário, ninguém, nem quem o criou, conseguiria abrir o projeto. Sem ele, a criação de um projeto é recusada, e a mensagem pede que um administrador do servidor ligue um. Administradores mestres continuam podendo criar projetos.
 
-Desligar **Exigir SSO para login** salva assim que você muda o interruptor e deixa os membros voltarem com a senha na hora — a menos que alguém o ligue de novo nesse mesmo instante; nesse caso, um servidor de aplicação pode levar até um minuto para acompanhar. Podem alterá-lo os Proprietários do projeto e Administradores do projeto e os membros com a permissão **Edit Project**; os demais veem o interruptor bloqueado, com a permissão de que precisariam.
+Desligar **Exigir SSO para entrar** salva assim que você muda o interruptor e deixa os membros voltarem com a senha na hora — a menos que alguém o ligue de novo nesse mesmo instante; nesse caso, um servidor de aplicação pode levar até um minuto para acompanhar. Podem alterá-lo os Proprietários do projeto e Administradores do projeto e os membros com a permissão **Edit Project**; os demais veem o interruptor bloqueado, com a permissão de que precisariam.
 
 > [!NOTE]
-> No OneUptime Cloud, exigir SSO requer o plano **Scale**, e desligar funciona em qualquer plano. Abaixo do Scale, **Configurações do projeto** > **Segurança** > **SSO** mostra a oferta do plano; um projeto que um teste do Scale deixou exigindo SSO também encontra ali **Exigir SSO para login**, abaixo da oferta, para poder desligá-lo. Ligá-lo de novo requer o **Scale**.
+> No OneUptime Cloud, exigir SSO requer o plano **Scale**, e desligar funciona em qualquer plano. Abaixo do Scale, **Configurações do projeto** > **Segurança** > **SSO** mostra a oferta do plano; um projeto que um teste do Scale deixou exigindo SSO também encontra ali **Exigir SSO para entrar**, abaixo da oferta, para poder desligá-lo. Ligá-lo de novo requer o **Scale**.
 
 ## Desligar ou excluir um provedor
 
@@ -304,11 +304,11 @@ Desligar ou excluir um provedor SAML ou OIDC encerra os logins que ele concedeu.
 
 Alterar qualquer outra coisa em um provedor mantém todos com o login feito: um novo certificado ou client secret, outras URLs, um novo nome ou outras equipes. Os logins foram verificados quando foram feitos, e o próximo login usa as novas configurações.
 
-Enquanto o projeto exigir SSO, o OneUptime mantém uma forma de entrar: você não pode desligar nem excluir o último provedor com que as pessoas conseguem fazer login no projeto, contando os provedores globais que fazem login nele, nem o provedor que o projeto exige. Desligue primeiro **Exigir SSO para login**.
+Enquanto o projeto exigir SSO, o OneUptime mantém uma forma de entrar: você não pode desligar nem excluir o último provedor com que as pessoas conseguem fazer login no projeto, contando os provedores globais que fazem login nele, nem o provedor que o projeto exige. Desligue primeiro **Exigir SSO para entrar**.
 
 Ligar um provedor permite fazer login com ele na hora.
 
-Quando o servidor inteiro exige SSO (**Admin** > **Configurações** > **Login único** > **Exigir SSO para login**), cada projeto mantém uma forma de entrar da mesma maneira, mesmo um que não exige SSO por conta própria: ligue primeiro outro provedor para ele.
+Quando o servidor inteiro exige SSO (**Admin** > **Configurações** > **Login único** > **Exigir SSO para entrar**), cada projeto mantém uma forma de entrar da mesma maneira, mesmo um que não exige SSO por conta própria: ligue primeiro outro provedor para ele.
 
 Os provedores globais seguem a mesma regra: uma alteração em um deles, ou nos projetos anexados a ele, que deixaria sem provedor um projeto que exige SSO é recusada, indicando o projeto. Veja [SSO global](/docs/identity/global-sso#desligar-ou-excluir-um-provedor).
 
@@ -323,9 +323,9 @@ Um provedor SAML ou OIDC que um projeto ainda tem continua fazendo o login das p
 
 Adicionar um provedor, alterar um ou ligá-lo de novo requer o **Scale**. Quem pode fazer cada coisa é o mesmo que no Scale: desligar um provedor exige permissão para editá-lo, e excluí-lo, permissão para excluí-lo.
 
-Enquanto o projeto ainda exigir SSO, a página **SSO** dele também mostra **Exigir SSO para login**: desligue-o antes de desligar o último provedor. Até lá, o último provedor com que as pessoas conseguem fazer login não pode ser desligado nem excluído, para que ninguém fique sem acesso ao projeto.
+Enquanto o projeto ainda exigir SSO, a página **SSO** dele também mostra **Exigir SSO para entrar**: desligue-o antes de desligar o último provedor. Até lá, o último provedor com que as pessoas conseguem fazer login não pode ser desligado nem excluído, para que ninguém fique sem acesso ao projeto.
 
-As páginas **SSO** e **OIDC** de uma página de status listam os provedores dela da mesma forma. Enquanto a página de status ainda exigir SSO, as duas páginas também mostram **Exigir SSO para login**: desligue-o antes de desligar os provedores dela, ou os usuários privados dela não conseguirão fazer login de jeito nenhum.
+A página **Login único** de uma página de status lista os provedores dela da mesma forma, nas abas **SAML** e **OIDC**. Enquanto a página de status ainda exigir SSO, as duas abas também mostram **Exigir SSO para entrar**: desligue-o antes de desligar os provedores dela, ou os usuários privados dela não conseguirão fazer login de jeito nenhum.
 
 ## Solução de problemas
 

@@ -17,6 +17,8 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import PaidUsageConsent from "./PaidUsageConsent";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -130,15 +132,11 @@ const PayAsYouGoCard: FunctionComponent<PayAsYouGoCardProps> = (
                 <h3 className="text-base font-semibold text-gray-900">
                   {props.featureName}
                 </h3>
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-                  <Icon
-                    icon={IconProp.CurrencyDollar}
-                    size={SizeProp.Small}
-                    thick={ThickProp.Thick}
-                    className="h-2.5 w-2.5"
-                  />
-                  {translator.translateText("Pay as you go")}
-                </span>
+                <Pill
+                  text="Pay as you go"
+                  tone={PillTone.Warning}
+                  icon={IconProp.CurrencyDollar}
+                />
               </div>
               <p className="mt-1 text-sm text-gray-700">{props.summary}</p>
               <ul className="mt-3 space-y-1.5">

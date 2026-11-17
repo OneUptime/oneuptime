@@ -25,7 +25,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
+import { SpyInstance } from "jest-mock";
 
 /*
  * THE LATEST HEARTBEAT A READER OF A MONITOR SEES (issue #8123).

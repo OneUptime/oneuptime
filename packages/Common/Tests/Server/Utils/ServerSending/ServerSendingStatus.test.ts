@@ -72,8 +72,10 @@ import GlobalConfig, {
 import { ProbeConnectionStatus } from "../../../../Models/DatabaseModels/Probe";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import ServerSendingStatusUtil, {
+  SERVER_SENDING_THROTTLE_SUSTAINED_MS,
   ServerChannelStatus,
   ServerSendingChannel,
+  ServerSendingFailureScope,
   ServerSendingHealth,
   ServerSendingState,
   ServerSendingStatusAnswer,
@@ -501,5 +503,178 @@ describe("GET /global-config/sending-status's answer", () => {
       null,
     );
     expect(probeCountBy).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * THE ISSUE, END TO END ON THE SERVER (#9217).
+ *
+ * One user's unverified address, refused by an Amazon SES sandbox, raised
+ * "Email is failing" for every admin; any admin's test email to another
+ * address then took it down, though nothing was fixed. Now the refusal is
+ * kept with that recipient and the banner never rises for it; a failure of
+ * the server's own still raises it, and only an email that goes out
+ * through the same settings again takes it down.
+ */
+describe("whose failure it is (#9217)", () => {
+  const SANDBOX_REFUSAL: string =
+    "Message failed: 554 Message rejected: Email address is not verified. The following identities failed the check in region AP-SOUTHEAST-1: new.user@example.com";
+
+  function emailStatus(): ServerChannelStatus {
+    return ServerSendingStatus.getStatusFrom(
+      storedConfig as unknown as GlobalConfig,
+      ServerSendingChannel.Email,
+    );
+  }
+
+  test("one recipient refused: no banner, and the refusal is kept with the recipient", async () => {
+    storedConfig = row(EMAIL_SET_UP);
+
+    await ServerSendingStatus.recordOutcome({
+      channel: ServerSendingChannel.Email,
+      succeeded: true,
+      recipient: "admin@example.com",
+    });
+    await ServerSendingStatus.recordOutcome({
+      channel: ServerSendingChannel.Email,
+      succeeded: false,
+      reason: SANDBOX_REFUSAL,
+      scope: ServerSendingFailureScope.Recipient,
+      recipient: "new.user@example.com",
+    });
+
+    const status: ServerChannelStatus = emailStatus();
+
+    expect(status.state).toBe(ServerSendingState.Working);
+    expect(status.failingSince).toBeNull();
+    expect(ServerSendingStatusUtil.needsAttention(status)).toBe(false);
+    expect(status.recipientRefusals).toEqual([
+      expect.objectContaining({
+        recipient: "new.user@example.com",
+        reason: SANDBOX_REFUSAL,
+      }),
+    ]);
+
+    // The banner, as the browser reads the answer.
+    const answer: ServerSendingStatusAnswer | null =
+      ServerSendingStatusUtil.parseAnswer(
+        JSON.parse(JSON.stringify({ channels: [status], globalProbes: null })),
+      );
+
+    expect(
+      ServerSendingStatusUtil.getChannel(answer!, ServerSendingChannel.Email)
+        ?.state,
+    ).toBe(ServerSendingState.Working);
+  });
+
+  test("an admin's test to another address leaves the refusal; a send to that recipient takes it off", async () => {
+    storedConfig = row(EMAIL_SET_UP);
+
+    await ServerSendingStatus.recordOutcome({
+      channel: ServerSendingChannel.Email,
+      succeeded: false,
+      reason: SANDBOX_REFUSAL,
+      scope: ServerSendingFailureScope.Recipient,
+      recipient: "new.user@example.com",
+    });
+    await ServerSendingStatus.recordOutcome({
+      channel: ServerSendingChannel.Email,
+      succeeded: true,
+      recipient: "admin@example.com",
+    });
+
+    expect(emailStatus().recipientRefusals).toHaveLength(1);
+
+    await ServerSendingStatus.recordOutcome({
+      channel: ServerSendingChannel.Email,
+      succeeded: true,
+      recipient: "new.user@example.com",
+    });
+
+    expect(emailStatus().recipientRefusals).toBeUndefined();
+  });
+
+  test("a recipient's refusal with no recipient named writes nothing", async () => {
+    storedConfig = row(EMAIL_SET_UP);
+
+    await ServerSendingStatus.recordOutcome({
+      channel: ServerSendingChannel.Email,
+      succeeded: false,
+      reason: "550 5.1.1 User unknown",
+      scope: ServerSendingFailureScope.Recipient,
+    });
+
+    expect(writeServerSendingHealth).not.toHaveBeenCalled();
+  });
+
+  test("a failure of the server's still raises the banner, and an email that goes out takes it down", async () => {
+    storedConfig = row(EMAIL_SET_UP);
+
+    await ServerSendingStatus.recordOutcome({
+      channel: ServerSendingChannel.Email,
+      succeeded: false,
+      reason: "535 5.7.8 Authentication failed",
+      scope: ServerSendingFailureScope.Server,
+      recipient: "new.user@example.com",
+    });
+
+    expect(emailStatus().state).toBe(ServerSendingState.Failing);
+    expect(emailStatus().lastFailure).toBe("535 5.7.8 Authentication failed");
+    // The server's failure is not one recipient's.
+    expect(emailStatus().recipientRefusals).toBeUndefined();
+
+    // A recipient's refusal meanwhile changes nothing of it.
+    await ServerSendingStatus.recordOutcome({
+      channel: ServerSendingChannel.Email,
+      succeeded: false,
+      reason: SANDBOX_REFUSAL,
+      scope: ServerSendingFailureScope.Recipient,
+      recipient: "new.user@example.com",
+    });
+
+    expect(emailStatus().state).toBe(ServerSendingState.Failing);
+
+    await ServerSendingStatus.recordOutcome({
+      channel: ServerSendingChannel.Email,
+      succeeded: true,
+      recipient: "admin@example.com",
+    });
+
+    expect(emailStatus().state).toBe(ServerSendingState.Working);
+  });
+
+  test("a slow-down raises the banner only once it has lasted", async () => {
+    jest.useFakeTimers({ now: new Date("2026-11-17T09:00:00.000Z") });
+    storedConfig = row(EMAIL_SET_UP);
+
+    const throttled: () => Promise<void> = async (): Promise<void> => {
+      await ServerSendingStatus.recordOutcome({
+        channel: ServerSendingChannel.Email,
+        succeeded: false,
+        reason: "454 Throttling failure: Maximum sending rate exceeded.",
+        scope: ServerSendingFailureScope.Throttled,
+        recipient: "new.user@example.com",
+      });
+    };
+
+    await throttled();
+    expect(emailStatus().state).not.toBe(ServerSendingState.Failing);
+
+    jest.setSystemTime(new Date("2026-11-17T09:05:00.000Z"));
+    ServerSendingStatus.clearCache();
+    await throttled();
+    expect(emailStatus().state).not.toBe(ServerSendingState.Failing);
+
+    jest.setSystemTime(
+      new Date(
+        new Date("2026-11-17T09:00:00.000Z").getTime() +
+          SERVER_SENDING_THROTTLE_SUSTAINED_MS,
+      ),
+    );
+    ServerSendingStatus.clearCache();
+    await throttled();
+
+    expect(emailStatus().state).toBe(ServerSendingState.Failing);
+    expect(emailStatus().failingSince).toBe("2026-11-17T09:00:00.000Z");
   });
 });

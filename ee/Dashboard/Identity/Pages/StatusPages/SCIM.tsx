@@ -6,7 +6,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import HiddenText from "Common/UI/Components/HiddenText/HiddenText";
+import ShownOnceSecretModal from "Common/UI/Components/ShownOnceSecret/ShownOnceSecretModal";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import { IDENTITY_URL } from "Common/UI/Config";
@@ -38,16 +38,25 @@ import {
   buildRotateBearerTokenUpdate,
   generateScimBearerToken,
 } from "../../TightenOnly/TightenOnlyUpdates";
+import {
+  getBearerTokenShownOnCreate,
+  SCIM_BEARER_TOKEN_NOT_SHOWN_AGAIN_TEST_ID,
+  SCIM_BEARER_TOKEN_SHOWN_ONCE_TEST_ID,
+  SCIM_BEARER_TOKEN_SHOWN_ONCE_VALUE_TEST_ID,
+  ScimBearerTokenCopy,
+} from "../../ScimBearerTokenCopy";
 
 /*
  * Status page > SCIM: the status page's SCIM connections and their logs.
  *
  * Adding one asks for its name; provisioning, deprovisioning and the
  * description wait under Advanced at their defaults (../../ScimFormFields).
- * Once it is saved, the dialog with the SCIM URLs and the bearer token to
- * give the identity provider opens straight away: that is the next thing to
- * do. The same dialog makes the OAuth 2.0 client secret for identity
- * providers that ask for client credentials instead of a bearer token
+ * Once it is saved, its bearer token is shown once - it is kept only as its
+ * hash (#9012), so no page shows it again - and then the dialog with the
+ * SCIM URLs to give the identity provider opens: that is the next thing to
+ * do. Reset Bearer Token makes a new token and shows it once too. The URLs
+ * dialog makes the OAuth 2.0 client secret for identity providers that ask
+ * for client credentials instead of a bearer token
  * (../../Components/ScimOAuthClientCredentials).
  */
 const SCIMPage: FunctionComponent<PageComponentProps> = (
@@ -65,9 +74,15 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
   const [resetError, setResetError] = useState<string>("");
   const [showResetErrorModal, setShowResetErrorModal] =
     useState<boolean>(false);
-  const [showResetSuccessModal, setShowResetSuccessModal] =
-    useState<boolean>(false);
-  const [newBearerToken, setNewBearerToken] = useState<string>("");
+  /*
+   * A bearer token just made - by adding a connection, or by Reset Bearer
+   * Token - shown once, then forgotten (ShownOnceSecretModal). A new
+   * connection's URLs dialog opens once it is copied.
+   */
+  const [shownOnceToken, setShownOnceToken] = useState<string>("");
+  const [urlsAfterToken, setUrlsAfterToken] = useState<StatusPageSCIM | null>(
+    null,
+  );
 
   /*
    * Without a valid Enterprise license (after the trial or the grace period)
@@ -97,9 +112,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
         id: new ObjectID(resetSCIMId),
         data: buildRotateBearerTokenUpdate(newToken),
       });
-      setNewBearerToken(newToken);
+      setShownOnceToken(newToken);
       setShowResetModal(false);
-      setShowResetSuccessModal(true);
       setRefresher(!refresher);
     } catch (err) {
       setResetError(API.getFriendlyMessage(err));
@@ -117,6 +131,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
       />
       <ReadOnlyActionsNotice mode={licenseMode} />
       <Tabs
+        label="SCIM"
         tabs={[
           {
             name: "Configuration",
@@ -143,7 +158,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   scim.statusPageId = modelId;
                   return Promise.resolve(scim);
                 }}
-                noItemsMessage={"No SCIM configuration found."}
+                noItemsMessage={"No SCIM configurations yet."}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 formFields={getStatusPageScimFormFields()}
                 onCreateSuccess={(
@@ -151,15 +166,25 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   modalType?: ModalType,
                 ): Promise<StatusPageSCIM> => {
                   if (modalType === ModalType.Create && item.id) {
-                    setCurrentSCIMConfig(item);
-                    setShowSCIMUrlId(item.id.toString());
+                    const token: string | null = getBearerTokenShownOnCreate(
+                      item.bearerToken,
+                    );
+
+                    // The token first, once; the URLs once it is copied.
+                    if (token) {
+                      setShownOnceToken(token);
+                      setUrlsAfterToken(item);
+                    } else {
+                      setCurrentSCIMConfig(item);
+                      setShowSCIMUrlId(item.id.toString());
+                    }
                   }
 
                   return Promise.resolve(item);
                 }}
                 showRefreshButton={true}
                 selectMoreFields={{
-                  bearerToken: true,
+                  // Nobody reads the bearer token: it is kept as its hash.
                   oauthClientSecretExpiresAt: true,
                   oauthPreviousClientSecretExpiresAt: true,
                 }}
@@ -291,10 +316,9 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               <div>
                 <strong>{translator.translateText("Bearer Token:")}</strong>
                 <br />
-                <HiddenText
-                  text={currentSCIMConfig.bearerToken as string}
-                  isCopyable={true}
-                />
+                <span data-testid={SCIM_BEARER_TOKEN_NOT_SHOWN_AGAIN_TEST_ID}>
+                  {translator.translateText(ScimBearerTokenCopy.notShownAgain)}
+                </span>
               </div>
               <br />
               {/*
@@ -369,40 +393,25 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
         <></>
       )}
 
-      {showResetSuccessModal ? (
-        <ConfirmModal
-          title={"Bearer Token Reset"}
-          description={
-            <div>
-              <p>
-                {translator.translateText(
-                  "Bearer token has been reset successfully.",
-                )}
-              </p>
-              <br />
-              <div>
-                <strong>{translator.translateText("New Bearer Token:")}</strong>
-                <br />
-                <HiddenText text={newBearerToken} isCopyable={true} />
-              </div>
-              <br />
-              {/*
-               * One sentence with its lead, so each language words it
-               * whole - and no locale holds a bare "Important:".
-               */}
-              <p>
-                {translator.translateText(
-                  "Important: Make sure to update your identity provider with this new bearer token.",
-                )}
-              </p>
-            </div>
-          }
-          submitButtonText={"Close"}
-          onSubmit={() => {
-            setShowResetSuccessModal(false);
-            setNewBearerToken("");
+      {shownOnceToken ? (
+        <ShownOnceSecretModal
+          title={ScimBearerTokenCopy.shownOnceTitle}
+          description={ScimBearerTokenCopy.shownOnceDescription}
+          doneButtonText={ScimBearerTokenCopy.done}
+          secret={shownOnceToken}
+          onDone={() => {
+            const created: StatusPageSCIM | null = urlsAfterToken;
+
+            setShownOnceToken("");
+            setUrlsAfterToken(null);
+
+            if (created?.id) {
+              setCurrentSCIMConfig(created);
+              setShowSCIMUrlId(created.id.toString());
+            }
           }}
-          submitButtonType={ButtonStyleType.NORMAL}
+          dataTestId={SCIM_BEARER_TOKEN_SHOWN_ONCE_TEST_ID}
+          valueTestId={SCIM_BEARER_TOKEN_SHOWN_ONCE_VALUE_TEST_ID}
         />
       ) : (
         <></>

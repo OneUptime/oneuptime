@@ -302,6 +302,12 @@ Le chemin d'une requête à travers vos services, étape par étape. Chaque éta
 
 Voir [Explorateur de traces](/docs/telemetry/traces-explorer).
 
+### Span
+
+Une étape d'une requête : la requête à laquelle un service répond, un appel qu'il fait à un autre service ou une requête en base de données, avec son début, sa durée et son échec éventuel. Les spans s'imbriquent dans le span qui les a lancés, et les spans d'une requête forment sa trace.
+
+Voir [Explorateur de traces](/docs/telemetry/traces-explorer#traces-et-spans).
+
 ### Profils
 
 La façon dont votre application dépense son temps CPU et sa mémoire, fonction par fonction, envoyée par un profileur qui pousse ses données vers l'API compatible Pyroscope de OneUptime.

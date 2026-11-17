@@ -5,6 +5,9 @@ import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import { FacetHelp } from "../FacetHelp";
 import FacetHelpButton from "./FacetHelpButton";
+import GlossaryTerm from "../../../../Types/Docs/GlossaryTerm";
+import DefinedTerm from "../../Glossary/LazyDefinedTerm";
+import DefinitionsDrawnAfter from "../../Glossary/DefinitionsDrawnAfter";
 
 export interface FacetSectionHeaderProps {
   /*
@@ -25,6 +28,12 @@ export interface FacetSectionHeaderProps {
    * says it. Without it the header is exactly the plain one.
    */
   help?: FacetHelp | undefined;
+  /*
+   * The Glossary term the title is the first use of on its page (the
+   * traces explorer's Span Type, for "span"): the title is drawn as a
+   * defined term, its definition one hover, focus or tap away.
+   */
+  titleGlossaryTerm?: GlossaryTerm | undefined;
 }
 
 /*
@@ -66,7 +75,7 @@ const FacetSectionHeader: FunctionComponent<FacetSectionHeaderProps> = (
 
   const badge: ReactElement =
     props.activeCount > 0 ? (
-      <span className="inline-flex h-4 min-w-[1rem] flex-none items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-600">
+      <span className="inline-flex h-4 min-w-[1rem] flex-none items-center justify-center rounded-full bg-indigo-100 px-1 text-xs font-semibold text-indigo-600">
         {props.activeCount}
       </span>
     ) : (
@@ -79,13 +88,32 @@ const FacetSectionHeader: FunctionComponent<FacetSectionHeaderProps> = (
         props.isExpanded ? "rotate-90" : ""
       }`}
       data-testid="facet-section-chevron"
-      aria-hidden={props.help ? true : undefined}
+      aria-hidden={props.help || props.titleGlossaryTerm ? true : undefined}
     >
       <Icon icon={IconProp.ChevronRight} className="h-3 w-3 text-gray-400" />
     </span>
   );
 
-  if (props.help) {
+  /*
+   * A defined title is a button of its own (DefinedTerm), and a button
+   * cannot hold another: the title then sits beside the fold button, above
+   * its cover, as the (i) does, and names the fold button. Its definition
+   * is drawn after the title (DefinitionsDrawnAfter), not inside it, where
+   * the small capitals and the cut-off line would take it too. A button
+   * resets the case it is given, so the word is put in capitals itself.
+   */
+  const definedTitle: ReactElement | null = props.titleGlossaryTerm ? (
+    <DefinitionsDrawnAfter>
+      <span
+        className="relative z-10 min-w-0 truncate text-[11px] font-semibold uppercase tracking-wider text-gray-500 [&_button]:uppercase"
+        data-testid="facet-section-defined-title"
+      >
+        <DefinedTerm term={props.titleGlossaryTerm}>{title}</DefinedTerm>
+      </span>
+    </DefinitionsDrawnAfter>
+  ) : null;
+
+  if (props.help || definedTitle) {
     return (
       <div className="relative mx-1 flex items-center gap-0.5 rounded transition-colors hover:bg-gray-50">
         <button
@@ -93,22 +121,33 @@ const FacetSectionHeader: FunctionComponent<FacetSectionHeaderProps> = (
           className="flex min-w-0 items-center gap-1.5 rounded py-1 pl-1.5 text-left after:absolute after:inset-0 after:rounded after:content-[''] focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-indigo-500"
           aria-expanded={props.isExpanded}
           aria-controls={props.isExpanded ? props.controlsId : undefined}
+          aria-label={definedTitle ? title : undefined}
           onClick={props.onToggle}
         >
           {iconElement}
-          <span
-            className="relative z-10 truncate text-[11px] font-semibold uppercase tracking-wider text-gray-500"
-            title={title}
-          >
-            {title}
-          </span>
-          {badge}
+          {definedTitle ? (
+            <></>
+          ) : (
+            <span
+              className="relative z-10 truncate text-[11px] font-semibold uppercase tracking-wider text-gray-500"
+              title={title}
+            >
+              {title}
+            </span>
+          )}
+          {definedTitle ? <></> : badge}
         </button>
-        <FacetHelpButton
-          title={props.title}
-          help={props.help}
-          className="relative z-10"
-        />
+        {definedTitle}
+        {definedTitle ? badge : <></>}
+        {props.help ? (
+          <FacetHelpButton
+            title={props.title}
+            help={props.help}
+            className="relative z-10"
+          />
+        ) : (
+          <></>
+        )}
         {/*
          * The turned chevron is painted above the cover (a transform puts
          * it there), so it lets the pointer through to the cover below.

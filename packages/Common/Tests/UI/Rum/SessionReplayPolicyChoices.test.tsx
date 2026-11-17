@@ -117,6 +117,7 @@ jest.mock("../../../UI/Utils/Permission", () => {
 
 import RumApplicationSessionReplaySettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplaySettings";
 import { clearSessionReplayHealthStore } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/useSessionReplayHealth";
+import { formStepButton } from "../../Helpers/FormStepButton";
 
 const WAIT_TIMEOUT: number = 20000;
 
@@ -198,7 +199,11 @@ async function openStep(modal: HTMLElement, title: string): Promise<void> {
     });
 
   expect(step).toBeDefined();
-  fireEvent.click(step as HTMLElement);
+
+  // The step being filled in is not a button: it is open already.
+  if (!step!.querySelector("[aria-current='step']")) {
+    fireEvent.click(formStepButton(step as HTMLElement));
+  }
 
   await waitFor(
     () => {

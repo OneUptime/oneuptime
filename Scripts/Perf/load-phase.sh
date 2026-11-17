@@ -10,8 +10,8 @@
 # Usage: load-phase.sh <seed.json> <label> <minutes> [warmupSeconds] [collectors] [users] [--profile]
 #        (defaults: 120 s, 20 collectors, 5 users; 0 users skips the browser)
 # Settings: PERF_OTLP_PERIOD_MS (4000) - how often each collector sends. At
-# 2000 the App's telemetry queue fell behind (it worked through about 22
-# batches a second; 30 came in), and a window then measures a backlog.
+# 2000 an App from before #6086 fell behind (it worked through about 22
+# batches a second; 30 came in), and a window then measured a backlog.
 # Results: $PERF_DIR/results/<label>.json (and <label>.cpuprofile).
 set -uo pipefail
 

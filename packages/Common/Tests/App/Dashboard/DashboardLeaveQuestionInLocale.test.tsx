@@ -524,7 +524,10 @@ describe.each([...DRAWN_LANGUAGES])(
       await addTextWidget(language);
 
       await act(async () => {
-        fireEvent.click(screen.getByTitle(word(language, "Cancel")));
+        // The shared Button draws Cancel as its words, with no title attribute.
+        fireEvent.click(
+          screen.getByRole("button", { name: word(language, "Cancel") }),
+        );
       });
       await settle();
 

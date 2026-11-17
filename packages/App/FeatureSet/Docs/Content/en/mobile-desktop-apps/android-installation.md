@@ -121,12 +121,12 @@ OneUptime sends on-call pages at high priority, which Android delivers even to a
 
 ## Lock the app
 
-Turn on **Biometrics Login** under **Settings** in the app, and the app asks for your fingerprint, your face or the phone's screen lock each time it starts. The switch is there once the phone has a fingerprint or face unlock set up. **Appearance**, on the same screen, picks the light or dark look, or follows the phone.
+Turn on **Biometric Unlock** under **Settings** in the app, and the app asks for your fingerprint, your face or the phone's screen lock each time it starts. The switch is there once the phone has a fingerprint or face unlock set up. **Appearance**, on the same screen, picks the light or dark look, or follows the phone.
 
 ## Update, sign out or uninstall
 
 - **Update.** Google Play updates the app. For the APK, install the newest one over it. The app's version is at the bottom of its **Settings** screen.
-- **Sign out.** **Settings → Log Out** signs you out and removes the phone from your push devices in every project, together with its steps in How to Reach Me. Signing in again adds it back with the default steps.
+- **Sign out.** **Settings → Sign Out** signs you out and removes the phone from your push devices in every project, together with its steps in How to Reach Me. Signing in again adds it back with the default steps.
 - **Uninstall.** Remove the app as you remove any other. If you were still signed in, the phone stays on your list until a push to it fails: OneUptime then marks it **Not receiving notifications**. Delete that entry with **Delete**: installing the app again and signing in adds the phone as a new entry, with the default steps.
 
 ## Troubleshooting
@@ -151,7 +151,7 @@ Open the app's **Settings**: the line under **Critical On-Call Alerts** says wha
 OneUptime On-Call is already on the phone from another source, such as Google Play, and Android does not install one over the other. Uninstall it, install the APK, and sign in again.
 :::
 
-:::details No Biometrics Login switch
+:::details No Biometric Unlock switch
 The switch appears once the phone has a fingerprint or face unlock set up in Android's settings.
 :::
 

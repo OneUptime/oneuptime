@@ -2,6 +2,8 @@ import FormsCopy from "../FormsCopy";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -111,18 +113,22 @@ const QuestionInputPreview: FunctionComponent<ComponentProps> = (
                 .slice(0, MAX_SHOWN_OPTIONS)
                 .map((option: string, index: number): ReactElement => {
                   return (
-                    <span
+                    <Pill
                       key={`${index}-${option}`}
-                      className="inline-flex max-w-full items-center truncate rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
-                    >
-                      {option}
-                    </span>
+                      text={option}
+                      isUserContent={true}
+                      tone={PillTone.Neutral}
+                      isDotHidden={true}
+                    />
                   );
                 })}
               {options.length > MAX_SHOWN_OPTIONS ? (
-                <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                  +{options.length - MAX_SHOWN_OPTIONS}
-                </span>
+                <Pill
+                  text={`+${options.length - MAX_SHOWN_OPTIONS}`}
+                  isUserContent={true}
+                  tone={PillTone.Neutral}
+                  isDotHidden={true}
+                />
               ) : (
                 <></>
               )}

@@ -9,6 +9,8 @@ import TelemetryException from "Common/Models/DatabaseModels/TelemetryException"
 import Service from "Common/Models/DatabaseModels/Service";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import API from "Common/UI/Utils/API/API";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -486,7 +488,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
             </div>
             <p className="text-3xl font-semibold text-gray-900 mt-3 tabular-nums">
               {resolutionRate}
-              <span className="text-base font-medium text-gray-400 ml-0.5">
+              <span className="text-base font-medium text-gray-500 ml-0.5">
                 %
               </span>
             </p>
@@ -554,10 +556,11 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                   className="text-sm font-medium text-gray-900"
                                 />
                                 {isNewToday && (
-                                  <span className="shrink-0 inline-flex items-center gap-1 text-[10px] uppercase tracking-wide bg-sky-50 text-sky-700 px-1.5 py-0.5 rounded-md font-semibold">
-                                    <span className="h-1 w-1 rounded-full bg-sky-500" />
-                                    {translator.translateText("New")}
-                                  </span>
+                                  <Pill
+                                    text="New"
+                                    tone={PillTone.Info}
+                                    className="shrink-0"
+                                  />
                                 )}
                               </div>
                               <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-xs">
@@ -590,7 +593,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                   </span>
                                 )}
                                 {exception.lastSeenAt && (
-                                  <span className="text-gray-400">
+                                  <span className="text-gray-500">
                                     <InlineSeparator markOnly />{" "}
                                     {OneUptimeDate.fromNow(
                                       new Date(exception.lastSeenAt),
@@ -605,7 +608,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                   getReaderNumberLocale(),
                                 )}
                               </p>
-                              <p className="text-[10px] uppercase tracking-wide text-gray-400 mt-0.5">
+                              <p className="text-xs uppercase tracking-wide text-gray-500 mt-0.5">
                                 {translator.translatePlural(
                                   { one: "hit", other: "hits" },
                                   exception.occuranceCount || 0,
@@ -688,7 +691,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                               }}
                               renderText={(text: string): ReactElement => {
                                 return (
-                                  <span className="text-[10px] uppercase tracking-wide text-gray-400">
+                                  <span className="text-xs uppercase tracking-wide text-gray-500">
                                     {text}
                                   </span>
                                 );
@@ -706,7 +709,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                               }}
                             />
                           </div>
-                          <span className="text-[11px] tabular-nums text-gray-400 shrink-0">
+                          <span className="text-[11px] tabular-nums text-gray-500 shrink-0">
                             {translator.translatePlural(
                               { one: "{{count}} hit", other: "{{count}} hits" },
                               summary.totalOccurrences,
@@ -761,7 +764,7 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
                                 );
                               })()}
                               {exception.lastSeenAt && (
-                                <span className="text-gray-400">
+                                <span className="text-gray-500">
                                   <InlineSeparator markOnly />{" "}
                                   {OneUptimeDate.fromNow(
                                     new Date(exception.lastSeenAt),
@@ -811,7 +814,7 @@ const StatCell: FunctionComponent<StatCellProps> = (
         >
           {props.value.toLocaleString(getReaderNumberLocale())}
         </p>
-        <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
           {translator.translateText(props.sublabel)}
           <Icon
             icon={IconProp.ChevronRight}

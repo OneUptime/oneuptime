@@ -58,7 +58,7 @@ export const UX_FOLDERS: Array<string> = [
  */
 export const NOT_UX_GUARDS: Record<string, string> = {
   "packages/Common/Tests/UI/ButtonMarginTakeBackGuard.test.ts":
-    "Styling mechanics: where a box takes back the shared Button's own margin.",
+    "Styling mechanics: no box takes back a margin the shared Button does not have.",
   "packages/Common/Tests/UI/Components/CountModelSideMenuItemGuard.test.tsx":
     "Performance: a side menu's count badge does not fetch again on every render.",
   "packages/Common/Tests/UI/Components/EditionLabelLicenseWritesGuard.test.tsx":

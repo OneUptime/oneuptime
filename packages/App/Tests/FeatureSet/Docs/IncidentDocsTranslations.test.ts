@@ -445,7 +445,7 @@ describe.each(LANGUAGES)("%s incident pages", (language: string) => {
     it("quotes the empty template list as the Dashboard words it", () => {
       const empty: string = dashboardLabel(
         language,
-        "No incident templates found.",
+        "No incident templates yet.",
       ).replace(/[.。।]$/, "");
 
       expect(page).toContain(`**${empty}**`);

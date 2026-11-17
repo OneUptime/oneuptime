@@ -52,6 +52,20 @@ const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Info,
         },
+        /*
+         * The schedules this team is on, with its details. They had an On-Call
+         * section of their own, for this one entry (#9216).
+         */
+        {
+          link: {
+            title: "On-Call Schedules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TEAM_VIEW_ON_CALL_SCHEDULES] as Route,
+              { modelId: props.modelId },
+            ),
+          },
+          icon: IconProp.Calendar,
+        },
       ],
     },
     {
@@ -81,42 +95,27 @@ const TeamViewSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Lock,
         },
-      ],
-    },
-    {
-      title: "On-Call",
-      items: [
-        {
-          link: {
-            title: "On-Call Schedules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.TEAM_VIEW_ON_CALL_SCHEDULES] as Route,
-              { modelId: props.modelId },
-            ),
-          },
-          icon: IconProp.Calendar,
-        },
+        /*
+         * Which rules the members must meet, and who does. It was a
+         * section of its own, under a heading of its own name (#9134).
+         */
+        ...(isComplianceEnterpriseEligible
+          ? [
+              {
+                link: {
+                  title: "Compliance",
+                  to: RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.TEAM_VIEW_COMPLIANCE] as Route,
+                    { modelId: props.modelId },
+                  ),
+                },
+                icon: IconProp.ShieldCheck,
+              },
+            ]
+          : []),
       ],
     },
   ];
-
-  if (isComplianceEnterpriseEligible) {
-    sections.push({
-      title: "Compliance",
-      items: [
-        {
-          link: {
-            title: "Compliance",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.TEAM_VIEW_COMPLIANCE] as Route,
-              { modelId: props.modelId },
-            ),
-          },
-          icon: IconProp.ShieldCheck,
-        },
-      ],
-    });
-  }
 
   sections.push({
     title: "Settings",

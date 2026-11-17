@@ -18,17 +18,17 @@ Ihre Statusseite ist der eine OneUptime-Bildschirm, den Ihre Kunden ansehen; sie
 
 | Seite | Was Sie dort festlegen |
 | ---- | ------------------ |
-| **Branding** | Logo und Titelbild, das Design (hell, dunkel oder wie das Gerät jedes Besuchers eingestellt ist), Seitentitel und -beschreibung, Favicon, Header-Links, die Beschreibung der Übersichtsseite, die Copyright-Zeile und die Footer-Links. Eingeklappt unter **Weitere Einstellungen**: die Farben des Verlaufsdiagramms, die Sprachen und die Suchmaschinenindexierung. |
+| **Branding** | Logo und Titelbild, das Design (hell, dunkel oder wie das Gerät jedes Besuchers eingestellt ist), Header-Links, der Einleitungstext, die Copyright-Zeile und die Footer-Links. Eingeklappt unter **Weitere Einstellungen**: der Seitentitel und die Suchmaschinenbeschreibung, das Favicon, die Farben des Verlaufsdiagramms, die Sprachen und die Suchmaschinenindexierung. |
 | **Benutzerdefinierte Domains** | Ihre eigene Domain, ihr DNS-Eintrag und ihr kostenloses SSL-Zertifikat. |
 | **HTML, CSS und JavaScript** | Header-HTML, Footer-HTML, eigenes CSS, eigenes JavaScript. |
 
-Drei Dinge, die nach Branding aussehen, liegen stattdessen unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen** (`{id}/settings`), weil sie bestimmen, was die Seite zeigt, und nicht, wie sie aussieht: der Gesamtprozentsatz der Verfügbarkeit, welche Monitorstatus gegen die Verfügbarkeit zählen, und die Zeile „Powered by OneUptime“. Die ersten beiden sind Zeilen der Karte **Was Ihre Statusseite zeigt** dort, und die Zeile hat direkt darunter eine eigene Karte, eingeklappt unter **Weitere Einstellungen**.
+Drei Dinge, die nach Branding aussehen, liegen stattdessen unter **Statusseiten → Ihre Seite → Erweitert → Einstellungen** (`{id}/settings`), weil sie bestimmen, was die Seite zeigt, und nicht, wie sie aussieht: der Gesamtprozentsatz der Verfügbarkeit, welche Monitorstatus gegen die Verfügbarkeit zählen, und die Zeile „Powered by OneUptime“. Die ersten beiden sind Zeilen der Karte **Was Ihre Statusseite zeigt** dort, und die Zeile hat direkt darunter eine eigene Karte, eingeklappt unter **Weitere Einstellungen**.
 
 Das Branding war früher auf getrennte Bildschirme **Wesentliches Branding**, **Kopfzeile**, **Fußzeile**, **Übersichtsseite** und **Sprachen** verteilt. Ihre alten Adressen (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` und `{id}/languages`) öffnen jetzt die Seite **Branding**, sodass alte Lesezeichen und Links weiter funktionieren.
 
 ## Die Seite Branding
 
-**Statusseiten → Ihre Seite → Branding → Branding** (`{id}/branding`). Jede Karte speichert für sich. Nach dem Logo, dem Design, dem Titel und dem Favicon folgen die Karten Ihrer Statusseite von oben nach unten: die Links des Headers, der Text oben auf der Übersicht, dann die Fußzeile. Was wenige ändern, ist unten unter **Weitere Einstellungen** eingeklappt.
+**Statusseiten → Ihre Seite → Branding → Branding** (`{id}/branding`). Jede Karte speichert für sich. Nach dem Logo und dem Design folgen die Karten Ihrer Statusseite von oben nach unten: die Links des Headers, der Einleitungstext oben auf der Übersicht, dann die Fußzeile. Was wenige ändern, ist unten unter **Weitere Einstellungen** eingeklappt: der Titel und die Suchmaschinenbeschreibung, das Favicon, die Farben des Verlaufsdiagramms, die Sprachen und die Suchmaschinenindexierung.
 
 ### Logo und Titelbild
 
@@ -65,18 +65,25 @@ Das Design steht im HTML der Seite, die Seite wird also von Anfang an darin geze
 
 Ihr eigenes CSS und HTML gilt in beiden Designs; [Eigenes HTML, CSS und JavaScript](#eigenes-html-css-und-javascript) sagt, wie Sie das dunkle gestalten.
 
-### Titel, Beschreibung und Favicon
-
-- **Titel und Beschreibung** – der Name der Seite im Browser-Tab und in E-Mails an Abonnenten sowie die Beschreibung, die Suchmaschinen zeigen. **Bearbeiten** öffnet **Seitentitel** (Platzhalter `e.g., Acme Status`) und **Seitenbeschreibung**. Suchmaschinen und Linkvorschauen zeigen diese an; schreiben Sie sie also für einen Kunden, nicht für Ihr Team.
-- **Favicon** – **Favicon bearbeiten** öffnet den Upload **Favicon**: das kleine Symbol im Browser-Tab.
-
 ### Header-Links
 
 Die Tabelle **Header-Links** enthält die Links im Header der Statusseite, etwa zu Ihrer Website, Ihrer Dokumentation oder einem Support-Portal. Jeder Link hat einen **Titel** und einen **Link** (eine URL, Platzhalter `https://link.com`), und Sie ordnen sie durch Ziehen. Ohne Links sagt die Tabelle, wofür sie da sind, mit **Header-Link hinzufügen** darunter.
 
-### Beschreibung der Übersichtsseite
+### Einleitungstext
 
-**Beschreibung der Übersichtsseite** ist das Erste auf der Übersicht der Statusseite, über den Ankündigungen, dem Gesamtstatus und Ihren Ressourcen. **Beschreibung bearbeiten** öffnet ein Markdown-Feld. Nutzen Sie es für einen Satz Kontext: was diese Seite abdeckt und wohin man sich für Support wendet. Ein Bild, das Sie hineinsetzen, wird jedem Besucher der Seite gezeigt.
+Der **Einleitungstext** ist das Erste, was Besucher auf der Übersicht der Statusseite lesen, über den Ankündigungen, dem Gesamtstatus und Ihren Ressourcen. **Einleitungstext bearbeiten** öffnet ein Markdown-Feld. Früher hieß er **Beschreibung der Übersichtsseite**. Nutzen Sie ihn für einen Satz Kontext: was diese Seite abdeckt und wohin man sich für Support wendet. Ein Bild, das Sie hineinsetzen, wird jedem Besucher der Seite gezeigt.
+
+### Drei Beschreibungen, drei Leser
+
+Eine Statusseite hat drei Beschreibungen, jede danach benannt, wer sie liest:
+
+| Feld | Wo es festgelegt wird | Wer es liest |
+| --- | --- | --- |
+| **Interne Beschreibung** | Die Karte **Statusseiten-Details** auf der **Übersicht** der Seite | Nur Ihr Team. Besucher sehen sie nie. |
+| **Suchmaschinenbeschreibung** | **Titel und Suchmaschinenbeschreibung**, unter **Weitere Einstellungen** auf **Branding** | Suchmaschinen und Linkvorschauen. |
+| **Einleitungstext** | **Einleitungstext** auf **Branding** | Besucher, oben auf der Statusseite. |
+
+Um zu ändern, was Besucher auf der Seite lesen, bearbeiten Sie den **Einleitungstext**.
 
 ### Fußzeile
 
@@ -87,7 +94,12 @@ Header-Links dienen der Navigation; Footer-Links dem Kleingedruckten, etwa Recht
 
 ### Weitere Einstellungen
 
-Der letzte Abschnitt der Seite ist unter **Weitere Einstellungen** eingeklappt, weil nur wenige ändern, was darin ist. Eingeklappt nennt sein Kopf seine vier Abschnitte – **Standard-Balkenfarbe**, **Regeln für Balkenfarben**, **Sprachen** und **Suchmaschinenindexierung** – und zeigt jeden, der von dem abweicht, womit eine neue Statusseite beginnt: eine andere Standard-Balkenfarbe als das Grün, mit dem jede Seite beginnt, andere Balkenfarbenregeln als die empfohlenen, eine andere Standardsprache als Englisch, eine kürzere Liste von Sprachen oder ausgeschaltete Suchmaschinenindexierung. Klicken Sie darauf, um ihn zu öffnen: Es ist eine Karte, ihre Abschnitte untereinander, jeder mit eigenem Titel, durch Trennlinien getrennt.
+Der letzte Abschnitt der Seite ist unter **Weitere Einstellungen** eingeklappt, weil nur wenige ändern, was darin ist. Eingeklappt nennt sein Kopf seine ersten vier Abschnitte – **Titel und Suchmaschinenbeschreibung**, **Favicon**, **Standard-Balkenfarbe** und **Regeln für Balkenfarben** –, dann, wie viele es noch gibt (**Sprachen** und **Suchmaschinenindexierung**), und zeigt jeden, der von dem abweicht, womit eine neue Statusseite beginnt: einen Seitentitel oder eine Suchmaschinenbeschreibung, ein Favicon, eine andere Standard-Balkenfarbe als das Grün, mit dem jede Seite beginnt, andere Balkenfarbenregeln als die empfohlenen, eine andere Standardsprache als Englisch, eine kürzere Liste von Sprachen oder ausgeschaltete Suchmaschinenindexierung. Klicken Sie darauf, um ihn zu öffnen: Es ist eine Karte, ihre Abschnitte untereinander, jeder mit eigenem Titel, durch Trennlinien getrennt.
+
+**Titel und Suchmaschinenbeschreibung sowie Favicon.** Sie legen sie einmal fest, wenn überhaupt, und keins von beiden ist das, was Besucher auf der Seite lesen – das ist der **Einleitungstext**.
+
+- **Titel und Suchmaschinenbeschreibung** – der Name der Seite im Browser-Tab und in E-Mails an Abonnenten sowie die Beschreibung, die Suchmaschinen zeigen. **Bearbeiten** öffnet **Seitentitel** (Platzhalter `e.g., Acme Status`) und **Suchmaschinenbeschreibung**. Suchmaschinen und Linkvorschauen zeigen diese an; schreiben Sie sie also für einen Kunden, nicht für Ihr Team.
+- **Favicon** – **Favicon bearbeiten** öffnet den Upload **Favicon**: das kleine Symbol im Browser-Tab.
 
 **Farben des Verlaufsdiagramms.** Neben dem **Design** sind das die einzigen eingebauten Farbeinstellungen einer Statusseite. Jeder Balken des Verfügbarkeitsverlaufs ist ein Tag.
 
@@ -106,7 +118,7 @@ Ein Tag, für den die Seite keine Daten hat, wird immer grau mit diagonalen Stre
 
 Die Verfügbarkeit eines Tages wird über den Teil des Tages gemessen, für den es Daten gibt, und zählt die unter **Zählt als Ausfallzeit** gewählten Status. Die empfohlenen Farben unterscheiden sich in der Helligkeit wie im Farbton, sodass Menschen mit Rot-Grün-Sehschwäche, etwa jeder zwölfte Mann, sie auseinanderhalten können; das Grün von Operational und das Rot von Offline, mit denen die Monitorstatus beginnen, sehen für sie fast gleich aus. Eine Seite, die vor diesen Regeln oder über die API oder Terraform erstellt wurde, hat keine Regeln, bis Sie welche hinzufügen: Eine leere Tabelle **Regeln für Balkenfarben** und **Vorschau der Balkenfarben** bieten beide **Empfohlene Regeln verwenden** an. Senden Sie über die API `"miscDataProps": {"addRecommendedBarColorRules": true}` mit der Anfrage, die die Statusseite erstellt.
 
-Wie viele Tage das Diagramm abdeckt, wird nicht hier festgelegt. Das ist **Verfügbarkeitsverlauf** in der Karte **Was Ihre Statusseite zeigt** unter **Erweitert → Erweiterte Einstellungen**, von 1 bis 90 Tagen. Welche Monitorstatus als ausgefallen zählen, ist **Zählt als Ausfallzeit**, in derselben Zeile dieser Karte.
+Wie viele Tage das Diagramm abdeckt, wird nicht hier festgelegt. Das ist **Verfügbarkeitsverlauf** in der Karte **Was Ihre Statusseite zeigt** unter **Erweitert → Einstellungen**, von 1 bis 90 Tagen. Welche Monitorstatus als ausgefallen zählen, ist **Zählt als Ausfallzeit**, in derselben Zeile dieser Karte.
 
 **Sprachen.** Der Abschnitt **Sprachen** legt die Sprachauswahl fest, die Besucher in der Fußzeile der Seite erhalten. **Sprachen bearbeiten** öffnet zwei Felder:
 
@@ -124,7 +136,7 @@ Achtzehn Sprachen werden mit OneUptime ausgeliefert: Englisch, Deutsch, Französ
 
 ## Verfügbarkeitsprozentsatz und Ausfallzeit-Status
 
-Beide stehen in der Zeile **Verfügbarkeitsverlauf** der Karte **Was Ihre Statusseite zeigt** unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen** (`{id}/settings`). Es gibt keine Schaltfläche **Bearbeiten**: Jede Einstellung speichert in dem Moment, in dem Sie sie ändern.
+Beide stehen in der Zeile **Verfügbarkeitsverlauf** der Karte **Was Ihre Statusseite zeigt** unter **Statusseiten → Ihre Seite → Erweitert → Einstellungen** (`{id}/settings`). Es gibt keine Schaltfläche **Bearbeiten**: Jede Einstellung speichert in dem Moment, in dem Sie sie ändern.
 
 - **Gesamtprozentsatz der Verfügbarkeit anzeigen** – ein Schalter, standardmäßig aus. Solange er an ist, wählt **Genauigkeit** daneben, wie viele Nachkommastellen der Prozentsatz zeigt: `99%`, `99.9%`, `99.99%` (der Standard) oder `99.999%`. In OneUptime Cloud braucht das Einschalten des Prozentsatzes den Tarif **Scale**; seine Genauigkeit lässt sich in jedem Tarif ändern.
 - **Zählt als Ausfallzeit** – die Monitorstatus, als farbige Chips, deren Zeit auf dieser Seite gegen die Verfügbarkeit zählt. Hier entscheiden Sie zum Beispiel, ob ein eingeschränkter Status gegen die Verfügbarkeit zählt. Mindestens ein Status bleibt gewählt.
@@ -158,7 +170,7 @@ In OneUptime Cloud braucht das Hinzufügen oder Ändern eines davon den Tarif **
 
 Standardmäßig ist eine Statusseite unter der Vorschau-URL auf ihrem Bildschirm **Übersicht** erreichbar. Um sie unter Ihren eigenen Hostnamen zu bringen, gehen Sie zu **Statusseiten → Ihre Seite → Branding → Benutzerdefinierte Domains** (`{id}/domains`).
 
-Die Karte **Benutzerdefinierte Domains** sagt, was zu tun ist: Lassen Sie den CNAME-Eintrag jeder Domain auf den CNAME-Eintrag für Statusseiten Ihrer Installation zeigen, und OneUptime stellt das SSL-Zertifikat der Domain aus und erneuert es für Sie. Ist nichts eingerichtet, sagt die Tabelle **Keine benutzerdefinierten Domains gefunden**, mit **Benutzerdefinierte Domain hinzufügen** darunter. Die Tabelle hat zwei Spalten, **Domäne** und **Status**, und Filter für **Domäne**, **CNAME gültig** und **SSL bereitgestellt**.
+Die Karte **Benutzerdefinierte Domains** sagt, was zu tun ist: Lassen Sie den CNAME-Eintrag jeder Domain auf den CNAME-Eintrag für Statusseiten Ihrer Installation zeigen, und OneUptime stellt das SSL-Zertifikat der Domain aus und erneuert es für Sie. Ist nichts eingerichtet, sagt die Tabelle **Noch keine benutzerdefinierten Domains**, mit **Benutzerdefinierte Domain hinzufügen** darunter. Die Tabelle hat zwei Spalten, **Domäne** und **Status**, und Filter für **Domäne**, **CNAME gültig** und **SSL bereitgestellt**.
 
 Die Seite auf Ihre Domain zu bringen dauert drei Schritte, alle auf dieser Seite, und nur die ersten beiden sind Ihre:
 
@@ -274,7 +286,7 @@ Ihr Dialog, **SSL-Zertifikat für diese Statusseite neu ausstellen**, bittet Let
 
 Die Aktion erscheint nicht bei einer Domain mit einem hochgeladenen Zertifikat: Es gibt kein Let's-Encrypt-Zertifikat neu auszustellen; laden Sie stattdessen ein neues hoch, indem Sie die Domain bearbeiten. Sie erscheint auch nicht, bevor das erste Zertifikat der Domain bestellt ist, was von selbst geschieht, sobald ihr CNAME-Eintrag verifiziert ist.
 
-Dieselbe Schaltfläche, mit derselben 24-Stunden-Grenze, gibt es bei den eigenen Domains von Dashboards unter **Dashboards → Ihr Dashboard → Branding → Benutzerdefinierte Domains**, die genauso funktionieren wie die eigenen Domains von Statusseiten: siehe [Teilen & öffentliche Dashboards](/docs/dashboards/sharing#eigene-domains).
+Dieselbe Schaltfläche, mit derselben 24-Stunden-Grenze, gibt es bei den eigenen Domains von Dashboards unter **Dashboards → Ihr Dashboard → Öffentlicher Link → Benutzerdefinierte Domains**, die genauso funktionieren wie die eigenen Domains von Statusseiten: siehe [Teilen & öffentliche Dashboards](/docs/dashboards/sharing#eigene-domains).
 
 ### Die Spalte Status der Domain lesen
 
@@ -309,7 +321,7 @@ Dasselbe gilt für API-Schlüssel. Ein Schlüssel, der Statusseiten-Domains nur 
 
 ## Powered by OneUptime
 
-Die Zeile „Powered by OneUptime“ ist keine Branding-Einstellung. Sie hat eine eigene Karte, **Powered by OneUptime**, eingeklappt unter **Weitere Einstellungen** unter der Karte **Was Ihre Statusseite zeigt** unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen** (`{id}/settings`): **Branding "Powered By OneUptime" anzeigen**, standardmäßig an. Schalten Sie ihn aus, um die Zeile auszublenden; das wird sofort gespeichert. In OneUptime Cloud braucht das Ausblenden den Tarif **Scale**. Selbst gehostet gehört das Ausblenden zur Enterprise Edition: In der Community Edition zeigt jede Statusseite die Zeile.
+Die Zeile „Powered by OneUptime“ ist keine Branding-Einstellung. Sie hat eine eigene Karte, **Powered by OneUptime**, eingeklappt unter **Weitere Einstellungen** unter der Karte **Was Ihre Statusseite zeigt** unter **Statusseiten → Ihre Seite → Erweitert → Einstellungen** (`{id}/settings`): **Branding "Powered By OneUptime" anzeigen**, standardmäßig an. Schalten Sie ihn aus, um die Zeile auszublenden; das wird sofort gespeichert. In OneUptime Cloud braucht das Ausblenden den Tarif **Scale**. Selbst gehostet gehört das Ausblenden zur Enterprise Edition: In der Community Edition zeigt jede Statusseite die Zeile.
 
 ## Nächste Schritte
 

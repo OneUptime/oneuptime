@@ -271,7 +271,7 @@ describe("the page", () => {
     renderPage(project(false));
 
     expect(
-      await screen.findByText(/Telemetry features are disabled/),
+      await screen.findByText("Your plan does not include security events"),
     ).toBeInTheDocument();
     expect(scopeMock).not.toHaveBeenCalled();
   });

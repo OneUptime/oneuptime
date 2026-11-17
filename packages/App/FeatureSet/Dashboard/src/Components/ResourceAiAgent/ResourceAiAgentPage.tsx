@@ -1687,10 +1687,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
               isInvestigationEnabled={status.isAiInvestigationEnabled}
             />
           ) : command === "install" && cloudProvider ? (
-            <div
-              className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0"
-              data-testid="ai-agent-cloud-setup"
-            >
+            <div data-testid="ai-agent-cloud-setup">
               <Button
                 title="Let AI fix problems"
                 icon={IconProp.Automation}

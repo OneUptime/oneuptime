@@ -62,9 +62,8 @@
     "dataRetention": "데이터 보존",
     "globalLlmProviders": "글로벌 LLM 공급자",
     "apiKey": "API 키",
-    "more": "더 보기",
     "sendEmail": "이메일 보내기",
-    "logout": "로그아웃",
+    "signOut": "로그아웃",
     "telemetryUsage": "텔레메트리 사용량",
     "ingestionBudgets": "수집 예산",
     "products": "제품"
@@ -81,7 +80,7 @@
   },
   "userProfile": {
     "exitAdmin": "관리자 종료",
-    "logOut": "로그아웃"
+    "signOut": "로그아웃"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -108,14 +107,14 @@
     "billing": "결제",
     "subscription": "구독",
     "invoices": "청구서",
-    "support": "지원",
     "customerSupportAccess": "고객 지원 액세스",
     "advanced": "고급",
     "overview": "개요",
     "projects": "프로젝트",
     "settings": "설정",
     "authentication": "인증",
-    "delete": "삭제",
+    "deleteProject": "프로젝트 삭제",
+    "deleteUser": "사용자 삭제",
     "settingsAuthentication": "인증",
     "settingsSso": "SSO",
     "settingsNotifications": "알림",
@@ -123,20 +122,16 @@
     "settingsCallSms": "통화 및 SMS",
     "settingsWhatsapp": "WhatsApp",
     "settingsTelegram": "Telegram",
-    "settingsMonitoring": "모니터링",
+    "settingsPushNotifications": "푸시 알림",
+    "settingsSharedWithProjects": "모든 프로젝트와 공유",
     "settingsGlobalProbes": "글로벌 프로브",
-    "settingsRunbooks": "런북",
     "settingsGlobalRunners": "글로벌 Runner",
+    "settingsServer": "서버",
     "settingsDataRetention": "데이터 보존",
-    "settingsAi": "AI",
     "settingsGlobalLlmProviders": "글로벌 LLM 공급자",
-    "settingsApiIntegrations": "API 및 통합",
     "settingsApiKey": "API 키",
-    "moreCommunication": "커뮤니케이션",
-    "moreSendEmail": "이메일 보내기",
     "telemetryUsage": "텔레메트리 사용량",
     "ingestionBudgets": "수집 예산",
-    "settingsTelemetry": "텔레메트리",
     "settingsIngestionBudgets": "수집 예산",
     "settingsProducts": "제품"
   },
@@ -144,8 +139,8 @@
     "users": {
       "title": "사용자",
       "cardTitle": "사용자",
-      "cardDescription": "다음은 OneUptime의 사용자 목록입니다.",
-      "noItems": "사용자를 찾을 수 없습니다.",
+      "listDescription": "이 서버에 계정이 있는 모든 사람입니다. 사용자를 열어 프로젝트, 로그인, 관리자 액세스를 관리하세요.",
+      "emptyMessage": "아직 사용자가 없습니다.",
       "bulkAddToProject": "프로젝트에 추가",
       "bulkAddToProjectTitle": "여러 사용자를 프로젝트에 추가",
       "bulkAddToProjectDescription": "프로젝트와 그 팀 중 하나를 고르세요. 선택한 사용자 {{userCount}}명이 해당 팀에 초대됩니다.",
@@ -165,7 +160,12 @@
       "bulkRequireTwoFactorAuthDescription": "선택한 사용자 {{userCount}}명은 모든 활성 세션에서 로그아웃되며, 다음에 로그인할 때 인증 앱을 설정해야 합니다. 본인이 포함되어 있다면 본인도 해당됩니다.",
       "bulkDoNotRequireTwoFactorAuth": "2단계 인증 요구 안 함",
       "bulkDoNotRequireTwoFactorAuthTitle": "사용자 {{userCount}}명의 2단계 인증 요구 해제",
-      "bulkDoNotRequireTwoFactorAuthDescription": "선택한 사용자 {{userCount}}명은 비밀번호만으로 로그인할 수 있게 됩니다. 이미 설정한 내용은 그대로 유지되지만 더 이상 요구되지 않습니다."
+      "bulkDoNotRequireTwoFactorAuthDescription": "선택한 사용자 {{userCount}}명은 비밀번호만으로 로그인할 수 있게 됩니다. 이미 설정한 내용은 그대로 유지되지만 더 이상 요구되지 않습니다.",
+      "createdAndEmailed": "{{name}}을(를) 만들었습니다. 비밀번호 설정 링크를 {{email}}(으)로 보냈습니다.",
+      "createdWithPassword": "{{name}}을(를) 만들었습니다. 설정한 비밀번호를 안전한 방법으로 전달하세요.",
+      "setPasswordLinkTitle": "비밀번호 설정 링크 보내기",
+      "setPasswordLinkDescription": "이 링크를 복사해 본인만 읽을 수 있는 곳으로 {{email}}에게 직접 보내세요. 한 번만, {{days}}일 동안 사용할 수 있습니다.",
+      "setPasswordLinkOrSetIt": "또는 해당 사용자의 인증 페이지에서 비밀번호를 직접 설정하세요."
     },
     "enterpriseLicenses": {
       "title": "엔터프라이즈 라이선스",
@@ -201,7 +201,6 @@
     "userView": {
       "title": "사용자",
       "cardTitle": "사용자",
-      "cardDescription": "사용자 세부 정보",
       "editButton": "사용자 편집",
       "masterAdminCardTitle": "마스터 관리자 액세스",
       "masterAdminCardDescription": "이 사용자에 대한 마스터 관리자 액세스를 부여하거나 취소합니다. 마스터 관리자는 모든 프로젝트와 작업 공간을 관리할 수 있습니다.",
@@ -302,13 +301,12 @@
     "projects": {
       "title": "프로젝트",
       "cardTitle": "프로젝트",
-      "cardDescription": "다음은 OneUptime의 프로젝트 목록입니다.",
-      "noItems": "프로젝트를 찾을 수 없습니다."
+      "listDescription": "이 서버의 모든 프로젝트입니다. 프로젝트를 열어 사용자, 팀, 설정을 관리하세요.",
+      "emptyMessage": "아직 프로젝트가 없습니다."
     },
     "projectView": {
       "title": "프로젝트",
       "cardTitle": "프로젝트",
-      "cardDescription": "프로젝트 세부 정보",
       "editButton": "프로젝트 편집",
       "dataResidencyCardTitle": "데이터 레지던시",
       "dataResidencyCardDescription": "이 프로젝트의 데이터가 호스팅되는 위치입니다. 설정하면 프로젝트 설정에서 프로젝트 사용자에게 표시됩니다.",
@@ -450,8 +448,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "사용자",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "이 프로젝트에 속한 사람들입니다. 각자 할 수 있는 일은 소속 팀이 정합니다.",
+      "emptyMessage": "이 프로젝트에 아직 사용자가 없습니다.",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "사용자 초대",
       "inviteUserTitle": "새 사용자 초대",
@@ -470,19 +468,18 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "팀",
-      "cardDescription": "이 프로젝트의 모든 팀 목록입니다.",
-      "noItems": "No teams found in this project."
+      "listDescription": "팀은 구성원이 이 프로젝트에서 할 수 있는 일을 정합니다. 여러 사람에게 같은 액세스 권한을 주려면 팀을 만드세요.",
+      "emptyMessage": "이 프로젝트에 아직 팀이 없습니다."
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "팀 세부 정보",
-      "cardDescription": "Details about this team.",
       "editButton": "팀 편집",
       "membersCardTitle": "팀 멤버",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "로그아웃"
     },
     "sendEmail": {
@@ -623,13 +620,13 @@
       },
       "probes": {
         "bannerTitle": "글로벌 프로브 설정에 도움이 필요하신가요?",
-        "bannerDescription": "설정하는 데 도움이 될 가이드가 있습니다",
+        "bannerGuide": "가이드에 따라 자체 서버에서 프로브를 실행하고 여기에 연결하세요.",
         "cardTitle": "글로벌 프로브",
         "cardDescription": "글로벌 프로브는 전 세계의 다양한 위치에서 외부 리소스를 모니터링하는 데 도움이 됩니다.",
-        "noItems": "프로브를 찾을 수 없습니다.",
+        "emptyMessage": "아직 글로벌 프로브가 없습니다.",
         "showIdKey": "ID 및 키 표시",
         "keyModalTitle": "프로브 키",
-        "keyModalDescription": "다음은 프로브 키입니다. 비밀로 유지하세요.",
+        "keyModalSecret": "프로브는 이 ID와 키로 OneUptime에 연결합니다. 키는 비밀로 유지하세요.",
         "probeIdLabel": "프로브 ID:",
         "probeKeyLabel": "프로브 키:"
       },
@@ -724,7 +721,6 @@
   "Projects": "프로젝트",
   "Project": "프로젝트",
   "User": "사용자",
-  "Logout": "로그아웃",
   "Save": "저장",
   "Cancel": "취소",
   "Submit": "제출",
@@ -981,7 +977,7 @@
   "No OIDC providers yet.": "아직 OIDC 공급자가 없습니다.",
   "Require SSO": "SSO 필수로 설정",
   "Before you require SSO, sign in with a provider using Test Sign-in in its row.": "SSO를 필수로 설정하기 전에 공급자 행의 '로그인 테스트'로 로그인해 보세요.",
-  "Require SSO for Login": "로그인에 SSO 필수",
+  "Require SSO to Sign In": "로그인에 SSO 필수",
   "The sign-in page offers only SSO. Everyone except master admins must sign in with SSO to open any project.": "로그인 페이지에는 SSO만 표시됩니다. 마스터 관리자를 제외한 모든 사용자는 프로젝트를 열려면 SSO로 로그인해야 합니다.",
   "People can sign in with a password, a passkey or SSO.": "비밀번호, 패스키 또는 SSO로 로그인할 수 있습니다.",
   "Master admins can always sign in with their password here, even while SSO is required. Keep this address.": "마스터 관리자는 SSO가 필수인 동안에도 여기에서 언제든지 비밀번호로 로그인할 수 있습니다. 이 주소를 보관해 두세요.",
@@ -2146,8 +2142,6 @@
   "Check email settings": "이메일 설정 확인",
   "Email is failing": "이메일 전송 실패 중",
   "Email is not set up": "이메일이 설정되지 않음",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "{{time}}부터 이메일 전송이 실패하고 있어 초대와 인시던트 이메일이 도착하지 않습니다.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "{{time}}부터 이메일 전송이 실패하고 있어 초대와 인시던트 이메일이 도착하지 않습니다. 메일 서버 응답: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "초대, 비밀번호 재설정, 인시던트 이메일이 전송되지 않습니다.",
   "Monitors that run on global probes are not being checked.": "글로벌 프로브에서 실행되는 모니터가 확인되지 않고 있습니다.",
   "No global probe is reporting": "보고 중인 글로벌 프로브가 없음",
@@ -2206,7 +2200,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "클라우드 마켓플레이스 구독을 통한 라이선스: 모든 사용자가 시간 단위로 청구됩니다.",
   "License, version, seat usage, and the instances covered by this key.": "라이선스, 버전, 좌석 사용량, 그리고 이 키가 적용되는 인스턴스입니다.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "인시던트 대응, 상태 페이지, 워크플로 자동화를 갖춘 OneUptime 플랫폼 전체.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "프로젝트, 상태 페이지, 인스턴스 전체를 위한 SAML 및 OIDC Single Sign-On(SSO), \"로그인에 SSO 필수\" 포함.",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "프로젝트, 상태 페이지, 인스턴스 전체를 위한 SAML 및 OIDC Single Sign-On(SSO), \"로그인에 SSO 필수\" 포함.",
   "Community support, documentation, and tutorials to help teams get started quickly.": "팀이 빠르게 시작할 수 있도록 돕는 커뮤니티 지원, 문서, 튜토리얼.",
   "Regular updates, bug fixes, and open-source extensibility.": "정기 업데이트, 버그 수정, 오픈 소스 확장성.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "커뮤니티가 관리하는 커넥터를 통한 인기 DevOps 도구 통합.",
@@ -4167,5 +4161,19 @@
   "OneUptime switched this rule off when they were deleted.": "해당 항목이 삭제될 때 OneUptime이 이 규칙을 비활성화했습니다.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "이대로 활성화하면 이 규칙은 이 목록들로 전혀 제한되지 않습니다. 규칙을 편집해 적용 대상을 선택한 다음 활성화하세요.",
   "{{names}} and {{count}} more": "{{names}} 외 {{count}}개",
-  "{{names}} and {{count}} more_one": "{{names}} 외 {{count}}개"
+  "{{names}} and {{count}} more_one": "{{names}} 외 {{count}}개",
+  "No email has gone out through this server's email settings since {{time}}.": "{{time}} 이후 이 서버의 이메일 설정으로 발송된 이메일이 없습니다.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "{{time}} 이후 이 서버의 이메일 설정으로 발송된 이메일이 없습니다. 메일 서버 응답: {{reason}}",
+  "See email logs": "이메일 로그 보기",
+  "Addresses the mail server refused": "메일 서버가 거부한 주소",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "다른 이메일은 발송되었으므로 이 주소들만 영향을 받습니다. 주소를 수정하거나 메일 제공업체가 이 주소를 허용하도록 하세요. Amazon SES 샌드박스는 확인된 주소로만 발송합니다.",
+  "Last refused {{time}}": "마지막 거부: {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}}을(를) 만들었지만 비밀번호 설정 링크가 담긴 이메일은 보내지 못했습니다. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "직접 보낼 링크도 만들지 못했습니다. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime이 본인이 직접 비밀번호를 설정할 수 있는 링크를 이메일로 보냅니다.",
+  "They sign in with the password you set. Share it with them securely.": "설정한 비밀번호로 로그인합니다. 안전한 방법으로 전달하세요.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "이 서버는 아직 이메일을 보낼 수 없습니다. 여기에서 비밀번호를 설정하거나, 비워 두고 직접 보낼 링크를 받으세요.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "이 서버는 아직 이메일을 보낼 수 없습니다. 설정 > 이메일에서 이메일을 설정하세요.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "이 서버는 아직 이메일을 보낼 수 없어 비밀번호 재설정 링크를 보내지 못했습니다. 설정 > 이메일에서 이메일을 설정하거나 비밀번호를 직접 설정하세요.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "이 사용자에게는 이미 비밀번호가 있어 복사할 비밀번호 설정 링크가 없습니다. 대신 인증 페이지에서 비밀번호 재설정 링크를 보내세요."
 }

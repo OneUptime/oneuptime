@@ -1216,7 +1216,7 @@ export default class UserMiddleware {
 
   // Same wording as CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE.
   public static readonly AUTHENTICATION_REQUIRED_MESSAGE: string =
-    "Authentication required. Please log in to access this resource.";
+    "Authentication required. Please sign in to access this resource.";
 
   /*
    * The request-level twin of CommonAPI.isAnonymous: getUserMiddleware found
@@ -1427,8 +1427,8 @@ export default class UserMiddleware {
    * THE SIGN-IN RULES OF A PROJECT ARE READ, OR THE REQUEST IS REFUSED.
    *
    * Whether a person must have signed in with SSO to open a project is read
-   * from the project's own Require SSO for Login, the provider it pins, and
-   * the server's Require SSO for Login (GlobalConfig). Each is kept for a
+   * from the project's own Require SSO to Sign In, the provider it pins, and
+   * the server's Require SSO to Sign In (GlobalConfig). Each is kept for a
    * minute per server, and read from the database when that minute has run
    * out. A read that fails - the database restarting, the pool of
    * connections full, a statement out of time - answers nothing about the
@@ -1500,7 +1500,7 @@ export default class UserMiddleware {
     }
 
     /*
-     * The instance-wide "Require SSO for Login" flag (GlobalConfig) forces SSO
+     * The instance-wide "Require SSO to Sign In" flag (GlobalConfig) forces SSO
      * on every project. Master admins are exempt so a misconfigured global SSO
      * can't lock them out — a project's own requireSsoForLogin still applies to
      * them. Only checked when the project doesn't already enforce SSO. A read
@@ -1552,7 +1552,7 @@ export default class UserMiddleware {
       (req as OneUptimeRequest).userAuthorization?.isMasterAdmin === true;
 
     /*
-     * Instance-wide "Require SSO for Login" forces SSO on every project. Master
+     * Instance-wide "Require SSO to Sign In" forces SSO on every project. Master
      * admins are exempt. Resolved once (cached) rather than per project. A
      * read that fails throws, and the whole request is refused with it
      * (getUserTenantAccessPermissionWithTenantId says why).

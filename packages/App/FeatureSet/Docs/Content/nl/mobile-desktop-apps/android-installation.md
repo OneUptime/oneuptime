@@ -121,12 +121,12 @@ OneUptime stuurt dienstoproepen met hoge prioriteit, die Android ook bezorgt aan
 
 ## De app vergrendelen
 
-Schakel in de app onder **Settings** de schakelaar **Biometrics Login** in, en de app vraagt bij elke start om uw vingerafdruk, uw gezicht of de schermvergrendeling van de telefoon. De schakelaar verschijnt zodra de telefoon ontgrendelen met vingerafdruk of gezicht heeft ingesteld. **Appearance**, op hetzelfde scherm, kiest het lichte of donkere uiterlijk, of volgt de telefoon.
+Schakel in de app onder **Settings** de schakelaar **Biometric Unlock** in, en de app vraagt bij elke start om uw vingerafdruk, uw gezicht of de schermvergrendeling van de telefoon. De schakelaar verschijnt zodra de telefoon ontgrendelen met vingerafdruk of gezicht heeft ingesteld. **Appearance**, op hetzelfde scherm, kiest het lichte of donkere uiterlijk, of volgt de telefoon.
 
 ## Bijwerken, afmelden of verwijderen
 
 - **Bijwerken.** Google Play werkt de app bij. Installeer bij de APK de nieuwste eroverheen. De versie van de app staat onderaan het scherm **Settings**.
-- **Afmelden.** **Settings → Log Out** meldt u af en haalt de telefoon in elk project uit uw pushapparaten, samen met zijn bereikbaarheidsregels. Meldt u zich weer aan, dan komt hij terug met de standaardregels.
+- **Afmelden.** **Settings → Sign Out** meldt u af en haalt de telefoon in elk project uit uw pushapparaten, samen met zijn bereikbaarheidsregels. Meldt u zich weer aan, dan komt hij terug met de standaardregels.
 - **Verwijderen.** Verwijder de app zoals elke andere. Was u nog aangemeld, dan blijft de telefoon in uw lijst tot een push ernaar mislukt: OneUptime markeert hem dan als **Ontvangt geen meldingen**. Verwijder die vermelding met **Verwijderen**: installeert u de app opnieuw en meldt u zich aan, dan wordt de telefoon als nieuwe vermelding toegevoegd, met de standaardregels.
 
 ## Probleemoplossing
@@ -151,7 +151,7 @@ Open in de app **Settings**: de regel onder **Critical On-Call Alerts** zegt wat
 OneUptime On-Call staat al op de telefoon vanuit een andere bron, zoals Google Play, en Android installeert de ene niet over de andere. Verwijder de app, installeer de APK en meld u opnieuw aan.
 :::
 
-:::details Geen schakelaar Biometrics Login
+:::details Geen schakelaar Biometric Unlock
 De schakelaar verschijnt zodra ontgrendelen met vingerafdruk of gezicht is ingesteld in de Android-instellingen.
 :::
 

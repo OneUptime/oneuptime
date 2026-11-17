@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "Glömt lösenord",
     "subtitle": "Ange din e-post så skickas länken för återställning av lösenord till dig.",
-    "successMessage": "Vi har skickat länken för återställning av lösenord till din e-post. Glöm inte att kontrollera skräpposten.",
+    "successMessage": "Om ett konto använder den här e-postadressen har vi mejlat det en länk för att välja ett lösenord. Glöm inte att kontrollera skräpposten.",
     "submitButton": "Skicka länk för återställning",
     "rememberPasswordPrompt": "Kommer du ihåg ditt lösenord?",
     "loginLink": "Logga in.",
@@ -187,6 +187,17 @@
     "linkInvalidTitle": "Den här återställningslänken fungerar inte längre",
     "linkInvalidDescription": "Den kan redan ha använts, eller så kopierades bara en del av den. Be om en ny länk så mejlar vi den till dig.",
     "requestNewLinkButton": "Be om en ny länk"
+  },
+  "setPassword": {
+    "title": "Ange ditt lösenord",
+    "subtitle": "Välj ett lösenord för att slutföra konfigurationen av ditt konto.",
+    "submitButton": "Ange lösenord",
+    "successTitle": "Ditt lösenord är angivet",
+    "successDescription": "Logga in med ditt nya lösenord.",
+    "linkExpiredTitle": "Den här länken har gått ut",
+    "linkExpiredDescription": "Länkar för att ange ett lösenord fungerar i {{days}} dagar. Be om en ny länk så mejlar vi den till dig.",
+    "linkInvalidTitle": "Den här länken fungerar inte längre",
+    "linkInvalidDescription": "Den kan redan ha använts, eller så kopierades bara en del av den. Om du har angett ditt lösenord loggar du in. Annars ber du om en ny länk så mejlar vi den till dig."
   },
   "sso": {
     "title": "Logga in med SSO",
@@ -453,7 +464,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Licensierad via din prenumeration på molnmarknadsplatsen: varje användare faktureras per timme.",
   "License, version, seat usage, and the instances covered by this key.": "Licens, version, platsanvändning och de instanser som den här nyckeln omfattar.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "Hela OneUptime-plattformen med incidenthantering, statussidor och automatisering av arbetsflöden.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "SAML- och OIDC-enkel inloggning (SSO) för projekt, statussidor och hela instansen, inklusive \"Kräv SSO för inloggning\".",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "SAML- och OIDC-enkel inloggning (SSO) för projekt, statussidor och hela instansen, inklusive \"Kräv SSO för inloggning\".",
   "Community support, documentation, and tutorials to help teams get started quickly.": "Communitysupport, dokumentation och guider som hjälper team att snabbt komma igång.",
   "Regular updates, bug fixes, and open-source extensibility.": "Regelbundna uppdateringar, buggfixar och utbyggbarhet med öppen källkod.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Integrationer med populära DevOps-verktyg genom kopplingar som communityn underhåller.",

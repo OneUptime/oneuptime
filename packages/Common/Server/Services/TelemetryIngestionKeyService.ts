@@ -797,8 +797,13 @@ export class Service extends DatabaseService<Model> {
     const generationBefore: string | null = data.generationBefore;
     const writesSeenBefore: number = this.writesSeen;
 
-    const token: Model | null = await this.findOneBy({
-      query: { secretKey: data.secretKey },
+    /*
+     * The secret is kept encrypted (#9012): the key is found by its lookup
+     * hash, then held to the secret itself (findOneByPresentedKey).
+     */
+    const token: Model | null = await this.findOneByPresentedKey({
+      column: "secretKey",
+      presentedKey: data.secretKey,
       select: POLICY_SELECT,
       props: { isRoot: true },
     });

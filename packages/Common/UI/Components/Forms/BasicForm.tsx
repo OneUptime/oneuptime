@@ -1417,12 +1417,6 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     const primaryButtonStyle: React.CSSProperties = {};
 
     if (props.maxPrimaryButtonWidth) {
-      /*
-       * Clears the start margin Button keeps from md up (md:ml-3 - the
-       * start of the line, the right on a page that reads right to left:
-       * Common/UI/Styles/TailwindReadingDirection.js).
-       */
-      primaryButtonStyle.marginInlineStart = "0px";
       primaryButtonStyle.width = "100%";
     }
 
@@ -1798,6 +1792,16 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                               formValues={refCurrentValue.current}
                               formFields={formFields}
                               formSteps={formSteps || undefined}
+                              setFieldValue={(
+                                field: Field<T>,
+                                value: JSONValue,
+                              ): void => {
+                                setFieldValueFromFooter(
+                                  field,
+                                  getFieldName(field),
+                                  value,
+                                );
+                              }}
                             />
                           ) : (
                             /*
@@ -1824,7 +1828,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                   })()}
                 </div>
 
-                <div className="flex w-full justify-end">
+                {/*
+                 * The footer spaces its buttons: a Button has no margin of
+                 * its own (#9128).
+                 */}
+                <div className="flex w-full justify-end gap-3">
                   {nextButtonElement}
                   {showSubmitButton && footer.showActionButton && (
                     <div
@@ -1853,7 +1861,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     </div>
                   )}
                   {props.onCancel && (
-                    <div>
+                    // Level with the submit button beside it.
+                    <div className="mt-3">
                       <Button
                         title={
                           translateString(

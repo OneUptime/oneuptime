@@ -59,12 +59,12 @@ Listens sidemenu har de sider, der passer på alle dine dashboards:
 | **Dashboard** | Selve dashboardet. Læs det, eller rediger det fra dets **⋯**-menu. |
 | **Oversigt** | Dets navn, beskrivelse og etiketter. |
 | **Deling** | Hvem der kan se det, dets offentlige link og en IP-tilladelsesliste under Yderligere indstillinger. |
-| **Ejere** | De brugere og teams, der ejer det. |
 | **Branding** | Sidetitel, beskrivelse, logo, tema og favicon for det offentlige dashboard. |
 | **Brugerdefinerede domæner** | Host det offentlige dashboard på dit eget domæne. |
 | **Indstillinger** | Duplikér, eksportér eller arkiver dashboardet. |
+| **Ejere** | De brugere og teams, der ejer det. |
 | **Auditlogs** | Hver ændring, der er foretaget på dashboardet, og hvem der foretog den. |
-| **Slet** | Slet dashboardet for altid. |
+| **Slet dashboard** | Slet dashboardet for altid. |
 
 ## Byg dit første dashboard
 

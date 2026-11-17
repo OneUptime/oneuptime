@@ -40,7 +40,7 @@ flowchart LR
 | **Sikkerhed** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering og fakturaer** | **Fakturering**, **Fakturaer** | [Fakturering og forbrug](/docs/configuration/billing) |
 | **Auditlogs** | **Auditlogs**, **Indstillinger**, **Eksport** | [Auditlogs](/docs/configuration/audit-logs), [Eksport af auditlog](/docs/configuration/audit-log-export) |
-| **Farezone** | **Farezone** | [Slet projektet](#slet-projektet) |
+| **Farezone** | **Slet projekt** | [Slet projektet](#slet-projektet) |
 
 **Fakturering og fakturaer** og **AI-kreditter** findes kun i OneUptime Cloud: en selvhostet installation har ingen fakturering.
 
@@ -99,7 +99,7 @@ For at udfase en etiket skal du arkivere den fra rækkens menu **⋯** i stedet 
 **Projektindstillinger → Notifikationer** rummer, hvordan projektet sender notifikationer:
 
 - **Notifikationskanaler**: kortet **Notifikationskanaler** slår SMS, telefonopkald, WhatsApp og Telegram til eller fra for projektet. Alle fire er slået fra fra start. En Projektejer, en **Faktureringsadministrator** eller en med **Manage Billing** slår dem til. Siden rummer også, sammenklappet under **Yderligere indstillinger**, projektets egne mailservere i **Brugerdefinerede SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud rummer den saldoen, som disse beskeder betales fra: se [Forudbetalte saldi](/docs/configuration/billing#forudbetalte-saldi).
-- **Notifikationslogs**: hver notifikation, projektet har sendt, med én fane pr. kanal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Kald**, **Push** og **Arbejdsområde**.
+- **Notifikationslogs**: hver notifikation, projektet har sendt, med én fane pr. kanal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Kald**, **Push** og **Arbejdsområde**. Fanen **Webhook** beholder kun skemaet og værten i hver adresse: resten er webhookens hemmelighed.
 - **Mobilapps**: hvor du får apps til iOS og Android. Se [Apps – Oversigt](/docs/mobile-desktop-apps/index).
 
 ## Funktionsflag
@@ -113,7 +113,7 @@ At slette et projekt sletter alt i det, for alle medlemmer: monitorer, hændelse
 :::steps
 ### Åbn farezonen
 
-Gå til **Projektindstillinger → Farezone**.
+Gå til **Projektindstillinger → Farezone → Slet projekt**.
 
 ### Klik på Slet Projekt
 

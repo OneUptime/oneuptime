@@ -1533,27 +1533,51 @@ function replaceEveryOccurrence(source, from, to) {
  * once, each matched as a whole port. One swap after another would read the
  * ports the earlier swaps wrote: a free port of 43175 for 7849 became 421735
  * once the App's gRPC port, 4317, was moved after it, and nginx refused to
- * start.
+ * start. The text is walked rather than matched with a pattern built from
+ * the addresses: node --test runs this file as it is, so it cannot import
+ * Common's escapeRegExp, and a copy of it is what TestCodeScanningGuard
+ * refuses.
  */
 function replacePorts(source, standIns) {
   const addresses = Object.keys(standIns);
-  const whole = (address) => {
-    return `${escapeRegExp(address)}(?!\\d)`;
+
+  // The address at `at` in `source`, as a whole port: no digit right after it.
+  const addressAt = (at) => {
+    return addresses.find((address) => {
+      const end = at + address.length;
+
+      return (
+        source.startsWith(address, at) &&
+        !(end < source.length && source[end] >= "0" && source[end] <= "9")
+      );
+    });
   };
+
+  let replaced = "";
+  const found = new Set();
+
+  for (let at = 0; at < source.length; ) {
+    const address = addressAt(at);
+
+    if (address === undefined) {
+      replaced += source[at];
+      at++;
+      continue;
+    }
+
+    found.add(address);
+    replaced += standIns[address];
+    at += address.length;
+  }
 
   for (const address of addresses) {
     assert.ok(
-      new RegExp(whole(address)).test(source),
+      found.has(address),
       `"${address}" no longer appears in the rendered config`,
     );
   }
 
-  return source.replace(
-    new RegExp(addresses.map(whole).join("|"), "g"),
-    (address) => {
-      return standIns[address];
-    },
-  );
+  return replaced;
 }
 
 /*

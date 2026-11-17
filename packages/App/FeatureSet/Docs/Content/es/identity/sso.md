@@ -3,7 +3,7 @@
 El inicio de sesión único (SSO) permite que las personas de tu proyecto inicien sesión en OneUptime con el proveedor de identidad (IdP) de tu organización, mediante SAML 2.0 u OpenID Connect. Gestionas el acceso, las contraseñas y la autenticación multifactor en un solo lugar, y puedes exigir SSO a todos los miembros del proyecto.
 
 > [!NOTE]
-> **Edición:** el SSO, incluido "Require SSO for login", forma parte de todas las ediciones de OneUptime: las instalaciones autoalojadas lo tienen en la Community Edition, sin necesidad de licencia. En OneUptime Cloud está disponible a partir del plan **Scale**. Consulta [Edición Enterprise](/docs/self-hosted/enterprise) para ver qué incluye cada edición.
+> **Edición:** el SSO, incluido "Require SSO to sign in", forma parte de todas las ediciones de OneUptime: las instalaciones autoalojadas lo tienen en la Community Edition, sin necesidad de licencia. En OneUptime Cloud está disponible a partir del plan **Scale**. Consulta [Edición Enterprise](/docs/self-hosted/enterprise) para ver qué incluye cada edición.
 
 :::cards
 - [Configurar un proveedor SAML](#configurar-sso): Crearlo en OneUptime y dar dos URL a tu IdP.
@@ -325,7 +325,7 @@ Añadir un proveedor, cambiar uno o volver a activarlo requiere **Scale**. Quié
 
 Mientras el proyecto siga exigiendo SSO, su página **SSO** también muestra **Requerir SSO para iniciar sesión**: desactívalo antes de desactivar el último proveedor. Hasta entonces, el último proveedor con el que las personas pueden iniciar sesión no se puede desactivar ni eliminar, para que nadie quede fuera del proyecto.
 
-Las páginas **SSO** y **OIDC** de una página de estado muestran sus propios proveedores de la misma forma. Mientras la página de estado siga exigiendo SSO, ambas páginas también muestran **Requerir SSO para iniciar sesión**: desactívalo antes de desactivar sus proveedores, o sus usuarios privados no podrán iniciar sesión en absoluto.
+La página **Inicio de sesión único** de una página de estado muestra sus propios proveedores de la misma forma, en sus pestañas **SAML** y **OIDC**. Mientras la página de estado siga exigiendo SSO, ambas pestañas también muestran **Requerir SSO para iniciar sesión**: desactívalo antes de desactivar sus proveedores, o sus usuarios privados no podrán iniciar sesión en absoluto.
 
 ## Solución de problemas
 

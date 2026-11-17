@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "Glemt passord",
     "subtitle": "Skriv inn e-postadressen din, så vil lenken til tilbakestilling av passord bli sendt til deg.",
-    "successMessage": "Vi har sendt deg lenken til tilbakestilling av passord på e-post. Ikke glem å sjekke søppelpost.",
+    "successMessage": "Hvis en konto bruker denne e-postadressen, har vi sendt den en lenke for å velge et passord. Ikke glem å sjekke søppelpost.",
     "submitButton": "Send lenke til tilbakestilling",
     "rememberPasswordPrompt": "Husker du passordet ditt?",
     "loginLink": "Logg inn.",
@@ -187,6 +187,17 @@
     "linkInvalidTitle": "Denne tilbakestillingslenken virker ikke lenger",
     "linkInvalidDescription": "Den kan allerede være brukt, eller bare en del av den ble kopiert. Be om en ny lenke, så sender vi den til deg på e-post.",
     "requestNewLinkButton": "Be om en ny lenke"
+  },
+  "setPassword": {
+    "title": "Angi passordet ditt",
+    "subtitle": "Velg et passord for å fullføre oppsettet av kontoen din.",
+    "submitButton": "Angi passord",
+    "successTitle": "Passordet ditt er angitt",
+    "successDescription": "Logg på med det nye passordet ditt.",
+    "linkExpiredTitle": "Denne lenken har utløpt",
+    "linkExpiredDescription": "Lenker for å angi et passord virker i {{days}} dager. Be om en ny lenke, så sender vi den til deg på e-post.",
+    "linkInvalidTitle": "Denne lenken virker ikke lenger",
+    "linkInvalidDescription": "Den kan allerede være brukt, eller bare en del av den ble kopiert. Har du angitt passordet ditt, logger du på. Hvis ikke, ber du om en ny lenke, så sender vi den til deg på e-post."
   },
   "sso": {
     "title": "Logg inn med SSO",
@@ -453,7 +464,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Lisensiert gjennom abonnementet ditt på skymarkedsplassen: hver bruker faktureres per time.",
   "License, version, seat usage, and the instances covered by this key.": "Lisens, versjon, plassbruk og instansene denne nøkkelen dekker.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "Hele OneUptime-plattformen med hendelseshåndtering, statussider og automatisering av arbeidsflyter.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "SAML- og OIDC-enkel pålogging (SSO) for prosjekter, statussider og hele instansen, inkludert «Krev SSO for innlogging».",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "SAML- og OIDC-enkel pålogging (SSO) for prosjekter, statussider og hele instansen, inkludert «Krev SSO for å logge på».",
   "Community support, documentation, and tutorials to help teams get started quickly.": "Fellesskapsstøtte, dokumentasjon og veiledninger som hjelper team raskt i gang.",
   "Regular updates, bug fixes, and open-source extensibility.": "Jevnlige oppdateringer, feilrettinger og utvidbarhet med åpen kildekode.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Integrasjoner med populære DevOps-verktøy gjennom koblinger som fellesskapet vedlikeholder.",

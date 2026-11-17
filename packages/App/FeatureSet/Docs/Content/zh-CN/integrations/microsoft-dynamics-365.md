@@ -133,7 +133,7 @@ Dataverse 中没有类似 Jira 标签的东西，因此案例和 OneUptime 记�
 4. 点击 **创建工作流**。每个工作流创建时都处于关闭状态：在它的 **生成器** 顶部打开 **已启用**。
 :::
 
-先从 **Create a Dynamics 365 case when an incident is declared** 开始，警报则从 **Create a Dynamics 365 case when an alert is created** 开始：同类的其他 OneUptime → Dynamics 365 模板都通过这个模板写入的关联找到案例。启用它，声明一个测试事件或创建一个测试警报，然后打开工作流的 **日志 → 运行记录**。这次运行应以 **已执行** 结束，其最后一步 `create-case-1` 的 **响应主体** 中会有新案例的 `ticketnumber`，例如 `CAS-01001-X1Y2Z3`。
+先从 **Create a Dynamics 365 case when an incident is declared** 开始，警报则从 **Create a Dynamics 365 case when an alert is created** 开始：同类的其他 OneUptime → Dynamics 365 模板都通过这个模板写入的关联找到案例。启用它，声明一个测试事件或创建一个测试警报，然后打开工作流的 **运行记录**。这次运行应以 **已执行** 结束，其最后一步 `create-case-1` 的 **响应主体** 中会有新案例的 `ticketnumber`，例如 `CAS-01001-X1Y2Z3`。
 
 ### 连接 Dynamics 365 → OneUptime 模板
 
@@ -181,7 +181,7 @@ Dynamics 365 → OneUptime 模板（3 个事件模板和 3 个警报模板）从
 
 ### 检查是否正常工作
 
-每次运行的 **步骤** 都会说明模板做了什么，因此请在 **日志 → 运行记录** 中打开这次运行，看看它是如何结束的：
+每次运行的 **步骤** 都会说明模板做了什么，因此请在 **运行记录** 中打开这次运行，看看它是如何结束的：
 
 - **已执行**：完成了工作，最后一步会给出案例、事件或警报。
 - **已执行**，且 **用 JavaScript 检查** 步骤走了 **否**：有意跳过了该事件，该步骤会说明原因：案例没有关联到这类记录、备注来自另一边、记录是私密的，或者新状态不会关闭案例。
@@ -297,7 +297,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
    }
    ```
 
-5. 打开 **已启用**，声明一个测试事件，然后打开 **日志 → 运行记录**。`create-case` 步骤会显示 `201`，以及包含新的 `incidentid` 和 `ticketnumber` 的响应主体。
+5. 打开 **已启用**，声明一个测试事件，然后打开 **运行记录**。`create-case` 步骤会显示 `201`，以及包含新的 `incidentid` 和 `ticketnumber` 的响应主体。
 :::
 
 每个案例都需要一个客户，所以 `customerid` 是必填的。它可以指向客户（account）或联系人，因此你要写 `customerid_account@odata.bind` 或 `customerid_contact@odata.bind`，拼写必须完全一致。`Prefer: return=representation` 让响应变为带有案例本身的 `201`，这样下一个块就可以读取 `{{local.components.create-case.returnValues.response-body.incidentid}}`。没有它时，Dynamics 365 会返回不带主体的 `204`。
@@ -399,7 +399,7 @@ Dataverse 只调用端口 80 和 443，最多等待 60 秒的响应，并且只�
 
 ## 故障排除
 
-先在 **日志 → 运行记录** 中打开失败的步骤。两个 Microsoft 端点都会以说明问题的 JSON 主体回应，API 块把它保存在 `response-body` 中。
+先在 **运行记录** 中打开失败的步骤。两个 Microsoft 端点都会以说明问题的 JSON 主体回应，API 块把它保存在 `response-body` 中。
 
 :::details 带有 AADSTS70011 的 400：作用域无效
 作用域不是你的环境 URL 加上 `/.default`。从 Power Platform 管理中心复制 URL，并去掉末尾的斜杠和任何 `/api/data/...` 路径。
@@ -434,7 +434,7 @@ Dataverse 的服务保护限制允许每个用户在任意五分钟内发出约 
 :::
 
 :::details OneUptime 什么也没收到
-用 `curl` 自己向 Webhook URL 发送一个请求，并在 **日志 → 运行记录** 中查找它。如果你的请求到达了而 Dynamics 365 的没有，请检查上游：流自身的运行历史记录，或者 Dataverse Webhook 失败的 System Jobs。
+用 `curl` 自己向 Webhook URL 发送一个请求，并在 **运行记录** 中查找它。如果你的请求到达了而 Dynamics 365 的没有，请检查上游：流自身的运行历史记录，或者 Dataverse Webhook 失败的 System Jobs。
 :::
 
 :::details 工作流运行了，但事件没有变化

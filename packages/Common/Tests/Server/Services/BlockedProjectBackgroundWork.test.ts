@@ -281,7 +281,7 @@ describe("telemetry ingest", () => {
 
   test("a blocked project's key is refused with a 403, before billing is asked", async () => {
     jest
-      .spyOn(TelemetryIngestionKeyService, "findOneBy")
+      .spyOn(TelemetryIngestionKeyService, "findOneByPresentedKey")
       .mockResolvedValue(keyIn(BLOCKED_PROJECT_ID));
 
     await expect(
@@ -296,7 +296,7 @@ describe("telemetry ingest", () => {
   test("is refused on a cache hit too: a block reaches a key already in use", async () => {
     const secret: string = ObjectID.generate().toString();
     jest
-      .spyOn(TelemetryIngestionKeyService, "findOneBy")
+      .spyOn(TelemetryIngestionKeyService, "findOneByPresentedKey")
       .mockResolvedValue(keyIn(BLOCKED_PROJECT_ID));
     isProjectBlocked.mockResolvedValueOnce(false);
 
@@ -311,7 +311,7 @@ describe("telemetry ingest", () => {
 
   test("a project that is not blocked ingests as before", async () => {
     jest
-      .spyOn(TelemetryIngestionKeyService, "findOneBy")
+      .spyOn(TelemetryIngestionKeyService, "findOneByPresentedKey")
       .mockResolvedValue(keyIn(LIVE_PROJECT_ID));
 
     const policy: TelemetryIngestionKeyPolicy | null =
@@ -325,7 +325,7 @@ describe("telemetry ingest", () => {
 
   test("a disabled key still resolves, so its own refusal can be told", async () => {
     jest
-      .spyOn(TelemetryIngestionKeyService, "findOneBy")
+      .spyOn(TelemetryIngestionKeyService, "findOneByPresentedKey")
       .mockResolvedValue(keyIn(BLOCKED_PROJECT_ID, false));
 
     await expect(

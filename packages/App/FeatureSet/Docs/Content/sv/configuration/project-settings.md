@@ -40,7 +40,7 @@ flowchart LR
 | **Säkerhet** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering och fakturor** | **Fakturering**, **Fakturor** | [Fakturering och användning](/docs/configuration/billing) |
 | **Granskningsloggar** | **Granskningsloggar**, **Inställningar**, **Export** | [Granskningsloggar](/docs/configuration/audit-logs), [Export av granskningslogg](/docs/configuration/audit-log-export) |
-| **Farozon** | **Farozon** | [Ta bort projektet](#ta-bort-projektet) |
+| **Farozon** | **Ta bort projekt** | [Ta bort projektet](#ta-bort-projektet) |
 
 **Fakturering och fakturor** och **AI-krediter** finns bara i OneUptime Cloud: en självhostad installation har ingen fakturering.
 
@@ -99,7 +99,7 @@ För att fasa ut en etikett arkiverar du den från radens meny **⋯** i ställe
 **Projektinställningar → Aviseringar** innehåller hur projektet skickar aviseringar:
 
 - **Aviseringskanaler**: kortet **Aviseringskanaler** slår på eller av SMS, telefonsamtal, WhatsApp och Telegram för projektet. Alla fyra är avstängda från början. En Projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på dem. Sidan innehåller också, hopfällda under **Fler inställningar**, projektets egna e-postservrar i **Anpassade SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) och dess eget Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud innehåller den saldot som de här meddelandena betalas från: se [Förbetalda saldon](/docs/configuration/billing#förbetalda-saldon).
-- **Aviseringsloggar**: varje avisering som projektet har skickat, med en flik per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** och **Arbetsyta**.
+- **Aviseringsloggar**: varje avisering som projektet har skickat, med en flik per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** och **Arbetsyta**. Fliken **Webhook** behåller bara schemat och värden i varje adress: resten är webhookens hemlighet.
 - **Mobilappar**: var du hämtar apparna för iOS och Android. Se [Appar – Översikt](/docs/mobile-desktop-apps/index).
 
 ## Funktionsflaggor
@@ -113,7 +113,7 @@ Att ta bort ett projekt tar bort allt i det, för alla medlemmar: monitorer, inc
 :::steps
 ### Öppna farozonen
 
-Gå till **Projektinställningar → Farozon**.
+Gå till **Projektinställningar → Farozon → Ta bort projekt**.
 
 ### Klicka på Ta bort Projekt
 

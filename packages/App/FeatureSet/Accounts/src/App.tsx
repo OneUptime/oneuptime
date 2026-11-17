@@ -64,11 +64,12 @@ const NotFound: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
 const RegisterPage: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/Register");
 });
-const ResetPasswordPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
-  () => {
-    return import("./Pages/ResetPassword");
-  },
-);
+// Also the set-password page of an account made for someone, by its prop.
+const ResetPasswordPage: React.LazyExoticComponent<
+  ComponentType<{ isSettingFirstPassword?: boolean | undefined }>
+> = lazy(() => {
+  return import("./Pages/ResetPassword");
+});
 const VerifyEmail: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/VerifyEmail");
 });
@@ -203,6 +204,19 @@ function App(): ReactElement {
             <Route
               path="/accounts/reset-password/:token"
               element={<ResetPasswordPage />}
+            />
+            {/*
+             * The first password of an account a master admin created
+             * (Common/Types/Accounts/SetPasswordLink): the reset page, in
+             * its own words.
+             */}
+            <Route
+              path="/accounts/set-password"
+              element={<ResetPasswordPage isSettingFirstPassword={true} />}
+            />
+            <Route
+              path="/accounts/set-password/:token"
+              element={<ResetPasswordPage isSettingFirstPassword={true} />}
             />
             <Route path="/accounts/register" element={<RegisterPage />} />
             <Route path="/accounts/verify-email" element={<VerifyEmail />} />

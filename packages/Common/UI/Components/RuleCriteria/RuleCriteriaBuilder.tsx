@@ -25,6 +25,8 @@ import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import { translateValidationMessage } from "../Forms/Validation";
 import Icon from "../Icon/Icon";
 import Input, { InputType } from "../Input/Input";
+import Pill from "../Pill/Pill";
+import { PillTone } from "../Pill/PillTone";
 import {
   changeRuleCriteriaFilterField,
   changeRuleCriteriaFilterOperator,
@@ -445,20 +447,16 @@ const RuleCriteriaBuilder: <TEntity>(
     }
 
     return (
-      <span
-        className={`inline-flex whitespace-nowrap rounded-md border px-1.5 py-px text-[11px] font-semibold uppercase tracking-wide ${
-          matchesAll
-            ? "border-blue-200 bg-blue-50 text-blue-700"
-            : "border-amber-200 bg-amber-50 text-amber-700"
-        }`}
-        data-testid={`rule-criteria-connector-${index}`}
-      >
-        {tx(
+      <Pill
+        text={
           matchesAll
             ? RuleCriteriaCopy.andConnector
-            : RuleCriteriaCopy.orConnector,
-        )}
-      </span>
+            : RuleCriteriaCopy.orConnector
+        }
+        tone={matchesAll ? PillTone.Info : PillTone.Warning}
+        isDotHidden={true}
+        dataTestId={`rule-criteria-connector-${index}`}
+      />
     );
   };
 

@@ -12,7 +12,7 @@ import {
 
 /*
  * "SSO Settings", on a status page's Security -> SSO, under the providers
- * and the link that tests them: one switch, "Require SSO for Login", that
+ * and the link that tests them: one switch, "Require SSO to Sign In", that
  * saves the moment it is flipped (it was a card whose Edit dialog held one
  * switch, "Force SSO for Login"). Requiring SSO asks first, with a red
  * button: from then on private users who sign in with an email and password

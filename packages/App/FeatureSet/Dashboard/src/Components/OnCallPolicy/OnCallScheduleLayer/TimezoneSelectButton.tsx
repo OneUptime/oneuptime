@@ -95,7 +95,7 @@ const TimezoneSelectButton: FunctionComponent<ComponentProps> = (
           icon={props.icon || IconProp.Globe}
           className="h-4 w-4 text-gray-400"
         />
-        <span className={currentValue || props.saving ? "" : "text-gray-400"}>
+        <span className={currentValue || props.saving ? "" : "text-gray-500"}>
           {bubbleText}
         </span>
         <Icon icon={IconProp.ChevronDown} className="h-3 w-3 text-gray-400" />

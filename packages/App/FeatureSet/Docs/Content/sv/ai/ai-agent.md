@@ -73,6 +73,10 @@ För att följa upp skriver du i rutan längst ned, som syns medan konversatione
 
 Den som kan läsa ett repositorium läser dess uppgifter. Att be AI om något, svara och stoppa en uppgift kräver behörighet att redigera repositoriet, och det gör även att se en ändrings diff: alla andra ser vilka filer som har ändrats. Uppgifterna som OneUptime startar på egen hand (nedan) finns också i sitt repositorium, som konversationer du kan svara i.
 
+En uppgift om en privat incident eller ett privat larm, startad från dess utredning eller från en av dess rättningar, läses med sina svar och sin pull request bara av dem som får läsa posten, och när posten har tagits bort, bara av Projektägare och Projektadministratörer. För alla andra utelämnar repositoriets listor, filter, sökningar och antal den. Se [Privata incidenter, larm och episoder](/docs/permissions/index#privata-incidenter-larm-och-episoder).
+
+Detsamma gäller en uppgift som innehåller en privat incident eller ett privat larm: en som begärdes med den som kontext, en som ett svar lade till den i, och uppgiften för en åtgärdspunkt från en efteranalys. En uppgift som innehåller flera läses bara av dem som får läsa alla. Dialogrutan som lägger till en incident eller ett larm i en begäran säger det.
+
 ## Så går en åtgärdskörning till
 
 ```mermaid title="Från ett klick till en pull request"
@@ -168,6 +172,7 @@ Den fungerar i GitHub-, GitLab-, Forgejo- och Gitea-repositorier. GitHub meddela
 När produktionen visar något läser OneUptime AI det bredvid diffen och lägger till **Vad du bör hålla koll på**: några korta punkter som var och en vilar på fakta. Det sker med projektets standard-LLM-leverantör, om inte **LLM-leverantör för produktionsgranskning** under **Fler inställningar** på repositoriets sida **Inställningar** väljer en annan av projektets leverantörer eller en global. Det körs bara medan AI är påslaget för projektet, högst 10 gånger om dagen för en pull request och 100 för ett repository, och mäts som varje AI-anrop; fakta läses varje gång utan det. När produktionen inte visar något om ändringen publicerar OneUptime ingen kommentar.
 
 - **Bara sammanställda värden.** Kommentaren innehåller antal, varaktigheter och namn på kod: aldrig ett undantags meddelande, en loggrad, en incidents titel eller personuppgifter.
+- **Privata incidenter.** En granskning nämner aldrig en privat incident. Blir en incident i en granskning privat senare utelämnar Code den ur granskningen för alla som inte får läsa den, tillsammans med antalen och OneUptime AI:s punkter om den. Kommentaren på pull requesten står kvar som den publicerades.
 - **Offentliga repositorier får en länk.** Vem som helst kan läsa ett offentligt repositorys pull requests, så där länkar kommentaren bara till granskningen i OneUptime, som bara projektets medlemmar kan öppna. **Kommentar från produktionsgranskning** under **Fler inställningar** på repositoriets sida **Inställningar** kan publicera **Bara en länk till granskningen** överallt, eller **Granskningen, även i ett offentligt arkiv**.
 - **Externa bidragsgivare kan inte starta en.** En pull request granskas bara av sig själv när dess författare, och den som pushade till den, kan skriva till repositoriet; på GitLab, Forgejo och Gitea bara en från en gren i själva repositoriet. En från någon annan - en extern bidragsgivare, en fork, en bot - granskas när någon med skrivbehörighet ber om det: **Granska en pull-förfrågan** på repositoriets sida **Produktionsgranskningar** tar dess nummer, och på GitHub gör en kommentar `@oneuptime production review` på den samma sak. **Granska igen** på en gransknings sida ber om den igen.
 - **Token kommenterar.** På GitLab, Forgejo och Gitea publiceras kommentaren med repositoriets åtkomsttoken, som dess konto. En Forgejo- eller Gitea-token behöver skrivåtkomst till ärenden för det. När servern avvisar kommentaren - en token utan den åtkomsten, eller en låst diskussion - stannar granskningen bara i Kod, och dess sida säger det.
@@ -325,6 +330,8 @@ Allt annat är som med knappen:
 - Den räknas mot signalens dagliga gräns för åtgärdsuppgifter (**Daglig gräns för AI-åtgärdsuppgifter för incidenter** eller **Daglig gräns för AI-åtgärdsuppgifter för larm**, under **Fler inställningar** på dess AI-inställningssida) och mot repositoriets tak för öppna pull requests, när något av dem är satt. Osatta begränsar ingen av dem något.
 - Varje utlösare letar först efter en åtgärdsuppgift som redan står i kö eller körs för samma incident eller larm, så en automatisk utlösare och ett klick blir normalt en uppgift, inte två pull requests. Kontrollen är en läsning före skrivningen, inte ett lås, så två utlösare i exakt samma ögonblick kan fortfarande båda komma igenom.
 - Körningen skrivs av systemet, tillskrivs ingen, och inget mergas av sig självt.
+
+På en privat incident eller ett privat larm kräver **Öppna pull request med rättning** detsamma som att godkänna postens rättningar, genom de team som äger den, och är låst för alla andra och talar om varför. Alla med åtkomst till repositoriet läser pull requesten, så dess titel, commit och beskrivning säger vad ändringen gör och ingenting om posten, och kodagenten ombeds hålla posten utanför sin sammanfattning och de kommentarer den skriver. En Runner från före den här ändringen får inte en sådan rättning, och uppgiften misslyckas med beskedet att uppdatera Runnern.
 
 ## När en åtgärd misslyckas
 

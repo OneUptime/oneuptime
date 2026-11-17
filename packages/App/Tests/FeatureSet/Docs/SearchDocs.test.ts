@@ -87,7 +87,7 @@ describe("Home Page & Shortcuts explains Search", () => {
   test("every page it names is one Search offers, under that name", () => {
     for (const title of [
       "API Keys",
-      "Danger Zone",
+      "Delete Project",
       "On-Call Schedules",
       "Incident Severity",
       "Notification Methods",
@@ -116,7 +116,7 @@ describe("Home Page & Shortcuts explains Search", () => {
       ["escalation", "On-Call Policies"],
       ["rota", "On-Call Schedules"],
       ["2fa", "Two-factor authentication"],
-      ["delete project", "Danger Zone"],
+      ["remove project", "Delete Project"],
     ];
 
     for (const [word, title] of promises) {
@@ -133,7 +133,7 @@ describe("Home Page & Shortcuts explains Search", () => {
     expect(SECTION).toContain("offered only to people allowed to do it");
 
     const action: PageSearchAction | undefined = (
-      findEntry("Danger Zone").page.actions || []
+      findEntry("Delete Project").page.actions || []
     ).find((candidate: PageSearchAction): boolean => {
       return candidate.title === "Delete Project";
     });
@@ -213,7 +213,7 @@ const SETTING_EXAMPLES: Array<{
   pageKey: string;
 }> = [
   {
-    setting: "Require SSO for Login",
+    setting: "Require SSO to Sign In",
     page: "SSO",
     pageKey: PageMap.SETTINGS_SSO,
   },
@@ -317,7 +317,7 @@ describe("Home Page & Shortcuts finds a setting by its name", () => {
   test("it names the settings, and the pages they are on", () => {
     expect(SECTION).toContain("**The settings on a page**");
     expect(SECTION).toContain(
-      "*Require SSO for Login* finds SSO, and *Custom SMTP Configs* finds Notification Channels",
+      "*Require SSO to Sign In* finds SSO, and *Custom SMTP Configs* finds Notification Channels",
     );
     expect(SECTION).toContain("Type the name in English or in your language.");
 

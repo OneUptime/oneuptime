@@ -87,6 +87,8 @@ interface SubjectTaskDetailsResponse {
   subjectTitle: string;
   analysisMarkdown: string;
   serviceName: string | null;
+  // A private incident or alert (SUBJECT_IS_PRIVATE_FIELD); absent: not.
+  subjectIsPrivate?: boolean;
   projectId: string;
   repositories: Array<CodeRepositoryResponse>;
   resolutionError?: string;
@@ -218,6 +220,12 @@ export interface SubjectTaskDetails {
   subjectTitle: string;
   analysisMarkdown: string;
   serviceName: string | null;
+  /*
+   * The subject is a private incident or alert (#9165): what this Runner
+   * writes on the code host - the pull request, its commit, the code
+   * agent's summary - leaves it out (SubjectPullRequestTaskHandler).
+   */
+  subjectIsPrivate: boolean;
   repositories: Array<CodeRepositoryInfo>;
   // Set when repositories is empty: why nothing resolved + what to do.
   resolutionError: string | null;
@@ -678,6 +686,7 @@ export default class BackendAPI {
       subjectTitle: data.subjectTitle,
       analysisMarkdown: data.analysisMarkdown,
       serviceName: data.serviceName || null,
+      subjectIsPrivate: data.subjectIsPrivate === true,
       repositories: (data.repositories || []).map(
         (repo: CodeRepositoryResponse) => {
           return {

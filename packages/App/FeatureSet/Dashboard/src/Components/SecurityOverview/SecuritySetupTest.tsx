@@ -74,15 +74,19 @@ export function useSecuritySetupTest(
 export const SecuritySetupTestButton: FunctionComponent<{
   test: SecuritySetupTestState;
   buttonStyle?: ButtonStyleType | undefined;
+  // Its place in the row it sits in: Get started's stretches it on a phone.
+  className?: string | undefined;
 }> = (props: {
   test: SecuritySetupTestState;
   buttonStyle?: ButtonStyleType | undefined;
+  className?: string | undefined;
 }): ReactElement => {
   return (
     <Button
       title="Send a test attack"
       icon={IconProp.Beaker}
       buttonStyle={props.buttonStyle || ButtonStyleType.NORMAL}
+      className={props.className}
       isLoading={props.test.isTesting}
       disabled={!props.test.gate.isAllowed || props.test.isTesting}
       tooltip={

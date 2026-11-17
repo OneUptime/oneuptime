@@ -45,7 +45,7 @@ const StorageArrayReplication: FunctionComponent<
       pluralName="Pods"
       title="Replication"
       description="Pods on this FlashArray and their replica links: how far each remote copy is behind, the link's status, and whether stretched pods reach their mediator."
-      noItemsMessage="No pods found in the inventory yet. Pods appear here a few minutes after the Storage Array Agent starts scraping the array, if the array has any."
+      noItemsMessage="No pods in the inventory yet. Pods appear here a few minutes after the Storage Array Agent starts scraping the array, if the array has any."
       columns={[
         // By the rules: a link more than a minute behind is amber, with why.
         StorageArrayResourceColumns.getRulesStatusColumn({

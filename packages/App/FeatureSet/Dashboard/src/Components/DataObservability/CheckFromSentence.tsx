@@ -30,14 +30,12 @@ export interface ComponentProps {
 
 /*
  * A row of the card's buttons: spaced by its gap, and starting where the
- * sentence's box and the suggestion's words start. Button keeps a dialog
- * footer's left margin (md:ml-3), which set Write the Check and Add Check
- * 12px in from everything above them; the row clears it on each button, or
- * on one inside the element it sits in, as a card header's actions do
- * (Card's CARD_HEADER_ACTION_CLASS_NAME).
+ * sentence's box and the suggestion's words start. A Button has no margin
+ * of its own; a dialog footer's left margin (md:ml-3) it used to carry set
+ * Write the Check and Add Check 12px in from everything above them.
  */
 export const CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME: string =
-  "flex flex-wrap gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+  "flex flex-wrap gap-2";
 
 // The suggestion's last line: when the check it writes alerts.
 export const CHECK_FROM_SENTENCE_ALERT_TEST_ID: string =

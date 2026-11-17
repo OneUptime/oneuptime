@@ -86,7 +86,7 @@ const IncomingCallPolicyLogsPage: FunctionComponent<
           title: "Call Logs",
           description: "View incoming call history for this policy.",
         }}
-        noItemsMessage={"No call logs found."}
+        noItemsMessage={"No calls to this policy yet."}
         showRefreshButton={true}
         filters={[
           {

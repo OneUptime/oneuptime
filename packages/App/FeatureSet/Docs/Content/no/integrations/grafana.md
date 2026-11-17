@@ -166,7 +166,7 @@ Du har gruppert etter en etikett som er lik for hvert varsel i en varsling, som 
 :::
 
 :::details Hendelsen viser en referanse i stedet for en verdi
-En referanse til et felt som varslingen ikke har, blir stående slik den er skrevet, med klammeparenteser og alt. Sammenlign navnet på feltet med det Grafana sendte: for en arbeidsflyt åpner du kjøringen i **Logger → Kjøringer** og sammenligner med det triggeren mottok.
+En referanse til et felt som varslingen ikke har, blir stående slik den er skrevet, med klammeparenteser og alt. Sammenlign navnet på feltet med det Grafana sendte: for en arbeidsflyt åpner du kjøringen i **Kjøringer** og sammenligner med det triggeren mottok.
 :::
 
 Veiledningen for [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#feilsøking) dekker flere tilfeller, og de gjelder også for Grafanas varslinger.

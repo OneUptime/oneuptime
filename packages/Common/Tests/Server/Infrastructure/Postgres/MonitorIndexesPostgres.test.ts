@@ -102,6 +102,14 @@ const EXPECTED_INDEXES: ReadonlyArray<{
   { columns: "serverMonitorSecretKey", predicate: null, isUnique: false },
   { columns: "incomingRequestSecretKey", predicate: null, isUnique: false },
   { columns: "incomingEmailSecretKey", predicate: null, isUnique: false },
+  /*
+   * The keys' lookup hashes, which a request presenting a key finds its
+   * monitor by now that the key is kept encrypted (#9012: built online by
+   * PresentedKeyLookupHashIndexes1809182940000).
+   */
+  { columns: "serverMonitorSecretKeyHash", predicate: null, isUnique: false },
+  { columns: "incomingRequestSecretKeyHash", predicate: null, isUnique: false },
+  { columns: "incomingEmailSecretKeyHash", predicate: null, isUnique: false },
   { columns: "monitorTemplateId", predicate: null, isUnique: false },
   { columns: "networkAlertPolicyId", predicate: null, isUnique: false },
   {
@@ -596,8 +604,8 @@ describePostgres("Monitor's indexes, on Postgres", () => {
     });
 
     test.each([
-      ["Probe Disconnected", "isAllProbesDisconnectedFromThisMonitor"],
-      ["Probe Disabled", "isNoProbeEnabledOnThisMonitor"],
+      ["Probes Disconnected", "isAllProbesDisconnectedFromThisMonitor"],
+      ["No Probe Enabled", "isNoProbeEnabledOnThisMonitor"],
       ["Disabled", "disableActiveMonitoring"],
     ])(
       "the Monitors menu's %s count reads only its partial index",

@@ -35,7 +35,7 @@ import {
  *
  * And the single sign-on screens say NOTHING about the licence. Single sign-on
  * is core: a lapse leaves Settings > SSO and Settings > OIDC exactly as they
- * were - no notice, nothing read-only, "Require SSO for login" still editable -
+ * were - no notice, nothing read-only, "Require SSO to sign in" still editable -
  * while the SCIM screen next to them is read-only. The server side of the same
  * promise is SsoUnaffectedByLapse.spec.ts.
  *
@@ -364,7 +364,7 @@ test.describe("Dashboard lapse notices (lapsed stack)", () => {
     });
   }
 
-  test("Settings > SSO keeps Require SSO for login editable", async (): Promise<void> => {
+  test("Settings > SSO keeps Require SSO to sign in editable", async (): Promise<void> => {
     const page: Page = shared.page;
 
     await page.goto(`${origin}/dashboard/${shared.projectId}/settings/sso`, {
@@ -372,7 +372,7 @@ test.describe("Dashboard lapse notices (lapsed stack)", () => {
     });
 
     /*
-     * The "Require SSO for Login" switch: the requirement is enforced
+     * The "Require SSO to Sign In" switch: the requirement is enforced
      * whatever the licence says, so an administrator must always be able to
      * change it. (It saves when flipped and asks first; this only looks.)
      */
@@ -381,7 +381,7 @@ test.describe("Dashboard lapse notices (lapsed stack)", () => {
     ).toBeVisible({ timeout: 60000 });
 
     const requireSso: Locator = page.getByRole("switch", {
-      name: "Require SSO for Login",
+      name: "Require SSO to Sign In",
       exact: true,
     });
 

@@ -36,7 +36,7 @@ Ouvrez **Produits → Ressources → Surveillance des utilisateurs réels**. **T
 - **Paramètres** : **Règles de propriétaire**, **Règles d'étiquettes** et l'interrupteur **Relecture de session** de tout le projet.
 - **Avancé** : **Archivé**, les applications que vous avez archivées.
 
-Le menu latéral d'une application regroupe ses pages ainsi ; **Paramètres**, **Développeurs** et **Avancé** sont repliés au départ :
+Le menu latéral d'une application regroupe ses pages ainsi ; **Développeurs** et **Avancé** sont repliés au départ :
 
 | Section | Pages |
 | --- | --- |
@@ -44,9 +44,8 @@ Le menu latéral d'une application regroupe ses pages ainsi ; **Paramètres**, *
 | **Observabilité** | **Métriques**, **Journaux**, **Traces**, **Clients** |
 | **Analyse produit** | **Utilisateurs**, **Sessions**, **Événements**, **Entonnoirs**, **Rétention des utilisateurs**, **Parcours utilisateur**, **Paramètres d'analyse** |
 | **Relecture de session** | **Relecture de session**, **Utilisateurs des relectures**, **Santé**, **Politique de relecture**, **Signaux de frustration**, **Journal d'accès aux relectures**, **Documentation** |
-| **Paramètres** | **Paramètres** |
 | **Développeurs** | **Terraform**, **API**, **CLI**, **Assistants IA** |
-| **Avancé** | **Journaux d'audit**, **Supprimer l'application** |
+| **Avancé** | **Paramètres**, **Journaux d'audit**, **Supprimer l'application** |
 
 ## Comment OneUptime reconnaît le RUM
 

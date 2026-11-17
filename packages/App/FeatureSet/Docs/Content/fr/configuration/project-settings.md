@@ -40,7 +40,7 @@ flowchart LR
 | **Sécurité** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturation et factures** | **Facturation**, **Factures** | [Facturation et utilisation](/docs/configuration/billing) |
 | **Journaux d'audit** | **Journaux d'audit**, **Paramètres**, **Export** | [Journaux d'audit](/docs/configuration/audit-logs), [Export du journal d'audit](/docs/configuration/audit-log-export) |
-| **Zone de danger** | **Zone de danger** | [Supprimer le projet](#supprimer-le-projet) |
+| **Zone de danger** | **Supprimer le projet** | [Supprimer le projet](#supprimer-le-projet) |
 
 **Facturation et factures** et **Crédits IA** n'existent que sur OneUptime Cloud : une installation auto-hébergée n'a pas de facturation.
 
@@ -99,7 +99,7 @@ Pour retirer une étiquette, archivez-la depuis le menu **⋯** de sa ligne au l
 **Paramètres du projet → Notifications** contient la façon dont le projet envoie ses notifications :
 
 - **Canaux de notification** : la carte **Canaux de notification** active ou désactive les SMS, les appels téléphoniques, WhatsApp et Telegram pour le projet. Les quatre sont désactivés au départ. Un Propriétaire du projet, un **Administrateur de la facturation** ou une personne avec **Manage Billing** les active. La page contient aussi, repliés sous **Plus de paramètres**, les propres serveurs de messagerie du projet, dans **Configurations SMTP personnalisées** (voir [SMTP](/docs/emails/smtp)), et son propre compte Twilio (voir [Intégration Twilio](/docs/self-hosted/twilio-integration)). Sur OneUptime Cloud, elle contient le solde qui paie ces messages : voir [Soldes prépayés](/docs/configuration/billing#soldes-prépayés).
-- **Journaux de notification** : chaque notification que le projet a envoyée, avec un onglet par canal : **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Appel**, **Push** et **Espace de travail**.
+- **Journaux de notification** : chaque notification que le projet a envoyée, avec un onglet par canal : **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Appel**, **Push** et **Espace de travail**. L'onglet **Webhook** ne garde de chaque adresse que le schéma et l'hôte : le reste est le secret du webhook.
 - **Applications mobiles** : où obtenir les applications iOS et Android. Voir [Vue d'ensemble des applications](/docs/mobile-desktop-apps/index).
 
 ## Drapeaux de fonctionnalités
@@ -113,7 +113,7 @@ Supprimer un projet supprime tout ce qu'il contient, pour chaque membre : ses mo
 :::steps
 ### Ouvrir la zone de danger
 
-Allez dans **Paramètres du projet → Zone de danger**.
+Allez dans **Paramètres du projet → Zone de danger → Supprimer le projet**.
 
 ### Cliquer sur Supprimer le projet
 

@@ -37,8 +37,7 @@
     "announcements": "الإعلانات",
     "scheduledEvents": "الصيانة المجدولة",
     "subscribe": "اشتراك",
-    "login": "تسجيل الدخول",
-    "logout": "تسجيل الخروج"
+    "signOut": "تسجيل الخروج"
   },
   "overview": {
     "uptimeSuffix": "% وقت التشغيل",
@@ -49,8 +48,6 @@
     "noResourcesInGroup": "لم تُضف أي موارد إلى هذه المجموعة.",
     "activeIncidents": "الحوادث النشطة",
     "scheduledMaintenanceEvents": "الصيانة المجدولة",
-    "allClearTitle": "كل شيء يعمل على ما يرام",
-    "allClearDescription": "لم تُضف أي موارد إلى صفحة الحالة هذه بعد. يُرجى إضافة بعض الموارد من لوحة المعلومات.",
     "allResourcesAre": "حالة جميع الموارد: {{status}}",
     "allMonitoredResourcesAre": "حالة جميع الموارد المراقَبة: {{status}}",
     "someResourcesAre": "حالة بعض الموارد: {{status}}",
@@ -58,7 +55,10 @@
     "noResourcesAreMonitored": "لا يخضع أي مورد للمراقبة الآن",
     "noResourcesAreMonitoredYet": "لم يخضع أي مورد للمراقبة بعد",
     "oneSubGroup": "مجموعة واحدة",
-    "subGroupCount": "المجموعات: {{total}}"
+    "subGroupCount": "المجموعات: {{total}}",
+    "noResourcesTitle": "لا شيء لعرضه بعد",
+    "noResourcesDescription": "لا تعرض هذه الصفحة أي خدمات بعد.",
+    "noResourcesPreviewDescription": "يرى الزوار هذا إلى أن تضيف موارد. أضف مراقبات أو مجموعات إلى صفحة الحالة هذه من قسم الموارد في لوحة المعلومات."
   },
   "eventItem": {
     "affectedResources": "الموارد المتأثرة",
@@ -115,30 +115,23 @@
     "title": "الحوادث",
     "singular": "حادثة",
     "active": "الحوادث النشطة",
-    "resolved": "الحوادث المحلولة",
-    "none": "لا توجد حادثة",
-    "noneDescription": "لم تُنشر أي حوادث على صفحة الحالة هذه.",
+    "noneDescription": "عندما تؤثر حادثة في الخدمات المعروضة في هذه الصفحة، تُنشر هنا.",
     "postmortem": "تقرير ما بعد الحادثة",
     "declaredAt": "أُعلنت في ",
     "declaredAtTime": "أُعلنت في {{time}}",
     "report": "تقرير الحادثة",
-    "notFound": "لم يُعثر على الحادثة في صفحة الحالة هذه."
-  },
-  "episodes": {
-    "report": "تقرير الحلقة",
-    "none": "لا توجد حلقة",
-    "notFound": "لم يُعثر على الحلقة في صفحة الحالة هذه."
+    "notFound": "تحقق من الرابط، أو افتح علامة تبويب الحوادث في هذه الصفحة.",
+    "notFoundTitle": "لم يُعثر على الحادثة"
   },
   "announcements": {
     "title": "الإعلانات",
     "singular": "إعلان",
     "active": "الإعلانات النشطة",
-    "past": "الإعلانات السابقة",
-    "none": "لا يوجد إعلان",
-    "noneDescription": "لم تُنشر أي إعلانات على هذه الصفحة حتى الآن.",
+    "noneDescription": "عندما تكون هناك أخبار عن الخدمات المعروضة في هذه الصفحة، تُنشر هنا.",
     "announcedAt": "أُعلن في ",
     "announcedAtTime": "أُعلن في {{time}}",
-    "notFound": "لم يُعثر على الإعلان في صفحة الحالة هذه."
+    "notFound": "تحقق من الرابط، أو افتح علامة تبويب الإعلانات في هذه الصفحة.",
+    "notFoundTitle": "لم يُعثر على الإعلان"
   },
   "scheduledEvents": {
     "title": "الصيانة المجدولة",
@@ -146,9 +139,7 @@
     "scheduledMaintenance": "الصيانة المجدولة",
     "ongoing": "الصيانة الجارية",
     "upcoming": "الصيانة القادمة",
-    "completed": "الصيانة المكتملة",
-    "none": "لا توجد صيانة مجدولة",
-    "noneDescription": "لم تُنشر أي صيانة مجدولة لصفحة الحالة هذه.",
+    "none": "لا توجد صيانة مخطط لها",
     "scheduledAt": "مجدول في ",
     "scheduledAtTime": "مجدول في {{time}}",
     "report": "تقرير حدث الصيانة",
@@ -314,29 +305,29 @@
       "password": "كلمة المرور",
       "newPassword": "كلمة المرور الجديدة",
       "confirmPassword": "تأكيد كلمة المرور",
-      "login": "تسجيل الدخول"
+      "signInLink": "سجّل الدخول."
     },
     "login": {
       "welcomeBack": "مرحبًا بعودتك!",
-      "loginPrompt": "يُرجى تسجيل الدخول لعرض {{statusPageName}}",
+      "signInPrompt": "يُرجى تسجيل الدخول لعرض {{statusPageName}}.",
       "forgotPassword": "هل نسيت كلمة المرور؟",
       "submit": "تسجيل الدخول",
       "or": "أو",
-      "logInWithSso": "تسجيل الدخول عبر SSO",
+      "signInWithSso": "تسجيل الدخول عبر SSO",
       "emailSignInLink": "أرسل إليّ رابط تسجيل الدخول عبر البريد الإلكتروني"
     },
     "sso": {
       "title": "تسجيل الدخول عبر SSO",
-      "loginPrompt": "يُرجى تسجيل الدخول لعرض {{statusPageName}}",
+      "signInPrompt": "يُرجى تسجيل الدخول لعرض {{statusPageName}}.",
       "noProviders": "لم يُضبط أي موفّر SSO أو يُفعَّل",
       "notAvailable": "تسجيل الدخول الموحد (SSO) غير متاح لصفحة الحالة هذه. سجّل الدخول ببريدك الإلكتروني وكلمة المرور بدلًا من ذلك.",
-      "backToLogin": "العودة إلى تسجيل الدخول",
-      "logInWithPassword": "تسجيل الدخول بكلمة المرور"
+      "backToSignIn": "العودة إلى تسجيل الدخول",
+      "signInWithPassword": "تسجيل الدخول بكلمة المرور"
     },
     "forgotPassword": {
       "title": "نسيت كلمة المرور",
       "description": "إذا نسيت كلمة مرورك لـ {{statusPageName}}، فأدخل بريدك الإلكتروني وسنرسل إليك رابط إعادة تعيين كلمة المرور.",
-      "success": "أرسلنا إليك رابط إعادة تعيين كلمة المرور عبر البريد الإلكتروني. لا تنسَ التحقق من مجلد الرسائل غير المرغوب فيها.",
+      "success": "إذا كان عنوان البريد الإلكتروني هذا يستطيع تسجيل الدخول إلى {{statusPageName}}، فقد أرسلنا إليه رابط إعادة تعيين كلمة المرور. لا تنسَ التحقق من مجلد الرسائل غير المرغوب فيها.",
       "sendLink": "إرسال رابط إعادة تعيين كلمة المرور",
       "rememberPassword": "هل تتذكر كلمة مرورك؟"
     },
@@ -347,7 +338,7 @@
       "knowPassword": "هل تعرف كلمة مرورك؟",
       "successTitle": "تمت إعادة تعيين كلمة المرور",
       "successDescription": "سجّل الدخول بكلمة المرور الجديدة.",
-      "loginButton": "تسجيل الدخول",
+      "signInButton": "تسجيل الدخول",
       "linkExpiredTitle": "انتهت صلاحية رابط إعادة التعيين هذا",
       "linkExpiredDescription": "تعمل روابط إعادة التعيين ليوم واحد. اطلب رابطًا جديدًا وسنرسله إليك بالبريد الإلكتروني.",
       "linkInvalidTitle": "لم يعد رابط إعادة التعيين هذا يعمل",
@@ -507,5 +498,23 @@
   "Incomplete:": "غير مكتمل:",
   "Special character included (optional)": "تتضمن حرفًا خاصًا (اختياري)",
   "Special characters are optional. Try !, @, # or $.": "الأحرف الخاصة اختيارية. جرّب ! أو @ أو # أو $.",
-  "Dismiss": "إخفاء"
+  "Dismiss": "إخفاء",
+  "Resolved in the Last {{count}} Days": "المحلولة خلال الأيام الـ{{count}} الماضية",
+  "Resolved in the Last {{count}} Days_one": "المحلولة خلال اليوم الماضي",
+  "No incidents in the last {{count}} days": "لا حوادث خلال الأيام الـ{{count}} الماضية",
+  "No incidents in the last {{count}} days_one": "لا حوادث خلال اليوم الماضي",
+  "Ended in the Last {{count}} Days": "المنتهية خلال الأيام الـ{{count}} الماضية",
+  "Ended in the Last {{count}} Days_one": "المنتهية خلال اليوم الماضي",
+  "No announcements in the last {{count}} days": "لا إعلانات خلال الأيام الـ{{count}} الماضية",
+  "No announcements in the last {{count}} days_one": "لا إعلانات خلال اليوم الماضي",
+  "Completed in the Last {{count}} Days": "المكتملة خلال الأيام الـ{{count}} الماضية",
+  "Completed in the Last {{count}} Days_one": "المكتملة خلال اليوم الماضي",
+  "None is planned, and none took place in the last {{count}} days.": "لا توجد صيانة مخطط لها، ولم تُجرَ أي صيانة خلال الأيام الـ{{count}} الماضية.",
+  "None is planned, and none took place in the last {{count}} days._one": "لا توجد صيانة مخطط لها، ولم تُجرَ أي صيانة خلال اليوم الماضي.",
+  "serverMessages": {
+    "signInToView": "ليس لديك صلاحية الوصول إلى صفحة الحالة هذه. يُرجى تسجيل الدخول لعرضها.",
+    "sessionExpired": "انتهت الجلسة. يُرجى تسجيل الدخول مرة أخرى.",
+    "signedOut": "لقد سجّلت الخروج. يُرجى تسجيل الدخول مرة أخرى.",
+    "magicLinkTurnedOff": "روابط تسجيل الدخول متوقفة لصفحة الحالة هذه. يُرجى تسجيل الدخول باستخدام بريدك الإلكتروني وكلمة المرور."
+  }
 }

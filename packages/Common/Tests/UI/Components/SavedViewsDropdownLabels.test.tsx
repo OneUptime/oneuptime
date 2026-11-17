@@ -2,6 +2,7 @@ import SavedViewsDropdown, {
   SavedViewsDropdownProps,
 } from "../../../UI/Components/TelemetryViewer/components/SavedViewsDropdown";
 import { SavedViewOption } from "../../../UI/Components/TelemetryViewer/types";
+import { TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME } from "../../../UI/Components/Table/TableHeaderControls";
 import IconProp from "../../../Types/Icon/IconProp";
 import "@testing-library/jest-dom";
 import {
@@ -448,8 +449,9 @@ describe("the panel's place", () => {
 
 /*
  * THE TRIGGER'S SIZE. A chip in an explorer's toolbar of chips; in a card's
- * header, as tall as its buttons and its time range (38px, 42px on a
- * phone), where a chip stood 30px among them.
+ * header, as tall as its buttons and its time range (38px at every width,
+ * as a card header's buttons are since #9128), where a chip stood 30px
+ * among them.
  */
 describe("the trigger's size", () => {
   test("a chip unless the host says otherwise", () => {
@@ -462,14 +464,14 @@ describe("the trigger's size", () => {
   test("a header's control in a header", () => {
     draw({ triggerSize: "header", showTriggerIcon: true });
 
+    expect(TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME.split(" ")).toEqual(["py-2"]);
     expect(trigger()).toHaveClass(
       "px-3",
-      "py-2.5",
-      "md:py-2",
+      ...TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME.split(" "),
       "text-sm",
       "border-gray-300",
     );
-    expect(trigger()).not.toHaveClass("py-1.5", "text-xs");
+    expect(trigger()).not.toHaveClass("py-1.5", "py-2.5", "text-xs");
   });
 });
 

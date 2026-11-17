@@ -11,7 +11,7 @@ import URL from "Common/Types/API/URL";
  * Account enumeration on the sign-in route.
  *
  * POST /identity/login answers a wrong password and an address that belongs to
- * nobody with the SAME message -- "Invalid login: Email or password does not
+ * nobody with the SAME message -- "Email or password does not
  * match." (App/FeatureSet/Identity/API/Authentication.ts). That is deliberate:
  * an answer that differed between the two turns the login form into a
  * membership oracle for the instance, which is a disclosure in its own right
@@ -110,8 +110,9 @@ test.describe("Sign-in must not disclose whether an account exists", () => {
 
     /*
      * The message must not name the address or say the account is missing.
-     * "No user is registered with ..." is what /forgot-password says, and it
-     * would be a disclosure here.
+     * "No user is registered with ..." is what /forgot-password used to say
+     * (until #9260, which answers every address alike), and it would be a
+     * disclosure here.
      */
     expect(attempt.message.toLowerCase()).not.toContain("not registered");
     expect(attempt.message.toLowerCase()).not.toContain("no user");

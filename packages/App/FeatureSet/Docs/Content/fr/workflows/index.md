@@ -70,7 +70,7 @@ Ouvrez **Produits** dans la barre du haut et choisissez **Flux de travail**, sou
 
 - **Flux de travail** — la liste de vos flux de travail. Créez-en un ou ouvrez un flux de travail existant.
 - **Variables globales** — les valeurs partagées par tous vos flux de travail.
-- **Journaux → Exécutions** — l'historique des exécutions de tous les flux de travail de votre projet.
+- **Exécutions** — l'historique des exécutions de tous les flux de travail de votre projet.
 - **Paramètres → Règles d'étiquettes** et **Règles de propriétaire** — étiqueter les nouveaux flux de travail et leur attribuer des propriétaires automatiquement.
 - **Avancé → Archivé** — les flux de travail que vous avez archivés. Ils ne s'exécutent jamais et n'apparaissent pas dans la liste ; désarchivez-les d'ici. Voir [Archiver un flux de travail](/docs/workflows/configuration#archiver-un-flux-de-travail).
 - **Développeurs** — comment gérer les flux de travail avec Terraform, l'API ou un assistant IA.
@@ -80,12 +80,12 @@ Ouvrez un flux de travail en particulier, et son propre menu contient :
 - **Vue d'ensemble** — le nom, la description, les étiquettes et l'interrupteur **Activé**.
 - **Constructeur** — le canevas sur lequel vous concevez le flux de travail, avec l'interrupteur **Activé** en haut.
 - **Variables de flux de travail** — les valeurs propres à ce seul flux de travail.
-- **Journaux → Exécutions** — chaque exécution de ce flux de travail, avec ses détails.
-- **Propriétaires** — les personnes et les équipes responsables du flux de travail.
+- **Exécutions** — chaque exécution de ce flux de travail, avec ses détails.
 - **Développeurs** — comment gérer ce flux de travail avec Terraform, l'API ou un assistant IA.
 - **Paramètres** — dupliquer, exporter et archiver.
+- **Propriétaires** — les personnes et les équipes responsables du flux de travail.
 
-**Paramètres** se trouve dans la section **Avancé** du menu, avec **Journaux d'audit** et **Supprimer le flux de travail**. **Avancé** et **Développeurs** sont repliés au départ, dans ce menu comme dans tous les autres, pour que les pages que vous utilisez chaque jour viennent en premier. Cliquez sur le nom d'une section pour afficher ses pages. Elle s'ouvre d'elle-même dès que vous êtes sur l'une d'elles.
+**Paramètres** et **Propriétaires** se trouvent dans la section **Avancé** du menu, avec **Journaux d'audit** et **Supprimer le flux de travail**. **Avancé** et **Développeurs** sont repliés au départ, dans ce menu comme dans tous les autres, pour que les pages que vous utilisez chaque jour viennent en premier. Cliquez sur le nom d'une section pour afficher ses pages. Elle s'ouvre d'elle-même dès que vous êtes sur l'une d'elles.
 
 ## Construire votre premier flux de travail
 

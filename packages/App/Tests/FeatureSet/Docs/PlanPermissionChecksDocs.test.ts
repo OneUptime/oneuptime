@@ -17,7 +17,7 @@ import { writtenPermissionTitle } from "./DocsRoleNames";
  *  - Test Rule on a Slack or Microsoft Teams notification rule needs the
  *    permission a channel's Send Test needs (create notification rules) and,
  *    on OneUptime Cloud, the Growth plan;
- *  - a status page's Require SSO for Login needs Scale to turn on, and turns
+ *  - a status page's Require SSO to Sign In needs Scale to turn on, and turns
  *    off on every plan;
  *  - a state change of an alert or an episode sent with a private note needs
  *    the note's own permission, or it is refused whole.
@@ -173,7 +173,7 @@ describe("Test Rule, in the Slack and Microsoft Teams guides", () => {
   );
 });
 
-describe("Require SSO for Login on a status page, in the status pages guide", () => {
+describe("Require SSO to Sign In on a status page, in the status pages guide", () => {
   test("the plan the guide names is the column's own", () => {
     expect(
       new StatusPage().getColumnBillingAccessControl("requireSsoForLogin"),
@@ -212,11 +212,30 @@ describe("Require SSO for Login on a status page, in the status pages guide", ()
         language,
         true,
       ]);
-      expect([language, paragraph!.includes("**SSO**")]).toEqual([
-        language,
-        true,
-      ]);
-      expect([language, paragraph!.includes("**OIDC**")]).toEqual([
+      /*
+       * Where the switch waits under the plan's upsell: the Single Sign-On
+       * page, as this language's Dashboard names it. It was two pages, SSO
+       * and OIDC, until #9130.
+       */
+      const locale: Record<string, string> = JSON.parse(
+        fs.readFileSync(
+          path.join(
+            __dirname,
+            "..",
+            "..",
+            "..",
+            "FeatureSet",
+            "Dashboard",
+            "src",
+            "Locales",
+            `${language}.json`,
+          ),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+      const singleSignOn: string = locale["Single Sign-On"] || "Single Sign-On";
+
+      expect([language, paragraph!.includes(`**${singleSignOn}**`)]).toEqual([
         language,
         true,
       ]);

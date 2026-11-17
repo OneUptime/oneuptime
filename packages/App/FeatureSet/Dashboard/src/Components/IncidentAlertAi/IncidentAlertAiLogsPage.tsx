@@ -463,7 +463,6 @@ const IncidentAlertAiLogsPage: FunctionComponent<ComponentProps> = (
           }
           description={AI_LOGS_EMPTY_DESCRIPTIONS[props.subjectKind]}
           showSolidBackground={true}
-          paddingClassName="py-12"
           footer={
             <p className="text-sm text-gray-600">
               <Link

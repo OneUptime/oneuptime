@@ -593,7 +593,7 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 :::
 
 :::details De meegeleverde sonde toont Verbinding verbroken nadat u de poort van de ingress hebt verplaatst
-Het Admin Dashboard toont de sonde onder **Instellingen > Bewaking > Globale sondes**. Hij bereikt OneUptime op `GLOBAL_PROBE_1_ONEUPTIME_URL`, standaard `http://localhost` (poort 80). `npm start` verplaatst die naar de poort van de ingress zolang hij naar `localhost` wijst. Hebt u hem op een ander adres ingesteld, of OneUptime met de Docker CLI gestart, stel hem dan in op de nieuwe poort van de ingress, bijvoorbeeld `http://localhost:8080`, en herstart OneUptime.
+Het Admin Dashboard toont de sonde onder **Instellingen > Gedeeld met alle projecten > Globale sondes**. Hij bereikt OneUptime op `GLOBAL_PROBE_1_ONEUPTIME_URL`, standaard `http://localhost` (poort 80). `npm start` verplaatst die naar de poort van de ingress zolang hij naar `localhost` wijst. Hebt u hem op een ander adres ingesteld, of OneUptime met de Docker CLI gestart, stel hem dan in op de nieuwe poort van de ingress, bijvoorbeeld `http://localhost:8080`, en herstart OneUptime.
 :::
 
 ## Volgende stappen

@@ -505,7 +505,6 @@ const ScheduleTimeline: FunctionComponent<ComponentProps> = (
       <EmptyState
         id="schedule-timeline-empty"
         icon={IconProp.Calendar}
-        paddingClassName="pt-14 pb-14"
         title={
           isTeamLocked
             ? "This team does not own any on-call schedules yet"

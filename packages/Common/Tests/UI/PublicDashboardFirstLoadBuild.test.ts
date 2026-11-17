@@ -115,4 +115,61 @@ describe("a public dashboard's first load", () => {
   ])("leaves out %s", (_name: string, file: string) => {
     expect(inputsUnder(built!.firstLoad, file)).toEqual([]);
   });
+
+  /*
+   * A Monitor List widget's rows say "No results yet" of a monitor whose
+   * first check is overdue (MonitorRowStatus), by a rule that reads the
+   * monitor's schedule and its type's family. The family is read from a
+   * module of its own (MonitorTypeFamily): read from the monitor overview's
+   * layout, it brought every monitor type's metrics and the database metric
+   * catalog with it, some 45 KB before gzip that the rows never read.
+   */
+  test("has the rule a Monitor List widget's rows say No results yet by, and the family it reads", () => {
+    expect(
+      inputsUnder(built!.firstLoad, "Utils/Monitor/MonitorFirstCheckOverdue.ts")
+        .length,
+    ).toBe(1);
+    expect(
+      inputsUnder(built!.firstLoad, "Utils/Monitor/MonitorTypeFamily.ts")
+        .length,
+    ).toBe(1);
+  });
+
+  test.each([
+    ["the monitor overview's layout", "Utils/Monitor/MonitorOverviewFamily.ts"],
+    ["every monitor type's metrics", "Utils/Monitor/MonitorMetricType.ts"],
+    ["the monitor metrics", "Types/Monitor/MonitorMetricType.ts"],
+    ["the database metric catalog", "Types/Monitor/DatabaseMetricCatalog.ts"],
+  ])(
+    "leaves out %s, which a Monitor List widget's rows do not read",
+    (_name: string, file: string) => {
+      expect(inputsUnder(built!.firstLoad, file)).toEqual([]);
+    },
+  );
+
+  /*
+   * The Ceph Pool List widget draws its own rows and writes their memory
+   * with ResourceMemoryValue. It read that from ResourceTable, which
+   * brought the table the helper was written for with it - the shared
+   * Table, its filters, its bulk update form and its pagination, some 140
+   * KB before gzip - though no widget draws a table of resources.
+   */
+  test("has the Ceph Pool List widget's memory figures, which its rows write", () => {
+    expect(
+      inputsUnder(
+        built!.firstLoad,
+        `${DASHBOARD}/Infrastructure/ResourceMemoryValue.ts`,
+      ).length,
+    ).toBe(1);
+  });
+
+  test.each([
+    ["the resource table", `${DASHBOARD}/Infrastructure/ResourceTable.tsx`],
+    ["the shared table", "UI/Components/Table/Table.tsx"],
+    ["a table's filters", "UI/Components/Filters/FilterViewer.tsx"],
+    ["the bulk update form", "UI/Components/BulkUpdate/BulkUpdateForm.tsx"],
+    ["a table's pagination", "UI/Components/Pagination/Pagination.tsx"],
+  ])("leaves out %s, which no widget draws", (_name: string, file: string) => {
+    expect(inputsUnder(built!.firstLoad, file)).toEqual([]);
+  });
 });

@@ -35,7 +35,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { Mock, SpyInstance } from "jest-mock";
+import { Mock, SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -66,7 +66,7 @@ jest.mock("../../../Server/Utils/Response", () => {
  *
  *   - the projects getUserMiddleware gave the request a permission set in
  *     (every project the person is a member of that is not blocked), each
- *     checked on its own: one whose Require SSO for Login the person has
+ *     checked on its own: one whose Require SSO to Sign In the person has
  *     not met holds only what every signed-in user holds, and is left out,
  *     as a request in it would be refused; so is one whose membership a
  *     block takes away;

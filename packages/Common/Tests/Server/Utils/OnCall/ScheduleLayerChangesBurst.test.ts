@@ -47,7 +47,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
+import { SpyInstance } from "jest-mock";
 
 /*
  * A TERRAFORM APPLY THAT CHANGES A SCHEDULE'S TURN ORDER IS TOLD ONCE

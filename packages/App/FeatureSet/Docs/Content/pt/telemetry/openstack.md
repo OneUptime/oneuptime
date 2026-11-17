@@ -499,7 +499,7 @@ Três issues upstream em aberto moldam tudo isto, e o projeto também [pediu man
 
 ## Bare metal
 
-Se a sua nuvem executa o Ironic, ela ganha uma seção **Bare Metal** com cada nó que o Ironic mostra à credencial: em que ponto da máquina de estados do Ironic ele está, sua energia, se alguém o colocou em manutenção e por quê, sua classe de recurso e quando o Ironic o viu mudar pela última vez. Uma nuvem sem Ironic não tem essa seção, nenhum alerta sobre isso e nenhuma linha em qualquer página.
+Se a sua nuvem executa o Ironic, a seção **Computação** dela ganha uma página **Bare Metal** com cada nó que o Ironic mostra à credencial: em que ponto da máquina de estados do Ironic ele está, sua energia, se alguém o colocou em manutenção e por quê, sua classe de recurso e quando o Ironic o viu mudar pela última vez. Uma nuvem sem Ironic não tem essa página, nenhum alerta sobre isso e nenhuma linha em qualquer página.
 
 Um nó não é um hipervisor, embora o Nova e o Placement o listem como um, com seu UUID, então ele não é contado como um lugar para executar uma máquina virtual. Quantos nós de cada classe de recurso poderiam receber uma instância aparece na página Bare Metal, para os nós que o Ironic mostra a esta credencial, e na página [Capacidade](#capacidade), para todos os nós que o Placement possui.
 

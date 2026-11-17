@@ -409,7 +409,7 @@ Een fout antwoordt met een statuscode en JSON-inhoud die de reden noemt:
 
 - **RSS.** Elke statuspagina biedt `/rss`, een feed van haar incidenten, aankondigingen en onderhoudsgebeurtenissen, elk gedateerd zoals de pagina ze dateert. Zie [De insluitbare badge en de RSS-feed](/docs/status-pages/index#de-insluitbare-badge-en-de-rss-feed).
 - **llms.txt.** Naast `/rss` biedt elke statuspagina `/llms.txt`, dat AI-agents naar de RSS-feed en de overzichts-JSON verwijst.
-- **MCP.** AI-agents kunnen de pagina lezen via de MCP-server van OneUptime op `https://oneuptime.com/mcp`, zonder API-sleutel, door het ID of domein van de pagina mee te geven als `statusPageIdOrDomain`. Dit staat standaard aan; zet het uit met **MCP-server inschakelen** onder **AI → MCP** in het zijmenu van de pagina. Zie [MCP-server](/docs/ai/mcp-server).
+- **MCP.** AI-agents kunnen de pagina lezen via de MCP-server van OneUptime op `https://oneuptime.com/mcp`, zonder API-sleutel, door het ID of domein van de pagina mee te geven als `statusPageIdOrDomain`. Dit staat standaard aan; zet het uit met **MCP-server inschakelen** onder **Geavanceerd → MCP** in het zijmenu van de pagina. Zie [MCP-server](/docs/ai/mcp-server).
 - **De REST API.** Om statuspagina's, resources, abonnees en aankondigingen te maken of te wijzigen, gebruik je de [OneUptime API](/docs/api-reference/api-reference) met een API-sleutel.
 
 ## Volgende stappen

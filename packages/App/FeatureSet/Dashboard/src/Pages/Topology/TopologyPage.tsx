@@ -1,3 +1,4 @@
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import PageComponentProps from "../PageComponentProps";
 import ServiceMapGraph from "../../Components/Topology/ServiceMapGraph";
@@ -171,25 +172,23 @@ const TopologyPage: FunctionComponent<
         >
           <ErrorMessage message={error.message} />
           {error.isOutdated ? (
-            <button
-              type="button"
-              className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            <Button
+              title="Reload page"
+              buttonStyle={ButtonStyleType.PRIMARY}
+              className="mt-4"
               onClick={() => {
                 Navigation.reload();
               }}
-            >
-              {translateString("Reload page")}
-            </button>
+            />
           ) : (
-            <button
-              type="button"
-              className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            <Button
+              title="Try again"
+              buttonStyle={ButtonStyleType.PRIMARY}
+              className="mt-4"
               onClick={() => {
                 topology.retry(view);
               }}
-            >
-              {translateString("Try again")}
-            </button>
+            />
           )}
         </div>
       );

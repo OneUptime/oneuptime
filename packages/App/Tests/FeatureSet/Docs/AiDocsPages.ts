@@ -407,6 +407,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Operations",
     "Hot functions",
     "Aggregates only.",
+    "Private incidents.",
     "Public repositories get a link.",
     "Outside contributors cannot start one.",
     "The token comments.",

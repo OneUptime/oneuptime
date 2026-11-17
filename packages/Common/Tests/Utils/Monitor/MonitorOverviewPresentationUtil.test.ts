@@ -950,7 +950,7 @@ describe("MonitorOverviewPresentationUtil hero", () => {
   it("paused copy per reason", () => {
     const disabled: MonitorOverviewPresentation = build(SCENARIOS[1]!.input);
 
-    expect(disabled.badge).toEqual({ text: "Disabled", tone: "neutral" });
+    expect(disabled.badge).toEqual({ text: "Disabled", tone: "paused" });
     expect(disabled.headline.text).toBe("Monitoring is turned off");
     expect(disabled.explanation).toBe(
       "No checks run while monitoring is off, so the status stays at the last one recorded.",
@@ -970,7 +970,7 @@ describe("MonitorOverviewPresentationUtil hero", () => {
 
     const byIncident: MonitorOverviewPresentation = build(SCENARIOS[2]!.input);
 
-    expect(byIncident.badge).toEqual({ text: "Paused", tone: "neutral" });
+    expect(byIncident.badge).toEqual({ text: "Paused", tone: "paused" });
     expect(byIncident.headline.text).toBe(
       "Monitoring is paused by an incident",
     );
@@ -987,6 +987,7 @@ describe("MonitorOverviewPresentationUtil hero", () => {
     const maintenance: MonitorOverviewPresentation = build(SCENARIOS[3]!.input);
 
     expect(maintenance.badge.text).toBe("Paused");
+    expect(maintenance.badge.tone).toBe("paused");
     expect(maintenance.headline.text).toBe(
       "Monitoring is paused for scheduled maintenance",
     );
@@ -996,7 +997,7 @@ describe("MonitorOverviewPresentationUtil hero", () => {
     expect(maintenance.callToAction).toBeUndefined();
   });
 
-  it('paused with no probe enabled keeps a "Probes Not Enabled" secondary badge', () => {
+  it('paused with no probe enabled keeps a "No Probe Enabled" secondary badge', () => {
     const presentation: MonitorOverviewPresentation = build(
       running(MonitorType.API, {
         pause: {
@@ -1010,7 +1011,7 @@ describe("MonitorOverviewPresentationUtil hero", () => {
 
     expect(presentation.badge.text).toBe("Disabled");
     expect(presentation.secondaryBadges).toEqual([
-      { text: "Probes Not Enabled", tone: "danger" },
+      { text: "No Probe Enabled", tone: "danger" },
     ]);
 
     expect(
@@ -1071,7 +1072,7 @@ describe("MonitorOverviewPresentationUtil hero", () => {
 
     const three: MonitorOverviewPresentation = switchedOff(3);
 
-    expect(three.badge).toEqual({ text: "Probes Not Enabled", tone: "danger" });
+    expect(three.badge).toEqual({ text: "No Probe Enabled", tone: "danger" });
     expect(three.tone).toBe("danger");
     expect(three.headline.text).toBe(
       "Every probe is turned off for this monitor",

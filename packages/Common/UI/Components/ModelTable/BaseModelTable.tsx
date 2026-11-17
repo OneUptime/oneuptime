@@ -5542,8 +5542,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         {/* Expanded input + dropdown — sized to the full title slot */}
         <div className="relative flex w-full flex-col gap-1">
           {/*
-           * As tall as the header's buttons: 42px on a phone, 38px from md
-           * up (TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME). The pill folded
+           * As tall as the header's buttons: 38px at every width
+           * (TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME). The pill folded
            * over it takes its height.
            */}
           <div
@@ -5863,7 +5863,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                       />
                       <span className="flex-1 truncate">{label.name}</span>
                       {isActive && (
-                        <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
                           ↵
                         </span>
                       )}

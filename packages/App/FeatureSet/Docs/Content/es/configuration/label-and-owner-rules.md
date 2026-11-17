@@ -25,9 +25,9 @@ Las etiquetas y los propietarios sirven para filtrar y agrupar recursos, deciden
 
 ## Dónde encontrar las reglas
 
-Cada producto con etiquetas y propietarios tiene ambas en sus **Ajustes** (en incidentes, alertas, mantenimiento programado y Seguridad de datos, en **Reglas**): monitores, incidentes y episodios de incidentes, alertas y episodios de alertas, eventos de mantenimiento, páginas de estado, servicios, hosts, clústeres de Kubernetes, hosts de Docker, clústeres de Docker Swarm, hosts de Podman, clústeres de Proxmox, nubes de OpenStack, vCenters de VMware, clústeres de Ceph, cabinas de almacenamiento, bases de datos, almacenes de datos, tablas, colas, flotas de IoT, funciones serverless, recursos en la nube, aplicaciones RUM, paneles, políticas de guardia, horarios de guardia, políticas de llamadas entrantes, workflows, runbooks, dispositivos de red y SLO.
+Cada producto con etiquetas y propietarios tiene ambas en sus **Ajustes** (en monitores, páginas de estado, incidentes, alertas, mantenimiento programado y Seguridad de datos, en **Reglas**): monitores, incidentes y episodios de incidentes, alertas y episodios de alertas, eventos de mantenimiento, páginas de estado, servicios, hosts, clústeres de Kubernetes, hosts de Docker, clústeres de Docker Swarm, hosts de Podman, clústeres de Proxmox, nubes de OpenStack, vCenters de VMware, clústeres de Ceph, cabinas de almacenamiento, bases de datos, almacenes de datos, tablas, colas, flotas de IoT, funciones serverless, recursos en la nube, aplicaciones RUM, paneles, políticas de guardia, horarios de guardia, políticas de llamadas entrantes, workflows, runbooks, dispositivos de red y SLO.
 
-Por ejemplo, las reglas de etiquetas de monitores están en **Monitores → Ajustes → Reglas de etiquetas**, y las de incidentes en **Incidentes → Reglas → Reglas de etiquetas**. **Ajustes** y **Reglas** empiezan plegados en el menú lateral: haz clic en el título de la sección para abrirla. Las páginas de incidentes y alertas tienen una pestaña **Reglas de incidentes** (o **Reglas de alerta**) y una pestaña **Reglas de episodios**.
+Por ejemplo, las reglas de etiquetas de monitores están en **Monitores → Reglas → Reglas de etiquetas**, y las de SLO en **SLO → Ajustes → Reglas de etiquetas**. **Ajustes** y **Reglas** empiezan plegados en el menú lateral: haz clic en el título de la sección para abrirla. Las páginas de incidentes y alertas tienen una pestaña **Reglas de incidentes** (o **Reglas de alerta**) y una pestaña **Reglas de episodios**.
 
 ## Crear una regla
 
@@ -57,7 +57,7 @@ El **Nombre** se rellena a partir de lo que eliges (_Añadir Production_, _Añad
 En el último paso, vuelve a hacer clic en el botón con el nombre de la regla, por ejemplo **Crear Regla de etiquetas de monitores**. La regla empieza habilitada y la lista la muestra con una etiqueta verde **Habilitado**.
 :::
 
-Una regla nueva tiene que añadir algo: al menos una etiqueta (o un propietario) o, en una regla de incidentes, alertas o mantenimiento programado, algo que herede (ver más abajo). Para pausar una regla sin eliminarla, desactiva **Habilitado** en su formulario de edición; la lista mostrará entonces una etiqueta roja **Deshabilitado**. En una regla de propietarios de incidentes o alertas, también basta un equipo en **Equipo del creador**.
+Una regla nueva tiene que añadir algo: al menos una etiqueta (o un propietario) o, en una regla de incidentes, alertas o mantenimiento programado, algo que herede (ver más abajo). Para pausar una regla sin eliminarla, desactiva **Habilitado** en su formulario de edición; la lista mostrará entonces una etiqueta gris **Deshabilitado**. En una regla de propietarios de incidentes o alertas, también basta un equipo en **Equipo del creador**.
 
 ### Se cree como se cree la regla
 

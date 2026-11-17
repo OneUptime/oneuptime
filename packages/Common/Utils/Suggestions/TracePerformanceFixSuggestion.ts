@@ -452,8 +452,9 @@ export function parsePerformanceFinding(
 /*
  * Reads the suggestion route's answer. Whatever does not hold together - an
  * offer that names no finding, a finding the rule would not offer, an
- * in-progress or done offer with no run, a done offer that does not say how
- * it came out, a set-up step whose blocker this build cannot draw - reads as
+ * in-progress or done offer with no run (but a fix hidden from the reader,
+ * which has none), a done offer that does not say how it came out, a set-up
+ * step whose blocker this build cannot draw - reads as
  * no suggestion, so the page never draws an action the answer does not
  * fully back. A set-up step with no blocker at all is a repository to
  * connect, as it was before blockers were sent.
@@ -480,22 +481,31 @@ export function parseTracePerformanceFixSuggestion(
     return NO_TRACE_PERFORMANCE_FIX_SUGGESTION;
   }
 
-  const aiRunId: string | null =
-    typeof record["aiRunId"] === "string" && record["aiRunId"].length > 0
-      ? record["aiRunId"]
-      : null;
-
-  const linksRun: boolean =
-    offer === SuggestionOffer.InProgress || offer === SuggestionOffer.Done;
-
-  if (linksRun && !aiRunId) {
-    return NO_TRACE_PERFORMANCE_FIX_SUGGESTION;
-  }
-
   const fixOutcome: FinishedFixOutcome | null =
     offer === SuggestionOffer.Done
       ? parseFinishedFixOutcome(record["fixOutcome"])
       : null;
+
+  /*
+   * A fix in a task the reader may not read (FinishedFixOutcome.Hidden)
+   * links to nothing, whatever the wire says.
+   */
+  const isHidden: boolean = fixOutcome === FinishedFixOutcome.Hidden;
+
+  const aiRunId: string | null =
+    !isHidden &&
+    typeof record["aiRunId"] === "string" &&
+    record["aiRunId"].length > 0
+      ? record["aiRunId"]
+      : null;
+
+  const linksRun: boolean =
+    !isHidden &&
+    (offer === SuggestionOffer.InProgress || offer === SuggestionOffer.Done);
+
+  if (linksRun && !aiRunId) {
+    return NO_TRACE_PERFORMANCE_FIX_SUGGESTION;
+  }
 
   if (offer === SuggestionOffer.Done && !fixOutcome) {
     return NO_TRACE_PERFORMANCE_FIX_SUGGESTION;

@@ -28,5 +28,13 @@
   "Copied!": "कॉपी हो गया!",
   "Copy failed": "कॉपी नहीं हो सका",
   "Hide": "छिपाएं",
-  "Dismiss": "छिपाएं"
+  "Dismiss": "छिपाएं",
+  "Dashboard Not Found": "डैशबोर्ड नहीं मिला",
+  "This dashboard does not exist, or it is no longer shared.": "यह डैशबोर्ड मौजूद नहीं है, या अब साझा नहीं किया जाता।",
+  "Check the address, or ask the person who shared it with you for a new link.": "पता जाँचें, या जिसने इसे आपके साथ साझा किया था उनसे नया लिंक माँगें।",
+  "Access Denied": "पहुँच अस्वीकृत",
+  "This dashboard opens only from the IP addresses its owner allows, and yours is not one of them.": "यह डैशबोर्ड केवल उन आईपी पतों से खुलता है जिनकी अनुमति इसके स्वामी ने दी है, और आपका पता उनमें नहीं है।",
+  "Ask the dashboard's owner for access, or open it from a network they allow.": "डैशबोर्ड के स्वामी से पहुँच माँगें, या इसे उस नेटवर्क से खोलें जिसकी वे अनुमति देते हैं।",
+  "Show more": "और दिखाएँ",
+  "Show less": "कम दिखाएँ"
 }

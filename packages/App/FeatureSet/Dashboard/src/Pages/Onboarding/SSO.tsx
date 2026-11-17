@@ -58,7 +58,7 @@ export const SIGN_IN_WITH_PROVIDER: string = translationKey(
 );
 
 export const NO_PROVIDER_HELP: string = translationKey(
-  "This project has no single sign-on provider you can use to log in. Ask a Project Admin to enable one.",
+  "This project has no single sign-on provider you can use to sign in. Ask a Project Admin to enable one.",
 );
 
 // The project's sign-in providers, on the identity server.
@@ -222,7 +222,7 @@ const SSO: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <div className="mx-auto mt-8 w-full max-w-md sm:mt-20">
         <Card
           title={"Single Sign On (SSO)"}
-          description="Please select an SSO provider to log in to this project."
+          description="Choose an SSO provider to sign in to this project."
         >
           {getBody()}
         </Card>

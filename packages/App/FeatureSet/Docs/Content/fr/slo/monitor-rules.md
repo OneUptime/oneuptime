@@ -1,6 +1,6 @@
 # Moniteurs et règles de moniteurs
 
-Un SLO mesure la disponibilité des moniteurs qui lui sont rattachés. Rattachez-les à la main, laissez des règles de moniteurs rattacher chaque moniteur qui correspond, ou faites les deux. Cette page couvre la page **Moniteurs** d'un SLO, sous **Configuration** dans son menu latéral, et sa page **Règles de moniteurs**, sous **Règles**.
+Un SLO mesure la disponibilité des moniteurs qui lui sont rattachés. Rattachez-les à la main, laissez des règles de moniteurs rattacher chaque moniteur qui correspond, ou faites les deux. Cette page couvre la page **Moniteurs** d'un SLO, sous **Vue d'ensemble** dans son menu latéral, et sa page **Règles de moniteurs**, sous **Règles**.
 
 :::cards
 - [Choisir les moniteurs à la main](#rattacher-des-moniteurs-à-la-main): Idéal pour un petit ensemble fixe.
@@ -46,7 +46,7 @@ La page **Moniteurs** affiche, pour chaque moniteur :
 
 | Colonne | Ce qu'elle affiche |
 | --- | --- |
-| **État actuel** | Le statut actuel du moniteur, ou **Archivé**, **Désactivé**, **Sondes non activées**, **Sondes déconnectées** ou **Inconnu** quand il n'est pas vérifié ou n'a encore rien signalé. |
+| **État actuel** | Le statut actuel du moniteur, ou **Archivé**, **Désactivé**, **Aucune sonde activée**, **Sondes déconnectées** ou **Inconnu** quand il n'est pas vérifié ou n'a encore rien signalé. |
 | **Source** | **Règle** si l'une des règles de moniteurs du SLO l'a rattaché, **Manuel** si quelqu'un l'a rattaché à la main. |
 | **Étiquettes** | Les étiquettes du moniteur. |
 

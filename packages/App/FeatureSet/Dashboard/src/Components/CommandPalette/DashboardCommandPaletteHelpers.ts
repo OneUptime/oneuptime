@@ -203,7 +203,7 @@ export interface PageSearchCommandDescriptor {
   // A thing done on a page ("Delete Project") rather than the page itself.
   isAction: boolean;
   /*
-   * A setting on a page ("Require SSO for Login" on SSO), named as its card
+   * A setting on a page ("Require SSO to Sign In" on SSO), named as its card
    * or switch names it, rather than the page itself.
    */
   isSetting: boolean;
@@ -439,7 +439,25 @@ export function buildPageSearchCommandDescriptors(
           ? slugifyPaletteCommandId("nav", template)
           : slugifyPaletteCommandId("page", template + queryString);
 
-        if (!isListedProduct) {
+        /*
+         * An action named as its page is, that opens the page as it is,
+         * stands in for the page's own row: "Delete Project" is the page
+         * the Danger Zone holds and the action done there, and two rows of
+         * one name led to one place (#9134). Someone the action is not
+         * offered to still finds the page, which says why.
+         */
+        const standInAction: PageSearchAction | undefined = (
+          page.actions || []
+        ).find((action: PageSearchAction): boolean => {
+          return (
+            isActionAllowed(action, input.availability) &&
+            action.queryString === undefined &&
+            !action.anchor &&
+            isSameName(action.title, page.title)
+          );
+        });
+
+        if (!isListedProduct && !standInAction) {
           descriptors.push({
             id: pageCommandId,
             title,
@@ -459,7 +477,7 @@ export function buildPageSearchCommandDescriptors(
 
         /*
          * An action, or a setting, names the page it is on: Delete Project
-         * is under "Project Settings > Danger Zone", Require SSO for Login
+         * is under "Project Settings > Danger Zone", Require SSO to Sign In
          * under "Project Settings > Security > SSO".
          */
         const onPageBreadcrumb: Array<string> = isSameName(
@@ -496,8 +514,12 @@ export function buildPageSearchCommandDescriptors(
             ...(action.titleValues
               ? { titleValues: { ...action.titleValues } }
               : {}),
-            keywords: action.keywords || [],
-            breadcrumb: onPageBreadcrumb,
+            keywords:
+              action === standInAction
+                ? [...(action.keywords || []), ...(page.keywords || [])]
+                : action.keywords || [],
+            breadcrumb:
+              action === standInAction ? breadcrumb : onPageBreadcrumb,
             breadcrumbKeywords: [
               ...breadcrumbKeywords,
               englishOfIndexName(page.title),

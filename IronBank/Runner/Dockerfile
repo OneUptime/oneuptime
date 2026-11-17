@@ -88,8 +88,6 @@ ENV NODE_OPTIONS="--use-openssl-ca"
 ENV PRODUCTION=true
 ENV APP_VERSION=14.0.102
 ENV GIT_SHA=eabb86bd64e59edcecab13b7f8bc3512babb2483
-# The release type-checked the runner when it was built.
-ENV TS_NODE_TRANSPILE_ONLY=1
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
@@ -98,6 +96,8 @@ WORKDIR /usr/src/app
 USER node
 
 # The release's start command: sh sizes node's heap to the container's memory
-# limit and execs node under tini (see packages/App/Dockerfile.tpl). It needs
-# nothing from the release's files, so it runs as written on any release.
-CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
+# limit and execs node under tini, and node runs Index.js, the JavaScript the
+# release compiled from its TypeScript (see packages/App/Dockerfile.tpl). So
+# the pinned release must be one that ships it: Scripts/IronBank/PinRelease.js
+# refuses a release whose own start command runs another file.
+CMD [ "sh", "-c", "heap=8096; for file in \"/sys/fs/cgroup$(sed -n 's/^0:://p' /proc/self/cgroup 2>/dev/null)/memory.max\" /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do limit=$(cat \"$file\" 2>/dev/null); case $limit in ''|*[!0-9]*|????????????????*) ;; *) heap=$((limit / 1048576 * 3 / 4)); [ $heap -ge 256 ] || heap=256; [ $heap -le 8096 ] || heap=8096; break ;; esac; done; export NODE_OPTIONS=\"--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js Index.js" ]

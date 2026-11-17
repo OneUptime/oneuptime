@@ -169,7 +169,7 @@ For å reagere på flere snubletråder lar du alle titlene deres begynne på sam
 ## Test circuit breakeren
 
 :::steps
-1. Utløs den for hånd. Åpne **Varsler**, klikk på **Opprett varsel**, og opprett ett med tittelen `LLM budget exceeded: test`. Kjøringen vises under **Arbeidsflyter → Logger → Kjøringer**, og endepunktet ditt mottar kallet.
+1. Utløs den for hånd. Åpne **Varsler**, klikk på **Opprett varsel**, og opprett ett med tittelen `LLM budget exceeded: test`. Kjøringen vises under **Arbeidsflyter → Kjøringer**, og endepunktet ditt mottar kallet.
 2. Utløs den på ordentlig. Opprett et budsjett med en bitteliten grense, for eksempel `0.01` USD, på tjenesten til en testagent, rett en budsjettmonitor mot det, og la agenten kjøre: prosenten passerer 100, varselet åpnes, arbeidsflyten kjører og circuit breakeren slår ut. For løkkevarselet gir du en testagent et verktøy som alltid feiler.
 3. Utløs den to ganger. Opprett det samme varselet igjen: endepunktet ditt må ta imot den andre utløsningen uten å endre noe.
 :::
@@ -201,7 +201,7 @@ Monitorens **Tidsintervall** er kortere enn budsjettets 15 minutter mellom to pu
 :::
 
 :::details Forespørselen når aldri frem til endepunktet ditt
-Åpne kjøringen under **Arbeidsflyter → Logger → Kjøringer** og steget **API-kall POST (JSON)**: det forteller hvorfor forespørselen mislyktes. På OneUptime Cloud må endepunktet kunne nås fra internett; en selvhostet installasjon avviser private nettverksadresser med mindre en administrator tillater dem.
+Åpne kjøringen under **Arbeidsflyter → Kjøringer** og steget **API-kall POST (JSON)**: det forteller hvorfor forespørselen mislyktes. På OneUptime Cloud må endepunktet kunne nås fra internett; en selvhostet installasjon avviser private nettverksadresser med mindre en administrator tillater dem.
 :::
 
 ## Neste steg

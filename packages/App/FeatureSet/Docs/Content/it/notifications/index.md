@@ -45,10 +45,8 @@ Aprite le **Impostazioni utente**, a destra della barra sotto la barra superiore
 | --- | --- |
 | **Per iniziare** | **Elenco di configurazione**: cosa resta da configurare, nell'ordine che conta |
 | **Avvisi e notifiche** | **Metodi di notifica**, **Come contattarmi**, **Impostazioni notifiche** e **Preferenze e-mail**, che stabilisce quante e-mail producono i vostri aggiornamenti |
-| **Log di reperibilità** | **Log di reperibilità**: ogni volta che siete stati chiamati in questo progetto, e cosa è stato inviato |
-| **Policy chiamate in entrata** | **Numeri di telefono in entrata**: il numero su cui vi chiama una policy di chiamate in entrata |
-| **Calendario** | **Feed calendario**: i vostri turni nella vostra app di calendario, e promemoria prima che inizino |
-| **Profilo** | **Campi personalizzati**: dati che il vostro progetto chiede ai suoi membri |
+| **Reperibilità e chiamate** | **Log di reperibilità**: ogni volta che siete stati chiamati in questo progetto, e cosa è stato inviato; **Numeri di telefono in entrata**: il numero su cui vi chiama una policy di chiamate in entrata |
+| **Profilo e calendario** | **Feed calendario**: i vostri turni nella vostra app di calendario, e promemoria prima che inizino; **Campi personalizzati**: dati che il vostro progetto chiede ai suoi membri |
 | **Area di lavoro** | **Slack**, **Microsoft Teams** e **Mattermost**: il vostro account, in ogni area di lavoro che il progetto ha collegato |
 
 **Per iniziare** e **Avvisi e notifiche** sono aperte; le altre sezioni partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Area di lavoro** compare solo se il progetto ha collegato Slack, Microsoft Teams o Mattermost.
@@ -112,7 +110,7 @@ Cambiano le parole di OneUptime: oggetti, titoli, pulsanti e frasi, e i nomi con
 ## Risoluzione dei problemi
 
 :::details Ero di reperibilità, ma non mi è arrivato nulla
-Aprite **Impostazioni utente → Log di reperibilità**. Nessuna riga per l'incidente significa che la sua politica di reperibilità non vi ha mai chiamato: controllate le sue regole di escalation e chi era di reperibilità. Per una riga con stato **Errore**, **Visualizza messaggio di stato** dice perché, per esempio un canale che il progetto ha disattivato. Controllate poi che i vostri metodi siano verificati e che **Your setup checklist** non abbia nulla in sospeso sotto **So we can reach you**.
+Aprite **Impostazioni utente → Reperibilità e chiamate → Log di reperibilità**. Nessuna riga per l'incidente significa che la sua politica di reperibilità non vi ha mai chiamato: controllate le sue regole di escalation e chi era di reperibilità. Per una riga con stato **Errore**, **Visualizza messaggio di stato** dice perché, per esempio un canale che il progetto ha disattivato. Controllate poi che i vostri metodi siano verificati e che **Your setup checklist** non abbia nulla in sospeso sotto **So we can reach you**.
 :::
 
 :::details Ricevo e-mail su elementi che non ho mai chiesto

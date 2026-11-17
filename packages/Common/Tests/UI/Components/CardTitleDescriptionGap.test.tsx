@@ -72,13 +72,6 @@ const DESCRIPTION_LINE_IN_PX: number = 22.75;
 // A status pill (Pill isMinimal) is shorter than the title's line.
 const PILL_HEIGHT_IN_PX: number = 22;
 
-/*
- * A header control below md: Button's text-base (a 24px line) between its
- * 8px paddings and 1px borders, and a table's search taking the same
- * (TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME).
- */
-const PHONE_CONTROL_HEIGHT_IN_PX: number = 42;
-
 const MD_IN_PX: number = 768;
 
 /*
@@ -286,14 +279,19 @@ function descriptionHeight(shape: Shape): number {
     : DESCRIPTION_LINE_IN_PX;
 }
 
-function actionsHeight(shape: Shape, width: number): number {
+/*
+ * A header control is 38px at every width: Button's text-sm (a 20px line)
+ * between its 8px paddings and 1px borders, and a table's search, its time
+ * range and the ⋯ taking the same (TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME).
+ * Below md they were 42px, in a button's larger words there, until every
+ * button became one frame (#9128).
+ */
+function actionsHeight(shape: Shape, _width: number): number {
   if (shape.actions === "pill") {
     return PILL_HEIGHT_IN_PX;
   }
 
-  return width >= MD_IN_PX
-    ? CARD_HEADER_CONTROL_HEIGHT_IN_PX
-    : PHONE_CONTROL_HEIGHT_IN_PX;
+  return CARD_HEADER_CONTROL_HEIGHT_IN_PX;
 }
 
 function layOut(
@@ -547,9 +545,9 @@ describe("the numbers the header is built on", () => {
     });
     const buttonClass: string = classOf(button);
 
-    // md:text-sm: a 20px line; py-2 above and below it; a 1px border.
+    // text-sm: a 20px line; py-2 above and below it; a 1px border.
     expect(buttonClass.split(" ")).toEqual(
-      expect.arrayContaining(["md:text-sm", "border", "py-2"]),
+      expect.arrayContaining(["text-sm", "border", "py-2"]),
     );
     const padding: { top: number; bottom: number } = resolveSpacing(
       buttonClass,
@@ -560,7 +558,7 @@ describe("the numbers the header is built on", () => {
       CARD_HEADER_CONTROL_HEIGHT_IN_PX,
     );
 
-    // A table's search takes the same padding from md up (TableHeaderControls).
+    // A table's search takes the same padding (TableHeaderControls).
     const searchPadding: { top: number; bottom: number } = resolveSpacing(
       TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
       LAPTOP_WIDTH_IN_PX,
@@ -571,23 +569,26 @@ describe("the numbers the header is built on", () => {
     );
 
     /*
-     * And 42px on a phone: the search's 20px line between 10px paddings
-     * (Button's text-base, a 24px line, between its 8px ones).
+     * The button is 38px on a phone too: every style's words are text-sm at
+     * every width (#9128), so two buttons side by side are one height. So
+     * is a table's search there, its 20px line between the same 8px
+     * paddings: at 42px (py-2.5) it stood 4px taller than the Create beside
+     * it.
      */
-    expect(buttonClass.split(" ")).toContain("text-base");
+    expect(buttonClass.split(" ")).not.toContain("text-base");
     expect(
-      24 +
+      20 +
         resolveSpacing(buttonClass, PHONE_WIDTH_IN_PX, "padding").top +
         resolveSpacing(buttonClass, PHONE_WIDTH_IN_PX, "padding").bottom +
         2,
-    ).toBe(PHONE_CONTROL_HEIGHT_IN_PX);
+    ).toBe(CARD_HEADER_CONTROL_HEIGHT_IN_PX);
     const phonePadding: { top: number; bottom: number } = resolveSpacing(
       TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
       PHONE_WIDTH_IN_PX,
       "padding",
     );
     expect(20 + phonePadding.top + phonePadding.bottom + 2).toBe(
-      PHONE_CONTROL_HEIGHT_IN_PX,
+      CARD_HEADER_CONTROL_HEIGHT_IN_PX,
     );
   });
 
@@ -1134,7 +1135,7 @@ describe.each(STACKED_LAYOUTS)(
     );
 
     test.each(PHONE_WIDTHS)(
-      "at %ipx (a phone, no description shown) the title and the 42px controls are centred on each other, nothing hangs past the line, and the body starts under it",
+      "at %ipx (a phone, no description shown) the title and the 38px controls are centred on each other, nothing hangs past the line, and the body starts under it",
       (width: number) => {
         for (const description of [
           "one-line",

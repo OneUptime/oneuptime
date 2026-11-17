@@ -3,7 +3,7 @@
 Med single sign-on (SSO) logger personene i prosjektet ditt inn i OneUptime gjennom organisasjonens identitetsleverandør (IdP), via SAML 2.0 eller OpenID Connect. Du styrer tilgang, passord og flerfaktorautentisering på ett sted, og du kan kreve SSO for alle i prosjektet.
 
 > [!NOTE]
-> **Utgave:** SSO, inkludert "Require SSO for login", er en del av alle OneUptime-utgaver: selvhostede installasjoner får det i Community Edition, uten at det trengs lisens. På OneUptime Cloud er det tilgjengelig fra planen **Scale** og oppover. Se [Enterprise Edition](/docs/self-hosted/enterprise) for hva hver utgave inneholder.
+> **Utgave:** SSO, inkludert "Require SSO to sign in", er en del av alle OneUptime-utgaver: selvhostede installasjoner får det i Community Edition, uten at det trengs lisens. På OneUptime Cloud er det tilgjengelig fra planen **Scale** og oppover. Se [Enterprise Edition](/docs/self-hosted/enterprise) for hva hver utgave inneholder.
 
 :::cards
 - [Sett opp en SAML-leverandør](#sette-opp-sso): Opprett den i OneUptime, og gi IdP-en din to URL-er.
@@ -267,26 +267,26 @@ Teamene til en leverandør avgjør hva personene som logger inn med den, kan gj�
 
 ## Krev SSO for prosjektet ditt
 
-En oppsatt leverandør hindrer ingen i å logge inn med passord. For å gjøre SSO til den eneste veien inn i prosjektet bruker du bryteren **Krev SSO for innlogging** under **Prosjektinnstillinger** > **Sikkerhet** > **SSO**, under leverandørene dine:
+En oppsatt leverandør hindrer ingen i å logge inn med passord. For å gjøre SSO til den eneste veien inn i prosjektet bruker du bryteren **Krev SSO for å logge på** under **Prosjektinnstillinger** > **Sikkerhet** > **SSO**, under leverandørene dine:
 
 :::steps
 1. Test leverandøren din først med lenken i kortet **Test Single Sign On (SSO)**.
-2. Slå på **Krev SSO for innlogging**. OneUptime spør før noe lagres: fra da av må alle i prosjektet, også du, logge inn med SSO for å åpne det, og alle som er logget inn med passord, er utestengt fra prosjektet til de logger inn med SSO.
+2. Slå på **Krev SSO for å logge på**. OneUptime spør før noe lagres: fra da av må alle i prosjektet, også du, logge inn med SSO for å åpne det, og alle som er logget inn med passord, er utestengt fra prosjektet til de logger inn med SSO.
 3. Klikk på **Krev SSO** for å bekrefte. Bryteren lagres med en gang; det finnes ingen egen lagreknapp.
 :::
 
-For å slå på **Krev SSO for innlogging** trengs en leverandør som logger personer inn i prosjektet: en av prosjektets egne SAML- eller OIDC-leverandører som er slått på, eller en global leverandør som er slått på og logger personer inn i prosjektet. Uten en slik avviser OneUptime og ber deg først slå på en leverandør for prosjektet og teste den. Velger du en leverandør som prosjektet krever, må det være en av disse, og det samme spørres om når du senere krever en annen leverandør.
+For å slå på **Krev SSO for å logge på** trengs en leverandør som logger personer inn i prosjektet: en av prosjektets egne SAML- eller OIDC-leverandører som er slått på, eller en global leverandør som er slått på og logger personer inn i prosjektet. Uten en slik avviser OneUptime og ber deg først slå på en leverandør for prosjektet og teste den. Velger du en leverandør som prosjektet krever, må det være en av disse, og det samme spørres om når du senere krever en annen leverandør.
 
-En lagring som sender **Krev SSO for innlogging** som slått på mens det allerede er slått på, eller som nevner leverandøren prosjektet allerede krever, kontrolleres på samme måte — API-et, Terraform og andre verktøy sender ofte alle innstillingene ved hver lagring. Så lenge prosjektet ikke har noen leverandør som logger personer inn, eller den påkrevde leverandøren er slått av siden, avvises en slik lagring derfor med de samme ordene, uansett hva annet den endrer: slå først på en leverandør, krev en annen, eller slå av **Krev SSO for innlogging**.
+En lagring som sender **Krev SSO for å logge på** som slått på mens det allerede er slått på, eller som nevner leverandøren prosjektet allerede krever, kontrolleres på samme måte — API-et, Terraform og andre verktøy sender ofte alle innstillingene ved hver lagring. Så lenge prosjektet ikke har noen leverandør som logger personer inn, eller den påkrevde leverandøren er slått av siden, avvises en slik lagring derfor med de samme ordene, uansett hva annet den endrer: slå først på en leverandør, krev en annen, eller slå av **Krev SSO for å logge på**.
 
-Et nytt prosjekt følger samme regel. Det har ingen egen leverandør ennå, så å opprette det med **Krev SSO for innlogging** allerede slått på — det kan bare en master-admin — krever en global leverandør som er slått på og logger personer inn i alle prosjekter, og uten en slik avvises det med de samme ordene. Opprett prosjektet, sett opp og test leverandøren, og slå deretter på bryteren.
+Et nytt prosjekt følger samme regel. Det har ingen egen leverandør ennå, så å opprette det med **Krev SSO for å logge på** allerede slått på — det kan bare en master-admin — krever en global leverandør som er slått på og logger personer inn i alle prosjekter, og uten en slik avvises det med de samme ordene. Opprett prosjektet, sett opp og test leverandøren, og slå deretter på bryteren.
 
-Så lenge hele serveren krever SSO (**Admin** > **Innstillinger** > **Enkel pålogging** > **Krev SSO for innlogging**), krever det å opprette et hvilket som helst prosjekt også en slik global leverandør, ellers kunne ingen, heller ikke den som oppretter det, åpne prosjektet. Uten en slik avvises opprettelsen av et prosjekt, og meldingen ber en serveradministrator slå på en. Master-admins kan fortsatt opprette prosjekter.
+Så lenge hele serveren krever SSO (**Admin** > **Innstillinger** > **Enkel pålogging** > **Krev SSO for å logge på**), krever det å opprette et hvilket som helst prosjekt også en slik global leverandør, ellers kunne ingen, heller ikke den som oppretter det, åpne prosjektet. Uten en slik avvises opprettelsen av et prosjekt, og meldingen ber en serveradministrator slå på en. Master-admins kan fortsatt opprette prosjekter.
 
-Å slå av **Krev SSO for innlogging** lagres så snart du slår om bryteren, og slipper medlemmer inn med passordet sitt med en gang — med mindre noen slår den på igjen i akkurat det øyeblikket; da kan en appserver bruke opptil ett minutt på å følge etter. Prosjekteiere, Prosjektadministratorer og medlemmer med tillatelsen **Edit Project** kan endre den; alle andre ser bryteren låst, sammen med tillatelsen de ville trengt.
+Å slå av **Krev SSO for å logge på** lagres så snart du slår om bryteren, og slipper medlemmer inn med passordet sitt med en gang — med mindre noen slår den på igjen i akkurat det øyeblikket; da kan en appserver bruke opptil ett minutt på å følge etter. Prosjekteiere, Prosjektadministratorer og medlemmer med tillatelsen **Edit Project** kan endre den; alle andre ser bryteren låst, sammen med tillatelsen de ville trengt.
 
 > [!NOTE]
-> På OneUptime Cloud krever det planen **Scale** å kreve SSO, mens det fungerer på alle planer å slå det av. Under Scale viser **Prosjektinnstillinger** > **Sikkerhet** > **SSO** planens oppgraderingstilbud; et prosjekt som en Scale-prøveperiode etterlot med krav om SSO, finner også **Krev SSO for innlogging** der, under tilbudet, slik at det kan slås av. Å slå det på igjen krever **Scale**.
+> På OneUptime Cloud krever det planen **Scale** å kreve SSO, mens det fungerer på alle planer å slå det av. Under Scale viser **Prosjektinnstillinger** > **Sikkerhet** > **SSO** planens oppgraderingstilbud; et prosjekt som en Scale-prøveperiode etterlot med krav om SSO, finner også **Krev SSO for å logge på** der, under tilbudet, slik at det kan slås av. Å slå det på igjen krever **Scale**.
 
 ## Slå av eller slette en leverandør
 
@@ -304,11 +304,11 @@ Så lenge hele serveren krever SSO (**Admin** > **Innstillinger** > **Enkel pål
 
 Å endre alt annet ved en leverandør holder alle innlogget: et nytt sertifikat eller klienthemmelighet, andre URL-er, et nytt navn eller andre team. Påloggingene ble kontrollert da de ble gitt, og neste pålogging bruker de nye innstillingene.
 
-Så lenge prosjektet krever SSO, holder OneUptime en vei inn åpen: du kan ikke slå av eller slette den siste leverandøren personer kan logge inn i prosjektet med — globale leverandører som logger personer inn i det, medregnet — eller leverandøren prosjektet krever. Slå først av **Krev SSO for innlogging**.
+Så lenge prosjektet krever SSO, holder OneUptime en vei inn åpen: du kan ikke slå av eller slette den siste leverandøren personer kan logge inn i prosjektet med — globale leverandører som logger personer inn i det, medregnet — eller leverandøren prosjektet krever. Slå først av **Krev SSO for å logge på**.
 
 Å slå på en leverandør lar personer logge inn med den med en gang.
 
-Når hele serveren krever SSO (**Admin** > **Innstillinger** > **Enkel pålogging** > **Krev SSO for innlogging**), beholder hvert prosjekt en vei inn på samme måte, også et prosjekt som ikke selv krever SSO: slå først på en annen leverandør for det.
+Når hele serveren krever SSO (**Admin** > **Innstillinger** > **Enkel pålogging** > **Krev SSO for å logge på**), beholder hvert prosjekt en vei inn på samme måte, også et prosjekt som ikke selv krever SSO: slå først på en annen leverandør for det.
 
 Globale leverandører følger samme regel: en endring av en global leverandør eller prosjektene som er knyttet til den, som ville etterlate et prosjekt som krever SSO uten leverandør, avvises og nevner prosjektet. Se [Global SSO](/docs/identity/global-sso#slå-av-eller-slette-en-leverandør).
 
@@ -323,9 +323,9 @@ En SAML- eller OIDC-leverandør som et prosjekt fortsatt har, fortsetter å logg
 
 Å legge til en leverandør, endre en eller slå den på igjen krever **Scale**. Hvem som kan gjøre hva, er det samme som med Scale: å slå av en leverandør krever tillatelse til å redigere den, å slette den krever tillatelse til å slette den.
 
-Så lenge prosjektet fortsatt krever SSO, viser siden **SSO** også **Krev SSO for innlogging**: slå det av før du slår av den siste leverandøren. Inntil da kan ikke den siste leverandøren personer kan logge inn med, slås av eller slettes, slik at ingen blir utestengt fra prosjektet.
+Så lenge prosjektet fortsatt krever SSO, viser siden **SSO** også **Krev SSO for å logge på**: slå det av før du slår av den siste leverandøren. Inntil da kan ikke den siste leverandøren personer kan logge inn med, slås av eller slettes, slik at ingen blir utestengt fra prosjektet.
 
-Sidene **SSO** og **OIDC** for en statusside viser statussidens egne leverandører på samme måte. Så lenge statussiden fortsatt krever SSO, viser begge sidene også **Krev SSO for innlogging**: slå det av før du slår av leverandørene, ellers kan de private brukerne ikke logge inn i det hele tatt.
+Siden **Enkel pålogging** for en statusside viser statussidens egne leverandører på samme måte, på fanene **SAML** og **OIDC**. Så lenge statussiden fortsatt krever SSO, viser begge fanene også **Krev SSO for å logge på**: slå det av før du slår av leverandørene, ellers kan de private brukerne ikke logge inn i det hele tatt.
 
 ## Feilsøking
 

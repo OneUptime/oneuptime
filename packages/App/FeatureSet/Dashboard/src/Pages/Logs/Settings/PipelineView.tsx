@@ -11,8 +11,9 @@ import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
@@ -78,7 +79,7 @@ It writes the **Source Key**'s value to the **Target Key**. Turn **Preserve Sour
 
 ## Category Processor
 
-Writes a category to the **Target Key**, such as "Payment Error" or "Rate Limit". Its categories are checked in order, and the first one whose filter a log matches is written. A category's filter is written as a pipeline's filter is.
+Writes a category to the **Target Key**, such as "Payment Error" or "Rate Limit". Its categories are checked in order, and the first one whose filter a log matches is written. A category's filter is built as a pipeline's filter is, with conditions.
 
 ## Order Matters
 
@@ -161,9 +162,7 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
                     <Pill color={Green} text="Enabled" icon={IconProp.Check} />
                   );
                 }
-                return (
-                  <Pill color={Red} text="Disabled" icon={IconProp.Close} />
-                );
+                return <Pill tone={PillTone.Paused} text="Disabled" />;
               },
             },
           ],

@@ -1,6 +1,8 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -52,6 +54,10 @@ interface EmptyStateAction {
  * may not write the postmortem sees Write Postmortem alone, dimmed, and why
  * under it: the other two are only other ways to do what they cannot.
  */
+// One action's box: the column's width on a phone, its button's from sm up.
+export const POSTMORTEM_EMPTY_STATE_ACTION_CLASS_NAME: string =
+  "w-full sm:w-auto max-sm:[&>*]:w-full max-sm:[&_button]:w-full";
+
 const PostmortemEmptyState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -97,16 +103,20 @@ const PostmortemEmptyState: FunctionComponent<ComponentProps> = (
     >
       {/*
        * A column on a phone, each button the full width and easy to tap; a
-       * row from sm up. The buttons' own left margin is for a dialog's
-       * footer - here the gap spaces them.
+       * row from sm up, spaced by the gap. Each action's box stretches its
+       * button (and a locked one's tooltip span) on a phone: a Button has no
+       * width of its own (#9128).
        */}
       <div
-        className="flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap [&>div>button]:ml-0 [&>div>button]:md:ml-0 [&>div>*>button]:ml-0 [&>div>*>button]:md:ml-0"
+        className="flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap"
         data-testid="postmortem-empty-state-actions"
       >
         {actions.map((action: EmptyStateAction): ReactElement => {
           return (
-            <div key={action.dataTestId} className="w-full sm:w-auto">
+            <div
+              key={action.dataTestId}
+              className={POSTMORTEM_EMPTY_STATE_ACTION_CLASS_NAME}
+            >
               <Button
                 title={action.title}
                 icon={action.icon}
@@ -141,7 +151,7 @@ const PostmortemEmptyState: FunctionComponent<ComponentProps> = (
         icon={IconProp.DocumentText}
         title={POSTMORTEM_EMPTY_TITLE}
         description={POSTMORTEM_EMPTY_DESCRIPTION}
-        paddingClassName="py-8"
+        size={EmptyStateSize.Inline}
         footer={footer}
       />
     </div>

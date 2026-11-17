@@ -35,7 +35,7 @@ covered in [CONTRIBUTING](../.github/CONTRIBUTING.md#licensing-of-contributions)
 | Path | What it is |
 | --- | --- |
 | `Server/Index.ts` | The enterprise server module (the default export), assembled from one module per area, in order: License, Identity, TeamCompliance, AuditLog, LicenseServer, AdminHealth, Workers, WhiteLabel, Marketplace, AuditLogExport, Billing, CloudMarketplace. It implements `EnterpriseServerModule` from `packages/Common/Server/Enterprise/EnterpriseServerModule.ts`. |
-| `Server/Identity/` | SCIM provisioning for projects and status pages. Route paths are byte-identical to the Community Edition paths they replaced, because customer identity providers have them configured. Every route starts with a license gate (`Middleware/LicensedFeatureGate.ts`, SCIM only), so it refuses while SCIM is not active. Single sign-on (SAML, OIDC, global SSO and "Require SSO for login") is not here: it is core, Apache-2.0, in `packages/App/FeatureSet/Identity`, and served in every edition. |
+| `Server/Identity/` | SCIM provisioning for projects and status pages. Route paths are byte-identical to the Community Edition paths they replaced, because customer identity providers have them configured. Every route starts with a license gate (`Middleware/LicensedFeatureGate.ts`, SCIM only), so it refuses while SCIM is not active. Single sign-on (SAML, OIDC, global SSO and "Require SSO to sign in") is not here: it is core, Apache-2.0, in `packages/App/FeatureSet/Identity`, and served in every edition. |
 | `Server/TeamCompliance/` | Team compliance settings and the compliance status route. |
 | `Server/AuditLog/` | The audit-log recorder behind `EnterpriseEdition.getAuditLogRecorder()`: the changes core reports, and people's sessions (sign-ins, sign-outs, timeouts and revocations, filed in every project of the person's; `AuditLogSessionEntries.ts` says what each entry holds). Its one job, `Jobs/EndSessionsThatRanOut.ts` (every five minutes), ends the sessions that ran out so their timeouts are recorded within minutes. |
 | `Server/AuditLogExport/` | Audit log export: the exporter (`AuditLogExporter.ts`), run every minute by `Jobs/ExportAuditLogs.ts`, which sends every enabled export (a project's, or the whole instance's) the entries recorded since its cursor; the six destinations in `Destinations/` (Amazon S3 and S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook, syslog); the NDJSON files the file destinations write (`AuditLogExportFiles.ts`); and the routes that test a destination before it is saved (`API/`). The `AuditLogExport` model, its migration, `AuditLogExportService` and the destination catalog (`packages/Common/Types/AuditLog/Export/`) stay in core. |
@@ -176,7 +176,7 @@ load creates an import cycle that crashes the Enterprise bundle.
 
 Single sign-on asks none of these questions. SAML and OIDC sign-in (projects,
 status pages, the whole instance and the mobile flows), the provider listings
-and "Require SSO for login" (project, instance-wide and status page) are core,
+and "Require SSO to sign in" (project, instance-wide and status page) are core,
 so they behave the same in every edition and every license state.
 
 With billing on (OneUptime Cloud) both license questions answer yes whenever
@@ -218,7 +218,7 @@ what `isFeatureAvailableSync` treats as unavailable. Then:
   rules.
 
 Single sign-on is not affected: its routes have no license gate, and "Require
-SSO for login" stays enforced whatever the license state.
+SSO to sign in" stays enforced whatever the license state.
 
 Nothing is deleted or changed. When a license is activated, everything resumes
 without a restart. `isFeatureActive` logs a warning once when features stop

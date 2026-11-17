@@ -98,7 +98,7 @@ const SOURCES: Record<string, string> = {
   adminNavBar: `${ADMIN_DASHBOARD}/Components/NavBar/NavBar.tsx`,
   adminSettingsSideMenu: `${ADMIN_DASHBOARD}/Pages/Settings/SideMenu.tsx`,
   adminAuthenticationPage: `${ADMIN_DASHBOARD}/Pages/Settings/Authentication/Index.tsx`,
-  // The providers, SAML then OIDC, and Require SSO for Login under them.
+  // The providers, SAML then OIDC, and Require SSO to Sign In under them.
   adminSsoPage: `${ADMIN_DASHBOARD}/Pages/Settings/SSO/Index.tsx`,
   adminSsoCopy: `${ADMIN_DASHBOARD}/Pages/Settings/SSO/SsoSettingsCopy.ts`,
   adminLocaleEn: `${ADMIN_DASHBOARD}/Locales/en.json`,
@@ -133,6 +133,7 @@ const EE_SOURCES: Record<string, string> = {
     "ee/Dashboard/Identity/Components/SCIMLogs/ProjectSCIMLogsTable.tsx",
   statusPageScimLogs:
     "ee/Dashboard/Identity/Components/SCIMLogs/StatusPageSCIMLogsTable.tsx",
+  scimBearerTokenCopy: "ee/Dashboard/Identity/ScimBearerTokenCopy.ts",
 };
 
 // A role's level: the last word of its title.
@@ -149,9 +150,15 @@ const SSO_TEST_LINK: RegExp =
 const GLOBAL_QUESTIONS_FOLDED: RegExp =
   /withGlobalAccessSwitches\s*\?\s*\[\s*getSsoProviderSignUpChoiceField<TEntity>\(\{[^}]*collapsibleSection: advancedSection,\s*\}\),\s*getSsoProviderSignUpColumnField<TEntity>\(\{[^}]*\}\),\s*getSsoProviderReachChoiceField<TEntity>\(\{[^}]*collapsibleSection: advancedSection,\s*\}\),\s*getSsoProviderReachColumnField<TEntity>\(/;
 
-// A SCIM page opens the dialog with its URLs once a connection is created.
-const SCIM_DIALOG_ON_CREATE: RegExp =
-  /onCreateSuccess=\{[\s\S]{0,200}?modalType === ModalType\.Create[\s\S]{0,120}?setShowSCIMUrlId\(item\.id\.toString\(\)\)/;
+/*
+ * A SCIM page shows a new connection's bearer token once, as the create
+ * answered it (#9012: no read holds it), and opens the dialog with its URLs
+ * once the token is copied.
+ */
+const SCIM_TOKEN_ON_CREATE: RegExp =
+  /onCreateSuccess=\{[\s\S]{0,200}?modalType === ModalType\.Create[\s\S]{0,200}?getBearerTokenShownOnCreate\(\s*item\.bearerToken,?\s*\)[\s\S]{0,200}?setShownOnceToken\(token\)/;
+const SCIM_DIALOG_AFTER_TOKEN: RegExp =
+  /<ShownOnceSecretModal[\s\S]{0,800}?onDone=\{[\s\S]{0,400}?setShowSCIMUrlId\(created\.id\.toString\(\)\)/;
 
 function readSource(key: string): string {
   return fs.readFileSync(path.join(REPO_DIR, SOURCES[key]!), "utf8");
@@ -850,16 +857,16 @@ describe("the SSO guide", () => {
     );
     expect(picker).not.toContain("/sso-list");
     expect(picker).toContain(
-      'description="Please select an SSO provider to log in to this project."',
+      'description="Choose an SSO provider to sign in to this project."',
     );
     expect(english(SSO)).toContain(
       "Open the link in the **Test Single Sign On (SSO)** card and pick the provider on the page it opens.",
     );
   });
 
-  it("names the project's Require SSO for Login switch and its confirm button, under the providers", () => {
+  it("names the project's Require SSO to Sign In switch and its confirm button, under the providers", () => {
     expect(RequireSsoForLoginSwitchCopy.switchTitle).toBe(
-      "Require SSO for Login",
+      "Require SSO to Sign In",
     );
     expect(RequireSsoForLoginSwitchCopy.requireConfirmButton).toBe(
       "Require SSO",
@@ -875,14 +882,14 @@ describe("the SSO guide", () => {
     const page: string = english(SSO);
 
     expect(page).toContain(
-      "use the **Require SSO for Login** switch on **Project Settings** > **Security** > **SSO**, under your providers:",
+      "use the **Require SSO to Sign In** switch on **Project Settings** > **Security** > **SSO**, under your providers:",
     );
     expect(page).toContain(
       "Click **Require SSO** to confirm. The switch saves straight away; there is no separate Save button.",
     );
   });
 
-  it("names who may change Require SSO for Login, and that requiring it needs Scale", () => {
+  it("names who may change Require SSO to Sign In, and that requiring it needs Scale", () => {
     expect(
       titlesOf(updatePermissionsOf(new Project(), "requireSsoForLogin")),
     ).toEqual(
@@ -908,7 +915,7 @@ describe("the SSO guide", () => {
   });
 
   it("finds the server-wide switch on the Admin Dashboard's Single Sign-On page, as it is named there", () => {
-    expect(REQUIRE_SSO_COPY.switchTitle).toBe("Require SSO for Login");
+    expect(REQUIRE_SSO_COPY.switchTitle).toBe("Require SSO to Sign In");
     expect(REQUIRE_SSO_COPY.cardTitle).toBe("Require SSO");
     expect(REQUIRE_SSO_COPY.confirmButton).toBe("Require SSO");
     expect(readSource("adminSsoPage")).toContain('column="requireSsoForLogin"');
@@ -930,21 +937,25 @@ describe("the SSO guide", () => {
     }
 
     expect(english(GLOBAL_SSO)).toContain(
-      "the **Require SSO** card at the bottom of **Admin** > **Settings** > **Single Sign-On** has a **Require SSO for Login** switch",
+      "the **Require SSO** card at the bottom of **Admin** > **Settings** > **Single Sign-On** has a **Require SSO to Sign In** switch",
     );
   });
 
-  it("finds SSO, OIDC and SCIM under Security on a status page, and SSO and SCIM in a project's settings", () => {
+  it("finds Single Sign-On and SCIM under Security on a status page, and SSO and SCIM in a project's settings", () => {
     const status: string = readSource("statusPageSideMenu");
     const statusSecurity: string = status.slice(
       status.indexOf('<SideMenuSection title="Security">'),
     );
-    const sso: number = statusSecurity.indexOf('title: "SSO"');
-    const oidc: number = statusSecurity.indexOf('title: "OIDC"');
+    /*
+     * A status page's SAML and OIDC providers are one Single Sign-On page,
+     * a tab each (#9130), where they were two entries, SSO and OIDC.
+     */
+    const sso: number = statusSecurity.indexOf('title: "Single Sign-On"');
     const scim: number = statusSecurity.indexOf('title: "SCIM"');
 
     expect(status).toContain('<SideMenuSection title="Security">');
-    expect(sso >= 0 && sso < oidc && oidc < scim).toBe(true);
+    expect(sso >= 0 && sso < scim).toBe(true);
+    expect(statusSecurity.slice(0, scim)).not.toContain('title: "OIDC"');
 
     /*
      * A project's OpenID Connect providers are on its SSO page, under the
@@ -1309,19 +1320,25 @@ describe("the Global SSO guide", () => {
 });
 
 describe("the SCIM guide", () => {
-  it("says only a project owner adds or changes a connection, or sees its bearer token", () => {
+  it("says only a project owner adds or changes a connection, or resets its bearer token, and nobody reads one back", () => {
     const scim: ProjectSCIM = new ProjectSCIM();
 
     expect(titlesOf(scim.getCreatePermissions())).toEqual(["Project Owner"]);
     expect(titlesOf(scim.getUpdatePermissions())).toEqual(["Project Owner"]);
-    expect(titlesOf(readPermissionsOf(scim, "bearerToken"))).toEqual([
-      "Project Owner",
-    ]);
+    // Kept as its hash (#9012): no one reads it, a project owner included.
+    expect(titlesOf(readPermissionsOf(scim, "bearerToken"))).toEqual([]);
+    expect(
+      titlesOf(readPermissionsOf(new StatusPageSCIM(), "bearerToken")),
+    ).toEqual([]);
+    expect(getTableColumn(scim, "bearerToken")?.presentedKey).toBe(true);
     expect(titlesOf(updatePermissionsOf(scim, "bearerToken"))).toEqual([
       "Project Owner",
     ]);
     expect(english(SCIM)).toContain(
-      "Only a Project Owner can add or change a project's SCIM connection, or see or reset its bearer token",
+      "Only a Project Owner can add or change a project's SCIM connection, or reset its bearer token",
+    );
+    expect(english(SCIM)).toContain(
+      "Nobody can read a bearer token back, a Project Owner included: OneUptime keeps only its hash.",
     );
   });
 
@@ -1382,11 +1399,14 @@ describe("the SCIM guide", () => {
     );
   });
 
-  it("says saving a connection opens the dialog with its URL and token, and names the row's buttons and the Logs tab", () => {
+  it("says saving a connection shows its token once, then the dialog with its URL, and names the row's buttons and the Logs tab", () => {
     const page: string = english(SCIM);
 
     expect(page).toContain(
-      "Save. The dialog with the **SCIM Base URL** and **Bearer Token** for your IdP configuration opens straight away",
+      "Save. OneUptime shows the connection's **Bearer Token** once: copy it before you click **Done**, since OneUptime keeps only its hash and no page shows it again. The dialog with the **SCIM Base URL** for your IdP configuration opens next",
+    );
+    expect(page).toContain(
+      "The bearer token is not shown again: if you no longer have it, or it has leaked, **Reset Bearer Token** makes a new one, shown once the same way, and the old one stops working at once.",
     );
 
     for (const label of [
@@ -1409,11 +1429,17 @@ describe("the SCIM guide", () => {
     for (const key of ["projectScimPage", "statusPageScimPage"]) {
       expect({
         key,
-        opens: SCIM_DIALOG_ON_CREATE.test(readEe(key)),
+        token: SCIM_TOKEN_ON_CREATE.test(readEe(key)),
+        opens: SCIM_DIALOG_AFTER_TOKEN.test(readEe(key)),
         logs: readEe(key).includes('name: "Logs"'),
         reset: readEe(key).includes('title: "Reset Bearer Token"'),
-      }).toEqual({ key, opens: true, logs: true, reset: true });
+      }).toEqual({ key, token: true, opens: true, logs: true, reset: true });
     }
+
+    // The dialog that shows the token once closes with Done, as the page says.
+    expect(readEe("scimBearerTokenCopy")).toContain(
+      'done: translationKey("Done")',
+    );
 
     expect(readEe("projectScimPage")).toContain('title: "View SCIM URLs"');
     expect(readEe("statusPageScimPage")).toContain(

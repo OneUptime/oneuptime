@@ -330,7 +330,7 @@ describe("the edition badge's words", () => {
     (language: string) => {
       const locale: Locale = readLocale("Dashboard", language);
       const talkToSales: string = locale["Talk to Sales"] as string;
-      const requireSso: string = locale["Require SSO for Login"] as string;
+      const requireSso: string = locale["Require SSO to Sign In"] as string;
 
       expect(
         locale[
@@ -339,7 +339,7 @@ describe("the edition badge's words", () => {
       ).toContain(talkToSales);
       expect(
         locale[
-          'SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including "Require SSO for login".'
+          'SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including "Require SSO to sign in".'
         ],
       ).toContain(requireSso);
     },

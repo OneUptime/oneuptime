@@ -81,11 +81,15 @@ const KIND_DESCRIPTIONS: Record<CodeTaskContextType, string> = {
   [CodeTaskContextType.Link]: translationKey(
     "A web address, given to AI as a reference.",
   ),
+  /*
+   * A task that carries a private incident or alert is read only by those
+   * who may read it (#9186), so the dialog says so where it is added.
+   */
   [CodeTaskContextType.Incident]: translationKey(
-    "AI reads the incident as it is now: its state, description and root cause.",
+    "AI reads the incident as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.",
   ),
   [CodeTaskContextType.Alert]: translationKey(
-    "AI reads the alert as it is now: its state, description and root cause.",
+    "AI reads the alert as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.",
   ),
   [CodeTaskContextType.Exception]: translationKey(
     "AI reads the exception's message and stack trace.",

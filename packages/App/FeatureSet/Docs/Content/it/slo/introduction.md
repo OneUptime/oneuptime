@@ -174,7 +174,7 @@ Apri uno SLO per vedere le sue pagine nel menu laterale:
 | **Log di audit** | Chi ha cambiato lo SLO, le sue regole e i suoi proprietari, e quando. |
 | **Elimina SLO** | Elimina lo SLO definitivamente e risolve gli avvisi e gli incidenti di tasso di consumo che aveva aperti. |
 
-**Monitor** si trova in una sezione **Configurazione**, **Regole dei monitor**, **Regole di tasso di consumo** e **Policy del budget di errore** in una sezione **Regole**, e **Proprietari**, **Impostazioni**, **Log di audit** e **Elimina SLO** in una sezione **Gestione**. Tutte e tre partono chiuse, come una sezione **Sviluppatori** per gestire lo SLO dal codice: fai clic sul titolo di una sezione per aprirla.
+**Monitor** si trova nella sezione **Panoramica**, sotto **Panoramica**; **Regole dei monitor**, **Regole di tasso di consumo** e **Policy del budget di errore** in una sezione **Regole**; e **Proprietari**, **Impostazioni**, **Log di audit** e **Elimina SLO** in una sezione **Gestione**. **Regole** e **Gestione** partono chiuse, come una sezione **Sviluppatori** per gestire lo SLO dal codice: fai clic sul titolo di una sezione per aprirla.
 
 Quando qualcosa impedisce a uno SLO di misurare, un banner in cima a ciascuna delle sue pagine dice cosa non va e rimanda alla pagina che lo risolve: vedi [Risoluzione dei problemi](#risoluzione-dei-problemi).
 

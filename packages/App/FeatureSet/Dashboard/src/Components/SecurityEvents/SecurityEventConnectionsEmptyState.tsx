@@ -109,8 +109,6 @@ const SecurityEventConnectionsEmptyState: FunctionComponent<ComponentProps> = (
             title="Add connection"
             icon={IconProp.Add}
             buttonStyle={ButtonStyleType.PRIMARY}
-            // The variant's md:ml-3 would pull it off the centre line.
-            className="md:!ml-0"
             disabled={!props.canCreate}
             tooltip={props.canCreate ? undefined : props.createDisabledReason}
             dataTestId={`${SECURITY_EVENT_CONNECTIONS_EMPTY_STATE_ID}-add-connection`}

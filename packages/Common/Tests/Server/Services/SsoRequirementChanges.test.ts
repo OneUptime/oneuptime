@@ -54,7 +54,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * The real update path of ProjectService - DatabaseService and the
  * service's hooks - over one project held in memory: only the repository,
  * the permission checks (not under test) and the providers' reads are
- * stubbed. Turning Require SSO for Login on, or requiring another provider,
+ * stubbed. Turning Require SSO to Sign In on, or requiring another provider,
  * is refused while no provider would sign anyone in to the project, in
  * words that say what to set up first; the check and the write hold the
  * project's lock, and - when the project would rely on more than its own
@@ -282,7 +282,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("turning Require SSO for Login on for a project", () => {
+describe("turning Require SSO to Sign In on for a project", () => {
   test("is refused while no SSO provider signs people in to it, in words that say what to set up first", async () => {
     await expect(updateProject({ requireSsoForLogin: true })).resolves.toBe(
       NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE,
@@ -463,7 +463,7 @@ describe("turning Require SSO for Login on for a project", () => {
     expect(kept).toEqual([PROJECT_ID.toString(), PROJECT_ID.toString()]);
   });
 
-  test("saving Require SSO for Login on again, with no provider at all, is refused, as turning it on is", async () => {
+  test("saving Require SSO to Sign In on again, with no provider at all, is refused, as turning it on is", async () => {
     storedProject["requireSsoForLogin"] = true;
 
     await expect(updateProject({ requireSsoForLogin: true })).resolves.toBe(

@@ -25,9 +25,9 @@ Etiketter og eiere er det du filtrerer og grupperer ressurser etter, de avgjør 
 
 ## Hvor du finner reglene
 
-Hvert produkt med etiketter og eiere har begge typene under **Innstillinger** (for hendelser, varsler, planlagt vedlikehold og Datasikkerhet under **Regler**): monitorer, hendelser og hendelsesepisoder, varsler og varselepisoder, vedlikeholdshendelser, statussider, tjenester, verter, Kubernetes-klynger, Docker-verter, Docker Swarm-klynger, Podman-verter, Proxmox-klynger, OpenStack-skyer, VMware vCentre, Ceph-klynger, lagringsmatriser, databaser, datalagre, tabeller, køer, IoT-flåter, serverløse funksjoner, skyressurser, RUM-applikasjoner, dashbord, vaktpolicyer, vaktplaner, policyer for innkommende anrop, arbeidsflyter, runbooks, nettverksenheter og SLO-er.
+Hvert produkt med etiketter og eiere har begge typene under **Innstillinger** (for monitorer, statussider, hendelser, varsler, planlagt vedlikehold og Datasikkerhet under **Regler**): monitorer, hendelser og hendelsesepisoder, varsler og varselepisoder, vedlikeholdshendelser, statussider, tjenester, verter, Kubernetes-klynger, Docker-verter, Docker Swarm-klynger, Podman-verter, Proxmox-klynger, OpenStack-skyer, VMware vCentre, Ceph-klynger, lagringsmatriser, databaser, datalagre, tabeller, køer, IoT-flåter, serverløse funksjoner, skyressurser, RUM-applikasjoner, dashbord, vaktpolicyer, vaktplaner, policyer for innkommende anrop, arbeidsflyter, runbooks, nettverksenheter og SLO-er.
 
-Etikettregler for monitorer ligger for eksempel under **Monitorer → Innstillinger → Etikettregler**, og etikettregler for hendelser under **Hendelser → Regler → Etikettregler**. **Innstillinger** og **Regler** er slått sammen i sidemenyen fra start: klikk på tittelen til delen for å åpne den. Sidene for hendelser og varsler har en fane **Hendelsesregler** (eller **Varselsregler**) og en fane **Episoderegler**.
+Etikettregler for monitorer ligger for eksempel under **Monitorer → Regler → Etikettregler**, og etikettregler for SLO-er under **SLOs → Innstillinger → Etikettregler**. **Innstillinger** og **Regler** er slått sammen i sidemenyen fra start: klikk på tittelen til delen for å åpne den. Sidene for hendelser og varsler har en fane **Hendelsesregler** (eller **Varselsregler**) og en fane **Episoderegler**.
 
 ## Opprett en regel
 
@@ -57,7 +57,7 @@ I trinnet **Etiketter** velger du **Etiketter å legge til**. I en eierregel het
 I det siste trinnet klikker du igjen på knappen som er oppkalt etter regelen, for eksempel **Opprett Monitor Label Rule**. Regelen starter som aktivert, og listen viser den med et grønt merke **Aktivert**.
 :::
 
-En ny regel må legge til noe: minst én etikett (eller eier) eller, i en regel for hendelser, varsler eller planlagt vedlikehold, noe den arver (se nedenfor). For å sette en regel på pause uten å slette den slår du av **Aktivert** i redigeringsskjemaet; listen viser da et rødt merke **Deaktivert**. På en eierregel for hendelser eller varsler holder det også med et team under **Oppretterens team**.
+En ny regel må legge til noe: minst én etikett (eller eier) eller, i en regel for hendelser, varsler eller planlagt vedlikehold, noe den arver (se nedenfor). For å sette en regel på pause uten å slette den slår du av **Aktivert** i redigeringsskjemaet; listen viser da et grått merke **Deaktivert**. På en eierregel for hendelser eller varsler holder det også med et team under **Oppretterens team**.
 
 ### Uansett hvordan regelen opprettes
 

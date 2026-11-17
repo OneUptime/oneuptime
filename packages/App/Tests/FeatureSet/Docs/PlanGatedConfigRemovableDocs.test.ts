@@ -1,3 +1,4 @@
+import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -138,10 +139,10 @@ describe("the SSO guide", () => {
 
   it("warns to let people back in first, on the project's SSO page and a status page's SSO and OIDC pages alike", () => {
     expect(section).toContain(
-      "While the project still requires SSO, its **SSO** page also shows **Require SSO for Login**: turn it off before you turn the last provider off. Until then the last provider people can sign in with cannot be turned off or deleted, so nobody is locked out of the project.",
+      "While the project still requires SSO, its **SSO** page also shows **Require SSO to Sign In**: turn it off before you turn the last provider off. Until then the last provider people can sign in with cannot be turned off or deleted, so nobody is locked out of the project.",
     );
     expect(section).toContain(
-      "While the status page still requires SSO, both pages also show **Require SSO for Login**: turn it off before you turn its providers off, or its private users cannot sign in at all.",
+      "While the status page still requires SSO, both tabs also show **Require SSO to Sign In**: turn it off before you turn its providers off, or its private users cannot sign in at all.",
     );
   });
 });
@@ -161,9 +162,13 @@ describe("the SCIM guide", () => {
     );
   });
 
-  it("keeps the bearer token owner-only", () => {
+  it("shows no bearer token, which is kept as its hash, on every plan", () => {
+    // Nobody reads a token back (#9012): the column has no reader.
+    expect(
+      new ProjectSCIM().getColumnAccessControlFor("bearerToken")?.read,
+    ).toEqual([]);
     expect(section).toContain(
-      "The list does not show bearer tokens, and only Project Owners can read a token, on every plan.",
+      "The list does not show bearer tokens: OneUptime keeps only a hash of each, on every plan.",
     );
   });
 });

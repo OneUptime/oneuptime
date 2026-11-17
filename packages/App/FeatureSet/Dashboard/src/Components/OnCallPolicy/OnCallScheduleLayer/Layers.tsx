@@ -1,4 +1,6 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { getCoverageWindowEnd } from "./CoverageWindow";
 import DeletedLayerCard from "./DeletedLayerCard";
 import LayerCard from "./LayerCard";
@@ -72,7 +74,9 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -1429,20 +1433,12 @@ const Layers: FunctionComponent<ComponentProps> = (
           rightElement={layersLearnMore}
         >
           <EmptyState
-            footer={
-              /*
-               * Button keeps a dialog footer's left margin (md:ml-3), which
-               * would push it off the centre here, so its wrapper clears it.
-               */
-              <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
-                {addLayerButton()}
-              </div>
-            }
+            footer={<div>{addLayerButton()}</div>}
             id="no-layers"
             title={"Build your on-call rotation"}
             description={"Add a layer to say who is on call, and when."}
             icon={IconProp.SquareStack}
-            paddingClassName="py-8"
+            size={EmptyStateSize.Inline}
           />
         </Card>
       </div>
@@ -1616,16 +1612,11 @@ const Layers: FunctionComponent<ComponentProps> = (
           description={SCHEDULE_FINAL_SCHEDULE_DESCRIPTION}
           rightElement={
             hasUnsavedChanges ? (
-              <span
-                data-testid="final-schedule-unsaved"
-                className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200"
-              >
-                <span
-                  aria-hidden="true"
-                  className="h-1.5 w-1.5 rounded-full bg-amber-500"
-                />
-                {translator.translateText("Includes unsaved changes")}
-              </span>
+              <Pill
+                text="Includes unsaved changes"
+                tone={PillTone.Warning}
+                dataTestId="final-schedule-unsaved"
+              />
             ) : undefined
           }
         >

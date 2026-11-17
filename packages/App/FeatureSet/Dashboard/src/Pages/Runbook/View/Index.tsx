@@ -41,6 +41,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Pill from "Common/UI/Components/Pill/Pill";
 import Card from "Common/UI/Components/Card/Card";
 import {
@@ -84,7 +85,9 @@ import RunbookTriggersSummaryElement, {
   RUNBOOK_TRIGGERS_SUMMARY_SELECT,
   RunbookTriggersSummaryCopy,
 } from "../../../Components/Runbook/Triggers/RunbookTriggersSummary";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import Link from "Common/UI/Components/Link/Link";
 import EmptyValue, {
   EMPTY_VALUE_MARK,
@@ -513,7 +516,13 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     <Pill text="Enabled" color={Green500} isMinimal={true} />
                   );
                 }
-                return <Pill text="Disabled" color={Red500} isMinimal={true} />;
+                return (
+                  <Pill
+                    text="Disabled"
+                    tone={PillTone.Paused}
+                    isMinimal={true}
+                  />
+                );
               },
             },
             {
@@ -559,13 +568,9 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title={RunbookOverviewCopy.noStepsTitle}
               description={RunbookOverviewCopy.noStepsDescription}
               icon={IconProp.List}
-              paddingClassName="py-8"
+              size={EmptyStateSize.Inline}
               footer={
-                /*
-                 * Button keeps a dialog footer's left margin (md:ml-3), which
-                 * would push it off the centre here, so its wrapper clears it.
-                 */
-                <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+                <div>
                   <Button
                     title={RunbookOverviewCopy.addStepsButton}
                     icon={IconProp.Add}

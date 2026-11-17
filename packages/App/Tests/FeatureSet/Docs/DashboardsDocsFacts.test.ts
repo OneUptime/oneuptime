@@ -1103,7 +1103,14 @@ describe("Authoring a Dashboard, against the product", () => {
       "Cancel",
       "Save Changes",
     ]) {
-      expect(toolbar).toContain(`translator.translateText("${control}")`);
+      // Drawn as words, as a Pill's text, or as the title of a shared Button, which translates it (302656298df).
+      expect({
+        control,
+        drawn:
+          toolbar.includes(`translator.translateText("${control}")`) ||
+          toolbar.includes(`text="${control}"`) ||
+          new RegExp(`<Button\\s+title="${control}"`).test(toolbar),
+      }).toEqual({ control, drawn: true });
       expect(editAndSave).toContain(bold(control));
     }
 
@@ -3766,9 +3773,7 @@ describe("Dashboard Playlists, against the playlist model and the player", () =>
     );
 
     // Paused, the bar says so.
-    expect(readSource(PLAYLIST_PLAYER_BAR)).toContain(
-      'translator.translateText("Paused")',
-    );
+    expect(readSource(PLAYLIST_PLAYER_BAR)).toContain('text="Paused"');
     expect(playSection).toContain(`the bar says ${bold("Paused")}`);
   });
 

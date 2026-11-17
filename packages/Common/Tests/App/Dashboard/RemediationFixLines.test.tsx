@@ -491,10 +491,13 @@ describe("a fix on the Remediation step", () => {
       "remediation-fix-actions",
     );
     /*
-     * A Button fills its row below md: the row holds each one to its own
-     * width, so Approve & Run is not a bar of its own over Dismiss.
+     * Each Button is its own words' width at every width (#9128), so
+     * Approve & Run is not a bar of its own over Dismiss.
      */
-    expect(actions).toHaveClass("[&>button]:w-auto");
+    expect(actions).toHaveClass("flex", "flex-wrap", "gap-2");
+    for (const button of within(actions).getAllByRole("button")) {
+      expect(button).not.toHaveClass("w-full");
+    }
     expect(within(actions).getByText("Approve & Run")).toBeInTheDocument();
     expect(within(actions).getByText("Dismiss fix")).toBeInTheDocument();
 

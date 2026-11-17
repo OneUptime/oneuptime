@@ -2,6 +2,8 @@ import SpanStatusElement from "../Span/SpanStatusElement";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import ProjectUtil from "Common/UI/Utils/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
@@ -238,7 +240,7 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
 
                 if (!occurredAt) {
                   return (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("Unknown")}
                     </span>
                   );
@@ -298,7 +300,7 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
                       plainLabel={true}
                     />
                     {exceptionInstance.spanName && exceptionInstance.spanId && (
-                      <div className="ml-5 mt-0.5 font-mono text-xs text-gray-400">
+                      <div className="ml-5 mt-0.5 font-mono text-xs text-gray-500">
                         {exceptionInstance.spanId.toString()}
                       </div>
                     )}
@@ -316,13 +318,9 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
                 exceptionInstance: ExceptionInstance,
               ): ReactElement => {
                 return exceptionInstance.escaped ? (
-                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
-                    {translator.translateText("Unhandled")}
-                  </span>
+                  <Pill text="Unhandled" tone={PillTone.Danger} />
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
-                    {translator.translateText("Handled")}
-                  </span>
+                  <Pill text="Handled" tone={PillTone.Warning} />
                 );
               },
             },
@@ -342,7 +340,7 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
                         {exceptionInstance.release}
                       </div>
                     ) : (
-                      <div className="text-gray-400">
+                      <div className="text-gray-500">
                         {translator.translateText("No release")}
                       </div>
                     )}

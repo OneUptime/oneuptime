@@ -669,7 +669,7 @@ test.describe("a service's own Profiles tab", () => {
       0,
     );
     await expect(
-      page.getByText("No profiles found for this service."),
+      page.getByText("No profiles for this service yet."),
     ).toHaveCount(0);
 
     if (isPhone(testInfo)) {

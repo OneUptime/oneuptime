@@ -968,7 +968,10 @@ test.describe("the dashboard inside OneUptime", () => {
     await press(page.getByRole("menuitem", { name: "Edit Dashboard" }));
 
     await expect(page.getByTitle("Add Widget").first()).toBeVisible();
-    await expect(page.getByTitle("Save Changes")).toBeVisible();
+    // The editing toolbar's Save Changes: a button, named by its words.
+    await expect(
+      page.getByRole("button", { name: "Save Changes", exact: true }),
+    ).toBeVisible();
     await expect(page.getByTestId(DEFAULTS_BAR)).toHaveCount(0);
   });
 

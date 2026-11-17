@@ -222,8 +222,7 @@ const ALLOWED_UNTAGGED: Array<AllowedUntagged> = [
   {
     file: "packages/Common/Server/Services/MonitorStatusTimelineService.ts",
     inFunction: "getDailyUptimeAggregateSql",
-    reason:
-      "A Postgres statement, not Markdown: a line that starts with - or > is a subtraction or a comparison carried over from the line before.",
+    reason: "A Postgres statement, not Markdown.",
   },
 ];
 

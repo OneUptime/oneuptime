@@ -18,17 +18,17 @@ Open een statuspagina: de sectie **Huisstijl** van het zijmenu heeft drie items:
 
 | Pagina | Wat u daar instelt |
 | ---- | ------------------ |
-| **Huisstijl** | Logo en omslagafbeelding, het thema (licht, donker, of zoals het apparaat van elke bezoeker is ingesteld), paginatitel en -beschrijving, favicon, koptekstlinks, de beschrijving van de overzichtspagina, de copyrightregel en de footerlinks. Ingeklapt onder **Meer instellingen**: de kleuren van de geschiedenisgrafiek, de talen en de indexering door zoekmachines. |
+| **Huisstijl** | Logo en omslagafbeelding, het thema (licht, donker, of zoals het apparaat van elke bezoeker is ingesteld), koptekstlinks, de introductietekst, de copyrightregel en de footerlinks. Ingeklapt onder **Meer instellingen**: de paginatitel en de zoekmachinebeschrijving, de favicon, de kleuren van de geschiedenisgrafiek, de talen en de indexering door zoekmachines. |
 | **Aangepaste domeinen** | Uw eigen domein, het DNS-record ervan en het gratis SSL-certificaat ervan. |
 | **HTML, CSS & JavaScript** | Koptekst-HTML, footer-HTML, aangepaste CSS, aangepaste JavaScript. |
 
-Drie dingen die op huisstijl lijken, staan in plaats daarvan onder **Statuspagina's → uw pagina → Geavanceerd → Geavanceerde instellingen** (`{id}/settings`), omdat ze bepalen wat de pagina toont en niet hoe die eruitziet: het totale uptimepercentage, welke monitorstatussen tegen de uptime tellen, en de regel "Powered by OneUptime". De eerste twee zijn rijen van de kaart **Wat uw statuspagina toont** daar, en de regel heeft een eigen kaart, er direct onder, ingeklapt onder **Meer instellingen**.
+Drie dingen die op huisstijl lijken, staan in plaats daarvan onder **Statuspagina's → uw pagina → Geavanceerd → Instellingen** (`{id}/settings`), omdat ze bepalen wat de pagina toont en niet hoe die eruitziet: het totale uptimepercentage, welke monitorstatussen tegen de uptime tellen, en de regel "Powered by OneUptime". De eerste twee zijn rijen van de kaart **Wat uw statuspagina toont** daar, en de regel heeft een eigen kaart, er direct onder, ingeklapt onder **Meer instellingen**.
 
 De huisstijl was vroeger verdeeld over aparte schermen **Basishuisstijl**, **Koptekst**, **Footer**, **Overzichtspagina** en **Talen**. Hun oude adressen (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` en `{id}/languages`) openen nu de pagina **Huisstijl**, dus oude bladwijzers en links blijven werken.
 
 ## De pagina Huisstijl
 
-**Statuspagina's → uw pagina → Huisstijl → Huisstijl** (`{id}/branding`). Elke kaart wordt apart opgeslagen. Na het logo, het thema, de titel en de favicon volgen de kaarten uw statuspagina van boven naar beneden: de links in de koptekst, de tekst bovenaan het overzicht, en dan de footer. Wat weinig mensen wijzigen, staat ingeklapt onder **Meer instellingen**, onderaan.
+**Statuspagina's → uw pagina → Huisstijl → Huisstijl** (`{id}/branding`). Elke kaart wordt apart opgeslagen. Na het logo en het thema volgen de kaarten uw statuspagina van boven naar beneden: de links in de koptekst, de introductietekst bovenaan het overzicht, en dan de footer. Wat weinig mensen wijzigen, staat ingeklapt onder **Meer instellingen**, onderaan: de titel en de zoekmachinebeschrijving, de favicon, de kleuren van de geschiedenisgrafiek, de talen en de indexering door zoekmachines.
 
 ### Logo en omslagafbeelding
 
@@ -65,18 +65,25 @@ Het thema staat in de HTML van de pagina, dus de pagina wordt er vanaf het begin
 
 Uw aangepaste CSS en HTML gelden in beide thema's; [Aangepaste HTML, CSS en JavaScript](#aangepaste-html-css-en-javascript) legt uit hoe u het donkere thema opmaakt.
 
-### Titel, beschrijving en favicon
-
-- **Titel en beschrijving**: de naam van de pagina in het browsertabblad en in e-mails aan abonnees, en de beschrijving die zoekmachines tonen. **Bewerken** opent **Paginatitel** (plaatshouder `e.g., Acme Status`) en **Paginabeschrijving**. Zoekmachines en linkvoorbeelden tonen deze teksten, dus schrijf ze voor een klant, niet voor uw team.
-- **Favicon**: **Favicon bewerken** opent de upload **Favicon**: het kleine pictogram in het browsertabblad.
-
 ### Koptekstlinks
 
 De tabel **Koptekstkoppelingen** bevat de links in de koptekst van de statuspagina, zoals uw website, uw documentatie of een supportportaal. Elke link heeft een **Titel** en een **Koppeling** (een URL, plaatshouder `https://link.com`), en u herschikt ze door te slepen. Zonder links zegt de tabel waarvoor ze dienen, met **Koptekstkoppeling toevoegen** eronder.
 
-### Beschrijving van de overzichtspagina
+### Introductietekst
 
-**Beschrijving overzichtspagina** is het eerste op het overzicht van de statuspagina, boven de aankondigingen, de algemene status en uw resources. **Beschrijving bewerken** opent een markdownveld. Gebruik het voor een zin context: wat deze pagina beslaat en waar men terechtkan voor support. Een afbeelding die u erin zet, wordt aan elke bezoeker van de pagina getoond.
+**Introductietekst** is het eerste wat bezoekers lezen op het overzicht van de statuspagina, boven de aankondigingen, de algemene status en uw resources. **Introductietekst bewerken** opent een markdownveld. Vroeger heette het **Beschrijving overzichtspagina**. Gebruik het voor een zin context: wat deze pagina beslaat en waar men terechtkan voor support. Een afbeelding die u erin zet, wordt aan elke bezoeker van de pagina getoond.
+
+### Drie beschrijvingen, drie lezers
+
+Een statuspagina heeft drie beschrijvingen, elk genoemd naar wie ze leest:
+
+| Veld | Waar u het instelt | Wie het leest |
+| --- | --- | --- |
+| **Interne beschrijving** | De kaart **Statuspaginadetails** op het **Overzicht** van de pagina | Alleen uw team. Bezoekers zien het nooit. |
+| **Zoekmachinebeschrijving** | **Titel en zoekmachinebeschrijving**, onder **Meer instellingen** op **Huisstijl** | Zoekmachines en linkvoorbeelden. |
+| **Introductietekst** | **Introductietekst** op **Huisstijl** | Bezoekers, bovenaan de statuspagina. |
+
+Om te wijzigen wat bezoekers op de pagina lezen, bewerkt u de **Introductietekst**.
 
 ### Footer
 
@@ -87,7 +94,12 @@ Koptekstlinks zijn voor navigatie; footerlinks zijn voor de kleine lettertjes, z
 
 ### Meer instellingen
 
-De laatste sectie van de pagina staat ingeklapt onder **Meer instellingen**, omdat weinig mensen ooit wijzigen wat erin staat. Ingeklapt noemt de kop de vier secties (**Standaard balkkleur**, **Regels voor balkkleuren**, **Talen** en **Indexering door zoekmachines**) en toont hij elke sectie die afwijkt van hoe een nieuwe statuspagina begint: een andere standaard balkkleur dan het groen waarmee elke pagina begint, andere regels voor balkkleuren dan de aanbevolen, een andere standaardtaal dan Engels, een kortere lijst talen, of indexering door zoekmachines die uit staat. Klik erop om hem te openen: het is één kaart, met de secties onder elkaar, elk met een eigen titel, gescheiden door scheidingslijnen.
+De laatste sectie van de pagina staat ingeklapt onder **Meer instellingen**, omdat weinig mensen ooit wijzigen wat erin staat. Ingeklapt noemt de kop de eerste vier secties (**Titel en zoekmachinebeschrijving**, **Favicon**, **Standaard balkkleur** en **Regels voor balkkleuren**), dan hoeveel er nog meer zijn (**Talen** en **Indexering door zoekmachines**), en toont hij elke sectie die afwijkt van hoe een nieuwe statuspagina begint: een paginatitel of zoekmachinebeschrijving, een favicon, een andere standaard balkkleur dan het groen waarmee elke pagina begint, andere regels voor balkkleuren dan de aanbevolen, een andere standaardtaal dan Engels, een kortere lijst talen, of indexering door zoekmachines die uit staat. Klik erop om hem te openen: het is één kaart, met de secties onder elkaar, elk met een eigen titel, gescheiden door scheidingslijnen.
+
+**Titel en zoekmachinebeschrijving, en favicon.** U stelt ze eenmaal in, als het al nodig is, en geen van beide is wat bezoekers op de pagina lezen: dat is de **Introductietekst**.
+
+- **Titel en zoekmachinebeschrijving**: de naam van de pagina in het browsertabblad en in e-mails aan abonnees, en de beschrijving die zoekmachines tonen. **Bewerken** opent **Paginatitel** (plaatshouder `e.g., Acme Status`) en **Zoekmachinebeschrijving**. Zoekmachines en linkvoorbeelden tonen deze teksten, dus schrijf ze voor een klant, niet voor uw team.
+- **Favicon**: **Favicon bewerken** opent de upload **Favicon**: het kleine pictogram in het browsertabblad.
 
 **Kleuren van de geschiedenisgrafiek.** Naast het **Thema** zijn dit de enige ingebouwde kleurinstellingen van een statuspagina. Elke balk van de uptimegeschiedenis is een dag.
 
@@ -106,7 +118,7 @@ Een dag waarvoor de pagina geen gegevens heeft, wordt altijd grijs met diagonale
 
 De uptime van een dag wordt gemeten over het deel van de dag waarvoor gegevens zijn, en telt de statussen die bij **Telt als downtime** zijn gekozen. De aanbevolen kleuren verschillen in helderheid én in tint, zodat mensen met rood-groenkleurenblindheid, ongeveer één op de twaalf mannen, ze uit elkaar kunnen houden; het groen van Operational en het rood van Offline waarmee monitorstatussen beginnen, zien er voor hen bijna hetzelfde uit. Een pagina die vóór deze regels, of via de API of Terraform, is gemaakt, heeft geen regels tot u er een toevoegt: een lege tabel **Regels voor balkkleuren** en **Voorbeeld van balkkleuren** bieden allebei **Aanbevolen regels gebruiken** aan. Stuur via de API `"miscDataProps": {"addRecommendedBarColorRules": true}` mee met het verzoek dat de statuspagina maakt.
 
-Hoeveel dagen de grafiek beslaat, stelt u hier niet in. Dat is **Uptimegeschiedenis** op de kaart **Wat uw statuspagina toont** onder **Geavanceerd → Geavanceerde instellingen**, van 1 tot 90 dagen. Welke monitorstatussen als down tellen, is **Telt als downtime**, in dezelfde rij van die kaart.
+Hoeveel dagen de grafiek beslaat, stelt u hier niet in. Dat is **Uptimegeschiedenis** op de kaart **Wat uw statuspagina toont** onder **Geavanceerd → Instellingen**, van 1 tot 90 dagen. Welke monitorstatussen als down tellen, is **Telt als downtime**, in dezelfde rij van die kaart.
 
 **Talen.** De sectie **Talen** stelt de taalkeuze in die bezoekers in de footer van de pagina krijgen. **Talen bewerken** opent twee velden:
 
@@ -124,7 +136,7 @@ OneUptime wordt geleverd met achttien talen: Engels, Duits, Frans, Spaans, Itali
 
 ## Uptimepercentage en downtimestatussen
 
-Beide staan in de rij **Uptimegeschiedenis** van de kaart **Wat uw statuspagina toont** onder **Statuspagina's → uw pagina → Geavanceerd → Geavanceerde instellingen** (`{id}/settings`). Er is geen knop **Bewerken**: elke instelling wordt opgeslagen op het moment dat u haar wijzigt.
+Beide staan in de rij **Uptimegeschiedenis** van de kaart **Wat uw statuspagina toont** onder **Statuspagina's → uw pagina → Geavanceerd → Instellingen** (`{id}/settings`). Er is geen knop **Bewerken**: elke instelling wordt opgeslagen op het moment dat u haar wijzigt.
 
 - **Totaal uptimepercentage weergeven**: een schakelaar, standaard uit. Zolang hij aan staat, kiest **Precisie** ernaast hoeveel decimalen het percentage toont: `99%`, `99.9%`, `99.99%` (de standaard) of `99.999%`. Op OneUptime Cloud vereist het aanzetten van het percentage het plan **Scale**; de precisie ervan is in elk plan te wijzigen.
 - **Telt als downtime**: de monitorstatussen, als gekleurde labels, waarvan de tijd op deze pagina tegen de uptime telt. Hier bepaalt u bijvoorbeeld of een verminderde status tegen de uptime telt. Er blijft altijd minstens één status gekozen.
@@ -158,7 +170,7 @@ Op OneUptime Cloud vereist het toevoegen of wijzigen van een ervan het plan **Gr
 
 Standaard is een statuspagina bereikbaar op de voorbeeld-URL op het scherm **Overzicht** ervan. Om haar op uw eigen hostnaam te zetten, gaat u naar **Statuspagina's → uw pagina → Huisstijl → Aangepaste domeinen** (`{id}/domains`).
 
-De kaart **Aangepaste domeinen** zegt wat u moet doen: laat het CNAME-record van elk domein naar het statuspagina-CNAME-record van uw installatie wijzen, en OneUptime geeft het SSL-certificaat van het domein uit en verlengt het voor u. Zonder iets ingesteld zegt de tabel **Geen aangepaste domeinen gevonden**, met **Aangepast domein toevoegen** eronder. De tabel heeft twee kolommen, **Domein** en **Status**, en filters voor **Domein**, **CNAME geldig** en **SSL geprovisioneerd**.
+De kaart **Aangepaste domeinen** zegt wat u moet doen: laat het CNAME-record van elk domein naar het statuspagina-CNAME-record van uw installatie wijzen, en OneUptime geeft het SSL-certificaat van het domein uit en verlengt het voor u. Zonder iets ingesteld zegt de tabel **Nog geen aangepaste domeinen**, met **Aangepast domein toevoegen** eronder. De tabel heeft twee kolommen, **Domein** en **Status**, en filters voor **Domein**, **CNAME geldig** en **SSL geprovisioneerd**.
 
 De pagina op uw domein zetten kost drie stappen, allemaal op deze pagina, en alleen de eerste twee zijn voor u:
 
@@ -274,7 +286,7 @@ Het dialoogvenster ervan, **Reissue SSL Certificate for this Status Page**, vraa
 
 De actie verschijnt niet bij een domein dat een door u geüpload certificaat gebruikt: er is geen Let's Encrypt-certificaat om opnieuw uit te geven, dus upload in plaats daarvan een nieuw door het domein te bewerken. Ze verschijnt ook niet voordat het eerste certificaat van het domein is besteld, wat vanzelf gebeurt zodra het CNAME-record ervan is geverifieerd.
 
-Dezelfde knop, met dezelfde limiet van 24 uur, staat bij de aangepaste domeinen van dashboards onder **Dashboards → uw dashboard → Huisstijl → Aangepaste domeinen**, die net zo werken als aangepaste domeinen van statuspagina's: zie [Delen en publieke dashboards](/docs/dashboards/sharing#aangepaste-domeinen).
+Dezelfde knop, met dezelfde limiet van 24 uur, staat bij de aangepaste domeinen van dashboards onder **Dashboards → uw dashboard → Openbare link → Aangepaste domeinen**, die net zo werken als aangepaste domeinen van statuspagina's: zie [Delen en publieke dashboards](/docs/dashboards/sharing#aangepaste-domeinen).
 
 ### De kolom Status van het domein lezen
 
@@ -309,7 +321,7 @@ Hetzelfde geldt voor API-sleutels. Een sleutel die domeinen van statuspagina's a
 
 ## Powered by OneUptime
 
-De regel "Powered by OneUptime" is geen huisstijlinstelling. Hij heeft een eigen kaart, **Powered by OneUptime**, ingeklapt onder **Meer instellingen** onder de kaart **Wat uw statuspagina toont** onder **Statuspagina's → uw pagina → Geavanceerd → Geavanceerde instellingen** (`{id}/settings`): **'Powered By OneUptime'-branding weergeven**, standaard aan. Zet hem uit om de regel te verbergen; hij wordt meteen opgeslagen. Op OneUptime Cloud vereist het verbergen het plan **Scale**. Zelf gehost hoort het verbergen bij de Enterprise Edition: in de Community Edition toont elke statuspagina de regel.
+De regel "Powered by OneUptime" is geen huisstijlinstelling. Hij heeft een eigen kaart, **Powered by OneUptime**, ingeklapt onder **Meer instellingen** onder de kaart **Wat uw statuspagina toont** onder **Statuspagina's → uw pagina → Geavanceerd → Instellingen** (`{id}/settings`): **'Powered By OneUptime'-branding weergeven**, standaard aan. Zet hem uit om de regel te verbergen; hij wordt meteen opgeslagen. Op OneUptime Cloud vereist het verbergen het plan **Scale**. Zelf gehost hoort het verbergen bij de Enterprise Edition: in de Community Edition toont elke statuspagina de regel.
 
 ## Volgende stappen
 

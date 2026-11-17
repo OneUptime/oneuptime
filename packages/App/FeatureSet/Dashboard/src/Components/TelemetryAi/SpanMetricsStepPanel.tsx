@@ -115,8 +115,6 @@ const SpanMetricsStepPanel: FunctionComponent = (): ReactElement => {
             buttonStyle={ButtonStyleType.OUTLINE}
             buttonSize={ButtonSize.Small}
             dataTestId={SPAN_METRICS_STEP_TEST_IDS.show}
-            // The panel's own edge, not the shared Button's row margin.
-            className="md:!ml-0"
             onClick={() => {
               setIsShown(true);
             }}

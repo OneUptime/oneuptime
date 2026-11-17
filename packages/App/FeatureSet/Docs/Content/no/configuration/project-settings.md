@@ -40,7 +40,7 @@ flowchart LR
 | **Sikkerhet** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering og fakturaer** | **Fakturering**, **Fakturaer** | [Fakturering og bruk](/docs/configuration/billing) |
 | **Revisjonslogger** | **Revisjonslogger**, **Innstillinger**, **Eksport** | [Revisjonslogger](/docs/configuration/audit-logs), [Eksport av revisjonslogg](/docs/configuration/audit-log-export) |
-| **Faresone** | **Faresone** | [Slett prosjektet](#slett-prosjektet) |
+| **Faresone** | **Slett prosjekt** | [Slett prosjektet](#slett-prosjektet) |
 
 **Fakturering og fakturaer** og **AI-kreditter** finnes bare i OneUptime Cloud: en selvhostet installasjon har ingen fakturering.
 
@@ -99,7 +99,7 @@ For å fase ut en etikett arkiverer du den fra radens meny **⋯** i stedet for 
 **Prosjektinnstillinger → Varslinger** inneholder hvordan prosjektet sender varslinger:
 
 - **Varslingskanaler**: kortet **Varslingskanaler** slår SMS, telefonsamtaler, WhatsApp og Telegram på eller av for prosjektet. Alle fire er av fra start. En Prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår dem på. Siden har også, sammenfoldet under **Flere innstillinger**, prosjektets egne e-postservere i **Egendefinerte SMTP-konfigurasjoner** (se [SMTP](/docs/emails/smtp)) og dets egen Twilio-konto (se [Twilio-integrasjon](/docs/self-hosted/twilio-integration)). I OneUptime Cloud har den saldoen som disse meldingene betales fra: se [Forhåndsbetalte saldoer](/docs/configuration/billing#forhåndsbetalte-saldoer).
-- **Varslingslogger**: hver varsling prosjektet har sendt, med én fane per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** og **Arbeidsområde**.
+- **Varslingslogger**: hver varsling prosjektet har sendt, med én fane per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** og **Arbeidsområde**. Fanen **Webhook** beholder bare skjemaet og verten i hver adresse: resten er webhookens hemmelighet.
 - **Mobilapper**: hvor du får appene for iOS og Android. Se [Apper – Oversikt](/docs/mobile-desktop-apps/index).
 
 ## Funksjonsflagg
@@ -113,7 +113,7 @@ For å fase ut en etikett arkiverer du den fra radens meny **⋯** i stedet for 
 :::steps
 ### Åpne faresonen
 
-Gå til **Prosjektinnstillinger → Faresone**.
+Gå til **Prosjektinnstillinger → Faresone → Slett prosjekt**.
 
 ### Klikk på Slett Prosjekt
 

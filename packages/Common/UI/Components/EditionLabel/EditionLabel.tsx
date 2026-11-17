@@ -1,5 +1,7 @@
 import Modal, { ModalWidth } from "../Modal/Modal";
 import Icon from "../Icon/Icon";
+import Pill from "../Pill/Pill";
+import { PillTone } from "../Pill/PillTone";
 import IconProp from "../../../Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "../Button/Button";
 import { LicenseDetailsComponent, LicenseSnapshot } from "./LicenseDetails";
@@ -205,7 +207,7 @@ const parseLicenseStatus: ParseLicenseStatusFunction = (
   return null;
 };
 
-type PillTone = "normal" | "warning" | "alerted";
+type EditionPillTone = "normal" | "warning" | "alerted";
 
 /*
  * The license, as the label reads it off the server's answer. A plain
@@ -992,7 +994,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     canManageLicense,
   ]);
 
-  const pillTone: PillTone = useMemo(() => {
+  const pillTone: EditionPillTone = useMemo(() => {
     if (!IS_ENTERPRISE_EDITION) {
       return showEditionMismatchNotice ? "warning" : "normal";
     }
@@ -1090,7 +1092,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         "Full OneUptime platform with incident response, status pages, and workflow automation.",
       ),
       translationKey(
-        'SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including "Require SSO for login".',
+        'SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including "Require SSO to sign in".',
       ),
       translationKey(
         "Community support, documentation, and tutorials to help teams get started quickly.",
@@ -1232,34 +1234,24 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   });
 
   const modalRightElement: ReactElement | undefined = showLicenseDetails ? (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-        seatTone === "breached"
-          ? "border-red-200 bg-red-50 text-red-700"
-          : seatTone === "approaching"
-            ? "border-amber-200 bg-amber-50 text-amber-800"
-            : "border-emerald-200 bg-emerald-50 text-emerald-800"
-      }`}
-    >
-      <span
-        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-          seatTone === "breached"
-            ? "bg-red-500"
-            : seatTone === "approaching"
-              ? "bg-amber-500"
-              : "bg-emerald-500"
-        }`}
-      />
-      {translator.translateText(
+    <Pill
+      text={
         seatTone === "breached"
           ? "Seat limit exceeded"
           : seatTone === "approaching"
             ? "Seats nearly full"
             : isExpiredGrace
               ? "Grace period"
-              : "License active",
-      )}
-    </span>
+              : "License active"
+      }
+      tone={
+        seatTone === "breached"
+          ? PillTone.Danger
+          : seatTone === "approaching" || isExpiredGrace
+            ? PillTone.Warning
+            : PillTone.Success
+      }
+    />
   ) : undefined;
 
   /*
@@ -1326,7 +1318,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           <p className="mt-1.5 flex items-baseline gap-2">
             <span
               className={`text-2xl font-semibold leading-none tabular-nums ${
-                hasComparableVersion ? "text-gray-900" : "text-gray-400"
+                hasComparableVersion ? "text-gray-900" : "text-gray-500"
               }`}
             >
               {hasComparableVersion ? `v${currentVersion}` : currentVersion}
@@ -1341,47 +1333,29 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           )}
         </div>
         {securityStatus ? (
-          <span
-            data-testid="edition-security-update-chip"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-800"
-          >
-            <Icon
-              icon={IconProp.ShieldExclamation}
-              className="h-3.5 w-3.5 shrink-0 text-red-700"
-            />
-            {translator.translateText(
+          <Pill
+            text={
               securityStatus.state === UpdateState.SecurityUpdate
                 ? UPDATE_STATUS_PILL_COPY.securityUpdate
-                : UPDATE_STATUS_PILL_COPY.securityAdvisory,
-            )}
-          </span>
+                : UPDATE_STATUS_PILL_COPY.securityAdvisory
+            }
+            tone={PillTone.Danger}
+            icon={IconProp.ShieldExclamation}
+            className="shrink-0"
+            dataTestId="edition-security-update-chip"
+          />
         ) : (
           (isUpdateAvailable || isUpToDate) && (
-            <span
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+            <Pill
+              text={isUpdateAvailable ? "Update available" : "Up to date"}
+              tone={isUpdateAvailable ? PillTone.Warning : PillTone.Success}
+              icon={
                 isUpdateAvailable
-                  ? "bg-amber-100 text-amber-800"
-                  : "bg-emerald-50 text-emerald-700"
-              }`}
-            >
-              {/*
-               * Colour comes from className only — see the note on
-               * the seat advisory icon below.
-               */}
-              <Icon
-                icon={
-                  isUpdateAvailable
-                    ? IconProp.ArrowCircleUp
-                    : IconProp.CheckCircle
-                }
-                className={`h-3.5 w-3.5 shrink-0 ${
-                  isUpdateAvailable ? "text-amber-700" : "text-emerald-600"
-                }`}
-              />
-              {translator.translateText(
-                isUpdateAvailable ? "Update available" : "Up to date",
-              )}
-            </span>
+                  ? IconProp.ArrowCircleUp
+                  : IconProp.CheckCircle
+              }
+              className="shrink-0"
+            />
           )
         )}
       </div>
@@ -1496,9 +1470,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
             >
               {translator.translateText("Evaluation license")}
             </h4>
-            <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
-              {translator.translateText("Testing only")}
-            </span>
+            <Pill text="Testing only" tone={PillTone.Info} isDotHidden={true} />
           </div>
           <p className="mt-1.5 text-xs leading-relaxed text-violet-800">
             {translator.translateText(
@@ -2008,7 +1980,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                           buttonStyle={ButtonStyleType.NORMAL}
                           onClick={handleRetryFetch}
                           isLoading={isConfigLoading}
-                          className="!mt-0 md:!ml-0"
+                          className="!mt-0"
                         />
                       </div>
                     </div>
@@ -2258,7 +2230,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
          * license for trying the product out.
          */}
         {showEvaluationTag && (
-          <span className="inline-flex items-center whitespace-nowrap rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
+          <span className="inline-flex items-center whitespace-nowrap rounded-full bg-violet-100 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-violet-700">
             {translator.translateText("Evaluation license")}
           </span>
         )}

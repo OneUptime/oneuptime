@@ -101,10 +101,10 @@ describe("records with no labels of their own", () => {
     expect(anyKind).toEqual({
       AutoRemediationSuggestion: ["resourceId"],
       /*
-       * The worker a short-lived GitLab token was made for (workerId): the
-       * Runner or the AI agent holding the run when it was made, so of
-       * either kind. Only OneUptime reads the table (every access list is
-       * empty, and it has no API), so no read of it runs under a block.
+       * The Runner or AI agent a minted code repository token was handed to
+       * (workerId), which kind the run says. Only OneUptime reads the table
+       * (every access list is empty, and it has no API), so no read of it
+       * runs under a block.
        */
       CodeRepositoryMintedToken: ["workerId"],
       InventoryItem: ["resourceId"],

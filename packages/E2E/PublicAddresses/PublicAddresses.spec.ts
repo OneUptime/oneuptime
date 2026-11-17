@@ -262,18 +262,52 @@ function contrast(first: string, second: string): number {
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 }
 
-// The colour an element is painted on: the first non-transparent background up.
+/*
+ * The colour an element is painted on: its own background and the ones
+ * behind it, each laid over the next, down to the nearest opaque one (white,
+ * if none is). "Not live yet" is the shared Pill, whose background is a
+ * wash - its tone's colour at a low opacity (Common's PillColors) - so its
+ * words are read against that wash over the card, not against the colour
+ * itself: with the opacity thrown away, the dark theme's amber words read
+ * 1:1 on solid amber.
+ */
 async function backgroundOf(locator: Locator): Promise<string> {
   return await locator.evaluate((element: Element): string => {
+    const layers: Array<Array<number>> = [];
     let current: Element | null = element;
+
     while (current) {
-      const background: string = getComputedStyle(current).backgroundColor;
-      if (background && background !== "rgba(0, 0, 0, 0)") {
-        return background;
+      const parts: Array<number> = (
+        getComputedStyle(current).backgroundColor.match(/[\d.]+/g) || []
+      ).map(Number);
+      const alpha: number = parts.length > 3 ? parts[3]! : 1;
+
+      if (parts.length >= 3 && alpha > 0) {
+        layers.push([parts[0]!, parts[1]!, parts[2]!, alpha]);
       }
+
+      if (parts.length >= 3 && alpha >= 1) {
+        break;
+      }
+
       current = current.parentElement;
     }
-    return "rgb(255, 255, 255)";
+
+    let painted: Array<number> = [255, 255, 255];
+
+    for (const layer of layers.reverse()) {
+      const alpha: number = layer[3]!;
+
+      painted = painted.map((under: number, index: number): number => {
+        return layer[index]! * alpha + under * (1 - alpha);
+      });
+    }
+
+    return `rgb(${painted
+      .map((channel: number): number => {
+        return Math.round(channel);
+      })
+      .join(", ")})`;
   });
 }
 
@@ -785,6 +819,14 @@ test.describe("a status page's Overview: the Status Page Link card", () => {
 
     // The card is a dark surface, not white.
     expect(luminance(parseRgb(background))).toBeLessThan(0.05);
+
+    /*
+     * "Not live yet" is the shared Pill in its warning tone: its words are
+     * read against its wash laid over the card (backgroundOf).
+     */
+    await expect(
+      row(page, "status-eu.acme.com").getByTestId("public-address-not-live"),
+    ).toHaveAttribute("data-tone", "warning");
 
     const words: Array<[string, Locator]> = [
       ["the address", live.getByRole("link")],

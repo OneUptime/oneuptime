@@ -61,7 +61,7 @@ const Settings: FunctionComponent = (): ReactElement => {
       <Banner
         openInNewTab={true}
         title={t("pages.settings.probes.bannerTitle")}
-        description={t("pages.settings.probes.bannerDescription")}
+        description={t("pages.settings.probes.bannerGuide")}
         link={Route.fromString("/docs/probe/custom-probe")}
         hideOnMobile={true}
       />
@@ -83,7 +83,7 @@ const Settings: FunctionComponent = (): ReactElement => {
           isGlobalProbe: true,
         }}
         modelAPI={AdminModelAPI}
-        noItemsMessage={t("pages.settings.probes.noItems")}
+        noItemsMessage={t("pages.settings.probes.emptyMessage")}
         showRefreshButton={true}
         onBeforeCreate={(item: Probe) => {
           item.isGlobalProbe = true;
@@ -236,7 +236,7 @@ const Settings: FunctionComponent = (): ReactElement => {
           isTitleTranslated={true}
           description={
             <div>
-              <span>{t("pages.settings.probes.keyModalDescription")}</span>
+              <span>{t("pages.settings.probes.keyModalSecret")}</span>
               <br />
               <br />
               <span>

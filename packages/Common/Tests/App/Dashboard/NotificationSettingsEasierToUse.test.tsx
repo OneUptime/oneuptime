@@ -95,15 +95,10 @@ const INCIDENTS_CARD: Array<NotificationSettingEventType> = [
   E.SEND_INCIDENT_MEMBER_ADDED_NOTIFICATION,
 ];
 
-// What jest.spyOn makes of a generic method: the method at its constraint.
-type MethodOf<Method extends (...args: Array<never>) => unknown> = (
-  ...args: Parameters<Method>
-) => ReturnType<Method>;
-
 let rows: Array<UserNotificationSetting>;
-let getList: SpyInstance<MethodOf<typeof ModelAPI.getList>>;
-let updateById: SpyInstance<MethodOf<typeof ModelAPI.updateById>>;
-let create: SpyInstance<MethodOf<typeof ModelAPI.create>>;
+let getList: SpyInstance<typeof ModelAPI.getList>;
+let updateById: SpyInstance<typeof ModelAPI.updateById>;
+let create: SpyInstance<typeof ModelAPI.create>;
 let readiness: StubbedNotificationChannelReadiness;
 let nextId: number;
 
@@ -187,10 +182,12 @@ beforeEach(() => {
     );
 
     return { data: settings, count: settings.length };
-  }) as never);
+  }) as never) as unknown as SpyInstance<typeof ModelAPI.getList>;
   updateById = jest
     .spyOn(ModelAPI, "updateById")
-    .mockResolvedValue({} as never);
+    .mockResolvedValue({} as never) as unknown as SpyInstance<
+    typeof ModelAPI.updateById
+  >;
   // The server answers a create with the new row's id.
   create = jest
     .spyOn(ModelAPI, "create")
@@ -201,7 +198,7 @@ beforeEach(() => {
         { _id: `44444444-4444-4444-8444-${String(nextId).padStart(12, "0")}` },
         {},
       );
-    }) as never);
+    }) as never) as unknown as SpyInstance<typeof ModelAPI.create>;
 });
 
 afterEach(async () => {

@@ -1,15 +1,14 @@
+import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import PageComponentProps from "../../PageComponentProps";
 import ApplyNamingRulesModal from "../../../Components/NetworkDevice/Naming/ApplyNamingRulesModal";
 import getNamingRuleFormFields from "../../../Components/NetworkDevice/Naming/NamingRuleFormFields";
 import { getExampleLookupValue } from "../../../Components/NetworkDevice/Naming/NamingLookupTableEditor";
 import NetworkDeviceNamingRule from "Common/Models/DatabaseModels/NetworkDeviceNamingRule";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Green, Red } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { getExampleName } from "Common/Utils/NetworkDevice/Naming/NamePattern";
 import React, {
@@ -215,11 +214,7 @@ const NetworkDeviceNamingRulesPage: FunctionComponent<
             title: "Status",
             type: FieldType.Boolean,
             getElement: (item: NetworkDeviceNamingRule): ReactElement => {
-              return item.isEnabled ? (
-                <Pill color={Green} text="Enabled" />
-              ) : (
-                <Pill color={Red} text="Disabled" />
-              );
+              return <EnabledPill isEnabled={item.isEnabled} />;
             },
           },
         ]}

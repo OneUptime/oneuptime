@@ -17,6 +17,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -1001,12 +1003,14 @@ const CephClusterOverview: FunctionComponent<
                         {content}
                       </Link>
                     ) : (
-                      <span
+                      <Pill
                         key={`spec-${idx}`}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
-                      >
-                        {content}
-                      </span>
+                        text={chip.label}
+                        isUserContent={true}
+                        tone={PillTone.Neutral}
+                        icon={chip.icon}
+                        dataTestId={chip.testId}
+                      />
                     );
                   },
                 )}

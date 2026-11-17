@@ -1042,7 +1042,7 @@ test.describe("probe checks", () => {
     await expectSettled(page);
 
     await expect(page.getByTestId("monitor-overview-badge")).toHaveText(
-      "Probes Not Enabled",
+      "No Probe Enabled",
     );
     await expect(headline(page)).toHaveText(
       "Every probe is turned off for this monitor",
@@ -1052,7 +1052,7 @@ test.describe("probe checks", () => {
     );
     // The hero owns the state: no red banner repeats it.
     await expect(
-      page.getByText("Probes Not Enabled", { exact: true }),
+      page.getByText("No Probe Enabled", { exact: true }),
     ).toHaveCount(1);
     await expect(
       page.getByText(/not being monitored because all probes/),
@@ -1081,7 +1081,7 @@ test.describe("probe checks", () => {
     );
     await expect(
       page.getByTestId("monitor-overview-secondary-badge"),
-    ).toHaveText(["Probes Not Enabled"]);
+    ).toHaveText(["No Probe Enabled"]);
     await expect(headline(page)).toHaveText("Monitoring is turned off");
     await expect(page.getByTestId("monitor-overview-last-known")).toHaveText(
       "Last recorded status: Operational",
@@ -3004,21 +3004,23 @@ async function openLogs(page: Page, type: MonitorTypeKey): Promise<void> {
   await expect(page.getByTestId("synthetic-banner")).toBeVisible({
     timeout: 60000,
   });
-  await expect(card(page, "Monitor Logs")).toBeVisible({ timeout: 30000 });
+  await expect(card(page, "Monitoring Logs")).toBeVisible({ timeout: 30000 });
   await expect(page.getByTestId("row-actions").first()).toBeVisible({
     timeout: 30000,
   });
 }
 
 function logRows(page: Page): Locator {
-  return card(page, "Monitor Logs")
+  return card(page, "Monitoring Logs")
     .locator("tbody tr")
     .filter({ has: page.getByTestId("row-actions") });
 }
 
 async function columnTitles(page: Page): Promise<Array<string>> {
   return (
-    await card(page, "Monitor Logs").getByRole("columnheader").allInnerTexts()
+    await card(page, "Monitoring Logs")
+      .getByRole("columnheader")
+      .allInnerTexts()
   ).map((title: string): string => {
     return title.trim();
   });
@@ -3116,7 +3118,7 @@ test.describe("monitoring logs", () => {
       await page.setViewportSize({ width, height: 900 });
       await openLogs(page, "incoming-email");
 
-      const table: Locator = card(page, "Monitor Logs");
+      const table: Locator = card(page, "Monitoring Logs");
       /*
        * The table's own box. It scrolls (overflow-x-auto) only while its
        * rows are wider than the card, so it is found by its test id.

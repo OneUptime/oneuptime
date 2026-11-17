@@ -1,6 +1,6 @@
 # Monitor e regole dei monitor
 
-Uno SLO misura la disponibilità dei monitor collegati. Collegali a mano, lascia che le regole dei monitor colleghino ogni monitor che corrisponde, oppure fai entrambe le cose. Questa pagina tratta la pagina **Monitor** di uno SLO, in **Configurazione** nel suo menu laterale, e la sua pagina **Regole dei monitor**, in **Regole**.
+Uno SLO misura la disponibilità dei monitor collegati. Collegali a mano, lascia che le regole dei monitor colleghino ogni monitor che corrisponde, oppure fai entrambe le cose. Questa pagina tratta la pagina **Monitor** di uno SLO, in **Panoramica** nel suo menu laterale, e la sua pagina **Regole dei monitor**, in **Regole**.
 
 :::cards
 - [Scegliere i monitor a mano](#collegare-i-monitor-a-mano): Ideale per un insieme piccolo e fisso.
@@ -46,7 +46,7 @@ La pagina **Monitor** mostra, per ogni monitor:
 
 | Colonna | Cosa mostra |
 | --- | --- |
-| **Stato attuale** | Lo stato attuale del monitor, oppure **Archiviato**, **Disabilitato**, **Sonde non abilitate**, **Sonde disconnesse** o **Sconosciuto** quando non viene controllato o non ha ancora segnalato nulla. |
+| **Stato attuale** | Lo stato attuale del monitor, oppure **Archiviato**, **Disabilitato**, **Nessuna sonda abilitata**, **Sonde disconnesse** o **Sconosciuto** quando non viene controllato o non ha ancora segnalato nulla. |
 | **Origine** | **Regola** se l'ha collegato una delle regole dei monitor dello SLO, **Manuale** se qualcuno l'ha collegato a mano. |
 | **Etichette** | Le etichette del monitor. |
 

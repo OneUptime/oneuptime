@@ -50,7 +50,7 @@ Wählen Sie die Statusseiten unter **Ereignis auf diesen Status-Seiten anzeigen*
 Klicken Sie auf **Weiter**, um die Überprüfung zu sehen, prüfen Sie sie und klicken Sie dann auf **Wartungsereignis erstellen**. Die Seite des Ereignisses öffnet sich.
 :::
 
-Nichts wird gesendet, bis Sie eine Statusseite wählen: Ein Ereignis, das auf keiner Statusseite erscheint, informiert keinen Abonnenten.
+Nichts wird gesendet, bis Sie eine Statusseite wählen: Ein Ereignis, das auf keiner Statusseite erscheint, informiert keinen Abonnenten. Anders als ein Vorfall erreicht ein Ereignis die Statusseiten, die seine Monitore auflisten, nie von selbst: Ohne Auswahl steht im Feld „Auf keiner Statusseite angezeigt“, und die Überprüfung warnt „Dieses Ereignis erscheint auf keiner Statusseite.“ mit den vorgeschlagenen Seiten einen Klick entfernt.
 
 ## Die Felder des Formulars
 

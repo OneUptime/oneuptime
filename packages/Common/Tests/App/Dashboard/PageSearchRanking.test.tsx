@@ -178,11 +178,19 @@ describe("what the maintainer searched for comes first", () => {
     expect(rows("API key")[0]).toBe("API Keys — Project Settings › Advanced");
   });
 
-  test("'delete project' offers the action, then the page it is done on", () => {
-    expect(rows("delete project").slice(0, 2)).toEqual([
+  /*
+   * The page is named for the action done on it since #9134, so the action
+   * stands in for it: one row, not two of one name.
+   */
+  test("'delete project' offers the action, once", () => {
+    expect(rows("delete project")[0]).toBe(
       "Delete Project — Project Settings › Danger Zone",
-      "Danger Zone — Project Settings",
-    ]);
+    );
+    expect(
+      rows("delete project").filter((row: string): boolean => {
+        return row.startsWith("Delete Project — ");
+      }),
+    ).toHaveLength(1);
   });
 
   test("on-call schedules and policies, however they are written", () => {
@@ -350,7 +358,10 @@ describe("search forgives the way people type", () => {
     expect(rows("NOTIFICATION-SETTINGS")[0]).toMatch(
       /^Notification Settings — /,
     );
-    expect(rows("dángér zóne")[0]).toBe("Danger Zone — Project Settings");
+    // The page's old name, which Search still knows it by.
+    expect(rows("dángér zóne")[0]).toBe(
+      "Delete Project — Project Settings › Danger Zone",
+    );
   });
 
   test("words can come in any order, and a plural need not match", () => {
@@ -410,8 +421,8 @@ describe("search forgives the way people type", () => {
 describe("a setting is found by the name its card shows", () => {
   test.each([
     [
-      "require sso for login",
-      "Require SSO for Login — Project Settings › Security › SSO",
+      "require sso to sign in",
+      "Require SSO to Sign In — Project Settings › Security › SSO",
     ],
     [
       "monitor groups",
@@ -443,11 +454,23 @@ describe("a setting is found by the name its card shows", () => {
     ["time zone", "Timezone — User Profile › Basic › Overview"],
     [
       "remind me before shifts",
-      "Remind me before shifts — User Settings › Calendar › Calendar Feed",
+      "Remind me before shifts — User Settings › Profile & Calendar › Calendar Feed",
     ],
   ])('"%s" lists %s first', (query: string, row: string) => {
     expect(rows(query)[0]).toBe(row);
   });
+
+  /*
+   * Require SSO to Sign In was Require SSO for Login, and Force SSO for
+   * Login before that (#9278): people who learned those names still find
+   * the page that holds the switch.
+   */
+  test.each(["require sso for login", "force sso for login"])(
+    '"%s", an old name, still finds the SSO page',
+    (query: string) => {
+      expect(rows(query)[0]).toBe("SSO — Project Settings › Security");
+    },
+  );
 
   test("a setting is listed among the pages, by how well it matches", () => {
     /*
@@ -459,7 +482,7 @@ describe("a setting is found by the name its card shows", () => {
       "SSO — Project Settings › Security",
       "SSO Settings — Project Settings › Security › SSO",
       "Test Single Sign On (SSO) — Project Settings › Security › SSO",
-      "Require SSO for Login — Project Settings › Security › SSO",
+      "Require SSO to Sign In — Project Settings › Security › SSO",
       "Pipelines — Logs › Log Settings",
       "Pipelines — Traces › Trace Settings",
     ]);

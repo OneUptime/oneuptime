@@ -177,6 +177,40 @@ describe("CodeTaskRuns.start", () => {
     ).toMatchObject({ props: { isRoot: true } });
   });
 
+  /*
+   * What the task carries beside its context (#9186): a postmortem action
+   * item's incident. AIRunService adds what the context names as it
+   * creates the run.
+   */
+  test("what the caller says the task carries is written on its first turn", async () => {
+    const incidentId: string = "8d3f4051-6273-4a84-8d95-aeb6f708192a";
+
+    await CodeTaskRuns.start({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      repository: repository(),
+      message: "Make the change the action item asks for",
+      context: CONTEXT,
+      carries: { incidentIds: [incidentId], alertIds: [] },
+    });
+
+    expect(created[0]!.carriedIncidentIds).toEqual([incidentId]);
+    expect(created[0]!.carriedAlertIds).toBeUndefined();
+  });
+
+  test("a task its caller says nothing of carries only what its context names, which the service reads", async () => {
+    await CodeTaskRuns.start({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      repository: repository(),
+      message: "Add retries",
+      context: CONTEXT,
+    });
+
+    expect(created[0]!.carriedIncidentIds).toBeUndefined();
+    expect(created[0]!.carriedAlertIds).toBeUndefined();
+  });
+
   test("the branch the person picked is kept on the first turn's request, where every turn reads it", async () => {
     await CodeTaskRuns.start({
       projectId: PROJECT_ID,

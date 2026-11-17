@@ -73,6 +73,10 @@ To follow up, write in the box at the bottom, which stays in view as the convers
 
 Anyone who can read a repository reads its tasks. Asking AI, replying and stopping a task take permission to edit the repository, and so does seeing a change's diff: everyone else sees which files changed. The tasks OneUptime starts on its own (below) are in their repository too, as conversations you can reply in.
 
+A task about a private incident or alert, one started from its investigation or from one of its fixes, is read with its replies and its pull request only by those who may read the record, and, once the record is deleted, only by Project Owners and Project Admins. For everyone else, the repository's lists, filters, searches and counts leave it out. See [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
+
+So is a task that carries a private incident or alert: one asked with it as context, one a reply added it to, and a postmortem action item's task. A task that carries several is read only by those who may read every one of them. The dialog that adds an incident or an alert to a request says so.
+
 ## How a fix run works
 
 ```mermaid title="From a click to a pull request"
@@ -168,6 +172,7 @@ It works in GitHub, GitLab, Forgejo and Gitea repositories. GitHub tells OneUpti
 When production says something, OneUptime AI reads it beside the diff and adds **What to watch**: a few short points, each resting on the facts. It reads with the project's default LLM provider, unless **Production Review LLM Provider**, under **More settings** on the repository's **Settings** page, picks another of the project's providers or a global one. It runs only while AI is on for the project, at most 10 times a day for a pull request and 100 for a repository, and is metered like every AI call; the facts are read every time without it. When production shows nothing about the change, OneUptime posts no comment.
 
 - **Aggregates only.** The comment holds counts, durations and the names of code: never an exception's message, a log line, an incident's title or personal data.
+- **Private incidents.** A review never lists a private incident. If an incident on a review is made private later, Code leaves it out of the review for everyone who may not read it, with the counts and OneUptime AI's points about it. The comment on the pull request stays as it was posted.
 - **Public repositories get a link.** Anyone can read a public repository's pull requests, so there the comment only links to the review in OneUptime, which only the project's members can open. **Production Review Comment**, under **More settings** on the repository's **Settings** page, can post **Only a link to the review** everywhere, or **The review, even on a public repository**.
 - **Outside contributors cannot start one.** A pull request is reviewed on its own only when its author, and whoever pushed to it, can write to the repository; on GitLab, Forgejo and Gitea, only one from a branch of the repository itself. One from anyone else - an outside contributor, a fork, a bot - is reviewed when someone with write access asks for it: **Review a pull request**, on the repository's **Production Reviews** page, takes its number, and on GitHub a comment of `@oneuptime production review` on it does the same. **Review again**, on a review's page, asks again.
 - **The token comments.** On GitLab, Forgejo and Gitea the comment is posted with the repository's access token, as its account. A Forgejo or Gitea token needs write access to issues for that. When the server refuses the comment - a token without it, or a locked discussion - the review is kept in Code only, and its page says so.
@@ -325,6 +330,8 @@ Everything else matches the button:
 - It counts toward that signal's daily fix-task limit (**Daily Incident AI Fix Task Limit** or **Daily Alert AI Fix Task Limit**, under **More settings** on its AI settings page) and toward the repository's cap on open pull requests, when either is set. Unset, neither limits anything.
 - Every trigger first looks for a fix task already queued or running for the same incident or alert, so an automatic trigger and a click normally become one task, not two pull requests. The check is a read before the write, not a lock, so two triggers at the very same moment can still both get through.
 - The run is written by the system, not credited to anyone, and nothing merges on its own.
+
+On a private incident or alert, **Open fix pull request** takes what approving the record's fixes takes, through the teams that own it, and is locked for anyone else, saying why. Everyone with access to the repository reads the pull request, so its title, its commit and its description say what the change does and nothing of the record, and the code agent is asked to leave the record out of its summary and of the comments it writes. A Runner from before this change is refused such a fix, and the task fails saying to update the Runner.
 
 ## When a fix fails
 

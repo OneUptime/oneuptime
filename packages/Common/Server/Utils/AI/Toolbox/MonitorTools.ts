@@ -76,15 +76,15 @@ export const MONITORING_OFF_MONITOR_NOTE: string =
  * #8899) holds the operational status every monitor is created in: no check
  * stands behind it. Its row says notCheckedYet, in the Monitors table's
  * words for why (MonitorRowStatus) - Waiting for data, No results yet,
- * Paused, Probes Not Enabled, Probes Disconnected - and the chat's table
+ * Paused, No Probe Enabled, Probes Disconnected - and the chat's table
  * and card say those words, as the Monitors table does, never Operational.
  * So the model never reports a monitor nothing has checked as up.
  */
 export const NOT_CHECKED_YET_MONITOR_NOTE: string =
-  "Nothing has checked this monitor yet: its status is only the operational status every monitor is created in, not the result of a check. Do not report it as up or as down; say it has not been checked yet, and why, as notCheckedYet says (Waiting for data: its first result has not come back yet; No results yet: its first result is overdue; Paused: an incident or scheduled maintenance holds its checks; Probes Not Enabled or Probes Disconnected: no probe can check it).";
+  "Nothing has checked this monitor yet: its status is only the operational status every monitor is created in, not the result of a check. Do not report it as up or as down; say it has not been checked yet, and why, as notCheckedYet says (Waiting for data: its first result has not come back yet; No results yet: its first result is overdue; Paused: an incident or scheduled maintenance holds its checks; No Probe Enabled or Probes Disconnected: no probe can check it).";
 
 export const NOT_CHECKED_YET_LIST_NOTE: string =
-  "Rows with notCheckedYet are monitors nothing has checked yet: their currentStatus is only the operational status every monitor is created in, not the result of a check. Do not report them as up or as down; say they have not been checked yet, and why, as notCheckedYet says (Waiting for data: the first result has not come back yet; No results yet: the first result is overdue; Paused: an incident or scheduled maintenance holds its checks; Probes Not Enabled or Probes Disconnected: no probe can check it).";
+  "Rows with notCheckedYet are monitors nothing has checked yet: their currentStatus is only the operational status every monitor is created in, not the result of a check. Do not report them as up or as down; say they have not been checked yet, and why, as notCheckedYet says (Waiting for data: the first result has not come back yet; No results yet: the first result is overdue; Paused: an incident or scheduled maintenance holds its checks; No Probe Enabled or Probes Disconnected: no probe can check it).";
 
 /*
  * Why nothing has checked a monitor yet, as the Monitors table says it,

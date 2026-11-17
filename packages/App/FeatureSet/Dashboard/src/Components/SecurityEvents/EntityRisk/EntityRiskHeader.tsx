@@ -30,7 +30,8 @@ import { SecurityEntityCriticality } from "Common/Types/SecurityCase/SecurityEnt
 import Icon from "Common/UI/Components/Icon/Icon";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
-import { PillSize } from "Common/UI/Components/Pill/Pill";
+import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
@@ -130,16 +131,12 @@ const EntityRiskHeader: FunctionComponent<ComponentProps> = (
       <div className="px-4 py-4 sm:px-5">
         <div className={SECURITY_CASE_HEADER_TOP_ROW_CLASS_NAME}>
           <div className={SECURITY_CASE_HEADER_CHIPS_CLASS_NAME}>
-            <span
-              className="inline-flex items-center gap-1.5 rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-700"
-              data-testid={ENTITY_RISK_HEADER_TEST_IDS.kind}
-            >
-              <Icon
-                icon={getSecurityEntityIcon(props.type)}
-                className="h-3.5 w-3.5 flex-shrink-0 text-gray-500"
-              />
-              {translator.translateText(props.type) || props.type}
-            </span>
+            <Pill
+              text={props.type}
+              tone={PillTone.Neutral}
+              icon={getSecurityEntityIcon(props.type)}
+              dataTestId={ENTITY_RISK_HEADER_TEST_IDS.kind}
+            />
             {props.criticality ? (
               // The size of the kind beside it, as a case's pills beside its number.
               <EntityCriticalityPill

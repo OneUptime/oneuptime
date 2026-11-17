@@ -30,6 +30,26 @@ export const getReaderLanguageHeaders: () => Headers = (): Headers => {
 };
 
 export default class API extends BaseAPI {
+  /*
+   * Says a server message in the reader's language, when the page knows it
+   * (Utils/ServerMessageWords, set by App.tsx). Set from outside rather than
+   * imported, so this module stays free of i18next.
+   */
+  private static serverMessageWords: ((message: string) => string) | null =
+    null;
+
+  public static setServerMessageWords(
+    words: ((message: string) => string) | null,
+  ): void {
+    API.serverMessageWords = words;
+  }
+
+  public static override getFriendlyMessage(err: unknown): string {
+    const message: string = super.getFriendlyMessage(err);
+
+    return API.serverMessageWords ? API.serverMessageWords(message) : message;
+  }
+
   public static override getDefaultHeaders(): Headers {
     const statusPageId: ObjectID | null = StatusPageUtil.getStatusPageId();
 

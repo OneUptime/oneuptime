@@ -260,9 +260,20 @@ describe("the Incoming Call Policy page", () => {
       "Pages/OnCallDuty/IncomingCallPolicy/SideMenu.tsx",
     );
 
+    /*
+     * Call Logs sits in Basic, right after Escalation Rules: its one-entry
+     * Logs section went in #9216.
+     */
+    expect(menu).not.toContain('<SideMenuSection title="Logs">');
     expect(menu).toMatch(
-      /<SideMenuSection title="Logs">\s*<SideMenuItem\s+link=\{\{\s*title: "Call Logs"/,
+      /<SideMenuSection title="Basic">[\s\S]*?title: "Overview"[\s\S]*?title: "Escalation Rules"[\s\S]*?title: "Call Logs"[\s\S]*?title: "Owners"[\s\S]*?<\/SideMenuSection>/,
     );
+    expect(
+      menu.slice(
+        menu.indexOf('<SideMenuSection title="Basic">'),
+        menu.indexOf("</SideMenuSection>"),
+      ),
+    ).toContain('title: "Call Logs"');
     expect(menu).toMatch(
       /<SideMenuSection title="Advanced">\s*<SideMenuItem\s+link=\{\{\s*title: "Settings"/,
     );
@@ -273,7 +284,7 @@ describe("the Incoming Call Policy page", () => {
       "choose **Escalation Rules** in its side menu and click **Add Escalation Rule**",
     );
     expect(page).toContain(
-      "Every call is listed on the policy's **Call Logs** page, under **Logs** in its side menu",
+      "Every call is listed on the policy's **Call Logs** page, under **Basic** in its side menu",
     );
     expect(page).toContain(
       "Open the policy and choose **Settings** under **Advanced** in its side menu.",
@@ -753,7 +764,7 @@ describe("the Incoming Call Policy page", () => {
     );
   });
 
-  it("sends engineers to the Incoming Call Policy section of User Settings, which starts folded, for one number per project", () => {
+  it("sends engineers to the Paging & Calls section of User Settings, which starts folded, for one number per project", () => {
     const userSettingsMenu: string = readDashboardFile(
       "Pages/UserSettings/SideMenu.tsx",
     );
@@ -761,9 +772,16 @@ describe("the Incoming Call Policy page", () => {
       "Components/NotificationMethods/IncomingCallNumber.tsx",
     );
 
-    expect(userSettingsMenu).toMatch(
-      /title: "Incoming Call Policy",\s*defaultCollapsed: true,\s*items: \[\s*\{\s*link: \{\s*title: "Incoming Phone Numbers"/,
+    // The numbers share a section with On-Call Logs since #9218.
+    const pagingSection: string = userSettingsMenu.slice(
+      userSettingsMenu.indexOf('title: "Paging & Calls",'),
+      userSettingsMenu.indexOf('title: "Profile & Calendar",'),
     );
+
+    expect(pagingSection).toMatch(
+      /^title: "Paging & Calls",\s*defaultCollapsed: true,/,
+    );
+    expect(pagingSection).toContain('title: "Incoming Phone Numbers",');
     expect(numbers).toContain(
       'title: "Phone Numbers for Incoming Call Routing"',
     );
@@ -772,7 +790,7 @@ describe("the Incoming Call Policy page", () => {
     );
 
     expect(page).toContain(
-      "Open **User Settings** > **Incoming Call Policy** > **Incoming Phone Numbers**. **Incoming Call Policy** is a section of the side menu that starts folded.",
+      "Open **User Settings** > **Paging & Calls** > **Incoming Phone Numbers**. **Paging & Calls** is a section of the side menu that starts folded.",
     );
     expect(page).toContain(
       "In the **Phone Numbers for Incoming Call Routing** card, click **Add Phone Number for Incoming Call Routing**",

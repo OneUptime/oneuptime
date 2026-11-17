@@ -218,45 +218,44 @@ jobs:
   # esbuild and serve them against fixture data: no database or Docker stack.
   # They used to run one after another in a single 41-minute job, the longest
   # of every pull request's checks. They are independent - each starts its
-  # own fixture server on its own port - so they run here in twenty-one groups
-  # balanced by measured duration. Event Overview and the Workflow Builder
-  # suite outgrew a group each on their own (20.4 and 19.4 minutes on
-  # 2026-10-17's slowest runner), so each now runs in halves, in two groups
-  # (see below); every group holds about 17 to 20 minutes of suites. Setup
-  # adds a minute and a half. Each suite still runs exactly as before: same
-  # config, same browsers, one worker.
+  # own fixture server on its own port - so they run here in groups, each a
+  # job of its own. Each suite runs exactly as before: same config, same
+  # browsers, one worker.
   #
-  # Since 2026-11-16 a group runs two of its suites at a time
-  # (packages/E2E/Scripts/RunUiSuites.js, the run step below), never two
-  # that share a port, a fixture server or an output directory: one suite
-  # kept about one and a half of the runner's four CPUs busy, so a group's
-  # runner was mostly idle. A group now takes about half its suites'
-  # minutes. The budget below still holds each group's suites to a sum of
-  # 22 minutes run one at a time, which a group run two at a time stays far
-  # inside; planning groups by what two lanes take, so there are fewer of
-  # them, waits for App Test's runs to measure the suites side by side.
+  # A group runs two of its suites at a time (since 2026-11-16,
+  # packages/E2E/Scripts/RunUiSuites.js, the run step below), never two that
+  # share a port, a fixture server or an output directory: one suite kept
+  # about one and a half of the runner's four CPUs busy, so a group's runner
+  # was mostly idle. Beside another suite a suite takes about a quarter
+  # longer than alone (1.26 times: the median over 68 runs of 37 suites
+  # unchanged between 14.3.0's gate runs, one at a time, and 15.0.0's, two at
+  # a time), and the groups are planned by what two lanes take. There were 22
+  # groups, each 12 to 28 minutes one suite at a time, and 9 to 23 minutes two
+  # at a time on 15.0.0's gate run (2026-11-17), the groups that held one long
+  # suite and little else the slowest; there are twelve now, each about 21
+  # minutes.
   #
   # The same group has taken a third longer on one run than on the next with
-  # nothing changed but the runner (group 1: about 18 and 24 minutes), and on
-  # 14.0.100's second gate run (2026-11-01) group 14 took 1.45 times the
-  # minutes of the first run, suite for suite. Security Operations alone takes
-  # about 20 minutes on a runner of normal speed, so on such a runner it would
-  # pass 28. So the run step's limit is 35, and a group is planned at about 22
-  # minutes on a runner of normal speed (about 32 on the slowest seen). When
-  # one passes that, move a suite or add a group.
+  # nothing changed but the runner (about 18 and 24 minutes), and on
+  # 14.0.100's second gate run (2026-11-01) one took 1.45 times the minutes
+  # of the first run, suite for suite. So the run step's limit is 35,
+  # and a group is planned at about 22 minutes on a runner of normal speed
+  # (about 32 on the slowest seen). When one passes that, move a suite or add
+  # a group.
   # Tests/Ops/DashboardOfflineUiBudget holds every group to it: each suite's
-  # minutes - a suite run in halves, each half's - are in
-  # Tests/Ops/DashboardOfflineUiMinutes.json, the median of App Test's runs
-  # (a new suite's from a local run until then), and a group's suites may
-  # sum to at most 22. Its failure names the groups with the most room.
+  # minutes beside another - a suite run in parts, each part's - are in
+  # Tests/Ops/DashboardOfflineUiMinutes.json, measured from App Test's runs
+  # (its `about` says how; a new suite's from a local run until then), and a
+  # group's suites, started as the run step starts them, must end within 22.
+  # Its failure names the groups with the most room.
   #
   # The groups run in the Playwright image (mcr.microsoft.com/playwright, at
   # the version packages/E2E locks): Chromium, Firefox and the system
   # packages and fonts they need are in it, so a group fetches nothing from
   # the runner's Ubuntu mirror, and any suite can run in any group. They
   # used to install them with `playwright install --with-deps`: about 25 MB
-  # that some runners' mirror served at 36 kB/s, 20 minutes in group 3
-  # (2026-10-22) and 11.7 in group 6 (2026-10-23), and elsewhere an apt-get
+  # that some runners' mirror served at 36 kB/s, 20 minutes in one group
+  # (2026-10-22) and 11.7 in another (2026-10-23), and elsewhere an apt-get
   # update that hung for three hours. The image, about 1 GB from Microsoft's
   # registry, is pulled before the first step in about a minute. It lacks one
   # thing the runner has: DejaVu, fontconfig's sans-serif, serif and
@@ -267,20 +266,19 @@ jobs:
   # Tests/Ops/PlaywrightImage holds its tag to the lockfile's Playwright, the
   # job's limit to the run step's 35 minutes, the setup and the pull, and
   # every job in the image to installing the runner's fonts.
-  # When Event Overview or
-  # the Workflow Builder suite passes it alone, split that suite across two
-  # groups. Event Overview is split since 2026-10-22: it is one spec file, so
-  # its config reads EVENT_OVERVIEW_SHARD (set below from the group's
-  # event_overview_shard) and shards by test; the same can be done for any
-  # suite, with a variable of its own. The Workflow Builder suite is split
-  # since 2026-10-27: its config reads WORKFLOW_BUILDER_SHARD (set below from
-  # the group's workflow_builder_shard) and Playwright shards it by spec file,
-  # the laptop's projects in one half and the phone's in the other. Model
-  # Tables and Monitor Overview are split since 2026-11-01 by
-  # MODEL_TABLES_SHARD and MONITOR_OVERVIEW_SHARD, by test as Event Overview
-  # is, and the OpenStack pages since 2026-11-05 by OPENSTACK_PAGES_SHARD, in
+  #
+  # A suite that would take a group's minutes by itself runs in parts, one
+  # per group: its config reads a variable of its own, set below from the
+  # group's <name>_shard ("1/2" or "2/2", or "1/3" to "3/3"), and passes it
+  # to Playwright's shard. Event Overview (one spec file, split by test) ran
+  # in halves from 2026-10-22, and in thirds since 2026-11-17: a half took 20
+  # to 23 minutes alone, more than a group's 22 beside another suite. The
+  # Workflow Builder suite runs in halves since 2026-10-27, by spec file (the
+  # laptop's projects in one half, the phone's in the other); Model Tables
+  # and Monitor Overview since 2026-11-01, and Security Operations since
+  # 2026-11-17, by test as Event Overview is; and the OpenStack pages in
   # thirds since 2026-11-10 (Tests/Ops/DashboardOfflineUiShards holds every
-  # half, or third, to running once).
+  # part to running once, and to adding up to the suite).
   #
   # A suite added to packages/E2E needs a place in one group's `suites`, its
   # minutes in Tests/Ops/DashboardOfflineUiMinutes.json, and its output
@@ -306,7 +304,7 @@ jobs:
         shell: bash -e {0}
     permissions:
       contents: read
-    # Which half of Event Overview a group runs, "1/2" or "2/2"; empty in
+    # Which third of Event Overview a group runs, "1/3" to "3/3"; empty in
     # the groups that do not run it (playwright.event-overview-ui.config.ts).
     env:
       EVENT_OVERVIEW_SHARD: ${{ matrix.event_overview_shard || '' }}
@@ -320,1538 +318,183 @@ jobs:
       # And which third of the OpenStack pages, "1/3" to "3/3"
       # (playwright.openstack-pages-ui.config.ts).
       OPENSTACK_PAGES_SHARD: ${{ matrix.openstack_pages_shard || '' }}
+      # And which half of Security Operations
+      # (playwright.security-operations-ui.config.ts).
+      SECURITY_OPERATIONS_SHARD: ${{ matrix.security_operations_shard || '' }}
     strategy:
       # Every group reports its own suites, whatever happens to the others.
       fail-fast: false
       matrix:
         include:
-          # Event Overview on its own. With the thirteen shorter suites that
-          # once shared its group and the setup, the group passed the job's 30
-          # minutes. Status Page Theme moved to group 6 when this group took
-          # 24.3 minutes. On 2026-10-22 Event Overview alone took 25.9 and
-          # 26.9 minutes on two runs, so it runs in halves: the first here,
-          # the second in group 10. SNMP Walk (about 1.5 minutes locally with
-          # its bundle, Chromium only: a device's SNMP Walk page - walking a
-          # subtree, continuing a walk, Collect, Alert on it, Copy OID and why
-          # a walk failed - at 1280 and 390 pixels, dark, Japanese and German)
-          # joined it on 2026-10-23, the group with the most room once Event
-          # Overview ran in halves: about 15. Asset Details (about 40 seconds
-          # locally with its bundle, Chromium only: where each asset detail
-          # came from on Inventory's Asset Details card and a device's
-          # Inventory card, at 1280 and 390 pixels, dark, Japanese and German)
-          # joined them the same day: about 16. Traces AI (1.5 minutes with
-          # its bundle locally, Chromium only: Traces' AI tab - Insights, a
-          # finding's evidence, Fix with AI, Create Monitor and Open in
-          # Traces, Logs and Settings - at 1280 and 390 pixels, light and
-          # dark) joined them on 2026-10-24, when this group took 14.9 minutes
-          # and group 8 22.4: about 16.5. Metrics AI (1.5 minutes with its
-          # bundle locally, Chromium only: Metrics' AI tab - Insights, a
-          # finding's evidence, Fix with AI, Open in Metrics and Open in
-          # Traces, Logs and Settings - at 1280 and 390 pixels, light and dark)
-          # joined them on 2026-10-25, when this group took 18.5 and 19.1
-          # minutes on master's last two runs with Traces AI, and group 9,
-          # where Exceptions AI was going, 16.3 to 18.4: about 20.5.
-          # Metrics AI (1.9 minutes on 14.0.93's gate run) moved to group 4 and
-          # Asset Details (0.9) to group 13 on 2026-10-27, when that run took
-          # this group 21.7 minutes: about 19.
-          # Timed again on 2026-10-28, after #5262 grew each half of Event
-          # Overview by about half a minute (and one of them by 15 seconds
-          # more with its UI review), from 14.0.94's two gate runs with this
-          # group's suites: its half of Event Overview 16.1 and 16.7 minutes,
-          # SNMP Walk 1.2 and 1.3, Traces AI 1.8 and 1.9 - 19.1 and 19.9 in
-          # all, under the 22 the groups are kept to, so nothing moved.
-          # EventNumbers.spec.ts joined Event Overview on 2026-10-30 (23
-          # tests, 1.8 minutes locally with the fixture build: the number
-          # before the title on every incident, alert, maintenance and
-          # episode page, at five widths, dark, German and Persian). Its file
-          # sorts before EventOverview.spec.ts, so this half runs it and
-          # hands about 12 of Event Overview's tests to group 10's half:
-          # about a minute more here. Master's run of 12:26 on 2026-10-29
-          # took this group 21.3 minutes (its half of Event Overview 18.0,
-          # SNMP Walk 1.3, Traces AI 1.9), so Traces AI moved to group 14:
-          # about 20.5. #5281's follow-ups grew SNMP Walk by 8 tests on
-          # 2026-10-30 (saving a walk as snmpwalk text or CSV, at 1280, 768
-          # beside the side menu and 390 pixels, dark and German: about 27
-          # seconds locally, the suite 1.6 minutes with its bundle): about 21.
-          # SNMP Walk (1.9 minutes on both of the last two runs) moved to the
-          # new group 17 on 2026-11-03: about 22.5.
-          # Trace Detail (2.5) joined it from group 3 the same day, when
-          # Meraki Traffic grew there: about 20.2. Postmortems (0.8) came from
-          # group 9 the same day, to make room there for Cloud Spend: about 21.
-          # EvaluationDetails.spec.ts joined Event Overview on 2026-11-08 (19
-          # tests after its UI review, 1.1 minutes locally with its bundle:
-          # an incident's and an alert's Evaluation details under the root
-          # cause, folded and open, a failed check, a Logs check, long values
-          # at four widths, dark, German and Persian). Its file sorts first,
-          # so this half runs it and hands about 10 of Event Overview's tests
-          # to group 10's half: about 0.5 minutes more here, 22 in all, so
-          # Postmortems (0.8) moved on to group 10: about 21.3.
+          # Packed on 2026-11-17 from DashboardOfflineUiMinutes.json, as
+          # evenly as could be found: each group 21.2 to 21.6 minutes on two
+          # lanes at a median runner's speed (eleven groups would have taken
+          # 23.4 each, past the 22 they are kept to). Each group lists its
+          # suites slowest first, as they start. Until then each group carried
+          # the history of the suites that joined and left it, one at a time;
+          # git log has it.
           - group: 1
-            event_overview_shard: 1/2
+            event_overview_shard: 1/3
             suites: >-
               test-event-overview-ui
-              test-trace-detail-ui
-          # The Alerts suite also runs in Firefox, and so do Code Editor (the
-          # editor's text layers must line up in both) and Diagrams. Diagrams
-          # and Navigation Search (about 8 minutes together) moved here from
-          # group 3 when the Probe Status specs in Monitor Overview and the
-          # docs' diagrams took group 3 from 25.5 minutes past the job's 30.
-          # Runbook Steps (about 35 seconds locally with its bundle, Chromium
-          # only: a runbook's Steps page and a run's execution page) joined it
-          # on 2026-10-20, when it took 17.6 to 19.2 minutes: group 3, beside
-          # Runbook Variables, had reached 25 and group 7 about 18. Navigation
-          # Search (2.9 to 3.5 minutes) moved to group 10 on 2026-10-22, when
-          # this group took 26.2 minutes on a slow runner and 20.9 on a fast
-          # one. Chart Time Zoom gained HostOverviewHeader.spec.ts on
-          # 2026-10-26 (8 tests, about 35 seconds locally: a host's name and
-          # its hero's controls at five widths, zoomed and not, and on a
-          # phone), when this group took 17.8 minutes: about 18.5.
-          # Logs AI (2.5 minutes, Chromium only) and External MCP Servers (1.0)
-          # moved here from group 7 on 2026-10-26, when 14.0.93's gate run took
-          # this group 15.8 minutes and group 7 23.4: about 19.5.
-          # Logs AI (2.0 minutes on 14.0.93's gate run) and External MCP Servers
-          # (0.8) moved to group 13 on 2026-10-27, when that run took this group
-          # 20.9 minutes: about 18. Every group has Firefox since the groups run
-          # in the Playwright image.
-          # Data Security (1.3 minutes locally with its bundle, 25 tests)
-          # joined them on 2026-10-29, the lightest group: about 19.5. Its UI
-          # review grew it to 59 tests (3.3 minutes) on 2026-10-30, which
-          # would have taken this group to about 21.5, so it moved to group
-          # 14, and on to group 10 the same day: about 18. Master's run of
-          # 09:50 that day, before Data Security reached master, took this
-          # group 25.2 minutes all the same.
-          # Chart Time Zoom gained SpanTypeHelp.spec.ts the same day (8 tests,
-          # about 25 seconds locally: the traces sidebar's Span Type with no
-          # paragraph under its title, its (i) on hover, from the keyboard,
-          # tapped on a phone and dark, its options' own tooltips, and its
-          # header folding from the chevron): about half a minute more. Its
-          # Escape tests joined it later that day (4 tests, about 12 seconds
-          # locally: the help and an option's sentence put away by Escape,
-          # pointed at, reached with Tab and tapped).
-          # Navigation Search (3.6 minutes) from group 13 on 2026-11-01, when
-          # 14.0.100's first gate run took this group 20.9: about 24.5.
-          # On the second run (2026-11-01) its step hit its 28 minutes in
-          # Navigation Search, on a runner about a fifth slower (Chart Time Zoom
-          # 12.7, the rest 12.1): Navigation Search moved on to group 16. About
-          # 21.
-          # Chart Time Zoom's fixture draws its pages in Inter since
-          # 2026-11-01, as production does (Tests/Ops/E2EFixtureFonts), and
-          # ResourceSecurityCard.spec.ts gained a Docker host's and a Podman
-          # host's Security card the same day (6 tests, about 20 seconds
-          # locally: their open case, week and risk, a quiet week, no card
-          # without Security Events, at 1280 and 390 pixels, dark): about
-          # 21.5.
-          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
-          # (each suite's median minutes,
-          # Tests/Ops/DashboardOfflineUiMinutes.json, which
-          # Tests/Ops/DashboardOfflineUiBudget holds every group to): this
-          # group's suites sum to 25.0 minutes on a runner of median speed (25.3
-          # on its slowest run). Diagrams (4.6) moved to the new group 18: about
-          # 20.5.
-          - group: 2
-            suites: >-
-              test-chart-time-zoom-ui
-              test-code-editor-ui
               test-exception-detail-ui
-              test-alerts-ui
-              test-pencil-button-ui
-              test-color-picker-ui
-              test-runbook-steps-ui
-          # Value Picker also runs in Firefox (the chip editor's caret handling
-          # differs in each). Discovery (about 5 minutes) moved to group 6
-          # when this group took 23.5 minutes. Global Runners (about a
-          # minute, Chromium only) joined it at 15.4 minutes, the lightest
-          # group on 2026-10-18's run, and Runbook Variables (about a minute
-          # and a half with its bundle, Chromium only) beside it. Rules Menu
-          # Section (about half a minute with its bundle, Chromium only: the
-          # status page's and an SLO's side menus) joined it on 2026-10-20.
-          # Model Tables (about 4 minutes with its bundle locally, Chromium
-          # only: every table's look and, in CardHeaders.spec.ts, where every
-          # card header puts its description - about a minute of it) moved
-          # here from group 6 on 2026-10-21, when group 6 took 21.9 minutes
-          # and this group 17.3, the lightest that holds several suites once
-          # group 8 took three of group 5's: about 21.5 for the twelve. On
-          # the next run the same day the group ran past the job's 30 minutes
-          # (28.5 of suites; the job was cancelled two specs from the end of
-          # Model Tables), so Model Tables and Runbook Variables moved to
-          # group 5, Security Events Empty States to group 8 and Global
-          # Runners to group 6: about 9.5 minutes, 20.5 left for the eight.
-          # Rules Menu Section gained SideMenuNavigation.spec.ts on 2026-10-26
-          # (14 tests, about 50 seconds locally: the shared side menu's
-          # current entry, long French, German and Persian titles, and the lit
-          # entry kept in sight in a menu taller than the window), when this
-          # group took 18.2 to 18.9 minutes on master's runs of 2026-10-24:
-          # about 19.5 to 20. Its UI review added SideMenuWordBreaks.spec.ts
-          # the same day (6 tests in Chromium and the same 6 in Firefox,
-          # which this group installs: where the menu's words break, since
-          # Firefox hyphenates words Chrome moves whole) and 3 tests of the
-          # list's fades and fitted card: 45 tests in 2.4 minutes locally,
-          # about 50 seconds more, about 20.5 to 21. #5300's UI review added
-          # CloudLinkSuggestions.spec.ts to Monitor Overview the same day (5
-          # tests, about 20 seconds locally: the cloud resources a monitor's
-          # Linked Resources card offers, linking one, a refused link, a read
-          # that fails, dark): about 21 to 21.5. #5236 added 5 tests to Monitor
-          # Overview on 2026-10-27 (about 15 seconds locally: scheduled
-          # maintenance on a monitor's 90-day uptime strip - the band, the
-          # tooltip, the day's dialog opening the event, a read that fails,
-          # dark) and MaintenanceHistory.spec.ts to Status Page Search (8 tests
-          # on each of its two Chromium projects with its UI review's, about 37
-          # seconds locally), so Status Page Search (34.9 seconds on master's
-          # run of 03:08 on 2026-10-26, 1.2 minutes with its new spec) moved to
-          # group 11: about 20.5. #5281's follow-ups added
-          # MonitorSummaryProbePicker.spec.ts and NetworkDeviceLink.spec.ts to
-          # Monitor Overview on 2026-10-30 (14 tests, 53 seconds locally: the
-          # Monitor Summary's probe picker from 320 to 1280 pixels, in German
-          # and Persian, Show More Details' contrast, Monitor web UI from a
-          # network device and its alert pack's filters on a phone): about 21,
-          # from the 20.3 this group kept once Value Picker and List Delete
-          # left for group 14.
-          # Monitor Overview runs in halves since 2026-11-01: 248 tests, 13.8
-          # minutes on 14.0.100's first gate run, when this group took 21.7,
-          # and 18.6 on the second, whose runner was about a third slower
-          # (every suite here was), when the step hit its 28 minutes during
-          # the last suite. The first half (124 tests) stays here, the second
-          # goes to group 16: about 14.6. Meraki Traffic (3.0) from group 7 and
-          # Security Events Empty States (3.7) from group 14, which took 25.5
-          # and past 28 on that run: about 21.5.
-          # MonitorSecurityCard.spec.ts joined Monitor Overview the same day
-          # (11 tests, 52 seconds locally, about half of them in each half: a
-          # monitor's Security card about the hosts it checks - its open case,
-          # week and risk, a quiet week, none for a heartbeat or a role that
-          # may not read security events, read again on Refresh, its stacked
-          # header in the side column at 1440 and 390 pixels, dark): about 22.
-          # Rules Menu Section (3.0 and 3.1 minutes) moved to the new group 17
-          # on 2026-11-03, when the last two runs (master's of 2026-11-02
-          # 23:47 and 14.0.102's first gate run) took this group 23.9 and
-          # 24.8: about 21.5.
-          # Meraki Traffic grew to about 4.8 the same day with #5392's Add
-          # Meraki devices tests (the row's offer, the dialog and its ask, the
-          # row following the worker job, what went wrong, a refused key, a
-          # member, German, dark: about 1.4 minutes locally), which would have
-          # taken this group to 22.7; group 17, where it was going, took Ceph
-          # Pages and Storage Array Pages (19.9) first, so Trace Detail (2.5)
-          # moved to group 1 instead: about 20.2.
-          # Host Collectors (1.2) joined it from group 8 on 2026-11-06, when
-          # the Azure and Google Cloud streaming tests grew Cloud Connect:
-          # about 21.4.
-          # Meraki Traffic grew to about 5.7 on 2026-11-08 with #5762's tests
-          # (a page opening on Meraki, an estate of 150 networks opened whole,
-          # searched, sorted and paged, a router linked to its MX and
-          # unlinked, a member, German and dark: about 50 seconds locally),
-          # which would have taken this group to 22.3: Host Collectors (1.2)
-          # moved to group 13. About 21.1.
-          # #7205 gave WhenThisGoesDown.spec.ts 6 more tests on 2026-11-12
-          # (When this goes down's owner rules, status pages, names a reader
-          # can't see, German and Persian, and its UI review's: the chain laid
-          # out by the card's own width at three widths, a failed read and Try
-          # again, On-call policy's definition - about 75 seconds locally,
-          # about half in each half): Monitor Overview's halves planned as 9.6
-          # and 10.2, which would have taken this group to 22.3. Label Rule
-          # Transfer (0.7) moved to group 16: about 21.6.
-          - group: 3
-            monitor_overview_shard: 1/2
-            suites: >-
-              test-monitor-overview-ui
-              test-event-notes-ui
-              test-meraki-traffic-ui
-              test-security-events-empty-states-ui
-          # The Workflow Builder suite on its own: it sat in group 2 near the
-          # job's 30 minutes, and its On Create or Update spec would take that
-          # group past them. Its two projects, a laptop and a phone, are both
-          # Chromium. Calendar Feed moved to group 6 when this group took 23.6
-          # minutes.
-          # The Workflow Builder suite runs in halves since 2026-10-27, when it
-          # took 20.4 minutes alone on 14.0.93's gate run and #5320 grew it
-          # after: the laptop's half here (211 tests, 13.1 minutes locally on a
-          # busy machine; about 12 on a runner), the phone's (188, 9.6 locally)
-          # in group 9. Model Tables (4.7) from group 9 and Metrics AI (1.9)
-          # from group 1 joined it: about 18.5.
-          # Metrics AI gained MetricsInsights.spec.ts on 2026-10-28 (22 tests,
-          # about 40 seconds locally, Chromium only: Metrics > Insights'
-          # service cards at 1440, 1280, 1024, 768 and 390 pixels, with long
-          # names and in the dark theme): about 19.
-          # Model Tables gained LiveLists.spec.ts and the phone's folded
-          # filter chips on 2026-10-29 (19 tests, about a minute and a half
-          # locally: the incidents and alerts lists reading again as the
-          # server announces a change, holding still for the keyboard and the
-          # pointer, tinting a new row, and the alerts list's chips at 390,
-          # 768 and 1280 pixels, dark; the whole suite 7.5 min): about 20.
-          # Model Tables gained ColumnResize.spec.ts the same day (19 tests,
-          # about 1.2 minutes locally, Chromium only: a column's edge dragged,
-          # double-clicked, keyed and reset, right to left, on a tablet, on a
-          # phone and on a list of 200 rows, and the reset's words in every
-          # language): about 21.5.
-          # Model Tables runs in halves since 2026-11-01, when #5485 grew it to
-          # 176 tests: on 14.0.100's first gate run it took about 12 minutes,
-          # and this group's step hit its 28 with 169 of them done (Workflow
-          # Builder's half 13.5, Metrics AI 3.0). The first half (88 tests,
-          # about 7 minutes) stays here; the second and Metrics AI run in group
-          # 15: about 22.
-          # Global Runners (1.9 to 2.5 minutes on the last six runs; #5583 added
-          # its Runners that take no AI code fixes the same day) joined it from
-          # group 13 on 2026-11-03, when those runs took this group's step 14.1
-          # to 20.4 minutes, about 19: about 21.5.
-          # Model Tables grew to 196 tests on 2026-11-06 (#6025: a first
-          # visit's frames, cards' placeholders in a narrow card, German
-          # headers hyphenated, the 8rem window of a wide card, default
-          # columns per project, no frame past the card after Reset or
-          # Delete, and a laptop's Select All keeping the keyboard's place):
-          # each half 98 tests, about 5.6 minutes locally with CI=1, about
-          # 7.0 on a runner by its 88 tests' 6.3 - this group 22.7. Global
-          # Runners (2.2) moved to group 19: about 20.5.
-          # Test Page (9 tests, about 35 seconds locally with its bundle,
-          # Chromium only: sending a test page from User Settings and a
-          # policy - the preview, its cost, what a send asks for and the
-          # result with where to fix a message - at 1280 and 390 pixels, dark
-          # and German) joined it on 2026-11-11, the group with the most room:
-          # about 21.2. It grew to 15 tests on 2026-11-12 (#7193: a policy's
-          # test that walks every level, as a timeline, and the preview in the
-          # reader's words, Arabic and Persian too): about 1.2 minutes by its
-          # 9 tests' 0.7 - about 21.7.
-          - group: 4
-            workflow_builder_shard: 1/2
-            model_tables_shard: 1/2
-            suites: >-
-              test-workflow-builder-ui
-              test-model-tables-ui
-              test-test-page-ui
-          # The Chromium-only suites that ran after Event Overview in group 1.
-          # Topology is one of them (about 2.5 minutes) since the Workflow
-          # Builder suite grew again with its UI review: group 2 had reached
-          # 24.5 of the job's 30 minutes on a slow runner. Calendar Feed and
-          # Status Page Theme moved to groups 4 and 1 when this group reached
-          # 28.5 minutes, and its last five suites to group 6 when it took
-          # 25.5. Code (about 5 minutes: a laptop and a phone) joined it at
-          # 14.2 to 16.4 minutes, the most room of the six. Public Addresses
-          # (about a minute, Chromium only: a status page's Overview and a
-          # dashboard's Sharing page) joined it on 2026-10-19. On 2026-10-21
-          # the group ran past the job's 30 minutes (Security Operations had
-          # grown with the Security pages to about 3.5 minutes, and the job
-          # was cancelled in Code, with Public Addresses never run), so those
-          # three moved to group 8: about 10 minutes of the group's 29.5.
-          # Model Tables and Runbook Variables (about 4 minutes and 1, both
-          # Chromium only) moved here from group 3 later that day, when this
-          # group took 14.7 minutes, the lightest: about 19.5. The next run
-          # took 24.9 (the same suites ran about 40% slower on its runner),
-          # so Model Tables and Home Overview moved on to group 9: about 19.
-          # Dashboard Value Widget (about a minute with its bundle locally,
-          # Chromium only: the Value widgets' lines, arrows and tooltips
-          # inside OneUptime and on the public page, at a laptop's and a
-          # phone's width, dark, German and Persian) joined it on 2026-10-22,
-          # when it took 14.4 minutes, the lightest of the nine: about 16.
-          # Kubernetes Events (1.6 minutes locally with its bundle, Chromium
-          # only: a cluster's warning events on its Events page, the Events
-          # tab of a node, an HPA, a Deployment and a namespace, and the
-          # Overview's Recent Warnings, at 1280 and 390 pixels, light, dark
-          # and German) joined it on 2026-10-23, still the lightest: about 18.
-          # Owners on Create (under a minute locally with its bundle,
-          # Chromium only: Declare Incident's and Create Alert's Owners under
-          # More fields, the declarer's teams one click away, the owner rules
-          # the review says will run, and an owner rule's Creator's Team, at
-          # 1280 and 390 pixels, dark and German) joined it the same day:
-          # about 19. AI Context (about 1.5 minutes with its bundle locally,
-          # Chromium only: Project Settings > AI > AI Features' AI context
-          # card and its dialog, and the line a run's activity draws for what
-          # it read with the dialog its View opens, at 1280 and 390 pixels,
-          # light and dark, German and Persian) joined it on 2026-10-24, the
-          # lightest group: about 20.5. Kubernetes Events gained 3 tests on
-          # 2026-10-26 (about 10 seconds locally: a node's and an HPA's page
-          # light their entry in the cluster's side menu, and a phone's menu
-          # button names the section and the page, in German): still about
-          # 20.5.
-          # Kubernetes Events and Topology (2.8 minutes each on 14.0.93's gate
-          # run) moved to group 9, and AI Context (1.6) to group 11, on
-          # 2026-10-26, when that run took this group 25.8 minutes: about 19.
-          # Side by Side Pages (about a minute locally with its two bundles,
-          # Chromium only) moved here from group 8 the same day, when #5300's
-          # UI review grew Cloud Connect there by about a minute: about 20.
-          # Shared UI (2.5 minutes on 14.0.93's gate run) from group 11 and Owner
-          # Filters (0.9) from group 10 joined it on 2026-10-27, when that run
-          # took this group 13.4 minutes before Side by Side Pages: about 18.
-          # First On-Call Policy (about half a minute locally with its bundle,
-          # 11 tests, Chromium only: a new project's Create On-Call Policy
-          # asking "Page this policy for every new incident and alert", what
-          # Create sends, when it is not asked, at 1280 and 390 pixels, German
-          # and Persian dark) joined it the same day, beside Incoming Call
-          # Policies and Owners on Create: about 19.
-          # Security Cases and Detections (the five shorter specs on the
-          # Security Operations fixture - CaseWork, ConnectedSignals,
-          # EntityRisk, RuleExceptions and Watchlists - as a suite of its own:
-          # 110 tests, 7.8 minutes on master's run of 2026-10-30, Chromium
-          # only) joined it on 2026-10-30 from group 11, whose run step hit
-          # its 28 minutes on that run with Security Operations taking 26.5 of
-          # them. This group's step took 12.9 to 14.6 minutes on the four runs
-          # before it: about 22.
-          # 14.0.98's gate run of 2026-10-30 (41063278179), a slow runner,
-          # took this group 25.5 minutes, the new suite 8.2 of them, and group
-          # 11 15.1: Status Timeline (2.2 minutes there) and Runbook Triggers
-          # (1.7) moved to group 11 the same day: about 21.5 at that pace.
-          # ConnectedSignals.spec.ts gained 3 tests on 2026-11-01 (about 10
-          # seconds locally: a monitor, a cloud resource and a serverless
-          # function among a case's records, a member's on-call schedules
-          # and teams, and a member's own page with its Security card, at
-          # 1280 and 390 pixels, dark): still about 21.5. It gained 14 more
-          # on 2026-11-02 (about 31 seconds locally: In your logs and traces
-          # under a case's records - the values found, with their log lines,
-          # spans, places and senders, a failed and a limited search, at 390
-          # to 1280 pixels, dark, in German and Persian, and on an entity's
-          # page): about 22. Its UI review added 3 more the same day (about 8
-          # seconds locally: the line that says the search is running, and an
-          # entity no record matches at 1280 and 390 pixels, dark): still
-          # about 22.
-          # SLO Burn Rate (1.7 and 1.8 minutes) and Dashboard Value Widget (1.5
-          # and 1.7) moved to the new group 17 on 2026-11-03, when the last two
-          # runs (master's of 2026-11-02 23:47 and 14.0.102's first gate run)
-          # took this group 25.0 and 24.2: about 21.
-          # Database Pages (22 tests, 1.4 minutes locally with its bundle,
-          # Chromium only: the Databases list's Needs attention card and each
-          # database's Status by its engine's alert lines, a database's Overview,
-          # its alerts and Recommendations, at 1280, 1024, 768 and 390 pixels,
-          # dark, German and Persian) joined it on 2026-11-03, the group with the
-          # most room in DashboardOfflineUiMinutes (19.2): about 20.6.
-          # Storage Array Pages (1.4) moved here from group 17 on 2026-11-11,
-          # the group with the most room, when Home Overview grew there: 22.0.
-          # Owner Filters (1.2 with a schedule's Used by, #7438) moved to group
-          # 18 on 2026-11-16: about 21.0.
-          - group: 5
-            suites: >-
-              test-incoming-call-policies-ui
-              test-push-registration-ui
-              test-packet-capture-ui
-              test-custom-field-options-ui
-              test-pagination-ui
-              test-network-first-run-ui
-              test-runbook-variables-ui
-              test-owners-on-create-ui
-              test-first-on-call-policy-ui
-              test-side-by-side-pages-ui
-              test-security-cases-detections-ui
-              test-database-pages-ui
+              test-vmware-pages-ui
+              test-traces-ai-ui
+              test-llm-provider-test-ui
+              test-dashboard-table-thresholds-ui
+              test-openshift-pages-ui
+              test-archivable-values-ui
+              test-suite-helpers-ui
               test-storage-array-pages-ui
-          # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
-          # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
-          # Discovery from group 3, Status Page Theme from group 1 and Calendar
-          # Feed from group 4. All Chromium. Postmortem Rules (about 2
-          # minutes) joined it at 15.3 to 20.5 minutes on 2026-10-19's runs,
-          # the lightest of the groups that hold several suites. Maintenance
-          # Calendar grew by 22 specs on 2026-10-20 (the calendar's own page,
-          # its external calendars and Calendar Settings): about 45 seconds
-          # more locally, 2 minutes 10 with its bundle, after Custom Roles
-          # (about 3 minutes) had left for group 7 the same day. Model Tables
-          # left for group 3 on 2026-10-21, when this group took 21.9 minutes
-          # and its card header specs would have taken it past 22. Global
-          # Runners (about 2 minutes, Chromium only) moved here from group 3
-          # later that day, when this group took 18.6: about 20.5. Status
-          # Page Theme grew by 30 tests on 2026-10-26 (a logo for the dark
-          # theme, the Dashboard's preview switching light and dark, the
-          # banner's words: about 1.2 minutes more locally), when this group's
-          # run step took 20.6 minutes on master's run of 03:08 that day, so
-          # Global Runners moved on to group 10: about 20.5.
-          # Detail Cards (2.7 minutes on 14.0.93's gate run) moved to group 13 on
-          # 2026-10-27, when that run took this group 22.0 minutes and #5249 grew
-          # Maintenance Calendar after: about 19.5.
-          # Security Hunts (Hunts.spec.ts on the Security Operations fixture,
-          # a suite of its own: 16 tests, about a minute locally with its
-          # bundle, Chromium only: the Hunts list, on a phone and empty, the
-          # Events toolbar's Hunts list and Save as Hunt, a hunt's page, its
-          # changed-search notice on a phone and in Persian, a failed run and
-          # Delete Hunt, and Add to Case from a hunt and from an event's
-          # panel) joined it on 2026-10-30 from group 11, where Security
-          # Operations is the longest suite, when this group ran about 18
-          # minutes: about 20.5.
-          # App Platforms (19 tests, 1.6 minutes locally with its bundle,
-          # Chromium only: the product the apps on managed app and container
-          # platforms moved to out of Cloud - its Overview's fleet strip and
-          # platforms, an environment's page and every tab of it under App
-          # Platforms' trail and side menu, All Environments, Archived and the
-          # rules, and the old Cloud addresses forwarding, at 1280 and 390
-          # pixels, dark, German and Persian) joined it on 2026-11-01, when
-          # master's two runs of 2026-10-31 that finished every group took
-          # this group 18.0 and 18.4 minutes, the steadiest of the light ones:
-          # about 20.5.
-          # Discovery (5.6) moved to group 16 on 2026-11-01, when both of
-          # 14.0.100's gate runs took this group 24.6 minutes: about 19.
-          # Kubernetes Pages (24 tests, 1.9 minutes locally plus its bundle,
-          # Chromium only: a cluster's Overview - what needs attention first,
-          # each a step to its page in its namespace - and the pages of a
-          # Deployment, a pod, a node, a StatefulSet, a DaemonSet, a CronJob
-          # and a Job, Turn on N alerts into Recommendations, the Deployments,
-          # Pods, StatefulSets, DaemonSets, Jobs and CronJobs lists, at 1280
-          # and 390 pixels, dark, German and Persian) joined it the same day,
-          # after Discovery left: about 21.5.
-          # Kubernetes Pages' Overview cards lined up with their titles (#6956,
-          # about 4 seconds locally): planned as 2.2, this group about 21.9.
-          # Status Page Theme's resource grid spec (#7238: 16 tests, about 50
-          # seconds locally with one worker, Chromium only - the public grid
-          # at 390, 768 and 1280 pixels in English, Arabic and Persian, and
-          # dark) planned it as 4.8, which would have taken this group to
-          # 22.7: Kubernetes Pages (2.2) moved to group 22 on 2026-11-12,
-          # this group about 20.5.
-          # The same spec's wide grid (five tests, about 25 seconds locally: a
-          # grid of six regions as a stack of tiles at 768 and 1280 pixels in
-          # English, Arabic and Persian) planned it as 5.2: about 20.9.
-          - group: 6
+              test-runbook-variables-ui
+              test-first-on-call-policy-ui
+          - group: 2
+            event_overview_shard: 2/3
             suites: >-
-              test-status-page-theme-ui
-              test-calendar-feed-ui
-              test-sign-in-options-ui
-              test-maintenance-calendar-ui
-              test-infrastructure-first-run-ui
-              test-postmortem-rules-ui
-              test-security-hunts-ui
-              test-app-platforms-ui
-          # The Profiler (about 2 minutes with its bundle: a laptop and a
-          # phone) and LLM Connect (about 2 minutes with its bundle: AI /
-          # LLM's Connect and Usage at desktop and phone width), both
-          # Chromium only. Both joined group 6 on 2026-10-20, when it already
-          # took 16 to 23 minutes and every other group 15 to 27: together
-          # they would have taken it to 27. Auto Remediation Rules (about two
-          # minutes with its bundle locally, Chromium only) joined them the
-          # same day: the lightest group by far. Custom Roles (about 3
-          # minutes with its bundle, Chromium only) moved here from group 6
-          # the same day too, when its Add a Role spec added about a minute
-          # to a group already at 16 to 23 minutes. Public Dashboard Theme
-          # (about five minutes with its bundle locally: a laptop and a
-          # phone, both Chromium) joined them on 2026-10-20 as well: about
-          # 14 minutes for the five, the group still the lightest. Dashboard
-          # Templates (about 2.5 minutes with its bundle locally: Create a
-          # dashboard beside Create a workflow, at a laptop's and a phone's
-          # width, both read in all 17 languages, Chromium only) joined them
-          # the same day: about 17 minutes for the six, still under the 22 the
-          # groups are kept to. External MCP Servers (about a minute with its
-          # bundle locally, Chromium only: Project Settings > AI > External
-          # MCP Servers and a server's page) joined them too: about 18.
-          # Resource Topology (about 1.5 minutes with its bundle locally:
-          # every resource's Topology page - a vCenter, a Kubernetes cluster,
-          # a host and six more - and the master Topology's links into them,
-          # at a laptop's and a phone's width, dark and German, Chromium
-          # only) joined them on 2026-10-21: about 20 for the eight. It moved
-          # on to group 9 the same day, when this group took 20 minutes
-          # without it on a slow runner.
-          # Archivable Values (about 1.5 minutes with its bundle locally,
-          # Chromium only: archiving a severity and a state on their settings
-          # pages, the dialogs while what uses a value is still read, and a
-          # create form that never offers an archived one, at a laptop's and a
-          # phone's width, light and dark) joined them on 2026-10-21: about 21
-          # on a slow runner. Custom Roles grew by 17 specs on 2026-10-23
-          # (custom roles on API keys: a key's page, Create API Key and a
-          # role's API keys, at 1280 and 390 pixels, dark): 4.1 minutes with
-          # its bundle locally, about 1.2 more. This group had taken 21.5
-          # minutes on master without them, so Archivable Values moved on to
-          # group 9 the same day: about 21 for the seven. Logs AI (1.7 minutes
-          # locally, about 2.5 with its bundle, Chromium only: Logs' AI tab -
-          # Insights, a finding's evidence, Fix with AI, Create Monitor, Open
-          # in Logs and Open in Traces, Activity with what each investigation
-          # found, and Settings - at 1280 and 390 pixels, light and dark)
-          # joined it beside Profiles on 2026-10-25, when this group took 14.0
-          # minutes on master's run of 2026-10-24 15:00, the lightest of the
-          # ten (group 2, where it was first placed, took 21.2): about 16.5.
-          # This group's run step took 23.3 minutes on master's run of 03:08
-          # on 2026-10-26, and Public Dashboard Theme grew by 5 tests that day
-          # (the page at a phone's width: about 20 seconds locally), so
-          # Dashboard Templates moved on to group 10: about 21.
-          # Logs AI and External MCP Servers moved to group 2 on 2026-10-26,
-          # when 14.0.93's gate run took this group 23.4 minutes: about 20.
-          # Dashboard Table Thresholds (1.6 minutes locally with its two
-          # bundles, Chromium only: a metric table's threshold colors inside
-          # OneUptime and on the public page - every cell by the shared rules,
-          # Colored text and Colored background, the settings and Save
-          # Changes - at 1280 and 390 pixels, dark, German and Persian) joined
-          # them on 2026-10-27, when this group's run step took 13.2 and 13.3
-          # minutes on master's last two runs, the lightest of the twelve:
-          # about 16.5.
-          # LLM Connect (2.1 minutes on 14.0.93's gate run) moved to group 13 the
-          # same day, when that run took this group 19.6 minutes: with Dashboard
-          # Table Thresholds (about 2 minutes on a runner), about 19.5 on that
-          # run's timings.
-          # The dashboard board's phone layout and the public dashboard's dark
-          # theme logo grew Public Dashboard Theme by 4 tests on 2026-10-31 (a
-          # dark theme logo on the dark page and following the device, at 1280
-          # and 390 pixels, and the phone's widgets in reading order with room
-          # for a chart's plot: about 20 seconds locally) and Dashboard Table
-          # Thresholds by 1 (a table's title keeps its line beside its search,
-          # at 1280 and 390: about 9 seconds): about 20.
-          # Meraki Traffic (3.0 minutes) from group 8 on 2026-11-01, when 14.0.100's
-          # first gate run took this group 20.3 and group 8 27.5: about 23.5.
-          # It moved on to group 3 when the second took this group 25.5:
-          # about 20.
-          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
-          # (each suite's median minutes,
-          # Tests/Ops/DashboardOfflineUiMinutes.json, which
-          # Tests/Ops/DashboardOfflineUiBudget holds every group to): this
-          # group's suites sum to 22.2 minutes on a runner of median speed.
-          # Dashboard Table Thresholds (2.2) moved to the new group 18: about
-          # 20.
-          # Cloud Recommendations (11 tests, 46 seconds locally with its bundle,
-          # Chromium only: a cloud account's recommended monitors grouped by
-          # type of resource, adding one to every resource of a type, what was
-          # made and dismissed, a viewer, a refused create, a resource's own
-          # Recommendations tab and the Scheduled Maintenance tab of a resource
-          # an event holds, at 1280 and 390 pixels, dark, German and Persian)
-          # joined it on 2026-11-06, the lightest group with no suite still
-          # growing: about 21.5.
-          - group: 7
-            suites: >-
-              test-profiles-ui
-              test-auto-remediation-rules-ui
-              test-custom-roles-ui
-              test-public-dashboard-theme-ui
-              test-cloud-recommendations-ui
-          # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
-          # dashboard's default time range and auto-refresh inside OneUptime
-          # and on its public page, at a laptop's width and, for what a phone
-          # changes, a phone's, Chromium only) would have taken group 7 to
-          # about 21.5 minutes on 2026-10-20, so it opened a group of its own,
-          # with room for the next suites. Dashboard Widget Sort (about a
-          # minute with its bundle locally: click-to-sort on the list and table
-          # widgets inside OneUptime and on the public page, at a laptop's and
-          # a phone's width, Chromium only) joined it the same day: about 4.5
-          # minutes for the two. Cloud Connect (Cloud > Connect: the clouds'
-          # tiles, a cloud connected from its tile with a test, the list's
-          # status and actions, at a laptop's and a phone's width, in the dark
-          # theme and in Japanese, Chromium only) joined them on 2026-10-21,
-          # the lightest group by far, and Host Collectors (about 2 minutes
-          # with its bundle locally: Add Host's one command and the host
-          # connecting, Collector Configs and their versions, a host's
-          # Collector page, at a laptop's and a phone's width, dark and
-          # German, Chromium only) the same day. VMware Host Page (about 1.5
-          # minutes with its bundle locally: an ESXi host's page inside its
-          # vCenter - its Overview, tabs and states, and the Recommendations
-          # it hands off to - at a laptop's, a tablet's and a phone's width,
-          # in dark mode and German, Chromium only) joined them the same day
-          # too. Security Operations, Code and Public Addresses (about 10
-          # minutes together, all Chromium) moved here from group 5 the same
-          # day, when it ran past the job's 30 minutes: about 20.5 minutes for
-          # the eight. Security Events Empty States (about 3 minutes, Chromium
-          # only) moved here from group 3 later that day, when this group took
-          # 15 to 17 minutes: about 20 for the nine. Code moved on to group 9
-          # when this group took 22.6 minutes on the next run: about 16 for
-          # the eight. Meraki Traffic (about 2.5 minutes with its bundle
-          # locally, Chromium only: Network > Traffic's Meraki side - Connect
-          # Meraki, the first read filling the page in, an organization's
-          # traffic, the Flows | Meraki switch, a refused and a revoked key and
-          # a large organization read in part - at 1280 and 390 pixels, dark
-          # and German) joined them on 2026-10-24: about 18.5 for the nine.
-          # Its UI review added a device's and a site's pages, each
-          # connection's one button, a stale connection, a member and the
-          # offer at a flows page's foot the same day (2.2 minutes for its 40
-          # tests locally, from 1.3): about 19.5 for the nine. It took 22.4
-          # minutes on master's run of 2026-10-24 10:57, so Traces AI went to
-          # group 1 instead. Security Operations moved on to a group of its
-          # own (11) on 2026-10-25, when this group took 26.1 and 26.7 minutes
-          # on master's runs of the day before: about 14 for the eight. New
-          # Version (about 1.7 minutes locally with its two builds, Chromium
-          # only: a deploy under an open tab - the notice, the next page loading
-          # the new version, a page whose code is gone updating into the same
-          # address, unsaved changes, offline, a server restarting, a part gone
-          # for good - at 1280 and 390 pixels, dark, German and Persian) joined
-          # them the same day, the lightest group: about 16. Resource
-          # Onboarding (about a minute locally with its bundle, Chromium only:
-          # the Add dialogs and first-run guides of the Kubernetes, IoT and
-          # Serverless lists, and the guides Create opens on the RUM,
-          # Databases and Queues lists, at 1440 and 390 pixels, dark and
-          # German) joined them on 2026-10-25: about 17. Shared UI (about 2
-          # minutes locally with its bundle, Chromium only: every button style
-          # pressable, locked and busy, a menu's own ⋯, a dialog's first focus
-          # once its form draws, the Duplicate, Reset and Delete cards on a
-          # phone and beside a side menu, open sections at their full height,
-          # the pills, stat tiles and chips, and a team's avatar on a dark
-          # card - at 1280 and 390 pixels, dark, German, Persian, Japanese and
-          # Chinese) joined them later that day: about 19.5. Docker Swarm
-          # Pages (1.7 minutes locally with its bundle, Chromium only: a
-          # swarm's Metrics tab and a task's Container ID on a phone, beside
-          # the side menu and at a laptop's width, and the Overview's name
-          # and agent version sign, dark and German) joined them on
-          # 2026-10-26, when this group's run step took 15.1 minutes on
-          # master's run of 03:08 that day, the lightest that holds several
-          # suites: about 17. Side by Side Pages (about a minute locally
-          # with its two bundles, Chromium only: two status pages and two
-          # public dashboards open in two tabs of one browser - each tab's
-          # refresh, links, Subscribe form and password its own, and another
-          # page's address opened in full) joined them the same day, still
-          # the lightest: about 18.
-          # Security Events Empty States (2.2 minutes) and Shared UI (2.5) moved
-          # to group 11, and New Version (1.4) to group 12, on 2026-10-26, when
-          # 14.0.93's gate run took this group 24.4 minutes before Side by Side
-          # Pages joined: about 19.5 with it. #5298's UI review (#5307) grew
-          # Docker Swarm Pages by twelve tests the same day (where names break,
-          # sparklines that line up and stay under the pointer, the hero's
-          # description and its Show more, its pills in German and for an agent
-          # that stopped reporting, right to left: 1.3 minutes locally for its
-          # 31 with the bundle): about 20. #5300 grew Cloud Connect by sixteen
-          # tests the same day (What to read for each cloud, the read's new
-          # changes, and Cloud > Accounts - the list, its empty state, an
-          # account's Overview in each status and its Resources - at 1280 and
-          # 390 pixels, dark and German: 3.1 minutes locally for its 54 with
-          # the bundle, from 2.7): about 20.5. Its UI review grew it by 22
-          # entries the same day, 14 of them run (the list's status, an
-          # account's four tiles and side-by-side counts, its Resources,
-          # Changes, Topology and Settings, and a cloud resource's Overview,
-          # Incidents, Alerts and Changes: about 55 seconds locally), so Side
-          # by Side Pages (about a minute) moved on to group 5: about 20.5.
-          # Security Events Empty States (2.1 minutes on 14.0.93's gate run) moved
-          # here from group 11 on 2026-10-27, when that run took this group 14.5
-          # minutes before Cloud Connect and Docker Swarm Pages grew: about 18.5.
-          # #5367 (the Cloud AI agent) grew Cloud Connect by 29 tests run on
-          # 2026-10-30 (an account's AI agent card, Let AI fix problems, its AI
-          # agent page, Logs and Feed, at 1280 and 390, dark, German and
-          # Persian, and its UI review's guide, Change and Refresh walks, some
-          # 15 seconds; master's run took 3.7 minutes for its 68): about 20.
-          # The dashboard board's phone layout grew Dashboard Time Range by 7
-          # tests on 2026-10-31 (the dashboard inside OneUptime at 1280, 1024
-          # and 768 beside the side menu and on a phone, editing on a phone,
-          # and a drag at 1024 that moves one row: about 40 seconds locally
-          # with its bundle): about 20.5.
-          # 14.0.100's first gate run (2026-11-01) took this group 27.5 of its
-          # 28 minutes (Cloud Connect 7.4, Time Range 5.0): Security Events
-          # Empty States (3.7) moved to group 14 and Meraki Traffic (3.0) to
-          # group 7. About 21.
-          # Cloud Connect gained a cloud resource's Security card on
-          # 2026-11-01 (2 tests on each of its two projects, about 22 seconds
-          # locally: its open case and week, opening Security Events on the
-          # name it answers on, a quiet week and no card without Security
-          # Events): still about 21.
-          # Permissions Per Tab (5 tests, 16 seconds locally with its bundle,
-          # Chromium only: the real Labels and Danger Zone pages of two
-          # projects in two tabs of one browser, the person Project Owner of
-          # one and Viewer of the other, each tab keeping its own role while
-          # the other's answers come back, one tab moving between projects,
-          # and the name every project's permission snapshot shared ignored)
-          # joined it on 2026-11-03, when master's run of 2026-11-02 23:47 took
-          # this group 13.7 minutes, the lightest of the sixteen (group 7,
-          # where it was first placed, took 22.2): about 14.5.
-          # Value Picker (3.4 to 3.6 minutes) joined it from group 14 on
-          # 2026-11-03. Master's run of 2026-11-02 23:47 had taken this group
-          # 13.7 minutes on a fast runner, but 14.0.102's first gate run took
-          # the same suites 22.7, 1.66 times as long suite for suite, and four
-          # pull request runs that day 14.3 to 21.4: about 18.5 with
-          # Permissions Per Tab, about 22 with Value Picker.
-          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
-          # (each suite's median minutes,
-          # Tests/Ops/DashboardOfflineUiMinutes.json, which
-          # Tests/Ops/DashboardOfflineUiBudget holds every group to): this
-          # group's suites sum to 22.0 minutes on a runner of median speed (22.8
-          # on its slowest run before Value Picker joined it). Value Picker
-          # (3.5) moved on to the new group 18: about 18.5.
-          # Container Host Pages (25 tests, 1.6 minutes locally with its
-          # bundle, Chromium only: a Docker and a Podman host's Overview - its
-          # health and what needs attention by the containers' rules - its
-          # Containers list and a container's page, at 1280, 1024, 768 and 390
-          # pixels, dark, German and Persian) joined it on 2026-11-03, beside
-          # Docker Swarm Pages: 20.1. Cloud Connect grew by 8 tests on
-          # 2026-11-04 (a cloud account and a cloud resource in German and
-          # Persian, at a laptop's and a phone's width; about 0.8 minutes):
-          # 20.9. With the Cloud agent follow-ups' tests (#5704, 7.8 minutes
-          # for the suite on its own) the suite is about 8.6 and the group
-          # 22.1, so Permissions Per Tab (0.5) moved to group 12 the same
-          # day: 21.6. Streaming an AWS account's metrics and logs added 11
-          # tests to Cloud Connect the same day (about 0.7 minutes: the suite
-          # 9.3, the group 22.3), so Resource Onboarding (0.6) moved to group
-          # 16: 21.7.
-          # A cloud resource's Logs page with a stream's rows added 8 tests to
-          # Cloud Connect on 2026-11-06 (14 runs on its desktop and phone: a
-          # database's and a stopped function's Logs, a row's attributes, the
-          # empty list before and while the account streams, 1024 and 768
-          # beside the side menu, dark German and Persian; about 0.6 minutes
-          # on a runner), and the Cloud AI agent's own key 3 more the same day
-          # (5 runs, about 0.3): the suite 10.2, the group 22.6, so Public
-          # Addresses (1.2, Chromium only) moved to group 12: 21.4.
-          # Streaming an Azure subscription and a Google Cloud project added
-          # 12 tests to Cloud Connect the same day (23 runs on its desktop and
-          # phone: both dialogs, the list with every cloud streaming, Stop
-          # streaming for each, the Logs tabs, dark German and Persian; about
-          # 1.9 minutes on a runner): the suite 12.1, the group 23.3, so Host
-          # Collectors (1.2) moved to group 3 and VMware Host Page (1.4) to
-          # group 14: 20.7. Azure's write identity added 1 test the same day
-          # (a desktop's only, about 0.1): the suite 12.2, the group 20.8.
-          # What Azure published about its health, in German and in Persian,
-          # added 1 test to Cloud Connect the same day (4 runs on its desktop
-          # and phone, about 4 seconds each locally; about 0.3 minutes on a
-          # runner): the suite 12.5, the group 21.1.
-          # Leaving a board being edited (#7173) added 2 tests to Dashboard
-          # Widget Sort on 2026-11-12 (a desktop's only: the side menu, Back
-          # and a reload asking while a new widget is unsaved, nothing asking
-          # when nothing changed or once it is saved; about 13 seconds
-          # locally, about 0.3 minutes on a runner): the suite 1.4, the
-          # group 21.4.
-          - group: 8
-            suites: >-
+              test-event-overview-ui
+              test-security-events-empty-states-ui
+              test-journeys-ui
+              test-resource-overviews-ui
               test-dashboard-time-range-ui
               test-dashboard-widget-sort-ui
-              test-cloud-connect-ui
-              test-docker-swarm-pages-ui
+              test-list-delete-ui
+              test-product-onboarding-ui
+              test-host-collectors-ui
+              test-resource-onboarding-ui
+              test-give-feedback-ui
+          - group: 3
+            event_overview_shard: 3/3
+            suites: >-
+              test-event-overview-ui
+              test-topology-ui
+              test-kubernetes-events-ui
+              test-logs-ai-ui
+              test-event-notes-ui
+              test-trace-detail-ui
+              test-accounts-theme-ui
+              test-custom-roles-ui
+              test-push-registration-ui
+              test-label-rule-transfer-ui
+              test-pencil-button-ui
+          - group: 4
+            openstack_pages_shard: 1/3
+            suites: >-
+              test-openstack-pages-ui
+              test-ask-ai-ui
+              test-meraki-traffic-ui
+              test-navigation-search-ui
+              test-slo-burn-rate-ui
+              test-proxmox-pages-ui
+              test-bulk-actions-ui
+              test-postmortems-ui
+              test-alerts-ui
+              test-acknowledgement-timeout-ui
+          - group: 5
+            openstack_pages_shard: 2/3
+            security_operations_shard: 1/2
+            suites: >-
+              test-security-operations-ui
+              test-openstack-pages-ui
+              test-status-page-theme-ui
+              test-home-overview-ui
+              test-exceptions-ai-ui
+              test-security-hunts-ui
+              test-runbook-triggers-ui
+              test-custom-field-files-ui
+              test-custom-field-options-ui
+          - group: 6
+            openstack_pages_shard: 3/3
+            suites: >-
+              test-openstack-pages-ui
+              test-app-platforms-ui
+              test-network-traffic-names-ui
+              test-episode-bulk-add-ui
+              test-host-pages-ui
+              test-calendar-feed-ui
+              test-ceph-pages-ui
+              test-detail-cards-ui
+              test-public-addresses-ui
+              test-snmp-walk-ui
+              test-database-pages-ui
+              test-ai-insights-ui
+              test-incoming-call-policies-ui
+              test-pagination-ui
+          - group: 7
+            security_operations_shard: 2/2
+            suites: >-
+              test-security-operations-ui
+              test-reading-direction-ui
+              test-diagrams-ui
+              test-resource-topology-ui
+              test-rules-menu-section-ui
+              test-ai-context-ui
+              test-owner-filters-ui
               test-container-host-pages-ui
-          # Added on 2026-10-21, when every group took 20 to 26 minutes on one
-          # run (groups 1 and 5 near 25) and Resource Topology would have
-          # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
-          # and a phone) from group 8, Model Tables (3.9) and Home Overview
-          # (2.2) from group 5, and Resource Topology (about 2) from group 7.
-          # All Chromium only: about 16 minutes for the four, with room for
-          # the next suites. Runbooks Menu (about 25 seconds locally, a minute
-          # with its bundle, Chromium only: the Runbooks side menu at 1280 and
-          # 390 pixels after AI Access went) joined them the same day: about
-          # 17 for the five. Postmortems (about 40 seconds locally, a minute
-          # and a half with its bundle, Chromium only: Incidents > Postmortems,
-          # an incident's Postmortem page and Postmortem Statuses, at a
-          # laptop's and a phone's width, dark and German) joined them on
-          # 2026-10-22: about 18.5 for the six. Acknowledgement Timeout (about
-          # 20 seconds locally with its bundle, Chromium only: an on-call
-          # policy's Escalation Rules page with the setting folded under More
-          # settings, its dialog and what a save sends, at 1280 and 390
-          # pixels, dark and German) joined them the same day: about 19.5 for
-          # the seven. Archivable Values (about 1.5 minutes with its bundle
-          # locally, Chromium only) moved here from group 7 on 2026-10-23,
-          # when the Custom Roles specs for API keys would have taken that
-          # group past 22: this group had taken 18.9 to 19.4, so about 21.5
-          # for the eight. Exceptions AI (2.4 minutes locally with its bundle,
-          # Chromium only: Exceptions' AI tab - Insights, a finding's evidence
-          # with the frames of your own code, Fix with AI saying which pull
-          # request it opens, View Exception Group, Open in Exceptions and
-          # Create Monitor, Logs and Settings - at 1280 and 390 pixels, light
-          # and dark) joined them on 2026-10-24, when this group's run step
-          # took 16.7 and 17.1 minutes on master's two runs that day, the most
-          # steady of the lightest: about 19.5.
-          # Code (13.0 minutes on 14.0.93's gate run, twice the 6.4 it took when
-          # it came here), Exceptions AI and Acknowledgement Timeout moved to
-          # group 12 on 2026-10-26, when this group ran past its run step's 28
-          # minutes with every suite passing; Kubernetes Events and Topology
-          # (2.8 minutes each) came from group 5: about 20.
-          # The second half of the Workflow Builder suite (the phone's: 188
-          # tests, 9.6 minutes locally on a busy machine; about 9 on a runner)
-          # joined it on 2026-10-27, the lightest group on 14.0.93's gate run
-          # (12.9 minutes), and Model Tables (4.7) moved on to group 4: about 17.
-          # Dashboard Playlists (3.6 minutes locally with its bundle, Chromium
-          # only: Dashboards > Playlists, a playlist's page and the player that
-          # rotates its dashboards on a screen - each for its time on a clock
-          # the test holds, the next one drawn ahead, Pause, Next and Previous
-          # by button and key, skipped dashboards, Create, Edit and Delete, a
-          # Viewer - at 1280, 1024, 768 and 390 pixels, dark, German, Japanese
-          # and Persian) joined them later that day: about 20.5.
-          # On 14.0.100's first gate run (2026-11-01) this group's step hit its
-          # 28 minutes in Topology, the last suite (Workflow Builder's half
-          # 11.3, Kubernetes Events 3.6, OpenShift Pages 2.8): OpenShift Pages
-          # and Topology (about 2.8 each) moved to group 15. About 22.5.
-          # Kubernetes Events (3.5) followed them when the second run took this
-          # group 24.0: about 20.5.
-          # Dashboard Playlists (4.2 to 4.4 minutes) came back from group 14 on
-          # 2026-11-03, when the last six runs (master's of 2026-11-02 23:47,
-          # 14.0.102's first gate run and four pull request runs that day) took
-          # this group's step 14.9 to 21.4 minutes, about 17.5: about 22.
-          # Home Overview (2.1 and 2.7 minutes on the last two runs) moved on to
-          # the new group 17 the same day: about 20.
-          # Cloud Spend (24 tests: Cloud's Overview, Costs, Savings, Budgets,
-          # an account's Costs, a resource's page and an account's Overview at
-          # 1280 and 390, dark, German and Persian; 3.5 minutes locally with
-          # CI=1, its bundle built) joined it the same day, when group 1, where
-          # it had been, gained Trace Detail on master: Postmortems (0.8) went
-          # to group 1 to make room. About 21.3.
-          # Cloud Spend grew to 34 tests on 2026-11-04 (a resource's
-          # right-sizing, its costs read at any hour of the UTC day, an unusual
-          # day on Costs): 4.9 minutes locally with CI=1, its bundle built.
-          # Archivable Values (1.8) moved on to group 16: about 21. Its UI
-          # review added two right-sizing states the same day (about 8
-          # seconds): 5.0, about 21.1.
+              test-cloud-recommendations-ui
+          - group: 8
+            workflow_builder_shard: 1/2
+            monitor_overview_shard: 2/2
+            suites: >-
+              test-workflow-builder-ui
+              test-monitor-overview-ui
+              test-dashboard-playlists-ui
+              test-data-security-ui
+              test-new-version-ui
+              test-asset-details-ui
+              test-kubernetes-pages-ui
+              test-network-first-run-ui
+              test-runbooks-menu-ui
+              test-infrastructure-first-run-ui
           - group: 9
             workflow_builder_shard: 2/2
             suites: >-
               test-workflow-builder-ui
-              test-resource-topology-ui
-              test-runbooks-menu-ui
               test-cloud-spend-ui
-              test-dashboard-playlists-ui
-          # Added on 2026-10-22 with the second half of Event Overview (about
-          # 13 minutes on a slow runner) and Navigation Search from group 2
-          # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner
-          # Filters (about 30 seconds locally, a minute with its bundle,
-          # Chromium only: On-Call > Schedules filtered by its owners at 1280
-          # and 390 pixels, dark and German) joined them the same day: about
-          # 19.5. Bulk Actions (about 1.3 minutes locally with its bundle,
-          # Chromium only: Enable and Disable on the Workflows and Monitors
-          # lists and Unsubscribe on a status page's subscribers, at 1280 and
-          # 390 pixels, dark and German; its Enterprise Licenses specs skip
-          # here, where ee/ is removed) joined them on 2026-10-23: about 21.
-          # Global Runners (about 2 minutes, Chromium only) from group 6 and
-          # Dashboard Templates (about 2.5 minutes with its bundle, Chromium
-          # only) from group 7 joined them on 2026-10-26, when this group's
-          # run step took 14.6 minutes on master's run of 03:08 that day, the
-          # lightest of the eleven: about 19.
-          # Global Runners (1.9 minutes) moved to group 12 on 2026-10-26, when
-          # 14.0.93's gate run took this group 22.6 minutes and master's run of
-          # 15:35 that day 26.5: about 20.5 to 24.5.
-          # Navigation Search (3.6 minutes on 14.0.93's gate run) and Bulk
-          # Actions (1.2) moved to group 13, and Owner Filters (0.9) to group 5,
-          # on 2026-10-27, when that run took this group 24.4 minutes: about 19.
-          # Timed again on 2026-10-28 as group 1 was: its half of Event
-          # Overview 12.9 and 16.5 minutes on 14.0.94's two gate runs,
-          # Dashboard Templates 2.1 and 2.6 - 15.0 and 19.1 in all, so
-          # nothing moved.
-          # Network Traffic Names (2.1 minutes locally with its bundle,
-          # Chromium only: names instead of bare addresses on Network >
-          # Traffic - the top lists, both views of the conversations, long
-          # names, the chips, the address card with Open host, Name this
-          # address and Edit in Settings, find by a name, the senders that
-          # are no device yet, and Network > Settings > Address Names - at
-          # 1280, 1024, 768 and 390 pixels, dark, German and Persian) joined
-          # them on 2026-10-28, the lightest group on App Test's run of 10:32
-          # that day (15.8 minutes): about 18.5 to 22.
-          # This half of Event Overview took about 12 more of its tests on
-          # 2026-10-30, when EventNumbers.spec.ts joined the suite in group
-          # 1's half: about half a minute more. Master's runs of 2026-10-29
-          # took this group 23.7 minutes (07:13) and 16.8 (12:26: its half of
-          # Event Overview 13.0, Dashboard Templates 2.0, Network Traffic
-          # Names 1.7), so Network Traffic Names moved on to group 14: about
-          # 15.5 to 22.
-          # Data Security (3.3 minutes locally with its bundle, 59 tests,
-          # Chromium only: the Overview's riskiest issues, a store's Timeline,
-          # an issue's Fix it from here - asked, run and on both timelines,
-          # with the connection's response off and for a Security Viewer - a
-          # Critical issue's case, alert and incident links, Settings > Scan
-          # Settings' incidents beside alerts, ten pages on a phone, dark,
-          # German and Persian; and its UI review's layout checks: every list
-          # beside the side menu with a busy project in German and Persian,
-          # the day chart's dates on a laptop and a phone, a new project,
-          # failed reads, owners, scans, dialogs and Compliance) moved here
-          # from group 14 on 2026-10-30, the day it reached that group from
-          # group 2. Master's run of 09:50 that day took this group 15.4
-          # minutes and group 14 21.6, and 3.3 minutes locally can be about
-          # 4.5 on a slow runner: about 20 here, where group 14 would have
-          # come to about 26 of its 28.
-          # 14.0.99's gate took this group 17.9 minutes on cut 1, 23.1 on cut 4
-          # and past its 28 on cut 5 (2026-11-01, run 41281804293), the same
-          # suites and tests each time: its half of Event Overview took 13.3,
-          # 17.4 and 21.3 minutes, on runners slower than the runs before. Data
-          # Security moved on to group 13: about 15 to 24.5.
-          # Dashboard Templates (2.5) moved on to group 20 on 2026-11-06, when
-          # #5715's follow-ups grew this half of Event Overview by about 0.3
-          # minutes (the impact's short numbers on the folded investigation,
-          # the marks after citation chips and record pills on phones in
-          # English, German and Persian, and the fixes of a member who may not
-          # act on them, with no buttons):
-          # 22.2 here, past the budget, to 19.7.
-          # This half of Event Overview took about 10 more of its tests on
-          # 2026-11-08, when EvaluationDetails.spec.ts joined the suite in
-          # group 1's half, and Postmortems (0.8) came from group 1 to make
-          # room there: about 21.1.
+              test-public-dashboard-theme-ui
+              test-code-editor-ui
+              test-shared-ui-ui
+              test-maintenance-calendar-ui
+              test-status-timeline-ui
+              test-color-picker-ui
+              test-postmortem-rules-ui
+              test-security-page-ui
           - group: 10
-            event_overview_shard: 2/2
-            suites: >-
-              test-event-overview-ui
-              test-postmortems-ui
-          # Security Operations on its own, Chromium only, from 2026-10-25. In
-          # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
-          # 03:08 that day, and the group took 26.1 and 26.7 minutes on the
-          # runs of the day before, against the 28 minutes the run step has.
-          # The same day #5243 gave a security case its own pages and grew the
-          # suite to 115 tests (about 13 minutes locally), with the case
-          # actions, the Security Events pass and the SIEM and SOAR work still
-          # to add theirs: alone, about 15 minutes with the setup, it has room
-          # for them.
-          # AI Context (1.6 minutes) from group 5, and Security Events Empty
-          # States (2.2) and Shared UI (2.5) from group 8, joined it on
-          # 2026-10-26, when 14.0.93's gate run took this group 12.2 minutes:
-          # about 18.5, with room for Security Operations to grow.
-          # Reading Direction (1.3 minutes locally with its bundle, Chromium
-          # only: a Persian page laid out right to left and an English and a
-          # German one left to right - the switch, the status dot, a table's
-          # stuck Actions column, a dialog, a side panel, notes, chevrons,
-          # code and dates - at 1280 and 390 pixels, light and dark) joined
-          # them on 2026-10-26: about 20. Status Page Search (1.2 minutes
-          # locally with #5236's MaintenanceHistory.spec.ts and its UI
-          # review's checks, Chromium only: a laptop and a phone) moved here
-          # from group 3 on 2026-10-27, when that spec and Monitor Overview's
-          # maintenance tests would have taken group 3 past 22: about 21.
-          # Shared UI (2.5 minutes on 14.0.93's gate run) moved to group 5,
-          # Security Events Empty States (2.1) to group 8, and Status Page Search
-          # (1.2 with its new spec) and Reading Direction (about 1.8) to group 13,
-          # on 2026-10-27, when that run took this group 23.4 minutes before
-          # Reading Direction and Status Page Search joined: about 18, with room
-          # for Security Operations to grow.
-          # Security Operations gained a test on 2026-10-28 (about 16 seconds
-          # locally: the Overview's pipeline laid out by its own width, its
-          # cells' names whole in German and Dutch at four widths): about 18.5.
-          # It gained Watchlists.spec.ts on 2026-10-29 (13 tests, about 45
-          # seconds locally: the list and its common lists, Create Watchlist,
-          # a list's page, Add Value, Import Values, a list that follows a
-          # feed, the line under a rule's YAML, a phone, a new project, a
-          # Security Viewer, German and Persian): about 19.5. It gained
-          # Hunts.spec.ts on 2026-10-29 (13 tests, about 40 seconds locally:
-          # the Hunts list, on a phone and empty, the Events toolbar's Hunts
-          # list and Save as Hunt, a hunt's page and its header, a failed
-          # run and Delete Hunt, Persian, and Add to Case onto a case's
-          # Evidence): about 20. Hunts.spec.ts left it for a suite of its own,
-          # Security Hunts, in group 6 on 2026-10-30, when its UI review grew
-          # it to 16 tests and these groups ran 20 to 25 minutes: about 19.5.
-          # That day's master run took this group's step past its 28 minutes
-          # all the same: Security Operations alone took 26.5, its
-          # SecurityOperations.spec.ts 17.3 of them, on a runner slower than
-          # the runs before (this group had taken 19.9 to 27.5 minutes on
-          # them). Its five shorter specs - CaseWork, ConnectedSignals,
-          # EntityRisk, RuleExceptions and Watchlists, 7.8 minutes - left for
-          # a suite of their own, Security Cases and Detections, in group 5:
-          # about 20 at that run's pace.
-          # 14.0.98's gate run of 2026-10-30 (41063278179) took this group 15.1
-          # minutes (Security Operations 13.9) and group 5 25.5: Status
-          # Timeline (2.2 minutes there) and Runbook Triggers (1.7) joined it
-          # from group 5 the same day: about 19 at that pace, and about 24 at
-          # the pace of the run where Security Operations' long spec took 17.3.
-          # 14.0.100's first gate run (2026-11-01) took this group 25.7 minutes,
-          # Security Operations 19.9 of them: Status Timeline (2.3) and Runbook
-          # Triggers (1.8) moved to group 15. About 21.5.
-          # AI Context (1.7 and 1.8 minutes) moved to the new group 17 on
-          # 2026-11-03, when the last two runs (master's of 2026-11-02 23:47
-          # and 14.0.102's first gate run) took this group 23.2 and 23.0:
-          # about 21.5.
-          # Security Operations gained two tests on 2026-11-06 (#6025: the
-          # Russian case queue's titles and assignees whole at a 1280 and a
-          # 1216 laptop, about 6 seconds locally): 21.0.
-          # And one more the same day (#6158: a case's Story and Impact in
-          # German and in Persian, six pages, about 14 seconds locally): 21.3.
-          - group: 11
-            suites: >-
-              test-security-operations-ui
-          # Added on 2026-10-26, when group 9 ran past its run step's 28
-          # minutes on 14.0.93's gate run with every suite passing: Code had
-          # grown to 13.0 minutes (6.4 when it joined group 9). Code, with
-          # Exceptions AI (2.4) and Acknowledgement Timeout (0.5) from group
-          # 9, New Version (1.4) from group 8 and Global Runners (1.9) from
-          # group 10, all Chromium only: about 19. Resource Overviews (1.3
-          # minutes locally with its bundle, Chromium only: a service's, a
-          # database's and a queue's Overview - the Details card's ID line, the
-          # labels card on a phone only, long values, the description under
-          # the name and its Show more, and the hero's controls - at 1280,
-          # 1024, 768 and 390 pixels, dark, German and right to left) joined
-          # them the same day with #5298's UI review (#5307), rather than
-          # group 8, which its grown Docker Swarm Pages takes to about 20:
-          # about 20.5.
-          # Global Runners (2.2 minutes on 14.0.93's gate run) moved to group 13
-          # on 2026-10-27, when that run took this group 17.3 minutes before
-          # Resource Overviews joined: about 16.5, with room for Code to grow.
-          # Ask AI (2.5 minutes locally with its bundle, 37 tests, Chromium only: the
-          # dialog over the blurred page from every way in, its start, an
-          # answer written step by step, its sources and cards, an approval,
-          # the history and the way back to an answer still being written, at
-          # 1280, 768 and 390 pixels, light and dark, German and Persian, and
-          # with reduced motion) joined them the same day: about 19. Its UI
-          # review took it to 50 tests and 3.0 minutes (the marks, charts,
-          # tables and figures an answer carries, its menus, deleting a
-          # conversation, right to left): about 19.5.
-          # Resource Overviews grew on 2026-10-28 with a queue's Producers and
-          # Consumers and a database's Calling services as one shared table, at
-          # every width with busy and long names, in German and dark (2.4
-          # minutes locally with its bundle, from 1.3): about 20.5.
-          # Ask AI (3.4) moved to group 16 on 2026-11-01, when 14.0.100's second
-          # gate run took this group 25.9: about 20.
-          # Resource Overviews gained a service's Security card the same day
-          # (8 tests, about 36 seconds locally: the events read from its own
-          # logs and their findings, a quiet week, no card without Security
-          # Events, at 390, 768 and 1280 pixels, dark): about 20.5.
-          # On 2026-11-02 it gained a serverless function's Security card and
-          # Refresh for both cards (12 tests, about 40 seconds locally: the
-          # same card on the function's own Overview, at 390, 768 and 1280
-          # pixels, dark, German and Persian right to left; the whole suite
-          # took 3.6 minutes with its bundle on a loaded machine): about 21.
-          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
-          # (each suite's median minutes,
-          # Tests/Ops/DashboardOfflineUiMinutes.json, which
-          # Tests/Ops/DashboardOfflineUiBudget holds every group to): this
-          # group's suites sum to 23.9 minutes on a runner of median speed (25.1
-          # on its slowest run). Resource Overviews (4.6) moved to the new group
-          # 18: about 19.5. Permissions Per Tab (0.5, Chromium only) moved here
-          # from group 8 on 2026-11-04, when Cloud Connect's German and Persian
-          # tests and the Cloud agent follow-ups' together took that group
-          # past 22: 19.8. Public Addresses (1.2, Chromium only) moved here
-          # from group 8 on 2026-11-06, when Cloud Connect's streamed resource
-          # Logs took that group past 22: 21.0.
-          # Public Addresses gained a status page Overview's Showing now card
-          # on 2026-11-16 (#7438: open incidents by number and maintenance
-          # coming up, at 1280 and 390 pixels, light and dark, German and
-          # Persian - 3 tests, about 12 seconds locally): 1.8, about 21.6.
-          - group: 12
+            model_tables_shard: 1/2
             suites: >-
               test-code-ui
-              test-exceptions-ai-ui
-              test-acknowledgement-timeout-ui
-              test-new-version-ui
-              test-permissions-per-tab-ui
-              test-public-addresses-ui
-          # Added on 2026-10-27, when 14.0.93's gate run took groups 10, 11, 1, 6
-          # and 2 20.9 to 24.4 minutes and the Workflow Builder suite's halves
-          # filled groups 4 and 9: Navigation Search (3.6) and Bulk Actions (1.2)
-          # from group 10, Detail Cards (2.7) from group 6, Logs AI (2.0) and
-          # External MCP Servers (0.8) from group 2, LLM Connect (2.1) from group
-          # 7, Global Runners (2.2) from group 12, Asset Details (0.9) from group
-          # 1, and Status Page Search (1.2) and Reading Direction (about 1.8)
-          # from group 11, all Chromium only: about 18.5.
-          # Accounts Theme (1.7 minutes locally, about 2 with its bundle,
-          # Chromium only: the sign-in pages in the person's theme - drawn
-          # before the first paint, following the device and another tab, the
-          # public form kept light, every page, state and dialog in the dark
-          # theme with no light box and words at 4.5:1, the footer, halos and
-          # backup codes' action, at 1280 and 390 pixels, light and dark,
-          # German and Persian) joined them the same day, rather than group 7,
-          # which it would have taken to about 21.5: about 20.5.
-          # Data Security (3.3 minutes on 14.0.99's gate cut 4, 59 tests,
-          # Chromium only) joined them from group 10 on 2026-11-01, when cut 5
-          # took that group past its 28 minutes; cut 4 took this group 17.3:
-          # about 20.5.
-          # 14.0.100's first gate run (2026-11-01) took this group 24.1 minutes
-          # (Data Security 3.2 of them, before #5500 grew it to 71 walks, about
-          # 4.5): Navigation Search (3.6) moved to group 2. About 22.
-          # Asset Details gained a network device's Security card the same day
-          # (2 tests, about 11 seconds locally: its open case, week and risk
-          # at 1280 and 390 pixels, dark, a quiet week and no card without
-          # Security Events): still about 22.
-          # On 2026-11-02 it gained an Inventory item's own page with its
-          # Security card (4 tests, about 15 seconds locally: the case naming
-          # it, its week and risk, a quiet week, no card without Security
-          # Events, at 1280 and 390 pixels, dark and Persian right to left):
-          # still about 22.
-          # The same six runs (master's of 2026-11-02 23:47, 14.0.102's first
-          # gate run and four pull request runs that day) took this group's
-          # step 19.9 to 29.3 minutes, three of them 28.8 to 29.3: about 25.5.
-          # Global Runners (1.9 to 2.5 minutes, before #5583 added its Runners
-          # that take no AI code fixes) moved to group 4 and Asset Details (2.3
-          # to 3.0) to group 16 on 2026-11-03: about 20.5.
-          # Bulk Actions gained BulkRuns.spec.ts the same day (fu-bulk-actions:
-          # 10 tests, about 50 seconds locally - the Admin Users list's
-          # two-factor and Add to Project runs and a status page's Add in
-          # Bulk, watched while they go on): its 1.1 minutes planned as 1.8,
-          # this group's sum 22.0. Group 16 has the most room (18.9).
-          # Host Collectors (1.2) joined it from group 3 on 2026-11-08, when
-          # #5762 grew Meraki Traffic there; Reading Direction had left it
-          # for group 20 (17.6): about 18.8.
-          # Dashboard Templates (2.5) joined it from group 20 on 2026-11-10,
-          # the group with the most room, when the OpenStack pages went to
-          # thirds (see group 19): about 21.3.
-          # Logs AI gained its ingestion budget banner tests on 2026-11-12
-          # (#6486: 4 tests, about 25 seconds locally - the banner over a
-          # used-up Logs budget and none for an answer that is not a status,
-          # at 1280 and 390 pixels, light and dark), planned at 2.7: about
-          # 21.7.
-          - group: 13
-            suites: >-
-              test-logs-ai-ui
-              test-external-mcp-servers-ui
-              test-detail-cards-ui
-              test-llm-connect-ui
-              test-bulk-actions-ui
-              test-status-page-search-ui
-              test-accounts-theme-ui
-              test-data-security-ui
-              test-host-collectors-ui
-              test-dashboard-templates-ui
-          # Added on 2026-10-29, when group 3's run step reached its 28 minutes
-          # on two of master's runs (#5393 grew Monitor Overview from 209 tests
-          # to 222) and took 24.6 on the next, and groups 5 and 9 took 25.3 and
-          # 25.1 on that run (25.9 and 26.6 on others). From the minutes each
-          # suite took on that run: Value Picker (2.9) and List Delete (1.4)
-          # from group 3, which keeps about 20.3; Dashboard Playlists (3.7)
-          # from group 9, about 21.4; Shared UI (2.9), LLM Provider Test (2.6)
-          # and Episode Bulk Add (2.5) from group 5, about 17.3. This group:
-          # about 16.
-          # Master's run of 12:26 that day took this group 11.8 minutes, the
-          # lightest by far. On 2026-10-30, when EventNumbers.spec.ts grew
-          # both halves of Event Overview, Traces AI (1.9 minutes on that
-          # run, Chromium only) from group 1 and Network Traffic Names (1.7,
-          # Chromium only) from group 10 joined them: about 15.5.
-          # Data Security (59 tests, 3.3 minutes locally) joined them from
-          # group 2 on 2026-10-30 and moved on to group 10 the same day: this
-          # group had taken 21.6 minutes on master's run of 09:50 that day,
-          # about 26 with it on a slow runner. #5281's follow-ups added 2
-          # tests to Shared UI on 2026-10-30 (a secondary link's contrast,
-          # light and dark: about 6 seconds).
-          # Custom Field Files (28 tests, 1.5 minutes locally with its two
-          # bundles, Chromium only: an incident's File and Multiple files
-          # custom fields on its card and in its Edit dialog - uploads and
-          # their progress, Replace, Remove, a full field, refused kinds and
-          # sizes, the drop zone's click and key - and a public form's file
-          # questions sent with the answers, at 1280 and 390 pixels, dark,
-          # German and Persian) joined them on 2026-10-30, the lightest group:
-          # about 17.
-          # Proxmox Pages (20 tests, 1.9 minutes locally plus its bundle,
-          # Chromium only: a Proxmox VE cluster's Overview - what needs
-          # attention first, its nodes, its backups - and the pages of a node,
-          # a guest and a storage, Turn on N alerts into Recommendations, the
-          # Guests list, at 1280 and 390 pixels, dark, German and Persian)
-          # joined them on 2026-11-01: about 19.5.
-          # Security Events Empty States (3.7 minutes) from group 8 on
-          # 2026-11-01, when 14.0.100's first gate run took this group 19.1 and
-          # group 8 27.5: about 23. It moved on to group 3 when the second run's
-          # runner, 1.45 times slower here suite for suite, took this group's
-          # step past its 28 minutes: about 19.
-          # VMware Pages (33 tests, 3.6 minutes locally with its bundle,
-          # Chromium only: a vCenter's Overview - what needs attention first,
-          # each host's state - its lists, and the pages of an ESXi host, a
-          # VM, a datastore and a cluster, Turn on N alerts into
-          # Recommendations, the side menu, at 1280 and 390 pixels, dark,
-          # German and Persian) joined them on 2026-11-02, the lightest group:
-          # about 22.5.
-          # On 2026-11-03 this group's step had taken 31.2 and 32.2 minutes on
-          # the last two runs (master's of 2026-11-02 23:47, 41541694087, and
-          # 14.0.102's first gate run, 41531358316), suite for suite the same
-          # (VMware Pages 3.0 and 3.1, Proxmox Pages 3.0 and 3.2), and 22.5 to
-          # 27.5 on three pull request runs that day before VMware Pages joined
-          # it: about 30, where a group is planned at 22. Dashboard Playlists
-          # (4.2 to 4.4 minutes) moved to group 9 and Value Picker (3.4 to 3.6)
-          # to group 8: about 22.
-          # LLM Provider Test (2.6 and 2.7 minutes on the last two runs) moved
-          # on to the new group 17 the same day: about 19.5 to 21, with room
-          # for the resource pages' suites to grow.
-          # VMware Host Page (1.4) joined VMware Pages here from group 8 on
-          # 2026-11-06, when the Azure and Google Cloud streaming tests grew
-          # Cloud Connect: about 21.6.
-          # The host's Overview cards lined up with their titles (#6956, about
-          # 3 seconds locally): VMware Host Page planned as 1.5, this group
-          # about 21.7.
-          - group: 14
-            suites: >-
-              test-list-delete-ui
-              test-shared-ui-ui
-              test-episode-bulk-add-ui
-              test-traces-ai-ui
-              test-network-traffic-names-ui
-              test-custom-field-files-ui
-              test-proxmox-pages-ui
-              test-vmware-pages-ui
-              test-vmware-host-page-ui
-          # A group of its own since 2026-11-01, as no group had the room: the
-          # second half of Model Tables (88 tests, 6.9 minutes locally) and
-          # Metrics AI (3.0 on 14.0.100's first gate run) from group 4, whose
-          # step hit its 28 minutes there. Groups 1, 2, 3, 5 and 12 took 19.6
-          # to 23.2 minutes on that run: about 12. OpenShift Pages and Topology
-          # (about 2.8 each) from group 9, whose step hit its 28 on that run
-          # too: about 17.5. Status Timeline (2.3) and Runbook Triggers (1.8)
-          # from group 11, which took 25.7: about 21.5. The second run took it
-          # 15.5: Kubernetes Events (3.5) from group 9: about 19.
-          # Host Pages (19 tests, 1.4 minutes locally plus its bundle,
-          # Chromium only: the Hosts list - which hosts need attention first,
-          # each host's health and readings - and a host's Overview, Turn on
-          # N alerts into Recommendations, at 1280 and 390 pixels, dark,
-          # German and Persian) joined it on 2026-11-02: about 21.
-          # Status Timeline (2.3 minutes on both of the last two runs) moved to
-          # the new group 17 on 2026-11-03, when they took this group 24.0 and
-          # 24.1: about 21.5.
-          # Model Tables' second half grew to 98 tests on 2026-11-06 (#6025,
-          # see group 4: about 6.7 on a runner) and Metrics AI to 3.5 (a
-          # Prometheus metric's long name breaking after its underscores):
-          # this group 22.5. Host Pages (1.6) moved to group 20: about 20.9.
-          # The Overview's OpenShift card and quick links lined up with their
-          # titles, healthy and with a failing update (#6956, about 5 seconds
-          # locally): OpenShift Pages planned as 2.9, this group about 21.0.
-          - group: 15
-            model_tables_shard: 2/2
-            suites: >-
+              test-cloud-connect-ui
               test-model-tables-ui
               test-metrics-ai-ui
-              test-openshift-pages-ui
-              test-topology-ui
-              test-runbook-triggers-ui
-              test-kubernetes-events-ui
-          # Added on 2026-11-01, when 14.0.100's second gate run, on runners up
-          # to 1.45 times slower, took groups 2, 3 and 14 past their run step's
-          # 28 minutes and groups 6, 7, 9, 12 and 13 to 24 to 26: Monitor
-          # Overview's second half (124 tests, about 7 minutes) from group 3,
-          # Navigation Search (3.6) from group 2, Discovery (5.6) from group 6
-          # and Ask AI (3.4) from group 12: about 19.5.
-          # MonitorSecurityCard.spec.ts joined Monitor Overview the same day
-          # (11 tests, 52 seconds locally, about half of them in this half; see
-          # group 3): about 20.
-          # Asset Details (2.3 to 3.0 minutes) joined it from group 13 on
-          # 2026-11-03, when the last six runs (master's of 2026-11-02 23:47,
-          # 14.0.102's first gate run and four pull request runs that day) took
-          # this group's step 17.2 to 23.2 minutes, about 20: about 22.5.
-          # Measured on 2026-11-03 over App Test's six finished runs of 11-02
-          # (each suite's median minutes,
-          # Tests/Ops/DashboardOfflineUiMinutes.json, which
-          # Tests/Ops/DashboardOfflineUiBudget holds every group to): this
-          # group's suites sum to 25.0 minutes on a runner of median speed with
-          # Asset Details, before Suite Helpers (about 0.5). Ask AI (3.4) and
-          # Asset Details (2.6) moved to the new group 18: about 19.5 with Suite
-          # Helpers.
-          # Suite Helpers (16 tests on pages the spec writes, no fixture server,
-          # about 20 seconds locally in Chromium and Firefox: the shared page
-          # fit and box helpers held to their jobs) joined it on 2026-11-02:
-          # about half a minute. Resource Onboarding (0.6) joined it from
-          # group 8 on 2026-11-04, when Cloud Connect's streaming tests took
-          # that group past 22: 20.1.
-          # Archivable Values (1.8) came from group 9 the same day, when Cloud
-          # Spend grew there: about 21.9.
-          # ResponseContentSettings.spec.ts joined Monitor Overview on
-          # 2026-11-08 (8 tests, 0.5 minutes locally: a monitor's Settings
-          # page and its Response content card, about half of them in each
-          # half), which took this group to 22.1: Archivable Values (1.8)
-          # moved on to group 19, the group with the most room: about 20.3.
-          # DiscoveredDevices.spec.ts joined Discovery on 2026-11-09 with
-          # #5775's tests (8 tests, about a minute locally: the Discovered
-          # Devices list, its search, Add to monitoring, Hide from map and Show
-          # on map, 320 devices selected at once, a phone, and the list at four
-          # widths, dark, German and Persian), which took Discovery from 5.5 to
-          # about 6.6 and this group to about 21.4.
-          # Six tests of how a card's body lines up with its title (#6956: a
-          # ruled table, a body bled to the card's edges, centred states,
-          # bulleted lists), in Chromium and Firefox, about 4 seconds locally:
-          # Suite Helpers planned as 0.6, this group about 21.7.
-          # Monitor Overview's second half planned as 10.2 on 2026-11-12, with
-          # #7205's tests (see group 3), which would have taken this group to
-          # 22.6: Navigation Search (4.6) moved to group 20, and Label Rule
-          # Transfer (0.7) came from group 3: about 18.7.
-          # Ceph Pages (2.0) joined it from group 17 the same day, when Setup
-          # health (#6812) grew Home Overview there: about 20.7.
-          - group: 16
-            monitor_overview_shard: 2/2
-            suites: >-
-              test-monitor-overview-ui
-              test-discovery-ui
-              test-suite-helpers-ui
-              test-resource-onboarding-ui
-              test-label-rule-transfer-ui
-              test-ceph-pages-ui
-          # Added on 2026-11-03, when the sixteen groups' run steps added up to
-          # 367.1 and 364.4 minutes on the last two runs with these suites
-          # (master's of 2026-11-02 23:47, 41541694087, and 14.0.102's first
-          # gate run, 41531358316): past the 352 of sixteen groups at 22 on
-          # both, with groups 1, 3, 5, 9, 11, 14 and 15 at about 23 to 24.5
-          # over the two. SNMP Walk (1.9 minutes) from group 1, Rules Menu
-          # Section (3.0 and 3.1) from group 3, SLO Burn Rate (1.7 and 1.8) and
-          # Dashboard Value Widget (1.5 and 1.7) from group 5, Home Overview
-          # (2.1 and 2.7) from group 9, AI Context (1.7 and 1.8) from group 11,
-          # LLM Provider Test (2.6 and 2.7) from group 14 and Status Timeline
-          # (2.3) from group 15: about 17.5, with room for the next suites.
-          # Ceph Pages (23 tests, 2.0 minutes locally with its bundle,
-          # Chromium only: a Ceph cluster's Overview - its health and what
-          # needs attention by the cluster's rules - its OSDs, Pools and
-          # Daemons lists and an OSD's and a pool's page) and Storage Array
-          # Pages (18 tests, 1.4: a FlashArray's Overview by the array's
-          # rules, its Hosts, Replication and Hardware lists, a FlashBlade's
-          # File Systems and a host's, a file system's and a volume's page),
-          # each at 1280, 1024, 768 and 390 pixels, dark, German and Persian,
-          # joined it on 2026-11-03, the lightest group (16.5): 19.9.
-          # Multi-Device SNMP Walk (13 tests, 1.7 minutes locally with its
-          # bundle, Chromium only: the Network's SNMP Walk page walking seven
-          # routers at once, the OIDs compared, Collect on every device that
-          # answers, the CSV, the walk read back, at 1280 and 390 pixels, dark
-          # and German) joined it beside SNMP Walk on 2026-11-03: 21.6.
-          # SLO Burn Rate grew by the SLO list's Add recommended rules (3
-          # tests, about 0.2 minutes locally: the confirmation, the add and a
-          # second run, and a phone's width) on 2026-11-08: 1.9, so 21.8.
-          # It grew again by the deploy gate (2 tests, about 0.1 minutes
-          # locally: an SLO whose tier freezes deployments, its Overview's
-          # "Deployments frozen since" badge at 1280 and 390 pixels, and an
-          # SLO in a tier that freezes nothing, with no badge) on 2026-11-09:
-          # 2.0, so 21.9.
-          # Home Overview grew by How OneUptime works (8 tests, about a minute
-          # locally: Help's ways to learn, the dialog from Help and from Home,
-          # a word's definition on hover, from the keyboard and on a phone,
-          # dark, German and Persian) on 2026-11-11: 3.0. Storage Array Pages
-          # (1.4) moved to group 5 to make the room: 21.5.
-          # Home's cards lined up with their titles and a category tab's focus
-          # ring (#6956, about 3 seconds locally): Home Overview planned as
-          # 3.1, this group about 21.6.
-          # Setup health (#6812: Needs attention's Setup line, and the Setup
-          # Health page at 1280 and 390 pixels, dark, German and Persian, and
-          # with nothing to fix; 7 tests, about 48 seconds locally on a busy
-          # machine): Home Overview planned as 3.9, past the line, so Ceph
-          # Pages (2.0) moved to group 16, the group with the most room but
-          # 22's (kept for the journeys): this group about 20.4.
-          # Recording the setup pages (#6834: a self-hosted Home loads and sends
-          # nothing for it, and on Cloud a consenting person loads the recorder;
-          # 3 tests, about 22 seconds locally on a busy machine): Home Overview
-          # planned as 4.2, this group about 20.7.
-          - group: 17
-            suites: >-
-              test-snmp-walk-ui
+              test-profiles-ui
+              test-status-page-search-ui
+              test-packet-capture-ui
               test-multi-device-snmp-walk-ui
-              test-rules-menu-section-ui
-              test-slo-burn-rate-ui
-              test-dashboard-value-widget-ui
-              test-home-overview-ui
-              test-ai-context-ui
-              test-llm-provider-test-ui
-              test-status-timeline-ui
-          # Added on 2026-11-03. Timed over App Test's six finished runs of
-          # 11-02 (each suite's median minutes in its group's job,
-          # Tests/Ops/DashboardOfflineUiMinutes.json), the seventeen groups
-          # summed to 16.5 to 25.0 minutes on a runner of median speed: group 2
-          # 25.0, group 16 25.0, group 12 23.9 and group 7 22.2, past the 22 a
-          # group is planned at (runners up to 1.45 times slower, a run step of
-          # 35), which Tests/Ops/DashboardOfflineUiBudget now holds every group
-          # to. Diagrams (4.6) from group 2, Resource Overviews (4.6) from group
-          # 12, Ask AI (3.4) and Asset Details (2.6) from group 16, Dashboard
-          # Table Thresholds (2.2) from group 7 and Value Picker (3.5) from
-          # group 8, at the planned line itself: about 21. Ask AI (4.5) moved to
-          # group 22 on 2026-11-12, when its setup plans (#6829) took it past
-          # this group's room: about 17.7.
-          # Give Feedback (#8893: the dialog from Help over a Dashboard page -
-          # what is sent and to whom on a self-hosted server and on Cloud, what
-          # it says once sent, where it starts, each kind's name on one line at
-          # 1280 and 390 pixels, a long address on a phone, dark, German and
-          # Persian; 9 tests, 26 seconds locally with its bundle, planned as
-          # 0.5, Chromium only) joined it on 2026-11-16, the group with the
-          # most room: about 18.2.
-          # Owner Filters (1.2, Chromium only) came from group 5 the same day,
-          # when a schedule's own Overview and its Used by card (#7438: the
-          # policies that page it and their escalation rules, at 1280 and 390
-          # pixels, light and dark, German and Persian - 4 tests, about 10
-          # seconds locally) took group 5 past its 22: about 19.4.
-          - group: 18
+              test-external-mcp-servers-ui
+              test-permissions-per-tab-ui
+          - group: 11
             suites: >-
-              test-diagrams-ui
-              test-resource-overviews-ui
-              test-asset-details-ui
-              test-dashboard-table-thresholds-ui
+              test-chart-time-zoom-ui
+              test-discovery-ui
+              test-auto-remediation-rules-ui
+              test-llm-connect-ui
+              test-dashboard-templates-ui
+              test-docker-swarm-pages-ui
+              test-owners-on-create-ui
+              test-runbook-steps-ui
+              test-test-page-ui
+          - group: 12
+            model_tables_shard: 2/2
+            monitor_overview_shard: 1/2
+            suites: >-
+              test-security-cases-detections-ui
+              test-monitor-overview-ui
+              test-model-tables-ui
               test-value-picker-ui
-              test-give-feedback-ui
-              test-owner-filters-ui
-          # Added on 2026-11-04 for an OpenStack cloud's pages: its Overview, its
-          # lists and the pages of its parts, on what real clouds' exporters
-          # answered, read through the real snapshot scan, at 1280, 1024, 768 and
-          # 390 pixels, dark, German and Persian. Two groups of their own, because
-          # the product's pages are still joining it and it outgrew one on
-          # 2026-11-05: no group had the room for it.
-          # AI Insights (1.1 minutes locally with its bundle, Chromium only:
-          # the incidents' and the alerts' AI Insights pages - the Fixes
-          # section's bar, its verification line and where fixes were approved
-          # - at 1280 and 390 pixels, light and dark, German and Persian, with
-          # nothing investigated, fixes hidden, Enable AI off and a read that
-          # fails) joined the first OpenStack half on 2026-11-06, the group
-          # with the most room: about 12.8.
-          # Global Runners (2.2) joined this one from group 4 on 2026-11-06,
-          # when Model Tables grew there (#6025): about 15.0 with AI Insights.
-          # Archivable Values (1.8, Chromium only) came from group 16 on
-          # 2026-11-08, when Monitor Overview's second half grew there: about
-          # 16.9.
-          # Product Onboarding (15 tests, 0.6 minutes locally with its bundle,
-          # Chromium only: a new project's Monitors and Status Pages
-          # explaining their product under the empty table - its steps, its
-          # example, its documentation and the list's own first button - a
-          # read-only member's and a failed count's lists, How it works beside
-          # the title once there is one, Data Observability's Overview with no
-          # database, at 1440, 1024, 768 and 390 pixels, German and Persian
-          # dark, and every product's explanation as its dialog draws it, in
-          # English at 1280 pixels and on a phone in German and in Persian
-          # dark) joined it on 2026-11-09, the group with the most room:
-          # about 17.6.
-          # The OpenStack pages run in thirds since 2026-11-10. Their halves
-          # were planned at 11.6 minutes each from the 341 tests the suite had
-          # when it was split, early on 2026-11-05; the pages merged later
-          # that day (Checks, Capacity, Spend, bare metal, Heat and Magnum,
-          # Octavia, Swift, Trove, Manila, Designate, Gnocchi, the service
-          # logs, the AI pages, Status Pages and more) made it 585 tests, 586
-          # since 2026-11-06, and its minutes were not measured again. On App
-          # Test's runs since 2026-11-06 22:08 the first half took 24.4
-          # minutes at the median (37 runs, 18.1 to 29.1) and the second 26.2
-          # (35 runs, 20.5 to 33.8): this group summed to 30.4 and group 20 to
-          # 35.6, whose run step hit its 35 minutes on 18 of its 36 runs in
-          # that time, this group's on 3 of 38. The suite grew; its tests did
-          # not slow (the same tests took a little longer at the median on
-          # 2026-11-05 and 11-06). Its tests' median minutes over those 72
-          # runs, and the 0.2 a run takes to start, plan the thirds at 17.1
-          # minutes (196 tests: Checks to Instance Usage), 16.0 (195: on to
-          # Projects and Topology) and 17.8 (195: on to Traces). The first
-          # stays here, and Global Runners (2.2) moved to the new group 21.
-          # Product Onboarding, 27 tests now, is planned at the 1.1 minutes App
-          # Test measured on the two runs that reached it (0.97 and 1.20)
-          # rather than the 0.7 of a local run: about 21.3.
-          # Eight tests of OpenStack cards lining up with their titles (#6956,
-          # OpenStackPages/CardBodyFit.spec.ts, 55 seconds locally) made the
-          # suite 594 tests, 198 a third. Sorted first, they all run in this
-          # third, which hands its last six tests (Instance Usage, about 5
-          # seconds each) to the second, and the second its last three to the
-          # third: planned at 17.5, 16.3 and 18.1, this group about 21.7.
-          - group: 19
-            openstack_pages_shard: 1/3
-            suites: >-
-              test-openstack-pages-ui
-              test-ai-insights-ui
-              test-archivable-values-ui
-              test-product-onboarding-ui
-          # Dashboard Templates (2.5) from group 10 on 2026-11-06, the group with
-          # the most room, when Event Overview's second half grew past that
-          # group's budget: about 14.1.
-          # Host Pages (1.6) joined this one from group 15 the same day, when
-          # Model Tables' second half and Metrics AI grew there: about 15.7
-          # with Dashboard Templates.
-          # Reading Direction joined it from group 13, at the line (22.0), the
-          # same day, when fu-rtl-next gave it 13 tests (a calendar read right
-          # to left - its days' names in a narrow and a wide month and a
-          # phone's week, the current-time dot, the lines between days and the
-          # blocks' stripes - and a canvas's zoom buttons in three languages,
-          # about 40 seconds locally): its 4.4 minutes planned as 5.0, this
-          # group about 20.7 and group 13 about 17.6. Its UI review added 5
-          # more the same day (two blocks at once in a Persian and an English
-          # week, and a chart's time axis in three languages, about 18
-          # seconds locally): planned as 5.3, this group about 21.0.
-          # The second third of the OpenStack pages (16.0, see group 19) runs
-          # here since 2026-11-10, with Reading Direction. Dashboard Templates
-          # (2.5) moved to group 13, the group with the most room, and Host
-          # Pages (1.6) to the new group 21: about 21.3. Code in Arabic and
-          # Persian sentences (#6705) gave Reading Direction 12 more tests,
-          # its screenshots among them: planned as 5.9, this group about
-          # 21.9.
-          # Reading Direction (5.9) moved to group 22, the group with the most
-          # room, when this third grew to 16.3 (#6956, see group 19): about
-          # 16.3.
-          # Navigation Search (4.6) joined it from group 16 on 2026-11-12, when
-          # #7205's Monitor Overview tests took that group to 22.6 (see group
-          # 3): about 20.9.
-          - group: 20
-            openstack_pages_shard: 2/3
-            suites: >-
-              test-openstack-pages-ui
-              test-navigation-search-ui
-          # Added on 2026-11-10 for the last third of the OpenStack pages (195
-          # tests, 17.8 minutes, see group 19): no group had the room for it.
-          # Global Runners (2.2) from group 19 and Host Pages (1.6) from group
-          # 20 joined it: about 21.6. This third planned as 18.1 (#6956, see
-          # group 19): about 21.9.
-          - group: 21
-            openstack_pages_shard: 3/3
-            suites: >-
-              test-openstack-pages-ui
               test-global-runners-ui
-              test-host-pages-ui
-          # Added on 2026-11-11 for the journey budgets (#6831): the seven core
-          # jobs a newcomer comes to do, each done in the whole Dashboard or
-          # Admin Dashboard and counted against Tests/Ops/JourneyBudgets.json,
-          # and the counter's own tests (21 tests, 2.3 minutes locally with its
-          # two bundles). No group had the room: the most was group 4's 1.5.
-          # The rest of the group is room for the journeys the guided setups
-          # of #6802 add.
-          # Reading Direction (5.9) joined it from group 20 on 2026-11-12, when
-          # the OpenStack pages' second third grew (#6956, see group 19): about
-          # 8.2, the rest still room for those journeys.
-          # The website-down guided setup's run, kept and lost (#7059), joined
-          # the journeys the same day: Journeys/GuidedSetupRun.spec.ts, 3 tests
-          # that are not journeys (nothing counted), the third a long address
-          # at 390 pixels, 18 seconds locally (37 on a loaded machine) -
-          # test-journeys-ui planned as 2.9, this group about 8.8. Ask AI (4.5)
-          # joined it from group 18 the same day, with its setup plans (#6829):
-          # about 13.3.
-          # Kubernetes Pages (2.2, Chromium only) joined it from group 6 on
-          # 2026-11-12, when Status Page Theme's resource grid spec (#7238)
-          # would have taken that group to 22.7: about 15.5, the rest still
-          # room for the journeys.
-          # The status page setup's lost run (#7252) added 2 tests to the
-          # journeys, the second a long name at 390 pixels: 17 seconds locally
-          # (on a loaded machine) - test-journeys-ui planned as 3.2, this group
-          # about 16.0 (Ask AI is planned as 4.7 now).
-          # The monitors table in German and Persian (#7394) added 2 tests to
-          # Ask AI, three loads each at 1280, 390 and 360 pixels, light and
-          # dark: 25-27 seconds each locally (48 on a loaded machine) -
-          # test-ask-ai-ui planned as 5.6, this group about 16.9.
-          # Security Page (15 tests, 0.6 minutes locally with its bundle,
-          # Chromium only: User Profile > Security's Two-factor authentication
-          # and Passkeys pages in English, German, Arabic and Persian, a new
-          # account in Persian dark, the regenerate dialog in German and the
-          # Arabic page on a phone, #8796) joined it on 2026-11-16, the group
-          # with the most room: about 17.7.
-          - group: 22
-            suites: >-
-              test-journeys-ui
-              test-reading-direction-ui
-              test-ask-ai-ui
-              test-kubernetes-pages-ui
-              test-security-page-ui
+              test-vmware-host-page-ui
+              test-dashboard-value-widget-ui
+              test-sign-in-options-ui
+              test-side-by-side-pages-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

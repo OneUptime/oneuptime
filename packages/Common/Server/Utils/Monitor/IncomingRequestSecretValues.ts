@@ -38,10 +38,7 @@ export default class IncomingRequestSecretValues {
   // At most this many projects' values at once: the oldest go first.
   public static readonly MAX_PROJECTS: number = 1000;
 
-  private static kept: OldestKeyMap<string, KeptValues> = new OldestKeyMap<
-    string,
-    KeptValues
-  >();
+  private static kept: OldestKeyMap<string, KeptValues> = new OldestKeyMap();
 
   // The values of the policy's secrets: from this process, else Postgres.
   public static async getSigningSecrets(data: {

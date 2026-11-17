@@ -173,12 +173,13 @@ describe("one place for the choice", () => {
   /*
    * The status page columns a choice writes. Only the Access card writes
    * them (through the Common rule), and only these files name them: the
-   * copy module (what it reads) and the Private Users page (which reads
-   * them for its notice).
+   * copy module (what it reads) and the hook the Private Users, Single
+   * Sign-On and SCIM pages read who can see the page through, for their
+   * notices (useStatusPageAccess).
    */
   const ALLOWED: Array<string> = [
     "Components/StatusPage/StatusPageAccessCopy.ts",
-    "Pages/StatusPages/View/PrivateUser.tsx",
+    "Components/StatusPage/useStatusPageAccess.ts",
   ];
 
   const files: Array<string> = sourceFilesUnder(DASHBOARD_SRC);
@@ -233,9 +234,16 @@ describe("one place for the choice", () => {
     const privateUsers: string = readSource(
       dashboardFile("Pages", "StatusPages", "View", "PrivateUser.tsx"),
     );
+    const accessRead: string = readSource(
+      dashboardFile("Components", "StatusPage", "useStatusPageAccess.ts"),
+    );
 
+    expect(accessRead).toContain(
+      "getStatusPageAccess(getStatusPageAccessState(statusPage))",
+    );
+    expect(privateUsers).toContain("useStatusPageAccess(modelId)");
     expect(privateUsers).toContain(
-      "getStatusPageAccess(getStatusPageAccessState(statusPage)) === StatusPageAccess.Password",
+      "accessRead.access === StatusPageAccess.Password",
     );
     expect(privateUsers).toContain(
       "textOnRight={StatusPageAccessCopy.privateUsersPasswordNoticeAction}",
@@ -270,7 +278,8 @@ describe("the status page menu, breadcrumbs and links", () => {
 
     const security: string = menu.slice(
       menu.indexOf('<SideMenuSection title="Security">'),
-      menu.indexOf('<SideMenuSection title="AI">'),
+      // The AI section held MCP alone; MCP is in Advanced now (#9216).
+      menu.indexOf("getDeveloperSideMenuSection({"),
     );
 
     const titles: Array<string> = Array.from(
@@ -279,7 +288,13 @@ describe("the status page menu, breadcrumbs and links", () => {
       return match[1]!;
     });
 
-    expect(titles).toEqual(["Access", "Private Users", "SSO", "OIDC", "SCIM"]);
+    // SAML and OIDC are one Single Sign-On page, a tab each (#9130).
+    expect(titles).toEqual([
+      "Access",
+      "Private Users",
+      "Single Sign-On",
+      "SCIM",
+    ]);
     expect(security).toMatch(
       /title: "Access", to: RouteUtil\.populateRouteParams\( RouteMap\[ PageMap\.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS \] as Route,/,
     );
@@ -306,7 +321,7 @@ describe("the status page menu, breadcrumbs and links", () => {
     expect(mcp).not.toContain('"Authentication Settings"');
   });
 
-  test("the SSO page's Require SSO for Login is the switch, with no Edit dialog", () => {
+  test("the SSO page's Require SSO to Sign In is the switch, with no Edit dialog", () => {
     const sso: string = readSource(
       dashboardFile("Pages", "StatusPages", "View", "SSO.tsx"),
     );

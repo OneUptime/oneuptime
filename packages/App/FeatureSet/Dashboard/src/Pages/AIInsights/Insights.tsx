@@ -24,7 +24,9 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
@@ -623,7 +625,7 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
            * The whole page on a first run: tall on a laptop, not a screen
            * and a half of white on a phone.
            */
-          paddingClassName="py-20 md:pt-52 md:pb-52"
+          size={EmptyStateSize.Page}
           title={scope?.emptyTitle || "No insights yet"}
           description={
             scope?.emptyDescription ||
@@ -632,11 +634,9 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
           footer={
             /*
              * The page's one way on, drawn as a button: the OUTLINE style
-             * has no border, so it read as a line of text. The wrapper
-             * takes off the dialog-footer margin Button carries from md,
-             * which set it off centre.
+             * once had no border, so it read as a line of text.
              */
-            <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+            <div>
               <Button
                 title={scope ? "Go to AI Settings" : "Go to Insights Settings"}
                 icon={IconProp.Settings}

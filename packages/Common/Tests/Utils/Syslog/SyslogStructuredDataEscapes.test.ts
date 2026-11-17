@@ -277,7 +277,6 @@ describe("escapeSyslogStructuredDataValue", () => {
   // Seeded, so a failure names the value that broke it.
   it("is read back as the value it was, whatever the value", () => {
     const alphabet: string = 'ab "\\][=\n\t\u00e9\u4e2d\ud83d\ude00';
-    // The suites' seeded generator.
     const random: SeededRandom = seededRandom(9039);
 
     for (let round: number = 0; round < 500; round++) {
@@ -321,7 +320,6 @@ describe("time in line with the text", () => {
     ["names", `[a ${"[".repeat(200_000)}="1"]`],
     ["elements", '[a x="1"]'.repeat(30_000)],
   ])("%s", (_name: string, structuredData: string) => {
-    // The fastest of up to three attempts: one timing on a busy runner is noisy.
     const read: FastestRun<void> = fastestRun({
       run: (): void => {
         parse(line(structuredData));

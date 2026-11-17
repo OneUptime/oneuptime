@@ -269,7 +269,7 @@ As ferramentas de páginas de status públicas recebem o ID de uma página de st
 }
 ```
 
-Os proprietários de uma página de status podem desativar o acesso MCP para essa página: na página de status, abra **MCP** na seção **IA** do menu lateral dela e desative **Habilitar servidor MCP**. A chave é salva assim que é acionada. O acesso MCP vem ativado por padrão. Enquanto ele estiver desativado, as quatro ferramentas `get_public_status_page_*` retornam um erro para essa página de status; o site da página de status, o feed RSS dela e a API JSON pública dela não são afetados, e as ferramentas de página de status que exigem login (`get_status_page`, `list_status_pages` e assim por diante) continuam funcionando para o próprio projeto da página.
+Os proprietários de uma página de status podem desativar o acesso MCP para essa página: na página de status, abra **MCP** na seção **Avançado** do menu lateral dela e desative **Habilitar servidor MCP**. A chave é salva assim que é acionada. O acesso MCP vem ativado por padrão. Enquanto ele estiver desativado, as quatro ferramentas `get_public_status_page_*` retornam um erro para essa página de status; o site da página de status, o feed RSS dela e a API JSON pública dela não são afetados, e as ferramentas de página de status que exigem login (`get_status_page`, `list_status_pages` e assim por diante) continuam funcionando para o próprio projeto da página.
 
 ### Fazer login (OAuth 2.1)
 

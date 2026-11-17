@@ -77,7 +77,7 @@ En policys egen åsidosättning får överlappa en global för samma person: på
 ## Andra sätt att lägga till en
 
 - Från ett schema: fäll ut ett lager på schemats sida **Lager** och klicka på **Hoppa över till…** bredvid en person. Det öppnar samma formulär med personen borta och rotationen som täcker upp, som en global åsidosättning. Se [När någon är borta](/docs/on-call/schedules#när-någon-är-borta).
-- Från dina kommande pass: **Hitta ersättare** på ett av dina pass, under **Användarinställningar → Kalender → Kalenderflöde**, öppnar formuläret med dig som borta under passets tider, så att bara **Vem täcker upp?** återstår. Se [Kommande pass och ersättare](/docs/on-call/calendar-feeds#kommande-pass-och-ersättare).
+- Från dina kommande pass: **Hitta ersättare** på ett av dina pass, under **Användarinställningar → Profil och kalender → Kalenderflöde**, öppnar formuläret med dig som borta under passets tider, så att bara **Vem täcker upp?** återstår. Se [Kommande pass och ersättare](/docs/on-call/calendar-feeds#kommande-pass-och-ersättare).
 
 När någon lämnar projektet tas varje åsidosättning som nämner hen och inte har tagit slut än bort, på båda sidor.
 

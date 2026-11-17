@@ -64,7 +64,7 @@ La scheda **Reperibilità** riguarda voi, non gli elementi vostri:
 
 - **Inizi la reperibilità**, **Sei il prossimo in reperibilità** e **Termini la reperibilità** seguono i vostri turni nelle pianificazioni di reperibilità di cui fate parte.
 - **Aggiunto alla policy di reperibilità** e **Rimosso dalla policy di reperibilità** vi dicono quando una politica di reperibilità inizia o smette di nominarvi.
-- **Prima dell'inizio del mio turno di reperibilità** invia promemoria agli orari che scegliete in **Impostazioni utente → Calendario → Feed calendario**, e **Il mio prossimo turno di reperibilità viene riassegnato** vi dice quando qualcun altro copre un turno di cui avevate ricevuto il promemoria. Vedete [Feed calendario](/docs/on-call/calendar-feeds#promemoria-e-avvisi-di-riassegnazione).
+- **Prima dell'inizio del mio turno di reperibilità** invia promemoria agli orari che scegliete in **Impostazioni utente → Profilo e calendario → Feed calendario**, e **Il mio prossimo turno di reperibilità viene riassegnato** vi dice quando qualcun altro copre un turno di cui avevate ricevuto il promemoria. Vedete [Feed calendario](/docs/on-call/calendar-feeds#promemoria-e-avvisi-di-riassegnazione).
 - **Chiamata persa**, nel riquadro **Policy chiamate in entrata**, dice ai proprietari di una policy di chiamate in entrata che chi ha chiamato non ha raggiunto nessuno. Vedete [Politica chiamate in arrivo](/docs/on-call/incoming-call-policy#chiamate-perse).
 
 ## Casi di sicurezza

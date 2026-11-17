@@ -89,7 +89,11 @@ describe("the section on turning push off", () => {
       at,
     );
 
-    expect(entry).toContain('title: "Push Notifications"');
+    // Translated since #9218: the key, and the English the key reads.
+    expect(entry).toContain('title: t("sideMenu.settingsPushNotifications")');
+    expect(locale["sideMenu"]!["settingsPushNotifications"]).toBe(
+      "Push Notifications",
+    );
 
     expect(readAdminSource("Utils/RouteMap.ts")).toContain(
       "[PageMap.SETTINGS_PUSH_NOTIFICATIONS]: new Route(\n    `/admin/settings/push-notifications`,\n  ),",

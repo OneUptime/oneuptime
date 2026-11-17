@@ -16,7 +16,11 @@
  *     sandbox (a native addon) with the run's inputs as `args`, and a Bash
  *     step with the inputs in its environment, and reports each result;
  *   - its own server answers /status/live, and nothing in its log says a
- *     module could not be found.
+ *     module could not be found;
+ *   - the running Runner loaded only JavaScript: no TypeScript module, and
+ *     neither ts-node nor TypeScript's compiler (asked over its inspector,
+ *     on a free port, as the container shares the host's network:
+ *     Utils/LoadedModules.js).
  *
  * Needs Docker and the image. The Build workflow builds the Runner image on
  * every pull request and runs this suite against it with
@@ -27,7 +31,8 @@
  *
  * The container runs on the host's network (so it reaches the stand-in on
  * 127.0.0.1) with a free port of its own, and a name of its own, and is
- * removed afterwards.
+ * removed afterwards. OPS_RUNTIME_NAME_PREFIX (default oneuptime) starts its
+ * name, for a machine where others run Docker too.
  */
 
 const crypto = require("crypto");
@@ -38,8 +43,11 @@ const path = require("path");
 const yaml = require("js-yaml");
 const { spawnSync } = require("child_process");
 
+const LoadedModules = require("./Utils/LoadedModules");
+
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const RUN = process.env.RUN_RUNNER_IMAGE_RUNTIME_TESTS === "1";
+const NAME_PREFIX = process.env.OPS_RUNTIME_NAME_PREFIX || "oneuptime";
 // The tag the Build workflow builds the image under, and runs this suite with.
 const CI_IMAGE = "oneuptime-runner:ci";
 const IMAGE = process.env.RUNNER_IMAGE || CI_IMAGE;
@@ -197,7 +205,7 @@ function standInServer({ runnerId, runnerKey, jobs, isGlobalRunner = false }) {
 }
 
 describeRuntime("the Runner image", () => {
-  const containerName = `oneuptime-runner-runtime-${crypto.randomBytes(4).toString("hex")}`;
+  const containerName = `${NAME_PREFIX}-runner-runtime-${crypto.randomBytes(4).toString("hex")}`;
   const runnerId = crypto.randomUUID();
   const runnerKey = crypto.randomBytes(24).toString("hex");
   const inputs = { host: "db-1.internal", replicas: 3 };
@@ -229,6 +237,7 @@ describeRuntime("the Runner image", () => {
 
   let stand;
   let runnerPort;
+  let inspectorPort;
   let logs = "";
 
   beforeAll(async () => {
@@ -244,6 +253,8 @@ describeRuntime("the Runner image", () => {
       stand.server.listen(serverPort, "127.0.0.1", resolve);
     });
     runnerPort = await freePort();
+    // Where SIGUSR1 opens its inspector, which the host's network shares.
+    inspectorPort = await freePort();
 
     const started = docker([
       "run",
@@ -252,6 +263,9 @@ describeRuntime("the Runner image", () => {
       containerName,
       "--network",
       "host",
+      "-e",
+      // The image's own NODE_OPTIONS, and the inspector's port.
+      `NODE_OPTIONS=--use-openssl-ca --inspect-port=${inspectorPort}`,
       "-e",
       `ONEUPTIME_URL=http://127.0.0.1:${serverPort}`,
       "-e",
@@ -292,6 +306,27 @@ describeRuntime("the Runner image", () => {
         stand.server.close(resolve);
       });
     }
+  });
+
+  test("the running Runner loaded only JavaScript: no TypeScript, ts-node or TypeScript's compiler", () => {
+    const run = docker([
+      "exec",
+      "-e",
+      `LOADED_MODULES_PORT=${inspectorPort}`,
+      containerName,
+      "node",
+      "-e",
+      LoadedModules.CHECK_SCRIPT,
+    ]);
+    const { report, problem } = LoadedModules.parseReport(
+      `${run.stdout}${run.stderr}`,
+    );
+
+    expect({ problem }).toEqual({ problem: null });
+    // Every module of its import graph, so the check is not vacuous.
+    expect(report.modules).toBeGreaterThan(500);
+    expect(report.typeScript).toEqual([]);
+    expect(report.tooling).toEqual([]);
   });
 
   test("it registers with its id and key, and keeps heartbeating", () => {

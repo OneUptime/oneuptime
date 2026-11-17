@@ -1,6 +1,6 @@
 # Monitore und Monitor-Regeln
 
-Ein SLO misst die Verfügbarkeit der Monitore, die ihm zugeordnet sind. Ordnen Sie sie von Hand zu, lassen Sie Monitor-Regeln jeden passenden Monitor zuordnen, oder beides. Diese Seite behandelt die Seite **Monitore** eines SLO, unter **Konfiguration** in seinem Seitenmenü, und seine Seite **Monitor-Regeln**, unter **Regeln**.
+Ein SLO misst die Verfügbarkeit der Monitore, die ihm zugeordnet sind. Ordnen Sie sie von Hand zu, lassen Sie Monitor-Regeln jeden passenden Monitor zuordnen, oder beides. Diese Seite behandelt die Seite **Monitore** eines SLO, unter **Übersicht** in seinem Seitenmenü, und seine Seite **Monitor-Regeln**, unter **Regeln**.
 
 :::cards
 - [Monitore von Hand auswählen](#monitore-von-hand-zuordnen): Am besten für eine kleine, feste Auswahl.
@@ -46,7 +46,7 @@ Die Seite **Monitore** zeigt für jeden Monitor:
 
 | Spalte | Was sie zeigt |
 | --- | --- |
-| **Aktueller Status** | Den aktuellen Status des Monitors, oder **Archiviert**, **Deaktiviert**, **Sonden nicht aktiviert**, **Sonden getrennt** oder **Unbekannt**, wenn er nicht geprüft wird oder noch nichts gemeldet hat. |
+| **Aktueller Status** | Den aktuellen Status des Monitors, oder **Archiviert**, **Deaktiviert**, **Keine Sonde aktiviert**, **Sonden getrennt** oder **Unbekannt**, wenn er nicht geprüft wird oder noch nichts gemeldet hat. |
 | **Quelle** | **Regel**, wenn eine der Monitor-Regeln des SLO ihn zugeordnet hat, **Manuell**, wenn ihn jemand von Hand zugeordnet hat. |
 | **Beschriftungen** | Die Beschriftungen des Monitors. |
 

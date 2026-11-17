@@ -108,6 +108,7 @@ const JOB_FILE: string = "Jobs/Monitor/ClearStoredLogScreenshots";
 function summary(
   overrides: Partial<{
     rowsRead: number;
+    rowsTooBigToRead: number;
     rowsCleared: number;
     storedBytesCleared: number;
     failedRows: number;
@@ -119,6 +120,7 @@ function summary(
 ): Record<string, unknown> {
   return {
     rowsRead: 0,
+    rowsTooBigToRead: 0,
     rowsCleared: 0,
     storedBytesCleared: 0,
     failedRows: 0,
@@ -257,6 +259,25 @@ describe("Monitor:ClearStoredLogScreenshots - what it runs", () => {
 
     expect(String(mockedLogger.info.mock.calls[0]![0])).toContain(
       "1 row failed and is tried again next run",
+    );
+  });
+
+  test("a run that left logs too big to read says so, in the singular and the plural (#9253)", async () => {
+    mockRun.mockResolvedValue(summary({ rowsTooBigToRead: 1 }) as never);
+
+    await runJob();
+
+    expect(String(mockedLogger.info.mock.calls[0]![0])).toBe(
+      `Stored log screenshots: cleared the Synthetic monitor screenshots kept in 0 stored logs (0${NO_BREAK_SPACE}KB as stored); 1 log was too big to read and is left as it is.`,
+    );
+
+    mockedLogger.info.mockClear();
+    mockRun.mockResolvedValue(summary({ rowsTooBigToRead: 3 }) as never);
+
+    await runJob();
+
+    expect(String(mockedLogger.info.mock.calls[0]![0])).toContain(
+      "3 logs were too big to read and are left as they are",
     );
   });
 

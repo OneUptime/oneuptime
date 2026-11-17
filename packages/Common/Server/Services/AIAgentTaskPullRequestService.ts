@@ -1,12 +1,26 @@
 import FixProductionCheck from "../../Types/AI/FixProductionCheck";
 import FixProductionStatus from "../../Types/AI/FixProductionStatus";
 import ProjectReferencesService from "./ProjectReferencesService";
+import AIRunService from "./AIRunService";
 import Model from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
+import AIRun from "../../Models/DatabaseModels/AIRun";
 import BadDataException from "../../Types/Exception/BadDataException";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
+import ObjectID from "../../Types/ObjectID";
 import PullRequestState from "../../Types/CodeRepository/PullRequestState";
 import FixPullRequestCiStatus from "../../Types/AI/FixPullRequestCiStatus";
 import PositiveNumber from "../../Types/PositiveNumber";
+import CountBy from "../Types/Database/CountBy";
+import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import FindBy from "../Types/Database/FindBy";
+import { OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
+import AIRunOutputReadFilter, {
+  CARRIED_RECORD_COLUMNS,
+} from "../Utils/AI/AIRunOutputReadFilter";
+import { combineWithPrivacyClause } from "../Utils/PrivacyFilterUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export interface AIFixOutcomeStats {
@@ -74,9 +88,142 @@ const DECIDED_STATUSES: Array<FixProductionStatus> = [
   FixProductionStatus.Unverifiable,
 ];
 
+/*
+ * The key a pull request names the code-fix run that opened it by: it is
+ * read through that run (AIRunOutputReadFilter, #9165).
+ */
+export const PULL_REQUEST_AI_RUN_KEY: string = "aiRunId";
+
+export const PULL_REQUEST_AI_RUN_NOT_FOUND_MESSAGE: string =
+  "AI run not found (or you do not have access to it).";
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A PULL REQUEST IS READ THROUGH THE RUN THAT OPENED IT (#9165).
+   *
+   * Its title, its description and how it stands - its CI, what production
+   * showed - say what the run did. So it is read only by those who may read
+   * that run (AIRunOutputReadFilter): a CodeFix run is the project's, and
+   * one about a private incident or alert - the fix pull request of its
+   * investigation, the code a fix of its declares, a task that carries one -
+   * only for those who see that record; one about a record that is gone
+   * only for Project Owners and Project Admins. In a find, a count, a sort
+   * and a filter alike, and in an update and a delete, which reach only the
+   * pull requests their caller may read.
+   *
+   * A pull request OneUptime AI opened from a chat names no run
+   * (CodeWriteTools): it carries the chat's subject in keys of its own
+   * (#9186), read the same way - one opened from a private incident's or
+   * alert's AI conversation, or from Ask AI asked about one, only for those
+   * who see it - and one from a chat about neither is read as before.
+   * OneUptime's own reads - the Code pages' after their own check, the sync
+   * of a pull request's state - are made as OneUptime.
+   */
+  public static applyPrivacyFilters<T>(
+    query: T,
+    props: DatabaseCommonInteractionProps,
+  ): T {
+    return AIRunOutputReadFilter.applyToCarriedKeys({
+      query: AIRunOutputReadFilter.applyToRunKey({
+        query: query,
+        props: props,
+        modelType: Model,
+        column: PULL_REQUEST_AI_RUN_KEY,
+      }),
+      props: props,
+      modelType: Model,
+    });
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = Service.applyPrivacyFilters(findBy.query, findBy.props);
+
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = Service.applyPrivacyFilters(countBy.query, countBy.props);
+
+    return super.countBy(countBy);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    updateBy.query = Service.applyPrivacyFilters(
+      updateBy.query,
+      updateBy.props,
+    );
+
+    return { updateBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    deleteBy.query = Service.applyPrivacyFilters(
+      deleteBy.query,
+      deleteBy.props,
+    );
+
+    return { deleteBy, carryForward: null };
+  }
+
+  /*
+   * A person who records a pull request names only a run they may read: one
+   * about a private record they do not see is answered as one that does not
+   * exist. OneUptime's own records (a Runner's, a chat's) are not asked.
+   */
+  protected override async checkCreateBeforeReferences(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    const runId: ObjectID | undefined = createBy.data.aiRunId;
+
+    if (!runId || createBy.props.isRoot || createBy.props.isMasterAdmin) {
+      return;
+    }
+
+    const readable: FindWhereProperty<any> | undefined =
+      AIRunOutputReadFilter.getReadableRunsRaw(createBy.props);
+
+    const run: AIRun | null = await AIRunService.findOneBy({
+      query: {
+        _id: readable
+          ? combineWithPrivacyClause(runId.toString(), readable)
+          : runId.toString(),
+        ...(createBy.props.tenantId
+          ? { projectId: createBy.props.tenantId }
+          : {}),
+      } as never,
+      select: { _id: true },
+      props: { isRoot: true },
+    });
+
+    if (!run) {
+      throw new BadDataException(PULL_REQUEST_AI_RUN_NOT_FOUND_MESSAGE);
+    }
+  }
+
+  /*
+   * The read hook narrows by the run a pull request names, and by the
+   * records it carries. See DatabaseService.
+   */
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return [PULL_REQUEST_AI_RUN_KEY, ...CARRIED_RECORD_COLUMNS];
   }
 
   /*

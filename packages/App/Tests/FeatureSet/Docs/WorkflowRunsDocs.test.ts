@@ -12,10 +12,12 @@ import path from "path";
 /*
  * Workflow runs moved in the Dashboard: "Runs & Logs" - a row under
  * Workflows, and an Advanced entry in a workflow's own menu - became Runs, in
- * a Logs section of its own, in both menus. Every page that sends a reader to
- * the runs has to name the new place, in each language's own Dashboard words
- * (Protokolle → Ausführungen, ログ → 実行履歴), or it points at a menu entry
- * nobody can find. There are seventeen copies of each page, and most of them
+ * a Logs section of its own, in both menus. Then that one-entry Logs section
+ * went (#9216): Runs is now the last entry of the Workflows menu's first
+ * section and of a workflow's Basic section, so its path is Workflows → Runs
+ * and Workflow → Runs, no Logs step. Every page that sends a reader to the
+ * runs has to name the new place, in each language's own Dashboard words
+ * (Ausführungen, 実行履歴), or it points at a menu entry nobody can find. There are seventeen copies of each page, and most of them
  * nobody on the team can proofread, so this reads all of them.
  *
  * The runs page keeps its URL, /docs/workflows/runs-and-logs: links to it
@@ -55,7 +57,7 @@ const PAGES_THAT_NAME_THE_RUNS: Array<string> = [
 /*
  * Only the English pages name the Dashboard's labels in English. The Persian
  * workflow pages name them as the Persian Dashboard draws them
- * (**لاگ‌ها ← اجراها**), like every other language.
+ * (**گردش‌های کاری ← اجراها**), like every other language.
  */
 const ENGLISH_UI_LABELS: Set<string> = new Set(["en"]);
 
@@ -291,16 +293,23 @@ describe.each(LANGUAGES)("%s", (language: string) => {
   const words: MenuWords = menuWords(language);
 
   /*
-   * Logs → Runs, with the arrows this language's pages draw between steps:
-   * "←" beside a Persian one (#7611). pathEnd is the end of a longer path,
-   * from the arrow after a menu's name, which this suite does not know: in a
-   * language read from the right, that name's words turn the arrow either
-   * way (the guard, PathArrowsInRightToLeftSentences, holds which).
+   * The old Logs → Runs, with the arrows this language's pages draw between
+   * steps: "←" beside a Persian one (#7611). No page may name it now that
+   * the Logs section is gone (#9216). pathEnd is the end of the new path,
+   * from the arrow after a menu's name (Workflows → Runs), which this suite
+   * does not know: in a language read from the right, that name's words turn
+   * the arrow either way (the guard, PathArrowsInRightToLeftSentences, holds
+   * which).
    */
   const logsToRuns: string = pathWithArrows([words.logs, words.runs], language);
   const pathEnd: RegExp = new RegExp(
-    `${pathArrowPattern(language)}${escapeRegExp(logsToRuns)}\\*\\*`,
+    `${pathArrowPattern(language)}${escapeRegExp(words.runs)}\\*\\*`,
     "g",
+  );
+  // A menu list's entry for Runs: "- **Runs** — ...".
+  const runsEntry: RegExp = new RegExp(
+    `^- \\*\\*${escapeRegExp(words.runs)}\\*\\* `,
+    "gm",
   );
 
   /*
@@ -320,17 +329,20 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     expect(LOGS_WORD[language]!.test(title)).toBe(false);
   });
 
-  test("the runs page sends readers to Logs → Runs in both menus", () => {
+  test("the runs page sends readers to Runs, no Logs step, in both menus", () => {
     const page: string = readPage(language, RUNS_PAGE);
 
     // One row for the Workflows menu, one for a workflow's own menu.
     expect(page.match(pathEnd) || []).toHaveLength(2);
+    expect(count(page, logsToRuns)).toBe(0);
   });
 
-  test("the overview lists Logs → Runs in both menus", () => {
+  test("the overview lists Runs, no Logs step, in both menus", () => {
     const page: string = readPage(language, OVERVIEW_PAGE);
 
-    expect(count(page, `**${logsToRuns}**`)).toBe(2);
+    // One entry in the Workflows menu's list, one in a workflow's own.
+    expect(page.match(runsEntry) || []).toHaveLength(2);
+    expect(count(page, logsToRuns)).toBe(0);
   });
 
   test("no page names the old menu entry any more", () => {

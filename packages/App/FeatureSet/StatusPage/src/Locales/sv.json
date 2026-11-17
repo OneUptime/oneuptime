@@ -37,8 +37,7 @@
     "announcements": "Meddelanden",
     "scheduledEvents": "Schemalagt underhåll",
     "subscribe": "Prenumerera",
-    "login": "Logga in",
-    "logout": "Logga ut"
+    "signOut": "Logga ut"
   },
   "overview": {
     "uptimeSuffix": "% drifttid",
@@ -49,8 +48,6 @@
     "noResourcesInGroup": "Inga resurser har lagts till i den här gruppen.",
     "activeIncidents": "Aktiva incidenter",
     "scheduledMaintenanceEvents": "Schemalagt underhåll",
-    "allClearTitle": "Allt ser bra ut",
-    "allClearDescription": "Inga resurser har ännu lagts till på den här statussidan. Lägg till några resurser från kontrollpanelen.",
     "allResourcesAre": "Alla resurser är {{status}}",
     "allMonitoredResourcesAre": "Alla övervakade resurser är {{status}}",
     "someResourcesAre": "Vissa resurser är {{status}}",
@@ -58,7 +55,10 @@
     "noResourcesAreMonitored": "Inga resurser övervakas just nu",
     "noResourcesAreMonitoredYet": "Inga resurser övervakas än",
     "oneSubGroup": "1 grupp",
-    "subGroupCount": "{{total}} grupper"
+    "subGroupCount": "{{total}} grupper",
+    "noResourcesTitle": "Inget att visa än",
+    "noResourcesDescription": "Den här sidan visar inga tjänster än.",
+    "noResourcesPreviewDescription": "Besökare ser det här tills du lägger till resurser. Lägg till monitorer eller grupper på den här statussidan under Resurser i instrumentpanelen."
   },
   "eventItem": {
     "affectedResources": "Berörda resurser",
@@ -115,30 +115,23 @@
     "title": "Incidenter",
     "singular": "Incident",
     "active": "Aktiva incidenter",
-    "resolved": "Lösta incidenter",
-    "none": "Inga incidenter",
-    "noneDescription": "Inga incidenter har publicerats på den här statussidan.",
+    "noneDescription": "När en incident påverkar tjänsterna på den här sidan publiceras den här.",
     "postmortem": "Incidentanalys",
     "declaredAt": "Rapporterad den ",
     "declaredAtTime": "Rapporterad den {{time}}",
     "report": "Incidentrapport",
-    "notFound": "Incidenten kunde inte hittas på den här statussidan."
-  },
-  "episodes": {
-    "report": "Episodrapport",
-    "none": "Ingen episod",
-    "notFound": "Episoden kunde inte hittas på den här statussidan."
+    "notFound": "Kontrollera länken eller öppna fliken Incidenter på den här sidan.",
+    "notFoundTitle": "Incidenten hittades inte"
   },
   "announcements": {
     "title": "Meddelanden",
     "singular": "Meddelande",
     "active": "Aktiva meddelanden",
-    "past": "Tidigare meddelanden",
-    "none": "Inga meddelanden",
-    "noneDescription": "Inga meddelanden har publicerats på den här sidan hittills.",
+    "noneDescription": "När det finns nyheter om tjänsterna på den här sidan publiceras de här.",
     "announcedAt": "Meddelat den ",
     "announcedAtTime": "Meddelat den {{time}}",
-    "notFound": "Meddelandet kunde inte hittas på den här statussidan."
+    "notFound": "Kontrollera länken eller öppna fliken Meddelanden på den här sidan.",
+    "notFoundTitle": "Meddelandet hittades inte"
   },
   "scheduledEvents": {
     "title": "Schemalagt underhåll",
@@ -146,9 +139,7 @@
     "scheduledMaintenance": "Schemalagt underhåll",
     "ongoing": "Pågående underhåll",
     "upcoming": "Kommande underhåll",
-    "completed": "Slutfört underhåll",
-    "none": "Inget schemalagt underhåll",
-    "noneDescription": "Inget schemalagt underhåll har publicerats för den här statussidan.",
+    "none": "Inget planerat underhåll",
     "scheduledAt": "Planerad till ",
     "scheduledAtTime": "Planerad till {{time}}",
     "report": "Rapport för underhållshändelse",
@@ -314,29 +305,29 @@
       "password": "Lösenord",
       "newPassword": "Nytt lösenord",
       "confirmPassword": "Bekräfta lösenord",
-      "login": "Logga in"
+      "signInLink": "Logga in."
     },
     "login": {
       "welcomeBack": "Välkommen tillbaka!",
-      "loginPrompt": "Logga in för att se {{statusPageName}}",
+      "signInPrompt": "Logga in för att se {{statusPageName}}.",
       "forgotPassword": "Glömt lösenord?",
       "submit": "Logga in",
       "or": "eller",
-      "logInWithSso": "Logga in med SSO",
+      "signInWithSso": "Logga in med SSO",
       "emailSignInLink": "Skicka en inloggningslänk till mig"
     },
     "sso": {
       "title": "Logga in med SSO",
-      "loginPrompt": "Logga in för att se {{statusPageName}}",
+      "signInPrompt": "Logga in för att se {{statusPageName}}.",
       "noProviders": "Inga SSO-leverantörer har konfigurerats eller aktiverats",
       "notAvailable": "Single sign-on (SSO) är inte tillgängligt för den här statussidan. Logga in med din e-postadress och ditt lösenord istället.",
-      "backToLogin": "Tillbaka till inloggningen",
-      "logInWithPassword": "Logga in med lösenord"
+      "backToSignIn": "Tillbaka till inloggningen",
+      "signInWithPassword": "Logga in med lösenord"
     },
     "forgotPassword": {
       "title": "Glömt lösenord",
       "description": "Om du har glömt ditt lösenord för {{statusPageName}}, ange din e-postadress så skickar vi dig länken för återställning av lösenordet.",
-      "success": "Vi har skickat dig länken för återställning av lösenordet via e-post. Glöm inte att kontrollera skräppostmappen.",
+      "success": "Om den här e-postadressen kan logga in på {{statusPageName}} har vi skickat en länk för återställning av lösenordet till den. Glöm inte att kontrollera skräppostmappen.",
       "sendLink": "Skicka länk för återställning av lösenord",
       "rememberPassword": "Kommer du ihåg ditt lösenord?"
     },
@@ -347,7 +338,7 @@
       "knowPassword": "Kommer du ihåg ditt lösenord?",
       "successTitle": "Ditt lösenord har återställts",
       "successDescription": "Logga in med ditt nya lösenord.",
-      "loginButton": "Logga in",
+      "signInButton": "Logga in",
       "linkExpiredTitle": "Den här återställningslänken har gått ut",
       "linkExpiredDescription": "Återställningslänkar fungerar i en dag. Be om en ny länk så mejlar vi den till dig.",
       "linkInvalidTitle": "Den här återställningslänken fungerar inte längre",
@@ -373,7 +364,7 @@
     },
     "masterPassword": {
       "prompt": "Ange lösenordet för att se den här statussidan.",
-      "passwordRequired": "lösenord krävs.",
+      "passwordRequired": "Lösenord krävs.",
       "passwordLabel": "Lösenord",
       "submit": "Lås upp statussida"
     },
@@ -507,5 +498,23 @@
   "Incomplete:": "Inte uppfyllt:",
   "Special character included (optional)": "Specialtecken inkluderat (valfritt)",
   "Special characters are optional. Try !, @, # or $.": "Specialtecken är valfria. Prova !, @, # eller $.",
-  "Dismiss": "Dölj"
+  "Dismiss": "Dölj",
+  "Resolved in the Last {{count}} Days": "Lösta under de senaste {{count}} dagarna",
+  "Resolved in the Last {{count}} Days_one": "Lösta under det senaste dygnet",
+  "No incidents in the last {{count}} days": "Inga incidenter under de senaste {{count}} dagarna",
+  "No incidents in the last {{count}} days_one": "Inga incidenter under det senaste dygnet",
+  "Ended in the Last {{count}} Days": "Avslutade under de senaste {{count}} dagarna",
+  "Ended in the Last {{count}} Days_one": "Avslutade under det senaste dygnet",
+  "No announcements in the last {{count}} days": "Inga meddelanden under de senaste {{count}} dagarna",
+  "No announcements in the last {{count}} days_one": "Inga meddelanden under det senaste dygnet",
+  "Completed in the Last {{count}} Days": "Slutfört under de senaste {{count}} dagarna",
+  "Completed in the Last {{count}} Days_one": "Slutfört under det senaste dygnet",
+  "None is planned, and none took place in the last {{count}} days.": "Inget är planerat, och inget har ägt rum under de senaste {{count}} dagarna.",
+  "None is planned, and none took place in the last {{count}} days._one": "Inget är planerat, och inget har ägt rum under det senaste dygnet.",
+  "serverMessages": {
+    "signInToView": "Du har inte åtkomst till den här statussidan. Logga in för att visa den.",
+    "sessionExpired": "Sessionen har gått ut. Logga in igen.",
+    "signedOut": "Du är utloggad. Logga in igen.",
+    "magicLinkTurnedOff": "Inloggningslänkar är avstängda för den här statussidan. Logga in med din e-postadress och ditt lösenord."
+  }
 }

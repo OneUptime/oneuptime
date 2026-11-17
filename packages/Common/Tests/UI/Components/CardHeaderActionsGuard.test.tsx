@@ -372,21 +372,13 @@ describe("the rule's own classes", () => {
     expect(tokens).not.toContain("mx-auto");
   });
 
-  test("an action's box clears the left margin of the button it holds, and only that button", () => {
-    const tokens: Array<string> = CARD_HEADER_ACTION_CLASS_NAME.split(" ");
-
-    expect(tokens).toEqual(
-      expect.arrayContaining([
-        "[&>button]:ml-0",
-        "[&>button]:md:ml-0",
-        "[&>*>button]:ml-0",
-        "[&>*>button]:md:ml-0",
-      ]),
-    );
-    // A descendant selector would reach the buttons of a picker or a dialog.
-    for (const token of tokens) {
-      expect(token).not.toMatch(/^\[&_/);
-    }
+  test("an action's box is a plain flex box: the row's gap spaces the buttons", () => {
+    /*
+     * A Button has no margin of its own (#9128), so nothing is taken back,
+     * and a descendant selector would reach the buttons of a picker or a
+     * dialog.
+     */
+    expect(CARD_HEADER_ACTION_CLASS_NAME).toBe("flex items-center");
   });
 });
 
@@ -615,9 +607,8 @@ describe("hand-built card headers", () => {
       'className="flex flex-shrink-0 items-center gap-2 self-end sm:self-auto"',
     "packages/App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureExplorer.tsx":
       'className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 self-end sm:self-auto"',
-    // Since #6923 its buttons also drop the left margin they get in a row.
     "packages/App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionAIAssistance.tsx":
-      'className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0"',
+      'className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2"',
   };
 
   test.each(Object.entries(FIXED_HAND_BUILT_HEADERS))(

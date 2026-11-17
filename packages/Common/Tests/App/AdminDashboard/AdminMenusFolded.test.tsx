@@ -12,8 +12,8 @@ import * as React from "react";
 
 /*
  * Whether this install has billing on, pinned by the suite rather than read
- * from the environment: a project's admin menu grows Billing and Support
- * sections with it, and CI and a bare `npx jest` disagree about the default.
+ * from the environment: a project's admin menu grows a Billing section and
+ * a Customer Support Access entry (in Advanced since #9216) with it, and CI and a bare `npx jest` disagree about the default.
  */
 let billingEnabledForTest: boolean = false;
 
@@ -172,12 +172,8 @@ describe("Admin Settings: only Basic starts open", () => {
     expect(sectionStates()).toEqual([
       { title: "Basic", expanded: true },
       { title: "Notifications", expanded: false },
-      { title: "Monitoring", expanded: false },
-      { title: "Runbooks", expanded: false },
-      { title: "Data Retention", expanded: false },
-      { title: "Telemetry", expanded: false },
-      { title: "AI", expanded: false },
-      { title: "API and Integrations", expanded: false },
+      { title: "Shared with All Projects", expanded: false },
+      { title: "Server", expanded: false },
     ]);
     expect(sectionBody("Notifications")).toHaveClass(
       "max-h-0",
@@ -194,12 +190,8 @@ describe("Admin Settings: only Basic starts open", () => {
     expect(sectionStates()).toEqual([
       { title: "«Basic»", expanded: true },
       { title: "«Notifications»", expanded: false },
-      { title: "«Monitoring»", expanded: false },
-      { title: "«Runbooks»", expanded: false },
-      { title: "«Data Retention»", expanded: false },
-      { title: "«Telemetry»", expanded: false },
-      { title: "«AI»", expanded: false },
-      { title: "«API and Integrations»", expanded: false },
+      { title: "«Shared with All Projects»", expanded: false },
+      { title: "«Server»", expanded: false },
     ]);
   });
 
@@ -210,15 +202,25 @@ describe("Admin Settings: only Basic starts open", () => {
       "Notifications",
       "Push Notifications",
     ],
-    [PageMap.SETTINGS_LLM_PROVIDERS, "AI", "Global LLM Providers"],
-    [PageMap.SETTINGS_GLOBAL_RUNNERS, "Runbooks", "Global Runners"],
+    [
+      PageMap.SETTINGS_LLM_PROVIDERS,
+      "Shared with All Projects",
+      "Global LLM Providers",
+    ],
+    [
+      PageMap.SETTINGS_GLOBAL_RUNNERS,
+      "Shared with All Projects",
+      "Global Runners",
+    ],
+    [PageMap.SETTINGS_PROBES, "Shared with All Projects", "Global Probes"],
+    [PageMap.SETTINGS_DATA_RETENTION, "Server", "Data Retention"],
     // Single sign-on, under Basic: no folded "Authentication" section of its own.
     [PageMap.SETTINGS_SSO, "Basic", "Single Sign-On"],
     // The products every project on the server offers (#6815), under Basic.
     [PageMap.SETTINGS_PRODUCTS, "Basic", "Products"],
-    [PageMap.SETTINGS_API_KEY, "API and Integrations", "API Key"],
+    [PageMap.SETTINGS_API_KEY, "Server", "API Key"],
     // Every project's default telemetry ingestion budgets (#5917).
-    [PageMap.SETTINGS_INGESTION_BUDGETS, "Telemetry", "Ingestion Budgets"],
+    [PageMap.SETTINGS_INGESTION_BUDGETS, "Server", "Ingestion Budgets"],
   ])(
     "the %s page opens %s and marks %s",
     async (page: string, section: string, entry: string) => {
@@ -233,7 +235,7 @@ describe("Admin Settings: only Basic starts open", () => {
 
   /*
    * Single sign-on is one entry under Basic, beside Authentication: the SAML
-   * and OIDC providers and Require SSO for Login on one page. It was "Global
+   * and OIDC providers and Require SSO to Sign In on one page. It was "Global
    * SSO" and "Global OIDC" in a folded section that was also called
    * Authentication, and the switch was on the Authentication page. Products
    * (#6815) follows them: what the server offers every project is as basic
@@ -327,7 +329,11 @@ describe("a project in the Admin Dashboard: its members first", () => {
     ]);
   });
 
-  test("with billing: Billing and Support fold, in any language", async () => {
+  /*
+   * Customer Support Access had a Support section of its own, for that one
+   * entry; it is the first entry of Advanced now (#9216).
+   */
+  test("with billing: Billing and Advanced fold, in any language", async () => {
     billingEnabledForTest = true;
 
     for (const language of ["English", "another language"] as const) {
@@ -340,7 +346,7 @@ describe("a project in the Admin Dashboard: its members first", () => {
         expanded: sectionStates().map((state: SectionState): boolean => {
           return state.expanded;
         }),
-      }).toEqual({ language, expanded: [true, true, false, false, false] });
+      }).toEqual({ language, expanded: [true, true, false, false] });
 
       cleanup();
     }
@@ -352,7 +358,7 @@ describe("a project in the Admin Dashboard: its members first", () => {
     await renderMenu(<AdminProjectSideMenu modelId={PROJECT_MODEL_ID} />);
 
     expect(isExpanded("Billing")).toBe(true);
-    expect(isExpanded("Support")).toBe(false);
+    expect(isExpanded("Advanced")).toBe(false);
     expect(activeLinkTitles()).toEqual(["Subscription"]);
   });
 
@@ -362,7 +368,33 @@ describe("a project in the Admin Dashboard: its members first", () => {
     await renderMenu(<AdminProjectSideMenu modelId={PROJECT_MODEL_ID} />);
 
     expect(isExpanded("Billing")).toBe(true);
-    expect(isExpanded("Support")).toBe(false);
+    expect(isExpanded("Advanced")).toBe(false);
     expect(activeLinkTitles()).toEqual(["Invoices"]);
+  });
+
+  test("with billing, the Customer Support Access page opens Advanced, which leads with it (#9216)", async () => {
+    billingEnabledForTest = true;
+    goTo(adminRoute(PageMap.PROJECT_SUPPORT, PROJECT_MODEL_ID));
+    await renderMenu(<AdminProjectSideMenu modelId={PROJECT_MODEL_ID} />);
+
+    expect(sectionTitlesInOrder()).toEqual([
+      "Basic",
+      "Members",
+      "Billing",
+      "Advanced",
+    ]);
+    expect(isExpanded("Advanced")).toBe(true);
+    expect(isExpanded("Billing")).toBe(false);
+    expect(activeLinkTitles()).toEqual(["Customer Support Access"]);
+    expect(linksIn("Advanced")).toEqual([
+      {
+        title: "Customer Support Access",
+        href: adminRoute(PageMap.PROJECT_SUPPORT, PROJECT_MODEL_ID),
+      },
+      {
+        title: "Delete Project",
+        href: adminRoute(PageMap.PROJECT_DELETE, PROJECT_MODEL_ID),
+      },
+    ]);
   });
 });

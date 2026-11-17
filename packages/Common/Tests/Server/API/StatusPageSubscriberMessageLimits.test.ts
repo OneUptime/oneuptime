@@ -1,4 +1,5 @@
 import { mockRouter } from "./Helpers";
+import Encryption from "../../../Server/Utils/Encryption";
 import {
   afterEach,
   beforeAll,
@@ -468,6 +469,18 @@ const SIGN_UP_BY_TEXT_REFUSAL: string =
 const SIGN_UP_REFUSAL: string =
   "Too many sign-ups from your network. Please wait a few minutes and try again.";
 
+/*
+ * The unsubscribe token a row holds, as a read gives it: kept encrypted
+ * (#9012), and decrypted on every read - a row stored before reads as itself.
+ */
+async function tokenOf(row: StoredRow): Promise<string> {
+  const stored: string = String(row["unsubscribeToken"]);
+
+  return Encryption.looksEncrypted(stored)
+    ? await Encryption.decrypt(stored)
+    : stored;
+}
+
 describe("signing up on a status page", () => {
   test("one visitor signing up phone after phone: ten are subscribed and texted, then every sign-up is refused, and nothing more is created or sent", async () => {
     const { accepted, refusals } = await acceptedOf(300, (index: number) => {
@@ -803,7 +816,7 @@ describe("signing up on a status page", () => {
       params: {
         statusPageId: PAGE_ID,
         subscriberId: String(subscriber["_id"]),
-        token: String(subscriber["unsubscribeToken"]),
+        token: await tokenOf(subscriber),
       },
       body: { isUnsubscribed: false, isSubscribedToAllResources: true },
     });

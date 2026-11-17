@@ -114,12 +114,12 @@ Zonder kritieke meldingen kunnen een Focus of een samenvatting oproepen tegenhou
 
 ## De app vergrendelen
 
-Schakel in de app onder **Settings** de schakelaar **Biometrics Login** in, en de app vraagt bij elke start om Face ID, Touch ID of uw toegangscode. De schakelaar verschijnt zodra Face ID of Touch ID op het apparaat is ingesteld. **Appearance**, op hetzelfde scherm, kiest het lichte of donkere uiterlijk, of volgt het apparaat.
+Schakel in de app onder **Settings** de schakelaar **Biometric Unlock** in, en de app vraagt bij elke start om Face ID, Touch ID of uw toegangscode. De schakelaar verschijnt zodra Face ID of Touch ID op het apparaat is ingesteld. **Appearance**, op hetzelfde scherm, kiest het lichte of donkere uiterlijk, of volgt het apparaat.
 
 ## Bijwerken, afmelden of de app verwijderen
 
 - **Bijwerken.** De App Store werkt de app bij; u kunt hem ook bijwerken via uw account in de App Store. De versie van de app staat onderaan het scherm **Settings**.
-- **Afmelden.** **Settings → Log Out** meldt u af en haalt het apparaat in elk project uit uw pushapparaten, samen met zijn bereikbaarheidsregels. Meldt u zich weer aan, dan komt het terug met de standaardregels.
+- **Afmelden.** **Settings → Sign Out** meldt u af en haalt het apparaat in elk project uit uw pushapparaten, samen met zijn bereikbaarheidsregels. Meldt u zich weer aan, dan komt het terug met de standaardregels.
 - **Verwijderen.** Houd het pictogram van de app ingedrukt en tik op **Verwijder app** en daarna op **Verwijder app** om te bevestigen. Was u nog aangemeld, dan blijft het apparaat in uw lijst tot een push ernaar mislukt: OneUptime markeert het dan als **Ontvangt geen meldingen**. Installeert u de app opnieuw en meldt u zich aan, dan komt die vermelding meestal terug, met zijn regels; gebruikt u het apparaat niet meer, verwijder de vermelding dan met **Verwijderen**.
 
 ## Probleemoplossing
@@ -144,7 +144,7 @@ Schakel eerst in de app **Critical On-Call Alerts** in: iOS voegt zijn schakelaa
 Open in de app **Settings**: de regel onder **Critical On-Call Alerts** zegt wat er ontbreekt. Controleer of **Kritieke meldingen** aanstaat onder **Instellingen → Berichtgeving → OneUptime On-Call**, en of het volume op het scherm **Alarm sound** van de app niet laag staat.
 :::
 
-:::details Geen schakelaar Biometrics Login
+:::details Geen schakelaar Biometric Unlock
 De schakelaar verschijnt zodra Face ID of Touch ID is ingesteld onder **Instellingen → Face ID en toegangscode** of **Instellingen → Touch ID en toegangscode**.
 :::
 

@@ -7,6 +7,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   statusPages: Array<StatusPage>;
   onNavigateComplete?: (() => void) | undefined;
+  // What a record on no status page says; "No Status Page." when left out.
+  noItemsMessage?: string | undefined;
 }
 
 const StatusPagesElement: FunctionComponent<ComponentProps> = (
@@ -24,7 +26,7 @@ const StatusPagesElement: FunctionComponent<ComponentProps> = (
           />
         );
       }}
-      noItemsMessage="No Status Page."
+      noItemsMessage={props.noItemsMessage || "No Status Page."}
     />
   );
 };

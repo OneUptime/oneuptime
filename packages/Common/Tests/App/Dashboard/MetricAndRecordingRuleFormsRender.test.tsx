@@ -240,6 +240,7 @@ import {
   listedNames,
   setChips,
 } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
+import { formStepButton } from "../../Helpers/FormStepButton";
 
 type Page = FunctionComponent<PageComponentProps>;
 
@@ -597,8 +598,7 @@ describe("Metrics > Settings > Pipeline Rules", () => {
    * Add Filter is an outline button (#9116): sized to its words, with no
    * dialog footer's margin (md:ml-3) to take back, so nothing around it
    * pulls it out of line with the filters at any width. It was a NORMAL
-   * button, full width under md and 12px in from md up, and taking those
-   * 12px back at every width pushed it out of line on a phone.
+   * button, full width under md and 12px in from md up.
    */
   test("Add Filter lines up with the filters at every width", async () => {
     await openCreateForm();
@@ -612,8 +612,6 @@ describe("Metrics > Settings > Pipeline Rules", () => {
 
     expect(buttonClasses).not.toContain("md:ml-3");
     expect(buttonClasses).not.toContain("w-full");
-    expect(buttonClasses).toContain("border-gray-300");
-    expect(buttonClasses).toContain("bg-white");
     expect(wrapper.className).not.toMatch(/-ml-/);
   });
 
@@ -1059,7 +1057,7 @@ describe("Metrics > Settings > Pipeline Rules", () => {
         within(steps).getAllByRole("listitem");
 
       await act(async (): Promise<void> => {
-        fireEvent.click(stepItems[stepItems.length - 1]!);
+        fireEvent.click(formStepButton(stepItems[stepItems.length - 1]!));
       });
       await within(dialog()).findByTestId(
         `card-select-option-${MetricPipelineRuleType.Drop}`,

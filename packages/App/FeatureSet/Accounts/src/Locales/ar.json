@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "نسيت كلمة مرورك",
     "subtitle": "يُرجى إدخال بريدك الإلكتروني وسنرسل إليك رابط إعادة تعيين كلمة المرور.",
-    "successMessage": "أرسلنا إليك رابط إعادة تعيين كلمة المرور عبر البريد الإلكتروني. لا تنسَ التحقق من مجلد الرسائل غير المرغوب فيها.",
+    "successMessage": "إذا كان هناك حساب يستخدم عنوان البريد الإلكتروني هذا، فقد أرسلنا إليه رابطًا لاختيار كلمة مرور. لا تنسَ التحقق من مجلد الرسائل غير المرغوب فيها.",
     "submitButton": "إرسال رابط إعادة تعيين كلمة المرور",
     "rememberPasswordPrompt": "هل تتذكر كلمة مرورك؟",
     "loginLink": "سجّل الدخول.",
@@ -187,6 +187,17 @@
     "linkInvalidTitle": "لم يعد رابط إعادة التعيين هذا يعمل",
     "linkInvalidDescription": "ربما استُخدم من قبل، أو نُسخ جزء منه فقط. اطلب رابطًا جديدًا وسنرسله إليك بالبريد الإلكتروني.",
     "requestNewLinkButton": "طلب رابط جديد"
+  },
+  "setPassword": {
+    "title": "عيّن كلمة المرور",
+    "subtitle": "اختر كلمة مرور لإكمال إعداد حسابك.",
+    "submitButton": "تعيين كلمة المرور",
+    "successTitle": "تم تعيين كلمة المرور",
+    "successDescription": "سجّل الدخول بكلمة المرور الجديدة.",
+    "linkExpiredTitle": "انتهت صلاحية هذا الرابط",
+    "linkExpiredDescription": "تعمل روابط تعيين كلمة المرور لمدة {{days}} أيام. اطلب رابطًا جديدًا وسنرسله إليك بالبريد الإلكتروني.",
+    "linkInvalidTitle": "لم يعد هذا الرابط يعمل",
+    "linkInvalidDescription": "ربما استُخدم من قبل، أو نُسخ جزء منه فقط. إذا كنت قد عيّنت كلمة المرور، فسجّل الدخول. وإلا فاطلب رابطًا جديدًا وسنرسله إليك بالبريد الإلكتروني."
   },
   "sso": {
     "title": "تسجيل الدخول باستخدام SSO",
@@ -453,7 +464,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "مرخّص عبر اشتراكك في سوق السحابة: يُفوتَر كل مستخدم بالساعة.",
   "License, version, seat usage, and the instances covered by this key.": "الترخيص والإصدار واستخدام المقاعد والنسخ التي يغطيها هذا المفتاح.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "منصة OneUptime الكاملة مع الاستجابة للحوادث وصفحات الحالة وأتمتة سير العمل.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "تسجيل الدخول الموحّد (SSO) عبر SAML وOIDC للمشاريع وصفحات الحالة والنسخة بأكملها، بما في ذلك «اشتراط SSO لتسجيل الدخول».",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "تسجيل الدخول الموحّد (SSO) عبر SAML وOIDC للمشاريع وصفحات الحالة والنسخة بأكملها، بما في ذلك «اشتراط SSO لتسجيل الدخول».",
   "Community support, documentation, and tutorials to help teams get started quickly.": "دعم المجتمع والوثائق والبرامج التعليمية لمساعدة الفرق على البدء بسرعة.",
   "Regular updates, bug fixes, and open-source extensibility.": "تحديثات منتظمة وإصلاحات للأخطاء وقابلية توسعة مفتوحة المصدر.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "تكاملات مع أدوات DevOps الشائعة من خلال موصلات يصونها المجتمع.",

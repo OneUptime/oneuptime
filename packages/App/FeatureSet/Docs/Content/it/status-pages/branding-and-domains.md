@@ -18,17 +18,17 @@ Aprite una pagina di stato: la sezione **Branding** del suo menu laterale ha tre
 
 | Pagina | Cosa impostate lì |
 | ---- | ------------------ |
-| **Branding** | Logo e immagine di copertina, il tema (chiaro, scuro o come è impostato il dispositivo di ogni visitatore), titolo e descrizione della pagina, favicon, link dell'intestazione, descrizione della pagina panoramica, riga del copyright e link del footer. Chiusi in **Altre impostazioni**: i colori del grafico della cronologia, le lingue e l'indicizzazione nei motori di ricerca. |
+| **Branding** | Logo e immagine di copertina, il tema (chiaro, scuro o come è impostato il dispositivo di ogni visitatore), link dell'intestazione, testo introduttivo, riga del copyright e link del footer. Chiusi in **Altre impostazioni**: il titolo della pagina e la descrizione per i motori di ricerca, la favicon, i colori del grafico della cronologia, le lingue e l'indicizzazione nei motori di ricerca. |
 | **Domini personalizzati** | Il vostro dominio, il suo record DNS e il suo certificato SSL gratuito. |
 | **HTML, CSS e JavaScript** | HTML dell'intestazione, HTML del footer, CSS personalizzato, JavaScript personalizzato. |
 
-Tre cose che sembrano branding si trovano invece in **Pagine di stato → la vostra pagina → Avanzato → Impostazioni avanzate** (`{id}/settings`), perché decidono cosa mostra la pagina e non il suo aspetto: la percentuale di uptime complessiva, quali stati dei monitor contano contro l'uptime e la riga «Powered by OneUptime». Le prime due sono righe della scheda **Cosa mostra la tua pagina di stato** di quella schermata, e la riga ha una scheda tutta sua, subito sotto, chiusa in **Altre impostazioni**.
+Tre cose che sembrano branding si trovano invece in **Pagine di stato → la vostra pagina → Avanzato → Impostazioni** (`{id}/settings`), perché decidono cosa mostra la pagina e non il suo aspetto: la percentuale di uptime complessiva, quali stati dei monitor contano contro l'uptime e la riga «Powered by OneUptime». Le prime due sono righe della scheda **Cosa mostra la tua pagina di stato** di quella schermata, e la riga ha una scheda tutta sua, subito sotto, chiusa in **Altre impostazioni**.
 
 Il branding era un tempo diviso tra schermate separate **Branding essenziale**, **Intestazione**, **Footer**, **Pagina panoramica** e **Lingue**. I loro vecchi indirizzi (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` e `{id}/languages`) ora aprono la pagina **Branding**, quindi i vecchi segnalibri e link continuano a funzionare.
 
 ## La pagina Branding
 
-**Pagine di stato → la vostra pagina → Branding → Branding** (`{id}/branding`). Ogni scheda si salva per conto proprio. Dopo il logo, il tema, il titolo e la favicon, le schede seguono la vostra pagina di stato dall'alto in basso: i link dell'intestazione, il testo in cima alla panoramica, poi il footer. Quello che pochi cambiano è chiuso in **Altre impostazioni**, in fondo.
+**Pagine di stato → la vostra pagina → Branding → Branding** (`{id}/branding`). Ogni scheda si salva per conto proprio. Dopo il logo e il tema, le schede seguono la vostra pagina di stato dall'alto in basso: i link dell'intestazione, il testo introduttivo in cima alla panoramica, poi il footer. Quello che pochi cambiano è chiuso in **Altre impostazioni**, in fondo: il titolo e la descrizione per i motori di ricerca, la favicon, i colori del grafico della cronologia, le lingue e l'indicizzazione nei motori di ricerca.
 
 ### Logo e immagine di copertina
 
@@ -65,18 +65,25 @@ Il tema è nell'HTML della pagina, quindi la pagina viene disegnata con esso fin
 
 Il vostro CSS e il vostro HTML personalizzati si applicano in entrambi i temi; [HTML, CSS e JavaScript personalizzati](#html-css-e-javascript-personalizzati) spiega come dare stile a quello scuro.
 
-### Titolo, descrizione e favicon
-
-- **Titolo e descrizione**: il nome della pagina nella scheda del browser e nelle email agli iscritti, e la descrizione che mostrano i motori di ricerca. **Modifica** apre **Titolo della pagina** (segnaposto `e.g., Acme Status`) e **Descrizione della pagina**. Motori di ricerca e anteprime dei link li mostrano, quindi scriveteli per un cliente, non per il vostro team.
-- **Favicon**: **Modifica favicon** apre il caricamento **Favicon**: la piccola icona nella scheda del browser.
-
 ### Link dell'intestazione
 
 La tabella **Link intestazione** contiene i link nell'intestazione della pagina di stato, come il vostro sito, la vostra documentazione o un portale di supporto. Ogni link ha un **Titolo** e un **Collegamento** (un URL, segnaposto `https://link.com`), e li riordinate trascinandoli. Senza link, la tabella dice a cosa servono, con **Aggiungi: Link intestazione** sotto.
 
-### Descrizione della pagina panoramica
+### Testo introduttivo
 
-**Descrizione della pagina panoramica** è la prima cosa nella panoramica della pagina di stato, sopra gli annunci, lo stato generale e le vostre risorse. **Modifica descrizione** apre un campo Markdown. Usatelo per una frase di contesto: cosa copre questa pagina e a chi rivolgersi per il supporto. Un'immagine che ci mettete viene mostrata a ogni visitatore della pagina.
+Il **Testo introduttivo** è la prima cosa che i visitatori leggono nella panoramica della pagina di stato, sopra gli annunci, lo stato generale e le vostre risorse. **Modifica testo introduttivo** apre un campo Markdown. Prima si chiamava **Descrizione della pagina panoramica**. Usatelo per una frase di contesto: cosa copre questa pagina e a chi rivolgersi per il supporto. Un'immagine che ci mettete viene mostrata a ogni visitatore della pagina.
+
+### Tre descrizioni, tre lettori
+
+Una pagina di stato ha tre descrizioni, ciascuna chiamata secondo chi la legge:
+
+| Campo | Dove si imposta | Chi lo legge |
+| --- | --- | --- |
+| **Descrizione interna** | La scheda **Dettagli della pagina di stato** nella **Panoramica** della pagina | Solo il vostro team. I visitatori non la vedono mai. |
+| **Descrizione per i motori di ricerca** | **Titolo e descrizione per i motori di ricerca**, in **Altre impostazioni** su **Branding** | Motori di ricerca e anteprime dei link. |
+| **Testo introduttivo** | **Testo introduttivo** su **Branding** | I visitatori, in cima alla pagina di stato. |
+
+Per cambiare ciò che i visitatori leggono sulla pagina, modificate il **Testo introduttivo**.
 
 ### Footer
 
@@ -87,7 +94,12 @@ I link dell'intestazione servono alla navigazione; quelli del footer alle clauso
 
 ### Altre impostazioni
 
-L'ultima sezione della pagina è chiusa in **Altre impostazioni**, perché pochi cambiano ciò che contiene. Chiusa, la sua intestazione nomina le sue quattro sezioni (**Colore predefinito della barra**, **Regole per il colore delle barre**, **Lingue** e **Indicizzazione nei motori di ricerca**) e mostra ciascuna di quelle che differiscono da come parte una nuova pagina di stato: un colore predefinito della barra diverso dal verde con cui parte ogni pagina, regole di colore delle barre diverse da quelle consigliate, una lingua predefinita diversa dall'inglese, un elenco di lingue più corto o l'indicizzazione disattivata. Fateci clic per aprirla: è un'unica scheda, con le sue sezioni una sotto l'altra, ciascuna con il proprio titolo, separate da divisori.
+L'ultima sezione della pagina è chiusa in **Altre impostazioni**, perché pochi cambiano ciò che contiene. Chiusa, la sua intestazione nomina le sue prime quattro sezioni (**Titolo e descrizione per i motori di ricerca**, **Favicon**, **Colore predefinito della barra** e **Regole per il colore delle barre**), poi quante altre ce ne sono (**Lingue** e **Indicizzazione nei motori di ricerca**), e mostra ciascuna di quelle che differiscono da come parte una nuova pagina di stato: un titolo della pagina o una descrizione per i motori di ricerca, una favicon, un colore predefinito della barra diverso dal verde con cui parte ogni pagina, regole di colore delle barre diverse da quelle consigliate, una lingua predefinita diversa dall'inglese, un elenco di lingue più corto o l'indicizzazione disattivata. Fateci clic per aprirla: è un'unica scheda, con le sue sezioni una sotto l'altra, ciascuna con il proprio titolo, separate da divisori.
+
+**Titolo e descrizione per i motori di ricerca, e favicon.** Si impostano una volta, se mai, e nessuno dei due è ciò che i visitatori leggono sulla pagina, che è il **Testo introduttivo**.
+
+- **Titolo e descrizione per i motori di ricerca**: il nome della pagina nella scheda del browser e nelle email agli iscritti, e la descrizione che mostrano i motori di ricerca. **Modifica** apre **Titolo della pagina** (segnaposto `e.g., Acme Status`) e **Descrizione per i motori di ricerca**. Motori di ricerca e anteprime dei link li mostrano, quindi scriveteli per un cliente, non per il vostro team.
+- **Favicon**: **Modifica favicon** apre il caricamento **Favicon**: la piccola icona nella scheda del browser.
 
 **Colori del grafico della cronologia.** Oltre al **Tema**, sono le uniche impostazioni di colore integrate di una pagina di stato. Ogni barra della cronologia uptime è un giorno.
 
@@ -106,7 +118,7 @@ Un giorno di cui la pagina non ha dati viene sempre disegnato grigio con righe d
 
 L'uptime di un giorno si misura sulla parte del giorno che ha dati, contando gli stati scelti in **Conta come inattività**. I colori consigliati differiscono per luminosità oltre che per tonalità, così le persone con daltonismo rosso-verde, circa un uomo su dodici, riescono a distinguerli; il verde di Operational e il rosso di Offline con cui partono gli stati dei monitor sembrano loro quasi uguali. Una pagina creata prima di queste regole, o tramite l'API o Terraform, non ha regole finché non ne aggiungete: una tabella **Regole per il colore delle barre** vuota e **Anteprima dei colori delle barre** offrono entrambe **Usa le regole consigliate**. Tramite l'API, inviate `"miscDataProps": {"addRecommendedBarColorRules": true}` con la richiesta che crea la pagina di stato.
 
-Quanti giorni copre il grafico non si imposta qui. È **Cronologia uptime** nella scheda **Cosa mostra la tua pagina di stato** in **Avanzato → Impostazioni avanzate**, da 1 a 90 giorni. Quali stati dei monitor contano come inattività è **Conta come inattività**, nella stessa riga di quella scheda.
+Quanti giorni copre il grafico non si imposta qui. È **Cronologia uptime** nella scheda **Cosa mostra la tua pagina di stato** in **Avanzato → Impostazioni**, da 1 a 90 giorni. Quali stati dei monitor contano come inattività è **Conta come inattività**, nella stessa riga di quella scheda.
 
 **Lingue.** La sezione **Lingue** imposta il selettore della lingua che i visitatori trovano nel footer della pagina. **Modifica lingue** apre due campi:
 
@@ -124,7 +136,7 @@ OneUptime include diciotto lingue: inglese, tedesco, francese, spagnolo, italian
 
 ## Percentuale di uptime e stati di inattività
 
-Entrambi si trovano nella riga **Cronologia uptime** della scheda **Cosa mostra la tua pagina di stato**, in **Pagine di stato → la vostra pagina → Avanzato → Impostazioni avanzate** (`{id}/settings`). Non c'è un pulsante **Modifica**: ciascuno si salva nel momento in cui lo cambiate.
+Entrambi si trovano nella riga **Cronologia uptime** della scheda **Cosa mostra la tua pagina di stato**, in **Pagine di stato → la vostra pagina → Avanzato → Impostazioni** (`{id}/settings`). Non c'è un pulsante **Modifica**: ciascuno si salva nel momento in cui lo cambiate.
 
 - **Mostra percentuale di uptime complessiva**: un interruttore, disattivo per impostazione predefinita. Finché è attivo, **Precisione** accanto sceglie quanti decimali mostra la percentuale: `99%`, `99.9%`, `99.99%` (il predefinito) o `99.999%`. Su OneUptime Cloud, attivare la percentuale richiede il piano **Scale**; la sua precisione si può cambiare con ogni piano.
 - **Conta come inattività**: gli stati dei monitor, come chip colorati, il cui tempo conta contro l'uptime su questa pagina. Qui decidete, per esempio, se uno stato degradato conta contro l'uptime. Almeno uno stato resta sempre selezionato.
@@ -158,7 +170,7 @@ Su OneUptime Cloud, aggiungerne o modificarne uno richiede il piano **Growth**. 
 
 Per impostazione predefinita, una pagina di stato è raggiungibile all'URL di anteprima mostrato nella sua schermata **Panoramica**. Per portarla sul vostro nome host, andate in **Pagine di stato → la vostra pagina → Branding → Domini personalizzati** (`{id}/domains`).
 
-La scheda **Domini personalizzati** dice cosa fare: fate puntare il record CNAME di ogni dominio al record CNAME delle pagine di stato della vostra installazione, e OneUptime emette il certificato SSL del dominio e lo rinnova per voi. Quando non c'è nulla di configurato, la tabella dice **Nessun dominio personalizzato trovato**, con **Aggiungi dominio personalizzato** sotto. La tabella ha due colonne, **Dominio** e **Stato**, e filtri per **Dominio**, **CNAME valido** e **SSL provisionato**.
+La scheda **Domini personalizzati** dice cosa fare: fate puntare il record CNAME di ogni dominio al record CNAME delle pagine di stato della vostra installazione, e OneUptime emette il certificato SSL del dominio e lo rinnova per voi. Quando non c'è nulla di configurato, la tabella dice **Ancora nessun dominio personalizzato**, con **Aggiungi dominio personalizzato** sotto. La tabella ha due colonne, **Dominio** e **Stato**, e filtri per **Dominio**, **CNAME valido** e **SSL provisionato**.
 
 Portare la pagina sul vostro dominio richiede tre passaggi, tutti su questa pagina, e solo i primi due spettano a voi:
 
@@ -274,7 +286,7 @@ La sua finestra di dialogo, **Reissue SSL Certificate for this Status Page**, ch
 
 L'azione non compare su un dominio che usa un certificato caricato da voi: non c'è un certificato Let's Encrypt da riemettere, quindi caricatene uno nuovo modificando il dominio. Non compare nemmeno prima che venga ordinato il primo certificato del dominio, cosa che avviene da sola non appena il suo record CNAME è verificato.
 
-Lo stesso pulsante, con lo stesso limite di 24 ore, si trova sui domini personalizzati delle dashboard, in **Dashboard → la vostra dashboard → Branding → Domini personalizzati**, che funzionano come i domini personalizzati delle pagine di stato: vedete [Condivisione e dashboard pubbliche](/docs/dashboards/sharing#domini-personalizzati).
+Lo stesso pulsante, con lo stesso limite di 24 ore, si trova sui domini personalizzati delle dashboard, in **Dashboard → la vostra dashboard → Link pubblico → Domini personalizzati**, che funzionano come i domini personalizzati delle pagine di stato: vedete [Condivisione e dashboard pubbliche](/docs/dashboards/sharing#domini-personalizzati).
 
 ### Leggere la colonna Stato del dominio
 
@@ -309,7 +321,7 @@ Lo stesso vale per le chiavi API. Una chiave che può solo leggere i domini dell
 
 ## Powered by OneUptime
 
-La riga «Powered by OneUptime» non è un'impostazione di branding. Ha una scheda tutta sua, **Powered by OneUptime**, chiusa in **Altre impostazioni** sotto la scheda **Cosa mostra la tua pagina di stato**, in **Pagine di stato → la vostra pagina → Avanzato → Impostazioni avanzate** (`{id}/settings`): **Mostra il marchio Powered By OneUptime**, attivo per impostazione predefinita. Disattivatelo per nascondere la riga; si salva subito. Su OneUptime Cloud, nasconderla richiede il piano **Scale**. In self-hosting, nasconderla fa parte della Enterprise Edition: nella Community Edition ogni pagina di stato mostra la riga.
+La riga «Powered by OneUptime» non è un'impostazione di branding. Ha una scheda tutta sua, **Powered by OneUptime**, chiusa in **Altre impostazioni** sotto la scheda **Cosa mostra la tua pagina di stato**, in **Pagine di stato → la vostra pagina → Avanzato → Impostazioni** (`{id}/settings`): **Mostra il marchio Powered By OneUptime**, attivo per impostazione predefinita. Disattivatelo per nascondere la riga; si salva subito. Su OneUptime Cloud, nasconderla richiede il piano **Scale**. In self-hosting, nasconderla fa parte della Enterprise Edition: nella Community Edition ogni pagina di stato mostra la riga.
 
 ## Passaggi successivi
 

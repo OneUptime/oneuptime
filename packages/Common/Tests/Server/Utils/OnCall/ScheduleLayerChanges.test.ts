@@ -16,7 +16,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { Mock, SpyInstance } from "jest-mock";
+import { Mock, SpyInstance } from "jest-mock";
 
 /*
  * A CHANGE TO A SCHEDULE'S LAYERS MADE THROUGH THE API IS TOLD ONCE (#7813)
@@ -191,7 +191,7 @@ describe("after a row of the layers is written", () => {
   });
 
   test("through the API: nothing told, the change held for the quiet period from now", async () => {
-    const tellNow: Mock<() => Promise<void>> = jest.fn(async () => {
+    const tellNow: Mock<() => Promise<undefined>> = jest.fn(async () => {
       return undefined;
     });
 
@@ -250,7 +250,7 @@ describe("after a row of the layers is written", () => {
   test("a hold that cannot be written: told at once, as before, and logged", async () => {
     holds.mockRejectedValue(new Error("connection terminated"));
 
-    const tellNow: Mock<() => Promise<void>> = jest.fn(async () => {
+    const tellNow: Mock<() => Promise<undefined>> = jest.fn(async () => {
       return undefined;
     });
 

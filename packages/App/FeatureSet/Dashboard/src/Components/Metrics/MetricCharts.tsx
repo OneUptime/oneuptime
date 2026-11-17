@@ -1,3 +1,7 @@
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -9,6 +13,8 @@ import React, {
 import ReactDOM from "react-dom";
 import OneUptimeDate from "Common/Types/Date";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecision";
 import XAxisUtil from "Common/UI/Components/Charts/Utils/XAxis";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
@@ -1213,9 +1219,12 @@ function renderSeriesControls(input: {
        */}
       <div className="flex flex-wrap items-center gap-2">
         {unitLabel ? (
-          <span className="inline-flex items-center rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600">
-            {unitLabel}
-          </span>
+          <Pill
+            text={unitLabel}
+            isUserContent={true}
+            tone={PillTone.Neutral}
+            isDotHidden={true}
+          />
         ) : null}
         <span className="text-xs text-gray-500">
           {translator.translatePlural(SERIES_COUNT_TEMPLATE, totalSeries)}
@@ -4015,17 +4024,13 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                 >
                   {translator.translateText("Close")}
                 </button>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                <Button
+                  title="Investigate this moment"
+                  icon={IconProp.MagnifyingGlassPlus}
+                  buttonStyle={ButtonStyleType.PRIMARY}
+                  buttonSize={ButtonSize.Small}
                   onClick={investigateBucket}
-                >
-                  <Icon
-                    icon={IconProp.MagnifyingGlassPlus}
-                    className="h-3.5 w-3.5"
-                  />
-                  {translator.translateText("Investigate this moment")}
-                </button>
+                />
               </div>
             </div>,
             document.body,

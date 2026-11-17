@@ -543,25 +543,64 @@ describe("3. no list writes a switch in a bulk loop of its own", () => {
 });
 
 describe("4. subscriber lists offer Unsubscribe, and nothing subscribes people again in bulk", () => {
-  const SUBSCRIBER_PAGES: Array<string> = [
-    "Email",
-    "SMS",
-    "Slack",
-    "MicrosoftTeams",
-    "Webhook",
-  ].map((channel: string): string => {
-    return `Dashboard/src/Pages/StatusPages/View/${channel}Subscribers.tsx`;
-  });
-
-  test.each(SUBSCRIBER_PAGES)("%s offers Unsubscribe", (file: string) => {
+  /*
+   * Since #9125 a status page's subscribers are one Subscribers page with a
+   * tab per channel (Email, SMS, Slack, Microsoft Teams, Webhook), and every
+   * tab draws the same list, StatusPageSubscriberList, configured by its
+   * channel. So that list is where Unsubscribe has to be offered, and the
+   * page has to draw it for every channel.
+   */
+  test("the one subscriber list offers Unsubscribe", () => {
     const source: string = fs.readFileSync(
-      path.join(FEATURE_SET_DIR, file),
+      path.join(
+        DASHBOARD_SRC,
+        "Components",
+        "StatusPage",
+        "StatusPageSubscriberList.tsx",
+      ),
       "utf8",
     );
 
     expect(source).toContain("useSubscriberBulkActions();");
     expect(source).toContain("buttons: [...subscriberBulkActions],");
     expect(source).toContain("isUnsubscribed: true,");
+  });
+
+  test("the Subscribers page draws that list on every channel's tab", () => {
+    const page: string = fs.readFileSync(
+      path.join(
+        DASHBOARD_SRC,
+        "Pages",
+        "StatusPages",
+        "View",
+        "Subscribers.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(page).toContain("SUBSCRIBER_LIST_CHANNELS.map(");
+    expect(page).toContain("<StatusPageSubscriberList");
+    expect(page).toContain("channel={definition.channel}");
+    // No channel keeps a list of its own beside the shared one.
+    for (const channel of [
+      "Email",
+      "SMS",
+      "Slack",
+      "MicrosoftTeams",
+      "Webhook",
+    ]) {
+      expect(
+        fs.existsSync(
+          path.join(
+            DASHBOARD_SRC,
+            "Pages",
+            "StatusPages",
+            "View",
+            `${channel}Subscribers.tsx`,
+          ),
+        ),
+      ).toBe(false);
+    }
   });
 
   test("Unsubscribe is the subscribers' one bulk switch", () => {

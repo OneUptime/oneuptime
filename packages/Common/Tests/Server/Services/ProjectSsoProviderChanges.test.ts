@@ -608,7 +608,7 @@ beforeEach(() => {
     return undefined;
   });
 
-  // The whole server's Require SSO for Login, as the Admin Dashboard sets it.
+  // The whole server's Require SSO to Sign In, as the Admin Dashboard sets it.
   getJestSpyOn(GlobalConfigService, "findOneBy").mockImplementation(
     (async () => {
       serverRuleReads++;

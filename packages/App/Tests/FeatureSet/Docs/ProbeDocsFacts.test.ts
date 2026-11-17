@@ -1492,12 +1492,13 @@ describe("the Incoming Request Ingress page", () => {
       'export const INGRESS_BODY_LIMIT: string = "50mb";',
     );
     /*
-     * Every reader is held to that limit, the one that keeps a signed
-     * request's body as the bytes that came (so its signature holds through
-     * the probe) among them.
+     * Whitespace-squashed, so prettier re-wrapping a call cannot fail it. The
+     * JSON and form parsers also keep a signed request's bytes
+     * (keepSignedBodyBytes), and the signed-body reader keeps them for any
+     * other type, so its signature still holds through the probe.
      */
-    expect(ingress).toMatch(
-      /app\.use\(\s*ExpressJson\(\{ limit: INGRESS_BODY_LIMIT, verify: keepSignedBodyBytes \}\),?\s*\);\s*app\.use\(\s*ExpressUrlEncoded\(\{\s*extended: true,\s*limit: INGRESS_BODY_LIMIT,\s*verify: keepSignedBodyBytes,?\s*\}\),?\s*\);\s*app\.use\(WebhookRequestBody\.getRawReader\(INGRESS_BODY_LIMIT\)\);\s*app\.use\(\s*WebhookRequestBody\.getSignedBodyReader\(INGRESS_BODY_LIMIT, isSignedRequest\),?\s*\);\s*app\.use\(router\);/,
+    expect(ingress.replace(/\s+/g, " ")).toContain(
+      "app.use( ExpressJson({ limit: INGRESS_BODY_LIMIT, verify: keepSignedBodyBytes }), ); app.use( ExpressUrlEncoded({ extended: true, limit: INGRESS_BODY_LIMIT, verify: keepSignedBodyBytes, }), ); app.use(WebhookRequestBody.getRawReader(INGRESS_BODY_LIMIT)); app.use( WebhookRequestBody.getSignedBodyReader(INGRESS_BODY_LIMIT, isSignedRequest), ); app.use(router);",
     );
     // The text it reads as it came is forwarded as it came.
     expect(ingress).toContain(
@@ -1513,7 +1514,7 @@ describe("the Incoming Request Ingress page", () => {
       "const ingressApp: ExpressApplication = createIngressApp();",
     );
     expect(forwardingRow("The body")).toBe(
-      "JSON, form, plain-text and `+json` bodies of up to 50 MB, as when you send to OneUptime directly: a plain-text or `+json` body is passed on as it came, with its `Content-Type`. As there, any other body reaches the monitor empty.",
+      "JSON, form, plain-text and `+json` bodies of up to 50 MB, as when you send to OneUptime directly: a plain-text or `+json` body is passed on as it came, with its `Content-Type`. As there, any other body reaches the monitor empty. A signed request's body, whatever its type, is passed on byte for byte, so its signature still matches when OneUptime checks it.",
     );
   });
 

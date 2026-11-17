@@ -25,9 +25,9 @@ flowchart TB
 
 ## Wo Sie die Regeln finden
 
-Jedes Produkt mit Beschriftungen und Eigentümern hat beide Arten unter seinen **Einstellungen** (bei Vorfällen, Warnungen, geplanter Wartung und Datensicherheit unter **Regeln**): Monitore, Vorfälle und Vorfall-Episoden, Warnungen und Warnungs-Episoden, Wartungsereignisse, Statusseiten, Dienste, Hosts, Kubernetes-Cluster, Docker-Hosts, Docker-Swarm-Cluster, Podman-Hosts, Proxmox-Cluster, OpenStack-Clouds, VMware-vCenter, Ceph-Cluster, Speicher-Arrays, Datenbanken, Datenspeicher, Tabellen, Warteschlangen, IoT-Flotten, Serverless-Funktionen, Cloud-Ressourcen, RUM-Anwendungen, Dashboards, Bereitschaftsrichtlinien, Bereitschaftspläne, Richtlinien für eingehende Anrufe, Workflows, Runbooks, Netzwerkgeräte und SLOs.
+Jedes Produkt mit Beschriftungen und Eigentümern hat beide Arten unter seinen **Einstellungen** (bei Monitoren, Statusseiten, Vorfällen, Warnungen, geplanter Wartung und Datensicherheit unter **Regeln**): Monitore, Vorfälle und Vorfall-Episoden, Warnungen und Warnungs-Episoden, Wartungsereignisse, Statusseiten, Dienste, Hosts, Kubernetes-Cluster, Docker-Hosts, Docker-Swarm-Cluster, Podman-Hosts, Proxmox-Cluster, OpenStack-Clouds, VMware-vCenter, Ceph-Cluster, Speicher-Arrays, Datenbanken, Datenspeicher, Tabellen, Warteschlangen, IoT-Flotten, Serverless-Funktionen, Cloud-Ressourcen, RUM-Anwendungen, Dashboards, Bereitschaftsrichtlinien, Bereitschaftspläne, Richtlinien für eingehende Anrufe, Workflows, Runbooks, Netzwerkgeräte und SLOs.
 
-Beschriftungsregeln für Monitore finden Sie zum Beispiel unter **Monitore → Einstellungen → Beschriftungsregeln**, solche für Vorfälle unter **Vorfälle → Regeln → Beschriftungsregeln**. **Einstellungen** und **Regeln** sind im Seitenmenü anfangs eingeklappt: Klicken Sie auf den Titel des Abschnitts, um ihn zu öffnen. Die Seiten für Vorfälle und Warnungen haben einen Tab **Vorfallsregeln** (bzw. **Warnungsregeln**) und einen Tab **Episodenregeln**.
+Beschriftungsregeln für Monitore finden Sie zum Beispiel unter **Monitore → Regeln → Beschriftungsregeln**, solche für SLOs unter **SLOs → Einstellungen → Beschriftungsregeln**. **Einstellungen** und **Regeln** sind im Seitenmenü anfangs eingeklappt: Klicken Sie auf den Titel des Abschnitts, um ihn zu öffnen. Die Seiten für Vorfälle und Warnungen haben einen Tab **Vorfallsregeln** (bzw. **Warnungsregeln**) und einen Tab **Episodenregeln**.
 
 ## Eine Regel anlegen
 
@@ -57,7 +57,7 @@ Der **Name** wird aus Ihrer Auswahl gebildet (_Production hinzufügen_, _Platfor
 Klicken Sie im letzten Schritt erneut auf die nach der Regel benannte Schaltfläche, etwa **Beschriftungsregel für Monitore erstellen**. Die Regel ist von Anfang an aktiviert, und die Liste zeigt sie mit einer grünen Markierung **Aktiviert**.
 :::
 
-Eine neue Regel muss etwas hinzufügen: mindestens eine Beschriftung (oder einen Eigentümer) oder, bei einer Regel für Vorfälle, Warnungen oder geplante Wartung, etwas, das sie erbt (siehe unten). Um eine Regel anzuhalten, ohne sie zu löschen, schalten Sie **Aktiviert** in ihrem Bearbeitungsformular aus; die Liste zeigt dann eine rote Markierung **Deaktiviert**. Bei einer Eigentümerregel für Vorfälle oder Warnungen genügt auch ein Team unter **Team des Erstellers**.
+Eine neue Regel muss etwas hinzufügen: mindestens eine Beschriftung (oder einen Eigentümer) oder, bei einer Regel für Vorfälle, Warnungen oder geplante Wartung, etwas, das sie erbt (siehe unten). Um eine Regel anzuhalten, ohne sie zu löschen, schalten Sie **Aktiviert** in ihrem Bearbeitungsformular aus; die Liste zeigt dann eine graue Markierung **Deaktiviert**. Bei einer Eigentümerregel für Vorfälle oder Warnungen genügt auch ein Team unter **Team des Erstellers**.
 
 ### Wie auch immer die Regel angelegt wird
 

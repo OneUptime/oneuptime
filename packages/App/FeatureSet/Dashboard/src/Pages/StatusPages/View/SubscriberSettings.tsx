@@ -220,7 +220,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
       {/*
        * The Subscribe page and the five channels, one switch each, saved as
        * they are flipped. They used to be five one-switch cards here, and
-       * all six again in a three-step card on Advanced Settings.
+       * all six again in a three-step card on Settings.
        */}
       <SubscriberChannelsCard statusPageId={modelId} />
 
@@ -670,6 +670,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
   return (
     <Fragment>
       <Tabs
+        label="Subscriber Settings"
         tabs={[
           {
             name: "Settings",

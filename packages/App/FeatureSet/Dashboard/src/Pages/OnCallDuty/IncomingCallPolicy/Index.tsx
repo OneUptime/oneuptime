@@ -17,8 +17,9 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green } from "Common/Types/BrandColors";
 import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -254,7 +255,7 @@ const IncomingCallPolicyView: FunctionComponent<
               if (item.isEnabled) {
                 return <Pill text="Enabled" color={Green} />;
               }
-              return <Pill text="Disabled" color={Red} />;
+              return <Pill text="Disabled" tone={PillTone.Paused} />;
             },
           },
           {
@@ -387,12 +388,12 @@ const IncomingCallPolicyView: FunctionComponent<
         {/* Step 2: Phone Number */}
         <div className="flex items-start gap-4">
           <div
-            className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm flex-shrink-0 ${!hasTwilioConfig ? "bg-gray-100 text-gray-400" : "bg-gray-200 text-gray-700"}`}
+            className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm flex-shrink-0 ${!hasTwilioConfig ? "bg-gray-100 text-gray-500" : "bg-gray-200 text-gray-700"}`}
           >
             2
           </div>
           {!hasTwilioConfig && !hasPhoneNumbers ? (
-            <div className="flex min-w-0 items-center gap-3 text-gray-400 pt-1">
+            <div className="flex min-w-0 items-center gap-3 text-gray-500 pt-1">
               <Icon icon={IconProp.Lock} className="h-5 w-5 shrink-0" />
               <p>
                 {translator.translateText(
@@ -421,12 +422,12 @@ const IncomingCallPolicyView: FunctionComponent<
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <div className="flex min-w-0 items-center gap-4">
             <div
-              className={`flex items-center justify-center w-8 h-8 shrink-0 rounded-full font-semibold text-sm ${!hasPhoneNumbers ? "bg-gray-100 text-gray-400" : "bg-gray-200 text-gray-700"}`}
+              className={`flex items-center justify-center w-8 h-8 shrink-0 rounded-full font-semibold text-sm ${!hasPhoneNumbers ? "bg-gray-100 text-gray-500" : "bg-gray-200 text-gray-700"}`}
             >
               3
             </div>
             {!hasPhoneNumbers ? (
-              <div className="flex min-w-0 items-center gap-3 text-gray-400">
+              <div className="flex min-w-0 items-center gap-3 text-gray-500">
                 <Icon icon={IconProp.Lock} className="h-5 w-5 shrink-0" />
                 <p>
                   {translator.translateText(

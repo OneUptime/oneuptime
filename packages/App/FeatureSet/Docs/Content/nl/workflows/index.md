@@ -70,7 +70,7 @@ Open **Producten** in de bovenbalk en kies **Workflows**, onder **Dashboards & a
 
 - **Workflows** — je lijst met workflows. Maak een nieuwe aan of open een bestaande.
 - **Globale variabelen** — waarden die al je workflows delen.
-- **Logboeken → Uitvoeringen** — de uitvoeringsgeschiedenis van alle workflows in je project.
+- **Uitvoeringen** — de uitvoeringsgeschiedenis van alle workflows in je project.
 - **Instellingen → Labelregels** en **Eigenaarsregels** — nieuwe workflows automatisch labelen en eigenaren toewijzen.
 - **Geavanceerd → Gearchiveerd** — workflows die je hebt gearchiveerd. Ze draaien nooit en staan niet in de lijst; haal ze hier uit het archief. Zie [Een workflow archiveren](/docs/workflows/configuration#een-workflow-archiveren).
 - **Ontwikkelaars** — hoe je workflows beheert met Terraform, de API of een AI-assistent.
@@ -80,12 +80,12 @@ Open één workflow, en het eigen menu daarvan bevat:
 - **Overzicht** — naam, beschrijving, labels en de schakelaar **Ingeschakeld**.
 - **Bouwer** — het canvas waarop je de workflow ontwerpt, met de schakelaar **Ingeschakeld** bovenaan.
 - **Workflow-variabelen** — waarden die alleen voor deze ene workflow gelden.
-- **Logboeken → Uitvoeringen** — elke uitvoering van deze workflow, met details.
-- **Eigenaren** — de mensen en teams die verantwoordelijk zijn voor de workflow.
+- **Uitvoeringen** — elke uitvoering van deze workflow, met details.
 - **Ontwikkelaars** — hoe je deze workflow beheert met Terraform, de API of een AI-assistent.
 - **Instellingen** — dupliceren, exporteren en archiveren.
+- **Eigenaren** — de mensen en teams die verantwoordelijk zijn voor de workflow.
 
-**Instellingen** staat in de sectie **Geavanceerd** van het menu, samen met **Auditlogboeken** en **Workflow verwijderen**. **Geavanceerd** en **Ontwikkelaars** zijn eerst ingeklapt, in dit menu en in elk ander menu, zodat de pagina's die je dagelijks gebruikt vooraan staan. Klik op de naam van een sectie om de pagina's ervan te tonen. Ze klapt vanzelf open als je op een van die pagina's bent.
+**Instellingen** en **Eigenaren** staan in de sectie **Geavanceerd** van het menu, samen met **Auditlogboeken** en **Workflow verwijderen**. **Geavanceerd** en **Ontwikkelaars** zijn eerst ingeklapt, in dit menu en in elk ander menu, zodat de pagina's die je dagelijks gebruikt vooraan staan. Klik op de naam van een sectie om de pagina's ervan te tonen. Ze klapt vanzelf open als je op een van die pagina's bent.
 
 ## Je eerste workflow bouwen
 

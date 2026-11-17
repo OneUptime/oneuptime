@@ -1,17 +1,17 @@
-import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import StatusPagePrivateUserService from "../../../Server/Services/StatusPagePrivateUserService";
 import UserService from "../../../Server/Services/UserService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import NewPasswordRule from "../../../Server/Utils/NewPasswordRule";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import StatusPagePrivateUser from "../../../Models/DatabaseModels/StatusPagePrivateUser";
 import User from "../../../Models/DatabaseModels/User";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import HashedString from "../../../Types/HashedString";
 import { PASSWORD_RULE_MESSAGES } from "../../../Types/Password";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
+import { SpyInstance } from "jest-mock";
 
 /*
  * The server keeps the one password rule on every write of a new password

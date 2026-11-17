@@ -71,7 +71,7 @@ describe("getMonitorStatusColor", () => {
       "textTertiary",
     ],
     [
-      "Probes Not Enabled",
+      "No Probe Enabled",
       { isNoProbeEnabledOnThisMonitor: true },
       "statusError",
     ],

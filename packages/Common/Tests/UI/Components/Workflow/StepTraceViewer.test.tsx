@@ -299,7 +299,7 @@ describe("StepTraceViewer", () => {
       const port: HTMLElement = screen.getByTestId("workflow-run-step-port");
 
       expect(port).toHaveTextContent("Error");
-      expect(port).toHaveClass("text-red-700");
+      expect(port).toHaveAttribute("data-tone", "danger");
       expect(screen.getByTestId("workflow-run-step-status")).toHaveTextContent(
         "Failed",
       );
@@ -310,8 +310,7 @@ describe("StepTraceViewer", () => {
 
       const port: HTMLElement = screen.getByTestId("workflow-run-step-port");
 
-      expect(port).toHaveClass("text-indigo-700");
-      expect(port).not.toHaveClass("text-red-700");
+      expect(port).toHaveAttribute("data-tone", "info");
       expect(screen.getByTestId("workflow-run-step-status")).toHaveTextContent(
         "Succeeded",
       );

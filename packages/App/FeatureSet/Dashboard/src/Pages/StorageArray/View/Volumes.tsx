@@ -32,7 +32,7 @@ const StorageArrayVolumes: FunctionComponent<
       pluralName="Volumes"
       title="Volumes"
       description="Block volumes on this FlashArray with their size, the flash they use and their latest performance. Sort by latency to find the volume hosts are waiting on."
-      noItemsMessage="No volumes found in the inventory yet. Volumes appear here a few minutes after the Storage Array Agent starts scraping the array."
+      noItemsMessage="No volumes in the inventory yet. Volumes appear here a few minutes after the Storage Array Agent starts scraping the array."
       getDetailRoute={(item: StorageArrayResource): Route => {
         return RouteUtil.populateRouteParams(
           RouteMap[PageMap.STORAGE_ARRAY_VIEW_VOLUME_DETAIL] as Route,

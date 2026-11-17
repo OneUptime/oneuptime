@@ -20,9 +20,9 @@ import Button, {
  *
  *   - A locked button with a reason sits in a wrapper that takes the
  *     pointer and shows the reason. The wrapper was only as wide as its
- *     words, so on a phone a locked NORMAL or PRIMARY button - as wide as
- *     the phone when it can be pressed - was narrower than the buttons
- *     beside it (#5320 fixed it for the Workflow Builder's toolbar alone).
+ *     words, so on a phone a locked button its row made as wide as the
+ *     phone was narrower than the buttons beside it (#5320 fixed it for
+ *     the Workflow Builder's toolbar alone).
  *   - A button pressed from the keyboard that goes busy is disabled, and
  *     the browser moves the focus off a disabled control to the page
  *     itself; one with a reason is also moved into its wrapper, which
@@ -39,41 +39,41 @@ afterEach(() => {
 });
 
 describe("a locked button's wrapper takes the button's place in its row", () => {
+  /*
+   * No style is as wide as a phone by itself any more (#9128): a row that
+   * wants its buttons across a phone gives them that width, and a locked
+   * one's wrapper takes it with the button.
+   */
+  test("a button a row makes as wide as a phone is wrapped as wide as the phone, and inline from md up", () => {
+    render(
+      <Button
+        dataTestId="locked"
+        title="Run Workflow"
+        buttonStyle={ButtonStyleType.PRIMARY}
+        className="w-full md:w-auto"
+        disabled={true}
+        tooltip="Add a trigger first."
+      />,
+    );
+
+    const wrapper: HTMLElement = screen.getByTestId("locked-disabled-wrapper");
+
+    expect(wrapper).toHaveClass(
+      "flex",
+      "w-full",
+      "md:inline-flex",
+      "md:w-auto",
+    );
+    expect(wrapper).not.toHaveClass("inline-flex");
+    // The button fills it, as it fills its row when it can be pressed.
+    expect(screen.getByTestId("locked")).toHaveClass("w-full", "md:w-auto");
+  });
+
   test.each([
     ["NORMAL", ButtonStyleType.NORMAL],
     ["PRIMARY", ButtonStyleType.PRIMARY],
     ["DANGER", ButtonStyleType.DANGER],
     ["SUCCESS", ButtonStyleType.SUCCESS],
-  ])(
-    "%s, as wide as a phone, is wrapped as wide as the phone and inline from md up",
-    (_name: string, buttonStyle: ButtonStyleType) => {
-      render(
-        <Button
-          dataTestId="locked"
-          title="Run Workflow"
-          buttonStyle={buttonStyle}
-          disabled={true}
-          tooltip="Add a trigger first."
-        />,
-      );
-
-      const wrapper: HTMLElement = screen.getByTestId(
-        "locked-disabled-wrapper",
-      );
-
-      expect(wrapper).toHaveClass(
-        "flex",
-        "w-full",
-        "md:inline-flex",
-        "md:w-auto",
-      );
-      expect(wrapper).not.toHaveClass("inline-flex");
-      // The button fills it, as it fills its row when it can be pressed.
-      expect(screen.getByTestId("locked")).toHaveClass("w-full", "md:w-auto");
-    },
-  );
-
-  test.each([
     ["OUTLINE", ButtonStyleType.OUTLINE],
     ["SECONDARY", ButtonStyleType.SECONDARY],
     ["LINK", ButtonStyleType.LINK],

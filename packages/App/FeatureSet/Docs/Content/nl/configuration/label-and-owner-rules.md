@@ -25,9 +25,9 @@ Met labels en eigenaren filtert en groepeert u resources, ze bepalen wie OneUpti
 
 ## Waar u de regels vindt
 
-Elk product met labels en eigenaren heeft beide regels onder zijn **Instellingen** (bij incidenten, waarschuwingen, gepland onderhoud en Gegevensbeveiliging onder **Regels**): monitoren, incidenten en incidentepisodes, waarschuwingen en waarschuwingsepisodes, onderhoudsgebeurtenissen, statuspagina's, services, hosts, Kubernetes-clusters, Docker-hosts, Docker Swarm-clusters, Podman-hosts, Proxmox-clusters, OpenStack-clouds, VMware vCenters, Ceph-clusters, storage-arrays, databases, gegevensopslagen, tabellen, wachtrijen, IoT-vloten, serverless functies, cloudresources, RUM-applicaties, dashboards, dienstbeleid, dienstroosters, beleid voor inkomende oproepen, workflows, runbooks, netwerkapparaten en SLO's.
+Elk product met labels en eigenaren heeft beide regels onder zijn **Instellingen** (bij monitoren, statuspagina's, incidenten, waarschuwingen, gepland onderhoud en Gegevensbeveiliging onder **Regels**): monitoren, incidenten en incidentepisodes, waarschuwingen en waarschuwingsepisodes, onderhoudsgebeurtenissen, statuspagina's, services, hosts, Kubernetes-clusters, Docker-hosts, Docker Swarm-clusters, Podman-hosts, Proxmox-clusters, OpenStack-clouds, VMware vCenters, Ceph-clusters, storage-arrays, databases, gegevensopslagen, tabellen, wachtrijen, IoT-vloten, serverless functies, cloudresources, RUM-applicaties, dashboards, dienstbeleid, dienstroosters, beleid voor inkomende oproepen, workflows, runbooks, netwerkapparaten en SLO's.
 
-Labelregels voor monitoren staan bijvoorbeeld onder **Monitoren → Instellingen → Labelregels**, die voor incidenten onder **Incidenten → Regels → Labelregels**. **Instellingen** en **Regels** zijn in het zijmenu eerst ingeklapt: klik op de titel van de sectie om die te openen. De pagina's voor incidenten en waarschuwingen hebben een tabblad **Incidentregels** (of **Waarschuwingsregels**) en een tabblad **Episoderegels**.
+Labelregels voor monitoren staan bijvoorbeeld onder **Monitoren → Regels → Labelregels**, die voor SLO's onder **SLOs → Instellingen → Labelregels**. **Instellingen** en **Regels** zijn in het zijmenu eerst ingeklapt: klik op de titel van de sectie om die te openen. De pagina's voor incidenten en waarschuwingen hebben een tabblad **Incidentregels** (of **Waarschuwingsregels**) en een tabblad **Episoderegels**.
 
 ## Een regel maken
 
@@ -57,7 +57,7 @@ De **Naam** wordt ingevuld op basis van uw keuze (_Production toevoegen_, _Platf
 Klik in de laatste stap opnieuw op de knop die naar de regel is genoemd, bijvoorbeeld **Monitor Label Rule aanmaken**. De regel begint ingeschakeld, en de lijst toont hem met een groen label **Ingeschakeld**.
 :::
 
-Een nieuwe regel moet iets toevoegen: minstens één label (of eigenaar) of, bij een regel voor incidenten, waarschuwingen of gepland onderhoud, iets wat hij overneemt (zie hieronder). Om een regel te pauzeren zonder hem te verwijderen, zet u **Ingeschakeld** uit in het bewerkingsformulier; de lijst toont dan een rood label **Uitgeschakeld**. Bij een eigenaarsregel voor incidenten of waarschuwingen is een team onder **Team van de maker** ook genoeg.
+Een nieuwe regel moet iets toevoegen: minstens één label (of eigenaar) of, bij een regel voor incidenten, waarschuwingen of gepland onderhoud, iets wat hij overneemt (zie hieronder). Om een regel te pauzeren zonder hem te verwijderen, zet u **Ingeschakeld** uit in het bewerkingsformulier; de lijst toont dan een grijs label **Uitgeschakeld**. Bij een eigenaarsregel voor incidenten of waarschuwingen is een team onder **Team van de maker** ook genoeg.
 
 ### Hoe de regel ook wordt gemaakt
 

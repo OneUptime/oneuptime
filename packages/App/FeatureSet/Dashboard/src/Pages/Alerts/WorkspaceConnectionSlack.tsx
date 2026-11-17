@@ -78,6 +78,7 @@ const AlertsSlackPage: FunctionComponent<
     >
       <WorkspaceConnectionGate workspaceType={WorkspaceType.Slack}>
         <Tabs
+          label="Slack"
           tabs={tabs}
           onTabChange={() => {
             // Tab changed

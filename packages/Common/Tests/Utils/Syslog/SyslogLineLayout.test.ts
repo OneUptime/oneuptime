@@ -203,7 +203,6 @@ describe("neither format", () => {
  * where its reading says its parts are.
  */
 describe("any line", () => {
-  // The suites' seeded generator.
   const random: SeededRandom = seededRandom(39);
 
   function pick<T>(choices: ReadonlyArray<T>): T {

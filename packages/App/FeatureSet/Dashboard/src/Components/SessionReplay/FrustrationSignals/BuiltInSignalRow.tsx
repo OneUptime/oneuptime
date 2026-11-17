@@ -436,11 +436,10 @@ const BuiltInSignalRow: FunctionComponent<ComponentProps> = (
               )}
 
               {/*
-               * Button's own md:ml-3 is a dialog footer's gap between
-               * buttons; here the row's gap spaces them, and "Save rule"
-               * starts under the fields rather than 12px in.
+               * The row's gap spaces the buttons, and "Save rule" starts
+               * under the fields.
                */}
-              <div className="flex flex-wrap items-center gap-3 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+              <div className="flex flex-wrap items-center gap-3">
                 <Button
                   title={SAVE_RULE_TEXT}
                   buttonStyle={ButtonStyleType.PRIMARY}

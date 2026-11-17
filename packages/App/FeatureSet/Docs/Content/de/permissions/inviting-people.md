@@ -118,7 +118,7 @@ Das Entfernen nimmt die Person aus jedem Team des Projekts. Sie verliert sofort 
 
 - **Single Sign-On.** Wer sich zum ersten Mal über den Identitätsanbieter des Projekts anmeldet, kommt in die Teams, die der Anbieter nennt. Siehe [Rollen und Teams für SSO-Benutzer](/docs/identity/sso#rollen-und-teams-für-sso-benutzer).
 - **SCIM.** Ihr Identitätsanbieter legt Personen an und fügt sie den Standard-Teams der Verbindung hinzu. Siehe [SCIM](/docs/identity/scim#so-wird-ein-projektbenutzer-bereitgestellt).
-- **Das Admin Dashboard.** Auf einer selbst gehosteten Installation kann ein Master-Admin jemanden einem Projekt hinzufügen und die Einladung für die Person annehmen. Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index#benutzer).
+- **Das Admin Dashboard.** Auf einer selbst gehosteten Installation kann ein Master-Admin jemanden einem Projekt hinzufügen und die Einladung für die Person annehmen. Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index#benutzer). Ein Master-Admin kann unter **Benutzer** mit **Benutzer erstellen** auch ein Konto für jemanden anlegen: Er gibt einen Namen und eine E-Mail-Adresse ein, und OneUptime sendet an diese Adresse einen Link zum Festlegen eines Passworts, der einmal und 7 Tage lang funktioniert. Um das Passwort stattdessen selbst festzulegen, öffnet er **Weitere Felder**. Wird die E-Mail nicht gesendet, bekommt er den Link angezeigt, um ihn selbst zu senden.
 
 ## Fehlerbehebung
 

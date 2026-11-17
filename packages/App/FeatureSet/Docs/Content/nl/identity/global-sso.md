@@ -3,7 +3,7 @@
 Met globale SSO stelt een **instantiebeheerder** van OneUptime (master-admin) **één keer**, op instantieniveau, een SAML 2.0- of OpenID Connect-identiteitsprovider (OIDC) in en koppelt die aan elk project op de server. In plaats van dat elke Projecteigenaar een eigen identiteitsprovider instelt, stelt een master-admin er één in die de hele instantie bedient.
 
 > [!NOTE]
-> Globale SSO, inclusief de instantiebrede schakelaar "Require SSO for Login", maakt deel uit van elke editie van OneUptime: elke zelf gehoste instantie heeft het, de Community Edition inbegrepen, en er is geen licentie voor nodig. Het hoort bij het instantiebeheer en geldt dus niet voor OneUptime Cloud. Zie [Enterprise Edition](/docs/self-hosted/enterprise) voor wat elke editie bevat.
+> Globale SSO, inclusief de instantiebrede schakelaar "Require SSO to Sign In", maakt deel uit van elke editie van OneUptime: elke zelf gehoste instantie heeft het, de Community Edition inbegrepen, en er is geen licentie voor nodig. Het hoort bij het instantiebeheer en geldt dus niet voor OneUptime Cloud. Zie [Enterprise Edition](/docs/self-hosted/enterprise) voor wat elke editie bevat.
 
 :::cards
 - [Een provider instellen](#globale-sso-instellen): Maak hem aan, geef uw identiteitsprovider de URL's van OneUptime en test hem.
@@ -96,7 +96,7 @@ Met **Elk project** voldoet aanmelden met de provider in elk project waar de per
 Een globale provider instellen dwingt niemand om hem te gebruiken; aanmelden met een wachtwoord blijft werken. Om SSO te verplichten, zet u de verplichting aan voor een project of voor de hele instantie:
 
 - **Per project:** een project kan SSO verplichten, en optioneel een *specifieke* provider (van het project of globaal). Zie [SSO verplichten voor uw project](/docs/identity/sso#sso-verplichten-voor-uw-project).
-- **Instantiebreed:** de kaart **SSO vereisen** onderaan **Admin** > **Instellingen** > **Single sign-on** heeft een schakelaar **SSO vereisen voor inloggen** die SSO afdwingt voor elke gebruiker op de instantie. Hij vraagt om bevestiging voordat hij aangaat en slaat op zodra u bevestigt. Master-admins blijven uitgezonderd, zodat ze niet buitengesloten kunnen worden.
+- **Instantiebreed:** de kaart **SSO vereisen** onderaan **Admin** > **Instellingen** > **Single sign-on** heeft een schakelaar **SSO vereisen om aan te melden** die SSO afdwingt voor elke gebruiker op de instantie. Hij vraagt om bevestiging voordat hij aangaat en slaat op zodra u bevestigt. Master-admins blijven uitgezonderd, zodat ze niet buitengesloten kunnen worden.
 
 Zolang de hele instantie SSO verplicht:
 
@@ -105,12 +105,12 @@ Zolang de hele instantie SSO verplicht:
 - Wie al met een wachtwoord is aangemeld, meldt zich met SSO aan om een project te openen. Diegene komt op de single sign-on-pagina van het project, die de eigen providers van het project biedt en de globale providers die mensen in het project aanmelden. De kaart **SSO vereisen** toont hoeveel mensen nog zonder SSO zijn ingelogd, en **Ze uitloggen** beëindigt hun sessies op elk apparaat tegelijk. Hoofdbeheerders blijven ingelogd.
 - Master-admins melden zich met hun wachtwoord aan op `/accounts/admin-login`, een adres waar de aanmeldpagina niet naar linkt. De kaart **SSO vereisen** toont het volledige adres onder de schakelaar, als **Inloggen voor hoofdbeheerders**: bewaar het, om de verplichting uit te zetten als uw identiteitsprovider niet meer werkt.
 
-Om **SSO vereisen voor inloggen** aan te zetten, is een SSO-provider nodig die mensen aanmeldt, zodat niemand erdoor wordt buitengesloten:
+Om **SSO vereisen om aan te melden** aan te zetten, is een SSO-provider nodig die mensen aanmeldt, zodat niemand erdoor wordt buitengesloten:
 
 - Voor de hele instantie heeft elk project dat zelf geen SSO verplicht er een nodig: een eigen SAML- of OIDC-provider die aanstaat, of een globale provider die aanstaat en mensen in het project aanmeldt. Zolang een project er geen heeft, wordt het aanzetten van de schakelaar geweigerd en noemt de melding de projecten (of, als het er veel zijn, de eerste en hoeveel het er zijn). Zet eerst een globale provider aan, of een provider in die projecten. Een project dat een specifieke provider verplicht, heeft precies die nodig: zolang hij uitstaat, is verwijderd of geen mensen in het project aanmeldt, noemt de melding dat project apart — zet eerst die provider aan of verplicht daar een andere.
 - Voor een project wordt hetzelfde gevraagd van dat project, en van de provider die het verplicht als het er een verplicht.
-- Een opslag die **SSO vereisen voor inloggen** als ingeschakeld verstuurt terwijl het al aanstaat — met andere instellingen of via de API — wordt op dezelfde manier gecontroleerd, voor de instantie of voor een project, net als een opslag die de provider noemt die een project al verplicht.
-- Voor een nieuw project, dat nog geen eigen provider heeft: zolang de instantie SSO verplicht, vereist het aanmaken van een project een globale provider die aanstaat en mensen in elk project aanmeldt, anders zou niemand, ook niet degene die het aanmaakt, het kunnen openen. Zonder zo'n provider wordt het aanmaken van een project geweigerd, en vraagt de melding een serverbeheerder er een aan te zetten. Master-admins kunnen nog steeds projecten aanmaken. Een project dat wordt aangemaakt met **SSO vereisen voor inloggen** al aan, heeft hetzelfde nodig, wie het ook aanmaakt.
+- Een opslag die **SSO vereisen om aan te melden** als ingeschakeld verstuurt terwijl het al aanstaat — met andere instellingen of via de API — wordt op dezelfde manier gecontroleerd, voor de instantie of voor een project, net als een opslag die de provider noemt die een project al verplicht.
+- Voor een nieuw project, dat nog geen eigen provider heeft: zolang de instantie SSO verplicht, vereist het aanmaken van een project een globale provider die aanstaat en mensen in elk project aanmeldt, anders zou niemand, ook niet degene die het aanmaakt, het kunnen openen. Zonder zo'n provider wordt het aanmaken van een project geweigerd, en vraagt de melding een serverbeheerder er een aan te zetten. Master-admins kunnen nog steeds projecten aanmaken. Een project dat wordt aangemaakt met **SSO vereisen om aan te melden** al aan, heeft hetzelfde nodig, wie het ook aanmaakt.
 
 Uitzetten wordt nooit geweigerd.
 
@@ -129,11 +129,11 @@ Een project dat SSO verplicht, zelf of omdat de hele instantie dat doet, houdt a
 - een globale provider uitzetten, verwijderen of beperken tot zijn gekoppelde projecten;
 - bij een provider die tot zijn gekoppelde projecten is beperkt: zijn eerste project koppelen (tot dan meldt hij mensen in elk project aan), een koppeling uitzetten, haar naar een ander project of een andere provider verplaatsen, of haar verwijderen.
 
-De melding noemt de projecten, of de eerste en hoeveel het er zijn. Zet eerst een andere provider voor ze aan, een eigen of een globale, of zet daar **SSO vereisen voor inloggen** uit. Een project dat juist deze provider verplicht, wordt apart genoemd: verplicht daar eerst een andere provider of zet **SSO vereisen voor inloggen** uit.
+De melding noemt de projecten, of de eerste en hoeveel het er zijn. Zet eerst een andere provider voor ze aan, een eigen of een globale, of zet daar **SSO vereisen om aan te melden** uit. Een project dat juist deze provider verplicht, wordt apart genoemd: verplicht daar eerst een andere provider of zet **SSO vereisen om aan te melden** uit.
 
-Wijzigingen waarmee een provider meer mensen aanmeldt — hem of een koppeling aanzetten, de beperking opheffen — worden nooit geweigerd. Ze bereiken alle appservers meteen, net als het uitzetten van **SSO vereisen voor inloggen**: mensen kunnen zich direct met de provider aanmelden. Alleen als er op precies dat moment een andere wijziging aan dezelfde provider wordt opgeslagen, kan een appserver tot een minuut nodig hebben om bij te werken.
+Wijzigingen waarmee een provider meer mensen aanmeldt — hem of een koppeling aanzetten, de beperking opheffen — worden nooit geweigerd. Ze bereiken alle appservers meteen, net als het uitzetten van **SSO vereisen om aan te melden**: mensen kunnen zich direct met de provider aanmelden. Alleen als er op precies dat moment een andere wijziging aan dezelfde provider wordt opgeslagen, kan een appserver tot een minuut nodig hebben om bij te werken.
 
-Twee wijzigingen in wie zich kan aanmelden, worden na elkaar gecontroleerd. Wordt er op hetzelfde moment een andere opgeslagen die langer duurt dan normaal — het aanzetten van **SSO vereisen voor inloggen** voor de hele instantie leest elk project —, dan wordt een wijziging geweigerd met "Another change to who can sign in with SSO is being saved. Try again in a moment.": sla haar opnieuw op. Een project dat op dat moment wordt aangemaakt, wacht ook op de wijziging, en als het te lang wacht, wordt het geweigerd met "The server's SSO settings are being changed. Create the project again in a moment."
+Twee wijzigingen in wie zich kan aanmelden, worden na elkaar gecontroleerd. Wordt er op hetzelfde moment een andere opgeslagen die langer duurt dan normaal — het aanzetten van **SSO vereisen om aan te melden** voor de hele instantie leest elk project —, dan wordt een wijziging geweigerd met "Another change to who can sign in with SSO is being saved. Try again in a moment.": sla haar opnieuw op. Een project dat op dat moment wordt aangemaakt, wacht ook op de wijziging, en als het te lang wacht, wordt het geweigerd met "The server's SSO settings are being changed. Create the project again in a moment."
 
 ## Problemen oplossen
 
@@ -162,7 +162,7 @@ Met elk antwoord van uw identiteitsprovider wordt maar één keer aangemeld, en 
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
-De hele instantie verplicht SSO, en dit was een aanmelding met een wachtwoord, een passkey, een gemailde link, Google of Microsoft, of een registratie. Meld u in plaats daarvan aan met een van de SSO-knoppen op de aanmeldpagina. Een master-admin meldt zich met zijn wachtwoord aan op `/accounts/admin-login`; om iedereen weer met een wachtwoord te laten aanmelden, zet hij **SSO vereisen voor inloggen** uit op **Single sign-on**.
+De hele instantie verplicht SSO, en dit was een aanmelding met een wachtwoord, een passkey, een gemailde link, Google of Microsoft, of een registratie. Meld u in plaats daarvan aan met een van de SSO-knoppen op de aanmeldpagina. Een master-admin meldt zich met zijn wachtwoord aan op `/accounts/admin-login`; om iedereen weer met een wachtwoord te laten aanmelden, zet hij **SSO vereisen om aan te melden** uit op **Single sign-on**.
 :::
 
 ## Volgende stappen

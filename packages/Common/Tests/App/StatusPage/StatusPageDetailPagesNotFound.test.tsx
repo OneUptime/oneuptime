@@ -184,7 +184,7 @@ describe("Status page detail pages when the item is not available", () => {
     });
 
     expect(
-      screen.getByText("Incident not found on this status page."),
+      screen.getByText("Check the link, or open this page's Incidents tab."),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("bar-loader")).not.toBeInTheDocument();
 
@@ -301,7 +301,9 @@ describe("Status page detail pages when the item is not available", () => {
     });
 
     expect(
-      screen.getByText("Announcement not found on this status page."),
+      screen.getByText(
+        "Check the link, or open this page's Announcements tab.",
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("bar-loader")).not.toBeInTheDocument();
   });

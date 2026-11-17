@@ -361,10 +361,12 @@ async function renderFiltered(filter: JSONObject): Promise<void> {
   await settle();
 }
 
-// The chip over the list that starts with a filter's name.
+// The applied filter's chip over the list that starts with a filter's name.
 function chipOf(field: string): string {
   const chip: HTMLElement | undefined = Array.from(
-    document.querySelectorAll<HTMLElement>(".rounded-full"),
+    document.querySelectorAll<HTMLElement>(
+      '[data-testid="applied-filter-chip"]',
+    ),
   ).find((element: HTMLElement): boolean => {
     return (element.textContent || "").startsWith(`${field} `);
   });

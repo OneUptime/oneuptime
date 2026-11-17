@@ -1041,6 +1041,14 @@ import { KeepOwnersWhenTheirPictureFileIsDeleted1809182520000 } from "./18091825
 import { KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000 } from "./1809182530000-KeepNotificationLogsWhenOnCallSettingsAreDeleted";
 import { CascadeRunsAndFixesWithTheirRecord1809182600000 } from "./1809182600000-CascadeRunsAndFixesWithTheirRecord";
 import { DeleteRunsAndFixesOfDeletedRecords1809182610000 } from "./1809182610000-DeleteRunsAndFixesOfDeletedRecords";
+import { AddCarriedRecordsToCodeWork1809182700000 } from "./1809182700000-AddCarriedRecordsToCodeWork";
+import { LinkCodeWorkToTheRecordsItCarries1809182710000 } from "./1809182710000-LinkCodeWorkToTheRecordsItCarries";
+import { PresentedKeysEncryptedColumns1809182900000 } from "./1809182900000-PresentedKeysEncryptedColumns";
+import { StatusPageEmbedTokenEncryptedColumn1809182910000 } from "./1809182910000-StatusPageEmbedTokenEncryptedColumn";
+import { StatusPageSubscriberTokenEncryptedColumn1809182920000 } from "./1809182920000-StatusPageSubscriberTokenEncryptedColumn";
+import { MonitorKeysEncryptedColumns1809182930000 } from "./1809182930000-MonitorKeysEncryptedColumns";
+import { PresentedKeyLookupHashIndexes1809182940000 } from "./1809182940000-PresentedKeyLookupHashIndexes";
+import { WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182950000 } from "./1809182950000-WebhookAddressesAndSnmpCredentialsEncryptedColumns";
 
 export default [
   InitialMigration,
@@ -2086,4 +2094,12 @@ export default [
   KeepNotificationLogsWhenOnCallSettingsAreDeleted1809182530000,
   CascadeRunsAndFixesWithTheirRecord1809182600000,
   DeleteRunsAndFixesOfDeletedRecords1809182610000,
+  AddCarriedRecordsToCodeWork1809182700000,
+  LinkCodeWorkToTheRecordsItCarries1809182710000,
+  PresentedKeysEncryptedColumns1809182900000,
+  StatusPageEmbedTokenEncryptedColumn1809182910000,
+  StatusPageSubscriberTokenEncryptedColumn1809182920000,
+  MonitorKeysEncryptedColumns1809182930000,
+  PresentedKeyLookupHashIndexes1809182940000,
+  WebhookAddressesAndSnmpCredentialsEncryptedColumns1809182950000,
 ];

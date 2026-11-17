@@ -272,6 +272,212 @@ describe("PinRelease.js", () => {
       }).toThrow();
     }
   });
+
+  /*
+   * The Dockerfile sets the release's start command again, so a release whose
+   * own start command runs another file cannot be pinned: the images run the
+   * JavaScript their build compiles (Index.js), which a release built before
+   * then does not have (it started Index.ts through ts-node).
+   */
+  describe("the release's start command", () => {
+    const HEAP =
+      'heap=8096; export NODE_OPTIONS="--max-old-space-size=$heap${NODE_OPTIONS:+ $NODE_OPTIONS}"';
+    const COMPILED = [
+      "sh",
+      "-c",
+      `${HEAP} && exec node --no-node-snapshot --require Common/Server/Utils/TsNode/PrecompiledSourceMaps.js Index.js`,
+    ];
+    const TS_NODE = [
+      "sh",
+      "-c",
+      `${HEAP} && exec node --no-node-snapshot --require ts-node/register Index.ts`,
+    ];
+
+    test("names the file a start command runs", () => {
+      expect(PinRelease.startedFile(COMPILED)).toBe("Index.js");
+      expect(PinRelease.startedFile(TS_NODE)).toBe("Index.ts");
+      expect(PinRelease.startedFile(["/bin/sh", "-c", "./run.sh"])).toBe(
+        "./run.sh",
+      );
+      expect(PinRelease.startedFile([])).toBe("");
+      expect(PinRelease.startedFile(undefined)).toBe("");
+    });
+
+    test("reads a Dockerfile's start command as Docker keeps it: the last CMD, exec or shell form", () => {
+      expect(
+        PinRelease.dockerfileCommand(
+          `FROM x\nCMD ["node", "a.js"]\nCMD ${JSON.stringify(COMPILED)}\n`,
+        ),
+      ).toEqual(COMPILED);
+      expect(PinRelease.dockerfileCommand("FROM x\nCMD ./run.sh\n")).toEqual([
+        "/bin/sh",
+        "-c",
+        "./run.sh",
+      ]);
+      expect(PinRelease.dockerfileCommand('FROM x\n# CMD ["no"]\n')).toEqual(
+        [],
+      );
+    });
+
+    test.each(["App", "Probe", "Runner"])(
+      "IronBank/%s runs the compiled start, and refuses a release that ran its TypeScript through ts-node",
+      (project) => {
+        const dockerfile = fs.readFileSync(
+          path.join(REPO_ROOT, "IronBank", project, "Dockerfile"),
+          "utf8",
+        );
+
+        expect(
+          PinRelease.startedFile(PinRelease.dockerfileCommand(dockerfile)),
+        ).toBe("Index.js");
+        expect(
+          PinRelease.startCommandMismatch(dockerfile, COMPILED),
+        ).toBeNull();
+        expect(PinRelease.startCommandMismatch(dockerfile, TS_NODE)).toBe(
+          "the release's own start command runs Index.ts, and the Dockerfile's runs Index.js. Pin a release whose image starts Index.js (a release built before the images ran precompiled JavaScript started Index.ts through ts-node)",
+        );
+      },
+    );
+
+    test("IronBank/Ingress runs the release's own run.sh, whatever it starts", () => {
+      const dockerfile = fs.readFileSync(
+        path.join(REPO_ROOT, "IronBank", "Ingress", "Dockerfile"),
+        "utf8",
+      );
+
+      expect(
+        PinRelease.startCommandMismatch(dockerfile, [
+          "/bin/sh",
+          "-c",
+          "./run.sh",
+        ]),
+      ).toBeNull();
+    });
+
+    /*
+     * main() with Docker Hub stood in for: the release's tag, manifest and
+     * image config, as readRelease asks for them.
+     */
+    async function pinAgainst(command, check) {
+      const directory = fs.mkdtempSync(
+        path.join(os.tmpdir(), "oneuptime-pin-release-"),
+      );
+      const project = path.join(directory, "App");
+      fs.mkdirSync(project);
+      for (const file of ["hardening_manifest.yaml", "Dockerfile"]) {
+        fs.copyFileSync(
+          path.join(REPO_ROOT, "IronBank", "App", file),
+          path.join(project, file),
+        );
+      }
+      fs.copyFileSync(
+        path.join(REPO_ROOT, "IronBank", "values.yaml"),
+        path.join(directory, "values.yaml"),
+      );
+      const before = fs.readFileSync(path.join(project, "Dockerfile"), "utf8");
+
+      const imageConfig = config({
+        config: {
+          Env: ["APP_VERSION=14.0.101", `GIT_SHA=${COMMIT}`],
+          Cmd: command,
+        },
+      });
+      const respond = (body, headers = {}) => {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => {
+            return body;
+          },
+          headers: {
+            get: (name) => {
+              return headers[name.toLowerCase()] || null;
+            },
+          },
+        };
+      };
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockImplementation(async (url) => {
+          if (url.startsWith("https://auth.docker.io/")) {
+            return respond({ token: "token" });
+          }
+          if (url.endsWith("/manifests/enterprise-14.0.101")) {
+            return respond(
+              {
+                mediaType: "application/vnd.oci.image.manifest.v1+json",
+                config: {},
+              },
+              { "docker-content-digest": AMD64 },
+            );
+          }
+          if (url.endsWith(`/manifests/${AMD64}`)) {
+            return respond({ config: { digest: ARM64 } });
+          }
+          if (url.endsWith(`/blobs/${ARM64}`)) {
+            return respond(imageConfig);
+          }
+          throw new Error(`unexpected fetch of ${url}`);
+        });
+      const logged = jest.spyOn(console, "log").mockImplementation(() => {});
+      const errors = jest.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        const outcome = await PinRelease.main([
+          "--version",
+          "14.0.101",
+          "--dir",
+          project,
+          ...(check ? ["--check"] : []),
+        ]).then(
+          () => {
+            return null;
+          },
+          (error) => {
+            return error;
+          },
+        );
+        return {
+          outcome,
+          changed:
+            fs.readFileSync(path.join(project, "Dockerfile"), "utf8") !==
+            before,
+        };
+      } finally {
+        fetchSpy.mockRestore();
+        logged.mockRestore();
+        errors.mockRestore();
+        process.exitCode = undefined;
+        fs.rmSync(directory, { recursive: true, force: true });
+      }
+    }
+
+    test("pinning refuses a release whose own start command runs Index.ts, and changes nothing", async () => {
+      const { outcome, changed } = await pinAgainst(TS_NODE, false);
+
+      expect(outcome).toBeInstanceOf(Error);
+      expect(outcome.message).toContain(
+        "IronBank/App cannot run oneuptime/app:enterprise-14.0.101",
+      );
+      expect(outcome.message).toContain(
+        "the release's own start command runs Index.ts, and the Dockerfile's runs Index.js",
+      );
+      expect(changed).toBe(false);
+    });
+
+    test("--check refuses it too", async () => {
+      const { outcome } = await pinAgainst(TS_NODE, true);
+
+      expect(outcome).toBeInstanceOf(Error);
+      expect(outcome.message).toContain("runs Index.ts");
+    });
+
+    test("(control) a release that starts the compiled Index.js is pinned", async () => {
+      const { outcome, changed } = await pinAgainst(COMPILED, false);
+
+      expect(outcome).toBeNull();
+      expect(changed).toBe(true);
+    });
+  });
 });
 
 /*

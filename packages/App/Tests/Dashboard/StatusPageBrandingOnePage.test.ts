@@ -294,8 +294,6 @@ describe("the Branding page", () => {
   test("is every card the five screens held about how the page looks, with the analytics names they had", () => {
     expect(namesIn(main)).toEqual([
       "Status Page > Branding > Header Style",
-      "Status Page > Branding > Title and Description",
-      "Status Page > Branding > Favicon",
       "Status Page > Header Links",
       "Status Page > Branding > Overview Page",
       "Status Page > Branding > Copyright",
@@ -303,16 +301,14 @@ describe("the Branding page", () => {
     ]);
   });
 
-  test("draws the theme right under the logo and cover image, before the title and description", () => {
+  test("draws the theme right under the logo and cover image, before the header's links", () => {
     const logo: number = main.indexOf(
       'name="Status Page > Branding > Header Style"',
     );
     const theme: number = main.indexOf(
       "<StatusPageThemeCard statusPageId={modelId} />",
     );
-    const title: number = main.indexOf(
-      'name="Status Page > Branding > Title and Description"',
-    );
+    const title: number = main.indexOf('name="Status Page > Header Links"');
 
     expect(logo).toBeGreaterThan(-1);
     expect(theme).toBeGreaterThan(logo);
@@ -322,9 +318,16 @@ describe("the Branding page", () => {
     expect(advanced).not.toContain("<StatusPageThemeCard");
   });
 
-  test("folds the history chart's colors, the languages and search engine indexing under Advanced, last", () => {
+  /*
+   * The browser tab's title, the search engine description and the
+   * favicon are set once, if ever, and none of them is what visitors read
+   * on the page (the intro text is): they fold first (#9130).
+   */
+  test("folds the browser tab and search engine cards, the history chart's colors, the languages and search engine indexing under More settings, last", () => {
     expect(advancedStart).toBeGreaterThan(-1);
     expect(namesIn(advanced)).toEqual([
+      "Status Page > Branding > Title and Description",
+      "Status Page > Branding > Favicon",
       "Status Page > Branding > Default Bar Color",
       "Status Page > Branding > History Chart Bar Color Rules",
       "Status Page > Languages",
@@ -336,7 +339,7 @@ describe("the Branding page", () => {
     expect(advanced).toContain(
       "description={StatusPageBrandingCopy.advancedDescription}",
     );
-    // Folded, its header names the four cards, the changed ones as chips.
+    // Folded, its header names the six cards, the changed ones as chips.
     expect(advanced).toContain(
       "items={getBrandingAdvancedItems(advancedValues)}",
     );
@@ -495,18 +498,14 @@ describe("one place for each branding setting", () => {
 
   /*
    * Files that read a branding column to say what it is, never to set it:
-   * each subscriber list names the page's default language, which every
-   * subscriber without a language of their own is written in ("Page
-   * default (Deutsch)", SubscriberLanguageColumn). Each is checked to read
-   * the column and to give it no form field.
+   * the subscriber list (one for every channel since #9125) names the
+   * page's default language, which every subscriber without a language of
+   * their own is written in ("Page default (Deutsch)",
+   * SubscriberLanguageColumn). Each is checked to read the column and to
+   * give it no form field.
    */
   const READ_TO_NAME_IT: Record<string, Array<string>> = {
-    defaultLanguage: [
-      "Pages/StatusPages/View/EmailSubscribers.tsx",
-      "Pages/StatusPages/View/MicrosoftTeamsSubscribers.tsx",
-      "Pages/StatusPages/View/SMSSubscribers.tsx",
-      "Pages/StatusPages/View/SlackSubscribers.tsx",
-    ],
+    defaultLanguage: ["Components/StatusPage/StatusPageSubscriberList.tsx"],
   };
 
   const statusPageSources: Array<string> = [
@@ -594,6 +593,12 @@ describe("Configured, on the Branding page's folded Advanced section", () => {
     ["a shorter list of languages", { enabledLanguages: ["en", "fr"] }],
     ["one language", { enabledLanguages: ["en"] }],
     ["search engines kept away", { enableSearchEngineIndexing: false }],
+    ["a browser tab title", { browserTabTitle: "Acme Status" }],
+    [
+      "a search engine description",
+      { searchEngineDescription: "Live status." },
+    ],
+    ["a favicon", { hasFavicon: true }],
   ] as Array<[string, BrandingAdvancedValues]>)(
     "%s is configured",
     (_what: string, values: BrandingAdvancedValues) => {
@@ -648,6 +653,13 @@ describe("translations", () => {
     StatusPageBrandingCopy.advancedDescription,
     StatusPageBrandingCopy.overviewDescriptionDescription,
     StatusPageBrandingCopy.overviewDescriptionEditButton,
+    // Each description named by who reads it (#9130).
+    StatusPageBrandingCopy.overviewDescriptionTitle,
+    StatusPageBrandingCopy.introTextFieldDescription,
+    StatusPageBrandingCopy.introTextEmpty,
+    StatusPageBrandingCopy.titleCardTitle,
+    StatusPageBrandingCopy.titleEditTitle,
+    "Search Engine Description",
     StatusPageBrandingCopy.languagesDescription,
     StatusPageBrandingCopy.languagesEditButton,
     StatusPageBrandingCopy.searchEngineIndexingTitle,
@@ -661,7 +673,7 @@ describe("translations", () => {
     StatusPageBrandingCopy.defaultBarColorTitle,
     StatusPageBrandingCopy.barColorRulesTitle,
     StatusPageBrandingCopy.noData,
-    StatusPageBrandingCopy.overviewDescriptionTitle,
+    StatusPageBrandingCopy.faviconTitle,
     StatusPageBrandingCopy.languagesTitle,
     "Branding",
     "Custom Domains",

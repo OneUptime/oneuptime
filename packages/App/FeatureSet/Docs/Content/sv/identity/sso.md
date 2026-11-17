@@ -3,7 +3,7 @@
 Med enkel inloggning (SSO) loggar personerna i ditt projekt in i OneUptime via organisationens identitetsleverantör (IdP), över SAML 2.0 eller OpenID Connect. Du hanterar åtkomst, lösenord och multifaktorautentisering på ett ställe, och du kan kräva SSO för alla i projektet.
 
 > [!NOTE]
-> **Utgåva:** SSO, inklusive "Require SSO for login", ingår i alla OneUptime-utgåvor: självhostade installationer får det i Community Edition, utan att någon licens behövs. På OneUptime Cloud är det tillgängligt från planen **Scale** och uppåt. Se [Enterprise Edition](/docs/self-hosted/enterprise) för vad varje utgåva innehåller.
+> **Utgåva:** SSO, inklusive "Require SSO to sign in", ingår i alla OneUptime-utgåvor: självhostade installationer får det i Community Edition, utan att någon licens behövs. På OneUptime Cloud är det tillgängligt från planen **Scale** och uppåt. Se [Enterprise Edition](/docs/self-hosted/enterprise) för vad varje utgåva innehåller.
 
 :::cards
 - [Konfigurera en SAML-leverantör](#konfigurera-sso): Skapa den i OneUptime och ge din IdP två URL:er.
@@ -325,7 +325,7 @@ Att lägga till en leverantör, ändra en eller slå på den igen kräver **Scal
 
 Så länge projektet fortfarande kräver SSO visar sidan **SSO** också **Kräv SSO för inloggning**: stäng av det innan du stänger av den sista leverantören. Till dess kan den sista leverantör som personer kan logga in med inte stängas av eller tas bort, så att ingen stängs ute från projektet.
 
-En statussidas sidor **SSO** och **OIDC** listar statussidans egna leverantörer på samma sätt. Så länge statussidan fortfarande kräver SSO visar båda sidorna också **Kräv SSO för inloggning**: stäng av det innan du stänger av leverantörerna, annars kan statussidans privata användare inte logga in alls.
+En statussidas sida **Enkel inloggning** listar statussidans egna leverantörer på samma sätt, på flikarna **SAML** och **OIDC**. Så länge statussidan fortfarande kräver SSO visar båda flikarna också **Kräv SSO för inloggning**: stäng av det innan du stänger av leverantörerna, annars kan statussidans privata användare inte logga in alls.
 
 ## Felsökning
 

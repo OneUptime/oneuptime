@@ -1,5 +1,8 @@
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -25,6 +28,8 @@ import Loader from "Common/UI/Components/Loader/Loader";
 import DashboardVariableSelector from "./DashboardVariableSelector";
 import DashboardVariablesModal from "./DashboardVariablesModal";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import AddWidgetModal from "./AddWidgetModal";
 import DashboardDefaultsBar from "./DashboardDefaultsBar";
@@ -609,10 +614,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   />
                 </h2>
                 {isEditMode && (
-                  <span className="inline-flex items-center px-1.5 py-px rounded-full text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-100 animate-pulse">
-                    <span className="w-1 h-1 bg-blue-500 rounded-full mr-1"></span>
-                    {translator.translateText("Editing")}
-                  </span>
+                  <Pill text="Editing" tone={PillTone.Info} isPulsing={true} />
                 )}
               </div>
               {props.dashboardDescription && !isEditMode && (
@@ -746,10 +748,11 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     </div>
 
                     {/* Commit actions */}
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        className="inline-flex items-center h-8 px-3 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
+                    <div className="flex items-center gap-2">
+                      <Button
+                        title="Cancel"
+                        buttonStyle={ButtonStyleType.OUTLINE}
+                        buttonSize={ButtonSize.Small}
                         onClick={() => {
                           if (props.hasUnsavedChanges === false) {
                             props.onCancelEditClick();
@@ -758,19 +761,14 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 
                           setShowCancelModal(true);
                         }}
-                        title={translator.translateText("Cancel")}
-                      >
-                        {translator.translateText("Cancel")}
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer"
+                      />
+                      <Button
+                        title="Save Changes"
+                        icon={IconProp.Check}
+                        buttonStyle={ButtonStyleType.PRIMARY}
+                        buttonSize={ButtonSize.Small}
                         onClick={props.onSaveClick}
-                        title={translator.translateText("Save Changes")}
-                      >
-                        <Icon icon={IconProp.Check} className="w-3.5 h-3.5" />
-                        <span>{translator.translateText("Save Changes")}</span>
-                      </button>
+                      />
                     </div>
                   </div>
                 )}

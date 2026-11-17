@@ -38,11 +38,15 @@ import {
  * So a runbook's menu reads:
  *
  *   Basic       Overview, Steps                    open
- *   Logs        Executions                         folded
- *   Owners      Owners                             folded
- *   Settings    Triggers, Settings                 folded
+ *   Settings    Triggers, Variables, Settings      folded
  *   Developer   Terraform, API, CLI, AI Assistants folded
- *   Advanced    Audit Logs, Delete Runbook         folded
+ *   Advanced    Executions, Owners, Audit Logs,    folded
+ *               Delete Runbook
+ *
+ * Executions had a Logs section of its own, folded, holding nothing else,
+ * until #9216: a heading that nearly repeated its one entry. It now leads
+ * Advanced, folded just the same. Owners was a section of its own, under a
+ * heading of its own name, until #9134.
  *
  * Executions and Triggers used to sit in Basic, open on every visit, and the
  * Settings page under Advanced. Every page kept its URL and its breadcrumbs.
@@ -274,8 +278,6 @@ const SETTINGS_PATH: string = `${RUNBOOK_PATH}/settings`;
 
 const SECTIONS_IN_ORDER: Array<string> = [
   "Basic",
-  "Logs",
-  "Owners",
   "Settings",
   "Developer",
   "Advanced",
@@ -310,8 +312,6 @@ interface MenuPage {
 const RUNBOOK_MENU: ReadonlyArray<MenuPage> = [
   { title: "Overview", section: "Basic", path: RUNBOOK_PATH },
   { title: "Steps", section: "Basic", path: `${RUNBOOK_PATH}/steps` },
-  { title: "Executions", section: "Logs", path: EXECUTIONS_PATH },
-  { title: "Owners", section: "Owners", path: `${RUNBOOK_PATH}/owners` },
   { title: "Triggers", section: "Settings", path: TRIGGERS_PATH },
   { title: "Variables", section: "Settings", path: VARIABLES_PATH },
   { title: "Settings", section: "Settings", path: SETTINGS_PATH },
@@ -327,6 +327,8 @@ const RUNBOOK_MENU: ReadonlyArray<MenuPage> = [
     section: "Developer",
     path: `${RUNBOOK_PATH}/developer/ai-assistants`,
   },
+  { title: "Executions", section: "Advanced", path: EXECUTIONS_PATH },
+  { title: "Owners", section: "Advanced", path: `${RUNBOOK_PATH}/owners` },
   {
     title: "Audit Logs",
     section: "Advanced",
@@ -367,7 +369,7 @@ const EVERY_PAGE: ReadonlyArray<PageAndEntry> = [
   {
     name: "Execution",
     path: RUN_PATH,
-    section: "Logs",
+    section: "Advanced",
     marked: "Executions",
   },
 ];
@@ -430,10 +432,11 @@ afterEach(() => {
 });
 
 describe("a runbook's side menu", () => {
-  test("has Basic, Logs, Owners, Settings, Developer and Advanced, in that order", async () => {
+  test("has Basic, Settings, Developer and Advanced, in that order, and no Logs section (#9216)", async () => {
     await renderRunbookMenuAt(RUNBOOK_PATH);
 
     expect(sectionTitlesInOrder()).toEqual(SECTIONS_IN_ORDER);
+    expect(sectionTitlesInOrder()).not.toContain("Logs");
   });
 
   test("Basic holds only Overview and Steps", async () => {
@@ -448,12 +451,13 @@ describe("a runbook's side menu", () => {
     ).toBeNull();
   });
 
-  test("Logs holds Executions alone, at the runbook's executions URL", async () => {
+  test("Executions leads Advanced, at the runbook's executions URL", async () => {
     await renderRunbookMenuAt(RUNBOOK_PATH);
 
-    expect(linksIn("Logs")).toEqual([
-      { title: "Executions", href: EXECUTIONS_PATH },
-    ]);
+    expect(linksIn("Advanced")[0]).toEqual({
+      title: "Executions",
+      href: EXECUTIONS_PATH,
+    });
     expect(EXECUTIONS_PATH).toBe(routeOf(PageMap.RUNBOOK_VIEW_EXECUTIONS));
   });
 
@@ -470,7 +474,7 @@ describe("a runbook's side menu", () => {
     expect(SETTINGS_PATH).toBe(routeOf(PageMap.RUNBOOK_VIEW_SETTINGS));
   });
 
-  test("Advanced keeps Audit Logs and Delete Runbook: the Settings page moved out", async () => {
+  test("Advanced holds Executions, Owners, Audit Logs and Delete Runbook: the Settings page moved out", async () => {
     await renderRunbookMenuAt(RUNBOOK_PATH);
 
     expect(linksIn("Advanced")).toEqual(linksOf("Advanced"));
@@ -488,10 +492,10 @@ describe("a runbook's side menu", () => {
     expect(entry("Advanced", "Delete Runbook")).toHaveClass("danger-on-hover");
   });
 
-  test("Owners and Developer are where they were", async () => {
+  test("Developer is where it was, and Owners has no section of its own", async () => {
     await renderRunbookMenuAt(RUNBOOK_PATH);
 
-    expect(linksIn("Owners")).toEqual(linksOf("Owners"));
+    expect(sectionTitlesInOrder()).not.toContain("Owners");
     expect(linksIn("Developer")).toEqual(linksOf("Developer"));
   });
 
@@ -542,14 +546,14 @@ describe("what a runbook's menu shows before anything is opened", () => {
 
   test.each(
     EVERY_PAGE.filter((page: PageAndEntry): boolean => {
-      return page.section !== "Logs";
+      return page.section !== "Advanced";
     }),
   )(
-    "Executions stays folded away under Logs on the $name page",
+    "Executions stays folded away under Advanced on the $name page",
     async (page: PageAndEntry) => {
       await renderRunbookMenuAt(page.path);
 
-      expectFolded("Logs");
+      expectFolded("Advanced");
     },
   );
 
@@ -603,7 +607,7 @@ describe("a folded section opens by itself on its own pages, with the page marke
 
     expect(RUN_PATH).toBe(routeOf(PageMap.RUNBOOK_VIEW_EXECUTION, RUN_ID));
 
-    const executions: HTMLElement = entry("Logs", "Executions");
+    const executions: HTMLElement = entry("Advanced", "Executions");
 
     expect(executions).toHaveClass(...ACTIVE_LINK_CLASSES);
     expect(executions).toHaveAttribute("href", EXECUTIONS_PATH);
@@ -614,7 +618,7 @@ describe("a folded section opens by itself on its own pages, with the page marke
   test("on the Executions list itself, Executions is marked as before", async () => {
     await renderRunbookMenuAt(EXECUTIONS_PATH);
 
-    expect(entry("Logs", "Executions")).toHaveClass(...ACTIVE_LINK_CLASSES);
+    expect(entry("Advanced", "Executions")).toHaveClass(...ACTIVE_LINK_CLASSES);
     expect(activeLinkTitles()).toEqual(["Executions"]);
   });
 
@@ -629,26 +633,26 @@ describe("a folded section opens by itself on its own pages, with the page marke
 });
 
 describe("opening a folded section", () => {
-  test("a click on Logs shows Executions, and another folds it away again", async () => {
+  test("a click on Advanced shows Executions, and another folds it away again", async () => {
     await renderRunbookMenuAt(RUNBOOK_PATH);
 
-    expectFolded("Logs");
+    expectFolded("Advanced");
 
     await act(async () => {
-      fireEvent.click(sectionToggle("Logs"));
+      fireEvent.click(sectionToggle("Advanced"));
     });
 
-    expectOpen("Logs");
-    expect(entry("Logs", "Executions")).toHaveAttribute(
+    expectOpen("Advanced");
+    expect(entry("Advanced", "Executions")).toHaveAttribute(
       "href",
       EXECUTIONS_PATH,
     );
 
     await act(async () => {
-      fireEvent.click(sectionToggle("Logs"));
+      fireEvent.click(sectionToggle("Advanced"));
     });
 
-    expectFolded("Logs");
+    expectFolded("Advanced");
   });
 
   test("a click on Settings shows Triggers, Variables and Settings, and leaves the others folded", async () => {
@@ -661,7 +665,7 @@ describe("opening a folded section", () => {
     expectOpen("Settings");
     expect(linksIn("Settings")).toEqual(linksOf("Settings"));
 
-    for (const section of ["Logs", "Owners", "Developer", "Advanced"]) {
+    for (const section of ["Developer", "Advanced"]) {
       expectFolded(section);
     }
   });
@@ -683,16 +687,16 @@ describe("on a phone", () => {
     setViewportWidth(MOBILE_WIDTH);
   });
 
-  test("the menu button names Logs / Executions on the Executions page", async () => {
+  test("the menu button names Advanced / Executions on the Executions page", async () => {
     await renderRunbookMenuAt(EXECUTIONS_PATH);
 
-    expect(mobileSummaryText()).toContain("Logs / Executions");
+    expect(mobileSummaryText()).toContain("Advanced / Executions");
   });
 
-  test("the menu button names Logs / Executions on one run's page too", async () => {
+  test("the menu button names Advanced / Executions on one run's page too", async () => {
     await renderRunbookMenuAt(RUN_PATH);
 
-    expect(mobileSummaryText()).toContain("Logs / Executions");
+    expect(mobileSummaryText()).toContain("Advanced / Executions");
   });
 
   test("the menu button names Settings / Triggers on the Triggers page", async () => {
@@ -882,23 +886,23 @@ function crumbTexts(): Array<string> {
 }
 
 describe("moving around a runbook, with the real layout and routes", () => {
-  test("from the Overview: open Logs, then Executions; Logs stays open on the way back", async () => {
+  test("from the Overview: open Advanced, then Executions; Advanced stays open on the way back", async () => {
     await openRunbookAt(RUNBOOK_PATH);
 
     expect(shownPage()).toBe("RunbookOverview");
-    expectFolded("Logs");
+    expectFolded("Advanced");
     expectFolded("Settings");
 
-    await click(sectionToggle("Logs"));
-    expectOpen("Logs");
+    await click(sectionToggle("Advanced"));
+    expectOpen("Advanced");
 
-    await click(entry("Logs", "Executions"));
+    await click(entry("Advanced", "Executions"));
 
     await waitFor(() => {
       expect(shownPage()).toBe("RunbookExecutions");
     });
     expect(window.location.pathname).toBe(EXECUTIONS_PATH);
-    expect(entry("Logs", "Executions")).toHaveClass(...ACTIVE_LINK_CLASSES);
+    expect(entry("Advanced", "Executions")).toHaveClass(...ACTIVE_LINK_CLASSES);
     expect(crumbTexts()).toEqual([
       "Project",
       "Runbooks",
@@ -906,13 +910,13 @@ describe("moving around a runbook, with the real layout and routes", () => {
       "Executions",
     ]);
 
-    // Back to the Overview: the menu stays as it was left, Logs open.
+    // Back to the Overview: the menu stays as it was left, Advanced open.
     await click(entry("Basic", "Overview"));
 
     await waitFor(() => {
       expect(shownPage()).toBe("RunbookOverview");
     });
-    expectOpen("Logs");
+    expectOpen("Advanced");
     expect(activeLinkTitles()).toEqual(["Overview"]);
     expectFolded("Settings");
   });
@@ -934,7 +938,7 @@ describe("moving around a runbook, with the real layout and routes", () => {
       RUNBOOK_NAME,
       "Triggers",
     ]);
-    expectFolded("Logs");
+    expectFolded("Advanced");
 
     await click(entry("Settings", "Settings"));
 
@@ -951,10 +955,10 @@ describe("moving around a runbook, with the real layout and routes", () => {
     ]);
   });
 
-  test("a run opened from the page, as Run Now and Last Run do, unfolds Logs with Executions marked", async () => {
+  test("a run opened from the page, as Run Now and Last Run do, unfolds Advanced with Executions marked", async () => {
     await openRunbookAt(RUNBOOK_PATH);
 
-    expectFolded("Logs");
+    expectFolded("Advanced");
 
     await act(async () => {
       Navigation.navigate(new Route(RUN_PATH));
@@ -963,7 +967,7 @@ describe("moving around a runbook, with the real layout and routes", () => {
     await waitFor(() => {
       expect(shownPage()).toBe("RunbookExecution");
     });
-    expectOpen("Logs");
+    expectOpen("Advanced");
     expect(activeLinkTitles()).toEqual(["Executions"]);
     expect(crumbTexts()).toEqual([
       "Project",
@@ -979,7 +983,7 @@ describe("moving around a runbook, with the real layout and routes", () => {
 
     expect(shownPage()).toBe("RunbookVariables");
     expectOpen("Settings");
-    expectFolded("Logs");
+    expectFolded("Advanced");
     expect(activeLinkTitles()).toEqual(["Variables"]);
     expect(crumbTexts()).toEqual([
       "Project",
@@ -994,7 +998,7 @@ describe("moving around a runbook, with the real layout and routes", () => {
 
     expect(shownPage()).toBe("RunbookTriggers");
     expectOpen("Settings");
-    expectFolded("Logs");
+    expectFolded("Advanced");
     expect(activeLinkTitles()).toEqual(["Triggers"]);
   });
 

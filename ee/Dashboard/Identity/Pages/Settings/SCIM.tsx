@@ -9,7 +9,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import HiddenText from "Common/UI/Components/HiddenText/HiddenText";
+import ShownOnceSecretModal from "Common/UI/Components/ShownOnceSecret/ShownOnceSecretModal";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import { IDENTITY_URL } from "Common/UI/Config";
@@ -45,6 +45,13 @@ import {
 import { canCurrentUserSaveScimConnections } from "../../ScimSaveAccess";
 import ScimSaveAccessNotice from "../../Components/ScimSaveAccessNotice";
 import ScimOAuthClientCredentials from "../../Components/ScimOAuthClientCredentials";
+import {
+  getBearerTokenShownOnCreate,
+  SCIM_BEARER_TOKEN_NOT_SHOWN_AGAIN_TEST_ID,
+  SCIM_BEARER_TOKEN_SHOWN_ONCE_TEST_ID,
+  SCIM_BEARER_TOKEN_SHOWN_ONCE_VALUE_TEST_ID,
+  ScimBearerTokenCopy,
+} from "../../ScimBearerTokenCopy";
 
 /*
  * Settings > SCIM: the project's SCIM connections and their logs.
@@ -52,18 +59,20 @@ import ScimOAuthClientCredentials from "../../Components/ScimOAuthClientCredenti
  * Adding one asks for its name and the teams newcomers join (the members
  * team to start with); provisioning, deprovisioning, push groups and the
  * description wait under Advanced at their defaults (../../ScimFormFields).
- * Once it is saved, the dialog with the SCIM URLs and the bearer token to
- * give the identity provider opens straight away: that is the next thing to
- * do. The same dialog makes the OAuth 2.0 client secret for identity
- * providers that ask for client credentials instead of a bearer token
+ * Once it is saved, its bearer token is shown once - it is kept only as its
+ * hash (#9012), so no page shows it again - and then the dialog with the
+ * SCIM URLs to give the identity provider opens: that is the next thing to
+ * do. Reset Bearer Token makes a new token and shows it once too. The URLs
+ * dialog makes the OAuth 2.0 client secret for identity providers that ask
+ * for client credentials instead of a bearer token
  * (../../Components/ScimOAuthClientCredentials).
  *
  * A connection can change the members of any team, so only someone who
  * could invite people to every team - a project owner - may add one, change
- * one, see or reset its bearer token, or make its client secrets
- * (../../ScimSaveAccess; the server lets only a project owner read the token
- * or when the secrets expire). Everyone else who can see the page is told
- * so instead of being offered what the server would refuse.
+ * one, reset its bearer token, or make its client secrets
+ * (../../ScimSaveAccess; the server lets only a project owner read when the
+ * secrets expire). Everyone else who can see the page is told so instead of
+ * being offered what the server would refuse.
  */
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -97,9 +106,15 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
   // Adding, changing or resetting a connection: a project owner's to do.
   const canSaveConnections: boolean = canCurrentUserSaveScimConnections();
 
-  const [showResetSuccessModal, setShowResetSuccessModal] =
-    useState<boolean>(false);
-  const [newBearerToken, setNewBearerToken] = useState<string>("");
+  /*
+   * A bearer token just made - by adding a connection, or by Reset Bearer
+   * Token - shown once, then forgotten (ShownOnceSecretModal). A new
+   * connection's URLs dialog opens once it is copied.
+   */
+  const [shownOnceToken, setShownOnceToken] = useState<string>("");
+  const [urlsAfterToken, setUrlsAfterToken] = useState<ProjectSCIM | null>(
+    null,
+  );
 
   const createInitialValues: FormValues<ProjectSCIM> | undefined =
     useDefaultSsoTeamsInitialValues<ProjectSCIM>();
@@ -118,9 +133,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
         id: new ObjectID(resetSCIMId),
         data: buildRotateBearerTokenUpdate(newToken),
       });
-      setNewBearerToken(newToken);
+      setShownOnceToken(newToken);
       setShowResetModal(false);
-      setShowResetSuccessModal(true);
       setRefresher(!refresher);
     } catch (err) {
       setResetError(API.getFriendlyMessage(err));
@@ -142,6 +156,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
         <ScimSaveAccessNotice />
       )}
       <Tabs
+        label="SCIM"
         tabs={[
           {
             name: "Configuration",
@@ -168,7 +183,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                     "Let your identity provider add and remove the people in this project.",
                 }}
                 documentationLink={Route.fromString("/docs/identity/scim")}
-                noItemsMessage={"No SCIM configuration found."}
+                noItemsMessage={"No SCIM configurations yet."}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 formFields={getProjectScimFormFields()}
                 createInitialValues={createInitialValues}
@@ -180,8 +195,18 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   modalType?: ModalType,
                 ): Promise<ProjectSCIM> => {
                   if (modalType === ModalType.Create && item.id) {
-                    setCurrentSCIMConfig(item);
-                    setShowSCIMUrlId(item.id.toString());
+                    const token: string | null = getBearerTokenShownOnCreate(
+                      item.bearerToken,
+                    );
+
+                    // The token first, once; the URLs once it is copied.
+                    if (token) {
+                      setShownOnceToken(token);
+                      setUrlsAfterToken(item);
+                    } else {
+                      setCurrentSCIMConfig(item);
+                      setShowSCIMUrlId(item.id.toString());
+                    }
                   }
 
                   return Promise.resolve(item);
@@ -217,10 +242,12 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   },
                 ]}
                 selectMoreFields={{
-                  // Only a project owner may read the token, or when the secrets expire.
+                  /*
+                   * Only a project owner may read when the secrets expire.
+                   * Nobody reads the bearer token: it is kept as its hash.
+                   */
                   ...(canSaveConnections
                     ? {
-                        bearerToken: true,
                         oauthClientSecretExpiresAt: true,
                         oauthPreviousClientSecretExpiresAt: true,
                       }
@@ -356,15 +383,12 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                     <p className="font-medium text-gray-700 mb-1">
                       {translator.translateText("Bearer Token:")}
                     </p>
-                    <div className="mb-2">
-                      <HiddenText
-                        text={currentSCIMConfig.bearerToken || ""}
-                        isCopyable={true}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500">
+                    <p
+                      className="text-sm text-gray-500"
+                      data-testid={SCIM_BEARER_TOKEN_NOT_SHOWN_AGAIN_TEST_ID}
+                    >
                       {translator.translateText(
-                        "Use this bearer token for authentication in your identity provider SCIM configuration.",
+                        ScimBearerTokenCopy.notShownAgain,
                       )}
                     </p>
                   </div>
@@ -433,34 +457,29 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
         />
       )}
 
-      {showResetSuccessModal && (
-        <ConfirmModal
-          title="New Bearer Token"
-          description={
-            <div>
-              <p className="mb-3">
-                {translator.translateText(
-                  "Your new Bearer Token has been generated:",
-                )}
-              </p>
-              <div className="mb-2">
-                <HiddenText text={newBearerToken} isCopyable={true} />
-              </div>
-              <p className="text-sm text-gray-500">
-                {translator.translateText(
-                  "Please update your identity provider with this new token.",
-                )}
-              </p>
-            </div>
-          }
-          onSubmit={() => {
-            setShowResetSuccessModal(false);
-            setNewBearerToken("");
+      {shownOnceToken ? (
+        <ShownOnceSecretModal
+          title={ScimBearerTokenCopy.shownOnceTitle}
+          description={ScimBearerTokenCopy.shownOnceDescription}
+          doneButtonText={ScimBearerTokenCopy.done}
+          secret={shownOnceToken}
+          onDone={() => {
+            const created: ProjectSCIM | null = urlsAfterToken;
+
+            setShownOnceToken("");
+            setUrlsAfterToken(null);
             setResetSCIMId("");
+
+            if (created?.id) {
+              setCurrentSCIMConfig(created);
+              setShowSCIMUrlId(created.id.toString());
+            }
           }}
-          submitButtonText="Close"
-          submitButtonType={ButtonStyleType.NORMAL}
+          dataTestId={SCIM_BEARER_TOKEN_SHOWN_ONCE_TEST_ID}
+          valueTestId={SCIM_BEARER_TOKEN_SHOWN_ONCE_VALUE_TEST_ID}
         />
+      ) : (
+        <></>
       )}
     </Fragment>
   );

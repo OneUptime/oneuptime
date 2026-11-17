@@ -156,8 +156,8 @@ Over tittelen på hver side viser et spor som *Prosjekt › Docker › Innstilli
 
 Trykk **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klikk på søkeikonet i topplinjen, og begynn å skrive. Søket finner:
 
-- **Hver side i menyene**, under navnet menyen gir den: API-nøkler, Faresone, Vaktplaner, Hendelsesalvor, dine egne Varslingsmetoder. Hvert resultat sier hvor det ligger, for eksempel *Prosjektinnstillinger › Avansert*, slik at sider med samme navn (Egendefinerte felt under Hendelser, Varsler og Monitorer) er lette å skille fra hverandre.
-- **Innstillingene på en side**, under navnet kortet eller bryteren deres viser: *Krev SSO for innlogging* finner SSO, og *Egendefinerte SMTP-konfigurasjoner* finner Varslingskanaler. Skriv navnet på engelsk eller på ditt eget språk.
+- **Hver side i menyene**, under navnet menyen gir den: API-nøkler, Slett prosjekt, Vaktplaner, Hendelsesalvor, dine egne Varslingsmetoder. Hvert resultat sier hvor det ligger, for eksempel *Prosjektinnstillinger › Avansert*, slik at sider med samme navn (Egendefinerte felt under Hendelser, Varsler og Monitorer) er lette å skille fra hverandre.
+- **Innstillingene på en side**, under navnet kortet eller bryteren deres viser: *Krev SSO for å logge på* finner SSO, og *Egendefinerte SMTP-konfigurasjoner* finner Varslingskanaler. Skriv navnet på engelsk eller på ditt eget språk.
 - **Handlinger**, etter hva du vil gjøre: Erklær hendelse, Opprett monitor eller Delete Project, som åpner Faresone. En handling som endrer noe, tilbys bare dem som har lov til å utføre den.
 - **Monitorene, hendelsene, varslene, statussidene og vaktpolicyene dine**, etter navn, og hendelser og varsler også etter nummer, for eksempel `INC-42`. Hvert resultat for en hendelse eller et varsel begynner med nummeret, så to med samme tittel kan skilles fra hverandre.
 - **Dokumentasjonen**, i en gruppe *Dokumentasjon* under alt annet: sidene og avsnittene der ordene passer til det du skriver, på ditt språk, også med en skrivefeil. Hver åpnes i en ny fane, så du beholder plassen din.
@@ -165,7 +165,7 @@ Trykk **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klikk på søke
 Søket leser det du skriver slik du mener det:
 
 - Store og små bokstaver, aksenter, mellomrom og bindestreker spiller ingen rolle: *on-call*, *on call* og *oncall* finner de samme sidene, og ordene kan stå i hvilken som helst rekkefølge.
-- Det kjenner andre ord for mange sider, på engelsk: *pager* eller *escalation* for Vaktpolicyer, *rota* for Vaktplaner, *2fa* for tofaktorautentisering, *delete project* for Faresone.
+- Det kjenner andre ord for mange sider, på engelsk: *pager* eller *escalation* for Vaktpolicyer, *rota* for Vaktplaner, *2fa* for tofaktorautentisering, *remove project* for Slett prosjekt.
 - Legg til produktets navn for å snevre inn et søk: *incident custom fields* finner siden Egendefinerte felt under Hendelser.
 - En liten skrivefeil, som *incidnet*, finner likevel det du mente når ingenting treffer slik det er skrevet.
 

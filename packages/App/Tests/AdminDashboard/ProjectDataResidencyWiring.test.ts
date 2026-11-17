@@ -288,14 +288,12 @@ describe("translations", () => {
       const block: Record<string, string> =
         readLocale(fileName)["pages"]["projectView"];
 
-      for (const key of [
-        "title",
-        "cardTitle",
-        "cardDescription",
-        "editButton",
-      ]) {
+      for (const key of ["title", "cardTitle", "editButton"]) {
         expect(typeof block[key]).toBe("string");
       }
+
+      // The Project card's title says it all: no "Project details" under it (#9044).
+      expect(block["cardDescription"]).toBeUndefined();
     }
   });
 

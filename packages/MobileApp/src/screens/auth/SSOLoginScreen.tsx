@@ -493,7 +493,7 @@ export default function SSOLoginScreen(): React.JSX.Element {
       />
 
       <GradientButton
-        label={providers ? "Use a different email" : "Back to Login"}
+        label={providers ? "Use a different email" : "Back to Sign In"}
         onPress={handleBack}
         variant="secondary"
         icon="arrow-back"

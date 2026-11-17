@@ -1,3 +1,4 @@
+import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -7,13 +8,11 @@ import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import IncidentPrivacyRule from "Common/Models/DatabaseModels/IncidentPrivacyRule";
 import IncidentEpisodePrivacyRule from "Common/Models/DatabaseModels/IncidentEpisodePrivacyRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import { Green, Red } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -112,11 +111,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
           title: "Status",
           type: FieldType.Boolean,
           getElement: (item: IncidentPrivacyRule): ReactElement => {
-            return item.isEnabled ? (
-              <Pill color={Green} text="Enabled" />
-            ) : (
-              <Pill color={Red} text="Disabled" />
-            );
+            return <EnabledPill isEnabled={item.isEnabled} />;
           },
         },
       ]}
@@ -280,11 +275,7 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
           title: "Status",
           type: FieldType.Boolean,
           getElement: (item: IncidentEpisodePrivacyRule): ReactElement => {
-            return item.isEnabled ? (
-              <Pill color={Green} text="Enabled" />
-            ) : (
-              <Pill color={Red} text="Disabled" />
-            );
+            return <EnabledPill isEnabled={item.isEnabled} />;
           },
         },
       ]}
@@ -377,6 +368,7 @@ const IncidentPrivacyRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   return (
     <Fragment>
       <Tabs
+        label="Incident Privacy Rules"
         tabs={[
           {
             name: "Incident Rules",

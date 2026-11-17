@@ -1,4 +1,7 @@
 import PageLogo from "../../Components/Logo/PageLogo";
+import AuthPage, {
+  AUTH_PAGE_LINK_CLASS,
+} from "Common/UI/Components/AuthPage/AuthPage";
 import {
   STATUS_PAGE_API_URL,
   STATUS_PAGE_OIDC_API_URL,
@@ -27,7 +30,7 @@ export interface ComponentProps {
   // The logo made for the dark theme, shown instead while the page is dark.
   darkThemeLogoFileId?: ObjectID | undefined;
   /*
-   * The page requires SSO (Require SSO for Login): its private users can't
+   * The page requires SSO (Require SSO to Sign In): its private users can't
    * sign in with an email and password, so the page offers no way back to
    * the password form - the sign-in page would only send them here again.
    */
@@ -57,7 +60,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
    * right there.
    *
    * Both lists draw no frame of their own (isUnframed): their providers
-   * read as one evenly spaced list, line up with Log in with password
+   * read as one evenly spaced list, line up with Sign in with password
    * under them, and sit as far from the card's edge as the sign-in page's
    * fields do (-my-2 takes back the first and last row's own margin). Each
    * list used to keep its padding, the space under it and a scroll box, so
@@ -133,7 +136,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
 
   /*
    * Under the providers, the way back to the email and password form, drawn
-   * as the sign-in page draws its way here (Log in with SSO): "or", then an
+   * as the sign-in page draws its way here (Sign in with SSO): "or", then an
    * outlined button as wide as the providers. Only where a private user may
    * sign in with a password - not on a page that requires SSO - and not
    * when the page has no provider to list, where the notice below already
@@ -142,152 +145,131 @@ const LoginPage: FunctionComponent<ComponentProps> = (
   const offersPasswordSignIn: boolean = !props.forceSSO && !hasNoProviders;
 
   return (
-    <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+    <AuthPage
+      logo={
         <PageLogo
           logoFileId={props.logoFileId}
           darkThemeLogoFileId={props.darkThemeLogoFileId}
           altText={props.statusPageName}
         />
-        <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
-          {t("accounts.sso.title")}
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          {t("accounts.sso.loginPrompt", {
-            statusPageName: props.statusPageName || t("common.statusPage"),
-          })}
-        </p>
-      </div>
+      }
+      title={t("accounts.sso.title")}
+      subtitle={t("accounts.sso.signInPrompt", {
+        statusPageName: props.statusPageName || t("common.statusPage"),
+      })}
+      cardClassName="space-y-6"
+    >
+      <div
+        className="-my-2"
+        hidden={hasNoProviders}
+        data-testid="status-page-sso-provider-lists"
+      >
+        <div hidden={ssoProviderCount === 0}>
+          <ModelList<StatusPageSSO>
+            id="sso-list"
+            isUnframed={true}
+            overrideFetchApiUrl={URL.fromString(
+              STATUS_PAGE_API_URL.toString(),
+            ).addRoute("/sso/" + StatusPageUtil.getStatusPageId()?.toString())}
+            modelType={StatusPageSSO}
+            titleField="name"
+            descriptionField="description"
+            select={{
+              name: true,
+              description: true,
+              _id: true,
+            }}
+            noItemsMessage={""}
+            hideEmptyState={true}
+            onListLoaded={(list: Array<StatusPageSSO>) => {
+              setSsoProviderCount(list.length);
+            }}
+            onSelectChange={(list: Array<StatusPageSSO>) => {
+              if (list && list.length > 0) {
+                setIsLoading(true);
+                Navigation.navigate(
+                  URL.fromURL(STATUS_PAGE_SSO_API_URL).addRoute(
+                    new Route(
+                      `/${StatusPageUtil.getStatusPageId()?.toString()}/${
+                        list[0]?._id
+                      }`,
+                    ),
+                  ),
+                );
+              }
+            }}
+          />
+        </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 space-y-6">
-          <div
-            className="-my-2"
-            hidden={hasNoProviders}
-            data-testid="status-page-sso-provider-lists"
-          >
-            <div hidden={ssoProviderCount === 0}>
-              <ModelList<StatusPageSSO>
-                id="sso-list"
-                isUnframed={true}
-                overrideFetchApiUrl={URL.fromString(
-                  STATUS_PAGE_API_URL.toString(),
-                ).addRoute(
-                  "/sso/" + StatusPageUtil.getStatusPageId()?.toString(),
-                )}
-                modelType={StatusPageSSO}
-                titleField="name"
-                descriptionField="description"
-                select={{
-                  name: true,
-                  description: true,
-                  _id: true,
-                }}
-                noItemsMessage={""}
-                hideEmptyState={true}
-                onListLoaded={(list: Array<StatusPageSSO>) => {
-                  setSsoProviderCount(list.length);
-                }}
-                onSelectChange={(list: Array<StatusPageSSO>) => {
-                  if (list && list.length > 0) {
-                    setIsLoading(true);
-                    Navigation.navigate(
-                      URL.fromURL(STATUS_PAGE_SSO_API_URL).addRoute(
-                        new Route(
-                          `/${StatusPageUtil.getStatusPageId()?.toString()}/${
-                            list[0]?._id
-                          }`,
-                        ),
-                      ),
-                    );
-                  }
-                }}
-              />
-            </div>
-
-            <div hidden={oidcProviderCount === 0}>
-              <ModelList<StatusPageOIDC>
-                id="oidc-list"
-                isUnframed={true}
-                overrideFetchApiUrl={URL.fromString(
-                  STATUS_PAGE_API_URL.toString(),
-                ).addRoute(
-                  "/oidc/" + StatusPageUtil.getStatusPageId()?.toString(),
-                )}
-                modelType={StatusPageOIDC}
-                titleField="name"
-                descriptionField="description"
-                select={{
-                  name: true,
-                  description: true,
-                  _id: true,
-                }}
-                noItemsMessage={t("accounts.sso.noProviders")}
-                hideEmptyState={true}
-                onListLoaded={(list: Array<StatusPageOIDC>) => {
-                  setOidcProviderCount(list.length);
-                }}
-                onSelectChange={(list: Array<StatusPageOIDC>) => {
-                  if (list && list.length > 0) {
-                    setIsLoading(true);
-                    Navigation.navigate(
-                      URL.fromURL(STATUS_PAGE_OIDC_API_URL).addRoute(
-                        new Route(
-                          `/${StatusPageUtil.getStatusPageId()?.toString()}/${
-                            list[0]?._id
-                          }`,
-                        ),
-                      ),
-                    );
-                  }
-                }}
-              />
-            </div>
-          </div>
-
-          {offersPasswordSignIn && (
-            <div data-testid={SSO_SIGN_IN_OPTIONS_TEST_ID}>
-              <LabelledDivider
-                label={t("accounts.login.or")}
-                className="mb-5"
-                dataTestId="sign-in-options-divider"
-              />
-              <SignInOptionLink
-                to={loginRoute}
-                id={PASSWORD_SIGN_IN_OPTION_TEST_ID}
-                dataTestId={PASSWORD_SIGN_IN_OPTION_TEST_ID}
-                icon={IconProp.Lock}
-                title={t("accounts.sso.logInWithPassword")}
-              />
-            </div>
-          )}
-
-          {hasNoProviders && (
-            <div
-              className="text-center text-sm text-gray-600"
-              data-testid="status-page-sso-unavailable"
-            >
-              <p>
-                {t("accounts.sso.notAvailable", {
-                  defaultValue:
-                    "Single sign-on is not available for this status page. Sign in with your email and password instead.",
-                })}
-              </p>
-              <p className="mt-4">
-                <Link
-                  to={loginRoute}
-                  className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
-                >
-                  {t("accounts.sso.backToLogin", {
-                    defaultValue: "Back to sign in",
-                  })}
-                </Link>
-              </p>
-            </div>
-          )}
+        <div hidden={oidcProviderCount === 0}>
+          <ModelList<StatusPageOIDC>
+            id="oidc-list"
+            isUnframed={true}
+            overrideFetchApiUrl={URL.fromString(
+              STATUS_PAGE_API_URL.toString(),
+            ).addRoute("/oidc/" + StatusPageUtil.getStatusPageId()?.toString())}
+            modelType={StatusPageOIDC}
+            titleField="name"
+            descriptionField="description"
+            select={{
+              name: true,
+              description: true,
+              _id: true,
+            }}
+            noItemsMessage={t("accounts.sso.noProviders")}
+            hideEmptyState={true}
+            onListLoaded={(list: Array<StatusPageOIDC>) => {
+              setOidcProviderCount(list.length);
+            }}
+            onSelectChange={(list: Array<StatusPageOIDC>) => {
+              if (list && list.length > 0) {
+                setIsLoading(true);
+                Navigation.navigate(
+                  URL.fromURL(STATUS_PAGE_OIDC_API_URL).addRoute(
+                    new Route(
+                      `/${StatusPageUtil.getStatusPageId()?.toString()}/${
+                        list[0]?._id
+                      }`,
+                    ),
+                  ),
+                );
+              }
+            }}
+          />
         </div>
       </div>
-    </div>
+
+      {offersPasswordSignIn && (
+        <div data-testid={SSO_SIGN_IN_OPTIONS_TEST_ID}>
+          <LabelledDivider
+            label={t("accounts.login.or")}
+            className="mb-5"
+            dataTestId="sign-in-options-divider"
+          />
+          <SignInOptionLink
+            to={loginRoute}
+            id={PASSWORD_SIGN_IN_OPTION_TEST_ID}
+            dataTestId={PASSWORD_SIGN_IN_OPTION_TEST_ID}
+            icon={IconProp.Lock}
+            title={t("accounts.sso.signInWithPassword")}
+          />
+        </div>
+      )}
+
+      {hasNoProviders && (
+        <div
+          className="text-center text-sm text-gray-600"
+          data-testid="status-page-sso-unavailable"
+        >
+          <p>{t("accounts.sso.notAvailable")}</p>
+          <p className="mt-4">
+            <Link to={loginRoute} className={`${AUTH_PAGE_LINK_CLASS} text-sm`}>
+              {t("accounts.sso.backToSignIn")}
+            </Link>
+          </p>
+        </div>
+      )}
+    </AuthPage>
   );
 };
 

@@ -40,7 +40,7 @@ flowchart LR
 | **Sicherheit** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Abrechnung und Rechnungen** | **Abrechnung**, **Rechnungen** | [Abrechnung & Nutzung](/docs/configuration/billing) |
 | **Audit-Protokolle** | **Audit-Protokolle**, **Einstellungen**, **Export** | [Audit-Protokolle](/docs/configuration/audit-logs), [Audit-Protokoll-Export](/docs/configuration/audit-log-export) |
-| **Gefahrenzone** | **Gefahrenzone** | [Das Projekt löschen](#das-projekt-löschen) |
+| **Gefahrenzone** | **Projekt löschen** | [Das Projekt löschen](#das-projekt-löschen) |
 
 **Abrechnung und Rechnungen** und **KI-Guthaben** gibt es nur in OneUptime Cloud: Eine selbst gehostete Installation hat keine Abrechnung.
 
@@ -99,7 +99,7 @@ Um eine Beschriftung außer Dienst zu stellen, archivieren Sie sie über das Men
 **Projekteinstellungen → Benachrichtigungen** enthält, wie das Projekt Benachrichtigungen sendet:
 
 - **Benachrichtigungskanäle**: Die Karte **Benachrichtigungskanäle** schaltet SMS, Telefonanrufe, WhatsApp und Telegram für das Projekt ein oder aus. Alle vier sind anfangs aus. Ein Projektinhaber, ein **Abrechnungs-Administrator** oder jemand mit **Manage Billing** schaltet sie. Die Seite enthält auch, eingeklappt unter **Weitere Einstellungen**, die eigenen Mailserver des Projekts unter **Benutzerdefinierte SMTP-Konfigurationen** (siehe [SMTP](/docs/emails/smtp)) und sein eigenes Twilio-Konto (siehe [Twilio-Integration](/docs/self-hosted/twilio-integration)). In OneUptime Cloud enthält sie das Guthaben, aus dem diese Nachrichten bezahlt werden: siehe [Vorausbezahltes Guthaben](/docs/configuration/billing#vorausbezahltes-guthaben).
-- **Benachrichtigungsprotokolle**: jede Benachrichtigung, die das Projekt gesendet hat, mit einem Tab pro Kanal: **E-Mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anruf**, **Push** und **Arbeitsbereich**.
+- **Benachrichtigungsprotokolle**: jede Benachrichtigung, die das Projekt gesendet hat, mit einem Tab pro Kanal: **E-Mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anruf**, **Push** und **Arbeitsbereich**. Der Tab **Webhook** hält jede Adresse nur mit Schema und Host fest: Der Rest ist das Geheimnis des Webhooks.
 - **Mobile Apps**: wo Sie die Apps für iOS und Android bekommen. Siehe [Apps – Übersicht](/docs/mobile-desktop-apps/index).
 
 ## Feature-Flags
@@ -113,7 +113,7 @@ Das Löschen eines Projekts löscht alles darin, für jedes Mitglied: seine Moni
 :::steps
 ### Die Gefahrenzone öffnen
 
-Gehen Sie zu **Projekteinstellungen → Gefahrenzone**.
+Gehen Sie zu **Projekteinstellungen → Gefahrenzone → Projekt löschen**.
 
 ### Auf Projekt löschen klicken
 

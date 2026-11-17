@@ -696,7 +696,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
             )}
             {sessionIdStr && replayRoute === null && (
               <span
-                className="text-[11px] text-gray-400"
+                className="text-[11px] text-gray-500"
                 data-testid="span-replay-missing"
                 title={translator.translateTemplate(
                   "Session {{sessionId}} carried this span, but no recording of it was uploaded (sampled out, consent withheld, or not yet received).",
@@ -746,7 +746,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                 >
                   <span>{translator.translateText(tab.label)}</span>
                   {tab.count !== null && (
-                    <span className="rounded bg-gray-100 px-1 text-[10px] font-semibold text-gray-500">
+                    <span className="rounded bg-gray-100 px-1 text-xs font-semibold text-gray-500">
                       {tab.count}
                     </span>
                   )}
@@ -765,7 +765,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
             ) : relatedLogs.length === 0 && podLogsElement ? (
               podLogsElement
             ) : relatedLogs.length === 0 ? (
-              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-400">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-500">
                 {translator.translateText(
                   "No logs found for this span or its trace.",
                 )}
@@ -773,7 +773,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
             ) : (
               <div className="space-y-2">
                 {logsScope === "trace" && spanIdStr && (
-                  <div className="text-[11px] text-gray-400">
+                  <div className="text-[11px] text-gray-500">
                     {translator.translateText(
                       "No logs are tagged with this span — showing logs from the whole trace.",
                     )}
@@ -794,7 +794,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                     }-${index}`;
                     const row: ReactElement = (
                       <div className="flex items-start gap-2 rounded-md border border-gray-100 bg-white px-2 py-1.5 font-mono text-[11px] hover:bg-gray-50">
-                        <span className="w-16 flex-none truncate text-gray-400">
+                        <span className="w-16 flex-none truncate text-gray-500">
                           {severity}
                         </span>
                         <span
@@ -804,7 +804,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                           {body}
                         </span>
                         {logTimeDate && (
-                          <span className="flex-none text-gray-400">
+                          <span className="flex-none text-gray-500">
                             {OneUptimeDate.getDateAsUserFriendlyFormattedString(
                               logTimeDate,
                             )}
@@ -844,7 +844,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
             ) : exceptionInstances.length === 0 && podExceptionsElement ? (
               podExceptionsElement
             ) : exceptionInstances.length === 0 ? (
-              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-400">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-500">
                 {translator.translateText(
                   "No exceptions were recorded on this span.",
                 )}
@@ -1086,7 +1086,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                 >
                   {translator.translateText("Attributes")}
                   {attributeEntries.length > 0 && (
-                    <span className="rounded-full bg-gray-100 px-1.5 py-px text-[10px] font-medium normal-case tracking-normal tabular-nums text-gray-500">
+                    <span className="rounded-full bg-gray-100 px-1.5 py-px text-xs font-medium normal-case tracking-normal tabular-nums text-gray-500">
                       {attributeEntries.length}
                     </span>
                   )}
@@ -1109,11 +1109,11 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
               </header>
 
               {detailLoading && attributeEntries.length === 0 ? (
-                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-400">
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-500">
                   {translator.translateText("Loading attributes…")}
                 </div>
               ) : attributeEntries.length === 0 ? (
-                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-400">
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-500">
                   {translator.translateText("No attributes on this span.")}
                 </div>
               ) : attributesView === "json" ? (
@@ -1144,7 +1144,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                               title={entry.value}
                             >
                               {entry.value || (
-                                <span className="italic text-gray-400">
+                                <span className="italic text-gray-500">
                                   {translator.translateText("empty")}
                                 </span>
                               )}

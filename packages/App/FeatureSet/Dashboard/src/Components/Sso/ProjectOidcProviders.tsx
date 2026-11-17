@@ -37,7 +37,7 @@ interface OidcConfigDialogTarget {
 /*
  * The project's OpenID Connect sign-on providers, on Project Settings >
  * Security > SSO under its SAML providers - one page for single sign-on,
- * with one test link and the Require SSO for Login switch, which counts an
+ * with one test link and the Require SSO to Sign In switch, which counts an
  * OIDC sign-in exactly as a SAML one. They had a page of their own
  * (Settings > OIDC), which told nobody that requiring SSO lived on the
  * other page; that address forwards to SSO now (MovedPagePaths).

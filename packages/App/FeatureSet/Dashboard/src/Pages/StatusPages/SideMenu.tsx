@@ -24,11 +24,11 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.CheckCircle,
         },
-      ],
-    },
-    {
-      title: "More",
-      items: [
+        /*
+         * Announcements are written most weeks, so they sit beside the
+         * status pages they go out on, not in a section called "More" that
+         * said nothing of what it held (#9126).
+         */
         {
           link: {
             title: "Announcements",
@@ -37,6 +37,36 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Announcement,
+        },
+      ],
+    },
+    /*
+     * Rules run by themselves once written, so they fold away under a
+     * section of their own, as Incidents and Alerts file theirs. Their
+     * addresses did not move (settings/owner-rules), so bookmarks keep
+     * working.
+     */
+    {
+      title: "Rules",
+      defaultCollapsed: true,
+      items: [
+        {
+          link: {
+            title: "Owner Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES] as Route,
+            ),
+          },
+          icon: IconProp.User,
+        },
+        {
+          link: {
+            title: "Label Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Tag,
         },
       ],
     },
@@ -74,24 +104,6 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.TableCells,
-        },
-        {
-          link: {
-            title: "Owner Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES] as Route,
-            ),
-          },
-          icon: IconProp.User,
-        },
-        {
-          link: {
-            title: "Label Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES] as Route,
-            ),
-          },
-          icon: IconProp.Tag,
         },
       ],
     },

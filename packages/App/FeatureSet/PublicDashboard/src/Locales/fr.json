@@ -28,5 +28,13 @@
   "Copied!": "Copié !",
   "Copy failed": "Échec de la copie",
   "Hide": "Masquer",
-  "Dismiss": "Masquer"
+  "Dismiss": "Masquer",
+  "Dashboard Not Found": "Tableau de bord introuvable",
+  "This dashboard does not exist, or it is no longer shared.": "Ce tableau de bord n'existe pas, ou il n'est plus partagé.",
+  "Check the address, or ask the person who shared it with you for a new link.": "Vérifiez l'adresse, ou demandez un nouveau lien à la personne qui l'a partagé avec vous.",
+  "Access Denied": "Accès refusé",
+  "This dashboard opens only from the IP addresses its owner allows, and yours is not one of them.": "Ce tableau de bord ne s'ouvre que depuis les adresses IP autorisées par son propriétaire, et la vôtre n'en fait pas partie.",
+  "Ask the dashboard's owner for access, or open it from a network they allow.": "Demandez l'accès au propriétaire du tableau de bord, ou ouvrez-le depuis un réseau qu'il autorise.",
+  "Show more": "Afficher plus",
+  "Show less": "Afficher moins"
 }

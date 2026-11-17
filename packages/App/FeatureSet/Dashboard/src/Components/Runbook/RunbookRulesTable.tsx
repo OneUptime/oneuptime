@@ -1,8 +1,8 @@
+import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -16,7 +16,6 @@ import {
   getRunbookRuleFormSteps,
 } from "../../Utils/Form/EventRuleForm";
 import { RuleCriteriaSubject } from "Common/Types/Rules/RuleCriteriaSubject";
-import { Green, Red } from "Common/Types/BrandColors";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -228,11 +227,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
           title: "Status",
           type: FieldType.Boolean,
           getElement: (item: RunbookRule): ReactElement => {
-            return item.isEnabled ? (
-              <Pill color={Green} text="Enabled" />
-            ) : (
-              <Pill color={Red} text="Disabled" />
-            );
+            return <EnabledPill isEnabled={item.isEnabled} />;
           },
         },
       ]}

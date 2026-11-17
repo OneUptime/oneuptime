@@ -1149,7 +1149,7 @@ describe("permissions", () => {
     });
 
     expect(
-      screen.getByText(/Telemetry features are disabled for this project/),
+      screen.getByText("Your plan does not include AI / LLM"),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("llm-connect-page")).not.toBeInTheDocument();
     expect(getListSpy).not.toHaveBeenCalled();

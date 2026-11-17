@@ -1892,16 +1892,30 @@ describe("the App's entry loaders", () => {
     });
   }
 
-  test("the Enterprise loader requires ee/'s entry file, and nothing else, by a computed name", () => {
+  test("the Enterprise loader resolves and requires ee/'s entry file, and nothing else, by a computed name", () => {
     expect(computedIn("packages/App/Utils/EnterpriseLoader.ts")).toEqual([
+      "require.resolve(entry)",
       "require(entryFile)",
     ]);
     const source = fs.readFileSync(
       path.join(REPO_ROOT, "packages/App/Utils/EnterpriseLoader.ts"),
       "utf8",
     );
-    // The file it requires is one of ee/'s two entry candidates.
-    expect(source).toContain('path.join("Server", "Index.ts")');
+    /*
+     * Both name ee/'s entry, Server/Index, in one of the directories it
+     * searches: resolved as every module is (Index.js, compiled, in an image;
+     * Index.ts from the sources), and required only when it resolved to
+     * exactly that file.
+     */
+    expect(source).toContain(
+      'const ENTRY_FILE: string = path.join("Server", "Index");',
+    );
+    expect(source).toContain(
+      "const entry: string = path.join(directory, ENTRY_FILE);",
+    );
+    expect(source).toContain(
+      "if (entryFile !== `${entry}.js` && entryFile !== `${entry}.ts`) {",
+    );
   });
 
   test("the external calendar starts its worker's file, and nothing else, beside the App", () => {

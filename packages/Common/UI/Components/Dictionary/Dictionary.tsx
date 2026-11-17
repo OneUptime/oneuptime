@@ -812,7 +812,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
             <></>
           )
         ) : (
-          <div className="mt-4 md:-ml-3">
+          <div className="mt-4">
             <Button
               title={translateNamedAction(translator, {
                 template: "Add {{itemName}}",

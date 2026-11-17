@@ -112,6 +112,7 @@ const DetailPage: React.FunctionComponent<{
 
   return (
     <Tabs
+      label="Pod"
       tabs={[
         { name: "Overview", children: <div data-testid="overview" /> },
         eventsTab,

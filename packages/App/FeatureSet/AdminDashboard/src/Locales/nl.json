@@ -62,9 +62,8 @@
     "dataRetention": "Gegevensbewaring",
     "globalLlmProviders": "Globale LLM-providers",
     "apiKey": "API-sleutel",
-    "more": "Meer",
     "sendEmail": "E-mail verzenden",
-    "logout": "Uitloggen",
+    "signOut": "Afmelden",
     "telemetryUsage": "Telemetriegebruik",
     "ingestionBudgets": "Ingestiebudgetten",
     "products": "Producten"
@@ -81,7 +80,7 @@
   },
   "userProfile": {
     "exitAdmin": "Admin verlaten",
-    "logOut": "Uitloggen"
+    "signOut": "Afmelden"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -108,14 +107,14 @@
     "billing": "Facturering",
     "subscription": "Abonnement",
     "invoices": "Facturen",
-    "support": "Ondersteuning",
     "customerSupportAccess": "Toegang voor klantenondersteuning",
     "advanced": "Geavanceerd",
     "overview": "Overzicht",
     "projects": "Projecten",
     "settings": "Instellingen",
     "authentication": "Authenticatie",
-    "delete": "Verwijderen",
+    "deleteProject": "Project verwijderen",
+    "deleteUser": "Gebruiker verwijderen",
     "settingsAuthentication": "Authenticatie",
     "settingsSso": "Single sign-on",
     "settingsNotifications": "Meldingen",
@@ -123,20 +122,16 @@
     "settingsCallSms": "Oproep en sms",
     "settingsWhatsapp": "WhatsApp",
     "settingsTelegram": "Telegram",
-    "settingsMonitoring": "Bewaking",
+    "settingsPushNotifications": "Pushmeldingen",
+    "settingsSharedWithProjects": "Gedeeld met alle projecten",
     "settingsGlobalProbes": "Globale sondes",
-    "settingsRunbooks": "Runbooks",
     "settingsGlobalRunners": "Globale Runners",
+    "settingsServer": "Server",
     "settingsDataRetention": "Gegevensbewaring",
-    "settingsAi": "AI",
     "settingsGlobalLlmProviders": "Globale LLM-providers",
-    "settingsApiIntegrations": "API en integraties",
     "settingsApiKey": "API-sleutel",
-    "moreCommunication": "Communicatie",
-    "moreSendEmail": "E-mail verzenden",
     "telemetryUsage": "Telemetriegebruik",
     "ingestionBudgets": "Ingestiebudgetten",
-    "settingsTelemetry": "Telemetrie",
     "settingsIngestionBudgets": "Ingestiebudgetten",
     "settingsProducts": "Producten"
   },
@@ -144,8 +139,8 @@
     "users": {
       "title": "Gebruikers",
       "cardTitle": "Gebruikers",
-      "cardDescription": "Hier is een lijst met gebruikers in OneUptime.",
-      "noItems": "Geen gebruikers gevonden.",
+      "listDescription": "Iedereen met een account op deze server. Open een gebruiker om diens projecten, aanmelding en beheerderstoegang te beheren.",
+      "emptyMessage": "Nog geen gebruikers.",
       "bulkAddToProject": "Aan project toevoegen",
       "bulkAddToProjectTitle": "Gebruikers aan project toevoegen",
       "bulkAddToProjectDescription": "Kies een project en een van de teams. De {{userCount}} geselecteerde gebruiker(s) worden voor dat team uitgenodigd.",
@@ -165,7 +160,12 @@
       "bulkRequireTwoFactorAuthDescription": "{{userCount}} geselecteerde gebruiker(s) worden uit alle actieve sessies afgemeld en moeten de volgende keer dat zij zich aanmelden een authenticator-app instellen. Dit geldt ook voor u, als u daarbij hoort.",
       "bulkDoNotRequireTwoFactorAuth": "Tweefactorauthenticatie niet verplichten",
       "bulkDoNotRequireTwoFactorAuthTitle": "Tweefactorauthenticatie niet langer verplichten voor {{userCount}} gebruiker(s)",
-      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} geselecteerde gebruiker(s) kunnen zich met alleen hun wachtwoord aanmelden. Wat zij al hebben ingesteld blijft bewaard, maar er wordt niet meer om gevraagd."
+      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} geselecteerde gebruiker(s) kunnen zich met alleen hun wachtwoord aanmelden. Wat zij al hebben ingesteld blijft bewaard, maar er wordt niet meer om gevraagd.",
+      "createdAndEmailed": "{{name}} is aangemaakt. Er is een link om het wachtwoord in te stellen gemaild naar {{email}}.",
+      "createdWithPassword": "{{name}} is aangemaakt. Geef het wachtwoord dat je hebt ingesteld op een veilige manier door.",
+      "setPasswordLinkTitle": "Stuur een link om het wachtwoord in te stellen",
+      "setPasswordLinkDescription": "Kopieer deze link en stuur hem zelf naar {{email}}, via een kanaal dat alleen die persoon kan lezen. Hij werkt één keer, {{days}} dagen lang.",
+      "setPasswordLinkOrSetIt": "Of stel zelf een wachtwoord in op de pagina Authenticatie van deze persoon."
     },
     "enterpriseLicenses": {
       "title": "Enterprise-licenties",
@@ -201,7 +201,6 @@
     "userView": {
       "title": "Gebruiker",
       "cardTitle": "Gebruiker",
-      "cardDescription": "Gebruikersgegevens",
       "editButton": "Gebruiker bewerken",
       "masterAdminCardTitle": "Master-admin-toegang",
       "masterAdminCardDescription": "Master-admin-toegang verlenen of intrekken voor deze gebruiker. Master-admins kunnen elk project en elke werkruimte beheren.",
@@ -302,13 +301,12 @@
     "projects": {
       "title": "Projecten",
       "cardTitle": "Projecten",
-      "cardDescription": "Hier is een lijst met projecten in OneUptime.",
-      "noItems": "Geen projecten gevonden."
+      "listDescription": "Alle projecten op deze server. Open er een om de gebruikers, teams en instellingen te beheren.",
+      "emptyMessage": "Nog geen projecten."
     },
     "projectView": {
       "title": "Project",
       "cardTitle": "Project",
-      "cardDescription": "Projectgegevens",
       "editButton": "Project bewerken",
       "dataResidencyCardTitle": "Gegevenslocatie",
       "dataResidencyCardDescription": "Waar de gegevens van dit project worden gehost. Zodra dit is ingesteld, wordt het aan de gebruikers van het project getoond in hun projectinstellingen.",
@@ -450,8 +448,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "Gebruikers",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "Mensen die bij dit project horen. Hun team bepaalt wat ieder van hen mag doen.",
+      "emptyMessage": "Nog geen gebruikers in dit project.",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "Gebruiker uitnodigen",
       "inviteUserTitle": "Nieuwe gebruiker uitnodigen",
@@ -470,20 +468,19 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Teams",
-      "cardDescription": "Hier is een lijst van alle teams in dit project.",
-      "noItems": "No teams found in this project."
+      "listDescription": "Teams bepalen wat hun leden in dit project mogen doen. Maak er een om een groep mensen dezelfde toegang te geven.",
+      "emptyMessage": "Nog geen teams in dit project."
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "Teamdetails",
-      "cardDescription": "Details about this team.",
       "editButton": "Team bewerken",
       "membersCardTitle": "Team Leden",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
-      "title": "Uitloggen"
+    "signOut": {
+      "title": "Afmelden"
     },
     "sendEmail": {
       "title": "Aankondigings-e-mail verzenden",
@@ -623,13 +620,13 @@
       },
       "probes": {
         "bannerTitle": "Hulp nodig bij het instellen van globale sondes?",
-        "bannerDescription": "Hier is een handleiding die u helpt bij het instellen",
+        "bannerGuide": "Volg de handleiding om een sonde op je eigen server te draaien en hem hier te verbinden.",
         "cardTitle": "Globale sondes",
         "cardDescription": "Globale sondes helpen u externe bronnen te monitoren vanuit verschillende locaties over de hele wereld.",
-        "noItems": "Geen sondes gevonden.",
+        "emptyMessage": "Nog geen globale sondes.",
         "showIdKey": "ID en sleutel tonen",
         "keyModalTitle": "Sondesleutel",
-        "keyModalDescription": "Hier is uw sondesleutel. Houd deze geheim.",
+        "keyModalSecret": "Je sonde maakt verbinding met OneUptime met deze ID en sleutel. Houd de sleutel geheim.",
         "probeIdLabel": "Sonde-ID:",
         "probeKeyLabel": "Sondesleutel:"
       },
@@ -724,7 +721,6 @@
   "Projects": "Projecten",
   "Project": "Project",
   "User": "Gebruiker",
-  "Logout": "Uitloggen",
   "Save": "Opslaan",
   "Cancel": "Annuleren",
   "Submit": "Verzenden",
@@ -981,7 +977,7 @@
   "No OIDC providers yet.": "Nog geen OIDC-providers.",
   "Require SSO": "SSO vereisen",
   "Before you require SSO, sign in with a provider using Test Sign-in in its row.": "Log in met een provider via Inloggen testen in zijn rij voordat je SSO vereist.",
-  "Require SSO for Login": "SSO vereisen voor inloggen",
+  "Require SSO to Sign In": "SSO vereisen om aan te melden",
   "The sign-in page offers only SSO. Everyone except master admins must sign in with SSO to open any project.": "De inlogpagina biedt alleen SSO aan. Iedereen behalve hoofdbeheerders moet met SSO inloggen om een project te openen.",
   "People can sign in with a password, a passkey or SSO.": "Mensen kunnen inloggen met een wachtwoord, een passkey of SSO.",
   "Master admins can always sign in with their password here, even while SSO is required. Keep this address.": "Hoofdbeheerders kunnen hier altijd met hun wachtwoord inloggen, ook terwijl SSO vereist is. Bewaar dit adres.",
@@ -2146,8 +2142,6 @@
   "Check email settings": "E-mailinstellingen controleren",
   "Email is failing": "E-mail mislukt",
   "Email is not set up": "E-mail is niet ingesteld",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "E-mails mislukken sinds {{time}}, dus uitnodigingen en incidentmails komen niet aan.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "E-mails mislukken sinds {{time}}, dus uitnodigingen en incidentmails komen niet aan. De mailserver antwoordde: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "Uitnodigingen, wachtwoordherstel en incidentmails worden niet verzonden.",
   "Monitors that run on global probes are not being checked.": "Monitoren die op globale sondes draaien, worden niet gecontroleerd.",
   "No global probe is reporting": "Geen enkele globale sonde meldt zich",
@@ -2206,7 +2200,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Gelicentieerd via uw cloudmarketplace-abonnement: elke gebruiker wordt per uur gefactureerd.",
   "License, version, seat usage, and the instances covered by this key.": "Licentie, versie, plaatsgebruik en de instanties die deze sleutel dekt.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "Het volledige OneUptime-platform met incidentrespons, statuspagina's en workflowautomatisering.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "SAML- en OIDC-single sign-on (SSO) voor projecten, statuspagina's en de hele instantie, inclusief \"SSO vereisen voor inloggen\".",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "SAML- en OIDC-single sign-on (SSO) voor projecten, statuspagina's en de hele instantie, inclusief \"SSO vereisen om aan te melden\".",
   "Community support, documentation, and tutorials to help teams get started quickly.": "Communityondersteuning, documentatie en tutorials waarmee teams snel aan de slag kunnen.",
   "Regular updates, bug fixes, and open-source extensibility.": "Regelmatige updates, bugfixes en opensource-uitbreidbaarheid.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Integraties met populaire DevOps-tools via connectors die de community onderhoudt.",
@@ -4167,5 +4161,19 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime heeft deze regel uitgeschakeld toen ze werden verwijderd.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Ingeschakeld zoals hij is, zou de regel helemaal niet meer door deze lijsten worden beperkt. Bewerk hem om te kiezen waarop hij van toepassing is en schakel hem daarna in.",
   "{{names}} and {{count}} more": "{{names}} en nog {{count}}",
-  "{{names}} and {{count}} more_one": "{{names}} en nog {{count}}"
+  "{{names}} and {{count}} more_one": "{{names}} en nog {{count}}",
+  "No email has gone out through this server's email settings since {{time}}.": "Sinds {{time}} is er geen e-mail meer verstuurd via de e-mailinstellingen van deze server.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Sinds {{time}} is er geen e-mail meer verstuurd via de e-mailinstellingen van deze server. De mailserver meldde: {{reason}}",
+  "See email logs": "E-maillogboeken bekijken",
+  "Addresses the mail server refused": "Adressen die de mailserver weigerde",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Andere e-mails zijn verstuurd, dus alleen deze adressen zijn getroffen. Corrigeer het adres of laat je e-mailprovider het accepteren: een Amazon SES-sandbox verstuurt alleen naar adressen die hij heeft geverifieerd.",
+  "Last refused {{time}}": "Laatst geweigerd op {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} is aangemaakt, maar de e-mail met een link om het wachtwoord in te stellen is niet verzonden. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "Ook de link om zelf te versturen kon niet worden gemaakt. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime mailt deze persoon een link om zelf een wachtwoord in te stellen.",
+  "They sign in with the password you set. Share it with them securely.": "Deze persoon meldt zich aan met het wachtwoord dat jij instelt. Geef het op een veilige manier door.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Deze server kan nog geen e-mail versturen. Stel hier het wachtwoord in, of laat het leeg voor een link die je zelf verstuurt.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "Deze server kan nog geen e-mail versturen. Stel e-mail in onder Instellingen > E-mails.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Deze server kan nog geen e-mail versturen, dus er is geen link gemaild om het wachtwoord opnieuw in te stellen. Stel e-mail in onder Instellingen > E-mails, of stel het wachtwoord zelf in.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Deze gebruiker heeft al een wachtwoord, dus er is geen link om een wachtwoord in te stellen. Stuur in plaats daarvan een link om het wachtwoord opnieuw in te stellen vanaf de pagina Authenticatie."
 }

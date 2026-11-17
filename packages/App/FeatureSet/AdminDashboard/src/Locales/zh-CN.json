@@ -62,9 +62,8 @@
     "dataRetention": "数据保留",
     "globalLlmProviders": "全局 LLM 提供商",
     "apiKey": "API 密钥",
-    "more": "更多",
     "sendEmail": "发送电子邮件",
-    "logout": "注销",
+    "signOut": "退出登录",
     "telemetryUsage": "遥测用量",
     "ingestionBudgets": "摄取预算",
     "products": "产品"
@@ -81,7 +80,7 @@
   },
   "userProfile": {
     "exitAdmin": "退出管理员",
-    "logOut": "注销"
+    "signOut": "退出登录"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -108,14 +107,14 @@
     "billing": "账单",
     "subscription": "订阅",
     "invoices": "发票",
-    "support": "支持",
     "customerSupportAccess": "客户支持访问权限",
     "advanced": "高级",
     "overview": "概览",
     "projects": "项目",
     "settings": "设置",
     "authentication": "认证",
-    "delete": "删除",
+    "deleteProject": "删除项目",
+    "deleteUser": "删除用户",
     "settingsAuthentication": "认证",
     "settingsSso": "单点登录",
     "settingsNotifications": "通知",
@@ -123,20 +122,16 @@
     "settingsCallSms": "通话和短信",
     "settingsWhatsapp": "WhatsApp",
     "settingsTelegram": "Telegram",
-    "settingsMonitoring": "监控",
+    "settingsPushNotifications": "推送通知",
+    "settingsSharedWithProjects": "所有项目共享",
     "settingsGlobalProbes": "全局探测器",
-    "settingsRunbooks": "运行手册",
     "settingsGlobalRunners": "全局 Runner",
+    "settingsServer": "服务器",
     "settingsDataRetention": "数据保留",
-    "settingsAi": "人工智能",
     "settingsGlobalLlmProviders": "全局 LLM 提供商",
-    "settingsApiIntegrations": "API 和集成",
     "settingsApiKey": "API 密钥",
-    "moreCommunication": "通信",
-    "moreSendEmail": "发送电子邮件",
     "telemetryUsage": "遥测用量",
     "ingestionBudgets": "摄取预算",
-    "settingsTelemetry": "遥测",
     "settingsIngestionBudgets": "摄取预算",
     "settingsProducts": "产品"
   },
@@ -144,8 +139,8 @@
     "users": {
       "title": "用户",
       "cardTitle": "用户",
-      "cardDescription": "这是 OneUptime 中的用户列表。",
-      "noItems": "未找到用户。",
+      "listDescription": "在此服务器上拥有账户的所有人。打开一个用户即可管理其项目、登录和管理员权限。",
+      "emptyMessage": "还没有用户。",
       "bulkAddToProject": "添加到项目",
       "bulkAddToProjectTitle": "将用户添加到项目",
       "bulkAddToProjectDescription": "选择一个项目及其中一个团队。所选的 {{userCount}} 位用户会被邀请加入该团队。",
@@ -165,7 +160,12 @@
       "bulkRequireTwoFactorAuthDescription": "所选的 {{userCount}} 位用户将从所有活动会话中登出，并且下次登录时必须设置身份验证器应用。如果您也在其中，此操作同样适用于您。",
       "bulkDoNotRequireTwoFactorAuth": "取消双因素身份验证要求",
       "bulkDoNotRequireTwoFactorAuthTitle": "取消对 {{userCount}} 位用户的双因素身份验证要求",
-      "bulkDoNotRequireTwoFactorAuthDescription": "所选的 {{userCount}} 位用户将可以仅使用密码登录。他们已设置的内容会保留，但不会再要求进行验证。"
+      "bulkDoNotRequireTwoFactorAuthDescription": "所选的 {{userCount}} 位用户将可以仅使用密码登录。他们已设置的内容会保留，但不会再要求进行验证。",
+      "createdAndEmailed": "已创建 {{name}}。设置密码的链接已发送至 {{email}}。",
+      "createdWithPassword": "已创建 {{name}}。请通过安全的方式把您设置的密码告诉对方。",
+      "setPasswordLinkTitle": "发送设置密码的链接",
+      "setPasswordLinkDescription": "复制此链接，并通过只有对方能看到的方式亲自发送给 {{email}}。链接只能使用一次，有效期 {{days}} 天。",
+      "setPasswordLinkOrSetIt": "或者在对方的认证页面上直接为其设置密码。"
     },
     "enterpriseLicenses": {
       "title": "企业版许可证",
@@ -201,7 +201,6 @@
     "userView": {
       "title": "用户",
       "cardTitle": "用户",
-      "cardDescription": "用户详细信息",
       "editButton": "编辑用户",
       "masterAdminCardTitle": "主管理员访问",
       "masterAdminCardDescription": "为此用户授予或撤销主管理员访问权限。主管理员可以管理每个项目和工作区。",
@@ -302,13 +301,12 @@
     "projects": {
       "title": "项目",
       "cardTitle": "项目",
-      "cardDescription": "这是 OneUptime 中的项目列表。",
-      "noItems": "未找到项目。"
+      "listDescription": "此服务器上的所有项目。打开一个项目即可管理其用户、团队和设置。",
+      "emptyMessage": "还没有项目。"
     },
     "projectView": {
       "title": "项目",
       "cardTitle": "项目",
-      "cardDescription": "项目详细信息",
       "editButton": "编辑项目",
       "dataResidencyCardTitle": "数据驻留",
       "dataResidencyCardDescription": "此项目数据的托管位置。设置后，项目用户可在项目设置中看到。",
@@ -450,8 +448,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "用户",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "属于此项目的人员。每个人能做什么由其所在团队决定。",
+      "emptyMessage": "此项目中还没有用户。",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "邀请用户",
       "inviteUserTitle": "邀请新用户",
@@ -470,20 +468,19 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "团队",
-      "cardDescription": "以下是该项目所有团队的列表。",
-      "noItems": "No teams found in this project."
+      "listDescription": "团队决定其成员在此项目中能做什么。创建一个团队，即可为一组人员授予相同的权限。",
+      "emptyMessage": "此项目中还没有团队。"
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "团队详情",
-      "cardDescription": "Details about this team.",
       "editButton": "编辑团队",
       "membersCardTitle": "团队 成员",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
-      "title": "注销"
+    "signOut": {
+      "title": "退出登录"
     },
     "sendEmail": {
       "title": "发送公告电子邮件",
@@ -623,13 +620,13 @@
       },
       "probes": {
         "bannerTitle": "需要帮助设置全局探测器吗?",
-        "bannerDescription": "这里有一个指南可以帮助您设置",
+        "bannerGuide": "按照指南在你自己的服务器上运行探测器，并在此处连接。",
         "cardTitle": "全局探测器",
         "cardDescription": "全局探测器可帮助您从世界各地的不同位置监控外部资源。",
-        "noItems": "未找到探测器。",
+        "emptyMessage": "还没有全局探测器。",
         "showIdKey": "显示 ID 和密钥",
         "keyModalTitle": "探测器密钥",
-        "keyModalDescription": "这是您的探测器密钥。请保密。",
+        "keyModalSecret": "你的探测器使用此 ID 和密钥连接到 OneUptime。请妥善保管密钥。",
         "probeIdLabel": "探测器 ID:",
         "probeKeyLabel": "探测器密钥:"
       },
@@ -724,7 +721,6 @@
   "Projects": "项目",
   "Project": "项目",
   "User": "用户",
-  "Logout": "注销",
   "Save": "保存",
   "Cancel": "取消",
   "Submit": "提交",
@@ -981,7 +977,7 @@
   "No OIDC providers yet.": "还没有 OIDC 提供商。",
   "Require SSO": "要求使用 SSO",
   "Before you require SSO, sign in with a provider using Test Sign-in in its row.": "在要求使用 SSO 之前，请在提供商所在行点击“测试登录”进行登录。",
-  "Require SSO for Login": "登录时要求使用 SSO",
+  "Require SSO to Sign In": "登录时要求使用 SSO",
   "The sign-in page offers only SSO. Everyone except master admins must sign in with SSO to open any project.": "登录页面只提供 SSO。除主管理员外，所有人都必须使用 SSO 登录才能打开项目。",
   "People can sign in with a password, a passkey or SSO.": "用户可以使用密码、通行密钥或 SSO 登录。",
   "Master admins can always sign in with their password here, even while SSO is required. Keep this address.": "即使要求使用 SSO，主管理员也始终可以在此使用密码登录。请保存此地址。",
@@ -2146,8 +2142,6 @@
   "Check email settings": "检查电子邮件设置",
   "Email is failing": "电子邮件发送失败",
   "Email is not set up": "未设置电子邮件",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "自 {{time}} 起电子邮件一直发送失败，因此邀请和事件邮件无法送达。",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "自 {{time}} 起电子邮件一直发送失败，因此邀请和事件邮件无法送达。邮件服务器返回：{{reason}}",
   "Invitations, password resets and incident emails are not sent.": "邀请、密码重置和事件邮件都不会发送。",
   "Monitors that run on global probes are not being checked.": "在全局探测器上运行的监视器没有被检查。",
   "No global probe is reporting": "没有全局探测器在报告",
@@ -2206,7 +2200,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "通过你的云市场订阅获得许可：每位用户按小时计费。",
   "License, version, seat usage, and the instances covered by this key.": "许可证、版本、席位用量以及此密钥涵盖的实例。",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "完整的 OneUptime 平台，包含事件响应、状态页面和工作流自动化。",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "适用于项目、状态页面和整个实例的 SAML 和 OIDC 单点登录（SSO），包括“登录时要求使用 SSO”。",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "适用于项目、状态页面和整个实例的 SAML 和 OIDC 单点登录（SSO），包括“登录时要求使用 SSO”。",
   "Community support, documentation, and tutorials to help teams get started quickly.": "社区支持、文档和教程，帮助团队快速上手。",
   "Regular updates, bug fixes, and open-source extensibility.": "定期更新、错误修复和开源可扩展性。",
   "Integrations with popular DevOps tools through community-maintained connectors.": "通过社区维护的连接器与常用 DevOps 工具集成。",
@@ -4167,5 +4161,19 @@
   "OneUptime switched this rule off when they were deleted.": "这些记录被删除时，OneUptime 已停用此规则。",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "若按原样启用，此规则将完全不受这些列表限制。请编辑它以选择其适用范围，然后再启用。",
   "{{names}} and {{count}} more": "{{names}} 等另外 {{count}} 个",
-  "{{names}} and {{count}} more_one": "{{names}} 等另外 {{count}} 个"
+  "{{names}} and {{count}} more_one": "{{names}} 等另外 {{count}} 个",
+  "No email has gone out through this server's email settings since {{time}}.": "自 {{time}} 起，没有任何邮件通过此服务器的邮件设置发出。",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "自 {{time}} 起，没有任何邮件通过此服务器的邮件设置发出。邮件服务器返回：{{reason}}",
+  "See email logs": "查看邮件日志",
+  "Addresses the mail server refused": "邮件服务器拒收的地址",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "其他邮件已发出，因此只有这些地址受影响。请更正地址，或让您的邮件服务商接受它：Amazon SES 沙盒只会发送到已验证的地址。",
+  "Last refused {{time}}": "最近一次拒收：{{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "已创建 {{name}}，但包含设置密码链接的邮件未能发送。{{error}}",
+  "The link to send them yourself was not made either. {{error}}": "供您亲自发送的链接也未能生成。{{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime 会通过邮件向对方发送一个链接，由对方自行设置密码。",
+  "They sign in with the password you set. Share it with them securely.": "对方将使用您设置的密码登录。请通过安全的方式告诉对方。",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "此服务器还无法发送邮件。请在此设置密码，或留空以获取一个由您亲自发送的链接。",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "此服务器还无法发送邮件。请在“设置 > 邮件”中设置邮件。",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "此服务器还无法发送邮件，因此未发送重置密码链接。请在“设置 > 邮件”中设置邮件，或亲自为对方设置密码。",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "该用户已有密码，因此没有可复制的设置密码链接。请改为在其认证页面发送重置密码链接。"
 }

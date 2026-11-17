@@ -42,6 +42,8 @@ import MonitorStatusEventDelete, {
 } from "Common/Utils/Monitor/MonitorStatusEventDelete";
 import { KEPT_STATUS_HISTORY_DAYS } from "Common/Types/StateTimeline/RowsKeptOnDelete";
 import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
+import TrimmedLogNote from "Common/UI/Components/SimpleLogViewer/TrimmedLogNote";
+import StoredCheckEvidence from "Common/Utils/Monitor/StoredCheckEvidence";
 import {
   getStateTimelineDurationColumn,
   getStateTimelineEndsAtColumn,
@@ -162,6 +164,8 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
 
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
   const [logs, setLogs] = useState<string>("");
+  // The check the row kept was cut to its size limit (StoredCheckEvidence).
+  const [isLogTrimmed, setIsLogTrimmed] = useState<boolean>(false);
 
   const [showRootCause, setShowRootCause] = useState<boolean>(false);
   const [rootCause, setRootCause] = useState<string>("");
@@ -624,6 +628,9 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                   ? JSON.stringify(item["statusChangeLog"], null, 2)
                   : translator.translateText(NO_LOGS_TEXT) || NO_LOGS_TEXT,
               );
+              setIsLogTrimmed(
+                StoredCheckEvidence.isTrimmed(item["statusChangeLog"]),
+              );
               setShowViewLogsModal(true);
 
               onCompleteAction();
@@ -740,6 +747,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
           submitButtonText={"Close"}
           submitButtonStyleType={ButtonStyleType.NORMAL}
         >
+          <TrimmedLogNote isTrimmed={isLogTrimmed} />
           <SimpleLogViewer title="Status Change Log" height="500px">
             {logs}
           </SimpleLogViewer>

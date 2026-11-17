@@ -237,7 +237,7 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
       isCollapsedOnSmallScreens={props.isCollapsedOnSmallScreens}
     >
       <div className="border-b border-gray-100 px-3 py-2.5">
-        <h3 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+        <h3 className="text-[11px] font-semibold uppercase tracking-widest text-gray-500">
           {translator.translateText(props.headerLabel || "Filters")}
         </h3>
       </div>
@@ -300,6 +300,7 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
                 chosenValue={config.chosenValue}
                 description={config.description}
                 valueDescriptionMap={config.valueDescriptionMap}
+                titleGlossaryTerm={config.titleGlossaryTerm}
                 onClearValue={(facetKey: string, value: string) => {
                   for (const chip of getFacetChipsToClear(
                     selections,

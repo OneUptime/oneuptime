@@ -38,7 +38,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { SecurityHuntSchedule } from "Common/Types/SecurityEvent/SecurityHunt";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import ResellerPlanNotice from "../../Components/Billing/ResellerPlanNotice";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -71,7 +71,10 @@ const SecurityHuntsPage: FunctionComponent<PageComponentProps> = (
   // Same reseller-telemetry gate as every other Security Events page.
   if (props.currentProject?.reseller?.enableTelemetryFeatures === false) {
     return (
-      <ErrorMessage message="Looks like you have bought this plan from a reseller. It did not include telemetry features in your plan. Telemetry features are disabled for this project." />
+      <ResellerPlanNotice
+        project={props.currentProject}
+        product="Security Events"
+      />
     );
   }
 

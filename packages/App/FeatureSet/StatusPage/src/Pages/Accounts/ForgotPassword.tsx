@@ -1,4 +1,7 @@
 import PageLogo from "../../Components/Logo/PageLogo";
+import AuthPage, {
+  AUTH_PAGE_LINK_CLASS,
+} from "Common/UI/Components/AuthPage/AuthPage";
 import { FORGOT_PASSWORD_API_URL } from "../../Utils/ApiPaths";
 import StatusPageModelAPI from "../../Utils/ModelAPI";
 import PageMap from "../../Utils/PageMap";
@@ -73,87 +76,81 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+    <AuthPage
+      logo={
         <PageLogo
           logoFileId={props.logoFileId}
           darkThemeLogoFileId={props.darkThemeLogoFileId}
           altText={props.statusPageName}
         />
-        <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
-          {t("accounts.forgotPassword.title")}
-        </h2>
-        {!isSuccess && (
-          <p className="mt-2 text-center text-sm text-gray-600">
-            {t("accounts.forgotPassword.description", {
-              statusPageName: props.statusPageName,
-            })}{" "}
-          </p>
-        )}
-
-        {isSuccess && (
-          <p className="mt-2 text-center text-sm text-gray-600">
-            {t("accounts.forgotPassword.success")}{" "}
-          </p>
-        )}
-      </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        {!isSuccess && (
-          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-            <ModelForm<StatusPagePrivateUser>
-              modelType={StatusPagePrivateUser}
-              modelAPI={StatusPageModelAPI}
-              id="login-form"
-              name="Status Page > Forgot Password"
-              createOrUpdateApiUrl={apiUrl}
-              onBeforeCreate={(
-                item: StatusPagePrivateUser,
-              ): Promise<StatusPagePrivateUser> => {
-                item.statusPageId = StatusPageUtil.getStatusPageId()!;
-                return Promise.resolve(item);
-              }}
-              fields={[
-                {
-                  field: {
-                    email: true,
-                  },
-                  title: t("accounts.shared.email"),
-                  showEvenIfPermissionDoesNotExist: true,
-                  fieldType: FormFieldSchemaType.Email,
-                  required: true,
-                  disableSpellCheck: true,
-                },
-              ]}
-              onSuccess={() => {
-                setIsSuccess(true);
-              }}
-              submitButtonText={t("accounts.forgotPassword.sendLink")}
-              formType={FormType.Create}
-              maxPrimaryButtonWidth={true}
-            />
-          </div>
-        )}
-
-        <div className="mt-10 text-center">
-          <p className="text-muted mb-0 text-gray-500">
-            {t("accounts.forgotPassword.rememberPassword")}{" "}
-            <Link
-              to={
-                new Route(
-                  StatusPageUtil.isPreviewPage()
-                    ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/login`
-                    : "/login",
-                )
-              }
-              className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
-            >
-              {t("accounts.shared.login")}.
-            </Link>
-          </p>
-        </div>
-      </div>
-    </div>
+      }
+      title={t("accounts.forgotPassword.title")}
+      subtitle={
+        isSuccess
+          ? /*
+             * The same answer for every address, as the server gives
+             * (#9274): it must not say whether this one may sign in.
+             */
+            t("accounts.forgotPassword.success", {
+              statusPageName: props.statusPageName || t("common.statusPage"),
+            })
+          : t("accounts.forgotPassword.description", {
+              statusPageName: props.statusPageName || t("common.statusPage"),
+            })
+      }
+      hasCard={!isSuccess}
+      cardTestId="forgot-password-card"
+      footerTestId="forgot-password-sign-in"
+      footer={
+        <>
+          {t("accounts.forgotPassword.rememberPassword")}{" "}
+          <Link
+            to={
+              new Route(
+                StatusPageUtil.isPreviewPage()
+                  ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/login`
+                  : "/login",
+              )
+            }
+            className={AUTH_PAGE_LINK_CLASS}
+          >
+            {t("accounts.shared.signInLink")}
+          </Link>
+        </>
+      }
+    >
+      <ModelForm<StatusPagePrivateUser>
+        modelType={StatusPagePrivateUser}
+        modelAPI={StatusPageModelAPI}
+        id="login-form"
+        name="Status Page > Forgot Password"
+        createOrUpdateApiUrl={apiUrl}
+        onBeforeCreate={(
+          item: StatusPagePrivateUser,
+        ): Promise<StatusPagePrivateUser> => {
+          item.statusPageId = StatusPageUtil.getStatusPageId()!;
+          return Promise.resolve(item);
+        }}
+        fields={[
+          {
+            field: {
+              email: true,
+            },
+            title: t("accounts.shared.email"),
+            showEvenIfPermissionDoesNotExist: true,
+            fieldType: FormFieldSchemaType.Email,
+            required: true,
+            disableSpellCheck: true,
+          },
+        ]}
+        onSuccess={() => {
+          setIsSuccess(true);
+        }}
+        submitButtonText={t("accounts.forgotPassword.sendLink")}
+        formType={FormType.Create}
+        maxPrimaryButtonWidth={true}
+      />
+    </AuthPage>
   );
 };
 

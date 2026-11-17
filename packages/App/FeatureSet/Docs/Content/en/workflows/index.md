@@ -70,7 +70,7 @@ Open **Products** in the top bar and choose **Workflows**, under **Dashboards & 
 
 - **Workflows** — your list of workflows. Create a new one or open an existing one.
 - **Global Variables** — values shared across all your workflows.
-- **Logs → Runs** — execution history across every workflow in your project.
+- **Runs** — execution history across every workflow in your project.
 - **Settings → Label Rules** and **Owner Rules** — label new workflows and assign their owners automatically.
 - **Advanced → Archived** — workflows you archived. They never run and are left out of the list; unarchive them from here. See [Archiving a workflow](/docs/workflows/configuration#archiving-a-workflow).
 - **Developer** — how to manage workflows with Terraform, the API or an AI assistant.
@@ -80,12 +80,12 @@ Open a single workflow and its own menu holds:
 - **Overview** — name, description, labels, and the **Enabled** switch.
 - **Builder** — the canvas where you design the workflow, with the **Enabled** switch at the top.
 - **Workflow Variables** — values scoped to this one workflow.
-- **Logs → Runs** — every run of this workflow, with details.
-- **Owners** — the people and teams responsible for the workflow.
+- **Runs** — every run of this workflow, with details.
 - **Developer** — how to manage this workflow with Terraform, the API or an AI assistant.
 - **Settings** — duplicate, export and archive.
+- **Owners** — the people and teams responsible for the workflow.
 
-**Settings** sits in the menu's **Advanced** section with **Audit Logs** and **Delete Workflow**. **Advanced** and **Developer** start collapsed, in this menu and every other one, so the pages you use every day come first. Click a section's name to show its pages. It opens by itself whenever you are on one of them.
+**Settings** and **Owners** sit in the menu's **Advanced** section with **Audit Logs** and **Delete Workflow**. **Advanced** and **Developer** start collapsed, in this menu and every other one, so the pages you use every day come first. Click a section's name to show its pages. It opens by itself whenever you are on one of them.
 
 ## Build your first workflow
 

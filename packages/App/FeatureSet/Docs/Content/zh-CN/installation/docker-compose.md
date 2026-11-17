@@ -593,7 +593,7 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 :::
 
 :::details 移动 ingress 端口后，内置探测器显示已断开
-Admin Dashboard 在 **设置 > 监控 > 全局探测器** 下列出该探测器。它通过 `GLOBAL_PROBE_1_ONEUPTIME_URL` 访问 OneUptime，默认值为 `http://localhost`（端口 80）。只要它指向 `localhost`，`npm start` 就会把它改到 ingress 的端口。如果你把它设成了其他地址，或者是用 Docker CLI 启动的 OneUptime，请把它设为 ingress 的新端口，例如 `http://localhost:8080`，然后重启 OneUptime。
+Admin Dashboard 在 **设置 > 所有项目共享 > 全局探测器** 下列出该探测器。它通过 `GLOBAL_PROBE_1_ONEUPTIME_URL` 访问 OneUptime，默认值为 `http://localhost`（端口 80）。只要它指向 `localhost`，`npm start` 就会把它改到 ingress 的端口。如果你把它设成了其他地址，或者是用 Docker CLI 启动的 OneUptime，请把它设为 ingress 的新端口，例如 `http://localhost:8080`，然后重启 OneUptime。
 :::
 
 ## 后续步骤

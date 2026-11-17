@@ -5,6 +5,7 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import AIRunType from "../../../Types/AI/AIRunType";
 import Text from "../../../Types/Text";
 import { combineWithPrivacyClause } from "../PrivacyFilterUtil";
+import AIRunOutputReadFilter from "./AIRunOutputReadFilter";
 import { Raw } from "typeorm";
 
 /*
@@ -89,6 +90,18 @@ export function getAIRunPrivacyRaw(
  * Applies the clause above on AIRun.runType. Project isolation is unaffected:
  * @TenantColumn("projectId") independently forces projectId = <tenant>, so
  * "CodeFix runs are readable" always means "in YOUR project".
+ *
+ * And, as everything done about a private incident or alert is, a run about
+ * one is read only by those who see that record (#9165): a CodeFix run
+ * OneUptime AI opened a fix pull request with from a private incident's
+ * investigation is the project's to read only where the incident is - its
+ * owners, Project Owners and Project Admins - and a run about a record that
+ * is gone, only Project Owners and Project Admins. So is a Code task asked
+ * from a private record's fix, and every turn of such a task
+ * (AIRunOutputReadFilter.applyToRunRow, the rule its Runner jobs and pull
+ * request follow). It holds for every kind of run: a person's own chat or
+ * investigation about a private record they no longer see is not theirs
+ * to read either.
  */
 export function applyAIRunPrivacyFilter<TQuery>(
   query: TQuery,
@@ -101,14 +114,12 @@ export function applyAIRunPrivacyFilter<TQuery>(
     return query;
   }
 
-  if (!query) {
-    return { runType: rawClause } as unknown as TQuery;
-  }
+  const filtered: TQuery = (query || {}) as TQuery;
 
-  (query as any).runType = combineWithPrivacyClause(
-    (query as any).runType,
+  (filtered as any).runType = combineWithPrivacyClause(
+    (filtered as any).runType,
     rawClause,
   );
 
-  return query;
+  return AIRunOutputReadFilter.applyToRunRow(filtered, props);
 }

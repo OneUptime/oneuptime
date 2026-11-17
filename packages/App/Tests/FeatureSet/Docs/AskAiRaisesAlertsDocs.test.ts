@@ -90,9 +90,27 @@ describe("the Ask AI page says which to ask for, and what an alert rule is", () 
   test("the paragraph follows the actions Ask AI can take, before the section on whose actions they are", () => {
     expect(PARAGRAPH_LINE).toBeGreaterThan(-1);
     expect(ENGLISH_LINES[PARAGRAPH_LINE - 1]).toBe("");
-    expect(ENGLISH_LINES[PARAGRAPH_LINE - 2]).toMatch(
-      /^- Propose a code change:/,
-    );
+    /*
+     * Right after the list of actions, whose last ones are Propose a code
+     * change and the note on who reads a pull request opened from a private
+     * incident or alert (#9249).
+     */
+    const listAbove: Array<string> = [];
+
+    for (
+      let line: number = PARAGRAPH_LINE - 2;
+      line >= 0 && ENGLISH_LINES[line]!.startsWith("- ");
+      line--
+    ) {
+      listAbove.push(ENGLISH_LINES[line]!);
+    }
+
+    expect(listAbove.length).toBeGreaterThan(0);
+    expect(
+      listAbove.some((item: string): boolean => {
+        return item.startsWith("- Propose a code change:");
+      }),
+    ).toBe(true);
     expect(ENGLISH_LINES[PARAGRAPH_LINE + 1]).toBe("");
     expect(ENGLISH_LINES[PARAGRAPH_LINE + 2]).toBe(
       "## Actions are made as you",

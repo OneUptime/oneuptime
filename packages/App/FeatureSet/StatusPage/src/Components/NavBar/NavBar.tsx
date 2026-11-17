@@ -205,7 +205,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
   if (props.isPrivateStatusPage) {
     addNavItem({
       id: "logout-nav-bar-item",
-      title: t("nav.logout"),
+      title: t("nav.signOut"),
       icon: IconProp.Logout,
       route: getRoute(PageMap.LOGOUT, PageMap.PREVIEW_LOGOUT),
     });

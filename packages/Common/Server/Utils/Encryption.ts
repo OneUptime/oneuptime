@@ -1,4 +1,8 @@
 import { EncryptionSecret } from "../EnvironmentConfig";
+import {
+  ENCRYPTED_VALUE_PREFIX,
+  isEncryptedValue,
+} from "../../Types/Database/EncryptedValue";
 import CryptoJS from "crypto-js";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 
@@ -10,9 +14,11 @@ export default class Encryption {
    * with it, so a stored value that does not is plaintext that predates a
    * column being encrypted — a row written before the column was made a
    * secret, waiting for its backfill — and decrypt must hand it back
-   * untouched rather than turn it to garbage. See looksEncrypted.
+   * untouched rather than turn it to garbage. See looksEncrypted. The one
+   * value, kept in Types/Database/EncryptedValue: a column's transformer
+   * reads it too.
    */
-  public static readonly CIPHERTEXT_PREFIX: string = "U2FsdGVkX1";
+  public static readonly CIPHERTEXT_PREFIX: string = ENCRYPTED_VALUE_PREFIX;
 
   /*
    * Whether `value` is ciphertext this class wrote. A column freshly made
@@ -22,10 +28,7 @@ export default class Encryption {
    * neither throws ("Malformed UTF-8 data") nor yields an empty string.
    */
   public static looksEncrypted(value: string): boolean {
-    return (
-      typeof value === "string" &&
-      value.startsWith(Encryption.CIPHERTEXT_PREFIX)
-    );
+    return isEncryptedValue(value);
   }
 
   @CaptureSpan()

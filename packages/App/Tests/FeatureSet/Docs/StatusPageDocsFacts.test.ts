@@ -84,8 +84,9 @@ const EMBEDDED_STATUS: string = `${DASHBOARD}/Pages/StatusPages/View/EmbeddedSta
 const SUBSCRIBER_SETTINGS: string = `${DASHBOARD}/Pages/StatusPages/View/SubscriberSettings.tsx`;
 const SUBSCRIBER_CHOICES_COPY: string = `${DASHBOARD}/Components/StatusPage/SubscriberChoicesCopy.ts`;
 const SUBSCRIBER_FORM_CHOICES: string = `${DASHBOARD}/Components/StatusPage/SubscriberFormChoices.ts`;
-const EMAIL_SUBSCRIBERS: string = `${DASHBOARD}/Pages/StatusPages/View/EmailSubscribers.tsx`;
-const SMS_SUBSCRIBERS: string = `${DASHBOARD}/Pages/StatusPages/View/SMSSubscribers.tsx`;
+// Every channel's subscriber list, one component since #9125, and its channels.
+const SUBSCRIBER_LIST: string = `${DASHBOARD}/Components/StatusPage/StatusPageSubscriberList.tsx`;
+const SUBSCRIBER_LIST_CHANNELS: string = `${DASHBOARD}/Components/StatusPage/SubscriberListChannels.ts`;
 const SUBSCRIBER_STATUS_PILL: string = `${DASHBOARD}/Components/StatusPage/SubscriberStatusPill.tsx`;
 
 const STATUS_PAGE_APP: string = "App/FeatureSet/StatusPage/src";
@@ -111,7 +112,7 @@ const SUBSCRIBER_MESSAGE_TEXT: string =
  * other route it serves, outside the dashboard's preview, is on the page.
  */
 const UNLISTED_VISITOR_ROUTES: Record<string, string> = {
-  "/logout": "The Log Out item of a private page's nav bar, named there.",
+  "/logout": "The Sign Out item of a private page's nav bar, named there.",
   "/forgot-password":
     "Part of the private users' own forgot-password flow, named under Private users.",
   "/reset-password/:token":
@@ -386,7 +387,7 @@ describe("the Status Pages Overview: creating a status page", () => {
     createForm.indexOf("export const getStatusPageDetailsFormFields"),
   );
 
-  it("asks only for a Name, at least two characters, with Description and Labels under More fields", () => {
+  it("asks only for a Name, at least two characters, with Internal Description and Labels under More fields", () => {
     expect(list).toContain("return getStatusPageCreateFormFields();");
     expect(list).toContain("formFields={createFormFields}");
     expect(
@@ -395,23 +396,23 @@ describe("the Status Pages Overview: creating a status page", () => {
           return match[1] as string;
         },
       ),
-    ).toEqual(["Name", "Description"]);
+    ).toEqual(["Name", "Internal Description"]);
     expect(formFields).toMatch(
       /title: "Name",[\s\S]*?required: true,[\s\S]*?minLength: 2,/,
     );
     // Only the name is asked: the description and the labels fold.
     expect(formFields).toMatch(
-      /title: "Description",[\s\S]*?required: false,[\s\S]*?collapsibleSection: moreFields,/,
+      /title: "Internal Description",[\s\S]*?required: false,[\s\S]*?collapsibleSection: moreFields,/,
     );
     expect(formFields).toMatch(
       /getLabelsFormField<StatusPage>\(\{\s*collapsibleSection: moreFields,\s*\}\)/,
     );
     expect(formFields).toContain("getAdvancedFormSection<StatusPage>()");
     expect(page).toContain(
-      "In the **Create New Status Page** modal, fill in **Name** (required, at least two characters), then click **Create Status Page**. **Description** and **Labels** are optional, under **More fields**.",
+      "In the **Create New Status Page** modal, fill in **Name** (required, at least two characters), then click **Create Status Page**. **Internal Description** and **Labels** are optional, under **More fields**.",
     );
     expect(page).toContain(
-      "A new status page only asks for its **Name**; **Description** and **Labels** wait under **More fields**.",
+      "A new status page only asks for its **Name**; **Internal Description** and **Labels** wait under **More fields**.",
     );
   });
 
@@ -577,9 +578,9 @@ describe("the Status Pages Overview: where everything lives", () => {
         .map((section: MenuSection): string => {
           return section.title;
         }),
-    ).toEqual(["Basic", "Resources"]);
+    ).toEqual(["Overview", "Resources"]);
     expect(where).toContain(
-      "Only **Basic** and **Resources**, what the page shows, start open. Every other section starts collapsed",
+      "Only **Overview** and **Resources**, what the page shows, start open. Every other section starts collapsed",
     );
   });
 
@@ -621,20 +622,24 @@ describe("the Status Pages Overview: where everything lives", () => {
       menu.map((section: MenuSection): string => {
         return section.title;
       }),
-    ).toEqual(["Status Pages", "More", "Settings", "Advanced"]);
+    ).toEqual(["Status Pages", "Rules", "Settings", "Advanced"]);
 
     const statusPages: MenuSection = byTitle("Status Pages");
-    const more: MenuSection = byTitle("More");
+    const rules: MenuSection = byTitle("Rules");
     const settings: MenuSection = byTitle("Settings");
     const advanced: MenuSection = byTitle("Advanced");
 
-    expect([statusPages.collapsed, more.collapsed]).toEqual([false, false]);
-    expect([settings.collapsed, advanced.collapsed]).toEqual([true, true]);
+    expect(statusPages.collapsed).toEqual(false);
+    expect([rules.collapsed, settings.collapsed, advanced.collapsed]).toEqual([
+      true,
+      true,
+      true,
+    ]);
     expect(where).toContain(
-      `the **Status Pages** section itself lists ${boldList(statusPages.items)}, and a **More** section holds ${boldList(more.items)}.`,
+      `the **Status Pages** section itself lists ${boldList(statusPages.items)}.`,
     );
     expect(where).toContain(
-      `A collapsed **Settings** section holds ${boldList(settings.items)}, which are project-wide`,
+      `A collapsed **Rules** section holds ${boldList(rules.items)}, and a collapsed **Settings** section holds ${boldList(settings.items)}. All of them are project-wide`,
     );
     expect(where).toContain(
       `A collapsed **Advanced** section holds ${boldList(advanced.items)}:`,
@@ -671,7 +676,7 @@ describe("the Status Pages Overview: what visitors see", () => {
     }
   });
 
-  it("shows Overview always, a list's item while its switch is on, Subscribe with a channel, and Log Out on a private page", () => {
+  it("shows Overview always, a list's item while its switch is on, Subscribe with a channel, and Sign Out on a private page", () => {
     const nav: string = readSource(VISITOR_NAV);
     const items: string = nav.slice(nav.indexOf("const navItems"));
     const always: string = items.slice(
@@ -715,7 +720,7 @@ describe("the Status Pages Overview: what visitors see", () => {
     }
 
     expect(visitors).toContain(
-      "The top nav bar always shows **Overview**; the rest appear only when enabled. **Incidents**, **Announcements** and **Scheduled Maintenance** each need their toggle on; **Subscribe** needs both **Show Subscriber Page** and at least one subscriber channel enabled. A private page also gets a **Log Out** item.",
+      "The top nav bar always shows **Overview**; the rest appear only when enabled. **Incidents**, **Announcements** and **Scheduled Maintenance** each need their toggle on; **Subscribe** needs both **Show Subscriber Page** and at least one subscriber channel enabled. A private page also gets a **Sign Out** item.",
     );
   });
 
@@ -810,10 +815,20 @@ describe("the Status Pages Overview: how incidents, maintenance and announcement
       }
     }
 
-    // Where an event names them: the create form's own field.
+    /*
+     * Where an event names them: the create form's field, defined once for
+     * the event's forms and its templates' (#9131).
+     */
     expect(
       readSource(`${DASHBOARD}/Pages/ScheduledMaintenanceEvents/Create.tsx`),
-    ).toContain('title: "Show event on these status pages ",');
+    ).toContain("getMaintenanceStatusPagesFormField<ScheduledMaintenance>({");
+    expect(
+      readSource(
+        `${DASHBOARD}/Components/ScheduledMaintenance/MaintenanceStatusPagesCopy.ts`,
+      ),
+    ).toContain(
+      'pickerTitle: translationKey("Show event on these status pages")',
+    );
   });
 
   it("says incidents come through the monitors, and events and announcements through the pages they name", () => {
@@ -1040,7 +1055,13 @@ describe("the Status Pages Overview: the password, the badge, the feed and archi
       'const token: string = req.query["token"] as string;',
     );
     expect(api).toContain("enableEmbeddedOverallStatus: true,");
-    expect(api).toContain("embeddedOverallStatusToken: token,");
+    /*
+     * The page by its id, and the token presented compared with its own:
+     * the token is kept encrypted (#9012), so no query names it.
+     */
+    expect(api).toMatch(
+      /StatusPageService\.findOneByPresentedKey\(\{\s*column: "embeddedOverallStatusToken",\s*presentedKey: token,/,
+    );
 
     for (const name of [
       'title="Enable Embedded Status Badge"',
@@ -1391,13 +1412,16 @@ describe("Subscribers & Announcements: confirming an email address", () => {
     expect(service).toMatch(
       /const isSignUpByTextMessage: boolean =\s*statusPageSignUps\.has\(data\.data\) && Boolean\(data\.data\.subscriberPhone\);\s*if \(\s*\(isEmailSubscriber && !isSubscriptionConfirmed\) \|\|\s*isSignUpByTextMessage\s*\) \{\s*data\.data\.isSubscriptionConfirmed = false;\s*\} else \{\s*data\.data\.isSubscriptionConfirmed = true;/,
     );
-    // The Add form asks one question, Add in Bulk the same.
-    expect(readSource(EMAIL_SUBSCRIBERS)).toContain(
-      "...getEmailSubscriberAddChoiceFields(),",
+    // The Add form asks one question, Add in Bulk the same - on email only.
+    expect(readSource(SUBSCRIBER_LIST)).toContain(
+      "...(channel.asksHowToAdd ? getEmailSubscriberAddChoiceFields() : []),",
     );
-    expect(readSource(EMAIL_SUBSCRIBERS)).toContain(
+    expect(readSource(SUBSCRIBER_LIST)).toContain(
       "getSubscriberAddChoiceColumns(data.subscriberAddChoice)",
     );
+    expect(
+      readSource(SUBSCRIBER_LIST_CHANNELS).match(/asksHowToAdd: true,/g) || [],
+    ).toHaveLength(1);
 
     // What each answer writes, and the answer a new subscriber starts with.
     for (const [choice, confirmed, told] of [
@@ -1437,7 +1461,9 @@ describe("Subscribers & Announcements: confirming an email address", () => {
 
   it("says a sign-up by SMS confirms from the phone: one text first, the welcome once the link is opened, Awaiting Confirmation until then, and the code kept out of the SMS log", () => {
     const api: string = readSource(STATUS_PAGE_API);
-    const smsSubscribers: string = readSource(SMS_SUBSCRIBERS);
+    const smsSubscribers: string = `${readSource(SUBSCRIBER_LIST)}${readSource(
+      SUBSCRIBER_LIST_CHANNELS,
+    )}`;
 
     // The one text a sign-up by SMS is sent, and nothing else until confirmed.
     expect(service).toContain("getConfirmSubscriptionTextMessage({");

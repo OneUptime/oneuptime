@@ -317,7 +317,7 @@ const OWN_KEY: Record<string, Array<OwnKeyLabel>> = {
         return translator.translateText(CREATED_IMPORT_RESULT) || "";
       },
       file: "App/FeatureSet/Dashboard/src/Components/StatusPage/ImportGroupsFromCsvModal.tsx",
-      draws: "translator.translateText(CREATED_IMPORT_RESULT)",
+      draws: "text={CREATED_IMPORT_RESULT}",
     },
   ],
 };
@@ -342,8 +342,8 @@ interface MessageLabel {
 const MESSAGES: Record<string, Array<MessageLabel>> = {
   [BRANDING_AND_DOMAINS]: [
     {
-      english: "No custom domains found",
-      key: "No custom domains found.",
+      english: "No custom domains yet",
+      key: "No custom domains yet.",
     },
   ],
 };
@@ -480,6 +480,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Overview Page",
     // A card that is now a row of another card.
     "Overall Uptime Percent",
+    "Title and search engine description, and favicon.",
     "History chart colors.",
     "Languages.",
     "Search Engine Indexing.",
@@ -1566,10 +1567,10 @@ describe("the helpers, on these pages' shapes", () => {
     ).toBe("Show N more of M");
     expect(
       drawnMessage("en", {
-        english: "No custom domains found",
-        key: "No custom domains found.",
+        english: "No custom domains yet",
+        key: "No custom domains yet.",
       }),
-    ).toBe("No custom domains found");
+    ).toBe("No custom domains yet");
     expect("見つかりません。".replace(FULL_STOP, "")).toBe("見つかりません");
   });
 

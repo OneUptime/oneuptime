@@ -399,7 +399,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
               ? "invisible"
               : "bg-indigo-100 text-indigo-700"
             : row.ownResourceCount === 0
-              ? "bg-gray-100 text-gray-400"
+              ? "bg-gray-100 text-gray-500"
               : "bg-gray-100 text-gray-500"
         }`}
         title={getNavigatorCountTooltip(
@@ -677,7 +677,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
                  * A row that is only on screen to give a match its place in the
                  * hierarchy is context, not a result.
                  */
-                row.isSearchMatch ? "" : "text-gray-400"
+                row.isSearchMatch ? "" : "text-gray-500"
               }`}
               title={row.name || translator.translateText("Untitled group")}
               data-testid="status-page-resource-navigator-name"
@@ -742,7 +742,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
               isUngroupedSelected
                 ? "bg-indigo-100 text-indigo-700"
                 : props.countIndex.ungroupedCount === 0
-                  ? "bg-gray-100 text-gray-400"
+                  ? "bg-gray-100 text-gray-500"
                   : "bg-gray-100 text-gray-500"
             }`}
             title={translator.translatePlural(
@@ -803,7 +803,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
 
         {props.hiddenRowCount > 0 ? (
           <div
-            className="px-1 pt-2 [&_button]:md:ml-0"
+            className="px-1 pt-2"
             data-testid="status-page-resource-navigator-show-more"
           >
             <Button

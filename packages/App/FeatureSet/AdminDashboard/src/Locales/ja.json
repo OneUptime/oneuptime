@@ -62,9 +62,8 @@
     "dataRetention": "データ保持",
     "globalLlmProviders": "グローバルLLMプロバイダー",
     "apiKey": "APIキー",
-    "more": "その他",
     "sendEmail": "メール送信",
-    "logout": "ログアウト",
+    "signOut": "サインアウト",
     "telemetryUsage": "テレメトリ使用量",
     "ingestionBudgets": "取り込み予算",
     "products": "製品"
@@ -81,7 +80,7 @@
   },
   "userProfile": {
     "exitAdmin": "管理者を終了",
-    "logOut": "ログアウト"
+    "signOut": "サインアウト"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -108,14 +107,14 @@
     "billing": "請求",
     "subscription": "サブスクリプション",
     "invoices": "請求書",
-    "support": "サポート",
     "customerSupportAccess": "カスタマーサポートのアクセス",
     "advanced": "詳細",
     "overview": "概要",
     "projects": "プロジェクト",
     "settings": "設定",
     "authentication": "認証",
-    "delete": "削除",
+    "deleteProject": "プロジェクトを削除",
+    "deleteUser": "ユーザーを削除",
     "settingsAuthentication": "認証",
     "settingsSso": "シングルサインオン",
     "settingsNotifications": "通知",
@@ -123,20 +122,16 @@
     "settingsCallSms": "通話とSMS",
     "settingsWhatsapp": "WhatsApp",
     "settingsTelegram": "Telegram",
-    "settingsMonitoring": "監視",
+    "settingsPushNotifications": "プッシュ通知",
+    "settingsSharedWithProjects": "全プロジェクトで共有",
     "settingsGlobalProbes": "グローバルプローブ",
-    "settingsRunbooks": "Runbook",
     "settingsGlobalRunners": "グローバル Runner",
+    "settingsServer": "サーバー",
     "settingsDataRetention": "データ保持",
-    "settingsAi": "AI",
     "settingsGlobalLlmProviders": "グローバルLLMプロバイダー",
-    "settingsApiIntegrations": "APIと統合",
     "settingsApiKey": "APIキー",
-    "moreCommunication": "コミュニケーション",
-    "moreSendEmail": "メール送信",
     "telemetryUsage": "テレメトリ使用量",
     "ingestionBudgets": "取り込み予算",
-    "settingsTelemetry": "テレメトリ",
     "settingsIngestionBudgets": "取り込み予算",
     "settingsProducts": "製品"
   },
@@ -144,8 +139,8 @@
     "users": {
       "title": "ユーザー",
       "cardTitle": "ユーザー",
-      "cardDescription": "OneUptime内のユーザー一覧です。",
-      "noItems": "ユーザーが見つかりません。",
+      "listDescription": "このサーバーにアカウントを持つすべての人です。ユーザーを開くと、そのプロジェクト、サインイン、管理者アクセスを管理できます。",
+      "emptyMessage": "ユーザーはまだいません。",
       "bulkAddToProject": "プロジェクトに追加",
       "bulkAddToProjectTitle": "ユーザーをプロジェクトに追加",
       "bulkAddToProjectDescription": "プロジェクトとそのチームの 1 つを選択してください。選択した {{userCount}} 人のユーザーがそのチームに招待されます。",
@@ -165,7 +160,12 @@
       "bulkRequireTwoFactorAuthDescription": "選択した {{userCount}} 人のユーザーはすべてのアクティブなセッションからサインアウトされ、次回サインイン時に認証アプリを設定する必要があります。あなた自身が含まれている場合は、あなたも対象になります。",
       "bulkDoNotRequireTwoFactorAuth": "2 要素認証を必須にしない",
       "bulkDoNotRequireTwoFactorAuthTitle": "{{userCount}} 人のユーザーの 2 要素認証の必須を解除",
-      "bulkDoNotRequireTwoFactorAuthDescription": "選択した {{userCount}} 人のユーザーはパスワードだけでサインインできるようになります。すでに設定済みの内容は保持されますが、今後は要求されません。"
+      "bulkDoNotRequireTwoFactorAuthDescription": "選択した {{userCount}} 人のユーザーはパスワードだけでサインインできるようになります。すでに設定済みの内容は保持されますが、今後は要求されません。",
+      "createdAndEmailed": "{{name}} を作成しました。パスワード設定用のリンクを {{email}} に送信しました。",
+      "createdWithPassword": "{{name}} を作成しました。設定したパスワードは安全な方法で伝えてください。",
+      "setPasswordLinkTitle": "パスワード設定用のリンクを送る",
+      "setPasswordLinkDescription": "このリンクをコピーし、本人だけが読める方法で {{email}} に直接送ってください。リンクは 1 回だけ、{{days}} 日間有効です。",
+      "setPasswordLinkOrSetIt": "または、そのユーザーの認証ページでパスワードを直接設定します。"
     },
     "enterpriseLicenses": {
       "title": "エンタープライズライセンス",
@@ -201,7 +201,6 @@
     "userView": {
       "title": "ユーザー",
       "cardTitle": "ユーザー",
-      "cardDescription": "ユーザー詳細",
       "editButton": "ユーザーを編集",
       "masterAdminCardTitle": "マスター管理者アクセス",
       "masterAdminCardDescription": "このユーザーにマスター管理者アクセスを付与または取り消します。マスター管理者はすべてのプロジェクトとワークスペースを管理できます。",
@@ -302,13 +301,12 @@
     "projects": {
       "title": "プロジェクト",
       "cardTitle": "プロジェクト",
-      "cardDescription": "OneUptime内のプロジェクト一覧です。",
-      "noItems": "プロジェクトが見つかりません。"
+      "listDescription": "このサーバー上のすべてのプロジェクトです。プロジェクトを開くと、そのユーザー、チーム、設定を管理できます。",
+      "emptyMessage": "プロジェクトはまだありません。"
     },
     "projectView": {
       "title": "プロジェクト",
       "cardTitle": "プロジェクト",
-      "cardDescription": "プロジェクト詳細",
       "editButton": "プロジェクトを編集",
       "dataResidencyCardTitle": "データレジデンシー",
       "dataResidencyCardDescription": "このプロジェクトのデータがホストされている場所です。設定すると、プロジェクト設定でプロジェクトのユーザーに表示されます。",
@@ -450,8 +448,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "ユーザー",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "このプロジェクトに属する人です。各自ができることは、所属するチームによって決まります。",
+      "emptyMessage": "このプロジェクトにはまだユーザーがいません。",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "ユーザーを招待",
       "inviteUserTitle": "新しいユーザーを招待",
@@ -470,20 +468,19 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "チーム",
-      "cardDescription": "このプロジェクトのすべてのチームの一覧です。",
-      "noItems": "No teams found in this project."
+      "listDescription": "チームは、メンバーがこのプロジェクトでできることを決めます。複数の人に同じアクセス権を与えるには、チームを作成してください。",
+      "emptyMessage": "このプロジェクトにはまだチームがありません。"
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "チームの詳細",
-      "cardDescription": "Details about this team.",
       "editButton": "チームを編集",
       "membersCardTitle": "チーム メンバー",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
-      "title": "ログアウト"
+    "signOut": {
+      "title": "サインアウト"
     },
     "sendEmail": {
       "title": "お知らせメールを送信",
@@ -623,13 +620,13 @@
       },
       "probes": {
         "bannerTitle": "グローバルプローブの設定にサポートが必要ですか？",
-        "bannerDescription": "セットアップに役立つガイドがあります",
+        "bannerGuide": "ガイドに従って自分のサーバーでプローブを実行し、ここに接続してください。",
         "cardTitle": "グローバルプローブ",
         "cardDescription": "グローバルプローブは世界中のさまざまな場所から外部リソースを監視するのに役立ちます。",
-        "noItems": "プローブが見つかりません。",
+        "emptyMessage": "グローバルプローブはまだありません。",
         "showIdKey": "IDとキーを表示",
         "keyModalTitle": "プローブキー",
-        "keyModalDescription": "こちらがあなたのプローブキーです。秘密にしておいてください。",
+        "keyModalSecret": "プローブはこの ID とキーで OneUptime に接続します。キーは秘密にしてください。",
         "probeIdLabel": "プローブID：",
         "probeKeyLabel": "プローブキー："
       },
@@ -724,7 +721,6 @@
   "Projects": "プロジェクト",
   "Project": "プロジェクト",
   "User": "ユーザー",
-  "Logout": "ログアウト",
   "Save": "保存",
   "Cancel": "キャンセル",
   "Submit": "送信",
@@ -981,7 +977,7 @@
   "No OIDC providers yet.": "OIDC プロバイダーはまだありません。",
   "Require SSO": "SSO を必須にする",
   "Before you require SSO, sign in with a provider using Test Sign-in in its row.": "SSO を必須にする前に、プロバイダーの行にある「サインインをテスト」でサインインしてください。",
-  "Require SSO for Login": "ログインに SSO を必須にする",
+  "Require SSO to Sign In": "サインインに SSO を必須にする",
   "The sign-in page offers only SSO. Everyone except master admins must sign in with SSO to open any project.": "サインインページには SSO だけが表示されます。マスター管理者以外は、プロジェクトを開くために SSO でサインインする必要があります。",
   "People can sign in with a password, a passkey or SSO.": "パスワード、パスキー、または SSO でサインインできます。",
   "Master admins can always sign in with their password here, even while SSO is required. Keep this address.": "マスター管理者は、SSO が必須の間も、ここからいつでもパスワードでサインインできます。このアドレスを控えておいてください。",
@@ -2146,8 +2142,6 @@
   "Check email settings": "メール設定を確認",
   "Email is failing": "メール送信が失敗しています",
   "Email is not set up": "メールが設定されていません",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "{{time}} からメールの送信に失敗しているため、招待やインシデントのメールが届いていません。",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "{{time}} からメールの送信に失敗しているため、招待やインシデントのメールが届いていません。メールサーバーの応答: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "招待、パスワード再設定、インシデントのメールは送信されません。",
   "Monitors that run on global probes are not being checked.": "グローバルプローブで実行されるモニターはチェックされていません。",
   "No global probe is reporting": "報告しているグローバルプローブがありません",
@@ -2206,7 +2200,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "クラウドマーケットプレイスのサブスクリプションでライセンスされています。すべてのユーザーが時間単位で課金されます。",
   "License, version, seat usage, and the instances covered by this key.": "ライセンス、バージョン、シートの使用状況、このキーの対象となるインスタンス。",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "インシデント対応、ステータスページ、ワークフローの自動化を備えた、OneUptime プラットフォームのすべて。",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "プロジェクト、ステータスページ、インスタンス全体に対する SAML と OIDC のシングルサインオン（SSO）。「ログインに SSO を必須にする」を含みます。",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "プロジェクト、ステータスページ、インスタンス全体に対する SAML と OIDC のシングルサインオン（SSO）。「サインインに SSO を必須にする」を含みます。",
   "Community support, documentation, and tutorials to help teams get started quickly.": "チームがすぐに始められるよう、コミュニティのサポート、ドキュメント、チュートリアルを提供します。",
   "Regular updates, bug fixes, and open-source extensibility.": "定期的なアップデート、バグ修正、オープンソースによる拡張性。",
   "Integrations with popular DevOps tools through community-maintained connectors.": "コミュニティが管理するコネクターによる、一般的な DevOps ツールとの連携。",
@@ -4167,5 +4161,19 @@
   "OneUptime switched this rule off when they were deleted.": "それらが削除されたときに、OneUptime がこのルールを無効にしました。",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "このまま有効にすると、このルールはこれらのリストでまったく制限されなくなります。編集して適用先を選んでから、有効にしてください。",
   "{{names}} and {{count}} more": "{{names}} ほか {{count}} 件",
-  "{{names}} and {{count}} more_one": "{{names}} ほか {{count}} 件"
+  "{{names}} and {{count}} more_one": "{{names}} ほか {{count}} 件",
+  "No email has gone out through this server's email settings since {{time}}.": "{{time}} 以降、このサーバーのメール設定からメールが 1 通も送信されていません。",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "{{time}} 以降、このサーバーのメール設定からメールが 1 通も送信されていません。メールサーバーの応答: {{reason}}",
+  "See email logs": "メールログを見る",
+  "Addresses the mail server refused": "メールサーバーが拒否したアドレス",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "ほかのメールは送信されているため、影響を受けているのはこれらのアドレスだけです。アドレスを修正するか、メールプロバイダーで受け付けられるようにしてください。Amazon SES のサンドボックスは検証済みのアドレスにしか送信しません。",
+  "Last refused {{time}}": "最終拒否: {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} を作成しましたが、パスワード設定用リンクのメールは送信されませんでした。{{error}}",
+  "The link to send them yourself was not made either. {{error}}": "直接送るためのリンクも作成できませんでした。{{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime から本人にパスワード設定用のリンクをメールで送ります。",
+  "They sign in with the password you set. Share it with them securely.": "本人は設定したパスワードでサインインします。安全な方法で伝えてください。",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "このサーバーはまだメールを送信できません。ここでパスワードを設定するか、空欄のままにして直接送るためのリンクを取得してください。",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "このサーバーはまだメールを送信できません。[設定] > [メール] でメールを設定してください。",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "このサーバーはまだメールを送信できないため、パスワードリセット用のリンクは送信されませんでした。[設定] > [メール] でメールを設定するか、パスワードを直接設定してください。",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "このユーザーにはすでにパスワードがあるため、コピーできるパスワード設定用リンクはありません。代わりに認証ページからパスワードリセット用のリンクを送ってください。"
 }

@@ -518,22 +518,15 @@ describe("SecurityLogLineCheck", () => {
     }
   });
 
-  test("Check lines up with the box above it: the Button's footer margin is cleared", async () => {
+  test("Check lines up with the box above it: the Button carries no margin of its own", async () => {
     await renderCheck();
     await open();
 
     const run: HTMLElement = screen.getByTestId(
       `${SECURITY_LOG_LINE_CHECK_ID}-run`,
     );
-    // Button draws md:ml-3, a dialog footer's spacing; its wrapper clears it.
-    expect(run).toHaveClass("md:ml-3");
-    const wrapper: HTMLElement = run.closest("div") as HTMLElement;
-    expect(wrapper).toHaveClass(
-      "[&>button]:ml-0",
-      "[&>button]:md:ml-0",
-      "[&>*>button]:ml-0",
-      "[&>*>button]:md:ml-0",
-    );
+    // No dialog footer's margin on the Button any more (#9128).
+    expect(run.className).not.toMatch(/(^|\s)(md:)?!?m[ls]-/u);
   });
 });
 

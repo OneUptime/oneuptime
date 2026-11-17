@@ -164,7 +164,7 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
               )}
               {!isDeletedCustomField &&
                 typeLabel.toLowerCase() !== columnTitle.toLowerCase() && (
-                  <span className="truncate text-gray-400">{typeLabel}</span>
+                  <span className="truncate text-gray-500">{typeLabel}</span>
                 )}
             </span>
             {/*

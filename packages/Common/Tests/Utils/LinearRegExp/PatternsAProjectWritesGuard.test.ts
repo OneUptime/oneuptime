@@ -75,7 +75,7 @@ const LISTED: ReadonlyArray<ListedFile> = [
     file: "packages/Common/Server/Infrastructure/Postgres/OnlineDdl.ts",
     count: 1,
     builtFrom:
-      "the event its two callers name, DELETE or UPDATE, and the actions REFERENTIAL_ACTION lists, to read what a foreign key a migration adds does on a delete and on an update",
+      "DELETE or UPDATE, and the referential actions REFERENTIAL_ACTION lists, to read a foreign key's definition as pg_get_constraintdef writes it",
   },
   {
     file: "packages/Common/Server/Infrastructure/Postgres/QueryPropertyNames.ts",
@@ -87,6 +87,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     file: "packages/Common/Server/Types/MarkdownDocsExtensions.ts",
     count: 1,
     builtFrom: "the container names DOCS_CONTAINER_NAMES lists",
+  },
+  {
+    file: "packages/Common/Server/Utils/AI/AIRunOutputReadFilter.ts",
+    count: 1,
+    builtFrom:
+      "the names of the SQL parameters it and PrivateRecordReadFilter make up, a prefix and ten random letters (Text.generateRandomText), to write them as positional parameters",
   },
   {
     file: "packages/Common/Server/Utils/AnalyticsDatabase/Statement.ts",

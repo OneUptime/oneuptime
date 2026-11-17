@@ -3,7 +3,7 @@
 Mit Single Sign-On (SSO) melden sich die Personen in Ihrem Projekt über den Identitätsanbieter (IdP) Ihrer Organisation bei OneUptime an, per SAML 2.0 oder OpenID Connect. Zugriff, Passwörter und Multi-Faktor-Authentifizierung verwalten Sie an einer Stelle, und Sie können SSO für alle im Projekt verlangen.
 
 > [!NOTE]
-> **Edition:** SSO, einschließlich "Require SSO for login", ist Teil jeder OneUptime-Edition: Selbst gehostete Installationen erhalten es in der Community Edition, ohne dass eine Lizenz nötig ist. Auf OneUptime Cloud ist es ab dem Plan **Scale** verfügbar. Was jede Edition enthält, sehen Sie unter [Enterprise Edition](/docs/self-hosted/enterprise).
+> **Edition:** SSO, einschließlich "Require SSO to sign in", ist Teil jeder OneUptime-Edition: Selbst gehostete Installationen erhalten es in der Community Edition, ohne dass eine Lizenz nötig ist. Auf OneUptime Cloud ist es ab dem Plan **Scale** verfügbar. Was jede Edition enthält, sehen Sie unter [Enterprise Edition](/docs/self-hosted/enterprise).
 
 :::cards
 - [SAML-Anbieter einrichten](#sso-einrichten): In OneUptime anlegen und Ihrem IdP zwei URLs geben.
@@ -325,7 +325,7 @@ Einen Anbieter hinzuzufügen, zu ändern oder wieder einzuschalten erfordert **S
 
 Solange das Projekt noch SSO verlangt, zeigt seine Seite **SSO** auch **SSO für die Anmeldung erzwingen**: Schalten Sie es aus, bevor Sie den letzten Anbieter ausschalten. Bis dahin lässt sich der letzte Anbieter, mit dem sich Personen anmelden können, weder ausschalten noch löschen, damit niemand aus dem Projekt ausgesperrt wird.
 
-Die Seiten **SSO** und **OIDC** einer Statusseite listen deren eigene Anbieter auf dieselbe Weise auf. Solange die Statusseite noch SSO verlangt, zeigen beide Seiten auch **SSO für die Anmeldung erzwingen**: Schalten Sie es aus, bevor Sie ihre Anbieter ausschalten, sonst können sich ihre privaten Benutzer überhaupt nicht mehr anmelden.
+Die Seite **Single Sign-On** einer Statusseite listet deren eigene Anbieter auf dieselbe Weise auf, auf ihren Tabs **SAML** und **OIDC**. Solange die Statusseite noch SSO verlangt, zeigen beide Tabs auch **SSO für die Anmeldung erzwingen**: Schalten Sie es aus, bevor Sie ihre Anbieter ausschalten, sonst können sich ihre privaten Benutzer überhaupt nicht mehr anmelden.
 
 ## Fehlerbehebung
 

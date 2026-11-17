@@ -290,7 +290,7 @@ interface ListRun {
 
 const NOT_COPIES: Array<ListRun & { why: string }> = [
   {
-    file: "packages/Common/Utils/Monitor/MonitorOverviewFamily.ts",
+    file: "packages/Common/Utils/Monitor/MonitorTypeFamily.ts",
     members: [
       "Kubernetes",
       "Docker",

@@ -56,7 +56,7 @@ export const IncidentRoleSettingsCopy: IncidentRoleSettingsCopyType = {
   title: "Incident Roles",
   description:
     "The roles people take on during an incident, such as Incident Commander. Add more if your team needs them.",
-  noItemsMessage: "No incident roles found.",
+  noItemsMessage: "No incident roles yet.",
   deleteLockedReason:
     "Every incident needs someone in charge, so this role can be renamed, but not deleted.",
   nameFieldTitle: "Name",

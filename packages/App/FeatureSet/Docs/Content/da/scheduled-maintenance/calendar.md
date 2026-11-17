@@ -21,7 +21,7 @@ flowchart TB
 
 ## Kalendersiden
 
-Åbn **Planlagt vedligeholdelse → Vedligeholdelseskalender** i sektionen **Kalender** i sidemenuen. **Alle vedligeholdelseshændelser** viser de samme begivenheder som en liste.
+Åbn **Planlagt vedligeholdelse → Vedligeholdelseskalender** i sektionen **Oversigt** i sidemenuen. **Alle vedligeholdelseshændelser** viser de samme begivenheder som en liste.
 
 - Kalenderen åbner på denne måned, med dagen i dag markeret. **Måned**, **Uge** og **Dag** ændrer, hvor meget den viser; flyt med pilene, og vend tilbage med **I dag**. Tidspunkterne står i din egen tidszone.
 - Hver begivenhed er en blok i farven på dens tilstand, og tilstandenes farver er navngivet under kalenderen. Klik på en begivenhed for at åbne den.

@@ -62,9 +62,8 @@
     "dataRetention": "資料保留",
     "globalLlmProviders": "全域 LLM 供應商",
     "apiKey": "API 金鑰",
-    "more": "更多",
     "sendEmail": "傳送電子郵件",
-    "logout": "登出",
+    "signOut": "登出",
     "telemetryUsage": "遙測使用量",
     "ingestionBudgets": "擷取預算",
     "products": "產品"
@@ -81,7 +80,7 @@
   },
   "userProfile": {
     "exitAdmin": "退出管理員",
-    "logOut": "登出"
+    "signOut": "登出"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -108,14 +107,14 @@
     "billing": "帳單",
     "subscription": "訂閱",
     "invoices": "發票",
-    "support": "支援",
     "customerSupportAccess": "客戶支援存取權",
     "advanced": "進階",
     "overview": "概覽",
     "projects": "專案",
     "settings": "設定",
     "authentication": "驗證",
-    "delete": "刪除",
+    "deleteProject": "刪除專案",
+    "deleteUser": "刪除使用者",
     "settingsAuthentication": "驗證",
     "settingsSso": "單一登入",
     "settingsNotifications": "通知",
@@ -123,20 +122,16 @@
     "settingsCallSms": "通話和簡訊",
     "settingsWhatsapp": "WhatsApp",
     "settingsTelegram": "Telegram",
-    "settingsMonitoring": "監控",
+    "settingsPushNotifications": "推播通知",
+    "settingsSharedWithProjects": "所有專案共用",
     "settingsGlobalProbes": "全域探測器",
-    "settingsRunbooks": "運行手冊",
     "settingsGlobalRunners": "全域 Runner",
+    "settingsServer": "伺服器",
     "settingsDataRetention": "資料保留",
-    "settingsAi": "人工智慧",
     "settingsGlobalLlmProviders": "全域 LLM 供應商",
-    "settingsApiIntegrations": "API 與整合",
     "settingsApiKey": "API 金鑰",
-    "moreCommunication": "通訊",
-    "moreSendEmail": "傳送電子郵件",
     "telemetryUsage": "遙測使用量",
     "ingestionBudgets": "擷取預算",
-    "settingsTelemetry": "遙測",
     "settingsIngestionBudgets": "擷取預算",
     "settingsProducts": "產品"
   },
@@ -144,8 +139,8 @@
     "users": {
       "title": "使用者",
       "cardTitle": "使用者",
-      "cardDescription": "這是 OneUptime 中的使用者清單。",
-      "noItems": "找不到使用者。",
+      "listDescription": "在此伺服器上擁有帳戶的所有人。開啟一位使用者即可管理其專案、登入與管理員權限。",
+      "emptyMessage": "尚無使用者。",
       "bulkAddToProject": "加入專案",
       "bulkAddToProjectTitle": "將使用者加入專案",
       "bulkAddToProjectDescription": "選擇一個專案及其中一個團隊。所選的 {{userCount}} 位使用者會被邀請加入該團隊。",
@@ -165,7 +160,12 @@
       "bulkRequireTwoFactorAuthDescription": "所選的 {{userCount}} 位使用者將從所有使用中的工作階段登出，且下次登入時必須設定驗證器應用程式。若您也在其中，此操作同樣適用於您。",
       "bulkDoNotRequireTwoFactorAuth": "取消雙重驗證要求",
       "bulkDoNotRequireTwoFactorAuthTitle": "取消對 {{userCount}} 位使用者的雙重驗證要求",
-      "bulkDoNotRequireTwoFactorAuthDescription": "所選的 {{userCount}} 位使用者將可以只使用密碼登入。他們已設定的內容會保留，但不會再要求進行驗證。"
+      "bulkDoNotRequireTwoFactorAuthDescription": "所選的 {{userCount}} 位使用者將可以只使用密碼登入。他們已設定的內容會保留，但不會再要求進行驗證。",
+      "createdAndEmailed": "已建立 {{name}}。設定密碼的連結已寄送至 {{email}}。",
+      "createdWithPassword": "已建立 {{name}}。請以安全的方式將您設定的密碼告訴對方。",
+      "setPasswordLinkTitle": "傳送設定密碼的連結",
+      "setPasswordLinkDescription": "複製此連結，並透過只有對方能看到的方式親自傳送給 {{email}}。連結只能使用一次，有效期 {{days}} 天。",
+      "setPasswordLinkOrSetIt": "或者在對方的驗證頁面上直接為其設定密碼。"
     },
     "enterpriseLicenses": {
       "title": "企業版授權",
@@ -201,7 +201,6 @@
     "userView": {
       "title": "使用者",
       "cardTitle": "使用者",
-      "cardDescription": "使用者詳細資料",
       "editButton": "編輯使用者",
       "masterAdminCardTitle": "主要管理員存取",
       "masterAdminCardDescription": "為此使用者授予或撤銷主要管理員存取權限。主要管理員可以管理每個專案和工作區。",
@@ -302,13 +301,12 @@
     "projects": {
       "title": "專案",
       "cardTitle": "專案",
-      "cardDescription": "這是 OneUptime 中的專案清單。",
-      "noItems": "找不到專案。"
+      "listDescription": "此伺服器上的所有專案。開啟一個專案即可管理其使用者、團隊與設定。",
+      "emptyMessage": "尚無專案。"
     },
     "projectView": {
       "title": "專案",
       "cardTitle": "專案",
-      "cardDescription": "專案詳細資料",
       "editButton": "編輯專案",
       "dataResidencyCardTitle": "資料駐留",
       "dataResidencyCardDescription": "此專案資料的託管位置。設定後，專案使用者可在專案設定中看到。",
@@ -450,8 +448,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "使用者",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "屬於此專案的人員。每個人能做什麼由其所屬團隊決定。",
+      "emptyMessage": "此專案中尚無使用者。",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "邀請使用者",
       "inviteUserTitle": "邀請新使用者",
@@ -470,19 +468,18 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "團隊",
-      "cardDescription": "以下是此專案中所有團隊的清單。",
-      "noItems": "No teams found in this project."
+      "listDescription": "團隊決定其成員在此專案中能做什麼。建立一個團隊，即可為一群人授予相同的權限。",
+      "emptyMessage": "此專案中尚無團隊。"
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "團隊詳細資料",
-      "cardDescription": "Details about this team.",
       "editButton": "編輯團隊",
       "membersCardTitle": "團隊 成員",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "登出"
     },
     "sendEmail": {
@@ -623,13 +620,13 @@
       },
       "probes": {
         "bannerTitle": "需要協助設定全域探測器嗎?",
-        "bannerDescription": "這裡有一個指南可以協助您設定",
+        "bannerGuide": "依照指南在您自己的伺服器上執行探測器，並在此處連接。",
         "cardTitle": "全域探測器",
         "cardDescription": "全域探測器可協助您從世界各地的不同位置監控外部資源。",
-        "noItems": "找不到探測器。",
+        "emptyMessage": "尚無全域探測器。",
         "showIdKey": "顯示 ID 和金鑰",
         "keyModalTitle": "探測器金鑰",
-        "keyModalDescription": "這是您的探測器金鑰。請保密。",
+        "keyModalSecret": "您的探測器使用此 ID 與金鑰連線到 OneUptime。請妥善保管金鑰。",
         "probeIdLabel": "探測器 ID:",
         "probeKeyLabel": "探測器金鑰:"
       },
@@ -724,7 +721,6 @@
   "Projects": "專案",
   "Project": "專案",
   "User": "使用者",
-  "Logout": "登出",
   "Save": "儲存",
   "Cancel": "取消",
   "Submit": "提交",
@@ -981,7 +977,7 @@
   "No OIDC providers yet.": "尚無 OIDC 提供者。",
   "Require SSO": "要求使用 SSO",
   "Before you require SSO, sign in with a provider using Test Sign-in in its row.": "在要求使用 SSO 之前，請在提供者所在列點選「測試登入」進行登入。",
-  "Require SSO for Login": "登入時要求使用 SSO",
+  "Require SSO to Sign In": "登入時要求使用 SSO",
   "The sign-in page offers only SSO. Everyone except master admins must sign in with SSO to open any project.": "登入頁面只提供 SSO。除主要管理員外，所有人都必須使用 SSO 登入才能開啟專案。",
   "People can sign in with a password, a passkey or SSO.": "使用者可以使用密碼、通行密鑰或 SSO 登入。",
   "Master admins can always sign in with their password here, even while SSO is required. Keep this address.": "即使要求使用 SSO，主要管理員也隨時可以在此使用密碼登入。請保存此位址。",
@@ -2146,8 +2142,6 @@
   "Check email settings": "檢查電子郵件設定",
   "Email is failing": "電子郵件傳送失敗",
   "Email is not set up": "尚未設定電子郵件",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "自 {{time}} 起電子郵件一直傳送失敗，因此邀請和事件郵件無法送達。",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "自 {{time}} 起電子郵件一直傳送失敗，因此邀請和事件郵件無法送達。郵件伺服器回應：{{reason}}",
   "Invitations, password resets and incident emails are not sent.": "邀請、密碼重設和事件郵件都不會寄出。",
   "Monitors that run on global probes are not being checked.": "在全域探測器上執行的監測器沒有被檢查。",
   "No global probe is reporting": "沒有全域探測器在回報",
@@ -2206,7 +2200,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "透過您的雲端市集訂閱取得授權：每位使用者按小時計費。",
   "License, version, seat usage, and the instances covered by this key.": "授權、版本、席次用量，以及此金鑰涵蓋的執行個體。",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "完整的 OneUptime 平台，包含事件應變、狀態頁面與工作流程自動化。",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "適用於專案、狀態頁面與整個執行個體的 SAML 與 OIDC 單一登入（SSO），包括「登入時要求使用 SSO」。",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "適用於專案、狀態頁面與整個執行個體的 SAML 與 OIDC 單一登入（SSO），包括「登入時要求使用 SSO」。",
   "Community support, documentation, and tutorials to help teams get started quickly.": "社群支援、文件與教學，協助團隊快速上手。",
   "Regular updates, bug fixes, and open-source extensibility.": "定期更新、錯誤修正與開放原始碼的擴充性。",
   "Integrations with popular DevOps tools through community-maintained connectors.": "透過社群維護的連接器與熱門 DevOps 工具整合。",
@@ -4167,5 +4161,19 @@
   "OneUptime switched this rule off when they were deleted.": "這些記錄被刪除時，OneUptime 已停用此規則。",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "若按原樣啟用，此規則將完全不受這些清單限制。請編輯它以選擇其適用範圍，然後再啟用。",
   "{{names}} and {{count}} more": "{{names}} 等另外 {{count}} 個",
-  "{{names}} and {{count}} more_one": "{{names}} 等另外 {{count}} 個"
+  "{{names}} and {{count}} more_one": "{{names}} 等另外 {{count}} 個",
+  "No email has gone out through this server's email settings since {{time}}.": "自 {{time}} 起，沒有任何郵件透過此伺服器的郵件設定寄出。",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "自 {{time}} 起，沒有任何郵件透過此伺服器的郵件設定寄出。郵件伺服器回應：{{reason}}",
+  "See email logs": "查看郵件記錄",
+  "Addresses the mail server refused": "郵件伺服器拒收的地址",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "其他郵件已寄出，因此只有這些地址受影響。請更正地址，或讓您的郵件服務商接受它：Amazon SES 沙箱只會寄送到已驗證的地址。",
+  "Last refused {{time}}": "最近一次拒收：{{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "已建立 {{name}}，但包含設定密碼連結的郵件未能寄出。{{error}}",
+  "The link to send them yourself was not made either. {{error}}": "供您親自傳送的連結也未能產生。{{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime 會以電子郵件寄送連結，讓對方自行設定密碼。",
+  "They sign in with the password you set. Share it with them securely.": "對方將使用您設定的密碼登入。請以安全的方式告訴對方。",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "此伺服器還無法寄送郵件。請在此設定密碼，或留空以取得由您親自傳送的連結。",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "此伺服器還無法寄送郵件。請在「設定 > 電子郵件」中設定郵件。",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "此伺服器還無法寄送郵件，因此未寄出重設密碼連結。請在「設定 > 電子郵件」中設定郵件，或親自為對方設定密碼。",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "此使用者已有密碼，因此沒有可複製的設定密碼連結。請改從其驗證頁面寄送重設密碼連結。"
 }

@@ -23,7 +23,7 @@ import { MasterApiKeyState } from "../../../Types/MasterApiKey/MasterApiKeyAnswe
 import ObjectID from "../../../Types/ObjectID";
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
+import { SpyInstance } from "jest-mock";
 
 /*
  * THE SERVER'S MASTER API KEY IS MADE BY ONEUPTIME AND STORED HASHED

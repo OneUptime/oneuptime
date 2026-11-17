@@ -228,7 +228,7 @@ const isProjectSsoEnforcedInFanOut: (data?: {
   return permissions?.[PROJECT_ID.toString()] !== TENANT_PERMISSION;
 };
 
-// Only the instance-wide "Require SSO for Login" is set.
+// Only the instance-wide "Require SSO to Sign In" is set.
 const requireSsoInstanceWideOnly: () => void = (): void => {
   jest.spyOn(ProjectService, "getRequireSsoForLogin").mockResolvedValue(false);
   jest

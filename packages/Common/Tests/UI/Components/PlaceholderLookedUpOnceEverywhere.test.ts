@@ -1420,17 +1420,22 @@ describe("every page heading, side menu title, tooltip and metric card title wri
     ).toBeGreaterThanOrEqual(27);
     expect(
       handedIn(ADMIN, ["<SideMenuSection title>"]).length,
-    ).toBeGreaterThanOrEqual(16);
+      /*
+       * Settings' six one-page sections are two since #9134. Since #9216
+       * Send Email has no menu, so no Communication section, and a
+       * project's Support entry is in its Advanced section.
+       */
+    ).toBeGreaterThanOrEqual(10);
     expect(states(keyed)).toEqual(allLookedUpAndSaid(keyed));
 
-    // Settings' menu: its 13 entries. The Subscribe menu: its five.
+    // Settings' menu: its 14 entries (Push Notifications too, #9134). The Subscribe menu: its five.
     expect(
       sitesIn(
         "App/FeatureSet/AdminDashboard/src/Pages/Settings/SideMenu.tsx",
       ).filter((site: PlaceholderSite): boolean => {
         return site.handedTo === MENU_LINK_TITLE && site.isSaidTranslated;
       }).length,
-    ).toBe(13);
+    ).toBe(14);
     expect(
       sitesIn("App/FeatureSet/StatusPage/src/Pages/Subscribe/SideMenu.tsx").map(
         (site: PlaceholderSite) => {
@@ -1453,12 +1458,15 @@ describe("every page heading, side menu title, tooltip and metric card title wri
       },
     );
 
-    // The packages' own 99, and the Enterprise pages' three where ee/ is checked out.
+    /*
+     * The packages' own 97 (two more are now a Pill's tooltip, #9137), and
+     * the Enterprise pages' three where ee/ is checked out.
+     */
     expect(
       tooltips.filter((site: PlaceholderSite): boolean => {
         return !site.where.startsWith(ENTERPRISE);
       }).length,
-    ).toBeGreaterThanOrEqual(99);
+    ).toBeGreaterThanOrEqual(97);
 
     if (ENTERPRISE_PRESENT) {
       expect(tooltips.length).toBeGreaterThanOrEqual(100);

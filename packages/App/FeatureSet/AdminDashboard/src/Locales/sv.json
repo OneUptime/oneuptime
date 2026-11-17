@@ -62,9 +62,8 @@
     "dataRetention": "Databevarande",
     "globalLlmProviders": "Globala LLM-leverantörer",
     "apiKey": "API-nyckel",
-    "more": "Mer",
     "sendEmail": "Skicka e-post",
-    "logout": "Logga ut",
+    "signOut": "Logga ut",
     "telemetryUsage": "Telemetrianvändning",
     "ingestionBudgets": "Intagningsbudgetar",
     "products": "Produkter"
@@ -81,7 +80,7 @@
   },
   "userProfile": {
     "exitAdmin": "Lämna admin",
-    "logOut": "Logga ut"
+    "signOut": "Logga ut"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -108,14 +107,14 @@
     "billing": "Fakturering",
     "subscription": "Prenumeration",
     "invoices": "Fakturor",
-    "support": "Support",
     "customerSupportAccess": "Åtkomst för kundsupport",
     "advanced": "Avancerat",
     "overview": "Översikt",
     "projects": "Projekt",
     "settings": "Inställningar",
     "authentication": "Autentisering",
-    "delete": "Ta bort",
+    "deleteProject": "Ta bort projekt",
+    "deleteUser": "Ta bort användare",
     "settingsAuthentication": "Autentisering",
     "settingsSso": "Enkel inloggning",
     "settingsNotifications": "Notifieringar",
@@ -123,20 +122,16 @@
     "settingsCallSms": "Samtal och SMS",
     "settingsWhatsapp": "WhatsApp",
     "settingsTelegram": "Telegram",
-    "settingsMonitoring": "Övervakning",
+    "settingsPushNotifications": "Push-aviseringar",
+    "settingsSharedWithProjects": "Delat med alla projekt",
     "settingsGlobalProbes": "Globala sonder",
-    "settingsRunbooks": "Runbooks",
     "settingsGlobalRunners": "Globala Runners",
+    "settingsServer": "Server",
     "settingsDataRetention": "Databevarande",
-    "settingsAi": "AI",
     "settingsGlobalLlmProviders": "Globala LLM-leverantörer",
-    "settingsApiIntegrations": "API och integrationer",
     "settingsApiKey": "API-nyckel",
-    "moreCommunication": "Kommunikation",
-    "moreSendEmail": "Skicka e-post",
     "telemetryUsage": "Telemetrianvändning",
     "ingestionBudgets": "Intagningsbudgetar",
-    "settingsTelemetry": "Telemetri",
     "settingsIngestionBudgets": "Intagningsbudgetar",
     "settingsProducts": "Produkter"
   },
@@ -144,8 +139,8 @@
     "users": {
       "title": "Användare",
       "cardTitle": "Användare",
-      "cardDescription": "Här är en lista över användare i OneUptime.",
-      "noItems": "Inga användare hittades.",
+      "listDescription": "Alla med ett konto på den här servern. Öppna en användare för att hantera deras projekt, inloggning och administratörsåtkomst.",
+      "emptyMessage": "Inga användare ännu.",
       "bulkAddToProject": "Lägg till i projekt",
       "bulkAddToProjectTitle": "Lägg till användare i projekt",
       "bulkAddToProjectDescription": "Välj ett projekt och ett av dess team. De {{userCount}} valda användarna bjuds in till teamet.",
@@ -165,7 +160,12 @@
       "bulkRequireTwoFactorAuthDescription": "{{userCount}} valda användare loggas ut från alla aktiva sessioner och måste konfigurera en autentiseringsapp nästa gång de loggar in. Detta gäller även dig, om du är en av dem.",
       "bulkDoNotRequireTwoFactorAuth": "Kräv inte tvåfaktorsautentisering",
       "bulkDoNotRequireTwoFactorAuthTitle": "Sluta kräva tvåfaktorsautentisering för {{userCount}} användare",
-      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} valda användare kan logga in med enbart sitt lösenord. Allt som de redan har konfigurerat behålls men efterfrågas inte längre."
+      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} valda användare kan logga in med enbart sitt lösenord. Allt som de redan har konfigurerat behålls men efterfrågas inte längre.",
+      "createdAndEmailed": "{{name}} har skapats. En länk för att ange lösenordet har skickats till {{email}}.",
+      "createdWithPassword": "{{name}} har skapats. Dela lösenordet du angav på ett säkert sätt.",
+      "setPasswordLinkTitle": "Skicka en länk för att ange lösenordet",
+      "setPasswordLinkDescription": "Kopiera länken och skicka den själv till {{email}}, någonstans där bara personen kan läsa den. Den fungerar en gång, i {{days}} dagar.",
+      "setPasswordLinkOrSetIt": "Eller ange ett lösenord åt personen själv på sidan Autentisering."
     },
     "enterpriseLicenses": {
       "title": "Enterprise-licenser",
@@ -201,7 +201,6 @@
     "userView": {
       "title": "Användare",
       "cardTitle": "Användare",
-      "cardDescription": "Användardetaljer",
       "editButton": "Redigera användare",
       "masterAdminCardTitle": "Master-admin-åtkomst",
       "masterAdminCardDescription": "Bevilja eller återkalla master-admin-åtkomst för denna användare. Master-admins kan hantera alla projekt och arbetsytor.",
@@ -302,13 +301,12 @@
     "projects": {
       "title": "Projekt",
       "cardTitle": "Projekt",
-      "cardDescription": "Här är en lista över projekt i OneUptime.",
-      "noItems": "Inga projekt hittades."
+      "listDescription": "Alla projekt på den här servern. Öppna ett för att hantera dess användare, team och inställningar.",
+      "emptyMessage": "Inga projekt ännu."
     },
     "projectView": {
       "title": "Projekt",
       "cardTitle": "Projekt",
-      "cardDescription": "Projektdetaljer",
       "editButton": "Redigera projekt",
       "dataResidencyCardTitle": "Datalagringsplats",
       "dataResidencyCardDescription": "Var det här projektets data lagras. När den är angiven visas den för projektets användare i deras projektinställningar.",
@@ -450,8 +448,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "Användare",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "Personer som hör till det här projektet. Deras team avgör vad var och en kan göra.",
+      "emptyMessage": "Inga användare i det här projektet ännu.",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "Bjud in användare",
       "inviteUserTitle": "Bjud in ny användare",
@@ -470,19 +468,18 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Team",
-      "cardDescription": "Här är en lista över alla team i det här projektet.",
-      "noItems": "No teams found in this project."
+      "listDescription": "Team avgör vad deras medlemmar kan göra i det här projektet. Skapa ett för att ge en grupp personer samma åtkomst.",
+      "emptyMessage": "Inga team i det här projektet ännu."
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "Teamdetaljer",
-      "cardDescription": "Details about this team.",
       "editButton": "Redigera team",
       "membersCardTitle": "Team Medlemmar",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "Logga ut"
     },
     "sendEmail": {
@@ -623,13 +620,13 @@
       },
       "probes": {
         "bannerTitle": "Behöver du hjälp med att konfigurera globala sonder?",
-        "bannerDescription": "Här är en guide som hjälper dig att komma igång",
+        "bannerGuide": "Följ guiden för att köra en sond på din egen server och ansluta den här.",
         "cardTitle": "Globala sonder",
         "cardDescription": "Globala sonder hjälper dig att övervaka externa resurser från olika platser runt om i världen.",
-        "noItems": "Inga sonder hittades.",
+        "emptyMessage": "Inga globala sonder ännu.",
         "showIdKey": "Visa ID och nyckel",
         "keyModalTitle": "Sondnyckel",
-        "keyModalDescription": "Här är din sondnyckel. Håll den hemlig.",
+        "keyModalSecret": "Din sond ansluter till OneUptime med detta ID och denna nyckel. Håll nyckeln hemlig.",
         "probeIdLabel": "Sond-ID:",
         "probeKeyLabel": "Sondnyckel:"
       },
@@ -724,7 +721,6 @@
   "Projects": "Projekt",
   "Project": "Projekt",
   "User": "Användare",
-  "Logout": "Logga ut",
   "Save": "Spara",
   "Cancel": "Avbryt",
   "Submit": "Skicka",
@@ -981,7 +977,7 @@
   "No OIDC providers yet.": "Inga OIDC-leverantörer än.",
   "Require SSO": "Kräv SSO",
   "Before you require SSO, sign in with a provider using Test Sign-in in its row.": "Innan du kräver SSO, logga in med en leverantör via Testa inloggning på dess rad.",
-  "Require SSO for Login": "Kräv SSO för inloggning",
+  "Require SSO to Sign In": "Kräv SSO för inloggning",
   "The sign-in page offers only SSO. Everyone except master admins must sign in with SSO to open any project.": "Inloggningssidan erbjuder bara SSO. Alla utom huvudadministratörer måste logga in med SSO för att öppna ett projekt.",
   "People can sign in with a password, a passkey or SSO.": "Personer kan logga in med lösenord, passnyckel eller SSO.",
   "Master admins can always sign in with their password here, even while SSO is required. Keep this address.": "Huvudadministratörer kan alltid logga in här med sitt lösenord, även medan SSO krävs. Spara den här adressen.",
@@ -2146,8 +2142,6 @@
   "Check email settings": "Kontrollera e-postinställningarna",
   "Email is failing": "E-post misslyckas",
   "Email is not set up": "E-post är inte inställd",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "E-postutskick har misslyckats sedan {{time}}, så inbjudningar och incidentmejl kommer inte fram.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "E-postutskick har misslyckats sedan {{time}}, så inbjudningar och incidentmejl kommer inte fram. E-postservern svarade: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "Inbjudningar, lösenordsåterställningar och incidentmejl skickas inte.",
   "Monitors that run on global probes are not being checked.": "Monitorer som körs på globala sonder kontrolleras inte.",
   "No global probe is reporting": "Ingen global sond rapporterar",
@@ -2206,7 +2200,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Licensierad via din prenumeration på molnmarknadsplatsen: varje användare faktureras per timme.",
   "License, version, seat usage, and the instances covered by this key.": "Licens, version, platsanvändning och de instanser som den här nyckeln omfattar.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "Hela OneUptime-plattformen med incidenthantering, statussidor och automatisering av arbetsflöden.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "SAML- och OIDC-enkel inloggning (SSO) för projekt, statussidor och hela instansen, inklusive \"Kräv SSO för inloggning\".",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "SAML- och OIDC-enkel inloggning (SSO) för projekt, statussidor och hela instansen, inklusive \"Kräv SSO för inloggning\".",
   "Community support, documentation, and tutorials to help teams get started quickly.": "Communitysupport, dokumentation och guider som hjälper team att snabbt komma igång.",
   "Regular updates, bug fixes, and open-source extensibility.": "Regelbundna uppdateringar, buggfixar och utbyggbarhet med öppen källkod.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Integrationer med populära DevOps-verktyg genom kopplingar som communityn underhåller.",
@@ -4167,5 +4161,19 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime stängde av den här regeln när de togs bort.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Påslagen som den är skulle regeln inte längre begränsas av de här listorna alls. Redigera den för att välja vad den gäller, och slå sedan på den.",
   "{{names}} and {{count}} more": "{{names}} och {{count}} till",
-  "{{names}} and {{count}} more_one": "{{names}} och {{count}} till"
+  "{{names}} and {{count}} more_one": "{{names}} och {{count}} till",
+  "No email has gone out through this server's email settings since {{time}}.": "Inget e-postmeddelande har skickats via den här serverns e-postinställningar sedan {{time}}.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "Inget e-postmeddelande har skickats via den här serverns e-postinställningar sedan {{time}}. E-postservern svarade: {{reason}}",
+  "See email logs": "Visa e-postloggar",
+  "Addresses the mail server refused": "Adresser som e-postservern avvisade",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Andra e-postmeddelanden skickades, så bara de här adresserna påverkas. Rätta adressen eller låt din e-postleverantör godkänna den: en Amazon SES-sandlåda skickar bara till adresser som den har verifierat.",
+  "Last refused {{time}}": "Senast avvisad {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} har skapats, men e-postmeddelandet med en länk för att ange lösenordet skickades inte. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "Länken som du kan skicka själv kunde inte heller skapas. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime mejlar personen en länk för att ange ett eget lösenord.",
+  "They sign in with the password you set. Share it with them securely.": "Personen loggar in med lösenordet du anger. Dela det på ett säkert sätt.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Den här servern kan inte skicka e-post än. Ange lösenordet här, eller lämna fältet tomt för att få en länk som du skickar själv.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "Den här servern kan inte skicka e-post än. Konfigurera e-post under Inställningar > E-postmeddelanden.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Den här servern kan inte skicka e-post än, så ingen länk för återställning av lösenord skickades. Konfigurera e-post under Inställningar > E-postmeddelanden, eller ange lösenordet själv.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Den här användaren har redan ett lösenord, så det finns ingen länk för att ange lösenord att kopiera. Skicka i stället en länk för återställning från användarens sida Autentisering."
 }

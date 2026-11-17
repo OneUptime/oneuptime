@@ -205,6 +205,8 @@ Het actiepunt toont daarna wat het is geworden: de fase van de taak, zoals **Taa
 
 De twee AI-acties vereisen dat AI voor het project is ingeschakeld, en een repository waarin OneUptime AI kan werken. Is er geen verbonden, dan biedt het menu in plaats daarvan **Een repository verbinden** aan. Een verzoek vereist hetzelfde als een verzoek in Code, plus de machtiging om het actiepunt te bewerken.
 
+Bij een privé-incident worden de taak en de pull request ervan alleen gelezen door wie het incident mag lezen. Het verzoek noemt het incident alleen bij zijn nummer en vraagt OneUptime AI het buiten de pull request te houden, die iedereen met toegang tot de repository leest.
+
 ### Alle actiepunten zien
 
 **Incidenten → Actiepunten** toont de actiepunten van alle postmortems in het hele project, met de eerstvolgende vervaldatum bovenaan, elk met het incident, de eigenaar, de vervaldatum en de status. Filter de lijst op **Status**, **Eigenaar** en **Vervaldatum**, en **Bekijken** op een rij opent de pagina **Postmortem** van het incident.

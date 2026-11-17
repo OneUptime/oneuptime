@@ -3,7 +3,7 @@
 单点登录（SSO）让项目中的人员通过组织的身份提供商（IdP），使用 SAML 2.0 或 OpenID Connect 登录 OneUptime。您可以在一个地方管理访问权限、密码和多因素认证，还可以要求项目中的所有人都使用 SSO。
 
 > [!NOTE]
-> **版本：** SSO（包括“Require SSO for login”）属于 OneUptime 的所有版本：自托管部署在 Community Edition 中即可使用，无需许可证。在 OneUptime Cloud 上，**Scale** 及以上套餐可用。各版本包含哪些功能，请参阅 [企业版](/docs/self-hosted/enterprise)。
+> **版本：** SSO（包括“Require SSO to sign in”）属于 OneUptime 的所有版本：自托管部署在 Community Edition 中即可使用，无需许可证。在 OneUptime Cloud 上，**Scale** 及以上套餐可用。各版本包含哪些功能，请参阅 [企业版](/docs/self-hosted/enterprise)。
 
 :::cards
 - [设置 SAML 提供商](#设置-sso): 在 OneUptime 中创建它，并把两个 URL 交给您的 IdP。
@@ -325,7 +325,7 @@ OneUptime 不会映射身份提供商中的角色或组。一个人能做什么�
 
 当项目仍要求使用 SSO 时，其 **SSO** 页面还会显示 **登录时要求使用 SSO**：请在关闭最后一个提供商之前先关闭它。在此之前，人们可以用来登录的最后一个提供商无法被关闭或删除，因此不会有人被锁定在项目之外。
 
-状态页面的 **SSO** 和 **OIDC** 页面会以同样的方式列出状态页面自己的提供商。当状态页面仍要求使用 SSO 时，这两个页面也会显示 **登录时要求使用 SSO**：请在关闭其提供商之前先关闭它，否则其私有用户将完全无法登录。
+状态页面的 **单点登录** 页面会以同样的方式，在其 **SAML** 和 **OIDC** 标签页上列出状态页面自己的提供商。当状态页面仍要求使用 SSO 时，这两个标签页也会显示 **登录时要求使用 SSO**：请在关闭其提供商之前先关闭它，否则其私有用户将完全无法登录。
 
 ## 故障排查
 

@@ -194,22 +194,19 @@ describe("switching", () => {
  * Chromium by the StatusTimeline offline suite; the classes are held here.
  */
 describe("its height", () => {
-  test("is the header's buttons': 42px on a phone, 38px from md up", () => {
+  test("is the header's buttons': 38px at every width", () => {
     /*
-     * The track's 2px on each side, a 20px line, and 9px (phone) or 7px
-     * (md up) above and below it: 2 + 9 + 20 + 9 + 2 = 42, and
-     * 2 + 7 + 20 + 7 + 2 = 38 - the buttons' py-2.5 / md:py-2 inside a
-     * 1px border (TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME).
+     * The track's 2px on each side, a 20px line, and 7px above and below
+     * it: 2 + 7 + 20 + 7 + 2 = 38 - the buttons' py-2 inside a 1px border
+     * (TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME), on a phone as from md up
+     * since every button is one frame in text-sm (#9128). It was 9px (42px)
+     * on a phone, beside a Create that is 38px there now.
      */
     expect(STATUS_TIMELINE_VIEW_OPTION_PADDING_CLASS_NAME.split(" ")).toEqual([
       "px-2.5",
-      "py-[9px]",
-      "md:py-[7px]",
+      "py-[7px]",
     ]);
-    expect(TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME.split(" ")).toEqual([
-      "py-2.5",
-      "md:py-2",
-    ]);
+    expect(TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME.split(" ")).toEqual(["py-2"]);
 
     render(<Page name="Incident" />);
 

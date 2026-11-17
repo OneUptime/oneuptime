@@ -32,7 +32,7 @@ Las asignaciones fijas —un usuario o un equipo nombrado directamente en una re
 
 | Enlace | Quién lo crea | Qué contiene | Dónde |
 | --- | --- | --- | --- |
-| **Feed personal** | Cada usuario, uno por proyecto | Tus turnos en todas las programaciones de ese proyecto, más los turnos en los que cubres a alguien (opcional) | **Ajustes de usuario** > **Calendario** > **Feed de calendario** |
+| **Feed personal** | Cada usuario, uno por proyecto | Tus turnos en todas las programaciones de ese proyecto, más los turnos en los que cubres a alguien (opcional) | **Ajustes de usuario** > **Perfil y calendario** > **Feed de calendario** |
 | **Feed de programación** | Quien pueda editar la programación; quien pueda leerla puede copiar el enlace | Los turnos de todos en una programación, con eventos opcionales de huecos de cobertura | La página de la programación, tarjeta **Suscribirse a esta programación** |
 | **Feed de proyecto** | Quien pueda editar las programaciones de guardia; quien pueda leerlas puede copiar el enlace | Los turnos de todos en todas las programaciones del proyecto, con eventos opcionales de huecos de cobertura | **Guardia** > **Feeds de calendario** |
 
@@ -54,7 +54,7 @@ Los feeds personales son por proyecto: un segundo proyecto tiene un segundo enla
 :::steps
 ### Abre tu feed de calendario
 
-Abre **Ajustes de usuario** > **Calendario** > **Feed de calendario** en el proyecto cuyos turnos quieres. **Calendario** es una sección del menú lateral que empieza plegada.
+Abre **Ajustes de usuario** > **Perfil y calendario** > **Feed de calendario** en el proyecto cuyos turnos quieres. **Perfil y calendario** es una sección del menú lateral que empieza plegada.
 
 ### Genera el enlace
 
@@ -184,7 +184,7 @@ Las URL de los feeds nunca redirigen. Responden `200` con cualquier esquema que 
 Las aplicaciones de calendario no entregan las alarmas de los feeds suscritos —Google las descarta, Apple las elimina por defecto, Outlook las aplana—, así que OneUptime envía las suyas.
 
 :::steps
-1. Abre **Ajustes de usuario** > **Calendario** > **Feed de calendario**.
+1. Abre **Ajustes de usuario** > **Perfil y calendario** > **Feed de calendario**.
 2. En la tarjeta **Recordarme antes de los turnos**, elige antelaciones: **1 semana**, **1 día**, **1 hora**, **15 min** o, con **Personalizado**, un valor propio de entre 15 minutos y 14 días. Puedes elegir varias a la vez.
 3. Elige cómo te llegan los recordatorios en **Antes de que empiece mi turno de guardia**, en **Ajustes de usuario** > **Ajustes de notificaciones** (pestaña Guardia). El correo y el push están activados por defecto.
 :::

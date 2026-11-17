@@ -302,6 +302,12 @@ O caminho de uma requisição pelos seus serviços, passo a passo. Cada passo é
 
 Veja [Explorador de traços](/docs/telemetry/traces-explorer).
 
+### Span
+
+Um passo de uma requisição: a requisição que um serviço atende, uma chamada que ele faz a outro serviço ou uma consulta ao banco de dados, com quando começou, quanto tempo levou e se falhou. Spans ficam aninhados no span que os iniciou, e os spans de uma requisição formam o seu traço.
+
+Veja [Explorador de traços](/docs/telemetry/traces-explorer#traços-e-spans).
+
 ### Perfis
 
 Como o seu aplicativo gasta tempo de CPU e memória, função por função, enviados por um profiler que envia dados para a API compatível com Pyroscope do OneUptime.

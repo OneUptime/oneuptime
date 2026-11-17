@@ -1457,8 +1457,9 @@ describe("Code", () => {
     expect(ask).toContain(
       `and there you can tick the requests that failed or were stopped and try them all again with ${bold("Retry selected")}.`,
     );
-    expect(dashboardSource("Components/Code/CodeTaskList.tsx")).toContain(
-      'translator.translateText("Retry selected")',
+    // The shared Button translates its title (302656298df).
+    expect(dashboardSource("Components/Code/CodeTaskList.tsx")).toMatch(
+      /<Button\s+title="Retry selected"/,
     );
     expect(dashboardSource("Pages/Code/Repository/Tasks.tsx")).toContain(
       "canRetry={repository.canAsk && !repository.blocker}",
@@ -2401,18 +2402,26 @@ describe("MCP Server", () => {
     );
   });
 
-  it("turns a status page's MCP access off on its MCP page, in the AI section of its menu", () => {
+  /*
+   * MCP is the first entry of Advanced: its one-entry "AI" section went
+   * (#9216). The menu's JSX comments are dropped before reading the order.
+   */
+  it("turns a status page's MCP access off on its MCP page, first in the Advanced section of its menu", () => {
     const menu: string = flat(
-      dashboardSource("Pages/StatusPages/View/SideMenu.tsx"),
+      dashboardSource("Pages/StatusPages/View/SideMenu.tsx").replace(
+        /\{\/\*[\s\S]*?\*\/\}/g,
+        "",
+      ),
     );
     const mcp: string = dashboardSource("Pages/StatusPages/View/Mcp.tsx");
 
     expect(menu).toContain(
-      '<SideMenuSection title="AI"> <SideMenuItem link={{ title: "MCP",',
+      '<SideMenuSection title="Advanced"> <SideMenuItem link={{ title: "MCP",',
     );
+    expect(menu).not.toContain('<SideMenuSection title="AI">');
     expect(mcp).toContain('title="Enable MCP Server"');
     expect(flat(englishPage(MCP_SERVER))).toContain(
-      `open ${bold("MCP")} in the ${bold("AI")} section of its side menu and switch off ${bold("Enable MCP Server")}`,
+      `open ${bold("MCP")} in the ${bold("Advanced")} section of its side menu and switch off ${bold("Enable MCP Server")}`,
     );
   });
 

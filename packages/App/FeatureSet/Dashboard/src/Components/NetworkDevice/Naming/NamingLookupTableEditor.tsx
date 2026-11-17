@@ -78,12 +78,11 @@ export const EMPTY_LOOKUP_TABLE_SENTENCES: Readonly<
 };
 
 /*
- * A row of the table's buttons, lined up with the table above it: a Button
- * keeps a dialog footer's margin (md:ml-3), which pushed the first one in
- * from the table's edge and spread the rest apart.
+ * A row of the table's buttons, lined up with the table above it and
+ * spaced by the row's gap: a Button has no margin of its own.
  */
 export const LOOKUP_BUTTON_ROW_CLASS_NAME: string =
-  "flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+  "flex flex-wrap items-center gap-2";
 
 export interface NamingLookupTableEditorProps {
   kind: NamingLookupKey | undefined;

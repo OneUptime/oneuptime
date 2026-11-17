@@ -17,16 +17,15 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * A CARD'S REMOVE KEEPS ITS OWN SIZE AT EVERY WIDTH (issue #7331).
  *
- * The shared Button takes the whole width of its row below md, in larger
- * words, and steps 12px in from md up: a form's or a dialog's footer,
- * where the buttons stack on a phone. The Data Source widgets' query card
- * put its Remove in the card's header, beside the "Query" label: on a
- * 390px phone it ran from the label to the card's edge, touching the
- * label, and read as the card's main action. A button in a row beside a
- * label now says so (isFullWidthOnPhone={false}) and keeps the size md
- * and up draw it at, a gap apart from the label - in the query card, in
- * the metric Table's column card, and in a metric widget's added query
- * row.
+ * The shared Button used to take the whole width of its row below md, in
+ * larger words, and step 12px in from md up: a form's or a dialog's
+ * footer's layout. The Data Source widgets' query card put its Remove in
+ * the card's header, beside the "Query" label: on a 390px phone it ran
+ * from the label to the card's edge, touching the label, and read as the
+ * card's main action. No Button carries that layout now (#9128): it keeps
+ * its own size at every width, a gap apart from the label - in the query
+ * card, in the metric Table's column card, and in a metric widget's added
+ * query row.
  *
  * jsdom lays nothing out, so the classes are what is read: no w-full, no
  * md:w-auto, no 12px step, no larger words on a phone.
@@ -59,7 +58,6 @@ jest.mock("../../../UI/Utils/Project", () => {
 import Button, {
   ButtonSize,
   ButtonStyleType,
-  keepButtonOwnSizeAtEveryWidth,
 } from "../../../UI/Components/Button/Button";
 import ArgumentsForm, {
   METRIC_QUERY_ROW_HEADER_TEST_ID,
@@ -177,42 +175,8 @@ afterEach(() => {
   cleanup();
 });
 
-describe("a button's footer layout, taken off", () => {
-  test("the whole row, the 12px step and the larger words go; the rest stays, in its order", () => {
-    expect(
-      keepButtonOwnSizeAtEveryWidth(
-        "inline-flex w-full justify-center rounded-md border border-red-300 bg-white text-base font-medium text-red-700 md:mt-0 md:ml-3 md:w-auto md:text-sm px-2 py-1",
-      ),
-    ).toBe(
-      "inline-flex justify-center rounded-md border border-red-300 bg-white font-medium text-red-700 px-2 py-1 text-sm",
-    );
-  });
-
-  test("a button with no footer layout is left as it was", () => {
-    expect(
-      keepButtonOwnSizeAtEveryWidth(
-        "inline-flex items-center rounded-md border border-gray-300 text-sm px-2 py-1",
-      ),
-    ).toBe(
-      "inline-flex items-center rounded-md border border-gray-300 text-sm px-2 py-1",
-    );
-  });
-
-  test("names that only look like the footer's are kept", () => {
-    expect(
-      keepButtonOwnSizeAtEveryWidth(
-        "w-fit md:w-full sm:ml-3 text-base-content max-w-full",
-      ),
-    ).toBe("w-fit md:w-full sm:ml-3 text-base-content max-w-full");
-  });
-
-  test("extra spaces leave no empty names behind", () => {
-    expect(keepButtonOwnSizeAtEveryWidth("  w-full   px-2  ")).toBe("px-2");
-  });
-});
-
 describe("the shared Button", () => {
-  const STYLES_THAT_FILL_THE_ROW: ReadonlyArray<[string, ButtonStyleType]> = [
+  const STYLES_THAT_FILLED_THE_ROW: ReadonlyArray<[string, ButtonStyleType]> = [
     ["NORMAL", ButtonStyleType.NORMAL],
     ["PRIMARY", ButtonStyleType.PRIMARY],
     ["DANGER", ButtonStyleType.DANGER],
@@ -221,28 +185,14 @@ describe("the shared Button", () => {
     ["WARNING", ButtonStyleType.WARNING],
   ];
 
-  test.each(STYLES_THAT_FILL_THE_ROW)(
-    "%s fills a footer's row on a phone, as it always did",
-    (_name: string, style: ButtonStyleType) => {
-      render(<Button title="Save" buttonStyle={style} dataTestId="button" />);
-
-      expect(screen.getByTestId("button")).toHaveClass(
-        "w-full",
-        "md:w-auto",
-        "md:ml-3",
-      );
-    },
-  );
-
-  test.each(STYLES_THAT_FILL_THE_ROW)(
-    "%s beside a label keeps its own size at every width",
+  test.each(STYLES_THAT_FILLED_THE_ROW)(
+    "%s keeps its own size at every width",
     (_name: string, style: ButtonStyleType) => {
       render(
         <Button
           title="Remove"
           buttonStyle={style}
           buttonSize={ButtonSize.Small}
-          isFullWidthOnPhone={false}
           dataTestId="button"
         />,
       );
@@ -267,7 +217,6 @@ describe("the shared Button", () => {
         title="Remove"
         buttonStyle={ButtonStyleType.DANGER_OUTLINE}
         buttonSize={ButtonSize.Small}
-        isFullWidthOnPhone={false}
         disabled={true}
         dataTestId="button"
       />,

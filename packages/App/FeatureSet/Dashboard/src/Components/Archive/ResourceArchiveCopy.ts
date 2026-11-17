@@ -152,7 +152,7 @@ export const STATUS_PAGE_ARCHIVE_COPY: ResourceArchiveCopy = {
     "Status pages you archived. They are offline, send nothing to their subscribers, and are hidden from the Status Pages list. Select status pages to unarchive them.",
   ),
   noArchivedItemsMessage: translationKey(
-    "No archived status pages. To archive one, select it in the Status Pages list and choose Archive, or open its Advanced Settings.",
+    "No archived status pages. To archive one, select it in the Status Pages list and choose Archive, or open its Settings.",
   ),
 };
 

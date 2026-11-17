@@ -425,9 +425,9 @@ test.describe("a runbook's steps, at a laptop's width", () => {
     await expect(page.locator("#runbook-step-2-http-body")).toHaveCount(1);
 
     // A new request starts as a GET: no body to send, so no Body.
+    await page.getByTestId("runbook-add-step").click();
     await page
-      .getByText("Add another step")
-      .locator("xpath=..")
+      .getByRole("dialog")
       .getByRole("button", { name: /^HTTP/ })
       .click();
     await expect(header(page, "HTTP request")).toBeVisible();
@@ -986,8 +986,13 @@ test.describe("on every screen", () => {
 
     /*
      * A Manual step that has started: when it started is with its words, so
-     * the buttons come last - read, then act.
+     * the buttons come last - read, then act. Mark complete and Skip are
+     * narrower than Approve and run and Skip: since f8d33e2202e drew every
+     * button's words at text-sm at every width (they were text-base below
+     * md), the two fit beside the step's words' 16rem on a tablet 700px
+     * wide. On one 660px wide they do not, and wrap under the words.
      */
+    await page.setViewportSize({ width: 660, height: 900 });
     await openRun(page, "wait=manual");
 
     const manualCard: Locator = waitingCard(

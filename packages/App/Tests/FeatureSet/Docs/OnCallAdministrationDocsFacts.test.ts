@@ -229,16 +229,23 @@ function firstColumn(markdown: string): Array<string> {
 
 /*
  * A table of a menu's sections: its rows as sections, each the bold names of
- * its second cell before any ": " that says what they are for.
+ * its second cell before any ": " that says what they are for. A cell can say
+ * what more than one page is for ("**Readiness**: who ..., and **Incoming
+ * Call Policies**: a phone number ...", since Incoming Call Policies joined
+ * Policies in #9216), so each ", " part of the cell is read up to its own ": ".
  */
 function menuTable(markdown: string): Array<MenuSection> {
   return tableRows(markdown).map((row: string): MenuSection => {
     const cells: Array<string> = tableCells(row);
-    const pages: string = (cells[1] || "").split(": ")[0] || "";
+    const items: Array<string> = (cells[1] || "")
+      .split(", ")
+      .flatMap((part: string): Array<string> => {
+        return boldNames(part.split(": ")[0] || "");
+      });
 
     return {
       title: boldNames(cells[0] || "")[0] || "",
-      items: boldNames(pages),
+      items: items,
     };
   });
 }
@@ -436,7 +443,8 @@ describe("the On-Call menu, as the overview draws it", () => {
       ON_CALL_DUTY_MENU_SOURCE,
     );
 
-    expect(open).toEqual(["Policies", "Schedules", "Incoming Calls"]);
+    // Incoming Call Policies is in Policies: its own section went in #9216.
+    expect(open).toEqual(["Policies", "Schedules"]);
     expect(english(ON_CALL_OVERVIEW)).toContain(
       `${listed(open)} are open; the other sections start folded, and a section opens by itself when you are on one of its pages.`,
     );
@@ -1994,9 +2002,7 @@ describe("execution logs", () => {
       expect(timeline).toContain(`title: "${column}"`);
     }
 
-    expect(timeline).toContain(
-      'translator.translateText("No one was on call")',
-    );
+    expect(timeline).toContain('text="No one was on call"');
 
     /*
      * "Notified Via" (#6585): the channels each page went out by, by the

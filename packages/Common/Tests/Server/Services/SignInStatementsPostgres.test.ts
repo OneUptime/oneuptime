@@ -34,7 +34,7 @@
  * The services run for real against a migrated Postgres, the statements
  * they issue counted off the DataSource's logger. Stubbed: Redis (kept in
  * memory, values serialised as GlobalCache serialises them), the realtime
- * announcements, and the server's own Require SSO for Login (one read per
+ * announcements, and the server's own Require SSO to Sign In (one read per
  * server a minute, whatever the number of projects).
  *
  * Opt in with RUN_POSTGRES_SIGN_IN_STATEMENTS_TESTS=true against a Postgres

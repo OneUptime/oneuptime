@@ -374,7 +374,7 @@ describe("Status page POST /login — per-user salt", () => {
     expect(createSession).not.toHaveBeenCalled();
     expect(sendEntityResponse).not.toHaveBeenCalled();
     expect((result.nextError as unknown as Exception).message).toBe(
-      "Invalid login: Email or password does not match.",
+      "Email or password does not match.",
     );
   });
 

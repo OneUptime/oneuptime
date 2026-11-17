@@ -3,7 +3,7 @@
 L'authentification unique (SSO) permet aux personnes de votre projet de se connecter à OneUptime avec le fournisseur d'identité (IdP) de votre organisation, via SAML 2.0 ou OpenID Connect. Vous gérez les accès, les mots de passe et l'authentification multifacteur en un seul endroit, et vous pouvez exiger le SSO pour tout le monde dans le projet.
 
 > [!NOTE]
-> **Édition :** le SSO, y compris "Require SSO for login", fait partie de toutes les éditions d'OneUptime : les installations auto-hébergées l'obtiennent dans la Community Edition, sans licence. Sur OneUptime Cloud, il est disponible à partir du plan **Scale**. Consultez [Édition Enterprise](/docs/self-hosted/enterprise) pour voir ce que comprend chaque édition.
+> **Édition :** le SSO, y compris "Require SSO to sign in", fait partie de toutes les éditions d'OneUptime : les installations auto-hébergées l'obtiennent dans la Community Edition, sans licence. Sur OneUptime Cloud, il est disponible à partir du plan **Scale**. Consultez [Édition Enterprise](/docs/self-hosted/enterprise) pour voir ce que comprend chaque édition.
 
 :::cards
 - [Configurer un fournisseur SAML](#configurer-le-sso): Le créer dans OneUptime et donner deux URL à votre IdP.
@@ -325,7 +325,7 @@ Ajouter un fournisseur, en modifier un ou le réactiver nécessite **Scale**. Le
 
 Tant que le projet exige encore le SSO, sa page **SSO** affiche aussi **Exiger le SSO pour la connexion** : désactivez-le avant de désactiver le dernier fournisseur. D'ici là, le dernier fournisseur avec lequel les personnes peuvent se connecter ne peut être ni désactivé ni supprimé, pour que personne ne soit exclu du projet.
 
-Les pages **SSO** et **OIDC** d'une page de statut listent ses propres fournisseurs de la même façon. Tant que la page de statut exige encore le SSO, les deux pages affichent aussi **Exiger le SSO pour la connexion** : désactivez-le avant de désactiver ses fournisseurs, sinon ses utilisateurs privés ne pourront plus se connecter du tout.
+La page **Authentification unique** d'une page de statut liste ses propres fournisseurs de la même façon, dans ses onglets **SAML** et **OIDC**. Tant que la page de statut exige encore le SSO, les deux onglets affichent aussi **Exiger le SSO pour la connexion** : désactivez-le avant de désactiver ses fournisseurs, sinon ses utilisateurs privés ne pourront plus se connecter du tout.
 
 ## Dépannage
 

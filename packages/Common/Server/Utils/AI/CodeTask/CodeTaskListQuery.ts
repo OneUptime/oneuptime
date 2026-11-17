@@ -1,4 +1,5 @@
 import AIRunService from "../../../Services/AIRunService";
+import AIRunOutputReadFilter from "../AIRunOutputReadFilter";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { WORKING_STATUSES } from "./CodeTaskStats";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
@@ -12,6 +13,7 @@ import {
   MAX_CODE_TASK_SEARCH_LENGTH,
 } from "../../../../Types/AI/CodeTask";
 import PullRequestState from "../../../../Types/CodeRepository/PullRequestState";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../../Types/ObjectID";
 
 /*
@@ -33,10 +35,20 @@ import ObjectID from "../../../../Types/ObjectID";
  * A search matches the task's title, as written (case aside), or its
  * number ("12", "#12"). Its words are matched as text: LIKE's wildcards
  * in it are escaped, and nothing in it is ever a pattern.
+ *
+ * The scope's tasks are the reader's: one about a private incident or alert
+ * they do not see is in no filter, no count and no page of theirs, as
+ * /ai-run reads it (AIRunOutputReadFilter.getRunAboutSql).
  */
 
 export interface CodeTaskListScopeFacts {
   projectId: ObjectID;
+  /*
+   * Who the list is for: a task about a private incident or alert they do
+   * not see - or about one that is gone, unless they see every private
+   * record - is not one of theirs (AIRunOutputReadFilter, #9165).
+   */
+  reader: DatabaseCommonInteractionProps;
   // The repositories whose tasks are listed.
   repositoryIds: Array<ObjectID>;
   // And the tasks with no repository.
@@ -255,6 +267,17 @@ export default class CodeTaskListQuery {
             CodeFixTaskTypeHelper.getServerRunTaskTypes(),
           )}::text[]))`,
     ];
+
+    // Only the tasks about no private record the reader does not see.
+    const readable: string | null = AIRunOutputReadFilter.getRunAboutSql({
+      alias: "AIRun",
+      props: facts.reader,
+      parameters,
+    });
+
+    if (readable) {
+      taskConditions.push(readable);
+    }
 
     const search: string = CodeTaskListQuery.readSearch(facts.search);
 

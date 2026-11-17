@@ -854,13 +854,13 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
                         aria-hidden="true"
                         className="flex items-center gap-2 px-3 pb-1 pt-2.5"
                       >
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                           {section.title}
                         </h3>
                         {section.isPending && (
                           <span
                             data-testid={`command-palette-section-pending-${section.id}`}
-                            className="animate-pulse text-[10px] font-normal normal-case tracking-normal text-gray-400"
+                            className="animate-pulse text-xs font-normal normal-case tracking-normal text-gray-500"
                           >
                             {tx("Searching…")}
                           </span>

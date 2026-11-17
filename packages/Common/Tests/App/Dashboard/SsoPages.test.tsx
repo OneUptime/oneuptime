@@ -28,12 +28,12 @@ import React, { FunctionComponent, ReactElement } from "react";
  * provider table offers create, edit and delete, there is no "Disable"
  * row action and no license banner or notice, requiring SSO (on the two SAML
  * pages) can always be changed - the project's and the status page's
- * "Require SSO for Login" are switches that save on flip and ask first,
+ * "Require SSO to Sign In" are switches that save on flip and ask first,
  * with a red button - and the page never asks the server for the license. On OneUptime Cloud (billing on) only the
  * plan decides: a project below Scale, or one whose plan cannot be read,
  * sees the Scale plan upsell - never the Enterprise Edition one. A paid
  * feature can always be switched off, on any plan: a project a Scale trial
- * left requiring SSO keeps its "Require SSO for Login" switch under the
+ * left requiring SSO keeps its "Require SSO to Sign In" switch under the
  * upsell, where it can be turned off (RequireSsoForLoginLeftover), and so
  * does a status page (StatusPageRequireSsoLeftover). Configuration a lower
  * plan cannot use can still be seen, switched off and removed: the
@@ -545,7 +545,7 @@ const countUrl: (crudPath: string) => string = (crudPath: string): string => {
 };
 
 /*
- * The "Require SSO for Login" switch cards, as the stand-in draws them: the
+ * The "Require SSO to Sign In" switch cards, as the stand-in draws them: the
  * project's (RequireSsoForLoginCard) and the status page's
  * (StatusPageRequireSsoCard, which replaced its "Force SSO for Login" card).
  */
@@ -559,7 +559,7 @@ const REQUIRE_SSO_SWITCH_CARDS: Array<string> = [
   STATUS_PAGE_REQUIRE_SSO_SWITCH_CARD,
 ];
 
-// A page's "Require SSO for Login" switch: the record it saves on.
+// A page's "Require SSO to Sign In" switch: the record it saves on.
 interface RequireSsoSwitch {
   testId: string;
   model: string;
@@ -965,7 +965,7 @@ const expectConfigurationScreen: (pageCase: PageCase) => void = (
     );
     expect(requireSso).toHaveAttribute("data-column", "requireSsoForLogin");
     expect(requireSso).toHaveAttribute("data-card-title", "SSO Settings");
-    expect(requireSso).toHaveAttribute("data-title", "Require SSO for Login");
+    expect(requireSso).toHaveAttribute("data-title", "Require SSO to Sign In");
     expect(requireSso).toHaveAttribute("data-asks-turning-on", "true");
     expect(requireSso).toHaveAttribute("data-danger-turning-on", "true");
     expect(requireSso).toHaveAttribute("data-asks-turning-off", "false");
@@ -1650,7 +1650,7 @@ describe.each(
  * line about the test link, which is not on that page - and turning it off
  * asks nothing, as on the full page.
  */
-describe("Settings > SSO below Scale: Require SSO for Login stays reachable while the project requires it", () => {
+describe("Settings > SSO below Scale: Require SSO to Sign In stays reachable while the project requires it", () => {
   const settingsSso: PageCase = PAGE_CASES.find(
     (pageCase: PageCase): boolean => {
       return pageCase.name === "Settings > SSO";
@@ -1694,7 +1694,10 @@ describe("Settings > SSO below Scale: Require SSO for Login stays reachable whil
       expect(requireSso).toHaveAttribute("data-card-title", "SSO Settings");
       // No "test with the link above": the link is not on this page.
       expect(requireSso).toHaveAttribute("data-card-description", "");
-      expect(requireSso).toHaveAttribute("data-title", "Require SSO for Login");
+      expect(requireSso).toHaveAttribute(
+        "data-title",
+        "Require SSO to Sign In",
+      );
       // Turning it off asks nothing; turning it on still asks, in red.
       expect(requireSso).toHaveAttribute("data-asks-turning-off", "false");
       expect(requireSso).toHaveAttribute("data-asks-turning-on", "true");
@@ -2066,7 +2069,7 @@ describe.each(PAGE_CASES)(
   },
 );
 
-describe("Status page > SSO below Scale: Require SSO for Login stays reachable while the status page requires it", () => {
+describe("Status page > SSO below Scale: Require SSO to Sign In stays reachable while the status page requires it", () => {
   const statusPageSso: PageCase = PAGE_CASES.find(
     (pageCase: PageCase): boolean => {
       return pageCase.name === "Status page > SSO";
@@ -2100,7 +2103,10 @@ describe("Status page > SSO below Scale: Require SSO for Login stays reachable w
       expect(requireSso).toHaveAttribute("data-model", "StatusPage");
       expect(requireSso).toHaveAttribute("data-model-id", STATUS_PAGE_ID);
       expect(requireSso).toHaveAttribute("data-column", "requireSsoForLogin");
-      expect(requireSso).toHaveAttribute("data-title", "Require SSO for Login");
+      expect(requireSso).toHaveAttribute(
+        "data-title",
+        "Require SSO to Sign In",
+      );
       // No "test with the link above": the link is not on this page.
       expect(requireSso).toHaveAttribute("data-card-description", "");
       // It starts from the status page already read for it.

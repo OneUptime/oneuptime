@@ -21,7 +21,7 @@ import { PoweredBySwitchColumn } from "./StatusPagePoweredByCopy";
  * Edit button and no dialog. The same row is the Channels card's on
  * Subscriber Settings and the panel's at the top of a channel's subscriber
  * list, so a channel reads and behaves the same in both places, every
- * switch on the "What your status page shows" card on Advanced Settings,
+ * switch on the "What your status page shows" card on Settings,
  * Search Engine Indexing on the Branding page, and Send Notifications to
  * Subscribers, Only Private Users Can Subscribe and the two Subscriber
  * Choices on Subscriber Settings.

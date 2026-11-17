@@ -70,7 +70,7 @@ Orden som används i hela OneUptime finns samlade på sidan [Ordlista](/docs/int
 
 - **Arbetsflöden** — din lista över arbetsflöden. Skapa ett nytt eller öppna ett befintligt.
 - **Globala variabler** — värden som alla dina arbetsflöden delar.
-- **Loggar → Körningar** — körningshistoriken för alla arbetsflöden i ditt projekt.
+- **Körningar** — körningshistoriken för alla arbetsflöden i ditt projekt.
 - **Inställningar → Etikettregler** och **Ägarregler** — sätt etiketter på nya arbetsflöden och tilldela deras ägare automatiskt.
 - **Avancerad → Arkiverad** — arbetsflöden du har arkiverat. De körs aldrig och visas inte i listan; avarkivera dem härifrån. Se [Arkivera ett arbetsflöde](/docs/workflows/configuration#arkivera-ett-arbetsflöde).
 - **Utvecklare** — hur du hanterar arbetsflöden med Terraform, API:t eller en AI-assistent.
@@ -80,12 +80,12 @@ Orden som används i hela OneUptime finns samlade på sidan [Ordlista](/docs/int
 - **Översikt** — namn, beskrivning, etiketter och brytaren **Aktiverad**.
 - **Byggare** — arbetsytan där du utformar arbetsflödet, med brytaren **Aktiverad** högst upp.
 - **Arbetsflödesvariabler** — värden som bara gäller just det här arbetsflödet.
-- **Loggar → Körningar** — varje körning av det här arbetsflödet, med detaljer.
-- **Ägare** — de personer och team som ansvarar för arbetsflödet.
+- **Körningar** — varje körning av det här arbetsflödet, med detaljer.
 - **Utvecklare** — hur du hanterar det här arbetsflödet med Terraform, API:t eller en AI-assistent.
 - **Inställningar** — duplicera, exportera och arkivera.
+- **Ägare** — de personer och team som ansvarar för arbetsflödet.
 
-**Inställningar** ligger i menyns avsnitt **Avancerad** tillsammans med **Granskningsloggar** och **Ta bort arbetsflöde**. **Avancerad** och **Utvecklare** är hopfällda från början, i den här menyn och i alla andra, så att sidorna du använder varje dag kommer först. Klicka på ett avsnitts namn för att visa dess sidor. Det fälls ut av sig självt när du är på någon av dem.
+**Inställningar** och **Ägare** ligger i menyns avsnitt **Avancerad** tillsammans med **Granskningsloggar** och **Ta bort arbetsflöde**. **Avancerad** och **Utvecklare** är hopfällda från början, i den här menyn och i alla andra, så att sidorna du använder varje dag kommer först. Klicka på ett avsnitts namn för att visa dess sidor. Det fälls ut av sig självt när du är på någon av dem.
 
 ## Bygg ditt första arbetsflöde
 

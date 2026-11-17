@@ -1069,7 +1069,7 @@ describe("CorrelateFilterBuilder footer", () => {
     expect(tokens).not.toContain("ml-1");
   });
 
-  test("the add button sits in a footer row that neutralises Button margins and widths", () => {
+  test("the add button sits in the builder's footer row", () => {
     renderHarness();
     const footer: HTMLElement = screen.getByTestId("correlate-builder-footer");
     expect(footer).toContainElement(
@@ -1088,14 +1088,10 @@ describe("CorrelateFilterBuilder footer", () => {
         "border-t",
         "border-gray-200",
         "pt-3",
-        "[&_button]:ml-0",
-        /*
-         * Button is w-full until md; once the footer is a row the parent's
-         * footerAction must not stretch across it either.
-         */
-        "[&_button]:sm:w-auto",
       ]),
     );
+    // A Button has no margin or width of its own to neutralise (#9128).
+    expect(footer.className).not.toContain("[&_button]");
     // Footer is the builder's last block, below every row.
     expect(
       screen.getByTestId("correlate-filter-builder").lastElementChild,

@@ -107,11 +107,9 @@ Et runbooks egen sidemenu grupperer dets sider sådan. Kun **Grundlæggende** er
 | Sektion | Sider |
 | --- | --- |
 | **Grundlæggende** | **Oversigt**, **Trin** |
-| **Protokoller** | **Udførelser** |
-| **Ejere** | **Ejere** |
 | **Indstillinger** | **Udløsere**, **Variabler**, **Indstillinger** |
 | **Udvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
-| **Avanceret** | **Auditlogs**, **Slet runbook** |
+| **Avanceret** | **Udførelser**, **Ejere**, **Auditlogs**, **Slet runbook** |
 
 ## Et gennemgået eksempel
 

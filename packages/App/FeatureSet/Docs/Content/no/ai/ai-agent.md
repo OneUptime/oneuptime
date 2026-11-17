@@ -73,6 +73,10 @@ For å følge opp skriver du i feltet nederst, som blir synlig mens samtalen rul
 
 Den som kan lese et repositorium, leser oppgavene i det. Å be AI om noe, svare og stoppe en oppgave krever tillatelse til å redigere repositoriet, og det samme gjør det å se diffen til en endring: alle andre ser hvilke filer som er endret. Oppgavene OneUptime starter på egen hånd (nedenfor), står også i repositoriet sitt, som samtaler du kan svare i.
 
+En oppgave om en privat hendelse eller et privat varsel, startet fra undersøkelsen av den eller fra en av rettelsene til den, leses med svarene og pull requesten sin bare av dem som får lese posten, og når posten er slettet, bare av Prosjekteiere og Prosjektadministratorer. For alle andre utelater repositoriets lister, filtre, søk og tellinger den. Se [Private hendelser, varsler og episoder](/docs/permissions/index#private-hendelser-varsler-og-episoder).
+
+Det samme gjelder en oppgave som inneholder en privat hendelse eller et privat varsel: en det ble bedt om med den som kontekst, en et svar la den til i, og oppgaven til et handlingspunkt fra en etteranalyse. En oppgave som inneholder flere, leses bare av dem som får lese alle. Dialogen som legger til en hendelse eller et varsel i en forespørsel, sier det.
+
 ## Slik går en rettingskjøring
 
 ```mermaid title="Fra et klikk til en pull request"
@@ -168,6 +172,7 @@ Den fungerer i GitHub-, GitLab-, Forgejo- og Gitea-repositorier. GitHub sier fra
 Når produksjonen viser noe, leser OneUptime AI det ved siden av diffen og legger til **Hva du bør følge med på**: noen få korte punkter som hvert bygger på fakta. Det skjer med prosjektets standard-LLM-leverandør, med mindre **LLM-leverandør for produksjonsgjennomgang** under **Flere innstillinger** på repositoriets side **Innstillinger** velger en annen av prosjektets leverandører eller en global. Det kjører bare mens AI er slått på for prosjektet, høyst 10 ganger om dagen for en pull request og 100 for et repositorium, og måles som alle AI-kall; fakta leses hver gang uten det. Når produksjonen ikke viser noe om endringen, publiserer OneUptime ingen kommentar.
 
 - **Bare samlede tall.** Kommentaren inneholder antall, varigheter og navn på kode: aldri meldingen til et unntak, en logglinje, tittelen på en hendelse eller personopplysninger.
+- **Private hendelser.** En gjennomgang nevner aldri en privat hendelse. Blir en hendelse i en gjennomgang privat senere, utelater Code den fra gjennomgangen for alle som ikke får lese den, sammen med tallene og OneUptime AIs punkter om den. Kommentaren på pull requesten blir stående slik den ble lagt inn.
 - **Offentlige repositorier får en lenke.** Alle kan lese pull requestene i et offentlig repositorium, så der lenker kommentaren bare til gjennomgangen i OneUptime, som bare prosjektets medlemmer kan åpne. **Kommentar fra produksjonsgjennomgang** under **Flere innstillinger** på repositoriets side **Innstillinger** kan publisere **Bare en lenke til gjennomgangen** overalt, eller **Gjennomgangen, også i et offentlig kodelager**.
 - **Eksterne bidragsytere kan ikke starte en.** En pull request gjennomgås bare av seg selv når forfatteren, og den som pushet til den, kan skrive til repositoriet; på GitLab, Forgejo og Gitea bare en fra en gren i selve repositoriet. En fra alle andre - en ekstern bidragsyter, en fork, en bot - gjennomgås når noen med skrivetilgang ber om det: **Gå gjennom en pull-forespørsel** på repositoriets side **Produksjonsgjennomganger** tar nummeret, og på GitHub gjør en kommentar `@oneuptime production review` på den det samme. **Gå gjennom på nytt** på en gjennomgangs side ber om den på nytt.
 - **Tokenet kommenterer.** På GitLab, Forgejo og Gitea publiseres kommentaren med repositoriets tilgangstoken, som kontoen til tokenet. Et Forgejo- eller Gitea-token trenger skrivetilgang til saker for det. Når serveren avviser kommentaren - et token uten den tilgangen, eller en låst diskusjon -, blir gjennomgangen bare i Kode, og siden dens sier det.
@@ -325,6 +330,8 @@ Alt annet er som med knappen:
 - Den teller mot signalets daglige grense for rettingsoppgaver (**Daglig grense for AI-rettingsoppgaver for hendelser** eller **Daglig grense for AI-rettingsoppgaver for varsler**, under **Flere innstillinger** på AI-innstillingssiden) og mot repositoriets tak på åpne pull requests, når en av dem er satt. Når de ikke er satt, begrenser ingen av dem noe.
 - Hver utløser ser først etter en rettingsoppgave som allerede står i kø eller kjører for den samme hendelsen eller det samme varselet, slik at en automatisk utløser og et klikk normalt blir én oppgave, ikke to pull requests. Kontrollen er en lesing før skrivingen, ikke en lås, så to utløsere i nøyaktig samme øyeblikk kan fortsatt begge slippe gjennom.
 - Kjøringen skrives av systemet, krediteres ingen, og ingenting merges av seg selv.
+
+På en privat hendelse eller et privat varsel krever **Åpne pull-forespørsel med retting** det samme som å godkjenne postens rettelser, gjennom teamene som eier den, og den er låst for alle andre og forteller hvorfor. Alle med tilgang til repositoriet leser pull requesten, så tittelen, commiten og beskrivelsen sier hva endringen gjør og ingenting om posten, og kodeagenten blir bedt om å holde posten utenfor sammendraget sitt og kommentarene den skriver. En Runner fra før denne endringen får ikke en slik rettelse, og oppgaven mislykkes med beskjed om å oppdatere Runneren.
 
 ## Når en retting mislykkes
 

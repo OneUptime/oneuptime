@@ -154,7 +154,7 @@ Um eine Nummer freizugeben, klicken Sie daneben auf **Nummer freigeben** und bes
 Eine Regel lässt bei einer Person auf der Nummer klingeln, die sie in diesem Projekt für eingehende Anrufe verifiziert hat, und überspringt jeden, der keine hat. Jede Person fügt ihre eigene hinzu:
 
 :::steps
-1. Öffnen Sie **Benutzereinstellungen** > **Richtlinie für eingehende Anrufe** > **Eingehende Telefonnummern**. **Richtlinie für eingehende Anrufe** ist ein Abschnitt des Seitenmenüs, der eingeklappt beginnt.
+1. Öffnen Sie **Benutzereinstellungen** > **Alarmierung und Anrufe** > **Eingehende Telefonnummern**. **Alarmierung und Anrufe** ist ein Abschnitt des Seitenmenüs, der eingeklappt beginnt.
 2. Klicken Sie in der Karte **Telefonnummern für eingehende Anrufweiterleitung** auf **Telefonnummer für eingehende Anrufweiterleitung hinzufügen** und geben Sie die Nummer mit Ländervorwahl ein, etwa `+15551234567`.
 3. Geben Sie den 6-stelligen Code, den OneUptime per SMS an die Nummer sendet, unter **Verifizierungscode** ein und klicken Sie auf **Verifizieren**. **Neuen Code senden** sendet einen weiteren.
 :::
@@ -183,7 +183,7 @@ Twilio liest die Nachrichten mit einer Sprachausgabe vor; schreiben Sie sie also
 
 ## Anrufprotokolle
 
-Jeder Anruf steht auf der Seite **Anrufprotokolle** der Richtlinie, unter **Protokolle** im Seitenmenü: der **Anrufer**, die **Angerufene Nummer**, sein **Status**, wer abgenommen hat (**Beantwortet von**), die **Dauer** und wann er begann (**Gestartet am**). Klicken Sie bei einem Anruf auf **Zeitachse anzeigen**, um seinen **Anrufverlauf** zu sehen: jede Person, bei der es geklingelt hat, auf welcher Nummer und wie jeder Versuch endete.
+Jeder Anruf steht auf der Seite **Anrufprotokolle** der Richtlinie, unter **Grundlegend** im Seitenmenü: der **Anrufer**, die **Angerufene Nummer**, sein **Status**, wer abgenommen hat (**Beantwortet von**), die **Dauer** und wann er begann (**Gestartet am**). Klicken Sie bei einem Anruf auf **Zeitachse anzeigen**, um seinen **Anrufverlauf** zu sehen: jede Person, bei der es geklingelt hat, auf welcher Nummer und wie jeder Versuch endete.
 
 | Status | Was passiert ist |
 | --- | --- |
@@ -260,7 +260,7 @@ Eine über die API ohne `escalateAfterSeconds` angelegte Regel klingelt 20 Sekun
 :::
 
 :::details Der Anruf wird angenommen, aber bei niemandem klingelt es
-Das Anrufprotokoll zeigt **Fehlgeschlagen**. Prüfen Sie, dass **Anrufe annehmen** in den **Einstellungen** der Richtlinie eingeschaltet ist, dass im Bereitschaftsplan jeder Regel gerade jemand Bereitschaft hat und dass die Personen, bei denen die Regeln klingeln lassen, unter **Benutzereinstellungen** > **Richtlinie für eingehende Anrufe** > **Eingehende Telefonnummern** eine verifizierte Nummer in diesem Projekt haben. Regeln lassen nur bei Mitgliedern des Projekts klingeln.
+Das Anrufprotokoll zeigt **Fehlgeschlagen**. Prüfen Sie, dass **Anrufe annehmen** in den **Einstellungen** der Richtlinie eingeschaltet ist, dass im Bereitschaftsplan jeder Regel gerade jemand Bereitschaft hat und dass die Personen, bei denen die Regeln klingeln lassen, unter **Benutzereinstellungen** > **Alarmierung und Anrufe** > **Eingehende Telefonnummern** eine verifizierte Nummer in diesem Projekt haben. Regeln lassen nur bei Mitgliedern des Projekts klingeln.
 :::
 
 :::details Anrufe landen in der Mailbox

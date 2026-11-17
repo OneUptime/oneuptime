@@ -3,7 +3,7 @@
 Med single sign-on (SSO) logger personerne i dit projekt ind i OneUptime gennem din organisations identitetsudbyder (IdP) via SAML 2.0 eller OpenID Connect. Du styrer adgang, adgangskoder og multifaktorgodkendelse ét sted, og du kan kræve SSO for alle i projektet.
 
 > [!NOTE]
-> **Udgave:** SSO, herunder "Require SSO for login", er en del af alle OneUptime-udgaver: selvhostede installationer får det i Community Edition uden at skulle bruge en licens. På OneUptime Cloud er det tilgængeligt fra planen **Scale** og opefter. Se [Enterprise Edition](/docs/self-hosted/enterprise) for, hvad hver udgave indeholder.
+> **Udgave:** SSO, herunder "Require SSO to sign in", er en del af alle OneUptime-udgaver: selvhostede installationer får det i Community Edition uden at skulle bruge en licens. På OneUptime Cloud er det tilgængeligt fra planen **Scale** og opefter. Se [Enterprise Edition](/docs/self-hosted/enterprise) for, hvad hver udgave indeholder.
 
 :::cards
 - [Opsæt en SAML-udbyder](#opsætning-af-sso): Opret den i OneUptime, og giv din IdP to URL'er.
@@ -267,26 +267,26 @@ En udbyders teams afgør, hvad de personer, der logger ind med den, kan gøre, s
 
 ## Kræv SSO for dit projekt
 
-En opsat udbyder forhindrer ikke nogen i at logge ind med en adgangskode. For at gøre SSO til den eneste vej ind i projektet skal du bruge kontakten **Kræv SSO til login** under **Projektindstillinger** > **Sikkerhed** > **SSO**, under dine udbydere:
+En opsat udbyder forhindrer ikke nogen i at logge ind med en adgangskode. For at gøre SSO til den eneste vej ind i projektet skal du bruge kontakten **Kræv SSO for at logge ind** under **Projektindstillinger** > **Sikkerhed** > **SSO**, under dine udbydere:
 
 :::steps
 1. Test først din udbyder med linket i kortet **Test Single Sign On (SSO)**.
-2. Slå **Kræv SSO til login** til. OneUptime spørger, før noget gemmes: fra da af skal alle i projektet, også dig, logge ind med SSO for at åbne det, og alle, der er logget ind med en adgangskode, er udelukket fra projektet, indtil de logger ind med SSO.
+2. Slå **Kræv SSO for at logge ind** til. OneUptime spørger, før noget gemmes: fra da af skal alle i projektet, også dig, logge ind med SSO for at åbne det, og alle, der er logget ind med en adgangskode, er udelukket fra projektet, indtil de logger ind med SSO.
 3. Klik på **Kræv SSO** for at bekræfte. Kontakten gemmer med det samme; der er ingen separat knap til at gemme.
 :::
 
-For at slå **Kræv SSO til login** til skal der være en udbyder, der logger personer ind i projektet: en af projektets egne SAML- eller OIDC-udbydere, der er slået til, eller en global udbyder, der er slået til og logger personer ind i projektet. Uden en sådan afviser OneUptime og beder dig først slå en udbyder til for projektet og teste den. Vælger du en udbyder, som projektet kræver, skal det være en af disse, og det samme spørges om, når du senere kræver en anden udbyder.
+For at slå **Kræv SSO for at logge ind** til skal der være en udbyder, der logger personer ind i projektet: en af projektets egne SAML- eller OIDC-udbydere, der er slået til, eller en global udbyder, der er slået til og logger personer ind i projektet. Uden en sådan afviser OneUptime og beder dig først slå en udbyder til for projektet og teste den. Vælger du en udbyder, som projektet kræver, skal det være en af disse, og det samme spørges om, når du senere kræver en anden udbyder.
 
-En gemning, der sender **Kræv SSO til login** som slået til, mens det allerede er slået til, eller som nævner den udbyder, projektet allerede kræver, kontrolleres på samme måde — API'et, Terraform og andre værktøjer sender ofte alle indstillinger ved hver gemning. Så længe projektet ikke har en udbyder, der logger personer ind, eller den krævede udbyder er blevet slået fra siden, afvises en sådan gemning derfor med de samme ord, uanset hvad den ellers ændrer: slå først en udbyder til, kræv en anden, eller slå **Kræv SSO til login** fra.
+En gemning, der sender **Kræv SSO for at logge ind** som slået til, mens det allerede er slået til, eller som nævner den udbyder, projektet allerede kræver, kontrolleres på samme måde — API'et, Terraform og andre værktøjer sender ofte alle indstillinger ved hver gemning. Så længe projektet ikke har en udbyder, der logger personer ind, eller den krævede udbyder er blevet slået fra siden, afvises en sådan gemning derfor med de samme ord, uanset hvad den ellers ændrer: slå først en udbyder til, kræv en anden, eller slå **Kræv SSO for at logge ind** fra.
 
-Et nyt projekt følger samme regel. Det har endnu ingen egen udbyder, så at oprette det med **Kræv SSO til login** allerede slået til — det kan kun en master-admin — kræver en global udbyder, der er slået til og logger personer ind i alle projekter, og uden en sådan afvises det med de samme ord. Opret projektet, opsæt og test dets udbyder, og slå derefter kontakten til.
+Et nyt projekt følger samme regel. Det har endnu ingen egen udbyder, så at oprette det med **Kræv SSO for at logge ind** allerede slået til — det kan kun en master-admin — kræver en global udbyder, der er slået til og logger personer ind i alle projekter, og uden en sådan afvises det med de samme ord. Opret projektet, opsæt og test dets udbyder, og slå derefter kontakten til.
 
-Så længe hele serveren kræver SSO (**Admin** > **Indstillinger** > **Single sign-on** > **Kræv SSO til login**), kræver oprettelse af ethvert projekt også en sådan global udbyder, ellers kunne ingen, heller ikke den, der opretter projektet, åbne det. Uden en sådan afvises oprettelsen af et projekt, og meddelelsen beder en serveradministrator slå en til. Master-admins kan stadig oprette projekter.
+Så længe hele serveren kræver SSO (**Admin** > **Indstillinger** > **Single sign-on** > **Kræv SSO for at logge ind**), kræver oprettelse af ethvert projekt også en sådan global udbyder, ellers kunne ingen, heller ikke den, der opretter projektet, åbne det. Uden en sådan afvises oprettelsen af et projekt, og meddelelsen beder en serveradministrator slå en til. Master-admins kan stadig oprette projekter.
 
-At slå **Kræv SSO til login** fra gemmes, så snart du slår kontakten om, og lukker medlemmer ind med deres adgangskode med det samme — medmindre nogen slår den til igen i præcis det øjeblik; så kan en appserver være op til et minut om at følge med. Projektejere, Projektadministratorer og medlemmer med tilladelsen **Edit Project** kan ændre den; alle andre ser kontakten låst sammen med den tilladelse, de ville have brug for.
+At slå **Kræv SSO for at logge ind** fra gemmes, så snart du slår kontakten om, og lukker medlemmer ind med deres adgangskode med det samme — medmindre nogen slår den til igen i præcis det øjeblik; så kan en appserver være op til et minut om at følge med. Projektejere, Projektadministratorer og medlemmer med tilladelsen **Edit Project** kan ændre den; alle andre ser kontakten låst sammen med den tilladelse, de ville have brug for.
 
 > [!NOTE]
-> På OneUptime Cloud kræver det planen **Scale** at kræve SSO, mens det virker på alle planer at slå det fra. Under Scale viser **Projektindstillinger** > **Sikkerhed** > **SSO** planens opgraderingstilbud; et projekt, som en Scale-prøveperiode efterlod med krav om SSO, finder også **Kræv SSO til login** der, under tilbuddet, så det kan slås fra. At slå det til igen kræver **Scale**.
+> På OneUptime Cloud kræver det planen **Scale** at kræve SSO, mens det virker på alle planer at slå det fra. Under Scale viser **Projektindstillinger** > **Sikkerhed** > **SSO** planens opgraderingstilbud; et projekt, som en Scale-prøveperiode efterlod med krav om SSO, finder også **Kræv SSO for at logge ind** der, under tilbuddet, så det kan slås fra. At slå det til igen kræver **Scale**.
 
 ## Slå en udbyder fra eller slet den
 
@@ -304,11 +304,11 @@ At slå en SAML- eller OIDC-udbyder fra eller slette den afslutter de logins, de
 
 At ændre alt andet ved en udbyder holder alle logget ind: et nyt certifikat eller klienthemmelighed, andre URL'er, et nyt navn eller andre teams. Deres logins blev kontrolleret, da de blev givet, og næste login bruger de nye indstillinger.
 
-Så længe projektet kræver SSO, holder OneUptime en vej ind åben: du kan ikke slå den sidste udbyder, som personer kan logge ind i projektet med — globale udbydere, der logger personer ind i det, medregnet — eller den udbyder, projektet kræver, fra eller slette den. Slå først **Kræv SSO til login** fra.
+Så længe projektet kræver SSO, holder OneUptime en vej ind åben: du kan ikke slå den sidste udbyder, som personer kan logge ind i projektet med — globale udbydere, der logger personer ind i det, medregnet — eller den udbyder, projektet kræver, fra eller slette den. Slå først **Kræv SSO for at logge ind** fra.
 
 At slå en udbyder til lader personer logge ind med den med det samme.
 
-Når hele serveren kræver SSO (**Admin** > **Indstillinger** > **Single sign-on** > **Kræv SSO til login**), beholder hvert projekt en vej ind på samme måde, også et projekt, der ikke selv kræver SSO: slå først en anden udbyder til for det.
+Når hele serveren kræver SSO (**Admin** > **Indstillinger** > **Single sign-on** > **Kræv SSO for at logge ind**), beholder hvert projekt en vej ind på samme måde, også et projekt, der ikke selv kræver SSO: slå først en anden udbyder til for det.
 
 Globale udbydere følger samme regel: en ændring af en global udbyder eller dens tilknyttede projekter, der ville efterlade et projekt, der kræver SSO, uden udbyder, afvises og nævner projektet. Se [Global SSO](/docs/identity/global-sso#slå-en-udbyder-fra-eller-slet-den).
 
@@ -323,9 +323,9 @@ En SAML- eller OIDC-udbyder, som et projekt stadig har, bliver ved med at logge 
 
 At tilføje en udbyder, ændre en eller slå den til igen kræver **Scale**. Hvem der må hvad, er det samme som med Scale: at slå en udbyder fra kræver tilladelse til at redigere den, at slette den tilladelse til at slette den.
 
-Så længe projektet stadig kræver SSO, viser siden **SSO** også **Kræv SSO til login**: slå det fra, før du slår den sidste udbyder fra. Indtil da kan den sidste udbyder, som personer kan logge ind med, hverken slås fra eller slettes, så ingen bliver udelukket fra projektet.
+Så længe projektet stadig kræver SSO, viser siden **SSO** også **Kræv SSO for at logge ind**: slå det fra, før du slår den sidste udbyder fra. Indtil da kan den sidste udbyder, som personer kan logge ind med, hverken slås fra eller slettes, så ingen bliver udelukket fra projektet.
 
-En statussides sider **SSO** og **OIDC** viser dens egne udbydere på samme måde. Så længe statussiden stadig kræver SSO, viser begge sider også **Kræv SSO til login**: slå det fra, før du slår dens udbydere fra, ellers kan dens private brugere slet ikke logge ind.
+En statussides side **Single sign-on** viser dens egne udbydere på samme måde, på fanerne **SAML** og **OIDC**. Så længe statussiden stadig kræver SSO, viser begge faner også **Kræv SSO for at logge ind**: slå det fra, før du slår dens udbydere fra, ellers kan dens private brugere slet ikke logge ind.
 
 ## Fejlfinding
 

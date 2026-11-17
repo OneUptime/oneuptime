@@ -237,7 +237,8 @@ test.describe("the session list's header", () => {
     await openList(page);
     await settleHeader(page);
 
-    await expectOneHeight(controls(page), 42);
+    // 38px, as at 1280: a button is text-sm on a phone too (#9128).
+    await expectOneHeight(controls(page), 38);
 
     const card: Box = await box(listCard(page).first());
     const search: Box = await box(page.getByTestId("session-search-slot"));
@@ -829,12 +830,16 @@ test.describe("the Session Replay tables fit their cards", () => {
 
     await page.keyboard.press("Escape");
     await page.setViewportSize({ width: 390, height: 844 });
+    /*
+     * 38px, as at 1280: a header's controls are its buttons' height on a
+     * phone too, as a button is text-sm there (#9128).
+     */
     await expectOneHeight(
       [
         toolbar.getByTestId("telemetry-time-range-picker-button"),
         toolbar.getByTestId("session-users-more"),
       ],
-      42,
+      38,
     );
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await screenshot(page, "session-replay-users-header-390");

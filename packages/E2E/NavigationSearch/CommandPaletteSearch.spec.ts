@@ -109,10 +109,36 @@ test("Delete Project is offered only to people allowed to delete the project; th
   const input: Locator = await openSearch(page);
   await input.fill("delete project");
 
-  await expect(options(page).first()).toContainText("Danger Zone");
+  /*
+   * The Danger Zone page is named Delete Project since #9134 (8802a636569),
+   * so its own row reads "Delete Project", under Project Settings › Danger
+   * Zone, among the pages: the page says why its button is locked. The
+   * action of that name stands in for the page only for people allowed to
+   * delete the project (6e397edb5fd), and is never offered here.
+   */
+  const first: Locator = options(page).first();
+  await expect(first).toContainText("Danger Zone");
+  await expect(first).toContainText("Delete Project");
+  await expect(
+    page
+      .getByRole("group", { name: "Pages" })
+      .getByRole("option")
+      .filter({ hasText: /^Delete Project/ }),
+  ).toHaveCount(1);
+  await expect(
+    page
+      .getByRole("group", { name: "Actions" })
+      .getByRole("option")
+      .filter({ hasText: /^Delete Project/ }),
+  ).toHaveCount(0);
   await expect(
     options(page).filter({ hasText: /^Delete Project/ }),
-  ).toHaveCount(0);
+  ).toHaveCount(1);
+
+  await input.press("Enter");
+  await expect(page.getByTestId("current-route")).toHaveText(
+    `${projectPath}/settings/danger-zone`,
+  );
 });
 
 test("browsing lists the actions and products, not every page; a page opened from search is a recent", async ({
@@ -180,10 +206,10 @@ test("a setting is a result of its own: its name, the page it is on, and Enter o
   page: Page;
 }) => {
   const input: Locator = await openSearch(page);
-  await input.fill("require sso for login");
+  await input.fill("require sso to sign in");
 
   const first: Locator = options(page).first();
-  await expect(first).toContainText("Require SSO for Login");
+  await expect(first).toContainText("Require SSO to Sign In");
   await expect(first).toContainText("Project Settings");
   await expect(first).toContainText("Security");
   await expect(first.locator('[data-testid$="-breadcrumb"]')).toContainText(

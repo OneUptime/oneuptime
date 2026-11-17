@@ -31,9 +31,10 @@ const AnnouncementSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
-      </SideMenuSection>
-
-      <SideMenuSection title="Notification Logs">
+        {/*
+         * Who was told about the announcement, beside it. Basic held only
+         * Overview while this was folded in Advanced (#9216).
+         */}
         <SideMenuItem
           link={{
             title: "Notification Logs",

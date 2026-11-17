@@ -25,6 +25,8 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -217,7 +219,7 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
     const info: OverrideUserDisplayInfo | undefined = props.userById[userId];
     return (
       <span
-        className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
+        className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold"
         style={getUserAvatarStyle(userId)}
       >
         {getUserInitials(info?.name || "", info?.email || "")}
@@ -290,13 +292,12 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
           })}
 
           {row.isActiveNow && (
-            <span className="ml-auto inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500" />
-              </span>
-              {translator.translateText("In force now")}
-            </span>
+            <Pill
+              text="In force now"
+              tone={PillTone.Info}
+              isPulsing={true}
+              className="ml-auto flex-shrink-0"
+            />
           )}
         </div>
 
@@ -316,25 +317,23 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
            * drawn in amber, because a reader who assumes it is global will be
            * paged by every OTHER policy that escalates here.
            */}
-          <span
-            data-testid="override-scope-pill"
-            title={row.scope.detail}
-            className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ${
+          <Pill
+            text={row.scope.label}
+            isUserContent={true}
+            tone={
               row.scope.kind === OverrideScopeKind.Global
-                ? "bg-gray-50 text-gray-600 ring-gray-200"
-                : "bg-amber-50 text-amber-800 ring-amber-200"
-            }`}
-          >
-            <Icon
-              icon={
-                row.scope.kind === OverrideScopeKind.Global
-                  ? IconProp.Globe
-                  : IconProp.Alert
-              }
-              className="h-3 w-3"
-            />
-            {row.scope.label}
-          </span>
+                ? PillTone.Neutral
+                : PillTone.Warning
+            }
+            icon={
+              row.scope.kind === OverrideScopeKind.Global
+                ? IconProp.Globe
+                : IconProp.Alert
+            }
+            tooltip={row.scope.detail}
+            isTooltipUserContent={true}
+            dataTestId="override-scope-pill"
+          />
           {getOverlapsMark(row)}
           {getEditButton(row)}
         </div>

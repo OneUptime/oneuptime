@@ -38,6 +38,7 @@ import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/Da
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import { getStatusPageHistoryInDays } from "Common/Utils/StatusPage/HistoryWindow";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import Color from "Common/Types/Color";
@@ -911,8 +912,12 @@ describe("what the shipper pages say an ingest request is answered", () => {
     key.id = ObjectID.generate();
     key.projectId = ObjectID.generate();
 
+    /*
+     * The key the secret opens: found by the secret's lookup hash, as the
+     * secret is kept encrypted (findOneByPresentedKey, #9012).
+     */
     jest
-      .spyOn(TelemetryIngestionKeyService, "findOneBy")
+      .spyOn(TelemetryIngestionKeyService, "findOneByPresentedKey")
       .mockResolvedValue(key as never);
     jest
       .spyOn(PayAsYouGoBillingService, "canUsePayAsYouGo")
@@ -3043,10 +3048,14 @@ describe("the Public API page", () => {
         column,
         default: statusPage.getTableColumnMetadata(column).defaultValue,
         read: source.includes(
-          `OneUptimeDate.getSomeDaysAgo( statusPage.${column} || 14, )`,
+          `getStatusPageHistoryInDays( statusPage.${column}, )`,
         ),
       }).toEqual({ column, default: 14, read: true });
     }
+
+    // Unset (or nonsense), the helper the server reads through falls back to 14.
+    expect(getStatusPageHistoryInDays(undefined)).toBe(14);
+    expect(getStatusPageHistoryInDays(0)).toBe(14);
 
     expect(
       DISPLAY_SECTIONS.filter((section: DisplaySectionDefinition): boolean => {
@@ -3639,7 +3648,7 @@ describe("the Public API page", () => {
       'field: { _id: true, }, title: "Status Page ID",',
     );
     expect(statusPageSideMenuEntries()).toContain(
-      `Basic${PATH_SEPARATOR}Overview`,
+      `Overview${PATH_SEPARATOR}Overview`,
     );
     expect(
       oneLine(dashboardSource("Pages/StatusPages/SideMenu.tsx")),
@@ -3671,7 +3680,7 @@ describe("the Public API page", () => {
     );
   });
 
-  it("reads a page over MCP with no API key, on by default and switched off under AI → MCP", () => {
+  it("reads a page over MCP with no API key, on by default and switched off under Advanced → MCP", () => {
     const statusPage: StatusPage = new StatusPage();
     const mcp: string = oneLine(
       dashboardSource("Pages/StatusPages/View/Mcp.tsx"),
@@ -3693,7 +3702,19 @@ describe("the Public API page", () => {
     expect(mcp).toContain(
       "const mcpUrl: string = `${HTTP_PROTOCOL}${HOST}/mcp`;",
     );
-    expect(statusPageSideMenuEntries()).toContain(`AI${PATH_SEPARATOR}MCP`);
+    /*
+     * MCP is the first entry of Advanced: its one-entry "AI" section went
+     * (#9216).
+     */
+    const menuEntries: Array<string> = statusPageSideMenuEntries();
+
+    expect(menuEntries).toContain(`Advanced${PATH_SEPARATOR}MCP`);
+    expect(menuEntries).not.toContain(`AI${PATH_SEPARATOR}MCP`);
+    expect(
+      menuEntries.find((entry: string): boolean => {
+        return entry.startsWith(`Advanced${PATH_SEPARATOR}`);
+      }),
+    ).toBe(`Advanced${PATH_SEPARATOR}MCP`);
     expect(tools).toContain('required: ["statusPageIdOrDomain"]');
     expect(tools).toContain(
       "await StatusPageService.isMcpServerEnabled(statusPageIdOrDomain);",
@@ -3702,7 +3723,7 @@ describe("the Public API page", () => {
       "if (isPublicStatusPageTool(name)) { logger.debug(`Executing public status page tool: ${name}`); const responseText: string = await handlePublicStatusPageTool(name, args);",
     );
     expect(englishPage(PUBLIC_API)).toContain(
-      "AI agents can read the page through OneUptime's MCP server at `https://oneuptime.com/mcp`, with no API key, by passing the page's ID or domain as `statusPageIdOrDomain`. It is on by default; turn it off with **Enable MCP Server** under **AI → MCP** in the page's side menu.",
+      "AI agents can read the page through OneUptime's MCP server at `https://oneuptime.com/mcp`, with no API key, by passing the page's ID or domain as `statusPageIdOrDomain`. It is on by default; turn it off with **Enable MCP Server** under **Advanced → MCP** in the page's side menu.",
     );
   });
 

@@ -7,6 +7,8 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IconProp from "Common/Types/Icon/IconProp";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -185,15 +187,12 @@ const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
               <h3 className="text-base font-semibold text-gray-900">
                 {props.featureName}
               </h3>
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-                <Icon
-                  icon={IconProp.Star}
-                  size={SizeProp.Small}
-                  thick={ThickProp.Thick}
-                  className="h-2.5 w-2.5"
-                />
-                {copy.badge}
-              </span>
+              <Pill
+                text={copy.badge}
+                isUserContent={true}
+                tone={PillTone.Warning}
+                icon={IconProp.Star}
+              />
             </div>
             {props.featureDescription ? (
               <p className="text-xs text-gray-500 mt-0.5">
@@ -234,11 +233,10 @@ const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
         </div>
 
         {/*
-         * Button keeps a dialog footer's margin (md:ml-3): cleared, so
-         * the first button starts under the pitch and the row's gap
+         * The first button starts under the pitch, and the row's gap
          * alone spaces the two.
          */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+        <div className="flex flex-wrap items-center gap-2 pt-1">
           <Button
             title={copy.ctaTitle}
             buttonStyle={ButtonStyleType.PRIMARY}

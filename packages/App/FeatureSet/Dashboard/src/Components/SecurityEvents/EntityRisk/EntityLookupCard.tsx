@@ -48,7 +48,7 @@ export function isEntityActivitySeen(activity: EntityActivity): boolean {
  * wrap happens to fall: from sm the value and its counts at the line's
  * start and Open in Correlate at its end, the button centred on what it
  * sits beside; on a phone one above the other, the button as wide as the
- * card. Open in Correlate wrapped under the counts, a dialog footer's
+ * card. Open in Correlate used to wrap under the counts, a dialog footer's
  * margin (md:ml-3) setting it 12px in from the value it is about.
  */
 export const ENTITY_LOOKUP_RESULT_CLASS_NAME: string =
@@ -152,7 +152,7 @@ const EntityLookupCard: FunctionComponent = (): ReactElement => {
             title={ENTITY_LOOKUP_BUTTON}
             icon={IconProp.MagnifyingGlass}
             buttonStyle={ButtonStyleType.PRIMARY}
-            className="!ml-0 flex-none sm:!w-auto"
+            className="flex-none"
             isLoading={isLookingUp}
             disabled={!lookupValue.trim()}
             onClick={() => {
@@ -230,7 +230,7 @@ const EntityLookupCard: FunctionComponent = (): ReactElement => {
                   title={OPEN_IN_CORRELATE}
                   icon={IconProp.Share}
                   buttonStyle={ButtonStyleType.NORMAL}
-                  className="!ml-0 flex-none sm:!w-auto"
+                  className="flex-none"
                   onClick={() => {
                     // Over the 30 days the lookup read, not Correlate's own day.
                     Navigation.navigate(

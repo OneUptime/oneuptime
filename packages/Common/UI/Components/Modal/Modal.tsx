@@ -11,7 +11,7 @@ import { CardMenuExtrasContext } from "../Card/CardMenuExtras";
 import { DetailValueContext } from "../Detail/DetailValueContext";
 import { TableCellContext } from "../Table/TableCellContext";
 import ModalFooter from "./ModalFooter";
-import { VeryLightGray } from "../../../Types/BrandColors";
+import { LOADER_COLOR } from "../Loader/LoaderLayout";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
 import { wasPressConsumedByAnAnchoredPopup } from "../../Types/LayeredDismissal";
@@ -39,6 +39,17 @@ export enum ModalWidth {
  * create and edit dialog is a BasicForm.
  */
 export const DIALOG_FORM_SELECTOR: string = `form, [${UNSAVED_CHANGES_SCOPE_ATTRIBUTE}="form"]`;
+
+/*
+ * On a phone the dialog is a sheet from the screen's foot, as tall as what
+ * it holds up to the screen's height. Content whose height changes as the
+ * reader types - a picker whose search lists more than its picks did -
+ * carries this attribute, and the sheet then takes its whole height from the
+ * start, its body scrolling, so nothing the content draws moves the sheet
+ * under the reader's finger. The panel's
+ * max-sm:has-[[data-fills-phone-sheet]] class names it.
+ */
+export const PHONE_SHEET_FILLED_ATTRIBUTE: string = "data-fills-phone-sheet";
 
 /*
  * A plain button the footer draws between Cancel and the submit button: a
@@ -757,7 +768,7 @@ const Modal: FunctionComponent<ComponentProps> = (
         <div className="flex min-h-full items-end justify-center p-0 text-center sm:items-center sm:p-6">
           <div
             ref={modalRef}
-            className={`relative flex max-h-[calc(100dvh-1rem)] w-full flex-col rounded-t-2xl border border-gray-200/80 bg-white text-start shadow-2xl ring-1 ring-black/5 transition duration-150 ease-out focus:outline-none motion-reduce:transition-none sm:my-8 sm:max-h-[calc(100dvh-4rem)] sm:rounded-xl ${modalWidthClassName} ${panelTransitionClassName}`}
+            className={`relative flex max-h-[calc(100dvh-1rem)] w-full flex-col rounded-t-2xl border border-gray-200/80 bg-white text-start shadow-2xl ring-1 ring-black/5 transition duration-150 ease-out focus:outline-none motion-reduce:transition-none max-sm:has-[[data-fills-phone-sheet]]:h-[calc(100dvh-1rem)] sm:my-8 sm:max-h-[calc(100dvh-4rem)] sm:rounded-xl ${modalWidthClassName} ${panelTransitionClassName}`}
             data-testid="modal"
             aria-labelledby={titleId}
             aria-describedby={
@@ -863,7 +874,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                     <div className="modal-body flex justify-center py-16">
                       <Loader
                         loaderType={LoaderType.Bar}
-                        color={VeryLightGray}
+                        color={LOADER_COLOR}
                         size={200}
                       />
                     </div>

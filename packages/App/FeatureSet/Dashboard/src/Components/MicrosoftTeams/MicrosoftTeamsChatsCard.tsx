@@ -5,11 +5,13 @@ import React, {
   useState,
 } from "react";
 import Card from "Common/UI/Components/Card/Card";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import API from "Common/UI/Utils/API/API";
 import Exception from "Common/Types/Exception/Exception";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -342,23 +344,18 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
              * actually settles it instead.
              */}
             {MicrosoftTeamsAppClientId && BILLING_ENABLED && (
-              <button
-                type="button"
-                className="mt-6 inline-flex items-center gap-2 rounded-md bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+              <Button
+                title="Open OneUptime in Microsoft Teams"
+                icon={IconProp.ExternalLink}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                className="mt-6"
                 onClick={() => {
                   window.open(
                     getMicrosoftTeamsAppLink(MicrosoftTeamsAppClientId || ""),
                     "_blank",
                   );
                 }}
-              >
-                <Icon
-                  icon={IconProp.ExternalLink}
-                  size={SizeProp.Regular}
-                  className="h-4 w-4"
-                />
-                {translator.translateText("Open OneUptime in Microsoft Teams")}
-              </button>
+              />
             )}
 
             {!BILLING_ENABLED && MicrosoftTeamsAppClientId && (
@@ -448,19 +445,18 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                         </div>
                       )}
                     </div>
-                    <span
-                      className={`inline-flex flex-none items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${
+                    <Pill
+                      text={
+                        chat.chatType === "personal" ? "1:1 chat" : "Group chat"
+                      }
+                      tone={
                         chat.chatType === "personal"
-                          ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
-                          : "bg-indigo-50 text-indigo-700 ring-indigo-700/10"
-                      }`}
-                    >
-                      {translator.translateText(
-                        chat.chatType === "personal"
-                          ? "1:1 chat"
-                          : "Group chat",
-                      )}
-                    </span>
+                          ? PillTone.Success
+                          : PillTone.Info
+                      }
+                      isDotHidden={true}
+                      className="flex-none"
+                    />
                     <SendTestNotificationButton
                       route="/microsoft-teams/chats/test"
                       requestBody={{ chatId: chat.id }}

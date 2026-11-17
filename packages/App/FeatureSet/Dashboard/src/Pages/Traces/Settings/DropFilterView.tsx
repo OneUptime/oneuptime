@@ -7,6 +7,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Pill from "Common/UI/Components/Pill/Pill";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
@@ -83,9 +84,7 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
                     <Pill color={Green} text="Enabled" icon={IconProp.Check} />
                   );
                 }
-                return (
-                  <Pill color={Red} text="Disabled" icon={IconProp.Close} />
-                );
+                return <Pill tone={PillTone.Paused} text="Disabled" />;
               },
             },
           ],
@@ -146,7 +145,7 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
                   );
                 }
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("Not configured")}
                   </span>
                 );
@@ -166,7 +165,7 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
               getElement: (item: TraceDropFilter): ReactElement => {
                 if (!isSamplePercentageConfigured(item.samplePercentage)) {
                   return (
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-gray-500">
                       {translator.translateTemplate(
                         "Not configured — no spans are being sampled away. Set a percentage between {{min}} and {{max}} to start sampling.",
                         {
@@ -228,7 +227,7 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
 
                 if (dropped === 0) {
                   return (
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-gray-500">
                       {translator.translateText(
                         "This filter has never matched a span.",
                       )}

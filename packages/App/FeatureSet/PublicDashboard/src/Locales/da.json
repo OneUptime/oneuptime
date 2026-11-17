@@ -28,5 +28,13 @@
   "Copied!": "Kopieret!",
   "Copy failed": "Kopiering mislykkedes",
   "Hide": "Skjul",
-  "Dismiss": "Skjul"
+  "Dismiss": "Skjul",
+  "Dashboard Not Found": "Dashboard ikke fundet",
+  "This dashboard does not exist, or it is no longer shared.": "Dette dashboard findes ikke, eller det deles ikke længere.",
+  "Check the address, or ask the person who shared it with you for a new link.": "Tjek adressen, eller bed den person, der delte det med dig, om et nyt link.",
+  "Access Denied": "Adgang nægtet",
+  "This dashboard opens only from the IP addresses its owner allows, and yours is not one of them.": "Dette dashboard åbner kun fra de IP-adresser, som ejeren tillader, og din er ikke en af dem.",
+  "Ask the dashboard's owner for access, or open it from a network they allow.": "Bed dashboardets ejer om adgang, eller åbn det fra et netværk, som ejeren tillader.",
+  "Show more": "Vis mere",
+  "Show less": "Vis mindre"
 }

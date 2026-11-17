@@ -4,6 +4,11 @@ import {
 } from "./RemediationDecisionList";
 import { RemediationDecisionTone } from "./RemediationDecisionLines";
 import {
+  getFixPullRequestGate,
+  getRemediationFixWhoMayAct,
+} from "./RemediationFixActGate";
+import RemediationFixLock from "./RemediationFixLock";
+import {
   REMEDIATION_CODE_FIX_AUTOMATIC_REASONS,
   REMEDIATION_CODE_FIX_COPY,
   REMEDIATION_CODE_FIX_REASONS_WITH_SETTINGS_LINK,
@@ -13,10 +18,12 @@ import InvestigationNotice, {
   noticeFailedIcon,
 } from "../AI/InvestigationNotice";
 import CodeBlockerNotice from "../Code/CodeBlockerNotice";
+import { CODE_TASK_HIDDEN_SENTENCE } from "../Code/CodeTaskHiddenCopy";
 import { AUTOMATIC_REMEDIATION_SETTINGS_PAGES } from "../AiAccess/AutomaticRemediationNote";
 import { AUTOMATIC_REMEDIATION_SETTINGS_LINKS } from "../AiAccess/AutomaticRemediationLine";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import Route from "Common/Types/API/Route";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -33,6 +40,7 @@ import Link from "Common/UI/Components/Link/Link";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { FinishedFixOutcome } from "Common/Utils/Suggestions/CodeFixSuggestion";
@@ -79,6 +87,13 @@ const LINK_CLASS_NAME: string =
  * investigation" was a row of the investigation's own; it is a fix, so it
  * lives with the fixes.
  */
+/*
+ * What opening the fix pull request is held to on a private incident or
+ * alert: what approving one of its fixes takes - a runbook run - through
+ * the teams that own the record (#9165, RemediationFixActGate).
+ */
+const PRIVATE_RECORD_FIX_RUN: RunbookExecution = new RunbookExecution();
+
 const RemediationCodeFix: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -87,6 +102,13 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
   const [createError, setCreateError] = useState<string | null>(null);
   const isCreatingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
   const suggestion: InvestigationCodeFixSuggestion = props.suggestion;
+  /*
+   * On a private record's page, why the reader may not open the pull
+   * request, when they may not: in place of Open fix pull request.
+   */
+  const lockReason: string | undefined = getRemediationFixWhoMayAct(
+    getFixPullRequestGate(usePrivateRecordGateOptions(PRIVATE_RECORD_FIX_RUN)),
+  );
 
   if (suggestion.offer === SuggestionOffer.None) {
     return <></>;
@@ -163,7 +185,16 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
       : REMEDIATION_CODE_FIX_COPY.inProgress;
     action = taskLink(REMEDIATION_CODE_FIX_COPY.viewProgress);
   } else if (suggestion.offer === SuggestionOffer.Done) {
-    if (suggestion.fixOutcome === FinishedFixOutcome.WaitingForYou) {
+    if (suggestion.fixOutcome === FinishedFixOutcome.Hidden) {
+      /*
+       * In a task a reply carried a private incident or alert into, which
+       * the reader may not open: it is there, and why nothing of it shows -
+       * no state, no link its own page would answer as not found.
+       */
+      tone = "info";
+      sentence = CODE_TASK_HIDDEN_SENTENCE;
+      action = null;
+    } else if (suggestion.fixOutcome === FinishedFixOutcome.WaitingForYou) {
       tone = "attention";
       sentence = REMEDIATION_CODE_FIX_COPY.waitingForYou;
       action = taskLink(REMEDIATION_CODE_FIX_COPY.answerInCode);
@@ -204,9 +235,16 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
           />
         </Link>
       );
+    } else if (suggestion.offer === SuggestionOffer.Act && lockReason) {
+      action = (
+        <RemediationFixLock
+          reason={lockReason}
+          testId="remediation-code-fix-locked"
+        />
+      );
     } else if (suggestion.offer === SuggestionOffer.Act) {
       action = (
-        <div className="[&>button]:ml-0 [&>button]:md:ml-0">
+        <div>
           <Button
             title={REMEDIATION_CODE_FIX_COPY.openPullRequest}
             icon={IconProp.Code}
@@ -288,19 +326,26 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
 
   const mark: RemediationDecisionToneMark =
     REMEDIATION_DECISION_TONE_MARK[tone];
+  const isHidden: boolean =
+    suggestion.offer === SuggestionOffer.Done &&
+    suggestion.fixOutcome === FinishedFixOutcome.Hidden;
 
   return (
     <div
       data-testid="remediation-code-fix"
       data-offer={suggestion.offer}
       data-tone={tone}
+      data-hidden={isHidden ? "true" : undefined}
       className="flex gap-3"
     >
       <div
         aria-hidden="true"
         className={`flex h-8 w-8 flex-none items-center justify-center rounded-lg ${mark.className}`}
       >
-        <Icon icon={IconProp.Code} className="h-4 w-4" />
+        <Icon
+          icon={isHidden ? IconProp.Lock : IconProp.Code}
+          className="h-4 w-4"
+        />
       </div>
       <div className="min-w-0 flex-1 pt-1">
         <p

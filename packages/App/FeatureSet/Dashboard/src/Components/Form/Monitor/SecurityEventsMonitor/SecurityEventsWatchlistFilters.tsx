@@ -396,8 +396,8 @@ const SecurityEventsWatchlistFilters: FunctionComponent<ComponentProps> = (
       )}
 
       {!hasNoLists && filters.length < SECURITY_WATCHLIST_FILTERS_MAX ? (
-        // Level with Filter by Attributes' Add: past md a NORMAL button keeps a dialog footer's margin.
-        <div className="md:-ml-3">
+        // Level with Filter by Attributes' Add.
+        <div>
           <Button
             title={WATCHLIST_FILTER_ADD}
             buttonStyle={ButtonStyleType.NORMAL}

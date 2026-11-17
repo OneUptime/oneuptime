@@ -892,7 +892,7 @@ describe("a renewal whose answer was lost, then the reader signs out of the page
     const refused: Answer = await renew(browser);
 
     expect(refused.refused?.message).toBe(
-      "Session expired. Please login again.",
+      "Session expired. Please sign in again.",
     );
     expect(refused.sent[signOutKey()]).toBeUndefined();
     expect(
@@ -937,7 +937,7 @@ describe("after the page's sign-out", () => {
       });
 
       expect(answer.refused?.message).toBe(
-        "Session expired. Please login again.",
+        "Session expired. Please sign in again.",
       );
       expect(answer.renewed).toBe(false);
     }

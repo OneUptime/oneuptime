@@ -363,7 +363,7 @@ const IoTFleetDeviceDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return <Tabs label="Device" tabs={tabs} onTabChange={() => {}} />;
 };
 
 export default IoTFleetDeviceDetail;

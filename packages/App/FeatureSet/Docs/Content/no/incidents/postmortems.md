@@ -205,6 +205,8 @@ Handlingspunktet viser deretter hva det ble til: hvor langt oppgaven har kommet,
 
 De to KI-handlingene krever at KI er slått på for prosjektet, og et kodelager OneUptime AI kan jobbe i. Er ingen koblet til, tilbyr menyen **Koble til et kodelager** i stedet. En forespørsel krever det samme som en forespørsel i Kode, pluss tillatelse til å redigere handlingspunktet.
 
+For en privat hendelse leses oppgaven og pull-forespørselen bare av dem som får lese hendelsen. Forespørselen nevner hendelsen bare med nummeret og ber OneUptime AI holde den utenfor pull-forespørselen, som alle med tilgang til kodelageret leser.
+
 ### Se alle handlingspunkter
 
 **Hendelser → Handlingspunkter** viser handlingspunktene fra alle etteranalyser i prosjektet, med den nærmeste fristen først, hver med hendelse, eier, frist og status. Filtrer listen etter **Status**, **Eier** og **Frist**, og **Vis** i en rad åpner hendelsens side **Etteranalyse**.

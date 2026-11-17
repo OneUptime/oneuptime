@@ -76,7 +76,6 @@ describe("RUM application Session Replay navigation", () => {
       "Observability",
       "Product Analytics",
       "Session Replay",
-      "Settings",
       "Developer",
       "Advanced",
     ]);
@@ -120,6 +119,8 @@ describe("RUM application Session Replay navigation", () => {
       }),
     ).toEqual(["Metrics", "Logs", "Traces", "Clients"]);
     expect(linksIn("Advanced")).toEqual([
+      // Its Settings, once a section of its own (#9134).
+      { title: "Settings", href: `${APPLICATION_PATH}/settings` },
       { title: "Audit Logs", href: `${APPLICATION_PATH}/audit-logs` },
       { title: "Delete Application", href: `${APPLICATION_PATH}/delete` },
     ]);

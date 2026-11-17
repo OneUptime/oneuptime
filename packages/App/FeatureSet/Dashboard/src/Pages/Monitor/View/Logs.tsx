@@ -3,6 +3,8 @@ import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
@@ -53,6 +55,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import { getMonitorLogsEmptyState } from "./MonitorLogsEmptyState";
 
 const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -75,6 +78,8 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         id: modelId,
         select: {
           monitorType: true,
+          monitoringInterval: true,
+          disableActiveMonitoring: true,
         },
       });
 
@@ -85,6 +90,8 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
       }
 
       setMonitorType(item.monitorType);
+      setMonitoringInterval(item.monitoringInterval);
+      setIsDisabled(Boolean(item.disableActiveMonitoring));
 
       // Fetch probes if this is a probeable monitor
       if (
@@ -103,6 +110,11 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
     undefined,
   );
+  // When the first check runs, for the list's empty state.
+  const [monitoringInterval, setMonitoringInterval] = useState<
+    string | undefined
+  >(undefined);
+  const [isDisabled, setIsDisabled] = useState<boolean>(false);
 
   useAsyncEffect(async () => {
     // fetch the model
@@ -179,12 +191,12 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
      */
     if (observation.kind === TelemetryObservationKind.NoMetricData) {
       return (
-        <span
-          data-testid="monitor-log-no-data"
-          className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"
-        >
-          {text}
-        </span>
+        <Pill
+          text={text}
+          isUserContent={true}
+          tone={PillTone.Neutral}
+          dataTestId="monitor-log-no-data"
+        />
       );
     }
 
@@ -316,8 +328,8 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           projectId: ProjectUtil.getCurrentProjectId()!,
           monitorId: modelId.toString(),
         }}
-        id="probes-table"
-        name="Monitor > Monitor Probes"
+        id="monitor-logs-table"
+        name="Monitor > Logs"
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}
@@ -327,13 +339,17 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         sortBy="time"
         sortOrder={SortOrder.Descending}
         cardProps={{
-          title: "Monitor Logs",
+          title: "Monitoring Logs",
           description:
             "The result of every check of this monitor, newest first. View a summary to see what was checked and how the criteria judged it.",
         }}
-        noItemsMessage={
-          "No logs found for this resource. Please check back later."
-        }
+        emptyState={getMonitorLogsEmptyState({
+          monitorId: modelId,
+          monitorType: monitorType,
+          monitoringInterval: monitoringInterval,
+          isDisabled: isDisabled,
+          translator: translator,
+        })}
         actionButtons={[
           {
             title: "View Summary",
@@ -480,15 +496,18 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     }
 
                     return (
-                      <span className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-200">
-                        {translator.translatePlural(
+                      <Pill
+                        text={translator.translatePlural(
                           {
                             one: "{{count}} attempt",
                             other: "{{count}} attempts",
                           },
                           maxAttempts,
                         )}
-                      </span>
+                        isUserContent={true}
+                        tone={PillTone.Warning}
+                        isDotHidden={true}
+                      />
                     );
                   },
                 },

@@ -109,7 +109,7 @@ const PodmanHostProfiles: FunctionComponent<
     <Fragment>
       <ProfileTable
         profileQuery={profileQuery}
-        noItemsMessage="No performance profiles found for this Podman host."
+        noItemsMessage="No performance profiles for this Podman host yet."
       />
     </Fragment>
   );

@@ -42,7 +42,7 @@ flowchart TB
 :::steps
 ### Åbn Indtagelsesbudgetter
 
-Gå til **Indstillinger → Telemetri → Indtagelsesbudgetter** i Admin Dashboard. **Telemetri** starter sammenklappet i sidemenuen: klik på den for at åbne den.
+Gå til **Indstillinger → Server → Indtagelsesbudgetter** i Admin Dashboard. **Server** starter sammenklappet i sidemenuen: klik på den for at åbne den.
 
 ### Angiv de daglige budgetter
 

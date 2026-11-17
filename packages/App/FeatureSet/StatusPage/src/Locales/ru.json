@@ -37,8 +37,7 @@
     "announcements": "Объявления",
     "scheduledEvents": "Плановое обслуживание",
     "subscribe": "Подписаться",
-    "login": "Войти",
-    "logout": "Выйти"
+    "signOut": "Выйти"
   },
   "overview": {
     "uptimeSuffix": "% времени работы",
@@ -49,8 +48,6 @@
     "noResourcesInGroup": "В эту группу не добавлены ресурсы.",
     "activeIncidents": "Активные инциденты",
     "scheduledMaintenanceEvents": "Плановое обслуживание",
-    "allClearTitle": "Всё работает отлично",
-    "allClearDescription": "На эту страницу статуса ещё не добавлены ресурсы. Пожалуйста, добавьте ресурсы через панель управления.",
     "allResourcesAre": "Все ресурсы — {{status}}",
     "allMonitoredResourcesAre": "Все отслеживаемые ресурсы — {{status}}",
     "someResourcesAre": "Некоторые ресурсы — {{status}}",
@@ -58,7 +55,10 @@
     "noResourcesAreMonitored": "Сейчас ни один ресурс не отслеживается",
     "noResourcesAreMonitoredYet": "Пока ни один ресурс не отслеживается",
     "oneSubGroup": "1 группа",
-    "subGroupCount": "групп: {{total}}"
+    "subGroupCount": "групп: {{total}}",
+    "noResourcesTitle": "Пока нечего показать",
+    "noResourcesDescription": "На этой странице пока нет сервисов.",
+    "noResourcesPreviewDescription": "Посетители видят это, пока вы не добавите ресурсы. Добавьте мониторы или группы на эту страницу статуса в разделе «Ресурсы» на панели."
   },
   "eventItem": {
     "affectedResources": "Затронутые ресурсы",
@@ -115,30 +115,23 @@
     "title": "Инциденты",
     "singular": "Инцидент",
     "active": "Активные инциденты",
-    "resolved": "Решённые инциденты",
-    "none": "Нет инцидентов",
-    "noneDescription": "На этой странице статуса не опубликовано ни одного инцидента.",
+    "noneDescription": "Когда инцидент затронет сервисы на этой странице, он будет опубликован здесь.",
     "postmortem": "Анализ инцидента",
     "declaredAt": "Зарегистрирован ",
     "declaredAtTime": "Зарегистрирован {{time}}",
     "report": "Отчёт об инциденте",
-    "notFound": "Инцидент не найден на этой странице статуса."
-  },
-  "episodes": {
-    "report": "Отчёт об эпизоде",
-    "none": "Нет эпизода",
-    "notFound": "Эпизод не найден на этой странице статуса."
+    "notFound": "Проверьте ссылку или откройте вкладку «Инциденты» на этой странице.",
+    "notFoundTitle": "Инцидент не найден"
   },
   "announcements": {
     "title": "Объявления",
     "singular": "Объявление",
     "active": "Активные объявления",
-    "past": "Прошлые объявления",
-    "none": "Нет объявлений",
-    "noneDescription": "На этой странице пока не опубликовано ни одного объявления.",
+    "noneDescription": "Когда появятся новости о сервисах на этой странице, они будут опубликованы здесь.",
     "announcedAt": "Объявлено ",
     "announcedAtTime": "Объявлено {{time}}",
-    "notFound": "Объявление не найдено на этой странице статуса."
+    "notFound": "Проверьте ссылку или откройте вкладку «Объявления» на этой странице.",
+    "notFoundTitle": "Объявление не найдено"
   },
   "scheduledEvents": {
     "title": "Плановое обслуживание",
@@ -146,9 +139,7 @@
     "scheduledMaintenance": "Плановое обслуживание",
     "ongoing": "Текущее обслуживание",
     "upcoming": "Предстоящее обслуживание",
-    "completed": "Завершённое обслуживание",
-    "none": "Нет планового обслуживания",
-    "noneDescription": "Для этой страницы статуса не опубликовано плановое обслуживание.",
+    "none": "Обслуживание не запланировано",
     "scheduledAt": "Запланировано на ",
     "scheduledAtTime": "Запланировано на {{time}}",
     "report": "Отчёт о событии обслуживания",
@@ -314,29 +305,29 @@
       "password": "Пароль",
       "newPassword": "Новый пароль",
       "confirmPassword": "Подтвердите пароль",
-      "login": "Войти"
+      "signInLink": "Войти."
     },
     "login": {
       "welcomeBack": "С возвращением!",
-      "loginPrompt": "Пожалуйста, войдите, чтобы просмотреть {{statusPageName}}",
+      "signInPrompt": "Пожалуйста, войдите, чтобы просмотреть {{statusPageName}}.",
       "forgotPassword": "Забыли пароль?",
       "submit": "Войти",
       "or": "или",
-      "logInWithSso": "Войти через SSO",
+      "signInWithSso": "Войти через SSO",
       "emailSignInLink": "Отправить ссылку для входа на почту"
     },
     "sso": {
       "title": "Войти через SSO",
-      "loginPrompt": "Пожалуйста, войдите, чтобы просмотреть {{statusPageName}}",
+      "signInPrompt": "Пожалуйста, войдите, чтобы просмотреть {{statusPageName}}.",
       "noProviders": "Провайдеры SSO не настроены или не включены",
       "notAvailable": "Единый вход (SSO) недоступен для этой страницы статуса. Войдите, используя адрес электронной почты и пароль.",
-      "backToLogin": "Вернуться ко входу",
-      "logInWithPassword": "Войти с паролем"
+      "backToSignIn": "Вернуться ко входу",
+      "signInWithPassword": "Войти с паролем"
     },
     "forgotPassword": {
       "title": "Забыли пароль",
       "description": "Если вы забыли свой пароль от {{statusPageName}}, пожалуйста, введите ваш email, и мы отправим вам ссылку для сброса пароля.",
-      "success": "Мы отправили вам ссылку для сброса пароля по электронной почте. Не забудьте проверить папку со спамом.",
+      "success": "Если с этим адресом электронной почты можно войти в {{statusPageName}}, мы отправили на него ссылку для сброса пароля. Не забудьте проверить папку со спамом.",
       "sendLink": "Отправить ссылку для сброса пароля",
       "rememberPassword": "Вспомнили пароль?"
     },
@@ -347,7 +338,7 @@
       "knowPassword": "Знаете свой пароль?",
       "successTitle": "Ваш пароль сброшен",
       "successDescription": "Войдите с новым паролем.",
-      "loginButton": "Войти",
+      "signInButton": "Войти",
       "linkExpiredTitle": "Срок действия этой ссылки для сброса истёк",
       "linkExpiredDescription": "Ссылки для сброса действуют один день. Запросите новую ссылку, и мы отправим её вам по электронной почте.",
       "linkInvalidTitle": "Эта ссылка для сброса больше не работает",
@@ -373,7 +364,7 @@
     },
     "masterPassword": {
       "prompt": "Введите пароль, чтобы открыть эту страницу статуса.",
-      "passwordRequired": "пароль обязателен.",
+      "passwordRequired": "Пароль обязателен.",
       "passwordLabel": "Пароль",
       "submit": "Разблокировать страницу статуса"
     },
@@ -507,5 +498,23 @@
   "Incomplete:": "Не выполнено:",
   "Special character included (optional)": "Специальный символ добавлен (необязательно)",
   "Special characters are optional. Try !, @, # or $.": "Специальные символы необязательны. Попробуйте !, @, # или $.",
-  "Dismiss": "Скрыть"
+  "Dismiss": "Скрыть",
+  "Resolved in the Last {{count}} Days": "Решены за последние {{count}} дн.",
+  "Resolved in the Last {{count}} Days_one": "Решены за последние сутки",
+  "No incidents in the last {{count}} days": "Нет инцидентов за последние {{count}} дн.",
+  "No incidents in the last {{count}} days_one": "Нет инцидентов за последние сутки",
+  "Ended in the Last {{count}} Days": "Завершены за последние {{count}} дн.",
+  "Ended in the Last {{count}} Days_one": "Завершены за последние сутки",
+  "No announcements in the last {{count}} days": "Нет объявлений за последние {{count}} дн.",
+  "No announcements in the last {{count}} days_one": "Нет объявлений за последние сутки",
+  "Completed in the Last {{count}} Days": "Завершено за последние {{count}} дн.",
+  "Completed in the Last {{count}} Days_one": "Завершено за последние сутки",
+  "None is planned, and none took place in the last {{count}} days.": "Ничего не запланировано, и за последние {{count}} дн. обслуживания не было.",
+  "None is planned, and none took place in the last {{count}} days._one": "Ничего не запланировано, и за последние сутки обслуживания не было.",
+  "serverMessages": {
+    "signInToView": "У вас нет доступа к этой странице статуса. Войдите, чтобы её просмотреть.",
+    "sessionExpired": "Сеанс истёк. Войдите снова.",
+    "signedOut": "Вы вышли из системы. Войдите снова.",
+    "magicLinkTurnedOff": "Ссылки для входа отключены для этой страницы статуса. Войдите с помощью адреса электронной почты и пароля."
+  }
 }

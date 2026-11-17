@@ -15,6 +15,8 @@ import Button, {
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -402,12 +404,13 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
         <div className="flex flex-1 flex-wrap gap-1.5">
           {params.names.map((name: string, i: number) => {
             return (
-              <span
+              <Pill
                 key={`${params.label}-${i}`}
-                className="inline-flex items-center rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
-              >
-                {name}
-              </span>
+                text={name}
+                isUserContent={true}
+                tone={PillTone.Neutral}
+                isDotHidden={true}
+              />
             );
           })}
         </div>
@@ -443,8 +446,7 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
               "This policy has no escalation rules yet, so triggering it will not page anyone.",
             )}
           </p>
-          {/* md:-ml-3 takes back the Button's own md:ml-3: truly centred. */}
-          <div className="mt-4 flex justify-center md:-ml-3">
+          <div className="mt-4 flex justify-center">
             {getEscalationRulesButton()}
           </div>
         </div>
@@ -752,10 +754,8 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
                     "This policy will not page anyone when it is triggered.",
                   )}
                 </p>
-                {/* Lined up with the text above it (the Button has md:ml-3). */}
-                <div className="mt-3 md:-ml-3">
-                  {getEscalationRulesButton()}
-                </div>
+                {/* Lined up with the text above it. */}
+                <div className="mt-3">{getEscalationRulesButton()}</div>
               </div>
             </div>
           </div>

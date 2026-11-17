@@ -119,7 +119,7 @@ Für ein Alarmierungswerkzeug beginnen Sie mit einem [Monitor für eingehende An
 2. Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **Webhook**. Klicken Sie auf den Trigger und dann auf **URL kopieren**.
 3. Lassen Sie das andere Werkzeug seinen Webhook als `POST` mit `Content-Type: application/json` an diese URL senden.
 4. Fügen Sie die Bausteine hinzu, die damit arbeiten. Sie lesen die Anfrage mit Verweisen wie `{{local.components.webhook-1.returnValues.request-body.status}}`: einen **Wenn / Sonst**-Baustein, um ein Feld zu prüfen, dann **Vorfall erstellen (einzeln)**, um einen Vorfall zu melden.
-5. Schalten Sie oben im **Editor** **Aktiviert** ein, senden Sie einen Test aus dem anderen Werkzeug und öffnen Sie **Protokolle → Ausführungen**, um zu sehen, was angekommen ist.
+5. Schalten Sie oben im **Editor** **Aktiviert** ein, senden Sie einen Test aus dem anderen Werkzeug und öffnen Sie **Ausführungen**, um zu sehen, was angekommen ist.
 :::
 
 Die URL ist der einzige Berechtigungsnachweis, behandeln Sie sie also wie ein Passwort. Siehe [Webhook](/docs/workflows/triggers#webhook).

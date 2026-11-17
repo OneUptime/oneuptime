@@ -25,9 +25,9 @@ Le etichette e i proprietari servono a filtrare e raggruppare le risorse, decido
 
 ## Dove trovare le regole
 
-Ogni prodotto con etichette e proprietari ha entrambe le regole nelle sue **Impostazioni** (per incidenti, avvisi, manutenzione programmata e Sicurezza dei dati, in **Regole**): monitor, incidenti ed episodi di incidente, avvisi ed episodi di avviso, eventi di manutenzione, pagine di stato, servizi, host, cluster Kubernetes, host Docker, cluster Docker Swarm, host Podman, cluster Proxmox, cloud OpenStack, vCenter VMware, cluster Ceph, storage array, database, archivi dati, tabelle, code, flotte IoT, funzioni serverless, risorse cloud, applicazioni RUM, dashboard, policy di reperibilità, turni di reperibilità, policy per le chiamate in arrivo, flussi di lavoro, runbook, dispositivi di rete e SLO.
+Ogni prodotto con etichette e proprietari ha entrambe le regole nelle sue **Impostazioni** (per monitor, pagine di stato, incidenti, avvisi, manutenzione programmata e Sicurezza dei dati, in **Regole**): monitor, incidenti ed episodi di incidente, avvisi ed episodi di avviso, eventi di manutenzione, pagine di stato, servizi, host, cluster Kubernetes, host Docker, cluster Docker Swarm, host Podman, cluster Proxmox, cloud OpenStack, vCenter VMware, cluster Ceph, storage array, database, archivi dati, tabelle, code, flotte IoT, funzioni serverless, risorse cloud, applicazioni RUM, dashboard, policy di reperibilità, turni di reperibilità, policy per le chiamate in arrivo, flussi di lavoro, runbook, dispositivi di rete e SLO.
 
-Per esempio, le regole per le etichette dei monitor sono in **Monitor → Impostazioni → Regole etichette**, e quelle degli incidenti in **Incidenti → Regole → Regole etichette**. **Impostazioni** e **Regole** sono inizialmente chiuse nel menu laterale: fai clic sul titolo della sezione per aprirla. Le pagine degli incidenti e degli avvisi hanno una scheda **Regole degli incidenti** (o **Regole degli avvisi**) e una scheda **Regole degli episodi**.
+Per esempio, le regole per le etichette dei monitor sono in **Monitor → Regole → Regole etichette**, e quelle degli SLO in **SLOs → Impostazioni → Regole etichette**. **Impostazioni** e **Regole** sono inizialmente chiuse nel menu laterale: fai clic sul titolo della sezione per aprirla. Le pagine degli incidenti e degli avvisi hanno una scheda **Regole degli incidenti** (o **Regole degli avvisi**) e una scheda **Regole degli episodi**.
 
 ## Creare una regola
 
@@ -57,7 +57,7 @@ Il **Nome** viene compilato in base alle tue scelte (_Aggiungi Production_, _Agg
 Nell'ultimo passaggio, fai di nuovo clic sul pulsante con il nome della regola, per esempio **Crea: Monitor Label Rule**. La regola parte abilitata e l'elenco la mostra con un'etichetta verde **Abilitato**.
 :::
 
-Una nuova regola deve aggiungere qualcosa: almeno un'etichetta (o un proprietario) oppure, in una regola di incidenti, avvisi o manutenzione programmata, qualcosa che eredita (vedi sotto). Per mettere in pausa una regola senza eliminarla, disattiva **Abilitato** nel suo modulo di modifica; l'elenco mostra allora un'etichetta rossa **Disabilitato**. In una regola per proprietari di incidenti o avvisi basta anche un team in **Team del creatore**.
+Una nuova regola deve aggiungere qualcosa: almeno un'etichetta (o un proprietario) oppure, in una regola di incidenti, avvisi o manutenzione programmata, qualcosa che eredita (vedi sotto). Per mettere in pausa una regola senza eliminarla, disattiva **Abilitato** nel suo modulo di modifica; l'elenco mostra allora un'etichetta grigia **Disabilitato**. In una regola per proprietari di incidenti o avvisi basta anche un team in **Team del creatore**.
 
 ### Comunque venga creata la regola
 

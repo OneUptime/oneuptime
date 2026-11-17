@@ -8,14 +8,20 @@
 #
 #   app-image.sh build [commit]   images "$PERF_PREFIX-app:branch" (this
 #                                 checkout) and ":base" (commit, default the
-#                                 merge base with origin/main); both serve
-#                                 this checkout's built Dashboard
+#                                 merge base with origin/main), each built by
+#                                 its own commit's image/App.Dockerfile
+#                                 (this checkout's for a commit without
+#                                 one); both serve this checkout's built
+#                                 Dashboard
 #   app-image.sh run <tag>        stops the App stack.sh runs (or a running
 #                                 image), runs this one on the host network
 #                                 with $PERF_DIR/app.env and the inspector on
 #                                 127.0.0.1:9371, and writes its PID to
 #                                 $PERF_DIR/app.pid, so cpu-sample.py and
-#                                 memory-sample.py measure it
+#                                 memory-sample.py measure it; says how long
+#                                 after `docker run` it was ready (asked every
+#                                 half second) and the CPU its container had
+#                                 used by then, its boot
 #   app-image.sh stop
 #
 # Settings: PERF_DIR, PERF_PREFIX, PERF_APP_PORT (see stack.sh),
@@ -46,6 +52,14 @@ context() {
   fi
 }
 
+# CPU seconds a container of this stack has used (its cgroup v2 cpu.stat).
+container_cpu_seconds() {
+  local id
+  id=$(docker inspect -f '{{.Id}}' "$1" 2>/dev/null)
+  awk '/^usage_usec/ { printf "%.1f", $2 / 1000000 }' \
+    "/sys/fs/cgroup/system.slice/docker-$id.scope/cpu.stat" 2>/dev/null || echo "?"
+}
+
 stop_app() {
   if [ -f "$PERF_DIR/app.pid" ]; then
     local pid
@@ -71,6 +85,12 @@ case "${1:-}" in
       | tar -x -C "$PERF_DIR/image/ctx-branch"
     context "$PERF_DIR/image/ctx-base"
     git -C "$REPO" archive "$commit" packages/App packages/Common | tar -x -C "$PERF_DIR/image/ctx-base"
+    # The base as its own commit's kit builds it, where it has one: a change to
+    # how the image runs the App (precompiled JavaScript, where it ran
+    # TypeScript through ts-node) is then measured against the image before it.
+    git -C "$REPO" show "$commit:Scripts/Perf/image/App.Dockerfile" >"$PERF_DIR/image/ctx-base/Dockerfile.own" 2>/dev/null \
+      && mv "$PERF_DIR/image/ctx-base/Dockerfile.own" "$PERF_DIR/image/ctx-base/Dockerfile"
+    rm -f "$PERF_DIR/image/ctx-base/Dockerfile.own"
     docker build -q -t "$NAME:base" "$PERF_DIR/image/ctx-base"
     docker build -q -t "$NAME:branch" "$PERF_DIR/image/ctx-branch"
     echo "built $NAME:base ($commit) and $NAME:branch"
@@ -81,17 +101,19 @@ case "${1:-}" in
       python3 -I "$HERE/make_env.py"
     fi
     stop_app
+    started=$(date +%s%N)
     docker run -d --rm --name "$NAME" --network host \
       --env-file "$PERF_DIR/app.env" \
       -e "NODE_OPTIONS=--inspect=127.0.0.1:$PERF_APP_INSPECTOR" \
       "$NAME:$tag" >/dev/null
-    for _ in $(seq 1 200); do
+    for _ in $(seq 1 1200); do
       if [ "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PERF_APP_PORT/api/status/ready")" = "200" ]; then
+        seconds=$(( ($(date +%s%N) - started) / 100000000 ))
         docker inspect -f '{{.State.Pid}}' "$NAME" >"$PERF_DIR/app.pid"
-        echo "$NAME:$tag ready, pid $(cat "$PERF_DIR/app.pid")"
+        echo "$NAME:$tag ready, pid $(cat "$PERF_DIR/app.pid"), $((seconds / 10)).$((seconds % 10)) s after docker run, $(container_cpu_seconds "$NAME") s of CPU"
         exit 0
       fi
-      sleep 3
+      sleep 0.5
     done
     echo "$NAME:$tag not ready; see docker logs $NAME"
     exit 1
@@ -101,7 +123,7 @@ case "${1:-}" in
     echo "stopped"
     ;;
   *)
-    sed -n '2,24p' "${BASH_SOURCE[0]}"
+    sed -n '2,28p' "${BASH_SOURCE[0]}"
     exit 1
     ;;
 esac

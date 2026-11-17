@@ -1,4 +1,6 @@
 import { DetectionRuleTypeLabel } from "./DetectionRuleSummary";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import {
   ADD,
   ADDED,
@@ -210,13 +212,12 @@ const RuleCell: FunctionComponent<RuleCellProps> = (
           {entry.title}
         </button>
         {view.isRecommended ? (
-          <span
-            className="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-indigo-700"
-            data-testid={`rule-library-recommended-${entry.id}`}
-          >
-            <Icon icon={IconProp.Star} className="h-3 w-3" />
-            {translator.translateText(RECOMMENDED)}
-          </span>
+          <Pill
+            text={RECOMMENDED}
+            tone={PillTone.Info}
+            icon={IconProp.Star}
+            dataTestId={`rule-library-recommended-${entry.id}`}
+          />
         ) : (
           <></>
         )}

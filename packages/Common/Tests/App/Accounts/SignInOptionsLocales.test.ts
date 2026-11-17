@@ -18,7 +18,7 @@ import path from "path";
  *    language, as Google's sign-in branding asks;
  *  - "Sign in with password", the single sign-on page's way back, names the
  *    password the way the sign-in form's Password field does;
- *  - a status page's "Log in with SSO" is the title of the page it opens;
+ *  - a status page's "Sign in with SSO" is the title of the page it opens;
  *  - the link wordings they replace are gone, and every key is one a page
  *    reads.
  */
@@ -176,7 +176,7 @@ const ACCOUNTS_KEYS: Array<string> = [
 
 const STATUS_PAGE_KEYS: Array<string> = [
   "accounts.login.or",
-  "accounts.login.logInWithSso",
+  "accounts.login.signInWithSso",
 ];
 
 describe("The other ways to sign in, in every language", () => {
@@ -407,10 +407,10 @@ describe("The other ways to sign in, in every language", () => {
   });
 
   test.each(LANGUAGES)(
-    "%s: a status page's 'Log in with SSO' is the title of the page it opens",
+    "%s: a status page's 'Sign in with SSO' is the title of the page it opens",
     (language: string) => {
       const locale: Json = statusPage(language);
-      const label: string = text(locale, "accounts.login.logInWithSso");
+      const label: string = text(locale, "accounts.login.signInWithSso");
 
       expect(label).toBe(text(locale, "accounts.sso.title"));
       expect(label).toContain("SSO");
@@ -448,11 +448,11 @@ describe("English Accounts says 'sign in', one way", () => {
   /*
    * Another screen's switch, quoted by its name: the edition badge's
    * Community comparison, on the sign-in page since #6470, names the
-   * Dashboard's "Require SSO for Login" switch, which is not a word of
+   * Dashboard's "Require SSO to Sign In" switch, which is not a word of
    * Accounts' for signing in.
    */
   const QUOTED_SWITCHES_OF_OTHER_SCREENS: Array<string> = [
-    '"Require SSO for login"',
+    '"Require SSO to sign in"',
   ];
 
   const withoutQuotedSwitches: (value: string) => string = (
@@ -561,7 +561,7 @@ describe("The pages read these words, and draw these buttons", () => {
     expect(login).toContain('t("common.continueWithGoogle")');
     expect(register).toContain('t("common.continueWithGoogle")');
     expect(statusPageLogin).toContain('t("accounts.login.or")');
-    expect(statusPageLogin).toContain('t("accounts.login.logInWithSso")');
+    expect(statusPageLogin).toContain('t("accounts.login.signInWithSso")');
   });
 
   test("no source file reads a retired link wording", () => {

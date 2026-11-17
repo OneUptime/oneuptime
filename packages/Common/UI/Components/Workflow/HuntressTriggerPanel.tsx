@@ -368,8 +368,6 @@ const HuntressTriggerPanel: FunctionComponent<ComponentProps> = (
         }
         buttonSize={ButtonSize.Small}
         icon={IconProp.Lock}
-        // In line with the step's text, and as wide as its words, on a phone too.
-        className="!w-auto md:!ml-0"
         disabled={!updateGate.isAllowed || !workflowId}
         tooltip={updateGate.disabledReason}
         dataTestId="huntress-trigger-signing-secret-button"
@@ -536,7 +534,6 @@ const HuntressTriggerPanel: FunctionComponent<ComponentProps> = (
           buttonStyle={ButtonStyleType.NORMAL}
           buttonSize={ButtonSize.Small}
           icon={IconProp.Refresh}
-          className="!w-auto md:!ml-0"
           dataTestId="huntress-trigger-load-retry"
           onClick={() => {
             // Back to the loader until the read answers.

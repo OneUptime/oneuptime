@@ -36,7 +36,7 @@ Open **Products → Resources → Real User Monitoring**. **All Applications** l
 - **Settings**: **Owner Rules**, **Label Rules** and the project-wide **Session Replay** switch.
 - **Advanced**: **Archived**, the applications you archived.
 
-An application's own side menu groups its pages like this; **Settings**, **Developer** and **Advanced** start folded:
+An application's own side menu groups its pages like this; **Developer** and **Advanced** start folded:
 
 | Section | Pages |
 | --- | --- |
@@ -44,9 +44,8 @@ An application's own side menu groups its pages like this; **Settings**, **Devel
 | **Observability** | **Metrics**, **Logs**, **Traces**, **Clients** |
 | **Product Analytics** | **Users**, **Sessions**, **Events**, **Funnels**, **User Retention**, **User Flows**, **Analytics Settings** |
 | **Session Replay** | **Session Replay**, **Replay Users**, **Health**, **Replay Policy**, **Frustration Signals**, **Replay Access Log**, **Documentation** |
-| **Settings** | **Settings** |
 | **Developer** | **Terraform**, **API**, **CLI**, **AI Assistants** |
-| **Advanced** | **Audit Logs**, **Delete Application** |
+| **Advanced** | **Settings**, **Audit Logs**, **Delete Application** |
 
 ## How OneUptime recognises RUM
 

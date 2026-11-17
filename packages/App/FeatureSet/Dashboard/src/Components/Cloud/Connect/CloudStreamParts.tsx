@@ -37,13 +37,6 @@ export const CLOUD_STREAM_INPUT_CLASS_NAME: string =
   "block w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500";
 
 /*
- * A step's own button - Make a stream key, Turn on reading - starts where
- * the step's words start. Button keeps a dialog footer's margin (md:ml-3)
- * from md up, which set it 12px in from the sentence above it.
- */
-export const CLOUD_STREAM_STEP_BUTTON_CLASS_NAME: string = "md:!ml-0";
-
-/*
  * How tall a command is drawn at most - the setup command in each dialog,
  * and the one Stop streaming hands over - before it scrolls: its copy
  * button takes it all.

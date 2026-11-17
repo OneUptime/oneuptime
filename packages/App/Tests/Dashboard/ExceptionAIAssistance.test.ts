@@ -38,6 +38,10 @@ import {
 } from "../../FeatureSet/Dashboard/src/Utils/ExceptionAIAssistance";
 import FixProductionStatus from "Common/Types/AI/FixProductionStatus";
 import PageMap from "../../FeatureSet/Dashboard/src/Utils/PageMap";
+import {
+  CODE_TASK_HIDDEN_LABEL,
+  CODE_TASK_HIDDEN_SENTENCE,
+} from "../../FeatureSet/Dashboard/src/Components/Code/CodeTaskHiddenCopy";
 
 function task(
   status: AIRunStatus,
@@ -529,6 +533,75 @@ describe("getAITaskCardState", () => {
       ...overrides,
     });
   }
+
+  /*
+   * A task a reply carried a private incident or alert into, which the
+   * reader may not open: the server sends its type alone, and the card says
+   * it is there and why nothing of it shows - Hidden - with no link, never
+   * at work (nothing of how it stands is known, so nothing is polled), and
+   * another offered as running one again.
+   */
+  test("a task hidden from the reader: Hidden, why, no link, never at work", () => {
+    const hidden: AIAgentTaskInfo = parseAIAgentTask({
+      taskType: CodeFixTaskType.FixException,
+      isHidden: true,
+    });
+
+    expect(hidden.isHidden).toBe(true);
+    expect(isAITaskActive(hidden)).toBe(false);
+    expect(state(hidden)).toEqual({
+      tone: "neutral",
+      statusLabel: CODE_TASK_HIDDEN_LABEL,
+      message: CODE_TASK_HIDDEN_SENTENCE,
+      isActive: false,
+      canViewTask: false,
+      primaryAction: {
+        kind: "restart",
+        label: "Fix again",
+        isDisabled: false,
+        disabledReason: undefined,
+      },
+    });
+    expect(CODE_TASK_HIDDEN_SENTENCE).toBe(
+      "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.",
+    );
+    // The gates hold for it as for any task.
+    expect(state(hidden, { isResolved: true }).primaryAction).toMatchObject({
+      isDisabled: true,
+      disabledReason: AI_TASKS_PAUSED_REASON,
+    });
+  });
+
+  test("a hidden task is read with its type alone, whatever else the wire holds", () => {
+    expect(
+      parseAIAgentTask({
+        _id: "70000000-0000-4000-8000-000000000001",
+        status: "Running",
+        statusMessage: "Reading the private incident",
+        statusTitle: "In Progress",
+        createdAt: "2026-09-14T11:42:00.000Z",
+        taskType: CodeFixTaskType.WriteRegressionTest,
+        isHidden: true,
+        production: { status: "Verified" },
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        _id: "",
+        statusMessage: undefined,
+        statusTitle: "",
+        statusDescription: "",
+        taskType: CodeFixTaskType.WriteRegressionTest,
+        isHidden: true,
+      }),
+    );
+    expect(parseAIAgentTask({ isHidden: true }).taskType).toBe(
+      CodeFixTaskType.FixException,
+    );
+    expect(
+      Number.isNaN(parseAIAgentTask({ isHidden: true }).createdAt.getTime()),
+    ).toBe(true);
+    expect(parseAIAgentTask({ isHidden: true }).production).toBeUndefined();
+  });
 
   test("a task that never ran offers to start", () => {
     expect(state(undefined)).toEqual({

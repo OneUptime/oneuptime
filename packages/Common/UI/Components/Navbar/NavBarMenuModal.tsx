@@ -784,7 +784,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                  */
                 <span
                   data-testid="navbar-menu-plan"
-                  className="flex-shrink-0 rounded-full bg-yellow-50 px-1.5 text-[10px] font-medium leading-4 text-yellow-800 ring-1 ring-inset ring-yellow-200"
+                  className="flex-shrink-0 rounded-full bg-yellow-50 px-1.5 text-xs font-medium leading-4 text-yellow-800 ring-1 ring-inset ring-yellow-200"
                 >
                   {translator.translateTemplate("{{planName}} Plan", {
                     planName: item.neededPlan,
@@ -793,7 +793,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
               ) : item.isNotSetUp ? (
                 <span
                   data-testid="navbar-menu-not-set-up"
-                  className="flex-shrink-0 text-[11px] font-normal text-gray-400"
+                  className="flex-shrink-0 text-[11px] font-normal text-gray-500"
                 >
                   {tx("Not set up")}
                 </span>

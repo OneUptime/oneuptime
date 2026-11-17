@@ -154,7 +154,7 @@ For at frigive et nummer skal du klikke på **Frigiv nummer** ud for det og bekr
 En regel ringer til en person på det nummer, personen har bekræftet til indgående opkald i dette projekt, og springer alle over, der ikke har et. Hver person tilføjer sit eget:
 
 :::steps
-1. Åbn **Brugerindstillinger** > **Indgående opkaldspolitik** > **Indgående telefonnumre**. **Indgående opkaldspolitik** er et afsnit i sidemenuen, der starter foldet sammen.
+1. Åbn **Brugerindstillinger** > **Tilkaldelser og opkald** > **Indgående telefonnumre**. **Tilkaldelser og opkald** er et afsnit i sidemenuen, der starter foldet sammen.
 2. Klik i kortet **Telefonnumre til indgående opkaldsrouting** på **Tilføj Telefonnummer til indgående opkaldsrouting**, og indtast nummeret med landekode, fx `+15551234567`.
 3. Indtast den 6-cifrede kode, som OneUptime sender til nummeret via SMS, under **Bekræftelseskode**, og klik på **Bekræft**. **Send en ny kode** sender en ny.
 :::
@@ -183,7 +183,7 @@ Twilio læser beskederne op med en tekst-til-tale-stemme, så skriv dem, som du 
 
 ## Opkaldslogs
 
-Hvert opkald står på politikkens side **Opkaldslogs** under **Protokoller** i dens sidemenu: **Opkalder**, **Opkaldt nummer**, dets **Status**, hvem der besvarede det (**Besvaret af**), **Varighed**, og hvornår det startede (**Startet den**). Klik på **Vis tidslinje** ved et opkald for at se dets **Opkaldstidslinje**: hver person, der blev ringet til, på hvilket nummer, og hvordan hvert forsøg endte.
+Hvert opkald står på politikkens side **Opkaldslogs** under **Grundlæggende** i dens sidemenu: **Opkalder**, **Opkaldt nummer**, dets **Status**, hvem der besvarede det (**Besvaret af**), **Varighed**, og hvornår det startede (**Startet den**). Klik på **Vis tidslinje** ved et opkald for at se dets **Opkaldstidslinje**: hver person, der blev ringet til, på hvilket nummer, og hvordan hvert forsøg endte.
 
 | Status | Hvad der skete |
 | --- | --- |
@@ -260,7 +260,7 @@ En regel, der oprettes via API'et uden `escalateAfterSeconds`, ringer i 20 sekun
 :::
 
 :::details Opkaldet besvares, men der ringes ikke til nogen
-Opkaldsloggen siger **Mislykkedes**. Tjek, at **Besvar opkald** er slået til under politikkens **Indstillinger**, at hver regels vagtplan har nogen på vagt lige nu, og at de personer, reglerne ringer til, har et bekræftet nummer under **Brugerindstillinger** > **Indgående opkaldspolitik** > **Indgående telefonnumre** i dette projekt. Regler ringer kun til projektets medlemmer.
+Opkaldsloggen siger **Mislykkedes**. Tjek, at **Besvar opkald** er slået til under politikkens **Indstillinger**, at hver regels vagtplan har nogen på vagt lige nu, og at de personer, reglerne ringer til, har et bekræftet nummer under **Brugerindstillinger** > **Tilkaldelser og opkald** > **Indgående telefonnumre** i dette projekt. Regler ringer kun til projektets medlemmer.
 :::
 
 :::details Opkald ender på telefonsvareren

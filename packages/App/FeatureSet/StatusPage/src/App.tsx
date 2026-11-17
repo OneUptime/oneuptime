@@ -23,6 +23,11 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
+import API from "./Utils/API";
+import { sayServerMessage } from "./Utils/ServerMessageWords";
+
+// The server's sign-in messages, in the reader's language (#9212).
+API.setServerMessageWords(sayServerMessage);
 
 // Lazy load all page components from a single barrel (minimizes chunk count)
 type AllPagesModule = typeof import("./Pages/AllPages");

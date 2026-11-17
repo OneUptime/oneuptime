@@ -531,7 +531,6 @@ describe("the syslog a probe forwards: structured data, and no syslog.raw", () =
  * changed nothing keeps its copies as they arrived.
  */
 describe("any line, any rules", () => {
-  // The suites' seeded generator.
   const random: SeededRandom = seededRandom(9039);
 
   function pick<T>(choices: ReadonlyArray<T>): T {

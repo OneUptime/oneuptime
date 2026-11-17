@@ -241,7 +241,7 @@ const SpanPodExceptions: FunctionComponent<ComponentProps> = (
             </div>
           </div>
           <div className="flex flex-none flex-col items-end gap-1">
-            <span className="font-mono text-[11px] tabular-nums text-gray-400">
+            <span className="font-mono text-[11px] tabular-nums text-gray-500">
               {line.offsetLabel}
             </span>
             {groupRoute && (
@@ -306,7 +306,7 @@ const SpanPodExceptions: FunctionComponent<ComponentProps> = (
                 key={group.position}
                 data-testid={`span-pod-exceptions-${group.position}`}
               >
-                <h5 className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                <h5 className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
                   {getPodLogGroupTitle(translator, group.position)}
                 </h5>
                 <ul className="space-y-2">
@@ -324,7 +324,7 @@ const SpanPodExceptions: FunctionComponent<ComponentProps> = (
           },
         )}
         {result.isCut && (
-          <p className="text-[11px] text-gray-400">
+          <p className="text-[11px] text-gray-500">
             {describePodExceptionCut(translator)}
           </p>
         )}

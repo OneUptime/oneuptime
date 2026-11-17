@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "パスワードをお忘れの場合",
     "subtitle": "メールアドレスを入力してください。パスワードリセットリンクが送信されます。",
-    "successMessage": "パスワードリセットリンクをメールでお送りしました。スパムフォルダーも確認してください。",
+    "successMessage": "このメールアドレスを使用しているアカウントがある場合は、パスワードを選ぶためのリンクをメールでお送りしました。スパムフォルダーも確認してください。",
     "submitButton": "パスワードリセットリンクを送信",
     "rememberPasswordPrompt": "パスワードを覚えていますか？",
     "loginLink": "ログイン。",
@@ -187,6 +187,17 @@
     "linkInvalidTitle": "このリセット用リンクは使用できなくなりました",
     "linkInvalidDescription": "すでに使用されたか、一部だけがコピーされた可能性があります。新しいリンクをリクエストすると、メールでお送りします。",
     "requestNewLinkButton": "新しいリンクをリクエスト"
+  },
+  "setPassword": {
+    "title": "パスワードを設定",
+    "subtitle": "パスワードを決めて、アカウントの設定を完了してください。",
+    "submitButton": "パスワードを設定",
+    "successTitle": "パスワードを設定しました",
+    "successDescription": "新しいパスワードでサインインしてください。",
+    "linkExpiredTitle": "このリンクは期限切れです",
+    "linkExpiredDescription": "パスワード設定用リンクの有効期間は {{days}} 日です。新しいリンクをリクエストすると、メールでお送りします。",
+    "linkInvalidTitle": "このリンクは使用できなくなりました",
+    "linkInvalidDescription": "すでに使用されたか、一部だけがコピーされた可能性があります。パスワードを設定済みの場合はサインインしてください。まだの場合は、新しいリンクをリクエストすると、メールでお送りします。"
   },
   "sso": {
     "title": "SSOでログイン",
@@ -453,7 +464,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "クラウドマーケットプレイスのサブスクリプションでライセンスされています。すべてのユーザーが時間単位で課金されます。",
   "License, version, seat usage, and the instances covered by this key.": "ライセンス、バージョン、シートの使用状況、このキーの対象となるインスタンス。",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "インシデント対応、ステータスページ、ワークフローの自動化を備えた、OneUptime プラットフォームのすべて。",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "プロジェクト、ステータスページ、インスタンス全体に対する SAML と OIDC のシングルサインオン（SSO）。「ログインに SSO を必須にする」を含みます。",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "プロジェクト、ステータスページ、インスタンス全体に対する SAML と OIDC のシングルサインオン（SSO）。「サインインに SSO を必須にする」を含みます。",
   "Community support, documentation, and tutorials to help teams get started quickly.": "チームがすぐに始められるよう、コミュニティのサポート、ドキュメント、チュートリアルを提供します。",
   "Regular updates, bug fixes, and open-source extensibility.": "定期的なアップデート、バグ修正、オープンソースによる拡張性。",
   "Integrations with popular DevOps tools through community-maintained connectors.": "コミュニティが管理するコネクターによる、一般的な DevOps ツールとの連携。",

@@ -23,7 +23,7 @@ import MonitoringOff, { MonitoredFlags } from "./MonitoringOff";
  *     Archived page.
  *   - Disabled: someone turned its monitoring off, so the status it holds is
  *     only what its last check saw (Utils/Monitor/MonitoringOff).
- *   - Probes Not Enabled, Probes Disconnected: no probe checks it.
+ *   - No Probe Enabled, Probes Disconnected: no probe checks it.
  *   - Nothing has checked it yet (Utils/Monitor/MonitorFirstCheck, issue
  *     #8899), and it is still in the operational status it was created in:
  *       - Paused, while an incident declared by hand or a maintenance event
@@ -63,7 +63,7 @@ export const MONITOR_ROW_STATUS_WORDS: Record<
 > = {
   [MonitorRowStatusKind.Archived]: translationKey("Archived"),
   [MonitorRowStatusKind.MonitoringOff]: translationKey("Disabled"),
-  [MonitorRowStatusKind.NoProbeEnabled]: translationKey("Probes Not Enabled"),
+  [MonitorRowStatusKind.NoProbeEnabled]: translationKey("No Probe Enabled"),
   [MonitorRowStatusKind.ProbesDisconnected]: translationKey(
     "Probes Disconnected",
   ),

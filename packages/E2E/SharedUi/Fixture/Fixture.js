@@ -12,8 +12,8 @@
  * DeviceDiagnostics.
  *
  * One page, /dashboard/<project>/shared-ui, steered by the query string:
- *   - section=buttons|dialogs|sections|pills|avatars|choices|rules|charts  which part to draw
- *     (all of them when left out)
+ *   - section=buttons|dialogs|sections|pills|avatars|choices|rules|charts|states|keyboard
+ *     which part to draw (all but charts, states and keyboard when left out)
  *   - read=<ms>      how long the edit dialog's record read takes (600)
  *   - lang=de|ja|fa|zh-CN|ru|fr   the Dashboard's words in that language
  *   - zoomed=1       (charts) the page is zoomed, so the hints name the way back
@@ -44,6 +44,12 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import SharedPage from "Common/UI/Components/Page/Page";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import ChoiceRows from "Common/UI/Components/ChoiceRows/ChoiceRows";
 import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
@@ -99,6 +105,12 @@ import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import NotificationBell from "Common/UI/Components/HeaderAlert/NotificationBell/NotificationBell";
+import { HeaderAlertType } from "Common/UI/Components/HeaderAlert/HeaderAlert";
+import Steps from "Common/UI/Components/Forms/Steps/Steps";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import FilterViewer from "Common/UI/Components/Filters/FilterViewer";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 
@@ -1216,6 +1228,252 @@ function Charts() {
   );
 }
 
+/*
+ * The controls #9136 made work from the keyboard and under a finger: two
+ * rows of tabs on one page whose names hold spaces, the header's
+ * notification bell, a form's steps with one finished, and attribute
+ * filter chips that must wrap on a phone. What each is pressed with lands
+ * on [data-testid=keyboard-log].
+ */
+const BELL_ITEMS = [
+  {
+    id: "active-incidents",
+    icon: IconProp.Alert,
+    title: "2 Active Incidents",
+    count: 2,
+    alertType: HeaderAlertType.ERROR,
+  },
+  {
+    id: "on-call",
+    icon: IconProp.Call,
+    title: "You are on call",
+    count: 1,
+    alertType: HeaderAlertType.SUCCESS,
+  },
+];
+
+const FORM_STEPS = [
+  { id: "monitor-info", title: "Monitor Info" },
+  { id: "criteria", title: "Criteria" },
+  { id: "notifications", title: "Notifications" },
+];
+
+const ATTRIBUTE_FILTERS = [
+  { key: "attributes", title: "Attributes", type: FieldType.JSON },
+];
+
+/*
+ * A stepped edit dialog whose steps are all filled in, as Admin Dashboard >
+ * Settings > Email > Edit SMTP Config is: Next on the first step, the save
+ * on the last only, and the step list able to open any step (#9245).
+ */
+const MAIL_SERVER_STEPS = [
+  { id: "server", title: "Server" },
+  { id: "sender", title: "Sender" },
+];
+
+const MAIL_SERVER_FIELDS = [
+  {
+    field: { host: true },
+    title: "Hostname",
+    stepId: "server",
+    fieldType: FormFieldSchemaType.Text,
+    required: true,
+    placeholder: "smtp.server.com",
+  },
+  {
+    field: { fromName: true },
+    title: "From Name",
+    stepId: "sender",
+    fieldType: FormFieldSchemaType.Text,
+    required: true,
+    placeholder: "Company, Inc.",
+  },
+];
+
+function Keyboard() {
+  const [log, setLog] = useState([]);
+  const [stepId, setStepId] = useState("criteria");
+  const [isEditingMailServer, setIsEditingMailServer] = useState(false);
+  const say = (line) => {
+    setLog((lines) => {
+      return [...lines, line];
+    });
+  };
+
+  return (
+    <div className="space-y-5" data-testid="section-keyboard">
+      <div className="flex justify-end" data-testid="bell-holder">
+        <NotificationBell
+          items={BELL_ITEMS}
+          onItemClick={(item) => {
+            say(`bell:${item.id}`);
+          }}
+        />
+      </div>
+      <Card title="Incident rules" description="Two rows of tabs on a page.">
+        <Tabs
+          label="Incident On-Call Rules"
+          tabs={[
+            {
+              name: "Incident Rules",
+              children: <p>Rules for incidents.</p>,
+            },
+            { name: "Episode Rules", children: <p>Rules for episodes.</p> },
+          ]}
+          onTabChange={() => {}}
+        />
+        <Tabs
+          label="Notification Methods"
+          tabs={[
+            { name: "Email", children: <p>Email addresses.</p> },
+            { name: "SMS", children: <p>Phone numbers.</p> },
+          ]}
+          onTabChange={() => {}}
+        />
+      </Card>
+      <Card title="Create monitor" description="A form's steps.">
+        <Steps
+          steps={FORM_STEPS}
+          currentFormStepId={stepId}
+          formValues={{}}
+          onClick={(step) => {
+            setStepId(step.id);
+            say(`step:${step.id}`);
+          }}
+        />
+      </Card>
+      <Card
+        title="Mail server"
+        description="A stepped edit dialog."
+        buttons={[
+          {
+            title: "Edit SMTP Config",
+            icon: IconProp.Edit,
+            buttonStyle: ButtonStyleType.NORMAL,
+            onClick: () => {
+              setIsEditingMailServer(true);
+            },
+          },
+        ]}
+      >
+        <p className="text-sm text-gray-600">smtp.example.com</p>
+      </Card>
+      {isEditingMailServer ? (
+        <BasicFormModal
+          title="Edit SMTP Config"
+          submitButtonText="Save Changes"
+          onClose={() => {
+            setIsEditingMailServer(false);
+          }}
+          onSubmit={(values) => {
+            say(`saved:${values.host}|${values.fromName}`);
+            setIsEditingMailServer(false);
+          }}
+          formProps={{
+            id: "edit-mail-server",
+            steps: MAIL_SERVER_STEPS,
+            allowAnyStepNavigation: true,
+            initialValues: {
+              host: "smtp.example.com",
+              fromName: "Example Status",
+            },
+            fields: MAIL_SERVER_FIELDS,
+          }}
+        />
+      ) : null}
+      <Card title="Logs" description="Attribute filter chips.">
+        <FilterViewer
+          id="logs"
+          filters={ATTRIBUTE_FILTERS}
+          filterData={{
+            attributes: {
+              "service.name": "checkout",
+              "k8s.pod.name": "checkout-7d9f8b6c5d-abcde-with-a-long-suffix",
+              "host.name": "prod-eu-west-1-node-17",
+              "deployment.environment": "production",
+            },
+          }}
+          showFilterModal={false}
+          pluralLabel="Logs"
+        />
+      </Card>
+      <ol data-testid="keyboard-log">
+        {log.map((line, index) => {
+          return <li key={index}>{line}</li>;
+        })}
+      </ol>
+    </div>
+  );
+}
+
+/*
+ * Empty and loading states (#9135): the same card empty, loading with the
+ * shared bars, and a page's content area loading, so the suite can measure
+ * that nothing jumps when content arrives and that an empty card's message
+ * starts near its title on a phone.
+ */
+function States() {
+  const probesDescription =
+    "Probes check this monitor from different places in the world.";
+  return (
+    <div className="space-y-6" data-testid="section-states">
+      <div data-testid="state-empty-card">
+        <Card title="Probes" description={probesDescription}>
+          <EmptyState
+            id="state-empty-card-state"
+            icon={IconProp.Globe}
+            title="No probes yet"
+            description="Add a probe to check this monitor from another place."
+          />
+        </Card>
+      </div>
+      <div data-testid="state-loading-card">
+        <Card title="Probes" description={probesDescription}>
+          <ComponentLoader />
+        </Card>
+      </div>
+      <div data-testid="state-page-loader-card">
+        <Card title="Probes" description={probesDescription}>
+          <PageLoader isVisible={true} />
+        </Card>
+      </div>
+      <div data-testid="state-empty-inline">
+        <Card title="Steps" description="What the runbook does, in order.">
+          <EmptyState
+            id="state-empty-inline-state"
+            size={EmptyStateSize.Inline}
+            icon={IconProp.List}
+            title="No steps yet"
+            description="Add the first step this runbook runs."
+          />
+        </Card>
+      </div>
+      <div data-testid="state-page-loading">
+        <SharedPage
+          title="Monitor"
+          breadcrumbLinks={[
+            { title: "Project", to: new Route(PAGE) },
+            { title: "Monitors", to: new Route(PAGE) },
+          ]}
+          isLoading={true}
+        >
+          <p>Never drawn while loading.</p>
+        </SharedPage>
+      </div>
+      <div data-testid="state-empty-page">
+        <EmptyState
+          id="state-empty-page-state"
+          size={EmptyStateSize.Page}
+          icon={IconProp.Lock}
+          title="Ask to join a project"
+          description="Your administrator has turned off creating projects. Ask a project's owner to invite you."
+        />
+      </div>
+    </div>
+  );
+}
+
 const SECTIONS = {
   buttons: Buttons,
   dialogs: Dialogs,
@@ -1224,15 +1482,19 @@ const SECTIONS = {
   avatars: Avatars,
   choices: Choices,
   rules: Rules,
-  // Only when asked for: the gallery of every part leaves it out.
+  // Only when asked for: the gallery of every part leaves them out.
   charts: Charts,
+  keyboard: Keyboard,
+  states: States,
 };
+
+const ONLY_WHEN_ASKED_FOR = ["charts", "states", "keyboard"];
 
 function Gallery() {
   const shown =
     section === "all"
       ? Object.keys(SECTIONS).filter((name) => {
-          return name !== "charts";
+          return !ONLY_WHEN_ASKED_FOR.includes(name);
         })
       : [section].filter(Boolean);
 

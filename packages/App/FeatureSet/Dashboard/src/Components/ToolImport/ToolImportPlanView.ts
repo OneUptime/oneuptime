@@ -23,12 +23,11 @@ import ToolImportRunStatus from "Common/Types/ToolImport/ToolImportRunStatus";
  */
 
 /*
- * A row of buttons. Button keeps a left margin meant for a dialog's footer
- * (md:ml-3); the row's gap spaces these, so the margin is cleared on each
- * button, and on the one a disabled button's tooltip wraps.
+ * A row of buttons, spaced by the row's gap: a Button has no margin of its
+ * own.
  */
 export const TOOL_IMPORT_BUTTON_ROW_CLASS_NAME: string =
-  "flex flex-wrap items-center gap-3 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+  "flex flex-wrap items-center gap-3";
 
 // How many items a section of the preview or the report lists before "Show more".
 export const TOOL_IMPORT_SECTION_PAGE_SIZE: number = 50;

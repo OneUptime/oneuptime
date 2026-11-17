@@ -734,6 +734,63 @@ describe("ExceptionAIAssistance", () => {
     expect(otherTasks()).toHaveAttribute("data-collapsed", "true");
   });
 
+  /*
+   * A task a reply carried a private incident or alert into, which the
+   * reader may not open: the server sends its type alone, and the card
+   * says it is there and why nothing of it shows - Hidden, behind a lock -
+   * with no status, time, verdict or View task. Starting another is
+   * offered as running one again: the server says if one still works.
+   */
+  test("a task hidden from the reader: Hidden, with why, and nothing of it", async () => {
+    state.tasks = [{ taskType: "FixException", isHidden: true }];
+    await renderAssistance();
+
+    const taskCard: HTMLElement = card("FixException");
+
+    expect(
+      within(taskCard).getByTestId("exception-ai-task-status"),
+    ).toHaveTextContent("Hidden");
+    const message: HTMLElement = within(taskCard).getByTestId(
+      "exception-ai-task-message",
+    );
+    expect(message).toHaveAttribute("data-hidden", "true");
+    expect(message).toHaveTextContent(
+      "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.",
+    );
+    expect(message).not.toHaveTextContent("Latest task started");
+    expect(
+      within(taskCard).queryByTestId("exception-ai-task-view"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(taskCard).queryByTestId("exception-ai-task-production"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(taskCard).getByTestId("exception-ai-task-start"),
+    ).toHaveTextContent("Fix again");
+  });
+
+  test("a hidden task is never polled: nothing of how it stands is known", async () => {
+    jest.useFakeTimers();
+    state.tasks = [{ taskType: "FixException", isHidden: true }];
+    await renderAssistance();
+
+    const reads: number = getMock.mock.calls.filter(
+      (call: Array<RequestArgs>): boolean => {
+        return call[0]!.url.toString().includes("/get-ai-agent-task/");
+      },
+    ).length;
+
+    await act(async () => {
+      jest.advanceTimersByTime(AI_TASK_POLL_INTERVAL_MS * 3);
+    });
+
+    expect(
+      getMock.mock.calls.filter((call: Array<RequestArgs>): boolean => {
+        return call[0]!.url.toString().includes("/get-ai-agent-task/");
+      }).length,
+    ).toBe(reads);
+  });
+
   test("a fold whose task ran names its status while it is folded", async () => {
     state.tasks = [
       { ...task("WriteRegressionTest", "Completed"), _id: TASK_ID },

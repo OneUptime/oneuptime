@@ -159,6 +159,7 @@ const TEMPLATES_WITH_A_HELP_LINE: ReadonlyArray<string> = [
   "InviteMember",
   "MagicLink",
   "PasswordChanged",
+  "SetPassword",
   "SignupWelcomeEmail",
   "TwoFactorBackupCodeUsed",
   "TwoFactorBackupCodesCreated",

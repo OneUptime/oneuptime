@@ -98,8 +98,42 @@ and phone summary: change the suite in the same pull request as the menu.
   [WorkspaceConnectionsGuards](../../packages/Common/Tests/App/Dashboard/WorkspaceConnectionsGuards.test.ts).
 - **One kind of record is one page.** Kinds of the same thing are tabs on that page, not a page each:
   How to Reach Me is one page, a ladder with a tab per kind behind it, not four pages in two menu
-  sections. Enforced by
-  [OnCallRulesOnePageGuard](../../packages/App/Tests/Dashboard/OnCallRulesOnePageGuard.test.ts).
+  sections. A status page's subscribers are one Subscribers page with a tab per channel (Email, SMS,
+  Slack, Microsoft Teams, Webhook), where they were five pages, and the old addresses open their tab
+  (#9125). Its sign-on providers are one Single Sign-On page with a SAML and an OIDC tab, where "SSO"
+  and "OIDC" were two entries with the same icon, and the old OIDC address opens its tab (#9130).
+  Enforced by
+  [OnCallRulesOnePageGuard](../../packages/App/Tests/Dashboard/OnCallRulesOnePageGuard.test.ts) and
+  [StatusPageSubscribersOnePageGuard](../../packages/App/Tests/Dashboard/StatusPageSubscribersOnePageGuard.test.ts).
+- **Red is for what broke, never for a choice.** A state someone chose (a monitor they disabled, a
+  record they archived or paused) gets a grey count and a calm icon, and sits with the records, not
+  under Attention Required. Monitors filed Disabled there with the error icon and a red count beside
+  Not Operational, and a red count that never went away taught people to ignore red (#9126). The
+  same state is grey wherever it shows: a monitor's row, its badge and an SLO's list of monitors.
+  A chip that says Disabled, Archived or Paused is the `Paused` tone, grey with a hollow dot, and a
+  rule's on or off is `EnabledPill`: about ninety rule lists, from owner rules to drop filters and
+  workflows, drew a rule someone switched off as a red "Disabled" (#9184). Enforced by
+  [DeliberateStatesNotDangerGuard](../../packages/App/Tests/Dashboard/DeliberateStatesNotDangerGuard.test.ts).
+- **A section with one entry does not repeat that entry's name.** A heading that says what its only
+  entry says doubles the menu's height and, folded, hides the page behind a click that tells nothing
+  new: User Settings read "On-Call Logs › On-Call Logs", Admin Settings "Data Retention › Data
+  Retention", Project Settings "Danger Zone › Danger Zone" and seven resource pages "Settings ›
+  Settings" (#9134). Put the entry in a section of related pages (a resource's Settings sits in
+  Advanced, beside Owners and Audit Logs), or name the entry for what the page does (Danger Zone ›
+  Delete Project). Nor does it nearly repeat it: a heading whose every word is in its only entry
+  ("Logs › Call Logs", "Calendar › Maintenance Calendar", "Notes › Private Notes", "Rules › Monitor
+  Rules") says nothing the entry does not (#9216). Call Logs went to its policy's Basic, the
+  maintenance calendar to Overview, a runbook's Executions to Advanced. A page that is the only
+  entry of the only section has no side menu (an AI insight, Send Email). A product's own list
+  ("Users › All Users") and a status page's folded Rules section, which the maintainer asked for,
+  are allowed, with their reasons in the guard. Enforced by
+  [OneEntryMenuSectionsGuard](../../packages/App/Tests/OneEntryMenuSectionsGuard.test.ts).
+- **A setting only the public link reads says what it is for.** A dashboard's Branding and Custom
+  Domains change only its public link, and showed on every dashboard as if they did more. They sit
+  under "Public Link", folded, and while the dashboard is shared with the project only, each page
+  opens on one notice that says so, with Change sharing, and folds its settings under it (#9134).
+  Enforced by
+  [DashboardPublicOnlySettings](../../packages/Common/Tests/App/Dashboard/DashboardPublicOnlySettings.test.tsx).
 - **Every entry in the More menu has an icon.** Enforced by
   [MoreMenuItemIconsGuard](../../packages/App/Tests/MoreMenuItemIconsGuard.test.ts).
 
@@ -111,7 +145,7 @@ and phone summary: change the suite in the same pull request as the menu.
 - **Search (Cmd/Ctrl+K) finds every page a menu links to,** by the menu's name for it, and says where
   it lives the way the menu does. Add a new page to `PageSearchIndex.ts`. Enforced by
   [PageSearchIndexCoversMenus](../../packages/Common/Tests/App/Dashboard/PageSearchIndexCoversMenus.test.tsx).
-- **A setting is found by the name on its card.** Searching "require sso for login" finds that switch
+- **A setting is found by the name on its card.** Searching "require sso to sign in" finds that switch
   on the SSO page. Add a new settings card or switch to its page's settings list in
   `PageSearchIndex.ts`, or to `NOT_A_SETTING`. Enforced by
   [SettingsFoundByName](../../packages/App/Tests/Dashboard/SettingsFoundByName.test.ts).
@@ -157,6 +191,14 @@ next, and how to change it last.
   it, with the set ones as chips ("Custom Roles: 2"), and a link to a card (`#custom-roles`) opens the
   fold at that card. Enforced by
   [MoreSettingsFoldsGuard](../../packages/Common/Tests/App/Dashboard/MoreSettingsFoldsGuard.test.ts).
+- **A setting that does nothing yet says so where it is set,** with the way to what would make it
+  count. A public status page lets every visitor in, so its private users, single sign-on and SCIM
+  do nothing there, and none of their pages said so: a person could add a SAML provider to a public
+  page and wait for a sign-in page that never came (#9130). While the page is public, each of those
+  pages opens on one notice, "This status page is public, so these settings do nothing until you
+  make it private.", with Change access, and folds its settings under it, still there to set up
+  before the page goes private. Enforced by
+  [StatusPagePrivateOnlySettingsGuard](../../packages/App/Tests/Dashboard/StatusPagePrivateOnlySettingsGuard.test.ts).
 - **A setting that is a switch saves when it is flipped.** A card whose Edit dialog held only switches
   becomes the switches themselves, which save and say "Saved". Enforced by
   [OneSwitchCardsGuard](../../packages/Common/Tests/UI/Components/Forms/OneSwitchCardsGuard.test.ts)
@@ -251,6 +293,56 @@ work out, starts from a default for everything else, and folds what most people 
   [DragOrderedListsGuard](../../packages/App/Tests/Dashboard/DragOrderedListsGuard.test.ts).
 - **No control inside another control,** such as a button inside a link. Enforced by
   [NestedControlsGuard](../../packages/Common/Tests/UI/Components/NestedControlsGuard.test.ts).
+- **Nothing is pressed with a mouse alone.** Anything that does something on a click is a
+  `<button type="button">` or a link, which Tab reaches, Enter and Space press, and which shows the
+  focus ring. A `div` or `li` with only a click is out of a keyboard's reach and is read as text:
+  a keyboard could open the header's notification bell but choose nothing in it, and could not go
+  back to a finished step of a form (#9136). Enforced by
+  [ClickOnlyControlsGuard](../../packages/Common/Tests/UI/Components/ClickOnlyControlsGuard.test.ts).
+- **A finger can hit it.** Under a finger (`[@media(pointer:coarse)]:min-h-11`) a control is at
+  least 44px across, or 24px with room around it: the list's page buttons were 28px, 24px in a
+  compact list, with nothing larger for touch (#9136). A mouse keeps the compact size. Not enforced:
+  use judgement.
+- **One button.** An action is the shared `Button` (`Common/UI/Components/Button`), never a
+  `<button>` drawn by hand in the primary colours: 34 of them each had their own size and corners,
+  and their focus ring, locked look and phone layout had drifted from the shared one (#9128). Every
+  style is drawn in one frame, the same height, padding, words and alignment, and carries no width
+  or margin of its own: the box that holds the buttons spaces them with a gap, and a dialog's
+  footer stacks them across a phone. A style used to decide that instead, so two buttons that
+  looked alike filled a phone's width or did not, and a card's two test buttons took a line each
+  on a 390px phone (#9100). Enforced by
+  [HandMadePrimaryButtonGuard](../../packages/Common/Tests/UI/HandMadePrimaryButtonGuard.test.ts).
+- **One chip.** A coloured status or label chip is the shared `Pill`
+  (`Common/UI/Components/Pill`), never a `<span>` drawn by hand. The same idea was drawn four
+  ways: the Pill, a `StatusBadge` with a gradient and bold text, a menu's `Badge` with a shadow,
+  and some three hundred hand-written spans, `rounded-full` in one file and `rounded-md` in the
+  next, so one page showed "Active" in two shapes and two greens, and the dark theme handled each
+  its own way (#9137). A status chip names its `tone` (`PillTone`), and the Pill works out a text
+  shade that reads at 4.5:1 or better on both themes; a colour someone picked (a label's, a
+  state's) is passed as `color`. `isDotHidden` draws a tag or a count without the dot, `icon` puts
+  an icon in its place, and words too long for the room end in "..." with the whole of them on
+  hover. `StatusBadge` is a Pill underneath; `Badge` is only for a count beside a menu's entry, in
+  the same tones. Enforced by
+  [HandWrittenChipGuard](../../packages/Common/Tests/UI/HandWrittenChipGuard.test.ts).
+
+  | Tone | Use it for |
+  | --- | --- |
+  | `Success` | It works: Enabled, Connected, Passed. |
+  | `Info` | Worth knowing, needs nothing: Running, Scheduled. |
+  | `Warning` | Needs a look soon: Expiring, Degraded, Not connected. |
+  | `Danger` | It broke: Failed, Offline, Error. |
+  | `Paused` | Someone chose to switch it off: Disabled, Paused, Archived. Grey with a hollow dot, never red ([Red is for what broke](#side-menus)). |
+  | `Neutral` | A plain fact or a tag: Default, Beta, 3 rules. |
+- **Each button style has one job.** Not enforced: use judgement.
+
+  | Style | Use it for |
+  | --- | --- |
+  | `PRIMARY` | The one thing the screen or dialog exists to do. At most one in view. |
+  | `NORMAL` | A plain action the person came for. A table row or header keeps it in view when its other actions fold into More. |
+  | `OUTLINE` | The same plain button, for a lesser action: one a table folds into More first, or one that adds a row to a builder. |
+  | `DANGER`, `DANGER_OUTLINE` | Deleting or anything that cannot be undone: filled in its confirmation, outlined beside other actions. |
+  | `LINK`, `SECONDARY_LINK` | An action inside a sentence, or a quiet one such as Show more. |
+  | `ICON` | An icon with no box, named by its aria label. |
 
 ### Folds
 
@@ -428,6 +520,20 @@ work out, starts from a default for everything else, and folds what most people 
   found." with "Refresh?", which reads as a failed load on a new project. A product's own list explains
   the product while the project has none. Enforced by
   [CoreListEmptyStates](../../packages/Common/Tests/App/Dashboard/CoreListEmptyStates.test.tsx).
+- **A list's own empty sentence never says "found".** The table heads its empty state with the
+  page's `noItemsMessage`, so some fifty Dashboard lists greeted a new project with "No ingestion
+  keys found", "No custom domains found" (#9124, #9060). Write "No X yet." and leave what the list
+  is for to the card's description, which the empty state takes over, or add the one sentence that
+  says when rows arrive ("Pods appear here a few minutes after the agent starts scraping"). A
+  search or filter that hides every row is told apart by the table itself. A list that only ever
+  shows the answer to a query the reader set (the traces explorer) is listed in the guard with its
+  reason. A monitor's Logs says when its first check runs and links to Probes & Interval; its SLOs
+  offer Create with the monitor already attached. The Admin Dashboard's lists read their sentence
+  from a locale key, so the guard there looks each key up ("No projects found." sat in its locale
+  until #9044). Enforced by
+  [EmptyListsSayYetGuard](../../packages/App/Tests/Dashboard/EmptyListsSayYetGuard.test.ts)
+  and
+  [AdminEmptyListsSayYetGuard](../../packages/App/Tests/AdminDashboard/AdminEmptyListsSayYetGuard.test.ts).
 - **A search or filter that finds nothing never offers Create.** It says nothing matched. Not
   enforced: use judgement.
 - **An empty state says each thing once.** An embedded logs list's empty state has one line from the
@@ -444,6 +550,31 @@ work out, starts from a default for everything else, and folds what most people 
 - **A suggestion shows only when it applies,** decided by one helper per kind in
   `Common/Utils/Suggestions`, never in a page. Enforced by
   [SuggestionRulesGuard](../../packages/Common/Tests/App/Dashboard/SuggestionRulesGuard.test.ts).
+- **An empty state takes the room of where it sits, from a preset.** `EmptyState` takes `size`:
+  `EmptyStateSize.Inline` in a panel, a form's step or a short list inside a card, `Card` (the
+  default) for a card's or a list's body, `Page` for a page with nothing else on it. It used to pad
+  itself by 13rem above and below, so in a card on a 390px phone "No X yet" began a quarter of the
+  way down the screen; pages then passed a dozen paddings of their own, and two wrapped it in
+  negative margins to take the room back (#9135). Never hand it a padding or pull it back with a
+  margin: pick the preset. Enforced by
+  [EmptyStateSizeGuard](../../packages/Common/Tests/UI/Components/EmptyState/EmptyStateSizeGuard.test.ts).
+
+### Loading
+
+- **Nothing jumps when content arrives.** A page's content area loads as a card-shaped skeleton
+  where its first card will be (`PageSkeleton`, drawn by `Page` and every `ModelPage`); a table
+  draws its rows' skeleton, a list its items', a detail card its fields'. A page used to draw a
+  thin bar 208px down an empty area and a card one of three bars in two greys at three heights, so
+  the page moved under the reader as each card filled in (#9135). A bar that is still drawn is the
+  shared one, `LOADER_COLOR` (gray-500), centred in `LOADER_BOX_CLASS_NAME`, a box as tall as an
+  empty card: `PageLoader` and `ComponentLoader` draw it, so a card that loads into "No X yet"
+  keeps its height. No screen pushes its content 13rem down (`mt-52`, `pt-52`). A bar for an action
+  in progress (a test being sent) is drawn in the action's colour, listed in the guard with its
+  reason. Enforced by
+  [LoadingStatesGuard](../../packages/Common/Tests/UI/Components/Loader/LoadingStatesGuard.test.ts).
+- **A new card that loads its own data draws the shape it will have.** Prefer the shared
+  components (a table, a list, a detail card), which already do; a card drawn by hand reserves its
+  height with a `Skeleton` of its content's size. Not enforced: use judgement.
 
 ## Dialogs and confirmations
 
@@ -508,6 +639,12 @@ what was further down.
   what it never does, and the words the form shows ("Which Incidents", "More fields"): the help that
   listed three log processors of five, or a severity no filter can match, sent people the wrong way.
   Not enforced: use judgement.
+- **Help about a form describes the form, never a syntax it cannot take.** Logs and Traces pick
+  records with a filter builder of dropdowns, and their help taught a query language nobody could
+  type there (`kind = 'SPAN_KIND_CLIENT' AND statusCode != 2`, status codes `0`, `1` and `2`). It
+  now writes a condition as the builder draws it, "**Span Name** · contains · `healthcheck`", with
+  a value the builder lists by its label (**Error**, not `2`) (#9133). Enforced by
+  [TelemetryFilterHelpGuard](../../packages/App/Tests/Dashboard/TelemetryFilterHelpGuard.test.ts).
 
 ## Cards and the look of a page
 
@@ -539,6 +676,15 @@ what was further down.
   [DetailCardsSourceGuard](../../packages/Common/Tests/UI/Components/Detail/DetailCardsSourceGuard.test.ts)
   and
   [MonitorSummaryViewsLayoutGuard](../../packages/App/Tests/Dashboard/MonitorSummaryViewsLayoutGuard.test.ts).
+- **Text people read is readable: at least 4.5:1.** A label, a description, a value, a hint or a
+  timestamp is `text-gray-500` or darker (`text-gray-600` for body text), and at least 11px, with
+  `text-xs` for small print. `text-gray-400` is 2.5:1 on white and `text-gray-300` 1.5:1: the logs'
+  saved views said "No saved views yet." in it, a More menu's section headings, a drop filter's "Not
+  configured" and an on-call schedule's "No upcoming shifts" were all drawn in it (#9127). The dark
+  theme paints gray-400 and gray-500 the same, so the change holds there. gray-400 stays for what
+  nobody reads as words: an icon beside a label, a separator, a placeholder, a disabled control, and
+  the quiet empty-value dash. Enforced by
+  [ReadableTextContrastGuard](../../packages/Common/Tests/UI/ReadableTextContrastGuard.test.ts).
 - **Banners are for exceptions the person must act on,** never for the default state. Enforced by
   [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
 - **A button that cannot be pressed looks it,** the same way everywhere: faded, with the not-allowed
@@ -568,6 +714,15 @@ what was further down.
   ([`introduction/glossary.md`](../../packages/App/FeatureSet/Docs/Content/en/introduction/glossary.md))
   and the name the menu uses. A renamed thing is still found by its old name in Search. Not enforced:
   use judgement.
+- **Signing in is "Sign in" and signing out is "Sign out", never "log in", "login" or "log out".**
+  One flow once said "Log Out" in the status page's nav, "Log out" and "Sign Out" in the Dashboard,
+  and "Please login again" from the server (#9212). Now it is **Sign Out** in every menu, and
+  "Session expired. Please sign in again." A database's or another system's "login" (a credential),
+  "logged in this window" (written to a log) and another product's own label stay, each listed with its
+  reason. Enforced by
+  [SignInWordsGuard](../../packages/Common/Tests/App/SignInWordsGuard.test.ts), which reads every
+  front end's English locale, the server's sign-in messages, the mobile app's labels and the bold
+  labels in the English docs.
 - **A retired name does not come back.** When one thing had several names, #6817 kept one and retired
   the rest ([`RetiredNames`](../../packages/Common/Types/Docs/RetiredNames.ts)): "On-Call Duty" is
   On-Call, a person's "on-call rules" are How to Reach Me, the project's "Notification Settings" are
@@ -609,7 +764,10 @@ what was further down.
 - **A button says what it does, with its object.** "Create Monitor", not "Submit" or "OK". "Create"
   makes something that stands on its own (Create Monitor, Create Status Page); "Add" puts something
   into the record you are on (Add Monitors to Group, Add Subscriber). Not enforced: use judgement.
-- **A card's description says what the card or list is for,** not "Here is a list of…". Enforced by
+- **A card's description says what the card or list is for,** not "Here is a list of…". A details
+  card whose title says it all ("Project", "Team Details") has no description, not "Project
+  details" or "Details about this team.". The guard reads the Admin Dashboard's English locale too,
+  where its pages keep their words. Enforced by
   [CardDescriptionBoilerplateGuard](../../packages/App/Tests/Dashboard/CardDescriptionBoilerplateGuard.test.ts).
 - **Name the thing, not "it".** "Page this policy for every new incident", not "Page it", where "it"
   could be the person just added. Not enforced: use judgement.
@@ -1198,8 +1356,10 @@ person writes in Give Feedback also reaches whoever can answer it.
 
 - **Look at it as a newcomer would.** At 1280 and 390 pixels wide (and at 1024 and 768 beside the side
   menu), in light and dark, in German (a long language) and Persian (right to left), as a brand-new
-  project and as a busy one. Put before and after screenshots in the pull request. Not enforced: use
-  judgement.
+  project and as a busy one. Put before and after screenshots in the pull request's description with
+  [Scripts/PR/PublishScreenshots.js](../../Scripts/PR/PublishScreenshots.js), which puts them on the
+  `pr-assets` branch and prints the Markdown to paste; committed to your branch, they would be in
+  every CI job's checkout. Not enforced: use judgement.
 - **Run the guards that read what you changed.** Find them by your files' names in the test folders.
   When you change a menu, run its product's `*SideMenu*` suite; when you change a shared component, run
   every suite that renders it. Not enforced: use judgement.

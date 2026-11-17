@@ -1156,7 +1156,8 @@ describe("SessionReplayUsersTable paging, reload, empty and error", () => {
 
   /*
    * Button's own left margin (md:ml-3, a dialog footer's) drew Retry 12px
-   * right of the words above it.
+   * right of the words above it. Neither the row nor the button carries a
+   * margin now.
    */
   it("Retry starts where the error's words do", async () => {
     mockUsers(() => {
@@ -1169,12 +1170,15 @@ describe("SessionReplayUsersTable paging, reload, empty and error", () => {
       "session-users-error-retry",
     );
 
-    expect(retry.parentElement).toHaveClass(
-      "[&>button]:ml-0",
-      "[&>button]:md:ml-0",
-      "[&>*>button]:ml-0",
-      "[&>*>button]:md:ml-0",
+    expect(retry.parentElement!.className).not.toMatch(
+      /(^|\s)(\S+:)?!?-?m[ls]-/u,
     );
+    // Nor does the button inside it: a Button has no margin of its own (#9128).
+    for (const button of Array.from(
+      retry.parentElement!.querySelectorAll("button"),
+    )) {
+      expect(button.className).not.toMatch(/(^|\s)(\S+:)?!?-?m[ls]-/u);
+    }
   });
 });
 

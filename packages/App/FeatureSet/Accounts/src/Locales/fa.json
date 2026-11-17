@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "رمز عبور خود را فراموش کرده‌اید",
     "subtitle": "لطفاً ایمیل خود را وارد کنید تا لینک بازنشانی رمز عبور برایتان ارسال شود.",
-    "successMessage": "لینک بازنشانی رمز عبور را برایتان ایمیل کردیم. لطفاً بررسی پوشه هرزنامه را فراموش نکنید.",
+    "successMessage": "اگر حسابی از این نشانی ایمیل استفاده کند، پیوندی برای انتخاب گذرواژه به آن ایمیل کرده‌ایم. لطفاً بررسی پوشه هرزنامه را فراموش نکنید.",
     "submitButton": "ارسال لینک بازنشانی رمز عبور",
     "rememberPasswordPrompt": "رمز عبور خود را به یاد آوردید؟",
     "loginLink": "ورود.",
@@ -187,6 +187,17 @@
     "linkInvalidTitle": "این پیوند بازنشانی دیگر کار نمی‌کند",
     "linkInvalidDescription": "شاید قبلاً استفاده شده باشد، یا فقط بخشی از آن کپی شده باشد. پیوند جدیدی درخواست کنید تا آن را برایتان ایمیل کنیم.",
     "requestNewLinkButton": "درخواست پیوند جدید"
+  },
+  "setPassword": {
+    "title": "گذرواژهٔ خود را تعیین کنید",
+    "subtitle": "برای تکمیل راه‌اندازی حسابتان، یک گذرواژه انتخاب کنید.",
+    "submitButton": "تعیین گذرواژه",
+    "successTitle": "گذرواژهٔ شما تعیین شد",
+    "successDescription": "با گذرواژهٔ جدیدتان وارد شوید.",
+    "linkExpiredTitle": "این پیوند منقضی شده است",
+    "linkExpiredDescription": "پیوندهای تعیین گذرواژه {{days}} روز اعتبار دارند. پیوند جدیدی درخواست کنید تا آن را برایتان ایمیل کنیم.",
+    "linkInvalidTitle": "این پیوند دیگر کار نمی‌کند",
+    "linkInvalidDescription": "شاید قبلاً استفاده شده باشد، یا فقط بخشی از آن کپی شده باشد. اگر گذرواژهٔ خود را تعیین کرده‌اید، وارد شوید. اگر نه، پیوند جدیدی درخواست کنید تا آن را برایتان ایمیل کنیم."
   },
   "sso": {
     "title": "ورود با SSO",
@@ -453,7 +464,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "پروانه از راه اشتراک مارکت‌پلیس ابری شما: هزینهٔ هر کاربر ساعتی محاسبه می‌شود.",
   "License, version, seat usage, and the instances covered by this key.": "پروانه، نسخه، مصرف صندلی‌ها و نمونه‌هایی که این کلید پوشش می‌دهد.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "سکوی کامل OneUptime با پاسخ به رخداد، صفحه‌های وضعیت و خودکارسازی گردش کار.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "ورود یکپارچهٔ SAML و OIDC (SSO) برای پروژه‌ها، صفحه‌های وضعیت و کل نمونه، از جمله «الزامی کردن SSO برای ورود».",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "ورود یکپارچهٔ SAML و OIDC (SSO) برای پروژه‌ها، صفحه‌های وضعیت و کل نمونه، از جمله «الزامی کردن SSO برای ورود».",
   "Community support, documentation, and tutorials to help teams get started quickly.": "پشتیبانی انجمن، مستندات و آموزش‌هایی که به تیم‌ها کمک می‌کنند سریع شروع کنند.",
   "Regular updates, bug fixes, and open-source extensibility.": "به‌روزرسانی‌های منظم، رفع اشکال‌ها و گسترش‌پذیری متن‌باز.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "یکپارچه‌سازی با ابزارهای پرکاربرد DevOps از راه رابط‌هایی که انجمن نگه‌داری می‌کند.",

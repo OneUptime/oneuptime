@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement, useId } from "react";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
@@ -514,13 +516,13 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
           <div className="min-w-0">
             {/* A dialog's title already names the product. */}
             {!props.isBare && (
-              <div
-                className="inline-flex max-w-full items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
-                data-testid={RESOURCE_SHOWCASE_EYEBROW_TEST_ID}
-              >
-                <Icon icon={showcase.icon} className="h-4 w-4 flex-shrink-0" />
-                <span className="truncate">{translate(showcase.eyebrow)}</span>
-              </div>
+              <Pill
+                text={translate(showcase.eyebrow)}
+                isUserContent={true}
+                tone={PillTone.Info}
+                icon={showcase.icon}
+                dataTestId={RESOURCE_SHOWCASE_EYEBROW_TEST_ID}
+              />
             )}
             <h2
               id={titleId}
@@ -566,10 +568,9 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
 
             {(props.addButton || props.docsRoute || props.guideRoute) && (
               /*
-               * Button keeps a dialog footer's margin (md:ml-3): here the
-               * button starts the row, level with the steps above it.
+               * The button starts the row, level with the steps above it.
                */
-              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
                 {props.addButton && (
                   <Button
                     title={props.addButton.title}

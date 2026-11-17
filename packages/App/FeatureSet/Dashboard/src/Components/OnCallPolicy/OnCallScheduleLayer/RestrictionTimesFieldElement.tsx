@@ -368,11 +368,8 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
             )}
           </div>
 
-          {/*
-           * Level with the windows above it: Button keeps a dialog footer's
-           * left margin (md:ml-3), which its wrapper clears.
-           */}
-          <div className="ml-8 mt-3 [&>button]:ml-0 [&>button]:md:ml-0">
+          {/* Level with the windows above it. */}
+          <div className="ml-8 mt-3">
             {/** show add button */}
             <Button
               title={props.addWindowTitle || "Add Restriction Time"}
@@ -556,11 +553,8 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
           </div>
         </div>
 
-        {/*
-         * Button keeps a dialog footer's left margin (md:ml-3); the row's gap
-         * spaces it here.
-         */}
-        <div className="[&>button]:ml-0 [&>button]:md:ml-0">
+        {/* The row's gap spaces it. */}
+        <div>
           <Button
             title="Delete"
             buttonStyle={ButtonStyleType.NORMAL}

@@ -78,7 +78,7 @@ const StorageArrayFileSystems: FunctionComponent<
       pluralName="File Systems"
       title="File Systems"
       description="File systems on this FlashBlade with the protocols they are shared over, their size, the flash they use and their latest performance."
-      noItemsMessage="No file systems found in the inventory yet. File systems appear here a few minutes after the Storage Array Agent starts scraping the FlashBlade."
+      noItemsMessage="No file systems in the inventory yet. File systems appear here a few minutes after the Storage Array Agent starts scraping the FlashBlade."
       getDetailRoute={(item: StorageArrayResource): Route => {
         return RouteUtil.populateRouteParams(
           RouteMap[PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL] as Route,

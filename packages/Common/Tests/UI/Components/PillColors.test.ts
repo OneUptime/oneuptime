@@ -11,7 +11,7 @@ import {
   getRelativeLuminance,
   parseColor,
   PillColors,
-  PillTone,
+  PillThemeColors,
 } from "../../../UI/Components/Pill/PillColors";
 
 /*
@@ -70,12 +70,12 @@ function hexToRgb(value: string): RGB {
 }
 
 // What the browser paints behind the text: the wash over the surface.
-function paintedWash(tone: PillTone, surface: RGB): RGB {
+function paintedWash(tone: PillThemeColors, surface: RGB): RGB {
   const wash: { rgb: RGB; alpha: number } = parseRgba(tone.backgroundColor);
   return composite(wash.rgb, wash.alpha, surface);
 }
 
-function textContrast(tone: PillTone, surface: RGB): number {
+function textContrast(tone: PillThemeColors, surface: RGB): number {
   return getContrastRatio(hexToRgb(tone.textColor), paintedWash(tone, surface));
 }
 

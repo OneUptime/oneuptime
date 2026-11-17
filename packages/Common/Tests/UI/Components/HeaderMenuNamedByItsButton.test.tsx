@@ -93,7 +93,7 @@ function renderRail(options: { openAtFirst?: boolean } = {}): void {
       />
       <HeaderMenu
         name="User Profile"
-        rows={["Profile", "Log out"]}
+        rows={["Profile", "Sign Out"]}
         openAtFirst={options.openAtFirst}
       />
       <button type="button">Elsewhere on the page</button>
@@ -139,7 +139,7 @@ describe("each header menu is named by its own button", () => {
       menuButton("User Profile").id,
     );
     expect(helpMenu).toHaveTextContent("Quickstart");
-    expect(profileMenu).toHaveTextContent("Log out");
+    expect(profileMenu).toHaveTextContent("Sign Out");
   });
 
   test("the profile menu opened alone is named by the profile button, not by Help before it", () => {

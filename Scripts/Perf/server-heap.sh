@@ -1,10 +1,14 @@
 #!/bin/bash
 # The live heap of one OneUptime server other than the App - the Probe, the
 # Runner, the ingress sidecar (packages/Nginx) - a while after it starts, run
-# natively the way its image runs it: from /usr/src/app and /usr/src/Common
-# (a private mount namespace maps them onto this checkout), ts-node
+# natively from its TypeScript: from /usr/src/app and /usr/src/Common (a
+# private mount namespace maps them onto this checkout), ts-node
 # transpile-only, the node flags of the package's start script and the
-# image's heap limit. NODE_ENV=development is ts-node's own compile (every
+# image's heap limit. That is how the images ran before they ran the
+# JavaScript their build compiles (Common/Server/Utils/TsNode/Precompile.js);
+# an image as it runs now is measured as an image (app-image.sh for the App,
+# or the image's container with heap-snapshot.js over its inspector).
+# NODE_ENV=development is ts-node's own compile (every
 # module's source map inline in its code); production is Common's
 # transpiler (packages/Common/Server/Utils/TsNode/Transpiler.js). /etc/nginx
 # and /var/log/nginx are empty in the namespace, so the sidecar's
@@ -32,7 +36,7 @@ INSPECTOR="${PERF_SERVER_INSPECTOR:-9391}"
 SERVER_PORT="${PERF_SERVER_PORT:-3391}"
 
 if [ -z "$PACKAGE" ] || { [ "$MODE" != "development" ] && [ "$MODE" != "production" ]; }; then
-  sed -n '2,21p' "${BASH_SOURCE[0]}"
+  sed -n '2,25p' "${BASH_SOURCE[0]}"
   exit 1
 fi
 if [ ! -d "$REPO/packages/$PACKAGE/node_modules" ]; then
@@ -40,12 +44,22 @@ if [ ! -d "$REPO/packages/$PACKAGE/node_modules" ]; then
   exit 1
 fi
 
-# The flags between "exec node" and "Index.ts" in the package's start script.
+# The node flags of the package's start script, but for the modules it
+# requires (the image's start runs the JavaScript its build compiled, after
+# PrecompiledSourceMaps.js, which refuses TypeScript), then ts-node's.
 FLAGS="$(node -e '
   const start = require(process.argv[1]).scripts.start || "";
   const at = start.indexOf("exec node ");
-  const end = start.indexOf(" Index.ts");
-  process.stdout.write(at >= 0 && end > at ? start.slice(at + 10, end) : "--require ts-node/register");
+  const words = at >= 0 ? start.slice(at + 10).trim().split(/\s+/).slice(0, -1) : [];
+  const flags = [];
+  for (let index = 0; index < words.length; index++) {
+    if (words[index] === "--require") {
+      index++;
+    } else {
+      flags.push(words[index]);
+    }
+  }
+  process.stdout.write(flags.concat(["--require", "ts-node/register"]).join(" "));
 ' "$REPO/packages/$PACKAGE/package.json")"
 
 mkdir -p "$PERF_DIR"

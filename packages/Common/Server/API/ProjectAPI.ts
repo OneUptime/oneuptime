@@ -44,6 +44,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import OneUptimeDate from "../../Types/Date";
 import Permission from "../../Types/Permission";
 import CallerPermission from "../Utils/Permission/CallerPermission";
+import { PROJECT_CHANGE_PLAN_PERMISSIONS } from "../../Utils/Project/ProjectBilling";
 import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
 import BalanceAdjustmentType from "../../Types/Billing/BalanceAdjustmentType";
 import ObjectID from "../../Types/ObjectID";
@@ -270,7 +271,7 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
 
           const hasBillingPermission: boolean = CallerPermission.holdsAnyOf(
             req as OneUptimeRequest,
-            [Permission.ProjectOwner, Permission.ManageProjectBilling],
+            PROJECT_CHANGE_PLAN_PERMISSIONS,
           );
 
           if (!hasBillingPermission && !isMasterAdmin) {
@@ -975,7 +976,7 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
         try {
           if (!(req as OneUptimeRequest).userAuthorization?.userId) {
             throw new NotAuthenticatedException(
-              "User should be logged in to access this API",
+              "You must be signed in to use this API.",
             );
           }
 
@@ -1128,9 +1129,17 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
                   }),
                 ),
               },
+              /*
+               * Who sold the plan, and how to reach them: a product the
+               * plan leaves out says who to ask to add it
+               * (Dashboard's Components/Billing/ResellerPlanNotice).
+               */
               select: {
                 _id: true,
                 enableTelemetryFeatures: true,
+                name: true,
+                description: true,
+                changePlanLink: true,
               },
               limit: LIMIT_PER_PROJECT,
               skip: 0,

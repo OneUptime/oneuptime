@@ -4,7 +4,10 @@ import ServerSendingStatusUtil, {
   SERVER_SENDING_HEALTH_REWRITE_INTERVAL_MS,
   MAX_SERVER_SENDING_FAILURE_LENGTH,
   ServerChannelStatus,
+  MAX_SERVER_SENDING_RECIPIENT_REFUSALS,
+  SERVER_SENDING_THROTTLE_SUSTAINED_MS,
   ServerSendingChannel,
+  ServerSendingFailureScope,
   ServerSendingHealthEntry,
   ServerSendingState,
   ServerSendingStatusAnswer,
@@ -194,6 +197,7 @@ describe("what the senders write down", () => {
       lastFailedAt: NOW.toISOString(),
       failingSince: NOW.toISOString(),
       lastFailure: "Connection refused",
+      failureScope: ServerSendingFailureScope.Server,
     });
 
     const later: Date = new Date(NOW.getTime() + 5 * 60 * 1000);
@@ -504,4 +508,379 @@ describe("what a browser reads of GET /global-config/sending-status", () => {
       );
     },
   );
+});
+
+/*
+ * ONE RECIPIENT'S REFUSAL IS NOT THE SERVER'S EMAIL FAILING (#9217).
+ *
+ * An Amazon SES sandbox refusing one unverified address raised the banner
+ * for every admin, and any admin's test to another address took it down
+ * with nothing fixed. A recipient's refusal is now kept with the recipient
+ * and never makes the channel failing; only a send to that recipient takes
+ * it off. A provider's slow-down is failing only once it has lasted.
+ */
+describe("whose failure it is", () => {
+  const SANDBOX_REFUSAL: string =
+    "554 Message rejected: Email address is not verified. The following identities failed the check in region US-EAST-1: new.user@example.com";
+
+  test("a recipient's refusal is kept with the recipient, and the channel still works", () => {
+    const working: ServerSendingHealthEntry = entry({
+      lastSucceededAt: minutesBefore(10),
+    });
+
+    const refused: ServerSendingHealthEntry =
+      ServerSendingStatusUtil.withRecipientRefused(
+        working,
+        "new.user@example.com",
+        SANDBOX_REFUSAL,
+        NOW,
+      );
+
+    expect(refused.failingSince).toBeNull();
+    expect(refused.lastFailedAt).toBeNull();
+    expect(refused.recipientRefusals).toEqual([
+      {
+        recipient: "new.user@example.com",
+        reason: SANDBOX_REFUSAL,
+        at: NOW.toISOString(),
+      },
+    ]);
+    expect(
+      ServerSendingStatusUtil.getState({ isSetUp: true, entry: refused }),
+    ).toBe(ServerSendingState.Working);
+  });
+
+  test("the status a master admin reads lists the refusals, and says nothing of them when there are none", () => {
+    const refused: ServerSendingHealthEntry =
+      ServerSendingStatusUtil.withRecipientRefused(
+        entry({ lastSucceededAt: minutesBefore(10) }),
+        "new.user@example.com",
+        SANDBOX_REFUSAL,
+        NOW,
+      );
+
+    const status: ServerChannelStatus = ServerSendingStatusUtil.getStatus({
+      channel: ServerSendingChannel.Email,
+      setUpProblem: null,
+      entry: refused,
+    });
+
+    expect(status.state).toBe(ServerSendingState.Working);
+    expect(status.recipientRefusals).toHaveLength(1);
+    expect(ServerSendingStatusUtil.needsAttention(status)).toBe(false);
+
+    expect(
+      ServerSendingStatusUtil.getStatus({
+        channel: ServerSendingChannel.Email,
+        setUpProblem: null,
+        entry: entry({ lastSucceededAt: minutesBefore(10) }),
+      }),
+    ).not.toHaveProperty("recipientRefusals");
+  });
+
+  test("the newest refusal comes first, one per recipient, and only the last few are kept", () => {
+    let kept: ServerSendingHealthEntry = entry();
+
+    for (
+      let i: number = 0;
+      i < MAX_SERVER_SENDING_RECIPIENT_REFUSALS + 3;
+      i++
+    ) {
+      kept = ServerSendingStatusUtil.withRecipientRefused(
+        kept,
+        `user${i}@example.com`,
+        "550 5.1.1 User unknown",
+        new Date(NOW.getTime() + i * 1000),
+      );
+    }
+
+    kept = ServerSendingStatusUtil.withRecipientRefused(
+      kept,
+      "USER7@example.com",
+      "552 5.2.2 Mailbox full",
+      new Date(NOW.getTime() + 60 * 1000),
+    );
+
+    expect(kept.recipientRefusals).toHaveLength(
+      MAX_SERVER_SENDING_RECIPIENT_REFUSALS,
+    );
+    expect(kept.recipientRefusals![0]).toMatchObject({
+      recipient: "USER7@example.com",
+      reason: "552 5.2.2 Mailbox full",
+    });
+    expect(
+      kept.recipientRefusals!.filter(
+        (refusal: { recipient: string }): boolean => {
+          return refusal.recipient.toLowerCase() === "user7@example.com";
+        },
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("a test to another address takes no refusal off; a send to that recipient does", () => {
+    const refused: ServerSendingHealthEntry =
+      ServerSendingStatusUtil.withRecipientRefused(
+        entry({ lastSucceededAt: minutesBefore(10) }),
+        "new.user@example.com",
+        SANDBOX_REFUSAL,
+        NOW,
+      );
+
+    const afterTest: ServerSendingHealthEntry =
+      ServerSendingStatusUtil.withSucceeded(refused, NOW, "admin@example.com");
+
+    expect(afterTest.recipientRefusals).toHaveLength(1);
+
+    const afterSend: ServerSendingHealthEntry =
+      ServerSendingStatusUtil.withSucceeded(
+        afterTest,
+        NOW,
+        "New.User@example.com",
+      );
+
+    expect(afterSend).not.toHaveProperty("recipientRefusals");
+  });
+
+  test("a send to a refused recipient is news; one to another, inside the hour, is not", () => {
+    const refused: ServerSendingHealthEntry =
+      ServerSendingStatusUtil.withRecipientRefused(
+        entry({ lastSucceededAt: minutesBefore(10) }),
+        "new.user@example.com",
+        SANDBOX_REFUSAL,
+        NOW,
+      );
+
+    expect(
+      ServerSendingStatusUtil.shouldWriteSucceeded(
+        refused,
+        NOW,
+        "new.user@example.com",
+      ),
+    ).toBe(true);
+    expect(
+      ServerSendingStatusUtil.shouldWriteSucceeded(
+        refused,
+        NOW,
+        "admin@example.com",
+      ),
+    ).toBe(false);
+  });
+
+  test("a refusal is news once per recipient and reason an hour", () => {
+    const refused: ServerSendingHealthEntry =
+      ServerSendingStatusUtil.withRecipientRefused(
+        entry(),
+        "new.user@example.com",
+        SANDBOX_REFUSAL,
+        NOW,
+      );
+
+    expect(
+      ServerSendingStatusUtil.shouldWriteRecipientRefused(
+        entry(),
+        "new.user@example.com",
+        SANDBOX_REFUSAL,
+        NOW,
+      ),
+    ).toBe(true);
+    expect(
+      ServerSendingStatusUtil.shouldWriteRecipientRefused(
+        refused,
+        "new.user@example.com",
+        SANDBOX_REFUSAL,
+        new Date(NOW.getTime() + 60 * 1000),
+      ),
+    ).toBe(false);
+    expect(
+      ServerSendingStatusUtil.shouldWriteRecipientRefused(
+        refused,
+        "new.user@example.com",
+        "550 5.1.1 User unknown",
+        NOW,
+      ),
+    ).toBe(true);
+    expect(
+      ServerSendingStatusUtil.shouldWriteRecipientRefused(
+        refused,
+        "new.user@example.com",
+        SANDBOX_REFUSAL,
+        new Date(NOW.getTime() + SERVER_SENDING_HEALTH_REWRITE_INTERVAL_MS),
+      ),
+    ).toBe(true);
+    expect(
+      ServerSendingStatusUtil.shouldWriteRecipientRefused(
+        entry(),
+        "   ",
+        SANDBOX_REFUSAL,
+        NOW,
+      ),
+    ).toBe(false);
+  });
+
+  test("a recipient's refusal leaves a failure of the server's as it was", () => {
+    const failing: ServerSendingHealthEntry =
+      ServerSendingStatusUtil.withFailed(
+        entry(),
+        "535 Authentication failed",
+        NOW,
+      );
+
+    const refused: ServerSendingHealthEntry =
+      ServerSendingStatusUtil.withRecipientRefused(
+        failing,
+        "new.user@example.com",
+        SANDBOX_REFUSAL,
+        new Date(NOW.getTime() + 1000),
+      );
+
+    expect(refused.failingSince).toBe(NOW.toISOString());
+    expect(refused.lastFailure).toBe("535 Authentication failed");
+  });
+
+  test("a send that goes out ends a failure of the server's", () => {
+    const failing: ServerSendingHealthEntry =
+      ServerSendingStatusUtil.withFailed(
+        entry(),
+        "535 Authentication failed",
+        NOW,
+      );
+
+    const working: ServerSendingHealthEntry =
+      ServerSendingStatusUtil.withSucceeded(
+        failing,
+        new Date(NOW.getTime() + 1000),
+        "admin@example.com",
+      );
+
+    expect(working.failingSince).toBeNull();
+    expect(working).not.toHaveProperty("failureScope");
+    expect(
+      ServerSendingStatusUtil.getState({ isSetUp: true, entry: working }),
+    ).toBe(ServerSendingState.Working);
+  });
+
+  describe("a slow-down", () => {
+    const THROTTLED: string =
+      "454 Throttling failure: Maximum sending rate exceeded.";
+
+    test("is not failing at first, and is news once", () => {
+      const first: ServerSendingHealthEntry =
+        ServerSendingStatusUtil.withThrottled(
+          entry({ lastSucceededAt: minutesBefore(5) }),
+          THROTTLED,
+          NOW,
+        );
+
+      expect(first.throttledSince).toBe(NOW.toISOString());
+      expect(first.failingSince).toBeNull();
+      expect(
+        ServerSendingStatusUtil.getState({ isSetUp: true, entry: first }),
+      ).toBe(ServerSendingState.Working);
+
+      expect(ServerSendingStatusUtil.shouldWriteThrottled(entry(), NOW)).toBe(
+        true,
+      );
+      expect(
+        ServerSendingStatusUtil.shouldWriteThrottled(
+          first,
+          new Date(NOW.getTime() + 60 * 1000),
+        ),
+      ).toBe(false);
+    });
+
+    test("is failing, since it started, once it has lasted", () => {
+      const first: ServerSendingHealthEntry =
+        ServerSendingStatusUtil.withThrottled(entry(), THROTTLED, NOW);
+      const later: Date = new Date(
+        NOW.getTime() + SERVER_SENDING_THROTTLE_SUSTAINED_MS,
+      );
+
+      expect(ServerSendingStatusUtil.shouldWriteThrottled(first, later)).toBe(
+        true,
+      );
+
+      const lasted: ServerSendingHealthEntry =
+        ServerSendingStatusUtil.withThrottled(first, THROTTLED, later);
+
+      expect(lasted.failingSince).toBe(NOW.toISOString());
+      expect(lasted.lastFailure).toBe(THROTTLED);
+      expect(lasted.failureScope).toBe(ServerSendingFailureScope.Throttled);
+      expect(
+        ServerSendingStatusUtil.getState({ isSetUp: true, entry: lasted }),
+      ).toBe(ServerSendingState.Failing);
+    });
+
+    test("ends with a send that goes out", () => {
+      const first: ServerSendingHealthEntry =
+        ServerSendingStatusUtil.withThrottled(entry(), THROTTLED, NOW);
+
+      expect(
+        ServerSendingStatusUtil.shouldWriteSucceeded(
+          { ...first, lastSucceededAt: minutesBefore(1) },
+          NOW,
+        ),
+      ).toBe(true);
+
+      expect(
+        ServerSendingStatusUtil.withSucceeded(first, NOW),
+      ).not.toHaveProperty("throttledSince");
+    });
+  });
+
+  test("what is stored is read back, and what is not one is left out", () => {
+    const read: ServerSendingHealthEntry = ServerSendingStatusUtil.readEntry({
+      lastSucceededAt: minutesBefore(5),
+      failureScope: "throttled",
+      throttledSince: minutesBefore(3),
+      recipientRefusals: [
+        { recipient: "a@example.com", reason: "550", at: minutesBefore(1) },
+        { recipient: "", reason: "550", at: minutesBefore(1) },
+        { recipient: "b@example.com", reason: "550", at: "not a date" },
+        "nonsense",
+      ],
+    });
+
+    expect(read.failureScope).toBe(ServerSendingFailureScope.Throttled);
+    expect(read.throttledSince).toBe(minutesBefore(3));
+    expect(read.recipientRefusals).toEqual([
+      { recipient: "a@example.com", reason: "550", at: minutesBefore(1) },
+    ]);
+
+    const unknown: ServerSendingHealthEntry = ServerSendingStatusUtil.readEntry(
+      { failureScope: "everything", recipientRefusals: "nope" },
+    );
+
+    expect(unknown).not.toHaveProperty("failureScope");
+    expect(unknown).not.toHaveProperty("recipientRefusals");
+  });
+
+  test("a browser reads the refusals of an answer, held to what one is", () => {
+    const parsed: ServerSendingStatusAnswer | null =
+      ServerSendingStatusUtil.parseAnswer({
+        channels: [
+          {
+            channel: "email",
+            state: "working",
+            hasWorked: true,
+            recipientRefusals: [
+              {
+                recipient: "a@example.com",
+                reason: "550 5.1.1 User unknown",
+                at: minutesBefore(1),
+              },
+              { recipient: 42 },
+            ],
+          },
+        ],
+        globalProbes: null,
+      });
+
+    expect(parsed?.channels[0]?.recipientRefusals).toEqual([
+      {
+        recipient: "a@example.com",
+        reason: "550 5.1.1 User unknown",
+        at: minutesBefore(1),
+      },
+    ]);
+  });
 });

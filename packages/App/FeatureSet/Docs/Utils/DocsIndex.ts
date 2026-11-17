@@ -604,7 +604,7 @@ class DocsIndexEntries {
   public texts: Buffer = Buffer.alloc(0);
   // The pages whose text was read last, newest last: a search's results share pages.
   private readonly recentTexts: OldestKeyMap<DocsPageText, string> =
-    new OldestKeyMap<DocsPageText, string>();
+    new OldestKeyMap();
 
   public get(): DocsIndexPostings {
     if (!this.postings) {
@@ -636,11 +636,7 @@ class DocsIndexEntries {
     this.recentTexts.set(page, text);
 
     if (this.recentTexts.size > RECENT_PAGE_TEXTS) {
-      const oldest: DocsPageText | undefined = this.recentTexts.oldestKey();
-
-      if (oldest !== undefined) {
-        this.recentTexts.delete(oldest);
-      }
+      this.recentTexts.delete(this.recentTexts.oldestKey()!);
     }
 
     return text;

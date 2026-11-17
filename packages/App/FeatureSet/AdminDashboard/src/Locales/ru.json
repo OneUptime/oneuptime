@@ -62,9 +62,8 @@
     "dataRetention": "Хранение данных",
     "globalLlmProviders": "Глобальные LLM-провайдеры",
     "apiKey": "API-ключ",
-    "more": "Ещё",
     "sendEmail": "Отправить email",
-    "logout": "Выйти",
+    "signOut": "Выйти",
     "telemetryUsage": "Использование телеметрии",
     "ingestionBudgets": "Бюджеты приема",
     "products": "Продукты"
@@ -81,7 +80,7 @@
   },
   "userProfile": {
     "exitAdmin": "Выйти из админа",
-    "logOut": "Выйти"
+    "signOut": "Выйти"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -108,14 +107,14 @@
     "billing": "Биллинг",
     "subscription": "Подписка",
     "invoices": "Счета",
-    "support": "Поддержка",
     "customerSupportAccess": "Доступ службы поддержки",
     "advanced": "Расширенные",
     "overview": "Обзор",
     "projects": "Проекты",
     "settings": "Настройки",
     "authentication": "Аутентификация",
-    "delete": "Удалить",
+    "deleteProject": "Удалить проект",
+    "deleteUser": "Удалить пользователя",
     "settingsAuthentication": "Аутентификация",
     "settingsSso": "Единый вход",
     "settingsNotifications": "Уведомления",
@@ -123,20 +122,16 @@
     "settingsCallSms": "Звонок и SMS",
     "settingsWhatsapp": "WhatsApp",
     "settingsTelegram": "Telegram",
-    "settingsMonitoring": "Мониторинг",
+    "settingsPushNotifications": "Push-уведомления",
+    "settingsSharedWithProjects": "Общие для всех проектов",
     "settingsGlobalProbes": "Глобальные зонды",
-    "settingsRunbooks": "Runbooks",
     "settingsGlobalRunners": "Глобальные Runner-ы",
+    "settingsServer": "Сервер",
     "settingsDataRetention": "Хранение данных",
-    "settingsAi": "ИИ",
     "settingsGlobalLlmProviders": "Глобальные LLM-провайдеры",
-    "settingsApiIntegrations": "API и интеграции",
     "settingsApiKey": "API-ключ",
-    "moreCommunication": "Коммуникации",
-    "moreSendEmail": "Отправить email",
     "telemetryUsage": "Использование телеметрии",
     "ingestionBudgets": "Бюджеты приема",
-    "settingsTelemetry": "Телеметрия",
     "settingsIngestionBudgets": "Бюджеты приема",
     "settingsProducts": "Продукты"
   },
@@ -144,8 +139,8 @@
     "users": {
       "title": "Пользователи",
       "cardTitle": "Пользователи",
-      "cardDescription": "Вот список пользователей в OneUptime.",
-      "noItems": "Пользователи не найдены.",
+      "listDescription": "Все, у кого есть учётная запись на этом сервере. Откройте пользователя, чтобы управлять его проектами, входом и правами администратора.",
+      "emptyMessage": "Пользователей пока нет.",
       "bulkAddToProject": "Добавить в проект",
       "bulkAddToProjectTitle": "Добавить пользователей в проект",
       "bulkAddToProjectDescription": "Выберите проект и одну из его команд. Выбранные пользователи ({{userCount}}) будут приглашены в эту команду.",
@@ -165,7 +160,12 @@
       "bulkRequireTwoFactorAuthDescription": "Все активные сеансы выбранных пользователей ({{userCount}}) будут завершены, и при следующем входе им потребуется настроить приложение-аутентификатор. Это касается и вас, если вы в их числе.",
       "bulkDoNotRequireTwoFactorAuth": "Не требовать двухфакторную аутентификацию",
       "bulkDoNotRequireTwoFactorAuthTitle": "Отменить требование двухфакторной аутентификации для выбранных пользователей ({{userCount}})",
-      "bulkDoNotRequireTwoFactorAuthDescription": "Выбранные пользователи ({{userCount}}) смогут входить, используя только пароль. Всё, что они уже настроили, сохранится, но запрашиваться больше не будет."
+      "bulkDoNotRequireTwoFactorAuthDescription": "Выбранные пользователи ({{userCount}}) смогут входить, используя только пароль. Всё, что они уже настроили, сохранится, но запрашиваться больше не будет.",
+      "createdAndEmailed": "Пользователь {{name}} создан. Ссылка для задания пароля отправлена на {{email}}.",
+      "createdWithPassword": "Пользователь {{name}} создан. Передайте ему заданный пароль безопасным способом.",
+      "setPasswordLinkTitle": "Отправьте ссылку для задания пароля",
+      "setPasswordLinkDescription": "Скопируйте эту ссылку и отправьте её на {{email}} сами — туда, где её прочтёт только этот человек. Она срабатывает один раз и действует {{days}} дней.",
+      "setPasswordLinkOrSetIt": "Или задайте пароль сами на его странице «Аутентификация»."
     },
     "enterpriseLicenses": {
       "title": "Корпоративные лицензии",
@@ -201,7 +201,6 @@
     "userView": {
       "title": "Пользователь",
       "cardTitle": "Пользователь",
-      "cardDescription": "Сведения о пользователе",
       "editButton": "Изменить пользователя",
       "masterAdminCardTitle": "Доступ главного администратора",
       "masterAdminCardDescription": "Предоставьте или отзовите доступ главного администратора для этого пользователя. Главные администраторы могут управлять каждым проектом и рабочим пространством.",
@@ -302,13 +301,12 @@
     "projects": {
       "title": "Проекты",
       "cardTitle": "Проекты",
-      "cardDescription": "Вот список проектов в OneUptime.",
-      "noItems": "Проекты не найдены."
+      "listDescription": "Все проекты на этом сервере. Откройте проект, чтобы управлять его пользователями, командами и настройками.",
+      "emptyMessage": "Проектов пока нет."
     },
     "projectView": {
       "title": "Проект",
       "cardTitle": "Проект",
-      "cardDescription": "Сведения о проекте",
       "editButton": "Изменить проект",
       "dataResidencyCardTitle": "Размещение данных",
       "dataResidencyCardDescription": "Где размещаются данные этого проекта. После настройки отображается пользователям проекта в настройках проекта.",
@@ -450,8 +448,8 @@
     "projectUsers": {
       "title": "Project Users",
       "cardTitle": "Пользователи",
-      "cardDescription": "Here is a list of all the users in this project.",
-      "noItems": "No users found in this project.",
+      "listDescription": "Люди, которые состоят в этом проекте. Что может делать каждый из них, определяет его команда.",
+      "emptyMessage": "В этом проекте пока нет пользователей.",
       "noItemsFiltered": "No users matched the filter.",
       "inviteUser": "Пригласить пользователя",
       "inviteUserTitle": "Пригласить нового пользователя",
@@ -470,19 +468,18 @@
     "projectTeams": {
       "title": "Project Teams",
       "cardTitle": "Команды",
-      "cardDescription": "Список всех команд в этом проекте.",
-      "noItems": "No teams found in this project."
+      "listDescription": "Команды определяют, что их участники могут делать в этом проекте. Создайте команду, чтобы дать группе людей одинаковый доступ.",
+      "emptyMessage": "В этом проекте пока нет команд."
     },
     "projectTeamView": {
       "title": "Project Team",
       "cardTitle": "Детали команды",
-      "cardDescription": "Details about this team.",
       "editButton": "Редактировать команду",
       "membersCardTitle": "Команда Участники",
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "Выйти"
     },
     "sendEmail": {
@@ -623,13 +620,13 @@
       },
       "probes": {
         "bannerTitle": "Нужна помощь с настройкой глобальных зондов?",
-        "bannerDescription": "Вот руководство, которое поможет вам настроить",
+        "bannerGuide": "Следуйте руководству, чтобы запустить зонд на своём сервере и подключить его здесь.",
         "cardTitle": "Глобальные зонды",
         "cardDescription": "Глобальные зонды помогают вам отслеживать внешние ресурсы из разных мест по всему миру.",
-        "noItems": "Зонды не найдены.",
+        "emptyMessage": "Глобальных зондов пока нет.",
         "showIdKey": "Показать ID и ключ",
         "keyModalTitle": "Ключ зонда",
-        "keyModalDescription": "Вот ваш ключ зонда. Пожалуйста, держите его в секрете.",
+        "keyModalSecret": "Ваш зонд подключается к OneUptime с этим ID и ключом. Храните ключ в секрете.",
         "probeIdLabel": "ID зонда:",
         "probeKeyLabel": "Ключ зонда:"
       },
@@ -724,7 +721,6 @@
   "Projects": "Проекты",
   "Project": "Проект",
   "User": "Пользователь",
-  "Logout": "Выход",
   "Save": "Сохранить",
   "Cancel": "Отмена",
   "Submit": "Отправить",
@@ -981,7 +977,7 @@
   "No OIDC providers yet.": "Поставщиков OIDC пока нет.",
   "Require SSO": "Требовать SSO",
   "Before you require SSO, sign in with a provider using Test Sign-in in its row.": "Прежде чем требовать SSO, войдите через поставщика с помощью «Проверить вход» в его строке.",
-  "Require SSO for Login": "Требовать SSO для входа",
+  "Require SSO to Sign In": "Требовать SSO для входа",
   "The sign-in page offers only SSO. Everyone except master admins must sign in with SSO to open any project.": "Страница входа предлагает только SSO. Все, кроме главных администраторов, должны входить через SSO, чтобы открыть любой проект.",
   "People can sign in with a password, a passkey or SSO.": "Можно входить с паролем, ключом доступа или через SSO.",
   "Master admins can always sign in with their password here, even while SSO is required. Keep this address.": "Главные администраторы всегда могут войти здесь с паролем, даже пока требуется SSO. Сохраните этот адрес.",
@@ -2146,8 +2142,6 @@
   "Check email settings": "Проверить настройки почты",
   "Email is failing": "Отправка почты не работает",
   "Email is not set up": "Почта не настроена",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving.": "С {{time}} письма не отправляются, поэтому приглашения и письма об инцидентах не доходят.",
-  "Emails have failed to send since {{time}}, so invitations and incident emails are not arriving. The mail server said: {{reason}}": "С {{time}} письма не отправляются, поэтому приглашения и письма об инцидентах не доходят. Почтовый сервер ответил: {{reason}}",
   "Invitations, password resets and incident emails are not sent.": "Приглашения, письма для сброса пароля и письма об инцидентах не отправляются.",
   "Monitors that run on global probes are not being checked.": "Мониторы, работающие на глобальных зондах, не проверяются.",
   "No global probe is reporting": "Ни один глобальный зонд не отвечает",
@@ -2206,7 +2200,7 @@
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Лицензия по вашей подписке в облачном маркетплейсе: каждый пользователь оплачивается почасово.",
   "License, version, seat usage, and the instances covered by this key.": "Лицензия, версия, использование мест и экземпляры, на которые распространяется этот ключ.",
   "Full OneUptime platform with incident response, status pages, and workflow automation.": "Полная платформа OneUptime с реагированием на инциденты, страницами статуса и автоматизацией рабочих процессов.",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "Единый вход (SSO) по SAML и OIDC для проектов, страниц статуса и всего экземпляра, включая «Требовать SSO для входа».",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO to sign in\".": "Единый вход (SSO) по SAML и OIDC для проектов, страниц статуса и всего экземпляра, включая «Требовать SSO для входа».",
   "Community support, documentation, and tutorials to help teams get started quickly.": "Поддержка сообщества, документация и руководства, которые помогают командам быстро начать работу.",
   "Regular updates, bug fixes, and open-source extensibility.": "Регулярные обновления, исправления ошибок и расширяемость открытого исходного кода.",
   "Integrations with popular DevOps tools through community-maintained connectors.": "Интеграции с популярными инструментами DevOps через коннекторы, которые поддерживает сообщество.",
@@ -4167,5 +4161,19 @@
   "OneUptime switched this rule off when they were deleted.": "OneUptime отключил это правило, когда они были удалены.",
   "Switched on as it is, the rule would not be limited by these lists at all. Edit it to choose what it applies to, then switch it on.": "Если включить правило как есть, эти списки перестанут его ограничивать. Измените его, чтобы выбрать, к чему оно применяется, а затем включите.",
   "{{names}} and {{count}} more": "{{names}} и ещё {{count}}",
-  "{{names}} and {{count}} more_one": "{{names}} и ещё {{count}}"
+  "{{names}} and {{count}} more_one": "{{names}} и ещё {{count}}",
+  "No email has gone out through this server's email settings since {{time}}.": "С {{time}} через настройки почты этого сервера не отправлено ни одного письма.",
+  "No email has gone out through this server's email settings since {{time}}. The mail server said: {{reason}}": "С {{time}} через настройки почты этого сервера не отправлено ни одного письма. Почтовый сервер ответил: {{reason}}",
+  "See email logs": "Журнал писем",
+  "Addresses the mail server refused": "Адреса, отклонённые почтовым сервером",
+  "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Остальные письма ушли, поэтому затронуты только эти адреса. Исправьте адрес или попросите почтового провайдера принимать его: песочница Amazon SES отправляет письма только на подтверждённые адреса.",
+  "Last refused {{time}}": "Последний отказ: {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "Пользователь {{name}} создан, но письмо со ссылкой для задания пароля не отправлено. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "Ссылку, которую можно отправить самостоятельно, тоже не удалось создать. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime отправит пользователю письмо со ссылкой, чтобы он сам задал пароль.",
+  "They sign in with the password you set. Share it with them securely.": "Пользователь будет входить с паролем, который вы зададите. Передайте его безопасным способом.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Этот сервер пока не может отправлять письма. Задайте пароль здесь или оставьте поле пустым, чтобы получить ссылку и отправить её самостоятельно.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "Этот сервер пока не может отправлять письма. Настройте почту в разделе «Настройки > Электронные письма».",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Этот сервер пока не может отправлять письма, поэтому ссылка для сброса пароля не отправлена. Настройте почту в разделе «Настройки > Электронные письма» или задайте пароль сами.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "У этого пользователя уже есть пароль, поэтому ссылки для задания пароля нет. Вместо этого отправьте ссылку для сброса пароля со страницы «Аутентификация»."
 }

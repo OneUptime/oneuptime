@@ -74,7 +74,7 @@ Adicione o monitor compartilhado a cada página como recurso (veja [Recursos e g
 
 ### Ligar Mostrar apenas incidentes limitados a esta página
 
-Em cada uma dessas páginas, ligue-o. Ele fica no cartão **O que sua página de status mostra** em **Páginas de status → sua página → Avançado → Configurações avançadas**, abaixo de **Mostrar incidentes**, e é salvo no momento em que você o muda. A partir daí, nada chega à página de um local a menos que alguém a escolha.
+Em cada uma dessas páginas, ligue-o. Ele fica no cartão **O que sua página de status mostra** em **Páginas de status → sua página → Avançado → Configurações**, abaixo de **Mostrar incidentes**, e é salvo no momento em que você o muda. A partir daí, nada chega à página de um local a menos que alguém a escolha.
 
 ### Adicionar os assinantes de cada público
 

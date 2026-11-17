@@ -133,10 +133,10 @@ const MerakiTestResultPanel: FunctionComponent<ComponentProps> = (
           )}
           {showChangeKey || showTryAgain ? (
             /*
-             * Under the words, from their left edge: Button's footer margin
-             * (md:ml-3) is cleared, and the gap spaces the two.
+             * Under the words, from their left edge, and the gap spaces the
+             * two.
              */
-            <div className="mt-3 flex flex-wrap gap-2 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+            <div className="mt-3 flex flex-wrap gap-2">
               {showChangeKey ? (
                 <Button
                   title="Change API key"

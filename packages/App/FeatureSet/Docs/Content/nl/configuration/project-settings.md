@@ -40,7 +40,7 @@ flowchart LR
 | **Beveiliging** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturering en facturen** | **Facturering**, **Facturen** | [Facturering en gebruik](/docs/configuration/billing) |
 | **Auditlogboeken** | **Auditlogboeken**, **Instellingen**, **Export** | [Auditlogboeken](/docs/configuration/audit-logs), [Export van auditlogboek](/docs/configuration/audit-log-export) |
-| **Gevarenzone** | **Gevarenzone** | [Het project verwijderen](#het-project-verwijderen) |
+| **Gevarenzone** | **Project verwijderen** | [Het project verwijderen](#het-project-verwijderen) |
 
 **Facturering en facturen** en **AI-tegoeden** bestaan alleen in OneUptime Cloud: een zelf gehoste installatie heeft geen facturering.
 
@@ -99,7 +99,7 @@ Om een label uit te faseren, archiveert u het via het menu **⋯** van de rij in
 **Projectinstellingen → Meldingen** bevat hoe het project meldingen verstuurt:
 
 - **Meldingskanalen**: de kaart **Meldingskanalen** zet sms, telefoongesprekken, WhatsApp en Telegram aan of uit voor het project. Alle vier staan bij het begin uit. Een Projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet ze aan. De pagina bevat ook, ingeklapt onder **Meer instellingen**, de eigen mailservers van het project, in **Aangepaste SMTP-configuraties** (zie [SMTP](/docs/emails/smtp)), en het eigen Twilio-account (zie [Twilio-integratie](/docs/self-hosted/twilio-integration)). In OneUptime Cloud bevat ze het saldo waaruit deze berichten worden betaald: zie [Vooruitbetaalde saldi](/docs/configuration/billing#vooruitbetaalde-saldi).
-- **Meldingslogboeken**: elke melding die het project heeft verstuurd, met één tabblad per kanaal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Oproep**, **Push** en **Werkruimte**.
+- **Meldingslogboeken**: elke melding die het project heeft verstuurd, met één tabblad per kanaal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Oproep**, **Push** en **Werkruimte**. Het tabblad **Webhook** bewaart van elk adres alleen het schema en de host: de rest is het geheim van de webhook.
 - **Mobiele apps**: waar u de apps voor iOS en Android vindt. Zie [Apps – Overzicht](/docs/mobile-desktop-apps/index).
 
 ## Functievlaggen
@@ -113,7 +113,7 @@ Een project verwijderen verwijdert alles erin, voor elk lid: de monitors, incide
 :::steps
 ### De gevarenzone openen
 
-Ga naar **Projectinstellingen → Gevarenzone**.
+Ga naar **Projectinstellingen → Gevarenzone → Project verwijderen**.
 
 ### Op Project verwijderen klikken
 
