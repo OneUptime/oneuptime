@@ -228,6 +228,14 @@ describe("what the severity changes, said under its picker (#7756)", () => {
   test("your own test: it reaches you as your How to Reach Me says for this severity", async () => {
     await openDialog(SELF);
 
+    // The regression (#7756): nothing near the picker said what it changes.
+    expect(
+      withoutIsolateMarks(
+        screen.getByTestId("send-test-page-dialog").textContent || "",
+      ),
+    ).toContain(
+      "The test reaches you as your How to Reach Me says for this severity.",
+    );
     expect(hint()).toBe(
       "The test reaches you as your How to Reach Me says for this severity.",
     );

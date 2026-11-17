@@ -3583,6 +3583,11 @@ describe("1. From how many locations it is checked (#7461)", () => {
     api["loadDefaultLocationCount"]!.mockResolvedValue(1);
     await renderSetup();
 
+    // The regression (#7461): what the open step says, whatever draws it.
+    expect(textOf("guided-setup-step-check-content")).toContain(
+      "from 1 location.",
+    );
+    expect(textOf("guided-setup-step-check-content")).not.toMatch(/several/i);
     expect(textOf("guided-setup-check-help")).toBe(
       "OneUptime makes a monitor that checks it every 5 minutes from 1 location. An incident opens when that location finds it down: no answer, or an answer with an error.",
     );
@@ -3697,9 +3702,12 @@ describe("2. How to Reach Me, one click away (#7757)", () => {
   test("links the person's own How to Reach Me, in a new tab", async () => {
     await toWhoIsTold();
 
-    const link: HTMLElement = screen.getByTestId(
-      "guided-setup-how-to-reach-me",
-    );
+    // The regression (#7757): the words were there, as plain text.
+    const link: HTMLElement = within(
+      screen.getByTestId("guided-setup-step-who_is_told-content"),
+    ).getByRole("link", { name: "How to Reach Me" });
+
+    expect(link).toBe(screen.getByTestId("guided-setup-how-to-reach-me"));
 
     expect(link.tagName).toBe("A");
     expect(link).toHaveTextContent("How to Reach Me");
@@ -3945,13 +3953,17 @@ describe("the summary's what next, each for whoever may do it (#7370, #7053)", (
   test("Get paged by SMS or phone call opens the on-call guided setup, saying where from", async () => {
     await toSummary();
 
-    const link: HTMLElement = screen.getByTestId("guided-setup-next-phone");
+    // The regression (#7370): the same words opened Notification Methods.
+    const link: HTMLElement = screen
+      .getByText(WEBSITE_DOWN_COPY.nextPhone)
+      .closest("a")!;
 
-    expect(link).toHaveTextContent(WEBSITE_DOWN_COPY.nextPhone);
     expect(link).toHaveAttribute(
       "href",
       `${routeTo(PageMap.ON_CALL_DUTY_GUIDED_SETUP)}?from=website_down_summary`,
     );
+    expect(link).toBe(screen.getByTestId("guided-setup-next-phone"));
+    expect(link).toHaveTextContent(WEBSITE_DOWN_COPY.nextPhone);
   });
 
   test("someone who may not create an on-call policy adds a number to their notification methods", async () => {
