@@ -3803,7 +3803,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
                 props.emptyMessage || getTraceSpanTypeEmptyMessage(spanType),
               )}
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-500">
               {translator.translateText(
                 "Try adjusting filters or time range, or show every span, including database calls and internal steps.",
               )}

@@ -778,7 +778,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                 return (
                   <span
                     key={badge}
-                    className={`shrink-0 rounded border px-1 text-[10px] font-medium leading-4 ${DEFAULT_BADGE_CLASS}`}
+                    className={`shrink-0 rounded border px-1 text-xs font-medium leading-4 ${DEFAULT_BADGE_CLASS}`}
                   >
                     {badge}
                   </span>
@@ -820,7 +820,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
           {option.typeLabel && (
             <span
               data-part="kind"
-              className={`mt-0.5 shrink-0 rounded border border-gray-200 px-1.5 text-[10px] font-medium uppercase leading-4 tracking-wide ${quiet}`}
+              className={`mt-0.5 shrink-0 rounded border border-gray-200 px-1.5 text-xs font-medium uppercase leading-4 tracking-wide ${quiet}`}
             >
               {translator.translateText(option.typeLabel)}
             </span>
@@ -1124,7 +1124,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                                   {item.label}
                                 </span>
                                 {item.typeLabel ? (
-                                  <span className="ml-auto shrink-0 rounded border border-gray-200 px-1.5 text-[10px] font-medium uppercase leading-4 tracking-wide text-gray-400">
+                                  <span className="ml-auto shrink-0 rounded border border-gray-200 px-1.5 text-xs font-medium uppercase leading-4 tracking-wide text-gray-400">
                                     {translator.translateText(item.typeLabel)}
                                   </span>
                                 ) : null}

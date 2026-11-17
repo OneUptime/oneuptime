@@ -138,7 +138,7 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
           <span
             aria-live="polite"
             data-copy-state={copyStatus}
-            className={`shrink-0 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide transition ${
+            className={`shrink-0 inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium uppercase tracking-wide transition ${
               isCopied
                 ? "bg-emerald-100 text-emerald-700"
                 : isFailed
@@ -173,7 +173,7 @@ const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
             {group.variables.map(renderVariableRow)}
           </div>
         ) : (
-          <p className="text-xs italic text-gray-400">
+          <p className="text-xs italic text-gray-500">
             {translator.translateText("No variables in this section yet.")}
           </p>
         )}

@@ -66,7 +66,7 @@ const FilterButtons: FunctionComponent<ComponentProps> = (
             {translator.translateText(option.label)}
             {option.badge !== undefined && option.badge > 0 && (
               <span
-                className={`ml-1.5 inline-flex min-w-[1.25rem] justify-center px-1 py-0 text-[10px] rounded-full ${
+                className={`ml-1.5 inline-flex min-w-[1.25rem] justify-center px-1 py-0 text-xs rounded-full ${
                   isActive
                     ? "bg-indigo-200 text-indigo-900"
                     : "bg-gray-100 text-gray-500"

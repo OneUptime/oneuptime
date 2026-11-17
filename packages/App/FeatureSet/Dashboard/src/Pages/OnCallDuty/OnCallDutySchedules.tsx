@@ -304,7 +304,7 @@ const OnCallDutyPage: FunctionComponent<
                     {translator.translateText("No one on call")}
                   </span>
                   {item.rosterNextStartAt && item.nextUserOnRoster ? (
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-500">
                       {translator.translateTemplate("Resumes {{date}}", {
                         date: OneUptimeDate.getDateAsLocalFormattedString(
                           item.rosterNextStartAt,
@@ -312,7 +312,7 @@ const OnCallDutyPage: FunctionComponent<
                       })}
                     </span>
                   ) : (
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-500">
                       {translator.translateText("No upcoming shifts")}
                     </span>
                   )}

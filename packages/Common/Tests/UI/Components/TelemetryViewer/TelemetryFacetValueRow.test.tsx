@@ -195,7 +195,7 @@ describe("a value that is not filtering", () => {
 
     expect(screen.getByText("web-1")).toHaveClass("text-gray-400");
     // Faded, not a lighter grey: the dark theme brightens gray-300.
-    expect(screen.getByText("0")).toHaveClass("text-gray-400", "opacity-60");
+    expect(screen.getByText("0")).toHaveClass("text-gray-500", "opacity-60");
     expect(screen.getByText("0")).not.toHaveClass("text-gray-300");
   });
 

@@ -125,7 +125,7 @@ const TemplateVariablesList: FunctionComponent<TemplateVariablesListProps> = (
         </code>
         <span className="text-xs text-gray-600">{describe(variable)}</span>
         {variable.example ? (
-          <span className="w-full text-xs text-gray-400 [overflow-wrap:anywhere]">
+          <span className="w-full text-xs text-gray-500 [overflow-wrap:anywhere]">
             {variable.example}
           </span>
         ) : null}

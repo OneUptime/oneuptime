@@ -291,7 +291,7 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
             <p className="text-sm font-medium text-gray-800">{description}</p>
             {nextRuns.length > 0 && (
               <div className="mt-1.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                   {translator.translateText(NEXT_RUNS)}
                 </p>
                 <ul className="mt-0.5 space-y-0.5">
@@ -404,7 +404,7 @@ const CronScheduleField: FunctionComponent<ComponentProps> = (
                 : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
             }`}
           />
-          <p className="text-xs text-gray-400 font-mono">
+          <p className="text-xs text-gray-500 font-mono">
             {translator.translateText(
               "minute hour day-of-month month day-of-week",
             )}

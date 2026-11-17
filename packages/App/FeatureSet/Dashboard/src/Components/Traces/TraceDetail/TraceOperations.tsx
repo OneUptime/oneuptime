@@ -231,7 +231,7 @@ const TraceOperations: FunctionComponent<ComponentProps> = (
                     </span>
                     {isRepeated && (
                       <span
-                        className="flex-none rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20"
+                        className="flex-none rounded-full bg-amber-50 px-1.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20"
                         title={translator.translateText(
                           "Called many times from a single parent span. This is often an N+1 query or a loop that could be batched.",
                         )}
@@ -253,7 +253,7 @@ const TraceOperations: FunctionComponent<ComponentProps> = (
                   {operation.count.toLocaleString(getReaderNumberLocale())}
                 </td>
                 <td
-                  className={`px-3 py-2 text-right tabular-nums ${operation.errorCount > 0 ? "font-medium text-red-600" : "text-gray-400"}`}
+                  className={`px-3 py-2 text-right tabular-nums ${operation.errorCount > 0 ? "font-medium text-red-600" : "text-gray-500"}`}
                 >
                   {operation.errorCount.toLocaleString(getReaderNumberLocale())}
                 </td>
@@ -274,7 +274,7 @@ const TraceOperations: FunctionComponent<ComponentProps> = (
                     <span className="whitespace-nowrap tabular-nums text-gray-900">
                       {formatDurationNano(operation.selfTimeUnixNano)}
                     </span>
-                    <span className="w-9 text-right tabular-nums text-gray-400">
+                    <span className="w-9 text-right tabular-nums text-gray-500">
                       {formatPercent(operation.percentOfSelfTime)}
                     </span>
                   </div>

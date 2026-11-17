@@ -146,7 +146,7 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
                   );
                 }
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("Not configured")}
                   </span>
                 );
@@ -166,7 +166,7 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
               getElement: (item: TraceDropFilter): ReactElement => {
                 if (!isSamplePercentageConfigured(item.samplePercentage)) {
                   return (
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-gray-500">
                       {translator.translateTemplate(
                         "Not configured — no spans are being sampled away. Set a percentage between {{min}} and {{max}} to start sampling.",
                         {
@@ -228,7 +228,7 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
 
                 if (dropped === 0) {
                   return (
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-gray-500">
                       {translator.translateText(
                         "This filter has never matched a span.",
                       )}

@@ -318,7 +318,7 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div className="text-xs font-medium text-gray-500">
               {translator.translateText("Time spent by service")}
-              <span className="ml-1 font-normal text-gray-400">
+              <span className="ml-1 font-normal text-gray-500">
                 {translator.translateText(
                   "(self time — click a service to filter the spans)",
                 )}
@@ -391,7 +391,7 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
                   <span className="tabular-nums text-gray-500">
                     {formatPercent(service.percent)}
                   </span>
-                  <span className="max-sm:hidden tabular-nums text-gray-400 sm:inline">
+                  <span className="max-sm:hidden tabular-nums text-gray-500 sm:inline">
                     {translator.translatePlural(SPAN_COUNT, service.spanCount)}
                   </span>
                   {service.errorCount > 0 && (

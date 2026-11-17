@@ -281,7 +281,7 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
             <React.Fragment key={`order-${i}`}>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white py-0.5 pl-0.5 pr-2 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200">
                 <span
-                  className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-semibold"
+                  className="inline-flex h-4 w-4 items-center justify-center rounded-full text-xs font-semibold"
                   style={user.avatarStyle}
                 >
                   {user.initials}
@@ -320,7 +320,7 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
         }`}
       >
         <span
-          className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
+          className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold"
           style={user.avatarStyle}
         >
           {user.initials}
@@ -384,7 +384,7 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
                 })
               : formatDurationFromSeconds(turn.coverageSeconds)}
           </span>
-          <span className="text-[11px] font-medium text-gray-400">
+          <span className="text-[11px] font-medium text-gray-500">
             {formatRelativeStart(turn.start, props.now)}
           </span>
         </div>
@@ -486,7 +486,7 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
             {hasRestriction && (
               <p
                 className={`mt-2 text-[11px] leading-relaxed ${
-                  isOffHoursUncovered ? "text-amber-700" : "text-gray-400"
+                  isOffHoursUncovered ? "text-amber-700" : "text-gray-500"
                 }`}
               >
                 {translator.translateTemplate(

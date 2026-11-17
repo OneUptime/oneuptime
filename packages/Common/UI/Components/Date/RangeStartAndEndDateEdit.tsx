@@ -174,7 +174,7 @@ const RangeStartAndEndDateEdit: FunctionComponent<ComponentProps> = (
         role="radiogroup"
         aria-label={translator.translateText("Time range")}
       >
-        <div className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+        <div className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
           {translator.translateText("Quick ranges")}
         </div>
         {defaultRange ? (

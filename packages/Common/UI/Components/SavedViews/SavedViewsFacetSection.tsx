@@ -116,7 +116,7 @@ const SavedViewsFacetSection: FunctionComponent<SavedViewsFacetSectionProps> = (
             {translator.translateText(title)}
           </span>
           {appliedCount > 0 && (
-            <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-600">
+            <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-indigo-100 px-1 text-xs font-semibold text-indigo-600">
               {appliedCount}
             </span>
           )}
@@ -228,7 +228,7 @@ const SavedViewsFacetSection: FunctionComponent<SavedViewsFacetSectionProps> = (
           })}
 
           {visible.views.length === 0 && (
-            <p className="px-1 py-2 text-[11px] text-gray-400">
+            <p className="px-1 py-2 text-[11px] text-gray-500">
               {translator.translateText(
                 visible.isSearching
                   ? "No matches found"

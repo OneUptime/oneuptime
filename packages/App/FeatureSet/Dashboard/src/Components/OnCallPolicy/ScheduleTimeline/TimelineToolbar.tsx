@@ -116,7 +116,7 @@ export const NavigationBar: FunctionComponent<NavigationBarProps> = (
         {props.isRefreshing && (
           <span
             data-testid="timeline-refreshing"
-            className="inline-flex items-center gap-1.5 text-xs text-gray-400"
+            className="inline-flex items-center gap-1.5 text-xs text-gray-500"
           >
             <Icon
               icon={IconProp.Spinner}

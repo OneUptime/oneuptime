@@ -158,7 +158,7 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
         aria-expanded={isComponentVisible}
       >
         <span>{translator.translateText("Columns")}</span>
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-gray-500">
           {selectedColumnIds.length}
         </span>
       </button>
@@ -192,7 +192,7 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
           </div>
 
           <div className="mt-4">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
               {translator.translateText("Selected")}
             </p>
 
@@ -252,7 +252,7 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
 
           <div className="mt-4">
             <div className="mb-2 flex items-center justify-between gap-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                 {translator.translateText("Available")}
               </p>
 
