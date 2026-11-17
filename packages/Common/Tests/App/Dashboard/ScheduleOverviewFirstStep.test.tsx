@@ -294,14 +294,12 @@ describe("a schedule nobody takes turns on yet", () => {
     expect(state.className.split(" ")).toContain("py-8");
     expect(state.className).not.toContain("pt-52");
 
-    // Button keeps a dialog footer's md:ml-3; its wrapper clears it.
+    // Truly centred: the Button carries no margin of its own (#9128).
     const go: HTMLElement = within(empty).getByRole("button", {
       name: ScheduleNoLayersCopy.button,
     });
 
-    expect((go.parentElement as HTMLElement).className).toContain(
-      "[&>button]:md:ml-0",
-    );
+    expect(go.className).not.toMatch(/(^|\s)(md:)?!?m[ls]-/u);
   });
 
   test("offers no calendar links or chat groups for shifts nobody has", async () => {

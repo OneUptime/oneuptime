@@ -1851,7 +1851,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     </div>
                   )}
                   {props.onCancel && (
-                    <div>
+                    // Level with the submit button beside it.
+                    <div className="mt-3">
                       <Button
                         title={
                           translateString(

@@ -2929,14 +2929,20 @@ describe("SessionReplayTable honesty", () => {
     expect(screen.getByTestId("list-error-retry")).toBeInTheDocument();
     /*
      * Retry starts where the error's words do: Button's own left margin
-     * (md:ml-3, a dialog footer's) drew it 12px to their right.
+     * (md:ml-3, a dialog footer's) drew it 12px to their right. Neither the
+     * row nor the button carries a margin now.
      */
-    expect(screen.getByTestId("list-error-retry").parentElement).toHaveClass(
-      "[&>button]:ml-0",
-      "[&>button]:md:ml-0",
-      "[&>*>button]:ml-0",
-      "[&>*>button]:md:ml-0",
-    );
+    expect(
+      screen.getByTestId("list-error-retry").parentElement.className,
+    ).not.toMatch(/(^|\s)(\S+:)?!?-?m[ls]-/u);
+    // Nor does the button inside it: a Button has no margin of its own (#9128).
+    for (const button of Array.from(
+      screen
+        .getByTestId("list-error-retry")
+        .parentElement.querySelectorAll("button"),
+    )) {
+      expect(button.className).not.toMatch(/(^|\s)(\S+:)?!?-?m[ls]-/u);
+    }
   });
 
   it("an empty page under a filter is filters-match-nothing with chips", async () => {

@@ -26,12 +26,13 @@ import React from "react";
 /*
  * The two buttons of a side panel's footer on a phone.
  *
- * Below md a button is as wide as it is given room for (`w-full`), so Close
- * and the panel's action shared the footer half and half: "Close" with room
- * to spare, beside an action whose words - "Create alert for this event",
- * "Warnung für dieses Ereignis erstellen" - broke over two or three lines
- * in the other half. Close now keeps the width of its own word there and
- * never shrinks, and the action takes the rest of the line.
+ * Below md a button used to be as wide as it was given room for
+ * (`w-full`), so Close and the panel's action shared the footer half and
+ * half: "Close" with room to spare, beside an action whose words - "Create
+ * alert for this event", "Warnung für dieses Ereignis erstellen" - broke
+ * over two or three lines in the other half. Close keeps the width of its
+ * own word there and never shrinks. Since #9128 no Button is full width by
+ * itself, so the action is as wide as its own words too.
  *
  * jsdom lays nothing out, so these resolve the width utilities the way the
  * Tailwind build orders them (ResponsiveVisibility's precedence).
@@ -122,7 +123,7 @@ describe("a side panel's footer buttons", () => {
   });
 
   test.each(BELOW_MD)(
-    "at %ipx Close is as wide as its word, and the action takes the rest of the line",
+    "at %ipx Close is as wide as its word and never shrinks, and the action is as wide as its own",
     (width: number) => {
       render(
         <SideOver
@@ -139,8 +140,8 @@ describe("a side panel's footer buttons", () => {
 
       expect(widthAt(closeButton(), width)).toBe("auto");
       expect(neverShrinksAt(closeButton(), width)).toBe(true);
-      // The action is still as wide as its room: now all that Close leaves.
-      expect(widthAt(action, width)).toBe("full");
+      // No width of its own: its words', never stretched to the line.
+      expect(widthAt(action, width)).not.toBe("full");
       expect(neverShrinksAt(action, width)).toBe(false);
     },
   );
@@ -161,14 +162,14 @@ describe("a side panel's footer buttons", () => {
         name: "Create alert for this event",
       });
 
-      expect(widthAt(closeButton(), width)).toBe("auto");
-      expect(widthAt(action, width)).toBe("auto");
+      expect(widthAt(closeButton(), width)).not.toBe("full");
+      expect(widthAt(action, width)).not.toBe("full");
       // Nothing of the phone rule reaches a wider screen.
       expect(neverShrinksAt(closeButton(), width)).toBe(false);
     },
   );
 
-  test("before the change both were full-width below md: the two halves that broke the action's words", () => {
+  test("no footer button is full width by itself at any width (#9128)", () => {
     render(<SideOver {...baseProps({ onSubmit: jest.fn() })} />);
 
     const before: HTMLElement = document.createElement("button");
@@ -180,9 +181,8 @@ describe("a side panel's footer buttons", () => {
       })
       .join(" ");
 
-    for (const width of BELOW_MD) {
-      expect(widthAt(before, width)).toBe("full");
-      expect(neverShrinksAt(before, width)).toBe(false);
+    for (const width of [...BELOW_MD, ...FROM_MD]) {
+      expect(widthAt(before, width)).not.toBe("full");
     }
   });
 
@@ -227,7 +227,7 @@ describe("a side panel's footer buttons", () => {
     expect(within(footer()).getAllByRole("button")).toHaveLength(1);
 
     for (const width of [...BELOW_MD, ...FROM_MD]) {
-      expect(widthAt(closeButton(), width)).toBe("auto");
+      expect(widthAt(closeButton(), width)).not.toBe("full");
     }
   });
 

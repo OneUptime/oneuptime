@@ -97,6 +97,12 @@ const ALLOWED_REPEATED_FILLED_BUTTONS: Array<AllowedRepeatedButton> = [
       "Written inside the live checks' map, but only the row for the 'playable' check, once it is done, gets the button: one per page.",
   },
   {
+    file: "packages/Common/UI/Components/MemberRoleAssignment/MemberRoleAssignment.tsx",
+    label: "Save",
+    reason:
+      "Written inside the roles' map, but only the role whose member picker is open (activeRoleDropdown) draws it, and one picker is open at a time.",
+  },
+  {
     file: "packages/App/FeatureSet/Dashboard/src/Pages/Runbook/View/ExecutionView.tsx",
     label: "waitingStepButtonTitle",
     reason:

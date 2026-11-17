@@ -145,8 +145,6 @@ const NetworkEventDetails: FunctionComponent<ComponentProps> = (
               icon={IconProp.Add}
               buttonSize={ButtonSize.Small}
               buttonStyle={ButtonStyleType.NORMAL}
-              // On a phone: its own words' width and size, not the dialog button's.
-              className="max-md:w-auto max-md:text-sm"
               dataTestId="network-event-details-add-device"
               onClick={() => {
                 Navigation.navigate(
