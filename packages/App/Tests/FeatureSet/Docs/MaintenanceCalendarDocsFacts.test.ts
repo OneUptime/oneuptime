@@ -529,9 +529,16 @@ describe("external calendars", () => {
     expect(external).toContain(
       "OneUptime never reads an address on its own server or a cloud metadata address, and OneUptime Cloud refuses addresses on a private network. A self-hosted server can read a calendar on your own network, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is `true`.",
     );
-    // Pinned for Node's http, so it can also go through the outbound proxy (e325fee4eed).
+    /*
+     * Pinned for Node's own http client since a calendar goes through the
+     * outbound proxy (#8978): the same check of the URL first, then agents
+     * that dial what it approved, or hand it to the proxy.
+     */
     expect(EXTERNAL_FETCH).toContain(
       "DataSourceEgressGuard.assertUrlAllowedAndPinForNodeHttp(url, {",
+    );
+    expect(EGRESS_GUARD).toMatch(
+      /public static async assertUrlAllowedAndPinForNodeHttp\([\s\S]{0,300}?\{\s*const \{ url, addresses \} = await this\.assertUrlAllowed\(urlString, options\);/,
     );
     expect(EGRESS_GUARD).toContain("metadata lives at 169.254.169.254");
     expect(EGRESS_GUARD).toContain("blocked when billing is enabled");
