@@ -229,7 +229,7 @@ describe("the fields' labels", () => {
 
       expect(label).toHaveTextContent(`${title} (Optional)`);
       expect(label.textContent?.split("(Optional)").length).toBe(2);
-      expect(label.querySelector("span.text-gray-400")).toHaveTextContent(
+      expect(label.querySelector("span.text-gray-500")).toHaveTextContent(
         "(Optional)",
       );
     },
