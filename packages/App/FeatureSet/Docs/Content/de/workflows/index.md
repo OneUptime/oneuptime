@@ -81,11 +81,11 @@ Die Wörter, die in ganz OneUptime verwendet werden, stehen im [Glossar](/docs/i
 - **Editor** – die Arbeitsfläche, auf der Sie den Workflow gestalten, mit dem Schalter **Aktiviert** oben.
 - **Arbeitsablaufvariablen** – Werte, die nur für diesen einen Workflow gelten.
 - **Protokolle → Ausführungen** – jede Ausführung dieses Workflows, mit Details.
-- **Eigentümer** – die Personen und Teams, die für den Workflow verantwortlich sind.
 - **Entwickler** – wie Sie diesen Workflow mit Terraform, der API oder einem KI-Assistenten verwalten.
 - **Einstellungen** – duplizieren, exportieren und archivieren.
+- **Eigentümer** – die Personen und Teams, die für den Workflow verantwortlich sind.
 
-**Einstellungen** steht im Abschnitt **Erweitert** des Menüs, zusammen mit **Audit-Protokolle** und **Arbeitsablauf löschen**. **Erweitert** und **Entwickler** sind zunächst eingeklappt, in diesem Menü und in jedem anderen, damit die Seiten, die Sie täglich nutzen, zuerst kommen. Klicken Sie auf den Namen eines Abschnitts, um seine Seiten anzuzeigen. Er klappt von selbst auf, wenn Sie sich auf einer seiner Seiten befinden.
+**Einstellungen** und **Eigentümer** stehen im Abschnitt **Erweitert** des Menüs, zusammen mit **Audit-Protokolle** und **Arbeitsablauf löschen**. **Erweitert** und **Entwickler** sind zunächst eingeklappt, in diesem Menü und in jedem anderen, damit die Seiten, die Sie täglich nutzen, zuerst kommen. Klicken Sie auf den Namen eines Abschnitts, um seine Seiten anzuzeigen. Er klappt von selbst auf, wenn Sie sich auf einer seiner Seiten befinden.
 
 ## Ihren ersten Workflow bauen
 

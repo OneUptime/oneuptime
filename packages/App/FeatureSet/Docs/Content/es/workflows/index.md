@@ -81,11 +81,11 @@ Abre un flujo de trabajo concreto y su propio menú contiene:
 - **Constructor** — el lienzo donde diseñas el flujo de trabajo, con el interruptor **Habilitado** arriba.
 - **Variables del flujo de trabajo** — valores limitados a este único flujo de trabajo.
 - **Registros → Ejecuciones** — cada ejecución de este flujo de trabajo, con sus detalles.
-- **Propietarios** — las personas y los equipos responsables del flujo de trabajo.
 - **Desarrolladores** — cómo gestionar este flujo de trabajo con Terraform, la API o un asistente de IA.
 - **Ajustes** — duplicar, exportar y archivar.
+- **Propietarios** — las personas y los equipos responsables del flujo de trabajo.
 
-**Ajustes** está en la sección **Avanzado** del menú, junto con **Registros de auditoría** y **Eliminar flujo de trabajo**. **Avanzado** y **Desarrolladores** empiezan contraídas, en este menú y en todos los demás, para que las páginas que usas a diario aparezcan primero. Haz clic en el nombre de una sección para mostrar sus páginas. Se abre sola cuando estás en una de ellas.
+**Ajustes** y **Propietarios** están en la sección **Avanzado** del menú, junto con **Registros de auditoría** y **Eliminar flujo de trabajo**. **Avanzado** y **Desarrolladores** empiezan contraídas, en este menú y en todos los demás, para que las páginas que usas a diario aparezcan primero. Haz clic en el nombre de una sección para mostrar sus páginas. Se abre sola cuando estás en una de ellas.
 
 ## Construye tu primer flujo de trabajo
 
