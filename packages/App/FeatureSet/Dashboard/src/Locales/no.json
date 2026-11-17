@@ -56553,5 +56553,10 @@
   "This override ends within the minute, so there is nothing left to end.": "Denne overstyringen slutter innen minuttet, så det er ingenting igjen å avslutte.",
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Denne overstyringen har ikke startet ennå, så det er ingenting å avslutte. Slett den for å avlyse den.",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "{{away}} hoppes ikke lenger over fra nå i stedet for {{until}}. Deretter er vaktene i rotasjonen deres igjen.",
-  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} dekker ikke lenger for {{away}} fra nå i stedet for {{until}}. Deretter går varsler til {{away}} igjen."
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} dekker ikke lenger for {{away}} fra nå i stedet for {{until}}. Deretter går varsler til {{away}} igjen.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "Slack-, Microsoft Teams- og Mattermost-meldinger sendt for dette prosjektet.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "Slack-, Microsoft Teams- og Mattermost-meldinger sendt for dette elementet ({{itemName}}).",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "Denne testen oppretter også en ekte kanal i regelens Microsoft Teams-team, for eksempel {{channel}}, som alle i teamet kan se. Slett den i Microsoft Teams når du er ferdig.",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "Denne testen oppretter også en ekte {{workspace}}-kanal, for eksempel {{channel}}, og inviterer deg til den. Arkiver den i {{workspace}} når du er ferdig.",
+  "{{team}} (typed name)": "{{team}} (skrevet navn)"
 }

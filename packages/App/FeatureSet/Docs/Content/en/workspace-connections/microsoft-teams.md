@@ -133,7 +133,7 @@ Payments links to the policy in OneUptime. A person is named by their Microsoft 
 
 ## Testing a rule
 
-**Test Rule** on a rule's row posts a test message for that rule to the channels it names, so you can see it arrive. If the rule creates a channel for each event, the test creates one too and invites the rule's people to it.
+**Test Rule** on a rule's row posts a test message for that rule to the channels it names, so you can see it arrive. **Test Notification Sent** says where to look when the test went out, and **Test Failed** says why when it did not. If the rule creates a channel for each event, the test creates a real one too, in the rule's team, named with the rule's prefix and five random letters, such as `prod-abcde`, which everyone in the team can see: the dialog says so before the test runs. The channel stays after the test; delete it in Microsoft Teams when you are done.
 
 Like **Send Test** beside a channel in **Project Settings** > **Workspace** > **Microsoft Teams**, it needs permission to create notification rules: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member**, or **Create Workspace Notification Rule** and **Read Workspace Notification Rule** in a custom role. For someone who can only see the rules, such as a **Viewer**, **Test Rule** is locked, and its tooltip says what it takes; the API refuses their test with "You do not have permission to send test notifications in this project." On OneUptime Cloud, testing a rule needs the **Growth** plan, like adding one.
 
@@ -145,7 +145,11 @@ The **Summary** tab of **Incidents** > **Workspace** > **Microsoft Teams** (and 
 
 A summary goes out on the clock of its **Timezone**, which starts on yours. It keeps its time of day there all year: one set for 09:00 in Berlin still goes out at 09:00 in Berlin after the clocks change for daylight saving time, and the dates in its message are Berlin's too. Through the API, send `timezone` as an IANA time zone name, such as `Europe/Berlin`. A summary created without one takes the time zone in its creator's profile, or UTC when an API key creates it.
 
-The summary form has four steps: **Basic Info** (its name, the channels and their **Team Name**), **Schedule**, **Content** (**What to Include**) and **Filters** (which incidents or alerts it counts).
+The summary form has four steps: **Basic Info** (its name, the channels and their **Team**), **Schedule**, **Content** (**What to Include**) and **Filters** (which incidents or alerts it counts).
+
+**Team** lists the teams of your Microsoft Teams connection, and shows when there is more than one; with one team, the summary posts in it. A summary saved with a typed team name keeps it, shown as typed, until you pick a team. When the teams cannot be listed, the form asks for the **Team Name** as text, matched by the team's name in any case; a name two teams share is refused.
+
+**Send Test Now** on a summary's row posts it at once. **Summary Sent** says every channel got it; **Test Failed** says how many channels did not, and lists each under why, such as a channel that was not found. The channels that got the test keep it. Each channel's result, of a test or of a scheduled send, is a row on the **Workspace** tab of **Project Settings** > **Notifications** > **Notification Logs**: **Success**, or **Error** with why under **Reason**. **Last Sent** moves only when at least one channel got the summary.
 
 ## Notification rules below the Growth plan
 

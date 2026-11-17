@@ -56553,5 +56553,10 @@
   "This override ends within the minute, so there is nothing left to end.": "此覆盖将在一分钟内结束，因此已没有可结束的内容。",
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "此覆盖尚未开始，因此没有可结束的内容。要取消它，请将其删除。",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "跳过现在就结束，而不是在 {{until}}。之后，{{away}} 会重新在轮换中值自己的班。",
-  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} 现在就停止为 {{away}} 代班，而不是在 {{until}}。之后，警报会重新发给 {{away}}。"
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} 现在就停止为 {{away}} 代班，而不是在 {{until}}。之后，警报会重新发给 {{away}}。",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "为此项目发送的 Slack、Microsoft Teams 和 Mattermost 消息。",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "为此 {{itemName}} 发送的 Slack、Microsoft Teams 和 Mattermost 消息。",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "此测试还会在规则的 Microsoft Teams 团队中创建一个真实频道（例如 {{channel}}），团队中的所有人都能看到它。完成后，请在 Microsoft Teams 中将其删除。",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "此测试还会创建一个真实的 {{workspace}} 频道（例如 {{channel}}），并邀请您加入。完成后，请在 {{workspace}} 中将其归档。",
+  "{{team}} (typed name)": "{{team}}（手动输入的名称）"
 }

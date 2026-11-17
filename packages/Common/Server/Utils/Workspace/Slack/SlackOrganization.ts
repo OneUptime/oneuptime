@@ -17,6 +17,7 @@ import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProject
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { SLACK_WORKSPACE_NOT_ADDED_ERROR } from "./SlackChannelMembers";
+import SlackRefusal, { SlackRefusalException } from "./SlackRefusal";
 
 /*
  * ONEUPTIME INSTALLED FOR A WHOLE SLACK ENTERPRISE ORGANIZATION.
@@ -594,9 +595,7 @@ export default class SlackOrganization {
       const json: JSONObject = (response.jsonData || {}) as JSONObject;
 
       if (json["ok"] !== true) {
-        throw new BadRequestException(
-          "Error from Slack " + SlackOrganization.textOf(json["error"]),
-        );
+        throw SlackRefusal.fromAnswer(json);
       }
 
       const teams: Array<unknown> = Array.isArray(json["teams"])
@@ -1074,21 +1073,18 @@ export default class SlackOrganization {
         timeoutInMs: data.timeoutInMs,
       });
     } catch {
-      throw new BadRequestException("Error from Slack no_answer");
+      throw new SlackRefusalException("no_answer");
     }
 
     if (response instanceof HTTPErrorResponse) {
-      throw new BadRequestException(
-        `Error from Slack http_${response.statusCode}`,
-      );
+      throw new SlackRefusalException(`http_${response.statusCode}`);
     }
 
     const json: JSONObject = (response.jsonData || {}) as JSONObject;
 
     if (json["ok"] !== true) {
-      throw new BadRequestException(
-        "Error from Slack " +
-          (SlackOrganization.textOf(json["error"]) || "unknown_error"),
+      throw new SlackRefusalException(
+        SlackOrganization.textOf(json["error"]) || "unknown_error",
       );
     }
 

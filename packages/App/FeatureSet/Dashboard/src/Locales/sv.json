@@ -56553,5 +56553,10 @@
   "This override ends within the minute, so there is nothing left to end.": "Den här åsidosättningen slutar inom minuten, så det finns inget kvar att avsluta.",
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Den här åsidosättningen har inte börjat än, så det finns inget att avsluta. Ta bort den för att ställa in den.",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "{{away}} hoppas inte längre över från nu i stället för {{until}}. Därefter är passen i rotationen deras igen.",
-  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} täcker inte längre upp för {{away}} från nu i stället för {{until}}. Därefter går larmen till {{away}} igen."
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} täcker inte längre upp för {{away}} från nu i stället för {{until}}. Därefter går larmen till {{away}} igen.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "Slack-, Microsoft Teams- och Mattermost-meddelanden som skickats för det här projektet.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "Slack-, Microsoft Teams- och Mattermost-meddelanden som skickats för det här objektet ({{itemName}}).",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "Testet skapar också en riktig kanal i regelns Microsoft Teams-team, till exempel {{channel}}, som alla i teamet kan se. Ta bort den i Microsoft Teams när du är klar.",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "Testet skapar också en riktig {{workspace}}-kanal, till exempel {{channel}}, och bjuder in dig till den. Arkivera den i {{workspace}} när du är klar.",
+  "{{team}} (typed name)": "{{team}} (inskrivet namn)"
 }

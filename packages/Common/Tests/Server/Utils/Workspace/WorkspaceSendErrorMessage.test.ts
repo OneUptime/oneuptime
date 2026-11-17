@@ -37,6 +37,7 @@ import WorkspaceMessagePayload, {
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../Utils/API";
+import WorkspaceRefusal from "../../../../Utils/Workspace/WorkspaceRefusal";
 
 const UNKNOWN_ERROR: string = "Unknown error";
 const OBJECT_OBJECT: string = "[object Object]";
@@ -318,11 +319,15 @@ describe("SlackUtil.sendMessage - provider errors are readable", () => {
       userId: "U0ONCALL",
     });
 
+    /*
+     * Slack's code, in OneUptime's words, then the code (#7119): it read
+     * "ratelimited".
+     */
     expect(response.threads).toEqual([]);
     expect(response.errors).toEqual([
       {
         channel: CHANNEL,
-        error: "ratelimited",
+        error: WorkspaceRefusal.describeSlackRefusal("ratelimited"),
       },
     ]);
     expect(response.errors?.[0]?.error).not.toBe(OBJECT_OBJECT);
@@ -339,8 +344,9 @@ describe("SlackUtil.sendMessage - provider errors are readable", () => {
       userId: "U0ONCALL",
     });
 
+    // Slack could not answer, said so, with the status it answered.
     expect(errorTexts(response)).toEqual([
-      "Request failed with HTTP status 503",
+      WorkspaceRefusal.describeSlackRefusal("http_503"),
     ]);
   });
 
@@ -370,7 +376,7 @@ describe("SlackUtil.sendMessage - provider errors are readable", () => {
     expect(response.errors).toEqual([
       {
         channel: CHANNEL,
-        error: "ratelimited",
+        error: WorkspaceRefusal.describeSlackRefusal("ratelimited"),
       },
     ]);
   });
@@ -387,10 +393,12 @@ describe("SlackUtil.sendMessage - provider errors are readable", () => {
       userId: "U0ONCALL",
     });
 
-    expect(errorTexts(response)).toEqual(["internal_error"]);
+    expect(errorTexts(response)).toEqual([
+      WorkspaceRefusal.describeSlackRefusal("internal_error"),
+    ]);
   });
 
-  test("an Error from sendPayloadBlocksToChannel still gives its message", async () => {
+  test("REGRESSION: an Error that still says Slack's code alone gives OneUptime's words for it", async () => {
     mockChannelLookup();
     mockUserInChannel(true);
     jest
@@ -401,10 +409,12 @@ describe("SlackUtil.sendMessage - provider errors are readable", () => {
       userId: "U0ONCALL",
     });
 
-    expect(errorTexts(response)).toEqual(["Error from Slack not_in_channel"]);
+    expect(errorTexts(response)).toEqual([
+      WorkspaceRefusal.describeSlackRefusal("not_in_channel"),
+    ]);
   });
 
-  test("an Error from joinChannel still gives its message", async () => {
+  test("an Error from joinChannel in the old words gives OneUptime's words too", async () => {
     mockChannelLookup();
     mockUserInChannel(false);
     jest
@@ -415,7 +425,9 @@ describe("SlackUtil.sendMessage - provider errors are readable", () => {
       userId: "U0ONCALL",
     });
 
-    expect(errorTexts(response)).toEqual(["Error from Slack is_archived"]);
+    expect(errorTexts(response)).toEqual([
+      WorkspaceRefusal.describeSlackRefusal("is_archived"),
+    ]);
   });
 
   test("the real sendPayloadBlocksToChannel throwing Slack's HTTPErrorResponse gives the readable error", async () => {
@@ -436,7 +448,9 @@ describe("SlackUtil.sendMessage - provider errors are readable", () => {
       "https://slack.com/api/chat.postMessage",
     );
     expect(response.threads).toEqual([]);
-    expect(errorTexts(response)).toEqual(["ratelimited"]);
+    expect(errorTexts(response)).toEqual([
+      WorkspaceRefusal.describeSlackRefusal("ratelimited"),
+    ]);
   });
 
   test("the real joinChannel throwing Slack's HTTPErrorResponse gives the readable error", async () => {
@@ -457,7 +471,9 @@ describe("SlackUtil.sendMessage - provider errors are readable", () => {
     expect((postSpy.mock.calls[0]![0] as { url: URL }).url.toString()).toBe(
       "https://slack.com/api/conversations.join",
     );
-    expect(errorTexts(response)).toEqual(["method_not_allowed"]);
+    expect(errorTexts(response)).toEqual([
+      WorkspaceRefusal.describeSlackRefusal("method_not_allowed"),
+    ]);
   });
 });
 
@@ -547,7 +563,12 @@ describe("MicrosoftTeamsUtil.sendMessage - provider errors are readable", () => 
           workspaceType: WorkspaceType.MicrosoftTeams,
           teamId: TEAM_ID,
         },
-        error: "Missing role permissions on the request.",
+        // Graph's refusal in OneUptime's words, then Graph's own (#7119).
+        error: WorkspaceRefusal.describeMicrosoftTeamsRefusal({
+          statusCode: 403,
+          code: "Forbidden",
+          message: "Missing role permissions on the request.",
+        }),
       },
     ]);
   });
@@ -562,7 +583,7 @@ describe("MicrosoftTeamsUtil.sendMessage - provider errors are readable", () => 
     );
 
     expect(errorTexts(response)).toEqual([
-      "Request failed with HTTP status 404",
+      WorkspaceRefusal.describeMicrosoftTeamsRefusal({ statusCode: 404 }),
     ]);
   });
 
@@ -582,7 +603,10 @@ describe("MicrosoftTeamsUtil.sendMessage - provider errors are readable", () => 
     expect(response.errors).toEqual([
       {
         channel: CHANNEL,
-        error: "Bad Gateway",
+        error: WorkspaceRefusal.describeMicrosoftTeamsRefusal({
+          statusCode: 502,
+          message: "Bad Gateway",
+        }),
       },
     ]);
   });
@@ -607,7 +631,10 @@ describe("MicrosoftTeamsUtil.sendMessage - provider errors are readable", () => 
           name: "Ops group chat",
           workspaceType: WorkspaceType.MicrosoftTeams,
         },
-        error: "Too Many Requests",
+        error: WorkspaceRefusal.describeMicrosoftTeamsRefusal({
+          statusCode: 429,
+          message: "Too Many Requests",
+        }),
       },
     ]);
   });
@@ -644,9 +671,16 @@ describe("MicrosoftTeamsUtil.sendMessage - provider errors are readable", () => 
     );
 
     expect(errorTexts(response)).toEqual([
-      "Channel not found.",
-      "Request failed with HTTP status 503",
-      "Authorization has been denied",
+      WorkspaceRefusal.describeMicrosoftTeamsRefusal({
+        statusCode: 404,
+        code: "NotFound",
+        message: "Channel not found.",
+      }),
+      WorkspaceRefusal.describeMicrosoftTeamsRefusal({ statusCode: 503 }),
+      WorkspaceRefusal.describeMicrosoftTeamsRefusal({
+        statusCode: 401,
+        message: "Authorization has been denied",
+      }),
     ]);
     expect(errorTexts(response)).not.toContain(OBJECT_OBJECT);
   });

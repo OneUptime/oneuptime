@@ -56553,5 +56553,10 @@
   "This override ends within the minute, so there is nothing left to end.": "Ce remplacement se termine dans la minute, il n'y a donc plus rien à terminer.",
   "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Ce remplacement n'a pas encore commencé, il n'y a donc rien à terminer. Pour l'annuler, supprimez-le.",
   "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "Le saut des tours prend fin maintenant au lieu du {{until}}. Ensuite, {{away}} reprend ses tours dans la rotation.",
-  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} cesse de remplacer {{away}} maintenant au lieu du {{until}}. Ensuite, les alertes sont de nouveau envoyées à {{away}}."
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} cesse de remplacer {{away}} maintenant au lieu du {{until}}. Ensuite, les alertes sont de nouveau envoyées à {{away}}.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this project.": "Messages Slack, Microsoft Teams et Mattermost envoyés pour ce projet.",
+  "Slack, Microsoft Teams and Mattermost messages sent for this {{itemName}}.": "Messages Slack, Microsoft Teams et Mattermost envoyés pour cet élément ({{itemName}}).",
+  "This test also creates a real channel in the rule's Microsoft Teams team, such as {{channel}}, which everyone in the team can see. Delete it in Microsoft Teams when you are done.": "Ce test crée aussi un vrai canal dans l'équipe Microsoft Teams de la règle, par exemple {{channel}}, visible par tous les membres de l'équipe. Supprimez-le dans Microsoft Teams une fois terminé.",
+  "This test also creates a real {{workspace}} channel, such as {{channel}}, and invites you to it. Archive it in {{workspace}} when you are done.": "Ce test crée aussi un vrai canal {{workspace}}, par exemple {{channel}}, et vous y invite. Archivez-le dans {{workspace}} une fois terminé.",
+  "{{team}} (typed name)": "{{team}} (nom saisi)"
 }

@@ -166,7 +166,7 @@ OneUptime's app adds them, as it adds the people of a rule's channel. The app st
 
 ## Testing a rule
 
-**Test Rule** on a rule's row posts a test message for that rule to the channels it names, so you can see it arrive. If the rule creates a channel for each event, the test creates one too and invites the rule's people to it.
+**Test Rule** on a rule's row posts a test message for that rule to the channels it names, so you can see it arrive. **Test Notification Sent** says where to look when the test went out, and **Test Failed** says why when it did not. If the rule creates a channel for each event, the test creates a real one too, named with the rule's prefix and five random letters, such as `prod-abcde`, and invites you to it: the dialog says so before the test runs. The channel stays after the test; archive it in Slack when you are done.
 
 Like **Send Test** beside a channel in **Project Settings** > **Workspace** > **Slack**, it needs permission to create notification rules: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member**, or **Create Workspace Notification Rule** and **Read Workspace Notification Rule** in a custom role. For someone who can only see the rules, such as a **Viewer**, **Test Rule** is locked, and its tooltip says what it takes; the API refuses their test with "You do not have permission to send test notifications in this project." On OneUptime Cloud, testing a rule needs the **Growth** plan, like adding one.
 
@@ -179,6 +179,8 @@ The **Summary** tab of **Incidents** > **Workspace** > **Slack** (and of **Alert
 A summary goes out on the clock of its **Timezone**, which starts on yours. It keeps its time of day there all year: one set for 09:00 in Berlin still goes out at 09:00 in Berlin after the clocks change for daylight saving time, and the dates in its message are Berlin's too. Through the API, send `timezone` as an IANA time zone name, such as `Europe/Berlin`. A summary created without one takes the time zone in its creator's profile, or UTC when an API key creates it.
 
 The summary form has four steps: **Basic Info** (its name and the channels), **Schedule**, **Content** (**What to Include**) and **Filters** (which incidents or alerts it counts).
+
+**Send Test Now** on a summary's row posts it at once. **Summary Sent** says every channel got it; **Test Failed** says how many channels did not, and lists each under why, such as a channel that was not found. The channels that got the test keep it. Each channel's result, of a test or of a scheduled send, is a row on the **Workspace** tab of **Project Settings** > **Notifications** > **Notification Logs**: **Success**, or **Error** with why under **Reason**. **Last Sent** moves only when at least one channel got the summary.
 
 ## Notification rules below the Growth plan
 
@@ -362,7 +364,7 @@ What OneUptime keeps of it — the workspace's name, its channels, the Slack acc
 ## Troubleshooting
 
 :::details A rule posts nothing
-Check the rule's conditions with **Test Rule**: if the test arrives, the rule's conditions did not match the event. If it does not, the Slack page shows why. For a private channel, invite the OneUptime app to it in Slack first. Every message OneUptime posts, and every one Slack refused, is listed in **Project Settings** > **Notifications** > **Notification Logs**, on the **Workspace** tab.
+Check the rule's conditions with **Test Rule**: if the test arrives, the rule's conditions did not match the event. If it does not, **Test Failed** says why. For a private channel, invite the OneUptime app to it in Slack first. Every message OneUptime posts, and every one Slack refused, is listed in **Project Settings** > **Notifications** > **Notification Logs**, on the **Workspace** tab. For a message Slack refused, **Reason** says why and what to do.
 :::
 
 :::details Someone is missing from a rule's channel

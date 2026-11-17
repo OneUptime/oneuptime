@@ -3,7 +3,7 @@ import WorkspaceProjectAuthTokenService from "../../../Server/Services/Workspace
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
 import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceNotificationLogService";
 import WorkspaceUtil from "../../../Server/Utils/Workspace/Workspace";
-import {
+import WorkspaceBase, {
   WorkspaceChannel,
   WorkspaceSendMessageResponse,
 } from "../../../Server/Utils/Workspace/WorkspaceBase";
@@ -204,6 +204,10 @@ function mockDeps(data: {
 
   jest.spyOn(WorkspaceUtil, "getWorkspaceTypeUtil").mockReturnValue({
     doesChannelExist: doesChannelExistSpy,
+    // What a refusal reads as, as WorkspaceBase reads one (describeError).
+    describeError: (error: unknown): string => {
+      return WorkspaceBase.describeError(error);
+    },
   } as never);
 
   const postSpy: jest.SpyInstance = jest

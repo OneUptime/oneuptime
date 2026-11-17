@@ -41,6 +41,7 @@ import {
   test,
 } from "@jest/globals";
 import type { Mock, SpyInstance } from "jest-mock";
+import WorkspaceRefusal from "../../../Utils/Workspace/WorkspaceRefusal";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -294,6 +295,10 @@ beforeEach(() => {
     isChannelNameTakenError: (error: unknown): boolean => {
       return SlackUtil.isChannelNameTakenError(error);
     },
+    // A refusal in OneUptime's words, as Slack's are said (#7119).
+    describeError: (error: unknown): string => {
+      return SlackUtil.describeError(error);
+    },
   } as never);
 
   post = jest
@@ -447,7 +452,9 @@ describe("the channel a rule creates for a record is listed on the record's Noti
       expect(rows[0]!.channelId).toBeUndefined();
       expect(rows[0]!.channelName).toBe("record-1");
       expect(rows[0]!.status).toBe(WorkspaceNotificationStatus.Error);
-      expect(rows[0]!.statusMessage).toBe("Error from Slack name_taken");
+      expect(rows[0]!.statusMessage).toBe(
+        WorkspaceRefusal.describeSlackRefusal("name_taken"),
+      );
       expect(rows[0]!.message).toBe('Channel "record-1" was not created');
       expectOnlyRecord(rows[0]!, record.field, recordId);
 
@@ -483,7 +490,9 @@ describe("the channel a rule creates for a record is listed on the record's Noti
 
     expect(rows).toHaveLength(1);
     expect(rows[0]!.status).toBe(WorkspaceNotificationStatus.Error);
-    expect(rows[0]!.statusMessage).toBe("Error from Slack name_taken");
+    expect(rows[0]!.statusMessage).toBe(
+      WorkspaceRefusal.describeSlackRefusal("name_taken"),
+    );
     for (const field of RECORD_FIELDS) {
       expect(recordOf(rows[0]!, field)).toBeUndefined();
     }
