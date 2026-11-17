@@ -188,6 +188,17 @@
     "linkInvalidDescription": "Il a peut-être déjà été utilisé, ou n’a été copié qu’en partie. Demandez un nouveau lien et nous vous l’enverrons par e-mail.",
     "requestNewLinkButton": "Demander un nouveau lien"
   },
+  "setPassword": {
+    "title": "Définir votre mot de passe",
+    "subtitle": "Choisissez un mot de passe pour terminer la configuration de votre compte.",
+    "submitButton": "Définir le mot de passe",
+    "successTitle": "Votre mot de passe est défini",
+    "successDescription": "Connectez-vous avec votre nouveau mot de passe.",
+    "linkExpiredTitle": "Ce lien a expiré",
+    "linkExpiredDescription": "Les liens pour définir un mot de passe sont valables {{days}} jours. Demandez à l'administrateur qui a créé votre compte de vous en envoyer un nouveau.",
+    "linkInvalidTitle": "Ce lien ne fonctionne plus",
+    "linkInvalidDescription": "Il a peut-être déjà été utilisé, ou seule une partie a été copiée. Si vous avez défini votre mot de passe, connectez-vous. Sinon, demandez un nouveau lien à votre administrateur."
+  },
   "sso": {
     "title": "Connexion avec SSO",
     "emailFormSubtitle": "Saisissez votre adresse e-mail pour trouver la connexion de votre organisation.",

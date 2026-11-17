@@ -188,6 +188,17 @@
     "linkInvalidDescription": "Den kan redan ha använts, eller så kopierades bara en del av den. Be om en ny länk så mejlar vi den till dig.",
     "requestNewLinkButton": "Be om en ny länk"
   },
+  "setPassword": {
+    "title": "Ange ditt lösenord",
+    "subtitle": "Välj ett lösenord för att slutföra konfigurationen av ditt konto.",
+    "submitButton": "Ange lösenord",
+    "successTitle": "Ditt lösenord är angivet",
+    "successDescription": "Logga in med ditt nya lösenord.",
+    "linkExpiredTitle": "Den här länken har gått ut",
+    "linkExpiredDescription": "Länkar för att ange ett lösenord fungerar i {{days}} dagar. Be administratören som skapade ditt konto att skicka en ny.",
+    "linkInvalidTitle": "Den här länken fungerar inte längre",
+    "linkInvalidDescription": "Den kan redan ha använts, eller så kopierades bara en del av den. Om du har angett ditt lösenord loggar du in. Annars ber du din administratör om en ny länk."
+  },
   "sso": {
     "title": "Logga in med SSO",
     "emailFormSubtitle": "Ange din e-postadress för att hitta organisationens inloggning.",

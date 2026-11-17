@@ -294,7 +294,7 @@ describe("text people read is readable (#9127)", () => {
   });
 
   test.each(
-    NOT_READ_AS_WORDS.map((entry: NotReadAsWords) => {
+    NOT_READ_AS_WORDS.map((entry: NotReadAsWords): [string, NotReadAsWords] => {
       return [`${entry.file}: ${entry.literal}`, entry];
     }),
   )(

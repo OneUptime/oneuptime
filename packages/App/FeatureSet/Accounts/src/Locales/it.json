@@ -188,6 +188,17 @@
     "linkInvalidDescription": "Potrebbe essere già stato usato, oppure ne è stata copiata solo una parte. Richiedi un nuovo link e te lo invieremo via email.",
     "requestNewLinkButton": "Richiedi un nuovo link"
   },
+  "setPassword": {
+    "title": "Imposta la tua password",
+    "subtitle": "Scegli una password per completare la configurazione del tuo account.",
+    "submitButton": "Imposta password",
+    "successTitle": "La tua password è impostata",
+    "successDescription": "Accedi con la tua nuova password.",
+    "linkExpiredTitle": "Questo link è scaduto",
+    "linkExpiredDescription": "I link per impostare una password sono validi per {{days}} giorni. Chiedi all'amministratore che ha creato il tuo account di inviartene uno nuovo.",
+    "linkInvalidTitle": "Questo link non funziona più",
+    "linkInvalidDescription": "Potrebbe essere già stato usato, oppure ne è stata copiata solo una parte. Se hai già impostato la password, accedi. Altrimenti chiedi un nuovo link al tuo amministratore."
+  },
   "sso": {
     "title": "Accedi con SSO",
     "emailFormSubtitle": "Inserisci la tua email per trovare l’accesso della tua organizzazione.",

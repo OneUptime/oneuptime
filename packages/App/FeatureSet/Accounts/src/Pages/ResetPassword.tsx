@@ -5,6 +5,7 @@ import {
   RESET_LINK_MESSAGES,
   isResetLinkRefusal,
 } from "Common/Types/Accounts/SignInMessages";
+import { SET_PASSWORD_LINK_EXPIRY_DAYS } from "Common/Types/Accounts/SetPasswordLink";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Translator } from "Common/Types/Translator";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -40,8 +41,60 @@ enum ResetOutcome {
 const BUTTON_CLASS_NAME: string =
   "inline-flex w-full cursor-pointer justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700";
 
-const ResetPasswordPage: () => JSX.Element = () => {
+type PageWord =
+  | "title"
+  | "subtitle"
+  | "submitButton"
+  | "successTitle"
+  | "successDescription"
+  | "linkExpiredTitle"
+  | "linkExpiredDescription"
+  | "linkInvalidTitle"
+  | "linkInvalidDescription";
+
+export interface ComponentProps {
+  /*
+   * The first password of an account a master admin created (Admin
+   * Dashboard > Users > Create User, #9139): the link in the "Set your
+   * password" email, /accounts/set-password/<token>
+   * (Common/Types/Accounts/SetPasswordLink). The same form, the same rule and
+   * the same endpoint as a reset - only the words differ, and a dead link
+   * cannot be replaced from Forgot password, which asks for an account with
+   * a password: whoever created the account sends a new one.
+   */
+  isSettingFirstPassword?: boolean | undefined;
+}
+
+const ResetPasswordPage: (props: ComponentProps) => JSX.Element = (
+  props: ComponentProps,
+) => {
   const { t } = useTranslation();
+  // The page's words: a first password's, or a reset's.
+  const words: Record<PageWord, string> = props.isSettingFirstPassword
+    ? {
+        title: t("setPassword.title"),
+        subtitle: t("setPassword.subtitle"),
+        submitButton: t("setPassword.submitButton"),
+        successTitle: t("setPassword.successTitle"),
+        successDescription: t("setPassword.successDescription"),
+        linkExpiredTitle: t("setPassword.linkExpiredTitle"),
+        linkExpiredDescription: t("setPassword.linkExpiredDescription", {
+          days: SET_PASSWORD_LINK_EXPIRY_DAYS,
+        }),
+        linkInvalidTitle: t("setPassword.linkInvalidTitle"),
+        linkInvalidDescription: t("setPassword.linkInvalidDescription"),
+      }
+    : {
+        title: t("resetPassword.title"),
+        subtitle: t("resetPassword.subtitle"),
+        submitButton: t("resetPassword.submitButton"),
+        successTitle: t("resetPassword.successTitle"),
+        successDescription: t("resetPassword.successDescription"),
+        linkExpiredTitle: t("resetPassword.linkExpiredTitle"),
+        linkExpiredDescription: t("resetPassword.linkExpiredDescription"),
+        linkInvalidTitle: t("resetPassword.linkInvalidTitle"),
+        linkInvalidDescription: t("resetPassword.linkInvalidDescription"),
+      };
   const translator: Translator = useTranslator();
   const apiUrl: URL = RESET_PASSWORD_API_URL;
   const passwordRequirementsId: string = useId();
@@ -87,10 +140,10 @@ const ResetPasswordPage: () => JSX.Element = () => {
           tabIndex={-1}
           className="text-xl font-semibold tracking-tight text-gray-900 focus:outline-none sm:text-2xl"
         >
-          {t("resetPassword.successTitle")}
+          {words.successTitle}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-gray-600 sm:text-base">
-          {t("resetPassword.successDescription")}
+          {words.successDescription}
         </p>
         <div className="mt-6">
           <Link
@@ -133,24 +186,44 @@ const ResetPasswordPage: () => JSX.Element = () => {
           tabIndex={-1}
           className="text-xl font-semibold tracking-tight text-gray-900 focus:outline-none sm:text-2xl"
         >
-          {isExpired
-            ? t("resetPassword.linkExpiredTitle")
-            : t("resetPassword.linkInvalidTitle")}
+          {isExpired ? words.linkExpiredTitle : words.linkInvalidTitle}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-gray-600 sm:text-base">
           {isExpired
-            ? t("resetPassword.linkExpiredDescription")
-            : t("resetPassword.linkInvalidDescription")}
+            ? words.linkExpiredDescription
+            : words.linkInvalidDescription}
         </p>
-        <div className="mt-6">
-          <Link
-            to={new Route("/accounts/forgot-password")}
-            className={BUTTON_CLASS_NAME}
-            dataTestId="reset-password-request-new-link"
-          >
-            {t("resetPassword.requestNewLinkButton")}
-          </Link>
-        </div>
+        {/*
+         * A first password's dead link is replaced by whoever created the
+         * account, as the words above say: Forgot password would refuse an
+         * account with no password. A link already used most likely set it,
+         * so that card leads to signing in.
+         */}
+        {props.isSettingFirstPassword ? (
+          isExpired ? (
+            <></>
+          ) : (
+            <div className="mt-6">
+              <Link
+                to={new Route("/accounts/login")}
+                className={BUTTON_CLASS_NAME}
+                dataTestId="set-password-sign-in"
+              >
+                {t("resetPassword.signInButton")}
+              </Link>
+            </div>
+          )
+        ) : (
+          <div className="mt-6">
+            <Link
+              to={new Route("/accounts/forgot-password")}
+              className={BUTTON_CLASS_NAME}
+              dataTestId="reset-password-request-new-link"
+            >
+              {t("resetPassword.requestNewLinkButton")}
+            </Link>
+          </div>
+        )}
       </AuthPage>
     );
   }
@@ -158,8 +231,8 @@ const ResetPasswordPage: () => JSX.Element = () => {
   return (
     <AuthPage
       logo={<ProductLogo />}
-      title={t("resetPassword.title")}
-      subtitle={t("resetPassword.subtitle")}
+      title={words.title}
+      subtitle={words.subtitle}
       footer={knowPasswordLine}
     >
       <ModelForm<User>
@@ -185,7 +258,7 @@ const ResetPasswordPage: () => JSX.Element = () => {
         })}
         createOrUpdateApiUrl={apiUrl}
         formType={FormType.Create}
-        submitButtonText={t("resetPassword.submitButton")}
+        submitButtonText={words.submitButton}
         onSubmitError={(error: string) => {
           /*
            * A dead link is fixed by a new one, never by another password:

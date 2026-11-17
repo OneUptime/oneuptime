@@ -118,7 +118,7 @@ Quitar a alguien lo saca de cada equipo del proyecto. Pierde el acceso al instan
 
 - **Inicio de sesión único.** Quien inicia sesión por primera vez con el proveedor de identidad del proyecto se une a los equipos que nombra el proveedor. Consulte [Roles y equipos para usuarios de SSO](/docs/identity/sso#roles-y-equipos-de-los-usuarios-de-sso).
 - **SCIM.** Su proveedor de identidad crea a las personas y las añade a los equipos predeterminados de la conexión. Consulte [SCIM](/docs/identity/scim#cómo-se-aprovisiona-un-usuario-de-proyecto).
-- **El Admin Dashboard.** En una instalación autoalojada, un administrador maestro puede añadir a alguien a un proyecto y aceptar la invitación por esa persona. Consulte [Usuarios, equipos y permisos](/docs/permissions/index#usuarios).
+- **El Admin Dashboard.** En una instalación autoalojada, un administrador maestro puede añadir a alguien a un proyecto y aceptar la invitación por esa persona. Consulte [Usuarios, equipos y permisos](/docs/permissions/index#usuarios). Un administrador maestro también puede crear la cuenta de alguien en **Usuarios** con **Crear Usuario**: introduce un nombre y un correo, y OneUptime envía a esa dirección un enlace para elegir una contraseña, que funciona una vez, durante 7 días. Para establecer él mismo la contraseña, abre **Más campos**. Si el correo no se envía, se le muestra el enlace para que lo envíe él mismo.
 
 ## Solución de problemas
 

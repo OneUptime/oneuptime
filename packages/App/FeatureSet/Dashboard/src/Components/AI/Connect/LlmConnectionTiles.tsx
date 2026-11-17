@@ -88,7 +88,7 @@ const LlmConnectionTiles: FunctionComponent<ComponentProps> = (
                               count: String(count),
                             },
                           )
-                        : translator.translateText("Connected")
+                        : translator.translateText("Connected") ?? "Connected"
                     }
                     isUserContent={true}
                     tone={PillTone.Success}

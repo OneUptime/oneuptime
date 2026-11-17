@@ -57,13 +57,8 @@ describe("header image assets", () => {
   });
 
   test("the admin dashboard logo renders the inlined asset as its src", () => {
-    render(
-      <AdminDashboardLogo
-        onClick={() => {
-          // no-op
-        }}
-      />,
-    );
+    // A picture, not a control: it takes no click (66cd8e5dbe6).
+    render(<AdminDashboardLogo />);
 
     const logo: HTMLElement = screen.getByAltText("OneUptime");
     expect(logo).toHaveAttribute("src", ASSET_DATA_URL);

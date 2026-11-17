@@ -188,6 +188,17 @@
     "linkInvalidDescription": "Talvez ele já tenha sido usado ou tenha sido copiado só em parte. Peça um novo link e nós o enviaremos por e-mail.",
     "requestNewLinkButton": "Pedir um novo link"
   },
+  "setPassword": {
+    "title": "Defina sua senha",
+    "subtitle": "Escolha uma senha para concluir a configuração da sua conta.",
+    "submitButton": "Definir senha",
+    "successTitle": "Sua senha foi definida",
+    "successDescription": "Entre com sua nova senha.",
+    "linkExpiredTitle": "Este link expirou",
+    "linkExpiredDescription": "Os links para definir uma senha funcionam por {{days}} dias. Peça ao administrador que criou sua conta para enviar um novo.",
+    "linkInvalidTitle": "Este link não funciona mais",
+    "linkInvalidDescription": "Ele pode já ter sido usado, ou apenas parte dele foi copiada. Se você já definiu sua senha, entre. Caso contrário, peça um novo link ao seu administrador."
+  },
   "sso": {
     "title": "Login com SSO",
     "emailFormSubtitle": "Digite seu e-mail para encontrar o login da sua organização.",

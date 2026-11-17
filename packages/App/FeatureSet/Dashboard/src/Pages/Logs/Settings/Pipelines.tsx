@@ -47,7 +47,7 @@ A pipeline changes the logs that arrive after you save it, within about a minute
 A pipeline's filter is built on its page, under **Filter Conditions**. Each condition is a **Field**, an **Operator** and a **Value**: **Severity** · equals · **Error**.
 
 - **Fields:** **Severity**, **Log Body** and **Service ID**, or any attribute with **Custom Attribute...**.
-- **Operators:** **equals** and **does not equal** match the exact value, with its upper and lower case: \`Error\` matches, \`ERROR\` does not. **contains** finds the text anywhere, in any case. **is one of** takes a list of values separated by commas.
+- **Operators:** **equals** and **does not equal** match the exact value, with its upper and lower case: \`Error\` matches, \`ERROR\` does not. **contains** finds the text anywhere, in any case, in a field you type into. **is one of** matches any of several values: on a field you pick from a list, such as **Severity**, you pick them from the same list, and on any other you type them with commas between them.
 - With more than one condition, pick **All conditions** or **Any condition**.
 
 ## Examples

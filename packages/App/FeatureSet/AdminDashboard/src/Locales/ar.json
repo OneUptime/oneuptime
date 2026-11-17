@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "سيُسجَّل خروج المستخدمين المحددين ({{userCount}}) من كل جلسة نشطة، وعليهم إعداد تطبيق مصادقة عند تسجيل الدخول التالي. يشمل ذلك أنت، إن كنت منهم.",
       "bulkDoNotRequireTwoFactorAuth": "عدم اشتراط المصادقة الثنائية",
       "bulkDoNotRequireTwoFactorAuthTitle": "إيقاف اشتراط المصادقة الثنائية للمستخدمين ({{userCount}})",
-      "bulkDoNotRequireTwoFactorAuthDescription": "سيتمكن المستخدمون المحددون ({{userCount}}) من تسجيل الدخول بكلمة المرور وحدها. يُحتفظ بكل ما أعدّوه مسبقًا لكن لن يُطلب بعد الآن."
+      "bulkDoNotRequireTwoFactorAuthDescription": "سيتمكن المستخدمون المحددون ({{userCount}}) من تسجيل الدخول بكلمة المرور وحدها. يُحتفظ بكل ما أعدّوه مسبقًا لكن لن يُطلب بعد الآن.",
+      "createdAndEmailed": "تم إنشاء {{name}}. أُرسل رابط لتعيين كلمة المرور إلى {{email}}.",
+      "createdWithPassword": "تم إنشاء {{name}}. شارك كلمة المرور التي عيّنتها معه بطريقة آمنة.",
+      "setPasswordLinkTitle": "أرسل رابطًا لتعيين كلمة المرور",
+      "setPasswordLinkDescription": "انسخ هذا الرابط وأرسله بنفسك إلى {{email}}، في مكان لا يقرؤه سواه. يعمل مرة واحدة، لمدة {{days}} أيام.",
+      "setPasswordLinkOrSetIt": "أو عيّن له كلمة مرور بنفسك من صفحة المصادقة الخاصة به."
     },
     "enterpriseLicenses": {
       "title": "تراخيص المؤسسات",
@@ -4169,5 +4174,13 @@
   "See email logs": "عرض سجلات البريد",
   "Addresses the mail server refused": "العناوين التي رفضها خادم البريد",
   "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "أُرسلت الرسائل الأخرى، لذا تتأثر هذه العناوين فقط. صحّح العنوان أو اجعل مزوّد البريد يقبله: لا ترسل بيئة Amazon SES التجريبية إلا إلى العناوين التي تحقّقت منها.",
-  "Last refused {{time}}": "آخر رفض: {{time}}"
+  "Last refused {{time}}": "آخر رفض: {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "تم إنشاء {{name}}، لكن البريد الذي يحمل رابط تعيين كلمة المرور لم يُرسل. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "تعذّر أيضًا إنشاء الرابط لترسله بنفسك. {{error}}",
+  "OneUptime emails them a link to set their own password.": "يرسل OneUptime إليه بالبريد رابطًا ليعيّن كلمة المرور بنفسه.",
+  "They sign in with the password you set. Share it with them securely.": "سيسجّل الدخول بكلمة المرور التي تعيّنها. شاركها معه بطريقة آمنة.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "لا يستطيع هذا الخادم إرسال البريد بعد. عيّن كلمة المرور هنا، أو اتركها فارغة لتحصل على رابط ترسله بنفسك.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "لا يستطيع هذا الخادم إرسال البريد بعد. أعِدّ البريد من الإعدادات > رسائل البريد الإلكتروني.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "لا يستطيع هذا الخادم إرسال البريد بعد، لذا لم يُرسل رابط إعادة تعيين كلمة المرور. أعِدّ البريد من الإعدادات > رسائل البريد الإلكتروني، أو عيّن كلمة المرور بنفسك.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "لدى هذا المستخدم كلمة مرور بالفعل، لذا لا يوجد رابط لتعيين كلمة المرور لنسخه. أرسل له بدلًا من ذلك رابط إعادة تعيين من صفحة المصادقة الخاصة به."
 }

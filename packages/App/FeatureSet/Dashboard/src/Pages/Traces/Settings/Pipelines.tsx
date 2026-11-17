@@ -47,7 +47,7 @@ A pipeline changes the spans that arrive after you save it, within about a minut
 A pipeline's filter is built on its page, under **Filter Conditions**. Each condition is a **Field**, an **Operator** and a **Value**: **Span Kind** · equals · **Server**.
 
 - **Fields:** **Span Name**, **Span Kind**, **Status**, **Status Message**, **Service ID**, **Has Exception** and **Is Root Span**, or any attribute with **Custom Attribute...**.
-- **Operators:** **equals** and **does not equal** match the exact value. **contains** finds the text anywhere, in any case. **is one of** takes a list of values separated by commas.
+- **Operators:** **equals** and **does not equal** match the exact value. **contains** finds the text anywhere, in any case, in a field you type into. **is one of** matches any of several values: on a field you pick from a list, such as **Status**, you pick them from the same list, and on any other you type them with commas between them.
 - With more than one condition, pick **All conditions** or **Any condition**.
 
 ## Example: Mark Successful HTTP Spans as Ok

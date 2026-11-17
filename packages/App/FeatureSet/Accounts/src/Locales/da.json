@@ -188,6 +188,17 @@
     "linkInvalidDescription": "Det er måske allerede brugt, eller kun en del af det blev kopieret. Bed om et nyt link, så sender vi det til dig på e-mail.",
     "requestNewLinkButton": "Bed om et nyt link"
   },
+  "setPassword": {
+    "title": "Angiv din adgangskode",
+    "subtitle": "Vælg en adgangskode for at gøre din konto færdig.",
+    "submitButton": "Angiv adgangskode",
+    "successTitle": "Din adgangskode er angivet",
+    "successDescription": "Log ind med din nye adgangskode.",
+    "linkExpiredTitle": "Dette link er udløbet",
+    "linkExpiredDescription": "Links til at angive en adgangskode virker i {{days}} dage. Bed den administrator, der oprettede din konto, om at sende dig et nyt.",
+    "linkInvalidTitle": "Dette link virker ikke længere",
+    "linkInvalidDescription": "Det er måske allerede brugt, eller kun en del af det blev kopieret. Har du angivet din adgangskode, så log ind. Hvis ikke, så bed din administrator om et nyt link."
+  },
   "sso": {
     "title": "Log ind med SSO",
     "emailFormSubtitle": "Indtast din e-mail for at finde din organisations login.",

@@ -62,6 +62,15 @@ import TwoFactorWrongCodes from "../Utils/TwoFactorWrongCodes";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import NewPasswordRule from "../Utils/NewPasswordRule";
+import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
+import {
+  PASSWORD_RESET_LINK_CANNOT_BE_EMAILED_MESSAGE,
+  RESET_PASSWORD_PAGE_ROUTE,
+  SET_PASSWORD_LINK_CANNOT_BE_EMAILED_MESSAGE,
+  SET_PASSWORD_LINK_EXPIRY_DAYS,
+  SET_PASSWORD_LINK_HAS_PASSWORD_MESSAGE,
+  SET_PASSWORD_PAGE_ROUTE,
+} from "../../Types/Accounts/SetPasswordLink";
 import {
   normalizeUserLanguageToStore,
   UNSUPPORTED_USER_LANGUAGE_MESSAGE,
@@ -1841,102 +1850,101 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
-   * Mint a fresh password-reset link for a user and email it to them.
+   * Mint a fresh password link for a user and email it to them.
    *
-   * Produces exactly the link the public /forgot-password endpoint produces --
-   * same token minting, same hashed-at-rest storage, same 24 hour expiry, same
-   * /accounts/reset-password/<token> shape -- so the link an operator sends
-   * from the Admin Dashboard is redeemed by the ordinary reset-password page
-   * with no second code path behind it. Identity's /forgot-password keeps its
-   * own copy of this because it differs around the edges (it finds the user by
-   * a typed email, refuses accounts with no password, and answers success
-   * without waiting for the mail); if either changes the token scheme, both
-   * must move together.
+   * Which link depends on the account, never on the caller (Types/Accounts/
+   * SetPasswordLink): an account with a password gets the reset link, for a
+   * day, exactly as the public /forgot-password endpoint makes it; one with
+   * no password yet - a user a master admin has just created (Users > Create
+   * User, #9139) - gets a link to set its first one, for
+   * SET_PASSWORD_LINK_EXPIRY_DAYS. Both are the same token in the same
+   * column, redeemed by the same POST /identity/reset-password, so there is
+   * no second code path that can set a password. Identity's /forgot-password
+   * keeps its own copy of the minting because it differs around the edges
+   * (it finds the user by a typed email, refuses accounts with no password,
+   * and answers success without waiting for the mail); if either changes the
+   * token scheme, both must move together.
    *
    * Only the SHA-256 of the token is stored. The token itself exists just long
    * enough to be put in the email, so a leaked database row cannot be replayed
-   * as a reset link. It is hashed unsalted on purpose: /reset-password looks
-   * the row up BY that hash, which a per-row salt would make impossible, and a
-   * generated ObjectID has enough entropy that there is nothing to guess.
+   * as a link. It is hashed unsalted on purpose: /reset-password looks the
+   * row up BY that hash, which a per-row salt would make impossible, and a
+   * UUID from the CSPRNG has enough entropy that there is nothing to guess.
    */
   @CaptureSpan()
   public async sendPasswordResetLink(data: {
     userId: ObjectID;
   }): Promise<Email> {
-    const user: Model | null = await this.findOneBy({
-      query: {
-        _id: data.userId,
-      },
-      select: {
-        _id: true,
-        email: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException("User not found.");
-    }
+    const user: Model = await this.findUserForPasswordLink(data.userId);
 
     /*
      * `email` is a NOT NULL column, so this is unreachable through the
      * database -- it is here because the alternative is a non-null assertion
-     * on the address we are about to mail a password-reset link to, and being
+     * on the address we are about to mail a password link to, and being
      * wrong about that would send the link somewhere unintended.
      */
     if (!user.email) {
       throw new BadDataException(
-        "This user has no email address, so a password reset link cannot be sent to them.",
+        "This user has no email address, so a password link cannot be sent to them.",
       );
     }
 
-    // A bearer secret: from the CSPRNG, never ObjectID's non-crypto fallback.
-    const token: string = crypto.randomUUID();
+    const isSettingFirstPassword: boolean = !user.password;
 
-    const hashedToken: string = await HashedString.hashValue(
-      token,
-      EncryptionSecret,
-    );
+    /*
+     * A server with no email set up cannot send the link, so none is made:
+     * the master admin is told so in words they can act on, rather than the
+     * mail service's "ask your server's admin", which is them.
+     */
+    if (await ServerSendingStatus.isEmailKnownNotSetUp()) {
+      throw new BadDataException(
+        isSettingFirstPassword
+          ? SET_PASSWORD_LINK_CANNOT_BE_EMAILED_MESSAGE
+          : PASSWORD_RESET_LINK_CANNOT_BE_EMAILED_MESSAGE,
+      );
+    }
 
-    await this.updateOneById({
-      id: data.userId,
-      data: {
-        resetPasswordToken: hashedToken,
-        resetPasswordExpires: OneUptimeDate.getOneDayAfter(),
-      },
-      props: {
-        isRoot: true,
-      },
+    const link: string = await this.mintPasswordLink({
+      userId: data.userId,
+      isSettingFirstPassword: isSettingFirstPassword,
     });
 
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-    const tokenVerifyUrl: string = new URL(
-      httpProtocol,
-      host,
-      new Route(AccountsRoute.toString()).addRoute("/reset-password/" + token),
-    ).toString();
-
     /*
      * Awaited, unlike most MailService calls in this file. The caller is a
-     * human who just pressed "send password reset link" and needs to be told
-     * if the instance cannot send mail -- reporting success and dropping the
-     * email would leave them waiting for a link that is never coming.
+     * human who just pressed "send password reset link", or created a user,
+     * and needs to be told if the instance cannot send mail -- reporting
+     * success and dropping the email would leave them waiting for a link
+     * that is never coming.
      */
     try {
+      const homeURL: string = new URL(httpProtocol, host).toString();
+
       const mailResponse: HTTPResponse<EmptyResponseData> =
         await MailService.sendMail({
           toEmail: user.email,
-          subject: `Password Reset Request for ${ProductBrandingText.getProductName()}`,
           isSubjectLiteral: true,
-          templateType: EmailTemplateType.ForgotPassword,
-          vars: {
-            homeURL: new URL(httpProtocol, host).toString(),
-            tokenVerifyUrl: tokenVerifyUrl,
-          },
+          ...(isSettingFirstPassword
+            ? {
+                subject: `Set Your Password for ${ProductBrandingText.getProductName()}`,
+                templateType: EmailTemplateType.SetPassword,
+                vars: {
+                  homeURL: homeURL,
+                  tokenVerifyUrl: link,
+                  email: user.email.toString(),
+                  expiresInDays: String(SET_PASSWORD_LINK_EXPIRY_DAYS),
+                },
+              }
+            : {
+                subject: `Password Reset Request for ${ProductBrandingText.getProductName()}`,
+                templateType: EmailTemplateType.ForgotPassword,
+                vars: {
+                  homeURL: homeURL,
+                  tokenVerifyUrl: link,
+                },
+              }),
         });
 
       /*
@@ -1950,19 +1958,25 @@ export class Service extends DatabaseService<Model> {
        *
        * That is the common failure, not the exotic one, so it has to be
        * turned back into a throw for the rollback below to mean anything.
+       * The mail service has already recorded it where #9246 put it: a
+       * refused recipient in Settings > Emails' list of refused addresses,
+       * which raises no banner; a server-wide failure in the "Email is
+       * failing" banner.
        */
       if (mailResponse instanceof HTTPErrorResponse) {
         throw new BadDataException(
-          `The password reset email was not sent. ${mailResponse.message}`,
+          isSettingFirstPassword
+            ? `The email with a link to set their password was not sent. ${mailResponse.message}`
+            : `The password reset email was not sent. ${mailResponse.message}`,
         );
       }
     } catch (err) {
       /*
        * The token was written before the send, so a failed send would
-       * otherwise leave a live 24 hour link on the row that nobody ever
-       * received -- and the Authentication page would then report "reset link
-       * pending" directly underneath the error saying it could not be sent.
-       * Take it back off so the record matches what the operator was told.
+       * otherwise leave a live link on the row that nobody ever received --
+       * and the Authentication page would then report "reset link pending"
+       * directly underneath the error saying it could not be sent. Take it
+       * back off so the record matches what the operator was told.
        *
        * Best-effort, and it never masks the mail failure: that is the error
        * worth reporting, and an orphaned token expires on its own anyway.
@@ -1978,7 +1992,7 @@ export class Service extends DatabaseService<Model> {
         },
       }).catch((clearError: Error) => {
         logger.error(
-          `Failed to clear the unsent password reset token for user ${data.userId.toString()}; it will expire on its own.`,
+          `Failed to clear the unsent password link for user ${data.userId.toString()}; it will expire on its own.`,
         );
         logger.error(clearError);
       });
@@ -1987,11 +2001,118 @@ export class Service extends DatabaseService<Model> {
     }
 
     logger.info(
-      `Password reset link sent by a master admin to user: ${data.userId.toString()}`,
+      `${isSettingFirstPassword ? "Set-password" : "Password reset"} link sent by a master admin to user: ${data.userId.toString()}`,
     );
 
     // Returned so the caller can tell the operator where the link went.
     return user.email;
+  }
+
+  /**
+   * A set-password link for a master admin to copy and send the user
+   * themselves, when the email with it could not be sent (#9139): the same
+   * link the email carries, minted the same way, and returned instead of
+   * mailed. It replaces any link sent before, as a new email would.
+   *
+   * Only for an account with no password yet. For one in use it would be a
+   * quiet way into the account - its owner would hear of it only once the
+   * link was spent - so the master admin is told to send a reset link,
+   * which goes to the owner's own mailbox.
+   */
+  @CaptureSpan()
+  public async getSetPasswordLink(data: { userId: ObjectID }): Promise<{
+    link: string;
+    email: Email;
+  }> {
+    const user: Model = await this.findUserForPasswordLink(data.userId);
+
+    if (user.password) {
+      throw new BadDataException(SET_PASSWORD_LINK_HAS_PASSWORD_MESSAGE);
+    }
+
+    if (!user.email) {
+      throw new BadDataException(
+        "This user has no email address, so a password link cannot be made for them.",
+      );
+    }
+
+    const link: string = await this.mintPasswordLink({
+      userId: data.userId,
+      isSettingFirstPassword: true,
+    });
+
+    logger.info(
+      `Set-password link made for a master admin to send to user: ${data.userId.toString()}`,
+    );
+
+    return { link: link, email: user.email };
+  }
+
+  private async findUserForPasswordLink(userId: ObjectID): Promise<Model> {
+    const user: Model | null = await this.findOneBy({
+      query: {
+        _id: userId,
+      },
+      select: {
+        _id: true,
+        email: true,
+        password: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found.");
+    }
+
+    return user;
+  }
+
+  /*
+   * Writes a fresh token's hash on the user, replacing any link sent before,
+   * and returns the link that carries the token itself.
+   */
+  private async mintPasswordLink(data: {
+    userId: ObjectID;
+    isSettingFirstPassword: boolean;
+  }): Promise<string> {
+    // A bearer secret: from the CSPRNG, never ObjectID's non-crypto fallback.
+    const token: string = crypto.randomUUID();
+
+    const hashedToken: string = await HashedString.hashValue(
+      token,
+      EncryptionSecret,
+    );
+
+    await this.updateOneById({
+      id: data.userId,
+      data: {
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: data.isSettingFirstPassword
+          ? OneUptimeDate.getSomeDaysAfter(SET_PASSWORD_LINK_EXPIRY_DAYS)
+          : OneUptimeDate.getOneDayAfter(),
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    return new URL(
+      httpProtocol,
+      host,
+      new Route(AccountsRoute.toString()).addRoute(
+        (data.isSettingFirstPassword
+          ? SET_PASSWORD_PAGE_ROUTE
+          : RESET_PASSWORD_PAGE_ROUTE) +
+          "/" +
+          token,
+      ),
+    ).toString();
   }
 
   public async getTimezoneForUser(userId: ObjectID): Promise<Timezone | null> {

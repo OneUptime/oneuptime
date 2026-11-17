@@ -18,12 +18,14 @@ export enum BadgeType {
   DANGER,
   SUCCESS,
   WARNING,
-  /*
-   * A count of something nobody has to fix: monitors someone disabled on
-   * purpose. Grey, the way a badge with no type has always been drawn, but
-   * said out loud so a menu shows the choice was made.
-   */
+  // A count that says nothing about how things are doing: grey.
   NEUTRAL,
+  /*
+   * A count of something someone switched off on purpose: monitors
+   * disabled by choice. Grey like NEUTRAL, but in the tone a choice is
+   * drawn in (PillTone.Paused), never a fault's (#9126, #9255).
+   */
+  PAUSED,
 }
 
 export const BADGE_TONES: Readonly<Record<BadgeType, PillTone>> = Object.freeze(
@@ -32,6 +34,7 @@ export const BADGE_TONES: Readonly<Record<BadgeType, PillTone>> = Object.freeze(
     [BadgeType.SUCCESS]: PillTone.Success,
     [BadgeType.WARNING]: PillTone.Warning,
     [BadgeType.NEUTRAL]: PillTone.Neutral,
+    [BadgeType.PAUSED]: PillTone.Paused,
   },
 );
 

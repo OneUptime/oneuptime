@@ -42,7 +42,7 @@ A drop filter throws away spans you do not need, or keeps only a sample of them,
 A span is one step of a request, such as a call to an API or a database query. A filter picks spans with conditions, and each condition is a **Field**, an **Operator** and a **Value**: **Span Name** · contains · \`healthcheck\`.
 
 - **Fields:** **Span Name**, **Span Kind**, **Status**, **Status Message**, **Service ID**, **Has Exception** and **Is Root Span**, or any attribute with **Custom Attribute...**.
-- **Operators:** **equals** and **does not equal** match the exact value, with its upper and lower case. **contains** finds the text anywhere, in any case. **is one of** takes a list of values separated by commas.
+- **Operators:** **equals** and **does not equal** match the exact value, with its upper and lower case. **contains** finds the text anywhere, in any case, in a field you type into. **is one of** matches any of several values: on a field you pick from a list, such as **Status**, you pick them from the same list, and on any other you type them with commas between them.
 - With more than one condition, pick **All conditions** or **Any condition**.
 
 **Status** is **Error**, **Ok** or **Unset**. Most instrumentation leaves a successful span **Unset** (the OpenTelemetry default) and sets **Error** only on a failure, so match "not an error" with **Status** · does not equal · **Error**, not **Status** · equals · **Ok**.

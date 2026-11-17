@@ -12,6 +12,7 @@ import {
 } from "./Helpers/OtlpShapeFixtures";
 import { JSONObject } from "Common/Types/JSON";
 import { describe, expect, test } from "@jest/globals";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 
 /*
  * ---------------------------------------------------------------------------
@@ -51,18 +52,7 @@ const ROOT_TYPES: Array<protobuf.Type> = [
   profilesRoot.lookupType("ProfilesData"),
 ];
 
-// A small seeded generator: the same messages on every run.
-function prng(seed: number): () => number {
-  let state: number = seed >>> 0;
-  return (): number => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t: number = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
+// Draws from the shared seeded generator: the same messages on every run.
 type Random = () => number;
 
 function int(random: Random, below: number): number {
@@ -498,7 +488,7 @@ describe("OtlpWireDecoder reads every OTLP shape as protobufjs does", () => {
 describe("OtlpWireDecoder over generated messages", () => {
   for (const root of ROOT_TYPES) {
     test(`${root.name}: 400 messages, any field order, unknown fields, duplicates`, () => {
-      const random: Random = prng(0x5eed + root.name.length);
+      const random: Random = seededRandom(0x5eed + root.name.length);
       let decoded: number = 0;
 
       for (let i: number = 0; i < 400; i++) {
@@ -514,7 +504,7 @@ describe("OtlpWireDecoder over generated messages", () => {
   }
 
   test("every message type on its own, 150 messages each", () => {
-    const random: Random = prng(0xabc);
+    const random: Random = seededRandom(0xabc);
 
     for (const type of allTypes()) {
       for (let i: number = 0; i < 150; i++) {
@@ -525,7 +515,7 @@ describe("OtlpWireDecoder over generated messages", () => {
   });
 
   test("corrupted bodies fail where protobufjs fails, with its error, and read the same otherwise", () => {
-    const random: Random = prng(0xbad);
+    const random: Random = seededRandom(0xbad);
     let failed: number = 0;
     let read: number = 0;
 
@@ -647,7 +637,7 @@ describe("OtlpWireDecoder at protobufjs' nesting limit", () => {
 describe("OtlpWireDecoder.decodeAllDelimited", () => {
   test("reads length-delimited messages as decodeDelimited does", () => {
     const metrics: protobuf.Type = otlpRootType("metrics");
-    const random: Random = prng(42);
+    const random: Random = seededRandom(42);
     const writer: protobuf.Writer = protobuf.Writer.create();
 
     for (let i: number = 0; i < 20; i++) {
@@ -685,7 +675,7 @@ describe("64-bit integers in decimal, without long.js", () => {
   }
 
   test("every edge, and 20,000 random values, as BigInt and long.js write them", () => {
-    const random: Random = prng(7);
+    const random: Random = seededRandom(7);
     const values: Array<[number, number]> = [...EDGE_HALVES];
 
     for (let i: number = 0; i < 20000; i++) {
