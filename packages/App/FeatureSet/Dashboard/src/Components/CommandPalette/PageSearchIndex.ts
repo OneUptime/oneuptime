@@ -50,7 +50,7 @@ import ToolImportSource, {
  * for a page ("pager", "rota", "2fa"): lowercase English, never shown.
  *
  * A settings page also lists its settings: the names its cards and switches
- * show ("Require SSO for Login", "Monitor Groups", "Cancel Plan"). Each is a
+ * show ("Require SSO to Sign In", "Monitor Groups", "Cancel Plan"). Each is a
  * result of its own, found by that name in English or in the reader's
  * language, which says the page it is on ("Project Settings > Security >
  * SSO") and opens it - at the setting's card where it waits folded under
@@ -944,13 +944,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "oidc",
               "openid connect",
               "oauth",
+              /*
+               * Require SSO to Sign In's old names (#9278), still typed by
+               * people who learned them.
+               */
+              "require sso for login",
+              "force sso for login",
             ],
             settings: [
               "SAML",
               "OpenID Connect (OIDC)",
               "Test Single Sign On (SSO)",
               "SSO Settings",
-              "Require SSO for Login",
+              "Require SSO to Sign In",
             ],
           },
           {
