@@ -360,12 +360,13 @@ case 77153319) and sent its onboarding email the same day. Producer Portal
 has been on since 17 November 2026, a few hours after we answered the Partner
 Support Desk case that asked for the project info form and the roles (step
 1). **Where it stands** (17 November 2026): the product exists (step 5); its
-pricing (step 6) and listing (step 7) are saved as drafts, with nothing
-submitted; and `editions.json` marks the edition ready, so the Marketplace
-Release workflow pushes its images and deployer. **Left**: the payments
-profile and the tax questions (maintainer), the first version on the
-Container images page once it is pushed (step 8), and submitting each review
-(the maintainer's go-ahead). Google's Marketplace Operations team supports the
+pricing (step 6) and listing (step 7) are under Google's review, submitted
+that afternoon with the maintainer's go-ahead; the payments profile is done;
+and `editions.json` marks the edition ready, so the Marketplace Release
+workflow pushes its images and deployer. **Left**: the first version on the
+Container images page once it is pushed, and its review (step 8), then
+**Publish** once all three reviews are approved (each the maintainer's
+go-ahead). Google's Marketplace Operations team supports the
 onboarding for 60 days from its reminder of 9 November (until about 8 January
 2027); help after that is not guaranteed. Everything lives in the
 `oneuptime-marketplace` project, never in `oneuptime-k8s`. This is OneUptime's
@@ -408,11 +409,13 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
      reminders and was to close by itself on 17 November; a closed case can
      be reopened within 72 hours. Answered that morning, Google turned
      Producer Portal on before noon and sent the next steps on the same case.
-   - **Payments profile** (maintainer only: bank and tax details; not done
-     yet) on Producer Portal's **Payments** page: the region and currency
-     first, then the legal entity, tax and bank details, with more than one
-     billing admin. Nothing can be published without it, and a US profile
-     adds a **Tax withholding** tab to Pricing.
+   - **Payments profile** (maintainer only: bank and tax details; done on 17
+     November 2026) on Producer Portal's **Payments** page: the region and
+     currency first, then the legal entity, tax and bank details, with more
+     than one billing admin. Nothing can be published without it. Google
+     accepted the W-9 the same day, and the **Overview** page marks the
+     account verified and the profile complete; the bank account's own
+     verification takes two or three days.
    - **Agreements**: the Marketplace Vendor Agreement, accepted on 30 October
      2026, as Producer Portal's **Settings** (organization `hackerbay.io`)
      and Partner Hub both say. On 17 November the **Overview** page still
@@ -433,11 +436,12 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
    meant to ask the Partner Engineer (17 November 2026): it offers the
    classic type ("Kubernetes App") to new products, and its Container images
    page takes a deployer in **Artifact Registry `us-docker.pkg.dev`**, the
-   repository in the path. **Still to ask**: whether customer-tenant
-   consumption tracking (the `goog-partner-solution` label) applies to it -
-   Google's requirements ask it of every product deployed into customers'
-   projects, but describe it for Kubernetes only on the Terraform type's
-   pages.
+   repository in the path. Customer-tenant consumption tracking applies to it
+   too: Producer Portal's **Overview** lists the product's label,
+   `goog-partner-solution=isol_plb32_001kf00001id1wxiar_kitw4d6nq4zmkxjfloixzbcne5jodjnp`.
+   **Still to ask**: how a deployer-based app applies it - Google's
+   requirements ask it of every product deployed into customers' projects,
+   but describe it for Kubernetes only on the Terraform type's pages.
 3. **Access for Google**: the roles of step 1 (Editor includes the
    `roles/viewer` an older version of this guide asked for), and whatever
    else Producer Portal's technical integration page asks for.
@@ -457,16 +461,18 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
    every other image beneath it, and the deployer at `.../deployer`.
 
 5. **Create the product** (done on 17 November 2026) in Producer Portal:
-   **Add product > Kubernetes App**, product name "OneUptime Enterprise
-   (self-hosted)", product ID `oneuptime-enterprise` (it names the service and
-   cannot change; buyers do not see it). Its service name is
+   **Add product > Kubernetes App**, product name "OneUptime Enterprise" (the
+   maintainer's rule: never "self-hosted"), product ID `oneuptime-enterprise`
+   (it names the service and cannot change; buyers do not see it). Its service
+   name is
    `oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog`, as
    `editions.json` has it (`google-cloud.serviceName`), and the listing's
    address is
    `https://console.cloud.google.com/marketplace/product/oneuptime-marketplace/oneuptime-enterprise`.
-6. **Pricing** (saved on 17 November 2026 with the maintainer's go-ahead, not
-   submitted): plan ID `enterprise`, "OneUptime Enterprise", usage-based, one
-   metric: ID `users`, display name "Users", reporting and display unit
+6. **Pricing** (submitted for review on 17 November 2026 with the
+   maintainer's go-ahead): plan ID `enterprise`, "OneUptime Enterprise",
+   usage-based, one metric: ID `users`, display name "Users", reporting and
+   display unit
    **hour**, whole numbers, **USD 0.10** per hour. No free trial. OneUptime
    reports each hour's users as a whole number of user-hours, so the unit is
    the hour; a `count` would bill the same and read worse on the listing.
@@ -475,19 +481,23 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
    `DELTA`, `INT64`, unit `h` (`gcloud endpoints configs describe`).
    - **Features**: a pricing description, like the listing's.
    - **Tax Category** (maintainer): Google saves the answers only once every
-     question shown has one. "Is this product primarily downloaded or
-     installed on a local device?": No, the maintainer's answer. "Will users
-     have the right to exercise any material copyright, trademark, or other
-     intangible property rights in order to utilize this product/SKU?": not
-     answered yet.
+     question shown has one. It asked five, and the maintainer answered No to
+     each: is the product primarily downloaded or installed on a local
+     device; will users have the right to exercise any material copyright,
+     trademark or other intangible property rights to use it; does it
+     primarily aggregate and classify data; does it provide network security,
+     a firewall or cloud data storage; does it primarily provide data mining
+     and database analysis. No Tax withholding tab appeared.
    - **Terms & Policies**: EULA `https://oneuptime.com/legal/terms`, the
      maintainer's choice, as on Microsoft. Google's policy: plans are billed
      for one day at least.
-   - **Submit** (maintainer): Google reviews it in up to four business days.
-     An approved plan cannot change, and a change to the price model waits
-     30 days after a review.
-7. **Listing** (saved on 17 November 2026, not submitted): the copy in
-   [Listing content](#listing-content-paste-ready), one line per paragraph
+   - **Submit** (maintainer): the button shows only after **Next** on the
+     **Terms & Policies** tab, and a dialog asks again. As that dialog says,
+     pricing cannot change once submitted, the review takes up to 14 days,
+     and a published price waits 30 days for an update.
+7. **Listing** (submitted for review on 17 November 2026 with the
+   maintainer's go-ahead; Google's page says the review takes 2.5 days): the
+   copy in [Listing content](#listing-content-paste-ready), one line per paragraph
    and per bullet (the portal keeps line breaks); "link to more product info"
    `/docs/en/self-hosted/enterprise`; categories Monitoring and DevOps, as on
    Microsoft; documentation links to `/docs/en/installation/cloud-marketplaces`
@@ -499,8 +509,10 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
    render `packages/Common/Server/Static/Brand/oneuptime-logo.svg` centered on
    a transparent 512x512 page with Chrome's headless mode
    (`--headless=new --default-background-color=00000000 --window-size=512,512 --screenshot`).
-   The maintainer uploads it; on 17 November the field showed no file after a
-   reload, so check **Full preview** before submitting.
+   The maintainer uploaded it on 17 November. The field shows no file after a
+   reload, but **Full preview** shows the logo; a black background would
+   break the rule. **Submit** is at the bottom of the **Product metadata**
+   tab, and changing a field while the review runs cancels it.
 8. **Container images**: the deployer's path,
    `us-docker.pkg.dev/oneuptime-marketplace/oneuptime/oneuptime-enterprise/deployer`.
    Producer Portal reads the releases from it, so it answers "Image not
@@ -833,7 +845,8 @@ Trim each field to its marketplace's limit. Logos and screenshots: as in
 `packages/Home/Static/img/OneUptimePNG/`; 1280x720 PNG screenshots with
 captions, approved by a maintainer).
 
-**Name:** OneUptime Enterprise (self-hosted)
+**Name:** OneUptime Enterprise. Never call it "self-hosted" (the maintainer's
+rule): say where it runs instead, as the copy below does.
 
 **Search summary (≤ 100 characters):**
 
@@ -844,7 +857,7 @@ OneUptime Enterprise in your own Kubernetes cluster: monitoring, status pages, o
 **Short description (plain text, one line):**
 
 ```text
-Self-hosted OneUptime Enterprise: uptime monitoring, status pages, on-call, incident management, logs, traces and metrics in your own Kubernetes cluster, billed per user by the hour through this marketplace.
+OneUptime Enterprise in your own Kubernetes cluster: uptime monitoring, status pages, on-call, incident management, logs, traces and metrics, billed per user by the hour through this marketplace.
 ```
 
 **Highlights (AWS asks for three):**
@@ -858,8 +871,8 @@ Built on OpenTelemetry, with an open-source (Apache 2.0) core.
 **Description:**
 
 ```text
-OneUptime Enterprise, self-hosted in your own Kubernetes cluster: one platform
-for the whole incident lifecycle, with your data in your own cloud account.
+OneUptime Enterprise in your own Kubernetes cluster: one platform for the
+whole incident lifecycle, with your data in your own cloud account.
 
 - Uptime monitoring: websites, APIs, ping, ports, SSL certificates, DNS and
   synthetic browser checks.
@@ -1289,6 +1302,10 @@ rejection, go-live and price change.
 | 2026-11-17 | Google      | Listing and `enterprise` plan saved as drafts: `users` per hour at USD 0.10; nothing submitted      | Agent      |
 | 2026-11-17 | Google      | EULA: OneUptime's terms, as on Microsoft. Tax: one of two answers, so not saved yet                 | Maintainer |
 | 2026-11-17 | Google      | editions.json marks the Google edition ready; the app's user guide written                          | Agent      |
+| 2026-11-17 | Google      | Payments profile done: W-9 accepted; the bank account's verification takes 2 to 3 days              | Maintainer |
+| 2026-11-17 | Google      | Tax Category: all five questions answered No, so the plan is complete                               | Maintainer |
+| 2026-11-17 | Google      | Decided: the product is OneUptime Enterprise, never "self-hosted"; the listing renamed              | Maintainer |
+| 2026-11-17 | Google      | Product details and pricing reviews submitted, with the maintainer's go-ahead                       | Agent      |
 | 2026-11-17 | AWS         | Bank account verification in review: the bank statement is uploaded                                 | Maintainer |
 | 2026-11-17 | AWS         | Case 00966062 escalated: remove the placeholder version, or name the broken URL                     | Agent      |
 
@@ -1316,4 +1333,6 @@ rejection, go-live and price change.
   seconds and reload to check: a page left right after saving can lose it.
   The plan's structure saves only once the listing is saved, the tax answers
   only once every question shown has one, and the browser cannot upload
-  files: the maintainer uploads the logo.
+  files: the maintainer uploads the logo. Each review's **Submit** sits at
+  the end of its section (Pricing's only after **Next** on its last tab), and
+  editing a section under review cancels its review.
