@@ -50,16 +50,20 @@ with the runbook's real Overview (`Pages/Runbook/View/Index.tsx`) at its own
 address, and draws a stand-in for the pages the fixture does not model. It
 checks the menu the way a person meets it:
 
-- on the Overview only Basic is open; Executions (under Logs) and Triggers
-  and Settings (under Settings) are out of sight and skipped by the keyboard;
-- Logs and Settings open with a click or from the keyboard and lead to their
-  pages, which are marked, and a section stays open while you move around;
+- on the Overview only Basic is open; Executions (first under Advanced, with
+  no section "Logs" of its own, above Owners, Audit Logs and Delete Runbook)
+  and Triggers and Settings (under Settings) are out of sight and skipped by
+  the keyboard;
+- Advanced and Settings open with a click or from the keyboard and lead to
+  their pages, which are marked, and a section stays open while you move
+  around;
 - a bookmarked Triggers page opens Settings by itself, and a run's page opens
-  Logs with Executions marked;
+  Advanced with Executions marked;
 - dark mode, and a phone, where the menu button names the section and page
-  and opening a section does not close the menu;
+  ("Navigate to Advanced / Executions" on a run's page) and opening a
+  section does not close the menu;
 - the Overview's own way to the runs: a click anywhere on Total Runs opens
-  the runs and on Last Run that run, each opening Logs by itself; the
+  the runs and on Last Run that run, each opening Advanced by itself; the
   keyboard reaches both tiles, whose focus ring draws round the tile; a last
   run started for an incident (`?lastrunby=incident`) opens the incident from
   its own link; and in German the Outcomes counts stay inside their tile.

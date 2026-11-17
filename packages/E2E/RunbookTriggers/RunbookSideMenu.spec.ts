@@ -23,6 +23,12 @@ import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
  * settings side menu, which should also be collapsed by default ... show as
  * little stuff as possible to the user, so it reduces decision paralysis."
  *
+ * Executions had a Logs section of its own, folded, holding nothing else,
+ * until c76af29cbe3 (#9216): a heading that nearly repeated its one entry.
+ * It now leads Advanced, folded just the same, above Owners - a section of
+ * its own until 8802a636569 (#9134) - Audit Logs and Delete Runbook, every
+ * page at its own address still.
+ *
  * jsdom applies no CSS, so it can only read the classes a folded section
  * carries. Here a folded Executions or Triggers is checked to be out of
  * sight and out of the keyboard's way, each section opens from a click and
@@ -46,6 +52,13 @@ const RUNBOOK_PATH: string = `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}`;
 const EXECUTIONS_PATH: string = `${RUNBOOK_PATH}/executions`;
 const TRIGGERS_PATH: string = `${RUNBOOK_PATH}/triggers`;
 const SETTINGS_PATH: string = `${RUNBOOK_PATH}/settings`;
+// Advanced's rows, in the order the menu draws them, Executions first.
+const ADVANCED_PATHS: ReadonlyArray<string> = [
+  EXECUTIONS_PATH,
+  `${RUNBOOK_PATH}/owners`,
+  `${RUNBOOK_PATH}/audit-logs`,
+  `${RUNBOOK_PATH}/delete`,
+];
 // The incident the fixture's ?lastrunby=incident run was started for.
 const INCIDENT_PATH: string = `/dashboard/${PROJECT_ID}/incidents/70000000-0000-4000-8000-0000000000a7`;
 
@@ -60,8 +73,6 @@ const TOTAL_RUNS_LINK: string = "runbook-total-runs-link";
 
 const SECTIONS: ReadonlyArray<string> = [
   "Basic",
-  "Logs",
-  "Owners",
   "Settings",
   "Developer",
   "Advanced",
@@ -223,7 +234,10 @@ test.describe("a runbook's side menu", () => {
       await expectFolded(menu, title);
     }
 
-    await expect(link(menu, EXECUTIONS_PATH)).toBeHidden();
+    // Executions, Owners, Audit Logs and Delete Runbook, folded in Advanced.
+    for (const advancedPath of ADVANCED_PATHS) {
+      await expect(link(menu, advancedPath)).toBeHidden();
+    }
     await expect(link(menu, TRIGGERS_PATH)).toBeHidden();
     await expect(link(menu, SETTINGS_PATH)).toBeHidden();
     expect(await isMarked(link(menu, RUNBOOK_PATH))).toBe(true);
@@ -263,14 +277,16 @@ test.describe("a runbook's side menu", () => {
       reached.push(stop);
     }
 
-    // Basic's two rows, then the five folded sections' titles: nothing else.
+    // Basic's two rows, then the three folded sections' titles: nothing else.
     expect(reached).toEqual([RUNBOOK_PATH, `${RUNBOOK_PATH}/steps`, ...FOLDED]);
-    expect(reached).not.toContain(EXECUTIONS_PATH);
+    for (const advancedPath of ADVANCED_PATHS) {
+      expect(reached).not.toContain(advancedPath);
+    }
     expect(reached).not.toContain(TRIGGERS_PATH);
     expect(reached).not.toContain(SETTINGS_PATH);
   });
 
-  test("Logs opens with a click, and Executions leads to the runs with Logs kept open", async ({
+  test("Advanced opens with a click, Executions first, and Executions leads to the runs with Advanced kept open", async ({
     page,
   }: {
     page: Page;
@@ -278,9 +294,20 @@ test.describe("a runbook's side menu", () => {
     await openRunbook(page, "overview");
     const menu: Locator = desktopMenu(page);
 
-    await sectionToggle(menu, "Logs").click();
-    await expectOpen(menu, "Logs");
+    await sectionToggle(menu, "Advanced").click();
+    await expectOpen(menu, "Advanced");
     await expect(link(menu, EXECUTIONS_PATH)).toBeVisible();
+    await expect(link(menu, EXECUTIONS_PATH)).toHaveText("Executions");
+
+    // Executions, then Owners, Audit Logs and Delete Runbook, in one frame.
+    const advancedBoxes: Array<FrameBox> = await boxesInOneFrame(
+      ADVANCED_PATHS.map((href: string): Locator => {
+        return link(menu, href);
+      }),
+    );
+    for (let row: number = 1; row < advancedBoxes.length; row++) {
+      expect(advancedBoxes[row - 1]!.y).toBeLessThan(advancedBoxes[row]!.y);
+    }
 
     await link(menu, EXECUTIONS_PATH).click();
     await expectPath(page, EXECUTIONS_PATH);
@@ -288,14 +315,14 @@ test.describe("a runbook's side menu", () => {
     await expect(page.locator("tbody tr")).toHaveCount(4);
     await expect(crumbs(page)).toContainText("Executions");
     expect(await isMarked(link(menu, EXECUTIONS_PATH))).toBe(true);
-    await expectOpen(menu, "Logs");
+    await expectOpen(menu, "Advanced");
     await expectFolded(menu, "Settings");
 
     // Back to the Overview: the menu stays as it was left.
     await link(menu, RUNBOOK_PATH).click();
     await expectPath(page, RUNBOOK_PATH);
     await expect(page.getByTestId(TOTAL_RUNS_TILE)).toBeVisible();
-    await expectOpen(menu, "Logs");
+    await expectOpen(menu, "Advanced");
     expect(await isMarked(link(menu, RUNBOOK_PATH))).toBe(true);
   });
 
@@ -330,7 +357,7 @@ test.describe("a runbook's side menu", () => {
     await expect(crumbs(page)).toContainText("Triggers");
     expect(await isMarked(triggers)).toBe(true);
     await expectOpen(menu, "Settings");
-    await expectFolded(menu, "Logs");
+    await expectFolded(menu, "Advanced");
 
     await screenshot(page, "triggers");
   });
@@ -354,7 +381,7 @@ test.describe("a runbook's side menu", () => {
     await expect(page.getByTestId("runbook-schedule-card")).toBeVisible();
   });
 
-  test("a run's page opens Logs by itself, with Executions marked", async ({
+  test("a run's page opens Advanced by itself, with Executions marked", async ({
     page,
   }: {
     page: Page;
@@ -366,17 +393,21 @@ test.describe("a runbook's side menu", () => {
     await expect(page.getByTestId("runbook-run-trigger")).toContainText(
       "From 203.0.113.24",
     );
-    await expectOpen(menu, "Logs");
+    await expectOpen(menu, "Advanced");
     await expect(link(menu, EXECUTIONS_PATH)).toBeVisible();
     expect(await isMarked(link(menu, EXECUTIONS_PATH))).toBe(true);
     expect(await isMarked(link(menu, RUNBOOK_PATH))).toBe(false);
+    // Only Executions, of the rows that share Advanced with it.
+    for (const advancedPath of ADVANCED_PATHS.slice(1)) {
+      expect(await isMarked(link(menu, advancedPath))).toBe(false);
+    }
     await expectFolded(menu, "Settings");
     await expect(crumbs(page)).toContainText("Execution");
 
     await screenshot(page, "run");
   });
 
-  test("a bookmarked Triggers page opens Settings by itself; Logs stays folded", async ({
+  test("a bookmarked Triggers page opens Settings by itself; Advanced stays folded", async ({
     page,
   }: {
     page: Page;
@@ -387,7 +418,7 @@ test.describe("a runbook's side menu", () => {
     await expectOpen(menu, "Settings");
     await expect(link(menu, TRIGGERS_PATH)).toBeVisible();
     expect(await isMarked(link(menu, TRIGGERS_PATH))).toBe(true);
-    await expectFolded(menu, "Logs");
+    await expectFolded(menu, "Advanced");
     await expect(link(menu, EXECUTIONS_PATH)).toBeHidden();
   });
 
@@ -413,13 +444,13 @@ test.describe("a runbook's side menu", () => {
 });
 
 /*
- * With Executions folded under Logs, the Overview's Activity card is the way
- * to the runs that is always in sight: Last Run opens that run, Total Runs
- * the list of every run. Each is a link stretched over its tile, which the
- * keyboard reaches; what started the last run keeps its own link.
+ * With Executions folded under Advanced, the Overview's Activity card is the
+ * way to the runs that is always in sight: Last Run opens that run, Total
+ * Runs the list of every run. Each is a link stretched over its tile, which
+ * the keyboard reaches; what started the last run keeps its own link.
  */
 test.describe("the Overview's way to the runs", () => {
-  test("a click anywhere on Total Runs opens every run, with Logs opened by itself", async ({
+  test("a click anywhere on Total Runs opens every run, with Advanced opened by itself", async ({
     page,
   }: {
     page: Page;
@@ -429,14 +460,14 @@ test.describe("the Overview's way to the runs", () => {
     const tile: Locator = page.getByTestId(TOTAL_RUNS_TILE);
 
     await expect(tile).toContainText("4");
-    await expectFolded(menu, "Logs");
+    await expectFolded(menu, "Advanced");
 
     // On the count, away from the link's own words.
     await clickAt(page, tile.getByText("4", { exact: true }));
 
     await expectPath(page, EXECUTIONS_PATH);
     await expect(page.locator("tbody tr")).toHaveCount(4);
-    await expectOpen(menu, "Logs");
+    await expectOpen(menu, "Advanced");
     expect(await isMarked(link(menu, EXECUTIONS_PATH))).toBe(true);
   });
 
@@ -456,7 +487,7 @@ test.describe("the Overview's way to the runs", () => {
     await expect(page.getByTestId("runbook-run-trigger")).toContainText(
       "From 203.0.113.24",
     );
-    await expectOpen(menu, "Logs");
+    await expectOpen(menu, "Advanced");
     expect(await isMarked(link(menu, EXECUTIONS_PATH))).toBe(true);
   });
 
@@ -510,7 +541,7 @@ test.describe("the Overview's way to the runs", () => {
 
     await page.keyboard.press("Enter");
     await expectPath(page, EXECUTIONS_PATH);
-    await expectOpen(desktopMenu(page), "Logs");
+    await expectOpen(desktopMenu(page), "Advanced");
   });
 
   test("an incident that started the last run opens from its own link inside the tile", async ({
@@ -703,7 +734,7 @@ test.describe("a runbook's side menu on a phone", () => {
     await page.setViewportSize({ width: 390, height: 844 });
   });
 
-  test("the menu button names Settings / Triggers, and Logs opens without closing the menu", async ({
+  test("the menu button names Settings / Triggers, and Advanced opens without closing the menu", async ({
     page,
   }: {
     page: Page;
@@ -717,17 +748,17 @@ test.describe("a runbook's side menu on a phone", () => {
     const menu: Locator = phoneMenu(page);
     await expect(menu).toBeVisible();
     await expectOpen(menu, "Settings");
-    await expectFolded(menu, "Logs");
+    await expectFolded(menu, "Advanced");
 
-    await sectionToggle(menu, "Logs").click();
+    await sectionToggle(menu, "Advanced").click();
     // Opening a section is not leaving the menu.
     await expect(menu).toBeVisible();
-    await expectOpen(menu, "Logs");
+    await expectOpen(menu, "Advanced");
 
     await link(menu, EXECUTIONS_PATH).click();
     await expectPath(page, EXECUTIONS_PATH);
     await expect(page.getByTestId("mobile-sidemenu-toggle")).toContainText(
-      "Logs / Executions",
+      "Advanced / Executions",
     );
     // Following a link closes the menu.
     await expect(phoneMenu(page)).toHaveCount(0);
@@ -735,15 +766,22 @@ test.describe("a runbook's side menu on a phone", () => {
     await screenshot(page, "phone-executions");
   });
 
-  test("on a run's page, the menu button says Logs / Executions", async ({
+  test("on a run's page, the menu button says Advanced / Executions", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openRunbook(page, "execution");
 
-    await expect(page.getByTestId("mobile-sidemenu-toggle")).toContainText(
-      "Logs / Executions",
+    const toggle: Locator = page.getByTestId("mobile-sidemenu-toggle");
+    await expect(toggle).toContainText("Advanced / Executions");
+    /*
+     * "Navigate to" is a line of its own above the section and page, so
+     * the button's text runs the two together ("Navigate toAdvanced");
+     * its name says them apart, as a screen reader reads it.
+     */
+    await expect(toggle).toHaveAccessibleName(
+      "Navigate to Advanced / Executions",
     );
   });
 });

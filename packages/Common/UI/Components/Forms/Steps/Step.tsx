@@ -28,6 +28,15 @@ export interface ComponentProps<T> {
 export const STEP_BUTTON_CLASS_NAME: string =
   "group -mx-1 -my-1 flex w-[calc(100%+0.5rem)] cursor-pointer items-start rounded-md px-1 py-1 text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center";
 
+/*
+ * The row of a step that opens: a flow root, so the button's -my-1 stays
+ * inside it and the row keeps the height of its words. In a plain `li` the
+ * button's negative margins collapsed through the row: the row grew to the
+ * button's 28px, and two finished steps stood 4px further apart than two
+ * steps not reached yet, so the list moved down as the reader walked it.
+ */
+export const STEP_ROW_CLASS_NAME: string = "flow-root";
+
 const Step: <T extends GenericObject>(
   props: ComponentProps<T>,
 ) => ReactElement = <T extends GenericObject>(
@@ -124,7 +133,7 @@ const Step: <T extends GenericObject>(
   }
 
   return (
-    <li>
+    <li className={STEP_ROW_CLASS_NAME}>
       <button
         type="button"
         className={STEP_BUTTON_CLASS_NAME}

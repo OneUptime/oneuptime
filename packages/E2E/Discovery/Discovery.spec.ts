@@ -864,17 +864,25 @@ test("the scan list names each scan's method", async ({
   await expect(sweep.getByTestId("discovery-scan-method-badge")).toHaveText(
     "ICMP",
   );
-  // The tooltip names the method the way the form does.
-  await expect(
-    sweep.getByTestId("discovery-scan-method-badge"),
-  ).toHaveAttribute("title", "Scan method: ICMP (ping)");
   await expect(snmp.getByTestId("discovery-scan-method-badge")).toHaveText(
     "SNMP",
   );
-  await expect(snmp.getByTestId("discovery-scan-method-badge")).toHaveAttribute(
-    "title",
-    "Scan method: SNMP",
-  );
+
+  /*
+   * The tooltip names the method the way the form does. The badge is the
+   * shared Pill (4529de8b738), whose hover tip is a tooltip drawn on hover,
+   * not the title attribute the hand-drawn badge carried.
+   */
+  for (const [row, tooltip] of [
+    [sweep, "Scan method: ICMP (ping)"],
+    [snmp, "Scan method: SNMP"],
+  ] as Array<[Locator, string]>) {
+    await row.getByTestId("discovery-scan-method-badge").hover();
+    await expect(page.getByRole("tooltip")).toHaveText(tooltip);
+    // It goes with the pointer, and covers nothing after.
+    await page.mouse.move(0, 0);
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+  }
 
   await page.screenshot({
     path: path.join(screenshots, "discovery-scan-method-badges.png"),
