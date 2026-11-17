@@ -2350,7 +2350,7 @@ describe("SetupHealthService", () => {
       opens: "incident" | "alert";
       ownerUserIds?: Array<string>;
       ownerTeamIds?: Array<string>;
-      networkDeviceId?: string;
+      networkDeviceId?: string | undefined;
     }): Monitor {
       const item: Monitor = monitor({ id: data.id, name: data.name });
       const template: Record<string, unknown> = {

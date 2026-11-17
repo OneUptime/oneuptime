@@ -2585,8 +2585,10 @@ describe("owners no Created email reaches", () => {
     events: Array<WhoIsToldEvent>;
   }): WhoIsToldResult {
     return chain({
-      monitorId: data.monitorId,
-      monitorName: data.monitorName,
+      ...(data.monitorId !== undefined ? { monitorId: data.monitorId } : {}),
+      ...(data.monitorName !== undefined
+        ? { monitorName: data.monitorName }
+        : {}),
       criteria: [{ id: "offline", name: "Offline", events: data.events }],
     });
   }
