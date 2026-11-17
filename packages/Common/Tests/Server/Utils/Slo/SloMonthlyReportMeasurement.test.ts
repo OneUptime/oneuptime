@@ -168,9 +168,7 @@ async function measure(
 }
 
 describe("SloMonthlyReportMeasurement", () => {
-  let timelineReads: SpyInstance<
-    typeof MonitorStatusTimelineService.findAllBy
-  >;
+  let timelineReads: SpyInstance<typeof MonitorStatusTimelineService.findAllBy>;
 
   beforeEach(() => {
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
@@ -461,8 +459,9 @@ describe("SloMonthlyReportMeasurement", () => {
     };
 
     test("sums its counted requests month by month, inside what its counting covers", async () => {
-      const sums: SpyInstance<typeof SloRequestCounting.readRangeSums> =
-        jest.spyOn(SloRequestCounting, "readRangeSums").mockResolvedValue([
+      const sums: SpyInstance<typeof SloRequestCounting.readRangeSums> = jest
+        .spyOn(SloRequestCounting, "readRangeSums")
+        .mockResolvedValue([
           { goodCount: 0, totalCount: 0 },
           { goodCount: 9990, totalCount: 10000 },
           { goodCount: 4990, totalCount: 5000 },
@@ -495,8 +494,9 @@ describe("SloMonthlyReportMeasurement", () => {
     });
 
     test("an SLO whose requests were never counted reads as no data in every month", async () => {
-      const sums: SpyInstance<typeof SloRequestCounting.readRangeSums> =
-        jest.spyOn(SloRequestCounting, "readRangeSums").mockResolvedValue([
+      const sums: SpyInstance<typeof SloRequestCounting.readRangeSums> = jest
+        .spyOn(SloRequestCounting, "readRangeSums")
+        .mockResolvedValue([
           { goodCount: 0, totalCount: 0 },
           { goodCount: 0, totalCount: 0 },
           { goodCount: 0, totalCount: 0 },
@@ -541,8 +541,9 @@ describe("SloMonthlyReportMeasurement", () => {
 
   describe("a Metric SLO", () => {
     test("sums its metric's counted events month by month, in events", async () => {
-      const sums: SpyInstance<typeof SloRequestCounting.readRangeSums> =
-        jest.spyOn(SloRequestCounting, "readRangeSums").mockResolvedValue([
+      const sums: SpyInstance<typeof SloRequestCounting.readRangeSums> = jest
+        .spyOn(SloRequestCounting, "readRangeSums")
+        .mockResolvedValue([
           { goodCount: 0, totalCount: 0 },
           { goodCount: 998, totalCount: 1000 },
           { goodCount: 500, totalCount: 500 },
@@ -639,9 +640,8 @@ describe("SloMonthlyReportMeasurement", () => {
         fields: Partial<ServiceLevelObjective>,
         reason: SloMonthlyReportUnavailableReason,
       ) => {
-        const sums: SpyInstance<
-          typeof SloRequestCounting.readRangeSums
-        > = jest.spyOn(SloRequestCounting, "readRangeSums");
+        const sums: SpyInstance<typeof SloRequestCounting.readRangeSums> =
+          jest.spyOn(SloRequestCounting, "readRangeSums");
 
         const report: SloMonthlyReport = await measure(makeSlo(fields));
 
