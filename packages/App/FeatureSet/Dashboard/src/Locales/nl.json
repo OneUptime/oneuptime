@@ -56566,5 +56566,8 @@
   "Filter discovered devices": "Gedetecteerde apparaten filteren",
   "Network controller": "Netwerkcontroller",
   "No discovered device matches this search and these filters.": "Geen gedetecteerd apparaat komt overeen met deze zoekopdracht en deze filters.",
-  "Switch or router": "Switch of router"
+  "Switch or router": "Switch of router",
+  "Network Endpoint Group": "Netwerkeindpuntgroep",
+  "Backend Bucket": "Backend-bucket",
+  "Target Pool": "Doelpool"
 }

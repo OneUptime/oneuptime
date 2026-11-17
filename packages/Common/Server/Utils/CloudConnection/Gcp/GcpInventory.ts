@@ -74,6 +74,37 @@ export const GCP_NETWORK_TYPE: string = "compute.googleapis.com/Network";
 export const GCP_SUBNETWORK_TYPE: string = "compute.googleapis.com/Subnetwork";
 export const GCP_FIREWALL_TYPE: string = "compute.googleapis.com/Firewall";
 const GCP_INSTANCE_TYPE: string = "compute.googleapis.com/Instance";
+/*
+ * A load balancer's pieces: its URL map (an Application Load Balancer,
+ * whose metrics name it), the backend services it sends to and the
+ * forwarding rules - its addresses - that send to it. Cloud Asset lists a
+ * regional backend service and a global forwarding rule under types of
+ * their own; OneUptime keeps each pair as one type.
+ */
+export const GCP_URL_MAP_TYPE: string = "compute.googleapis.com/UrlMap";
+export const GCP_BACKEND_SERVICE_TYPE: string =
+  "compute.googleapis.com/BackendService";
+export const GCP_REGION_BACKEND_SERVICE_TYPE: string =
+  "compute.googleapis.com/RegionBackendService";
+export const GCP_FORWARDING_RULE_TYPE: string =
+  "compute.googleapis.com/ForwardingRule";
+export const GCP_GLOBAL_FORWARDING_RULE_TYPE: string =
+  "compute.googleapis.com/GlobalForwardingRule";
+const GCP_TARGET_HTTP_PROXY_TYPE: string =
+  "compute.googleapis.com/TargetHttpProxy";
+const GCP_TARGET_HTTPS_PROXY_TYPE: string =
+  "compute.googleapis.com/TargetHttpsProxy";
+
+/*
+ * Types listed only to draw the edges between others, never kept: a target
+ * proxy, which joins a forwarding rule to its URL map or backend service.
+ */
+export const GCP_LOOKUP_ASSET_TYPES: ReadonlyArray<string> = [
+  GCP_TARGET_HTTP_PROXY_TYPE,
+  GCP_TARGET_HTTPS_PROXY_TYPE,
+  "compute.googleapis.com/TargetSslProxy",
+  "compute.googleapis.com/TargetTcpProxy",
+];
 
 export interface GcpAsset {
   name: string;
@@ -84,11 +115,31 @@ export interface GcpAsset {
 
 export interface GcpInventoryContext {
   projectId: string;
+  /*
+   * Each URL map's load-balancing scheme, by its full name in lower case:
+   * its default backend service's (EXTERNAL, EXTERNAL_MANAGED,
+   * INTERNAL_MANAGED), which says which load balancer it is
+   * (buildGcpInventoryContext).
+   */
+  urlMapSchemes?: Map<string, string> | undefined;
 }
 
 export interface GcpInventoryType {
   // The Cloud Asset type: "compute.googleapis.com/Instance".
   assetType: string;
+  /*
+   * For an asset type kept as more than one resource type, whether this
+   * one is the asset's: a URL map is the load balancer its scheme and
+   * region say. The first type that takes an asset is its type.
+   */
+  matches?:
+    | ((asset: GcpAsset, context: GcpInventoryContext) => boolean)
+    | undefined;
+  /*
+   * The type a resource with no metrics is kept as, when it is not its
+   * asset type: a regional backend service is a backend service.
+   */
+  resourceType?: string | undefined;
   // The Cloud Monitoring monitored-resource type its metrics name.
   monitoredType?: string | undefined;
   // Its identity labels, and the rest the resolver reads (a VM's name).
@@ -141,6 +192,11 @@ export function computeUrlToFullName(url: string): string {
   const index: number = url.indexOf(marker);
 
   if (index < 0) {
+    if (url.startsWith("projects/")) {
+      // The relative form a URL map's routes are sometimes written in.
+      return `//compute.googleapis.com/${url}`;
+    }
+
     return url.startsWith("//") ? url : "";
   }
 
@@ -265,6 +321,213 @@ function inNetwork(asset: GcpAsset): Array<CloudResourceRelationship> {
       ]
     : [];
 }
+
+/*
+ * The type of a Compute resource its full name names, by the collection in
+ * it: ".../backendServices/web" is a backend service. Only the collections
+ * a load balancer's pieces point at; anything else names no type.
+ */
+const COMPUTE_COLLECTION_TYPES: Readonly<Record<string, string>> = {
+  backendServices: GCP_BACKEND_SERVICE_TYPE,
+  backendBuckets: "compute.googleapis.com/BackendBucket",
+  instanceGroups: "compute.googleapis.com/InstanceGroup",
+  networkEndpointGroups: "compute.googleapis.com/NetworkEndpointGroup",
+  targetPools: "compute.googleapis.com/TargetPool",
+  targetInstances: "compute.googleapis.com/TargetInstance",
+  urlMaps: GCP_URL_MAP_TYPE,
+};
+
+export function computeTypeOf(fullName: string): string | undefined {
+  const parts: Array<string> = fullName.split("/");
+  const collection: string | undefined = parts[parts.length - 2];
+
+  return collection ? COMPUTE_COLLECTION_TYPES[collection] : undefined;
+}
+
+// Every backend a URL map routes to, its default first, each once.
+function urlMapServices(data: JSONObject): Array<string> {
+  const services: Array<string> = [readText(data["defaultService"])];
+
+  for (const rawMatcher of readArray(data["pathMatchers"])) {
+    const matcher: JSONObject = readObject(rawMatcher);
+    services.push(readText(matcher["defaultService"]));
+
+    for (const rawRule of readArray(matcher["pathRules"])) {
+      services.push(readText(readObject(rawRule)["service"]));
+    }
+
+    for (const rawRule of readArray(matcher["routeRules"])) {
+      services.push(readText(readObject(rawRule)["service"]));
+    }
+  }
+
+  return Array.from(
+    new Set(
+      services
+        .map((service: string): string => {
+          return computeUrlToFullName(service);
+        })
+        .filter(Boolean),
+    ),
+  );
+}
+
+function urlMapRoutes(asset: GcpAsset): Array<CloudResourceRelationship> {
+  return urlMapServices(asset.data).map(
+    (service: string): CloudResourceRelationship => {
+      return {
+        kind: CloudRelationshipKind.RoutesTo,
+        target: service,
+        targetType: computeTypeOf(service),
+      };
+    },
+  );
+}
+
+// The host names a URL map answers for: its host rules' hosts, but "*".
+function urlMapHosts(asset: GcpAsset): Array<string> {
+  const hosts: Array<string> = [];
+
+  for (const rawRule of readArray(asset.data["hostRules"])) {
+    for (const host of readArray(readObject(rawRule)["hosts"])) {
+      const text: string = readText(host);
+
+      if (text && !text.includes("*")) {
+        hosts.push(text);
+      }
+    }
+  }
+
+  return hosts;
+}
+
+function urlMapScheme(asset: GcpAsset, context: GcpInventoryContext): string {
+  return context.urlMapSchemes?.get(asset.name.toLowerCase()) || "";
+}
+
+/*
+ * Each URL map's load-balancing scheme, from the backend its default
+ * route sends to: a backend service's own scheme, or EXTERNAL for a
+ * backend bucket, which only an external load balancer serves.
+ */
+export function buildGcpInventoryContext(data: {
+  projectId: string;
+  assets: ReadonlyArray<GcpAsset>;
+}): GcpInventoryContext {
+  const serviceSchemes: Map<string, string> = new Map();
+
+  for (const asset of data.assets) {
+    if (
+      asset.assetType === GCP_BACKEND_SERVICE_TYPE ||
+      asset.assetType === GCP_REGION_BACKEND_SERVICE_TYPE
+    ) {
+      serviceSchemes.set(
+        asset.name.toLowerCase(),
+        textAt(asset.data, "loadBalancingScheme").toUpperCase(),
+      );
+    }
+  }
+
+  const urlMapSchemes: Map<string, string> = new Map();
+
+  for (const asset of data.assets) {
+    if (asset.assetType !== GCP_URL_MAP_TYPE) {
+      continue;
+    }
+
+    const service: string | undefined = urlMapServices(asset.data)[0];
+
+    if (!service) {
+      continue;
+    }
+
+    const scheme: string =
+      computeTypeOf(service) === "compute.googleapis.com/BackendBucket"
+        ? "EXTERNAL"
+        : serviceSchemes.get(service.toLowerCase()) || "";
+
+    if (scheme) {
+      urlMapSchemes.set(asset.name.toLowerCase(), scheme);
+    }
+  }
+
+  return { projectId: data.projectId, urlMapSchemes };
+}
+
+const URL_MAP_PROPERTIES: ReadonlyArray<string> = ["hosts", "defaultBackend"];
+
+function urlMapDerived(asset: GcpAsset): JSONObject {
+  return {
+    hosts: urlMapHosts(asset),
+    defaultBackend: tail(urlMapServices(asset.data)[0] || ""),
+  };
+}
+
+// What a backend service sends to: its instance groups and endpoint groups.
+function backendServiceRoutes(
+  asset: GcpAsset,
+): Array<CloudResourceRelationship> {
+  const relationships: Array<CloudResourceRelationship> = [];
+
+  for (const raw of readArray(asset.data["backends"])) {
+    const group: string = computeUrlToFullName(
+      readText(readObject(raw)["group"]),
+    );
+
+    if (group) {
+      relationships.push({
+        kind: CloudRelationshipKind.RoutesTo,
+        target: group,
+        targetType: computeTypeOf(group),
+      });
+    }
+  }
+
+  return [...relationships, ...inNetwork(asset)];
+}
+
+// The network and subnet an internal forwarding rule's address is in.
+function forwardingRuleNetwork(
+  asset: GcpAsset,
+): Array<CloudResourceRelationship> {
+  const subnetwork: string = computeUrlToFullName(
+    textAt(asset.data, "subnetwork"),
+  );
+
+  return [
+    ...(subnetwork
+      ? [
+          {
+            kind: CloudRelationshipKind.RunsIn,
+            target: subnetwork,
+            targetType: GCP_SUBNETWORK_TYPE,
+          },
+        ]
+      : []),
+    ...inNetwork(asset),
+  ];
+}
+
+const BACKEND_SERVICE_PROPERTIES: ReadonlyArray<string> = [
+  "loadBalancingScheme",
+  "protocol",
+  "port",
+  "portName",
+  "timeoutSec",
+  "sessionAffinity",
+  "localityLbPolicy",
+  "enableCDN",
+];
+
+const FORWARDING_RULE_PROPERTIES: ReadonlyArray<string> = [
+  "IPAddress",
+  "IPProtocol",
+  "portRange",
+  "ports",
+  "allPorts",
+  "loadBalancingScheme",
+  "networkTier",
+];
 
 export const GCP_INVENTORY_TYPES: ReadonlyArray<GcpInventoryType> = [
   {
@@ -507,15 +770,133 @@ export const GCP_INVENTORY_TYPES: ReadonlyArray<GcpInventoryType> = [
     },
     relationships: inNetwork,
   },
+  /*
+   * A URL map is an Application Load Balancer, filed under the monitored
+   * resource its metrics name: a global one an external load balancer
+   * (https_lb_rule), a regional internal one an internal load balancer
+   * (internal_http_lb_rule). One whose metrics OneUptime does not read yet
+   * - a regional external or a cross-region internal load balancer - is
+   * still listed, as a URL map.
+   */
+  {
+    assetType: GCP_URL_MAP_TYPE,
+    monitoredType: "https_lb_rule",
+    matches: (asset: GcpAsset, context: GcpInventoryContext): boolean => {
+      return (
+        gcpAssetRegion(asset) === "global" &&
+        urlMapScheme(asset, context) !== "INTERNAL_MANAGED"
+      );
+    },
+    labels: (asset: GcpAsset, context: GcpInventoryContext) => {
+      const name: string = textAt(asset.data, "name");
+      return name
+        ? { project_id: context.projectId, url_map_name: name }
+        : null;
+    },
+    properties: URL_MAP_PROPERTIES,
+    derivedProperties: urlMapDerived,
+    relationships: urlMapRoutes,
+    endpoints: urlMapHosts,
+  },
+  {
+    assetType: GCP_URL_MAP_TYPE,
+    monitoredType: "internal_http_lb_rule",
+    matches: (asset: GcpAsset, context: GcpInventoryContext): boolean => {
+      const scheme: string = urlMapScheme(asset, context);
+      return (
+        gcpAssetRegion(asset) !== "global" &&
+        (scheme === "" || scheme === "INTERNAL_MANAGED")
+      );
+    },
+    labels: (asset: GcpAsset, context: GcpInventoryContext) => {
+      const name: string = textAt(asset.data, "name");
+      const region: string = gcpAssetRegion(asset);
+      return name
+        ? { project_id: context.projectId, region, url_map_name: name }
+        : null;
+    },
+    properties: URL_MAP_PROPERTIES,
+    derivedProperties: urlMapDerived,
+    relationships: urlMapRoutes,
+    endpoints: urlMapHosts,
+  },
+  {
+    assetType: GCP_URL_MAP_TYPE,
+    properties: URL_MAP_PROPERTIES,
+    derivedProperties: urlMapDerived,
+    relationships: urlMapRoutes,
+    endpoints: urlMapHosts,
+  },
+  {
+    assetType: GCP_BACKEND_SERVICE_TYPE,
+    properties: BACKEND_SERVICE_PROPERTIES,
+    relationships: backendServiceRoutes,
+  },
+  {
+    assetType: GCP_REGION_BACKEND_SERVICE_TYPE,
+    resourceType: GCP_BACKEND_SERVICE_TYPE,
+    properties: BACKEND_SERVICE_PROPERTIES,
+    relationships: backendServiceRoutes,
+  },
+  /*
+   * A forwarding rule is a load balancer's address. What it sends to - a
+   * URL map through its target proxy, a backend service, a target pool -
+   * is drawn once the project is read (addGcpLoadBalancerEdges).
+   */
+  {
+    assetType: GCP_FORWARDING_RULE_TYPE,
+    properties: FORWARDING_RULE_PROPERTIES,
+    relationships: forwardingRuleNetwork,
+    endpoints: (asset: GcpAsset) => {
+      return [asset.data["IPAddress"]];
+    },
+  },
+  {
+    assetType: GCP_GLOBAL_FORWARDING_RULE_TYPE,
+    resourceType: GCP_FORWARDING_RULE_TYPE,
+    properties: FORWARDING_RULE_PROPERTIES,
+    relationships: forwardingRuleNetwork,
+    endpoints: (asset: GcpAsset) => {
+      return [asset.data["IPAddress"]];
+    },
+  },
 ];
 
+/*
+ * The type an asset is kept as: the first of its asset type's that takes
+ * it, or - asked by asset type alone - the first of them.
+ */
 export function getGcpInventoryType(
   assetType: string,
+  asset?: GcpAsset | undefined,
+  context?: GcpInventoryContext | undefined,
 ): GcpInventoryType | null {
   return (
     GCP_INVENTORY_TYPES.find((type: GcpInventoryType): boolean => {
-      return type.assetType === assetType;
+      return (
+        type.assetType === assetType &&
+        (!asset ||
+          !type.matches ||
+          type.matches(asset, context || { projectId: "" }))
+      );
     }) || null
+  );
+}
+
+// The type a type's resources are kept as: what a full listing lists.
+export function getGcpInventoryResourceType(type: GcpInventoryType): string {
+  return type.monitoredType || type.resourceType || type.assetType;
+}
+
+// Every type a project's listing asks Cloud Asset for, once each.
+export function getGcpListedAssetTypes(): Array<string> {
+  return Array.from(
+    new Set([
+      ...GCP_INVENTORY_TYPES.map((type: GcpInventoryType): string => {
+        return type.assetType;
+      }),
+      ...GCP_LOOKUP_ASSET_TYPES,
+    ]),
   );
 }
 
@@ -560,11 +941,12 @@ export function getGcpInventoryIdentity(
    * identity is its project and name alone, as a network's always was.
    */
   const region: string = gcpAssetRegion(asset);
+  const resourceType: string = getGcpInventoryResourceType(type);
 
   return {
     provider: CloudProvider.GCP,
     source: CloudMonitoringSource.GoogleCloudMonitoring,
-    resourceType: type.assetType,
+    resourceType,
     name,
     providerResourceId: asset.name,
     accountId: context.projectId,
@@ -572,7 +954,7 @@ export function getGcpInventoryIdentity(
     resourceGroup: "",
     identityKey: [
       CloudProvider.GCP,
-      type.assetType,
+      resourceType,
       context.projectId,
       ...(region === "global" ? [] : [region]),
       name,
@@ -587,7 +969,11 @@ export function buildGcpInventoryItem(
   asset: GcpAsset,
   context: GcpInventoryContext,
 ): CloudInventoryItem | null {
-  const type: GcpInventoryType | null = getGcpInventoryType(asset.assetType);
+  const type: GcpInventoryType | null = getGcpInventoryType(
+    asset.assetType,
+    asset,
+    context,
+  );
 
   if (!type) {
     return null;
@@ -795,14 +1181,99 @@ export function addGcpFirewallEdges(data: {
 /*
  * Every edge that takes more than one asset to draw, written once all of a
  * project's assets are read: a topic's subscriptions, the firewall rules
- * guarding each instance.
+ * guarding each instance, what a load balancer's addresses send to.
  */
+/*
+ * What a load balancer's forwarding rules send to. A rule names a target
+ * proxy, which names the URL map (an Application Load Balancer) or the
+ * backend service (a proxy Network Load Balancer); or it names a backend
+ * service or a target pool itself. A rule that sends to a URL map the
+ * project holds gives the URL map its address too, so a website monitor of
+ * that address is linked to the load balancer whose metrics say how it is
+ * doing, and not to the rule.
+ */
+export function addGcpLoadBalancerEdges(data: {
+  items: Array<CloudInventoryItem>;
+  assets: Map<CloudInventoryItem, GcpAsset>;
+  listed: ReadonlyArray<GcpAsset>;
+}): void {
+  // A target proxy's full name -> what it sends to.
+  const proxies: Map<string, string> = new Map();
+
+  for (const asset of data.listed) {
+    if (!GCP_LOOKUP_ASSET_TYPES.includes(asset.assetType)) {
+      continue;
+    }
+
+    const target: string = computeUrlToFullName(
+      textAt(asset.data, "urlMap") || textAt(asset.data, "service"),
+    );
+
+    if (target) {
+      proxies.set(asset.name.toLowerCase(), target);
+    }
+  }
+
+  const byId: Map<string, CloudInventoryItem> = new Map();
+
+  for (const item of data.items) {
+    byId.set(item.resource.providerResourceId.toLowerCase(), item);
+  }
+
+  for (const item of data.items) {
+    const asset: GcpAsset | undefined = data.assets.get(item);
+
+    if (
+      !asset ||
+      (asset.assetType !== GCP_FORWARDING_RULE_TYPE &&
+        asset.assetType !== GCP_GLOBAL_FORWARDING_RULE_TYPE)
+    ) {
+      continue;
+    }
+
+    const named: string = computeUrlToFullName(
+      textAt(asset.data, "target") || textAt(asset.data, "backendService"),
+    );
+
+    if (!named) {
+      continue;
+    }
+
+    const target: string = proxies.get(named.toLowerCase()) || named;
+    const held: CloudInventoryItem | undefined = byId.get(target.toLowerCase());
+
+    item.relationships = boundCloudRelationships([
+      ...item.relationships,
+      {
+        kind: CloudRelationshipKind.RoutesTo,
+        target: held ? held.resource.providerResourceId : target,
+        targetType: held ? held.resource.resourceType : computeTypeOf(target),
+      },
+    ]);
+
+    if (held && data.assets.get(held)?.assetType === GCP_URL_MAP_TYPE) {
+      held.endpoints = normalizeCloudEndpoints([
+        ...held.endpoints,
+        ...item.endpoints,
+      ]);
+      item.endpoints = [];
+    }
+  }
+}
+
 export function addGcpInventoryEdges(data: {
   items: Array<CloudInventoryItem>;
   assets: Map<CloudInventoryItem, GcpAsset>;
+  // Every asset the listing returned, the lookup-only ones too.
+  listed?: ReadonlyArray<GcpAsset> | undefined;
 }): void {
   addGcpTopicEdges(data);
   addGcpFirewallEdges(data);
+  addGcpLoadBalancerEdges({
+    items: data.items,
+    assets: data.assets,
+    listed: data.listed || Array.from(data.assets.values()),
+  });
 }
 
 export interface GcpAssetListing {
@@ -1035,9 +1506,9 @@ export default class GcpInventoryClient {
     for (let page: number = 0; page < MAX_PAGES; page++) {
       const query: string = buildQueryString([
         ["contentType", "RESOURCE"],
-        ...GCP_INVENTORY_TYPES.map(
-          (type: GcpInventoryType): [string, string] => {
-            return ["assetTypes", type.assetType];
+        ...getGcpListedAssetTypes().map(
+          (assetType: string): [string, string] => {
+            return ["assetTypes", assetType];
           },
         ),
         ["pageSize", PAGE_SIZE],

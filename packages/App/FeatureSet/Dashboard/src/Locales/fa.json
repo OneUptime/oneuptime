@@ -56566,5 +56566,8 @@
   "Filter discovered devices": "فیلتر دستگاه‌های کشف‌شده",
   "Network controller": "کنترلر شبکه",
   "No discovered device matches this search and these filters.": "هیچ دستگاه کشف‌شده‌ای با این جستجو و این فیلترها مطابقت ندارد.",
-  "Switch or router": "سوئیچ یا روتر"
+  "Switch or router": "سوئیچ یا روتر",
+  "Network Endpoint Group": "گروه نقطه‌های پایانی شبکه",
+  "Backend Bucket": "باکت بک‌اند",
+  "Target Pool": "مخزن هدف"
 }

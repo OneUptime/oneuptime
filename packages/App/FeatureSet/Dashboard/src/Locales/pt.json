@@ -56566,5 +56566,8 @@
   "Filter discovered devices": "Filtrar dispositivos descobertos",
   "Network controller": "Controlador de rede",
   "No discovered device matches this search and these filters.": "Nenhum dispositivo descoberto corresponde a esta pesquisa e a estes filtros.",
-  "Switch or router": "Switch ou roteador"
+  "Switch or router": "Switch ou roteador",
+  "Network Endpoint Group": "Grupo de endpoints de rede",
+  "Backend Bucket": "Bucket de back-end",
+  "Target Pool": "Pool de destino"
 }

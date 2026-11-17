@@ -56566,5 +56566,8 @@
   "Filter discovered devices": "筛选已发现的设备",
   "Network controller": "网络控制器",
   "No discovered device matches this search and these filters.": "没有已发现的设备符合此搜索和这些筛选条件。",
-  "Switch or router": "交换机或路由器"
+  "Switch or router": "交换机或路由器",
+  "Network Endpoint Group": "网络端点组",
+  "Backend Bucket": "后端存储桶",
+  "Target Pool": "目标池"
 }

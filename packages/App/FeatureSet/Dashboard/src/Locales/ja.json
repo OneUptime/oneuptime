@@ -56566,5 +56566,8 @@
   "Filter discovered devices": "検出されたデバイスを絞り込む",
   "Network controller": "ネットワークコントローラー",
   "No discovered device matches this search and these filters.": "この検索とフィルターに一致する検出されたデバイスはありません。",
-  "Switch or router": "スイッチまたはルーター"
+  "Switch or router": "スイッチまたはルーター",
+  "Network Endpoint Group": "ネットワーク エンドポイント グループ",
+  "Backend Bucket": "バックエンド バケット",
+  "Target Pool": "ターゲット プール"
 }

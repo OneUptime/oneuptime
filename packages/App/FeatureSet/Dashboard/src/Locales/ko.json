@@ -56566,5 +56566,8 @@
   "Filter discovered devices": "발견된 장치 필터",
   "Network controller": "네트워크 컨트롤러",
   "No discovered device matches this search and these filters.": "이 검색과 필터에 맞는 발견된 장치가 없습니다.",
-  "Switch or router": "스위치 또는 라우터"
+  "Switch or router": "스위치 또는 라우터",
+  "Network Endpoint Group": "네트워크 엔드포인트 그룹",
+  "Backend Bucket": "백엔드 버킷",
+  "Target Pool": "대상 풀"
 }

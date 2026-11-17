@@ -56566,5 +56566,8 @@
   "Filter discovered devices": "تصفية الأجهزة المكتشفة",
   "Network controller": "وحدة تحكم الشبكة",
   "No discovered device matches this search and these filters.": "لا يوجد جهاز مكتشف يطابق هذا البحث وعوامل التصفية هذه.",
-  "Switch or router": "محوّل أو موجّه"
+  "Switch or router": "محوّل أو موجّه",
+  "Network Endpoint Group": "مجموعة نقاط نهاية الشبكة",
+  "Backend Bucket": "حاوية الخلفية",
+  "Target Pool": "مجموعة الاستهداف"
 }

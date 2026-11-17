@@ -1890,6 +1890,29 @@ export const INVENTORY_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescr
       IAAS,
       C.Networking,
     ),
+    // A load balancer's pieces that publish no metrics of their own.
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/ForwardingRule",
+      "Forwarding Rule",
+      IAAS,
+      C.Networking,
+    ),
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/BackendService",
+      "Backend Service",
+      IAAS,
+      C.Networking,
+    ),
+    // A URL map whose load balancer's metrics OneUptime does not read yet.
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/UrlMap",
+      "URL Map",
+      IAAS,
+      C.Networking,
+    ),
   ];
 
 export const CLOUD_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescriptor> =
@@ -2131,6 +2154,22 @@ export const NAMED_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudNamedOnlyResourceType
       CloudProvider.GCP,
       "compute.googleapis.com/InstanceGroup",
       translationKey("Instance Group"),
+    ),
+    // What a load balancer's backend services and addresses send to.
+    namedOnly(
+      CloudProvider.GCP,
+      "compute.googleapis.com/NetworkEndpointGroup",
+      translationKey("Network Endpoint Group"),
+    ),
+    namedOnly(
+      CloudProvider.GCP,
+      "compute.googleapis.com/BackendBucket",
+      translationKey("Backend Bucket"),
+    ),
+    namedOnly(
+      CloudProvider.GCP,
+      "compute.googleapis.com/TargetPool",
+      translationKey("Target Pool"),
     ),
     namedOnly(
       CloudProvider.GCP,
