@@ -56513,5 +56513,6 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Iedereen met toegang tot de repository kan deze pull request zien, met de wijziging en de beschrijving ervan. Dit incident is privé en wordt er niet in genoemd.",
   "Only someone who may approve fixes can open this pull request.": "Alleen wie oplossingen mag goedkeuren, kan deze pull request openen.",
   "VPA": "VPA",
-  "This check was too large to keep in full, so it was trimmed.": "Deze controle was te groot om volledig te bewaren en is daarom ingekort."
+  "This check was too large to keep in full, so it was trimmed.": "Deze controle was te groot om volledig te bewaren en is daarom ingekort.",
+  "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "Van elk adres worden alleen het schema en de host bewaard. De rest is het geheim van de webhook."
 }

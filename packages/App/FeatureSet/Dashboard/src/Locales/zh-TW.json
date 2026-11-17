@@ -56513,5 +56513,6 @@
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "所有有權存取儲存庫的人都可以看到此提取要求，包括變更及其描述。其中不會提及此私人事件。",
   "Only someone who may approve fixes can open this pull request.": "只有可以核准修正的人才能開啟此提取要求。",
   "VPA": "VPA",
-  "This check was too large to keep in full, so it was trimmed.": "此檢查過大，無法完整保存，因此已被截斷。"
+  "This check was too large to keep in full, so it was trimmed.": "此檢查過大，無法完整保存，因此已被截斷。",
+  "Only the scheme and host of each address are kept. The rest is the webhook's secret.": "每個地址只保留協定和主機。其餘部分是 Webhook 的密鑰。"
 }
