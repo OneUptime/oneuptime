@@ -86,7 +86,7 @@ Next, in rough order of usefulness:
 
 ## Where everything lives
 
-Once a status page is open, its own left side menu is grouped into nine sections. Use this as a map for the rest of this documentation group.
+Once a status page is open, its own left side menu is grouped into eight sections. Use this as a map for the rest of this documentation group.
 
 | Section | What's in it |
 | --- | --- |
@@ -96,9 +96,8 @@ Once a status page is open, its own left side menu is grouped into nine sections
 | **Subscribers** | **Subscribers** (one page, with a tab for each channel: Email, SMS, Slack, Microsoft Teams and Webhook), **Subscriber Settings**, **Notification Logs** — what was sent to subscribers. |
 | **Branding** | **Branding** (logo, title, favicon, links, footer, colors and languages, on one page), **Custom Domains**, **HTML, CSS & JavaScript**. |
 | **Security** | **Access** (who can see the page), **Private Users**, **Single Sign-On** (a tab each for SAML and OIDC), **SCIM**. |
-| **AI** | **MCP**. |
 | **Developer** | **Terraform**, **API**, **CLI**, **AI Assistants** — the page as code. |
-| **Advanced** | **Embedded Status**, **Reports**, **Custom Fields**, **Settings**, **Audit Logs**, **Delete Status Page**. |
+| **Advanced** | **MCP**, **Embedded Status**, **Reports**, **Custom Fields**, **Settings**, **Audit Logs**, **Delete Status Page**. |
 
 Only **Overview** and **Resources**, what the page shows, start open. Every other section starts collapsed, like the rarely used sections of every menu in OneUptime: click a section's title to show its pages. A section opens by itself whenever you are on one of its pages, such as **Settings** or **Subscribers**.
 

@@ -1,6 +1,6 @@
 # Monitorer och monitorregler
 
-Ett SLO mäter tillgängligheten hos de monitorer som är kopplade till det. Koppla dem för hand, låt monitorregler koppla varje monitor som matchar, eller gör både och. Den här sidan handlar om ett SLO:s sida **Monitorer**, under **Konfiguration** i dess sidomeny, och dess sida **Monitorregler**, under **Regler**.
+Ett SLO mäter tillgängligheten hos de monitorer som är kopplade till det. Koppla dem för hand, låt monitorregler koppla varje monitor som matchar, eller gör både och. Den här sidan handlar om ett SLO:s sida **Monitorer**, under **Översikt** i dess sidomeny, och dess sida **Monitorregler**, under **Regler**.
 
 :::cards
 - [Välj monitorer för hand](#koppla-monitorer-för-hand): Bäst för en liten, fast uppsättning.

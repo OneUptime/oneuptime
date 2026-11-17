@@ -499,7 +499,7 @@ Trois problèmes amont encore ouverts façonnent tout cela, et le projet a aussi
 
 ## Bare metal
 
-Si votre cloud exécute Ironic, il obtient une section **Bare Metal** avec chaque nœud qu'Ironic montre à l'identifiant : où il en est dans la machine à états d'Ironic, son alimentation, si quelqu'un l'a mis en maintenance et pourquoi, sa classe de ressource, et la dernière fois qu'Ironic l'a vu bouger. Un cloud sans Ironic n'a pas cette section, aucune alerte à ce sujet et aucune ligne sur aucune page.
+Si votre cloud exécute Ironic, sa section **Calcul** obtient une page **Bare Metal** avec chaque nœud qu'Ironic montre à l'identifiant : où il en est dans la machine à états d'Ironic, son alimentation, si quelqu'un l'a mis en maintenance et pourquoi, sa classe de ressource, et la dernière fois qu'Ironic l'a vu bouger. Un cloud sans Ironic n'a pas cette page, aucune alerte à ce sujet et aucune ligne sur aucune page.
 
 Un nœud n'est pas un hyperviseur, même si Nova et Placement le listent tous deux comme tel sous son UUID ; il n'est donc pas compté comme un endroit où exécuter une machine virtuelle. Le nombre de nœuds de chaque classe de ressource qui pourraient accueillir une instance figure sur la page Bare Metal, pour les nœuds qu'Ironic montre à cet identifiant, et sur la page [Capacité](#capacité), pour chaque nœud que détient Placement.
 

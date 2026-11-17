@@ -183,7 +183,7 @@ Twilio reads the messages out with a text-to-speech voice, so write them as you 
 
 ## Call logs
 
-Every call is listed on the policy's **Call Logs** page, under **Logs** in its side menu: the **Caller**, the **Number Called**, its **Status**, who answered it (**Answered By**), the **Duration**, and when it **Started At**. Click **View Timeline** on a call to see its **Call Timeline**: every person who was rung, on which number, and how each attempt ended.
+Every call is listed on the policy's **Call Logs** page, under **Basic** in its side menu: the **Caller**, the **Number Called**, its **Status**, who answered it (**Answered By**), the **Duration**, and when it **Started At**. Click **View Timeline** on a call to see its **Call Timeline**: every person who was rung, on which number, and how each attempt ended.
 
 | Status | What happened |
 | --- | --- |

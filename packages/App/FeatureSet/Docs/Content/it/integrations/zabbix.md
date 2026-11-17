@@ -293,7 +293,7 @@ Per inviare alcuni problemi al modello per gli incidenti e altri a quello per gl
 ## Provarlo
 
 1. In Zabbix, apri **Alerts → Media types** e fai clic su **Test** accanto a `OneUptime`. Inserisci l'URL che hai copiato e valori di esempio come `event_id` `12345`, `event_name` `Test problem`, `host` `web-1`, `event_nseverity` `4` e `event_value` `1`. Fai clic su **Test**: Zabbix mostra la risposta dello script, `OK`, o l'errore che ha generato.
-2. In OneUptime, apri **Log → Esecuzioni** del flusso di lavoro e controlla l'esecuzione, oppure apri il monitor e verifica che si sia aperto un incidente.
+2. In OneUptime, apri **Esecuzioni** del flusso di lavoro e controlla l'esecuzione, oppure apri il monitor e verifica che si sia aperto un incidente.
 3. Prova di nuovo con `event_value` `0` e lo stesso `event_id`. L'incidente viene risolto.
 
 Poi lascia scattare un trigger reale, ad esempio abbassando per un momento una soglia, e osserva il problema arrivare. Per provare un aggiornamento, riconosci il problema in Zabbix con un messaggio: l'incidente riceve una nota privata e viene riconosciuto.
@@ -320,12 +320,12 @@ Apri il tipo di media e usa **Test**: Zabbix mostra il risultato dello script o 
 
 :::details Gli incidenti si aprono ma non vengono mai risolti
 - L'azione ha bisogno di **Recovery operations**, altrimenti Zabbix non invia mai il rientro.
-- Con il modello, apri **Log → Esecuzioni** del flusso di lavoro e l'esecuzione del rientro: il suo ultimo passo dice perché. Il rientro di un problema che non ha aperto alcun incidente non cambia nulla.
+- Con il modello, apri **Esecuzioni** del flusso di lavoro e l'esecuzione del rientro: il suo ultimo passo dice perché. Il rientro di un problema che non ha aperto alcun incidente non cambia nulla.
 - Con il monitor, l'incidente del criterio ha bisogno di **Risoluzione automatica dell'incidente**, in **Altri campi**. **Field that signals recovery** deve essere `requestBody.status`, e **Value that means recovered** esattamente `0`.
 :::
 
 :::details Il problema di Zabbix non viene riconosciuto né chiuso
-Apri l'esecuzione del modello di stato in **Log → Esecuzioni**: il suo ultimo passo dice cosa ha risposto Zabbix.
+Apri l'esecuzione del modello di stato in **Esecuzioni**: il suo ultimo passo dice cosa ha risposto Zabbix.
 
 - `Not authorized`: il token API è errato, scaduto o disattivato, oppure Zabbix è precedente alla 6.4 (vedi [Su Zabbix 6.0](#su-zabbix-60)).
 - `Cannot close problem: trigger does not allow manual closing`: attiva **Allow manual close** sul trigger. Il modello già riconosce questi problemi invece di chiuderli.
@@ -334,7 +334,7 @@ Apri l'esecuzione del modello di stato in **Log → Esecuzioni**: il suo ultimo 
 :::
 
 :::details L'incidente mostra un riferimento invece di un valore
-Un riferimento a un campo che la richiesta non ha viene lasciato così com'è scritto, parentesi graffe comprese, invece di essere svuotato. Verifica che Zabbix invii `Content-Type: application/json` e che i nomi di campo che usi (`name`, `host`, `severity`, `status`, `event_id`) corrispondano al payload dello script. Per un flusso di lavoro, apri l'esecuzione in **Log → Esecuzioni** e confrontala con ciò che il trigger ha ricevuto. Vedi [Insidie](/docs/workflows/variables#trappole).
+Un riferimento a un campo che la richiesta non ha viene lasciato così com'è scritto, parentesi graffe comprese, invece di essere svuotato. Verifica che Zabbix invii `Content-Type: application/json` e che i nomi di campo che usi (`name`, `host`, `severity`, `status`, `event_id`) corrispondano al payload dello script. Per un flusso di lavoro, apri l'esecuzione in **Esecuzioni** e confrontala con ciò che il trigger ha ricevuto. Vedi [Insidie](/docs/workflows/variables#trappole).
 :::
 
 :::details Ogni problema arriva due volte

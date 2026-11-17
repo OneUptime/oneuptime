@@ -146,7 +146,7 @@ Båda händelserna måste ha exakt samma `dedup_key`. Kontrollera att båda inne
 :::
 
 :::details Arbetsflödet körs aldrig
-Kontrollera att det är påslaget: **Aktiverad**, högst upp i dess **Byggare**. Öppna sedan **Loggar → Körningar**: en körning som tog **Nej**-sidan av **Om / Annars**-blocket är en uppdatering som inte var en lösning.
+Kontrollera att det är påslaget: **Aktiverad**, högst upp i dess **Byggare**. Öppna sedan **Körningar**: en körning som tog **Nej**-sidan av **Om / Annars**-blocket är en uppdatering som inte var en lösning.
 :::
 
 :::details PagerDuty visar en referens i stället för ett värde

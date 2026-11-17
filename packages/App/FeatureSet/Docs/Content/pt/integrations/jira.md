@@ -125,11 +125,11 @@ Uma **conta de serviço** da Atlassian também funciona. Um administrador da org
 :::steps
 1. Abra **Fluxos de trabalho → Criar fluxo de trabalho**. Em **Ou começar a partir de um modelo**, escolha **Jira** na lista de categorias, ou digite `Jira` em **Pesquisar modelos…**, e clique no modelo que você quer. Ele se abre e mostra o que faz e as configurações que vai pedir. Clique em **Usar este modelo**.
 2. **Nome** é preenchido a partir do modelo. Mude-o se quiser.
-3. **Configurar** pede os valores acima. Eles são salvos como variáveis próprias do workflow, em **Variáveis do fluxo** no menu dele. O token de API é salvo como segredo: ele é ocultado em **Registros → Execuções** e só vai no cabeçalho `Authorization` das chamadas ao Jira.
+3. **Configurar** pede os valores acima. Eles são salvos como variáveis próprias do workflow, em **Variáveis do fluxo** no menu dele. O token de API é salvo como segredo: ele é ocultado em **Execuções** e só vai no cabeçalho `Authorization` das chamadas ao Jira.
 4. Clique em **Criar fluxo de trabalho**. Todo workflow é criado desativado: ative **Habilitado** no topo do **Construtor** dele.
 :::
 
-Comece com **Create a Jira issue when an incident is declared**, ou com **Create a Jira issue when an alert is created** para os alertas: todo outro modelo OneUptime → Jira do mesmo tipo encontra o item pela etiqueta que este adiciona. Ative-o, declare um incidente de teste ou crie um alerta de teste, e abra **Registros → Execuções** do workflow. A execução deve terminar como **Executado**, e o **Corpo da Resposta** da sua última etapa, `create-issue-1`, cita o novo item.
+Comece com **Create a Jira issue when an incident is declared**, ou com **Create a Jira issue when an alert is created** para os alertas: todo outro modelo OneUptime → Jira do mesmo tipo encontra o item pela etiqueta que este adiciona. Ative-o, declare um incidente de teste ou crie um alerta de teste, e abra **Execuções** do workflow. A execução deve terminar como **Executado**, e o **Corpo da Resposta** da sua última etapa, `create-issue-1`, cita o novo item.
 
 Cada workflow guarda a sua própria cópia desses valores. Quando você trocar o token, atualize `jiraBasicAuthToken` em **Variáveis do fluxo** em cada workflow do Jira que o pediu. Se o Jira mudar de endereço, atualize `jiraSiteUrl` e `jiraBaseUrl` da mesma forma.
 
@@ -180,7 +180,7 @@ Antes de confiar nisso:
 
 ### Verificar que funciona
 
-As **Etapas** de cada execução dizem o que o modelo fez, então abra a execução em **Registros → Execuções** e veja como ela terminou:
+As **Etapas** de cada execução dizem o que o modelo fez, então abra a execução em **Execuções** e veja como ela terminou:
 
 - **Executado**: ele fez o seu trabalho, e a última etapa cita o item, o incidente ou o alerta.
 - **Executado**, com a etapa **Verificar com JavaScript** em **Não**: ele ignorou o evento de propósito, e a etapa diz por quê: o item não está ligado a um registro desse tipo, a nota veio do Jira, o registro é privado ou não há status do Jira mapeado para o novo estado.
@@ -272,7 +272,7 @@ As notas privadas e os comentários de edição são marcados como internos pela
 
 - **Só o Jira Cloud.** Os modelos chamam a REST API v3 do Jira Cloud com autenticação Basic. O Data Center não tem v3 e aceita um token de acesso pessoal como `Bearer`, então cada bloco de API precisa das mudanças de [Jira Data Center](#jira-data-center): caminhos `/rest/api/2/...`, strings simples em vez de corpos em Atlassian Document Format, e o cabeçalho. Os blocos `find-issue-1` são os que mais mudam: o Data Center não tem `/search/jql`, então eles precisam fazer um `POST` para `/rest/api/2/search` no lugar.
 - **Os incidentes declarados a partir do Jira são discretos.** Eles são criados ocultos das suas páginas de status, sem avisar os assinantes das páginas de status, porque o texto de um item não foi escrito para clientes. Para mostrar um, ative **Visível na página de status** na página **Configurações** do incidente (veja [Manter um incidente fora da página de status](/docs/incidents/states-and-severities#manter-um-incidente-fora-da-página-de-status)), ou ative **Mostrar nas páginas de status**, em **Mais campos**, no bloco `incident-from-another-tool-1` do modelo.
-- **Os incidentes e alertas privados ficam no OneUptime.** Os modelos OneUptime → Jira os ignoram, e cada item ignorado é registrado em **Registros → Execuções**. Para enviá-los mesmo assim, defina `SYNC_PRIVATE_INCIDENTS` ou `SYNC_PRIVATE_ALERTS` como `true`. Tornar um registro privado depois interrompe a sincronização a partir daí, mas não retira o que o Jira já tem. Os modelos Jira → OneUptime não verificam isso, então comentários, edições e mudanças de status em um item ligado ainda chegam a um registro privado.
+- **Os incidentes e alertas privados ficam no OneUptime.** Os modelos OneUptime → Jira os ignoram, e cada item ignorado é registrado em **Execuções**. Para enviá-los mesmo assim, defina `SYNC_PRIVATE_INCIDENTS` ou `SYNC_PRIVATE_ALERTS` como `true`. Tornar um registro privado depois interrompe a sincronização a partir daí, mas não retira o que o Jira já tem. Os modelos Jira → OneUptime não verificam isso, então comentários, edições e mudanças de status em um item ligado ainda chegam a um registro privado.
 - **Nada volta para trás.** Reabrir um item do Jira não muda nada no OneUptime, e um status da categoria To Do não corresponde a nenhum estado. Veja [A ordem é uma restrição real](/docs/incidents/states-and-severities#a-ordem-é-uma-restrição-real-não-uma-preferência-de-exibição). Os modelos de transição também nunca movem um item para uma categoria de status anterior.
 - **Cada alerta ganha um item.** Exceto os alertas privados, o modelo de alertas que cria itens abre um para cada alerta, inclusive cada um que um monitor gera. [O que muda para os alertas](#o-que-muda-para-os-alertas) mostra como adicionar uma condição.
 - **Os primeiros segundos podem não encontrar o item.** A busca do Jira se atualiza um instante depois que um item muda, então uma nota, uma mudança de estado ou uma edição nos primeiros segundos depois que um registro é criado pode não encontrar o item novo e terminar com o aviso `No Jira issue is labelled …`. Essa execução não é repetida. O mesmo vale logo depois que um registro é criado a partir do Jira, até as etiquetas dele serem adicionadas.
@@ -336,7 +336,7 @@ Os tokens expiram depois de um ano por padrão e não se renovam. Para não ter 
    }
    ```
 
-4. Ative **Habilitado**, declare um incidente de teste e abra **Registros → Execuções**. A etapa `create-issue` mostra um `201` e um corpo com o `id`, a `key` e o `self` do novo item.
+4. Ative **Habilitado**, declare um incidente de teste e abra **Execuções**. A etapa `create-issue` mostra um `201` e um corpo com o `id`, a `key` e o `self` do novo item.
 :::
 
 A descrição parece pesada porque a API v3 do Jira Cloud aceita texto formatado em **Atlassian Document Format**, uma árvore de documento em vez de uma string. O corpo acima contém o menor documento válido: um parágrafo com um nó de texto. O mesmo vale para `environment` e para os campos personalizados de texto com várias linhas. Um bloco posterior lê a nova chave como `{{local.components.create-issue.returnValues.response-body.key}}`.
@@ -445,7 +445,7 @@ Ative-o e depois faça o Jira chamá-lo, a partir de uma regra de automação ou
 
    Com uma etiqueta em vez de um campo personalizado, envie `"labels": "{{issue.labels}}"` e extraia o ID com um bloco **Executar JavaScript personalizado**.
 
-4. Ative a regra e mova um item de teste para Done. Confira o log de auditoria da regra no Jira e **Registros → Execuções** no OneUptime.
+4. Ative a regra e mova um item de teste para Done. Confira o log de auditoria da regra no Jira e **Execuções** no OneUptime.
 
 Para ter certeza de que uma requisição vem da sua regra, adicione um segundo cabeçalho, `X-OneUptime-Secret`, com um valor que você inventar, e use nele a opção **Hide** da ação. No workflow, coloque um bloco **Se / Senão** antes da atualização: **Valor a verificar** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparação** **é igual a** e **Comparar com** o mesmo valor, guardado em uma variável global secreta.
 
@@ -513,7 +513,7 @@ Outras diferenças a prever:
 
 ## Solução de problemas
 
-Abra primeiro a etapa que falhou em **Registros → Execuções**. O Jira responde com um corpo JSON que diz o que ele recusou, e o bloco de API o guarda em `response-body`.
+Abra primeiro a etapa que falhou em **Execuções**. O Jira responde com um corpo JSON que diz o que ele recusou, e o bloco de API o guarda em `response-body`.
 
 :::details 401 Unauthorized
 Codifique `email:api_token` de novo com `printf`, não `echo`, e atualize o token: uma quebra de linha no final é a causa habitual. Depois verifique se a conta do token pode criar itens no projeto. No Data Center, verifique se você envia `Bearer`, não `Basic`. Na URL de um site do Cloud, credenciais erradas costumam se parecer mais com o caso seguinte.
@@ -540,7 +540,7 @@ O ID de transição não está aberto a partir do status atual do item. Busque `
 :::
 
 :::details O Jira mostra que a regra ou o webhook rodou, mas nada chega ao OneUptime
-Verifique a porta primeiro: o Jira só chama as portas permitidas dele. Depois envie você mesmo uma requisição para a URL do workflow com `curl` e procure-a em **Registros → Execuções**. Se a sua chega e a do Jira não, o problema está do lado do Jira. Se a execução está lá, mas foi recusada, verifique se o workflow está ativado.
+Verifique a porta primeiro: o Jira só chama as portas permitidas dele. Depois envie você mesmo uma requisição para a URL do workflow com `curl` e procure-a em **Execuções**. Se a sua chega e a do Jira não, o problema está do lado do Jira. Se a execução está lá, mas foi recusada, verifique se o workflow está ativado.
 :::
 
 :::details O workflow roda, mas o incidente não muda

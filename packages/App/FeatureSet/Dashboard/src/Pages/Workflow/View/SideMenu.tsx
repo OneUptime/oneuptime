@@ -52,19 +52,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Variable}
         />
-      </SideMenuSection>
 
-      {/*
-       * Runs sit in a Logs section of their own, right under the Builder, the
-       * same as in the Workflows menu: checking that a change worked is the
-       * next thing people do after making it, so the run history must not be
-       * filed under Advanced, which is about settings and deletion.
-       *
-       * Open on purpose. Logs sections start collapsed in other menus, where
-       * they hold records looked at now and then (notification logs, say);
-       * a workflow's runs are what it is checked by.
-       */}
-      <SideMenuSection title="Logs" defaultCollapsed={false}>
+        {/*
+         * Runs, right under the Builder's section and open: checking that a
+         * change worked is the next thing people do after making it. It was
+         * a section of its own, "Logs" (#9216).
+         */}
         <SideMenuItem
           link={{
             title: "Runs",

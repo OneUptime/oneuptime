@@ -33,22 +33,11 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           },
           icon: IconProp.Variable,
         },
-      ],
-    },
-    /*
-     * Runs get a Logs section of their own, open and second in the menu: the
-     * run history is where people go to check that a workflow worked, so it
-     * should not read as one more thing to build. The page keeps its old
-     * /workflows/logs URL, which the section's name now matches.
-     *
-     * Open on purpose. Logs sections start collapsed in other menus, where
-     * they hold records looked at now and then (notification logs, say);
-     * workflow runs are what workflows are checked by.
-     */
-    {
-      title: "Logs",
-      defaultCollapsed: false,
-      items: [
+        /*
+         * Runs, in the first section and open: the run history is where
+         * people go to check that a workflow worked. It was a section of its
+         * own, "Logs" (#9216). The page keeps its /workflows/logs URL.
+         */
         {
           link: {
             title: "Runs",

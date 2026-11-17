@@ -70,7 +70,7 @@ Apri **Prodotti** nella barra in alto e scegli **Flussi di lavoro**, in **Dashbo
 
 - **Flussi di lavoro** — l'elenco dei tuoi flussi di lavoro. Creane uno nuovo o aprine uno esistente.
 - **Variabili globali** — i valori condivisi da tutti i tuoi flussi di lavoro.
-- **Log → Esecuzioni** — la cronologia delle esecuzioni di tutti i flussi di lavoro del progetto.
+- **Esecuzioni** — la cronologia delle esecuzioni di tutti i flussi di lavoro del progetto.
 - **Impostazioni → Regole etichette** e **Regole del proprietario** — assegna automaticamente etichette e proprietari ai nuovi flussi di lavoro.
 - **Avanzato → Archiviato** — i flussi di lavoro che hai archiviato. Non vengono mai eseguiti e non compaiono nell'elenco; da qui puoi ripristinarli. Vedi [Archiviare un flusso di lavoro](/docs/workflows/configuration#archiviare-un-flusso-di-lavoro).
 - **Sviluppatori** — come gestire i flussi di lavoro con Terraform, l'API o un assistente IA.
@@ -80,7 +80,7 @@ Apri un singolo flusso di lavoro e il suo menu contiene:
 - **Panoramica** — nome, descrizione, etichette e l'interruttore **Abilitato**.
 - **Costruttore** — la tela su cui progetti il flusso di lavoro, con l'interruttore **Abilitato** in alto.
 - **Variabili del flusso** — i valori che valgono solo per questo flusso di lavoro.
-- **Log → Esecuzioni** — ogni esecuzione di questo flusso di lavoro, con i dettagli.
+- **Esecuzioni** — ogni esecuzione di questo flusso di lavoro, con i dettagli.
 - **Sviluppatori** — come gestire questo flusso di lavoro con Terraform, l'API o un assistente IA.
 - **Impostazioni** — duplicare, esportare e archiviare.
 - **Proprietari** — le persone e i team responsabili del flusso di lavoro.

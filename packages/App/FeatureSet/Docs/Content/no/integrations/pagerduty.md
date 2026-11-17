@@ -146,7 +146,7 @@ Begge hendelsene må ha nøyaktig den samme `dedup_key`. Sjekk at begge innholde
 :::
 
 :::details Arbeidsflyten kjører aldri
-Sjekk at den er slått på: **Aktivert**, øverst i dens **Bygger**. Åpne deretter **Logger → Kjøringer**: en kjøring som tok **Nei**-siden av **Hvis / Ellers**-blokken, er en oppdatering som ikke var en løsning.
+Sjekk at den er slått på: **Aktivert**, øverst i dens **Bygger**. Åpne deretter **Kjøringer**: en kjøring som tok **Nei**-siden av **Hvis / Ellers**-blokken, er en oppdatering som ikke var en løsning.
 :::
 
 :::details PagerDuty viser en referanse i stedet for en verdi

@@ -88,11 +88,10 @@ const UserViewSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.User,
         },
-      ],
-    },
-    {
-      title: "Membership",
-      items: [
+        /*
+         * The teams this person is on, with their profile. They had a
+         * Membership section of their own, for this one entry (#9216).
+         */
         {
           link: {
             title: "Teams",

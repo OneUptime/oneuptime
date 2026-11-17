@@ -133,7 +133,7 @@ OneUptime → Dynamics 365 템플릿은 직접 켜지 않는 한 **비공개 인
 4. **워크플로 생성**을 클릭합니다. 모든 워크플로는 꺼진 상태로 만들어집니다. **빌더** 상단에서 **활성화됨**을 켜세요.
 :::
 
-**Create a Dynamics 365 case when an incident is declared**(경고가라면 **Create a Dynamics 365 case when an alert is created**)로 시작하세요. 같은 종류의 다른 OneUptime → Dynamics 365 템플릿은 모두 이 템플릿이 쓰는 링크로 사례를 찾습니다. 템플릿을 켜고, 테스트 인시던트를 선언하거나 테스트 경고를 만든 다음, 워크플로의 **로그 → 실행 기록**을 엽니다. 실행은 **실행됨**으로 끝나야 하며, 마지막 단계 `create-case-1`의 **응답 본문**에 `CAS-01001-X1Y2Z3` 같은 새 사례의 `ticketnumber`가 들어 있습니다.
+**Create a Dynamics 365 case when an incident is declared**(경고가라면 **Create a Dynamics 365 case when an alert is created**)로 시작하세요. 같은 종류의 다른 OneUptime → Dynamics 365 템플릿은 모두 이 템플릿이 쓰는 링크로 사례를 찾습니다. 템플릿을 켜고, 테스트 인시던트를 선언하거나 테스트 경고를 만든 다음, 워크플로의 **실행 기록**을 엽니다. 실행은 **실행됨**으로 끝나야 하며, 마지막 단계 `create-case-1`의 **응답 본문**에 `CAS-01001-X1Y2Z3` 같은 새 사례의 `ticketnumber`가 들어 있습니다.
 
 ### Dynamics 365 → OneUptime 템플릿 연결하기
 
@@ -181,7 +181,7 @@ Dynamics 365 → OneUptime 템플릿(인시던트용 3개, 경고용 3개)은 [W
 
 ### 작동하는지 확인하기
 
-각 실행의 **단계**에 템플릿이 한 일이 나오므로, **로그 → 실행 기록**에서 실행을 열고 어떻게 끝났는지 보세요:
+각 실행의 **단계**에 템플릿이 한 일이 나오므로, **실행 기록**에서 실행을 열고 어떻게 끝났는지 보세요:
 
 - **실행됨**: 할 일을 마쳤고, 마지막 단계에 사례, 인시던트 또는 경고가 나옵니다.
 - **실행됨**이고 **JavaScript로 확인** 단계가 **아니오**로 감: 일부러 이벤트를 건너뛰었고, 그 단계가 이유를 알려 줍니다. 사례가 이 종류의 레코드에 연결되지 않았거나, 메모가 반대편에서 왔거나, 레코드가 비공개이거나, 새 상태가 사례를 종결하지 않는 경우입니다.
@@ -297,7 +297,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
    }
    ```
 
-5. **활성화됨**을 켜고 테스트 인시던트를 선언한 다음 **로그 → 실행 기록**을 엽니다. `create-case` 단계에 `201`과 새 `incidentid`, `ticketnumber`가 담긴 본문이 표시됩니다.
+5. **활성화됨**을 켜고 테스트 인시던트를 선언한 다음 **실행 기록**을 엽니다. `create-case` 단계에 `201`과 새 `incidentid`, `ticketnumber`가 담긴 본문이 표시됩니다.
 :::
 
 모든 사례에는 고객이 필요하므로 `customerid`는 필수입니다. 거래처나 연락처를 가리킬 수 있으므로 `customerid_account@odata.bind` 또는 `customerid_contact@odata.bind`를 철자 그대로 씁니다. `Prefer: return=representation`을 넣으면 응답이 사례 자체를 담은 `201`이 되므로, 다음 블록이 `{{local.components.create-case.returnValues.response-body.incidentid}}`를 읽을 수 있습니다. 이 헤더가 없으면 Dynamics 365는 본문 없이 `204`로 응답합니다.
@@ -399,7 +399,7 @@ Dataverse는 포트 80과 443만 호출하고, 응답을 60초 동안 기다리�
 
 ## 문제 해결
 
-먼저 **로그 → 실행 기록**에서 실패한 단계를 엽니다. 두 Microsoft 엔드포인트 모두 문제를 설명하는 JSON 본문으로 응답하며, API 블록은 이를 `response-body`에 보관합니다.
+먼저 **실행 기록**에서 실패한 단계를 엽니다. 두 Microsoft 엔드포인트 모두 문제를 설명하는 JSON 본문으로 응답하며, API 블록은 이를 `response-body`에 보관합니다.
 
 :::details AADSTS70011이 있는 400, 범위가 유효하지 않음
 범위가 환경 URL 뒤에 `/.default`를 붙인 값이 아닙니다. Power Platform 관리 센터에서 URL을 복사하고, 끝 슬래시와 `/api/data/...` 경로를 모두 빼세요.
@@ -434,7 +434,7 @@ Dataverse의 서비스 보호 한도는 임의의 5분 동안 사용자당 약 6
 :::
 
 :::details OneUptime에 아무것도 도착하지 않음
-`curl`로 웹훅 URL에 직접 요청을 보내고 **로그 → 실행 기록**에서 찾아보세요. 자신의 요청은 도착하는데 Dynamics 365의 요청이 도착하지 않는다면 앞단을 확인하세요. 흐름 자체의 실행 기록이나 Dataverse 웹훅의 실패한 System Jobs입니다.
+`curl`로 웹훅 URL에 직접 요청을 보내고 **실행 기록**에서 찾아보세요. 자신의 요청은 도착하는데 Dynamics 365의 요청이 도착하지 않는다면 앞단을 확인하세요. 흐름 자체의 실행 기록이나 Dataverse 웹훅의 실패한 System Jobs입니다.
 :::
 
 :::details 워크플로는 실행되는데 인시던트가 바뀌지 않음

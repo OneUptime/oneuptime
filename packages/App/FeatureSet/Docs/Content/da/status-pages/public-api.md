@@ -409,7 +409,7 @@ En fejl svarer med en statuskode og JSON-indhold, der fortæller hvorfor:
 
 - **RSS.** Hver statusside leverer `/rss`, et feed med dens hændelser, meddelelser og vedligeholdelseshændelser, hver dateret, som siden daterer den. Se [Det indlejrbare mærke og RSS-feedet](/docs/status-pages/index#det-indlejrbare-mærke-og-rss-feedet).
 - **llms.txt.** Ved siden af `/rss` leverer hver statusside `/llms.txt`, som viser AI-agenter vej til RSS-feedet og oversigtens JSON.
-- **MCP.** AI-agenter kan læse siden gennem OneUptimes MCP-server på `https://oneuptime.com/mcp`, uden API-nøgle, ved at angive sidens ID eller domæne som `statusPageIdOrDomain`. Den er slået til som standard; slå den fra med **Aktivér MCP-server** under **AI → MCP** i sidens sidemenu. Se [MCP-server](/docs/ai/mcp-server).
+- **MCP.** AI-agenter kan læse siden gennem OneUptimes MCP-server på `https://oneuptime.com/mcp`, uden API-nøgle, ved at angive sidens ID eller domæne som `statusPageIdOrDomain`. Den er slået til som standard; slå den fra med **Aktivér MCP-server** under **Avanceret → MCP** i sidens sidemenu. Se [MCP-server](/docs/ai/mcp-server).
 - **REST API'et.** Brug [OneUptime API'et](/docs/api-reference/api-reference) med en API-nøgle til at oprette eller ændre statussider, ressourcer, abonnenter og meddelelser.
 
 ## Næste trin

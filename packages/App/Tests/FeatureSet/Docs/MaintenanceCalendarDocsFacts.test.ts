@@ -212,19 +212,30 @@ function sortedPermissions(permissions: Array<Permission>): Array<Permission> {
 }
 
 describe("the calendar page", () => {
-  it("is a page of its own, in the side menu's Calendar section, beside the list on All Maintenance Events", () => {
+  it("is a page of its own, in the side menu's Overview section, beside the list on All Maintenance Events", () => {
     expect(PAGE).toContain(
-      "Open **Scheduled Maintenance → Maintenance Calendar**, in the **Calendar** section of the side menu. **All Maintenance Events** shows the same events as a list.",
+      "Open **Scheduled Maintenance → Maintenance Calendar**, in the **Overview** section of the side menu. **All Maintenance Events** shows the same events as a list.",
     );
 
-    const calendarSection: string = menuSection("Calendar");
+    /*
+     * It had a one-entry Calendar section of its own until #9216, and now
+     * sits last in Overview, after the lists.
+     */
+    expect(SIDE_MENU).not.toContain('title: "Calendar",');
 
-    expect(calendarSection).toContain('title: "Maintenance Calendar"');
-    expect(calendarSection).toContain(
+    const overviewSection: string = menuSection("Overview");
+
+    expect(overviewSection).toContain('title: "Maintenance Calendar"');
+    expect(overviewSection).toContain(
       "PageMap.SCHEDULED_MAINTENANCE_EVENTS_CALENDAR",
     );
-    // Open, like Overview: not one of the folded sections.
-    expect(calendarSection).not.toContain("defaultCollapsed");
+    expect(
+      overviewSection.indexOf('title: "Maintenance Calendar"'),
+    ).toBeGreaterThan(
+      overviewSection.indexOf('title: "Ongoing Maintenance Events"'),
+    );
+    // Open: Overview is not one of the folded sections.
+    expect(overviewSection).not.toContain("defaultCollapsed");
 
     expect(CALENDAR_PAGE).toContain('"Maintenance Calendar"');
     expect(CALENDAR_PAGE).toContain("view={ScheduledMaintenanceView.Calendar}");

@@ -183,7 +183,7 @@ Twilio læser beskederne op med en tekst-til-tale-stemme, så skriv dem, som du 
 
 ## Opkaldslogs
 
-Hvert opkald står på politikkens side **Opkaldslogs** under **Protokoller** i dens sidemenu: **Opkalder**, **Opkaldt nummer**, dets **Status**, hvem der besvarede det (**Besvaret af**), **Varighed**, og hvornår det startede (**Startet den**). Klik på **Vis tidslinje** ved et opkald for at se dets **Opkaldstidslinje**: hver person, der blev ringet til, på hvilket nummer, og hvordan hvert forsøg endte.
+Hvert opkald står på politikkens side **Opkaldslogs** under **Grundlæggende** i dens sidemenu: **Opkalder**, **Opkaldt nummer**, dets **Status**, hvem der besvarede det (**Besvaret af**), **Varighed**, og hvornår det startede (**Startet den**). Klik på **Vis tidslinje** ved et opkald for at se dets **Opkaldstidslinje**: hver person, der blev ringet til, på hvilket nummer, og hvordan hvert forsøg endte.
 
 | Status | Hvad der skete |
 | --- | --- |

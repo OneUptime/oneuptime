@@ -135,14 +135,13 @@ While you work it, write down what you learn as **Private Notes**, fill in its *
 | Side menu section | Pages                                                                                                          |
 | ----------------- | -------------------------------------------------------------------------------------------------------------- |
 | **Overview** | **Overview** and **State Timeline** |
-| **Investigation** | **Description**, **Root Cause**, **Remediation**, **Runbooks**, **Linked Incidents** |
+| **Investigation** | **Description**, **Root Cause**, **Remediation**, **Runbooks**, **Linked Incidents**, **Private Notes** |
 | **Team** | **On-Call Executions** and **Owners**: who was paged for the alert, and who owns it |
 | **Notifications**          | **Notification Logs** and **AI Logs**: every message sent about the alert, and everything AI did for it          |
-| **Notes**   | **Private Notes**                                                                                               |
 | **Developer**     | **Terraform**, **API**, **CLI** and **AI Assistants**: the alert managed from code                              |
 | **Advanced** | **Custom Fields**, **Settings**, **Audit Logs**, **Delete Alert** |
 
-**Overview**, **Investigation**, **Team** and **Notes** are open; the other sections start folded until you click them.
+**Overview**, **Investigation** and **Team** are open; the other sections start folded until you click them.
 
 - **Overview** — the header names the alert's **Owners**, teams first, beside its monitor and episode. Three tiles show when it was **Created** and by what, and how long it took to be acknowledged and resolved; how long it has lasted is the header's first fact. **What happened** leads the page — the alert's description and **Root cause** — then the **OneUptime AI** card, with **Ask OneUptime AI** at its foot, and the **Alert Feed** records everything that happened to the alert. When a monitor created the alert, **Evaluation details** under its root cause names the filters that matched and what each found, and **Show details** adds an excerpt of the response and the check itself. See [What an incident or alert keeps of the check](/docs/monitor/criteria-and-statuses#what-an-incident-or-alert-keeps-of-the-check). When a metrics monitor created the alert, its telemetry card charts the metrics the monitor watched around when the alert started, with the value the monitor compared them with drawn as a line and the alert's own moments marked: pick another time range, drag across a chart to zoom in, or change and add metrics right there, and its other tabs follow the same time range. When a log, trace or exception monitor created it, the card lists what the monitor's query found in the window it evaluated: pick another time range around the alert, or one of your own, and every tab follows, drag across the volume chart to zoom in, and **Reset** goes back to what the monitor saw. Beside them sit the **Affected Resources** card, the **Alert Details** card and the alert's measurements.
 - **State Timeline** — every state the alert has been in, when, and for how long. See [The state timeline](/docs/alerts/states-and-severities#the-state-timeline).

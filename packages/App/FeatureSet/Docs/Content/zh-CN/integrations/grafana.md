@@ -166,7 +166,7 @@ Grafana 发送 `Content-Type: application/json`，监视器需要它才能读取
 :::
 
 :::details 事件显示的是引用而不是值
-引用了通知中不存在的字段时，该引用会连同花括号按原样保留。请把字段名与 Grafana 发送的内容进行比较：对于工作流，请在 **日志 → 运行记录** 中打开这次运行，并与触发器收到的内容进行比较。
+引用了通知中不存在的字段时，该引用会连同花括号按原样保留。请把字段名与 Grafana 发送的内容进行比较：对于工作流，请在 **运行记录** 中打开这次运行，并与触发器收到的内容进行比较。
 :::
 
 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#故障排除) 指南涵盖了更多情况，它们同样适用于 Grafana 的通知。

@@ -125,11 +125,11 @@ flowchart TB
 :::steps
 1. 打开 **工作流 → 创建工作流**。在 **或者从模板开始** 下，从类别列表中选择 **Jira**，或者在 **搜索模板…** 中输入 `Jira`，然后点击你想要的模板。模板打开后会显示它的作用以及将要询问的设置。点击 **使用此模板**。
 2. **名称** 会根据模板自动填写。如果愿意，可以修改它。
-3. **配置** 会询问上面的这些值。它们保存为工作流自己的变量，位于工作流菜单的 **工作流变量** 下。API 令牌保存为密钥：它在 **日志 → 运行记录** 中会被隐藏，并且只会放进 Jira 调用的 `Authorization` 请求头。
+3. **配置** 会询问上面的这些值。它们保存为工作流自己的变量，位于工作流菜单的 **工作流变量** 下。API 令牌保存为密钥：它在 **运行记录** 中会被隐藏，并且只会放进 Jira 调用的 `Authorization` 请求头。
 4. 点击 **创建工作流**。每个工作流创建时都处于关闭状态：在它的 **生成器** 顶部打开 **已启用**。
 :::
 
-先从 **Create a Jira issue when an incident is declared** 开始，警报则从 **Create a Jira issue when an alert is created** 开始：同类的其他 OneUptime → Jira 模板都通过这个模板添加的标签找到问题。启用它，声明一个测试事件或创建一个测试警报，然后打开工作流的 **日志 → 运行记录**。这次运行应以 **已执行** 结束，其最后一步 `create-issue-1` 的 **响应主体** 会给出新问题。
+先从 **Create a Jira issue when an incident is declared** 开始，警报则从 **Create a Jira issue when an alert is created** 开始：同类的其他 OneUptime → Jira 模板都通过这个模板添加的标签找到问题。启用它，声明一个测试事件或创建一个测试警报，然后打开工作流的 **运行记录**。这次运行应以 **已执行** 结束，其最后一步 `create-issue-1` 的 **响应主体** 会给出新问题。
 
 每个工作流都保存这些值的独立副本。更换令牌时，请在每个询问过它的 Jira 工作流的 **工作流变量** 下更新 `jiraBasicAuthToken`。如果 Jira 换了地址，请用同样的方式更新 `jiraSiteUrl` 和 `jiraBaseUrl`。
 
@@ -180,7 +180,7 @@ project = OPS AND issuetype = Alert AND (labels is EMPTY OR labels != oneuptime)
 
 ### 检查是否正常工作
 
-每次运行的 **步骤** 都会说明模板做了什么，因此请在 **日志 → 运行记录** 中打开这次运行，看看它是如何结束的：
+每次运行的 **步骤** 都会说明模板做了什么，因此请在 **运行记录** 中打开这次运行，看看它是如何结束的：
 
 - **已执行**：完成了工作，最后一步会给出问题、事件或警报。
 - **已执行**，且 **用 JavaScript 检查** 步骤走了 **否**：有意跳过了该事件，该步骤会说明原因：问题没有关联到这类记录、备注来自 Jira、记录是私密的，或者新状态没有映射到任何 Jira 状态。
@@ -272,7 +272,7 @@ const STATE_TO_JIRA_STATUS = {
 
 - **仅限 Jira Cloud。** 模板使用 Basic 身份验证调用 Jira Cloud REST API v3。Data Center 没有 v3，并且以 `Bearer` 方式接受个人访问令牌，因此每个 API 块都需要 [Jira Data Center](#jira-data-center) 中的修改：`/rest/api/2/...` 路径、用纯字符串代替 Atlassian Document Format 主体，以及请求头。`find-issue-1` 块改动最大：Data Center 没有 `/search/jql`，因此它们必须改为向 `/rest/api/2/search` 发送 `POST`。
 - **从 Jira 声明的事件是安静的。** 它们创建时对状态页隐藏，也不通知状态页订阅者，因为问题的文本不是为客户写的。要显示某个事件，请在事件的 **设置** 页面打开 **在状态页面上可见**（参见 [不在状态页上显示事件](/docs/incidents/states-and-severities#让事件不出现在状态页上)），或者在模板的 `incident-from-another-tool-1` 块中打开 **更多字段** 下的 **在状态页面上显示**。
-- **私密事件和警报留在 OneUptime 中。** OneUptime → Jira 模板会跳过它们，每次跳过都会在 **日志 → 运行记录** 中注明。要照样发送，请把 `SYNC_PRIVATE_INCIDENTS` 或 `SYNC_PRIVATE_ALERTS` 设为 `true`。之后再把记录设为私密，会从那时起停止同步，但不会收回 Jira 已有的内容。Jira → OneUptime 模板不做检查，因此已关联问题上的评论、编辑和状态变更仍会到达私密记录。
+- **私密事件和警报留在 OneUptime 中。** OneUptime → Jira 模板会跳过它们，每次跳过都会在 **运行记录** 中注明。要照样发送，请把 `SYNC_PRIVATE_INCIDENTS` 或 `SYNC_PRIVATE_ALERTS` 设为 `true`。之后再把记录设为私密，会从那时起停止同步，但不会收回 Jira 已有的内容。Jira → OneUptime 模板不做检查，因此已关联问题上的评论、编辑和状态变更仍会到达私密记录。
 - **一切都不会往回走。** 重新打开 Jira 问题不会改变 OneUptime 中的任何内容，To Do 类别中的状态不映射到任何状态。参见 [顺序是真正的约束](/docs/incidents/states-and-severities#顺序是真正的约束而不是显示偏好)。转换模板也从不把问题移到更早的状态类别。
 - **每个警报都会得到一个问题。** 除私密警报外，警报的创建问题模板会为每个警报创建问题，包括监视器产生的每一个。[警报有何不同](#警报有何不同) 介绍了如何添加条件。
 - **最初几秒可能找不到问题。** Jira 的搜索会在问题变化后稍过片刻才跟上，因此在记录创建后最初几秒内发生的备注、状态变更或编辑，可能找不到新问题，并以 `No Jira issue is labelled …` 跳过结束。这样的运行不会重试。记录刚从 Jira 创建、标签尚未添加时也是如此。
@@ -336,7 +336,7 @@ Jira Cloud 接受由账户的电子邮件和 API 令牌编码在一起构成的 
    }
    ```
 
-4. 打开 **已启用**，声明一个测试事件，然后打开 **日志 → 运行记录**。`create-issue` 步骤会显示 `201`，以及包含新问题的 `id`、`key` 和 `self` 的响应主体。
+4. 打开 **已启用**，声明一个测试事件，然后打开 **运行记录**。`create-issue` 步骤会显示 `201`，以及包含新问题的 `id`、`key` 和 `self` 的响应主体。
 :::
 
 描述看起来很繁琐，是因为 Jira Cloud 的 v3 API 以 **Atlassian Document Format** 接受富文本，这是一棵文档树，而不是字符串。上面的主体包含最小的有效文档：一个只含一个文本节点的段落。`environment` 和多行文本自定义字段也是如此。后面的块用 `{{local.components.create-issue.returnValues.response-body.key}}` 读取新的问题键。
@@ -445,7 +445,7 @@ Jira 管理员也可以改为添加一个短文本自定义字段，例如命名
 
    如果用标签而不是自定义字段，请发送 `"labels": "{{issue.labels}}"`，并用一个 **运行自定义 JavaScript** 块把 ID 取出来。
 
-4. 启用规则，并把一个测试问题移到 Done。在 Jira 中查看规则的审计日志，在 OneUptime 中查看 **日志 → 运行记录**。
+4. 启用规则，并把一个测试问题移到 Done。在 Jira 中查看规则的审计日志，在 OneUptime 中查看 **运行记录**。
 
 为确保请求来自你的规则，请添加第二个请求头 `X-OneUptime-Secret`，值由你自己设定，并对它使用该操作的 **Hide** 选项。在工作流中，在更新之前放一个 **如果 / 否则** 块：**要检查的值** 为 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`，**比较** 为 **等于**，**比较对象** 为同一个值，保存在一个密钥全局变量中。
 
@@ -513,7 +513,7 @@ Webhook 可以带一个密钥，这时 Jira 会在 `X-Hub-Signature` 请求头�
 
 ## 故障排除
 
-先在 **日志 → 运行记录** 中打开失败的步骤。Jira 会以 JSON 主体回应，说明它拒绝了什么，API 块把它保存在 `response-body` 中。
+先在 **运行记录** 中打开失败的步骤。Jira 会以 JSON 主体回应，说明它拒绝了什么，API 块把它保存在 `response-body` 中。
 
 :::details 401 Unauthorized
 用 `printf`（不要用 `echo`）重新编码 `email:api_token` 并更新令牌：末尾的换行符是常见原因。然后检查令牌所属的账户能否在该项目中创建问题。在 Data Center 上，请检查你发送的是 `Bearer` 而不是 `Basic`。在 Cloud 站点 URL 上，错误的凭据更常表现为下一条中的情况。
@@ -540,7 +540,7 @@ Jira 正在限制你的调用速度。响应中带有以秒为单位的 `Retry-A
 :::
 
 :::details Jira 显示规则或 Webhook 已运行，但 OneUptime 什么也没收到
-先检查端口：Jira 只调用允许的端口。然后用 `curl` 自己向工作流的 URL 发送一个请求，并在 **日志 → 运行记录** 中查找它。如果你的请求到达了而 Jira 的没有，问题出在 Jira 一侧。如果运行存在但被拒绝，请检查工作流是否已启用。
+先检查端口：Jira 只调用允许的端口。然后用 `curl` 自己向工作流的 URL 发送一个请求，并在 **运行记录** 中查找它。如果你的请求到达了而 Jira 的没有，问题出在 Jira 一侧。如果运行存在但被拒绝，请检查工作流是否已启用。
 :::
 
 :::details 工作流运行了，但事件没有变化

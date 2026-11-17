@@ -12,8 +12,8 @@ Hver gang en arbeidsflyt kjører, lagrer OneUptime en oversikt over hva som skje
 
 | Side                                                 | Hva du ser                                                                                         |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Arbeidsflyter → Logger → Kjøringer**               | Hver kjøring av hver arbeidsflyt i prosjektet. Filtrer på arbeidsflytnavn, status og tid.          |
-| **Arbeidsflyt → Logger → Kjøringer**                 | Bare kjøringene til denne ene arbeidsflyten. Her finnes et filter **Kjøre-ID** i stedet for et arbeidsflytfilter. |
+| **Arbeidsflyter → Kjøringer**               | Hver kjøring av hver arbeidsflyt i prosjektet. Filtrer på arbeidsflytnavn, status og tid.          |
+| **Arbeidsflyt → Kjøringer**                 | Bare kjøringene til denne ene arbeidsflyten. Her finnes et filter **Kjøre-ID** i stedet for et arbeidsflytfilter. |
 | **Én enkelt kjøring**                                | Åpnes med knappen **Vis logger** på raden til en kjøring — selve radene er ikke klikkbare.         |
 
 Starter du en kjøring fra **Bygger**, åpnes den samme visningen **Arbeidsflytkjøring**, som allerede følger kjøringen, slik at du kan se den skje i stedet for å måtte lete etter den etterpå.

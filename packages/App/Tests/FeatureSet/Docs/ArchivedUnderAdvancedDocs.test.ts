@@ -116,13 +116,15 @@ describe("docs send readers to Archived through Advanced", () => {
     },
   );
 
-  it("the Workflows overview lists Advanced → Archived after Logs → Runs, in the Workflows menu's order", () => {
+  // Runs left its one-entry Logs section for the menu's first section (#9216).
+  it("the Workflows overview lists Advanced → Archived after Runs, in the Workflows menu's order", () => {
     const page: string = readPage("en/workflows/index.md");
-    const logs: number = page.indexOf("- **Logs → Runs**");
+    const runs: number = page.indexOf("- **Runs** — ");
     const archived: number = page.indexOf("- **Advanced → Archived**");
 
-    expect(logs).toBeGreaterThan(-1);
-    expect(archived).toBeGreaterThan(logs);
+    expect(runs).toBeGreaterThan(-1);
+    expect(archived).toBeGreaterThan(runs);
+    expect(page).not.toContain("**Logs → Runs**");
     expect(page).not.toMatch(/^- \*\*Archived\*\*/m);
   });
 

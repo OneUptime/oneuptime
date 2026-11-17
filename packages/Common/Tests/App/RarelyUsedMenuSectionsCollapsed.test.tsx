@@ -206,8 +206,12 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
   "Alerts",
   "Attention Required",
   "Episodes",
-  "Incidents",
-  "Incoming Calls",
+  /*
+   * "Incidents" and "Incoming Calls" left this list with the one-entry
+   * sections that held an incident episode's Member Incidents and the
+   * on-call menu's Incoming Call Policies: each now sits in a neighbouring
+   * section (#9216).
+   */
   "Monitors",
   /*
    * "More" left this list with the Status Pages menu's, the one menu that
@@ -219,11 +223,10 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
    */
   "Schedules",
   /*
-   * Scheduled maintenance's Maintenance Calendar, a page of its own under a
-   * section of its own, where maintenance is planned: the maintainer asked
-   * for it there, and it is opened as often as the list.
+   * "Calendar" left this list when scheduled maintenance's Maintenance
+   * Calendar moved into its open Overview section, beside the list it is
+   * opened as often as (#9216).
    */
-  "Calendar",
   /*
    * "Topology" left this list when the Network menu folded its Topology
    * section (the deeper wiring views and the hand-drawn links): Network's
@@ -239,17 +242,20 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
   /*
    * "Alert Notes", "Episode Notes" and "Timeline" left this list when the
    * alert, alert episode and maintenance event menus took an incident's
-   * sections: their notes are under Notes and their state timeline under
-   * Overview, as an incident's are.
+   * sections: their state timeline is under Overview, as an incident's is,
+   * and their private notes under Investigation (#9216).
    */
   "Infrastructure",
   "Investigation",
   "Members",
   "Members & Access",
-  "Membership",
+  /*
+   * "Membership" and "On-Call" left this list with the one-entry sections
+   * a user's and a team's menus had: a user's Teams and a team's On-Call
+   * Schedules are in Overview now (#9216).
+   */
   "Notes",
   "Observability",
-  "On-Call",
   "Operations",
   "Resolve",
   "Resources",
@@ -303,16 +309,11 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
  */
 const KEPT_OPEN_ON_PURPOSE: Readonly<Record<string, Record<string, string>>> = {
   /*
-   * A workflow's run history is how it is checked: the runs moved out of
-   * Advanced into a Logs section of their own precisely so that they are
-   * never folded away (WorkflowRunsLogsMenus.test.tsx).
+   * None today. The workflow menus' runs had an open "Logs" section of
+   * their own so they were never folded away; they now close the open
+   * Workflows and Basic sections instead (#9216), and stay on screen
+   * without an exception here (WorkflowRunsLogsMenus.test.tsx).
    */
-  "Dashboard/src/Pages/Workflow/SideMenu.tsx": {
-    Logs: "workflow runs are how workflows are checked, so they stay on screen",
-  },
-  "Dashboard/src/Pages/Workflow/View/SideMenu.tsx": {
-    Logs: "a workflow's runs are how it is checked, so they stay on screen",
-  },
 };
 
 const FEATURE_SETS_DIR: string = path.join(

@@ -16,8 +16,8 @@ export interface ComponentProps {
 }
 
 /*
- * An incoming call policy's menu reads like an on-call policy's: Basic,
- * Logs, Developer, then Advanced with Settings, Audit Logs and Delete
+ * An incoming call policy's menu reads like an on-call policy's: Basic
+ * (with its Call Logs), Developer, then Advanced with Settings, Audit Logs and Delete
  * Policy. It used to have a Danger Zone section for Delete Policy alone,
  * and a Documentation page that drew a manual of its own in the product -
  * the docs page (/docs/on-call/incoming-call-policy) is the one place for
@@ -52,21 +52,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.BarsArrowDown}
         />
-        <SideMenuItem
-          link={{
-            title: "Owners",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_OWNERS
-              ] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Team}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="Logs">
+        {/*
+         * The calls this policy answered, beside the rules that routed them.
+         * It was a section of its own, "Logs" (#9216).
+         */}
         <SideMenuItem
           link={{
             title: "Call Logs",
@@ -78,6 +67,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Logs}
+        />
+        <SideMenuItem
+          link={{
+            title: "Owners",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_OWNERS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Team}
         />
       </SideMenuSection>
 

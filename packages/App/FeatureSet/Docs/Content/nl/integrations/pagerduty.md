@@ -146,7 +146,7 @@ Beide gebeurtenissen moeten precies dezelfde `dedup_key` hebben. Controleer of b
 :::
 
 :::details De workflow draait nooit
-Controleer of hij aan staat: **Ingeschakeld**, bovenaan zijn **Bouwer**. Open daarna **Logboeken → Uitvoeringen**: een uitvoering die de **Nee**-kant van het **Als / Anders**-blok nam, is een update die geen oplossing was.
+Controleer of hij aan staat: **Ingeschakeld**, bovenaan zijn **Bouwer**. Open daarna **Uitvoeringen**: een uitvoering die de **Nee**-kant van het **Als / Anders**-blok nam, is een update die geen oplossing was.
 :::
 
 :::details PagerDuty toont een verwijzing in plaats van een waarde

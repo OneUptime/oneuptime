@@ -179,11 +179,8 @@ En episode du oppretter, har ingen grupperingsregel, så listen viser **Grupperi
 
 | Seksjon i sidemenyen | Sider                                                                       |
 | -------------------- | --------------------------------------------------------------------------- |
-| **Oversikt** | **Oversikt**, **Tilstandstidslinje** |
-| **Undersøkelse** | **Beskrivelse**, **Rotårsak**, **Utbedringsnotater** |
-| **Team** | **Eiere** |
-| **Varsler** | **Medlemsvarsler** |
-| **Notater** | **Private notater** |
+| **Oversikt** | **Oversikt**, **Tilstandstidslinje**, **Medlemsvarsler**, **Eiere** |
+| **Undersøkelse** | **Beskrivelse**, **Rotårsak**, **Utbedringsnotater**, **Private notater** |
 | **Utvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
 | **Avansert** | **Revisjonslogger**, **Slett episode** |
 

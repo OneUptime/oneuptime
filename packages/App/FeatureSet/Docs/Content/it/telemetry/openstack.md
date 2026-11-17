@@ -499,7 +499,7 @@ Tre issue upstream aperte determinano tutto questo, e il progetto ha anche [chie
 
 ## Bare metal
 
-Se il tuo cloud esegue Ironic, ottiene una sezione **Bare Metal** con ogni nodo che Ironic mostra alla credenziale: a che punto è nella macchina a stati di Ironic, la sua alimentazione, se qualcuno l'ha messo in manutenzione e perché, la sua resource class e quando Ironic l'ha visto muoversi l'ultima volta. Un cloud senza Ironic non ha questa sezione, né avvisi al riguardo, né una riga in alcuna pagina.
+Se il tuo cloud esegue Ironic, la sua sezione **Calcolo** ottiene una pagina **Bare Metal** con ogni nodo che Ironic mostra alla credenziale: a che punto è nella macchina a stati di Ironic, la sua alimentazione, se qualcuno l'ha messo in manutenzione e perché, la sua resource class e quando Ironic l'ha visto muoversi l'ultima volta. Un cloud senza Ironic non ha questa pagina, né avvisi al riguardo, né una riga in alcuna pagina.
 
 Un nodo non è un hypervisor, anche se Nova e Placement lo elencano entrambi come tale con il suo UUID, quindi non viene contato come un posto dove eseguire una macchina virtuale. Quanti nodi di ciascuna resource class potrebbero accogliere un'istanza lo trovi nella pagina Bare Metal, per i nodi che Ironic mostra a questa credenziale, e nella pagina [Capacità](#capacità), per ogni nodo che Placement contiene.
 

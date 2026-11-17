@@ -172,7 +172,9 @@ describe("the incident view side menu", () => {
 describe("the alert view side menu", () => {
   /*
    * An incident's sections, where an alert has pages for them: Linked
-   * Incidents sits where an incident's Linked Alerts does.
+   * Incidents sits where an incident's Linked Alerts does. Its only notes
+   * page, Private Notes, is in Investigation rather than a Notes section of
+   * one entry (#9216).
    */
   test("has an incident's sections", async () => {
     goTo(pageRoute(PageMap.ALERT_VIEW_INCIDENTS));
@@ -183,13 +185,12 @@ describe("the alert view side menu", () => {
       "Investigation",
       "Team",
       "Notifications",
-      "Notes",
       "Developer",
       "Advanced",
     ]);
   });
 
-  test("lists Linked Incidents at the end of Investigation", async () => {
+  test("lists Linked Incidents after Runbooks in Investigation, then Private Notes (#9216)", async () => {
     goTo(pageRoute(PageMap.ALERT_VIEW));
     await renderMenu(<AlertSideMenu modelId={MODEL_ID} />);
 
@@ -200,6 +201,7 @@ describe("the alert view side menu", () => {
         { title: "Remediation", page: PageMap.ALERT_VIEW_REMEDIATION },
         { title: "Runbooks", page: PageMap.ALERT_VIEW_RUNBOOKS },
         { title: "Linked Incidents", page: PageMap.ALERT_VIEW_INCIDENTS },
+        { title: "Private Notes", page: PageMap.ALERT_VIEW_INTERNAL_NOTE },
       ]),
     );
   });

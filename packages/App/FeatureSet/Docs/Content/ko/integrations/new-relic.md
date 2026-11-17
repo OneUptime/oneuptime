@@ -151,7 +151,7 @@ curl -X POST "<url>" \
 
 `New Relic: High CPU on checkout-service`라는 제목의 인시던트가 열리고, 선택한 온콜 정책이 호출됩니다. `isAcknowledged`를 `true`로 설정해 같은 요청을 보내면 인시던트가 인지됩니다. `state`를 `CLOSED`로 설정해 보내면 인시던트가 해결됩니다.
 
-그런 다음 New Relic에서 테스트합니다. 워크플로의 웹훅 메시지를 열고 **Send test notification**을 클릭합니다. 도착했는지 확인하려면 OneUptime 워크플로의 **로그 → 실행 기록**을 엽니다.
+그런 다음 New Relic에서 테스트합니다. 워크플로의 웹훅 메시지를 열고 **Send test notification**을 클릭합니다. 도착했는지 확인하려면 OneUptime 워크플로의 **실행 기록**을 엽니다.
 
 ## 문제 해결
 
@@ -162,7 +162,7 @@ curl -X POST "<url>" \
 :::
 
 :::details 워크플로는 실행되지만 아무것도 열지 않음
-**로그 → 실행 기록**에서 실행을 엽니다. **단계**의 `read-event-1` 항목에 **아니오**로 간 이유가 나옵니다.
+**실행 기록**에서 실행을 엽니다. **단계**의 `read-event-1` 항목에 **아니오**로 간 이유가 나옵니다.
 
 - `New Relic named no issue ID`: 페이로드에 `"id": {{ json issueId }},` 줄을 유지합니다.
 - `is in no state`: 페이로드에 `"state": {{ json state }},` 줄을 유지합니다.
@@ -175,7 +175,7 @@ curl -X POST "<url>" \
 
 :::details 인시던트가 열리지만 해결되지 않음
 - New Relic의 워크플로에서 **Notify when** 아래의 **Closed**를 켜 두어야 합니다.
-- **로그 → 실행 기록**에서 닫힘의 실행을 엽니다. 마지막 단계에 이유가 나옵니다. 닫힘의 `id`는 이슈의 것과 같아야 하므로, 페이로드의 `"id": {{ json issueId }},`는 그대로 두세요.
+- **실행 기록**에서 닫힘의 실행을 엽니다. 마지막 단계에 이유가 나옵니다. 닫힘의 `id`는 이슈의 것과 같아야 하므로, 페이로드의 `"id": {{ json issueId }},`는 그대로 두세요.
 :::
 
 :::details 너무 많은 이슈에 온콜이 호출됨

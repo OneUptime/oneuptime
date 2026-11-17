@@ -125,11 +125,11 @@ Un **compte de service** Atlassian fonctionne aussi. Un administrateur de l'orga
 :::steps
 1. Ouvrez **Flux de travail → Créer un flux de travail**. Sous **Ou partir d'un modèle**, choisissez **Jira** dans la liste des catégories, ou tapez `Jira` dans **Rechercher des modèles…**, et cliquez sur le modèle voulu. Il s'ouvre et montre ce qu'il fait et les paramètres qu'il demandera. Cliquez sur **Utiliser ce modèle**.
 2. **Nom** est rempli à partir du modèle. Changez-le si vous le souhaitez.
-3. **Configurer** demande les valeurs ci-dessus. Elles sont enregistrées comme variables propres au flux de travail, sous **Variables de flux de travail** dans son menu. Le jeton d'API est enregistré comme secret : il est masqué dans **Journaux → Exécutions**, et ne va jamais que dans l'en-tête `Authorization` des appels à Jira.
+3. **Configurer** demande les valeurs ci-dessus. Elles sont enregistrées comme variables propres au flux de travail, sous **Variables de flux de travail** dans son menu. Le jeton d'API est enregistré comme secret : il est masqué dans **Exécutions**, et ne va jamais que dans l'en-tête `Authorization` des appels à Jira.
 4. Cliquez sur **Créer un flux de travail**. Chaque flux de travail est créé désactivé : activez **Activé** en haut de son **Constructeur**.
 :::
 
-Commencez par **Create a Jira issue when an incident is declared**, ou par **Create a Jira issue when an alert is created** pour les alertes : chaque autre modèle de OneUptime vers Jira du même genre retrouve le ticket grâce à l'étiquette que celui-ci ajoute. Activez-le, déclarez un incident de test ou créez une alerte de test, et ouvrez **Journaux → Exécutions** du flux de travail. L'exécution devrait se terminer avec **Exécuté**, et le **Corps de la réponse** de sa dernière étape, `create-issue-1`, nomme le nouveau ticket.
+Commencez par **Create a Jira issue when an incident is declared**, ou par **Create a Jira issue when an alert is created** pour les alertes : chaque autre modèle de OneUptime vers Jira du même genre retrouve le ticket grâce à l'étiquette que celui-ci ajoute. Activez-le, déclarez un incident de test ou créez une alerte de test, et ouvrez **Exécutions** du flux de travail. L'exécution devrait se terminer avec **Exécuté**, et le **Corps de la réponse** de sa dernière étape, `create-issue-1`, nomme le nouveau ticket.
 
 Chaque flux de travail garde sa propre copie de ces valeurs. Quand vous remplacez le jeton, mettez à jour `jiraBasicAuthToken` sous **Variables de flux de travail** dans chaque flux de travail Jira qui l'a demandé. Si Jira change d'adresse, mettez à jour `jiraSiteUrl` et `jiraBaseUrl` de la même façon.
 
@@ -180,7 +180,7 @@ Avant de vous y fier :
 
 ### Vérifier que cela fonctionne
 
-Les **Étapes** de chaque exécution disent ce qu'a fait le modèle : ouvrez donc l'exécution dans **Journaux → Exécutions** et regardez comment elle s'est terminée :
+Les **Étapes** de chaque exécution disent ce qu'a fait le modèle : ouvrez donc l'exécution dans **Exécutions** et regardez comment elle s'est terminée :
 
 - **Exécuté** : il a fait son travail, et sa dernière étape nomme le ticket, l'incident ou l'alerte.
 - **Exécuté**, avec son étape **Vérifier avec JavaScript** sur **Non** : il a ignoré l'événement exprès, et l'étape dit pourquoi : le ticket n'est lié à aucun enregistrement de ce genre, la note vient de Jira, l'enregistrement est privé, ou aucun statut Jira ne correspond au nouvel état.
@@ -272,7 +272,7 @@ Les notes privées et les commentaires de modification sont marqués internes pa
 
 - **Jira Cloud uniquement.** Les modèles appellent l'API REST v3 de Jira Cloud avec l'authentification Basic. Data Center n'a pas de v3 et prend un jeton d'accès personnel en `Bearer`, donc chaque bloc d'API a besoin des changements décrits dans [Jira Data Center](#jira-data-center) : des chemins `/rest/api/2/...`, des chaînes simples au lieu de corps en Atlassian Document Format, et l'en-tête. Les blocs `find-issue-1` changent le plus : Data Center n'a pas de `/search/jql`, ils doivent donc faire un `POST` vers `/rest/api/2/search` à la place.
 - **Les incidents déclarés depuis Jira sont discrets.** Ils sont créés masqués de vos pages de statut, sans prévenir les abonnés des pages de statut, car le texte d'un ticket n'a pas été écrit pour des clients. Pour en afficher un, activez **Visible sur la page de statut** sur la page **Paramètres** de l'incident (voir [Garder un incident hors de la page de statut](/docs/incidents/states-and-severities#garder-un-incident-hors-de-la-page-de-statut)), ou activez **Afficher sur les pages de statut**, sous **Plus de champs**, dans le bloc `incident-from-another-tool-1` du modèle.
-- **Les incidents et alertes privés restent dans OneUptime.** Les modèles de OneUptime vers Jira les ignorent, et chaque saut le dit dans **Journaux → Exécutions**. Pour les envoyer quand même, réglez `SYNC_PRIVATE_INCIDENTS` ou `SYNC_PRIVATE_ALERTS` sur `true`. Rendre un enregistrement privé plus tard arrête la synchronisation à partir de ce moment, mais ne reprend pas ce que Jira a déjà. Les modèles de Jira vers OneUptime ne vérifient pas, donc les commentaires, modifications et changements de statut d'un ticket lié atteignent toujours un enregistrement privé.
+- **Les incidents et alertes privés restent dans OneUptime.** Les modèles de OneUptime vers Jira les ignorent, et chaque saut le dit dans **Exécutions**. Pour les envoyer quand même, réglez `SYNC_PRIVATE_INCIDENTS` ou `SYNC_PRIVATE_ALERTS` sur `true`. Rendre un enregistrement privé plus tard arrête la synchronisation à partir de ce moment, mais ne reprend pas ce que Jira a déjà. Les modèles de Jira vers OneUptime ne vérifient pas, donc les commentaires, modifications et changements de statut d'un ticket lié atteignent toujours un enregistrement privé.
 - **Rien ne recule.** Rouvrir un ticket Jira ne change rien dans OneUptime, et un statut de la catégorie To Do ne correspond à aucun état. Voir [L'ordre est une vraie contrainte](/docs/incidents/states-and-severities#lordre-est-une-vraie-contrainte-pas-une-préférence-daffichage). Les modèles de transition ne font jamais non plus passer un ticket à une catégorie de statut antérieure.
 - **Chaque alerte reçoit un ticket.** Hormis les alertes privées, le modèle d'alerte qui crée un ticket en crée un pour chaque alerte, y compris chacune de celles qu'un moniteur lève. [Ce qui change pour les alertes](#ce-qui-change-pour-les-alertes) montre comment ajouter une condition.
 - **Les premières secondes peuvent manquer le ticket.** La recherche de Jira se met à jour un instant après qu'un ticket change, donc une note, un changement d'état ou une modification dans les premières secondes après la création d'un enregistrement peut manquer le nouveau ticket et se terminer par le saut `No Jira issue is labelled …`. Cette exécution n'est pas relancée. Il en va de même juste après la création d'un enregistrement depuis Jira, jusqu'à l'ajout de ses étiquettes.
@@ -336,7 +336,7 @@ Les jetons expirent par défaut au bout d'un an et ne se renouvellent pas. Pour 
    }
    ```
 
-4. Activez **Activé**, déclarez un incident de test et ouvrez **Journaux → Exécutions**. L'étape `create-issue` affiche un `201` et un corps avec l'`id`, la `key` et le `self` du nouveau ticket.
+4. Activez **Activé**, déclarez un incident de test et ouvrez **Exécutions**. L'étape `create-issue` affiche un `201` et un corps avec l'`id`, la `key` et le `self` du nouveau ticket.
 :::
 
 La description paraît lourde, car l'API v3 de Jira Cloud prend le texte enrichi en **Atlassian Document Format**, un arbre de document plutôt qu'une chaîne. Le corps ci-dessus contient le plus petit document valide : un paragraphe avec un nœud de texte. Il en va de même pour `environment` et les champs personnalisés de texte multiligne. Un bloc suivant lit la nouvelle clé avec `{{local.components.create-issue.returnValues.response-body.key}}`.
@@ -445,7 +445,7 @@ Activez-le, puis faites-le appeler par Jira, depuis une règle d'automatisation 
 
    Avec une étiquette plutôt qu'un champ personnalisé, envoyez `"labels": "{{issue.labels}}"`, et extrayez l'ID avec un bloc **Exécuter du JavaScript personnalisé**.
 
-4. Activez la règle et faites passer un ticket de test à Done. Vérifiez le journal d'audit de la règle dans Jira, et **Journaux → Exécutions** dans OneUptime.
+4. Activez la règle et faites passer un ticket de test à Done. Vérifiez le journal d'audit de la règle dans Jira, et **Exécutions** dans OneUptime.
 
 Pour être sûr qu'une requête vient de votre règle, ajoutez un second en-tête, `X-OneUptime-Secret`, avec une valeur que vous inventez, et utilisez l'option **Hide** de l'action sur cet en-tête. Dans le flux de travail, placez un bloc **Si / Sinon** avant la mise à jour : **Valeur à vérifier** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparaison** **est égal à** et **Comparer avec** la même valeur, gardée dans une variable globale secrète.
 
@@ -513,7 +513,7 @@ Autres différences à prévoir :
 
 ## Dépannage
 
-Ouvrez d'abord l'étape en échec dans **Journaux → Exécutions**. Jira répond avec un corps JSON qui nomme ce qu'il a refusé, et le bloc d'API le garde dans `response-body`.
+Ouvrez d'abord l'étape en échec dans **Exécutions**. Jira répond avec un corps JSON qui nomme ce qu'il a refusé, et le bloc d'API le garde dans `response-body`.
 
 :::details 401 Unauthorized
 Encodez de nouveau `email:api_token` avec `printf`, pas `echo`, et mettez à jour le jeton : un saut de ligne final est la cause habituelle. Vérifiez ensuite que le compte du jeton peut créer des tickets dans le projet. Sur Data Center, vérifiez que vous envoyez `Bearer`, pas `Basic`. Sur l'URL d'un site Cloud, des identifiants erronés ressemblent plus souvent au cas suivant.
@@ -540,7 +540,7 @@ L'ID de transition n'est pas ouvert depuis le statut actuel du ticket. Récupér
 :::
 
 :::details Jira montre que la règle ou le webhook s'est exécuté, mais rien n'atteint OneUptime
-Vérifiez d'abord le port : Jira n'appelle que ses ports autorisés. Envoyez ensuite vous-même une requête à l'URL du flux de travail avec `curl`, et cherchez-la dans **Journaux → Exécutions**. Si la vôtre arrive et pas celle de Jira, le problème est du côté de Jira. Si l'exécution est là mais refusée, vérifiez que le flux de travail est activé.
+Vérifiez d'abord le port : Jira n'appelle que ses ports autorisés. Envoyez ensuite vous-même une requête à l'URL du flux de travail avec `curl`, et cherchez-la dans **Exécutions**. Si la vôtre arrive et pas celle de Jira, le problème est du côté de Jira. Si l'exécution est là mais refusée, vérifiez que le flux de travail est activé.
 :::
 
 :::details Le flux de travail s'exécute, mais l'incident ne change pas

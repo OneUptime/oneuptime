@@ -107,10 +107,9 @@ Sidemenyen til et runbook grupperer sidene slik. Bare **Grunnleggende** er åpen
 | Seksjon | Sider |
 | --- | --- |
 | **Grunnleggende** | **Oversikt**, **Trinn** |
-| **Logger** | **Kjøringer** |
 | **Innstillinger** | **Utløsere**, **Variabler**, **Innstillinger** |
 | **Utvikler** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
-| **Avansert** | **Eiere**, **Revisjonslogger**, **Slett kjørebok** |
+| **Avansert** | **Kjøringer**, **Eiere**, **Revisjonslogger**, **Slett kjørebok** |
 
 ## Et gjennomgått eksempel
 

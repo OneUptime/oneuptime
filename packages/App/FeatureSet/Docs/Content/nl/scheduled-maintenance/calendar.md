@@ -21,7 +21,7 @@ flowchart TB
 
 ## De agendapagina
 
-Open **Gepland onderhoud → Onderhoudsagenda**, in het onderdeel **Agenda** van het zijmenu. **Alle onderhoudsgebeurtenissen** toont dezelfde gebeurtenissen als lijst.
+Open **Gepland onderhoud → Onderhoudsagenda**, in het onderdeel **Overzicht** van het zijmenu. **Alle onderhoudsgebeurtenissen** toont dezelfde gebeurtenissen als lijst.
 
 - De agenda opent op deze maand, met vandaag gemarkeerd. **Maand**, **Week** en **Dag** bepalen hoeveel hij toont; blader met de pijlen en ga terug met **Vandaag**. De tijden staan in je eigen tijdzone.
 - Elke gebeurtenis is een blok in de kleur van haar status, en de kleuren van de statussen staan onder de agenda. Klik op een gebeurtenis om haar te openen.
