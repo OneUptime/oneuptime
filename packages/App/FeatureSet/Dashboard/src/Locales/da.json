@@ -56511,5 +56511,9 @@
   "Everyone with access to the repository can see this pull request, with the change and its description.": "Alle med adgang til repositoriet kan se denne pull request med ændringen og dens beskrivelse.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Alle med adgang til repositoriet kan se denne pull request med ændringen og dens beskrivelse. Denne private advarsel nævnes ikke i den.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Alle med adgang til repositoriet kan se denne pull request med ændringen og dens beskrivelse. Denne private hændelse nævnes ikke i den.",
-  "Only someone who may approve fixes can open this pull request.": "Kun en, der må godkende rettelser, kan åbne denne pull request."
+  "Only someone who may approve fixes can open this pull request.": "Kun en, der må godkende rettelser, kan åbne denne pull request.",
+  "AI reads the alert as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "AI læser advarslen, som den er nu: status, beskrivelse og grundårsag. Hvis den er privat, vises denne opgave kun for dem, der kan se den.",
+  "AI reads the incident as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "AI læser hændelsen, som den er nu: status, beskrivelse og grundårsag. Hvis den er privat, vises denne opgave kun for dem, der kan se den.",
+  "Carried Alert IDs": "Id'er for medtagne advarsler",
+  "Carried Incident IDs": "Id'er for medtagne hændelser"
 }

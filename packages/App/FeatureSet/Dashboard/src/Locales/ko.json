@@ -56511,5 +56511,9 @@
   "Everyone with access to the repository can see this pull request, with the change and its description.": "저장소에 접근할 수 있는 모든 사람이 이 풀 리퀘스트의 변경 내용과 설명을 볼 수 있습니다.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "저장소에 접근할 수 있는 모든 사람이 이 풀 리퀘스트의 변경 내용과 설명을 볼 수 있습니다. 이 비공개 경고는 언급되지 않습니다.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "저장소에 접근할 수 있는 모든 사람이 이 풀 리퀘스트의 변경 내용과 설명을 볼 수 있습니다. 이 비공개 인시던트는 언급되지 않습니다.",
-  "Only someone who may approve fixes can open this pull request.": "수정을 승인할 수 있는 사람만 이 풀 리퀘스트를 열 수 있습니다."
+  "Only someone who may approve fixes can open this pull request.": "수정을 승인할 수 있는 사람만 이 풀 리퀘스트를 열 수 있습니다.",
+  "AI reads the alert as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "AI가 경고의 현재 상태, 설명, 근본 원인을 읽습니다. 비공개인 경우 이 작업은 해당 경고를 볼 수 있는 사용자에게만 표시됩니다.",
+  "AI reads the incident as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "AI가 인시던트의 현재 상태, 설명, 근본 원인을 읽습니다. 비공개인 경우 이 작업은 해당 인시던트를 볼 수 있는 사용자에게만 표시됩니다.",
+  "Carried Alert IDs": "포함된 경고 ID",
+  "Carried Incident IDs": "포함된 인시던트 ID"
 }

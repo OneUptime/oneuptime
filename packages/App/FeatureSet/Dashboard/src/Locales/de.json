@@ -56511,5 +56511,9 @@
   "Everyone with access to the repository can see this pull request, with the change and its description.": "Alle mit Zugriff auf das Repository sehen diesen Pull Request, mit der Änderung und ihrer Beschreibung.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Alle mit Zugriff auf das Repository sehen diesen Pull Request, mit der Änderung und ihrer Beschreibung. Diese private Warnung wird darin nicht erwähnt.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Alle mit Zugriff auf das Repository sehen diesen Pull Request, mit der Änderung und ihrer Beschreibung. Dieser private Vorfall wird darin nicht erwähnt.",
-  "Only someone who may approve fixes can open this pull request.": "Nur wer Korrekturen genehmigen darf, kann diesen Pull Request eröffnen."
+  "Only someone who may approve fixes can open this pull request.": "Nur wer Korrekturen genehmigen darf, kann diesen Pull Request eröffnen.",
+  "AI reads the alert as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "Die KI liest die Warnung, wie sie jetzt ist: Status, Beschreibung und Grundursache. Ist sie privat, wird diese Aufgabe nur den Personen angezeigt, die sie sehen können.",
+  "AI reads the incident as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "Die KI liest den Vorfall, wie er jetzt ist: Status, Beschreibung und Grundursache. Ist er privat, wird diese Aufgabe nur den Personen angezeigt, die ihn sehen können.",
+  "Carried Alert IDs": "IDs mitgeführter Warnungen",
+  "Carried Incident IDs": "IDs mitgeführter Vorfälle"
 }

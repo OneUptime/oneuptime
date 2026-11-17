@@ -56511,5 +56511,9 @@
   "Everyone with access to the repository can see this pull request, with the change and its description.": "所有有权访问存储库的人都可以看到此拉取请求，包括更改及其描述。",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "所有有权访问存储库的人都可以看到此拉取请求，包括更改及其描述。其中不会提及此私密警报。",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "所有有权访问存储库的人都可以看到此拉取请求，包括更改及其描述。其中不会提及此私密事件。",
-  "Only someone who may approve fixes can open this pull request.": "只有可以批准修复的人才能打开此拉取请求。"
+  "Only someone who may approve fixes can open this pull request.": "只有可以批准修复的人才能打开此拉取请求。",
+  "AI reads the alert as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "AI 会读取警报的当前状态、描述和根本原因。如果该警报是私密的，此任务仅对能查看该警报的人显示。",
+  "AI reads the incident as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "AI 会读取事件的当前状态、描述和根本原因。如果该事件是私密的，此任务仅对能查看该事件的人显示。",
+  "Carried Alert IDs": "包含的警报 ID",
+  "Carried Incident IDs": "包含的事件 ID"
 }

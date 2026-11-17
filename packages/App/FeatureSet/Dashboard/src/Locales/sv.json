@@ -56511,5 +56511,9 @@
   "Everyone with access to the repository can see this pull request, with the change and its description.": "Alla med åtkomst till arkivet kan se den här pull requesten, med ändringen och dess beskrivning.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Alla med åtkomst till arkivet kan se den här pull requesten, med ändringen och dess beskrivning. Det här privata larmet nämns inte i den.",
   "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Alla med åtkomst till arkivet kan se den här pull requesten, med ändringen och dess beskrivning. Den här privata incidenten nämns inte i den.",
-  "Only someone who may approve fixes can open this pull request.": "Bara den som får godkänna åtgärder kan öppna den här pull requesten."
+  "Only someone who may approve fixes can open this pull request.": "Bara den som får godkänna åtgärder kan öppna den här pull requesten.",
+  "AI reads the alert as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "AI läser larmet som det är nu: status, beskrivning och grundorsak. Om det är privat visas den här uppgiften bara för dem som kan se det.",
+  "AI reads the incident as it is now: its state, description and root cause. If it is private, only those who can see it will see this task.": "AI läser incidenten som den är nu: status, beskrivning och grundorsak. Om den är privat visas den här uppgiften bara för dem som kan se den.",
+  "Carried Alert IDs": "ID:n för medtagna larm",
+  "Carried Incident IDs": "ID:n för medtagna incidenter"
 }
