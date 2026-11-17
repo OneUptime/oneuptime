@@ -190,6 +190,7 @@ import HashPresentedKeysForLookup from "./HashPresentedKeysForLookup";
 import SwitchOffRulesLimitedOnlyToDeletedRecords from "./SwitchOffRulesLimitedOnlyToDeletedRecords";
 import EncryptWebhookAddresses from "./EncryptWebhookAddresses";
 import EncryptSnmpCredentials from "./EncryptSnmpCredentials";
+import MoveLegacySnmpV3AuthToColumns from "./MoveLegacySnmpV3AuthToColumns";
 import MaskWebhookAddressesInLogs from "./MaskWebhookAddressesInLogs";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
@@ -761,9 +762,12 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new AddMissingIdsToMonitorSteps(),
   /*
-   * Encrypts the Twilio auth tokens that were stored as plaintext before the
-   * column became a secret. No ordering requirement, so it sits before the
-   * last slot AddAuditLogMcpClientColumns asserts for itself. Idempotent.
+   * The Twilio auth tokens that were stored as plaintext before the column
+   * became a secret: left as written at the upgrade, so a server of the
+   * release before reads them (#9266), and encrypted in place a day later by
+   * the CredentialsAtRest:EncryptInPlace job, which waits from when this
+   * ran. No ordering requirement, so it sits before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself. Idempotent.
    */
   new EncryptProjectCallSMSConfigTwilioAuthToken(),
   /*
@@ -1087,14 +1091,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new RestampDevicesOfMonitorsNotChecked(),
   /*
-   * Encrypts the server's credentials (GlobalConfig: SMTP, Twilio, the call
-   * and SMS gateway, Meta WhatsApp, Telegram, SendGrid, the Enterprise
-   * license) that were stored before their columns were encrypted (#7739).
+   * The server's credentials (GlobalConfig: SMTP, Twilio, the call and SMS
+   * gateway, Meta WhatsApp, Telegram, SendGrid, the Enterprise license) that
+   * were stored before their columns were encrypted (#7739): left as
+   * written at the upgrade, so a server of the release before reads them
+   * (#9266), and encrypted in place a day later by the
+   * CredentialsAtRest:EncryptInPlace job, which waits from when this ran.
    * After the schema migration GlobalConfigCredentialsEncryptedColumns,
-   * which makes room for the ciphertext; idempotent; it writes only the
-   * server's settings row, so it sits above the runbook migrations that
-   * keep their places before the last slot AddAuditLogMcpClientColumns
-   * asserts for itself.
+   * which makes room for the ciphertext; idempotent; it writes nothing, so
+   * it sits above the runbook migrations that keep their places before the
+   * last slot AddAuditLogMcpClientColumns asserts for itself.
    */
   new EncryptGlobalConfigCredentials(),
   /*
@@ -1222,19 +1228,23 @@ const DataMigrations: Array<DataMigrationBase> = [
   /*
    * The private keys of the certificates customers uploaded for their status
    * page, dashboard and form domains, stored as plaintext before the column
-   * was kept encrypted at rest and write-only: each encrypted in place, in
-   * raw SQL, only while it still holds the value read. Idempotent; a key not
-   * encrypted yet still reads as itself meanwhile. Before the last slot
+   * was kept encrypted at rest and write-only: left as written at the
+   * upgrade, so the ingress of the release before serves them (#9266), and
+   * encrypted in place a day later by the CredentialsAtRest:EncryptInPlace
+   * job, which waits from when this ran. Idempotent; a key not encrypted yet
+   * still reads as itself meanwhile. Before the last slot
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new EncryptUploadedCertificateKeys(),
   /*
    * The private keys of the free certificates ordered from Let's Encrypt
    * (AcmeCertificate.certificateKey), stored as plaintext before they were
-   * kept encrypted at rest: each encrypted in place, in raw SQL, only while
-   * it still holds the value read. Paged and idempotent; nginx serves a key
-   * not encrypted yet as itself meanwhile. The keys the Greenlock store kept
-   * are not encrypted: a schema migration drops its tables first
+   * kept encrypted at rest: left as written at the upgrade, so the ingress
+   * of the release before serves them (#9266), and encrypted in place a day
+   * later by the CredentialsAtRest:EncryptInPlace job, which waits from when
+   * this ran. Paged and idempotent; nginx serves a key not encrypted yet as
+   * itself meanwhile. The keys the Greenlock store kept are not encrypted: a
+   * schema migration drops its tables first
    * (DropGreenlockTables1809182470000). Before the last slot
    * AddAuditLogMcpClientColumns asserts for itself.
    */
@@ -1270,11 +1280,13 @@ const DataMigrations: Array<DataMigrationBase> = [
    * kept encrypted at rest (#8989): its SMTP configs' passwords and OAuth
    * client secrets, its Slack, Microsoft Teams and Mattermost bot tokens
    * and its members' chat sign-in tokens, its code repositories' webhook
-   * secrets and its members' webhook signing secrets - each encrypted in
-   * place, in raw SQL, only while it still holds the value read. Paged and
-   * idempotent; a value not encrypted yet still reads as itself meanwhile.
-   * After RepairHashedStringEnvelopeSecrets, which unwraps the signing
-   * secrets a broken write wrapped, and before the last slot
+   * secrets and its members' webhook signing secrets - left as written at
+   * the upgrade, so a server of the release before sends with them (#9266),
+   * and encrypted in place a day later by the
+   * CredentialsAtRest:EncryptInPlace job, which waits from when this ran.
+   * Paged and idempotent; a value not encrypted yet still reads as itself
+   * meanwhile. After RepairHashedStringEnvelopeSecrets, which unwraps the
+   * signing secrets a broken write wrapped, and before the last slot
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new EncryptProjectCredentials(),
@@ -1292,11 +1304,12 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Teams and webhook subscribers', its members' webhook notification
    * methods', its OpenStack project notices' (and the copy each keeps of
    * the address its preview was of), and the installation's custom
-   * channels' addresses and signing secrets - each encrypted in place, in
-   * raw SQL, only while it still holds the value read. Paged and
-   * idempotent; an address not encrypted yet still reads as itself
-   * meanwhile. Before the last slot AddAuditLogMcpClientColumns asserts for
-   * itself.
+   * channels' addresses and signing secrets - left as written at the
+   * upgrade, so a server of the release before posts to them (#9266), and
+   * encrypted in place a day later by the CredentialsAtRest:EncryptInPlace
+   * job, which waits from when this ran. Paged and idempotent; an address
+   * not encrypted yet still reads as itself meanwhile. Before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
    */
   new EncryptWebhookAddresses(),
   /*
@@ -1304,20 +1317,37 @@ const DataMigrations: Array<DataMigrationBase> = [
    * before their columns were kept encrypted at rest (#9014): every
    * community string and v3 key, the flattened columns and those inside a
    * device's legacy snmpV3Auth object and each entry of a scan's snmpConfigs
-   * list, all together - each encrypted in place, the lists keeping their
-   * shape, only while it still holds the value read. Paged and idempotent;
-   * a credential not encrypted yet still reads as itself, so polls and
-   * sweeps go on meanwhile. Before the last slot AddAuditLogMcpClientColumns
+   * list, all together - left as written at the upgrade, so a server of the
+   * release before polls with them (#9266), and encrypted in place a day
+   * later by the CredentialsAtRest:EncryptInPlace job, which waits from when
+   * this ran, the lists keeping their shape. Paged and idempotent; a
+   * credential not encrypted yet still reads as itself, so polls and sweeps
+   * go on meanwhile. Before the last slot AddAuditLogMcpClientColumns
    * asserts for itself.
    */
   new EncryptSnmpCredentials(),
+  /*
+   * A network device whose v3 credentials were only in its deprecated
+   * snmpV3Auth object was pinged, never walked (#9268): each such object
+   * moves into the device's snmpV3* columns, as stored, and every object is
+   * cleared, so the device's Settings show its credentials and Ping only
+   * clears them. A key left as written stays so for a server of the release
+   * before, and is encrypted with the other SNMP credentials a day later.
+   * After EncryptSnmpCredentials, whose wait it shares; Postgres only, paged
+   * and idempotent; before the last slot AddAuditLogMcpClientColumns asserts
+   * for itself.
+   */
+  new MoveLegacySnmpV3AuthToColumns(),
   /*
    * The notification logs keep a webhook by its scheme and host alone now
    * (#9013): the webhook log's addresses kept before are masked the same
    * way ("https://hooks.slack.com/•••"), and so is an address its error
    * quotes, and a page's "Sending webhook to <address>." line left on the
-   * on-call log reads "Sending webhook.". Paged and idempotent. Before the
-   * last slot AddAuditLogMcpClientColumns asserts for itself.
+   * on-call log reads "Sending webhook.". At the upgrade: a server of the
+   * release before only shows these logs. A day later the
+   * CredentialsAtRest:EncryptInPlace job masks what such a server logged
+   * meanwhile (#9266). Paged and idempotent. Before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
    */
   new MaskWebhookAddressesInLogs(),
   /*

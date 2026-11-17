@@ -15,6 +15,7 @@ import {
   CREDENTIALS_AS_WRITTEN,
   SERVER_SETTINGS_ID,
 } from "./Fixtures/ServerSettingsAsWritten";
+import { encryptInPlaceADayLater } from "./Fixtures/CredentialsAtRestPass";
 import fs from "fs";
 import path from "path";
 import {
@@ -28,22 +29,26 @@ import {
 
 /*
  * THE SERVER'S CREDENTIALS STORED BEFORE THEIR COLUMNS WERE ENCRYPTED ARE
- * ENCRYPTED ONCE (#7739).
+ * ENCRYPTED ONCE (#7739), A DAY AFTER THE UPGRADE (#9266).
  *
  * Every credential column of the server's settings (GlobalConfig) is now
  * declared encrypted, as the newer provider keys were from the start. The
- * row written before holds each value as it was written; this data
- * migration encrypts each value that is set and not already our
- * ciphertext, in raw SQL, writing it only while the column still holds the
- * value read.
+ * row written before holds each value as it was written. The upgrade's
+ * data migration, EncryptGlobalConfigCredentials, leaves it so: a server of
+ * a release before 14.1.0, still running while an upgrade from it rolls
+ * out, sends every email, SMS and call with these values as they are
+ * stored. A day later, the CredentialsAtRest:EncryptInPlace job encrypts
+ * each value that is set and not already our ciphertext, in raw SQL,
+ * writing it only while the column still holds the value read.
  *
  * Pinned here, with the table answered in memory as Postgres answers the
- * two statements the migration sends (Fixtures/GlobalConfigCredentialsSql),
- * so the real migrate() runs without Postgres:
+ * statements sent (Fixtures/GlobalConfigCredentialsSql), so the real
+ * migrate() and the job's real pass run without Postgres:
  *   1. it is registered once, after the migrations that make and fill the
- *      row, and before the slot AddAuditLogMcpClientColumns keeps last;
- *   2. it encrypts every credential column the model declares encrypted
- *      but the four encrypted from the start;
+ *      row, and before the slot AddAuditLogMcpClientColumns keeps last; the
+ *      upgrade's run of it sends no statement at all;
+ *   2. the pass encrypts every credential column the model declares
+ *      encrypted but the four encrypted from the start;
  *   3. each value is stored encrypted and decrypts to exactly the value
  *      written; nothing else of the row changes;
  *   4. a value not set (null or empty) and one already encrypted are left
@@ -117,8 +122,9 @@ function updates(sql: GlobalConfigSql): Array<SqlCall> {
   });
 }
 
+// The job's pass a day after the upgrade: what used to be the migration's run.
 async function migrate(): Promise<void> {
-  await new EncryptGlobalConfigCredentials().migrate();
+  await encryptInPlaceADayLater(MIGRATION_NAME);
 }
 
 // Each credential as a reader decrypts it: exactly as written.
@@ -193,6 +199,16 @@ describe("EncryptGlobalConfigCredentials", () => {
     test("has the name it is recorded under", () => {
       expect(new EncryptGlobalConfigCredentials().name).toBe(MIGRATION_NAME);
     });
+
+    test("the upgrade's run changes nothing: a server of the release before sends with every credential as written", async () => {
+      const rows: Array<SqlRow> = [writtenRow()];
+      const sql: GlobalConfigSql = stubTable(rows);
+
+      await new EncryptGlobalConfigCredentials().migrate();
+
+      expect(sql.calls).toHaveLength(0);
+      expect(rows[0]).toEqual(writtenRow());
+    });
   });
 
   test("encrypts every credential column the model declares encrypted, but the four encrypted from the start", () => {
@@ -219,12 +235,16 @@ describe("EncryptGlobalConfigCredentials", () => {
       expect([column, rows[0]![column]]).toEqual([column, value]);
     }
 
-    // One read of the credential columns, then one write a value.
-    expect(sql.calls[0]!.sql).toBe(
-      `SELECT "_id", ${COLUMNS.map((column: string): string => {
-        return `"${column}"`;
-      }).join(", ")} FROM "GlobalConfig"`,
-    );
+    // One read of each credential column, each followed by its one write.
+    expect(
+      sql.calls
+        .filter((call: SqlCall): boolean => {
+          return call.sql.startsWith("SELECT");
+        })
+        .map((call: SqlCall): string => {
+          return call.sql.match(/^SELECT "_id", "(\w+)"/)![1]!;
+        }),
+    ).toEqual(COLUMNS);
     expect(updates(sql)).toHaveLength(COLUMNS.length);
   });
 
@@ -389,8 +409,9 @@ describe("EncryptGlobalConfigCredentials", () => {
 
     await Promise.all([migrate(), migrate()]);
 
-    expect(reads).toBe(2);
-    expect(updates(sql)).toHaveLength(COLUMNS.length * 2);
+    // Both read each column; both may write the first, only one lands.
+    expect(reads).toBe(COLUMNS.length * 2);
+    expect(updates(sql).length).toBeGreaterThanOrEqual(COLUMNS.length);
     expect(sql.writes).toHaveLength(COLUMNS.length);
     // Decrypted once, each is the value written: not a ciphertext of a ciphertext.
     await expectEncryptedAsWritten(rows[0]!);
@@ -423,7 +444,7 @@ describe("EncryptGlobalConfigCredentials", () => {
     }
 
     expect(loggedText()).toContain(
-      `failed to encrypt twilioAuthToken of the server's settings ${SERVER_SETTINGS_ID}`,
+      `failed to encrypt the twilioAuthToken of server settings ${SERVER_SETTINGS_ID}`,
     );
   });
 
@@ -440,7 +461,7 @@ describe("EncryptGlobalConfigCredentials", () => {
     expect(updates(sql)).toHaveLength(0);
     expect(rows[0]).toEqual(writtenRow());
     expect(loggedText()).toContain(
-      "failed to read the server's settings to encrypt",
+      "failed to read the server settings rows' smtpPassword to encrypt",
     );
   });
 
