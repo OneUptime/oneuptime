@@ -56524,5 +56524,12 @@
   "Server Monitor Secret Key Hash": "Hash de la clé secrète du moniteur de serveur",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Le jeton Bearer n'est affiché qu'une seule fois, lorsque la connexion est ajoutée ou que son jeton est réinitialisé. Si vous ne l'avez plus, utilisez « Réinitialiser le jeton Bearer » pour en créer un nouveau.",
   "Webhook Secret Key Hash": "Hash de la clé secrète du webhook",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Un incident ou une alerte privés que vous ne pouvez pas ouvrir a été ajouté à cette tâche, donc sa progression et sa pull request sont masquées."
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Un incident ou une alerte privés que vous ne pouvez pas ouvrir a été ajouté à cette tâche, donc sa progression et sa pull request sont masquées.",
+  "Leaves out no policy now.": "N'exclut actuellement aucune politique.",
+  "Leaves out {{count}} policies now: {{names}}.": "Exclut actuellement {{count}} politiques : {{names}}.",
+  "Leaves out {{count}} policies now: {{names}}._one": "Exclut actuellement {{count}} politique : {{names}}.",
+  "Matches no policy now.": "Ne correspond actuellement à aucune politique.",
+  "Matches {{count}} policies now: {{names}}.": "Correspond actuellement à {{count}} politiques : {{names}}.",
+  "Matches {{count}} policies now: {{names}}._one": "Correspond actuellement à {{count}} politique : {{names}}.",
+  "Use On-Call Policy instead": "Utiliser « Politique d'astreinte » à la place"
 }

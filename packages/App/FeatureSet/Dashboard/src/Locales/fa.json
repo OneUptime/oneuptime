@@ -56524,5 +56524,12 @@
   "Server Monitor Secret Key Hash": "هش کلید محرمانه مانیتور سرور",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "توکن Bearer فقط یک بار نمایش داده می‌شود: هنگام افزودن اتصال یا بازنشانی توکن آن. اگر دیگر آن را ندارید، با «بازنشانی توکن Bearer» یک توکن تازه بسازید.",
   "Webhook Secret Key Hash": "هش کلید محرمانه وب‌هوک",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "یک حادثه یا هشدار خصوصی که نمی‌توانید باز کنید به این وظیفه اضافه شده است، بنابراین پیشرفت و Pull Request آن پنهان است."
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "یک حادثه یا هشدار خصوصی که نمی‌توانید باز کنید به این وظیفه اضافه شده است، بنابراین پیشرفت و Pull Request آن پنهان است.",
+  "Leaves out no policy now.": "اکنون هیچ سیاستی را کنار نمی‌گذارد.",
+  "Leaves out {{count}} policies now: {{names}}.": "اکنون {{count}} سیاست را کنار می‌گذارد: {{names}}.",
+  "Leaves out {{count}} policies now: {{names}}._one": "اکنون {{count}} سیاست را کنار می‌گذارد: {{names}}.",
+  "Matches no policy now.": "اکنون با هیچ سیاستی مطابقت ندارد.",
+  "Matches {{count}} policies now: {{names}}.": "اکنون با {{count}} سیاست مطابقت دارد: {{names}}.",
+  "Matches {{count}} policies now: {{names}}._one": "اکنون با {{count}} سیاست مطابقت دارد: {{names}}.",
+  "Use On-Call Policy instead": "به‌جای آن از «سیاست آنکال» استفاده کنید"
 }

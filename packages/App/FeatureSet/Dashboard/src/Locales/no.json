@@ -56524,5 +56524,12 @@
   "Server Monitor Secret Key Hash": "Hash av servermonitorens hemmelige nøkkel",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bærertokenet vises bare én gang, når tilkoblingen legges til eller når tokenet tilbakestilles. Hvis du ikke har det lenger, bruker du «Tilbakestill bærertoken» for å lage et nytt.",
   "Webhook Secret Key Hash": "Hash av den hemmelige webhook-nøkkelen",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "En privat hendelse eller et privat varsel du ikke kan åpne, ble lagt til i denne oppgaven, så fremdriften og pull-forespørselen er skjult."
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "En privat hendelse eller et privat varsel du ikke kan åpne, ble lagt til i denne oppgaven, så fremdriften og pull-forespørselen er skjult.",
+  "Leaves out no policy now.": "Utelater nå ingen policy.",
+  "Leaves out {{count}} policies now: {{names}}.": "Utelater nå {{count}} policyer: {{names}}.",
+  "Leaves out {{count}} policies now: {{names}}._one": "Utelater nå {{count}} policy: {{names}}.",
+  "Matches no policy now.": "Samsvarer nå ikke med noen policy.",
+  "Matches {{count}} policies now: {{names}}.": "Samsvarer nå med {{count}} policyer: {{names}}.",
+  "Matches {{count}} policies now: {{names}}._one": "Samsvarer nå med {{count}} policy: {{names}}.",
+  "Use On-Call Policy instead": "Bruk «Vaktpolicy» i stedet"
 }

@@ -56524,5 +56524,12 @@
   "Server Monitor Secret Key Hash": "服务器监控密钥哈希",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer 令牌只会在添加连接或重置其令牌时显示一次。如果你已不再持有它，请使用“重置 Bearer 令牌”创建一个新令牌。",
   "Webhook Secret Key Hash": "Webhook 密钥哈希",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "此任务中添加了你无法打开的私密事件或警报，因此其进度和拉取请求已隐藏。"
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "此任务中添加了你无法打开的私密事件或警报，因此其进度和拉取请求已隐藏。",
+  "Leaves out no policy now.": "当前没有排除任何策略。",
+  "Leaves out {{count}} policies now: {{names}}.": "当前排除 {{count}} 个策略：{{names}}。",
+  "Leaves out {{count}} policies now: {{names}}._one": "当前排除 {{count}} 个策略：{{names}}。",
+  "Matches no policy now.": "当前没有匹配的策略。",
+  "Matches {{count}} policies now: {{names}}.": "当前匹配 {{count}} 个策略：{{names}}。",
+  "Matches {{count}} policies now: {{names}}._one": "当前匹配 {{count}} 个策略：{{names}}。",
+  "Use On-Call Policy instead": "改用“值班策略”"
 }

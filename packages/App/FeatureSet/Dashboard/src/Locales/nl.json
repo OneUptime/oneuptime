@@ -56524,5 +56524,12 @@
   "Server Monitor Secret Key Hash": "Hash van de geheime sleutel van de servermonitor",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Het Bearer-token wordt maar één keer getoond: wanneer de verbinding wordt toegevoegd of het token opnieuw wordt ingesteld. Hebt u het niet meer, gebruik dan \"Bearer-token opnieuw instellen\" om een nieuw token te maken.",
   "Webhook Secret Key Hash": "Hash van de geheime webhook-sleutel",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Aan deze taak is een privé-incident of privéwaarschuwing toegevoegd die u niet kunt openen, dus de voortgang en de pull request ervan zijn verborgen."
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Aan deze taak is een privé-incident of privéwaarschuwing toegevoegd die u niet kunt openen, dus de voortgang en de pull request ervan zijn verborgen.",
+  "Leaves out no policy now.": "Laat nu geen enkel beleid weg.",
+  "Leaves out {{count}} policies now: {{names}}.": "Laat nu {{count}} beleidsregels weg: {{names}}.",
+  "Leaves out {{count}} policies now: {{names}}._one": "Laat nu {{count}} beleidsregel weg: {{names}}.",
+  "Matches no policy now.": "Komt nu met geen enkel beleid overeen.",
+  "Matches {{count}} policies now: {{names}}.": "Komt nu overeen met {{count}} beleidsregels: {{names}}.",
+  "Matches {{count}} policies now: {{names}}._one": "Komt nu overeen met {{count}} beleidsregel: {{names}}.",
+  "Use On-Call Policy instead": "Gebruik in plaats daarvan “Bereikbaarheidsbeleid”"
 }

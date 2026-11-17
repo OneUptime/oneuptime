@@ -56524,5 +56524,12 @@
   "Server Monitor Secret Key Hash": "تجزئة المفتاح السري لمراقبة الخادم",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "لا يُعرض رمز Bearer إلا مرة واحدة، عند إضافة الاتصال أو إعادة تعيين رمزه. إذا لم يعد لديك، فاستخدم «إعادة تعيين رمز Bearer» لإنشاء رمز جديد.",
   "Webhook Secret Key Hash": "تجزئة المفتاح السري لـ Webhook",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "أُضيفت إلى هذه المهمة حادثة أو تنبيه خاص لا يمكنك فتحه، لذا فإن تقدمها وطلب السحب الخاص بها مخفيان."
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "أُضيفت إلى هذه المهمة حادثة أو تنبيه خاص لا يمكنك فتحه، لذا فإن تقدمها وطلب السحب الخاص بها مخفيان.",
+  "Leaves out no policy now.": "لا يستثني أي سياسة الآن.",
+  "Leaves out {{count}} policies now: {{names}}.": "يستثني الآن {{count}} من السياسات: {{names}}.",
+  "Leaves out {{count}} policies now: {{names}}._one": "يستثني الآن {{count}} سياسة: {{names}}.",
+  "Matches no policy now.": "لا يطابق أي سياسة الآن.",
+  "Matches {{count}} policies now: {{names}}.": "يطابق الآن {{count}} من السياسات: {{names}}.",
+  "Matches {{count}} policies now: {{names}}._one": "يطابق الآن {{count}} سياسة: {{names}}.",
+  "Use On-Call Policy instead": "استخدم «سياسة المناوبة» بدلًا من ذلك"
 }

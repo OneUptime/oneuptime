@@ -56524,5 +56524,12 @@
   "Server Monitor Secret Key Hash": "Хеш секретного ключа серверного монитора",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer-токен показывается только один раз: при добавлении подключения или при сбросе его токена. Если у вас его больше нет, нажмите «Сбросить Bearer-токен», чтобы создать новый.",
   "Webhook Secret Key Hash": "Хеш секретного ключа вебхука",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "К этой задаче добавлен приватный инцидент или оповещение, которые вы не можете открыть, поэтому её ход выполнения и пул-реквест скрыты."
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "К этой задаче добавлен приватный инцидент или оповещение, которые вы не можете открыть, поэтому её ход выполнения и пул-реквест скрыты.",
+  "Leaves out no policy now.": "Сейчас не исключена ни одна политика.",
+  "Leaves out {{count}} policies now: {{names}}.": "Сейчас исключены политики ({{count}}): {{names}}.",
+  "Leaves out {{count}} policies now: {{names}}._one": "Сейчас исключена {{count}} политика: {{names}}.",
+  "Matches no policy now.": "Сейчас не подходит ни одна политика.",
+  "Matches {{count}} policies now: {{names}}.": "Сейчас подходят политики ({{count}}): {{names}}.",
+  "Matches {{count}} policies now: {{names}}._one": "Сейчас подходит {{count}} политика: {{names}}.",
+  "Use On-Call Policy instead": "Использовать «Политика дежурства»"
 }

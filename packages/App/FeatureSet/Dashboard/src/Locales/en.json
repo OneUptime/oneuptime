@@ -56524,5 +56524,12 @@
   "Server Monitor Secret Key Hash": "Server Monitor Secret Key Hash",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.",
   "Webhook Secret Key Hash": "Webhook Secret Key Hash",
-  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden."
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.",
+  "Leaves out no policy now.": "Leaves out no policy now.",
+  "Leaves out {{count}} policies now: {{names}}.": "Leaves out {{count}} policies now: {{names}}.",
+  "Leaves out {{count}} policies now: {{names}}._one": "Leaves out {{count}} policy now: {{names}}.",
+  "Matches no policy now.": "Matches no policy now.",
+  "Matches {{count}} policies now: {{names}}.": "Matches {{count}} policies now: {{names}}.",
+  "Matches {{count}} policies now: {{names}}._one": "Matches {{count}} policy now: {{names}}.",
+  "Use On-Call Policy instead": "Use On-Call Policy instead"
 }
