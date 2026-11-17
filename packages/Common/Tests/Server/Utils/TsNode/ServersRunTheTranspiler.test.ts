@@ -4,16 +4,20 @@ import path from "path";
 import ts from "typescript";
 
 /*
- * Every OneUptime server that boots through ts-node runs its TypeScript with
- * Common's transpiler (Server/Utils/TsNode/Transpiler.js), which keeps each
- * module's source map out of the code V8 holds for the life of the process
- * (about 470 MB of an idle App's heap, 35 MB of the Probe's). A server that
- * forgot it would quietly keep the old cost, so this holds every package
- * that ships an image and starts through ts-node to naming it in its
- * tsconfig's "ts-node" section - with "transpileOnly", which ts-node needs
- * for a custom transpiler - by a path that resolves both in this repository
- * and in the image, where the package is /usr/src/app and Common
- * /usr/src/Common.
+ * Every OneUptime server image runs the JavaScript its build compiled
+ * (Server/Utils/TsNode/Precompile.js), with the compiler options of Common's
+ * ts-node transpiler (Server/Utils/TsNode/Transpiler.js): its start script
+ * execs node on Index.js after PrecompiledSourceMaps.js. Its TypeScript still
+ * runs through ts-node outside the image - a development server, the perf
+ * kit's native stack, the scripts an image's build runs - and there the
+ * transpiler keeps each module's source map out of the code V8 holds for the
+ * life of the process (about 470 MB of an idle App's heap, 35 MB of the
+ * Probe's). So this holds every package that ships an image and starts node
+ * to both: its start script runs the compiled entry, and its tsconfig's
+ * "ts-node" section names the transpiler - with "transpileOnly", which
+ * ts-node needs for a custom transpiler - by a path that resolves both in
+ * this repository and in the image, where the package is /usr/src/app and
+ * Common /usr/src/Common (Precompile.js reads the options from there).
  */
 
 const PACKAGES: string = path.resolve(__dirname, "..", "..", "..", "..", "..");
@@ -31,8 +35,8 @@ interface Server {
   directory: string;
 }
 
-// Packages that ship an image and whose start script runs ts-node.
-function serversOnTsNode(): Array<Server> {
+// Packages that ship an image and whose start script execs node.
+function servers(): Array<Server> {
   const servers: Array<Server> = [];
   for (const name of fs.readdirSync(PACKAGES).sort()) {
     const directory: string = path.join(PACKAGES, name);
@@ -49,7 +53,8 @@ function serversOnTsNode(): Array<Server> {
           scripts?: Record<string, string>;
         }
       ).scripts || {};
-    if ((scripts["start"] || "").includes("ts-node/register")) {
+    // eslint-disable-next-line wrap-regex -- Parentheses conflict with Prettier.
+    if (/&& exec node /.test(scripts["start"] || "")) {
       servers.push({ name: name, directory: directory });
     }
   }
@@ -65,7 +70,10 @@ function tsNodeOptions(server: Server): Record<string, unknown> {
   return parsed.config?.["ts-node"] || {};
 }
 
-const SERVERS: Array<Server> = serversOnTsNode();
+const SERVERS: Array<Server> = servers();
+
+const START_COMPILED: RegExp =
+  /&& exec node (--no-node-snapshot )?--require Common\/Server\/Utils\/TsNode\/PrecompiledSourceMaps\.js Index\.js$/u;
 
 // A require() of a module named by a string.
 const REQUIRE_CALL: RegExp = /require\(\s*"([^"]+)"\s*\)/gu;
@@ -73,7 +81,7 @@ const REQUIRE_CALL: RegExp = /require\(\s*"([^"]+)"\s*\)/gu;
 const COPY_OF_COMMON: RegExp =
   /^COPY (?:--exclude=Tests )?\.\/packages\/Common \/usr\/src\/Common$/m;
 
-describe("servers that boot through ts-node", () => {
+describe("servers that ship an image", () => {
   test("are found: the App, the Probe, the Runner and the rest", () => {
     expect(
       SERVERS.map((server: Server): string => {
@@ -96,7 +104,25 @@ describe("servers that boot through ts-node", () => {
       return [server.name, server];
     }),
   )(
-    "%s runs transpile-only with Common's transpiler",
+    "%s starts the JavaScript its image compiled, after the stack-trace support",
+    (_name: string, server: Server) => {
+      const start: string = (
+        JSON.parse(
+          fs.readFileSync(path.join(server.directory, "package.json"), "utf8"),
+        ) as { scripts: Record<string, string> }
+      ).scripts["start"] as string;
+
+      expect(start).toMatch(START_COMPILED);
+      expect(fs.existsSync(path.join(server.directory, "Index.ts"))).toBe(true);
+    },
+  );
+
+  test.each(
+    SERVERS.map((server: Server): [string, Server] => {
+      return [server.name, server];
+    }),
+  )(
+    "%s runs transpile-only with Common's transpiler wherever ts-node runs it",
     (_name: string, server: Server) => {
       const options: Record<string, unknown> = tsNodeOptions(server);
 
@@ -141,6 +167,38 @@ describe("servers that boot through ts-node", () => {
     }
 
     // TypeScript and source-map-support come through ts-node's resolver.
-    expect(required.sort()).toEqual(["buffer", "fs", "url", "zlib"]);
+    expect(required.sort()).toEqual([
+      "./SourceMapSupportCaches.js",
+      "buffer",
+      "fs",
+      "url",
+      "zlib",
+    ]);
+    // ...and the caches it shares with PrecompiledSourceMaps.js need nothing.
+    expect(
+      fs
+        .readFileSync(
+          path.join(path.dirname(TRANSPILER), "SourceMapSupportCaches.js"),
+          "utf8",
+        )
+        .match(REQUIRE_CALL),
+    ).toBeNull();
+  });
+
+  test("an image compiles with the transpiler's options: the JavaScript it runs is the JavaScript ts-node ran", () => {
+    const precompile: string = fs.readFileSync(
+      path.join(path.dirname(TRANSPILER), "Precompile.js"),
+      "utf8",
+    );
+
+    expect(precompile).toContain(
+      'const { runtimeCompilerOptions } = require("./Transpiler.js");',
+    );
+    expect(precompile).toContain(
+      "compilerOptions: runtimeCompilerOptions(service.config.options),",
+    );
+    expect(fs.readFileSync(TRANSPILER, "utf8")).toContain(
+      "const compilerOptions = runtimeCompilerOptions(service.config.options);",
+    );
   });
 });

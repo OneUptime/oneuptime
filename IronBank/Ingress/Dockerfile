@@ -79,8 +79,6 @@ ENV PRODUCTION=true
 ENV APP_VERSION=14.0.102
 ENV GIT_SHA=eabb86bd64e59edcecab13b7f8bc3512babb2483
 ENV IS_ENTERPRISE_EDITION=false
-# The release type-checked the sidecar when it was built.
-ENV TS_NODE_TRANSPILE_ONLY=1
 
 WORKDIR /usr/src/app
 

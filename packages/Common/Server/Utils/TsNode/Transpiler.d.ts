@@ -45,6 +45,15 @@ export function create(
   createOptions: TsNodeTranspilerCreateOptions,
 ): TsNodeTranspiler | undefined;
 
+/*
+ * The compiler options a module is compiled with outside development, from
+ * those ts-node gives the transpiler; Precompile.js compiles images with
+ * them.
+ */
+export function runtimeCompilerOptions(
+  serviceCompilerOptions: Record<string, unknown>,
+): Record<string, unknown>;
+
 export function retrieveSourceMap(source: unknown): KeptSourceMap | null;
 
 /*
