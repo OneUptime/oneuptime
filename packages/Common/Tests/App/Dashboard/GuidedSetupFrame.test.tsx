@@ -43,6 +43,11 @@ import GuidedSetupFrame, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupFrame";
 import { getLearnMoreUrl } from "../../../UI/Components/Link/LearnMoreLink";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
+import {
+  GuidedSetupEntryPoint,
+  getGuidedSetupEntryPoint,
+  withGuidedSetupEntryPoint,
+} from "../../../UI/Utils/GuidedSetupEvents";
 
 const steps: (...done: Array<boolean>) => Array<GuidedSetupFrameStep> = (
   ...done: Array<boolean>
@@ -245,6 +250,80 @@ describe("the setup's events", () => {
     expect(sent(ProductEventName.GuidedSetupLeft)).toEqual([
       { setup: "example_setup", step: "second", step_number: 1 },
     ]);
+  });
+});
+
+/*
+ * WHERE A SETUP WAS OPENED FROM (#7054): a way in that names itself puts
+ * `?from=` on the setup's address, and started says it - only the ways in
+ * OneUptime knows, never a word typed into the address.
+ */
+describe("where it was opened from (#7054)", () => {
+  const openedAt: (search: string) => void = (search: string): void => {
+    window.history.replaceState({}, "", `/dashboard/project/setup${search}`);
+  };
+
+  afterEach(() => {
+    openedAt("");
+  });
+
+  test.each([
+    [GuidedSetupEntryPoint.EmptyList, "empty_list"],
+    [GuidedSetupEntryPoint.HowItWorks, "how_it_works"],
+    [GuidedSetupEntryPoint.CreateMonitor, "create_monitor"],
+    [GuidedSetupEntryPoint.WebsiteDownSummary, "website_down_summary"],
+  ])("started says %s", (entryPoint: GuidedSetupEntryPoint, word: string) => {
+    expect(entryPoint).toBe(word);
+    openedAt(withGuidedSetupEntryPoint("", entryPoint));
+    render(draw({ steps: steps(), openStepKey: "first" }));
+
+    expect(sent(ProductEventName.GuidedSetupStarted)).toEqual([
+      { setup: "example_setup", from: word },
+    ]);
+  });
+
+  test("an address that names no way in OneUptime knows sends no from at all", () => {
+    openedAt("?from=Ada%20typed%20this");
+    render(draw({ steps: steps(), openStepKey: "first" }));
+
+    expect(sent(ProductEventName.GuidedSetupStarted)).toEqual([
+      { setup: "example_setup" },
+    ]);
+  });
+
+  test("opened with no from - Home, the checklist, Search - says nothing of it", () => {
+    render(draw({ steps: steps(), openStepKey: "first" }));
+
+    expect(sent(ProductEventName.GuidedSetupStarted)).toEqual([
+      { setup: "example_setup" },
+    ]);
+  });
+
+  test("an address that has a query already keeps it", () => {
+    expect(
+      withGuidedSetupEntryPoint(
+        "/dashboard/p/status-pages/setup?monitorId=m",
+        GuidedSetupEntryPoint.WebsiteDownSummary,
+      ),
+    ).toBe(
+      "/dashboard/p/status-pages/setup?monitorId=m&from=website_down_summary",
+    );
+    expect(
+      withGuidedSetupEntryPoint(
+        "/dashboard/p/monitors/setup",
+        GuidedSetupEntryPoint.EmptyList,
+      ),
+    ).toBe("/dashboard/p/monitors/setup?from=empty_list");
+  });
+
+  test("only the known words are read back", () => {
+    expect(getGuidedSetupEntryPoint("how_it_works")).toBe(
+      GuidedSetupEntryPoint.HowItWorks,
+    );
+    expect(getGuidedSetupEntryPoint("How_It_Works")).toBeNull();
+    expect(getGuidedSetupEntryPoint("")).toBeNull();
+    expect(getGuidedSetupEntryPoint(null)).toBeNull();
+    expect(getGuidedSetupEntryPoint(undefined)).toBeNull();
   });
 });
 
