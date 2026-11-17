@@ -56472,5 +56472,6 @@
   "This project is on the Free plan, so it pays nothing for seats.": "این پروژه روی طرح رایگان است، پس برای نشست‌ها چیزی نمی‌پردازد.",
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "در طرح رایگان هم مصرف بر اساس میزان استفاده صورت‌حساب می‌شود: داده‌هایی که سرویس‌های شما می‌فرستند، و هر مانیتوری که مانیتور دستی نیست.",
   "You do not have permission to change the plan.": "شما اجازهٔ تغییر طرح را ندارید.",
-  "Your plan does not include {{product}}": "طرح شما شامل {{product}} نیست"
+  "Your plan does not include {{product}}": "طرح شما شامل {{product}} نیست",
+  "Pick what the new step does. You can change its settings once it is added.": "انتخاب کنید گام جدید چه کاری انجام دهد. پس از افزودن می‌توانید تنظیمات آن را تغییر دهید."
 }

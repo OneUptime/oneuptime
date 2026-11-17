@@ -56472,5 +56472,6 @@
   "This project is on the Free plan, so it pays nothing for seats.": "Dette prosjektet har gratisabonnementet, så det betaler ingenting for plasser.",
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "Bruk faktureres fortsatt etter forbruk på gratisabonnementet: dataene tjenestene dine sender, og hver overvåking som ikke er en manuell overvåking.",
   "You do not have permission to change the plan.": "Du har ikke tillatelse til å endre abonnementet.",
-  "Your plan does not include {{product}}": "Abonnementet ditt inkluderer ikke {{product}}"
+  "Your plan does not include {{product}}": "Abonnementet ditt inkluderer ikke {{product}}",
+  "Pick what the new step does. You can change its settings once it is added.": "Velg hva det nye trinnet gjør. Du kan endre innstillingene når det er lagt til."
 }

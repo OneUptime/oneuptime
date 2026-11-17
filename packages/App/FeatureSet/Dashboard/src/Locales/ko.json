@@ -56472,5 +56472,6 @@
   "This project is on the Free plan, so it pays nothing for seats.": "이 프로젝트는 무료 요금제이므로 좌석 요금을 내지 않습니다.",
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "무료 요금제에서도 사용량은 종량제로 청구됩니다. 서비스가 보내는 데이터와 수동 모니터가 아닌 모든 모니터입니다.",
   "You do not have permission to change the plan.": "요금제를 변경할 권한이 없습니다.",
-  "Your plan does not include {{product}}": "현재 요금제에는 {{product}}이(가) 포함되어 있지 않습니다"
+  "Your plan does not include {{product}}": "현재 요금제에는 {{product}}이(가) 포함되어 있지 않습니다",
+  "Pick what the new step does. You can change its settings once it is added.": "새 단계가 할 일을 선택하세요. 추가한 후에 설정을 바꿀 수 있습니다."
 }

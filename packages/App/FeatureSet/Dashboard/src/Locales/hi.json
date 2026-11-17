@@ -56472,5 +56472,6 @@
   "This project is on the Free plan, so it pays nothing for seats.": "यह प्रोजेक्ट मुफ़्त योजना पर है, इसलिए यह सीटों के लिए कुछ भी भुगतान नहीं करता।",
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "मुफ़्त योजना पर भी उपयोग का बिल उपयोग के अनुसार बनता है: आपकी सेवाओं द्वारा भेजा गया डेटा, और हर वह मॉनिटर जो मैनुअल मॉनिटर नहीं है।",
   "You do not have permission to change the plan.": "आपको योजना बदलने की अनुमति नहीं है।",
-  "Your plan does not include {{product}}": "आपकी योजना में {{product}} शामिल नहीं है"
+  "Your plan does not include {{product}}": "आपकी योजना में {{product}} शामिल नहीं है",
+  "Pick what the new step does. You can change its settings once it is added.": "चुनें कि नया चरण क्या करेगा। जोड़ने के बाद आप इसकी सेटिंग्स बदल सकते हैं।"
 }

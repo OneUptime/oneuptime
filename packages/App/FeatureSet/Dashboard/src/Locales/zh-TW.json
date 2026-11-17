@@ -56472,5 +56472,6 @@
   "This project is on the Free plan, so it pays nothing for seats.": "此專案使用免費方案，因此無需為席次付費。",
   "Usage is still billed as you go on the Free plan: the data your services send, and every monitor that is not a Manual monitor.": "在免費方案下，用量仍依使用量計費：你的服務傳送的資料，以及每個非手動監控。",
   "You do not have permission to change the plan.": "你沒有變更方案的權限。",
-  "Your plan does not include {{product}}": "你的方案不包含{{product}}"
+  "Your plan does not include {{product}}": "你的方案不包含{{product}}",
+  "Pick what the new step does. You can change its settings once it is added.": "選擇新步驟要做什麼。新增後可以變更它的設定。"
 }
