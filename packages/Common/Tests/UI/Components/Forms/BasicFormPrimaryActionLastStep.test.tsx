@@ -580,8 +580,12 @@ describe("A stepped form on a page", () => {
 
     expect(actionButton()).not.toBeInTheDocument();
     expect(nextButton()!.style.width).toBe("100%");
-    // The start margin Button keeps, cleared on either side of the line.
-    expect(nextButton()!.style.marginInlineStart).toBe("0px");
+    /*
+     * Nothing pushes it in from the start: a button has no margin of its own
+     * since f8d33e2202e, so there is none left to clear.
+     */
+    expect(nextButton()!.style.marginInlineStart).toBe("");
+    expect(nextButton()!.className).not.toMatch(/(^|\s)(md:)?(ml|ms)-/);
     expect(nextButton()!.className).not.toContain(PRIMARY_CLASS);
 
     await typeInto("Title", "Checkout is down");
