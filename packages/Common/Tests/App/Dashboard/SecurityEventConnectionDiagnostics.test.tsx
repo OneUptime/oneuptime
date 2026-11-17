@@ -16,6 +16,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import { chooseDropdownOption } from "../../DropdownPicks";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import SecurityEventConnectionDiagnostics from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionDiagnostics";
@@ -724,9 +725,8 @@ describe("SecurityEventConnectionDiagnostics for a Google SecOps connection", ()
   test("previews a selected seven-day range without importing", async (): Promise<void> => {
     renderDiagnostics();
     await screen.findByText(/No runs recorded yet/);
-    fireEvent.change(screen.getByLabelText("Time range"), {
-      target: { value: "168" },
-    });
+    // The picker writes "7 days" with a no-break space.
+    chooseDropdownOption(screen.getByLabelText("Time range"), /^Last 7/);
     fireEvent.click(screen.getByRole("button", { name: "Preview detections" }));
     await waitFor((): void => {
       expect(API.post).toHaveBeenCalledWith(
@@ -796,9 +796,7 @@ describe("SecurityEventConnectionDiagnostics for a Google SecOps connection", ()
     fireEvent.click(
       screen.getByRole("button", { name: "Import this time range" }),
     );
-    fireEvent.change(screen.getByLabelText("Time range"), {
-      target: { value: "1" },
-    });
+    chooseDropdownOption(screen.getByLabelText("Time range"), "Last hour");
     expect(
       screen.queryByRole("group", { name: "Confirm historical import" }),
     ).not.toBeInTheDocument();

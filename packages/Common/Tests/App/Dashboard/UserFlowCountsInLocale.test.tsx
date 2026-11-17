@@ -11,7 +11,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
+import { getShownDropdownValue } from "../../DropdownPicks";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -139,7 +147,7 @@ const PROJECT_ID: string = "0193a1b2-3c4d-4e5f-8a9b-0c1d2e3f4a5b";
 const PAGE_PATH: string = `/dashboard/${PROJECT_ID}/rum/${APP_ID.toString()}/user-flows`;
 
 // The User Flows page, its map anchored on "/home": the page picker shows.
-async function renderPageAnchoredOnHome(): Promise<HTMLSelectElement> {
+async function renderPageAnchoredOnHome(): Promise<HTMLElement> {
   window.history.replaceState(
     null,
     "",
@@ -156,11 +164,18 @@ async function renderPageAnchoredOnHome(): Promise<HTMLSelectElement> {
     </MemoryRouter>,
   );
 
+  // The picker is the shared Dropdown; it shows the page it is anchored on.
+  const picker: () => HTMLElement = (): HTMLElement => {
+    return within(screen.getByTestId("user-flow-anchor-select")).getByRole(
+      "combobox",
+    );
+  };
+
   await waitFor(() => {
-    expect(screen.getByTestId("user-flow-anchor-select")).toHaveValue("/home");
+    expect(getShownDropdownValue(picker())).toMatch(/^\/home /);
   });
 
-  return screen.getByTestId("user-flow-anchor-select") as HTMLSelectElement;
+  return picker();
 }
 
 beforeEach(async () => {
@@ -199,15 +214,10 @@ describe.each(COUNTS)(
         counts.sessions,
       );
 
-      const select: HTMLSelectElement = await renderPageAnchoredOnHome();
-      const home: HTMLOptionElement | undefined = Array.from(
-        select.options,
-      ).find((option: HTMLOptionElement): boolean => {
-        return option.value === "/home";
-      });
+      const picker: HTMLElement = await renderPageAnchoredOnHome();
 
       // "/home (1.234)" to a German reader, not "/home (1,234)".
-      expect(home?.textContent).toBe(`/home (${counts.sessions})`);
+      expect(getShownDropdownValue(picker)).toBe(`/home (${counts.sessions})`);
       // Every session landed on "/home": the tile above counts the same sessions.
       expect(
         screen.getByTestId("user-flow-tile-sessions-value").textContent,
