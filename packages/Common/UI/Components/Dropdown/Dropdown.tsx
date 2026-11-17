@@ -163,6 +163,13 @@ export function getDropdownOptionText(
 export { DROPDOWN_MENU_Z_INDEX };
 
 /*
+ * A compact picker's height (isCompact): a bar's 28px, and 44px under a
+ * finger, WCAG 2.2's comfortable target.
+ */
+export const DROPDOWN_COMPACT_CONTROL_HEIGHT_CLASS_NAME: string =
+  "!min-h-[28px] [@media(pointer:coarse)]:!min-h-11";
+
+/*
  * What the open menu says when it has nothing to list, in the reader's
  * language, when the caller words nothing of its own (noOptionsMessage):
  * react-select's own "No options" was English on every page (#7805). A
@@ -327,6 +334,15 @@ export interface ComponentProps {
    * list stays open, at the same place, for the next one.
    */
   closeMenuOnSelect?: boolean | undefined;
+  /*
+   * The picker of a bar of small controls - a list's rows per page, a
+   * chart's sort, a query builder's field - 28px tall with the bar's small
+   * words, where a 40px field stood taller than every control beside it.
+   * The border, focus ring, menu, search, keyboard and dark look are every
+   * other picker's; under a finger it is 44px tall, as the bar's buttons
+   * are (#9136). Off unless set: a form's field keeps its 40px.
+   */
+  isCompact?: boolean | undefined;
 }
 
 // Whether text names an option of the list, as a typed value would.
@@ -1198,6 +1214,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     },
   };
 
+  // A compact picker's words and chevron are the small ones of its bar.
+  const textSizeClassName: string = props.isCompact ? "text-xs" : "text-sm";
+  const indicatorPadding: number = props.isCompact ? 4 : 8;
+
   return (
     <div
       id={props.id}
@@ -1248,7 +1268,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
              * as any other until someone tried it.
              */
             const classes: Array<string> = [
-              "!min-h-[40px] !rounded-lg !border !shadow-sm !transition-all !duration-150",
+              props.isCompact
+                ? DROPDOWN_COMPACT_CONTROL_HEIGHT_CLASS_NAME
+                : "!min-h-[40px]",
+              "!rounded-lg !border !shadow-sm !transition-all !duration-150",
               state.isFocused
                 ? "!border-indigo-400 !ring-2 !ring-indigo-100"
                 : "!border-gray-300 hover:!border-indigo-300",
@@ -1264,16 +1287,16 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             return classes.join(" ");
           },
           valueContainer: () => {
-            return "!gap-2 !px-2";
+            return props.isCompact ? "!gap-2 !px-2 !py-0" : "!gap-2 !px-2";
           },
           placeholder: () => {
-            return "text-sm text-gray-400";
+            return `${textSizeClassName} text-gray-400`;
           },
           input: () => {
-            return "text-sm text-gray-900";
+            return `${textSizeClassName} text-gray-900`;
           },
           singleValue: () => {
-            return "text-sm text-gray-900 font-medium";
+            return `${textSizeClassName} text-gray-900 font-medium`;
           },
           indicatorsContainer: () => {
             return "!gap-1 !px-1";
@@ -1341,7 +1364,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           ): CSSObjectWithLabel => {
             return {
               ...provided,
-              padding: 8,
+              padding: indicatorPadding,
             };
           },
           clearIndicator: (
@@ -1349,8 +1372,14 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           ): CSSObjectWithLabel => {
             return {
               ...provided,
-              padding: 8,
+              padding: indicatorPadding,
             };
+          },
+          // A compact picker's search line takes no room of its own.
+          input: (provided: CSSObjectWithLabel): CSSObjectWithLabel => {
+            return props.isCompact
+              ? { ...provided, margin: 0, paddingTop: 0, paddingBottom: 0 }
+              : provided;
           },
           indicatorSeparator: (): CSSObjectWithLabel => {
             return {
