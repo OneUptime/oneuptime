@@ -500,7 +500,7 @@ describe("the rows of a server that has just started", () => {
         ),
       ),
     ).toEqual([
-      "guide | How to back up | https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/production-checklist.md#back-up-your-data",
+      "guide | How to back up | /docs/installation/kubernetes#back-up-your-data",
       "choose | This server is backed up | secondary",
     ]);
   });
@@ -856,7 +856,11 @@ describe("backups npm run backup reported", () => {
 });
 
 describe("a guide's address", () => {
-  test("a docs page at this server; the Helm chart's docs, which only GitHub has, as they are", () => {
+  /*
+   * #9438: the Kubernetes backup steps are a docs page of this server too,
+   * not the Helm chart's checklist on GitHub's main branch.
+   */
+  test("a docs page at this server, the Kubernetes backup steps too", () => {
     const origin: string = "https://oneuptime.example.com";
 
     expect(
@@ -867,9 +871,7 @@ describe("a guide's address", () => {
         guide: SERVER_SETUP_GUIDES.backupsOnKubernetes,
         origin,
       }),
-    ).toBe(
-      "https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/production-checklist.md#back-up-your-data",
-    );
+    ).toBe(`${origin}/docs/installation/kubernetes#back-up-your-data`);
   });
 });
 
@@ -1015,7 +1017,7 @@ describe("the page", () => {
     expect(kubernetes).toHaveTextContent("How to back up on Kubernetes");
     expect(kubernetes).toHaveAttribute(
       "href",
-      "https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/production-checklist.md#back-up-your-data",
+      `${window.location.origin}/docs/installation/kubernetes#back-up-your-data`,
     );
     expect(kubernetes).toHaveAttribute("target", "_blank");
     expect(
@@ -1023,7 +1025,7 @@ describe("the page", () => {
     ).toBeNull();
   });
 
-  test("How to back up on Kubernetes: only the Helm chart's steps", async () => {
+  test("How to back up on Kubernetes: only the Kubernetes steps, on this server's docs", async () => {
     const checklist: HTMLElement = await renderIn(
       "en",
       answerFor({ installKind: ServerInstallKind.Kubernetes }),
@@ -1037,7 +1039,7 @@ describe("the page", () => {
     expect(guide).not.toHaveTextContent("Docker Compose");
     expect(guide).toHaveAttribute(
       "href",
-      "https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/production-checklist.md#back-up-your-data",
+      `${window.location.origin}/docs/installation/kubernetes#back-up-your-data`,
     );
     expect(
       within(checklist).queryByTestId("server-setup-backups-guide-0"),

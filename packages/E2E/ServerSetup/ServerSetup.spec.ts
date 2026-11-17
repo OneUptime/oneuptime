@@ -69,8 +69,9 @@ const CHOICES: Array<{ row: string; choice: string; fix: string }> = [
   },
 ];
 
-const HELM_BACKUP_GUIDE: string =
-  "https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/production-checklist.md#back-up-your-data";
+// The server's own Kubernetes page (#9438), at the page's origin.
+const HELM_BACKUP_GUIDE_PATH: string =
+  "/docs/installation/kubernetes#back-up-your-data";
 
 type Words = Record<string, unknown>;
 
@@ -642,7 +643,9 @@ test.describe("what Server setup's actions do", () => {
       `${new URL(page.url()).origin}/docs/installation/docker-compose#back-up-and-restore`,
     );
     await expect(kubernetes).toContainText("How to back up on Kubernetes");
-    expect(await kubernetes.getAttribute("href")).toBe(HELM_BACKUP_GUIDE);
+    expect(await kubernetes.getAttribute("href")).toBe(
+      `${new URL(page.url()).origin}${HELM_BACKUP_GUIDE_PATH}`,
+    );
     await expect(kubernetes).toHaveAttribute("target", "_blank");
 
     checklist = await openSetup(page, "install=kubernetes");
@@ -651,7 +654,9 @@ test.describe("what Server setup's actions do", () => {
 
     await expect(helm).toContainText("How to back up");
     await expect(helm).not.toContainText("Docker Compose");
-    expect(await helm.getAttribute("href")).toBe(HELM_BACKUP_GUIDE);
+    expect(await helm.getAttribute("href")).toBe(
+      `${new URL(page.url()).origin}${HELM_BACKUP_GUIDE_PATH}`,
+    );
 
     checklist = await openSetup(page, "install=docker-compose");
 

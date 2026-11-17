@@ -130,8 +130,9 @@ export enum ServerInstallKind {
 }
 
 /*
- * The guides: docs pages a server serves itself (/docs/...), or the Helm
- * chart's own docs, which only GitHub has.
+ * The guides: docs pages the server serves itself (/docs/...), every one of
+ * them, so an air-gapped server's admin can open each, and each describes
+ * the version the server runs.
  */
 export const SERVER_SETUP_GUIDES: {
   https: string;
@@ -152,12 +153,15 @@ export const SERVER_SETUP_GUIDES: {
    */
   backups: "/docs/installation/docker-compose#back-up-and-restore",
   /*
-   * What a Kubernetes install backs up with instead: the Helm chart's
-   * production checklist, Back up your data - the cloud's backups of the
-   * volumes, or CloudNativePG's volume snapshots (#9378).
+   * What a Kubernetes install backs up with instead: the Kubernetes and
+   * Helm docs page's Back up your data, as the Helm chart's production
+   * checklist says it - the cloud's backups of the volumes, or
+   * CloudNativePG's volume snapshots (#9378). It was that checklist on
+   * GitHub's main branch, which an air-gapped server's admin could not
+   * open, and which could describe a newer chart than the one installed
+   * (#9438).
    */
-  backupsOnKubernetes:
-    "https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/production-checklist.md#back-up-your-data",
+  backupsOnKubernetes: "/docs/installation/kubernetes#back-up-your-data",
   updateChecks: "/docs/self-hosted/update-checks",
   browserPush: "/docs/self-hosted/push-notifications#self-hosted-setup",
 };
