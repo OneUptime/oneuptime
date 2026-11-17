@@ -355,6 +355,47 @@ describe("a Traces finding's page", () => {
     ).not.toBeInTheDocument();
   });
 
+  /*
+   * A task a reply carried a private incident or alert into, which the
+   * person may not open: the strip says a fix is there and why nothing of
+   * it shows - no link, no progress, and no second fix offered - even if a
+   * task id came with the answer.
+   */
+  test("a task on its way hidden from the person: why nothing of it shows, and no link", async () => {
+    suggestion = {
+      offer: SuggestionOffer.InProgress,
+      blocker: null,
+      repository: null,
+      repositories: [],
+      taskId: TASK_ID,
+      isHidden: true,
+    };
+
+    await renderPage();
+
+    const hidden: HTMLElement = await screen.findByTestId(
+      TELEMETRY_AI_FIX_TEST_IDS.hidden,
+    );
+
+    expect(hidden).toHaveTextContent(
+      "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.",
+    );
+    expect(hidden).toHaveAttribute("role", "status");
+    expect(screen.getByTestId(TELEMETRY_AI_FIX_TEST_IDS.strip)).toHaveAttribute(
+      "data-offer",
+      SuggestionOffer.InProgress,
+    );
+    for (const testId of [
+      TELEMETRY_AI_FIX_TEST_IDS.taskLink,
+      TELEMETRY_AI_FIX_TEST_IDS.progress,
+      TELEMETRY_AI_FIX_TEST_IDS.button,
+      TELEMETRY_AI_FIX_TEST_IDS.lead,
+    ]) {
+      expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
+    }
+    expect(document.body.innerHTML).not.toContain(TASK_ID);
+  });
+
   test("a refusal that is no set-up step says why, under the button", async () => {
     createAnswer = "refused";
 

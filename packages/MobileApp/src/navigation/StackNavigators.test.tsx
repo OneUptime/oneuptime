@@ -444,7 +444,7 @@ const SETTINGS_ROUTES: Record<keyof SettingsStackParamList, TitledRoute> = {
         },
       ],
     },
-    title: "SSO Login",
+    title: "Sign In with SSO",
     keepsIosLargeTitle: true,
   },
 

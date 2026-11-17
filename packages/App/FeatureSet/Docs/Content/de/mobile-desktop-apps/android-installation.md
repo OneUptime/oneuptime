@@ -121,12 +121,12 @@ OneUptime sendet Bereitschaftsalarme mit hoher Priorität, die Android auch eine
 
 ## Die App sperren
 
-Schalten Sie in der App unter **Settings** den Schalter **Biometrics Login** ein, und die App fragt bei jedem Start nach Ihrem Fingerabdruck, Ihrem Gesicht oder der Displaysperre des Telefons. Der Schalter erscheint, sobald auf dem Telefon eine Entsperrung per Fingerabdruck oder Gesicht eingerichtet ist. **Appearance** auf demselben Bildschirm wählt das helle oder das dunkle Aussehen, oder folgt dem Telefon.
+Schalten Sie in der App unter **Settings** den Schalter **Biometric Unlock** ein, und die App fragt bei jedem Start nach Ihrem Fingerabdruck, Ihrem Gesicht oder der Displaysperre des Telefons. Der Schalter erscheint, sobald auf dem Telefon eine Entsperrung per Fingerabdruck oder Gesicht eingerichtet ist. **Appearance** auf demselben Bildschirm wählt das helle oder das dunkle Aussehen, oder folgt dem Telefon.
 
 ## Aktualisieren, abmelden oder deinstallieren
 
 - **Aktualisieren.** Google Play aktualisiert die App. Beim APK installieren Sie das neueste darüber. Die Version der App steht unten auf ihrem Bildschirm **Settings**.
-- **Abmelden.** **Settings → Log Out** meldet Sie ab und entfernt das Telefon in jedem Projekt aus Ihren Push-Geräten, zusammen mit seinen Bereitschaftsregeln. Melden Sie sich wieder an, kommt es mit den Standardregeln zurück.
+- **Abmelden.** **Settings → Sign Out** meldet Sie ab und entfernt das Telefon in jedem Projekt aus Ihren Push-Geräten, zusammen mit seinen Bereitschaftsregeln. Melden Sie sich wieder an, kommt es mit den Standardregeln zurück.
 - **Deinstallieren.** Entfernen Sie die App wie jede andere. Waren Sie noch angemeldet, bleibt das Telefon in Ihrer Liste, bis ein Push an es fehlschlägt: OneUptime markiert es dann mit **Keine Benachrichtigungen**. Löschen Sie diesen Eintrag mit **Löschen**: Installieren Sie die App erneut und melden Sie sich an, kommt das Telefon als neuer Eintrag hinzu, mit den Standardregeln.
 
 ## Fehlerbehebung
@@ -151,7 +151,7 @@ Die App konnte `https://<your-oneuptime>/api/status` nicht erreichen. Prüfen Si
 OneUptime On-Call ist bereits aus einer anderen Quelle auf dem Telefon, etwa von Google Play, und Android installiert die eine nicht über die andere. Deinstallieren Sie sie, installieren Sie das APK und melden Sie sich erneut an.
 :::
 
-:::details Kein Schalter Biometrics Login
+:::details Kein Schalter Biometric Unlock
 Der Schalter erscheint, sobald in den Android-Einstellungen eine Entsperrung per Fingerabdruck oder Gesicht eingerichtet ist.
 :::
 

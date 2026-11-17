@@ -64,7 +64,7 @@
     "apiKey": "API 키",
     "more": "더 보기",
     "sendEmail": "이메일 보내기",
-    "logout": "로그아웃",
+    "signOut": "로그아웃",
     "telemetryUsage": "텔레메트리 사용량",
     "ingestionBudgets": "수집 예산",
     "products": "제품"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "관리자 종료",
-    "logOut": "로그아웃"
+    "signOut": "로그아웃"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -482,7 +482,7 @@
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
+    "signOut": {
       "title": "로그아웃"
     },
     "sendEmail": {
@@ -724,7 +724,6 @@
   "Projects": "프로젝트",
   "Project": "프로젝트",
   "User": "사용자",
-  "Logout": "로그아웃",
   "Save": "저장",
   "Cancel": "취소",
   "Submit": "제출",

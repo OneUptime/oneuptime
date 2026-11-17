@@ -114,12 +114,12 @@ Utan kritiska larm kan ett Fokus eller en sammanfattning hålla tillbaka larm:
 
 ## Lås appen
 
-Slå på **Biometrics Login** under **Settings** i appen, så frågar appen efter Face ID, Touch ID eller din lösenkod varje gång den startar. Reglaget visas när Face ID eller Touch ID är konfigurerat på enheten. **Appearance** på samma skärm väljer ljust eller mörkt utseende, eller följer enheten.
+Slå på **Biometric Unlock** under **Settings** i appen, så frågar appen efter Face ID, Touch ID eller din lösenkod varje gång den startar. Reglaget visas när Face ID eller Touch ID är konfigurerat på enheten. **Appearance** på samma skärm väljer ljust eller mörkt utseende, eller följer enheten.
 
 ## Uppdatera, logga ut eller radera appen
 
 - **Uppdatera.** App Store uppdaterar appen; du kan också uppdatera den från ditt konto i App Store. Appens version står längst ner på dess skärm **Settings**.
-- **Logga ut.** **Settings → Log Out** loggar ut dig och tar bort enheten från dina push-enheter i alla projekt, tillsammans med dess jourregler. Loggar du in igen kommer den tillbaka med standardreglerna.
+- **Logga ut.** **Settings → Sign Out** loggar ut dig och tar bort enheten från dina push-enheter i alla projekt, tillsammans med dess jourregler. Loggar du in igen kommer den tillbaka med standardreglerna.
 - **Radera.** Håll fingret på appens symbol och tryck på **Ta bort app** och sedan **Radera app**. Var du fortfarande inloggad ligger enheten kvar i din lista tills en push till den misslyckas: OneUptime markerar den då som **Tar inte emot aviseringar**. Installerar du appen igen och loggar in kommer den posten oftast tillbaka med sina regler; använder du inte enheten längre tar du bort posten med **Ta bort**.
 
 ## Felsökning
@@ -144,7 +144,7 @@ Slå först på **Critical On-Call Alerts** i appen: iOS lägger till sitt regla
 Öppna **Settings** i appen: raden under **Critical On-Call Alerts** säger vad som saknas. Kontrollera att **Kritiska larm** är på under **Inställningar → Notiser → OneUptime On-Call**, och att volymen på appens skärm **Alarm sound** inte står lågt.
 :::
 
-:::details Inget reglage för Biometrics Login
+:::details Inget reglage för Biometric Unlock
 Reglaget visas när Face ID eller Touch ID är konfigurerat under **Inställningar → Face ID och lösenkod** eller **Inställningar → Touch ID och lösenkod**.
 :::
 

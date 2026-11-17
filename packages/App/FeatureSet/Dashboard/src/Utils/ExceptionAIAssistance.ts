@@ -16,6 +16,10 @@ import {
   getPersonExceptionFixKind,
 } from "Common/Utils/Exceptions/ExceptionInsight";
 import PageMap from "./PageMap";
+import {
+  CODE_TASK_HIDDEN_LABEL,
+  CODE_TASK_HIDDEN_SENTENCE,
+} from "../Components/Code/CodeTaskHiddenCopy";
 
 /*
  * Pure state for the exception's Fix with AI page. The page leads with one
@@ -41,6 +45,14 @@ export interface AIAgentTaskInfo {
   taskType: string;
   // Whether the task's merged fix fixed the exception in production.
   production?: AIFixProductionInfo | undefined;
+  /*
+   * The task is there, and the reader may not read it: a reply carried a
+   * private incident or alert into it that they may not open, and its own
+   * page answers it as not found. The server sends its type alone - no id,
+   * state, words, time or pull request - and the card says so
+   * (CODE_TASK_HIDDEN_SENTENCE).
+   */
+  isHidden?: boolean | undefined;
 }
 
 /*
@@ -276,8 +288,16 @@ export const EXCEPTION_AI_HOW_IT_WORKS_STEPS: ReadonlyArray<string> = [
   ),
 ];
 
-// A task still making progress (not in a terminal status).
+/*
+ * A task still making progress (not in a terminal status). One hidden from
+ * the reader is never said to be: nothing of how it stands is known here,
+ * and the page does not ask again for it.
+ */
 export function isAITaskActive(task: AIAgentTaskInfo): boolean {
+  if (task.isHidden) {
+    return false;
+  }
+
   return !AIRunStatusHelper.isTerminalStatus(task.status);
 }
 
@@ -311,6 +331,21 @@ export function isAITaskCompleted(task: AIAgentTaskInfo): boolean {
 }
 
 export function parseAIAgentTask(taskData: JSONObject): AIAgentTaskInfo {
+  // Hidden from the reader: its type, and nothing else, whatever is sent.
+  if (taskData["isHidden"] === true) {
+    return {
+      _id: "",
+      status: AIRunStatus.Completed,
+      statusMessage: undefined,
+      statusTitle: "",
+      statusDescription: "",
+      createdAt: new Date(NaN),
+      taskType:
+        (taskData["taskType"] as string) || CodeFixTaskType.FixException,
+      isHidden: true,
+    };
+  }
+
   return {
     _id: String(taskData["_id"] || ""),
     status: taskData["status"] as AIRunStatus,
@@ -525,6 +560,10 @@ function getStatusDisplay(task: AIAgentTaskInfo | undefined): {
     return { tone: "neutral", label: "Not started" };
   }
 
+  if (task.isHidden) {
+    return { tone: "neutral", label: CODE_TASK_HIDDEN_LABEL };
+  }
+
   switch (task.status) {
     case AIRunStatus.Queued:
       return { tone: "info", label: "Queued" };
@@ -558,8 +597,14 @@ export function getAITaskCardState(args: AITaskCardStateArgs): AITaskCardState {
   const status: { tone: AITaskTone; label: string } = getStatusDisplay(task);
   const isActive: boolean = Boolean(task && isAITaskActive(task));
 
+  /*
+   * A task hidden from the reader says why nothing of it shows, in place of
+   * its status's words.
+   */
   const message: string | undefined = task
-    ? task.statusMessage || task.statusDescription || undefined
+    ? task.isHidden
+      ? CODE_TASK_HIDDEN_SENTENCE
+      : task.statusMessage || task.statusDescription || undefined
     : undefined;
 
   let primaryAction: AITaskPrimaryAction | null = null;
@@ -568,7 +613,14 @@ export function getAITaskCardState(args: AITaskCardStateArgs): AITaskCardState {
     let kind: AITaskPrimaryActionKind = "start";
     let label: string = presentation.startActionName;
 
-    if (task && isAITaskUnsuccessful(task)) {
+    /*
+     * A task hidden from the reader is there: theirs would be another one,
+     * which the server refuses while that one works.
+     */
+    if (task?.isHidden) {
+      kind = "restart";
+      label = presentation.restartActionName;
+    } else if (task && isAITaskUnsuccessful(task)) {
       kind = "retry";
       label = presentation.retryActionName;
     } else if (task && isAITaskCompleted(task)) {
@@ -601,7 +653,8 @@ export function getAITaskCardState(args: AITaskCardStateArgs): AITaskCardState {
     statusLabel: status.label,
     message,
     isActive,
-    canViewTask: Boolean(task && task._id),
+    // Its own page answers a hidden task as not found: no link to it.
+    canViewTask: Boolean(task && task._id && !task.isHidden),
     primaryAction,
   };
 }

@@ -68,7 +68,7 @@ export const APP_LABELS: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Critical On-Call Alerts",
     "Notifications",
     "Alarm sound",
-    "Biometrics Login",
+    "Biometric Unlock",
     "Appearance",
   ],
   [IOS]: [
@@ -86,7 +86,7 @@ export const APP_LABELS: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Critical On-Call Alerts",
     "Notifications",
     "Alarm sound",
-    "Biometrics Login",
+    "Biometric Unlock",
     "Appearance",
   ],
   [FAQ]: [
@@ -105,8 +105,8 @@ export const APP_LABELS: Readonly<Record<string, ReadonlyArray<string>>> = {
     "On-Call",
     "Cover for me",
     "Settings",
-    "Biometrics Login",
-    "Log Out",
+    "Biometric Unlock",
+    "Sign Out",
     "No internet connection",
     "Critical On-Call Alerts",
   ],
@@ -114,8 +114,8 @@ export const APP_LABELS: Readonly<Record<string, ReadonlyArray<string>>> = {
 
 // Paths through the app's own menus, kept segment for segment.
 export const APP_PATHS: Readonly<Record<string, ReadonlyArray<string>>> = {
-  [ANDROID]: ["Settings → Manage Projects", "Settings → Log Out"],
-  [IOS]: ["Settings → Manage Projects", "Settings → Log Out"],
+  [ANDROID]: ["Settings → Manage Projects", "Settings → Sign Out"],
+  [IOS]: ["Settings → Manage Projects", "Settings → Sign Out"],
 };
 
 /*

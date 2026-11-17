@@ -37,7 +37,7 @@
     "announcements": "Объявления",
     "scheduledEvents": "Плановое обслуживание",
     "subscribe": "Подписаться",
-    "logout": "Выйти"
+    "signOut": "Выйти"
   },
   "overview": {
     "uptimeSuffix": "% времени работы",
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "Завершено за последние {{count}} дн.",
   "Completed in the Last {{count}} Days_one": "Завершено за последние сутки",
   "None is planned, and none took place in the last {{count}} days.": "Ничего не запланировано, и за последние {{count}} дн. обслуживания не было.",
-  "None is planned, and none took place in the last {{count}} days._one": "Ничего не запланировано, и за последние сутки обслуживания не было."
+  "None is planned, and none took place in the last {{count}} days._one": "Ничего не запланировано, и за последние сутки обслуживания не было.",
+  "serverMessages": {
+    "signInToView": "У вас нет доступа к этой странице статуса. Войдите, чтобы её просмотреть.",
+    "sessionExpired": "Сеанс истёк. Войдите снова.",
+    "signedOut": "Вы вышли из системы. Войдите снова.",
+    "magicLinkTurnedOff": "Ссылки для входа отключены для этой страницы статуса. Войдите с помощью адреса электронной почты и пароля."
+  }
 }

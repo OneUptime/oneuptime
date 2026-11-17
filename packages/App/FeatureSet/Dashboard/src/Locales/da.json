@@ -172,7 +172,7 @@
     "adminSettings": "Admin-indstillinger",
     "switchToDarkTheme": "Skift til mørkt tema",
     "switchToLightTheme": "Skift til lyst tema",
-    "logOut": "Log ud"
+    "signOut": "Log ud"
   },
   "upgrade": {
     "upgradePlan": "Opgrader plan",
@@ -230,7 +230,7 @@
       "declareIncident": "Erklær hændelse",
       "lightTheme": "Skift til lyst tema",
       "systemTheme": "Skift til systemets tema",
-      "logOut": "Log ud",
+      "signOut": "Log ud",
       "myOnCallPolicies": "Mine vagtpolitikker",
       "projectInvitations": "Projektinvitationer"
     },
@@ -3292,7 +3292,6 @@
   "Logical partitions for resources": "Logiske partitioner for ressourcer",
   "Logo": "Logo",
   "Logo will be displayed on the public dashboard header.": "Logoet vil blive vist i headeren på det offentlige dashboard.",
-  "Logout": "Log ud",
   "Logs for this alert.": "Protokoller for denne advarsel.",
   "Logs for this incident.": "Protokoller for denne hændelse.",
   "Logs from workloads on this environment": "Protokoller fra arbejdsbelastninger i dette miljø",
@@ -4704,7 +4703,6 @@
   "Single big-number stat, ideal for KPIs.": "Enkelt stort tal-statistik, ideel til KPI'er.",
   "Single command. Works on any OS with Docker installed.": "Enkelt kommando. Fungerer på ethvert OS med Docker installeret.",
   "Single Sign On (SSO)": "Single sign-on (SSO)",
-  "Single sign-on is an authentication scheme that allows a user to log in with a single ID to any of several related, yet independent, software systems.": "Single sign-on er en godkendelsesordning, der giver en bruger mulighed for at logge ind med ét enkelt ID til ethvert af flere relaterede, men uafhængige, softwaresystemer.",
   "Size of HTTP request bodies flowing through the mesh.": "Størrelse på HTTP-anmodningstekster, der flyder gennem mesh'et.",
   "Size of HTTP response bodies flowing through the mesh.": "Størrelse på HTTP-svartekster, der flyder gennem mesh'et.",
   "Skip": "Spring over",
@@ -5790,7 +5788,7 @@
   "Manual checklist step": "Manuelt tjeklistetrin",
   "Map IdP groups to status page viewers without manual upkeep.": "Tilknyt IdP-grupper til statusside-seere uden manuel vedligeholdelse.",
   "Map IdP groups to teams to keep on-call rosters and permissions accurate.": "Tilknyt IdP-grupper til teams for at holde vagtplaner og tilladelser nøjagtige.",
-  "Map signed-in users into the right teams the moment they log in.": "Tilknyt indloggede brugere til de rette teams i det øjeblik, de logger ind.",
+  "Map signed-in users into the right teams the moment they sign in.": "Tilknyt indloggede brugere til de rette teams i det øjeblik, de logger ind.",
   "Mask": "Maske",
   "Maximum": "Maksimum",
   "Medium (3σ — recommended)": "Mellem (3σ — anbefalet)",
@@ -5848,7 +5846,6 @@
   "Removed from on-call policy": "Fjernet fra vagtordningspolitik",
   "Reporting services": "Rapporterende tjenester",
   "Require members to keep email, SMS, push or voice methods configured.": "Kræv, at medlemmer holder e-mail-, SMS-, push- eller stemmemetoder konfigureret.",
-  "Require OIDC login for everyone in the project — no shared passwords.": "Kræv OIDC-login for alle i projektet — ingen delte adgangskoder.",
   "Require SSO for everyone in the project — no shared passwords.": "Kræv SSO for alle i projektet — ingen delte adgangskoder.",
   "Resolution Time": "Løsningstid",
   "Restarting": "Genstarter",
@@ -12163,7 +12160,7 @@
   "Looking good!": "Det ser godt ud!",
   "Looks like the project auth token id is not set properly. Please try again.": "Det ser ud til, at projektets godkendelsestoken-ID ikke er angivet korrekt. Prøv igen.",
   "Looks like the user auth token id is not set properly. Please try again.": "Det ser ud til, at brugerens godkendelsestoken-ID ikke er angivet korrekt. Prøv igen.",
-  "Looks like you are not logged in. Please login to continue.": "Det ser ud til, at du ikke er logget ind. Log ind for at fortsætte.",
+  "You are signed out. Please sign in to continue.": "Du er logget ud. Log ind for at fortsætte.",
   "Looks like you have not selected any project. Please select a project to continue.": "Det ser ud til, at du ikke har valgt et projekt. Vælg et projekt for at fortsætte.",
   "Lookup Method": "Opslagsmetode",
   "Lookup Timeout": "Lookup Timeout",
@@ -17247,7 +17244,7 @@
   "This pattern does not match the sample line. Logs that do not match are left unchanged.": "This pattern does not match the sample line. Logs that do not match are left unchanged.",
   "This permanently removes the layer, its users and its rotation from this schedule. This action cannot be undone.": "Dette fjerner permanent laget, dets brugere og dets rotation fra denne tidsplan. Handlingen kan ikke fortrydes.",
   "This project has no on-call policies. These monitors will record what happened, but nobody will be paged. You can add a policy later and edit these monitors.": "Dette projekt har ingen vagtpolitikker. Disse monitorer registrerer, hvad der skete, men ingen bliver tilkaldt. Du kan tilføje en politik senere og redigere disse monitorer.",
-  "This project has no single sign-on provider you can use to log in. Ask a Project Admin to enable one.": "Dette projekt har ingen udbyder af single sign-on, du kan logge ind med. Bed en Projektadministrator om at slå en til.",
+  "This project has no single sign-on provider you can use to sign in. Ask a Project Admin to enable one.": "Dette projekt har ingen udbyder af single sign-on, du kan logge ind med. Bed en Projektadministrator om at slå en til.",
   "This project has no site types configured, so no row can be imported. Add them under Network > Settings > Site Types first.": "Dette projekt har ingen lokationstyper konfigureret, så ingen række kan importeres. Tilføj dem først under Netværk > Indstillinger > Lokationstyper.",
   "This project has too many services to draw at once. Search, or use “Show on map” on a row, to see a readable map of part of it.": "Dette projekt har for mange tjenester til at tegne på én gang. Søg, eller brug “Vis på kortet” på en række for at se et læsbart kort over en del af det.",
   "This project is large enough that the readiness check hit its own read limits, so some responders, methods or rules are missing from what is shown. Read the counts below as a floor, not a total - there may be more people who cannot be paged than appear here.": "Dette projekt er så stort, at parathedskontrollen ramte sine egne læsegrænser, så nogle modtagere, metoder eller regler mangler i det viste. Læs tallene nedenfor som et minimum, ikke en total – der kan være flere personer, der ikke kan tilkaldes, end der vises her.",
@@ -56527,5 +56524,6 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Indsæt det i din identitetsudbyder nu, eller opbevar det et sikkert sted. Det vises kun denne ene gang: OneUptime gemmer kun en hash af det.",
   "Server Monitor Secret Key Hash": "Hash af servermonitorens hemmelige nøgle",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer-tokenet vises kun én gang, når forbindelsen tilføjes, eller når dens token nulstilles. Hvis du ikke længere har det, kan du bruge \"Nulstil bearer-token\" til at lave et nyt.",
-  "Webhook Secret Key Hash": "Hash af webhookens hemmelige nøgle"
+  "Webhook Secret Key Hash": "Hash af webhookens hemmelige nøgle",
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Der er tilføjet en privat hændelse eller advarsel, du ikke kan åbne, til denne opgave, så dens fremskridt og pull request er skjult."
 }

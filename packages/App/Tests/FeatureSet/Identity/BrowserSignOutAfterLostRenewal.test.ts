@@ -816,7 +816,7 @@ describe("a renewal whose answer was lost, then the browser signs out", () => {
     const refused: Answer = await renew(browser);
 
     expect(refused.refused?.message).toBe(
-      "Session expired. Please login again.",
+      "Session expired. Please sign in again.",
     );
     // The renewal was never sent the sign-out cookie, and left it alone.
     expect(refused.sent[SESSION_SIGN_OUT_COOKIE_NAME]).toBeUndefined();
@@ -877,7 +877,7 @@ describe("after the sign-out", () => {
       });
 
       expect(answer.refused?.message).toBe(
-        "Session expired. Please login again.",
+        "Session expired. Please sign in again.",
       );
       expect(answer.refreshToken).toBeNull();
     }

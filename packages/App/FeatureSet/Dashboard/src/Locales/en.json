@@ -172,7 +172,7 @@
     "adminSettings": "Admin Settings",
     "switchToDarkTheme": "Switch to dark theme",
     "switchToLightTheme": "Switch to light theme",
-    "logOut": "Log out"
+    "signOut": "Sign Out"
   },
   "upgrade": {
     "upgradePlan": "Upgrade Plan",
@@ -230,7 +230,7 @@
       "declareIncident": "Declare Incident",
       "lightTheme": "Switch to light theme",
       "systemTheme": "Switch to system theme",
-      "logOut": "Log out",
+      "signOut": "Sign Out",
       "myOnCallPolicies": "My On-Call Policies",
       "projectInvitations": "Project Invitations"
     },
@@ -3292,7 +3292,6 @@
   "Logical partitions for resources": "Logical partitions for resources",
   "Logo": "Logo",
   "Logo will be displayed on the public dashboard header.": "Logo will be displayed on the public dashboard header.",
-  "Logout": "Logout",
   "Logs for this alert.": "Logs for this alert.",
   "Logs for this incident.": "Logs for this incident.",
   "Logs from workloads on this environment": "Logs from workloads on this environment",
@@ -4704,7 +4703,6 @@
   "Single big-number stat, ideal for KPIs.": "Single big-number stat, ideal for KPIs.",
   "Single command. Works on any OS with Docker installed.": "Single command. Works on any OS with Docker installed.",
   "Single Sign On (SSO)": "Single Sign On (SSO)",
-  "Single sign-on is an authentication scheme that allows a user to log in with a single ID to any of several related, yet independent, software systems.": "Single sign-on is an authentication scheme that allows a user to log in with a single ID to any of several related, yet independent, software systems.",
   "Size of HTTP request bodies flowing through the mesh.": "Size of HTTP request bodies flowing through the mesh.",
   "Size of HTTP response bodies flowing through the mesh.": "Size of HTTP response bodies flowing through the mesh.",
   "Skip": "Skip",
@@ -5790,7 +5788,7 @@
   "Manual checklist step": "Manual checklist step",
   "Map IdP groups to status page viewers without manual upkeep.": "Map IdP groups to status page viewers without manual upkeep.",
   "Map IdP groups to teams to keep on-call rosters and permissions accurate.": "Map IdP groups to teams to keep on-call rosters and permissions accurate.",
-  "Map signed-in users into the right teams the moment they log in.": "Map signed-in users into the right teams the moment they log in.",
+  "Map signed-in users into the right teams the moment they sign in.": "Map signed-in users into the right teams the moment they sign in.",
   "Mask": "Mask",
   "Maximum": "Maximum",
   "Medium (3σ — recommended)": "Medium (3σ — recommended)",
@@ -5848,7 +5846,6 @@
   "Removed from on-call policy": "Removed from on-call policy",
   "Reporting services": "Reporting services",
   "Require members to keep email, SMS, push or voice methods configured.": "Require members to keep email, SMS, push or voice methods configured.",
-  "Require OIDC login for everyone in the project — no shared passwords.": "Require OIDC login for everyone in the project — no shared passwords.",
   "Require SSO for everyone in the project — no shared passwords.": "Require SSO for everyone in the project — no shared passwords.",
   "Resolution Time": "Resolution Time",
   "Restarting": "Restarting",
@@ -12163,7 +12160,7 @@
   "Looking good!": "Looking good!",
   "Looks like the project auth token id is not set properly. Please try again.": "Looks like the project auth token id is not set properly. Please try again.",
   "Looks like the user auth token id is not set properly. Please try again.": "Looks like the user auth token id is not set properly. Please try again.",
-  "Looks like you are not logged in. Please login to continue.": "Looks like you are not logged in. Please login to continue.",
+  "You are signed out. Please sign in to continue.": "You are signed out. Please sign in to continue.",
   "Looks like you have not selected any project. Please select a project to continue.": "Looks like you have not selected any project. Please select a project to continue.",
   "Lookup Method": "Lookup Method",
   "Lookup Timeout": "Lookup Timeout",
@@ -17247,7 +17244,7 @@
   "This pattern does not match the sample line. Logs that do not match are left unchanged.": "This pattern does not match the sample line. Logs that do not match are left unchanged.",
   "This permanently removes the layer, its users and its rotation from this schedule. This action cannot be undone.": "This permanently removes the layer, its users and its rotation from this schedule. This action cannot be undone.",
   "This project has no on-call policies. These monitors will record what happened, but nobody will be paged. You can add a policy later and edit these monitors.": "This project has no on-call policies. These monitors will record what happened, but nobody will be paged. You can add a policy later and edit these monitors.",
-  "This project has no single sign-on provider you can use to log in. Ask a Project Admin to enable one.": "This project has no single sign-on provider you can use to log in. Ask a Project Admin to enable one.",
+  "This project has no single sign-on provider you can use to sign in. Ask a Project Admin to enable one.": "This project has no single sign-on provider you can use to sign in. Ask a Project Admin to enable one.",
   "This project has no site types configured, so no row can be imported. Add them under Network > Settings > Site Types first.": "This project has no site types configured, so no row can be imported. Add them under Network > Settings > Site Types first.",
   "This project has too many services to draw at once. Search, or use “Show on map” on a row, to see a readable map of part of it.": "This project has too many services to draw at once. Search, or use “Show on map” on a row, to see a readable map of part of it.",
   "This project is large enough that the readiness check hit its own read limits, so some responders, methods or rules are missing from what is shown. Read the counts below as a floor, not a total - there may be more people who cannot be paged than appear here.": "This project is large enough that the readiness check hit its own read limits, so some responders, methods or rules are missing from what is shown. Read the counts below as a floor, not a total - there may be more people who cannot be paged than appear here.",
@@ -56527,5 +56524,6 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.",
   "Server Monitor Secret Key Hash": "Server Monitor Secret Key Hash",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.",
-  "Webhook Secret Key Hash": "Webhook Secret Key Hash"
+  "Webhook Secret Key Hash": "Webhook Secret Key Hash",
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden."
 }

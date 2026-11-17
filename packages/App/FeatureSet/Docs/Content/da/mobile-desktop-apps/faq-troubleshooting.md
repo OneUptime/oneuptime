@@ -36,7 +36,7 @@ Ja. Hver telefon eller tablet er sin egen push-enhed, med sine egne vagtregler o
 - **Monitors**: alle monitorer, filtreret efter tilstand, med deres detaljer.
 - **Inbox**: hændelser og advarsler, og de episoder, der grupperer dem. Åbn en for at bruge **Acknowledge**, **Resolve** eller **Add Note**. Giver din rolle dig adgang til projektets sikkerhedssager, viser **Security** de åbne: åbn en for at bruge **Approve** eller **Reject** på et playbook-trin, der venter på godkendelse, tage sagen med **Assign to me** eller bruge **Close case**.
 - **On-Call**: om du har vagt og til hvornår, hvem der ellers har, de alarmer, der er sendt til dig, og **Cover for me**, som giver dine alarmer videre til en kollega i et stykke tid.
-- **Settings**: dine projekter og single sign-on, udseendet, kritiske advarsler og alarmlyden, **Biometrics Login**, dit vagtkalenderfeed og **Log Out**.
+- **Settings**: dine projekter og single sign-on, udseendet, kritiske advarsler og alarmlyden, **Biometric Unlock**, dit vagtkalenderfeed og **Sign Out**.
 
 Alt andet finder du i dashboardet.
 :::
@@ -46,7 +46,7 @@ Nej. Tryk på notifikationen: appen åbner den hændelse, advarsel, episode elle
 :::
 
 :::details Er mit login sikkert på telefonen?
-Appen taler kun med dit OneUptime over HTTPS. Dit login gemmes i appens eget lager på telefonen, og **Log Out** sletter det og logger også sessionen ud på serveren. Slå **Biometrics Login** til, så appen spørger om dit ansigt, dit fingeraftryk eller din kode, hver gang den starter.
+Appen taler kun med dit OneUptime over HTTPS. Dit login gemmes i appens eget lager på telefonen, og **Sign Out** sletter det og logger også sessionen ud på serveren. Slå **Biometric Unlock** til, så appen spørger om dit ansigt, dit fingeraftryk eller din kode, hver gang den starter.
 :::
 
 :::details Virker appen offline?

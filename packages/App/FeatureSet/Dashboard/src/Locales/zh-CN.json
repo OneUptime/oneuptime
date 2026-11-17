@@ -172,7 +172,7 @@
     "adminSettings": "管理员设置",
     "switchToDarkTheme": "切换到深色主题",
     "switchToLightTheme": "切换到浅色主题",
-    "logOut": "登出"
+    "signOut": "退出登录"
   },
   "upgrade": {
     "upgradePlan": "升级计划",
@@ -230,7 +230,7 @@
       "declareIncident": "声明事件",
       "lightTheme": "切换到浅色主题",
       "systemTheme": "切换到系统主题",
-      "logOut": "登出",
+      "signOut": "退出登录",
       "myOnCallPolicies": "我的值班策略",
       "projectInvitations": "项目邀请"
     },
@@ -3292,7 +3292,6 @@
   "Logical partitions for resources": "资源的逻辑分区",
   "Logo": "徽标",
   "Logo will be displayed on the public dashboard header.": "徽标将显示在公共仪表板页眉中。",
-  "Logout": "注销",
   "Logs for this alert.": "此警报的日志。",
   "Logs for this incident.": "此事件的日志。",
   "Logs from workloads on this environment": "此环境上工作负载的日志",
@@ -4704,7 +4703,6 @@
   "Single big-number stat, ideal for KPIs.": "单个大数字统计，非常适合 KPI。",
   "Single command. Works on any OS with Docker installed.": "单条命令。适用于任何已安装 Docker 的操作系统。",
   "Single Sign On (SSO)": "单点登录 (SSO)",
-  "Single sign-on is an authentication scheme that allows a user to log in with a single ID to any of several related, yet independent, software systems.": "单点登录是一种身份验证方案，允许用户使用单个 ID 登录到多个相关但相互独立的软件系统中的任意一个。",
   "Size of HTTP request bodies flowing through the mesh.": "流经网格的 HTTP 请求体的大小。",
   "Size of HTTP response bodies flowing through the mesh.": "流经网格的 HTTP 响应体的大小。",
   "Skip": "跳过",
@@ -5790,7 +5788,7 @@
   "Manual checklist step": "手动检查清单步骤",
   "Map IdP groups to status page viewers without manual upkeep.": "将 IdP 组映射到状态页查看者，无需手动维护。",
   "Map IdP groups to teams to keep on-call rosters and permissions accurate.": "将 IdP 组映射到团队，以保持值班名单和权限准确无误。",
-  "Map signed-in users into the right teams the moment they log in.": "在用户登录时立即将其映射到正确的团队。",
+  "Map signed-in users into the right teams the moment they sign in.": "在用户登录时立即将其映射到正确的团队。",
   "Mask": "掩码",
   "Maximum": "最大值",
   "Medium (3σ — recommended)": "中 (3σ — 推荐)",
@@ -5848,7 +5846,6 @@
   "Removed from on-call policy": "已从值班策略中移除",
   "Reporting services": "上报服务",
   "Require members to keep email, SMS, push or voice methods configured.": "要求成员保持配置电子邮件、短信、推送或语音方式。",
-  "Require OIDC login for everyone in the project — no shared passwords.": "要求项目中的每个人使用 OIDC 登录——无共享密码。",
   "Require SSO for everyone in the project — no shared passwords.": "要求项目中的每个人使用 SSO——无共享密码。",
   "Resolution Time": "解决时间",
   "Restarting": "正在重启",
@@ -12163,7 +12160,7 @@
   "Looking good!": "一切正常！",
   "Looks like the project auth token id is not set properly. Please try again.": "项目身份验证令牌 ID 似乎未正确设置。请重试。",
   "Looks like the user auth token id is not set properly. Please try again.": "用户身份验证令牌 ID 似乎未正确设置。请重试。",
-  "Looks like you are not logged in. Please login to continue.": "你似乎尚未登录。请登录以继续。",
+  "You are signed out. Please sign in to continue.": "你已退出登录。请登录以继续。",
   "Looks like you have not selected any project. Please select a project to continue.": "你似乎尚未选择任何项目。请选择一个项目以继续。",
   "Lookup Method": "查询方式",
   "Lookup Timeout": "Lookup Timeout",
@@ -17247,7 +17244,7 @@
   "This pattern does not match the sample line. Logs that do not match are left unchanged.": "This pattern does not match the sample line. Logs that do not match are left unchanged.",
   "This permanently removes the layer, its users and its rotation from this schedule. This action cannot be undone.": "这会从此排班中永久移除该层、其用户及其轮换。此操作无法撤销。",
   "This project has no on-call policies. These monitors will record what happened, but nobody will be paged. You can add a policy later and edit these monitors.": "此项目没有值班策略。这些监视器会记录发生的情况，但不会通知任何人。你可以稍后添加策略并编辑这些监视器。",
-  "This project has no single sign-on provider you can use to log in. Ask a Project Admin to enable one.": "此项目没有你可用于登录的单点登录提供商。请让项目管理员启用一个。",
+  "This project has no single sign-on provider you can use to sign in. Ask a Project Admin to enable one.": "此项目没有你可用于登录的单点登录提供商。请让项目管理员启用一个。",
   "This project has no site types configured, so no row can be imported. Add them under Network > Settings > Site Types first.": "此项目未配置任何站点类型，因此无法导入任何行。请先在“网络 > 设置 > 站点类型”中添加。",
   "This project has too many services to draw at once. Search, or use “Show on map” on a row, to see a readable map of part of it.": "此项目的服务过多，无法一次绘制。请搜索，或在某一行使用“在地图上显示”，查看部分服务的清晰地图。",
   "This project is large enough that the readiness check hit its own read limits, so some responders, methods or rules are missing from what is shown. Read the counts below as a floor, not a total - there may be more people who cannot be paged than appear here.": "此项目规模较大，就绪检查达到了自身的读取上限，因此显示的内容中缺少部分响应人、方式或规则。请把下面的数字看作下限而不是总数——无法呼叫的人可能比这里显示的更多。",
@@ -56527,5 +56524,6 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "请立即将其粘贴到你的身份提供商中，或保存在安全的地方。它只显示这一次：OneUptime 只保存它的哈希值。",
   "Server Monitor Secret Key Hash": "服务器监控密钥哈希",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "Bearer 令牌只会在添加连接或重置其令牌时显示一次。如果你已不再持有它，请使用“重置 Bearer 令牌”创建一个新令牌。",
-  "Webhook Secret Key Hash": "Webhook 密钥哈希"
+  "Webhook Secret Key Hash": "Webhook 密钥哈希",
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "此任务中添加了你无法打开的私密事件或警报，因此其进度和拉取请求已隐藏。"
 }

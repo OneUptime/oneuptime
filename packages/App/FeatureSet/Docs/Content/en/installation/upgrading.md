@@ -366,6 +366,17 @@ and episodes.
   is read as before. The request for a private incident's action item now
   names the incident only by its number. See
   [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
+- **Production reviews, pull requests from chats and the fix panels follow
+  private records too.** A production review stored before an incident on it
+  was made private now lists that incident only to those who may read it. A
+  pull request OneUptime AI opens from a chat also carries the private
+  incidents and alerts the chat opened one by one or quoted from a list. An
+  exception's fix, an investigation's fix pull request, a trace's performance
+  fix, a fix's pull request to the code, and the fix under way for an AI
+  insight or for a function in Profiles now say a task is hidden when it
+  carries a private record you can't open, instead of showing its progress
+  and pull request. See
+  [Private incidents, alerts and episodes](/docs/permissions/index#private-incidents-alerts-and-episodes).
 - **Webhook addresses and SNMP credentials are stored encrypted, and logs
   keep a webhook's address by its host.** A Slack, Microsoft Teams or Discord
   webhook carries its secret in its address, and an SNMP community string or

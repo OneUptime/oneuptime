@@ -172,7 +172,7 @@
     "adminSettings": "Ajustes de admin",
     "switchToDarkTheme": "Cambiar al tema oscuro",
     "switchToLightTheme": "Cambiar al tema claro",
-    "logOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión"
   },
   "upgrade": {
     "upgradePlan": "Actualizar plan",
@@ -230,7 +230,7 @@
       "declareIncident": "Declarar incidente",
       "lightTheme": "Cambiar al tema claro",
       "systemTheme": "Cambiar al tema del sistema",
-      "logOut": "Cerrar sesión",
+      "signOut": "Cerrar sesión",
       "myOnCallPolicies": "Mis políticas de guardia",
       "projectInvitations": "Invitaciones a proyectos"
     },
@@ -3292,7 +3292,6 @@
   "Logical partitions for resources": "Particiones lógicas para recursos",
   "Logo": "Logotipo",
   "Logo will be displayed on the public dashboard header.": "El logotipo se mostrará en el encabezado del panel público.",
-  "Logout": "Cerrar sesión",
   "Logs for this alert.": "Registros de esta alerta.",
   "Logs for this incident.": "Registros de este incidente.",
   "Logs from workloads on this environment": "Registros de las cargas de trabajo de este entorno",
@@ -4704,7 +4703,6 @@
   "Single big-number stat, ideal for KPIs.": "Una sola estadística de gran número, ideal para KPIs.",
   "Single command. Works on any OS with Docker installed.": "Un solo comando. Funciona en cualquier sistema operativo con Docker instalado.",
   "Single Sign On (SSO)": "Inicio de sesión único (SSO)",
-  "Single sign-on is an authentication scheme that allows a user to log in with a single ID to any of several related, yet independent, software systems.": "El inicio de sesión único es un esquema de autenticación que permite a un usuario iniciar sesión con un único ID en cualquiera de varios sistemas de software relacionados pero independientes.",
   "Size of HTTP request bodies flowing through the mesh.": "Tamaño de los cuerpos de las solicitudes HTTP que fluyen a través de la malla.",
   "Size of HTTP response bodies flowing through the mesh.": "Tamaño de los cuerpos de las respuestas HTTP que fluyen a través de la malla.",
   "Skip": "Omitir",
@@ -5790,7 +5788,7 @@
   "Manual checklist step": "Paso manual de la lista de verificación",
   "Map IdP groups to status page viewers without manual upkeep.": "Asigna grupos del IdP a espectadores de la página de estado sin mantenimiento manual.",
   "Map IdP groups to teams to keep on-call rosters and permissions accurate.": "Asigna grupos del IdP a equipos para mantener precisos los turnos de guardia y los permisos.",
-  "Map signed-in users into the right teams the moment they log in.": "Asigna a los usuarios que inician sesión a los equipos correctos en el momento en que acceden.",
+  "Map signed-in users into the right teams the moment they sign in.": "Asigna a los usuarios que inician sesión a los equipos correctos en el momento en que acceden.",
   "Mask": "Máscara",
   "Maximum": "Máximo",
   "Medium (3σ — recommended)": "Medio (3σ — recomendado)",
@@ -5848,7 +5846,6 @@
   "Removed from on-call policy": "Eliminado de la política de guardia",
   "Reporting services": "Servicios que envían datos",
   "Require members to keep email, SMS, push or voice methods configured.": "Exige que los miembros mantengan configurados métodos de correo electrónico, SMS, push o voz.",
-  "Require OIDC login for everyone in the project — no shared passwords.": "Exige el inicio de sesión con OIDC para todos en el proyecto: sin contraseñas compartidas.",
   "Require SSO for everyone in the project — no shared passwords.": "Exige SSO para todos en el proyecto: sin contraseñas compartidas.",
   "Resolution Time": "Tiempo de resolución",
   "Restarting": "Reiniciando",
@@ -12163,7 +12160,7 @@
   "Looking good!": "¡Todo bien!",
   "Looks like the project auth token id is not set properly. Please try again.": "Parece que el ID del token de autenticación del proyecto no está configurado correctamente. Inténtalo de nuevo.",
   "Looks like the user auth token id is not set properly. Please try again.": "Parece que el ID del token de autenticación del usuario no está configurado correctamente. Inténtalo de nuevo.",
-  "Looks like you are not logged in. Please login to continue.": "Parece que no has iniciado sesión. Inicia sesión para continuar.",
+  "You are signed out. Please sign in to continue.": "Has cerrado sesión. Inicia sesión para continuar.",
   "Looks like you have not selected any project. Please select a project to continue.": "Parece que no has seleccionado ningún proyecto. Selecciona un proyecto para continuar.",
   "Lookup Method": "Método de búsqueda",
   "Lookup Timeout": "Tiempo de espera de la búsqueda",
@@ -17247,7 +17244,7 @@
   "This pattern does not match the sample line. Logs that do not match are left unchanged.": "Este patrón no coincide con la línea de ejemplo. Los registros que no coinciden se dejan sin cambios.",
   "This permanently removes the layer, its users and its rotation from this schedule. This action cannot be undone.": "Esto elimina de forma permanente la capa, sus usuarios y su rotación de esta programación. Esta acción no se puede deshacer.",
   "This project has no on-call policies. These monitors will record what happened, but nobody will be paged. You can add a policy later and edit these monitors.": "Este proyecto no tiene políticas de guardia. Estos monitores registrarán lo ocurrido, pero no se avisará a nadie. Puedes añadir una política más adelante y editar estos monitores.",
-  "This project has no single sign-on provider you can use to log in. Ask a Project Admin to enable one.": "Este proyecto no tiene ningún proveedor de inicio de sesión único que puedas usar para iniciar sesión. Pide a un Administrador del proyecto que habilite uno.",
+  "This project has no single sign-on provider you can use to sign in. Ask a Project Admin to enable one.": "Este proyecto no tiene ningún proveedor de inicio de sesión único que puedas usar para iniciar sesión. Pide a un Administrador del proyecto que habilite uno.",
   "This project has no site types configured, so no row can be imported. Add them under Network > Settings > Site Types first.": "Este proyecto no tiene tipos de sitio configurados, así que no se puede importar ninguna fila. Añádelos primero en Red > Ajustes > Tipos de sitio.",
   "This project has too many services to draw at once. Search, or use “Show on map” on a row, to see a readable map of part of it.": "Este proyecto tiene demasiados servicios para dibujarlos a la vez. Busca, o usa “Mostrar en el mapa” en una fila, para ver un mapa legible de una parte.",
   "This project is large enough that the readiness check hit its own read limits, so some responders, methods or rules are missing from what is shown. Read the counts below as a floor, not a total - there may be more people who cannot be paged than appear here.": "Este proyecto es lo bastante grande como para que la comprobación de preparación alcanzara sus propios límites de lectura, así que faltan algunos respondedores, métodos o reglas en lo que se muestra. Interpreta los recuentos de abajo como un mínimo, no como un total: puede haber más personas a las que no se puede avisar de las que aparecen aquí.",
@@ -56527,5 +56524,6 @@
   "Paste it into your identity provider now, or keep it somewhere safe. It is shown only this once: OneUptime keeps only a hash of it.": "Pégalo ahora en tu proveedor de identidad o guárdalo en un lugar seguro. Solo se muestra esta vez: OneUptime solo guarda un hash de él.",
   "Server Monitor Secret Key Hash": "Hash de la clave secreta del monitor de servidor",
   "The bearer token is shown only once, when the connection is added or its token is reset. If you no longer have it, use Reset Bearer Token to make a new one.": "El token Bearer solo se muestra una vez, cuando se añade la conexión o se restablece su token. Si ya no lo tienes, usa «Restablecer token Bearer» para crear uno nuevo.",
-  "Webhook Secret Key Hash": "Hash de la clave secreta del webhook"
+  "Webhook Secret Key Hash": "Hash de la clave secreta del webhook",
+  "A private incident or alert you can't open was added to this task, so its progress and pull request are hidden.": "Se añadió a esta tarea un incidente o una alerta privados que no puedes abrir, así que su progreso y su pull request están ocultos."
 }

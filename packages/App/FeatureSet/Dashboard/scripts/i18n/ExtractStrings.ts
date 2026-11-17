@@ -63,7 +63,7 @@ export interface ExtractedString {
   // A PluralTemplate's "one" sentence; `text` is its "other" sentence.
   pluralOne?: string | undefined;
   /*
-   * A nested key read with t("commandPalette.actions.logOut", "Log out"):
+   * A nested key read with t("commandPalette.actions.signOut", "Sign Out"):
    * its path, with `text` the English default the call gives.
    */
   nestedPath?: Array<string> | undefined;

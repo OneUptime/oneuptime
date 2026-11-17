@@ -239,6 +239,47 @@ describe("the suggestion route's answer", () => {
     expect(
       parseProfileFixSuggestion(profileFixSuggestionToJSON(working)).taskId,
     ).toBe("70000000-0000-4000-8000-0000000000f2");
+    expect(profileFixSuggestionToJSON(working)).not.toHaveProperty("isHidden");
+  });
+
+  /*
+   * A fix on its way in a task the person may not read: in progress, with
+   * what the profile shows and no task - never a link, whatever the wire
+   * says beside it.
+   */
+  test("work in progress hidden from the person keeps no task", () => {
+    const hidden: ProfileFixSuggestion = {
+      ...NO_PROFILE_FIX_SUGGESTION,
+      offer: SuggestionOffer.InProgress,
+      reason: ProfileFixReason.Hot,
+      evidence: HOT,
+      isHidden: true,
+    };
+
+    const json: JSONObject = profileFixSuggestionToJSON({
+      ...hidden,
+      // A task id that slipped in is never sent.
+      taskId: "70000000-0000-4000-8000-0000000000f2",
+    });
+
+    expect(json["taskId"]).toBeNull();
+    expect(json["isHidden"]).toBe(true);
+    expect(parseProfileFixSuggestion(JSON.parse(JSON.stringify(json)))).toEqual(
+      hidden,
+    );
+    expect(
+      parseProfileFixSuggestion({
+        ...json,
+        taskId: "70000000-0000-4000-8000-0000000000f2",
+      }),
+    ).toEqual(hidden);
+    // Only a hidden fix on its way: an offer to act is read as before.
+    expect(
+      parseProfileFixSuggestion({
+        ...profileFixSuggestionToJSON(act),
+        isHidden: true,
+      }),
+    ).toEqual(act);
   });
 
   test.each([
@@ -271,6 +312,23 @@ describe("the suggestion route's answer", () => {
     [
       "work in progress with no task",
       { ...profileFixSuggestionToJSON(act), offer: SuggestionOffer.InProgress },
+    ],
+    [
+      "work in progress with no task, said hidden in a way that is not one",
+      {
+        ...profileFixSuggestionToJSON(act),
+        offer: SuggestionOffer.InProgress,
+        isHidden: "yes",
+      },
+    ],
+    [
+      "a hidden fix for a function the rule would not offer",
+      {
+        ...profileFixSuggestionToJSON(act),
+        offer: SuggestionOffer.InProgress,
+        isHidden: true,
+        evidence: { ...HOT, isOwnCode: false },
+      },
     ],
     [
       "a finished fix, which this suggestion never says, even with somewhere to ask it",

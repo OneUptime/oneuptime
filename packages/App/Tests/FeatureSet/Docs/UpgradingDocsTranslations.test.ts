@@ -461,6 +461,7 @@ const PROSE_LEADS: Array<string> = [
   "Runbook runs and fixes go with their incident or alert, and other records show a private one only to those who may read it.",
   "OneUptime AI's code work about a private incident or alert follows its owners too.",
   "Code work that carries a private incident or alert follows its owners too.",
+  "Production reviews, pull requests from chats and the fix panels follow private records too.",
   "Webhook addresses and SNMP credentials are stored encrypted, and logs keep a webhook's address by its host.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",

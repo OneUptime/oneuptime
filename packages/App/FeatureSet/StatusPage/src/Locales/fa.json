@@ -37,7 +37,7 @@
     "announcements": "اطلاعیه‌ها",
     "scheduledEvents": "تعمیر و نگهداری زمان‌بندی‌شده",
     "subscribe": "عضویت",
-    "logout": "خروج"
+    "signOut": "خروج از حساب"
   },
   "overview": {
     "uptimeSuffix": "٪ زمان کارکرد",
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "تکمیل‌شده در {{count}} روز گذشته",
   "Completed in the Last {{count}} Days_one": "تکمیل‌شده در یک روز گذشته",
   "None is planned, and none took place in the last {{count}} days.": "هیچ موردی برنامه‌ریزی نشده و در {{count}} روز گذشته هم موردی انجام نشده است.",
-  "None is planned, and none took place in the last {{count}} days._one": "هیچ موردی برنامه‌ریزی نشده و در یک روز گذشته هم موردی انجام نشده است."
+  "None is planned, and none took place in the last {{count}} days._one": "هیچ موردی برنامه‌ریزی نشده و در یک روز گذشته هم موردی انجام نشده است.",
+  "serverMessages": {
+    "signInToView": "به این صفحهٔ وضعیت دسترسی ندارید. برای دیدن آن وارد شوید.",
+    "sessionExpired": "نشست منقضی شده است. لطفاً دوباره وارد شوید.",
+    "signedOut": "از حساب خارج شده‌اید. لطفاً دوباره وارد شوید.",
+    "magicLinkTurnedOff": "پیوندهای ورود برای این صفحهٔ وضعیت خاموش است. لطفاً با ایمیل و گذرواژهٔ خود وارد شوید."
+  }
 }

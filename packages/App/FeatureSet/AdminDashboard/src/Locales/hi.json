@@ -64,7 +64,7 @@
     "apiKey": "API कुंजी",
     "more": "अधिक",
     "sendEmail": "ईमेल भेजें",
-    "logout": "लॉग आउट",
+    "signOut": "साइन आउट करें",
     "telemetryUsage": "टेलीमेट्री उपयोग",
     "ingestionBudgets": "इंजेशन बजट",
     "products": "उत्पाद"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "एडमिन से बाहर निकलें",
-    "logOut": "लॉग आउट"
+    "signOut": "साइन आउट करें"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -482,8 +482,8 @@
       "membersCardDescription": "Manage members of this team. Invite new users by email.",
       "membersNoItems": "No members in this team yet."
     },
-    "logout": {
-      "title": "लॉग आउट"
+    "signOut": {
+      "title": "साइन आउट करें"
     },
     "sendEmail": {
       "title": "घोषणा ईमेल भेजें",
@@ -724,7 +724,6 @@
   "Projects": "प्रोजेक्ट",
   "Project": "प्रोजेक्ट",
   "User": "उपयोगकर्ता",
-  "Logout": "लॉग आउट",
   "Save": "सहेजें",
   "Cancel": "रद्द करें",
   "Submit": "सबमिट करें",

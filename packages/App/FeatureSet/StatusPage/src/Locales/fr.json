@@ -37,7 +37,7 @@
     "announcements": "Annonces",
     "scheduledEvents": "Maintenance planifiée",
     "subscribe": "S'abonner",
-    "logout": "Se déconnecter"
+    "signOut": "Se déconnecter"
   },
   "overview": {
     "uptimeSuffix": "% de disponibilité",
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "Achevées au cours des {{count}} derniers jours",
   "Completed in the Last {{count}} Days_one": "Achevées au cours du dernier jour",
   "None is planned, and none took place in the last {{count}} days.": "Aucune n'est prévue, et aucune n'a eu lieu au cours des {{count}} derniers jours.",
-  "None is planned, and none took place in the last {{count}} days._one": "Aucune n'est prévue, et aucune n'a eu lieu au cours du dernier jour."
+  "None is planned, and none took place in the last {{count}} days._one": "Aucune n'est prévue, et aucune n'a eu lieu au cours du dernier jour.",
+  "serverMessages": {
+    "signInToView": "Vous n’avez pas accès à cette page de statut. Connectez-vous pour la consulter.",
+    "sessionExpired": "La session a expiré. Veuillez vous reconnecter.",
+    "signedOut": "Vous êtes déconnecté. Veuillez vous reconnecter.",
+    "magicLinkTurnedOff": "Les liens de connexion sont désactivés pour cette page de statut. Connectez-vous avec votre adresse e-mail et votre mot de passe."
+  }
 }

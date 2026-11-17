@@ -36,7 +36,7 @@ Ja. Hver telefon eller hvert nettbrett er en egen push-enhet, med egne vaktregle
 - **Monitors**: alle monitorer, filtrert etter tilstand, med detaljene sine.
 - **Inbox**: hendelser og varsler, og episodene som grupperer dem. Åpne en for å bruke **Acknowledge**, **Resolve** eller **Add Note**. Gir rollen din deg tilgang til prosjektets sikkerhetssaker, viser **Security** de åpne: åpne en for å bruke **Approve** eller **Reject** på et playbook-steg som venter på godkjenning, ta saken med **Assign to me** eller bruke **Close case**.
 - **On-Call**: om du har vakt og til når, hvem andre som har det, varslene som er sendt til deg, og **Cover for me**, som gir varslene dine videre til en kollega en stund.
-- **Settings**: prosjektene dine og single sign-on, utseendet, kritiske varsler og alarmlyden, **Biometrics Login**, vaktkalenderfeeden din og **Log Out**.
+- **Settings**: prosjektene dine og single sign-on, utseendet, kritiske varsler og alarmlyden, **Biometric Unlock**, vaktkalenderfeeden din og **Sign Out**.
 
 Alt annet finner du i dashbordet.
 :::
@@ -46,7 +46,7 @@ Nei. Trykk på varslingen: appen åpner hendelsen, varselet, episoden eller sikk
 :::
 
 :::details Er innloggingen min trygg på telefonen?
-Appen snakker med ditt OneUptime bare over HTTPS. Innloggingen din lagres i appens eget lager på telefonen, og **Log Out** sletter den og logger også ut økten på serveren. Slå på **Biometrics Login**, så spør appen om ansiktet ditt, fingeravtrykket ditt eller koden din hver gang den starter.
+Appen snakker med ditt OneUptime bare over HTTPS. Innloggingen din lagres i appens eget lager på telefonen, og **Sign Out** sletter den og logger også ut økten på serveren. Slå på **Biometric Unlock**, så spør appen om ansiktet ditt, fingeravtrykket ditt eller koden din hver gang den starter.
 :::
 
 :::details Fungerer appen uten nett?

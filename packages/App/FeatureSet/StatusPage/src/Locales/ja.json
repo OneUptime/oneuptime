@@ -37,7 +37,7 @@
     "announcements": "お知らせ",
     "scheduledEvents": "定期メンテナンス",
     "subscribe": "購読する",
-    "logout": "ログアウト"
+    "signOut": "サインアウト"
   },
   "overview": {
     "uptimeSuffix": "% 稼働率",
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "過去 {{count}} 日間に完了",
   "Completed in the Last {{count}} Days_one": "過去 1 日間に完了",
   "None is planned, and none took place in the last {{count}} days.": "予定はなく、過去 {{count}} 日間に実施されたメンテナンスもありません。",
-  "None is planned, and none took place in the last {{count}} days._one": "予定はなく、過去 1 日間に実施されたメンテナンスもありません。"
+  "None is planned, and none took place in the last {{count}} days._one": "予定はなく、過去 1 日間に実施されたメンテナンスもありません。",
+  "serverMessages": {
+    "signInToView": "このステータスページへのアクセス権がありません。表示するにはサインインしてください。",
+    "sessionExpired": "セッションの有効期限が切れました。もう一度サインインしてください。",
+    "signedOut": "サインアウトしています。もう一度サインインしてください。",
+    "magicLinkTurnedOff": "このステータスページではサインインリンクがオフになっています。メールアドレスとパスワードでサインインしてください。"
+  }
 }

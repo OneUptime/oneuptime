@@ -37,7 +37,7 @@
     "announcements": "Anuncios",
     "scheduledEvents": "Mantenimiento programado",
     "subscribe": "Suscribirse",
-    "logout": "Cerrar sesión"
+    "signOut": "Cerrar sesión"
   },
   "overview": {
     "uptimeSuffix": "% de disponibilidad",
@@ -510,5 +510,11 @@
   "Completed in the Last {{count}} Days": "Completado en los últimos {{count}} días",
   "Completed in the Last {{count}} Days_one": "Completado en el último día",
   "None is planned, and none took place in the last {{count}} days.": "No hay ninguno previsto ni hubo ninguno en los últimos {{count}} días.",
-  "None is planned, and none took place in the last {{count}} days._one": "No hay ninguno previsto ni hubo ninguno en el último día."
+  "None is planned, and none took place in the last {{count}} days._one": "No hay ninguno previsto ni hubo ninguno en el último día.",
+  "serverMessages": {
+    "signInToView": "No tienes acceso a esta página de estado. Inicia sesión para verla.",
+    "sessionExpired": "La sesión ha caducado. Vuelve a iniciar sesión.",
+    "signedOut": "Has cerrado sesión. Vuelve a iniciar sesión.",
+    "magicLinkTurnedOff": "Los enlaces de inicio de sesión están desactivados para esta página de estado. Inicia sesión con tu correo electrónico y tu contraseña."
+  }
 }

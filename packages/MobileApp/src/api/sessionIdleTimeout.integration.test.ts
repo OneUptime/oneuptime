@@ -323,7 +323,7 @@ function refusal(reason: SessionEndReason | null): AxiosError {
       data: {
         message: reason
           ? SESSION_ENDED_MESSAGES[reason]
-          : "Session expired. Please login again.",
+          : "Session expired. Please sign in again.",
       },
       status: 401,
       statusText: "Unauthorized",

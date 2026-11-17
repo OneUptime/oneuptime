@@ -20,6 +20,7 @@ import CodeTaskListRows, {
   CodeTaskRepliesRead,
 } from "../../../../Server/Utils/AI/CodeTask/CodeTaskListRows";
 import CodeTaskRuns from "../../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
+import CodeTaskThread from "../../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import DeclaredCodeOwner, {
   DeclaredCodeOwnerCandidate,
 } from "../../../../Server/Utils/AI/Remediation/DeclaredCodeOwner";
@@ -888,6 +889,15 @@ describe("DeclaredCodeChanges", () => {
   });
 
   describe("list", () => {
+    // The reader may read each step's task, unless a test says otherwise.
+    let hiddenFrom: SpyInstance<typeof CodeTaskThread.findTasksHiddenFrom>;
+
+    beforeEach(() => {
+      hiddenFrom = jest
+        .spyOn(CodeTaskThread, "findTasksHiddenFrom")
+        .mockResolvedValue(new Set<string>());
+    });
+
     async function list(): Promise<Array<Record<string, unknown>>> {
       return (
         await DeclaredCodeChanges.list({
@@ -897,6 +907,61 @@ describe("DeclaredCodeChanges", () => {
         })
       ).changes as unknown as Array<Record<string, unknown>>;
     }
+
+    /*
+     * A step whose task a reply carried a private incident or alert into,
+     * which the reader may not open, is read as the task's own page reads
+     * it: it is there, and nothing of it is read or sent - not how it
+     * stands, its repository, its pull request or its id.
+     */
+    test("a step's task hidden from the reader: there, and nothing of it", async () => {
+      const second: ObjectID = ObjectID.generate();
+      findRuns.mockResolvedValue([
+        task({ status: AIRunStatus.Completed }),
+        task({ id: second, status: AIRunStatus.Running, sequence: 2 }),
+      ]);
+      pullRequests.mockResolvedValue(shown(pullRequest(TASK_ID)));
+      hiddenFrom.mockResolvedValue(
+        new Set<string>([TASK_ID.toString().toLowerCase()]),
+      );
+
+      const changes: Array<Record<string, unknown>> = await list();
+
+      expect(changes).toEqual([
+        {
+          sequence: 1,
+          taskId: "",
+          repositoryName: "",
+          state: DeclaredCodeChangeState.Hidden,
+        },
+        {
+          sequence: 2,
+          taskId: second.toString(),
+          repositoryName: "acme/platform",
+          state: DeclaredCodeChangeState.Writing,
+        },
+      ]);
+      expect(JSON.stringify(changes)).not.toContain(TASK_ID.toString());
+      expect(JSON.stringify(changes)).not.toContain("pull/7");
+
+      // Asked for this reader, of each step's newest task, in this tenant.
+      expect(hiddenFrom).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        taskIds: [TASK_ID, second],
+        reader: PROPS,
+      });
+
+      // Nothing more is read of the hidden one: its turns nor its pull request.
+      for (const read of [replies, pullRequests]) {
+        const asked: { taskIds: Array<ObjectID> } = read.mock
+          .calls[0]![0] as never;
+        expect(
+          asked.taskIds.map((id: ObjectID): string => {
+            return id.toString();
+          }),
+        ).toEqual([second.toString()]);
+      }
+    });
 
     function pullRequest(
       runId: ObjectID,

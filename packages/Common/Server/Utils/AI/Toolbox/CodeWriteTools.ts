@@ -887,14 +887,18 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
     await assertMayChangeRepository({ ctx, repository });
 
     /*
-     * What the pull request's record carries (#9186): the chat's subject,
-     * whose words its title and description are written from. Read before
-     * anything is written to the host, so a chat that cannot be read stops
-     * the pull request rather than leave it open and unrecorded.
+     * What the pull request's record carries: the chat's subject (#9186),
+     * whose words its title and description are written from, the incidents
+     * and alerts the chat opened one by one, and those of its lists the
+     * pull request quotes (#9242). Read before anything is written to the
+     * host, so a chat that cannot be read stops the pull request rather than
+     * leave it open and unrecorded.
      */
-    const carried: CarriedRecordIds = await ChatCarriedRecords.ofChat({
+    const carried: CarriedRecordIds = await ChatCarriedRecords.ofPullRequest({
       conversationId: ctx.conversationId,
       pageContext: ctx.pageContext,
+      title,
+      description,
     });
 
     /*
@@ -1043,8 +1047,9 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
     }
 
     /*
-     * A chat about a private incident or alert: its pull request is read
-     * only by those who may read the record (AIRunOutputReadFilter, #9186).
+     * A chat about a private incident or alert, or one that opened or
+     * quotes one: its pull request is read only by those who may read the
+     * record (AIRunOutputReadFilter, #9186, #9242).
      */
     CarriedRecords.writeTo(record, carried);
 

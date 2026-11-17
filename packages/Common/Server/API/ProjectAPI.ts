@@ -976,7 +976,7 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
         try {
           if (!(req as OneUptimeRequest).userAuthorization?.userId) {
             throw new NotAuthenticatedException(
-              "User should be logged in to access this API",
+              "You must be signed in to use this API.",
             );
           }
 

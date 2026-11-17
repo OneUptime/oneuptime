@@ -9,6 +9,7 @@ import { CodeTaskBlockerType } from "../../../Types/AI/CodeTask";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import {
+  HIDDEN_TELEMETRY_AI_FIX_SUGGESTION,
   NO_TELEMETRY_AI_FIX_SUGGESTION,
   TELEMETRY_AI_FIX_CONNECT_REPOSITORY_MESSAGE,
   TelemetryAiFixOffer,
@@ -204,6 +205,60 @@ describe("the answer, on the wire", () => {
         ],
       }).repositories,
     ).toEqual([{ id: REPO, name: "acme/checkout" }]);
+  });
+
+  /*
+   * A fix on its way in a task the person may not read: in progress, with
+   * no task - round-tripped as that, and never a link, whatever the wire
+   * says beside it.
+   */
+  test("a fix on its way in a task hidden from the person: in progress, with no task", () => {
+    expect(HIDDEN_TELEMETRY_AI_FIX_SUGGESTION).toEqual({
+      ...NO_TELEMETRY_AI_FIX_SUGGESTION,
+      offer: SuggestionOffer.InProgress,
+      isHidden: true,
+    });
+
+    const json: ReturnType<typeof telemetryAiFixSuggestionToJSON> =
+      telemetryAiFixSuggestionToJSON({
+        ...HIDDEN_TELEMETRY_AI_FIX_SUGGESTION,
+        // A task id that slipped in is never sent.
+        taskId: "5229cccc-0000-4000-8000-0000000000f1",
+      });
+
+    expect(json["taskId"]).toBeNull();
+    expect(json["isHidden"]).toBe(true);
+    expect(
+      parseTelemetryAiFixSuggestion(JSON.parse(JSON.stringify(json))),
+    ).toEqual(HIDDEN_TELEMETRY_AI_FIX_SUGGESTION);
+    expect(
+      parseTelemetryAiFixSuggestion({
+        offer: SuggestionOffer.InProgress,
+        isHidden: true,
+        taskId: "5229cccc-0000-4000-8000-0000000000f1",
+      }),
+    ).toEqual(HIDDEN_TELEMETRY_AI_FIX_SUGGESTION);
+    // Only a hidden fix on its way: anything else that says so is read as before.
+    expect(
+      parseTelemetryAiFixSuggestion({
+        offer: SuggestionOffer.InProgress,
+        isHidden: "yes",
+      }),
+    ).toEqual(NO_TELEMETRY_AI_FIX_SUGGESTION);
+    expect(
+      parseTelemetryAiFixSuggestion({
+        ...telemetryAiFixSuggestionToJSON(act),
+        isHidden: true,
+      }),
+    ).toEqual(act);
+    // A task that is not hidden says nothing of it.
+    expect(
+      telemetryAiFixSuggestionToJSON({
+        ...NO_TELEMETRY_AI_FIX_SUGGESTION,
+        offer: SuggestionOffer.InProgress,
+        taskId: "5229cccc-0000-4000-8000-0000000000f1",
+      }),
+    ).not.toHaveProperty("isHidden");
   });
 });
 

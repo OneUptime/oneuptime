@@ -64,7 +64,7 @@
     "apiKey": "کلید API",
     "more": "بیشتر",
     "sendEmail": "ارسال ایمیل",
-    "logout": "خروج",
+    "signOut": "خروج از حساب",
     "telemetryUsage": "مصرف تله‌متری",
     "ingestionBudgets": "بودجه‌های دریافت داده",
     "products": "محصولات"
@@ -81,7 +81,7 @@
   },
   "userProfile": {
     "exitAdmin": "خروج از بخش مدیریت",
-    "logOut": "خروج از حساب"
+    "signOut": "خروج از حساب"
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
@@ -482,8 +482,8 @@
       "membersCardDescription": "اعضای این تیم را مدیریت کنید. کاربران جدید را با ایمیل دعوت کنید.",
       "membersNoItems": "هنوز عضوی در این تیم نیست."
     },
-    "logout": {
-      "title": "خروج"
+    "signOut": {
+      "title": "خروج از حساب"
     },
     "sendEmail": {
       "title": "ارسال ایمیل اطلاع‌رسانی",
@@ -724,7 +724,6 @@
   "Projects": "پروژه‌ها",
   "Project": "پروژه",
   "User": "کاربر",
-  "Logout": "خروج",
   "Save": "ذخیره",
   "Cancel": "انصراف",
   "Submit": "ارسال",

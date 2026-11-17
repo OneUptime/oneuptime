@@ -1,8 +1,16 @@
+import {
+  AIChatCitation,
+  AIChatCitationTargetType,
+  AIChatWidget,
+  AIChatWidgetType,
+} from "../../../Types/AI/AIChatTypes";
 import CarriedRecords, {
   CarriedRecordIds,
   CarriedRecordKeys,
+  MIN_QUOTED_TITLE_LENGTH,
 } from "../../../Types/AI/CarriedRecords";
 import CodeFixTaskContext from "../../../Types/AI/CodeFixTaskContext";
+import { JSONObject } from "../../../Types/JSON";
 import {
   CODE_TASK_RECORD_CONTEXT_TYPES,
   CodeTaskContextType,
@@ -223,5 +231,204 @@ describe("the lists", () => {
     [null, null],
   ])("reads %p as %p", (value: unknown, id: string | null) => {
     expect(CarriedRecords.readId(value)).toBe(id);
+  });
+});
+
+/*
+ * #9242: what a pull request a chat opens carries of what the chat read -
+ * each incident and alert it opened one by one, and those of its lists the
+ * pull request quotes - never every row a list returned.
+ */
+describe("what a chat opened one by one", () => {
+  function citation(values: Partial<AIChatCitation>): AIChatCitation {
+    return {
+      id: "C1",
+      toolName: "get_incident",
+      label: "Incident #12",
+      queryArguments: {},
+      rowCount: 1,
+      ...values,
+    };
+  }
+
+  test("every incident and alert a citation names on its own, from a result that found it", () => {
+    expect(
+      CarriedRecords.openedByCitations([
+        citation({
+          target: {
+            type: AIChatCitationTargetType.IncidentView,
+            params: { incidentId: INCIDENT.toUpperCase() },
+          },
+        }),
+        citation({
+          toolName: "add_alert_note",
+          target: {
+            type: AIChatCitationTargetType.AlertView,
+            params: { alertId: ALERT },
+          },
+        }),
+        // Read twice: carried once.
+        citation({
+          toolName: "get_incident_timeline",
+          target: {
+            type: AIChatCitationTargetType.IncidentView,
+            params: { incidentId: INCIDENT },
+          },
+        }),
+      ]),
+    ).toEqual({ incidentIds: [INCIDENT], alertIds: [ALERT] });
+  });
+
+  test.each([
+    [
+      "a list, which names no one record",
+      citation({
+        toolName: "query_incidents",
+        rowCount: 20,
+        target: { type: AIChatCitationTargetType.Incidents },
+      }),
+    ],
+    [
+      "a result that found nothing",
+      citation({
+        rowCount: 0,
+        target: {
+          type: AIChatCitationTargetType.IncidentView,
+          params: { incidentId: INCIDENT },
+        },
+      }),
+    ],
+    [
+      "another record's page",
+      citation({
+        target: {
+          type: AIChatCitationTargetType.MonitorView,
+          params: { monitorId: INCIDENT },
+        },
+      }),
+    ],
+    [
+      "a page with no id",
+      citation({ target: { type: AIChatCitationTargetType.IncidentView } }),
+    ],
+    [
+      "an id that is no id",
+      citation({
+        target: {
+          type: AIChatCitationTargetType.AlertView,
+          params: { alertId: "not-an-id" },
+        },
+      }),
+    ],
+    ["no target", citation({})],
+  ])("nothing for %s", (_name: string, read: AIChatCitation) => {
+    expect(CarriedRecords.openedByCitations([read])).toEqual({
+      incidentIds: [],
+      alertIds: [],
+    });
+  });
+
+  test("nothing for no citations, or what is not a list of them", () => {
+    expect(CarriedRecords.openedByCitations(undefined)).toEqual(
+      CarriedRecords.none(),
+    );
+    expect(
+      CarriedRecords.openedByCitations([
+        null,
+        undefined,
+        "C1" as unknown as AIChatCitation,
+      ]),
+    ).toEqual(CarriedRecords.none());
+    expect(
+      CarriedRecords.openedByCitations(
+        "not a list" as unknown as Array<AIChatCitation>,
+      ),
+    ).toEqual(CarriedRecords.none());
+  });
+});
+
+describe("what a pull request quotes of a chat's lists", () => {
+  function list(type: AIChatWidgetType, items: Array<unknown>): AIChatWidget {
+    return {
+      id: "W1",
+      type,
+      title: "A list",
+      data: { items: items as Array<JSONObject> },
+    };
+  }
+
+  const LISTS: Array<AIChatWidget> = [
+    list(AIChatWidgetType.IncidentList, [
+      {
+        id: INCIDENT,
+        incidentNumber: 12,
+        title: "Checkout fails for EU cards",
+      },
+      { id: OTHER_INCIDENT, incidentNumber: 13, title: "Outage" },
+    ]),
+    list(AIChatWidgetType.AlertList, [
+      { id: ALERT, alertNumber: 4, title: "Payment queue backs up" },
+    ]),
+  ];
+
+  test("each row whose title the text quotes, whatever its case and white space", () => {
+    expect(
+      CarriedRecords.quotedFromLists({
+        widgets: LISTS,
+        text: "fix: retry\nThe PAYMENT queue\tbacks up when checkout fails for eu cards.",
+      }),
+    ).toEqual({ incidentIds: [INCIDENT], alertIds: [ALERT] });
+  });
+
+  test("no row the text does not quote: a list is not carried whole", () => {
+    expect(
+      CarriedRecords.quotedFromLists({
+        widgets: LISTS,
+        text: "fix: retry the charge once",
+      }),
+    ).toEqual(CarriedRecords.none());
+  });
+
+  test("a title too short to be a quote is no quote", () => {
+    expect(Array.from("Outage").length).toBeLessThan(MIN_QUOTED_TITLE_LENGTH);
+    expect(
+      CarriedRecords.quotedFromLists({
+        widgets: LISTS,
+        text: "Prevents another outage of the checkout.",
+      }),
+    ).toEqual(CarriedRecords.none());
+  });
+
+  test("only incident and alert lists, and only whole rows of them", () => {
+    expect(
+      CarriedRecords.quotedFromLists({
+        widgets: [
+          list(AIChatWidgetType.ExceptionList, [
+            { id: INCIDENT, title: "Checkout fails for EU cards" },
+          ]),
+          list(AIChatWidgetType.Table, [
+            { id: ALERT, title: "Payment queue backs up" },
+          ]),
+          list(AIChatWidgetType.IncidentList, [
+            null,
+            "a row",
+            { title: "Checkout fails for EU cards" },
+            { id: "not-an-id", title: "Checkout fails for EU cards" },
+            { id: OTHER_INCIDENT, title: 42 },
+          ]),
+          null,
+        ],
+        text: "Checkout fails for EU cards; payment queue backs up.",
+      }),
+    ).toEqual(CarriedRecords.none());
+  });
+
+  test("nothing for no text", () => {
+    expect(
+      CarriedRecords.quotedFromLists({ widgets: LISTS, text: "" }),
+    ).toEqual(CarriedRecords.none());
+    expect(
+      CarriedRecords.quotedFromLists({ widgets: LISTS, text: undefined }),
+    ).toEqual(CarriedRecords.none());
   });
 });
