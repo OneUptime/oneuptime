@@ -17,6 +17,7 @@ import AIInsightSeverity from "../../../../../Types/AI/AIInsightSeverity";
 import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import Includes from "../../../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../../../Types/ObjectID";
+import { SeededRandom, seededRandom } from "../../../../Helpers/SeededRandom";
 import ExceptionOwnCode, {
   ExceptionOwnCodeReading,
 } from "../../../../../Server/Utils/AI/SRE/Insights/Detectors/ExceptionOwnCode";
@@ -584,11 +585,8 @@ describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
       at(twentyFiveHoursAgo, 1),
       at(now, -10 * 60 * 1000),
     ];
-    let seed: number = 7;
-    const random: (below: number) => number = (below: number): number => {
-      seed = (seed * 1103515245 + 12345) % 2147483648;
-      return seed % below;
-    };
+    // The suites' seeded generator: random(below) is a whole number below it.
+    const random: SeededRandom = seededRandom(7);
 
     for (let round: number = 0; round < 40; round++) {
       jest.restoreAllMocks();

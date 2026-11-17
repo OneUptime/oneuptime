@@ -31,6 +31,7 @@ const {
   warnNearCeiling,
   weightKey,
 } = require("../../packages/Common/Scripts/first-load-budgets.js");
+const { seededRandom } = require("./Utils/SeededRandom");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const FEATURE_SETS = path.join(REPO_ROOT, "packages", "App", "FeatureSet");
@@ -145,11 +146,10 @@ function gzipped(file) {
  */
 function largeContentsOf(file) {
   const contents = Buffer.alloc(64 * 1024);
-  let seed = file.length;
+  const random = seededRandom(file.length);
 
   for (let index = 0; index < contents.length; index++) {
-    seed = (Math.imul(seed, 1103515245) + 12345) >>> 0;
-    contents[index] = seed >>> 24;
+    contents[index] = random(256);
   }
 
   return contents;

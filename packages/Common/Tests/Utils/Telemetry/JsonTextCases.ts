@@ -1,5 +1,6 @@
 /*
- * JSON TEXTS TO SCRUB: A SEEDED GENERATOR, AND A READER OF THEIR TOKENS.
+ * JSON TEXTS TO SCRUB, DRAWN FROM THE SUITES' SEEDED GENERATOR, AND A READER
+ * OF THEIR TOKENS.
  *
  * For the property tests of Utils/Telemetry/ScrubJsonText.ts (#8923) here
  * and of the scrub rules over real records in App/Tests/Telemetry: random
@@ -18,21 +19,10 @@
  * compares what both read is not the scrubber agreeing with itself.
  */
 
+// The suites' one seeded generator (Tests/Helpers/SeededRandom): the same cases every run.
+export { seededRandom } from "../../Helpers/SeededRandom";
+
 export type Random = () => number;
-
-// A small, fast, seeded generator (mulberry32): the same cases every run.
-export function seededRandom(seed: number): Random {
-  let state: number = seed >>> 0;
-
-  return (): number => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t: number = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 export function pick<T>(random: Random, items: ReadonlyArray<T>): T {
   return items[Math.floor(random() * items.length)]!;
