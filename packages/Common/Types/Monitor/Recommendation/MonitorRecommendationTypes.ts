@@ -92,6 +92,13 @@ export enum MonitorRecommendationResourceType {
    * Traces tab is (CloudAppAlertTemplates); see MonitorRecommendationContext.
    */
   CloudApp = "CloudApp",
+  /*
+   * A serverless function (a ServerlessFunction row): a Lambda, a Cloud
+   * Function, an Azure Function. Its recommendations count its own failing
+   * invocations, read from the spans its faas.name selects
+   * (ServerlessAlertTemplates); see MonitorRecommendationContext.
+   */
+  ServerlessFunction = "ServerlessFunction",
 }
 
 /*
@@ -256,6 +263,13 @@ export interface MonitorRecommendationContext {
    * for the app is linked to, so its incidents and alerts list there.
    */
   cloudAppEnvironmentId?: string | null | undefined;
+  /*
+   * A serverless function's telemetry filter: its faas.name, as its Traces
+   * tab reads its spans (getServerlessFunctionTelemetryFilters). Without
+   * it nothing is offered: a monitor filtered on nothing would read every
+   * function.
+   */
+  serverlessFunctionTelemetryFilters?: Dictionary<string> | null | undefined;
 }
 
 /*

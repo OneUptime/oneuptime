@@ -450,6 +450,18 @@ export const CLOUD_APP_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   },
 ];
 
+/*
+ * A serverless function's Recommendations (ServerlessAlertTemplates): its
+ * failing invocations, under a heading in the reader's language.
+ */
+export const SERVERLESS_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
+  {
+    category: "Errors",
+    label: "Errors",
+    icon: IconProp.ExclaimationCircle,
+  },
+];
+
 export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
   Record<MonitorRecommendationResourceType, Array<AlertTemplateCategory>>
 > = {
@@ -469,6 +481,8 @@ export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
   [MonitorRecommendationResourceType.CloudResource]:
     CLOUD_RESOURCE_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.CloudApp]: CLOUD_APP_TEMPLATE_CATEGORIES,
+  [MonitorRecommendationResourceType.ServerlessFunction]:
+    SERVERLESS_TEMPLATE_CATEGORIES,
 };
 
 /*

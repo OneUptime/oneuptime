@@ -56595,5 +56595,7 @@
   "{{count}} notifications sent_one": "{{count}} notificação enviada",
   "{{count}} on-call policy runs aren't listed: you can't see their policies.": "{{count}} execuções de políticas de plantão não estão listadas: você não pode ver as políticas delas.",
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} execução de uma política de plantão não está listada: você não pode ver a política dela.",
-  "{{name}} acknowledged it {{time}} after the first page.": "{{name}} confirmou {{time}} após o primeiro acionamento."
+  "{{name}} acknowledged it {{time}} after the first page.": "{{name}} confirmou {{time}} após o primeiro acionamento.",
+  "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "Monitores que o OneUptime recomenda para esta função, com base nas invocações que o OpenTelemetry dela informa. Escolha os que quiser e crie-os em uma única etapa.",
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "Esta função ainda não informou o seu faas.name, e cada monitor recomendado lê os spans da função por ele, então nenhum é oferecido até que ela o informe."
 }

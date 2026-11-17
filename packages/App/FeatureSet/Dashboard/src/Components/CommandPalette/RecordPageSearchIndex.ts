@@ -2421,6 +2421,11 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Overview",
       },
       {
+        page: PageMap.SERVERLESS_FUNCTION_VIEW_RECOMMENDATIONS,
+        section: "Basic",
+        title: "Recommendations",
+      },
+      {
         page: PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION,
         section: "Basic",
         title: "Documentation",

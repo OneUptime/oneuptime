@@ -56595,5 +56595,7 @@
   "{{count}} notifications sent_one": "أُرسل {{count}} إشعار",
   "{{count}} on-call policy runs aren't listed: you can't see their policies.": "عمليات تنفيذ سياسات المناوبة غير المعروضة: {{count}}. لا يمكنك رؤية سياساتها.",
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} عملية تنفيذ لسياسة مناوبة غير معروضة: لا يمكنك رؤية سياستها.",
-  "{{name}} acknowledged it {{time}} after the first page.": "أقرّ به {{name}} بعد {{time}} من أول استدعاء."
+  "{{name}} acknowledged it {{time}} after the first page.": "أقرّ به {{name}} بعد {{time}} من أول استدعاء.",
+  "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "المراقبات التي يوصي بها OneUptime لهذه الدالة، بناءً على الاستدعاءات التي يبلّغ عنها OpenTelemetry الخاص بها. اختر ما تريده منها وأنشئها في خطوة واحدة.",
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "لم تبلّغ هذه الدالة عن faas.name الخاص بها بعد، وكل مراقبة موصى بها تقرأ نطاقات الدالة من خلاله، لذا لا تُعرض أي مراقبة حتى تبلّغ عنه."
 }

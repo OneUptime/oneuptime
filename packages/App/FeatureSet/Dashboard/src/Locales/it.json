@@ -56595,5 +56595,7 @@
   "{{count}} notifications sent_one": "{{count}} notifica inviata",
   "{{count}} on-call policy runs aren't listed: you can't see their policies.": "{{count}} esecuzioni di policy di reperibilità non sono elencate: non puoi vedere le loro policy.",
   "{{count}} on-call policy runs aren't listed: you can't see their policies._one": "{{count}} esecuzione di una policy di reperibilità non è elencata: non puoi vedere la sua policy.",
-  "{{name}} acknowledged it {{time}} after the first page.": "{{name}} l'ha riconosciuto {{time}} dopo la prima chiamata."
+  "{{name}} acknowledged it {{time}} after the first page.": "{{name}} l'ha riconosciuto {{time}} dopo la prima chiamata.",
+  "Monitors OneUptime recommends for this function, from the invocations its OpenTelemetry reports. Pick the ones you want and create them in one step.": "Monitor che OneUptime consiglia per questa funzione, secondo le invocazioni che il suo OpenTelemetry riporta. Scegli quelli che vuoi e creali in un solo passaggio.",
+  "This function has not reported its faas.name yet, and every recommended monitor reads the function's spans by it, so none is offered until it does.": "Questa funzione non ha ancora riportato il suo faas.name, e ogni monitor consigliato legge gli span della funzione tramite esso, quindi nessuno viene proposto finché non lo fa."
 }

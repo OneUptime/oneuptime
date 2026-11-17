@@ -71,6 +71,7 @@ import {
 } from "Common/Types/Cloud/RdsConnectionLimits";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import CloudApp from "Common/Models/DatabaseModels/CloudApp";
+import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Service from "Common/Models/DatabaseModels/Service";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
@@ -169,6 +170,8 @@ const EXPECTED_IDENTIFIER_FIELD: Record<
    * row id); `_id` names the app the tab is for, as a cloud resource's does.
    */
   [MonitorRecommendationResourceType.CloudApp]: "_id",
+  // A function's spans are read by its faas.name, a context column.
+  [MonitorRecommendationResourceType.ServerlessFunction]: "_id",
 };
 
 function getDefinitionOrFail(
@@ -2682,6 +2685,100 @@ describe("RecommendationResourceRegistry", () => {
       })!(unlinked);
 
       expect(unlinked.cloudResources).toBeUndefined();
+    });
+  });
+
+  describe("serverless function context", () => {
+    function functionRow(values: Record<string, unknown>): ServerlessFunction {
+      const model: ServerlessFunction = new ServerlessFunction();
+
+      model.id = new ObjectID("0c000000-0000-4000-8000-000000000001");
+
+      for (const [key, value] of Object.entries(values)) {
+        (model as unknown as Record<string, unknown>)[key] = value;
+      }
+
+      return model;
+    }
+
+    function contextOf(
+      values: Record<string, unknown>,
+    ): MonitorRecommendationContext {
+      return RecommendationResourceRegistry.readContext({
+        resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+        model: functionRow(values),
+      });
+    }
+
+    test("selects its name and its faas.name", () => {
+      expect(
+        RecommendationResourceRegistry.getSelect(
+          MonitorRecommendationResourceType.ServerlessFunction,
+        ),
+      ).toEqual({ _id: true, name: true, functionIdentifier: true });
+    });
+
+    test("a function with a faas.name is offered its two, and the page says nothing more", () => {
+      const context: MonitorRecommendationContext = contextOf({
+        name: "Orders",
+        functionIdentifier: "orders-handler",
+      });
+
+      expect(context.serverlessFunctionTelemetryFilters).toEqual({
+        "resource.faas.name": "orders-handler",
+      });
+      expect(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.ServerlessFunction,
+          context,
+        ).map((recommendation: MonitorRecommendation) => {
+          return recommendation.templateId;
+        }),
+      ).toEqual(["serverless-failed-invocations", "serverless-error-burst"]);
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+          context: context,
+        }),
+      ).toBeUndefined();
+    });
+
+    test("a function with no faas.name yet is offered nothing, and the page says why", () => {
+      const context: MonitorRecommendationContext = contextOf({
+        name: "Orders",
+        functionIdentifier: "",
+      });
+
+      expect(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.ServerlessFunction,
+          context,
+        ),
+      ).toEqual([]);
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+          context: context,
+        }),
+      ).toContain("faas.name");
+    });
+
+    test("its card says the monitors come from its invocations", () => {
+      expect(
+        RecommendationResourceRegistry.getCardDescription({
+          resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+          context: {},
+        }),
+      ).toContain("invocations");
+    });
+
+    test("its monitors are linked to nothing beyond their filter", () => {
+      expect(
+        RecommendationResourceRegistry.getMonitorLinker({
+          resourceType: MonitorRecommendationResourceType.ServerlessFunction,
+          resourceId: ObjectID.generate(),
+        }),
+      ).toBeUndefined();
     });
   });
 });
