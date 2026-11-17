@@ -46,6 +46,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { ReadingDirection } from "Common/Types/ReadingDirection";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Link from "Common/UI/Components/Link/Link";
 import { TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME } from "Common/UI/Components/Table/TableHeaderControls";
@@ -385,22 +389,16 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
         </span>
         {selectedIds.size > 0 ? (
           <>
-            <button
-              type="button"
-              data-testid="code-task-list-retry-selected"
-              disabled={retryingIds.size > 0}
+            <Button
+              title="Retry selected"
+              dataTestId="code-task-list-retry-selected"
+              buttonStyle={ButtonStyleType.PRIMARY}
+              buttonSize={ButtonSize.Small}
+              isLoading={retryingIds.size > 0}
               onClick={() => {
                 void retryTasks([...selectedIds]);
               }}
-              className={`rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm ${getHandDrawnButtonStateClassName(
-                {
-                  isBusy: retryingIds.size > 0,
-                  hoverClassName: "hover:bg-indigo-500",
-                },
-              )}`}
-            >
-              {translator.translateText("Retry selected")}
-            </button>
+            />
             {retryableShown.length > selectedIds.size ? (
               <button
                 type="button"

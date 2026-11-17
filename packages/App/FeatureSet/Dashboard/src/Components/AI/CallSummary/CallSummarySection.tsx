@@ -501,7 +501,7 @@ const CallSummaryOfCall: FunctionComponent<{
               </ul>
             )}
 
-            <div className="mt-4 flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:md:ml-0">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               {props.view.suggestion === RootCauseSuggestionStatus.Suggested ? (
                 <>
                   {props.canEditRootCause ? (

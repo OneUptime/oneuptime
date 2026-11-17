@@ -416,8 +416,8 @@ describe("SecurityEventConnectionsEmptyState", () => {
       expect(hero()).toContainElement(button);
       expect(button).toBeEnabled();
       expect(button).toHaveClass("bg-indigo-600");
-      // Cancels the variant's modal-footer margin so it sits on the centre line.
-      expect(button).toHaveClass("md:!ml-0");
+      // It sits on the centre line: a Button carries no margin of its own (#9128).
+      expect(button.className).not.toMatch(/(^|\s)(sm:|md:)?!?m[ls]-/u);
       expect(svgMarkup(button)).toBe(iconMarkup(IconProp.Add));
 
       fireEvent.click(button);

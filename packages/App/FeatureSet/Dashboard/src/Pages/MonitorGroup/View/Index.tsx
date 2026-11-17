@@ -522,12 +522,10 @@ const MonitorGroupView: FunctionComponent<
             footer={
               /*
                * Only for whoever may put a monitor in a group: the page Add
-               * Monitors opens would refuse anyone else. Button keeps a
-               * dialog footer's left margin (md:ml-3), which would push it
-               * off the centre here, so its wrapper clears it.
+               * Monitors opens would refuse anyone else.
                */
               canAddMonitors ? (
-                <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+                <div>
                   <Button
                     title={MonitorGroupMonitorsCopy.addButton}
                     icon={IconProp.Add}

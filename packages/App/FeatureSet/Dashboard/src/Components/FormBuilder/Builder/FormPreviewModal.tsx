@@ -178,7 +178,6 @@ const FormPreviewModal: FunctionComponent<ComponentProps> = (
                   <Button
                     title={FormsCopy.previewAgain}
                     buttonStyle={ButtonStyleType.NORMAL}
-                    className="!ml-0"
                     dataTestId="form-preview-again"
                     onClick={() => {
                       setIsSubmitted(false);

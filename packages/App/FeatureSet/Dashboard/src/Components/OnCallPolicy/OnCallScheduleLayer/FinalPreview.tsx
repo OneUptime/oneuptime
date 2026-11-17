@@ -187,11 +187,7 @@ const Layers: FunctionComponent<ComponentProps> = (
               icon={IconProp.SquareStack}
               paddingClassName="py-8"
               footer={
-                /*
-                 * Button keeps a dialog footer's left margin (md:ml-3), which
-                 * would push it off the centre here, so its wrapper clears it.
-                 */
-                <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+                <div>
                   <Button
                     title={ScheduleNoLayersCopy.button}
                     icon={IconProp.SquareStack}

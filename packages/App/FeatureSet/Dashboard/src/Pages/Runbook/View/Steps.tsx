@@ -1441,7 +1441,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
            * The button lines up with the sentence above it: Button keeps a
            * left margin of its own for a dialog's footer.
            */}
-          <div className="mt-3 [&>button]:ml-0 [&>button]:md:ml-0">
+          <div className="mt-3">
             <Button
               title="Turn into a script step"
               icon={IconProp.Code}

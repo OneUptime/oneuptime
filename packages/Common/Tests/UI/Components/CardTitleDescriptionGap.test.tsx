@@ -547,9 +547,9 @@ describe("the numbers the header is built on", () => {
     });
     const buttonClass: string = classOf(button);
 
-    // md:text-sm: a 20px line; py-2 above and below it; a 1px border.
+    // text-sm: a 20px line; py-2 above and below it; a 1px border.
     expect(buttonClass.split(" ")).toEqual(
-      expect.arrayContaining(["md:text-sm", "border", "py-2"]),
+      expect.arrayContaining(["text-sm", "border", "py-2"]),
     );
     const padding: { top: number; bottom: number } = resolveSpacing(
       buttonClass,
@@ -571,16 +571,17 @@ describe("the numbers the header is built on", () => {
     );
 
     /*
-     * And 42px on a phone: the search's 20px line between 10px paddings
-     * (Button's text-base, a 24px line, between its 8px ones).
+     * The button is 38px on a phone too: every style's words are text-sm at
+     * every width (#9128), so two buttons side by side are one height. A
+     * table's search is 42px there: its 20px line between 10px paddings.
      */
-    expect(buttonClass.split(" ")).toContain("text-base");
+    expect(buttonClass.split(" ")).not.toContain("text-base");
     expect(
-      24 +
+      20 +
         resolveSpacing(buttonClass, PHONE_WIDTH_IN_PX, "padding").top +
         resolveSpacing(buttonClass, PHONE_WIDTH_IN_PX, "padding").bottom +
         2,
-    ).toBe(PHONE_CONTROL_HEIGHT_IN_PX);
+    ).toBe(CARD_HEADER_CONTROL_HEIGHT_IN_PX);
     const phonePadding: { top: number; bottom: number } = resolveSpacing(
       TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
       PHONE_WIDTH_IN_PX,

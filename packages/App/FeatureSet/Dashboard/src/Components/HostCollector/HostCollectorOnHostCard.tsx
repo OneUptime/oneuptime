@@ -91,7 +91,7 @@ const HostCollectorOnHostCard: FunctionComponent<ComponentProps> = (
       title: "Update it, or change its labels",
       description: ON_HOST_UPDATE_DESCRIPTION,
       action: (
-        <div className="[&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+        <div>
           <Button
             title="Show the install command"
             icon={IconProp.Terminal}

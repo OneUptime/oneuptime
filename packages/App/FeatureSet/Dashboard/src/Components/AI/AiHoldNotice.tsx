@@ -291,7 +291,7 @@ const AiHoldNotice: FunctionComponent<ComponentProps> = (
              * only push Page now off the line's start - the locked one's
              * too, inside the wrapper that carries its reason.
              */}
-            <div className="flex-shrink-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+            <div className="flex-shrink-0">
               <Button
                 title={PAGE_NOW_TITLE}
                 buttonStyle={ButtonStyleType.NORMAL}

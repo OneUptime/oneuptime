@@ -1,5 +1,8 @@
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -746,10 +749,11 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                     </div>
 
                     {/* Commit actions */}
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        className="inline-flex items-center h-8 px-3 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
+                    <div className="flex items-center gap-2">
+                      <Button
+                        title="Cancel"
+                        buttonStyle={ButtonStyleType.OUTLINE}
+                        buttonSize={ButtonSize.Small}
                         onClick={() => {
                           if (props.hasUnsavedChanges === false) {
                             props.onCancelEditClick();
@@ -758,19 +762,14 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 
                           setShowCancelModal(true);
                         }}
-                        title={translator.translateText("Cancel")}
-                      >
-                        {translator.translateText("Cancel")}
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer"
+                      />
+                      <Button
+                        title="Save Changes"
+                        icon={IconProp.Check}
+                        buttonStyle={ButtonStyleType.PRIMARY}
+                        buttonSize={ButtonSize.Small}
                         onClick={props.onSaveClick}
-                        title={translator.translateText("Save Changes")}
-                      >
-                        <Icon icon={IconProp.Check} className="w-3.5 h-3.5" />
-                        <span>{translator.translateText("Save Changes")}</span>
-                      </button>
+                      />
                     </div>
                   </div>
                 )}

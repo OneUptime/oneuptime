@@ -1,3 +1,7 @@
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -789,25 +793,21 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {snapshot.error.retryable && (
-            <button
-              type="button"
-              data-testid="replay-overlay-retry"
-              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-700"
+            <Button
+              title="Retry"
+              dataTestId="replay-overlay-retry"
+              buttonStyle={ButtonStyleType.PRIMARY}
+              buttonSize={ButtonSize.Small}
               onClick={props.onRetry}
-            >
-              {translator.translateText("Retry")}
-            </button>
+            />
           )}
-          <button
-            type="button"
-            data-testid="replay-overlay-copy-diagnostic"
-            className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50"
+          <Button
+            title={isDiagnosticCopied ? "Diagnostic copied" : "Copy diagnostic"}
+            dataTestId="replay-overlay-copy-diagnostic"
+            buttonStyle={ButtonStyleType.OUTLINE}
+            buttonSize={ButtonSize.Small}
             onClick={handleCopyDiagnostic}
-          >
-            {isDiagnosticCopied
-              ? translator.translateText("Diagnostic copied")
-              : translator.translateText("Copy diagnostic")}
-          </button>
+          />
         </div>
         {diagnosticText !== null && (
           <textarea
@@ -943,15 +943,14 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
           })}
         </p>
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-          <button
-            type="button"
-            data-testid="replay-watch-again"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-medium text-white transition-colors hover:bg-indigo-700"
+          <Button
+            title="Watch again"
+            icon={IconProp.Refresh}
+            dataTestId="replay-watch-again"
+            buttonStyle={ButtonStyleType.PRIMARY}
+            buttonSize={ButtonSize.Small}
             onClick={props.onWatchAgain}
-          >
-            <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
-            {translator.translateText("Watch again")}
-          </button>
+          />
           {props.continueInTab &&
             (props.onContinueInTab || props.onSwitchTab) && (
               <button

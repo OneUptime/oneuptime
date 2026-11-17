@@ -396,7 +396,7 @@ const SnmpWalkResultRow: FunctionComponent<RowProps> = (
           buttonSize={ButtonSize.Small}
           buttonStyle={ButtonStyleType.NORMAL}
           dataTestId="snmp-walk-row-collect"
-          className="!ml-0 !w-auto whitespace-nowrap !text-sm"
+          className="whitespace-nowrap !text-sm"
           isLoading={isCollecting}
           disabled={Boolean(actions.collectingOid) && !isCollecting}
           tooltip="Collect this OID on every poll, so it is charted and can be alerted on."
@@ -636,7 +636,7 @@ const SnmpWalkResults: FunctionComponent<ComponentProps> = (
             isTitleTranslated={true}
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.NORMAL}
-            className="!ml-0 !w-auto !text-sm"
+            className="!text-sm"
             dataTestId="snmp-walk-show-more"
             onClick={() => {
               setShownCount((count: number) => {

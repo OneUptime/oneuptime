@@ -1147,7 +1147,7 @@ const ExecutionView: FunctionComponent<
                                    * footer's larger one, so a long label
                                    * stays on one line.
                                    */
-                                  className="sm:w-auto max-sm:text-sm"
+                                  className="max-sm:text-sm"
                                   onClick={() => {
                                     void completeStep(stepExec.step.id);
                                   }}

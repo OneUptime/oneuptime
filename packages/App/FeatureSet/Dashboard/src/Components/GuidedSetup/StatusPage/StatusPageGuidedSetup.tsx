@@ -95,11 +95,10 @@ export const getStatusPagePublicUrl: (statusPageId: string) => string = (
 };
 
 /*
- * Button keeps a dialog footer's margin (md:ml-3); a row of the step's
- * actions takes it back, so they line up with the words above.
+ * A row of the step's actions, lined up with the words above: the row's gap
+ * spaces them (a Button has no margin of its own).
  */
-const ACTIONS_CLASS_NAME: string =
-  "flex flex-wrap items-center gap-y-2 md:-ml-3";
+const ACTIONS_CLASS_NAME: string = "flex flex-wrap items-center gap-3";
 
 const linkClassName: string =
   "text-sm font-medium text-indigo-600 hover:text-indigo-800 underline-offset-2 hover:underline";
@@ -490,7 +489,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
         <div className={ACTIONS_CLASS_NAME}>
           <AppLink
             to={routeOf(PageMap.MONITOR_GUIDED_SETUP)}
-            className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:ml-3"
+            className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             dataTestId="guided-setup-set-up-monitor"
           >
             {translator.translateText(STATUS_PAGE_SETUP_COPY.setUpMonitor) ||

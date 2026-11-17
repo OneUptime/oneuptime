@@ -1,3 +1,7 @@
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -474,13 +478,12 @@ const MessageQueueTopologyMap: FunctionComponent<ComponentProps> = (
             className="absolute left-4 top-4 z-10 flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm"
           >
             <span>{translator.translateText("The map is out of view.")}</span>
-            <button
-              type="button"
-              className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+            <Button
+              title="Fit to screen"
+              buttonStyle={ButtonStyleType.PRIMARY}
+              buttonSize={ButtonSize.Small}
               onClick={fitToScreen}
-            >
-              {translator.translateText("Fit to screen")}
-            </button>
+            />
           </div>
         )}
       </div>

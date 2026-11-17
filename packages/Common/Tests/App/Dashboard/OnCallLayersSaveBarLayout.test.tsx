@@ -119,15 +119,8 @@ describe("the row the bar's buttons sit in", () => {
     // At the bar's end only when beside the words.
     expect(row).toContain("[@container(min-width:40rem)]:justify-end");
     expect(row).not.toContain("justify-end");
-    // A dialog footer's left margin, which Button gives its buttons, goes.
-    expect(row).toEqual(
-      expect.arrayContaining([
-        "[&>button]:ml-0",
-        "[&>button]:md:ml-0",
-        "[&>*>button]:ml-0",
-        "[&>*>button]:md:ml-0",
-      ]),
-    );
+    // The row's gap spaces its buttons: a Button has no margin of its own.
+    expect(row).toContain("gap-2");
   });
 
   test("each button takes half of a narrow bar, keeps its words on one line, and is as wide as its words in a wide one", () => {
@@ -164,7 +157,7 @@ describe.each([...BAR_STATES])("the bar, $status.kind", (state: BarState) => {
       });
 
       const row: Element | null = button.closest(
-        '[class~="flex-wrap"][class~="[&>button]:ml-0"]',
+        '[class~="flex-wrap"][class~="gap-2"]',
       );
       expect(row).not.toBeNull();
       expect(row!.className).toBe(LAYERS_SAVE_BAR_ACTIONS_CLASS_NAME);

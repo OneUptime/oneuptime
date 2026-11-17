@@ -14,6 +14,8 @@
  */
 
 import Icon from "../../Icon/Icon";
+import Button, { ButtonSize, ButtonStyleType } from "../../Button/Button";
+import ButtonType from "../../Button/ButtonTypes";
 import ErrorSentence from "../../ErrorMessage/ErrorSentence";
 import IconProp from "../../../../Types/Icon/IconProp";
 import useClipboardCopy, {
@@ -1583,13 +1585,14 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                   }
                 }}
               />
-              <button
-                type="submit"
-                className="shrink-0 rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                data-testid="value-picker-path-insert"
-              >
-                {translator.translateText("Insert")}
-              </button>
+              <Button
+                title="Insert"
+                type={ButtonType.Submit}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                buttonSize={ButtonSize.Small}
+                className="shrink-0"
+                dataTestId="value-picker-path-insert"
+              />
             </div>
             {pathError && (
               <p className="mt-1 text-xs text-red-600" role="alert">

@@ -226,7 +226,7 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
          * for a header row - here the gap spaces them.
          */
         <div
-          className="mt-6 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap [&_button]:md:ml-0"
+          className="mt-6 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row sm:flex-wrap"
           data-testid={`${testId}-actions`}
         >
           {actions.map((action: TableEmptyStateAction, index: number) => {

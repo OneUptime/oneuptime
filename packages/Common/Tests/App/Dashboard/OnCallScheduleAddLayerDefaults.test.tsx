@@ -208,9 +208,8 @@ describe("a schedule with no layers", () => {
 
     const add: HTMLElement = screen.getByRole("button", { name: "Add Layer" });
 
-    expect((add.parentElement as HTMLElement).className).toContain(
-      "[&>button]:md:ml-0",
-    );
+    // Truly centred: the Button carries no margin of its own (#9128).
+    expect(add.className).not.toMatch(/(^|\s)(md:)?!?m[ls]-/u);
   });
 });
 

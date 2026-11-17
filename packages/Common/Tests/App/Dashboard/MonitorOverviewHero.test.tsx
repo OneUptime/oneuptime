@@ -1685,18 +1685,14 @@ describe("MonitorOverviewHero turns monitoring back on", () => {
     expect(updateByIdMock).not.toHaveBeenCalled();
   });
 
-  test("it starts where the text above it does: Button's dialog margin is cleared", () => {
+  test("it starts where the text above it does: the button has no margin of its own", () => {
     /*
-     * Button carries md:ml-3 for a dialog's footer, which set this one 12px
-     * in from the headline from md up. The wrapper clears it on the button,
-     * or on the span a locked button's tooltip wraps it in.
+     * Button once carried md:ml-3 for a dialog's footer, which set this one
+     * 12px in from the headline from md up. It carries no margin now
+     * (#9128), so neither the button nor the span a locked button's tooltip
+     * wraps it in is pushed in.
      */
-    const MARGIN_CLEARING: Array<string> = [
-      "[&>button]:ml-0",
-      "[&>button]:md:ml-0",
-      "[&>*>button]:ml-0",
-      "[&>*>button]:md:ml-0",
-    ];
+    const OWN_MARGIN: RegExp = /(^|\s)(?:[a-z]+:)?!?m[ls]-/u;
 
     renderDisabled();
 
@@ -1707,7 +1703,8 @@ describe("MonitorOverviewHero turns monitoring back on", () => {
       TURN_MONITORING_ON_BUTTON_TEST_ID,
     );
 
-    expect(wrapper).toHaveClass("mt-4", ...MARGIN_CLEARING);
+    expect(wrapper).toHaveClass("mt-4");
+    expect(button.className).not.toMatch(OWN_MARGIN);
     expect(button.parentElement).toBe(wrapper);
     cleanup();
 
@@ -1726,8 +1723,9 @@ describe("MonitorOverviewHero turns monitoring back on", () => {
       TURN_MONITORING_ON_BUTTON_TEST_ID,
     );
 
-    expect(lockedWrapper).toHaveClass(...MARGIN_CLEARING);
-    // One element between them: the span the [&>*>button] rule reaches.
+    expect(lockedButton.className).not.toMatch(OWN_MARGIN);
+    expect(lockedButton.parentElement!.className).not.toMatch(OWN_MARGIN);
+    // One element between them: the span of the tooltip.
     expect(lockedButton.parentElement?.parentElement).toBe(lockedWrapper);
   });
 

@@ -760,7 +760,7 @@ const ResourceList: FunctionComponent<ComponentProps> = (
 
       {hiddenCount > 0 ? (
         <div
-          className="rounded-b-xl border-t border-gray-100 bg-gray-50 px-4 py-2.5 text-center [&_button]:md:ml-0"
+          className="rounded-b-xl border-t border-gray-100 bg-gray-50 px-4 py-2.5 text-center"
           data-testid="status-page-resource-list-show-more"
         >
           <Button

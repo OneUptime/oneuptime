@@ -1255,7 +1255,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
          * dialog stacks them - and this is a toolbar, where two of them stacked
          * across the pane is not a toolbar at all.
          */}
-        <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 [&_button]:w-auto [&_button]:md:ml-0">
+        <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2">
           {/*
            * Editing the group is the second thing anybody does to it, after
            * putting monitors in it - everything a visitor sees about a group
@@ -1406,7 +1406,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         </p>
 
         {props.canEditGroup ? (
-          <div className="mt-2 [&_button]:md:ml-0">
+          <div className="mt-2">
             <Button
               title="Set up the grid"
               icon={IconProp.Settings}
@@ -1553,7 +1553,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         {isNoMatch ? (
           <></>
         ) : (
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2 [&_button]:md:ml-0">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
             {canAddToSelection ? (
               /*
                * Repeats the header's primary "Add Monitor", drawn plain the

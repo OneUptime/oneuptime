@@ -50,7 +50,7 @@ const IDGenerator: FunctionComponent<ComponentProps> = (
   return (
     <>
       <>
-        <div className="flex" data-testid={props.dataTestId}>
+        <div className="flex gap-3" data-testid={props.dataTestId}>
           {value && (
             <Input
               readOnly={props.readonly}

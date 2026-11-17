@@ -277,7 +277,6 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
             buttonSize={ButtonSize.Small}
             isLoading={props.isRefreshing}
             dataTestId="trace-refresh"
-            className="md:!ml-0"
             onClick={props.onRefresh}
           />
         </div>

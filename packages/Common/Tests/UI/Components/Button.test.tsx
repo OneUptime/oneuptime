@@ -40,151 +40,123 @@ describe("Button", () => {
     expect(testId).toHaveTextContent(ShortcutKey.Settings);
   });
 
-  test("it should have buttonStyle NORMAL", () => {
+  /*
+   * Every boxed style is one frame - the same border width, corners, words,
+   * alignment and focus ring - with its own colours, its hover and the
+   * size's padding (#9128). None carries a width or a margin: no w-full
+   * below md, no md:ml-3, no larger words on a phone.
+   */
+  const BOXED_STYLES: Array<[string, ButtonStyleType, string]> = [
+    [
+      "NORMAL",
+      ButtonStyleType.NORMAL,
+      "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-indigo-500",
+    ],
+    [
+      "OUTLINE",
+      ButtonStyleType.OUTLINE,
+      "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-indigo-500",
+    ],
+    [
+      "PRIMARY",
+      ButtonStyleType.PRIMARY,
+      "border-transparent bg-indigo-600 text-white hover:bg-indigo-700 focus-visible:ring-indigo-500",
+    ],
+    [
+      "SECONDARY",
+      ButtonStyleType.SECONDARY,
+      "border-transparent bg-indigo-100 text-indigo-700 hover:bg-indigo-200 focus-visible:ring-indigo-500",
+    ],
+    [
+      "DANGER",
+      ButtonStyleType.DANGER,
+      "border-transparent bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500",
+    ],
+    [
+      "DANGER_OUTLINE",
+      ButtonStyleType.DANGER_OUTLINE,
+      "border-red-700 bg-white text-red-700 hover:bg-red-50 focus-visible:ring-red-500",
+    ],
+    [
+      "SUCCESS",
+      ButtonStyleType.SUCCESS,
+      "border-transparent bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-500",
+    ],
+    [
+      "SUCCESS_OUTLINE",
+      ButtonStyleType.SUCCESS_OUTLINE,
+      "border-green-700 bg-white text-green-700 hover:bg-green-50 focus-visible:ring-green-500",
+    ],
+    [
+      "WARNING",
+      ButtonStyleType.WARNING,
+      "border-transparent bg-yellow-600 text-white hover:bg-yellow-700 focus-visible:ring-yellow-500",
+    ],
+    [
+      "WARNING_OUTLINE",
+      ButtonStyleType.WARNING_OUTLINE,
+      "border-yellow-700 bg-white text-yellow-700 hover:bg-yellow-50 focus-visible:ring-yellow-500",
+    ],
+  ];
+
+  const FRAME: string =
+    "inline-flex items-center justify-center rounded-md border text-sm font-medium shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2";
+
+  test.each(BOXED_STYLES)(
+    "it should have buttonStyle %s: the one frame, its own colours",
+    (_name: string, buttonStyle: ButtonStyleType, look: string) => {
+      render(<Button dataTestId="test-id" buttonStyle={buttonStyle} />);
+      const testId: HTMLElement = screen.getByTestId("test-id");
+
+      expect(testId).toHaveClass(`${FRAME} ${look} px-3 py-2`);
+    },
+  );
+
+  test.each(BOXED_STYLES)(
+    "%s carries no width and no margin of its own, at any width",
+    (_name: string, buttonStyle: ButtonStyleType) => {
+      render(<Button dataTestId="test-id" buttonStyle={buttonStyle} />);
+      const classes: Array<string> = screen
+        .getByTestId("test-id")
+        .className.split(/\s+/u);
+
+      for (const cssClass of classes) {
+        const utility: string = cssClass.split(":").pop() || "";
+
+        expect(utility).not.toMatch(/^!?-?(m[lrxs]?|ms|me|w)-/u);
+        expect(utility).not.toBe("text-base");
+      }
+    },
+  );
+
+  test("NORMAL and OUTLINE draw the same button", () => {
     render(
-      <Button dataTestId="test-id" buttonStyle={ButtonStyleType.NORMAL} />,
+      <>
+        <Button dataTestId="normal" buttonStyle={ButtonStyleType.NORMAL} />
+        <Button dataTestId="outline" buttonStyle={ButtonStyleType.OUTLINE} />
+      </>,
     );
-    const testId: HTMLElement = screen.getByTestId("test-id");
 
-    expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
-    );
-  });
-
-  test("it should have buttonStyle DANGER", () => {
-    render(
-      <Button dataTestId="test-id" buttonStyle={ButtonStyleType.DANGER} />,
-    );
-    const testId: HTMLElement = screen.getByTestId("test-id");
-
-    expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 text-base font-medium text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm px-3 py-2",
+    expect(screen.getByTestId("normal").className).toBe(
+      screen.getByTestId("outline").className,
     );
   });
 
-  test("it should have buttonStyle DANGER_OUTLINE", () => {
-    render(
-      <Button
-        dataTestId="test-id"
-        buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-      />,
-    );
-    const testId: HTMLElement = screen.getByTestId("test-id");
+  test.each([
+    ["Normal", ButtonSize.Normal, "px-3 py-2"],
+    ["Small", ButtonSize.Small, "px-2 py-1"],
+    ["Large", ButtonSize.Large, "px-4 py-2"],
+  ])(
+    "it should have buttonSize %s",
+    (_name: string, buttonSize: ButtonSize, padding: string) => {
+      render(<Button dataTestId="test-id" buttonSize={buttonSize} />);
+      const testId: HTMLElement = screen.getByTestId("test-id");
 
-    expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-red-700 bg-white text-base font-medium text-red-700 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
-    );
-  });
-
-  test("it should have buttonStyle PRIMARY", () => {
-    render(
-      <Button dataTestId="test-id" buttonStyle={ButtonStyleType.PRIMARY} />,
-    );
-    const testId: HTMLElement = screen.getByTestId("test-id");
-
-    expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 text-base font-medium text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm px-3 py-2",
-    );
-  });
-
-  test("it should have buttonStyle SECONDARY", () => {
-    render(
-      <Button dataTestId="test-id" buttonStyle={ButtonStyleType.SECONDARY} />,
-    );
-    const testId: HTMLElement = screen.getByTestId("test-id");
-
-    expect(testId).toHaveClass(
-      "inline-flex items-center rounded-md border border-transparent bg-indigo-100 text-sm font-medium text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 px-3 py-2",
-    );
-  });
-
-  test("it should have buttonStyle OUTLINE", () => {
-    render(
-      <Button dataTestId="test-id" buttonStyle={ButtonStyleType.NORMAL} />,
-    );
-    const testId: HTMLElement = screen.getByTestId("test-id");
-
-    expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
-    );
-  });
-
-  test("it should have buttonStyle SUCCESS", () => {
-    render(
-      <Button dataTestId="test-id" buttonStyle={ButtonStyleType.SUCCESS} />,
-    );
-    const testId: HTMLElement = screen.getByTestId("test-id");
-
-    expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-transparent bg-green-600 text-base font-medium text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm px-3 py-2",
-    );
-  });
-
-  test("it should have buttonStyle SUCCESS_OUTLINE", () => {
-    render(
-      <Button
-        dataTestId="test-id"
-        buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
-      />,
-    );
-    const testId: HTMLElement = screen.getByTestId("test-id");
-
-    expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-green-700 bg-white text-base font-medium text-green-700 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
-    );
-  });
-
-  test("it should have buttonStyle WARNING", () => {
-    render(
-      <Button dataTestId="test-id" buttonStyle={ButtonStyleType.WARNING} />,
-    );
-    const testId: HTMLElement = screen.getByTestId("test-id");
-
-    expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-transparent bg-yellow-600 text-base font-medium text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm px-3 py-2",
-    );
-  });
-
-  test("it should have buttonStyle WARNING_OUTLINE", () => {
-    render(
-      <Button
-        dataTestId="test-id"
-        buttonStyle={ButtonStyleType.WARNING_OUTLINE}
-      />,
-    );
-    const testId: HTMLElement = screen.getByTestId("test-id");
-
-    expect(testId).toHaveClass(
-      " inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
-    );
-  });
-
-  test("it should have buttonSize Normal", () => {
-    render(<Button dataTestId="test-id" buttonSize={ButtonSize.Normal} />);
-    const testId: HTMLElement = screen.getByTestId("test-id");
-
-    expect(testId).toHaveClass(
-      " inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-3 py-2",
-    );
-  });
-
-  test("it should have buttonSize Small", () => {
-    render(<Button dataTestId="test-id" buttonSize={ButtonSize.Small} />);
-    const testId: HTMLElement = screen.getByTestId("test-id");
-
-    expect(testId).toHaveClass(
-      "inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-2 py-1",
-    );
-  });
-
-  test("it should have buttonSize Large", () => {
-    render(<Button dataTestId="test-id" buttonSize={ButtonSize.Large} />);
-    const testId: HTMLElement = screen.getByTestId("test-id");
-
-    expect(testId).toHaveClass(
-      " inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm px-4 py-2",
-    );
-  });
+      expect(testId).toHaveClass(
+        `${FRAME} border-gray-300 bg-white text-gray-700 hover:bg-gray-50 ${padding}`,
+      );
+    },
+  );
 
   test("it should be enabled", () => {
     render(<Button dataTestId="test-id" disabled={false} />);

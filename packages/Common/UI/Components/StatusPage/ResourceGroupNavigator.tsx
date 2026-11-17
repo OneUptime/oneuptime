@@ -803,7 +803,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
 
         {props.hiddenRowCount > 0 ? (
           <div
-            className="px-1 pt-2 [&_button]:md:ml-0"
+            className="px-1 pt-2"
             data-testid="status-page-resource-navigator-show-more"
           >
             <Button

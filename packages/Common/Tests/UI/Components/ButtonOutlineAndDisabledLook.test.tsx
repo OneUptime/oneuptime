@@ -241,11 +241,13 @@ describe("an outline button is the plain bordered button, sized to its label", (
     },
   );
 
-  test("its label is the reading size on a phone and a control's from md up, as NORMAL's is", () => {
-    expect(renderButton({ buttonStyle: ButtonStyleType.OUTLINE })).toHaveClass(
-      "text-base",
-      "md:text-sm",
-    );
+  test("its label is a control's size at every width, as every boxed style's is", () => {
+    const button: HTMLElement = renderButton({
+      buttonStyle: ButtonStyleType.OUTLINE,
+    });
+
+    expect(button).toHaveClass("text-sm");
+    expect(button).not.toHaveClass("text-base");
   });
 
   test("its size is the button's size, as for every style", () => {
@@ -527,16 +529,11 @@ describe("a locked button with a reason", () => {
     const wrapper: HTMLElement = screen.getByTestId("locked-disabled-wrapper");
 
     /*
-     * NORMAL is as wide as a phone, so its wrapper is too (a block there,
-     * inline from md up): a locked button keeps its unlocked width.
+     * A button is as wide as its words at every width, so its wrapper is
+     * too: a locked button keeps its unlocked width (#9128).
      */
-    expect(wrapper).toHaveClass(
-      "flex",
-      "w-full",
-      "md:inline-flex",
-      "md:w-auto",
-      "cursor-not-allowed",
-    );
+    expect(wrapper).toHaveClass("inline-flex", "cursor-not-allowed");
+    expect(wrapper).not.toHaveClass("w-full");
     // The button itself takes no pointer, so the wrapper's cursor shows.
     expect(screen.getByTestId("locked")).toHaveClass("pointer-events-none");
     expect(screen.getByTestId("locked")).toHaveClass("opacity-50");
@@ -694,16 +691,33 @@ describe("a button that is only its icon", () => {
     expect(button).not.toHaveClass("p-1");
   });
 
-  test("a filled or plain one keeps its size's padding: only outline styles turn square", () => {
+  test("every boxed style turns square round its icon: NORMAL, a filled and a red one too", () => {
     for (const buttonStyle of [
       ButtonStyleType.NORMAL,
+      ButtonStyleType.PRIMARY,
       ButtonStyleType.DANGER_OUTLINE,
     ]) {
-      expect(isOutlineButtonStyle(buttonStyle)).toBe(false);
-      expect(
-        renderIconOnly({ buttonStyle, buttonSize: ButtonSize.Small }),
-      ).toHaveClass("px-2", "py-1");
+      const button: HTMLElement = renderIconOnly({
+        buttonStyle,
+        buttonSize: ButtonSize.Small,
+      });
+
+      expect(button).toHaveClass("p-1");
+      expect(button).not.toHaveClass("px-2");
     }
+
+    // NORMAL is the plain outline button.
+    expect(isOutlineButtonStyle(ButtonStyleType.NORMAL)).toBe(true);
+    expect(isOutlineButtonStyle(ButtonStyleType.DANGER_OUTLINE)).toBe(false);
+  });
+
+  test("a link or a bare icon keeps its own padding", () => {
+    expect(
+      renderIconOnly({
+        buttonStyle: ButtonStyleType.ICON,
+        buttonSize: ButtonSize.Small,
+      }),
+    ).toHaveClass("px-2", "py-1");
   });
 
   test("it is named by its tooltip when it has no name of its own", () => {
