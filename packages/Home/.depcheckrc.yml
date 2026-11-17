@@ -1,0 +1,12 @@
+# depcheck finds a package used by an import, a require() or a script of
+# package.json, where it reads `-r ts-node` or `-r ts-node/register` but not
+# `-r ts-node/register/transpile-only`, the form Home's scripts use. Since its
+# image runs JavaScript (#9226), Home uses ts-node only where depcheck does
+# not see it:
+# - the image's build stage runs `npm run build:css` through it, then
+#   Common/Server/Utils/TsNode/Precompile.js, which reads from this package's
+#   ts-node the options it compiles Home's TypeScript with (Dockerfile.tpl);
+# - `npm run dev` runs Home through it (nodemon.json), and
+#   `npm run verify:otel-guides` runs its check through it.
+ignores:
+  - ts-node
