@@ -196,6 +196,16 @@ Wat elke pagina bevat:
 - **Privénotities** en **Openbare notities** — wat je team en je klanten is verteld. Zie [Incidentnotities, eigenaren en feed](/docs/incidents/notes-owners-and-feed).
 - **Aangepaste velden**, **Instellingen**, **Incident verwijderen** — de pagina **Instellingen** bevat **Zichtbaar op statuspagina** en **Privé-incident**, de kaart **Bereik van statuspagina's** die het incident tot enkele statuspagina's beperkt, en de kaart **Herinneringen**, waarvan de schakelaar **Herinneringen sturen** wordt opgeslagen zodra je hem omzet en laat zien wanneer de volgende herinnering uitgaat.
 
+## Wie bericht kreeg
+
+Het **Overzicht** van een incident heeft een kaart **Wie bericht kreeg**. Die laat zien wie OneUptime over het incident bericht heeft gestuurd, waarmee en wat mislukte, gelezen uit wat er gebeurde: de uitvoeringen van het bereikbaarheidsbeleid en elk Slack-, Microsoft Teams- of Mattermost-bericht, elke e-mail, sms, oproep, pushmelding, elk WhatsApp- of Telegram-bericht en elke webhook die erover is verstuurd.
+
+- De eerste woorden tellen de personen en kanalen die bericht kregen, zeggen wie het incident heeft bevestigd en hoe lang na de eerste oproep, en hoeveel meldingen zijn mislukt.
+- Elke persoon krijgt één regel: hoe de oproep diegene bereikte (het bereikbaarheidsbeleid, het niveau, het team of het rooster), waarmee, en waar diegene staat: **Bevestigd**, **Gemeld**, **Bezig met verzenden**, **Mislukt** of **Niet opgeroepen**. **Details tonen** zet elke oproep en elke melding op tijdsvolgorde, met waarom er een mislukte of waarom iemand niet is opgeroepen.
+- Een team of rooster dat niemand bereikte, een beleid dat nog niet heeft opgeroepen (bijvoorbeeld een dat op werktijd wacht), de kanalen waarin is gepost en de abonnees van de statuspagina krijgen ook elk een regel. Een druk incident toont de eerste personen, de rest staat een klik verder.
+- Zolang het incident open is, leest de kaart zich om de paar seconden opnieuw in.
+- Ze toont alleen wat u al kunt lezen: de kaart van een privé-incident is voor wie het incident kan openen, en meldingen of uitvoeringen van bereikbaarheidsbeleid die u niet kunt openen, worden onder de lijst geteld, nooit genoemd. De **Meldingslogboeken** bevatten elk bericht volledig.
+
 ## Hoe incidenten in de rest van OneUptime passen
 
 - **Monitoren zien het probleem; incidenten leggen het vast.** Een criteriaregel van een monitor kan automatisch een incident melden en daarbij de titel, ernst, het bereikbaarheidsbeleid, de eigenaren, labels en herstelnotities vooraf invullen. Zie [Incident- en waarschuwingstemplates](/docs/monitor/incident-alert-templating) voor de variabelen die daar beschikbaar zijn.

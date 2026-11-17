@@ -196,6 +196,16 @@ Hvad hver side indeholder:
 - **Private noter** og **Offentlige noter** — hvad dit team og dine kunder fik at vide. Se [Hændelsesnoter, ejere og feed](/docs/incidents/notes-owners-and-feed).
 - **Brugerdefinerede felter**, **Indstillinger**, **Slet hændelse** — siden **Indstillinger** indeholder **Synlig på statussiden** og **Privat hændelse**, kortet **Statussideomfang**, der begrænser hændelsen til nogle statussider, og kortet **Påmindelser**, hvis kontakt **Send påmindelser** gemmes, så snart du slår den om, og viser, hvornår den næste påmindelse sendes.
 
+## Hvem fik besked
+
+En hændelses **Oversigt** har et kort, **Hvem fik besked**. Det viser, hvem OneUptime gav besked om hændelsen, hvordan, og hvad der mislykkedes, læst ud fra det, der skete: kørslerne af dens vagtpolitikker og hver Slack-, Microsoft Teams- eller Mattermost-besked, e-mail, SMS, hvert opkald, hver push-notifikation, WhatsApp- og Telegram-besked og webhook, der er sendt om den.
+
+- Dets første ord tæller de personer og kanaler, der fik besked, siger, hvem der bekræftede hændelsen og hvor længe efter det første tilkald, og hvor mange notifikationer der mislykkedes.
+- Hver person får én linje: hvordan tilkaldet nåede dem (vagtpolitikken, niveauet, teamet eller vagtplanen), hvordan, og hvor de står: **Bekræftet**, **Underrettet**, **Sender**, **Mislykkedes** eller **Ikke kaldt**. **Vis detaljer** viser hvert tilkald og hver notifikation i tidsorden, med hvorfor en mislykkedes, eller hvorfor nogen ikke blev kaldt.
+- Et team eller en vagtplan, der ikke nåede nogen, en politik, der ikke har kaldt endnu (for eksempel en, der venter på arbejdstiden), de kanaler, der blev skrevet i, og statussidens abonnenter får også hver en linje. En travl hændelse viser sine første personer, og resten er et klik væk.
+- Så længe hændelsen er åben, læser kortet igen med få sekunders mellemrum.
+- Det viser kun det, du allerede kan læse: en privat hændelses kort er for dem, der kan åbne hændelsen, og notifikationer eller kørsler af vagtpolitikker, du ikke kan åbne, tælles under listen og nævnes aldrig. **Notifikationslogs** har hver besked i fuld længde.
+
 ## Sådan passer hændelser ind i resten af OneUptime
 
 - **Monitorer opdager problemet; hændelser registrerer det.** En kriterieregel på en monitor kan erklære en hændelse automatisk og udfylde titel, alvorsgrad, vagtpolitikker, ejere, etiketter og afhjælpningsnoter på forhånd. Se [Hændelse- og advarselsskabeloner](/docs/monitor/incident-alert-templating) for de variabler, der er tilgængelige dér.

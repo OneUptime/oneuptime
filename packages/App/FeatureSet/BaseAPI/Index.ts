@@ -2086,6 +2086,7 @@ import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
 import PagingLadderAPI from "Common/Server/API/PagingLadderAPI";
 import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
+import WhoWasToldAPI from "Common/Server/API/WhoWasToldAPI";
 import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
 import UsedByAPI from "Common/Server/API/UsedByAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
@@ -6595,6 +6596,14 @@ const BaseAPIFeatureSet: FeatureSet = {
      * router for the same reason as OnCallReadinessAPI.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WhoIsToldAPI);
+
+    /*
+     * Who was told about an incident or an alert, as it happened
+     * (WhoWasToldAPI, #7075): its on-call pages and notifications, by
+     * person and channel, as the reader may read them. A bare router for
+     * the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, WhoWasToldAPI);
 
     /*
      * Setup health (SetupHealthAPI, #6812): what is misconfigured in the

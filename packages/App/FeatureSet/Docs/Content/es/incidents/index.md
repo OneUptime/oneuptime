@@ -196,6 +196,16 @@ Qué contiene cada una:
 - **Notas privadas** y **Notas públicas** — qué se le dijo a tu equipo y a tus clientes. Consulta [Notas, responsables y actividad de incidentes](/docs/incidents/notes-owners-and-feed).
 - **Campos personalizados**, **Ajustes**, **Eliminar incidente** — la página **Ajustes** contiene **Visible en la página de estado** e **Incidente privado**, la tarjeta **Alcance de páginas de estado** que limita el incidente a algunas páginas de estado, y la tarjeta **Recordatorios**, cuyo interruptor **Enviar recordatorios** se guarda en cuanto lo cambias y muestra cuándo sale el próximo recordatorio.
 
+## A quién se avisó
+
+La **Vista general** de un incidente tiene una tarjeta **A quién se avisó**. Dice a quién avisó OneUptime del incidente, por qué medio y qué falló, leído de lo que ocurrió: las ejecuciones de sus políticas de guardia y cada mensaje de Slack, Microsoft Teams o Mattermost, correo electrónico, SMS, llamada, notificación push, mensaje de WhatsApp o Telegram y webhook enviado sobre él.
+
+- Sus primeras palabras cuentan las personas y los canales avisados, dicen quién reconoció el incidente y cuánto después del primer aviso, y cuántas notificaciones fallaron.
+- Cada persona tiene una línea: cómo le llegó el aviso (la política de guardia, el nivel, el equipo o el horario), por qué medio y en qué punto está: **Reconocido**, **Notificado**, **Enviando**, **Fallido** o **Sin avisar**. **Mostrar detalles** lista cada aviso y cada notificación en orden cronológico, con el motivo de un fallo o de que no se avisara a alguien.
+- Un equipo u horario que no llegó a nadie, una política que aún no ha avisado (por ejemplo, una que espera al horario laboral), los canales en los que se publicó y los suscriptores de la página de estado tienen también una línea cada uno. Un incidente con mucha actividad lista sus primeras personas, y el resto queda a un clic.
+- Mientras el incidente está abierto, la tarjeta se vuelve a leer cada pocos segundos.
+- Solo muestra lo que ya puedes leer: la tarjeta de un incidente privado es para quienes pueden abrir el incidente, y las notificaciones o ejecuciones de políticas de guardia que no puedes abrir se cuentan bajo la lista, nunca se nombran. Los **Registros de notificación** tienen cada mensaje completo.
+
 ## Cómo encajan los incidentes con el resto de OneUptime
 
 - **Los monitores detectan el problema; los incidentes lo registran.** Una regla de criterios de un monitor puede declarar un incidente automáticamente, rellenando título, gravedad, políticas de guardia, propietarios, etiquetas y notas de remediación. Consulta [Plantillas de incidentes y alertas](/docs/monitor/incident-alert-templating) para las variables disponibles.

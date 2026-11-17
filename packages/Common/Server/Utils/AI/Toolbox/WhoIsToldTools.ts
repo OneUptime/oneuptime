@@ -4,12 +4,14 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import {
+  WHO_IS_TOLD_PERSON_PROBLEM_CLAUSES,
   WhoIsToldBreak,
   WhoIsToldCriteria,
   WhoIsToldEvent,
   WhoIsToldOwners,
   WhoIsToldOwnersSource,
   WhoIsToldPerson,
+  WhoIsToldPersonProblem,
   WhoIsToldPolicy,
   WhoIsToldResult,
   WhoIsToldRule,
@@ -192,14 +194,35 @@ function describeOwnerRules(rules: Array<WhoIsToldRule>): string {
     .join(", ");
 }
 
+/*
+ * An on-call rule by its name, as the card's "On-call rules" row lists it;
+ * one the person may not read (redactWhoIsTold leaves its name empty) keeps
+ * its place without it, as a hidden owner rule and status page do (#7441).
+ */
+function describeOnCallRule(rule: WhoIsToldRule): string {
+  return rule.name
+    ? `"${rule.name}"`
+    : "an on-call rule the person may not read";
+}
+
+/*
+ * Why a person a policy reaches can't be paged, in the card's words (#7525):
+ * its "Can't be paged", then the break sentence it says the reason in
+ * ("Ana Lopez has no verified notification method.") - the clauses
+ * WhoIsTold keeps for both, never the problem's code, which the model would
+ * repeat word for word.
+ */
 function describePerson(person: WhoIsToldPerson): string {
+  const name: string = person.name || "someone";
   const through: string = person.reachedThrough
     ? ` (${person.reachedThrough})`
     : "";
 
   if (!person.isReachable) {
-    return `${person.name}${through}: cannot be reached by this page${
-      person.problem ? ` (${person.problem})` : ""
+    return `${name}${through}: can't be paged, because ${name} ${
+      WHO_IS_TOLD_PERSON_PROBLEM_CLAUSES[
+        person.problem || WhoIsToldPersonProblem.NoVerifiedMethod
+      ]
     }`;
   }
 
@@ -210,12 +233,50 @@ function describePerson(person: WhoIsToldPerson): string {
     ? " (what the fallback picks of their verified methods, as no rule of theirs covers this severity)"
     : "";
 
-  return `${person.name}${through}: by ${channels}${fallback}`;
+  return `${name}${through}: by ${channels}${fallback}`;
 }
 
-function describePolicy(policy: WhoIsToldPolicy): string {
+/*
+ * What runs a policy (#7525): the criteria naming it, and the on-call rules
+ * of what opens that page it (its ruleIds), by name - so "which rule pages
+ * the Default policy?" is answered, never guessed.
+ */
+function describeWhatRunsPolicy(
+  policy: WhoIsToldPolicy,
+  rules: ReadonlyArray<WhoIsToldRule>,
+): string {
+  const runs: Array<string> = [];
+
+  if (policy.isNamedByCriteria) {
+    runs.push("named by the criteria");
+  }
+
+  const ruleNames: Array<string> = policy.ruleIds
+    .map((ruleId: string): WhoIsToldRule | undefined => {
+      return rules.find((rule: WhoIsToldRule): boolean => {
+        return rule.id === ruleId;
+      });
+    })
+    .filter((rule: WhoIsToldRule | undefined): rule is WhoIsToldRule => {
+      return Boolean(rule);
+    })
+    .map(describeOnCallRule);
+
+  if (ruleNames.length > 0) {
+    runs.push(`run by ${ruleNames.join(", ")}`);
+  }
+
+  return runs.length > 0 ? `, ${runs.join(" and ")}` : "";
+}
+
+function describePolicy(
+  policy: WhoIsToldPolicy,
+  rules: ReadonlyArray<WhoIsToldRule>,
+): string {
+  const runBy: string = describeWhatRunsPolicy(policy, rules);
+
   if (policy.isHidden) {
-    return "an on-call policy the person may not read (paging is set up, and who is hidden)";
+    return `an on-call policy the person may not read (paging is set up, and who is hidden)${runBy}`;
   }
 
   const people: string =
@@ -225,16 +286,24 @@ function describePolicy(policy: WhoIsToldPolicy): string {
 
   return `on-call policy "${policy.name}" (${policy.levelCount} escalation level${
     policy.levelCount === 1 ? "" : "s"
-  }), whose first level pages: ${people}${
+  })${runBy}, whose first level pages: ${people}${
     policy.notPaged.length > 0
       ? `. Not paged: ${policy.notPaged.join("; ")}`
       : ""
   }`;
 }
 
+/*
+ * What a criteria opens, as the card's chain lists it: its kind, severity
+ * and title (the on-call rules are matched on it, #7525) - "opens an
+ * incident (Critical) titled "example.com is offline"" - who it emails,
+ * the owner rules and on-call rules that match it, the policies they page
+ * and the status pages it shows on.
+ */
 function describeEvent(event: WhoIsToldEvent): Array<string> {
+  const title: string = event.title ? ` titled "${event.title}"` : "";
   const lines: Array<string> = [
-    `  - opens ${event.kind === "Alert" ? "an alert" : "an incident"} (${event.severityName}); emails ${describeOwners(event.owners)}`,
+    `  - opens ${event.kind === "Alert" ? "an alert" : "an incident"} (${event.severityName})${title}; emails ${describeOwners(event.owners)}`,
   ];
 
   if (event.ownerRules.length > 0) {
@@ -243,12 +312,21 @@ function describeEvent(event: WhoIsToldEvent): Array<string> {
     );
   }
 
+  // The card's "On-call rules" row: the rules that match, or "None match".
+  lines.push(
+    event.rules.length > 0
+      ? `    - on-call rules that match: ${event.rules
+          .map(describeOnCallRule)
+          .join(", ")}`
+      : "    - no on-call rule matches",
+  );
+
   if (event.policies.length === 0) {
     lines.push("    - pages nobody: no on-call rule runs a policy for it");
   }
 
   for (const policy of event.policies) {
-    lines.push(`    - pages ${describePolicy(policy)}`);
+    lines.push(`    - pages ${describePolicy(policy, event.rules)}`);
   }
 
   /*
@@ -316,7 +394,7 @@ export function describeWhoIsToldForModel(result: WhoIsToldResult): string {
 export const WhoIsToldTool: ObservabilityTool = {
   name: "who_is_told",
   description:
-    "Who is told when a monitor goes down, and where that breaks: for each of the monitor's criteria, what it opens, who it emails, which on-call policies it pages, who their first level reaches right now and by what (SMS, call, email, push), and each break in the chain (a policy no rule runs, a person a page can't reach, SMS switched off, ...). The same answer as the monitor's 'When this goes down'. Use it for 'who is told when example.com goes down?', 'will anyone get paged?', and after setting a monitor up. Name the monitor by its name, its address or its id.",
+    "Who is told when a monitor goes down, and where that breaks: for each of the monitor's criteria, what it opens and the title it opens it with, who it emails, the on-call rules that match it, which on-call policies it pages and what runs each, who their first level reaches right now and by what (SMS, call, email, push) or why someone can't be paged, and each break in the chain (a policy no rule runs, a person a page can't reach, SMS switched off, ...). The same answer as the monitor's 'When this goes down'. Use it for 'who is told when example.com goes down?', 'will anyone get paged?', and after setting a monitor up. Name the monitor by its name, its address or its id.",
   inputSchema: {
     type: "object",
     properties: {

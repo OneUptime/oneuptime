@@ -120,7 +120,7 @@ Spørg AI sætter ud fra én sætning det op, som de guidede opsætninger sætte
 - **Hvad der mangler.** Spørg AI tilføjer aldrig et telefonnummer eller mobilappen: Du tilføjer og bekræfter dem selv under **Brugerindstillinger → Notifikationsmetoder**. Beder du om sms'er uden et bekræftet nummer, siger kortet det, og svaret linker til siden. En del, Spørg AI ikke kan oprette, foreslås ikke, fx når din rolle ikke tillader det, adressen ikke er en adresse, eller monitorerne ikke findes: Svaret siger, hvad der skal til.
 - **Hvad hver del kræver.** En monitor kræver tilladelse til at oprette monitorer. Udkald kræver tilladelse til at oprette vagtpolitikker, deres eskaleringsregler og vagtregler for hændelser og advarsler. En statusside kræver tilladelse til at oprette statussider og tilføje monitorer til dem. Projektets abonnementsgrænser gælder, som i de guidede opsætninger.
 - **Test det bagefter.** Når planen er kørt, åbner hvert kort det, der blev oprettet, og **Test denne politik** (eller **Send mig et testkald**, for en monitor alene) under svaret sender et testkald, som du kvitterer for fra beskeden. Fejler en del, siger svaret, hvad der blev oprettet, og hvad der ikke blev.
-- **Hvem der får besked.** Spørg "hvem får besked, når example.com er nede?", og Spørg AI svarer ud fra den samme kæde, som monitorens side viser, og nævner hvert brud.
+- **Hvem der får besked.** Spørg "hvem får besked, når example.com er nede?", og Spørg AI svarer ud fra den samme kæde, som monitorens side viser, og nævner hvert brud. Det nævner også titlen på det, monitoren åbner, de vagtregler, der matcher, og hvilken der kører hver politik, og hvorfor nogen ikke kan kaldes, med monitorens sides ord, og udelader det, du ikke kan læse.
 
 ## Styr en samtale
 

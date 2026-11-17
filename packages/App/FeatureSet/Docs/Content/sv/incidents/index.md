@@ -196,6 +196,16 @@ Vad varje sida innehåller:
 - **Privata anteckningar** och **Offentliga anteckningar** — vad ditt team och dina kunder fick veta. Se [Incidentanteckningar, ägare och flöde](/docs/incidents/notes-owners-and-feed).
 - **Anpassade fält**, **Inställningar**, **Ta bort incident** — sidan **Inställningar** innehåller **Synlig på statussidan** och **Privat incident**, kortet **Statussideomfång** som begränsar incidenten till vissa statussidor, och kortet **Påminnelser**, vars reglage **Skicka påminnelser** sparas så snart du slår om det och visar när nästa påminnelse skickas.
 
+## Vem som fick besked
+
+En incidents **Översikt** har ett kort, **Vem som fick besked**. Det visar vem OneUptime gav besked om incidenten, på vilket sätt och vad som misslyckades, läst från det som hände: körningarna av dess jourpolicyer och varje Slack-, Microsoft Teams- eller Mattermost-meddelande, e-postmeddelande, sms, samtal, pushavisering, WhatsApp- och Telegram-meddelande och webhook som skickats om den.
+
+- Dess första ord räknar de personer och kanaler som fick besked, säger vem som bekräftade incidenten och hur länge efter den första utlarmningen, och hur många aviseringar som misslyckades.
+- Varje person får en rad: hur utlarmningen nådde dem (jourpolicyn, nivån, teamet eller schemat), på vilket sätt och var de står: **Bekräftad**, **Aviserad**, **Skickar**, **Misslyckades** eller **Inte larmad**. **Visa detaljer** listar varje utlarmning och varje avisering i tidsordning, med varför en misslyckades eller varför någon inte larmades.
+- Ett team eller schema som inte nådde någon, en policy som inte har larmat än (till exempel en som väntar på arbetstid), kanalerna det skrevs i och statussidans prenumeranter får också en rad var. En incident med mycket aktivitet listar sina första personer, och resten är ett klick bort.
+- Så länge incidenten är öppen läser kortet om med några sekunders mellanrum.
+- Det visar bara det du redan kan läsa: kortet för en privat incident är för dem som kan öppna incidenten, och aviseringar eller körningar av jourpolicyer som du inte kan öppna räknas under listan och nämns aldrig. **Aviseringsloggar** har varje meddelande i sin helhet.
+
 ## Så passar incidenter in i resten av OneUptime
 
 - **Monitorer upptäcker problemet; incidenter registrerar det.** En kriterieregel på en monitor kan deklarera en incident automatiskt och förifylla titel, allvarlighetsgrad, jourpolicyer, ägare, etiketter och åtgärdsanteckningar. Se [Incident- och larmmallar](/docs/monitor/incident-alert-templating) för variablerna som finns där.
