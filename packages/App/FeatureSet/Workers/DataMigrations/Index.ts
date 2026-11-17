@@ -187,6 +187,9 @@ import BackfillMonitorFirstMeasuredAt from "./BackfillMonitorFirstMeasuredAt";
 import BackfillMonitorFirstMeasuredAtForUptimeHistory from "./BackfillMonitorFirstMeasuredAtForUptimeHistory";
 import EncryptProjectCredentials from "./EncryptProjectCredentials";
 import SwitchOffRulesLimitedOnlyToDeletedRecords from "./SwitchOffRulesLimitedOnlyToDeletedRecords";
+import EncryptWebhookAddresses from "./EncryptWebhookAddresses";
+import EncryptSnmpCredentials from "./EncryptSnmpCredentials";
+import MaskWebhookAddressesInLogs from "./MaskWebhookAddressesInLogs";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1282,6 +1285,40 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new SwitchOffRulesLimitedOnlyToDeletedRecords(),
+  /*
+   * The webhook addresses a project stored as written before their columns
+   * were kept encrypted at rest (#9013): its status pages' Slack, Microsoft
+   * Teams and webhook subscribers', its members' webhook notification
+   * methods', its OpenStack project notices' (and the copy each keeps of
+   * the address its preview was of), and the installation's custom
+   * channels' addresses and signing secrets - each encrypted in place, in
+   * raw SQL, only while it still holds the value read. Paged and
+   * idempotent; an address not encrypted yet still reads as itself
+   * meanwhile. Before the last slot AddAuditLogMcpClientColumns asserts for
+   * itself.
+   */
+  new EncryptWebhookAddresses(),
+  /*
+   * Network devices' and discovery scans' SNMP credentials stored as written
+   * before their columns were kept encrypted at rest (#9014): every
+   * community string and v3 key, the flattened columns and those inside a
+   * device's legacy snmpV3Auth object and each entry of a scan's snmpConfigs
+   * list, all together - each encrypted in place, the lists keeping their
+   * shape, only while it still holds the value read. Paged and idempotent;
+   * a credential not encrypted yet still reads as itself, so polls and
+   * sweeps go on meanwhile. Before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new EncryptSnmpCredentials(),
+  /*
+   * The notification logs keep a webhook by its scheme and host alone now
+   * (#9013): the webhook log's addresses kept before are masked the same
+   * way ("https://hooks.slack.com/•••"), and so is an address its error
+   * quotes, and a page's "Sending webhook to <address>." line left on the
+   * on-call log reads "Sending webhook.". Paged and idempotent. Before the
+   * last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new MaskWebhookAddressesInLogs(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
