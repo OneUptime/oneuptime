@@ -315,6 +315,16 @@ alerts.
   its next change. Rules that exist are not changed. To post every update from
   a new rule, send `"updatesToPost": null`. See
   [On-call messages](/docs/workspace-connections/slack#on-call-messages).
+- **The background check of Incoming Request monitors reads only the request
+  as it came.** An Incoming Request monitor keeps its latest request twice
+  since 14.0.106: as it came, which the check that runs every 30 seconds
+  judges again, and as the overview, the API and every other reader get it,
+  with secrets and personal data masked. The check read both, so that during
+  an upgrade it still judged, and masked, a request that a server older than
+  14.0.106 had kept once, as it came. It now reads the request as it came
+  alone, one copy where it read two, and judges it as before. Upgrading from
+  15 needs nothing: every release since 14.0.106 keeps each request both
+  ways.
 :::
 
 ## Upgrading from OneUptime 14 → 15

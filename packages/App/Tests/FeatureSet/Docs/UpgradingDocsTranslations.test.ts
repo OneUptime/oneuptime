@@ -468,6 +468,7 @@ const PROSE_LEADS: Array<string> = [
   "Production reviews, pull requests from chats and the fix panels follow private records too.",
   "Webhook addresses and SNMP credentials are stored encrypted, and logs keep a webhook's address by its host.",
   "A new on-call rule made through the API or with Terraform starts on Key updates only.",
+  "The background check of Incoming Request monitors reads only the request as it came.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",
@@ -1341,13 +1342,15 @@ describe.each(LANGUAGES)("the %s upgrade guide", (language: string) => {
   });
 
   /*
-   * Every note of "Other changes in 14" and of "Other changes in 15", in the
-   * English order: the same code, the same pages linked and the same
-   * numbers, note by note, so no note is dropped, merged or cut short.
+   * Every note of "Other changes in 14", "Other changes in 15" and "Other
+   * changes in 16", in the English order: the same code, the same pages
+   * linked and the same numbers, note by note, so no note is dropped, merged
+   * or cut short.
    */
   it.each([
     [13, 14],
     [14, 15],
+    [15, 16],
   ])(
     "carries every note of the %i → %i changes, in order, with its code, links and numbers",
     (_from: number, to: number) => {
