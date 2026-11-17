@@ -5,7 +5,7 @@ import Link from "Common/Types/Link";
 
 /*
  * The trail over every Status Pages page. Each page's last crumb is the name
- * its side menu gives it - Custom Domains, Advanced Settings, Subscriber
+ * its side menu gives it - Custom Domains, Settings, Subscriber
  * Templates - so the trail and the menu never call one page two things, and
  * every page the menus open has a trail (Embedded Status, Reports, SCIM and
  * the Slack and Microsoft Teams subscribers had none).
@@ -144,17 +144,12 @@ export function getStatusPagesBreadcrumbs(
       "View Status Page",
       "Private Users",
     ]),
+    // SAML and OIDC, a tab each (#9130).
     ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_SSO, [
       "Project",
       "Status Pages",
       "View Status Page",
-      "SSO",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_OIDC, [
-      "Project",
-      "Status Pages",
-      "View Status Page",
-      "OIDC",
+      "Single Sign-On",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_SCIM, [
       "Project",
@@ -189,7 +184,7 @@ export function getStatusPagesBreadcrumbs(
       "Project",
       "Status Pages",
       "View Status Page",
-      "Advanced Settings",
+      "Settings",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_AUDIT_LOGS, [
       "Project",

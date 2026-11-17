@@ -130,7 +130,7 @@ export interface StatusPageSettingCardProps {
 }
 
 /*
- * Props of a status page's Powered by OneUptime card (Advanced Settings),
+ * Props of a status page's Powered by OneUptime card (Settings),
  * which waits folded under the page's More settings: it tells the page
  * whether visitors see the line, once read and after each save, so the
  * folded header can mark it while the line is hidden.

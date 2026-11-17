@@ -166,11 +166,11 @@ describe("a status page's Branding section", () => {
     },
   );
 
-  test("stays folded on Advanced Settings, where the uptime % and downtime statuses went", async () => {
+  test("stays folded on Settings, where the uptime % and downtime statuses went", async () => {
     await renderMenuAt(PageMap.STATUS_PAGE_VIEW_SETTINGS);
 
     expect(isExpanded("Branding")).toBe(false);
     expect(isExpanded("Advanced")).toBe(true);
-    expect(activeLinkTitles()).toEqual(["Advanced Settings"]);
+    expect(activeLinkTitles()).toEqual(["Settings"]);
   });
 });

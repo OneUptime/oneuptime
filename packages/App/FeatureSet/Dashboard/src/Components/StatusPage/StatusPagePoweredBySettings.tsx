@@ -15,7 +15,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * The "Powered by OneUptime" card on a status page's Advanced Settings,
+ * The "Powered by OneUptime" card on a status page's Settings,
  * under "What your status page shows".
  *
  * Hiding the line is an Enterprise feature (ee/Dashboard/StatusPageBranding).

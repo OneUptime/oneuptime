@@ -24,7 +24,11 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
   return (
     <SideMenu>
-      <SideMenuSection title="Basic">
+      {/*
+       * "Overview", as an incident's, an alert's, a maintenance event's and
+       * a monitor's menus open (it said "Basic" until #9130).
+       */}
+      <SideMenuSection title="Overview">
         <SideMenuItem
           link={{
             title: "Overview",
@@ -80,7 +84,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       {/*
-       * What the page shows (Basic, Resources) is what this menu is opened
+       * What the page shows (Overview, Resources) is what this menu is opened
        * for, so those two start open. Every section after them folds down to
        * its title until opened, and opens by itself on its own pages:
        *
@@ -202,6 +206,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
        * the link, only people who sign in, anyone with the password). The
        * entries after it set up the sign-in that the second choice uses. It
        * is the old "Authentication Settings" page, at the same address.
+       * Private Users, Single Sign-On and SCIM do nothing while the page is
+       * public, and each of their pages says so then
+       * (Components/StatusPage/StatusPagePrivateOnlySettings).
        */}
       <SideMenuSection title="Security">
         <SideMenuItem
@@ -228,22 +235,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.User}
         />
 
+        {/*
+         * One page for the page's sign-on providers, a tab per protocol
+         * (SAML, OIDC): they were two entries, "SSO" and "OIDC", with the
+         * same icon, until #9130. The old OIDC address opens its tab.
+         */}
         <SideMenuItem
           link={{
-            title: "SSO",
+            title: "Single Sign-On",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.STATUS_PAGE_VIEW_SSO] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Lock}
-        />
-
-        <SideMenuItem
-          link={{
-            title: "OIDC",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_OIDC] as Route,
               { modelId: props.modelId },
             ),
           }}
@@ -317,7 +318,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
-            title: "Advanced Settings",
+            // "Settings", as other records' menus say (#9130).
+            title: "Settings",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.STATUS_PAGE_VIEW_SETTINGS] as Route,
               { modelId: props.modelId },
