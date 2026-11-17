@@ -97,6 +97,20 @@ Some pages go on after it is acknowledged, until somebody they paged answers or 
 
 A policy started by hand is one started with **Execute On-Call Policy**, or by a page from Slack or Microsoft Teams that names it. It pages level by level as any run does, calls and repeated pushes included, and somebody else acknowledging the incident does not stop it: that is how you page another team into an incident somebody is already on. Whoever it paged answers from their page's message, a call or a text, or by acknowledging the incident themselves; once the incident is acknowledged, its page offers them **Acknowledge again**. **Escalate** passes it to the next level. On an incident, alert or episode that is resolved, nothing is started, and you are told why: the dashboard turns **Execute On-Call Policy** off and shows the reason. Its notifications say who started which policy, and carry the message sent with a page from Slack or Microsoft Teams.
 
+## Test a policy
+
+**Test this policy**, on a policy's escalation rules, pages its first level as a test, with no incident behind it: every message says TEST, and no status page, subscriber or channel is told. Turn on **Walk every escalation level** to page each level in turn, at most 2 minutes apart, until someone acknowledges it. Before anything is sent, the dialog lists who the test pages and how, and what it costs on OneUptime Cloud.
+
+**Send test page** stays off while the test would reach nobody: everybody it pages has opted out of the severity, has no rule for it and nothing to fall back to, or has only methods that are not verified or are switched off in the project. One line under the list says why. When only a later level can be reached, the line offers **Walk every escalation level** in one click.
+
+Whoever is paged acknowledges the test from any of its messages: an email's, a text's or a chat message's link, a call's 1, or its push notification in the OneUptime On-Call app, in versions newer than 1.6.0. A policy can be tested once every 5 minutes, and a project sends at most 20 tests an hour.
+
+### Run a fire drill on a monitor
+
+**Run Fire Drill**, on a monitor's **When this goes down** card, rehearses one of the monitor's failures: an incident or alert one of its criteria opens. It tests every on-call policy that failure would page, each as **Test this policy** tests it, and nothing public happens: no incident or alert is created, and no status page, subscriber or channel is told. Before anything is sent, the dialog names the failure, each policy and who that policy pages now.
+
+**Start Fire Drill** stays off while one of those policies is one you can't test, because you can't edit it, or while nobody they page can be reached. Each policy of a drill counts as a test of its own: a policy tested in the last 5 minutes stops the whole drill, and a drill of three policies takes three of the project's 20 tests an hour.
+
 ## Execution logs
 
 Every time a policy runs, it writes an execution log, and the log moves through its statuses as the run goes on:

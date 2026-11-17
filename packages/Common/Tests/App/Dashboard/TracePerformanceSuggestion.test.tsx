@@ -727,6 +727,31 @@ describe("what each offer draws", () => {
     );
   });
 
+  /*
+   * A Button has no width of its own (#9128): the strip gives its fix
+   * button a phone's width, which the offline browser suite measures - it
+   * was as wide as its words there, at the strip's edge. While the click
+   * is on its way, the wrapper that says why takes the same width.
+   */
+  test("on a phone the strip stretches its fix button, busy or not", () => {
+    renderStrip({ suggestion: suggestion(SuggestionOffer.Act) });
+    expect(screen.getByTestId("trace-fix-performance")).toHaveClass(
+      "max-sm:w-full",
+    );
+    cleanup();
+
+    renderStrip({
+      suggestion: suggestion(SuggestionOffer.Act),
+      isCreating: true,
+    });
+    expect(screen.getByTestId("trace-fix-performance")).toHaveClass(
+      "max-sm:w-full",
+    );
+    expect(
+      screen.getByTestId("trace-fix-performance-disabled-wrapper"),
+    ).toHaveClass("max-sm:w-full");
+  });
+
   test("the query shows on up to two lines, and whole on hover", () => {
     renderStrip({ suggestion: suggestion(SuggestionOffer.Act) });
 

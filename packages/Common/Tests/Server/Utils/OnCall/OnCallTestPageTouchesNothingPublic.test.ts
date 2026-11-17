@@ -8,6 +8,11 @@ import OnCallDutyPolicyExecutionLogService from "../../../../Server/Services/OnC
 import ProjectReferenceCheck from "../../../../Server/Utils/Database/ProjectReferenceCheck";
 import OnCallPolicyRunMessage from "../../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import WorkspaceLiveMessages from "../../../../Server/Utils/Workspace/LiveMessages/WorkspaceLiveMessages";
+import OnCallFireDrillService from "../../../../Server/Services/OnCallFireDrillService";
+import OnCallTestPageService from "../../../../Server/Services/OnCallTestPageService";
+import WhoIsToldService from "../../../../Server/Services/WhoIsToldService";
+import OnCallTestPageEvents from "../../../../Server/Utils/OnCall/OnCallTestPageEvents";
+import { getOnCallFireDrillEventKey } from "../../../../Types/OnCallDutyPolicy/OnCallFireDrill";
 import ObjectID from "../../../../Types/ObjectID";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { OnCallTestPageRecordKind } from "../../../../Types/OnCallDutyPolicy/OnCallTestPage";
@@ -44,9 +49,17 @@ const TEST_PAGE_MODULES: Array<string> = [
   "Server/Utils/OnCall/OnCallTestPageDelivery.ts",
   "Server/Utils/OnCall/OnCallTestPageRuns.ts",
   "Server/Utils/OnCall/OnCallTestPageEvents.ts",
+  "Server/Utils/OnCall/OnCallTestPageAcknowledge.ts",
   "Server/API/OnCallTestPageAPI.ts",
   "Types/OnCallDutyPolicy/OnCallTestPage.ts",
   "Types/OnCallDutyPolicy/OnCallTestPageWords.ts",
+  /*
+   * A monitor's fire drill (#7012): one test of each policy its failure
+   * pages. It reads which policies through When this goes down
+   * (WhoIsToldService), which only reads - and writes nothing itself.
+   */
+  "Server/Services/OnCallFireDrillService.ts",
+  "Types/OnCallDutyPolicy/OnCallFireDrill.ts",
 ];
 
 /*
@@ -197,6 +210,183 @@ describe("starting a test page", () => {
       run,
     );
 
+    expect(incidentFeed).not.toHaveBeenCalled();
+    expect(alertFeed).not.toHaveBeenCalled();
+    expect(incidentCreate).not.toHaveBeenCalled();
+    expect(alertCreate).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A FIRE DRILL (#7012) is the same test, once for each policy a monitor's
+ * failure pages: it writes on-call runs, each a test page - and creates no
+ * incident or alert, so no status page, subscriber, channel, workflow or
+ * record's feed is ever told of it.
+ */
+describe("starting a monitor's fire drill", () => {
+  const MONITOR_ID: ObjectID = new ObjectID(
+    "7e5b0000-0000-4000-8000-000000000010",
+  );
+  const OTHER_POLICY_ID: ObjectID = new ObjectID(
+    "7e5b0000-0000-4000-8000-000000000011",
+  );
+
+  let created: Array<OnCallDutyPolicyExecutionLog>;
+  let firstLevels: jest.SpyInstance;
+
+  beforeEach(() => {
+    created = [];
+
+    jest.spyOn(ProjectReferenceCheck, "validateCreate").mockResolvedValue();
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "create")
+      .mockImplementation((async (args: {
+        data: OnCallDutyPolicyExecutionLog;
+        props: { isRoot?: boolean };
+      }) => {
+        // OneUptime's own write, as every test page's run is.
+        expect(args.props.isRoot).toBe(true);
+        args.data.id = ObjectID.generate();
+        created.push(args.data);
+        return args.data;
+      }) as never);
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    firstLevels = jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "startRuleExecution")
+      .mockResolvedValue({
+        paged: [],
+        notPaged: [],
+        hadScheduleGap: false,
+        movesOnAtOnce: false,
+      } as never);
+    jest.spyOn(OnCallPolicyRunMessage, "refresh").mockImplementation(() => {
+      return undefined;
+    });
+    jest.spyOn(WhoIsToldService, "getForMonitor").mockResolvedValue({
+      monitorId: MONITOR_ID.toString(),
+      monitorName: "API",
+      checkedAt: "2026-11-17T09:00:00.000Z",
+      criteria: [
+        {
+          id: "criteria-offline",
+          name: "Offline",
+          statusName: "Offline",
+          events: [
+            {
+              kind: OnCallTestPageRecordKind.Incident,
+              id: "template-1",
+              severityId: SEVERITY_ID.toString(),
+              title: "API is down",
+              severityName: "Critical",
+              owners: {},
+              ownerRules: [],
+              rules: [],
+              policies: [
+                { id: POLICY_ID.toString(), name: "Primary" },
+                { id: OTHER_POLICY_ID.toString(), name: "Platform" },
+              ],
+              // An incident it opens would show on a status page.
+              statusPages: [{ id: "page-1", name: "Status" }],
+            },
+          ],
+        },
+      ],
+      channels: {},
+      breaks: [],
+    } as never);
+    jest
+      .spyOn(OnCallTestPageService, "readPolicy")
+      .mockResolvedValue({} as never);
+    jest
+      .spyOn(OnCallTestPageService, "readSeverity")
+      .mockResolvedValue("Critical" as never);
+    jest
+      .spyOn(OnCallTestPageService, "claimLimitsOfEach")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(OnCallTestPageEvents, "onTestPageSent")
+      .mockImplementation(() => {
+        return undefined;
+      });
+  });
+
+  test("writes a test page's run for each policy, and creates no incident or alert", async () => {
+    await OnCallFireDrillService.start({
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_ID,
+      sentByUserId: SENDER_ID,
+      props: { userId: SENDER_ID, tenantId: PROJECT_ID },
+      eventKey: getOnCallFireDrillEventKey({
+        criteriaId: "criteria-offline",
+        recordKind: OnCallTestPageRecordKind.Incident,
+        templateId: "template-1",
+        index: 0,
+      }),
+      assertMayTestPolicy: async (): Promise<void> => {
+        return undefined;
+      },
+    });
+
+    expect(created).toHaveLength(2);
+
+    for (const run of created) {
+      expect(run.userNotificationEventType).toBe(
+        UserNotificationEventType.TestPage,
+      );
+      expect(run.testPageRecordKind).toBe(OnCallTestPageRecordKind.Incident);
+      expect(run.testPageSeverityId).toEqual(SEVERITY_ID);
+      expect(run.testPageWalksEscalation).toBe(false);
+      // About no record: nothing a status page, a subscriber or a feed reads.
+      expect(run.triggeredByIncidentId).toBeUndefined();
+      expect(run.triggeredByAlertId).toBeUndefined();
+      expect(run.triggeredByAlertEpisodeId).toBeUndefined();
+      expect(run.triggeredByIncidentEpisodeId).toBeUndefined();
+    }
+
+    expect(
+      created.map((run: OnCallDutyPolicyExecutionLog) => {
+        return run.onCallDutyPolicyId?.toString();
+      }),
+    ).toEqual([POLICY_ID.toString(), OTHER_POLICY_ID.toString()]);
+    expect(incidentCreate).not.toHaveBeenCalled();
+    expect(alertCreate).not.toHaveBeenCalled();
+  });
+
+  test("each run, once created, pages its policy's first level as a test and says nothing in any record's feed", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy")
+      .mockResolvedValue({
+        id: new ObjectID("7e5b0000-0000-4000-8000-000000000005"),
+      } as never);
+
+    for (const policyId of [POLICY_ID, OTHER_POLICY_ID]) {
+      const run: OnCallDutyPolicyExecutionLog =
+        new OnCallDutyPolicyExecutionLog();
+      run.id = ObjectID.generate();
+      run.projectId = PROJECT_ID;
+      run.onCallDutyPolicyId = policyId;
+      run.status = OnCallDutyPolicyStatus.Scheduled;
+      run.userNotificationEventType = UserNotificationEventType.TestPage;
+      run.testPageRecordKind = OnCallTestPageRecordKind.Incident;
+      run.testPageSeverityId = SEVERITY_ID;
+      run.testPageWalksEscalation = false;
+
+      await (
+        OnCallDutyPolicyExecutionLogService as unknown as {
+          onCreateSuccess: (
+            onCreate: unknown,
+            createdItem: OnCallDutyPolicyExecutionLog,
+          ) => Promise<OnCallDutyPolicyExecutionLog>;
+        }
+      ).onCreateSuccess(
+        { createBy: { props: { isRoot: true } }, carryForward: null },
+        run,
+      );
+    }
+
+    expect(firstLevels).toHaveBeenCalledTimes(2);
     expect(incidentFeed).not.toHaveBeenCalled();
     expect(alertFeed).not.toHaveBeenCalled();
     expect(incidentCreate).not.toHaveBeenCalled();

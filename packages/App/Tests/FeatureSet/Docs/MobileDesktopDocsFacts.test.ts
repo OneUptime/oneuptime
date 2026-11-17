@@ -794,7 +794,9 @@ describe("pages arriving on the phone", () => {
    * past 1.6.0 - and from that release on it has to say what the actions do
    * (RELEASING.md, "On-call pages: Acknowledge and Escalate under the push"),
    * I've seen it under an observer's page included ("On-call pages: I've
-   * seen it under an observer's push").
+   * seen it under an observer's push"), and Acknowledge test page under a
+   * test page's ("On-call test pages: Acknowledge test page under the
+   * push").
    */
   it("carry Acknowledge and Escalate only from the app release after 1.6.0: until it ships, the FAQ says no", () => {
     const pushService: string = common(
@@ -816,6 +818,12 @@ describe("pages arriving on the phone", () => {
     expect(categories).toContain(
       'export const ON_CALL_OBSERVER_PAGE_CATEGORY: string = "ON_CALL_OBSERVER_PAGE";',
     );
+    expect(categories).toContain(
+      'export const ON_CALL_TEST_PAGE_CATEGORY: string = "ON_CALL_TEST_PAGE";',
+    );
+    expect(mobile("src/oncall/testPage.ts")).toContain(
+      'acknowledgeButton: "Acknowledge test page",',
+    );
     expect(version).not.toBeNull();
 
     const released: number =
@@ -831,12 +839,15 @@ describe("pages arriving on the phone", () => {
       ),
       /*
        * And the one action under an observer's page, which only says they
-       * have seen it (OnCallObserverPage): the same release registers it.
+       * have seen it (OnCallObserverPage), and the one under a test page,
+       * which acknowledges the test and nothing real: the same release
+       * registers them.
        */
       namesTheActions:
         answer.includes("**Acknowledge**") &&
         answer.includes("**Escalate**") &&
-        answer.includes("**I've seen it**"),
+        answer.includes("**I've seen it**") &&
+        answer.includes("**Acknowledge test page**"),
     }).toEqual({
       storeAppHasActions,
       saysNo: !storeAppHasActions,

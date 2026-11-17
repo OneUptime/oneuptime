@@ -236,6 +236,69 @@ describe("GlobalCache.incrementIfBelow", () => {
     ).toBeNull();
   });
 
+  /*
+   * Several units at once (an on-call fire drill's tests, #7012): all or
+   * nothing in the same one evaluation - refused, adding nothing, when they
+   * would go past the limit - and the expiry set on the add that made the
+   * counter.
+   */
+  test("by: adds several at once, all or nothing, in one atomic EVAL", async () => {
+    client.eval.mockResolvedValue(7);
+
+    const count: number | null = await GlobalCache.incrementIfBelow(
+      "ns",
+      "key",
+      { limit: 20, expiresInSeconds: 3600, by: 3 },
+    );
+
+    expect(count).toBe(7);
+    expect(client.eval).toHaveBeenCalledTimes(1);
+
+    const [script, keyCount, key, limit, ttl, by] = client.eval.mock
+      .calls[0] as [string, number, string, string, string, string];
+
+    expect(script).toContain("GET");
+    expect(script).toContain("current + by > tonumber(ARGV[1])");
+    expect(script).toContain("INCRBY");
+    expect(script).toContain("count == by");
+    expect(script.indexOf("return -1")).toBeLessThan(script.indexOf("INCRBY"));
+    expect(keyCount).toBe(1);
+    expect(key).toBe("ns-key");
+    expect(limit).toBe("20");
+    expect(ttl).toBe("3600");
+    expect(by).toBe("3");
+  });
+
+  test("by: one, or anything below it, is the one-at-a-time evaluation every caller had", async () => {
+    for (const by of [1, 0, -2, undefined]) {
+      client.eval.mockClear();
+
+      await GlobalCache.incrementIfBelow("ns", "key", {
+        limit: 12,
+        expiresInSeconds: 60,
+        by: by,
+      });
+
+      const call: Array<unknown> = client.eval.mock.calls[0] as Array<unknown>;
+
+      expect(call).toHaveLength(5);
+      expect(call[0]).toContain(">= tonumber(ARGV[1])");
+      expect(call[0]).not.toContain("INCRBY");
+    }
+  });
+
+  test("by: refused when they would go past the limit, as one is", async () => {
+    client.eval.mockResolvedValue(-1);
+
+    expect(
+      await GlobalCache.incrementIfBelow("ns", "key", {
+        limit: 20,
+        expiresInSeconds: 60,
+        by: 4,
+      }),
+    ).toBeNull();
+  });
+
   test("throws on a reply that is not a number", async () => {
     client.eval.mockResolvedValue("not a number");
 

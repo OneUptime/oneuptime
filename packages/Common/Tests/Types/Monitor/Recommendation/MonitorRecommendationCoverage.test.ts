@@ -12,6 +12,11 @@ import {
   MonitorRecommendationResourceType,
 } from "../../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
+import {
+  REPRESENTATIVE_CONTEXTS,
+  getAllRepresentativeRecommendations,
+  getRepresentativeRecommendations,
+} from "./RepresentativeRecommendations";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
@@ -513,13 +518,11 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
      * both a covered and an uncovered answer are exercised for all eight
      * resource types.
      */
-    expect(RESOURCE_TYPE_DEFINITIONS.length).toBe(18);
+    expect(RESOURCE_TYPE_DEFINITIONS.length).toBe(20);
 
     for (const definition of RESOURCE_TYPE_DEFINITIONS) {
       const recommendations: Array<MonitorRecommendation> =
-        MonitorRecommendationCatalog.getAllPossibleRecommendations(
-          definition.resourceType,
-        );
+        getRepresentativeRecommendations(definition.resourceType);
       const args: MonitorRecommendationArgs = buildArgs();
 
       const createdRecommendations: Array<MonitorRecommendation> =
@@ -625,9 +628,7 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
      */
     for (const definition of RESOURCE_TYPE_DEFINITIONS) {
       const recommendations: Array<MonitorRecommendation> =
-        MonitorRecommendationCatalog.getAllPossibleRecommendations(
-          definition.resourceType,
-        );
+        getRepresentativeRecommendations(definition.resourceType);
       const args: MonitorRecommendationArgs = buildArgs();
 
       const first: MonitorRecommendation = recommendations[0]!;
@@ -684,9 +685,7 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
   it("ignores the monitor-status and severity args entirely", () => {
     for (const definition of RESOURCE_TYPE_DEFINITIONS) {
       const recommendations: Array<MonitorRecommendation> =
-        MonitorRecommendationCatalog.getAllPossibleRecommendations(
-          definition.resourceType,
-        );
+        getRepresentativeRecommendations(definition.resourceType);
 
       const realArgs: MonitorRecommendationArgs = buildArgs();
 
@@ -755,7 +754,7 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
         Array<string>
       >();
 
-      for (const recommendation of MonitorRecommendationCatalog.getAllPossibleRecommendations(
+      for (const recommendation of getRepresentativeRecommendations(
         definition.resourceType,
       )) {
         const fingerprint: string = getSerializedFingerprint(
@@ -798,7 +797,24 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
       Array<string>
     >();
 
-    for (const recommendation of MonitorRecommendationCatalog.getAllRecommendations()) {
+    /*
+     * The resource types scoped by their telemetry are built with a
+     * representative scope (RepresentativeRecommendations): without one, an
+     * app's and a function's error-span monitors are the same monitor over
+     * every span of the project - which is why neither is ever offered
+     * without one.
+     */
+    const recommendations: Array<MonitorRecommendation> =
+      getAllRepresentativeRecommendations();
+
+    for (const [resourceType] of REPRESENTATIVE_CONTEXTS) {
+      expect(getRepresentativeRecommendations(resourceType).length).toBe(
+        MonitorRecommendationCatalog.getAllPossibleRecommendations(resourceType)
+          .length,
+      );
+    }
+
+    for (const recommendation of recommendations) {
       const fingerprint: string = getSerializedFingerprint(
         recommendation,
         args,

@@ -135,6 +135,18 @@ export type OnCallStackParamList = {
   EditOnCallOverride: EditOnCallOverrideParams;
   MyOnCallPages: undefined;
   OnCallCalendarFeed: undefined;
+
+  /*
+   * A test page (oncall/testPage.ts), opened from its push: the message's
+   * own row of the person's on-call timeline, its project - and, when the
+   * push was answered with "Acknowledge test page", an id of that tap, so
+   * the screen acknowledges it once.
+   */
+  TestPage: {
+    messageId: string;
+    projectId: string;
+    acknowledgeRequestId?: string | undefined;
+  };
 };
 
 export type IncidentsStackParamList = {

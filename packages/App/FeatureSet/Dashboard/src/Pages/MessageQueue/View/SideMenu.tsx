@@ -10,6 +10,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
+import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -17,7 +19,8 @@ export interface ComponentProps {
 
 /*
  * One queue's tabs: its Overview (traffic, producers and consumers, broker
- * health), its Topology (where its messages come from and go), its Traces
+ * health), its Topology (where its messages come from and go), the
+ * monitors OneUptime recommends for its broker metrics, its Traces
  * and Metrics, who owns it, its settings and setup guide, and under
  * Advanced who changed it (Audit Logs) and — last, marked dangerous —
  * Delete.
@@ -47,6 +50,17 @@ const MessageQueueSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.FlowDiagram}
+        />
+        <RecommendationsSideMenuItem
+          link={{
+            title: "Recommendations",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MESSAGE_QUEUE_VIEW_RECOMMENDATIONS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          resourceType={MonitorRecommendationResourceType.MessageQueue}
+          resourceId={props.modelId}
         />
       </SideMenuSection>
 

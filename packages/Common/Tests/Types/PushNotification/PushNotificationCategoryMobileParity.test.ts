@@ -5,8 +5,17 @@ import ts from "typescript";
 import {
   ON_CALL_OBSERVER_PAGE_PUSH_CATEGORY,
   ON_CALL_PAGE_PUSH_CATEGORY,
+  ON_CALL_TEST_PAGE_PUSH_CATEGORY,
   PUSH_NOTIFICATION_CATEGORIES,
 } from "../../../Types/PushNotification/PushNotificationCategory";
+import {
+  ON_CALL_TEST_PAGE_ACKNOWLEDGE_MESSAGE,
+  ON_CALL_TEST_PAGE_ACKNOWLEDGE_TITLE,
+  ON_CALL_TEST_PAGE_ANSWERED_MESSAGE,
+  ON_CALL_TEST_PAGE_ANSWERED_TITLE,
+} from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import { OnCallTestPageAnswer } from "../../../Server/Utils/OnCall/OnCallTestPageAcknowledge";
+import { ON_CALL_TEST_PAGE_MESSAGE_NOT_FOUND_MESSAGE } from "../../../Server/Services/OnCallTestPageService";
 import { ESCALATE } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import {
   ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL,
@@ -76,11 +85,16 @@ const observerPageModule: ModuleExports = loadMobileModule(
   "oncall/observerPage.ts",
   {},
 );
+const testPageModule: ModuleExports = loadMobileModule(
+  "oncall/testPage.ts",
+  {},
+);
 const categoriesModule: ModuleExports = loadMobileModule(
   "notifications/categories.ts",
   {
     "../oncall/passOn": passOnModule,
     "../oncall/observerPage": observerPageModule,
+    "../oncall/testPage": testPageModule,
   },
 );
 
@@ -109,6 +123,24 @@ const MOBILE_REGISTERED: Array<{ identifier: string }> = JSON.parse(
 const MOBILE_OBSERVER_TEXT: Record<string, string> = observerPageModule[
   "OBSERVER_PAGE_TEXT"
 ] as Record<string, string>;
+
+const MOBILE_TEST_PAGE_CATEGORY: unknown =
+  categoriesModule["ON_CALL_TEST_PAGE_CATEGORY"];
+const MOBILE_TEST_PAGE_ACTIONS: Array<MobileAction> = JSON.parse(
+  JSON.stringify(categoriesModule["ON_CALL_TEST_PAGE_ACTIONS"]),
+) as Array<MobileAction>;
+const isAcknowledgeTestPageAction: (identifier: string) => boolean =
+  categoriesModule["isAcknowledgeTestPageAction"] as (
+    identifier: string,
+  ) => boolean;
+const MOBILE_TEST_PAGE_TEXT: Record<string, string> = testPageModule[
+  "TEST_PAGE_TEXT"
+] as Record<string, string>;
+const MOBILE_TEST_PAGE_ANSWERS: Array<string> = JSON.parse(
+  JSON.stringify(testPageModule["TEST_PAGE_ANSWERS"]),
+) as Array<string>;
+const MOBILE_TEST_PAGE_ENTITY_TYPE: unknown =
+  testPageModule["TEST_PAGE_ENTITY_TYPE"];
 
 describe("the on-call page's category", () => {
   test("the app registers the id the server names on every page", () => {
@@ -177,6 +209,89 @@ describe("the observer's page's category", () => {
     expect(MOBILE_OBSERVER_TEXT["label"]).toBe(ON_CALL_OBSERVER_PAGE_SMS_LEAD);
     expect(MOBILE_OBSERVER_TEXT["seenButton"]).toBe(
       ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL,
+    );
+  });
+});
+
+/*
+ * A test page's push (#7014) names a category of its own, and the app's
+ * screen for it answers it through the server's acknowledge route: the
+ * category, the action's words, what the screen says and the answers the
+ * route gives are the server's.
+ */
+describe("the test page's category", () => {
+  test("the app registers the id the server names on every test page's push", () => {
+    expect(MOBILE_TEST_PAGE_CATEGORY).toBe(ON_CALL_TEST_PAGE_PUSH_CATEGORY);
+    expect(PUSH_NOTIFICATION_CATEGORIES).toContain(MOBILE_TEST_PAGE_CATEGORY);
+  });
+
+  test("its one action is Acknowledge test page, in the words of the page its link opens", () => {
+    expect(
+      MOBILE_TEST_PAGE_ACTIONS.map((action: MobileAction) => {
+        return action.buttonTitle;
+      }),
+    ).toEqual([ON_CALL_TEST_PAGE_ACKNOWLEDGE_TITLE]);
+  });
+
+  test("it opens the app once the phone is unlocked, as every action does", () => {
+    for (const action of MOBILE_TEST_PAGE_ACTIONS) {
+      expect(action.options).toEqual({
+        opensAppToForeground: true,
+        isAuthenticationRequired: true,
+      });
+    }
+  });
+
+  test("it is a test page's alone: it asks a record's screen for nothing, and a page's actions are never it", () => {
+    for (const action of MOBILE_TEST_PAGE_ACTIONS) {
+      expect(getActionKind(action.identifier)).toBeNull();
+      expect(isAcknowledgeTestPageAction(action.identifier)).toBe(true);
+    }
+
+    for (const action of [...MOBILE_ACTIONS, ...MOBILE_OBSERVER_ACTIONS]) {
+      expect(isAcknowledgeTestPageAction(action.identifier)).toBe(false);
+    }
+  });
+
+  test("the app's screen says what the page its link opens says", () => {
+    expect(MOBILE_TEST_PAGE_TEXT["acknowledgeButton"]).toBe(
+      ON_CALL_TEST_PAGE_ACKNOWLEDGE_TITLE,
+    );
+    expect(MOBILE_TEST_PAGE_TEXT["message"]).toBe(
+      ON_CALL_TEST_PAGE_ACKNOWLEDGE_MESSAGE,
+    );
+    expect(MOBILE_TEST_PAGE_TEXT["answeredTitle"]).toBe(
+      ON_CALL_TEST_PAGE_ANSWERED_TITLE,
+    );
+    // The page's last sentence asks to close a browser's page, which the app has none of.
+    expect(
+      ON_CALL_TEST_PAGE_ANSWERED_MESSAGE.startsWith(
+        MOBILE_TEST_PAGE_TEXT["answered"]!,
+      ),
+    ).toBe(true);
+    expect(MOBILE_TEST_PAGE_TEXT["notFound"]).toBe(
+      ON_CALL_TEST_PAGE_MESSAGE_NOT_FOUND_MESSAGE,
+    );
+  });
+
+  test("the app reads every answer the acknowledge route gives, and no other", () => {
+    expect(MOBILE_TEST_PAGE_ANSWERS).toEqual(
+      Object.values(OnCallTestPageAnswer),
+    );
+  });
+
+  test("the push's entity type is the one the app opens the test page's screen for", () => {
+    const util: string = fs.readFileSync(
+      path.join(
+        REPOSITORY_ROOT,
+        "packages/Common/Server/Utils/PushNotificationUtil.ts",
+      ),
+      "utf8",
+    );
+
+    expect(MOBILE_TEST_PAGE_ENTITY_TYPE).toBe("test-page");
+    expect(util).toContain(
+      `entityType: "${String(MOBILE_TEST_PAGE_ENTITY_TYPE)}"`,
     );
   });
 });
