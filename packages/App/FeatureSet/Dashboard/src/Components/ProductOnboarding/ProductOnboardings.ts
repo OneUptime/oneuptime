@@ -1,3 +1,4 @@
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Route from "Common/Types/API/Route";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import PageMap from "../../Utils/PageMap";
@@ -97,6 +98,16 @@ export const PRODUCT_ONBOARDINGS: Record<
     showcase: ON_CALL_SHOWCASE,
     docsRoute: docs("on-call/index"),
     guideRoute: docs("guides/paging"),
+    /*
+     * "Page the right person when something breaks" (#6805), from the
+     * product itself (#7148): Home's checklist and Search led there, and
+     * On-Call offered only Create On-Call Policy.
+     */
+    guidedSetup: {
+      page: PageMap.ON_CALL_DUTY_GUIDED_SETUP,
+      buttonTitle: translationKey("Set up paging"),
+      modelType: OnCallDutyPolicy,
+    },
   },
   [ProductKey.StatusPages]: {
     page: PageMap.STATUS_PAGES,

@@ -84,6 +84,7 @@ jest.mock("../../../UI/Utils/User", () => {
 
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import Service from "../../../Models/DatabaseModels/Service";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
@@ -117,6 +118,7 @@ import ResourceShowcaseCard, {
   RESOURCE_SHOWCASE_GUIDE_TEXT,
   RESOURCE_SHOWCASE_HIGHLIGHTS_TEST_ID,
   RESOURCE_SHOWCASE_PREVIEW_TEST_ID,
+  RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID,
   RESOURCE_SHOWCASE_STAT_VALUE_TEST_ID,
   RESOURCE_SHOWCASE_STEPS_TEST_ID,
   RESOURCE_SHOWCASE_TEST_ID,
@@ -744,6 +746,132 @@ describe("About, beside a product page's title", () => {
         RESOURCE_SHOWCASE_GUIDE_LINK_TEST_ID,
       ),
     ).toHaveAttribute("href", "/docs/guides/status-page");
+  });
+});
+
+/*
+ * ISSUE #7148: On-Call's own pages never mentioned its guided setup, "Page
+ * the right person when something breaks": the policies list offered only
+ * Create On-Call Policy (and the importer), and a newcomer who came to be
+ * paged made a policy by hand. The explanation - under the empty list, and
+ * behind How it works - offers the setup first, as its one primary button,
+ * with Create beside it, plain.
+ */
+describe("a product's guided setup (#7148)", () => {
+  const createPolicy: ShowcaseAddButton = {
+    title: "Create On-Call Policy",
+    onClick: jest.fn() as unknown as () => void,
+  };
+
+  test("On-Call names its guided setup, for whoever may create a policy", () => {
+    expect(PRODUCT_ONBOARDINGS[ProductKey.OnCall].guidedSetup).toEqual({
+      page: PageMap.ON_CALL_DUTY_GUIDED_SETUP,
+      buttonTitle: "Set up paging",
+      modelType: OnCallDutyPolicy,
+    });
+  });
+
+  test("the empty list's explanation offers it first, as the one primary button, with Create beside it, plain", async () => {
+    await renderInRouter(
+      <ProductShowcase
+        product={ProductKey.OnCall}
+        startButton={createPolicy}
+      />,
+    );
+
+    const showcase: HTMLElement = screen.getByTestId(PRODUCT_SHOWCASE_TEST_ID);
+    const setup: HTMLElement = within(showcase).getByTestId(
+      RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID,
+    );
+    const create: HTMLElement = within(showcase).getByTestId(
+      RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID,
+    );
+
+    expect(setup).toHaveTextContent("Set up paging");
+    expect(create).toHaveTextContent("Create On-Call Policy");
+    // One primary button: the setup's.
+    expect(setup).toHaveClass("bg-indigo-600");
+    expect(create).not.toHaveClass("bg-indigo-600");
+    // The setup first, then Create.
+    expect(
+      setup.compareDocumentPosition(create) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    fireEvent.click(setup);
+
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(String(navigateSpy.mock.calls[0]![0])).toBe(
+      `/dashboard/${PROJECT_ID}/on-call-duty/setup`,
+    );
+  });
+
+  test("How it works offers it too, and closes as it opens it", async () => {
+    await renderInRouter(<ProductAboutButton product={ProductKey.OnCall} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "How it works" }));
+    });
+
+    const dialog: HTMLElement = screen.getByTestId(
+      PRODUCT_ABOUT_DIALOG_TEST_ID,
+    );
+    const setup: HTMLElement = within(dialog).getByTestId(
+      RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID,
+    );
+
+    expect(setup).toHaveTextContent("Set up paging");
+    // Still an explanation: no second way to create a policy.
+    expect(
+      within(dialog).queryByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID),
+    ).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(setup);
+    });
+
+    expect(String(navigateSpy.mock.calls[0]![0])).toBe(
+      `/dashboard/${PROJECT_ID}/on-call-duty/setup`,
+    );
+    expect(screen.queryByTestId(PRODUCT_ABOUT_DIALOG_TEST_ID)).toBeNull();
+  });
+
+  test("a read-only member is not offered it, on the list or in How it works", async () => {
+    asViewer();
+
+    await renderInRouter(<ProductShowcase product={ProductKey.OnCall} />);
+
+    expect(
+      screen.queryByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID),
+    ).toBeNull();
+    cleanup();
+
+    await renderInRouter(<ProductAboutButton product={ProductKey.OnCall} />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "How it works" }));
+    });
+
+    expect(
+      screen.queryByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("a product with no guided setup keeps Create as its one primary button", async () => {
+    await renderInRouter(
+      <ProductShowcase
+        product={ProductKey.Incidents}
+        startButton={{
+          title: "Declare Incident",
+          onClick: jest.fn() as unknown as () => void,
+        }}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId(RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID),
+    ).toBeNull();
+    expect(
+      screen.getByTestId(RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID),
+    ).toHaveClass("bg-indigo-600");
   });
 });
 

@@ -90,6 +90,10 @@ const NEW_PROJECT_COUNTS: Array<string> = [
 // The explanation's first step: the list's Create, in a new project.
 const SHOWCASE_BUTTON: string = "resource-showcase-add-button";
 
+// The explanation's primary button: the on-call guided setup (#7148).
+const SETUP_BUTTON: string = "resource-showcase-setup-button";
+const SETUP_OPENED: string = "on-call-guided-setup-opened";
+
 interface RecordedCreate {
   model: string;
   data: Record<string, unknown>;
@@ -475,6 +479,91 @@ test.describe("when the answer is not known, or not theirs to give, nothing is a
       "aria-checked",
       "true",
     );
+  });
+});
+
+/*
+ * ISSUE #7148: On-Call's own pages never led to its guided setup. A new
+ * project's empty list explains On-Call with "Set up paging" first, as its
+ * one primary button, and Create On-Call Policy beside it, plain; "How it
+ * works" offers it once the project has a policy.
+ */
+test.describe("the guided setup, from On-Call itself (#7148)", () => {
+  test("a new project's empty list leads to the setup in one click, Create beside it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page);
+
+    const setup: Locator = page.getByTestId(SETUP_BUTTON);
+
+    await expect(setup).toHaveText("Set up paging");
+    await expect(page.getByTestId(SHOWCASE_BUTTON)).toHaveText(
+      "Create On-Call Policy",
+    );
+
+    // The setup first, on the same row as Create, at 1280px.
+    const [setupBox, createBox] = await Promise.all([
+      box(setup),
+      box(page.getByTestId(SHOWCASE_BUTTON)),
+    ]);
+    expect(setupBox.x).toBeLessThan(createBox.x);
+    expect(Math.abs(setupBox.y - createBox.y)).toBeLessThan(2);
+
+    await screenshot(page, "on-call-empty-list-guided-setup-1280");
+
+    await setup.click();
+
+    await expect(page).toHaveURL(
+      new RegExp(`/dashboard/${PROJECT_ID}/on-call-duty/setup$`),
+    );
+    await expect(page.getByTestId(SETUP_OPENED)).toBeAttached();
+  });
+
+  test("a project with a policy finds it under How it works", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, "?policies=one");
+    await expect(page.getByText("Platform on-call").first()).toBeVisible();
+    // The list is in use: nothing explains it under the table.
+    await expect(page.getByTestId(SETUP_BUTTON)).toHaveCount(0);
+
+    await page.getByRole("button", { name: "How it works" }).click();
+    await expect(dialog(page).getByTestId(SETUP_BUTTON)).toHaveText(
+      "Set up paging",
+    );
+
+    await dialog(page).getByTestId(SETUP_BUTTON).click();
+
+    await expect(page.getByTestId(SETUP_OPENED)).toBeAttached();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  test("at 390px the two buttons wrap inside the explanation, nothing to scroll sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openPage(page);
+
+    await expect(page.getByTestId(SETUP_BUTTON)).toBeVisible();
+    await expect(page.getByTestId(SHOWCASE_BUTTON)).toBeVisible();
+    await expectNoSidewaysScroll(page);
+  });
+
+  test("a Project Member, who may create a policy, is offered it too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, "?role=member");
+
+    await expect(page.getByTestId(SETUP_BUTTON)).toHaveText("Set up paging");
+    await expect(page.getByTestId(SHOWCASE_BUTTON)).toBeVisible();
   });
 });
 

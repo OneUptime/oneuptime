@@ -50,10 +50,23 @@ export interface ShowcaseAddButton {
   tooltip?: string | undefined;
 }
 
+/*
+ * The product's guided setup (ProductOnboarding's guidedSetup, #7148): the
+ * explanation's one primary button where there is one, with the list's
+ * own Create beside it, plain.
+ */
+export interface ShowcaseSetupButton {
+  // English, looked up by the button.
+  title: string;
+  onClick: () => void;
+}
+
 export interface ComponentProps {
   showcase: ResourceShowcase;
   // Left out where the viewer has no way to add one.
   addButton?: ShowcaseAddButton | undefined;
+  // Left out where the product has no guided setup, or the viewer may not use it.
+  setupButton?: ShowcaseSetupButton | undefined;
   // The product's documentation, linked beside the button ("/docs/slo/introduction").
   docsRoute?: Route | URL | undefined;
   /*
@@ -79,6 +92,8 @@ export interface ComponentProps {
 export const RESOURCE_SHOWCASE_TEST_ID: string = "resource-showcase";
 export const RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID: string =
   "resource-showcase-add-button";
+export const RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID: string =
+  "resource-showcase-setup-button";
 export const RESOURCE_SHOWCASE_PREVIEW_TEST_ID: string =
   "resource-showcase-preview";
 export const RESOURCE_SHOWCASE_CHART_TEST_ID: string =
@@ -566,16 +581,36 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
               </ol>
             )}
 
-            {(props.addButton || props.docsRoute || props.guideRoute) && (
+            {(props.addButton ||
+              props.setupButton ||
+              props.docsRoute ||
+              props.guideRoute) && (
               /*
                * The button starts the row, level with the steps above it.
+               * A guided setup goes first, as the one primary button: it
+               * ends with the job done and tested, where Create ends with a
+               * record (#7148).
                */
               <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
+                {props.setupButton && (
+                  <Button
+                    title={props.setupButton.title}
+                    icon={IconProp.Play}
+                    buttonStyle={ButtonStyleType.PRIMARY}
+                    buttonSize={ButtonSize.Large}
+                    onClick={props.setupButton.onClick}
+                    dataTestId={RESOURCE_SHOWCASE_SETUP_BUTTON_TEST_ID}
+                  />
+                )}
                 {props.addButton && (
                   <Button
                     title={props.addButton.title}
                     icon={props.addButton.icon || IconProp.Add}
-                    buttonStyle={ButtonStyleType.PRIMARY}
+                    buttonStyle={
+                      props.setupButton
+                        ? ButtonStyleType.NORMAL
+                        : ButtonStyleType.PRIMARY
+                    }
                     buttonSize={ButtonSize.Large}
                     disabled={props.addButton.disabled}
                     tooltip={props.addButton.tooltip}
