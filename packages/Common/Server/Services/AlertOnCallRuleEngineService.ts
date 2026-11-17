@@ -16,7 +16,10 @@ import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import WorkspaceRecordOwners from "../Utils/Workspace/WorkspaceRecordOwners";
-import { matchesRuleCriteriaOwnerFilter } from "../../Utils/Rules/RuleCriteriaOwnerMatch";
+import {
+  getOwnersMeetingRuleCriteriaOwnerFilter,
+  matchesRuleCriteriaOwnerFilter,
+} from "../../Utils/Rules/RuleCriteriaOwnerMatch";
 import RuleCriteria, {
   RuleCriteriaFilter,
 } from "../../Types/Rules/RuleCriteria";
@@ -62,25 +65,37 @@ export interface AlertOnCallRuleChange {
  * The ids of the people and teams that own an alert, as an Alert Owner
  * condition matches them (WorkspaceRecordOwners, as a workspace rule's owner
  * condition reads them): read the first time a rule asks, and kept for the
- * other rules matched against the alert at the same time. An alert not yet
- * saved - "When this goes down" asks about one a monitor would open - has
- * no owners.
+ * other rules matched against the alert at the same time.
+ *
+ * An alert not saved yet has no owner rows. "When this goes down" asks
+ * about one a monitor would open (#9407), and hands in the owners its
+ * create will give it - the people and teams its criteria names, the
+ * network device's owners and whom its owner rules add, as owner rows are
+ * written: the members of the project and the project's teams
+ * (WhoIsToldService) - which are read instead. Without them it has none.
  */
 export class AlertOwnerIdsReader {
   private ownerIds: Promise<Array<string>> | null = null;
 
-  public constructor(private readonly alert: Alert) {}
+  public constructor(
+    private readonly alert: Alert,
+    private readonly knownOwnerIds?: ReadonlyArray<string> | undefined,
+  ) {}
 
   public read(): Promise<Array<string>> {
     if (!this.ownerIds) {
       const alertId: ObjectID | undefined = this.alert.id || undefined;
 
-      this.ownerIds = alertId
-        ? WorkspaceRecordOwners.getOwnerIds({
-            recordKey: "alertId",
-            recordId: alertId,
-          })
-        : Promise.resolve([]);
+      if (this.knownOwnerIds) {
+        this.ownerIds = Promise.resolve([...this.knownOwnerIds]);
+      } else {
+        this.ownerIds = alertId
+          ? WorkspaceRecordOwners.getOwnerIds({
+              recordKey: "alertId",
+              recordId: alertId,
+            })
+          : Promise.resolve([]);
+      }
     }
 
     return this.ownerIds;
@@ -363,6 +378,10 @@ class AlertOnCallRuleEngineServiceClass {
    * matching reads nothing per alert. It is the same matching either way. A
    * reader of one alert hands in only the cache - seeded with a monitor not
    * saved yet, say - and the rules are read as ever.
+   *
+   * `options.ownerIds` are the owners of an alert not saved yet, as its
+   * create will give them (#9407): an Alert Owner condition is matched on
+   * them, as the real alert's is on its owner rows (AlertOwnerIdsReader).
    */
   @CaptureSpan()
   @RuleEvaluation()
@@ -377,6 +396,8 @@ class AlertOnCallRuleEngineServiceClass {
     options?: {
       // Only the rules with an Alert Owner condition (applyRulesToAlert's change).
       onlyOwnerRules?: boolean | undefined;
+      // Who will own an alert not saved yet, by id: people and teams alike.
+      ownerIds?: ReadonlyArray<string> | undefined;
     },
   ): Promise<Array<AlertOnCallRule>> {
     if (!alert.projectId) {
@@ -389,7 +410,10 @@ class AlertOnCallRuleEngineServiceClass {
       preloaded?.rules || (await this.findEnabledRules(alert.projectId));
 
     // Read once, by the first rule that asks who owns the alert.
-    const owners: AlertOwnerIdsReader = new AlertOwnerIdsReader(alert);
+    const owners: AlertOwnerIdsReader = new AlertOwnerIdsReader(
+      alert,
+      options?.ownerIds,
+    );
 
     for (const rule of rules) {
       if (!rule.onCallDutyPolicies || rule.onCallDutyPolicies.length === 0) {
@@ -454,6 +478,49 @@ class AlertOnCallRuleEngineServiceClass {
     return criteria.filters.some((filter: RuleCriteriaFilter): boolean => {
       return ownerFields.includes(filter?.field);
     });
+  }
+
+  /*
+   * THE OWNERS THAT MAKE A RULE MATCH (#9407): of an alert's owners, the
+   * people and teams an Alert Owner condition of the rule picks ("is any of
+   * Payments"), each once, in the order the conditions pick them - what
+   * "When this goes down" says made the rule match, as it names a label rule
+   * whose label did (#7212). None for a rule without such a condition, or
+   * one whose owner condition is "is none of": no owner makes that hold.
+   */
+  public getOwnersMakingRuleMatch(data: {
+    rule: AlertOnCallRule;
+    ownerIds: ReadonlyArray<string>;
+  }): Array<string> {
+    const criteria: RuleCriteria | null | undefined = data.rule.criteria as
+      | RuleCriteria
+      | null
+      | undefined;
+
+    if (!criteria || !Array.isArray(criteria.filters)) {
+      return [];
+    }
+
+    const ownerFields: ReadonlyArray<string> =
+      getRuleCriteriaOwnerFieldsForModel("AlertOnCallRule");
+    const met: Array<string> = [];
+
+    for (const filter of criteria.filters) {
+      if (!filter || !ownerFields.includes(filter.field)) {
+        continue;
+      }
+
+      for (const id of getOwnersMeetingRuleCriteriaOwnerFilter({
+        filter: filter,
+        ownerIds: data.ownerIds,
+      })) {
+        if (!met.includes(id)) {
+          met.push(id);
+        }
+      }
+    }
+
+    return met;
   }
 
   /*
