@@ -142,14 +142,28 @@ async function readText(locator: Locator): Promise<string> {
     .trim();
 }
 
+// The same, with its lines as the page lays them out, each set off by a space.
+async function readLines(locator: Locator): Promise<string> {
+  return (await locator.innerText())
+    .replace(ISOLATE_MARKS, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 async function open(
   page: Page,
   options: {
-    whoIsTold?: "nobody" | "no-policy" | "hidden" | "rules" | "gaps";
+    whoIsTold?:
+      | "nobody"
+      | "no-policy"
+      | "hidden"
+      | "rules"
+      | "gaps"
+      | "own-rules";
     theme?: "dark";
     lang?: "de" | "fa";
     width?: number;
-    fail?: "who-is-told" | "who-is-told-reference";
+    fail?: "who-is-told" | "who-is-told-reference" | "who-is-told-recheck";
   } = {},
 ): Promise<Locator> {
   const width: number = options.width || 1440;
@@ -923,6 +937,214 @@ test.describe("When this goes down", () => {
     );
     await expectNoSidewaysScroll(page, { message: "Persian reference, 390" });
     await shoot(card, "error-reference-fa-390");
+  });
+});
+
+/*
+ * A RECHECK THAT FAILS (#7308) keeps the answer: the summary and the open
+ * chain stay, Checked keeps the last read that worked, and why checking
+ * again failed is said under them - until a Recheck works.
+ */
+test.describe("When this goes down: a Recheck that fails", () => {
+  test("keeps the summary and the open chain, says why under them, and a Recheck that works clears it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await open(page, { fail: "who-is-told-recheck" });
+
+    await card.getByTestId("who-is-told-chain-toggle").click();
+    await expect(card.getByTestId("who-is-told-chain")).toBeVisible();
+
+    await card.getByTestId("who-is-told-recheck").click();
+
+    const note: Locator = card.getByTestId("who-is-told-recheck-error");
+
+    await expect(note).toBeVisible();
+    expect(await readText(note)).toBe(
+      "Couldn't check again. The OneUptime server did not answer. It may be starting or restarting. Try again in a few minutes.",
+    );
+    // What the reader was reading is still there.
+    await expect(card.getByTestId("who-is-told-summary")).toContainText(
+      "OneUptime marks it Offline and opens an incident (Critical).",
+    );
+    await expect(card.getByTestId("who-is-told-chain")).toBeVisible();
+    await expect(card.getByTestId("who-is-told-error")).toHaveCount(0);
+    await expect(card.getByTestId("who-is-told-recheck")).toBeEnabled();
+    await shoot(card, "recheck-failed-1440");
+
+    await card.getByTestId("who-is-told-recheck").click();
+
+    await expect(note).toHaveCount(0);
+    await expect(card.getByTestId("who-is-told-chain")).toBeVisible();
+  });
+});
+
+/*
+ * WHAT A RECORD'S OWN RULES MAKE OF IT (#7212, #7213, #7214, #7216,
+ * #7572): an incident a privacy rule makes private - on no status page,
+ * though the monitor is on one - whose labels a label rule adds and which
+ * names two owners no Created email reaches; and an alert an alert
+ * incident rule turns into an incident after 30 minutes, shown on a status
+ * page through the monitor group Checkout.
+ */
+test.describe("When this goes down: a record's own rules", () => {
+  test("says the private incident, its label rules, the owners not emailed, and the incident the alert becomes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await open(page, { whoIsTold: "own-rules" });
+
+    // Not emailed: why, where they are named, and the fix.
+    const notEmailed: Locator = card.getByTestId(
+      "who-is-told-owner-not-emailed",
+    );
+
+    await expect(notEmailed).toHaveCount(2);
+    // Each line as it is laid out: why, where they are named, and the fix.
+    expect(await readLines(notEmailed.nth(0))).toBe(
+      "Someone named as an owner isn't a member of this project, so isn't emailed. Named in the criteria. Open Criteria",
+    );
+    expect(await readLines(notEmailed.nth(1))).toBe(
+      "Team Night Shift has nobody in it who is a member of this project, so nobody is emailed through it. Added by owner rule Checkout monitors. Open Team",
+    );
+    // The alert pages nobody itself, but its incident does: no break.
+    await expect(card.getByTestId("who-is-told-no-breaks")).toBeVisible();
+
+    await card.getByTestId("who-is-told-chain-toggle").click();
+    const chain: Locator = card.getByTestId("who-is-told-chain");
+
+    const privateRow: string = await readText(
+      chain.getByTestId("who-is-told-private"),
+    );
+
+    expect(privateRow).toContain(
+      "Privacy rule Payments are private makes it private.",
+    );
+    expect(privateRow).toContain(
+      "Only its owners, Project Owners and Project Admins can see it.",
+    );
+    expect(
+      await readText(chain.getByTestId("who-is-told-status-pages").first()),
+    ).toContain("None: it's private");
+
+    const labelRules: string = await readText(
+      chain.getByTestId("who-is-told-label-rules"),
+    );
+
+    expect(labelRules).toContain("Tag checkout");
+    expect(labelRules).toContain(
+      "Their labels change which on-call rules page it.",
+    );
+    expect(
+      await readText(chain.getByTestId("who-is-told-declares-sentence")),
+    ).toBe(
+      "If it's still open after 30 minutes, alert incident rule Lasting alerts declares an incident (Critical) from it.",
+    );
+    expect(
+      await readText(
+        chain
+          .getByTestId("who-is-told-declares")
+          .getByTestId("who-is-told-status-pages"),
+      ),
+    ).toContain("Payments Status (through Checkout)");
+    await shoot(card, "own-rules-1440");
+  });
+
+  test("fits a phone, and reads in the dark theme", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const phone: Locator = await open(page, {
+      whoIsTold: "own-rules",
+      width: 390,
+    });
+
+    await phone.getByTestId("who-is-told-chain-toggle").click();
+    await expect(phone.getByTestId("who-is-told-declares")).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await shoot(phone, "own-rules-390");
+
+    const dark: Locator = await open(page, {
+      whoIsTold: "own-rules",
+      theme: "dark",
+    });
+
+    await dark.getByTestId("who-is-told-chain-toggle").click();
+    await expect(dark.getByTestId("who-is-told-private")).toBeVisible();
+    await shoot(dark, "own-rules-dark-1440");
+  });
+
+  test("reads in German and in Persian, nothing of it in English", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const language of ["de", "fa"] as const) {
+      const words: Record<string, string> = localeOf(language);
+      const card: Locator = await open(page, {
+        whoIsTold: "own-rules",
+        lang: language,
+      });
+
+      await card.getByTestId("who-is-told-chain-toggle").click();
+
+      const text: string = await readText(card);
+
+      for (const english of [
+        "isn't a member of this project",
+        "Named in the criteria.",
+        "makes it private",
+        "Their labels change which on-call rules page it.",
+        "declares an incident",
+        "(through Checkout)",
+      ]) {
+        expect(text, `${language}: ${english}`).not.toContain(english);
+      }
+
+      expect(text).toContain(
+        words["Their labels change which on-call rules page it."]!,
+      );
+      expect(text).toContain(words["Named in the criteria."]!);
+      await shoot(card, `own-rules-${language}-1440`);
+    }
+  });
+});
+
+/*
+ * CREATE MONITOR'S CRITERIA (#7055): who the monitor the form holds would
+ * tell, before it exists - the same card, read as a draft.
+ */
+test.describe("When this goes down on Create Monitor", () => {
+  test("the Criteria step says who the new monitor tells", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.clock.setFixedTime(NOW);
+    await page.goto(`${DASHBOARD}/monitors/create`);
+    await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+      timeout: 60000,
+    });
+
+    await page.getByText("Website", { exact: true }).first().click();
+    await page.getByPlaceholder("Monitor Name").fill("Storefront checkout");
+    await page.getByRole("button", { name: "Next" }).click();
+
+    const section: Locator = page.getByTestId("monitor-draft-who-is-told");
+
+    await expect(section).toBeVisible({ timeout: 30000 });
+    await expect(section.getByTestId("who-is-told-summary")).toContainText(
+      "It pages Ana Lopez",
+      { timeout: 30000 },
+    );
+    await expect(
+      section.getByRole("heading", { name: "When this goes down" }),
+    ).toBeVisible();
+    await shoot(section, "create-monitor-1440");
   });
 });
 
