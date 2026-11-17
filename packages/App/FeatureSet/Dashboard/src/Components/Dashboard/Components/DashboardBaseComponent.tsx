@@ -443,7 +443,8 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
-    const editWidget: string = translator.translateText("Edit widget");
+    const editWidget: string =
+      translator.translateText("Edit widget") || "Edit widget";
 
     return (
       <button

@@ -147,15 +147,21 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
   const [rangePreset, setRangePreset] = useState<string>("24");
   // The historical import's windows, in the reader's language.
   const rangeOptions: Array<DropdownOption> = [
-    getTranslatedDropdownOption("1", translator.translateText("Last hour")),
+    getTranslatedDropdownOption(
+      "1",
+      translator.translateText("Last hour") || "Last hour",
+    ),
     getTranslatedDropdownOption(
       "24",
-      translator.translateText("Last 24 hours"),
+      translator.translateText("Last 24 hours") || "Last 24 hours",
     ),
-    getTranslatedDropdownOption("168", translator.translateText("Last 7 days")),
+    getTranslatedDropdownOption(
+      "168",
+      translator.translateText("Last 7 days") || "Last 7 days",
+    ),
     getTranslatedDropdownOption(
       "custom",
-      translator.translateText("Custom range"),
+      translator.translateText("Custom range") || "Custom range",
     ),
   ];
   const [startTime, setStartTime] = useState<string>(() => {

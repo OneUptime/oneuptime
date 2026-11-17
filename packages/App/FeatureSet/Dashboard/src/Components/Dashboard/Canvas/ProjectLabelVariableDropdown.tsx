@@ -42,7 +42,8 @@ const ProjectLabelVariableDropdown: FunctionComponent<ComponentProps> = (
       ? [
           getTranslatedDropdownOption(
             props.value,
-            translator.translateText("Unavailable variable"),
+            translator.translateText("Unavailable variable") ||
+              "Unavailable variable",
           ),
         ]
       : []),
