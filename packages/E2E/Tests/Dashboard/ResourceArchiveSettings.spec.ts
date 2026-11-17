@@ -123,14 +123,16 @@ test.describe("Resource archive actions live in Settings", () => {
           `a[href='${productPath}/${record._id}/settings']`,
         );
         /*
-         * The resource's Settings page sits in a Settings section that
-         * starts folded down to its title, like every rarely used section:
-         * its row is hidden until the section is opened.
+         * The resource's Settings page sits in Advanced, with the other
+         * pages that change the record (it was the only entry of a Settings
+         * section of its own name, #9134). Advanced starts folded down to
+         * its title, like every rarely used section: its rows are hidden
+         * until the section is opened.
          */
         const settingsSectionToggle: Locator = page
           .locator("aside[role='navigation'][aria-label='Main navigation']")
           .locator(
-            "xpath=.//h6[normalize-space(.)='Settings']/ancestor::button[1]",
+            "xpath=.//h6[normalize-space(.)='Advanced']/ancestor::button[1]",
           );
 
         await gotoProjectPage({
