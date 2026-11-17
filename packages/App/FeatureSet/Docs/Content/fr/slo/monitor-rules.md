@@ -46,7 +46,7 @@ La page **Moniteurs** affiche, pour chaque moniteur :
 
 | Colonne | Ce qu'elle affiche |
 | --- | --- |
-| **État actuel** | Le statut actuel du moniteur, ou **Archivé**, **Désactivé**, **Sondes non activées**, **Sondes déconnectées** ou **Inconnu** quand il n'est pas vérifié ou n'a encore rien signalé. |
+| **État actuel** | Le statut actuel du moniteur, ou **Archivé**, **Désactivé**, **Aucune sonde activée**, **Sondes déconnectées** ou **Inconnu** quand il n'est pas vérifié ou n'a encore rien signalé. |
 | **Source** | **Règle** si l'une des règles de moniteurs du SLO l'a rattaché, **Manuel** si quelqu'un l'a rattaché à la main. |
 | **Étiquettes** | Les étiquettes du moniteur. |
 

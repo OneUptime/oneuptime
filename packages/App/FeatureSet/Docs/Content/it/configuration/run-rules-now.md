@@ -35,7 +35,7 @@ Le regole di una rete chiedono lo stesso quando le esegui sui dispositivi che ha
 :::steps
 ### Aprire l'elenco delle regole
 
-Apri la pagina delle regole, per esempio **Monitor → Impostazioni → Regole etichette**.
+Apri la pagina delle regole, per esempio **Monitor → Regole → Regole etichette**.
 
 ### Selezionare Run Now
 

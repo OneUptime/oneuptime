@@ -107,7 +107,7 @@ export interface MonitorCardData {
   /*
    * When nothing has checked the monitor yet (issue #8899): the Monitors
    * table's words for why - one of AI_READ_CARD_LINES' (Waiting for data,
-   * No results yet, Paused, Probes Not Enabled, Probes Disconnected).
+   * No results yet, Paused, No Probe Enabled, Probes Disconnected).
    */
   notCheckedYet?: string | undefined;
   ownerTeamNames?: string | undefined;

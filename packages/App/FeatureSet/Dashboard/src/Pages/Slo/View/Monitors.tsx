@@ -572,7 +572,7 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   <Statusbubble
                     shouldAnimate={false}
                     color={Red500}
-                    text={"Probes Not Enabled"}
+                    text={"No Probe Enabled"}
                   />
                 );
               }

@@ -591,7 +591,7 @@ describe("A monitor no check stands behind (#8961)", () => {
   test.each([
     [
       { isNoProbeEnabledOnThisMonitor: true },
-      "Probes Not Enabled",
+      "No Probe Enabled",
       "monitor-no-probe-banner",
       "Nothing is checking this monitor",
     ],

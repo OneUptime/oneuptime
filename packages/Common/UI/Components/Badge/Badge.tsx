@@ -6,6 +6,12 @@ export enum BadgeType {
   DANGER,
   SUCCESS,
   WARNING,
+  /*
+   * A count of something nobody has to fix: monitors someone disabled on
+   * purpose. Grey, the way a badge with no type has always been drawn, but
+   * said out loud so a menu shows the choice was made.
+   */
+  NEUTRAL,
 }
 
 export interface ComponentProps {

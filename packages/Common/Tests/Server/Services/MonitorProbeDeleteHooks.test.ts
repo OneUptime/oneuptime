@@ -228,7 +228,7 @@ describe("MonitorProbeService delete hooks", () => {
   });
 
   describe("onDeleteSuccess", () => {
-    it("refreshes the monitor, so the 'Probes Not Enabled' banner appears", async () => {
+    it("refreshes the monitor, so the 'No Probe Enabled' banner appears", async () => {
       await callOnDeleteSuccess({
         deleteBy: makeDeleteBy({ monitorId: MONITOR_ID }),
         carryForward: { monitorIds: [MONITOR_ID] },

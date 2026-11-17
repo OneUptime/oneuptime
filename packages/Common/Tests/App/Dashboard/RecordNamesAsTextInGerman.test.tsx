@@ -525,7 +525,7 @@ describe("the Monitor List widget", () => {
       "Waiting for data",
       "No results yet",
       "Paused",
-      "Probes Not Enabled",
+      "No Probe Enabled",
       "Probes Disconnected",
     ]) {
       expect(

@@ -1207,7 +1207,7 @@ describe("Monitors and Monitor Rules, against the product", () => {
     expect(statuses).toEqual([
       "Archived",
       "Disabled",
-      "Probes Not Enabled",
+      "No Probe Enabled",
       "Probes Disconnected",
       "Unknown",
     ]);

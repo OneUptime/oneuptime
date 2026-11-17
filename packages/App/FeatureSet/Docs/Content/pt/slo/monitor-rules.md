@@ -46,7 +46,7 @@ A página **Monitores** mostra, para cada monitor:
 
 | Coluna | O que mostra |
 | --- | --- |
-| **Status Atual** | O status atual do monitor, ou **Arquivado**, **Desabilitado**, **Sondas não habilitadas**, **Sondas desconectadas** ou **Desconhecido** quando ele não está sendo verificado ou ainda não informou nada. |
+| **Status Atual** | O status atual do monitor, ou **Arquivado**, **Desabilitado**, **Nenhuma sonda habilitada**, **Sondas desconectadas** ou **Desconhecido** quando ele não está sendo verificado ou ainda não informou nada. |
 | **Origem** | **Regra** se uma das regras de monitor do SLO o associou, **Manual** se alguém o associou à mão. |
 | **Rótulos** | Os rótulos do monitor. |
 

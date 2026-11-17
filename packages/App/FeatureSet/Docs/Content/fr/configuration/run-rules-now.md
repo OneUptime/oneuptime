@@ -35,7 +35,7 @@ Les règles d'un réseau demandent la même chose quand vous les exécutez sur l
 :::steps
 ### Ouvrir la liste des règles
 
-Ouvrez la page des règles, par exemple **Moniteurs → Paramètres → Règles d'étiquettes**.
+Ouvrez la page des règles, par exemple **Moniteurs → Règles → Règles d'étiquettes**.
 
 ### Sélectionner Run Now
 
