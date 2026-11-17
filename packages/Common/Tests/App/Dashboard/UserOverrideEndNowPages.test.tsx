@@ -250,7 +250,7 @@ interface SavedOverride {
 }
 
 let saved: Array<SavedOverride> = [];
-let endNowPost: SpyInstance;
+let endNowPost: SpyInstance<typeof API.post>;
 
 const row: (
   permission: Permission,
@@ -483,7 +483,7 @@ beforeEach(() => {
       });
 
       return new HTTPResponse(200, { _id: id, endsAt: NOW.toISOString() }, {});
-    });
+    }) as unknown as SpyInstance<typeof API.post>;
 });
 
 afterEach(() => {
@@ -773,7 +773,10 @@ describe("End Now on a policy's User Overrides page", () => {
 
   test("asks first, saying what happens to the time left and who is paged again; then ends it, says so, and reads the list again", async () => {
     saved = [IN_FORCE];
-    const toast: SpyInstance = jest.spyOn(Toast, "success");
+    const toast: SpyInstance<typeof Toast.success> = jest.spyOn(
+      Toast,
+      "success",
+    );
 
     await renderPage("policy");
 
