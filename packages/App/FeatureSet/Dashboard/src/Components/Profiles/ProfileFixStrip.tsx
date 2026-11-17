@@ -42,6 +42,7 @@ import { PROFILE_KIND_NOUNS } from "../../Utils/ProfilesView";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import useAiOffered from "../../Utils/UseAiOffered";
 import CodeBlockerNotice from "../Code/CodeBlockerNotice";
+import CodeTaskHiddenNotice from "../Code/CodeTaskHiddenNotice";
 import {
   FIX_CONNECT_REPOSITORY,
   FIX_COULD_NOT_START,
@@ -81,7 +82,9 @@ import {
  *               certain;
  *   SetUp       the one step in the way: connect GitHub, or what Code's
  *               gate says (credits, a Runner, the plan) with its fix;
- *   InProgress  a link to the Code task already working on it;
+ *   InProgress  a link to the Code task already working on it - or, in a
+ *               task the person may not read (isHidden), why nothing of it
+ *               shows (CodeTaskHiddenNotice);
  *   None        nothing at all.
  *
  * With AI off for the project nothing is asked or drawn. The fix is a Code
@@ -309,6 +312,14 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
           </p>
         </div>
       );
+    }
+
+    // A fix on its way in a task the person may not read: there, and nothing of it.
+    if (
+      suggestion.offer === SuggestionOffer.InProgress &&
+      suggestion.isHidden
+    ) {
+      return <CodeTaskHiddenNotice dataTestId="profiles-fix-hidden" />;
     }
 
     if (suggestion.offer === SuggestionOffer.SetUp && suggestion.blocker) {
