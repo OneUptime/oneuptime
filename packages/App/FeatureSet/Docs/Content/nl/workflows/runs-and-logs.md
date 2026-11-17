@@ -12,8 +12,8 @@ Elke keer dat een workflow draait, slaat OneUptime op wat er gebeurde — wannee
 
 | Pagina                                               | Wat je ziet                                                                                        |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Workflows → Logboeken → Uitvoeringen**             | Elke uitvoering van elke workflow in het project. Filter op workflownaam, status en tijd.          |
-| **Workflow → Logboeken → Uitvoeringen**              | Alleen de uitvoeringen van deze ene workflow. Deze heeft een filter **Uitvoerings-ID** in plaats van een workflowfilter. |
+| **Workflows → Uitvoeringen**             | Elke uitvoering van elke workflow in het project. Filter op workflownaam, status en tijd.          |
+| **Workflow → Uitvoeringen**              | Alleen de uitvoeringen van deze ene workflow. Deze heeft een filter **Uitvoerings-ID** in plaats van een workflowfilter. |
 | **Eén uitvoering**                                   | Geopend met de knop **Logboeken bekijken** op een rij — de rijen zelf zijn niet klikbaar.          |
 
 Als je een uitvoering vanuit de **Bouwer** start, opent dezelfde weergave **Workflow-uitvoering**, die de uitvoering al volgt, zodat je haar ziet gebeuren in plaats van haar achteraf te moeten zoeken.

@@ -86,16 +86,15 @@ Abra **Plantão** pelo menu **Produtos** na barra superior. Ele abre em **Polít
 
 | Seção | Páginas |
 | --- | --- |
-| **Políticas** | **Políticas de plantão** e **Prontidão**: quem suas políticas realmente alcançam |
+| **Políticas** | **Políticas de plantão**, **Prontidão**: quem suas políticas realmente alcançam, e **Políticas de chamadas recebidas**: um número de telefone que toca para quem está de plantão |
 | **Agendamentos** | **Agendamentos de plantão**, **Linha do tempo de plantões** e **Feeds de calendário** |
-| **Chamadas recebidas** | **Políticas de chamadas recebidas**: um número de telefone que toca para quem está de plantão |
 | **Avançado** | **Substituições de usuário**, **Registros de execução** e **Políticas arquivadas** |
 | **Relatórios** | **Tempo de plantão do usuário**: quanto tempo cada pessoa ficou de plantão |
 | **Espaço de trabalho** | **Slack**, **Microsoft Teams** e **Mattermost**: regras que publicam eventos de plantão em um canal |
 | **Configurações** | **Campos personalizados**, **Regras de Rótulos** e **Regras de proprietário** |
 | **Desenvolvedores** | **Terraform**, **API**, **CLI** e **Assistentes de IA**: o plantão configurado por código |
 
-**Políticas**, **Agendamentos** e **Chamadas recebidas** ficam abertas; as outras seções começam recolhidas, e uma seção se abre sozinha quando você está em uma de suas páginas. **Espaço de trabalho** lista as ferramentas de chat que o projeto conectou, ou **Conectar um espaço de trabalho** quando não há nenhuma.
+**Políticas** e **Agendamentos** ficam abertas; as outras seções começam recolhidas, e uma seção se abre sozinha quando você está em uma de suas páginas. **Espaço de trabalho** lista as ferramentas de chat que o projeto conectou, ou **Conectar um espaço de trabalho** quando não há nenhuma.
 
 Quando você está de plantão em uma política, o sino no canto superior direito mostra isso. Clique nele para abrir **Minhas Políticas de Plantão**: cada política em que você está de plantão, em todos os seus projetos, e se você é nomeado diretamente, em uma equipe ou em um agendamento.
 

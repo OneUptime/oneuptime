@@ -166,7 +166,7 @@ Você agrupou por um rótulo que é igual para todos os alertas de uma notifica�
 :::
 
 :::details O incidente mostra uma referência em vez de um valor
-Uma referência a um campo que a notificação não tem fica como está escrita, com as chaves. Compare o nome do campo com o que o Grafana enviou: para um workflow, abra a execução em **Registros → Execuções** e compare com o que o gatilho recebeu.
+Uma referência a um campo que a notificação não tem fica como está escrita, com as chaves. Compare o nome do campo com o que o Grafana enviou: para um workflow, abra a execução em **Execuções** e compare com o que o gatilho recebeu.
 :::
 
 O guia do [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#solução-de-problemas) cobre mais casos, e eles também valem para as notificações do Grafana.

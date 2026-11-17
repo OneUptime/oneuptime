@@ -119,7 +119,7 @@ For et varslingsverktøy starter du med en [monitor for innkommende forespørsle
 2. Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **Webhook**. Klikk på triggeren og deretter på **Kopier URL**.
 3. Send det andre verktøyets webhook til den URL-en som en `POST` med `Content-Type: application/json`.
 4. Legg til blokkene som handler på den. De leser forespørselen med referanser som `{{local.components.webhook-1.returnValues.request-body.status}}`: en **Hvis / Ellers**-blokk for å sjekke et felt, og deretter **Opprett Hendelse (én post)** for å erklære en hendelse.
-5. Slå på **Aktivert** øverst i **Bygger**, send en test fra det andre verktøyet, og åpne **Logger → Kjøringer** for å se hva som kom inn.
+5. Slå på **Aktivert** øverst i **Bygger**, send en test fra det andre verktøyet, og åpne **Kjøringer** for å se hva som kom inn.
 :::
 
 URL-en er den eneste påloggingsinformasjonen, så behandle den som et passord. Se [Webhook](/docs/workflows/triggers#webhook).

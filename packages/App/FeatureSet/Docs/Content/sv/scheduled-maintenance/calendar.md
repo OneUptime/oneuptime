@@ -21,7 +21,7 @@ flowchart TB
 
 ## Kalendersidan
 
-Öppna **Schemalagt underhåll → Underhållskalender** i avsnittet **Kalender** i sidomenyn. **Alla underhållshändelser** visar samma händelser som en lista.
+Öppna **Schemalagt underhåll → Underhållskalender** i avsnittet **Översikt** i sidomenyn. **Alla underhållshändelser** visar samma händelser som en lista.
 
 - Kalendern öppnas på den här månaden, med dagens datum markerat. **Månad**, **Vecka** och **Dag** ändrar hur mycket den visar; bläddra med pilarna och gå tillbaka med **Idag**. Tiderna visas i din egen tidszon.
 - Varje händelse är ett block i färgen för dess tillstånd, och tillståndens färger namnges under kalendern. Klicka på en händelse för att öppna den.

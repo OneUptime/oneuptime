@@ -12,8 +12,8 @@ Varje gång ett arbetsflöde körs sparar OneUptime en redogörelse för vad som
 
 | Sida                                                 | Vad du ser                                                                                         |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Arbetsflöden → Loggar → Körningar**                | Varje körning av varje arbetsflöde i projektet. Filtrera på arbetsflödets namn, status och tid.    |
-| **Arbetsflöde → Loggar → Körningar**                 | Bara körningarna av just det här arbetsflödet. Här finns ett filter **Körnings-ID** i stället för ett arbetsflödesfilter. |
+| **Arbetsflöden → Körningar**                | Varje körning av varje arbetsflöde i projektet. Filtrera på arbetsflödets namn, status och tid.    |
+| **Arbetsflöde → Körningar**                 | Bara körningarna av just det här arbetsflödet. Här finns ett filter **Körnings-ID** i stället för ett arbetsflödesfilter. |
 | **En enskild körning**                               | Öppnas med knappen **Visa loggar** på en körnings rad — själva raderna går inte att klicka på.     |
 
 Startar du en körning från **Byggare** öppnas samma vy **Arbetsflödeskörning**, som redan följer körningen, så att du kan se den hända i stället för att leta efter den efteråt.

@@ -86,7 +86,7 @@ Daarna, ongeveer in volgorde van nut:
 
 ## Waar alles staat
 
-Zodra u een statuspagina hebt geopend, is haar eigen linkermenu in negen secties ingedeeld. Gebruik het als kaart voor de rest van dit deel van de documentatie.
+Zodra u een statuspagina hebt geopend, is haar eigen linkermenu in acht secties ingedeeld. Gebruik het als kaart voor de rest van dit deel van de documentatie.
 
 | Sectie | Wat erin staat |
 | --- | --- |
@@ -96,9 +96,8 @@ Zodra u een statuspagina hebt geopend, is haar eigen linkermenu in negen secties
 | **Abonnees** | **Abonnees** (één pagina, met een tabblad voor elk kanaal: E-mail, SMS, Slack, Microsoft Teams en Webhook), **Abonneeinstellingen**, **Meldingslogboeken**: wat er naar abonnees is verzonden. |
 | **Huisstijl** | **Huisstijl** (logo, titel, favicon, links, voettekst, kleuren en talen, op één pagina), **Aangepaste domeinen**, **HTML, CSS & JavaScript**. |
 | **Beveiliging** | **Toegang** (wie de pagina mag zien), **Privégebruikers**, **Single Sign-On** (een tabblad voor SAML en een voor OIDC), **SCIM**. |
-| **AI** | **MCP**. |
 | **Ontwikkelaars** | **Terraform**, **API**, **CLI**, **AI-assistenten**: de pagina als code. |
-| **Geavanceerd** | **Ingesloten status**, **Rapporten**, **Aangepaste velden**, **Instellingen**, **Auditlogboeken**, **Statuspagina verwijderen**. |
+| **Geavanceerd** | **MCP**, **Ingesloten status**, **Rapporten**, **Aangepaste velden**, **Instellingen**, **Auditlogboeken**, **Statuspagina verwijderen**. |
 
 Alleen **Overzicht** en **Middelen**, wat de pagina toont, beginnen open. Alle andere secties beginnen ingeklapt, net als de weinig gebruikte secties van elk menu in OneUptime: klik op de titel van een sectie om haar pagina's te tonen. Een sectie gaat vanzelf open wanneer u op een van haar pagina's bent, zoals **Instellingen** of **Abonnees**.
 

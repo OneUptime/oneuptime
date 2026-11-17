@@ -169,7 +169,7 @@ För att reagera på flera snubbeltrådar låter du alla deras titlar börja på
 ## Testa circuit breakern
 
 :::steps
-1. Lös ut den för hand. Öppna **Larm**, klicka på **Skapa larm** och skapa ett larm med titeln `LLM budget exceeded: test`. Körningen visas under **Arbetsflöden → Loggar → Körningar**, och din slutpunkt tar emot anropet.
+1. Lös ut den för hand. Öppna **Larm**, klicka på **Skapa larm** och skapa ett larm med titeln `LLM budget exceeded: test`. Körningen visas under **Arbetsflöden → Körningar**, och din slutpunkt tar emot anropet.
 2. Lös ut den på riktigt. Skapa en budget med en mycket liten gräns, till exempel `0.01` USD, på en testagents tjänst, rikta en budgetmonitor mot den och låt agenten köra: procenten passerar 100, larmet öppnas, arbetsflödet körs och circuit breakern löser ut. För slingelarmet ger du en testagent ett verktyg som alltid misslyckas.
 3. Lös ut den två gånger. Skapa samma larm igen: din slutpunkt måste ta emot den andra utlösningen utan att ändra något.
 :::
@@ -201,7 +201,7 @@ Monitorns **Tidsintervall** är kortare än budgetens 15 minuter mellan två pun
 :::
 
 :::details Anropet når aldrig fram till din slutpunkt
-Öppna körningen under **Arbetsflöden → Loggar → Körningar** och steget **API-anrop POST (JSON)**: där står varför anropet misslyckades. På OneUptime Cloud måste slutpunkten gå att nå från internet; en självhostad installation avvisar privata nätverksadresser om inte en administratör tillåter dem.
+Öppna körningen under **Arbetsflöden → Körningar** och steget **API-anrop POST (JSON)**: där står varför anropet misslyckades. På OneUptime Cloud måste slutpunkten gå att nå från internet; en självhostad installation avvisar privata nätverksadresser om inte en administratör tillåter dem.
 :::
 
 ## Nästa steg

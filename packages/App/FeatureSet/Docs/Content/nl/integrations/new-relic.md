@@ -151,7 +151,7 @@ curl -X POST "<url>" \
 
 Een incident opent, met de titel `New Relic: High CPU on checkout-service`, en het bereikbaarheidsbeleid dat je hebt gekozen wordt opgeroepen. Stuur hetzelfde verzoek met `isAcknowledged` op `true`, en het incident wordt bevestigd. Stuur het met `state` op `CLOSED`, en het incident wordt opgelost.
 
-Test daarna vanuit New Relic: open het webhookbericht van de workflow en klik op **Send test notification**. Om te zien dat het is aangekomen, open je **Logboeken → Uitvoeringen** van de OneUptime-workflow.
+Test daarna vanuit New Relic: open het webhookbericht van de workflow en klik op **Send test notification**. Om te zien dat het is aangekomen, open je **Uitvoeringen** van de OneUptime-workflow.
 
 ## Problemen oplossen
 
@@ -162,7 +162,7 @@ Test daarna vanuit New Relic: open het webhookbericht van de workflow en klik op
 :::
 
 :::details De workflow draait, maar opent niets
-Open de uitvoering in **Logboeken → Uitvoeringen**. De vermelding `read-event-1` in de **Stappen** ervan zegt waarom hij **Nee** nam.
+Open de uitvoering in **Uitvoeringen**. De vermelding `read-event-1` in de **Stappen** ervan zegt waarom hij **Nee** nam.
 
 - `New Relic named no issue ID`: behoud de regel `"id": {{ json issueId }},` in de payload.
 - `is in no state`: behoud de regel `"state": {{ json state }},` in de payload.
@@ -175,7 +175,7 @@ Open de uitvoering in **Logboeken → Uitvoeringen**. De vermelding `read-event-
 
 :::details Incidenten gaan open maar worden nooit opgelost
 - De workflow in New Relic moet **Closed** aan hebben onder **Notify when**.
-- Open de uitvoering van de sluiting in **Logboeken → Uitvoeringen**: de laatste stap zegt waarom. De `id` van de sluiting moet die van het issue zijn, dus laat `"id": {{ json issueId }},` in de payload zoals het is.
+- Open de uitvoering van de sluiting in **Uitvoeringen**: de laatste stap zegt waarom. De `id` van de sluiting moet die van het issue zijn, dus laat `"id": {{ json issueId }},` in de payload zoals het is.
 :::
 
 :::details De dienst wordt voor te veel issues opgeroepen

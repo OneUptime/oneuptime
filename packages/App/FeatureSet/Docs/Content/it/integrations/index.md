@@ -119,7 +119,7 @@ Per uno strumento di allerta, parti da un [monitor di richieste in arrivo](/docs
 2. Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **Webhook**. Fai clic sul trigger, poi su **Copia URL**.
 3. Nell'altro strumento, invia il suo webhook a quell'URL come `POST` con `Content-Type: application/json`.
 4. Aggiungi i blocchi che agiscono su di esso. Leggono la richiesta con riferimenti come `{{local.components.webhook-1.returnValues.request-body.status}}`: un blocco **Se / Altrimenti** per controllare un campo, poi **Crea: Incidente (un record)** per dichiarare un incidente.
-5. Attiva **Abilitato** in cima al **Costruttore**, invia una prova dall'altro strumento e apri **Log → Esecuzioni** per vedere cosa è arrivato.
+5. Attiva **Abilitato** in cima al **Costruttore**, invia una prova dall'altro strumento e apri **Esecuzioni** per vedere cosa è arrivato.
 :::
 
 L'URL è l'unica credenziale, quindi trattalo come una password. Vedi [Webhook](/docs/workflows/triggers#webhook).

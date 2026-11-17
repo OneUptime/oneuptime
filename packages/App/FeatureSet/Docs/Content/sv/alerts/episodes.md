@@ -179,11 +179,8 @@ En episod som du skapar har ingen grupperingsregel, så listan visar dess **Grup
 
 | Avsnitt i sidomenyn    | Sidor                                                                       |
 | ---------------------- | --------------------------------------------------------------------------- |
-| **Översikt** | **Översikt**, **Tillståndstidslinje** |
-| **Utredning** | **Beskrivning**, **Rotorsak**, **Åtgärdsanteckningar** |
-| **Team** | **Ägare** |
-| **Larm** | **Medlemslarm** |
-| **Anteckningar** | **Privata anteckningar** |
+| **Översikt** | **Översikt**, **Tillståndstidslinje**, **Medlemslarm**, **Ägare** |
+| **Utredning** | **Beskrivning**, **Rotorsak**, **Åtgärdsanteckningar**, **Privata anteckningar** |
 | **Utvecklare** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
 | **Avancerad** | **Granskningsloggar**, **Ta bort episod** |
 

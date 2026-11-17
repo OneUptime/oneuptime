@@ -499,7 +499,7 @@ Tres problemas abiertos en upstream condicionan todo esto, y el proyecto tambié
 
 ## Bare metal
 
-Si tu nube ejecuta Ironic, obtiene una sección **Bare Metal** con todos los nodos que Ironic muestra a la credencial: en qué punto de la máquina de estados de Ironic está, su energía, si alguien lo puso en mantenimiento y por qué, su clase de recurso y cuándo vio Ironic por última vez que se movía. Una nube sin Ironic no tiene esa sección, ni alertas al respecto, ni una sola línea en ninguna página.
+Si tu nube ejecuta Ironic, su sección **Cómputo** obtiene una página **Bare Metal** con todos los nodos que Ironic muestra a la credencial: en qué punto de la máquina de estados de Ironic está, su energía, si alguien lo puso en mantenimiento y por qué, su clase de recurso y cuándo vio Ironic por última vez que se movía. Una nube sin Ironic no tiene esa página, ni alertas al respecto, ni una sola línea en ninguna página.
 
 Un nodo no es un hipervisor, aunque Nova y Placement lo listen como tal con su UUID, así que no se cuenta como un lugar donde ejecutar una máquina virtual. Cuántos nodos de cada clase de recurso podrían alojar una instancia aparece en la página Bare metal, para los nodos que Ironic muestra a esta credencial, y en la página [Capacidad](#capacidad), para todos los nodos que tiene Placement.
 

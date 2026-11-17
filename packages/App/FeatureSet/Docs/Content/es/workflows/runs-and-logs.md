@@ -12,8 +12,8 @@ Cada vez que se ejecuta un flujo de trabajo, OneUptime guarda un registro de lo 
 
 | Página                                                 | Qué ves                                                                                            |
 | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| **Flujos de trabajo → Registros → Ejecuciones**        | Todas las ejecuciones de todos los flujos de trabajo del proyecto. Filtra por nombre del flujo de trabajo, estado y fecha. |
-| **Flujo de trabajo → Registros → Ejecuciones**         | Solo las ejecuciones de este flujo de trabajo. Esta tiene un filtro **ID de ejecución** en lugar de un filtro de flujo de trabajo. |
+| **Flujos de trabajo → Ejecuciones**        | Todas las ejecuciones de todos los flujos de trabajo del proyecto. Filtra por nombre del flujo de trabajo, estado y fecha. |
+| **Flujo de trabajo → Ejecuciones**         | Solo las ejecuciones de este flujo de trabajo. Esta tiene un filtro **ID de ejecución** en lugar de un filtro de flujo de trabajo. |
 | **Una ejecución concreta**                             | Se abre con el botón **Ver registros** de la fila de una ejecución: las filas en sí no se pueden pulsar. |
 
 Iniciar una ejecución desde el **Constructor** abre la misma vista **Ejecución del flujo de trabajo**, que ya sigue la ejecución, así que la ves ocurrir en lugar de buscarla después.

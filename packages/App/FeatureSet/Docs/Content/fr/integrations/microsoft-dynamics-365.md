@@ -133,7 +133,7 @@ Chaque flux de travail garde sa propre copie. Quand vous remplacez le secret cli
 4. Cliquez sur **Créer un flux de travail**. Chaque flux de travail est créé désactivé : activez **Activé** en haut de son **Constructeur**.
 :::
 
-Commencez par **Create a Dynamics 365 case when an incident is declared**, ou par **Create a Dynamics 365 case when an alert is created** pour les alertes : chaque autre modèle de OneUptime vers Dynamics 365 du même genre retrouve le dossier grâce au lien que celui-ci écrit. Activez-le, déclarez un incident de test ou créez une alerte de test, et ouvrez **Journaux → Exécutions** du flux de travail. L'exécution devrait se terminer avec **Exécuté**, et le **Corps de la réponse** de sa dernière étape, `create-case-1`, contient le `ticketnumber` du nouveau dossier, comme `CAS-01001-X1Y2Z3`.
+Commencez par **Create a Dynamics 365 case when an incident is declared**, ou par **Create a Dynamics 365 case when an alert is created** pour les alertes : chaque autre modèle de OneUptime vers Dynamics 365 du même genre retrouve le dossier grâce au lien que celui-ci écrit. Activez-le, déclarez un incident de test ou créez une alerte de test, et ouvrez **Exécutions** du flux de travail. L'exécution devrait se terminer avec **Exécuté**, et le **Corps de la réponse** de sa dernière étape, `create-case-1`, contient le `ticketnumber` du nouveau dossier, comme `CAS-01001-X1Y2Z3`.
 
 ### Connecter les modèles de Dynamics 365 vers OneUptime
 
@@ -181,7 +181,7 @@ Avant de vous fier à l'un ou à l'autre :
 
 ### Vérifier que cela fonctionne
 
-Les **Étapes** de chaque exécution disent ce qu'a fait le modèle : ouvrez donc l'exécution dans **Journaux → Exécutions** et regardez comment elle s'est terminée :
+Les **Étapes** de chaque exécution disent ce qu'a fait le modèle : ouvrez donc l'exécution dans **Exécutions** et regardez comment elle s'est terminée :
 
 - **Exécuté** : il a fait son travail, et sa dernière étape nomme le dossier, l'incident ou l'alerte.
 - **Exécuté**, avec son étape **Vérifier avec JavaScript** sur **Non** : il a ignoré l'événement exprès, et l'étape dit pourquoi : le dossier n'est lié à aucun enregistrement de ce genre, la note vient de l'autre côté, l'enregistrement est privé, ou le nouvel état ne ferme pas le dossier.
@@ -297,7 +297,7 @@ La portée doit être l'URL de votre environnement suivie de `/.default`. Une UR
    }
    ```
 
-5. Activez **Activé**, déclarez un incident de test et ouvrez **Journaux → Exécutions**. L'étape `create-case` affiche un `201` et un corps avec le nouvel `incidentid` et le `ticketnumber`.
+5. Activez **Activé**, déclarez un incident de test et ouvrez **Exécutions**. L'étape `create-case` affiche un `201` et un corps avec le nouvel `incidentid` et le `ticketnumber`.
 :::
 
 Chaque dossier a besoin d'un client, donc `customerid` est obligatoire. Il peut désigner un compte ou un contact, c'est pourquoi vous écrivez `customerid_account@odata.bind` ou `customerid_contact@odata.bind`, exactement ainsi. `Prefer: return=representation` fait répondre `201` avec le dossier lui-même, pour que le bloc suivant puisse lire `{{local.components.create-case.returnValues.response-body.incidentid}}`. Sans cet en-tête, Dynamics 365 répond `204` sans corps.
@@ -399,7 +399,7 @@ Un flux de travail a exactement un déclencheur, donc les incidents et les alert
 
 ## Dépannage
 
-Ouvrez d'abord l'étape en échec dans **Journaux → Exécutions**. Les deux points d'accès de Microsoft répondent avec un corps JSON qui explique le problème, et le bloc d'API le garde dans `response-body`.
+Ouvrez d'abord l'étape en échec dans **Exécutions**. Les deux points d'accès de Microsoft répondent avec un corps JSON qui explique le problème, et le bloc d'API le garde dans `response-body`.
 
 :::details 400 avec AADSTS70011, la portée n'est pas valide
 La portée n'est pas l'URL de votre environnement suivie de `/.default`. Copiez l'URL depuis le centre d'administration Power Platform, et retirez toute barre oblique finale et tout chemin `/api/data/...`.
@@ -434,7 +434,7 @@ Les limites de protection du service de Dataverse permettent environ 6 000 requ�
 :::
 
 :::details Rien n'arrive dans OneUptime
-Envoyez vous-même une requête à l'URL du webhook avec `curl`, et cherchez-la dans **Journaux → Exécutions**. Si la vôtre arrive et pas celle de Dynamics 365, cherchez en amont : l'historique d'exécution du flux lui-même, ou les System Jobs en échec d'un webhook Dataverse.
+Envoyez vous-même une requête à l'URL du webhook avec `curl`, et cherchez-la dans **Exécutions**. Si la vôtre arrive et pas celle de Dynamics 365, cherchez en amont : l'historique d'exécution du flux lui-même, ou les System Jobs en échec d'un webhook Dataverse.
 :::
 
 :::details Le flux de travail s'exécute, mais l'incident ne change pas

@@ -409,7 +409,7 @@ An error answers with a status code and a JSON body that says why:
 
 - **RSS.** Every status page serves `/rss`, a feed of its incidents, announcements and maintenance events, each dated as the page dates it. See [The embeddable badge and the RSS feed](/docs/status-pages/index#the-embeddable-badge-and-the-rss-feed).
 - **llms.txt.** Next to `/rss`, every status page serves `/llms.txt`, which points AI agents at the RSS feed and the overview JSON.
-- **MCP.** AI agents can read the page through OneUptime's MCP server at `https://oneuptime.com/mcp`, with no API key, by passing the page's ID or domain as `statusPageIdOrDomain`. It is on by default; turn it off with **Enable MCP Server** under **AI → MCP** in the page's side menu. See [MCP Server](/docs/ai/mcp-server).
+- **MCP.** AI agents can read the page through OneUptime's MCP server at `https://oneuptime.com/mcp`, with no API key, by passing the page's ID or domain as `statusPageIdOrDomain`. It is on by default; turn it off with **Enable MCP Server** under **Advanced → MCP** in the page's side menu. See [MCP Server](/docs/ai/mcp-server).
 - **The REST API.** To create or change status pages, resources, subscribers and announcements, use the [OneUptime API](/docs/api-reference/api-reference) with an API key.
 
 ## Next steps

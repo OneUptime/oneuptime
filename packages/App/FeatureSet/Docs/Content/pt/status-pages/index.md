@@ -86,7 +86,7 @@ Em seguida, mais ou menos em ordem de utilidade:
 
 ## Onde fica cada coisa
 
-Depois de abrir uma página de status, o menu lateral esquerdo dela é agrupado em nove seções. Use-o como mapa para o resto desta parte da documentação.
+Depois de abrir uma página de status, o menu lateral esquerdo dela é agrupado em oito seções. Use-o como mapa para o resto desta parte da documentação.
 
 | Seção | O que contém |
 | --- | --- |
@@ -96,9 +96,8 @@ Depois de abrir uma página de status, o menu lateral esquerdo dela é agrupado 
 | **Assinantes** | **Assinantes** (uma única página, com uma aba para cada canal: E-mail, SMS, Slack, Microsoft Teams e Webhook), **Configurações de assinantes**, **Logs de notificação**: o que foi enviado aos assinantes. |
 | **Marca** | **Marca** (logotipo, título, favicon, links, rodapé, cores e idiomas, em uma única página), **Domínios personalizados**, **HTML, CSS e JavaScript**. |
 | **Segurança** | **Acesso** (quem pode ver a página), **Usuários privados**, **Login único** (uma aba para SAML e outra para OIDC), **SCIM**. |
-| **IA** | **MCP**. |
 | **Desenvolvedores** | **Terraform**, **API**, **CLI**, **Assistentes de IA**: a página como código. |
-| **Avançado** | **Status incorporado**, **Relatórios**, **Campos personalizados**, **Configurações**, **Registros de auditoria**, **Excluir página de status**. |
+| **Avançado** | **MCP**, **Status incorporado**, **Relatórios**, **Campos personalizados**, **Configurações**, **Registros de auditoria**, **Excluir página de status**. |
 
 Apenas **Visão geral** e **Recursos**, o que a página mostra, começam abertas. Todas as outras seções começam recolhidas, como as seções pouco usadas de todos os menus da OneUptime: clique no título de uma seção para mostrar suas páginas. Uma seção se abre sozinha quando você está em uma das páginas dela, como **Configurações** ou **Assinantes**.
 

@@ -135,14 +135,13 @@ Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckning
 | Avsnitt i sidomenyn  | Sidor                                                                                                       |
 | -------------------- | ----------------------------------------------------------------------------------------------------------- |
 | **Översikt** | **Översikt** och **Tillståndstidslinje** |
-| **Utredning** | **Beskrivning**, **Rotorsak**, **Åtgärd**, **Runbooks**, **Länkade incidenter** |
+| **Utredning** | **Beskrivning**, **Rotorsak**, **Åtgärd**, **Runbooks**, **Länkade incidenter**, **Privata anteckningar** |
 | **Team** | **Jourexekveringar** och **Ägare**: vem som larmades för larmet, och vem som äger det |
 | **Aviseringar**           | **Aviseringsloggar** och **AI-loggar**: varje meddelande som skickats om larmet, och allt AI har gjort för det |
-| **Anteckningar** | **Privata anteckningar**                                                                                    |
 | **Utvecklare**       | **Terraform**, **API**, **CLI** och **AI-assistenter**: larmet hanterat från kod                            |
 | **Avancerad** | **Anpassade fält**, **Inställningar**, **Granskningsloggar**, **Ta bort larm** |
 
-**Översikt**, **Utredning**, **Team** och **Anteckningar** är öppna; de andra avsnitten är hopfällda tills du klickar på dem.
+**Översikt**, **Utredning** och **Team** är öppna; de andra avsnitten är hopfällda tills du klickar på dem.
 
 - **Översikt** — rubriken nämner larmets **Ägare**, team först, bredvid dess monitor och episod. Rutan **Skapad** visar när och av vad larmet skapades, två andra hur lång tid det tog att bekräfta och lösa det; hur länge det har pågått står först i rubriken. Kortet **Vad som hände** står överst på sidan — larmets beskrivning och dess **Rotorsak** — sedan kortet **OneUptime AI** med **Fråga OneUptime AI** längst ner, och **Larmflöde** registrerar allt som hände med larmet. När en monitor har skapat larmet nämner **Utvärderingsdetaljer** under rotorsaken filtren som matchade och vad vart och ett hittade, och **Visa detaljer** lägger till ett utdrag ur svaret och själva kontrollen. Se [Vad en incident eller ett larm behåller av kontrollen](/docs/monitor/criteria-and-statuses#vad-en-incident-eller-ett-larm-behåller-av-kontrollen). När en mätvärdesmonitor har skapat larmet visar dess telemetrikort de mätvärden som monitorn bevakade kring larmets start, med värdet som monitorn jämförde dem med ritat som en linje och larmets egna ögonblick markerade: välj ett annat tidsintervall, dra över ett diagram för att zooma in, eller byt och lägg till mätvärden direkt där, och dess andra flikar följer samma intervall. När en monitor av loggar, spår eller undantag har skapat det listar kortet det monitorns fråga hittade i fönstret den utvärderade: välj ett annat intervall kring larmet, eller ett eget, och alla flikar följer; dra över volymdiagrammet för att zooma in, och **Återställ** går tillbaka till det monitorn såg. Bredvid finns kortet **Berörda resurser**, kortet **Larmdetaljer** och larmets mätningar.
 - **Tillståndstidslinje** — varje tillstånd larmet har varit i, när och hur länge. Se [Tillståndstidslinjen](/docs/alerts/states-and-severities#tillståndstidslinjen).

@@ -269,7 +269,7 @@ De tools voor openbare statuspagina's nemen de ID van een statuspagina (een UUID
 }
 ```
 
-De eigenaren van een statuspagina kunnen MCP-toegang voor die pagina uitzetten: open op de statuspagina **MCP** in de sectie **AI** van het zijmenu en zet **MCP-server inschakelen** uit. De schakelaar slaat op zodra hij wordt omgezet. MCP-toegang staat standaard aan. Zolang die uit staat, geven de vier tools `get_public_status_page_*` een fout voor die statuspagina; de website van de statuspagina, de RSS-feed en de openbare JSON-API ervan worden niet geraakt, en de statuspaginatools die aanmelding vereisen (`get_status_page`, `list_status_pages` enzovoort) blijven werken voor het eigen project van de pagina.
+De eigenaren van een statuspagina kunnen MCP-toegang voor die pagina uitzetten: open op de statuspagina **MCP** in de sectie **Geavanceerd** van het zijmenu en zet **MCP-server inschakelen** uit. De schakelaar slaat op zodra hij wordt omgezet. MCP-toegang staat standaard aan. Zolang die uit staat, geven de vier tools `get_public_status_page_*` een fout voor die statuspagina; de website van de statuspagina, de RSS-feed en de openbare JSON-API ervan worden niet geraakt, en de statuspaginatools die aanmelding vereisen (`get_status_page`, `list_status_pages` enzovoort) blijven werken voor het eigen project van de pagina.
 
 ### Aanmelden (OAuth 2.1)
 

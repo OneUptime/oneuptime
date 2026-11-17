@@ -12,8 +12,8 @@ Every time a workflow runs, OneUptime saves a record of what happened — when i
 
 | Page                        | What you see                                                                                       |
 | --------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Workflows → Logs → Runs** | Every run of every workflow in the project. Filter by workflow name, status and time.              |
-| **Workflow → Logs → Runs**  | Just the runs of this one workflow. This one has a **Run ID** filter instead of a workflow filter. |
+| **Workflows → Runs** | Every run of every workflow in the project. Filter by workflow name, status and time.              |
+| **Workflow → Runs**  | Just the runs of this one workflow. This one has a **Run ID** filter instead of a workflow filter. |
 | **A single run**            | Opened with the **View Logs** button on a run row — run rows themselves aren't clickable.          |
 
 Starting a run from the **Builder** opens the same **Workflow Run** view already following the run, so you can watch it happen rather than going looking for it afterwards.
