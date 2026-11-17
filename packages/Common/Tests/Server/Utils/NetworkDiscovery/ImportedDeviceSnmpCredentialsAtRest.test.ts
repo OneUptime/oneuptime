@@ -147,7 +147,6 @@ function personProps(): DatabaseCommonInteractionProps {
     Permission.CreateNetworkDevice,
     Permission.ReadNetworkDevice,
     Permission.ReadNetworkDeviceDiscoveryScan,
-    Permission.ReadProbe,
   ].map((permission: Permission): UserPermission => {
     return {
       _type: "UserPermission",

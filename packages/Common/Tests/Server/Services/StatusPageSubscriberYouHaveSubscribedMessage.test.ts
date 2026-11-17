@@ -357,9 +357,7 @@ describe("A visitor who subscribes on the status page", () => {
  * afresh on every write, would make a new contact every time.
  */
 describe("A subscriber whose webhooks are stored encrypted, as every create stores them", () => {
-  type Encrypt = (
-    data: StatusPageSubscriber,
-  ) => Promise<StatusPageSubscriber>;
+  type Encrypt = (data: StatusPageSubscriber) => Promise<StatusPageSubscriber>;
 
   async function storedEncrypted(): Promise<CreateBy<StatusPageSubscriber>> {
     const row: StatusPageSubscriber = new StatusPageSubscriber();
@@ -432,10 +430,14 @@ describe("A subscriber whose webhooks are stored encrypted, as every create stor
 
     expect(
       StatusPageSubscriberService.getContactsMessagedOnCreate(first.data),
-    ).toEqual(StatusPageSubscriberService.getContactsMessagedOnCreate(asWritten));
+    ).toEqual(
+      StatusPageSubscriberService.getContactsMessagedOnCreate(asWritten),
+    );
     expect(
       StatusPageSubscriberService.getContactsMessagedOnCreate(second.data),
-    ).toEqual(StatusPageSubscriberService.getContactsMessagedOnCreate(asWritten));
+    ).toEqual(
+      StatusPageSubscriberService.getContactsMessagedOnCreate(asWritten),
+    );
   });
 
   test("its create's answer carries the webhook the team reads as written, and neither chat webhook", async () => {
@@ -443,7 +445,9 @@ describe("A subscriber whose webhooks are stored encrypted, as every create stor
 
     jest
       .spyOn(
-        Object.getPrototypeOf(Object.getPrototypeOf(StatusPageSubscriberService)),
+        Object.getPrototypeOf(
+          Object.getPrototypeOf(StatusPageSubscriberService),
+        ),
         "create",
       )
       .mockResolvedValue(createBy.data as never);

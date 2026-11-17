@@ -193,8 +193,14 @@ describe("a device's Settings form", () => {
       devices.get(V2C_DEVICE_ID)!["snmpCommunityString"],
       COMMUNITY,
     );
-    await expectStoredOnce(devices.get(V3_DEVICE_ID)!["snmpV3AuthKey"], AUTH_KEY);
-    await expectStoredOnce(devices.get(V3_DEVICE_ID)!["snmpV3PrivKey"], PRIV_KEY);
+    await expectStoredOnce(
+      devices.get(V3_DEVICE_ID)!["snmpV3AuthKey"],
+      AUTH_KEY,
+    );
+    await expectStoredOnce(
+      devices.get(V3_DEVICE_ID)!["snmpV3PrivKey"],
+      PRIV_KEY,
+    );
 
     expect(await readForm(V3_DEVICE_ID)).toMatchObject({
       snmpV3AuthKey: AUTH_KEY,
@@ -240,13 +246,12 @@ describe("a device's Settings form", () => {
         expect(form[column]).toBe("");
       }
 
-      const polled: NetworkDevice | null = await NetworkDeviceService.findOneById(
-        {
+      const polled: NetworkDevice | null =
+        await NetworkDeviceService.findOneById({
           id: new ObjectID(id),
           select: NetworkDeviceHydrationUtil.snmpConfigSelect,
           props: { isRoot: true },
-        },
-      );
+        });
 
       expect(NetworkDeviceHydrationUtil.resolvePollMode(polled!)).toBe("ping");
     }

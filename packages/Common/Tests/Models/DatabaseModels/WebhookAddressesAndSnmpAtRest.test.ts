@@ -192,7 +192,9 @@ function storedColumnOf(
 ): ColumnMetadataArgs | undefined {
   return getMetadataArgsStorage()
     .columns.filter((candidate: ColumnMetadataArgs): boolean => {
-      return candidate.target === modelType && candidate.propertyName === column;
+      return (
+        candidate.target === modelType && candidate.propertyName === column
+      );
     })
     .pop();
 }
@@ -200,9 +202,8 @@ function storedColumnOf(
 const A_CIPHERTEXT: string = `${ENCRYPTED_VALUE_PREFIX}+aCiphertextOfAnAddress/0123456789abcdef==`;
 
 describe.each(COLUMNS)("$name", (encrypted: EncryptedColumn) => {
-  const metadata: TableColumnMetadata = new encrypted.modelType().getTableColumnMetadata(
-    encrypted.column,
-  );
+  const metadata: TableColumnMetadata =
+    new encrypted.modelType().getTableColumnMetadata(encrypted.column);
 
   test("is kept encrypted at rest, and the API calls it a secret", () => {
     expect(metadata.encrypted).toBe(true);
@@ -251,7 +252,9 @@ describe.each(COLUMNS)("$name", (encrypted: EncryptedColumn) => {
       return;
     }
 
-    expect(EncryptedColumnValue.getPropertyTransformer(metadata)).not.toBeNull();
+    expect(
+      EncryptedColumnValue.getPropertyTransformer(metadata),
+    ).not.toBeNull();
     expect(transformer!.to(A_CIPHERTEXT)).toBe(A_CIPHERTEXT);
     expect(transformer!.from(A_CIPHERTEXT)).toBe(A_CIPHERTEXT);
   });
@@ -322,7 +325,9 @@ describe("every encrypted column of every model", () => {
       const model: DatabaseBaseModel = new modelType();
 
       for (const column of model.getEncryptedColumns().columns) {
-        if (!EncryptedColumnValue.isStorable(model.getTableColumnMetadata(column))) {
+        if (
+          !EncryptedColumnValue.isStorable(model.getTableColumnMetadata(column))
+        ) {
           unstorable.push(`${model.tableName}.${column}`);
         }
       }

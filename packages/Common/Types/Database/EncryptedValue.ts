@@ -20,7 +20,5 @@ export const ENCRYPTED_VALUE_PREFIX: string = "U2FsdGVkX1";
 
 // Whether `value` is a ciphertext DatabaseService stored.
 export function isEncryptedValue(value: unknown): value is string {
-  return (
-    typeof value === "string" && value.startsWith(ENCRYPTED_VALUE_PREFIX)
-  );
+  return typeof value === "string" && value.startsWith(ENCRYPTED_VALUE_PREFIX);
 }

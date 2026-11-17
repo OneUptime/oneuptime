@@ -599,11 +599,12 @@ describe("the team adding and changing subscribers", () => {
       stored.push(await Encryption.decrypt(String(row["subscriberWebhook"])));
     }
 
-    const second: StoredRow = rowsOf(world)[
-      stored.findIndex((address: string): boolean => {
-        return address.endsWith("/b");
-      })
-    ]!;
+    const second: StoredRow =
+      rowsOf(world)[
+        stored.findIndex((address: string): boolean => {
+          return address.endsWith("/b");
+        })
+      ]!;
 
     expect(
       (

@@ -538,7 +538,9 @@ describe("EncryptWebhookAddresses", () => {
     const subscribers: Array<StoredRow> = stubs.StatusPageSubscriber.rows;
 
     expect(
-      await Encryption.decrypt(String(subscribers[0]!["slackIncomingWebhookUrl"])),
+      await Encryption.decrypt(
+        String(subscribers[0]!["slackIncomingWebhookUrl"]),
+      ),
     ).toBe(SLACK_HOOK);
     expect(
       await Encryption.decrypt(
@@ -630,10 +632,18 @@ describe("EncryptSnmpCredentials", () => {
     ]);
 
     for (const [model, columns] of [
-      [new NetworkDevice(), ["snmpCommunityString", "snmpV3AuthKey", "snmpV3PrivKey", "snmpV3Auth"]],
+      [
+        new NetworkDevice(),
+        ["snmpCommunityString", "snmpV3AuthKey", "snmpV3PrivKey", "snmpV3Auth"],
+      ],
       [
         new NetworkDeviceDiscoveryScan(),
-        ["snmpCommunityString", "snmpV3AuthKey", "snmpV3PrivKey", "snmpConfigs"],
+        [
+          "snmpCommunityString",
+          "snmpV3AuthKey",
+          "snmpV3PrivKey",
+          "snmpConfigs",
+        ],
       ],
     ] as Array<[DatabaseBaseModel, Array<string>]>) {
       expect([...model.getEncryptedColumns().columns].sort()).toEqual(
@@ -690,9 +700,9 @@ describe("EncryptSnmpCredentials", () => {
     expect(await Encryption.decrypt(String(configs[1]!["snmpV3PrivKey"]))).toBe(
       PRIV_KEY,
     );
-    expect(
-      await Encryption.decrypt(String(scan["snmpCommunityString"])),
-    ).toBe(COMMUNITY);
+    expect(await Encryption.decrypt(String(scan["snmpCommunityString"]))).toBe(
+      COMMUNITY,
+    );
     expect(stubs.NetworkDeviceDiscoveryScan.rows[1]!["snmpConfigs"]).toBeNull();
 
     // A JSON write is held to the JSON read.
@@ -719,14 +729,13 @@ describe("EncryptSnmpCredentials", () => {
 
     await new EncryptSnmpCredentials().migrate();
 
-    const configs: Array<JSONObject> = stubs.NetworkDeviceDiscoveryScan.rows[0]![
-      "snmpConfigs"
-    ] as Array<JSONObject>;
+    const configs: Array<JSONObject> = stubs.NetworkDeviceDiscoveryScan
+      .rows[0]!["snmpConfigs"] as Array<JSONObject>;
 
     expect(configs[0]!["snmpCommunityString"]).toBe(encryptedCommunity);
-    expect(Encryption.looksEncrypted(String(configs[1]!["snmpV3AuthKey"]))).toBe(
-      true,
-    );
+    expect(
+      Encryption.looksEncrypted(String(configs[1]!["snmpV3AuthKey"])),
+    ).toBe(true);
 
     calls.length = 0;
     await new EncryptSnmpCredentials().migrate();
@@ -748,9 +757,11 @@ describe("EncryptSnmpCredentials", () => {
       ),
     ).toBe(true);
     expect(
-      (stubs.NetworkDeviceDiscoveryScan.rows[0]!["snmpConfigs"] as Array<JSONObject>)[0]![
-        "snmpCommunityString"
-      ],
+      (
+        stubs.NetworkDeviceDiscoveryScan.rows[0]![
+          "snmpConfigs"
+        ] as Array<JSONObject>
+      )[0]!["snmpCommunityString"],
     ).toBe(COMMUNITY);
 
     const logged: string = everythingLogged();
@@ -786,7 +797,10 @@ describe("MaskWebhookAddressesInLogs", () => {
       },
       UserOnCallLogTimeline: {
         rows: [
-          { _id: "sending", statusMessage: `Sending webhook to ${METHOD_HOOK}.` },
+          {
+            _id: "sending",
+            statusMessage: `Sending webhook to ${METHOD_HOOK}.`,
+          },
           { _id: "named", statusMessage: "Sending webhook to My Slack." },
           { _id: "sent", statusMessage: "Webhook delivered (HTTP 200)." },
         ],
@@ -822,7 +836,7 @@ describe("MaskWebhookAddressesInLogs", () => {
     expect(logWrites[0]!.params![0]).toEqual(["a", "b"]);
   });
 
-  test("a page's webhook line that names an address reads \"Sending webhook.\"; one naming the webhook is kept", async () => {
+  test('a page\'s webhook line that names an address reads "Sending webhook."; one naming the webhook is kept', async () => {
     const { stubs } = stubTables(logTables());
 
     await new MaskWebhookAddressesInLogs().migrate();

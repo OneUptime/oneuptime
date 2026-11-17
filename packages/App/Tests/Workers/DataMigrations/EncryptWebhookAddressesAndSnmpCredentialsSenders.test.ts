@@ -533,7 +533,14 @@ describe("a status page's Slack, Microsoft Teams and webhook subscribers", () =>
         await StatusPageSubscriberWebhookUtil.sendWebhookNotification({
           webhookUrl: subscriber.subscriberWebhook,
           isAddedByTeam: subscriber.isAddedByTeam === true,
-          payload: { eventType: "IncidentCreated" },
+          payload: {
+            eventType: "IncidentCreated",
+            statusPageId: PAGE_ID,
+            statusPageName: "Acme Status",
+            statusPageUrl: "https://status.example.com",
+            unsubscribeUrl: "https://status.example.com/unsubscribe",
+            data: {},
+          },
         });
       }
     }
@@ -686,45 +693,47 @@ describe("a member's webhook notification method", () => {
 
 describe("an OpenStack project's notice", () => {
   test("stays armed for the recipient previewed, and posts to the address as written, before and after", async () => {
-    const send: () => Promise<{ armed: boolean; url: string }> =
-      async (): Promise<{ armed: boolean; url: string }> => {
-        posted = [];
+    const send: () => Promise<{
+      armed: boolean;
+      url: string;
+    }> = async (): Promise<{ armed: boolean; url: string }> => {
+      posted = [];
 
-        const notice: OpenStackProjectNotice | null =
-          await OpenStackProjectNoticeService.findOneById({
-            id: new ObjectID(NOTICE_ID),
-            select: {
-              _id: true,
-              openStackProjectId: true,
-              webhookUrl: true,
-              isEnabled: true,
-              previewedRecipient: true,
-              previewSeenAt: true,
-            },
-            props: { isRoot: true },
-          });
-
-        const armed: boolean = isOpenStackProjectNoticeArmed({
-          id: NOTICE_ID,
-          openStackProjectId: notice!.openStackProjectId!,
-          webhookUrl: notice!.webhookUrl?.toString(),
-          isEnabled: notice!.isEnabled,
-          previewedRecipient: notice!.previewedRecipient,
-          previewSeenAt: notice!.previewSeenAt,
+      const notice: OpenStackProjectNotice | null =
+        await OpenStackProjectNoticeService.findOneById({
+          id: new ObjectID(NOTICE_ID),
+          select: {
+            _id: true,
+            openStackProjectId: true,
+            webhookUrl: true,
+            isEnabled: true,
+            previewedRecipient: true,
+            previewSeenAt: true,
+          },
+          props: { isRoot: true },
         });
 
-        await (
-          OpenStackProjectNoticeSender as unknown as {
-            sendWebhook: (data: unknown) => Promise<unknown>;
-          }
-        ).sendWebhook({
-          row: { _id: "delivery", projectId: new ObjectID(PROJECT_ID) },
-          webhookUrl: notice!.webhookUrl!,
-          message: { webhook: { title: "Nova is down" } },
-        });
+      const armed: boolean = isOpenStackProjectNoticeArmed({
+        id: NOTICE_ID,
+        openStackProjectId: notice!.openStackProjectId!,
+        webhookUrl: notice!.webhookUrl?.toString(),
+        isEnabled: notice!.isEnabled,
+        previewedRecipient: notice!.previewedRecipient,
+        previewSeenAt: notice!.previewSeenAt,
+      });
 
-        return { armed, url: posted[0]!.url };
-      };
+      await (
+        OpenStackProjectNoticeSender as unknown as {
+          sendWebhook: (data: unknown) => Promise<unknown>;
+        }
+      ).sendWebhook({
+        row: { _id: "delivery", projectId: new ObjectID(PROJECT_ID) },
+        webhookUrl: notice!.webhookUrl!,
+        message: { webhook: { title: "Nova is down" } },
+      });
+
+      return { armed, url: posted[0]!.url };
+    };
 
     const sent: {
       before: { armed: boolean; url: string };
@@ -770,7 +779,10 @@ describe("a custom notification channel", () => {
       await beforeAndAfter(read);
 
     for (const side of [sides.before, sides.after]) {
-      expect(side).toEqual({ webhookUrl: CHANNEL_HOOK, secret: CHANNEL_SECRET });
+      expect(side).toEqual({
+        webhookUrl: CHANNEL_HOOK,
+        secret: CHANNEL_SECRET,
+      });
     }
 
     await expectStoredEncrypted(
@@ -788,7 +800,9 @@ describe("a custom notification channel", () => {
 
 describe("a network device's poll", () => {
   // The poll's own read and resolver, and the config the probe is handed.
-  async function pollConfigs(): Promise<Record<string, MonitorStepSnmpMonitor>> {
+  async function pollConfigs(): Promise<
+    Record<string, MonitorStepSnmpMonitor>
+  > {
     const devices: Array<NetworkDevice> = await NetworkDeviceService.findBy({
       query: {},
       select: NetworkDeviceHydrationUtil.snmpConfigSelect,
@@ -904,9 +918,9 @@ describe("a discovery scan the probe sweeps", () => {
       "snmpConfigs"
     ] as Array<JSONObject>;
 
-    expect(Encryption.looksEncrypted(String(stored[0]!["snmpCommunityString"]))).toBe(
-      true,
-    );
+    expect(
+      Encryption.looksEncrypted(String(stored[0]!["snmpCommunityString"])),
+    ).toBe(true);
     expect(stored[0]!["name"]).toBe("Access switches");
     await expectStoredEncrypted(
       tables.scans.get(SCAN_ID),

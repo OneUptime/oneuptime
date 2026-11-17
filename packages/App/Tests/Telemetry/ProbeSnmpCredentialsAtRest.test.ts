@@ -261,8 +261,8 @@ describe("the devices a probe polls (/probe/network-device/list)", () => {
   test("hands the probe each device's community string and v3 keys as written", async () => {
     await callRoute("/probe/network-device/list");
 
-    const answer: JSONObject = jest.mocked(Response.sendJsonObjectResponse)
-      .mock.calls[0]![2] as JSONObject;
+    const answer: JSONObject = jest.mocked(Response.sendJsonObjectResponse).mock
+      .calls[0]![2] as JSONObject;
     const byId: Record<string, JSONObject> = {};
 
     for (const device of answer["devices"] as Array<JSONObject>) {
@@ -275,9 +275,9 @@ describe("the devices a probe polls (/probe/network-device/list)", () => {
 
     for (const id of [V2C_DEVICE_ID, PLAIN_DEVICE_ID]) {
       expect(byId[id]!["pollMode"]).toBe("snmp");
-      expect(
-        (byId[id]!["snmpMonitor"] as JSONObject)["communityString"],
-      ).toBe(COMMUNITY);
+      expect((byId[id]!["snmpMonitor"] as JSONObject)["communityString"]).toBe(
+        COMMUNITY,
+      );
     }
 
     expect(byId[V3_DEVICE_ID]!["pollMode"]).toBe("snmp");
@@ -290,9 +290,7 @@ describe("the devices a probe polls (/probe/network-device/list)", () => {
     });
 
     // Nothing handed to the probe is a ciphertext.
-    expect(JSON.stringify(answer)).not.toContain(
-      Encryption.CIPHERTEXT_PREFIX,
-    );
+    expect(JSON.stringify(answer)).not.toContain(Encryption.CIPHERTEXT_PREFIX);
   });
 });
 

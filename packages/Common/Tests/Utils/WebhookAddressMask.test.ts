@@ -27,14 +27,23 @@ describe("WebhookAddressMask.mask", () => {
       "https://alerts.example.com/in?token=s3cr3t",
       `https://alerts.example.com/${MASK}`,
     ],
-    ["https://alerts.example.com?token=s3cr3t", `https://alerts.example.com/${MASK}`],
-    ["https://alerts.example.com/#s3cr3t", `https://alerts.example.com/${MASK}`],
+    [
+      "https://alerts.example.com?token=s3cr3t",
+      `https://alerts.example.com/${MASK}`,
+    ],
+    [
+      "https://alerts.example.com/#s3cr3t",
+      `https://alerts.example.com/${MASK}`,
+    ],
     [
       "https://user:pass@alerts.example.com:8443/in",
       `https://alerts.example.com:8443/${MASK}`,
     ],
     // A user and a password are a credential, path or not.
-    ["https://user:pass@alerts.example.com", `https://alerts.example.com/${MASK}`],
+    [
+      "https://user:pass@alerts.example.com",
+      `https://alerts.example.com/${MASK}`,
+    ],
     ["http://10.0.0.5:8080/hook", `http://10.0.0.5:8080/${MASK}`],
   ])("%s is kept as %s", (address: string, kept: string) => {
     expect(WebhookAddressMask.mask(address)).toBe(kept);

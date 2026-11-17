@@ -1,5 +1,4 @@
 import NetworkDeviceDiscoveryScanService from "../../../Server/Services/NetworkDeviceDiscoveryScanService";
-import NetworkDeviceDiscoveryScan from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import { isEncryptedValue } from "../../../Types/Database/EncryptedValue";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -109,9 +108,10 @@ afterEach(() => {
 async function edit(snmpConfigs: Array<JSONObject>): Promise<void> {
   await NetworkDeviceDiscoveryScanService.updateOneById({
     id: new ObjectID(SCAN_ID),
+    // Cast: the model's JSON column makes DeepPartial recursion blow up.
     data: {
       snmpConfigs: JSON.parse(JSON.stringify(snmpConfigs)),
-    } as unknown as NetworkDeviceDiscoveryScan,
+    } as never,
     props: { isRoot: true },
   });
 }

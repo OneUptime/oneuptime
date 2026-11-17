@@ -19,6 +19,9 @@
  * be told apart from its secret. Masking a masked address changes nothing,
  * so a log written by either release, or masked twice, reads the same.
  */
+// The schemes a webhook is posted over; anything else is masked whole.
+const WEB_PROTOCOL: RegExp = /^https?:$/;
+
 export default class WebhookAddressMask {
   // What stands for the part of an address a log does not keep.
   public static readonly MASK: string = "•••";
@@ -41,7 +44,7 @@ export default class WebhookAddressMask {
     }
 
     // `host` is the host and its port; never a user or a password.
-    if (!parsed.host || !/^https?:$/.test(parsed.protocol)) {
+    if (!parsed.host || !WEB_PROTOCOL.test(parsed.protocol)) {
       return WebhookAddressMask.MASK;
     }
 

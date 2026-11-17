@@ -310,7 +310,9 @@ describePostgres(
         values.push(await stored(value.table, value.id, value.column));
       }
 
-      values.push(await stored("NetworkDevice", LEGACY_DEVICE_ID, "snmpV3Auth"));
+      values.push(
+        await stored("NetworkDevice", LEGACY_DEVICE_ID, "snmpV3Auth"),
+      );
       values.push(
         await stored("NetworkDeviceDiscoveryScan", SCAN_ID, "snmpConfigs"),
       );
@@ -386,9 +388,7 @@ describePostgres(
         });
       };
 
-      const asText: (
-        value: URL | string | undefined,
-      ) => string | undefined = (
+      const asText: (value: URL | string | undefined) => string | undefined = (
         value: URL | string | undefined,
       ): string | undefined => {
         return value === undefined || value === null
@@ -482,7 +482,13 @@ describePostgres(
       );
       await database.query(
         `INSERT INTO "${schema}"."NetworkDeviceDiscoveryScan" ("_id", "version", "projectId", "probeId", "cidr", "snmpConfigs", "snmpVersion", "snmpCommunityString") VALUES ($1, 1, $2, $3, '10.0.0.0/24', $4::jsonb, 'V2c', $5)`,
-        [SCAN_ID, PROJECT_ID, PROBE_ID, JSON.stringify(SNMP_CONFIGS), COMMUNITY],
+        [
+          SCAN_ID,
+          PROJECT_ID,
+          PROBE_ID,
+          JSON.stringify(SNMP_CONFIGS),
+          COMMUNITY,
+        ],
       );
       await database.query(
         `INSERT INTO "${schema}"."WebhookLog" ("_id", "version", "projectId", "webhookUrl", "status", "statusMessage") VALUES ($1, 1, $2, $3, 'Error', $4)`,
@@ -509,9 +515,11 @@ describePostgres(
           await stored(value.table, value.id, value.column),
         );
 
-        expect([value.table, value.column, Encryption.looksEncrypted(text)]).toEqual(
-          [value.table, value.column, true],
-        );
+        expect([
+          value.table,
+          value.column,
+          Encryption.looksEncrypted(text),
+        ]).toEqual([value.table, value.column, true]);
         expect(await Encryption.decrypt(text)).toBe(value.written);
       }
 
@@ -538,7 +546,11 @@ describePostgres(
       // The list's own shape: the names, versions and order as written.
       expect(
         configs.map((config: JSONObject) => {
-          return [config["id"], config["snmpVersion"], config["snmpV3Username"]];
+          return [
+            config["id"],
+            config["snmpVersion"],
+            config["snmpV3Username"],
+          ];
         }),
       ).toEqual([
         ["access", "V2c", undefined],
@@ -547,12 +559,12 @@ describePostgres(
       expect(
         await Encryption.decrypt(String(configs[0]!["snmpCommunityString"])),
       ).toBe(COMMUNITY);
-      expect(await Encryption.decrypt(String(configs[1]!["snmpV3AuthKey"]))).toBe(
-        AUTH_KEY,
-      );
-      expect(await Encryption.decrypt(String(configs[1]!["snmpV3PrivKey"]))).toBe(
-        PRIV_KEY,
-      );
+      expect(
+        await Encryption.decrypt(String(configs[1]!["snmpV3AuthKey"])),
+      ).toBe(AUTH_KEY);
+      expect(
+        await Encryption.decrypt(String(configs[1]!["snmpV3PrivKey"])),
+      ).toBe(PRIV_KEY);
     }
 
     beforeAll(async () => {
@@ -656,9 +668,9 @@ describePostgres(
       await expectEncryptedOnce();
 
       // A 500-character address, stored as 704 characters: only text holds it.
-      expect(String(await stored("UserWebhook", METHOD_ID, "webhookUrl")).length).toBe(
-        704,
-      );
+      expect(
+        String(await stored("UserWebhook", METHOD_ID, "webhookUrl")).length,
+      ).toBe(704);
 
       expect(await readThroughServices()).toEqual(AS_WRITTEN);
 

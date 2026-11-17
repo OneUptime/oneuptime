@@ -86,12 +86,12 @@ beforeEach(() => {
     ) as unknown as SpyInstance<typeof API.post>;
 
   logs = [];
-  jest
-    .spyOn(WebhookLogService, "create")
-    .mockImplementation((async (input: { data: WebhookLog }) => {
-      logs.push(input.data);
-      return input.data;
-    }) as never);
+  jest.spyOn(WebhookLogService, "create").mockImplementation((async (input: {
+    data: WebhookLog;
+  }) => {
+    logs.push(input.data);
+    return input.data;
+  }) as never);
 
   timeline = new OnCallTimelineRows();
   timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);

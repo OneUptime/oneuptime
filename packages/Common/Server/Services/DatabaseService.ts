@@ -523,9 +523,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * them. Kept by the payload, and gone with it.
    */
   private static readonly encryptedColumnWrites: WeakMap<
-    object,
+    Record<string, unknown>,
     Record<string, EncryptedColumnWrite>
-  > = new WeakMap<object, Record<string, EncryptedColumnWrite>>();
+  > = new WeakMap<
+    Record<string, unknown>,
+    Record<string, EncryptedColumnWrite>
+  >();
 
   // The plain services that read a create's parents. See getParentReader.
   private static parentReaders: Map<
@@ -2045,7 +2048,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const value: unknown = (data as Record<string, unknown>)[column];
 
     const write: EncryptedColumnWrite | undefined =
-      DatabaseService.encryptedColumnWrites.get(data as object)?.[column];
+      DatabaseService.encryptedColumnWrites.get(
+        data as Record<string, unknown>,
+      )?.[column];
 
     return write && write.stored === value ? write.given : value;
   }

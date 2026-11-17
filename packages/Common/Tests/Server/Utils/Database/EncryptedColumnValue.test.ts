@@ -135,8 +135,7 @@ describe("a URL column", () => {
   });
 
   test("the column's transformer hands a ciphertext on, and reads and writes anything else as a URL column does", async () => {
-    const transformer: ValueTransformer =
-      URL.getEncryptedDatabaseTransformer();
+    const transformer: ValueTransformer = URL.getEncryptedDatabaseTransformer();
     const plain: ValueTransformer = URL.getDatabaseTransformer();
     const ciphertext: string = await Encryption.encrypt(SLACK_HOOK);
 
@@ -227,13 +226,12 @@ describe("a JSON list with encrypted fields (a scan's SNMP credential sets)", ()
     ).toEqual(CONFIGS);
 
     const half: Array<JSONObject> = JSON.parse(JSON.stringify(CONFIGS));
-    half[1]!["snmpCommunityString"] = await Encryption.encrypt(
-      "s3cr3t-community",
-    );
+    half[1]!["snmpCommunityString"] =
+      await Encryption.encrypt("s3cr3t-community");
 
-    expect(await EncryptedColumnValue.decrypt(SNMP_CONFIGS_COLUMN, half)).toEqual(
-      CONFIGS,
-    );
+    expect(
+      await EncryptedColumnValue.decrypt(SNMP_CONFIGS_COLUMN, half),
+    ).toEqual(CONFIGS);
   });
 
   test("a field encrypted already is not encrypted again", async () => {
@@ -255,9 +253,9 @@ describe("a JSON list with encrypted fields (a scan's SNMP credential sets)", ()
   test("an entry that is not an object, and a value that is not a list, are left as they are", async () => {
     const odd: Array<unknown> = ["text", 7, null, [1, 2], { snmpPort: 161 }];
 
-    expect(await EncryptedColumnValue.encrypt(SNMP_CONFIGS_COLUMN, odd)).toEqual(
-      odd,
-    );
+    expect(
+      await EncryptedColumnValue.encrypt(SNMP_CONFIGS_COLUMN, odd),
+    ).toEqual(odd);
     expect(
       await EncryptedColumnValue.encrypt(SNMP_CONFIGS_COLUMN, "a string"),
     ).toBe("a string");
@@ -341,9 +339,7 @@ describe("text and other JSON, as before", () => {
 
     expect((stored as string).startsWith(ENCRYPTED_VALUE_PREFIX)).toBe(true);
     expect(await EncryptedColumnValue.decrypt(column, stored)).toBe("public");
-    expect(await EncryptedColumnValue.decrypt(column, "public")).toBe(
-      "public",
-    );
+    expect(await EncryptedColumnValue.decrypt(column, "public")).toBe("public");
   });
 
   test("a ciphertext a broken write wrapped in a HashedString envelope reads as its value", async () => {
