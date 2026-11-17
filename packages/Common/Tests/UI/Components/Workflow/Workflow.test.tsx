@@ -546,7 +546,7 @@ describe("Workflow builder: adding a step leaves its settings closed", () => {
       "write-log-1",
     );
     expect(getSettingsProps().workflowId).toEqual(harness.props.workflowId);
-    expect(findRenderedNode("write-log-1").data.onClick).toBeUndefined();
+    expect("onClick" in findRenderedNode("write-log-1").data).toBe(false);
   });
 
   test("choosing a trigger from the placeholder does not open its settings either", () => {
@@ -1215,7 +1215,7 @@ describe("Workflow builder: trigger setup and deletion", () => {
       getRenderedNodes().find((node: Node<WorkflowNodeRenderData>) => {
         return node.data.nodeType === NodeType.PlaceholderNode;
       });
-    expect(placeholder?.data.onClick).toBeUndefined();
+    expect("onClick" in (placeholder?.data || {})).toBe(false);
     expect(getRenderedNodes()).toHaveLength(3);
     expect(mockFlowProps?.edges).toEqual([expect.objectContaining(retained)]);
     fireEvent.click(screen.getByTestId(`workflow-node-${placeholder?.id}`));
@@ -1700,9 +1700,9 @@ describe("Workflow builder: rendering and persistence boundaries", () => {
     renderBuilder({ initialNodes: [action] });
 
     expect(action.data).toBe(originalData);
-    expect(action.data.onClick).toBeUndefined();
+    expect("onClick" in action.data).toBe(false);
     expect(JSON.stringify(action)).toBe(original);
-    expect(findRenderedNode("write-log-1").data.onClick).toBeUndefined();
+    expect("onClick" in findRenderedNode("write-log-1").data).toBe(false);
     fireEvent.click(screen.getByTestId(`workflow-node-${action.id}`));
     expect(screen.getByTestId("settings-step-id")).toHaveTextContent(
       "write-log-1",
@@ -1725,7 +1725,7 @@ describe("Workflow builder: rendering and persistence boundaries", () => {
     ).toEqual(['"Message" is required but empty.']);
     for (const node of getStoredNodes(harness)) {
       expect(node.data.error).toBe("");
-      expect(node.data.onClick).toBeUndefined();
+      expect("onClick" in node.data).toBe(false);
       expect(node.data.issueSummary).toBeUndefined();
     }
     expect(harness.onLint).toHaveBeenLastCalledWith(
@@ -1745,7 +1745,7 @@ describe("Workflow builder: rendering and persistence boundaries", () => {
     );
     for (const node of getStoredNodes(harness)) {
       expect(node.data.error).toBe("");
-      expect(node.data.onClick).toBeUndefined();
+      expect("onClick" in node.data).toBe(false);
       expect(node.data).not.toHaveProperty("issueSummary");
     }
   });
