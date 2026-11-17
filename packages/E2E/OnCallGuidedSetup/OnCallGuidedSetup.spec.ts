@@ -127,10 +127,7 @@ async function open(page: Page, look: Look, query: string): Promise<void> {
     await expect(html).not.toHaveClass(/(^|\s)dark(\s|$)/);
   }
 
-  await expect(html).toHaveAttribute(
-    "dir",
-    look.lang === "fa" ? "rtl" : "ltr",
-  );
+  await expect(html).toHaveAttribute("dir", look.lang === "fa" ? "rtl" : "ltr");
 }
 
 function step(page: Page, key: string): Locator {
@@ -153,7 +150,11 @@ async function look(page: Page, look: Look, moment: string): Promise<void> {
 }
 
 // A button by its words in this language, inside `within`.
-function button(within: Page | Locator, lang: Language, english: string): Locator {
+function button(
+  within: Page | Locator,
+  lang: Language,
+  english: string,
+): Locator {
   return within.getByRole("button", { name: words(lang, english) });
 }
 
@@ -211,6 +212,16 @@ for (const each of LOOKS) {
     await look(page, each, "1-reach-done");
     await page.getByTestId("on-call-setup-reach-continue").click();
 
+    /*
+     * Done, step 1 lists how a page reaches you, joined with the reader's
+     * comma: Persian's, not a Latin one between Persian words.
+     */
+    await expect(step(page, "reach_you")).toHaveAttribute("data-state", "done");
+    if (each.lang === "fa") {
+      await expect(step(page, "reach_you")).toContainText("، ");
+      await expect(step(page, "reach_you")).not.toContainText(", ");
+    }
+
     // 2. Who is paged first? (#7372)
     await expect(step(page, "who_else")).toHaveAttribute("data-state", "open");
     await expect(step(page, "who_else")).toContainText(
@@ -238,10 +249,7 @@ for (const each of LOOKS) {
     await page.getByTestId("on-call-setup-who-continue").click();
 
     // 3. What if nobody answers? Grace, after the wait.
-    await expect(step(page, "no_answer")).toHaveAttribute(
-      "data-state",
-      "open",
-    );
+    await expect(step(page, "no_answer")).toHaveAttribute("data-state", "open");
     await button(
       page.getByTestId("on-call-setup-next-people"),
       each.lang,
@@ -260,14 +268,8 @@ for (const each of LOOKS) {
     await expect(step(page, "test")).toHaveAttribute("data-state", "open");
     await look(page, each, "4-test");
     await button(step(page, "test"), each.lang, "Test this policy").click();
-    await button(
-      page.getByRole("dialog"),
-      each.lang,
-      "Send test page",
-    ).click();
-    await expect(
-      page.getByTestId("on-call-setup-test-continue"),
-    ).toBeVisible();
+    await button(page.getByRole("dialog"), each.lang, "Send test page").click();
+    await expect(page.getByTestId("on-call-setup-test-continue")).toBeVisible();
     await look(page, each, "4-test-acknowledged");
     await page.getByTestId("on-call-setup-test-continue").click();
 

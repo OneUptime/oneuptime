@@ -31,7 +31,8 @@ const repository = path.resolve(__dirname, "../../../..");
  */
 const output = path.join(
   repository,
-  process.env.JOURNEYS_FIXTURE_OUTPUT || "output/playwright/journeys-ui/fixture",
+  process.env.JOURNEYS_FIXTURE_OUTPUT ||
+    "output/playwright/journeys-ui/fixture",
 );
 const port = Number(process.env.JOURNEYS_FIXTURE_PORT || 4831);
 

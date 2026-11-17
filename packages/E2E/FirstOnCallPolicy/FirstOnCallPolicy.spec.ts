@@ -562,7 +562,9 @@ test.describe("the guided setup, from On-Call itself (#7148)", () => {
   }) => {
     await openPage(page, "?role=member");
 
-    await expect(page.getByTestId(SETUP_BUTTON)).toHaveText("Set up paging step by step");
+    await expect(page.getByTestId(SETUP_BUTTON)).toHaveText(
+      "Set up paging step by step",
+    );
     await expect(page.getByTestId(SHOWCASE_BUTTON)).toBeVisible();
   });
 });

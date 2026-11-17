@@ -50,7 +50,8 @@ export default defineConfig({
     env: {
       JOURNEYS_FIXTURE_PORT: port,
       // Built apart from the journeys' bundles, which may be building beside it.
-      JOURNEYS_FIXTURE_OUTPUT: "output/playwright/on-call-guided-setup-ui/fixture",
+      JOURNEYS_FIXTURE_OUTPUT:
+        "output/playwright/on-call-guided-setup-ui/fixture",
     },
     timeout: 300000,
     reuseExistingServer: false,

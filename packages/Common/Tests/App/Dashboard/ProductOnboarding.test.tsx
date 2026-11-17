@@ -871,6 +871,7 @@ describe("a product's guided setup (#7148)", () => {
       __dirname,
       "../../../../App/FeatureSet/Dashboard/src",
     );
+    const typeScriptFile: RegExp = new RegExp("\\.tsx?$");
     const sourceFiles: (directory: string) => Array<string> = (
       directory: string,
     ): Array<string> => {
@@ -883,7 +884,7 @@ describe("a product's guided setup (#7148)", () => {
             return entry.name === "Locales" ? [] : sourceFiles(full);
           }
 
-          return /\.tsx?$/.test(entry.name) ? [full] : [];
+          return typeScriptFile.test(entry.name) ? [full] : [];
         });
     };
 

@@ -153,6 +153,7 @@ import { BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { useServerSendingStatus } from "Common/UI/Utils/ServerSending";
+import { joinList } from "Common/UI/Utils/ListSeparator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import UserUtil from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -706,11 +707,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       ProjectNotificationChannel.Call,
     ]);
 
+  // "Email · •••mple, SMS · •••0123", with the reader's comma ("، " in Persian).
   const describeMethods: (list: Array<ReachMethod>) => string = (
     list: Array<ReachMethod>,
   ): string => {
-    return list
-      .map((method: ReachMethod): string => {
+    return joinList(
+      list.map((method: ReachMethod): string => {
         const channel: string = getChannelName(
           method.methodType as OnCallPageChannel,
           translator,
@@ -719,8 +721,8 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
         return method.maskedIdentifier
           ? `${channel} · ${method.maskedIdentifier}`
           : channel;
-      })
-      .join(", ");
+      }),
+    );
   };
 
   const turnOnPhone: () => Promise<void> = async (): Promise<void> => {
@@ -2460,12 +2462,13 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       ...progress[0]!,
       title: ON_CALL_SETUP_COPY.reachTitle,
       outcome: ON_CALL_SETUP_COPY.reachOutcome,
-      doneLine: [emails, phones, pushes]
-        .filter((list: Array<ReachMethod>): boolean => {
-          return list.length > 0;
-        })
-        .map(describeMethods)
-        .join(", "),
+      doneLine: joinList(
+        [emails, phones, pushes]
+          .filter((list: Array<ReachMethod>): boolean => {
+            return list.length > 0;
+          })
+          .map(describeMethods),
+      ),
       content: reachContent,
     },
     {

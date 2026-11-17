@@ -396,7 +396,10 @@ export const getEscalationRuleFormFields: <TEntity>(
     showEvenIfPermissionDoesNotExist: true,
     formOnly: true,
     title: PAGED_AFTER_TITLE,
-    description: options.pagedAfterDescriptionElement,
+    // Worded by the page, which names the level before (PAGED_AFTER_DESCRIPTION).
+    ...(options.pagedAfterDescriptionElement
+      ? { description: options.pagedAfterDescriptionElement }
+      : {}),
     fieldType: FormFieldSchemaType.Number,
     required: true,
     placeholder: "30",
