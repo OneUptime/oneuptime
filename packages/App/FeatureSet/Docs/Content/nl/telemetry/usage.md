@@ -96,7 +96,7 @@ Gebruik wordt 120 dagen bewaard, tenzij u dat wijzigt, met facturering aan of ui
 :::steps
 ### Gegevensbewaring openen
 
-Ga in het Admin Dashboard naar **Instellingen → Gegevensbewaring**.
+Ga in het Admin Dashboard naar **Instellingen → Server → Gegevensbewaring**.
 
 ### Het aantal dagen instellen
 

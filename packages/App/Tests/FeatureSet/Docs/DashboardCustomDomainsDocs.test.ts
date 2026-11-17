@@ -52,7 +52,7 @@ describe("Dashboard custom domains (English docs)", () => {
   });
 
   it("finds the page where the dashboard's side menu has it", () => {
-    expect(CUSTOM_DOMAINS).toContain("**Branding → Custom Domains**");
+    expect(CUSTOM_DOMAINS).toContain("**Public Link → Custom Domains**");
     expect(CUSTOM_DOMAINS).toContain(
       "It works exactly like a status page's **Custom Domains** page.",
     );

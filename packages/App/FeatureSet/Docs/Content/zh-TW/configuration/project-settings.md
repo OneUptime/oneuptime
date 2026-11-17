@@ -40,7 +40,7 @@ flowchart LR
 | **安全性** | **SSO**、**SCIM** | [SSO](/docs/identity/sso)、[SCIM](/docs/identity/scim) |
 | **帳單與發票** | **帳單**、**發票** | [帳單與用量](/docs/configuration/billing) |
 | **稽核日誌** | **稽核日誌**、**設定**、**匯出** | [稽核日誌](/docs/configuration/audit-logs)、[稽核日誌匯出](/docs/configuration/audit-log-export) |
-| **危險區域** | **危險區域** | [刪除專案](#刪除專案) |
+| **危險區域** | **刪除專案** | [刪除專案](#刪除專案) |
 
 **帳單與發票**和**AI 點數**僅存在於 OneUptime Cloud：自行託管的安裝沒有帳單功能。
 
@@ -113,7 +113,7 @@ flowchart LR
 :::steps
 ### 開啟危險區域
 
-前往**專案設定 → 危險區域**。
+前往**專案設定 → 危險區域 → 刪除專案**。
 
 ### 點選刪除按鈕
 

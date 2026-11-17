@@ -80,7 +80,7 @@ Las peticiones desde cualquier otra IP se rechazan con una página **Access Deni
 
 ## Dominios personalizados
 
-De entrada, un panel público se sirve en su enlace público, en la propia dirección de OneUptime. Para alojarlo en tu propio subdominio, como `dashboard.acme.com`, abre **Marca → Dominios personalizados** en el menú lateral del panel. Funciona exactamente igual que la página **Dominios personalizados** de una página de estado.
+De entrada, un panel público se sirve en su enlace público, en la propia dirección de OneUptime. Para alojarlo en tu propio subdominio, como `dashboard.acme.com`, abre **Enlace público → Dominios personalizados** en el menú lateral del panel. Funciona exactamente igual que la página **Dominios personalizados** de una página de estado.
 
 La tarjeta se titula **Dominios personalizados** y explica qué hacer: apunta el registro CNAME de cada dominio al registro CNAME de paneles de tu instalación, y OneUptime emite el certificado SSL del dominio y lo renueva por ti. La tabla tiene dos columnas, **Dominio** y **Estado**.
 

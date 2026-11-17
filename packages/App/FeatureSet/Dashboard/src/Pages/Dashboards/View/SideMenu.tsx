@@ -60,20 +60,14 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Owners">
-        <SideMenuItem
-          link={{
-            title: "Owners",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.DASHBOARD_VIEW_OWNERS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Team}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="Branding">
+      {/*
+       * Branding and Custom Domains change only the public link: how it
+       * looks and the address it is served on. A dashboard only people in
+       * the project can view has no public link, so the section says what
+       * it is for and starts folded, and each page says when the dashboard
+       * is not shared publicly (DashboardPublicOnlySettings, #9134).
+       */}
+      <SideMenuSection title="Public Link" defaultCollapsed={true}>
         <SideMenuItem
           link={{
             title: "Branding",
@@ -115,6 +109,20 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Settings}
         />
 
+        {/*
+         * Who owns the dashboard, with the other pages that change it. It
+         * was a section of its own, under a heading of its own name (#9134).
+         */}
+        <SideMenuItem
+          link={{
+            title: "Owners",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DASHBOARD_VIEW_OWNERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Team}
+        />
         <SideMenuItem
           link={{
             title: "Audit Logs",
@@ -128,7 +136,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
-            title: "Delete",
+            title: "Delete Dashboard",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.DASHBOARD_VIEW_DELETE] as Route,
               { modelId: props.modelId },

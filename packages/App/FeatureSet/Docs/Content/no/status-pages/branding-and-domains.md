@@ -286,7 +286,7 @@ Dialogen, **Reissue SSL Certificate for this Status Page**, ber Let's Encrypt om
 
 Handlingen vises ikke på et domene som bruker et sertifikat du har lastet opp: det finnes ikke noe Let's Encrypt-sertifikat å utstede på nytt, så last heller opp et nytt ved å redigere domenet. Den vises heller ikke før domenets første sertifikat er bestilt, noe som skjer av seg selv så snart CNAME-posten er verifisert.
 
-Den samme knappen, med den samme grensen på 24 timer, finnes på dashbordenes egendefinerte domener under **Dashbord → dashbordet ditt → Merkevare → Egendefinerte domener**, som fungerer på samme måte som statussidenes egendefinerte domener: se [Deling & offentlige dashbord](/docs/dashboards/sharing#egendefinerte-domener).
+Den samme knappen, med den samme grensen på 24 timer, finnes på dashbordenes egendefinerte domener under **Dashbord → dashbordet ditt → Offentlig lenke → Egendefinerte domener**, som fungerer på samme måte som statussidenes egendefinerte domener: se [Deling & offentlige dashbord](/docs/dashboards/sharing#egendefinerte-domener).
 
 ### Slik leser du domenets kolonne Status
 

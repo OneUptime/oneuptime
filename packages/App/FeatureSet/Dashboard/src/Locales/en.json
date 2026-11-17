@@ -56498,5 +56498,14 @@
   "Not shown on any status page": "Not shown on any status page",
   "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.",
   "Show event on these status pages": "Show event on these status pages",
-  "This event will not appear on any status page.": "This event will not appear on any status page."
+  "This event will not appear on any status page.": "This event will not appear on any status page.",
+  "Change sharing": "Change sharing",
+  "Only people in this project can view this dashboard, so these settings do nothing until you share it with a public link.": "Only people in this project can view this dashboard, so these settings do nothing until you share it with a public link.",
+  "Profile & Calendar": "Profile & Calendar",
+  "Public Link": "Public Link",
+  "Ready for when the dashboard has a public link.": "Ready for when the dashboard has a public link.",
+  "Set Up Before Sharing Publicly": "Set Up Before Sharing Publicly",
+  "The public link's title, description, logos, theme and favicon.": "The public link's title, description, logos, theme and favicon.",
+  "Your own domains for the public link.": "Your own domains for the public link.",
+  "Paging & Calls": "Paging & Calls"
 }

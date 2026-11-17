@@ -96,7 +96,7 @@ Admin Dashboard에서 메뉴를 열고 **텔레메트리 사용량**을 클릭�
 :::steps
 ### 데이터 보존 열기
 
-Admin Dashboard에서 **설정 → 데이터 보존**으로 이동합니다.
+Admin Dashboard에서 **설정 → 서버 → 데이터 보존**으로 이동합니다.
 
 ### 일수 정하기
 

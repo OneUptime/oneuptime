@@ -64,7 +64,7 @@ The **On-Call** tab is about you, not about records you own:
 
 - **You go on-call**, **You are up next on-call** and **You go off-call** follow your turns on the on-call schedules you are in.
 - **Added to on-call policy** and **Removed from on-call policy** tell you when an on-call policy starts or stops naming you.
-- **Before my on-call shift starts** sends reminders at the times you pick on **User Settings → Calendar → Calendar Feed**, and **My upcoming on-call shift is reassigned** tells you when someone else covers a shift you were reminded about. See [Calendar Feeds](/docs/on-call/calendar-feeds#reminders-and-reassignment-notices).
+- **Before my on-call shift starts** sends reminders at the times you pick on **User Settings → Profile & Calendar → Calendar Feed**, and **My upcoming on-call shift is reassigned** tells you when someone else covers a shift you were reminded about. See [Calendar Feeds](/docs/on-call/calendar-feeds#reminders-and-reassignment-notices).
 - **Missed call**, on the **Incoming Call Policies** card, tells the owners of an incoming call policy that a caller reached nobody. See [Incoming Call Policy](/docs/on-call/incoming-call-policy#missed-calls).
 
 ## Security cases

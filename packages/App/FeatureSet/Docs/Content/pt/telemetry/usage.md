@@ -96,7 +96,7 @@ O uso é mantido por 120 dias, a menos que você mude isso, com a cobrança ativ
 :::steps
 ### Abrir Retenção de dados
 
-No Admin Dashboard, acesse **Configurações → Retenção de dados**.
+No Admin Dashboard, acesse **Configurações → Servidor → Retenção de dados**.
 
 ### Definir o número de dias
 

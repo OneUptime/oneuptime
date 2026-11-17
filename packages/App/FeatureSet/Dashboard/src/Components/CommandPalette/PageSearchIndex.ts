@@ -1001,9 +1001,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           {
             page: PageMap.SETTINGS_DANGERZONE,
-            title: "Danger Zone",
-            icon: IconProp.Error,
-            keywords: ["delete project", "remove project"],
+            title: "Delete Project",
+            icon: IconProp.Trash,
+            // The menu called it "Danger Zone" until #9134.
+            keywords: ["danger zone", "remove project"],
             actions: [
               {
                 id: "delete-project",
@@ -4385,7 +4386,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         ],
       },
       {
-        title: "On-Call Logs",
+        title: "Paging & Calls",
         pages: [
           {
             page: PageMap.USER_SETTINGS_ON_CALL_LOGS,
@@ -4393,21 +4394,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Logs,
             keywords: ["my pages", "paging history"],
           },
-        ],
-      },
-      {
-        title: "Incoming Call Policy",
-        pages: [
           {
             page: PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS,
             title: "Incoming Phone Numbers",
             icon: IconProp.Call,
+            // The section it sat in alone until #9134.
+            keywords: ["incoming call policy"],
             settings: ["Phone Numbers for Incoming Call Routing"],
           },
         ],
       },
       {
-        title: "Calendar",
+        title: "Profile & Calendar",
         pages: [
           {
             page: PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED,
@@ -4420,11 +4418,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "Remind me before shifts",
             ],
           },
-        ],
-      },
-      {
-        title: "Profile",
-        pages: [
           customFields(PageMap.USER_SETTINGS_CUSTOM_FIELDS, "My Custom Fields"),
         ],
       },

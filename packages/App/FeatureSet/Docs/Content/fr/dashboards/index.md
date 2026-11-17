@@ -59,12 +59,12 @@ Ouvrez un tableau de bord : son propre menu latéral contient ces pages. Chaque 
 | **Tableau de bord** | Le tableau de bord lui-même. Lisez-le, ou modifiez-le depuis son menu **⋯**. |
 | **Vue d'ensemble** | Son nom, sa description et ses étiquettes. |
 | **Partage** | Qui peut le voir, son lien public, et une liste d'autorisation IP sous Plus de paramètres. |
-| **Propriétaires** | Les utilisateurs et équipes à qui il appartient. |
 | **Image de marque** | Titre de page, description, logo, thème et favicon du tableau de bord public. |
 | **Domaines personnalisés** | Héberger le tableau de bord public sur votre propre domaine. |
 | **Paramètres** | Dupliquer, exporter ou archiver le tableau de bord. |
+| **Propriétaires** | Les utilisateurs et équipes à qui il appartient. |
 | **Journaux d'audit** | Chaque modification apportée au tableau de bord, et qui l'a faite. |
-| **Supprimer** | Supprimer définitivement le tableau de bord. |
+| **Supprimer le tableau de bord** | Supprimer définitivement le tableau de bord. |
 
 ## Créer votre premier tableau de bord
 

@@ -77,7 +77,7 @@ Le sostituzioni che si sovrapponevano già prima di questa regola restano come s
 ## Altri modi per aggiungerne una
 
 - Da una pianificazione: nella pagina **Livelli** di una pianificazione, espandete un livello e fate clic su **Salta fino a…** accanto a una persona. Si apre lo stesso modulo con lei assente e la rotazione che sostituisce, come sostituzione globale. Vedi [Quando qualcuno è assente](/docs/on-call/schedules#quando-qualcuno-è-assente).
-- Dai vostri prossimi turni: **Trova una copertura** su uno dei vostri turni, in **Impostazioni utente → Calendario → Feed calendario**, apre il modulo con voi assenti per gli orari di quel turno, così resta solo **Chi sostituisce?**. Vedi [Turni in arrivo e sostituzioni](/docs/on-call/calendar-feeds#turni-in-arrivo-e-sostituzioni).
+- Dai vostri prossimi turni: **Trova una copertura** su uno dei vostri turni, in **Impostazioni utente → Profilo e calendario → Feed calendario**, apre il modulo con voi assenti per gli orari di quel turno, così resta solo **Chi sostituisce?**. Vedi [Turni in arrivo e sostituzioni](/docs/on-call/calendar-feeds#turni-in-arrivo-e-sostituzioni).
 
 Quando qualcuno lascia il progetto, ogni sostituzione che lo nomina e che non è ancora finita viene eliminata, da entrambi i lati.
 

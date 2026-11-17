@@ -59,12 +59,12 @@ Al abrir un panel, su propio menú lateral tiene estas páginas. Todas las secci
 | **Panel** | El propio panel. Léelo, o edítalo desde su menú **⋯**. |
 | **Vista general** | Su nombre, su descripción y sus etiquetas. |
 | **Uso compartido** | Quién puede verlo, su enlace público y una lista de IP permitidas en Más ajustes. |
-| **Propietarios** | Los usuarios y equipos a los que pertenece. |
 | **Marca** | Título de la página, descripción, logotipo, tema y favicon del panel público. |
 | **Dominios personalizados** | Alojar el panel público en tu propio dominio. |
 | **Ajustes** | Duplicar, exportar o archivar el panel. |
+| **Propietarios** | Los usuarios y equipos a los que pertenece. |
 | **Registros de auditoría** | Cada cambio hecho en el panel, y quién lo hizo. |
-| **Eliminar** | Eliminar el panel para siempre. |
+| **Eliminar panel** | Eliminar el panel para siempre. |
 
 ## Crear tu primer panel
 

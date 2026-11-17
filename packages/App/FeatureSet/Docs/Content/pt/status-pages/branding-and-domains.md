@@ -286,7 +286,7 @@ A caixa de diálogo dela, **Reissue SSL Certificate for this Status Page**, pede
 
 A ação não aparece em um domínio que usa um certificado que você enviou: não há certificado do Let's Encrypt para reemitir, então envie um novo editando o domínio. Ela também não aparece antes de o primeiro certificado do domínio ser pedido, o que acontece sozinho assim que o registro CNAME dele é verificado.
 
-O mesmo botão, com o mesmo limite de 24 horas, fica nos domínios personalizados dos painéis, em **Painéis → seu painel → Marca → Domínios personalizados**, que funcionam do mesmo jeito que os domínios personalizados das páginas de status: veja [Compartilhamento e painéis públicos](/docs/dashboards/sharing#domínios-personalizados).
+O mesmo botão, com o mesmo limite de 24 horas, fica nos domínios personalizados dos painéis, em **Painéis → seu painel → Link público → Domínios personalizados**, que funcionam do mesmo jeito que os domínios personalizados das páginas de status: veja [Compartilhamento e painéis públicos](/docs/dashboards/sharing#domínios-personalizados).
 
 ### Ler a coluna Status do domínio
 

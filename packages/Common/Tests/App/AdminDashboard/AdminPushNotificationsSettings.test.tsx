@@ -468,6 +468,7 @@ describe("the page's place in the Admin Dashboard", () => {
       ),
     );
 
-    expect(entry).toContain('title: "Push Notifications"');
+    expect(entry).toContain('title: t("sideMenu.settingsPushNotifications")');
+    expect(entry).toContain("isTitleTranslated: true");
   });
 });

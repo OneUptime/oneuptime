@@ -96,7 +96,7 @@ Arquivar é a alternativa reversível a excluir: recorra a isso primeiro quando 
 
 ## Excluir um painel
 
-Abra a página **Excluir** do painel. A exclusão não pode ser desfeita: o painel, os widgets e as variáveis dele, e todos os domínios personalizados associados a ele são removidos. A sua telemetria não é afetada.
+Abra a página **Excluir painel** do painel. A exclusão não pode ser desfeita: o painel, os widgets e as variáveis dele, e todos os domínios personalizados associados a ele são removidos. A sua telemetria não é afetada.
 
 Se o painel for público num domínio personalizado, o endereço para de responder assim que você o exclui. Para continuar servindo o endereço, adicione o domínio a outro painel depois de excluir este: um domínio pertence a um único painel por vez.
 

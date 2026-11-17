@@ -472,7 +472,7 @@ describe("Search finds every page the side menus link to", () => {
     ).toEqual(
       expect.arrayContaining([
         "API Keys",
-        "Danger Zone",
+        "Delete Project",
         "On-Call Schedules",
         "On-Call Policies",
         "Billing",

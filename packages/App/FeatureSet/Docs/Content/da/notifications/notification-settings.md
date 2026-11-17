@@ -64,7 +64,7 @@ Fanen **Vagt** handler om dig, ikke om de ting, du ejer:
 
 - **Du går på vagt**, **Du er den næste på vagt** og **Du går af vagt** følger dine tørn i de vagtplaner, du er med i.
 - **Tilføjet til vagtordningspolitik** og **Fjernet fra vagtordningspolitik** fortæller dig, når en vagtpolitik begynder eller holder op med at nævne dig.
-- **Før min vagt starter** sender påmindelser på de tidspunkter, du vælger under **Brugerindstillinger → Kalender → Kalenderfeed**, og **Min kommende vagt bliver tildelt en anden** fortæller dig, når en anden dækker en vagt, du er blevet mindet om. Se [Kalenderfeeds](/docs/on-call/calendar-feeds#påmindelser-og-meddelelser-om-ny-tildeling).
+- **Før min vagt starter** sender påmindelser på de tidspunkter, du vælger under **Brugerindstillinger → Profil og kalender → Kalenderfeed**, og **Min kommende vagt bliver tildelt en anden** fortæller dig, når en anden dækker en vagt, du er blevet mindet om. Se [Kalenderfeeds](/docs/on-call/calendar-feeds#påmindelser-og-meddelelser-om-ny-tildeling).
 - **Ubesvaret opkald**, på kortet **Indgående opkaldspolitikker**, fortæller ejerne af en politik for indgående opkald, at en, der ringede, ikke nåede nogen. Se [Politik for indgående opkald](/docs/on-call/incoming-call-policy#ubesvarede-opkald).
 
 ## Sikkerhedssager

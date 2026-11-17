@@ -40,7 +40,7 @@ flowchart LR
 | **Säkerhet** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering och fakturor** | **Fakturering**, **Fakturor** | [Fakturering och användning](/docs/configuration/billing) |
 | **Granskningsloggar** | **Granskningsloggar**, **Inställningar**, **Export** | [Granskningsloggar](/docs/configuration/audit-logs), [Export av granskningslogg](/docs/configuration/audit-log-export) |
-| **Farozon** | **Farozon** | [Ta bort projektet](#ta-bort-projektet) |
+| **Farozon** | **Ta bort projekt** | [Ta bort projektet](#ta-bort-projektet) |
 
 **Fakturering och fakturor** och **AI-krediter** finns bara i OneUptime Cloud: en självhostad installation har ingen fakturering.
 
@@ -113,7 +113,7 @@ Att ta bort ett projekt tar bort allt i det, för alla medlemmar: monitorer, inc
 :::steps
 ### Öppna farozonen
 
-Gå till **Projektinställningar → Farozon**.
+Gå till **Projektinställningar → Farozon → Ta bort projekt**.
 
 ### Klicka på Ta bort Projekt
 

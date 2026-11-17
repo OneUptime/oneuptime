@@ -56498,5 +56498,14 @@
   "Not shown on any status page": "どのステータスページにも表示されません",
   "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "このイベントを表示し購読者に通知するのは、ここで選んだステータスページだけです。インシデントと異なり、何も選択しないイベントはどのステータスページにも表示されません。",
   "Show event on these status pages": "これらのステータスページにイベントを表示",
-  "This event will not appear on any status page.": "このイベントはどのステータスページにも表示されません。"
+  "This event will not appear on any status page.": "このイベントはどのステータスページにも表示されません。",
+  "Change sharing": "共有設定を変更",
+  "Only people in this project can view this dashboard, so these settings do nothing until you share it with a public link.": "このダッシュボードはこのプロジェクトのメンバーしか閲覧できないため、公開リンクで共有するまでこれらの設定は反映されません。",
+  "Profile & Calendar": "プロフィールとカレンダー",
+  "Public Link": "公開リンク",
+  "Ready for when the dashboard has a public link.": "ダッシュボードに公開リンクができたときのための準備です。",
+  "Set Up Before Sharing Publicly": "公開共有の前に設定",
+  "The public link's title, description, logos, theme and favicon.": "公開リンクのタイトル、説明、ロゴ、テーマ、ファビコン。",
+  "Your own domains for the public link.": "公開リンク用の独自ドメイン。",
+  "Paging & Calls": "呼び出しと着信"
 }

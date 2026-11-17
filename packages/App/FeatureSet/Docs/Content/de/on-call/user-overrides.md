@@ -77,7 +77,7 @@ Die eigene Überschreibung einer Richtlinie darf sich mit einer globalen für di
 ## Weitere Wege, eine hinzuzufügen
 
 - Aus einem Plan: Klappen Sie auf der Seite **Ebenen** eines Plans eine Ebene auf und klicken Sie neben einer Person auf **Überspringen bis…**. Das öffnet dasselbe Formular mit ihr als abwesend und der Rotation als Vertretung, als globale Überschreibung. Siehe [Wenn jemand abwesend ist](/docs/on-call/schedules#wenn-jemand-abwesend-ist).
-- Aus Ihren bevorstehenden Schichten: **Vertretung finden** an einer Ihrer Schichten, unter **Benutzereinstellungen → Kalender → Kalender-Feed**, öffnet das Formular mit Ihnen als abwesend für die Zeiten dieser Schicht, sodass nur noch **Wer vertritt?** bleibt. Siehe [Bevorstehende Schichten und Vertretung](/docs/on-call/calendar-feeds#bevorstehende-schichten-und-vertretung).
+- Aus Ihren bevorstehenden Schichten: **Vertretung finden** an einer Ihrer Schichten, unter **Benutzereinstellungen → Profil und Kalender → Kalender-Feed**, öffnet das Formular mit Ihnen als abwesend für die Zeiten dieser Schicht, sodass nur noch **Wer vertritt?** bleibt. Siehe [Bevorstehende Schichten und Vertretung](/docs/on-call/calendar-feeds#bevorstehende-schichten-und-vertretung).
 
 Verlässt jemand das Projekt, wird jede Überschreibung gelöscht, die ihn nennt und noch nicht geendet hat, auf beiden Seiten.
 

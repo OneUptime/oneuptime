@@ -80,7 +80,7 @@ Anmodninger fra enhver anden IP afvises med en side med **Access Denied**, der i
 
 ## Brugerdefinerede domæner
 
-Fra start serveres et offentligt dashboard på sit offentlige link, på OneUptimes egen adresse. For at hoste det på dit eget underdomæne som `dashboard.acme.com` åbner du **Branding → Brugerdefinerede domæner** i dashboardets sidemenu. Det virker præcis som en statussides side **Brugerdefinerede domæner**.
+Fra start serveres et offentligt dashboard på sit offentlige link, på OneUptimes egen adresse. For at hoste det på dit eget underdomæne som `dashboard.acme.com` åbner du **Offentligt link → Brugerdefinerede domæner** i dashboardets sidemenu. Det virker præcis som en statussides side **Brugerdefinerede domæner**.
 
 Kortet hedder **Brugerdefinerede domæner** og fortæller, hvad du skal gøre: peg hvert domænes CNAME-post på din installations CNAME-post til dashboards, så udsteder OneUptime domænets SSL-certifikat og fornyer det for dig. Tabellen har to kolonner, **Domæne** og **Status**.
 

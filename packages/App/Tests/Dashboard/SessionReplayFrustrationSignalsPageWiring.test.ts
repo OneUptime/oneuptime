@@ -50,7 +50,8 @@ describe("the Frustration Signals page is reachable", () => {
       'title: "Replay Access Log"',
     );
     const settingsSectionIndex: number = sideMenuSource.indexOf(
-      'SideMenuSection title="Settings"',
+      // The section after Session Replay's: Advanced, which holds Settings (#9134).
+      'SideMenuSection title="Advanced"',
     );
 
     expect(policyIndex).toBeGreaterThan(-1);

@@ -593,7 +593,7 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 :::
 
 :::details ingress のポートを移したあと、同梱のプローブが切断済みと表示される
-Admin Dashboard は **設定 > 監視 > グローバルプローブ** でプローブを表示します。プローブは `GLOBAL_PROBE_1_ONEUPTIME_URL` で OneUptime に到達し、その値はデフォルトで `http://localhost` (ポート 80) です。これが `localhost` を指している間は、`npm start` が ingress のポートに合わせて移します。別のアドレスに設定した場合や、Docker CLI で OneUptime を起動した場合は、これを ingress の新しいポート (例: `http://localhost:8080`) に設定してから OneUptime を再起動します。
+Admin Dashboard は **設定 > 全プロジェクトで共有 > グローバルプローブ** でプローブを表示します。プローブは `GLOBAL_PROBE_1_ONEUPTIME_URL` で OneUptime に到達し、その値はデフォルトで `http://localhost` (ポート 80) です。これが `localhost` を指している間は、`npm start` が ingress のポートに合わせて移します。別のアドレスに設定した場合や、Docker CLI で OneUptime を起動した場合は、これを ingress の新しいポート (例: `http://localhost:8080`) に設定してから OneUptime を再起動します。
 :::
 
 ## 次のステップ

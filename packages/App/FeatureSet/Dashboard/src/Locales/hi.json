@@ -9615,7 +9615,7 @@
   "Delete Fleet": "फ़्लीट हटाएं",
   "Delete Item": "आइटम हटाएं",
   "Delete Notification Rule": "सूचना नियम हटाएँ",
-  "Delete Project": "Delete Project",
+  "Delete Project": "प्रोजेक्ट हटाएं",
   "Delete Queue": "क्यू हटाएं",
   "Delete Rule": "नियम हटाएं",
   "Delete SLO": "SLO हटाएं",
@@ -56498,5 +56498,14 @@
   "Not shown on any status page": "किसी भी स्थिति पृष्ठ पर नहीं दिखाया गया",
   "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "केवल ये स्थिति पृष्ठ यह इवेंट दिखाते हैं और अपने सब्सक्राइबर को सूचित करते हैं। किसी घटना के विपरीत, बिना चुने पृष्ठों वाला इवेंट किसी भी स्थिति पृष्ठ पर नहीं दिखता।",
   "Show event on these status pages": "इन स्थिति पृष्ठों पर इवेंट दिखाएं",
-  "This event will not appear on any status page.": "यह इवेंट किसी भी स्थिति पृष्ठ पर नहीं दिखेगा।"
+  "This event will not appear on any status page.": "यह इवेंट किसी भी स्थिति पृष्ठ पर नहीं दिखेगा।",
+  "Change sharing": "साझाकरण बदलें",
+  "Only people in this project can view this dashboard, so these settings do nothing until you share it with a public link.": "इस डैशबोर्ड को केवल इस प्रोजेक्ट के लोग देख सकते हैं, इसलिए जब तक आप इसे सार्वजनिक लिंक से साझा नहीं करते, ये सेटिंग्स कुछ नहीं करतीं।",
+  "Profile & Calendar": "प्रोफ़ाइल और कैलेंडर",
+  "Public Link": "सार्वजनिक लिंक",
+  "Ready for when the dashboard has a public link.": "जब डैशबोर्ड का सार्वजनिक लिंक होगा, तब के लिए तैयार।",
+  "Set Up Before Sharing Publicly": "सार्वजनिक रूप से साझा करने से पहले सेट अप करें",
+  "The public link's title, description, logos, theme and favicon.": "सार्वजनिक लिंक का शीर्षक, विवरण, लोगो, थीम और फ़ेविकॉन।",
+  "Your own domains for the public link.": "सार्वजनिक लिंक के लिए आपके अपने डोमेन।",
+  "Paging & Calls": "पेजिंग और कॉल"
 }

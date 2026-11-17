@@ -9615,7 +9615,7 @@
   "Delete Fleet": "Vloot verwijderen",
   "Delete Item": "Item verwijderen",
   "Delete Notification Rule": "Meldingsregel verwijderen",
-  "Delete Project": "Delete Project",
+  "Delete Project": "Project verwijderen",
   "Delete Queue": "Wachtrij verwijderen",
   "Delete Rule": "Regel verwijderen",
   "Delete SLO": "SLO verwijderen",
@@ -56498,5 +56498,14 @@
   "Not shown on any status page": "Op geen enkele statuspagina weergegeven",
   "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Alleen deze statuspagina's tonen deze gebeurtenis en informeren hun abonnees. Anders dan een incident verschijnt een gebeurtenis zonder keuze op geen enkele statuspagina.",
   "Show event on these status pages": "Gebeurtenis weergeven op deze statuspagina's",
-  "This event will not appear on any status page.": "Deze gebeurtenis verschijnt op geen enkele statuspagina."
+  "This event will not appear on any status page.": "Deze gebeurtenis verschijnt op geen enkele statuspagina.",
+  "Change sharing": "Delen wijzigen",
+  "Only people in this project can view this dashboard, so these settings do nothing until you share it with a public link.": "Alleen mensen in dit project kunnen dit dashboard bekijken, dus deze instellingen doen niets totdat u het deelt met een openbare link.",
+  "Profile & Calendar": "Profiel en agenda",
+  "Public Link": "Openbare link",
+  "Ready for when the dashboard has a public link.": "Klaar voor wanneer het dashboard een openbare link heeft.",
+  "Set Up Before Sharing Publicly": "Instellen voordat u openbaar deelt",
+  "The public link's title, description, logos, theme and favicon.": "De titel, beschrijving, logo's, thema en favicon van de openbare link.",
+  "Your own domains for the public link.": "Uw eigen domeinen voor de openbare link.",
+  "Paging & Calls": "Oproepen en gesprekken"
 }

@@ -56498,5 +56498,14 @@
   "Not shown on any status page": "No se muestra en ninguna página de estado",
   "Only these status pages show this event and notify their subscribers. Unlike an incident, an event with none picked shows on no status page.": "Solo estas páginas de estado muestran este evento y notifican a sus suscriptores. A diferencia de un incidente, un evento sin ninguna seleccionada no se muestra en ninguna.",
   "Show event on these status pages": "Mostrar evento en estas páginas de estado",
-  "This event will not appear on any status page.": "Este evento no aparecerá en ninguna página de estado."
+  "This event will not appear on any status page.": "Este evento no aparecerá en ninguna página de estado.",
+  "Change sharing": "Cambiar el uso compartido",
+  "Only people in this project can view this dashboard, so these settings do nothing until you share it with a public link.": "Solo las personas de este proyecto pueden ver este panel, así que estos ajustes no hacen nada hasta que lo compartas con un enlace público.",
+  "Profile & Calendar": "Perfil y calendario",
+  "Public Link": "Enlace público",
+  "Ready for when the dashboard has a public link.": "Listos para cuando el panel tenga un enlace público.",
+  "Set Up Before Sharing Publicly": "Configurar antes de compartir públicamente",
+  "The public link's title, description, logos, theme and favicon.": "El título, la descripción, los logotipos, el tema y el favicon del enlace público.",
+  "Your own domains for the public link.": "Tus propios dominios para el enlace público.",
+  "Paging & Calls": "Avisos de guardia y llamadas"
 }

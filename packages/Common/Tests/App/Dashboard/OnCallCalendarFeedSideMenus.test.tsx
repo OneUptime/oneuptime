@@ -12,7 +12,7 @@ import * as React from "react";
 
 /*
  * The two side-menu entries that make the calendar feeds reachable: the
- * "Calendar" section on User Settings (placed before Workspace, per the
+ * "Profile & Calendar" section on User Settings (placed before Workspace, per the
  * design) and the "Calendar Feeds" item under On-Call Duty's Schedules
  * section. Both are rendered for real against the real RouteMap, so an entry
  * that points at the wrong route, lands in the wrong section, or is dropped
@@ -48,7 +48,7 @@ import {
   setViewportWidth,
 } from "./SideMenuHarness";
 
-describe("User Settings side menu - Calendar section", () => {
+describe("User Settings side menu - Profile & Calendar section", () => {
   beforeEach(() => {
     setViewportWidth(DESKTOP_WIDTH);
     goTo(`/dashboard/${PROJECT_ID}/user-settings/notification-methods`);
@@ -64,12 +64,12 @@ describe("User Settings side menu - Calendar section", () => {
    * chat workspace connected (WorkspaceMenusConnected.test.tsx), so the
    * calendar link everybody on a rota wants still comes before it.
    */
-  test("has a Calendar section placed before Workspace", async () => {
+  test("has a Profile & Calendar section placed before Workspace", async () => {
     ConnectedWorkspaces.setConnected(PROJECT_ID, [WorkspaceType.Slack]);
     await renderMenu(<UserSettingsSideMenu />);
 
     const titles: Array<string> = sectionTitlesInOrder();
-    const calendarIndex: number = titles.indexOf("Calendar");
+    const calendarIndex: number = titles.indexOf("Profile & Calendar");
     const workspaceIndex: number = titles.indexOf("Workspace");
 
     expect(calendarIndex).toBeGreaterThan(-1);
@@ -77,15 +77,23 @@ describe("User Settings side menu - Calendar section", () => {
     expect(calendarIndex).toBeLessThan(workspaceIndex);
   });
 
-  test("the Calendar section holds exactly the Calendar Feed page", async () => {
+  /*
+   * Calendar held the Calendar Feed alone, and Profile its Custom Fields
+   * alone: one section for what is yours (#9134).
+   */
+  test("the Profile & Calendar section leads with the Calendar Feed page", async () => {
     await renderMenu(<UserSettingsSideMenu />);
 
-    const links: Array<MenuLink> = linksIn("Calendar");
+    const links: Array<MenuLink> = linksIn("Profile & Calendar");
 
     expect(links).toEqual([
       {
         title: "Calendar Feed",
         href: routeFor(PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED),
+      },
+      {
+        title: "Custom Fields",
+        href: routeFor(PageMap.USER_SETTINGS_CUSTOM_FIELDS),
       },
     ]);
     expect(links[0]!.href).toBe(

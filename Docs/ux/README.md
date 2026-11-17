@@ -112,6 +112,20 @@ and phone summary: change the suite in the same pull request as the menu.
   same state is grey wherever it shows: a monitor's row, its badge and an SLO's list of monitors.
   Enforced by
   [DeliberateStatesNotDangerGuard](../../packages/App/Tests/Dashboard/DeliberateStatesNotDangerGuard.test.ts).
+- **A section with one entry does not repeat that entry's name.** A heading that says what its only
+  entry says doubles the menu's height and, folded, hides the page behind a click that tells nothing
+  new: User Settings read "On-Call Logs › On-Call Logs", Admin Settings "Data Retention › Data
+  Retention", Project Settings "Danger Zone › Danger Zone" and seven resource pages "Settings ›
+  Settings" (#9134). Put the entry in a section of related pages (a resource's Settings sits in
+  Advanced, beside Owners and Audit Logs), or name the entry for what the page does (Danger Zone ›
+  Delete Project). Enforced by
+  [OneEntryMenuSectionsGuard](../../packages/App/Tests/OneEntryMenuSectionsGuard.test.ts).
+- **A setting only the public link reads says what it is for.** A dashboard's Branding and Custom
+  Domains change only its public link, and showed on every dashboard as if they did more. They sit
+  under "Public Link", folded, and while the dashboard is shared with the project only, each page
+  opens on one notice that says so, with Change sharing, and folds its settings under it (#9134).
+  Enforced by
+  [DashboardPublicOnlySettings](../../packages/Common/Tests/App/Dashboard/DashboardPublicOnlySettings.test.tsx).
 - **Every entry in the More menu has an icon.** Enforced by
   [MoreMenuItemIconsGuard](../../packages/App/Tests/MoreMenuItemIconsGuard.test.ts).
 
