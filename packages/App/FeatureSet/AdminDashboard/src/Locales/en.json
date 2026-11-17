@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "{{userCount}} selected user(s) will be signed out of every active session and must set up an authenticator app the next time they sign in. This includes you, if you are one of them.",
       "bulkDoNotRequireTwoFactorAuth": "Do Not Require Two Factor Auth",
       "bulkDoNotRequireTwoFactorAuthTitle": "Stop Requiring Two Factor Auth for {{userCount}} User(s)",
-      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} selected user(s) will be able to sign in with their password alone. Anything they have already set up is kept but no longer asked for."
+      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} selected user(s) will be able to sign in with their password alone. Anything they have already set up is kept but no longer asked for.",
+      "createdAndEmailed": "{{name}} created. A link to set their password was emailed to {{email}}.",
+      "createdWithPassword": "{{name}} created. Share the password you set with them securely.",
+      "setPasswordLinkTitle": "Send Them a Link to Set Their Password",
+      "setPasswordLinkDescription": "Copy this link and send it to {{email}} yourself, somewhere only they can read it. It works once, for {{days}} days.",
+      "setPasswordLinkOrSetIt": "Or set a password for them yourself on their Authentication page."
     },
     "enterpriseLicenses": {
       "title": "Enterprise Licenses",
@@ -4169,5 +4174,13 @@
   "See email logs": "See email logs",
   "Addresses the mail server refused": "Addresses the mail server refused",
   "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.",
-  "Last refused {{time}}": "Last refused {{time}}"
+  "Last refused {{time}}": "Last refused {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} was created, but the email with a link to set their password was not sent. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "The link to send them yourself was not made either. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime emails them a link to set their own password.",
+  "They sign in with the password you set. Share it with them securely.": "They sign in with the password you set. Share it with them securely.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "This server cannot send email yet. Set up email under Settings > Emails.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead."
 }

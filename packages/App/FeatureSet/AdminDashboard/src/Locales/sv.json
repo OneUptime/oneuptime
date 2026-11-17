@@ -163,7 +163,12 @@
       "bulkRequireTwoFactorAuthDescription": "{{userCount}} valda användare loggas ut från alla aktiva sessioner och måste konfigurera en autentiseringsapp nästa gång de loggar in. Detta gäller även dig, om du är en av dem.",
       "bulkDoNotRequireTwoFactorAuth": "Kräv inte tvåfaktorsautentisering",
       "bulkDoNotRequireTwoFactorAuthTitle": "Sluta kräva tvåfaktorsautentisering för {{userCount}} användare",
-      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} valda användare kan logga in med enbart sitt lösenord. Allt som de redan har konfigurerat behålls men efterfrågas inte längre."
+      "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} valda användare kan logga in med enbart sitt lösenord. Allt som de redan har konfigurerat behålls men efterfrågas inte längre.",
+      "createdAndEmailed": "{{name}} har skapats. En länk för att ange lösenordet har skickats till {{email}}.",
+      "createdWithPassword": "{{name}} har skapats. Dela lösenordet du angav på ett säkert sätt.",
+      "setPasswordLinkTitle": "Skicka en länk för att ange lösenordet",
+      "setPasswordLinkDescription": "Kopiera länken och skicka den själv till {{email}}, någonstans där bara personen kan läsa den. Den fungerar en gång, i {{days}} dagar.",
+      "setPasswordLinkOrSetIt": "Eller ange ett lösenord åt personen själv på sidan Autentisering."
     },
     "enterpriseLicenses": {
       "title": "Enterprise-licenser",
@@ -4169,5 +4174,13 @@
   "See email logs": "Visa e-postloggar",
   "Addresses the mail server refused": "Adresser som e-postservern avvisade",
   "Other emails went out, so only these addresses are affected. Correct the address, or have your mail provider accept it: an Amazon SES sandbox sends only to addresses it has verified.": "Andra e-postmeddelanden skickades, så bara de här adresserna påverkas. Rätta adressen eller låt din e-postleverantör godkänna den: en Amazon SES-sandlåda skickar bara till adresser som den har verifierat.",
-  "Last refused {{time}}": "Senast avvisad {{time}}"
+  "Last refused {{time}}": "Senast avvisad {{time}}",
+  "{{name}} was created, but the email with a link to set their password was not sent. {{error}}": "{{name}} har skapats, men e-postmeddelandet med en länk för att ange lösenordet skickades inte. {{error}}",
+  "The link to send them yourself was not made either. {{error}}": "Länken som du kan skicka själv kunde inte heller skapas. {{error}}",
+  "OneUptime emails them a link to set their own password.": "OneUptime mejlar personen en länk för att ange ett eget lösenord.",
+  "They sign in with the password you set. Share it with them securely.": "Personen loggar in med lösenordet du anger. Dela det på ett säkert sätt.",
+  "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Den här servern kan inte skicka e-post än. Ange lösenordet här, eller lämna fältet tomt för att få en länk som du skickar själv.",
+  "This server cannot send email yet. Set up email under Settings > Emails.": "Den här servern kan inte skicka e-post än. Konfigurera e-post under Inställningar > E-postmeddelanden.",
+  "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Den här servern kan inte skicka e-post än, så ingen länk för återställning av lösenord skickades. Konfigurera e-post under Inställningar > E-postmeddelanden, eller ange lösenordet själv.",
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Den här användaren har redan ett lösenord, så det finns ingen länk för att ange lösenord att kopiera. Skicka i stället en länk för återställning från användarens sida Autentisering."
 }
