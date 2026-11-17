@@ -1516,7 +1516,7 @@ const HostOverview: FunctionComponent<
                       {hostIdentifier}
                     </div>
                   )}
-                  <div className="mt-1 text-xs text-gray-400">
+                  <div className="mt-1 text-xs text-gray-500">
                     {lastSeenText}
                   </div>
                 </div>

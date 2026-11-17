@@ -1759,14 +1759,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
               />
             </span>
             <span
-              className="text-[11px] font-semibold tracking-tight"
+              className="text-xs font-semibold tracking-tight"
               {...getStatusTextProps(color)}
             >
               {meta.statusName}
             </span>
             {meta.resourceCount > 1 && (
               <span
-                className="text-[10px] font-medium tabular-nums opacity-60"
+                className="text-xs font-medium tabular-nums opacity-60"
                 {...getStatusTextProps(color)}
               >
                 ×{meta.resourceCount}
@@ -1774,7 +1774,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             )}
           </div>
           {meta.uptimeText && (
-            <div className="text-[10.5px] text-gray-500 font-medium tabular-nums">
+            <div className="text-xs text-gray-500 font-medium tabular-nums">
               {meta.uptimeText}
             </div>
           )}

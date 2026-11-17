@@ -337,7 +337,7 @@ const NetworkSiteDevices: FunctionComponent<
               if (hasNoSnmpInventory(item)) {
                 return (
                   <span
-                    className="text-sm text-gray-400"
+                    className="text-sm text-gray-500"
                     title={NO_SNMP_INTERFACES_LABEL.tooltip}
                   >
                     {NO_SNMP_INTERFACES_LABEL.text}
@@ -377,7 +377,7 @@ const NetworkSiteDevices: FunctionComponent<
             getElement: (item: NetworkDevice): ReactElement => {
               if (!item.lastSeenAt) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("Never")}
                   </span>
                 );

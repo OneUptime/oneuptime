@@ -262,7 +262,7 @@ const NetworkSiteSettings: FunctionComponent<
               getElement: (item: NetworkSite): ReactElement => {
                 if (!item.networkSiteType?.name) {
                   return (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("Not set")}
                     </span>
                   );
@@ -281,7 +281,7 @@ const NetworkSiteSettings: FunctionComponent<
               getElement: (item: NetworkSite): ReactElement => {
                 if (!item.parentSite?.name) {
                   return (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("Top level")}
                     </span>
                   );
@@ -300,7 +300,7 @@ const NetworkSiteSettings: FunctionComponent<
               getElement: (item: NetworkSite): ReactElement => {
                 if (!item.probe?.name) {
                   return (
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-gray-500">
                       {translator.translateText(
                         "None — devices name their own probe",
                       )}
@@ -321,7 +321,7 @@ const NetworkSiteSettings: FunctionComponent<
               getElement: (item: NetworkSite): ReactElement => {
                 if (!item.snmpCredentialProfile?.name) {
                   return (
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-gray-500">
                       {translator.translateText(
                         "None — devices without credentials are pinged only",
                       )}
@@ -408,7 +408,7 @@ const NetworkSiteSettings: FunctionComponent<
               getElement: (item: NetworkSite): ReactElement => {
                 if (!item.alertSeverity?.name) {
                   return (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText(
                         "Project default (most severe)",
                       )}
@@ -516,7 +516,7 @@ const NetworkSiteSettings: FunctionComponent<
                   SiteHealthRollupPolicy.PercentThreshold
                 ) {
                   return (
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText("Not used by this policy")}
                     </span>
                   );

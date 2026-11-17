@@ -329,7 +329,7 @@ const AppPlatformEnvironments: FunctionComponent<
               const platform: string = (item.cloudPlatform as string) || "";
               if (!platform) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("unknown")}
                   </span>
                 );

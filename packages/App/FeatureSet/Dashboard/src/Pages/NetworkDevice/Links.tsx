@@ -248,7 +248,7 @@ const NetworkDeviceLinks: FunctionComponent<
             getElement: (item: NetworkDeviceLink): ReactElement => {
               if (!item.parentDevice?.name) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("Inferred")}
                   </span>
                 );
@@ -272,7 +272,7 @@ const NetworkDeviceLinks: FunctionComponent<
             getElement: (item: NetworkDeviceLink): ReactElement => {
               if (!item.monitor?.name) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("None")}
                   </span>
                 );

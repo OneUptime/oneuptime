@@ -1816,7 +1816,7 @@ const NetworkDevices: FunctionComponent<
                  */
                 return (
                   <span
-                    className="text-sm text-gray-400"
+                    className="text-sm text-gray-500"
                     title={translator.translateText(
                       "No role assigned — worked out from the device's SNMP identity.",
                     )}
@@ -1897,7 +1897,7 @@ const NetworkDevices: FunctionComponent<
               ) {
                 return (
                   <span
-                    className="text-sm text-gray-400"
+                    className="text-sm text-gray-500"
                     title={translator.translateText(
                       "Monitor-backed devices are not polled by a probe. Their status comes from the monitor bound to them.",
                     )}
@@ -1950,7 +1950,7 @@ const NetworkDevices: FunctionComponent<
               if (hasNoSnmpInventory(item)) {
                 return (
                   <span
-                    className="text-sm text-gray-400"
+                    className="text-sm text-gray-500"
                     title={NO_SNMP_INTERFACES_LABEL.tooltip}
                   >
                     {NO_SNMP_INTERFACES_LABEL.text}
@@ -2012,7 +2012,7 @@ const NetworkDevices: FunctionComponent<
 
               if (!item.lastSeenAt) {
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("Never")}
                   </span>
                 );
