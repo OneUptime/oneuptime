@@ -26,6 +26,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { withSentenceDigits } from "../ResourcePart/SentenceDigits";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import { formatMemoryValue } from "./ResourceMemoryValue";
 import ResourceStatusCell from "./ResourceStatusCell";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import TableEmptyValue, {
@@ -310,31 +311,8 @@ export function formatCpuValue(value: number | null): string {
   return formatReaderFigure(value, { decimals: 1, isPercent: true });
 }
 
-export function formatMemoryValue(bytes: number | null): string {
-  if (bytes === null || bytes === undefined) {
-    return "N/A";
-  }
-
-  // The number in the reader's digits, the unit as written: "۱۲٫۵ MB".
-  if (bytes < 1024) {
-    return `${formatReaderFigure(bytes, {
-      decimals: 1,
-      dropTrailingZeros: true,
-    })}\u00A0B`;
-  }
-
-  if (bytes < 1024 * 1024) {
-    return `${formatReaderFigure(bytes / 1024, { decimals: 1 })}\u00A0KB`;
-  }
-
-  if (bytes < 1024 * 1024 * 1024) {
-    return `${formatReaderFigure(bytes / (1024 * 1024), { decimals: 1 })}\u00A0MB`;
-  }
-
-  return `${formatReaderFigure(bytes / (1024 * 1024 * 1024), {
-    decimals: 2,
-  })}\u00A0GB`;
-}
+// How an amount of memory is written: a module of its own (ResourceMemoryValue).
+export { formatMemoryValue };
 
 // A row's status in the reader's language.
 export function getResourceStatusLabel(

@@ -2,9 +2,7 @@ import MonitorType from "../../Types/Monitor/MonitorType";
 import MonitorCheckScheduleUtil, {
   MonitorCheckFreshness,
 } from "./MonitorCheckScheduleUtil";
-import MonitorOverviewFamilyUtil, {
-  MonitorOverviewFamily,
-} from "./MonitorOverviewFamily";
+import MonitorTypeFamily, { MonitorOverviewFamily } from "./MonitorTypeFamily";
 
 /*
  * A MONITOR WHOSE FIRST CHECK IS OVERDUE (issue #8899).
@@ -19,12 +17,15 @@ import MonitorOverviewFamilyUtil, {
  * waits.
  *
  * It is a module of its own because of what it reads: the monitor's
- * schedule (CronTab) and its type's family, which brings every monitor
- * type and its metrics with it - some 90 KB before gzip.
- * MonitorFirstCheck's other rules need none of that, and a status page
- * loads them before it draws (Utils/StatusPage/FrozenMonitorResources)
- * without ever judging a first check overdue, so it does not download
- * what this reads (packages/Common/Scripts/first-load-budgets.js).
+ * schedule (CronTab) and its type's family. MonitorFirstCheck's other
+ * rules need none of that, and a status page loads them before it draws
+ * (Utils/StatusPage/FrozenMonitorResources) without ever judging a first
+ * check overdue, so it does not download what this reads
+ * (packages/Common/Scripts/first-load-budgets.js). A public dashboard does
+ * load this rule before it draws, for its Monitor List widget's rows, so
+ * the family comes from MonitorTypeFamily, not from the overview's layout
+ * (MonitorOverviewFamily), which brings every monitor type's metrics and
+ * the database metric catalog with it.
  */
 
 export interface FirstCheckScheduleFields {
@@ -67,7 +68,7 @@ export default class MonitorFirstCheckOverdue {
     let family: MonitorOverviewFamily;
 
     try {
-      family = MonitorOverviewFamilyUtil.getFamily(
+      family = MonitorTypeFamily.getFamily(
         data.monitor.monitorType as MonitorType,
       );
     } catch {

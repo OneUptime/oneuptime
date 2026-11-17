@@ -42,7 +42,8 @@ jest.mock("Common/Server/Services/ProjectService", () => {
  * DatabaseService (the base class) is replaced because its import
  * closure pulls in PasswordHash.ts, which has a pre-existing TS 5.9
  * compile failure under ts-jest — and because the only thing this suite
- * needs from it is an overridable findOneBy. The real
+ * needs from it is an overridable findOneBy, which the key's lookup
+ * (findOneByPresentedKey, by the key's value here) goes through. The real
  * TelemetryIngestionKeyService module (cache, TTLs, hashing of cache
  * keys) is fully exercised.
  */
@@ -72,6 +73,17 @@ jest.mock("Common/Server/Services/DatabaseService", () => {
         "findOneBy stub was not replaced — the test must install its own implementation.",
       );
     }
+
+    /*
+     * The key's lookup, by its value, through findOneBy above: the secret
+     * is kept encrypted (#9012), so the service finds its key with
+     * findOneByPresentedKey (Helpers/PresentedKeyByValue).
+     */
+    public findOneByPresentedKey: unknown = (
+      jest.requireActual("./Helpers/PresentedKeyByValue") as {
+        default: unknown;
+      }
+    ).default;
   }
 
   return {

@@ -30,6 +30,10 @@ import {
  * own long random key is stored as given, Reset Key stores its new key, and
  * a row from before this rule that holds a shipped key can still be renamed
  * - and given a real key.
+ *
+ * A key is kept encrypted at rest (#9012: TableColumnMetadata.presentedKey),
+ * so what a write stores is its ciphertext, and it is read back decrypted
+ * (keyIn), as a read gives it back.
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -86,6 +90,7 @@ import RunnerService, {
   Service as RunnerServiceType,
 } from "../../../Server/Services/RunnerService";
 import ComponentKeyWrite from "../../../Server/Utils/ComponentKeyWrite";
+import Encryption from "../../../Server/Utils/Encryption";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -234,6 +239,26 @@ function caller(
     }),
     ...ON_HIGHEST_PLAN,
   };
+}
+
+/*
+ * The key a row holds, as a read gives it back: a write stores it encrypted
+ * (#9012), and the rows below hold theirs as written, as a row from before
+ * #9012 does until PresentedKeys:ProtectAtRest encrypts it.
+ */
+async function keyIn(row: StoredRow | undefined): Promise<string> {
+  const stored: string = String(row?.["key"]);
+
+  return Encryption.looksEncrypted(stored)
+    ? await Encryption.decrypt(stored)
+    : stored;
+}
+
+// The key a write stored: encrypted, never as written.
+async function writtenKeyIn(row: StoredRow | undefined): Promise<string> {
+  expect(Encryption.looksEncrypted(String(row?.["key"]))).toBe(true);
+
+  return await keyIn(row);
 }
 
 // The row every update below writes: a component of the project, as created.
@@ -391,7 +416,7 @@ describe.each(KINDS)("$component's key", (kind: Kind) => {
       // Only the real keys were stored, one per role.
       expect(table.inserts).toHaveLength(keyWriters(kind, "create").length);
       for (const row of table.inserts) {
-        expect(String(row["key"]).startsWith(OPERATORS_KEY)).toBe(true);
+        expect((await writtenKeyIn(row)).startsWith(OPERATORS_KEY)).toBe(true);
       }
     });
 
@@ -409,7 +434,7 @@ describe.each(KINDS)("$component's key", (kind: Kind) => {
 
       expect(error).toBeUndefined();
       expect(table.inserts).toHaveLength(1);
-      expect(String(table.inserts[0]!["key"])).toMatch(GENERATED_KEY);
+      expect(await writtenKeyIn(table.inserts[0])).toMatch(GENERATED_KEY);
     });
 
     test("an empty key is a key left out: the server makes a random one", async () => {
@@ -417,7 +442,7 @@ describe.each(KINDS)("$component's key", (kind: Kind) => {
 
       expect(error).toBeUndefined();
       expect(table.inserts).toHaveLength(1);
-      expect(String(table.inserts[0]!["key"])).toMatch(GENERATED_KEY);
+      expect(await writtenKeyIn(table.inserts[0])).toMatch(GENERATED_KEY);
     });
 
     test("an operator's own long random key is stored as given", async () => {
@@ -425,7 +450,7 @@ describe.each(KINDS)("$component's key", (kind: Kind) => {
 
       expect(error).toBeUndefined();
       expect(table.inserts).toHaveLength(1);
-      expect(table.inserts[0]!["key"]).toBe(OPERATORS_KEY);
+      expect(await writtenKeyIn(table.inserts[0])).toBe(OPERATORS_KEY);
     });
 
     test("the server itself (root) is refused a shipped key as well", async () => {
@@ -471,7 +496,7 @@ describe.each(KINDS)("$component's key", (kind: Kind) => {
           permission,
           refused: ComponentKeyWrite.refusal(kind.component),
         });
-        expect(table.get(ROW_ID)!["key"]).not.toBe(
+        expect(await keyIn(table.get(ROW_ID))).not.toBe(
           "please-change-this-to-random-value",
         );
 
@@ -485,7 +510,7 @@ describe.each(KINDS)("$component's key", (kind: Kind) => {
           permission,
           error: undefined,
         });
-        expect(table.get(ROW_ID)!["key"]).toBe(newKey);
+        expect(await writtenKeyIn(table.get(ROW_ID))).toBe(newKey);
       }
     });
 
@@ -493,7 +518,7 @@ describe.each(KINDS)("$component's key", (kind: Kind) => {
       const { error } = await update(kind, { key: RESET_KEY });
 
       expect(error).toBeUndefined();
-      expect(table.get(ROW_ID)!["key"]).toBe(RESET_KEY);
+      expect(await writtenKeyIn(table.get(ROW_ID))).toBe(RESET_KEY);
     });
 
     test("an update that leaves the key out is not held to it", async () => {
@@ -521,7 +546,7 @@ describe.each(KINDS)("$component's key", (kind: Kind) => {
       });
 
       expect(reset.error).toBeUndefined();
-      expect(table.get(ROW_ID)!["key"]).toBe(RESET_KEY);
+      expect(await writtenKeyIn(table.get(ROW_ID))).toBe(RESET_KEY);
     });
 
     test("the server itself (root) is refused a shipped key as well", async () => {
