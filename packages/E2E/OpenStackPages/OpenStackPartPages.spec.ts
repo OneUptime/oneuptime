@@ -410,7 +410,8 @@ test.describe("network", () => {
     page: Page;
   }) => {
     await openCloudPage(page, "networks", PARTS);
-    await expect(rowOf(page, "public-dmz")).toContainText(/~\d+ days?/);
+    // A count of days held to its figure, as a page draws a duration (#8811).
+    await expect(rowOf(page, "public-dmz")).toContainText(/~\d+\u00A0days?/);
   });
 
   test("a subnet steps to its network", async ({ page }: { page: Page }) => {
@@ -657,9 +658,10 @@ test.describe("storage", () => {
       "RegionOne/ctl-02@ceph#rbd-fast",
       PARTS,
     );
+    // A count of days held to its figure, as a page draws a duration (#8811).
     await expect(
       page.getByTestId("openstack-storage-pool-tiles"),
-    ).toContainText(/~\d+ days?/);
+    ).toContainText(/~\d+\u00A0days?/);
 
     await openCloudPage(page, "storage-pools", HEALTHY_OVS);
     await expect(page.locator("tbody tr").first()).toContainText("Has room");
