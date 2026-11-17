@@ -26,6 +26,8 @@ import {
 import TelemetryIngestSurface, {
   IDENTITY_REGISTRATION_SURFACES,
 } from "Common/Types/Telemetry/TelemetryIngestSurface";
+import Runner from "Common/Models/DatabaseModels/Runner";
+import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -544,8 +546,21 @@ describe("the legacy in-cluster Runner, in the Runner README", () => {
     const titles: Array<string> = getColumnTitles(RUNNER_MODEL);
 
     expect(titles).toContain("Runs Runbooks");
-    // A code repository picks its Runner; a Runner has no code fix switch.
-    expect(titles).not.toContain("Runs AI Code Fixes");
+    /*
+     * A code repository picks its Runner, so a project's Runner has no code
+     * fix switch. A global Runner has one, Runs AI Code Fixes, that only
+     * OneUptime and a master admin set (029d58d8c74, #6115): no project's
+     * permission creates it or changes it.
+     */
+    expect(titles).toContain("Runs AI Code Fixes");
+
+    const codeFixes: ColumnAccessControl | null =
+      new Runner().getColumnAccessControlFor("canRunCodeFixes");
+
+    expect({
+      create: codeFixes?.create,
+      update: codeFixes?.update,
+    }).toEqual({ create: [], update: [] });
   });
 
   it("says the kubernetes-agent mode is deprecated and superseded by the Kubernetes AI agent", () => {
