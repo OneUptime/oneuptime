@@ -701,9 +701,8 @@ what was further down.
   configured" and an on-call schedule's "No upcoming shifts" were all drawn in it (#9127). The dark
   theme paints gray-400 and gray-500 the same, so the change holds there. gray-400 stays for what
   nobody reads as words: an icon beside a label, a separator, a placeholder, a disabled control, and
-  the quiet empty-value dash. The guard reads every app and a class held in a const of the same file;
-  the shared UI holds none, and each app file may hold no more than its count in
-  `ReadableTextStillToFix.ts`, which only falls (#9192). Enforced by
+  the quiet empty-value dash. The guard reads every app, and a class held in a const of the same
+  file (#9192). Enforced by
   [ReadableTextContrastGuard](../../packages/Common/Tests/UI/ReadableTextContrastGuard.test.ts).
 - **Banners are for exceptions the person must act on,** never for the default state. Enforced by
   [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
