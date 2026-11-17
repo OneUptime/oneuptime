@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * Renders the real exception detail pages against the offline fixture
@@ -521,13 +522,18 @@ test.describe("overview", () => {
     const trend: Locator = card(page, "Occurrence Trend");
 
     await expect(trend.getByTestId("exception-trend-chart")).toBeVisible();
-    await expect(trend).toContainText(/occurrences in the last 24 hours/);
+    // The window's count is held to its unit, as a page writes it (#8770).
+    await expect(trend).toContainText(
+      new RegExp(`occurrences in the last 24${NO_BREAK_SPACE}hours`),
+    );
     await expect(
       trend.locator(".recharts-bar-rectangle").first(),
     ).toBeVisible();
 
     await trend.getByTestId("exception-trend-window-30d").click();
-    await expect(trend).toContainText(/occurrences in the last 30 days/);
+    await expect(trend).toContainText(
+      new RegExp(`occurrences in the last 30${NO_BREAK_SPACE}days`),
+    );
 
     const histograms: Array<RecordedApiRequest> = (
       await fixture(page)
