@@ -1,3 +1,4 @@
+import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
   CustomElementProps,
@@ -36,7 +37,7 @@ import {
   getRuleRunnerId,
 } from "Common/Types/AutoRemediation/AutoRemediationFix";
 import { getRunnerLiveStatusLabel } from "Common/Types/Runner/RunnerLiveStatus";
-import { Blue, Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
+import { Blue, Gray500, Yellow } from "Common/Types/BrandColors";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -648,11 +649,7 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
           hideBelowLargeScreen: true,
           foldInto: "name",
           getElement: (item: AutoRemediationRule): ReactElement => {
-            return item.isEnabled ? (
-              <Pill color={Green} text="Enabled" />
-            ) : (
-              <Pill color={Red} text="Disabled" />
-            );
+            return <EnabledPill isEnabled={item.isEnabled} />;
           },
         },
       ]}

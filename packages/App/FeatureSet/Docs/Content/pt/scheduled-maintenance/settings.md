@@ -39,7 +39,7 @@ As regras se diferenciam em como resolvem várias correspondências:
 - **Regras de proprietário**, **Regras de Rótulos** e **Regras de runbook** agem todas quando correspondem. Proprietários e rótulos que várias regras adicionam são adicionados uma só vez.
 - **Regras de lembrete** são verificadas de cima para baixo na lista, e vence a primeira que corresponde. Arraste uma regra para mudar o lugar dela; uma regra nova vai para o final.
 
-Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição dela para pausá-la, e a lista mostra para cada regra um **Habilitado** verde ou um **Desabilitado** vermelho. As regras de proprietário, de rótulos e de runbook agem sobre os eventos criados depois que você as salva. Para aplicar uma regra de proprietário ou de rótulos aos eventos que você já tem, use **Executar agora**: veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now).
+Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição dela para pausá-la, e a lista mostra para cada regra um **Habilitado** verde ou um **Desabilitado** cinza. As regras de proprietário, de rótulos e de runbook agem sobre os eventos criados depois que você as salva. Para aplicar uma regra de proprietário ou de rótulos aos eventos que você já tem, use **Executar agora**: veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now).
 
 ## Regras de proprietário e de rótulos
 

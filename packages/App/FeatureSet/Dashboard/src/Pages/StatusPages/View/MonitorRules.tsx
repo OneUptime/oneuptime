@@ -1,3 +1,4 @@
+import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
@@ -6,7 +7,6 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import { Green, Red } from "Common/Types/BrandColors";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
@@ -15,7 +15,6 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
-import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -225,11 +224,7 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
              */
             type: FieldType.Element,
             getElement: (item: StatusPageMonitorRule): ReactElement => {
-              return item.isEnabled ? (
-                <Pill color={Green} text="Enabled" />
-              ) : (
-                <Pill color={Red} text="Disabled" />
-              );
+              return <EnabledPill isEnabled={item.isEnabled} />;
             },
           },
         ]}

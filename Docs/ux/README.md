@@ -110,7 +110,9 @@ and phone summary: change the suite in the same pull request as the menu.
   under Attention Required. Monitors filed Disabled there with the error icon and a red count beside
   Not Operational, and a red count that never went away taught people to ignore red (#9126). The
   same state is grey wherever it shows: a monitor's row, its badge and an SLO's list of monitors.
-  Enforced by
+  A chip that says Disabled, Archived or Paused is the `Paused` tone, grey with a hollow dot, and a
+  rule's on or off is `EnabledPill`: about ninety rule lists, from owner rules to drop filters and
+  workflows, drew a rule someone switched off as a red "Disabled" (#9184). Enforced by
   [DeliberateStatesNotDangerGuard](../../packages/App/Tests/Dashboard/DeliberateStatesNotDangerGuard.test.ts).
 - **A section with one entry does not repeat that entry's name.** A heading that says what its only
   entry says doubles the menu's height and, folded, hides the page behind a click that tells nothing

@@ -1,3 +1,4 @@
+import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -8,7 +9,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import NetworkDeviceLinkRule from "Common/Models/DatabaseModels/NetworkDeviceLinkRule";
 import React, { FunctionComponent, ReactElement } from "react";
-import { Blue, Green, Grey, Red } from "Common/Types/BrandColors";
+import { Blue, Grey } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
 import NetworkDeviceLinkRuleScope, {
   NetworkDeviceLinkRuleScopeUtil,
@@ -113,11 +114,7 @@ const NetworkDeviceLinkRulesPage: FunctionComponent<
           title: "Status",
           type: FieldType.Boolean,
           getElement: (item: NetworkDeviceLinkRule): ReactElement => {
-            return item.isEnabled ? (
-              <Pill color={Green} text="Enabled" />
-            ) : (
-              <Pill color={Red} text="Disabled" />
-            );
+            return <EnabledPill isEnabled={item.isEnabled} />;
           },
         },
         {

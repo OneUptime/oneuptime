@@ -57,7 +57,7 @@ The **Name** is filled in from what you pick (_Add Production_, _Add Platform as
 On the last step, click the button named after the rule again, such as **Create Monitor Label Rule**. The rule starts enabled, and the list shows it with a green **Enabled** pill.
 :::
 
-A new rule has to add something: at least one label (or owner) or, on an incident, alert or scheduled maintenance rule, something it inherits (see below). To pause a rule without deleting it, switch **Enabled** off on its edit form; the list then shows a red **Disabled** pill. On an incident or alert owner rule, a team under **Creator's Team** is enough too.
+A new rule has to add something: at least one label (or owner) or, on an incident, alert or scheduled maintenance rule, something it inherits (see below). To pause a rule without deleting it, switch **Enabled** off on its edit form; the list then shows a grey **Disabled** pill. On an incident or alert owner rule, a team under **Creator's Team** is enough too.
 
 ### However the rule is made
 

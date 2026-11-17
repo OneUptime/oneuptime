@@ -17,8 +17,9 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green } from "Common/Types/BrandColors";
 import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -254,7 +255,7 @@ const IncomingCallPolicyView: FunctionComponent<
               if (item.isEnabled) {
                 return <Pill text="Enabled" color={Green} />;
               }
-              return <Pill text="Disabled" color={Red} />;
+              return <Pill text="Disabled" tone={PillTone.Paused} />;
             },
           },
           {

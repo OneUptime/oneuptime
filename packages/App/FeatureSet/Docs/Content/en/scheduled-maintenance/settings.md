@@ -39,7 +39,7 @@ The rules differ in how several matches resolve:
 - **Owner Rules**, **Label Rules** and **Runbook Rules** all act when they match. Owners and labels that several rules add are added once.
 - **Reminder Rules** are checked from the top of their list down, and the first match wins. Drag a rule to change its place; a new rule goes to the end.
 
-A new rule starts enabled; switch **Enabled** off on its edit form to pause it, and the list shows a green **Enabled** or red **Disabled** for each rule. Owner, label and runbook rules act on events created after you save them. To apply an owner or label rule to the events you already have, use **Run Now**: see [Run Rules on Existing Resources](/docs/configuration/run-rules-now).
+A new rule starts enabled; switch **Enabled** off on its edit form to pause it, and the list shows a green **Enabled** or grey **Disabled** for each rule. Owner, label and runbook rules act on events created after you save them. To apply an owner or label rule to the events you already have, use **Run Now**: see [Run Rules on Existing Resources](/docs/configuration/run-rules-now).
 
 ## Owner and label rules
 
