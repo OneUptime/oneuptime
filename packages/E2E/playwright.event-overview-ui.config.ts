@@ -9,12 +9,14 @@ import path from "path";
 const port: string = process.env["EVENT_OVERVIEW_FIXTURE_PORT"] || "4222";
 
 /*
- * App Test runs this suite in halves, one per Dashboard Offline UI group:
- * the group's matrix sets EVENT_OVERVIEW_SHARD to "1/2" or "2/2". The suite
- * is one spec file of independent tests - each opens its own page - so it
- * is split by test rather than by file (fullyParallel), each half one
- * worker as before. Unset, the whole suite runs, in file order, as it
- * always has.
+ * App Test runs this suite in thirds, one per Dashboard Offline UI group:
+ * the group's matrix sets EVENT_OVERVIEW_SHARD to "1/3", "2/3" or "3/3"
+ * (halves until 2026-11-17: a group runs two suites at a time, each about a
+ * quarter slower beside the other, and a half took 20 to 23 minutes alone).
+ * The suite is one spec file of independent tests - each opens its own
+ * page - so it is split by test rather than by file (fullyParallel), each
+ * third one worker as before. Unset, the whole suite runs, in file order,
+ * as it always has.
  */
 const SHARD_PATTERN: RegExp = /^(\d+)\/(\d+)$/;
 const shardMatch: RegExpExecArray | null = SHARD_PATTERN.exec(
