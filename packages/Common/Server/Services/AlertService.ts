@@ -1543,6 +1543,18 @@ export class Service extends ProjectReferencesService<Model> {
          * before the fan-out below picks up the merged list.
          */
         try {
+          /*
+           * A rule with an Alert Owner condition matches on the alert's
+           * owners: those its creator and the code that made it add - a
+           * monitor's criteria's, the network device's - are waited for a
+           * moment first (AlertOnCallRulesOnOwnerChange).
+           */
+          await AlertOnCallRulesOnOwnerChange.waitForOwnersOfCreate({
+            createBy: onCreate.createBy,
+            alertId: createdItem.id!,
+            projectId: createdItem.projectId!,
+          });
+
           onCallRulesPaging =
             (await AlertOnCallRuleEngineService.applyRulesToAlert(
               createdItem,

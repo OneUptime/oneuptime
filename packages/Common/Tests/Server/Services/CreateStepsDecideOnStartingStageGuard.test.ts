@@ -123,6 +123,8 @@ const SERVICES: Array<ServiceSteps> = [
         "its owners' created notification",
       "AlertOwnerRuleEngineService.applyRulesToAlert": "its owners",
       "AlertLabelRuleEngineService.applyRulesToAlert": "its labels",
+      "AlertOnCallRulesOnOwnerChange.waitForOwnersOfCreate":
+        "the owners its on-call rules match on (#9407)",
       "AlertOnCallRuleEngineService.applyRulesToAlert":
         "which on-call policies it lists",
       "this.refreshReminderSchedule":
