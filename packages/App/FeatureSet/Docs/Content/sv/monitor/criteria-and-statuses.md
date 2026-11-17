@@ -97,7 +97,7 @@ För att se hur en kontroll bedömdes öppnar du monitorns **Översikt**: kortet
 
 **När den går ner** berättar med några få meningar vad som händer när övervakningen fallerar och vem som får besked: statusen den sätter, incidenten eller larmet den öppnar, vem som får e-post och vem den larmar, med namn. Allt som skulle hindra någon från att få besked står på en egen rad, med en länk till sidan där det åtgärdas. Du hittar det i en monitors **Översikt**, under kriterierna på sidan **Kriterier**, i kriteriesteget i **Skapa monitor** för den monitor du håller på att skapa, och i den guidade konfigurationen för webbplatser.
 
-Det tar fram kedjan som en riktig incident eller ett riktigt larm gör: med projektets ägarregler, sekretessregler, etikettregler och jourregler, incidentregeln för larm som gör ett larm till en incident, och vem den första eskaleringsregeln i varje jourpolicy når just nu. En platshållare i titeln som bara en kontroll fyller i visas som den är skriven. **Visa kedjan** öppnar den rad för rad:
+Det tar fram kedjan som en riktig incident eller ett riktigt larm gör: med projektets ägarregler, sekretessregler, etikettregler och jourregler, incidentregeln för larm som gör ett larm till en incident, och vem den första eskaleringsregeln i varje jourpolicy når just nu. En jourregel som frågar vem som äger ett larm (**Ägare av larm**) matchas mot de ägare larmet kommer att ha: de personer och team som kriterierna anger, ägarna till nätverksenheten som övervakningen bevakar, och dem som ägarregler lägger till. En platshållare i titeln som bara en kontroll fyller i visas som den är skriven. **Visa kedjan** öppnar den rad för rad:
 
 | Rad | Vad den säger |
 | --- | --- |
@@ -107,7 +107,7 @@ Det tar fram kedjan som en riktig incident eller ett riktigt larm gör: med proj
 | **Ägarregler** | Ägarreglerna som lägger till dess ägare. |
 | **Privat** | Varför den är privat: en sekretessregel eller kriterierna. En privat incident visas inte på någon statussida och meddelar inga prenumeranter, och bara dess ägare, Projektägarna och Projektadministratörerna kan se den. |
 | **Etikettregler** | Etikettreglerna vars etiketter ändrar vilka jourregler som larmar. |
-| **Jourregler** | Jourreglerna som matchar den. |
+| **Jourregler** | Jourreglerna som matchar den. För en regel som matchar vem som äger ett larm står det vilken ägare som får den att matcha. |
 | **Jourpolicy** | Varje policy som de reglerna kör: vem dess första eskaleringsregel når just nu och hur, och vem den inte når, och varför. |
 | **Statussidor** | Statussidorna som visar den, var och en med den monitorgrupp som sidan visar monitorn genom. |
 | **Incidentregel** | För ett larm: incidentregeln för larm som skapar en incident av det, genast eller när larmet har varit öppet en tid, och den incidenten, beskriven som vilken incident som helst. |
@@ -128,7 +128,7 @@ Det tar fram kedjan som en riktig incident eller ett riktigt larm gör: med proj
 
 Ett larm som en incidentregel för larm gör om till en incident som larmar någon är inget avbrott: då kontrolleras incidentens egna policyer i stället.
 
-Ägare som inte får e-post listas efter avbrotten, var och en med orsaken och platsen där de anges: någon som inte är medlem i projektet, ett team där ingen är medlem (**Öppna team**), eller ett team från ett annat projekt, angivet i kriterierna (**Öppna kriterier**), på nätverksenheten som monitorn bevakar (**Öppna nätverksenhet**) eller av en ägarregel (**Öppna ägarregler**). E-postmeddelandet skickas ändå, till de ägare det når eller till Projektägarna, så de är inga avbrott.
+Ägare som inte får e-post listas efter avbrotten, var och en med orsaken och platsen där de anges: någon som inte är medlem i projektet, ett team där ingen är medlem (**Öppna team**), eller ett team från ett annat projekt, angivet i kriterierna (**Öppna kriterier**), på nätverksenheten som monitorn bevakar (**Öppna nätverksenhet**) eller av en ägarregel (**Öppna ägarregler**). E-postmeddelandet skickas ändå, till de ägare det når eller till Projektägarna, så de är inga avbrott. Inställningarnas hälsa listar dem också, som något som är värt att åtgärda.
 
 ### Kontrollera igen, och vad du kan se
 

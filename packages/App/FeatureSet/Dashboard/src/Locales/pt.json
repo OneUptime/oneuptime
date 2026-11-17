@@ -56682,11 +56682,19 @@
   "{{field}} is none of {{count}} selected people or teams_one": "{{field}} não é {{count}} pessoa ou equipe selecionada",
   "Is any of": "É um de",
   "Is none of": "Não é nenhum de",
+  "{{page}} (through {{groups}})": "{{page}} (por meio de {{groups}})",
+  "A team of another project is named as an owner in the criteria of {{monitor}}, so nobody is emailed through it.": "Uma equipe de outro projeto está indicada como proprietária nos critérios de {{monitor}}, então ninguém recebe e-mail por meio dela.",
+  "A team of another project owns the network device {{monitor}} watches, so nobody is emailed through it.": "Uma equipe de outro projeto é proprietária do dispositivo de rede que {{monitor}} observa, então ninguém recebe e-mail por meio dela.",
+  "An owner of the network device {{monitor}} watches isn't a member of this project, so isn't emailed.": "Um proprietário do dispositivo de rede que {{monitor}} observa não é membro deste projeto, então não recebe e-mail.",
+  "It's owned by {{owners}}, so a rule you can't see matches.": "Proprietários: {{owners}}, então corresponde uma regra que você não pode ver.",
+  "It's owned by {{owners}}, so {{rule}} matches.": "Proprietários: {{owners}}, então {{rule}} corresponde.",
+  "Owner rule {{rule}} adds a team of another project as an owner, so nobody is emailed through it.": "A regra de proprietário {{rule}} adiciona como proprietária uma equipe de outro projeto, então ninguém recebe e-mail por meio dela.",
+  "Owner rule {{rule}} adds someone who isn't a member of this project as an owner, so they aren't emailed.": "A regra de proprietário {{rule}} adiciona como proprietária uma pessoa que não é membro deste projeto, então ela não recebe e-mail.",
+  "Someone named as an owner in the criteria of {{monitor}} isn't a member of this project, so isn't emailed.": "Uma pessoa indicada como proprietária nos critérios de {{monitor}} não é membro deste projeto, então não recebe e-mail.",
   "{{first}}, then {{next}}": "{{first}}, depois {{next}}",
   "{{methods}} after {{count}} minutes": "{{methods}} após {{count}} minutos",
   "{{methods}} after {{count}} minutes_one": "{{methods}} após {{count}} minuto",
   "{{methods}} at once": "{{methods}} imediatamente",
-  "{{page}} (through {{groups}})": "{{page}} (por meio de {{groups}})",
   "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait.": "A regra de incidente de alertas {{rule}} declara este incidente a partir do alerta se ele ainda estiver aberto após {{count}} minutos. O simulado o testa agora, sem esperar.",
   "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait._one": "A regra de incidente de alertas {{rule}} declara este incidente a partir do alerta se ele ainda estiver aberto após {{count}} minuto. O simulado o testa agora, sem esperar.",
   "Alert incident rule {{rule}} declares this incident from the alert right away.": "A regra de incidente de alertas {{rule}} declara imediatamente este incidente a partir do alerta.",
@@ -56727,5 +56735,6 @@
   "The test reaches you as your {{howToReachMe}} says for this severity.": "O teste chega a você como diz o seu “{{howToReachMe}}” para esta gravidade.",
   "This makes the {{onCallPolicy}} \"{{policy}}\", which pages them for every new incident and alert in this project.": "Isso cria a {{onCallPolicy}} \"{{policy}}\", que aciona essas pessoas para cada novo incidente e cada novo alerta deste projeto.",
   "When it goes down, OneUptime opens an incident and pages these people, each the way their {{howToReachMe}} says. It starts with you, by email.": "Quando ele cai, o OneUptime abre um incidente e aciona essas pessoas, cada uma como diz o seu “{{howToReachMe}}”. Começa por você, por e-mail.",
-  "Your customers see it on a status page.": "Seus clientes o veem em uma página de status."
+  "Your customers see it on a status page.": "Seus clientes o veem em uma página de status.",
+  "Backup Script Last Run": "Última execução do script de backup"
 }

@@ -56682,11 +56682,19 @@
   "{{field}} is none of {{count}} selected people or teams_one": "{{field}} n'est pas la personne ou l'équipe sélectionnée ({{count}})",
   "Is any of": "Est l'un de",
   "Is none of": "N'est aucun de",
+  "{{page}} (through {{groups}})": "{{page}} (via {{groups}})",
+  "A team of another project is named as an owner in the criteria of {{monitor}}, so nobody is emailed through it.": "Une équipe d'un autre projet est désignée comme propriétaire dans les critères de {{monitor}} : personne n'est donc prévenu par e-mail à travers elle.",
+  "A team of another project owns the network device {{monitor}} watches, so nobody is emailed through it.": "Une équipe d'un autre projet est propriétaire de l'équipement réseau que surveille {{monitor}} : personne n'est donc prévenu par e-mail à travers elle.",
+  "An owner of the network device {{monitor}} watches isn't a member of this project, so isn't emailed.": "Un propriétaire de l'équipement réseau que surveille {{monitor}} n'est pas membre de ce projet : il ne reçoit donc pas d'e-mail.",
+  "It's owned by {{owners}}, so a rule you can't see matches.": "Propriétaires : {{owners}}, donc une règle que vous ne pouvez pas voir correspond.",
+  "It's owned by {{owners}}, so {{rule}} matches.": "Propriétaires : {{owners}}, donc {{rule}} correspond.",
+  "Owner rule {{rule}} adds a team of another project as an owner, so nobody is emailed through it.": "La règle de propriétaire {{rule}} ajoute comme propriétaire une équipe d'un autre projet : personne n'est donc prévenu par e-mail à travers elle.",
+  "Owner rule {{rule}} adds someone who isn't a member of this project as an owner, so they aren't emailed.": "La règle de propriétaire {{rule}} ajoute comme propriétaire une personne qui n'est pas membre de ce projet : elle ne reçoit donc pas d'e-mail.",
+  "Someone named as an owner in the criteria of {{monitor}} isn't a member of this project, so isn't emailed.": "Une personne désignée comme propriétaire dans les critères de {{monitor}} n'est pas membre de ce projet : elle ne reçoit donc pas d'e-mail.",
   "{{first}}, then {{next}}": "{{first}}, puis {{next}}",
   "{{methods}} after {{count}} minutes": "{{methods}} après {{count}} minutes",
   "{{methods}} after {{count}} minutes_one": "{{methods}} après {{count}} minute",
   "{{methods}} at once": "{{methods}} immédiatement",
-  "{{page}} (through {{groups}})": "{{page}} (via {{groups}})",
   "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait.": "La règle d'incident des alertes {{rule}} déclare cet incident à partir de l'alerte si elle est encore ouverte après {{count}} minutes. L'exercice d'alerte le teste maintenant, sans attendre.",
   "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait._one": "La règle d'incident des alertes {{rule}} déclare cet incident à partir de l'alerte si elle est encore ouverte après {{count}} minute. L'exercice d'alerte le teste maintenant, sans attendre.",
   "Alert incident rule {{rule}} declares this incident from the alert right away.": "La règle d'incident des alertes {{rule}} déclare aussitôt cet incident à partir de l'alerte.",
@@ -56727,5 +56735,6 @@
   "The test reaches you as your {{howToReachMe}} says for this severity.": "Le test vous joint comme l'indique votre « {{howToReachMe}} » pour cette gravité.",
   "This makes the {{onCallPolicy}} \"{{policy}}\", which pages them for every new incident and alert in this project.": "Cela crée la {{onCallPolicy}} « {{policy}} », qui les alerte pour chaque nouvel incident et chaque nouvelle alerte de ce projet.",
   "When it goes down, OneUptime opens an incident and pages these people, each the way their {{howToReachMe}} says. It starts with you, by email.": "En cas de panne, OneUptime ouvre un incident et alerte ces personnes, chacune comme l'indique son « {{howToReachMe}} ». Vous êtes le premier prévenu, par e-mail.",
-  "Your customers see it on a status page.": "Vos clients le voient sur une page de statut."
+  "Your customers see it on a status page.": "Vos clients le voient sur une page de statut.",
+  "Backup Script Last Run": "Dernière exécution du script de sauvegarde"
 }

@@ -4175,5 +4175,22 @@
   "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "此伺服器還無法寄送郵件。請在此設定密碼，或留空以取得由您親自傳送的連結。",
   "This server cannot send email yet. Set up email under Settings > Emails.": "此伺服器還無法寄送郵件。請在「設定 > 電子郵件」中設定郵件。",
   "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "此伺服器還無法寄送郵件，因此未寄出重設密碼連結。請在「設定 > 電子郵件」中設定郵件，或親自為對方設定密碼。",
-  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "此使用者已有密碼，因此沒有可複製的設定密碼連結。請改從其驗證頁面寄送重設密碼連結。"
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "此使用者已有密碼，因此沒有可複製的設定密碼連結。請改從其驗證頁面寄送重設密碼連結。",
+  "How to back up with Docker Compose": "如何用 Docker Compose 備份",
+  "How to back up on Kubernetes": "如何在 Kubernetes 上備份",
+  "Out of date: the last backup finished on {{time}}, more than a week ago.": "已過時：上一次備份於 {{time}} 完成，已超過一週。",
+  "Backed up with npm run backup.": "使用 npm run backup 備份。",
+  "npm run backup did not finish a backup. Run it on the server to see why.": "npm run backup 沒有完成任何備份。請在伺服器上執行它查看原因。",
+  "Send test push": "傳送測試推播",
+  "The test push was accepted for {{to}}. If it does not show, look at the notification settings of that phone or browser.": "寄往 {{to}} 的測試推播已被接收。如果沒有顯示，請查看該手機或瀏覽器的通知設定。",
+  "None of your devices took the test push: {{reason}}": "你的裝置都沒有收到測試推播：{{reason}}",
+  "Push notifications are turned off under Settings > Push Notifications.": "推播通知已在「設定 > 推播通知」中關閉。",
+  "You have no phone or browser registered for push notifications. Register one under User Settings > Notification Methods in the Dashboard.": "你沒有為推播通知註冊任何手機或瀏覽器。請在 Dashboard 的「使用者設定 > 通知方式」中註冊一個。",
+  "Your browsers cannot get a push from this server: it has no VAPID keys. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY, or register a phone with the OneUptime On-Call app.": "你的瀏覽器無法從此伺服器收到推播：它沒有 VAPID 金鑰。請設定 VAPID_PUBLIC_KEY 和 VAPID_PRIVATE_KEY，或用 OneUptime On-Call 應用程式註冊一支手機。",
+  "A test notification goes to the phones and browsers you registered for push notifications, and to nobody else.": "測試通知只會傳到你為推播通知註冊的手機和瀏覽器，不會傳給其他人。",
+  "Test push notifications": "測試推播通知",
+  "Send a test push to your own phones and browsers to make sure push notifications reach them.": "向你自己的手機和瀏覽器傳送測試推播，確認推播通知能夠送達。",
+  "Check Gateway": "檢查閘道",
+  "Checking your gateway…": "正在檢查你的閘道…",
+  "Your gateway answered the test request.": "你的閘道已回應測試要求。"
 }

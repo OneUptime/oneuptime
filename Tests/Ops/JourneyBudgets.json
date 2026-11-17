@@ -153,13 +153,13 @@
       "budget": {
         "screens": 2,
         "dialogs": 2,
-        "clicks": 11,
+        "clicks": 10,
         "fieldsTyped": 5,
         "products": 2,
         "keystrokes": 119,
         "defaultsKept": 2,
         "choices": 0,
-        "words": 490
+        "words": 493
       }
     }
   }

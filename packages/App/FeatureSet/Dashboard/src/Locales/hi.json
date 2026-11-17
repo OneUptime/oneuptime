@@ -56682,11 +56682,19 @@
   "{{field}} is none of {{count}} selected people or teams_one": "{{field}} चुना गया {{count}} व्यक्ति या टीम नहीं है",
   "Is any of": "इनमें से कोई एक है",
   "Is none of": "इनमें से कोई नहीं है",
+  "{{page}} (through {{groups}})": "{{page}} ({{groups}} के ज़रिए)",
+  "A team of another project is named as an owner in the criteria of {{monitor}}, so nobody is emailed through it.": "{{monitor}} के मानदंड में किसी दूसरे प्रोजेक्ट की टीम को स्वामी बनाया गया है, इसलिए उसके ज़रिए किसी को ईमेल नहीं जाता।",
+  "A team of another project owns the network device {{monitor}} watches, so nobody is emailed through it.": "{{monitor}} जिस नेटवर्क डिवाइस की निगरानी करता है, उसकी स्वामी किसी दूसरे प्रोजेक्ट की टीम है, इसलिए उसके ज़रिए किसी को ईमेल नहीं जाता।",
+  "An owner of the network device {{monitor}} watches isn't a member of this project, so isn't emailed.": "{{monitor}} जिस नेटवर्क डिवाइस की निगरानी करता है, उसका एक स्वामी इस प्रोजेक्ट का सदस्य नहीं है, इसलिए उसे ईमेल नहीं जाता।",
+  "It's owned by {{owners}}, so a rule you can't see matches.": "स्वामी {{owners}} हैं, इसलिए ऐसा नियम मेल खाता है जिसे आप नहीं देख सकते।",
+  "It's owned by {{owners}}, so {{rule}} matches.": "स्वामी {{owners}} हैं, इसलिए {{rule}} मेल खाता है।",
+  "Owner rule {{rule}} adds a team of another project as an owner, so nobody is emailed through it.": "स्वामी नियम {{rule}} किसी दूसरे प्रोजेक्ट की टीम को स्वामी के रूप में जोड़ता है, इसलिए उसके ज़रिए किसी को ईमेल नहीं जाता।",
+  "Owner rule {{rule}} adds someone who isn't a member of this project as an owner, so they aren't emailed.": "स्वामी नियम {{rule}} ऐसे व्यक्ति को स्वामी के रूप में जोड़ता है जो इस प्रोजेक्ट का सदस्य नहीं है, इसलिए उसे ईमेल नहीं जाता।",
+  "Someone named as an owner in the criteria of {{monitor}} isn't a member of this project, so isn't emailed.": "{{monitor}} के मानदंड में स्वामी के रूप में बताया गया व्यक्ति इस प्रोजेक्ट का सदस्य नहीं है, इसलिए उसे ईमेल नहीं जाता।",
   "{{first}}, then {{next}}": "{{first}}, फिर {{next}}",
   "{{methods}} after {{count}} minutes": "{{count}} मिनट बाद {{methods}}",
   "{{methods}} after {{count}} minutes_one": "{{count}} मिनट बाद {{methods}}",
   "{{methods}} at once": "तुरंत {{methods}}",
-  "{{page}} (through {{groups}})": "{{page}} ({{groups}} के ज़रिए)",
   "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait.": "अगर अलर्ट {{count}} मिनट बाद भी खुला रहता है, तो अलर्ट घटना नियम {{rule}} उससे यह घटना घोषित करता है। फ़ायर ड्रिल बिना इंतज़ार किए इसका परीक्षण अभी करती है।",
   "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait._one": "अगर अलर्ट {{count}} मिनट बाद भी खुला रहता है, तो अलर्ट घटना नियम {{rule}} उससे यह घटना घोषित करता है। फ़ायर ड्रिल बिना इंतज़ार किए इसका परीक्षण अभी करती है।",
   "Alert incident rule {{rule}} declares this incident from the alert right away.": "अलर्ट घटना नियम {{rule}} अलर्ट से यह घटना तुरंत घोषित करता है।",
@@ -56727,5 +56735,6 @@
   "The test reaches you as your {{howToReachMe}} says for this severity.": "टेस्ट आप तक वैसे पहुँचता है जैसा इस गंभीरता के लिए आपका “{{howToReachMe}}” कहता है।",
   "This makes the {{onCallPolicy}} \"{{policy}}\", which pages them for every new incident and alert in this project.": "इससे {{onCallPolicy}} \"{{policy}}\" बनती है, जो इस प्रोजेक्ट की हर नई घटना और अलर्ट पर उन्हें पेज करती है।",
   "When it goes down, OneUptime opens an incident and pages these people, each the way their {{howToReachMe}} says. It starts with you, by email.": "डाउन होने पर OneUptime घटना खोलता है और इन लोगों को पेज करता है, हर एक को वैसे जैसा उसका “{{howToReachMe}}” कहता है। शुरुआत आपसे होती है, ईमेल से।",
-  "Your customers see it on a status page.": "आपके ग्राहक इसे स्थिति पृष्ठ पर देखते हैं।"
+  "Your customers see it on a status page.": "आपके ग्राहक इसे स्थिति पृष्ठ पर देखते हैं।",
+  "Backup Script Last Run": "बैकअप स्क्रिप्ट का अंतिम रन"
 }

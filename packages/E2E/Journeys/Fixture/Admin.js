@@ -167,7 +167,21 @@ function setupChecklist() {
       },
       lastBackup: null,
       hasScheduledBackups: false,
+      // npm run backup has not run yet.
+      lastScriptBackup: null,
+      /*
+       * Installed with Docker Compose, as the docs install it first: its
+       * docker-compose.yml says so (INSTALLED_WITH), so How to back up
+       * opens npm run backup's steps alone (#9378).
+       */
+      installKind: "docker-compose",
       isBrowserPushSetUp: false,
+      // Push is on, as on every server until it is turned off: a test push can go.
+      push: {
+        ...NOT_SET_UP("push"),
+        state: "untested",
+        setUpProblem: null,
+      },
       hasAiProvider: false,
       hasSingleSignOn: false,
       choices: { choices: {}, hiddenBy: {} },

@@ -2903,6 +2903,32 @@ export default class GlobalConfig extends GlobalConfigModel {
   public serverSetupChoices?: JSONObject = undefined;
 
   /*
+   * The last run of `npm run backup` (Types/Backup/BackupScriptRun, issue
+   * #7026): { at, succeeded, sizeInBytes }, which the setup checklist's
+   * Backups check reads. Null until the script first tells the server, and
+   * on every server whose script is older. Written by OneUptime only
+   * (isRoot), from POST /api/admin/health/backup-run, which takes the
+   * server's cluster key from the script: GlobalConfigService refuses a
+   * write through the CRUD API, so no session marks a server as backed up.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Backup Script Last Run",
+    description:
+      "When npm run backup last told this server it ran, whether it succeeded, and the size of the dump it wrote.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public backupScriptLastRun?: JSONObject = undefined;
+
+  /*
    * Whether OneUptime asks people how things went (issue #6832): the
    * question at the end of a guided setup, Was this clear? and the
    * first-week check-in, and whether Give feedback is in Help. On unless

@@ -56682,11 +56682,19 @@
   "{{field}} is none of {{count}} selected people or teams_one": "{{field}} 不是所选 {{count}} 个人员或团队中的任何一个",
   "Is any of": "是以下任一项",
   "Is none of": "不是以下任一项",
+  "{{page}} (through {{groups}})": "{{page}}（通过 {{groups}}）",
+  "A team of another project is named as an owner in the criteria of {{monitor}}, so nobody is emailed through it.": "{{monitor}} 的标准将另一个项目的团队指定为所有者，因此不会通过它向任何人发送电子邮件。",
+  "A team of another project owns the network device {{monitor}} watches, so nobody is emailed through it.": "另一个项目的团队拥有 {{monitor}} 所监控的网络设备，因此不会通过它向任何人发送电子邮件。",
+  "An owner of the network device {{monitor}} watches isn't a member of this project, so isn't emailed.": "{{monitor}} 所监控的网络设备的一位所有者不是此项目的成员，因此收不到电子邮件。",
+  "It's owned by {{owners}}, so a rule you can't see matches.": "所有者为 {{owners}}，因此您无法查看的规则匹配。",
+  "It's owned by {{owners}}, so {{rule}} matches.": "所有者为 {{owners}}，因此 {{rule}} 匹配。",
+  "Owner rule {{rule}} adds a team of another project as an owner, so nobody is emailed through it.": "所有者规则 {{rule}} 将另一个项目的团队添加为所有者，因此不会通过它向任何人发送电子邮件。",
+  "Owner rule {{rule}} adds someone who isn't a member of this project as an owner, so they aren't emailed.": "所有者规则 {{rule}} 将不是此项目成员的人添加为所有者，因此此人收不到电子邮件。",
+  "Someone named as an owner in the criteria of {{monitor}} isn't a member of this project, so isn't emailed.": "在 {{monitor}} 的标准中被指定为所有者的人不是此项目的成员，因此收不到电子邮件。",
   "{{first}}, then {{next}}": "{{first}}，然后{{next}}",
   "{{methods}} after {{count}} minutes": "{{count}} 分钟后通过{{methods}}",
   "{{methods}} after {{count}} minutes_one": "{{count}} 分钟后通过{{methods}}",
   "{{methods}} at once": "立即通过{{methods}}",
-  "{{page}} (through {{groups}})": "{{page}}（通过 {{groups}}）",
   "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait.": "如果警报 {{count}} 分钟后仍未关闭，警报事件规则 {{rule}} 会据此宣布此事件。故障演练现在就测试它，无需等待。",
   "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait._one": "如果警报 {{count}} 分钟后仍未关闭，警报事件规则 {{rule}} 会据此宣布此事件。故障演练现在就测试它，无需等待。",
   "Alert incident rule {{rule}} declares this incident from the alert right away.": "警报事件规则 {{rule}} 会立即根据警报宣布此事件。",
@@ -56727,5 +56735,6 @@
   "The test reaches you as your {{howToReachMe}} says for this severity.": "测试会按你针对此严重程度的“{{howToReachMe}}”送达。",
   "This makes the {{onCallPolicy}} \"{{policy}}\", which pages them for every new incident and alert in this project.": "这会创建{{onCallPolicy}}“{{policy}}”，在此项目中每出现一个新事件和警报，都会呼叫他们。",
   "When it goes down, OneUptime opens an incident and pages these people, each the way their {{howToReachMe}} says. It starts with you, by email.": "宕机时，OneUptime 会创建事件，并按这些人各自的“{{howToReachMe}}”呼叫他们。首先收到电子邮件的是你。",
-  "Your customers see it on a status page.": "你的客户会在状态页面上看到它。"
+  "Your customers see it on a status page.": "你的客户会在状态页面上看到它。",
+  "Backup Script Last Run": "备份脚本最近运行"
 }

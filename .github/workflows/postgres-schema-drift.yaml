@@ -736,6 +736,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/OnCallFireDrillPostgres.test.ts --forceExit
 
+      # #9407, #9371: When this goes down and Setup health work out who owns
+      # what each monitor opens - the project's teams and who is in them,
+      # every network device's owners, every monitor's own owners - in one
+      # read of each for the whole project. On copies of the migrated owner
+      # tables: an alert's owners are the rows its create would write, an
+      # Alert Owner rule matches them as the real engine matches a saved
+      # alert's rows, who isn't reached is said, another project's device
+      # owner is never read, and the statements do not grow with the monitors.
+      - name: Test who owns what a monitor opens, on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WHO_IS_TOLD_OWNERS_TESTS: "true"
+          WHO_IS_TOLD_OWNERS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WHO_IS_TOLD_OWNERS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WHO_IS_TOLD_OWNERS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/WhoIsToldOwnersPostgres.test.ts --forceExit
+
       # #9036, #9069: deleting an escalation rule, a schedule, a team or a
       # person keeps the on-call runs, their timelines and the pages that
       # name it (ON DELETE SET NULL), and deleting a picture's file keeps
@@ -4521,6 +4541,24 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/WhoWasToldReadPostgres.test.ts --forceExit
+
+      # #7026: npm run backup tells the server it ran. GlobalConfig, cloned
+      # from the migrated schema as it was before AddBackupScriptLastRun: one
+      # nullable jsonb column added, the row a server has kept as it was and
+      # read as never told, a run written through the model read back whole
+      # and replaced by the next, and down() and up() again.
+      - name: Test the backup script's last run on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_BACKUP_SCRIPT_RUN_TESTS: "true"
+          BACKUP_SCRIPT_RUN_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          BACKUP_SCRIPT_RUN_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          BACKUP_SCRIPT_RUN_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddBackupScriptLastRunPostgres.test.ts
+          --forceExit
 
       # #9066: a rule is never widened to every record by a delete. Every
       # list a rule can be limited to (152 match lists of 87 rule kinds and

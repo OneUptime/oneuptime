@@ -30,10 +30,12 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 /*
  * "DOES IT WORK?" ON A CHANNEL'S OWN SETTINGS PAGE.
  *
- * Settings > Emails and Settings > Call and SMS each start with this card:
- * where the channel stands, in the setup checklist's words ("Set up, but not
- * tested yet", "smtp.example.com accepted an email on 11 Nov", "Failing ...
- * Twilio said: ..."), and its test sends. A test the provider accepts is
+ * Settings > Emails, Settings > Call and SMS and Settings > Push
+ * Notifications each start with this card: where the channel stands, in the
+ * setup checklist's words ("Set up, but not tested yet", "smtp.example.com
+ * accepted an email on 11 Nov", "Failing ... Twilio said: ..."), and its
+ * test sends - a test push going to the admin's own devices (#7028). A test
+ * the provider accepts is
  * said here, by what took it; one it refuses stays in the dialog, in the
  * provider's words. Either way the card reads the checklist again, so it
  * says what the banner and Server setup now say.
@@ -51,6 +53,8 @@ export const SERVER_TEST_CARD_COPY: {
   emailDescription: string;
   callAndSmsTitle: string;
   callAndSmsDescription: string;
+  pushTitle: string;
+  pushDescription: string;
 } = {
   emailTitle: "Test email",
   emailDescription:
@@ -58,10 +62,17 @@ export const SERVER_TEST_CARD_COPY: {
   callAndSmsTitle: "Test SMS and calls",
   callAndSmsDescription:
     "Send a test SMS or make a test call through these settings.",
+  // Settings > Push Notifications (#7028).
+  pushTitle: "Test push notifications",
+  pushDescription:
+    "Send a test push to your own phones and browsers to make sure push notifications reach them.",
 };
 
 export interface ComponentProps {
-  check: ServerSetupCheckId.Email | ServerSetupCheckId.SmsAndCalls;
+  check:
+    | ServerSetupCheckId.Email
+    | ServerSetupCheckId.SmsAndCalls
+    | ServerSetupCheckId.BrowserPush;
   title: string;
   description: string;
   channels: Array<ServerSendingChannel>;

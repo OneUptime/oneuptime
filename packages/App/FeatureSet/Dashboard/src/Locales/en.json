@@ -56682,11 +56682,19 @@
   "{{field}} is none of {{count}} selected people or teams_one": "{{field}} is none of {{count}} selected person or team",
   "Is any of": "Is any of",
   "Is none of": "Is none of",
+  "{{page}} (through {{groups}})": "{{page}} (through {{groups}})",
+  "A team of another project is named as an owner in the criteria of {{monitor}}, so nobody is emailed through it.": "A team of another project is named as an owner in the criteria of {{monitor}}, so nobody is emailed through it.",
+  "A team of another project owns the network device {{monitor}} watches, so nobody is emailed through it.": "A team of another project owns the network device {{monitor}} watches, so nobody is emailed through it.",
+  "An owner of the network device {{monitor}} watches isn't a member of this project, so isn't emailed.": "An owner of the network device {{monitor}} watches isn't a member of this project, so isn't emailed.",
+  "It's owned by {{owners}}, so a rule you can't see matches.": "It's owned by {{owners}}, so a rule you can't see matches.",
+  "It's owned by {{owners}}, so {{rule}} matches.": "It's owned by {{owners}}, so {{rule}} matches.",
+  "Owner rule {{rule}} adds a team of another project as an owner, so nobody is emailed through it.": "Owner rule {{rule}} adds a team of another project as an owner, so nobody is emailed through it.",
+  "Owner rule {{rule}} adds someone who isn't a member of this project as an owner, so they aren't emailed.": "Owner rule {{rule}} adds someone who isn't a member of this project as an owner, so they aren't emailed.",
+  "Someone named as an owner in the criteria of {{monitor}} isn't a member of this project, so isn't emailed.": "Someone named as an owner in the criteria of {{monitor}} isn't a member of this project, so isn't emailed.",
   "{{first}}, then {{next}}": "{{first}}, then {{next}}",
   "{{methods}} after {{count}} minutes": "{{methods}} after {{count}} minutes",
   "{{methods}} after {{count}} minutes_one": "{{methods}} after {{count}} minute",
   "{{methods}} at once": "{{methods}} at once",
-  "{{page}} (through {{groups}})": "{{page}} (through {{groups}})",
   "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait.": "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait.",
   "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait._one": "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minute. The fire drill tests it now, without the wait.",
   "Alert incident rule {{rule}} declares this incident from the alert right away.": "Alert incident rule {{rule}} declares this incident from the alert right away.",
@@ -56727,5 +56735,6 @@
   "The test reaches you as your {{howToReachMe}} says for this severity.": "The test reaches you as your {{howToReachMe}} says for this severity.",
   "This makes the {{onCallPolicy}} \"{{policy}}\", which pages them for every new incident and alert in this project.": "This makes the {{onCallPolicy}} \"{{policy}}\", which pages them for every new incident and alert in this project.",
   "When it goes down, OneUptime opens an incident and pages these people, each the way their {{howToReachMe}} says. It starts with you, by email.": "When it goes down, OneUptime opens an incident and pages these people, each the way their {{howToReachMe}} says. It starts with you, by email.",
-  "Your customers see it on a status page.": "Your customers see it on a status page."
+  "Your customers see it on a status page.": "Your customers see it on a status page.",
+  "Backup Script Last Run": "Backup Script Last Run"
 }

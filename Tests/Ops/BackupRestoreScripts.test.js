@@ -51,15 +51,36 @@ function readEnvExample(name) {
 
 /**
  * Matches a `--file=` argument. The alternation is needed because the path
- * contains a command substitution with a space in it — `db-$(date +%d).backup`
+ * can hold a command substitution with a space in it — `db-$(date +%d).backup`
  * — so a plain `\S+` would stop at "db-$(date".
  */
 const FILE_ARGUMENT = /--file=((?:\$\([^)]*\)|\S)+)/;
 
-/** `--file=/var/lib/postgresql/data/db-$(date +%d).backup` -> the basename. */
+/*
+ * The dump's name, worked out once before pg_dump runs (#7026): a backup
+ * that runs past midnight is written, measured and reported under one name.
+ */
+const FILE_NAME_ASSIGNMENT = /^BACKUP_FILE_NAME="([^"]+)"$/m;
+
+/**
+ * `--file="/var/lib/postgresql/data/$BACKUP_FILE_NAME"`, with
+ * `BACKUP_FILE_NAME="db-$(date +%d).backup"` -> the name's template.
+ */
 function backupArtifactTemplate(source) {
   const match = FILE_ARGUMENT.exec(source);
-  return match === null ? undefined : path.posix.basename(match[1]);
+
+  if (match === null) {
+    return undefined;
+  }
+
+  const name = path.posix.basename(match[1].replace(/^"|"$/g, ""));
+
+  if (name === "$BACKUP_FILE_NAME") {
+    const assignment = FILE_NAME_ASSIGNMENT.exec(source);
+    return assignment === null ? undefined : assignment[1];
+  }
+
+  return name;
 }
 
 const backupSource = read(BACKUP_PATH);
@@ -69,8 +90,14 @@ const restoreCode = executableLines(restoreSource);
 
 describe("backup.sh", () => {
   test("runs pg_dump exactly once", () => {
-    const invocations = backupCode.match(/pg_dump/g) || [];
+    // The run itself; the lines that say how it went name it in words.
+    const invocations = backupCode.match(/\/usr\/bin\/pg_dump\b/g) || [];
     expect(invocations).toHaveLength(1);
+    expect(
+      backupCode.split("\n").filter((line) => {
+        return /\bpg_dump\b/.test(line) && !/^\s*echo /.test(line);
+      }),
+    ).toHaveLength(1);
   });
 
   test("dumps in custom format", () => {
@@ -84,10 +111,16 @@ describe("backup.sh", () => {
     expect(backupCode).not.toMatch(/\.tar\b/);
   });
 
-  test("writes exactly one artifact, into the mounted data directory", () => {
+  test("writes exactly one artifact, into the mounted data directory, named once", () => {
     const files = backupCode.match(new RegExp(FILE_ARGUMENT.source, "g")) || [];
     expect(files).toHaveLength(1);
-    expect(files[0]).toBe(`--file=${CONTAINER_DATA_DIR}/db-$(date +%d).backup`);
+    expect(files[0]).toBe(`--file="${CONTAINER_DATA_DIR}/$BACKUP_FILE_NAME"`);
+
+    // The day of the month is read once, before pg_dump runs.
+    expect(backupCode.match(/\$\(date \+%d\)/g)).toHaveLength(1);
+    expect(
+      backupCode.match(new RegExp(FILE_NAME_ASSIGNMENT.source, "gm")),
+    ).toEqual(['BACKUP_FILE_NAME="db-$(date +%d).backup"']);
   });
 
   test("does not pass --clean/--create, which pg_dump ignores for archive formats", () => {
@@ -202,8 +235,14 @@ describe("backup.sh and restore.sh agree on the artifact name", () => {
  * copy has it too, where the repository keeps it. `config` replaces the
  * config.env lines below.
  *
+ * backup.sh then tells the server how it went with `node
+ * ./Scripts/Install/BackupScriptRun.js` (#7026): `node` is stubbed too, and
+ * records its arguments; STUB_NODE_EXIT in `env` sets its exit code, and
+ * `withoutNode` runs the script on a server without Node.js. STUB_DUMP in
+ * `env` makes the dump fail ("fail") or come out empty ("empty").
+ *
  * @param {string} scriptPath
- * @param {{input?: string, env?: object, config?: Array<string>}} [options]
+ * @param {{input?: string, env?: object, config?: Array<string>, withoutNode?: boolean}} [options]
  */
 function runScript(scriptPath, options) {
   const settings = options || {};
@@ -244,15 +283,16 @@ function runScript(scriptPath, options) {
     const binDirectory = path.join(directory, "bin");
     fs.mkdirSync(binDirectory);
 
-    // Puts a `command` on PATH that appends its arguments to a log, and returns
-    // a reader for that log ("" when the command never ran).
-    const stub = (command) => {
+    // Puts a `command` on PATH that appends its arguments to a log, runs
+    // `then` (bash), and returns a reader for that log ("" when the command
+    // never ran).
+    const stub = (command, then) => {
       const log = path.join(directory, `${command}.log`);
       // Each argument on its own, NUL-ended, to tell one argument from two.
       const argumentsLog = path.join(directory, `${command}.arguments`);
       fs.writeFileSync(
         path.join(binDirectory, command),
-        `#!/bin/bash\nprintf '%s\\n' "$*" >> ${JSON.stringify(log)}\nprintf '%s\\0' "$@" >> ${JSON.stringify(argumentsLog)}\n`,
+        `#!/bin/bash\nprintf '%s\\n' "$*" >> ${JSON.stringify(log)}\nprintf '%s\\0' "$@" >> ${JSON.stringify(argumentsLog)}\n${then || ""}\n`,
         { mode: 0o755 },
       );
       return {
@@ -266,8 +306,53 @@ function runScript(scriptPath, options) {
         },
       };
     };
-    const sudoLog = stub("sudo");
+
+    /*
+     * `sudo docker run ... pg_dump --file=...` writes the dump into the
+     * mounted folder, as the container would, unless STUB_DUMP says it
+     * fails ("fail") or writes nothing ("empty").
+     */
+    const sudoLog = stub(
+      "sudo",
+      [
+        'volume=""; file=""',
+        'for argument in "$@"; do',
+        '  case "$argument" in',
+        '    --volume=*) volume="${argument#--volume=}"; volume="${volume%%:/var/lib/postgresql/data}" ;;',
+        '    --file=*) file="${argument#--file=}" ;;',
+        "  esac",
+        "done",
+        'if [ -n "$file" ] && [ -n "$volume" ]; then',
+        '  case "${STUB_DUMP:-write}" in',
+        "    fail) exit 1 ;;",
+        '    empty) : > "$volume/${file##*/}" ;;',
+        "    *) printf 'PGDMP' > \"$volume/${file##*/}\" ;;",
+        "  esac",
+        "fi",
+      ].join("\n"),
+    );
     const gitLog = stub("git");
+    // The report to the server (#7026), which exits STUB_NODE_EXIT.
+    const nodeLog = stub("node", 'exit "${STUB_NODE_EXIT:-0}"');
+
+    /*
+     * A server without Node.js: PATH holds the stubs but node, and what the
+     * scripts and WithConfig.sh run besides their shells' own commands.
+     */
+    let pathValue = `${binDirectory}:${process.env.PATH}`;
+
+    if (settings.withoutNode) {
+      fs.rmSync(path.join(binDirectory, "node"));
+
+      for (const command of ["bash", "sh", "mkdir", "date"]) {
+        const found = spawnSync("bash", ["-c", `command -v ${command}`], {
+          encoding: "utf8",
+        }).stdout.trim();
+        fs.symlinkSync(found, path.join(binDirectory, command));
+      }
+
+      pathValue = binDirectory;
+    }
 
     const result = spawnSync("bash", [script], {
       cwd: directory,
@@ -276,7 +361,7 @@ function runScript(scriptPath, options) {
       env: Object.assign(
         {},
         process.env,
-        { PATH: `${binDirectory}:${process.env.PATH}` },
+        { PATH: pathValue },
         settings.env || {},
       ),
     });
@@ -284,9 +369,11 @@ function runScript(scriptPath, options) {
     return {
       status: result.status,
       stdout: result.stdout || "",
+      directory: directory,
       databaseCommand: sudoLog.log(),
       databaseArguments: sudoLog.arguments(),
       gitCommand: gitLog.log(),
+      nodeArguments: nodeLog.arguments(),
     };
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
@@ -515,5 +602,94 @@ describe("shell syntax", () => {
     );
     expect(`${result.stdout}${result.stderr}`.trim()).toBe("");
     expect(result.status).toBe(0);
+  });
+});
+
+/*
+ * #7026: once pg_dump is done, backup.sh tells OneUptime how it went, so
+ * Server Setup measures the server's backups. A backup is a dump pg_dump
+ * finished that is not empty: the script used to say "Backup completed
+ * successfully!" and exit 0 whatever pg_dump did. Telling the server never
+ * changes how the backup went, whatever the server answers, and a server
+ * without Node.js is told why it was not told.
+ */
+describe("backup.sh tells OneUptime how it went", () => {
+  const DUMP_NAME = /\/Backups\/db-(0[1-9]|[12][0-9]|3[01])\.backup$/;
+
+  test("a dump pg_dump finished: said, reported as 0 with the dump, and the script ends well", () => {
+    const run = runScript(BACKUP_PATH);
+
+    expect(run.status).toBe(0);
+    expect(run.stdout).toContain("Backup completed successfully:");
+    expect(run.nodeArguments.slice(0, 2)).toEqual([
+      "./Scripts/Install/BackupScriptRun.js",
+      "0",
+    ]);
+    expect(run.nodeArguments[2]).toMatch(DUMP_NAME);
+    expect(run.nodeArguments).toHaveLength(3);
+  });
+
+  test("pg_dump failed: said, reported with its exit status, and the script ends with an error", () => {
+    const run = runScript(BACKUP_PATH, { env: { STUB_DUMP: "fail" } });
+
+    expect(run.status).toBe(1);
+    expect(run.stdout).not.toContain("Backup completed successfully");
+    expect(run.stdout).toContain("Backup failed: pg_dump exited with 1.");
+    expect(run.nodeArguments[1]).toBe("1");
+  });
+
+  test("pg_dump exited 0 but wrote an empty dump: no backup, and the script ends with an error", () => {
+    const run = runScript(BACKUP_PATH, { env: { STUB_DUMP: "empty" } });
+
+    expect(run.status).toBe(1);
+    expect(run.stdout).toContain("Backup failed: pg_dump exited with 0.");
+    // The tool measures the dump itself: an empty one is no backup there either.
+    expect(run.nodeArguments[1]).toBe("0");
+  });
+
+  test("whatever the report answers, the backup's own exit status stands", () => {
+    const told = runScript(BACKUP_PATH, { env: { STUB_NODE_EXIT: "1" } });
+    const failedAndUntold = runScript(BACKUP_PATH, {
+      env: { STUB_DUMP: "fail", STUB_NODE_EXIT: "1" },
+    });
+
+    expect(told.status).toBe(0);
+    expect(failedAndUntold.status).toBe(1);
+  });
+
+  test("on a server without Node.js the backup still runs, and says the server was not told", () => {
+    const run = runScript(BACKUP_PATH, { withoutNode: true });
+
+    expect(run.status).toBe(0);
+    expect(run.databaseCommand).toMatch(/pg_dump\b/);
+    expect(run.stdout).toContain(
+      "OneUptime was not told about this backup: Node.js is not installed on this server.",
+    );
+  });
+
+  test("the dump reported is the one written, under the name worked out before pg_dump ran", () => {
+    const run = runScript(BACKUP_PATH);
+    const file = run.databaseArguments.find((argument) => {
+      return argument.startsWith("--file=");
+    });
+
+    expect(file).toMatch(
+      /^--file=\/var\/lib\/postgresql\/data\/db-(0[1-9]|[12][0-9]|3[01])\.backup$/,
+    );
+    expect(path.posix.basename(run.nodeArguments[2])).toBe(
+      path.posix.basename(file),
+    );
+  });
+
+  test("the report reads nothing of the key or the database password from the command line", () => {
+    expect(backupCode).toContain(
+      'node ./Scripts/Install/BackupScriptRun.js "$BACKUP_STATUS" "$BACKUP_FOLDER/$BACKUP_FILE_NAME" || true',
+    );
+
+    const reportLine = backupCode.split("\n").find((line) => {
+      return line.includes("BackupScriptRun.js");
+    });
+
+    expect(reportLine).not.toMatch(/SECRET|PASSWORD|clusterkey/i);
   });
 });

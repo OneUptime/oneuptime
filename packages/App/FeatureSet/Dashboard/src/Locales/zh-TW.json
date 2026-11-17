@@ -56682,11 +56682,19 @@
   "{{field}} is none of {{count}} selected people or teams_one": "{{field}} 不是所選 {{count}} 個人員或團隊中的任何一個",
   "Is any of": "是下列任一項",
   "Is none of": "不是下列任一項",
+  "{{page}} (through {{groups}})": "{{page}}（透過 {{groups}}）",
+  "A team of another project is named as an owner in the criteria of {{monitor}}, so nobody is emailed through it.": "{{monitor}} 的條件將另一個專案的團隊指定為擁有者，因此不會透過它寄送電子郵件給任何人。",
+  "A team of another project owns the network device {{monitor}} watches, so nobody is emailed through it.": "另一個專案的團隊擁有 {{monitor}} 所監測的網路裝置，因此不會透過它寄送電子郵件給任何人。",
+  "An owner of the network device {{monitor}} watches isn't a member of this project, so isn't emailed.": "{{monitor}} 所監測之網路裝置的一位擁有者不是此專案的成員，因此收不到電子郵件。",
+  "It's owned by {{owners}}, so a rule you can't see matches.": "擁有者為 {{owners}}，因此您無法檢視的規則相符。",
+  "It's owned by {{owners}}, so {{rule}} matches.": "擁有者為 {{owners}}，因此 {{rule}} 相符。",
+  "Owner rule {{rule}} adds a team of another project as an owner, so nobody is emailed through it.": "擁有者規則 {{rule}} 將另一個專案的團隊新增為擁有者，因此不會透過它寄送電子郵件給任何人。",
+  "Owner rule {{rule}} adds someone who isn't a member of this project as an owner, so they aren't emailed.": "擁有者規則 {{rule}} 將不是此專案成員的人新增為擁有者，因此此人收不到電子郵件。",
+  "Someone named as an owner in the criteria of {{monitor}} isn't a member of this project, so isn't emailed.": "在 {{monitor}} 的條件中被指定為擁有者的人不是此專案的成員，因此收不到電子郵件。",
   "{{first}}, then {{next}}": "{{first}}，然後{{next}}",
   "{{methods}} after {{count}} minutes": "{{count}} 分鐘後透過{{methods}}",
   "{{methods}} after {{count}} minutes_one": "{{count}} 分鐘後透過{{methods}}",
   "{{methods}} at once": "立即透過{{methods}}",
-  "{{page}} (through {{groups}})": "{{page}}（透過 {{groups}}）",
   "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait.": "若警示 {{count}} 分鐘後仍未關閉，警示事件規則 {{rule}} 會據此宣告此事件。故障演練現在就測試它，無需等待。",
   "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait._one": "若警示 {{count}} 分鐘後仍未關閉，警示事件規則 {{rule}} 會據此宣告此事件。故障演練現在就測試它，無需等待。",
   "Alert incident rule {{rule}} declares this incident from the alert right away.": "警示事件規則 {{rule}} 會立即根據警示宣告此事件。",
@@ -56727,5 +56735,6 @@
   "The test reaches you as your {{howToReachMe}} says for this severity.": "測試會依你針對此嚴重程度的「{{howToReachMe}}」送達。",
   "This makes the {{onCallPolicy}} \"{{policy}}\", which pages them for every new incident and alert in this project.": "這會建立{{onCallPolicy}}「{{policy}}」，在此專案中每出現一個新事件和警示，都會呼叫他們。",
   "When it goes down, OneUptime opens an incident and pages these people, each the way their {{howToReachMe}} says. It starts with you, by email.": "當機時，OneUptime 會建立事件，並依這些人各自的「{{howToReachMe}}」呼叫他們。首先收到電子郵件的是你。",
-  "Your customers see it on a status page.": "你的客戶會在狀態頁面上看到它。"
+  "Your customers see it on a status page.": "你的客戶會在狀態頁面上看到它。",
+  "Backup Script Last Run": "備份指令碼最近執行"
 }

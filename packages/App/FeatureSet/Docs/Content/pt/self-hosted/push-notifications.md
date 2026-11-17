@@ -120,6 +120,10 @@ A conectividade dos dispositivos é um requisito à parte. Dispositivos iOS prec
 
 Para os pushes móveis, o OneUptime também lê o recibo de entrega do Expo cerca de 15 minutos depois de cada push: um push que nunca chegou ao dispositivo aparece então como não entregue no log de push e, para um alerta de plantão, na linha do tempo do plantão.
 
+## Enviando um push de teste
+
+Um administrador master pode verificar o push do lado do servidor: **Enviar push de teste**, em **Admin Dashboard > Configurações > Notificações push**, envia um push de teste para os celulares e navegadores que ele registrou, e para mais ninguém. Quando nada pode sair, ele diz por quê: o push está desativado, nada está registrado ou o servidor não tem chaves VAPID para um navegador.
+
 ## Desativando o push para o servidor inteiro
 
 Se nada pode sair da sua rede pelo Expo, pelo relay de push ou pelo serviço de push de um navegador, um administrador master pode desativar o push em **Admin Dashboard > Configurações > Notificações push**: desative **Send push notifications** e confirme.

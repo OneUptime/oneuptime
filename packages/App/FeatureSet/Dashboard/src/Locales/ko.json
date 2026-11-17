@@ -56682,11 +56682,19 @@
   "{{field}} is none of {{count}} selected people or teams_one": "{{field}}이(가) 선택한 사람 또는 팀 {{count}}개 중 어느 것도 아님",
   "Is any of": "다음 중 하나임",
   "Is none of": "다음 중 어느 것도 아님",
+  "{{page}} (through {{groups}})": "{{page}}({{groups}} 경유)",
+  "A team of another project is named as an owner in the criteria of {{monitor}}, so nobody is emailed through it.": "{{monitor}}의 기준에 다른 프로젝트의 팀이 소유자로 지정되어 있어 그 팀을 통해서는 아무도 이메일을 받지 않습니다.",
+  "A team of another project owns the network device {{monitor}} watches, so nobody is emailed through it.": "{{monitor}}이(가) 감시하는 네트워크 디바이스를 다른 프로젝트의 팀이 소유하고 있어 그 팀을 통해서는 아무도 이메일을 받지 않습니다.",
+  "An owner of the network device {{monitor}} watches isn't a member of this project, so isn't emailed.": "{{monitor}}이(가) 감시하는 네트워크 디바이스의 소유자가 이 프로젝트의 구성원이 아니어서 이메일을 받지 않습니다.",
+  "It's owned by {{owners}}, so a rule you can't see matches.": "소유자({{owners}}) 때문에 볼 수 없는 규칙이 일치합니다.",
+  "It's owned by {{owners}}, so {{rule}} matches.": "소유자({{owners}}) 때문에 {{rule}}이(가) 일치합니다.",
+  "Owner rule {{rule}} adds a team of another project as an owner, so nobody is emailed through it.": "소유자 규칙 {{rule}}이(가) 다른 프로젝트의 팀을 소유자로 추가해 그 팀을 통해서는 아무도 이메일을 받지 않습니다.",
+  "Owner rule {{rule}} adds someone who isn't a member of this project as an owner, so they aren't emailed.": "소유자 규칙 {{rule}}이(가) 이 프로젝트의 구성원이 아닌 사람을 소유자로 추가해 그 사람은 이메일을 받지 않습니다.",
+  "Someone named as an owner in the criteria of {{monitor}} isn't a member of this project, so isn't emailed.": "{{monitor}}의 기준에 소유자로 지정된 사람이 이 프로젝트의 구성원이 아니어서 이메일을 받지 않습니다.",
   "{{first}}, then {{next}}": "{{first}}, 이어서 {{next}}",
   "{{methods}} after {{count}} minutes": "{{count}}분 후 {{methods}}",
   "{{methods}} after {{count}} minutes_one": "{{count}}분 후 {{methods}}",
   "{{methods}} at once": "즉시 {{methods}}",
-  "{{page}} (through {{groups}})": "{{page}}({{groups}} 경유)",
   "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait.": "경고가 {{count}}분이 지나도 열려 있으면 경고 인시던트 규칙 {{rule}}에 따라 이 인시던트가 선언됩니다. 비상 훈련은 기다리지 않고 지금 테스트합니다.",
   "Alert incident rule {{rule}} declares this incident from the alert if it's still open after {{count}} minutes. The fire drill tests it now, without the wait._one": "경고가 {{count}}분이 지나도 열려 있으면 경고 인시던트 규칙 {{rule}}에 따라 이 인시던트가 선언됩니다. 비상 훈련은 기다리지 않고 지금 테스트합니다.",
   "Alert incident rule {{rule}} declares this incident from the alert right away.": "경고 인시던트 규칙 {{rule}}에 따라 경고에서 바로 이 인시던트가 선언됩니다.",
@@ -56727,5 +56735,6 @@
   "The test reaches you as your {{howToReachMe}} says for this severity.": "테스트는 이 심각도에 대한 내 '{{howToReachMe}}'대로 전달됩니다.",
   "This makes the {{onCallPolicy}} \"{{policy}}\", which pages them for every new incident and alert in this project.": "{{onCallPolicy}}이 만들어집니다: \"{{policy}}\". 이 프로젝트에서 새 인시던트와 경고가 생길 때마다 그들을 호출합니다.",
   "When it goes down, OneUptime opens an incident and pages these people, each the way their {{howToReachMe}} says. It starts with you, by email.": "다운되면 OneUptime이 인시던트를 열고 이 사람들을 각자의 '{{howToReachMe}}'대로 호출합니다. 가장 먼저 호출되는 사람은 본인이며, 이메일로 받습니다.",
-  "Your customers see it on a status page.": "고객은 상태 페이지에서 확인할 수 있습니다."
+  "Your customers see it on a status page.": "고객은 상태 페이지에서 확인할 수 있습니다.",
+  "Backup Script Last Run": "백업 스크립트 마지막 실행"
 }

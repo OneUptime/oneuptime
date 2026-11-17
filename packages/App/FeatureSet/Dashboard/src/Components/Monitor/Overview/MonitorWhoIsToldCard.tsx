@@ -26,6 +26,7 @@ import {
   getChannelName,
   getDeclaresSentence,
   getFixLink,
+  getOwnerMatchSentence,
   getOwnerNotEmailedFixLink,
   getOwnerNotEmailedSentences,
   getOwnersNotEmailed,
@@ -49,6 +50,7 @@ import {
   WhoIsToldCriteria,
   WhoIsToldEvent,
   WhoIsToldFix,
+  WhoIsToldOwnerMatch,
   WhoIsToldOwners,
   WhoIsToldPerson,
   WhoIsToldPolicy,
@@ -580,13 +582,37 @@ const EventBlock: FunctionComponent<{
         label={translator.translateText("On-call rules") || "On-call rules"}
         testId="who-is-told-rules"
       >
-        {event.rules.length > 0
-          ? namesText({
-              items: event.rules,
-              hiddenName: hiddenRuleName,
-              translator: translator,
-            })
-          : translator.translateText("None match") || ""}
+        <>
+          {event.rules.length > 0
+            ? namesText({
+                items: event.rules,
+                hiddenName: hiddenRuleName,
+                translator: translator,
+              })
+            : translator.translateText("None match") || ""}
+          {/*
+           * An Alert Owner rule matches on who owns the alert (#9407):
+           * which owner made it match, a line each, as the label rules'
+           * note says why theirs did.
+           */}
+          {(event.ownerMatches || []).map(
+            (match: WhoIsToldOwnerMatch): ReactElement => {
+              return (
+                <IsolatedLine
+                  key={`owner-match-${match.ruleId}`}
+                  as="p"
+                  text={getOwnerMatchSentence({
+                    match: match,
+                    rules: event.rules,
+                    translator: translator,
+                  })}
+                  className="mt-0.5 text-xs text-gray-500"
+                  dataTestId="who-is-told-owner-match"
+                />
+              );
+            },
+          )}
+        </>
       </ChainRow>
       <ChainRow label={policyLabel}>
         {event.policies.length > 0 ? (

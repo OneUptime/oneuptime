@@ -14,7 +14,13 @@ fi
 # docker-compose.yml publishes it on (DATABASE_PUBLISHED_PORT, 5400 by default).
 DATABASE_BACKUP_PORT="${DATABASE_BACKUP_PORT:-${DATABASE_PUBLISHED_PORT:-5400}}"
 
-mkdir -p "$(pwd)$DATABASE_BACKUP_DIRECTORY"
+BACKUP_FOLDER="$(pwd)$DATABASE_BACKUP_DIRECTORY"
+
+# The dump's name, worked out once: a backup that runs past midnight is
+# written, measured and reported under one name.
+BACKUP_FILE_NAME="db-$(date +%d).backup"
+
+mkdir -p "$BACKUP_FOLDER"
 
 echo "Starting backup...."
 
@@ -49,8 +55,28 @@ echo "Starting backup...."
 # it reaches pg_dump as one argument, as config.env holds it.
 sudo docker run --net=host --rm \
 --env-file config.env \
---volume="$(pwd)$DATABASE_BACKUP_DIRECTORY:/var/lib/postgresql/data" \
-postgres:latest /usr/bin/pg_dump --format=custom --dbname="postgresql://$DATABASE_BACKUP_USERNAME:$DATABASE_BACKUP_PASSWORD@$DATABASE_BACKUP_HOST:$DATABASE_BACKUP_PORT/$DATABASE_BACKUP_NAME" --file=/var/lib/postgresql/data/db-$(date +%d).backup
+--volume="$BACKUP_FOLDER:/var/lib/postgresql/data" \
+postgres:latest /usr/bin/pg_dump --format=custom --dbname="postgresql://$DATABASE_BACKUP_USERNAME:$DATABASE_BACKUP_PASSWORD@$DATABASE_BACKUP_HOST:$DATABASE_BACKUP_PORT/$DATABASE_BACKUP_NAME" --file="/var/lib/postgresql/data/$BACKUP_FILE_NAME"
+BACKUP_STATUS=$?
 
+# A backup is a dump pg_dump finished and that is not empty. This used to
+# say "Backup completed successfully!" and exit 0 whatever pg_dump did, so a
+# cron job that backed up nothing every night looked like it worked.
+if [ "$BACKUP_STATUS" -eq 0 ] && [ -s "$BACKUP_FOLDER/$BACKUP_FILE_NAME" ]; then
+    BACKUP_EXIT=0
+    echo "Backup completed successfully: $BACKUP_FOLDER/$BACKUP_FILE_NAME"
+else
+    BACKUP_EXIT=1
+    echo "Backup failed: pg_dump exited with $BACKUP_STATUS. Check the DATABASE_BACKUP_* settings in config.env, and that OneUptime's PostgreSQL is running."
+fi
 
-echo "Backup completed successfully!"
+# Tell OneUptime how it went, so the Admin Dashboard's Server Setup reads the
+# server's backups rather than asking (Scripts/Install/BackupScriptRun.js).
+# It never changes the backup or this script's exit status.
+if command -v node >/dev/null 2>&1; then
+    node ./Scripts/Install/BackupScriptRun.js "$BACKUP_STATUS" "$BACKUP_FOLDER/$BACKUP_FILE_NAME" || true
+else
+    echo "OneUptime was not told about this backup: Node.js is not installed on this server."
+fi
+
+exit "$BACKUP_EXIT"

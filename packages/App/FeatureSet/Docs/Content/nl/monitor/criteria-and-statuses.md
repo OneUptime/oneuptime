@@ -97,7 +97,7 @@ Om te zien hoe een controle is beoordeeld, opent u het **Overzicht** van de moni
 
 **Als dit uitvalt** zegt in een paar zinnen wat er gebeurt als de monitor uitvalt en wie bericht krijgt: de status die hij instelt, het incident of de waarschuwing die hij opent, wie een e-mail krijgt en wie hij oproept, bij naam. Alles wat zou verhinderen dat iemand bericht krijgt, staat op een eigen regel, met een link naar de pagina waar u het oplost. U vindt het in het **Overzicht** van een monitor, onder de criteria op de pagina **Criteria**, in de criteriastap van **Monitor maken** voor de monitor die u instelt, en in de begeleide installatie voor websites.
 
-Het stelt de keten vast zoals een echt incident of een echte waarschuwing dat doet: met de eigenaarsregels, privacyregels, labelregels en bereikbaarheidsregels van uw project, de incidentregel voor waarschuwingen die van een waarschuwing een incident maakt, en wie de eerste escalatieregel van elk bereikbaarheidsbeleid nu bereikt. Een plaatshouder in de titel die pas een controle invult, wordt getoond zoals hij is geschreven. **Keten tonen** opent hem rij voor rij:
+Het stelt de keten vast zoals een echt incident of een echte waarschuwing dat doet: met de eigenaarsregels, privacyregels, labelregels en bereikbaarheidsregels van uw project, de incidentregel voor waarschuwingen die van een waarschuwing een incident maakt, en wie de eerste escalatieregel van elk bereikbaarheidsbeleid nu bereikt. Een bereikbaarheidsregel die vraagt wie de eigenaar van een waarschuwing is (**Eigenaar van waarschuwing**), wordt vergeleken met de eigenaren die de waarschuwing zal hebben: de personen en teams die de criteria noemen, de eigenaren van het netwerkapparaat dat de monitor bewaakt, en wie eigenaarsregels toevoegen. Een plaatshouder in de titel die pas een controle invult, wordt getoond zoals hij is geschreven. **Keten tonen** opent hem rij voor rij:
 
 | Rij | Wat hij zegt |
 | --- | --- |
@@ -107,7 +107,7 @@ Het stelt de keten vast zoals een echt incident of een echte waarschuwing dat do
 | **Eigenaarsregels** | De eigenaarsregels die eigenaren toevoegen. |
 | **Privé** | Waarom het privé is: een privacyregel of de criteria. Een privé-incident verschijnt op geen enkele statuspagina en informeert geen abonnees, en alleen de eigenaren, de Projecteigenaren en de Projectbeheerders kunnen het zien. |
 | **Labelregels** | De labelregels waarvan de labels veranderen welke bereikbaarheidsregels oproepen. |
-| **Bereikbaarheidsregels** | De bereikbaarheidsregels die erbij passen. |
+| **Bereikbaarheidsregels** | De bereikbaarheidsregels die erbij passen. Bij een regel die vergelijkt wie de eigenaar van een waarschuwing is, staat welke eigenaar hem laat overeenkomen. |
 | **Bereikbaarheidsbeleid** | Elk beleid dat die regels uitvoeren: wie de eerste escalatieregel nu bereikt en waarmee, en wie hij niet bereikt, en waarom. |
 | **Statuspagina's** | De statuspagina's die het tonen, elk met de monitorgroep waarlangs ze de monitor toont. |
 | **Incidentregel** | Bij een waarschuwing: de incidentregel voor waarschuwingen die er een incident van maakt, meteen of als de waarschuwing open blijft, en dat incident, beschreven zoals elk incident. |
@@ -128,7 +128,7 @@ Het stelt de keten vast zoals een echt incident of een echte waarschuwing dat do
 
 Een waarschuwing die een incidentregel voor waarschuwingen omzet in een incident dat iemand oproept, is geen onderbreking: dan wordt het beleid van het incident gecontroleerd.
 
-Eigenaren die geen e-mail krijgen, staan na de onderbrekingen, elk met de reden en de plek waar ze zijn genoemd: iemand die geen lid is van het project, een team waarin niemand lid is (**Team openen**), of een team van een ander project, genoemd in de criteria (**Criteria openen**), bij het netwerkapparaat dat de monitor bewaakt (**Netwerkapparaat openen**) of door een eigenaarsregel (**Eigenaarsregels openen**). De e-mail gaat toch uit, naar de eigenaren die hij bereikt of naar de Projecteigenaren, dus het zijn geen onderbrekingen.
+Eigenaren die geen e-mail krijgen, staan na de onderbrekingen, elk met de reden en de plek waar ze zijn genoemd: iemand die geen lid is van het project, een team waarin niemand lid is (**Team openen**), of een team van een ander project, genoemd in de criteria (**Criteria openen**), bij het netwerkapparaat dat de monitor bewaakt (**Netwerkapparaat openen**) of door een eigenaarsregel (**Eigenaarsregels openen**). De e-mail gaat toch uit, naar de eigenaren die hij bereikt of naar de Projecteigenaren, dus het zijn geen onderbrekingen. De inrichtingsstatus noemt ze ook, als iets dat het oplossen waard is.
 
 ### Opnieuw controleren, en wat u ziet
 

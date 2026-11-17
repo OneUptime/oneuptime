@@ -59,12 +59,13 @@ import ts from "typescript";
  *     shipped value derives; no Runner presents it - every Runner proves who
  *     it is with its own id and key;
  *   - outside the product's code, only the installation's own tools present
- *     it - `npm run doctor` and diagnose.sh, with the ONEUPTIME_SECRET of the
- *     installation's own configuration, URI-encoded as the app presents and
- *     compares its own - to the doctor's POST alone, at an address of the
- *     server itself, never to HOST (CLUSTER_KEY_ROUTE_TOOL_CALLERS); nothing
- *     else there names the key's header but tests, documentation and a KEDA
- *     parameter nothing uses;
+ *     it - `npm run doctor`, diagnose.sh and `npm run backup`'s report, with
+ *     the ONEUPTIME_SECRET of the installation's own configuration,
+ *     URI-encoded as the app presents and compares its own - to the doctor's
+ *     POST and the backup run's alone, at an address of the server itself,
+ *     never to HOST (CLUSTER_KEY_ROUTE_TOOL_CALLERS); nothing else there
+ *     names the key's header but tests, documentation and a KEDA parameter
+ *     nothing uses;
  *   - the check counts the different wrong keys a client sends
  *     (WrongClusterKeyLimit) in one place, after the key is compared and
  *     before the request is answered as right or wrong, and nothing else
@@ -869,9 +870,11 @@ describe("the routes that take the cluster key, and who calls them", () => {
  * (CLUSTER_KEY_ROUTE_TOOL_CALLERS, #6826). The checks above read the
  * product's TypeScript and never see them, so these hold them at least as
  * strictly as the app's own callers: the key goes in the clusterkey header
- * of one POST, to the doctor's path at an address of the server itself, in a
- * request that follows no redirect - never to HOST or any other address,
- * never in a URL or a body - and to no other route. It goes URI-encoded, as
+ * of one POST, to the doctor's path - or, for `npm run backup`'s report
+ * (#7026), the backup run's, with a body that says how the run went - at an
+ * address of the server itself, in a request that follows no redirect -
+ * never to HOST or any other address, never in a URL or a body - and to no
+ * other route. It goes URI-encoded, as
  * ClusterKeyAuthorization.getClusterKey() presents the app's own key and
  * isAcceptedClusterKey compares what it is sent: the key as written is
  * refused whenever encoding changes it (+ / = @ & %, a space, a letter
@@ -919,6 +922,13 @@ const NODE_HTTP_REQUEST: Record<string, string> = {
 
 const DOCTOR_ROUTE_KEY: string =
   'POST packages/App/API/AdminHealth.ts "/doctor"';
+
+// `npm run backup` saying it ran (#7026): the other route a tool may call.
+const BACKUP_RUN_ROUTE_KEY: string =
+  'POST packages/App/API/AdminHealth.ts "/backup-run"';
+
+// The routes the installation's own tools call, and no others.
+const TOOL_ROUTE_KEYS: Array<string> = [DOCTOR_ROUTE_KEY, BACKUP_RUN_ROUTE_KEY];
 
 // How the key travels: URI-encoded with JavaScript's own function, as getClusterKey() encodes it.
 const URI_ENCODING: string = "encodeURIComponent";
@@ -1353,16 +1363,22 @@ function problemsOfTool(entry: ClusterKeyRouteToolCaller): Array<string> {
     );
   }
 
-  // A POST, with no body, to the address listed.
+  /*
+   * A POST to the address listed, with no body but the one listed - what
+   * the tool says, never the key (the key's uses are held below).
+   */
   const optionNames: Array<string> = options.properties
     .map((property: ts.ObjectLiteralElementLike): string => {
       return nameOfProperty(property, sourceFile);
     })
     .sort();
-  const expectedOptionNames: Array<string> =
+  const expectedOptionNames: Array<string> = (
     entry.client === "fetch"
       ? ["headers", "method", "redirect"]
-      : ["headers", "method"];
+      : ["headers", "method"]
+  )
+    .concat(entry.body ? ["body"] : [])
+    .sort();
 
   if (optionNames.join(", ") !== expectedOptionNames.join(", ")) {
     problems.push(
@@ -1387,6 +1403,12 @@ function problemsOfTool(entry: ClusterKeyRouteToolCaller): Array<string> {
 
   if (optionText("method") !== '"POST"') {
     problems.push(`its request is not a POST (method ${optionText("method")})`);
+  }
+
+  if (entry.body && optionText("body") !== entry.body) {
+    problems.push(
+      `its request's body is ${optionText("body")}, not ${entry.body}`,
+    );
   }
 
   const address: ts.Expression = request.arguments[0]!;
@@ -1728,24 +1750,45 @@ describe("the installation's own tools present the key to the doctor alone, on t
     );
   });
 
-  test("the tools call the doctor's POST and no other route that takes the key", () => {
-    // The doctor's route, which the route finder finds, and nothing else.
+  test("the tools call the doctor's POST or the backup run's, and no other route that takes the key", () => {
+    // The tools' routes, which the route finder finds, and nothing else.
+    for (const entry of CLUSTER_KEY_ROUTE_TOOL_CALLERS) {
+      expect({
+        tool: entry.tool,
+        route: `${entry.route.method} ${entry.route.file} ${entry.route.path}`,
+      }).toEqual({
+        tool: entry.tool,
+        route: expect.stringMatching(
+          new RegExp(
+            `^(?:${TOOL_ROUTE_KEYS.map((key: string): string => {
+              return escapeRegExp(key);
+            }).join("|")})$`,
+          ),
+        ),
+      });
+    }
+
+    // Only the backup script tells the server a backup ran.
     expect(
-      CLUSTER_KEY_ROUTE_TOOL_CALLERS.map(
-        (entry: ClusterKeyRouteToolCaller): string => {
-          return `${entry.route.method} ${entry.route.file} ${entry.route.path}`;
+      CLUSTER_KEY_ROUTE_TOOL_CALLERS.filter(
+        (entry: ClusterKeyRouteToolCaller): boolean => {
+          return (
+            `${entry.route.method} ${entry.route.file} ${entry.route.path}` ===
+            BACKUP_RUN_ROUTE_KEY
+          );
         },
-      ),
-    ).toEqual(
-      CLUSTER_KEY_ROUTE_TOOL_CALLERS.map((): string => {
-        return DOCTOR_ROUTE_KEY;
+      ).map((entry: ClusterKeyRouteToolCaller): string => {
+        return entry.tool;
       }),
-    );
-    expect(
-      findClusterKeyRoutes().map((route: ClusterKeyRoute): string => {
-        return `${route.method} ${route.file} ${route.path}`;
-      }),
-    ).toContain(DOCTOR_ROUTE_KEY);
+    ).toEqual(["Scripts/Install/BackupScriptRun.js"]);
+
+    for (const key of TOOL_ROUTE_KEYS) {
+      expect(
+        findClusterKeyRoutes().map((route: ClusterKeyRoute): string => {
+          return `${route.method} ${route.file} ${route.path}`;
+        }),
+      ).toContain(key);
+    }
 
     // At its path on the app: where App/Index.ts mounts AdminHealth's router, then the route's.
     const index: string = codeOf("packages/App/Index.ts");

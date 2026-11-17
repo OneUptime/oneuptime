@@ -27,10 +27,13 @@ import { getJestSpyOn } from "../../Spy";
  * and says to reach people through a custom channel instead. Turning it back
  * on asks nothing.
  *
+ * The page starts, as Settings > Emails does, with where push stands and
+ * "Send test push" (#7028).
+ *
  * The real page, card, switch and dialog are rendered with the Admin
- * Dashboard's English locale. Only the admin API, the page chrome and the
- * side menu are stand-ins; the signed-in user is a master admin, as
- * everyone in the admin dashboard is.
+ * Dashboard's English locale. Only the admin API, the setup checklist's
+ * read, the page chrome and the side menu are stand-ins; the signed-in user
+ * is a master admin, as everyone in the admin dashboard is.
  */
 
 const mockGetItem: MockFunction = getJestMockFunction();
@@ -96,6 +99,7 @@ import RouteMap from "../../../../App/FeatureSet/AdminDashboard/src/Utils/RouteM
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import ObjectID from "../../../Types/ObjectID";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
+import ServerSetupChecklistLoader from "../../../UI/Utils/ServerSetupChecklist";
 import UserUtil from "../../../UI/Utils/User";
 
 const ADMIN_SRC: string = path.join(
@@ -226,6 +230,9 @@ beforeEach(() => {
   getJestSpyOn(UserUtil, "getUserId").mockReturnValue(
     new ObjectID(SIGNED_IN_ADMIN_ID),
   );
+
+  // Where push stands, for the test card: not read in these tests.
+  getJestSpyOn(ServerSetupChecklistLoader, "load").mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -470,5 +477,24 @@ describe("the page's place in the Admin Dashboard", () => {
 
     expect(entry).toContain('title: t("sideMenu.settingsPushNotifications")');
     expect(entry).toContain("isTitleTranslated: true");
+  });
+});
+
+describe("Send test push (#7028)", () => {
+  test("the page starts with where push stands and the push test, before the switch", async () => {
+    await renderPage();
+
+    const card: HTMLElement = screen.getByTestId(
+      "server-test-card-browser-push",
+    );
+
+    expect(within(card).getByText("Test push notifications")).toBeVisible();
+    expect(within(card).getByTestId("server-test-push")).toHaveTextContent(
+      "Send test push",
+    );
+    expect(
+      card.compareDocumentPosition(theSwitch()) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

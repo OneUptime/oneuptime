@@ -5,6 +5,9 @@ import {
   WhoIsToldChannels,
   WhoIsToldCriteria,
   WhoIsToldEvent,
+  WhoIsToldOwnerAddedBy,
+  WhoIsToldOwnerNotReached,
+  WhoIsToldOwnerProblem,
   WhoIsToldPerson,
   WhoIsToldPersonProblem,
   WhoIsToldPolicy,
@@ -33,9 +36,10 @@ import { OnCallTestPageRecordKind } from "../OnCallDutyPolicy/OnCallTestPage";
  * (Server/Services/SetupHealthService), and every rule here is a small pure
  * function over them, so a test can hand any project to each rule. The
  * monitors' findings are the breaks of their "When this goes down" chains
- * (Types/Monitor/WhoIsTold, #6810), resolved for the whole project at once
- * (WhoIsToldService.resolveProject): the card on a monitor and this list
- * share one set of rules and never disagree.
+ * (Types/Monitor/WhoIsTold, #6810), and the owners their incidents' and
+ * alerts' Created email never reaches (#9371), resolved for the whole
+ * project at once (WhoIsToldService.resolveProject): the card on a monitor
+ * and this list share one set of rules and never disagree.
  *
  * A finding says what is wrong in one sentence, names the one record it is
  * about, and says which page fixes it. Its words are a template the
@@ -89,6 +93,8 @@ export enum SetupHealthCheck {
   ChannelOff = "channel_off",
   NoBalance = "no_balance",
   ServerCannotSend = "server_cannot_send",
+  // From the chains' owners no Created email reaches (#9371).
+  OwnerNotEmailed = "owner_not_emailed",
   // The project's other records.
   PolicyNotRun = "policy_not_run",
   ScheduleHasNobodyOnCall = "schedule_has_nobody_on_call",
@@ -118,6 +124,7 @@ export const SETUP_HEALTH_CHECK_ORDER: ReadonlyArray<SetupHealthCheck> = [
   SetupHealthCheck.ResponderCannotBePaged,
   SetupHealthCheck.MonitorPagesNobody,
   SetupHealthCheck.MonitorTellsNobody,
+  SetupHealthCheck.OwnerNotEmailed,
   SetupHealthCheck.PolicyNotRun,
   SetupHealthCheck.ScheduleHasNobodyOnCall,
   SetupHealthCheck.LowBalance,
@@ -145,6 +152,11 @@ export enum SetupHealthRecordKind {
   StatusPageDomain = "StatusPageDomain",
   TelemetryIngestionKey = "TelemetryIngestionKey",
   Project = "Project",
+  // A team named as an owner that the Created email reaches nobody through (#9371).
+  Team = "Team",
+  // An owner rule that adds someone no Created email reaches (#9371).
+  IncidentOwnerRule = "IncidentOwnerRule",
+  AlertOwnerRule = "AlertOwnerRule",
 }
 
 export interface SetupHealthRecord {
@@ -176,6 +188,15 @@ export enum SetupHealthFix {
   WorkspaceNotificationRules = "WorkspaceNotificationRules",
   // The ingestion key's own page: when it was last used, and Delete.
   TelemetryIngestionKey = "TelemetryIngestionKey",
+  /*
+   * Where an owner no Created email reaches is put right (#9371), as the
+   * When this goes down card links it: a team's members, the network
+   * device's owners, the incident or alert owner rules.
+   */
+  TeamMembers = "TeamMembers",
+  NetworkDeviceOwners = "NetworkDeviceOwners",
+  IncidentOwnerRules = "IncidentOwnerRules",
+  AlertOwnerRules = "AlertOwnerRules",
 }
 
 // Why a responder can't be paged (ResponderCannotBePaged's reasons), worst first.
@@ -219,6 +240,31 @@ export enum SetupHealthMonitorReason {
 export enum SetupHealthCertificateReason {
   NotIssued = "not_issued",
   Expired = "expired",
+}
+
+/*
+ * AN OWNER NO CREATED EMAIL REACHES (OwnerNotEmailed's subjects, #9371):
+ * what names them, and why the email can't reach them - each with its own
+ * record and fix, as the When this goes down card links it:
+ *
+ *   - a team of the project with nobody in it who is a member, wherever it
+ *     is named: the team (Open Team);
+ *   - somebody who isn't a member of the project, or a team of another
+ *     project, named in a monitor's criteria (Open Criteria), owning the
+ *     network device a monitor watches (Open Network Device), or added by
+ *     an owner rule (Open Owner Rules).
+ *
+ * The values are kept in dismissals (getSetupHealthDismissalId), so they
+ * are never renamed.
+ */
+export enum SetupHealthOwnerSubject {
+  TeamHasNobody = "team_has_nobody",
+  CriteriaNotInProject = "criteria_not_in_project",
+  CriteriaTeamOfAnotherProject = "criteria_team_of_another_project",
+  NetworkDeviceNotInProject = "network_device_not_in_project",
+  NetworkDeviceTeamOfAnotherProject = "network_device_team_of_another_project",
+  OwnerRuleNotInProject = "owner_rule_not_in_project",
+  OwnerRuleTeamOfAnotherProject = "owner_rule_team_of_another_project",
 }
 
 // Which records an incident or an alert has the on-call rules of.
@@ -291,6 +337,7 @@ export const SETUP_HEALTH_WORDS: Readonly<{
   channelOff: string;
   noBalance: string;
   serverCannotSend: Readonly<Record<WhoIsToldServerChannel, string>>;
+  ownerNotEmailed: Readonly<Record<SetupHealthOwnerSubject, string>>;
   policyNotRun: string;
   scheduleHasNobodyOnCall: Readonly<Record<SetupHealthScheduleReason, string>>;
   lowBalance: string;
@@ -358,6 +405,34 @@ export const SETUP_HEALTH_WORDS: Readonly<{
     ),
     [WhoIsToldServerChannel.Call]: translationKey(
       "This server can't make phone calls yet, so call pages are not sent.",
+    ),
+  },
+  /*
+   * The card says the team's in these words, and the rest in two sentences
+   * of its own (why, then where they are named): here each is one, with
+   * the monitor or the owner rule that names them.
+   */
+  ownerNotEmailed: {
+    [SetupHealthOwnerSubject.TeamHasNobody]: translationKey(
+      "Team {{team}} has nobody in it who is a member of this project, so nobody is emailed through it.",
+    ),
+    [SetupHealthOwnerSubject.CriteriaNotInProject]: translationKey(
+      "Someone named as an owner in the criteria of {{monitor}} isn't a member of this project, so isn't emailed.",
+    ),
+    [SetupHealthOwnerSubject.CriteriaTeamOfAnotherProject]: translationKey(
+      "A team of another project is named as an owner in the criteria of {{monitor}}, so nobody is emailed through it.",
+    ),
+    [SetupHealthOwnerSubject.NetworkDeviceNotInProject]: translationKey(
+      "An owner of the network device {{monitor}} watches isn't a member of this project, so isn't emailed.",
+    ),
+    [SetupHealthOwnerSubject.NetworkDeviceTeamOfAnotherProject]: translationKey(
+      "A team of another project owns the network device {{monitor}} watches, so nobody is emailed through it.",
+    ),
+    [SetupHealthOwnerSubject.OwnerRuleNotInProject]: translationKey(
+      "Owner rule {{rule}} adds someone who isn't a member of this project as an owner, so they aren't emailed.",
+    ),
+    [SetupHealthOwnerSubject.OwnerRuleTeamOfAnotherProject]: translationKey(
+      "Owner rule {{rule}} adds a team of another project as an owner, so nobody is emailed through it.",
     ),
   },
   policyNotRun: translationKey(
@@ -760,6 +835,194 @@ export function getChainFindings(
 }
 
 /*
+ * Each incident and alert a chain opens that its reader may see, and the
+ * incident an alert incident rule declares from it: one hidden from them
+ * (isHidden, getSetupHealthFactsForReader) is left out, with what it
+ * declares, as the card leaves them out.
+ */
+function getVisibleEvents(chain: WhoIsToldResult): Array<WhoIsToldEvent> {
+  const events: Array<WhoIsToldEvent> = [];
+
+  for (const item of chain.criteria) {
+    for (const event of item.events) {
+      if (event.isHidden) {
+        continue;
+      }
+
+      events.push(event);
+
+      if (event.declares && !event.declares.incident.isHidden) {
+        events.push(event.declares.incident);
+      }
+    }
+  }
+
+  return events;
+}
+
+// What names an owner no email reaches, and why, as one subject.
+function getOwnerSubject(
+  owner: WhoIsToldOwnerNotReached,
+): SetupHealthOwnerSubject {
+  if (owner.problem === WhoIsToldOwnerProblem.TeamHasNobodyInProject) {
+    return SetupHealthOwnerSubject.TeamHasNobody;
+  }
+
+  const isPerson: boolean =
+    owner.problem === WhoIsToldOwnerProblem.NotInProject;
+
+  switch (owner.addedBy) {
+    case WhoIsToldOwnerAddedBy.NetworkDevice:
+      return isPerson
+        ? SetupHealthOwnerSubject.NetworkDeviceNotInProject
+        : SetupHealthOwnerSubject.NetworkDeviceTeamOfAnotherProject;
+    case WhoIsToldOwnerAddedBy.OwnerRule:
+      return isPerson
+        ? SetupHealthOwnerSubject.OwnerRuleNotInProject
+        : SetupHealthOwnerSubject.OwnerRuleTeamOfAnotherProject;
+    default:
+      return isPerson
+        ? SetupHealthOwnerSubject.CriteriaNotInProject
+        : SetupHealthOwnerSubject.CriteriaTeamOfAnotherProject;
+  }
+}
+
+/*
+ * ONE OWNER NO CREATED EMAIL REACHES, AS A FINDING (#9371), about the
+ * record that puts it right - as the card links it:
+ *
+ *   - a team of the project with nobody in it who is a member: the team,
+ *     whose members are its fix, affecting the monitors whose records
+ *     name it;
+ *   - named in a monitor's criteria, or owning the network device a
+ *     monitor watches: that monitor, with its criteria or the device's
+ *     owners as its fix;
+ *   - added by an owner rule: the rule, with the incident's or alert's
+ *     owner rules as its fix, affecting the monitors whose records it
+ *     adds them to.
+ *
+ * Null for an owner the card links no page for: a device's owner with no
+ * device, an owner rule's with no rule.
+ */
+function getOwnerNotEmailedFinding(data: {
+  chain: WhoIsToldResult;
+  event: WhoIsToldEvent;
+  owner: WhoIsToldOwnerNotReached;
+}): SetupHealthFinding | null {
+  const { chain, event, owner } = data;
+  const monitor: SetupHealthRecord = monitorRecord(chain);
+  const subject: SetupHealthOwnerSubject = getOwnerSubject(owner);
+  const words: string = SETUP_HEALTH_WORDS.ownerNotEmailed[subject];
+
+  if (subject === SetupHealthOwnerSubject.TeamHasNobody) {
+    return makeSetupHealthFinding({
+      check: SetupHealthCheck.OwnerNotEmailed,
+      level: SetupHealthLevel.WorthFixing,
+      record: {
+        kind: SetupHealthRecordKind.Team,
+        id: owner.id,
+        name: owner.name,
+      },
+      subject: subject,
+      related: [monitor],
+      fix: SetupHealthFix.TeamMembers,
+      fixRecordId: owner.id,
+      words: words,
+      values: { team: owner.name },
+    });
+  }
+
+  if (owner.addedBy === WhoIsToldOwnerAddedBy.OwnerRule) {
+    if (!owner.rule?.id) {
+      return null;
+    }
+
+    const isAlert: boolean = event.kind === OnCallTestPageRecordKind.Alert;
+
+    return makeSetupHealthFinding({
+      check: SetupHealthCheck.OwnerNotEmailed,
+      level: SetupHealthLevel.WorthFixing,
+      record: {
+        kind: isAlert
+          ? SetupHealthRecordKind.AlertOwnerRule
+          : SetupHealthRecordKind.IncidentOwnerRule,
+        id: owner.rule.id,
+        name: owner.rule.name,
+      },
+      subject: subject,
+      related: [monitor],
+      fix: isAlert
+        ? SetupHealthFix.AlertOwnerRules
+        : SetupHealthFix.IncidentOwnerRules,
+      words: words,
+      values: { rule: owner.rule.name },
+    });
+  }
+
+  if (owner.addedBy === WhoIsToldOwnerAddedBy.NetworkDevice) {
+    if (!owner.networkDeviceId) {
+      return null;
+    }
+
+    return makeSetupHealthFinding({
+      check: SetupHealthCheck.OwnerNotEmailed,
+      level: SetupHealthLevel.WorthFixing,
+      record: monitor,
+      subject: subject,
+      fix: SetupHealthFix.NetworkDeviceOwners,
+      fixRecordId: owner.networkDeviceId,
+      words: words,
+      values: { monitor: chain.monitorName },
+    });
+  }
+
+  return makeSetupHealthFinding({
+    check: SetupHealthCheck.OwnerNotEmailed,
+    level: SetupHealthLevel.WorthFixing,
+    record: monitor,
+    subject: subject,
+    fix: SetupHealthFix.MonitorCriteria,
+    fixRecordId: monitor.id,
+    words: words,
+    values: { monitor: chain.monitorName },
+  });
+}
+
+/*
+ * THE OWNERS NO CREATED EMAIL REACHES (#9371): every owner the chains'
+ * incidents and alerts name that their Created email can't reach
+ * (WhoIsToldOwners.notReached, the card's "Owners who aren't emailed"),
+ * each as a finding about what puts it right. Worth fixing, not a page
+ * that won't arrive: the email still goes out, to the owners it reaches or
+ * to the Project Owners. A record hidden from the reader names nobody here,
+ * as on the card. One place that names someone for many monitors is one
+ * finding, affecting each.
+ */
+export function getOwnerNotEmailedFindings(
+  facts: SetupHealthFacts,
+): Array<SetupHealthFinding> {
+  const findings: Array<SetupHealthFinding> = [];
+
+  for (const chain of facts.chains) {
+    for (const event of getVisibleEvents(chain)) {
+      for (const owner of event.owners.notReached || []) {
+        const finding: SetupHealthFinding | null = getOwnerNotEmailedFinding({
+          chain: chain,
+          event: event,
+          owner: owner,
+        });
+
+        if (finding) {
+          findings.push(finding);
+        }
+      }
+    }
+  }
+
+  return findings;
+}
+
+/*
  * THE FACTS AS ONE READER'S CARDS TELL THEM (#9370). A private incident or
  * alert a monitor would open that is not the reader's to see once it
  * exists (#7213) raises no break on that monitor's card for them - nothing
@@ -767,9 +1030,12 @@ export function getChainFindings(
  * such a record has its breaks worked out again without it, as the card
  * works them out (getWhoIsToldBreaksForReader). A policy's or a person's
  * break that some other record raises stays, about that record's monitor
- * alone. The chains themselves are kept whole, so a policy a private
- * record's criteria names is still run by something (getPolicyNotRunFindings).
- * The same facts when nothing is hidden from the reader.
+ * alone. Such a record is marked hidden too (isHidden), so none of its
+ * owners no Created email reaches is listed for them (#9371): the card
+ * tells them nothing of its owners. The chains themselves are kept whole,
+ * so a policy a private record's criteria names is still run by something
+ * (getPolicyNotRunFindings). The same facts when nothing is hidden from the
+ * reader.
  */
 export function getSetupHealthFactsForReader(
   facts: SetupHealthFacts,
@@ -782,6 +1048,13 @@ export function getSetupHealthFactsForReader(
   ) {
     return facts;
   }
+
+  // A record as the reader is told it: marked hidden when it is.
+  const marked: (event: WhoIsToldEvent) => WhoIsToldEvent = (
+    event: WhoIsToldEvent,
+  ): WhoIsToldEvent => {
+    return isHidden(event) ? { ...event, isHidden: true } : event;
+  };
 
   return {
     ...facts,
@@ -796,6 +1069,26 @@ export function getSetupHealthFactsForReader(
           result: chain,
           isHidden: isHidden,
         }),
+        criteria: chain.criteria.map(
+          (item: WhoIsToldCriteria): WhoIsToldCriteria => {
+            return {
+              ...item,
+              events: item.events.map((event: WhoIsToldEvent) => {
+                const shown: WhoIsToldEvent = marked(event);
+
+                return event.declares
+                  ? {
+                      ...shown,
+                      declares: {
+                        ...event.declares,
+                        incident: marked(event.declares.incident),
+                      },
+                    }
+                  : shown;
+              }),
+            };
+          },
+        ),
       };
     }),
   };
@@ -1616,6 +1909,7 @@ export const SETUP_HEALTH_RULES: ReadonlyArray<
   },
   getResponderFindings,
   getServerFindings,
+  getOwnerNotEmailedFindings,
   getPolicyNotRunFindings,
   getScheduleFindings,
   getLowBalanceFindings,
@@ -1862,6 +2156,13 @@ export interface SetupHealthReadable {
   ingestionKeyIds: ReadonlySet<string>;
   // The caller may read the project's on-call policies (and so Readiness).
   canReadResponders: boolean;
+  /*
+   * The teams and owner rules an owner no Created email reaches is about
+   * (#9371): none when not said.
+   */
+  teamIds?: ReadonlySet<string> | undefined;
+  incidentOwnerRuleIds?: ReadonlySet<string> | undefined;
+  alertOwnerRuleIds?: ReadonlySet<string> | undefined;
 }
 
 function isRecordReadable(
@@ -1886,6 +2187,12 @@ function isRecordReadable(
       return false;
     case SetupHealthRecordKind.Project:
       return true;
+    case SetupHealthRecordKind.Team:
+      return Boolean(readable.teamIds?.has(record.id));
+    case SetupHealthRecordKind.IncidentOwnerRule:
+      return Boolean(readable.incidentOwnerRuleIds?.has(record.id));
+    case SetupHealthRecordKind.AlertOwnerRule:
+      return Boolean(readable.alertOwnerRuleIds?.has(record.id));
   }
 }
 

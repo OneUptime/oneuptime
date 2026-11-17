@@ -4175,5 +4175,22 @@
   "This server cannot send email yet. Set their password here, or leave it empty to get a link to send them yourself.": "Denne server kan ikke sende e-mail endnu. Angiv adgangskoden her, eller lad feltet stå tomt for at få et link, du selv kan sende.",
   "This server cannot send email yet. Set up email under Settings > Emails.": "Denne server kan ikke sende e-mail endnu. Konfigurer e-mail under Indstillinger > E-mails.",
   "This server cannot send email yet, so no password reset link was emailed. Set up email under Settings > Emails, or set their password yourself.": "Denne server kan ikke sende e-mail endnu, så der blev ikke sendt et link til nulstilling af adgangskoden. Konfigurer e-mail under Indstillinger > E-mails, eller angiv selv adgangskoden.",
-  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Denne bruger har allerede en adgangskode, så der er intet link til at angive en adgangskode at kopiere. Send i stedet et link til nulstilling fra brugerens side Godkendelse."
+  "This user already has a password, so there is no set-password link to copy. Send them a password reset link from their Authentication page instead.": "Denne bruger har allerede en adgangskode, så der er intet link til at angive en adgangskode at kopiere. Send i stedet et link til nulstilling fra brugerens side Godkendelse.",
+  "How to back up with Docker Compose": "Sådan tager du backup med Docker Compose",
+  "How to back up on Kubernetes": "Sådan tager du backup på Kubernetes",
+  "Out of date: the last backup finished on {{time}}, more than a week ago.": "Forældet: Den seneste backup blev færdig den {{time}}, for mere end en uge siden.",
+  "Backed up with npm run backup.": "Backup med npm run backup.",
+  "npm run backup did not finish a backup. Run it on the server to see why.": "npm run backup gjorde ikke en backup færdig. Kør den på serveren for at se hvorfor.",
+  "Send test push": "Send test-push",
+  "The test push was accepted for {{to}}. If it does not show, look at the notification settings of that phone or browser.": "Test-pushen blev modtaget til {{to}}. Hvis den ikke vises, så kig i den telefons eller browsers notifikationsindstillinger.",
+  "None of your devices took the test push: {{reason}}": "Ingen af dine enheder modtog test-pushen: {{reason}}",
+  "Push notifications are turned off under Settings > Push Notifications.": "Push-notifikationer er slået fra under Indstillinger > Push-notifikationer.",
+  "You have no phone or browser registered for push notifications. Register one under User Settings > Notification Methods in the Dashboard.": "Du har ingen telefon eller browser registreret til push-notifikationer. Registrer en under Brugerindstillinger > Notifikationsmetoder i Dashboard.",
+  "Your browsers cannot get a push from this server: it has no VAPID keys. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY, or register a phone with the OneUptime On-Call app.": "Dine browsere kan ikke få en push fra denne server: Den har ingen VAPID-nøgler. Angiv VAPID_PUBLIC_KEY og VAPID_PRIVATE_KEY, eller registrer en telefon med appen OneUptime On-Call.",
+  "A test notification goes to the phones and browsers you registered for push notifications, and to nobody else.": "En testnotifikation går til de telefoner og browsere, du har registreret til push-notifikationer, og ikke til andre.",
+  "Test push notifications": "Test push-notifikationer",
+  "Send a test push to your own phones and browsers to make sure push notifications reach them.": "Send en test-push til dine egne telefoner og browsere for at sikre, at push-notifikationer når frem.",
+  "Check Gateway": "Tjek gateway",
+  "Checking your gateway…": "Tjekker din gateway…",
+  "Your gateway answered the test request.": "Din gateway svarede på testanmodningen."
 }
