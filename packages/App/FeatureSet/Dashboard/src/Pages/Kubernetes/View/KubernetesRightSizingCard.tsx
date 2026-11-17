@@ -79,7 +79,7 @@ function getRequestChangeElement(
         <span className="tabular-nums text-gray-600">
           {format(resource.current)}
         </span>
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-gray-500">
           {translateText("right-sized")}
         </span>
       </span>
@@ -96,7 +96,7 @@ function getRequestChangeElement(
 
   return (
     <span className="inline-flex items-center gap-1.5 tabular-nums">
-      <span className="text-gray-400 line-through">
+      <span className="text-gray-500 line-through">
         {resource.current === null
           ? translateText("none")
           : format(resource.current)}
@@ -122,7 +122,7 @@ function getSavingsElement(
     return (
       <span className="tabular-nums font-medium text-emerald-700">
         {formatCost(recommendation.estimatedMonthlySavings)}
-        <span className="ml-1 text-xs font-normal text-gray-400">/mo</span>
+        <span className="ml-1 text-xs font-normal text-gray-500">/mo</span>
       </span>
     );
   }
@@ -131,7 +131,7 @@ function getSavingsElement(
     return (
       <span className="tabular-nums text-amber-700">
         +{formatCost(recommendation.estimatedMonthlyIncrease)}
-        <span className="ml-1 text-xs font-normal text-gray-400">/mo</span>
+        <span className="ml-1 text-xs font-normal text-gray-500">/mo</span>
       </span>
     );
   }
