@@ -275,20 +275,22 @@
       "Ativar SMS e chamadas",
       "App móvel ou navegador",
       "Não configurado.",
-      "Baixe o app do OneUptime ou ative as notificações neste navegador, pelos seus métodos de notificação.",
-      "Configurar o app ou este navegador",
+      "Receba acionamentos no celular com o app OneUptime On-Call, ou neste navegador.",
+      "Usar este navegador",
+      "Baixar o app",
       "Continuar",
       "Verificar de novo"
     ],
     "outline": [
       "button: Adicionar saldo",
       "button: Ativar SMS e chamadas",
-      "link: Configurar o app ou este navegador",
+      "button: Usar este navegador",
+      "button: Baixar o app",
       "button: Continuar",
       "button: Verificar de novo"
     ],
     "width": 768,
-    "height": 652
+    "height": 678
   },
   "paging-phone": {
     "text": [
@@ -304,8 +306,9 @@
       "Enviar um código por SMS",
       "App móvel ou navegador",
       "Não configurado.",
-      "Baixe o app do OneUptime ou ative as notificações neste navegador, pelos seus métodos de notificação.",
-      "Configurar o app ou este navegador",
+      "Receba acionamentos no celular com o app OneUptime On-Call, ou neste navegador.",
+      "Usar este navegador",
+      "Baixar o app",
       "Continuar",
       "Verificar de novo",
       "placeholder: +15551234567"
@@ -313,31 +316,35 @@
     "outline": [
       "field text: +15551234567",
       "button: Enviar um código por SMS",
-      "link: Configurar o app ou este navegador",
+      "button: Usar este navegador",
+      "button: Baixar o app",
       "button: Continuar",
       "button: Verificar de novo"
     ],
     "width": 768,
-    "height": 584
+    "height": 610
   },
   "paging-who-else": {
     "text": [
       "2",
-      "Quem mais está de plantão?",
+      "Quem é acionado primeiro?",
       "Isso cria a política de plantão \"Política de plantão padrão\". Ela aciona primeiro essas pessoas, a cada novo incidente e alerta deste projeto.",
       "Acionados primeiro",
       "Adicionar membros da equipe",
       "AL",
       "Ada Lovelace",
+      "Todos aqui são acionados ao mesmo tempo. Quem acionar só se ninguém responder fica para o próximo passo.",
+      "Convidar por e-mail",
       "Salvar e continuar"
     ],
     "outline": [
       "button: Adicionar membros da equipe",
       "button: Remover Ada Lovelace",
+      "button: Convidar por e-mail",
       "button: Salvar e continuar"
     ],
     "width": 768,
-    "height": 246
+    "height": 342
   },
   "paging-no-answer": {
     "text": [
@@ -389,7 +396,7 @@
     "text": [
       "O acionamento está configurado",
       "Quem é acionado",
-      "Todo novo incidente ou alerta executa \"Política de plantão padrão\", que aciona Ada Lovelace (E-mail, SMS, Chamada telefônica).",
+      "Todo novo incidente ou alerta executa \"Política de plantão padrão\", que aciona Ada Lovelace (e-mail, SMS e chamada telefônica imediatamente).",
       "Se ninguém responder",
       "Se ninguém confirmar em 30 minutos, Grace Hopper é acionado.",
       "Testado",

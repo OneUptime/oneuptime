@@ -196,14 +196,17 @@ export function seedNewProject(options) {
   /*
    * Each team's permission, as ProjectService gives a new project's teams:
    * an invitation starts on the Members team, the one holding Project
-   * Member for the whole project (DefaultInviteTeamRule).
+   * Member for the whole project (DefaultInviteTeamRule). Their ids are
+   * their own, so every id the journeys and the docs' screenshots show
+   * stays the one it was.
    */
-  for (const [teamId, permission] of [
-    [OWNERS_TEAM_ID, Permission.ProjectOwner],
-    [ADMINS_TEAM_ID, Permission.ProjectAdmin],
-    [MEMBERS_TEAM_ID, Permission.ProjectMember],
+  for (const [id, teamId, permission] of [
+    ["30000000-0000-4000-8000-000000000011", OWNERS_TEAM_ID, Permission.ProjectOwner],
+    ["30000000-0000-4000-8000-000000000012", ADMINS_TEAM_ID, Permission.ProjectAdmin],
+    ["30000000-0000-4000-8000-000000000013", MEMBERS_TEAM_ID, Permission.ProjectMember],
   ]) {
     store.insert(TeamPermission, {
+      _id: id,
       teamId: new ObjectID(teamId),
       permission,
       isBlockPermission: false,
