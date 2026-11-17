@@ -1,10 +1,10 @@
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import StatusPagePrivateUserService from "../../../Server/Services/StatusPagePrivateUserService";
 import UserService from "../../../Server/Services/UserService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import NewPasswordRule from "../../../Server/Utils/NewPasswordRule";
-import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import StatusPagePrivateUser from "../../../Models/DatabaseModels/StatusPagePrivateUser";
 import User from "../../../Models/DatabaseModels/User";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -27,7 +27,7 @@ import type { SpyInstance } from "jest-mock";
 
 const STRONG_PASSWORD: string = "violet river lantern";
 
-interface HookInternals<TModel extends BaseModel> {
+interface HookInternals<TModel extends DatabaseBaseModel> {
   onBeforeCreate: (createBy: CreateBy<TModel>) => Promise<OnCreate<TModel>>;
   onBeforeUpdate: (updateBy: UpdateBy<TModel>) => Promise<OnUpdate<TModel>>;
 }
@@ -38,7 +38,7 @@ const userHooks: HookInternals<User> =
 const privateUserHooks: HookInternals<StatusPagePrivateUser> =
   StatusPagePrivateUserService as unknown as HookInternals<StatusPagePrivateUser>;
 
-function passwordUpdate<TModel extends BaseModel>(
+function passwordUpdate<TModel extends DatabaseBaseModel>(
   password: unknown,
 ): UpdateBy<TModel> {
   return {
@@ -52,7 +52,7 @@ function passwordUpdate<TModel extends BaseModel>(
   };
 }
 
-function passwordCreate<TModel extends BaseModel>(
+function passwordCreate<TModel extends DatabaseBaseModel>(
   password: unknown,
 ): CreateBy<TModel> {
   return {

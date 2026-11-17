@@ -285,7 +285,7 @@ describe("the create's one answer", () => {
     expect(getKeyShownOnCreate(json["apiKey"])).toBe(made);
     expect(
       getKeyShownOnCreate(
-        (ApiKey.fromJSON(json, ApiKey) as ApiKey).getValue("apiKey"),
+        ApiKey.fromJSONObject(json, ApiKey).getValue("apiKey"),
       ),
     ).toBe(made);
     expect(JSON.stringify(json)).not.toContain(HashedApiKey.hash(made));
