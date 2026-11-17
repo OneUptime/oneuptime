@@ -24,9 +24,11 @@ import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
  * incident and an alert on-call rule.
  *
  * Pinned here, in Chromium: the switch's row in the dialog - named for the
- * policy, said what it does, on - and what Create sends; that it is asked
- * only of a project's first policy, of someone who may add on-call rules,
- * and never when the project's counts fail; that it fits a 390px phone,
+ * policy, said what it does, on - and what Create sends; that a later
+ * policy is asked it too, off, so its dialog says before it is saved that a
+ * policy nothing triggers pages nobody (#7371); that it is asked only of
+ * someone who may add on-call rules, and never when the project's counts
+ * fail; that it fits a 390px phone,
  * reads in German and, in Persian, sits at the start of the row on the right
  * with the dialog laid out right to left, in dark mode. The fixture records
  * every create and every count, so the tests check what the page asked and
@@ -336,8 +338,14 @@ test.describe("a new project's first on-call policy", () => {
   });
 });
 
-test.describe("a project that is not new is not asked", () => {
-  test("with a policy in the list: nothing is counted, nothing asked, nothing sent", async ({
+/*
+ * ISSUE #7371: a later policy's dialog hid the switch, with nothing in its
+ * place, and the policy was saved paging nobody without a word. It is
+ * asked too, off to start with: paging two policies for every new incident
+ * and alert is a choice to make, not a default.
+ */
+test.describe("a project that is not new is asked, off (#7371)", () => {
+  test("with a policy in the list: the switch is there, off, saying a policy nothing triggers pages nobody; nothing counted, nothing sent", async ({
     page,
   }: {
     page: Page;
@@ -346,19 +354,44 @@ test.describe("a project that is not new is not asked", () => {
     await expect(page.getByText("Platform on-call").first()).toBeVisible();
     await openCreate(page);
 
-    await expect(dialog(page).getByRole("switch")).toHaveCount(0);
-    await expect(dialog(page)).not.toContainText(SWITCH);
+    const toggle: Locator = everyNewEventSwitch(page);
+
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute("aria-checked", "false");
+    await expect(toggle).toHaveAccessibleDescription(SWITCH_DESCRIPTION);
     // Only the list's own count: the offer counts nothing.
     expect((await fixture(page)).counts).toEqual([LIST_FIRST_RUN_COUNT]);
     // A project with a policy is not told what On-Call is.
     await expect(page.getByTestId(SHOWCASE_BUTTON)).toHaveCount(0);
+
+    await screenshot(page, "later-policy-dialog-1280");
 
     const created: RecordedCreate = await createNamed(page, "Database on-call");
 
     expect(created.misc[SWITCH_KEY]).toBeUndefined();
   });
 
-  test("with an incident on-call rule and no policy: the counts say so, and nothing is asked", async ({
+  test("turned on, a later policy asks for the two rules too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, "?policies=one");
+    await expect(page.getByText("Platform on-call").first()).toBeVisible();
+    await openCreate(page);
+
+    await switchLabel(page, SWITCH).click();
+    await expect(everyNewEventSwitch(page)).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+
+    const created: RecordedCreate = await createNamed(page, "Database on-call");
+
+    expect(created.misc[SWITCH_KEY]).toBe(true);
+  });
+
+  test("with an incident on-call rule and no policy: the counts say so, and the switch is there, off", async ({
     page,
   }: {
     page: Page;
@@ -373,13 +406,18 @@ test.describe("a project that is not new is not asked", () => {
         return (await fixture(page)).counts.sort();
       })
       .toEqual(NEW_PROJECT_COUNTS);
-    await expect(dialog(page).getByRole("switch")).toHaveCount(0);
+    await expect(everyNewEventSwitch(page)).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
 
     const created: RecordedCreate = await createNamed(page, "Platform on-call");
 
     expect(created.misc[SWITCH_KEY]).toBeUndefined();
   });
+});
 
+test.describe("when the answer is not known, or not theirs to give, nothing is asked", () => {
   test("when the project's counts fail, nothing is asked and the dialog is what it always was", async ({
     page,
   }: {
