@@ -245,7 +245,8 @@
       "incidents": "Incidentes",
       "monitors": "Monitores",
       "onCallPolicies": "Políticas de guardia",
-      "statusPages": "Páginas de estado"
+      "statusPages": "Páginas de estado",
+      "recordPages": "Páginas de registros"
     }
   },
   "keyboardShortcuts": {
@@ -56533,5 +56534,24 @@
   "Matches no policy now.": "Ahora no coincide con ninguna política.",
   "Matches {{count}} policies now: {{names}}.": "Coincide ahora con {{count}} políticas: {{names}}.",
   "Matches {{count}} policies now: {{names}}._one": "Coincide ahora con {{count}} política: {{names}}.",
-  "Use On-Call Policy instead": "Usar «Política de guardia» en su lugar"
+  "Use On-Call Policy instead": "Usar «Política de guardia» en su lugar",
+  "Drop one CSV file at a time.": "Suelta un solo archivo CSV cada vez.",
+  "Drop the CSV file to upload it": "Suelta el archivo CSV para subirlo",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} no es un archivo CSV. Elige o suelta un archivo que termine en .csv.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "90 días después de que se actualizara la app de Zoom de OneUptime, Zoom deja de aceptar sus inicios de sesión, y las conexiones dejan de iniciar llamadas.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "90 días después de que se actualizara la app de Zoom de OneUptime, Zoom deja de aceptar el inicio de sesión de esta conexión, y la conexión deja de iniciar llamadas.",
+  "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "Haz clic en «Reconnect» en cada conexión y luego permite que OneUptime lea grabaciones y transcripciones cuando Zoom lo pida.",
+  "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.": "Haz clic en «Reconnect» y luego permite que OneUptime lea grabaciones y transcripciones cuando Zoom lo pida.",
+  "Reconnect these Zoom connections to keep starting calls": "Vuelve a conectar estas conexiones de Zoom para seguir iniciando llamadas",
+  "Reconnect {{name}} to keep starting calls": "Vuelve a conectar {{name}} para seguir iniciando llamadas",
+  "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "Estas conexiones de Zoom se iniciaron antes de que OneUptime pudiera leer las transcripciones de llamadas, así que no pueden leerlas.",
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "Esta conexión de Zoom se inició antes de que OneUptime pudiera leer las transcripciones de llamadas, así que no puede leerlas.",
+  "End Now": "Terminar ahora",
+  "End the override for {{name}} now": "Terminar ahora la sustitución de {{name}}",
+  "End the override for {{name}} now?": "¿Terminar ahora la sustitución de {{name}}?",
+  "The override for {{name}} has ended.": "La sustitución de {{name}} ha terminado.",
+  "This override ends within the minute, so there is nothing left to end.": "Esta sustitución termina en este mismo minuto, así que no queda nada por terminar.",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Esta sustitución aún no ha empezado, así que no hay nada que terminar. Para cancelarla, elimínala.",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "La omisión termina ahora, en lugar del {{until}}. A partir de entonces, {{away}} vuelve a cubrir sus turnos en la rotación.",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} deja de cubrir a {{away}} ahora, en lugar del {{until}}. A partir de entonces, las alertas vuelven a avisar a {{away}}."
 }

@@ -1,5 +1,6 @@
 import {
   expect,
+  JSHandle,
   Locator,
   Page,
   Route as PlaywrightRoute,
@@ -42,7 +43,6 @@ const LOCALES: string = path.resolve(
 const OUTLINE_STYLES: Array<string> = [
   "OUTLINE",
   "HOVER_DANGER_OUTLINE",
-  "HOVER_SUCCESS_OUTLINE",
   "HOVER_PRIMARY_OUTLINE",
 ];
 
@@ -53,12 +53,10 @@ const ALL_STYLES: Array<string> = [
   "DANGER",
   "DANGER_OUTLINE",
   "SUCCESS_OUTLINE",
-  "ICON_LIGHT",
   "LINK",
   "SECONDARY_LINK",
   "ICON",
   "HOVER_DANGER_OUTLINE",
-  "HOVER_SUCCESS_OUTLINE",
   "HOVER_PRIMARY_OUTLINE",
 ];
 
@@ -70,8 +68,6 @@ const GRAY_50: string = "rgb(249, 250, 251)";
 const GRAY_100: string = "rgb(243, 244, 246)";
 const RED_50: string = "rgb(254, 242, 242)";
 const RED_700: string = "rgb(185, 28, 28)";
-const GREEN_50: string = "rgb(240, 253, 244)";
-const GREEN_700: string = "rgb(21, 128, 61)";
 const INDIGO_50: string = "rgb(238, 242, 255)";
 const INDIGO_700: string = "rgb(67, 56, 202)";
 
@@ -328,7 +324,6 @@ test.describe("an outline button draws a border, a fill, a hover and a focus rin
     const hovers: Array<[string, string, string | undefined]> = [
       ["OUTLINE", GRAY_50, undefined],
       ["HOVER_DANGER_OUTLINE", RED_50, RED_700],
-      ["HOVER_SUCCESS_OUTLINE", GREEN_50, GREEN_700],
       ["HOVER_PRIMARY_OUTLINE", INDIGO_50, INDIGO_700],
     ];
 
@@ -2598,6 +2593,167 @@ test.describe("keyboard only", () => {
       "class",
       /text-indigo-600/,
     );
+  });
+
+  // #9223: a cell's help was a dialog opened by a click on the cell.
+  test("a table cell's help: Tab reaches its (i), focus shows the words, Escape hides them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const help: Locator = page
+      .getByTestId("keyboard-table")
+      .getByRole("button", { name: "About Quota" });
+
+    await tabTo(page, help, 80);
+    expect(await focusRingOf(help)).not.toBe("none");
+    await expect(page.getByRole("tooltip")).toHaveText(
+      "Counted since the first of the month.",
+    );
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("tooltip")).toBeHidden();
+    await expect(help).toBeFocused();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  // #9222: the diagram's bands and addresses answered only a click.
+  test("a network diagram: Tab reaches a band and an address, Enter and Space press them, the focus is drawn", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const band: Locator = page.getByRole("button", {
+      name: /^10\.0\.0\.5 to 10\.0\.0\.9: /,
+    });
+
+    await tabTo(page, band, 100);
+    const outline: string = await band.evaluate((element: Element): string => {
+      return window.getComputedStyle(element).getPropertyValue("outline-style");
+    });
+    expect(outline).not.toBe("none");
+
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("keyboard-log")).toHaveText(
+      "conversation:10.0.0.5>10.0.0.9",
+    );
+
+    const receiver: Locator = page.getByRole("button", {
+      name: /^8\.8\.8\.8 received /,
+    });
+
+    await tabTo(page, receiver, 20);
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("keyboard-log")).toContainText(
+      "destination:8.8.8.8",
+    );
+  });
+});
+
+/*
+ * #9224: the CSV upload said "drag and drop" and took no drop; the browser
+ * opened the file instead. A dropped file is read now, the area lights up
+ * under a drag, and anything but a .csv is refused out loud.
+ */
+async function dropFiles(
+  page: Page,
+  target: Locator,
+  files: Array<{ name: string; text: string }>,
+): Promise<void> {
+  const transfer: JSHandle<DataTransfer> = await page.evaluateHandle(
+    (list: Array<{ name: string; text: string }>): DataTransfer => {
+      const data: DataTransfer = new DataTransfer();
+      for (const file of list) {
+        data.items.add(new File([file.text], file.name, { type: "text/csv" }));
+      }
+      return data;
+    },
+    files,
+  );
+
+  await target.dispatchEvent("dragenter", { dataTransfer: transfer });
+  await target.dispatchEvent("dragover", { dataTransfer: transfer });
+  await target.dispatchEvent("drop", { dataTransfer: transfer });
+}
+
+test.describe("the CSV upload area", () => {
+  const CSV_TEXT: string =
+    "Email,Name\nada@example.com,Ada\ngrace@example.com,Grace\n";
+
+  test("a dragged file lights the area, and a dropped CSV is read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const dropArea: Locator = page.getByTestId("csv-file-upload-area");
+    await dropArea.scrollIntoViewIfNeeded();
+    await expect(dropArea).toContainText(
+      "Click to upload CSV or drag and drop",
+    );
+
+    const transfer: JSHandle<DataTransfer> = await page.evaluateHandle(
+      (): DataTransfer => {
+        const data: DataTransfer = new DataTransfer();
+        data.items.add(new File(["x"], "people.csv", { type: "text/csv" }));
+        return data;
+      },
+    );
+    await dropArea.dispatchEvent("dragenter", { dataTransfer: transfer });
+    await expect(dropArea).toHaveAttribute("data-dragging", "true");
+    await expect(dropArea).toContainText("Drop the CSV file to upload it");
+    await screenshot(page, "csv-dragging", { fullPage: false });
+    await dropArea.dispatchEvent("dragleave", { dataTransfer: transfer });
+    await expect(dropArea).not.toHaveAttribute("data-dragging", "true");
+
+    await dropFiles(page, dropArea, [{ name: "people.csv", text: CSV_TEXT }]);
+    await expect(page.getByTestId("keyboard-log")).toHaveText("csv:2");
+    await expect(
+      page.getByText("people.csv - 2 rows ready to import"),
+    ).toBeVisible();
+    await expect(dropArea).not.toHaveAttribute("data-dragging", "true");
+  });
+
+  test("a file that is not a CSV is refused by name, and nothing is read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const dropArea: Locator = page.getByTestId("csv-file-upload-area");
+    await dropFiles(page, dropArea, [{ name: "report.xlsx", text: "x" }]);
+
+    await expect(page.getByRole("alert")).toContainText(
+      "report.xlsx is not a CSV file. Choose or drop a file that ends in .csv.",
+    );
+    await expect(page.getByTestId("keyboard-log")).toHaveText("");
+  });
+
+  test("the keyboard reaches the area: its focus rings it, and a chosen CSV is read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKeyboard(page);
+
+    const dropArea: Locator = page.getByTestId("csv-file-upload-area");
+    const input: Locator = dropArea.locator("input[type=file]");
+
+    await tabTo(page, input, 120);
+    expect(await focusRingOf(dropArea)).not.toBe("none");
+
+    await input.setInputFiles({
+      name: "people.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(CSV_TEXT),
+    });
+    await expect(page.getByTestId("keyboard-log")).toHaveText("csv:2");
   });
 });
 

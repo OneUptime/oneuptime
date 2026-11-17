@@ -15,7 +15,11 @@ a user without the permission while the Danger Zone page is, that browsing
 lists actions and products rather than every page and a page opened from
 search comes back under Recent, that the arrow keys walk the results, and
 that a breadcrumb never scrolls the page sideways on a phone. Record search
-requests are answered with empty lists.
+requests are answered with empty lists, except the status page search, which
+answers with one status page, Acme Status, for a record's own pages (#9204):
+"status page sso" offers its Single Sign-On and opens it; on its page, "sso"
+and the old name "advanced settings" find its own pages first; and in Arabic
+the row stays inside the panel.
 
 The fixture builds the production `NavBarMenuModal` and Dashboard navigation
 catalog with the actual English translations. It supplies a synthetic project

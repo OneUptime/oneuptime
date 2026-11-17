@@ -245,7 +245,8 @@
       "incidents": "인시던트",
       "monitors": "모니터",
       "onCallPolicies": "온콜 정책",
-      "statusPages": "상태 페이지"
+      "statusPages": "상태 페이지",
+      "recordPages": "레코드 페이지"
     }
   },
   "keyboardShortcuts": {
@@ -56533,5 +56534,24 @@
   "Matches no policy now.": "현재 일치하는 정책이 없습니다.",
   "Matches {{count}} policies now: {{names}}.": "현재 정책 {{count}}개와 일치합니다: {{names}}.",
   "Matches {{count}} policies now: {{names}}._one": "현재 정책 {{count}}개와 일치합니다: {{names}}.",
-  "Use On-Call Policy instead": "대신 “온콜 정책” 사용"
+  "Use On-Call Policy instead": "대신 “온콜 정책” 사용",
+  "Drop one CSV file at a time.": "CSV 파일은 한 번에 하나씩 놓으세요.",
+  "Drop the CSV file to upload it": "CSV 파일을 놓아 업로드하세요",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}}은(는) CSV 파일이 아닙니다. .csv로 끝나는 파일을 선택하거나 끌어다 놓으세요.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "OneUptime의 Zoom 앱이 업데이트되고 90일이 지나면 Zoom이 이 연결들의 로그인을 더 이상 받아들이지 않으며, 이 연결들은 통화를 시작하지 못합니다.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "OneUptime의 Zoom 앱이 업데이트되고 90일이 지나면 Zoom이 이 연결의 로그인을 더 이상 받아들이지 않으며, 이 연결은 통화를 시작하지 못합니다.",
+  "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "연결마다 \"Reconnect\"를 클릭한 다음, Zoom이 요청하면 OneUptime이 녹화와 녹취록을 읽도록 허용하세요.",
+  "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.": "\"Reconnect\"를 클릭한 다음, Zoom이 요청하면 OneUptime이 녹화와 녹취록을 읽도록 허용하세요.",
+  "Reconnect these Zoom connections to keep starting calls": "통화를 계속 시작하려면 이 Zoom 연결들을 다시 연결하세요",
+  "Reconnect {{name}} to keep starting calls": "통화를 계속 시작하려면 {{name}}을(를) 다시 연결하세요",
+  "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "이 Zoom 연결들은 OneUptime이 통화 녹취록을 읽을 수 있기 전에 로그인했기 때문에 녹취록을 읽을 수 없습니다.",
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "이 Zoom 연결은 OneUptime이 통화 녹취록을 읽을 수 있기 전에 로그인했기 때문에 녹취록을 읽을 수 없습니다.",
+  "End Now": "지금 종료",
+  "End the override for {{name}} now": "{{name}} 님의 재정의를 지금 종료",
+  "End the override for {{name}} now?": "{{name}} 님의 재정의를 지금 종료할까요?",
+  "The override for {{name}} has ended.": "{{name}} 님의 재정의가 종료되었습니다.",
+  "This override ends within the minute, so there is nothing left to end.": "이 재정의는 1분 안에 끝나므로 더 종료할 것이 없습니다.",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "이 재정의는 아직 시작되지 않았으므로 종료할 것이 없습니다. 취소하려면 삭제하세요.",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "건너뛰기가 {{until}} 대신 지금 끝납니다. 그 이후에는 {{away}} 님이 로테이션에서 다시 자기 차례를 맡습니다.",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} 님이 {{until}} 대신 지금 {{away}} 님 대리를 멈춥니다. 그 이후에는 경고가 다시 {{away}} 님에게 갑니다."
 }

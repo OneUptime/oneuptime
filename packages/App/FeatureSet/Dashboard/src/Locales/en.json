@@ -245,7 +245,8 @@
       "incidents": "Incidents",
       "monitors": "Monitors",
       "onCallPolicies": "On-Call Policies",
-      "statusPages": "Status Pages"
+      "statusPages": "Status Pages",
+      "recordPages": "Pages of Records"
     }
   },
   "keyboardShortcuts": {
@@ -56533,5 +56534,24 @@
   "Matches no policy now.": "Matches no policy now.",
   "Matches {{count}} policies now: {{names}}.": "Matches {{count}} policies now: {{names}}.",
   "Matches {{count}} policies now: {{names}}._one": "Matches {{count}} policy now: {{names}}.",
-  "Use On-Call Policy instead": "Use On-Call Policy instead"
+  "Use On-Call Policy instead": "Use On-Call Policy instead",
+  "Drop one CSV file at a time.": "Drop one CSV file at a time.",
+  "Drop the CSV file to upload it": "Drop the CSV file to upload it",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.",
+  "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.",
+  "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.": "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.",
+  "Reconnect these Zoom connections to keep starting calls": "Reconnect these Zoom connections to keep starting calls",
+  "Reconnect {{name}} to keep starting calls": "Reconnect {{name}} to keep starting calls",
+  "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.",
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.",
+  "End Now": "End Now",
+  "End the override for {{name}} now": "End the override for {{name}} now",
+  "End the override for {{name}} now?": "End the override for {{name}} now?",
+  "The override for {{name}} has ended.": "The override for {{name}} has ended.",
+  "This override ends within the minute, so there is nothing left to end.": "This override ends within the minute, so there is nothing left to end.",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "This override hasn't started yet, so there is nothing to end. To call it off, delete it.",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again."
 }

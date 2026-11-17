@@ -70,7 +70,7 @@ OneUptime Cloud では、Zoom、Google Meet、Microsoft Teams の接続はワン
 
 サインインで作成した接続にも、誰が待つかを決める設定があります。Google Meet では **Who can join**、Microsoft Teams では **Who skips the lobby** です。接続の行の **編集** で変更します。
 
-OneUptime が通話の文字起こしを読み取るようになる前にサインインした Zoom の接続は、これまでどおり通話を開始しますが、もう一度サインインするまで文字起こしは読み取れません。行の **Reconnect** で、Zoom に文字起こしの権限を求めます。
+OneUptime が通話の文字起こしを読み取るようになる前にサインインした Zoom の接続は、文字起こしを読み取れません。OneUptime の Zoom アプリが文字起こしを読み取れるように更新されると、その 90 日後に Zoom はそのような接続のサインインを受け付けなくなり、接続は通話を開始しなくなります。それ以降、OneUptime はもう一度サインインするよう求めます。行の **Reconnect** で、Zoom に文字起こしの権限を求めます。
 
 **インシデント通話を録画して文字起こしする** がオフのときにサインインした Microsoft Teams の接続は、これまでどおり通話を開始しますが、録画はされません。この設定をオンにすると、行の **Reconnect** で、Microsoft にカレンダーと文字起こしの権限も求めます。
 

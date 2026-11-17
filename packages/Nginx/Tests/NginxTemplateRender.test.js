@@ -753,20 +753,41 @@ function startUpstream(name) {
   });
 }
 
-/** A port nothing is listening on right now, for nginx to take. */
-function reservePort() {
-  return new Promise((resolve, reject) => {
-    const probe = net.createServer();
+/*
+ * Ports nothing is listening on right now, for nginx to take, each a
+ * different one: every probe holds its port until all have one, so the
+ * system cannot hand the same free port out twice (two probes opened and
+ * closed one after the other can get the same port, and then nginx sees two
+ * default servers on it).
+ */
+async function reservePorts(count) {
+  const probes = [];
 
-    probe.once("error", reject);
-    probe.listen(0, "127.0.0.1", () => {
-      const { port } = probe.address();
+  try {
+    for (let index = 0; index < count; index++) {
+      const probe = net.createServer();
+      probes.push(probe);
 
-      probe.close(() => {
-        resolve(port);
+      await new Promise((resolve, reject) => {
+        probe.once("error", reject);
+        probe.listen(0, "127.0.0.1", resolve);
       });
+    }
+
+    return probes.map((probe) => {
+      return probe.address().port;
     });
-  });
+  } finally {
+    await Promise.all(
+      probes.map((probe) => {
+        return new Promise((resolve) => {
+          probe.close(() => {
+            resolve();
+          });
+        });
+      }),
+    );
+  }
 }
 
 function canConnect(port) {
@@ -874,8 +895,7 @@ async function withRunningIngress(billingEnabled, callback) {
     fs.mkdirSync(path.join(prefix, "conf.d"), { recursive: true });
     fs.mkdirSync(path.join(prefix, "logs"), { recursive: true });
 
-    const httpPort = await reservePort();
-    const tlsPort = await reservePort();
+    const [httpPort, tlsPort] = await reservePorts(2);
 
     // The same image-dependent lines the `nginx -t` test strips, plus temp
     // paths and a single worker so the run stays inside its own directory.

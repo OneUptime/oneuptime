@@ -8,6 +8,15 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import {
+  chooseDropdownOption,
+  closeDropdown,
+  openDropdown,
+} from "../../DropdownPicks";
+import {
+  FILTER_OPERATOR_LABELS,
+  FilterOperator,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdownTypes";
 import userEvent from "@testing-library/user-event";
 import React, { ReactElement } from "react";
 import { BrowserRouter, MemoryRouter } from "react-router-dom";
@@ -228,11 +237,12 @@ const setOperator: SetOperatorFunction = (
   label: string,
   operator: string,
 ): void => {
-  fireEvent.change(
+  // The operator is the shared Dropdown (#9294), its options in their words.
+  chooseDropdownOption(
     within(openFacet(label)).getByRole("combobox", {
       name: `${label} operator`,
     }),
-    { target: { value: operator } },
+    FILTER_OPERATOR_LABELS[operator as FilterOperator],
   );
 };
 
@@ -498,13 +508,16 @@ describe("inventory Type and Status facet controls", () => {
       name: "Status operator",
     });
 
+    openDropdown(operator);
+
     expect(
-      within(operator)
+      within(document.querySelector(".ou-select__menu") as HTMLElement)
         .getAllByRole("option")
         .map((option: HTMLElement): string => {
-          return (option as HTMLOptionElement).value;
+          return option.textContent || "";
         }),
-    ).toEqual(["is", "is_not"]);
+    ).toEqual(["is", "is not"]);
+    closeDropdown(operator);
     expect(within(dialog).getByRole("listbox")).toHaveAttribute(
       "aria-multiselectable",
       "true",

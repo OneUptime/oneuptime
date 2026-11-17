@@ -4,6 +4,15 @@ import {
   readUserOverridePeople,
 } from "../UserOverrides/UserOverrideForm";
 import {
+  UserOverrideEditTarget,
+  toUserOverrideEditTarget,
+} from "../UserOverrides/UserOverrideFormModal";
+import {
+  getUserOverrideOverlapKey,
+  getUserOverrideSkipCandidates,
+} from "../UserOverrides/UserOverrideOverlapCheck";
+import UserOverrideOverlapNotice from "../UserOverrides/UserOverrideOverlapNotice";
+import {
   UserOverridePolicy,
   addUserOverrideOnPolicies,
 } from "../UserOverrides/UserOverridePolicies";
@@ -11,6 +20,7 @@ import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDut
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import { UserOverrideTimes } from "Common/Types/OnCallDutyPolicy/UserOverrideOverlap";
 import { CategoryCheckboxOption } from "Common/UI/Components/CategoryCheckbox/CategoryCheckboxTypes";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -63,6 +73,14 @@ import React, {
  * somebody the form will not skip. The description says only what the
  * fields do not: how far it reaches, what happens when it ends, and how to
  * end it early. It is true whoever covers.
+ *
+ * Under Ends it says, as the times are picked, what they overlap (issue
+ * #7898), as Add User Override does (UserOverrideOverlapNotice): another
+ * override of the same person in the same scope - global, or on a policy
+ * it is added on - holds the form back, with "Edit that override", which
+ * the page opens in this dialog's place (onEditOverride); a global skip
+ * under a policy's own override is said plainly. Added on several policies,
+ * each is asked about, and a conflict names its policy.
  */
 
 export interface ComponentProps {
@@ -84,6 +102,11 @@ export interface ComponentProps {
   onClose: () => void;
   // Saved: the page reads the overrides again.
   onSkipped: () => void;
+  /*
+   * "Edit that override" under Ends, on a conflict: the page opens that
+   * override's Edit in this dialog's place. Left out, it is not offered.
+   */
+  onEditOverride?: ((target: UserOverrideEditTarget) => void) | undefined;
 }
 
 // The form value that holds the policies ticked under "On-call policies".
@@ -179,12 +202,81 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
     new Set<string>(),
   );
 
+  /*
+   * What each question asked under Ends found (issue #7898): whether the
+   * skip, on each policy it is added on, overlaps an override it may not.
+   * Ends is checked against it when the form is sent.
+   */
+  const knownConflicts: MutableRefObject<Map<string, boolean>> = useRef<
+    Map<string, boolean>
+  >(new Map<string, boolean>());
+
+  // The latest callback, for the fields made once per person.
+  const onEditOverrideRef: MutableRefObject<ComponentProps["onEditOverride"]> =
+    useRef<ComponentProps["onEditOverride"]>(props.onEditOverride);
+  onEditOverrideRef.current = props.onEditOverride;
+
   const formFields: Array<ModelField<OnCallDutyPolicyUserOverride>> =
     useMemo((): Array<ModelField<OnCallDutyPolicyUserOverride>> => {
+      // The overrides the values would add: one, global, or one per policy.
+      const candidatesOf: (values: unknown) => Array<UserOverrideTimes> = (
+        values: unknown,
+      ): Array<UserOverrideTimes> => {
+        return getUserOverrideSkipCandidates({
+          values: values,
+          onCallDutyPolicyIds: getPickedSkipPolicies({
+            values,
+            policies,
+          }).map((policy: UserOverridePolicy): string => {
+            return policy.id;
+          }),
+        });
+      };
+
       const fields: Array<ModelField<OnCallDutyPolicyUserOverride>> =
         getUserOverrideFormFields<OnCallDutyPolicyUserOverride>({
           currentUserId: currentUserId,
           awayUserId: props.userId,
+          /*
+           * Under Ends, as Add User Override says it: what the times picked
+           * overlap, as soon as they are picked - a conflict holds the form
+           * back, with Edit that override; a global skip under a policy's
+           * own override is said plainly.
+           */
+          isKnownOverlap: (values: unknown): boolean => {
+            return candidatesOf(values).some(
+              (candidate: UserOverrideTimes): boolean => {
+                return Boolean(
+                  knownConflicts.current.get(
+                    getUserOverrideOverlapKey(candidate),
+                  ),
+                );
+              },
+            );
+          },
+          getEndsFooter: (values: unknown, error?: string): ReactElement => {
+            return (
+              <UserOverrideOverlapNotice
+                candidates={candidatesOf(values)}
+                fieldError={error}
+                onChecked={(key: string, isConflict: boolean) => {
+                  knownConflicts.current.set(key, isConflict);
+                }}
+                onEditOverride={
+                  onEditOverrideRef.current
+                    ? (other: OnCallDutyPolicyUserOverride) => {
+                        const target: UserOverrideEditTarget | null =
+                          toUserOverrideEditTarget(other);
+
+                        if (target) {
+                          onEditOverrideRef.current?.(target);
+                        }
+                      }
+                    : undefined
+                }
+              />
+            );
+          },
         });
 
       // One policy is named in the description; there is nothing to pick.

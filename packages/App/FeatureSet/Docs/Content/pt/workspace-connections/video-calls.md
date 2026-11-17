@@ -70,7 +70,7 @@ Cada reunião é criada como a conta com que você faz login, que é a anfitriã
 
 Uma conexão feita por login ainda tem as configurações que decidem quem espera: **Who can join** para o Google Meet e **Who skips the lobby** para o Microsoft Teams. Altere-as com **Editar** na linha da conexão.
 
-Uma conexão do Zoom feita antes de o OneUptime ler transcrições de chamadas inicia chamadas como antes, mas só lê as transcrições delas depois de entrar de novo: **Reconnect** na linha dela pede ao Zoom as permissões de transcrição.
+Uma conexão do Zoom feita antes de o OneUptime ler transcrições de chamadas não consegue lê-las. Depois que o app do Zoom do OneUptime for atualizado para lê-las, o Zoom deixa de aceitar o login dessa conexão 90 dias depois, e ela deixa de iniciar chamadas. A partir daí, o OneUptime pede que você entre de novo com ela: **Reconnect** na linha dela pede ao Zoom as permissões de transcrição.
 
 Uma conexão do Microsoft Teams feita enquanto a opção **Gravar e transcrever chamadas de incidentes** estava desativada inicia chamadas como antes, sem gravá-las. Depois que a opção é ativada, **Reconnect** na linha dela pede à Microsoft também as permissões de calendário e de transcrição.
 

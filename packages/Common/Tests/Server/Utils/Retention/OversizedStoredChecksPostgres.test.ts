@@ -15,7 +15,7 @@ import {
   STORED_LOG_COLUMNS,
   StoredLogTable,
 } from "../../../../Server/Utils/Retention/StoredLogScreenshots";
-import { JSONObject } from "../../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import StoredCheckEvidence from "../../../../Utils/Monitor/StoredCheckEvidence";
 import crypto from "crypto";
@@ -150,7 +150,7 @@ function fleetCheck(): JSONObject {
     monitoredAt: { _type: "DateTime", value: "2026-11-01T10:00:00.000Z" },
     seriesBreakdown: breakdown,
     metricResult: metricResult,
-    metricResultArrivals: breakdown.map((entry: JSONObject): unknown => {
+    metricResultArrivals: breakdown.map((entry: JSONObject): JSONValue => {
       return entry["arrivals"];
     }),
   };

@@ -818,8 +818,11 @@ const NUMBERS: Record<string, Array<string>> = {
    */
   [SLACK]: ["7", "15", "80", "40"],
   [TEAMS]: ["7", "15", "50", "30"],
-  // And the largest transcript file Add transcript takes, in MB.
-  [VIDEO]: ["40", "30", "5"],
+  /*
+   * And the largest transcript file Add transcript takes, in MB, and the
+   * days Zoom keeps accepting a sign-in made before its app was updated.
+   */
+  [VIDEO]: ["40", "30", "5", "90"],
   [BUILDING]: ["50", "100", "500", "20000", "10000", "512", "128"],
   /*
    * And, for a form's custom domains, how often they are checked, how often

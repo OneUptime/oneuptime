@@ -23,6 +23,7 @@ import AppText from "../components/AppText";
 import Card from "../components/Card";
 import IconBadge from "../components/IconBadge";
 import { getFriendlyErrorMessage } from "../utils/error";
+import { describeEndNow, type EndNowQuestion } from "../oncall/overrideEndNow";
 import type { OnCallStackParamList } from "../navigation/types";
 import type { OnCallOverrideItem } from "../api/types";
 
@@ -37,6 +38,11 @@ type OverridesNavProp = NativeStackNavigationProp<
  * Cancelling is confirmed rather than immediate: an override is the only thing
  * standing between a colleague and a 3am page, and an accidental tap that
  * silently puts it back on them is not a mistake they can see happening.
+ *
+ * Each one that has not ended has Edit (#7897): who covers, and its times
+ * as far as they may still change, held to the dashboard's rules. One under
+ * way has End now - coming back early - asked first like Cancel; Cancel
+ * calls off one that has not started.
  */
 export default function OnCallOverridesScreen(): React.JSX.Element {
   const { theme } = useTheme();
@@ -51,6 +57,7 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
     useOnCallOverrides(now);
 
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [endingId, setEndingId] = useState<string | null>(null);
 
   const { refreshing, onRefresh } = useRefresh(async (): Promise<void> => {
     lightImpact();
@@ -90,6 +97,54 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
         },
       ],
     );
+  };
+
+  const performEndNow: (override: OnCallOverrideItem) => Promise<void> = async (
+    override: OnCallOverrideItem,
+  ): Promise<void> => {
+    setEndingId(override._id);
+
+    try {
+      await overrides.endOverrideNow(override);
+      successFeedback();
+    } catch (err: unknown) {
+      errorFeedback();
+      Alert.alert("Could not end override", getFriendlyErrorMessage(err));
+    } finally {
+      setEndingId(null);
+    }
+  };
+
+  /*
+   * End now (#7897): one question first, as on the dashboard, saying what
+   * happens to the time left and who is paged from then on.
+   */
+  const confirmEndNow: (override: OnCallOverrideItem) => void = (
+    override: OnCallOverrideItem,
+  ): void => {
+    const question: EndNowQuestion = describeEndNow(
+      override,
+      currentUserId,
+      Date.now(),
+    );
+
+    Alert.alert(question.title, question.message, [
+      { text: "Keep it", style: "cancel" },
+      {
+        text: "End now",
+        style: "destructive",
+        onPress: () => {
+          performEndNow(override);
+        },
+      },
+    ]);
+  };
+
+  const openEdit: (override: OnCallOverrideItem) => void = (
+    override: OnCallOverrideItem,
+  ): void => {
+    lightImpact();
+    navigation.navigate("EditOnCallOverride", { override });
   };
 
   const intro: React.JSX.Element = (
@@ -187,8 +242,16 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
                 state={state}
                 currentUserId={currentUserId}
                 now={now}
-                onCancel={state === "past" ? undefined : confirmCancel}
+                /*
+                 * One under way is ended with End now, which keeps its
+                 * record; one to come is called off with Cancel. Neither,
+                 * nor Edit, for one that has ended.
+                 */
+                onCancel={state === "upcoming" ? confirmCancel : undefined}
                 isCancelling={cancellingId === override._id}
+                onEdit={state === "past" ? undefined : openEdit}
+                onEndNow={state === "active" ? confirmEndNow : undefined}
+                isEnding={endingId === override._id}
               />
             );
           })}

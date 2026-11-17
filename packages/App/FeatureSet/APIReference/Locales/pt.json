@@ -300,6 +300,26 @@
       "masterAdminOnlyTitle": "Somente API de Administrador Master",
       "masterAdminOnlyBody": "Esta API só pode ser acessada por meio de um Token de API Master. Você pode criar um no Painel de Administração. Adicione o token ao cabeçalho <code>ApiKey</code> para realizar a requisição."
     },
+    "modelEndpoints": {
+      "scheduleLayersReadHeading": "Ler camadas",
+      "scheduleLayersReadIntro": "Este endpoint retorna as camadas do agendamento e as pessoas nelas, como estão salvas: cada camada que o agendamento mantém, a de maior prioridade primeiro, cada uma com suas pessoas na ordem dos turnos, e a versão em que estão, como basedOnVersion. É um salvamento que não muda nada: altere-o e envie-o para Salvar camadas.",
+      "scheduleLayersReadRequestTitle": "Solicitação para ler camadas",
+      "scheduleIdDescription": "ID do agendamento de plantão",
+      "scheduleLayersSaveHeading": "Salvar camadas",
+      "scheduleLayersSaveIntro": "Este endpoint salva de uma vez quem faz turnos nas camadas do agendamento, e a prioridade das camadas, em uma única transação: tudo é salvo ou nada é. Quem está de plantão é então calculado uma única vez, e cada pessoa para quem algo muda é avisada uma única vez. Ele segue as mesmas permissões e verificações dos endpoints de camadas e de suas pessoas. As configurações próprias de uma camada, como o nome e a rotação, não fazem parte dele.",
+      "scheduleLayersSaveRequestTitle": "Solicitação para salvar camadas",
+      "basedOnVersionDescription": "A versão das camadas sobre a qual suas mudanças foram feitas, como Ler camadas a retorna.",
+      "layersDescription": "Cada camada que o agendamento mantém, a de maior prioridade primeiro, cada uma como { layerId, users }. users são as pessoas que fazem turnos nela, na ordem dos turnos: quem já está na camada como { layerUserId, userId }, quem é adicionado como { userId }. Quem fica de fora da sua camada é retirado dela.",
+      "deletedLayerIdsDescription": "As camadas a excluir, com as pessoas nelas. Um agendamento mantém pelo menos uma camada.",
+      "refusalsHeading": "Recusas",
+      "scheduleLayersConflict": "409 Conflict: as camadas mudaram depois que a versão enviada foi lida, então nada é salvo. Leia as camadas de novo e faça sua mudança sobre o que existe agora.",
+      "scheduleLayersBadRequest": "400 Bad Request: o salvamento não indica cada camada do agendamento uma vez, em layers ou deletedLayerIds, indica uma camada ou a linha de uma pessoa que não é do agendamento, ou exclui todas as camadas.",
+      "userOverrideEndNowHeading": "Encerrar agora",
+      "userOverrideEndNowIntro": "Este endpoint encerra uma substituição em andamento, pelo relógio do servidor: o fim dela passa a ser agora, e a partir daí os acionamentos voltam a ser da pessoa ausente. Ele exige a mesma permissão de uma atualização e retorna o novo endsAt da substituição.",
+      "userOverrideEndNowRequestTitle": "Solicitação para encerrar agora",
+      "userOverrideIdDescription": "ID da substituição de usuário",
+      "userOverrideEndNowRefused": "400 Bad Request: a substituição ainda não começou (exclua-a em vez disso), já terminou ou termina de qualquer forma dentro do minuto."
+    },
     "dataType": {
       "enumBadge": "Enum",
       "dataTypeBadge": "Tipo de Dado",

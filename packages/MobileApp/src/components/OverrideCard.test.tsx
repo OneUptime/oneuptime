@@ -451,3 +451,106 @@ function flatStyle(testID: string): Record<string, unknown> {
   return (StyleSheet.flatten(screen.getByTestId(testID).props.style) ??
     {}) as Record<string, unknown>;
 }
+
+/*
+ * #7897: Edit on every override that has not ended, End now on one under
+ * way. Each names the arrangement it acts on, and hands the card's own
+ * override to the screen.
+ */
+describe("OverrideCard edit and End now", () => {
+  test("Edit is offered while the override has not ended, never once it has", async (): Promise<void> => {
+    const onEdit: jest.Mock = jestGlobal.fn() as unknown as jest.Mock;
+    const live: OnCallOverrideItem = override();
+
+    const rendered: Awaited<ReturnType<typeof render>> = await render(
+      <OverrideCard
+        override={live}
+        state="upcoming"
+        currentUserId={ME}
+        now={NOW}
+        onEdit={onEdit}
+      />,
+    );
+
+    const edit: HostElement = screen.getByTestId("override-edit-override-1");
+
+    expect(edit.props.accessibilityLabel).toBe(
+      "Edit override: Your pages go to Priya",
+    );
+
+    await fireEvent.press(edit);
+
+    expect(onEdit).toHaveBeenCalledWith(live);
+
+    await rendered.rerender(
+      <OverrideCard
+        override={live}
+        state="past"
+        currentUserId={ME}
+        now={NOW}
+        onEdit={onEdit}
+      />,
+    );
+
+    expect(screen.queryByTestId("override-edit-override-1")).toBeNull();
+  });
+
+  test("End now is offered on the override in force only", async (): Promise<void> => {
+    const onEndNow: jest.Mock = jestGlobal.fn() as unknown as jest.Mock;
+    const live: OnCallOverrideItem = override();
+
+    const rendered: Awaited<ReturnType<typeof render>> = await render(
+      <OverrideCard
+        override={live}
+        state="active"
+        currentUserId={ME}
+        now={NOW}
+        onEndNow={onEndNow}
+      />,
+    );
+
+    const endNow: HostElement = screen.getByTestId(
+      "override-end-now-override-1",
+    );
+
+    expect(endNow.props.accessibilityLabel).toBe(
+      "End override now: Your pages go to Priya",
+    );
+    expect(screen.getByText("End now")).toBeTruthy();
+
+    await fireEvent.press(endNow);
+
+    expect(onEndNow).toHaveBeenCalledWith(live);
+
+    await rendered.rerender(
+      <OverrideCard
+        override={live}
+        state="upcoming"
+        currentUserId={ME}
+        now={NOW}
+        onEndNow={onEndNow}
+      />,
+    );
+
+    expect(screen.queryByTestId("override-end-now-override-1")).toBeNull();
+  });
+
+  test("while ending, End now gives way to progress and cannot be pressed twice", async (): Promise<void> => {
+    await render(
+      <OverrideCard
+        override={override()}
+        state="active"
+        currentUserId={ME}
+        now={NOW}
+        onEndNow={jestGlobal.fn() as unknown as () => void}
+        isEnding={true}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("override-end-now-override-1").props
+        .accessibilityState,
+    ).toEqual({ disabled: true, busy: true });
+    expect(screen.queryByText("End now")).toBeNull();
+  });
+});

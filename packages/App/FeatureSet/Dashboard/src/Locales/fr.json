@@ -245,7 +245,8 @@
       "incidents": "Incidents",
       "monitors": "Moniteurs",
       "onCallPolicies": "Politiques d'astreinte",
-      "statusPages": "Pages de statut"
+      "statusPages": "Pages de statut",
+      "recordPages": "Pages des enregistrements"
     }
   },
   "keyboardShortcuts": {
@@ -56533,5 +56534,24 @@
   "Matches no policy now.": "Ne correspond actuellement à aucune politique.",
   "Matches {{count}} policies now: {{names}}.": "Correspond actuellement à {{count}} politiques : {{names}}.",
   "Matches {{count}} policies now: {{names}}._one": "Correspond actuellement à {{count}} politique : {{names}}.",
-  "Use On-Call Policy instead": "Utiliser « Politique d'astreinte » à la place"
+  "Use On-Call Policy instead": "Utiliser « Politique d'astreinte » à la place",
+  "Drop one CSV file at a time.": "Déposez un seul fichier CSV à la fois.",
+  "Drop the CSV file to upload it": "Déposez le fichier CSV pour le téléverser",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} n’est pas un fichier CSV. Choisissez ou déposez un fichier se terminant par .csv.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "90 jours après la mise à jour de l'application Zoom de OneUptime, Zoom cesse d'accepter leurs autorisations, et les connexions ne lancent plus d'appels.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "90 jours après la mise à jour de l'application Zoom de OneUptime, Zoom cesse d'accepter l'autorisation de cette connexion, et la connexion ne lance plus d'appels.",
+  "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "Cliquez sur « Reconnect » pour chaque connexion, puis autorisez OneUptime à lire les enregistrements et les transcriptions quand Zoom le demande.",
+  "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.": "Cliquez sur « Reconnect », puis autorisez OneUptime à lire les enregistrements et les transcriptions quand Zoom le demande.",
+  "Reconnect these Zoom connections to keep starting calls": "Reconnectez ces connexions Zoom pour continuer à lancer des appels",
+  "Reconnect {{name}} to keep starting calls": "Reconnectez {{name}} pour continuer à lancer des appels",
+  "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "Ces connexions Zoom ont été faites avant que OneUptime puisse lire les transcriptions des appels, elles ne peuvent donc pas les lire.",
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "Cette connexion Zoom a été faite avant que OneUptime puisse lire les transcriptions des appels, elle ne peut donc pas les lire.",
+  "End Now": "Terminer maintenant",
+  "End the override for {{name}} now": "Terminer maintenant le remplacement de {{name}}",
+  "End the override for {{name}} now?": "Terminer maintenant le remplacement de {{name}} ?",
+  "The override for {{name}} has ended.": "Le remplacement de {{name}} est terminé.",
+  "This override ends within the minute, so there is nothing left to end.": "Ce remplacement se termine dans la minute, il n'y a donc plus rien à terminer.",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "Ce remplacement n'a pas encore commencé, il n'y a donc rien à terminer. Pour l'annuler, supprimez-le.",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "Le saut des tours prend fin maintenant au lieu du {{until}}. Ensuite, {{away}} reprend ses tours dans la rotation.",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "{{cover}} cesse de remplacer {{away}} maintenant au lieu du {{until}}. Ensuite, les alertes sont de nouveau envoyées à {{away}}."
 }

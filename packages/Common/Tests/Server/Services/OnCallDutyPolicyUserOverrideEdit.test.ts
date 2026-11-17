@@ -389,7 +389,8 @@ describe("who covers", () => {
 
 describe("when it starts", () => {
   test("moves on an override that has not started, under the lock that refuses overlaps", async () => {
-    const startsAt: Date = new Date("2026-11-14T10:00:00.000Z");
+    // Earlier: it adds time, which another override may hold.
+    const startsAt: Date = new Date("2026-11-14T08:00:00.000Z");
 
     await edit(UPCOMING, { startsAt: startsAt });
 
@@ -405,6 +406,25 @@ describe("when it starts", () => {
     expect(feedEntries()[0]!.text).toContain(
       "Changed: when it starts (it was **",
     );
+  });
+
+  /*
+   * Issue #7899: moved later, an override is only shortened - it adds no
+   * time, so it cannot make an overlap, and the person's others are not
+   * read. It is still read again under the lock, in order.
+   */
+  test("moves later, under the lock, without reading the person's other overrides: it adds no time", async () => {
+    const startsAt: Date = new Date("2026-11-14T10:00:00.000Z");
+
+    await edit(UPCOMING, { startsAt: startsAt });
+
+    expect(storedTime(UPCOMING, "startsAt")).toBe(startsAt.toISOString());
+    expect(limit.opened).toBe(1);
+    expect(limit.events).toEqual([
+      "lock",
+      "find OnCallDutyPolicyUserOverride",
+      "update OnCallDutyPolicyUserOverride",
+    ]);
   });
 
   test("moves to this minute: a picker's now is the start of the current minute", async () => {

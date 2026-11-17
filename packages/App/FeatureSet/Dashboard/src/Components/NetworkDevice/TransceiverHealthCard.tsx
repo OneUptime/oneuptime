@@ -454,7 +454,7 @@ const TransceiverRow: FunctionComponent<RowProps> = (
       <td className="py-2.5 pl-1 pr-4">
         <button
           type="button"
-          className="text-left text-sm font-medium text-gray-900 hover:underline"
+          className="rounded text-left text-sm font-medium text-gray-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
             event.stopPropagation();
             props.onOpen();
@@ -558,7 +558,7 @@ const TransceiverListItem: FunctionComponent<RowProps> = (
         <div className="min-w-0">
           <button
             type="button"
-            className="text-left text-sm font-medium text-gray-900 hover:underline"
+            className="rounded text-left text-sm font-medium text-gray-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
               event.stopPropagation();
               props.onOpen();

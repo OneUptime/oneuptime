@@ -749,6 +749,16 @@ describe("serializeQuery — the ids of a relation filter", () => {
  * a filter that matches nothing, not an error. Every ObjectID column of every
  * model is a uuid today; a model that stored ids as text would make the
  * refusal wrong for it, so it fails here first.
+ *
+ * But a key presented to OneUptime that is kept in one (#9012:
+ * TableColumnMetadata.presentedKey) - a monitor's secret keys, a workflow's
+ * email key, an ingestion key, a device's credential: it is kept encrypted,
+ * as its ciphertext, which is no uuid, so its column is text
+ * (PresentedKeysEncryptedColumns1809182900000,
+ * MonitorKeysEncryptedColumns1809182930000). No filter names it by its
+ * value but DatabaseService.findOneByPresentedKey's, for a key still stored
+ * as written, which it asks for only when the key is a uuid, as every such
+ * key was written. So the rule is right for these columns too.
  */
 describe("every ObjectID column is a Postgres uuid", () => {
   const columnArgs: Array<ColumnMetadataArgs> = getMetadataArgsStorage()
@@ -798,8 +808,9 @@ describe("every ObjectID column is a Postgres uuid", () => {
     expect(getColumnType(Incident, "_id")).toBe("uuid");
   });
 
-  it("has no ObjectID column stored as anything but a uuid", () => {
+  it("has no ObjectID column stored as anything but a uuid, but a presented key kept encrypted, as text", () => {
     const offenders: Array<string> = [];
+    const keptEncrypted: Array<string> = [];
     let scanned: number = 0;
 
     for (const modelType of AllModelTypes as Array<DatabaseBaseModelType>) {
@@ -822,6 +833,17 @@ describe("every ObjectID column is a Postgres uuid", () => {
 
         scanned++;
 
+        // Its ciphertext, in a text column: see above.
+        if (column.presentedKey && column.encrypted) {
+          keptEncrypted.push(`${modelType.name}.${columnName}`);
+
+          if (columnType !== "text") {
+            offenders.push(`${modelType.name}.${columnName} (${columnType})`);
+          }
+
+          continue;
+        }
+
         if (columnType !== "uuid") {
           offenders.push(`${modelType.name}.${columnName} (${columnType})`);
         }
@@ -830,6 +852,17 @@ describe("every ObjectID column is a Postgres uuid", () => {
 
     expect(scanned).toBeGreaterThan(1000);
     expect(offenders).toEqual([]);
+    // The presented keys kept in one: a new one is a decision someone made.
+    expect(keptEncrypted.sort()).toEqual(
+      [
+        "IoTDeviceCredential.secretKey",
+        "Monitor.incomingEmailSecretKey",
+        "Monitor.incomingRequestSecretKey",
+        "Monitor.serverMonitorSecretKey",
+        "TelemetryIngestionKey.secretKey",
+        "Workflow.incomingEmailSecretKey",
+      ].sort(),
+    );
   });
 });
 

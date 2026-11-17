@@ -32,7 +32,7 @@ import { SUPPORTED_STATUS_PAGE_LANGUAGE_CODES } from "Common/Types/StatusPage/St
  */
 
 const PHONE_WIDTHS: Array<number> = [320, 360, 390];
-// Phones, the md breakpoint where the type steps down, and a laptop.
+// Phones, the md breakpoint, and a laptop.
 const WIDTHS: Array<number> = [...PHONE_WIDTHS, 768, 1280];
 
 const OPTIONS: string = [
@@ -347,17 +347,18 @@ const problemsWith: (
       );
     }
   } else {
-    // Wrapped: the lines balanced, the first measured from the icon.
-    const widths: Array<number> = option.lines.map(
-      (line: Rect, index: number): number => {
-        if (index > 0) {
-          return widthOf(line);
-        }
-        return rtl
-          ? option.icon.right - line.left
-          : line.right - option.icon.left;
-      },
-    );
+    /*
+     * Wrapped: the words' lines balanced. The icon's place before the first
+     * word is held above, to the pixel; here only the words are measured.
+     * Measured from the icon, the first line also carried its fixed 28px,
+     * which the 14px words every button has had since #9128 made a larger
+     * share of it: Hindi "Google Workspace से साइन इन करें" at 320px, split
+     * as evenly as its words allow (the name and से, then साइन इन करें), read
+     * 161 / 79px.
+     */
+    const widths: Array<number> = option.lines.map((line: Rect): number => {
+      return widthOf(line);
+    });
     const balance: number = Math.min(...widths) / Math.max(...widths);
     if (balance < 0.5) {
       problems.push(
@@ -577,8 +578,11 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
         ).toBeLessThanOrEqual(0.5);
         above = option;
       }
-      // 38px from md, where the type steps down to text-sm; 42px below.
-      expect(Math.round(heightOf(login))).toBe(width >= 768 ? 38 : 42);
+      /*
+       * 38px at every width: a button's words are text-sm on a phone as on
+       * a laptop since every button style is one frame (#9128).
+       */
+      expect(Math.round(heightOf(login))).toBe(38);
     }
   });
 
@@ -599,11 +603,16 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
     expect(result.checked).toBe(
       SUPPORTED_ACCOUNTS_LANGUAGE_CODES.length * WIDTHS.length * 3,
     );
-    // The long labels do wrap on a phone, so the wrapping is what was checked.
+    /*
+     * The long labels do wrap on a phone, so the wrapping is what was
+     * checked. In text-sm, as the filled button's words are (#9128), every
+     * Microsoft label fits one line even at 320px; the longest passkey
+     * labels still wrap.
+     */
     expect(result.wrapped).toEqual(
       expect.arrayContaining([
         "es at 390px: Iniciar sesión con una clave de acceso",
-        "es at 320px: Iniciar sesión con Microsoft",
+        "de at 320px: Mit einem Passkey anmelden",
       ]),
     );
   });
@@ -627,7 +636,7 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
     expect(result.wrapped).toEqual(
       expect.arrayContaining([
         "pt at 360px: Tentar novamente com chave de acesso",
-        "es at 390px: Volver a intentar con clave de acceso",
+        "pt at 390px: Tentar novamente com chave de acesso",
       ]),
     );
   });
@@ -958,12 +967,10 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
         ),
       ).toEqual(FILLED_LOOK);
 
-      // As tall as the pages' filled buttons: 38px from md, 42px below.
+      // As tall as the pages' filled buttons: 38px, on a phone as on a laptop.
       for (const width of [1280, 390]) {
         await page.setViewportSize({ width, height: 900 });
-        expect(Math.round(heightOf(await box(provider)))).toBe(
-          width >= 768 ? 38 : 42,
-        );
+        expect(Math.round(heightOf(await box(provider)))).toBe(38);
       }
     }
   });

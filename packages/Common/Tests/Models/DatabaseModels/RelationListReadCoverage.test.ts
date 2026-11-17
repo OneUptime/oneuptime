@@ -411,12 +411,16 @@ const CREDENTIAL_REFERENCES: Array<[string, string, string]> = [
  * above, and why. May only shrink. A person's webhook has been named so all
  * along, as one of their notification methods (REFERENCED_AS_A_WHOLE_TABLE);
  * it is here since its signing secret is kept encrypted, which the sweep
- * reads.
+ * reads. So is a custom channel, named so all along as the installation's
+ * channel for everyone, whose address and signing secret are now kept
+ * encrypted (10d8be1b50c).
  */
 const SECRETS_NAMED_WITHOUT_A_READ: Record<string, string> = {
   User: "People are held to membership of the project; their password is never read back by anyone.",
   UserWebhook:
     "A person's own webhook: a notification rule names only methods of the person it belongs to (UserNotificationRuleService's method-ownership check), so its signing secret signs only their own notifications, and no caller reads it through the rule.",
+  CustomNotificationChannel:
+    "A custom channel the installation's admin set up for everyone, which belongs to no project: any member's rule may name one that exists and is on (UserNotificationRuleAdminService), its table is read by master admins alone, and its address and signing secret refuse a read through the rule's relation (canReadOnRelationQuery: false), whoever asks.",
 };
 
 interface WritableReference {

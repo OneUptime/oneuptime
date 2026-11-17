@@ -275,7 +275,9 @@ describe("SignInOptionStyle", () => {
   /*
    * As tall as the filled button above it: the same padding, type size and
    * border as Button's PRIMARY, which the sign-in forms draw their own
-   * button with.
+   * button with - text-sm at every width since every button style is one
+   * frame (#9128). The option kept the filled button's old text-base below
+   * md, and stood 4px taller than it on a phone.
    */
   test("has the box and type of the filled button it sits under", () => {
     render(
@@ -293,8 +295,7 @@ describe("SignInOptionStyle", () => {
     for (const name of [
       "px-3",
       "py-2",
-      "text-base",
-      "md:text-sm",
+      "text-sm",
       "font-medium",
       "rounded-md",
       "border",
@@ -308,6 +309,18 @@ describe("SignInOptionStyle", () => {
         option: true,
       });
     }
+
+    // The same type size at every width: neither steps it at a breakpoint.
+    const typeSizes: (names: Array<string>) => Array<string> = (
+      names: Array<string>,
+    ): Array<string> => {
+      return names
+        .filter((name: string): boolean => {
+          return TEXT_SIZE.test(name.slice(name.lastIndexOf(":") + 1));
+        })
+        .sort();
+    };
+    expect(typeSizes(option)).toEqual(typeSizes(filled));
   });
 
   test("the icon is the height of the label's line", () => {

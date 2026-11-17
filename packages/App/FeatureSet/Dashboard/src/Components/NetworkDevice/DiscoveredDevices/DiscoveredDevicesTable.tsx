@@ -1112,12 +1112,8 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
           onOpen={openSearch}
           dataTestId="discovered-devices-search-slot"
         >
-          <div
+          <label
             className={`flex w-full items-center gap-2 rounded-md border border-gray-300 bg-white px-3 shadow-sm ${TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME}`}
-            onClick={() => {
-              searchInputRef.current?.focus();
-            }}
-            role="presentation"
           >
             <Icon
               icon={IconProp.Search}
@@ -1171,7 +1167,7 @@ const DiscoveredDevicesTable: FunctionComponent<DiscoveredDevicesTableProps> = (
             ) : (
               <></>
             )}
-          </div>
+          </label>
         </TableHeaderSearchSlot>
       }
     >

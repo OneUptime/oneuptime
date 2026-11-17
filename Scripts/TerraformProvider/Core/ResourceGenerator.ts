@@ -20,6 +20,10 @@ import {
   monitorStepsValuesCasesFile,
 } from "./MonitorStepsValuesCases";
 import { PHONE_CASES_FILE, phoneCasesFile } from "./PhoneCases";
+import {
+  HANDWRITTEN_RESOURCES,
+  HandwrittenResource,
+} from "./HandwrittenResources";
 import path from "path";
 import fs from "fs";
 
@@ -467,6 +471,32 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     await this.copyStaticFile("acceptance_test.go", "internal/provider");
     // People named by email address: invitations, on-call, owners, lookups.
     await this.copyStaticFile("acceptance_people_test.go", "internal/provider");
+    // A schedule's layers given a new turn order in one apply (#9038).
+    await this.copyStaticFile(
+      "acceptance_schedule_layers_test.go",
+      "internal/provider",
+    );
+
+    /*
+     * The resources written by hand (Core/HandwrittenResources.ts), with
+     * their tests. A name the spec gives a resource too would be two
+     * resources of one name, so generation stops there.
+     */
+    for (const handwritten of HANDWRITTEN_RESOURCES) {
+      if (
+        resources.some((resource: TerraformResource) => {
+          return resource.name === handwritten.name;
+        })
+      ) {
+        throw new Error(
+          `The spec gives a resource named ${handwritten.name}, which is written by hand (Core/HandwrittenResources.ts): rename one of them.`,
+        );
+      }
+
+      for (const fileName of handwritten.staticFiles) {
+        await this.copyStaticFile(fileName, "internal/provider");
+      }
+    }
 
     /*
      * Package-level ObjectType registry shared by every resource and the
@@ -3264,14 +3294,18 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     resources: TerraformResource[],
   ): Promise<void> {
     // Generate the list of resource functions
-    const resourceFunctions: string = resources
-      .map((resource: TerraformResource) => {
+    const resourceFunctions: string = [
+      ...resources.map((resource: TerraformResource) => {
         const resourceTypeName: string = StringUtils.toPascalCase(
           resource.name,
         );
         return `        New${resourceTypeName}Resource,`;
-      })
-      .join("\n");
+      }),
+      // The resources written by hand (Core/HandwrittenResources.ts).
+      ...HANDWRITTEN_RESOURCES.map((handwritten: HandwrittenResource) => {
+        return `        ${handwritten.goConstructor},`;
+      }),
+    ].join("\n");
 
     const renamedResources: Array<TerraformResource> = resources.filter(
       (resource: TerraformResource) => {

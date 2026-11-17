@@ -145,6 +145,11 @@ and phone summary: change the suite in the same pull request as the menu.
 - **Search (Cmd/Ctrl+K) finds every page a menu links to,** by the menu's name for it, and says where
   it lives the way the menu does. Add a new page to `PageSearchIndex.ts`. Enforced by
   [PageSearchIndexCoversMenus](../../packages/Common/Tests/App/Dashboard/PageSearchIndexCoversMenus.test.tsx).
+- **Search finds a record's own pages too.** On a record's page, "sso" opens that status page's Single
+  Sign-On. Anywhere, a page's name with the record's name or its kind ("status page sso", "acme
+  subscribers") offers it for the matching records. A renamed page keeps its old title in
+  `formerTitles`. Add a new page of a record's menu to `RecordPageSearchIndex.ts`. Enforced by
+  [RecordPageSearchIndexCoversMenus](../../packages/Common/Tests/App/Dashboard/RecordPageSearchIndexCoversMenus.test.tsx).
 - **A setting is found by the name on its card.** Searching "require sso to sign in" finds that switch
   on the SSO page. Add a new settings card or switch to its page's settings list in
   `PageSearchIndex.ts`, or to `NOT_A_SETTING`. Enforced by
@@ -280,6 +285,16 @@ work out, starts from a default for everything else, and folds what most people 
 
 - **One switch.** Every yes or no is the shared `Toggle` (`Common/UI/Components/Toggle`). Enforced by
   [ToggleUsageGuard](../../packages/Common/Tests/UI/Components/ToggleUsageGuard.test.ts).
+- **One picker.** A choice from a list is the shared `Dropdown` (`Common/UI/Components/Dropdown`),
+  never a raw `<select>`. Some forty raw selects each had their own size, border, focus ring and
+  dark look: small grey boxes on the topology maps, another size in RUM User Flows, borderless
+  text in every footer. No two pickers on a page matched (#9194, #9294). A value that must always
+  be set has no clear control (`isClearable={false}`). A choice that can be empty, such as "All
+  devices" or "None", is the placeholder, and clearing the picker picks it. A `<label htmlFor>`
+  names the picker through `inputId`. The `DropdownChoices` helpers build a fixed list's options.
+  The pickers not moved yet are listed, with the reason, in the guard, and #9310 tracks them.
+  Enforced by
+  [RawSelectGuard](../../packages/Common/Tests/UI/Components/RawSelectGuard.test.ts).
 - **One color picker:** named swatches first, a custom color for an exact code. Enforced by
   [OneColorPickerGuard](../../packages/Common/Tests/UI/Components/ColorPicker/OneColorPickerGuard.test.ts).
 - **One Owners field,** not an owner-teams dropdown beside an owner-users one. Enforced by
@@ -334,9 +349,10 @@ work out, starts from a default for everything else, and folds what most people 
   | `Paused` | Someone chose to switch it off: Disabled, Paused, Archived. Grey with a hollow dot, never red ([Red is for what broke](#side-menus)). |
   | `Neutral` | A plain fact or a tag: Default, Beta, 3 rules. |
 - **Each button style has one job,** and every style `ButtonStyleType` has is in the table below.
-  There were four more: a pale indigo `SECONDARY`, a green `SUCCESS` and a yellow `WARNING` and
-  `WARNING_OUTLINE`. One page used `SUCCESS`, a playbook run's Approve, which is now `PRIMARY`, and
-  nothing used the rest. They were more looks for jobs the styles below already do (#9195). A new
+  There were six more: a pale indigo `SECONDARY`, a green `SUCCESS` and a yellow `WARNING` and
+  `WARNING_OUTLINE` (#9195), then `ICON_LIGHT` and `HOVER_SUCCESS_OUTLINE` (#9296). One page used
+  `SUCCESS`, a playbook run's Approve, which is now `PRIMARY`, and nothing used the rest. They were
+  more looks for jobs the styles below already do. A new
   style needs a job no style here does, and a row here. Enforced by
   [ButtonStyleTableGuard](../../packages/Common/Tests/UI/Components/ButtonStyleTableGuard.test.ts).
 
@@ -345,11 +361,11 @@ work out, starts from a default for everything else, and folds what most people 
   | `PRIMARY` | The one thing the screen or dialog exists to do. At most one in view. |
   | `NORMAL` | A plain action the person came for. A table row or header keeps it in view when its other actions fold into More. |
   | `OUTLINE` | The same plain button, for a lesser action: one a table folds into More first, or one that adds a row to a builder. |
-  | `HOVER_PRIMARY_OUTLINE`, `HOVER_SUCCESS_OUTLINE`, `HOVER_DANGER_OUTLINE` | The same plain button in a row of them, tinted under the pointer with what it does: indigo for View or Edit, green for a good outcome, red for Remove. |
+  | `HOVER_PRIMARY_OUTLINE`, `HOVER_DANGER_OUTLINE` | The same plain button in a row of them, tinted under the pointer with what it does: indigo for View or Edit, red for Remove. |
   | `SUCCESS_OUTLINE` | Proving or accepting something: Verify a number or a domain, Accept an invitation, Run Workflow. |
   | `DANGER`, `DANGER_OUTLINE` | Deleting or anything that cannot be undone: filled in its confirmation, outlined beside other actions. |
   | `LINK`, `SECONDARY_LINK` | An action inside a sentence, or a quiet one such as Show more or a picker's Clear. |
-  | `ICON`, `ICON_LIGHT` | An icon with no box, named by its aria label. `ICON_LIGHT` is the same icon in a lighter grey, on a white ground. |
+  | `ICON` | An icon with no box, named by its aria label. |
 
   A button that needs more than its style still uses `Button`. It does not need to be drawn by
   hand. `onMouseDown` keeps the focus in a search field above an open list (a label picker's

@@ -245,7 +245,8 @@
       "incidents": "الحوادث",
       "monitors": "المراقبات",
       "onCallPolicies": "سياسات المناوبة",
-      "statusPages": "صفحات الحالة"
+      "statusPages": "صفحات الحالة",
+      "recordPages": "صفحات السجلات"
     }
   },
   "keyboardShortcuts": {
@@ -56533,5 +56534,24 @@
   "Matches no policy now.": "لا يطابق أي سياسة الآن.",
   "Matches {{count}} policies now: {{names}}.": "يطابق الآن {{count}} من السياسات: {{names}}.",
   "Matches {{count}} policies now: {{names}}._one": "يطابق الآن {{count}} سياسة: {{names}}.",
-  "Use On-Call Policy instead": "استخدم «سياسة المناوبة» بدلًا من ذلك"
+  "Use On-Call Policy instead": "استخدم «سياسة المناوبة» بدلًا من ذلك",
+  "Drop one CSV file at a time.": "أفلِت ملف CSV واحدًا في كل مرة.",
+  "Drop the CSV file to upload it": "أفلِت ملف CSV لرفعه",
+  "{{fileName}} is not a CSV file. Choose or drop a file that ends in .csv.": "{{fileName}} ليس ملف CSV. اختر ملفًا ينتهي بـ ‎.csv أو أفلِته هنا.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting their sign-ins, and the connections stop starting calls.": "بعد 90 يومًا من تحديث تطبيق Zoom الخاص بـ OneUptime، يتوقف Zoom عن قبول تسجيلات دخولها، وتتوقف الاتصالات عن بدء المكالمات.",
+  "90 days after OneUptime's Zoom app was updated, Zoom stops accepting this connection's sign-in, and the connection stops starting calls.": "بعد 90 يومًا من تحديث تطبيق Zoom الخاص بـ OneUptime، يتوقف Zoom عن قبول تسجيل دخول هذا الاتصال، ويتوقف الاتصال عن بدء المكالمات.",
+  "Click Reconnect for each connection, then allow OneUptime to read recordings and transcripts when Zoom asks.": "انقر على «إعادة الربط» لكل اتصال، ثم اسمح لـ OneUptime بقراءة التسجيلات والنصوص المكتوبة عندما يطلب Zoom ذلك.",
+  "Click Reconnect, then allow OneUptime to read recordings and transcripts when Zoom asks.": "انقر على «إعادة الربط»، ثم اسمح لـ OneUptime بقراءة التسجيلات والنصوص المكتوبة عندما يطلب Zoom ذلك.",
+  "Reconnect these Zoom connections to keep starting calls": "أعد ربط اتصالات Zoom هذه لمواصلة بدء المكالمات",
+  "Reconnect {{name}} to keep starting calls": "أعد ربط {{name}} لمواصلة بدء المكالمات",
+  "These Zoom connections were signed in before OneUptime could read call transcripts, so they cannot read them.": "سُجّل الدخول في اتصالات Zoom هذه قبل أن يتمكن OneUptime من قراءة النصوص المكتوبة للمكالمات، لذا لا يمكنها قراءتها.",
+  "This Zoom connection was signed in before OneUptime could read call transcripts, so it cannot read them.": "سُجّل الدخول في اتصال Zoom هذا قبل أن يتمكن OneUptime من قراءة النصوص المكتوبة للمكالمات، لذا لا يمكنه قراءتها.",
+  "End Now": "إنهاء الآن",
+  "End the override for {{name}} now": "إنهاء التجاوز الخاص بـ {{name}} الآن",
+  "End the override for {{name}} now?": "هل تريد إنهاء التجاوز الخاص بـ {{name}} الآن؟",
+  "The override for {{name}} has ended.": "انتهى التجاوز الخاص بـ {{name}}.",
+  "This override ends within the minute, so there is nothing left to end.": "ينتهي هذا التجاوز خلال الدقيقة، لذا لم يبقَ شيء لإنهائه.",
+  "This override hasn't started yet, so there is nothing to end. To call it off, delete it.": "لم يبدأ هذا التجاوز بعد، لذا لا يوجد شيء لإنهائه. لإلغائه، احذفه.",
+  "{{away}} stops being skipped now instead of {{until}}. From then on, they take their turns in the rotation again.": "يتوقف التخطي الآن بدلًا من {{until}}. من ذلك الحين، يعود {{away}} إلى أداء نوباته في التناوب.",
+  "{{cover}} stops covering for {{away}} now instead of {{until}}. From then on, alerts page {{away}} again.": "يتوقف {{cover}} عن النيابة عن {{away}} الآن بدلًا من {{until}}. من ذلك الحين، تستدعي التنبيهات {{away}} مرة أخرى."
 }

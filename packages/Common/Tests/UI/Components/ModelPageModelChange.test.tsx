@@ -55,6 +55,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import ModelPage from "../../../UI/Components/Page/ModelPage";
+import { PAGE_SKELETON_TEST_ID } from "../../../UI/Components/Page/PageSkeleton";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import Label from "../../../Models/DatabaseModels/Label";
 import ObjectID from "../../../Types/ObjectID";
@@ -190,9 +191,12 @@ describe("ModelPage", () => {
 
     const view: RenderResult = render(layoutFor(INCIDENT_A));
 
-    // Loading: the heading is the plain title and the page body waits.
+    /*
+     * Loading: the heading is the plain title and the page body waits, a
+     * skeleton card where its first card goes (PageSkeleton).
+     */
     expect(heading()).toHaveTextContent(/^Incident$/);
-    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    expect(screen.getByTestId(PAGE_SKELETON_TEST_ID)).toBeInTheDocument();
     expect(screen.queryByTestId("child-page")).toBeNull();
 
     await flush();
@@ -218,7 +222,7 @@ describe("ModelPage", () => {
     await flush();
 
     expect(getItemMock).toHaveBeenCalledTimes(1);
-    expect(screen.queryByTestId("bar-loader")).toBeNull();
+    expect(screen.queryByTestId(PAGE_SKELETON_TEST_ID)).toBeNull();
     expect(childMounts).toEqual([INCIDENT_A]);
   });
 
@@ -242,7 +246,7 @@ describe("ModelPage", () => {
     expect(heading()).toHaveTextContent(/^Incident$/);
     expect(screen.queryByText("Checkout is slow")).toBeNull();
     expect(screen.queryByText("production")).toBeNull();
-    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    expect(screen.getByTestId(PAGE_SKELETON_TEST_ID)).toBeInTheDocument();
     expect(screen.queryByTestId("child-page")).toBeNull();
     // The side menu is part of the layout and stays, pointing at the new id.
     expect(screen.getByTestId("side-menu")).toHaveTextContent(
@@ -391,7 +395,7 @@ describe("ModelPage", () => {
         "Cannot load incident. It could be because you don't have enough permissions to read this incident.",
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByTestId("bar-loader")).toBeNull();
+    expect(screen.queryByTestId(PAGE_SKELETON_TEST_ID)).toBeNull();
   });
 
   test("a read still in flight when the page unmounts changes nothing", async () => {
@@ -447,7 +451,7 @@ describe("ModelPage - refreshing the header", () => {
     // While the refresh is in flight the page and its header stay as they are.
     expect(heading()).toHaveTextContent("Incident - Checkout is slow");
     expect(screen.getByText("production")).toBeInTheDocument();
-    expect(screen.queryByTestId("bar-loader")).toBeNull();
+    expect(screen.queryByTestId(PAGE_SKELETON_TEST_ID)).toBeNull();
     expect(screen.getByTestId("child-page")).toBeInTheDocument();
 
     await act(async () => {

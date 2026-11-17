@@ -70,7 +70,7 @@ Elke vergadering wordt aangemaakt als het account waarmee je je aanmeldt, dat de
 
 Een koppeling die door aanmelden is gemaakt, heeft nog steeds de instellingen die bepalen wie wacht: **Who can join** voor Google Meet en **Who skips the lobby** voor Microsoft Teams. Wijzig ze met **Bewerken** in de rij van de koppeling.
 
-Een Zoom-verbinding die is aangemeld voordat OneUptime transcripties van gesprekken las, start gesprekken zoals voorheen, maar kan hun transcripties pas lezen als ze opnieuw is aangemeld: **Reconnect** op haar rij vraagt Zoom om de rechten voor transcripties.
+Een Zoom-verbinding die is aangemeld voordat OneUptime transcripties van gesprekken las, kan ze niet lezen. Zodra de Zoom-app van OneUptime is bijgewerkt om ze te lezen, accepteert Zoom de aanmelding van zo'n verbinding 90 dagen later niet meer, en start ze geen gesprekken meer. Vanaf dan vraagt OneUptime je om haar opnieuw aan te melden: **Reconnect** op haar rij vraagt Zoom om de rechten voor transcripties.
 
 Een Microsoft Teams-verbinding die is aangemeld terwijl **Incidentgesprekken opnemen en transcriberen** uit stond, start gesprekken zoals voorheen, zonder opname. Zodra die instelling aan staat, vraagt **Reconnect** op haar rij Microsoft ook om de rechten voor de agenda en voor transcripties.
 

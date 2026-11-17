@@ -3,6 +3,7 @@ import { renderHook, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import {
+  findOverlapConflict,
   useOnCallOverrides,
   type UseOnCallOverridesResult,
 } from "./useOnCallOverrides";
@@ -62,6 +63,15 @@ jest.mock("../api/onCallOverrides", () => {
     }),
     deleteOnCallOverride: jest.fn(async () => {
       return undefined;
+    }),
+    updateOnCallOverride: jest.fn(async () => {
+      return undefined;
+    }),
+    endOnCallOverrideNow: jest.fn(async () => {
+      return undefined;
+    }),
+    fetchOverlappingOverrides: jest.fn(async () => {
+      return [];
     }),
   };
 });
@@ -385,5 +395,157 @@ describe("useOnCallOverrides writes", () => {
       }),
     ).rejects.toThrow("The selected project changed");
     expect(overridesApi.createOnCallOverride).not.toHaveBeenCalled();
+  });
+
+  /*
+   * #7897: an edit and End now are writes in the override's own project,
+   * refused - before anything is sent - for one of a project no longer
+   * selected, as a cancel is.
+   */
+  test("edits the override in its project, with only what changes", async (): Promise<void> => {
+    const update: jest.SpyInstance =
+      overridesApi.updateOnCallOverride as unknown as jest.SpyInstance;
+    update.mockClear();
+    mockProjects.current = [PROJECTS[0]!];
+    const result: { current: UseOnCallOverridesResult } =
+      await renderOverrides();
+    const endsAt: Date = new Date(NOW + 2 * 60 * 60 * 1000);
+
+    await result.current.updateOverride(
+      override(
+        "override-1",
+        "2026-03-03T09:00:00.000Z",
+        "2026-03-03T18:00:00.000Z",
+      ),
+      { routeAlertsToUserId: null, endsAt },
+    );
+
+    expect(update).toHaveBeenCalledWith("project-1", "override-1", {
+      routeAlertsToUserId: null,
+      endsAt,
+    });
+  });
+
+  test("ends the override now in its project, with the phone's end for an older server", async (): Promise<void> => {
+    const endNow: jest.SpyInstance =
+      overridesApi.endOnCallOverrideNow as unknown as jest.SpyInstance;
+    endNow.mockClear();
+    const nowSpy: jest.SpyInstance = jest
+      .spyOn(Date, "now")
+      .mockReturnValue(new Date("2026-03-03T12:00:30.000Z").getTime());
+    mockProjects.current = [PROJECTS[0]!];
+    const result: { current: UseOnCallOverridesResult } =
+      await renderOverrides();
+
+    await result.current.endOverrideNow(
+      override(
+        "override-1",
+        "2026-03-03T09:00:00.000Z",
+        "2026-03-03T18:00:00.000Z",
+      ),
+    );
+
+    expect(endNow).toHaveBeenCalledWith(
+      "project-1",
+      "override-1",
+      new Date("2026-03-03T12:00:00.000Z"),
+    );
+    nowSpy.mockRestore();
+  });
+
+  test("refuses an edit or End now of an override from another project before sending either", async (): Promise<void> => {
+    const update: jest.SpyInstance =
+      overridesApi.updateOnCallOverride as unknown as jest.SpyInstance;
+    const endNow: jest.SpyInstance =
+      overridesApi.endOnCallOverrideNow as unknown as jest.SpyInstance;
+    update.mockClear();
+    endNow.mockClear();
+    mockProjects.current = [PROJECTS[0]!];
+    const result: { current: UseOnCallOverridesResult } =
+      await renderOverrides();
+    const stale: OnCallOverrideItem = {
+      ...override(
+        "stale",
+        "2026-03-03T09:00:00.000Z",
+        "2026-03-03T18:00:00.000Z",
+      ),
+      projectId: "project-2",
+    };
+
+    await expect(
+      result.current.updateOverride(stale, { routeAlertsToUserId: null }),
+    ).rejects.toThrow("The selected project changed");
+    await expect(result.current.endOverrideNow(stale)).rejects.toThrow(
+      "The selected project changed",
+    );
+    expect(update).not.toHaveBeenCalled();
+    expect(endNow).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The override a refusal for an overlap is about (#7897): read again for
+ * the person and the times sent, and picked as the server picks it - the
+ * same scope, not the override itself.
+ */
+describe("findOverlapConflict", () => {
+  const fetchOverlaps: () => jest.SpyInstance = (): jest.SpyInstance => {
+    return overridesApi.fetchOverlappingOverrides as unknown as jest.SpyInstance;
+  };
+
+  test("names the overlapping override of the same scope, never the one edited", async (): Promise<void> => {
+    fetchOverlaps().mockResolvedValueOnce([
+      override("this", "2026-03-03T09:00:00.000Z", "2026-03-03T18:00:00.000Z"),
+      {
+        ...override(
+          "on-a-policy",
+          "2026-03-03T10:00:00.000Z",
+          "2026-03-03T11:00:00.000Z",
+        ),
+        onCallDutyPolicyId: "policy-7",
+      },
+      override(
+        "global",
+        "2026-03-03T13:00:00.000Z",
+        "2026-03-03T14:00:00.000Z",
+      ),
+    ] as never);
+
+    const found: OnCallOverrideItem | null = await findOverlapConflict({
+      project: { projectId: "project-1", projectName: "Acme" },
+      candidate: {
+        id: "this",
+        overrideUserId: "user-me",
+        routeAlertsToUserId: "user-2",
+        onCallDutyPolicyId: null,
+        startsAt: new Date("2026-03-03T09:00:00.000Z"),
+        endsAt: new Date("2026-03-03T18:00:00.000Z"),
+      },
+    });
+
+    expect(found?._id).toBe("global");
+    expect(fetchOverlaps()).toHaveBeenCalledWith(
+      { projectId: "project-1", projectName: "Acme" },
+      {
+        overrideUserId: "user-me",
+        startsAt: new Date("2026-03-03T09:00:00.000Z"),
+        endsAt: new Date("2026-03-03T18:00:00.000Z"),
+      },
+    );
+  });
+
+  test("none when the read fails: the refusal is said alone", async (): Promise<void> => {
+    fetchOverlaps().mockRejectedValueOnce(new Error("offline") as never);
+
+    await expect(
+      findOverlapConflict({
+        project: { projectId: "project-1", projectName: "Acme" },
+        candidate: {
+          overrideUserId: "user-me",
+          startsAt: new Date("2026-03-03T09:00:00.000Z"),
+          endsAt: new Date("2026-03-03T18:00:00.000Z"),
+        },
+      }),
+    ).resolves.toBeNull();
   });
 });
