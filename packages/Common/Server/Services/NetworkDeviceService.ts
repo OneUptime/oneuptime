@@ -11,8 +11,12 @@ import ProbeService from "./ProbeService";
 import Model from "../../Models/DatabaseModels/NetworkDevice";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import NetworkSiteAssignmentRule from "../../Models/DatabaseModels/NetworkSiteAssignmentRule";
-import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
+import CountBy from "../Types/Database/CountBy";
+import FindBy from "../Types/Database/FindBy";
+import PositiveNumber from "../../Types/PositiveNumber";
+import { withShownVendorFilter } from "../Utils/NetworkDevice/NetworkDeviceVendorFilter";
 import { fillDeviceNameOnCreate } from "../../Utils/NetworkDevice/DeviceNameDefault";
 import NetworkDeviceOtherAddressesUtil from "../../Utils/NetworkDevice/NetworkDeviceOtherAddresses";
 import {
@@ -806,6 +810,68 @@ export class Service extends ProjectReferencesService<Model> {
       "snmpV3AuthKey",
       "snmpV3PrivKey",
     ]);
+  }
+
+  /*
+   * The Vendor filter asks about the maker the Devices list shows - the
+   * device's asset facts' manufacturer, which can come from its sysDescr,
+   * its sysObjectID or the Discovered Devices list - not only about the
+   * `vendor` column (issue #9363). NetworkDeviceVendorFilter answers it on
+   * the server; the list and its count read the same answer.
+   */
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    const onFind: OnFind<Model> = await super.onBeforeFind(findBy);
+
+    return {
+      ...onFind,
+      findBy: {
+        ...onFind.findBy,
+        query: await this.withShownVendorFilter(
+          onFind.findBy.query,
+          onFind.findBy.props,
+        ),
+      },
+    };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    return await super.countBy({
+      ...countBy,
+      query: await this.withShownVendorFilter(countBy.query, countBy.props),
+    });
+  }
+
+  /*
+   * The read hook above only answers the caller's own Vendor filter: it
+   * keeps no device from anyone. See DatabaseService.
+   */
+  public override getColumnsReadHooksNarrowBy(): Array<string> {
+    return [];
+  }
+
+  private async withShownVendorFilter(
+    query: Query<Model>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Query<Model>> {
+    return await withShownVendorFilter<Query<Model>>({
+      query: query,
+      tenantId: props.tenantId,
+      isMultiTenantRequest: props.isMultiTenantRequest,
+      runQuery: async (
+        sql: string,
+        params: Array<unknown>,
+      ): Promise<Array<Record<string, unknown>>> => {
+        return (await this.getRepository().manager.query(sql, params)) as Array<
+          Record<string, unknown>
+        >;
+      },
+    });
   }
 
   /*
