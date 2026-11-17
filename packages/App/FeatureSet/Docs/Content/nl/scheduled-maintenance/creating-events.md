@@ -50,7 +50,7 @@ Kies de statuspagina's onder **Gebeurtenis weergeven op deze statuspagina's**. *
 Klik op **Volgende** om de controle te zien, loop die na en klik dan op **Onderhoudsgebeurtenis aanmaken**. De pagina van de gebeurtenis gaat open.
 :::
 
-Er wordt niets verstuurd tot je een statuspagina kiest: een gebeurtenis die op geen enkele statuspagina staat, informeert geen enkele abonnee.
+Er wordt niets verstuurd tot je een statuspagina kiest: een gebeurtenis die op geen enkele statuspagina staat, informeert geen enkele abonnee. Anders dan een incident bereikt een gebeurtenis nooit vanzelf de statuspagina's die haar monitoren vermelden: zonder keuze staat er "Op geen enkele statuspagina weergegeven" in het veld, en de controle waarschuwt "Deze gebeurtenis verschijnt op geen enkele statuspagina." met de voorgestelde pagina's één klik verderop.
 
 ## De velden van het formulier
 

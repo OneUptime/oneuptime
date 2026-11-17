@@ -50,7 +50,7 @@ Escolha as páginas de status em **Mostrar evento nestas páginas de status**. *
 Clique em **Próximo** para ver a revisão, confira-a e depois clique em **Criar evento de manutenção**. A página do evento se abre.
 :::
 
-Nada é enviado até você escolher uma página de status: um evento que não aparece em nenhuma página de status não avisa nenhum assinante.
+Nada é enviado até você escolher uma página de status: um evento que não aparece em nenhuma página de status não avisa nenhum assinante. Ao contrário de um incidente, um evento nunca chega sozinho às páginas de status que listam seus monitores: sem nenhuma escolhida, o campo diz "Não exibido em nenhuma página de status", e a revisão avisa "Este evento não aparecerá em nenhuma página de status." com as páginas sugeridas a um clique.
 
 ## Os campos do formulário
 
