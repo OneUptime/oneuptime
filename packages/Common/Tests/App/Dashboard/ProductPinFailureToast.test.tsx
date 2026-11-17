@@ -10,6 +10,7 @@ import {
 import React, { ReactElement } from "react";
 import ProductKey from "../../../Types/Product/ProductKey";
 import Toast, { ToastItem, ToastType } from "../../../UI/Utils/Toast";
+import { Mock } from "jest-mock";
 
 /*
  * A pin or an unpin the server did not keep (#9120). The bar put the
@@ -19,7 +20,7 @@ import Toast, { ToastItem, ToastType } from "../../../UI/Utils/Toast";
  * closed.
  */
 
-const setProductPinnedMock: jest.Mock<
+const setProductPinnedMock: Mock<
   (data: { isPinned: boolean }) => Promise<void>
 > = jest.fn<(data: { isPinned: boolean }) => Promise<void>>();
 

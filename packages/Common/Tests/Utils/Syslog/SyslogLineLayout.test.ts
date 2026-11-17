@@ -6,6 +6,7 @@ import {
   parseSyslogMessage,
 } from "../../../Utils/Syslog/SyslogMessageParser";
 import { describe, expect, it } from "@jest/globals";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * WHERE EACH PART OF A SYSLOG LINE SITS IN IT (#9039).
@@ -202,12 +203,7 @@ describe("neither format", () => {
  * where its reading says its parts are.
  */
 describe("any line", () => {
-  let seed: number = 39;
-
-  function random(): number {
-    seed = (seed * 1103515245 + 12345) % 2147483648;
-    return seed / 2147483648;
-  }
+  const random: SeededRandom = seededRandom(39);
 
   function pick<T>(choices: ReadonlyArray<T>): T {
     return choices[Math.floor(random() * choices.length)]!;

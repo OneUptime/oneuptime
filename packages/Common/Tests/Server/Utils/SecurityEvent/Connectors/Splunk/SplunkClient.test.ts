@@ -14,6 +14,7 @@ import APIException from "../../../../../../Types/Exception/ApiException";
 import BadDataException from "../../../../../../Types/Exception/BadDataException";
 import Dictionary from "../../../../../../Types/Dictionary";
 import { JSONObject } from "../../../../../../Types/JSON";
+import { SpyInstance } from "jest-mock";
 
 /*
  * The Splunk client contract as the connector depends on it: the
@@ -917,7 +918,7 @@ describe("SplunkClient", () => {
     ])(
       "says a Retry-After of %j as %j",
       async (retryAfter: string, said: string) => {
-        const now: jest.SpiedFunction<typeof Date.now> = jest
+        const now: SpyInstance<typeof Date.now> = jest
           .spyOn(Date, "now")
           .mockReturnValue(Date.UTC(2026, 10, 16, 10, 0, 0));
 
