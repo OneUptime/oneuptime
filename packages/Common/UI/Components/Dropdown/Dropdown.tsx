@@ -5,6 +5,7 @@ import Pill from "../Pill/Pill";
 import { PillTone } from "../Pill/PillTone";
 import IsolatedLine from "../IsolatedText/IsolatedLine";
 import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
+import { passEscapeOn } from "./DropdownEscape";
 import { getDropdownLabelDirection } from "./DropdownLabelDirection";
 import joinAriaIds from "../../Utils/AriaIds";
 import useTranslateValue from "../../Utils/Translation";
@@ -891,6 +892,15 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // A compact picker's pick is in its bar's small words too (isCompact).
+  const getCompactLabelClassName: (className: string) => string = (
+    className: string,
+  ): string => {
+    return props.isCompact
+      ? className.replace("text-sm", "text-xs")
+      : className;
+  };
+
   const formatDropdownOptionLabel: (
     option: DropdownOption,
     meta: FormatOptionLabelMeta<DropdownOption>,
@@ -931,15 +941,15 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           <div className="flex min-w-0 max-w-full items-center gap-2">
             {renderOptionColorIndicator(option.color)}
             <span
-              className={
+              className={getCompactLabelClassName(
                 option.isNotFound
                   ? NOT_FOUND_VALUE_LABEL_CLASS_NAME
                   : props.isMultiSelect
                     ? MULTI_SELECT_CHIP_LABEL_CLASS_NAME
                     : props.wrapsPickedValue
                       ? SINGLE_SELECT_WRAPPED_VALUE_LABEL_CLASS_NAME
-                      : SINGLE_SELECT_VALUE_LABEL_CLASS_NAME
-              }
+                      : SINGLE_SELECT_VALUE_LABEL_CLASS_NAME,
+              )}
               dir={getOptionLabelDirection(option)}
               data-testid="dropdown-value-label"
               data-not-found={option.isNotFound ? "true" : undefined}
@@ -1274,7 +1284,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
               "!rounded-lg !border !shadow-sm !transition-all !duration-150",
               state.isFocused
                 ? "!border-indigo-400 !ring-2 !ring-indigo-100"
-                : "!border-gray-300 hover:!border-indigo-300",
+                : state.isDisabled
+                  ? "!border-gray-300"
+                  : "!border-gray-300 hover:!border-indigo-300",
               state.isDisabled
                 ? "!bg-gray-100 !text-gray-400"
                 : "!bg-white !cursor-pointer",
@@ -1301,8 +1313,11 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           indicatorsContainer: () => {
             return "!gap-1 !px-1";
           },
-          dropdownIndicator: () => {
-            return "text-gray-500 transition-colors duration-150 hover:text-indigo-400";
+          // A locked picker's chevron never lights up: nothing can open it.
+          dropdownIndicator: (state: { isDisabled: boolean }) => {
+            return state.isDisabled
+              ? "text-gray-500"
+              : "text-gray-500 transition-colors duration-150 hover:text-indigo-400";
           },
           clearIndicator: () => {
             return "text-gray-400 transition-colors duration-150 hover:text-red-500";
@@ -1484,6 +1499,19 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         isLoading={Boolean(props.isLoading)}
         closeMenuOnSelect={props.closeMenuOnSelect ?? true}
         {...menuMessageProps}
+        onKeyDown={(event: React.KeyboardEvent<HTMLElement>): void => {
+          /*
+           * With its menu closed, Escape is not the picker's: the dialog
+           * around it closes, as it did for a raw <select> (DropdownEscape).
+           */
+          if (
+            event.key === "Escape" &&
+            (event.target as HTMLElement).getAttribute("aria-expanded") !==
+              "true"
+          ) {
+            passEscapeOn(event.nativeEvent);
+          }
+        }}
         onMenuOpen={() => {
           props.onMenuOpen?.();
         }}
