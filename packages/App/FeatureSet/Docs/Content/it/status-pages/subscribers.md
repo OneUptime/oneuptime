@@ -501,7 +501,7 @@ Due conseguenze di cui tenere conto:
 
 **Le immagini seguono l'annuncio.** Un'immagine nella descrizione di un annuncio si apre per tutti da **Inizia a mostrare l'annuncio alle** in poi, non prima. Finché un annuncio è programmato per più avanti, le sue immagini si aprono solo per i membri del vostro progetto, così come l'annuncio stesso si vede solo nella dashboard. Appena inizia a essere mostrato, le sue immagini si aprono per tutti, sulla pagina di stato e nelle email che ricevono gli iscritti. Restano così anche dopo la fine, perché il suo link continua a funzionare e le sue pagine di stato lo elencano tra gli annunci terminati fin dove arriva la loro cronologia. Spostate un annuncio a un orario successivo e le sue immagini tornano private fino ad allora.
 
-Se gli annunci compaiono o no si imposta nella scheda **Cosa mostra la tua pagina di stato** di **Impostazioni avanzate**: **Mostra annunci** (`showAnnouncementsOnStatusPage`, vero per impostazione predefinita) e, sotto, **Mostra … giorni di cronologia** (`showAnnouncementHistoryInDays`, 14 per impostazione predefinita). Con **Mostra annunci** disattivato, l'endpoint degli annunci rifiuta la richiesta senza mezzi termini.
+Se gli annunci compaiono o no si imposta nella scheda **Cosa mostra la tua pagina di stato** di **Impostazioni**: **Mostra annunci** (`showAnnouncementsOnStatusPage`, vero per impostazione predefinita) e, sotto, **Mostra … giorni di cronologia** (`showAnnouncementHistoryInDays`, 14 per impostazione predefinita). Con **Mostra annunci** disattivato, l'endpoint degli annunci rifiuta la richiesta senza mezzi termini.
 
 ## Modelli di annunci
 

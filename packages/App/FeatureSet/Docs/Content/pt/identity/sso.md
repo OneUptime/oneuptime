@@ -325,7 +325,7 @@ Adicionar um provedor, alterar um ou ligá-lo de novo requer o **Scale**. Quem p
 
 Enquanto o projeto ainda exigir SSO, a página **SSO** dele também mostra **Exigir SSO para login**: desligue-o antes de desligar o último provedor. Até lá, o último provedor com que as pessoas conseguem fazer login não pode ser desligado nem excluído, para que ninguém fique sem acesso ao projeto.
 
-As páginas **SSO** e **OIDC** de uma página de status listam os provedores dela da mesma forma. Enquanto a página de status ainda exigir SSO, as duas páginas também mostram **Exigir SSO para login**: desligue-o antes de desligar os provedores dela, ou os usuários privados dela não conseguirão fazer login de jeito nenhum.
+A página **Login único** de uma página de status lista os provedores dela da mesma forma, nas abas **SAML** e **OIDC**. Enquanto a página de status ainda exigir SSO, as duas abas também mostram **Exigir SSO para login**: desligue-o antes de desligar os provedores dela, ou os usuários privados dela não conseguirão fazer login de jeito nenhum.
 
 ## Solução de problemas
 

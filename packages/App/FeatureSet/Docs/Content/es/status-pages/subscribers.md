@@ -501,7 +501,7 @@ Dos consecuencias que conviene tener en cuenta:
 
 **Las imágenes siguen al anuncio.** Una imagen en la descripción de un anuncio se abre para todos a partir de **Comenzar a mostrar el anuncio en**, no antes. Mientras un anuncio está programado para más adelante, sus imágenes solo se abren para los miembros de tu proyecto, igual que el propio anuncio solo se muestra en el panel. En cuanto empieza a mostrarse, sus imágenes se abren para todos, en la página de estado y en los correos que reciben los suscriptores. Siguen así después de que termine, porque su enlace sigue funcionando y sus páginas de estado lo listan entre los anuncios finalizados hasta donde llega su historial. Mueve un anuncio a una hora posterior y sus imágenes vuelven a ser privadas hasta entonces.
 
-Si los anuncios aparecen o no se define en la tarjeta **Lo que muestra tu página de estado** de **Ajustes avanzados**: **Mostrar anuncios** (`showAnnouncementsOnStatusPage`, verdadero por defecto) y, debajo, **Mostrar … días de historial** (`showAnnouncementHistoryInDays`, 14 por defecto). Con **Mostrar anuncios** desactivado, el endpoint de anuncios rechaza directamente la solicitud.
+Si los anuncios aparecen o no se define en la tarjeta **Lo que muestra tu página de estado** de **Ajustes**: **Mostrar anuncios** (`showAnnouncementsOnStatusPage`, verdadero por defecto) y, debajo, **Mostrar … días de historial** (`showAnnouncementHistoryInDays`, 14 por defecto). Con **Mostrar anuncios** desactivado, el endpoint de anuncios rechaza directamente la solicitud.
 
 ## Plantillas de anuncios
 

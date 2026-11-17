@@ -18,17 +18,17 @@ Ouvrez une page de statut : la section **Image de marque** de son menu latéral 
 
 | Page | Ce que vous y réglez |
 | ---- | ------------------ |
-| **Image de marque** | Logo et image de couverture, thème (clair, sombre, ou selon le réglage de l'appareil de chaque visiteur), titre et description de la page, favicon, liens d'en-tête, description de la page de vue d'ensemble, ligne de copyright et liens du pied de page. Repliés sous **Plus de paramètres** : les couleurs du graphique d'historique, les langues et l'indexation par les moteurs de recherche. |
+| **Image de marque** | Logo et image de couverture, thème (clair, sombre, ou selon le réglage de l'appareil de chaque visiteur), liens d'en-tête, texte d'introduction, ligne de copyright et liens du pied de page. Repliés sous **Plus de paramètres** : le titre de la page et la description pour les moteurs de recherche, le favicon, les couleurs du graphique d'historique, les langues et l'indexation par les moteurs de recherche. |
 | **Domaines personnalisés** | Votre propre domaine, son enregistrement DNS et son certificat SSL gratuit. |
 | **HTML, CSS et JavaScript** | HTML d'en-tête, HTML du pied de page, CSS personnalisé, JavaScript personnalisé. |
 
-Trois éléments qui ressemblent à de la personnalisation se trouvent plutôt dans **Pages de statut → votre page → Avancé → Paramètres avancés** (`{id}/settings`), parce qu'ils décident de ce que la page montre et non de son apparence : le pourcentage de disponibilité global, les statuts de moniteur qui comptent contre la disponibilité, et la mention « Powered by OneUptime ». Les deux premiers sont des lignes de la carte **Ce que montre votre page de statut**, et la mention a sa propre carte, juste en dessous, repliée sous **Plus de paramètres**.
+Trois éléments qui ressemblent à de la personnalisation se trouvent plutôt dans **Pages de statut → votre page → Avancé → Paramètres** (`{id}/settings`), parce qu'ils décident de ce que la page montre et non de son apparence : le pourcentage de disponibilité global, les statuts de moniteur qui comptent contre la disponibilité, et la mention « Powered by OneUptime ». Les deux premiers sont des lignes de la carte **Ce que montre votre page de statut**, et la mention a sa propre carte, juste en dessous, repliée sous **Plus de paramètres**.
 
 La personnalisation était autrefois répartie sur des écrans séparés **Personnalisation essentielle**, **En-tête**, **Pied de page**, **Page de vue d'ensemble** et **Langues**. Leurs anciennes adresses (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` et `{id}/languages`) ouvrent désormais la page **Image de marque** : les anciens favoris et liens fonctionnent toujours.
 
 ## La page Image de marque
 
-**Pages de statut → votre page → Image de marque → Image de marque** (`{id}/branding`). Chaque carte s'enregistre séparément. Après le logo, le thème, le titre et le favicon, les cartes suivent votre page de statut de haut en bas : les liens de l'en-tête, le texte en haut de la vue d'ensemble, puis le pied de page. Ce que peu de gens modifient est replié sous **Plus de paramètres**, en bas.
+**Pages de statut → votre page → Image de marque → Image de marque** (`{id}/branding`). Chaque carte s'enregistre séparément. Après le logo et le thème, les cartes suivent votre page de statut de haut en bas : les liens de l'en-tête, le texte d'introduction en haut de la vue d'ensemble, puis le pied de page. Ce que peu de gens modifient est replié sous **Plus de paramètres**, en bas : le titre et la description pour les moteurs de recherche, le favicon, les couleurs du graphique d'historique, les langues et l'indexation par les moteurs de recherche.
 
 ### Logo et image de couverture
 
@@ -65,18 +65,25 @@ Le thème figure dans le HTML de la page, qui est donc dessinée dans ce thème 
 
 Votre CSS et votre HTML personnalisés s'appliquent dans les deux thèmes ; [HTML, CSS et JavaScript personnalisés](#html-css-et-javascript-personnalisés) explique comment styliser le thème sombre.
 
-### Titre, description et favicon
-
-- **Titre et description** – le nom de la page dans l'onglet du navigateur et dans les e-mails aux abonnés, et la description que montrent les moteurs de recherche. **Modifier** ouvre **Titre de la page** (texte indicatif `e.g., Acme Status`) et **Description de la page**. Les moteurs de recherche et les aperçus de liens les affichent : écrivez-les pour un client, pas pour votre équipe.
-- **Favicon** – **Modifier le favicon** ouvre le téléversement **Favicon** : la petite icône de l'onglet du navigateur.
-
 ### Liens d'en-tête
 
 Le tableau **Liens d'en-tête** contient les liens de l'en-tête de la page de statut, comme votre site web, votre documentation ou un portail de support. Chaque lien a un **Titre** et un **Lien** (une URL, texte indicatif `https://link.com`), et vous les réordonnez par glisser-déposer. Sans lien, le tableau dit à quoi ils servent, avec **Ajouter : Lien d'en-tête** en dessous.
 
-### Description de la page de vue d'ensemble
+### Texte d'introduction
 
-**Description de la page de vue d'ensemble** est la première chose sur la vue d'ensemble de la page de statut, au-dessus des annonces, du statut global et de vos ressources. **Modifier la description** ouvre un champ Markdown. Servez-vous-en pour une phrase de contexte : ce que couvre cette page, et où s'adresser pour obtenir de l'aide. Une image que vous y placez est montrée à chaque visiteur de la page.
+Le **Texte d'introduction** est la première chose que lisent les visiteurs sur la vue d'ensemble de la page de statut, au-dessus des annonces, du statut global et de vos ressources. **Modifier le texte d'introduction** ouvre un champ Markdown. Il s'appelait auparavant **Description de la page de vue d'ensemble**. Servez-vous-en pour une phrase de contexte : ce que couvre cette page, et où s'adresser pour obtenir de l'aide. Une image que vous y placez est montrée à chaque visiteur de la page.
+
+### Trois descriptions, trois lecteurs
+
+Une page de statut a trois descriptions, chacune nommée d'après qui la lit :
+
+| Champ | Où il se règle | Qui le lit |
+| --- | --- | --- |
+| **Description interne** | La carte **Détails de la page de statut** sur la **Vue d'ensemble** de la page | Votre équipe uniquement. Les visiteurs ne la voient jamais. |
+| **Description pour les moteurs de recherche** | **Titre et description pour les moteurs de recherche**, sous **Plus de paramètres** sur **Image de marque** | Les moteurs de recherche et les aperçus de liens. |
+| **Texte d'introduction** | **Texte d'introduction** sur **Image de marque** | Les visiteurs, en haut de la page de statut. |
+
+Pour changer ce que les visiteurs lisent sur la page, modifiez le **Texte d'introduction**.
 
 ### Pied de page
 
@@ -87,7 +94,12 @@ Les liens d'en-tête servent à la navigation ; les liens du pied de page aux me
 
 ### Plus de paramètres
 
-La dernière section de la page est repliée sous **Plus de paramètres**, car peu de gens modifient ce qu'elle contient. Repliée, son en-tête nomme ses quatre sections – **Couleur de barre par défaut**, **Règles de couleur des barres**, **Langues** et **Indexation par les moteurs de recherche** – et montre chacune de celles qui diffèrent de ce avec quoi commence une nouvelle page de statut : une couleur de barre par défaut autre que le vert de départ de chaque page, des règles de couleur de barre autres que les règles recommandées, une langue par défaut autre que l'anglais, une liste de langues plus courte, ou l'indexation désactivée. Cliquez dessus pour l'ouvrir : c'est une seule carte, ses sections l'une sous l'autre, chacune avec son titre, séparées par des lignes de séparation.
+La dernière section de la page est repliée sous **Plus de paramètres**, car peu de gens modifient ce qu'elle contient. Repliée, son en-tête nomme ses quatre premières sections – **Titre et description pour les moteurs de recherche**, **Favicon**, **Couleur de barre par défaut** et **Règles de couleur des barres** – puis combien il en reste (**Langues** et **Indexation par les moteurs de recherche**), et montre chacune de celles qui diffèrent de ce avec quoi commence une nouvelle page de statut : un titre de page ou une description pour les moteurs de recherche, un favicon, une couleur de barre par défaut autre que le vert de départ de chaque page, des règles de couleur de barre autres que les règles recommandées, une langue par défaut autre que l'anglais, une liste de langues plus courte, ou l'indexation désactivée. Cliquez dessus pour l'ouvrir : c'est une seule carte, ses sections l'une sous l'autre, chacune avec son titre, séparées par des lignes de séparation.
+
+**Titre et description pour les moteurs de recherche, et favicon.** On les règle une fois, si jamais, et aucun des deux n'est ce que les visiteurs lisent sur la page : c'est le **Texte d'introduction**.
+
+- **Titre et description pour les moteurs de recherche** – le nom de la page dans l'onglet du navigateur et dans les e-mails aux abonnés, et la description que montrent les moteurs de recherche. **Modifier** ouvre **Titre de la page** (texte indicatif `e.g., Acme Status`) et **Description pour les moteurs de recherche**. Les moteurs de recherche et les aperçus de liens les affichent : écrivez-les pour un client, pas pour votre équipe.
+- **Favicon** – **Modifier le favicon** ouvre le téléversement **Favicon** : la petite icône de l'onglet du navigateur.
 
 **Couleurs du graphique d'historique.** En dehors du **Thème**, ce sont les seuls réglages de couleur intégrés d'une page de statut. Chaque barre de l'historique de disponibilité représente un jour.
 
@@ -106,7 +118,7 @@ Un jour pour lequel la page n'a pas de données est toujours dessiné en gris av
 
 La disponibilité d'un jour est mesurée sur la partie de la journée qui a des données, en comptant les statuts choisis dans **Compte comme indisponibilité**. Les couleurs recommandées diffèrent par la luminosité autant que par la teinte, si bien que les personnes atteintes de daltonisme rouge-vert, environ un homme sur douze, peuvent les distinguer ; le vert d'Operational et le rouge d'Offline avec lesquels commencent les statuts de moniteur leur paraissent presque identiques. Une page créée avant ces règles, ou via l'API ou Terraform, n'a aucune règle tant que vous n'en ajoutez pas : un tableau **Règles de couleur des barres** vide et **Aperçu des couleurs des barres** proposent tous deux **Utiliser les règles recommandées**. Via l'API, envoyez `"miscDataProps": {"addRecommendedBarColorRules": true}` avec la requête qui crée la page de statut.
 
-Le nombre de jours que couvre le graphique ne se règle pas ici. C'est **Historique de disponibilité** dans la carte **Ce que montre votre page de statut** de **Avancé → Paramètres avancés**, de 1 à 90 jours. Les statuts de moniteur qui comptent comme une panne, c'est **Compte comme indisponibilité**, dans la même ligne de cette carte.
+Le nombre de jours que couvre le graphique ne se règle pas ici. C'est **Historique de disponibilité** dans la carte **Ce que montre votre page de statut** de **Avancé → Paramètres**, de 1 à 90 jours. Les statuts de moniteur qui comptent comme une panne, c'est **Compte comme indisponibilité**, dans la même ligne de cette carte.
 
 **Langues.** La section **Langues** règle le sélecteur de langue que les visiteurs trouvent dans le pied de page. **Modifier les langues** ouvre deux champs :
 
@@ -124,7 +136,7 @@ Dix-huit langues sont livrées avec OneUptime : anglais, allemand, français, es
 
 ## Pourcentage de disponibilité et statuts d'indisponibilité
 
-Les deux se trouvent dans la ligne **Historique de disponibilité** de la carte **Ce que montre votre page de statut**, dans **Pages de statut → votre page → Avancé → Paramètres avancés** (`{id}/settings`). Il n'y a pas de bouton **Modifier** : chacun s'enregistre dès que vous le changez.
+Les deux se trouvent dans la ligne **Historique de disponibilité** de la carte **Ce que montre votre page de statut**, dans **Pages de statut → votre page → Avancé → Paramètres** (`{id}/settings`). Il n'y a pas de bouton **Modifier** : chacun s'enregistre dès que vous le changez.
 
 - **Afficher le pourcentage de disponibilité global** – un commutateur, désactivé par défaut. Tant qu'il est activé, **Précision** à côté choisit le nombre de décimales du pourcentage : `99%`, `99.9%`, `99.99%` (la valeur par défaut) ou `99.999%`. Sur OneUptime Cloud, activer le pourcentage demande le forfait **Scale** ; sa précision peut être modifiée sur tous les forfaits.
 - **Compte comme indisponibilité** – les statuts de moniteur, sous forme de pastilles colorées, dont le temps compte contre la disponibilité sur cette page. C'est ici que vous décidez si, par exemple, un statut dégradé compte contre la disponibilité. Au moins un statut reste sélectionné.
@@ -309,7 +321,7 @@ Il en va de même pour les clés d'API. Une clé qui peut seulement lire les dom
 
 ## Powered by OneUptime
 
-La mention « Powered by OneUptime » n'est pas un réglage de personnalisation. Elle a sa propre carte, **Powered by OneUptime**, repliée sous **Plus de paramètres** sous la carte **Ce que montre votre page de statut**, dans **Pages de statut → votre page → Avancé → Paramètres avancés** (`{id}/settings`) : **Afficher la mention « Propulsé par OneUptime »**, activé par défaut. Désactivez-le pour masquer la mention ; c'est enregistré aussitôt. Sur OneUptime Cloud, la masquer demande le forfait **Scale**. En auto-hébergement, la masquer fait partie de l'Enterprise Edition : sur la Community Edition, chaque page de statut affiche la mention.
+La mention « Powered by OneUptime » n'est pas un réglage de personnalisation. Elle a sa propre carte, **Powered by OneUptime**, repliée sous **Plus de paramètres** sous la carte **Ce que montre votre page de statut**, dans **Pages de statut → votre page → Avancé → Paramètres** (`{id}/settings`) : **Afficher la mention « Propulsé par OneUptime »**, activé par défaut. Désactivez-le pour masquer la mention ; c'est enregistré aussitôt. Sur OneUptime Cloud, la masquer demande le forfait **Scale**. En auto-hébergement, la masquer fait partie de l'Enterprise Edition : sur la Community Edition, chaque page de statut affiche la mention.
 
 ## Étapes suivantes
 

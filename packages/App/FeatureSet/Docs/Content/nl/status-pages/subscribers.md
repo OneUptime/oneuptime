@@ -501,7 +501,7 @@ Twee gevolgen om rekening mee te houden:
 
 **Afbeeldingen volgen de aankondiging.** Een afbeelding in de beschrijving van een aankondiging opent voor iedereen vanaf **Aankondiging beginnen weer te geven om**, niet eerder. Zolang een aankondiging voor later is gepland, openen haar afbeeldingen alleen voor de leden van uw project, net zoals de aankondiging zelf alleen in het dashboard te zien is. Zodra ze wordt getoond, openen haar afbeeldingen voor iedereen, op de statuspagina en in de e-mails die abonnees krijgen. Dat blijft zo nadat ze is afgelopen, omdat haar link blijft werken en haar statuspagina's haar bij de beëindigde aankondigingen tonen zo ver als hun geschiedenis teruggaat. Verplaats een aankondiging naar een later tijdstip en haar afbeeldingen worden tot dan weer privé.
 
-Of aankondigingen überhaupt verschijnen, stelt u in op de kaart **Wat uw statuspagina toont** van **Geavanceerde instellingen**: **Aankondigingen weergeven** (`showAnnouncementsOnStatusPage`, standaard true) en, daaronder, **De laatste … dagen weergeven** (`showAnnouncementHistoryInDays`, standaard 14). Met **Aankondigingen weergeven** uit weigert het aankondigingen-endpoint het verzoek zonder meer.
+Of aankondigingen überhaupt verschijnen, stelt u in op de kaart **Wat uw statuspagina toont** van **Instellingen**: **Aankondigingen weergeven** (`showAnnouncementsOnStatusPage`, standaard true) en, daaronder, **De laatste … dagen weergeven** (`showAnnouncementHistoryInDays`, standaard 14). Met **Aankondigingen weergeven** uit weigert het aankondigingen-endpoint het verzoek zonder meer.
 
 ## Aankondigingssjablonen
 

@@ -74,7 +74,7 @@ Add the shared monitor to each page as a resource (see [Status Page Resources & 
 
 ### Turn on Only Show Incidents Scoped to This Page
 
-On each of those pages, turn it on. It is in the **What your status page shows** card on **Status Pages → your page → Advanced → Advanced Settings**, under **Show Incidents**, and it saves the moment you flip it. From then on, nothing reaches a site page unless someone picks it.
+On each of those pages, turn it on. It is in the **What your status page shows** card on **Status Pages → your page → Advanced → Settings**, under **Show Incidents**, and it saves the moment you flip it. From then on, nothing reaches a site page unless someone picks it.
 
 ### Add each audience's subscribers
 

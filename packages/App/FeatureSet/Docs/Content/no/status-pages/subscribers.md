@@ -501,7 +501,7 @@ To konsekvenser som er verdt å planlegge rundt:
 
 **Bilder følger kunngjøringen.** Et bilde i en kunngjørings beskrivelse åpnes for alle fra **Begynn å vise kunngjøring fra** og fremover, ikke før. Mens en kunngjøring er planlagt til senere, åpnes bildene bare for medlemmene i prosjektet ditt, slik at selve kunngjøringen bare vises i dashbordet. Så snart den begynner å vises, åpnes bildene for alle, på statussiden og i e-postene abonnentene får. De forblir slik etter at den er over, fordi lenken fortsetter å virke, og statussidene viser den blant de avsluttede kunngjøringene så langt historikken deres rekker tilbake. Flytt en kunngjøring til et senere tidspunkt, så blir bildene private igjen til da.
 
-Om kunngjøringer vises i det hele tatt, angis på kortet **Hva statussiden din viser** under **Avanserte innstillinger**: **Vis kunngjøringer** (`showAnnouncementsOnStatusPage`, standard true) og, under den, **Vis de siste … dagene** (`showAnnouncementHistoryInDays`, standard 14). Med **Vis kunngjøringer** av avviser kunngjøringsendepunktet forespørselen fullstendig.
+Om kunngjøringer vises i det hele tatt, angis på kortet **Hva statussiden din viser** under **Innstillinger**: **Vis kunngjøringer** (`showAnnouncementsOnStatusPage`, standard true) og, under den, **Vis de siste … dagene** (`showAnnouncementHistoryInDays`, standard 14). Med **Vis kunngjøringer** av avviser kunngjøringsendepunktet forespørselen fullstendig.
 
 ## Kunngjøringsmaler
 

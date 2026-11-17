@@ -74,7 +74,7 @@ Ajoutez le moniteur partagé à chaque page comme ressource (voir [Ressources et
 
 ### Activer Afficher uniquement les incidents limités à cette page
 
-Sur chacune de ces pages, activez-le. Il se trouve dans la carte **Ce que montre votre page de statut** sur **Pages de statut → votre page → Avancé → Paramètres avancés**, sous **Afficher les incidents**, et il enregistre dès que vous le basculez. À partir de là, plus rien n'atteint une page de site tant que personne ne la choisit.
+Sur chacune de ces pages, activez-le. Il se trouve dans la carte **Ce que montre votre page de statut** sur **Pages de statut → votre page → Avancé → Paramètres**, sous **Afficher les incidents**, et il enregistre dès que vous le basculez. À partir de là, plus rien n'atteint une page de site tant que personne ne la choisit.
 
 ### Ajouter les abonnés de chaque public
 

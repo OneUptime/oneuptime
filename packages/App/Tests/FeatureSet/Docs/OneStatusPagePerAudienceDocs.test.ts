@@ -1013,7 +1013,7 @@ describe("One Status Page per Audience docs", () => {
       expectMenuPath({
         menu: "Pages/StatusPages/View/SideMenu.tsx",
         section: "Advanced",
-        title: "Advanced Settings",
+        title: "Settings",
       });
       expectMenuPath({
         menu: "Pages/StatusPages/View/SideMenu.tsx",
@@ -1048,18 +1048,18 @@ describe("One Status Page per Audience docs", () => {
           language: language,
           // The status page's own name is the reader's word for "your page".
           found: new RegExp(
-            `\\*\\*${draw("Status Pages")}${arrow}[^*→←\\n]+${arrow}${draw("Advanced")}${arrow}${draw("Advanced Settings")}\\*\\*`,
+            `\\*\\*${draw("Status Pages")}${arrow}[^*→←\\n]+${arrow}${draw("Advanced")}${arrow}${draw("Settings")}\\*\\*`,
           ).test(guide),
         }).toEqual({ language: language, found: true });
       }
     });
 
     /*
-     * Advanced Settings is one "What your status page shows" card now, with
+     * Settings (Advanced Settings until #9130) is one "What your status page shows" card now, with
      * no Edit button: the scoped-only switch is in its incidents row, under
      * Show Incidents, and saves as it is flipped.
      */
-    it("finds the scoped-only switch in the What your status page shows card of Advanced Settings, under Show Incidents", () => {
+    it("finds the scoped-only switch in the What your status page shows card of Settings, under Show Incidents", () => {
       expect(
         readDashboardSource("Pages/StatusPages/View/StatusPageSettings.tsx"),
       ).toContain("<StatusPageDisplaySettingsCard statusPageId={modelId} />");

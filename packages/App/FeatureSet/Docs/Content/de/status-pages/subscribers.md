@@ -501,7 +501,7 @@ Zwei Folgen, mit denen Sie planen sollten:
 
 **Bilder folgen der Ankündigung.** Ein Bild in der Beschreibung einer Ankündigung öffnet sich für alle ab **Anzeige der Ankündigung beginnen ab**, nicht vorher. Solange eine Ankündigung für später geplant ist, öffnen sich ihre Bilder nur für die Mitglieder Ihres Projekts, so wie die Ankündigung selbst nur im Dashboard erscheint. Sobald sie angezeigt wird, öffnen sich ihre Bilder für alle, auf der Statusseite und in den E-Mails, die Abonnenten bekommen. Das bleibt so, nachdem sie endet, denn ihr Link funktioniert weiter, und ihre Statusseiten führen sie bei den beendeten Ankündigungen, so weit ihr Verlauf zurückreicht. Verschieben Sie eine Ankündigung auf später, sind ihre Bilder bis dahin wieder privat.
 
-Ob Ankündigungen überhaupt erscheinen, legen Sie in der Karte **Was Ihre Statusseite zeigt** in den **Erweiterte Einstellungen** fest: **Ankündigungen anzeigen** (`showAnnouncementsOnStatusPage`, Standard true) und darunter **Die letzten … Tage anzeigen** (`showAnnouncementHistoryInDays`, Standard 14). Mit ausgeschaltetem **Ankündigungen anzeigen** lehnt der Endpunkt für Ankündigungen die Anfrage rundweg ab.
+Ob Ankündigungen überhaupt erscheinen, legen Sie in der Karte **Was Ihre Statusseite zeigt** in den **Einstellungen** fest: **Ankündigungen anzeigen** (`showAnnouncementsOnStatusPage`, Standard true) und darunter **Die letzten … Tage anzeigen** (`showAnnouncementHistoryInDays`, Standard 14). Mit ausgeschaltetem **Ankündigungen anzeigen** lehnt der Endpunkt für Ankündigungen die Anfrage rundweg ab.
 
 ## Ankündigungsvorlagen
 

@@ -325,7 +325,7 @@ Ajouter un fournisseur, en modifier un ou le réactiver nécessite **Scale**. Le
 
 Tant que le projet exige encore le SSO, sa page **SSO** affiche aussi **Exiger le SSO pour la connexion** : désactivez-le avant de désactiver le dernier fournisseur. D'ici là, le dernier fournisseur avec lequel les personnes peuvent se connecter ne peut être ni désactivé ni supprimé, pour que personne ne soit exclu du projet.
 
-Les pages **SSO** et **OIDC** d'une page de statut listent ses propres fournisseurs de la même façon. Tant que la page de statut exige encore le SSO, les deux pages affichent aussi **Exiger le SSO pour la connexion** : désactivez-le avant de désactiver ses fournisseurs, sinon ses utilisateurs privés ne pourront plus se connecter du tout.
+La page **Authentification unique** d'une page de statut liste ses propres fournisseurs de la même façon, dans ses onglets **SAML** et **OIDC**. Tant que la page de statut exige encore le SSO, les deux onglets affichent aussi **Exiger le SSO pour la connexion** : désactivez-le avant de désactiver ses fournisseurs, sinon ses utilisateurs privés ne pourront plus se connecter du tout.
 
 ## Dépannage
 

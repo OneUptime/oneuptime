@@ -325,7 +325,7 @@ At tilføje en udbyder, ændre en eller slå den til igen kræver **Scale**. Hve
 
 Så længe projektet stadig kræver SSO, viser siden **SSO** også **Kræv SSO til login**: slå det fra, før du slår den sidste udbyder fra. Indtil da kan den sidste udbyder, som personer kan logge ind med, hverken slås fra eller slettes, så ingen bliver udelukket fra projektet.
 
-En statussides sider **SSO** og **OIDC** viser dens egne udbydere på samme måde. Så længe statussiden stadig kræver SSO, viser begge sider også **Kræv SSO til login**: slå det fra, før du slår dens udbydere fra, ellers kan dens private brugere slet ikke logge ind.
+En statussides side **Single sign-on** viser dens egne udbydere på samme måde, på fanerne **SAML** og **OIDC**. Så længe statussiden stadig kræver SSO, viser begge faner også **Kræv SSO til login**: slå det fra, før du slår dens udbydere fra, ellers kan dens private brugere slet ikke logge ind.
 
 ## Fejlfinding
 
