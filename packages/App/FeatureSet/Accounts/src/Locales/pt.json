@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "Esqueceu a senha",
     "subtitle": "Insira seu e-mail e o link de redefinição de senha será enviado para você.",
-    "successMessage": "Enviamos o link de redefinição de senha para o seu e-mail. Não esqueça de verificar a pasta de spam.",
+    "successMessage": "Se uma conta usa este endereço de e-mail, enviamos a ela um link para escolher uma senha. Não esqueça de verificar a pasta de spam.",
     "submitButton": "Enviar link de redefinição",
     "rememberPasswordPrompt": "Lembra da sua senha?",
     "loginLink": "Entrar.",
@@ -195,9 +195,9 @@
     "successTitle": "Sua senha foi definida",
     "successDescription": "Entre com sua nova senha.",
     "linkExpiredTitle": "Este link expirou",
-    "linkExpiredDescription": "Os links para definir uma senha funcionam por {{days}} dias. Peça ao administrador que criou sua conta para enviar um novo.",
+    "linkExpiredDescription": "Os links para definir uma senha funcionam por {{days}} dias. Peça um novo link e nós o enviaremos por e-mail.",
     "linkInvalidTitle": "Este link não funciona mais",
-    "linkInvalidDescription": "Ele pode já ter sido usado, ou apenas parte dele foi copiada. Se você já definiu sua senha, entre. Caso contrário, peça um novo link ao seu administrador."
+    "linkInvalidDescription": "Ele pode já ter sido usado, ou apenas parte dele foi copiada. Se você já definiu sua senha, entre. Caso contrário, peça um novo link e nós o enviaremos por e-mail."
   },
   "sso": {
     "title": "Login com SSO",

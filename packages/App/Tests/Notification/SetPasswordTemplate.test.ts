@@ -20,7 +20,11 @@ import { SET_PASSWORD_LINK_EXPIRY_DAYS } from "Common/Types/Accounts/SetPassword
  *    this address, with the product's name (an installation may go by its
  *    own), and has one action, Set Your Password, with the link again to copy.
  *  - It says how long the link works and that it works once - the numbers
- *    the server holds it to - and who sends a new one.
+ *    the server holds it to - and where to get a new one: Forgot password,
+ *    which sends such an account a new set-password link (#9260).
+ *  - Sent because its owner asked Forgot password (#9260), it says a
+ *    request was made, and when and from where, instead of saying an
+ *    administrator created the account.
  *  - It may reach somebody who did not expect it, so it says what happens
  *    when it is ignored.
  */
@@ -137,9 +141,9 @@ describe("SetPassword.hbs", () => {
     expect(htmlAsText(toLink[1]![2]!).trim()).toBe(LINK);
   });
 
-  test("says how long the link works, as the server holds it, that it works once, and who sends another", () => {
+  test("says how long the link works, as the server holds it, that it works once, and where to get another", () => {
     expect(htmlAsText(render())).toContain(
-      `The link works once and expires in ${SET_PASSWORD_LINK_EXPIRY_DAYS} days. If it has expired, ask your administrator to send a new one.`,
+      `The link works once and expires in ${SET_PASSWORD_LINK_EXPIRY_DAYS} days. If it has expired, ask for a new one with Forgot password on the sign-in page.`,
     );
   });
 
@@ -154,6 +158,40 @@ describe("SetPassword.hbs", () => {
 
     expect(text).not.toMatch(/reset your password|password reset/i);
     expect(text).not.toContain("Details of the request:");
+  });
+
+  describe("sent because its owner asked Forgot password", () => {
+    const ASKED: Record<string, string> = {
+      requestedAt: "Nov 17, 2026, 09:30 UTC",
+      requestIpAddress: "203.0.113.7",
+      requestLocation: "",
+      requestDevice: "Firefox on Linux",
+    };
+
+    test("says a request was made, not that an administrator created the account", () => {
+      const text: string = htmlAsText(render(ASKED));
+
+      expect(text).toContain(
+        "We received a request to set a password for your OneUptime account, new.person@acme.test. Choose your password to sign in.",
+      );
+      expect(text).not.toContain("An administrator created");
+    });
+
+    test("says when, from which address and on which device, as a reset email does", () => {
+      const text: string = htmlAsText(render(ASKED));
+
+      expect(text).toContain("Details of the request:");
+      expect(text).toContain("Nov 17, 2026, 09:30 UTC");
+      expect(text).toContain("203.0.113.7");
+      expect(text).toContain("Firefox on Linux");
+    });
+
+    test("is still a first password, never a reset", () => {
+      const text: string = htmlAsText(render(ASKED));
+
+      expect(text).toContain("Set your password for OneUptime");
+      expect(text).not.toMatch(/reset your password|password reset/i);
+    });
   });
 
   test("loads nothing from outside the installation", () => {

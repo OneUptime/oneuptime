@@ -155,7 +155,7 @@
   "forgotPassword": {
     "title": "Glömt lösenord",
     "subtitle": "Ange din e-post så skickas länken för återställning av lösenord till dig.",
-    "successMessage": "Vi har skickat länken för återställning av lösenord till din e-post. Glöm inte att kontrollera skräpposten.",
+    "successMessage": "Om ett konto använder den här e-postadressen har vi mejlat det en länk för att välja ett lösenord. Glöm inte att kontrollera skräpposten.",
     "submitButton": "Skicka länk för återställning",
     "rememberPasswordPrompt": "Kommer du ihåg ditt lösenord?",
     "loginLink": "Logga in.",
@@ -195,9 +195,9 @@
     "successTitle": "Ditt lösenord är angivet",
     "successDescription": "Logga in med ditt nya lösenord.",
     "linkExpiredTitle": "Den här länken har gått ut",
-    "linkExpiredDescription": "Länkar för att ange ett lösenord fungerar i {{days}} dagar. Be administratören som skapade ditt konto att skicka en ny.",
+    "linkExpiredDescription": "Länkar för att ange ett lösenord fungerar i {{days}} dagar. Be om en ny länk så mejlar vi den till dig.",
     "linkInvalidTitle": "Den här länken fungerar inte längre",
-    "linkInvalidDescription": "Den kan redan ha använts, eller så kopierades bara en del av den. Om du har angett ditt lösenord loggar du in. Annars ber du din administratör om en ny länk."
+    "linkInvalidDescription": "Den kan redan ha använts, eller så kopierades bara en del av den. Om du har angett ditt lösenord loggar du in. Annars ber du om en ny länk så mejlar vi den till dig."
   },
   "sso": {
     "title": "Logga in med SSO",

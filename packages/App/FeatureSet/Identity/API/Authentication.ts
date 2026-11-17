@@ -1167,6 +1167,28 @@ router.post(
   },
 );
 
+/*
+ * POST /forgot-password -- email an account a link to choose its password.
+ *
+ * The answer is the same for every address: success, whether the address
+ * has an account with a password, an account with none yet, or no account
+ * at all, so asking says nothing about who has one (#9260). It used to
+ * answer an address with no password "No user is registered with ...",
+ * which was untrue for an account a master admin had created or an
+ * invitation nobody had claimed, and told anyone which addresses had a
+ * finished account. For the same reason the request is counted per caller
+ * and per address (PublicMessageRateLimit) before the address is looked
+ * up, so the sixth request in an hour is refused for every address alike.
+ *
+ * What is mailed depends on the account, never on the caller:
+ *  - an account with a password gets a reset link, for a day;
+ *  - one with no password yet gets the link to set its first one, for
+ *    SET_PASSWORD_LINK_EXPIRY_DAYS - the same email Admin > Users > Create
+ *    User sends (UserService.sendPasswordResetLink), saying who asked;
+ *  - an address with no account gets nothing.
+ * Neither email is awaited, so the answer does not wait on the mail server
+ * either way.
+ */
 router.post(
   "/forgot-password",
   async (
@@ -1198,6 +1220,20 @@ router.post(
         throw new BadDataException(PASSWORD_RESET_CANNOT_BE_EMAILED_MESSAGE);
       }
 
+      /*
+       * Each request may email the address a link, so it is counted first,
+       * per caller and per address (PublicMessageRateLimit), and refused
+       * when either has had enough - before the token is replaced, so the
+       * link in the latest email still works. Counted before the address is
+       * looked up, whether or not it has an account, so a refusal says
+       * nothing about one either.
+       */
+      await PublicMessageRateLimit.assertMaySend({
+        req: req,
+        kind: PublicMessageKind.PasswordReset,
+        contacts: [PublicMessageRateLimit.forEmail(user.email!)],
+      });
+
       const alreadySavedUser: User | null = await UserService.findOneBy({
         query: { email: user.email! },
         select: {
@@ -1213,19 +1249,26 @@ router.post(
         },
       });
 
-      if (alreadySavedUser && alreadySavedUser.password) {
+      if (alreadySavedUser?.id && !alreadySavedUser.password) {
         /*
-         * Each request emails the address a reset link, so it is counted
-         * first, per caller and per address (PublicMessageRateLimit), and
-         * refused when either has had enough - before the token is replaced,
-         * so the link in the latest email still works.
+         * An account with no password yet - created by a master admin, or
+         * an invitation nobody has claimed - is sent the link to set its
+         * first one, the same email and the same token Create User sends.
+         * Not awaited: a failed send is logged, and the answer stays the
+         * one every other address gets.
          */
-        await PublicMessageRateLimit.assertMaySend({
-          req: req,
-          kind: PublicMessageKind.PasswordReset,
-          contacts: [PublicMessageRateLimit.forEmail(user.email!)],
+        UserService.sendPasswordResetLink({
+          userId: alreadySavedUser.id,
+          requestOrigin: RequestOriginUtil.getEmailVars({
+            origin: RequestOriginUtil.fromRequest(req),
+            timezone: alreadySavedUser.timezone,
+          }),
+        }).catch((err: Error) => {
+          logger.error(err, getLogAttributesFromRequest(req as RequestLike));
         });
+      }
 
+      if (alreadySavedUser && alreadySavedUser.password) {
         // A bearer secret: from the CSPRNG, never ObjectID's non-crypto fallback.
         const token: string = crypto.randomUUID();
         const hashedToken: string = await HashedString.hashValue(
@@ -1288,17 +1331,9 @@ router.post(
         }).catch((err: Error) => {
           logger.error(err, getLogAttributesFromRequest(req as RequestLike));
         });
-
-        return Response.sendEmptySuccessResponse(req, res);
       }
 
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadDataException(
-          `No user is registered with ${user.email?.toString()}. Please sign up for a new account.`,
-        ),
-      );
+      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       // A reset refused for its rate limits says when to come back.
       PublicMessageRateLimit.setRetryAfterFor(res, err);
