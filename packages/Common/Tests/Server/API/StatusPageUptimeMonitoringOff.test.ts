@@ -247,6 +247,8 @@ function mockPage(data: {
           return resource._id!.toString();
         },
       ),
+      // Their monitoring is off: none of them waits for a first check.
+      notMonitoredYetResourceIds: [],
       statusPageGroups: data.groups,
       statusPage: statusPage,
       monitorsOnStatusPage: [],

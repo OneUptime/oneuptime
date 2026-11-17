@@ -274,7 +274,7 @@ const NAMED_BY_TEMPLATE_NAME: Array<string> = [
 
 function ownerTableOf(model: ModelType): OwnerTable | null {
   const instance: BaseModel = new model();
-  const ownerTable: string | undefined = instance.tableName;
+  const ownerTable: string | null = instance.tableName;
 
   if (!ownerTable || !ownerTable.endsWith("OwnerTeam")) {
     return null;

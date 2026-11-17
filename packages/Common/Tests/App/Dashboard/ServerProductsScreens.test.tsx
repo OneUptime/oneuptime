@@ -356,7 +356,8 @@ describe("Home and the shortcuts", () => {
           isChange={false}
           isSaving={false}
           onSubmit={() => {}}
-          onSkip={() => {}}
+          onCancel={() => {}}
+          onJustLooking={() => {}}
         />,
       ),
     );

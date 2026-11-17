@@ -2537,7 +2537,7 @@ describe("a task's conversation", () => {
       provider: string,
     ): Array<string> => {
       return getCodeTaskDetailFacts({
-        ...(base as never),
+        ...(base as Parameters<typeof getCodeTaskDetailFacts>[0]),
         repository: {
           ...(base["repository"] as Record<string, unknown>),
           provider,
