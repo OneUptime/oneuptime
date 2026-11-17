@@ -1,4 +1,4 @@
-import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
+import Button, { ButtonStyleType } from "../Button/Button";
 import { KeyboardKeyUtil } from "../KeyboardShortcut/KeyboardKey";
 import {
   WorkflowHistoryDirection,
@@ -60,8 +60,8 @@ const HistoryButton: FunctionComponent<{
   return (
     <Button
       icon={isUndo ? IconProp.ArrowUturnLeft : IconProp.ArrowUturnRight}
+      // The toolbar's normal size: one height with the buttons beside it.
       buttonStyle={ButtonStyleType.OUTLINE}
-      buttonSize={ButtonSize.Small}
       disabled={!props.step}
       tooltip={getWorkflowHistoryTooltip({
         direction: props.direction,
