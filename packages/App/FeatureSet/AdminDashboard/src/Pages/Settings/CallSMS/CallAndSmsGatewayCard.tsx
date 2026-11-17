@@ -39,11 +39,11 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  *
  * Check Gateway posts one signed request to the gateway as saved, to
  * nobody (CallAndSmsGatewayTest): whether the gateway answers, for whoever
- * builds it. It was "Send Test", on every server, beside the page's Send
- * test SMS and Make test call, which do send one - two kinds of test with
- * one name, and on a server that sends through Twilio it only said it had
- * nothing to try (#7029). Now it says what it checks, and is offered only
- * while the server sends through its gateway.
+ * builds it. It was called Send Test, on every server, beside the page's
+ * Send test SMS and Make test call, which do send one - two kinds of test
+ * with one name, and on a server that sends through Twilio it only said it
+ * had nothing to try (#7029). Now it says what it checks, and is offered
+ * only while the server sends through its gateway.
  */
 
 export const CALL_AND_SMS_GATEWAY_CARD_TEST_ID: string =

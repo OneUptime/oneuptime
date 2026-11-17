@@ -120,6 +120,10 @@ La connectivité des appareils est une exigence distincte. Les appareils iOS ont
 
 Pour les push mobiles, OneUptime lit aussi l'accusé de livraison d'Expo environ 15 minutes après chaque push : un push qui n'a jamais atteint l'appareil apparaît alors comme non livré dans le journal des push et, pour une alerte d'astreinte, sur la chronologie d'astreinte.
 
+## Envoyer une notification push de test
+
+Un administrateur principal peut vérifier le push du côté du serveur : **Envoyer une notification push de test**, dans **Admin Dashboard > Paramètres > Notifications push**, envoie un push de test aux téléphones et aux navigateurs qu'il a enregistrés, et à personne d'autre. Quand rien ne peut partir, il dit pourquoi : le push est désactivé, rien n'est enregistré ou le serveur n'a pas de clés VAPID pour un navigateur.
+
 ## Désactiver le push sur tout le serveur
 
 Si rien ne doit quitter votre réseau via Expo, le relais push ou le service push d'un navigateur, un administrateur principal peut désactiver le push dans **Admin Dashboard > Paramètres > Notifications push** : désactivez **Send push notifications** et confirmez.

@@ -413,6 +413,8 @@ npm run backup
 
 Il demande votre mot de passe sudo et écrit `Backups/db-<day of the month>.backup` : les sauvegardes quotidiennes remplacent donc celles du mois précédent. Lancez-le au moins une fois par jour.
 
+Chaque exécution indique à OneUptime comment elle s'est passée : Configuration du serveur, dans l'Admin Dashboard, montre alors quand la dernière sauvegarde s'est terminée, et le signale quand une sauvegarde a échoué ou que la dernière date de plus d'une semaine. Une exécution dont le dump a échoué le dit et se termine par une erreur, pour qu'une tâche cron le voie.
+
 ### Copier les sauvegardes hors du serveur
 
 Une sauvegarde sur le même disque que la base de données ne survit pas à la perte de ce disque.

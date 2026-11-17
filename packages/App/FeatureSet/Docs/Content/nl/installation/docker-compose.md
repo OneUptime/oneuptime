@@ -413,6 +413,8 @@ npm run backup
 
 Het vraagt om uw sudo-wachtwoord en schrijft `Backups/db-<day of the month>.backup`, zodat dagelijkse back-ups die van een maand eerder vervangen. Voer het minstens één keer per dag uit.
 
+Elke run vertelt OneUptime hoe die ging, zodat Serverinstelling in het Admin Dashboard laat zien wanneer de laatste back-up klaar was, en het zegt wanneer een back-up mislukte of de laatste meer dan een week oud is. Een run waarvan de dump mislukte, zegt dat en eindigt met een fout, zodat een cronjob het merkt.
+
 ### Kopieer de back-ups van de server af
 
 Een back-up op dezelfde schijf als de database overleeft het verlies van die schijf niet.

@@ -413,6 +413,8 @@ npm run backup
 
 Det frågar efter ditt sudo-lösenord och skriver `Backups/db-<day of the month>.backup`, så att dagliga säkerhetskopior ersätter dem från en månad tidigare. Kör det minst en gång om dagen.
 
+Varje körning berättar för OneUptime hur det gick, så att Serverkonfiguration i Admin Dashboard visar när den senaste säkerhetskopian blev klar, och säger till när en säkerhetskopia misslyckades eller den senaste är mer än en vecka gammal. En körning vars dump misslyckades säger det och avslutas med ett fel, så att ett cron-jobb märker det.
+
 ### Kopiera säkerhetskopiorna från servern
 
 En säkerhetskopia på samma disk som databasen överlever inte att den disken går förlorad.

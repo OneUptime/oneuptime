@@ -30,7 +30,7 @@ La pasarela ocupa el lugar de la cuenta de Twilio propia del servidor para todo 
 1. En el Admin Dashboard, ve a **Ajustes > Llamadas y SMS** y haz clic en **Edit Provider** en la tarjeta **SMS and Call Provider**.
 2. Elige **Your own gateway** e introduce la **Gateway URL**. La pasarela puede estar en tu red privada.
 3. Guarda. OneUptime crea un secreto de firma por ti. Cópialo de la tarjeta a tu pasarela.
-4. Haz clic en **Send Test**. Tu pasarela debe responder con un estado 2xx y no enviar nada.
+4. Haz clic en **Comprobar puerta de enlace**. Tu pasarela debe responder con un estado 2xx y no enviar nada.
 :::
 
 Para sustituir el secreto, vacía **Signing Secret** en **Más campos** y guarda: OneUptime crea uno nuevo. Para volver a Twilio, elige **Twilio** y guarda.
@@ -116,7 +116,7 @@ El registro de SMS o de llamadas, y para un aviso de guardia el registro de guar
 
 ## Solicitudes de prueba
 
-**Enviar prueba** envía una solicitud con `event` en `test`, y `to`, `project` y `actions` en `null`. Respóndela con un estado 2xx y no envíes nada.
+**Comprobar puerta de enlace** envía una solicitud con `event` en `test`, y `to`, `project` y `actions` en `null`. Respóndela con un estado 2xx y no envíes nada.
 
 ## Próximos pasos
 

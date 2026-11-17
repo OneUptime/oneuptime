@@ -30,7 +30,7 @@ Das Gateway tritt an die Stelle des eigenen Twilio-Kontos des Servers, für alle
 1. Gehen Sie im Admin Dashboard zu **Einstellungen > Anrufe und SMS** und klicken Sie auf der Karte **SMS and Call Provider** auf **Edit Provider**.
 2. Wählen Sie **Your own gateway** und geben Sie die **Gateway URL** ein. Das Gateway kann in Ihrem privaten Netzwerk liegen.
 3. Speichern Sie. OneUptime erzeugt ein Signaturgeheimnis für Sie. Kopieren Sie es von der Karte in Ihr Gateway.
-4. Klicken Sie auf **Send Test**. Ihr Gateway sollte mit einem 2xx-Status antworten und nichts senden.
+4. Klicken Sie auf **Gateway prüfen**. Ihr Gateway sollte mit einem 2xx-Status antworten und nichts senden.
 :::
 
 Um das Geheimnis zu ersetzen, leeren Sie **Signing Secret** unter **Weitere Felder** und speichern: OneUptime erzeugt ein neues. Um zu Twilio zurückzukehren, wählen Sie **Twilio** und speichern.
@@ -116,7 +116,7 @@ Im SMS- oder Anrufprotokoll und bei einem Bereitschaftsalarm im Bereitschaftspro
 
 ## Testanfragen
 
-**Test senden** sendet eine Anfrage, bei der `event` auf `test` und `to`, `project` und `actions` auf `null` gesetzt sind. Beantworten Sie sie mit einem 2xx-Status und senden Sie nichts.
+**Gateway prüfen** sendet eine Anfrage, bei der `event` auf `test` und `to`, `project` und `actions` auf `null` gesetzt sind. Beantworten Sie sie mit einem 2xx-Status und senden Sie nichts.
 
 ## Nächste Schritte
 
