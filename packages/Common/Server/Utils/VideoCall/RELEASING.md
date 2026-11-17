@@ -292,8 +292,8 @@ ENVIRONMENT
 This update is reviewed on our development environment, https://test.oneuptime.com.
 It uses the app's Development client ID (9jqiv0sYQtei9MlJNWFtuA) and redirect URL
 https://test.oneuptime.com/api/video-call-oauth/zoom/callback. Our production site,
-https://oneuptime.com, uses the Production client ID; the listing's Add button opens
-production, so please start from the links below instead.
+https://oneuptime.com, uses the Production client ID. Adding the app from its
+Marketplace listing opens production, so please start from the links below instead.
 
 The test account above is ready: its email address is verified, so no confirmation
 email is needed. Please use it rather than signing up. Sign in at
@@ -315,8 +315,8 @@ CONNECT (authorize the app)
    email (user:read:user).
 
 meeting:write:meeting
-4. Click Start a test meeting on the connection: a Zoom meeting is created on your
-   Zoom user and its link opens it.
+4. Click Start a test meeting (or Test on the connection's row). "Test meeting
+   created" appears with the join link of a meeting created on your Zoom user.
 5. Open Incidents, click Declare Incident and declare one. On the incident's page,
    the Video Call card has Start call: pick the Zoom connection. A meeting is
    created and its Join call link appears on the card.
@@ -365,14 +365,14 @@ Everything at Zoom needs a sign-in to the Zoom account that owns the app,
 and some of it a password. No agent can do these from the repository:
 
 1. Sign in to the Zoom App Marketplace and change the app: scopes, redirect
-   URLs, allow list, deauthorization endpoint, Secret Token, listing. Get a
-   second maintainer's approval for the exact change to the Production side:
-   it reaches every customer.
+   URLs, allow list, deauthorization endpoint, Secret Token, listing. A
+   change to the Production side reaches every customer once Zoom approves
+   it.
 2. Read, copy or regenerate the client secrets and the Secret Token, and put
    them into the servers' configuration.
 3. Create the reviewer's staging account and project, set its password, and
-   turn **Email Verified** on (a master admin). Granting the account
-   **Owners** is a permission grant, which an agent's browser tools refuse.
+   turn **Email Verified** on (a master admin). Adding the account to
+   **Owners** grants permissions, so a person does it.
 4. Type the test account's password into the submission, press **Submit**,
    and answer Zoom's reviewers.
 5. Delete anything: a connection a customer made, the reviewer's account or
@@ -399,10 +399,10 @@ Found while writing this guide on 17 November 2026:
   `user:read:user` and `meeting:write:meeting` for Zoom, and says the data is
   used only to create meetings. It does not mention the `cloud_recording`
   scopes, reading transcripts, or OneUptime AI reading them. Update it before
-  the transcript scopes are submitted again.
-- The comments on the Zoom app in `config.example.env` and `values.yaml` list
-  only `meeting:write:meeting` and `user:read:user`; the user docs list all
-  four scopes. So does the header comment of `ZoomOAuthApp.ts`.
+  the transcript scopes are submitted again (#9264).
+- The comments on the Zoom app in `config.example.env` and `values.yaml`
+  list only `meeting:write:meeting` and `user:read:user`, as does the header
+  comment of `ZoomOAuthApp.ts`. The user docs list all four scopes (#9265).
 - This guide does not record which Zoom account owns the app, or whether the
   Development side has a deauthorization endpoint. Add both the next time a
   maintainer signs in.
