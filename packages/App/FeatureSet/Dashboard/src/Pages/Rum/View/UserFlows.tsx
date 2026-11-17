@@ -677,7 +677,6 @@ const RumApplicationUserFlows: FunctionComponent<
             ? "No session with this ID in this range"
             : "No recorded sessions for this user in this range"
         }
-        paddingClassName="py-16"
         description={
           <span>
             {scope.kind === "session"
@@ -712,7 +711,6 @@ const RumApplicationUserFlows: FunctionComponent<
         id="user-flow-filtered-empty"
         icon={IconProp.Filter}
         title="No session matches these filters"
-        paddingClassName="py-16"
         description={
           <span>
             {translator.translateText(
@@ -851,7 +849,6 @@ const RumApplicationUserFlows: FunctionComponent<
         id="user-flow-empty"
         icon={IconProp.Share}
         title="No recorded sessions in this range"
-        paddingClassName="py-16"
         description={
           <span>
             {translator.translateText(

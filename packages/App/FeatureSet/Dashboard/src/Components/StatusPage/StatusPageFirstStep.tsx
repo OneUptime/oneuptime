@@ -11,7 +11,9 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
@@ -114,7 +116,7 @@ const StatusPageFirstStep: FunctionComponent<ComponentProps> = (
               : StatusPageOverviewCopy.firstStepReaderDescription
           }
           icon={IconProp.AltGlobe}
-          paddingClassName="py-8"
+          size={EmptyStateSize.Inline}
           footer={
             canAddMonitors ? (
               <div>

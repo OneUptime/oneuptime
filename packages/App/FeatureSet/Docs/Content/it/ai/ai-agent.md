@@ -73,6 +73,8 @@ Per continuare, scrivi nella casella in fondo, che resta visibile mentre la conv
 
 Chi può leggere un repository ne legge le attività. Chiedere all'IA, rispondere e fermare un'attività richiedono il permesso di modificare il repository, e così vedere il diff di una modifica: tutti gli altri vedono quali file sono cambiati. Anche le attività che OneUptime avvia da solo (sotto) sono nel loro repository, come conversazioni in cui puoi rispondere.
 
+Un'attività su un incidente o un avviso privato, avviata dalla sua indagine o da una delle sue correzioni, la legge, con le sue risposte e la sua pull request, solo chi può leggere il record e, una volta eliminato il record, solo i Proprietari del progetto e gli Amministratori del progetto. Per tutti gli altri, gli elenchi, i filtri, le ricerche e i conteggi del repository la lasciano fuori. Vedi [Incidenti, avvisi ed episodi privati](/docs/permissions/index#incidenti-avvisi-ed-episodi-privati).
+
 ## Come funziona un'esecuzione di correzione
 
 ```mermaid title="Da un clic a una pull request"
@@ -325,6 +327,8 @@ Tutto il resto è come il pulsante:
 - Conta per il limite giornaliero di attività di correzione di quel segnale (**Limite giornaliero di attività di correzione IA per gli incidenti** o **Limite giornaliero di attività di correzione IA per gli avvisi**, in **Altre impostazioni** nella sua pagina delle impostazioni IA) e per il tetto di pull request aperte del repository, quando uno dei due è impostato. Se non sono impostati, nessuno dei due limita nulla.
 - Ogni trigger cerca prima un'attività di correzione già in coda o in esecuzione per lo stesso incidente o avviso, così un trigger automatico e un clic diventano di solito un'unica attività, non due pull request. Il controllo è una lettura prima della scrittura, non un blocco, quindi due trigger nello stesso istante possono comunque passare entrambi.
 - L'esecuzione è scritta dal sistema, non è attribuita a nessuno, e niente viene unito da solo.
+
+Su un incidente o un avviso privato, **Apri la pull request di correzione** richiede ciò che richiede approvare le correzioni del record, tramite i team che ne sono proprietari, ed è bloccato per chiunque altro, dicendo perché. Chiunque abbia accesso al repository legge la pull request, quindi il suo titolo, il suo commit e la sua descrizione dicono cosa fa la modifica e nulla del record, e all'agente di codice viene chiesto di lasciare il record fuori dal suo riepilogo e dai commenti che scrive. Un Runner precedente a questa modifica non riceve una correzione del genere, e l'attività non riesce chiedendo di aggiornare il Runner.
 
 ## Quando una correzione non riesce
 

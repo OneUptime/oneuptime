@@ -1,8 +1,10 @@
 import AIAgentTaskPullRequest from "../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
+import Alert from "../../../Models/DatabaseModels/Alert";
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
+import Incident from "../../../Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFeed";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../Types/AI/AIRunType";
@@ -36,6 +38,7 @@ import {
   DeclaredCodeChangeTaskContext,
   DeclaredCodeOwnerCandidateJSON,
   DeclaredCodeOwnerJSON,
+  DeclaredCodePrivateRecord,
   DeclaredResourceFacts,
   LastingCloudChange,
   getDeclaredCodeChangeRequest,
@@ -53,8 +56,14 @@ import { DashboardClientUrl } from "../../EnvironmentConfig";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import AIRunService from "../../Services/AIRunService";
 import AlertFeedService from "../../Services/AlertFeedService";
+import AlertService from "../../Services/AlertService";
 import AutoRemediationSuggestionService from "../../Services/AutoRemediationSuggestionService";
 import IncidentFeedService from "../../Services/IncidentFeedService";
+import IncidentService from "../../Services/IncidentService";
+import {
+  assertReachesFixSubject,
+  OPEN_FIX_PULL_REQUEST_ACTION,
+} from "./RemediationApproval";
 import CodeTaskAccess from "../AI/CodeTask/CodeTaskAccess";
 import CodeTaskContextBuilder from "../AI/CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../AI/CodeTask/CodeTaskGate";
@@ -92,7 +101,11 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  *     (getDeclaredCodeChangeRequest), and the incident or alert as its
  *     context. A step that already has a task that has not failed gets that
  *     one back. The incident's or alert's feed, and so its Slack and Teams
- *     channels, say who asked, with a link to the task;
+ *     channels, say who asked, with a link to the task. A fix for a private
+ *     incident or alert is asked for only through the record's owners, as
+ *     approving it is (assertReachesFixSubject, #9106), and its task gets
+ *     nothing of the record as context: its pull request is read by
+ *     everyone with access to the repository (#9165);
  *   - list: each step's task as it stands - being written, opened (with its
  *     pull request), ended without one, or failed;
  *   - onPullRequestOpened: the task's pull request, on the incident's or
@@ -321,19 +334,27 @@ export default class DeclaredCodeChanges {
     );
     const best: DeclaredCodeOwnerCandidate | null =
       DeclaredCodeOwner.getBest(candidates);
-    const canAsk: Array<boolean> = await Promise.all(
-      candidates.map(
-        (candidate: DeclaredCodeOwnerCandidate): Promise<boolean> => {
-          return CodeTaskAccess.canAskInRepository({
-            props: data.props,
-            projectId,
-            repositoryId: new ObjectID(candidate.repository.id),
-          });
-        },
+    const [canAsk, privateRecord]: [
+      Array<boolean>,
+      DeclaredCodePrivateRecord | null,
+    ] = await Promise.all([
+      Promise.all(
+        candidates.map(
+          (candidate: DeclaredCodeOwnerCandidate): Promise<boolean> => {
+            return CodeTaskAccess.canAskInRepository({
+              props: data.props,
+              projectId,
+              repositoryId: new ObjectID(candidate.repository.id),
+            });
+          },
+        ),
       ),
-    );
+      DeclaredCodeChanges.getPrivateRecord(step.suggestion),
+    ]);
 
     return {
+      // The pull request leaves a private record out (see start).
+      ...(privateRecord ? { privateRecord } : {}),
       sequence: step.command.sequence,
       managedAsCode: step.command.managedAsCode || step.declaredCode.name,
       codeKind: step.declaredCode.kind,
@@ -361,6 +382,37 @@ export default class DeclaredCodeChanges {
         },
       ),
     };
+  }
+
+  /*
+   * The kind of private record the fix is for, when it is for one: its
+   * incident or alert as it is now, read as OneUptime - the person read the
+   * fix, and so the record, beforehand. Null for a public one.
+   */
+  private static async getPrivateRecord(
+    suggestion: AutoRemediationSuggestion,
+  ): Promise<DeclaredCodePrivateRecord | null> {
+    if (suggestion.incidentId) {
+      const incident: Incident | null = await IncidentService.findOneById({
+        id: suggestion.incidentId,
+        select: { _id: true, isPrivate: true },
+        props: { isRoot: true },
+      });
+
+      return incident?.isPrivate ? "incident" : null;
+    }
+
+    if (suggestion.alertId) {
+      const alert: Alert | null = await AlertService.findOneById({
+        id: suggestion.alertId,
+        select: { _id: true, isPrivate: true },
+        props: { isRoot: true },
+      });
+
+      return alert?.isPrivate ? "alert" : null;
+    }
+
+    return null;
   }
 
   // The value the live change replaced, when it ran and its output said.
@@ -409,6 +461,18 @@ export default class DeclaredCodeChanges {
     const step: DeclaredStep = await DeclaredCodeChanges.readStep(data);
     const projectId: ObjectID = step.suggestion.projectId!;
     const suggestionId: ObjectID = step.suggestion.id!;
+
+    /*
+     * A fix for a private incident or alert is acted on only through the
+     * record's owners (#9106): opening its pull request takes what approving
+     * the fix takes, through a team that owns the record - before anything,
+     * a task already on its way included.
+     */
+    await assertReachesFixSubject({
+      props: data.props,
+      suggestion: step.suggestion,
+      action: OPEN_FIX_PULL_REQUEST_ACTION,
+    });
 
     // A step whose task is on its way, or done, gets that one back.
     const existing: Array<AIRun> = await DeclaredCodeChanges.findTasks({
@@ -465,15 +529,24 @@ export default class DeclaredCodeChanges {
         AiRemediationCommandExecutionStatus.Succeeded,
     });
 
-    // The incident or alert, as the person may read it, is the task's context.
+    /*
+     * The incident or alert, as the person may read it, is the task's
+     * context - unless it is private (#9165). The task's pull request is
+     * read by everyone with access to the repository, and what the task's
+     * context says of the record would be in it: a private one is left out,
+     * and the change alone, which names no record, is what the task is
+     * asked.
+     */
     const inputs: Array<CodeTaskContextInput> = [];
+    const privateRecord: DeclaredCodePrivateRecord | null =
+      await DeclaredCodeChanges.getPrivateRecord(step.suggestion);
 
-    if (step.suggestion.incidentId) {
+    if (!privateRecord && step.suggestion.incidentId) {
       inputs.push({
         type: CodeTaskContextType.Incident,
         id: step.suggestion.incidentId.toString(),
       });
-    } else if (step.suggestion.alertId) {
+    } else if (!privateRecord && step.suggestion.alertId) {
       inputs.push({
         type: CodeTaskContextType.Alert,
         id: step.suggestion.alertId.toString(),
@@ -483,11 +556,15 @@ export default class DeclaredCodeChanges {
     let context: Array<CodeTaskContextItem> = [];
 
     try {
-      context = await CodeTaskContextBuilder.build({
-        inputs,
-        projectId,
-        props: data.props,
-      });
+      // A private record's fix: nothing to read into the task.
+      context =
+        inputs.length > 0
+          ? await CodeTaskContextBuilder.build({
+              inputs,
+              projectId,
+              props: data.props,
+            })
+          : [];
     } catch (error) {
       // The request says what to change; the record only adds why.
       logger.debug(

@@ -535,6 +535,32 @@ jobs:
           Tests/Server/Services/AiRunOutputReadPostgres.test.ts
           --forceExit
 
+      # Clones the migrated AI runs, their pull requests, fixes, incidents,
+      # alerts, their owners and team members into an isolated schema and
+      # reads OneUptime AI's code work about a private incident or alert as
+      # every kind of reader - the person who asked, another member, a
+      # pending invitee, an owner team's member, a named owner, a view-only
+      # owner team's member with Code permissions through another team,
+      # Project Owners and Admins, API keys and a workflow's step - through
+      # the run's service, the API's list, a live update, the pull request's
+      # service, the Code pages' own SQL and a task's page: a CodeFix run
+      # about a private record, its replies and its pull request only for
+      # those who see it, one about a deleted record only for Project
+      # Owners and Admins. And opening a pull request from a private record
+      # only through its owners (#9165, #9106).
+      - name: Test that OneUptime AI's code work about a private record follows its owners on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CODE_FIX_RUN_TESTS: "true"
+          CODE_FIX_RUN_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CODE_FIX_RUN_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CODE_FIX_RUN_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/CodeFixRunReadPostgres.test.ts
+          --forceExit
+
       # Runs CascadeRunsAndFixesWithTheirRecord and
       # DeleteRunsAndFixesOfDeletedRecords on clones of the migrated runbook
       # runs, fixes, Runner jobs, incidents and alerts with their keys as

@@ -73,6 +73,8 @@ Om verder te gaan, schrijf je in het vak onderaan, dat in beeld blijft terwijl h
 
 Wie een repository kan lezen, leest zijn taken. AI iets vragen, antwoorden en een taak stoppen vereisen het recht om de repository te bewerken, en dat geldt ook voor de diff van een wijziging bekijken: alle anderen zien welke bestanden er veranderd zijn. De taken die OneUptime zelf start (hieronder) staan ook in hun repository, als gesprekken waarin je kunt antwoorden.
 
+Een taak over een privé-incident of -waarschuwing, gestart vanuit het onderzoek ervan of vanuit een van de correcties ervan, wordt met de antwoorden en de pull request alleen gelezen door wie het record mag lezen, en zodra het record is verwijderd, alleen door Projecteigenaren en Projectbeheerders. Voor alle anderen laten de lijsten, filters, zoekopdrachten en tellingen van de repository haar weg. Zie [Privé-incidenten, -waarschuwingen en -episodes](/docs/permissions/index#privé-incidenten-waarschuwingen-en-episodes).
+
 ## Hoe een herstelrun verloopt
 
 ```mermaid title="Van een klik tot een pull request"
@@ -325,6 +327,8 @@ Al het andere is gelijk aan de knop:
 - Hij telt mee voor de dagelijkse limiet voor hersteltaken van dat signaal (**Dagelijkse limiet voor AI-hersteltaken voor incidenten** of **Dagelijkse limiet voor AI-hersteltaken voor waarschuwingen**, onder **Meer instellingen** op de AI-instellingenpagina ervan) en voor het maximum aan open pull requests van de repository, als een van beide is ingesteld. Niet ingesteld beperkt geen van beide iets.
 - Elke trigger zoekt eerst naar een hersteltaak die al in de wachtrij staat of draait voor hetzelfde incident of dezelfde waarschuwing, zodat een automatische trigger en een klik normaal één taak worden, niet twee pull requests. De controle is een lezing vóór het schrijven, geen vergrendeling, dus twee triggers op precies hetzelfde moment kunnen er nog allebei door komen.
 - De run wordt door het systeem geschreven, aan niemand toegeschreven, en niets wordt vanzelf gemerged.
+
+Bij een privé-incident of -waarschuwing vraagt **Herstel-pull-request openen** wat het goedkeuren van de correcties van het record vraagt, via de teams die het bezitten, en is de knop voor alle anderen vergrendeld, met de reden erbij. Iedereen met toegang tot de repository leest de pull request, dus de titel, de commit en de beschrijving zeggen wat de wijziging doet en niets over het record, en de code-agent wordt gevraagd het record buiten zijn samenvatting en buiten de opmerkingen die hij schrijft te houden. Een Runner van vóór deze wijziging krijgt zo'n correctie niet, en de taak mislukt met de melding de Runner bij te werken.
 
 ## Als een herstel mislukt
 

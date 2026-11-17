@@ -91,6 +91,7 @@ import { CODE_REPOSITORY_RUNNER_TOKEN_REFUSAL } from "../../Types/Runner/CodeRep
 import RunnerCodeFixCapability, {
   RunnerCodeFixCapabilityUtil,
   SERVER_OPENS_PULL_REQUEST_FIELD,
+  SUBJECT_IS_PRIVATE_FIELD,
 } from "../../Types/Runner/RunnerCodeFixCapability";
 import CodeFixPullRequestOpener, {
   FixPullRequestRequest,
@@ -98,6 +99,17 @@ import CodeFixPullRequestOpener, {
 } from "../Utils/AI/CodeFix/CodeFixPullRequestOpener";
 import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import { CODE_HOST_REPOSITORY_SELECT } from "../Utils/CodeRepository/CodeHost/CodeHostAccess";
+
+/*
+ * Why a Runner older than KeepsPrivateRecordsOutOfPullRequests is not handed
+ * a private incident's or alert's fix (#9165): the run fails with this, in
+ * its log and on the incident's or alert's AI card.
+ */
+export function getPrivateSubjectNeedsNewerRunnerMessage(
+  subjectType: "incident" | "alert",
+): string {
+  return `This ${subjectType} is private, and this Runner would write its title and the investigation's analysis into the pull request, which everyone with access to the repository can read. Update the Runner to the latest version, then ask for the fix again.`;
+}
 
 /*
  * What a GitHub repository's token handed to a Runner may do
@@ -1302,6 +1314,8 @@ export default class AIAgentDataAPI {
           let serviceName: string | null = null;
           let analysisMarkdown: string | null =
             investigationSnapshot?.investigationAnalysisMarkdown || null;
+          // Whether the subject is a private incident or alert (#9165).
+          let subjectIsPrivate: boolean = false;
 
           if (run.triggeredByIncidentId) {
             const incident: Incident | null = await IncidentService.findOneById(
@@ -1309,6 +1323,7 @@ export default class AIAgentDataAPI {
                 id: run.triggeredByIncidentId,
                 select: {
                   title: true,
+                  isPrivate: true,
                   monitors: {
                     name: true,
                   },
@@ -1330,6 +1345,7 @@ export default class AIAgentDataAPI {
             }
 
             subjectTitle = incident.title || "Untitled incident";
+            subjectIsPrivate = incident.isPrivate === true;
             serviceName = getFirstMonitorName(incident.monitors);
 
             if (taskType !== CodeFixTaskType.FixFromIncident) {
@@ -1342,6 +1358,7 @@ export default class AIAgentDataAPI {
               id: run.triggeredByAlertId!,
               select: {
                 title: true,
+                isPrivate: true,
                 monitor: {
                   name: true,
                 },
@@ -1362,6 +1379,7 @@ export default class AIAgentDataAPI {
             }
 
             subjectTitle = alert.title || "Untitled alert";
+            subjectIsPrivate = alert.isPrivate === true;
             serviceName = alert.monitor?.name || null;
 
             if (taskType !== CodeFixTaskType.FixFromIncident) {
@@ -1377,6 +1395,31 @@ export default class AIAgentDataAPI {
               res,
               new BadDataException(
                 `No posted investigation analysis found for this ${subjectType} — the task has nothing to work from (the analysis feed item may have been deleted).`,
+              ),
+            );
+          }
+
+          /*
+           * A private incident's or alert's fix is handed only to a Runner
+           * that keeps the record out of what it writes on the code host
+           * (RunnerCodeFixCapability.KeepsPrivateRecordsOutOfPullRequests,
+           * #9165): an older one writes the record's title and this analysis
+           * into the pull request, read by everyone with access to the
+           * repository. Such a Runner fails the run with this, rather than
+           * opening that pull request.
+           */
+          if (
+            subjectIsPrivate &&
+            !RunnerCodeFixCapabilityUtil.has(
+              RunnerCodeFixCapabilityUtil.readFromBody(data),
+              RunnerCodeFixCapability.KeepsPrivateRecordsOutOfPullRequests,
+            )
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                getPrivateSubjectNeedsNewerRunnerMessage(subjectType),
               ),
             );
           }
@@ -1438,6 +1481,7 @@ export default class AIAgentDataAPI {
               subjectTitle,
               analysisMarkdown,
               serviceName,
+              [SUBJECT_IS_PRIVATE_FIELD]: subjectIsPrivate,
               projectId: run.projectId.toString(),
               repositories: [],
               resolutionError:
@@ -1455,6 +1499,8 @@ export default class AIAgentDataAPI {
             subjectTitle,
             analysisMarkdown,
             serviceName,
+            // The Runner keeps a private record out of the pull request.
+            [SUBJECT_IS_PRIVATE_FIELD]: subjectIsPrivate,
             projectId: run.projectId.toString(),
             repositories: [
               {

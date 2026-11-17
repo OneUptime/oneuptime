@@ -127,6 +127,8 @@ describePostgres(
     ): CodeTaskListScopeFacts {
       return {
         projectId,
+        // OneUptime itself: every task (CodeFixRunReadPostgres holds a person's).
+        reader: { isRoot: true },
         repositoryIds: [repositoryId],
         includeWithoutRepository: false,
         isProductionReviews: false,

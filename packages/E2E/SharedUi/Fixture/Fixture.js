@@ -12,8 +12,8 @@
  * DeviceDiagnostics.
  *
  * One page, /dashboard/<project>/shared-ui, steered by the query string:
- *   - section=buttons|dialogs|sections|pills|avatars|choices|rules|charts|keyboard
- *     which part to draw (all but charts and keyboard when left out)
+ *   - section=buttons|dialogs|sections|pills|avatars|choices|rules|charts|states|keyboard
+ *     which part to draw (all but charts, states and keyboard when left out)
  *   - read=<ms>      how long the edit dialog's record read takes (600)
  *   - lang=de|ja|fa|zh-CN|ru|fr   the Dashboard's words in that language
  *   - zoomed=1       (charts) the page is zoomed, so the hints name the way back
@@ -44,6 +44,12 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import SharedPage from "Common/UI/Components/Page/Page";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import ChoiceRows from "Common/UI/Components/ChoiceRows/ChoiceRows";
 import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
@@ -1331,6 +1337,73 @@ function Keyboard() {
   );
 }
 
+/*
+ * Empty and loading states (#9135): the same card empty, loading with the
+ * shared bars, and a page's content area loading, so the suite can measure
+ * that nothing jumps when content arrives and that an empty card's message
+ * starts near its title on a phone.
+ */
+function States() {
+  const probesDescription =
+    "Probes check this monitor from different places in the world.";
+  return (
+    <div className="space-y-6" data-testid="section-states">
+      <div data-testid="state-empty-card">
+        <Card title="Probes" description={probesDescription}>
+          <EmptyState
+            id="state-empty-card-state"
+            icon={IconProp.Globe}
+            title="No probes yet"
+            description="Add a probe to check this monitor from another place."
+          />
+        </Card>
+      </div>
+      <div data-testid="state-loading-card">
+        <Card title="Probes" description={probesDescription}>
+          <ComponentLoader />
+        </Card>
+      </div>
+      <div data-testid="state-page-loader-card">
+        <Card title="Probes" description={probesDescription}>
+          <PageLoader isVisible={true} />
+        </Card>
+      </div>
+      <div data-testid="state-empty-inline">
+        <Card title="Steps" description="What the runbook does, in order.">
+          <EmptyState
+            id="state-empty-inline-state"
+            size={EmptyStateSize.Inline}
+            icon={IconProp.List}
+            title="No steps yet"
+            description="Add the first step this runbook runs."
+          />
+        </Card>
+      </div>
+      <div data-testid="state-page-loading">
+        <SharedPage
+          title="Monitor"
+          breadcrumbLinks={[
+            { title: "Project", to: new Route(PAGE) },
+            { title: "Monitors", to: new Route(PAGE) },
+          ]}
+          isLoading={true}
+        >
+          <p>Never drawn while loading.</p>
+        </SharedPage>
+      </div>
+      <div data-testid="state-empty-page">
+        <EmptyState
+          id="state-empty-page-state"
+          size={EmptyStateSize.Page}
+          icon={IconProp.Lock}
+          title="Ask to join a project"
+          description="Your administrator has turned off creating projects. Ask a project's owner to invite you."
+        />
+      </div>
+    </div>
+  );
+}
+
 const SECTIONS = {
   buttons: Buttons,
   dialogs: Dialogs,
@@ -1342,9 +1415,10 @@ const SECTIONS = {
   // Only when asked for: the gallery of every part leaves them out.
   charts: Charts,
   keyboard: Keyboard,
+  states: States,
 };
 
-const ONLY_WHEN_ASKED_FOR = ["charts", "keyboard"];
+const ONLY_WHEN_ASKED_FOR = ["charts", "states", "keyboard"];
 
 function Gallery() {
   const shown =

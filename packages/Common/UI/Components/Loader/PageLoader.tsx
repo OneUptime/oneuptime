@@ -1,5 +1,5 @@
 import Loader, { LoaderType } from "./Loader";
-import { Gray500 } from "../../../Types/BrandColors";
+import { LOADER_BOX_CLASS_NAME, LOADER_COLOR } from "./LoaderLayout";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -7,11 +7,17 @@ export interface ComponentProps {
   /*
    * Lets a full-page caller reserve height (e.g. "min-h-[60vh]") without
    * changing the footprint of the many inline, in-card call sites that rely on
-   * the default spacing.
+   * the default box.
    */
   className?: string | undefined;
 }
 
+/*
+ * The shared bar in the shared box (LoaderLayout). It used to sit 208px down
+ * wherever it was drawn (mt-52), in a card as on a page, so a card that
+ * loaded grew by that much and then shrank to its content. A page's content
+ * area draws PageSkeleton instead, in the shape of the card to come.
+ */
 const PageLoader: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -19,23 +25,9 @@ const PageLoader: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  /*
-   * The bar used to be VeryLightGray (#c2c2c2) on white — about 1.7:1, which
-   * reads as a blank page rather than a loading one. Gray500 is visible without
-   * being loud.
-   *
-   * "w-full" and "w-max" were both set here, so which one applied came down to
-   * the order Tailwind happened to emit them in. The loader is centred by the
-   * flex row inside <Loader>, so full width is the one that was wanted.
-   */
   return (
-    <div
-      className={
-        props.className ||
-        "m-auto mt-52 flex w-full items-center justify-center"
-      }
-    >
-      <Loader loaderType={LoaderType.Bar} color={Gray500} size={200} />
+    <div className={props.className || LOADER_BOX_CLASS_NAME}>
+      <Loader loaderType={LoaderType.Bar} color={LOADER_COLOR} size={200} />
     </div>
   );
 };

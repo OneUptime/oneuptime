@@ -39,7 +39,7 @@ export {
   parseColor,
 };
 
-export interface PillTone {
+export interface PillThemeColors {
   backgroundColor: string;
   textColor: string;
   ringColor: string;
@@ -47,8 +47,8 @@ export interface PillTone {
 }
 
 export interface PillColors {
-  light: PillTone;
-  dark: PillTone;
+  light: PillThemeColors;
+  dark: PillThemeColors;
 }
 
 export type PillStyle = CSSProperties & {
@@ -120,7 +120,7 @@ function toRgba(rgb: RGB, alpha: number): string {
   )})`;
 }
 
-function getTone(color: RGB, theme: ThemeSpec): PillTone {
+function getTone(color: RGB, theme: ThemeSpec): PillThemeColors {
   const dot: RGB = getReadableShade({
     color,
     background: theme.surface,
@@ -220,6 +220,22 @@ export function getPillToneStyle(
 export function getPillDotStyle(colors: PillColors): PillStyle {
   return {
     backgroundColor: colors.light.dotColor,
+    "--ou-pill-dark-dot": colors.dark.dotColor,
+  };
+}
+
+/*
+ * A hollow dot: a ring of the colour with nothing inside, a light that is
+ * off. A Paused pill (PillTone.Paused) draws it, so a state someone switched
+ * off is told apart from a grey fact. Swapped under html.dark
+ * [data-ou-pill-hollow-dot].
+ */
+export const PILL_HOLLOW_DOT_RING_WIDTH: string = "0.125em";
+
+export function getPillHollowDotStyle(colors: PillColors): PillStyle {
+  return {
+    backgroundColor: "transparent",
+    boxShadow: `inset 0 0 0 ${PILL_HOLLOW_DOT_RING_WIDTH} ${colors.light.dotColor}`,
     "--ou-pill-dark-dot": colors.dark.dotColor,
   };
 }

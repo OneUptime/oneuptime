@@ -148,13 +148,6 @@ export interface ComponentProps {
 
 type ProjectDefaults = MonitorRecommendationProjectDefaults;
 
-/*
- * An empty list's padding inside the card, as a cloud account's
- * Recommendations has it: EmptyState's own 13rem is a whole page's, and
- * under a note or the tiles it pushed its words off a laptop's screen.
- */
-export const EMPTY_LIST_PADDING_CLASS_NAME: string = "py-12";
-
 const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -920,7 +913,6 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
               { resourceName: resourceName },
             )}
             description="The note above explains why. You can still create monitors by hand."
-            paddingClassName={EMPTY_LIST_PADDING_CLASS_NAME}
           />
         );
       }
@@ -931,7 +923,6 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           icon={IconProp.Sparkles}
           title="No recommendations for this resource type yet"
           description="OneUptime does not ship a recommended monitor library for this resource type. You can still create monitors by hand."
-          paddingClassName={EMPTY_LIST_PADDING_CLASS_NAME}
         />
       );
     }
@@ -956,7 +947,6 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             counts.total,
             { resourceName: resourceName },
           )}
-          paddingClassName={EMPTY_LIST_PADDING_CLASS_NAME}
         />
       );
     }
@@ -967,7 +957,6 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
         icon={IconProp.Search}
         title="No recommendations match these filters"
         description="Try a different search term, or switch the severity and status filters back to show everything."
-        paddingClassName={EMPTY_LIST_PADDING_CLASS_NAME}
       />
     );
   };

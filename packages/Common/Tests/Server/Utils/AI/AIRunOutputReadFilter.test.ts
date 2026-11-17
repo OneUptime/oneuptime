@@ -1,12 +1,20 @@
 import AIRunOutputReadFilter, {
+  AI_RUN_ABOUT_KEYS,
+  AI_RUN_PART_KEYS,
   AI_RUN_RECORD_KEYS,
+  AI_RUN_TASK_KEY,
+  AIRunPartKey,
   AIRunRecordKey,
   PERSONAL_RUNS,
   PROJECT_WIDE_RUNS,
   RUNS_ONEUPTIME_STARTS,
 } from "../../../../Server/Utils/AI/AIRunOutputReadFilter";
 import WorkflowPrincipal from "../../../../Server/Utils/Workflow/WorkflowPrincipal";
+import PrivateRecordPermission, {
+  PrivateRecordColumn,
+} from "../../../../Server/Types/Database/Permissions/PrivateRecordPermission";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
+import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -405,5 +413,323 @@ describe.each(READERS)("$who", (reader: Reader) => {
     );
 
     expect(runAliasIn(again.sql)).not.toBe(run);
+  });
+});
+
+/*
+ * WHAT A RUN IS ABOUT, BESIDES ITS INCIDENT OR ALERT (#9165): a fix
+ * OneUptime AI proposed for one - the Code task asked for a fix's declared
+ * code names it - and, for a reply in a Code task, what its task is about.
+ */
+describe("what a run can be about", () => {
+  test("a run names a fix by a key of its own, and the fix is a part of the incident or alert it is for", () => {
+    const run: AIRun = new AIRun();
+
+    expect(
+      AI_RUN_PART_KEYS.map((key: AIRunPartKey): string => {
+        return `${key.column} -> ${new key.partModelType().tableName}`;
+      }),
+    ).toEqual([
+      "triggeredByAutoRemediationSuggestionId -> AutoRemediationSuggestion",
+    ]);
+
+    for (const key of AI_RUN_PART_KEYS) {
+      expect(run.getTableColumnMetadata(key.column)?.type).toBe(
+        TableColumnType.ObjectID,
+      );
+    }
+
+    expect(
+      PrivateRecordPermission.getPrivateRecordColumns(AutoRemediationSuggestion)
+        .map((column: PrivateRecordColumn): string => {
+          return `${column.column} -> ${column.kind.tableName}`;
+        })
+        .sort(),
+    ).toEqual(["alertId -> Alert", "incidentId -> Incident"]);
+  });
+
+  test("a turn names the task it is a reply in", () => {
+    expect(AI_RUN_TASK_KEY).toBe("codeTaskId");
+    expect(new AIRun().getTableColumnMetadata(AI_RUN_TASK_KEY)?.type).toBe(
+      TableColumnType.ObjectID,
+    );
+  });
+
+  test("every key the rule reads is one the run's own read is said to narrow by", () => {
+    expect([...AI_RUN_ABOUT_KEYS].sort()).toEqual(
+      [
+        "codeTaskId",
+        "triggeredByAlertId",
+        "triggeredByAutoRemediationSuggestionId",
+        "triggeredByIncidentId",
+      ].sort(),
+    );
+  });
+});
+
+describe.each(READERS)("$who, on a fix and a task", (reader: Reader) => {
+  const condition: Written = written(
+    AIRunOutputReadFilter.getReadableRunsRaw(reader.props),
+  );
+  const run: string = runAliasIn(condition.sql);
+
+  if (reader.seesEveryPrivateRecord) {
+    test("reads what a run about any fix did, and any turn of any task", () => {
+      expect(condition.sql).not.toContain(
+        "triggeredByAutoRemediationSuggestionId",
+      );
+      expect(condition.sql).not.toContain(AI_RUN_TASK_KEY);
+      expect(condition.sql).not.toContain(`FROM "AutoRemediationSuggestion"`);
+    });
+
+    return;
+  }
+
+  test("reads what a run about no fix did, or about one that exists and whose incident or alert they see, looked up by its key", () => {
+    const key: string = `"${run}"."triggeredByAutoRemediationSuggestionId"`;
+    const match: RegExpMatchArray | null = condition.sql.match(
+      new RegExp(
+        `AND \\(${escapeRegExp(key)} IS NULL OR EXISTS \\(SELECT 1 FROM "AutoRemediationSuggestion" "(aiRunPart\\w+)" WHERE "\\1"\\."_id" = ${escapeRegExp(key)} AND `,
+      ),
+    );
+
+    expect(match).not.toBeNull();
+
+    const fix: string = match![1]!;
+
+    // The fix's incident and its alert: none, or no private one unseen.
+    expect(condition.sql).toContain(
+      `("${fix}"."incidentId" IS NULL OR NOT EXISTS (SELECT 1 FROM "Incident" pr WHERE pr."_id" = "${fix}"."incidentId" AND pr."isPrivate" = TRUE`,
+    );
+    expect(condition.sql).toContain(
+      `("${fix}"."alertId" IS NULL OR NOT EXISTS (SELECT 1 FROM "Alert" pr WHERE pr."_id" = "${fix}"."alertId" AND pr."isPrivate" = TRUE`,
+    );
+    // Never every fix the caller may read, gathered first.
+    expect(condition.sql).not.toMatch(/IN \(SELECT "record\w+"\."_id"/);
+  });
+
+  test("reads what a turn of a task did only as the task is read: the task looked up by its key, its own keys held the same way", () => {
+    const key: string = `"${run}"."${AI_RUN_TASK_KEY}"`;
+    const match: RegExpMatchArray | null = condition.sql.match(
+      new RegExp(
+        `AND \\(${escapeRegExp(key)} IS NULL OR EXISTS \\(SELECT 1 FROM "AIRun" "(aiRunTask\\w+)" WHERE "\\1"\\."_id" = ${escapeRegExp(key)} AND `,
+      ),
+    );
+
+    expect(match).not.toBeNull();
+
+    const task: string = match![1]!;
+
+    expect(condition.sql).toContain(
+      `("${task}"."triggeredByIncidentId" IS NULL OR (EXISTS (SELECT 1 FROM "Incident"`,
+    );
+    expect(condition.sql).toContain(
+      `("${task}"."triggeredByAlertId" IS NULL OR (EXISTS (SELECT 1 FROM "Alert"`,
+    );
+    expect(condition.sql).toContain(
+      `("${task}"."triggeredByAutoRemediationSuggestionId" IS NULL OR EXISTS (SELECT 1 FROM "AutoRemediationSuggestion"`,
+    );
+    // A task is a first turn: it is not read through a task of its own.
+    expect(condition.sql).not.toContain(`"${task}"."${AI_RUN_TASK_KEY}"`);
+  });
+});
+
+/*
+ * The AI run's own row (AIRunPrivacyFilter puts this beside its own rule):
+ * a condition on each key the rule reads, beside the caller's filter.
+ */
+describe("a run's own row", () => {
+  const readersNarrowed: Array<Reader> = READERS.filter(
+    (reader: Reader): boolean => {
+      return !reader.seesEveryPrivateRecord;
+    },
+  );
+
+  test.each(readersNarrowed)(
+    "$who: each key the rule reads is held to it",
+    (reader: Reader) => {
+      const query: Record<string, unknown> =
+        AIRunOutputReadFilter.applyToRunRow(
+          { status: "Running" } as Record<string, unknown>,
+          reader.props,
+        );
+
+      expect(Object.keys(query).sort()).toEqual(
+        [...AI_RUN_ABOUT_KEYS, "status"].sort(),
+      );
+      expect(query["status"]).toBe("Running");
+
+      for (const key of AI_RUN_ABOUT_KEYS) {
+        const sql: string = written(query[key]).sql;
+
+        expect(sql.startsWith(`(COLUMN IS NULL OR `)).toBe(true);
+      }
+
+      expect(written(query["triggeredByIncidentId"]).sql).toContain(
+        `FROM "Incident"`,
+      );
+      expect(written(query["triggeredByAlertId"]).sql).toContain(
+        `FROM "Alert"`,
+      );
+      expect(
+        written(query["triggeredByAutoRemediationSuggestionId"]).sql,
+      ).toContain(`FROM "AutoRemediationSuggestion"`);
+      expect(written(query[AI_RUN_TASK_KEY]).sql).toMatch(
+        /^\(COLUMN IS NULL OR EXISTS \(SELECT 1 FROM "AIRun" "aiRunTask\w+" WHERE "aiRunTask\w+"\."_id" = COLUMN AND /,
+      );
+    },
+  );
+
+  test.each(
+    READERS.filter((reader: Reader): boolean => {
+      return reader.seesEveryPrivateRecord;
+    }),
+  )(
+    "$who: nothing, as every private record is theirs to see",
+    (reader: Reader) => {
+      expect(
+        AIRunOutputReadFilter.applyToRunRow(
+          { status: "Running" },
+          reader.props,
+        ),
+      ).toEqual({ status: "Running" });
+    },
+  );
+
+  test.each([
+    ["OneUptime itself", { isRoot: true }],
+    ["a server admin", { isMasterAdmin: true, userId: USER_ID }],
+  ])("%s: nothing", (_who: string, props: DatabaseCommonInteractionProps) => {
+    expect(AIRunOutputReadFilter.applyToRunRow({}, props)).toEqual({});
+  });
+
+  test.each([
+    [
+      "a record's id",
+      (): unknown => {
+        return ObjectID.generate();
+      },
+    ],
+    [
+      "OneUptime's operator for a key naming one",
+      (): unknown => {
+        return new NotNull();
+      },
+    ],
+    [
+      "OneUptime's operator for a key naming none",
+      (): unknown => {
+        return new IsNull();
+      },
+    ],
+  ])(
+    "keeps the caller's own filter on a key: %s",
+    (_what: string, value: () => unknown) => {
+      const member: DatabaseCommonInteractionProps = person(
+        Permission.ProjectMember,
+      );
+
+      for (const key of AI_RUN_ABOUT_KEYS) {
+        const query: Record<string, unknown> =
+          AIRunOutputReadFilter.applyToRunRow(
+            { [key]: value() } as Record<string, unknown>,
+            member,
+          );
+
+        const kept: FindOperator<unknown> = query[key] as FindOperator<unknown>;
+
+        expect(kept.type).toBe("and");
+
+        const parts: Array<FindOperator<unknown>> =
+          kept.value as unknown as Array<FindOperator<unknown>>;
+
+        expect(parts).toHaveLength(2);
+        expect(parts[1]!.type).toBe("raw");
+      }
+    },
+  );
+});
+
+/*
+ * The Code pages read runs and pull requests with SQL of their own, written
+ * with positional parameters (CodeTaskListQuery, CodeTaskStats): the rule,
+ * written for them.
+ */
+describe("the rule for a statement with positional parameters", () => {
+  const member: DatabaseCommonInteractionProps = person(
+    Permission.ProjectMember,
+  );
+
+  function placeholdersIn(sql: string): Array<number> {
+    return Array.from(sql.matchAll(/\$(\d+)/g), (match: RegExpMatchArray) => {
+      return Number(match[1]);
+    });
+  }
+
+  test("a run's: every value bound after the statement's own, and no named parameter left", () => {
+    const parameters: Array<unknown> = [PROJECT_ID.toString(), "CodeFix"];
+    const sql: string = AIRunOutputReadFilter.getRunAboutSql({
+      alias: "AIRun",
+      props: member,
+      parameters,
+    })!;
+
+    expect(sql).not.toMatch(/:(?:\.\.\.)?[A-Za-z]/);
+    expect(Math.min(...placeholdersIn(sql))).toBe(3);
+    expect(Math.max(...placeholdersIn(sql))).toBe(parameters.length);
+    // The person, bound once however often the rule reads them.
+    expect(parameters.slice(2)).toContain(USER_ID.toString());
+
+    for (const key of AI_RUN_ABOUT_KEYS) {
+      expect(sql).toContain(`"AIRun"."${key}"`);
+    }
+  });
+
+  test("a pull request's, through its run: the run's kinds bound one by one", () => {
+    const parameters: Array<unknown> = [PROJECT_ID.toString()];
+    const sql: string = AIRunOutputReadFilter.getReadableRunsSql({
+      key: `"AIAgentTaskPullRequest"."aiRunId"`,
+      props: member,
+      parameters,
+    })!;
+
+    expect(sql).not.toMatch(/:(?:\.\.\.)?[A-Za-z]/);
+    expect(sql).toMatch(
+      /^\("AIAgentTaskPullRequest"\."aiRunId" IS NULL OR EXISTS \(SELECT 1 FROM "AIRun" "aiRun\w+" WHERE "aiRun\w+"\."_id" = "AIAgentTaskPullRequest"\."aiRunId" AND /,
+    );
+    expect(Math.min(...placeholdersIn(sql))).toBe(2);
+    expect(Math.max(...placeholdersIn(sql))).toBe(parameters.length);
+    expect(parameters).toContain(AIRunType.CodeFix);
+
+    for (const kind of RUNS_ONEUPTIME_STARTS) {
+      expect(parameters).toContain(kind);
+    }
+  });
+
+  test("nothing for those who see every private record, and for OneUptime", () => {
+    for (const props of [
+      person(Permission.ProjectOwner),
+      person(Permission.ProjectAdmin),
+      { isRoot: true },
+    ]) {
+      const parameters: Array<unknown> = [];
+
+      expect(
+        AIRunOutputReadFilter.getRunAboutSql({
+          alias: "AIRun",
+          props,
+          parameters,
+        }),
+      ).toBeNull();
+      expect(parameters).toEqual([]);
+    }
+
+    expect(
+      AIRunOutputReadFilter.getReadableRunsSql({
+        key: "COLUMN",
+        props: { isRoot: true },
+        parameters: [],
+      }),
+    ).toBeNull();
   });
 });

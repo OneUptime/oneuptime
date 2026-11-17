@@ -84,7 +84,9 @@ import RunbookTriggersSummaryElement, {
   RUNBOOK_TRIGGERS_SUMMARY_SELECT,
   RunbookTriggersSummaryCopy,
 } from "../../../Components/Runbook/Triggers/RunbookTriggersSummary";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import Link from "Common/UI/Components/Link/Link";
 import EmptyValue, {
   EMPTY_VALUE_MARK,
@@ -559,7 +561,7 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title={RunbookOverviewCopy.noStepsTitle}
               description={RunbookOverviewCopy.noStepsDescription}
               icon={IconProp.List}
-              paddingClassName="py-8"
+              size={EmptyStateSize.Inline}
               footer={
                 <div>
                   <Button

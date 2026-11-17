@@ -73,6 +73,8 @@ For at følge op skriver du i feltet nederst, som bliver synligt, mens samtalen 
 
 Den, der kan læse et repositorie, læser dets opgaver. At bede AI om noget, svare og stoppe en opgave kræver tilladelse til at redigere repositoriet, og det samme gør det at se en ændrings diff: alle andre ser, hvilke filer der er ændret. Opgaverne, OneUptime selv starter (nedenfor), står også i deres repositorie, som samtaler, du kan svare i.
 
+En opgave om en privat hændelse eller advarsel, startet fra dens undersøgelse eller fra en af dens rettelser, læses sammen med sine svar og sin pull request kun af dem, der må læse posten, og, når posten er slettet, kun af Projektejere og Projektadministratorer. For alle andre udelader repositoriets lister, filtre, søgninger og optællinger den. Se [Private hændelser, advarsler og episoder](/docs/permissions/index#private-hændelser-advarsler-og-episoder).
+
 ## Sådan forløber en rettelseskørsel
 
 ```mermaid title="Fra et klik til en pull request"
@@ -325,6 +327,8 @@ Alt andet svarer til knappen:
 - Den tæller med i signalets daglige grænse for rettelsesopgaver (**Dagligt loft for AI-rettelsesopgaver for hændelser** eller **Dagligt loft for AI-rettelsesopgaver for advarsler**, under **Yderligere indstillinger** på dets AI-indstillingsside) og i repositoriets loft over åbne pull requests, når et af dem er sat. Uden at være sat begrænser ingen af dem noget.
 - Hver udløser leder først efter en rettelsesopgave, der allerede står i kø eller kører for den samme hændelse eller advarsel, så en automatisk udløser og et klik normalt bliver til én opgave, ikke to pull requests. Kontrollen er en læsning før skrivningen, ikke en lås, så to udløsere i præcis samme øjeblik stadig begge kan komme igennem.
 - Kørslen skrives af systemet, krediteres ingen, og intet merges af sig selv.
+
+På en privat hændelse eller advarsel kræver **Åbn pull request med rettelse** det samme som at godkende postens rettelser, gennem de teams, der ejer den, og den er låst for alle andre og fortæller hvorfor. Alle med adgang til repositoriet læser pull requesten, så dens titel, commit og beskrivelse siger, hvad ændringen gør, og intet om posten, og kodeagenten bliver bedt om at holde posten ude af sit resumé og af de kommentarer, den skriver. En Runner fra før denne ændring får ikke sådan en rettelse, og opgaven mislykkes med besked om at opdatere Runneren.
 
 ## Når en rettelse mislykkes
 

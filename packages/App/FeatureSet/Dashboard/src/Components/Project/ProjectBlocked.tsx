@@ -1,5 +1,7 @@
 import IconProp from "Common/Types/Icon/IconProp";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -13,6 +15,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 const ProjectBlocked: FunctionComponent = (): ReactElement => {
   return (
     <EmptyState
+      size={EmptyStateSize.Page}
       id="project-blocked"
       icon={IconProp.Lock}
       title="This project has been blocked"

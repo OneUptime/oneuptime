@@ -65,6 +65,38 @@ export function getRemediationFixActGate(
 }
 
 /*
+ * OPENING A PULL REQUEST FROM A PRIVATE INCIDENT OR ALERT (#9106, #9165).
+ *
+ * Open a pull request to the code, under a fix's step, and Open fix pull
+ * request, the fix in the code an investigation recommends, take what
+ * OneUptime AI worked out for the record into a repository whose readers
+ * are not the record's. On a private record the server holds them to what
+ * approving one of its fixes takes, through the teams that own it
+ * (RemediationApproval.assertReachesFixSubject), as Approve & Run. So on
+ * a private record's page they are locked the same way, saying why: for
+ * someone whose teams that own the record may not approve its fixes. Off
+ * one - a public record, or a reader named as its owner or a Project Owner
+ * or Admin, who has no private record scope - they are offered as before,
+ * the repository's own permissions deciding (CodeTaskAccess).
+ */
+export const REMEDIATION_FIX_PULL_REQUEST_WHO_MAY_OPEN: string = translationKey(
+  "Only someone who may approve fixes can open this pull request.",
+);
+
+export function getFixPullRequestGate(
+  privateRecordOptions: PermissionGateOptions | undefined,
+): PermissionGateResult {
+  if (!privateRecordOptions) {
+    return { isAllowed: true };
+  }
+
+  return PermissionGate.checkPermissions(RUNBOOK_RUN_PERMISSIONS, {
+    ...privateRecordOptions,
+    sentence: REMEDIATION_FIX_PULL_REQUEST_WHO_MAY_OPEN,
+  });
+}
+
+/*
  * The line in place of the fix's buttons, in the reader's language, or
  * undefined while the buttons are offered: the reader may act, or the
  * permission snapshot has not landed and the server decides.

@@ -28,6 +28,7 @@ import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
 import LlmLogService from "../Services/LlmLogService";
 import CodeTaskAccess from "../Utils/AI/CodeTask/CodeTaskAccess";
+import AIRunOutputReadFilter from "../Utils/AI/AIRunOutputReadFilter";
 
 const MAX_EVENTS: number = 500;
 
@@ -51,7 +52,8 @@ const MAX_EVENTS: number = 500;
  * then read the run and its events as root. A run that works in a repository
  * (a task in Code) is the repository's to show, as Code's own pages are: a
  * caller who may not read the repository - a team whose Read Code Repository
- * is limited by labels - gets "not found" for its runs too.
+ * is limited by labels - gets "not found" for its runs too. So does one who
+ * may not see the private incident or alert a run is about (#9165).
  */
 
 const RUN_SELECT: Select<AIRun> = {
@@ -179,17 +181,11 @@ export default class CodeFixRunAPI {
 
           /*
            * Root read, but pinned to the caller's (access-checked) project —
-           * a run id from another project resolves to "not found".
+           * a run id from another project resolves to "not found" - and to
+           * the runs about no private incident or alert the caller does not
+           * see (CodeFixRunAPI.findReadableRun).
            */
-          const run: AIRun | null = await AIRunService.findOneBy({
-            query: {
-              _id: runId.toString(),
-              projectId: props.tenantId!,
-              runType: AIRunType.CodeFix,
-            },
-            select: RUN_SELECT,
-            props: { isRoot: true },
-          });
+          const run: AIRun | null = await this.findReadableRun(props, runId);
 
           if (!run || !(await this.callerCanReadRunRepository(props, run))) {
             throw new BadDataException(
@@ -262,15 +258,7 @@ export default class CodeFixRunAPI {
 
           const runId: ObjectID = new ObjectID(runIdString);
 
-          const run: AIRun | null = await AIRunService.findOneBy({
-            query: {
-              _id: runId.toString(),
-              projectId: props.tenantId!,
-              runType: AIRunType.CodeFix,
-            },
-            select: RUN_SELECT,
-            props: { isRoot: true },
-          });
+          const run: AIRun | null = await this.findReadableRun(props, runId);
 
           if (!run || !(await this.callerCanReadRunRepository(props, run))) {
             throw new BadDataException(
@@ -346,6 +334,33 @@ export default class CodeFixRunAPI {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
     ]);
+  }
+
+  /*
+   * The code-fix run, read as root but pinned to the caller's project, when
+   * the caller may read it: a run about a private incident or alert - the
+   * fix pull request of its investigation, a Code task asked from one of
+   * its fixes, a reply in such a task - only for those who see that record,
+   * and one about a record that is gone only for Project Owners and Project
+   * Admins (AIRunOutputReadFilter, #9165). Null otherwise, answered as a run
+   * that does not exist.
+   */
+  private async findReadableRun(
+    props: DatabaseCommonInteractionProps,
+    runId: ObjectID,
+  ): Promise<AIRun | null> {
+    return await AIRunService.findOneBy({
+      query: AIRunOutputReadFilter.applyToRunRow(
+        {
+          _id: runId.toString(),
+          projectId: props.tenantId!,
+          runType: AIRunType.CodeFix,
+        },
+        props,
+      ),
+      select: RUN_SELECT,
+      props: { isRoot: true },
+    });
   }
 
   /*

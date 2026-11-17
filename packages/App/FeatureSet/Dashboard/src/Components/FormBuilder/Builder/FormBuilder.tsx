@@ -57,7 +57,9 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -613,7 +615,7 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
                   icon={IconProp.ClipboardDocumentList}
                   title={FormsCopy.emptyCanvasTitle}
                   description={FormsCopy.emptyCanvasDescription}
-                  paddingClassName="py-10"
+                  size={EmptyStateSize.Inline}
                 />
               </div>
             ) : (

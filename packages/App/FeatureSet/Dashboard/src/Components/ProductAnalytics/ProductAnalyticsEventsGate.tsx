@@ -256,7 +256,6 @@ export const ProductAnalyticsNoEventsYet: FunctionComponent<{
       id="product-analytics-no-events-yet"
       icon={IconProp.CursorArrowRays}
       title="No events yet"
-      paddingClassName="py-12"
       description={
         <span>
           {translator.translateText(

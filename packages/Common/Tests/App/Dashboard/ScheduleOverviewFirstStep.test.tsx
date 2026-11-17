@@ -292,6 +292,7 @@ describe("a schedule nobody takes turns on yet", () => {
     const state: HTMLElement = empty.querySelector("#no-layers") as HTMLElement;
 
     expect(state.className.split(" ")).toContain("py-8");
+    expect(state).toHaveAttribute("data-size", "inline");
     expect(state.className).not.toContain("pt-52");
 
     // Truly centred: the Button carries no margin of its own (#9128).

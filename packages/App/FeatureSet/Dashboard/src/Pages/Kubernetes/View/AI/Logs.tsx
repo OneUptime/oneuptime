@@ -831,7 +831,6 @@ const KubernetesClusterAILogs: FunctionComponent<
           title={AI_LOGS_EMPTY_TITLE}
           description={AI_LOGS_EMPTY_DESCRIPTION}
           showSolidBackground={true}
-          paddingClassName="py-12"
           footer={
             hint ? (
               <AgentPageLink

@@ -56508,5 +56508,9 @@
   "The public link's title, description, logos, theme and favicon.": "Titel, Beschreibung, Logos, Design und Favicon des öffentlichen Links.",
   "Your own domains for the public link.": "Ihre eigenen Domains für den öffentlichen Link.",
   "Paging & Calls": "Alarmierung und Anrufe",
+  "Everyone with access to the repository can see this pull request, with the change and its description.": "Alle mit Zugriff auf das Repository sehen diesen Pull Request, mit der Änderung und ihrer Beschreibung.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private alert out.": "Alle mit Zugriff auf das Repository sehen diesen Pull Request, mit der Änderung und ihrer Beschreibung. Diese private Warnung wird darin nicht erwähnt.",
+  "Everyone with access to the repository can see this pull request, with the change and its description. It leaves this private incident out.": "Alle mit Zugriff auf das Repository sehen diesen Pull Request, mit der Änderung und ihrer Beschreibung. Dieser private Vorfall wird darin nicht erwähnt.",
+  "Only someone who may approve fixes can open this pull request.": "Nur wer Korrekturen genehmigen darf, kann diesen Pull Request eröffnen.",
   "VPA": "VPA"
 }
