@@ -486,6 +486,27 @@ jobs:
           Tests/Server/Services/EpisodeMemberPrivateEndsPostgres.test.ts
           --forceExit
 
+      # #7449, #7450: a project's default ladder. The migration's two Project
+      # columns as the model has them, added to an existing project's row
+      # rewriting nothing; a default saved through ProjectService stored
+      # tidied as jsonb and read back the same by the verify path, the
+      # admin's apply and Readiness's phone ask; a method verified with a
+      # default getting its rules at its waits, as rows; and the default
+      # applied to members rewriting their rows - one with none of its
+      # channels skipped, every row kept. On copies of the migrated tables.
+      - name: Test a project's default ladder on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DEFAULT_PAGING_LADDER_TESTS: "true"
+          DEFAULT_PAGING_LADDER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DEFAULT_PAGING_LADDER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DEFAULT_PAGING_LADDER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/DefaultPagingLadderPostgres.test.ts
+          --forceExit
+
       # Clones the migrated on-call policy pages and their steps, runbook runs,
       # the email, SMS, call, push, WhatsApp, Telegram, webhook, Slack /
       # Microsoft Teams and AI request logs, the incidents, alerts and
