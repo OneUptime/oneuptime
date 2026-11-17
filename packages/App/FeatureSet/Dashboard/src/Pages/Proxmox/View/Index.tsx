@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
@@ -31,8 +32,7 @@ import React, {
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import OneUptimeDate from "Common/Types/Date";
@@ -1258,7 +1258,7 @@ const ProxmoxClusterOverview: FunctionComponent<
   };
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -2471,7 +2471,7 @@ const ProxmoxClusterOverview: FunctionComponent<
         description="The guests using the most CPU and memory right now, each against what it was assigned."
       >
         {isInventoryLoading ? (
-          <ComponentLoader />
+          <TableSkeleton rows={5} columns={3} hasHeader={false} />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:divide-x lg:divide-gray-100">
             <div className="p-5">

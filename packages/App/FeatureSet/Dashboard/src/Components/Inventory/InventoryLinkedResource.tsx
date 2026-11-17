@@ -1,5 +1,5 @@
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import IconProp from "Common/Types/Icon/IconProp";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -204,7 +204,7 @@ const InventoryLinkedResource: FunctionComponent<ComponentProps> = (
   }, [item]);
 
   if (isLoading || isResolving) {
-    return <ComponentLoader />;
+    return <DetailListSkeleton />;
   }
 
   if (error) {

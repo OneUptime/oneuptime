@@ -5,7 +5,7 @@ import Card from "Common/UI/Components/Card/Card";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, { FunctionComponent, ReactElement } from "react";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
@@ -48,7 +48,7 @@ const CephClusterOsdDetail: FunctionComponent<
   });
 
   if (part.isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (part.error) {
@@ -157,7 +157,7 @@ const CephClusterOsdDetail: FunctionComponent<
     {
       name: "Overview",
       children: part.isLoadingRows ? (
-        <PageLoader isVisible={true} />
+        <PageSkeleton />
       ) : part.rowError ? (
         <ResourcePartReadError
           testId="ceph-osd-read-error"

@@ -1,7 +1,7 @@
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -116,7 +116,7 @@ const OpenStackPartPage: FunctionComponent<ComponentProps> = (
     props.hero?.slug || OPENSTACK_PART_SLUGS[part.kind] || "part";
 
   if (part.isLoadingCloud) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (part.cloudError) {
@@ -128,7 +128,7 @@ const OpenStackPartPage: FunctionComponent<ComponentProps> = (
   }
 
   const overview: ReactElement = part.isLoadingRow ? (
-    <PageLoader isVisible={true} />
+    <PageSkeleton />
   ) : part.rowError ? (
     <OpenStackPartReadError
       kind={part.kind}

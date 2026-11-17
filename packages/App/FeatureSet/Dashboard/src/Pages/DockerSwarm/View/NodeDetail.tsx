@@ -2,7 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import ResourcePartReadError from "../../../Components/ResourcePart/ResourcePartReadError";
@@ -45,7 +45,7 @@ const DockerSwarmClusterNodeDetail: FunctionComponent<
   });
 
   if (part.isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (part.error) {
@@ -63,7 +63,7 @@ const DockerSwarmClusterNodeDetail: FunctionComponent<
     {
       name: "Overview",
       children: part.isLoadingRows ? (
-        <PageLoader isVisible={true} />
+        <PageSkeleton />
       ) : part.rowError ? (
         <ResourcePartReadError
           testId="docker-swarm-node-read-error"

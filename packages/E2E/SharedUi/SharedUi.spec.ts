@@ -3145,3 +3145,109 @@ test.describe("empty and loading states keep the page still", () => {
     }
   }
 });
+
+/*
+ * Content skeletons (#9220). A card that loaded drew one grey bar in a box
+ * as tall as an empty card, whatever it would show, so a card that loads
+ * into rows or a chart still grew when they arrived. Each shared skeleton
+ * now draws the shape of its content: the fixture puts each beside the
+ * content it stands in for, in the same card.
+ */
+test.describe("a card that loads draws the shape of its content", () => {
+  async function heightOf(locator: Locator): Promise<number> {
+    const box: { height: number } | null = await locator.boundingBox();
+
+    if (!box) {
+      throw new Error("Not drawn");
+    }
+
+    return box.height;
+  }
+
+  for (const theme of ["light", "dark"]) {
+    for (const width of [1280, 390]) {
+      test(`at ${width} pixels, ${theme}`, async ({ page }: { page: Page }) => {
+        await page.setViewportSize({ width: width, height: 900 });
+        await open(
+          page,
+          `section=skeletons${theme === "dark" ? "&theme=dark" : ""}`,
+        );
+
+        // Each card opens within a few pixels of the height it ends at.
+        for (const [loaded, loading, tolerance] of [
+          ["skeleton-loaded-tiles", "skeleton-loading-tiles", 8],
+          ["skeleton-loaded-details", "skeleton-loading-details", 16],
+          ["skeleton-loaded-table", "skeleton-loading-table", 16],
+          ["skeleton-loaded-cards", "skeleton-loading-cards", 16],
+        ] as Array<[string, string, number]>) {
+          const loadedHeight: number = await heightOf(page.getByTestId(loaded));
+          const loadingHeight: number = await heightOf(
+            page.getByTestId(loading),
+          );
+          expect(
+            Math.abs(loadedHeight - loadingHeight),
+            `${loading} is ${loadingHeight}px, ${loaded} ${loadedHeight}px`,
+          ).toBeLessThanOrEqual(tolerance);
+        }
+
+        // A chart's area is as tall as a chart group's plot.
+        expect(
+          await heightOf(page.getByTestId("chart-skeleton")),
+        ).toBeGreaterThanOrEqual(320);
+
+        // Every skeleton is a busy region named Loading, and no bar is drawn.
+        const statuses: Locator = page.getByRole("status", { name: "Loading" });
+        expect(await statuses.count()).toBeGreaterThanOrEqual(6);
+        for (const status of await statuses.all()) {
+          await expect(status).toHaveAttribute("aria-busy", "true");
+        }
+        await expect(
+          page.getByTestId("section-skeletons").getByTestId("bar-loader"),
+        ).toHaveCount(0);
+
+        // The bars can be seen on their card, in this theme.
+        const row: Locator = page.getByTestId("table-skeleton-row").first();
+        const barFill: Rgba = colourOf(
+          await row.evaluate((element: Element): string => {
+            const bar: Element | null = element.querySelector(
+              '[class~="bg-gray-100"]',
+            );
+            return bar
+              ? window.getComputedStyle(bar).backgroundColor
+              : "transparent";
+          }),
+        );
+        const cardFill: Rgba = await paintedBackground(row);
+        expect(contrast(barFill, cardFill)).toBeGreaterThan(1.04);
+
+        await expectNoSidewaysScroll(page);
+        await screenshot(page, `skeletons-${width}-${theme}`);
+      });
+    }
+  }
+
+  test("is still under reduced motion", async ({ page }: { page: Page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await open(page, "section=skeletons");
+
+    const pulsing: Locator = page
+      .getByTestId("section-skeletons")
+      .locator('[class~="motion-safe:animate-pulse"]');
+    const names: Array<string> = await pulsing.evaluateAll(
+      (elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return window.getComputedStyle(element).animationName;
+        });
+      },
+    );
+    expect(names.length).toBeGreaterThanOrEqual(6);
+    expect(new Set(names)).toEqual(new Set(["none"]));
+
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    expect(
+      await pulsing.first().evaluate((element: Element): string => {
+        return window.getComputedStyle(element).animationName;
+      }),
+    ).toBe("pulse");
+  });
+});

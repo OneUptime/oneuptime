@@ -22,6 +22,8 @@ import OnCallDutyPolicyExecutionLogTimelineService from "./OnCallDutyPolicyExecu
 import OnCallDutyPolicyScheduleService, {
   CurrentOnCallInSchedule,
   NextInRotationInSchedule,
+  ScheduleLayerProps,
+  ScheduleLayerReads,
 } from "./OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
@@ -1228,6 +1230,15 @@ export class OnCallTestPageService extends BaseService {
         props: { isRoot: true },
       });
 
+    /*
+     * Each schedule's layers read once for the level, as its run reads them:
+     * its on-call person and the next in its rotation from the same read.
+     */
+    const layerReads: ScheduleLayerReads = new Map<
+      string,
+      Promise<ScheduleLayerProps>
+    >();
+
     for (const scheduleRow of schedules) {
       if (!scheduleRow.onCallDutyPolicyScheduleId) {
         continue;
@@ -1240,7 +1251,7 @@ export class OnCallTestPageService extends BaseService {
         const next: NextInRotationInSchedule | null =
           await OnCallDutyPolicyScheduleService.getNextInRotationInSchedule(
             scheduleRow.onCallDutyPolicyScheduleId,
-            { onCallDutyPolicyId: data.policyId },
+            { onCallDutyPolicyId: data.policyId, layerReads },
           );
 
         if (!next || !next.nextUserId) {
@@ -1266,7 +1277,7 @@ export class OnCallTestPageService extends BaseService {
       const onCall: CurrentOnCallInSchedule | null =
         await OnCallDutyPolicyScheduleService.getCurrentOnCallInSchedule(
           scheduleRow.onCallDutyPolicyScheduleId,
-          { onCallDutyPolicyId: data.policyId },
+          { onCallDutyPolicyId: data.policyId, layerReads },
         );
 
       if (!onCall) {

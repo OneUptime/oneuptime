@@ -15,7 +15,7 @@ import React, {
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
@@ -257,7 +257,7 @@ const VMwareVCenterHostDetail: FunctionComponent<
   };
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {
@@ -338,7 +338,7 @@ const VMwareVCenterHostDetail: FunctionComponent<
     {
       name: VMWARE_HOST_TAB_OVERVIEW,
       children: isRetrying ? (
-        <PageLoader isVisible={true} />
+        <PageSkeleton />
       ) : rowError ? (
         <VMwarePartReadError
           kind={VMwareResourceKind.Host}

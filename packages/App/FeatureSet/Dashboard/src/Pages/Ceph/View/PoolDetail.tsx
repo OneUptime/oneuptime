@@ -19,7 +19,7 @@ import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import Dictionary from "Common/Types/Dictionary";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
@@ -209,7 +209,7 @@ const CephClusterPoolDetail: FunctionComponent<
   }, [clusterName]);
 
   if (part.isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (part.error) {
@@ -312,7 +312,7 @@ const CephClusterPoolDetail: FunctionComponent<
     {
       name: "Overview",
       children: part.isLoadingRows ? (
-        <PageLoader isVisible={true} />
+        <PageSkeleton />
       ) : part.rowError ? (
         <ResourcePartReadError
           testId="ceph-pool-read-error"

@@ -24,7 +24,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -65,7 +65,7 @@ const CloudAccounts: FunctionComponent<
   }
 
   if (firstRecordWatch.isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton shape="table" />;
   }
 
   const viewRoute: (item: CloudAccount) => Route = (

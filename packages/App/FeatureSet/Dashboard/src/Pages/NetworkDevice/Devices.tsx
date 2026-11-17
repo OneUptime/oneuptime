@@ -105,7 +105,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import API from "Common/UI/Utils/API/API";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AppLink from "../../Components/AppLink/AppLink";
@@ -1016,7 +1016,7 @@ const NetworkDevices: FunctionComponent<
   useRefreshProbesOnFocus(setProbes);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {

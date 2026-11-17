@@ -53,7 +53,7 @@ import Card from "Common/UI/Components/Card/Card";
 import CardGrid from "Common/UI/Components/Card/CardGrid";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -286,7 +286,7 @@ const CloudAccountOverview: FunctionComponent<
   }, [modelId.toString()]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {

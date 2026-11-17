@@ -12,6 +12,7 @@ import CarriedRecords, {
 } from "../../../../Types/AI/CarriedRecords";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../../Types/ObjectID";
+import PromptText from "../../../../Utils/AI/PromptText";
 
 /*
  * The newest messages of a chat whose citations and lists a pull request
@@ -137,7 +138,17 @@ export default class ChatCarriedRecords {
       CarriedRecords.openedByCitations(citations),
       CarriedRecords.quotedFromLists({
         widgets,
-        text: `${data.title}\n${data.description}`,
+        /*
+         * Read in the pull request's own title and description, which the
+         * model wrote and no model is given here. The description goes in
+         * through PromptText, as free text in Utils/AI does
+         * (RecordTextInPromptsGuard): an embedded file is left out, its alt
+         * text kept. It is never held to a length, as PromptText.field
+         * would hold it: a title quoted past the cut would leave its record
+         * out, and the pull request read by people who may not read that
+         * record.
+         */
+        text: `${data.title}\n${PromptText.omitEmbeddedData(data.description).text}`,
       }),
     );
   }

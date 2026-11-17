@@ -1,0 +1,10 @@
+# depcheck finds a package used by an import, a require() or a script of
+# package.json (`-r ts-node` there). The test server uses ts-node in none of
+# these since its image runs JavaScript (#9226), only where depcheck does not
+# look:
+# - the image's build stage runs Common/Server/Utils/TsNode/Precompile.js,
+#   which reads from this package's ts-node the options it compiles the test
+#   server's TypeScript with (Dockerfile.tpl);
+# - `npm run dev` runs the test server through it (nodemon.json).
+ignores:
+  - ts-node

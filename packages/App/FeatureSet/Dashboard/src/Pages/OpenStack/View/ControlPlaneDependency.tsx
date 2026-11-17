@@ -20,7 +20,7 @@ import {
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 import Link from "Common/UI/Components/Link/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -304,7 +304,7 @@ const OpenStackCloudControlPlaneDependency: FunctionComponent<
   }
 
   if (!read.data) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   const inScope: Array<OpenStackResource> = read.data.filter(
