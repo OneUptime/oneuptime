@@ -173,12 +173,11 @@ export default class CredentialsAtRest {
            * server of the release before went on logging addresses whole
            * while the upgrade rolled out, and the mask itself ran a while.
            */
-          const isDone: boolean = await new MaskWebhookAddressesInLogs().maskLogs(
-            {
+          const isDone: boolean =
+            await new MaskWebhookAddressesInLogs().maskLogs({
               since: new Date(data.startedAt.getTime() - SETTLE_PERIOD_MS),
               deadline: data.deadline,
-            },
-          );
+            });
 
           return { isDone: isDone, written: 0 };
         },
@@ -209,14 +208,12 @@ export default class CredentialsAtRest {
         let written: number = 0;
 
         for (const target of data.getTargets()) {
-          const column: EncryptColumnPass = await EncryptColumnInPlace.encrypt(
-            {
-              // Its log lines name the job, and the migration whose values these are.
-              migrationName: `${CREDENTIALS_AT_REST_JOB_NAME} (${data.migrationName})`,
-              target: target,
-              deadline: pass.deadline,
-            },
-          );
+          const column: EncryptColumnPass = await EncryptColumnInPlace.encrypt({
+            // Its log lines name the job, and the migration whose values these are.
+            migrationName: `${CREDENTIALS_AT_REST_JOB_NAME} (${data.migrationName})`,
+            target: target,
+            deadline: pass.deadline,
+          });
 
           written += column.written;
 

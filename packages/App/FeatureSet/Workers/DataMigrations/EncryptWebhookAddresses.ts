@@ -3,7 +3,10 @@ import CustomNotificationChannelService from "Common/Server/Services/CustomNotif
 import OpenStackProjectNoticeService from "Common/Server/Services/OpenStackProjectNoticeService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import UserWebhookService from "Common/Server/Services/UserWebhookService";
-import { ColumnToEncrypt, ModelRepository } from "../Utils/EncryptColumnInPlace";
+import {
+  ColumnToEncrypt,
+  ModelRepository,
+} from "../Utils/EncryptColumnInPlace";
 
 /*
  * Encrypts the webhook addresses stored before their columns were kept

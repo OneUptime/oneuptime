@@ -1,7 +1,10 @@
 import DataMigrationBase from "./DataMigrationBase";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
-import { ColumnToEncrypt, ModelRepository } from "../Utils/EncryptColumnInPlace";
+import {
+  ColumnToEncrypt,
+  ModelRepository,
+} from "../Utils/EncryptColumnInPlace";
 
 /*
  * The GlobalConfig columns this encrypts: every credential column of the

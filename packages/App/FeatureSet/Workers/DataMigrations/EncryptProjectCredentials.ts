@@ -4,7 +4,10 @@ import ProjectSmtpConfigService from "Common/Server/Services/ProjectSmtpConfigSe
 import UserWebhookService from "Common/Server/Services/UserWebhookService";
 import WorkspaceProjectAuthTokenService from "Common/Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "Common/Server/Services/WorkspaceUserAuthTokenService";
-import { ColumnToEncrypt, ModelRepository } from "../Utils/EncryptColumnInPlace";
+import {
+  ColumnToEncrypt,
+  ModelRepository,
+} from "../Utils/EncryptColumnInPlace";
 
 /*
  * Encrypts the project credentials stored before their columns were kept

@@ -2,7 +2,10 @@ import DataMigrationBase from "./DataMigrationBase";
 import DashboardDomainService from "Common/Server/Services/DashboardDomainService";
 import FormDomainService from "Common/Server/Services/FormDomainService";
 import StatusPageDomainService from "Common/Server/Services/StatusPageDomainService";
-import { ColumnToEncrypt, ModelRepository } from "../Utils/EncryptColumnInPlace";
+import {
+  ColumnToEncrypt,
+  ModelRepository,
+} from "../Utils/EncryptColumnInPlace";
 
 /*
  * The private keys of uploaded certificates stored before the column became

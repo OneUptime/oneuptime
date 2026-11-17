@@ -27,6 +27,7 @@ import logger from "Common/Server/Utils/Logger";
 import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import { SETTLE_PERIOD_MS } from "Common/Server/Utils/PresentedKey/PresentedKeysAtRest";
 import URL from "Common/Types/API/URL";
+import { isEncryptedValue } from "Common/Types/Database/EncryptedValue";
 import { JSONObject } from "Common/Types/JSON";
 import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
 import ObjectID from "Common/Types/ObjectID";
@@ -299,7 +300,8 @@ describePostgres(
         columns.map((column: string): unknown => {
           const value: unknown = row[column];
 
-          return value !== null && typeof value === "object" &&
+          return value !== null &&
+            typeof value === "object" &&
             !(value instanceof Date)
             ? JSON.stringify(value)
             : value;
@@ -352,7 +354,7 @@ describePostgres(
         column
       ];
 
-      return value instanceof URL ? value.toString() : (value ?? null);
+      return value instanceof URL ? value.toString() : value ?? null;
     }
 
     /*
@@ -516,23 +518,20 @@ describePostgres(
                 continue;
               }
 
-              expect([name, field, Encryption.looksEncrypted(value)]).toEqual([
+              expect([name, field, isEncryptedValue(value)]).toEqual([
                 name,
                 field,
                 true,
               ]);
-              expect([name, field, await Encryption.decrypt(String(value))]).toEqual([
+              expect([
                 name,
                 field,
-                asWritten[index]![field],
-              ]);
+                await Encryption.decrypt(String(value)),
+              ]).toEqual([name, field, asWritten[index]![field]]);
             }
           }
         } else {
-          expect([name, Encryption.looksEncrypted(stored)]).toEqual([
-            name,
-            true,
-          ]);
+          expect([name, isEncryptedValue(stored)]).toEqual([name, true]);
           expect([name, await Encryption.decrypt(String(stored))]).toEqual([
             name,
             credential.stored,
@@ -557,7 +556,10 @@ describePostgres(
       const moved: Array<Credential> = [];
 
       for (const credential of credentials) {
-        if (`${credential.table}.${credential.column}` !== "NetworkDevice.snmpV3Auth") {
+        if (
+          `${credential.table}.${credential.column}` !==
+          "NetworkDevice.snmpV3Auth"
+        ) {
           moved.push(credential);
           continue;
         }
@@ -698,7 +700,10 @@ describePostgres(
 
       // The device whose v3 credentials were only in its object: walked by both.
       const legacyDevice: Credential = before.find((credential: Credential) => {
-        return `${credential.table}.${credential.column}` === "NetworkDevice.snmpV3Auth";
+        return (
+          `${credential.table}.${credential.column}` ===
+          "NetworkDevice.snmpV3Auth"
+        );
       })!;
 
       expect(
@@ -722,13 +727,16 @@ describePostgres(
         masked,
       );
       expect(
-        await storedValue("UserOnCallLogTimeline", logged.lineId, "statusMessage"),
+        await storedValue(
+          "UserOnCallLogTimeline",
+          logged.lineId,
+          "statusMessage",
+        ),
       ).toBe("Sending webhook.");
 
       // A server of the release before saves credentials meanwhile, as written.
-      const savedMeanwhile: Array<Credential> = await seedCredentials(
-        "saved-meanwhile",
-      );
+      const savedMeanwhile: Array<Credential> =
+        await seedCredentials("saved-meanwhile");
       const loggedMeanwhile: {
         logId: string;
         lineId: string;
@@ -788,7 +796,9 @@ describePostgres(
       ]);
       expect(await markers()).toEqual(
         [
-          ...MIGRATIONS.map((migration: { name: string }) => migration.name),
+          ...MIGRATIONS.map((migration: { name: string }) => {
+            return migration.name;
+          }),
           "MaskWebhookAddressesInLogs",
         ]
           .map(getProtectedMarkerName)
@@ -816,16 +826,18 @@ describePostgres(
        */
       const savedLegacy: Credential = savedMeanwhile.find(
         (credential: Credential) => {
-          return `${credential.table}.${credential.column}` === "NetworkDevice.snmpV3Auth";
+          return (
+            `${credential.table}.${credential.column}` ===
+            "NetworkDevice.snmpV3Auth"
+          );
         },
       )!;
-      const device: NetworkDevice | null = await new DatabaseService<NetworkDevice>(
-        NetworkDevice,
-      ).findOneById({
-        id: new ObjectID(savedLegacy.id),
-        select: NetworkDeviceHydrationUtil.snmpConfigSelect,
-        props: { isRoot: true },
-      });
+      const device: NetworkDevice | null =
+        await new DatabaseService<NetworkDevice>(NetworkDevice).findOneById({
+          id: new ObjectID(savedLegacy.id),
+          select: NetworkDeviceHydrationUtil.snmpConfigSelect,
+          props: { isRoot: true },
+        });
 
       device!.snmpVersion = "V3";
 
@@ -890,7 +902,9 @@ describePostgres(
       await new MoveLegacySnmpV3AuthToColumns().migrate();
 
       for (const migration of [
-        ...MIGRATIONS.map((entry: { name: string }) => entry.name),
+        ...MIGRATIONS.map((entry: { name: string }) => {
+          return entry.name;
+        }),
         "MoveLegacySnmpV3AuthToColumns",
         "MaskWebhookAddressesInLogs",
       ]) {
@@ -908,9 +922,8 @@ describePostgres(
       }
 
       // What a server of the release before saved as written, during that upgrade.
-      const leftAsWritten: Array<Credential> = await seedCredentials(
-        "left-as-written",
-      );
+      const leftAsWritten: Array<Credential> =
+        await seedCredentials("left-as-written");
 
       // The server's settings are one row: written over then, they hold the later values.
       const untouched: Array<Credential> = encryptedThen.filter(

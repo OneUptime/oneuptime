@@ -143,7 +143,11 @@ describe("the English upgrade note on the credentials encrypted a day after the 
 
     for (const migration of migrations) {
       for (const phrase of NAMED_AS[migration]!) {
-        expect({ migration, phrase, named: ENGLISH_NOTE.includes(phrase) }).toEqual({
+        expect({
+          migration,
+          phrase,
+          named: ENGLISH_NOTE.includes(phrase),
+        }).toEqual({
           migration,
           phrase,
           named: true,
@@ -158,7 +162,9 @@ describe("the English upgrade note on the credentials encrypted a day after the 
       "packages/App/FeatureSet/Workers/Jobs/CredentialsAtRest/EncryptInPlace.ts",
     );
 
-    expect(workers).toContain(`import "./Jobs/CredentialsAtRest/EncryptInPlace";`);
+    expect(workers).toContain(
+      `import "./Jobs/CredentialsAtRest/EncryptInPlace";`,
+    );
     expect(job).toContain("CREDENTIALS_AT_REST_JOB_NAME");
     expect(SETTLE_PERIOD_MS).toBe(24 * 60 * 60 * 1000);
     expect(ENGLISH_NOTE).toContain(
@@ -208,7 +214,11 @@ describe("the English upgrade note on the credentials encrypted a day after the 
     expect(previous).toContain(
       "The ones you have are encrypted a day after the upgrade, as the next note says,",
     );
-    expect(flattened(sectionAtEnglishPlace("en", "Upgrading from OneUptime 14 → 15"))).toContain(
+    expect(
+      flattened(
+        sectionAtEnglishPlace("en", "Upgrading from OneUptime 14 → 15"),
+      ),
+    ).toContain(
       "The upgrade hashes the keys you have, and encrypts the credentials you have a day later, once no server of 14 can still be running,",
     );
   });

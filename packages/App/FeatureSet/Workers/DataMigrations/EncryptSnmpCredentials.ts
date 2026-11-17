@@ -3,7 +3,10 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceDiscoveryScanService from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
-import { ColumnToEncrypt, ModelRepository } from "../Utils/EncryptColumnInPlace";
+import {
+  ColumnToEncrypt,
+  ModelRepository,
+} from "../Utils/EncryptColumnInPlace";
 
 /*
  * Encrypts the SNMP credentials of network devices and discovery scans

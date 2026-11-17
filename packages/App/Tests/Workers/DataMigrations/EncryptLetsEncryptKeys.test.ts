@@ -313,7 +313,9 @@ describe("EncryptLetsEncryptKeys", () => {
     });
 
     // Not done: the job's next run goes on.
-    await expect(encryptInPlaceADayLater(MIGRATION_NAME)).resolves.toMatchObject({
+    await expect(
+      encryptInPlaceADayLater(MIGRATION_NAME),
+    ).resolves.toMatchObject({
       isDone: false,
     });
 
@@ -341,7 +343,9 @@ describe("EncryptLetsEncryptKeys", () => {
     const calls: Array<QueryCall> = stubTable({ rows: [], failRead: true });
 
     // Not done: the job's next run goes on.
-    await expect(encryptInPlaceADayLater(MIGRATION_NAME)).resolves.toMatchObject({
+    await expect(
+      encryptInPlaceADayLater(MIGRATION_NAME),
+    ).resolves.toMatchObject({
       isDone: false,
     });
 

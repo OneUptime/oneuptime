@@ -1,6 +1,9 @@
 import DataMigrationBase from "./DataMigrationBase";
 import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSConfigService";
-import { ColumnToEncrypt, ModelRepository } from "../Utils/EncryptColumnInPlace";
+import {
+  ColumnToEncrypt,
+  ModelRepository,
+} from "../Utils/EncryptColumnInPlace";
 
 /*
  * The Twilio auth tokens that were stored before the column became a

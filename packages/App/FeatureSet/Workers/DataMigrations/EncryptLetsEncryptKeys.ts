@@ -1,6 +1,9 @@
 import DataMigrationBase from "./DataMigrationBase";
 import AcmeCertificateService from "Common/Server/Services/AcmeCertificateService";
-import { ColumnToEncrypt, ModelRepository } from "../Utils/EncryptColumnInPlace";
+import {
+  ColumnToEncrypt,
+  ModelRepository,
+} from "../Utils/EncryptColumnInPlace";
 
 /*
  * The private keys of the free certificates OneUptime orders from Let's

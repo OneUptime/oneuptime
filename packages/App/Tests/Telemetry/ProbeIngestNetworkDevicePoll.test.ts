@@ -596,9 +596,7 @@ describe("POST /probe/network-device/list", () => {
      */
     test("a v3 device whose credentials are only in its legacy snmpV3Auth object is walked with them, not pinged", async () => {
       const legacy: ObjectID = ObjectID.generate();
-      deviceService.claimDevicesForPolling.mockResolvedValue([
-        legacy,
-      ] as never);
+      deviceService.claimDevicesForPolling.mockResolvedValue([legacy] as never);
       deviceService.findBy.mockResolvedValue([
         makeDevice({
           id: legacy,

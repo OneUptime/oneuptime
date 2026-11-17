@@ -117,83 +117,87 @@ function stubTable(rows: Array<Row>): Table {
     failRead: false,
   };
 
-  const query: (sql: string, params?: Array<unknown>) => Promise<unknown> =
-    async (sql: string, params: Array<unknown> = []): Promise<unknown> => {
-      table.statements.push({ sql: sql, params: [...params] });
+  const query: (
+    sql: string,
+    params?: Array<unknown>,
+  ) => Promise<unknown> = async (
+    sql: string,
+    params: Array<unknown> = [],
+  ): Promise<unknown> => {
+    table.statements.push({ sql: sql, params: [...params] });
 
-      const page: RegExpMatchArray | null = sql.match(SELECT_PAGE);
+    const page: RegExpMatchArray | null = sql.match(SELECT_PAGE);
 
-      if (page) {
-        if (table.failRead) {
-          throw new Error("read failed");
-        }
-
-        const afterId: string | null = page[1] ? String(params[0]) : null;
-
-        return table.rows
-          .filter((row: Row): boolean => {
-            return (
-              row["snmpV3Auth"] !== null &&
-              row["snmpV3Auth"] !== undefined &&
-              (afterId === null || String(row["_id"]) > afterId)
-            );
-          })
-          .sort((left: Row, right: Row): number => {
-            return String(left["_id"]) < String(right["_id"]) ? -1 : 1;
-          })
-          .slice(0, Number(page[2]))
-          .map((row: Row): Row => {
-            return {
-              _id: row["_id"],
-              snmpV3Auth: JSON.parse(JSON.stringify(row["snmpV3Auth"])),
-              snmpV3Username:
-                row["snmpV3Username"] === undefined
-                  ? null
-                  : row["snmpV3Username"],
-            };
-          });
+    if (page) {
+      if (table.failRead) {
+        throw new Error("read failed");
       }
 
-      const update: RegExpMatchArray | null = sql.match(UPDATE_ROW);
+      const afterId: string | null = page[1] ? String(params[0]) : null;
 
-      if (update) {
-        const id: string = String(params[Number(update[2]) - 1]);
-        const objectRead: unknown = JSON.parse(
-          String(params[Number(update[3]) - 1]),
-        );
-        const usernameRead: unknown = params[Number(update[4]) - 1];
+      return table.rows
+        .filter((row: Row): boolean => {
+          return (
+            row["snmpV3Auth"] !== null &&
+            row["snmpV3Auth"] !== undefined &&
+            (afterId === null || String(row["_id"]) > afterId)
+          );
+        })
+        .sort((left: Row, right: Row): number => {
+          return String(left["_id"]) < String(right["_id"]) ? -1 : 1;
+        })
+        .slice(0, Number(page[2]))
+        .map((row: Row): Row => {
+          return {
+            _id: row["_id"],
+            snmpV3Auth: JSON.parse(JSON.stringify(row["snmpV3Auth"])),
+            snmpV3Username:
+              row["snmpV3Username"] === undefined
+                ? null
+                : row["snmpV3Username"],
+          };
+        });
+    }
 
-        if (table.beforeUpdate) {
-          table.beforeUpdate(id);
-        }
+    const update: RegExpMatchArray | null = sql.match(UPDATE_ROW);
 
-        for (const row of table.rows) {
-          const username: unknown =
-            row["snmpV3Username"] === undefined ? null : row["snmpV3Username"];
+    if (update) {
+      const id: string = String(params[Number(update[2]) - 1]);
+      const objectRead: unknown = JSON.parse(
+        String(params[Number(update[3]) - 1]),
+      );
+      const usernameRead: unknown = params[Number(update[4]) - 1];
 
-          if (
-            row["_id"] === id &&
-            sameJson(row["snmpV3Auth"], objectRead) &&
-            username === usernameRead
-          ) {
-            for (const assignment of update[1]!.split(", ")) {
-              const match: RegExpMatchArray | null =
-                assignment.match(ASSIGNMENT);
+      if (table.beforeUpdate) {
+        table.beforeUpdate(id);
+      }
 
-              if (!match) {
-                throw new Error(`an unexpected assignment: ${assignment}`);
-              }
+      for (const row of table.rows) {
+        const username: unknown =
+          row["snmpV3Username"] === undefined ? null : row["snmpV3Username"];
 
-              row[match[1]!] = params[Number(match[2]) - 1];
+        if (
+          row["_id"] === id &&
+          sameJson(row["snmpV3Auth"], objectRead) &&
+          username === usernameRead
+        ) {
+          for (const assignment of update[1]!.split(", ")) {
+            const match: RegExpMatchArray | null = assignment.match(ASSIGNMENT);
+
+            if (!match) {
+              throw new Error(`an unexpected assignment: ${assignment}`);
             }
+
+            row[match[1]!] = params[Number(match[2]) - 1];
           }
         }
-
-        return [[], 1];
       }
 
-      throw new Error(`an unexpected statement: ${sql}`);
-    };
+      return [[], 1];
+    }
+
+    throw new Error(`an unexpected statement: ${sql}`);
+  };
 
   jest.spyOn(NetworkDeviceService, "getRepository").mockReturnValue({
     metadata: { tableName: "NetworkDevice" },
@@ -204,11 +208,9 @@ function stubTable(rows: Array<Row>): Table {
 }
 
 function updates(table: Table): Array<{ sql: string; params: Array<unknown> }> {
-  return table.statements.filter(
-    (statement: { sql: string }): boolean => {
-      return statement.sql.startsWith("UPDATE");
-    },
-  );
+  return table.statements.filter((statement: { sql: string }): boolean => {
+    return statement.sql.startsWith("UPDATE");
+  });
 }
 
 function rowOf(table: Table, id: string): Row {
@@ -351,7 +353,9 @@ describe("MoveLegacySnmpV3AuthToColumns", () => {
     expect(rowOf(table, idOf(1))["snmpV3AuthKey"]).toBe(authKey);
     expect(rowOf(table, idOf(1))["snmpV3PrivKey"]).toBe(privKey);
     expect(
-      await Encryption.decrypt(rowOf(table, idOf(1))["snmpV3AuthKey"] as string),
+      await Encryption.decrypt(
+        rowOf(table, idOf(1))["snmpV3AuthKey"] as string,
+      ),
     ).toBe(LEGACY_AUTH_KEY);
   });
 
@@ -412,7 +416,9 @@ describe("MoveLegacySnmpV3AuthToColumns", () => {
     expect(rowOf(table, idOf(3))["snmpV3Auth"]).toBeNull();
 
     for (const update of updates(table).slice(0, 2)) {
-      expect(update.sql).toMatch(/^UPDATE "NetworkDevice" SET "snmpV3Auth" = \$1 WHERE/);
+      expect(update.sql).toMatch(
+        /^UPDATE "NetworkDevice" SET "snmpV3Auth" = \$1 WHERE/,
+      );
     }
   });
 
@@ -483,9 +489,7 @@ describe("MoveLegacySnmpV3AuthToColumns", () => {
     expect(updates(table)).toHaveLength(count);
 
     for (let index: number = 1; index <= count; index++) {
-      expect(rowOf(table, idOf(index))["snmpV3Username"]).toBe(
-        `user-${index}`,
-      );
+      expect(rowOf(table, idOf(index))["snmpV3Username"]).toBe(`user-${index}`);
     }
   });
 

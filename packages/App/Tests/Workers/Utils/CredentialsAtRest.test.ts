@@ -71,7 +71,6 @@ const SELECT_START: RegExp = /^\s*SELECT/i;
 const UPDATE_START: RegExp = /^\s*UPDATE/i;
 const LIMIT_CLAUSE: RegExp = /LIMIT (\d+)/;
 
-
 // The DataMigrations table: the rows it holds, by name.
 let recorded: Map<string, Date>;
 
@@ -116,58 +115,63 @@ function makeTable(rows: Array<Row>): Table {
     repository: undefined as unknown as ModelRepository,
   };
 
-  const query: (sql: string, params?: Array<unknown>) => Promise<unknown> =
-    async (sql: string, params: Array<unknown> = []): Promise<unknown> => {
-      table.statements.push({ sql: sql, params: [...params] });
+  const query: (
+    sql: string,
+    params?: Array<unknown>,
+  ) => Promise<unknown> = async (
+    sql: string,
+    params: Array<unknown> = [],
+  ): Promise<unknown> => {
+    table.statements.push({ sql: sql, params: [...params] });
 
-      if (SELECT_START.test(sql)) {
-        const prefix: string = String(params[0]).replace(/%$/, "");
-        const afterId: string | undefined =
-          params.length > 1 ? String(params[1]) : undefined;
-        const limit: number = Number(LIMIT_CLAUSE.exec(sql)?.[1] || "0");
+    if (SELECT_START.test(sql)) {
+      const prefix: string = String(params[0]).replace(/%$/, "");
+      const afterId: string | undefined =
+        params.length > 1 ? String(params[1]) : undefined;
+      const limit: number = Number(LIMIT_CLAUSE.exec(sql)?.[1] || "0");
 
-        const page: Array<Record<string, unknown>> = table.rows
-          .filter((row: Row): boolean => {
-            return (
-              row.secret !== null &&
-              row.secret !== "" &&
-              !row.secret.startsWith(prefix) &&
-              (afterId === undefined || row._id > afterId)
-            );
-          })
-          .sort((left: Row, right: Row): number => {
-            return left._id < right._id ? -1 : 1;
-          })
-          .slice(0, limit)
-          .map((row: Row): Record<string, unknown> => {
-            return { _id: row._id, [COLUMN]: row.secret };
-          });
+      const page: Array<Record<string, unknown>> = table.rows
+        .filter((row: Row): boolean => {
+          return (
+            row.secret !== null &&
+            row.secret !== "" &&
+            !row.secret.startsWith(prefix) &&
+            (afterId === undefined || row._id > afterId)
+          );
+        })
+        .sort((left: Row, right: Row): number => {
+          return left._id < right._id ? -1 : 1;
+        })
+        .slice(0, limit)
+        .map((row: Row): Record<string, unknown> => {
+          return { _id: row._id, [COLUMN]: row.secret };
+        });
 
-        if (table.afterRead) {
-          table.afterRead();
-        }
-
-        return page;
+      if (table.afterRead) {
+        table.afterRead();
       }
 
-      if (UPDATE_START.test(sql)) {
-        const [encrypted, id, previous] = params as [string, string, string];
+      return page;
+    }
 
-        if (table.failWriteFor.has(id)) {
-          throw new Error(`could not write ${previous}`);
-        }
+    if (UPDATE_START.test(sql)) {
+      const [encrypted, id, previous] = params as [string, string, string];
 
-        for (const row of table.rows) {
-          if (row._id === id && row.secret === previous) {
-            row.secret = encrypted;
-          }
-        }
-
-        return [];
+      if (table.failWriteFor.has(id)) {
+        throw new Error(`could not write ${previous}`);
       }
 
-      throw new Error(`an unexpected statement: ${sql}`);
-    };
+      for (const row of table.rows) {
+        if (row._id === id && row.secret === previous) {
+          row.secret = encrypted;
+        }
+      }
+
+      return [];
+    }
+
+    throw new Error(`an unexpected statement: ${sql}`);
+  };
 
   table.repository = {
     metadata: { tableName: TABLE },
@@ -245,9 +249,9 @@ describe("a run, for one data migration's credentials", () => {
     recorded.set(MIGRATION, UPGRADED_AT);
     const table: Table = makeTable([{ _id: idOf(1), secret: secretOf(1) }]);
 
-    expect(
-      await runAt(table, new Date(A_DAY_LATER.getTime() - 1)),
-    ).toBe(CredentialsAtRestOutcome.Waiting);
+    expect(await runAt(table, new Date(A_DAY_LATER.getTime() - 1))).toBe(
+      CredentialsAtRestOutcome.Waiting,
+    );
     expect(table.statements).toHaveLength(0);
     expect(table.rows[0]!.secret).toBe(secretOf(1));
     expect(create).not.toHaveBeenCalled();
@@ -306,7 +310,10 @@ describe("a run, for one data migration's credentials", () => {
 
   test("on an install that ran the migration when it still encrypted at once, encrypts only what is left: never a ciphertext twice", async () => {
     // Ran in place long ago (15.0.0, a build of main): no wait is left.
-    recorded.set(MIGRATION, new Date(UPGRADED_AT.getTime() - 7 * SETTLE_PERIOD_MS));
+    recorded.set(
+      MIGRATION,
+      new Date(UPGRADED_AT.getTime() - 7 * SETTLE_PERIOD_MS),
+    );
     const ciphertext: string = await Encryption.encrypt(secretOf(1));
     const table: Table = makeTable([
       { _id: idOf(1), secret: ciphertext },
@@ -400,10 +407,7 @@ describe("a run, for one data migration's credentials", () => {
       { _id: idOf(2), secret: secretOf(2) },
     ]);
 
-    await Promise.all([
-      runAt(table, A_DAY_LATER),
-      runAt(table, A_DAY_LATER),
-    ]);
+    await Promise.all([runAt(table, A_DAY_LATER), runAt(table, A_DAY_LATER)]);
 
     for (const [index, row] of table.rows.entries()) {
       // Decrypted once, each is the value: not a ciphertext of a ciphertext.
@@ -435,7 +439,10 @@ describe("a run, for one data migration's credentials", () => {
     });
 
     expect(runs).toEqual([
-      { migrationName: MIGRATION, outcome: CredentialsAtRestOutcome.NotDoneYet },
+      {
+        migrationName: MIGRATION,
+        outcome: CredentialsAtRestOutcome.NotDoneYet,
+      },
       {
         migrationName: "EncryptOtherCredentials",
         outcome: CredentialsAtRestOutcome.NotDoneYet,
@@ -515,12 +522,16 @@ describe("the groups", () => {
       },
     );
 
-    expect(positions.every((position: number): boolean => {
-      return position > -1;
-    })).toBe(true);
-    expect([...positions].sort((a: number, b: number) => a - b)).toEqual(
-      positions,
-    );
+    expect(
+      positions.every((position: number): boolean => {
+        return position > -1;
+      }),
+    ).toBe(true);
+    expect(
+      [...positions].sort((a: number, b: number) => {
+        return a - b;
+      }),
+    ).toEqual(positions);
   });
 
   test("each records a marker of its own, which no data migration is named", () => {
@@ -549,7 +560,11 @@ describe("the groups", () => {
       .mockImplementation(function (this: DatabaseService<DatabaseBaseModel>) {
         return {
           metadata: { tableName: this.getModel().tableName },
-          manager: { query: async (): Promise<unknown> => [] },
+          manager: {
+            query: async (): Promise<unknown> => {
+              return [];
+            },
+          },
         } as never;
       });
 
@@ -662,7 +677,9 @@ describe("the job", () => {
       "utf8",
     );
 
-    expect(index).toContain(`import "./Jobs/CredentialsAtRest/EncryptInPlace";`);
+    expect(index).toContain(
+      `import "./Jobs/CredentialsAtRest/EncryptInPlace";`,
+    );
   });
 
   test("waits the day the keys presented to OneUptime wait", () => {
