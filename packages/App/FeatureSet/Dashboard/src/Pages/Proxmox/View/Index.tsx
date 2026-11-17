@@ -10,7 +10,6 @@ import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import Link from "Common/UI/Components/Link/Link";
-import AppLink from "../../../Components/AppLink/AppLink";
 import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -2212,12 +2211,12 @@ const ProxmoxClusterOverview: FunctionComponent<
                     </td>
                     <td className="px-4 py-2.5 text-sm">
                       {guest ? (
-                        <AppLink
+                        <Link
                           className="rounded font-medium text-gray-900 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                           to={getGuestRoute(guest.externalId)}
                         >
                           {guest.name}
-                        </AppLink>
+                        </Link>
                       ) : (
                         <span className="text-gray-500">
                           {job.guestVmid || <TableEmptyValue />}
@@ -2325,10 +2324,12 @@ const ProxmoxClusterOverview: FunctionComponent<
         title="Ceph Storage"
         description="This Proxmox cluster is linked to a Ceph cluster monitored by OneUptime. Ceph health does not affect the Proxmox health badge — it alerts separately."
       >
-        <AppLink
-          to={cephRoute}
-          className="group flex cursor-pointer flex-col gap-4 rounded-xl border border-gray-200 p-4 transition-all duration-200 hover:border-indigo-300 hover:shadow-md sm:flex-row sm:items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-        >
+        {/*
+         * The card is not one link: its capacity's (i) is a control of its
+         * own, and a control inside a link is two at once. The cluster's
+         * name is the link (#9222).
+         */}
+        <div className="flex flex-col gap-4 rounded-xl border border-gray-200 p-4 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3 min-w-0 sm:w-1/3">
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100">
               <Icon
@@ -2336,7 +2337,11 @@ const ProxmoxClusterOverview: FunctionComponent<
                 className="h-5 w-5 text-slate-600"
               />
             </div>
-            <div className="min-w-0">
+            <Link
+              to={cephRoute}
+              dataTestId="proxmox-ceph-cluster-link"
+              className="group block min-w-0 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
               <div className="truncate text-sm font-medium text-gray-900 group-hover:text-indigo-700">
                 {/*
                  * A cluster with no name is named by what it is, as a
@@ -2353,7 +2358,7 @@ const ProxmoxClusterOverview: FunctionComponent<
               <div className="text-xs text-gray-500">
                 {translator.translateText("View Ceph cluster overview →")}
               </div>
-            </div>
+            </Link>
           </div>
           <div className="flex items-center gap-2 sm:w-1/6">
             <span
@@ -2387,7 +2392,7 @@ const ProxmoxClusterOverview: FunctionComponent<
               />
             </div>
           </div>
-        </AppLink>
+        </div>
       </Card>
     );
   };
@@ -2415,7 +2420,7 @@ const ProxmoxClusterOverview: FunctionComponent<
         {params.rows.map((row: TopGuestRow, index: number) => {
           const pct: number = Math.min(params.percentOf(row), 100);
           return (
-            <AppLink
+            <Link
               key={row.externalId}
               to={getGuestRoute(row.externalId)}
               className="group cursor-pointer rounded-lg p-3 hover:bg-gray-50 transition-colors block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
@@ -2452,7 +2457,7 @@ const ProxmoxClusterOverview: FunctionComponent<
                   />
                 </div>
               </div>
-            </AppLink>
+            </Link>
           );
         })}
       </div>

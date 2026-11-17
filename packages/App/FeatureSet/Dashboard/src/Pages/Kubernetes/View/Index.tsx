@@ -177,7 +177,7 @@ import {
   BytesReading,
   getBytesReading,
 } from "../../../Components/TelemetryResource/telemetryFormat";
-import AppLink from "../../../Components/AppLink/AppLink";
+import Link from "Common/UI/Components/Link/Link";
 
 interface ResourceLink {
   title: string;
@@ -1989,7 +1989,7 @@ const KubernetesClusterOverview: FunctionComponent<
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {links.map((link: ResourceLink) => {
           return (
-            <AppLink
+            <Link
               key={link.title}
               to={RouteUtil.populateRouteParams(
                 RouteMap[link.pageMap] as Route,
@@ -2020,7 +2020,7 @@ const KubernetesClusterOverview: FunctionComponent<
                   {link.description}
                 </div>
               </div>
-            </AppLink>
+            </Link>
           );
         })}
       </div>
@@ -2736,7 +2736,7 @@ const KubernetesClusterOverview: FunctionComponent<
                   {topCpuPods.map((pod: KubernetesResource, index: number) => {
                     const pct: number = Math.min(pod.cpuUtilization ?? 0, 100);
                     return (
-                      <AppLink
+                      <Link
                         key={index}
                         to={RouteUtil.populateRouteParams(
                           RouteMap[
@@ -2785,7 +2785,7 @@ const KubernetesClusterOverview: FunctionComponent<
                             />
                           </div>
                         </div>
-                      </AppLink>
+                      </Link>
                     );
                   })}
                 </div>
@@ -2837,7 +2837,7 @@ const KubernetesClusterOverview: FunctionComponent<
                             ? ((pod.memoryUsageBytes ?? 0) / maxMemory) * 100
                             : 0;
                       return (
-                        <AppLink
+                        <Link
                           key={index}
                           to={RouteUtil.populateRouteParams(
                             RouteMap[
@@ -2914,7 +2914,7 @@ const KubernetesClusterOverview: FunctionComponent<
                               />
                             </div>
                           </div>
-                        </AppLink>
+                        </Link>
                       );
                     },
                   )}

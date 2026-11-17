@@ -70,7 +70,7 @@ import {
   METRIC_STALE_MS,
 } from "../Utils/IoTDeviceUtils";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import AppLink from "../../../Components/AppLink/AppLink";
+import Link from "Common/UI/Components/Link/Link";
 import {
   TemplateValues,
   translationKey,
@@ -158,13 +158,13 @@ const AtRiskDeviceLine: FunctionComponent<{
   }
 
   return (
-    <AppLink
+    <Link
       to={props.to}
       dataTestId="iot-at-risk-device-link"
       className={`${AT_RISK_DEVICE_LINE_CLASS_NAME} hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500`}
     >
       {props.children}
-    </AppLink>
+    </Link>
   );
 };
 
