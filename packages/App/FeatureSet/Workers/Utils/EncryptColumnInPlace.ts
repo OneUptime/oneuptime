@@ -275,7 +275,8 @@ export default class EncryptColumnInPlace {
   /*
    * The values of `fields`, in a JSON value's object or in each object of
    * its list, that are set and not our ciphertext: what is still to be
-   * encrypted.
+   * encrypted. Text where an object belongs is encrypted whole, as
+   * EncryptedColumnValue stores it, so it is one of them too.
    */
   public static getPlaintextFields(
     value: unknown,
@@ -285,6 +286,14 @@ export default class EncryptColumnInPlace {
     const plaintexts: Array<string> = [];
 
     for (const entry of entries) {
+      if (typeof entry === "string") {
+        if (entry && !Encryption.looksEncrypted(entry)) {
+          plaintexts.push(entry);
+        }
+
+        continue;
+      }
+
       if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
         continue;
       }

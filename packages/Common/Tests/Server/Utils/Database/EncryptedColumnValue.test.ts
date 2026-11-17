@@ -250,15 +250,29 @@ describe("a JSON list with encrypted fields (a scan's SNMP credential sets)", ()
     ).toEqual(CONFIGS);
   });
 
-  test("an entry that is not an object, and a value that is not a list, are left as they are", async () => {
+  test("text where an object belongs is encrypted whole, and any other shape is left as it is", async () => {
     const odd: Array<unknown> = ["text", 7, null, [1, 2], { snmpPort: 161 }];
 
+    const stored: Array<unknown> = (await EncryptedColumnValue.encrypt(
+      SNMP_CONFIGS_COLUMN,
+      odd,
+    )) as Array<unknown>;
+
+    expect(isEncryptedValue(stored[0])).toBe(true);
+    expect(stored.slice(1)).toEqual(odd.slice(1));
     expect(
-      await EncryptedColumnValue.encrypt(SNMP_CONFIGS_COLUMN, odd),
+      await EncryptedColumnValue.decrypt(SNMP_CONFIGS_COLUMN, stored),
     ).toEqual(odd);
-    expect(
-      await EncryptedColumnValue.encrypt(SNMP_CONFIGS_COLUMN, "a string"),
-    ).toBe("a string");
+
+    const text: unknown = await EncryptedColumnValue.encrypt(
+      SNMP_CONFIGS_COLUMN,
+      "a string",
+    );
+
+    expect(isEncryptedValue(text)).toBe(true);
+    expect(await EncryptedColumnValue.decrypt(SNMP_CONFIGS_COLUMN, text)).toBe(
+      "a string",
+    );
   });
 });
 

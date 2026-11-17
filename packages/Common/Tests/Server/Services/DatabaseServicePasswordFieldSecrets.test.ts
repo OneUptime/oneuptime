@@ -5,6 +5,7 @@ import UserWebhookService from "../../../Server/Services/UserWebhookService";
 import AuditLogService from "../../../Server/Services/AuditLogService";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import Encryption from "../../../Server/Utils/Encryption";
+import EncryptedColumnValue from "../../../Server/Utils/Database/EncryptedColumnValue";
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSource from "../../../Models/DatabaseModels/DataSource";
@@ -592,9 +593,21 @@ describe("the write path unwraps HashedString for every column that is not a has
           props: { isRoot: true },
         });
 
+        /*
+         * A URL column stores the text its transformer writes for the
+         * value, encrypted (#9013): what a URL column is handed is read
+         * as a URL first, as it is when the column is not encrypted.
+         */
+        const written: string = `secret_for_${column}`;
+        const urlTransformer: ReturnType<
+          typeof EncryptedColumnValue.getPropertyTransformer
+        > = EncryptedColumnValue.getPropertyTransformer(
+          model.getTableColumnMetadata(column),
+        );
+
         await expectCipherTextOf(
           storedSetValue(repository, column),
-          `secret_for_${column}`,
+          urlTransformer ? (urlTransformer.to(written) as string) : written,
         );
 
         encryptedColumnsChecked.push(`${modelType.name}.${column}`);

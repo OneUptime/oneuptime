@@ -32,7 +32,8 @@ import { ValueTransformer } from "typeorm/decorator/options/ValueTransformer";
  *     instead would turn the list into one string: a server still running
  *     the release before, during an upgrade, would read a list that is not
  *     one and sweep with no credentials at all, where it reads a list here
- *     whose secrets it cannot use.
+ *     whose secrets it cannot use. Text where an object belongs is
+ *     encrypted whole, so no text in such a column is stored as written.
  *   - Other JSON: each top-level value of its object, or of its list.
  *
  * A stored value that is not our ciphertext reads as it is
@@ -264,8 +265,10 @@ export default class EncryptedColumnValue {
 
   /*
    * `fields` of an object, or of each object of a list, through `map`, into
-   * a new object or list. Anything else - a value of another shape, an entry
-   * that is not an object - is handed back as it is.
+   * a new object or list. Text where an object belongs - the value, or an
+   * entry of its list - goes through `map` whole: whatever its shape, no
+   * text in such a column is stored as written. Anything else - a number,
+   * null, a list inside the list - is handed back as it is.
    */
   private static async mapFieldsOf(
     value: unknown,
@@ -290,6 +293,10 @@ export default class EncryptedColumnValue {
     fields: ReadonlyArray<string>,
     map: (field: unknown) => Promise<unknown>,
   ): Promise<unknown> {
+    if (typeof entry === Typeof.String) {
+      return await map(entry);
+    }
+
     if (!entry || typeof entry !== Typeof.Object || Array.isArray(entry)) {
       return entry;
     }
