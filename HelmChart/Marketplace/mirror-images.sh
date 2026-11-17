@@ -18,9 +18,13 @@
 #   google-cloud  linux/amd64 (GKE apps run on x86 nodes), into Artifact
 #                 Registry, each image annotated with the listing's Service
 #                 Control service and tagged with its track (major.minor) too.
+#                 An image the plan gives a build context (PostgreSQL: see
+#                 build.py's GOOGLE_CLOUD_BUILT_IMAGES) is built FROM its
+#                 source with Docker Buildx, from <out>/<context>/Dockerfile,
+#                 instead of copied.
 #
-# Needs crane (github.com/google/go-containerregistry), logged in to the
-# target registry first:
+# Needs crane (github.com/google/go-containerregistry), and for an image it
+# builds Docker Buildx, logged in to the target registry first:
 #   aws    aws ecr get-login-password --region us-east-1 | crane auth login 709825985650.dkr.ecr.us-east-1.amazonaws.com -u AWS --password-stdin
 #   azure  az acr login --name <registry> --expose-token ... | crane auth login <registry>.azurecr.io -u 00000000-0000-0000-0000-000000000000 --password-stdin
 #   google gcloud auth print-access-token | crane auth login us-docker.pkg.dev -u oauth2accesstoken --password-stdin
@@ -59,8 +63,11 @@ if [ "$DRY_RUN" != "true" ] && ! command -v crane >/dev/null 2>&1; then
 fi
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OUT="$(cd "$(dirname "$PLAN")" && pwd)"
 
-# One line per image: marketplace<TAB>source<TAB>target<TAB>extra tags (comma-separated).
+# One line per image: marketplace, source, target, extra tags (comma-separated, maybe none)
+# and build context ("-" for an image copied), split by a unit separator: not whitespace, so
+# read keeps an empty field.
 python3 - "$PLAN" <<'PYTHON' >"${TMPDIR:-/tmp}/oneuptime-marketplace-mirror.$$"
 import json
 import sys
@@ -68,17 +75,18 @@ import sys
 plan = json.load(open(sys.argv[1]))
 
 for image in plan["images"]:
-    print("\t".join([
+    print("\x1f".join([
         plan["marketplace"],
         image["source"],
         image["target"],
         ",".join(image.get("extraTags", [])),
+        image.get("build") or "-",
     ]))
 PYTHON
 
 SERVICE_NAME="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["google-cloud"]["serviceName"])' "$HERE/editions.json")"
 
-while IFS=$'\t' read -r marketplace source target extra_tags; do
+while IFS=$'\x1f' read -r marketplace source target extra_tags build; do
     case "$marketplace" in
         aws | aws-eks-addon)
             # A release's image is the same image every time, and AWS Marketplace's repositories
@@ -94,6 +102,26 @@ while IFS=$'\t' read -r marketplace source target extra_tags; do
             run crane copy --platform linux/amd64 "$source" "$target"
             ;;
         google-cloud)
+            if [ "$build" != "-" ]; then
+                if [ "$DRY_RUN" != "true" ] && ! docker buildx version >/dev/null 2>&1; then
+                    echo "Docker Buildx is not available: it builds $target." >&2
+                    exit 1
+                fi
+
+                tag_options=(--tag "$target")
+                IFS=',' read -r -a tags <<<"$extra_tags"
+                for tag in "${tags[@]}"; do
+                    [ -n "$tag" ] && tag_options+=(--tag "${target%:*}:${tag}")
+                done
+
+                # stdin is the plan this loop reads: the build gets none of it.
+                run docker buildx build --platform linux/amd64 --provenance=false \
+                    --build-arg "SOURCE=${source}" \
+                    --annotation "manifest:com.googleapis.cloudmarketplace.product.service.name=services/${SERVICE_NAME}" \
+                    "${tag_options[@]}" --push "${OUT}/${build}" </dev/null
+                continue
+            fi
+
             run crane copy --platform linux/amd64 "$source" "$target"
             run crane mutate --annotation "com.googleapis.cloudmarketplace.product.service.name=services/${SERVICE_NAME}" --tag "$target" "$target"
 

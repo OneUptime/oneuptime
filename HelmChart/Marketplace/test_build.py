@@ -12,6 +12,7 @@ runs these, then renders each built edition with helm.
 import json
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -519,11 +520,9 @@ class BuildTest(unittest.TestCase):
             "chart/oneuptime/templates/application.yaml",
             "apptest/deployer/schema.yaml",
             "apptest/deployer/oneuptime/templates/tester.yaml",
+            "postgres/Dockerfile",
         ):
             self.assertTrue((self.out / path).exists(), path)
-
-        tester_chart: str = (self.out / "apptest/deployer/oneuptime/Chart.yaml").read_text()
-        self.assertIn("version: 1.2.3", tester_chart)
 
         values: str = (self.out / "chart/oneuptime/values.yaml").read_text()
         self.assertIn("    create: false", values)
@@ -537,6 +536,118 @@ class BuildTest(unittest.TestCase):
 
         self.assertIn("type: REPORTING_SECRET", schema)
         self.assertIn('publishedVersion: "$TAG"', schema)
+
+
+class GoogleCloudDeployerTest(unittest.TestCase):
+    """
+    What Google's deployer (gcr.io/cloud-marketplace-tools/k8s/deployer_helm) does with the
+    edition, on which Google's validation of 15.0 failed (17 November 2026): it hands Helm every
+    property of schema.yaml as a value, refuses an Application without deploy-info, and in a
+    verification run lays the tester's files over the chart's. Google's vulnerability scan
+    refused the official PostgreSQL image, for gosu.
+    """
+
+    def setUp(self) -> None:
+        self.out: Path = Path(tempfile.mkdtemp())
+        build.build("google-cloud", "1.2.3", self.out)
+        self.edition: Dict[str, Any] = build.load_json(build.HERE / "editions.json")["google-cloud"]
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.out, ignore_errors=True)
+
+    @staticmethod
+    def property_names(schema: str) -> List[str]:
+        """The properties of a schema.yaml: the two-space keys of its top-level properties block."""
+        block = re.search(r"(?ms)^properties:(.*?)(?=^\S|\Z)", schema)
+        return re.findall(r"(?m)^  ([\w.]+):", block.group(1)) if block else []
+
+    def test_the_chart_takes_every_value_the_deployer_passes(self) -> None:
+        values_schema: Dict[str, Any] = build.load_json(self.out / "chart/oneuptime/values.schema.json")
+        names: List[str] = self.property_names((self.out / "schema.yaml").read_text()) + self.property_names(
+            (self.out / "apptest/deployer/schema.yaml").read_text()
+        )
+        self.assertIn("name", names)
+        self.assertIn("namespace", names)
+
+        for name in names:
+            # Nested as --set nests it: enterpriseMarketplace.googleCloud.reportingSecret.
+            self.assertIn(name.split(".")[0], values_schema["properties"], name)
+
+        # Only those: the chart's schema stays closed at its root.
+        self.assertIs(values_schema["additionalProperties"], False)
+
+    def test_the_application_carries_the_listing_s_ids(self) -> None:
+        application: str = (self.out / "chart/oneuptime/templates/application.yaml").read_text()
+        annotation = re.search(r"(?m)^    marketplace\.cloud\.google\.com/deploy-info: '(.+)'$", application)
+        self.assertIsNotNone(annotation)
+        info: Dict[str, str] = json.loads(annotation.group(1))
+
+        # The listing's service is <product>.endpoints.<project>.cloud.goog.
+        service = re.fullmatch(
+            r"([a-z0-9-]+)\.endpoints\.([a-z0-9-]+)\.cloud\.goog", self.edition["serviceName"]
+        )
+        self.assertEqual(info["product_id"], service.group(1))
+        self.assertEqual(info["partner_id"], service.group(2))
+        self.assertEqual(info["partner_name"], "OneUptime")
+
+    def test_the_tester_runs_in_the_app_image_and_adds_nothing_else(self) -> None:
+        tester: Path = self.out / "apptest/deployer/oneuptime"
+        self.assertIn(
+            'image: "{{ .Values.image.overrides.app }}"', (tester / "templates/tester.yaml").read_text()
+        )
+        # Laid over the chart's files: a Chart.yaml of its own would replace the chart's.
+        self.assertEqual(
+            [path.relative_to(tester).as_posix() for path in tester.rglob("*") if path.is_file()],
+            ["templates/tester.yaml"],
+        )
+        self.assertEqual(self.property_names((self.out / "apptest/deployer/schema.yaml").read_text()), [])
+
+    def test_builds_postgres_without_gosu_for_google_alone(self) -> None:
+        editions: Dict[str, Any] = build.load_json(build.HERE / "editions.json")
+        built: Dict[str, List[str]] = {
+            marketplace: [
+                entry["key"]
+                for entry in build.plan_images(marketplace, "1.2.3", editions[marketplace])
+                if "build" in entry
+            ]
+            for marketplace in build.MARKETPLACES
+        }
+        self.assertEqual(built, {"aws": [], "azure": [], "google-cloud": ["postgres"]})
+
+        dockerfile: str = (self.out / "postgres/Dockerfile").read_text()
+        self.assertIn("FROM ${SOURCE}", dockerfile)
+        self.assertIn("apk add --no-cache su-exec", dockerfile)
+        self.assertIn("rm -f /usr/local/bin/gosu", dockerfile)
+
+        # su-exec comes from Alpine's packages: the image stays an Alpine one.
+        source: str = build.load_json(build.HERE / "images.json")["images"]["postgres"]["source"]
+        self.assertTrue(source.endswith("-alpine"), source)
+
+    def test_the_mirror_builds_what_it_does_not_copy(self) -> None:
+        result = subprocess.run(
+            ["bash", str(build.HERE / "mirror-images.sh"), str(self.out / "images.json"), "--dry-run"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        lines: List[str] = result.stdout.splitlines()
+        registry: str = self.edition["registry"]
+        source: str = build.load_json(build.HERE / "images.json")["images"]["postgres"]["source"]
+
+        builds: List[str] = [line for line in lines if line.startswith("+ docker buildx build ")]
+        self.assertEqual(len(builds), 1, result.stdout)
+        self.assertIn(f"--build-arg SOURCE={source} ", builds[0])
+        self.assertIn(
+            "--annotation manifest:com.googleapis.cloudmarketplace.product.service.name="
+            f"services/{self.edition['serviceName']} ",
+            builds[0],
+        )
+        self.assertIn(f"--tag {registry}/postgres:1.2.3 --tag {registry}/postgres:1.2 ", builds[0])
+        self.assertTrue(builds[0].endswith("/postgres"), builds[0])
+
+        copies: List[str] = [line for line in lines if line.startswith("+ crane copy ")]
+        self.assertEqual(len(copies), 6, result.stdout)
+        self.assertFalse([line for line in copies if "/postgres:" in line])
 
 
 class GoogleCloudUserGuideTest(unittest.TestCase):

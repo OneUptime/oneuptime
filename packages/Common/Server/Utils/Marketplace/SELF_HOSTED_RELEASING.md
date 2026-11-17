@@ -211,9 +211,9 @@ Everything lives in [HelmChart/Marketplace](../../../../../HelmChart/Marketplace
 | `build.py`                 | Builds one edition: `python3 HelmChart/Marketplace/build.py --marketplace aws\|azure\|google-cloud --version X.Y.Z --out DIR`                                                                                  |
 | `images.json`              | The images every edition ships, with the third-party versions pinned                                                                                                                                           |
 | `editions.json`            | Each marketplace's registry and its own settings                                                                                                                                                               |
-| `mirror-images.sh`         | Copies an edition's images into its marketplace's registry (`crane`; `--dry-run` shows the plan)                                                                                                               |
+| `mirror-images.sh`         | Copies an edition's images into its marketplace's registry (`crane`; `--dry-run` shows the plan), and builds PostgreSQL without gosu for Google (Docker Buildx)                                                |
 | `azure/`                   | The CNAB manifest, the Azure portal's create experience and the ARM template                                                                                                                                   |
-| `google-cloud/`            | The deployer's Dockerfile, `schema.yaml`, the `Application` resource and the tester                                                                                                                            |
+| `google-cloud/`            | The deployer's Dockerfile, `schema.yaml`, the `Application` resource, the tester, and PostgreSQL's Dockerfile (without gosu)                                                                                   |
 | `aws/delivery-option.json` | The Helm delivery option every AWS version gets: title, description, usage instructions, override parameters                                                                                                   |
 | `automation/`              | The release automation the workflow runs (`release_plan.py`, `aws_catalog.py`, `partner_center.py`, `google_cloud_release.py`) and the one-time CI setup (`ci_setup.py`), with their unit tests                |
 | `aws-eks-addon/`           | The Kubernetes agent's EKS add-on: its delivery option, its images and the configuration schema buyers set (see [The Kubernetes agent as an Amazon EKS add-on](#the-kubernetes-agent-as-an-amazon-eks-add-on)) |
@@ -363,11 +363,13 @@ Support Desk case that asked for the project info form and the roles (step
 pricing (step 6) and listing (step 7) are under Google's review, submitted
 that afternoon with the maintainer's go-ahead; the payments profile is done;
 and `editions.json` marks the edition ready, so the Marketplace Release
-workflow pushed 15.0.0's images and deployer that evening: release `15.0` is
-saved on the Container images page (step 8), where Google is validating it.
-**Left**: that page's review, once the validation passes (step 8), then
-**Publish** once all three reviews are approved (each the maintainer's
-go-ahead). Google's Marketplace Operations team supports the
+workflow pushed 15.0.0's images and deployer that evening, and release
+`15.0` is saved on the Container images page (step 8). Google's validation
+of it failed: the deployer refused the edition, and the scan the PostgreSQL
+image (step 8 says why); the edition was fixed the same day. **Left**:
+pushing 15.0.0 again and Google's validation of it, that page's review once
+the validation passes (step 8), then **Publish** once all three reviews are
+approved (each the maintainer's go-ahead). Google's Marketplace Operations team supports the
 onboarding for 60 days from its reminder of 9 November (until about 8 January
 2027); help after that is not guaranteed. Everything lives in the
 `oneuptime-marketplace` project, never in `oneuptime-k8s`. This is OneUptime's
@@ -529,6 +531,22 @@ only Google Cloud Marketplace product: OneUptime Cloud is not listed there
    passes (**Submit**, on the same page; the maintainer's go-ahead), with the
    [user guide](../../../../../HelmChart/Marketplace/google-cloud/README.md)
    in the public repository.
+
+   A failed validation's **View details** has Google's report: what the
+   scan found, image by image, and which test failed, but not the deployer's
+   logs. The deployer is open source
+   ([marketplace-k8s-app-tools](https://github.com/GoogleCloudPlatform/marketplace-k8s-app-tools),
+   `deployer_helm`): it hands Helm every property of `schema.yaml` as a
+   value, the app's name and namespace among them; it refuses an
+   `Application` without the `marketplace.cloud.google.com/deploy-info`
+   annotation; and in a verification run it lays the tester's files over
+   the chart's. The first validation (17 November 2026) failed on all three,
+   and its scan on `gosu` in the official PostgreSQL image (built with Go
+   1.24.6, as every `gosu` release is). The edition now passes the two
+   values, carries the annotation, ships the tester as a template alone, in
+   the app's image, and builds PostgreSQL without `gosu`
+   (`GOOGLE_CLOUD_BUILT_IMAGES` in `build.py`); the chart suite's
+   marketplace checks hold it to all four.
 
 ### The release workflow: one-time setup
 
@@ -759,19 +777,21 @@ OUT="$(mktemp -d)/oneuptime-google-cloud"
 python3 HelmChart/Marketplace/build.py --marketplace google-cloud --version "$VERSION" --out "$OUT"
 
 gcloud auth print-access-token | crane auth login us-docker.pkg.dev -u oauth2accesstoken --password-stdin
+gcloud auth configure-docker us-docker.pkg.dev
 HelmChart/Marketplace/mirror-images.sh "$OUT/images.json"
 ```
 
 The mirror annotates every image with the listing's service
 (`com.googleapis.cloudmarketplace.product.service.name=services/<service name>`,
 which Google requires) and tags it with the track (`major.minor`) as well.
-Then the deployer, with Docker buildx (`--provenance=false` keeps build
-attestations out of the pushed image):
+PostgreSQL it builds rather than copies, with Docker buildx: the official
+image with Alpine's `su-exec` in place of `gosu`, which Google's scan refuses
+(`google-cloud/postgres.Dockerfile`). Then the deployer, with Docker buildx
+too (`--provenance=false` keeps build attestations out of the pushed image):
 
 ```bash
 REGISTRY=us-docker.pkg.dev/oneuptime-marketplace/oneuptime/oneuptime-enterprise
 SERVICE=oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog   # editions.json, google-cloud.serviceName
-gcloud auth configure-docker us-docker.pkg.dev
 docker buildx build --platform linux/amd64 --provenance=false \
   --build-arg REGISTRY="$REGISTRY" --build-arg TAG="$VERSION" \
   --annotation "manifest:com.googleapis.cloudmarketplace.product.service.name=services/$SERVICE" \
@@ -1217,7 +1237,18 @@ cost a review round.
   GKE cluster. Its image path,
   `marketplace.gcr.io/oneuptime-marketplace/oneuptime-enterprise`, follows the
   listing's address as Google's docs describe; confirm it once Google
-  publishes the first version (`TODO(identifiers)`).
+  publishes the first version (`TODO(identifiers)`). Google's validation
+  copied the images to
+  `gcr.io/cloud-launcher-images-prd/oneuptime-marketplace/oneuptime/oneuptime-enterprise/...`,
+  with our repository's name, so the published path may have `/oneuptime`
+  in it too.
+- **The Google Cloud app's deploy-info IDs are inferred.** The `Application`
+  names partner `oneuptime-marketplace` and product `oneuptime-enterprise`
+  (`google-cloud/application.yaml`): the project and product of the
+  listing's service, the path Google copied our images under. Producer
+  Portal shows no partner ID to a project; the deployer only checks that
+  both are there. Confirm them with the Partner Engineer if Google's review
+  objects.
 - **Google Cloud deployments have no upgrade path from the console yet.**
   Google pins a deployment to the image digests it installed and never
   updates it; a new version only becomes the default for new deployments,
@@ -1332,6 +1363,8 @@ rejection, go-live and price change.
 | 2026-11-17 | Google      | Product details and pricing reviews submitted, with the maintainer's go-ahead                       | Agent      |
 | 2026-11-17 | Google      | 15.0.0's images and deployer pushed by the release workflow, run by hand                            | Agent      |
 | 2026-11-17 | Google      | Release `15.0` saved on the Container images page; Google's validation running                      | Agent      |
+| 2026-11-17 | Google      | Validation of `15.0` failed: the deployer job on all three test clusters; gosu in PostgreSQL        | Google     |
+| 2026-11-17 | Google      | Edition fixed: deployer values, deploy-info, the tester's image; PostgreSQL built without gosu      | Agent      |
 | 2026-11-17 | Microsoft   | The live listing keeps "OneUptime Enterprise (self-hosted)": the maintainer's choice                | Maintainer |
 | 2026-11-17 | AWS         | Bank account verification in review: the bank statement is uploaded                                 | Maintainer |
 | 2026-11-17 | AWS         | Case 00966062 escalated: remove the placeholder version, or name the broken URL                     | Agent      |
