@@ -365,15 +365,15 @@ describe("a channel's name", () => {
   });
 });
 
+// What jest.spyOn makes of a generic method: the method at its constraint.
+type MethodOf<Method extends (...args: Array<never>) => unknown> = (
+  ...args: Parameters<Method>
+) => ReturnType<Method>;
+
 describe("the reads the answer is made from", () => {
   let counts: Map<string, number | Error>;
-  let countSpy: SpyInstance<typeof ModelAPI.count>;
-  // A spy on ModelAPI.getItem, without the type parameter a spy's type cannot carry.
-  let getItemSpy: SpyInstance<
-    (
-      ...args: Parameters<typeof ModelAPI.getItem>
-    ) => ReturnType<typeof ModelAPI.getItem>
-  >;
+  let countSpy: SpyInstance<MethodOf<typeof ModelAPI.count>>;
+  let getItemSpy: SpyInstance<MethodOf<typeof ModelAPI.getItem>>;
   let fetchVarsSpy: SpyInstance<typeof GlobalConfigUtil.fetchVars>;
 
   const MODELS: Array<[NotificationChannelKey, { new (): unknown }]> = [

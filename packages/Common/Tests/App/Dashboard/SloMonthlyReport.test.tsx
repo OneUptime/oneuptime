@@ -177,10 +177,12 @@ const MONITOR_REPORT: SloMonthlyReport = buildSloMonthlyReport({
   now: MEASURED_AT,
 });
 
-// A spy on API.get, without the type parameter a spy's type cannot carry.
-let apiGet: SpyInstance<
-  (...args: Parameters<typeof API.get>) => ReturnType<typeof API.get>
->;
+// What jest.spyOn makes of a generic method: the method at its constraint.
+type MethodOf<Method extends (...args: Array<never>) => unknown> = (
+  ...args: Parameters<Method>
+) => ReturnType<Method>;
+
+let apiGet: SpyInstance<MethodOf<typeof API.get>>;
 
 function answer(report: SloMonthlyReport): HTTPResponse<JSONObject> {
   return new HTTPResponse<JSONObject>(

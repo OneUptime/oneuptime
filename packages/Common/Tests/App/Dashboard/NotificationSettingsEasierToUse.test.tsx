@@ -95,23 +95,15 @@ const INCIDENTS_CARD: Array<NotificationSettingEventType> = [
   E.SEND_INCIDENT_MEMBER_ADDED_NOTIFICATION,
 ];
 
+// What jest.spyOn makes of a generic method: the method at its constraint.
+type MethodOf<Method extends (...args: Array<never>) => unknown> = (
+  ...args: Parameters<Method>
+) => ReturnType<Method>;
+
 let rows: Array<UserNotificationSetting>;
-// Spies on ModelAPI, without the type parameter a spy's type cannot carry.
-let getList: SpyInstance<
-  (
-    ...args: Parameters<typeof ModelAPI.getList>
-  ) => ReturnType<typeof ModelAPI.getList>
->;
-let updateById: SpyInstance<
-  (
-    ...args: Parameters<typeof ModelAPI.updateById>
-  ) => ReturnType<typeof ModelAPI.updateById>
->;
-let create: SpyInstance<
-  (
-    ...args: Parameters<typeof ModelAPI.create>
-  ) => ReturnType<typeof ModelAPI.create>
->;
+let getList: SpyInstance<MethodOf<typeof ModelAPI.getList>>;
+let updateById: SpyInstance<MethodOf<typeof ModelAPI.updateById>>;
+let create: SpyInstance<MethodOf<typeof ModelAPI.create>>;
 let readiness: StubbedNotificationChannelReadiness;
 let nextId: number;
 
