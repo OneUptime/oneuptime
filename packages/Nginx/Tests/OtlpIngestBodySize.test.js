@@ -53,6 +53,12 @@ const {
   resolveLocation,
   stripComments,
 } = require("./NginxConfigParser");
+/*
+ * The shared escape. Its module imports nothing, so the Node.js these tests
+ * run on (26, on the runner and in the image) reads its TypeScript as it is,
+ * with no npm install.
+ */
+const { escapeRegExp } = require("../../Common/Utils/RegExpEscape.ts");
 
 const { after, before, describe } = test;
 
@@ -1532,7 +1538,7 @@ function replaceEveryOccurrence(source, from, to) {
 function replacePorts(source, standIns) {
   const addresses = Object.keys(standIns);
   const whole = (address) => {
-    return `${address.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?!\\d)`;
+    return `${escapeRegExp(address)}(?!\\d)`;
   };
 
   for (const address of addresses) {

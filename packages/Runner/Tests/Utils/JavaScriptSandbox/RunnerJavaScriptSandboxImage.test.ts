@@ -6,6 +6,7 @@ import {
   SANDBOX_LAUNCHER_PATH,
 } from "../../../Utils/JavaScriptSandbox/SandboxIdentity";
 import { SANDBOX_NO_NETWORK_PATH } from "../../../Utils/JavaScriptSandbox/SandboxNetwork";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import {
   PASSED_THROUGH_ENVIRONMENT,
   SANDBOX_WORKER_BUNDLE_PATH,
@@ -97,14 +98,12 @@ describe("the Runner image's JavaScript sandbox", () => {
     // Owned by root (with the other files on the chown root:root line).
     expect(setUp).toMatch(
       new RegExp(
-        `chown root:root [^&]*${SANDBOX_NO_NETWORK_PATH.replace(/[/]/g, "\\/")}`,
+        `chown root:root [^&]*${escapeRegExp(SANDBOX_NO_NETWORK_PATH)}`,
       ),
     );
     // Mode 0755: never a setuid or setgid bit, which would be a leading 4, 2 or 6.
     const mode: RegExpMatchArray | null = setUp.match(
-      new RegExp(
-        `chmod ([0-7]+) ${SANDBOX_NO_NETWORK_PATH.replace(/[/]/g, "\\/")}`,
-      ),
+      new RegExp(`chmod ([0-7]+) ${escapeRegExp(SANDBOX_NO_NETWORK_PATH)}`),
     );
     expect(mode).not.toBeNull();
     expect(mode![1]).toBe("0755");
