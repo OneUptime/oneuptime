@@ -1,0 +1,7 @@
+# ts-node stays a development package (Tests/Ops/ImagesRunJavaScript.test.js).
+# nodemon and the local scripts start it with `node -r ts-node/register`,
+# which depcheck does not read, and since the images run compiled JavaScript
+# (afdaa88eaae) nothing else names it, so `npm run dep-check` called it
+# unused and the Compile workflow failed.
+ignores:
+  - ts-node

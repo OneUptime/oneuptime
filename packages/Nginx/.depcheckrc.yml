@@ -1,0 +1,6 @@
+# ts-node stays a development package (Tests/Ops/ImagesRunJavaScript.test.js),
+# but since the image runs compiled JavaScript (afdaa88eaae) nothing here
+# names it, so `npm run dep-check` called it unused and the Compile workflow
+# failed.
+ignores:
+  - ts-node
