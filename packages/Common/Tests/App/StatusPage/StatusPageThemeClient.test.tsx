@@ -572,7 +572,8 @@ describe("the footer's light / dark switch", () => {
 
     // One footer entry: the two controls share a row.
     expect(themeSwitch.parentElement).toBe(
-      languageSwitcher.closest("div")?.parentElement,
+      languageSwitcher.closest('[data-testid="language-picker"]')
+        ?.parentElement,
     );
   });
 

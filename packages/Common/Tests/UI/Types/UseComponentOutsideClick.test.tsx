@@ -1,4 +1,10 @@
-import useComponentOutsideClick from "../../../UI/Types/UseComponentOutsideClick";
+import useComponentOutsideClick, {
+  isInsideComponent,
+} from "../../../UI/Types/UseComponentOutsideClick";
+import Dropdown, {
+  DropdownValue,
+} from "../../../UI/Components/Dropdown/Dropdown";
+import { openDropdown } from "../../DropdownPicks";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -222,5 +228,113 @@ describe("useComponentOutsideClick — presses that never become a click", () =>
     fireEvent.click(outsideControl(), { detail: 0 });
 
     expect(isOpen()).toBe(false);
+  });
+});
+
+/*
+ * A popover that holds the shared Dropdown - a filter chip's operator (#9294).
+ * The Dropdown draws its open menu at the end of the document, outside the
+ * popover, so a pick there used to read as a click outside and close the
+ * popover with the pick half made.
+ */
+const PopoverWithDropdown: FunctionComponent<{
+  onPick: (value: DropdownValue | Array<DropdownValue> | null) => void;
+}> = (props: {
+  onPick: (value: DropdownValue | Array<DropdownValue> | null) => void;
+}): ReactElement => {
+  const { ref, isComponentVisible } = useComponentOutsideClick(true);
+
+  return (
+    <div>
+      <div ref={ref}>
+        {isComponentVisible ? (
+          <div>
+            <p>{PANEL_TEXT}</p>
+            <Dropdown
+              ariaLabel="Status operator"
+              options={[
+                { value: "is", label: "is" },
+                { value: "is_not", label: "is not" },
+              ]}
+              isClearable={false}
+              onChange={props.onPick}
+            />
+          </div>
+        ) : null}
+      </div>
+      <button type="button">outside control</button>
+    </div>
+  );
+};
+
+describe("useComponentOutsideClick — a Dropdown inside the component", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("a pick in the Dropdown's menu, drawn over the page, leaves it open", () => {
+    const picks: Array<DropdownValue | Array<DropdownValue> | null> = [];
+
+    render(
+      <PopoverWithDropdown
+        onPick={(value: DropdownValue | Array<DropdownValue> | null) => {
+          picks.push(value);
+        }}
+      />,
+    );
+
+    openDropdown(screen.getByRole("combobox", { name: "Status operator" }));
+
+    const option: HTMLElement = screen.getByRole("option", { name: "is not" });
+
+    // The menu is not inside the component: it is drawn at the document's end.
+    expect(screen.getByText(PANEL_TEXT).parentElement!.contains(option)).toBe(
+      false,
+    );
+
+    fireEvent.mouseDown(option, { button: 0 });
+    pointerClick(option);
+
+    expect(picks).toEqual(["is_not"]);
+    expect(isOpen()).toBe(true);
+  });
+
+  test("a click outside still closes it after a pick", () => {
+    render(<PopoverWithDropdown onPick={() => {}} />);
+
+    openDropdown(screen.getByRole("combobox", { name: "Status operator" }));
+    pointerClick(screen.getByRole("option", { name: "is" }));
+    expect(isOpen()).toBe(true);
+
+    fireEvent.mouseDown(outsideControl(), { button: 0 });
+    pointerClick(outsideControl());
+
+    expect(isOpen()).toBe(false);
+  });
+
+  test("isInsideComponent reads the component, the Dropdown's menu, and nothing else", () => {
+    const component: HTMLDivElement = document.createElement("div");
+    const inside: HTMLSpanElement = document.createElement("span");
+    component.appendChild(inside);
+
+    const portal: HTMLDivElement = document.createElement("div");
+    portal.className = "ou-select__menu-portal";
+    const menuText: Text = document.createTextNode("is not");
+    portal.appendChild(menuText);
+
+    const elsewhere: HTMLDivElement = document.createElement("div");
+
+    document.body.append(component, portal, elsewhere);
+
+    expect(isInsideComponent(component, inside)).toBe(true);
+    // A text node in the menu counts, as a click on an option's words does.
+    expect(isInsideComponent(component, menuText)).toBe(true);
+    expect(isInsideComponent(component, elsewhere)).toBe(false);
+    expect(isInsideComponent(null, inside)).toBe(false);
+    expect(isInsideComponent(component, null)).toBe(false);
+
+    component.remove();
+    portal.remove();
+    elsewhere.remove();
   });
 });

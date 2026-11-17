@@ -70,7 +70,7 @@ OneUptime Cloud 에서는 Zoom, Google Meet, Microsoft Teams 연결이 한 번�
 
 로그인으로 만든 연결에도 누가 기다릴지 정하는 설정이 있습니다. Google Meet 은 **Who can join**, Microsoft Teams 는 **Who skips the lobby** 입니다. 연결 행의 **편집** 으로 변경합니다.
 
-OneUptime 이 통화 녹취록을 읽기 전에 로그인한 Zoom 연결은 전처럼 통화를 시작하지만, 다시 로그인할 때까지 녹취록은 읽을 수 없습니다. 행의 **Reconnect** 가 Zoom 에 녹취록 권한을 요청합니다.
+OneUptime 이 통화 녹취록을 읽기 전에 로그인한 Zoom 연결은 녹취록을 읽을 수 없습니다. OneUptime 의 Zoom 앱이 녹취록을 읽도록 업데이트되면, 그로부터 90일 후 Zoom 이 그런 연결의 로그인을 더 이상 받아들이지 않아 연결이 통화를 시작하지 못합니다. 그때부터 OneUptime 이 다시 로그인하라고 요청합니다. 행의 **Reconnect** 가 Zoom 에 녹취록 권한을 요청합니다.
 
 **인시던트 통화 녹화 및 녹취** 가 꺼져 있을 때 로그인한 Microsoft Teams 연결은 전처럼 통화를 시작하지만 녹화하지는 않습니다. 이 설정을 켜면 행의 **Reconnect** 가 Microsoft 에 캘린더와 녹취록 권한도 요청합니다.
 

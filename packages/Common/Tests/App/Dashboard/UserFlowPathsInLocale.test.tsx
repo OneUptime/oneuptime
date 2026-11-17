@@ -20,6 +20,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import { getShownDropdownValue, openDropdown } from "../../DropdownPicks";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -466,15 +467,28 @@ async function renderPageAnchoredOn(anchor: string): Promise<void> {
   });
 }
 
-// The page picker's first option: the anchored page nobody visited.
-function notVisitedOption(anchor: string): HTMLOptionElement {
-  const option: HTMLOptionElement | undefined = (
-    screen.getByTestId("user-flow-anchor-select") as HTMLSelectElement
-  ).options[0];
+/*
+ * The page picker's first option: the anchored page nobody visited, the one
+ * the picker shows as chosen. The picker is the shared Dropdown: its menu is
+ * opened, and the option's label is read where the menu draws it.
+ */
+function notVisitedOption(anchor: string): HTMLElement {
+  const combobox: HTMLElement = within(
+    screen.getByTestId("user-flow-anchor-select"),
+  ).getByRole("combobox");
+  const shown: string | null = getShownDropdownValue(combobox);
 
-  expect(option?.value).toBe(anchor);
+  openDropdown(combobox);
 
-  return option as HTMLOptionElement;
+  const label: HTMLElement | null = (
+    screen.getAllByRole("option")[0] as HTMLElement | undefined
+  )?.querySelector('[data-testid="dropdown-option-label"]') as HTMLElement;
+
+  expect(label).not.toBeNull();
+  expect(withoutIsolateMarks(label.textContent || "")).toContain(anchor);
+  expect(shown).toBe(label.textContent);
+
+  return label;
 }
 
 beforeEach(async () => {
@@ -753,7 +767,7 @@ describe.each(["ar", "fa"])(
       await readIn(language);
       await renderPageAnchoredOn("/2024");
 
-      const option: HTMLOptionElement = notVisitedOption("/2024");
+      const option: HTMLElement = notVisitedOption("/2024");
       const optionText: string = option.textContent || "";
 
       expect(withoutIsolateMarks(optionText)).toBe(

@@ -70,7 +70,7 @@ Every meeting is created as the account you sign in with, which hosts it. Sign i
 
 A connection made by signing in still has the settings that decide who waits: **Who can join** for Google Meet and **Who skips the lobby** for Microsoft Teams. Change them with **Edit** on the connection's row.
 
-A Zoom connection signed in before OneUptime read call transcripts starts calls as before, but cannot read their transcripts until it is signed in again: **Reconnect** on its row asks Zoom for the transcript permissions.
+A Zoom connection signed in before OneUptime read call transcripts cannot read them. Once OneUptime's Zoom app is updated to read them, Zoom stops accepting such a connection's sign-in 90 days later, and it stops starting calls. From then on, OneUptime asks you to sign it in again: **Reconnect** on its row asks Zoom for the transcript permissions.
 
 A Microsoft Teams connection signed in while **Record and transcribe incident calls** was off starts calls as before, unrecorded. Once the switch is on, **Reconnect** on its row asks Microsoft for the calendar and transcript permissions too.
 

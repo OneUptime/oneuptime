@@ -8,6 +8,11 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import { chooseDropdownOption } from "../../DropdownPicks";
+import {
+  FILTER_OPERATOR_LABELS,
+  FilterOperator,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdownTypes";
 import React, { ReactElement, ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import {
@@ -363,14 +368,18 @@ const setOperator: (label: string, operator: string) => Promise<void> = async (
     return found as HTMLElement;
   });
 
-  await act(async () => {
-    fireEvent.change(
-      within(dialog).getByRole("combobox", {
-        name: `${label} operator`,
-      }),
-      { target: { value: operator } },
-    );
-  });
+  /*
+   * The operator is the shared Dropdown, its options in their words. Its
+   * menu opens and is picked from in acts of its own; the query it sends
+   * settles after.
+   */
+  chooseDropdownOption(
+    within(dialog).getByRole("combobox", {
+      name: `${label} operator`,
+    }),
+    FILTER_OPERATOR_LABELS[operator as FilterOperator],
+  );
+  await act(async () => {});
 };
 
 // The owners filter of the table's latest request, as the API carries it.

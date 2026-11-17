@@ -8,14 +8,11 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+  chooseDropdownOption,
+  getShownDropdownValue,
+} from "../../DropdownPicks";
 import fs from "fs";
 import i18next, { i18n as I18n } from "i18next";
 import path from "path";
@@ -267,12 +264,11 @@ describe("UserLanguageInit", () => {
       </>,
     );
 
-    const menu: HTMLSelectElement = screen.getByRole(
-      "combobox",
-    ) as HTMLSelectElement;
-
+    // The menu is the shared Dropdown: each language by its own name.
     await waitFor(() => {
-      expect(menu.value).toBe("de");
+      expect(getShownDropdownValue(screen.getByRole("combobox"))).toBe(
+        "Deutsch",
+      );
     });
     // Switched by the account, so nothing to save back to it.
     expect(account.saveSignedInUserLanguage).not.toHaveBeenCalled();
@@ -292,9 +288,7 @@ describe("the language menu", () => {
 
     render(<LanguageSwitcher />);
 
-    fireEvent.change(screen.getByRole("combobox"), {
-      target: { value: "de" },
-    });
+    chooseDropdownOption(screen.getByRole("combobox"), "Deutsch");
 
     await waitFor(() => {
       expect(account.saveSignedInUserLanguage).toHaveBeenCalledWith("de");
@@ -309,9 +303,7 @@ describe("the language menu", () => {
 
     render(<LanguageSwitcher />);
 
-    fireEvent.change(screen.getByRole("combobox"), {
-      target: { value: "de" },
-    });
+    chooseDropdownOption(screen.getByRole("combobox"), "Deutsch");
 
     await waitFor(() => {
       expect(account.saveSignedInUserLanguage).toHaveBeenCalledWith("de");
@@ -319,9 +311,7 @@ describe("the language menu", () => {
     await settle();
 
     expect(i18next.language).toBe("de");
-    expect((screen.getByRole("combobox") as HTMLSelectElement).value).toBe(
-      "de",
-    );
+    expect(getShownDropdownValue(screen.getByRole("combobox"))).toBe("Deutsch");
   });
 });
 

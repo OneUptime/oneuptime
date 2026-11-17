@@ -20,8 +20,12 @@ import VideoCallConnectionSettingsUtil, {
 } from "../Utils/VideoCall/VideoCallConnectionSettings";
 import VideoCallMeetingFactory from "../Utils/VideoCall/VideoCallMeetingFactory";
 import { VideoCallMeetingRequest } from "../Utils/VideoCall/VideoCallMeetingRequest";
+import ZoomTranscriptReconnect, {
+  ZoomConnectionToReconnect,
+} from "../Utils/VideoCall/OAuth/ZoomTranscriptReconnect";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import Permission from "../../Types/Permission";
 
 /*
  * What a test meeting is called at the provider, so whoever finds it in the
@@ -32,6 +36,10 @@ export const TEST_MEETING_REQUEST: VideoCallMeetingRequest = {
   description:
     "A test meeting OneUptime created to check a video call connection. It is safe to delete.",
 };
+
+// The project's Zoom connections to sign in again for call transcripts.
+export const ZOOM_TRANSCRIPT_RECONNECT_PATH: string =
+  "/zoom-transcript-reconnect";
 
 export default class VideoCallConnectionAPI extends BaseAPI<
   VideoCallConnection,
@@ -216,6 +224,62 @@ export default class VideoCallConnectionAPI extends BaseAPI<
           next(error);
         }
       },
+    );
+
+    /*
+     * The project's Zoom connections made by signing in before this
+     * server's Zoom app could read call transcripts, once it can
+     * (ZoomTranscriptReconnect): the Video Calls page asks for each to be
+     * reconnected. Read by whoever may read how the project's connections
+     * are set up; nothing of the sign-ins themselves is returned.
+     */
+    this.router.get(
+      `${basePath}${ZOOM_TRANSCRIPT_RECONNECT_PATH}`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions:
+              VideoCallConnectionAPI.getSetupReadPermissions(),
+            errorMessage:
+              "Only people who can read the project's settings can see which video call connections to reconnect.",
+          });
+
+          const connections: Array<ZoomConnectionToReconnect> =
+            await ZoomTranscriptReconnect.getConnectionsToReconnect(projectId);
+
+          return Response.sendJsonObjectResponse(req, res, {
+            connections: connections.map(
+              (connection: ZoomConnectionToReconnect): JSONObject => {
+                return {
+                  _id: connection.id.toString(),
+                  name: connection.name,
+                  connectedAccount: connection.connectedAccount || null,
+                };
+              },
+            ),
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+  }
+
+  /*
+   * Who may read how a connection is set up - its configuration - may read
+   * which connections to reconnect.
+   */
+  public static getSetupReadPermissions(): Array<Permission> {
+    return (
+      new VideoCallConnection().getColumnAccessControlFor("config")?.read || []
     );
   }
 

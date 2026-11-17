@@ -1,14 +1,14 @@
-import IconProp from "Common/Types/Icon/IconProp";
-import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
+import LanguagePicker, {
+  LANGUAGE_PICKER_CLASS_NAME,
+} from "Common/UI/Components/LanguagePicker/LanguagePicker";
 import React, {
-  ChangeEvent,
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { SupportedLanguage, SUPPORTED_LANGUAGES } from "../../Utils/i18n";
+import { SUPPORTED_LANGUAGES } from "../../Utils/i18n";
 
 export interface ComponentProps {
   className?: string | undefined;
@@ -55,10 +55,9 @@ const LanguageSwitcher: FunctionComponent<ComponentProps> = (
     await i18n.changeLanguage(nextLanguage);
   };
 
-  const onChange: (event: ChangeEvent<HTMLSelectElement>) => void = (
-    event: ChangeEvent<HTMLSelectElement>,
+  const onChange: (nextLanguage: string) => void = (
+    nextLanguage: string,
   ): void => {
-    const nextLanguage: string = event.target.value;
     /*
      * Optimistic: reflect the choice in the control immediately (the switch
      * itself completes asynchronously once the locale chunk is loaded, at
@@ -71,40 +70,21 @@ const LanguageSwitcher: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div
+    <LanguagePicker
+      inputId="accounts-language-switcher"
+      label={t("language.switchLanguage")}
+      languages={SUPPORTED_LANGUAGES}
+      value={currentLanguage}
+      onChange={onChange}
       /*
        * Centred under Contact and Privacy & Terms while the footer stacks
        * them (a phone), at the start of its place in the row from md up.
        */
       className={
         props.className ||
-        "flex items-center justify-center gap-1.5 text-sm text-gray-500 transition-colors duration-200 hover:text-gray-700 md:justify-start"
+        `${LANGUAGE_PICKER_CLASS_NAME} justify-center md:justify-start`
       }
-    >
-      <Icon
-        icon={IconProp.Language}
-        size={SizeProp.Small}
-        className="h-4 w-4"
-      />
-      <label htmlFor="accounts-language-switcher" className="sr-only">
-        {t("language.switchLanguage")}
-      </label>
-      <select
-        id="accounts-language-switcher"
-        aria-label={t("language.switchLanguage")}
-        value={currentLanguage}
-        onChange={onChange}
-        className="cursor-pointer rounded border-0 bg-transparent p-0 text-sm font-medium text-gray-500 transition-colors duration-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
-      >
-        {SUPPORTED_LANGUAGES.map((language: SupportedLanguage) => {
-          return (
-            <option key={language.code} value={language.code}>
-              {language.nativeName}
-            </option>
-          );
-        })}
-      </select>
-    </div>
+    />
   );
 };
 

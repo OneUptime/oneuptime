@@ -15,6 +15,13 @@ import {
   render,
   screen,
 } from "@testing-library/react";
+import {
+  chooseDropdownOption,
+  getShownDropdownPlaceholder,
+  getShownDropdownValue,
+  hasDropdownClearControl,
+  openDropdown,
+} from "../../DropdownPicks";
 import { SpyInstance } from "jest-mock";
 import React from "react";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -178,6 +185,31 @@ const change: (testId: string, value: string) => Promise<void> = async (
   await act(async () => {
     fireEvent.change(screen.getByTestId(testId), { target: { value } });
   });
+};
+
+/*
+ * The plan and project pickers are the shared Dropdown (#9294): their input
+ * is found by its id, the choice they show is their single value, and their
+ * options are in the menu they open.
+ */
+const picker: (id: string) => HTMLElement = (id: string): HTMLElement => {
+  return document.getElementById(id) as HTMLElement;
+};
+
+const pickerOptions: (id: string) => Array<HTMLElement> = (
+  id: string,
+): Array<HTMLElement> => {
+  openDropdown(picker(id));
+
+  return screen.getAllByRole("option");
+};
+
+const choose: (id: string, name: string) => Promise<void> = async (
+  id: string,
+  name: string,
+): Promise<void> => {
+  chooseDropdownOption(picker(id), name);
+  await act(async () => {});
 };
 
 const submitButton: () => HTMLElement = (): HTMLElement => {
@@ -380,17 +412,19 @@ describe("a new project", () => {
     await renderPage();
 
     expect(screen.getByTestId("marketplace-purchase-choice-new")).toBeChecked();
+    expect(getShownDropdownValue(picker("marketplace-purchase-plan"))).toBe(
+      say("planOption", { name: "Growth", price: "$22" }),
+    );
+    // A new project always starts on a plan: nothing to clear it to.
+    expect(hasDropdownClearControl(picker("marketplace-purchase-plan"))).toBe(
+      false,
+    );
     expect(
-      (screen.getByTestId("marketplace-purchase-plan") as HTMLSelectElement)
-        .value,
-    ).toBe("growth_monthly");
-    expect(
-      Array.from(
-        (screen.getByTestId("marketplace-purchase-plan") as HTMLSelectElement)
-          .options,
-      ).map((option: HTMLOptionElement): string => {
-        return option.textContent || "";
-      }),
+      pickerOptions("marketplace-purchase-plan").map(
+        (option: HTMLElement): string => {
+          return option.textContent || "";
+        },
+      ),
     ).toEqual([
       say("planOptionFree", { name: "Free" }),
       say("planOption", { name: "Growth", price: "$22" }),
@@ -409,7 +443,10 @@ describe("a new project", () => {
     await renderPage();
 
     await change("marketplace-purchase-project-name", "Acme Cloud");
-    await change("marketplace-purchase-plan", "free_monthly");
+    await choose(
+      "marketplace-purchase-plan",
+      say("planOptionFree", { name: "Free" }),
+    );
     await click("marketplace-purchase-submit");
 
     expect(requestsTo(MARKETPLACE_PURCHASE_COMPLETE_API_URL)).toEqual([
@@ -474,20 +511,18 @@ describe("one of the buyer's projects", () => {
     await renderPage();
     await click("marketplace-purchase-choice-existing");
 
-    const options: Array<HTMLOptionElement> = Array.from(
-      (screen.getByTestId("marketplace-purchase-project") as HTMLSelectElement)
-        .options,
-    );
-
     expect(
-      options.map((option: HTMLOptionElement) => {
-        return [option.value, option.textContent, option.disabled];
-      }),
+      pickerOptions("marketplace-purchase-project").map(
+        (option: HTMLElement) => {
+          return [
+            option.textContent,
+            option.getAttribute("aria-disabled") === "true",
+          ];
+        },
+      ),
     ).toEqual([
-      ["", say("projectPlaceholder"), false],
-      [PRODUCTION_ID, "Acme Production", false],
+      ["Acme Production", false],
       [
-        RESOLD_ID,
         say("projectRefusal.bought_from_reseller", { name: "Acme Resold" }),
         true,
       ],
@@ -498,10 +533,9 @@ describe("one of the buyer's projects", () => {
     await renderPage();
     await click("marketplace-purchase-choice-existing");
 
-    expect(
-      (screen.getByTestId("marketplace-purchase-project") as HTMLSelectElement)
-        .value,
-    ).toBe(PRODUCTION_ID);
+    expect(getShownDropdownValue(picker("marketplace-purchase-project"))).toBe(
+      "Acme Production",
+    );
 
     await click("marketplace-purchase-submit");
 
@@ -530,7 +564,10 @@ describe("one of the buyer's projects", () => {
     ).toBeChecked();
     expect(submitButton()).toBeDisabled();
 
-    await change("marketplace-purchase-project", STAGING_ID);
+    expect(
+      getShownDropdownPlaceholder(picker("marketplace-purchase-project")),
+    ).toBe(say("projectPlaceholder"));
+    await choose("marketplace-purchase-project", "Acme Staging");
     await click("marketplace-purchase-submit");
 
     expect(requestsTo(MARKETPLACE_PURCHASE_COMPLETE_API_URL)).toEqual([
