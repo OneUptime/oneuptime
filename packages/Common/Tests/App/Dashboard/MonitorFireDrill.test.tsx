@@ -755,12 +755,9 @@ describe("its words, in the reader's language", () => {
     expect(
       withoutIsolateMarks(
         getFireDrillFailureLabel(translatorIn("en"), {
-          key: SLOW_KEY,
           criteriaName: "Slow",
           recordKind: OnCallTestPageRecordKind.Alert,
           severityName: "Warning",
-          title: "API is slow",
-          policyCount: 1,
         }),
       ),
     ).toBe("Slow · An alert (Warning)");
