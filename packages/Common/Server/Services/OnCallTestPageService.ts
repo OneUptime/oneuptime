@@ -66,6 +66,10 @@ import ObjectID from "../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
+  getOnCallPolicyFirstLevel,
+  sortOnCallPolicyLevels,
+} from "../../Types/OnCallDutyPolicy/OnCallRunLevel";
+import {
   OnCallPageChannel,
   getOnCallPageChannelsOf,
 } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
@@ -245,16 +249,6 @@ export interface PolicyLevel {
 
 // Why a target reaches nobody, before its English sentence is added.
 type NotPagedValues = Omit<OnCallTestPageNotPaged, "message">;
-
-// The escalation rule of a level, by its order: 1 for the first.
-function getRuleOfOrder(
-  rules: Array<OnCallDutyPolicyEscalationRule>,
-  order: number,
-): OnCallDutyPolicyEscalationRule | undefined {
-  return rules.find((rule: OnCallDutyPolicyEscalationRule): boolean => {
-    return rule.order === order;
-  });
-}
 
 // Why them, when there is a name to say it with.
 function reachedThroughOf(
@@ -877,24 +871,28 @@ export class OnCallTestPageService extends BaseService {
      */
     const walkLevels: Array<OnCallTestPagePreviewLevel> = [];
     let walkUnreachedLevelCount: number = 0;
+    /*
+     * The levels in the order a run walks them: from the first, at the
+     * lowest place, which need not be 1 (#9369), each next one the next
+     * place, gaps and all - as OnCallEscalationAdvance moves a run on.
+     */
+    const levels: Array<OnCallDutyPolicyEscalationRule> =
+      sortOnCallPolicyLevels(rules);
     let previous: {
       rule: OnCallDutyPolicyEscalationRule | undefined;
       startsAfterMinutes: number;
       pagesAnybody: boolean;
     } = {
-      rule: getRuleOfOrder(rules, 1),
+      rule: levels[0],
       startsAfterMinutes: 0,
       pagesAnybody: people.length > 0,
     };
 
     if (previous.rule && data.readsWalk !== false) {
-      for (let order: number = 2; ; order++) {
-        const rule: OnCallDutyPolicyEscalationRule | undefined = getRuleOfOrder(
-          rules,
-          order,
-        );
+      for (const rule of levels.slice(1)) {
+        const order: number = rule.order!;
 
-        if (!rule || !rule.id) {
+        if (!rule.id) {
           break;
         }
 
@@ -933,11 +931,10 @@ export class OnCallTestPageService extends BaseService {
         };
       }
 
+      // The levels after the first that the test ends before.
       walkUnreachedLevelCount = Math.max(
         0,
-        rules.filter((rule: OnCallDutyPolicyEscalationRule): boolean => {
-          return typeof rule.order === "number" && rule.order > 1;
-        }).length - walkLevels.length,
+        levels.length - 1 - walkLevels.length,
       );
     }
 
@@ -1275,14 +1272,18 @@ export class OnCallTestPageService extends BaseService {
     });
   }
 
-  // The first level of these escalation rules: the one a run starts with.
+  /*
+   * The first level of these escalation rules: the one a run starts with,
+   * at the lowest place, which need not be 1 (#9369) - as
+   * OnCallDutyPolicyEscalationRuleService.findFirstOfPolicy finds it.
+   */
   private async readFirstLevelOf(data: {
     projectId: ObjectID;
     policyId: ObjectID;
     rules: Array<OnCallDutyPolicyEscalationRule>;
   }): Promise<PolicyLevel & { levelCount: number }> {
-    const firstRule: OnCallDutyPolicyEscalationRule | undefined =
-      getRuleOfOrder(data.rules, 1);
+    const firstRule: OnCallDutyPolicyEscalationRule | null =
+      getOnCallPolicyFirstLevel(data.rules);
 
     if (!firstRule || !firstRule.id) {
       return {
@@ -1299,7 +1300,7 @@ export class OnCallTestPageService extends BaseService {
         projectId: data.projectId,
         policyId: data.policyId,
         ruleId: firstRule.id,
-        order: 1,
+        order: firstRule.order ?? 1,
       })),
       levelCount: data.rules.length,
     };

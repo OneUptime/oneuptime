@@ -57,18 +57,14 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Resolves the owner users/teams of the network device a monitor watches
-   * (if any). The device id lives on the monitor step config
-   * (step.data.networkDeviceMonitor.networkDeviceId). Prefer the step that
-   * produced the current probe response; fall back to the first step that
-   * references a device so callers without a step id still pick up owners.
-   * No-op (and no queries) for monitors that do not reference a device.
+   * The network device a monitor's step watches, as its owners are found
+   * (getDeviceOwnersForMonitor): the step's, or else the first step's that
+   * names one. Null for a monitor that watches no device. Reads nothing.
    */
-  @CaptureSpan()
-  public async getDeviceOwnersForMonitor(data: {
+  public getDeviceIdForMonitor(data: {
     monitor: Monitor;
     monitorStepId?: string | undefined;
-  }): Promise<NetworkDeviceOwners> {
+  }): ObjectID | null {
     const monitorSteps: Array<MonitorStep> =
       data.monitor.monitorSteps?.data?.monitorStepsInstanceArray || [];
 
@@ -89,14 +85,33 @@ export class Service extends ProjectReferencesService<Model> {
     const networkDeviceIdAsString: string | undefined =
       monitorStep?.data?.networkDeviceMonitor?.networkDeviceId;
 
-    if (!networkDeviceIdAsString) {
+    return networkDeviceIdAsString
+      ? new ObjectID(networkDeviceIdAsString)
+      : null;
+  }
+
+  /*
+   * Resolves the owner users/teams of the network device a monitor watches
+   * (if any). The device id lives on the monitor step config
+   * (step.data.networkDeviceMonitor.networkDeviceId). Prefer the step that
+   * produced the current probe response; fall back to the first step that
+   * references a device so callers without a step id still pick up owners.
+   * No-op (and no queries) for monitors that do not reference a device.
+   */
+  @CaptureSpan()
+  public async getDeviceOwnersForMonitor(data: {
+    monitor: Monitor;
+    monitorStepId?: string | undefined;
+  }): Promise<NetworkDeviceOwners> {
+    const networkDeviceId: ObjectID | null = this.getDeviceIdForMonitor(data);
+
+    if (!networkDeviceId) {
       return {
         ownerUserIds: [],
         ownerTeamIds: [],
       };
     }
 
-    const networkDeviceId: ObjectID = new ObjectID(networkDeviceIdAsString);
     const projectId: ObjectID | undefined = data.monitor.projectId;
 
     return {

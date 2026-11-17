@@ -97,7 +97,6 @@ import {
   isOnCallDirectPage,
 } from "../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import OneUptimeDate from "../../Types/Date";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import {
   getOnCallPageAgainStatusMessage,
   isOnCallPageAgainRun,
@@ -1602,21 +1601,10 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    return await OnCallDutyPolicyEscalationRuleService.findOneBy({
-      query: {
-        projectId: data.projectId,
-        onCallDutyPolicyId: data.onCallDutyPolicyId,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-      sort: {
-        order: SortOrder.Ascending,
-      },
-      props: {
-        isRoot: true,
-      },
+    // The policy's first, as a new run starts at (#9369).
+    return await OnCallDutyPolicyEscalationRuleService.findFirstOfPolicy({
+      projectId: data.projectId,
+      onCallDutyPolicyId: data.onCallDutyPolicyId,
     });
   }
 
@@ -2274,20 +2262,14 @@ export class Service extends ProjectReferencesService<Model> {
         }
       | undefined,
   ): Promise<void> {
-    // get execution rules in this policy adn execute the first rule.
+    /*
+     * The policy's first escalation rule: its lowest place, which need not
+     * be 1 (#9369).
+     */
     const executionRule: OnCallDutyPolicyEscalationRule | null =
-      await OnCallDutyPolicyEscalationRuleService.findOneBy({
-        query: {
-          projectId: run.projectId!,
-          onCallDutyPolicyId: run.onCallDutyPolicyId!,
-          order: 1,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-        },
+      await OnCallDutyPolicyEscalationRuleService.findFirstOfPolicy({
+        projectId: run.projectId!,
+        onCallDutyPolicyId: run.onCallDutyPolicyId!,
       });
 
     if (!executionRule) {

@@ -10,7 +10,6 @@ import AlertOwnerRuleService from "./AlertOwnerRuleService";
 import AlertOwnerTeamService from "./AlertOwnerTeamService";
 import AlertOwnerUserService from "./AlertOwnerUserService";
 import AlertService from "./AlertService";
-import MonitorService from "./MonitorService";
 import TeamService from "./TeamService";
 import UserService from "./UserService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
@@ -47,9 +46,11 @@ import OwnerRulePlanBuilder, {
   OwnerRuleInheritSource,
   OwnerRulePlan,
   OwnerRulePlanEntry,
+  withPendingOwners,
 } from "../Utils/Rules/OwnerRulePlan";
 import CreatorTeams from "../Utils/Rules/CreatorTeams";
 import InheritedOwners from "../Utils/Rules/InheritedOwners";
+import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 
 /*
  * Whether any owner that was actually added came from one inherited source.
@@ -251,6 +252,13 @@ class AlertOwnerRuleEngineServiceClass
     alert: Alert;
     rules: Array<AlertOwnerRule>;
     allowOwnerNotification: boolean;
+    /*
+     * Shared by many matchings; a reader of a monitor not saved yet hands
+     * it in seeded with that monitor (WhoIsToldService.getForDraft).
+     */
+    monitorCache?: MonitorRuleCriteriaCache | undefined;
+    // The owners a resource will have once it is created (withPendingOwners).
+    pendingOwners?: Map<OwnerRuleInheritSource, OwnerIdSets> | undefined;
   }): Promise<OwnerRulePlan<AlertOwnerRule>> {
     const { alert, rules } = data;
 
@@ -262,8 +270,15 @@ class AlertOwnerRuleEngineServiceClass
       creatorUserId: alert.createdByUserId,
     });
 
+    const monitorCache: MonitorRuleCriteriaCache =
+      data.monitorCache || new MonitorRuleCriteriaCache();
+
     for (const rule of rules) {
-      const matches: boolean = await this.doesAlertMatchRule(alert, rule);
+      const matches: boolean = await this.doesAlertMatchRule(
+        alert,
+        rule,
+        monitorCache,
+      );
 
       if (!matches) {
         continue;
@@ -281,17 +296,23 @@ class AlertOwnerRuleEngineServiceClass
     }
 
     return builder.build(
-      await InheritedOwners.read({
+      withPendingOwners({
+        read: await InheritedOwners.read({
+          sources: builder.getSourcesToInherit(),
+          resources: {
+            // An alert has one monitor.
+            monitorIds: alert.monitorId ? [alert.monitorId] : [],
+            hostIds: InheritedOwners.idsOf(alert.hosts),
+            kubernetesClusterIds: InheritedOwners.idsOf(
+              alert.kubernetesClusters,
+            ),
+            dockerHostIds: InheritedOwners.idsOf(alert.dockerHosts),
+            podmanHostIds: InheritedOwners.idsOf(alert.podmanHosts),
+            serviceIds: InheritedOwners.idsOf(alert.services),
+          },
+        }),
+        pending: data.pendingOwners,
         sources: builder.getSourcesToInherit(),
-        resources: {
-          // An alert has one monitor.
-          monitorIds: alert.monitorId ? [alert.monitorId] : [],
-          hostIds: InheritedOwners.idsOf(alert.hosts),
-          kubernetesClusterIds: InheritedOwners.idsOf(alert.kubernetesClusters),
-          dockerHostIds: InheritedOwners.idsOf(alert.dockerHosts),
-          podmanHostIds: InheritedOwners.idsOf(alert.podmanHosts),
-          serviceIds: InheritedOwners.idsOf(alert.services),
-        },
       }),
     );
   }
@@ -567,6 +588,7 @@ class AlertOwnerRuleEngineServiceClass
   private async doesAlertMatchRule(
     alert: Alert,
     rule: AlertOwnerRule,
+    monitorCache: MonitorRuleCriteriaCache = new MonitorRuleCriteriaCache(),
   ): Promise<boolean> {
     return await RuleCriteriaMatcher.matchesWithLegacy({
       rule,
@@ -584,7 +606,11 @@ class AlertOwnerRuleEngineServiceClass
       matchesLegacyRule: async (
         legacyRule: AlertOwnerRule,
       ): Promise<boolean> => {
-        return await this.doesAlertMatchLegacyRule(alert, legacyRule);
+        return await this.doesAlertMatchLegacyRule(
+          alert,
+          legacyRule,
+          monitorCache,
+        );
       },
     });
   }
@@ -592,6 +618,7 @@ class AlertOwnerRuleEngineServiceClass
   private async doesAlertMatchLegacyRule(
     alert: Alert,
     rule: AlertOwnerRule,
+    monitorCache: MonitorRuleCriteriaCache,
   ): Promise<boolean> {
     if (rule.monitors && rule.monitors.length > 0) {
       if (!alert.monitorId) {
@@ -648,15 +675,10 @@ class AlertOwnerRuleEngineServiceClass
       if (!alert.monitorId) {
         return false;
       }
-      const monitor: Monitor | null = await MonitorService.findOneById({
-        id: alert.monitorId,
-        select: {
-          name: true,
-          description: true,
-          labels: { _id: true },
-        },
-        props: { isRoot: true },
-      });
+      // Its name, description and labels (MonitorRuleCriteriaCache.getMonitor).
+      const monitor: Monitor | null = await monitorCache.getMonitor(
+        alert.monitorId,
+      );
       if (!monitor) {
         return false;
       }

@@ -6,7 +6,6 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import AlertFeedService from "./AlertFeedService";
 import AlertPrivacyRuleService from "./AlertPrivacyRuleService";
 import AlertService from "./AlertService";
-import MonitorService from "./MonitorService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Red500 } from "../../Types/BrandColors";
 import Select from "../Types/Database/Select";
@@ -27,6 +26,13 @@ import {
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import PatternWorkScope, { RuleEvaluation } from "../Utils/PatternWorkScope";
+import ObjectID from "../../Types/ObjectID";
+import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
+import {
+  PrivacyRulePlan,
+  getPrivacyRulesThatApply,
+  makePrivacyRulePlan,
+} from "../Utils/Rules/PrivacyRulePlan";
 
 class AlertPrivacyRuleEngineServiceClass
   implements RuleRunEngine<Alert, AlertPrivacyRule>
@@ -80,19 +86,9 @@ class AlertPrivacyRuleEngineServiceClass
     }
 
     try {
-      // Kept until any of the project's rules changes (RuleSetCache).
-      const rules: Array<AlertPrivacyRule> =
-        await RuleSetCache.findEnabledRules<AlertPrivacyRule>({
-          service: AlertPrivacyRuleService,
-          projectId: alert.projectId,
-          select: this.ruleSelect,
-        });
-
-      logIfRuleReadWasTruncated({
-        ruleKind: "AlertPrivacyRule",
-        projectId: alert.projectId,
-        rulesRead: rules.length,
-      });
+      const rules: Array<AlertPrivacyRule> = await this.getEnabledRules(
+        alert.projectId,
+      );
 
       if (rules.length === 0) {
         return false;
@@ -111,6 +107,78 @@ class AlertPrivacyRuleEngineServiceClass
       } as LogAttributes);
       return false;
     }
+  }
+
+  /*
+   * The project's enabled rules, as every evaluation of a new alert reads
+   * them - the create and "When this goes down" alike. Kept until any of
+   * the project's rules changes (RuleSetCache).
+   */
+  @CaptureSpan()
+  public async getEnabledRules(
+    projectId: ObjectID,
+  ): Promise<Array<AlertPrivacyRule>> {
+    const rules: Array<AlertPrivacyRule> =
+      await RuleSetCache.findEnabledRules<AlertPrivacyRule>({
+        service: AlertPrivacyRuleService,
+        projectId: projectId,
+        select: this.ruleSelect,
+      });
+
+    logIfRuleReadWasTruncated({
+      ruleKind: "AlertPrivacyRule",
+      projectId: projectId,
+      rulesRead: rules.length,
+    });
+
+    return rules;
+  }
+
+  /*
+   * Which of `rules` make the alert private (PrivacyRulePlan) - read, never
+   * written. The create and a run carry it out (applyRules), and "When this
+   * goes down" (WhoIsToldService) reads it for the alert a monitor's
+   * criteria would open, held in memory (#7213). The monitor is read
+   * through `monitorCache`: one shared by many matchings, or seeded with a
+   * monitor not saved yet.
+   */
+  @RuleEvaluation()
+  public async planRules(data: {
+    alert: Alert;
+    rules: Array<AlertPrivacyRule>;
+    monitorCache?: MonitorRuleCriteriaCache | undefined;
+  }): Promise<PrivacyRulePlan<AlertPrivacyRule>> {
+    const matchedRules: Array<AlertPrivacyRule> = [];
+    const uncheckedRules: Array<AlertPrivacyRule> = [];
+    const monitorCache: MonitorRuleCriteriaCache =
+      data.monitorCache || new MonitorRuleCriteriaCache();
+
+    for (const rule of data.rules) {
+      const stoppedBefore: number = PatternWorkScope.stoppedQuestions();
+      const matches: boolean = await this.doesAlertMatchRule(
+        data.alert,
+        rule,
+        monitorCache,
+      );
+
+      if (matches) {
+        matchedRules.push(rule);
+      } else if (PatternWorkScope.stoppedQuestions() > stoppedBefore) {
+        /*
+         * Its patterns could not all be answered: together with the other
+         * rules' they needed more work than one evaluation may take
+         * (Utils/LinearRegExp/PatternWork.ts). The rule may have matched,
+         * so it counts as one that did: a record is never shown to the whole
+         * project because a pattern was not read to the end.
+         */
+        uncheckedRules.push(rule);
+      }
+    }
+
+    return makePrivacyRulePlan({
+      matchedRules: matchedRules,
+      uncheckedRules: uncheckedRules,
+    });
   }
 
   /*
@@ -137,7 +205,7 @@ class AlertPrivacyRuleEngineServiceClass
     }
   }
 
-  @RuleEvaluation()
+  // Carries the plan out (planRules): the one place a privacy rule writes.
   private async applyRules(data: {
     alert: Alert;
     rules: Array<AlertPrivacyRule>;
@@ -150,30 +218,16 @@ class AlertPrivacyRuleEngineServiceClass
       return RuleApplicationResultUtil.noMatch();
     }
 
-    const matchedRules: Array<AlertPrivacyRule> = [];
-    const uncheckedRules: Array<AlertPrivacyRule> = [];
+    const plan: PrivacyRulePlan<AlertPrivacyRule> = await this.planRules({
+      alert: alert,
+      rules: rules,
+    });
 
-    for (const rule of rules) {
-      const stoppedBefore: number = PatternWorkScope.stoppedQuestions();
-      const matches: boolean = await this.doesAlertMatchRule(alert, rule);
-
-      if (matches) {
-        matchedRules.push(rule);
-      } else if (PatternWorkScope.stoppedQuestions() > stoppedBefore) {
-        /*
-         * Its patterns could not all be answered: together with the other
-         * rules' they needed more work than one evaluation may take
-         * (Utils/LinearRegExp/PatternWork.ts). The rule may have matched,
-         * so it counts as one that did: a record is never shown to the whole
-         * project because a pattern was not read to the end.
-         */
-        uncheckedRules.push(rule);
-      }
-    }
-
-    if (matchedRules.length === 0 && uncheckedRules.length === 0) {
+    if (!plan.makesPrivate) {
       return RuleApplicationResultUtil.noMatch();
     }
+
+    const { matchedRules, uncheckedRules } = plan;
 
     /*
      * The create hook returns before evaluating an already-private alert; a
@@ -225,9 +279,11 @@ class AlertPrivacyRuleEngineServiceClass
        * The rules that matched; or, when none did, the ones that could not
        * be checked in full and so counted as matching.
        */
-      const ruleNames: Array<string> = (
-        matchedRules.length > 0 ? matchedRules : uncheckedRules
-      )
+      const ruleNames: Array<string> = getPrivacyRulesThatApply({
+        matchedRules: matchedRules,
+        uncheckedRules: uncheckedRules,
+        makesPrivate: true,
+      })
         .map((r: AlertPrivacyRule) => {
           return r.name?.toString() || "Unnamed Rule";
         })
@@ -274,6 +330,7 @@ class AlertPrivacyRuleEngineServiceClass
   private async doesAlertMatchRule(
     alert: Alert,
     rule: AlertPrivacyRule,
+    monitorCache: MonitorRuleCriteriaCache = new MonitorRuleCriteriaCache(),
   ): Promise<boolean> {
     return await RuleCriteriaMatcher.matchesWithLegacy({
       rule,
@@ -291,7 +348,11 @@ class AlertPrivacyRuleEngineServiceClass
       matchesLegacyRule: async (
         legacyRule: AlertPrivacyRule,
       ): Promise<boolean> => {
-        return await this.doesAlertMatchLegacyRule(alert, legacyRule);
+        return await this.doesAlertMatchLegacyRule(
+          alert,
+          legacyRule,
+          monitorCache,
+        );
       },
     });
   }
@@ -299,6 +360,7 @@ class AlertPrivacyRuleEngineServiceClass
   private async doesAlertMatchLegacyRule(
     alert: Alert,
     rule: AlertPrivacyRule,
+    monitorCache: MonitorRuleCriteriaCache,
   ): Promise<boolean> {
     if (rule.monitors && rule.monitors.length > 0) {
       if (!alert.monitorId) {
@@ -355,15 +417,10 @@ class AlertPrivacyRuleEngineServiceClass
       if (!alert.monitorId) {
         return false;
       }
-      const monitor: Monitor | null = await MonitorService.findOneById({
-        id: alert.monitorId,
-        select: {
-          name: true,
-          description: true,
-          labels: { _id: true },
-        },
-        props: { isRoot: true },
-      });
+      // Its name, description and labels (MonitorRuleCriteriaCache.getMonitor).
+      const monitor: Monitor | null = await monitorCache.getMonitor(
+        alert.monitorId,
+      );
       if (!monitor) {
         return false;
       }

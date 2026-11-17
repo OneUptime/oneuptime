@@ -2,6 +2,9 @@ import MonitorStepsForm from "../../../Components/Form/Monitor/MonitorSteps";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import MonitorStepsViewer from "../../../Components/Monitor/MonitorSteps/MonitorSteps";
+import MonitorWhoIsToldCard, {
+  WhoIsToldPlace,
+} from "../../../Components/Monitor/Overview/MonitorWhoIsToldCard";
 import PageComponentProps from "../../PageComponentProps";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -105,6 +108,9 @@ const MonitorCriteria: FunctionComponent<
     MonitorStepsType | undefined
   >(undefined);
 
+  // How many times the criteria were saved here: When this goes down reads again.
+  const [savedCount, setSavedCount] = useState<number>(0);
+
   useAsyncEffect(async () => {
     // fetch the model
     await fetchItem();
@@ -160,6 +166,29 @@ const MonitorCriteria: FunctionComponent<
           }
         />
       );
+    }
+
+    return (
+      <Fragment>
+        {getCriteriaCard()}
+        {/*
+         * Who the criteria tell, under them (#7055): the overview's card,
+         * read again once they are saved.
+         */}
+        <div className="mt-5">
+          <MonitorWhoIsToldCard
+            monitorId={modelId}
+            refreshToken={savedCount}
+            place={WhoIsToldPlace.MonitorCriteria}
+          />
+        </div>
+      </Fragment>
+    );
+  };
+
+  const getCriteriaCard: GetReactElementFunction = (): ReactElement => {
+    if (!monitorType) {
+      return <></>;
     }
 
     return (
@@ -220,6 +249,9 @@ const MonitorCriteria: FunctionComponent<
         ]}
         onSaveSuccess={async (item: Monitor) => {
           setMonitorSteps(item.monitorSteps);
+          setSavedCount((count: number): number => {
+            return count + 1;
+          });
         }}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,

@@ -360,7 +360,9 @@ class AlertOnCallRuleEngineServiceClass {
    * at once (Setup health, #6812, through WhoIsToldService.resolveProject):
    * the project's enabled rules, read once with readEnabledRules, and the
    * monitors those alerts come from (MonitorRuleCriteriaCache.seed), so the
-   * matching reads nothing per alert. It is the same matching either way.
+   * matching reads nothing per alert. It is the same matching either way. A
+   * reader of one alert hands in only the cache - seeded with a monitor not
+   * saved yet, say - and the rules are read as ever.
    */
   @CaptureSpan()
   @RuleEvaluation()
@@ -368,7 +370,7 @@ class AlertOnCallRuleEngineServiceClass {
     alert: Alert,
     preloaded?:
       | {
-          rules: Array<AlertOnCallRule>;
+          rules?: Array<AlertOnCallRule> | undefined;
           monitorCache: MonitorRuleCriteriaCache;
         }
       | undefined,
@@ -383,9 +385,8 @@ class AlertOnCallRuleEngineServiceClass {
 
     const matching: Array<AlertOnCallRule> = [];
 
-    const rules: Array<AlertOnCallRule> = preloaded
-      ? preloaded.rules
-      : await this.findEnabledRules(alert.projectId);
+    const rules: Array<AlertOnCallRule> =
+      preloaded?.rules || (await this.findEnabledRules(alert.projectId));
 
     // Read once, by the first rule that asks who owns the alert.
     const owners: AlertOwnerIdsReader = new AlertOwnerIdsReader(alert);

@@ -38,7 +38,17 @@ function read(...segments: Array<string>): string {
   return fs.readFileSync(path.join(...segments), "utf8");
 }
 
+/*
+ * It said "... and emails the Project Owners." until #7055: wrong in a
+ * project whose on-call rule pages somebody for every new incident, which
+ * the newcomer walks met three times. Who is told depends on the project,
+ * so the Criteria step says it for the monitor the form holds (When this
+ * goes down, from the resolver a saved monitor's overview reads).
+ */
 const CREATE_MONITOR_DESCRIPTION: string =
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert, and the Criteria step shows who is told.";
+
+const PREVIOUS_CREATE_MONITOR_DESCRIPTION: string =
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the Project Owners.";
 
 const WHITESPACE_RUN: RegExp = /\s+/g;
@@ -72,6 +82,7 @@ const RETIRED_SENTENCES: Array<string> = [
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change.",
   "Route alerts and incidents to the right person at the right time.",
   PREVIOUS_ON_CALL_STEP_DESCRIPTION,
+  PREVIOUS_CREATE_MONITOR_DESCRIPTION,
 ];
 
 /*
@@ -103,10 +114,18 @@ const NON_ENGLISH: Array<string> = Object.keys(locales)
   .sort();
 
 describe("where the newcomer reads it", () => {
-  test("Create Monitor's card says who is told when it goes down", () => {
+  test("Create Monitor's card says where it shows who is told when it goes down", () => {
     const page: string = read(DASHBOARD_SRC, "Pages", "Monitor", "Create.tsx");
 
     expect(page).toContain(`"${CREATE_MONITOR_DESCRIPTION}"`);
+    // And the Criteria step does show it, for the monitor the form holds.
+    expect(page).toContain("<MonitorDraftWhoIsTold");
+    expect(page.indexOf("<MonitorDraftWhoIsTold")).toBeGreaterThan(
+      page.indexOf('stepId: "criteria"'),
+    );
+    expect(page.indexOf("<MonitorDraftWhoIsTold")).toBeLessThan(
+      page.indexOf('stepId: "monitoring-interval"'),
+    );
   });
 
   test("the Home checklist's on-call step says who is told until there is a policy", () => {

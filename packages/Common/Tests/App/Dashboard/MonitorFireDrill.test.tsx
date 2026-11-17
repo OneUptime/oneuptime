@@ -72,10 +72,19 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi",
   () => {
+    // Its helpers as they are (a draft's body); only the server's answers stood in for.
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi",
+    ) as Record<string, unknown>;
+
     return {
+      ...actual,
       __esModule: true,
       default: {
         getForMonitor: (...args: Array<unknown>) => {
+          return whoIsToldMock(...args);
+        },
+        getForDraft: (...args: Array<unknown>) => {
           return whoIsToldMock(...args);
         },
       },
@@ -92,6 +101,8 @@ import {
   FIRE_DRILL_CANT_TEST,
   FIRE_DRILL_WORDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallTestPage/OnCallTestPageWords";
+import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import {
   WhoIsToldOwnersSource,
   WhoIsToldResult,
@@ -398,6 +409,29 @@ describe("Run Fire Drill on the When this goes down card", () => {
 
   test("is not offered where no failure pages a policy: there is nothing to drill", async () => {
     await renderCard([]);
+
+    expect(screen.queryByTestId("run-fire-drill")).not.toBeInTheDocument();
+  });
+
+  test("is not offered over a draft of the monitor: a drill reads the monitor as it is saved (#7055)", async () => {
+    whoIsToldMock.mockResolvedValue(whoIsTold([PRIMARY]));
+
+    render(
+      <MemoryRouter>
+        <MonitorWhoIsToldCard
+          monitorId={new ObjectID(MONITOR_ID)}
+          draft={{
+            monitorId: new ObjectID(MONITOR_ID),
+            name: "Checkout API",
+            monitorType: MonitorType.Website,
+            monitorSteps: new MonitorSteps(),
+            labelIds: [],
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    await screen.findByTestId("who-is-told-summary");
 
     expect(screen.queryByTestId("run-fire-drill")).not.toBeInTheDocument();
   });

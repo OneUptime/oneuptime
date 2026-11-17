@@ -38,6 +38,14 @@ import GuidedSetupRunStore, {
   getFirstOpenStepKey,
 } from "../GuidedSetupProgress";
 import AppLink from "../../AppLink/AppLink";
+import MonitorWhoIsToldCard, {
+  WhoIsToldCardVariant,
+  WhoIsToldPlace,
+} from "../../Monitor/Overview/MonitorWhoIsToldCard";
+import WhoIsToldApi from "../../Monitor/Overview/WhoIsToldApi";
+import { getWhoIsToldToldSentences } from "../../Monitor/Overview/WhoIsToldWords";
+import { WhoIsToldResult } from "Common/Types/Monitor/WhoIsTold";
+import ObjectID from "Common/Types/ObjectID";
 import OnCallTestPageApi from "../../OnCallTestPage/OnCallTestPageApi";
 import SendTestPageButton from "../../OnCallTestPage/SendTestPageButton";
 import TestPageResult, {
@@ -112,6 +120,12 @@ export interface ComponentProps {
 interface SummaryExtras {
   incidentSeverityName: string | null;
   isMonitorOwner: boolean;
+  /*
+   * Who the monitor tells, as its overview's When this goes down says it
+   * (#7055): read for a project whose own rules decide who is paged. Null
+   * when it was not read, or could not be.
+   */
+  whoIsTold: WhoIsToldResult | null;
 }
 
 const routeOf: (page: PageMap, modelId?: string | undefined) => Route = (
@@ -454,25 +468,48 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
 
     let isActive: boolean = true;
 
+    /*
+     * A project whose own policies and rules decide who is paged: who they
+     * page, from the resolver the monitor's overview reads (#7055). A read
+     * that fails leaves the summary's general sentence.
+     */
+    const whoIsToldRead: Promise<WhoIsToldResult | null> =
+      mode === WhoIsToldMode.ExistingPolicy
+        ? WhoIsToldApi.getForMonitor({
+            monitorId: new ObjectID(monitor.id),
+          }).catch(() => {
+            return null;
+          })
+        : Promise.resolve(null);
+
     Promise.all([
       WebsiteDownApi.loadIncidentSeverityName(
         getIncidentSeverityId(monitor.monitorSteps),
       ),
       WebsiteDownApi.isMonitorOwner({ monitorId: monitor.id, userId: userId }),
+      whoIsToldRead,
     ])
-      .then(([severityName, isOwner]: [string | null, boolean]) => {
-        if (isActive) {
-          setSummaryExtras({
-            incidentSeverityName: severityName,
-            isMonitorOwner: isOwner,
-          });
-        }
-      })
+      .then(
+        ([severityName, isOwner, whoIsTold]: [
+          string | null,
+          boolean,
+          WhoIsToldResult | null,
+        ]) => {
+          if (isActive) {
+            setSummaryExtras({
+              incidentSeverityName: severityName,
+              isMonitorOwner: isOwner,
+              whoIsTold: whoIsTold,
+            });
+          }
+        },
+      )
       .catch(() => {
         if (isActive) {
           setSummaryExtras({
             incidentSeverityName: null,
             isMonitorOwner: false,
+            whoIsTold: null,
           });
         }
       });
@@ -480,7 +517,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     return () => {
       isActive = false;
     };
-  }, [openStepKey, monitor?.id]);
+  }, [openStepKey, monitor?.id, mode]);
 
   if (isLoading) {
     return <PageSkeleton />;
@@ -1116,14 +1153,17 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         </>
       ) : (
         <>
-          {mode === WhoIsToldMode.ExistingPolicy ? (
-            <AppLink
-              to={routeOf(PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES)}
-              className={linkClassName}
-            >
-              {translator.translateText(WEBSITE_DOWN_COPY.whoOnCallRulesLink) ||
-                ""}
-            </AppLink>
+          {/*
+           * A project that pages people already: who its rules page for
+           * this monitor, and what would stop them (#7055) - the monitor's
+           * own When this goes down, its fixes opening in a new tab.
+           */}
+          {mode === WhoIsToldMode.ExistingPolicy && monitor ? (
+            <MonitorWhoIsToldCard
+              monitorId={new ObjectID(monitor.id)}
+              place={WhoIsToldPlace.GuidedSetup}
+              variant={WhoIsToldCardVariant.Section}
+            />
           ) : (
             <></>
           )}
@@ -1340,6 +1380,9 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
           policyName: policy?.name || null,
           policyResponders: policy?.responders || [],
           isMonitorOwner: summaryExtras.isMonitorOwner,
+          whoIsToldSentences: summaryExtras.whoIsTold
+            ? getWhoIsToldToldSentences(summaryExtras.whoIsTold, translator)
+            : null,
           canSendEmail: canSendEmail,
           testResult: testResult,
           testResultSentence: testResult

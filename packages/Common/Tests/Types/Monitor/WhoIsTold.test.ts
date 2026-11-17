@@ -5,6 +5,9 @@ import {
   WhoIsToldCriteria,
   WhoIsToldEvent,
   WhoIsToldFix,
+  WhoIsToldOwnerAddedBy,
+  WhoIsToldOwnerKind,
+  WhoIsToldOwnerProblem,
   WhoIsToldOwnersSource,
   WhoIsToldPagingState,
   WhoIsToldPerson,
@@ -2079,5 +2082,360 @@ describe("the owners a page reaches first, whom the Created email leaves out", (
     // And nobody's recipients leave the server.
     expect(JSON.stringify(asReadable)).not.toContain("recipients");
     expect(JSON.stringify(asHidden)).not.toContain("recipients");
+  });
+});
+
+/*
+ * THE INCIDENT AN ALERT BECOMES (#7216), A PRIVATE RECORD A READER MAY NOT
+ * SEE (#7213), AND THE NAMES THE CHAIN GAINED (#7212, #7214, #7572).
+ */
+describe("an alert an alert incident rule declares an incident from", () => {
+  const DECLARING_RULE_ID: string = "6810bbbb-0000-4000-8000-000000000009";
+
+  function alertThatDeclares(
+    incident: WhoIsToldEvent,
+    alertOverrides: Partial<WhoIsToldEvent> = {},
+  ): WhoIsToldEvent {
+    return event({
+      kind: OnCallTestPageRecordKind.Alert,
+      rules: [],
+      policies: [],
+      declares: {
+        rule: { id: DECLARING_RULE_ID, name: "Database alerts" },
+        waitInMinutes: 30,
+        incident: incident,
+      },
+      ...alertOverrides,
+    });
+  }
+
+  test("an alert that pages nobody is no break when the incident it becomes pages somebody", () => {
+    const breaks: Array<WhoIsToldBreak> = breaksOf({
+      criteria: [criteria({ events: [alertThatDeclares(event())] })],
+      alertRules: false,
+    });
+
+    expect(breaks).toEqual([]);
+  });
+
+  test("not even only incidents having rules, the break of the set-up that means alerts to become incidents", () => {
+    expect(
+      breaksOf({
+        criteria: [criteria({ events: [alertThatDeclares(event())] })],
+        incidentRules: true,
+        alertRules: false,
+      }),
+    ).toEqual([]);
+  });
+
+  test("when the incident pages nobody either, the alert's break stays, said once", () => {
+    const breaks: Array<WhoIsToldBreak> = breaksOf({
+      criteria: [
+        criteria({
+          events: [alertThatDeclares(event({ rules: [], policies: [] }))],
+        }),
+      ],
+      incidentRules: true,
+      alertRules: false,
+    });
+
+    expect(kindsOf(breaks)).toEqual([
+      WhoIsToldBreakKind.OnlyIncidentsHaveRules,
+    ]);
+  });
+
+  test("the incident's own policies and people are breaks of the chain", () => {
+    const breaks: Array<WhoIsToldBreak> = breaksOf({
+      criteria: [
+        criteria({
+          events: [
+            alertThatDeclares(
+              event({
+                policies: [policy({ levelCount: 0, people: [] })],
+              }),
+            ),
+          ],
+        }),
+      ],
+    });
+
+    expect(kindsOf(breaks)).toEqual([WhoIsToldBreakKind.PolicyHasNoLevels]);
+  });
+
+  test("an alert that pages somebody itself keeps its people's breaks too", () => {
+    const breaks: Array<WhoIsToldBreak> = breaksOf({
+      criteria: [
+        criteria({
+          events: [
+            alertThatDeclares(event({ rules: [], policies: [] }), {
+              policies: [
+                policy({
+                  people: [
+                    person({
+                      isReachable: false,
+                      channels: [],
+                      problem: WhoIsToldPersonProblem.OptedOut,
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    });
+
+    expect(kindsOf(breaks)).toEqual([WhoIsToldBreakKind.PersonUnreachable]);
+  });
+});
+
+describe("a private record a reader may not see (#7213)", () => {
+  const secret: WhoIsToldEvent = event({
+    isPrivate: true,
+    title: "Payroll export failed",
+    privacyRules: [{ id: RULE_ID, name: "Payroll is private" }],
+    policies: [policy({ levelCount: 0, people: [] })],
+    rules: [],
+    ownerIds: { userIds: [ANA], teamIds: [] },
+  });
+
+  function resultOf(events: Array<WhoIsToldEvent>): WhoIsToldResult {
+    const criteriaList: Array<WhoIsToldCriteria> = [
+      criteria({ events: events }),
+    ];
+
+    return {
+      ...resultWith(criteriaList),
+      facts: {
+        projectHasIncidentOnCallRules: true,
+        projectHasAlertOnCallRules: true,
+        projectHasOnCallPolicies: true,
+      },
+    };
+  }
+
+  function redactFor(
+    result: WhoIsToldResult,
+    canRead: boolean,
+  ): WhoIsToldResult {
+    return redactWhoIsTold({
+      result: result,
+      readablePolicyIds: new Set<string>([POLICY_ID]),
+      readableRuleIds: new Set<string>([RULE_ID]),
+      readableOwnerRuleIds: new Set<string>(),
+      readableStatusPageIds: new Set<string>(),
+      readablePrivacyRuleIds: new Set<string>([RULE_ID]),
+      canReadPrivateEvent: (): boolean => {
+        return canRead;
+      },
+    });
+  }
+
+  test("is told it opens, private, its severity and the rule that made it so, and nothing of whom it tells", () => {
+    const redacted: WhoIsToldResult = redactFor(resultOf([secret]), false);
+
+    expect(redacted.criteria[0]!.events[0]).toEqual({
+      kind: OnCallTestPageRecordKind.Incident,
+      title: "",
+      severityName: "Critical",
+      owners: {
+        source: WhoIsToldOwnersSource.Named,
+        userNames: [],
+        teamNames: [],
+      },
+      ownerRules: [],
+      rules: [],
+      policies: [],
+      statusPages: [],
+      isPrivate: true,
+      privacyRules: [{ id: RULE_ID, name: "Payroll is private" }],
+      isHidden: true,
+    });
+    // Its policy has no levels: not the reader's to know.
+    expect(redacted.breaks).toEqual([]);
+    expect(JSON.stringify(redacted)).not.toContain("Payroll export failed");
+    expect(JSON.stringify(redacted)).not.toContain("Primary");
+  });
+
+  test("a reader who may read it is told it whole, its break included", () => {
+    const redacted: WhoIsToldResult = redactFor(resultOf([secret]), true);
+
+    expect(redacted.criteria[0]!.events[0]!.isHidden).toBeUndefined();
+    expect(redacted.criteria[0]!.events[0]!.title).toBe(
+      "Payroll export failed",
+    );
+    expect(kindsOf(redacted.breaks)).toEqual([
+      WhoIsToldBreakKind.PolicyHasNoLevels,
+    ]);
+  });
+
+  test("nobody reads a private record without being said to: no canReadPrivateEvent, no reader", () => {
+    const redacted: WhoIsToldResult = redactWhoIsTold({
+      result: resultOf([secret]),
+      readablePolicyIds: new Set<string>([POLICY_ID]),
+      readableRuleIds: new Set<string>([RULE_ID]),
+      readableOwnerRuleIds: new Set<string>(),
+      readableStatusPageIds: new Set<string>(),
+    });
+
+    expect(redacted.criteria[0]!.events[0]!.isHidden).toBe(true);
+    // And a privacy rule they were not said to read has no name.
+    expect(redacted.criteria[0]!.events[0]!.privacyRules).toEqual([
+      { id: RULE_ID, name: "" },
+    ]);
+  });
+
+  test("a public record beside it keeps its own breaks, and nothing of its owners' ids leaves", () => {
+    const open: WhoIsToldEvent = event({
+      rules: [],
+      policies: [],
+      ownerIds: { userIds: [BEN], teamIds: [] },
+    });
+    const redacted: WhoIsToldResult = redactFor(
+      resultOf([secret, open]),
+      false,
+    );
+
+    expect(kindsOf(redacted.breaks)).toEqual([WhoIsToldBreakKind.NobodyPaged]);
+    expect(JSON.stringify(redacted)).not.toContain("ownerIds");
+    expect(JSON.stringify(redacted)).not.toContain("facts");
+  });
+
+  test("a hidden private alert hides the incident it would become too", () => {
+    const alert: WhoIsToldEvent = event({
+      kind: OnCallTestPageRecordKind.Alert,
+      isPrivate: true,
+      declares: {
+        rule: { id: RULE_ID, name: "Every alert" },
+        waitInMinutes: 0,
+        incident: event({ isPrivate: true, title: "Payroll incident" }),
+      },
+    });
+
+    const redacted: WhoIsToldResult = redactFor(resultOf([alert]), false);
+
+    expect(redacted.criteria[0]!.events[0]!.declares).toBeUndefined();
+    expect(JSON.stringify(redacted)).not.toContain("Payroll incident");
+  });
+
+  test("a visible alert's private incident is hidden on its own", () => {
+    const alert: WhoIsToldEvent = event({
+      kind: OnCallTestPageRecordKind.Alert,
+      declares: {
+        rule: { id: RULE_ID, name: "Every alert" },
+        waitInMinutes: 0,
+        incident: event({ isPrivate: true, title: "Payroll incident" }),
+      },
+    });
+
+    const redacted: WhoIsToldResult = redactWhoIsTold({
+      result: resultOf([alert]),
+      readablePolicyIds: new Set<string>([POLICY_ID]),
+      readableRuleIds: new Set<string>([RULE_ID]),
+      readableOwnerRuleIds: new Set<string>(),
+      readableStatusPageIds: new Set<string>(),
+      readableAlertIncidentRuleIds: new Set<string>([RULE_ID]),
+      canReadPrivateEvent: (item: WhoIsToldEvent): boolean => {
+        return item.kind === OnCallTestPageRecordKind.Alert;
+      },
+    });
+
+    const declares: WhoIsToldEvent["declares"] =
+      redacted.criteria[0]!.events[0]!.declares;
+
+    expect(declares?.rule).toEqual({ id: RULE_ID, name: "Every alert" });
+    expect(declares?.incident.isHidden).toBe(true);
+    expect(declares?.incident.title).toBe("");
+  });
+
+  test("redacting leaves the resolver's answer as it was", () => {
+    const result: WhoIsToldResult = resultOf([secret]);
+    const before: string = JSON.stringify(result);
+
+    redactFor(result, false);
+
+    expect(JSON.stringify(result)).toBe(before);
+  });
+});
+
+describe("the names the chain gained, as one caller may see them", () => {
+  const GROUP_ID: string = "6810eeee-0000-4000-8000-000000000001";
+  const LABEL_RULE_ID: string = "6810bbbb-0000-4000-8000-000000000005";
+
+  const named: WhoIsToldEvent = event({
+    statusPages: [
+      {
+        id: STATUS_PAGE_ID,
+        name: "Payments status",
+        groups: [{ id: GROUP_ID, name: "Checkout" }],
+      },
+    ],
+    labelRules: [{ id: LABEL_RULE_ID, name: "Checkout labels" }],
+    owners: {
+      source: WhoIsToldOwnersSource.Named,
+      userNames: ["Ben Ito"],
+      teamNames: [],
+      notReached: [
+        {
+          kind: WhoIsToldOwnerKind.User,
+          id: ANA,
+          name: "",
+          problem: WhoIsToldOwnerProblem.NotInProject,
+          addedBy: WhoIsToldOwnerAddedBy.OwnerRule,
+          rule: { id: OWNER_RULE_ID, name: "Checkout owners" },
+        },
+      ],
+    },
+  });
+
+  function redacted(readable: {
+    groups?: Array<string>;
+    labelRules?: Array<string>;
+    ownerRules?: Array<string>;
+  }): WhoIsToldEvent {
+    return redactWhoIsTold({
+      result: resultWith([criteria({ events: [named] })]),
+      readablePolicyIds: new Set<string>([POLICY_ID]),
+      readableRuleIds: new Set<string>([RULE_ID]),
+      readableOwnerRuleIds: new Set<string>(readable.ownerRules || []),
+      readableStatusPageIds: new Set<string>([STATUS_PAGE_ID]),
+      readableMonitorGroupIds: new Set<string>(readable.groups || []),
+      readableLabelRuleIds: new Set<string>(readable.labelRules || []),
+    }).criteria[0]!.events[0]!;
+  }
+
+  test("read whole by a reader who may read them", () => {
+    const shown: WhoIsToldEvent = redacted({
+      groups: [GROUP_ID],
+      labelRules: [LABEL_RULE_ID],
+      ownerRules: [OWNER_RULE_ID],
+    });
+
+    expect(shown.statusPages[0]!.groups).toEqual([
+      { id: GROUP_ID, name: "Checkout" },
+    ]);
+    expect(shown.labelRules).toEqual([
+      { id: LABEL_RULE_ID, name: "Checkout labels" },
+    ]);
+    expect(shown.owners.notReached?.[0]?.rule).toEqual({
+      id: OWNER_RULE_ID,
+      name: "Checkout owners",
+    });
+  });
+
+  test("a group, a label rule or an owner rule they may not read keeps its place without its name", () => {
+    const shown: WhoIsToldEvent = redacted({});
+
+    expect(shown.statusPages[0]!.groups).toEqual([{ id: GROUP_ID, name: "" }]);
+    expect(shown.labelRules).toEqual([{ id: LABEL_RULE_ID, name: "" }]);
+    expect(shown.owners.notReached?.[0]?.rule).toEqual({
+      id: OWNER_RULE_ID,
+      name: "",
+    });
+    expect(JSON.stringify(shown)).not.toContain("Checkout labels");
+    expect(JSON.stringify(shown)).not.toContain("Checkout owners");
+    expect(JSON.stringify(shown)).not.toContain('"name":"Checkout"');
+    // The owner they are told of was never named: a person not in the project.
+    expect(shown.owners.notReached?.[0]?.name).toBe("");
   });
 });

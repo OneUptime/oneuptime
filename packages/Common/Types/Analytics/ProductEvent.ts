@@ -119,6 +119,13 @@ export enum ProductEventName {
   UsedByListOpened = "used_by/list_opened",
 
   /*
+   * "When this goes down" (#7079): its chain opened, and a fix opened from
+   * one of its breaks or owners who aren't emailed. Never a name.
+   */
+  WhoIsToldChainOpened = "who_is_told/chain_opened",
+  WhoIsToldFixOpened = "who_is_told/fix_opened",
+
+  /*
    * Putting a status page, a dashboard or a form on its own domain (#7024):
    * Add Custom Domain opened, the domain added to the project, each DNS
    * record Check now looked up, the domain verified, and a self-hosted
@@ -139,6 +146,12 @@ export const PRODUCT_EVENT_TOKEN_MAX_LENGTH: number = 60;
 
 // The page a feedback answer was given on: a route with no ids, cut to this.
 export const FEEDBACK_PAGE_TOKEN_MAX_LENGTH: number = 200;
+
+/*
+ * The kinds of break a chain names, joined by "." (who_is_told/
+ * chain_opened): long enough for every kind there is.
+ */
+export const WHO_IS_TOLD_BREAK_KINDS_MAX_LENGTH: number = 200;
 
 export interface ProductEventPropertySpec {
   name: string;
@@ -459,6 +472,27 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     description:
       'The full list of what refers to a record was opened: a relation\'s "See all" on a record\'s Used by card (relation), or a label\'s Used by (relation "all").',
     properties: [token("record_kind"), token("relation")],
+  },
+  {
+    name: ProductEventName.WhoIsToldChainOpened,
+    description:
+      "Show the chain was opened on When this goes down: where the card is (place), how many breaks it named and of which kinds, and how many owners it said aren't emailed.",
+    properties: [
+      token("place"),
+      { name: "break_count" },
+      {
+        name: "break_kinds",
+        isToken: true,
+        maxLength: WHO_IS_TOLD_BREAK_KINDS_MAX_LENGTH,
+      },
+      { name: "owners_not_emailed_count" },
+    ],
+  },
+  {
+    name: ProductEventName.WhoIsToldFixOpened,
+    description:
+      "A fix was opened from When this goes down: where the card is (place), the break it puts right or owner_not_emailed (kind), and the page it opens (fix).",
+    properties: [token("place"), token("kind"), token("fix")],
   },
   {
     name: ProductEventName.CustomDomainAddStarted,

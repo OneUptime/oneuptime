@@ -1,5 +1,22 @@
 import AlertEpisodeOnCallRule from "../../../Models/DatabaseModels/AlertEpisodeOnCallRule";
+import AlertIncidentRule from "../../../Models/DatabaseModels/AlertIncidentRule";
+import AlertLabelRule from "../../../Models/DatabaseModels/AlertLabelRule";
 import AlertOnCallRule from "../../../Models/DatabaseModels/AlertOnCallRule";
+import AlertOwnerRule from "../../../Models/DatabaseModels/AlertOwnerRule";
+import AlertPrivacyRule from "../../../Models/DatabaseModels/AlertPrivacyRule";
+import IncidentLabelRule from "../../../Models/DatabaseModels/IncidentLabelRule";
+import IncidentOwnerRule from "../../../Models/DatabaseModels/IncidentOwnerRule";
+import IncidentPrivacyRule from "../../../Models/DatabaseModels/IncidentPrivacyRule";
+import AlertOwnerRuleEngineService from "../../../Server/Services/AlertOwnerRuleEngineService";
+import AlertPrivacyRuleEngineService from "../../../Server/Services/AlertPrivacyRuleEngineService";
+import IncidentOwnerRuleEngineService from "../../../Server/Services/IncidentOwnerRuleEngineService";
+import IncidentPrivacyRuleEngineService from "../../../Server/Services/IncidentPrivacyRuleEngineService";
+import UserService from "../../../Server/Services/UserService";
+import Permission, { UserPermission } from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
+import AlertIncidentRuleEngineService from "../../../Server/Services/AlertIncidentRuleEngineService";
+import AlertLabelRuleEngineService from "../../../Server/Services/AlertLabelRuleEngineService";
+import IncidentLabelRuleEngineService from "../../../Server/Services/IncidentLabelRuleEngineService";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentEpisodeOnCallRule from "../../../Models/DatabaseModels/IncidentEpisodeOnCallRule";
 import IncidentOnCallRule from "../../../Models/DatabaseModels/IncidentOnCallRule";
@@ -242,6 +259,13 @@ interface World {
   certificateStates: Map<string, CustomDomainCertificateState> | null;
   ingestionKeys: Array<TelemetryIngestionKey>;
   receivesTelemetry: boolean;
+  // The project's privacy and owner rules for incidents (#9370): none here.
+  incidentPrivacyRules: Array<IncidentPrivacyRule>;
+  incidentOwnerRules: Array<IncidentOwnerRule>;
+  // Who is a member of the project, of the people an owner rule names.
+  projectMemberIds: Array<string>;
+  // Primary's first level reaches nobody right now.
+  primaryReachesNobody: boolean;
 }
 
 let world: World;
@@ -260,6 +284,10 @@ function defaultWorld(): World {
     certificateStates: new Map<string, CustomDomainCertificateState>(),
     ingestionKeys: [],
     receivesTelemetry: true,
+    incidentPrivacyRules: [],
+    incidentOwnerRules: [],
+    projectMemberIds: [],
+    primaryReachesNobody: false,
   };
 }
 
@@ -625,12 +653,98 @@ function stubWorld(): void {
       return [];
     },
   );
+  /*
+   * The label rules (their labels change which on-call rules page) and the
+   * alert incident rules (an alert that becomes an incident that pages is
+   * no break): none here, read once for the project (#7212, #7216).
+   */
+  spy(
+    "IncidentLabelRuleEngineService.getEnabledRules",
+    IncidentLabelRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<IncidentLabelRule>> => {
+      return [];
+    },
+  );
+  spy(
+    "AlertLabelRuleEngineService.getEnabledRules",
+    AlertLabelRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<AlertLabelRule>> => {
+      return [];
+    },
+  );
+  spy(
+    "AlertIncidentRuleEngineService.getEnabledRules",
+    AlertIncidentRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<AlertIncidentRule>> => {
+      return [];
+    },
+  );
+  /*
+   * The privacy rules, read once for the project; the owner rules only for
+   * a private record's owners, who may read it (#9370).
+   */
+  spy(
+    "IncidentPrivacyRuleEngineService.getEnabledRules",
+    IncidentPrivacyRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<IncidentPrivacyRule>> => {
+      return world.incidentPrivacyRules;
+    },
+  );
+  spy(
+    "AlertPrivacyRuleEngineService.getEnabledRules",
+    AlertPrivacyRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<AlertPrivacyRule>> => {
+      return [];
+    },
+  );
+  spy(
+    "IncidentOwnerRuleEngineService.getEnabledRules",
+    IncidentOwnerRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<IncidentOwnerRule>> => {
+      return world.incidentOwnerRules;
+    },
+  );
+  spy(
+    "AlertOwnerRuleEngineService.getEnabledRules",
+    AlertOwnerRuleEngineService,
+    "getEnabledRules",
+    async (): Promise<Array<AlertOwnerRule>> => {
+      return [];
+    },
+  );
+  spy(
+    "TeamMemberService.getProjectMemberUserIds",
+    TeamMemberService,
+    "getProjectMemberUserIds",
+    async (args: { userIds: Array<string> }): Promise<Array<ObjectID>> => {
+      return args.userIds
+        .filter((id: string): boolean => {
+          return world.projectMemberIds.includes(id);
+        })
+        .map((id: string): ObjectID => {
+          return new ObjectID(id);
+        });
+    },
+  );
+  spy("UserService.findBy", UserService, "findBy", async () => {
+    return [];
+  });
 
   spy(
     "OnCallTestPageService.readFirstLevel",
     OnCallTestPageService,
     "readFirstLevel",
     async () => {
+      if (world.primaryReachesNobody) {
+        return { targets: [], notPaged: [], levelCount: 1 };
+      }
+
       return {
         targets: [
           { userId: new ObjectID(ANA) },
@@ -1088,6 +1202,16 @@ describe("SetupHealthService", () => {
     expect(thousand["MonitorService.findOneById"]).toBe(0);
     // Every responder's verified methods come from the project's Readiness.
     expect(thousand["OnCallReadinessService.getReadinessForUsers"]).toBe(0);
+    /*
+     * The privacy rules, once (#9370); with no private record, no owner
+     * rule nor anybody's membership.
+     */
+    expect(thousand["IncidentPrivacyRuleEngineService.getEnabledRules"]).toBe(
+      1,
+    );
+    expect(thousand["AlertPrivacyRuleEngineService.getEnabledRules"]).toBe(1);
+    expect(thousand["IncidentOwnerRuleEngineService.getEnabledRules"]).toBe(0);
+    expect(thousand["TeamMemberService.getProjectMemberUserIds"]).toBe(0);
 
     const total: number = Object.values(thousand).reduce(
       (sum: number, value: number): number => {
@@ -1096,7 +1220,7 @@ describe("SetupHealthService", () => {
       0,
     );
 
-    expect(total).toBeLessThan(40);
+    expect(total).toBeLessThan(42);
   });
 
   test("a person sees only findings about records they may read", async () => {
@@ -1795,6 +1919,218 @@ describe("SetupHealthService", () => {
       expect(
         reads["RecommendationDismissalService.findBy"]!.mock.calls.length,
       ).toBe(dismissalReads);
+    });
+  });
+
+  /*
+   * A PRIVATE RECORD A MONITOR WOULD OPEN (#9370). Its card tells a reader
+   * who could not read it once it exists only that it opens, and that it is
+   * private: nothing of whom it tells, and none of the breaks it would raise
+   * (#7213). The list says none of them to that reader either, and names no
+   * monitor of one as what a finding affects. Here Primary reaches nobody
+   * right now, and every monitor's incident would page it.
+   */
+  describe("a private record a monitor would open (#9370)", () => {
+    const ME: string = CALLER.userId!.toString();
+
+    // Makes private the incidents of the monitors whose name matches; every incident without one.
+    function privacyRule(monitorNamePattern?: string): IncidentPrivacyRule {
+      const rule: IncidentPrivacyRule = withId(
+        new IncidentPrivacyRule(),
+        "68120000-1111-4000-8000-0000000000b7",
+      );
+      rule.name = "Sensitive monitors";
+      rule.projectId = PROJECT_ID;
+
+      if (monitorNamePattern) {
+        rule.monitorNamePattern = monitorNamePattern;
+      }
+
+      return rule;
+    }
+
+    // An owner rule that adds this person as an owner of every incident.
+    function ownerRule(userId: string): IncidentOwnerRule {
+      const rule: IncidentOwnerRule = withId(
+        new IncidentOwnerRule(),
+        "68120000-1111-4000-8000-0000000000b8",
+      );
+      rule.name = "Payments team";
+      rule.projectId = PROJECT_ID;
+      rule.isEnabled = true;
+      rule.notifyOwners = true;
+      rule.monitors = [];
+      rule.incidentSeverities = [];
+      rule.incidentLabels = [];
+      rule.monitorLabels = [];
+      rule.ownerUsers = [withId(new User(), userId)];
+      rule.ownerTeams = [];
+      return rule;
+    }
+
+    function asAdmin(): DatabaseCommonInteractionProps {
+      return {
+        ...CALLER,
+        userType: UserType.User,
+        userTenantAccessPermission: {
+          [PROJECT_ID.toString()]: {
+            _type: "UserTenantAccessPermission",
+            projectId: PROJECT_ID,
+            permissions: [
+              {
+                _type: "UserPermission",
+                permission: Permission.ProjectAdmin,
+                labelIds: [],
+                isBlockPermission: false,
+              } as UserPermission,
+            ],
+          },
+        } as never,
+      };
+    }
+
+    async function reachesNobody(
+      props: DatabaseCommonInteractionProps,
+    ): Promise<SetupHealthFinding | undefined> {
+      const answer: SetupHealthAnswer = await SetupHealthService.getForCaller({
+        projectId: PROJECT_ID,
+        props: props,
+      });
+
+      return answer.findings.find((finding: SetupHealthFinding): boolean => {
+        return finding.check === SetupHealthCheck.PolicyReachesNobody;
+      });
+    }
+
+    // The monitors a finding says it affects.
+    function affected(finding: SetupHealthFinding | undefined): Array<string> {
+      return (finding?.related || [])
+        .filter((record: { kind: SetupHealthRecordKind }): boolean => {
+          return record.kind === SetupHealthRecordKind.Monitor;
+        })
+        .map((record: { id: string }): string => {
+          return record.id;
+        });
+    }
+
+    beforeEach(() => {
+      world.primaryReachesNobody = true;
+    });
+
+    test("with no private record, every member is told Primary reaches nobody, for every monitor that pages it", async () => {
+      const finding: SetupHealthFinding | undefined =
+        await reachesNobody(CALLER);
+
+      expect(finding?.record).toEqual({
+        kind: SetupHealthRecordKind.OnCallDutyPolicy,
+        id: PRIMARY,
+        name: "Primary",
+      });
+      expect(affected(finding)).toHaveLength(world.monitorCount + 1);
+      // The privacy rules are read once; with nothing private, no owner rule is.
+      expect(
+        reads["IncidentPrivacyRuleEngineService.getEnabledRules"]!.mock.calls,
+      ).toHaveLength(1);
+      expect(
+        reads["IncidentOwnerRuleEngineService.getEnabledRules"]!.mock.calls,
+      ).toHaveLength(0);
+    });
+
+    test("a reader who could not read the private incidents is told nothing they alone raise", async () => {
+      world.incidentPrivacyRules = [privacyRule()];
+
+      const answer: SetupHealthAnswer = await SetupHealthService.getForCaller({
+        projectId: PROJECT_ID,
+        props: CALLER,
+      });
+
+      expect(checksOf(answer.findings)).not.toContain(
+        SetupHealthCheck.PolicyReachesNobody,
+      );
+      // What is wrong besides is still theirs, and every chain was looked at.
+      expect(checksOf(answer.findings)).toContain(
+        SetupHealthCheck.PolicyNotRun,
+      );
+      expect(checksOf(answer.findings)).toContain(SetupHealthCheck.OneOwner);
+      expect(answer.monitorCount).toBe(world.monitorCount + 1);
+    });
+
+    test("a Project Admin, who reads every private record, is told it", async () => {
+      world.incidentPrivacyRules = [privacyRule()];
+
+      expect(affected(await reachesNobody(asAdmin()))).toHaveLength(
+        world.monitorCount + 1,
+      );
+    });
+
+    test("so is an owner of the private incidents, whom an owner rule adds; the owner rules are read once, for them", async () => {
+      world.incidentPrivacyRules = [privacyRule()];
+      world.incidentOwnerRules = [ownerRule(ME)];
+      world.projectMemberIds = [ME];
+
+      expect(affected(await reachesNobody(CALLER))).toHaveLength(
+        world.monitorCount + 1,
+      );
+      expect(
+        reads["IncidentOwnerRuleEngineService.getEnabledRules"]!.mock.calls,
+      ).toHaveLength(1);
+    });
+
+    test("somebody an owner rule names who is not in the project owns nothing, and reads nothing", async () => {
+      world.incidentPrivacyRules = [privacyRule()];
+      world.incidentOwnerRules = [ownerRule(ME)];
+      world.projectMemberIds = [];
+
+      expect(await reachesNobody(CALLER)).toBeUndefined();
+    });
+
+    test("a break a public incident raises too stays, affecting that incident's monitors alone", async () => {
+      world.incidentPrivacyRules = [privacyRule("^Monitor 3$")];
+
+      const finding: SetupHealthFinding | undefined =
+        await reachesNobody(CALLER);
+
+      expect(affected(finding)).toHaveLength(world.monitorCount);
+      expect(affected(finding)).toContain(monitorId(0));
+      expect(affected(finding)).not.toContain(monitorId(3));
+
+      // Who may read the private one is told it affects that monitor too.
+      expect(affected(await reachesNobody(asAdmin()))).toContain(monitorId(3));
+    });
+
+    test("the policy's own page says the same to the same reader", async () => {
+      world.incidentPrivacyRules = [privacyRule()];
+
+      const forRecord: (
+        props: DatabaseCommonInteractionProps,
+      ) => Promise<SetupHealthRecordAnswer> = async (
+        props: DatabaseCommonInteractionProps,
+      ): Promise<SetupHealthRecordAnswer> => {
+        return await SetupHealthService.getForRecord({
+          projectId: PROJECT_ID,
+          props: props,
+          record: { kind: SetupHealthRecordKind.OnCallDutyPolicy, id: PRIMARY },
+        });
+      };
+
+      expect((await forRecord(CALLER)).findings).toEqual([]);
+      expect(checksOf((await forRecord(asAdmin())).findings)).toEqual([
+        SetupHealthCheck.PolicyReachesNobody,
+      ]);
+    });
+
+    test("the project is read once: each reader is handed theirs from the same facts", async () => {
+      world.incidentPrivacyRules = [privacyRule()];
+
+      await reachesNobody(CALLER);
+      await reachesNobody(asAdmin());
+
+      expect(
+        reads["IncidentPrivacyRuleEngineService.getEnabledRules"]!.mock.calls,
+      ).toHaveLength(1);
+      expect(
+        reads["OnCallTestPageService.readFirstLevel"]!.mock.calls,
+      ).toHaveLength(1);
     });
   });
 
