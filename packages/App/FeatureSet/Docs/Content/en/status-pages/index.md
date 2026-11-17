@@ -55,7 +55,7 @@ The words used across OneUptime are in the [Glossary](/docs/introduction/glossar
 | **Announcement** | A message you post to one or more status pages, with a start time and an optional end time. |
 | **Subscriber** | Someone (or something) following the page over email, SMS, Slack, Microsoft Teams or a webhook. |
 | **Custom domain** | A domain of yours — `status.example.com` — pointed at the page with a CNAME record. OneUptime issues its SSL certificate for free and renews it. |
-| **Private user** | An account that can log in to a private status page. Separate from your OneUptime project users. |
+| **Private user** | An account that can sign in to a private status page. Separate from your OneUptime project users. |
 
 ## Creating a status page
 
@@ -201,7 +201,7 @@ Add the people who may sign in on **Status Pages → your page → Security → 
 
 **Private users and the password don't stack.** While **Anyone with the password** is the choice, private users can't sign in — they enter the password too — and the **Private Users** screen says so, with a link back to **Access**.
 
-**Sign-in links.** On a page visitors sign in to, the sign-in page also offers **Email me a sign-in link**: a private user enters their email address and is sent a link that logs them in without their password. The link works once, for 15 minutes, and asking for another replaces it. It opens a page where they press **Log in**, so mail filters that open every link to scan it can't use it up first. The page answers the same whether or not the address is one of its private users, so asking tells nobody who can sign in. Links are on for every page; to keep private users on their passwords, turn off **Sign-In Links** under **More settings** on **Private Users** (people already signed in with a link stay signed in). They are never offered while **Require SSO for Login** is on or **Anyone with the password** is the choice.
+**Sign-in links.** On a page visitors sign in to, the sign-in page also offers **Email me a sign-in link**: a private user enters their email address and is sent a link that signs them in without their password. The link works once, for 15 minutes, and asking for another replaces it. It opens a page where they press **Sign In**, so mail filters that open every link to scan it can't use it up first. The page answers the same whether or not the address is one of its private users, so asking tells nobody who can sign in. Links are on for every page; to keep private users on their passwords, turn off **Sign-In Links** under **More settings** on **Private Users** (people already signed in with a link stay signed in). They are never offered while **Require SSO for Login** is on or **Anyone with the password** is the choice.
 
 ### SSO and OIDC
 

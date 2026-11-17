@@ -285,7 +285,7 @@ const STATUS_PAGE_APP: Record<string, Array<StatusPageAppLabel>> = {
       english: "Email me a sign-in link",
       key: "accounts.login.emailSignInLink",
     },
-    { english: "Log in", key: "accounts.magicLinkLogin.submit" },
+    { english: "Sign In", key: "accounts.magicLinkLogin.submit" },
   ],
   [SUBSCRIBERS]: [
     { english: "Subscribe", key: "nav.subscribe" },

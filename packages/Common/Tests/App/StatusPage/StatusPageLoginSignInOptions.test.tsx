@@ -29,8 +29,8 @@ import { getJestSpyOn } from "../../Spy";
  * Status page > "Welcome back!", the sign-in page of a private status page.
  *
  * When the page has a single sign-on provider turned on, it offers it the
- * way OneUptime's own sign-in page offers its other ways in: under Login, an
- * "or" divider, then a full-width outlined "Log in with SSO" button, named
+ * way OneUptime's own sign-in page offers its other ways in: under Sign In, an
+ * "or" divider, then a full-width outlined "Sign in with SSO" button, named
  * like the page it opens. It was a small text link, "Use single sign-on
  * (SSO) instead". Without a provider, there is neither the divider nor the
  * button.
@@ -136,7 +136,7 @@ describe("Status page sign-in: single sign-on as a button under 'or'", () => {
     jest.restoreAllMocks();
   });
 
-  test("with a provider turned on: under Login, 'or', then 'Log in with SSO'", async () => {
+  test("with a provider turned on: under Sign In, 'or', then 'Sign in with SSO'", async () => {
     await renderPage(true);
 
     const signIn: HTMLElement = screen.getByTestId(
@@ -150,13 +150,13 @@ describe("Status page sign-in: single sign-on as a button under 'or'", () => {
     expect(comesAfter(sso, divider)).toBe(true);
     expect(sso.tagName).toBe("A");
     expect(sso).toHaveAttribute("href", "/sso");
-    expect(sso).toHaveAccessibleName("Log in with SSO");
+    expect(sso).toHaveAccessibleName("Sign in with SSO");
   });
 
   test("the button is named like the page it opens", async () => {
     await renderPage(true);
 
-    expect(english.accounts.login.logInWithSso).toBe(
+    expect(english.accounts.login.signInWithSso).toBe(
       english.accounts.sso.title,
     );
     expect(screen.getByTestId("sso-login")).toHaveAccessibleName(
@@ -164,7 +164,7 @@ describe("Status page sign-in: single sign-on as a button under 'or'", () => {
     );
   });
 
-  test("it is a full-width outlined button with a shield; Login is the one filled button", async () => {
+  test("it is a full-width outlined button with a shield; Sign In is the one filled button", async () => {
     await renderPage(true);
 
     const sso: HTMLElement = screen.getByTestId("sso-login");

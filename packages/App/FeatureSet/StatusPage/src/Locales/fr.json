@@ -37,7 +37,6 @@
     "announcements": "Annonces",
     "scheduledEvents": "Maintenance planifiée",
     "subscribe": "S'abonner",
-    "login": "Se connecter",
     "logout": "Se déconnecter"
   },
   "overview": {
@@ -306,24 +305,24 @@
       "password": "Mot de passe",
       "newPassword": "Nouveau mot de passe",
       "confirmPassword": "Confirmer le mot de passe",
-      "login": "Se connecter"
+      "signInLink": "Connexion."
     },
     "login": {
       "welcomeBack": "Bon retour !",
-      "loginPrompt": "Veuillez vous connecter pour voir {{statusPageName}}",
+      "signInPrompt": "Veuillez vous connecter pour voir {{statusPageName}}.",
       "forgotPassword": "Mot de passe oublié ?",
       "submit": "Se connecter",
       "or": "ou",
-      "logInWithSso": "Se connecter avec SSO",
+      "signInWithSso": "Se connecter avec SSO",
       "emailSignInLink": "Recevoir un lien de connexion par e-mail"
     },
     "sso": {
       "title": "Se connecter avec SSO",
-      "loginPrompt": "Veuillez vous connecter pour voir {{statusPageName}}",
+      "signInPrompt": "Veuillez vous connecter pour voir {{statusPageName}}.",
       "noProviders": "Aucun fournisseur SSO configuré ou activé",
       "notAvailable": "L'authentification unique (SSO) n'est pas disponible pour cette page de statut. Connectez-vous plutôt avec votre adresse e-mail et votre mot de passe.",
-      "backToLogin": "Retour à la connexion",
-      "logInWithPassword": "Se connecter avec un mot de passe"
+      "backToSignIn": "Retour à la connexion",
+      "signInWithPassword": "Se connecter avec un mot de passe"
     },
     "forgotPassword": {
       "title": "Mot de passe oublié",
@@ -339,7 +338,7 @@
       "knowPassword": "Vous connaissez votre mot de passe ?",
       "successTitle": "Votre mot de passe a été réinitialisé",
       "successDescription": "Connectez-vous avec votre nouveau mot de passe.",
-      "loginButton": "Se connecter",
+      "signInButton": "Se connecter",
       "linkExpiredTitle": "Ce lien de réinitialisation a expiré",
       "linkExpiredDescription": "Les liens de réinitialisation sont valables un jour. Demandez un nouveau lien et nous vous l’enverrons par e-mail.",
       "linkInvalidTitle": "Ce lien de réinitialisation ne fonctionne plus",

@@ -37,7 +37,6 @@
     "announcements": "Meddelanden",
     "scheduledEvents": "Schemalagt underhåll",
     "subscribe": "Prenumerera",
-    "login": "Logga in",
     "logout": "Logga ut"
   },
   "overview": {
@@ -306,24 +305,24 @@
       "password": "Lösenord",
       "newPassword": "Nytt lösenord",
       "confirmPassword": "Bekräfta lösenord",
-      "login": "Logga in"
+      "signInLink": "Logga in."
     },
     "login": {
       "welcomeBack": "Välkommen tillbaka!",
-      "loginPrompt": "Logga in för att se {{statusPageName}}",
+      "signInPrompt": "Logga in för att se {{statusPageName}}.",
       "forgotPassword": "Glömt lösenord?",
       "submit": "Logga in",
       "or": "eller",
-      "logInWithSso": "Logga in med SSO",
+      "signInWithSso": "Logga in med SSO",
       "emailSignInLink": "Skicka en inloggningslänk till mig"
     },
     "sso": {
       "title": "Logga in med SSO",
-      "loginPrompt": "Logga in för att se {{statusPageName}}",
+      "signInPrompt": "Logga in för att se {{statusPageName}}.",
       "noProviders": "Inga SSO-leverantörer har konfigurerats eller aktiverats",
       "notAvailable": "Single sign-on (SSO) är inte tillgängligt för den här statussidan. Logga in med din e-postadress och ditt lösenord istället.",
-      "backToLogin": "Tillbaka till inloggningen",
-      "logInWithPassword": "Logga in med lösenord"
+      "backToSignIn": "Tillbaka till inloggningen",
+      "signInWithPassword": "Logga in med lösenord"
     },
     "forgotPassword": {
       "title": "Glömt lösenord",
@@ -339,7 +338,7 @@
       "knowPassword": "Kommer du ihåg ditt lösenord?",
       "successTitle": "Ditt lösenord har återställts",
       "successDescription": "Logga in med ditt nya lösenord.",
-      "loginButton": "Logga in",
+      "signInButton": "Logga in",
       "linkExpiredTitle": "Den här återställningslänken har gått ut",
       "linkExpiredDescription": "Återställningslänkar fungerar i en dag. Be om en ny länk så mejlar vi den till dig.",
       "linkInvalidTitle": "Den här återställningslänken fungerar inte längre",
@@ -365,7 +364,7 @@
     },
     "masterPassword": {
       "prompt": "Ange lösenordet för att se den här statussidan.",
-      "passwordRequired": "lösenord krävs.",
+      "passwordRequired": "Lösenord krävs.",
       "passwordLabel": "Lösenord",
       "submit": "Lås upp statussida"
     },

@@ -1,4 +1,7 @@
 import PageLogo from "../../Components/Logo/PageLogo";
+import AuthPage, {
+  AUTH_PAGE_LINK_CLASS,
+} from "Common/UI/Components/AuthPage/AuthPage";
 import { RESET_PASSWORD_API_URL } from "../../Utils/ApiPaths";
 import StatusPageModelAPI from "../../Utils/ModelAPI";
 import PageMap from "../../Utils/PageMap";
@@ -41,7 +44,7 @@ export interface ComponentProps {
 }
 
 /*
- * Where a reset ends (#9123): in Log In once the password is reset, and in
+ * Where a reset ends (#9123): in Sign In once the password is reset, and in
  * Request a New Link when the link is dead. It used to end in a sentence with
  * nothing to click.
  */
@@ -124,40 +127,21 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
       : RouteMap[PageMap.FORGOT_PASSWORD]!,
   );
 
-  const header: JSX.Element = (
-    <div className="sm:mx-auto sm:w-full sm:max-w-md">
-      <PageLogo
-        logoFileId={props.logoFileId}
-        darkThemeLogoFileId={props.darkThemeLogoFileId}
-        altText={props.statusPageName}
-      />
-      {outcome === ResetOutcome.Form && (
-        <>
-          <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
-            {t("accounts.resetPassword.description", {
-              statusPageName: props.statusPageName,
-            })}
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            {t("accounts.resetPassword.instructions")}{" "}
-          </p>
-        </>
-      )}
-    </div>
+  const logo: JSX.Element = (
+    <PageLogo
+      logoFileId={props.logoFileId}
+      darkThemeLogoFileId={props.darkThemeLogoFileId}
+      altText={props.statusPageName}
+    />
   );
 
   const knowPasswordLine: JSX.Element = (
-    <div className="mt-10 text-center">
-      <p className="text-muted mb-0 text-gray-500">
-        {t("accounts.resetPassword.knowPassword")}{" "}
-        <Link
-          to={loginRoute}
-          className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
-        >
-          {t("accounts.shared.login")}.
-        </Link>
-      </p>
-    </div>
+    <>
+      {t("accounts.resetPassword.knowPassword")}{" "}
+      <Link to={loginRoute} className={AUTH_PAGE_LINK_CLASS}>
+        {t("accounts.shared.signInLink")}
+      </Link>
+    </>
   );
 
   if (outcome !== ResetOutcome.Form) {
@@ -165,140 +149,134 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
     const isExpired: boolean = outcome === ResetOutcome.LinkExpired;
 
     return (
-      <div className="flex min-h-full flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-        {header}
-        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <AuthPage
+        logo={logo}
+        cardClassName="text-center"
+        cardTestId={
+          isReset ? "reset-password-success" : "reset-password-link-problem"
+        }
+        footer={isReset ? undefined : knowPasswordLine}
+      >
+        <div className="mb-6 flex justify-center">
           <div
-            className="bg-white py-8 px-6 shadow sm:rounded-lg sm:px-10 text-center"
-            data-testid={
-              isReset ? "reset-password-success" : "reset-password-link-problem"
-            }
+            className={`flex h-16 w-16 items-center justify-center rounded-full ring-8 ${
+              isReset
+                ? "bg-green-100 ring-green-50"
+                : "bg-amber-100 ring-amber-50"
+            }`}
           >
-            <div className="mb-6 flex justify-center">
-              <div
-                className={`flex h-16 w-16 items-center justify-center rounded-full ring-8 ${
-                  isReset
-                    ? "bg-green-100 ring-green-50"
-                    : "bg-amber-100 ring-amber-50"
-                }`}
-              >
-                <Icon
-                  icon={isReset ? IconProp.Check : IconProp.Clock}
-                  type={isReset ? IconType.Success : IconType.Warning}
-                  thick={ThickProp.Thick}
-                  className="h-8 w-8"
-                />
-              </div>
-            </div>
-            <h1
-              ref={headingRef}
-              tabIndex={-1}
-              className="text-xl font-semibold tracking-tight text-gray-900 focus:outline-none sm:text-2xl"
-            >
-              {isReset
-                ? t("accounts.resetPassword.successTitle")
-                : isExpired
-                  ? t("accounts.resetPassword.linkExpiredTitle")
-                  : t("accounts.resetPassword.linkInvalidTitle")}
-            </h1>
-            <p className="mt-3 text-sm leading-relaxed text-gray-600 sm:text-base">
-              {isReset
-                ? t("accounts.resetPassword.successDescription")
-                : isExpired
-                  ? t("accounts.resetPassword.linkExpiredDescription")
-                  : t("accounts.resetPassword.linkInvalidDescription")}
-            </p>
-            <div className="mt-6">
-              <Button
-                title={
-                  isReset
-                    ? t("accounts.resetPassword.loginButton")
-                    : t("accounts.resetPassword.requestNewLinkButton")
-                }
-                isTitleTranslated={true}
-                buttonStyle={ButtonStyleType.PRIMARY}
-                dataTestId={
-                  isReset
-                    ? "reset-password-log-in"
-                    : "reset-password-request-new-link"
-                }
-                className="w-full justify-center"
-                style={{ width: "100%", marginInlineStart: "0px" }}
-                onClick={() => {
-                  Navigation.navigate(
-                    isReset ? loginRoute : forgotPasswordRoute,
-                  );
-                }}
-              />
-            </div>
+            <Icon
+              icon={isReset ? IconProp.Check : IconProp.Clock}
+              type={isReset ? IconType.Success : IconType.Warning}
+              thick={ThickProp.Thick}
+              className="h-8 w-8"
+            />
           </div>
-          {!isReset && knowPasswordLine}
         </div>
-      </div>
+        <h1
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-xl font-semibold tracking-tight text-gray-900 focus:outline-none sm:text-2xl"
+        >
+          {isReset
+            ? t("accounts.resetPassword.successTitle")
+            : isExpired
+              ? t("accounts.resetPassword.linkExpiredTitle")
+              : t("accounts.resetPassword.linkInvalidTitle")}
+        </h1>
+        <p className="mt-3 text-sm leading-relaxed text-gray-600 sm:text-base">
+          {isReset
+            ? t("accounts.resetPassword.successDescription")
+            : isExpired
+              ? t("accounts.resetPassword.linkExpiredDescription")
+              : t("accounts.resetPassword.linkInvalidDescription")}
+        </p>
+        <div className="mt-6">
+          <Button
+            title={
+              isReset
+                ? t("accounts.resetPassword.signInButton")
+                : t("accounts.resetPassword.requestNewLinkButton")
+            }
+            isTitleTranslated={true}
+            buttonStyle={ButtonStyleType.PRIMARY}
+            dataTestId={
+              isReset
+                ? "reset-password-sign-in"
+                : "reset-password-request-new-link"
+            }
+            className="w-full justify-center"
+            style={{ width: "100%", marginInlineStart: "0px" }}
+            onClick={() => {
+              Navigation.navigate(isReset ? loginRoute : forgotPasswordRoute);
+            }}
+          />
+        </div>
+      </AuthPage>
     );
   }
 
   return (
-    <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
-      {header}
+    <AuthPage
+      logo={logo}
+      title={t("accounts.resetPassword.description", {
+        statusPageName: props.statusPageName || t("common.statusPage"),
+      })}
+      subtitle={t("accounts.resetPassword.instructions")}
+      footer={knowPasswordLine}
+    >
+      <ModelForm<StatusPagePrivateUser>
+        modelType={StatusPagePrivateUser}
+        modelAPI={StatusPageModelAPI}
+        id="register-form"
+        name="Status Page > Reset Password"
+        onBeforeCreate={(
+          item: StatusPagePrivateUser,
+        ): Promise<StatusPagePrivateUser> => {
+          /*
+           * Not a route param: the head bootstrap moves the token out of
+           * the path before any third-party tag can report the URL. See
+           * Common/UI/Utils/SensitiveUrlToken.
+           */
+          item.resetPasswordToken = SensitiveUrlToken.read();
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <ModelForm<StatusPagePrivateUser>
-            modelType={StatusPagePrivateUser}
-            modelAPI={StatusPageModelAPI}
-            id="register-form"
-            name="Status Page > Reset Password"
-            onBeforeCreate={(
-              item: StatusPagePrivateUser,
-            ): Promise<StatusPagePrivateUser> => {
-              /*
-               * Not a route param: the head bootstrap moves the token out of
-               * the path before any third-party tag can report the URL. See
-               * Common/UI/Utils/SensitiveUrlToken.
-               */
-              item.resetPasswordToken = SensitiveUrlToken.read();
+          item.statusPageId = StatusPageUtil.getStatusPageId()!;
+          return Promise.resolve(item);
+        }}
+        showAsColumns={1}
+        maxPrimaryButtonWidth={true}
+        fields={getNewPasswordFields<StatusPagePrivateUser>({
+          translator: translator,
+          requirementsId: passwordRequirementsId,
+          passwordTitle: t("accounts.shared.newPassword"),
+          confirmPasswordTitle: t("accounts.shared.confirmPassword"),
+        })}
+        createOrUpdateApiUrl={apiUrl}
+        formType={FormType.Create}
+        submitButtonText={t("accounts.resetPassword.submit")}
+        onSubmitError={(error: string) => {
+          // A dead link is fixed by a new one; a refused password stays on the form.
+          if (!isResetLinkRefusal(error)) {
+            return;
+          }
 
-              item.statusPageId = StatusPageUtil.getStatusPageId()!;
-              return Promise.resolve(item);
-            }}
-            showAsColumns={1}
-            maxPrimaryButtonWidth={true}
-            fields={getNewPasswordFields<StatusPagePrivateUser>({
-              translator: translator,
-              requirementsId: passwordRequirementsId,
-              passwordTitle: t("accounts.shared.newPassword"),
-              confirmPasswordTitle: t("accounts.shared.confirmPassword"),
-            })}
-            createOrUpdateApiUrl={apiUrl}
-            formType={FormType.Create}
-            submitButtonText={t("accounts.resetPassword.submit")}
-            onSubmitError={(error: string) => {
-              // A dead link is fixed by a new one; a refused password stays on the form.
-              if (!isResetLinkRefusal(error)) {
-                return;
-              }
-
-              setOutcome(
-                error === RESET_LINK_MESSAGES.expired
-                  ? ResetOutcome.LinkExpired
-                  : ResetOutcome.LinkInvalid,
-              );
-            }}
-            onSuccess={() => {
-              /*
-               * Only on success. A rejected reset (expired token, refused
-               * password) has to keep the stash so the retry still has a
-               * token to submit.
-               */
-              SensitiveUrlToken.clear();
-              setOutcome(ResetOutcome.Reset);
-            }}
-          />
-        </div>
-        {knowPasswordLine}
-      </div>
-    </div>
+          setOutcome(
+            error === RESET_LINK_MESSAGES.expired
+              ? ResetOutcome.LinkExpired
+              : ResetOutcome.LinkInvalid,
+          );
+        }}
+        onSuccess={() => {
+          /*
+           * Only on success. A rejected reset (expired token, refused
+           * password) has to keep the stash so the retry still has a
+           * token to submit.
+           */
+          SensitiveUrlToken.clear();
+          setOutcome(ResetOutcome.Reset);
+        }}
+      />
+    </AuthPage>
   );
 };
 

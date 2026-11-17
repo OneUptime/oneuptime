@@ -37,7 +37,6 @@
     "announcements": "घोषणाएँ",
     "scheduledEvents": "अनुसूचित रखरखाव",
     "subscribe": "सदस्यता लें",
-    "login": "लॉग इन करें",
     "logout": "लॉग आउट करें"
   },
   "overview": {
@@ -306,24 +305,24 @@
       "password": "पासवर्ड",
       "newPassword": "नया पासवर्ड",
       "confirmPassword": "पासवर्ड की पुष्टि करें",
-      "login": "लॉग इन करें"
+      "signInLink": "लॉग इन करें।"
     },
     "login": {
       "welcomeBack": "वापस स्वागत है!",
-      "loginPrompt": "{{statusPageName}} देखने के लिए कृपया लॉग इन करें",
+      "signInPrompt": "{{statusPageName}} देखने के लिए कृपया लॉग इन करें।",
       "forgotPassword": "पासवर्ड भूल गए?",
       "submit": "लॉग इन करें",
       "or": "या",
-      "logInWithSso": "SSO से लॉग इन करें",
+      "signInWithSso": "SSO से लॉग इन करें",
       "emailSignInLink": "मुझे लॉग-इन लिंक ईमेल करें"
     },
     "sso": {
       "title": "SSO से लॉग इन करें",
-      "loginPrompt": "{{statusPageName}} देखने के लिए कृपया लॉग इन करें",
+      "signInPrompt": "{{statusPageName}} देखने के लिए कृपया लॉग इन करें।",
       "noProviders": "कोई SSO प्रदाता कॉन्फ़िगर या सक्षम नहीं है",
       "notAvailable": "इस स्थिति पृष्ठ के लिए सिंगल साइन-ऑन (SSO) उपलब्ध नहीं है। इसके बजाय अपने ईमेल और पासवर्ड से लॉग इन करें।",
-      "backToLogin": "लॉग इन पर वापस जाएं",
-      "logInWithPassword": "पासवर्ड से लॉग इन करें"
+      "backToSignIn": "लॉग इन पर वापस जाएं",
+      "signInWithPassword": "पासवर्ड से लॉग इन करें"
     },
     "forgotPassword": {
       "title": "पासवर्ड भूल गए",
@@ -339,7 +338,7 @@
       "knowPassword": "अपना पासवर्ड जानते हैं?",
       "successTitle": "आपका पासवर्ड रीसेट हो गया है",
       "successDescription": "अपने नए पासवर्ड से लॉग इन करें।",
-      "loginButton": "लॉग इन करें",
+      "signInButton": "लॉग इन करें",
       "linkExpiredTitle": "इस रीसेट लिंक की समय-सीमा खत्म हो गई है",
       "linkExpiredDescription": "रीसेट लिंक एक दिन तक काम करते हैं। नया लिंक माँगें, हम उसे आपको ईमेल कर देंगे।",
       "linkInvalidTitle": "यह रीसेट लिंक अब काम नहीं करता",

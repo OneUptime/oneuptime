@@ -37,7 +37,6 @@
     "announcements": "Meddelelser",
     "scheduledEvents": "Planlagt vedligeholdelse",
     "subscribe": "Abonner",
-    "login": "Log ind",
     "logout": "Log ud"
   },
   "overview": {
@@ -306,24 +305,24 @@
       "password": "Adgangskode",
       "newPassword": "Ny adgangskode",
       "confirmPassword": "Bekræft adgangskode",
-      "login": "Log ind"
+      "signInLink": "Log ind."
     },
     "login": {
       "welcomeBack": "Velkommen tilbage!",
-      "loginPrompt": "Log venligst ind for at se {{statusPageName}}",
+      "signInPrompt": "Log venligst ind for at se {{statusPageName}}.",
       "forgotPassword": "Glemt adgangskode?",
       "submit": "Log ind",
       "or": "eller",
-      "logInWithSso": "Log ind med SSO",
+      "signInWithSso": "Log ind med SSO",
       "emailSignInLink": "Send mig et login-link"
     },
     "sso": {
       "title": "Log ind med SSO",
-      "loginPrompt": "Log venligst ind for at se {{statusPageName}}",
+      "signInPrompt": "Log venligst ind for at se {{statusPageName}}.",
       "noProviders": "Ingen SSO-udbydere konfigureret eller aktiveret",
       "notAvailable": "Single sign-on (SSO) er ikke tilgængelig for denne statusside. Log i stedet ind med din e-mail og adgangskode.",
-      "backToLogin": "Tilbage til log ind",
-      "logInWithPassword": "Log ind med adgangskode"
+      "backToSignIn": "Tilbage til log ind",
+      "signInWithPassword": "Log ind med adgangskode"
     },
     "forgotPassword": {
       "title": "Glemt adgangskode",
@@ -339,7 +338,7 @@
       "knowPassword": "Kender du din adgangskode?",
       "successTitle": "Din adgangskode er nulstillet",
       "successDescription": "Log ind med din nye adgangskode.",
-      "loginButton": "Log ind",
+      "signInButton": "Log ind",
       "linkExpiredTitle": "Dette nulstillingslink er udløbet",
       "linkExpiredDescription": "Nulstillingslinks virker i én dag. Bed om et nyt link, så sender vi det til dig på e-mail.",
       "linkInvalidTitle": "Dette nulstillingslink virker ikke længere",
@@ -365,7 +364,7 @@
     },
     "masterPassword": {
       "prompt": "Indtast adgangskoden for at se denne statusside.",
-      "passwordRequired": "adgangskode er påkrævet.",
+      "passwordRequired": "Adgangskode er påkrævet.",
       "passwordLabel": "Adgangskode",
       "submit": "Lås statusside op"
     },

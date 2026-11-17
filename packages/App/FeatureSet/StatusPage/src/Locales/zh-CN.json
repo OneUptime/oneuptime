@@ -37,7 +37,6 @@
     "announcements": "公告",
     "scheduledEvents": "计划维护",
     "subscribe": "订阅",
-    "login": "登录",
     "logout": "退出"
   },
   "overview": {
@@ -306,24 +305,24 @@
       "password": "密码",
       "newPassword": "新密码",
       "confirmPassword": "确认密码",
-      "login": "登录"
+      "signInLink": "登录。"
     },
     "login": {
       "welcomeBack": "欢迎回来！",
-      "loginPrompt": "请登录以查看 {{statusPageName}}",
+      "signInPrompt": "请登录以查看 {{statusPageName}}。",
       "forgotPassword": "忘记密码？",
       "submit": "登录",
       "or": "或",
-      "logInWithSso": "通过 SSO 登录",
+      "signInWithSso": "通过 SSO 登录",
       "emailSignInLink": "通过电子邮件发送登录链接"
     },
     "sso": {
       "title": "通过 SSO 登录",
-      "loginPrompt": "请登录以查看 {{statusPageName}}",
+      "signInPrompt": "请登录以查看 {{statusPageName}}。",
       "noProviders": "未配置或启用 SSO 提供商",
       "notAvailable": "此状态页不支持单点登录（SSO）。请改用您的电子邮件和密码登录。",
-      "backToLogin": "返回登录",
-      "logInWithPassword": "使用密码登录"
+      "backToSignIn": "返回登录",
+      "signInWithPassword": "使用密码登录"
     },
     "forgotPassword": {
       "title": "忘记密码",
@@ -339,7 +338,7 @@
       "knowPassword": "知道您的密码？",
       "successTitle": "您的密码已重置",
       "successDescription": "请使用新密码登录。",
-      "loginButton": "登录",
+      "signInButton": "登录",
       "linkExpiredTitle": "此重置链接已过期",
       "linkExpiredDescription": "重置链接的有效期为一天。请申请新链接，我们会通过电子邮件发送给您。",
       "linkInvalidTitle": "此重置链接已失效",
