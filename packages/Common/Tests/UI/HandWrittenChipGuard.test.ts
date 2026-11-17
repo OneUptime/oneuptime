@@ -37,14 +37,12 @@ import {
  * classes, click handler or role (HandWrittenChipFinder).
  *
  * HAND_WRITTEN_CHIP_EXCEPTIONS lists a file, how many such chips it may
- * hold, and why. A count may only go down: move a chip to the Pill and lower
- * it, or remove the file once it holds none.
+ * hold, and why: the chips that are not a status or a label (a count
+ * bubble, a code token, a chip with a remove button inside). Each count is
+ * exact, so its reason stays true; a chip that can be the Pill is the Pill.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
-
-// Chips not yet moved to the Pill (#9137): this list only shrinks.
-const NOT_YET_MOVED: string = "Not yet moved to the Pill (#9137).";
 
 export const HAND_WRITTEN_CHIP_EXCEPTIONS: Record<
   string,
@@ -55,242 +53,153 @@ export const HAND_WRITTEN_CHIP_EXCEPTIONS: Record<
     reason:
       "Several parts in different weights (a name and its count or value), not one text.",
   },
-  "packages/App/FeatureSet/Dashboard/src/Components/AI/CallSummary/CallSummarySection.tsx":
-    { count: 3, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/AI/Connect/LlmConnectionTiles.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/AI/InvestigationPanel.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/AIInsights/InsightPresentation.tsx":
-    { count: 5, reason: NOT_YET_MOVED },
   "packages/App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesPicker.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "A count bubble: a fixed height and min-width, centred beside a tab, button or heading, which is a number, not a chip.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/AppPlatforms/CloudAppHeader.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectionTiles.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Code/CodeConnectDialog.tsx":
-    { count: 3, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoriesTable.tsx":
-    { count: 3, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/CodeRepository/RepositoryConnectionStatus.tsx":
-    { count: 6, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddresses.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Playlist/PlaylistPlayerBar.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "A monospace code token (a port, an architecture, a URL, a variable), not a status or label.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/DashboardToolbar.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/DataSecurity/StoreDataTypeList.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/EnterpriseEdition/EnterpriseFeatureUpgrade.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/EpisodeMembers/EpisodePickerList.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/EpisodeView/EpisodeMembersCard.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/EventNotes/NoteCard.tsx": {
-    count: 2,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionAIExplanation.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionSimilar.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionsDashboard.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Exceptions/OccuranceTable.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/ExternalMcpServerToolList.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplatePicker.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/FormBuilder/Builder/QuestionCard.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/FormBuilder/Builder/QuestionInputPreview.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/FormBuilder/Builder/QuestionPalette.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/FormBuilder/Templates/FormTemplates.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageGuidedSetup.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Host/HostFilesystemsTable.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Kubernetes/KubernetesEventsTable.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Kubernetes/KubernetesRecentWarningsCard.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "A count bubble: a fixed height and min-width, centred beside a tab, button or heading, which is a number, not a chip.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmTranscriptStepView.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "A transcript step marker (kind, model, duration) whose ring marks the current step.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/Logs/LogsDashboard.tsx": {
     count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Components/Mattermost/MattermostTeamsCard.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Metrics/MetricCharts.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
+    reason:
+      "A saved view's scope: a sentence with a bold slot and a remove button.",
   },
   "packages/App/FeatureSet/Dashboard/src/Components/Metrics/MetricFormula.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Metrics/MetricFormulaConfig.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Metrics/MetricQueryConfig.tsx":
-    { count: 3, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "A monospace code token (a port, an architecture, a URL, a variable), not a status or label.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/Metrics/MetricView.tsx": {
     count: 2,
-    reason: NOT_YET_MOVED,
+    reason:
+      "A count bubble: a fixed height and min-width, centred beside a tab, button or heading, which is a number, not a chip.",
   },
   "packages/App/FeatureSet/Dashboard/src/Components/Metrics/MetricsDashboard.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/MicrosoftTeams/MicrosoftTeamsChatsCard.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/DiscoveredHostTable.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/MultiDeviceSnmpWalkResults.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/SnmpWalkResults.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "A saved view's scope: a sentence with a bold slot and a remove button.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/NetworkEvents/SyslogSetupGuide.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkSite/ImportSitesFromCsvModal.tsx":
-    { count: 3, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkSite/SiteCard.tsx": {
-    count: 1,
-    reason: NOT_YET_MOVED,
-  },
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkSite/SiteGeoMap.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkSite/SiteStatusHero.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiApplianceLinkModal.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "A monospace code token (a port, an architecture, a URL, a variable), not a status or label.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/NetworkTraffic/TrafficSetupGuide.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/NotificationRule/OnCallRulesTable.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRuleReadiness.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "A monospace code token (a port, an architecture, a URL, a variable), not a status or label.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRules.tsx":
-    { count: 4, reason: NOT_YET_MOVED },
+    {
+      count: 3,
+      reason:
+        "Its Forward icon mirrors on right-to-left pages (isMirroredRightToLeft), which the Pill's icon does not. Two are step connectors with a sentence and a bold duration.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationSummary.tsx":
-    { count: 3, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTimelineTable.tsx":
-    { count: 5, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ExecutionLogs/NotifiedVia.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallPolicySummary.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/ActiveOverridesCard.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/FinalScheduleSummary.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerCard.tsx":
-    { count: 3, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerUser.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/Layers.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/Readiness/CoverageMatrix.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
+    {
+      count: 2,
+      reason:
+        "A responder of several parts with a readiness dot, and a step whose Forward icon mirrors on right-to-left pages.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/Readiness/ResponderReadinessCard.tsx":
-    { count: 3, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackServiceGroupCard.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackServicesCard.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackBlastRadiusCard.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "A notification method's name and its masked number in their own style.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/OpenStack/Part/OpenStackNetworkCountsCard.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "Several parts in different weights (a name and its count or value), not one text.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/Owners/OwnersCard.tsx": {
     count: 1,
-    reason: NOT_YET_MOVED,
+    reason:
+      "A count bubble: a fixed height and min-width, centred beside a tab, button or heading, which is a number, not a chip.",
   },
-  "packages/App/FeatureSet/Dashboard/src/Components/Postmortem/ActionItems/PostmortemActionItems.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Profiles/ProfileScopeBar.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
   "packages/App/FeatureSet/Dashboard/src/Components/Profiles/ProfileTable.tsx":
-    { count: 3, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationsList.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
+    {
+      count: 3,
+      reason:
+        "A removable filter chip: its words, a value in another weight, and a remove button inside.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/ResourceOwners/FacetFilterBar.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartAlertsCard.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartHero.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcaseCard.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Runbook/RunbookVariablesTable.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/SecurityCase/Context/SecurityCaseImpactCard.tsx":
-    { count: 3, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "A count bubble: a fixed height and min-width, centred beside a tab, button or heading, which is a number, not a chip.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/CorrelateFilterBuilder.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/DetectionRuleSummary.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/EntityRisk/EntityRiskHeader.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntHeader.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleLibraryRulePanel.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleLibraryTable.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookStepFlag.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "An AND / OR operator token in a query builder, coloured to match its connector toggle.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayCorrelationPanel.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "A count bubble: a fixed height and min-width, centred beside a tab, button or heading, which is a number, not a chip.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayPinControl.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideOptionPicker.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Slack/SlackOrganizationCard.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "Its visible words and what a screen reader hears differ (aria-hidden and sr-only).",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/Slo/SloErrorBudgetPolicyTierCard.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Slo/SloMonthlyReportTable.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Slo/SloRecommendedPolicyTiersModal.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/StatusPage/ImportGroupsFromCsvModal.tsx":
-    { count: 3, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "Holds a <time dateTime> with its own hover title inside the sentence.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/InvestigationDrawer.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Topology/NetworkDeviceDetailPanel.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Topology/NetworkDeviceGraph.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Traces/TraceDetail/TraceHeader.tsx":
-    { count: 4, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Traces/TraceDetail/TraceSpanPanel.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "A monospace code token (a port, an architecture, a URL, a variable), not a status or label.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/Traces/TracesDashboard.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/TwoFactorAuth/WebAuthnCredentials.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "A saved view's scope: a sentence with a bold slot and a remove button.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/UserFlow/UserFlowJourneys.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/UserSettings/SetupChecklist/SetupChecklistTile.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/VMware/Host/VMwareHostBusiestVirtualMachines.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/VideoCall/VideoCallProviderGallery.tsx":
-    { count: 2, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "A monospace code token (a port, an architecture, a URL, a variable), not a status or label.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCondition.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
-  "packages/App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceConnectionsOverview.tsx":
-    { count: 1, reason: NOT_YET_MOVED },
+    {
+      count: 1,
+      reason:
+        "An AND / OR operator token in a query builder, coloured to match its connector toggle.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/Overview.tsx": {
     count: 1,
     reason:
@@ -526,21 +435,9 @@ describe("every status or label chip is the Pill", () => {
 
       const count: number = foundByFile.get(file)?.length || 0;
 
-      /*
-       * A chip moved to the Pill lowers its count; an exception that is not
-       * a chip not yet moved must be exact, so its reason stays true.
-       */
-      const isExact: boolean = exception.reason !== NOT_YET_MOVED;
-
-      if (count > exception.count || (isExact && count !== exception.count)) {
+      if (count !== exception.count) {
         stale.push(
-          `${file} holds ${count}, the exception lists ${exception.count}`,
-        );
-      }
-
-      if (!isExact && count < exception.count) {
-        stale.push(
-          `${file} holds ${count} now: lower its count to ${count}${count === 0 ? " by removing it" : ""}`,
+          `${file} holds ${count}, the exception lists ${exception.count}${count === 0 ? ": remove it" : ""}`,
         );
       }
     }
