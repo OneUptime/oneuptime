@@ -477,7 +477,7 @@ describe("reading the lineage", () => {
 
     render(<TableLineageDiagram dataAssetId={new ObjectID(TABLE)} />);
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("chart-skeleton")).toBeInTheDocument();
     expect(getTableLineageMock).toHaveBeenCalledTimes(1);
     expect((getTableLineageMock.mock.calls[0]![0] as ObjectID).toString()).toBe(
       TABLE,
@@ -492,7 +492,7 @@ describe("reading the lineage", () => {
       answer.resolve(aLineage());
     });
 
-    expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("chart-skeleton")).not.toBeInTheDocument();
     expect(screen.getByTestId("lineage-graph")).toBeInTheDocument();
     expect(screen.getByTestId("lineage-legend")).toBeInTheDocument();
   });

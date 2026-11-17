@@ -199,7 +199,7 @@ describe("the diagnostics buttons before anything is pressed", () => {
       />,
     );
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.getByTestId("detail-skeleton")).toBeInTheDocument();
     expect(
       screen.queryByTestId("network-device-diagnostic-ping"),
     ).not.toBeInTheDocument();

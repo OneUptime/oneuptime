@@ -408,7 +408,7 @@ describe("the Overview page", () => {
       /route: KUBERNETES_AI_ACCESS_STATUS_ROUTE, body: \{ clusterId: modelId\.toString\(\) \}, parse: parseAiAccessStatus, refreshToken: lastRefreshedAt \? lastRefreshedAt\.getTime\(\) : undefined,/,
     );
     expect(source.indexOf("useAiAgentAccessStatus<")).toBeLessThan(
-      source.indexOf("if (isLoading) { return <PageLoader"),
+      source.indexOf("if (isLoading) { return <PageSkeleton"),
     );
     expect(source).toMatch(
       /<KubernetesAiAgentOverviewCard clusterId=\{modelId\} tooltip=\{KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS\.aiAgent\} read=\{aiAccessStatus\} \/>/,

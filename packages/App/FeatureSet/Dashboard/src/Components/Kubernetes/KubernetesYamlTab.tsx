@@ -5,7 +5,7 @@ import React, {
   useState,
 } from "react";
 import Card from "Common/UI/Components/Card/Card";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { fetchRawK8sObject } from "../../Pages/Kubernetes/Utils/KubernetesObjectFetcher";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -191,7 +191,7 @@ const KubernetesYamlTab: FunctionComponent<ComponentProps> = (
   ]);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <PageSkeleton />;
   }
 
   if (error) {

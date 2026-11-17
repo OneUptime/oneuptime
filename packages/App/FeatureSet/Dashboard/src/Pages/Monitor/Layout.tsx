@@ -1,11 +1,11 @@
 import { getMonitorBreadcrumbs } from "../../Utils/Breadcrumbs";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import DashboardSideMenu from "./SideMenu";
 import Route from "Common/Types/API/Route";
 import Link from "Common/Types/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Page from "Common/UI/Components/Page/Page";
 import React, { FunctionComponent, ReactElement, Suspense } from "react";
 import { matchPath, Outlet, useLocation } from "react-router-dom";
@@ -84,7 +84,7 @@ const MonitorLayout: FunctionComponent<PageComponentProps> = (
    */
   if (!matchedMonitorPage && !isMonitorGroupList) {
     return (
-      <Suspense fallback={<PageLoader isVisible={true} />}>
+      <Suspense fallback={<PageSkeleton />}>
         <Outlet />
       </Suspense>
     );
@@ -125,7 +125,7 @@ const MonitorLayout: FunctionComponent<PageComponentProps> = (
         )
       }
     >
-      <Suspense fallback={<PageLoader isVisible={true} />}>
+      <Suspense fallback={<PageSkeleton />}>
         <Outlet />
       </Suspense>
     </Page>

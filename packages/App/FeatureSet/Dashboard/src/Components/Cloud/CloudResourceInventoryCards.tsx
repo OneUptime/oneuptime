@@ -1,4 +1,5 @@
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -21,7 +22,6 @@ import {
 import { getCloudResourceTypeText } from "Common/Types/Cloud/CloudResourceCatalog";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -384,7 +384,7 @@ const CloudResourceInventoryCards: FunctionComponent<ComponentProps> = (
             }
           >
             {neighbours === null ? (
-              <ComponentLoader />
+              <TableSkeleton rows={4} hasHeader={false} />
             ) : (
               <div>
                 {neighbourError ? (

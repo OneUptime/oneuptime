@@ -2,6 +2,7 @@ import {
   fetchLinkableAppliances,
   linkMerakiAppliance,
 } from "../NetworkTrafficUsageApi";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import {
   ALL_APPLIANCES_HEADING,
   APPLIANCE_LINKED_TO_ANOTHER_DEVICE,
@@ -30,7 +31,6 @@ import {
   getHandDrawnButtonStateClassName,
   getLockedPartClassName,
 } from "Common/UI/Components/Button/ButtonStates";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -303,7 +303,7 @@ const MerakiApplianceLinkModal: FunctionComponent<ComponentProps> = (
 
   const body: ReactElement = ((): ReactElement => {
     if (!list && isLoading) {
-      return <ComponentLoader />;
+      return <TableSkeleton rows={4} />;
     }
 
     if (loadError && !list) {

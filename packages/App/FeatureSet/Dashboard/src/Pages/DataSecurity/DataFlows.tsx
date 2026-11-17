@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import { SensitivityPill } from "../../Components/DataSecurity/DataSecurityPills";
 import FlowChain from "../../Components/DataSecurity/FlowChain";
 import {
@@ -23,7 +24,6 @@ import { Gray500, Orange500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Column from "Common/UI/Components/ModelTable/Column";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -400,7 +400,7 @@ const DataSecurityDataFlowsPage: FunctionComponent<
   if (!counts) {
     return (
       <Card title={title} description={description}>
-        <ComponentLoader />
+        <TableSkeleton />
       </Card>
     );
   }
