@@ -911,5 +911,230 @@ describePostgres(
         "Kim:3",
       ]);
     });
+
+    /*
+     * ISSUE #9038: for the API and Terraform, the save is the way to change
+     * a schedule's layers without leaving half of a change. These hold the
+     * save to that: a save that fails part way through its writes leaves
+     * the schedule as it was - none of the people taken out, no order
+     * moved - and a run paging through the schedule while the save is being
+     * written finds who is on call as the layers were, never a half-saved
+     * roster, and once it is saved, as they are.
+     */
+    test("a save that fails part way through its writes leaves the schedule untouched", async () => {
+      const saverId: string = await insertUser("Saver");
+      const seeded: Seeded = await seed(saverId);
+      const props: DatabaseCommonInteractionProps = propsFor(
+        seeded.projectId,
+        new ObjectID(saverId),
+        [Permission.OnCallMember],
+      );
+      const before: string = ScheduleLayersSaveUtil.getVersion(
+        await stateOf(seeded),
+      );
+
+      // Weekdays: Kim to the top, Alex out, Lee added. Backup deleted.
+      const request: ScheduleLayersSaveRequest = await unchanged(seeded);
+      request.layers = request.layers.filter((layer: { layerId: string }) => {
+        return layer.layerId === seeded.weekdaysId;
+      });
+      request.layers[0]!.users = peopleOf(seeded, "Kim", "Sam", "Lee");
+      request.deletedLayerIds = [seeded.backupId];
+
+      /*
+       * The last of its writes fails - the people added - once Alex has been
+       * taken out, Backup deleted and Kim moved, inside the transaction.
+       */
+      const insert: jest.SpyInstance = jest
+        .spyOn(
+          ScheduleLayersSave as unknown as Record<string, () => unknown>,
+          "insertLayerUsers",
+        )
+        .mockRejectedValueOnce(new Error("The connection was lost.") as never);
+
+      const error: Error = await refusal(() => {
+        return ScheduleLayersSave.save({
+          scheduleId: seeded.scheduleId,
+          request: request,
+          props: props,
+        });
+      });
+
+      expect(insert).toHaveBeenCalledTimes(1);
+      insert.mockRestore();
+
+      expect(error.message).toBe("The connection was lost.");
+      expect(ScheduleLayersSaveUtil.getVersion(await stateOf(seeded))).toBe(
+        before,
+      );
+      expect(await layersOf(seeded)).toEqual(["Weekdays:1", "Backup:2"]);
+      expect(await turnsIn(seeded, seeded.weekdaysId)).toEqual([
+        "Alex:1",
+        "Sam:2",
+        "Kim:3",
+      ]);
+      expect(await turnsIn(seeded, seeded.backupId)).toEqual(["Ria:1"]);
+      // Nothing was saved, so nothing was told.
+      expect(refreshes).toBe(0);
+      expect(audited).toEqual([]);
+
+      // The same save, sent again, is saved whole.
+      await ScheduleLayersSave.save({
+        scheduleId: seeded.scheduleId,
+        request: request,
+        props: props,
+      });
+
+      expect(await turnsIn(seeded, seeded.weekdaysId)).toEqual([
+        "Kim:1",
+        "Sam:2",
+        "Lee:3",
+      ]);
+    });
+
+    test("a run paging through the schedule while a save is written finds the layers as they were, then as saved", async () => {
+      const saverId: string = await insertUser("Saver");
+      const seeded: Seeded = await seed(saverId);
+      const props: DatabaseCommonInteractionProps = propsFor(
+        seeded.projectId,
+        new ObjectID(saverId),
+        [Permission.OnCallMember],
+      );
+
+      // Alex's turn now: the run pages Alex.
+      expect(
+        (
+          await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
+            seeded.scheduleId,
+          )
+        )?.toString(),
+      ).toBe(seeded.people["Alex"]);
+
+      // Weekdays: Alex out, Lee added at the top.
+      const request: ScheduleLayersSaveRequest = await unchanged(seeded);
+      request.layers[0]!.users = peopleOf(seeded, "Lee", "Sam", "Kim");
+
+      /*
+       * The save is held inside its transaction once Alex has been taken out
+       * and the others moved, just before Lee is added.
+       */
+      let release: () => void = (): void => {};
+      let reached: () => void = (): void => {};
+      const atTheLastWrite: Promise<void> = new Promise<void>(
+        (resolve: () => void) => {
+          reached = resolve;
+        },
+      );
+      const insertLayerUsers: (data: unknown) => Promise<unknown> = (
+        ScheduleLayersSave as unknown as Record<
+          string,
+          (data: unknown) => Promise<unknown>
+        >
+      )["insertLayerUsers"]!.bind(ScheduleLayersSave);
+
+      jest
+        .spyOn(
+          ScheduleLayersSave as unknown as Record<string, () => unknown>,
+          "insertLayerUsers",
+        )
+        .mockImplementationOnce((async (data: unknown) => {
+          reached();
+          await new Promise<void>((resolve: () => void) => {
+            release = resolve;
+          });
+          return await insertLayerUsers(data);
+        }) as never);
+
+      const saving: Promise<ScheduleLayersSaveResult> = ScheduleLayersSave.save(
+        {
+          scheduleId: seeded.scheduleId,
+          request: request,
+          props: props,
+        },
+      );
+
+      await atTheLastWrite;
+
+      // Mid-save: as the layers were - Alex, never nobody, never Sam.
+      expect(
+        (
+          await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
+            seeded.scheduleId,
+          )
+        )?.toString(),
+      ).toBe(seeded.people["Alex"]);
+      expect(await turnsIn(seeded, seeded.weekdaysId)).toEqual([
+        "Alex:1",
+        "Sam:2",
+        "Kim:3",
+      ]);
+
+      release();
+      await saving;
+
+      // Saved: as they are - Lee.
+      expect(
+        (
+          await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
+            seeded.scheduleId,
+          )
+        )?.toString(),
+      ).toBe(seeded.people["Lee"]);
+      expect(await turnsIn(seeded, seeded.weekdaysId)).toEqual([
+        "Lee:1",
+        "Sam:2",
+        "Kim:3",
+      ]);
+    });
+
+    test("the layers as the API reads them are a save that changes nothing, at the version Postgres holds them", async () => {
+      const saverId: string = await insertUser("Saver");
+      const seeded: Seeded = await seed(saverId);
+      const props: DatabaseCommonInteractionProps = propsFor(
+        seeded.projectId,
+        new ObjectID(saverId),
+        [Permission.OnCallMember],
+      );
+
+      const read: ScheduleLayersSaveRequest = await ScheduleLayersSave.read({
+        scheduleId: seeded.scheduleId,
+        props: props,
+      });
+
+      expect(read).toEqual(await unchanged(seeded));
+      expect(
+        read.layers.map((layer: { layerId: string }) => {
+          return layer.layerId;
+        }),
+      ).toEqual([seeded.weekdaysId, seeded.backupId]);
+
+      // Changed and sent back as it is read: saved, in one go.
+      read.layers[0]!.users = [...read.layers[0]!.users].reverse();
+
+      await ScheduleLayersSave.save({
+        scheduleId: seeded.scheduleId,
+        request: read,
+        props: props,
+      });
+
+      expect(await turnsIn(seeded, seeded.weekdaysId)).toEqual([
+        "Kim:1",
+        "Sam:2",
+        "Alex:3",
+      ]);
+
+      // Another project's schedule is not found.
+      const otherProjectId: ObjectID = new ObjectID(await insertProject());
+      const error: Error = await refusal(() => {
+        return ScheduleLayersSave.read({
+          scheduleId: seeded.scheduleId,
+          props: propsFor(otherProjectId, new ObjectID(saverId), [
+            Permission.ProjectOwner,
+          ]),
+        });
+      });
+
+      expect(error).toBeInstanceOf(NotFoundException);
+    });
   },
 );
