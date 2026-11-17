@@ -1,10 +1,8 @@
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import RowActions from "../ActionButton/RowActions";
-import { ButtonStyleType } from "../Button/Button";
 import CheckboxElement from "../Checkbox/Checkbox";
 import ColorInput from "../ColorViewer/ColorViewer";
 import Icon, { ThickProp } from "../Icon/Icon";
-import ConfirmModal from "../Modal/ConfirmModal";
 import FieldType from "../Types/FieldType";
 import Column from "./Types/Column";
 import {
@@ -75,7 +73,7 @@ import {
   getPhoneNumbersOfValue,
   getPhoneNumberValueText,
 } from "../../../Types/PhoneNumberDirection";
-import React, { ReactElement, useState } from "react";
+import React, { ReactElement } from "react";
 import useIsBelowWidth, {
   PHONE_BELOW_WIDTH_IN_PX,
 } from "../../Utils/UseIsBelowWidth";
@@ -208,6 +206,12 @@ type TableRowFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ) => ReactElement;
 
+// The (i) beside a value whose column explains it (Column.tooltipText).
+export const TABLE_CELL_HELP_TEST_ID: string = "table-cell-help";
+
+// Beside a cell's value, on its line.
+export const TABLE_CELL_HELP_CLASS_NAME: string = "ms-1 align-middle";
+
 const TableRow: TableRowFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
@@ -221,7 +225,35 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     }, obj);
   };
 
-  const [tooltipModalText, setTooltipModalText] = useState<string>("");
+  /*
+   * A column's help for this row's value (tooltipText): an (i) beside the
+   * value, which Tab reaches and whose words show on focus and hover and
+   * close with Escape (InfoTooltip). It used to open a dialog on a click
+   * anywhere on the cell, which no keyboard could reach and no screen reader
+   * knew was there (#9223).
+   */
+  const getCellHelp: (
+    column: Column<T>,
+    className: string,
+  ) => ReactElement | null = (
+    column: Column<T>,
+    className: string,
+  ): ReactElement | null => {
+    const help: string = column.tooltipText?.(props.item)?.trim() || "";
+
+    if (!help) {
+      return null;
+    }
+
+    return (
+      <InfoTooltip
+        label={column.title}
+        text={help}
+        className={className}
+        dataTestId={TABLE_CELL_HELP_TEST_ID}
+      />
+    );
+  };
 
   /*
    * On a phone a row is a card that labels each value with its column's
@@ -768,11 +800,6 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                           ? `${TABLE_MOBILE_FIELD_CLASS_NAME} ${TABLE_CARD_WIDE_FIELD_CLASS_NAME}`
                           : TABLE_MOBILE_FIELD_CLASS_NAME
                       }
-                      onClick={() => {
-                        if (column.tooltipText) {
-                          setTooltipModalText(column.tooltipText(props.item));
-                        }
-                      }}
                     >
                       <dt
                         className={
@@ -810,6 +837,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                         dir={lineDirection}
                       >
                         {value}
+                        {getCellHelp(column, TABLE_CELL_HELP_CLASS_NAME)}
                       </dd>
                     </div>
                   );
@@ -817,17 +845,6 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
               </dl>
             </div>
           </div>
-          {tooltipModalText && (
-            <ConfirmModal
-              title={`Help`}
-              description={`${tooltipModalText}`}
-              submitButtonText={"Close"}
-              onSubmit={() => {
-                setTooltipModalText("");
-              }}
-              submitButtonType={ButtonStyleType.NORMAL}
-            />
-          )}
         </>
       );
     }
@@ -1011,14 +1028,6 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     ? { [TABLE_STICKY_END_ATTRIBUTE]: "true" }
                     : {})}
                   style={getLockedCellStyle()}
-                  onClick={() => {
-                    if (column.tooltipText) {
-                      setTooltipModalText(column.tooltipText(props.item));
-                    }
-                  }}
-                  data-row-click-ignore={
-                    column.tooltipText ? "true" : undefined
-                  }
                 >
                   {!isActions &&
                     columnContent !== null &&
@@ -1082,6 +1091,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                         ) : (
                           columnContent
                         )}
+                        {getCellHelp(column, TABLE_CELL_HELP_CLASS_NAME)}
                       </div>
                     )}
                   {isActions && (
@@ -1115,17 +1125,6 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
             />
           )}
         </tr>
-        {tooltipModalText && (
-          <ConfirmModal
-            title={`Help`}
-            description={`${tooltipModalText}`}
-            submitButtonText={"Close"}
-            onSubmit={() => {
-              setTooltipModalText("");
-            }}
-            submitButtonType={ButtonStyleType.NORMAL}
-          />
-        )}
       </>
     );
   };
