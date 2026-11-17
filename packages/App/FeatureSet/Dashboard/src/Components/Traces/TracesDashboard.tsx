@@ -941,7 +941,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           <p className="text-3xl font-bold text-gray-900 mt-1">
             {translator.formatNumber(totalRequests)}
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             {isCustomRange
               ? translator.translateTemplate("the selected time range")
               : translator.translateTemplate("the {{range}}", {
@@ -961,7 +961,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           >
             {formatFixed(overallErrorRate, 1, translator)}%
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             {translator.translatePlural(ERROR_COUNT, totalErrors)}
           </p>
         </div>
@@ -973,7 +973,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           <p className="text-3xl font-bold text-gray-900 mt-1">
             {formatDuration(globalP50, translator)}
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             {translator.translateText("median")}
           </p>
         </div>
@@ -989,7 +989,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           >
             {formatDuration(globalP95, translator)}
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             {translator.translateText("95th percentile")}
           </p>
         </div>
@@ -1005,7 +1005,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           >
             {formatDuration(globalP99, translator)}
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             {translator.translateText("99th percentile")}
           </p>
         </div>
@@ -1264,7 +1264,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                       range: rangeTerm,
                     })}
               </p>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-gray-500 mt-1">
                 {translator.translateText("Looking good!")}
               </p>
             </div>
@@ -1300,7 +1300,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                           <p className="text-xs font-mono text-gray-600">
                             {formatDuration(trace.durationNano, translator)}
                           </p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-gray-500">
                             {OneUptimeDate.fromNow(trace.startTime)}
                           </p>
                         </div>

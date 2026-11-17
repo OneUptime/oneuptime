@@ -793,7 +793,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
 
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
                   {translator.translateText("Usually caused by")}
                 </p>
                 <ul className="space-y-1">
@@ -816,7 +816,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
                 </ul>
               </div>
               <div>
-                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
                   {translator.translateText("What to check")}
                 </p>
                 <ol className="space-y-1">
@@ -827,7 +827,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
                           key={step}
                           className="flex items-start gap-2 text-sm text-gray-700"
                         >
-                          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-[10px] font-semibold text-indigo-600">
+                          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">
                             {index + 1}
                           </span>
                           <span>{translator.translateText(step)}</span>
@@ -1035,7 +1035,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
                       <span className="min-w-0 break-words text-sm text-gray-800">
                         {display.name}
                         {display.typeLabel && (
-                          <span className="ml-2 text-xs text-gray-400">
+                          <span className="ml-2 text-xs text-gray-500">
                             {display.typeLabel}
                           </span>
                         )}

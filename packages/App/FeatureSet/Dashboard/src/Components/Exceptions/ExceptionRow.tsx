@@ -123,15 +123,15 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
    * a word to a line between the pill and the menu.
    */
   const statusPill: ReactElement = isResolved ? (
-    <span className="whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+    <span className="whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
       {translator.translateText("Resolved")}
     </span>
   ) : isArchived ? (
-    <span className="whitespace-nowrap rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-600">
+    <span className="whitespace-nowrap rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600">
       {translator.translateText("Archived")}
     </span>
   ) : (
-    <span className="whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700">
+    <span className="whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
       {translator.translateText("Unresolved")}
     </span>
   );
@@ -196,7 +196,7 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
               {/* Who owns it, when someone does. */}
               {assignee && (
                 <span
-                  className="inline-flex max-w-[12rem] items-center gap-1 whitespace-nowrap rounded-full border border-gray-200 bg-white py-0.5 pe-1.5 ps-0.5 text-[10px] font-medium text-gray-600"
+                  className="inline-flex max-w-[12rem] items-center gap-1 whitespace-nowrap rounded-full border border-gray-200 bg-white py-0.5 pe-1.5 ps-0.5 text-xs font-medium text-gray-600"
                   title={translator.translateTemplate("Assigned to {{name}}", {
                     name: assignee.name,
                   })}
@@ -235,7 +235,7 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
                 {serviceName}
               </span>
               {exception.environment && (
-                <span className="whitespace-nowrap rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-500">
+                <span className="whitespace-nowrap rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs text-gray-500">
                   {exception.environment}
                 </span>
               )}

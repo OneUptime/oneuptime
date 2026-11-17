@@ -217,7 +217,7 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
     const info: OverrideUserDisplayInfo | undefined = props.userById[userId];
     return (
       <span
-        className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
+        className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold"
         style={getUserAvatarStyle(userId)}
       >
         {getUserInitials(info?.name || "", info?.email || "")}

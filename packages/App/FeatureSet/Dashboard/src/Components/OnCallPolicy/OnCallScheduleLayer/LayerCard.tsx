@@ -344,7 +344,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
               return (
                 <Tooltip key={rowKey} text={name || email || "Unknown user"}>
                   <span
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold ring-2 ring-white"
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ring-2 ring-white"
                     style={getUserAvatarStyle(userId)}
                   >
                     {getUserInitials(name, email)}
@@ -354,7 +354,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
             },
           )}
           {remainingUsers > 0 && (
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-[10px] font-semibold text-gray-600 ring-2 ring-white">
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-600 ring-2 ring-white">
               +{remainingUsers}
             </span>
           )}

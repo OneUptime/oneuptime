@@ -1194,7 +1194,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               "Spans usually arrive within a minute of the request finishing. Refresh to check again, or look for its logs below.",
             )}
           </p>
-          <p className="mt-2 font-mono text-xs text-gray-400">{traceId}</p>
+          <p className="mt-2 font-mono text-xs text-gray-500">{traceId}</p>
           <div className="mt-4 flex justify-center">
             <Button
               title="Refresh"

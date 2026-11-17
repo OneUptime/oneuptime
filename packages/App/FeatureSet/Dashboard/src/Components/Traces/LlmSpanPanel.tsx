@@ -94,7 +94,7 @@ const Metric: FunctionComponent<{
 
   return (
     <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-      <div className="text-[11px] uppercase tracking-wide text-gray-400">
+      <div className="text-[11px] uppercase tracking-wide text-gray-500">
         {translator.translateText(props.label)}
       </div>
       <div className="mt-0.5 font-mono text-sm font-semibold text-gray-800">
@@ -122,7 +122,7 @@ const MessageBlock: FunctionComponent<{
         {props.message.content ? (
           <LazyMarkdownViewer text={props.message.content} />
         ) : (
-          <span className="italic text-gray-400">
+          <span className="italic text-gray-500">
             {translator.translateText("(no text content)")}
           </span>
         )}
@@ -145,7 +145,7 @@ const Messages: FunctionComponent<{
   }
   return (
     <div className="space-y-2">
-      <div className="text-[11px] uppercase tracking-wide text-gray-400">
+      <div className="text-[11px] uppercase tracking-wide text-gray-500">
         {translator.translateText(props.title)}
       </div>
       <div className="space-y-2">
@@ -353,7 +353,7 @@ const LlmSpanPanel: FunctionComponent<ComponentProps> = (
                     key={chip.label}
                     className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-white px-2.5 py-1 text-xs"
                   >
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateText(chip.label)}
                     </span>
                     <span className="font-mono font-medium text-gray-800">
@@ -386,7 +386,7 @@ const LlmSpanPanel: FunctionComponent<ComponentProps> = (
               (param: { label: string; value: string }): ReactElement => {
                 return (
                   <span key={param.label}>
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {translator.translateTemplate(LABEL_WITH_COLON, {
                         label: translatableTerm(param.label),
                       })}

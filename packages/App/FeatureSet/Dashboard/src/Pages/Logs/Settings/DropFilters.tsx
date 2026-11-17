@@ -256,7 +256,7 @@ const LogDropFilters: FunctionComponent<
 
             if (dropped === 0) {
               return (
-                <span className="text-sm text-gray-400">
+                <span className="text-sm text-gray-500">
                   {translator.translateText("Nothing dropped yet")}
                 </span>
               );

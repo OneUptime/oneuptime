@@ -162,7 +162,7 @@ export const ShiftBar: FunctionComponent<ShiftBarProps> = (
           />
         </div>
       )}
-      <div className="mt-2 border-t border-gray-100 pt-1.5 text-[11px] text-gray-400">
+      <div className="mt-2 border-t border-gray-100 pt-1.5 text-[11px] text-gray-500">
         {isHighlighted
           ? translator.translateText("Click to clear the highlight.")
           : translator.translateTemplate(
@@ -415,7 +415,7 @@ export const OverriddenSegment: FunctionComponent<OverriddenSegmentProps> = (
             <span className="line-through decoration-gray-400">
               {shift.override.originalUserName}
             </span>{" "}
-            <span className="text-gray-400">
+            <span className="text-gray-500">
               {translator.translateText(
                 shift.override.isSkip ? "(away)" : "(overridden)",
               )}

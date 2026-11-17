@@ -168,7 +168,7 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
                   );
                 }
                 return (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-gray-500">
                     {translator.translateText("Not configured")}
                   </span>
                 );
@@ -192,7 +192,7 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
                 if (!isSamplePercentageConfigured(item.samplePercentage)) {
                   return (
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-400">
+                      <span className="text-sm text-gray-500">
                         {translator.translateText("Not configured")}
                       </span>
                       <span className="text-sm text-gray-500">
@@ -225,7 +225,7 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
                     </div>
                     <div className="text-gray-300">•</div>
                     <div className="flex items-center gap-2">
-                      <span className="text-lg font-semibold text-gray-400">
+                      <span className="text-lg font-semibold text-gray-500">
                         {discardPct}%
                       </span>
                       <span className="text-sm text-gray-500">
@@ -280,7 +280,7 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
 
                 if (dropped === 0) {
                   return (
-                    <span className="text-sm text-gray-400">
+                    <span className="text-sm text-gray-500">
                       {translator.translateText(
                         "This filter has never matched a log.",
                       )}
