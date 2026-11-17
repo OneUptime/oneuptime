@@ -450,7 +450,7 @@ const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
               : "left-0 origin-top-left"
           }`}
         >
-          <div className="px-2.5 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+          <div className="px-2.5 pb-1 pt-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500">
             {translator.translateTemplate("Copy {{subject}} as", {
               subject: translatableTerm(subject),
             })}
@@ -523,7 +523,7 @@ const CopyAttributesAsJSONButton: FunctionComponent<ComponentProps> = (
               );
             },
           )}
-          <div className="mt-1 flex items-center justify-between gap-3 border-t border-gray-100 px-2.5 pb-1 pt-2 text-[10.5px] text-gray-400">
+          <div className="mt-1 flex items-center justify-between gap-3 border-t border-gray-100 px-2.5 pb-1 pt-2 text-[10.5px] text-gray-500">
             <span className="whitespace-nowrap tabular-nums">
               {translator.translatePlural(ATTRIBUTE_COUNT, count)}
             </span>

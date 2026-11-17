@@ -389,7 +389,7 @@ describe("Detection Rules page", () => {
       ).not.toBeInTheDocument();
       expect(capturedTableProps).toBeNull();
       expect(
-        screen.getByText(/did not include telemetry features/),
+        screen.getByText("Your plan does not include security events"),
       ).toBeInTheDocument();
     });
   });

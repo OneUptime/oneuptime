@@ -182,7 +182,7 @@ const ToastCard: FunctionComponent<ToastCardProps> = (
       <button
         type="button"
         className="-m-1 flex-none rounded-md p-1 text-gray-400 transition-colors duration-150 ease-out hover:text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-        aria-label={props.translator.translateText("Dismiss") || "Dismiss"}
+        aria-label={props.translator.translateText("Dismiss")}
         data-testid="toast-dismiss"
         onClick={() => {
           Toast.dismiss(toast.id);

@@ -240,7 +240,7 @@ const PermissionPicker: FunctionComponent<ComponentProps> = (
                   <span className="truncate">{group}</span>
                   <span
                     className={`ml-1 text-xs flex-shrink-0 ${
-                      isActive ? "text-indigo-500" : "text-gray-400"
+                      isActive ? "text-indigo-500" : "text-gray-500"
                     }`}
                   >
                     {count}
@@ -257,7 +257,7 @@ const PermissionPicker: FunctionComponent<ComponentProps> = (
             data-testid="permission-picker-list"
           >
             {visiblePermissions.length === 0 && (
-              <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+              <div className="flex items-center justify-center h-full text-gray-500 text-sm">
                 {translator.translateText(
                   isSearching
                     ? "No permissions match your search."

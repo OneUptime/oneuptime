@@ -932,7 +932,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                     <p className="text-sm font-medium text-gray-500">
                       {translateString(props.emptyMessage || "No results")}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-500">
                       {translateString("Try adjusting filters or time range.")}
                     </p>
                   </div>

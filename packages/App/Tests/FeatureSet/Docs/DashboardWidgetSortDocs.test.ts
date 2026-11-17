@@ -364,11 +364,12 @@ describe("Your own sort and the order everyone sees, against the product", () =>
         "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/ComponentSettingsModal.tsx",
       ),
     ).toContain('translator.translateText("Live Preview")');
+    // The shared Button translates its title (302656298df).
     expect(
       readSource(
         "App/FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/DashboardToolbar.tsx",
       ),
-    ).toContain('translator.translateText("Save Changes")');
+    ).toMatch(/<Button\s+title="Save Changes"/);
 
     expect(everyone).toContain(
       `pick the order under **${DashboardWidgetSortCopy.settingLabel}**, or click a column header in its **Live Preview**, then click **Save Changes**.`,

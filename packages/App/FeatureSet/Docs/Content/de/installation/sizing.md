@@ -82,7 +82,7 @@ Der Speicher wächst **linear mit der Aufbewahrung**: Ein Fenster von 90 Tagen k
 
 PostgreSQL speichert Ihre Konfiguration und Ihren Betriebszustand, keine Telemetrie, deshalb wächst es langsam und bleibt neben ClickHouse klein. Selbst große Installationen liegen typischerweise im Bereich von einigen Dutzend GB. Das Standard-Volume von **25 Gi** genügt für kleine Installationen; planen Sie 50–100 GB für größere ein, mit Reserve für den Verlauf von Vorfällen und Alerts.
 
-Behobene Vorfälle und Warnungen bleiben, bis jedes Projekt wählt, wie lange es sie behält. Um alle Projekte an ein Limit zu binden, setzen Sie **Höchstens behalten** unter **Admin Dashboard → Einstellungen → Datenaufbewahrung**: Siehe [Ein Limit für den ganzen Server](/docs/incidents/settings#ein-limit-für-den-ganzen-server).
+Behobene Vorfälle und Warnungen bleiben, bis jedes Projekt wählt, wie lange es sie behält. Um alle Projekte an ein Limit zu binden, setzen Sie **Höchstens behalten** unter **Admin Dashboard → Einstellungen → Server → Datenaufbewahrung**: Siehe [Ein Limit für den ganzen Server](/docs/incidents/settings#ein-limit-für-den-ganzen-server).
 
 Bei vielen Replikaten von App, Worker und Sonde können die Datenbankverbindungen vor dem Speicher knapp werden. Jeder Pod öffnet standardmäßig bis zu 50 Verbindungen, und das mitgelieferte PostgreSQL erlaubt 500. Genau dafür enthält das Chart den optionalen Connection-Pooler **PgBouncer** (`pgbouncer.enabled`): Schalten Sie ihn bei Installationen mit vielen Replikaten ein.
 

@@ -292,7 +292,7 @@ describe("the dashboard's menu, breadcrumbs and ⋯ menu", () => {
 
     const basic: string = menu.slice(
       menu.indexOf('<SideMenuSection title="Basic">'),
-      menu.indexOf('<SideMenuSection title="Owners">'),
+      menu.indexOf('<SideMenuSection title="Public Link"'),
     );
 
     const titles: Array<string> = Array.from(

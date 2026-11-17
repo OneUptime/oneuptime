@@ -142,7 +142,7 @@ export const SecurityEventDestinationInlineTest: FunctionComponent<{
       className="space-y-3"
       data-testid="security-event-destination-inline-test"
     >
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Button
           title="Send a test event"
           icon={IconProp.PaperAirplane}

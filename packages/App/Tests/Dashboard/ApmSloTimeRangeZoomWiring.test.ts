@@ -312,7 +312,7 @@ describe("Error Budget History (Components/Slo/SloHistoryCharts.tsx)", () => {
       "onDoubleClick={zoom.isZoomed ? zoom.resetZoom : undefined}",
     );
     expect(code).toContain(
-      'className={zoom.isZoomed ? "-my-16 select-none" : "-my-16"}',
+      'className={zoom.isZoomed ? "select-none" : undefined}',
     );
   });
 

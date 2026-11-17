@@ -283,11 +283,16 @@ const ProjectInvoices: FunctionComponent = (): ReactElement => {
       getElement: (invoice: AdminProjectInvoice): ReactElement => {
         const statusKey: string | undefined = STATUS_KEYS[invoice.status];
 
+        /*
+         * The status is in the reader's words already (t()): the pill draws
+         * it as given, never looking it up again (#8067).
+         */
         return (
           <Pill
             text={
               statusKey ? t(statusKey) : t("pages.projectInvoices.statusOther")
             }
+            isUserContent={true}
             color={STATUS_COLORS[invoice.status] || Gray500}
           />
         );

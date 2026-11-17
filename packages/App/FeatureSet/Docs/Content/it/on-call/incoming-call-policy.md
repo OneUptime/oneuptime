@@ -154,7 +154,7 @@ Per rilasciare un numero, fai clic su **Rilascia numero** accanto a esso e confe
 Una regola fa squillare una persona sul numero che ha verificato per le chiamate in entrata in questo progetto, e salta chi non ne ha uno. Ogni persona aggiunge il proprio:
 
 :::steps
-1. Apri **Impostazioni utente** > **Policy chiamate in entrata** > **Numeri di telefono in entrata**. **Policy chiamate in entrata** è una sezione del menu laterale che parte chiusa.
+1. Apri **Impostazioni utente** > **Reperibilità e chiamate** > **Numeri di telefono in entrata**. **Reperibilità e chiamate** è una sezione del menu laterale che parte chiusa.
 2. Nella scheda **Numeri di telefono per l'instradamento delle chiamate in entrata**, fai clic su **Aggiungi: Numero di telefono per l'instradamento delle chiamate in entrata** e inserisci il numero con il prefisso internazionale, ad esempio `+15551234567`.
 3. Inserisci il codice a 6 cifre che OneUptime invia al numero via SMS in **Codice di verifica**, e fai clic su **Verifica**. **Invia un nuovo codice** ne invia un altro.
 :::
@@ -260,7 +260,7 @@ Una regola creata tramite l'API senza `escalateAfterSeconds` squilla per 20 seco
 :::
 
 :::details La chiamata viene presa, ma non squilla nessuno
-Il log chiamate indica **Non riuscito**. Verifica che **Rispondi alle chiamate** sia attivo nelle **Impostazioni** della policy, che la pianificazione di reperibilità di ogni regola abbia qualcuno reperibile in questo momento e che le persone che le regole fanno squillare abbiano un numero verificato in **Impostazioni utente** > **Policy chiamate in entrata** > **Numeri di telefono in entrata**, in questo progetto. Le regole fanno squillare solo membri del progetto.
+Il log chiamate indica **Non riuscito**. Verifica che **Rispondi alle chiamate** sia attivo nelle **Impostazioni** della policy, che la pianificazione di reperibilità di ogni regola abbia qualcuno reperibile in questo momento e che le persone che le regole fanno squillare abbiano un numero verificato in **Impostazioni utente** > **Reperibilità e chiamate** > **Numeri di telefono in entrata**, in questo progetto. Le regole fanno squillare solo membri del progetto.
 :::
 
 :::details Le chiamate finiscono in segreteria

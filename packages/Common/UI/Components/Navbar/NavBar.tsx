@@ -665,7 +665,9 @@ const Navbar: FunctionComponent<ComponentProps> = (
           {/* Separator and active product */}
           {activeMoreItem && (
             <>
-              <span className="text-gray-400 mx-1">/</span>
+              <span aria-hidden="true" className="text-gray-400 mx-1">
+                /
+              </span>
               <button
                 onClick={openMoreMenu}
                 className="group bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"
@@ -704,7 +706,9 @@ const Navbar: FunctionComponent<ComponentProps> = (
             props.moreMenuItems &&
             props.moreMenuItems.length > 0 && (
               <>
-                <span className="text-gray-400 mx-1">/</span>
+                <span aria-hidden="true" className="text-gray-400 mx-1">
+                  /
+                </span>
                 <button
                   onClick={openMoreMenu}
                   className="group text-gray-500 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium transition-colors cursor-pointer"

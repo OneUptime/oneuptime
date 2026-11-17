@@ -64,7 +64,6 @@ import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
-import { Slate500 } from "Common/Types/BrandColors";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -535,9 +534,7 @@ const NetworkSiteMap: FunctionComponent<
     return (
       <Card title={PAGE_TITLE} description={PAGE_DESCRIPTION}>
         <div className="flex flex-col items-center justify-center gap-3 py-20">
-          {/* Slate reads on both the light and the dark surface; the
-           * default VeryLightGray all but vanishes on white. */}
-          <Loader loaderType={LoaderType.Bar} size={180} color={Slate500} />
+          <Loader loaderType={LoaderType.Bar} size={180} />
           <p className="text-sm text-gray-500">
             {translator.translateText("Loading your network…")}
           </p>

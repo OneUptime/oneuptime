@@ -154,7 +154,7 @@ Om een nummer vrij te geven, klikt u op **Nummer vrijgeven** ernaast en bevestig
 Een regel laat een persoon overgaan op het nummer dat die persoon in dit project voor inkomende oproepen heeft geverifieerd, en slaat iedereen over die er geen heeft. Iedereen voegt zijn eigen nummer toe:
 
 :::steps
-1. Open **Gebruikersinstellingen** > **Beleid inkomend gesprek** > **Inkomende telefoonnummers**. **Beleid inkomend gesprek** is een sectie van het zijmenu die ingeklapt begint.
+1. Open **Gebruikersinstellingen** > **Oproepen en gesprekken** > **Inkomende telefoonnummers**. **Oproepen en gesprekken** is een sectie van het zijmenu die ingeklapt begint.
 2. Klik in de kaart **Telefoonnummers voor inkomende oproeproutering** op **Telefoonnummer voor inkomende oproeproutering toevoegen** en vul het nummer in met de landcode, zoals `+15551234567`.
 3. Vul de 6-cijferige code die OneUptime per SMS naar het nummer stuurt in onder **Verificatiecode**, en klik op **Verifiëren**. **Nieuwe code sturen** stuurt een nieuwe.
 :::
@@ -260,7 +260,7 @@ Een regel die via de API zonder `escalateAfterSeconds` wordt gemaakt, gaat 20 se
 :::
 
 :::details Het gesprek wordt aangenomen, maar niemand wordt gebeld
-Het belogboek zegt **Mislukt**. Controleer of **Gesprekken aannemen** aan staat in de **Instellingen** van het beleid, of het bereikbaarheidsschema van elke regel nu iemand van dienst heeft, en of de mensen die de regels laten overgaan een geverifieerd nummer hebben onder **Gebruikersinstellingen** > **Beleid inkomend gesprek** > **Inkomende telefoonnummers**, in dit project. Regels bellen alleen leden van het project.
+Het belogboek zegt **Mislukt**. Controleer of **Gesprekken aannemen** aan staat in de **Instellingen** van het beleid, of het bereikbaarheidsschema van elke regel nu iemand van dienst heeft, en of de mensen die de regels laten overgaan een geverifieerd nummer hebben onder **Gebruikersinstellingen** > **Oproepen en gesprekken** > **Inkomende telefoonnummers**, in dit project. Regels bellen alleen leden van het project.
 :::
 
 :::details Gesprekken eindigen in de voicemail

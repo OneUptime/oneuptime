@@ -409,7 +409,7 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
          */}
         {props.onShowOnlyBranch ? (
           <div data-testid="network-topology-branch-actions">
-            <div className="[&>button]:ml-0 [&>button]:md:ml-0">
+            <div>
               <Button
                 title={translateString("Show only this branch")}
                 isTitleTranslated={true}
@@ -685,12 +685,11 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
                   )}
             </p>
             {/*
-             * Under the sentence, at its start: a button keeps a dialog
-             * footer's left margin (md:ml-3) unless told otherwise. A
-             * discovered device's opens the Discovered Devices list's own
-             * dialog, and is named as that dialog is.
+             * Under the sentence, at its start. A discovered device's opens
+             * the Discovered Devices list's own dialog, and is named as that
+             * dialog is.
              */}
-            <div className="mt-3 [&>button]:ml-0 [&>button]:md:ml-0">
+            <div className="mt-3">
               <Button
                 title={
                   isEndpoint

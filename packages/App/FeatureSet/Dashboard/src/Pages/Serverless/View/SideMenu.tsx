@@ -86,7 +86,18 @@ const ServerlessFunctionViewSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Settings">
+      {getDeveloperSideMenuSection({
+        modelType: ServerlessFunction,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
+
+      <SideMenuSection title="Advanced">
+        {/*
+         * Settings sits with the other pages that change the record. It
+         * was the only entry of a Settings section, under a heading of
+         * its own name (#9134).
+         */}
         <SideMenuItem
           link={{
             title: "Settings",
@@ -97,15 +108,6 @@ const ServerlessFunctionViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Settings}
         />
-      </SideMenuSection>
-
-      {getDeveloperSideMenuSection({
-        modelType: ServerlessFunction,
-        scope: DeveloperDocsScope.View,
-        modelId: props.modelId,
-      })}
-
-      <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
             title: "Audit Logs",

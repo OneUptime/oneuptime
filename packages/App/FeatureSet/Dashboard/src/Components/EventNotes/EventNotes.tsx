@@ -14,6 +14,7 @@ import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpda
 import ErrorMessageText from "Common/UI/Components/ErrorMessage/ErrorMessageText";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { HeldPermissions } from "Common/Types/HeldPermissions";
@@ -1038,17 +1039,17 @@ function EventNotes<TNote extends BaseModel>(
             {tx(copy.emptyDescription)}
           </p>
           {createGate.isAllowed && !isComposerOpen && !isPrivateEvent && (
-            <button
-              type="button"
+            <Button
+              title={tx(
+                isPublic ? "Post the first update" : "Write the first note",
+              )}
+              isTitleTranslated={true}
+              icon={IconProp.Add}
+              buttonStyle={ButtonStyleType.PRIMARY}
               onClick={openComposer}
-              data-testid="notes-empty-cta"
-              className="mt-5 inline-flex h-9 items-center gap-2 rounded-md bg-indigo-600 px-3.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-            >
-              <Icon icon={IconProp.Add} className="h-4 w-4" />
-              {isPublic
-                ? tx("Post the first update")
-                : tx("Write the first note")}
-            </button>
+              dataTestId="notes-empty-cta"
+              className="mt-5"
+            />
           )}
         </div>
       );

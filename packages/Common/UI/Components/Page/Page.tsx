@@ -3,7 +3,7 @@ import Breadcrumbs from "../Breadcrumbs/Breadcrumbs";
 import { PRODUCT_TEXT_CLASS_NAME } from "../../Utils/ProductText";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import IsolatedText from "../IsolatedText/IsolatedText";
-import PageLoader from "../Loader/PageLoader";
+import PageSkeleton from "./PageSkeleton";
 import LabelElement from "../Label/Label";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import { translatableTerm } from "../../Utils/TranslateTemplate";
@@ -500,7 +500,7 @@ const Page: FunctionComponent<ComponentProps> = (
             )}
             {props.isLoading && (
               <div className="flex-1 min-w-0">
-                <PageLoader isVisible={true} />
+                <PageSkeleton />
               </div>
             )}
           </div>
@@ -508,7 +508,7 @@ const Page: FunctionComponent<ComponentProps> = (
       )}
 
       {!props.sideMenu && !props.isLoading && children}
-      {!props.sideMenu && props.isLoading && <PageLoader isVisible={true} />}
+      {!props.sideMenu && props.isLoading && <PageSkeleton />}
     </div>
   );
 };

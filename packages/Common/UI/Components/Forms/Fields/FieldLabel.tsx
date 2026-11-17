@@ -114,7 +114,7 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
         ) : (
           drawnTitle
         )}{" "}
-        <span className="text-gray-400 text-xs">
+        <span className="text-gray-500 text-xs">
           {showsOptionalMark
             ? translateString("(Optional)") ?? "(Optional)"
             : ""}

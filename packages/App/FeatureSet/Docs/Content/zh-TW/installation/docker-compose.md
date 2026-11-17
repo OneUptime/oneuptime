@@ -593,7 +593,7 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 :::
 
 :::details 移動 ingress 連接埠後，內建探測器顯示已中斷連線
-Admin Dashboard 在 **設定 > 監控 > 全域探測器** 下列出該探測器。它透過 `GLOBAL_PROBE_1_ONEUPTIME_URL` 連到 OneUptime，預設值為 `http://localhost`（連接埠 80）。只要它指向 `localhost`，`npm start` 就會把它改到 ingress 的連接埠。如果你把它設成其他位址，或是以 Docker CLI 啟動 OneUptime，請把它設為 ingress 的新連接埠，例如 `http://localhost:8080`，然後重新啟動 OneUptime。
+Admin Dashboard 在 **設定 > 所有專案共用 > 全域探測器** 下列出該探測器。它透過 `GLOBAL_PROBE_1_ONEUPTIME_URL` 連到 OneUptime，預設值為 `http://localhost`（連接埠 80）。只要它指向 `localhost`，`npm start` 就會把它改到 ingress 的連接埠。如果你把它設成其他位址，或是以 Docker CLI 啟動 OneUptime，請把它設為 ingress 的新連接埠，例如 `http://localhost:8080`，然後重新啟動 OneUptime。
 :::
 
 ## 後續步驟

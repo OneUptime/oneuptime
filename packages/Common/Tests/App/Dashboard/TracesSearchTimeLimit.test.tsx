@@ -331,9 +331,14 @@ function searchBox(): HTMLInputElement {
  */
 function sectionFor(title: string): HTMLElement {
   const header: HTMLElement | undefined = Array.from(
-    document.querySelectorAll<HTMLElement>("button[aria-expanded]"),
+    document.querySelectorAll<HTMLElement>(
+      "button[aria-expanded]:not([data-testid='defined-term'])",
+    ),
   ).find((button: HTMLElement): boolean => {
-    return (button.textContent || "").trim().startsWith(title);
+    // A title drawn as a defined term (Span Type) names its fold button.
+    return (button.getAttribute("aria-label") || button.textContent || "")
+      .trim()
+      .startsWith(title);
   });
   expect(header).toBeDefined();
   return header!.parentElement!.parentElement as HTMLElement;

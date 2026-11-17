@@ -302,7 +302,12 @@ import WorkflowsArchived, {
   WORKFLOWS_ARCHIVED_TABLE_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Workflow/Archived";
 import WorkflowsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Workflow/Workflows";
+import {
+  UsedByBulkImpact,
+  UsedByImpactForRecord,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/UsedBy/UsedByImpact";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -313,6 +318,8 @@ import Route from "../../../Types/API/Route";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Color from "../../../Types/Color";
 import Name from "../../../Types/Name";
+import { UsedByRecordKind } from "../../../Types/UsedBy/UsedBy";
+import { BulkActionConfirmControls } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import { ModalTableBulkDefaultActions } from "../../../UI/Components/ModelTable/BaseModelTable";
 
 const RESOURCE_ID: string = "4f1c2a9e-7b3d-4c8e-9a2f-6d5e4c3b2a10";
@@ -335,6 +342,11 @@ interface ArchivableList {
   viewPath: string;
   // Whether its records are switched on and off (Enable and Disable in bulk).
   isSwitched: boolean;
+  /*
+   * The kind of record its Archive says what still uses (#7435), or null
+   * where nothing reads that for it.
+   */
+  usedByRecordKind: UsedByRecordKind | null;
 }
 
 const LISTS: Array<ArchivableList> = [
@@ -352,6 +364,7 @@ const LISTS: Array<ArchivableList> = [
     },
     viewPath: `/dashboard/${PROJECT_ID}/workflows/${RESOURCE_ID}`,
     isSwitched: true,
+    usedByRecordKind: null,
   },
   {
     name: "Status Pages",
@@ -367,6 +380,7 @@ const LISTS: Array<ArchivableList> = [
     },
     viewPath: `/dashboard/${PROJECT_ID}/status-pages/${RESOURCE_ID}`,
     isSwitched: false,
+    usedByRecordKind: UsedByRecordKind.StatusPage,
   },
   {
     name: "Dashboards",
@@ -382,6 +396,7 @@ const LISTS: Array<ArchivableList> = [
     },
     viewPath: `/dashboard/${PROJECT_ID}/dashboards/${RESOURCE_ID}`,
     isSwitched: false,
+    usedByRecordKind: null,
   },
   {
     name: "On-Call Policies",
@@ -397,6 +412,7 @@ const LISTS: Array<ArchivableList> = [
     },
     viewPath: `/dashboard/${PROJECT_ID}/on-call-duty/policies/${RESOURCE_ID}`,
     isSwitched: false,
+    usedByRecordKind: UsedByRecordKind.OnCallPolicy,
   },
 ];
 
@@ -415,6 +431,88 @@ async function renderPage(element: ReactElement): Promise<CapturedTableProps> {
 function lastArchiveHookOptions(): Record<string, unknown> {
   const calls: Array<Array<unknown>> = archiveActionsMock.mock.calls;
   return calls[calls.length - 1]![0] as Record<string, unknown>;
+}
+
+// The archive hook's words and model, without what still uses the records.
+function archiveWords(
+  options: Record<string, unknown>,
+): Record<string, unknown> {
+  const words: Record<string, unknown> = { ...options };
+
+  delete words["archiveConfirmDetails"];
+  delete words["getArchiveConfirmationDetails"];
+
+  return words;
+}
+
+interface UsedByInArchive {
+  row: { type: unknown; recordKind: unknown; recordId: string };
+  bulk: { type: unknown; recordKind: unknown; recordIds: Array<string> };
+}
+
+/*
+ * What a list's Archive says still uses the records (#7435), as the archive
+ * hook was handed it: a row's Archive dialog reads that record's, a bulk
+ * Archive the whole selection's. Null where the list hands it nothing.
+ */
+function usedByInArchive(
+  options: Record<string, unknown>,
+): UsedByInArchive | null {
+  const row: ((item: BaseModel) => ReactElement | undefined) | undefined =
+    options["getArchiveConfirmationDetails"] as
+      | ((item: BaseModel) => ReactElement | undefined)
+      | undefined;
+  const bulk:
+    | ((
+        items: Array<BaseModel>,
+        controls: BulkActionConfirmControls,
+      ) => ReactElement | undefined)
+    | undefined = options["archiveConfirmDetails"] as
+    | ((
+        items: Array<BaseModel>,
+        controls: BulkActionConfirmControls,
+      ) => ReactElement | undefined)
+    | undefined;
+
+  if (!row && !bulk) {
+    return null;
+  }
+
+  const item: BaseModel = { _id: RESOURCE_ID } as unknown as BaseModel;
+  const rowDetails: ReactElement = row!(item)!;
+  const bulkDetails: ReactElement = bulk!(
+    [item],
+    {} as unknown as BulkActionConfirmControls,
+  )!;
+
+  return {
+    row: {
+      type: rowDetails.type,
+      recordKind: rowDetails.props.recordKind,
+      recordId: String(rowDetails.props.recordId),
+    },
+    bulk: {
+      type: bulkDetails.type,
+      recordKind: bulkDetails.props.recordKind,
+      recordIds: (bulkDetails.props.recordIds as Array<unknown>).map(String),
+    },
+  };
+}
+
+// The used-by details of a list of records of this kind, for one record.
+function usedByOf(recordKind: UsedByRecordKind): UsedByInArchive {
+  return {
+    row: {
+      type: UsedByImpactForRecord,
+      recordKind: recordKind,
+      recordId: RESOURCE_ID,
+    },
+    bulk: {
+      type: UsedByBulkImpact,
+      recordKind: recordKind,
+      recordIds: [RESOURCE_ID],
+    },
+  };
 }
 
 function titles(items: Array<{ title: string }> | undefined): Array<string> {
@@ -476,13 +574,19 @@ describe.each(LISTS)("$name list", (list: ArchivableList) => {
   test("archives in this resource's words", async () => {
     await renderPage(list.renderLive());
 
-    expect(lastArchiveHookOptions()).toEqual({
+    const options: Record<string, unknown> = lastArchiveHookOptions();
+
+    expect(archiveWords(options)).toEqual({
       modelType: list.modelType,
       singularName: list.copy.singularName,
       pluralName: list.copy.pluralName,
       archiveConfirmMessage: list.copy.bulkArchiveConfirmMessage,
       unarchiveConfirmMessage: list.copy.bulkUnarchiveConfirmMessage,
     });
+    // And says what still uses the records, of this kind, where it reads that.
+    expect(usedByInArchive(options)).toEqual(
+      list.usedByRecordKind ? usedByOf(list.usedByRecordKind) : null,
+    );
   });
 });
 
@@ -616,13 +720,20 @@ describe("the monitor tables", () => {
     expect(buttons.indexOf("archive-action")).toBeLessThan(
       buttons.indexOf(ModalTableBulkDefaultActions.Delete),
     );
-    expect(lastArchiveHookOptions()).toEqual({
+
+    const options: Record<string, unknown> = lastArchiveHookOptions();
+
+    expect(archiveWords(options)).toEqual({
       modelType: Monitor,
       singularName: MONITOR_ARCHIVE_COPY.singularName,
       pluralName: MONITOR_ARCHIVE_COPY.pluralName,
       archiveConfirmMessage: MONITOR_ARCHIVE_COPY.bulkArchiveConfirmMessage,
       unarchiveConfirmMessage: MONITOR_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
     });
+    // And says what still uses the monitors: status pages, SLOs, rules (#7435).
+    expect(usedByInArchive(options)).toEqual(
+      usedByOf(UsedByRecordKind.Monitor),
+    );
   });
 
   test("the Archived Monitors page lists archived monitors only, with Unarchive and Delete", async () => {

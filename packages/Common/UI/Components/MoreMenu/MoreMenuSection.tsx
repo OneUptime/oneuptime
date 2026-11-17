@@ -13,7 +13,7 @@ const MoreMenuSection: FunctionComponent<ComponentProps> = (
   const translatedTitle: string = translateString(props.title) ?? props.title;
   return (
     <div>
-      <div className="text-gray-400 text-xs font-medium pt-2 pl-3 pr-3 pb-2">
+      <div className="text-gray-500 text-xs font-medium pt-2 pl-3 pr-3 pb-2">
         {translatedTitle.toUpperCase()}
       </div>
       {props.children}

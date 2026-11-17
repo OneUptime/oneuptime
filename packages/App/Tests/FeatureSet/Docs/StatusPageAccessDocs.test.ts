@@ -144,7 +144,7 @@ describe("the English status pages guide", () => {
       });
 
     expect(row).toContain(
-      "**Access** (who can see the page), **Private Users**, **SSO**, **OIDC**, **SCIM**.",
+      "**Access** (who can see the page), **Private Users**, **Single Sign-On** (a tab each for SAML and OIDC), **SCIM**.",
     );
   });
 

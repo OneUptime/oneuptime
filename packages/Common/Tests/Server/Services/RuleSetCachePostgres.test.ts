@@ -16,7 +16,8 @@
  *     created, renamed, turned off, its lists changed, deleted, written
  *     without hooks; a label, a monitor, a team, a person, a severity, a
  *     runbook deleted (the database takes them out of every rule, of every
- *     project); a runbook renamed;
+ *     project, and a rule a delete leaves limited to nothing is switched
+ *     off, #9066); a runbook renamed;
  *   - and while nothing changes, a create reads no rule at all: the
  *     statements the reads cost a create, cold and warm, are counted.
  *
@@ -69,6 +70,7 @@ import TeamService from "../../../Server/Services/TeamService";
 import UserService from "../../../Server/Services/UserService";
 import Select from "../../../Server/Types/Database/Select";
 import logger from "../../../Server/Utils/Logger";
+import { getRuleLimitListsHolding } from "../../../Server/Utils/Rules/RuleLimitLists";
 import RuleSetCache, {
   EnabledRulesRead,
   RULE_SET_MODELS,
@@ -157,8 +159,15 @@ describePostgres("rules kept between creates (Postgres)", () => {
   // The records the rules name, by table: two of each in the project.
   const named: Map<string, Array<string>> = new Map<string, Array<string>>();
 
-  // A record of the project that only the other project's rule names.
-  const crossProjectLabelId: string = ObjectID.generate().toString();
+  /*
+   * Two records of the project that only the other project's rule names, in
+   * one list: the first deleted leaves the rule limited to the second, the
+   * second leaves it limited to nothing.
+   */
+  const crossProjectLabelIds: Array<string> = [
+    ObjectID.generate().toString(),
+    ObjectID.generate().toString(),
+  ];
 
   // The reads the engines make, taken off them (see the first test).
   let reads: Array<AnyRead> = [];
@@ -214,6 +223,17 @@ describePostgres("rules kept between creates (Postgres)", () => {
         }
 
         cloned.add(relation.inverseEntityMetadata.tableName);
+      }
+
+      /*
+       * Every rule list that can hold a named record, of every rule kind -
+       * not only the kinds kept here - with its rule's table: a delete reads
+       * them all first, to switch off a rule it would leave with none
+       * (RuleEmptiedLimits, #9066).
+       */
+      for (const list of getRuleLimitListsHolding(table)) {
+        cloned.add(list.ruleTable);
+        cloned.add(list.joinTable);
       }
     }
 
@@ -411,11 +431,13 @@ describePostgres("rules kept between creates (Postgres)", () => {
       named.set(table, ids);
     }
 
-    // A label of the project, named only by the other project's rule.
-    await database.query(
-      `INSERT INTO "Label" ("_id", "projectId", "name") VALUES ($1, $2, 'Shared')`,
-      [crossProjectLabelId, projectId.toString()],
-    );
+    // Labels of the project, named only by the other project's rule.
+    for (const [index, labelId] of crossProjectLabelIds.entries()) {
+      await database.query(
+        `INSERT INTO "Label" ("_id", "projectId", "name") VALUES ($1, $2, $3)`,
+        [labelId, projectId.toString(), `Shared ${index + 1}`],
+      );
+    }
   }
 
   // A row of `table` with this id, as a relation names it.
@@ -793,7 +815,7 @@ describePostgres("rules kept between creates (Postgres)", () => {
         }
       }
 
-      // The other project's rule names a label of this project.
+      // The other project's rule names labels of this project.
       await reads
         .find((read: AnyRead) => {
           return read.service.getModel().tableName === "IncidentLabelRule";
@@ -806,9 +828,10 @@ describePostgres("rules kept between creates (Postgres)", () => {
               })!,
               { projectId: otherProjectId, name: "Across projects" },
             );
-            (rule as unknown as Record<string, unknown>)["incidentLabels"] = [
-              ref("Label", crossProjectLabelId),
-            ];
+            (rule as unknown as Record<string, unknown>)["incidentLabels"] =
+              crossProjectLabelIds.map((labelId: string) => {
+                return ref("Label", labelId);
+              });
             return rule;
           })(),
           props: { isRoot: true, ignoreHooks: true },
@@ -1048,35 +1071,61 @@ describePostgres("rules kept between creates (Postgres)", () => {
         await expectEveryReadAsTheDatabase();
       }
 
-      // The other project's rule named a label of this one.
-      expect(
-        JSON.stringify(
-          normalize(
-            await rulesOf("IncidentLabelRule", otherProjectId),
-            reads.find((read: AnyRead) => {
-              return read.service.getModel().tableName === "IncidentLabelRule";
-            })!.select,
-          ),
-        ),
-      ).toContain(crossProjectLabelId);
+      // The other project's rule, as its project's reads hand it out.
+      const otherProjectLabelRules: () => Promise<string> =
+        async (): Promise<string> => {
+          return JSON.stringify(
+            normalize(
+              await rulesOf("IncidentLabelRule", otherProjectId),
+              reads.find((read: AnyRead) => {
+                return (
+                  read.service.getModel().tableName === "IncidentLabelRule"
+                );
+              })!.select,
+            ),
+          );
+        };
 
-      await LabelService.deleteBy({
-        query: { _id: crossProjectLabelId } as never,
-        limit: 1,
-        skip: 0,
-        props: { isRoot: true, ignoreHooks: true },
-      });
+      const deleteLabel: (labelId: string) => Promise<void> = async (
+        labelId: string,
+      ): Promise<void> => {
+        await LabelService.deleteBy({
+          query: { _id: labelId } as never,
+          limit: 1,
+          skip: 0,
+          props: { isRoot: true, ignoreHooks: true },
+        });
+      };
 
-      expect(
-        JSON.stringify(
-          normalize(
-            await rulesOf("IncidentLabelRule", otherProjectId),
-            reads.find((read: AnyRead) => {
-              return read.service.getModel().tableName === "IncidentLabelRule";
-            })!.select,
-          ),
-        ),
-      ).not.toContain(crossProjectLabelId);
+      /*
+       * The other project's rule named two labels of this one. The first
+       * deleted leaves it limited to the second, and on: nothing writes the
+       * rule, so only the delete's new generation of every project shows
+       * the other project's reads the label gone.
+       */
+      expect(await otherProjectLabelRules()).toContain(crossProjectLabelIds[0]);
+
+      await deleteLabel(crossProjectLabelIds[0]!);
+
+      expect(await rulesOf("IncidentLabelRule", otherProjectId)).toHaveLength(
+        1,
+      );
+      expect(await otherProjectLabelRules()).not.toContain(
+        crossProjectLabelIds[0],
+      );
+      expect(await otherProjectLabelRules()).toContain(crossProjectLabelIds[1]);
+      await expectEveryReadAsTheDatabase(otherProjectId);
+
+      /*
+       * The second deleted leaves it limited to nothing: it is switched off
+       * rather than widened to every incident (RuleEmptiedLimits, #9066),
+       * and the other project's reads say so.
+       */
+      await deleteLabel(crossProjectLabelIds[1]!);
+
+      expect(await rulesOf("IncidentLabelRule", otherProjectId)).toHaveLength(
+        0,
+      );
       await expectEveryReadAsTheDatabase(otherProjectId);
     },
     TEST_TIMEOUT_MS,

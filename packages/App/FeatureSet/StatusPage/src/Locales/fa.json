@@ -37,7 +37,6 @@
     "announcements": "اطلاعیه‌ها",
     "scheduledEvents": "تعمیر و نگهداری زمان‌بندی‌شده",
     "subscribe": "عضویت",
-    "login": "ورود",
     "logout": "خروج"
   },
   "overview": {
@@ -306,24 +305,24 @@
       "password": "رمز عبور",
       "newPassword": "رمز عبور جدید",
       "confirmPassword": "تأیید رمز عبور",
-      "login": "ورود"
+      "signInLink": "ورود."
     },
     "login": {
       "welcomeBack": "خوش برگشتید!",
-      "loginPrompt": "برای مشاهده {{statusPageName}} لطفاً وارد شوید",
+      "signInPrompt": "برای مشاهده {{statusPageName}} لطفاً وارد شوید.",
       "forgotPassword": "رمز عبور را فراموش کرده‌اید؟",
       "submit": "ورود",
       "or": "یا",
-      "logInWithSso": "ورود با SSO",
+      "signInWithSso": "ورود با SSO",
       "emailSignInLink": "ارسال لینک ورود به ایمیل من"
     },
     "sso": {
       "title": "ورود با SSO",
-      "loginPrompt": "برای مشاهده {{statusPageName}} لطفاً وارد شوید",
+      "signInPrompt": "برای مشاهده {{statusPageName}} لطفاً وارد شوید.",
       "noProviders": "هیچ ارائه‌دهنده SSO پیکربندی یا فعال نشده است",
       "notAvailable": "ورود یکپارچه (SSO) برای این صفحه وضعیت در دسترس نیست. به جای آن با ایمیل و رمز عبور خود وارد شوید.",
-      "backToLogin": "بازگشت به صفحه ورود",
-      "logInWithPassword": "ورود با رمز عبور"
+      "backToSignIn": "بازگشت به صفحه ورود",
+      "signInWithPassword": "ورود با رمز عبور"
     },
     "forgotPassword": {
       "title": "فراموشی رمز عبور",
@@ -339,7 +338,7 @@
       "knowPassword": "رمز عبور خود را می‌دانید؟",
       "successTitle": "گذرواژهٔ شما بازنشانی شد",
       "successDescription": "با گذرواژهٔ جدیدتان وارد شوید.",
-      "loginButton": "ورود",
+      "signInButton": "ورود",
       "linkExpiredTitle": "این پیوند بازنشانی منقضی شده است",
       "linkExpiredDescription": "پیوندهای بازنشانی یک روز اعتبار دارند. پیوند جدیدی درخواست کنید تا آن را برایتان ایمیل کنیم.",
       "linkInvalidTitle": "این پیوند بازنشانی دیگر کار نمی‌کند",

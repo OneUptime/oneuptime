@@ -679,10 +679,11 @@ test("in Arabic, the policy's levels read from the right", async ({
   expect(
     await wordsOf(levels.nth(1).getByTestId("test-page-walk-level-heading")),
   ).toBe(
+    // Its count is held to د (minutes), as the translator holds it (#8770).
     worded(ARABIC, "Level {{order}}, after {{count}} minutes", {
       order: "2",
       count: "2",
-    }),
+    }).replace("2 د", withUnit(2, "د")),
   );
   // Read from the right: each marker is on the right of its heading.
   await expectTimelineLevel(levels.nth(0), "right");

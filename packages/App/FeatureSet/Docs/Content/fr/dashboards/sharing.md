@@ -80,7 +80,7 @@ Les requêtes de toute autre adresse IP sont rejetées avec une page **Access De
 
 ## Domaines personnalisés
 
-Par défaut, un tableau de bord public est servi à son lien public, sur l'adresse de OneUptime. Pour l'héberger sur votre propre sous-domaine, comme `dashboard.acme.com`, ouvrez **Image de marque → Domaines personnalisés** dans le menu latéral du tableau de bord. Cela fonctionne exactement comme la page **Domaines personnalisés** d'une page de statut.
+Par défaut, un tableau de bord public est servi à son lien public, sur l'adresse de OneUptime. Pour l'héberger sur votre propre sous-domaine, comme `dashboard.acme.com`, ouvrez **Lien public → Domaines personnalisés** dans le menu latéral du tableau de bord. Cela fonctionne exactement comme la page **Domaines personnalisés** d'une page de statut.
 
 La carte s'intitule **Domaines personnalisés** et dit quoi faire : faites pointer l'enregistrement CNAME de chaque domaine vers l'enregistrement CNAME de tableau de bord de votre installation, et OneUptime émet le certificat SSL du domaine et le renouvelle pour vous. Le tableau a deux colonnes, **Domaine** et **Statut**.
 

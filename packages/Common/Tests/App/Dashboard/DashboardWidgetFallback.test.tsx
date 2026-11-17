@@ -347,8 +347,8 @@ describe("the card itself", () => {
     ).parentElement as HTMLElement;
 
     expect(row.className).toContain("gap-2");
-    expect(row.className).toContain("[&_button]:ml-0");
-    expect(row.className).toContain("[&_button]:w-auto");
+    // A Button has no margin or width of its own: the gap spaces them (#9128).
+    expect(row.className).not.toContain("[&_button]");
     expect(row.className).toContain("flex-wrap");
   });
 

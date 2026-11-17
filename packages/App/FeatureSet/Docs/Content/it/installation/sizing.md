@@ -82,7 +82,7 @@ Lo storage cresce **in modo lineare con la conservazione**: una finestra di 90 g
 
 PostgreSQL memorizza la configurazione e lo stato operativo, non la telemetria, quindi cresce lentamente e resta piccolo rispetto a ClickHouse. Anche le installazioni grandi restano di solito nell'ordine delle decine di GB. Il volume predefinito da **25 Gi** basta per le installazioni piccole; prevedi 50–100 GB per quelle più grandi, con margine per la cronologia di incidenti e avvisi.
 
-Gli incidenti e gli avvisi risolti restano finché ogni progetto non sceglie per quanto tempo conservarli. Per sottoporre tutti i progetti a un limite, imposta **Conserva al massimo** in **Admin Dashboard → Impostazioni → Conservazione dati**: consulta [Un limite per tutto il server](/docs/incidents/settings#un-limite-per-tutto-il-server).
+Gli incidenti e gli avvisi risolti restano finché ogni progetto non sceglie per quanto tempo conservarli. Per sottoporre tutti i progetti a un limite, imposta **Conserva al massimo** in **Admin Dashboard → Impostazioni → Server → Conservazione dati**: consulta [Un limite per tutto il server](/docs/incidents/settings#un-limite-per-tutto-il-server).
 
 Con molte repliche di app, worker e sonde, le connessioni al database possono esaurirsi prima dello storage. Ogni pod apre fino a 50 connessioni per impostazione predefinita, e il PostgreSQL incluso ne accetta 500. Proprio per questo il chart include un connection pooler **PgBouncer** opzionale (`pgbouncer.enabled`): attivalo per le installazioni con molte repliche.
 

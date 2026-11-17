@@ -648,7 +648,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                 {log.body?.toString() || ""}
               </span>
               {time && (
-                <span className="flex-none text-gray-400">
+                <span className="flex-none text-gray-500">
                   {OneUptimeDate.getLocalTimeString(time, {
                     includeSeconds: true,
                   })}
@@ -852,7 +852,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                     {event.attributes.length > 0 && (
                       <div className="mt-2 border-t border-gray-100 pt-2">
                         <div className="mb-1.5 flex items-center justify-between gap-2">
-                          <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                             {translator.translateText("Event attributes")}
                           </span>
                           <CopyAttributesAsJSONButton
@@ -1012,7 +1012,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                   {linkAttributes.length > 0 && (
                     <div className="mt-2 border-t border-gray-100 pt-2">
                       <div className="mb-1.5 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                           {translator.translateText("Link attributes")}
                         </span>
                         <CopyAttributesAsJSONButton
@@ -1363,7 +1363,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                     {translator.translateText(tab.label)}
                     {tab.count !== null && (
                       <span
-                        className={`rounded-full px-1.5 text-[10px] tabular-nums ${isActive ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-600"}`}
+                        className={`rounded-full px-1.5 text-xs tabular-nums ${isActive ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-600"}`}
                       >
                         {tab.count.toLocaleString(getReaderNumberLocale())}
                       </span>

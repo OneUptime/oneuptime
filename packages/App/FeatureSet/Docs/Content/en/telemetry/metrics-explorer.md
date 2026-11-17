@@ -28,9 +28,9 @@ The explorer has six tabs:
 | Tab | What it is for |
 | --- | --- |
 | **Viewer** | The list of metrics, each with a small chart and its latest value. It opens on the past hour. |
-| **PromQL** | Query your metrics with PromQL, the query language of Prometheus, and connect Grafana to them. See [Query Metrics with PromQL](/docs/telemetry/promql). |
 | **Insights** | Which services report metrics, and how many. |
 | **AI** | The problems OneUptime finds in your metrics (too many values, histogram buckets that do not fit, missing metrics), and what OneUptime AI did about them. See [Improve metrics and add missing ones with AI](#improve-metrics-and-add-missing-ones-with-ai). |
+| **PromQL** | Query your metrics with PromQL, the query language of Prometheus, and connect Grafana to them. See [Query Metrics with PromQL](/docs/telemetry/promql). |
 | **Setup Guide** | How to send metrics with OpenTelemetry, using one of your ingestion keys. |
 | **Settings** | **Pipeline Rules** and **Recording Rules**: what happens to metrics as they arrive. |
 

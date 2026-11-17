@@ -1,7 +1,9 @@
 import Page from "../../Components/Page/Page";
 import PageComponentProps from "../PageComponentProps";
 import IconProp from "Common/Types/Icon/IconProp";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -12,7 +14,7 @@ const PageNotFound: FunctionComponent<
   return (
     <Page>
       <EmptyState
-        paddingClassName="py-20 sm:py-28"
+        size={EmptyStateSize.Page}
         id="empty-state-page-not-found"
         title={t("errors.forbidden.title")}
         description={t("errors.forbidden.description")}

@@ -40,7 +40,7 @@ flowchart LR
 | **Sicherheit** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Abrechnung und Rechnungen** | **Abrechnung**, **Rechnungen** | [Abrechnung & Nutzung](/docs/configuration/billing) |
 | **Audit-Protokolle** | **Audit-Protokolle**, **Einstellungen**, **Export** | [Audit-Protokolle](/docs/configuration/audit-logs), [Audit-Protokoll-Export](/docs/configuration/audit-log-export) |
-| **Gefahrenzone** | **Gefahrenzone** | [Das Projekt löschen](#das-projekt-löschen) |
+| **Gefahrenzone** | **Projekt löschen** | [Das Projekt löschen](#das-projekt-löschen) |
 
 **Abrechnung und Rechnungen** und **KI-Guthaben** gibt es nur in OneUptime Cloud: Eine selbst gehostete Installation hat keine Abrechnung.
 
@@ -113,7 +113,7 @@ Das Löschen eines Projekts löscht alles darin, für jedes Mitglied: seine Moni
 :::steps
 ### Die Gefahrenzone öffnen
 
-Gehen Sie zu **Projekteinstellungen → Gefahrenzone**.
+Gehen Sie zu **Projekteinstellungen → Gefahrenzone → Projekt löschen**.
 
 ### Auf Projekt löschen klicken
 

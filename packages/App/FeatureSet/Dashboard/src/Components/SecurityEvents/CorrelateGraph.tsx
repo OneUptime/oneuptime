@@ -31,7 +31,6 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
-import { Slate500 } from "Common/Types/BrandColors";
 import Input from "Common/UI/Components/Input/Input";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Button, {
@@ -1338,7 +1337,7 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
             </div>
           )}
 
-          <div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row sm:items-center [&_button]:ml-0">
+          <div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row sm:items-center">
             <div
               className="w-full sm:w-44"
               data-testid="security-events-correlate-time-range"
@@ -1451,7 +1450,6 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
         <EmptyState
           id="security-events-correlate-empty"
           icon={IconProp.Share}
-          paddingClassName="px-4 py-12"
           title="Correlate security events"
           description="Search for a host, user, or IP address, or switch to Conditions to combine fields with AND or OR."
           footer={
@@ -1553,12 +1551,11 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
       <EmptyState
         id="security-events-correlate-no-results"
         icon={IconProp.Search}
-        paddingClassName="px-4 py-12"
         title="No events found"
         description="No security events matched this filter in the selected time range."
         footer={
           actions.length > 0 ? (
-            <div className="flex flex-wrap items-center justify-center gap-2 [&_button]:ml-0">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               {actions}
             </div>
           ) : undefined
@@ -1722,7 +1719,7 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
           )}
         </div>
         {hasResults && (
-          <div className="flex items-center gap-2 [&_button]:ml-0">
+          <div className="flex items-center gap-2">
             <Button
               dataTestId="correlate-fit-view"
               title="Fit to screen"
@@ -1957,7 +1954,7 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
            * already announces the load, so this copy stays silent.
            */}
           <div aria-hidden="true">
-            <Loader loaderType={LoaderType.Bar} size={180} color={Slate500} />
+            <Loader loaderType={LoaderType.Bar} size={180} />
           </div>
           <p className="text-sm text-gray-500">{t("Correlating events…")}</p>
         </div>

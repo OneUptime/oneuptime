@@ -36,10 +36,10 @@ La pagina mostra come risorse i monitor che vi inserite, e gli incidenti vi arri
 
 ## In sintesi
 
-- **Si crea con un nome.** Una nuova pagina di stato chiede solo il suo **Nome**; **Descrizione** ed **Etichette** aspettano in **Altri campi**. Risorse, branding e domini si configurano dopo.
+- **Si crea con un nome.** Una nuova pagina di stato chiede solo il suo **Nome**; **Descrizione interna** ed **Etichette** aspettano in **Altri campi**. Risorse, branding e domini si configurano dopo.
 - **Le risorse sono ciò che vedono i visitatori.** Ogni riga della pagina è una **Risorsa della pagina di stato**: un monitor (o gruppo di monitor) con un proprio nome visualizzato, un tooltip e opzioni di uptime. I gruppi dividono una pagina lunga in sezioni e si possono annidare.
 - **Un URL di anteprima fin dal primo giorno.** Ogni pagina di stato riceve un link di anteprima, così potete vederla prima che esista un dominio personalizzato.
-- **I percorsi per i visitatori dipendono dalle impostazioni.** Incidenti, episodi, annunci ed eventi pianificati compaiono solo finché il loro interruttore in **Cosa mostra la tua pagina di stato** (in **Impostazioni avanzate**) è attivo, e la pagina di iscrizione solo finché lo è **Mostra pagina iscritti**.
+- **I percorsi per i visitatori dipendono dalle impostazioni.** Incidenti, episodi, annunci ed eventi pianificati compaiono solo finché il loro interruttore in **Cosa mostra la tua pagina di stato** (in **Impostazioni**) è attivo, e la pagina di iscrizione solo finché lo è **Mostra pagina iscritti**.
 - **Chi può vederla è una sola scelta.** Chiunque abbia il link, solo chi accede (utenti privati, SSO SAML o OIDC) o chiunque abbia la password, nella schermata **Accesso** della pagina, con una lista di IP consentiti facoltativa in **Altre impostazioni**.
 - **Gli iscritti vengono notificati automaticamente.** Iscritti via email, SMS, Slack, Microsoft Teams e webhook possono seguire una pagina, ogni canale dietro il proprio interruttore.
 
@@ -66,7 +66,7 @@ Aprite **Pagine di stato → Tutte le pagine di stato** e fate clic su **Crea pa
 
 ### Dare un nome alla pagina
 
-Nella finestra **Crea: Pagina di stato**, compilate **Nome** (obbligatorio, almeno due caratteri), poi fate clic su **Crea pagina di stato**. **Descrizione** ed **Etichette** sono facoltativi, in **Altri campi**.
+Nella finestra **Crea: Pagina di stato**, compilate **Nome** (obbligatorio, almeno due caratteri), poi fate clic su **Crea pagina di stato**. **Descrizione interna** ed **Etichette** sono facoltativi, in **Altri campi**. La descrizione interna è per il vostro team: i visitatori non la vedono mai.
 
 Questo è tutto il modulo. L'elenco **Pagine di stato** mostra **Nome**, **Descrizione**, **Etichette** e **Proprietari**, e si può filtrare per **ID della pagina di stato**, **Nome** e **Descrizione**.
 
@@ -82,7 +82,7 @@ Poi, più o meno in ordine di utilità:
 - Aggiungete risorse perché la pagina mostri qualcosa: vedete [Risorse e gruppi della pagina di stato](/docs/status-pages/resources-and-groups).
 - Impostate il titolo della pagina, la favicon, il logo e l'immagine di copertina, poi collegate un dominio personalizzato: vedete [Branding e domini della pagina di stato](/docs/status-pages/branding-and-domains).
 - Decidete su quali canali ci si può iscrivere: vedete [Iscritti e annunci](/docs/status-pages/subscribers).
-- Regolate ciò che compare sulla pagina in **Impostazioni avanzate**.
+- Regolate ciò che compare sulla pagina in **Impostazioni**.
 
 ## Dove si trova ogni cosa
 
@@ -90,24 +90,24 @@ Una volta aperta una pagina di stato, il suo menu laterale sinistro è raggruppa
 
 | Sezione | Che cosa contiene |
 | --- | --- |
-| **Base** | **Panoramica**, **Annunci**, **Proprietari**. |
+| **Panoramica** | **Panoramica**, **Annunci**, **Proprietari**. |
 | **Risorse** | Un'unica schermata **Risorse** (i gruppi a sinistra, i monitor del gruppo selezionato a destra). |
 | **Regole** | **Regole dei monitor**: regole che aggiungono alla pagina ogni monitor corrispondente, ora e in seguito. |
 | **Iscritti** | **Iscritti** (un'unica pagina, con una scheda per ogni canale: E-mail, SMS, Slack, Microsoft Teams e Webhook), **Impostazioni iscritti**, **Log di notifica**: ciò che è stato inviato agli iscritti. |
 | **Branding** | **Branding** (logo, titolo, favicon, link, piè di pagina, colori e lingue, in un'unica pagina), **Domini personalizzati**, **HTML, CSS e JavaScript**. |
-| **Sicurezza** | **Accesso** (chi può vedere la pagina), **Utenti privati**, **SSO**, **OIDC**, **SCIM**. |
+| **Sicurezza** | **Accesso** (chi può vedere la pagina), **Utenti privati**, **Single Sign-On** (una scheda per SAML e una per OIDC), **SCIM**. |
 | **IA** | **MCP**. |
 | **Sviluppatori** | **Terraform**, **API**, **CLI**, **Assistenti IA**: la pagina come codice. |
-| **Avanzato** | **Stato incorporato**, **Report**, **Campi personalizzati**, **Impostazioni avanzate**, **Log di audit**, **Elimina pagina di stato**. |
+| **Avanzato** | **Stato incorporato**, **Report**, **Campi personalizzati**, **Impostazioni**, **Log di audit**, **Elimina pagina di stato**. |
 
-Solo **Base** e **Risorse**, ciò che la pagina mostra, partono aperte. Tutte le altre sezioni partono chiuse, come le sezioni poco usate di ogni menu di OneUptime: fate clic sul titolo di una sezione per mostrarne le pagine. Una sezione si apre da sola quando vi trovate su una delle sue pagine, come **Impostazioni avanzate** o **Iscritti**.
+Solo **Panoramica** e **Risorse**, ciò che la pagina mostra, partono aperte. Tutte le altre sezioni partono chiuse, come le sezioni poco usate di ogni menu di OneUptime: fate clic sul titolo di una sezione per mostrarne le pagine. Una sezione si apre da sola quando vi trovate su una delle sue pagine, come **Impostazioni** o **Iscritti**.
 
 Due particolarità dei nomi da conoscere prima di cercare:
 
 - La voce **Risorse** si chiama **Risorse** solo quando il progetto ha attivato i gruppi di monitor. Altrimenti si chiama **Monitor**. È la stessa schermata in entrambi i casi.
 - Non c'è una pagina dei gruppi separata. Gruppi e risorse sono stati uniti, e il vecchio percorso `/groups` ora reindirizza alla schermata delle risorse.
 
-Al di fuori di una singola pagina, la sezione **Pagine di stato** stessa elenca **Tutte le pagine di stato**, e una sezione **Altro** contiene **Annunci**. Una sezione **Impostazioni** chiusa contiene **Modelli di annunci**, **Modelli iscritti**, **Campi personalizzati**, **Regole del proprietario** e **Regole etichette**, che valgono per tutto il progetto e sono condivisi da tutte le pagine di stato. Una sezione **Avanzato** chiusa contiene **Archiviato**: le pagine di stato che avete messo offline (vedete [Archiviare una pagina di stato](#archiviare-una-pagina-di-stato)).
+Al di fuori di una singola pagina, la sezione **Pagine di stato** stessa elenca **Tutte le pagine di stato** e **Annunci**. Una sezione **Regole** chiusa contiene **Regole del proprietario** e **Regole etichette**, e una sezione **Impostazioni** chiusa contiene **Modelli di annunci**, **Modelli iscritti** e **Campi personalizzati**. Valgono tutti per l'intero progetto e sono condivisi da tutte le pagine di stato. Una sezione **Avanzato** chiusa contiene **Archiviato**: le pagine di stato che avete messo offline (vedete [Archiviare una pagina di stato](#archiviare-una-pagina-di-stato)).
 
 **Regole etichette** e **Regole del proprietario** etichettano le nuove pagine di stato e assegnano loro dei proprietari. Una regola ha due passi (**Corrispondenza**, le condizioni che una pagina di stato deve soddisfare, poi **Etichette** o **Proprietari**, ciò che la regola aggiunge) e il suo **Nome** viene compilato da ciò che scegliete. Una nuova regola deve aggiungere almeno un'etichetta o un proprietario; in modifica non si insiste mai, e l'elenco contrassegna con **Non aggiunge nulla** una vecchia regola che non aggiunge niente. Vedete [Regole per etichette e proprietari](/docs/configuration/label-and-owner-rules).
 
@@ -147,7 +147,7 @@ Per sapere che cosa porta un incidente su questa pagina e che cosa lo toglie, ve
 
 ## Scegliere che cosa compare sulla pagina
 
-Ciò che vedono i visitatori si imposta in un'unica scheda: **Cosa mostra la tua pagina di stato**, in **Pagine di stato → la vostra pagina → Avanzato → Impostazioni avanzate**. Ha una riga per ogni elenco che la pagina può mostrare, poi **Cronologia uptime** (con la percentuale di uptime complessiva e gli stati che contano come inattività). La riga "Powered by OneUptime" ha una scheda tutta sua, subito sotto, chiusa in **Altre impostazioni**. Non c'è un pulsante di modifica: un interruttore si salva appena lo cambiate, un numero di giorni quando uscite dalla sua casella o premete Invio, e una scelta da un elenco appena la fate.
+Ciò che vedono i visitatori si imposta in un'unica scheda: **Cosa mostra la tua pagina di stato**, in **Pagine di stato → la vostra pagina → Avanzato → Impostazioni**. Ha una riga per ogni elenco che la pagina può mostrare, poi **Cronologia uptime** (con la percentuale di uptime complessiva e gli stati che contano come inattività). La riga "Powered by OneUptime" ha una scheda tutta sua, subito sotto, chiusa in **Altre impostazioni**. Non c'è un pulsante di modifica: un interruttore si salva appena lo cambiate, un numero di giorni quando uscite dalla sua casella o premete Invio, e una scelta da un elenco appena la fate.
 
 - **Mostra incidenti** (`showIncidentsOnStatusPage`): attivo per impostazione predefinita. Sotto, **Mostra … giorni di cronologia** (`showIncidentHistoryInDays`, 14 per impostazione predefinita) indica fin dove arriva l'elenco degli incidenti, e **Mostra etichette degli incidenti** (`showIncidentLabelsOnStatusPage`) è disattivato per impostazione predefinita.
 - **Mostra solo gli incidenti limitati a questa pagina** (`onlyShowScopedIncidents`): anch'esso nella riga degli incidenti, disattivato per impostazione predefinita. Attivatelo e la pagina mostra, e notifica ai suoi iscritti, solo gli incidenti limitati a essa con **Limita a queste pagine di stato**. Gli incidenti non limitati ad alcuna pagina, compresi quelli che aprono da soli un monitor, Slack, Microsoft Teams, l'API o l'IA, non vi arrivano mai finché qualcuno non aggiunge loro la pagina. Decide anche quali incidenti portano i loro episodi sulla pagina, per questo resta disponibile quando **Mostra incidenti** è disattivato. Per pagine che condividono monitor ma servono pubblici diversi, vedete [Una pagina di stato per pubblico](/docs/status-pages/one-status-page-per-audience).
@@ -197,17 +197,21 @@ Scegliere un'opzione chiede conferma, indicando che cosa cambia per i visitatori
 
 Aggiungete le persone che possono accedere in **Pagine di stato → la vostra pagina → Sicurezza → Utenti privati**. C'è un'azione **Aggiungi in blocco**: incollate un elenco di indirizzi email e ciascuno riceve un'email di invito. Gli utenti privati hanno un proprio flusso di password dimenticata e di reimpostazione, separato dagli account del vostro progetto OneUptime. Una nuova password li disconnette su tutti i dispositivi, e qualsiasi link di accesso o di reimpostazione già inviato smette di funzionare.
 
+**Utenti privati, Single Sign-On e SCIM non hanno effetto su una pagina pubblica.** Finché **Chiunque abbia il link** è la scelta in vigore, ogni visitatore vede la pagina senza accedere. Le schermate **Utenti privati**, **Single Sign-On** e **SCIM** lo dicono ciascuna in alto, "Questa pagina di stato è pubblica, quindi queste impostazioni non hanno effetto finché non la rendi privata.", con **Modifica l'accesso**, che apre **Accesso**. Ciò che contengono è chiuso in **Configura prima di renderla privata**: apritelo per aggiungere persone o un provider prima che la pagina diventi privata, così nessuno resta chiuso fuori quando lo diventa.
+
 **Utenti privati e password non si sommano.** Finché **Chiunque abbia la password** è la scelta in vigore, gli utenti privati non possono accedere (inseriscono anche loro la password), e la schermata **Utenti privati** lo dice, con un link per tornare ad **Accesso**.
 
 **Link di accesso.** Su una pagina a cui i visitatori accedono, la pagina di accesso offre anche **Inviami un link di accesso**: un utente privato inserisce il proprio indirizzo e-mail e riceve un link che lo fa accedere senza password. Il link funziona una sola volta, per 15 minuti, e chiederne un altro lo sostituisce. Apre una pagina in cui l'utente preme **Accedi**, così i filtri di posta che aprono ogni link per analizzarlo non possono consumarlo prima di lui. La pagina risponde allo stesso modo che l'indirizzo sia o no di uno dei suoi utenti privati, quindi chiedere un link non rivela a nessuno chi può accedere. I link sono attivi su ogni pagina; per far usare agli utenti privati solo la password, disattivate **Link di accesso** in **Altre impostazioni** su **Utenti privati** (chi ha già effettuato l'accesso con un link resta connesso). Non vengono mai offerti mentre **Richiedi l'SSO per l'accesso** è attivo o **Chiunque abbia la password** è la scelta.
 
 ### SSO e OIDC
 
-Per una pagina privata collegata al vostro provider di identità, **Pagine di stato → la vostra pagina → Sicurezza → SSO** configura SAML: **Aggiungi provider SSO** chiede l'URL di accesso, l'emittente e il certificato x509, e i metodi di firma e di digest si compilano in **Altri campi**. **Pagine di stato → la vostra pagina → Sicurezza → OIDC** configura OpenID Connect: **Aggiungi provider OIDC** chiede l'emittente, l'ID client e il secret, e l'URL di discovery, gli scope e i nomi dei claim si compilano in **Altri campi**. Quando una pagina ha un provider, la scheda **Prova l'accesso** sotto l'elenco porta all'accesso della pagina, per provarlo. **SCIM** fornisce automaticamente utenti privati dall'IdP. Su OneUptime Cloud, tutti e tre richiedono il piano Scale o superiore. In un'installazione self-hosted, SSO e OIDC fanno parte di ogni edizione, e SCIM richiede l'[Edizione Enterprise](/docs/self-hosted/enterprise).
+Per una pagina privata collegata al vostro provider di identità, aprite **Pagine di stato → la vostra pagina → Sicurezza → Single Sign-On** (`{id}/sso`). Ha una scheda per ogni protocollo. La scheda **SAML** configura SAML: **Aggiungi provider SSO** chiede l'URL di accesso, l'emittente e il certificato x509, e i metodi di firma e di digest si compilano in **Altri campi**. La scheda **OIDC** (`{id}/sso?protocol=oidc`) configura OpenID Connect: **Aggiungi provider OIDC** chiede l'emittente, l'ID client e il secret, e l'URL di discovery, gli scope e i nomi dei claim si compilano in **Altri campi**. Quando una pagina ha un provider, la scheda **Prova l'accesso** sotto l'elenco porta all'accesso della pagina, per provarlo. **SCIM** fornisce automaticamente utenti privati dall'IdP. Su OneUptime Cloud, tutti e tre richiedono il piano Scale o superiore. In un'installazione self-hosted, SSO e OIDC fanno parte di ogni edizione, e SCIM richiede l'[Edizione Enterprise](/docs/self-hosted/enterprise).
 
 Disattivare o eliminare il provider SSO o OIDC di una pagina di stato disconnette gli utenti privati che ha fatto accedere: le loro sessioni terminano alla richiesta successiva, e riattivare il provider non le recupera; accedono di nuovo tramite esso. Un nuovo certificato o un nuovo secret client, altri URL o un nuovo nome mantengono tutti connessi. Su una pagina che richiede l'SSO, disattivare il suo ultimo provider lascia tutti senza accesso finché non ne riattivate uno o non disattivate **Richiedi l'SSO per l'accesso**; per passare a un altro provider, configurate e provate quello nuovo prima di disattivare quello vecchio.
 
-Sotto i provider, la scheda **Impostazioni SSO** contiene l'interruttore **Richiedi l'SSO per l'accesso** (`requireSsoForLogin`, disattivato per impostazione predefinita), che si salva appena lo cambiate. Attivarlo chiede prima conferma, perché da quel momento gli utenti privati non possono accedere con email e password: solo le persone che il vostro provider SSO o OIDC lascia entrare possono vedere la pagina. Provate il link della scheda **Prova l'accesso** qui sopra prima di attivarlo. Conta solo finché **Solo chi accede** è la scelta in vigore, e la schermata **Accesso** lo mostra come **SSO obbligatorio** sotto quella scelta. Mentre è attivo, anche un utente privato che ha effettuato l'accesso con email e password viene disconnesso alla richiesta successiva: contano solo le sessioni avviate da un provider SSO o OIDC. Su OneUptime Cloud, attivarlo richiede il piano **Scale**, e disattivarlo funziona su tutti i piani. Una pagina che richiede ancora l'SSO dopo la fine di una prova di Scale, o dopo un passaggio a un piano inferiore, continua a richiederlo finché qualcuno non lo disattiva: le sue pagine **SSO** e **OIDC** mostrano l'interruttore sotto l'offerta del piano.
+Sotto i provider, la scheda **Impostazioni SSO** contiene l'interruttore **Richiedi l'SSO per l'accesso** (`requireSsoForLogin`, disattivato per impostazione predefinita), che si salva appena lo cambiate. Attivarlo chiede prima conferma, perché da quel momento gli utenti privati non possono accedere con email e password: solo le persone che il vostro provider SSO o OIDC lascia entrare possono vedere la pagina. Provate il link della scheda **Prova l'accesso** qui sopra prima di attivarlo. Conta solo finché **Solo chi accede** è la scelta in vigore, e la schermata **Accesso** lo mostra come **SSO obbligatorio** sotto quella scelta. Mentre è attivo, anche un utente privato che ha effettuato l'accesso con email e password viene disconnesso alla richiesta successiva: contano solo le sessioni avviate da un provider SSO o OIDC. Su OneUptime Cloud, attivarlo richiede il piano **Scale**, e disattivarlo funziona su tutti i piani. Una pagina che richiede ancora l'SSO dopo la fine di una prova di Scale, o dopo un passaggio a un piano inferiore, continua a richiederlo finché qualcuno non lo disattiva: la sua pagina **Single Sign-On** mostra l'interruttore sotto l'offerta del piano, in entrambe le schede.
+
+**SSO** e **OIDC** erano due voci distinte del menu. Il vecchio indirizzo OIDC, `{id}/oidc`, apre la scheda **OIDC**.
 
 ### Sessioni dei lettori
 
@@ -240,7 +244,7 @@ Archiviate una pagina di stato per metterla offline senza eliminarla. Una pagina
 - **Esce dall'elenco delle pagine di stato.** La trovate in **Pagine di stato → Avanzato → Archiviato**.
 - **Conserva tutto.** Le sue risorse, i gruppi, il branding, i domini, gli utenti privati e gli iscritti vengono conservati, quindi annullare l'archiviazione rimette la pagina online esattamente com'era.
 
-Per archiviare una pagina di stato, apritela e andate in **Avanzato → Impostazioni avanzate → Archivia: pagina di stato**. Per archiviarne diverse, selezionatele nell'elenco **Pagine di stato** e scegliete **Archivia**. Per recuperarne una, aprite **Pagine di stato → Avanzato → Archiviato**, selezionatela e scegliete **Annulla archiviazione**, oppure apritela e fate clic su **Annulla archiviazione** nel banner in cima alle sue pagine.
+Per archiviare una pagina di stato, apritela e andate in **Avanzato → Impostazioni → Archivia: pagina di stato**. Per archiviarne diverse, selezionatele nell'elenco **Pagine di stato** e scegliete **Archivia**. Per recuperarne una, aprite **Pagine di stato → Avanzato → Archiviato**, selezionatela e scegliete **Annulla archiviazione**, oppure apritela e fate clic su **Annulla archiviazione** nel banner in cima alle sue pagine.
 
 La **Panoramica** di una pagina di stato ha una scheda **Mostrato ora**: gli incidenti aperti e la manutenzione in arrivo o in corso che i visitatori vi vedono adesso. Archiviare o eliminare la pagina, dalle sue pagine o dall'elenco, dice prima cosa i visitatori smetterebbero di vedere.
 

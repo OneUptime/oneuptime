@@ -23,26 +23,20 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useEffect,
   useState,
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import {
-  getStatusPageAccess,
-  StatusPageAccess,
-} from "Common/Types/StatusPage/StatusPageAccess";
+import { StatusPageAccess } from "Common/Types/StatusPage/StatusPageAccess";
 import StatusPageAccessCopy, {
-  getStatusPageAccessState,
   PRIVATE_USER_PLURAL_NAME,
   PRIVATE_USER_SINGULAR_NAME,
   PRIVATE_USERS_PASSWORD_NOTICE_TEST_ID,
@@ -53,6 +47,11 @@ import StatusPageMagicLinkCopy, {
   STATUS_PAGE_MAGIC_LINK_SECTION_TEST_ID,
 } from "../../../Components/StatusPage/StatusPageMagicLinkCopy";
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
+import StatusPagePrivateOnlySettings from "../../../Components/StatusPage/StatusPagePrivateOnlySettings";
+import { StatusPagePrivateOnlyPage } from "../../../Components/StatusPage/StatusPagePrivateOnlyCopy";
+import useStatusPageAccess, {
+  StatusPageAccessRead,
+} from "../../../Components/StatusPage/useStatusPageAccess";
 
 /*
  * Whether a private user has joined: they set a password, or they have
@@ -65,17 +64,21 @@ export const hasPrivateUserJoined: (user: StatusPagePrivateUser) => boolean = (
   return Boolean(user.password) || Boolean(user.lastActive);
 };
 
-const StatusPageDelete: FunctionComponent<PageComponentProps> = (
+const StatusPagePrivateUsers: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   /*
-   * Whether visitors enter the master password instead of signing in: the
-   * server then lets no private user sign in, so the page says so, with the
-   * way to Access, where who can see the page is chosen.
+   * Who can see the page. While visitors enter the master password the
+   * server lets no private user sign in, and while the page is public
+   * nobody needs to: either way the page says so, with the way to Access,
+   * where who can see the page is chosen (StatusPagePrivateOnlySettings for
+   * a public page).
    */
-  const [isPasswordRequired, setIsPasswordRequired] = useState<boolean>(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const accessRead: StatusPageAccessRead = useStatusPageAccess(modelId);
+  const isPasswordRequired: boolean =
+    accessRead.access === StatusPageAccess.Password;
+  const fetchError: string | null = accessRead.error;
 
   const [showBulkAddModal, setShowBulkAddModal] = useState<boolean>(false);
   const [refreshToggle, setRefreshToggle] = useState<string>(
@@ -142,39 +145,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     );
   };
 
-  useEffect(() => {
-    const fetchStatusPage: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const statusPage: StatusPage | null = await ModelAPI.getItem({
-          modelType: StatusPage,
-          id: modelId,
-          select: {
-            isPublicStatusPage: true,
-            enableMasterPassword: true,
-            masterPassword: true,
-          },
-        });
-
-        setIsPasswordRequired(
-          Boolean(
-            statusPage &&
-              getStatusPageAccess(getStatusPageAccessState(statusPage)) ===
-                StatusPageAccess.Password,
-          ),
-        );
-        setFetchError(null);
-      } catch (error) {
-        const newErrorMessage: string =
-          error instanceof Error && error.message
-            ? error.message
-            : "Failed to fetch status page details.";
-        setFetchError(newErrorMessage);
-      }
-    };
-
-    void fetchStatusPage();
-  }, [modelId]);
-
   return (
     <Fragment>
       {fetchError && (
@@ -199,117 +169,129 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           }}
         />
       )}
-      <ModelTable<StatusPagePrivateUser>
-        modelType={StatusPagePrivateUser}
-        id="status-page-group"
-        name="Status Page > Private Users"
-        /*
-         * On a status page's own Private Users page the rows are its private
-         * users, and they are added, as subscribers are: "Add Private User",
-         * not "Create Status Page Private User". An empty list reads the
-         * table's own "No private users yet."
-         */
-        singularName={PRIVATE_USER_SINGULAR_NAME}
-        pluralName={PRIVATE_USER_PLURAL_NAME}
-        createVerb="Add"
-        userPreferencesKey="status-page-private-user-table"
-        saveFilterProps={{
-          tableId: "status-page-private-users-table",
-        }}
-        isDeleteable={true}
-        showViewIdButton={true}
-        isCreateable={true}
-        isViewable={false}
-        query={{
-          statusPageId: modelId,
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        onBeforeCreate={(
-          item: StatusPagePrivateUser,
-        ): Promise<StatusPagePrivateUser> => {
-          item.statusPageId = modelId;
-          item.projectId = ProjectUtil.getCurrentProjectId()!;
-          return Promise.resolve(item);
-        }}
-        refreshToggle={refreshToggle}
-        cardProps={{
-          title: "Private Users",
-          description:
-            "People who can sign in to see this status page. Each one is emailed an invitation when you add them.",
-          buttons: [
-            {
-              title: "Add in Bulk",
-              buttonStyle: ButtonStyleType.OUTLINE,
-              icon: IconProp.UserGroup,
-              onClick: () => {
-                setShowBulkAddModal(true);
-              },
-            },
-          ],
-        }}
-        formFields={[
-          {
-            field: {
-              email: true,
-            },
-            title: "Email",
-            fieldType: FormFieldSchemaType.Email,
-            required: true,
-            placeholder: "user@company.com",
-            disableSpellCheck: true,
-          },
-        ]}
-        showRefreshButton={true}
-        filters={[
-          {
-            field: {
-              email: true,
-            },
-            title: "Email",
-            type: FieldType.Email,
-          },
-        ]}
-        selectMoreFields={{
-          // A user who signs in without a password has joined too.
-          lastActive: true,
-        }}
-        columns={[
-          {
-            field: {
-              email: true,
-            },
-            title: "Email",
-            type: FieldType.Email,
-          },
-          {
-            field: {
-              password: true,
-            },
-            title: "Status",
-            type: FieldType.Password,
-
-            getElement: (item: StatusPagePrivateUser): ReactElement => {
-              if (hasPrivateUserJoined(item)) {
-                return <Pill color={Green} text={"Signed up"} />;
-              }
-              return <Pill color={Yellow} text={"Invite Sent"} />;
-            },
-          },
-        ]}
-      />
-
-      <AdvancedPageSection
-        description={StatusPageMagicLinkCopy.sectionDescription}
-        items={[getMagicLinkFoldedItem(isMagicLinkOn)]}
-        dataTestId={STATUS_PAGE_MAGIC_LINK_SECTION_TEST_ID}
+      {/*
+       * While the page is public its private users do nothing: one notice
+       * says so, and the list and the sign-in links fold under it.
+       */}
+      <StatusPagePrivateOnlySettings
+        statusPageId={modelId}
+        access={accessRead.access}
+        page={StatusPagePrivateOnlyPage.PrivateUsers}
       >
-        <StatusPageMagicLinkCard
-          statusPageId={modelId}
-          onChange={(isOn: boolean) => {
-            setIsMagicLinkOn(isOn);
-          }}
-        />
-      </AdvancedPageSection>
+        <Fragment>
+          <ModelTable<StatusPagePrivateUser>
+            modelType={StatusPagePrivateUser}
+            id="status-page-group"
+            name="Status Page > Private Users"
+            /*
+             * On a status page's own Private Users page the rows are its private
+             * users, and they are added, as subscribers are: "Add Private User",
+             * not "Create Status Page Private User". An empty list reads the
+             * table's own "No private users yet."
+             */
+            singularName={PRIVATE_USER_SINGULAR_NAME}
+            pluralName={PRIVATE_USER_PLURAL_NAME}
+            createVerb="Add"
+            userPreferencesKey="status-page-private-user-table"
+            saveFilterProps={{
+              tableId: "status-page-private-users-table",
+            }}
+            isDeleteable={true}
+            showViewIdButton={true}
+            isCreateable={true}
+            isViewable={false}
+            query={{
+              statusPageId: modelId,
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            }}
+            onBeforeCreate={(
+              item: StatusPagePrivateUser,
+            ): Promise<StatusPagePrivateUser> => {
+              item.statusPageId = modelId;
+              item.projectId = ProjectUtil.getCurrentProjectId()!;
+              return Promise.resolve(item);
+            }}
+            refreshToggle={refreshToggle}
+            cardProps={{
+              title: "Private Users",
+              description:
+                "People who can sign in to see this status page. Each one is emailed an invitation when you add them.",
+              buttons: [
+                {
+                  title: "Add in Bulk",
+                  buttonStyle: ButtonStyleType.OUTLINE,
+                  icon: IconProp.UserGroup,
+                  onClick: () => {
+                    setShowBulkAddModal(true);
+                  },
+                },
+              ],
+            }}
+            formFields={[
+              {
+                field: {
+                  email: true,
+                },
+                title: "Email",
+                fieldType: FormFieldSchemaType.Email,
+                required: true,
+                placeholder: "user@company.com",
+                disableSpellCheck: true,
+              },
+            ]}
+            showRefreshButton={true}
+            filters={[
+              {
+                field: {
+                  email: true,
+                },
+                title: "Email",
+                type: FieldType.Email,
+              },
+            ]}
+            selectMoreFields={{
+              // A user who signs in without a password has joined too.
+              lastActive: true,
+            }}
+            columns={[
+              {
+                field: {
+                  email: true,
+                },
+                title: "Email",
+                type: FieldType.Email,
+              },
+              {
+                field: {
+                  password: true,
+                },
+                title: "Status",
+                type: FieldType.Password,
+
+                getElement: (item: StatusPagePrivateUser): ReactElement => {
+                  if (hasPrivateUserJoined(item)) {
+                    return <Pill color={Green} text={"Signed up"} />;
+                  }
+                  return <Pill color={Yellow} text={"Invite Sent"} />;
+                },
+              },
+            ]}
+          />
+
+          <AdvancedPageSection
+            description={StatusPageMagicLinkCopy.sectionDescription}
+            items={[getMagicLinkFoldedItem(isMagicLinkOn)]}
+            dataTestId={STATUS_PAGE_MAGIC_LINK_SECTION_TEST_ID}
+          >
+            <StatusPageMagicLinkCard
+              statusPageId={modelId}
+              onChange={(isOn: boolean) => {
+                setIsMagicLinkOn(isOn);
+              }}
+            />
+          </AdvancedPageSection>
+        </Fragment>
+      </StatusPagePrivateOnlySettings>
 
       {showBulkAddModal && (
         <BasicFormModal<BulkAddFormData>
@@ -352,4 +334,4 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   );
 };
 
-export default StatusPageDelete;
+export default StatusPagePrivateUsers;

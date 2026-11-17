@@ -1,10 +1,12 @@
 import { AddSloLabelAndOwnerRules1794100000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1794100000000-AddSloLabelAndOwnerRules";
+import { AddRuleEmptiedLimits1809182490000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182490000-AddRuleEmptiedLimits";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import ServiceLevelObjectiveLabelRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import ServiceLevelObjectiveOwnerRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveOwnerRule";
 import { describe, expect, test } from "@jest/globals";
 import {
   DefaultNamingStrategy,
+  MigrationInterface,
   QueryRunner,
   getMetadataArgsStorage,
 } from "typeorm";
@@ -17,7 +19,7 @@ import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArg
  * by construction. What this pins is that it STAYS the migration for these
  * models: every table and join table is created with every column the models
  * persist (criteria included, which 1792500000000 never added to these new
- * tables), every constraint carries TypeORM's own name - a hand edit that
+ * tables) but those a later migration adds (ADDED_LATER), every constraint carries TypeORM's own name - a hand edit that
  * renamed one would pass review and then fail the Schema Drift job - rules go
  * with their project and a label, user or team leaves every rule that named
  * it, nothing unrelated rode along, and down() undoes up() in reverse.
@@ -113,6 +115,36 @@ const RULE_TABLES: Array<[string, unknown]> = [
   ["ServiceLevelObjectiveLabelRule", ServiceLevelObjectiveLabelRule],
   ["ServiceLevelObjectiveOwnerRule", ServiceLevelObjectiveOwnerRule],
 ];
+
+type MigrationClass = new () => MigrationInterface;
+
+/*
+ * Columns of these models that later migrations add, each with the one
+ * that adds it: what this migration made stays as it shipped.
+ */
+const ADDED_LATER: ReadonlyArray<[string, string, MigrationClass]> = [
+  // Why OneUptime switched a rule off (#9066), on every rule's table.
+  [
+    "ServiceLevelObjectiveLabelRule",
+    "emptiedLimits",
+    AddRuleEmptiedLimits1809182490000,
+  ],
+  [
+    "ServiceLevelObjectiveOwnerRule",
+    "emptiedLimits",
+    AddRuleEmptiedLimits1809182490000,
+  ],
+];
+
+function addedLater(tableName: string): Array<string> {
+  return ADDED_LATER.filter(
+    (entry: [string, string, MigrationClass]): boolean => {
+      return entry[0] === tableName;
+    },
+  ).map((entry: [string, string, MigrationClass]): string => {
+    return entry[1];
+  });
+}
 
 interface JoinTableSpec {
   tableName: string;
@@ -236,6 +268,33 @@ describe("AddSloLabelAndOwnerRules1794100000000", () => {
     ).toHaveLength(ALL_TABLES.length);
   });
 
+  test("each column a later migration adds is that migration's, registered after this one", async () => {
+    const registered: Array<MigrationClass> =
+      SchemaMigrations as Array<MigrationClass>;
+
+    for (const [tableName, column, Later] of ADDED_LATER) {
+      const steps: Array<string> = [];
+
+      await new Later().up({
+        isTransactionActive: true,
+        query: async (sql: string): Promise<void> => {
+          steps.push(sql);
+        },
+      } as unknown as QueryRunner);
+
+      expect({
+        tableName,
+        column,
+        added: steps.some((step: string): boolean => {
+          return step.startsWith(`ALTER TABLE "${tableName}" ADD "${column}" `);
+        }),
+      }).toEqual({ tableName, column, added: true });
+      expect(registered.indexOf(Later)).toBeGreaterThan(
+        registered.indexOf(AddSloLabelAndOwnerRules1794100000000),
+      );
+    }
+  });
+
   test.each(RULE_TABLES)(
     "creates %s with every column the model persists",
     async (tableName: string, modelType: unknown) => {
@@ -243,13 +302,15 @@ describe("AddSloLabelAndOwnerRules1794100000000", () => {
         await recordQueries("up"),
         tableName,
       );
+      // A later migration's column is that migration's, not this one's.
+      const later: Array<string> = addedLater(tableName);
 
       for (const column of persistedColumns(modelType)) {
         expect({
           tableName,
           column,
           created: statement.includes(`"${column}"`),
-        }).toEqual({ tableName, column, created: true });
+        }).toEqual({ tableName, column, created: !later.includes(column) });
       }
 
       expect(statement).toContain('"criteria" jsonb');

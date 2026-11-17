@@ -80,7 +80,7 @@ const KeyboardShortcutsModal: FunctionComponent<ComponentProps> = (
         {visibleGroups.map((group: KeyboardShortcutGroup) => {
           return (
             <section key={group.id} data-testid={`shortcut-group-${group.id}`}>
-              <h4 className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+              <h4 className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                 {group.title}
               </h4>
 
@@ -105,7 +105,7 @@ const KeyboardShortcutsModal: FunctionComponent<ComponentProps> = (
                               return (
                                 <React.Fragment key={`chord-${index}`}>
                                   {index > 0 && (
-                                    <span className="text-xs text-gray-400">
+                                    <span className="text-xs text-gray-500">
                                       {props.thenLabel}
                                     </span>
                                   )}

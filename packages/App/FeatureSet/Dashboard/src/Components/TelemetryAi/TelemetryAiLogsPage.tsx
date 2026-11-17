@@ -15,7 +15,9 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
@@ -440,17 +442,15 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
             id="telemetry-ai-logs-empty-state"
             icon={IconProp.QueueList}
             showSolidBackground={true}
-            paddingClassName="py-16 md:py-24"
+            size={EmptyStateSize.Page}
             title={copy.logsEmptyTitle}
             description={copy.logsEmptyDescription}
             footer={
               /*
                * The way on, as the section's Insights page offers it: what
-               * OneUptime AI does on its own is chosen in AI Settings. The
-               * wrapper takes off the dialog-footer margin Button carries
-               * from md, which set it off centre.
+               * OneUptime AI does on its own is chosen in AI Settings.
                */
-              <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+              <div>
                 <Button
                   title="Go to AI Settings"
                   icon={IconProp.Settings}

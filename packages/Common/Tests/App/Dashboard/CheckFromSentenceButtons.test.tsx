@@ -214,28 +214,24 @@ afterAll(async () => {
 });
 
 describe("a row of the card's buttons", () => {
-  test("is a wrapping row spaced by its gap that clears Button's dialog-footer margin, on a button or on one inside the element it sits in", () => {
+  test("is a wrapping row spaced by its gap alone: a Button has no margin of its own", () => {
     expect(CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME.split(" ")).toEqual([
       "flex",
       "flex-wrap",
       "gap-2",
-      "[&>button]:ml-0",
-      "[&>button]:md:ml-0",
-      "[&>*>button]:ml-0",
-      "[&>*>button]:md:ml-0",
     ]);
   });
 
-  test("clears the margin exactly as a card header's actions do", () => {
+  test("takes back no margin, as a card header's actions take none", () => {
     expect(marginClearing(CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME)).toEqual(
       marginClearing(CARD_HEADER_ACTION_CLASS_NAME),
     );
-    expect(marginClearing(CARD_HEADER_ACTION_CLASS_NAME)).toHaveLength(4);
+    expect(marginClearing(CARD_HEADER_ACTION_CLASS_NAME)).toHaveLength(0);
   });
 });
 
 describe("Write the Check", () => {
-  test("starts where the sentence's box starts: its row follows the box in one column and clears the margin its button keeps", () => {
+  test("starts where the sentence's box starts: its row follows the box in one column, and the button has no margin of its own", () => {
     renderCard();
 
     const button: HTMLElement = screen.getByRole("button", {
@@ -244,8 +240,8 @@ describe("Write the Check", () => {
     const row: HTMLElement = rowOf(button);
 
     expect(row.className).toBe(CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME);
-    // Button's own margin, for a dialog's footer: what the row clears.
-    expect(button).toHaveClass("md:ml-3");
+    // No margin of its own (#9128): it starts where the row does.
+    expect(button.className).not.toMatch(/(^|\s)(?:[a-z]+:)?!?m[ls]-/u);
     // The row and the box: one column, one start edge.
     expect(sentenceBox().nextElementSibling).toBe(row);
     expect(row.parentElement).toBe(sentenceBox().parentElement);
@@ -281,7 +277,7 @@ describe("Write the Check", () => {
 });
 
 describe("the suggestion's Add Check and Discard", () => {
-  test("start where the suggestion's words start: one row in the suggestion's box, after its words, clearing the margin Add Check keeps", async () => {
+  test("start where the suggestion's words start: one row in the suggestion's box, after its words, with no margin on Add Check", async () => {
     renderCard();
 
     await writeTheCheck();
@@ -294,7 +290,7 @@ describe("the suggestion's Add Check and Discard", () => {
 
     expect(row.className).toBe(CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME);
     expect(rowOf(discard)).toBe(row);
-    expect(add).toHaveClass("md:ml-3");
+    expect(add.className).not.toMatch(/(^|\s)(?:[a-z]+:)?!?m[ls]-/u);
 
     // The box the suggestion's words are in: its name first, the buttons last.
     const box: HTMLElement = row.parentElement as HTMLElement;

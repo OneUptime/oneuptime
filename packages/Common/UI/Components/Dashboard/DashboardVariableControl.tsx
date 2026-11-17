@@ -111,7 +111,9 @@ const MultiSelectPopover: FunctionComponent<{
         aria-expanded={open}
       >
         <span className="truncate max-w-[10rem]">{buttonText}</span>
-        <span className="text-gray-400">▾</span>
+        <span aria-hidden="true" className="text-gray-400">
+          ▾
+        </span>
       </button>
       {open && (
         <div className="absolute z-30 mt-1 right-0 w-56 max-h-72 overflow-auto rounded-md border border-gray-200 bg-white shadow-lg py-1">
@@ -148,7 +150,7 @@ const MultiSelectPopover: FunctionComponent<{
             </p>
           )}
           {options.length === 0 ? (
-            <div className="px-3 py-2 text-xs text-gray-400">
+            <div className="px-3 py-2 text-xs text-gray-500">
               {translator.translateText(
                 isLoading ? "Loading options…" : "No options available",
               )}
@@ -236,7 +238,7 @@ const DashboardVariableControl: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="flex items-center gap-1.5">
-      <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
         {label}
       </label>
       {useSelect && variable.isMultiSelect ? (

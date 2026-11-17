@@ -289,12 +289,11 @@ describe("someone who may not change the workflow", () => {
 
   /*
    * A locked button sits in the span that carries its reason (Button's
-   * tooltip wrapper), which is only as wide as its words: on a phone the
-   * view's locked Add Trigger stood narrower than the full-width Run
-   * Workflow under it. The toolbar holds that span to a button's own width
-   * - the whole row below md, its words from md up.
+   * tooltip wrapper). Every toolbar button is as wide as its words, on a
+   * phone too (#9128), so the span is not stretched to the row either: a
+   * locked Add Trigger is drawn as Run Workflow is.
    */
-  test("the locked add button is as wide as the toolbar's other buttons on a phone", async () => {
+  test("the locked add button keeps its own width, as the toolbar's other buttons do", async () => {
     mockPermissions = [Permission.WorkflowMember];
 
     await renderBuilder();
@@ -306,7 +305,8 @@ describe("someone who may not change the workflow", () => {
 
     expect(wrapper.tagName).toBe("SPAN");
     expect(wrapper.parentElement).toBe(toolbar);
-    expect(toolbar).toHaveClass("[&>span]:w-full", "md:[&>span]:w-auto");
+    expect(toolbar.className).not.toMatch(/w-full/u);
+    expect(wrapper.className).not.toMatch(/(^|\s)w-full/u);
   });
 
   test("nothing is saved, however often the canvas reports its graph", async () => {

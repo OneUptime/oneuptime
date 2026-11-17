@@ -81,6 +81,19 @@ const OPENS_THROUGH_SERVER: Array<RunnerCodeFixCapability> = [
 // 10:00 UTC: the token is asked to end at the start of the next day.
 const NOW: Date = new Date("2026-11-16T10:00:00.000Z");
 
+/*
+ * The fake GitLab's clock is the suite's (NOW): a token is made "on"
+ * 2026-11-16 and ends at the start of its expiry date, so GitLab judges it
+ * on the day the product made it - not on whatever day the suite runs, which
+ * passed that date at midnight UTC on 2026-11-17. A test that moves the
+ * clock passes its own `now`, which wins.
+ */
+const ON_THE_SUITES_CLOCK: { now: () => Date } = {
+  now: (): Date => {
+    return NOW;
+  },
+};
+
 let connection: CodeRepositoryConnection | undefined;
 let store: MintedTokenStore;
 let savedBilling: string | undefined;
@@ -203,6 +216,7 @@ afterEach(() => {
 describe("a GitLab repository's Runner that has OneUptime open its merge requests", () => {
   test("is handed a token made for its run, and never the connection's own", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
 
@@ -227,6 +241,7 @@ describe("a GitLab repository's Runner that has OneUptime open its merge request
 
   test("the token reaches the run's project alone, pushes and calls no API, as a Developer, and ends by the end of the next day in UTC", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
 
@@ -276,6 +291,7 @@ describe("a GitLab repository's Runner that has OneUptime open its merge request
 
   test("is recorded so OneUptime revokes it - its id, project and connection, never the token", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
 
@@ -302,6 +318,7 @@ describe("a GitLab repository's Runner that has OneUptime open its merge request
 
   test("a second token for the same run and repository revokes the first: a run holds one at a time", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
 
@@ -317,6 +334,7 @@ describe("a GitLab repository's Runner that has OneUptime open its merge request
 
   test("a project without the project's GitLab id is made one by its path", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
 
@@ -333,6 +351,7 @@ describe("a GitLab repository's Runner that has OneUptime open its merge request
 
   test("past 21:00 UTC it ends at the start of the day after next, so it outlives the run's two hours", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
 
@@ -373,6 +392,7 @@ describe("where GitLab makes no token for the repository", () => {
       },
     ) => {
       const gitLab: FakeGitLab = fakeGitLab({
+        ...ON_THE_SUITES_CLOCK,
         connectionToken: CONNECTION_TOKEN,
         ...options,
       });
@@ -397,6 +417,7 @@ describe("where GitLab makes no token for the repository", () => {
   test("on OneUptime Cloud a global Runner is refused, says why, and is never handed the connection's token", async () => {
     process.env["BILLING_ENABLED"] = "true";
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
       connectionAccessLevel: 30,
     });
@@ -418,6 +439,7 @@ describe("where GitLab makes no token for the repository", () => {
   test("on a self-hosted multi-tenant install (the setting on) the same", async () => {
     process.env["GLOBAL_RUNNERS_CODE_FIX_GITHUB_ONLY"] = "true";
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
       hasProjectAccessTokens: false,
     });
@@ -435,6 +457,7 @@ describe("where GitLab makes no token for the repository", () => {
 
   test("a refusal a week old or less is not asked again by its own Runner; an older one is", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
 
@@ -464,6 +487,7 @@ describe("where GitLab makes no token for the repository", () => {
 
   test("GitLab not answering keeps nothing: a global Runner on Cloud is told to try again, its own Runner gets the connection's token", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
       mintFailsWithStatus: 503,
     });
@@ -487,6 +511,7 @@ describe("where GitLab makes no token for the repository", () => {
 
   test("a token GitLab made that could not be recorded is revoked at once and never handed out", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
 
@@ -502,6 +527,7 @@ describe("where GitLab makes no token for the repository", () => {
 describe("what is not made a token", () => {
   test("a Runner that declares nothing is handed the connection's token and opens its merge request itself, as before", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
 
@@ -517,6 +543,7 @@ describe("what is not made a token", () => {
 
   test("a worker that names no run is made none: nothing would revoke it with the run", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
 
@@ -532,6 +559,7 @@ describe("what is not made a token", () => {
   test("a GitLab server only the project's network reaches: its own Runner opens the merge request with the connection's token", async () => {
     connection = makeConnection({ isReachableFromServer: false });
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
 
@@ -548,6 +576,7 @@ describe("what is not made a token", () => {
       hostUrl: "https://codeberg.org",
     });
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
 
@@ -622,6 +651,7 @@ describe("what is not made a token", () => {
 
   test("a connection token GitLab refuses while a token is being made marks the connection refused, and hands nothing", async () => {
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
       mintFailsWithStatus: 401,
     });
@@ -640,6 +670,7 @@ describe("a global Runner on OneUptime Cloud, for a GitLab repository", () => {
   test("is handed the token made for its run - never the connection's - with no private network", async () => {
     process.env["BILLING_ENABLED"] = "true";
     const gitLab: FakeGitLab = fakeGitLab({
+      ...ON_THE_SUITES_CLOCK,
       connectionToken: CONNECTION_TOKEN,
     });
 

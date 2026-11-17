@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * Traces' AI tab - Traces → AI → Insights, a finding's page with Fix with
@@ -1238,8 +1239,11 @@ test.describe("Traces → AI → a finding's triage", () => {
 
     const activity: Locator = triageActivity(page);
 
+    // The count is held to its unit, as a page's English writes it (#8770).
     await expect(activity.getByTestId("activity-attempt-end")).toHaveText(
-      /^Did not finish: The LLM provider did not answer within 120 seconds\. Trying again at \d{1,2}:\d{2}(\s?[AP]M)?\.$/,
+      new RegExp(
+        `^Did not finish: The LLM provider did not answer within 120${NO_BREAK_SPACE}seconds\\. Trying again at \\d{1,2}:\\d{2}(\\s?[AP]M)?\\.$`,
+      ),
     );
     await expect(activity.getByText("Thinking", { exact: true })).toHaveCount(
       1,

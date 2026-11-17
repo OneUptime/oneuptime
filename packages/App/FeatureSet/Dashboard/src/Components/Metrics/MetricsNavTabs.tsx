@@ -29,18 +29,6 @@ const MetricsNavTabs: FunctionComponent<Props> = (
       to: RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
       carriesScope: true,
     },
-    /*
-     * Query the project's metrics with PromQL, and see how Grafana reads
-     * them (#6796).
-     */
-    {
-      key: "promql",
-      label: "PromQL",
-      icon: IconProp.Code,
-      to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.METRICS_PROMQL] as Route,
-      ),
-    },
     {
       key: "insights",
       label: "Insights (explorer analytics)",
@@ -60,6 +48,19 @@ const MetricsNavTabs: FunctionComponent<Props> = (
       icon: IconProp.Sparkles,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.METRICS_AI_INSIGHTS] as Route,
+      ),
+    },
+    /*
+     * Query the project's metrics with PromQL, and see how Grafana reads
+     * them (#6796). A query language is for those who already know it, so
+     * it comes after the views everyone uses, not second (#9133).
+     */
+    {
+      key: "promql",
+      label: "PromQL",
+      icon: IconProp.Code,
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.METRICS_PROMQL] as Route,
       ),
     },
     {

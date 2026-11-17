@@ -40,7 +40,7 @@ flowchart LR
 | **Sikkerhet** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering og fakturaer** | **Fakturering**, **Fakturaer** | [Fakturering og bruk](/docs/configuration/billing) |
 | **Revisjonslogger** | **Revisjonslogger**, **Innstillinger**, **Eksport** | [Revisjonslogger](/docs/configuration/audit-logs), [Eksport av revisjonslogg](/docs/configuration/audit-log-export) |
-| **Faresone** | **Faresone** | [Slett prosjektet](#slett-prosjektet) |
+| **Faresone** | **Slett prosjekt** | [Slett prosjektet](#slett-prosjektet) |
 
 **Fakturering og fakturaer** og **AI-kreditter** finnes bare i OneUptime Cloud: en selvhostet installasjon har ingen fakturering.
 
@@ -113,7 +113,7 @@ For å fase ut en etikett arkiverer du den fra radens meny **⋯** i stedet for 
 :::steps
 ### Åpne faresonen
 
-Gå til **Prosjektinnstillinger → Faresone**.
+Gå til **Prosjektinnstillinger → Faresone → Slett prosjekt**.
 
 ### Klikk på Slett Prosjekt
 

@@ -96,7 +96,7 @@ L'utilisation est conservée 120 jours, sauf si vous changez ce nombre, avec ou 
 :::steps
 ### Ouvrir la rétention des données
 
-Dans l'Admin Dashboard, allez dans **Paramètres → Rétention des données**.
+Dans l'Admin Dashboard, allez dans **Paramètres → Serveur → Rétention des données**.
 
 ### Fixer le nombre de jours
 

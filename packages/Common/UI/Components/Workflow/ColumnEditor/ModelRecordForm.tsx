@@ -207,7 +207,7 @@ const ModelRecordForm: FunctionComponent<ComponentProps> = (
       </div>
 
       {!isViewOnly && unofferableColumnTitles.length > 0 && (
-        <p className="mt-1.5 text-xs text-gray-400">
+        <p className="mt-1.5 text-xs text-gray-500">
           {unofferableColumnTitles.length > 3
             ? translator.translatePlural(
                 {

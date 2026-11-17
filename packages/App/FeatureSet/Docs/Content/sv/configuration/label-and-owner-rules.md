@@ -25,9 +25,9 @@ Etiketter och ägare är det du filtrerar och grupperar resurser efter, de avgö
 
 ## Var du hittar reglerna
 
-Varje produkt med etiketter och ägare har båda sorterna under sina **Inställningar** (för incidenter, larm, schemalagt underhåll och Datasäkerhet under **Regler**): monitorer, incidenter och incidentepisoder, larm och larmepisoder, underhållshändelser, statussidor, tjänster, värdar, Kubernetes-kluster, Docker-värdar, Docker Swarm-kluster, Podman-värdar, Proxmox-kluster, OpenStack-moln, VMware vCenter, Ceph-kluster, lagringsmatriser, databaser, datalager, tabeller, köer, IoT-flottor, serverlösa funktioner, molnresurser, RUM-applikationer, instrumentpaneler, jourpolicyer, jourscheman, policyer för inkommande samtal, arbetsflöden, runbooks, nätverksenheter och SLO:er.
+Varje produkt med etiketter och ägare har båda sorterna under sina **Inställningar** (för monitorer, statussidor, incidenter, larm, schemalagt underhåll och Datasäkerhet under **Regler**): monitorer, incidenter och incidentepisoder, larm och larmepisoder, underhållshändelser, statussidor, tjänster, värdar, Kubernetes-kluster, Docker-värdar, Docker Swarm-kluster, Podman-värdar, Proxmox-kluster, OpenStack-moln, VMware vCenter, Ceph-kluster, lagringsmatriser, databaser, datalager, tabeller, köer, IoT-flottor, serverlösa funktioner, molnresurser, RUM-applikationer, instrumentpaneler, jourpolicyer, jourscheman, policyer för inkommande samtal, arbetsflöden, runbooks, nätverksenheter och SLO:er.
 
-Etikettregler för monitorer finns till exempel under **Monitorer → Inställningar → Etikettregler**, och etikettregler för incidenter under **Incidenter → Regler → Etikettregler**. **Inställningar** och **Regler** är hopfällda i sidomenyn från början: klicka på avsnittets rubrik för att öppna det. Sidorna för incidenter och larm har en flik **Incidentregler** (eller **Larmregler**) och en flik **Episodregler**.
+Etikettregler för monitorer finns till exempel under **Monitorer → Regler → Etikettregler**, och etikettregler för SLO:er under **SLOs → Inställningar → Etikettregler**. **Inställningar** och **Regler** är hopfällda i sidomenyn från början: klicka på avsnittets rubrik för att öppna det. Sidorna för incidenter och larm har en flik **Incidentregler** (eller **Larmregler**) och en flik **Episodregler**.
 
 ## Skapa en regel
 

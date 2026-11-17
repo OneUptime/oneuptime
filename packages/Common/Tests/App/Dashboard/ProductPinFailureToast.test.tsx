@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import {
   act,
   cleanup,
@@ -19,7 +20,7 @@ import Toast, { ToastItem, ToastType } from "../../../UI/Utils/Toast";
  * closed.
  */
 
-const setProductPinnedMock: jest.Mock<
+const setProductPinnedMock: Mock<
   (data: { isPinned: boolean }) => Promise<void>
 > = jest.fn<(data: { isPinned: boolean }) => Promise<void>>();
 

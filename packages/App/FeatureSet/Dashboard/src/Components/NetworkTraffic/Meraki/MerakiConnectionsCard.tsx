@@ -243,13 +243,6 @@ const DEVICE_ADD_TONE_ICON: Record<DeviceAddTone, IconProp> = {
   error: IconProp.ExclaimationCircle,
 };
 
-/*
- * Clears Button's dialog-footer margin (md:ml-3) inside a row: the gap
- * spaces the row's controls, and a locked button sits in a tooltip's span.
- */
-const ROW_BUTTONS_CLASS_NAME: string =
-  "[&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0";
-
 const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -1444,9 +1437,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                       })}
                       {deviceAdd}
                     </div>
-                    <div
-                      className={`flex flex-shrink-0 items-center gap-2 sm:justify-end ${ROW_BUTTONS_CLASS_NAME}`}
-                    >
+                    <div className="flex flex-shrink-0 items-center gap-2 sm:justify-end">
                       {primary}
                       {menuItems.length > 0 ? (
                         <MoreMenu

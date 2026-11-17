@@ -41,22 +41,19 @@ A pipeline changes the spans that arrive after you save it, within about a minut
 | **Span Kind Remapper** | Sets a span's kind from a field |
 | **Category Processor** | Sets an attribute to a category, by the first of its filters a span matches |
 
-## Filter Queries
+## Filter Conditions
 
-| Operator | Example | Matches |
-|----------|---------|---------|
-| \`=\` | \`kind = 'SPAN_KIND_SERVER'\` | Exactly this value |
-| \`!=\` | \`statusCode != 2\` | Anything but this value |
-| \`IN\` | \`kind IN ('SPAN_KIND_CLIENT', 'SPAN_KIND_PRODUCER')\` | Any value in the list |
-| \`AND\`, \`OR\` | \`kind = 'SPAN_KIND_SERVER' AND statusCode = 2\` | Both, or either, of two conditions |
+A pipeline's filter is built on its page, under **Filter Conditions**. Each condition is a **Field**, an **Operator** and a **Value**: **Span Kind** · equals · **Server**.
 
-**Fields:** \`name\`, \`kind\`, \`statusCode\`, \`primaryEntityId\` and \`attributes.<key>\`.
+- **Fields:** **Span Name**, **Span Kind**, **Status**, **Status Message**, **Service ID**, **Has Exception** and **Is Root Span**, or any attribute with **Custom Attribute...**.
+- **Operators:** **equals** and **does not equal** match the exact value. **contains** finds the text anywhere, in any case. **is one of** takes a list of values separated by commas.
+- With more than one condition, pick **All conditions** or **Any condition**.
 
 ## Example: Mark Successful HTTP Spans as Ok
 
 Most instrumentation leaves a successful span **Unset**, the OpenTelemetry default, and sets **Error** only on a failure, so Unset already means "no error". To show successful requests as **Ok**:
 
-1. Create a pipeline whose filter is **Status = Unset** (\`statusCode = '0'\`), so a span marked Error is never changed.
+1. Create a pipeline whose filter is **Status** · equals · **Unset**, so a span marked Error is never changed.
 2. Add a **Status Remapper** that reads \`http.response.status_code\` (older SDKs write \`http.status_code\`), with one mapping per code: \`200\` → Ok, \`201\` → Ok, \`204\` → Ok and \`304\` → Ok. Each mapping matches one exact value.
 `;
 

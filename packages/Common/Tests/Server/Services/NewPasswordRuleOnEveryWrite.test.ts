@@ -4,12 +4,14 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import NewPasswordRule from "../../../Server/Utils/NewPasswordRule";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import StatusPagePrivateUser from "../../../Models/DatabaseModels/StatusPagePrivateUser";
 import User from "../../../Models/DatabaseModels/User";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import HashedString from "../../../Types/HashedString";
 import { PASSWORD_RULE_MESSAGES } from "../../../Types/Password";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * The server keeps the one password rule on every write of a new password
@@ -25,7 +27,7 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 const STRONG_PASSWORD: string = "violet river lantern";
 
-interface HookInternals<TModel> {
+interface HookInternals<TModel extends DatabaseBaseModel> {
   onBeforeCreate: (createBy: CreateBy<TModel>) => Promise<OnCreate<TModel>>;
   onBeforeUpdate: (updateBy: UpdateBy<TModel>) => Promise<OnUpdate<TModel>>;
 }
@@ -36,7 +38,9 @@ const userHooks: HookInternals<User> =
 const privateUserHooks: HookInternals<StatusPagePrivateUser> =
   StatusPagePrivateUserService as unknown as HookInternals<StatusPagePrivateUser>;
 
-function passwordUpdate<TModel>(password: unknown): UpdateBy<TModel> {
+function passwordUpdate<TModel extends DatabaseBaseModel>(
+  password: unknown,
+): UpdateBy<TModel> {
   return {
     query: {
       _id: "11111111-1111-4111-8111-111111111111",
@@ -48,7 +52,9 @@ function passwordUpdate<TModel>(password: unknown): UpdateBy<TModel> {
   };
 }
 
-function passwordCreate<TModel>(password: unknown): CreateBy<TModel> {
+function passwordCreate<TModel extends DatabaseBaseModel>(
+  password: unknown,
+): CreateBy<TModel> {
   return {
     data: { password: password } as unknown as CreateBy<TModel>["data"],
     props: { isRoot: true },
@@ -99,7 +105,7 @@ describe("NewPasswordRule", () => {
 
 describe("UserService refuses a weak new password on every write", () => {
   test("an update - a reset link, Update Password, Set Password - before any row is read", async () => {
-    const findRows: jest.SpiedFunction<() => Promise<Array<User>>> = jest
+    const findRows: SpyInstance<() => Promise<Array<User>>> = jest
       .spyOn(
         UserService as unknown as Record<string, () => Promise<Array<User>>>,
         "findRowsAndHoldUpdateToThem",

@@ -31,8 +31,8 @@ jest.mock("../../../Server/Utils/Logger");
 /*
  * MONITORS AND MAINTENANCE EVENTS ANNOUNCE THEIR CHANGES (#6918).
  *
- * The Monitors menu counts Not Operational, Disabled, Probe Disconnected and
- * Probe Disabled, and the Maintenance Events menu counts the events in
+ * The Monitors menu counts Not Operational, Disabled, Probes Disconnected and
+ * No Probe Enabled, and the Maintenance Events menu counts the events in
  * progress. What they count changes on its own - a check fails and moves a
  * monitor's status, every probe watching it disconnects, an event starts at
  * its time - and the counts and the lists beside them used to move only
@@ -184,10 +184,13 @@ describe("a monitor's changes are announced, so the Monitors menu follows them",
 
   test.each([
     [
-      "every probe disconnected (Probe Disconnected)",
+      "every probe disconnected (Probes Disconnected)",
       "isAllProbesDisconnectedFromThisMonitor",
     ],
-    ["no probe left enabled (Probe Disabled)", "isNoProbeEnabledOnThisMonitor"],
+    [
+      "no probe left enabled (No Probe Enabled)",
+      "isNoProbeEnabledOnThisMonitor",
+    ],
     ["monitoring turned off (Disabled)", "disableActiveMonitoring"],
     ["archived (out of every count)", "isArchived"],
   ])("%s is announced", async (_what: string, column: string) => {

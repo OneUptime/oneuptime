@@ -196,6 +196,15 @@ export const PROJECT_TELEMETRY_USAGE_READ_PERMISSIONS: ReadonlyArray<Permission>
   ];
 
 /*
+ * Who changes the project's plan (PUT /project/:id/change-plan): Change
+ * Plan, and Cancel Plan's Switch to Free Plan, on the Billing page.
+ */
+export const PROJECT_CHANGE_PLAN_PERMISSIONS: ReadonlyArray<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ManageProjectBilling,
+];
+
+/*
  * Who adds a payment method (POST /billing-payment-methods/setup, and the
  * table's create permissions).
  */

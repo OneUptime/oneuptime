@@ -32,7 +32,7 @@ Atribuições fixas — um usuário ou uma equipe citado diretamente em uma regr
 
 | Link | Quem cria | O que contém | Onde |
 | --- | --- | --- | --- |
-| **Feed pessoal** | Cada usuário, um por projeto | Seus turnos em todos os agendamentos desse projeto, mais os turnos em que você cobre alguém (opcional) | **Configurações do usuário** > **Calendário** > **Feed de calendário** |
+| **Feed pessoal** | Cada usuário, um por projeto | Seus turnos em todos os agendamentos desse projeto, mais os turnos em que você cobre alguém (opcional) | **Configurações do usuário** > **Perfil e calendário** > **Feed de calendário** |
 | **Feed do agendamento** | Quem pode editar o agendamento; quem pode lê-lo pode copiar o link | Os turnos de todos em um agendamento, com eventos opcionais de lacunas de cobertura | A página do agendamento, cartão **Subscrever esta escala** |
 | **Feed do projeto** | Quem pode editar agendamentos de plantão; quem pode lê-los pode copiar o link | Os turnos de todos em todos os agendamentos do projeto, com eventos opcionais de lacunas de cobertura | **Plantão** > **Feeds de calendário** |
 
@@ -54,7 +54,7 @@ Os feeds pessoais são por projeto: um segundo projeto tem um segundo link e um 
 :::steps
 ### Abra seu feed de calendário
 
-Abra **Configurações do usuário** > **Calendário** > **Feed de calendário** no projeto cujos turnos você quer. **Calendário** é uma seção do menu lateral que começa recolhida.
+Abra **Configurações do usuário** > **Perfil e calendário** > **Feed de calendário** no projeto cujos turnos você quer. **Perfil e calendário** é uma seção do menu lateral que começa recolhida.
 
 ### Gere o link
 
@@ -184,7 +184,7 @@ As URLs dos feeds nunca redirecionam. Elas respondem `200` em qualquer esquema q
 Os apps de calendário não entregam os alarmes de feeds assinados — o Google os descarta, a Apple os remove por padrão, o Outlook os achata —, então o OneUptime envia os seus.
 
 :::steps
-1. Abra **Configurações do usuário** > **Calendário** > **Feed de calendário**.
+1. Abra **Configurações do usuário** > **Perfil e calendário** > **Feed de calendário**.
 2. No cartão **Lembrar-me antes dos turnos**, escolha as antecedências: **1 semana**, **1 dia**, **1 hora**, **15 min** ou, com **Personalizado**, um valor próprio entre 15 minutos e 14 dias. Você pode escolher várias ao mesmo tempo.
 3. Escolha como os lembretes chegam até você em **Antes de o meu turno de prevenção começar**, em **Configurações do usuário** > **Configurações de notificação** (aba Plantão). E-mail e push vêm ligados por padrão.
 :::

@@ -628,11 +628,20 @@ test.describe("Passkey account lifecycle", () => {
       await expect(page.getByTestId("Sign in")).toBeDisabled();
       await expect(passwordForm).toHaveCSS("opacity", "0.5");
       await expect(passwordForm).toHaveCSS("pointer-events", "none");
-      // The "or" divider and single sign-on pause with the form.
+      /*
+       * Single sign-on, under More ways to sign in, pauses with the form, and
+       * so does the "or" over Google and Microsoft, which the form draws only
+       * where this server offers one of them (#9023).
+       */
       await expect(ssoOption()).toHaveCSS("pointer-events", "none");
+      const providers: number = await passwordForm
+        .locator(
+          '[data-testid="google-sign-in"], [data-testid="microsoft-sign-in"]',
+        )
+        .count();
       await expect(
         passwordForm.getByTestId("sign-in-options-divider"),
-      ).toHaveCount(1);
+      ).toHaveCount(providers > 0 ? 1 : 0);
       await expect(page.getByTestId("passkey-option")).toHaveCSS(
         "opacity",
         "1",

@@ -259,10 +259,15 @@ export default class CodeRepositoryMintedTokens {
       };
     }
 
+    /*
+     * On the clock this token is made on: one the run was handed is judged
+     * ended - marked, not revoked - only once it has ended by that clock.
+     */
     await CodeRepositoryMintedTokens.revokeForRun({
       runId: data.runId,
       codeRepositoryId: repository.id,
       transport: data.transport,
+      now: now,
     });
 
     const expiry: { date: string; endsAt: Date } =

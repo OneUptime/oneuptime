@@ -118,6 +118,7 @@ import {
 } from "Common/Types/Team/DefaultInviteTeamRule";
 import {
   PAYMENT_METHOD_ADD_PERMISSIONS,
+  PROJECT_CHANGE_PLAN_PERMISSIONS,
   PROJECT_BILLING_CONTACT_UPDATE_PERMISSIONS,
   PROJECT_CUSTOMER_BALANCE_READ_PERMISSIONS,
   PROJECT_INVOICE_DOWNLOAD_PERMISSIONS,
@@ -1956,9 +1957,11 @@ describe("Billing & Usage", () => {
       "await ProjectService.changePlan(",
     );
 
-    expect(changePlan).toContain(
-      "[Permission.ProjectOwner, Permission.ManageProjectBilling],",
-    );
+    expect(changePlan).toContain("PROJECT_CHANGE_PLAN_PERMISSIONS,");
+    expect([...PROJECT_CHANGE_PLAN_PERMISSIONS]).toEqual([
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+    ]);
 
     const expected: Array<ReadonlyArray<Permission>> = [
       PROJECT_CUSTOMER_BALANCE_READ_PERMISSIONS,
@@ -2099,18 +2102,40 @@ describe("Billing & Usage", () => {
     );
   });
 
-  it("sends a plan's cancellation to the Danger Zone, as the Billing page does", () => {
-    const cancel: string = between(
-      billingPage,
-      "If you would like to cancel the plan, you need to delete the project.",
-      "/>",
+  it("cancels a plan by moving it to Free, as the Billing page's Cancel Plan card does", () => {
+    const cancelCard: string = readDashboardSource(
+      "Components/Billing/CancelPlanCard.tsx",
     );
+    const cancel: string = section(page, "## Cancel the plan");
 
-    expect(cancel).toContain(
-      "If you would like to cancel the plan, you need to delete the project.",
+    // The card's buttons are the ones the docs name.
+    expect(cancelCard).toContain(
+      'switchButton: translationKey("Switch to Free Plan")',
     );
-    expect(cancel).toContain("PageMap.SETTINGS_DANGERZONE");
-    expect(section(page, "## Cancel the plan")).toContain(
+    expect(cancelCard).toContain(
+      'contactSupportButton: translationKey("Contact Support")',
+    );
+    expect(cancelCard).toContain(
+      'SUPPORT_EMAIL: string = "support@oneuptime.com"',
+    );
+    expect(boldNames(cancel)).toEqual(
+      expect.arrayContaining([
+        "Cancel Plan",
+        "Switch to Free Plan",
+        "Contact Support",
+        "Manage Billing",
+      ]),
+    );
+    expect(cancel).toContain("support@oneuptime.com");
+
+    // It never sends anybody to delete the project to stop paying.
+    expect(billingPage).not.toContain("PageMap.SETTINGS_DANGERZONE");
+    expect(cancelCard).not.toContain("SETTINGS_DANGERZONE");
+    expect(cancelCard).toContain(
+      "Usage is still billed as you go on the Free plan",
+    );
+    expect(cancel).toContain("Usage is still billed.");
+    expect(cancel).toContain(
       "(/docs/configuration/project-settings#delete-the-project)",
     );
   });

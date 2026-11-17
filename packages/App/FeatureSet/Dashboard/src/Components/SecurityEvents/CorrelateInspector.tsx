@@ -365,7 +365,7 @@ export const CorrelateClassEventsPanel: FunctionComponent<
           </p>
         </div>
         {props.canFilterToClass ? (
-          <div className="[&_button]:ml-0">
+          <div>
             <Button
               dataTestId="correlate-drilldown-filter-class"
               title="Filter to this class"

@@ -305,8 +305,7 @@ const TelemetryRuleActions: FunctionComponent<ComponentProps> = (
                 TelemetryRuleCopy.editAsCustomCriteriaDescription,
               )}
             </p>
-            {/* md:-ml-3 takes back the Button's own md:ml-3. */}
-            <div className="mt-2 md:-ml-3">
+            <div className="mt-2">
               <Button
                 title={TelemetryRuleCopy.editAsCustomCriteria}
                 buttonSize={ButtonSize.Small}

@@ -40,7 +40,7 @@ flowchart LR
 | **安全** | **SSO**、**SCIM** | [SSO](/docs/identity/sso)、[SCIM](/docs/identity/scim) |
 | **账单和发票** | **账单**、**发票** | [账单与用量](/docs/configuration/billing) |
 | **审计日志** | **审计日志**、**设置**、**导出** | [审计日志](/docs/configuration/audit-logs)、[审计日志导出](/docs/configuration/audit-log-export) |
-| **危险区域** | **危险区域** | [删除项目](#删除项目) |
+| **危险区域** | **删除项目** | [删除项目](#删除项目) |
 
 **账单和发票**和**AI 积分**仅存在于 OneUptime Cloud：自托管安装没有账单功能。
 
@@ -113,7 +113,7 @@ flowchart LR
 :::steps
 ### 打开危险区域
 
-前往**项目设置 → 危险区域**。
+前往**项目设置 → 危险区域 → 删除项目**。
 
 ### 点击删除按钮
 

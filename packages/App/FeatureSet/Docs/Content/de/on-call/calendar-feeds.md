@@ -32,7 +32,7 @@ Feste Zuweisungen — ein Benutzer oder ein Team, das direkt in einer Regel eine
 
 | Link | Wer ihn erstellt | Was er enthält | Wo |
 | --- | --- | --- | --- |
-| **Persönlicher Feed** | Jeder Benutzer, einer pro Projekt | Ihre Schichten in allen Plänen des Projekts, plus die Schichten, in denen Sie jemanden vertreten (optional) | **Benutzereinstellungen** > **Kalender** > **Kalender-Feed** |
+| **Persönlicher Feed** | Jeder Benutzer, einer pro Projekt | Ihre Schichten in allen Plänen des Projekts, plus die Schichten, in denen Sie jemanden vertreten (optional) | **Benutzereinstellungen** > **Profil und Kalender** > **Kalender-Feed** |
 | **Plan-Feed** | Jeder, der den Plan bearbeiten darf; jeder mit Leserecht darf den Link kopieren | Die Schichten aller in einem Plan, optional mit Terminen für Abdeckungslücken | Die Seite des Plans, Karte **Diesen Dienstplan abonnieren** |
 | **Projekt-Feed** | Jeder, der Bereitschaftspläne bearbeiten darf; jeder mit Leserecht darf den Link kopieren | Die Schichten aller in allen Plänen des Projekts, optional mit Terminen für Abdeckungslücken | **Bereitschaft** > **Kalender-Feeds** |
 
@@ -54,7 +54,7 @@ Persönliche Feeds gelten pro Projekt: Ein zweites Projekt bekommt einen zweiten
 :::steps
 ### Ihren Kalender-Feed öffnen
 
-Öffnen Sie **Benutzereinstellungen** > **Kalender** > **Kalender-Feed** in dem Projekt, dessen Schichten Sie möchten. **Kalender** ist ein Abschnitt des Seitenmenüs, der eingeklappt beginnt.
+Öffnen Sie **Benutzereinstellungen** > **Profil und Kalender** > **Kalender-Feed** in dem Projekt, dessen Schichten Sie möchten. **Profil und Kalender** ist ein Abschnitt des Seitenmenüs, der eingeklappt beginnt.
 
 ### Den Link erzeugen
 
@@ -184,7 +184,7 @@ Feed-URLs leiten nie um. Sie antworten mit `200` auf jedem Schema, das OneUptime
 Kalender-Apps liefern keine Alarme aus abonnierten Feeds — Google verwirft sie, Apple entfernt sie standardmäßig, Outlook flacht sie ab —, deshalb sendet OneUptime eigene.
 
 :::steps
-1. Öffnen Sie **Benutzereinstellungen** > **Kalender** > **Kalender-Feed**.
+1. Öffnen Sie **Benutzereinstellungen** > **Profil und Kalender** > **Kalender-Feed**.
 2. Wählen Sie auf der Karte **Vor Schichten erinnern** Vorlaufzeiten: **1 Woche**, **1 Tag**, **1 Stunde**, **15 Min.** oder, mit **Benutzerdefiniert**, einen eigenen Wert zwischen 15 Minuten und 14 Tagen. Sie können mehrere gleichzeitig wählen.
 3. Wählen Sie, wie Erinnerungen Sie erreichen, unter **Bevor meine Bereitschaftsschicht beginnt** in **Benutzereinstellungen** > **Benachrichtigungseinstellungen** (Tab Bereitschaft). E-Mail und Push sind standardmäßig an.
 :::

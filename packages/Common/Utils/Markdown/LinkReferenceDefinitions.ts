@@ -181,6 +181,19 @@ const LINE_SEPARATOR: string = String.fromCharCode(0x2028);
 const PARAGRAPH_SEPARATOR: string = String.fromCharCode(0x2029);
 
 /*
+ * Math.min and Math.max, looked up once. They are called for every line,
+ * and for every quote and list item a line opens (readLineItem, sixteen
+ * times on a line sixteen deep), and where the global object is a
+ * sandbox's - a vm context, such as the jsdom window jest runs this file's
+ * tests in - every lookup of Math goes through the sandbox: about 60 ns,
+ * more than the rest of what a list item's line is read for. There, 2 MiB
+ * of lines sixteen list items deep took 2.3 to 2.6 times as long as 2 MiB
+ * of one level, against 1.4 times in Node itself (#7601).
+ */
+const mathMin: (...values: Array<number>) => number = Math.min;
+const mathMax: (...values: Array<number>) => number = Math.max;
+
+/*
  * The tags an HTML block of marked's sixth kind opens with (its "html"
  * rule, which reads them whatever their case). Written in lower case, they
  * also end a paragraph.
@@ -386,7 +399,7 @@ const lineEndAfterSpaces: (text: string, index: number) => number = (
   const at: number = skipSpaces(text, index);
 
   if (at >= text.length || text.charCodeAt(at) === LINE_FEED) {
-    return Math.min(at, text.length);
+    return mathMin(at, text.length);
   }
 
   return -1;
@@ -938,7 +951,7 @@ const getLevelLine: (lines: LevelLines, position: number) => number = (
 
   for (
     let line: number = lines.cursor;
-    line < Math.min(lines.cursor + 2, starts.length);
+    line < mathMin(lines.cursor + 2, starts.length);
     line++
   ) {
     if (
@@ -2543,8 +2556,8 @@ const readListItem: (
           lead: 0,
           from:
             indent >= 0
-              ? Math.min(contentStart + indent, lineEnd)
-              : Math.max(contentStart, lineEnd - 1),
+              ? mathMin(contentStart + indent, lineEnd)
+              : mathMax(contentStart, lineEnd - 1),
           to: lineEnd,
         };
 
@@ -2563,7 +2576,7 @@ const readListItem: (
     };
   }
 
-  const maxSpaces: number = Math.min(3, indent - 1);
+  const maxSpaces: number = mathMin(3, indent - 1);
   let hasBlankLine: boolean = false;
   // The line before, as the item holds it: its first line after the bullet.
   let previousLead: number = firstLead;
@@ -2579,7 +2592,7 @@ const readListItem: (
 
     const isBlank: boolean = isAllWhiteSpace(text, end, nextEnd);
     const nextFirst: number = getFirstNonSpace(text, 0, end, nextEnd);
-    const dedentedFrom: number = Math.min(end + indent, nextEnd);
+    const dedentedFrom: number = mathMin(end + indent, nextEnd);
 
     if (nextFirst >= indent || isBlank) {
       lines.push({ lead: 0, from: dedentedFrom, to: nextEnd });
@@ -2625,7 +2638,7 @@ const readListItem: (
   ) {
     lines[0] = {
       lead: 0,
-      from: Math.min(skipSpaces(text, content.from + 3), content.to),
+      from: mathMin(skipSpaces(text, content.from + 3), content.to),
       to: content.to,
     };
   }
@@ -3381,8 +3394,8 @@ const readLineItem: (
     indent = indent > 4 ? 1 : indent;
     from =
       indent >= 0
-        ? Math.min(contentStart + indent, lineEnd)
-        : Math.max(contentStart, lineEnd - 1);
+        ? mathMin(contentStart + indent, lineEnd)
+        : mathMax(contentStart, lineEnd - 1);
 
     // A task's "[ ] " or "[x] ", and the spaces after it, are no content.
     if (
@@ -3394,7 +3407,7 @@ const readLineItem: (
       text.charCodeAt(from + 2) === CLOSE_BRACKET &&
       text.charCodeAt(from + 3) === SPACE
     ) {
-      from = Math.min(skipSpaces(text, from + 3), lineEnd);
+      from = mathMin(skipSpaces(text, from + 3), lineEnd);
     }
   }
 

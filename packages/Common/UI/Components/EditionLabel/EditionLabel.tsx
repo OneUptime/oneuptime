@@ -1326,7 +1326,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           <p className="mt-1.5 flex items-baseline gap-2">
             <span
               className={`text-2xl font-semibold leading-none tabular-nums ${
-                hasComparableVersion ? "text-gray-900" : "text-gray-400"
+                hasComparableVersion ? "text-gray-900" : "text-gray-500"
               }`}
             >
               {hasComparableVersion ? `v${currentVersion}` : currentVersion}
@@ -1496,7 +1496,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
             >
               {translator.translateText("Evaluation license")}
             </h4>
-            <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
+            <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-violet-700">
               {translator.translateText("Testing only")}
             </span>
           </div>
@@ -2008,7 +2008,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                           buttonStyle={ButtonStyleType.NORMAL}
                           onClick={handleRetryFetch}
                           isLoading={isConfigLoading}
-                          className="!mt-0 md:!ml-0"
+                          className="!mt-0"
                         />
                       </div>
                     </div>
@@ -2258,7 +2258,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
          * license for trying the product out.
          */}
         {showEvaluationTag && (
-          <span className="inline-flex items-center whitespace-nowrap rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
+          <span className="inline-flex items-center whitespace-nowrap rounded-full bg-violet-100 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-violet-700">
             {translator.translateText("Evaluation license")}
           </span>
         )}

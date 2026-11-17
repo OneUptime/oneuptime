@@ -131,11 +131,10 @@ const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
         </div>
 
         {/*
-         * Button keeps a dialog footer's margin (md:ml-3): cleared, so
-         * the first button starts under the pitch and the row's gap
+         * The first button starts under the pitch, and the row's gap
          * alone spaces the two.
          */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+        <div className="flex flex-wrap items-center gap-2 pt-1">
           <Button
             title="Learn about Enterprise Edition"
             buttonStyle={ButtonStyleType.PRIMARY}

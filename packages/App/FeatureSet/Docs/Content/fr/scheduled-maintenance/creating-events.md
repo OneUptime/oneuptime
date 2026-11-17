@@ -50,7 +50,7 @@ Choisissez les pages de statut sous **Afficher l'événement sur ces pages de st
 Cliquez sur **Suivant** pour voir la vérification, relisez-la, puis cliquez sur **Créer un événement de maintenance**. La page de l'événement s'ouvre.
 :::
 
-Rien n'est envoyé tant que vous ne choisissez pas de page de statut : un événement affiché sur aucune page de statut ne prévient aucun abonné.
+Rien n'est envoyé tant que vous ne choisissez pas de page de statut : un événement affiché sur aucune page de statut ne prévient aucun abonné. Contrairement à un incident, un événement n'atteint jamais de lui-même les pages de statut qui répertorient ses moniteurs : sans sélection, le champ indique « Affiché sur aucune page de statut », et la vérification avertit « Cet événement n'apparaîtra sur aucune page de statut. » avec les pages suggérées à un clic.
 
 ## Les champs du formulaire
 

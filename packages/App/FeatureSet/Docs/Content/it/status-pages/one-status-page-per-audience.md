@@ -74,7 +74,7 @@ Aggiungete il monitor condiviso a ogni pagina come risorsa (vedete [Risorse e gr
 
 ### Attivare Mostra solo gli incidenti limitati a questa pagina
 
-Su ciascuna di quelle pagine, attivatelo. Si trova nella scheda **Cosa mostra la tua pagina di stato** in **Pagine di stato → la vostra pagina → Avanzato → Impostazioni avanzate**, sotto **Mostra incidenti**, e si salva appena lo cambiate. Da quel momento nulla raggiunge la pagina di una sede a meno che qualcuno non la scelga.
+Su ciascuna di quelle pagine, attivatelo. Si trova nella scheda **Cosa mostra la tua pagina di stato** in **Pagine di stato → la vostra pagina → Avanzato → Impostazioni**, sotto **Mostra incidenti**, e si salva appena lo cambiate. Da quel momento nulla raggiunge la pagina di una sede a meno che qualcuno non la scelga.
 
 ### Aggiungere gli iscritti di ogni pubblico
 

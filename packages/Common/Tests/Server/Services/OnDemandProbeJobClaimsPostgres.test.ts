@@ -569,7 +569,8 @@ describePostgres("on-demand probe job claims on Postgres", () => {
     async function report(data: {
       id: ObjectID;
       probe?: ObjectID;
-      status: NetworkDeviceDiagnosticStatus;
+      // One of NetworkDeviceDiagnosticStatus's strings.
+      status: string;
       statusMessage?: string;
     }): Promise<boolean> {
       return await NetworkDeviceDiagnosticService.recordReport({

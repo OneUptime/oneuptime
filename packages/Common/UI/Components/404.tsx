@@ -41,12 +41,8 @@ const NotFound: FunctionComponent<ComponentProps> = (
                   )}
                 </p>
               </div>
-              {/*
-               * The gap spaces the buttons either way round; a Button's own
-               * md:ml-3 (a dialog footer's) would indent the first one and
-               * double the gap right to left.
-               */}
-              <div className="mt-10 flex flex-wrap gap-3 sm:border-s sm:border-transparent sm:ps-6 [&_button]:md:ml-0">
+              {/* The gap spaces the buttons either way round. */}
+              <div className="mt-10 flex flex-wrap gap-3 sm:border-s sm:border-transparent sm:ps-6">
                 <Button
                   title="Go Home"
                   buttonStyle={ButtonStyleType.PRIMARY}

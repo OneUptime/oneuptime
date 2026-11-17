@@ -295,9 +295,7 @@ describe("Dashboard project SSO sign-in page", () => {
 
     expect(screen.getByText("Single Sign On (SSO)")).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Please select an SSO provider to log in to this project.",
-      ),
+      screen.getByText("Choose an SSO provider to sign in to this project."),
     ).toBeInTheDocument();
     expect(
       screen.queryByTestId("sso-no-providers-help"),

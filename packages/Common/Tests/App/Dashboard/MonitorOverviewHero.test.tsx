@@ -400,7 +400,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
     runState: MonitorOverviewRunState.Paused,
     badge: "Disabled",
     badgeTone: "neutral",
-    secondary: ["Probes Not Enabled"],
+    secondary: ["No Probe Enabled"],
     headline: "Monitoring is turned off",
     hasExplanation: true,
     lastKnown: "Last recorded status: Operational",
@@ -455,7 +455,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
       }),
     },
     runState: MonitorOverviewRunState.NotChecking,
-    badge: "Probes Not Enabled",
+    badge: "No Probe Enabled",
     badgeTone: "danger",
     secondary: [],
     headline: "Every probe is turned off for this monitor",
@@ -475,7 +475,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
       }),
     },
     runState: MonitorOverviewRunState.NotChecking,
-    badge: "Probes Not Enabled",
+    badge: "No Probe Enabled",
     badgeTone: "danger",
     secondary: [],
     headline: "No probes are attached to this monitor",
@@ -491,7 +491,7 @@ const RUN_STATE_CASES: Array<RunStateCase> = [
       probeFlags: { isNoProbeEnabled: true, isAllProbesDisconnected: false },
     },
     runState: MonitorOverviewRunState.NotChecking,
-    badge: "Probes Not Enabled",
+    badge: "No Probe Enabled",
     badgeTone: "danger",
     secondary: [],
     headline: "Nothing is checking this monitor",
@@ -933,14 +933,14 @@ describe("MonitorOverviewHero layout", () => {
     expect(overdue).toHaveClass("text-amber-700");
   });
 
-  test('"Probes Not Enabled" is on the page when no probe is enabled', () => {
+  test('"No Probe Enabled" is on the page when no probe is enabled', () => {
     renderHero({
       presentation: presentationFor(MonitorType.API, {
         probeFlags: { isNoProbeEnabled: true, isAllProbesDisconnected: false },
       }),
     });
 
-    expect(screen.getByText("Probes Not Enabled")).toBeInTheDocument();
+    expect(screen.getByText("No Probe Enabled")).toBeInTheDocument();
   });
 
   test("the facts are a labelled definition list, in order, owners last", () => {
@@ -1685,18 +1685,14 @@ describe("MonitorOverviewHero turns monitoring back on", () => {
     expect(updateByIdMock).not.toHaveBeenCalled();
   });
 
-  test("it starts where the text above it does: Button's dialog margin is cleared", () => {
+  test("it starts where the text above it does: the button has no margin of its own", () => {
     /*
-     * Button carries md:ml-3 for a dialog's footer, which set this one 12px
-     * in from the headline from md up. The wrapper clears it on the button,
-     * or on the span a locked button's tooltip wraps it in.
+     * Button once carried md:ml-3 for a dialog's footer, which set this one
+     * 12px in from the headline from md up. It carries no margin now
+     * (#9128), so neither the button nor the span a locked button's tooltip
+     * wraps it in is pushed in.
      */
-    const MARGIN_CLEARING: Array<string> = [
-      "[&>button]:ml-0",
-      "[&>button]:md:ml-0",
-      "[&>*>button]:ml-0",
-      "[&>*>button]:md:ml-0",
-    ];
+    const OWN_MARGIN: RegExp = /(^|\s)(?:[a-z]+:)?!?m[ls]-/u;
 
     renderDisabled();
 
@@ -1707,7 +1703,8 @@ describe("MonitorOverviewHero turns monitoring back on", () => {
       TURN_MONITORING_ON_BUTTON_TEST_ID,
     );
 
-    expect(wrapper).toHaveClass("mt-4", ...MARGIN_CLEARING);
+    expect(wrapper).toHaveClass("mt-4");
+    expect(button.className).not.toMatch(OWN_MARGIN);
     expect(button.parentElement).toBe(wrapper);
     cleanup();
 
@@ -1726,8 +1723,9 @@ describe("MonitorOverviewHero turns monitoring back on", () => {
       TURN_MONITORING_ON_BUTTON_TEST_ID,
     );
 
-    expect(lockedWrapper).toHaveClass(...MARGIN_CLEARING);
-    // One element between them: the span the [&>*>button] rule reaches.
+    expect(lockedButton.className).not.toMatch(OWN_MARGIN);
+    expect(lockedButton.parentElement!.className).not.toMatch(OWN_MARGIN);
+    // One element between them: the span of the tooltip.
     expect(lockedButton.parentElement?.parentElement).toBe(lockedWrapper);
   });
 

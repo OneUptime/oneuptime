@@ -34,7 +34,7 @@ const NotRecorded: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
 
   return (
-    <span className="text-gray-400">
+    <span className="text-gray-500">
       {translator.translateText("Not recorded")}
     </span>
   );
@@ -189,7 +189,7 @@ const ExceptionLatestOccurrence: FunctionComponent<ComponentProps> = (
             />
           </AppLink>
         ) : (
-          <span className="text-gray-400">
+          <span className="text-gray-500">
             {translator.translateText("No trace was attached")}
           </span>
         ),

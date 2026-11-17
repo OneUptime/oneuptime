@@ -1,3 +1,6 @@
+import StatusPageSingleSignOnProtocol, {
+  getStatusPageSingleSignOnProtocolQuery,
+} from "Common/Types/StatusPage/StatusPageSingleSignOnProtocol";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -468,7 +471,12 @@ const StatusPageAccessCard: FunctionComponent<ComponentProps> = (
             ? StatusPageAccessCopy.oidcOn
             : StatusPageAccessCopy.oidcOff,
         ),
-        to: routeTo(PageMap.STATUS_PAGE_VIEW_OIDC),
+        // The Single Sign-On page, on its OIDC tab.
+        to: routeTo(PageMap.STATUS_PAGE_VIEW_SSO).addQueryParams(
+          getStatusPageSingleSignOnProtocolQuery(
+            StatusPageSingleSignOnProtocol.OIDC,
+          ),
+        ),
       });
     }
 
@@ -626,7 +634,7 @@ const StatusPageAccessCard: FunctionComponent<ComponentProps> = (
 
           if (access === StatusPageAccess.Password && isCurrent) {
             details = (
-              <div className="[&_button]:ml-0 [&_button]:md:ml-0">
+              <div>
                 <Button
                   title={StatusPageAccessCopy.changePassword}
                   buttonStyle={ButtonStyleType.NORMAL}

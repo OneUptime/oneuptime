@@ -593,7 +593,7 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 :::
 
 :::details La sonde intégrée affiche Déconnecté après le changement de port de l'ingress
-L'Admin Dashboard liste la sonde sous **Paramètres > Surveillance > Sondes globales**. Elle joint OneUptime à `GLOBAL_PROBE_1_ONEUPTIME_URL`, qui vaut `http://localhost` (port 80) par défaut. `npm start` la déplace sur le port de l'ingress tant qu'elle pointe vers `localhost`. Si vous l'avez réglée sur une autre adresse, ou avez démarré OneUptime avec la Docker CLI, réglez-la sur le nouveau port de l'ingress, par exemple `http://localhost:8080`, et redémarrez OneUptime.
+L'Admin Dashboard liste la sonde sous **Paramètres > Partagé avec tous les projets > Sondes globales**. Elle joint OneUptime à `GLOBAL_PROBE_1_ONEUPTIME_URL`, qui vaut `http://localhost` (port 80) par défaut. `npm start` la déplace sur le port de l'ingress tant qu'elle pointe vers `localhost`. Si vous l'avez réglée sur une autre adresse, ou avez démarré OneUptime avec la Docker CLI, réglez-la sur le nouveau port de l'ingress, par exemple `http://localhost:8080`, et redémarrez OneUptime.
 :::
 
 ## Étapes suivantes

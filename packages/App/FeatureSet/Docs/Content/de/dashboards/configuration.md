@@ -96,7 +96,7 @@ Archivieren ist die umkehrbare Alternative zum Löschen: Greifen Sie zuerst dazu
 
 ## Ein Dashboard löschen
 
-Öffnen Sie die Seite **Löschen** des Dashboards. Löschen lässt sich nicht rückgängig machen: Das Dashboard, seine Widgets und Variablen und alle ihm zugeordneten eigenen Domains werden entfernt. Ihre Telemetrie bleibt unberührt.
+Öffnen Sie die Seite **Dashboard löschen** des Dashboards. Löschen lässt sich nicht rückgängig machen: Das Dashboard, seine Widgets und Variablen und alle ihm zugeordneten eigenen Domains werden entfernt. Ihre Telemetrie bleibt unberührt.
 
 Ist das Dashboard unter einer eigenen Domain öffentlich, antwortet die Adresse nicht mehr, sobald Sie es löschen. Um die Adresse weiter zu bedienen, fügen Sie die Domain nach dem Löschen einem anderen Dashboard hinzu: Eine Domain gehört jeweils zu einem Dashboard.
 

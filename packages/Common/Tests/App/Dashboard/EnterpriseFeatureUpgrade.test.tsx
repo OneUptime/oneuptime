@@ -136,25 +136,20 @@ const FILLED_BUTTON_CLASS: RegExp = /\bbg-(indigo|red|green|yellow)-600\b/;
 
 /*
  * What a card holds lines up with its title (#6956), and so do the buttons
- * under its pitch: Button keeps a dialog footer's margin (md:ml-3), which put
- * the first of them 12px right of the words above it from a tablet up. The
- * row clears it on its buttons, and on the one element a button sits in (a
- * locked button's tooltip), so the row's gap alone spaces them.
+ * under its pitch. Button once kept a dialog footer's margin (md:ml-3),
+ * which put the first of them 12px right of the words above it from a
+ * tablet up; it has no margin of its own now (#9128), so the row's gap
+ * alone spaces them.
  */
-const DIALOG_MARGIN_CLEARED: ReadonlyArray<string> = [
-  "[&>button]:ml-0",
-  "[&>button]:md:ml-0",
-  "[&>*>button]:ml-0",
-  "[&>*>button]:md:ml-0",
-];
+const OWN_MARGIN_OR_WIDTH: RegExp = /(^|\s)(?:[a-z]+:)?!?(?:m[ls]-|w-full)/u;
 
 const expectPitchLinesUp: (cta: HTMLElement, secondary: string) => void = (
   cta: HTMLElement,
   secondary: string,
 ): void => {
-  // The margin is there to clear: if Button drops it, so can the row.
-  expect(cta).toHaveClass("md:ml-3");
-  expect(cta.parentElement).toHaveClass(...DIALOG_MARGIN_CLEARED);
+  // No margin on the button, and nothing taken back by the row.
+  expect(cta.className).not.toMatch(OWN_MARGIN_OR_WIDTH);
+  expect(cta.parentElement!.className).not.toContain("button]");
   // Both buttons sit in that row.
   expect(screen.getByText(secondary).closest("button")!.parentElement).toBe(
     cta.parentElement,

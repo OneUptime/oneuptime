@@ -501,7 +501,7 @@ To konsekvenser, der er værd at planlægge efter:
 
 **Billeder følger meddelelsen.** Et billede i en meddelelses beskrivelse åbner for alle fra **Begynd at vise meddelelse den** og frem, ikke før. Mens en meddelelse er planlagt til senere, åbner dens billeder kun for dit projekts medlemmer, ligesom selve meddelelsen kun vises på dashboardet. Så snart den begynder at blive vist, åbner dens billeder for alle, på statussiden og i de e-mails, abonnenterne får. Det bliver de ved med, efter at den er slut, fordi dens link bliver ved med at virke, og dens statussider viser den blandt de afsluttede meddelelser, så langt deres historik rækker tilbage. Flyt en meddelelse til et senere tidspunkt, og dens billeder bliver private igen indtil da.
 
-Om meddelelser overhovedet vises, angives på kortet **Hvad din statusside viser** under **Avancerede indstillinger**: **Vis meddelelser** (`showAnnouncementsOnStatusPage`, standard true) og under den **Vis de seneste … dage** (`showAnnouncementHistoryInDays`, standard 14). Med **Vis meddelelser** slået fra afviser meddelelses-endpointet forespørgslen fuldstændigt.
+Om meddelelser overhovedet vises, angives på kortet **Hvad din statusside viser** under **Indstillinger**: **Vis meddelelser** (`showAnnouncementsOnStatusPage`, standard true) og under den **Vis de seneste … dage** (`showAnnouncementHistoryInDays`, standard 14). Med **Vis meddelelser** slået fra afviser meddelelses-endpointet forespørgslen fuldstændigt.
 
 ## Meddelelsesskabeloner
 

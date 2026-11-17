@@ -36,10 +36,10 @@ La página muestra como recursos los monitores que colocas en ella, y los incide
 
 ## De un vistazo
 
-- **Se crea con un nombre.** Una página de estado nueva solo pide su **Nombre**; **Descripción** y **Etiquetas** esperan en **Más campos**. Los recursos, la marca y los dominios se configuran después.
+- **Se crea con un nombre.** Una página de estado nueva solo pide su **Nombre**; **Descripción interna** y **Etiquetas** esperan en **Más campos**. Los recursos, la marca y los dominios se configuran después.
 - **Los recursos son lo que ven los visitantes.** Cada fila de la página es un **Recurso de la página de estado**: un monitor (o grupo de monitores) con su propio nombre visible, su información emergente y sus opciones de tiempo de actividad. Los grupos dividen una página larga en secciones y se pueden anidar.
 - **Una URL de vista previa desde el primer día.** Cada página de estado recibe un enlace de vista previa para que puedas verla antes de que exista un dominio personalizado.
-- **Las rutas para visitantes dependen de ajustes.** Los incidentes, los episodios, los anuncios y los eventos programados solo aparecen mientras su interruptor en **Lo que muestra tu página de estado** (en **Ajustes avanzados**) está activado, y la página de suscripción solo mientras **Mostrar página de suscriptores** está activado.
+- **Las rutas para visitantes dependen de ajustes.** Los incidentes, los episodios, los anuncios y los eventos programados solo aparecen mientras su interruptor en **Lo que muestra tu página de estado** (en **Ajustes**) está activado, y la página de suscripción solo mientras **Mostrar página de suscriptores** está activado.
 - **Quién puede verla es una sola elección.** Cualquiera con el enlace, solo quienes inician sesión (usuarios privados, SSO SAML u OIDC) o cualquiera con la contraseña, en la pantalla **Acceso** de la página, con una lista de IP permitidas opcional en **Más ajustes**.
 - **Los suscriptores reciben aviso automáticamente.** Suscriptores por correo electrónico, SMS, Slack, Microsoft Teams y webhook pueden seguir una página, cada canal tras su propio interruptor.
 
@@ -66,7 +66,7 @@ Abre **Páginas de estado → Todas las páginas de estado** y haz clic en **Cre
 
 ### Ponerle nombre a la página
 
-En la ventana **Crear Página de estado**, rellena **Nombre** (obligatorio, al menos dos caracteres) y haz clic en **Crear página de estado**. **Descripción** y **Etiquetas** son opcionales, en **Más campos**.
+En la ventana **Crear Página de estado**, rellena **Nombre** (obligatorio, al menos dos caracteres) y haz clic en **Crear página de estado**. **Descripción interna** y **Etiquetas** son opcionales, en **Más campos**. La descripción interna es para tu equipo: los visitantes nunca la ven.
 
 Ese es todo el formulario. La lista **Páginas de estado** muestra **Nombre**, **Descripción**, **Etiquetas** y **Propietarios**, y se puede filtrar por **ID de la página de estado**, **Nombre** y **Descripción**.
 
@@ -82,7 +82,7 @@ A continuación, más o menos por orden de utilidad:
 - Añade recursos para que la página muestre algo: consulta [Recursos y grupos de la página de estado](/docs/status-pages/resources-and-groups).
 - Define el título de la página, el favicon, el logotipo y la portada, y después asocia un dominio personalizado: consulta [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains).
 - Decide por qué canales se puede suscribir la gente: consulta [Suscriptores y anuncios](/docs/status-pages/subscribers).
-- Ajusta lo que aparece en la página en **Ajustes avanzados**.
+- Ajusta lo que aparece en la página en **Ajustes**.
 
 ## Dónde vive cada cosa
 
@@ -90,24 +90,24 @@ Una vez abierta una página de estado, su propio menú lateral izquierdo se agru
 
 | Sección | Qué contiene |
 | --- | --- |
-| **Básico** | **Vista general**, **Anuncios**, **Propietarios**. |
+| **Vista general** | **Vista general**, **Anuncios**, **Propietarios**. |
 | **Recursos** | Una sola pantalla **Recursos** (los grupos a la izquierda, los monitores del grupo seleccionado a la derecha). |
 | **Reglas** | **Reglas de monitores**: reglas que añaden a la página cada monitor que coincida, ahora y más adelante. |
 | **Suscriptores** | **Suscriptores** (una sola página, con una pestaña para cada canal: Correo electrónico, SMS, Slack, Microsoft Teams y Webhook), **Ajustes de suscriptores**, **Registros de notificación**: lo que se envió a los suscriptores. |
 | **Marca** | **Marca** (logotipo, título, favicon, enlaces, pie de página, colores e idiomas, en una sola página), **Dominios personalizados**, **HTML, CSS y JavaScript**. |
-| **Seguridad** | **Acceso** (quién puede ver la página), **Usuarios privados**, **SSO**, **OIDC**, **SCIM**. |
+| **Seguridad** | **Acceso** (quién puede ver la página), **Usuarios privados**, **Inicio de sesión único** (una pestaña para SAML y otra para OIDC), **SCIM**. |
 | **IA** | **MCP**. |
 | **Desarrolladores** | **Terraform**, **API**, **CLI**, **Asistentes de IA**: la página como código. |
-| **Avanzado** | **Estado incrustado**, **Informes**, **Campos personalizados**, **Ajustes avanzados**, **Registros de auditoría**, **Eliminar página de estado**. |
+| **Avanzado** | **Estado incrustado**, **Informes**, **Campos personalizados**, **Ajustes**, **Registros de auditoría**, **Eliminar página de estado**. |
 
-Solo **Básico** y **Recursos**, lo que muestra la página, empiezan abiertas. Todas las demás secciones empiezan plegadas, como las secciones poco usadas de todos los menús de OneUptime: haz clic en el título de una sección para mostrar sus páginas. Una sección se abre sola cuando estás en una de sus páginas, como **Ajustes avanzados** o **Suscriptores**.
+Solo **Vista general** y **Recursos**, lo que muestra la página, empiezan abiertas. Todas las demás secciones empiezan plegadas, como las secciones poco usadas de todos los menús de OneUptime: haz clic en el título de una sección para mostrar sus páginas. Una sección se abre sola cuando estás en una de sus páginas, como **Ajustes** o **Suscriptores**.
 
 Dos peculiaridades de nombres que conviene conocer antes de buscar:
 
 - El elemento **Recursos** solo se llama **Recursos** cuando el proyecto tiene activados los grupos de monitores. Si no, se llama **Monitores**. Es la misma pantalla en ambos casos.
 - No hay una página de grupos aparte. Los grupos y los recursos se fusionaron, y la antigua ruta `/groups` ahora redirige a la pantalla de recursos.
 
-Fuera de una página concreta, la propia sección **Páginas de estado** lista **Todas las páginas de estado**, y una sección **Más** contiene **Anuncios**. Una sección **Ajustes** plegada contiene **Plantillas de anuncios**, **Plantillas de suscriptores**, **Campos personalizados**, **Reglas del propietario** y **Reglas de etiquetas**, que son de todo el proyecto y se comparten entre todas las páginas de estado. Una sección **Avanzado** plegada contiene **Archivado**: las páginas de estado que desconectaste (consulta [Archivar una página de estado](#archivar-una-página-de-estado)).
+Fuera de una página concreta, la propia sección **Páginas de estado** lista **Todas las páginas de estado** y **Anuncios**. Una sección **Reglas** plegada contiene **Reglas del propietario** y **Reglas de etiquetas**, y una sección **Ajustes** plegada contiene **Plantillas de anuncios**, **Plantillas de suscriptores** y **Campos personalizados**. Todos ellos son de todo el proyecto y se comparten entre todas las páginas de estado. Una sección **Avanzado** plegada contiene **Archivado**: las páginas de estado que desconectaste (consulta [Archivar una página de estado](#archivar-una-página-de-estado)).
 
 **Reglas de etiquetas** y **Reglas del propietario** etiquetan las páginas de estado nuevas y les asignan propietarios. Una regla tiene dos pasos (**Coincidencia**, las condiciones que debe cumplir una página de estado, y después **Etiquetas** u **Propietarios**, lo que añade la regla) y su **Nombre** se rellena a partir de lo que eliges. Una regla nueva tiene que añadir al menos una etiqueta o un propietario; al editarla nunca se insiste, y la lista marca con **No añade nada** una regla antigua que no añade nada. Consulta [Reglas de etiquetas y propietarios](/docs/configuration/label-and-owner-rules).
 
@@ -147,7 +147,7 @@ Para saber qué pone un incidente en esta página y qué lo quita, consulta [Est
 
 ## Elegir qué se muestra en la página
 
-Lo que ven los visitantes se define en una sola tarjeta: **Lo que muestra tu página de estado**, en **Páginas de estado → tu página → Avanzado → Ajustes avanzados**. Tiene una fila por cada lista que puede mostrar la página, después **Historial de tiempo de actividad** (con el porcentaje de tiempo de actividad general y los estados que cuentan como inactividad). La línea "Powered by OneUptime" tiene su propia tarjeta, justo debajo, plegada en **Más ajustes**. No hay botón de edición: un interruptor se guarda en cuanto lo cambias, un número de días cuando sales de su casilla o pulsas Intro, y una elección de una lista en cuanto la haces.
+Lo que ven los visitantes se define en una sola tarjeta: **Lo que muestra tu página de estado**, en **Páginas de estado → tu página → Avanzado → Ajustes**. Tiene una fila por cada lista que puede mostrar la página, después **Historial de tiempo de actividad** (con el porcentaje de tiempo de actividad general y los estados que cuentan como inactividad). La línea "Powered by OneUptime" tiene su propia tarjeta, justo debajo, plegada en **Más ajustes**. No hay botón de edición: un interruptor se guarda en cuanto lo cambias, un número de días cuando sales de su casilla o pulsas Intro, y una elección de una lista en cuanto la haces.
 
 - **Mostrar incidentes** (`showIncidentsOnStatusPage`): activado por defecto. Debajo, **Mostrar … días de historial** (`showIncidentHistoryInDays`, 14 por defecto) indica hasta dónde llega la lista de incidentes, y **Mostrar etiquetas de incidentes** (`showIncidentLabelsOnStatusPage`) está desactivado por defecto.
 - **Mostrar solo incidentes limitados a esta página** (`onlyShowScopedIncidents`): también en la fila de incidentes, desactivado por defecto. Actívalo y la página muestra, y notifica a sus suscriptores, solo los incidentes limitados a ella con **Limitar a estas páginas de estado**. Los incidentes que no están limitados a ninguna página, incluidos los que abre por sí solo un monitor, Slack, Microsoft Teams, la API o la IA, nunca llegan a ella hasta que alguien les añade la página. También decide qué incidentes traen sus episodios a la página, por eso se mantiene cuando **Mostrar incidentes** está desactivado. Para páginas que comparten monitores pero sirven a públicos distintos, consulta [Una página de estado por audiencia](/docs/status-pages/one-status-page-per-audience).
@@ -197,17 +197,21 @@ Elegir una opción pide confirmación, indicando qué cambia para los visitantes
 
 Añade a las personas que pueden iniciar sesión en **Páginas de estado → tu página → Seguridad → Usuarios privados**. Hay una acción **Añadir en masa**: pega una lista de direcciones de correo electrónico y cada una recibe un correo de invitación. Los usuarios privados tienen su propio flujo de contraseña olvidada y de restablecimiento, independiente de las cuentas de tu proyecto de OneUptime. Una contraseña nueva cierra su sesión en todos los dispositivos, y cualquier enlace de inicio de sesión o de restablecimiento ya enviado deja de funcionar.
 
+**Los usuarios privados, el inicio de sesión único y SCIM no hacen nada en una página pública.** Mientras **Cualquiera con el enlace** es la elección, todos los visitantes ven la página sin iniciar sesión. Las pantallas **Usuarios privados**, **Inicio de sesión único** y **SCIM** lo indican arriba, "Esta página de estado es pública, así que estos ajustes no tienen efecto hasta que la hagas privada.", con **Cambiar el acceso**, que abre **Acceso**. Lo que contienen está plegado en **Configurar antes de hacerla privada**: ábrelo para añadir personas o un proveedor antes de que la página pase a ser privada, para que nadie se quede fuera cuando lo sea.
+
 **Los usuarios privados y la contraseña no se suman.** Mientras **Cualquiera con la contraseña** es la elección, los usuarios privados no pueden iniciar sesión (también introducen la contraseña), y la pantalla **Usuarios privados** lo indica, con un enlace de vuelta a **Acceso**.
 
 **Enlaces de inicio de sesión.** En una página en la que los visitantes inician sesión, la página de inicio de sesión también ofrece **Enviarme un enlace de inicio de sesión**: un usuario privado escribe su dirección de correo electrónico y recibe un enlace que le inicia sesión sin su contraseña. El enlace funciona una vez, durante 15 minutos, y pedir otro lo reemplaza. Abre una página en la que pulsa **Iniciar sesión**, para que los filtros de correo que abren cada enlace para analizarlo no lo gasten antes. La página responde igual tanto si la dirección es de uno de sus usuarios privados como si no, así que pedirlo no revela a nadie quién puede iniciar sesión. Los enlaces están activados en todas las páginas; para que los usuarios privados sigan con sus contraseñas, desactiva **Enlaces de inicio de sesión** en **Más ajustes** de **Usuarios privados** (quien ya inició sesión con un enlace sigue con la sesión iniciada). Nunca se ofrecen mientras **Requerir SSO para iniciar sesión** esté activado o **Cualquiera con la contraseña** sea la opción.
 
 ### SSO y OIDC
 
-Para una página privada vinculada a tu proveedor de identidad, **Páginas de estado → tu página → Seguridad → SSO** configura SAML: **Añadir proveedor SSO** pide la URL de inicio de sesión, el emisor y el certificado x509, y los métodos de firma y de resumen se rellenan en **Más campos**. **Páginas de estado → tu página → Seguridad → OIDC** configura OpenID Connect: **Añadir proveedor OIDC** pide el emisor, el ID de cliente y el secreto, y la URL de descubrimiento, los scopes y los nombres de los claims se rellenan en **Más campos**. Cuando una página tiene un proveedor, la tarjeta **Probar el inicio de sesión** bajo la lista enlaza con el inicio de sesión de la página, para probarlo. **SCIM** aprovisiona automáticamente usuarios privados desde el IdP. En OneUptime Cloud, los tres necesitan el plan Scale o superior. En una instalación autoalojada, SSO y OIDC forman parte de todas las ediciones, y SCIM necesita la [Edición Enterprise](/docs/self-hosted/enterprise).
+Para una página privada vinculada a tu proveedor de identidad, abre **Páginas de estado → tu página → Seguridad → Inicio de sesión único** (`{id}/sso`). Tiene una pestaña para cada protocolo. La pestaña **SAML** configura SAML: **Añadir proveedor SSO** pide la URL de inicio de sesión, el emisor y el certificado x509, y los métodos de firma y de resumen se rellenan en **Más campos**. La pestaña **OIDC** (`{id}/sso?protocol=oidc`) configura OpenID Connect: **Añadir proveedor OIDC** pide el emisor, el ID de cliente y el secreto, y la URL de descubrimiento, los scopes y los nombres de los claims se rellenan en **Más campos**. Cuando una página tiene un proveedor, la tarjeta **Probar el inicio de sesión** bajo la lista enlaza con el inicio de sesión de la página, para probarlo. **SCIM** aprovisiona automáticamente usuarios privados desde el IdP. En OneUptime Cloud, los tres necesitan el plan Scale o superior. En una instalación autoalojada, SSO y OIDC forman parte de todas las ediciones, y SCIM necesita la [Edición Enterprise](/docs/self-hosted/enterprise).
 
 Desactivar o eliminar el proveedor de SSO u OIDC de una página de estado cierra la sesión de los usuarios privados que inició: sus sesiones terminan en su siguiente solicitud, y volver a activar el proveedor no las recupera; vuelven a iniciar sesión con él. Un certificado o un secreto de cliente nuevo, otras URL o un nombre nuevo mantienen a todos con la sesión iniciada. En una página que exige SSO, desactivar su último proveedor deja a todos sin poder iniciar sesión hasta que vuelvas a activar uno o desactives **Requerir SSO para iniciar sesión**; para pasar a otro proveedor, configura y prueba el nuevo antes de desactivar el antiguo.
 
-Debajo de los proveedores, la tarjeta **Ajustes de SSO** contiene el interruptor **Requerir SSO para iniciar sesión** (`requireSsoForLogin`, desactivado por defecto), que se guarda en cuanto lo cambias. Activarlo pide confirmación primero, porque a partir de entonces los usuarios privados no pueden iniciar sesión con correo electrónico y contraseña: solo pueden ver la página las personas a las que deja entrar tu proveedor de SSO u OIDC. Prueba el enlace de la tarjeta **Probar el inicio de sesión** de arriba antes de activarlo. Solo importa mientras **Solo quienes inician sesión** es la elección, y la pantalla **Acceso** lo muestra como **SSO obligatorio** bajo esa elección. Mientras está activado, un usuario privado que inició sesión con correo electrónico y contraseña también pierde la sesión en su siguiente solicitud: solo cuentan las sesiones que inició un proveedor de SSO u OIDC. En OneUptime Cloud, activarlo necesita el plan **Scale**, y desactivarlo funciona en todos los planes. Una página que sigue exigiendo SSO tras terminar una prueba de Scale, o tras pasar a un plan inferior, lo sigue exigiendo hasta que alguien lo desactiva: sus páginas **SSO** y **OIDC** muestran el interruptor bajo la oferta del plan para ello.
+Debajo de los proveedores, la tarjeta **Ajustes de SSO** contiene el interruptor **Requerir SSO para iniciar sesión** (`requireSsoForLogin`, desactivado por defecto), que se guarda en cuanto lo cambias. Activarlo pide confirmación primero, porque a partir de entonces los usuarios privados no pueden iniciar sesión con correo electrónico y contraseña: solo pueden ver la página las personas a las que deja entrar tu proveedor de SSO u OIDC. Prueba el enlace de la tarjeta **Probar el inicio de sesión** de arriba antes de activarlo. Solo importa mientras **Solo quienes inician sesión** es la elección, y la pantalla **Acceso** lo muestra como **SSO obligatorio** bajo esa elección. Mientras está activado, un usuario privado que inició sesión con correo electrónico y contraseña también pierde la sesión en su siguiente solicitud: solo cuentan las sesiones que inició un proveedor de SSO u OIDC. En OneUptime Cloud, activarlo necesita el plan **Scale**, y desactivarlo funciona en todos los planes. Una página que sigue exigiendo SSO tras terminar una prueba de Scale, o tras pasar a un plan inferior, lo sigue exigiendo hasta que alguien lo desactiva: su página **Inicio de sesión único** muestra el interruptor bajo la oferta del plan para ello, en ambas pestañas.
+
+**SSO** y **OIDC** eran antes dos entradas del menú. La antigua dirección de OIDC, `{id}/oidc`, abre la pestaña **OIDC**.
 
 ### Sesiones de lectores
 
@@ -240,7 +244,7 @@ Archiva una página de estado para desconectarla sin eliminarla. Una página de 
 - **Sale de la lista de páginas de estado.** La encontrarás en **Páginas de estado → Avanzado → Archivado**.
 - **Lo conserva todo.** Sus recursos, grupos, marca, dominios, usuarios privados y suscriptores se conservan, así que desarchivarla vuelve a poner la página en línea exactamente como estaba.
 
-Para archivar una página de estado, ábrela y ve a **Avanzado → Ajustes avanzados → Archivar página de estado**. Para archivar varias, selecciónalas en la lista **Páginas de estado** y elige **Archivar**. Para recuperar una, abre **Páginas de estado → Avanzado → Archivado**, selecciónala y elige **Desarchivar**, o ábrela y haz clic en **Desarchivar** en el banner de la parte superior de sus páginas.
+Para archivar una página de estado, ábrela y ve a **Avanzado → Ajustes → Archivar página de estado**. Para archivar varias, selecciónalas en la lista **Páginas de estado** y elige **Archivar**. Para recuperar una, abre **Páginas de estado → Avanzado → Archivado**, selecciónala y elige **Desarchivar**, o ábrela y haz clic en **Desarchivar** en el banner de la parte superior de sus páginas.
 
 La **Vista general** de una página de estado tiene una tarjeta **Mostrado ahora**: los incidentes abiertos y el mantenimiento próximo o en curso que los visitantes ven en ella ahora mismo. Archivar o eliminar la página, en sus propias páginas o desde la lista, dice primero qué dejarían de ver los visitantes.
 

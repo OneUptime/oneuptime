@@ -633,7 +633,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
         key={ctxLog.id || ctxLog.time}
         className={`flex items-start gap-3 px-3 py-2 ${rowClass}`}
       >
-        <span className="flex-none whitespace-nowrap font-mono text-[11px] text-gray-400">
+        <span className="flex-none whitespace-nowrap font-mono text-[11px] text-gray-500">
           {ctxLog.time ? (
             OneUptimeDate.getDateAsUserFriendlyFormattedString(
               OneUptimeDate.fromString(ctxLog.time),
@@ -751,7 +751,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
       {activeTab === "details" && (
         <div className="mt-4 space-y-5 text-sm text-gray-700">
           <section className="space-y-3">
-            <header className="flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-400">
+            <header className="flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-500">
               <span>{translator.translateText("Log Body")}</span>
               <CopyTextButton
                 textToBeCopied={bodyDetails.raw}
@@ -790,7 +790,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
             <section className="grid gap-4 md:grid-cols-2">
               {traceId && (
                 <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
-                  <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-400">
+                  <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-500">
                     <span>{translator.translateText("Trace ID")}</span>
                     <CopyTextButton
                       textToBeCopied={traceId}
@@ -833,7 +833,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
 
               {spanId && (
                 <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
-                  <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-400">
+                  <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-500">
                     <span>{translator.translateText("Span ID")}</span>
                     <CopyTextButton
                       textToBeCopied={spanId}
@@ -876,7 +876,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
 
               {sessionId && (
                 <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
-                  <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-400">
+                  <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-500">
                     <span>{translator.translateText("Session")}</span>
                     <CopyTextButton
                       textToBeCopied={sessionId}
@@ -924,9 +924,9 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
           {attributeEntries.length > 0 && (
             <section className="space-y-3">
               <header className="flex flex-wrap items-center justify-between gap-2">
-                <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-gray-400">
+                <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-gray-500">
                   {translator.translateText("Attributes")}
-                  <span className="rounded-full bg-gray-100 px-1.5 py-px text-[10px] font-medium normal-case tracking-normal tabular-nums text-gray-500">
+                  <span className="rounded-full bg-gray-100 px-1.5 py-px text-xs font-medium normal-case tracking-normal tabular-nums text-gray-500">
                     {attributeEntries.length}
                   </span>
                 </span>
@@ -971,7 +971,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                             title={entry.value}
                           >
                             {entry.value || (
-                              <span className="italic text-gray-400">
+                              <span className="italic text-gray-500">
                                 {translator.translateText("empty")}
                               </span>
                             )}
@@ -1055,7 +1055,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
             </div>
           )}
           {contextLoading && (
-            <div className="flex items-center justify-center py-8 text-xs text-gray-400">
+            <div className="flex items-center justify-center py-8 text-xs text-gray-500">
               {translator.translateText("Loading surrounding logs...")}
             </div>
           )}
@@ -1067,7 +1067,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
           {!contextLoading && !contextError && contextLoaded && (
             <div className="divide-y divide-gray-100 rounded-lg border border-gray-200">
               {contextBefore.length === 0 && contextAfter.length === 0 && (
-                <div className="px-3 py-6 text-center text-xs text-gray-400">
+                <div className="px-3 py-6 text-center text-xs text-gray-500">
                   {translator.translateText(
                     contextScope === "trace"
                       ? "No other logs found for this trace."

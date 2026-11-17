@@ -46,7 +46,6 @@ import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
-import { Slate500 } from "Common/Types/BrandColors";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
@@ -624,11 +623,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
     return (
       <Card title={CARD_TITLE} description={CARD_DESCRIPTION}>
         <div className="flex flex-col items-center justify-center gap-3 py-20">
-          {/*
-           * Slate reads on both the light and the dark surface; the default
-           * VeryLightGray all but vanishes on white.
-           */}
-          <Loader loaderType={LoaderType.Bar} size={180} color={Slate500} />
+          <Loader loaderType={LoaderType.Bar} size={180} />
           <p className="text-sm text-gray-500">
             {translateString("Loading your network…")}
           </p>
@@ -972,7 +967,6 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
         {visibleSites.length === 0 ? (
           <EmptyState
             id="topology-hierarchy-empty"
-            paddingClassName="py-16"
             icon={IconProp.FlowDiagram}
             title={
               normalizedSearch || healthFilterMode !== "all"

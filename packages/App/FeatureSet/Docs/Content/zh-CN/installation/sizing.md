@@ -82,7 +82,7 @@ ClickHouse disk ≈ (daily raw telemetry GB ÷ compression) × retention days ×
 
 PostgreSQL 存储的是您的配置和运行状态，而不是遥测数据，因此增长缓慢，与 ClickHouse 相比始终很小。即使是大型部署，通常也只有几十 GB。默认的 **25 Gi** 卷适合小型安装；较大的安装请规划 50–100 GB，并为事件和警报历史留出余量。
 
-已解决的事件和警报会一直保留，直到每个项目选择保留多久。要为每个项目设置上限，请在 **Admin Dashboard → 设置 → 数据保留** 中设置 **最长保留时间**：参见 [整个服务器的上限](/docs/incidents/settings#整个服务器的上限)。
+已解决的事件和警报会一直保留，直到每个项目选择保留多久。要为每个项目设置上限，请在 **Admin Dashboard → 设置 → 服务器 → 数据保留** 中设置 **最长保留时间**：参见 [整个服务器的上限](/docs/incidents/settings#整个服务器的上限)。
 
 当应用、worker 和探测器的副本很多时，数据库连接可能会先于存储耗尽。每个 Pod 默认最多打开 50 个连接，而内置的 PostgreSQL 允许 500 个。Chart 正是为此提供了可选的连接池 **PgBouncer**（`pgbouncer.enabled`）：副本很多的部署请开启它。
 

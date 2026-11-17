@@ -37,7 +37,6 @@
     "announcements": "Anúncios",
     "scheduledEvents": "Manutenção programada",
     "subscribe": "Inscrever-se",
-    "login": "Entrar",
     "logout": "Sair"
   },
   "overview": {
@@ -306,24 +305,24 @@
       "password": "Senha",
       "newPassword": "Nova senha",
       "confirmPassword": "Confirmar senha",
-      "login": "Entrar"
+      "signInLink": "Entrar."
     },
     "login": {
       "welcomeBack": "Bem-vindo de volta!",
-      "loginPrompt": "Por favor, faça login para ver {{statusPageName}}",
+      "signInPrompt": "Por favor, faça login para ver {{statusPageName}}.",
       "forgotPassword": "Esqueceu a senha?",
       "submit": "Entrar",
       "or": "ou",
-      "logInWithSso": "Entrar com SSO",
+      "signInWithSso": "Entrar com SSO",
       "emailSignInLink": "Enviar um link de acesso por e-mail"
     },
     "sso": {
       "title": "Entrar com SSO",
-      "loginPrompt": "Por favor, faça login para ver {{statusPageName}}",
+      "signInPrompt": "Por favor, faça login para ver {{statusPageName}}.",
       "noProviders": "Nenhum provedor SSO configurado ou habilitado",
       "notAvailable": "O login único (SSO) não está disponível para esta página de status. Em vez disso, faça login com seu e-mail e senha.",
-      "backToLogin": "Voltar para o login",
-      "logInWithPassword": "Entrar com senha"
+      "backToSignIn": "Voltar para o login",
+      "signInWithPassword": "Entrar com senha"
     },
     "forgotPassword": {
       "title": "Esqueceu a senha",
@@ -339,7 +338,7 @@
       "knowPassword": "Sabe sua senha?",
       "successTitle": "Sua senha foi redefinida",
       "successDescription": "Entre com sua nova senha.",
-      "loginButton": "Entrar",
+      "signInButton": "Entrar",
       "linkExpiredTitle": "Este link de redefinição expirou",
       "linkExpiredDescription": "Os links de redefinição valem por um dia. Peça um novo link e nós o enviaremos por e-mail.",
       "linkInvalidTitle": "Este link de redefinição não funciona mais",
@@ -365,7 +364,7 @@
     },
     "masterPassword": {
       "prompt": "Digite a senha para ver esta página de status.",
-      "passwordRequired": "a senha é obrigatória.",
+      "passwordRequired": "A senha é obrigatória.",
       "passwordLabel": "Senha",
       "submit": "Desbloquear página de status"
     },

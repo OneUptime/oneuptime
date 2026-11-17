@@ -72,6 +72,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     builtFrom: "secret values, each escaped with escapeRegExp to match itself",
   },
   {
+    file: "packages/Common/Server/Infrastructure/Postgres/OnlineDdl.ts",
+    count: 1,
+    builtFrom:
+      "DELETE or UPDATE, and the referential actions REFERENTIAL_ACTION lists, to read a foreign key's definition as pg_get_constraintdef writes it",
+  },
+  {
     file: "packages/Common/Server/Infrastructure/Postgres/QueryPropertyNames.ts",
     count: 1,
     builtFrom:

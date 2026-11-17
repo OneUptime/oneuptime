@@ -14,11 +14,18 @@ import React, { FunctionComponent, ReactElement } from "react";
  * caller forgets the secret when onDone is called.
  *
  * The title, the description and the button's text are the caller's, in
- * English: ConfirmModal looks them up in the page's language.
+ * English: ConfirmModal looks them up in the page's language - unless the
+ * caller says the title is in the reader's words already
+ * (isTitleTranslated), which is then drawn as given.
  */
 
 export interface ComponentProps {
   title: string;
+  /*
+   * The title is in the reader's words already: drawn as given, never
+   * looked up again (#8423). Left unset, ConfirmModal looks it up.
+   */
+  isTitleTranslated?: boolean | undefined;
   description: string;
   secret: string;
   doneButtonText: string;
@@ -38,6 +45,7 @@ const ShownOnceSecretModal: FunctionComponent<ComponentProps> = (
   return (
     <ConfirmModal
       title={props.title}
+      isTitleTranslated={props.isTitleTranslated}
       description={props.description}
       submitButtonText={props.doneButtonText}
       isInitialFocusOnDialog={true}

@@ -274,7 +274,7 @@ describe("ExceptionSegmentedControl rendering", () => {
     expect(activeHint).toHaveClass("tabular-nums", "text-gray-500");
     expect(radio("24h").lastElementChild).toBe(activeHint);
     expect(inactiveHint).toHaveTextContent(/^140$/);
-    expect(inactiveHint).toHaveClass("tabular-nums", "text-gray-400");
+    expect(inactiveHint).toHaveClass("tabular-nums", "text-gray-500");
   });
 
   test("renders no hint span for an option without a hint", () => {

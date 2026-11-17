@@ -42,7 +42,7 @@ flowchart TB
 :::steps
 ### Abrir los presupuestos de ingesta
 
-En el Admin Dashboard, vaya a **Ajustes → Telemetría → Presupuestos de ingesta**. **Telemetría** empieza contraído en el menú lateral: haga clic en él para abrirlo.
+En el Admin Dashboard, vaya a **Ajustes → Servidor → Presupuestos de ingesta**. **Servidor** empieza contraído en el menú lateral: haga clic en él para abrirlo.
 
 ### Fijar los presupuestos diarios
 

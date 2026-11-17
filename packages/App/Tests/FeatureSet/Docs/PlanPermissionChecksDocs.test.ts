@@ -212,11 +212,30 @@ describe("Require SSO for Login on a status page, in the status pages guide", ()
         language,
         true,
       ]);
-      expect([language, paragraph!.includes("**SSO**")]).toEqual([
-        language,
-        true,
-      ]);
-      expect([language, paragraph!.includes("**OIDC**")]).toEqual([
+      /*
+       * Where the switch waits under the plan's upsell: the Single Sign-On
+       * page, as this language's Dashboard names it. It was two pages, SSO
+       * and OIDC, until #9130.
+       */
+      const locale: Record<string, string> = JSON.parse(
+        fs.readFileSync(
+          path.join(
+            __dirname,
+            "..",
+            "..",
+            "..",
+            "FeatureSet",
+            "Dashboard",
+            "src",
+            "Locales",
+            `${language}.json`,
+          ),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+      const singleSignOn: string = locale["Single Sign-On"] || "Single Sign-On";
+
+      expect([language, paragraph!.includes(`**${singleSignOn}**`)]).toEqual([
         language,
         true,
       ]);

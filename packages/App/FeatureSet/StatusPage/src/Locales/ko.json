@@ -37,7 +37,6 @@
     "announcements": "공지사항",
     "scheduledEvents": "예정된 유지 관리",
     "subscribe": "구독",
-    "login": "로그인",
     "logout": "로그아웃"
   },
   "overview": {
@@ -306,24 +305,24 @@
       "password": "비밀번호",
       "newPassword": "새 비밀번호",
       "confirmPassword": "비밀번호 확인",
-      "login": "로그인"
+      "signInLink": "로그인."
     },
     "login": {
       "welcomeBack": "다시 오신 것을 환영합니다!",
-      "loginPrompt": "{{statusPageName}}을(를) 보려면 로그인해주세요",
+      "signInPrompt": "{{statusPageName}}을(를) 보려면 로그인해주세요.",
       "forgotPassword": "비밀번호를 잊으셨나요?",
       "submit": "로그인",
       "or": "또는",
-      "logInWithSso": "SSO로 로그인",
+      "signInWithSso": "SSO로 로그인",
       "emailSignInLink": "로그인 링크를 이메일로 받기"
     },
     "sso": {
       "title": "SSO로 로그인",
-      "loginPrompt": "{{statusPageName}}을(를) 보려면 로그인해주세요",
+      "signInPrompt": "{{statusPageName}}을(를) 보려면 로그인해주세요.",
       "noProviders": "구성되거나 활성화된 SSO 제공자가 없습니다",
       "notAvailable": "이 상태 페이지에서는 싱글 사인온(SSO)을 사용할 수 없습니다. 대신 이메일과 비밀번호로 로그인하세요.",
-      "backToLogin": "로그인으로 돌아가기",
-      "logInWithPassword": "비밀번호로 로그인"
+      "backToSignIn": "로그인으로 돌아가기",
+      "signInWithPassword": "비밀번호로 로그인"
     },
     "forgotPassword": {
       "title": "비밀번호 분실",
@@ -339,7 +338,7 @@
       "knowPassword": "비밀번호를 알고 계신가요?",
       "successTitle": "비밀번호가 재설정되었습니다",
       "successDescription": "새 비밀번호로 로그인하세요.",
-      "loginButton": "로그인",
+      "signInButton": "로그인",
       "linkExpiredTitle": "이 재설정 링크는 만료되었습니다",
       "linkExpiredDescription": "재설정 링크는 하루 동안 유효합니다. 새 링크를 요청하시면 이메일로 보내 드립니다.",
       "linkInvalidTitle": "이 재설정 링크는 더 이상 작동하지 않습니다",

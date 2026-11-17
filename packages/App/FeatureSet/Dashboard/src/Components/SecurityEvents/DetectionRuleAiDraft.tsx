@@ -204,7 +204,6 @@ const DetectionRuleAiDraft: FunctionComponent<ComponentProps> = (
           icon={IconProp.Sparkles}
           buttonStyle={ButtonStyleType.PRIMARY}
           buttonSize={ButtonSize.Small}
-          className="!ml-0"
           isLoading={isDrafting}
           disabled={!canDraftDetectionRule(description) || isDrafting}
           onClick={() => {

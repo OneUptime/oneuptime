@@ -1,4 +1,7 @@
 import PageLogo from "../../Components/Logo/PageLogo";
+import AuthPage, {
+  AUTH_PAGE_LINK_CLASS,
+} from "Common/UI/Components/AuthPage/AuthPage";
 import { SEND_MAGIC_LINK_API_URL } from "../../Utils/ApiPaths";
 import StatusPageModelAPI from "../../Utils/ModelAPI";
 import PageMap from "../../Utils/PageMap";
@@ -39,7 +42,7 @@ export const MAGIC_LINK_SEND_ANOTHER_TEST_ID: string =
   "magic-link-send-another";
 
 /*
- * "Log in with a link", reached from the sign-in page's "Email me a sign-in
+ * "Sign in with a link", reached from the sign-in page's "Email me a sign-in
  * link" (Types/StatusPage/StatusPageMagicLink): the private user's email
  * address, then "Check your email". The answer is the same whether or not
  * the address can sign in to the page - the server says nothing about who
@@ -127,111 +130,102 @@ const MagicLinkPage: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+    <AuthPage
+      logo={
         <PageLogo
           logoFileId={props.logoFileId}
           darkThemeLogoFileId={props.darkThemeLogoFileId}
           altText={props.statusPageName}
         />
-        <h2 className="mt-6 text-center text-2xl tracking-tight text-gray-900">
-          {sentTo
-            ? t("accounts.magicLink.sentTitle")
-            : t("accounts.magicLink.title")}
-        </h2>
-        {!sentTo && (
-          <p className="mt-2 text-center text-sm text-gray-600">
-            {t("accounts.magicLink.description", {
+      }
+      title={
+        sentTo
+          ? t("accounts.magicLink.sentTitle")
+          : t("accounts.magicLink.title")
+      }
+      subtitle={
+        sentTo
+          ? undefined
+          : t("accounts.magicLink.description", {
               statusPageName: props.statusPageName || t("common.statusPage"),
+            })
+      }
+      footer={
+        <>
+          {t("accounts.resetPassword.knowPassword")}{" "}
+          <Link to={loginRoute} className={AUTH_PAGE_LINK_CLASS}>
+            {t("accounts.shared.signInLink")}
+          </Link>
+        </>
+      }
+    >
+      {sentTo ? (
+        <div
+          className="space-y-4 text-center text-sm text-gray-600"
+          data-testid={MAGIC_LINK_SENT_TEST_ID}
+          role="status"
+        >
+          <p className="break-words">
+            {t("accounts.magicLink.sent", {
+              email: sentTo,
+              statusPageName: props.statusPageName || t("common.statusPage"),
+              minutes: STATUS_PAGE_MAGIC_LINK_EXPIRY_MINUTES,
             })}
           </p>
-        )}
-      </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {sentTo ? (
-            <div
-              className="space-y-4 text-center text-sm text-gray-600"
-              data-testid={MAGIC_LINK_SENT_TEST_ID}
-              role="status"
-            >
-              <p className="break-words">
-                {t("accounts.magicLink.sent", {
-                  email: sentTo,
-                  statusPageName:
-                    props.statusPageName || t("common.statusPage"),
-                  minutes: STATUS_PAGE_MAGIC_LINK_EXPIRY_MINUTES,
-                })}
-              </p>
-              <p>{t("accounts.magicLink.notReceived")}</p>
-              <Button
-                title={t("accounts.magicLink.sendAnother")}
-                isTitleTranslated={true}
-                buttonStyle={ButtonStyleType.OUTLINE}
-                dataTestId={MAGIC_LINK_SEND_ANOTHER_TEST_ID}
-                style={{ width: "100%", marginInlineStart: "0px" }}
-                onClick={() => {
-                  setSentTo(null);
-                  setFormKey(formKey + 1);
-                }}
-              />
-            </div>
-          ) : (
-            <div data-testid={MAGIC_LINK_FORM_TEST_ID}>
-              <ModelForm<StatusPagePrivateUser>
-                key={formKey}
-                modelType={StatusPagePrivateUser}
-                modelAPI={StatusPageModelAPI}
-                id="magic-link-form"
-                name="Status Page > Sign-In Link"
-                createOrUpdateApiUrl={SEND_MAGIC_LINK_API_URL}
-                onBeforeCreate={(
-                  item: StatusPagePrivateUser,
-                ): Promise<StatusPagePrivateUser> => {
-                  item.statusPageId = statusPageId;
-                  askingFor.current = item.email?.toString() || "";
-                  return Promise.resolve(item);
-                }}
-                fields={[
-                  {
-                    field: {
-                      email: true,
-                    },
-                    title: t("accounts.shared.email"),
-                    showEvenIfPermissionDoesNotExist: true,
-                    fieldType: FormFieldSchemaType.Email,
-                    required: true,
-                    disableSpellCheck: true,
-                  },
-                ]}
-                onSuccess={() => {
-                  StatusPageUtil.rememberMagicLinkRedirect(
-                    StatusPageUtil.getSafeRedirectUrl(),
-                  );
-                  setSentTo(askingFor.current);
-                }}
-                submitButtonText={t("accounts.magicLink.submit")}
-                formType={FormType.Create}
-                maxPrimaryButtonWidth={true}
-              />
-            </div>
-          )}
+          <p>{t("accounts.magicLink.notReceived")}</p>
+          <Button
+            title={t("accounts.magicLink.sendAnother")}
+            isTitleTranslated={true}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            dataTestId={MAGIC_LINK_SEND_ANOTHER_TEST_ID}
+            style={{ width: "100%", marginInlineStart: "0px" }}
+            onClick={() => {
+              setSentTo(null);
+              setFormKey(formKey + 1);
+            }}
+          />
         </div>
-
-        <div className="mt-10 text-center">
-          <p className="text-muted mb-0 text-gray-500">
-            {t("accounts.resetPassword.knowPassword")}{" "}
-            <Link
-              to={loginRoute}
-              className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
-            >
-              {t("accounts.shared.login")}.
-            </Link>
-          </p>
+      ) : (
+        <div data-testid={MAGIC_LINK_FORM_TEST_ID}>
+          <ModelForm<StatusPagePrivateUser>
+            key={formKey}
+            modelType={StatusPagePrivateUser}
+            modelAPI={StatusPageModelAPI}
+            id="magic-link-form"
+            name="Status Page > Sign-In Link"
+            createOrUpdateApiUrl={SEND_MAGIC_LINK_API_URL}
+            onBeforeCreate={(
+              item: StatusPagePrivateUser,
+            ): Promise<StatusPagePrivateUser> => {
+              item.statusPageId = statusPageId;
+              askingFor.current = item.email?.toString() || "";
+              return Promise.resolve(item);
+            }}
+            fields={[
+              {
+                field: {
+                  email: true,
+                },
+                title: t("accounts.shared.email"),
+                showEvenIfPermissionDoesNotExist: true,
+                fieldType: FormFieldSchemaType.Email,
+                required: true,
+                disableSpellCheck: true,
+              },
+            ]}
+            onSuccess={() => {
+              StatusPageUtil.rememberMagicLinkRedirect(
+                StatusPageUtil.getSafeRedirectUrl(),
+              );
+              setSentTo(askingFor.current);
+            }}
+            submitButtonText={t("accounts.magicLink.submit")}
+            formType={FormType.Create}
+            maxPrimaryButtonWidth={true}
+          />
         </div>
-      </div>
-    </div>
+      )}
+    </AuthPage>
   );
 };
 

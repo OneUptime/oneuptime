@@ -60,12 +60,18 @@ const DOES_NOT_REPEAT: string = "Doesn't repeat";
 const CRITICAL_TITLE: string = "Critical alert";
 const STANDARD_TITLE: string = "Standard";
 
+/*
+ * The repeat pill's words, as a page draws English: each figure held to the
+ * minutes after it by a no-break space (#8811), so a pill never breaks
+ * between them.
+ */
 function repeatsEvery(minutes: number): string {
-  return minutes === 1
-    ? "Repeats every minute"
-    : `Repeats every ${minutes} minutes`;
+  return withDurationWordsHeld(
+    minutes === 1 ? "Repeats every minute" : `Repeats every ${minutes} minutes`,
+  );
 }
 
+// An interval's option, as the form's dropdown holds it (in English).
 function optionLabel(minutes: number): string {
   if (minutes === 0) {
     return "Don't repeat";
@@ -179,6 +185,7 @@ import {
 } from "../../../Types/NotificationRule/NotificationRepeat";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
 import PushNotificationLevel from "../../../Types/NotificationRule/PushNotificationLevel";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 import ObjectID from "../../../Types/ObjectID";
 import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
@@ -435,9 +442,12 @@ async function chooseRepeat(minutes: number): Promise<void> {
     fireEvent.click(screen.getByTestId("push-repeat-pill"));
   });
 
+  // The menu draws the option as a page draws English (#8811).
   await act(async () => {
     fireEvent.click(
-      screen.getByRole("menuitemradio", { name: optionLabel(minutes) }),
+      screen.getByRole("menuitemradio", {
+        name: withDurationWordsHeld(optionLabel(minutes)),
+      }),
     );
   });
 }

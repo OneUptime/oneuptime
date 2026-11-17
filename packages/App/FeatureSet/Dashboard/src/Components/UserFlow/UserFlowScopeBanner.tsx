@@ -132,7 +132,7 @@ const UserFlowScopeBanner: FunctionComponent<ComponentProps> = (
       </div>
 
       {/* Button's own left margin is a dialog footer's. */}
-      <div className="flex flex-wrap items-center gap-2 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+      <div className="flex flex-wrap items-center gap-2">
         {ownerScope ? (
           <Button
             title="See all their journeys"

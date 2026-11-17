@@ -567,7 +567,7 @@ describe("trace rows (TraceRow)", () => {
       "const isError: boolean = status.status === SpanStatus.Error;",
     );
     expect(TRACE_ROW.source).toContain(
-      "{isError && ( <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${status.pillClassName}`} > {plainStatusName} </span> )}",
+      "{isError && ( <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wider ${status.pillClassName}`} > {plainStatusName} </span> )}",
     );
   });
 });
@@ -1126,26 +1126,27 @@ describe("help on the Traces settings pages", () => {
     expect(PIPELINES_HELP).toContain("\n## How It Works\n");
   });
 
-  test("REGRESSION: Drop Filters matches successful spans with statusCode != 2, not statusCode = 1", () => {
+  test("REGRESSION: Drop Filters matches successful spans with Status · does not equal · Error, not Status · equals · Ok", () => {
     const examples: Array<string> = DROP_FILTERS_HELP.split("\n").filter(
       (line: string): boolean => {
         return line.startsWith("- **");
       },
     );
 
+    // Written as the filter builder draws a condition (#9133).
     expect(examples).toContain(
-      "- **Keep a tenth of successful client calls**: `kind = 'SPAN_KIND_CLIENT' AND statusCode != 2`, with **Sample** at 10%.",
+      "- **Keep a tenth of successful client calls**: **Span Kind** · equals · **Client** and **Status** · does not equal · **Error**, under **All conditions**, with **Sample** at 10%.",
     );
     for (const example of examples) {
-      expect(example).not.toContain("statusCode = 1");
+      expect(example).not.toContain("**Status** · equals · **Ok**");
     }
     // The one mention left is the advice against it.
-    expect(count(DROP_FILTERS_HELP, "statusCode = 1")).toBe(1);
+    expect(count(DROP_FILTERS_HELP, "**Status** · equals · **Ok**")).toBe(1);
     expect(DROP_FILTERS_HELP).toContain(
-      'so match "not an error" with `statusCode != 2`, not `statusCode = 1`.',
+      'so match "not an error" with **Status** · does not equal · **Error**, not **Status** · equals · **Ok**.',
     );
     expect(DROP_FILTERS_HELP).toContain(
-      "A span's status code is `0` for Unset, `1` for Ok and `2` for Error.",
+      "**Status** is **Error**, **Ok** or **Unset**.",
     );
   });
 
@@ -1155,7 +1156,7 @@ describe("help on the Traces settings pages", () => {
     );
     const example: string = PIPELINES_HELP.substring(exampleStart);
     const filterStep: number = example.indexOf(
-      "1. Create a pipeline whose filter is **Status = Unset** (`statusCode = '0'`)",
+      "1. Create a pipeline whose filter is **Status** · equals · **Unset**",
     );
     const remapStep: number = example.indexOf(
       "2. Add a **Status Remapper** that reads `http.response.status_code`",

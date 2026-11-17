@@ -50,7 +50,7 @@ Elige las páginas de estado en **Mostrar evento en estas páginas de estado**. 
 Haz clic en **Siguiente** para ver la revisión, compruébala y luego haz clic en **Crear evento de mantenimiento**. Se abre la página del evento.
 :::
 
-No se envía nada hasta que eliges una página de estado: un evento que no aparece en ninguna página de estado no avisa a ningún suscriptor.
+No se envía nada hasta que eliges una página de estado: un evento que no aparece en ninguna página de estado no avisa a ningún suscriptor. A diferencia de un incidente, un evento nunca llega por sí solo a las páginas de estado que incluyen sus monitores: sin ninguna elegida, el campo dice «No se muestra en ninguna página de estado» y la revisión avisa «Este evento no aparecerá en ninguna página de estado.» con las páginas sugeridas a un clic.
 
 ## Los campos del formulario
 

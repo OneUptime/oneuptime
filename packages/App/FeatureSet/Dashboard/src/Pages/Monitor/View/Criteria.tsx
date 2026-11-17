@@ -141,11 +141,7 @@ const MonitorCriteria: FunctionComponent<
             </>
           }
           footer={
-            /*
-             * The wrapper takes off the dialog-footer margin Button
-             * carries from md, which set it off centre.
-             */
-            <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+            <div>
               <Button
                 title="Go to Overview"
                 icon={IconProp.Info}

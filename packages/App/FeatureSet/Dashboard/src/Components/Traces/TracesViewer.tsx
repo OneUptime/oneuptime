@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import TelemetryViewer from "Common/UI/Components/TelemetryViewer/TelemetryViewer";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import TelemetryLoadErrorUtil, {
   TelemetryLoadError,
 } from "Common/UI/Utils/Telemetry/TelemetryLoadError";
@@ -2557,6 +2558,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       {
         key: SPAN_TYPE_FACET_KEY,
         title: "Span Type",
+        /*
+         * Where the explorer first says "span": its title is the defined
+         * term, so what a span is sits one hover or tap away (#9133).
+         */
+        titleGlossaryTerm: GlossaryTerm.Span,
         valueDisplayMap: Object.fromEntries(
           TRACE_SPAN_TYPE_OPTIONS.map(
             (option: TraceSpanTypeOption): [string, string] => {
@@ -3803,7 +3809,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
                 props.emptyMessage || getTraceSpanTypeEmptyMessage(spanType),
               )}
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-500">
               {translator.translateText(
                 "Try adjusting filters or time range, or show every span, including database calls and internal steps.",
               )}

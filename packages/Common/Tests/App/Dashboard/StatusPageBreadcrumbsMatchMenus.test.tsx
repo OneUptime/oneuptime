@@ -57,7 +57,7 @@ import {
  * Embedded Status, Reports, SCIM, Audit Logs, the Slack and Microsoft Teams
  * subscribers and the status page Owner and Label Rules opened with no trail
  * at all, and four pages had two names: "Domains" under the menu's Custom
- * Domains, "Settings" under Advanced Settings, "Custom HTML, CSS &
+ * Domains, "Settings" under Advanced Settings (now Settings too), "Custom HTML, CSS &
  * JavaScript" under HTML, CSS & JavaScript, and "Subscriber Notification
  * Templates" under Subscriber Templates (with "All Announcements" over the
  * menu's Announcements).
@@ -169,7 +169,7 @@ describe("a status page's menu and its breadcrumbs", () => {
 
   test.each([
     [PageMap.STATUS_PAGE_VIEW_DOMAINS, "Custom Domains"],
-    [PageMap.STATUS_PAGE_VIEW_SETTINGS, "Advanced Settings"],
+    [PageMap.STATUS_PAGE_VIEW_SETTINGS, "Settings"],
     [PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS, "HTML, CSS & JavaScript"],
     [PageMap.STATUS_PAGE_VIEW_EMBEDDED, "Embedded Status"],
     [PageMap.STATUS_PAGE_VIEW_REPORTS, "Reports"],
@@ -203,7 +203,7 @@ describe("the Status Pages menu and its breadcrumbs", () => {
     expect(mismatches(links)).toEqual([]);
   });
 
-  test("an announcement and the settings pages sit under the names the menu gives them", () => {
+  test("an announcement, the settings pages and the rules sit under the names the menu gives them", () => {
     expect(trailOf(PageMap.STATUS_PAGE_ANNOUNCEMENTS)).toEqual([
       "Project",
       "Status Pages",
@@ -221,14 +221,14 @@ describe("the Status Pages menu and its breadcrumbs", () => {
     expect(trailOf(PageMap.STATUS_PAGES_SETTINGS_OWNER_RULE_VIEW)).toEqual([
       "Project",
       "Status Pages",
-      "Settings",
+      "Rules",
       "Owner Rules",
       "View Rule",
     ]);
     expect(trailOf(PageMap.STATUS_PAGES_SETTINGS_LABEL_RULE_VIEW)).toEqual([
       "Project",
       "Status Pages",
-      "Settings",
+      "Rules",
       "Label Rules",
       "View Rule",
     ]);

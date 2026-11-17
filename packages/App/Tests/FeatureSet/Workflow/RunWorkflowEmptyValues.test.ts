@@ -375,6 +375,11 @@ beforeEach(() => {
   jest.spyOn(logger, "error").mockImplementation((): void => {
     return undefined;
   });
+  /*
+   * None of these alerts is private: a record trigger asks first, and stops
+   * on a private incident, alert or episode (#8914).
+   */
+  jest.spyOn(AlertService, "isAboutPrivateRecord").mockResolvedValue(false);
 });
 
 afterEach(() => {

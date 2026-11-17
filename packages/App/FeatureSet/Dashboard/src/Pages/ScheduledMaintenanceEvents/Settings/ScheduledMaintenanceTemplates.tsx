@@ -29,7 +29,6 @@ import {
 } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import RecurringFieldElement from "Common/UI/Components/Events/RecurringFieldElement";
@@ -41,8 +40,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getSubscriberNotificationsSection } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
 import { SCHEDULED_NOTIFICATION_DESCRIPTION } from "../../../Components/ScheduledMaintenance/ScheduledMaintenancePublishing";
-import { getStatusPageSuggestionsFooter } from "../../../Components/StatusPage/StatusPageSuggestions";
-import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
+import { getMaintenanceStatusPagesFormField } from "../../../Components/ScheduledMaintenance/MaintenanceStatusPagesFormField";
 import ObjectID from "Common/Types/ObjectID";
 import { getTemplateNextEventAt } from "../../../Utils/ScheduledMaintenanceTemplateSchedule";
 
@@ -359,33 +357,17 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
      * the form's own monitors, or on the view page's Edit (which leaves the
      * resources to their own card) the template's.
      */
-    {
-      field: {
-        statusPages: true,
-      },
-      title: "Show event on these status pages ",
+    getMaintenanceStatusPagesFormField<ScheduledMaintenanceTemplate>({
       stepId: "resources-affected",
-      description: "Select status pages to show this event on",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: StatusPage,
-        labelField: "name",
-        valueField: "_id",
-      },
-      required: false,
-      placeholder: "Select Status Pages",
-      getFooterElement:
-        getStatusPageSuggestionsFooter<ScheduledMaintenanceTemplate>({
-          eventType: StatusPageEventType.ScheduledEvent,
-          monitorsOf:
-            data.excludeAffectedResources && data.templateId
-              ? {
-                  modelType: ScheduledMaintenanceTemplate,
-                  modelId: data.templateId,
-                }
-              : undefined,
-        }),
-    },
+      isTemplate: true,
+      monitorsOf:
+        data.excludeAffectedResources && data.templateId
+          ? {
+              modelType: ScheduledMaintenanceTemplate,
+              modelId: data.templateId,
+            }
+          : undefined,
+    }),
     /*
      * Folded to one line that says what happens; it opens by itself on a
      * template that keeps subscribers quiet or sends reminders.

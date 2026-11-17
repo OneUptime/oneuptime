@@ -1001,9 +1001,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           {
             page: PageMap.SETTINGS_DANGERZONE,
-            title: "Danger Zone",
-            icon: IconProp.Error,
-            keywords: ["delete project", "remove project"],
+            title: "Delete Project",
+            icon: IconProp.Trash,
+            // The menu called it "Danger Zone" until #9134.
+            keywords: ["danger zone", "remove project"],
             actions: [
               {
                 id: "delete-project",
@@ -1091,6 +1092,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Squares,
             gate: PageSearchGate.MonitorGroups,
           },
+          // A choice, not a fault: beside the monitors, not under Attention Required (#9126).
+          {
+            page: PageMap.MONITORS_DISABLED,
+            title: "Disabled",
+            icon: IconProp.Pause,
+            keywords: ["disabled monitors", "paused monitors"],
+          },
         ],
       },
       {
@@ -1102,21 +1110,26 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Alert,
             keywords: ["down monitors", "offline monitors", "failing"],
           },
-          {
-            page: PageMap.MONITORS_DISABLED,
-            title: "Disabled",
-            icon: IconProp.Error,
-            keywords: ["disabled monitors", "paused monitors"],
-          },
+          /*
+           * Named as the monitor's own badge names them (#9126), and still
+           * found by the menu's old names.
+           */
           {
             page: PageMap.MONITORS_PROBE_DISCONNECTED,
-            title: "Probe Disconnected",
+            title: "Probes Disconnected",
             icon: IconProp.NoSignal,
+            keywords: ["probe disconnected", "offline probes"],
           },
           {
             page: PageMap.MONITORS_PROBE_DISABLED,
-            title: "Probe Disabled",
+            title: "No Probe Enabled",
             icon: IconProp.EyeSlash,
+            keywords: [
+              "probe disabled",
+              "probes not enabled",
+              "not checked by any probe",
+              "unmonitored monitors",
+            ],
           },
         ],
       },
@@ -1125,6 +1138,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         microsoftTeams: PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
         mattermost: PageMap.MONITORS_WORKSPACE_CONNECTION_MATTERMOST,
       }),
+      {
+        title: "Rules",
+        pages: [
+          ownerRules(PageMap.MONITORS_SETTINGS_OWNER_RULES),
+          labelRules(PageMap.MONITORS_SETTINGS_LABEL_RULES),
+        ],
+      },
       {
         title: "Settings",
         pages: [
@@ -1163,8 +1183,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Template,
             keywords: ["monitor templates"],
           },
-          ownerRules(PageMap.MONITORS_SETTINGS_OWNER_RULES),
-          labelRules(PageMap.MONITORS_SETTINGS_LABEL_RULES),
           {
             page: PageMap.MONITORS_SETTINGS_PROBES,
             title: "Probes",
@@ -1755,17 +1773,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "public status",
             ],
           },
-        ],
-      },
-      {
-        title: "More",
-        pages: [
           {
             page: PageMap.STATUS_PAGE_ANNOUNCEMENTS,
             title: "Announcements",
             icon: IconProp.Announcement,
             keywords: ["status page notice", "post an update"],
           },
+        ],
+      },
+      {
+        title: "Rules",
+        pages: [
+          ownerRules(PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES),
+          labelRules(PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES),
         ],
       },
       {
@@ -1783,8 +1803,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["subscriber emails", "subscriber notification"],
           },
           customFields(PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS),
-          ownerRules(PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES),
-          labelRules(PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES),
         ],
       },
       { title: "Advanced", pages: [archived(PageMap.STATUS_PAGES_ARCHIVED)] },
@@ -4368,7 +4386,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         ],
       },
       {
-        title: "On-Call Logs",
+        title: "Paging & Calls",
         pages: [
           {
             page: PageMap.USER_SETTINGS_ON_CALL_LOGS,
@@ -4376,21 +4394,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Logs,
             keywords: ["my pages", "paging history"],
           },
-        ],
-      },
-      {
-        title: "Incoming Call Policy",
-        pages: [
           {
             page: PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS,
             title: "Incoming Phone Numbers",
             icon: IconProp.Call,
+            // The section it sat in alone until #9134.
+            keywords: ["incoming call policy"],
             settings: ["Phone Numbers for Incoming Call Routing"],
           },
         ],
       },
       {
-        title: "Calendar",
+        title: "Profile & Calendar",
         pages: [
           {
             page: PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED,
@@ -4403,11 +4418,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "Remind me before shifts",
             ],
           },
-        ],
-      },
-      {
-        title: "Profile",
-        pages: [
           customFields(PageMap.USER_SETTINGS_CUSTOM_FIELDS, "My Custom Fields"),
         ],
       },

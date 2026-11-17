@@ -114,13 +114,13 @@ Sektionen **Fler fält** är densamma i formuläret för en monitor och i dialog
 
 ## Upptidsprocent och historikdiagram
 
-**Visa upptid %** och **Visa statushistorikdiagram** läser båda en enda inställning för hela sidan: hur många dagar de täcker. Det är **Upptidshistorik** på kortet **Vad din statussida visar** under **Statussidor → din sida → Avancerad → Avancerade inställningar**. Den accepterar 1 till 90 dagar och är 90 som standard. Aktivera alltså reglagen per resurs och ange fönstret en gång för hela sidan.
+**Visa upptid %** och **Visa statushistorikdiagram** läser båda en enda inställning för hela sidan: hur många dagar de täcker. Det är **Upptidshistorik** på kortet **Vad din statussida visar** under **Statussidor → din sida → Avancerad → Inställningar**. Den accepterar 1 till 90 dagar och är 90 som standard. Aktivera alltså reglagen per resurs och ange fönstret en gång för hela sidan.
 
 **Precision är en bedömningsfråga.** **Välj precision för drifttid** erbjuder `99% (No Decimal)`, `99.9% (One Decimal)`, `99.99% (Two Decimal)` och `99.999% (Three Decimal)`. Fler decimaler ser exakta ut och bjuder in till diskussioner om den tredje; publicerar du ett SLA på tre nior, matcha det och inte mer.
 
 Grupper har sina egna varianter av de här reglagen (se nedan), så en grupp kan visa en sammanlagd procent medan monitorerna i den håller tyst, eller tvärtom.
 
-Färgerna på historikdiagrammets staplar anges under **Fler inställningar** på sidan **Varumärke**, och vilka monitorstatusar som räknas som "nere" under **Räknas som driftstopp**, på kortet **Vad din statussida visar** under **Avancerade inställningar**; båda beskrivs i [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains).
+Färgerna på historikdiagrammets staplar anges under **Fler inställningar** på sidan **Varumärke**, och vilka monitorstatusar som räknas som "nere" under **Räknas som driftstopp**, på kortet **Vad din statussida visar** under **Inställningar**; båda beskrivs i [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains).
 
 Varje stapel är en dag. Peka på en stapel eller klicka på den (tryck på den på en telefon, eller tryck Enter med tangentbordet) för att läsa dagen: dess upptid, hur länge varje status varade, incidenterna som deklarerades den dagen och det schemalagda underhållet som pågick under den, var och en med en länk till sin egen sida. En dag med schemalagt underhåll har ett blått band överst på sin stapel, och medan en händelse pågår står det "Under underhåll" bredvid namnet på varje resurs för dess monitorer. Underhåll ändrar varken en stapels färg eller upptiden, som kommer från monitorns statusar: för att hålla planerat arbete utanför upptiden väljer du för händelsen under **Ändra övervakningsstatus till** en status som inte är en av sidans statusar under **Räknas som driftstopp**. Se [Vad en händelse påverkar](/docs/scheduled-maintenance/index#vad-en-händelse-påverkar).
 

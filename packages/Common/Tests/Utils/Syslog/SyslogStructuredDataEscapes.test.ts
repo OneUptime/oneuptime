@@ -6,6 +6,8 @@ import {
   readSyslogStructuredData,
   syslogStructuredDataAttributeKey,
 } from "../../../Utils/Syslog/SyslogMessageParser";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -275,11 +277,7 @@ describe("escapeSyslogStructuredDataValue", () => {
   // Seeded, so a failure names the value that broke it.
   it("is read back as the value it was, whatever the value", () => {
     const alphabet: string = 'ab "\\][=\n\t\u00e9\u4e2d\ud83d\ude00';
-    let seed: number = 9039;
-    const random: () => number = (): number => {
-      seed = (seed * 1103515245 + 12345) % 2147483648;
-      return seed / 2147483648;
-    };
+    const random: SeededRandom = seededRandom(9039);
 
     for (let round: number = 0; round < 500; round++) {
       let value: string = "";
@@ -322,11 +320,14 @@ describe("time in line with the text", () => {
     ["names", `[a ${"[".repeat(200_000)}="1"]`],
     ["elements", '[a x="1"]'.repeat(30_000)],
   ])("%s", (_name: string, structuredData: string) => {
-    const started: number = Date.now();
+    const read: FastestRun<void> = fastestRun({
+      run: (): void => {
+        parse(line(structuredData));
+        readSyslogStructuredData(structuredData);
+      },
+      limitInMs: 2000,
+    });
 
-    parse(line(structuredData));
-    readSyslogStructuredData(structuredData);
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(read.inMs).toBeLessThan(2000);
   });
 });

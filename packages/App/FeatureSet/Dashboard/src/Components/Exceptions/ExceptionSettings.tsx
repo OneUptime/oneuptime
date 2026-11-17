@@ -366,7 +366,7 @@ const ExceptionSettings: FunctionComponent<ComponentProps> = (
                     )}
                   </div>
                 </div>
-                <div className="flex flex-shrink-0 flex-wrap items-center gap-2 sm:pl-4 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+                <div className="flex flex-shrink-0 flex-wrap items-center gap-2 sm:pl-4">
                   {row.secondaryAction && (
                     <Button
                       title={row.secondaryAction.label}

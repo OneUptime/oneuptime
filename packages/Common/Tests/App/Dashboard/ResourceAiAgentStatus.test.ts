@@ -1483,6 +1483,8 @@ const SERVER_FLAGS: Record<
   ai_balance_insufficient: { investigation: true, fixes: true },
   // A cloud account with no read-only connection: nothing to read it with.
   cloud_connection_missing: { investigation: true, fixes: false },
+  // Advice, never a block: a Cloud AI agent that changes as its reader.
+  cloud_agent_changes_as_itself: { investigation: false, fixes: false },
 };
 
 function serverGap(code: ResourceAiAccessGapCode): ResourceAiAccessGap {
@@ -1871,6 +1873,13 @@ describe("Needs attention's steps", () => {
         if (code === "remediation_disabled") {
           continue;
         }
+        // Advice the server gives only a cloud account's agent.
+        if (
+          code === "cloud_agent_changes_as_itself" &&
+          !isCloudAiResourceType(type)
+        ) {
+          continue;
+        }
         texts[code] = getResourceAiAttentionStepText(
           serverGap(code),
           status,
@@ -2241,15 +2250,33 @@ describe("in the reader's language", () => {
 
     /*
      * Every step this page words is looked up; only remediation_disabled,
-     * a choice rather than a gap, keeps the server's.
+     * a choice rather than a gap, keeps the server's. A Docker host is never
+     * told cloud_agent_changes_as_itself: the server gives that advice only
+     * to a cloud account's agent, whose step is looked up as well.
      */
     expect(
       ALL_GAP_CODES.filter((code: ResourceAiAccessGapCode): boolean => {
-        return !LOOKED_UP.test(
-          getResourceAiAttentionStepText(serverGap(code), makeStatus(), DOCKER),
+        return (
+          code !== "cloud_agent_changes_as_itself" &&
+          !LOOKED_UP.test(
+            getResourceAiAttentionStepText(
+              serverGap(code),
+              makeStatus(),
+              DOCKER,
+            ),
+          )
         );
       }),
     ).toEqual(["remediation_disabled"]);
+    for (const type of CLOUD_AI_RESOURCE_TYPES) {
+      expect(
+        getResourceAiAttentionStepText(
+          serverGap("cloud_agent_changes_as_itself"),
+          makeStatus({ resourceType: type }),
+          getResourceAiAgentDescriptor(type),
+        ),
+      ).toMatch(LOOKED_UP);
+    }
 
     expect(
       getResourceAiAttentionStepText(

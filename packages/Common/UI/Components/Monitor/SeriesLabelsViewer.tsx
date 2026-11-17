@@ -39,7 +39,7 @@ const SeriesLabelsViewer: FunctionComponent<ComponentProps> = (
 
   if (labels.length === 0) {
     return (
-      <div className="text-gray-400 text-sm py-2">
+      <div className="text-gray-500 text-sm py-2">
         {translator.translateText("No resource labels on this alert.")}
       </div>
     );

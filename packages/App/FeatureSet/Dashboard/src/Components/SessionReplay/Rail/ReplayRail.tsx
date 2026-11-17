@@ -1,3 +1,7 @@
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import React, {
   ForwardedRef,
   ReactElement,
@@ -1745,19 +1749,16 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
             />
           )}
           {!follow && (
-            <button
-              type="button"
-              data-testid="rail-resume-follow"
-              className="rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-indigo-700"
-              title={translator.translateText(
-                "Keep the now divider in view as playback moves (m)",
-              )}
+            <Button
+              title="Resume following"
+              dataTestId="rail-resume-follow"
+              buttonStyle={ButtonStyleType.PRIMARY}
+              buttonSize={ButtonSize.Small}
+              tooltip="Keep the now divider in view as playback moves (m)"
               onClick={(): void => {
                 setFollow(true);
               }}
-            >
-              {translator.translateText("Resume following")}
-            </button>
+            />
           )}
           {!follow && isDividerOffscreen && (
             <button

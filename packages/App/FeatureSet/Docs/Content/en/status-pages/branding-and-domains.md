@@ -18,17 +18,17 @@ Open a status page, and the side menu's **Branding** section has three items:
 
 | Page | What you set there |
 | ---- | ------------------ |
-| **Branding** | Logo and cover image, the theme (light, dark, or as each visitor's device is set), page title and description, favicon, header links, the overview page description, the copyright line and footer links. Folded under **More settings**: history chart colors, languages and search engine indexing. |
+| **Branding** | Logo and cover image, the theme (light, dark, or as each visitor's device is set), header links, the intro text, the copyright line and footer links. Folded under **More settings**: the page title and search engine description, the favicon, history chart colors, languages and search engine indexing. |
 | **Custom Domains** | Your own domain, its DNS record, and its free SSL certificate. |
 | **HTML, CSS & JavaScript** | Header HTML, footer HTML, custom CSS, custom JavaScript. |
 
-Three things that look like branding are on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`) instead, because they decide what the page shows rather than how it looks: the overall uptime percent, which monitor statuses count against uptime, and the "Powered by OneUptime" line. The first two are rows of the **What your status page shows** card there, and the line has a card of its own, folded under **More settings** just under it.
+Three things that look like branding are on **Status Pages → your page → Advanced → Settings** (`{id}/settings`) instead, because they decide what the page shows rather than how it looks: the overall uptime percent, which monitor statuses count against uptime, and the "Powered by OneUptime" line. The first two are rows of the **What your status page shows** card there, and the line has a card of its own, folded under **More settings** just under it.
 
 Branding used to be split across separate **Essential Branding**, **Header**, **Footer**, **Overview Page** and **Languages** screens. Their old addresses (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` and `{id}/languages`) now open the **Branding** page, so old bookmarks and links still work.
 
 ## The Branding page
 
-**Status Pages → your page → Branding → Branding** (`{id}/branding`). Each card saves on its own. After the logo, the theme, the title and the favicon, the cards follow your status page from top to bottom: the header's links, the text at the top of the overview, then the footer. What few people change is folded under **More settings**, at the bottom.
+**Status Pages → your page → Branding → Branding** (`{id}/branding`). Each card saves on its own. After the logo and the theme, the cards follow your status page from top to bottom: the header's links, the intro text at the top of the overview, then the footer. What few people change is folded under **More settings**, at the bottom: the title and search engine description, the favicon, the history chart's colors, the languages and search engine indexing.
 
 ### Logo and cover image
 
@@ -65,18 +65,25 @@ The theme is in the page's HTML, so the page is drawn in it from the start: a da
 
 Your custom CSS and HTML apply in both themes; [Custom HTML, CSS and JavaScript](#custom-html-css-and-javascript) says how to style the dark one.
 
-### Title, description and favicon
-
-- **Title and Description** — the page's name in the browser tab and in subscriber emails, and the description search engines show. **Edit** opens **Page Title** (placeholder `e.g., Acme Status`) and **Page Description**. Search engines and link previews show these, so write them for a customer, not for your team.
-- **Favicon** — **Edit Favicon** opens the **Favicon** upload: the small icon in the browser tab.
-
 ### Header links
 
 The **Header Links** table holds the links in the status page's header, such as your website, your docs or a support portal. Each link has a **Title** and a **Link** (a URL, placeholder `https://link.com`), and you reorder them by dragging. With none, the table says what they are for, with **Add Header Link** under it.
 
-### Overview page description
+### Intro text
 
-**Overview Page Description** is the first thing on the status page's overview, above the announcements, the overall status and your resources. **Edit Description** opens a markdown field. Use it for a sentence of context: what this page covers, and where to go for support. An image you put in it is shown to every visitor of the page.
+**Intro Text** is the first thing visitors read on the status page's overview, above the announcements, the overall status and your resources. **Edit Intro Text** opens a markdown field. It was called **Overview Page Description**. Use it for a sentence of context: what this page covers, and where to go for support. An image you put in it is shown to every visitor of the page.
+
+### Three descriptions, three readers
+
+A status page has three descriptions, each named for who reads it:
+
+| Field | Where it is set | Who reads it |
+| --- | --- | --- |
+| **Internal Description** | The **Status Page Details** card on the page's **Overview** | Your team only. Visitors never see it. |
+| **Search Engine Description** | **Title and Search Engine Description**, under **More settings** on **Branding** | Search engines and link previews. |
+| **Intro Text** | **Intro Text** on **Branding** | Visitors, at the top of the status page. |
+
+To change what visitors read on the page, edit the **Intro Text**.
 
 ### Footer
 
@@ -87,7 +94,12 @@ Header links are for navigation; footer links are for the fine print, such as le
 
 ### More settings
 
-The last section of the page is folded under **More settings**, because few people ever change what is in it. Folded, its header names its four sections — **Default Bar Color**, **Bar Color Rules**, **Languages** and **Search Engine Indexing** — and shows each one that differs from what a new status page starts with: a default bar color other than the green every page starts with, bar color rules other than the recommended ones, a default language other than English, a shorter list of languages, or search engine indexing turned off. Click it to open it: it is one card, its sections one under the other, each with its own title, separated by dividers.
+The last section of the page is folded under **More settings**, because few people ever change what is in it. Folded, its header names its first four sections — **Title and Search Engine Description**, **Favicon**, **Default Bar Color** and **Bar Color Rules** — then how many more there are (**Languages** and **Search Engine Indexing**), and shows each one that differs from what a new status page starts with: a page title or search engine description, a favicon, a default bar color other than the green every page starts with, bar color rules other than the recommended ones, a default language other than English, a shorter list of languages, or search engine indexing turned off. Click it to open it: it is one card, its sections one under the other, each with its own title, separated by dividers.
+
+**Title and search engine description, and favicon.** Set once, if ever, and neither is what visitors read on the page, which is the **Intro Text**.
+
+- **Title and Search Engine Description** — the page's name in the browser tab and in subscriber emails, and the description search engines show. **Edit** opens **Page Title** (placeholder `e.g., Acme Status`) and **Search Engine Description**. Search engines and link previews show these, so write them for a customer, not for your team.
+- **Favicon** — **Edit Favicon** opens the **Favicon** upload: the small icon in the browser tab.
 
 **History chart colors.** Besides the **Theme**, these are the only built-in color controls on a status page. Each bar of the uptime history is one day.
 
@@ -106,7 +118,7 @@ A day the page has no data for is always drawn gray with diagonal stripes, whate
 
 A day's uptime is measured over the part of the day that has data, counting the statuses chosen in **Counts as downtime**. The recommended colors differ in lightness as well as in hue, so people with red-green color blindness, about one man in twelve, can tell them apart; the Operational green and Offline red that monitor statuses start with look almost the same to them. A page created before these rules, or through the API or Terraform, has no rules until you add some: an empty **Bar Color Rules** table and **Bar Color Preview** both offer **Use Recommended Rules**. Through the API, send `"miscDataProps": {"addRecommendedBarColorRules": true}` with the request that creates the status page.
 
-How many days the chart covers is not set here. That is **Uptime History** in the **What your status page shows** card on **Advanced → Advanced Settings**, from 1 to 90 days. Which monitor statuses count as down is **Counts as downtime**, in the same row of that card.
+How many days the chart covers is not set here. That is **Uptime History** in the **What your status page shows** card on **Advanced → Settings**, from 1 to 90 days. Which monitor statuses count as down is **Counts as downtime**, in the same row of that card.
 
 **Languages.** The **Languages** section sets the language switcher visitors get in the page footer. **Edit Languages** opens two fields:
 
@@ -124,7 +136,7 @@ Eighteen languages ship with OneUptime: English, German, French, Spanish, Italia
 
 ## Uptime percent and downtime statuses
 
-Both are in the **Uptime History** row of the **What your status page shows** card on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`). There is no **Edit** button: each saves the moment you change it.
+Both are in the **Uptime History** row of the **What your status page shows** card on **Status Pages → your page → Advanced → Settings** (`{id}/settings`). There is no **Edit** button: each saves the moment you change it.
 
 - **Show Overall Uptime Percent** — a switch, off by default. While it is on, **Precision** beside it picks how many decimals the percentage shows: `99%`, `99.9%`, `99.99%` (the default) or `99.999%`. On OneUptime Cloud, turning the percentage on needs the **Scale** plan; its precision can be changed on every plan.
 - **Counts as downtime** — the monitor statuses, as colored chips, whose time counts against uptime on this page. This is where you decide whether, say, a degraded status counts against uptime. At least one status stays picked.
@@ -274,7 +286,7 @@ Its dialog, **Reissue SSL Certificate for this Status Page**, asks Let's Encrypt
 
 The action does not appear on a domain using a certificate you uploaded: there is no Let's Encrypt certificate to reissue, so upload a new one by editing the domain instead. It also does not appear before the domain's first certificate is ordered, which happens on its own once its CNAME record is verified.
 
-The same button, with the same 24 hour limit, is on dashboard custom domains under **Dashboards → your dashboard → Branding → Custom Domains**, which work the same way as status page custom domains: see [Sharing & Public Dashboards](/docs/dashboards/sharing#custom-domains).
+The same button, with the same 24 hour limit, is on dashboard custom domains under **Dashboards → your dashboard → Public Link → Custom Domains**, which work the same way as status page custom domains: see [Sharing & Public Dashboards](/docs/dashboards/sharing#custom-domains).
 
 ### Reading the domain Status column
 
@@ -309,7 +321,7 @@ The same goes for API keys. A key that can only read status page domains can't c
 
 ## Powered by OneUptime
 
-The "Powered by OneUptime" line is not a branding setting. It has a card of its own, **Powered by OneUptime**, folded under **More settings** below the **What your status page shows** card on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`): **Show Powered By OneUptime Branding**, on by default. Turn it off to hide the line; it saves at once. On OneUptime Cloud, hiding it needs the **Scale** plan. Self-hosted, hiding it is part of the Enterprise Edition: on the Community Edition, every status page shows the line.
+The "Powered by OneUptime" line is not a branding setting. It has a card of its own, **Powered by OneUptime**, folded under **More settings** below the **What your status page shows** card on **Status Pages → your page → Advanced → Settings** (`{id}/settings`): **Show Powered By OneUptime Branding**, on by default. Turn it off to hide the line; it saves at once. On OneUptime Cloud, hiding it needs the **Scale** plan. Self-hosted, hiding it is part of the Enterprise Edition: on the Community Edition, every status page shows the line.
 
 ## Next steps
 

@@ -46,7 +46,6 @@ const MARKDOWN_FIELD_HELP: Array<string> = [
   "Describe the maintenance event here.",
   "Describe the status page group here.",
   "Describe this resource here.",
-  "Describe your status page overview here.",
 ];
 
 type LocaleFile = Record<string, unknown>;

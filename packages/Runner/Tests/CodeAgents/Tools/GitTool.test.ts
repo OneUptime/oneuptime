@@ -97,6 +97,43 @@ describe("what the git tool shows", () => {
     );
   });
 
+  /*
+   * Racy git: git trusts a file whose stat looks unchanged only when the
+   * index was written after the file's mtime. The diff reads a copy of the
+   * index, and a copy stamped with the time it was made let a change made at
+   * the same size, in the second the index was written, read as no change.
+   * Pinned without timing: the file and the index share one whole second, the
+   * file is changed at the same size and its mtime set back, and git is told
+   * not to compare ctime, which a test cannot set back. Only the index's own
+   * mtime then tells git to read the file.
+   */
+  test("diff sees a change made at the same size in the second the index was written", async () => {
+    const root: string = makeHistory();
+    const file: string = path.join(root, "src/price.ts");
+    const index: string = path.join(root, ".git", "index");
+    const second: Date = new Date("2026-01-01T00:00:00.000Z");
+
+    git(root, ["config", "core.trustctime", "false"]);
+    fs.utimesSync(file, second, second);
+    git(root, ["update-index", "--refresh"]);
+    fs.utimesSync(index, second, second);
+
+    writeFile(
+      root,
+      "src/price.ts",
+      "export const price = 15;\nexport const tax = 1;\n",
+    );
+    fs.utimesSync(file, second, second);
+
+    const result: ToolExecution = await run(makeContext(root), {
+      action: "diff",
+    });
+
+    expect(result.output).toContain(
+      "-export const price = 12;\n+export const price = 15;",
+    );
+  });
+
   test("diff with stat, and with no change at all", async () => {
     const root: string = makeHistory();
     const context: CodeAgentToolContext = makeContext(root);

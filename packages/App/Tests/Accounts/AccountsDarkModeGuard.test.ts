@@ -44,6 +44,8 @@ const SIGN_IN_PIECES: ReadonlyArray<string> = [
   "Components/ProductLogo/ProductLogo.tsx",
   // The password rule's checklist: sign-up's and Reset Password's (#9123).
   "Components/PasswordRequirements/PasswordRequirements.tsx",
+  // The frame every sign-in page is drawn in, a status page's too (#9132).
+  "Components/AuthPage/AuthPage.tsx",
 ];
 
 const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;

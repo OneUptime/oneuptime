@@ -158,7 +158,7 @@ const TimelineRow: FunctionComponent<ComponentProps> = (
             <span className="truncate font-medium text-gray-800">
               {active.userName}
             </span>
-            <span className="max-sm:hidden shrink-0 text-gray-400 sm:inline">
+            <span className="max-sm:hidden shrink-0 text-gray-500 sm:inline">
               {translator.translateText("on call now")}
             </span>
           </span>

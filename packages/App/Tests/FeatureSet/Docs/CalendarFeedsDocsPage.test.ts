@@ -977,16 +977,16 @@ describe("Calendar Feeds docs page", () => {
       expect(english).toContain("**Last fetched … by Google Calendar**");
     });
 
-    it("sends readers to the Calendar section of User Settings, which starts folded", () => {
+    it("sends readers to the Profile & Calendar section of User Settings, which starts folded", () => {
       const userSettingsMenu: string = readRepoFile(
         "App/FeatureSet/Dashboard/src/Pages/UserSettings/SideMenu.tsx",
       );
 
       expect(userSettingsMenu).toMatch(
-        /title: "Calendar",\s*defaultCollapsed: true,\s*items: \[\s*\{\s*link: \{\s*title: "Calendar Feed"/,
+        /title: "Profile & Calendar",\s*defaultCollapsed: true,\s*items: \[\s*\{\s*link: \{\s*title: "Calendar Feed"/,
       );
       expect(english).toContain(
-        "**User Settings** > **Calendar** > **Calendar Feed**",
+        "**User Settings** > **Profile & Calendar** > **Calendar Feed**",
       );
       expect(english).not.toContain("**User Settings** > **Calendar Feed**");
     });

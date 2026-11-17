@@ -80,7 +80,10 @@ const MAINTENANCE: MonitorStatus = status({
   isOperationalState: true,
 });
 
-function member(monitorId: ObjectID, isArchived: boolean): MonitorGroupResource {
+function member(
+  monitorId: ObjectID,
+  isArchived: boolean,
+): MonitorGroupResource {
   const resource: MonitorGroupResource = new MonitorGroupResource();
   resource.monitorId = monitorId;
   resource.monitor = new Monitor();
@@ -147,7 +150,10 @@ describe("MonitorGroupService.getUptimeSummary (issue #6886)", () => {
       .spyOn(MonitorStatusService, "findBy")
       .mockResolvedValue([OPERATIONAL, DEGRADED, OFFLINE, MAINTENANCE]);
     aggregateSpy = jest
-      .spyOn(MonitorStatusTimelineService, "getMonitorGroupDailyUptimeAggregate")
+      .spyOn(
+        MonitorStatusTimelineService,
+        "getMonitorGroupDailyUptimeAggregate",
+      )
       .mockImplementation(
         async (
           request: AggregateRequest,
@@ -237,7 +243,10 @@ describe("MonitorGroupService.getUptimeSummary (issue #6886)", () => {
 
     expect(read.query.monitorGroupId).toBe(GROUP_ID);
     expect(read.query.projectId).toBe(PROJECT_ID);
-    expect(read.select).toEqual({ monitorId: true, monitor: { isArchived: true } });
+    expect(read.select).toEqual({
+      monitorId: true,
+      monitor: { isArchived: true },
+    });
     expect(read.props).toEqual({ isRoot: true });
     expect(read.limit).toBe(LIMIT_PER_PROJECT);
   });

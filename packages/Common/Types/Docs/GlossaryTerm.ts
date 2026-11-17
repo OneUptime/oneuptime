@@ -74,6 +74,8 @@ enum GlossaryTerm {
   Logs = "logs",
   Metrics = "metrics",
   Traces = "traces",
+  // One step of a trace: about 180 Traces strings say it (#9133).
+  Span = "span",
   Profiles = "profiles",
   AILLM = "ai-llm",
   DataObservability = "data-observability",

@@ -234,7 +234,8 @@ const KUBERNETES_OVERVIEW: PageUnderTest = {
   },
   rangeMetrics: [
     "k8s.node.cpu.utilization",
-    "k8s.node.memory.usage",
+    // Memory is the nodes' working set, the tile's and the chart's (#9113).
+    "k8s.node.memory.working_set",
     "k8s.node.filesystem.usage",
     "k8s.node.filesystem.available",
     "k8s.node.network.io",

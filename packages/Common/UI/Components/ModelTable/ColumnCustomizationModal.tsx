@@ -503,7 +503,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
                 className={
                   entry.isVisible
                     ? "text-sm font-medium text-gray-900"
-                    : "text-sm font-normal text-gray-400"
+                    : "text-sm font-normal text-gray-500"
                 }
               >
                 {translator.translateText(entry.column.title)}
@@ -863,7 +863,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
          * would find it.
          */}
         {matchingAddableColumns.length > shownAddableColumns.length && (
-          <p className="text-xs text-gray-400" data-testid="add-column-hint">
+          <p className="text-xs text-gray-500" data-testid="add-column-hint">
             {translator.translateTemplate(
               "Showing {{shown}} of {{total}}. Search to narrow this down.",
               {
@@ -1081,7 +1081,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
         </div>
 
         <p
-          className="text-xs text-gray-400"
+          className="text-xs text-gray-500"
           data-testid="column-customization-hint"
         >
           {translator.translateText(

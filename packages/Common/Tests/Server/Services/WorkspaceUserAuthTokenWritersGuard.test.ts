@@ -26,6 +26,9 @@ import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
  *     Teams sign-in callback - each writing for the member and project of the
  *     state it spent (record.userId, record.projectId), never for ids the
  *     request carries;
+ *   - besides, only the writes listed in WRITES_THAT_CHANGE_NO_LINK touch
+ *     the table, each through the one call listed, and none changes which
+ *     member a chat account is: the encryption of the stored tokens in place;
  *   - no SQL anywhere else inserts or updates the table;
  *   - a chat account is looked for among its own chat's links only;
  *   - the scans see every use: the service and the model are imported
@@ -72,6 +75,16 @@ const REFRESH_CALL: RegExp =
 const OTHER_WRITE_CALL: RegExp =
   /\bWorkspaceUserAuthTokenService\s*\.\s*(create|createFromTemplate|updateOneBy|updateBy|updateOneById|updateOneByIdAndFetch|updateColumnsByIdWithoutHooks|updateColumnsByIdIfUnlockedWithoutHooks|getRepository)\s*\(/g;
 
+/*
+ * The repository handed out on purpose, with why. Each place that takes it
+ * writes no link of its own: it rewrites a column of the links already
+ * stored, as they are.
+ */
+const REPOSITORY_READERS: Record<string, string> = {
+  "packages/App/FeatureSet/Workers/DataMigrations/EncryptProjectCredentials.ts":
+    "encrypts each stored link's authToken in place (#8989), only while the row still holds the value read: it adds, moves or reassigns no link",
+};
+
 // A row built to be saved, outside the service.
 const NEW_ROW: RegExp = /\bnew\s+WorkspaceUserAuthToken\s*\(/g;
 
@@ -116,6 +129,8 @@ interface Occurrence {
   line: number;
   // The call's arguments, whitespace removed, when it is a call.
   argumentsText: string;
+  // What the pattern matched, as written.
+  matched: string;
 }
 
 function listSourceFiles(directory: string): Array<string> {
@@ -241,6 +256,7 @@ function findAll(pattern: RegExp): Array<Occurrence> {
           source[openParen] === "("
             ? argumentsOf(source, openParen).replace(WHITESPACE, "")
             : "",
+        matched: match[0],
       });
     }
   }
@@ -321,11 +337,21 @@ describe("only a sign-in connects a chat account to a member", () => {
   test("nothing else writes a link: no other write on the service, outside the service", () => {
     const writes: Array<Occurrence> = findAll(OTHER_WRITE_CALL).filter(
       (write: Occurrence): boolean => {
-        return write.file !== SERVICE_FILE;
+        return (
+          write.file !== SERVICE_FILE &&
+          !(
+            write.matched.includes("getRepository") &&
+            Object.prototype.hasOwnProperty.call(REPOSITORY_READERS, write.file)
+          )
+        );
       },
     );
 
     expect(placesOf(writes)).toEqual([]);
+
+    for (const why of Object.values(REPOSITORY_READERS)) {
+      expect(why.length).toBeGreaterThan(0);
+    }
   });
 
   test("no link is built to be saved outside the service", () => {

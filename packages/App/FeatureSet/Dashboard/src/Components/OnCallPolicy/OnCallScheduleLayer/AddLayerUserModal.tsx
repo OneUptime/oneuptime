@@ -291,7 +291,7 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
             <span className={ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME}>
               {translator.translateText("Project members")}
             </span>
-            <span className="text-[11px] font-medium tabular-nums text-gray-400">
+            <span className="text-[11px] font-medium tabular-nums text-gray-500">
               {selectedUserId ? (
                 <>
                   {translator.translateText("1 selected")}

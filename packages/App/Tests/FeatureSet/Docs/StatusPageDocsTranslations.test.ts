@@ -190,13 +190,6 @@ interface FlatLookupLabel {
 
 // Labels drawn by one lookup of a key that is not the label itself.
 const FLAT_LOOKUP: Record<string, Array<FlatLookupLabel>> = {
-  [SUBSCRIBERS]: [
-    {
-      // The maintenance form's status page picker (Create.tsx).
-      english: "Show event on these status pages",
-      key: "Show event on these status pages ",
-    },
-  ],
   [AUDIENCE]: [
     {
       // The audience summary's headline, without its colon.
@@ -292,7 +285,7 @@ const STATUS_PAGE_APP: Record<string, Array<StatusPageAppLabel>> = {
       english: "Email me a sign-in link",
       key: "accounts.login.emailSignInLink",
     },
-    { english: "Log in", key: "accounts.magicLinkLogin.submit" },
+    { english: "Sign In", key: "accounts.magicLinkLogin.submit" },
   ],
   [SUBSCRIBERS]: [
     { english: "Subscribe", key: "nav.subscribe" },
@@ -485,6 +478,7 @@ const PROSE: Record<string, Array<string>> = {
     "Where the colors are.",
     "Images.",
     "What it stores.",
+    "Private users, single sign-on and SCIM do nothing on a public page.",
     "Private users and the password don't stack.",
     "Sign-in links.",
     "Embedded status badge.",

@@ -181,15 +181,21 @@ describe("the dashboard's side menu", () => {
     ).toHaveLength(1);
   });
 
-  test("Advanced keeps settings, audit logs and delete, and stays folded", async () => {
+  /*
+   * Owners was a section of its own, under a heading of its own name, and
+   * the delete entry said "Delete" where every other record says what it
+   * deletes (#9134).
+   */
+  test("Advanced keeps settings, owners, audit logs and Delete Dashboard, and stays folded", async () => {
     await renderMenuAt(PageMap.DASHBOARD_VIEW);
 
     expect(
       linksIn("Advanced").map((link: MenuLink): string => {
         return link.title;
       }),
-    ).toEqual(["Settings", "Audit Logs", "Delete"]);
+    ).toEqual(["Settings", "Owners", "Audit Logs", "Delete Dashboard"]);
     expect(isExpanded("Advanced")).toBe(false);
+    expect(titlesInMenu()).not.toContain("Delete");
   });
 
   test("on Sharing, Sharing is the page marked as current", async () => {

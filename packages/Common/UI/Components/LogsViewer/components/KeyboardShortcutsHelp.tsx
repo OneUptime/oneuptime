@@ -51,7 +51,7 @@ const KeyboardShortcutsHelp: FunctionComponent<KeyboardShortcutsHelpProps> = (
       data-testid={KEYBOARD_SHORTCUTS_HELP_TEST_ID}
     >
       <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
           {translator.translateText("Keyboard shortcuts")}
         </span>
         <button
@@ -100,7 +100,7 @@ const KeyboardShortcutsHelp: FunctionComponent<KeyboardShortcutsHelpProps> = (
             template="Press {{key}} to toggle this panel"
             slots={{
               key: (
-                <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px]">
+                <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-xs">
                   ?
                 </kbd>
               ),

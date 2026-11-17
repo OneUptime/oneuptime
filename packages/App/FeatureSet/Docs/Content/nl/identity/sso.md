@@ -325,7 +325,7 @@ Een provider toevoegen, wijzigen of weer aanzetten vereist **Scale**. Wie wat ma
 
 Zolang het project nog SSO verplicht, toont de pagina **SSO** ook **SSO vereisen voor inloggen**: zet het uit voordat u de laatste provider uitzet. Tot dan kan de laatste provider waarmee mensen zich kunnen aanmelden niet worden uitgezet of verwijderd, zodat niemand uit het project wordt buitengesloten.
 
-De pagina's **SSO** en **OIDC** van een statuspagina tonen de eigen providers op dezelfde manier. Zolang de statuspagina nog SSO verplicht, tonen beide pagina's ook **SSO vereisen voor inloggen**: zet het uit voordat u de providers uitzet, anders kunnen de privégebruikers zich helemaal niet meer aanmelden.
+De pagina **Single Sign-On** van een statuspagina toont de eigen providers op dezelfde manier, op de tabbladen **SAML** en **OIDC**. Zolang de statuspagina nog SSO verplicht, tonen beide tabbladen ook **SSO vereisen voor inloggen**: zet het uit voordat u de providers uitzet, anders kunnen de privégebruikers zich helemaal niet meer aanmelden.
 
 ## Problemen oplossen
 

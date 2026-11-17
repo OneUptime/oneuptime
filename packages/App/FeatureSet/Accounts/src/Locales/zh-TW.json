@@ -570,6 +570,7 @@
   "What was sent is larger than the 50 MB OneUptime takes in one request.": "傳送的內容超過了 OneUptime 單次請求可接受的 50 MB。",
   "Try again with less at once, such as a smaller file.": "請一次傳送較少的內容（例如較小的檔案）後再試一次。",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "如果是 OneUptime 前面的代理拒絕了它，請將該代理的請求大小上限提高到 50 MB，與 OneUptime 本身接受的大小相同（在 nginx 中為 client_max_body_size 50M）。",
+  "Dismiss": "隱藏",
   "This form is not available. It may have been turned off, or the link may be out of date.": "此表單無法使用。它可能已被關閉，或連結已過期。",
   "This form can only be opened from an allowed network.": "此表單只能從允許的網路開啟。",
   "Too many submissions from your network. Please wait a few minutes and try again.": "來自您網路的提交次數過多。請稍候幾分鐘再試一次。",
@@ -646,6 +647,5 @@
     "note": "注意",
     "tip": "提示",
     "warning": "警告"
-  },
-  "Dismiss": "隱藏"
+  }
 }

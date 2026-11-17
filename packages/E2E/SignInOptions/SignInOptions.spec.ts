@@ -891,7 +891,7 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
     await expect(page.locator('a[href="/accounts/login"]')).toHaveCount(1);
   });
 
-  test("a private status page: 'or', then Log in with SSO, as wide and as tall as its Login, in every language", async ({
+  test("a private status page: 'or', then Sign in with SSO, as wide and as tall as its Sign In, in every language", async ({
     page,
   }: {
     page: Page;

@@ -6,7 +6,9 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
 import Page from "Common/UI/Components/Page/Page";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import PendingProjectInvitations from "Common/UI/Components/ProjectInvitations/PendingProjectInvitations";
@@ -152,6 +154,7 @@ const Welcome: FunctionComponent<ComponentProps> = (
       if (!canCreateProject) {
         return (
           <EmptyState
+            size={EmptyStateSize.Page}
             id="empty-state-project-creation-restricted"
             icon={IconProp.Lock}
             title={"Ask to join a project"}
@@ -173,6 +176,7 @@ const Welcome: FunctionComponent<ComponentProps> = (
        */
       return (
         <EmptyState
+          size={EmptyStateSize.Page}
           id="empty-state-no-projects"
           icon={IconProp.AddFolder}
           title={"No projects yet"}

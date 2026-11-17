@@ -457,7 +457,6 @@ const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
           title={RESOURCE_AI_LOGS_EMPTY_TITLE}
           description={getResourceAiLogsEmptyDescription(descriptor)}
           showSolidBackground={true}
-          paddingClassName="py-12"
           footer={
             hint ? (
               <AgentPageLink

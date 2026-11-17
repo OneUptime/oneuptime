@@ -493,7 +493,7 @@ describe("A monitor no check stands behind (#8961)", () => {
    * Every monitor is created in the operational status, so a monitor nothing
    * has checked yet arrived as "Operational", in green, and the row said so.
    * The web's row says Waiting for data, No results yet or Paused for it,
-   * and Probes Not Enabled or Probes Disconnected for a monitor no probe
+   * and No Probe Enabled or Probes Disconnected for a monitor no probe
    * checks (Common/Utils/Monitor/MonitorRowStatus); so does this row now,
    * and its screen reader label with it.
    */
@@ -590,7 +590,7 @@ describe("A monitor no check stands behind (#8961)", () => {
   );
 
   test.each([
-    ["Probes Not Enabled", { isNoProbeEnabledOnThisMonitor: true }],
+    ["No Probe Enabled", { isNoProbeEnabledOnThisMonitor: true }],
     ["Probes Disconnected", { isAllProbesDisconnectedFromThisMonitor: true }],
   ])(
     "says %s in the error tone, measured or not",

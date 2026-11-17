@@ -501,7 +501,7 @@ Två konsekvenser som är värda att planera för:
 
 **Bilder följer meddelandet.** En bild i ett meddelandes beskrivning öppnas för alla från **Börja visa meddelande vid** och framåt, inte tidigare. Medan ett meddelande är schemalagt till senare öppnas dess bilder bara för medlemmarna i ditt projekt, precis som själva meddelandet bara visas i instrumentpanelen. Så snart det börjar visas öppnas dess bilder för alla, på statussidan och i e-postmeddelandena som prenumeranterna får. De förblir så efter att det har tagit slut, eftersom dess länk fortsätter att fungera och dess statussidor listar det bland de avslutade meddelandena så långt deras historik sträcker sig. Flytta ett meddelande till en senare tid så blir dess bilder privata igen fram till dess.
 
-Om meddelanden visas över huvud taget anges på kortet **Vad din statussida visar** under **Avancerade inställningar**: **Visa meddelanden** (`showAnnouncementsOnStatusPage`, standard true) och, under den, **Visa de senaste … dagarna** (`showAnnouncementHistoryInDays`, standard 14). Med **Visa meddelanden** av avvisar meddelandeslutpunkten begäran helt.
+Om meddelanden visas över huvud taget anges på kortet **Vad din statussida visar** under **Inställningar**: **Visa meddelanden** (`showAnnouncementsOnStatusPage`, standard true) och, under den, **Visa de senaste … dagarna** (`showAnnouncementHistoryInDays`, standard 14). Med **Visa meddelanden** av avvisar meddelandeslutpunkten begäran helt.
 
 ## Meddelandemallar
 

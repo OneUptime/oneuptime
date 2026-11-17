@@ -1026,7 +1026,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
                     >
                       {resourceDisplay.name}
                       {resourceDisplay.typeLabel && (
-                        <span className="ml-2 text-xs font-normal text-gray-400">
+                        <span className="ml-2 text-xs font-normal text-gray-500">
                           {translator.translateText(resourceDisplay.typeLabel)}
                         </span>
                       )}
@@ -1067,7 +1067,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
                     <span className="text-2xl font-bold text-gray-900">
                       {row.total.toLocaleString(getReaderNumberLocale())}
                     </span>
-                    <span className="mb-1 text-xs text-gray-400">
+                    <span className="mb-1 text-xs text-gray-500">
                       {translator.translatePlural(
                         { one: "log", other: "logs" },
                         row.total,
@@ -1162,7 +1162,7 @@ const StatCard: FunctionComponent<StatCardProps> = (
       <p className={`mt-2 text-3xl font-bold ${tone.valueText}`}>
         {props.value.toLocaleString(getReaderNumberLocale())}
       </p>
-      <p className="mt-1 text-xs text-gray-400">{props.subtext}</p>
+      <p className="mt-1 text-xs text-gray-500">{props.subtext}</p>
     </div>
   );
 };

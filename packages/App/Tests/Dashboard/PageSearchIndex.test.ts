@@ -425,9 +425,10 @@ describe("buildPageSearchCommandDescriptors", () => {
   test("a section that repeats the page's or the area's name is left out of the breadcrumb", () => {
     const descriptors: Array<PageSearchCommandDescriptor> = build();
 
-    // "Danger Zone" in the Danger Zone section.
+    // "Audit Logs" in the Audit Logs section.
     expect(
-      findPage(descriptors, PageMap.SETTINGS_DANGERZONE)?.breadcrumb,
+      findPage(descriptors, PageMap.SETTINGS_AUDIT_LOGS, "Audit Logs")
+        ?.breadcrumb,
     ).toEqual(["Project Settings"]);
     // "All Monitors" in the Monitors section of Monitors.
     expect(findPage(descriptors, PageMap.MONITORS)?.breadcrumb).toEqual([
@@ -517,7 +518,31 @@ describe("buildPageSearchCommandDescriptors", () => {
       }),
     ).toBe(false);
     // The page is still offered: it says why the button is locked.
-    expect(findPage(descriptors, PageMap.SETTINGS_DANGERZONE)).toBeDefined();
+    expect(findPage(descriptors, PageMap.SETTINGS_DANGERZONE)).toMatchObject({
+      title: "Delete Project",
+      breadcrumb: ["Project Settings", "Danger Zone"],
+    });
+  });
+
+  /*
+   * The page is named for the action done on it since #9134: to someone who
+   * may do it, the action stands in for the page, so Search does not list
+   * two rows of one name that open one place.
+   */
+  test("an action named as its page stands in for the page's row", () => {
+    const descriptors: Array<PageSearchCommandDescriptor> = build();
+
+    expect(findPage(descriptors, PageMap.SETTINGS_DANGERZONE)).toBeUndefined();
+    expect(
+      descriptors.filter((descriptor: PageSearchCommandDescriptor) => {
+        return descriptor.title === "Delete Project";
+      }),
+    ).toHaveLength(1);
+    expect(
+      descriptors.find((descriptor: PageSearchCommandDescriptor) => {
+        return descriptor.id === "page-action-delete-project";
+      })?.keywords,
+    ).toEqual(expect.arrayContaining(["danger zone", "close project"]));
   });
 
   test("billing pages wait for billing; Monitor Groups for its flag", () => {

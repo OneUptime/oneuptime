@@ -74,7 +74,7 @@ Fügen Sie den gemeinsamen Monitor jeder Seite als Ressource hinzu (siehe [Statu
 
 ### Nur auf diese Seite beschränkte Vorfälle anzeigen einschalten
 
-Schalten Sie es auf jeder dieser Seiten ein. Es steht in der Karte **Was Ihre Statusseite zeigt** unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen**, unter **Vorfälle anzeigen**, und speichert in dem Moment, in dem Sie es umlegen. Ab dann erreicht nichts mehr eine Standortseite, solange niemand sie wählt.
+Schalten Sie es auf jeder dieser Seiten ein. Es steht in der Karte **Was Ihre Statusseite zeigt** unter **Statusseiten → Ihre Seite → Erweitert → Einstellungen**, unter **Vorfälle anzeigen**, und speichert in dem Moment, in dem Sie es umlegen. Ab dann erreicht nichts mehr eine Standortseite, solange niemand sie wählt.
 
 ### Die Abonnenten jeder Zielgruppe hinzufügen
 

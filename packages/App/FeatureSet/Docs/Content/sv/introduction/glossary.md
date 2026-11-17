@@ -302,6 +302,12 @@ Vägen som en förfrågan tar genom dina tjänster, steg för steg. Varje steg �
 
 Se [Spårutforskare](/docs/telemetry/traces-explorer).
 
+### Span
+
+Ett steg i en begäran: begäran som en tjänst besvarar, ett anrop den gör till en annan tjänst eller en databasfråga, med när det startade, hur lång tid det tog och om det misslyckades. Spans ligger inuti det span som startade dem, och spansen för en begäran utgör dess spår.
+
+Se [Spårutforskare](/docs/telemetry/traces-explorer#spår-och-spans).
+
 ### Profiler
 
 Hur din applikation använder CPU-tid och minne, funktion för funktion, skickat av en profilerare som skickar till OneUptimes Pyroscope-kompatibla API.

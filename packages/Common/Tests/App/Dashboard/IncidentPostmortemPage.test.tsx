@@ -1645,9 +1645,9 @@ describe("nothing written yet", () => {
     ).toBeNull();
 
     /*
-     * A column of full-width buttons on a phone, a row from sm up: the
-     * buttons' own left margin (a dialog footer's) is cleared, so the gap
-     * alone spaces them.
+     * A column of full-width buttons on a phone, a row from sm up: the gap
+     * alone spaces them, and each action's box stretches its button on a
+     * phone (a Button has no width of its own, #9128).
      */
     const actions: HTMLElement = within(empty).getByTestId(
       "postmortem-empty-state-actions",
@@ -1655,6 +1655,13 @@ describe("nothing written yet", () => {
 
     expect(actions.className).toContain("flex-col");
     expect(actions.className).toContain("sm:flex-row");
-    expect(actions.className).toContain("[&>div>button]:md:ml-0");
+    expect(actions.className).toContain("gap-3");
+    for (const box of Array.from(actions.children)) {
+      expect(box).toHaveClass(
+        "w-full",
+        "sm:w-auto",
+        "max-sm:[&_button]:w-full",
+      );
+    }
   });
 });

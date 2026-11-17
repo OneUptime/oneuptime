@@ -74,7 +74,7 @@ Lägg till den delade monitorn på varje sida som en resurs (se [Statussidans re
 
 ### Slå på Visa bara incidenter som är begränsade till den här sidan
 
-Slå på den på var och en av de sidorna. Den finns på kortet **Vad din statussida visar** under **Statussidor → din sida → Avancerad → Avancerade inställningar**, under **Visa incidenter**, och sparas i samma ögonblick som du slår om den. Därefter når ingenting en platssida om inte någon väljer den.
+Slå på den på var och en av de sidorna. Den finns på kortet **Vad din statussida visar** under **Statussidor → din sida → Avancerad → Inställningar**, under **Visa incidenter**, och sparas i samma ögonblick som du slår om den. Därefter når ingenting en platssida om inte någon väljer den.
 
 ### Lägg till varje målgrupps prenumeranter
 

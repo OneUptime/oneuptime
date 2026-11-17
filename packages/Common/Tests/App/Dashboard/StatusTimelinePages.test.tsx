@@ -304,6 +304,7 @@ import {
   forgetStatusTimelineView,
   showStatusTimelinesAsTable,
 } from "../../Helpers/StatusTimelineViewChoice";
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 const NOW: Date = new Date("2026-10-14T12:00:00.000Z");
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
@@ -964,9 +965,12 @@ describe.each(DELETABLE_PAGES)(
       expect(inTable[2]!.dialog).toContain("Acknowledged");
 
       if (pageCase.modelType === MonitorStatusTimeline) {
-        // The oldest event while it covers part of the last 90 days.
+        /*
+         * The oldest event while it covers part of the last 90 days, worded
+         * as the page words it: "90 days" held together (#8811).
+         */
         expect(inTable[0]!.lockedBecause).toBe(
-          OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE,
+          withDurationWordsHeld(OLDEST_STATUS_EVENT_IN_KEPT_HISTORY_MESSAGE),
         );
       }
 

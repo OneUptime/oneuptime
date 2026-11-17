@@ -42,7 +42,7 @@ flowchart TB
 :::steps
 ### Open Ingestion Budgets
 
-In the Admin Dashboard, go to **Settings → Telemetry → Ingestion Budgets**. **Telemetry** starts collapsed in the side menu: click it to open it.
+In the Admin Dashboard, go to **Settings → Server → Ingestion Budgets**. **Server** starts collapsed in the side menu: click it to open it.
 
 ### Set the daily budgets
 

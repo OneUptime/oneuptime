@@ -17,6 +17,8 @@ import {
   test,
 } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+// What a page draws holds a duration's figure to its word (#8811).
+import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 
 /*
  * The Kubernetes resource pages, rendered for real with their data fetches
@@ -624,6 +626,15 @@ async function tooltipFor(label: string): Promise<string> {
   return text;
 }
 
+/*
+ * A description as its (i) draws it: the tooltip draws its text through
+ * translateString, which holds each figure to the duration's word after it
+ * ("in the last 15\u00A0minutes", #8811).
+ */
+function drawnDescription(key: string): string {
+  return withDurationWordsHeld(D[key]!);
+}
+
 function infoLabels(): Array<string> {
   return screen
     .queryAllByRole("button", { name: /^About / })
@@ -861,7 +872,7 @@ describe("Kubernetes list pages: each metric header opens the text for that list
       await renderPage(page);
 
       expect(D[key]).toBeTruthy();
-      expect(await tooltipFor(label)).toBe(D[key]);
+      expect(await tooltipFor(label)).toBe(drawnDescription(key));
     },
   );
 
@@ -1049,7 +1060,7 @@ describe("Kubernetes detail pages: each metric-like summary field is explained",
       await renderPage(page);
 
       expect(D[key]).toBeTruthy();
-      expect(await tooltipFor(label)).toBe(D[key]);
+      expect(await tooltipFor(label)).toBe(drawnDescription(key));
     },
   );
 
@@ -1129,10 +1140,10 @@ describe("Kubernetes detail pages: each metric-like summary field is explained",
     await renderPage("VPADetail");
 
     expect(await tooltipFor("Recommendation (app)")).toBe(
-      D["vpaRecommendation"],
+      drawnDescription("vpaRecommendation"),
     );
     expect(await tooltipFor("Recommendation (sidecar)")).toBe(
-      D["vpaRecommendation"],
+      drawnDescription("vpaRecommendation"),
     );
   });
 
@@ -1145,7 +1156,7 @@ describe("Kubernetes detail pages: each metric-like summary field is explained",
     expect(screen.getByTestId("network-throughput-chart")).toBeInTheDocument();
     expect(screen.getByText("Network Throughput")).toBeInTheDocument();
     expect(await tooltipFor("Network Throughput")).toBe(
-      D["nodeNetworkThroughput"],
+      drawnDescription("nodeNetworkThroughput"),
     );
 
     const info: HTMLElement = screen.getByRole("button", {
@@ -1161,11 +1172,17 @@ describe("Kubernetes detail pages: each metric-like summary field is explained",
     fireEvent.click(screen.getByRole("tab", { name: "Containers" }));
     await settle();
 
-    expect(await tooltipFor("State")).toBe(D["containerState"]);
-    expect(await tooltipFor("Ready")).toBe(D["containerReady"]);
-    expect(await tooltipFor("Requests")).toBe(D["containerRequests"]);
-    expect(await tooltipFor("Limits")).toBe(D["containerLimits"]);
-    expect(await tooltipFor("Restarts")).toBe(D["containerRestarts"]);
+    expect(await tooltipFor("State")).toBe(drawnDescription("containerState"));
+    expect(await tooltipFor("Ready")).toBe(drawnDescription("containerReady"));
+    expect(await tooltipFor("Requests")).toBe(
+      drawnDescription("containerRequests"),
+    );
+    expect(await tooltipFor("Limits")).toBe(
+      drawnDescription("containerLimits"),
+    );
+    expect(await tooltipFor("Restarts")).toBe(
+      drawnDescription("containerRestarts"),
+    );
   });
 
   /*

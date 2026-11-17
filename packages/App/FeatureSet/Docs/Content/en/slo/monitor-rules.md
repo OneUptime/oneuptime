@@ -46,7 +46,7 @@ The **Monitors** page shows, for each monitor:
 
 | Column | What it shows |
 | --- | --- |
-| **Current Status** | The monitor's status now, or **Archived**, **Disabled**, **Probes Not Enabled**, **Probes Disconnected** or **Unknown** when it is not being checked or has not reported yet. |
+| **Current Status** | The monitor's status now, or **Archived**, **Disabled**, **No Probe Enabled**, **Probes Disconnected** or **Unknown** when it is not being checked or has not reported yet. |
 | **Source** | **Rule** if one of the SLO's monitor rules attached it, **Manual** if someone attached it by hand. |
 | **Labels** | The monitor's labels. |
 

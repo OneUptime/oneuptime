@@ -9,13 +9,13 @@ import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
  * the buttons beside it.
  *
  * It keeps a transparent border so it stays the height of the Small row
- * button beside it - that button's label is text-base below md and text-sm
- * above, so the vertical padding steps down at md to keep the two level.
+ * button beside it: that button's words are text-sm at every width
+ * (#9128), so the same vertical padding keeps the two level everywhere.
  * Locked, it fades with the not-allowed cursor and gives no hover, as a
  * locked Button does (getHandDrawnButtonStateClassName).
  */
 export const MORE_MENU_BARE_TRIGGER_CLASS_NAME: string =
-  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-transparent bg-transparent py-1.5 md:py-1 text-gray-500 transition-colors duration-150 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-transparent bg-transparent py-1 text-gray-500 transition-colors duration-150 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 // Under the pointer, while it can be pressed: a grey wash.
 export const MORE_MENU_BARE_TRIGGER_HOVER_CLASS_NAME: string =

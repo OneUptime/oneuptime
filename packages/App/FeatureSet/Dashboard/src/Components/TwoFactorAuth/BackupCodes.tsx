@@ -652,14 +652,14 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
                 title={hasCopiedCodes ? "Copied" : "Copy codes"}
                 buttonStyle={ButtonStyleType.OUTLINE}
                 icon={hasCopiedCodes ? IconProp.Check : IconProp.Copy}
-                className={`min-h-10 !ml-0 ${hasCopiedCodes ? "!border-emerald-200 !bg-emerald-50 !text-emerald-700" : ""}`}
+                className={`min-h-10 ${hasCopiedCodes ? "!border-emerald-200 !bg-emerald-50 !text-emerald-700" : ""}`}
                 onClick={copyCodes}
               />
               <Button
                 title="Download as .txt"
                 buttonStyle={ButtonStyleType.OUTLINE}
                 icon={IconProp.Download}
-                className="min-h-10 !ml-0"
+                className="min-h-10"
                 onClick={downloadCodes}
               />
             </div>

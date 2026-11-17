@@ -5,6 +5,7 @@ import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { FrameBox, boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * A Docker and a Podman host's pages, in a browser, against the offline
@@ -362,8 +363,12 @@ test.describe("a host in trouble: the Overview says what needs attention", () =>
       ISOLATE_MARKS,
       "",
     );
+    // Its fifteen is held to دقیقه (minutes), as the translator holds it (#8770).
     expect(text).toContain(
-      PERSIAN["{{count}} restarts in 15 minutes"]!.replace("{{count}}", "۶"),
+      PERSIAN["{{count}} restarts in 15 minutes"]!.replace(
+        "{{count}}",
+        "۶",
+      ).replace("۱۵ دقیقه", withUnit("۱۵", "دقیقه")),
     );
 
     await expectNoSidewaysScroll(page);

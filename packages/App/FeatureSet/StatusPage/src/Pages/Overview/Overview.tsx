@@ -2414,7 +2414,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
               searchResult.matchedResourceCount === 0 &&
               searchResult.visibleGroupIds.size === 0 ? (
                 <EmptyState
-                  paddingClassName="py-10 sm:py-14"
                   id="search-empty-state"
                   icon={IconProp.Search}
                   title={t("search.noResultsTitle", {
@@ -2538,7 +2537,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
                * what to do in the Dashboard's preview, and only there.
                */
               <EmptyState
-                paddingClassName="py-12 sm:py-16"
                 id="overview-empty-state"
                 icon={IconProp.Squares}
                 title={t("overview.noResourcesTitle")}

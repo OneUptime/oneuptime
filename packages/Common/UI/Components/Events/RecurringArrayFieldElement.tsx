@@ -45,7 +45,7 @@ const RecurringArrayFieldElement: FunctionComponent<ComponentProps> = (
         recurrings.map((recurring: Recurring, index: number) => {
           return (
             <div key={index} className="flex">
-              <div className="">
+              <div>
                 <RecurringFieldElement
                   initialValue={recurring}
                   onChange={(recurring: Recurring) => {
@@ -72,8 +72,7 @@ const RecurringArrayFieldElement: FunctionComponent<ComponentProps> = (
           );
         })}
 
-      {/* md:-ml-3 takes back the Button's own md:ml-3. */}
-      <div className="flex space-x-3 mt-3 md:-ml-3">
+      <div className="flex gap-3 mt-3">
         <Button
           dataTestId={`add-recurring`}
           title="Add"

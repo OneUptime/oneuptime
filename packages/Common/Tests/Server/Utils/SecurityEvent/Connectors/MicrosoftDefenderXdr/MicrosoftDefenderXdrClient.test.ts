@@ -1,4 +1,5 @@
 import { describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import MicrosoftDefenderXdrClient, {
   MICROSOFT_DEFENDER_XDR_DEFAULT_PAGE_SIZE,
   MicrosoftDefenderXdrAlertCount,
@@ -588,7 +589,7 @@ describe("MicrosoftDefenderXdrClient", () => {
     ])(
       "says a Retry-After of %j as %j",
       async (retryAfter: string, said: string) => {
-        const now: jest.SpiedFunction<typeof Date.now> = jest
+        const now: SpyInstance<typeof Date.now> = jest
           .spyOn(Date, "now")
           .mockReturnValue(Date.UTC(2026, 10, 16, 10, 0, 0));
 

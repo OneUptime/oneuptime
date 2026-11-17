@@ -96,7 +96,7 @@ L'archivage est l'alternative réversible à la suppression : choisissez-le d'ab
 
 ## Supprimer un tableau de bord
 
-Ouvrez la page **Supprimer** du tableau de bord. La suppression est irréversible : le tableau de bord, ses widgets et ses variables, et tous les domaines personnalisés qui y sont attachés sont supprimés. Votre télémétrie n'est pas touchée.
+Ouvrez la page **Supprimer le tableau de bord** du tableau de bord. La suppression est irréversible : le tableau de bord, ses widgets et ses variables, et tous les domaines personnalisés qui y sont attachés sont supprimés. Votre télémétrie n'est pas touchée.
 
 Si le tableau de bord est public sur un domaine personnalisé, l'adresse cesse de répondre dès que vous le supprimez. Pour continuer à servir l'adresse, ajoutez le domaine à un autre tableau de bord après avoir supprimé celui-ci : un domaine appartient à un seul tableau de bord à la fois.
 
