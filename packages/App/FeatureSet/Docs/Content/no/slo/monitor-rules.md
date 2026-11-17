@@ -46,7 +46,7 @@ Siden **Monitorer** viser for hver monitor:
 
 | Kolonne | Hva den viser |
 | --- | --- |
-| **Gjeldende status** | Gjeldende status for monitoren, eller **Arkivert**, **Deaktivert**, **Sonder ikke aktivert**, **Sonder frakoblet** eller **Ukjent** når den ikke sjekkes eller ennå ikke har rapportert noe. |
+| **Gjeldende status** | Gjeldende status for monitoren, eller **Arkivert**, **Deaktivert**, **Ingen sonde aktivert**, **Sonder frakoblet** eller **Ukjent** når den ikke sjekkes eller ennå ikke har rapportert noe. |
 | **Kilde** | **Regel** hvis en av monitorreglene til SLO-et knyttet den til, **Manuell** hvis noen knyttet den til for hånd. |
 | **Etiketter** | Etikettene til monitoren. |
 

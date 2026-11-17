@@ -56453,5 +56453,9 @@
   "The first check runs within {{count}} hours.": "Det første tjek køres inden for {{count}} timer.",
   "The first check runs within {{count}} hours._one": "Det første tjek køres inden for {{count}} time.",
   "The first check runs within {{count}} minutes.": "Det første tjek køres inden for {{count}} minutter.",
-  "The first check runs within {{count}} minutes._one": "Det første tjek køres inden for {{count}} minut."
+  "The first check runs within {{count}} minutes._one": "Det første tjek køres inden for {{count}} minut.",
+  "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.": "Monitorer, som ingen aktiveret sonde tjekker: Deres sonder er alle deaktiveret, eller de har ingen. Aktivér en sonde på monitoren, eller tilføj en, for at starte tjekkene igen.",
+  "Monitors with No Probe Enabled": "Monitorer uden aktiveret sonde",
+  "No Probe Enabled": "Ingen sonde aktiveret",
+  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "Ingen monitorer uden en aktiveret sonde. Hver monitor, som sonder tjekker, har mindst én aktiveret."
 }

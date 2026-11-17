@@ -131,6 +131,7 @@ import EnterpriseLicense from "Common/Models/DatabaseModels/EnterpriseLicense";
 import EnterpriseLicenseInstance from "Common/Models/DatabaseModels/EnterpriseLicenseInstance";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import OneUptimeDate from "Common/Types/Date";
+import { withPlainSpaces } from "Common/Types/NoBreakSpaces";
 import EnterpriseLicenseUsageSnapshot from "Common/Types/EnterpriseLicense/EnterpriseLicenseUsageSnapshot";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -327,11 +328,17 @@ describe("an enterprise license, edited on its page (issue #6766)", () => {
     // Two weeks out: inside the 30-day reminder window.
     const soon: Date = new Date("2026-10-01T12:00:00.000Z");
     expect(statusFor(new Date("2027-05-15T00:00:00.000Z"))).toBe("Active");
-    expect(statusFor(soon)).toMatch(/^Expires in \d+ days$/);
-    expect(screen.queryByText(statusFor(soon))).toBeNull();
+    expect(statusFor(soon)).toMatch(/^Expires in \d+\u00A0days$/);
+    /*
+     * The badge holds the number to its word; Testing Library reads that
+     * no-break space as a plain one.
+     */
+    expect(screen.queryByText(withPlainSpaces(statusFor(soon)))).toBeNull();
 
     await saveLicense({ expiresAt: soon });
 
-    expect(await screen.findByText(statusFor(soon))).toBeInTheDocument();
+    expect(
+      await screen.findByText(withPlainSpaces(statusFor(soon))),
+    ).toBeInTheDocument();
   });
 });

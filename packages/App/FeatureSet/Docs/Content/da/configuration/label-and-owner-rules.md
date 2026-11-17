@@ -25,9 +25,9 @@ Etiketter og ejere er det, du filtrerer og grupperer ressourcer efter, de afgør
 
 ## Hvor du finder reglerne
 
-Hvert produkt med etiketter og ejere har begge slags under sine **Indstillinger** (for hændelser, alarmer, planlagt vedligeholdelse og Datasikkerhed under **Regler**): monitorer, hændelser og hændelsesepisoder, alarmer og alarmepisoder, vedligeholdelseshændelser, statussider, tjenester, værter, Kubernetes-klynger, Docker-værter, Docker Swarm-klynger, Podman-værter, Proxmox-klynger, OpenStack-skyer, VMware vCentre, Ceph-klynger, storage-arrays, databaser, datalagre, tabeller, køer, IoT-flåder, serverless-funktioner, cloud-ressourcer, RUM-applikationer, dashboards, vagtpolitikker, vagtplaner, politikker for indgående opkald, arbejdsgange, runbooks, netværksenheder og SLO'er.
+Hvert produkt med etiketter og ejere har begge slags under sine **Indstillinger** (for monitorer, statussider, hændelser, alarmer, planlagt vedligeholdelse og Datasikkerhed under **Regler**): monitorer, hændelser og hændelsesepisoder, alarmer og alarmepisoder, vedligeholdelseshændelser, statussider, tjenester, værter, Kubernetes-klynger, Docker-værter, Docker Swarm-klynger, Podman-værter, Proxmox-klynger, OpenStack-skyer, VMware vCentre, Ceph-klynger, storage-arrays, databaser, datalagre, tabeller, køer, IoT-flåder, serverless-funktioner, cloud-ressourcer, RUM-applikationer, dashboards, vagtpolitikker, vagtplaner, politikker for indgående opkald, arbejdsgange, runbooks, netværksenheder og SLO'er.
 
-Etiketregler for monitorer ligger for eksempel under **Monitorer → Indstillinger → Etiketregler**, og etiketregler for hændelser under **Hændelser → Regler → Etiketregler**. **Indstillinger** og **Regler** er foldet sammen i sidemenuen fra start: klik på sektionens titel for at åbne den. Siderne for hændelser og alarmer har en fane **Hændelsesregler** (eller **Advarselsregler**) og en fane **Episoderegler**.
+Etiketregler for monitorer ligger for eksempel under **Monitorer → Regler → Etiketregler**, og etiketregler for SLO'er under **SLOs → Indstillinger → Etiketregler**. **Indstillinger** og **Regler** er foldet sammen i sidemenuen fra start: klik på sektionens titel for at åbne den. Siderne for hændelser og alarmer har en fane **Hændelsesregler** (eller **Advarselsregler**) og en fane **Episoderegler**.
 
 ## Opret en regel
 

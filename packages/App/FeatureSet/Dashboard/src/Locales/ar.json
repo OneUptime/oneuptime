@@ -56453,5 +56453,9 @@
   "The first check runs within {{count}} hours.": "يُجرى الفحص الأول خلال {{count}} من الساعات.",
   "The first check runs within {{count}} hours._one": "يُجرى الفحص الأول خلال {{count}} ساعة.",
   "The first check runs within {{count}} minutes.": "يُجرى الفحص الأول خلال {{count}} من الدقائق.",
-  "The first check runs within {{count}} minutes._one": "يُجرى الفحص الأول خلال {{count}} دقيقة."
+  "The first check runs within {{count}} minutes._one": "يُجرى الفحص الأول خلال {{count}} دقيقة.",
+  "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.": "مراقبات لا يفحصها أي مسبار مفعّل: مسابيرها كلها معطّلة، أو ليس لها أي مسبار. فعّل مسبارًا على المراقبة، أو أضف واحدًا، لتبدأ الفحوصات من جديد.",
+  "Monitors with No Probe Enabled": "المراقبات التي ليس لها مسبار مفعّل",
+  "No Probe Enabled": "لا يوجد مسبار مفعّل",
+  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "لا توجد مراقبات بلا مسبار مفعّل. لكل مراقبة تفحصها المسابير مسبار واحد مفعّل على الأقل."
 }

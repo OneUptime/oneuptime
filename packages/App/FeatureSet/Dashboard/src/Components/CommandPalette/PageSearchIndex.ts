@@ -1091,6 +1091,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Squares,
             gate: PageSearchGate.MonitorGroups,
           },
+          // A choice, not a fault: beside the monitors, not under Attention Required (#9126).
+          {
+            page: PageMap.MONITORS_DISABLED,
+            title: "Disabled",
+            icon: IconProp.Pause,
+            keywords: ["disabled monitors", "paused monitors"],
+          },
         ],
       },
       {
@@ -1102,21 +1109,26 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Alert,
             keywords: ["down monitors", "offline monitors", "failing"],
           },
-          {
-            page: PageMap.MONITORS_DISABLED,
-            title: "Disabled",
-            icon: IconProp.Error,
-            keywords: ["disabled monitors", "paused monitors"],
-          },
+          /*
+           * Named as the monitor's own badge names them (#9126), and still
+           * found by the menu's old names.
+           */
           {
             page: PageMap.MONITORS_PROBE_DISCONNECTED,
-            title: "Probe Disconnected",
+            title: "Probes Disconnected",
             icon: IconProp.NoSignal,
+            keywords: ["probe disconnected", "offline probes"],
           },
           {
             page: PageMap.MONITORS_PROBE_DISABLED,
-            title: "Probe Disabled",
+            title: "No Probe Enabled",
             icon: IconProp.EyeSlash,
+            keywords: [
+              "probe disabled",
+              "probes not enabled",
+              "not checked by any probe",
+              "unmonitored monitors",
+            ],
           },
         ],
       },
@@ -1125,6 +1137,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         microsoftTeams: PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
         mattermost: PageMap.MONITORS_WORKSPACE_CONNECTION_MATTERMOST,
       }),
+      {
+        title: "Rules",
+        pages: [
+          ownerRules(PageMap.MONITORS_SETTINGS_OWNER_RULES),
+          labelRules(PageMap.MONITORS_SETTINGS_LABEL_RULES),
+        ],
+      },
       {
         title: "Settings",
         pages: [
@@ -1163,8 +1182,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Template,
             keywords: ["monitor templates"],
           },
-          ownerRules(PageMap.MONITORS_SETTINGS_OWNER_RULES),
-          labelRules(PageMap.MONITORS_SETTINGS_LABEL_RULES),
           {
             page: PageMap.MONITORS_SETTINGS_PROBES,
             title: "Probes",
@@ -1755,17 +1772,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "public status",
             ],
           },
-        ],
-      },
-      {
-        title: "More",
-        pages: [
           {
             page: PageMap.STATUS_PAGE_ANNOUNCEMENTS,
             title: "Announcements",
             icon: IconProp.Announcement,
             keywords: ["status page notice", "post an update"],
           },
+        ],
+      },
+      {
+        title: "Rules",
+        pages: [
+          ownerRules(PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES),
+          labelRules(PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES),
         ],
       },
       {
@@ -1783,8 +1802,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["subscriber emails", "subscriber notification"],
           },
           customFields(PageMap.STATUS_PAGES_SETTINGS_CUSTOM_FIELDS),
-          ownerRules(PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES),
-          labelRules(PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES),
         ],
       },
       { title: "Advanced", pages: [archived(PageMap.STATUS_PAGES_ARCHIVED)] },

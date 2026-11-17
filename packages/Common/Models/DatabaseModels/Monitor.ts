@@ -165,7 +165,7 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
  */
 @Index(["monitorType", "_id"])
 /*
- * The Monitors menu's Probe Disconnected, Probe Disabled and Disabled
+ * The Monitors menu's Probes Disconnected, No Probe Enabled and Disabled
  * counts (Pages/Monitor/SideMenu.tsx), counted again on every change to a
  * monitor, and their pages: each holds only the monitors it counts.
  */
@@ -195,7 +195,7 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
    * A monitor changes on its own: a check fails and its status moves, every
    * probe watching it disconnects, a maintenance event turns its monitoring
    * off. The Monitors menu counts what needs attention (Not Operational,
-   * Disabled, Probe Disconnected, Probe Disabled) beside the lists that show
+   * Disabled, Probes Disconnected, No Probe Enabled) beside the lists that show
    * them, and both follow these announcements at once (UseLiveCount,
    * UseLiveRows) instead of waiting for a reload (#6918).
    *

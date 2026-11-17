@@ -55,7 +55,7 @@ import type { SpyInstance } from "jest-mock";
  * query_monitors said the same: "is everything up?" answered yes for a
  * monitor no check stood behind. The Monitors list now says why nothing
  * has checked it (MonitorRowStatus: Waiting for data, No results yet,
- * Paused, Probes Not Enabled, Probes Disconnected), and the assistant says
+ * Paused, No Probe Enabled, Probes Disconnected), and the assistant says
  * what the list says:
  *
  *   - its row carries notCheckedYet, in those words, beside the status it
@@ -259,7 +259,7 @@ describe("the words query_monitors says a monitor nothing has checked yet in", (
         "No results yet",
         "Paused",
         "Probes Disconnected",
-        "Probes Not Enabled",
+        "No Probe Enabled",
         "Waiting for data",
       ].sort(),
     );
@@ -282,7 +282,7 @@ describe("the words query_monitors says a monitor nothing has checked yet in", (
       { pausedByMaintenance: true, createdAt: ago(2 * HOUR) },
       "Paused",
     ],
-    ["no probe enabled", { noProbeEnabled: true }, "Probes Not Enabled"],
+    ["no probe enabled", { noProbeEnabled: true }, "No Probe Enabled"],
     [
       "every probe disconnected",
       { probesDisconnected: true },
@@ -416,7 +416,7 @@ describe("query_monitors lists a monitor nothing has checked yet as such", () =>
     expect(tableStatuses(result)).toEqual({
       "Payments API": "Waiting for data",
       Billing: "No results yet",
-      Edge: "Probes Not Enabled",
+      Edge: "No Probe Enabled",
       "Checkout API": "Operational",
       "Backup Job": MONITORING_OFF_STATUS_TEXT,
     });

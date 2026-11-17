@@ -148,7 +148,7 @@ Listen er en rækkefølge. Hvor monitorer vises sammen, vinder den status, der s
 
 | Hvor | Hvad statussen afgør |
 | --- | --- |
-| Listen **Monitorer** | Hver monitors aktuelle status. **Ikke operationel** viser monitorerne i enhver status undtagen den driftsklare, med et rødt tal ved siden af. Monitorer med overvågning slået fra er udeladt: intet tjekker dem, og **Deaktiveret** viser dem. |
+| Listen **Monitorer** | Hver monitors aktuelle status. **Ikke operationel** viser monitorerne i enhver status undtagen den driftsklare, med et rødt tal ved siden af. Monitorer med overvågning slået fra er udeladt: intet tjekker dem, og **Deaktiveret** viser dem. **Deaktiveret** ligger under **Alle monitorer** i sidemenuen med et gråt tal: at slå overvågning fra er et valg, ikke en fejl. Ved siden af **Ikke operationel**, under **Opmærksomhed kræves**, viser **Sonder afbrudt** de monitorer, hvis aktiverede sonder alle er afbrudt, og **Ingen sonde aktiveret** de monitorer, som ingen aktiveret sonde tjekker: deres sonder er alle deaktiveret, eller de har ingen. |
 | Statussider | Farven på hver række og dens oppetid: kun statusserne i sidens **Tæller som nedetid** tæller imod den. En ny statusside starter med alle statusser undtagen den driftsklare. Se [Vælg, hvad siden viser](/docs/status-pages/index#at-vælge-hvad-der-vises-på-siden). |
 | Monitorgrupper | Gruppens status: den værste blandt dens monitorer. Se [Monitorgrupper](/docs/monitor/monitor-groups). |
 | SLO'er | Den nedetid, et SLO tæller, ud fra dets egen liste over statusser. Se [Hvilke statusser tæller som nedetid](/docs/slo/introduction#hvilke-statusser-der-tæller-som-nedetid). |

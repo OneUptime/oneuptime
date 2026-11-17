@@ -56453,5 +56453,9 @@
   "The first check runs within {{count}} hours.": "La première vérification a lieu d'ici {{count}} heures.",
   "The first check runs within {{count}} hours._one": "La première vérification a lieu d'ici {{count}} heure.",
   "The first check runs within {{count}} minutes.": "La première vérification a lieu d'ici {{count}} minutes.",
-  "The first check runs within {{count}} minutes._one": "La première vérification a lieu d'ici {{count}} minute."
+  "The first check runs within {{count}} minutes._one": "La première vérification a lieu d'ici {{count}} minute.",
+  "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.": "Moniteurs qu'aucune sonde activée ne vérifie : leurs sondes sont toutes désactivées, ou ils n'en ont aucune. Activez une sonde sur le moniteur, ou ajoutez-en une, pour relancer les vérifications.",
+  "Monitors with No Probe Enabled": "Moniteurs sans sonde activée",
+  "No Probe Enabled": "Aucune sonde activée",
+  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "Aucun moniteur sans sonde activée. Chaque moniteur vérifié par des sondes en a au moins une activée."
 }

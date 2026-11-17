@@ -2193,7 +2193,7 @@ describe("where a monitor's status counts", () => {
     const attention: string = between(
       MONITORS_MENU_SOURCE,
       'title: "Not Operational",',
-      'title: "Disabled",',
+      'title: "Probes Disconnected",',
     );
 
     expect(sectionByTitle(monitors, "Attention Required").items).toContain(
@@ -2211,7 +2211,7 @@ describe("where a monitor's status counts", () => {
     );
   });
 
-  it("leaves monitors with monitoring turned off out of Not Operational, for Disabled to list (#6400)", () => {
+  it("leaves monitors with monitoring turned off out of Not Operational, for Disabled to list, in grey beside All Monitors (#6400, #9126)", () => {
     const monitors: Array<MenuSection> = menuSections(MONITORS_MENU_SOURCE, {
       "...(workspaceSection ? [workspaceSection] : [])": workspaceSection(),
       "addDeveloperSideMenuSection(sections": developerSection(),
@@ -2219,7 +2219,7 @@ describe("where a monitor's status counts", () => {
     const disabled: string = between(
       MONITORS_MENU_SOURCE,
       'title: "Disabled",',
-      'title: "Probe Disconnected",',
+      'title: "Attention Required",',
     );
 
     expect(NotOperationalMonitorQuery.getQuery()).toEqual({
@@ -2227,12 +2227,33 @@ describe("where a monitor's status counts", () => {
       disableActiveMonitoring: false,
       currentMonitorStatus: { isOperationalState: false },
     });
-    expect(sectionByTitle(monitors, "Attention Required").items).toContain(
+    expect(sectionByTitle(monitors, "Monitors").items).toContain("Disabled");
+    expect(sectionByTitle(monitors, "Attention Required").items).not.toContain(
       "Disabled",
     );
     expect(disabled).toContain("disableActiveMonitoring: true,");
+    expect(disabled).toContain("badgeType: BadgeType.NEUTRAL,");
     expect(rows[0]).toContain(
       "Monitors with monitoring turned off are left out: nothing checks them, and **Disabled** lists them.",
+    );
+    expect(rows[0]).toContain(
+      "**Disabled** sits under **All Monitors** in the side menu, with a grey count: turning monitoring off is a choice, not a fault.",
+    );
+  });
+
+  it("names the monitors no probe checks as the menu does (#9126)", () => {
+    const monitors: Array<MenuSection> = menuSections(MONITORS_MENU_SOURCE, {
+      "...(workspaceSection ? [workspaceSection] : [])": workspaceSection(),
+      "addDeveloperSideMenuSection(sections": developerSection(),
+    });
+
+    expect(sectionByTitle(monitors, "Attention Required").items).toEqual([
+      "Not Operational",
+      "Probes Disconnected",
+      "No Probe Enabled",
+    ]);
+    expect(rows[0]).toContain(
+      "Beside **Not Operational**, under **Attention Required**, **Probes Disconnected** lists the monitors whose enabled probes are all disconnected, and **No Probe Enabled** the monitors no enabled probe checks: their probes are all disabled, or they have none.",
     );
   });
 

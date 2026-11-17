@@ -1119,7 +1119,7 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
    * or toggling isEnabled changes - Monitor.isNoProbeEnabledOnThisMonitor and
    * isAllProbesDisconnectedFromThisMonitor. Without these hooks, deleting the
    * last probe left the monitor claiming it was still being watched: no
-   * "Probes Not Enabled" banner and no owner notification, even though nothing
+   * "No Probe Enabled" banner and no owner notification, even though nothing
    * was monitoring it any more.
    *
    * The monitorIds have to be read before the delete, because after it the

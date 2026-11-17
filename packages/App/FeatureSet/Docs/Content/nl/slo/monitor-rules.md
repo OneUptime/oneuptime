@@ -46,7 +46,7 @@ De pagina **Monitoren** toont voor elke monitor:
 
 | Kolom | Wat hij toont |
 | --- | --- |
-| **Huidige status** | De huidige status van de monitor, of **Gearchiveerd**, **Uitgeschakeld**, **Sondes niet ingeschakeld**, **Sondes losgekoppeld** of **Onbekend** als hij niet wordt gecontroleerd of nog niets heeft gemeld. |
+| **Huidige status** | De huidige status van de monitor, of **Gearchiveerd**, **Uitgeschakeld**, **Geen sonde ingeschakeld**, **Sondes losgekoppeld** of **Onbekend** als hij niet wordt gecontroleerd of nog niets heeft gemeld. |
 | **Bron** | **Regel** als een van de monitorregels van de SLO hem heeft gekoppeld, **Handmatig** als iemand hem met de hand heeft gekoppeld. |
 | **Labels** | De labels van de monitor. |
 

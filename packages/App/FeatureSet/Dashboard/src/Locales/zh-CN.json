@@ -56453,5 +56453,9 @@
   "The first check runs within {{count}} hours.": "首次检查将在 {{count}} 小时内运行。",
   "The first check runs within {{count}} hours._one": "首次检查将在 {{count}} 小时内运行。",
   "The first check runs within {{count}} minutes.": "首次检查将在 {{count}} 分钟内运行。",
-  "The first check runs within {{count}} minutes._one": "首次检查将在 {{count}} 分钟内运行。"
+  "The first check runs within {{count}} minutes._one": "首次检查将在 {{count}} 分钟内运行。",
+  "Monitors that no enabled probe checks: their probes are all disabled, or they have none. Enable a probe on the monitor, or add one, to start the checks again.": "没有任何已启用的探测器在检查这些监视器：它们的探测器都已禁用，或者根本没有探测器。在监视器上启用一个探测器，或添加一个，即可重新开始检查。",
+  "Monitors with No Probe Enabled": "没有已启用探测器的监视器",
+  "No Probe Enabled": "没有已启用的探测器",
+  "No monitors without an enabled probe. Every monitor that probes check has at least one enabled.": "没有缺少已启用探测器的监视器。每个由探测器检查的监视器都至少启用了一个探测器。"
 }
