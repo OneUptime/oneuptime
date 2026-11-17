@@ -1240,6 +1240,42 @@ describe("the page", () => {
     ).toHaveTextContent(SERVER_SETUP_COPY.allDone);
   });
 
+  /*
+   * How far along a group is, in the digits its language writes, as the
+   * page's dates are: "0 of 3" read in Latin digits in Persian.
+   */
+  test("in Persian, how far along each group is in Persian digits", async () => {
+    const checklist: HTMLElement = await renderIn("fa", answerFor());
+    const progress: string =
+      within(checklist).getByTestId("server-setup-required-progress")
+        .textContent || "";
+
+    expect(progress).toContain("۰");
+    expect(progress).toContain("۳");
+    expect(progress).not.toMatch(/[0-9]/);
+  });
+
+  test("an action is never wider than its row: its words wrap", async () => {
+    const checklist: HTMLElement = await renderIn("en", answerFor());
+
+    for (const testId of [
+      "server-setup-backups-guide-0",
+      "server-setup-backups-guide-1",
+      "server-setup-email-route",
+      "server-setup-backups-choose",
+    ]) {
+      const classes: Array<string> = within(checklist)
+        .getByTestId(testId)
+        .className.split(/\s+/);
+
+      expect({ testId, classes }).toEqual({
+        testId,
+        classes: expect.arrayContaining(["max-w-full"]),
+      });
+      expect(classes).not.toContain("flex-none");
+    }
+  });
+
   test("in German, the rows, the actions and the checked lines", async () => {
     const de: Locale = readLocale("de");
 

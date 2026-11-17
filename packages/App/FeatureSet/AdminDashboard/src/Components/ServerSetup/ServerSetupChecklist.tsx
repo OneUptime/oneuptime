@@ -236,9 +236,10 @@ export interface ServerSetupAction {
  * underlined, as tall as a finger needs (Docs/ux/README.md, "A finger can
  * hit it"), on a line with the main fix (#7030). The choices used to be
  * indigo links padded as big as a button, louder than the fix beside them.
+ * Never wider than its row: words too long for a phone's line wrap.
  */
 export const SERVER_SETUP_QUIET_ACTION_CLASS_NAME: string =
-  "inline-flex flex-none items-center text-sm font-medium text-gray-600 underline decoration-gray-300 underline-offset-2 hover:text-gray-900 [@media(pointer:coarse)]:min-h-11";
+  "inline-flex max-w-full items-center text-start text-sm font-medium text-gray-600 underline decoration-gray-300 underline-offset-2 hover:text-gray-900 [@media(pointer:coarse)]:min-h-11";
 
 /*
  * How a guide's address is opened: a docs page this server serves itself
@@ -816,8 +817,12 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
     const testId: string = isOneOfItsKind
       ? `server-setup-${row.id}-${action.kind}`
       : `server-setup-${row.id}-${action.kind}-${index}`;
+    /*
+     * Never wider than its row: on a phone, "How to back up with Docker
+     * Compose" ran 9px past the card's edge. Its words wrap instead.
+     */
     const buttonClassName: string =
-      "inline-flex flex-none items-center rounded-md bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50";
+      "inline-flex max-w-full items-center rounded-md bg-white px-3 py-1.5 text-start text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50";
 
     switch (action.kind) {
       case "test":
@@ -881,7 +886,7 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
               <>
                 <Icon
                   icon={IconProp.ExternalLink}
-                  className="ms-1.5 h-3.5 w-3.5 text-gray-400"
+                  className="ms-1.5 h-3.5 w-3.5 flex-none text-gray-400"
                   data-testid={`${testId}-new-tab`}
                 />
                 <span className="sr-only">
@@ -986,9 +991,13 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
           className="text-xs text-gray-500"
           data-testid={`server-setup-${tier}-progress`}
         >
+          {/*
+           * In the digits the reader's language writes, as its dates are:
+           * Persian's own, where "0 of 3" read in Latin digits.
+           */}
           {translator.translateTemplate(SERVER_SETUP_COPY.progress, {
-            done: done,
-            total: sectionRows.length,
+            done: translator.formatNumber(done),
+            total: translator.formatNumber(sectionRows.length),
           })}
         </span>
       </>
