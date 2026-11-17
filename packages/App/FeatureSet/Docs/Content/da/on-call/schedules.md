@@ -86,7 +86,7 @@ Hver person beholder én farve overalt, så du kan følge personen med et blik: 
 
 ## Når nogen er fraværende
 
-Når nogen tager på ferie, så spring dem over, til de er tilbage. Fold et lag ud på vagtplanens side **Lag**, og klik på **Spring over indtil…** ved siden af deres navn. Det åbner formularen for fravær med dem under **Hvem er fraværende?**, **Næste person i rotationen** under **Hvem dækker?** og **Starter** fra nu: sæt **Slutter** til, hvornår de er tilbage, og gem.
+Når nogen tager på ferie, så spring dem over, til de er tilbage. Fold et lag ud på vagtplanens side **Lag**, og klik på **Spring over indtil…** ved siden af deres navn. Det åbner formularen for fravær med dem under **Hvem er fraværende?**, **Næste person i rotationen** under **Hvem dækker?** og **Starter** fra nu: sæt **Slutter** til, hvornår de er tilbage, og gem. Har personen allerede fravær på det tidspunkt, siger formularen det ved siden af tidspunkterne, mens du vælger dem, med **Rediger den tilsidesættelse** for i stedet at ændre den anden.
 
 Mens de er fraværende:
 
@@ -97,7 +97,7 @@ Mens de er fraværende:
 
 Vælg i stedet nogen under **Hvem dækker?**, så får den person alle deres tilkald fra alle vagtplaner og alle politikker, i stedet for at rotationen tager deres vagter.
 
-Fravær, der tilføjes på denne måde, gælder for alle vagtpolitikker, så det kræver tilladelsen til overrides over hele projektet. Er dit teams rolle begrænset til dets egne politikker eller til nogle etiketter, lægges det i stedet på de politikker i denne vagtplan, du må tilføje overrides på, med én override pr. politik, som står på hver politiks egen side **Brugertilsidesættelser**; er der flere, markerer du dem under **Vagtpolitikker**. **Spring over indtil…** er kun låst og siger hvorfor, hvor du ikke må på nogen af dem. Det står under **Vagt** > **Avanceret** > **Brugertilsidesættelser**, hvor du kan slette det for at få dem tilbage tidligere. For kun at springe nogen over i én politik skal du tilføje overriden på den politiks side **Brugertilsidesættelser** og lade **Hvem dækker?** være, som det er. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
+Fravær, der tilføjes på denne måde, gælder for alle vagtpolitikker, så det kræver tilladelsen til overrides over hele projektet. Er dit teams rolle begrænset til dets egne politikker eller til nogle etiketter, lægges det i stedet på de politikker i denne vagtplan, du må tilføje overrides på, med én override pr. politik, som står på hver politiks egen side **Brugertilsidesættelser**; er der flere, markerer du dem under **Vagtpolitikker**. **Spring over indtil…** er kun låst og siger hvorfor, hvor du ikke må på nogen af dem. Det står under **Vagt** > **Avanceret** > **Brugertilsidesættelser** og blandt vagtplanens brugertilsidesættelser på dens side **Lag**, hvor **Afslut nu** får dem tilbage tidligere. For kun at springe nogen over i én politik skal du tilføje overriden på den politiks side **Brugertilsidesættelser** og lade **Hvem dækker?** være, som det er. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
 
 Via API'et springer en brugeroverride (`/api/on-call-duty-policy-user-override`), der oprettes uden `routeAlertsToUserId`, personen i `overrideUserId` over fra `startsAt` til `endsAt`.
 
@@ -111,6 +111,8 @@ Vagtplaner er ressourcen `/api/on-call-duty-policy-schedule`; deres lag og perso
 - En vagtplan, der oprettes uden dem, har ingen lag, som før; Terraforms ressource for vagtplaner sender dem ikke.
 - Et lag, der oprettes uden `rotation`, overdrager dagligt, som det altid har gjort.
 - En ændring af en vagtplans lag og personerne i dem, foretaget med API'et eller Terraform, meldes som én ændring: Hvem der har vagt, beregnes, når lagene ikke er blevet ændret i et halvt minut, og den, der går på eller af vagt eller er den næste, får besked én gang, ikke én gang for hvert lag eller hver person, der skrives. Tilkald går til den, lagene sætter på vagt, så snart hver ændring er gemt.
+- For at ændre på én gang, hvem der tager vagter i en vagtplans lag, som **Gem ændringer** på siden **Lag** gør, skal du læse lagene med `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` og sende dem tilbage, ændret, til `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`. De nævner hvert lag, vagtplanen beholder, det med højest prioritet først, hvert med sine personer i vagtrækkefølge: den, der allerede er i et lag, med sit `layerUserId`, den, der tilføjes, kun med `userId`. `deletedLayerIds` nævner de lag, der skal slettes.
+- En gemning skrives helt eller slet ikke, og hvem der har vagt, beregnes én gang, med det samme. En, der foretages, efter at en anden har ændret lagene, afvises med 409, fordi dens `basedOnVersion` ikke længere er lagenes: læs lagene igen, og foretag ændringen på det, der er der nu. Terraform-ressourcen `oneuptime_on_call_schedule_layers` gemmer en vagtplans lag på denne måde.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
@@ -126,6 +128,29 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
     }
+  }'
+```
+
+```bash
+curl https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/layers \
+  -H "apikey: $ONEUPTIME_API_KEY"
+
+curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule/<schedule-id>/save-layers \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "basedOnVersion": "<the version the read answered>",
+    "layers": [
+      {
+        "layerId": "<layer-id>",
+        "users": [
+          {"layerUserId": "<row-of-user-2>", "userId": "<user-id-2>"},
+          {"layerUserId": "<row-of-user-1>", "userId": "<user-id-1>"},
+          {"userId": "<user-id-4>"}
+        ]
+      }
+    ],
+    "deletedLayerIds": []
   }'
 ```
 
