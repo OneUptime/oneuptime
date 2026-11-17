@@ -46,6 +46,7 @@ import {
 } from "../../../Types/Runbook/RunbookLegacySteps";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import Toast from "../../../UI/Utils/Toast";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
@@ -295,6 +296,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // A save says so in a toast (#9120): none is left for the next test.
+  Toast.dismissAll();
   cleanup();
   jest.restoreAllMocks();
 });
@@ -826,9 +829,15 @@ describe("an SSH step's host key", () => {
     expect(
       ((await save())[0]!.config as Record<string, unknown>)["hostKey"],
     ).toBe(FINGERPRINT);
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Got it" }, WAIT),
-    );
+    // Said in the corner, with no "Saved" dialog to click away (#9120).
+    await waitFor(() => {
+      expect(
+        Toast.getToasts().map((toast: { title: string }) => {
+          return toast.title;
+        }),
+      ).toContain("Changes saved");
+    }, WAIT);
+    expect(screen.queryByRole("dialog", { name: "Saved" })).toBeNull();
     saved = null;
 
     /*
