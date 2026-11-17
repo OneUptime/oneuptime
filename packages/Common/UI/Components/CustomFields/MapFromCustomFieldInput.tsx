@@ -1,10 +1,10 @@
 import API from "../../Utils/API/API";
+import DetailListSkeleton from "../Skeleton/DetailListSkeleton";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
 import useTranslateValue from "../../Utils/Translation";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BaseModel, {
@@ -227,7 +227,7 @@ const MapFromCustomFieldInput: FunctionComponent<ComponentProps> = (
   }
 
   if (isLoading) {
-    return <ComponentLoader />;
+    return <DetailListSkeleton fields={2} columns={1} />;
   }
 
   if (loadError) {

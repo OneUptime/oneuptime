@@ -1,4 +1,5 @@
 import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
+import StatTilesSkeleton from "Common/UI/Components/Skeleton/StatTilesSkeleton";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -12,7 +13,6 @@ import { JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
@@ -143,7 +143,7 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
   }, []);
 
   if (isInitialLoading && !data) {
-    return <ComponentLoader />;
+    return <StatTilesSkeleton />;
   }
 
   const summary: JSONObject = asObject(data?.["summary"]);

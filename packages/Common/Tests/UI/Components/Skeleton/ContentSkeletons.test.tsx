@@ -25,6 +25,9 @@ import PageSkeleton, {
 import InlineValueSkeleton, {
   INLINE_VALUE_SKELETON_TEST_ID,
 } from "../../../../UI/Components/Skeleton/InlineValueSkeleton";
+import AuthPageSkeleton, {
+  AUTH_PAGE_SKELETON_TEST_ID,
+} from "../../../../UI/Components/AuthPage/AuthPageSkeleton";
 import { DETAIL_SKELETON_TEST_ID } from "../../../../UI/Components/Detail/DetailSkeleton";
 import { SKELETON_MOTION_CLASS_NAME } from "../../../../UI/Components/Skeleton/SkeletonStatus";
 
@@ -65,6 +68,11 @@ const SKELETONS: Array<{ name: string; element: ReactElement; id: string }> = [
     name: "CardListSkeleton",
     element: <CardListSkeleton />,
     id: CARD_LIST_SKELETON_TEST_ID,
+  },
+  {
+    name: "AuthPageSkeleton",
+    element: <AuthPageSkeleton />,
+    id: AUTH_PAGE_SKELETON_TEST_ID,
   },
   {
     name: "InlineValueSkeleton",
@@ -166,10 +174,9 @@ describe("TableSkeleton", () => {
     const cells: HTMLCollection = (
       screen.getAllByTestId(`${TABLE_SKELETON_TEST_ID}-row`)[0] as HTMLElement
     ).children;
-    expect(cells[0]).not.toHaveClass("hidden");
-    expect(cells[1]).not.toHaveClass("hidden");
-    expect(cells[2]).toHaveClass("hidden");
-    expect(cells[2]).toHaveClass("sm:flex");
+    expect(cells[0]).not.toHaveClass("max-sm:hidden");
+    expect(cells[1]).not.toHaveClass("max-sm:hidden");
+    expect(cells[2]).toHaveClass("max-sm:hidden");
   });
 });
 

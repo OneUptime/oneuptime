@@ -1,4 +1,5 @@
 import PageLogo from "../../Components/Logo/PageLogo";
+import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import AuthPage, {
   AUTH_PAGE_LINK_CLASS,
 } from "Common/UI/Components/AuthPage/AuthPage";
@@ -15,7 +16,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import LabelledDivider from "Common/UI/Components/Divider/LabelledDivider";
 import Link from "Common/UI/Components/Link/Link";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelList from "Common/UI/Components/ModelList/ModelList";
 import SignInOptionLink from "Common/UI/Components/SignInOption/SignInOptionLink";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -116,7 +116,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
   StatusPageUtil.rememberSignInRedirect(safeRedirectUrlForStorage);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <AuthPageSkeleton fields={1} />;
   }
 
   const hasNoProviders: boolean =

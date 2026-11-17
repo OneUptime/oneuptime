@@ -2,6 +2,7 @@ import {
   SERVICE_PROVIDER_LOGIN_OIDC_URL,
   SERVICE_PROVIDER_LOGIN_URL,
 } from "../Utils/ApiPaths";
+import AuthPageSkeleton from "Common/UI/Components/AuthPage/AuthPageSkeleton";
 import { SignInMethodsRead, useSignInMethods } from "../Utils/SignInMethods";
 import SessionEndedNotice from "../Components/SessionEndedNotice/SessionEndedNotice";
 import Route from "Common/Types/API/Route";
@@ -34,7 +35,6 @@ import React, {
 import { useTranslation } from "react-i18next";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import API from "Common/UI/Utils/API/API";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import Email from "Common/Types/Email";
@@ -271,7 +271,7 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
    * its own: never a way back to a password it may then take away.
    */
   if (signInMethodsRead.isReading || isLeaving) {
-    return <PageLoader isVisible={true} />;
+    return <AuthPageSkeleton fields={1} />;
   }
 
   const isSsoRequired: boolean = Boolean(signInMethods?.isSsoRequired);

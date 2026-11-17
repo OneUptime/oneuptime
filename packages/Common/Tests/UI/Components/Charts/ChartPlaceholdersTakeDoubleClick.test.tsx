@@ -271,15 +271,12 @@ function errorsThrownBy(gesture: () => void): Array<unknown> {
   return errors;
 }
 
-/*
- * What stands in for a chart while it loads: the chart's skeleton
- * (ChartSkeleton, #9220), or the shared bar where a chart still draws one.
- */
-const CHART_LOADER_TEST_ID: RegExp = /^(?:chart-skeleton|component-loader)$/;
+// What stands in for a chart while it loads: the chart's skeleton (#9220).
+const CHART_LOADER_TEST_ID: string = "chart-skeleton";
 
 /*
  * The loader's box: what stands where the chart will be while it loads,
- * around the spinner.
+ * around the skeleton.
  */
 function loaderBox(): HTMLElement {
   const box: HTMLElement | null =
